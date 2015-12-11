@@ -827,7 +827,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.22500289245E+01, Epot: -7.05201182941E+01, Enl:  5.31401795261E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2}, order:  1010, 
  ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  10.00, pol. deg.:  10}, 
  error estimation: [
@@ -848,7 +848,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.13568588204E+01, Epot: -6.99766597608E+01, Enl:  5.59326213670E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  1010, 
  ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  10.00, pol. deg.:  10}, 
  error estimation: [
@@ -1560,7 +1560,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.13568588204E+01, Epot: -7.83593219403E+01, Enl:  5.59326213670E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2}, order:  1010, 
  ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  10.00, pol. deg.:  10}, 
  error estimation: [
@@ -1581,7 +1581,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.83133706049E+01, Epot: -7.58597903000E+01, Enl:  5.45789577600E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  1010, 
  ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  10.00, pol. deg.:  10}, 
  error estimation: [
@@ -2276,7 +2276,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.83133706049E+01, Epot: -8.02704714264E+01, Enl:  5.45789577600E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2}, order:  1010, 
  ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  10.00, pol. deg.:  10}, 
  error estimation: [
@@ -2297,7 +2297,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.66206065948E+01, Epot: -7.88802622070E+01, Enl:  5.44253327414E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  1010, 
  ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  10.00, pol. deg.:  10}, 
  error estimation: [
@@ -2830,7 +2830,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.66206065948E+01, Epot: -8.08758835681E+01, Enl:  5.44253327414E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2}, order:  1010, 
  ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  10.00, pol. deg.:  10}, 
  error estimation: [
@@ -2852,7 +2852,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.58284309017E+01, Epot: -8.02192796648E+01, Enl:  5.47011593302E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  1010, 
  ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  10.00, pol. deg.:  10}, 
  error estimation: [
@@ -3429,7 +3429,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.58284309017E+01, Epot: -8.09933971342E+01, Enl:  5.47011593302E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2}, order:  1010, 
  ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  10.00, pol. deg.:  10}, 
  error estimation: [
@@ -3451,7 +3451,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.54048612498E+01, Epot: -8.06337836916E+01, Enl:  5.48866063675E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  1010, 
  ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  10.00, pol. deg.:  10}, 
  error estimation: [

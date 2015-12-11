@@ -886,7 +886,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           ratio_deltas,ortho_on,input%lin%extra_states,0,input%lin%convCrit_extendedIG,&
           input%experimental_mode,input%lin%early_stop,&
           input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
-          can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
+          can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, &
           input%correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
           wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)

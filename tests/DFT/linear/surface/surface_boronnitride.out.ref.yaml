@@ -1144,7 +1144,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.00228208660E+02, Epot: -7.49770072479E+02, Enl:  9.81160825174E+01}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2}, order:  1020, 
  ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [
@@ -1172,7 +1172,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.85490596303E+02, Epot: -7.50187371053E+02, Enl:  9.93916093482E+01}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  1020, 
  ICE: {eval bounds:  [  0.50,  1.50 ], mult.:  20.00, pol. deg.:  20}, 
  error estimation: [

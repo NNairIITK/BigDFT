@@ -953,7 +953,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  6.19078973103E+01, Epot: -6.91480772265E+01, Enl:  5.82420767668E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2}, order:  6, 
  error estimation: [
  max / mean error:  [  5.55E-16,  3.98E-17 ]]}, 
@@ -972,7 +972,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  6.16838544486E+01, Epot: -6.87775166189E+01, Enl:  5.69274497384E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  2.55E-12,  4.58E-13 ], 
@@ -1251,7 +1251,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  6.16838544486E+01, Epot: -7.10632898183E+01, Enl:  5.69274497384E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2}, order:  6, 
  error estimation: [
  max / mean error:  [  2.55E-12,  4.58E-13 ]]}, 
@@ -1270,7 +1270,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  6.06351759908E+01, Epot: -7.00762545001E+01, Enl:  5.56157344833E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  8.5E-11,  1.49E-11 ], 
@@ -1576,7 +1576,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  6.06351759908E+01, Epot: -7.17305986233E+01, Enl:  5.56157344833E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2}, order:  6, 
  error estimation: [
  max / mean error:  [  8.5E-11,  1.49E-11 ]]}, 
@@ -1595,7 +1595,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  6.03176757377E+01, Epot: -7.14569781251E+01, Enl:  5.55796411027E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  4.06E-10,  6.42E-11 ], 
@@ -1612,7 +1612,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  5.99380472377E+01, Epot: -7.10678976467E+01, Enl:  5.51603663923E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2, x: -1/2, x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  1.86E-09,  2.66E-10 ], 
@@ -1834,7 +1834,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  5.99380472377E+01, Epot: -7.18845709753E+01, Enl:  5.51603663923E+00}, 
  Orthoconstraint:  Yes, 
- kernel update by FOE: [
+ kernel update by renormalization: [
  calculate S^x: {mode: sparse, powers: {x: 1/2}, order:  6, 
  error estimation: [
  max / mean error:  [  1.86E-09,  2.66E-10 ]]}, 

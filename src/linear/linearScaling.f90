@@ -619,7 +619,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                   ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
                   input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
                   can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
-                  input%method_updatekernel,&
                   input%correction_co_contra, &
                   precond_convol_workarrays, precond_workarrays, &
                   wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation, &
@@ -633,7 +632,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                   ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
                   input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
                   can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
-                  input%method_updatekernel,&
                   input%correction_co_contra, precond_convol_workarrays, precond_workarrays, &
                   wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)
               !if (iproc==0) call yaml_scalar('call boundary analysis')
@@ -2875,10 +2873,7 @@ end if
            end if
            ! Check whether the overlap matrix must be calculated and inverted (otherwise it has already been done)
            calculate_overlap = ((update_phi .and. .not.input%correction_co_contra))! .or. cur_it_highaccuracy==1)
-           invert_overlap_matrix = (.not.(target_function==TARGET_FUNCTION_IS_HYBRID .and. &
-                                     (input%method_updatekernel==UPDATE_BY_FOE .or. &
-                                    input%method_updatekernel==UPDATE_BY_RENORMALIZATION)) .and. &
-                                    it_scc==1)
+           invert_overlap_matrix = (.not.target_function==TARGET_FUNCTION_IS_HYBRID .and. it_scc==1)
                                     !cur_it_highaccuracy==1)
            !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
            if(update_phi .and. can_use_ham) then! .and. info_basis_functions>=0) then

@@ -637,7 +637,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-    gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
+    gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, &
     correction_co_contra, &
     precond_convol_workarrays, precond_workarrays, &
     wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
@@ -701,7 +701,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, min_gnrm_for_dynamic, kappa_conv
   logical,intent(in) :: experimental_mode
   logical,intent(out) :: can_use_ham
-  integer,intent(in) :: method_updatekernel
   logical,intent(in) :: correction_co_contra
   type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
   type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
@@ -741,7 +740,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           energy_increased, tmb, lhphiold, overlap_calculated, &
           energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
           hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
-          norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
+          norder_taylor, max_inversion_error, precond_convol_workarrays, precond_workarrays,&
           wt_hphi, wt_philarge, wt_hpsinoprecond, &
           cdft, input_frag, ref_frags)
        use module_defs, only: gp,dp,wp
@@ -752,7 +751,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
        use constrained_dft, only: cdft_data
        use module_fragments, only: system_fragment,fragmentInputParameters
        implicit none
-       integer, intent(in) :: iproc, nproc, it, method_updatekernel
+       integer, intent(in) :: iproc, nproc, it
        integer,intent(inout) :: norder_taylor
        real(kind=8),intent(in) :: max_inversion_error
        type(DFT_wavefunction), target, intent(inout):: tmb
@@ -1026,57 +1025,33 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          if (method_updatekernel==UPDATE_BY_FOE .or. method_updatekernel==UPDATE_BY_RENORMALIZATION) then
-              if (method_updatekernel==UPDATE_BY_FOE) then
-                  call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-                       TRANSPOSE_FULL, tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
-                  call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-                       TRANSPOSE_GATHER, hpsi_tmp, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
-                  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-                       tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
-                  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
-                  tmb%ham_descr%can_use_transposed=.true.
-              else
-                  tmb%ham_descr%can_use_transposed=.false.
-              end if
-              do ispin=1,tmb%linmat%s%nspin
-                  call vcopy(tmb%linmat%s%nvctrp_tg, &
-                       tmb%linmat%ovrlp_%matrix_compr((ispin-1)*tmb%linmat%s%isvctrp_tg+1), 1, &
-                       ovrlp_old%matrix_compr((ispin-1)*tmb%linmat%s%nvctrp_tg+1), 1)
-              end do
-              call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
-                   tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-              !!write(*,*) 'calling FOE: sums(ovrlp)', &
-              !!    sum(tmb%linmat%ovrlp_%matrix_compr(1:tmb%linmat%s%nvctr)), sum(tmb%linmat%ovrlp_%matrix_compr(tmb%linmat%s%nvctr+1:2*tmb%linmat%s%nvctr))
-              if (iproc==0) call yaml_newline()
-              if (iproc==0) call yaml_sequence_open('kernel update by FOE')
-              if (method_updatekernel==UPDATE_BY_RENORMALIZATION) then
-                  if (it==1 .or. energy_increased .or. .not.experimental_mode) then
-                      ! Calculate S^1/2, as it can not be taken from memory
-                      call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
-                           imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-                           ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
-                           check_accur=.true., max_error=max_error, mean_error=mean_error)
-                      call check_taylor_order(mean_error, max_inversion_error, order_taylor)
-                  end if
-                  call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
-              else if (method_updatekernel==UPDATE_BY_FOE) then
-                  call fermi_operator_expansion(iproc, nproc, 0.d0, &
-                       energs%ebs, order_taylor, max_inversion_error, &
-                       .true., 0, FOE_FAST, &
-                       trim(adjustl(yaml_toa(1,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(-10,fmt='(i3.3)'))), &
-                       tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
-                       tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, tmb%foe_obj)
-              end if
-              if (iproc==0) call yaml_sequence_close()
+          tmb%ham_descr%can_use_transposed=.false.
+          do ispin=1,tmb%linmat%s%nspin
+              call vcopy(tmb%linmat%s%nvctrp_tg, &
+                   tmb%linmat%ovrlp_%matrix_compr((ispin-1)*tmb%linmat%s%isvctrp_tg+1), 1, &
+                   ovrlp_old%matrix_compr((ispin-1)*tmb%linmat%s%nvctrp_tg+1), 1)
+          end do
+          call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
+               tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+          if (iproc==0) call yaml_newline()
+          if (iproc==0) call yaml_sequence_open('kernel update by renormalization')
+          if (it==1 .or. energy_increased .or. .not.experimental_mode) then
+              ! Calculate S^1/2, as it can not be taken from memory
+              call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
+                   imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+                   ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
+                   check_accur=.true., max_error=max_error, mean_error=mean_error)
+              call check_taylor_order(mean_error, max_inversion_error, order_taylor)
           end if
+          call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
+          if (iproc==0) call yaml_sequence_close()
       else
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                TRANSPOSE_GATHER, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
       end if
 
       ! Gather the data in case it has not been done before
-      if (target_function==TARGET_FUNCTION_IS_HYBRID .and. method_updatekernel/=UPDATE_BY_FOE) then
+      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                TRANSPOSE_GATHER, hpsi_tmp, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
       end if
@@ -1117,7 +1092,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! use hpsi_tmp as temporary array for hpsi_noprecond, even if it is allocated with a larger size
       !write(*,*) 'calling calc_energy_and.., correction_co_contra',correction_co_contra
-      calculate_inverse = (target_function/=TARGET_FUNCTION_IS_HYBRID .or. method_updatekernel/=UPDATE_BY_RENORMALIZATION)
+      calculate_inverse = (target_function/=TARGET_FUNCTION_IS_HYBRID)
       !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, &
            fnrm_old, alpha, trH, trH_old, fnrm, &
@@ -1125,7 +1100,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &
            experimental_mode, calculate_inverse, &
            correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
-           max_inversion_error=max_inversion_error, method_updatekernel=method_updatekernel, &
+           max_inversion_error=max_inversion_error, &
            precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays, &
            wt_hphi=wt_hphi, wt_philarge=wt_philarge, wt_hpsinoprecond=wt_hpsinoprecond,&
            cdft=cdft, input_frag=input_frag, ref_frags=ref_frags)
@@ -1417,21 +1392,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                    tmb%orthpar%blocksize_pdgemm, orbs, tmb, overlap_calculated)
               if (iproc==0) call yaml_map('reconstruct kernel',.true.)
           else if (experimental_mode .and. .not.complete_reset) then
-              if (method_updatekernel==UPDATE_BY_PURIFICATION) then
-                  call f_err_throw('kernel update by purification is deprecated',err_name='BIGDFT_RUNTIME_ERROR')
-                  !if (iproc==0) then
-                  !    call yaml_map('purify kernel',.true.)
-                  !    call yaml_newline()
-                  !end if
-                  !do ispin=1,tmb%linmat%l%nspin
-                  !    call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, &
-                  !         order_taylor, max_inversion_error, purification_quickreturn, ispin)
-                  !end do
-              else if (method_updatekernel==UPDATE_BY_FOE) then
-                  if (iproc==0) then
-                      call yaml_map('purify kernel',.false.)
-                  end if
-              end if
           end if
       end if
 

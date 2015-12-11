@@ -1357,13 +1357,6 @@
    evboundsshrink_nsatur:
      COMMENT: maximal number of unsuccessful eigenvalue bounds shrinkings
      default: 4
-   method_updatekernel:
-     COMMENT: linear scaling update density kernel during the sup. func. optimization (0 purification, 1 FOE, 2 renormalization)
-     default: 0
-     EXCLUSIVE:
-       0: purification
-       1: FOE
-       2: renormalization
    adjust_FOE_temperature:
      COMMENT: linear scaling dynamic adjustment of the decay length of the FOE error function
      default: Yes
@@ -1966,7 +1959,6 @@ linear_accurate:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    method_updatekernel: 2
     purification_quickreturn: Yes
     correction_co_contra: Yes
     #check_sumrho: 1
@@ -2003,7 +1995,6 @@ linear_moderate:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    method_updatekernel: 2
     purification_quickreturn: Yes
     correction_co_contra: Yes
   lin_general:
@@ -2035,7 +2026,6 @@ linear_fast:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    method_updatekernel: 2
     purification_quickreturn: Yes
     correction_co_contra: Yes
   lin_general:
@@ -2097,7 +2087,6 @@ linear:
    check_overlap: 1
    experimental_mode: Yes
    calculate_KS_residue: No
-   method_updatekernel: 2
    purification_quickreturn: Yes
    check_matrix_compression: No
    correction_co_contra: Yes
