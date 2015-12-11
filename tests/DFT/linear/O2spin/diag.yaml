@@ -17,7 +17,6 @@
    ef_interpol_chargediff: 1.0
    check_sumrho: 1
    calculate_KS_residue: No
-   method_updatekernel: 2
    check_matrix_compression: No
    correction_co_contra: Yes
    foe_gap: yes

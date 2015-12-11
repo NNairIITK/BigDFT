@@ -88,7 +88,6 @@
  perf:
    ef_interpol_det                     : 1.e-10 # FOE max determinant of cubic interpolation matrix
    ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
-   method_updatekernel                 : 2 #      linear scaling update density kernel during the sup. func. optimization (0 
     #                                              purification, 1 FOE, 2 renormalization)
    check_matrix_compression            : No #     linear scaling perform a check of the matrix compression routines
    correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient

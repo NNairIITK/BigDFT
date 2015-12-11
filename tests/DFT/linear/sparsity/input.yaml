@@ -18,7 +18,6 @@
    kappa_conv: 0.5
    evbounds_nsatur: 100
    correction_co_contra: Yes
-   method_updatekernel: 2
  lin_general:
    hybrid: Yes
    nit: 1

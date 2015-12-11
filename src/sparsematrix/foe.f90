@@ -12,7 +12,7 @@ module foe
     subroutine fermi_operator_expansion(iproc, nproc, tmprtr, &
                ebs, order_taylor, max_inversion_error, &
                calculate_minusonehalf, foe_verbosity, &
-               accuracy_level, label, smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj)
+               label, smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj)
       use module_base
       use yaml_output
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
@@ -40,7 +40,6 @@ module foe
       real(kind=8),intent(out) :: ebs
       logical,intent(in) :: calculate_minusonehalf
       integer,intent(in) :: foe_verbosity
-      integer,intent(in) :: accuracy_level
       character(len=*),intent(in) :: label
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
       type(matrices),intent(inout) :: ham_, ovrlp_
@@ -97,10 +96,6 @@ module foe
     
       if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='~')
     
-      if (accuracy_level/=FOE_ACCURATE .and. accuracy_level/=FOE_FAST) then
-          stop 'wrong value of accuracy_level'
-      end if
-    
     
       call timing(iproc, 'FOE_auxiliary ', 'ON')
     
@@ -151,19 +146,9 @@ module foe
           evbounds_shrinked=.false.
       end if
     
-      ! This is to distinguish whether the routine is called from get_coeff of
-      ! getLocBasis, to be improved.
-      if (accuracy_level==FOE_ACCURATE) then
-          ntemp = NTEMP_ACCURATE
-          degree_multiplicator = DEGREE_MULTIPLICATOR_ACCURATE
-          temp_multiplicator = TEMP_MULTIPLICATOR_ACCURATE
-      else if (accuracy_level==FOE_FAST) then
-          ntemp = NTEMP_FAST
-          degree_multiplicator = DEGREE_MULTIPLICATOR_FAST
-          temp_multiplicator = TEMP_MULTIPLICATOR_FAST
-      else
-          stop 'wrong value of accuracy_level'
-      end if
+      ntemp = NTEMP_ACCURATE
+      degree_multiplicator = DEGREE_MULTIPLICATOR_ACCURATE
+      temp_multiplicator = TEMP_MULTIPLICATOR_ACCURATE
     
       fscale_new=1.d100
     
