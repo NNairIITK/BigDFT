@@ -660,8 +660,6 @@ module overlap_point_to_point
  !      real(wp), dimension(OP2P%ndim,norbp), intent(in) :: psir
        type(local_data), intent(inout) :: phi
        !local variables
-       integer(f_address) :: tmpint
-       type(c_ptr) :: tmpaddr
        integer :: igroup,dest,source,count,igr,iobj_local,jshift
        integer :: norbp!,norbp_max
 
@@ -721,8 +719,6 @@ module overlap_point_to_point
        type(OP2P_data), intent(inout) :: OP2P
        type(local_data), intent(inout) :: phi 
        integer :: norbp!,norbp_max
-       integer(f_address) :: tmpint
-       type(c_ptr) :: tmpaddr
       ! real(wp), dimension(OP2P%ndim,norbp) :: dpsir
 
        !real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup,3), intent(inout) :: dpsiw

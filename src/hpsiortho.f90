@@ -520,7 +520,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
    logical :: exctX,op2p_flag, symmetric
-   integer :: n3p,ispot,ipotmethod,ngroup,prc,nspin,isorb,jproc,ndim,norbp,igpu
+   integer :: n3p,ispot,ipotmethod,ngroup,prc,nspin,isorb,jproc,ndim,norbp,igpu,i_stat
    real(gp) :: evsic_tmp, ekin, epot,sfac,maxdiff
    real(f_double) :: tel,trm
    type(coulomb_operator) :: pkernelSIC
@@ -684,6 +684,12 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
                end if
             end do OP2P_exctx_loop
 
+            !we need to get the result back from the card (and synchronize with it, finally)
+            if(pkernel%igpu==1 .and. pkernel%stay_on_gpu==1) then
+              call get_gpu_data(1, energs%eexctX, pkernel%w%eexctX_GPU )
+              call cudamemset(pkernel%w%eexctX_GPU,0,1,i_stat)
+              if (i_stat /= 0) call f_err_throw('error cudamalloc eexctX_GPU (GPU out of memory ?) ')
+            end if 
             call free_OP2P_data(OP2P)
             if (nproc>1) call mpiallred(energs%eexctX,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
             !the exact exchange energy is half the Hartree energy (which already has another half)

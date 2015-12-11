@@ -174,7 +174,7 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
         call cudafree(kernel%w%work1_GPU)
         call cudafree(kernel%w%work2_GPU)
      endif
-     call synchronize()
+!     call synchronize()
      call f_timing(TCAT_PSOLV_COMPUT,'OF')
   endif
 
@@ -233,10 +233,16 @@ subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
      call unpad_data( kernel%w%work2_GPU, kernel%w%work1_GPU, m1,&
           m3p,m2, md1, md3p,md2);
 
-     call finalize_reduction_kernel(sumpion,m1,m2*m3p,md1,md2*md3p, kernel%w%work2_GPU, kernel%w%rho_GPU, kernel%w%pot_ion_GPU, eh)
-        if(kernel%stay_on_gpu /= 1) then
-     call get_gpu_data(m1*m2*m3p,pot,kernel%w%rho_GPU)
-      end if
+
+     if(kernel%stay_on_gpu /= 1) then
+       call finalize_reduction_kernel(sumpion,m1,m2*m3p,md1,md2*md3p, kernel%w%work2_GPU,&
+             kernel%w%rho_GPU, kernel%w%pot_ion_GPU, kernel%w%reduc_GPU, eh,1)
+       call get_gpu_data(m1*m2*m3p,pot,kernel%w%rho_GPU)
+     else
+       !delay results retrieval to after communications have been finished
+       call finalize_reduction_kernel(sumpion,m1,m2*m3p,md1,md2*md3p, kernel%w%work2_GPU, &
+             kernel%w%rho_GPU, kernel%w%pot_ion_GPU, kernel%w%reduc_GPU, kernel%w%ehart_GPU,0)
+     end if
 
   else
      !recollect the final data

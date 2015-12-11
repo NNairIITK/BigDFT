@@ -1397,7 +1397,7 @@ reduction sample code from Nvidia)
 */
 template <comp_and_red_op op1, red_op op2>
 void apply_reduction(int n,
-          Real* p_GPU, Real* q_GPU, Real* r_GPU, Real* x_GPU, Real* z_GPU, Real* corr_GPU, Real* oneoeps_GPU, Real* alpha_GPU, Real* beta_GPU, Real* beta0_GPU, Real* kappa_GPU, Real* result) {
+          Real* p_GPU, Real* q_GPU, Real* r_GPU, Real* x_GPU, Real* z_GPU, Real* corr_GPU, Real* oneoeps_GPU, Real* alpha_GPU, Real* beta_GPU, Real* beta0_GPU, Real* kappa_GPU,Real* d_odata, Real* result, int retrieve) {
     int maxThreads=256;
     int maxBlocks=64;
     int blocks=0;
@@ -1430,9 +1430,9 @@ void apply_reduction(int n,
     blocks = min(maxBlocks, blocks);
 
 
-    Real *d_odata = NULL;
-    cudaMalloc((void **) &d_odata, blocks*sizeof(Real));
-    gpuErrchk( cudaPeekAtLastError() );
+//    Real *d_odata = NULL;
+//    cudaMalloc((void **) &d_odata, blocks*sizeof(Real));
+//    gpuErrchk( cudaPeekAtLastError() );
     //first reduction
     //cudaDeviceSynchronize();
     reduce_step<op1, op2>(n, threads, blocks, 0,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
@@ -1459,48 +1459,51 @@ void apply_reduction(int n,
         gpuErrchk( cudaPeekAtLastError() );
         s = (s + (threads*2-1)) / (threads*2);
     }
-
-  //TODO: move result copy to user code ?
-  cudaMemcpy(result, d_odata, sizeof(Real), cudaMemcpyDeviceToHost);
+  if(retrieve != 0){
+    cudaMemcpy(result, d_odata, sizeof(Real), cudaMemcpyDeviceToHost);
+  }else{
   gpuErrchk( cudaPeekAtLastError() );
-  cudaFree(d_odata);
-  cudaDeviceSynchronize();
+    //for this one the value will be kept on the card, accumulation will be performed later
+    cudaMemcpy(*(Real**)result, d_odata, sizeof(Real), cudaMemcpyDeviceToDevice);
+  }
+  gpuErrchk( cudaPeekAtLastError() );
+//  cudaFree(d_odata);
 }
 
 //these will be called from fortran, and apply the reduction with the right subkernels
 
 extern "C" void FC_FUNC_(first_reduction_kernel, FIRST_REDUCTION_KERNEL)(int* n1, int* n23,
-          Real** p_GPU, Real** q_GPU, Real** r_GPU, Real** x_GPU, Real** z_GPU, Real** corr_GPU, Real** oneoeps_GPU, Real** alpha_GPU, Real** beta_GPU, Real** beta0_GPU, Real** kappa_GPU, Real* result) {
+          Real** p_GPU, Real** q_GPU, Real** r_GPU, Real** x_GPU, Real** z_GPU, Real** corr_GPU, Real** oneoeps_GPU, Real** alpha_GPU, Real** beta_GPU, Real** beta0_GPU, Real** kappa_GPU, Real** d_odata, Real* result) {
 
     int n=(*n1) * (*n23);
-    apply_reduction<kern1_comp_and_red, kern1_red>(n, *p_GPU, *q_GPU, *r_GPU, *x_GPU, *z_GPU, *corr_GPU, *oneoeps_GPU, *alpha_GPU, *beta_GPU, *beta0_GPU, *kappa_GPU, result);
+    apply_reduction<kern1_comp_and_red, kern1_red>(n, *p_GPU, *q_GPU, *r_GPU, *x_GPU, *z_GPU, *corr_GPU, *oneoeps_GPU, *alpha_GPU, *beta_GPU, *beta0_GPU, *kappa_GPU, *d_odata, result,1);
 
 }
 
 extern "C" void FC_FUNC_(second_reduction_kernel, SECOND_REDUCTION_KERNEL)(int* n1, int* n23,
-          Real** p_GPU, Real** q_GPU, Real** r_GPU, Real** x_GPU, Real** z_GPU, Real** corr_GPU, Real** oneoeps_GPU, Real** alpha_GPU, Real** beta_GPU, Real** beta0_GPU, Real** kappa_GPU, Real* result) {
+          Real** p_GPU, Real** q_GPU, Real** r_GPU, Real** x_GPU, Real** z_GPU, Real** corr_GPU, Real** oneoeps_GPU, Real** alpha_GPU, Real** beta_GPU, Real** beta0_GPU, Real** kappa_GPU, Real** d_odata, Real* result) {
 
     int n=(*n1) * (*n23);
-    apply_reduction<kern2_comp_and_red, kern1_red>(n, *p_GPU, *q_GPU, *r_GPU, *x_GPU, *z_GPU, *corr_GPU, *oneoeps_GPU, *alpha_GPU, *beta_GPU, *beta0_GPU, *kappa_GPU, result);
+    apply_reduction<kern2_comp_and_red, kern1_red>(n, *p_GPU, *q_GPU, *r_GPU, *x_GPU, *z_GPU, *corr_GPU, *oneoeps_GPU, *alpha_GPU, *beta_GPU, *beta0_GPU, *kappa_GPU, *d_odata, result,1);
 
 }
 
 extern "C" void FC_FUNC_(third_reduction_kernel, THIRD_REDUCTION_KERNEL)(int* n1, int* n23,
-          Real** p_GPU, Real** q_GPU, Real** r_GPU, Real** x_GPU, Real** z_GPU, Real** corr_GPU, Real** oneoeps_GPU, Real** alpha_GPU, Real** beta_GPU, Real** beta0_GPU, Real** kappa_GPU, Real* result) {
+          Real** p_GPU, Real** q_GPU, Real** r_GPU, Real** x_GPU, Real** z_GPU, Real** corr_GPU, Real** oneoeps_GPU, Real** alpha_GPU, Real** beta_GPU, Real** beta0_GPU, Real** kappa_GPU, Real** d_odata, Real* result) {
 
     int n=(*n1) * (*n23);
-    apply_reduction<kern3_comp_and_red, kern1_red>(n, *p_GPU, *q_GPU, *r_GPU, *x_GPU, *z_GPU, *corr_GPU, *oneoeps_GPU, *alpha_GPU, *beta_GPU, *beta0_GPU, *kappa_GPU, result);
+    apply_reduction<kern3_comp_and_red, kern1_red>(n, *p_GPU, *q_GPU, *r_GPU, *x_GPU, *z_GPU, *corr_GPU, *oneoeps_GPU, *alpha_GPU, *beta_GPU, *beta0_GPU, *kappa_GPU, *d_odata, result,1);
 
 }
 
 extern "C" void FC_FUNC_(finalize_reduction_kernel, THIRD_REDUCTION_KERNEL)(int* sumpion, int* n1, int* n23,int* m1, int* m23,
-          Real** zf_GPU, Real** rho_GPU, Real** pot_ion_GPU, Real* result) {
+          Real** zf_GPU, Real** rho_GPU, Real** pot_ion_GPU, Real** d_odata, Real* result,int* retrieve) {
 
     int n=(*n1) * (*n23);
 if(!*sumpion)
-    apply_reduction<kern_finalize_and_red, kern1_red>(n, *zf_GPU, *rho_GPU, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, result);
+    apply_reduction<kern_finalize_and_red, kern1_red>(n, *zf_GPU, *rho_GPU, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, *d_odata, result,*retrieve);
 else
-    apply_reduction<kern_finalize_and_red_sumpion, kern1_red>(n, *zf_GPU, *rho_GPU, *pot_ion_GPU, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, result);
+    apply_reduction<kern_finalize_and_red_sumpion, kern1_red>(n, *zf_GPU, *rho_GPU, *pot_ion_GPU, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, *d_odata, result,*retrieve);
 
 }
 
@@ -1536,8 +1539,8 @@ extern "C" void FC_FUNC_(gpu_pre_computation,GPU_PRE_COMPUTATION)(int* NX_p, int
    int nThreads = NX;
    dim3 nBlocks(NY,NZ,1);
    pre_computation_kernel <<< nBlocks, nThreads >>> (NX,NY,NZ,*rho_GPU, *data1_GPU,*shift1,*data2_GPU,*shift2,*hfac);
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
+ // cudaDeviceSynchronize();
+ // gpuErrchk( cudaPeekAtLastError() );
 }
 
 __global__ void post_computation_kernel(int nx, int ny, int nz,  Real *rho, Real *data1, int shift1,Real *data2,int shift2, Real hfac) {
@@ -1570,8 +1573,24 @@ extern "C" void FC_FUNC_(gpu_post_computation,GPU_POST_COMPUTATION)(int* NX_p, i
 
    post_computation_kernel <<< nBlocks, nThreads >>> (NX,NY,NZ,*rho_GPU, *data1_GPU,*shift1,*data2_GPU,*shift2,*hfac);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
+//  cudaDeviceSynchronize();
+ // gpuErrchk( cudaPeekAtLastError() );
+}
+
+__global__ void accumulate_eexctX_kernel(Real* ehart_GPU, Real* eexctX_GPU, Real hfac) {
+
+ if(threadIdx.x==0){
+    *eexctX_GPU=*eexctX_GPU+*ehart_GPU*hfac;
+  };
+}
+
+
+extern "C" void FC_FUNC_(gpu_accumulate_eexctx,GPU_ACCUMULATE_EEXCTX)(Real** ehart_GPU, Real** eexctX_GPU, Real* hfac){
+
+   accumulate_eexctX_kernel <<< 1, 1 >>> (*ehart_GPU, *eexctX_GPU,*hfac);
+
+//  cudaDeviceSynchronize();
+ // gpuErrchk( cudaPeekAtLastError() );
 }
 
 

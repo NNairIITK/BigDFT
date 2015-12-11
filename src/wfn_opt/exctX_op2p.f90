@@ -316,7 +316,6 @@ subroutine exctx_post_computation(orb1, orb2, rp_ij, phi1, phi2, pkernel, norb, 
 
 
   orb2_glb=phi2%id_glb(orb2)
-  hfac1=-factor*occup(orb2_glb)
 
   shift1_res=phi1%displ_res(orb1)
   shift2=phi2%displ(orb2)
@@ -344,6 +343,64 @@ myrho_GPU=0
   !$omp end parallel do
   end if
 end subroutine exctx_post_computation
+
+subroutine exctx_accum_eexctX(orb1, orb2, phi1, phi2, pkernel, norb, occup, factor, remote_result, istep, ehart, eexctX)
+  use module_defs, only: wp
+  use f_precisions, only: f_address
+  use overlap_point_to_point
+  use dictionaries, only: f_err_throw
+  use Poisson_Solver
+  use wrapper_MPI
+  use iso_c_binding
+  implicit none
+  type(coulomb_operator), intent(inout) :: pkernel
+  type(local_data), intent(inout) :: phi1,phi2
+  integer, intent(in) :: norb
+  real(gp), dimension(norb), intent(in) :: occup
+  real(gp), intent(in) :: factor,ehart
+  real(gp) :: hfac2
+  real(gp), pointer ::sendbuf
+  integer :: orb1,orb2,orb2_glb,orb1_glb, istep
+  real(gp), intent(inout) :: eexctX
+  logical, intent(in) :: remote_result
+  type(c_ptr)::val
+  
+  orb1_glb=phi1%id_glb(orb1)
+  orb2_glb=phi2%id_glb(orb2)
+  !this factor is only valid with one k-point
+  !can be easily generalised to the k-point case
+  hfac2=factor*occup(orb1_glb)*occup(orb2_glb)
+
+  if(pkernel%igpu==1 .and. pkernel%stay_on_gpu==1) then
+    !this part is usually computed at the end of h_potential
+    hfac2=hfac2*0.5_dp*product(pkernel%hgrids) 
+!    val = TRANSFER(pkernel%w%ehart_GPU, C_NULL_PTR)
+!    call c_f_pointer(val, sendbuf)
+!    call mpiallred(sendbuf,1,MPI_SUM,comm=pkernel%mpi_env%mpi_comm)
+    if (orb1_glb == orb2_glb) then
+      call gpu_accumulate_eexctX(pkernel%w%ehart_GPU, pkernel%w%eexctX_GPU, hfac2)
+    else
+      !if the result has to be sent away
+       if (remote_result .or. istep==0) then
+         call gpu_accumulate_eexctX(pkernel%w%ehart_GPU, pkernel%w%eexctX_GPU, 2.0_gp*hfac2)
+       else !otherwise other processors are already calculating it
+         call gpu_accumulate_eexctX(pkernel%w%ehart_GPU, pkernel%w%eexctX_GPU, hfac2)
+       end if
+    end if
+  else
+        !exact exchange energy
+        if (orb1_glb == orb2_glb) then
+           eexctX=eexctX+hfac2*real(ehart,gp)
+        else
+           !if the result has to be sent away
+           if (remote_result .or. istep==0) then
+              eexctX=eexctX+2.0_gp*hfac2*real(ehart,gp)
+           else !otherwise other processors are already calculating it
+              eexctX=eexctX+hfac2*real(ehart,gp)
+           end if
+        end if
+  end if
+end subroutine
 
 subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,remote_result,&
      nloc_i,nloc_j,isloc_i,isloc_j,&
@@ -374,9 +431,9 @@ subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,re
 !!$     iorb=
 
   ndim=product(pkernel%ndims)
-!  if(pkernel%igpu==1 .and. pkernel%stay_on_gpu == 1 .and. istep ==0) then
-!    call reset_gpu_data(ndim,rp_ij,pkernel%w%rho_GPU)
-!  end if 
+  if(pkernel%igpu==1 .and. pkernel%stay_on_gpu /= 1) then
+    call synchronize()
+ end if
   do iorb=isloc_i,nloc_i+isloc_i-1
   do jorb=isloc_j,nloc_j+isloc_j-1
      !aliasing
@@ -410,21 +467,7 @@ subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,re
         call H_potential('D',pkernel,rp_ij,rp_ij,ehart,0.0_dp,.false.,&
              quiet='YES')
 
-        !this factor is only valid with one k-point
-        !can be easily generalised to the k-point case
-        hfac2=factor*occup(iorb_glb)*occup(jorb_glb)
-
-        !exact exchange energy
-        if (iorb_glb == jorb_glb) then
-           eexctX=eexctX+hfac2*real(ehart,gp)
-        else
-           !if the result has to be sent away
-           if (remote_result .or. istep==0) then
-              eexctX=eexctX+2.0_gp*hfac2*real(ehart,gp)
-           else !otherwise other processors are already calculating it
-              eexctX=eexctX+hfac2*real(ehart,gp)
-           end if
-        end if
+        call exctx_accum_eexctX(iorb, jorb, phi_i, phi_j, pkernel, norb,occup,factor,remote_result,istep, ehart, eexctX)
 
         !accumulate the results for each of the wavefunctions concerned
         call exctx_post_computation(iorb, jorb, rp_ij, phi_i, phi_j, pkernel, norb, occup,factor)
