@@ -945,7 +945,7 @@ experimentalfoe_long:
  ebs: 2.1e-9
  relative diff: 3.3e-11
  Energy (Hartree): 4.6e-10
- trace(KS): 1.8e-11
+ trace(KS): 1.9e-11
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -971,6 +971,9 @@ experimentalfoe_short:
  D: 1.1e-4
  decay length of error function: 1.1e-5
  Energy (Hartree): 6.1e-11
+ ebs: 4.0e-11
+ ebs_check: 3.9e-11
+ trace(KS): 1.5e-11
 
 experimentalfoe_medium:
  charge diff: 2.5e-7
@@ -1173,6 +1176,7 @@ DIIShistory:
  Max deviation from unity in reorthonormalize_coeff: 1.1e-9
  Energy (Hartree): 1.3e-10
  Force Norm (Hartree/Bohr): 1.79e-10
+ mean conf prefac: 1.0e-04
 
 sparsity:
  Total charge: 1.1e-10
@@ -1194,6 +1198,7 @@ sparsity:
  diff: 1.1e-9
  D Tr: 1.1e-10
  Energy (Hartree): 9.6e-10
+ Force Norm (Hartree/Bohr): 1.2e-11
 
 PBE_densmixlin:
  Ekin: 1.1e-10
@@ -1804,7 +1809,7 @@ igortho_44:
  energy: 7.1e-07
  Omega: 3.0e-10
  Charge analysis (charge / net charge): 1.6e-6
- Pseudo Fermi level for occupations: 2.48e-6
+ Pseudo Fermi level for occupations: 2.8e-6
  net charge: 1.1e-5
  eval: 1.1e-4
  Multipole coefficients: 1.4e-6
@@ -1815,7 +1820,7 @@ igortho_44:
  delta: 1.1e-10
  #radius for normalization: 1.1e-1
  Tolerance for the following test: 1.01e-10
- Force Norm (Hartree/Bohr): 7.9e-7
+ Force Norm (Hartree/Bohr): 9.3e-7
  Unitary check of the multipole calculations: 1.0e-2
  Multipole coefficients: 1.6e-6
  Keys to ignore:
