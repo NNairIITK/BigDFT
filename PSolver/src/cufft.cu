@@ -120,7 +120,7 @@ inline void __cublasAssert(cublasStatus_t code, const char *file, const int line
 // synchronize blocks
 extern "C" void synchronize_() {
  
-  cudaDeviceSynchronize();
+  cudaStreamSynchronize(stream1);
 }
 
 

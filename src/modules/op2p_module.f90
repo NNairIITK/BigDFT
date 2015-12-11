@@ -731,6 +731,7 @@ module overlap_point_to_point
        if (OP2P%nres_comms > 0) then
           !verify that the messages have been passed
           call mpiwaitall(OP2P%nres_comms,OP2P%requests_res)
+          if(OP2P%gpudirect == 1) call synchronize()
           !copy the results which have been received (the messages sending are after)
           !this part is already done by the mpi_accumulate
           do igroup=1,OP2P%ngroupp
@@ -954,7 +955,7 @@ module overlap_point_to_point
 
           !verify that the messages have been passed
           call mpiwaitall(OP2P%ndata_comms,OP2P%requests_data)
-
+          if(OP2P%gpudirect == 1) call synchronize()
           if (OP2P%istep>1) OP2P%isend_res=3-OP2P%isend_res
           OP2P%isend_data=3-OP2P%isend_data
           OP2P%ndata_comms=0
