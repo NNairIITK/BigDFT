@@ -10,7 +10,6 @@
    check_overlap: 0
    experimental_mode: Yes
    calculate_KS_residue: No
-   method_updatekernel: 2
    check_matrix_compression: No
    correction_co_contra: Yes
    store_index: Yes

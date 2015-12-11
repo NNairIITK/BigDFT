@@ -93,8 +93,6 @@
    evbounds_nsatur                     : 100 #    Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
    hamapp_radius_incr                  : 6 #      radius enlargement for the Hamiltonian application (in grid points)
    correction_co_contra                : no #     linear scaling correction covariant / contravariant gradient
-   method_updatekernel                 : 2 #      linear scaling update density kernel during the sup. func. optimization (0 
-    #                                              purification, 1 FOE, 2 renormalization)
    debug                               : No #     Debug option
    profiling_depth                     : -1 #     maximum level of the profiling for the tracking of the routines
    fftcache                            : 8192 #   Cache size for the FFT

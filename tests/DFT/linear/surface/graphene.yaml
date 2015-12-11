@@ -15,7 +15,6 @@
    experimental_mode: Yes
    calculate_KS_residue: No
    kappa_conv: 0.9
-   method_updatekernel: 2
    correction_co_contra: Yes
    hamapp_radius_incr: 6
  lin_general:

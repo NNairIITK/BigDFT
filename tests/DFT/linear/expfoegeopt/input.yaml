@@ -19,7 +19,6 @@
    experimental_mode: Yes
    kappa_conv: 0.7
    evbounds_nsatur: 100
-   method_updatekernel: 2
    calculate_gap: Yes
    correction_co_contra: Yes
    FOE_restart: 1

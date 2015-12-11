@@ -92,8 +92,6 @@
    experimental_mode                   : Yes #    Activate the experimental mode in linear scaling
    kappa_conv                          : 0.7 #    Exit kappa for extended input guess (experimental mode)
    evbounds_nsatur                     : 100 #    Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-   method_updatekernel                 : 2 #      linear scaling update density kernel during the sup. func. optimization (0 
-    #                                              purification, 1 FOE, 2 renormalization)
    calculate_gap                       : Yes #    linear scaling calculate the HOMO LUMO gap
    correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
    debug                               : No #     Debug option

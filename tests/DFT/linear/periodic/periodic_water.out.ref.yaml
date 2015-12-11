@@ -90,7 +90,6 @@
    ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    experimental_mode                   : Yes #    Activate the experimental mode in linear scaling
    calculate_KS_residue                : No #     Linear scaling calculate Kohn-Sham residue
-   method_updatekernel                 : 2 #      linear scaling update density kernel during the sup. func. optimization (0 
     #                                              purification, 1 FOE, 2 renormalization)
    correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
    kappa_conv                          : 7.2e-1 # Exit kappa for extended input guess (experimental mode)
