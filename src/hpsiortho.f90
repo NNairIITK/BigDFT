@@ -774,9 +774,9 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
 
          !iterate over the orbital_basis
          psi_it=orbital_basis_iterator(psi_ob)
-         !print *,'orbs',psi_it%iorb,psi_it%ilr
+! print *,'orbs0',psi_it%iorb,psi_it%ilr
          loop_lr: do while(ket_next_locreg(psi_it))
-            !print *,'orbs',psi_it%iorb,psi_it%ilr,psi_it%nspinor,associated(psi_it%lr)
+! print *,'orbs1',psi_it%iorb,psi_it%ilr,psi_it%nspinor,associated(psi_it%lr)
             psir = f_malloc0([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='psir')
             call initialize_work_arrays_locham(1,[psi_it%lr],psi_it%nspinor,.true.,wrk_lh)  
             ! wavefunction after application of the self-interaction potential
@@ -793,7 +793,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
                energs%ekin=energs%ekin+fi*ekin
                energs%epot=energs%epot+fi*epot
                energs%evsic=energs%evsic+SIC%alpha*eSIC_DCi
-!  print *,'orbs',psi_it%iorbp,psi_it%iorb,psi_it%kwgt,psi_it%occup,epot,ekin,psi_it%ispsi,psi_it%nspinor
+!  print *,'orbs2',psi_it%iorbp,psi_it%iorb,psi_it%ikpt,psi_it%kwgt,psi_it%occup,epot,ekin,psi_it%ispsi,psi_it%nspinor
             end do loop_psi_lr
             !deallocations of work arrays
             call f_free(psir)

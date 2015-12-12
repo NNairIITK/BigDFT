@@ -157,7 +157,11 @@ contains
             call f_err_throw('When more thank one kpt is present function'//&
             ' ket_next_locreg must have kpt specified',&
             err_name='BIGDFT_RUNTIME_ERROR')
-       ikpt_tmp=it%ikpt_max
+       if (it%ob%orbs%norbp > 0) then
+          ikpt_tmp=max(it%ikpt,minval(it%ob%orbs%iokpt))
+       else
+          ikpt_tmp=1
+       end if
        it%ikpt=ikpt_tmp
     end if
 !print *,'there',ok,it%ilr,ikpt_tmp
@@ -244,6 +248,16 @@ contains
     else if (present(ilr)) then
 !print *,'here',ilr,it%ilr,it%ikpt
        ok=dosome(it,ilr,it%ikpt)
+!if the locregs are over but there are more than one kpt then increase 
+       if (.not. ok .and. it%ikpt < it%ikpt_max) then
+          !this means that next_locreg has not been called
+          !therefore re-increase the locreg index
+          it%ikpt=it%ikpt+1
+          !this should be one as otherwise both the iterators should be called
+          if (it%ilr /= it%ilr_min) &
+               call f_err_throw('Internal error in ket_next',err_name='BIGDFT_RUNTIME_ERROR')
+          ok=dosome(it,ilr,it%ikpt)
+       end if
 !print *,'there',ilr,it%ilr,it%ikpt,it%iorbp
     !if only the kpt is provided, we might have to find the first valid
     !locreg
@@ -721,7 +735,7 @@ contains
 
     !other version of the loop, by locreg
     !this would only work if there is only one k-point
-    if (ob%orbs%nkpts ==1) then
+    if (ob%orbs%nkpts ==1 .or. maxval(ob%orbs%inwhichlocreg)==1) then
        totreat=.true.
        it=orbital_basis_iterator(ob)
        do while(ket_next_locreg(it))
@@ -799,7 +813,7 @@ contains
 
 
     !then test the iterator by ordering the wavefunctions in terms of localisation regions, for only one kpoint
-    if (ob%orbs%nkpts == 1) then
+    if (ob%orbs%nkpts == 1 .or. maxval(ob%orbs%inwhichlocreg)==1) then
        isorb=1
        ieorb=ob%orbs%norbp
        ispsi_k=1
