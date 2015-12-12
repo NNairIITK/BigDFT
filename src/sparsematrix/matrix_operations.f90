@@ -11,6 +11,7 @@ module matrix_operations
     public :: deviation_from_unity_parallel
     public :: overlap_power_minus_one_half_parallel
     public :: check_taylor_order
+    public :: calculate_S_minus_one_half_onsite
 
 
     contains
@@ -26,8 +27,7 @@ module matrix_operations
                  max_error, mean_error, nspinx)
            !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
         use module_base
-        use module_types
-        use sparsematrix_base, only: sparse_matrix, &
+        use sparsematrix_base, only: sparse_matrix, matrices, &
                                 sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc0_ptr, &
                                 assignment(=), &
                                 SPARSE_FULL, DENSE_PARALLEL, SPARSE_MATMUL_LARGE, &
@@ -86,6 +86,7 @@ module matrix_operations
         real(kind=8),dimension(:),allocatable :: ovrlp_largep_new, invovrlpp_new
         real(kind=8),dimension(:),allocatable :: Amat12p_new, Amat21p_new
         real(kind=8),dimension(:),pointer :: Amat11p_new, Amat22p_new
+        real(kind=8),dimension(:),allocatable :: rpower
       
       
         !!write(*,*) 'iorder',iorder
@@ -855,8 +856,22 @@ module matrix_operations
                     !!tmpmat = sparsematrix_malloc(ovrlp_smat,iaction=SPARSE_FULL,id='tmpmat')
                     !!call vcopy(ovrlp_smat%nvctr, ovrlp_mat%matrix_compr(1), 1, tmpmat(1), 1)
                     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp_smat, ovrlp_mat)
+                    rpower = f_malloc(ncalc,id='rpower')
+                    do icalc=1,ncalc
+                        select case (power(icalc))
+                        case (-2)
+                            rpower(icalc) = -0.5d0
+                        case (2)
+                            rpower(icalc) = 0.5d0
+                        case (1)
+                            rpower(icalc) = -1.d0
+                        case default
+                            stop 'wrong value of power(icalc)'
+                        end select
+                    end do
                     call inverse_chebyshev_expansion(iproc, nproc, iorder-1000, &
-                         ovrlp_smat, inv_ovrlp_smat, ncalc, power, ovrlp_mat, inv_ovrlp_mat)
+                         ovrlp_smat, inv_ovrlp_smat, ncalc, rpower, ovrlp_mat, inv_ovrlp_mat)
+                    call f_free(rpower)
                     !!call vcopy(ovrlp_smat%nvctr, tmpmat(1), 1, ovrlp_mat%matrix_compr(1), 1)
                     !!call f_free(tmpmat)
                     ! #####################################
@@ -1086,7 +1101,7 @@ module matrix_operations
                  norb, ovrlp_matrix, inv_ovrlp_matrix, check_accur, &
                  smat, max_error, mean_error)
         use module_base
-        use module_types
+        use sparsematrix_base, only: sparse_matrix
         use yaml_output
         implicit none
         
@@ -1322,7 +1337,6 @@ module matrix_operations
 
       subroutine deviation_from_unity_parallel_new(iproc, nproc, norb, norbp, isorb, ovrlp, smat, max_deviation, mean_deviation)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
@@ -1466,7 +1480,6 @@ module matrix_operations
 
       subroutine matrix_minus_identity_sparse(norb, smat, ovrlp_compr, ovrlpminone_compr)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix
         implicit none
 
@@ -1674,7 +1687,6 @@ module matrix_operations
 
       subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_ovrlp_half,smat)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix
         use parallel_linalg, only: dgemm_parallel, dsyev_parallel
         implicit none
@@ -1928,7 +1940,6 @@ module matrix_operations
 
       subroutine deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, ovrlp, smat, max_deviation, mean_deviation)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
@@ -1993,7 +2004,6 @@ module matrix_operations
 
       subroutine max_matrix_diff(iproc, norb, mat1, mat2, smat, max_deviation, mean_deviation)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
@@ -2034,7 +2044,6 @@ module matrix_operations
       subroutine max_matrix_diff_parallel(iproc, norb, norbp, isorb, mat1, mat2, &
                  smat, max_deviation, mean_deviation)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
@@ -2093,7 +2102,6 @@ module matrix_operations
       subroutine max_matrix_diff_parallel_new(iproc, norb, norbp, isorb, mat1, mat2, &
                  smat, max_deviation, mean_deviation)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
@@ -2164,10 +2172,9 @@ module matrix_operations
       end subroutine max_matrix_diff_parallel_new
 
 
-      subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orbs, ovrlp, ovrlp_mat, &
+      subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, ovrlp, ovrlp_mat, &
                  inv_ovrlp_half, inv_ovrlp_half_)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
                                      allocate_matrices, deallocate_matrices
         use sparsematrix_init, only: matrixindex_in_compressed
@@ -2176,7 +2183,6 @@ module matrix_operations
       
         ! Calling arguments
         integer,intent(in) :: iproc, nproc, meth_overlap
-        type(orbitals_data),intent(in) :: orbs
         type(sparse_matrix),intent(in) :: ovrlp
         type(matrices),intent(inout) :: ovrlp_mat
         type(sparse_matrix),intent(in) :: inv_ovrlp_half
@@ -2461,6 +2467,83 @@ module matrix_operations
       end if
     
     end subroutine check_taylor_order
+
+
+    !< Calculate "local versions" of S^{-1/2}, i.e. take only the small subblocks of all support functions
+    !! on one atom and calculate S^{-1/2} for this subblock. The remaining parts of teh matrix are empty.
+    subroutine calculate_S_minus_one_half_onsite(iproc, nproc, norb, onwhichatom, smats, smatl, ovrlp_, inv_ovrlp_)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix, matrices
+      use sparsematrix_init, only: matrixindex_in_compressed
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, norb
+      integer,dimension(norb),intent(in) :: onwhichatom
+      type(sparse_matrix),intent(in) :: smats, smatl
+      type(matrices),intent(inout) :: ovrlp_, inv_ovrlp_
+
+      ! Local variables
+      integer :: nat, natp, isat, ii, iorb, iiat, n, jorb, jjat, ind, korb
+      real(kind=8),dimension(:,:),allocatable :: matrix
+
+      call f_routine(id='calculate_S_minus_one_half_onsite')
+
+      ! Parallelize over the atoms
+      nat = maxval(onwhichatom)
+      if (iproc<nat) then
+          natp = nat/nproc
+          ii = nat-nproc*natp
+          if (iproc<ii) then
+              natp = natp + 1
+              isat = iproc*natp
+          else
+              isat = ii*(natp+1) + (iproc-ii)*natp
+          end if
+      else
+          natp = 0
+          isat = nat
+      end if
+
+
+      call f_zero(inv_ovrlp_%matrix_compr)
+
+      iorb = 1
+      do
+          iiat = onwhichatom(iorb)
+          n = 0
+          !write(*,*) 'iproc, iorb, iiat', iproc, iorb, iiat
+          if (iiat>=isat+1 .and. iiat<=isat+natp) then
+              do jorb=iorb,norb
+                  jjat = onwhichatom(jorb)
+                  if (jjat/=iiat) exit
+                  n = n + 1
+              end do
+              matrix = f_malloc((/n,n/),id='matrix')
+              do jorb=iorb,iorb+n-1
+                  do korb=iorb,iorb+n-1
+                      ind = matrixindex_in_compressed(smats, korb, jorb)
+                      matrix(korb-iorb+1,jorb-iorb+1) = ovrlp_%matrix_compr(ind)
+                  end do
+              end do
+              call  overlap_plus_minus_one_half_exact(1,n,-1,.false.,matrix,smats)
+              do jorb=iorb,iorb+n-1
+                  do korb=iorb,iorb+n-1
+                      ind = matrixindex_in_compressed(smatl, korb, jorb)
+                      inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                  end do
+              end do
+              call f_free(matrix)
+          end if
+          iorb = iorb + max(n,1)
+          if (iorb>norb) exit
+      end do
+
+      call mpiallred(inv_ovrlp_%matrix_compr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+      call f_release_routine()
+
+    end subroutine calculate_S_minus_one_half_onsite
 
 
 end module matrix_operations

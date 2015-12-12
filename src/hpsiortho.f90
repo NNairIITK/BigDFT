@@ -504,8 +504,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(wp), dimension(npsidim_orbs), intent(in) :: psi
    type(confpot_data), dimension(orbs%norbp) :: confdatarr
-   !real(wp), dimension(:), pointer :: pot
-   real(wp), dimension(*) :: pot
+   real(wp), dimension(:), pointer :: pot
+   !real(wp), dimension(*) :: pot
    type(energy_terms), intent(inout) :: energs
    real(wp), target, dimension(max(1,npsidim_orbs)), intent(inout) :: hpsi
    type(GPU_pointers), intent(inout) :: GPU
@@ -662,7 +662,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             rp_ij = f_malloc(ndim,id='rp_ij')
             energs%eexctX=0.0_gp
             !initialize the OP2P descriptor for the communication
-            call set_OP2P_iterator(iproc,OP2P,iter,orbs%norbp,psir,pot(ispot))!vpsi_tmp)
+            call set_OP2P_iterator(iproc,OP2P,iter,orbs%norbp,psir,pot(ispot:ispot+OP2P%ndim*orbs%norbp))!vpsi_tmp)
             !main loop
             if (iproc == 0) call yaml_newline()
             OP2P_exctx_loop: do

@@ -27,7 +27,8 @@ module orthonormalization
       use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace
       use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed, &
                                        normalize_transposed
-      use matrix_operations, only: overlapPowerGeneral, overlap_power_minus_one_half_parallel, check_taylor_order
+      use matrix_operations, only: overlapPowerGeneral, overlap_power_minus_one_half_parallel, check_taylor_order, &
+                                   calculate_S_minus_one_half_onsite
       use yaml_output
       implicit none
     
@@ -58,6 +59,7 @@ module orthonormalization
     
     
       call f_routine(id='orthonormalizeLocalized')
+
     
       inv_ovrlp_half_(1) = matrices_null()
       call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_(1))
@@ -87,9 +89,12 @@ module orthonormalization
       !!end do
     
     
-      if (methTransformOverlap==-1) then
+      if (methTransformOverlap==-2) then
+          call calculate_S_minus_one_half_onsite(iproc, nproc, orbs%norb, orbs%onwhichatom, &
+               ovrlp, inv_ovrlp_half, ovrlp_, inv_ovrlp_half_(1))
+      else if (methTransformOverlap==-1) then
           !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
-          call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
+          call overlap_power_minus_one_half_parallel(iproc, nproc, 0, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
       else
           call overlapPowerGeneral(iproc, nproc, methTransformOverlap, 1, (/-2/), &
                orthpar%blocksize_pdgemm, &
@@ -374,7 +379,7 @@ module orthonormalization
           !call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
           !ovrlp_%matrix_compr=ovrlp%matrix_compr
           call overlap_power_minus_one_half_parallel(iproc, nproc, methTransformOverlap, &
-               orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
+               ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
           !call deallocate_matrices(ovrlp_)
       else
           nullify(inv_ovrlp_null)

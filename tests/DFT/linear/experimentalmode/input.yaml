@@ -16,7 +16,6 @@
    experimental_mode: Yes
    intermediate_forces: Yes
    correction_co_contra: no
-   purification_quickreturn: no
    check_sumrho: 2
    check_overlap: 2
  lin_general:

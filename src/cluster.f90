@@ -419,7 +419,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!do ilr=1,tmb%lzd%nlr
      !!    locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
      !!end do
-     call init_foe(iproc, nproc, in, KSwfn%orbs, tmb%foe_obj, .true.)
+     call init_foe(iproc, nproc, in, KSwfn%orbs, 0.d0, tmb%foe_obj, .true.)
      !!call f_free(locreg_centers)
      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
 
@@ -1012,6 +1012,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
           atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov)
   end if
+
+
 
   call f_free_ptr(denspot%V_ext)
 

@@ -2814,7 +2814,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      call readmywaves_linear_new(iproc,nproc,trim(in%dir_output),'minBasis',input_wf_format,&
           atoms,tmb,rxyz,ref_frags,in%frag,in%lin%fragment_calculation,in%lin%kernel_restart_mode==LIN_RESTART_KERNEL,&
-          frag_env_mapping)
+          max_nbasis_env,frag_env_mapping)
 
      !call write_orbital_density(iproc, .true., 1, 'SupFun', &
      !     tmb%npsidim_orbs, tmb%psi, in, tmb%orbs, KSwfn%lzd, atoms, rxyz, .false., tmb%lzd)
@@ -3170,7 +3170,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call get_coeff(iproc,nproc,scf_mode,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
-             in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap, &
+             in%calculate_KS_residue,in%calculate_gap, &
              energs_work,.false.,in%lin%coeff_factor,&
              in%lin%pexsi_npoles,in%lin%pexsi_mumin,in%lin%pexsi_mumax,in%lin%pexsi_mu,&
              in%lin%pexsi_temperature,in%lin%pexsi_tol_charge) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet

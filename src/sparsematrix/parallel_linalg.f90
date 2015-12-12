@@ -9,7 +9,6 @@
 
 module parallel_linalg
   use module_base
-  use module_types
   implicit none
 
   private
@@ -162,7 +161,6 @@ module parallel_linalg
     
     subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, w, info)
       use module_base
-      use module_types
       implicit none
       
       ! Calling arguments
@@ -324,7 +322,6 @@ module parallel_linalg
     
     subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
       use module_base
-      use module_types
       implicit none
       
       ! Calling arguments
@@ -493,7 +490,6 @@ module parallel_linalg
     
     subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb, info)
       use module_base
-      use module_types
       implicit none
       
       ! Calling arguments
