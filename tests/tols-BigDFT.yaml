@@ -1215,6 +1215,7 @@ PBE_densmixlin:
  EH: 1.0e-9
  Total charge: 2.1e-11
  Energy (Hartree): 4.8e-11
+ fnrm2: 1.101e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
