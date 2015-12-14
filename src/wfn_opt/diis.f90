@@ -525,7 +525,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
 END SUBROUTINE mix_rhopot
 
 
-!> DIIS or SD scheme for orbitals (psi)
+!> Do simply the DIIS or SD scheme for orbitals (psi) depending only on diis%idsx > 0
 subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   use module_base
   use module_types
