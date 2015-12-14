@@ -1,0 +1,33 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   rmult: [20.0, 9.0]
+   gnrm_cv: 2.0000000000000001E-004
+   nrepmax: accurate
+   idsx: 0
+   rbuf: with tails
+   disablesym: Yes
+ kpt:
+   kpt:
+   -  [1.0E-004, 0.0, 0.0]
+   -  [0.4999, 0.4999, 0.4999]
+   wkpt: 1.0
+ perf:
+   ef_interpol_det: 0.10E-19
+   check_sumrho: 2
+   check_overlap: 2
+ ig_occupation:
+   Atom 1:
+     (3s): 2
+     (3p): 6
+     3d: 6
+     4s: 2
+ posinp:
+   units: angstroem
+   cell: [ 12.0,  12.0,  12.0]
+   positions:
+   - Fe: [6.0, 6.0, 6.0]
+   properties:
+     format: xyz
+     source: Xabsb2B.xyz

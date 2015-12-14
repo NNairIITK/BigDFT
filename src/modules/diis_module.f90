@@ -1,7 +1,7 @@
 !> @file
 !! DIIS and Steepest descent routines
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,21 +12,26 @@
 module diis_sd_optimization
   use module_base
 
-  !> control objects of DIIS procedure
+  !> Control objects of DIIS procedure
   type, public :: DIIS_ctrl
-     logical :: switchSD
-     integer :: idiistol
-     real(gp) :: energy_min,energy_old,energy,alpha_max
+    logical :: switchSD     !< Switch to Steepest Descent if .true.
+     integer :: idiistol    !< Number of iterations when the energy is increasing
+     real(gp) :: energy_min !< Minimal energy during the iterated process
+     real(gp) :: energy_old !< Previous value already fulfilled
+     real(gp) :: energy     !< Current value of energy
+     real(gp) :: alpha_max  !< Maximal value of alpha (for step size with SD)
   end type DIIS_ctrl
 
   !> Contains the arguments needed for the diis procedure
   type, public :: DIIS_obj
      type(DIIS_ctrl) :: ctrl
-     integer :: mids,ids,idsx
-     real(tp), dimension(:), pointer :: psidst
-     real(tp), dimension(:), pointer :: hpsidst
-     real(tp), dimension(:,:,:), pointer :: ads
-     real(gp) :: alpha_coeff
+     integer :: mids !< Size of the current DIIS history (or matrix) <= idsx
+     integer :: ids  !< Iteration number
+     integer :: idsx !< History of the diis (also if idiistol > idsx switch to SD)
+     real(tp), dimension(:), pointer :: psidst   !< History of the given vectors (psi)
+     real(tp), dimension(:), pointer :: hpsidst  !< History of the corresponding hpsi
+     real(tp), dimension(:,:,:), pointer :: ads  !< DIIS matrix
+     real(gp) :: alpha_coeff !< Mixing coefficient
   end type DIIS_obj
 
   private
@@ -40,7 +45,7 @@ contains
 !!$  end function DIIS_ctrl_init
 
 
-  !> allocate diis objects
+  !> Allocate diis objects
   subroutine DIIS_set(idsx,alphaSD,ndim_psi,ngrpp,diis) !n(m)
     use module_base
     use module_types
@@ -317,7 +322,7 @@ contains
 
   
 
-  !> temporary routine to test the diis_step procedure
+  !> Temporary routine to test the diis_step procedure
   subroutine DIIS_obj_fill(diis_old,diis)
     use module_types
     implicit none

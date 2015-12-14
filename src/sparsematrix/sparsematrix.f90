@@ -150,7 +150,7 @@ module sparsematrix
       
       ! Calling arguments
       integer, intent(in) :: iproc
-      type(sparse_matrix),intent(inout) :: sparsemat
+      type(sparse_matrix),intent(in) :: sparsemat
       real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),intent(in) :: inmat
       real(kind=8),dimension(sparsemat%nvctrp_tg*sparsemat%nspin),intent(out) :: outmat
 
@@ -170,7 +170,7 @@ module sparsematrix
       
       ! Calling arguments
       integer, intent(in) :: iproc
-      type(sparse_matrix), intent(inout) :: sparsemat
+      type(sparse_matrix), intent(in) :: sparsemat
       real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(in) :: inmat
       real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(inout) :: outmat
       
@@ -256,7 +256,6 @@ module sparsematrix
          !!   &   mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
          !!call f_free_ptr(sparsemat%matrixp)
       end if
-      sparsemat%can_use_dense=.true.  
     
       call timing(iproc,'compressd_mcpy','OF')
     
@@ -268,7 +267,7 @@ module sparsematrix
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
-      type(sparse_matrix),intent(inout) :: smat
+      type(sparse_matrix),intent(in) :: smat
       real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: matrix_compr
       real(kind=8),dimension(smat%nfvctr,smat%nfvctr,smat%nspin),intent(out) :: matrix
 
@@ -286,7 +285,7 @@ module sparsematrix
       use yaml_output
       implicit none
       integer,intent(in) :: iproc
-      type(sparse_matrix),intent(inout) :: sparsemat
+      type(sparse_matrix),intent(in) :: sparsemat
       type(matrices),intent(inout) :: mat
       !Local variables
       character(len=*), parameter :: subname='check_matrix_compression'
@@ -1767,16 +1766,14 @@ module sparsematrix
     !< Calculates the trace of the matrix product amat*bmat.
     !< WARNING: It is mandatory that the sparsity pattern of amat be contained
     !< within the sparsity pattern of bmat!
-    function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
+    function trace_sparse(iproc, nproc, asmat, bsmat, amat, bmat, ispin)
       use module_base
-      use module_types
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: matrixindex_in_compressed
       implicit none
     
       ! Calling arguments
       integer,intent(in) :: iproc,  nproc, ispin
-      type(orbitals_data),intent(in) :: orbs
       type(sparse_matrix),intent(in) :: asmat, bsmat
       real(kind=8),dimension(asmat%nvctrp_tg),intent(in) :: amat
       real(kind=8),dimension(bsmat%nvctrp_tg),intent(in) :: bmat

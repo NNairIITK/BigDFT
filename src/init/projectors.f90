@@ -234,6 +234,72 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
 END SUBROUTINE localize_projectors
 
 
+!!$!> Fill the proj array with the PSP projectors or their derivatives, following idir value
+!!$subroutine fill_projectors_new(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
+!!$  use module_base
+!!$  use module_types
+!!$  use yaml_output
+!!$  implicit none
+!!$  integer, intent(in) :: idir
+!!$  real(gp), intent(in) :: hx,hy,hz
+!!$  type(atoms_data), intent(in) :: at
+!!$  type(orbitals_data), intent(in) :: orbs
+!!$  type(DFT_PSP_projectors), intent(inout) :: nlpsp
+!!$  type(locreg_descriptors),intent(in) :: lr
+!!$  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+!!$  !Local variables
+!!$  !n(c) integer, parameter :: nterm_max=20 !if GTH nterm_max=4
+!!$  integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt
+!!$
+!!$  call f_routine(id='fill_projectors')
+!!$
+!!$  !if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) &
+!!$  !write(*,'(1x,a)',advance='no') 'Calculating wavelets expansion of projectors...'
+!!$  !warnings related to the projectors norm
+!!$  nwarnings=0
+!!$  !allocate these vectors up to the maximum size we can get
+!!$  istart_c=1
+!!$
+!!$  !initialize the orbital basis object, for psi and hpsi
+!!$  call orbital_basis_associate(psi_ob,orbs=orbs)
+!!$  !iterate over the orbital_basis
+!!$  psi_it=orbital_basis_iterator(psi_ob)
+!!$  loop_kpt: do while(ket_next_kpoint(psi_it))
+!!$     iproj=0
+!!$     atit = atoms_iter(at%astruct)
+!!$     loop_atoms: do while(atoms_iter_next(atit))
+!!$        !this routine is defined to uniformise the call for on-the-fly application
+!!$        call atom_projector(nlpsp,atit%ityp, atit%iat, &
+!!$             atit%name, at%astruct%geocode, idir, lr, hx, hy, hz, &
+!!$             psi_it%kpoint(1),psi_it%kpoint(2),psi_it%kpoint(3),&
+!!$             istart_c, iproj, nwarnings)
+!!$     end do loop_atoms
+!!$     if (iproj /= nlpsp%nproj) then
+!!$        call yaml_warning('Incorrect number of projectors created')
+!!$     end if
+!!$     ! projector part finished
+!!$  end do
+!!$
+!!$  call orbital_basis_release(psi_ob)
+!!$
+!!$  if (istart_c-1 /= nlpsp%nprojel) then
+!!$     call yaml_warning('Incorrect once-and-for-all psp generation')
+!!$     stop
+!!$  end if
+!!$
+!!$  if (nwarnings /= 0 .and. bigdft_mpi%iproc == 0 .and. nlpsp%nproj /=0 .and. idir == 0) then
+!!$     call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
+!!$     if (nwarnings /= 0) then
+!!$        call yaml_newline()
+!!$        call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
+!!$     end if
+!!$  end if
+!!$
+!!$  call f_release_routine()
+!!$
+!!$END SUBROUTINE fill_projectors_new
+
+
 !> Fill the proj array with the PSP projectors or their derivatives, following idir value
 subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
   use module_base

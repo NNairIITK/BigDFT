@@ -81,7 +81,7 @@ module module_fragments
   !public operator(*)
 
   public :: fragment_null, fragment_free, init_fragments, minimal_orbitals_data_null, rotate_vector, fragmentInputParameters
-  public :: frag_center, find_frag_trans, calculate_fragment_density,fragment_transformation_identity
+  public :: frag_center, find_frag_trans, calculate_fragment_density,fragment_transformation_identity, init_minimal_orbitals_data
 
 
 contains

@@ -1,0 +1,19 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ geopt:
+   method: FIRE
+   ncount_cluster_x: 10
+   forcemax: 1.0E-002
+   dtmax: 1.57
+   dtinit: 0.75000000000000000000000001
+ posinp:
+   units: angstroem
+   positions:
+   - H: [5.06, 0.0, 0.0]
+     IGSpin: 1
+   - H: [4.3, 0.0, 0.0]
+     IGSpin: -1
+   properties:
+     format: xyz
+     source: fire.xyz

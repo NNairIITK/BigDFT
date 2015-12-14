@@ -1,7 +1,7 @@
 !> @file
 !!   Routines for density mixing and wavefunction update
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -386,9 +386,12 @@ subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: idsx,npsidim,nkptsp,nspinor !n(m)
-  real(gp), intent(in) :: alphadiis
-  type(diis_objects), intent(inout) :: diis
+  integer, intent(in) :: idsx                !< History of DIIS
+  integer, intent(in) :: npsidim             !< Vector length
+  integer, intent(in) :: nkptsp              !< Number of k points
+  integer, intent(in) :: nspinor             !< Spinor
+  real(gp), intent(in) :: alphadiis          !< Step size for SD
+  type(diis_objects), intent(inout) :: diis  !< Diis_objects allocated
   !local variables
   integer :: ncplx,ngroup
 
@@ -1030,21 +1033,6 @@ end function s2d_dot
 
 
 
-
-
-
-
-
-!!****f* BigDFT/psimix
-!! FUNCTION
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
 !!subroutine psimixVariable(iproc,nproc,orbs,comms,diis,diisArr, hpsit,psit, quiet)
 !!  use module_base
 !!  use module_types

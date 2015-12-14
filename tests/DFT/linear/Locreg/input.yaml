@@ -10,7 +10,6 @@
  perf:
    linear: FUL
    ef_interpol_det: 0.10E-19
-   purification_quickreturn: no
    check_sumrho: 2
    check_overlap: 2
  lin_general:

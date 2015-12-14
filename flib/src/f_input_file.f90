@@ -92,7 +92,7 @@ contains
 
 
   !> Check and complete input file
-  subroutine input_file_complete(inputdef,dict,imports,nocheck)
+  subroutine input_file_complete(inputdef,dict,imports,nocheck,verbose)
     use dynamic_memory
     use yaml_output
     implicit none
@@ -105,9 +105,12 @@ contains
     !> Dictionary of the preloaded input parameters associated to the importing
     !! for the input file
     type(dictionary), pointer, optional :: imports
+    !> variable controlling the verbosity of the output, in particular
+    !! when some errors have been raised in the input variables filling
+    logical, intent(in), optional :: verbose
 
     !local variables
-    logical :: localcheck
+    logical :: localcheck,verb
     type(dictionary), pointer :: dict_tmp,iter,dict_tmp2
 
     !call f_routine(id='input_file_complete')
@@ -138,11 +141,14 @@ contains
           call dict_free(dict_tmp)
        end if
     end if
+    verb=.false.
+    if (present(verbose)) verb=verbose
+
     localcheck=.true.
     dict_tmp => dict_iter(inputdef)
     do while (associated(dict_tmp))
        if (present(nocheck)) localcheck = dict_key(dict_tmp) .notin. nocheck
-       call input_keys_fill(inputdef,dict,trim(dict_key(dict_tmp)),check=localcheck)
+       call input_keys_fill(inputdef,dict,trim(dict_key(dict_tmp)),localcheck,verb)
        dict_tmp => dict_next(dict_tmp)
     end do
 
@@ -387,7 +393,7 @@ contains
     end subroutine validate
   END SUBROUTINE input_keys_set
 
-  subroutine input_keys_fill(inputdef,dict, file,check)
+  subroutine input_keys_fill(inputdef,dict, file,check,verbose)
     use dynamic_memory
     use yaml_output
     implicit none
@@ -397,15 +403,14 @@ contains
     !> user input file
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file
-    logical, intent(in), optional :: check
+    logical, intent(in) :: check,verbose
     !Local variables
     !integer :: i
     logical :: user, hasUserDef,docheck
     type(dictionary), pointer :: ref,ref_iter,errs
     !character(len=max_field_length), dimension(:), allocatable :: keys
 
-    docheck=.true.
-    if (present(check)) docheck=check
+    docheck=check
 
     !    call f_routine(id='input_keys_fill')
     if (docheck) call input_keys_control(inputdef,dict,file)
@@ -426,7 +431,7 @@ contains
           call input_keys_set(inputdef,user, dict // file, file, dict_key(ref_iter))
           call f_err_close_try(exceptions=errs)
           if (associated(errs)) then
-             call yaml_map('List of error founds',errs)
+             if (verbose) call yaml_map('List of error found',errs)
              call dict_free(errs)
              call f_err_throw('Error(s) found in input_keys_fill for the field "'//trim(file)//&
                   '" and the key "'//trim(dict_key(ref_iter))//'", see details in the above message"',&

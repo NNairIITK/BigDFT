@@ -13,7 +13,6 @@
    ef_interpol_det: 0.10E-19
    adjust_kernel_iterations: No
    correction_co_contra: No
-   purification_quickreturn: no
    check_overlap: 2
    check_sumrho: 2
  lin_general:

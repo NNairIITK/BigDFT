@@ -598,7 +598,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   if (input%lin%mixing_after_inputguess==0 .or.  input%lin%mixing_after_inputguess==1) then
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
-           .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+           .or. input%lin%scf_mode==LINEAR_PEXSI .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
           call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
           ! initial setting of the old charge density
           call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.0d0,denspot%mix,&
@@ -886,8 +886,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           ratio_deltas,ortho_on,input%lin%extra_states,0,input%lin%convCrit_extendedIG,&
           input%experimental_mode,input%lin%early_stop,&
           input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
-          can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
-          input%purification_quickreturn, input%correction_co_contra, &
+          can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, &
+          input%correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
           wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)
      call deallocate_work_mpiaccumulate(fnrm_work)
@@ -943,16 +943,18 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   order_taylor=input%lin%order_taylor ! since this is intent(inout)
   !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
 
-  if (input%lin%scf_mode==LINEAR_FOE) then
-      call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
+  if (input%lin%scf_mode==LINEAR_FOE .or. input%lin%scf_mode==LINEAR_PEXSI) then
+      call get_coeff(iproc,nproc,input%lin%scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
-           input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor,&
+           input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
+           input%lin%pexsi_temperature,input%lin%pexsi_tol_charge)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
-           input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
+           input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
+           input%lin%pexsi_temperature,input%lin%pexsi_tol_charge)
 
       !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
       ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)
@@ -998,7 +1000,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!!call plot_density(iproc,nproc,'initial',at,rxyz,denspot%dpbox,input%nspin,denspot%rhov)
 
   ! Mix the density.
-  if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+  if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. &
+      input%lin%scf_mode==LINEAR_FOE .or. input%lin%scf_mode==LINEAR_PEXSI) then
       if (input%lin%mixing_after_inputguess==1) then
          !!if (input%experimental_mode) then
          !!    !if (iproc==0) write(*,*) 'WARNING: TAKE 1.d0 MIXING PARAMETER!'

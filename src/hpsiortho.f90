@@ -1,11 +1,12 @@
 !> @file
 !!  Application of the Hamiltonian + orthonormalize constraints
 !! @author
-!!    Copyright (C) 2007-2013 CEA
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
 
 !> Calculates the application of the Hamiltonian on the wavefunction. The hamiltonian can be self-consistent or not.
 !! In the latter case, the potential should be given in the rhov array of denspot structure. 
@@ -503,8 +504,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(wp), dimension(npsidim_orbs), intent(in) :: psi
    type(confpot_data), dimension(orbs%norbp) :: confdatarr
-   !real(wp), dimension(:), pointer :: pot
-   real(wp), dimension(*) :: pot
+   real(wp), dimension(:), pointer :: pot
+   !real(wp), dimension(*) :: pot
    type(energy_terms), intent(inout) :: energs
    real(wp), target, dimension(max(1,npsidim_orbs)), intent(inout) :: hpsi
    type(GPU_pointers), intent(inout) :: GPU
@@ -661,7 +662,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             rp_ij = f_malloc(ndim,id='rp_ij')
             energs%eexctX=0.0_gp
             !initialize the OP2P descriptor for the communication
-            call set_OP2P_iterator(iproc,OP2P,iter,orbs%norbp,psir,pot(ispot))!vpsi_tmp)
+            call set_OP2P_iterator(iproc,OP2P,iter,orbs%norbp,psir,pot(ispot:ispot+OP2P%ndim*orbs%norbp))!vpsi_tmp)
             !main loop
             if (iproc == 0) call yaml_newline()
             OP2P_exctx_loop: do
@@ -773,9 +774,9 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
 
          !iterate over the orbital_basis
          psi_it=orbital_basis_iterator(psi_ob)
-         !print *,'orbs',psi_it%iorb,psi_it%ilr
+! print *,'orbs0',psi_it%iorb,psi_it%ilr
          loop_lr: do while(ket_next_locreg(psi_it))
-            !print *,'orbs',psi_it%iorb,psi_it%ilr,psi_it%nspinor,associated(psi_it%lr)
+! print *,'orbs1',psi_it%iorb,psi_it%ilr,psi_it%nspinor,associated(psi_it%lr)
             psir = f_malloc0([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='psir')
             call initialize_work_arrays_locham(1,[psi_it%lr],psi_it%nspinor,.true.,wrk_lh)  
             ! wavefunction after application of the self-interaction potential
@@ -792,7 +793,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
                energs%ekin=energs%ekin+fi*ekin
                energs%epot=energs%epot+fi*epot
                energs%evsic=energs%evsic+SIC%alpha*eSIC_DCi
-!  print *,'orbs',psi_it%iorbp,psi_it%iorb,psi_it%kwgt,psi_it%occup,epot,ekin,psi_it%ispsi,psi_it%nspinor
+!  print *,'orbs2',psi_it%iorbp,psi_it%iorb,psi_it%ikpt,psi_it%kwgt,psi_it%occup,epot,ekin,psi_it%ispsi,psi_it%nspinor
             end do loop_psi_lr
             !deallocations of work arrays
             call f_free(psir)
@@ -1613,12 +1614,14 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    !end debug
 
    if(wfn%paw%usepaw) then
-     if( (.not. present(eproj_sum))) then
-         write(*,*)'ERROR: hpsitopsi for PAW needs the following optional variables::'
-         write(*,*)'       eproj'
-         stop
+     if ( .not. present(eproj_sum)) then
+        call f_err_throw('hpsitopsi for PAW needs the following optional variables: eproj',err_name='BIGDFT_RUNTIME_ERROR')
+        !write(*,*)'ERROR: hpsitopsi for PAW needs the following optional variables::'
+        !write(*,*)'       eproj'
+        !stop
      end if
    end if
+
    !adjust the save variables for DIIS/SD switch
    if (iter == 1) then
       wfn%diis%ids=0

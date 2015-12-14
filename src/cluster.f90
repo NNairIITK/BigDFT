@@ -30,7 +30,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use Poisson_Solver, except_dp => dp, except_gp => gp
   use module_xc
   use communications_init, only: orbitals_communicators
-  use transposed_operations, only: init_matrixindex_in_compressed_fortransposed
   use communications_base, only: deallocate_comms
   !  use vdwcorrection
   use yaml_output
@@ -38,13 +37,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use sparsematrix_base, only: sparse_matrix_null, matrices_null, allocate_matrices, &
                                SPARSE_TASKGROUP, sparsematrix_malloc_ptr, assignment(=), &
                                DENSE_PARALLEL, DENSE_MATMUL, SPARSE_FULL
-  use sparsematrix_init, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff, &
-                               init_matrix_taskgroups, check_local_matrix_extents
+  use sparsematrix_init, only: init_matrix_taskgroups, check_local_matrix_extents, &
+                               init_matrixindex_in_compressed_fortransposed
+  use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
   use sparsematrix, only: check_matrix_compression
   use communications_base, only: comms_linear_null
   use unitary_tests, only: check_communication_potential, check_communication_sumrho, &
                            check_communications_locreg
-  use multipole, only: potential_from_charge_multipoles, potential_from_multipoles, interaction_multipoles_ions, &
+  use multipole, only: potential_from_charge_multipoles, interaction_multipoles_ions, &
                        ionic_energy_of_external_charges
   use public_enums
   use module_input_keys, only: SIC_data_null,print_dft_parameters,inputpsiid_set_policy,set_inputpsiid
@@ -232,7 +232,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      END SUBROUTINE direct_minimization
   end interface
   interface
-     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpsp,GPU,&
+     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopotold,nlpsp,GPU,&
           energs,energy,fpulay,infocode,ref_frags,cdft, &
           fdisp, fion)
        use module_defs, only: gp,dp,wp
@@ -243,6 +243,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
        integer,intent(in):: iproc, nproc
        type(atoms_data),intent(inout):: at
        type(input_variables),intent(in):: input
+       real(kind=8),dimension(3),intent(in) :: shift
        real(8),dimension(3,at%astruct%nat),intent(inout):: rxyz
        real(8),dimension(3,at%astruct%nat),intent(out):: fpulay
        type(DFT_local_fields), intent(inout) :: denspot
@@ -298,10 +299,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      if (associated(KSwfn%psi)) then
         call copy_local_zone_descriptors(KSwfn%Lzd, lzd_old, subname)
         !if the history is bigger than two, create the workspace to store the wavefunction
-        if (in%wfn_history > 2) then
+!        if (in%wfn_history > 2) then
+        if (in%wfn_history > 0) then
+!           if(iproc==0)print *, "NNdbg: KSwfn%Psi copied to Psi(",in%wfn_history+1,")"
            call old_wavefunction_set(KSwfn%oldpsis(in%wfn_history+1),&
                 atoms%astruct%nat,KSwfn%orbs%norbp*KSwfn%orbs%nspinor,&
                 KSwfn%Lzd,rxyz_old,KSwfn%psi)
+           call f_free_ptr(KSwfn%psi)
         else
            call copy_old_wavefunctions(nproc,KSwfn%orbs,&
                 KSwfn%psi,lzd_old%Glr%wfd,psi_old)
@@ -411,13 +415,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!tag=0
 
      call kswfn_init_comm(tmb, denspot%dpbox, iproc, nproc, in%nspin, in%imethod_overlap)
-     locreg_centers = f_malloc((/3,tmb%lzd%nlr/),id='locreg_centers')
-     do ilr=1,tmb%lzd%nlr
-         locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
-     end do
-     call init_foe(iproc, nproc, in, KSwfn%orbs, tmb%foe_obj, .true.)
-     call f_free(locreg_centers)
-     call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
+     !!locreg_centers = f_malloc((/3,tmb%lzd%nlr/),id='locreg_centers')
+     !!do ilr=1,tmb%lzd%nlr
+     !!    locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
+     !!end do
+     call init_foe(iproc, nproc, in, KSwfn%orbs, 0.d0, tmb%foe_obj, .true.)
+     !!call f_free(locreg_centers)
+     !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,in, atoms, rxyz, .false.)
 
@@ -427,7 +431,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
 
      call init_sparse_matrix_wrapper(iproc, nproc, in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
@@ -435,7 +439,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
      ! check the extent of the kernel cutoff (must be at least shamop radius)
@@ -446,7 +450,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
      iirow(1) = tmb%linmat%s%nfvctr
@@ -639,7 +643,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !Calculate effective ionic potential, including counter ions if any.
   call createEffectiveIonicPotential(iproc,(iproc == 0),in,atoms,rxyz,shift,&
        denspot%dpbox,denspot%pkernel,denspot%V_ext,denspot%rho_ion,in%elecfield,denspot%psoffset)
-  call potential_from_charge_multipoles(iproc, nproc, denspot, in%ep, 1, denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
+  call potential_from_charge_multipoles(iproc, nproc, atoms, denspot, in%ep, 1, denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, denspot%V_ext)
@@ -710,7 +714,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
              ! Pulay mixing
              linear_iscf = 7
          end if
-     case (LINEAR_FOE)
+     case (LINEAR_FOE,LINEAR_PEXSI)
          if (in%lin%mixHist_lowaccuracy==0) then
              ! simple mixing
              linear_iscf = 12
@@ -777,7 +781,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      ! Allocation of array for Pulay forces (only needed for linear version)
      fpulay = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='fpulay')
 
-     call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
+     call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,shift,&
           rxyz,denspot,denspot0,nlpsp,GPU,energs,energy,fpulay,infocode,ref_frags,cdft,&
           fdisp,fion)
 
@@ -1008,6 +1012,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
           atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov)
   end if
+
+
 
   call f_free_ptr(denspot%V_ext)
 

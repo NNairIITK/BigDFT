@@ -16,7 +16,6 @@
    foe_gap: yes
    ef_interpol_det: 1.e-12
    correction_co_contra: No
-   purification_quickreturn: no
    loewdin_charge_analysis: yes
    check_overlap: 2
    check_sumrho: 2
@@ -26,7 +25,8 @@
    conf_damping: 0.5
    calc_dipole: Yes
    calc_pulay: old
-   charge_multipoles: yes
+   charge_multipoles: 1
+   support_function_multipoles: yes
  lin_basis:
    idsx: [5, 0]
    gnrm_cv: 4.0000000000000003E-005
