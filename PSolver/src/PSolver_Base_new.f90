@@ -134,7 +134,6 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
         if (kernel%mpi_env%iproc == 0) call f_free(zf1)
      else
-
         !fill the GPU memory
         if(kernel%stay_on_gpu /= 1) then
         call reset_gpu_data( kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
@@ -167,6 +166,7 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
         if(kernel%stay_on_gpu /= 1) then
         call get_gpu_data(kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
                         rho,kernel%w%rho_GPU)
+       call synchronize()
         end if
     end if
 
@@ -238,6 +238,7 @@ subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
        call finalize_reduction_kernel(sumpion,m1,m2*m3p,md1,md2*md3p, kernel%w%work2_GPU,&
              kernel%w%rho_GPU, kernel%w%pot_ion_GPU, kernel%w%reduc_GPU, eh,1)
        call get_gpu_data(m1*m2*m3p,pot,kernel%w%rho_GPU)
+       call synchronize()
      else
        !delay results retrieval to after communications have been finished
        call finalize_reduction_kernel(sumpion,m1,m2*m3p,md1,md2*md3p, kernel%w%work2_GPU, &

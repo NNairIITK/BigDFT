@@ -967,8 +967,8 @@ module overlap_point_to_point
 !retrieve result from GPU
        if(OP2P%gpudirect == 1) then 
          call get_gpu_data(OP2P%ndim*sum(OP2P%nobj_par(iproc,:)),iter%phi_i%res,iter%phi_i%res_GPU)
+         call synchronize()
          !call get_gpu_data(OP2P%ndim*sum(OP2P%nobj_par(iproc,:)),iter%phi_i%data,iter%phi_i%data_GPU)
-          call synchronize()
          if(C_ASSOCIATED(iter%phi_i%data_GPU)) then
            call cudafree(iter%phi_i%data_GPU)
            iter%phi_i%data_GPU=C_NULL_PTR

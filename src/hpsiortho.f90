@@ -672,6 +672,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             if (iproc == 0) call yaml_newline()
             OP2P_exctx_loop: do
                call OP2P_communication_step(iproc,OP2P,iter)
+               if(igpu==1) call synchronize()
                if (iter%event == OP2P_EXIT) exit OP2P_exctx_loop
                call internal_calculation_exctx(iter%istep,sfac,pkernel,orbs%norb,orbs%occup,orbs%spinsgn,&
                     iter%remote_result,iter%nloc_i,iter%nloc_j,iter%isloc_i,iter%isloc_j,&
@@ -689,6 +690,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
               call get_gpu_data(1, energs%eexctX, pkernel%w%eexctX_GPU )
               call cudamemset(pkernel%w%eexctX_GPU,0,1,i_stat)
               if (i_stat /= 0) call f_err_throw('error cudamalloc eexctX_GPU (GPU out of memory ?) ')
+              pkernel%stay_on_gpu=0
             end if 
             call free_OP2P_data(OP2P)
             if (nproc>1) call mpiallred(energs%eexctX,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
