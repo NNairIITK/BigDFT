@@ -1,5 +1,6 @@
 !> @file
 !!  Application of the Hamiltonian + orthonormalize constraints
+
 !! @author
 !!    Copyright (C) 2007-2013 CEA
 !!    This file is distributed under the terms of the
@@ -503,8 +504,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(wp), dimension(npsidim_orbs), intent(in) :: psi
    type(confpot_data), dimension(orbs%norbp) :: confdatarr
-   !real(wp), dimension(:), pointer :: pot
-   real(wp), dimension(*) :: pot
+   real(wp), dimension(:), pointer :: pot
+   !real(wp), dimension(*) :: pot
    type(energy_terms), intent(inout) :: energs
    real(wp), target, dimension(max(1,npsidim_orbs)), intent(inout) :: hpsi
    type(GPU_pointers), intent(inout) :: GPU
@@ -667,7 +668,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             rp_ij = f_malloc(ndim,id='rp_ij')
             energs%eexctX=0.0_gp
             !initialize the OP2P descriptor for the communication
-            call set_OP2P_iterator(iproc,OP2P,iter,orbs%norbp,psir,pot(ispot))!vpsi_tmp)
+            call set_OP2P_iterator(iproc,OP2P,iter,orbs%norbp,psir,pot(ispot:ispot+OP2P%ndim*orbs%norbp))!vpsi_tmp)
             !main loop
             if (iproc == 0) call yaml_newline()
             OP2P_exctx_loop: do
@@ -786,9 +787,9 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
 
          !iterate over the orbital_basis
          psi_it=orbital_basis_iterator(psi_ob)
-         !print *,'orbs',psi_it%iorb,psi_it%ilr
+! print *,'orbs0',psi_it%iorb,psi_it%ilr
          loop_lr: do while(ket_next_locreg(psi_it))
-            !print *,'orbs',psi_it%iorb,psi_it%ilr,psi_it%nspinor,associated(psi_it%lr)
+! print *,'orbs1',psi_it%iorb,psi_it%ilr,psi_it%nspinor,associated(psi_it%lr)
             psir = f_malloc0([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='psir')
             call initialize_work_arrays_locham(1,[psi_it%lr],psi_it%nspinor,.true.,wrk_lh)  
             ! wavefunction after application of the self-interaction potential
@@ -805,7 +806,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
                energs%ekin=energs%ekin+fi*ekin
                energs%epot=energs%epot+fi*epot
                energs%evsic=energs%evsic+SIC%alpha*eSIC_DCi
-!  print *,'orbs',psi_it%iorbp,psi_it%iorb,psi_it%kwgt,psi_it%occup,epot,ekin,psi_it%ispsi,psi_it%nspinor
+!  print *,'orbs2',psi_it%iorbp,psi_it%iorb,psi_it%ikpt,psi_it%kwgt,psi_it%occup,epot,ekin,psi_it%ispsi,psi_it%nspinor
             end do loop_psi_lr
             !deallocations of work arrays
             call f_free(psir)
@@ -3214,6 +3215,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   use module_interfaces, only: LocalHamiltonianApplication, plot_wf
   use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
+  use yaml_parse, only: yaml_load
   use locreg_operations
   implicit none
   integer, intent(in) :: iproc,nproc
@@ -3231,6 +3233,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   real(gp) :: eh_fake,eks
   type(energy_terms) :: energs_tmp
   type(coulomb_operator) :: G_Helmholtz
+  type(dictionary), pointer :: dict
   type(workarr_sumrho) :: w
   real(wp), dimension(:), allocatable :: vpsi,vpsir
 
@@ -3280,10 +3283,12 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
 
      !sequential kernel
 
-
-     G_Helmholtz=pkernel_init(.false.,0,1,0,wfn%Lzd%Llr(ilr)%geocode,&
+     dict => yaml_load('{kernel: {screening:'//sqrt(2.0_gp*abs(eks))//'},'//&
+          'setup : { verbose: No}}')
+     G_Helmholtz=pkernel_init(0,1,dict,wfn%Lzd%Llr(ilr)%geocode,&
           (/wfn%Lzd%Llr(ilr)%d%n1i,wfn%Lzd%Llr(ilr)%d%n2i,wfn%Lzd%Llr(ilr)%d%n3i/),&
-          0.5_gp*wfn%Lzd%hgrids,16,mu0_screening=sqrt(2.0_gp*abs(eks)))
+          0.5_gp*wfn%Lzd%hgrids)
+     call dict_free(dict)
 
      call pkernel_set(G_Helmholtz,verbose=.true.)
 

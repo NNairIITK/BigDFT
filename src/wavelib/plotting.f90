@@ -337,10 +337,10 @@ subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, 
       iunitx = unitx
       iunity = unity
       iunitz = unitz
-      open(unit=iunit0,file=trim(orbname)//'.cube',status='unknown')
-      open(unit=iunitx,file=trim(orbname)//'_avg_x',status='unknown')
-      open(unit=iunity,file=trim(orbname)//'_avg_y',status='unknown')
-      open(unit=iunitz,file=trim(orbname)//'_avg_z',status='unknown')
+      !open(unit=iunit0,file=trim(orbname)//'.cube',status='unknown')
+      !open(unit=iunitx,file=trim(orbname)//'_avg_x',status='unknown')
+      !open(unit=iunity,file=trim(orbname)//'_avg_y',status='unknown')
+      !open(unit=iunitz,file=trim(orbname)//'_avg_z',status='unknown')
   end if
 !!$
 !!$  call write_cube_fields(iunit0,iunitx,iunity,iunitz,' ',&
@@ -352,10 +352,10 @@ subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, 
 
 
   if (units_provided) then
-      close(unit=iunit0)
-      close(unit=iunitx)
-      close(unit=iunity)
-      close(unit=iunitz)
+      !close(unit=iunit0)
+      !close(unit=iunitx)
+      !close(unit=iunity)
+      !close(unit=iunitz)
   end if
 
   call f_free(psir)

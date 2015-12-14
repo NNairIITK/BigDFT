@@ -8,7 +8,7 @@
 !!   For the list of contributors, see ~/AUTHORS 
 
 
-subroutine init_foe(iproc, nproc, input, orbs_KS, foe_obj, reset)
+subroutine init_foe(iproc, nproc, input, orbs_KS, tmprtr, foe_obj, reset)
   use module_base
   use module_atoms, only: atomic_structure
   use module_types
@@ -19,6 +19,7 @@ subroutine init_foe(iproc, nproc, input, orbs_KS, foe_obj, reset)
   integer, intent(in) :: iproc, nproc
   type(input_variables), intent(in) :: input
   type(orbitals_data), intent(in) :: orbs_KS
+  real(kind=8),intent(in) :: tmprtr
   type(foe_data), intent(out) :: foe_obj
   logical, intent(in) :: reset
   
@@ -72,7 +73,7 @@ subroutine init_foe(iproc, nproc, input, orbs_KS, foe_obj, reset)
       call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",input%evboundsshrink_nsatur)
       call foe_data_set_real(foe_obj,"fscale_lowerbound",input%fscale_lowerbound)
       call foe_data_set_real(foe_obj,"fscale_upperbound",input%fscale_upperbound)
-      call foe_data_set_logical(foe_obj,"adjust_FOE_temperature",input%adjust_FOE_temperature)
+      call foe_data_set_real(foe_obj,"tmprtr",tmprtr)
   end if
 
   call timing(iproc,'init_matrCompr','OF')
@@ -677,7 +678,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       do ilr=1,lzd%nlr
           locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
       end do
-      call init_foe(iproc, nproc, input, orbs_KS, lfoe, .true.)
+      call init_foe(iproc, nproc, input, orbs_KS, 0.d0, lfoe, .true.)
       call f_free(locreg_centers)
   end if
 
@@ -1172,10 +1173,10 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use yaml_output
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
-  use transposed_operations, only: init_matrixindex_in_compressed_fortransposed
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
-  use sparsematrix_init, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff, &
-                               init_matrix_taskgroups, check_local_matrix_extents
+  use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
+  use sparsematrix_init, only: init_matrix_taskgroups, check_local_matrix_extents, &
+                               init_matrixindex_in_compressed_fortransposed
   use foe_base, only: foe_data_deallocate
   use public_enums
   use locregs_init, only: small_to_large_locreg
@@ -1349,7 +1350,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
 
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
@@ -1358,7 +1359,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
      !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
      call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
@@ -1372,7 +1373,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      end do
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
@@ -1574,57 +1575,58 @@ end subroutine set_variables_for_hybrid
 
 
 
-subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
-  use module_base
-  use module_types
-  use yaml_output
-  use foe_base, only: foe_data
-  implicit none
-
-  ! Calling arguments
-  integer, intent(in) :: iproc, nproc
-  type(local_zone_descriptors), intent(in) :: lzd
-  type(atomic_structure), intent(in) :: astruct
-  type(input_variables), intent(in) :: input
-  type(orbitals_data), intent(in) :: orbs_KS, orbs
-  type(foe_data), intent(out) :: foe_obj
-  logical,intent(in) :: init
-  ! Local variables
-  integer :: ilr
-  real(kind=8),save :: cutoff_incr
-  real(kind=8),dimension(:,:), allocatable :: locreg_centers
-
-  call f_routine(id='increase_FOE_cutoff')
-
-  ! Just initialize the save variable
-  if (init) then
-      cutoff_incr=0.d0
-      call f_release_routine()
-      return
-  end if
-
-
-  ! How much should the cutoff be increased
-  cutoff_incr=cutoff_incr+1.d0
-
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('Need to re-initialize FOE cutoff',.true.)
-      call yaml_newline()
-      call yaml_map('Total increase of FOE cutoff wrt input values',cutoff_incr,fmt='(f5.1)')
-  end if
-
-  ! Re-initialize the foe data
-  locreg_centers = f_malloc((/3,lzd%nlr/),id='locreg_centers')
-  do ilr=1,lzd%nlr
-      locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
-  end do
-  call init_foe(iproc, nproc, input, orbs_KS, foe_obj,.false.)
-  call f_free(locreg_centers)
-
-  call f_release_routine()
-
-end subroutine increase_FOE_cutoff
+!SM probably not needed any more
+!!subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
+!!  use module_base
+!!  use module_types
+!!  use yaml_output
+!!  use foe_base, only: foe_data
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer, intent(in) :: iproc, nproc
+!!  type(local_zone_descriptors), intent(in) :: lzd
+!!  type(atomic_structure), intent(in) :: astruct
+!!  type(input_variables), intent(in) :: input
+!!  type(orbitals_data), intent(in) :: orbs_KS, orbs
+!!  type(foe_data), intent(out) :: foe_obj
+!!  logical,intent(in) :: init
+!!  ! Local variables
+!!  integer :: ilr
+!!  real(kind=8),save :: cutoff_incr
+!!  real(kind=8),dimension(:,:), allocatable :: locreg_centers
+!!
+!!  call f_routine(id='increase_FOE_cutoff')
+!!
+!!  ! Just initialize the save variable
+!!  if (init) then
+!!      cutoff_incr=0.d0
+!!      call f_release_routine()
+!!      return
+!!  end if
+!!
+!!
+!!  ! How much should the cutoff be increased
+!!  cutoff_incr=cutoff_incr+1.d0
+!!
+!!  if (iproc==0) then
+!!      call yaml_newline()
+!!      call yaml_map('Need to re-initialize FOE cutoff',.true.)
+!!      call yaml_newline()
+!!      call yaml_map('Total increase of FOE cutoff wrt input values',cutoff_incr,fmt='(f5.1)')
+!!  end if
+!!
+!!  ! Re-initialize the foe data
+!!  locreg_centers = f_malloc((/3,lzd%nlr/),id='locreg_centers')
+!!  do ilr=1,lzd%nlr
+!!      locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
+!!  end do
+!!  call init_foe(iproc, nproc, input, orbs_KS, foe_obj,.false.)
+!!  call f_free(locreg_centers)
+!!
+!!  call f_release_routine()
+!!
+!!end subroutine increase_FOE_cutoff
 
 
 

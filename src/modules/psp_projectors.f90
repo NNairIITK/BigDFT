@@ -448,6 +448,7 @@ module psp_projectors
   ! replace the routine nl_HGH_application as it does not need allocating arrays anymore
   subroutine hgh_psp_application(hij,ncplx_p,n_p,wfd_p,proj,&
        ncplx_w,n_w,wfd_w,tolr,psi_pack,scpr,pdpsi,hpdpsi,psi,hpsi,eproj)
+    use pseudopotentials, only: apply_hij_coeff
     implicit none
     integer, intent(in) :: ncplx_p !< number of complex components of the projector
     integer, intent(in) :: n_p !< number of elements of the projector
@@ -580,82 +581,6 @@ module psp_projectors
     end if
 
   end subroutine scpr_proj_p_hpsi
-
-
-  !> routine for applying the coefficients needed HGH-type PSP to the scalar product
-  !! among wavefunctions and projectors. The coefficients are real therefore 
-  !! there is no need to separate scpr in its real and imaginary part before
-  pure subroutine apply_hij_coeff(hij,n_w,n_p,scpr,hscpr)
-    use module_base, only: gp
-    implicit none
-    integer, intent(in) :: n_p,n_w
-    real(gp), dimension(3,3,4), intent(in) :: hij
-    real(gp), dimension(n_w,n_p), intent(in) :: scpr
-    real(gp), dimension(n_w,n_p), intent(out) :: hscpr
-    !local variables
-    integer :: i,j,l,m,iproj,iw
-    real(gp), dimension(7,3,4) :: cproj,dproj 
-    logical, dimension(3,4) :: cont
-
-!!$    !fill the hij matrix
-!!$    call hgh_hij_matrix(npspcode,psppar,hij)
-
-    !define the logical array to identify the point from which the block is finished
-    do l=1,4
-       do i=1,3
-          cont(i,l)=(hij(i,i,l) /= 0.0_gp)
-       end do
-    end do
-   
-
-    reversed_loop: do iw=1,n_w
-       dproj=0.0_gp
-
-       iproj=1
-       !fill the complete coefficients
-       do l=1,4 !diagonal in l
-          do i=1,3
-             if (cont(i,l)) then !psppar(l,i) /= 0.0_gp) then
-                do m=1,2*l-1
-                   cproj(m,i,l)=scpr(iw,iproj)
-                   iproj=iproj+1
-                end do
-             else
-                do m=1,2*l-1
-                   cproj(m,i,l)=0.0_gp
-                end do
-             end if
-          end do
-       end do
-
-       !applies the hij matrix
-       do l=1,4 !diagonal in l
-          do i=1,3
-             do j=1,3
-                do m=1,2*l-1 !diagonal in m
-                   dproj(m,i,l)=dproj(m,i,l)+&
-                        hij(i,j,l)*cproj(m,j,l)
-                end do
-             end do
-          end do
-       end do
-
-       !copy back the coefficient
-       iproj=1
-       !fill the complete coefficients
-       do l=1,4 !diagonal in l
-          do i=1,3
-             if (cont(i,l)) then !psppar(l,i) /= 0.0_gp) then
-                do m=1,2*l-1
-                   hscpr(iw,iproj)=dproj(m,i,l)
-                   iproj=iproj+1
-                end do
-             end if
-          end do
-       end do
-    end do reversed_loop
-
-  end subroutine apply_hij_coeff
 
   pure subroutine reverse_coefficients(ncplx_p,n_p,ncplx_w,n_w,pdpsi,scpr)
     implicit none
@@ -874,59 +799,6 @@ module psp_projectors
     end subroutine proj_dot_psi
   
   end module psp_projectors
-
-
-!> External routine as the psppar parameters are often passed by address
-subroutine hgh_hij_matrix(npspcode,psppar,hij)
-  use module_defs, only: gp
-  use public_enums, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
-  implicit none
-  !Arguments
-  integer, intent(in) :: npspcode
-  real(gp), dimension(0:4,0:6), intent(in) :: psppar
-  real(gp), dimension(3,3,4), intent(out) :: hij
-  !Local variables
-  integer :: l,i,j
-  real(gp), dimension(2,2,3) :: offdiagarr
-
-  !enter the coefficients for the off-diagonal terms (HGH case, npspcode=PSPCODE_HGH)
-  offdiagarr(1,1,1)=-0.5_gp*sqrt(3._gp/5._gp)
-  offdiagarr(2,1,1)=-0.5_gp*sqrt(100._gp/63._gp)
-  offdiagarr(1,2,1)=0.5_gp*sqrt(5._gp/21._gp)
-  offdiagarr(2,2,1)=0.0_gp !never used
-  offdiagarr(1,1,2)=-0.5_gp*sqrt(5._gp/7._gp)  
-  offdiagarr(2,1,2)=-7._gp/3._gp*sqrt(1._gp/11._gp)
-  offdiagarr(1,2,2)=1._gp/6._gp*sqrt(35._gp/11._gp)
-  offdiagarr(2,2,2)=0.0_gp !never used
-  offdiagarr(1,1,3)=-0.5_gp*sqrt(7._gp/9._gp)
-  offdiagarr(2,1,3)=-9._gp*sqrt(1._gp/143._gp)
-  offdiagarr(1,2,3)=0.5_gp*sqrt(63._gp/143._gp)
-  offdiagarr(2,2,3)=0.0_gp !never used
-
-  !  call to_zero(3*3*4,hij(1,1,1))
-  hij=0.0_gp
-
-  do l=1,4
-     !term for all npspcodes
-     loop_diag: do i=1,3
-        hij(i,i,l)=psppar(l,i) !diagonal term
-        if ((npspcode == PSPCODE_HGH .and. l/=4 .and. i/=3) .or. &
-             ((npspcode == PSPCODE_HGH_K .or. npspcode == PSPCODE_HGH_K_NLCC) .and. i/=3)) then !HGH(-K) case, offdiagonal terms
-           loop_offdiag: do j=i+1,3
-              if (psppar(l,j) == 0.0_gp) exit loop_offdiag
-              !offdiagonal HGH term
-              if (npspcode == PSPCODE_HGH) then !traditional HGH convention
-                 hij(i,j,l)=offdiagarr(i,j-i,l)*psppar(l,j)
-              else !HGH-K convention
-                 hij(i,j,l)=psppar(l,i+j+1)
-              end if
-              hij(j,i,l)=hij(i,j,l) !symmetrization
-           end do loop_offdiag
-        end if
-     end do loop_diag
-  end do
-
-end subroutine hgh_hij_matrix
 
 !>routine to drive the application of the projector in HGH formalism
 subroutine NL_HGH_application(hij,ncplx_p,n_p,wfd_p,proj,&

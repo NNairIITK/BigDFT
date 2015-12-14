@@ -5,8 +5,7 @@ program driver_singlerun
                                matrices_null, deallocate_sparse_matrix, deallocate_matrices, &
                                assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL, &
                                sparsematrix_malloc, DENSE_FULL
-  use sparsematrix_init, only: read_ccs_format, ccs_to_sparsebigdft, ccs_values_to_bigdft, &
-                               read_bigdft_format, bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
+  use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
   use sparsematrix, only: write_matrix_compressed, check_symmetry, &
                           write_sparsematrix_CCS, write_sparsematrix, &
                           uncompress_matrix

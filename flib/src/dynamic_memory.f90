@@ -15,14 +15,14 @@ module dynamic_memory_base
   use yaml_strings!, only: yaml_toa,yaml_date_and_time_toa,operator(//),f_string
   use module_f_malloc 
   use f_precisions
-  use yaml_parse, only: yaml_a_todict
+  use yaml_parse, only: yaml_load
   use f_utils, only: f_time,f_zero
   implicit none
 
   private 
 
   logical :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
-  logical, parameter :: bigdebug=.false.!.true.      !< Experimental parameter to explore the usage of f_routine as a debugger
+  logical, parameter :: bigdebug=.false.      !< Experimental parameter to explore the usage of f_routine as a debugger
   integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
   integer, parameter :: error_string_len=80       !< Length of error string
   integer, parameter :: ndebug=0                  !< Size of debug parameters
@@ -605,7 +605,7 @@ contains
           !transform the dict_add in a list
           !retrieve the string associated to the database
           array_info=dict_add
-          dict_add => yaml_a_todict(array_info)
+          dict_add => yaml_load(array_info)
           !then retrieve the array information
           array_id=dict_add//0
           routine_id=dict_add//1
@@ -968,7 +968,7 @@ contains
        end if
 
        if (dump_status .and. dict_size(mems(ictrl)%dict_global) /= 2) then
-          call yaml_warning('Heap memory has not be completely freed! See status at finalization to find where.')
+          call yaml_warning('Heap memory has not been completely freed! See status at finalization to find where.')
           call yaml_map('Size of the global database',dict_size(mems(ictrl)%dict_global))
           !call yaml_map('Raw version',mems(ictrl)%dict_global)
           call yaml_mapping_open('Status of the memory at finalization')
@@ -1027,7 +1027,7 @@ contains
      do while(associated(dict_ptr))
         !can be used if one wants more verbose information
 !!$        array_info=dict_ptr
-!!$        dict_list => yaml_a_todict(array_info)
+!!$        dict_list => yaml_load(array_info)
 !!$        !then retrieve the array information
 !!$        array_id=dict_list//0
 !!$        routine_id=dict_list//1

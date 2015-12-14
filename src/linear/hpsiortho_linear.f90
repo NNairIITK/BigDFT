@@ -13,7 +13,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
            hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
-           norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
+           norder_taylor, max_inversion_error, precond_convol_workarrays, precond_workarrays,&
            wt_hphi, wt_philarge, wt_hpsinoprecond, &
            cdft, input_frag, ref_frags)
   use module_base
@@ -37,7 +37,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: iproc, nproc, it, method_updatekernel
+  integer, intent(in) :: iproc, nproc, it
   integer,intent(inout) :: norder_taylor
   real(kind=8),intent(in) :: max_inversion_error
   type(DFT_wavefunction), target, intent(inout):: tmb
@@ -142,8 +142,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if (correction_co_contra) then
       !@NEW correction for contra / covariant gradient
 
-      if ((method_updatekernel/=UPDATE_BY_FOE .and. method_updatekernel/=UPDATE_BY_RENORMALIZATION) &
-           .or. target_function/=TARGET_FUNCTION_IS_HYBRID) then
+      if (target_function/=TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.

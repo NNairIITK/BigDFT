@@ -1,0 +1,96 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   hgrids: 0.70
+   rmult: [3.2, 3.2]
+   ixc: PBE (ABINIT)
+   gnrm_cv: 1.e-5 #accurate
+   itermax: 50
+   nrepmax: 10
+   ncong: 5
+   idsx: 6
+   disablesym: Yes
+   inputpsiid: linear
+   #qcharge: 1.0
+ perf:
+   ef_interpol_chargediff: 1.0
+   check_sumrho: 1
+   check_overlap: 1
+   experimental_mode: Yes
+   calculate_KS_residue: No
+   check_matrix_compression: No
+   correction_co_contra: Yes
+   store_index: No
+   mixing_after_inputguess: 1
+   kappa_conv: 0.1
+   FOE_restart: 1
+   hamapp_radius_incr: 3
+   #loewdin_charge_analysis: Yes
+   #debug: Yes
+ lin_general:
+   hybrid: Yes
+   nit: 50
+   taylor_order: 1020
+   max_inversion_error: 5.0e-8
+   rpnrm_cv: 1.6e-6
+   #calc_dipole: Yes
+   #output_wf: 1
+   #output_mat: 1
+   #output_coeff: 1
+   support_function_multipoles: yes
+ lin_basis:
+   idsx: 8
+   gnrm_cv: 2.0e-3
+   deltae_cv: 1.0e-4
+   min_gnrm_for_dynamic: 4.0e-3
+   alpha_diis: 0.5
+   alpha_sd: 0.5
+   nstep_prec: 6
+   fix_basis: 1.0e-12
+   correction_orthoconstraint: 0
+   gnrm_ig: 1.e-1
+ lin_kernel:
+   nstep: 10
+   nit: 3
+   idsx_coeff: [6, 0]
+   idsx: 6
+   alphamix: 0.2
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0E-002
+   linear_method: PEXSI
+   #pexsi_npoles                        : 60 #     number of poles used by PEXSI
+   #pexsi_mumin                         : -1.5 #   initial guess for the lower bound of the chemical potential used by PEXSI
+   #pexsi_mumax                         : 1.5 #    initial guess for the upper bound of the chemical potential used by PEXSI
+   #pexsi_mu                            : 0.3 #    initial guess for the  chemical potential used by PEXSI
+   #pexsi_temperature                   : 1.e-4 #  temperature used by PEXSI
+   #pexsi_tol_charge                    : 1.e-5
+ lin_basis_params:
+   H:
+     nbasis: 1
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 3.0
+     rloc_kernel: 5.5
+     rloc_kernel_foe: 8.0
+   C:
+     nbasis: 4
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 3.5
+     rloc_kernel: 5.5
+     rloc_kernel_foe: 8.0
+   N:
+     nbasis: 4
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 3.5
+     rloc_kernel: 5.5
+     rloc_kernel_foe: 8.0
+   O:
+     nbasis: 4
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 3.5
+     rloc_kernel: 5.5
+     rloc_kernel_foe: 8.0

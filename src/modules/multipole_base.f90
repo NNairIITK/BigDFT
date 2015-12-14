@@ -21,6 +21,7 @@ module multipole_base
   end type multipole
 
   type,public :: multipole_set
+    character(len=20) :: sym
     real(dp),dimension(3) :: rxyz
     type(multipole),dimension(:),pointer :: qlm
   end type multipole_set
@@ -34,6 +35,8 @@ module multipole_base
   public :: multipoles_from_dict
   public :: external_potential_descriptors_null
   public :: deallocate_external_potential_descriptors
+  public :: multipole_set_null
+  public :: multipole_null
 
   contains
 
@@ -63,6 +66,7 @@ module multipole_base
     pure subroutine nullify_multipole_set(mps)
       implicit none
       type(multipole_set),intent(out) :: mps
+      mps%sym = 'UNINITIALIZED'
       mps%rxyz(1:3) = 0._dp
       !mps%lmax = 0
       nullify(mps%qlm)
@@ -154,6 +158,10 @@ module multipole_base
           ! Retrieve the position of the multipole center, which always have to be given.
           if ('r' .notin. iter) then
               call f_err_throw('No positions were provided for the multipole center no. '//trim(yaml_toa(impl+1)))
+          end if
+          ! Retrieve the symbol (i.e. description) of the multipole center (typically atom type)
+          if ('sym' .in. iter) then
+              ep%mpl(impl+1)%sym = iter//'sym'
           end if
           ilen = dict_len(iter//'r')
           if (ilen/=3) then

@@ -2,7 +2,7 @@
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markup Language -> Y Ain't a Markup Language (Human readable ML)
 !! @author
-!!    Copyright (C) 2011-2015 BigDFT group <br>
+!!    Copyright (C) 2011-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -180,7 +180,7 @@ module yaml_output
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump,yaml_dict_dump_all
-  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa
+  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa,dump_dict_impl,f_progress_bar
 
   !for internal f_lib usage
   public :: yaml_output_errors
@@ -438,7 +438,7 @@ contains
        streams(active_streams)=stream_null()
        streams(active_streams)%unit=6
        stream_units(active_streams)=6
-       streams(active_streams)%max_record_length=92 !leave 95 characters
+       streams(active_streams)%max_record_length=92 !leave 92 characters
        default_stream=active_streams
        again= unt /= 6 
     end if
@@ -450,6 +450,7 @@ contains
        streams(active_streams)=stream_null()
        streams(active_streams)%unit=unt
        stream_units(active_streams)=unt
+       istream = active_streams !for the following instructions
     end if
 
     ! set last opened stream as default stream
@@ -813,10 +814,8 @@ contains
     character(len=*), optional, intent(in) :: hfill   !< If present fill the line with the given character
     integer, optional, intent(in) :: tabbing          !< Number of space for tabbing
     !Local variables
-    integer :: unt,strm,msg_lgt,tb,ipos
-    integer :: lstart,lend,lmsg,lspace,hmax
+    integer :: unt,strm
     character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
 
     unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
@@ -2382,6 +2381,47 @@ contains
     end if
 
   end function yaml_walltime_toa
+
+  !> to be used for debugging
+  subroutine dump_dict_impl(dict)
+    implicit none
+    type(dictionary), pointer :: dict
+    if (.not. associated(dict)) call yaml_map('Dictionary associated',.false.)
+    call yaml_mapping_open('Dictionary associated')
+    call yaml_map('Associations, child, parent, next, previous',[associated(dict%child),associated(dict%parent),&
+         associated(dict%next),associated(dict%previous)])
+    call yaml_mapping_open('Data structure')
+    call yaml_map('Item',dict%data%item)
+    call yaml_map('Nitems',dict%data%nitems)
+    call yaml_map('Nelems',dict%data%nelems)
+    call yaml_map('Key',dict%data%key)
+    call yaml_map('Value',dict%data%value)
+    call yaml_mapping_close()
+    call yaml_mapping_close()
+  end subroutine dump_dict_impl
+
+  !>write the status of the advancment of something
+  subroutine f_progress_bar(percent,unit)
+    use f_precisions
+    implicit none
+    real(f_double), intent(in) :: percent
+    integer, intent(in), optional :: unit
+    !local variables
+    integer :: j,k,unt
+    character(len=18)::bar="#???% |          |"
+
+    unt=DEFAULT_STREAM_ID
+    if (present(unit)) unt=unit
+
+    j=int(percent)/10
+    write(unit=bar(2:4),fmt="(i3)") 10*j
+    do k=1, j
+       bar(7+k:7+k)="*"
+    enddo
+    call yaml_comment(char(13)//bar,advance='no',unit=unt)
+    !write(unit=unt,fmt="(a18)",advance='no')char(13)//bar
+    call f_utils_flush(unt)
+  end subroutine f_progress_bar
 
 
 end module yaml_output

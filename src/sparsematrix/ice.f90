@@ -12,13 +12,12 @@ module ice
     subroutine inverse_chebyshev_expansion(iproc, nproc, norder_polynomial, &
                ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp)
       use module_base
-      use module_types
       use yaml_output
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
                                    sparsematrix_malloc0_ptr, assignment(=), &
                                    SPARSE_TASKGROUP, SPARSE_MATMUL_SMALL, &
-                                   matrices
-      use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
+                                   matrices, sparse_matrix
+      use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed_wrapper, &
                               transform_sparsity_pattern
       use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
@@ -32,7 +31,7 @@ module ice
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, norder_polynomial, ncalc
       type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
-      integer,dimension(ncalc) :: ex
+      real(kind=8),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: ovrlp_mat
       type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp
     
@@ -105,7 +104,6 @@ module ice
          call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",10)
          call foe_data_set_real(foe_obj,"fscale_lowerbound",1.d-2)
          call foe_data_set_real(foe_obj,"fscale_upperbound",0.d0)
-         call foe_data_set_logical(foe_obj,"adjust_FOE_temperature",.false.)
     !@ ################################################
     
     

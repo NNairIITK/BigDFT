@@ -1,0 +1,27 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   hgrids: 0.4
+   rmult: [5.0, 9.0]
+   ixc: PBE (ABINIT)
+   nrepmax: accurate
+   disablesym: Yes
+ perf:
+   ef_interpol_det: 0.10E-19
+   check_sumrho: 2
+   check_overlap: 2
+ posinp:
+   units: angstroem
+   positions:
+   - O: [-1.808863997459412, -0.1379979997873306, 0.0]
+   - C: [1.769114017486572, 0.1365489959716797, 0.0]
+   - C: [0.5881450176239014, -0.4344229996204376, 0.0]
+   - C: [-0.6952030062675476, 0.3614470064640045, 0.0]
+   - H: [-0.5488520264625549, 1.45536196231842, 0.0]
+   - H: [0.4778589904308319, -1.512555956840515, 0.0]
+   - H: [2.68866491317749, -0.4341860115528107, 0.0]
+   - H: [1.880903005599976, 1.213924050331116, 0.0]
+   properties:
+     format: xyz
+     source: acroleine.xyz

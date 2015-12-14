@@ -3,16 +3,16 @@ noinst_LIBRARIES = libgeopt.a
 
 mod_src = scfloop_API.f90
 routines = \
-	sqnm.f90 sdcg.f90 lbfgs.f90 bfgs.f90 geometry.f90 nose_hoover_chains.f90 md_run.f90 multimode.f90
+	sqnm.f90 sdcg.f90 lbfgs.f90 bfgs.f90 geometry.f90 wfn_extrap.f90 nose_hoover_chains.f90 md_run.f90 multimode.f90
 
 libgeopt_a_SOURCES = $(mod_src) $(routines)
 EXTRA_DIST = 
 
 # Module files.
 if CAPITALIZE
-modules = MINPAR.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@ NOSE_HOOVER_CHAINS.@MODULE_EXT@
+modules = MINPAR.@MODULE_EXT@ SCFLOOP_API.@MODULE_EXT@ NOSE_HOOVER_CHAINS.@MODULE_EXT@ WFN_EXTRAP.@MODULE_EXT@
 else
-modules = minpar.@MODULE_EXT@ scfloop_api.@MODULE_EXT@ nose_hoover_chains.@MODULE_EXT@
+modules = minpar.@MODULE_EXT@ scfloop_api.@MODULE_EXT@ nose_hoover_chains.@MODULE_EXT@ wfn_extrap.@MODULE_EXT@
 endif
 
 CLEANFILES = $(modules)
@@ -23,7 +23,7 @@ AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
 geometry.o bfgs.o sdcg.o sqnm.o: lbfgs.o
 
 geometry.o: scfloop_API.o
-md_run.o: nose_hoover_chains.o
+md_run.o: nose_hoover_chains.o wfn_extrap.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
