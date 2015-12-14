@@ -389,7 +389,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
 
 
   !deallocate potential
-  call free_full_potential(denspot%dpbox%mpi_env%nproc,linflag,denspot%xc,denspot%pot_work,subname)
+  call free_full_potential(denspot%dpbox%mpi_env%nproc,linflag,denspot%xc,denspot%pot_work)
   !----
   if (iproc==0 .and. verbose > 0) then
      if (correcth==2) then
@@ -521,8 +521,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
    logical :: exctX,op2p_flag
-   integer :: n3p,ispot,ipotmethod,ngroup,prc,nspin,isorb,jproc,ndim,norbp
-   real(gp) :: evsic_tmp, ekin, epot,sfac,maxdiff
+   integer :: n3p,ispot,ipotmethod,ngroup,prc,isorb,jproc,ndim,norbp
+   real(gp) :: evsic_tmp, ekin, epot,sfac
    real(f_double) :: tel,trm
    type(coulomb_operator) :: pkernelSIC
    type(ket) :: psi_it
@@ -533,7 +533,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    type(OP2P_iterator) :: iter
    integer, dimension(:,:), allocatable :: nobj_par
    real(wp), dimension(:,:), allocatable :: vsicpsir
-   real(wp), dimension(:,:), allocatable :: psir,vpsi_tmp
+   real(wp), dimension(:,:), allocatable :: psir
+   !real(wp), dimension(:,:), allocatable :: vpsi_tmp
    real(wp), dimension(:), allocatable :: rp_ij
    real(wp), dimension(:), pointer :: hpsi_ptr
    real(gp) :: eSIC_DCi,fi
@@ -876,7 +877,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   !local variables
   logical :: newmethod
   character(len=*), parameter :: subname='NonLocalHamiltonianApplication' 
-  logical :: dosome, overlap, goon
+  logical :: dosome, overlap
+  !logical :: goon
   integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
   integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ispinor,iilr,jlr
   real(wp) :: hp,eproj
@@ -1312,11 +1314,11 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
 END SUBROUTINE SynchronizeHamiltonianApplication
 
 
-subroutine free_full_potential(nproc,flag,xc,pot,subname)
+!> Nullify potential (pot)
+subroutine free_full_potential(nproc,flag,xc,pot)
    use module_base
    use module_xc
    implicit none
-   character(len=*), intent(in) :: subname
    integer, intent(in) :: nproc, flag
    type(xc_info), intent(in) :: xc
    real(wp), dimension(:), pointer :: pot
@@ -1718,7 +1720,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
       call kswfn_emit_psi(wfn, iter, 0, iproc, nproc)
    end if
 
-   call diis_or_sd(iproc,idsx,wfn%orbs%nkptsp,wfn%diis)
+   call diis_or_sd(iproc,idsx,wfn%diis)
 
    !previous value already filled
    wfn%diis%energy_old=wfn%diis%energy

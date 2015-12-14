@@ -927,7 +927,7 @@
      RANGE: [0, 99999.0]
      default: 20.d0
    no_translation:
-     COMMENT: logical input to set translational correction   
+     COMMENT: Logical input to set translational correction   
      default: No
    thermostat:
      COMMENT: Activates a thermostat for MD

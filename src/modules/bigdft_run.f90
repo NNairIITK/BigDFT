@@ -896,7 +896,7 @@ contains
     use module_input_keys, only: free_input_variables
     implicit none
     type(run_objects), intent(inout) :: runObj
-    integer :: claim, i
+    integer :: i
     if (associated(runObj%run_mode)) then
       if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
            call yaml_sequence_close()
