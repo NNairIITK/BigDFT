@@ -731,7 +731,6 @@ module overlap_point_to_point
        if (OP2P%nres_comms > 0) then
           !verify that the messages have been passed
           call mpiwaitall(OP2P%nres_comms,OP2P%requests_res)
-          if(OP2P%gpudirect == 1) call synchronize()
           !copy the results which have been received (the messages sending are after)
           !this part is already done by the mpi_accumulate
           do igroup=1,OP2P%ngroupp
@@ -782,6 +781,7 @@ module overlap_point_to_point
               else
                call copy_gpu_data(OP2P%ndim* maxval(OP2P%nobj_par(:,OP2P%group_id(igroup))),&
                     OP2P%resw(igroup,OP2P%isend_res)%ptr_gpu,OP2P%resw(igroup,3)%ptr_gpu)
+          call synchronize()
                call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr_gpu,&!dpsiw(1,1,igroup,OP2P%isend_res),&
                   count,dest=dest,&
                   tag=iproc+nproc+2*nproc*OP2P%istep,comm=OP2P%mpi_comm,&
@@ -950,12 +950,14 @@ module overlap_point_to_point
              OP2P%do_calculation=.false. !now the loop can cycle
              if (OP2P%igroup > OP2P%ngroupp) exit group_loop
           end do group_loop
-          !if we come here this section can be done nonetheless
-          call P2P_res(iproc,OP2P,iter%phi_i)!,OP2P%resw)
+
 
           !verify that the messages have been passed
           call mpiwaitall(OP2P%ndata_comms,OP2P%requests_data)
-          if(OP2P%gpudirect == 1) call synchronize()
+          call synchronize()
+          !if we come here this section can be done nonetheless
+          call P2P_res(iproc,OP2P,iter%phi_i)!,OP2P%resw)
+
           if (OP2P%istep>1) OP2P%isend_res=3-OP2P%isend_res
           OP2P%isend_data=3-OP2P%isend_data
           OP2P%ndata_comms=0
