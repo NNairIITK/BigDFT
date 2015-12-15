@@ -782,7 +782,8 @@ module foe_common
       
       ! Calling arguments
       real(kind=8),intent(in) :: A, B
-      integer,intent(in) :: n, ex
+      integer,intent(in) :: n
+      real(kind=8),intent(in) :: ex
       real(8),dimension(n),intent(out) :: cc
     
       ! Local variables
@@ -803,20 +804,7 @@ module foe_common
       do k=1,n
           y=cos(pi*(k-0.5d0)*(1.d0/n))
           arg=y*bma+bpa
-          !cf(k)=arg**ex
-          select case(ex)
-          case (-2)
-              !ex=-0.5d0
-              cf(k)=1.d0/sqrt(arg)
-          case (2)
-              !ex=0.5d0
-              cf(k)=sqrt(arg)
-          case (1)
-              !ex=-1.d0
-              cf(k)=1.d0/arg
-          case default
-              stop 'wrong power'
-          end select
+          cf(k)=arg**ex
       end do
       !$omp end do
       !$omp do

@@ -532,7 +532,7 @@ rotate_read2:
  energy: 7.4e-11
  Omega: 7.1e-11
  Epot: 1.1e-9
- Energy (Hartree): 3.3e-11
+ Energy (Hartree): 3.4e-11
  
 rotate_write:
  EvXC: 1.1e-10
@@ -619,7 +619,7 @@ molecule_dmin:
  eBS: 7.2e-9
  e: 1.4e-10
  Average noise forces: 4.1e-11
- Energy (Hartree): 6.0e-11
+ Energy (Hartree): 6.9e-11
 
 molecule_foe:
  Enl: 6.6e-9
@@ -638,9 +638,9 @@ molecule_foe:
  Tr(K): 1.1e-07
  D Tr: 1.1e-7
  tr(KS) before purification: 5.1e-10
- ebs_check: 9.4e-10
- ebs: 9.3e-10
- Energy (Hartree): 5.1e-11
+ ebs_check: 3.3e-9
+ ebs: 3.3e-9
+ Energy (Hartree): 6.2e-11
  diff: 1.7e-11
 
 hybrid-directmin:
@@ -715,10 +715,12 @@ GEOPT-all_lbfgs:
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 2.5e-7
+ eF: 4.3e-7
  guess for new ef: 2.5e-7
- Epot: 1.1e-10
- EH: 1.1e-10
+ Epot: 3.1e-10
+ EH: 3.0e-10
+ EXC: 3.1e-11
+ EvXC: 4.1e-11
  Ekin: 1.1e-10
  charge diff: 7.1e-6
  diff from idempotency: 2.1e-09
@@ -731,6 +733,9 @@ geopt_foe:
  diff: 2.1e-7
  Positions: 2.1e-9
  Omega: 1.2e-11
+ Total charge: 1.3e-10
+ guess for new ef: 4.2e-07
+ trace(KS): 1.3e-10
 
 geopt_diag:
  Epot: 1.1e-10
@@ -799,6 +804,7 @@ water_mixpot:
  EXC: 1.1e-10
  EH: 1.1e-9
  Epot: 1.1e-09
+ Ekin: 1.0e-9
  max alpha: 1.1e-4
  mean alpha: 1.1e-4
  energy: 1.8e-10
@@ -937,13 +943,14 @@ experimentalfoe_long:
  mean kappa: 1.1e-4
  diff from idempotency: 1.1e-6
  delta out: 1.1e-10
- ebs_check: 2.1e-9
+ ebs_check: 4.3e-9
  diff: 1.3e-8
- ebs: 6.0e-10
+ ebs: 4.3e-9
  decay length of error function: 1.1e-5
  ebs: 2.1e-9
  relative diff: 3.3e-11
  Energy (Hartree): 4.6e-10
+ trace(KS): 2.5e-10
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -969,6 +976,9 @@ experimentalfoe_short:
  D: 1.1e-4
  decay length of error function: 1.1e-5
  Energy (Hartree): 6.1e-11
+ ebs: 4.0e-11
+ ebs_check: 3.9e-11
+ trace(KS): 1.5e-11
 
 experimentalfoe_medium:
  charge diff: 2.5e-7
@@ -1099,11 +1109,11 @@ reformat_read:
  Clean forces norm (Ha/Bohr): 2.9e-9
  etot: 3.5e-9
  Ion-Ion interaction energy: 4.3e-9
- Raw forces norm (Ha/Bohr): 3.6e-9
+ Raw forces norm (Ha/Bohr): 3.7e-9
  e: 5.3e-10
  Positions: 3.5e-09
- Energy (Hartree): 3.5e-11
- Force Norm (Hartree/Bohr): 1.2e-11
+ Energy (Hartree): 3.6e-11
+ Force Norm (Hartree/Bohr): 1.6e-11
  Total charge: 3.0e-11
 
 reformat_write:
@@ -1118,7 +1128,7 @@ reformat_write:
  Clean forces norm (Ha/Bohr): 3.1e-10
  e: 1.3e-11
  EvXC: 1.1e-10
- Energy (Hartree): 2.8e-11
+ Energy (Hartree): 3.2e-11
  Atomic Forces (Ha/Bohr): 1.2e-11
  Force Norm (Hartree/Bohr): 1.8e-11
 
@@ -1171,6 +1181,7 @@ DIIShistory:
  Max deviation from unity in reorthonormalize_coeff: 1.1e-9
  Energy (Hartree): 1.3e-10
  Force Norm (Hartree/Bohr): 1.79e-10
+ mean conf prefac: 1.0e-04
 
 sparsity:
  Total charge: 1.1e-10
@@ -1192,6 +1203,7 @@ sparsity:
  diff: 1.1e-9
  D Tr: 1.1e-10
  Energy (Hartree): 9.6e-10
+ Force Norm (Hartree/Bohr): 1.2e-11
 
 PBE_densmixlin:
  Ekin: 1.1e-10
@@ -1239,7 +1251,7 @@ PBE_potmixdiis:
  Enl: 2.2e-9
  Total charge: 2.1e-11
  multiplicator for the confinement: 4.3e-8
- Energy (Hartree): 2.2e-9
+ Energy (Hartree): 2.4e-9
  Force Norm (Hartree/Bohr): 5.4e-10
 
 PBE_densmixdiis:
@@ -1304,6 +1316,7 @@ geoptconstrained_SDCG:
  ebs: 7.8e-11
  Ion-Ion interaction energy: 2.3e-10
  Atomic structure: 3.1e-9
+ trace(KS): 1.5e-11
 
 O2spin_diag:
  Atomic Forces (Ha/Bohr): 2.8e-7
@@ -1724,7 +1737,7 @@ multipoles_CH4:
  Ekin: 1.1e-10
  diff from reference kernel: 1.1e-9
  diff: 8.9e-10
- number of corrected points: 24.0
+ number of corrected points: 27.0
  eval: 1.1e-8
  Unitary check of the multipole calculations: 9.1e-2
 
@@ -1773,7 +1786,7 @@ igortho_19:
  total charge correction: 1.5e-11
  multiplicator for the confinement: 3.13e-11
  radius for normalization: 1.1e-2
- Force Norm (Hartree/Bohr): 3.76e-8
+ Force Norm (Hartree/Bohr): 3.91e-8
 
 igortho_44:
  Atomic Forces (Ha/Bohr): 8.2e-7
@@ -1802,7 +1815,7 @@ igortho_44:
  energy: 7.1e-07
  Omega: 3.0e-10
  Charge analysis (charge / net charge): 1.6e-6
- Pseudo Fermi level for occupations: 2.48e-6
+ Pseudo Fermi level for occupations: 2.8e-6
  net charge: 1.1e-5
  eval: 1.1e-4
  Multipole coefficients: 1.4e-6
@@ -1813,7 +1826,7 @@ igortho_44:
  delta: 1.1e-10
  #radius for normalization: 1.1e-1
  Tolerance for the following test: 1.01e-10
- Force Norm (Hartree/Bohr): 7.9e-7
+ Force Norm (Hartree/Bohr): 9.3e-7
  Unitary check of the multipole calculations: 1.0e-2
  Multipole coefficients: 1.6e-6
  Keys to ignore:
@@ -1857,7 +1870,7 @@ igortho_94:
  net charge: 1.1e-5
  eval: 1.1e-7
  Multipole coefficients: 1.2e-5
- number of corrected points: 83
+ number of corrected points: 116
  delta: 4.1e-11
  radius for normalization: 1.1e-2
  multiplicator for the confinement: 3.97e-11
@@ -1874,7 +1887,7 @@ extendedfrags_nofrags:
  ebs: 7.8e-11
  EXC: 1.1e-10
  Energies: 1.1e-10
- Pressure: 3.3e-11
+ Pressure: 3.4e-11
 
 extendedfrags_read:
  Omega: 1.5e-10
@@ -2006,6 +2019,10 @@ pexsi:
   Omega: 4.2e-11
   energy: 3.8e-11
   EXC: 1.0e-10
+  Enl: 1.1e-10
+  Total energy (H*DM): 1.6e-11
+  Total energy (S*EDM): 1.6e-11
+  Total free energy: 1.6e-11
   Total charge: 1.1e-10
   Keys to ignore:
     - Calculating wavelets expansion of projectors, found warnings

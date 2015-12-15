@@ -615,7 +615,7 @@ module postprocessing_linear
       !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
-           order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
+           order_taylor,input%lin%max_inversion_error,&
            input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
            input%lin%pexsi_npoles, input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, &
            input%lin%pexsi_temperature, input%lin%pexsi_tol_charge)
@@ -747,7 +747,7 @@ module postprocessing_linear
       !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
-           order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
+           order_taylor, input%lin%max_inversion_error, &
            input%calculate_KS_residue, input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
            input%lin%pexsi_npoles, input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, &
            input%lin%pexsi_temperature, input%lin%pexsi_tol_charge, updatekernel=.false.)

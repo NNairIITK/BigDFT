@@ -8,7 +8,7 @@
 !!   For the list of contributors, see ~/AUTHORS 
 
 
-subroutine init_foe(iproc, nproc, input, orbs_KS, foe_obj, reset)
+subroutine init_foe(iproc, nproc, input, orbs_KS, tmprtr, foe_obj, reset)
   use module_base
   use module_atoms, only: atomic_structure
   use module_types
@@ -19,6 +19,7 @@ subroutine init_foe(iproc, nproc, input, orbs_KS, foe_obj, reset)
   integer, intent(in) :: iproc, nproc
   type(input_variables), intent(in) :: input
   type(orbitals_data), intent(in) :: orbs_KS
+  real(kind=8),intent(in) :: tmprtr
   type(foe_data), intent(out) :: foe_obj
   logical, intent(in) :: reset
   
@@ -72,7 +73,7 @@ subroutine init_foe(iproc, nproc, input, orbs_KS, foe_obj, reset)
       call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",input%evboundsshrink_nsatur)
       call foe_data_set_real(foe_obj,"fscale_lowerbound",input%fscale_lowerbound)
       call foe_data_set_real(foe_obj,"fscale_upperbound",input%fscale_upperbound)
-      call foe_data_set_logical(foe_obj,"adjust_FOE_temperature",input%adjust_FOE_temperature)
+      call foe_data_set_real(foe_obj,"tmprtr",tmprtr)
   end if
 
   call timing(iproc,'init_matrCompr','OF')
@@ -677,7 +678,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       do ilr=1,lzd%nlr
           locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
       end do
-      call init_foe(iproc, nproc, input, orbs_KS, lfoe, .true.)
+      call init_foe(iproc, nproc, input, orbs_KS, 0.d0, lfoe, .true.)
       call f_free(locreg_centers)
   end if
 

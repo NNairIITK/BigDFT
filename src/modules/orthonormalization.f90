@@ -94,7 +94,7 @@ module orthonormalization
                ovrlp, inv_ovrlp_half, ovrlp_, inv_ovrlp_half_(1))
       else if (methTransformOverlap==-1) then
           !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
-          call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
+          call overlap_power_minus_one_half_parallel(iproc, nproc, 0, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
       else
           call overlapPowerGeneral(iproc, nproc, methTransformOverlap, 1, (/-2/), &
                orthpar%blocksize_pdgemm, &
@@ -379,7 +379,7 @@ module orthonormalization
           !call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
           !ovrlp_%matrix_compr=ovrlp%matrix_compr
           call overlap_power_minus_one_half_parallel(iproc, nproc, methTransformOverlap, &
-               orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
+               ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
           !call deallocate_matrices(ovrlp_)
       else
           nullify(inv_ovrlp_null)

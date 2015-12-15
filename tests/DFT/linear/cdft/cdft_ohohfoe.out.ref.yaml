@@ -79,7 +79,6 @@
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    adjust_kernel_iterations            : No #     enable the adaptive ajustment of the number of kernel iterations
    correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
-   purification_quickreturn            : Yes #    linear scaling quick return in purification
    coeff_weight_analysis               : No #     linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
     #                                              calculations
    FOE_restart                         : 1 #      Restart method to be used for the FOE method
@@ -128,9 +127,7 @@
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
    evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
    evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
-   method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
     #                                              purification, 1 FOE, 2 renormalization)
-   adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
    calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines

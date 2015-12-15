@@ -187,6 +187,9 @@ module multipole
           sigma(0) = 1.0d0
           sigma(1) = 0.8d0
           sigma(2) = 0.6d0
+          !sigma(0) = 0.3d0
+          !sigma(1) = 0.5d0
+          !sigma(2) = 0.9d0
     
           density = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='density')
           
@@ -1782,7 +1785,7 @@ module multipole
 
     subroutine multipole_analysis_driver(iproc, nproc, ll, nphi, lphi, nphir, at, hgrids, &
                orbs, smats, smatm, smatl, collcom, lzd, orthpar, ovrlp, ham, kernel, rxyz, &
-               method, atomic_multipoles_)
+               method, ep)
       use module_base
       use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, orthon_data
       use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, sparsematrix_malloc0, assignment(=), &
@@ -1793,6 +1796,7 @@ module multipole
       use orthonormalization, only: orthonormalizelocalized
       use module_atoms, only: atoms_data
       use yaml_output
+      use multipole_base, only: external_potential_descriptors_null, multipole_set_null, multipole_null
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, ll, nphi, nphir
@@ -1811,11 +1815,11 @@ module multipole
       real(kind=8),dimension(nphi),intent(in) :: lphi
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
       character(len=*),intent(in) :: method
-      real(kind=8),dimension(:,:,:),pointer,intent(inout),optional :: atomic_multipoles_
+      type(external_potential_descriptors),intent(out),optional :: ep
 
       ! Local variables
       integer :: methTransformOverlap, iat, ind, ispin, ishift, iorb, iiorb, l, m, itype, natpx, isatx, nmaxx, kat, n, i, kkat
-      integer :: ilr
+      integer :: ilr, impl, mm
       logical :: can_use_transposed
       real(kind=8),dimension(:),pointer :: phit_c, phit_f
       real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, multipole_matrix_large
@@ -1827,11 +1831,9 @@ module multipole
       logical,dimension(:,:),pointer :: neighborx
       integer,dimension(:),pointer :: nx
       character(len=20),dimension(:),allocatable :: names
-      logical :: present_atomic_multipoles_
 
       call f_routine(id='multipole_analysis_driver')
 
-      present_atomic_multipoles_ = present(atomic_multipoles_)
 
       if (iproc==0) then
           call yaml_comment('Atomic multipole analysis, new approach',hfill='=')
@@ -1879,30 +1881,8 @@ module multipole
 
 
       Qmat = sparsematrix_malloc(smatl,iaction=SPARSE_FULL,id='Qmat')
-      if (present_atomic_multipoles_) then
-          ! Check the dimensions
-          if (lbound(atomic_multipoles_,1)/=-ll) then
-              call f_err_throw('wrong lbound (1st dim) of atomic_multipoles',err_name='BIGDFT_RUNTIME_ERROR')
-          end if
-          if (ubound(atomic_multipoles_,2)/=ll) then
-              call f_err_throw('wrong ubound (1st dim) of atomic_multipoles',err_name='BIGDFT_RUNTIME_ERROR')
-          end if
-          if (lbound(atomic_multipoles_,2)/=0) then
-              call f_err_throw('wrong lbound (2st dim) of atomic_multipoles',err_name='BIGDFT_RUNTIME_ERROR')
-          end if
-          if (ubound(atomic_multipoles_,2)/=ll) then
-              call f_err_throw('wrong ubound (2st dim) of atomic_multipoles',err_name='BIGDFT_RUNTIME_ERROR')
-          end if
-          if (lbound(atomic_multipoles_,3)/=1) then
-              call f_err_throw('wrong lbound (3st dim) of atomic_multipoles',err_name='BIGDFT_RUNTIME_ERROR')
-          end if
-          if (ubound(atomic_multipoles_,3)/=at%astruct%nat) then
-              call f_err_throw('wrong ubound (3st dim) of atomic_multipoles',err_name='BIGDFT_RUNTIME_ERROR')
-          end if
-          atomic_multipoles => atomic_multipoles_
-      else
-          atomic_multipoles = f_malloc0_ptr((/-ll.to.ll,0.to.ll,1.to.at%astruct%nat/),id='atomic_multipoles')
-      end if
+      atomic_multipoles = f_malloc0_ptr((/-ll.to.ll,0.to.ll,1.to.at%astruct%nat/),id='atomic_multipoles')
+
 
       multipole_matrix = matrices_null()
       multipole_matrix%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_FULL, id='multipole_matrix%matrix_compr')
@@ -1981,19 +1961,43 @@ module multipole
           atomic_multipoles(0,0,iat) = atomic_multipoles(0,0,iat) + q
       end do
 
+      names = f_malloc_str(len(names),at%astruct%nat,id='names')
+      do iat=1,at%astruct%nat
+          itype = at%astruct%iatype(iat)
+          names(iat) = at%astruct%atomnames(itype)
+      end do
       if (iproc==0) then
           call yaml_comment('Final result of the multipole analysis',hfill='~')
-          names = f_malloc_str(len(names),at%astruct%nat,id='names')
-          do iat=1,at%astruct%nat
-              itype = at%astruct%iatype(iat)
-              names(iat) = at%astruct%atomnames(itype)
-          end do
           call write_multipoles_new(at%astruct%nat, names, &
                at%astruct%rxyz, at%astruct%units, &
                atomic_multipoles)
-          call f_free_str(len(names),names)
       end if
 
+
+      if (present(ep)) then
+          ep = external_potential_descriptors_null()
+          ep%nmpl = at%astruct%nat
+          allocate(ep%mpl(ep%nmpl))
+          do impl=1,ep%nmpl
+              ep%mpl(impl) = multipole_set_null()
+              allocate(ep%mpl(impl)%qlm(0:lmax))
+              ep%mpl(impl)%rxyz = at%astruct%rxyz(1:3,impl)
+              ep%mpl(impl)%sym = trim(names(impl))
+              do l=0,lmax
+                  ep%mpl(impl)%qlm(l) = multipole_null()
+                  !if (l>=3) cycle
+                  ep%mpl(impl)%qlm(l)%q = f_malloc_ptr(2*l+1,id='q')
+                  mm = 0
+                  do m=-l,l
+                      mm = mm + 1
+                      ep%mpl(impl)%qlm(l)%q(mm) = atomic_multipoles(m,l,impl)
+                  end do
+              end do
+          end do
+      end if
+
+
+      call f_free_str(len(names),names)
       call deallocate_matrices(multipole_matrix)
       call f_free(kernel_ortho)
       call f_free(Qmat)
@@ -2003,11 +2007,7 @@ module multipole
           call f_free_ptr(nx)
           call f_free_ptr(neighborx)
       end if
-      if (present_atomic_multipoles_) then
-          nullify(atomic_multipoles)
-      else
-          call f_free_ptr(atomic_multipoles)
-      end if
+      call f_free_ptr(atomic_multipoles)
       call f_free(multipole_matrix_large)
 
       if (iproc==0) then
@@ -2155,33 +2155,6 @@ module multipole
            kernel_%matrix_compr, ovrlp_onehalf_(1)%matrix_compr, tmpmat1)
       call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
            ovrlp_onehalf_(1)%matrix_compr, tmpmat1, kerneltilde)
-
-
-      ! Determine the periodicity...
-      perx=(smats%geocode /= 'F')
-      pery=(smats%geocode == 'P')
-      perz=(smats%geocode /= 'F')
-      if (perx) then
-          is1 = -1
-          ie1 = 1
-      else
-          is1 = 0
-          ie1 = 0
-      end if
-      if (pery) then
-          is2 = -1
-          ie2 = 1
-      else
-          is2 = 0
-          ie2 = 0
-      end if
-      if (perz) then
-          is3 = -1
-          ie3 = 1
-      else
-          is3 = 0
-          ie3 = 0
-      end if
 
 
 
@@ -2401,7 +2374,7 @@ module multipole
 
               ! Add the penalty term
               if (mode=='old') then
-                  call add_penalty_term(smats%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
+                  call add_penalty_term(at%astruct%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
                        at%astruct%cell_dim, com, alpha, n, ovrlp, ham)
               else if (mode=='new') then
                   multipoles_fake = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.smats%nfvctr/),id='multipoles_fake')
@@ -2410,13 +2383,13 @@ module multipole
                   if (ialpha==1) then
                       if (present(multipoles)) then
                           write(*,*) 'call with multipoles'
-                          call add_penalty_term_new(smats%geocode, at%astruct%nat, smats%nfvctr, &
+                          call add_penalty_term_new(at%astruct%geocode, at%astruct%nat, smats%nfvctr, &
                                neighbor(1:,kat), rxyz(1:,kkat), smats%on_which_atom, &
                                multipoles, at%astruct%cell_dim, com, alpha, n, ham, &
                                nmax, penalty_matrices(1:n,1:n,kat))
                       else
                           write(*,*) 'call with multipoles_fake'
-                          call add_penalty_term_new(smats%geocode, at%astruct%nat, smats%nfvctr, &
+                          call add_penalty_term_new(at%astruct%geocode, at%astruct%nat, smats%nfvctr, &
                                neighbor(1:,kat), rxyz(1:,kkat), smats%on_which_atom, &
                                multipoles_fake, at%astruct%cell_dim, com, alpha, n, ham, &
                                nmax, penalty_matrices(1:n,1:n,kat))

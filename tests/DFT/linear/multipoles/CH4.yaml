@@ -48,7 +48,6 @@
    check_overlap: 1
    experimental_mode: Yes
    calculate_KS_residue: No
-   method_updatekernel: 2
    loewdin_charge_analysis: yes
    check_matrix_compression: No
    FOE_restart: 1

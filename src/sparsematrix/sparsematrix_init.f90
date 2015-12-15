@@ -1154,7 +1154,7 @@ contains
 
 
     !> Currently assuming square matrices
-    subroutine init_sparse_matrix(iproc, nproc, nspin, geocode, norb, norbu, norbup, isorbu, store_index, &
+    subroutine init_sparse_matrix(iproc, nproc, nspin, geocode, norbu, norbup, isorbu, store_index, &
                on_which_atom, nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
                allocate_full, print_info)
       use yaml_output
@@ -1162,7 +1162,7 @@ contains
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, nspin, norb, norbu, norbup, isorbu, nnonzero, nnonzero_mult
+      integer,intent(in) :: iproc, nproc, nspin, norbu, norbup, isorbu, nnonzero, nnonzero_mult
       character(len=1),intent(in) :: geocode
       logical,intent(in) :: store_index
       integer,dimension(norbu),intent(in) :: on_which_atom
@@ -1196,7 +1196,7 @@ contains
       if (present(allocate_full)) allocate_full_=allocate_full
       if (present(print_info)) print_info_=print_info
 
-      lut = f_malloc(norb,id='lut')
+      lut = f_malloc(norbu,id='lut')
     
       sparsemat=sparse_matrix_null()
     
@@ -1230,7 +1230,7 @@ contains
       sparsemat%nsegline=0
       do iorb=1,norbup
           iiorb=isorbu+iorb
-          call create_lookup_table(nnonzero, nonzero, iiorb,norb,norbu,lut)
+          call create_lookup_table(nnonzero, nonzero, iiorb, norbu, lut)
           call nseg_perline(norbu, lut, sparsemat%nseg, sparsemat%nvctr, sparsemat%nsegline(iiorb))
       end do
 
@@ -1267,7 +1267,7 @@ contains
       sparsemat%keyg=0
       do iorb=1,norbup
           iiorb=isorbu+iorb
-          call create_lookup_table(nnonzero, nonzero, iiorb,norb,norbu,lut)
+          call create_lookup_table(nnonzero, nonzero, iiorb, norbu, lut)
           call keyg_per_line(norbu, sparsemat%nseg, iiorb, sparsemat%istsegline(iiorb), &
                lut, ivctr, sparsemat%keyg)
       end do
@@ -1380,7 +1380,7 @@ contains
       nvctr_mult=0
       do iorb=1,norbup
           iiorb=isorbu+iorb
-          call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb,norb,norbu,lut)
+          call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb, norbu, lut)
           call nseg_perline(norbu, lut, nseg_mult, nvctr_mult, nsegline_mult(iiorb))
       end do
       if (nproc>1) then
@@ -1403,7 +1403,7 @@ contains
       ivctr_mult=0
       do iorb=1,norbup
          iiorb=isorbu+iorb
-         call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb,norb,norbu,lut)
+         call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb, norbu, lut)
          call keyg_per_line(norbu, nseg_mult, iiorb, istsegline_mult(iiorb), &
               lut, ivctr_mult, keyg_mult)
       end do
@@ -1454,56 +1454,14 @@ contains
       if (extra_timing.and.iproc==0) print*,'imctime',time0,time1,time2,time3,time4,time5,&
            time0+time1+time2+time3+time4+time5,ttime
 
-
-!!$      contains
-
-!!$        subroutine create_lookup_table(nnonzero, nonzero, iiorb)
-!!$          implicit none
-!!$
-!!$          ! Calling arguments
-!!$          integer :: nnonzero, iiorb
-!!$          integer,dimension(2,nnonzero) :: nonzero
-!!$
-!!$          ! Local variables
-!!$          integer(kind=8) :: ist, iend, ind
-!!$          integer :: i, jjorb
-!!$
-!!$          lut = .false.
-!!$          ist = int(iiorb-1,kind=8)*int(norbu,kind=8) + int(1,kind=8)
-!!$          iend = int(iiorb,kind=8)*int(norbu,kind=8)
-!!$          do i=1,nnonzero
-!!$              ind = int(nonzero(2,i)-1,kind=8)*int(norbu,kind=8) + int(nonzero(1,i),kind=8)
-!!$              if (ind<ist) cycle
-!!$              if (ind>iend) exit
-!!$              jjorb=nonzero(1,i)
-!!$              lut(jjorb)=.true.
-!!$          end do
-!!$        end subroutine create_lookup_table
-!!$
-!!$
-!!$        subroutine set_value_from_optional()
-!!$          if (present(allocate_full_))then
-!!$              allocate_full = allocate_full_
-!!$          else
-!!$              allocate_full = .false.
-!!$          end if
-!!$          if (present(print_info_))then
-!!$              print_info = print_info_
-!!$          else
-!!$              print_info = .true.
-!!$          end if
-!!$        end subroutine set_value_from_optional
-
-
-    
     end subroutine init_sparse_matrix
 
-    subroutine create_lookup_table(nnonzero, nonzero, iiorb,norb,norbu,lut)
+    subroutine create_lookup_table(nnonzero, nonzero, iiorb, norbu, lut)
       implicit none
       ! Calling arguments
-      integer :: nnonzero, iiorb,norb,norbu
+      integer :: nnonzero, iiorb,norbu
       integer,dimension(2,nnonzero) :: nonzero
-      logical, dimension(norb), intent(inout) :: lut
+      logical, dimension(norbu), intent(inout) :: lut
 
       ! Local variables
       integer(kind=8) :: ist, iend, ind
@@ -4024,7 +3982,7 @@ contains
 
       call f_free(mat)
 
-      call init_sparse_matrix(iproc, nproc, 1, 'F', ncol, ncol, ncolp, iscol, .false., &
+      call init_sparse_matrix(iproc, nproc, 1, 'F', ncol, ncolp, iscol, .false., &
            on_which_atom, nnonzero, nonzero, nnonzero, nonzero, smat)
 
       collcom_dummy = comms_linear_null()
@@ -4105,7 +4063,7 @@ contains
       !!    end if
       !!end do
 
-      call init_sparse_matrix(iproc, nproc, nspin, geocode, ncol, ncol, ncolp, iscol, .false., &
+      call init_sparse_matrix(iproc, nproc, nspin, geocode, ncol, ncolp, iscol, .false., &
            on_which_atom, nvctr, nonzero, nvctr, nonzero, smat)
 
       collcom_dummy = comms_linear_null()

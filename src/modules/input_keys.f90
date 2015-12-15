@@ -358,15 +358,6 @@ module module_input_keys
      !> linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
      integer :: evboundsshrink_nsatur
 
-     !> linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
-     integer :: method_updatekernel
-
-     !> linear scaling: quick return in purification
-     logical :: purification_quickreturn
-
-     !> linear scaling: dynamic adjustment of the decay length of the FOE error function
-     logical :: adjust_FOE_temperature
-
      !> linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
      logical :: calculate_gap
 
@@ -1773,15 +1764,6 @@ contains
        case(EVBOUNDSSHRINK_NSATUR)
           ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
           in%evboundsshrink_nsatur = val
-       case (METHOD_UPDATEKERNEL)
-          ! linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
-          in%method_updatekernel = val
-       case (PURIFICATION_QUICKRETURN)
-          ! linear scaling: quick return in purification
-          in%purification_quickreturn = val
-       case (ADJUST_foe_TEMPERATURE)
-          ! linear scaling: dynamic adjustment of the decay length of the FOE error function
-          in%adjust_FOE_temperature = val
        case (CALCULATE_GAP)
           ! linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
           in%calculate_gap = val
