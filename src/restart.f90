@@ -951,7 +951,8 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   !!     psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp_%matrix)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, collcom_tmp, &
                  psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, smat_tmp, mat_tmp)
-  call uncompress_matrix(iproc, tmb%linmat%s, mat_tmp%matrix_compr, tmb%linmat%ovrlp_%matrix)
+  !call uncompress_matrix(iproc, tmb%linmat%s, mat_tmp%matrix_compr, tmb%linmat%ovrlp_%matrix)
+  call uncompress_matrix(iproc, smat_tmp, mat_tmp%matrix_compr, tmb%linmat%ovrlp_%matrix)
 
   call deallocate_matrices(mat_tmp)
   call deallocate_sparse_matrix(smat_tmp)
@@ -974,11 +975,13 @@ END SUBROUTINE tmb_overlap_onsite
 
 
 ! we want to compare every tmb to every other tmb, calculating rotations using environment info
-subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz)
+subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_frags)
   use module_base
   use module_types
   use module_fragments
   use io, only: find_neighbours
+  use locregs, only: allocate_wfd, deallocate_wfd
+  use module_interfaces, only: reformat_one_supportfunction
 
   implicit none
 
@@ -988,48 +991,56 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz)
   type(atoms_data), intent(in) :: at
   type(DFT_wavefunction),intent(inout):: tmb
   real(kind=gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
+  type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
 
   !local arguments
   integer :: num_neighbours, iat, jat, ntmb_frag_and_env, iiorb, iforb, iiat, iatf, ityp
+  integer :: iiat_tmp, ilr_tmp, norb_tmp, jproc, iroot, ncount, j, ndim, ndim_tmp, iorb, ilr
+  integer :: jstart, jstart_tmp, ndim_tmp1, istart_tmp, jorb, jlr, jjorb, jjat, iorba, jorba
+  integer :: ifr, ifr_ref, ntmb_frag_and_env_dfrag, num_env
+  integer, dimension(3) :: ns,ns_tmp,n,n_tmp
+  integer, dimension(0:6) :: reformat_reason
+  integer, dimension(:), allocatable :: workarray, ifrag_ref
   integer, dimension(:,:), allocatable :: map_frag_and_env, frag_map
 
-  real(kind=gp) :: Werror
-  real(kind=gp), dimension(:,:), allocatable :: reformat_error
+  real(kind=gp) :: Werror, tol, ddot
+  real(kind=gp), dimension(3) :: centre_old_box, centre_new_box, da
+  real(kind=wp), dimension(:), pointer :: psi_tmp
+  real(kind=wp), dimension(:), allocatable :: psi_tmp_i, psi_tmp_j
+  real(kind=gp), dimension(:,:), allocatable :: reformat_error, overlap
+  real(kind=wp), dimension(:,:,:,:,:,:), allocatable :: phigold
 
-  type(system_fragment), dimension(:), allocatable :: ref_frags_atomic
+  type(system_fragment), dimension(:), allocatable :: ref_frags_atomic, ref_frags_atomic_dfrag
   type(fragment_transformation), dimension(:,:), pointer :: frag_trans
+
+  logical :: reformat
+
+  ! check which fragment we're on - if this isn't a fragment calculation then all atoms are in the same fragment, which could be very expensive!
+
+  ifrag_ref=f_malloc(at%astruct%nat,id='ifrag_ref')
+  if (input%frag%nfrag>1) then
+     iat=0
+     do ifr=1,input%frag%nfrag
+        ifr_ref=input%frag%frag_index(ifr)
+        do iatf=1,ref_frags(ifr_ref)%astruct_frg%nat
+           iat=iat+1
+           ifrag_ref(iat)=ifr_ref
+           !print*,'frag',iat,ifr_ref,input%frag%nfrag
+        end do
+     end do
+  else
+     ifrag_ref=1
+  end if
 
   ! allocate and set up ref_frags_atomic, treating each atom as if it is a fragment
   allocate(ref_frags_atomic(at%astruct%nat))
+  allocate(ref_frags_atomic_dfrag(at%astruct%nat))
+
   do iat=1,at%astruct%nat
-     ref_frags_atomic(iat)=fragment_null()
-
-     ! fill in relevant ref_frags_atomic info
-     ref_frags_atomic(iat)%astruct_frg%nat=1
-     ref_frags_atomic(iat)%astruct_env%nat=0
-
-     ! copy some stuff from astruct
-     ref_frags_atomic(iat)%astruct_frg%inputfile_format = at%astruct%inputfile_format
-     ref_frags_atomic(iat)%astruct_frg%units = at%astruct%units
-     ref_frags_atomic(iat)%astruct_frg%geocode = at%astruct%geocode
-     ! coordinates can just be zero as we only have 1 atom 
-     ref_frags_atomic(iat)%astruct_frg%rxyz = f_malloc0_ptr((/3,1/),id=' ref_frags_atomic(iat)%astruct_frg%rxyz')
-
-     ! now deal with atom types - easier to keep this coherent with at%astruct rather than having one type
-     ref_frags_atomic(iat)%astruct_frg%ntypes = at%astruct%ntypes
-     ref_frags_atomic(iat)%astruct_frg%atomnames => at%astruct%atomnames
-     ref_frags_atomic(iat)%astruct_frg%iatype = f_malloc_ptr(1,id='ref_frags_atomic(iat)%astruct_frg%iatype')
-
-     ! polarization etc is irrelevant
-     ref_frags_atomic(iat)%astruct_frg%input_polarization = f_malloc0_ptr(1,&
-          id='ref_frags_atomic(iat)%astruct_frg%input_polarization')
-     ref_frags_atomic(iat)%astruct_frg%ifrztyp = f_malloc0_ptr(1,id='ref_frags_atomic(iat)%astruct_frg%ifrztyp')
-     ref_frags_atomic(iat)%astruct_frg%iatype(1) = at%astruct%iatype(iat)
-     ref_frags_atomic(iat)%astruct_frg%input_polarization(1) = 100
-
-     call init_minimal_orbitals_data(iproc, nproc, 1, input, ref_frags_atomic(iat)%astruct_frg, &
-          ref_frags_atomic(iat)%fbasis%forbs, at%astruct)
+     call setup_frags_from_astruct(ref_frags_atomic(iat))
+     call setup_frags_from_astruct(ref_frags_atomic_dfrag(iat))
   end do
+
 
   ! take a default value of 4 if this hasn't been specified in the input
   if (input%lin%frag_num_neighbours==0) then
@@ -1046,14 +1057,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz)
   ! pre-fill with identity transformation
   do iat=1,at%astruct%nat
      do jat=1,at%astruct%nat
-        frag_trans(iat,jat)%Rmat=0.0d0
-        frag_trans(iat,jat)%Rmat(1,1)=1.0d0
-        frag_trans(iat,jat)%Rmat(2,2)=1.0d0
-        frag_trans(iat,jat)%Rmat(3,3)=1.0d0
-        frag_trans(iat,jat)%theta=0.0d0
-        frag_trans(iat,jat)%rot_axis=0.0d0
-        frag_trans(iat,jat)%rot_axis(1)=1.0d0
-        frag_trans(iat,jat)%rot_center=0.0d0
+        frag_trans(iat,jat)=fragment_transformation_identity()
         frag_trans(iat,jat)%rot_center_new=frag_center(1,rxyz(:,jat))
         reformat_error(iat,jat)=-1.0d0
      end do
@@ -1083,7 +1087,12 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz)
      ! find environment atoms
      ! don't think we care about keeping track of which atoms they were so we can immediately destroy the mapping array
      map_frag_and_env = f_malloc((/tmb%orbs%norb,3/),id='map_frag_and_env')
-     call find_neighbours(num_neighbours,at,rxyz,tmb%orbs,ref_frags_atomic(iat),frag_map,ntmb_frag_and_env,map_frag_and_env)
+     ! version with most extensive matching
+     call find_neighbours(num_neighbours,at,rxyz,tmb%orbs,ref_frags_atomic(iat),frag_map,&
+          ntmb_frag_and_env,map_frag_and_env,.false.)
+     ! with only closest shell
+     call find_neighbours(num_neighbours,at,rxyz,tmb%orbs,ref_frags_atomic_dfrag(iat),frag_map,&
+          ntmb_frag_and_env_dfrag,map_frag_and_env,.true.)
      call f_free(map_frag_and_env)
 
      ! we also need nbasis_env
@@ -1093,6 +1102,12 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz)
         ref_frags_atomic(iat)%nbasis_env=ref_frags_atomic(iat)%nbasis_env+input%lin%norbsPerType(ityp)
      end do
 
+     ! we also need nbasis_env
+     ref_frags_atomic_dfrag(iat)%nbasis_env=0
+     do iatf=1,ref_frags_atomic_dfrag(iat)%astruct_env%nat
+        ityp=ref_frags_atomic_dfrag(iat)%astruct_env%iatype(iatf)
+        ref_frags_atomic_dfrag(iat)%nbasis_env=ref_frags_atomic_dfrag(iat)%nbasis_env+input%lin%norbsPerType(ityp)
+     end do
 
      do jat=1,iat-1
         ! now we treat ref_frags_atomic and environment data therein as if it came from a file
@@ -1103,13 +1118,25 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz)
         if (at%astruct%iatype(iat)==at%astruct%iatype(jat)) then
            ! as above, we don't need to keep track of mapping, we just want the transformation
            map_frag_and_env = f_malloc((/ref_frags_atomic(iat)%nbasis_env,3/),id='map_frag_and_env')
-           call match_environment_atoms(jat-1,at,rxyz,tmb%orbs,ref_frags_atomic(iat),&
-                ref_frags_atomic(iat)%nbasis_env,map_frag_and_env,frag_trans(iat,jat),Werror)
+
+           ! if we are an identical fragment then do full matching 
+           if (ifrag_ref(iat)==ifrag_ref(jat)) then
+              call match_environment_atoms(jat-1,at,rxyz,tmb%orbs,ref_frags_atomic(iat),&
+                   ref_frags_atomic(iat)%nbasis_env,map_frag_and_env,frag_trans(iat,jat),Werror,.false.)
+           ! otherwise just look at nearest neighbours, i.e. n closest, not n closest of each type
+           else
+              call match_environment_atoms(jat-1,at,rxyz,tmb%orbs,ref_frags_atomic_dfrag(iat),&
+                   ref_frags_atomic_dfrag(iat)%nbasis_env,map_frag_and_env,frag_trans(iat,jat),Werror,.true.)
+           end if
+
            call f_free(map_frag_and_env)
 
            reformat_error(iat,jat)=Werror
-           !reformat_error(jat,iat)=Werror
-           !frag_trans(jat,iat)=frag_trans(iat,jat)
+           reformat_error(jat,iat)=Werror
+           frag_trans(jat,iat)%theta=frag_trans(iat,jat)%theta
+           frag_trans(jat,iat)%rot_axis=frag_trans(iat,jat)%rot_axis
+           frag_trans(jat,iat)%rot_center=frag_trans(iat,jat)%rot_center
+           frag_trans(jat,iat)%rot_center_new=frag_trans(iat,jat)%rot_center_new
 
            !if (Werror > W_tol) call f_increment(itoo_big)
         end if
@@ -1121,42 +1148,365 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz)
   end do
 
   !debug - check calculated transformations
-  open(99)
-  do iat=1,at%astruct%nat
-     do jat=1,at%astruct%nat
-        if (jat<=iat) then
-           write(99,'(2(a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6),2x,F6.2)') &
+  if (iproc==0) then
+     open(99)
+     do iat=1,at%astruct%nat
+        do jat=1,at%astruct%nat
+           if (at%astruct%iatype(iat)/=at%astruct%iatype(jat)) then
+              num_env=-1
+           else if (ifrag_ref(iat)==ifrag_ref(jat)) then
+              num_env=ref_frags_atomic(iat)%astruct_env%nat-ref_frags_atomic(iat)%astruct_frg%nat
+           else
+              num_env=ref_frags_atomic_dfrag(iat)%astruct_env%nat-ref_frags_atomic_dfrag(iat)%astruct_frg%nat
+           end if
+           write(99,'(2(a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6),2x,F6.2,3(2x,I5))') &
                 trim(at%astruct%atomnames(at%astruct%iatype(iat))),iat,&
                 trim(at%astruct%atomnames(at%astruct%iatype(jat))),jat,&
                 frag_trans(iat,jat)%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans(iat,jat)%rot_axis,&
                 frag_trans(iat,jat)%rot_center,frag_trans(iat,jat)%rot_center_new,&
-                reformat_error(iat,jat)
-        else
-           write(99,'(2(a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6),2x,F6.2)') &
-                trim(at%astruct%atomnames(at%astruct%iatype(iat))),iat,&
-                trim(at%astruct%atomnames(at%astruct%iatype(jat))),jat,&
-                frag_trans(jat,iat)%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans(jat,iat)%rot_axis,&
-                frag_trans(jat,iat)%rot_center,frag_trans(jat,iat)%rot_center_new,&
-                reformat_error(jat,iat)
-
-        end if
+                reformat_error(iat,jat),num_env,ifrag_ref(iat),ifrag_ref(jat)
+        end do
      end do
-  end do
-  close(99)
+     close(99)
+  end if
 
 
   ! NOW WE ACTUALLY NEED TO REFORMAT
 
+  ! move all psi into psi_tmp all centred in the same place and calculate overlap matrix
+  tol=1.d-3
+  reformat_reason=0
+
+  !arbitrarily pick the middle one as assuming it'll be near the centre of structure
+  !and therefore have large fine grid
+  !might be more efficient to reformat each jorb to iorb's lzd, but that involves communicating lots of keys...
+  norb_tmp=tmb%orbs%norb/2
+  ilr_tmp=tmb%orbs%inwhichlocreg(norb_tmp) 
+  iiat_tmp=tmb%orbs%onwhichatom(norb_tmp)
+
+  ! Find out which process handles TMB norb_tmp and get the keys from that process
+  do jproc=0,nproc-1
+      if (tmb%orbs%isorb_par(jproc)<norb_tmp .and. norb_tmp<=tmb%orbs%isorb_par(jproc)+tmb%orbs%norb_par(jproc,0)) then
+          iroot=jproc
+          exit
+      end if
+  end do
+  if (iproc/=iroot) then
+      ! some processes might already have it allocated
+      call deallocate_wfd(tmb%lzd%llr(ilr_tmp)%wfd)
+      call allocate_wfd(tmb%lzd%llr(ilr_tmp)%wfd)
+  end if
+  if (nproc>1) then
+      ncount = tmb%lzd%llr(ilr_tmp)%wfd%nseg_c + tmb%lzd%llr(ilr_tmp)%wfd%nseg_f
+      workarray = f_malloc(6*ncount,id='workarray')
+      if (iproc==iroot) then
+          call vcopy(2*ncount, tmb%lzd%llr(ilr_tmp)%wfd%keygloc(1,1), 1, workarray(1), 1)
+          call vcopy(2*ncount, tmb%lzd%llr(ilr_tmp)%wfd%keyglob(1,1), 1, workarray(2*ncount+1), 1)
+          call vcopy(ncount, tmb%lzd%llr(ilr_tmp)%wfd%keyvloc(1), 1, workarray(4*ncount+1), 1)
+          call vcopy(ncount, tmb%lzd%llr(ilr_tmp)%wfd%keyvglob(1), 1, workarray(5*ncount+1), 1)
+      end if
+      call mpibcast(workarray,root=iroot, comm=bigdft_mpi%mpi_comm)
+      if (iproc/=iroot) then
+          call vcopy(2*ncount, workarray(1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keygloc(1,1), 1)
+          call vcopy(2*ncount, workarray(2*ncount+1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keyglob(1,1), 1)
+          call vcopy(ncount, workarray(4*ncount+1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keyvloc(1), 1)
+          call vcopy(ncount, workarray(5*ncount+1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keyvglob(1), 1)
+      end if
+      call f_free(workarray)
+  end if
+
+
+  ndim_tmp1=tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c+7*tmb%lzd%llr(ilr_tmp)%wfd%nvctr_f
+
+  ! Determine size of phi_old and phi
+  ndim_tmp=0
+  ndim=0
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      ndim=ndim+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      ndim_tmp=ndim_tmp+ndim_tmp1
+  end do
+
+  ! should integrate bettwer with existing reformat routines, but restart needs tidying anyway
+  psi_tmp = f_malloc_ptr(ndim_tmp,id='psi_tmp')
+
+  ! since we have a lot of different rotations, store all (reformatted) psi_i but only 1 psi_j at a time
+  ! bypass calculate_overlap_transposed and do directly in dense format
+  ! think about how to do this better...
+
+  ! get all psi_i - i.e. identity transformation, but reformatting to a single lr
+  n_tmp(1)=tmb%lzd%Llr(ilr_tmp)%d%n1
+  n_tmp(2)=tmb%lzd%Llr(ilr_tmp)%d%n2
+  n_tmp(3)=tmb%lzd%Llr(ilr_tmp)%d%n3
+  ns_tmp(1)=tmb%lzd%Llr(ilr_tmp)%ns1
+  ns_tmp(2)=tmb%lzd%Llr(ilr_tmp)%ns2
+  ns_tmp(3)=tmb%lzd%Llr(ilr_tmp)%ns3
+
+  jstart=1
+  jstart_tmp=1
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      iiat=tmb%orbs%onwhichatom(iiorb)
+
+      n(1)=tmb%lzd%Llr(ilr)%d%n1
+      n(2)=tmb%lzd%Llr(ilr)%d%n2
+      n(3)=tmb%lzd%Llr(ilr)%d%n3
+      ns(1)=tmb%lzd%Llr(ilr)%ns1
+      ns(2)=tmb%lzd%Llr(ilr)%ns2
+      ns(3)=tmb%lzd%Llr(ilr)%ns3
+
+      ! override centres
+      frag_trans(iiat,iiat)%rot_center(:)=rxyz(:,iiat)
+      frag_trans(iiat,iiat)%rot_center_new(:)=rxyz(:,iiat_tmp)
+
+      call reformat_check(reformat,reformat_reason,tol,at,tmb%lzd%hgrids,tmb%lzd%hgrids,&
+           tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_c,&
+           tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c,tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c,&
+           n,n_tmp,ns,ns_tmp,frag_trans(iiat,iiat),centre_old_box,centre_new_box,da)  
+
+      if (.not. reformat) then ! copy psi into psi_tmp
+          do j=1,tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c
+              psi_tmp(jstart_tmp)=tmb%psi(jstart)
+              jstart=jstart+1
+              jstart_tmp=jstart_tmp+1
+          end do
+          do j=1,7*tmb%lzd%llr(ilr_tmp)%wfd%nvctr_f-6,7
+              psi_tmp(jstart_tmp+0)=tmb%psi(jstart+0)
+              psi_tmp(jstart_tmp+1)=tmb%psi(jstart+1)
+              psi_tmp(jstart_tmp+2)=tmb%psi(jstart+2)
+              psi_tmp(jstart_tmp+3)=tmb%psi(jstart+3)
+              psi_tmp(jstart_tmp+4)=tmb%psi(jstart+4)
+              psi_tmp(jstart_tmp+5)=tmb%psi(jstart+5)
+              psi_tmp(jstart_tmp+6)=tmb%psi(jstart+6)
+              jstart=jstart+7
+              jstart_tmp=jstart_tmp+7
+          end do
+   
+      else
+          phigold = f_malloc((/ 0.to.n(1), 1.to.2, 0.to.n(2), 1.to.2, 0.to.n(3), 1.to.2 /),id='phigold')
+
+          call psi_to_psig(n,tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
+               & tmb%lzd%llr(ilr)%wfd%nseg_c,tmb%lzd%llr(ilr)%wfd%nseg_f,&
+               & tmb%lzd%llr(ilr)%wfd%keyvloc,tmb%lzd%llr(ilr)%wfd%keygloc,jstart,tmb%psi(jstart),phigold)
+
+          call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(ilr),tmb%lzd%llr(ilr_tmp)%geocode,&
+               & tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,n_tmp,centre_old_box,centre_new_box,da,&
+               & frag_trans(iiat,iiat),psi_tmp(jstart_tmp:))
+
+          jstart_tmp=jstart_tmp+ndim_tmp1
+   
+          call f_free(phigold)
+
+      end if
+
+  end do
+
+  !not sure whether to print this - maybe actual reformatting only?
+  !call print_reformat_summary(iproc,nproc,reformat_reason)
+
+  psi_tmp_i=f_malloc(ndim_tmp1,id='psi_tmp_i')
+  psi_tmp_j=f_malloc(ndim_tmp1,id='psi_tmp_j')
+
+  !maybe make this an argument?
+  overlap=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='overlap')
+
+  istart_tmp=1
+  do iiorb=1,tmb%orbs%norb
+      !iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      iiat=tmb%orbs%onwhichatom(iiorb)
+
+      !these have already been reformatted, so need to communicate each reformatted psi_tmp
+      !first check which mpi has this tmb
+      do jproc=0,nproc-1
+          if (tmb%orbs%isorb_par(jproc)<iiorb .and. iiorb<=tmb%orbs%isorb_par(jproc)+tmb%orbs%norb_par(jproc,0)) then
+              iroot=jproc
+              exit
+          end if
+      end do
+
+      if (nproc>1) then
+          !workarray = f_malloc(ndim_tmp1,id='workarray')
+          if (iproc==iroot) then
+              !call vcopy(2*ncount, tmb%lzd%llr(ilr_tmp)%wfd%keygloc(1,1), 1, workarray(1), 1)
+              call vcopy(ndim_tmp1, psi_tmp(istart_tmp), 1, psi_tmp_i(1), 1)
+          end if
+          call mpibcast(psi_tmp_i, root=iroot, comm=bigdft_mpi%mpi_comm)
+          if (iproc==iroot) then
+              istart_tmp = istart_tmp + ndim_tmp1
+          !else
+          !    call vcopy(2*ncount, workarray(1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keygloc(1,1), 1)
+          !    call vcopy(2*ncount, workarray(2*ncount+1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keyglob(1,1), 1)
+          !    call vcopy(ncount, workarray(4*ncount+1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keyvloc(1), 1)
+          !    call vcopy(ncount, workarray(5*ncount+1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keyvglob(1), 1)
+          end if
+          !call f_free(workarray)
+      end if
+
+      ! reformat jorb for iorb then calculate overlap
+      jstart=1
+      do jorb=1,tmb%orbs%norbp
+         jjorb=tmb%orbs%isorb+jorb
+         jlr=tmb%orbs%inwhichlocreg(jjorb)
+         jjat=tmb%orbs%onwhichatom(jjorb)
+
+         ! not sure if this really saves us much, or just makes for poor load balancing
+         if (jjat>iiat) then
+            jstart=jstart+tmb%lzd%llr(jlr)%wfd%nvctr_c+7*tmb%lzd%llr(jlr)%wfd%nvctr_f
+            cycle
+         end if
+
+         n(1)=tmb%lzd%Llr(jlr)%d%n1
+         n(2)=tmb%lzd%Llr(jlr)%d%n2
+         n(3)=tmb%lzd%Llr(jlr)%d%n3
+         ns(1)=tmb%lzd%Llr(jlr)%ns1
+         ns(2)=tmb%lzd%Llr(jlr)%ns2
+         ns(3)=tmb%lzd%Llr(jlr)%ns3
+
+         ! override centres
+         frag_trans(iiat,jjat)%rot_center(:)=rxyz(:,jjat)
+         frag_trans(iiat,jjat)%rot_center_new(:)=rxyz(:,iiat_tmp)
+
+         call reformat_check(reformat,reformat_reason,tol,at,tmb%lzd%hgrids,tmb%lzd%hgrids,&
+              tmb%lzd%llr(jlr)%wfd%nvctr_c,tmb%lzd%llr(jlr)%wfd%nvctr_c,&
+              tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c,tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c,&
+              n,n_tmp,ns,ns_tmp,frag_trans(iiat,jjat),centre_old_box,centre_new_box,da)  
+
+         if (.not. reformat) then ! copy psi into psi_tmp
+             jstart_tmp=1
+             do j=1,tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c
+                 psi_tmp_j(jstart_tmp)=tmb%psi(jstart)
+                 jstart=jstart+1
+                 jstart_tmp=jstart_tmp+1
+             end do
+             do j=1,7*tmb%lzd%llr(ilr_tmp)%wfd%nvctr_f-6,7
+                 psi_tmp_j(jstart_tmp+0)=tmb%psi(jstart+0)
+                 psi_tmp_j(jstart_tmp+1)=tmb%psi(jstart+1)
+                 psi_tmp_j(jstart_tmp+2)=tmb%psi(jstart+2)
+                 psi_tmp_j(jstart_tmp+3)=tmb%psi(jstart+3)
+                 psi_tmp_j(jstart_tmp+4)=tmb%psi(jstart+4)
+                 psi_tmp_j(jstart_tmp+5)=tmb%psi(jstart+5)
+                 psi_tmp_j(jstart_tmp+6)=tmb%psi(jstart+6)
+                 jstart=jstart+7
+                 jstart_tmp=jstart_tmp+7
+             end do
+   
+         else
+             phigold = f_malloc((/ 0.to.n(1), 1.to.2, 0.to.n(2), 1.to.2, 0.to.n(3), 1.to.2 /),id='phigold')
+
+             call psi_to_psig(n,tmb%lzd%llr(jlr)%wfd%nvctr_c,tmb%lzd%llr(jlr)%wfd%nvctr_f,&
+                  & tmb%lzd%llr(jlr)%wfd%nseg_c,tmb%lzd%llr(jlr)%wfd%nseg_f,&
+                  & tmb%lzd%llr(jlr)%wfd%keyvloc,tmb%lzd%llr(jlr)%wfd%keygloc,jstart,tmb%psi(jstart),phigold)
+
+             call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(jlr),tmb%lzd%llr(ilr_tmp)%geocode,&
+                  & tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,n_tmp,centre_old_box,centre_new_box,da,&
+                  & frag_trans(iiat,jjat),psi_tmp_j)
+   
+             call f_free(phigold)
+         end if
+
+         overlap(iiorb,jjorb) = ddot(ndim_tmp1, psi_tmp_i(1), 1, psi_tmp_j(1), 1)
+         overlap(jjorb,iiorb) = overlap(iiorb,jjorb)
+
+         !write(*,'(a,5(1x,I4),2(2x,F12.6))')'iproc,iat,jat,iorb,jorb,ovrlp',iproc,iiat,jjat,iiorb,jjorb,overlap(jjorb,iiorb),&
+         !      tmb%linmat%ovrlp_%matrix(iiorb,jjorb,1)
+      end do
+  end do 
+
+  call mpiallred(overlap, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+  if (iproc==0) then
+     open(98)
+     do iat=1,at%astruct%nat
+        iorba=0
+        do iorb=1,tmb%orbs%norb
+           iiat=tmb%orbs%onwhichatom(iorb)
+           if (iat/=iiat) cycle
+           iorba=iorba+1
+
+           do jat=1,at%astruct%nat
+              jorba=0
+              do jorb=1,tmb%orbs%norb
+                 jjat=tmb%orbs%onwhichatom(jorb)
+                 if (jat/=jjat) cycle
+                 jorba=jorba+1
+
+                 write(98,'(2(a,1x,I5,1x),4(I5,1x),2x,5(F12.6,1x))') &
+                      trim(at%astruct%atomnames(at%astruct%iatype(iat))),iat,&
+                      trim(at%astruct%atomnames(at%astruct%iatype(jat))),jat,&
+                      iorb,jorb,iorba,jorba,overlap(iorb,jorb),&
+                      tmb%linmat%ovrlp_%matrix(iorb,jorb,1),&
+                      overlap(iorb,jorb)-tmb%linmat%ovrlp_%matrix(iorb,jorb,1),&
+                      reformat_error(iat,jat),frag_trans(iat,jat)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+              end do
+           end do
+        end do
+     end do
+     close(98)
+  end if
+
+
+  call f_free(overlap)
+  call f_free(psi_tmp_i)  
+  call f_free(psi_tmp_j) 
+  call f_free_ptr(psi_tmp)
 
   do iat=1,at%astruct%nat
      ! nullify these as we are pointing to at%astruct versions
      nullify(ref_frags_atomic(iat)%astruct_frg%atomnames)
      nullify(ref_frags_atomic(iat)%astruct_env%atomnames)
      call fragment_free(ref_frags_atomic(iat))
+
+     nullify(ref_frags_atomic_dfrag(iat)%astruct_frg%atomnames)
+     nullify(ref_frags_atomic_dfrag(iat)%astruct_env%atomnames)
+     call fragment_free(ref_frags_atomic_dfrag(iat))
   end do
-  deallocate(ref_frags_atomic)
+  deallocate(ref_frags_atomic_dfrag)
   call f_free(reformat_error)
   deallocate(frag_trans)
+  call f_free(ifrag_ref)
+
+
+contains
+
+
+  subroutine setup_frags_from_astruct(ref_frags)
+     implicit none
+     type(system_fragment), intent(out) :: ref_frags
+
+     ref_frags=fragment_null()
+
+     ! fill in relevant ref_frags info
+     ref_frags%astruct_frg%nat=1
+     ref_frags%astruct_env%nat=0
+
+     ! copy some stuff from astruct
+     ref_frags%astruct_frg%inputfile_format = at%astruct%inputfile_format
+     ref_frags%astruct_frg%units = at%astruct%units
+     ref_frags%astruct_frg%geocode = at%astruct%geocode
+     ! coordinates can just be zero as we only have 1 atom 
+     ref_frags%astruct_frg%rxyz = f_malloc0_ptr((/3,1/),id=' ref_frags%astruct_frg%rxyz')
+
+     ! now deal with atom types - easier to keep this coherent with at%astruct rather than having one type
+     ref_frags%astruct_frg%ntypes = at%astruct%ntypes
+     ref_frags%astruct_frg%atomnames => at%astruct%atomnames
+     ref_frags%astruct_frg%iatype = f_malloc_ptr(1,id='ref_frags%astruct_frg%iatype')
+
+     ! polarization etc is irrelevant
+     ref_frags%astruct_frg%input_polarization = f_malloc0_ptr(1,&
+          id='ref_frags%astruct_frg%input_polarization')
+     ref_frags%astruct_frg%ifrztyp = f_malloc0_ptr(1,id='ref_frags%astruct_frg%ifrztyp')
+     ref_frags%astruct_frg%iatype(1) = at%astruct%iatype(iat)
+     ref_frags%astruct_frg%input_polarization(1) = 100
+
+     call init_minimal_orbitals_data(iproc, nproc, 1, input, ref_frags%astruct_frg, &
+          ref_frags%fbasis%forbs, at%astruct)
+
+  end subroutine setup_frags_from_astruct
+
+
 
 END SUBROUTINE tmb_overlap_onsite_rotate
 
@@ -1829,7 +2179,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
         ! take into account environment coordinates
         else
            call match_environment_atoms(isfat,at,rxyz,tmb%orbs,ref_frags(ifrag_ref),&
-                max_nbasis_env,frag_env_mapping(ifrag,:,:),frag_trans_frag(ifrag),Werror)
+                max_nbasis_env,frag_env_mapping(ifrag,:,:),frag_trans_frag(ifrag),Werror,.false.)
         end if
 
         if (Werror > W_tol) call f_increment(itoo_big)
@@ -2078,7 +2428,7 @@ END SUBROUTINE readmywaves_linear_new
 
    !> matches neighbouring atoms from environment file to those in full system
    !! returns atom mapping information and 'best' fragment transformation and corresponding Wahba error
-   subroutine match_environment_atoms(isfat,at,rxyz,orbs,ref_frag,max_nbasis_env,frag_env_mapping,frag_trans,Werror)
+   subroutine match_environment_atoms(isfat,at,rxyz,orbs,ref_frag,max_nbasis_env,frag_env_mapping,frag_trans,Werror,ignore_species)
       use module_base
       use module_types
       use module_fragments
@@ -2093,9 +2443,10 @@ END SUBROUTINE readmywaves_linear_new
       integer, dimension(max_nbasis_env,3), intent(out) :: frag_env_mapping
       type(fragment_transformation), intent(out) :: frag_trans
       real(kind=gp), intent(out) :: Werror
+      logical, intent(in) :: ignore_species
 
       !local variables
-      integer :: iat, ityp, ipiv_shift, iatt, iatf, num_env, np, c, itmb, iorb, i, minperm
+      integer :: iat, ityp, ipiv_shift, iatt, iatf, num_env, np, c, itmb, iorb, i, minperm, num_neighbours
       integer, allocatable, dimension(:) :: ipiv, array_tmp, num_neighbours_type
       integer, dimension(:,:), allocatable :: permutations
 
@@ -2133,6 +2484,7 @@ END SUBROUTINE readmywaves_linear_new
             end if
          end do
       end do
+      num_neighbours=sum(num_neighbours_type)
       if (sum(num_neighbours_type)/=ref_frag%astruct_env%nat-ref_frag%astruct_frg%nat) &
            stop 'Error with num_neighbours_type in fragment environment restart'
       !print*,ifrag,ifrag_ref,sum(num_neighbours_type),num_neighbours_type
@@ -2199,7 +2551,7 @@ END SUBROUTINE readmywaves_linear_new
       iatf=0
       do ityp=1,at%astruct%ntypes
          iatt=0
-         if (num_neighbours_type(ityp)==0) cycle
+         if (num_neighbours_type(ityp)==0 .and. (.not. ignore_species)) cycle
          do iat=1,at%astruct%nat-ref_frag%astruct_frg%nat
             !ipiv_shift needed for quantities which reference full rxyz, not rxyz_new_all which has already eliminated frag atoms
             if (ipiv(iat)<=isfat) then
@@ -2207,19 +2559,23 @@ END SUBROUTINE readmywaves_linear_new
             else
                ipiv_shift=ipiv(iat)+ref_frag%astruct_frg%nat
             end if
-            if (at%astruct%iatype(ipiv_shift)/=ityp) cycle
+            if (at%astruct%iatype(ipiv_shift)/=ityp .and. (.not. ignore_species)) cycle
             iatf=iatf+1
             iatt=iatt+1
             rxyz_new(:,iatf+ref_frag%astruct_frg%nat)=rxyz_new_all(:,ipiv(iat))
             frag_env_mapping(iatf+ref_frag%astruct_frg%nat,2) = ipiv_shift
-            if (iatt==num_neighbours_type(ityp)) exit
+            if ((ignore_species.and.iatt==num_neighbours) &
+                 .or. ((.not. ignore_species) .and. iatt==num_neighbours_type(ityp))) exit
          end do
          !write(*,'(a,7(i3,2x))')'ityp',ityp,at%astruct%ntypes,iatt,iatf,num_neighbours_type(ityp),ifrag,ifrag_ref
+         if (ignore_species) exit
       end do
-      !print*,'iatf,sum',iatf,sum(num_neighbours_type)
-      if (iatf/=sum(num_neighbours_type)) stop 'Error num_neighbours_tot/=iatf'
-      call f_free(num_neighbours_type)
 
+      !print*,'iatf,sum',iatf,sum(num_neighbours_type),num_neighbours,ignore_species
+      if (((.not. ignore_species) .and. iatf/=sum(num_neighbours_type)) &
+           .or. (ignore_species .and. iatf/=num_neighbours)) stop 'Error num_neighbours/=iatf in match_environment_atoms'
+
+      call f_free(num_neighbours_type)
       call f_free(dist)
       call f_free(ipiv)
       call f_free(rxyz_frg_new)
@@ -2277,7 +2633,7 @@ END SUBROUTINE readmywaves_linear_new
             !     trim(atom_ref),trim(atom_trial),&
             !      frag_env_mapping(iat,2),permutations(iat-ref_frag%astruct_frg%nat,i),&
             !      frag_env_mapping(permutations(iat-ref_frag%astruct_frg%nat,i)+ref_frag%astruct_frg%nat,2)
-            if (trim(atom_ref)/=trim(atom_trial)) then
+            if (trim(atom_ref)/=trim(atom_trial) .and. (.not. ignore_species)) then
                wrong_atom=.true.
                exit
             end if
