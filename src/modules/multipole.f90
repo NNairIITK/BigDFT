@@ -3756,7 +3756,8 @@ module multipole
    implicit none
    ! Calling arguments
    integer,intent(in) :: iproc, nproc
-   type(DFT_wavefunction),intent(in) :: KSwfn, tmb
+   type(DFT_wavefunction),intent(in) :: KSwfn
+   type(DFT_wavefunction),intent(inout) ::tmb
    type(atoms_data),intent(in) :: at
    type(input_variables),intent(in) :: input
    type(external_potential_descriptors),intent(in) :: ep
@@ -3777,7 +3778,7 @@ module multipole
         denspot%dpbox%ndimrhopot, &
         denspot%rhov, rho_negative)
    if (rho_negative) then
-       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, denspot)
    end if
    call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
         quiet=denspot%PSquiet)!,rho_ion=denspot%rho_ion)
