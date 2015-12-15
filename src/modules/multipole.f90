@@ -3752,6 +3752,7 @@ module multipole
    use module_types, only: DFT_wavefunction, input_variables, DFT_local_fields
    use module_atoms, only: atoms_data
    use Poisson_Solver, only: H_potential
+   use rhopotential, only: sumrho_for_TMBs, corrections_for_negative_charge
    implicit none
    ! Calling arguments
    integer,intent(in) :: iproc, nproc
