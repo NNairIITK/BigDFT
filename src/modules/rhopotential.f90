@@ -759,7 +759,7 @@ module rhopotential
     end subroutine sumrho_for_TMBs
 
 
-    subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, denspot)
+    subroutine corrections_for_negative_charge(iproc, nproc, at, denspot)
       use module_types
       use yaml_output
       use dynamic_memory
@@ -767,9 +767,7 @@ module rhopotential
     
       ! Calling arguments
       integer, intent(in) :: iproc, nproc
-      type(DFT_wavefunction), intent(in) :: KSwfn
       type(atoms_data), intent(in) :: at
-      type(input_variables), intent(in) :: input
       type(DFT_local_fields), intent(inout) :: denspot
     
       call f_routine(id='corrections_for_negative_charge')

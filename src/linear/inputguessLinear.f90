@@ -488,8 +488,11 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   ! Transform the atomic orbitals to the wavelet basis.
   if (orbs_gauss%norb/=tmb%orbs%norb) then
-     print*,'orbs_gauss%norb does not match tmbs%orbs%norb',orbs_gauss%norb,tmb%orbs%norb
-     stop 
+     !print*,'orbs_gauss%norb does not match tmbs%orbs%norb',orbs_gauss%norb,tmb%orbs%norb
+     !stop 
+     call f_err_throw('The number of input guess orbitals ('//trim(yaml_toa(orbs_gauss%norb))//&
+          &') is not equal to the number of support functions ('//trim(yaml_toa(tmb%orbs%norb))//')',&
+           err_name='BIGDFT_RUNTIME_ERROR')
   end if
   orbs_gauss%inwhichlocreg=tmb%orbs%inwhichlocreg
   call wavefunction_dimension(tmb%lzd,orbs_gauss)
@@ -574,7 +577,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!    end do
   !!end do
   if (rho_negative) then
-      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, denspot)
+      call corrections_for_negative_charge(iproc, nproc, at, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
       !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
       !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
@@ -991,7 +994,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!call f_free(tmparr)
 
   if (rho_negative) then
-      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, denspot)
+      call corrections_for_negative_charge(iproc, nproc, at, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
       !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
       !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
