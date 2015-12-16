@@ -179,18 +179,9 @@ module multipole
           ! Used for the calculations of the solid harmonics, see description there
           rmin = 2.0d0*hhh**(1.d0/3.d0)
     
-          !sigma(0) = 5.d0*hhh**(1.d0/3.d0) !5.d0*hhh**(1.d0/3.d0)
-          !sigma(1) = 4.d0*hhh**(1.d0/3.d0)
-          !sigma(2) = 2.d0*hhh**(1.d0/3.d0)
-          !sigma(0) = 7.d0*hhh**(1.d0/3.d0) !5.d0*hhh**(1.d0/3.d0)
-          !sigma(1) = 7.d0*hhh**(1.d0/3.d0)
-          !sigma(2) = 7.d0*hhh**(1.d0/3.d0)
           sigma(0) = 1.0d0
           sigma(1) = 0.8d0
           sigma(2) = 0.6d0
-          !sigma(0) = 0.3d0
-          !sigma(1) = 0.5d0
-          !sigma(2) = 0.9d0
     
           density = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='density')
           
@@ -1358,124 +1349,128 @@ module multipole
       real(gp),parameter :: mp_tiny = 1.e-30_gp
       logical :: gox, goy, goz
     
+      call f_routine(id='gaussian_density')
     
-            !rloc=at%psppar(0,0,atit%ityp)
-            rlocinv2sq=0.5_gp/rloc**2
-            charge=real(zion,gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
+      !rloc=at%psppar(0,0,atit%ityp)
+      rlocinv2sq=0.5_gp/rloc**2
+      charge=real(zion,gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
     
-            !write(*,*) 'rloc, charge', rloc, charge
+      !write(*,*) 'rloc, charge', rloc, charge
     
-            !cutoff of the range
-            cutoff=10.0_gp*rloc
-            if (multipole_preserving) then
-               !We want to have a good accuracy of the last point rloc*10
-               !cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
-               cutoff=cutoff+max(hxh,hyh,hzh)*real(mp_isf,kind=gp)
-            end if
-            
-            if (use_iterator) then
-               nbox(1,1)=floor((rx-cutoff)/hxh)
-               nbox(1,2)=floor((ry-cutoff)/hyh)
-               nbox(1,3)=floor((rz-cutoff)/hzh)
-               nbox(2,1)=ceiling((rx+cutoff)/hxh)
-               nbox(2,2)=ceiling((ry+cutoff)/hyh)
-               nbox(2,3)=ceiling((rz+cutoff)/hzh)
+      !cutoff of the range
+      cutoff=10.0_gp*rloc
+      if (multipole_preserving) then
+         !We want to have a good accuracy of the last point rloc*10
+         !cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+         cutoff=cutoff+max(hxh,hyh,hzh)*real(mp_isf,kind=gp)
+      end if
+      
+      if (use_iterator) then
+         nbox(1,1)=floor((rx-cutoff)/hxh)
+         nbox(1,2)=floor((ry-cutoff)/hyh)
+         nbox(1,3)=floor((rz-cutoff)/hzh)
+         nbox(2,1)=ceiling((rx+cutoff)/hxh)
+         nbox(2,2)=ceiling((ry+cutoff)/hyh)
+         nbox(2,3)=ceiling((rz+cutoff)/hzh)
     
-               ! Check whether the temporary arrays are large enough
-               if (nbox(2,1)-nbox(1,1)>nmpx) then
-                   call f_err_throw('Temporary array in x direction too small',err_name='BIGDFT_RUNTIME_ERROR')
-               end if
-               if (nbox(2,2)-nbox(1,2)>nmpy) then
-                   call f_err_throw('Temporary array in y direction too small',err_name='BIGDFT_RUNTIME_ERROR')
-               end if
-               if (nbox(2,3)-nbox(1,3)>nmpz) then
-                   call f_err_throw('Temporary array in z direction too small',err_name='BIGDFT_RUNTIME_ERROR')
-               end if
+         ! Check whether the temporary arrays are large enough
+         if (nbox(2,1)-nbox(1,1)>nmpx) then
+             call f_err_throw('Temporary array in x direction too small',err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         if (nbox(2,2)-nbox(1,2)>nmpy) then
+             call f_err_throw('Temporary array in y direction too small',err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         if (nbox(2,3)-nbox(1,3)>nmpz) then
+             call f_err_throw('Temporary array in z direction too small',err_name='BIGDFT_RUNTIME_ERROR')
+         end if
     
-               !Separable function: do 1-D integrals before and store it.
-               !mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
-               !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
-               !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
-               do i1=nbox(1,1),nbox(2,1)
-                  mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,multipole_preserving)
-               end do
-               do i2=nbox(1,2),nbox(2,2)
-                  mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,multipole_preserving)
-               end do
-               do i3=nbox(1,3),nbox(2,3)
-                  mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,multipole_preserving)
-               end do
-               boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
+         !Separable function: do 1-D integrals before and store it.
+         !mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
+         !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
+         !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+         do i1=nbox(1,1),nbox(2,1)
+            mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,multipole_preserving)
+         end do
+         do i2=nbox(1,2),nbox(2,2)
+            mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,multipole_preserving)
+         end do
+         do i3=nbox(1,3),nbox(2,3)
+            mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,multipole_preserving)
+         end do
+         boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
     
     
-               do while(dpbox_iter_next(boxit))
-                  xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
-                  pot_ion(boxit%ind) = pot_ion(boxit%ind) - xp*charge
-               end do
+         do while(dpbox_iter_next(boxit))
+            xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
+            pot_ion(boxit%ind) = pot_ion(boxit%ind) - xp*charge
+         end do
     
-            else
-               isx=floor((rx-cutoff)/hxh)
-               isy=floor((ry-cutoff)/hyh)
-               isz=floor((rz-cutoff)/hzh)
+      else
+         isx=floor((rx-cutoff)/hxh)
+         isy=floor((ry-cutoff)/hyh)
+         isz=floor((rz-cutoff)/hzh)
     
-               iex=ceiling((rx+cutoff)/hxh)
-               iey=ceiling((ry+cutoff)/hyh)
-               iez=ceiling((rz+cutoff)/hzh)
+         iex=ceiling((rx+cutoff)/hxh)
+         iey=ceiling((ry+cutoff)/hyh)
+         iez=ceiling((rz+cutoff)/hzh)
     
-               ! Check whether the temporary arrays are large enough
-               if (iex-isx>nmpx) then
-                   call f_err_throw('Temporary array in x direction too small',err_name='BIGDFT_RUNTIME_ERROR')
-               end if
-               if (iey-isy>nmpy) then
-                   call f_err_throw('Temporary array in y direction too small',err_name='BIGDFT_RUNTIME_ERROR')
-               end if
-               if (iez-isz>nmpz) then
-                   call f_err_throw('Temporary array in z direction too small',err_name='BIGDFT_RUNTIME_ERROR')
-               end if
+         ! Check whether the temporary arrays are large enough
+         if (iex-isx>nmpx) then
+             call f_err_throw('Temporary array in x direction too small',err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         if (iey-isy>nmpy) then
+             call f_err_throw('Temporary array in y direction too small',err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         if (iez-isz>nmpz) then
+             call f_err_throw('Temporary array in z direction too small',err_name='BIGDFT_RUNTIME_ERROR')
+         end if
     
-               !Separable function: do 1-D integrals before and store it.
-               !call mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,at%multipole_preserving,mpx,mpy,mpz)
-               !mpx = f_malloc( (/ isx.to.iex /),id='mpx')
-               !mpy = f_malloc( (/ isy.to.iey /),id='mpy')
-               !mpz = f_malloc( (/ isz.to.iez /),id='mpz')
+         !Separable function: do 1-D integrals before and store it.
+         !call mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,at%multipole_preserving,mpx,mpy,mpz)
+         !mpx = f_malloc( (/ isx.to.iex /),id='mpx')
+         !mpy = f_malloc( (/ isy.to.iey /),id='mpy')
+         !mpz = f_malloc( (/ isz.to.iez /),id='mpz')
+         do i1=isx,iex
+            mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,multipole_preserving)
+         end do
+         do i2=isy,iey
+            mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,multipole_preserving)
+         end do
+         do i3=isz,iez
+            mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,multipole_preserving)
+         end do
+    
+         do i3=isz,iez
+            zp = mpz(i3-isz)
+            if (abs(zp) < mp_tiny) cycle
+            !call ind_positions(perz,i3,grid%n3,j3,goz) 
+            call ind_positions_new(perz,i3,n3i,j3,goz) 
+            j3=j3+nbl3+1
+            do i2=isy,iey
+               yp = zp*mpy(i2-isy)
+               if (abs(yp) < mp_tiny) cycle
+               !call ind_positions(pery,i2,grid%n2,j2,goy)
+               call ind_positions_new(pery,i2,n2i,j2,goy)
                do i1=isx,iex
-                  mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,multipole_preserving)
-               end do
-               do i2=isy,iey
-                  mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,multipole_preserving)
-               end do
-               do i3=isz,iez
-                  mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,multipole_preserving)
-               end do
-    
-               do i3=isz,iez
-                  zp = mpz(i3-isz)
-                  if (abs(zp) < mp_tiny) cycle
-                  !call ind_positions(perz,i3,grid%n3,j3,goz) 
-                  call ind_positions_new(perz,i3,n3i,j3,goz) 
-                  j3=j3+nbl3+1
-                  do i2=isy,iey
-                     yp = zp*mpy(i2-isy)
-                     if (abs(yp) < mp_tiny) cycle
-                     !call ind_positions(pery,i2,grid%n2,j2,goy)
-                     call ind_positions_new(pery,i2,n2i,j2,goy)
-                     do i1=isx,iex
-                        xp = yp*mpx(i1-isx)
-                        if (abs(xp) < mp_tiny) cycle
-                        !call ind_positions(perx,i1,grid%n1,j1,gox)
-                        call ind_positions_new(perx,i1,n1i,j1,gox)
-                        if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                           ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
-                           pot_ion(ind)=pot_ion(ind)-xp*charge
-                        else if (.not. goz ) then
-                           rholeaked=rholeaked+xp*charge
-                        endif
-                     enddo
-                  enddo
+                  xp = yp*mpx(i1-isx)
+                  if (abs(xp) < mp_tiny) cycle
+                  !call ind_positions(perx,i1,grid%n1,j1,gox)
+                  call ind_positions_new(perx,i1,n1i,j1,gox)
+                  if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+                     ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
+                     pot_ion(ind)=pot_ion(ind)-xp*charge
+                  else if (.not. goz ) then
+                     rholeaked=rholeaked+xp*charge
+                  endif
                enddo
+            enddo
+         enddo
     
     
-            end if
+      end if
+
+      call f_release_routine()
+
     end subroutine gaussian_density
 
 
