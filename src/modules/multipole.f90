@@ -13,7 +13,6 @@ module multipole
   public :: multipole_analysis_driver
   public :: projector_for_charge_analysis
   public :: support_function_gross_multipoles
-  !public :: get_optimal_sigmas
 
   contains
 
@@ -156,16 +155,16 @@ module multipole
       integer :: nbl1, nbl2, nbl3, nbr1, nbr2, nbr3, n3pi, i3s
       integer,dimension(:),allocatable :: nzatom, nelpsp, npspcode
       real(gp),dimension(:,:,:),allocatable :: psppar
-      logical :: exists, perx, pery, perz
+      logical :: exists, perx, pery, perz, found
       logical,parameter :: use_iterator = .false.
       real(kind=8) :: cutoff, rholeaked, hxh, hyh, hzh, rx, ry, rz, qq, ttl, sig
       real(kind=8),dimension(3) :: center
-      integer :: n1i, n2i, n3i
-      integer :: nmpx, nmpy, nmpz, ndensity
+      integer :: n1i, n2i, n3i, itype
+      integer :: nmpx, nmpy, nmpz, ndensity, izion
       real(dp), dimension(:), allocatable  :: mpx,mpy,mpz
       real(kind=8),dimension(:),allocatable :: rmax
       !real(kind=8),parameter :: rmin=3.d-1
-      real(kind=8) :: rmin
+      real(kind=8) :: rmin, rloc
       integer,dimension(0:lmax) :: error_meaningful
       character(len=20),dimension(0:lmax) :: output_arr
       !$ integer  :: omp_get_thread_num,omp_get_max_threads
@@ -321,21 +320,21 @@ module multipole
     
     
           ! Get the parameters for each multipole, required to compensate for the pseudopotential part
-          nzatom = f_malloc(ep%nmpl,id='nzatom')
+          !nzatom = f_malloc(ep%nmpl,id='nzatom')
           nelpsp = f_malloc(ep%nmpl,id='nelpsp')
-          npspcode = f_malloc(ep%nmpl,id='npspcode')
-          psppar = f_malloc( (/0.to.4,0.to.6,1.to.ep%nmpl/),id='psppar')
-          do impl=1,ep%nmpl
-              ixc = 1
-              if (iproc==0 .and. verbosity>0) then
-                  call yaml_warning('WARNING: USE ixc = 1 IN POTENTIAL_FROM_CHARGE_MULTIPOLES')
-              end if
-              call psp_from_data(ep%mpl(impl)%sym, nzatom(impl), nelpsp(impl), npspcode(impl), ixc, psppar(:,:,impl), exists)
-              if (.not.exists) then
-                  call f_err_throw('No PSP available for external multipole type '//trim(ep%mpl(impl)%sym), &
-                       err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-              end if
-          end do
+          !npspcode = f_malloc(ep%nmpl,id='npspcode')
+          !psppar = f_malloc( (/0.to.4,0.to.6,1.to.ep%nmpl/),id='psppar')
+          !do impl=1,ep%nmpl
+          !    ixc = 1
+          !    if (iproc==0 .and. verbosity>0) then
+          !        call yaml_warning('WARNING: USE ixc = 1 IN POTENTIAL_FROM_CHARGE_MULTIPOLES')
+          !    end if
+          !    call psp_from_data(ep%mpl(impl)%sym, nzatom(impl), nelpsp(impl), npspcode(impl), ixc, psppar(:,:,impl), exists)
+          !    if (.not.exists) then
+          !        call f_err_throw('No PSP available for external multipole type '//trim(ep%mpl(impl)%sym), &
+          !             err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+          !    end if
+          !end do
          perx = (denspot%dpbox%geocode /= 'F')
          pery = (denspot%dpbox%geocode == 'P')
          perz = (denspot%dpbox%geocode /= 'F')
@@ -353,7 +352,7 @@ module multipole
          !write(*,*) 'ep%nmpl, n1i, n2i, n3i', ep%nmpl, n1i, n2i, n3i
     
          !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
-         cutoff=10.0_gp*maxval(psppar(0,0,:))
+         cutoff=10.0_gp*maxval(at%psppar(0,0,:))
          if (at%multipole_preserving) then
             !We want to have a good accuracy of the last point rloc*10
             cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
@@ -371,6 +370,23 @@ module multipole
          ! Generate the density that comes from the pseudopotential atoms
          ndensity = (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1)
          do impl=1,ep%nmpl
+             ! Search the rloc and zion of the corresponding pseudopotential
+             found = .false.
+             search_loop: do itype=1,at%astruct%ntypes
+                 !write(*,*) 'trim(ep%mpl(impl)%sym), trim(at%astruct%atomnames(itype))',&
+                 !            trim(ep%mpl(impl)%sym), trim(at%astruct%atomnames(itype))
+                 if (trim(ep%mpl(impl)%sym)==trim(at%astruct%atomnames(itype))) then
+                     rloc = at%psppar(0,0,itype)
+                     !izion = at%nelpsp(itype)
+                     nelpsp(impl) = at%nelpsp(itype)
+                     found = .true.
+                     exit search_loop
+                 end if
+             end do search_loop
+             if (.not.found) then
+                 call f_err_throw('No PSP available for external multipole type '//trim(ep%mpl(impl)%sym), &
+                      err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+             end if
              ! Only do this if the norm of tha Gaussian is ok; otherwise the analytic
              ! expression using the net monopole is used.
              if(norm_ok(impl)) then
@@ -382,7 +398,7 @@ module multipole
           !write(*,*) 'WARNING: GAUSSIAN_DENSITY COMMENTED!!!'
                  call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, &
                       rx, ry, rz, &
-                      psppar(0,0,impl), nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
+                      rloc, nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
                       denspot%dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, ndensity, density(is1:,is2:,is3:), rholeaked)
              end if
          end do
@@ -437,6 +453,20 @@ module multipole
           end if
           !$omp do
           do impl=1,ep%nmpl
+             !!! Search the rloc and zion of the corresponding pseudopotential
+             !!found = .false.
+             !!search_loop2: do itype=1,at%astruct%ntypes
+             !!    if (trim(ep%mpl(impl)%sym)==trim(at%astruct%atomnames(itype))) then
+             !!        rloc = at%psppar(0,0,itype)
+             !!        izion = at%nelpsp(itype)
+             !!        found = .true.
+             !!        exit search_loop2
+             !!    end if
+             !!end do search_loop2
+             !!if (.not.found) then
+             !!    call f_err_throw('No PSP available for external multipole type '//trim(ep%mpl(impl)%sym), &
+             !!         err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+             !!end if
               do i3=is3,ie3
                   ii3 = i3 - 15
                   z = real(ii3,kind=8)*hz + shift(3)
@@ -655,9 +685,9 @@ module multipole
                       tt = abs(1.d0-norm_check(l,impl))
                       !if (abs(norm(l,impl)-norm_check(l,impl))>1.d-10) then
                       if (tt>1.d-2) then
-                          !write(*,*) 'ERROR', abs(norm(l,impl)-norm_check(l,impl)), norm_check(l,impl)
-                          call f_err_throw('The deviation from normalization of the radial function is too large: '//&
-                              yaml_toa(tt,fmt='(es7.1)'), err_name='BIGDFT_RUNTIME_ERROR')
+                          write(*,*) 'ERROR', abs(norm(l,impl)-norm_check(l,impl)), norm_check(l,impl)
+                          !call f_err_throw('The deviation from normalization of the radial function is too large: '//&
+                          !    yaml_toa(tt,fmt='(es7.1)'), err_name='BIGDFT_RUNTIME_ERROR')
                       end if
                       if (tt>1.d-4 .and. iproc==0 .and. verbosity>1) then
                           !write(*,*) 'ERROR', abs(norm(l,impl)-norm_check(l,impl)), norm_check(l,impl)
@@ -844,10 +874,10 @@ module multipole
 !!  UNCOMMENT FOR TEST          end do
     
           call f_free(density)
-          call f_free(nzatom)
+          !call f_free(nzatom)
           call f_free(nelpsp)
-          call f_free(npspcode)
-          call f_free(psppar)
+          !call f_free(npspcode)
+          !call f_free(psppar)
 
       end if multipoles_if
 
@@ -1065,7 +1095,7 @@ module multipole
                   call yaml_map('Delta r',convert_units*delta_rxyz(1:3,impl),fmt='(es13.6)')
               end if
               if (any(ep%mpl(impl)%sigma(0:lmax)/=0.d0)) then
-                  call yaml_map('sigmas',ep%mpl(impl)%sigma(0:lmax),fmt='(f5.3)')
+                  call yaml_map('sigma',ep%mpl(impl)%sigma(0:lmax),fmt='(f5.3)')
               endif
               call f_zero(multipoles)
               do l=0,lmax
@@ -3788,12 +3818,12 @@ module multipole
    type(DFT_local_fields),intent(inout) :: denspot
    ! Local variables
    real(kind=8),dimension(:,:,:,:),allocatable :: test_pot
-   logical :: rho_negative, exists
+   logical :: rho_negative, exists, found
    real(kind=8) :: ehart_ps, diff, tt, diff_min
    integer,parameter :: nsigma=4
    real(kind=8),parameter :: step=0.10d0
    integer :: i1, i2, i3, isigma0, isigma1, isigma2, impl, ixc, l
-   integer :: nzatom, nelpsp, npspcode
+   integer :: nzatom, nelpsp, npspcode, itype
    real(gp),dimension(0:4,0:6) :: psppar
    real(kind=8),dimension(:,:),allocatable :: sigmax
    real(kind=8),dimension(0:lmax) :: factor, factorx, factor_min
@@ -3820,17 +3850,29 @@ module multipole
    ! Get an initial guess for the sigmas (use rloc from the pseudopotential)
    sigmax = f_malloc((/0.to.lmax,1.to.ep%nmpl/),id='sigmax')
    do impl=1,ep%nmpl
-       ixc = 1
-       if (iproc==0) then
-           call yaml_warning('WARNING: USE ixc = 1 IN GET_OPTIMAL_SIGMAS')
-       end if
-       call psp_from_data(ep%mpl(impl)%sym, nzatom, nelpsp, npspcode, ixc, psppar, exists)
-       if (.not.exists) then
+       !ixc = 1
+       !if (iproc==0) then
+       !    call yaml_warning('WARNING: USE ixc = 1 IN GET_OPTIMAL_SIGMAS')
+       !end if
+       !call psp_from_data(ep%mpl(impl)%sym, nzatom, nelpsp, npspcode, ixc, psppar, exists)
+       !if (.not.exists) then
+       !    call f_err_throw('No PSP available for external multipole type '//trim(ep%mpl(impl)%sym), &
+       !         err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       !end if
+       !ep%mpl(impl)%sigma(0:lmax) = psppar(0,0)-min(0.9d0,step*real(nsigma/2,kind=8))*psppar(0,0)
+       !sigmax(0:lmax,impl) = psppar(0,0)
+       found = .false.
+       search_loop: do itype=1,at%astruct%ntypes
+           if (trim(ep%mpl(impl)%sym)==trim(at%astruct%atomnames(itype))) then
+               sigmax(0:lmax,impl) = at%psppar(0,0,itype)
+               found = .true.
+               exit search_loop
+           end if
+       end do search_loop
+       if (.not.found) then
            call f_err_throw('No PSP available for external multipole type '//trim(ep%mpl(impl)%sym), &
                 err_name='BIGDFT_INPUT_VARIABLES_ERROR')
        end if
-       !ep%mpl(impl)%sigma(0:lmax) = psppar(0,0)-min(0.9d0,step*real(nsigma/2,kind=8))*psppar(0,0)
-       sigmax(0:lmax,impl) = psppar(0,0)
    end do
 
    if (iproc==0) then
