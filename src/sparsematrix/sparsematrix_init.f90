@@ -4249,6 +4249,13 @@ contains
           end do
           norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
           workload_par(nproc-1) = sum(workload) - tcount
+
+          if (sum(norb_par)/=norb) then
+              call f_err_throw('wrong first partition of the workload; sum of distributed workload is '&
+                   &//trim(yaml_toa(sum(norb_par)))//', but should be '//trim(yaml_toa(norb)),&
+                   err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+
           !do jproc=0,nproc-1
           !    if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
           !end do
@@ -4291,29 +4298,15 @@ contains
           ! Equal distribution
           norb_par(0:norb-1) = 1
       end if
+
+      if (sum(norb_par)/=norb) then
+          call f_err_throw('wrong second partition of the workload; sum of distributed workload is '&
+               &//trim(yaml_toa(sum(norb_par)))//', but should be '//trim(yaml_toa(norb)),&
+               err_name='BIGDFT_RUNTIME_ERROR')
+      end if
     
       call f_release_routine()
     
-!!$      contains
-!!$    
-!!$        ! Get dynamically a new ideal workload
-!!$        function get_dynamic_ideal_workload(jproc, wltot, wli) result(wl)
-!!$          implicit none
-!!$          integer,intent(in) :: jproc !<currently handled task
-!!$          real(kind=8),intent(in) :: wltot !<total workload assigned so far
-!!$          real(kind=8),intent(in) :: wli !< theoretical ideal workload
-!!$          real(kind=8) :: wl !<new ideal workload
-!!$          real(kind=8) :: wls
-!!$    
-!!$          ! Average workload so far
-!!$          wls = wltot/real(jproc,kind=8)
-!!$     
-!!$          ! The new ideal workload is a weighted sum of the average workload so far
-!!$          ! and the theoretical ideal workload
-!!$          wl = (nproc-jproc)*wls + jproc*wli
-!!$          wl = wl/real(nproc,kind=8) 
-!!$    
-!!$        end function get_dynamic_ideal_workload
     end subroutine redistribute
 
     ! Get dynamically a new ideal workload

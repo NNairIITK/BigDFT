@@ -1895,7 +1895,7 @@ module multipole
       end do
 
       ! Calculate the optimal sigmas
-      call get_optimal_sigmas(iproc, nproc, collcom_sr, smatl, kernel, at, lzd, ep, shift, denspot)
+      call get_optimal_sigmas(iproc, nproc, 3, collcom_sr, smatl, kernel, at, lzd, ep, shift, denspot)
 
       if (iproc==0) then
           call yaml_comment('Final result of the multipole analysis',hfill='~')
@@ -3655,7 +3655,7 @@ module multipole
  end subroutine support_function_gross_multipoles
 
 
- subroutine get_optimal_sigmas(iproc, nproc, collcom_sr, smatl, kernel_, at, lzd, ep, shift, denspot)
+ subroutine get_optimal_sigmas(iproc, nproc, nsigma, collcom_sr, smatl, kernel_, at, lzd, ep, shift, denspot)
    use module_base
    use module_types, only: DFT_wavefunction, input_variables, DFT_local_fields, comms_linear, DFT_local_fields, &
                            local_zone_descriptors
@@ -3666,7 +3666,7 @@ module multipole
    use yaml_output
    implicit none
    ! Calling arguments
-   integer,intent(in) :: iproc, nproc
+   integer,intent(in) :: iproc, nproc, nsigma
    type(comms_linear),intent(inout) :: collcom_sr
    type(sparse_matrix),intent(in) :: smatl
    type(matrices),intent(in) :: kernel_
@@ -3679,7 +3679,7 @@ module multipole
    real(kind=8),dimension(:,:,:,:),allocatable :: test_pot
    logical :: rho_negative, exists, found
    real(kind=8) :: ehart_ps, diff, tt, diff_min
-   integer,parameter :: nsigma=3
+   !integer,parameter :: nsigma=3
    real(kind=8),parameter :: step=0.20d0
    integer :: i1, i2, i3, isigma0, isigma1, isigma2, impl, ixc, l
    integer :: nzatom, nelpsp, npspcode, itype
