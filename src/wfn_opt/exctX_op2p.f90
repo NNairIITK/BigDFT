@@ -452,9 +452,9 @@ subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,re
      end if
      !do it only for upper triangular results 
      if (istep /= 0 .or. jorb_glb >= iorb_glb) then
-!        if(pkernel%igpu==1 .and. pkernel%stay_on_gpu /= 1 .and. istep ==0) then
-!          call reset_gpu_data(ndim,rp_ij,pkernel%w%rho_GPU)
-!        end if 
+        if(pkernel%igpu==1 .and. pkernel%stay_on_gpu /= 1 .and. istep ==0) then
+          call reset_gpu_data(ndim,rp_ij,pkernel%w%rho_GPU)
+        end if 
 
         call exctx_pre_computation(iorb, jorb,rp_ij,phi_i,phi_j,pkernel)
 !!$        ncalls=ncalls+1

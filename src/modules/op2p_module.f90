@@ -954,7 +954,7 @@ module overlap_point_to_point
 
           !verify that the messages have been passed
           call mpiwaitall(OP2P%ndata_comms,OP2P%requests_data)
-          call synchronize()
+          if(OP2P%gpudirect == 1) call synchronize()
           !if we come here this section can be done nonetheless
           call P2P_res(iproc,OP2P,iter%phi_i)!,OP2P%resw)
 
