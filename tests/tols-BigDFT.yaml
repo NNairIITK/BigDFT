@@ -1668,7 +1668,7 @@ multipoles_OH-:
  multiplicator for the confinement: 1.7e-9
  Epot: 1.3e-10
  EH: 2.1e-10
- Ekin: 7.0e-11
+ Ekin: 1.1e-10
  Charge analysis (charge / net charge): 6.8e-8
  EXC: 2.1e-11
  EvXC: 3.1e-11
@@ -1741,6 +1741,7 @@ multipoles_CH4:
  number of corrected points: 27.0
  eval: 1.1e-8
  Unitary check of the multipole calculations: 9.1e-2
+ avg pot diff (actual/min): 1.0e-04
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
@@ -1830,6 +1831,7 @@ igortho_44:
  Force Norm (Hartree/Bohr): 9.3e-7
  Unitary check of the multipole calculations: 1.0e-2
  Multipole coefficients: 1.6e-6
+ avg pot diff (actual/min): 0.95
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
