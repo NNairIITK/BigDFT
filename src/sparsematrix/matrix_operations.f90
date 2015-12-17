@@ -8,7 +8,7 @@ module matrix_operations
     public :: overlapPowerGeneral
     public :: overlap_minus_one_half_serial
     public :: overlap_plus_minus_one_half_exact
-    public :: deviation_from_unity_parallel
+    public :: deviation_from_unity_parallel, deviation_from_unity_parallel_new
     public :: overlap_power_minus_one_half_parallel
     public :: check_taylor_order
     public :: calculate_S_minus_one_half_onsite
@@ -1063,7 +1063,7 @@ module matrix_operations
            !!call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
            !!     norb, ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
            call sparsemm_new(smat, amat_seq, bmatp, tmpp)
-           call deviation_from_unity_parallel_new(iproc, nproc, norb, norbp, isorb, tmpp, smat, max_error, mean_error)
+           call deviation_from_unity_parallel_new(iproc, nproc, tmpp, smat, max_error, mean_error)
         else if (power==2) then
             if (.not.present(cmatp)) stop 'cmatp not present'
            !!call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
@@ -1083,7 +1083,7 @@ module matrix_operations
            !!call dgemm('n', 'n', norb, norbp, norb, 1.d0, ovrlp(1,1), &
            !!     norb, tmpp(1,1), norb, 0.d0, tmp2p(1,1), norb)
            call sparsemm_new(smat, dmat_seq, tmpp, tmp2p)
-           call deviation_from_unity_parallel_new(iproc, nproc, norb, norbp, isorb, tmp2p, smat, max_error, mean_error)
+           call deviation_from_unity_parallel_new(iproc, nproc, tmp2p, smat, max_error, mean_error)
            !max_error=0.5d0*max_error
            !mean_error=0.5d0*mean_error
            call f_free(tmp2p)
@@ -1335,14 +1335,14 @@ module matrix_operations
       end subroutine check_accur_overlap_minus_one
 
 
-      subroutine deviation_from_unity_parallel_new(iproc, nproc, norb, norbp, isorb, ovrlp, smat, max_deviation, mean_deviation)
+      subroutine deviation_from_unity_parallel_new(iproc, nproc, ovrlp, smat, max_deviation, mean_deviation)
         use module_base
         use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
       
         ! Calling arguments
-        integer,intent(in):: iproc, nproc, norb, norbp, isorb
+        integer,intent(in):: iproc, nproc
         type(sparse_matrix),intent(in) :: smat
         real(8),dimension(smat%smmm%nvctrp),intent(in):: ovrlp
         real(8),intent(out):: max_deviation, mean_deviation
