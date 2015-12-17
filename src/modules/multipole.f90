@@ -193,57 +193,10 @@ module multipole
           gaussians1 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is1.to.ie1/),id='gaussians1')
           gaussians2 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is2.to.ie2/),id='gaussians2')
           gaussians3 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is3.to.ie3/),id='gaussians3')
-    
-          !$omp parallel default(none) &
-          !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, ep) &
-          !$omp shared(gaussians1, gaussians2, gaussians3) &
-          !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, l,impl, sig)
-          !$omp do
-          do i3=is3,ie3
-              ii3 = i3 - 15
-              z = real(ii3,kind=8)*hz + shift(3)
-              do impl=1,ep%nmpl
-                  tt = z - ep%mpl(impl)%rxyz(3)
-                  tt = tt**2
-                  do l=0,lmax
-                      sig = ep%mpl(impl)%sigma(l)
-                      gaussians3(l,impl,i3) = gaussian(sig,tt)
-                  end do
-              end do
-          end do
-          !$omp end do
-          !$omp do
-          do i2=is2,ie2
-              ii2 = i2 - 15
-              y = real(ii2,kind=8)*hy + shift(2)
-              do impl=1,ep%nmpl
-                  tt = y - ep%mpl(impl)%rxyz(2)
-                  tt = tt**2
-                  do l=0,lmax
-                      sig = ep%mpl(impl)%sigma(l)
-                      ! Undo the normalization for this Gaussian
-                      gaussians2(l,impl,i2) = gaussian(sig,tt)*sqrt(2.d0*pi_param*sig**2)**3
-                  end do
-              end do
-          end do
-          !$omp end do
-          !$omp do
-          do i1=is1,ie1
-              ii1 = i1 - 15
-              x = real(ii1,kind=8)*hx + shift(1)
-              do impl=1,ep%nmpl
-                  tt = x - ep%mpl(impl)%rxyz(1)
-                  tt = tt**2
-                  do l=0,lmax
-                      sig = ep%mpl(impl)%sigma(l)
-                      ! Undo the normalization for this Gaussian
-                      gaussians1(l,impl,i1) = gaussian(sig,tt)*sqrt(2.d0*pi_param*sig**2)**3
-                  end do
-              end do
-          end do
-          !$omp end do
-          !$omp end parallel
-    
+
+          call calculate_gaussian(is1, ie1, 1, hx, shift, ep, gaussians1)
+          call calculate_gaussian(is2, ie2, 2, hy, shift, ep, gaussians2)
+          call calculate_gaussian(is3, ie3, 3, hz, shift, ep, gaussians3)
     
     
           norm = f_malloc((/0.to.2,1.to.ep%nmpl/),id='norm')
@@ -256,47 +209,9 @@ module multipole
 
     
           ! First calculate the norm of the Gaussians for each multipole
-          norm = 0.d0
-          monopole = 0.d0
-          dipole = 0.d0
-          quadrupole = 0.d0
-          !$omp parallel &
-          !$omp default(none) &
-          !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, hhh, ep, shift, sigma, nthread, norm_ok) &
-          !$omp shared(norm, monopole, dipole, quadrupole, density, density_loc, potential_loc) &
-          !$omp shared (gaussians1, gaussians2, gaussians3) &
-          !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, l, gg, m, mm, tt, ttt, ithread) &
-          !$omp private(rnrm1, rnrm2, rnrm3, rnrm5)
-          ithread = 0
-          !$ ithread = omp_get_thread_num()
-          if (ithread<0 .or. ithread>nthread-1) then
-              !SM: Is it possible to call f_err_throw within OpenMP? Anyway this condition should never be true...
-              call f_err_throw('wrong value of ithread',err_name='BIGDFT_RUNTIME_ERROR')
-          end if
-          !$omp do
-          do impl=1,ep%nmpl
-              do i3=is3,ie3
-                  ii3 = i3 - 15
-                  do i2=is2,ie2
-                      ii2 = i2 - 15
-                      do i1=is1,ie1
-                          ii1 = i1 - 15
-                          do l=0,lmax
-                              ! Calculate the Gaussian as product of three 1D Gaussians
-                              gg = gaussians1(l,impl,i1)*gaussians2(l,impl,i2)*gaussians3(l,impl,i3)
-                              norm(l,impl) = norm(l,impl) + gg*hhh
-                          end do
-                      end do
-                  end do
-              end do
-          end do
-          !$omp end do
-          !$omp end parallel
-    
-          ! Sum up the norms of the Gaussians.
-          if (nproc>1) then
-              call mpiallred(norm, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          end if
+          !norm = 0.d0
+          call calculate_norm(nproc, is1, ie1, is2, ie2, is3, ie3, ep, &
+               hhh, gaussians1, gaussians2, gaussians3, norm)
     
           ! Check whether they are ok.
           do impl=1,ep%nmpl
@@ -444,24 +359,9 @@ module multipole
           end if
           !$omp do
           do impl=1,ep%nmpl
-             !!! Search the rloc and zion of the corresponding pseudopotential
-             !!found = .false.
-             !!search_loop2: do itype=1,at%astruct%ntypes
-             !!    if (trim(ep%mpl(impl)%sym)==trim(at%astruct%atomnames(itype))) then
-             !!        rloc = at%psppar(0,0,itype)
-             !!        izion = at%nelpsp(itype)
-             !!        found = .true.
-             !!        exit search_loop2
-             !!    end if
-             !!end do search_loop2
-             !!if (.not.found) then
-             !!    call f_err_throw('No PSP available for external multipole type '//trim(ep%mpl(impl)%sym), &
-             !!         err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-             !!end if
               do i3=is3,ie3
                   ii3 = i3 - 15
                   z = real(ii3,kind=8)*hz + shift(3)
-                  !write(*,*) 'impl, z, ep%mpl(impl)%rxyz(3)', impl, z, ep%mpl(impl)%rxyz(3)
                   do i2=is2,ie2
                       ii2 = i2 - 15
                       y = real(ii2,kind=8)*hy + shift(2)
@@ -470,41 +370,29 @@ module multipole
                           x = real(ii1,kind=8)*hx + shift(1)
                           tt = 0.d0
                           center = nearest_gridpoint(ep%mpl(impl)%rxyz, (/hx,hy,hz/))
-                          !write(*,*) 'rxyz, center', ep%mpl(impl)%rxyz, center
                           r(1) = x - ep%mpl(impl)%rxyz(1)
                           r(2) = y - ep%mpl(impl)%rxyz(2)
                           r(3) = z - ep%mpl(impl)%rxyz(3)
-                          !r(1) = x - center(1)
-                          !r(2) = y - center(2)
-                          !r(3) = z - center(3)
                           rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
-                          if (norm_ok(impl)) then
+                          norm_if: if (norm_ok(impl)) then
                               ! Use the method based on the Gaussians
                               ttl = 0.d0
                               do l=0,lmax
-                                  !gg = gaussian(sigma(l),rnrm2)
                                   ! Calculate the Gaussian as product of three 1D Gaussians
                                   gg = gaussians1(l,impl,i1)*gaussians2(l,impl,i2)*gaussians3(l,impl,i3)
                                   ! Additional modification to avoid divergence
                                   sig = ep%mpl(impl)%sigma(l)
                                   if (l==1) then
-                                      !gg = gg*rnrm2/(3.d0*sigma(l)**2)
                                       gg = gg/(3.d0*sig**2)
                                   else if (l==2) then
-                                      !gg = gg*rnrm2**2/(15.d0*sigma(l)**4)
                                       gg = gg/(15.d0*sig**4)
                                   end if
-                                  !gg = gaussian(sigma(l),r(1)**2)*gaussian(sigma(l),r(2)**2)*gaussian(sigma(l),r(3)**2)
-                                  !gg = gg*sqrt(2.d0*pi_param*sigma(l)**2)**6
                                   norm_check(l,impl) = norm_check(l,impl) + gg*hhh*rnrm2**l
                                   if (rnrm2<=rmax(impl)**2) then
-                                  !if (.true.) then
                                       if (associated(ep%mpl(impl)%qlm(l)%q)) then
                                           mm = 0
                                           do m=-l,l
                                               mm = mm + 1
-                                              !ttt = ep%mpl(impl)%qlm(l)%q(mm)*&
-                                              !      spherical_harmonic(l, m, r(1), r(2), r(3))*gg*sqrt(4.d0*pi_param)
                                               ! For the monopole term, the atomic core charge (which has been expressed using a Gaussian
                                               ! above) has to be added in order to compensate it.
                                               if (l==0) then
@@ -512,32 +400,9 @@ module multipole
                                               else
                                                   qq = ep%mpl(impl)%qlm(l)%q(mm)
                                               end if
-                                              !ttt = qq*&
-                                              !      spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))*gg!*sqrt(4.d0*pi_param)
-                                              !ttt = qq*&
-                                              !      solid_harmonic(-2, rmin, l, m, r(1), r(2), r(3))*gg!*sqrt(4.d0*pi_param)
-                                              !ttt = qq*&
-                                              !      real(2*l+1,kind=8)*solid_harmonic(-2, rmin, l, m, r(1), r(2), r(3))*&
-                                              !      sqrt(4.d0*pi/real(2*l+1,kind=8))*gg!*sqrt(4.d0*pi_param)
                                               ttt = qq*&
                                                     real(2*l+1,kind=8)*solid_harmonic(0, rmin, l, m, r(1), r(2), r(3))*&
                                                     sqrt(4.d0*pi/real(2*l+1,kind=8))*gg!*sqrt(4.d0*pi_param)
-                                              !ttt = qq*&
-                                              !      spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))*gg*4.d0*pi_param
-                                              !ttt = qq*&
-                                              !      spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))**2
-                                              !if (l==0) then
-                                              !    ttt = ttt/sqrt(3.d0)
-                                              !else if (l==1) then
-                                              !    ttt = ttt/sqrt(5.d0)
-                                              !else if (l==2) then
-                                              !    ttt = ttt/sqrt(7.d0)
-                                              !end if
-                                              !ttt = ttt/get_normalization(rmax(impl), l, m)!*(0.5d0*sqrt(1/pi_param))
-                                              ttt = ttt
-                                              !ttt = ttt*get_normalization(rmax(impl), l, m)*4.d0*pi_param!*(0.5d0*sqrt(1/pi_param))
-                                              !ttt = ttt*get_normalization(rmax(impl), l, m)!*sqrt(4.d0*pi_param)
-                                              !ttt = ttt**2!*get_normalization(rmax(impl), l, m)!*sqrt(4.d0*pi_param)
                                               tt = tt + ttt
                                               ttl = ttl + ttt
                                           end do
@@ -549,20 +414,15 @@ module multipole
                               do l=0,lmax
                                   do m=-l,l
                                       if (l==0) then
-                                          !monopole(impl) = monopole(impl) + ttl*hhh!*sqrt(1.d0/(4.d0*pi))
-                                          !monopole(impl) = monopole(impl) + ttl*hhh*solid_harmonic()
                                           monopole(impl) = monopole(impl) + ttl*hhh*&
                                                            solid_harmonic(0,0.d0,l,m,r(1),r(2),r(3))*&
                                                            sqrt(4.d0*pi/real(2*l+1,kind=8))
                                       else if (l==1) then
                                           if (m==-1) then
-                                              !dipole(1,impl) = dipole(1,impl) + ttl*hhh*r(2)*sqrt(3.d0/(4.d0*pi))
                                               ii = 1
                                           else if (m==0) then
-                                              !dipole(2,impl) = dipole(2,impl) + ttl*hhh*r(3)*sqrt(3.d0/(4.d0*pi))
                                               ii = 2
                                           else if (m==1) then
-                                              !dipole(3,impl) = dipole(3,impl) + ttl*hhh*r(1)*sqrt(3.d0/(4.d0*pi))
                                               ii = 3
                                           end if
                                           dipole(ii,impl) = dipole(ii,impl) + ttl*hhh*&
@@ -570,21 +430,14 @@ module multipole
                                                            sqrt(4.d0*pi/real(2*l+1,kind=8))
                                       else if (l==2) then
                                           if (m==-2) then
-                                              !quadrupole(1,impl) = quadrupole(1,impl) + ttl*hhh*r(1)*r(2)*sqrt(15.d0/(4.d0*pi))
                                               ii = 1
                                           else if (m==-1) then
-                                              !quadrupole(2,impl) = quadrupole(2,impl) + ttl*hhh*r(2)*r(3)*sqrt(15.d0/(4.d0*pi))
                                               ii = 2
                                           else if (m==0) then
-                                              !quadrupole(3,impl) = quadrupole(3,impl) + ttl*hhh*&
-                                              !                     (-r(1)**2-r(2)**2+2.d0*r(3)**2)*sqrt(5.d0/(16.d0*pi))
                                               ii = 3
                                           else if (m==1) then
-                                              !quadrupole(4,impl) = quadrupole(4,impl) + ttl*hhh*r(1)*r(3)*sqrt(15.d0/(4.d0*pi))
                                               ii = 4
                                           else if (m==2) then
-                                              !quadrupole(5,impl) = quadrupole(5,impl) + ttl*hhh*&
-                                              !                     (r(1)**2-r(2)**2)*sqrt(15.d0/(16.d0*pi))
                                               ii = 5
                                           end if
                                           quadrupole(ii,impl) = quadrupole(ii,impl) + ttl*hhh*&
@@ -593,10 +446,9 @@ module multipole
                                       end if
                                   end do
                               end do
-                              !density_try(i1,i2,i3,ithread) = density_try(i1,i2,i3,ithread) + tt
                               ! If the norm of the Gaussian is close to one, 
                               density_loc(i1,i2,i3,ithread) = density_loc(i1,i2,i3,ithread) + tt
-                          else
+                          else norm_if
                               ! Use the method based on the analytic formula
                               rnrm1 = sqrt(rnrm2)
                               rnrm3 = rnrm1*rnrm2
@@ -623,7 +475,7 @@ module multipole
                                   end if
                               end do
                               potential_loc(i1,i2,i3,ithread) = potential_loc(i1,i2,i3,ithread) + tt
-                          end if
+                          end if norm_if
                       end do
                   end do
               end do
@@ -875,27 +727,27 @@ module multipole
       call f_release_routine()
 
 
-      contains
+      !!contains
 
 
-        function gaussian(sigma, r2) result(g)
-          use module_base, only: pi => pi_param
-          implicit none
-          ! Calling arguments
-          real(kind=8),intent(in) :: sigma, r2
-          real(kind=8) :: tt, g
+      !!  function gaussian(sigma, r2) result(g)
+      !!    use module_base, only: pi => pi_param
+      !!    implicit none
+      !!    ! Calling arguments
+      !!    real(kind=8),intent(in) :: sigma, r2
+      !!    real(kind=8) :: tt, g
 
-          ! Only calculate the Gaussian if the result will be larger than 10^-30
-          tt = r2/(2.d0*sigma**2)
-          if (tt<=69.07755279d0) then
-              g = safe_exp(-tt)
-              g = g/sqrt(2.d0*pi*sigma**2)**3
-          else
-              g = 0.d0
-          end if
-          !g = g/(sigma**3*sqrt(2.d0*pi)**3)
+      !!    ! Only calculate the Gaussian if the result will be larger than 10^-30
+      !!    tt = r2/(2.d0*sigma**2)
+      !!    if (tt<=69.07755279d0) then
+      !!        g = safe_exp(-tt)
+      !!        g = g/sqrt(2.d0*pi*sigma**2)**3
+      !!    else
+      !!        g = 0.d0
+      !!    end if
+      !!    !g = g/(sigma**3*sqrt(2.d0*pi)**3)
 
-        end function gaussian
+      !!  end function gaussian
 
     end subroutine potential_from_charge_multipoles
 
@@ -3969,5 +3821,122 @@ module multipole
 
  end subroutine get_optimal_sigmas
 
+ subroutine calculate_gaussian(is, ie, idim, hh, shift, ep, gaussian_array)
+   use module_base
+   use multipole_base, only: lmax, external_potential_descriptors
+   implicit none
+
+   ! Calling arguments
+   integer,intent(in) :: is, ie, idim
+   real(kind=8),intent(in) :: hh
+   real(kind=8),dimension(3),intent(in) :: shift
+   type(external_potential_descriptors),intent(in) :: ep
+   real(kind=8),dimension(0:lmax,ep%nmpl,is:ie),intent(out) :: gaussian_array
+
+   ! Local variables
+   integer :: i, ii, impl, l
+   real(kind=8) :: x, tt, sig
+
+   call f_routine(id='calculate_gaussian')
+
+   !$omp parallel default(none) &
+   !$omp shared(is, ie, hh, shift, idim, ep, gaussian_array) &
+   !$omp private(i, ii, x, impl, tt, l, sig)
+   !$omp do
+   do i=is,ie
+       ii = i - 15
+       x = real(ii,kind=8)*hh + shift(idim)
+       do impl=1,ep%nmpl
+           tt = x - ep%mpl(impl)%rxyz(idim)
+           tt = tt**2
+           do l=0,lmax
+               sig = ep%mpl(impl)%sigma(l)
+               gaussian_array(l,impl,i) = gaussian(sig,tt)
+           end do
+       end do
+   end do
+   !$omp end do
+   !$omp end parallel
+
+   call f_release_routine()
+
+   contains
+
+     function gaussian(sigma, r2) result(g)
+       use module_base, only: pi => pi_param
+       implicit none
+       ! Calling arguments
+       real(kind=8),intent(in) :: sigma, r2
+       real(kind=8) :: tt, g
+
+       ! Only calculate the Gaussian if the result will be larger than 10^-30
+       tt = r2/(2.d0*sigma**2)
+       if (tt<=69.07755279d0) then
+           g = safe_exp(-tt)
+           g = g/sqrt(2.d0*pi*sigma**2)**1!3
+       else
+           g = 0.d0
+       end if
+       !g = g/(sigma**3*sqrt(2.d0*pi)**3)
+
+     end function gaussian
+
+ end subroutine calculate_gaussian
+
+ subroutine calculate_norm(nproc, is1, ie1, is2, ie2, is3, ie3, ep, &
+            hhh, gaussians1, gaussians2, gaussians3, norm)
+   use module_base
+   use multipole_base, only: external_potential_descriptors
+   implicit none
+   
+   ! Calling arguments
+   integer,intent(in) :: nproc, is1, ie1, is2, ie2, is3, ie3
+   type(external_potential_descriptors),intent(in) :: ep
+   real(kind=8),intent(in) :: hhh
+   real(kind=8),dimension(0:lmax,1:ep%nmpl,is1:ie1),intent(in) :: gaussians1
+   real(kind=8),dimension(0:lmax,1:ep%nmpl,is2:ie2),intent(in) :: gaussians2
+   real(kind=8),dimension(0:lmax,1:ep%nmpl,is3:ie3),intent(in) :: gaussians3
+   real(kind=8),dimension(0:2,ep%nmpl),intent(out) :: norm
+
+   ! Local variables
+   integer :: impl, i1, i2, i3, ii1, ii2, ii3, l
+   real(kind=8) :: gg
+
+   call f_routine(id='calculate_norm')
+
+   call f_zero(norm)
+
+   !$omp parallel default(none) &
+   !$omp shared(ep, is1, ie1, is2, ie2, is3, ie3, norm, hhh) &
+   !$omp shared(gaussians1, gaussians2, gaussians3) &
+   !$omp private(impl, i1, i2, i3, ii1, ii2, ii3, l, gg) 
+   !$omp do
+   do impl=1,ep%nmpl
+       do i3=is3,ie3
+           ii3 = i3 - 15
+           do i2=is2,ie2
+               ii2 = i2 - 15
+               do i1=is1,ie1
+                   ii1 = i1 - 15
+                   do l=0,lmax
+                       ! Calculate the Gaussian as product of three 1D Gaussians
+                       gg = gaussians1(l,impl,i1)*gaussians2(l,impl,i2)*gaussians3(l,impl,i3)
+                       norm(l,impl) = norm(l,impl) + gg*hhh
+                   end do
+               end do
+           end do
+       end do
+   end do
+   !$omp end do
+   !$omp end parallel
+
+   ! Sum up the norms of the Gaussians.
+   if (nproc>1) then
+       call mpiallred(norm, mpi_sum, comm=bigdft_mpi%mpi_comm)
+   end if
+
+   call f_release_routine()
+
+ end subroutine calculate_norm
 
 end module multipole
