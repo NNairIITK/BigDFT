@@ -675,12 +675,12 @@ module multipole
                   do l=0,lmax
                       tt = abs(1.d0-norm_check(l,impl))
                       !if (abs(norm(l,impl)-norm_check(l,impl))>1.d-10) then
-                      if (tt>1.d-2) then
-                          write(*,*) 'ERROR', abs(norm(l,impl)-norm_check(l,impl)), norm_check(l,impl)
-                          !call f_err_throw('The deviation from normalization of the radial function is too large: '//&
-                          !    yaml_toa(tt,fmt='(es7.1)'), err_name='BIGDFT_RUNTIME_ERROR')
-                      end if
-                      if (tt>1.d-4 .and. iproc==0 .and. verbosity>1) then
+                      !if (tt>1.d-2) then
+                      !    write(*,*) 'ERROR', abs(norm(l,impl)-norm_check(l,impl)), norm_check(l,impl)
+                      !    !call f_err_throw('The deviation from normalization of the radial function is too large: '//&
+                      !    !    yaml_toa(tt,fmt='(es7.1)'), err_name='BIGDFT_RUNTIME_ERROR')
+                      !end if
+                      if (tt>1.d-2 .and. iproc==0 .and. verbosity>1) then
                           !write(*,*) 'ERROR', abs(norm(l,impl)-norm_check(l,impl)), norm_check(l,impl)
                           call yaml_warning('The deviation from normalization of the radial function is large: '//&
                               yaml_toa(tt,fmt='(es7.1)'))
