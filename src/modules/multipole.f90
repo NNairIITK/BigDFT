@@ -390,7 +390,7 @@ module multipole
                  call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, &
                       rx, ry, rz, &
                       rloc, nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
-                      denspot%dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, ndensity, density(is1:,is2:,is3:), rholeaked)
+                      denspot%dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, ndensity, density, rholeaked)
              end if
          end do
 !! UNCOMMENT FOR TEST          do i3=is3,ie3
@@ -1648,7 +1648,7 @@ module multipole
 
 
     subroutine calculte_multipole_matrix(iproc, nproc, l, m, nphi, phi1, phi2, nphir, hgrids, &
-               orbs, collcom, lzd, smat, locregcenter, multipole_matrix)
+               orbs, collcom, lzd, smat, locregcenter, ingegration_volume, multipole_matrix)
       use module_base
       use module_types, only: orbitals_data, comms_linear, local_zone_descriptors
       use locreg_operations,only: workarr_sumrho, initialize_work_arrays_sumrho, deallocate_work_arrays_sumrho
@@ -1668,6 +1668,7 @@ module multipole
       type(sparse_matrix),intent(in) :: smat
       real(kind=8),dimension(3,lzd%nlr),intent(in) :: locregcenter
       type(matrices),intent(inout) :: multipole_matrix
+      character(len=*),intent(in) :: ingegration_volume
 
       ! Local variables
       integer :: ist, istr, iorb, i1, i2, i3, ii1, ii2, ii3, iiorb, ind, ilr, i
@@ -1675,9 +1676,21 @@ module multipole
       real(kind=8) :: norm, rmax, factor_normalization, tt, x, y, z
       type(workarr_sumrho) :: w
       real(kind=8) :: ddot
+      character(len=*),parameter :: sphere = 'sphere', box = 'box'
+      logical :: integrate_in_sphere
 
 
       call f_routine(id='calculte_multipole_matrix')
+
+      ! Check the arguments
+      if (trim(ingegration_volume)==sphere) then
+          integrate_in_sphere = .true.
+      else if (trim(ingegration_volume)==box) then
+          integrate_in_sphere = .false.
+      else
+          call f_err_throw('wrong argument for ingegration_volume ('//trim(ingegration_volume)//')',&
+               err_name='BIGDFT_RUNTIME_ERROR')
+      end if
 
       ! Transform the support functions to real space
       phi2r = f_malloc0(max(nphir,1),id='phi2r')
@@ -1740,11 +1753,14 @@ module multipole
                       ii1 = lzd%llr(ilr)%nsi1 + i1 - 14 - 1
                       x = ii1*0.5d0*hgrids(1) - locregcenter(1,ilr)
                       ind = (i3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2-1)*lzd%llr(ilr)%d%n1i + i1
-                      !if (x**2+y**2+z**2>rmax**2) cycle
+                      if (integrate_in_sphere) then
+                          if (x**2+y**2+z**2>rmax**2) cycle
+                      end if
                       tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
                       tt = tt*sqrt(4.d0*pi/real(2*l+1,kind=8))
                       sphi2r(ist+ind) = tt*phi2r(ist+ind)
                       !write(*,*) 'iorb, i1, i1, i2, tt, phi2r', iorb, i1, i2, i3, tt, phi2r(ist+ind)
+                      ! For the calculation of the norm, do the integration always only in the sphere
                       if (x**2+y**2+z**2>rmax**2) cycle
                       norm = norm + (tt*factor_normalization)**2*&
                           real((2*l+3)*(2*l+1),kind=8)/(4.d0*pi*rmax**(2*l+3)) !normalization of a solid harmonic within a sphere of radius rmax... hopefully correct
@@ -1940,7 +1956,7 @@ module multipole
 
               ! Calculate the multipole matrix
               call calculte_multipole_matrix(iproc, nproc, l, m, nphi, phi_ortho, phi_ortho, nphir, hgrids, &
-                   orbs, collcom, lzd, smats, locregcenter, multipole_matrix)
+                   orbs, collcom, lzd, smats, locregcenter, 'box', multipole_matrix)
 
               call transform_sparse_matrix(smats, smatl, multipole_matrix%matrix_compr, multipole_matrix_large, 'small_to_large')
 
@@ -3431,7 +3447,7 @@ module multipole
    do l=0,lmax
        do m=-l,l
            call calculte_multipole_matrix(iproc, nproc, l, m, nphi, phi1, phi2, nphir, hgrids, &
-                    orbs, collcom, lzd, smat, locregcenter, multipole_matrix)
+                    orbs, collcom, lzd, smat, locregcenter, 'sphere', multipole_matrix)
            val = 0.d0
            do iorb=1,orbs%norb
                iiorb = modulo(iorb-1,smat%nfvctr)+1
@@ -3688,7 +3704,7 @@ module multipole
           ! Calculate the multipole matrix
           call calculte_multipole_matrix(iproc, nproc, l, m, tmb%npsidim_orbs, phi1, phi_ortho, &
                max(tmb%collcom_sr%ndimpsi_c,1), tmb%lzd%hgrids, &
-               tmb%orbs, tmb%collcom, tmb%lzd, tmb%linmat%s, center_locreg, multipole_matrix)
+               tmb%orbs, tmb%collcom, tmb%lzd, tmb%linmat%s, center_locreg, 'box', multipole_matrix)
           !write(*,*) 'multipole_matrix%matrix_compr(1)',multipole_matrix%matrix_compr(1)
           ! Take the diagonal elements and scale by factor (anyway there is no really physical meaning in the actual numbers)
           do iorb=1,tmb%orbs%norbp
@@ -3815,19 +3831,24 @@ module multipole
    real(kind=8),dimension(:,:,:,:),allocatable :: test_pot
    logical :: rho_negative, exists, found
    real(kind=8) :: ehart_ps, diff, tt, diff_min
-   integer,parameter :: nsigma=4
-   real(kind=8),parameter :: step=0.10d0
+   integer,parameter :: nsigma=3
+   real(kind=8),parameter :: step=0.20d0
    integer :: i1, i2, i3, isigma0, isigma1, isigma2, impl, ixc, l
    integer :: nzatom, nelpsp, npspcode, itype
    real(gp),dimension(0:4,0:6) :: psppar
    real(kind=8),dimension(:,:),allocatable :: sigmax
    real(kind=8),dimension(0:lmax) :: factor, factorx, factor_min
+   real(kind=8),dimension(:),allocatable :: rhov_orig
 
    call f_routine(id='get_optimal_sigmas')
 
    if (iproc==0) call yaml_comment('Determine optimal sigmas for the radial Gaussians',hfill='~')
 
    test_pot = f_malloc0((/size(denspot%V_ext,1),size(denspot%V_ext,2),size(denspot%V_ext,3),2/),id='test_pot')
+   rhov_orig = f_malloc(size(denspot%rhov),id='rhov_orig')
+
+   ! Keep the original value fo rhov, which contains the entire potential
+   call f_memcpy(src=denspot%rhov, dest=rhov_orig)
 
    ! Calculate the correct electrostatic potential, i.e. electronic plus ionic part
    call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), &
@@ -3883,9 +3904,9 @@ module multipole
    do isigma2=1,nsigma
        do isigma1=1,nsigma
            do isigma0=1,nsigma
-               factor(0) = factorx(0) + real(isigma0,kind=8)*step
-               factor(1) = factorx(1) + real(isigma1,kind=8)*step
-               factor(2) = factorx(2) + real(isigma2,kind=8)*step
+               factor(0) = factorx(0) + real(isigma0-1,kind=8)*step
+               factor(1) = factorx(1) + real(isigma1-1,kind=8)*step
+               factor(2) = factorx(2) + real(isigma2-1,kind=8)*step
                do impl=1,ep%nmpl
                    !ep%mpl(impl)%sigma(l) = ep%mpl(impl)%sigma(l) + step
                    ep%mpl(impl)%sigma(0:lmax) = sigmax(l,impl)*factor(0:lmax)
@@ -3916,8 +3937,12 @@ module multipole
                    tt = diff/(real(size(denspot%V_ext,1),kind=8)*&
                               real(size(denspot%V_ext,1),kind=8)*&
                               real(size(denspot%V_ext,1),kind=8))
-                   call yaml_map('sigma multiplication factors',factor,fmt='(f4.2)')
-                   call yaml_map('mean potential difference (actual/minimal)',(/tt,diff_min/),fmt='(es11.5)')
+                   !call yaml_map('sigma multiplication factors',factor,fmt='(f4.2)')
+                   !call yaml_map('mean potential difference (actual/minimal)',(/tt,diff_min/),fmt='(es11.5)')
+                   call yaml_mapping_open(flow=.true.)
+                   call yaml_map('rloc mult',factor,fmt='(f3.1)')
+                   call yaml_map('avg pot diff (actual/min)',(/tt,diff_min/),fmt='(es9.3)')
+                   call yaml_mapping_close()
                end if
                if (tt<diff_min) then
                    factor_min(0:lmax) = factor(0:lmax)
@@ -3933,8 +3958,12 @@ module multipole
    do impl=1,ep%nmpl
        ep%mpl(impl)%sigma(0:lmax) = sigmax(l,impl)*factor_min(0:lmax)
    end do
+
+   call f_memcpy(src=rhov_orig, dest=denspot%rhov)
+
    call f_free(sigmax)
    call f_free(test_pot)
+   call f_free(rhov_orig)
 
    call f_release_routine()
 
