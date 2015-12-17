@@ -459,16 +459,12 @@ module multipole
                                       select case(l)
                                       case (0)
                                           tt = tt + calc_monopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
-                                          !write(*,'(a,3es12.4,es16.8)') 'x, y, z, monopole', x, y, z, calc_monopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
                                       case (1)
                                           tt = tt + calc_dipole(ep%mpl(impl)%qlm(l)%q, r, rnrm3)
-                                          !write(*,*) 'dipole', calc_dipole(ep%mpl(impl)%qlm(l)%q, r, rnrm3)
                                       case (2)
                                           tt = tt + calc_quadropole(ep%mpl(impl)%qlm(l)%q, r, rnrm5)
-                                          !write(*,*) 'quadrupole', calc_quadropole(ep%mpl(impl)%qlm(l)%q, r, rnrm5)
                                       case (3)
                                           call f_err_throw('octupole not yet implemented', err_name='BIGDFT_RUNTIME_ERROR')
-                                          !multipole_terms(l) = calc_octopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
                                       case default
                                           call f_err_throw('Wrong value of l', err_name='BIGDFT_RUNTIME_ERROR')
                                       end select
