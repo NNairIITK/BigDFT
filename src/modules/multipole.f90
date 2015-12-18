@@ -121,7 +121,7 @@ module multipole
 
     !> Calculate the external potential arising from the multipoles of the charge density
     subroutine potential_from_charge_multipoles(iproc, nproc, at, denspot, ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, &
-               verbosity, pot, lzd, rxyz, dipole_total)
+               verbosity, pot, lzd, rxyz, dipole_total, all_norms_ok)
       use module_types, only: DFT_local_fields, local_zone_descriptors
       use Poisson_Solver, except_dp => dp, except_gp => gp
       use module_atoms, only: atoms_data
@@ -141,6 +141,7 @@ module multipole
       type(local_zone_descriptors),intent(in),optional :: lzd
       real(kind=8),dimension(3,at%astruct%nat),intent(in),optional :: rxyz
       real(kind=8),dimension(3),intent(out),optional :: dipole_total
+      logical,intent(out),optional :: all_norms_ok
 
       ! Local variables
       integer :: i1, i2, i3, ii1, ii2, ii3, impl, l, m, ii, mm, nthread, ithread
@@ -229,6 +230,26 @@ module multipole
               end do
               !write(*,*) 'impl, norm_ok(impl)', impl, norm_ok(impl)
           end do
+
+          if (present(all_norms_ok)) then
+              all_norms_ok = all(norm_ok)
+              if (.not.all_norms_ok) then
+                  call f_free(density)
+                  call f_free(density_cores)
+                  call f_free(density_loc)
+                  call f_free(potential_loc)
+                  call f_free(gaussians1)
+                  call f_free(gaussians2)
+                  call f_free(gaussians3)
+                  call f_free(norm)
+                  call f_free(norm_check)
+                  call f_free(monopole)
+                  call f_free(dipole)
+                  call f_free(quadrupole)
+                  call f_free(norm_ok)
+                  return
+              end if
+          end if
     
     
           ! Get the parameters for each multipole, required to compensate for the pseudopotential part
@@ -411,10 +432,10 @@ module multipole
                                               ttt = qq*&
                                                     real(2*l+1,kind=8)*solid_harmonic(0, rmin, l, m, r(1), r(2), r(3))*&
                                                     sqrt(4.d0*pi/real(2*l+1,kind=8))*gg!*sqrt(4.d0*pi_param)
-                                              if (ttt<0.d0 .and. abs(ttt)>1.d-2) then
-                                                  write(*,'(a,2i5,3es13.4)') 'impl, l, qq, sh, gg', impl, l, qq, &
-                                                    solid_harmonic(0, rmin, l, m, r(1), r(2), r(3)), gg
-                                              end if
+                                              !!if (ttt<0.d0 .and. abs(ttt)>1.d-2) then
+                                              !!    write(*,'(a,2i5,3es13.4)') 'impl, l, qq, sh, gg', impl, l, qq, &
+                                              !!      solid_harmonic(0, rmin, l, m, r(1), r(2), r(3)), gg
+                                              !!end if
                                               tt = tt + ttt
                                               ttl = ttl + ttt
                                           end do
@@ -607,7 +628,7 @@ module multipole
                                   !    max_error(l) = max(max_error(l),abs(quadrupole(mm,impl)-ep%mpl(impl)%qlm(l)%q(mm)))
                                   !end if
                                   if (l==0) then
-                                      qq = ep%mpl(impl)%qlm(l)%q(mm)+real(nelpsp(impl),kind=8)
+                                      qq = -(ep%mpl(impl)%qlm(l)%q(mm)-real(nelpsp(impl),kind=8))
                                   else
                                       qq = ep%mpl(impl)%qlm(l)%q(mm)
                                   end if
@@ -1938,7 +1959,7 @@ module multipole
               !if (l>=3) cycle
               ep%mpl(impl)%qlm(l)%q = f_malloc0_ptr(2*l+1,id='q')
               mm = 0
-              if (l>0) cycle
+              !if (l>0) cycle
               do m=-l,l
                   mm = mm + 1
                   ep%mpl(impl)%qlm(l)%q(mm) = atomic_multipoles(m,l,impl)
@@ -3730,7 +3751,7 @@ module multipole
    type(DFT_local_fields),intent(inout) :: denspot
    ! Local variables
    real(kind=8),dimension(:,:,:,:),allocatable :: test_pot
-   logical :: rho_negative, exists, found
+   logical :: rho_negative, exists, found, all_norms_ok
    real(kind=8) :: ehart_ps, diff, tt, diff_min, diff_dipole, diff_dipole_min
    !integer,parameter :: nsigma=3
    real(kind=8),parameter :: step=0.20d0
@@ -3763,7 +3784,6 @@ module multipole
 
    denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimrhopot,id='denspot%rho_work')
    ioffset=lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%i3xcsh
-   write(*,*) 'ioffset',ioffset
    if (denspot%dpbox%ndimrhopot>0) then
        call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
        ! add the spin down part if present
@@ -3780,7 +3800,7 @@ module multipole
    !write(*,*) 'calculate dipole with rho_work'
    call calculate_dipole_moment(denspot%dpbox, 1, at, rxyz, denspot%rho_work, &
         calculate_quadropole=.true., dipole=dipole_exact, quiet_=.true.)
-   !call f_free_ptr(denspot%rho_work)
+   call f_free_ptr(denspot%rho_work)
 
    call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
         quiet=denspot%PSquiet)!,rho_ion=denspot%rho_ion)
@@ -3845,42 +3865,47 @@ module multipole
                     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+&
                     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
                     denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), &
-                    shift, verbosity=0, pot=test_pot(:,:,:,2), lzd=lzd, rxyz=rxyz, dipole_total=dipole_trial)
+                    shift, verbosity=0, pot=test_pot(:,:,:,2), &
+                    lzd=lzd, rxyz=rxyz, dipole_total=dipole_trial, all_norms_ok=all_norms_ok)
 
-               diff_dipole = (dipole_exact(1)-dipole_trial(1))**2 + &
-                             (dipole_exact(2)-dipole_trial(2))**2 + &
-                             (dipole_exact(3)-dipole_trial(3))**2
-               diff = 0.d0
-               do i3=1,size(denspot%V_ext,3)
-                   do i2=1,size(denspot%V_ext,2)
-                       do i1=1,size(denspot%V_ext,1)
-                           !write(800,*) 'i1, i2, i3, vals', i1, i2, i3, test_pot(i1,i2,i3,1), test_pot(i1,i2,i3,2)
-                           diff = diff + (test_pot(i1,i2,i3,1)-test_pot(i1,i2,i3,2))**2
+               if (all_norms_ok) then
+                   diff_dipole = (dipole_exact(1)-dipole_trial(1))**2 + &
+                                 (dipole_exact(2)-dipole_trial(2))**2 + &
+                                 (dipole_exact(3)-dipole_trial(3))**2
+                   diff = 0.d0
+                   do i3=1,size(denspot%V_ext,3)
+                       do i2=1,size(denspot%V_ext,2)
+                           do i1=1,size(denspot%V_ext,1)
+                               !write(800,*) 'i1, i2, i3, vals', i1, i2, i3, test_pot(i1,i2,i3,1), test_pot(i1,i2,i3,2)
+                               diff = diff + (test_pot(i1,i2,i3,1)-test_pot(i1,i2,i3,2))**2
+                           end do
                        end do
                    end do
-               end do
-               call mpiallred(diff, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-               if (iproc==0) then
-                   !write(*,*) 'isigma, l, diff', isigma, l, diff
-                   call yaml_sequence(advance='no')
+                   call mpiallred(diff, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
                    tt = diff/(real(size(denspot%V_ext,1),kind=8)*&
                               real(size(denspot%V_ext,1),kind=8)*&
                               real(size(denspot%V_ext,1),kind=8))
-                   !call yaml_map('sigma multiplication factors',factor,fmt='(f4.2)')
-                   !call yaml_map('mean potential difference (actual/minimal)',(/tt,diff_min/),fmt='(es11.5)')
+               end if
+               if (iproc==0) then
+                   call yaml_sequence(advance='no')
                    call yaml_mapping_open(flow=.true.)
                    call yaml_map('rloc mult',factor,fmt='(f3.1)')
-                   call yaml_map('dipole norm diff (actual/min)',(/diff_dipole,diff_dipole_min/),fmt='(es9.3)')
-                   call yaml_map('avg pot diff (actual/min)',(/tt,diff_min/),fmt='(es9.3)')
+                   call yaml_map('Gaussian norms ok',all_norms_ok)
+                   if (all_norms_ok) then
+                       call yaml_map('dipole norm diff (actual/min)',(/diff_dipole,diff_dipole_min/),fmt='(es9.3)')
+                       call yaml_map('avg pot diff (actual/min)',(/tt,diff_min/),fmt='(es9.3)')
+                   end if
                    call yaml_mapping_close()
                end if
-               if (tt<diff_min) then
-                   factor_min(0:lmax) = factor(0:lmax)
-                   diff_min = tt
-               end if
-               if (diff_dipole<diff_dipole_min) then
-                   !factor_min(0:lmax) = factor(0:lmax)
-                   diff_dipole_min = diff_dipole
+               if (all_norms_ok) then
+                   if (tt<diff_min) then
+                       !factor_min(0:lmax) = factor(0:lmax)
+                       diff_min = tt
+                   end if
+                   if (diff_dipole<diff_dipole_min) then
+                       factor_min(0:lmax) = factor(0:lmax)
+                       diff_dipole_min = diff_dipole
+                   end if
                end if
            end do
        end do
