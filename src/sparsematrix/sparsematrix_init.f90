@@ -4228,9 +4228,10 @@ contains
           do jorb=1,norb
               if (jproc==nproc-1) exit
               jjorb = jjorb + 1
-              if(jorb==norb) exit !just to be sure that no out of bound happens
+              jjorbtot = jjorbtot + 1
               tcount = tcount + workload(jorb)
               jcount = jcount + workload(jorb)
+              if(jorb==norb) exit !just to be sure that no out of bound happens
               if (abs(tcount-wli*real(jproc+1,kind=8)) <= &
                       abs(tcount+workload(jorb+1)-wli*real(jproc+1,kind=8))) then
               !!if (abs(tcount-workload_ideal*real(jproc+1,kind=8)) <= &
@@ -4239,14 +4240,13 @@ contains
               !!        tcount+workload(jorb+1)-workload_ideal*real(jproc+1,kind=8)>0.d0) then
                   norb_par(jproc) = jjorb
                   workload_par(jproc) = jcount
-                  jjorbtot = jjorbtot + jjorb
-                  !if (bigdft_mpi%iproc==0) write(*,'(a,2i6,2es14.6)') 'jproc, jjorb, tcount/(jproc+1), wli', jproc, jjorb, tcount/(jproc+1), wli
                   jcount = 0.d0
                   jjorb = 0
                   jproc = jproc + 1
                   wli = get_dynamic_ideal_workload(nproc,jproc, tcount, workload_ideal)
               end if
           end do
+          ! Take the rest
           norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
           workload_par(nproc-1) = sum(workload) - tcount
 
