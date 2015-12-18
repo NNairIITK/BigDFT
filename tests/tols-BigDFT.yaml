@@ -462,6 +462,7 @@ cleanup:
  HOMO-LUMO gap (eV): 3.5e-9
  HOMO-LUMO gap (Ha): 1.3e-10
  D eF: 1.1e-8
+ Pseudo Fermi level for occupations: 2.3e-11
 
 directmin:
  Patterns to ignore:
@@ -715,11 +716,11 @@ GEOPT-all_lbfgs:
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 4.3e-7
- guess for new ef: 2.5e-7
+ eF: 4.7e-7
+ guess for new ef: 4.7e-7
  Epot: 3.1e-10
  EH: 3.0e-10
- EXC: 3.1e-11
+ EXC: 4.1e-11
  EvXC: 4.1e-11
  Ekin: 1.1e-10
  charge diff: 7.1e-6
@@ -734,8 +735,8 @@ geopt_foe:
  Positions: 2.1e-9
  Omega: 1.2e-11
  Total charge: 1.3e-10
- guess for new ef: 4.2e-07
- trace(KS): 1.3e-10
+ guess for new ef: 4.7e-07
+ trace(KS): 1.4e-10
 
 geopt_diag:
  Epot: 1.1e-10
@@ -1696,18 +1697,17 @@ multipoles_water:
  number of corrected points: 17
  multiplicator for the confinement: 1.8e-10
  EH: 1.1e-10
- D eF: 2.0e-8
+ D eF: 2.1e-8
  ebs_check: 1.2e-10
  ebs: 1.2e-10
- D Tr: 3.1e-11
+ D Tr: 4.1e-11
  Total charge: 1.4e-11
- charge diff: 3.2e-11
+ charge diff: 4.0e-11
  number of corrected points: 17.0
  total charge correction: 8.6e-11
  trace(KS): 1.4e-11
  Unitary check of the multipole calculations: 2.1e-2
  number of corrected points: 20
-
 
 multipoles_CH4:
  Atomic Forces (Ha/Bohr): 1.5e-11
