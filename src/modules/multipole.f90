@@ -1686,7 +1686,7 @@ module multipole
 
     subroutine multipole_analysis_driver(iproc, nproc, ll, nphi, lphi, nphir, at, hgrids, &
                orbs, smats, smatm, smatl, collcom, collcom_sr, lzd, denspot, orthpar, ovrlp, ham, kernel, rxyz, &
-               method, shift, ep)
+               method, shift, nsigma, ep)
       use module_base
       use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, orthon_data, DFT_local_fields, comms_linear
       use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, sparsematrix_malloc0, assignment(=), &
@@ -1700,7 +1700,7 @@ module multipole
       use multipole_base, only: external_potential_descriptors_null, multipole_set_null, multipole_null
       implicit none
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, ll, nphi, nphir
+      integer,intent(in) :: iproc, nproc, ll, nphi, nphir, nsigma
       real(kind=8),dimension(3) :: hgrids
       type(atoms_data),intent(in) :: at
       type(orbitals_data),intent(in) :: orbs
@@ -1895,7 +1895,7 @@ module multipole
       end do
 
       ! Calculate the optimal sigmas
-      call get_optimal_sigmas(iproc, nproc, 3, collcom_sr, smatl, kernel, at, lzd, ep, shift, denspot)
+      call get_optimal_sigmas(iproc, nproc, nsigma, collcom_sr, smatl, kernel, at, lzd, ep, shift, denspot)
 
       if (iproc==0) then
           call yaml_comment('Final result of the multipole analysis',hfill='~')

@@ -30,6 +30,7 @@
    check_matrix_compression: No
    FOE_restart: 1
    hamapp_radius_incr: 6
+   nsigma: 3
  lin_general:
    hybrid: Yes
    nit: 50

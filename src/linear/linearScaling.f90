@@ -2600,13 +2600,13 @@ end if
                max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
                tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &
                denspot, tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
-               method='loewdin', shift=shift, ep=ep )
+               method='loewdin', shift=shift, nsigma=input%nsigma, ep=ep )
       else if (input%lin%charge_multipoles==2) then
           call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
                max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
                tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &
                denspot, tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
-               method='projector', shift=shift, ep=ep)
+               method='projector', shift=shift, nsigma=input%nsigma, ep=ep)
       end if
       !call get_optimal_sigmas(iproc, nproc, KSwfn, tmb, at, input, ep, shift, denspot)
       !!# TEST ######################################################################################################
