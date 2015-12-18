@@ -611,7 +611,6 @@
    -  1:
        Method                          : Density based on Gaussians
        Sigma of the Gaussians          :  [  1.000,  0.800,  0.600 ]
-
        Deviation from normalization for the radial function:  [  5.3E-14,  3.3E-14,  1.9E-14 ]
        Maximal deviation from the original values in percent: [-5.2E-01, no mltpole l= 1, 
                                                                   no mltpole l= 2]
