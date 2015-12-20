@@ -102,6 +102,8 @@ write_etsf.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz 
 	@cp write.dft etsf.dft
 	@cp input.kpt etsf.kpt
 	@cp posinp.xyz etsf.xyz
+	@rm -f etsf.yaml
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=etsf
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft etsf > $@
 	@rm -f etsf.dft etsf.kpt etsf.xyz
@@ -113,6 +115,8 @@ write_plain.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz
 	@cp input.kpt plain.kpt
 	@cp posinp.xyz plain.xyz
 	sed -i "s/^0 3 0/0 1 0/g" plain.dft
+	@rm -f plain.yaml
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=plain
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft plain > $@
 	@rm -f plain.dft plain.kpt plain.xyz
@@ -124,6 +128,8 @@ write_binary.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xy
 	@cp input.kpt binary.kpt
 	@cp posinp.xyz binary.xyz
 	sed -i "s/^0 3 0/0 2 0/g" binary.dft
+	@rm -f binary.yaml
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=binary
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft binary > $@
 	@rm -f binary.dft binary.kpt binary.xyz
@@ -135,6 +141,8 @@ read_etsf.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz r
 	@cp read.dft etsf.dft
 	@cp input.kpt etsf.kpt
 	@cp posinp.xyz etsf.xyz
+	@rm -f etsf.yaml
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=etsf
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft etsf > $@
 	@rm -f etsf.dft etsf.kpt etsf.xyz
@@ -145,6 +153,8 @@ read_plain.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz 
 	@cp read.dft plain.dft
 	@cp input.kpt plain.kpt
 	@cp posinp.xyz plain.xyz
+	@rm -f plain.yaml
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=plain
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft plain > $@
 	@rm -f plain.dft plain.kpt plain.xyz
@@ -155,6 +165,7 @@ read_binary.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz
 	@cp read.dft binary.dft
 	@cp input.kpt binary.kpt
 	@cp posinp.xyz binary.xyz
+	@rm -f binary.yaml
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft binary > $@
 	@rm -f binary.dft binary.kpt binary.xyz

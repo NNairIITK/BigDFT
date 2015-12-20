@@ -26,9 +26,11 @@ module public_keys
   character(len = *), parameter :: ELECFIELD = "elecfield"
   character(len = *), parameter :: NSPIN = "nspin", MPOL = "mpol"
   character(len = *), parameter :: GNRM_CV = "gnrm_cv"
+  character(len = *), parameter :: GNRM_CV_VIRT = "gnrm_cv_virt"
   character(len = *), parameter :: GNRM_IG = "gnrm_ig"
   character(len = *), parameter :: NIT_IG = "nit_ig"
   character(len = *), parameter :: ITERMAX = "itermax",ITERMIN = "itermin", NREPMAX = "nrepmax"
+  character(len = *), parameter :: ITERMAX_VIRT = "itermax_virt"
   character(len = *), parameter :: NCONG = "ncong", IDSX = "idsx"
   character(len = *), parameter :: DISPERSION = "dispersion"
   character(len = *), parameter :: INPUTPSIID = "inputpsiid"
@@ -119,6 +121,7 @@ module public_keys
   character(len = *), parameter :: NOSE_MTS_SIZE = "nose_mts_size"
   character(len = *), parameter :: NOSE_YOSHIDA_FACTOR = "nose_yoshida_factor"
   character(len = *), parameter :: NOSE_FREQUENCY = "nose_frequency"
+  character(len = *), parameter :: WAVEFUNCTION_EXTRAPOLATION="wavefunction_extrapolation"
 
   !mode parameter keywords
   character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
@@ -258,6 +261,12 @@ module public_keys
   character(len=*), parameter :: ADJUST_KERNEL_THRESHOLD='adjust_kernel_threshold'
   character(len=*), parameter :: WF_EXTENT_ANALYSIS='wf_extent_analysis'
   character(len=*), parameter :: CALCULATE_ONSITE_OVERLAP='calculate_onsite_overlap'
+  character(len=*), parameter :: PEXSI_NPOLES='pexsi_npoles'
+  character(len=*), parameter :: PEXSI_MUMIN='pexsi_mumin'
+  character(len=*), parameter :: PEXSI_MUMAX='pexsi_mumax'
+  character(len=*), parameter :: PEXSI_MU='pexsi_mu'
+  character(len=*), parameter :: PEXSI_TEMPERATURE='pexsi_temperature'
+  character(len=*), parameter :: PEXSI_TOL_CHARGE='pexsi_tol_charge'
 
   !> Parameters to avoid typos in dictionary keys
   character(len=*), parameter :: ASTRUCT_UNITS = 'units' 
@@ -447,9 +456,11 @@ module public_enums
   integer, parameter, public :: LINEAR_MIXDENS_SIMPLE=101
   integer, parameter, public :: LINEAR_MIXPOT_SIMPLE=102
   integer, parameter, public :: LINEAR_FOE=103
+  integer, parameter, public :: LINEAR_PEXSI=104
   integer, parameter, public :: KERNELMODE_DIRMIN = 10
   integer, parameter, public :: KERNELMODE_DIAG = 11
   integer, parameter, public :: KERNELMODE_FOE = 12
+  integer, parameter, public :: KERNELMODE_PEXSI = 13
   integer, parameter, public :: MIXINGMODE_DENS = 20
   integer, parameter, public :: MIXINGMODE_POT = 21
   integer,parameter, public :: FOE_ACCURATE = 30
@@ -498,6 +509,7 @@ module public_enums
   type(f_enumerator), parameter, public :: BMHTF_RUN_MODE         =f_enumerator('BMHTF_RUN_MODE',-992,null())
   type(f_enumerator), parameter, public :: CP2K_RUN_MODE         =f_enumerator('CP2K_RUN_MODE',-991,null())
   type(f_enumerator), parameter, public :: DFTBP_RUN_MODE         =f_enumerator('DFTBP_RUN_MODE',-990,null())
+  type(f_enumerator), parameter, public :: TDPOT_RUN_MODE      =f_enumerator('TDPOT_RUN_MODE',-989,null())
   
   type(f_enumerator), parameter, public :: MULTI_RUN_MODE         =f_enumerator('MULTI_RUN_MODE',-989,null())
 end module public_enums

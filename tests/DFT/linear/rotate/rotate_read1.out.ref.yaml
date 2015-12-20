@@ -571,10 +571,6 @@
    Tolerance for the following test    :  9.999999999999999988E-15
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
-   Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  5.740801327233977840E-15
-   Tolerance for the following test    :  1.000000000000000036E-10
-   calculation check, error max        :  1.278976924368180335E-13
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  31203,  686 ]
    Tolerances for this check: [ 3.26166254354786495E-06,  1.33226762955018785E-14]

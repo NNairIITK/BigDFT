@@ -33,8 +33,8 @@
       Values are in most cases between 0.3 and 0.6 bohr.
      RANGE: [0., 4.]
      default: [0.45, 0.45, 0.45]
-     fast: [0.55, 0.55, 0.55]
-     accurate: [0.30, 0.30, 0.30]
+     #fast: [0.55, 0.55, 0.55]
+     #accurate: [0.30, 0.30, 0.30]
    rmult:
      COMMENT: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
      DESCRIPTION: Coarse and fine multiplier as [4.0, 8.0].
@@ -385,6 +385,22 @@
         care of during the Davidson iterations.
      RANGE: [0, 9999]
      default: 0
+   gnrm_cv_virt:
+     COMMENT: convergence criterion gradient for virtual orbitals
+     DESCRIPTION: |
+       Norm of the gradient for virtual orbitals convergence.
+       Calculates the results on the first nvirt orbitals
+     RANGE: [1.e-20, 1.]
+     default: 1.e-4
+     fast: 1.e-3
+     accurate: 1.e-5
+   itermax_virt:
+     COMMENT: Max. iterations of wfn. opt. steps for virtual orbitals
+     DESCRIPTION: |
+       Maximum number of gradient evaluations for a cycle of a wavefunction optimization for
+       virtual orbitals.
+     RANGE: [0, 10000]
+     default: 50
    disablesym:
      COMMENT: Disable the symmetry detection
      DESCRIPTION: |
@@ -909,7 +925,7 @@
    mdsteps:
      COMMENT: Number of MD steps
      DESCRIPTION: A value greater than 0 will activate molecular dynamics
-     RANGE: [0, 99999999]
+     RANGE: [0, .inf ]
      default: 0
    print_frequency:
      COMMENT: Printing frequency for energy.dat and Trajectory.xyz files
@@ -950,10 +966,7 @@
      default: 1
    nose_yoshida_factor:
      COMMENT: Yoshida-Suzuki order to integrate the Nose-Hoover Chains equations of motion (integer input)
-     EXCLUSIVE:
-          3: Order 3
-          5: Order 5
-          7: Order 7
+     EXCLUSIVE: [3, 5, 7]
      CONDITION:
        MASTER_KEY: thermostat
        WHEN:
@@ -961,12 +974,17 @@
      default: 7
    nose_frequency: 
      COMMENT: Frequency in (cm^-1) corresponding to the inertia of the thermostat degrees of freedom 
-     RANGE: [1.,100000.0]
+     RANGE: [1., .inf ]
      CONDITION:
        MASTER_KEY: thermostat
        WHEN:
        - nose_hoover_chain
      default: 3000.0
+   wavefunction_extrapolation: 
+     COMMENT: Activates the wavefunction extrapolation for MD
+     DESCRIPTION: A value greater than 0 activates wfn extrapolation
+     EXCLUSIVE: [ 0, 1, 2, 4 ]
+     default: 0
 #     
 #Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
  mix:
@@ -974,8 +992,7 @@
      This file contains all the parameters required to use a density (or potential)
      mixing scheme for the self consistent field loop, which may imply a smearing
      of the occupancies for finite temperature DFT calculations.
-     
-     It is named input.mix.
+     It was the former input.mix.
    iscf:
      COMMENT: Mixing parameters
      DESCRIPTION: |
@@ -1012,7 +1029,7 @@
        The stop criterion on the residue of the potential or the density. Typical values are in
        the order of 1e-10 to 1e-12. 
      RANGE: [0., 10.]
-     default: 1e-4
+     default: 1.e-4
    norbsempty:
      COMMENT: No. of additional bands
      DESCRIPTION: |
@@ -1098,6 +1115,7 @@
      EXCLUSIVE:
        dft: Density Functional Theory (BigDFT)
        lj: Lennard-Jones force field
+       tdpot: two-dimension test potential
        lensic: Lenosky Force Field for Si clusters
        lensib: Lenosky Force Field for Si bulk
        amber: AMBER Force Fields Package (requires AMBERtools)
@@ -1620,9 +1638,18 @@
        COMMENT: calculate the onsite overlap matrix (has only an effect if the matrices are all written to disk)
        default: No
      charge_multipoles:
-       COMMENT: Calculate the atom-centered multipole coefficients of the electronic charge
-       DESCRIPTION: Calculate the multipole expansion coefficients which can then be used to establish a QM/MM coupling
-       default: no
+       COMMENT: Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 new approach Projector
+       DESCRIPTION: | 
+                    Calculate the multipole expansion coefficients of the atomic charge which can then be used to establish a QM/MM coupling.
+                    Possible values are:
+                    * 0 => no calculation
+                    * 1 => new approach using Loewdin
+                    * 2 => new approach using projector
+       default: 0
+       EXCLUSIVE:
+         0: no calculation
+         1: new approach using Loewdin
+         2: new approach using projector
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
@@ -1793,10 +1820,12 @@
                      * DIRMIN => direct minimization
                      * DIAG => diagonalization with density mixing
                      * FOE => Fermi Operator Expansion
+                     * PEXSI => PEXSI library
        EXCLUSIVE:
          DIRMIN: direct minimization
          DIAG: diagonalization
          FOE: Fermi Operator Expansion
+         PEXSI: external PEXSI lbrary
        default: DIAG
      mixing_method:
        COMMENT: quantity to be mixed
@@ -1839,6 +1868,36 @@
                     or systems where convergence is unstable.
        default: 1.0
        RANGE: [0.0,1.e1]
+     pexsi_npoles:
+       COMMENT: number of poles used by PEXSI
+       DESCRIPTION: number of poles used by PEXSI to calculate the density kernel from the Hamiltonian and overlap matrices
+       default: 40
+       RANGE: [20,200]
+     pexsi_mumin:
+       COMMENT: initial guess for the lower bound of the chemical potential used by PEXSI
+       DESCRIPTION: initial guesss for the lower bound of the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
+       default: -1.0
+       RANGE: [-5.0,5.0]
+     pexsi_mumax:
+       COMMENT: initial guess for the upper bound of the chemical potential used by PEXSI
+       DESCRIPTION: initial guesss for the upper bound of the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
+       default: 1.0
+       RANGE: [-5.0,5.0]
+     pexsi_mu:
+       COMMENT: initial guess for the  chemical potential used by PEXSI
+       DESCRIPTION: initial guesss for the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
+       default: 0.5
+       RANGE: [-5.0,5.0]
+     pexsi_temperature:
+       COMMENT: temperature used by PEXSI
+       DESCRIPTION: temperature (in atomic units?) used by PEXSI
+       default: 1.e-3
+       RANGE: [0.0,1.0]
+     pexsi_tol_charge:
+       COMMENT: charge tolerance used PEXSI
+       DESCRIPTION: tolerance on the number of electrons used by PEXSI
+       default: 1.e-3
+       RANGE: [1.e-10,1.0]
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:

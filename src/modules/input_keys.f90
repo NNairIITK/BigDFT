@@ -124,8 +124,11 @@ module module_input_keys
      integer :: output_coeff_format   !< Output Coefficients format
      integer :: output_fragments   !< Output fragments/full system/both
      integer :: frag_num_neighbours   !< number of neighbouring atoms per fragment
-     logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
+     integer :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density (0:no, >0:yes)
      integer :: kernel_restart_mode !< How to generate the kernel in a restart calculation
+     integer :: pexsi_npoles !< number of poles used by PEXSI
+     real(kind=8) :: pexsi_mumin, pexsi_mumax, pexsi_mu !< minimal, maximal and first chemical potential for PEXSI
+     real(kind=8) :: pexsi_temperature, pexsi_tol_charge !< temperature and tolerance on the number of electrons used by PEXSI
      real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
   end type linearInputParameters
 
@@ -181,6 +184,7 @@ module module_input_keys
      integer :: ixc         !< XC functional Id
      real(gp):: qcharge     !< Total charge of the system
      integer :: itermax     !< Maximal number of SCF iterations
+     integer :: itermax_virt     !< Maximal number of SCF iterations
      integer :: itermin     !< Minimum number of SCF iterations !Bastian
      integer :: nrepmax
      integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
@@ -205,6 +209,7 @@ module module_input_keys
      real(gp) :: crmult     !< Coarse radius multiplier
      real(gp) :: frmult     !< Fine radius multiplier
      real(gp) :: gnrm_cv    !< Convergence parameters of orbitals
+     real(gp) :: gnrm_cv_virt !< Convergence parameters of virtual orbitals
      real(gp) :: rbuf       !< buffer for tail treatment
      real(gp), dimension(3) :: elecfield   !< Electric Field vector
      logical :: disableSym                 !< .true. disable symmetry
@@ -591,7 +596,8 @@ contains
     use module_xc
     !  use input_old_text_format, only: dict_from_frag
     use module_atoms!, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,&
-                    ! check_atoms_positions,psp_set_from_dict,astruct_set_from_dict
+    ! check_atoms_positions,psp_set_from_dict,astruct_set_from_dict
+    use pseudopotentials, only: psp_set_from_dict,psp_dict_fill_all
     use yaml_strings
     use m_ab6_symmetry, only: symmetry_get_n_sym
     use interfaces_42_libpaw
@@ -600,6 +606,7 @@ contains
     use fragment_base
     use f_utils, only: f_get_free_unit
     use wrapper_MPI, only: mpibarrier
+    use PStypes, only: SETUP_VARIABLES,VERBOSITY
     implicit none
     !Arguments
     type(input_variables), intent(out) :: in
@@ -645,16 +652,18 @@ contains
     call dict_copy(src=dict // PSOLVER, dest=in%PS_dict)
     call dict_copy(src=in%PS_dict, dest=in%PS_dict_seq)
     !then other treatments for the sequential solver might be added
-
+    call set(in%PS_dict_seq // SETUP_VARIABLES // VERBOSITY, .false.)
 
     ! Add missing pseudo information.
     projr = dict // PERF_VARIABLES // PROJRAD
     cfrmults = dict // DFT_VARIABLES // RMULT
     jxc = dict // DFT_VARIABLES // IXC
-    var => dict_iter(types)
-    do while(associated(var))
+    !var => dict_iter(types)
+    !do while(associated(var))
+    nullify(var)
+    do while(iterating(var,on=types))
        call psp_dict_fill_all(dict, trim(dict_key(var)), jxc, projr, cfrmults(1), cfrmults(2))
-       var => dict_next(var)
+       !var => dict_next(var)
     end do
 
     ! Update interdependant values.
@@ -878,10 +887,10 @@ contains
     if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms,input_id)
 
     if (associated(dict_minimal) .and. bigdft_mpi%iproc == 0) then
-       call dict_get_run_properties(dict, input_id = run_id)
-       call f_strcpy(src=trim(run_id)//'_minimal.yaml',dest=filename)
+       call dict_get_run_properties(dict, input_id = run_id , minimal_file = filename)
+       !       call f_strcpy(src=trim(run_id)//'_minimal.yaml',dest=filename)
        unt=f_get_free_unit(99971)
-       call yaml_set_stream(unit=unt,filename=trim(outdir)//trim(filename),&
+       call yaml_set_stream(unit=unt,filename=trim(outdir)//trim(filename)//'.yaml',&
             record_length=92,istat=ierr,setdefault=.false.,tabbing=0,position='rewind')
        if (ierr==0) then
           call yaml_comment('Minimal input file',hfill='-',unit=unt)
@@ -890,7 +899,7 @@ contains
           call yaml_dict_dump(dict_minimal,unit=unt)
           call yaml_close_stream(unit=unt)
        else
-          call yaml_warning('Failed to create input_minimal.yaml, error code='//trim(yaml_toa(ierr)))
+          call yaml_warning('Failed to create'//trim(filename)//', error code='//trim(yaml_toa(ierr)))
        end if
     end if
     if (associated(dict_minimal)) call dict_free(dict_minimal)
@@ -1486,6 +1495,8 @@ contains
        case(METHOD_KEY)
           str=val
           select case(trim(str))
+          case('tdpot')
+             in%run_mode=TDPOT_RUN_MODE
           case('lj')
              in%run_mode=LENNARD_JONES_RUN_MODE
           case('dft')
@@ -1587,6 +1598,10 @@ contains
           in%nvirt = val
        case (NPLOT)
           in%nplot = val
+       case (GNRM_CV_VIRT)
+          in%gnrm_cv_virt = val
+       case (ITERMAX_VIRT)
+          in%itermax_virt = val
        case (DISABLE_SYM)
           in%disableSym = val ! Line to disable symmetries.
 !!$       case (SOLVENT)
@@ -1914,6 +1929,8 @@ contains
          in%nsuzuki = val
        case (NOSE_FREQUENCY)
          in%nosefrq = val
+       case (WAVEFUNCTION_EXTRAPOLATION)
+          in%wfn_history = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2104,6 +2121,8 @@ contains
              in%lin%kernel_mode = KERNELMODE_DIAG
           case('FOE')
              in%lin%kernel_mode = KERNELMODE_FOE
+          case('PEXSI')
+             in%lin%kernel_mode = KERNELMODE_PEXSI
           end select
        case (MIXING_METHOD)
           dummy_char = val
@@ -2125,6 +2144,18 @@ contains
           in%lin%fscale = val
        case (COEFF_SCALING_FACTOR) 
           in%lin%coeff_factor = val
+       case (PEXSI_NPOLES)
+          in%lin%pexsi_npoles = val
+       case (PEXSI_MUMIN)
+          in%lin%pexsi_mumin = val
+       case (PEXSI_MUMAX)
+          in%lin%pexsi_mumax = val
+       case (PEXSI_MU)
+          in%lin%pexsi_mu = val
+       case (PEXSI_TEMPERATURE)
+          in%lin%pexsi_temperature = val
+       case (PEXSI_TOL_CHARGE)
+          in%lin%pexsi_tol_charge = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -2236,6 +2267,8 @@ contains
     in%gen_norb = UNINITIALIZED(0)
     in%gen_norbu = UNINITIALIZED(0)
     in%gen_norbd = UNINITIALIZED(0)
+    call f_zero(in%gnrm_cv_virt)
+    call f_zero(in%itermax_virt)
     nullify(in%gen_occup)
     ! Default abscalc variables
     call abscalc_input_variables_default(in)
@@ -2304,7 +2337,8 @@ contains
     in%randdis=0.0_gp
     in%betax=2.0_gp
     in%history = 1
-    in%wfn_history = 1
+!    in%wfn_history = 1
+    in%wfn_history = 0
     in%ionmov = -1
     in%dtion = 0.0_gp
     in%strtarget(:)=0.0_gp
@@ -2608,6 +2642,8 @@ contains
        end select
     case (KERNELMODE_FOE)
        in%lin%scf_mode = LINEAR_FOE
+    case (KERNELMODE_PEXSI)
+       in%lin%scf_mode = LINEAR_PEXSI
     case default
        call f_err_throw('wrong value of in%lin%kernel_mode',&
             err_name='BIGDFT_INPUT_VARIABLES_ERROR')

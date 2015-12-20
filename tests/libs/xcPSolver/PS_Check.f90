@@ -19,7 +19,7 @@ program PS_Check
    use yaml_output
    use module_types, only: TCAT_EXCHANGECORR
    use gaussians, only: initialize_real_space_conversion,finalize_real_space_conversion
-
+   use yaml_parse, only: yaml_load
    implicit none
    !Parameters
    real(kind=8), parameter :: a_gauss = 1.0d0

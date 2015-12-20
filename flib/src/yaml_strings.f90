@@ -138,11 +138,10 @@ contains
     implicit none
     character(len=*), intent(out) :: dest
     type(f_string), intent(in) :: src
-    !local variables
-    integer :: i,n
-    call f_strcpy(dest=dest,src=src%msg)
-  end subroutine f_strcpy_str
 
+    call f_strcpy(dest=dest,src=src%msg)
+
+  end subroutine f_strcpy_str
   
 
   !> Add a buffer to a string and increase its length

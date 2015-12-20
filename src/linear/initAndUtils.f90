@@ -1574,57 +1574,58 @@ end subroutine set_variables_for_hybrid
 
 
 
-subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
-  use module_base
-  use module_types
-  use yaml_output
-  use foe_base, only: foe_data
-  implicit none
-
-  ! Calling arguments
-  integer, intent(in) :: iproc, nproc
-  type(local_zone_descriptors), intent(in) :: lzd
-  type(atomic_structure), intent(in) :: astruct
-  type(input_variables), intent(in) :: input
-  type(orbitals_data), intent(in) :: orbs_KS, orbs
-  type(foe_data), intent(out) :: foe_obj
-  logical,intent(in) :: init
-  ! Local variables
-  integer :: ilr
-  real(kind=8),save :: cutoff_incr
-  real(kind=8),dimension(:,:), allocatable :: locreg_centers
-
-  call f_routine(id='increase_FOE_cutoff')
-
-  ! Just initialize the save variable
-  if (init) then
-      cutoff_incr=0.d0
-      call f_release_routine()
-      return
-  end if
-
-
-  ! How much should the cutoff be increased
-  cutoff_incr=cutoff_incr+1.d0
-
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('Need to re-initialize FOE cutoff',.true.)
-      call yaml_newline()
-      call yaml_map('Total increase of FOE cutoff wrt input values',cutoff_incr,fmt='(f5.1)')
-  end if
-
-  ! Re-initialize the foe data
-  locreg_centers = f_malloc((/3,lzd%nlr/),id='locreg_centers')
-  do ilr=1,lzd%nlr
-      locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
-  end do
-  call init_foe(iproc, nproc, input, orbs_KS, foe_obj,.false.)
-  call f_free(locreg_centers)
-
-  call f_release_routine()
-
-end subroutine increase_FOE_cutoff
+!SM probably not needed any more
+!!subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
+!!  use module_base
+!!  use module_types
+!!  use yaml_output
+!!  use foe_base, only: foe_data
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer, intent(in) :: iproc, nproc
+!!  type(local_zone_descriptors), intent(in) :: lzd
+!!  type(atomic_structure), intent(in) :: astruct
+!!  type(input_variables), intent(in) :: input
+!!  type(orbitals_data), intent(in) :: orbs_KS, orbs
+!!  type(foe_data), intent(out) :: foe_obj
+!!  logical,intent(in) :: init
+!!  ! Local variables
+!!  integer :: ilr
+!!  real(kind=8),save :: cutoff_incr
+!!  real(kind=8),dimension(:,:), allocatable :: locreg_centers
+!!
+!!  call f_routine(id='increase_FOE_cutoff')
+!!
+!!  ! Just initialize the save variable
+!!  if (init) then
+!!      cutoff_incr=0.d0
+!!      call f_release_routine()
+!!      return
+!!  end if
+!!
+!!
+!!  ! How much should the cutoff be increased
+!!  cutoff_incr=cutoff_incr+1.d0
+!!
+!!  if (iproc==0) then
+!!      call yaml_newline()
+!!      call yaml_map('Need to re-initialize FOE cutoff',.true.)
+!!      call yaml_newline()
+!!      call yaml_map('Total increase of FOE cutoff wrt input values',cutoff_incr,fmt='(f5.1)')
+!!  end if
+!!
+!!  ! Re-initialize the foe data
+!!  locreg_centers = f_malloc((/3,lzd%nlr/),id='locreg_centers')
+!!  do ilr=1,lzd%nlr
+!!      locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
+!!  end do
+!!  call init_foe(iproc, nproc, input, orbs_KS, foe_obj,.false.)
+!!  call f_free(locreg_centers)
+!!
+!!  call f_release_routine()
+!!
+!!end subroutine increase_FOE_cutoff
 
 
 

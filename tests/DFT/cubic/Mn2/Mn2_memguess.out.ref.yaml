@@ -25,10 +25,10 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
- 
+
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.2
- Timestamp of this run                 : 2015-11-10 21:57:09.434
+ Timestamp of this run                 : 2015-11-25 22:45:23.016
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  0
  OpenMP parallelization                :  Yes
@@ -36,21 +36,53 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FCFLAGS=-O2 -openmp' 
+     " 'FCFLAGS=-O2 -fopenmp' 
      '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 -lmkl_rt 
-     -liomp5 -lm' 'CFLAGS=-O2 -openmp' 'CC=mpicc' 'CXX=mpicxx' 'FC=mpifc' 'F77=mpif77'"
-   Compilers (CC, FC, CXX)             :  [ mpicc, mpifc, mpicxx ]
+     -liomp5 -lm' 'CFLAGS=-O2 -fopenmp' 'CC=mpicc.openmpi' 'CXX=mpicxx.openmpi' 
+     'FC=mpif90.openmpi' 'F77=mpif77.openmpi'"
+
+   Compilers (CC, FC, CXX)             :  [ mpicc.openmpi, mpif90.openmpi, mpicxx.openmpi ]
    Compiler flags:
-     CFLAGS                            : -O2 -openmp
-     FCFLAGS                           : -O2 -openmp
+     CFLAGS                            : -O2 -fopenmp
+     FCFLAGS                           : -O2 -fopenmp
      CXXFLAGS                          : -g -O2
-  #WARNING: Input files read in the old format. Use the input_minimal.yaml file to switch to 
-  #new format. In future versions this will be deprecated
+  #WARNING: Input files read in the old format. Use the <run_id>.yaml file to switch to new 
+  #format. It is not anymore possible to use the old format in the bigdft executable
   #------------------------------------------------------------------------ Input parameters
- radical                               : logfile
+ radical                               : null
  logfile                               : Yes
  run_from_files                        : Yes
+ input_minimal_file                    : null
  outdir                                : ./
+ dft:
+   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
+   rmult: [5.0, 8.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+   ixc                                 : 1 #      Exchange-correlation parameter (LDA=1,PBE=11)
+   qcharge                             : 0 #      Charge of the system. Can be integer or real.
+   elecfield: [0.0, 0.0, 0.0] #                   Electric field (Ex,Ey,Ez)
+   nspin                               : 4 #      Spin polarization treatment
+   mpol                                : 0 #      Total magnetic moment
+   gnrm_cv                             : 5.0000000000000001E-004 # convergence criterion gradient
+   itermax                             : 20 #     Max. iterations of wfn. opt. steps
+   nrepmax                             : 10 #     Max. number of re-diag. runs
+   ncong                               : 9 #      No. of CG it. for preconditioning eq.
+   idsx                                : 6 #      Wfn. diis history
+   dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
+   inputpsiid                          : 0 #      Input guess wavefunctions
+   output_wf                           : 0 #      Output of the support functions
+   output_denspot                      : 0 #      Output of the density or the potential
+   rbuf                                : 0.0 #    Length of the tail (AU)
+   ncongt                              : 30 #     No. of tail CG iterations
+   norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
+   nvirt                               : 0 #      No. of virtual orbs
+   nplot                               : 0 #      No. of plotted orbs
+   disablesym                          : Yes #    Disable the symmetry detection
+   itermin                             : 0 #      Min. iterations of wfn. opt. steps
+   gnrm_cv_virt                        : 1.e-4 #  convergence criterion gradient for virtual orbitals
+   itermax_virt                        : 50 #     Max. iterations of wfn. opt. steps for virtual orbitals
+   external_potential                  : 0.0 #    Multipole moments of an external potential
+   calculate_strten                    : Yes #    Boolean to activate the calculation of the stress tensor. Might be set to No for 
+    #                                              performance reasons
  psppar.Mn:
    Pseudopotential type                : HGH
    Atomic number                       : 25
@@ -76,34 +108,24 @@
      Fine                              : 0.327763
      Coarse PSP                        : 1.010866427064831
      Source                            : Hard-Coded
- dft:
-   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
-   rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
-   ixc                                 : 1 #      Exchange-correlation parameter (LDA=1,PBE=11)
-   qcharge                             : 0 #      Charge of the system. Can be integer or real.
-   elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
-   nspin                               : 1 #      Spin polarization treatment
-   mpol                                : 0 #      Total magnetic moment
-   gnrm_cv                             : 1.e-4 #  convergence criterion gradient
-   itermax                             : 50 #     Max. iterations of wfn. opt. steps
-   itermin                             : 0 #      Min. iterations of wfn. opt. steps
-   nrepmax                             : 1 #      Max. number of re-diag. runs
-   ncong                               : 6 #      No. of CG it. for preconditioning eq.
-   idsx                                : 6 #      Wfn. diis history
-   dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
-   inputpsiid                          : 0 #      Input guess wavefunctions
-   output_wf                           : 0 #      Output of the support functions
-   output_denspot                      : 0 #      Output of the density or the potential
-   rbuf                                : 0. #     Length of the tail (AU)
-   ncongt                              : 30 #     No. of tail CG iterations
-   norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
-   nvirt                               : 0 #      No. of virtual orbs
-   nplot                               : 0 #      No. of plotted orbs
-   disablesym                          : No #     Disable the symmetry detection
-   solvent                             : vacuum # Electrostatic environment for Poisson Equation
-   external_potential                  : 0.0 #    Multipole moments of an external potential
-   calculate_strten                    : Yes #    Boolean to activate the calculation of the stress tensor. Might be set to No for 
-    #                                              performance reasons
+ psolver:
+   kernel:
+     screening                         : 0 #      mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
+     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-6 #  Convergence threshold of the loop
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -127,7 +149,7 @@
  mix:
    iscf                                : 0 #      Mixing parameters
    itrpmax                             : 1 #      Maximum number of diagonalisation iterations
-   rpnrm_cv                            : 1e-4 #   Stop criterion on the residue of potential or density
+   rpnrm_cv                            : 1.e-4 #  Stop criterion on the residue of potential or density
    norbsempty                          : 0 #      No. of additional bands
    tel                                 : 0. #     Electronic temperature
    occopt                              : 1 #      Smearing method
@@ -156,8 +178,6 @@
    ig_tol                              : 1.0e-4 # Input guess Tolerance criterion
    methortho                           : 0 #      Orthogonalisation
    rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
-   psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
-   psolver_accel                       : 0 #      Acceleration of the Poisson Solver (0=none, 1=CUDA)
    unblock_comms                       : OFF #    Overlap Communications of fields (OFF,DEN,POT)
    linear                              : OFF #    Linear Input Guess approach
    tolsym                              : 1.0e-8 # Tolerance for symmetry detection
@@ -209,7 +229,6 @@
    adjust_kernel_threshold             : True #   enable the adaptive ajustment of the kernel convergence threshold according to the 
     #                                              support function convergence
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
-   gps_method                          : VAC #    method for the Generalized Poisson Equation
    foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
  lin_general:
    hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -305,7 +324,7 @@
    Boundary Conditions                 : Free #Code: F
    Number of Symmetries                :  0
    Space group                         : disabled
-  #---------------------------- Geometry optimization Input Parameters (file: logfile.geopt)
+  #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
  Geometry Optimization Parameters:
    Maximum steps                       :  1
    Algorithm                           : none
@@ -320,17 +339,18 @@
      XC ID                             :  &ixc  1
      Exchange-Correlation reference    : "XC: Teter 93"
      XC functional implementation      : ABINIT
-     Spin polarization                 :  No
+     Polarisation                      :  0
+     Spin polarization                 : non collinear
  Basis set definition:
    Suggested Grid Spacings (a0)        :  [  0.45,  0.45,  0.45 ]
    Coarse and Fine Radii Multipliers   :  [  5.0,  8.0 ]
  Self-Consistent Cycle Parameters:
    Wavefunction:
-     Gradient Norm Threshold           :  &gnrm_cv  1.0E-04
-     CG Steps for Preconditioner       :  6
+     Gradient Norm Threshold           :  &gnrm_cv  5.0E-04
+     CG Steps for Preconditioner       :  9
      DIIS History length               :  6
-     Max. Wfn Iterations               :  &itermax  50
-     Max. Subspace Diagonalizations    :  1
+     Max. Wfn Iterations               :  &itermax  20
+     Max. Subspace Diagonalizations    :  10
      Input wavefunction policy         : INPUT_PSI_LCAO # 0
      Output wavefunction policy        : NONE # 0
      Output grid policy                : NONE # 0
@@ -367,14 +387,14 @@
      Rloc                              :  0.66930
      h_ij matrix:
      -  [  1.36878, -0.13386,  0.00000 ]
-     -  [ -0.13386,  0.31676,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
+     -  [ -0.13386,  0.31676, -0.00000 ]
+     -  [  0.00000, -0.00000,  0.00000 ]
    - Channel (l)                       :  2
      Rloc                              :  0.32776
      h_ij matrix:
-     -  [ -7.99542,  0.00000,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
+     -  [ -7.99542, -0.00000,  0.00000 ]
+     -  [ -0.00000,  0.00000, -0.00000 ]
+     -  [  0.00000, -0.00000,  0.00000 ]
    No. of projectors                   :  14
    PSP XC                              : "XC: Teter 93"
   #-------------------------------------------------------------------------- Atom Positions
@@ -402,13 +422,13 @@
      No. of points                     :  1664
   #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  14
- Spin treatment                        : Averaged
+ Spin treatment                        : Spinorial (non-collinearity possible)
  Orbitals Repartition:
-   MPI tasks  0- 0                     :  7
- Total Number of Orbitals              :  7
+   MPI tasks  0- 0                     :  14
+ Total Number of Orbitals              :  14
  Input Occupation Numbers:
- - Occupation Numbers: {Orbitals No. 1-7:  2.0000}
- Wavefunctions memory occupation for root MPI process:  2 MB 542 KB 0 B
+ - Occupation Numbers: {Orbitals No. 1-14:  1.0000}
+ Wavefunctions memory occupation for root MPI process:  20 MB 240 KB 0 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  28
@@ -417,33 +437,33 @@
    Size of workspaces                  :  120704
   #-------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
-   Subspace Matrix                     : 0.1 #    (Number of Orbitals: 7)
-   Single orbital                      : 0.370 #  (Number of Components: 47360)
-   All (distributed) orbitals          : 5.60 #   (Number of Orbitals per MPI task: 7)
-   Wavefunction storage size           : 35.420 # (DIIS/SD workspaces included)
+   Subspace Matrix                     : 0.1 #    (Number of Orbitals: 14)
+   Single orbital                      : 1.456 #  (Number of Components: 47360)
+   All (distributed) orbitals          : 40.480 # (Number of Orbitals per MPI task: 14)
+   Wavefunction storage size           : 283.288 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 3.229
-   Full Uncompressed (ISF) grid        : 9.746
+   Full Uncompressed (ISF) grid        : 38.936
    Workspaces storage size             : 0.828
  Accumulated memory requirements during principal run stages (MiB.KiB):
    Kernel calculation                  : 123.150
-   Density Construction                : 97.1011
-   Poisson Solver                      : 137.39
-   Hamiltonian application             : 98.743
-   Orbitals Orthonormalization         : 98.743
- Estimated Memory Peak (MB)            :  137
+   Density Construction                : 473.158
+   Poisson Solver                      : 646.551
+   Hamiltonian application             : 610.29
+   Orbitals Orthonormalization         : 610.29
+ Estimated Memory Peak (MB)            :  646
  Memory Consumption Report:
-   Tot. No. of Allocations             :  123
-   Tot. No. of Deallocations           :  123
+   Tot. No. of Allocations             :  124
+   Tot. No. of Deallocations           :  124
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  5.846
+     Peak Value (MB)                   :  5.847
      for the array                     : logrid_big
      in the routine                    : createWavefunctionsDescriptors
-     Memory Peak of process            : 14.692 MB
- Walltime since initialization         : 00:00:00.061962991
- Max No. of dictionaries used          :  3998 #( 880 still in use)
+     Memory Peak of process            : 13.488 MB
+ Walltime since initialization         : 00:00:00.022261203
+ Max No. of dictionaries used          :  4056 #( 880 still in use)
  Number of dictionary folders allocated:  1
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Input files read in the old format. Use the input_minimal.yaml file to switch to new 
-   format. In future versions this will be deprecated
+ - Input files read in the old format. Use the <run_id>.yaml file to switch to new format. 
+   It is not anymore possible to use the old format in the bigdft executable

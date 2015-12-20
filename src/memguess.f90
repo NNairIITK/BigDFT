@@ -118,7 +118,8 @@ program memguess
    !call getarg(1,tatonam)
    call get_command_argument(1, value = tatonam, status = istat)
 
-   write(radical, "(A)") "input"
+   !write(radical, "(A)") "input"
+   call f_zero(radical)
    optimise=.false.
    GPUtest=.false.
    atwf=.false.
@@ -171,7 +172,7 @@ program memguess
       write(*,'(1x,a)')&
            &   '"analyse-coeffs" <coeff.bin>" ' 
       write(*,'(1x,a)')&
-           & 'analyse the coefficients by assiging them in to ncategories categories'
+           & 'analyse the coefficients by assigning them in to ncategories categories'
       write(*,'(1x,a)')&
            &   '"peel-matrix" <matrix.bin>" ' 
       write(*,'(1x,a)')&
@@ -538,6 +539,9 @@ program memguess
 
    !welcome screen
    !call print_logo()
+
+   !here we can convert the input file into the new format systematically
+   
 
    if (convert) then
       at%astruct%geocode = "P"
@@ -1006,6 +1010,7 @@ program memguess
        call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
        call f_close(iunit01)
        call diagonalizeHamiltonian2(iproc, ntmb, ham, overlap, eval)
+       !write(*,*) '2.d0*sum(eval(1:4))',2.d0*sum(eval(1:4))
        call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
        call writeLinearCoefficients(iunit01, .true., nat, rxyz, &
             ntmb, ntmb, ntmb, ham, eval)
@@ -1294,7 +1299,8 @@ program memguess
 !!   end if
 
    nullify(run)
-   call bigdft_set_run_properties(run, run_id = trim(radical), run_from_files = .true., log_to_disk = logfile)
+   call bigdft_set_run_properties(run, run_id = trim(radical), &
+        run_from_files = .true., log_to_disk = logfile, minimal_file=trim(radical))
 
    call run_objects_init(runObj, run)
    call dict_free(run)

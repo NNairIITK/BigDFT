@@ -525,9 +525,6 @@
  -  {H: [-2.069291708390E-02,  6.818318654743E-04, -1.008874722890E-03]} # 0012
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - 
-   Do not read the linear input files in the old format. If you use the .yaml format you can 
-   igno
  - Found no input polarisation, add it for a correct input guess
  - Chosen Grid spacings seem too high for the H atom type. At you own risk!
   #-------------------------------------------------------------------- Timing for root process

@@ -101,6 +101,7 @@ contains
     type(dictionary), pointer :: dict            !< Input dictionary
     !local variables
     character(len = 100) :: f0
+    character(len=max_field_length) :: st
     type(dictionary), pointer :: vals,tmp,tmp0
     
     ! Parse all files.
@@ -108,11 +109,15 @@ contains
     nullify(vals)
     call read_perf_from_text_format(mpi_env%iproc,vals, trim(f0))
     if (associated(vals)) then
-       if (PSOLVER .in. vals) then
-          tmp0 => vals // PSOLVER
-          call dict_copy(src=tmp0,dest=tmp)
-          call set(dict // PSOLVER,tmp)
-          call dict_remove(vals,PSOLVER)
+       if ( PSOLVER //'/taskgroup_size' .in. vals) then
+          st = vals // (PSOLVER //'/taskgroup_size')
+          call set(dict // PSOLVER // 'setup' // 'taskgroup_size',st)
+          call dict_remove(vals,PSOLVER //'/taskgroup_size')
+       end if
+       if ( PSOLVER //'/accel' .in. vals) then
+          st = vals // (PSOLVER //'/accel')
+          call set(dict // PSOLVER // 'setup' // 'accel',st)
+          call dict_remove(vals,PSOLVER //'/accel')
        end if
        call set(dict//PERF_VARIABLES, vals)
     end if
@@ -162,8 +167,8 @@ contains
 
     if (mpi_env%iproc==0) then
        call yaml_warning('Input files read in the old format. '//&
-            'Use the input_minimal.yaml file to switch to new format. '//&
-            'In future versions this will be deprecated')
+            'Use the <run_id>.yaml file to switch to new format. '//&
+            'It is not anymore possible to use the old format in the bigdft executable')
     end if
 
   end subroutine input_from_old_text_format
@@ -448,6 +453,7 @@ contains
     call input_var(dummy_int,'1',dict // NOSE_MTS_SIZE,comment="")
     call input_var(dummy_int,'7',dict // NOSE_YOSHIDA_FACTOR,comment="")
     call input_var(dummy_real,'3000.0',dict // NOSE_FREQUENCY,comment="")
+    call input_var(dummy_int,"0",dict // WAVEFUNCTION_EXTRAPOLATION, comment = "")
 
     call input_free(.false.)
 
@@ -734,11 +740,11 @@ contains
     call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",dummy_str)
     call set(dict // RHO_COMMUN, dummy_str)
     call input_var("psolver_groupsize",0, "Size of ", dummy_int)
-    call set(dict // PSOLVER // 'setup' // 'taskgroup_size', dummy_int)
+    call set(dict // (PSOLVER //'/taskgroup_size'), dummy_int)
     call input_var("psolver_accel",0, "Acceleration ", dummy_int)
     select case(dummy_int)
     case(1)
-       call set(dict // PSOLVER // 'setup' // 'accel', 'CUDA')
+       call set(dict // (PSOLVER//'/accel'), 'CUDA')
     end select
     call input_var("unblock_comms", "OFF", "Overlap Com)",dummy_str)
     call set(dict // UNBLOCK_COMMS, dummy_str)
@@ -1277,6 +1283,7 @@ module module_input_dicts
   character(len = *), parameter :: OUTDIR       = "outdir"
   character(len = *), parameter :: LOGFILE      = "logfile"
   character(len = *), parameter :: USE_FILES    = "run_from_files"
+  character(len = *), parameter :: MINIMAL_FILE_KEY = "input_minimal_file"
 
 
 contains
@@ -1394,9 +1401,16 @@ contains
     inquire(file = trim(fname), exist = exists_user)
     if (exists_user) call merge_input_file_to_dict(dict, trim(fname), mpi_env)
 
-    ! We fallback on the old text format (to be eliminated in the future)
-    if (.not.exists_default .and. .not. exists_user) then
-       call input_from_old_text_format(radical,mpi_env,dict)
+    !in the case if input_minimal is required, then accept the conversion
+    !otherwise raise an error as the old input format is not anymore accepted
+    if (MINIMAL_FILE_KEY .in. dict) then
+       if (.not.exists_default .and. .not. exists_user) then
+          ! We fallback on the old text format
+          call input_from_old_text_format(radical,mpi_env,dict)
+       else
+          !no need of writing alternative minimal file, just use <run_id>_minimal.yaml
+          call dict_remove(dict,MINIMAL_FILE_KEY)
+       end if
     end if
 
     ! We put a barrier here to be sure that non master proc will be stopped
@@ -1408,13 +1422,14 @@ contains
 
   !> set the parameters of the run 
   subroutine dict_set_run_properties(run,run_id,input_id,posinp_id, &
-       & outdir_id,log_to_disk,run_from_files)
+       & outdir_id,log_to_disk,run_from_files,minimal_file)
     use public_keys, only: POSINP
     implicit none
     type(dictionary), pointer :: run !< nullified if not initialized
     character(len=*), intent(in), optional :: run_id !< Radical of the run
     character(len=*), intent(in), optional :: input_id, posinp_id !< Input file name and posinp file name.
     character(len=*), intent(in), optional :: outdir_id !< Output directory (automatically add a trailing "/" if not any
+    character(len=*), intent(in), optional :: minimal_file !< filename of the minimal input file
     logical, intent(in), optional :: log_to_disk !< Write logfile to disk instead of screen.
     logical, intent(in), optional :: run_from_files !< Run_objects should be initialised from files.
 
@@ -1444,11 +1459,29 @@ contains
     if (present(log_to_disk)) call set(run // LOGFILE, log_to_disk)
     if (present(run_from_files)) call set(run // USE_FILES, run_from_files)
 
+    if (present(minimal_file)) call set(run // MINIMAL_FILE_KEY, minimal_file)
+    
   end subroutine dict_set_run_properties
+
+  subroutine get_run_field(run,key,field,fallback_name)
+    use yaml_strings, only: f_strcpy
+    use f_utils, only: f_zero
+    implicit none
+    type(dictionary), pointer :: run
+    character(len=*), intent(in) :: key,fallback_name
+    character(len=*), intent(out) :: field
+
+    call f_zero(field)
+    field= run .get. RADICAL_NAME
+    field = run .get. key
+    if (len_trim(field) == 0 .or. trim(field) == LOGFILE) call f_strcpy(src=&
+         fallback_name // trim(run_id_toa()),dest=field)
+   
+  end subroutine get_run_field
 
   !> get the parameters of the run 
   subroutine dict_get_run_properties(run,run_id,input_id,posinp_id,naming_id, &
-       & outdir_id,log_to_disk,run_from_files)
+       & outdir_id,log_to_disk,run_from_files, minimal_file)
     use public_keys, only: POSINP
     use f_utils, only: f_zero
     use yaml_strings, only: f_strcpy
@@ -1457,51 +1490,56 @@ contains
     character(len=*), intent(out), optional :: run_id, naming_id
     character(len=*), intent(out), optional :: input_id, posinp_id
     character(len=*), intent(inout), optional :: outdir_id
+    character(len=*), intent(out), optional :: minimal_file !< filename of the minimal input file
     logical, intent(inout), optional :: log_to_disk
     logical, intent(inout), optional :: run_from_files
 
     if (present(input_id)) then
-       if (INPUT_NAME .in. run) then
-          input_id = run // INPUT_NAME
-       else if (RADICAL_NAME .in. run) then
-          input_id = run // RADICAL_NAME
-       else
-          call f_zero(input_id)
-          !input_id = " "
-       end if
-       if (len_trim(input_id) == 0) call f_strcpy(src=&
-            "input" // trim(run_id_toa()),dest=input_id)
+       call get_run_field(run,INPUT_NAME,input_id,'input')
+!!$       if (INPUT_NAME .in. run) then
+!!$          input_id = run // INPUT_NAME
+!!$       else if (RADICAL_NAME .in. run) then
+!!$          input_id = run // RADICAL_NAME
+!!$       else
+!!$          call f_zero(input_id)
+!!$          !input_id = " "
+!!$       end if
+!!$       if (len_trim(input_id) == 0) call f_strcpy(src=&
+!!$            "input" // trim(run_id_toa()),dest=input_id)
     end if
     if (present(posinp_id)) then 
-       if (POSINP .in. run) then
-          posinp_id = run // POSINP
-       else if (RADICAL_NAME .in. run) then
-          posinp_id = run // RADICAL_NAME
-          if (trim(posinp_id) == LOGFILE) call f_zero(posinp_id)
-       else
-          call f_zero(posinp_id)
-          !posinp_id = " "
-       end if
-       if (len_trim(posinp_id) == 0) call f_strcpy(src=&
-            "posinp" // trim(run_id_toa()),dest=posinp_id)
+       call get_run_field(run,POSINP,posinp_id,'posinp')
+!!$       if (POSINP .in. run) then
+!!$          posinp_id = run // POSINP
+!!$       else if (RADICAL_NAME .in. run) then
+!!$          posinp_id = run // RADICAL_NAME
+!!$          if (trim(posinp_id) == LOGFILE) call f_zero(posinp_id)
+!!$       else
+!!$          call f_zero(posinp_id)
+!!$          !posinp_id = " "
+!!$       end if
+!!$       if (len_trim(posinp_id) == 0) call f_strcpy(src=&
+!!$            "posinp" // trim(run_id_toa()),dest=posinp_id)
     end if
     if (present(naming_id)) then
-       if (RADICAL_NAME .in. run) then
-          naming_id = run // RADICAL_NAME
-          if (trim(naming_id) == LOGFILE) call f_zero(naming_id)
-       else
-          call f_zero(naming_id)
-          !naming_id = " "
-       end if
-       if (len_trim(naming_id) == 0) then
-          !naming_id = trim(run_id_toa())
-          call f_strcpy(src=trim(run_id_toa()),dest=naming_id)
-          !if it is still empty then use the logfile
-          !if (len_trim(naming_id)==0) call f_strcpy(naming_id,LOGFILE)
-       else
-          call f_strcpy(src="-" // trim(naming_id),dest=naming_id)
-          !naming_id = "-" // trim(naming_id)
-       end if
+       call get_run_field(run,RADICAL_NAME,naming_id,'')
+       if (naming_id /= trim(run_id_toa())) call f_strcpy(src="-" // trim(naming_id),dest=naming_id)
+!!$       if (RADICAL_NAME .in. run) then
+!!$          naming_id = run // RADICAL_NAME
+!!$          if (trim(naming_id) == LOGFILE) call f_zero(naming_id)
+!!$       else
+!!$          call f_zero(naming_id)
+!!$          !naming_id = " "
+!!$       end if
+!!$       if (len_trim(naming_id) == 0) then
+!!$          !naming_id = trim(run_id_toa())
+!!$          call f_strcpy(src=trim(run_id_toa()),dest=naming_id)
+!!$          !if it is still empty then use the logfile
+!!$          !if (len_trim(naming_id)==0) call f_strcpy(naming_id,LOGFILE)
+!!$       else
+!!$          call f_strcpy(src="-" // trim(naming_id),dest=naming_id)
+!!$          !naming_id = "-" // trim(naming_id)
+!!$       end if
     end if
     if (present(run_id)) then
        if (RADICAL_NAME .in. run) then
@@ -1514,6 +1552,16 @@ contains
     if (present(outdir_id) .and. has_key(run, OUTDIR)) outdir_id = run // OUTDIR
     if (present(log_to_disk) .and. has_key(run, LOGFILE)) log_to_disk = run // LOGFILE
     if (present(run_from_files) .and. has_key(run, USE_FILES)) run_from_files = run // USE_FILES
+
+    if (present(minimal_file)) then
+       if (MINIMAL_FILE_KEY .in. run) then
+          minimal_file = run // MINIMAL_FILE_KEY
+          if (len_trim(minimal_file)==0) call f_strcpy(dest=minimal_file,src='input')
+       else
+          call get_run_field(run,INPUT_NAME,minimal_file,'input')
+          call f_strcpy(src=trim(minimal_file)//'_minimal',dest=minimal_file)
+       end if
+    end if
 
   end subroutine dict_get_run_properties
 
@@ -1577,6 +1625,7 @@ contains
          .item. OCCUPATION,&
          .item. IG_OCCUPATION,&
          .item. FRAG_VARIABLES,&
+         .item. MINIMAL_FILE_KEY,&
          .item. F_IMPORT_KEY])
     ! If we have mode // sections, then, we need to exclude all
     ! section keys, they will be checked later.

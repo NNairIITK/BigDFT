@@ -38,12 +38,12 @@ module PStypes
   character(len=*), parameter :: FD_ORDER                = 'fd_order' 
   character(len=*), parameter :: ITERMAX                 = 'itermax' 
   character(len=*), parameter :: MINRES                  = 'minres' 
-  character(len=*), parameter :: SETUP_VARIABLES         = 'setup'
+  character(len=*), parameter, public :: SETUP_VARIABLES         = 'setup'
   character(len=*), parameter :: ACCEL                   = 'accel' 
   character(len=*), parameter :: KEEP_GPU_MEMORY         = 'keep_gpu_memory' 
   character(len=*), parameter :: TASKGROUP_SIZE_KEY      = 'taskgroup_size' 
   character(len=*), parameter :: GLOBAL_DATA             = 'global_data' 
-  character(len=*), parameter :: VERBOSITY               = 'verbose' 
+  character(len=*), parameter, public :: VERBOSITY               = 'verbose' 
   character(len=*), parameter :: OUTPUT                  = 'output' 
   character(len=*), parameter :: DICT_COMPLETED          = '__dict_has_been_checked__'//ATTRS
 
@@ -877,6 +877,7 @@ contains
        w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
     case('PI')
        !w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
+       w%eps=f_malloc_ptr([n1,n23],id='eps')
        w%dlogeps=f_malloc_ptr([3,ndims(1),ndims(2),ndims(3)],id='dlogeps')
        w%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
        w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
@@ -914,6 +915,7 @@ contains
              call f_zero(kernel%w%dlogeps)
              do i23=1,n23
                 do i1=1,n1
+                   kernel%w%eps(i1,i23)=vacuum_eps
                    kernel%w%oneoeps(i1,i23)=1.0_dp/vacuum_eps
                 end do
              end do
@@ -1104,6 +1106,12 @@ contains
           else
              call f_err_throw('For method "PI" the arrays oneoeps or epsilon should be present')
           end if
+          if (present(eps)) then
+             call f_memcpy(n=n1*n23,src=eps(1,1,i3s),&
+                  dest=kernel%w%eps)
+          else
+             call f_err_throw('For method "PCG" the arrays eps should be present')
+          end if
        else
           call f_err_throw('For method "PI" the arrays oneoeps '//&
                'and dlogeps have to be associated, call PS_allocate_cavity_workarrays')
@@ -1181,6 +1189,7 @@ contains
           do i2=1,n02
              do i1=1,n01
                 if (kernel%w%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
+                   kernel%w%eps(i1,i23)=1.d0 !eps(i1,i2,i3)
                    kernel%w%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
                    depsdrho(i1,i23)=0.d0
                    dsurfdrho(i1,i23)=0.d0
@@ -1191,6 +1200,7 @@ contains
                    dd = delta_rho(i1,i23)
                    de=epsprime(rh,kernel%cavity)
                    depsdrho(i1,i23)=de
+                   kernel%w%eps(i1,i23)=eps(rh,kernel%cavity)
                    kernel%w%oneoeps(i1,i23)=oneoeps(rh,kernel%cavity) 
                    dsurfdrho(i1,i23)=surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
 
