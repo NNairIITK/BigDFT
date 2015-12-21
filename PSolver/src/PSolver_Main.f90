@@ -347,7 +347,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
   !local variables
   real(dp), parameter :: max_ratioex = 1.0e10_dp !< just to avoid crazy results
   integer :: n1,n23,i1,i23,ip,i23s,iinit
-  real(dp) :: rpoints,rhores2,beta,ratio,normr,normb,alpha
+  real(dp) :: rpoints,rhores2,beta,ratio,normr,normb,alpha,q
   !aliasings
   call f_timing(TCAT_PSOLV_COMPUT,'ON')
   rpoints=product(real(kernel%ndims,dp))
@@ -429,8 +429,9 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
      !$omp parallel do default(shared) private(i1,i23)
      do i23=1,n23
         do i1=1,n1
-           kernel%w%q(i1,i23)=kernel%w%pot(i1,i23)*kernel%w%corr(i1,i23)
-           kernel%w%z(i1,i23)=(kernel%w%res(i1,i23)-kernel%w%q(i1,i23))*&
+           q=kernel%w%pot(i1,i23)*kernel%w%corr(i1,i23)
+           kernel%w%q(i1,i23)=kernel%w%pot(i1,i23)
+           kernel%w%z(i1,i23)=(kernel%w%res(i1,i23)-q)*&
                                 kernel%w%oneoeps(i1,i23)
         end do
      end do
@@ -439,7 +440,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
      do i23=1,n23
         do i1=1,n1
            kernel%w%pot(i1,i23)=kernel%w%z(i1,i23)*kernel%w%oneoeps(i1,i23)
-           kernel%w%res(i1,i23)=kernel%w%q(i1,i23) - kernel%w%pot(i1,i23)*kernel%w%corr(i1,i23)
+           kernel%w%res(i1,i23)=(kernel%w%q(i1,i23) - kernel%w%pot(i1,i23))*kernel%w%corr(i1,i23)
            kernel%w%q(i1,i23)=0.d0
         end do
      end do
@@ -460,10 +461,6 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
      beta=1.d0
      ratio=1.d0
      !normr=1.d0
-
-     normb=dot(n1*n23,rho_dist(1,1),1,rho_dist(1,1),1)
-     call PS_reduce(normb,kernel)
-     normb=sqrt(normb/rpoints)
 
      !$omp parallel do default(shared) private(i1,i23)
      do i23=1,n23

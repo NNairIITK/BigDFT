@@ -789,10 +789,23 @@ contains
 
     select case(trim(str(kernel%method)))
     case('PCG')
+!       if (use_input_guess .and. &
+!            all([associated(kernel%w%res),associated(kernel%w%pot)])) then
+!          !call axpy(n1*n23,1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
+!          call f_memcpy(src=rho,dest=kernel%w%res)
+!       else
+!          !allocate if it is the first time
+!          if (associated(kernel%w%pot)) then
+!             call f_zero(kernel%w%pot)
+!          else
+!             kernel%w%pot=f_malloc0_ptr([n1,n23],id='pot')
+!          end if
+!          if (.not. associated(kernel%w%res)) &
+!               kernel%w%res=f_malloc_ptr([n1,n23],id='res')
+!          call f_memcpy(src=rho,dest=kernel%w%res)
+!       end if
        if (use_input_guess .and. &
-            all([associated(kernel%w%res),associated(kernel%w%pot)])) then
-          !call axpy(n1*n23,1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
-          call f_memcpy(src=rho,dest=kernel%w%res)
+            associated(kernel%w%pot)) then
        else
           !allocate if it is the first time
           if (associated(kernel%w%pot)) then
@@ -800,10 +813,10 @@ contains
           else
              kernel%w%pot=f_malloc0_ptr([n1,n23],id='pot')
           end if
-          if (.not. associated(kernel%w%res)) &
-               kernel%w%res=f_malloc_ptr([n1,n23],id='res')
-          call f_memcpy(src=rho,dest=kernel%w%res)
        end if
+       kernel%w%res=f_malloc_ptr([n1,n23],id='res')
+       call f_memcpy(src=rho,dest=kernel%w%res)
+
        kernel%w%q=f_malloc0_ptr([n1,n23],id='q')
        kernel%w%p=f_malloc0_ptr([n1,n23],id='p')
        kernel%w%z=f_malloc_ptr([n1,n23],id='z')
@@ -844,7 +857,8 @@ contains
 !       else
 !          call f_free_ptr(kernel%w%res)
 !       end if
-       if (.not. use_input_guess) call f_free_ptr(kernel%w%res)
+!       if (.not. use_input_guess) call f_free_ptr(kernel%w%res)
+       call f_free_ptr(kernel%w%res)
        call f_free_ptr(kernel%w%q)
        call f_free_ptr(kernel%w%p)
        call f_free_ptr(kernel%w%z)
