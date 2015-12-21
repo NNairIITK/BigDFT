@@ -956,6 +956,8 @@ module multipole
 
     subroutine write_multipoles_new(ep, units, delta_rxyz, on_which_atom, scaled)
       use yaml_output
+      use numerics, only: Bohr_Ang
+      use f_precisions, only: db => f_double
       implicit none
       
       ! Calling arguments
@@ -984,18 +986,18 @@ module multipole
           ! See whether a conversion of the units is necessary
           select case (units)
           case ('angstroem','angstroemd0')
-              convert_units = 0.52917721092_gp
+              convert_units = Bohr_Ang
           case ('atomic','atomicd0','bohr','bohrd0','reduced')
-              convert_units = 1.d0
+              convert_units = 1.0_db
           case default
-              convert_units = 1.d0
+              convert_units = 1.0_db
               call yaml_warning('units not recognized, no conversion done')
           end select
 
 
           call yaml_mapping_open('Multipole coefficients')
-          call yaml_map('units for atomic positions',trim(units))
-          call yaml_sequence_open('Values')
+          call yaml_map('units',trim(units))
+          call yaml_sequence_open('values')
           do impl=1,ep%nmpl
               call yaml_sequence(advance='no')
               call yaml_map('sym',adjustl(trim(ep%mpl(impl)%sym))//' # '//adjustl(trim(yaml_toa(impl,fmt='(i4.4)'))))
