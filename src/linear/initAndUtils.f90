@@ -8,7 +8,39 @@
 !!   For the list of contributors, see ~/AUTHORS 
 
 
-subroutine init_foe(iproc, nproc, input, orbs_KS, tmprtr, foe_obj, reset)
+subroutine init_foe_wrapper(iproc, nproc, input, orbs_KS, tmprtr, foe_obj, reset)
+  implicit none
+  ! Calling arguments
+  integer, intent(in) :: iproc, nproc
+  type(input_variables), intent(in) :: input
+  type(orbitals_data), intent(in) :: orbs_KS
+  real(kind=8),intent(in) :: tmprtr
+  type(foe_data), intent(out) :: foe_obj
+  ! Local variables
+  integer :: iorb
+  real(kind=8),dimension(2) :: charges
+
+  call f_routine(id='init_foe_wrapper')
+
+  charges(1) = 0.d0
+  do iorb=1,orbs_KS%norbu
+      charges(1) = charges(1) + orbs_KS%occup(iorb)
+  end do
+  if (input%nspin==2) then
+      charges(2) = 0.d0
+      do iorb=orbs_KS%norbu+1,orbs_KS%norb
+          charges(2) = charges(2) + orbs_KS%occup(iorb)
+      end do
+  end if
+  if (in%nspin/=1 .and. input%nspin /=2) call f_err_throw('Wrong value for nspin')
+  call init_foe(iproc, nproc, input%nspin, charges, input, orbs_KS, tmprtr, foe_obj, reset)
+
+  call f_release_routine(id='init_foe_wrapper')
+
+end subroutine init_foe_wrapper
+
+
+subroutine init_foe(iproc, nproc, nspin, charge, input, orbs_KS, tmprtr, foe_obj, reset)
   use module_base
   use module_atoms, only: atomic_structure
   use module_types
@@ -16,7 +48,8 @@ subroutine init_foe(iproc, nproc, input, orbs_KS, tmprtr, foe_obj, reset)
   implicit none
   
   ! Calling arguments
-  integer, intent(in) :: iproc, nproc
+  integer, intent(in) :: iproc, nproc, nspin
+  real(kind=8),dimension(nspin),intent(in) :: charge
   type(input_variables), intent(in) :: input
   type(orbitals_data), intent(in) :: orbs_KS
   real(kind=8),intent(in) :: tmprtr
@@ -58,15 +91,18 @@ subroutine init_foe(iproc, nproc, input, orbs_KS, tmprtr, foe_obj, reset)
       call foe_data_set_real(foe_obj,"ef_interpol_chargediff",input%lin%ef_interpol_chargediff)
       foe_obj%charge = f_malloc0_ptr(input%nspin,id='foe_obj%charge')
       call foe_data_set_real(foe_obj,"charge",0.d0,1)
-      do iorb=1,orbs_KS%norbu
-          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)+orbs_KS%occup(iorb),1)
+      !!do iorb=1,orbs_KS%norbu
+      !!    call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)+orbs_KS%occup(iorb),1)
+      !!end do
+      !!if (input%nspin==2) then
+      !!    call foe_data_set_real(foe_obj,"charge",0.d0,2)
+      !!    do iorb=orbs_KS%norbu+1,orbs_KS%norb
+      !!         call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",2)+orbs_KS%occup(iorb),2)
+      !!    end do
+      !!end if
+      do ispin=1,nspin
+          call foe_data_set_real(foe_obj,"charge",charge(ispin),ispin)
       end do
-      if (input%nspin==2) then
-          call foe_data_set_real(foe_obj,"charge",0.d0,2)
-          do iorb=orbs_KS%norbu+1,orbs_KS%norb
-               call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",2)+orbs_KS%occup(iorb),2)
-          end do
-      end if
       call foe_data_set_int(foe_obj,"evbounds_isatur",0)
       call foe_data_set_int(foe_obj,"evboundsshrink_isatur",0)
       call foe_data_set_int(foe_obj,"evbounds_nsatur",input%evbounds_nsatur)
