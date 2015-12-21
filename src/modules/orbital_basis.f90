@@ -366,7 +366,7 @@ contains
        k%lr=>k%ob%dd(k%iorbp)%lr
        k%nphidim=(k%lr%wfd%nvctr_c+7*k%lr%wfd%nvctr_f)*k%nspinor
     end if
-    k%phi_wvl=>ob_ket_map(k%ob%phis_wvl,k)
+    if (associated(k%ob%phis_wvl)) k%phi_wvl=>ob_ket_map(k%ob%phis_wvl,k)
   end subroutine update_ket
 
   function ob_ket_map(ob_ptr,it)

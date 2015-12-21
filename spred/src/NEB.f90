@@ -444,7 +444,7 @@ END MODULE NEB_routines
 
 PROGRAM NEB
 
-  USE NEB_routines
+  USE NEB_routines, fake=> dict_free
   use dictionaries
   use bigdft_run
 

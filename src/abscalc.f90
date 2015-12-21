@@ -155,7 +155,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_base
    use module_dpbox, only: denspot_distribution
    use module_types
-   use module_interfaces, only: IonicEnergyandForces, createProjectorsArrays, &
+   use module_interfaces, only: IonicEnergyandForces, &
         & createWavefunctionsDescriptors, orbitals_descriptors
    use Poisson_Solver, except_dp => dp, except_gp => gp
    use module_xc
@@ -175,6 +175,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use public_enums, only: LINEAR_PARTITION_NONE
    use module_input_keys, only: print_dft_parameters
    use IObox
+   use orbitalbasis
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -281,6 +282,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    integer, parameter :: noccmax=2
    integer, dimension(3) :: ndims
    real(gp), dimension(3) :: hgrids
+   type(orbital_basis) :: ob
 
    !! to apply pc_projector
    type(pcproj_data_type) ::PPD
@@ -442,9 +444,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,LINEAR_PARTITION_NONE)
    call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,orbs,comms)  
-
-   call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,orbs,&
-        cpmult,fpmult,hx,hy,hz,.false.,nlpsp)
+   call orbital_basis_associate(ob,orbs=orbs,Lzd=KSwfn%Lzd)
+   call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,ob,&
+        cpmult,fpmult,hx,hy,hz,.false.,nlpsp,.true.)
+   call orbital_basis_release(ob)
    if (iproc == 0) call print_nlpsp(nlpsp)
 
    call check_linear_and_create_Lzd(iproc,nproc,in%linear,KSwfn%Lzd,atoms,orbs,in%nspin,rxyz)

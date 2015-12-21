@@ -56,7 +56,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use bounds, only: geocode_buffers
   use orthonormalization, only : orthonormalizeLocalized
   use multipole_base, only: lmax, external_potential_descriptors, deallocate_external_potential_descriptors
-
+  use orbitalbasis
   implicit none
 
   ! Calling arguments
@@ -133,7 +133,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   real(kind=8),dimension(:,:,:),pointer :: multipoles
   real(kind=8),dimension(:,:,:,:),allocatable :: test_pot
   type(external_potential_descriptors) :: ep
-
+  type(orbital_basis) :: ob
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot, max_error, mean_error, r2, occ, tot_occ, ef, ef_low, ef_up, q, fac
 
@@ -3628,13 +3628,16 @@ end if
       
       KSwfn%psi=f_malloc_ptr(1,id='KSwfn%psi')
       fpulay=0.d0
-      call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,at,KSwfn%orbs,nlpsp,rxyz,& 
+      !this is associated but not used in the routine for linear scaling
+      call orbital_basis_associate(ob,orbs=KSwfn%orbs,Lzd=KSwfn%Lzd)
+      call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,at,ob,nlpsp,rxyz,& 
            KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
            denspot%dpbox,&
            denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,denspot%dpbox%nrhodim,&
            .false.,denspot%dpbox%ngatherarr,denspot%rho_work,&
            denspot%pot_work,denspot%V_XC,size(KSwfn%psi),KSwfn%psi,fion,fdisp,fxyz,&
            input%calculate_strten,ewaldstr,hstrten,xcstr,strten,pressure,denspot%psoffset,1,tmb,fpulay)
+      call orbital_basis_release(ob)
       call clean_forces(iproc,at%astruct,rxyz,fxyz,fnoise)
       if (iproc == 0) call write_forces(at%astruct,fxyz)
 

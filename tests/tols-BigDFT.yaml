@@ -950,7 +950,7 @@ experimentalfoe_long:
  ebs: 2.1e-9
  relative diff: 3.3e-11
  Energy (Hartree): 4.6e-10
- trace(KS): 2.5e-10
+ trace(KS): 2.55e-10
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -1215,7 +1215,7 @@ PBE_densmixlin:
  EH: 1.0e-9
  Total charge: 2.1e-11
  Energy (Hartree): 4.8e-11
- fnrm2: 1.101e-11
+ fnrm2: 1.301e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings

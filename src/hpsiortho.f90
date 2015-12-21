@@ -858,7 +858,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   use yaml_output
   !  use module_interfaces
   use psp_projectors_base, only: PSP_APPLY_SKIP
-  use psp_projectors, only: projector_has_overlap
+  use psp_projectors, only: projector_has_overlap,get_proj_locreg
   use public_enums, only: PSPCODE_PAW
   use module_atoms
   use orbitalbasis
@@ -905,72 +905,59 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   !here the localisation region should be changed, temporary only for cubic approach
 
   !apply the projectors following the strategy (On-the-fly calculation or not)
-
+  
   !apply the projectors  k-point of the processor
   !starting k-point
   istart_ck=1
   !iterate over the orbital_basis
   psi_it=orbital_basis_iterator(psi_ob)
   loop_kpt: do while(ket_next_kpt(psi_it))
-     if (nl%on_the_fly) then
-        loop_lr: do while(ket_next_locreg(psi_it,ikpt=psi_it%ikpt))
-        iproj=0
-        atit = atoms_iter(at%astruct)
-        loop_atoms: do while(atoms_iter_next(atit))
-           ! Check whether the projectors of this atom have an overlap with locreg ilr
-           overlap = projector_has_overlap(atit%iat, psi_it%ilr,psi_it%lr,lzd%glr, nl)
-           if(.not. overlap) cycle loop_atoms
-           istart_c=1
-           mproj=nl%pspd(atit%iat)%mproj
-           call atom_projector(nl,atit%ityp,atit%iat, atit%name, &
-                at%astruct%geocode, 0, Lzd%Glr,&
-                Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
-                psi_it%kpoint(1),psi_it%kpoint(2),psi_it%kpoint(3),&
-                istart_c, iproj, nwarnings)
-
-           find_plr: do jlr=1,nl%pspd(atit%iat)%noverlap
-              if (nl%pspd(atit%iat)%lut_tolr(jlr)==psi_it%ilr) then
-                 iilr=jlr
-                 exit find_plr
-              end if
-           end do find_plr
-           loop_psi_kpt: do while(ket_next(psi_it,ikpt=psi_it%ikpt,ilr=psi_it%ilr))
-              istart_c=1
-              call nl_psp_application()
-           end do loop_psi_kpt
-        end do loop_atoms
-     end do loop_lr
-     else        
-        loop_psi_kpt2: do while(ket_next(psi_it,ikpt=psi_it%ikpt))
+     loop_lr: do while(ket_next_locreg(psi_it,ikpt=psi_it%ikpt))
+        if (nl%on_the_fly) then
+           iproj=0
            atit = atoms_iter(at%astruct)
-           istart_c=istart_ck !TO BE CHANGED IN ONCE-AND-FOR-ALL 
-           loop_atoms2: do while(atoms_iter_next(atit))
-              overlap = projector_has_overlap(atit%iat,psi_it%ilr,psi_it%lr, lzd%glr, nl)
-              if(.not. overlap) cycle loop_atoms2
+           loop_atoms: do while(atoms_iter_next(atit))
+              ! Check whether the projectors of this atom have an overlap with locreg ilr
+              overlap = projector_has_overlap(atit%iat, psi_it%ilr,psi_it%lr,lzd%glr, nl)
+              if(.not. overlap) cycle loop_atoms
+              istart_c=1
               mproj=nl%pspd(atit%iat)%mproj
+              call atom_projector(nl,atit%ityp,atit%iat, atit%name, &
+                   at%astruct%geocode, 0, Lzd%Glr,&
+                   Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
+                   psi_it%kpoint(1),psi_it%kpoint(2),psi_it%kpoint(3),&
+                   istart_c, iproj, nwarnings)
 
-              find_plr2: do jlr=1,nl%pspd(atit%iat)%noverlap
-                 if (nl%pspd(atit%iat)%lut_tolr(jlr)==psi_it%ilr) then
-                    iilr=jlr
-                    exit find_plr2
-                 end if
-              end do find_plr2
+              iilr=get_proj_locreg(nl,atit%iat,psi_it%ilr)
+              loop_psi_kpt: do while(ket_next(psi_it,ikpt=psi_it%ikpt,ilr=psi_it%ilr))
+                 istart_c=1
+                 call nl_psp_application()
+              end do loop_psi_kpt
+           end do loop_atoms
+        else        
+           loop_psi_kpt2: do while(ket_next(psi_it,ikpt=psi_it%ikpt,ilr=psi_it%ilr))
+              atit = atoms_iter(at%astruct)
+              istart_c=istart_ck !TO BE CHANGED IN ONCE-AND-FOR-ALL 
+              loop_atoms2: do while(atoms_iter_next(atit))
+                 overlap = projector_has_overlap(atit%iat,psi_it%ilr,psi_it%lr, lzd%glr, nl)
+                 if(.not. overlap) cycle loop_atoms2
+                 mproj=nl%pspd(atit%iat)%mproj
 
-              call nl_psp_application()
-              
-           end do loop_atoms2
-        end do loop_psi_kpt2
-        istart_ck=istart_c !TO BE CHANGED IN THIS ONCE-AND-FOR-ALL
-     end if
-     
+                 iilr=get_proj_locreg(nl,atit%iat,psi_it%ilr)
+                 call nl_psp_application()
+              end do loop_atoms2
+           end do loop_psi_kpt2
+        end if
+     end do loop_lr
+     istart_ck=istart_c !only needed for the once-and-for-all
   end do loop_kpt
 
   call orbital_basis_release(psi_ob)
 
   if (.not. nl%on_the_fly .and. Lzd%nlr==1) then !TO BE REMOVED WITH NEW PROJECTOR APPLICATION
-     if (istart_ck-1 /= nl%nprojel) then
-        call yaml_warning('Incorrect once-and-for-all psp application')
-        stop
+     if (istart_ck-1 /= nl%nprojel .and. orbs%norbp>0) then
+        call f_err_throw('Incorrect once-and-for-all psp application, istart_ck, nprojel= '+&
+             yaml_toa([istart_ck,nl%nprojel]),err_name='BIGDFT_RUNTIME_ERROR')
      end if
   end if
 

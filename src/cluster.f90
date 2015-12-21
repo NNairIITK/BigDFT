@@ -21,7 +21,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use module_types
   use module_interfaces, only: IonicEnergyandForces, &
        & XC_potential, communicate_density, copy_old_wavefunctions, &
-       & createProjectorsArrays, denspot_set_history, &
+       denspot_set_history, &
        & gaussian_pswf_basis, local_analysis, &
        & orbitals_descriptors, sumrho, system_initialization
   use gaussians, only: deallocate_gwf
@@ -48,6 +48,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
                        ionic_energy_of_external_charges
   use public_enums
   use module_input_keys, only: SIC_data_null,print_dft_parameters,inputpsiid_set_policy,set_inputpsiid
+  use orbitalbasis
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc
@@ -112,7 +113,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   real(gp), dimension(:), allocatable :: wkptv
   type(f_enumerator) :: inputpsi,output_denspot
   type(dictionary), pointer :: dict_timing_info
-  
+  type(orbital_basis) :: ob
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
 
   ! testing
@@ -1109,10 +1110,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
            ! Calculate all projectors, or allocate array for on-the-fly calculation
            call timing(iproc,'CrtProjectors ','ON')
-           call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,VTwfn%orbs,&
+           call orbital_basis_associate(ob,orbs=VTwfn%orbs,Lzd=KSwfn%Lzd)
+           call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,ob,&
                 in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-                .false.,nlpsp) 
-          
+                .false.,nlpsp,.true.) 
+           call orbital_basis_release(ob)
            call timing(iproc,'CrtProjectors ','OF') 
            if (iproc == 0) call print_nlpsp(nlpsp)
 
@@ -2002,8 +2004,8 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: deallocate_matrices, deallocate_sparse_matrix
   use public_enums
+  use orbitalbasis
   implicit none
-
   !Arguments
   type(DFT_wavefunction), intent(in) :: KSwfn
   type(DFT_wavefunction), intent(inout) :: tmb
@@ -2030,6 +2032,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   !integer :: i,ispin
   real(dp), dimension(6) :: hstrten
   real(gp) :: ehart_fake, exc_fake, evxc_fake
+  type(orbital_basis) :: ob
 
   call f_routine(id=subname)
   !manipulate scatter array for avoiding the GGA shift
@@ -2172,17 +2175,21 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 !         end do
 !         deallocate(tmb%linmat%ks_e)
 !     end if
+
   else
      imode = 0
      nsize_psi = (KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f)*KSwfn%orbs%nspinor*KSwfn%orbs%norbp
   end if
-  call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpsp,rxyz,&
+  !to be checked, as the description might change for the linear case
+  call orbital_basis_associate(ob,orbs=KSwfn%orbs,Lzd=KSwfn%Lzd)
+  call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,ob,nlpsp,rxyz,&
        KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
        denspot%dpbox, &
        denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
        denspot%dpbox%nrhodim,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
        denspot%pot_work,denspot%V_XC,nsize_psi,KSwfn%psi,fion,fdisp,fxyz,&
        calculate_strten,ewaldstr,hstrten,xcstr,strten,pressure,denspot%psoffset,imode,tmb,fpulay)
+  call orbital_basis_release(ob)
 
   call f_free_ptr(denspot%rho_work)
   !call f_free_ptr(denspot%pot_work)

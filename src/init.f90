@@ -213,39 +213,42 @@ END SUBROUTINE wfd_from_grids
 
 
 !> Determine localization region for all projectors, but do not yet fill the descriptor arrays
-subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
+subroutine createProjectorsArrays(lr,rxyz,at,ob,&
      cpmult,fpmult,hx,hy,hz,dry_run,nl,&
-     init_projectors_completely_)
+     init_projectors_completely)
   use module_base
   use psp_projectors_base, only: DFT_PSP_projectors_null, nonlocal_psp_descriptors_null, allocate_workarrays_projectors
   use psp_projectors, only: set_nlpsp_to_wfd, bounds_to_plr_limits
   use module_types
   use gaussians, only: gaussian_basis, gaussian_basis_from_psp, gaussian_basis_from_paw
   use public_enums, only: PSPCODE_PAW
+  use orbitalbasis
   implicit none
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(locreg_descriptors),intent(in) :: lr
   type(atoms_data), intent(in) :: at
-  type(orbitals_data), intent(in) :: orbs
+  !type(orbitals_data), intent(in) :: orbs
+  type(orbital_basis), intent(in) :: ob
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
   logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
   type(DFT_PSP_projectors), intent(out) :: nl
-  logical,intent(in),optional :: init_projectors_completely_
+  logical,intent(in) :: init_projectors_completely !< decide if the projectors has to be filled
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
   integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,nbseg_dim,npack_dim,mproj_max
   integer :: iat,iseg
+  !type(orbital_basis) :: ob
   integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
   logical, dimension(:,:,:), allocatable :: logrid
-  logical :: init_projectors_completely
+!  logical :: init_projectors_completely_
   call f_routine(id=subname)
 
-  if (present(init_projectors_completely_)) then
-      init_projectors_completely = init_projectors_completely_
-  else
-      init_projectors_completely = .true.
-  end if
+!!$  if (present(init_projectors_completely)) then
+!!$      init_projectors_completely_ = init_projectors_completely
+!!$  else
+!!$      init_projectors_completely_ = .true.
+!!$  end if
 
   call nullify_structure()
 
@@ -273,7 +276,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   logrid=f_malloc((/0.to.n1,0.to.n2,0.to.n3/),id='logrid')
 
   call localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,&
-       rxyz,logrid,at,orbs,nl)
+       rxyz,logrid,at,ob%orbs,nl)
 
   if (dry_run) then
      call f_free(logrid)
@@ -353,9 +356,9 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   call f_free(keyg_lin)
   call f_free(nbsegs_cf)
   !fill the projectors if the strategy is a distributed calculation
-  if (.not. nl%on_the_fly) then
+  if (.not. nl%on_the_fly .and. init_projectors_completely) then
      !calculate the wavelet expansion of projectors
-     call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nl,0)
+     call fill_projectors(lr,[hx,hy,hz],at%astruct,ob,rxyz,nl,0)
   end if
 
   call f_release_routine()
@@ -2299,7 +2302,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      locregcenters)
   use module_base
   use module_types
-  use module_interfaces, only: calculate_density_kernel, createProjectorsArrays, &
+  use module_interfaces, only: calculate_density_kernel, &
         get_coeff, inputguessConfinement, &
        & read_gaussian_information, readmywaves, readmywaves_linear_new, &
        & restart_from_gaussians, sumrho
@@ -2320,6 +2323,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use transposed_operations, only: normalize_transposed
   use rhopotential, only: updatepotential, sumrho_for_TMBs, clean_rho
   use public_enums
+  use orbitalbasis
   implicit none
 
   integer, intent(in) :: iproc, nproc, input_wf_format
@@ -2358,6 +2362,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(kind=8) :: pnrm
   integer, dimension(:,:,:), pointer :: frag_env_mapping
   type(work_mpiaccumulate) :: energs_work
+  type(orbital_basis) :: ob
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
   integer :: itmb, jtmb, ispin, ifrag_ref, max_nbasis_env, ifrag
@@ -2631,9 +2636,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (any(atoms%npspcode == PSPCODE_PAW)) then
         ! Cheating line here.
         atoms%npspcode(1) = PSPCODE_HGH
-        call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,KSwfn%orbs,&
+        call orbital_basis_associate(ob,orbs=KSwfn%orbs,Lzd=KSwfn%Lzd)
+        call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,ob,&
              in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
-             KSwfn%Lzd%hgrids(3),.false.,nl)
+             KSwfn%Lzd%hgrids(3),.false.,nl,.true.)
+        call orbital_basis_release(ob)
         if (iproc == 0) call print_nlpsp(nl)
      else
         nl = nlpsp
