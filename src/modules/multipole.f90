@@ -429,6 +429,7 @@ module multipole
                                               else
                                                   qq = ep%mpl(impl)%qlm(l)%q(mm)
                                               end if
+                                              !write(*,'(a,5i6,es12.4)') 'i1, i2, i3, l, m, qq', i1, i2, i3, l, m, qq
                                               ttt = qq*&
                                                     real(2*l+1,kind=8)*solid_harmonic(0, rmin, l, m, r(1), r(2), r(3))*&
                                                     sqrt(4.d0*pi/real(2*l+1,kind=8))*gg!*sqrt(4.d0*pi_param)
