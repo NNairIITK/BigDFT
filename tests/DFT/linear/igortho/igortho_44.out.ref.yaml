@@ -2314,8 +2314,8 @@
  Gross support functions moments:
    Orthonormalization                  : on-site
    Multipole coefficients:
-     units for atomic positions        : angstroem
-     Values:
+     units                             : angstroem
+     values:
      - sym                             : H-1 # 0001
        Atom number                     :  9
        r: [ 1.096982975433515E-003,  0.6336530697689509, -0.9256811243183914]
@@ -3304,8 +3304,8 @@
  optimal sigma multiplication factors  :  [  1.00,  1.00,  1.00 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
-   units for atomic positions          : angstroem
-   Values:
+   units                               : angstroem
+   values:
    - sym                               : C # 0001
      r                                 :  [  0.0,  0.0,  0.0 ]
      sigma                             :  [  0.338,  0.338,  0.338 ]

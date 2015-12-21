@@ -2432,8 +2432,8 @@
  Gross support functions moments:
    Orthonormalization                  : on-site
    Multipole coefficients:
-     units for atomic positions        : bohr
-     Values:
+     units                             : bohr
+     values:
      - sym                             : H-1 # 0001
        Atom number                     :  2
        r: [ 3.0779532325738046E-002,  0.4146087663930125,  0.5484152752976605]
@@ -2684,8 +2684,8 @@
  optimal sigma multiplication factors  :  [  1.00,  1.00,  1.00 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
-   units for atomic positions          : bohr
-   Values:
+   units                               : bohr
+   values:
    - sym                               : O # 0001
      r: [ 2.065621065394574,  0.7276197830051158,  0.7650374978227975]
      sigma                             :  [  0.450,  0.450,  0.450 ]

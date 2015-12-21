@@ -977,8 +977,8 @@ experimentalfoe_short:
  D: 1.1e-4
  decay length of error function: 1.1e-5
  Energy (Hartree): 6.1e-11
- ebs: 4.0e-11
- ebs_check: 3.9e-11
+ ebs: 4.1e-11
+ ebs_check: 4.0e-11
  trace(KS): 1.5e-11
 
 experimentalfoe_medium:
@@ -1253,7 +1253,7 @@ PBE_potmixdiis:
  Enl: 2.2e-9
  Total charge: 2.1e-11
  multiplicator for the confinement: 4.3e-8
- Energy (Hartree): 2.4e-9
+ Energy (Hartree): 2.6e-9
  Force Norm (Hartree/Bohr): 5.4e-10
 
 PBE_densmixdiis:
@@ -1319,6 +1319,7 @@ geoptconstrained_SDCG:
  Ion-Ion interaction energy: 2.3e-10
  Atomic structure: 3.1e-9
  trace(KS): 1.5e-11
+ Total charge: 2.1e-11
 
 O2spin_diag:
  Atomic Forces (Ha/Bohr): 2.8e-7
