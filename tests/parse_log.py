@@ -16,6 +16,17 @@ path=os.path.dirname(sys.argv[0])
 import yaml
 
 EVAL = "eval"
+SETUP = "let"
+
+PRE_POST = [EVAL, SETUP]
+
+ENERGY = "__ENERGY__"
+FERMI_LEVEL= "__FERMI_LEVEL__"
+
+BUILTIN={ENERGY: [["Last Iteration", "FKS"],["Last Iteration", "EKS"]],
+         FERMI_LEVEL: [["Ground State Optimization", -1, "Fermi Energy"]]}
+         
+#Builtin pathes to define the search paths
 
 # print out a python dictionary in yaml syntax
 def dict_dump(dict):
@@ -149,34 +160,55 @@ def document_analysis(doc,to_extract):
 def document_quantities(doc,to_extract):
   analysis={}
   for quantity in to_extract:
-    if quantity is EVAL : pass
+    if quantity in PRE_POST: pass
     #follow the levels indicated to find the quantity
-    value=doc
-    for key in to_extract[quantity]:
-      #as soon as there is a problem the quantity is null
-      try:
-        value=value[key]
-      except:
-        value=None
-        break
+    field=to_extract[quantity]
+    if type(field) is not type([]) and field in BUILTIN:
+        paths=BUILTIN[field]
+    else:
+        paths=[field]
+    #now try to find the first of the different alternatives
+    for path in paths:
+      #print path,BUILTIN,BUILTIN.keys(),field in BUILTIN,field
+      value=doc
+      for key in path:
+        #as soon as there is a problem the quantity is null
+        try:
+          value=value[key]
+        except:
+          value=None
+          break
+      if value is not None: break        
     analysis[quantity]=value
   return analysis    
 
-def perform_operations(variables,ops):
+def perform_operations(variables,ops,debug=False):
     #first evaluate the given variables
     for key in variables:
         command=key+"="+str(variables[key])
-        print command
+        if debug: print command
         exec command
         #then evaluate the given expression
-    print ops
+    if debug: print ops
     exec ops
 
-  
+def get_logs(files):
+   logs=[]
+   for filename in files:
+     try:
+        logs+=[yaml.load(open(filename, "r").read(), Loader = yaml.CLoader)]
+     except:
+        try: 
+            logs+=yaml.load_all(open(filename, "r").read(), Loader = yaml.CLoader)
+        except:
+            logs+=[None]
+            print "warning, skipping logfile",filename
+   return logs
+    
 
 def parse_arguments():
   parser = optparse.OptionParser("This script is used to extract some information from a logfile")
-  parser.add_option('-d', '--data', dest='data',default=None, #sys.argv[2],
+  parser.add_option('-d', '--data', dest='data',default=None,action="store_true", #sys.argv[2],
                     help="BigDFT logfile, yaml compliant (check this if only this option is given)", metavar='FILE')
   parser.add_option('-v', '--invert-match', dest='remove',default=None, #sys.argv[2],
                     help="File containing the keys which have to be excluded from the logfile", metavar='FILE')
@@ -191,7 +223,7 @@ def parse_arguments():
   parser.add_option('-n', '--name', dest='name',default=None,
                     help="Give a name to the set of the plot represented", metavar='FILE')
   parser.add_option('-p', '--plot', dest='plottype',default='Seconds',
-                    help="Decide the starting point for the plotting", metavar='FILE')
+                    help="Decide the default yscale for the plotting", metavar='FILE')
   parser.add_option('-s', '--static', dest='static',default=False,action="store_true",
                     help="Show the plot statically for screenshot use", metavar='FILE')
   parser.add_option('-f', '--fontsize', dest='fontsize',default=15,
@@ -341,7 +373,8 @@ class polar_axis():
     self.info= self.ax.text( offset, offset, self.info_string(xdata,level),
                              fontsize = 15,transform = self.ax.transAxes )
     self.fig.canvas.draw()
-      
+
+          
 class BigDFTiming:
   def __init__(self,filenames,args):
     #here a try-catch section should be added for multiple documents
@@ -664,18 +697,23 @@ if args.data is None:
   print "No input file given, exiting..."
   exit(0)
 
-with open(args.data, "r") as fp:
-  logfile_lines = fp.readlines()
-
-if args.analyze is not None:
+if args.analyze is not None and args.data:
   instructions= yaml.load(open(args.analyze, "r").read(), Loader = yaml.CLoader)
-  datas=yaml.load_all(''.join(logfile_lines), Loader = yaml.CLoader)
-  for doc in datas:
-    doc_res=document_quantities(doc,instructions)
-    print doc_res,instructions
-    if EVAL in instructions: perform_operations(doc_res,instructions[EVAL])
-    exit(0)
+  print args.data,argcl
+  for f in argcl:
+    print "#########processing ",f
+    datas=get_logs([f])
+    for doc in datas:
+      doc_res=document_quantities(doc,instructions)
+      #print doc_res,instructions
+      if EVAL in instructions: perform_operations(doc_res,instructions[EVAL])
+  exit(0)
 
+if args.data:
+  with open(argcl[0], "r") as fp:
+    logfile_lines = fp.readlines()
+
+    
 #output file
 file_out=open(args.output, "w")
 #to_remove list
@@ -758,7 +796,7 @@ block sequence:
 #ddd
 #print args.ref,args.data,args.output
 
-datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
+datas    = [a for a in yaml.load_all(open(argcl[0], "r").read(), Loader = yaml.CLoader)]
 #i=0
 #for doc in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader):
 #  i+=1
