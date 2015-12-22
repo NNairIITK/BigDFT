@@ -2049,36 +2049,38 @@ counterions:
 
 largesystems_dnalarge:
   D Tr: 1.1e-07
-  D eF: 1.1e-10
-  #Delta r: 9.99999999907325e-10
-  EXC: 1.0e-8
+  D eF: 1.1e-9
+  EXC: 2.1e-8
   Ekin: 1.1e-07
   Energy (Hartree): 2.4e-10
-  Epot: 1.1e-07
-  EvXC: 1.1e-08
-  Force Norm (Hartree/Bohr): 2.1e-11
-  Omega: 4.8e-10
-  Pseudo Fermi level for occupations: 1.3e-10
-  charge diff: 2.0e-08
-  diff: 1.4e-09
-  eF: 1.1e-10
-  ebs: 1.2e-07
-  ebs_check: 1.2e-07
-  energy: 7.0e-10
+  Epot: 3.1e-07
+  EvXC: 4.1e-08
+  Enl: 1.1e-8
+  Force Norm (Hartree/Bohr): 6.8e-11
+  Omega: 9.4e-10
+  Pseudo Fermi level for occupations: 1.1e-9
+  charge diff: 6.5e-08
+  diff: 4.6e-09
+  eF: 2.1e-10
+  ebs: 3.4e-07
+  ebs_check: 3.5e-07
+  energy: 9.4e-10
   eval: 1.1e-06
-  fnrm2: 5.4e-11
-  guess for new ef: 1.0e-9
+  fnrm2: 1.8e-10
+  guess for new ef: 1.1e-9
   multiplicator for the confinement: 5.7e-09
   net charge: 1.1e-05
-  occ: 1.0e-5
+  occ: 1.1e-5
+  q0: 1.1e-08
   q1: 1.1e-07
   q2: 1.1e-07
-  total net charge: 2.6e-07
-  trace of quadropole matrix: 3.6e-07
+  total net charge: 2.0e-06
+  trace of quadropole matrix: 1.4e-06
   Charge analysis (charge / net charge): 1.9e-8
   Atomic Forces (Ha/Bohr): 3.6e-11
-  Delta r: 1.0e-9
+  Delta r: 1.0e-8
   r: 3.0e-11
+  HOMO-LUMO gap (eV): 2.1e-11
 
 largesystems_dnawater:
   total net charge: 8.2e-08
