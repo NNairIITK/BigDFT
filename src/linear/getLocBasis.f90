@@ -3104,7 +3104,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       kernel(1) = matrices_null()
       kernel(1)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
       foe_obj = foe_data_null()
-      call init_foe(iproc, nproc, input, orbs_KS, 0.d0, foe_obj, .true.)
+      call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, foe_obj)
       do ispin=1,input%nspin
           call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",ispin)-dq,ispin)
       end do
@@ -3126,7 +3126,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       kernel(2) = matrices_null()
       kernel(2)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
       foe_obj = foe_data_null()
-      call init_foe(iproc, nproc, input, orbs_KS, 0.d0, foe_obj, .true.)
+      call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, foe_obj)
       do ispin=1,input%nspin
           call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",ispin)+dq,ispin)
       end do
