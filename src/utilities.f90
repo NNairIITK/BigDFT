@@ -141,10 +141,9 @@ program utilities
             matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
             at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
        at%refcnt=f_ref_new('atoms')
-       call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
-       call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, at%astruct%nat, &
-            nspin, geocode, nfvctr_s, nfvctrp_s, isfvctr_s, &
-            on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
+       !call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
+       call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_s, nvctr_s, nseg_s, keyg_s, smat_s, &
+            nspin, geocode, on_which_atom_s)
        call f_free_ptr(keyv_s)
        call f_free_ptr(keyg_s)
        call f_free_ptr(on_which_atom_s)
@@ -155,10 +154,9 @@ program utilities
 
        call read_sparse_matrix(trim(kernel_file), nspin, geocode, nfvctr_l, nseg_l, nvctr_l, keyv_l, keyg_l, &
             matrix_compr, on_which_atom=on_which_atom_l)
-       call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_l, nfvctrp_l, isfvctr_l)
-       call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, at%astruct%nat, &
-            nspin, geocode, nfvctr_l, nfvctrp_l, isfvctr_l, &
-            on_which_atom_l, nvctr_l, nseg_l, keyg_l, smat_l)
+       !call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_l, nfvctrp_l, isfvctr_l)
+       call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_l, nvctr_l, nseg_l, keyg_l, smat_l, &
+            nspin, geocode, on_which_atom_l)
        call f_free_ptr(keyv_l)
        call f_free_ptr(keyg_l)
        call f_free_ptr(on_which_atom_l)
@@ -170,10 +168,9 @@ program utilities
        if (method==CHARGE_ANALYSIS_PROJECTOR) then
            call read_sparse_matrix(trim(hamiltonian_file), nspin, geocode, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
                 matrix_compr, on_which_atom=on_which_atom_m)
-           call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
-           call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, at%astruct%nat, &
-                nspin, geocode, nfvctr_m, nfvctrp_m, isfvctr_m, &
-                on_which_atom_m, nvctr_m, nseg_m, keyg_m, smat_m)
+           !call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
+           call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_m, nvctr_m, nseg_m, keyg_m, smat_m, &
+                nspin, geocode, on_which_atom_m)
            call f_free_ptr(keyv_m)
            call f_free_ptr(keyg_m)
            call f_free_ptr(on_which_atom_m)

@@ -1368,12 +1368,12 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
 
-     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
-          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, tmb%linmat%s, &
+          at%astruct%nat, tmb%collcom, tmb%collcom_sr, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, tmb%linmat%m, &
+          at%astruct%nat, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, tmb%linmat%l, &
+          at%astruct%nat, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
 
 
      nullify(tmb%linmat%ks)

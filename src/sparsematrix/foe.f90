@@ -301,10 +301,10 @@ module foe
                       cc_check = f_malloc((/npl_check,3,1/),id='cc_check')
             
                       if (foe_data_get_real(foe_obj,"evlow",ispin)>=0.d0) then
-                          stop 'ERROR: lowest eigenvalue must be negative'
+                          call f_err_throw('Lowest eigenvalue must be negative')
                       end if
                       if (foe_data_get_real(foe_obj,"evhigh",ispin)<=0.d0) then
-                          stop 'ERROR: highest eigenvalue must be positive'
+                          call f_err_throw('Highest eigenvalue must be positive')
                       end if
             
                       call timing(iproc, 'FOE_auxiliary ', 'OF')

@@ -21,6 +21,7 @@ mod_src = sparsematrix_base.f90 \
 		  ice.f90 \
 		  matrix_operations.f90 \
 		  parallel_linalg.f90 \
+		  sparsematrix_highlevel.f90
 		  $(BLACS)
 
 libsparsematrix_a_SOURCES = $(mod_src)
@@ -38,7 +39,8 @@ modules = SPARSEMATRIX_BASE.@MODULE_EXT@ \
 		  FOE.@MODULE_EXT@ \
 		  ICE.@MODULE_EXT@ \
 		  MATRIX_OPERATIONS.@MODULE_EXT@ \
-		  PARALLEL_LINALG.@MODULE_EXT@
+		  PARALLEL_LINALG.@MODULE_EXT@ \
+		  SPARSEMATRIX_HIGHLEVEL.@MODULE_EXT@
 else
 modules = sparsematrix_base.@MODULE_EXT@ \
           sparsematrix_init.@MODULE_EXT@ \
@@ -50,7 +52,8 @@ modules = sparsematrix_base.@MODULE_EXT@ \
 		  foe.@MODULE_EXT@ \
 		  ice.@MODULE_EXT@ \
 		  matrix_operations.@MODULE_EXT@ \
-		  parallel_linalg.@MODULE_EXT@
+		  parallel_linalg.@MODULE_EXT@ \
+		  sparsematrix_highlevel.@MODULE_EXT@
 endif
 
 CLEANFILES = $(modules)
@@ -70,6 +73,7 @@ fermi_level.o: foe_common.o
 ice.o: sparsematrix_base.o sparsematrix_init.o sparsematrix.o chebyshev.o foe_base.o foe_common.o fermi_level.o
 matrix_operations.o: sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
 foe.o: sparsematrix_base.o sparsematrix.o chebyshev.o foe_base.o foe_common.o fermi_level.o matrix_operations.o
+sparsematrix_highlevel.o: sparsematrix_base.o sparsematrix_init.o
 $(routines:.f90=.o): defs.o
 
 

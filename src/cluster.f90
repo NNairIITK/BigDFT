@@ -482,14 +482,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!write(*,*) 'after l: iirow', iirow
      !!write(*,*) 'after l: iicol', iicol
 
-     call init_matrix_taskgroups(iproc, nproc, atoms%astruct%nat, in%enable_matrix_taskgroups, &
-          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, tmb%linmat%s, &
+          atoms%astruct%nat, tmb%collcom, tmb%collcom_sr, iirow, iicol)
      !!write(*,*) 'after s'
-     call init_matrix_taskgroups(iproc, nproc, atoms%astruct%nat, in%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, tmb%linmat%m, &
+          atoms%astruct%nat,  tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
      !!write(*,*) 'after m'
-     call init_matrix_taskgroups(iproc, nproc, atoms%astruct%nat, in%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, tmb%linmat%l, &
+          atoms%astruct%nat, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
      !!write(*,*) 'after l'
 
      tmb%linmat%kernel_ = matrices_null()

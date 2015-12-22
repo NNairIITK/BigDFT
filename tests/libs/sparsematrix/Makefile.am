@@ -5,7 +5,7 @@ LONG_CHECK = $(SHORT_CHECK)
 
 include $(srcdir)/../check.mk
 
-check_PROGRAMS = driver
+check_PROGRAMS = driver driver_foe driver_ccs ice_ccs
 
 if BUILD_LIBYAML
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
@@ -22,6 +22,15 @@ endif
 
 driver_SOURCES = driver.f90
 driver_LDADD = -lbigdft-1 @LINALG_LIBS@
+
+driver_foe_SOURCES = driver_foe.f90
+driver_foe_LDADD = -lbigdft-1 @LINALG_LIBS@
+
+driver_ccs_SOURCES = driver_ccs.f90
+driver_ccs_LDADD = -lbigdft-1 @LINALG_LIBS@
+
+ice_ccs_SOURCES = utilities.f90 ice_ccs.f90
+ice_ccs_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 
 CLEANFILES = test-sparsematrix.out.yaml test-sparsematrix.report.yaml test-sparsematrix.report
