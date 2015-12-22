@@ -1473,6 +1473,7 @@ contains
              exit
           end if
        end do
+
        if (.not. stream_found) then
           if (present(istat)) then
              istat=YAML_STREAM_NOT_FOUND

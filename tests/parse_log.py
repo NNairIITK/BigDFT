@@ -15,6 +15,8 @@ path=os.path.dirname(sys.argv[0])
 
 import yaml
 
+EVAL = "eval"
+
 # print out a python dictionary in yaml syntax
 def dict_dump(dict):
   sys.stdout.write(yaml.dump(dict,default_flow_style=False,explicit_start=True))
@@ -143,12 +145,43 @@ def document_analysis(doc,to_extract):
       return None
   return analysis    
 
+# this is a tentative function written to extract information from the runs
+def document_quantities(doc,to_extract):
+  analysis={}
+  for quantity in to_extract:
+    if quantity is EVAL : pass
+    #follow the levels indicated to find the quantity
+    value=doc
+    for key in to_extract[quantity]:
+      #as soon as there is a problem the quantity is null
+      try:
+        value=value[key]
+      except:
+        value=None
+        break
+    analysis[quantity]=value
+  return analysis    
+
+def perform_operations(variables,ops):
+    #first evaluate the given variables
+    for key in variables:
+        command=key+"="+str(variables[key])
+        print command
+        exec command
+        #then evaluate the given expression
+    print ops
+    exec ops
+
+  
+
 def parse_arguments():
   parser = optparse.OptionParser("This script is used to extract some information from a logfile")
   parser.add_option('-d', '--data', dest='data',default=None, #sys.argv[2],
                     help="BigDFT logfile, yaml compliant (check this if only this option is given)", metavar='FILE')
   parser.add_option('-v', '--invert-match', dest='remove',default=None, #sys.argv[2],
                     help="File containing the keys which have to be excluded from the logfile", metavar='FILE')
+  parser.add_option('-a', '--analyze', dest='analyze',default=None, #sys.argv[2],
+                    help="File containing the keys which have to be analysed and extracted to build the quantities", metavar='FILE')
   parser.add_option('-e', '--extract', dest='extract',default=None, #sys.argv[2],
                     help="File containing the keys which have to be extracted to build the quantities", metavar='FILE')
   parser.add_option('-o', '--output', dest='output', default="/dev/null", #sys.argv[4],
@@ -625,7 +658,6 @@ if args.timedata:
 
   #print allev
   #dump the loaded info
-
   
 
 if args.data is None:
@@ -634,6 +666,16 @@ if args.data is None:
 
 with open(args.data, "r") as fp:
   logfile_lines = fp.readlines()
+
+if args.analyze is not None:
+  instructions= yaml.load(open(args.analyze, "r").read(), Loader = yaml.CLoader)
+  datas=yaml.load_all(''.join(logfile_lines), Loader = yaml.CLoader)
+  for doc in datas:
+    doc_res=document_quantities(doc,instructions)
+    print doc_res,instructions
+    if EVAL in instructions: perform_operations(doc_res,instructions[EVAL])
+    exit(0)
+
 #output file
 file_out=open(args.output, "w")
 #to_remove list
@@ -670,6 +712,7 @@ datas=yaml.load_all(''.join(cleaned_logfile), Loader = yaml.CLoader)
 extracted_result=[]
 for doc in datas:
   doc_res=document_analysis(doc,to_extract)
+  print doc_res,to_extract
   if doc_res is not None:
     extracted_result.append(doc_res)
 
@@ -677,8 +720,8 @@ print "Number of valid documents:",len(extracted_result)
 for it in extracted_result:
   print it
 
-
-  
+exit(0)
+    
 iterations = range(len(extracted_result))
 energies = [en for [f, en] in extracted_result]
 energy_min=min(energies)

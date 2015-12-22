@@ -444,7 +444,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,LINEAR_PARTITION_NONE)
    call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,orbs,comms)  
-   call orbital_basis_associate(ob,orbs=orbs,Lzd=KSwfn%Lzd)
+   call orbital_basis_associate(ob,orbs=orbs,Glr=KSwfn%Lzd%Glr)
    call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,ob,&
         cpmult,fpmult,hx,hy,hz,.false.,nlpsp,.true.)
    call orbital_basis_release(ob)

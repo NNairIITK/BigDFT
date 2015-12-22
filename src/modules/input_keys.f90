@@ -2664,7 +2664,7 @@ contains
     character(len = 1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     real(gp), dimension(3), intent(in) :: alat
     !local variables
-    logical :: lstat
+    logical :: lstat,read_wgts
     character(len=*), parameter :: subname='kpt_input_analyse'
     integer :: ierror,i, nshiftk, ikpt, j, ncount, nseg, iseg_, ngranularity_
     integer, dimension(3) :: ngkpt_
@@ -2674,6 +2674,9 @@ contains
     character(len = 6) :: method
     real(gp), dimension(:,:), pointer :: gen_kpt   !< K points coordinates
     real(gp), dimension(:), pointer :: gen_wkpt    !< Weights of k points
+    
+    call f_routine(id='kpt_input_analyse')
+
     ! Set default values.
     in%gen_nkpt=1
     in%nkptv=0
@@ -2688,10 +2691,6 @@ contains
        kptrlen_ = dict // KPTRLEN
        if (geocode == 'F') then
           in%gen_nkpt = 1
-!!$        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
-!!$        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
-!!$        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
-!!$        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
           in%gen_kpt=f_malloc0_ptr([3, in%gen_nkpt],id='gen_kpt')
           in%gen_kpt = 0.
           in%gen_wkpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
@@ -2707,8 +2706,6 @@ contains
           in%gen_kpt=f_malloc_ptr(src_ptr=gen_kpt,id='gen_kpt')
           in%gen_wkpt=f_malloc_ptr(src_ptr=gen_wkpt,id='gen_wkpt')
           deallocate(gen_kpt,gen_wkpt)
-!!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
-!!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
        end if
     else if (trim(method) .eqv. 'mpgrid') then
        !take the points of Monkhorst-pack grid
@@ -2729,10 +2726,6 @@ contains
           if (iproc==0 .and. (maxval(ngkpt_) > 1 .or. maxval(abs(shiftk_)) > 0.)) &
                & call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
           in%gen_nkpt = 1
-!!$        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
-!!$        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
-!!$        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
-!!$        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
           in%gen_kpt=f_malloc0_ptr([3, in%gen_nkpt],id='gen_kpt')
           in%gen_kpt = 0.
           in%gen_wkpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
@@ -2751,8 +2744,6 @@ contains
           in%gen_kpt=f_malloc_ptr(src_ptr=gen_kpt,id='gen_kpt')
           in%gen_wkpt=f_malloc_ptr(src_ptr=gen_wkpt,id='gen_wkpt')
           deallocate(gen_kpt,gen_wkpt)
-!!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
-!!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
        end if
     else if (trim(method) .eqv. 'manual') then
        in%gen_nkpt = max(1, dict_len(dict//KPT))
@@ -2763,11 +2754,12 @@ contains
        in%gen_kpt=f_malloc_ptr([3, in%gen_nkpt],id='gen_kpt')
        in%gen_wkpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
 
-!!$     allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
-!!$     allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
        norm=0.0_gp
+       read_wgts=.true.
+       if(dict_len(dict//WKPT) /= in%gen_nkpt) then
+          call yaml_warning('K-point weights automatically put to one as kwgts is not correctly specified')
+          read_wgts=.false.
+       end if
        do i=1,in%gen_nkpt
           in%gen_kpt(1, i) = dict // KPT // (i-1) // 0
           in%gen_kpt(2, i) = dict // KPT // (i-1) // 1
@@ -2776,10 +2768,14 @@ contains
              in%gen_kpt(2,i) = 0.
              if (iproc==0) call yaml_warning('Surface conditions, suppressing k-points along y.')
           end if
-          in%gen_wkpt(i) = dict // WKPT // (i-1)
+          if (read_wgts) then
+             in%gen_wkpt(i) = dict // WKPT // (i-1)
+          else
+             in%gen_wkpt(i) =1.0_gp
+          end if
           if (geocode == 'F') then
-             in%gen_kpt = 0.
-             in%gen_wkpt = 1.
+             in%gen_kpt = 0.0_gp
+             in%gen_wkpt = 1.0_gp
           end if
           norm=norm+in%gen_wkpt(i)
        end do
@@ -2873,6 +2869,8 @@ contains
 
     if (in%nkptv > 0 .and. geocode == 'F' .and. iproc == 0) &
          & call yaml_warning('Defining a k-point path in free boundary conditions.') 
+
+    call f_release_routine()
 
   END SUBROUTINE kpt_input_analyse
 

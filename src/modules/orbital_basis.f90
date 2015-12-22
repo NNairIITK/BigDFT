@@ -501,11 +501,12 @@ contains
 
   end subroutine local_hamiltonian_ket
   
-  subroutine orbital_basis_associate(ob,orbs,Lzd,confdatarr,phis_wvl)
+  subroutine orbital_basis_associate(ob,orbs,Lzd,Glr,confdatarr,phis_wvl)
     implicit none
     type(orbital_basis), intent(inout) :: ob
     type(orbitals_data), intent(in), optional, target :: orbs
     type(local_zone_descriptors), intent(in), optional, target :: Lzd
+    type(locreg_descriptors), intent(in), optional, target :: Glr !< in the case where only one Lrr is needed
     type(confpot_data), dimension(:), optional, intent(in), target :: confdatarr
     real(wp), dimension(:), target, optional :: phis_wvl
     !other elements have to be added (comms etc)
@@ -517,12 +518,19 @@ contains
 
     if (present(orbs)) ob%orbs => orbs
     
+    if (.not. present(orbs) .and. (present(Lzd) .or. present(Glr))) &
+         call f_err_throw('orbs should be present with lzd or glr',err_name='BIGDFT_RUNTIME_ERROR')
+
     if (present(Lzd)) then
-       if (.not. present(orbs)) call f_err_throw('orbs should be present with lzd',err_name='BIGDFT_RUNTIME_ERROR')
        allocate(ob%dd(orbs%norbp))
        do iorb=1,orbs%norbp
           ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
           ob%dd(iorb)%lr => Lzd%Llr(ilr)
+       end do
+    else if (present(Glr)) then
+       allocate(ob%dd(orbs%norbp))
+       do iorb=1,orbs%norbp
+          ob%dd(iorb)%lr => Glr
        end do
     end if
 
