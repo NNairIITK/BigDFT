@@ -1,7 +1,8 @@
 program driver
   use module_base
   use sparsematrix_init, only: sparsebigdft_to_ccs, read_ccs_format
-  use io, only: read_sparse_matrix, write_ccs_matrix
+  use io, only: read_sparse_matrix
+  use sparsematrix_io, only: write_ccs_matrix
   use module_atoms,only: atoms_data, atoms_data_null
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, &
                                assignment(=), SPARSE_FULL

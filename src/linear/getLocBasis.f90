@@ -3171,7 +3171,7 @@ end subroutine calculate_gap_FOE
 subroutine write_pexsi_matrices(nproc, smat_h, smat_s, matrix_compr_h, matrix_compr_s)
   use module_base
   use sparsematrix_init, only: sparsebigdft_to_ccs
-  use io, only:  write_ccs_matrix
+  use sparsematrix_io, only:  write_ccs_matrix
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, &
                                assignment(=), SPARSE_FULL
   use sparsematrix, only: transform_sparsity_pattern

@@ -1,199 +1,120 @@
-program driver
+program driver_css
   use module_base
-  use sparsematrix_init, only: sparsebigdft_to_ccs, read_ccs_format
-  use io, only: read_sparse_matrix, write_ccs_matrix
-  use module_atoms,only: atoms_data, atoms_data_null, deallocate_atoms_data
-  use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc_ptr, &
-                               assignment(=), SPARSE_FULL, SPARSE_TASKGROUP, matrices_null, &
+  use sparsematrix_base, only: sparse_matrix, matrices, &
                                deallocate_sparse_matrix, deallocate_matrices
   use bigdft_run, only: bigdft_init
-  use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
-  use sparsematrix, only: transform_sparsity_pattern
-  use foe_base, only: foe_data, foe_data_deallocate
-  use foe_common, only: init_foe
-  use foe, only: fermi_operator_expansion
-  use ice, only: inverse_chebyshev_expansion
+  use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_ccs, &
+                                    sparse_matrix_init_from_file_ccs, matrices_init, &
+                                    matrices_set, sparse_matrix_init_from_data, &
+                                    ccs_data_from_sparse_matrix, ccs_matrix_write, &
+                                    matrix_matrix_multiplication, matrix_chebyshev_expansion
+  use utilities, only: get_ccs_data_from_file
+  use sparsematrix, only: write_matrix_compressed
   implicit none
 
   ! Variables
-  character(len=*),parameter :: filename='matrix.dat'
-  integer :: nspin, nfvctr, nvctr, nseg, i, iseg
-  character(len=1) :: geocode
-  integer,dimension(:),pointer :: keyv
-  integer,dimension(:,:,:),pointer :: keyg
-  real(kind=8),dimension(:),pointer :: mat_compr
-  integer,dimension(:),pointer :: row_ind, col_ptr
-  
-  integer :: nspin_h, nfvctr_h, nseg_h, nvctr_h, nfvctrp_h, isfvctr_h
-  integer :: nspin_s, nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
-  integer :: nspin_l, nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
+  integer :: i
   integer :: norder_polynomial
-  integer,dimension(:),pointer :: keyv_h, keyv_s, keyv_l, on_which_atom_h, on_which_atom_s, on_which_atom_l
-  integer,dimension(:,:,:),pointer :: keyg_h, keyg_s, keyg_l
-  real(kind=8),dimension(:),pointer :: matrix_compr_h, matrix_compr_s, matrix_compr_l, matrix_compr_sl
-  type(atoms_data) :: at
-  character(len=1) :: geocode_h, geocode_s, geocode_l
-  type(sparse_matrix) :: smat_h, smat_s, smat_l
-  type(matrices) :: ham, overlap, kernel
-  type(matrices),dimension(1) :: inv_overlap
-  real(kind=8),dimension(2) :: charge
-  real(kind=8) :: tmprtr, evlow, evhigh, fscale, ebs
-  real(kind=8) :: ef_interpol_det, ef_interpol_chargediff, fscale_lowerbound, fscale_upperbound
-  real(kind=8) :: max_inversion_error
-  integer :: evbounds_nsatur, evboundsshrink_nsatur, foe_verbosity, order_taylor
-  type(foe_data) :: foe_obj
-  logical :: calculate_minusonehalf
-  character(len=4) :: label
+  type(sparse_matrix) :: smat1, smat2, smat3
+  type(matrices) :: mat1
+  type(matrices),dimension(2) :: mat2
+  type(matrices),dimension(2) :: mat3
+  integer :: nfvctr, nvctr
+  integer,dimension(:),pointer :: row_ind, col_ptr
 
+  ! Initialize flib
   call f_lib_initialize()
 
+  ! General initialization, including MPI. Here we have:
+  ! bigdft_mpi%iproc is the task ID
+  ! bigdft_mpi%nproc is the total number of tasks
+  ! PROBLEM: This is in src/modules...
   call bigdft_init()
 
-  call sparse_matrix_and_matrices_init_from_file_ccs('overlap_ccs.dat', bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, overlap)
-  call sparse_matrix_and_matrices_init_from_file_ccs('hamiltonian_ccs.dat', bigdft_mpi%iproc, bigdft_mpi%nproc, smat_h, ham)
-  call sparse_matrix_and_matrices_init_from_file_ccs('kernel_ccs.dat', bigdft_mpi%iproc, bigdft_mpi%nproc, smat_l, kernel)
-  inv_overlap(1) = matrices_null()
-  inv_overlap(1)%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='inv_overlap%matrix_compr')
+  ! Read from matrix1.dat and create the type containing the sparse matrix descriptors (smat1) as well as
+  ! the type which contains the matrix data (overlap). The matrix element are stored in mat1%matrix_compr.
+  call sparse_matrix_and_matrices_init_from_file_ccs('matrix1.dat', bigdft_mpi%iproc, bigdft_mpi%nproc, smat1, mat1)
 
-  order_taylor = 1020
-  call inverse_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, &
-       smat_s, smat_l, 1, (/-1.d0/), overlap, inv_overlap)
+  ! Read from matrix2.dat and creates the type containing the sparse matrix descriptors (smat2).
+  call sparse_matrix_init_from_file_ccs('matrix2.dat', bigdft_mpi%iproc, bigdft_mpi%nproc, smat2)
 
-!!!FOE  charge = 10.d0
-!!!FOE  tmprtr = 0.d0
-!!!FOE  evbounds_nsatur = 100
-!!!FOE  evboundsshrink_nsatur = 4
-!!!FOE  evlow = -1.0d0
-!!!FOE  evhigh = 1.0d0
-!!!FOE  fscale = 1.d-2
-!!!FOE  ef_interpol_det = 1.d-12
-!!!FOE  ef_interpol_chargediff = 10.d0
-!!!FOE  fscale_lowerbound = 5.d-3
-!!!FOE  fscale_upperbound = 5.d-2
-!!!FOE  nspin = 1
-!!!FOE  call init_foe(bigdft_mpi%iproc, bigdft_mpi%nproc, nspin, charge, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
-!!!FOE       evlow, evhigh, fscale, ef_interpol_det, ef_interpol_chargediff, &
-!!!FOE       fscale_lowerbound, fscale_upperbound, foe_obj)
-!!!FOE
-!!!FOE  max_inversion_error = 1.d-8
-!!!FOE  calculate_minusonehalf = .true.
-!!!FOE  foe_verbosity = 1
-!!!FOE  label = 'test'
-!!!FOE  call fermi_operator_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, &
-!!!FOE       ebs, order_taylor, max_inversion_error, &
-!!!FOE       calculate_minusonehalf, foe_verbosity, &
-!!!FOE       label, smat_s, smat_h, smat_l, ham, overlap, inv_overlap, kernel, foe_obj)
-!!!FOE
-!!!FOE  call foe_data_deallocate(foe_obj)
+  ! Prepares the type containing the matrix data.
+  call matrices_init(smat2, mat2(1))
 
-  call deallocate_sparse_matrix(smat_s)
-  call deallocate_sparse_matrix(smat_h)
-  call deallocate_sparse_matrix(smat_l)
-  call deallocate_matrices(ham)
-  call deallocate_matrices(overlap)
-  call deallocate_matrices(kernel)
-  call deallocate_matrices(inv_overlap(1))
+  ! Calculate the square root of the matrix described by the pair smat1/mat1 and store the result in
+  ! smat2/mat2. Attention: The sparsity pattern of smat2 must be contained within smat1.
+  ! It is your responsabilty to assure this, the routine does only some minimal checks.
+  ! The final result is contained in mat2(1)%matrix_compr.
+  norder_polynomial = 30
+  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, 1, (/0.5d0/), &
+       smat1, smat2, mat1, mat2(1))
 
+  ! Write the result in YAML format to the standard output (required for non-regression tests).
+  call write_matrix_compressed('Result of second matrix', smat2, mat2(1))
+
+  ! Create another matrix type, this time directly with the CCS format descriptors.
+  ! Get these descriptors from an auxiliary routine using again matrix2.dat
+  call get_ccs_data_from_file('matrix2.dat', nfvctr, nvctr, row_ind, col_ptr)
+  call sparse_matrix_init_from_data(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr, nvctr, row_ind, col_ptr, smat3)
+
+  ! Prepare a new matrix data type.
+  call matrices_init(smat2, mat2(2))
+  ! Set the contents of this new matrix type, using the above result.
+  call matrices_set(smat2, mat2(1)%matrix_compr, mat2(2))
+
+  ! Prepare two new matrix data types
+  do i=1,2
+      call matrices_init(smat3, mat3(i))
+  end do
+
+  ! Calculate at the same time the square root and the inverse square of the matrix described  by the pair smat2/mat2
+  ! and store the result in smat3/mat3. The final results are thus in mat3(1)%matrix_compr and mat3(2)%matrix_compr.
+  ! The same wraning as above applies.
+  norder_polynomial = 40
+  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, 2, (/0.5d0,-0.5d0/), &
+       smat2, smat3, mat2(2), mat3)
+
+  ! Write the result in YAML format to the standard output (required for non-regression tests).
+  call write_matrix_compressed('Result of second matrix', smat3, mat3(1))
+  call write_matrix_compressed('Result of third matrix', smat3, mat3(2))
+
+  ! Calculate the CCS descriptors from the sparse_matrix type.
+  call ccs_data_from_sparse_matrix(smat3, row_ind, col_ptr)
+
+  ! Write the two matrices to disk, using the CCS format
+  call ccs_matrix_write('squareroot.dat', smat3, row_ind, col_ptr, mat3(1))
+  call ccs_matrix_write('invsquareroot.dat', smat3, row_ind, col_ptr, mat3(2))
+
+  ! Multiply the two matrices calculated above (i.e. the square root and the inverse square root) and
+  ! store the result in mat2. The final result is thus contained in mat2%matrix_compr.
+  call matrix_matrix_multiplication(bigdft_mpi%iproc, bigdft_mpi%nproc, smat3, &
+       mat3(1), mat3(2), mat2(1))
+
+  ! Write the result of the above multiplication to a file. Since we multiply the square root times the 
+  ! inverse square root, the result will be the unity matrix.
+  call ccs_matrix_write('unity.dat', smat3, row_ind, col_ptr, mat2(1))
+
+  ! Write the result also in YAML format to the standard output (required for non-regression tests).
+  call write_matrix_compressed('Result of fourth matrix', smat3, mat2(1))
+
+  ! Deallocate all the sparse matrix descriptrs types
+  call deallocate_sparse_matrix(smat1)
+  call deallocate_sparse_matrix(smat2)
+  call deallocate_sparse_matrix(smat3)
+
+  ! Deallocate all the matrix data types
+  call deallocate_matrices(mat1)
+  do i=1,2
+      call deallocate_matrices(mat2(i))
+      call deallocate_matrices(mat3(i))
+  end do
+
+  ! Deallocate the CCS format descriptors
+  call f_free_ptr(row_ind)
+  call f_free_ptr(col_ptr)
+
+  ! Finalize flib
   call f_lib_finalize()
 
 
-end program driver
-
-
-subroutine sparse_matrix_and_matrices_init_from_file_ccs(filename, iproc, nproc, smat, mat)
-  use module_base
-  use sparsematrix_base, only: sparse_matrix, matrices
-  use sparsematrix_init, only: read_ccs_format, ccs_to_sparsebigdft_short, &
-                               bigdft_to_sparsebigdft
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  character(len=*),intent(in) :: filename
-  type(sparse_matrix),intent(out) :: smat
-  type(matrices),intent(out) :: mat
-
-  ! Local variables
-  integer :: nfvctr, nvctr
-  integer,dimension(:),pointer :: col_ptr, row_ind
-  real(kind=8),dimension(:),pointer :: val
-
-  call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
-
-  ! Read in the matrix
-  call read_ccs_format(filename, nfvctr, nvctr, col_ptr, row_ind, val)
-
-  ! Generate the sparse_matrix type
-  call sparse_matrix_init_from_data(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
-
-  ! Generate the matrices type
-  call matrices_init_from_data(smat, val, mat)
-
-  ! Deallocate the pointers
-  call f_free_ptr(col_ptr)
-  call f_free_ptr(row_ind)
-  call f_free_ptr(val)
-
-  call f_release_routine()
-
-end subroutine sparse_matrix_and_matrices_init_from_file_ccs
-
-
-subroutine sparse_matrix_init_from_data(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
-  use module_base
-  use sparsematrix_base, only: sparse_matrix
-  use sparsematrix_init, only: ccs_to_sparsebigdft_short, &
-                               bigdft_to_sparsebigdft, init_matrix_taskgroups
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc, nfvctr, nvctr
-  integer,dimension(nvctr),intent(in) :: row_ind
-  integer,dimension(nfvctr),intent(in) :: col_ptr
-  type(sparse_matrix),intent(out) :: smat
-
-  ! Local variables
-  integer :: nseg
-  integer,dimension(:),pointer :: keyv
-  integer,dimension(:,:,:),pointer :: keyg
-
-  call f_routine(id='sparse_matrix_init_from_data')
-
-  ! Convert the sparsity pattern to the BigDFT format
-  call ccs_to_sparsebigdft_short(nfvctr, nvctr, row_ind, col_ptr, nseg, keyv, keyg)
-
-  ! Create the sparse_matrix structure
-  call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
-
-  ! Deallocate the pointers
-  call f_free_ptr(keyv)
-  call f_free_ptr(keyg)
-
-  call f_release_routine()
-
-end subroutine sparse_matrix_init_from_data
-
-
-subroutine matrices_init_from_data(smat, val, mat)
-  use module_base
-  use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
-                               assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
-  implicit none
-
-  ! Calling arguments
-  type(sparse_matrix),intent(in) :: smat
-  real(kind=8),dimension(smat%nvctr),intent(in) :: val
-  type(matrices),intent(out) :: mat
-
-  call f_routine(id='matrices_init_from_data')
-
-  ! Create the matrices structure
-  mat = matrices_null()
-  mat%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='mat%matrix_compr')
-
-  ! Copy the content
-  call f_memcpy(src=val, dest=mat%matrix_compr)
-
-  call f_release_routine()
-
-end subroutine matrices_init_from_data
+end program driver_css

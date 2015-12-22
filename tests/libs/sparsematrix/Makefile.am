@@ -1,11 +1,14 @@
 ## Process this file with automake to produce Makefile.in
 
-SHORT_CHECK = test-sparsematrix.report.yaml
+SHORT_CHECK = test-ccs.report.yaml
 LONG_CHECK = $(SHORT_CHECK)
 
 include $(srcdir)/../check.mk
 
-check_PROGRAMS = driver driver_foe driver_ccs ice_ccs
+EXTRA_DIST = test-ccs.ref.yaml \
+	matrix1.dat matrix2.dat
+
+check_PROGRAMS = driver driver_ccs
 
 if BUILD_LIBYAML
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
@@ -23,23 +26,20 @@ endif
 driver_SOURCES = driver.f90
 driver_LDADD = -lbigdft-1 @LINALG_LIBS@
 
-driver_foe_SOURCES = driver_foe.f90
-driver_foe_LDADD = -lbigdft-1 @LINALG_LIBS@
-
-driver_ccs_SOURCES = driver_ccs.f90
+driver_ccs_SOURCES = utilities.f90 driver_ccs.f90
 driver_ccs_LDADD = -lbigdft-1 @LINALG_LIBS@
 
-ice_ccs_SOURCES = utilities.f90 ice_ccs.f90
-ice_ccs_LDADD = -lbigdft-1 @LINALG_LIBS@
 
+CLEANFILES = test-ccs.out.yaml test-ccs.report.yaml test-ccs.report
 
-CLEANFILES = test-sparsematrix.out.yaml test-sparsematrix.report.yaml test-sparsematrix.report
-
-test-sparsematrix.report.yaml: $(srcdir)/test-sparsematrix.ref.yaml test-sparsematrix.out.yaml
+test-ccs.report.yaml: $(srcdir)/test-ccs.ref.yaml test-ccs.out.yaml
 	@export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
-		-r $< -d test-sparsematrix.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-sparsematrix -o $@ 
+		-r $< -d test-ccs.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-ccs -o $@ 
 ##	python $(top_srcdir)/tests/fldiff_yaml.py $^ | tee $@
 
-test-sparsematrix.out.yaml: driver
+test-ccs.out.yaml: driver_ccs
+	cp -f $(srcdir)/matrix1.dat $(PWD)
+	cp -f $(srcdir)/matrix2.dat $(PWD)
+	$(run_parallel) ./driver_ccs > test-ccs.out.yaml

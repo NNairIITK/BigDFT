@@ -211,7 +211,7 @@ module sparsematrix_highlevel
     subroutine ccs_matrix_write(filename, smat, row_ind, col_ptr, mat)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
-      use io, only: write_ccs_matrix
+      use sparsematrix_io, only: write_ccs_matrix
       implicit none
 
       ! Calling arguments

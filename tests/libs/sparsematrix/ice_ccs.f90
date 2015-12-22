@@ -1,4 +1,4 @@
-program driver
+program driver_css
   use module_base
   use sparsematrix_base, only: sparse_matrix, matrices, &
                                deallocate_sparse_matrix, deallocate_matrices
@@ -8,9 +8,8 @@ program driver
                                     matrices_set, sparse_matrix_init_from_data, &
                                     ccs_data_from_sparse_matrix, ccs_matrix_write, &
                                     matrix_matrix_multiplication, matrix_chebyshev_expansion
-  use sparsematrix, only: matrix_matrix_mult_wrapper
-  use ice, only: inverse_chebyshev_expansion
   use utilities, only: get_ccs_data_from_file
+  use sparsematrix, only: write_matrix_compressed
   implicit none
 
   ! Variables
@@ -29,6 +28,7 @@ program driver
   ! General initialization, including MPI. Here we have:
   ! bigdft_mpi%iproc is the task ID
   ! bigdft_mpi%nproc is the total number of tasks
+  ! PROBLEM: This is in src/modules...
   call bigdft_init()
 
   ! Read from matrix1.dat and create the type containing the sparse matrix descriptors (smat1) as well as
@@ -48,6 +48,9 @@ program driver
   norder_polynomial = 30
   call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, 1, (/0.5d0/), &
        smat1, smat2, mat1, mat2(1))
+
+  ! Write the result in YAML format to the standard output (required for non-regression tests).
+  call write_matrix_compressed('Result of second matrix', smat2, mat2(1))
 
   ! Create another matrix type, this time directly with the CCS format descriptors.
   ! Get these descriptors from an auxiliary routine using again matrix2.dat
@@ -71,6 +74,10 @@ program driver
   call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, 2, (/0.5d0,-0.5d0/), &
        smat2, smat3, mat2(2), mat3)
 
+  ! Write the result in YAML format to the standard output (required for non-regression tests).
+  call write_matrix_compressed('Result of second matrix', smat3, mat3(1))
+  call write_matrix_compressed('Result of third matrix', smat3, mat3(2))
+
   ! Calculate the CCS descriptors from the sparse_matrix type.
   call ccs_data_from_sparse_matrix(smat3, row_ind, col_ptr)
 
@@ -86,6 +93,9 @@ program driver
   ! Write the result of the above multiplication to a file. Since we multiply the square root times the 
   ! inverse square root, the result will be the unity matrix.
   call ccs_matrix_write('unity.dat', smat3, row_ind, col_ptr, mat2(1))
+
+  ! Write the result also in YAML format to the standard output (required for non-regression tests).
+  call write_matrix_compressed('Result of fourth matrix', smat3, mat2(1))
 
   ! Deallocate all the sparse matrix descriptrs types
   call deallocate_sparse_matrix(smat1)
@@ -107,4 +117,4 @@ program driver
   call f_lib_finalize()
 
 
-end program driver
+end program driver_css
