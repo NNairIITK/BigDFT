@@ -49,7 +49,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !! of the energies are calculated only with the input rho.
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p), intent(inout), optional, target :: rho_ion
   !local variables
-  logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver
+  logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver,active_ig
   integer :: i3start,n1,n23,i3s,i23s,i23sd2,i3sd2
   real(dp) :: IntSur,IntVol,e_static,norm_nonvac,ehartreeLOC
   real(dp), dimension(:,:), allocatable :: depsdrho,dsurfdrho
@@ -114,6 +114,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   is_vextra=sum_pi .or. build_c
   plot_cavity=kernel%opt%cavity_info .and. (kernel%method /= PS_VAC_ENUM)
   cudasolver= (kernel%igpu==1 .and. .not. kernel%opt%calculate_strten)
+  active_ig=kernel%opt%use_input_guess .and. (kernel%igpcg == 1)
 
   !check of the input variables, if needed
 !!$  if (kernel%method /= PS_VAC_ENUM .and. .not. present(rho_ion)) then
@@ -200,12 +201,12 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   end if
   
   !the allocation of the rho array is maybe not needed
-  call PS_allocate_lowlevel_workarrays(cudasolver,kernel%opt%use_input_guess,&
+  call PS_allocate_lowlevel_workarrays(cudasolver,active_ig,&
        rhov(1,1,i3s),kernel)
 
   !call the Generalized Poisson Solver
   call Parallel_GPS(kernel,cudasolver,kernel%opt%potential_integral,energies%strten,&
-       wrtmsg,rhov(1,1,i3s),kernel%opt%use_input_guess)
+       wrtmsg,rhov(1,1,i3s),active_ig)
 
   !this part is not important now, to be fixed later
 !!$  if (plot_cavity) then
@@ -229,7 +230,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
 !!$  !--------------------------------------
 
 
-  call PS_release_lowlevel_workarrays(kernel%opt%cavity_info,kernel%opt%use_input_guess,&
+  call PS_release_lowlevel_workarrays(kernel%opt%cavity_info,active_ig,&
        rhov(1,1,i3s),kernel)
 
   !the external ionic potential is referenced if present
@@ -310,7 +311,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   end if
   nullify(vextra_eff,pot_ion_eff)
 
-  call release_PS_workarrays(kernel%keepzf,kernel%w,kernel%opt%use_input_guess)
+  call release_PS_workarrays(kernel%keepzf,kernel%w,active_ig)
   
   !gather the full result in the case of datacode = G
   if (kernel%opt%datacode == 'G') call PS_gather(rhov,kernel)
@@ -420,47 +421,73 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
   case('PCG')
      if (wrtmsg) then
         call yaml_newline()
-          call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
-       end if
+        call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
+     end if
+
+     normb=dot(n1*n23,kernel%w%res(1,1),1,kernel%w%res(1,1),1)
+     call PS_reduce(normb,kernel)
+     normb=sqrt(normb/rpoints)
+     normr=normb
      
      iinit=1
      if (use_input_guess) then
-     iinit=2
-     !$omp parallel do default(shared) private(i1,i23)
-     do i23=1,n23
-        do i1=1,n1
-           q=kernel%w%pot(i1,i23)*kernel%w%corr(i1,i23)
-           kernel%w%q(i1,i23)=kernel%w%pot(i1,i23)
-           kernel%w%z(i1,i23)=(kernel%w%res(i1,i23)-q)*&
-                                kernel%w%oneoeps(i1,i23)
-        end do
-     end do
-     call apply_kernel(cudasolver,kernel,kernel%w%z,offset,strten,kernel%w%zf,.true.)
-     !$omp parallel do default(shared) private(i1,i23)
-     do i23=1,n23
-        do i1=1,n1
-           kernel%w%pot(i1,i23)=kernel%w%z(i1,i23)*kernel%w%oneoeps(i1,i23)
-           kernel%w%res(i1,i23)=(kernel%w%q(i1,i23) - kernel%w%pot(i1,i23))*kernel%w%corr(i1,i23)
-           kernel%w%q(i1,i23)=0.d0
-        end do
-     end do
-
-     normr=dot(n1*n23,kernel%w%res(1,1),1,kernel%w%res(1,1),1)
-     call PS_reduce(normr,kernel)
-     normr=sqrt(normr/rpoints)
-
-     if (wrtmsg) then
-      call yaml_newline()
-      call yaml_sequence(advance='no')
-      call EPS_iter_output(1,0.d0,normr,0.d0,0.d0,0.d0)
-     end if
-     if (normr < kernel%minres .or. normr > max_ratioex) iinit=kernel%max_iter+10
+      iinit=2
+ 
+      !$omp parallel do default(shared) private(i1,i23)
+      do i23=1,n23
+         do i1=1,n1
+            q=kernel%w%pot(i1,i23)*kernel%w%corr(i1,i23)
+            kernel%w%q(i1,i23)=kernel%w%pot(i1,i23)
+            kernel%w%z(i1,i23)=(kernel%w%res(i1,i23)-q)*&
+                                 kernel%w%oneoeps(i1,i23)
+         end do
+      end do
+      !$omp end parallel do
+ 
+      call apply_kernel(cudasolver,kernel,kernel%w%z,offset,strten,kernel%w%zf,.true.)
+ 
+      !$omp parallel do default(shared) private(i1,i23)
+      do i23=1,n23
+         do i1=1,n1
+            kernel%w%pot(i1,i23)=kernel%w%z(i1,i23)*kernel%w%oneoeps(i1,i23)
+            kernel%w%z(i1,i23)=kernel%w%res(i1,i23)
+            kernel%w%res(i1,i23)=(kernel%w%q(i1,i23) - kernel%w%pot(i1,i23))*kernel%w%corr(i1,i23)
+            kernel%w%q(i1,i23)=0.d0
+         end do
+      end do
+      !$omp end parallel do
+ 
+      normr=dot(n1*n23,kernel%w%res(1,1),1,kernel%w%res(1,1),1)
+      call PS_reduce(normr,kernel)
+      normr=sqrt(normr/rpoints)
+      ratio=normr/normb
+ 
+      if (wrtmsg) then
+       call yaml_newline()
+       call yaml_sequence(advance='no')
+       call EPS_iter_output(1,normb,normr,ratio,1.d0,1.d0)
+      end if
+      if (normr < kernel%minres) iinit=kernel%max_iter+10
+ 
+      if (normr > 1.d0 ) then
+ 
+       !$omp parallel do default(shared) private(i1,i23)
+       do i23=1,n23
+          do i1=1,n1
+             kernel%w%res(i1,i23)=kernel%w%z(i1,i23)
+             kernel%w%pot(i1,i23)=0.d0
+          end do
+       end do
+       !$omp end parallel do
+ 
+       iinit=1
+       call yaml_sequence_open('Input guess not used due to residual norm > 1')
+      end if
 
      end if
 
      beta=1.d0
      ratio=1.d0
-     !normr=1.d0
 
      !$omp parallel do default(shared) private(i1,i23)
      do i23=1,n23

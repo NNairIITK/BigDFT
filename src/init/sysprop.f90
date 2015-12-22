@@ -938,29 +938,29 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
    ! Set the Pauling's set of atomic radii [R.C. Weast, ed., Handbook of chemistry and physics (CRC Press, Cleveland, 1981)].
    select case(trim(atoms%astruct%atomnames(atoms%astruct%iatype(i))))
    case('H')
-    !radii(i)=1.0d0 !Pauling's set
-    radii(i)=1.20d0 !Bondi's radii 
+    radii(i)=1.0d0 !Pauling's set
+    !radii(i)=1.20d0 !Bondi's radii 
    case('C')
-    !radii(i)=1.50d0 !Pauling's set
-    radii(i)=1.70d0 !Bondi's radii 
+    radii(i)=1.50d0 !Pauling's set
+    !radii(i)=1.70d0 !Bondi's radii 
    case('N')
-    !radii(i)=1.50d0 !Pauling's set
-    radii(i)=1.55d0 !Bondi's radii 
+    radii(i)=1.50d0 !Pauling's set
+    !radii(i)=1.55d0 !Bondi's radii 
    case('O')
-    !radii(i)=1.40d0 !Pauling's set
-    radii(i)=1.52d0 !Bondi's radii 
+    radii(i)=1.40d0 !Pauling's set
+    !radii(i)=1.52d0 !Bondi's radii 
    case('P')
-    !radii(i)=1.80d0 !Pauling's set
-    radii(i)=1.8d0 !Bondi's radii 
+    radii(i)=1.80d0 !Pauling's set
+    !radii(i)=1.8d0 !Bondi's radii 
    case('S')
-    !radii(i)=1.80d0 !Pauling's set
-    radii(i)=1.80d0 !Bondi's radii 
+    radii(i)=1.80d0 !Pauling's set
+    !radii(i)=1.80d0 !Bondi's radii 
    case('Cl')
-    !radii(i)=1.8d0 !Pauling's set
-    radii(i)=1.75d0 !Bondi's radii 
+    radii(i)=1.80d0 !Pauling's set
+    !radii(i)=1.75d0 !Bondi's radii 
    case('Ti')
-    !radii(i)=1.80d0 !Pauling's set
-    radii(i)=1.80d0 !Bondi's radii 
+    radii(i)=1.80d0 !Pauling's set
+    !radii(i)=1.80d0 !Bondi's radii 
    case default
     call f_err_throw('For rigid cavity a radius should be fixed for each atom type')
    end select
@@ -1030,11 +1030,11 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
   select case(trim(f_str(pkernel%method)))
   case('PCG')
-!   call pkernel_set_epsilon(pkernel,eps=eps,oneosqrteps=oneosqrteps,corr=corr)
-   call pkernel_set_epsilon(pkernel,eps=eps)
+   call pkernel_set_epsilon(pkernel,eps=eps,oneosqrteps=oneosqrteps,corr=corr)
+!   call pkernel_set_epsilon(pkernel,eps=eps)
   case('PI') 
-!   call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)
-   call pkernel_set_epsilon(pkernel,eps=eps)
+   call pkernel_set_epsilon(pkernel,eps=eps,oneoeps=oneoeps,dlogeps=dlogeps)
+!   call pkernel_set_epsilon(pkernel,eps=eps)
   end select
 
 !!$  !starting point in third direction
