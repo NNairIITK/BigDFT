@@ -19,7 +19,7 @@ program driver_css
   type(matrices) :: mat1
   type(matrices),dimension(2) :: mat2
   type(matrices),dimension(2) :: mat3
-  integer :: nfvctr, nvctr
+  integer :: nfvctr, nvctr, ierr
   integer,dimension(:),pointer :: row_ind, col_ptr
 
   ! Initialize flib
@@ -50,7 +50,7 @@ program driver_css
        smat1, smat2, mat1, mat2(1))
 
   ! Write the result in YAML format to the standard output (required for non-regression tests).
-  call write_matrix_compressed('Result of second matrix', smat2, mat2(1))
+  if (bigdft_mpi%iproc==0) call write_matrix_compressed('Result of first matrix', smat2, mat2(1))
 
   ! Create another matrix type, this time directly with the CCS format descriptors.
   ! Get these descriptors from an auxiliary routine using again matrix2.dat
@@ -75,15 +75,15 @@ program driver_css
        smat2, smat3, mat2(2), mat3)
 
   ! Write the result in YAML format to the standard output (required for non-regression tests).
-  call write_matrix_compressed('Result of second matrix', smat3, mat3(1))
-  call write_matrix_compressed('Result of third matrix', smat3, mat3(2))
+  if (bigdft_mpi%iproc==0) call write_matrix_compressed('Result of second matrix', smat3, mat3(1))
+  if (bigdft_mpi%iproc==0) call write_matrix_compressed('Result of third matrix', smat3, mat3(2))
 
   ! Calculate the CCS descriptors from the sparse_matrix type.
   call ccs_data_from_sparse_matrix(smat3, row_ind, col_ptr)
 
   ! Write the two matrices to disk, using the CCS format
-  call ccs_matrix_write('squareroot.dat', smat3, row_ind, col_ptr, mat3(1))
-  call ccs_matrix_write('invsquareroot.dat', smat3, row_ind, col_ptr, mat3(2))
+  if (bigdft_mpi%iproc==0) call ccs_matrix_write('squareroot.dat', smat3, row_ind, col_ptr, mat3(1))
+  if (bigdft_mpi%iproc==0) call ccs_matrix_write('invsquareroot.dat', smat3, row_ind, col_ptr, mat3(2))
 
   ! Multiply the two matrices calculated above (i.e. the square root and the inverse square root) and
   ! store the result in mat2. The final result is thus contained in mat2%matrix_compr.
@@ -95,7 +95,7 @@ program driver_css
   call ccs_matrix_write('unity.dat', smat3, row_ind, col_ptr, mat2(1))
 
   ! Write the result also in YAML format to the standard output (required for non-regression tests).
-  call write_matrix_compressed('Result of fourth matrix', smat3, mat2(1))
+  if (bigdft_mpi%iproc==0) call write_matrix_compressed('Result of fourth matrix', smat3, mat2(1))
 
   ! Deallocate all the sparse matrix descriptrs types
   call deallocate_sparse_matrix(smat1)
@@ -112,6 +112,9 @@ program driver_css
   ! Deallocate the CCS format descriptors
   call f_free_ptr(row_ind)
   call f_free_ptr(col_ptr)
+
+  ! Finalize MPI
+  call bigdft_finalize(ierr)
 
   ! Finalize flib
   call f_lib_finalize()
