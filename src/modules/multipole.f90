@@ -3849,6 +3849,7 @@ module multipole
    end if
    diff_min = huge(diff_min)
    diff_dipole_min = huge(diff_dipole_min)
+   factor_min(0:lmax) = 1.d0 !initialization
    do isigma2=1,nsigma
        do isigma1=1,nsigma
            do isigma0=1,nsigma
