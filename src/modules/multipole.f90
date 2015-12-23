@@ -3755,7 +3755,7 @@ module multipole
    ! Local variables
    real(kind=8),dimension(:,:,:,:),allocatable :: test_pot
    logical :: rho_negative, exists, found, all_norms_ok
-   real(kind=8) :: ehart_ps, diff, tt, diff_min, diff_dipole, diff_dipole_min
+   real(kind=8) :: ehart_ps, diff, tt, diff_min, diff_dipole, diff_dipole_min, rdim
    !integer,parameter :: nsigma=3
    real(kind=8),parameter :: step=0.20d0
    integer :: i1, i2, i3, isigma0, isigma1, isigma2, impl, ixc, l
@@ -3876,19 +3876,22 @@ module multipole
                    diff_dipole = (dipole_exact(1)-dipole_trial(1))**2 + &
                                  (dipole_exact(2)-dipole_trial(2))**2 + &
                                  (dipole_exact(3)-dipole_trial(3))**2
+                   rdim = 1.d0/(real(size(denspot%V_ext,1),kind=8)*&
+                                real(size(denspot%V_ext,1),kind=8)*&
+                                real(size(denspot%V_ext,1),kind=8))
                    diff = 0.d0
                    do i3=1,size(denspot%V_ext,3)
                        do i2=1,size(denspot%V_ext,2)
                            do i1=1,size(denspot%V_ext,1)
                                !write(800,*) 'i1, i2, i3, vals', i1, i2, i3, test_pot(i1,i2,i3,1), test_pot(i1,i2,i3,2)
-                               diff = diff + (test_pot(i1,i2,i3,1)-test_pot(i1,i2,i3,2))**2
+                               diff = diff + rdim*(test_pot(i1,i2,i3,1)-test_pot(i1,i2,i3,2))**2
                            end do
                        end do
                    end do
                    call mpiallred(diff, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-                   tt = diff/(real(size(denspot%V_ext,1),kind=8)*&
-                              real(size(denspot%V_ext,1),kind=8)*&
-                              real(size(denspot%V_ext,1),kind=8))
+                   !!tt = diff/(real(size(denspot%V_ext,1),kind=8)*&
+                   !!           real(size(denspot%V_ext,1),kind=8)*&
+                   !!           real(size(denspot%V_ext,1),kind=8))
                end if
                if (iproc==0) then
                    call yaml_sequence(advance='no')
@@ -3897,14 +3900,14 @@ module multipole
                    call yaml_map('Gaussian norms ok',all_norms_ok)
                    if (all_norms_ok) then
                        call yaml_map('dipole norm diff (actual/min)',(/diff_dipole,diff_dipole_min/),fmt='(es9.3)')
-                       call yaml_map('avg pot diff (actual/min)',(/tt,diff_min/),fmt='(es9.3)')
+                       call yaml_map('avg pot diff (actual/min)',(/diff,diff_min/),fmt='(es9.3)')
                    end if
                    call yaml_mapping_close()
                end if
                if (all_norms_ok) then
-                   if (tt<diff_min) then
+                   if (diff<diff_min) then
                        !factor_min(0:lmax) = factor(0:lmax)
-                       diff_min = tt
+                       diff_min = diff
                    end if
                    if (diff_dipole<diff_dipole_min) then
                        factor_min(0:lmax) = factor(0:lmax)
