@@ -40,7 +40,7 @@ module foe
       integer,intent(in) :: foe_verbosity
       character(len=*),intent(in) :: label
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
-      type(matrices),intent(inout) :: ham_, ovrlp_
+      type(matrices),intent(in) :: ham_, ovrlp_
       type(matrices),dimension(1),intent(inout) :: ovrlp_minus_one_half_
       type(matrices),intent(inout) :: kernel_
       type(foe_data),intent(inout) :: foe_obj

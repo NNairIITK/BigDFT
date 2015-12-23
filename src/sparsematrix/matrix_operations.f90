@@ -50,7 +50,7 @@ module matrix_operations
         integer,dimension(ncalc),intent(in) :: power
         integer,intent(in) :: imode
         type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
-        type(matrices),intent(inout) :: ovrlp_mat
+        type(matrices),intent(in) :: ovrlp_mat
         type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp_mat
         logical,intent(in) :: check_accur
         real(kind=8),intent(out),optional :: max_error, mean_error

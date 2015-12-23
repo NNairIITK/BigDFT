@@ -366,4 +366,88 @@ module sparsematrix_highlevel
 
     end subroutine matrix_chebyshev_expansion
 
+
+    subroutine matrix_fermi_operator_expansion(iproc, nproc, ndeg, foe_obj, smat_s, smat_h, smat_k, &
+               overlap, ham, overlap_minus_one_half, kernel, ebs, &
+               calculate_minusonehalf, max_inversion_error, foe_verbosity, label)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix, matrices
+      use foe_base, only: foe_data
+      use foe, only: fermi_operator_expansion
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      integer,intent(inout) :: ndeg
+      type(foe_data),intent(inout) :: foe_obj
+      type(sparse_matrix),intent(in) ::smat_s, smat_h, smat_k
+      type(matrices),intent(in) :: overlap, ham
+      type(matrices),dimension(1),intent(inout) :: overlap_minus_one_half
+      type(matrices),intent(inout) :: kernel
+      real(kind=8),intent(out) :: ebs
+      logical,intent(in),optional :: calculate_minusonehalf
+      real(kind=8),intent(in),optional :: max_inversion_error
+      integer,intent(in),optional :: foe_verbosity
+      character(len=*),intent(in),optional :: label
+
+      ! Local variables
+      integer :: i
+      real(kind=8) :: max_inversion_error_
+      logical :: calculate_minusonehalf_
+      integer :: foe_verbosity_
+      character(len=100) :: label_
+
+      call f_routine(id='matrix_fermi_operator_expansion')
+
+      max_inversion_error_ = 1.d-8
+      if (present(max_inversion_error)) max_inversion_error_ = max_inversion_error
+      calculate_minusonehalf_ = .true.
+      if (present(calculate_minusonehalf)) calculate_minusonehalf_ = calculate_minusonehalf
+      foe_verbosity_ = 1
+      if (present(foe_verbosity)) foe_verbosity_ = foe_verbosity
+      label_ = '001'
+      if (present(label)) label_ = trim(label)
+
+      ! Check the dimensions of the internal arrays
+      if (size(overlap%matrix_compr)/=smat_s%nvctrp_tg) then
+          call f_err_throw('The size of the array overlap%matrix_compr is wrong: '&
+               &//trim(yaml_toa(size(overlap%matrix_compr)))//' instead of '//trim(yaml_toa(smat_s%nvctrp_tg)))
+      end if
+      if (size(ham%matrix_compr)/=smat_h%nvctrp_tg) then
+          call f_err_throw('The size of the array mat_out%matrix_compr is wrong: '&
+               &//trim(yaml_toa(size(ham%matrix_compr)))//' instead of '//trim(yaml_toa(smat_h%nvctrp_tg)))
+      end if
+      if (size(overlap_minus_one_half(1)%matrix_compr)/=smat_k%nvctrp_tg) then
+          call f_err_throw('The size of the array mat_out%matrix_compr is wrong: '&
+               &//trim(yaml_toa(size(overlap_minus_one_half(1)%matrix_compr)))//' instead of '//trim(yaml_toa(smat_k%nvctrp_tg)))
+      end if
+      if (size(kernel%matrix_compr)/=smat_k%nvctrp_tg) then
+          call f_err_throw('The size of the array mat_out%matrix_compr is wrong: '&
+               &//trim(yaml_toa(size(kernel%matrix_compr)))//' instead of '//trim(yaml_toa(smat_k%nvctrp_tg)))
+      end if
+
+      ! Check that number of non-zero elements of smat_s is not larger than that of smat_h, and that the one of 
+      ! smat_h is not larger than that of smat_k. This is just a minimal
+      ! check to ensure that the sparsity pattern of smat_s is contained within the one of smat_h and the one 
+      ! of smat_h within smat_k. However this check is not sufficient to make sure that this condition is fulfilled.
+      if (smat_h%nvctr>smat_s%nvctr) then
+          call f_err_throw('The number of non-zero elements of smat_h ('//&
+               trim(yaml_toa(smat_h%nvctr))//') is larger than the one of smat_s ('//&
+               trim(yaml_toa(smat_s%nvctr))//')')
+      end if
+      if (smat_k%nvctr>smat_h%nvctr) then
+          call f_err_throw('The number of non-zero elements of smat_k ('//&
+               trim(yaml_toa(smat_k%nvctr))//') is larger than the one of smat_h ('//&
+               trim(yaml_toa(smat_h%nvctr))//')')
+      end if
+
+      call fermi_operator_expansion(iproc, nproc, &
+           ebs, ndeg, max_inversion_error_, &
+           calculate_minusonehalf_, foe_verbosity_, &
+           label_, smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj)
+
+      call f_release_routine()
+
+    end subroutine matrix_fermi_operator_expansion
+
 end module sparsematrix_highlevel
