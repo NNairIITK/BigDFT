@@ -311,7 +311,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   end if
   nullify(vextra_eff,pot_ion_eff)
 
-  call release_PS_workarrays(kernel%keepzf,kernel%w,active_ig)
+  call release_PS_workarrays(kernel%keepzf,kernel%w,kernel%opt%use_input_guess)
   
   !gather the full result in the case of datacode = G
   if (kernel%opt%datacode == 'G') call PS_gather(rhov,kernel)
@@ -373,7 +373,8 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
         !call PS_gather(kernel%w%pot,kernel) not needed as in PI the W%pot array is global
         call update_rhopol(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
              kernel%ndims(3),&
-             kernel%w%pot,kernel%nord,kernel%hgrids,1.0_dp,kernel%w%eps,kernel%w%dlogeps,kernel%w%rho,rhores2)
+             kernel%w%pot,kernel%nord,kernel%hgrids,1.0_dp,kernel%w%eps,&
+             kernel%w%dlogeps,kernel%w%rho,rhores2)
      end if
 
      pi_loop: do ip=1,kernel%max_iter
@@ -404,7 +405,8 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
         !reduction of the residue not necessary
         call update_rhopol(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
              kernel%ndims(3),&
-             kernel%w%pot,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%w%eps,kernel%w%dlogeps,kernel%w%rho,rhores2)
+             kernel%w%pot,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%w%eps,&
+             kernel%w%dlogeps,kernel%w%rho,rhores2)
 
         rhores2=sqrt(rhores2/rpoints)
 
