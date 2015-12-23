@@ -2084,10 +2084,32 @@ largesystems_dnalarge:
   HOMO-LUMO gap (eV): 2.1e-11
 
 largesystems_dnawater:
-  total net charge: 8.2e-08
+  total net charge: 1.0e-07
   Charge analysis (charge / net charge): 1.7e-1
-  Omega: 3.1e-11
-  Pseudo Fermi level for occupations: 1.6e-8
+  Omega: 4.1e-11
+  Pseudo Fermi level for occupations: 3.5e-8
   eval: 1.1e-5
   net charge: 2.1e-7
   Ion-Ion interaction energy: 3.1e-11
+  D: 1.0e-10
+  D Tr: 1.2e-08
+  D eF: 1.1e-08
+  Delta r: 1.0e-9
+  Energy (Hartree): 3.37e-11
+  EvXC: 1.0e-08
+  HOMO-LUMO gap (Ha): 6.9e-11
+  HOMO-LUMO gap (eV): 1.9e-09
+  LUMO energy: 6.9e-11
+  PV (Ha): 1.5e-11
+  charge diff: 1.2e-08
+  eF: 4.4e-09
+  ebs: 7.6e-11
+  ebs_check: 7.4e-11
+  energy: 4.1e-11
+  guess for new ef: 4.5e-09
+  multiplicator for the confinement: 2.5e-10
+  occ: 1.1e-07
+  trace of quadropole matrix: 1.2e-08
+  trace(KS): 1.2e-11
+  Keys to ignore:
+    - atom
