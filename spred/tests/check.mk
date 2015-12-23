@@ -183,6 +183,11 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 #	mv log-mdinput.yaml log.yaml
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
+%.mhgps_lj_connect.out: $(abs_top_builddir)/spred/src/mhgps
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
+	$(run_parallel) $(abs_top_builddir)/spred/src/mhgps -l yes > $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
 
 $(PSPS):
 	cp $(abs_top_srcdir)/utils/PSPfiles/$@ .
