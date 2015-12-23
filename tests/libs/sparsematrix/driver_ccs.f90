@@ -1,11 +1,13 @@
 program driver_css
   use module_base
   use sparsematrix_base, only: sparse_matrix, matrices, &
-                               deallocate_sparse_matrix, deallocate_matrices
+                               deallocate_sparse_matrix, deallocate_matrices, &
+                               assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
   use bigdft_run, only: bigdft_init
   use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_ccs, &
                                     sparse_matrix_init_from_file_ccs, matrices_init, &
-                                    matrices_set, sparse_matrix_init_from_data, &
+                                    matrices_get_values, matrices_set_values, &
+                                    sparse_matrix_init_from_data, &
                                     ccs_data_from_sparse_matrix, ccs_matrix_write, &
                                     matrix_matrix_multiplication, matrix_chebyshev_expansion
   use utilities, only: get_ccs_data_from_file
@@ -21,6 +23,7 @@ program driver_css
   type(matrices),dimension(2) :: mat3
   integer :: nfvctr, nvctr, ierr
   integer,dimension(:),pointer :: row_ind, col_ptr
+  real(kind=8),dimension(:),pointer :: val
 
   ! Initialize flib
   call f_lib_initialize()
@@ -57,10 +60,18 @@ program driver_css
   call get_ccs_data_from_file('matrix2.dat', nfvctr, nvctr, row_ind, col_ptr)
   call sparse_matrix_init_from_data(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr, nvctr, row_ind, col_ptr, smat3)
 
+  ! Extract the compressed matrix from the data type. The first routine allocates an array with the correct size,
+  ! the second one extracts the result.
+  val = sparsematrix_malloc_ptr(smat2, iaction=SPARSE_FULL, id='val')
+  call matrices_get_values(smat2, mat2(1), val)
+
   ! Prepare a new matrix data type.
   call matrices_init(smat2, mat2(2))
   ! Set the contents of this new matrix type, using the above result.
-  call matrices_set(smat2, mat2(1)%matrix_compr, mat2(2))
+  call matrices_set_values(smat2, val, mat2(2))
+
+  ! Deallocate the array
+  call f_free_ptr(val)
 
   ! Prepare two new matrix data types
   do i=1,2

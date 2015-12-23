@@ -6,7 +6,9 @@ module sparsematrix_highlevel
   public :: sparse_matrix_init_from_file_ccs
   public :: sparse_matrix_init_from_data
   public :: matrices_init
-  public :: matrices_set
+  public :: matrices_set_values
+  public :: matrices_get_values
+  public :: matrices_get_size
   public :: ccs_data_from_sparse_matrix
   public :: ccs_matrix_write
   public :: matrix_matrix_multiplication
@@ -162,7 +164,7 @@ module sparsematrix_highlevel
     end subroutine matrices_init
     
     
-    subroutine matrices_set(smat, val, mat)
+    subroutine matrices_set_values(smat, val, mat)
       use module_base
       use sparsematrix_base,only: sparse_matrix, matrices, &
                                   matrices_null, assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
@@ -170,20 +172,70 @@ module sparsematrix_highlevel
     
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
-      real(kind=8),dimension(:) :: val
+      real(kind=8),dimension(:),intent(in) :: val
       type(matrices),intent(inout) :: mat
     
-      call f_routine(id='matrices_set')
+      call f_routine(id='matrices_set_values')
     
       if (size(val)/=smat%nvctr) then
           call f_err_throw('The size of the array used to set the matrix contents is wrong: '&
                &//trim(yaml_toa(size(val)))//' instead of '//trim(yaml_toa(smat%nvctr)))
       end if
+      if (size(mat%matrix_compr)/=smat%nvctr) then
+          call f_err_throw('The size of the matrix array which should be set is wrong: '&
+               &//trim(yaml_toa(size(mat%matrix_compr)))//' instead of '//trim(yaml_toa(smat%nvctr)))
+      end if
       call f_memcpy(src=val, dest=mat%matrix_compr)
     
       call f_release_routine()
     
-    end subroutine matrices_set
+    end subroutine matrices_set_values
+
+
+    subroutine matrices_get_values(smat, mat, val)
+      use module_base
+      use sparsematrix_base,only: sparse_matrix, matrices, &
+                                  matrices_null, assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
+      implicit none
+    
+      ! Calling arguments
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(in) :: mat
+      real(kind=8),dimension(:),intent(inout) :: val
+    
+      call f_routine(id='matrices_get_values')
+    
+      if (size(mat%matrix_compr)/=smat%nvctr) then
+          call f_err_throw('The size of the matrix array which should be set is wrong: '&
+               &//trim(yaml_toa(size(mat%matrix_compr)))//' instead of '//trim(yaml_toa(smat%nvctr)))
+      end if
+      if (size(val)/=smat%nvctr) then
+          call f_err_throw('The size of the array used to set the matrix contents is wrong: '&
+               &//trim(yaml_toa(size(val)))//' instead of '//trim(yaml_toa(smat%nvctr)))
+      end if
+      call f_memcpy(src=mat%matrix_compr, dest=val)
+    
+      call f_release_routine()
+    
+    end subroutine matrices_get_values
+
+
+    function matrices_get_size(smat) result(s)
+      use module_base
+      use sparsematrix_base,only: sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      type(sparse_matrix),intent(in) :: smat
+      integer :: s
+    
+      call f_routine(id='matrices_get_sizes')
+
+      s = smat%nvctr
+    
+      call f_release_routine()
+    
+    end function matrices_get_size
 
 
     subroutine ccs_data_from_sparse_matrix(smat, row_ind, col_ptr)

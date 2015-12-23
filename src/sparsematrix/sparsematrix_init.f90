@@ -2453,6 +2453,7 @@ contains
           ! The matrices can not be parallelized
           ind_min = 1
           ind_max = smat%nvctr
+          call find_startendseg_transposed(ind_min,ind_max,smat)
       end if parallel_if
 
       ! Enlarge the values if necessary such that they always start and end with a complete segment
