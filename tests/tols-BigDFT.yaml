@@ -876,6 +876,7 @@ foe:
  guess for new ef: 4.2e-8
  D: 1.1e-10
  Energy (Hartree): 1.3e-10
+ norm(P): 1.1e-07
 
 onlyhigh:
  Energies: 2.1e-9
@@ -1176,13 +1177,15 @@ DIIShistory:
  multiplicator for the confinement: 5.4e-9
  Omega: 2.4e-8
  Total charge: 2.01e-11
- Locreg:
+
+Locreg:
  EH: 2.0e-8
  Pulay forces (Ha/Bohr): 7.8e-09
  Max deviation from unity in reorthonormalize_coeff: 1.1e-9
  Energy (Hartree): 1.3e-10
  Force Norm (Hartree/Bohr): 1.79e-10
  mean conf prefac: 1.0e-04
+ norm(P): 1.0e-9
 
 sparsity:
  Total charge: 1.1e-10

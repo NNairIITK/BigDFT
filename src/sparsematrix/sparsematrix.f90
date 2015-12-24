@@ -528,8 +528,8 @@ module sparsematrix
     
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat, lmat
-      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(inout) :: smatrix_compr
-      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(inout) :: lmatrix_compr
+      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg) :: smatrix_compr
+      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg) :: lmatrix_compr
       character(len=14),intent(in) :: cmode
     
       ! Local variables
