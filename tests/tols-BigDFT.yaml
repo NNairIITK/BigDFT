@@ -100,6 +100,7 @@ yaml_test:
    - Actual address of first element of ptr1
    - Predicted address for the starting point of ptr1
    - address of first element vs address of objects
+   - Timings for search
  Patterns to ignore:
    - errcode
    - Time

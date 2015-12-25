@@ -890,7 +890,7 @@ end subroutine test_f_trees
 !! and compares it to the usage of an array for doing similar things
 subroutine profile_dictionary_usage()
   use dictionaries
-  use f_utils, only : f_time
+  use f_utils
   use yaml_output
   implicit none
   !local variables
@@ -899,6 +899,7 @@ subroutine profile_dictionary_usage()
   double precision :: tel,tot
   type(dictionary), pointer :: dict
   integer, dimension(:), allocatable :: itest !< used to simulate search with an array
+  type(f_progress_bar) :: bar
   
 
 !!$!$  !profiling
@@ -907,6 +908,7 @@ subroutine profile_dictionary_usage()
   nstep=10000
   allocate(itest(nprof))
   itest=0
+  bar=f_progress_bar_new(nstep=nprof/nstep)
   do iprof=1,nprof,nstep
 
      !call system_clock(ncount0,ncount_rate,ncount_max)
@@ -921,10 +923,12 @@ subroutine profile_dictionary_usage()
      !tel=dble(ncount1-ncount0)/dble(ncount_rate)*(1d6/dble(ntry))
      tot=dble(ntry)*dble(nprof)
      tel = dble(t1-t0)/tot
-     call yaml_mapping_open('Timings for search',flow=.true.)
-     call yaml_map('No. of items',iprof)
-     call yaml_map('Elapsed time (ns)',tel,fmt='(f12.2)')
-     call yaml_mapping_close() 
+     !here all the steps are identical
+     call dump_progress_bar(bar,step=iprof/nstep)
+!!$     call yaml_mapping_open('Timings for search',flow=.true.)
+!!$     call yaml_map('No. of items',iprof)
+!!$     call yaml_map('Elapsed time (ns)',tel,fmt='(f12.2)')
+!!$     call yaml_mapping_close() 
   end do
   call yaml_map('Some value',itest(1)+itest(ntry))
   deallocate(itest)
@@ -934,6 +938,7 @@ subroutine profile_dictionary_usage()
   ntry=100
   nstep=5000
   call dict_init(dict)
+  bar=f_progress_bar_new(nstep=nprof/nstep)
   do iprof=1,nprof,nstep
      do jprof=0,nstep-1
         call set(dict//'Test'//(jprof+iprof-1),jprof+iprof-1)
@@ -950,10 +955,13 @@ subroutine profile_dictionary_usage()
      !call system_clock(ncount1,ncount_rate,ncount_max)
      !tel=dble(ncount1-ncount0)/dble(ncount_rate)*(1d6/dble(ntry))
      tel=dble(t1-t0)/dble(ntry)*1.d-3
-     call yaml_mapping_open('Timings for search',flow=.true.)
-     call yaml_map('No. of items',iprof)
-     call yaml_map('Elapsed time (mus)',tel,fmt='(f12.2)')
-     call yaml_mapping_close() 
+     !here each step costs more
+     call dump_progress_bar(bar,step=iprof/nstep)
+
+!!$     call yaml_mapping_open('Timings for search',flow=.true.)
+!!$     call yaml_map('No. of items',iprof)
+!!$     call yaml_map('Elapsed time (mus)',tel,fmt='(f12.2)')
+!!$     call yaml_mapping_close() 
   end do
   call yaml_map('Other value',tot)
   call dict_free(dict)
