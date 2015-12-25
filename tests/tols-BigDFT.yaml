@@ -2081,18 +2081,18 @@ largesystems_dnalarge:
   total net charge: 2.0e-06
   trace of quadropole matrix: 1.4e-06
   Charge analysis (charge / net charge): 2.4e-8
-  Atomic Forces (Ha/Bohr): 3.6e-11
-  Delta r: 1.0e-8
-  r: 3.0e-11
+  Atomic Forces (Ha/Bohr): 5.5e-11
+  Delta r: 1.1e-8
+  r: 3.7e-11
   HOMO-LUMO gap (eV): 2.1e-11
 
 largesystems_dnawater:
-  total net charge: 1.0e-07
+  total net charge: 2.9e-07
   Charge analysis (charge / net charge): 1.7e-1
   Omega: 4.1e-11
   Pseudo Fermi level for occupations: 3.5e-8
   eval: 1.1e-5
-  net charge: 2.1e-7
+  net charge: 1.1e-6
   Ion-Ion interaction energy: 3.1e-11
   D: 1.0e-10
   D Tr: 1.2e-08
@@ -2103,14 +2103,14 @@ largesystems_dnawater:
   HOMO-LUMO gap (Ha): 6.9e-11
   HOMO-LUMO gap (eV): 1.9e-09
   LUMO energy: 6.9e-11
-  PV (Ha): 1.5e-11
+  PV (Ha): 2.2e-11
   charge diff: 1.2e-08
   eF: 4.4e-09
-  ebs: 7.6e-11
-  ebs_check: 7.4e-11
+  ebs: 1.1e-10
+  ebs_check: 1.1e-10
   energy: 4.1e-11
   guess for new ef: 4.5e-09
-  multiplicator for the confinement: 2.5e-10
+  multiplicator for the confinement: 4.9e-10
   occ: 1.1e-07
   trace of quadropole matrix: 1.2e-08
   trace(KS): 1.2e-11
