@@ -577,7 +577,8 @@ module orthonormalization
       if (correction_orthoconstraint==0) then
           if (data_strategy_main==GLOBAL_MATRIX) then
               stop 'deprecated'
-              call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'small_to_large')
+              call transform_sparse_matrix(linmat%m, linmat%l, 'small_to_large', &
+                   smat_in=lagmat_%matrix_compr, lmat_out=lagmat_large)
           end if
           if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
           !!call uncompress_matrix_distributed2(iproc, linmat%l, DENSE_MATMUL, lagmat_large, lagmatp)
@@ -593,7 +594,7 @@ module orthonormalization
       end if
       if (data_strategy_main==SUBMATRIX) then
           call transform_sparse_matrix_local(linmat%m, linmat%l, 'large_to_small', &
-               lmatrix_compr_in=lagmat_%matrix_compr, smatrix_compr_out=lagmat_large)
+               lmatrix_compr_in=lagmat_large, smatrix_compr_out=lagmat_%matrix_compr)
       end if
       call f_free(lagmat_large)
       call f_free(inv_ovrlp_seq)

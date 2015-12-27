@@ -1882,7 +1882,8 @@ module multipole
               call calculte_multipole_matrix(iproc, nproc, l, m, nphi, phi_ortho, phi_ortho, nphir, hgrids, &
                    orbs, collcom, lzd, smats, locregcenter, 'box', multipole_matrix)
 
-              call transform_sparse_matrix(smats, smatl, multipole_matrix%matrix_compr, multipole_matrix_large, 'small_to_large')
+              call transform_sparse_matrix(smats, smatl, 'small_to_large', &
+                   smat_in=multipole_matrix%matrix_compr, lmat_out=multipole_matrix_large)
 
 
               ! The minus sign is required since the phi*S_lm*phi represent the electronic charge which is a negative quantity
@@ -2017,7 +2018,7 @@ module multipole
                                    SPARSE_TASKGROUP, assignment(=), &
                                    matrices_null, deallocate_matrices
       use sparsematrix_init, only: matrixindex_in_compressed
-      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
+      use sparsematrix, only: matrix_matrix_mult_wrapper
       use matrix_operations, only: overlapPowerGeneral, overlap_plus_minus_one_half_exact
       use yaml_output
       use multipole_base, only: lmax

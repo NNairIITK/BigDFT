@@ -692,8 +692,8 @@ module matrix_operations
                     ! This is a bit quick and dirty
                     tmparr = sparsematrix_malloc(ovrlp_smat,iaction=SPARSE_FULL,id='tmparr')
                     call gather_matrix_from_taskgroups(iproc, nproc, ovrlp_smat, ovrlp_mat%matrix_compr, tmparr)
-                    call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
-                         tmparr, ovrlp_large_compr, 'small_to_large')
+                    call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, 'small_to_large', &
+                         smat_in=tmparr, lmat_out=ovrlp_large_compr)
                     !!write(500+bigdft_mpi%iproc,'(a,2es16.8)') 'tmparr, large', tmparr(1), ovrlp_large_compr(1)
                     call f_free(tmparr)
       
