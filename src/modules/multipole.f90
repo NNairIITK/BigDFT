@@ -4142,8 +4142,8 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
      !write(*,*) 'iat, rxyz(1:3,iat)',iat, rxyz(1:3,iat)
      dipole_cores(1:3)=dipole_cores(1:3)+at%nelpsp(at%astruct%iatype(iat)) * rxyz(1:3,iat)
   end do
-  !write(*,*) 'dipole_cores',dipole_cores
-  !write(*,*) 'nc3',nc3
+  !!write(*,*) 'dipole_cores',dipole_cores
+  !!write(*,*) 'nc3',nc3
 
   dipole_el   (1:3)=0._gp
   do ispin=1,nspin
@@ -4166,17 +4166,29 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
            end do
         end do
      end do
-  !write(*,*) 'iproc, dipole_el,sum(rho), qtot',bigdft_mpi%iproc,dipole_el,sum(rho), qtot
+  !!write(*,*) 'iproc, dipole_el,sum(rho), qtot',bigdft_mpi%iproc,dipole_el,sum(rho), qtot
   end do
 
   !!call mpi_barrier(mpi_comm_world,ispin)
   call mpiallred(qtot, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
   call mpiallred(dipole_el, mpi_sum, comm=bigdft_mpi%mpi_comm)
-  !write(*,*) 'after allred: iproc, dipole_el,sum(rho), qtot',bigdft_mpi%iproc,dipole_el,sum(rho), qtot
+  !!call mpi_barrier(mpi_comm_world,ispin)
+  !!write(*,*) 'after allred: iproc, dipole_el,sum(rho), qtot',bigdft_mpi%iproc,dipole_el,sum(rho), qtot
+
+  !!write(*,*) 'dipole_cores first', dipole_cores
+  !!call mpi_barrier(mpi_comm_world,ispin)
 
 
   if (calculate_quadropole) then
       ! Quadrupole not yet parallelized
+
+      if (at%astruct%geocode /= 'F') then
+         nl3=1
+         nc3=n3i
+      else
+         nl3=15
+         nc3=n3i-31
+      end if
 
       if (dpbox%mpi_env%nproc > 1) then
          !allocate full density in pot_ion array
@@ -4295,6 +4307,7 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
                   end do
               end do
           end do
+          !!write(*,*) 'qtot',qtot
           charge_center_elec(1:3,ispin)=charge_center_elec(1:3,ispin)/qtot
       end do
 
@@ -4363,7 +4376,20 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
 
   end if
 
+  !!write(*,*) 'dipole_cores second', dipole_cores
+  !!call mpi_barrier(mpi_comm_world,ispin)
+
+  !!write(*,*) 'dipole_cores', dipole_cores
+  !!call mpi_barrier(mpi_comm_world,ispin)
+  !!write(*,*) 'after cores'
+  !!write(*,*) 'dipole_el', dipole_el
+  !!call mpi_barrier(mpi_comm_world,ispin)
+  !!write(*,*) 'after el'
+
   tmpdip=dipole_cores+dipole_el
+  !!write(*,*) 'tmpdip before',tmpdip
+  !!call mpi_barrier(mpi_comm_world,ispin)
+  !!write(*,*) 'tmpdip',tmpdip
   if (present(dipole)) dipole(1:3) = tmpdip(1:3)
   if(bigdft_mpi%iproc==0 .and. .not.quiet) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
@@ -4394,15 +4420,27 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
           !end do
           !call yaml_sequence_close()
 
-          call yaml_sequence_open('Quadrupole Moment (AU)')
-          do i=1,3
-             call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
-          end do
-          call yaml_map('trace',tmpquadrop(1,1)+tmpquadrop(2,2)+tmpquadrop(3,3),fmt='(es12.2)')
-          call yaml_sequence_close()
+          !!call yaml_sequence_open('Quadrupole Moment (AU)')
+          !!do i=1,3
+          !!   call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
+          !!end do
+          !!call yaml_map('trace',tmpquadrop(1,1)+tmpquadrop(2,2)+tmpquadrop(3,3),fmt='(es12.2)')
+          !!call yaml_sequence_close()
+          !call yaml_sequence_open('Quadrupole Moment (AU)')
+          call yaml_mapping_open('Quadrupole Moment (AU)')
+            call yaml_map('Q matrix',tmpquadrop,fmt='(1pe13.4)')
+          !do i=1,3
+          !   call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
+          !end do
+           call yaml_map('trace',tmpquadrop(1,1)+tmpquadrop(2,2)+tmpquadrop(3,3),fmt='(es12.2)')
+          !call yaml_sequence_close()
+          call yaml_mapping_close()
       end if
 
-  endif
+  end if
+
+  !call mpi_barrier(mpi_comm_world,ispin)
+  !write(*,*) 'end calculate_dipole_moment'
 
 
   call f_release_routine()

@@ -1603,8 +1603,14 @@
      calc_dipole:
        DESCRIPTION: |
                     possible value: 1 logical
-                    Indicates whether the dipole moment should be calculated at the run or not
+                    Indicates whether the dipole moment should be calculated after the run or not
        COMMENT: calculate dipole
+       default: No
+     calc_quadrupole:
+       DESCRIPTION: |
+                    possible value: 1 logical
+                    Indicates whether the quadrupole moment should be calculated after the run or not
+       COMMENT: calculate quadrupole
        default: No
 # this is now an array!
      calc_pulay:

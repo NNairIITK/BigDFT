@@ -112,7 +112,7 @@ module module_input_keys
      integer, dimension(:), pointer :: norbsPerType
      integer :: kernel_mode, mixing_mode
      integer :: scf_mode, nlevel_accuracy
-     logical :: calc_dipole, pulay_correction, iterative_orthogonalization, new_pulay_correction
+     logical :: calc_dipole, calc_quadrupole, pulay_correction, iterative_orthogonalization, new_pulay_correction
      logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end, diag_start
      integer :: extra_states, order_taylor, mixing_after_inputguess
      !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
@@ -2018,6 +2018,8 @@ contains
           in%lin%cdft_conv_crit = val
        case (CALC_DIPOLE)
           in%lin%calc_dipole = val
+       case (CALC_QUADRUPOLE)
+          in%lin%calc_quadrupole = val
        case (CALC_PULAY)
           dummy_log(1:2) = val
           in%lin%pulay_correction = dummy_log(1)

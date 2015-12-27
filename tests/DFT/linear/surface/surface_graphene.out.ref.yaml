@@ -1058,6 +1058,12 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -6.0728E+02, -1.3204E+00, -4.5245E+02 ]
    norm(P)                             :  7.572997E+02
+ Quadrupole Moment (AU):
+   Q matrix:
+   -  [ -1.3325E+02, -1.1909E-01,  1.5445E+03 ]
+   -  [ -1.1909E-01, -2.4445E+02,  1.9910E-01 ]
+   -  [  1.5445E+03,  1.9910E-01,  3.7770E+02 ]
+   trace                               :  1.54E-09
  Calculate local forces                :  Yes
  Calculate NLCC forces                 :  Yes
  Calculate Non Local forces            :  Yes

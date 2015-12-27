@@ -1635,7 +1635,7 @@ surface_boronnitride:
  Total charge: 1.0e-10
  Total ionic charge: 4.2e-11
  Clean forces norm (Ha/Bohr): 1.3e-11
- fnrm2: 1.2e-11
+ fnrm2: 1.3e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1655,7 +1655,8 @@ surface_graphene:
  Total ionic charge: 1.2e-11
  Energy (Hartree): 2.5e-11
  Total charge: 1.1e-10
- energy: 1.2e-11
+ energy: 2.0e-11
+ trace: 2.0e-11
  
 dev.ref.yaml:
  Epot: 1.1e-10

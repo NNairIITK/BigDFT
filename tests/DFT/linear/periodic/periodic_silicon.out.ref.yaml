@@ -1103,6 +1103,12 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -3.4069E+02, -2.8095E+02, -2.1549E+02 ]
    norm(P)                             :  4.913642E+02
+ Quadrupole Moment (AU):
+   Q matrix:
+   -  [ -8.0893E+01,  2.8207E+02,  3.9840E+02 ]
+   -  [  2.8207E+02,  1.7217E+01,  4.4305E+02 ]
+   -  [  3.984E+02,  4.4305E+02,  6.3676E+01 ]
+   trace                               :  1.36E-10
  Calculate local forces                :  Yes
  Calculate Non Local forces            :  Yes
  Stress Tensor calculated              :  Yes

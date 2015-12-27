@@ -74,7 +74,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !Local variables
   character(len=*), parameter :: subname='cluster'
   character(len=5) :: gridformat, wfformat
-  logical :: refill_proj, calculate_dipole !,potential_from_disk=.false.
+  logical :: refill_proj, calculate_dipole, calculate_quadrupole !,potential_from_disk=.false.
   logical :: DoDavidson,DoLastRunThings
   integer :: nvirt,norbv
   integer :: i, input_wf_format
@@ -1045,13 +1045,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 !!$             .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
         if (inputpsi .hasattr. 'CUBIC') then
            calculate_dipole=.true.
+           calculate_quadrupole=.false.
         else
            calculate_dipole = in%lin%calc_dipole
+           calculate_quadrupole=in%lin%calc_quadrupole
         end if
         output_denspot = in%output_denspot
      else
         output_denspot = ENUM_EMPTY
         calculate_dipole = .false.
+        calculate_quadrupole = .false.
      end if
 
      call kswfn_post_treatments(iproc, nproc, KSwfn, tmb, inputpsi .hasattr. 'LINEAR',&
@@ -1059,7 +1062,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 !!$          & inputpsi == INPUT_PSI_MEMORY_LINEAR, &
           fxyz, fnoise, fion, fdisp, fpulay, &
           & strten, pressure, ewaldstr, xcstr, GPU, denspot, atoms, rxyz, nlpsp, &
-          & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole, in%calculate_strten,in%nspin)
+          & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole, calculate_quadrupole, &
+          & in%calculate_strten,in%nspin)
 
      call f_free_ptr(fpulay)
   end if
@@ -1994,7 +1998,8 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      & fxyz, fnoise, fion, fdisp, fpulay, &
      & strten, pressure, ewaldstr, xcstr, &
      & GPU, denspot, atoms, rxyz, nlpsp, &
-     & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole, calculate_strten,nspin)
+     & output_denspot, dir_output, gridformat, refill_proj, &
+     & calculate_dipole, calculate_quadrupole, calculate_strten,nspin)
   use module_base
   use module_types
   use module_interfaces, only: XC_potential, density_and_hpot
@@ -2014,7 +2019,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   type(DFT_local_fields), intent(inout) :: denspot
   type(atoms_data), intent(in) :: atoms
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  logical, intent(in) :: linear, refill_proj, calculate_dipole,calculate_strten
+  logical, intent(in) :: linear, refill_proj, calculate_dipole, calculate_quadrupole, calculate_strten
   integer, intent(in) :: iproc, nproc, nspin
   type(f_enumerator), intent(in) :: output_denspot
   character(len = *), intent(in) :: dir_output
@@ -2100,7 +2105,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   if (calculate_dipole) then
      ! calculate dipole moment associated to the charge density
      !call calc_dipole(denspot%dpbox,denspot%dpbox%nrhodim,atoms,rxyz,denspot%rho_work,.false.)
-     call calculate_dipole_moment(denspot%dpbox,1,atoms,rxyz,denspot%rho_work,.false.)
+     call calculate_dipole_moment(denspot%dpbox,1,atoms,rxyz,denspot%rho_work,calculate_quadrupole)
   end if
   !plot the density on the cube file
   !to be done either for post-processing or if a restart is to be done with mixing enabled
