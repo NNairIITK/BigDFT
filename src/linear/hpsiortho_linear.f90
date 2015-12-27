@@ -156,8 +156,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
       ! Transform to the larger sparse region in order to be compatible with tmb%ham_descr%collcom.
       ! To this end use ham_.
-      call transform_sparse_matrix_local(tmb%linmat%s, tmb%linmat%m, &
-           tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ham_%matrix_compr, 'small_to_large')
+      call transform_sparse_matrix_local(tmb%linmat%s, tmb%linmat%m, 'small_to_large', &
+           smatrix_compr_in=tmb%linmat%ovrlp_%matrix_compr, lmatrix_compr_out=tmb%linmat%ham_%matrix_compr)
 
       !tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
       !call vcopy(tmb%linmat%m%nvctr, tmb%linmat%ham_%matrix_compr(1), 1, tmparr(1), 1)

@@ -2230,8 +2230,8 @@ module io
               sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='SminusonehalfH%matrix_compr')
           ham_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='ham_large')
           tmp_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_large')
-          call transform_sparse_matrix_local(tmb%linmat%m, tmb%linmat%l, &
-               tmb%linmat%ham_%matrix_compr, ham_large, 'small_to_large')
+          call transform_sparse_matrix_local(tmb%linmat%m, tmb%linmat%l, 'small_to_large', &
+               smatrix_compr_in=tmb%linmat%ham_%matrix_compr, lmatrix_compr_out=ham_large)
           ! calculate S^-1/2
           call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, (/-2/), -1, &
                imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &

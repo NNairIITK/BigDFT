@@ -522,15 +522,18 @@ module sparsematrix
 
 
 
-    subroutine transform_sparse_matrix_local(smat, lmat, smatrix_compr, lmatrix_compr, cmode)
+    subroutine transform_sparse_matrix_local(smat, lmat, cmode, &
+               smatrix_compr_in, lmatrix_compr_in, smatrix_compr_out, lmatrix_compr_out)
       use module_base
       implicit none
     
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat, lmat
-      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg) :: smatrix_compr
-      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg) :: lmatrix_compr
       character(len=14),intent(in) :: cmode
+      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(in),optional :: smatrix_compr_in
+      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(in),optional :: lmatrix_compr_in
+      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(out),optional :: smatrix_compr_out
+      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(out),optional :: lmatrix_compr_out
     
       ! Local variables
       real(kind=8),dimension(:),allocatable :: tmparrs, tmparrl
@@ -555,26 +558,31 @@ module sparsematrix
     
       select case (imode)
       case (SMALL_TO_LARGE)
+          ! check the aruments
+          if (.not.present(smatrix_compr_in)) call f_err_throw("'smatrix_compr_in' not present")
+          if (.not.present(lmatrix_compr_out)) call f_err_throw("'lmatrix_compr_out' not present")
           tmparrs = sparsematrix_malloc0(smat,iaction=SPARSE_FULL,id='tmparrs')
           tmparrl = sparsematrix_malloc(lmat,iaction=SPARSE_FULL,id='tmparrl')
           do ispin=1,smat%nspin
               ishift_src = (ispin-1)*smat%nvctrp_tg
               ishift_dst = (ispin-1)*smat%nvctr
-              call vcopy(smat%nvctrp_tg, smatrix_compr(ishift_src+1), 1, &
+              call vcopy(smat%nvctrp_tg, smatrix_compr_in(ishift_src+1), 1, &
                    tmparrs(ishift_dst+smat%isvctrp_tg+1), 1)
               call transform_sparse_matrix(smat, lmat, tmparrs, tmparrl, cmode)
-              call extract_taskgroup(lmat, tmparrl, lmatrix_compr)
+              call extract_taskgroup(lmat, tmparrl, lmatrix_compr_out)
           end do
       case (LARGE_TO_SMALL)
+          if (.not.present(lmatrix_compr_in)) call f_err_throw("'lmatrix_compr_in' not present")
+          if (.not.present(smatrix_compr_out)) call f_err_throw("'smatrix_compr_out' not present")
           tmparrs = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='tmparrs')
           tmparrl = sparsematrix_malloc0(lmat,iaction=SPARSE_FULL,id='tmparrl')
           do ispin=1,smat%nspin
               ishift_src = (ispin-1)*lmat%nvctrp_tg
               ishift_dst = (ispin-1)*lmat%nvctr
-              call vcopy(lmat%nvctrp_tg, lmatrix_compr(ishift_src+1), 1, &
+              call vcopy(lmat%nvctrp_tg, lmatrix_compr_in(ishift_src+1), 1, &
                    tmparrl(ishift_dst+lmat%isvctrp_tg+1), 1)
               call transform_sparse_matrix(smat, lmat, tmparrs, tmparrl, cmode)
-              call extract_taskgroup(smat, tmparrs, smatrix_compr)
+              call extract_taskgroup(smat, tmparrs, smatrix_compr_out)
           end do
       case default
           stop 'wrong imode'

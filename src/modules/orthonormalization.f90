@@ -592,7 +592,8 @@ module orthonormalization
           end do
       end if
       if (data_strategy_main==SUBMATRIX) then
-          call transform_sparse_matrix_local(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'large_to_small')
+          call transform_sparse_matrix_local(linmat%m, linmat%l, 'large_to_small', &
+               lmatrix_compr_in=lagmat_%matrix_compr, smatrix_compr_out=lagmat_large)
       end if
       call f_free(lagmat_large)
       call f_free(inv_ovrlp_seq)
@@ -724,7 +725,8 @@ module orthonormalization
               ! Directly use the large sparsity pattern as this one is used later
               ! for the matrix vector multiplication
               tmp_mat_compr = sparsematrix_malloc(linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_mat_compr')
-              call transform_sparse_matrix_local(linmat%m, linmat%l, lagmat_%matrix_compr, tmp_mat_compr, 'small_to_large')
+              call transform_sparse_matrix_local(linmat%m, linmat%l, 'small_to_large', &
+                   smatrix_compr_in=lagmat_%matrix_compr, lmatrix_compr_out=tmp_mat_compr)
               do ispin=1,lagmat%nspin
                   ishift=(ispin-1)*linmat%l%nvctrp_tg
                   !$omp parallel default(none) &
