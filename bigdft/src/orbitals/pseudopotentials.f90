@@ -479,9 +479,10 @@ module pseudopotentials
       call f_iostream_release(ios)
 
       if (has_key(dict, key) .and. trim(dict_value(dict // key)) == TYPE_LIST) &
-           & call dict_remove(dict, key)
+           call dict_remove(dict, key)
+
       call psp_data_merge_to_dict(dict // key, nzatom, nelpsp, npspcode, ixcpsp, &
-           & psppar, radii_cf, rcore, qcore)
+           psppar, radii_cf, rcore, qcore)
       call set(dict // key // "PAW patch", pawpatch)
       if (present(filename)) then
          call set(dict // key // SOURCE_KEY, filename)
@@ -579,6 +580,7 @@ module pseudopotentials
       use ao_inguess
       use dictionaries
       use f_utils
+      use m_pawpsp, only: pawpsp_read_header_2
       implicit none
 
       type(io_stream), intent(inout) :: ios
@@ -593,6 +595,7 @@ module pseudopotentials
 
       integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l, nzatom_, nelpsp_, npspcode_
       integer :: lmax,lloc,mmax, ixc_
+      integer:: pspversion,basis_size,lmn_size
       real(dp) :: nelpsp_dp,nzatom_dp,r2well
       character(len=max_field_length) :: line
       logical :: exists, eof
@@ -668,9 +671,15 @@ module pseudopotentials
             !read(11,*) skip !k coefficients, not used for the moment (no spin-orbit coupling)
          enddo
       else if (npspcode == PSPCODE_PAW) then !PAW Pseudos
-         if (.not.exists) call f_err_throw('Implement here.',err_name='BIGDFT_RUNTIME_ERROR')
+         ! Need NC psp for input guess.
+         ixc_=ixcpsp
+         call atomic_info(nzatom, nelpsp, symbol = symbol)
+         call psp_from_data(symbol, nzatom_, nelpsp_, npspcode_, ixc_, &
+              psppar, exists)
+         if (.not.exists) &
+              call f_err_throw('Implement here.',err_name='BIGDFT_RUNTIME_ERROR')
          ! PAW format using libPAW.
-         !call pawpsp_read_header_2(ios%iunit,pspversion,basis_size,lmn_size)
+         call pawpsp_read_header_2(ios%iunit,pspversion,basis_size,lmn_size)
          ! PAW data will not be saved in the input dictionary,
          ! we keep their reading for later.
          pawpatch = .true.
@@ -710,9 +719,7 @@ module pseudopotentials
             end do
             if (l==1) cycle
             do i=1,nprl
-               !ALEX: Maybe this can prevent reading errors on CRAY machines?
                call f_iostream_get_line(ios, line)
-               !read(11,*) skip !k coefficients, not used
             end do
          end do
          call f_iostream_get_line(ios, line)
@@ -761,8 +768,9 @@ module pseudopotentials
          if (.not.exists) then
             ixc_ = 1
             call psp_from_data(symbol, nzatom_, nelpsp_, npspcode_, ixc_, &
-                 & psppar, exists)
-            if (.not. exists) stop 'Serious issue'
+                 psppar, exists)
+            if (.not. exists) call f_err_throw('Default PSP data for LDA not found',&
+                 err_name='BIGDFT_RUNTIME_ERROR')
          end if
       end if
     END SUBROUTINE psp_from_stream

@@ -167,7 +167,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         end if
         charge=charge+real(at%nelpsp(ityp),gp)
      end do
-     shortlength=shortlength*2.0_gp*pi
+     !shortlength=shortlength*2.0_gp*pi
 
      !print *,'psoffset',psoffset,'pspcore', &
      !    (psoffset+shortlength)*charge/(at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3))

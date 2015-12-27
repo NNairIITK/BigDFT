@@ -18,4 +18,6 @@ module_autogenargs['libABINIT'] = "FC=mpif90 FCFLAGS='-fPIC -g -O2'"
 
 module_makeargs['wannier90'] = "F90=gfortran MPIF90=mpif90 LIBS='-llapack -lblas' COMMS='mpi'"
 
+module_makeargs['parmetis'] = "config all install prefix=%(prefix)s" % globals() 
+
 module_autogenargs['etsf_io'] += "FCFLAGS='-fPIC'"
