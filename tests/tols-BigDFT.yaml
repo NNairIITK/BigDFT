@@ -368,7 +368,7 @@ NLCC: &NLCCs
  Energies: 1.2e-10
  EKS: 5.9e-11
  Total electronic charge: 1.2e-11
- norm(P): 1.0e-10
+ norm(P): 2.0e-10
  GPa: 4.5e-11
 
 NLCC: &NLCCsnew
@@ -877,6 +877,7 @@ foe:
  D: 1.1e-10
  Energy (Hartree): 1.3e-10
  norm(P): 1.1e-07
+ trace: 1.4e-11
 
 onlyhigh:
  Energies: 2.1e-9
@@ -1582,6 +1583,7 @@ periodic_silicon:
  Total ionic charge: 6.7e-11
  Pressure: 1.5e-10
  D Tr: 1.0e-9
+ trace: 7.1e-11
 
 periodic_wateredge:
  Epot: 1.1e-9
@@ -1656,7 +1658,7 @@ surface_graphene:
  Energy (Hartree): 2.5e-11
  Total charge: 1.1e-10
  energy: 2.0e-11
- trace: 2.0e-11
+ trace: 8.0e-11
  
 dev.ref.yaml:
  Epot: 1.1e-10
