@@ -1178,6 +1178,8 @@ DIIShistory:
  multiplicator for the confinement: 5.4e-9
  Omega: 2.4e-8
  Total charge: 2.01e-11
+ mean conf prefac: 1.0e-04
+ Energy (Hartree): 5.05e-11
 
 Locreg:
  EH: 2.0e-8
@@ -1381,26 +1383,26 @@ O2spin_dirmin:
  Raw forces norm (Ha/Bohr): 9.3e-5
  Electric Dipole Moment (AU): 2.4e-5
  Electric Dipole Moment (Debye): 2.62e-5
- eBS: 8.03e-6
+ eBS: 9.59e-6
  fnrm2: 9.9e-5
- EH: 1.39e-5
+ EH: 1.65e-5
  EXC: 5.6e-6
  Ekin: 8.5e-6
  Enl: 1.9e-7
  Epot: 1.56e-5
  EvXC: 6.0e-6
  energydiff: 6.0e-6
- energy: 1.69e-6
+ energy: 1.96e-6
  fnrm: 1.1e-5
  Energy (Hartree): 1.68e-6
  Omega: 6.1e-6
  D: 1.1e-4
- DIIS weights: 4.101
+ DIIS weights: 4.81
  Max deviation from unity in reorthonormalize_coeff: 1.1e-6
  Mean deviation from unity in reorthonormalize_coeff: 1.1e-7
  delta: 1.1e-10
  delta out: 1.1e-10
- Force Norm (Hartree/Bohr): 2.26e-5
+ Force Norm (Hartree/Bohr): 2.76e-5
 
 verysparse:
  Total charge: 2.3e-8
@@ -1583,7 +1585,7 @@ periodic_silicon:
  Total ionic charge: 6.7e-11
  Pressure: 1.5e-10
  D Tr: 1.0e-9
- trace: 7.1e-11
+ trace: 2.65e-10
 
 periodic_wateredge:
  Epot: 1.1e-9
@@ -1626,7 +1628,8 @@ periodic_water:
  Clean forces norm (Ha/Bohr): 1.9e-11
  Total charge: 2.1e-10
  Ion-Ion interaction energy: 1.6e-11
- Force Norm (Hartree/Bohr): 1.44e-11
+ Force Norm (Hartree/Bohr): 1.48e-11
+ fnrm2: 1.92e-11
 
 surface_boronnitride:
  Enl: 1.01e-9
@@ -1658,7 +1661,7 @@ surface_graphene:
  Energy (Hartree): 2.5e-11
  Total charge: 1.1e-10
  energy: 2.0e-11
- trace: 8.0e-11
+ trace: 2.41e-10
  
 dev.ref.yaml:
  Epot: 1.1e-10
@@ -1886,7 +1889,7 @@ igortho_94:
  number of corrected points: 116
  delta: 4.1e-11
  radius for normalization: 1.1e-2
- multiplicator for the confinement: 3.97e-11
+ multiplicator for the confinement: 4.38e-11
  Force Norm (Hartree/Bohr): 3.7e-8
 
 extendedfrags_nofrags:

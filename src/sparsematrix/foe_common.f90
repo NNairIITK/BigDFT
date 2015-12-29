@@ -794,6 +794,7 @@ module foe_common
       !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
     
       call f_routine(id='chebft')
+
     
       if (n>50000) stop 'chebft'
       bma=0.5d0*(b-a)
@@ -818,6 +819,8 @@ module foe_common
       end do
       !$omp end do
       !$omp end parallel
+
+      !!call accuracy_of_chebyshev_expansion(n, cc, (/A,B/), 1.d-2, ex)
     
       call f_release_routine()
     
@@ -897,6 +900,55 @@ module foe_common
     
     
     end subroutine init_foe
+
+
+    subroutine accuracy_of_chebyshev_expansion(npl, coeff, bounds, h, power)!func)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: npl
+      real(kind=8),dimension(npl),intent(in) :: coeff
+      real(kind=8),dimension(2),intent(in) :: bounds
+      real(kind=8),intent(in) :: h, power
+      !real(kind=8),external :: func
+
+      ! Local variables
+      integer :: is, ie, i, ipl
+      real(kind=8) :: x, xx, val_chebyshev, val_function, xxm1, xxm2, xxx, sigma, tau
+
+      sigma = 2.d0/(bounds(2)-bounds(1))
+      tau = (bounds(1)+bounds(2))/2.d0
+
+      is = nint(bounds(1)/h)
+      ie = nint(bounds(2)/h)
+      do i=is,ie
+          x = real(i,kind=8)*h
+          val_chebyshev = 0.5d0*coeff(1)*1.d0
+          xx = sigma*(x-tau)
+          val_chebyshev = val_chebyshev + coeff(2)*xx
+          xxm2 = 1.d0
+          xxm1 = xx
+          do ipl=3,npl
+              xx = sigma*(x-tau)
+              xxx = 2.d0*xx*xxm1 - xxm2
+              val_chebyshev = val_chebyshev + coeff(ipl)*xxx
+              xxm2 = xxm1
+              xxm1 = xx
+          end do
+          val_function = x**power
+          write(*,*) 'x, power, coeff(1), val_chebyshev, val_function', x, power, coeff(1), val_chebyshev, val_function
+      end do
+
+    end subroutine accuracy_of_chebyshev_expansion
+
+
+    !!pure function x_power(x, power)
+    !!  implicit none
+    !!  real(kind=8),intent(in) :: x
+    !!  real(kind=8),intent(in) :: power
+    !!  real(kind=8) :: x_power
+    !!  x_power = x**power
+    !!end function x_power
 
 
 end module foe_common
