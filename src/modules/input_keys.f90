@@ -110,7 +110,7 @@ module module_input_keys
      integer, dimension(:), pointer :: norbsPerType
      integer :: kernel_mode, mixing_mode
      integer :: scf_mode, nlevel_accuracy
-     logical :: calc_dipole, pulay_correction, iterative_orthogonalization, new_pulay_correction
+     logical :: calc_dipole, calc_quadrupole, pulay_correction, iterative_orthogonalization, new_pulay_correction
      logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end, diag_start
      integer :: extra_states, order_taylor, mixing_after_inputguess
      !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
@@ -403,6 +403,10 @@ module module_input_keys
 
      !> Use the FOE method to calculate the HOMO-LUMO gap at the end
      logical :: foe_gap
+
+     !> Number of iterations (for each angular momentum l) to get an optimal sigma for the Gaussian used for the radial
+     !! part of the function based on the multipoles. Warning: The total number of iterations is nsigma**(lmax+1), so only use small values
+     integer :: nsigma
 
      !> Calculate the support function multipoles
      logical :: support_function_multipoles
@@ -1809,6 +1813,10 @@ contains
        case (FOE_GAP)
           ! linear scaling: Use the FOE method to calculate the HOMO-LUMO gap at the end
           in%foe_gap = val
+       case (NSIGMA)
+          ! Linear scaling: Number of iterations (for each angular momentum l) to get an optimal sigma for the Gaussian used for the radial
+          ! part of the function based on the multipoles. Warning: The total number of iterations is nsigma**(lmax+1), so only use small values
+          in%nsigma = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2008,6 +2016,8 @@ contains
           in%lin%cdft_conv_crit = val
        case (CALC_DIPOLE)
           in%lin%calc_dipole = val
+       case (CALC_QUADRUPOLE)
+          in%lin%calc_quadrupole = val
        case (CALC_PULAY)
           dummy_log(1:2) = val
           in%lin%pulay_correction = dummy_log(1)

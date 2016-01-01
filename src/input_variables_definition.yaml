@@ -1418,6 +1418,11 @@
    foe_gap:
      COMMENT: Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
      default: False
+   nsigma:
+     COMMENT: Number of iterations (for each angular momentum l) to get an optimal sigma for the Gaussian used for the radial part of the function based on the multipoles.
+     DESCRIPTION: Warning -- The total number of iterations is nsigma**(lmax+1), so only use small values
+     default: 1
+     RANGE: [1,5]
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -1598,8 +1603,14 @@
      calc_dipole:
        DESCRIPTION: |
                     possible value: 1 logical
-                    Indicates whether the dipole moment should be calculated at the run or not
+                    Indicates whether the dipole moment should be calculated after the run or not
        COMMENT: calculate dipole
+       default: No
+     calc_quadrupole:
+       DESCRIPTION: |
+                    possible value: 1 logical
+                    Indicates whether the quadrupole moment should be calculated after the run or not
+       COMMENT: calculate quadrupole
        default: No
 # this is now an array!
      calc_pulay:

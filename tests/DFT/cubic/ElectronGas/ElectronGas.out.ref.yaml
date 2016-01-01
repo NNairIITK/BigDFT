@@ -78,7 +78,8 @@
    disablesym                          : Yes #    Disable the symmetry detection
    itermin                             : 0 #      Min. iterations of wfn. opt. steps
    solvent                             : vacuum # Electrostatic environment for Poisson Equation
-   external_potential                  : 0.0 #    Multipole moments of an external potential
+   external_potential:
+     values                            : __not_a_value__
    calculate_strten                    : Yes #    Boolean to activate the calculation of the stress tensor. Might be set to No for 
     #                                              performance reasons
  kpt:

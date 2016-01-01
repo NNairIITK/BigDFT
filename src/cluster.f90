@@ -74,7 +74,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !Local variables
   character(len=*), parameter :: subname='cluster'
   character(len=5) :: gridformat, wfformat
-  logical :: refill_proj, calculate_dipole !,potential_from_disk=.false.
+  logical :: refill_proj, calculate_dipole, calculate_quadrupole !,potential_from_disk=.false.
   logical :: DoDavidson,DoLastRunThings
   integer :: nvirt,norbv
   integer :: i, input_wf_format
@@ -420,7 +420,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!do ilr=1,tmb%lzd%nlr
      !!    locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
      !!end do
-     call init_foe(iproc, nproc, in, KSwfn%orbs, 0.d0, tmb%foe_obj, .true.)
+     call init_foe_wrapper(iproc, nproc, in, KSwfn%orbs, 0.d0, tmb%foe_obj)
      !!call f_free(locreg_centers)
      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
 
@@ -483,14 +483,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!write(*,*) 'after l: iirow', iirow
      !!write(*,*) 'after l: iicol', iicol
 
-     call init_matrix_taskgroups(iproc, nproc, atoms%astruct%nat, in%enable_matrix_taskgroups, &
-          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, tmb%linmat%s, &
+          atoms%astruct%nat, tmb%collcom, tmb%collcom_sr, iirow, iicol)
      !!write(*,*) 'after s'
-     call init_matrix_taskgroups(iproc, nproc, atoms%astruct%nat, in%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, tmb%linmat%m, &
+          atoms%astruct%nat,  tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
      !!write(*,*) 'after m'
-     call init_matrix_taskgroups(iproc, nproc, atoms%astruct%nat, in%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, tmb%linmat%l, &
+          atoms%astruct%nat, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
      !!write(*,*) 'after l'
 
      tmb%linmat%kernel_ = matrices_null()
@@ -647,7 +647,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   call potential_from_charge_multipoles(iproc, nproc, atoms, denspot, in%ep, 1, denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
-       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, denspot%V_ext)
+       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, verbosity=1, pot=denspot%V_ext)
   call interaction_multipoles_ions(bigdft_mpi%iproc, in%ep, atoms, energs%eion, fion)
   !write(*,*) 'eion before', energs%eion
   call ionic_energy_of_external_charges(bigdft_mpi%iproc, in%ep, atoms, energs%eion)
@@ -1045,13 +1045,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 !!$             .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
         if (inputpsi .hasattr. 'CUBIC') then
            calculate_dipole=.true.
+           calculate_quadrupole=.false.
         else
            calculate_dipole = in%lin%calc_dipole
+           calculate_quadrupole=in%lin%calc_quadrupole
         end if
         output_denspot = in%output_denspot
      else
         output_denspot = ENUM_EMPTY
         calculate_dipole = .false.
+        calculate_quadrupole = .false.
      end if
 
      call kswfn_post_treatments(iproc, nproc, KSwfn, tmb, inputpsi .hasattr. 'LINEAR',&
@@ -1059,7 +1062,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 !!$          & inputpsi == INPUT_PSI_MEMORY_LINEAR, &
           fxyz, fnoise, fion, fdisp, fpulay, &
           & strten, pressure, ewaldstr, xcstr, GPU, denspot, atoms, rxyz, nlpsp, &
-          & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole, in%calculate_strten,in%nspin)
+          & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole, calculate_quadrupole, &
+          & in%calculate_strten,in%nspin)
 
      call f_free_ptr(fpulay)
   end if
@@ -1994,7 +1998,8 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      & fxyz, fnoise, fion, fdisp, fpulay, &
      & strten, pressure, ewaldstr, xcstr, &
      & GPU, denspot, atoms, rxyz, nlpsp, &
-     & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole, calculate_strten,nspin)
+     & output_denspot, dir_output, gridformat, refill_proj, &
+     & calculate_dipole, calculate_quadrupole, calculate_strten,nspin)
   use module_base
   use module_types
   use module_interfaces, only: XC_potential, density_and_hpot
@@ -2003,6 +2008,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: deallocate_matrices, deallocate_sparse_matrix
+  use multipole, only: calculate_dipole_moment
   use public_enums
   use orbitalbasis
   implicit none
@@ -2013,7 +2019,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   type(DFT_local_fields), intent(inout) :: denspot
   type(atoms_data), intent(in) :: atoms
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  logical, intent(in) :: linear, refill_proj, calculate_dipole,calculate_strten
+  logical, intent(in) :: linear, refill_proj, calculate_dipole, calculate_quadrupole, calculate_strten
   integer, intent(in) :: iproc, nproc, nspin
   type(f_enumerator), intent(in) :: output_denspot
   character(len = *), intent(in) :: dir_output
@@ -2099,7 +2105,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   if (calculate_dipole) then
      ! calculate dipole moment associated to the charge density
      !call calc_dipole(denspot%dpbox,denspot%dpbox%nrhodim,atoms,rxyz,denspot%rho_work,.false.)
-     call calc_dipole(denspot%dpbox,1,atoms,rxyz,denspot%rho_work,.false.)
+     call calculate_dipole_moment(denspot%dpbox,1,atoms,rxyz,denspot%rho_work,calculate_quadrupole)
   end if
   !plot the density on the cube file
   !to be done either for post-processing or if a restart is to be done with mixing enabled

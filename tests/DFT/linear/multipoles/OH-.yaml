@@ -14,8 +14,11 @@
    inputpsiid: linear
    disablesym: Yes
    external_potential:
+     units: 'bohr'
+     values:
      - sym: H
        r: [2.21750593168928356, 2.04473357363277941, 2.03055967296825646]
+       sigma: [1.0, 0.8, 0.6]
        q0: [-1.0]
    #- {r: [2.21750593168928356, 2.04473357363277941, 2.03055967296825646], q0: [-0.316512102]}
    #- {r: [2.21750593168928356, 2.04473357363277941, 2.03055967296825646], q0: [1.0]}
@@ -29,6 +32,7 @@
    check_matrix_compression: No
    FOE_restart: 1
    hamapp_radius_incr: 6
+   nsigma: 3
  lin_general:
    hybrid: Yes
    nit: 50

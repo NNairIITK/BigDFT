@@ -21,6 +21,7 @@ module foe_common
   public :: scale_and_shift_matrix
   public :: retransform_ext
   public :: cheb_exp
+  public :: init_foe
 
 
   contains
@@ -821,6 +822,81 @@ module foe_common
       call f_release_routine()
     
     end subroutine cheb_exp
+
+
+    subroutine init_foe(iproc, nproc, nspin, charge, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
+               evlow, evhigh, fscale, ef_interpol_det, ef_interpol_chargediff, &
+               fscale_lowerbound, fscale_upperbound, foe_obj)
+      use module_base
+      use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
+      implicit none
+      
+      ! Calling arguments
+      integer, intent(in) :: iproc, nproc, nspin, evbounds_nsatur, evboundsshrink_nsatur
+      real(kind=8),dimension(nspin),intent(in) :: charge
+      real(kind=8),intent(in) :: evlow, evhigh, fscale, ef_interpol_det
+      real(kind=8),intent(in) :: ef_interpol_chargediff, fscale_lowerbound, fscale_upperbound
+      real(kind=8),intent(in) :: tmprtr
+      type(foe_data), intent(out) :: foe_obj
+      
+      ! Local variables
+      character(len=*), parameter :: subname='init_foe'
+      integer :: iorb, ispin
+      real(kind=8) :: incr
+    
+      call timing(iproc,'init_matrCompr','ON')
+    
+      foe_obj = foe_data_null()
+    
+      foe_obj%ef = f_malloc0_ptr(nspin,id='(foe_obj%ef)')
+      call foe_data_set_real(foe_obj,"ef",0.d0,1)
+      if (nspin==2) then
+          call foe_data_set_real(foe_obj,"ef",0.d0,2)
+      end if
+      foe_obj%evlow = f_malloc0_ptr(nspin,id='foe_obj%evlow')
+      call foe_data_set_real(foe_obj,"evlow",evlow,1)
+      if (nspin==2) then
+          call foe_data_set_real(foe_obj,"evlow",evlow,2)
+      end if
+      foe_obj%evhigh = f_malloc0_ptr(nspin,id='foe_obj%evhigh')
+      call foe_data_set_real(foe_obj,"evhigh",evhigh,1)
+      if (nspin==2) then
+          call foe_data_set_real(foe_obj,"evhigh",evhigh,2)
+      end if
+      foe_obj%bisection_shift = f_malloc0_ptr(nspin,id='foe_obj%bisection_shift')
+      call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,1)
+      if (nspin==2) then
+          call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,2)
+      end if
+      call foe_data_set_real(foe_obj,"fscale",fscale)
+      call foe_data_set_real(foe_obj,"ef_interpol_det",ef_interpol_det)
+      call foe_data_set_real(foe_obj,"ef_interpol_chargediff",ef_interpol_chargediff)
+      foe_obj%charge = f_malloc0_ptr(nspin,id='foe_obj%charge')
+      call foe_data_set_real(foe_obj,"charge",0.d0,1)
+      !!do iorb=1,orbs_KS%norbu
+      !!    call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)+orbs_KS%occup(iorb),1)
+      !!end do
+      !!if (nspin==2) then
+      !!    call foe_data_set_real(foe_obj,"charge",0.d0,2)
+      !!    do iorb=orbs_KS%norbu+1,orbs_KS%norb
+      !!         call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",2)+orbs_KS%occup(iorb),2)
+      !!    end do
+      !!end if
+      do ispin=1,nspin
+          call foe_data_set_real(foe_obj,"charge",charge(ispin),ispin)
+      end do
+      call foe_data_set_int(foe_obj,"evbounds_isatur",0)
+      call foe_data_set_int(foe_obj,"evboundsshrink_isatur",0)
+      call foe_data_set_int(foe_obj,"evbounds_nsatur",evbounds_nsatur)
+      call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",evboundsshrink_nsatur)
+      call foe_data_set_real(foe_obj,"fscale_lowerbound",fscale_lowerbound)
+      call foe_data_set_real(foe_obj,"fscale_upperbound",fscale_upperbound)
+      call foe_data_set_real(foe_obj,"tmprtr",tmprtr)
+    
+      call timing(iproc,'init_matrCompr','OF')
+    
+    
+    end subroutine init_foe
 
 
 end module foe_common

@@ -202,6 +202,7 @@ module public_keys
   character(len = *), parameter :: GPS_METHOD = "gps_method"
   character(len = *), parameter :: FOE_GAP = "foe_gap"
   character(len = *), parameter :: SUPPORT_FUNCTION_MULTIPOLES = "support_function_multipoles"
+  character(len = *), parameter :: NSIGMA = "nsigma"
 
   !keys for linear input variables
   !level keys
@@ -223,6 +224,7 @@ module public_keys
   character(len=*), parameter :: CONF_DAMPING    ='conf_damping'
   character(len=*), parameter :: TAYLOR_ORDER    ='taylor_order'
   character(len=*), parameter :: CALC_DIPOLE     ='calc_dipole'
+  character(len=*), parameter :: CALC_QUADRUPOLE ='calc_quadrupole'
   character(len=*), parameter :: CDFT_LAG_MULT_INIT='cdft_lag_mult_init'
   character(len=*), parameter :: CDFT_CONV_CRIT  ='cdft_conv_crit'
   character(len=*), parameter :: CALC_PULAY      ='calc_pulay'

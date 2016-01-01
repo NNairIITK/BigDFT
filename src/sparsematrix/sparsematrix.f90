@@ -396,15 +396,18 @@ module sparsematrix
     end subroutine check_matrix_compression
 
 
-    subroutine transform_sparse_matrix(smat, lmat, smatrix_compr, lmatrix_compr, cmode)
+    subroutine transform_sparse_matrix(smat, lmat, cmode, &
+               smat_in, lmat_in, smat_out, lmat_out)
       use module_base
       implicit none
     
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat, lmat
-      real(kind=8),dimension(smat%nspin*smat%nvctr),intent(inout) :: smatrix_compr
-      real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(inout) :: lmatrix_compr
       character(len=14),intent(in) :: cmode
+      real(kind=8),dimension(smat%nspin*smat%nvctr),intent(in),optional :: smat_in
+      real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(in),optional :: lmat_in
+      real(kind=8),dimension(smat%nspin*smat%nvctr),intent(out),optional :: smat_out
+      real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(out),optional :: lmat_out
     
       ! Local variables
       integer(kind=8) :: isstart, isend, ilstart, ilend, iostart, ioend
@@ -421,21 +424,25 @@ module sparsematrix
       ! LARGE_TO_SMALL -> transform from small sparsity pattern to large one
       if (cmode=='small_to_large' .or. cmode=='SMALL_TO_LARGE') then
           imode=SMALL_TO_LARGE
+          if (.not.present(smat_in)) call f_err_throw('smat_in not present')
+          if (.not.present(lmat_out)) call f_err_throw('lmat_out not present')
       else if (cmode=='large_to_small' .or. cmode=='LARGE_TO_SMALL') then
           imode=LARGE_TO_SMALL
+          if (.not.present(lmat_in)) call f_err_throw('lmat_in not present')
+          if (.not.present(smat_out)) call f_err_throw('smat_out not present')
       else
-          stop 'wrong cmode'
+          call f_err_throw('wrong cmode')
       end if
     
       select case (imode)
       case (SMALL_TO_LARGE)
          !call to_zero(lmat%nvctr*lmat%nspin,lmatrix_compr(1))
-         call f_zero(lmatrix_compr)
+         call f_zero(lmat_out)
       case (LARGE_TO_SMALL)
          !call to_zero(smat%nvctr*lmat%nspin,smatrix_compr(1))
-         call f_zero(smatrix_compr)
+         call f_zero(smat_out)
       case default
-          stop 'wrong imode'
+          call f_err_throw('wrong imode')
       end select
     
       call timing(bigdft_mpi%iproc,'transform_matr','IR')
@@ -449,7 +456,8 @@ module sparsematrix
     
           ilsegstart=1
           !$omp parallel default(private) &
-          !$omp shared(smat, lmat, imode, lmatrix_compr, smatrix_compr, icheck, isshift, ilshift) &
+          !$omp shared(smat, lmat, imode, icheck, isshift, ilshift) &
+          !$omp shared(smat_in, lmat_in, smat_out, lmat_out) &
           !$omp firstprivate(ilsegstart)
           !$omp do reduction(+:icheck)
           sloop: do isseg=1,smat%nseg
@@ -491,11 +499,11 @@ module sparsematrix
                   select case (imode)
                   case (SMALL_TO_LARGE) 
                       do i=0,ilength-1
-                          lmatrix_compr(ilcostart+i+ilshift)=smatrix_compr(iscostart+i+isshift)
+                          lmat_out(ilcostart+i+ilshift)=smat_in(iscostart+i+isshift)
                       end do
                   case (LARGE_TO_SMALL) 
                       do i=0,ilength-1
-                          smatrix_compr(iscostart+i+isshift)=lmatrix_compr(ilcostart+i+ilshift)
+                          smat_out(iscostart+i+isshift)=lmat_in(ilcostart+i+ilshift)
                       end do
                   case default
                       stop 'wrong imode'
@@ -522,15 +530,18 @@ module sparsematrix
 
 
 
-    subroutine transform_sparse_matrix_local(smat, lmat, smatrix_compr, lmatrix_compr, cmode)
+    subroutine transform_sparse_matrix_local(smat, lmat, cmode, &
+               smatrix_compr_in, lmatrix_compr_in, smatrix_compr_out, lmatrix_compr_out)
       use module_base
       implicit none
     
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat, lmat
-      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(inout) :: smatrix_compr
-      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(inout) :: lmatrix_compr
       character(len=14),intent(in) :: cmode
+      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(in),optional :: smatrix_compr_in
+      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(in),optional :: lmatrix_compr_in
+      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(out),optional :: smatrix_compr_out
+      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(out),optional :: lmatrix_compr_out
     
       ! Local variables
       real(kind=8),dimension(:),allocatable :: tmparrs, tmparrl
@@ -555,26 +566,31 @@ module sparsematrix
     
       select case (imode)
       case (SMALL_TO_LARGE)
+          ! check the aruments
+          if (.not.present(smatrix_compr_in)) call f_err_throw("'smatrix_compr_in' not present")
+          if (.not.present(lmatrix_compr_out)) call f_err_throw("'lmatrix_compr_out' not present")
           tmparrs = sparsematrix_malloc0(smat,iaction=SPARSE_FULL,id='tmparrs')
           tmparrl = sparsematrix_malloc(lmat,iaction=SPARSE_FULL,id='tmparrl')
           do ispin=1,smat%nspin
               ishift_src = (ispin-1)*smat%nvctrp_tg
               ishift_dst = (ispin-1)*smat%nvctr
-              call vcopy(smat%nvctrp_tg, smatrix_compr(ishift_src+1), 1, &
+              call vcopy(smat%nvctrp_tg, smatrix_compr_in(ishift_src+1), 1, &
                    tmparrs(ishift_dst+smat%isvctrp_tg+1), 1)
-              call transform_sparse_matrix(smat, lmat, tmparrs, tmparrl, cmode)
-              call extract_taskgroup(lmat, tmparrl, lmatrix_compr)
+              call transform_sparse_matrix(smat, lmat, cmode, smat_in=tmparrs, lmat_out=tmparrl)
+              call extract_taskgroup(lmat, tmparrl, lmatrix_compr_out)
           end do
       case (LARGE_TO_SMALL)
+          if (.not.present(lmatrix_compr_in)) call f_err_throw("'lmatrix_compr_in' not present")
+          if (.not.present(smatrix_compr_out)) call f_err_throw("'smatrix_compr_out' not present")
           tmparrs = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='tmparrs')
           tmparrl = sparsematrix_malloc0(lmat,iaction=SPARSE_FULL,id='tmparrl')
           do ispin=1,smat%nspin
               ishift_src = (ispin-1)*lmat%nvctrp_tg
               ishift_dst = (ispin-1)*lmat%nvctr
-              call vcopy(lmat%nvctrp_tg, lmatrix_compr(ishift_src+1), 1, &
+              call vcopy(lmat%nvctrp_tg, lmatrix_compr_in(ishift_src+1), 1, &
                    tmparrl(ishift_dst+lmat%isvctrp_tg+1), 1)
-              call transform_sparse_matrix(smat, lmat, tmparrs, tmparrl, cmode)
-              call extract_taskgroup(smat, tmparrs, smatrix_compr)
+              call transform_sparse_matrix(smat, lmat, cmode, lmat_in=tmparrl, smat_out=tmparrs)
+              call extract_taskgroup(smat, tmparrs, smatrix_compr_out)
           end do
       case default
           stop 'wrong imode'
@@ -589,6 +605,68 @@ module sparsematrix
 
 
 
+
+   subroutine compress_matrix_distributed_wrapper_1(iproc, nproc, smat, layout, matrixp, matrix_compr)
+     use module_base
+     implicit none
+
+     ! Calling arguments
+     integer,intent(in) :: iproc, nproc, layout
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8),dimension(:),target,intent(inout) :: matrixp
+     real(kind=8),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
+
+     ! Local variables
+     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
+     integer :: ncount, itg, iitg, ist_send, ist_recv, i, iline, icolumn, ind
+     integer :: window, sizeof, jproc_send, iorb, jproc, info
+     integer,dimension(:),pointer :: isvctr_par, nvctr_par
+     integer,dimension(:),allocatable :: request, windows
+     real(kind=8),dimension(:),pointer :: matrix_local
+     real(kind=8),dimension(:),allocatable :: recvbuf
+
+     call f_routine(id='compress_matrix_distributed_wrapper_1')
+
+     !call timing(iproc,'compressd_mcpy','ON')
+
+
+     if (layout==SPARSE_MATMUL_SMALL) then
+         if (size(matrixp)/=max(smat%smmm%nvctrp_mm,1)) then
+             write(*,*) 'CRASH 1'
+             call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
+                  &' instead of '//trim(yaml_toa(smat%smmm%nvctrp_mm,fmt='(i0)')), &
+                  err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         matrix_local => matrixp
+     else if (layout==SPARSE_MATMUL_LARGE) then
+         if (size(matrixp)/=smat%smmm%nvctrp) then
+             call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
+                  &' instead of '//trim(yaml_toa(smat%smmm%nvctrp,fmt='(i0)')), &
+                  err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp_mm),id='matrix_local')
+         call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+              smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
+              smat%smmm%nvctrp, smat%smmm%isvctr, &
+              smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
+              'large_to_small', matrix_local, matrixp)
+         !call f_free_ptr(matrix_local)
+     else
+             call f_err_throw('layout has the value '//trim(yaml_toa(layout,fmt='(i0)'))//&
+                  &'; allowed are '//trim(yaml_toa(SPARSE_MATMUL_SMALL,fmt='(i0)'))//&
+                  &' and '//trim(yaml_toa(SPARSE_MATMUL_LARGE,fmt='(i0)')), &
+                  err_name='BIGDFT_RUNTIME_ERROR')
+     end if
+     call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, matrix_local, matrix_compr)
+     if (layout==SPARSE_MATMUL_LARGE) then
+         call f_free_ptr(matrix_local)
+     end if
+
+     !!call timing(iproc,'compressd_comm_new','OF')
+
+     call f_release_routine()
+
+  end subroutine compress_matrix_distributed_wrapper_1
 
 
    subroutine compress_matrix_distributed_wrapper_2(iproc, nproc, smat, layout, matrixp, matrix_compr)
@@ -693,70 +771,6 @@ module sparsematrix
      call f_release_routine()
 
   end subroutine compress_matrix_distributed_wrapper_2
-
-
-
-   subroutine compress_matrix_distributed_wrapper_1(iproc, nproc, smat, layout, matrixp, matrix_compr)
-     use module_base
-     implicit none
-
-     ! Calling arguments
-     integer,intent(in) :: iproc, nproc, layout
-     type(sparse_matrix),intent(in) :: smat
-     real(kind=8),dimension(:),target,intent(inout) :: matrixp
-     real(kind=8),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
-
-     ! Local variables
-     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
-     integer :: ncount, itg, iitg, ist_send, ist_recv, i, iline, icolumn, ind
-     integer :: window, sizeof, jproc_send, iorb, jproc, info
-     integer,dimension(:),pointer :: isvctr_par, nvctr_par
-     integer,dimension(:),allocatable :: request, windows
-     real(kind=8),dimension(:),pointer :: matrix_local
-     real(kind=8),dimension(:),allocatable :: recvbuf
-
-     call f_routine(id='compress_matrix_distributed_wrapper_1')
-
-     !call timing(iproc,'compressd_mcpy','ON')
-
-
-     if (layout==SPARSE_MATMUL_SMALL) then
-         if (size(matrixp)/=max(smat%smmm%nvctrp_mm,1)) then
-             write(*,*) 'CRASH 1'
-             call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
-                  &' instead of '//trim(yaml_toa(smat%smmm%nvctrp_mm,fmt='(i0)')), &
-                  err_name='BIGDFT_RUNTIME_ERROR')
-         end if
-         matrix_local => matrixp
-     else if (layout==SPARSE_MATMUL_LARGE) then
-         if (size(matrixp)/=smat%smmm%nvctrp) then
-             call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
-                  &' instead of '//trim(yaml_toa(smat%smmm%nvctrp,fmt='(i0)')), &
-                  err_name='BIGDFT_RUNTIME_ERROR')
-         end if
-         matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp_mm),id='matrix_local')
-         call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
-              smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
-              smat%smmm%nvctrp, smat%smmm%isvctr, &
-              smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
-              'large_to_small', matrix_local, matrixp)
-         !call f_free_ptr(matrix_local)
-     else
-             call f_err_throw('layout has the value '//trim(yaml_toa(layout,fmt='(i0)'))//&
-                  &'; allowed are '//trim(yaml_toa(SPARSE_MATMUL_SMALL,fmt='(i0)'))//&
-                  &' and '//trim(yaml_toa(SPARSE_MATMUL_LARGE,fmt='(i0)')), &
-                  err_name='BIGDFT_RUNTIME_ERROR')
-     end if
-     call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, matrix_local, matrix_compr)
-     if (layout==SPARSE_MATMUL_LARGE) then
-         call f_free_ptr(matrix_local)
-     end if
-
-     !!call timing(iproc,'compressd_comm_new','OF')
-
-     call f_release_routine()
-
-  end subroutine compress_matrix_distributed_wrapper_1
 
 
 
