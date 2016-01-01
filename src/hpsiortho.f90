@@ -520,8 +520,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    real(gp),intent(out),optional :: econf
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
-   logical :: exctX,op2p_flag
-   integer :: n3p,ispot,ipotmethod,ngroup,prc,nspin,isorb,jproc,ndim,norbp
+   logical :: exctX,op2p_flag, symmetric
+   integer :: n3p,ispot,ipotmethod,ngroup,prc,nspin,isorb,jproc,ndim,norbp,igpu,i_stat
    real(gp) :: evsic_tmp, ekin, epot,sfac,maxdiff
    real(f_double) :: tel,trm
    type(coulomb_operator) :: pkernelSIC
@@ -652,12 +652,18 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             end do
             ndim=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i
 
+            symmetric=.true.
             call f_zero(ndim*orbs%norbp,pot(ispot))
             !if (iproc==0) call yaml_map('Orbital repartition',nobj_par)
-            call OP2P_unitary_test(bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,.true.)
-
-            call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,.true.)
-
+            call OP2P_unitary_test(bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+            if(pkernel%igpu==1 .and. pkernel%initCufftPlan==0) then 
+              igpu=0
+              if (iproc==0) call yaml_warning("not enough memory to allocate cuFFT plans on the GPU - no GPUDirect either")
+            else
+              igpu=pkernel%igpu
+            end if
+            call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric)
+            if(igpu==1 .and. OP2P%gpudirect==1) pkernel%stay_on_gpu=1
             !allocate work array for the internal exctx calculation
             rp_ij = f_malloc(ndim,id='rp_ij')
             energs%eexctX=0.0_gp
@@ -667,6 +673,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             if (iproc == 0) call yaml_newline()
             OP2P_exctx_loop: do
                call OP2P_communication_step(iproc,OP2P,iter)
+               if(igpu==1) call synchronize()
                if (iter%event == OP2P_EXIT) exit OP2P_exctx_loop
                call internal_calculation_exctx(iter%istep,sfac,pkernel,orbs%norb,orbs%occup,orbs%spinsgn,&
                     iter%remote_result,iter%nloc_i,iter%nloc_j,iter%isloc_i,iter%isloc_j,&
@@ -679,12 +686,18 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
                end if
             end do OP2P_exctx_loop
 
+            !we need to get the result back from the card (and synchronize with it, finally)
+            if(pkernel%igpu==1 .and. pkernel%stay_on_gpu==1) then
+              call get_gpu_data(1, energs%eexctX, pkernel%w%eexctX_GPU )
+              call cudamemset(pkernel%w%eexctX_GPU,0,1,i_stat)
+              if (i_stat /= 0) call f_err_throw('error cudamalloc eexctX_GPU (GPU out of memory ?) ')
+              pkernel%stay_on_gpu=0
+            end if 
             call free_OP2P_data(OP2P)
             if (nproc>1) call mpiallred(energs%eexctX,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
             !the exact exchange energy is half the Hartree energy (which already has another half)
             energs%eexctX=-xc_exctXfac(xc)*energs%eexctX
             if (iproc == 0) call yaml_map('Exact Exchange Energy',energs%eexctX,fmt='(1pe18.11)')
-
             !call f_memcpy(n=ndim*orbs%norbp,src=vpsi_tmp(1,1),dest=pot(ispot))
             call f_free(nobj_par)
             call f_free(rp_ij)

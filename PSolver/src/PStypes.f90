@@ -101,7 +101,7 @@ module PStypes
      integer(f_address) :: work1_GPU,work2_GPU,rho_GPU,pot_ion_GPU,k_GPU !<addresses for the GPU memory 
      integer(f_address) :: p_GPU,q_GPU,r_GPU,x_GPU,z_GPU,oneoeps_GPU,corr_GPU!<addresses for the GPU memory 
      !> GPU scalars. Event if they are scalars of course their address is needed
-     integer(f_address) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU
+     integer(f_address) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU, eexctX_GPU, reduc_GPU, ehart_GPU
   end type PS_workarrays
 
   !>Datatype defining the mode for the running of the Poisson solver
@@ -180,6 +180,7 @@ module PStypes
      integer :: gpuPCGRed !< control if GPU can be used for PCG reductions
      integer :: initCufftPlan
      integer :: keepGPUmemory
+     integer :: stay_on_gpu
      integer :: keepzf
      !parameters for the iterative methods
      !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
@@ -298,6 +299,9 @@ contains
     call f_zero(w%beta_GPU)
     call f_zero(w%kappa_GPU)
     call f_zero(w%beta0_GPU)
+    call f_zero(w%eexctX_GPU)
+    call f_zero(w%ehart_GPU)
+    call f_zero(w%reduc_GPU)
   end subroutine nullify_work_arrays
 
   pure function pkernel_null() result(k)
@@ -334,7 +338,10 @@ contains
   end function pkernel_null
 
   subroutine free_PS_workarrays(iproc,igpu,keepzf,gpuPCGred,keepGPUmemory,w)
+  use dictionaries, only: f_err_throw
+  implicit none
     integer, intent(in) :: keepzf,gpuPCGred,keepGPUmemory,igpu,iproc
+    integer :: i_stat
     type(PS_workarrays), intent(inout) :: w
     call f_free_ptr(w%eps)
     call f_free_ptr(w%dlogeps)
@@ -362,10 +369,16 @@ contains
           call cudafree(w%beta_GPU)
           call cudafree(w%beta0_GPU)
           call cudafree(w%kappa_GPU)
+          call cudafree(w%ehart_GPU)
+          call cudafree(w%eexctX_GPU)
+          call cudafree(w%reduc_GPU)
        end if
     end if
     if (igpu == 1) then
        if (iproc == 0) then
+         call cudadestroystream(i_stat)
+         if (i_stat /= 0) call f_err_throw('error freeing stream ')
+         call cudadestroycublashandle()
           if (keepGPUmemory == 1) then
              call cudafree(w%work1_GPU)
              call cudafree(w%work2_GPU)
@@ -721,12 +734,13 @@ contains
     case (SETUP_VARIABLES)
        select case (trim(dict_key(val)))       
        case (ACCEL)
-          dummy_l=val
-          if (dummy_l) then
+          strn=val
+          select case(trim(strn))
+          case('CUDA')
              k%igpu=1
-          else
+          case('none')
              k%igpu=0
-          end if
+          end select
        case (KEEP_GPU_MEMORY)
           dummy_l=val
           if (dummy_l) then

@@ -76,7 +76,7 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
     end if
 
   else !GPU case
-
+     call f_timing(TCAT_PSOLV_COMPUT,'ON')
      n(1)=kernel%grid%n1!kernel%ndims(1)*(2-kernel%geo(1))
      n(2)=kernel%grid%n3!kernel%ndims(2)*(2-kernel%geo(2))
      n(3)=kernel%grid%n2!kernel%ndims(3)*(2-kernel%geo(3))
@@ -134,10 +134,11 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
         if (kernel%mpi_env%iproc == 0) call f_free(zf1)
      else
-
         !fill the GPU memory
+        if(kernel%stay_on_gpu /= 1) then
         call reset_gpu_data( kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
                             rho, kernel%w%rho_GPU)
+        end if 
 
         call pad_data( kernel%w%rho_GPU, kernel%w%work1_GPU, kernel%grid%m1,&
                     kernel%grid%n3p,kernel%grid%m3, kernel%grid%md1,&
@@ -162,15 +163,19 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
         call unpad_data( kernel%w%rho_GPU, kernel%w%work1_GPU, kernel%grid%m1,&
                     kernel%grid%n3p,kernel%grid%m3, kernel%grid%md1,&
                     kernel%grid%md2,kernel%grid%md3);
+        if(kernel%stay_on_gpu /= 1) then
         call get_gpu_data(kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
                         rho,kernel%w%rho_GPU)
+       call synchronize()
+        end if
     end if
 
      if (kernel%keepGPUmemory == 0) then
         call cudafree(kernel%w%work1_GPU)
         call cudafree(kernel%w%work2_GPU)
      endif
-
+!     call synchronize()
+     call f_timing(TCAT_PSOLV_COMPUT,'OF')
   endif
 
   call f_release_routine()
@@ -213,7 +218,7 @@ subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
   if(gpu) then 
 
      !in VAC case, rho and zf are already on the card and untouched
-     if(trim(str(kernel%method))/='VAC') then
+     if( kernel%stay_on_gpu /= 1 .and. trim(str(kernel%method))/='VAC') then
         call reset_gpu_data(m1*m2*m3p,rho,kernel%w%rho_GPU)
         call reset_gpu_data(m1*m2*m3p,zf,kernel%w%work1_GPU)
      end if
@@ -228,9 +233,17 @@ subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
      call unpad_data( kernel%w%work2_GPU, kernel%w%work1_GPU, m1,&
           m3p,m2, md1, md3p,md2);
 
-     call finalize_reduction_kernel(sumpion,m1,m2*m3p,md1,md2*md3p, kernel%w%work2_GPU, kernel%w%rho_GPU, kernel%w%pot_ion_GPU, eh)
 
-     call get_gpu_data(m1*m2*m3p,pot,kernel%w%rho_GPU)
+     if(kernel%stay_on_gpu /= 1) then
+       call finalize_reduction_kernel(sumpion,m1,m2*m3p,md1,md2*md3p, kernel%w%work2_GPU,&
+             kernel%w%rho_GPU, kernel%w%pot_ion_GPU, kernel%w%reduc_GPU, eh,1)
+       call get_gpu_data(m1*m2*m3p,pot,kernel%w%rho_GPU)
+       call synchronize()
+     else
+       !delay results retrieval to after communications have been finished
+       call finalize_reduction_kernel(sumpion,m1,m2*m3p,md1,md2*md3p, kernel%w%work2_GPU, &
+             kernel%w%rho_GPU, kernel%w%pot_ion_GPU, kernel%w%reduc_GPU, kernel%w%ehart_GPU,0)
+     end if
 
   else
      !recollect the final data
