@@ -2044,7 +2044,7 @@ module multipole
       integer,dimension(:),pointer,intent(out),optional :: nx
       real(kind=8),dimension(:,:),pointer,intent(out),optional :: projx
       logical,dimension(:,:),pointer,intent(out),optional :: neighborx
-      type(matrices),dimension(2),intent(in),optional :: rpower_matrix
+      type(matrices),dimension(4),intent(in),optional :: rpower_matrix
 
       ! Local variables
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl, lwork
@@ -2303,7 +2303,7 @@ module multipole
               ham = f_malloc0((/n,n/),id='ham')
               ovrlp = f_malloc0((/n,n/),id='ovrlp')
               proj = f_malloc0((/n,n/),id='proj')
-              penaltymat = f_malloc0((/n,n,2/),id='penaltymat')
+              penaltymat = f_malloc0((/n,n,4/),id='penaltymat')
               eval = f_malloc0((/n/),id='eval')
               call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1:,kat), n, nmax, ovrlp, ilup)
               call extract_matrix(smatm, ham_%matrix_compr, neighbor(1:,kat), n, nmax, ham)
@@ -2312,17 +2312,28 @@ module multipole
               if (present( rpower_matrix)) then
                   write(*,*) 'call extract_matrix with penaltymat'
                   write(*,*) 'orbs%onwhichatom',orbs%onwhichatom
-                  call extract_matrix(smats, rpower_matrix(1)%matrix_compr, neighbor(1:,kat), n, nmax, penaltymat(:,:,1))
-                  call extract_matrix(smats, rpower_matrix(2)%matrix_compr, neighbor(1:,kat), n, nmax, penaltymat(:,:,2))
-                  tt = sqrt(rxyz(1,kkat)**2+rxyz(2,kkat)**2+rxyz(3,kkat)**2)
+                  write(*,*) 'rxyz(:,kkat)',rxyz(:,kkat)
+                  do i=1,4
+                      call extract_matrix(smats, rpower_matrix(i)%matrix_compr, neighbor(1:,kat), n, nmax, penaltymat(:,:,i))
+                  end do
+                  !tt = sqrt(rxyz(1,kkat)**2+rxyz(2,kkat)**2+rxyz(3,kkat)**2)
+                  tt = rxyz(1,kkat)**2 + rxyz(2,kkat)**2 + rxyz(3,kkat)**2
                   do i=1,n
                       do j=1,n
                           if (i==j) then
-                              ttt = alpha*penaltymat(j,i,2) - alpha*2.d0*tt*penaltymat(j,i,1) + alpha*tt**2*ovrlp(j,i)
+                              ttt = penaltymat(j,i,4) &
+                                  - 2.d0*(rxyz(1,kkat)*penaltymat(j,i,1) &
+                                        + rxyz(2,kkat)*penaltymat(j,i,2) &
+                                        + rxyz(3,kkat)*penaltymat(j,i,3)) &
+                                  + tt*ovrlp(j,i)
+                              ttt = alpha*ttt
+                              !ttt = alpha*penaltymat(j,i,2) - alpha*2.d0*tt*penaltymat(j,i,1) + alpha*tt**2*ovrlp(j,i)
                               ham(j,i) = ham(j,i) + ttt
-                              write(*,*) 'kkat, j, i, owa(j), owa(i), alpha, tt, pm1, pm2, ovrlp, ttt', &
+                              write(*,*) 'kkat, j, i, owa(j), owa(i), alpha, tt, pm1, pm2, pm3, pm4, ovrlp, ttt', &
                                           kkat, j, i, orbs%onwhichatom(j), orbs%onwhichatom(i), &
-                                          alpha, tt, penaltymat(j,i,1), penaltymat(j,i,2), ovrlp(j,i), ttt
+                                          alpha, tt, penaltymat(j,i,1), penaltymat(j,i,2), &
+                                          penaltymat(j,i,3), penaltymat(j,i,4), &
+                                          ovrlp(j,i), ttt
                           end if
                       end do
                   end do
@@ -4496,20 +4507,20 @@ subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, coll
   type(comms_linear),intent(in) :: collcom
   real(kind=8),dimension(nphi),intent(in) :: phi
   type(sparse_matrix),intent(in) :: smat
-  type(matrices),dimension(2),intent(inout) :: rpower_matrix
+  type(matrices),dimension(4),intent(inout) :: rpower_matrix
   
   ! Local variables
-  integer :: iorb, iiorb, ilr, iat, ii, i1, i2, i3, ii1, ii2, ii3, ist, istr, nl1, nl2, nl3
+  integer :: iorb, iiorb, ilr, iat, ii, i1, i2, i3, ii1, ii2, ii3, ist, istr, nl1, nl2, nl3, i
   type(workarr_sumrho) :: w
   real(kind=8),dimension(:),allocatable :: phir, phit_c, phit_f, xphit_c, xphit_f
   real(kind=8),dimension(:,:),allocatable :: xphi, xphir
-  real(kind=8) :: hxh, hyh, hzh, x, y, z, r
+  real(kind=8) :: hxh, hyh, hzh, x, y, z, r, r2
 
   call f_routine(id='calculate_rpowerx_matrices')
 
-  xphi = f_malloc0((/nphi,2/),id='xphi')
+  xphi = f_malloc0((/nphi,4/),id='xphi')
   phir = f_malloc(nphir,id='phir')
-  xphir = f_malloc((/nphir,2/),id='xphir')
+  xphir = f_malloc0((/nphir,4/),id='xphir')
 
   ist=1
   istr=1
@@ -4537,16 +4548,19 @@ subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, coll
               do i1=1,lzd%llr(ilr)%d%n1i
                   ii1 = lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
                   x = ii1*hxh
-                  r = sqrt(x**2+y**2+z**2)
-                  xphir(ii,1) = r*phir(ii)
-                  xphir(ii,2) = r**2*phir(ii)
+                  r2 = x**2+y**2+z**2
+                  xphir(ii,1) = x*phir(ii)
+                  xphir(ii,2) = y*phir(ii)
+                  xphir(ii,3) = z*phir(ii)
+                  xphir(ii,4) = r2*phir(ii)
                   ii = ii + 1
               end do
           end do
       end do
       ! Transform the functions back to wavelets
-      call isf_to_daub(lzd%llr(ilr), w, xphir(istr,1), xphi(ist,1))
-      call isf_to_daub(lzd%llr(ilr), w, xphir(istr,2), xphi(ist,2))
+      do i=1,4
+          call isf_to_daub(lzd%llr(ilr), w, xphir(istr,i), xphi(ist,i))
+      end do
       call deallocate_work_arrays_sumrho(w)
       ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
       istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
@@ -4559,14 +4573,16 @@ subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, coll
   xphit_f = f_malloc(7*collcom%ndimind_f,id='xphit_f')
   call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
        TRANSPOSE_FULL, phi, phit_c, phit_f, lzd)
-  call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
-       TRANSPOSE_FULL, xphi(:,1), xphit_c, xphit_f, lzd)
-  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
-       phit_c, xphit_c, xphit_f, xphit_f, smat, rpower_matrix(1))
-  call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
-       TRANSPOSE_FULL, xphi(:,2), xphit_c, xphit_f, lzd)
-  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
-       phit_c, xphit_c, xphit_f, xphit_f, smat, rpower_matrix(2))
+  do i=1,4
+      call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
+           TRANSPOSE_FULL, xphi(:,i), xphit_c, xphit_f, lzd)
+      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
+           phit_c, xphit_c, phit_f, xphit_f, smat, rpower_matrix(i))
+  end do
+  !call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
+  !     TRANSPOSE_FULL, xphi(:,2), xphit_c, xphit_f, lzd)
+  !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
+  !     phit_c, xphit_c, xphit_f, xphit_f, smat, rpower_matrix(2))
   call f_free(phit_c)
   call f_free(phit_f)
   call f_free(xphit_c)

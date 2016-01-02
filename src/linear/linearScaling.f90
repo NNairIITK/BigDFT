@@ -137,7 +137,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   type(orbital_basis) :: ob
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot, max_error, mean_error, r2, occ, tot_occ, ef, ef_low, ef_up, q, fac
-  type(matrices),dimension(2) :: rpower_matrix
+  type(matrices),dimension(4) :: rpower_matrix
 
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp
   real(kind=8) :: max_deviation, mean_deviation, max_deviation_p, mean_deviation_p
@@ -2505,10 +2505,10 @@ end if
 
       ! @ NEW ##################################################################################################
       ! Calculate the matrices <phi|r**x|phi>
-      rpower_matrix(1) = matrices_null()
-      rpower_matrix(2) = matrices_null()
-      rpower_matrix(1)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, SPARSE_FULL, id='rpower_matrix(1)%matrix_compr')
-      rpower_matrix(2)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, SPARSE_FULL, id='rpower_matrix(2)%matrix_compr')
+      do i=1,4
+          rpower_matrix(i) = matrices_null()
+          rpower_matrix(i)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, SPARSE_FULL, id='rpower_matrix(i)%matrix_compr')
+      end do
       call calculate_rpowerx_matrices(iproc, nproc, tmb%npsidim_orbs, tmb%collcom_sr%ndimpsi_c, tmb%lzd, &
            tmb%orbs, tmb%collcom, tmb%psi, tmb%linmat%s, rpower_matrix)
       ! @ END NEW ##############################################################################################
@@ -2516,8 +2516,9 @@ end if
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
            rxyz, calculate_centers=.false., write_output=.true., &
            rpower_matrix=rpower_matrix, orbs=tmb%orbs)
-      call deallocate_matrices(rpower_matrix(1))
-      call deallocate_matrices(rpower_matrix(2))
+      do i=1,4
+          call deallocate_matrices(rpower_matrix(i))
+      end do
       !call f_free(multipoles)
       !call f_free(multipoles_out)
 
