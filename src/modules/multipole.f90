@@ -2053,7 +2053,7 @@ module multipole
       real(kind=8) :: r2, cutoff2, rr2, tt, ef, q, occ, max_error, mean_error, rr2i, rr2j, ttxi, ttyi, ttzi, ttxj, ttyj, ttzj
       real(kind=8) :: tti, ttj, charge_net, charge_total
       real(kind=8) :: xi, xj, yi, yj, zi, zj, ttx, tty, ttz, xx, yy, zz, x, y, z
-      real(kind=8),dimension(:),allocatable :: work
+      real(kind=8),dimension(:),allocatable :: work, occ_all
       real(kind=8),dimension(:,:),allocatable :: com
       real(kind=8),dimension(:,:),allocatable :: ham, ovrlp, proj, ovrlp_tmp, ovrlp_minusonehalf, kp, ktilde
       real(kind=8),dimension(:,:,:),allocatable :: coeff_all, ovrlp_onehalf_all, penaltymat
@@ -2087,14 +2087,14 @@ module multipole
           end if
       end if
 
-      kT = 1.d-2
+      kT = 5.d-2
 
       ! Convergence criterion: one million-th of the total charge
       tt = 0.d0
       do iat=1,at%astruct%nat
           tt = tt + real(at%nelpsp(at%astruct%iatype(iat)),kind=8)
       end do
-      convergence_criterion = 1.d-6*abs(tt)
+      convergence_criterion = 1.d-3*abs(tt)
 
       ! Check the arguments
       if (calculate_centers) then
@@ -2212,6 +2212,7 @@ module multipole
       call f_free(itmparr)
       
       eval_all = f_malloc0(ntot,id='eval_all')
+      occ_all = f_malloc0(ntot,id='occ_all')
       id_all = f_malloc0(ntot,id='id_all')
       coeff_all = f_malloc((/nmax,nmax,natp/),id='coeff_all')
       ovrlp_onehalf_all = f_malloc((/nmax,nmax,natp/),id='ovrlp_onehalf_all')
@@ -2266,7 +2267,7 @@ module multipole
       bound_low_ok = .false.
       bound_up_ok = .false.
 
-      alpha_loop: do ialpha=1,100
+      alpha_loop: do ialpha=0,100
 
           if (bigdft_mpi%iproc==0) then
               call yaml_sequence(advance='no')
@@ -2279,6 +2280,8 @@ module multipole
           else
               alpha = 0.5d0*(alpha_low+alpha_up)
           end if
+
+          if (ialpha==0) alpha = 1.d0
 
           charge_net = 0.d0
           call f_zero(eval_all)
@@ -2308,7 +2311,7 @@ module multipole
               call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1:,kat), n, nmax, ovrlp, ilup)
               call extract_matrix(smatm, ham_%matrix_compr, neighbor(1:,kat), n, nmax, ham)
 
-              ! @ NEW #################################################################
+              ! @ NEW #####################################################################
               if (present( rpower_matrix)) then
                   write(*,*) 'call extract_matrix with penaltymat'
                   write(*,*) 'orbs%onwhichatom',orbs%onwhichatom
@@ -2320,13 +2323,17 @@ module multipole
                   tt = rxyz(1,kkat)**2 + rxyz(2,kkat)**2 + rxyz(3,kkat)**2
                   do i=1,n
                       do j=1,n
-                          if (i==j) then
+                          if (i==j .and. orbs%onwhichatom(i)/=kkat) then
                               ttt = penaltymat(j,i,4) &
                                   - 2.d0*(rxyz(1,kkat)*penaltymat(j,i,1) &
                                         + rxyz(2,kkat)*penaltymat(j,i,2) &
                                         + rxyz(3,kkat)*penaltymat(j,i,3)) &
                                   + tt*ovrlp(j,i)
-                              ttt = alpha*ttt
+                              !if (kkat==1) then
+                                  ttt = alpha*ttt
+                              !else
+                              !    ttt = 1.d0*alpha*ttt
+                              !end if
                               !ttt = alpha*penaltymat(j,i,2) - alpha*2.d0*tt*penaltymat(j,i,1) + alpha*tt**2*ovrlp(j,i)
                               ham(j,i) = ham(j,i) + ttt
                               write(*,*) 'kkat, j, i, owa(j), owa(i), alpha, tt, pm1, pm2, pm3, pm4, ovrlp, ttt', &
@@ -2337,43 +2344,8 @@ module multipole
                           end if
                       end do
                   end do
-                  !write(*,*) 'call axpy 1'
-                  !call axpy(n**2, alpha, penaltymat(1,1), 1, ham(1,1), 1)
-                  !tt = alpha*sqrt(rxyz(1,kkat)**2+rxyz(2,kkat)**2+rxyz(3,kkat)**2)
-                  !write(*,*) 'call axpy 2'
-                  !call axpy(n**2, -tt, ovrlp(1,1), 1, ham(1,1), 1)
               end if
-
-              !!icheck = 0
-              !!ii = 0
-              !!do i=1,smats%nfvctr
-              !!    if (neighbor(i,kat)) then
-              !!        jj = 0
-              !!        do j=1,smats%nfvctr
-              !!            if (neighbor(j,kat)) then
-              !!                icheck = icheck + 1
-              !!                jj = jj + 1
-              !!                if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
-              !!                inds =  matrixindex_in_compressed(smats, i, j)
-              !!                if (inds>0) then
-              !!                    ovrlp(jj,ii) = ovrlp_%matrix_compr(inds)
-              !!                else
-              !!                    ovrlp(jj,ii) = 0.d0
-              !!                end if
-              !!                indm =  matrixindex_in_compressed(smatm, i, j)
-              !!                if (indm>0) then
-              !!                    ham(jj,ii) = ham_%matrix_compr(indm)
-              !!                else
-              !!                    ham(jj,ii) = 0.d0
-              !!                end if
-              !!            end if
-              !!        end do
-              !!    end if
-              !!end do
-              !!if (icheck>n**2) then
-              !!    call f_err_throw('icheck('//adjustl(trim(yaml_toa(icheck)))//') > n**2('//&
-              !!        &adjustl(trim(yaml_toa(n**2)))//')',err_name='BIGDFT_RUNTIME_ERROR')
-              !!end if
+              ! @ END NEW #################################################################
 
 
               ! Calculate ovrlp^1/2 and ovrlp^-1/2. The last argument is wrong, clean this.
@@ -2432,46 +2404,6 @@ module multipole
                   call f_free(multipoles_fake)
               end if
 
-              !!icheck = 0
-              !!ii = 0
-              !!do i=1,smats%nfvctr
-              !!    if (neighbor(i,kat)) then
-              !!        jj = 0
-              !!        do j=1,smats%nfvctr
-              !!            if (neighbor(j,kat)) then
-              !!                icheck = icheck + 1
-              !!                jj = jj + 1
-              !!                if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
-              !!                if (i==j) then
-              !!                    rr2 = huge(rr2)
-              !!                    do i3=is3,ie3
-              !!                        z = rxyz(3,kkat) + i3*at%astruct%cell_dim(3)
-              !!                        ttz = (com(3,i)-z)**2
-              !!                        do i2=is2,ie2
-              !!                            y = rxyz(2,kkat) + i2*at%astruct%cell_dim(2)
-              !!                            tty = (com(2,i)-y)**2
-              !!                            do i1=is1,ie1
-              !!                                x = rxyz(1,kkat) + i1*at%astruct%cell_dim(1)
-              !!                                ttx = (com(1,i)-x)**2
-              !!                                tt = ttx + tty + ttz
-              !!                                if (tt<rr2) then
-              !!                                    rr2 = tt
-              !!                                end if
-              !!                            end do
-              !!                        end do
-              !!                    end do
-              !!                    ham(jj,ii) = ham(jj,ii) + alpha*rr2**3*ovrlp(jj,ii)
-              !!                end if
-              !!                ilup(1,jj,ii,kat) = j
-              !!                ilup(2,jj,ii,kat) = i
-              !!            end if
-              !!        end do
-              !!    end if
-              !!end do
-              !!if (icheck>n**2) then
-              !!    call f_err_throw('icheck('//adjustl(trim(yaml_toa(icheck)))//') > n**2('//&
-              !!        &adjustl(trim(yaml_toa(n**2)))//')',err_name='BIGDFT_RUNTIME_ERROR')
-              !!end if
     
     
               !!call diagonalizeHamiltonian2(bigdft_mpi%iproc, n, ham, ovrlp, eval)
@@ -2506,16 +2438,6 @@ module multipole
     
           ! Order the eigenvalues and IDs
           call order_eigenvalues(ntot, eval_all, id_all)
-          !do i=1,ntot
-          !    ! add i-1 since we are only searching in the subarray
-          !    ind = minloc(eval_all(i:ntot),1) + (i-1)
-          !    tt = eval_all(i)
-          !    eval_all(i) = eval_all(ind)
-          !    eval_all(ind) = tt
-          !    ii = id_all(i)
-          !    id_all(i) = id_all(ind)
-          !    id_all(ind) = ii
-          !end do
         
         
 
@@ -2526,32 +2448,54 @@ module multipole
           end if
     
     
-          !!! Determine the "Fermi level" such that the iq-th state is still fully occupied even with a smearing
-          !!ef = eval_all(1)
-          !!do
-          !!    ef = ef + 1.d-3
-          !!    occ = 1.d0/(1.d0+safe_exp( (eval_all(iq)-ef)*(1.d0/kT) ) )
-          !!    if (abs(occ-1.d0)<1.d-8) exit
-          !!end do
-          !!if (bigdft_mpi%iproc==0) then
-          !!    call yaml_map('Pseudo Fermi level for occupations',ef)
-          !!end if
-        
-          !!final = .true.
-          !!ikT = 0
-          !!kT_loop: do
-    
               !ikT = ikT + 1
     
               call f_zero(charge_per_atom)
     
               ! Determine the "Fermi level" such that the iq-th state is still fully occupied even with a smearing
-              ef = eval_all(1)
-              do
-                  ef = ef + 1.d-3
-                  occ = 1.d0/(1.d0+safe_exp( (eval_all(iq)-ef)*(1.d0/kT) ) )
-                  if (abs(occ-1.d0)<1.d-8) exit
-              end do
+              if (ialpha==0) then
+                  ef = eval_all(1)
+                  do
+                      ef = ef + 1.d-3
+                      occ = 1.d0/(1.d0+safe_exp( (eval_all(iq)-ef)*(1.d0/kT) ) )
+                      if (abs(occ-1.d0)<1.d-8) exit
+                  end do
+                  do ieval=1,ntot
+                      ij = ij + 1
+                      occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
+                      occ_all(ieval) = occ
+                  end do
+                  if (bigdft_mpi%iproc==0) then
+                      call yaml_sequence_close()
+                      call yaml_map('number of states to be occupied (without smearing)',iq)
+                      call yaml_map('Pseudo Fermi level for occupations',ef)
+                      call yaml_sequence_open('ordered eigenvalues and occupations')
+                      ii = 0
+                      do i=1,ntot
+                          !occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
+                          occ = occ_all(i)
+                          if (occ>1.d-100) then
+                              call yaml_sequence(advance='no')
+                              call yaml_mapping_open(flow=.true.)
+                              call yaml_map('eval',eval_all(i),fmt='(es13.4)')
+                              call yaml_map('atom',id_all(i),fmt='(i5.5)')
+                              call yaml_map('occ',occ,fmt='(1pg13.5e3)')
+                              call yaml_mapping_close(advance='no')
+                              call yaml_comment(trim(yaml_toa(i,fmt='(i5.5)')))
+                          else
+                              ii = ii + 1
+                          end if
+                      end do
+                      if (ii>0) then
+                          call yaml_sequence(advance='no')
+                          call yaml_mapping_open(flow=.true.)
+                          call yaml_map('remaining states',ii)
+                          call yaml_map('occ','<1.d-100')
+                          call yaml_mapping_close()
+                      end if
+                      call yaml_sequence_close()
+                  end if
+              end if
         
               ! Calculate the projector. First for each single atom, then insert it into the big one.
               charge_total = 0.d0
@@ -2560,25 +2504,10 @@ module multipole
                   n = n_all(kat)
                   proj = f_malloc0((/n,n/),id='proj')
                   call calculate_projector(n, ntot, nmax, kkat, id_all, eval_all, &
-                       coeff_all(1:,1:,kat), ef, kT, proj)
+                       coeff_all(1:,1:,kat), occ_all, proj)
                   if (present(projx)) then
                       call vcopy(n**2, proj(1,1), 1, projx(1,kat), 1)
                   end if
-                  !ij = 0
-                  !do ieval=1,ntot
-                  !    if (id_all(ieval)/=kkat) cycle
-                  !    ij = ij + 1
-                  !    occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
-                  !    do i=1,n
-                  !        do j=1,n
-                  !            proj(j,i) = proj(j,i) + occ*coeff_all(j,ij,kat)*coeff_all(i,ij,kat)
-                  !        end do
-                  !   end do
-                  !end do
-                  !tt = 0.d0
-                  !do i=1,n
-                  !    tt = tt + proj(i,i)
-                  !end do
     
     
                   !@ TEMPORARY ############################################
@@ -2586,48 +2515,12 @@ module multipole
                   ktilde = f_malloc0((/n,n/),id='ktilde')
                   call extract_matrix(smatl, kerneltilde, neighbor(1:,kat), n, nmax, ktilde)
                   kp = f_malloc((/n,n/),id='kp')
-                  !ii = 0
-                  !do i=1,smats%nfvctr
-                  !    if (neighbor(i,kat)) then
-                  !        jj = 0
-                  !        do j=1,smats%nfvctr
-                  !            if (neighbor(j,kat)) then
-                  !                icheck = icheck + 1
-                  !                jj = jj + 1
-                  !                if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
-                  !                indl =  matrixindex_in_compressed(smatl, i, j)
-                  !                if (indl>0) then
-                  !                    ktilde(jj,ii) = kerneltilde(indl)
-                  !                else
-                  !                    ktilde(jj,ii) = 0.d0
-                  !                end if
-                  !            end if
-                  !        end do
-                  !    end if
-                  !end do
-    
-                  ! Calculate ktilde * proj
-                  !write(*,*) 'ktilde'
-                  !do i=1,n
-                  !    write(*,'(10es9.2)') ktilde(i,1:n)
-                  !end do
-                  !!write(*,*) 'WARNING: COPY KHACK TO KTILDE'
-                  !!ktilde = khack(1:7,1:7,kat)
                   call gemm('n', 'n', n, n, n, 1.d0, ktilde(1,1), n, proj(1,1), n, 0.d0, kp(1,1), n)
                   tt = 0
                   do i=1,n
                       tt = tt + kp(i,i)
                   end do
-                  !!if (bigdft_mpi%iproc==0) then
-                  !!    do i=1,n
-                  !!        do j=1,n
-                  !!            write(*,'(a,2i5,3es13.3)') 'i, j, kt, proj, kp', i, j, ktilde(i,j), proj(j,i), kp(j,i)
-                  !!        end do
-                  !!    end do
-                  !!    write(*,*) 'kkat, trace, sum(proj)', kkat, tt, sum(proj)
-                  !!end if
                   charge_per_atom(kkat) = tt
-                  !write(*,*) 'alpha, kkat, tt', alpha, kkat, tt
                   charge_total = charge_total + tt
                   call f_free(proj)
                   call f_free(ktilde)
@@ -2637,26 +2530,6 @@ module multipole
               end do
     
     
-              !!if (final) exit kT_loop
-    
-              !!charge_net = 0.d0
-              !!do iat=1,at%astruct%nat
-              !!    charge_net = charge_net -(charge_per_atom(iat)-real(at%nelpsp(at%astruct%iatype(iat)),kind=8))
-              !!end do
-              !!!!if (bigdft_mpi%iproc==0) then
-              !!!!    call yaml_map('kT, ef, net_charge',(/kT,ef,charge_net/))
-              !!!!end if
-              !!if (abs(charge_net)<1.d0 .or. ikT==100) then
-              !!    final = .true.
-              !!else if (charge_net<0.d0) then
-              !!    kT = kT*0.95d0
-              !!    !ef = ef + 1.d-3
-              !!else if (charge_net>0.d0) then
-              !!    kT = kT*1.05d0
-              !!    !ef = ef - 1.d-3
-              !!end if
-    
-          !!end do kT_loop
 
           if (bigdft_mpi%nproc>1) then
               call mpiallred(charge_per_atom, mpi_sum, comm=bigdft_mpi%mpi_comm)
@@ -2682,7 +2555,7 @@ module multipole
           end if
 
 
-          if (abs(charge_net)<convergence_criterion) then
+          if (abs(charge_net)<convergence_criterion .or. ialpha==100) then
           !if (.true.) then
               if (bigdft_mpi%iproc==0) then
                   call yaml_sequence_close()
@@ -2691,7 +2564,8 @@ module multipole
                   call yaml_sequence_open('ordered eigenvalues and occupations')
                   ii = 0
                   do i=1,ntot
-                      occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
+                      !occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
+                      occ = occ_all(i)
                       if (occ>1.d-100) then
                           call yaml_sequence(advance='no')
                           call yaml_mapping_open(flow=.true.)
@@ -2779,6 +2653,7 @@ module multipole
       call f_free(charge_per_atom)
       call f_free(neighbor)
       call f_free(eval_all)
+      call f_free(occ_all)
       call f_free(id_all)
       call f_free(ovrlp_onehalf_all)
       call f_free(com)
@@ -3254,16 +3129,16 @@ module multipole
  end subroutine order_eigenvalues
 
 
- subroutine calculate_projector(n, ntot, nmax, kkat, ids, evals, coeff, ef, kT, proj)
+ subroutine calculate_projector(n, ntot, nmax, kkat, ids, evals, coeff, occ_all, proj)
    use module_base
    implicit none
 
    ! Calling arguments
    integer :: n, ntot, nmax, kkat
    integer,dimension(ntot),intent(in) :: ids
-   real(kind=8),dimension(ntot),intent(in) :: evals
+   real(kind=8),dimension(ntot),intent(in) :: evals, occ_all
    real(kind=8),dimension(nmax,nmax),intent(in) :: coeff
-   real(kind=8),intent(in) :: kT, ef
+   !real(kind=8),intent(in) :: kT, ef
    real(kind=8),dimension(n,n),intent(out) :: proj
 
    ! Local variables
@@ -3276,7 +3151,8 @@ module multipole
    do ieval=1,ntot
        if (ids(ieval)/=kkat) cycle
        ij = ij + 1
-       occ = 1.d0/(1.d0+safe_exp( (evals(ieval)-ef)*(1.d0/kT) ) )
+       !occ = 1.d0/(1.d0+safe_exp( (evals(ieval)-ef)*(1.d0/kT) ) )
+       occ = occ_all(ieval)
        do i=1,n
            do j=1,n
                proj(j,i) = proj(j,i) + occ*coeff(j,ij)*coeff(i,ij)
