@@ -1967,7 +1967,6 @@ linear_accurate:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    purification_quickreturn: Yes
     correction_co_contra: Yes
     #check_sumrho: 1
     #calculate_KS_residue: No
@@ -2003,7 +2002,6 @@ linear_moderate:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    purification_quickreturn: Yes
     correction_co_contra: Yes
   lin_general:
     hybrid: Yes
@@ -2034,7 +2032,6 @@ linear_fast:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    purification_quickreturn: Yes
     correction_co_contra: Yes
   lin_general:
     hybrid: Yes
@@ -2095,7 +2092,6 @@ linear:
    check_overlap: 1
    experimental_mode: Yes
    calculate_KS_residue: No
-   purification_quickreturn: Yes
    check_matrix_compression: No
    correction_co_contra: Yes
    store_index: No

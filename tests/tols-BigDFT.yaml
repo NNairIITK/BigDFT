@@ -1588,7 +1588,7 @@ periodic_silicon:
  Total ionic charge: 6.7e-11
  Pressure: 1.5e-10
  D Tr: 1.0e-9
- trace: 7.1e-11
+ trace: 1.81e-10
 
 periodic_wateredge:
  Epot: 1.1e-9
