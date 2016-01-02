@@ -62,6 +62,7 @@ Keys to ignore:
  - psolver_groupsize
  - gps_method
  - solvent
+ - avg pot diff (actual/min)
  #- number of tasks
  #- IDs
  #- start / end
@@ -1179,6 +1180,9 @@ DIIShistory:
  multiplicator for the confinement: 5.4e-9
  Omega: 2.4e-8
  Total charge: 2.01e-11
+ Energy (Hartree): 4.61e-11
+ mean conf prefac: 1.01e-04
+
 
 Locreg:
  EH: 2.0e-8
@@ -1323,7 +1327,7 @@ geoptconstrained_SDCG:
  ebs: 7.8e-11
  Ion-Ion interaction energy: 2.3e-10
  Atomic structure: 3.1e-9
- trace(KS): 1.5e-11
+ trace(KS): 1.53e-11
  Total charge: 2.1e-11
 
 O2spin_diag:
@@ -1659,7 +1663,7 @@ surface_graphene:
  Energy (Hartree): 2.5e-11
  Total charge: 1.1e-10
  energy: 2.0e-11
- trace: 8.0e-11
+ trace: 1.21e-10
  
 dev.ref.yaml:
  Epot: 1.1e-10
