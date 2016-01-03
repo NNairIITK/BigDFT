@@ -188,6 +188,7 @@ module PStypes
      integer :: max_iter !< maximum number of convergence iterations
      real(dp) :: minres !< convergence criterion for the iteration
      real(dp) :: PI_eta !<parameter for the update of PI iteration
+     integer :: igpcg !< control to activate the input guess for PCG only for iteration > 1
 
      integer, dimension(:), pointer :: counts !<array needed to gather the information of the poisson solver
      integer, dimension(:), pointer :: displs !<array needed to gather the information of the poisson solver
@@ -270,6 +271,7 @@ contains
     use f_utils, only: f_zero
     implicit none
     type(PS_workarrays), intent(out) :: w
+    nullify(w%eps)
     nullify(w%dlogeps)
     nullify(w%oneoeps)
     nullify(w%corr)
@@ -333,6 +335,7 @@ contains
     k%max_iter=0
     k%PI_eta=0.0_dp
     k%minres=0.0_dp
+    k%igpcg=0
     nullify(k%counts)
     nullify(k%displs)
   end function pkernel_null
@@ -803,10 +806,23 @@ contains
 
     select case(trim(str(kernel%method)))
     case('PCG')
+!       if (use_input_guess .and. &
+!            all([associated(kernel%w%res),associated(kernel%w%pot)])) then
+!          !call axpy(n1*n23,1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
+!          call f_memcpy(src=rho,dest=kernel%w%res)
+!       else
+!          !allocate if it is the first time
+!          if (associated(kernel%w%pot)) then
+!             call f_zero(kernel%w%pot)
+!          else
+!             kernel%w%pot=f_malloc0_ptr([n1,n23],id='pot')
+!          end if
+!          if (.not. associated(kernel%w%res)) &
+!               kernel%w%res=f_malloc_ptr([n1,n23],id='res')
+!          call f_memcpy(src=rho,dest=kernel%w%res)
+!       end if
        if (use_input_guess .and. &
-            all([associated(kernel%w%res),associated(kernel%w%pot)])) then
-          !call axpy(n1*n23,1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
-          call f_memcpy(src=rho,dest=kernel%w%res)
+            associated(kernel%w%pot)) then
        else
           !allocate if it is the first time
           if (associated(kernel%w%pot)) then
@@ -814,10 +830,10 @@ contains
           else
              kernel%w%pot=f_malloc0_ptr([n1,n23],id='pot')
           end if
-          if (.not. associated(kernel%w%res)) &
-               kernel%w%res=f_malloc_ptr([n1,n23],id='res')
-          call f_memcpy(src=rho,dest=kernel%w%res)
        end if
+       kernel%w%res=f_malloc_ptr([n1,n23],id='res')
+       call f_memcpy(src=rho,dest=kernel%w%res)
+
        kernel%w%q=f_malloc0_ptr([n1,n23],id='q')
        kernel%w%p=f_malloc0_ptr([n1,n23],id='p')
        kernel%w%z=f_malloc_ptr([n1,n23],id='z')
@@ -858,7 +874,8 @@ contains
 !       else
 !          call f_free_ptr(kernel%w%res)
 !       end if
-       if (.not. use_input_guess) call f_free_ptr(kernel%w%res)
+!       if (.not. use_input_guess) call f_free_ptr(kernel%w%res)
+       call f_free_ptr(kernel%w%res)
        call f_free_ptr(kernel%w%q)
        call f_free_ptr(kernel%w%p)
        call f_free_ptr(kernel%w%z)
@@ -891,6 +908,7 @@ contains
        w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
     case('PI')
        !w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
+       w%eps=f_malloc_ptr([n1,n23],id='eps')
        w%dlogeps=f_malloc_ptr([3,ndims(1),ndims(2),ndims(3)],id='dlogeps')
        w%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
        w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
@@ -928,6 +946,7 @@ contains
              call f_zero(kernel%w%dlogeps)
              do i23=1,n23
                 do i1=1,n1
+                   kernel%w%eps(i1,i23)=vacuum_eps
                    kernel%w%oneoeps(i1,i23)=1.0_dp/vacuum_eps
                 end do
              end do
@@ -1118,6 +1137,12 @@ contains
           else
              call f_err_throw('For method "PI" the arrays oneoeps or epsilon should be present')
           end if
+          if (present(eps)) then
+             call f_memcpy(n=n1*n23,src=eps(1,1,i3s),&
+                  dest=kernel%w%eps)
+          else
+             call f_err_throw('For method "PCG" the arrays eps should be present')
+          end if
        else
           call f_err_throw('For method "PI" the arrays oneoeps '//&
                'and dlogeps have to be associated, call PS_allocate_cavity_workarrays')
@@ -1195,6 +1220,7 @@ contains
           do i2=1,n02
              do i1=1,n01
                 if (kernel%w%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
+                   kernel%w%eps(i1,i23)=1.d0 !eps(i1,i2,i3)
                    kernel%w%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
                    depsdrho(i1,i23)=0.d0
                    dsurfdrho(i1,i23)=0.d0
@@ -1205,6 +1231,7 @@ contains
                    dd = delta_rho(i1,i23)
                    de=epsprime(rh,kernel%cavity)
                    depsdrho(i1,i23)=de
+                   kernel%w%eps(i1,i23)=eps(rh,kernel%cavity)
                    kernel%w%oneoeps(i1,i23)=oneoeps(rh,kernel%cavity) 
                    dsurfdrho(i1,i23)=surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
 

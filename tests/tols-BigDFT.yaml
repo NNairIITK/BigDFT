@@ -949,13 +949,13 @@ experimentalfoe_long:
  mean kappa: 1.1e-4
  diff from idempotency: 1.1e-6
  delta out: 1.1e-10
- ebs_check: 4.33e-9
+ ebs_check: 4.72e-9
  diff: 1.3e-8
- ebs: 4.33e-9
+ ebs: 4.73e-9
  decay length of error function: 1.1e-5
- relative diff: 3.3e-11
+ relative diff: 3.4e-11
  Energy (Hartree): 4.6e-10
- trace(KS): 2.55e-10
+ trace(KS): 2.72e-10
 
 experimentalfoe_short:
  EH: 2.0e-05

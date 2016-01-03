@@ -474,10 +474,6 @@
    OpenMP threads per MPI task         :  2
    Iterative method for Generalised Equation: PCG
    Cavity determination                : rigid
- Bohr_Ang                              :  0.52917721092
- Atomic type                           : O
- Atomic type                           : H
- Atomic type                           : H
  Covalent radii: [ 3.784739889269304,  2.877671349478074,  2.877671349478074]
  No of atoms for pbc                   :  3
  Surface integral                      :  204.1965980067411

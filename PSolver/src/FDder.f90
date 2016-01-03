@@ -1147,7 +1147,7 @@ module FDder
 
     !> Like fssnord3DmatNabla but corrected such that the index goes at the beginning
     !! Multiplies also times (nabla epsilon)/(4pi*epsilon)= nabla (log(epsilon))/(4*pi)
-    subroutine update_rhopol(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rhopol,rhores2)
+    subroutine update_rhopol(geocode,n01,n02,n03,u,nord,hgrids,eta,eps,dlogeps,rhopol,rhores2)
       use numerics, only: oneofourpi
       implicit none
 
@@ -1168,6 +1168,7 @@ module FDder
       real(kind=8), intent(in) :: eta
       real(kind=8), dimension(3), intent(in) :: hgrids
       real(kind=8), dimension(n01,n02,n03), intent(in) :: u
+      real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
       real(kind=8), dimension(3,n01,n02,n03), intent(in) :: dlogeps
       real(kind=8), dimension(n01,n02,n03), intent(inout) :: rhopol
       real(kind=8), intent(out) :: rhores2
@@ -1338,7 +1339,7 @@ module FDder
                rho=rhopol(i1,i2,i3)
                res=res-rho
                res=eta*res
-               rhores2=rhores2+res*res
+               rhores2=rhores2+res*res*eps(i1,i2,i3)*eps(i1,i2,i3)
                rhopol(i1,i2,i3)=res+rho
 
 
@@ -1396,17 +1397,13 @@ module FDder
      !local variables   
       !first calculate the derivative of the potential
 
-!!$      pi = 4.0_dp*datan(1.0_dp)
-!!$      f = -0.25_dp/pi
-
-      !-1/4*pi is inside nabla_u_epsilon which should be used only here!!!
       call nabla_u_epsilon(geocode,ndims(1),ndims(2),ndims(3),pot,work,nord,hgrids,eps)
       call div_u_i(geocode,ndims(1),ndims(2),ndims(3),work,work1,nord,hgrids)
 
       do i3=1,ndims(3)
        do i2=1,ndims(2)
         do i1=1,ndims(1)
-         a_pot(i1,i2,i3)=a_pot(i1,i2,i3) - oneofourpi*work1(i1,i2,i3)
+         a_pot(i1,i2,i3)=a_pot(i1,i2,i3) + oneofourpi*work1(i1,i2,i3)
         end do
        end do
       end do

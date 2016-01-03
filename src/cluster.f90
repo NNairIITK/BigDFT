@@ -1671,6 +1671,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
         end if
         opt%iter=1
         iter_for_diis=0
+        denspot%pkernel%igpcg=0 
         wfn_loop: do
            if (opt%iter > opt%itermax) exit wfn_loop
 
@@ -1731,7 +1732,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !the energy values is printed out in this routine
            call calculate_energy_and_gradient(opt%iter,iproc,nproc,GPU,in%ncong,opt%iscf,&
                 energs,KSwfn,opt%gnrm,gnrm_zero)
-
+           
            !control the previous value of idsx_actual
            idsx_actual_before=KSwfn%diis%idsx
            iter_for_diis=iter_for_diis+1
@@ -1775,8 +1776,10 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
 
            opt%iter = opt%iter + 1
+           denspot%pkernel%igpcg=1
         !if (opt%iter == 2) stop
         end do wfn_loop
+        denspot%pkernel%igpcg=0 
 
 
         if (opt%c_obj /= 0) then
