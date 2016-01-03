@@ -2044,7 +2044,7 @@ module multipole
       integer,dimension(:),pointer,intent(out),optional :: nx
       real(kind=8),dimension(:,:),pointer,intent(out),optional :: projx
       logical,dimension(:,:),pointer,intent(out),optional :: neighborx
-      type(matrices),dimension(4),intent(in),optional :: rpower_matrix
+      type(matrices),dimension(24),intent(in),optional :: rpower_matrix
 
       ! Local variables
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl, lwork
@@ -2087,7 +2087,7 @@ module multipole
           end if
       end if
 
-      kT = 5.d-2
+      kT = 1.d-2
 
       ! Convergence criterion: one million-th of the total charge
       tt = 0.d0
@@ -2281,7 +2281,7 @@ module multipole
               alpha = 0.5d0*(alpha_low+alpha_up)
           end if
 
-          if (ialpha==0) alpha = 1.d0
+          if (ialpha==0) alpha = 1.d-2
 
           charge_net = 0.d0
           call f_zero(eval_all)
@@ -2306,46 +2306,11 @@ module multipole
               ham = f_malloc0((/n,n/),id='ham')
               ovrlp = f_malloc0((/n,n/),id='ovrlp')
               proj = f_malloc0((/n,n/),id='proj')
-              penaltymat = f_malloc0((/n,n,4/),id='penaltymat')
+              penaltymat = f_malloc0((/n,n,24/),id='penaltymat')
               eval = f_malloc0((/n/),id='eval')
               call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1:,kat), n, nmax, ovrlp, ilup)
               call extract_matrix(smatm, ham_%matrix_compr, neighbor(1:,kat), n, nmax, ham)
 
-              ! @ NEW #####################################################################
-              if (present( rpower_matrix)) then
-                  write(*,*) 'call extract_matrix with penaltymat'
-                  write(*,*) 'orbs%onwhichatom',orbs%onwhichatom
-                  write(*,*) 'rxyz(:,kkat)',rxyz(:,kkat)
-                  do i=1,4
-                      call extract_matrix(smats, rpower_matrix(i)%matrix_compr, neighbor(1:,kat), n, nmax, penaltymat(:,:,i))
-                  end do
-                  !tt = sqrt(rxyz(1,kkat)**2+rxyz(2,kkat)**2+rxyz(3,kkat)**2)
-                  tt = rxyz(1,kkat)**2 + rxyz(2,kkat)**2 + rxyz(3,kkat)**2
-                  do i=1,n
-                      do j=1,n
-                          if (i==j .and. orbs%onwhichatom(i)/=kkat) then
-                              ttt = penaltymat(j,i,4) &
-                                  - 2.d0*(rxyz(1,kkat)*penaltymat(j,i,1) &
-                                        + rxyz(2,kkat)*penaltymat(j,i,2) &
-                                        + rxyz(3,kkat)*penaltymat(j,i,3)) &
-                                  + tt*ovrlp(j,i)
-                              !if (kkat==1) then
-                                  ttt = alpha*ttt
-                              !else
-                              !    ttt = 1.d0*alpha*ttt
-                              !end if
-                              !ttt = alpha*penaltymat(j,i,2) - alpha*2.d0*tt*penaltymat(j,i,1) + alpha*tt**2*ovrlp(j,i)
-                              ham(j,i) = ham(j,i) + ttt
-                              write(*,*) 'kkat, j, i, owa(j), owa(i), alpha, tt, pm1, pm2, pm3, pm4, ovrlp, ttt', &
-                                          kkat, j, i, orbs%onwhichatom(j), orbs%onwhichatom(i), &
-                                          alpha, tt, penaltymat(j,i,1), penaltymat(j,i,2), &
-                                          penaltymat(j,i,3), penaltymat(j,i,4), &
-                                          ovrlp(j,i), ttt
-                          end if
-                      end do
-                  end do
-              end if
-              ! @ END NEW #################################################################
 
 
               ! Calculate ovrlp^1/2 and ovrlp^-1/2. The last argument is wrong, clean this.
@@ -2367,6 +2332,81 @@ module multipole
               call gemm('n', 'n', n, n, n, 1.d0, ham(1,1), n, ovrlp_minusonehalf(1,1), nmax, 0.d0, tmpmat2d(1,1,1), n)
               call gemm('n', 'n', n, n, n, 1.d0, ovrlp_minusonehalf(1,1), nmax, tmpmat2d(1,1,1), n, 0.d0, ham(1,1), n)
               call f_free(tmpmat2d)
+
+
+              ! @ NEW #####################################################################
+              if (present( rpower_matrix)) then
+                  write(*,*) 'call extract_matrix with penaltymat'
+                  write(*,*) 'orbs%onwhichatom',orbs%onwhichatom
+                  write(*,*) 'rxyz(:,kkat)',rxyz(:,kkat)
+                  do i=1,24
+                      call extract_matrix(smats, rpower_matrix(i)%matrix_compr, neighbor(1:,kat), n, nmax, penaltymat(:,:,i))
+                  end do
+                  !tt = sqrt(rxyz(1,kkat)**2+rxyz(2,kkat)**2+rxyz(3,kkat)**2)
+                  tt = rxyz(1,kkat)**2 + rxyz(2,kkat)**2 + rxyz(3,kkat)**2
+                  do i=1,n
+                      do j=1,n
+                          !if (i==j .and. orbs%onwhichatom(i)/=kkat) then
+                          if (i==j) then
+                              !!ttt = penaltymat(j,i,4) &
+                              !!    - 2.d0*(rxyz(1,kkat)*penaltymat(j,i,1) &
+                              !!          + rxyz(2,kkat)*penaltymat(j,i,2) &
+                              !!          + rxyz(3,kkat)*penaltymat(j,i,3)) &
+                              !!    + tt*ovrlp(j,i)
+                              ttt = penaltymat(j,i,4) - 4.d0*rxyz(1,kkat)*penaltymat(j,i,3) &
+                                    + 6.d0*rxyz(1,kkat)**2*penaltymat(j,i,2) - 4.d0*rxyz(1,kkat)**3*penaltymat(j,i,1) &
+                                    + rxyz(1,kkat)**4*ovrlp(j,i) &
+                                    + penaltymat(j,i,8) - 4.d0*rxyz(2,kkat)*penaltymat(j,i,7) &
+                                    + 6.d0*rxyz(2,kkat)**2*penaltymat(j,i,6) - 4.d0*rxyz(2,kkat)**3*penaltymat(j,i,5) &
+                                    + rxyz(2,kkat)**4*ovrlp(j,i) &
+                                    + penaltymat(j,i,12) - 4.d0*rxyz(3,kkat)*penaltymat(j,i,11) &
+                                    + 6.d0*rxyz(3,kkat)**2*penaltymat(j,i,10) - 4.d0*rxyz(3,kkat)**3*penaltymat(j,i,9) &
+                                    + rxyz(3,kkat)**4*ovrlp(j,i) &
+                                    + 2.d0*(penaltymat(j,i,16) &
+                                            - 2.d0*rxyz(2,kkat)*penaltymat(j,i,14) &
+                                            + rxyz(2,kkat)**2*penaltymat(j,i,2) &
+                                            - 2.d0*rxyz(1,kkat)*penaltymat(j,i,15) &
+                                            + 4.d0*rxyz(1,kkat)*rxyz(2,kkat)*penaltymat(j,i,13) &
+                                            - 2.d0*rxyz(1,kkat)*rxyz(2,kkat)**2*penaltymat(j,i,1) &
+                                            + rxyz(1,kkat)**2*penaltymat(j,i,6) &
+                                            - 2.d0*rxyz(1,kkat)**2*rxyz(2,kkat)*penaltymat(j,i,5) &
+                                            + rxyz(1,kkat)**2*rxyz(2,kkat)**2*ovrlp(j,i) &
+                                            + penaltymat(j,i,20) &
+                                            - 2.d0*rxyz(3,kkat)*penaltymat(j,i,18) &
+                                            + rxyz(3,kkat)**2*penaltymat(j,i,2) &
+                                            - 2.d0*rxyz(1,kkat)*penaltymat(j,i,19) &
+                                            + 4.d0*rxyz(1,kkat)*rxyz(3,kkat)*penaltymat(j,i,17) &
+                                            - 2.d0*rxyz(1,kkat)*rxyz(3,kkat)**2*penaltymat(j,i,1) &
+                                            + rxyz(1,kkat)**2*penaltymat(j,i,10) &
+                                            - 2.d0*rxyz(1,kkat)**2*rxyz(3,kkat)*penaltymat(j,i,9) &
+                                            + rxyz(1,kkat)**2*rxyz(3,kkat)**2*ovrlp(j,i) &
+                                            + penaltymat(j,i,24) &
+                                            - 2.d0*rxyz(3,kkat)*penaltymat(j,i,22) &
+                                            + rxyz(3,kkat)**2*penaltymat(j,i,6) &
+                                            - 2.d0*rxyz(2,kkat)*penaltymat(j,i,23) &
+                                            + 4.d0*rxyz(2,kkat)*rxyz(3,kkat)*penaltymat(j,i,21) &
+                                            - 2.d0*rxyz(2,kkat)*rxyz(3,kkat)**2*penaltymat(j,i,5) &
+                                            + rxyz(2,kkat)**2*penaltymat(j,i,10) &
+                                            - 2.d0*rxyz(2,kkat)**2*rxyz(3,kkat)*penaltymat(j,i,9) &
+                                            + rxyz(2,kkat)**2*rxyz(3,kkat)**2*ovrlp(j,i) )
+                              if (kkat==1) then
+                                  ttt = alpha*ttt
+                              else
+                                  !if (i==1 .or. i==6) ttt=3.d0*ttt
+                                  ttt = 1.5d0*alpha*ttt
+                              end if
+                              !ttt = alpha*penaltymat(j,i,2) - alpha*2.d0*tt*penaltymat(j,i,1) + alpha*tt**2*ovrlp(j,i)
+                              ham(j,i) = ham(j,i) + ttt
+                              write(*,*) 'kkat, j, i, owa(j), owa(i), alpha, tt, pm1, pm2, pm3, pm4, ovrlp, ttt', &
+                                          kkat, j, i, orbs%onwhichatom(j), orbs%onwhichatom(i), &
+                                          alpha, tt, penaltymat(j,i,1), penaltymat(j,i,2), &
+                                          penaltymat(j,i,3), penaltymat(j,i,4), &
+                                          ovrlp(j,i), ttt
+                          end if
+                      end do
+                  end do
+              end if
+              ! @ END NEW #################################################################
 
               ! Add the penalty term
               if (mode=='old') then
@@ -2897,7 +2937,7 @@ module multipole
                                 end do
                             end do
                         end do
-                        !write(*,*) 'i, j, ii, jj, tt', ii, jj, alpha*rr2**3
+                        write(*,*) 'i, j, ii, jj, tt', ii, jj, alpha*rr2**3
                         ham(jj,ii) = ham(jj,ii) + alpha*rr2**3*ovrlp(jj,ii)
                     end if
                 end if
@@ -4383,7 +4423,7 @@ subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, coll
   type(comms_linear),intent(in) :: collcom
   real(kind=8),dimension(nphi),intent(in) :: phi
   type(sparse_matrix),intent(in) :: smat
-  type(matrices),dimension(4),intent(inout) :: rpower_matrix
+  type(matrices),dimension(24),intent(inout) :: rpower_matrix
   
   ! Local variables
   integer :: iorb, iiorb, ilr, iat, ii, i1, i2, i3, ii1, ii2, ii3, ist, istr, nl1, nl2, nl3, i
@@ -4394,9 +4434,9 @@ subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, coll
 
   call f_routine(id='calculate_rpowerx_matrices')
 
-  xphi = f_malloc0((/nphi,4/),id='xphi')
+  xphi = f_malloc0((/nphi,24/),id='xphi')
   phir = f_malloc(nphir,id='phir')
-  xphir = f_malloc0((/nphir,4/),id='xphir')
+  xphir = f_malloc0((/nphir,24/),id='xphir')
 
   ist=1
   istr=1
@@ -4426,15 +4466,35 @@ subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, coll
                   x = ii1*hxh
                   r2 = x**2+y**2+z**2
                   xphir(ii,1) = x*phir(ii)
-                  xphir(ii,2) = y*phir(ii)
-                  xphir(ii,3) = z*phir(ii)
-                  xphir(ii,4) = r2*phir(ii)
+                  xphir(ii,2) = x**2*phir(ii)
+                  xphir(ii,3) = x**3*phir(ii)
+                  xphir(ii,4) = x**4*phir(ii)
+                  xphir(ii,5) = y*phir(ii)
+                  xphir(ii,6) = y**2*phir(ii)
+                  xphir(ii,7) = y**3*phir(ii)
+                  xphir(ii,8) = y**4*phir(ii)
+                  xphir(ii,9) = z*phir(ii)
+                  xphir(ii,10) = z**2*phir(ii)
+                  xphir(ii,11) = z**3*phir(ii)
+                  xphir(ii,12) = z**4*phir(ii)
+                  xphir(ii,13) = x*y*phir(ii)
+                  xphir(ii,14) = x**2*y*phir(ii)
+                  xphir(ii,15) = x*y**2*phir(ii)
+                  xphir(ii,16) = x**2*y**2*phir(ii)
+                  xphir(ii,17) = x*z*phir(ii)
+                  xphir(ii,18) = x**2*z*phir(ii)
+                  xphir(ii,19) = x*z**2*phir(ii)
+                  xphir(ii,20) = x**2*z**2*phir(ii)
+                  xphir(ii,21) = y*z*phir(ii)
+                  xphir(ii,22) = y**2*z*phir(ii)
+                  xphir(ii,23) = y*z**2*phir(ii)
+                  xphir(ii,24) = y**2*z**2*phir(ii)
                   ii = ii + 1
               end do
           end do
       end do
       ! Transform the functions back to wavelets
-      do i=1,4
+      do i=1,24
           call isf_to_daub(lzd%llr(ilr), w, xphir(istr,i), xphi(ist,i))
       end do
       call deallocate_work_arrays_sumrho(w)
@@ -4449,7 +4509,7 @@ subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, coll
   xphit_f = f_malloc(7*collcom%ndimind_f,id='xphit_f')
   call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
        TRANSPOSE_FULL, phi, phit_c, phit_f, lzd)
-  do i=1,4
+  do i=1,24
       call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
            TRANSPOSE_FULL, xphi(:,i), xphit_c, xphit_f, lzd)
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
@@ -4477,5 +4537,55 @@ subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, coll
   call f_release_routine()
 
 end subroutine calculate_rpowerx_matrices
+
+
+  function get_quartic_penalty(n, j, i, penaltymat, ovrlp, rxyz) result(gqp)
+    implicit none
+
+    ! Calling arguments
+    integer,intent(in) :: n, j, i
+    real(kind=8),dimension(n,n,24),intent(in) :: penaltymat
+    real(kind=8),dimension(n,n),intent(in) :: ovrlp
+    real(kind=8),dimension(3) :: rxyz
+    real(kind=8) :: gqp
+
+    gqp = penaltymat(j,i,4) - 4.d0*rxyz(1)*penaltymat(j,i,3) &
+          + 6.d0*rxyz(1)**2*penaltymat(j,i,2) - 4.d0*rxyz(1)**3*penaltymat(j,i,1) &
+          + rxyz(1)**4*ovrlp(j,i) &
+          + penaltymat(j,i,8) - 4.d0*rxyz(2)*penaltymat(j,i,7) &
+          + 6.d0*rxyz(2)**2*penaltymat(j,i,6) - 4.d0*rxyz(2)**3*penaltymat(j,i,5) &
+          + rxyz(2)**4*ovrlp(j,i) &
+          + penaltymat(j,i,12) - 4.d0*rxyz(3)*penaltymat(j,i,11) &
+          + 6.d0*rxyz(3)**2*penaltymat(j,i,10) - 4.d0*rxyz(3)**3*penaltymat(j,i,9) &
+          + rxyz(3)**4*ovrlp(j,i) &
+          + 2.d0*(penaltymat(j,i,16) &
+                  - 2.d0*rxyz(2)*penaltymat(j,i,14) &
+                  + rxyz(2)**2*penaltymat(j,i,2) &
+                  - 2.d0*rxyz(1)*penaltymat(j,i,15) &
+                  + 4.d0*rxyz(1)*rxyz(2)*penaltymat(j,i,13) &
+                  - 2.d0*rxyz(1)*rxyz(2)**2*penaltymat(j,i,1) &
+                  + rxyz(1)**2*penaltymat(j,i,6) &
+                  - 2.d0*rxyz(1)**2*rxyz(2)*penaltymat(j,i,5) &
+                  + rxyz(1)**2*rxyz(2)**2*ovrlp(j,i) &
+                  + penaltymat(j,i,20) &
+                  - 2.d0*rxyz(3)*penaltymat(j,i,18) &
+                  + rxyz(3)**2*penaltymat(j,i,2) &
+                  - 2.d0*rxyz(1)*penaltymat(j,i,19) &
+                  + 4.d0*rxyz(1)*rxyz(3)*penaltymat(j,i,17) &
+                  - 2.d0*rxyz(1)*rxyz(3)**2*penaltymat(j,i,1) &
+                  + rxyz(1)**2*penaltymat(j,i,10) &
+                  - 2.d0*rxyz(1)**2*rxyz(3)*penaltymat(j,i,9) &
+                  + rxyz(1)**2*rxyz(3)**2*ovrlp(j,i) &
+                  + penaltymat(j,i,24) &
+                  - 2.d0*rxyz(3)*penaltymat(j,i,22) &
+                  + rxyz(3)**2*penaltymat(j,i,6) &
+                  - 2.d0*rxyz(2)*penaltymat(j,i,23) &
+                  + 4.d0*rxyz(2)*rxyz(3)*penaltymat(j,i,21) &
+                  - 2.d0*rxyz(2)*rxyz(3)**2*penaltymat(j,i,5) &
+                  + rxyz(2)**2*penaltymat(j,i,10) &
+                  - 2.d0*rxyz(2)**2*rxyz(3)*penaltymat(j,i,9) &
+                  + rxyz(2)**2*rxyz(3)**2*ovrlp(j,i) )
+
+  end function get_quartic_penalty
 
 end module multipole
