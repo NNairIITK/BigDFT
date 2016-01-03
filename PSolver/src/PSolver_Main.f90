@@ -49,7 +49,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !! of the energies are calculated only with the input rho.
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p), intent(inout), optional, target :: rho_ion
   !local variables
-  logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver,active_ig
+  logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver
   integer :: i3start,n1,n23,i3s,i23s,i23sd2,i3sd2
   real(dp) :: IntSur,IntVol,e_static,norm_nonvac,ehartreeLOC
   real(dp), dimension(:,:), allocatable :: depsdrho,dsurfdrho
@@ -114,7 +114,6 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   is_vextra=sum_pi .or. build_c
   plot_cavity=kernel%opt%cavity_info .and. (kernel%method /= PS_VAC_ENUM)
   cudasolver= (kernel%igpu==1 .and. .not. kernel%opt%calculate_strten)
-  active_ig=kernel%opt%use_input_guess .and. (kernel%igpcg == 1)
 
   !check of the input variables, if needed
 !!$  if (kernel%method /= PS_VAC_ENUM .and. .not. present(rho_ion)) then
@@ -201,12 +200,12 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   end if
   
   !the allocation of the rho array is maybe not needed
-  call PS_allocate_lowlevel_workarrays(cudasolver,active_ig,&
+  call PS_allocate_lowlevel_workarrays(cudasolver,kernel%opt%use_input_guess,&
        rhov(1,1,i3s),kernel)
 
   !call the Generalized Poisson Solver
   call Parallel_GPS(kernel,cudasolver,kernel%opt%potential_integral,energies%strten,&
-       wrtmsg,rhov(1,1,i3s),active_ig)
+       wrtmsg,rhov(1,1,i3s),kernel%opt%use_input_guess)
 
   !this part is not important now, to be fixed later
 !!$  if (plot_cavity) then
@@ -230,7 +229,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
 !!$  !--------------------------------------
 
 
-  call PS_release_lowlevel_workarrays(kernel%opt%cavity_info,active_ig,&
+  call PS_release_lowlevel_workarrays(kernel%opt%cavity_info,kernel%opt%use_input_guess,&
        rhov(1,1,i3s),kernel)
 
   !the external ionic potential is referenced if present
@@ -347,6 +346,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
   logical, intent(in) :: use_input_guess
   !local variables
   real(dp), parameter :: max_ratioex = 1.0e10_dp !< just to avoid crazy results
+  real(dp), parameter :: no_ig_minres=1.0d-2 !< just to neglect wrong inputguess
   integer :: n1,n23,i1,i23,ip,i23s,iinit
   real(dp) :: rpoints,rhores2,beta,ratio,normr,normb,alpha,q
   !aliasings
@@ -370,15 +370,17 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
 
      if (use_input_guess) then
         !gathering the data to obtain the distribution array
-        !call PS_gather(kernel%w%pot,kernel) not needed as in PI the W%pot array is global
+        !call PS_gather(kernel%w%pot,kernel) !not needed as in PI the W%pot array is global
         call update_rhopol(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
              kernel%ndims(3),&
              kernel%w%pot,kernel%nord,kernel%hgrids,1.0_dp,kernel%w%eps,&
              kernel%w%dlogeps,kernel%w%rho,rhores2)
      end if
 
-     pi_loop: do ip=1,kernel%max_iter
-
+     ip=0
+     pi_loop: do while (ip <= kernel%max_iter)
+      ip=ip+1
+!     pi_loop: do ip=1,kernel%max_iter
         !update the needed part of rhopot array
         !irho=1
         !i3s=kernel%grid%istart
@@ -417,6 +419,16 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
         end if
 
         if (rhores2 < kernel%minres) exit pi_loop
+        if (rhores2 > no_ig_minres) then
+        i23s=kernel%grid%istart*kernel%grid%m3
+        do i23=1,n23
+           do i1=1,n1
+              kernel%w%rho(i1,i23+i23s)=0.0_dp !this is full
+           end do
+        end do
+        ip=0
+        call yaml_map('Input guess not used due to residual norm >',no_ig_minres)
+        end if
 
      end do pi_loop
      if (wrtmsg) call yaml_sequence_close()
@@ -471,7 +483,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
       end if
       if (normr < kernel%minres) iinit=kernel%max_iter+10
  
-      if (normr > 1.d0 ) then
+      if (normr > no_ig_minres ) then
  
        !$omp parallel do default(shared) private(i1,i23)
        do i23=1,n23
@@ -483,7 +495,8 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
        !$omp end parallel do
  
        iinit=1
-       call yaml_warning('Input guess not used due to residual norm > 1')
+       !call yaml_warning('Input guess not used due to residual norm > 1')
+       call yaml_warning('Input guess not used due to residual norm >'+no_ig_minres)
       end if
 
      end if

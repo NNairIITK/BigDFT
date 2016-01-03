@@ -188,7 +188,6 @@ module PStypes
      integer :: max_iter !< maximum number of convergence iterations
      real(dp) :: minres !< convergence criterion for the iteration
      real(dp) :: PI_eta !<parameter for the update of PI iteration
-     integer :: igpcg !< control to activate the input guess for PCG only for iteration > 1
 
      integer, dimension(:), pointer :: counts !<array needed to gather the information of the poisson solver
      integer, dimension(:), pointer :: displs !<array needed to gather the information of the poisson solver
@@ -335,7 +334,6 @@ contains
     k%max_iter=0
     k%PI_eta=0.0_dp
     k%minres=0.0_dp
-    k%igpcg=0
     nullify(k%counts)
     nullify(k%displs)
   end function pkernel_null

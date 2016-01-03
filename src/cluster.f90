@@ -1671,7 +1671,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
         end if
         opt%iter=1
         iter_for_diis=0
-        denspot%pkernel%igpcg=0 
         wfn_loop: do
            if (opt%iter > opt%itermax) exit wfn_loop
 
@@ -1776,10 +1775,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
 
            opt%iter = opt%iter + 1
-           denspot%pkernel%igpcg=1
         !if (opt%iter == 2) stop
         end do wfn_loop
-        denspot%pkernel%igpcg=0 
 
 
         if (opt%c_obj /= 0) then

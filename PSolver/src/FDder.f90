@@ -1339,7 +1339,8 @@ module FDder
                rho=rhopol(i1,i2,i3)
                res=res-rho
                res=eta*res
-               rhores2=rhores2+res*res*eps(i1,i2,i3)*eps(i1,i2,i3)
+               !rhores2=rhores2+res*res*eps(i1,i2,i3)*eps(i1,i2,i3)
+               rhores2=rhores2+res*res
                rhopol(i1,i2,i3)=res+rho
 
 
