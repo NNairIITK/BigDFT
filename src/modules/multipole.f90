@@ -429,7 +429,7 @@ module multipole
                                                   !qq = ep%mpl(impl)%qlm(l)%q(mm) + real(nelpsp(impl),kind=8)
                                                   qq = -(ep%mpl(impl)%qlm(l)%q(mm) - real(nelpsp(impl),kind=8))
                                               else
-                                                  qq = ep%mpl(impl)%qlm(l)%q(mm)
+                                                  qq = -ep%mpl(impl)%qlm(l)%q(mm)
                                               end if
                                               !write(*,'(a,5i6,es12.4)') 'i1, i2, i3, l, m, qq', i1, i2, i3, l, m, qq
                                               ttt = qq*&
