@@ -5,7 +5,6 @@
    disablesym: Yes
  perf:
    correction_co_contra: no
-   purification_quickreturn: no
  posinp:
    positions:
    - O: [3.8756199181079865E-002, -2.703480005264282, -0.9077249765396118]

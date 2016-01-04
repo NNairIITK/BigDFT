@@ -194,9 +194,6 @@ module public_keys
   character(len = *), parameter :: KAPPA_CONV = "kappa_conv"
   character(len = *), parameter :: EVBOUNDS_NSATUR = "evbounds_nsatur"
   character(len = *), parameter :: EVBOUNDSSHRINK_NSATUR = "evboundsshrink_nsatur"
-  character(len = *), parameter :: METHOD_UPDATEKERNEL = "method_updatekernel"
-  character(len = *), parameter :: PURIFICATION_QUICKRETURN = "purification_quickreturn"
-  character(len = *), parameter :: ADJUST_FOE_TEMPERATURE = "adjust_FOE_temperature"
   character(len = *), parameter :: CALCULATE_GAP = "calculate_gap"
   character(len = *), parameter :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
   character(len = *), parameter :: COEFF_WEIGHT_ANALYSIS = "coeff_weight_analysis"
@@ -204,6 +201,8 @@ module public_keys
   character(len = *), parameter :: CORRECTION_CO_CONTRA = "correction_co_contra"
   character(len = *), parameter :: GPS_METHOD = "gps_method"
   character(len = *), parameter :: FOE_GAP = "foe_gap"
+  character(len = *), parameter :: SUPPORT_FUNCTION_MULTIPOLES = "support_function_multipoles"
+  character(len = *), parameter :: NSIGMA = "nsigma"
 
   !keys for linear input variables
   !level keys
@@ -225,6 +224,7 @@ module public_keys
   character(len=*), parameter :: CONF_DAMPING    ='conf_damping'
   character(len=*), parameter :: TAYLOR_ORDER    ='taylor_order'
   character(len=*), parameter :: CALC_DIPOLE     ='calc_dipole'
+  character(len=*), parameter :: CALC_QUADRUPOLE ='calc_quadrupole'
   character(len=*), parameter :: CDFT_LAG_MULT_INIT='cdft_lag_mult_init'
   character(len=*), parameter :: CDFT_CONV_CRIT  ='cdft_conv_crit'
   character(len=*), parameter :: CALC_PULAY      ='calc_pulay'

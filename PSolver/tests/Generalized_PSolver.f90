@@ -46,7 +46,8 @@ program GPS_3D
    character(len=2) :: geocode
    character(len=2) :: geocodeprova
    character(len=2), parameter :: datacode = 'G'
-   !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
+   !> Order of accuracy for derivatives into ApplyLaplace subroutine 
+   !!= Total number of points at left and right of the x0 where we want to calculate the derivative.
    integer, parameter :: nord = 16
    integer, dimension(3) :: ndims,ndimsc,ndimsf
    real(8), dimension(3) :: hgrids,hgridsc,hgridsf
@@ -492,7 +493,8 @@ program GPS_3D
      !if (any(SetEps == [2,3,4])) then
   case(2,3,4)
      if (Fgrid) then
-      call H_potential('D',pkernel,rhopotf(1,1,pkernel%grid%istart+1,1),rhopotf(1,1,pkernel%grid%istart+1,1),ehartree,offset,.false.)
+      call H_potential('D',pkernel,rhopotf(1,1,pkernel%grid%istart+1,1),&
+           rhopotf(1,1,pkernel%grid%istart+1,1),ehartree,offset,.false.)
       call PS_gather(src=rhopotf,kernel=pkernel)
       call for_trans_ISF_3D(geocode,8,ndimsf(1),ndimsf(2),ndimsf(3),rhopotf,rhopot)
      else
@@ -521,7 +523,7 @@ program GPS_3D
        call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
             eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode,.false.)
    if (PCGstart) call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
-          eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB,PCGstart)
+          eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB,PCGstart,CFgrid)
   case(9)
        call Prec_Steepest_Descent(n01,n02,n03,nspden,hx,hy,hz,rhopot,acell,eps,dlogeps,nord,pkernel,potential,geocode)
   case(10)
@@ -590,7 +592,8 @@ program GPS_3D
 !  end if
 
    ! Calculate the charge starting from the potential applying the improved ISF Laplace operator PCG-style.
-   call ApplyLaplace_corr(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,rhopot(:,:,:,1),rvApp,acell,eps,corr,oneosqrteps,nord,.false.,multp)
+   call ApplyLaplace_corr(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,&
+        rhopot(:,:,:,1),rvApp,acell,eps,corr,oneosqrteps,nord,.false.,multp)
 
   if (iproc==0) then
    call yaml_comment('Comparison between Generalized Poisson operator PCG-style and analytical density',hfill='-')
@@ -1364,7 +1367,8 @@ subroutine PolarizationIteration_Inputguess(n01,n02,n03,nspden,iproc,&
 end subroutine PolarizationIteration_Inputguess
 
 subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
-     acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB,PCGstart,CFgrid)
+     acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,dlogeps,multp,&
+     offset,geocode,lin_PB,PCGstart,CFgrid)
 
   use Poisson_Solver
   use yaml_output
@@ -4094,8 +4098,8 @@ subroutine Prec_Steepest_Descent(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,dlogeps
 
 end subroutine  Prec_Steepest_Descent
 
-subroutine Prec_Steepest_Descent_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,acell,eps,dlogeps,nord,pkernel,potential,geocode,multp)
-
+subroutine Prec_Steepest_Descent_Inputguess(n01,n02,n03,nspden,iproc,&
+     hx,hy,hz,b,bb,acell,eps,dlogeps,nord,pkernel,potential,geocode,multp)
   use yaml_output
   use Poisson_Solver
   use f_utils

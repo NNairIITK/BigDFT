@@ -12,8 +12,6 @@
    check_matrix_compression: No
    experimental_mode: Yes
    calculate_KS_residue: No
-   method_updatekernel: 2
-   purification_quickreturn: Yes
    correction_co_contra: Yes
    hamapp_radius_incr: 6
    mixing_after_inputguess: 1

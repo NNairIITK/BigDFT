@@ -16,7 +16,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      norb_par_ref, norbu_par_ref, norbd_par_ref,output_grid)
   use module_base
   use module_types
-  use module_interfaces, only: createProjectorsArrays, createWavefunctionsDescriptors, &
+  use module_interfaces, only: createWavefunctionsDescriptors, &
        init_orbitals_data_for_linear, orbitals_descriptors,input_check_psi_id,initialize_linear_from_file
   use module_xc
   use module_fragments
@@ -30,6 +30,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use f_enums
   use locreg_operations
   use locregs_init, only: initLocregs
+  use orbitalbasis
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
@@ -64,6 +65,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(kind=8),dimension(2) :: time_max, time_average
 ! real(kind=8) :: ratio_before, ratio_after
   logical :: init_projectors_completely
+  type(orbital_basis) :: ob
   call f_routine(id=subname)
 
 
@@ -384,9 +386,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !(inputpsi /= INPUT_PSI_LINEAR_AO .and. &
   !                              inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
   !                              inputpsi /= INPUT_PSI_MEMORY_LINEAR)
-  call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
+  call orbital_basis_associate(ob,orbs=orbs,Lzd=Lzd)
+  call createProjectorsArrays(Lzd%Glr,rxyz,atoms,ob,&
        in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
        Lzd%hgrids(3),dry_run,nlpsp,init_projectors_completely)
+  call orbital_basis_release(ob)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
   !the complicated part of the descriptors has not been filled
   if (dry_run) then

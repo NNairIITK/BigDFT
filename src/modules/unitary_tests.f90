@@ -213,7 +213,7 @@ module unitary_tests
       type(orbitals_data),intent(in) :: orbs
       type(comms_linear),intent(inout) :: collcom_sr
       type(DFT_local_fields),intent(in) :: denspot
-      type(sparse_matrix),intent(inout) :: denskern
+      type(sparse_matrix),intent(in) :: denskern
       type(matrices),intent(inout) :: denskern_
       integer,intent(in) :: check_sumrho
     
@@ -842,7 +842,7 @@ module unitary_tests
        type(orbitals_data), intent(in) :: orbs
        type(local_zone_descriptors), intent(in) :: lzd
        type(comms_linear), intent(in) :: collcom
-       type(sparse_matrix),intent(inout) :: smat
+       type(sparse_matrix),intent(in) :: smat
        type(matrices),intent(inout) :: mat
        integer, intent(in) :: npsidim_orbs, npsidim_comp
        !local variables

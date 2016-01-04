@@ -499,8 +499,8 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
        !$omp end parallel do
  
        iinit=1
-       !call yaml_sequence_open('Input guess not used due to residual norm > 1')
-       call yaml_map('Input guess not used due to residual norm >',no_ig_minres)
+       !call yaml_warning('Input guess not used due to residual norm > 1')
+       call yaml_warning('Input guess not used due to residual norm >'+no_ig_minres)
       end if
 
      end if
@@ -1212,7 +1212,7 @@ subroutine apply_reductions(ip, gpu, kernel, r, x, p, q, z, alpha, beta, normr)
   call cudamemset(kernel%w%beta_GPU, 0, sizeof(beta),i_stat)
   call first_reduction_kernel(n1,n23,kernel%w%p_GPU,kernel%w%q_GPU,kernel%w%r_GPU,&
 kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%alpha_GPU,&
- kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, beta)
+ kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, kernel%w%reduc_GPU, beta)
 
   call cudamemset(kernel%w%kappa_GPU, 0, sizeof(kappa),i_stat)
 
@@ -1229,7 +1229,7 @@ kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%
 
   call second_reduction_kernel(n1,n23,kernel%w%p_GPU,kernel%w%q_GPU,kernel%w%r_GPU,&
 kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%alpha_GPU,&
- kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, kappa)
+ kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, kernel%w%reduc_GPU, kappa)
 
 !  call get_gpu_data(size1,p,kernel%p_GPU)
 !  call get_gpu_data(size1,q,kernel%q_GPU)
@@ -1242,7 +1242,7 @@ kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%
 
   call third_reduction_kernel(n1,n23,kernel%w%p_GPU,kernel%w%q_GPU,kernel%w%r_GPU,&
 kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%alpha_GPU,&
- kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, normr)
+ kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, kernel%w%reduc_GPU, normr)
 
   call PS_reduce(normr,kernel)
   

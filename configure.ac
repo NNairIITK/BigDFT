@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.8a.2],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.8a.4],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -1188,6 +1188,7 @@ src/modules/bigdft_cst.h
 src/modules/configure.c
 src/orbitals/Makefile
 src/orbitals/configure.inc
+src/sparsematrix/Makefile
 src/xcPSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile

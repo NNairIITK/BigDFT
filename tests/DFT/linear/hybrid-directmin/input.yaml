@@ -16,7 +16,6 @@
    check_sumrho: 1
    adjust_kernel_iterations: No
    correction_co_contra: no
-   purification_quickreturn: no
  lin_general:
    hybrid: Yes
    rpnrm_cv: 1.0E-008

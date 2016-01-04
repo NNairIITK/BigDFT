@@ -7,7 +7,6 @@ module locregs_init
   public :: initLocregs,determine_locregsphere_parallel
   public :: determine_locreg_parallel !is this one deprecated?
 !  public :: check_overlap
-  public :: distribute_on_threads
 !  public :: check_overlap_from_descriptors_periodic
   !public :: transform_keyglob_to_keygloc
   !public :: determine_wfd_periodicity !is this one deprecated?
@@ -783,6 +782,7 @@ module locregs_init
          locrad, locregCenter, &
          nsegglob, keygglob, keyvglob, nvctr_loc, keyg_loc, keyg_glob, keyv_loc, keyv_glob, keygloc)
       use module_base
+      use sparsematrix_init, only: distribute_on_threads
       implicit none
       logical,intent(in) :: perx, pery, perz
       integer,intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, nsegglob, nvctr_loc
@@ -2066,61 +2066,6 @@ module locregs_init
 
     
 
-    subroutine distribute_on_threads(nout, nthread, ise)
-      use module_base
-      use dynamic_memory
-      implicit none
-
-      ! Calling arguments
-      integer,intent(in) :: nout
-      integer,intent(out) :: nthread
-      integer,dimension(:,:),pointer :: ise
-
-      ! Local variables
-      integer :: ii, jthread
-      integer,dimension(:),allocatable :: n
-      !$ integer :: omp_get_max_threads
-
-      call f_routine(id='distribute_on_threads')
-
-      ! OpenMP parallelization using a large workarray
-      nthread = 1
-      !$ nthread = omp_get_max_threads()
-
-      ! Determine the number of iterations to be done by each thread
-      n = f_malloc(0.to.nthread-1,id='n')
-      ii = nout/nthread
-      n(0:nthread-1) = ii
-      ii = nout - nthread*ii
-      n(0:ii-1) = n(0:ii-1) + 1
-      ! Check
-      if (sum(n)/=nout) call f_err_throw('sum(n)/=nout',err_name='BIGDFT_RUNTIME_ERROR')
-
-      ! Determine the first and last iteration for each thread
-      ise = f_malloc_ptr((/1.to.2,0.to.nthread-1/),id='ise')
-      ise(1,0) = 1
-      do jthread=1,nthread-1
-          ise(1,jthread) = ise(1,jthread-1) + n(jthread-1)
-          ise(2,jthread-1) = ise(1,jthread) -1
-      end do
-      ise(2,nthread-1) = nout
-      ! Check
-      ii = 0
-      do jthread=0,nthread-1
-          ii = ii + ise(2,jthread) - ise(1,jthread) + 1
-          if (jthread>1) then
-              if (ise(1,jthread)/=ise(2,jthread-1)+1) then
-                  call f_err_throw('ise(1,jthread)/=ise(2,jthread-1)+1',err_name='BIGDFT_RUNTIME_ERROR')
-              end if
-          end if
-      end do
-      if (ii/=nout) call f_err_throw('ii/=nout',err_name='BIGDFT_RUNTIME_ERROR')
-
-      call f_free(n)
-
-      call f_release_routine()
-
-    end subroutine distribute_on_threads
 
     ! SM: Don't really know what this is for
     !> Determine a set of localisation regions from the centers and the radii.
