@@ -2071,7 +2071,7 @@ module multipole
       real(kind=8) :: alpha, alpha_up, alpha_low, convergence_criterion
       real(kind=8),dimension(:,:,:),allocatable :: multipoles_fake, penalty_matrices
       real(kind=8),dimension(:),allocatable :: alpha_calc
-      character(len=*),parameter :: mode='verynew'
+      character(len=*),parameter :: mode='old'
 
       call f_routine(id='projector_for_charge_analysis')
 
@@ -2094,7 +2094,7 @@ module multipole
       do iat=1,at%astruct%nat
           tt = tt + real(at%nelpsp(at%astruct%iatype(iat)),kind=8)
       end do
-      convergence_criterion = 1.d-3*abs(tt)
+      convergence_criterion = 1.d-6*abs(tt)
 
       ! Check the arguments
       if (calculate_centers) then
@@ -2269,7 +2269,7 @@ module multipole
 
       eF = -1.d0
 
-      alpha_loop: do ialpha=0,10000
+      alpha_loop: do ialpha=1,10000
 
           if (bigdft_mpi%iproc==0) then
               call yaml_sequence(advance='no')
@@ -2530,36 +2530,36 @@ module multipole
                       occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
                       occ_all(ieval) = occ
                   end do
-                  if (bigdft_mpi%iproc==0) then
-                      call yaml_sequence_close()
-                      call yaml_map('number of states to be occupied (without smearing)',iq)
-                      call yaml_map('Pseudo Fermi level for occupations',ef)
-                      call yaml_sequence_open('ordered eigenvalues and occupations')
-                      ii = 0
-                      do i=1,ntot
-                          !occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
-                          occ = occ_all(i)
-                          if (.true. .or. occ>1.d-100) then
-                              call yaml_sequence(advance='no')
-                              call yaml_mapping_open(flow=.true.)
-                              call yaml_map('eval',eval_all(i),fmt='(es13.4)')
-                              call yaml_map('atom',id_all(i),fmt='(i5.5)')
-                              call yaml_map('occ',occ,fmt='(1pg13.5e3)')
-                              call yaml_mapping_close(advance='no')
-                              call yaml_comment(trim(yaml_toa(i,fmt='(i5.5)')))
-                          else
-                              ii = ii + 1
-                          end if
-                      end do
-                      if (ii>0) then
-                          call yaml_sequence(advance='no')
-                          call yaml_mapping_open(flow=.true.)
-                          call yaml_map('remaining states',ii)
-                          call yaml_map('occ','<1.d-100')
-                          call yaml_mapping_close()
-                      end if
-                      call yaml_sequence_close()
-                  end if
+                  !!!if (bigdft_mpi%iproc==0) then
+                  !!!    call yaml_sequence_close()
+                  !!!    call yaml_map('number of states to be occupied (without smearing)',iq)
+                  !!!    call yaml_map('Pseudo Fermi level for occupations',ef)
+                  !!!    call yaml_sequence_open('ordered eigenvalues and occupations')
+                  !!!    ii = 0
+                  !!!    do i=1,ntot
+                  !!!        !occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
+                  !!!        occ = occ_all(i)
+                  !!!        if (.true. .or. occ>1.d-100) then
+                  !!!            call yaml_sequence(advance='no')
+                  !!!            call yaml_mapping_open(flow=.true.)
+                  !!!            call yaml_map('eval',eval_all(i),fmt='(es13.4)')
+                  !!!            call yaml_map('atom',id_all(i),fmt='(i5.5)')
+                  !!!            call yaml_map('occ',occ,fmt='(1pg13.5e3)')
+                  !!!            call yaml_mapping_close(advance='no')
+                  !!!            call yaml_comment(trim(yaml_toa(i,fmt='(i5.5)')))
+                  !!!        else
+                  !!!            ii = ii + 1
+                  !!!        end if
+                  !!!    end do
+                  !!!    if (ii>0) then
+                  !!!        call yaml_sequence(advance='no')
+                  !!!        call yaml_mapping_open(flow=.true.)
+                  !!!        call yaml_map('remaining states',ii)
+                  !!!        call yaml_map('occ','<1.d-100')
+                  !!!        call yaml_mapping_close()
+                  !!!    end if
+                  !!!    call yaml_sequence_close()
+                  !!!end if
               end if
         
               ! Calculate the projector. First for each single atom, then insert it into the big one.
@@ -2631,7 +2631,7 @@ module multipole
                   do i=1,ntot
                       !occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
                       occ = occ_all(i)
-                      if (.true. .or. occ>1.d-100) then
+                      if (occ>1.d-100) then
                           call yaml_sequence(advance='no')
                           call yaml_mapping_open(flow=.true.)
                           call yaml_map('eval',eval_all(i),fmt='(es13.4)')
@@ -2963,7 +2963,7 @@ module multipole
                                 end do
                             end do
                         end do
-                        write(*,*) 'i, j, ii, jj, tt', ii, jj, alpha*rr2**3
+                        !write(*,*) 'i, j, ii, jj, tt', ii, jj, alpha*rr2**3
                         ham(jj,ii) = ham(jj,ii) + alpha*rr2**3*ovrlp(jj,ii)
                     end if
                 end if
@@ -4550,11 +4550,11 @@ subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, coll
   call f_free(xphit_c)
   call f_free(xphit_f)
 
-  if (iproc==0) then
-      do iorb=1,smat%nvctr
-          write(*,*) 'i, val', iorb, rpower_matrix(1)%matrix_compr(iorb)
-      end do
-  end if
+  !!if (iproc==0) then
+  !!    do iorb=1,smat%nvctr
+  !!        write(*,*) 'i, val', iorb, rpower_matrix(1)%matrix_compr(iorb)
+  !!    end do
+  !!end if
 
   call f_free(xphi)
   call f_free(phir)
