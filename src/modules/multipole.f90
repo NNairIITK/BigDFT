@@ -14,6 +14,7 @@ module multipole
   public :: projector_for_charge_analysis
   public :: support_function_gross_multipoles
   public :: calculate_dipole_moment
+  public :: calculate_rpowerx_matrices
 
   contains
 
@@ -2008,7 +2009,8 @@ module multipole
                ovrlp_, ham_, kernel_, rxyz, calculate_centers, write_output, &
                lzd, nphirdim, psi, orbs, &
                multipoles, &
-               natpx, isatx, nmaxx, nx, projx, neighborx)
+               natpx, isatx, nmaxx, nx, projx, neighborx, &
+               rpower_matrix)
       use module_base
       use module_types, only: local_zone_descriptors, orbitals_data
       use module_atoms, only: atoms_data
@@ -2029,7 +2031,7 @@ module multipole
       type(atoms_data),intent(in) :: at
       type(sparse_matrix),intent(in) :: smats, smatl
       type(sparse_matrix),intent(in) :: smatm
-      type(matrices),intent(inout) :: ovrlp_ !< should be intent(in)...
+      type(matrices),intent(in) :: ovrlp_
       type(matrices),intent(in) :: ham_, kernel_
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
       logical,intent(in) :: calculate_centers, write_output
@@ -2042,6 +2044,7 @@ module multipole
       integer,dimension(:),pointer,intent(out),optional :: nx
       real(kind=8),dimension(:,:),pointer,intent(out),optional :: projx
       logical,dimension(:,:),pointer,intent(out),optional :: neighborx
+      type(matrices),dimension(24),intent(in),optional :: rpower_matrix
 
       ! Local variables
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl, lwork
@@ -2050,10 +2053,10 @@ module multipole
       real(kind=8) :: r2, cutoff2, rr2, tt, ef, q, occ, max_error, mean_error, rr2i, rr2j, ttxi, ttyi, ttzi, ttxj, ttyj, ttzj
       real(kind=8) :: tti, ttj, charge_net, charge_total
       real(kind=8) :: xi, xj, yi, yj, zi, zj, ttx, tty, ttz, xx, yy, zz, x, y, z
-      real(kind=8),dimension(:),allocatable :: work
+      real(kind=8),dimension(:),allocatable :: work, occ_all
       real(kind=8),dimension(:,:),allocatable :: com
       real(kind=8),dimension(:,:),allocatable :: ham, ovrlp, proj, ovrlp_tmp, ovrlp_minusonehalf, kp, ktilde
-      real(kind=8),dimension(:,:,:),allocatable :: coeff_all, ovrlp_onehalf_all
+      real(kind=8),dimension(:,:,:),allocatable :: coeff_all, ovrlp_onehalf_all, penaltymat
       integer,dimension(:,:,:,:),allocatable :: ilup
       real(kind=8),dimension(:),allocatable :: eval, eval_all, ovrlp_large, tmpmat1, tmpmat2, kerneltilde, charge_per_atom
       real(kind=8),dimension(:,:,:),allocatable :: tmpmat2d
@@ -2063,7 +2066,7 @@ module multipole
       type(matrices),dimension(1) :: ovrlp_onehalf_
       logical :: perx, pery, perz, final, bound_low_ok, bound_up_ok
       !real(kind=8),parameter :: kT = 5.d-2
-      real(kind=8) :: kT
+      real(kind=8) :: kT, ttt
       !real(kind=8),parameter :: alpha = 5.d-1
       real(kind=8) :: alpha, alpha_up, alpha_low, convergence_criterion
       real(kind=8),dimension(:,:,:),allocatable :: multipoles_fake, penalty_matrices
@@ -2141,7 +2144,6 @@ module multipole
            ovrlp_onehalf_(1)%matrix_compr, tmpmat1, kerneltilde)
 
 
-
       ! Parallelization over the number of atoms
       ii = at%astruct%nat/bigdft_mpi%nproc
       natp = ii
@@ -2210,6 +2212,7 @@ module multipole
       call f_free(itmparr)
       
       eval_all = f_malloc0(ntot,id='eval_all')
+      occ_all = f_malloc0(ntot,id='occ_all')
       id_all = f_malloc0(ntot,id='id_all')
       coeff_all = f_malloc((/nmax,nmax,natp/),id='coeff_all')
       ovrlp_onehalf_all = f_malloc((/nmax,nmax,natp/),id='ovrlp_onehalf_all')
@@ -2264,7 +2267,9 @@ module multipole
       bound_low_ok = .false.
       bound_up_ok = .false.
 
-      alpha_loop: do ialpha=1,100
+      eF = -1.d0
+
+      alpha_loop: do ialpha=1,10000
 
           if (bigdft_mpi%iproc==0) then
               call yaml_sequence(advance='no')
@@ -2277,6 +2282,8 @@ module multipole
           else
               alpha = 0.5d0*(alpha_low+alpha_up)
           end if
+
+          if (ialpha==0) alpha = 2.d-1
 
           charge_net = 0.d0
           call f_zero(eval_all)
@@ -2301,39 +2308,11 @@ module multipole
               ham = f_malloc0((/n,n/),id='ham')
               ovrlp = f_malloc0((/n,n/),id='ovrlp')
               proj = f_malloc0((/n,n/),id='proj')
+              penaltymat = f_malloc0((/n,n,24/),id='penaltymat')
               eval = f_malloc0((/n/),id='eval')
               call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1:,kat), n, nmax, ovrlp, ilup)
               call extract_matrix(smatm, ham_%matrix_compr, neighbor(1:,kat), n, nmax, ham)
-              !!icheck = 0
-              !!ii = 0
-              !!do i=1,smats%nfvctr
-              !!    if (neighbor(i,kat)) then
-              !!        jj = 0
-              !!        do j=1,smats%nfvctr
-              !!            if (neighbor(j,kat)) then
-              !!                icheck = icheck + 1
-              !!                jj = jj + 1
-              !!                if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
-              !!                inds =  matrixindex_in_compressed(smats, i, j)
-              !!                if (inds>0) then
-              !!                    ovrlp(jj,ii) = ovrlp_%matrix_compr(inds)
-              !!                else
-              !!                    ovrlp(jj,ii) = 0.d0
-              !!                end if
-              !!                indm =  matrixindex_in_compressed(smatm, i, j)
-              !!                if (indm>0) then
-              !!                    ham(jj,ii) = ham_%matrix_compr(indm)
-              !!                else
-              !!                    ham(jj,ii) = 0.d0
-              !!                end if
-              !!            end if
-              !!        end do
-              !!    end if
-              !!end do
-              !!if (icheck>n**2) then
-              !!    call f_err_throw('icheck('//adjustl(trim(yaml_toa(icheck)))//') > n**2('//&
-              !!        &adjustl(trim(yaml_toa(n**2)))//')',err_name='BIGDFT_RUNTIME_ERROR')
-              !!end if
+
 
 
               ! Calculate ovrlp^1/2 and ovrlp^-1/2. The last argument is wrong, clean this.
@@ -2356,8 +2335,98 @@ module multipole
               call gemm('n', 'n', n, n, n, 1.d0, ovrlp_minusonehalf(1,1), nmax, tmpmat2d(1,1,1), n, 0.d0, ham(1,1), n)
               call f_free(tmpmat2d)
 
+
+
               ! Add the penalty term
-              if (mode=='old') then
+              if (mode=='verynew') then
+                  ! @ NEW #####################################################################
+                  if (.not.present(rpower_matrix)) then
+                      call f_err_throw('rpower_matrix not present')
+                  end if
+                  if (.not.present(orbs)) then
+                      call f_err_throw('orbs not present')
+                  end if
+                  write(*,*) 'call extract_matrix with penaltymat'
+                  write(*,*) 'orbs%onwhichatom',orbs%onwhichatom
+                  write(*,*) 'rxyz(:,kkat)',rxyz(:,kkat)
+                  !write(*,*) 'HACK: SET ALPHA TO 0.5d0'
+                  !alpha = 0.02d0
+                  do i=1,24
+                      call extract_matrix(smats, rpower_matrix(i)%matrix_compr, neighbor(1:,kat), n, nmax, penaltymat(:,:,i))
+                  end do
+                  !tt = sqrt(rxyz(1,kkat)**2+rxyz(2,kkat)**2+rxyz(3,kkat)**2)
+                  tt = rxyz(1,kkat)**2 + rxyz(2,kkat)**2 + rxyz(3,kkat)**2
+                  do i=1,n
+                      do j=1,n
+                          !if (i==j .and. orbs%onwhichatom(i)/=kkat) then
+                          if (i==j) then
+                              !!ttt = penaltymat(j,i,4) &
+                              !!    - 2.d0*(rxyz(1,kkat)*penaltymat(j,i,1) &
+                              !!          + rxyz(2,kkat)*penaltymat(j,i,2) &
+                              !!          + rxyz(3,kkat)*penaltymat(j,i,3)) &
+                              !!    + tt*ovrlp(j,i)
+                              !!ttt = penaltymat(j,i,2) &
+                              !!      + penaltymat(j,i,6) &
+                              !!      + penaltymat(j,i,10) &
+                              !!    - 2.d0*(rxyz(1,kkat)*penaltymat(j,i,1) &
+                              !!          + rxyz(2,kkat)*penaltymat(j,i,5) &
+                              !!          + rxyz(3,kkat)*penaltymat(j,i,9)) &
+                              !!    + tt*ovrlp(j,i)
+                              ttt = penaltymat(j,i,4) - 4.d0*rxyz(1,kkat)*penaltymat(j,i,3) &
+                                    + 6.d0*rxyz(1,kkat)**2*penaltymat(j,i,2) - 4.d0*rxyz(1,kkat)**3*penaltymat(j,i,1) &
+                                    + rxyz(1,kkat)**4*ovrlp(j,i) &
+                                    + penaltymat(j,i,8) - 4.d0*rxyz(2,kkat)*penaltymat(j,i,7) &
+                                    + 6.d0*rxyz(2,kkat)**2*penaltymat(j,i,6) - 4.d0*rxyz(2,kkat)**3*penaltymat(j,i,5) &
+                                    + rxyz(2,kkat)**4*ovrlp(j,i) &
+                                    + penaltymat(j,i,12) - 4.d0*rxyz(3,kkat)*penaltymat(j,i,11) &
+                                    + 6.d0*rxyz(3,kkat)**2*penaltymat(j,i,10) - 4.d0*rxyz(3,kkat)**3*penaltymat(j,i,9) &
+                                    + rxyz(3,kkat)**4*ovrlp(j,i) &
+                                    + 2.d0*(penaltymat(j,i,16) &
+                                            - 2.d0*rxyz(2,kkat)*penaltymat(j,i,14) &
+                                            + rxyz(2,kkat)**2*penaltymat(j,i,2) &
+                                            - 2.d0*rxyz(1,kkat)*penaltymat(j,i,15) &
+                                            + 4.d0*rxyz(1,kkat)*rxyz(2,kkat)*penaltymat(j,i,13) &
+                                            - 2.d0*rxyz(1,kkat)*rxyz(2,kkat)**2*penaltymat(j,i,1) &
+                                            + rxyz(1,kkat)**2*penaltymat(j,i,6) &
+                                            - 2.d0*rxyz(1,kkat)**2*rxyz(2,kkat)*penaltymat(j,i,5) &
+                                            + rxyz(1,kkat)**2*rxyz(2,kkat)**2*ovrlp(j,i) &
+                                            + penaltymat(j,i,20) &
+                                            - 2.d0*rxyz(3,kkat)*penaltymat(j,i,18) &
+                                            + rxyz(3,kkat)**2*penaltymat(j,i,2) &
+                                            - 2.d0*rxyz(1,kkat)*penaltymat(j,i,19) &
+                                            + 4.d0*rxyz(1,kkat)*rxyz(3,kkat)*penaltymat(j,i,17) &
+                                            - 2.d0*rxyz(1,kkat)*rxyz(3,kkat)**2*penaltymat(j,i,1) &
+                                            + rxyz(1,kkat)**2*penaltymat(j,i,10) &
+                                            - 2.d0*rxyz(1,kkat)**2*rxyz(3,kkat)*penaltymat(j,i,9) &
+                                            + rxyz(1,kkat)**2*rxyz(3,kkat)**2*ovrlp(j,i) &
+                                            + penaltymat(j,i,24) &
+                                            - 2.d0*rxyz(3,kkat)*penaltymat(j,i,22) &
+                                            + rxyz(3,kkat)**2*penaltymat(j,i,6) &
+                                            - 2.d0*rxyz(2,kkat)*penaltymat(j,i,23) &
+                                            + 4.d0*rxyz(2,kkat)*rxyz(3,kkat)*penaltymat(j,i,21) &
+                                            - 2.d0*rxyz(2,kkat)*rxyz(3,kkat)**2*penaltymat(j,i,5) &
+                                            + rxyz(2,kkat)**2*penaltymat(j,i,10) &
+                                            - 2.d0*rxyz(2,kkat)**2*rxyz(3,kkat)*penaltymat(j,i,9) &
+                                            + rxyz(2,kkat)**2*rxyz(3,kkat)**2*ovrlp(j,i) )
+                              if (kkat==1) then
+                                  ttt = alpha*ttt
+                              else
+                                  !if (i==1 .or. i==6) ttt=3.d0*ttt
+                                  ttt = 1.4641d0*alpha*ttt
+                                  !ttt = 5.0d0*alpha*ttt
+                              end if
+                              !ttt = alpha*penaltymat(j,i,2) - alpha*2.d0*tt*penaltymat(j,i,1) + alpha*tt**2*ovrlp(j,i)
+                              ham(j,i) = ham(j,i) + ttt
+                              write(*,*) 'kkat, j, i, owa(j), owa(i), alpha, tt, pm1, pm2, pm3, pm4, ovrlp, ttt', &
+                                          kkat, j, i, orbs%onwhichatom(j), orbs%onwhichatom(i), &
+                                          alpha, tt, penaltymat(j,i,1), penaltymat(j,i,2), &
+                                          penaltymat(j,i,3), penaltymat(j,i,4), &
+                                          ovrlp(j,i), ttt
+                          end if
+                      end do
+                  end do
+                  ! @ END NEW #################################################################
+              elseif (mode=='old') then
                   call add_penalty_term(at%astruct%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
                        at%astruct%cell_dim, com, alpha, n, ovrlp, ham)
               else if (mode=='new') then
@@ -2392,46 +2461,6 @@ module multipole
                   call f_free(multipoles_fake)
               end if
 
-              !!icheck = 0
-              !!ii = 0
-              !!do i=1,smats%nfvctr
-              !!    if (neighbor(i,kat)) then
-              !!        jj = 0
-              !!        do j=1,smats%nfvctr
-              !!            if (neighbor(j,kat)) then
-              !!                icheck = icheck + 1
-              !!                jj = jj + 1
-              !!                if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
-              !!                if (i==j) then
-              !!                    rr2 = huge(rr2)
-              !!                    do i3=is3,ie3
-              !!                        z = rxyz(3,kkat) + i3*at%astruct%cell_dim(3)
-              !!                        ttz = (com(3,i)-z)**2
-              !!                        do i2=is2,ie2
-              !!                            y = rxyz(2,kkat) + i2*at%astruct%cell_dim(2)
-              !!                            tty = (com(2,i)-y)**2
-              !!                            do i1=is1,ie1
-              !!                                x = rxyz(1,kkat) + i1*at%astruct%cell_dim(1)
-              !!                                ttx = (com(1,i)-x)**2
-              !!                                tt = ttx + tty + ttz
-              !!                                if (tt<rr2) then
-              !!                                    rr2 = tt
-              !!                                end if
-              !!                            end do
-              !!                        end do
-              !!                    end do
-              !!                    ham(jj,ii) = ham(jj,ii) + alpha*rr2**3*ovrlp(jj,ii)
-              !!                end if
-              !!                ilup(1,jj,ii,kat) = j
-              !!                ilup(2,jj,ii,kat) = i
-              !!            end if
-              !!        end do
-              !!    end if
-              !!end do
-              !!if (icheck>n**2) then
-              !!    call f_err_throw('icheck('//adjustl(trim(yaml_toa(icheck)))//') > n**2('//&
-              !!        &adjustl(trim(yaml_toa(n**2)))//')',err_name='BIGDFT_RUNTIME_ERROR')
-              !!end if
     
     
               !!call diagonalizeHamiltonian2(bigdft_mpi%iproc, n, ham, ovrlp, eval)
@@ -2450,6 +2479,7 @@ module multipole
     
               call f_free(ham)
               call f_free(ovrlp)
+              call f_free(penaltymat)
               call f_free(proj)
               call f_free(eval)
     
@@ -2465,16 +2495,6 @@ module multipole
     
           ! Order the eigenvalues and IDs
           call order_eigenvalues(ntot, eval_all, id_all)
-          !do i=1,ntot
-          !    ! add i-1 since we are only searching in the subarray
-          !    ind = minloc(eval_all(i:ntot),1) + (i-1)
-          !    tt = eval_all(i)
-          !    eval_all(i) = eval_all(ind)
-          !    eval_all(ind) = tt
-          !    ii = id_all(i)
-          !    id_all(i) = id_all(ind)
-          !    id_all(ind) = ii
-          !end do
         
         
 
@@ -2485,32 +2505,62 @@ module multipole
           end if
     
     
-          !!! Determine the "Fermi level" such that the iq-th state is still fully occupied even with a smearing
-          !!ef = eval_all(1)
-          !!do
-          !!    ef = ef + 1.d-3
-          !!    occ = 1.d0/(1.d0+safe_exp( (eval_all(iq)-ef)*(1.d0/kT) ) )
-          !!    if (abs(occ-1.d0)<1.d-8) exit
-          !!end do
-          !!if (bigdft_mpi%iproc==0) then
-          !!    call yaml_map('Pseudo Fermi level for occupations',ef)
-          !!end if
-        
-          !!final = .true.
-          !!ikT = 0
-          !!kT_loop: do
-    
               !ikT = ikT + 1
+
+              !kT = 1.d-1*abs(eval_all(1))
+              if (mode=='verynew') then
+                  kT = max(1.d-1*abs(eval_all(5)),1.d-1)
+                  write(*,*) 'adjust kT to',kT
+              end if
     
               call f_zero(charge_per_atom)
     
               ! Determine the "Fermi level" such that the iq-th state is still fully occupied even with a smearing
-              ef = eval_all(1)
-              do
-                  ef = ef + 1.d-3
-                  occ = 1.d0/(1.d0+safe_exp( (eval_all(iq)-ef)*(1.d0/kT) ) )
-                  if (abs(occ-1.d0)<1.d-8) exit
-              end do
+              if (ialpha>=0) then
+                  ef = eval_all(1)
+                  do
+                      ef = ef + 1.d-3
+                      occ = 1.d0/(1.d0+safe_exp( (eval_all(iq)-ef)*(1.d0/kT) ) )
+                      if (abs(occ-1.d0)<1.d-8) exit
+                  end do
+                  !!write(*,*) 'HACK: INCREASE eF by 0.001d0'
+                  !!eF = eF + 0.001d0
+                  do ieval=1,ntot
+                      ij = ij + 1
+                      occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
+                      occ_all(ieval) = occ
+                  end do
+                  !!!if (bigdft_mpi%iproc==0) then
+                  !!!    call yaml_sequence_close()
+                  !!!    call yaml_map('number of states to be occupied (without smearing)',iq)
+                  !!!    call yaml_map('Pseudo Fermi level for occupations',ef)
+                  !!!    call yaml_sequence_open('ordered eigenvalues and occupations')
+                  !!!    ii = 0
+                  !!!    do i=1,ntot
+                  !!!        !occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
+                  !!!        occ = occ_all(i)
+                  !!!        if (.true. .or. occ>1.d-100) then
+                  !!!            call yaml_sequence(advance='no')
+                  !!!            call yaml_mapping_open(flow=.true.)
+                  !!!            call yaml_map('eval',eval_all(i),fmt='(es13.4)')
+                  !!!            call yaml_map('atom',id_all(i),fmt='(i5.5)')
+                  !!!            call yaml_map('occ',occ,fmt='(1pg13.5e3)')
+                  !!!            call yaml_mapping_close(advance='no')
+                  !!!            call yaml_comment(trim(yaml_toa(i,fmt='(i5.5)')))
+                  !!!        else
+                  !!!            ii = ii + 1
+                  !!!        end if
+                  !!!    end do
+                  !!!    if (ii>0) then
+                  !!!        call yaml_sequence(advance='no')
+                  !!!        call yaml_mapping_open(flow=.true.)
+                  !!!        call yaml_map('remaining states',ii)
+                  !!!        call yaml_map('occ','<1.d-100')
+                  !!!        call yaml_mapping_close()
+                  !!!    end if
+                  !!!    call yaml_sequence_close()
+                  !!!end if
+              end if
         
               ! Calculate the projector. First for each single atom, then insert it into the big one.
               charge_total = 0.d0
@@ -2519,25 +2569,10 @@ module multipole
                   n = n_all(kat)
                   proj = f_malloc0((/n,n/),id='proj')
                   call calculate_projector(n, ntot, nmax, kkat, id_all, eval_all, &
-                       coeff_all(1:,1:,kat), ef, kT, proj)
+                       coeff_all(1:,1:,kat), occ_all, proj)
                   if (present(projx)) then
                       call vcopy(n**2, proj(1,1), 1, projx(1,kat), 1)
                   end if
-                  !ij = 0
-                  !do ieval=1,ntot
-                  !    if (id_all(ieval)/=kkat) cycle
-                  !    ij = ij + 1
-                  !    occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
-                  !    do i=1,n
-                  !        do j=1,n
-                  !            proj(j,i) = proj(j,i) + occ*coeff_all(j,ij,kat)*coeff_all(i,ij,kat)
-                  !        end do
-                  !   end do
-                  !end do
-                  !tt = 0.d0
-                  !do i=1,n
-                  !    tt = tt + proj(i,i)
-                  !end do
     
     
                   !@ TEMPORARY ############################################
@@ -2545,48 +2580,12 @@ module multipole
                   ktilde = f_malloc0((/n,n/),id='ktilde')
                   call extract_matrix(smatl, kerneltilde, neighbor(1:,kat), n, nmax, ktilde)
                   kp = f_malloc((/n,n/),id='kp')
-                  !ii = 0
-                  !do i=1,smats%nfvctr
-                  !    if (neighbor(i,kat)) then
-                  !        jj = 0
-                  !        do j=1,smats%nfvctr
-                  !            if (neighbor(j,kat)) then
-                  !                icheck = icheck + 1
-                  !                jj = jj + 1
-                  !                if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
-                  !                indl =  matrixindex_in_compressed(smatl, i, j)
-                  !                if (indl>0) then
-                  !                    ktilde(jj,ii) = kerneltilde(indl)
-                  !                else
-                  !                    ktilde(jj,ii) = 0.d0
-                  !                end if
-                  !            end if
-                  !        end do
-                  !    end if
-                  !end do
-    
-                  ! Calculate ktilde * proj
-                  !write(*,*) 'ktilde'
-                  !do i=1,n
-                  !    write(*,'(10es9.2)') ktilde(i,1:n)
-                  !end do
-                  !!write(*,*) 'WARNING: COPY KHACK TO KTILDE'
-                  !!ktilde = khack(1:7,1:7,kat)
                   call gemm('n', 'n', n, n, n, 1.d0, ktilde(1,1), n, proj(1,1), n, 0.d0, kp(1,1), n)
                   tt = 0
                   do i=1,n
                       tt = tt + kp(i,i)
                   end do
-                  !!if (bigdft_mpi%iproc==0) then
-                  !!    do i=1,n
-                  !!        do j=1,n
-                  !!            write(*,'(a,2i5,3es13.3)') 'i, j, kt, proj, kp', i, j, ktilde(i,j), proj(j,i), kp(j,i)
-                  !!        end do
-                  !!    end do
-                  !!    write(*,*) 'kkat, trace, sum(proj)', kkat, tt, sum(proj)
-                  !!end if
                   charge_per_atom(kkat) = tt
-                  !write(*,*) 'alpha, kkat, tt', alpha, kkat, tt
                   charge_total = charge_total + tt
                   call f_free(proj)
                   call f_free(ktilde)
@@ -2596,26 +2595,6 @@ module multipole
               end do
     
     
-              !!if (final) exit kT_loop
-    
-              !!charge_net = 0.d0
-              !!do iat=1,at%astruct%nat
-              !!    charge_net = charge_net -(charge_per_atom(iat)-real(at%nelpsp(at%astruct%iatype(iat)),kind=8))
-              !!end do
-              !!!!if (bigdft_mpi%iproc==0) then
-              !!!!    call yaml_map('kT, ef, net_charge',(/kT,ef,charge_net/))
-              !!!!end if
-              !!if (abs(charge_net)<1.d0 .or. ikT==100) then
-              !!    final = .true.
-              !!else if (charge_net<0.d0) then
-              !!    kT = kT*0.95d0
-              !!    !ef = ef + 1.d-3
-              !!else if (charge_net>0.d0) then
-              !!    kT = kT*1.05d0
-              !!    !ef = ef - 1.d-3
-              !!end if
-    
-          !!end do kT_loop
 
           if (bigdft_mpi%nproc>1) then
               call mpiallred(charge_per_atom, mpi_sum, comm=bigdft_mpi%mpi_comm)
@@ -2641,7 +2620,7 @@ module multipole
           end if
 
 
-          if (abs(charge_net)<convergence_criterion) then
+          if (abs(charge_net)<convergence_criterion .or. ialpha==10000) then
           !if (.true.) then
               if (bigdft_mpi%iproc==0) then
                   call yaml_sequence_close()
@@ -2650,7 +2629,8 @@ module multipole
                   call yaml_sequence_open('ordered eigenvalues and occupations')
                   ii = 0
                   do i=1,ntot
-                      occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
+                      !occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
+                      occ = occ_all(i)
                       if (occ>1.d-100) then
                           call yaml_sequence(advance='no')
                           call yaml_mapping_open(flow=.true.)
@@ -2707,6 +2687,7 @@ module multipole
           end if
 
 
+
       end do alpha_loop
 
       if (bigdft_mpi%iproc==0) then
@@ -2738,6 +2719,7 @@ module multipole
       call f_free(charge_per_atom)
       call f_free(neighbor)
       call f_free(eval_all)
+      call f_free(occ_all)
       call f_free(id_all)
       call f_free(ovrlp_onehalf_all)
       call f_free(com)
@@ -3213,16 +3195,16 @@ module multipole
  end subroutine order_eigenvalues
 
 
- subroutine calculate_projector(n, ntot, nmax, kkat, ids, evals, coeff, ef, kT, proj)
+ subroutine calculate_projector(n, ntot, nmax, kkat, ids, evals, coeff, occ_all, proj)
    use module_base
    implicit none
 
    ! Calling arguments
    integer :: n, ntot, nmax, kkat
    integer,dimension(ntot),intent(in) :: ids
-   real(kind=8),dimension(ntot),intent(in) :: evals
+   real(kind=8),dimension(ntot),intent(in) :: evals, occ_all
    real(kind=8),dimension(nmax,nmax),intent(in) :: coeff
-   real(kind=8),intent(in) :: kT, ef
+   !real(kind=8),intent(in) :: kT, ef
    real(kind=8),dimension(n,n),intent(out) :: proj
 
    ! Local variables
@@ -3235,7 +3217,8 @@ module multipole
    do ieval=1,ntot
        if (ids(ieval)/=kkat) cycle
        ij = ij + 1
-       occ = 1.d0/(1.d0+safe_exp( (evals(ieval)-ef)*(1.d0/kT) ) )
+       !occ = 1.d0/(1.d0+safe_exp( (evals(ieval)-ef)*(1.d0/kT) ) )
+       occ = occ_all(ieval)
        do i=1,n
            do j=1,n
                proj(j,i) = proj(j,i) + occ*coeff(j,ij)*coeff(i,ij)
@@ -4446,5 +4429,189 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
   call f_release_routine()
 
 END SUBROUTINE calculate_dipole_moment
+
+
+subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, collcom, phi, smat, rpower_matrix)
+  use module_base
+  use module_types, only: local_zone_descriptors, orbitals_data, comms_linear
+  use locreg_operations,only: workarr_sumrho, initialize_work_arrays_sumrho, deallocate_work_arrays_sumrho
+  use communications_base, only: TRANSPOSE_FULL
+  use communications, only: transpose_localized
+  use transposed_operations, only: calculate_overlap_transposed
+  use sparsematrix_base, only: sparse_matrix, matrices
+  use bounds, only: geocode_buffers
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, nphi, nphir
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(orbitals_data),intent(in) :: orbs
+  type(comms_linear),intent(in) :: collcom
+  real(kind=8),dimension(nphi),intent(in) :: phi
+  type(sparse_matrix),intent(in) :: smat
+  type(matrices),dimension(24),intent(inout) :: rpower_matrix
+  
+  ! Local variables
+  integer :: iorb, iiorb, ilr, iat, ii, i1, i2, i3, ii1, ii2, ii3, ist, istr, nl1, nl2, nl3, i
+  type(workarr_sumrho) :: w
+  real(kind=8),dimension(:),allocatable :: phir, phit_c, phit_f, xphit_c, xphit_f
+  real(kind=8),dimension(:,:),allocatable :: xphi, xphir
+  real(kind=8) :: hxh, hyh, hzh, x, y, z, r, r2
+
+  call f_routine(id='calculate_rpowerx_matrices')
+
+  xphi = f_malloc0((/nphi,24/),id='xphi')
+  phir = f_malloc(nphir,id='phir')
+  xphir = f_malloc0((/nphir,24/),id='xphir')
+
+  ist=1
+  istr=1
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      iat=orbs%onwhichatom(iiorb)
+      call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
+      ! Transform the support function to real space
+      call daub_to_isf(lzd%llr(ilr), w, phi(ist), phir(istr))
+      call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.false.,w)
+
+      ! NEW: CALCULATE THE WEIGHT CENTER OF THE SUPPORT FUNCTION ############################
+      hxh = 0.5d0*lzd%hgrids(1)
+      hyh = 0.5d0*lzd%hgrids(2)
+      hzh = 0.5d0*lzd%hgrids(3)
+      ii = istr
+      call geocode_buffers(lzd%Llr(ilr)%geocode, lzd%glr%geocode, nl1, nl2, nl3)
+      do i3=1,lzd%llr(ilr)%d%n3i
+          ii3 = lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
+          z = ii3*hzh
+          do i2=1,lzd%llr(ilr)%d%n2i
+              ii2 = lzd%llr(ilr)%nsi2 + i2 - nl2 - 1
+              y = ii2*hyh
+              do i1=1,lzd%llr(ilr)%d%n1i
+                  ii1 = lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
+                  x = ii1*hxh
+                  r2 = x**2+y**2+z**2
+                  xphir(ii,1) = x*phir(ii)
+                  xphir(ii,2) = x**2*phir(ii)
+                  xphir(ii,3) = x**3*phir(ii)
+                  xphir(ii,4) = x**4*phir(ii)
+                  xphir(ii,5) = y*phir(ii)
+                  xphir(ii,6) = y**2*phir(ii)
+                  xphir(ii,7) = y**3*phir(ii)
+                  xphir(ii,8) = y**4*phir(ii)
+                  xphir(ii,9) = z*phir(ii)
+                  xphir(ii,10) = z**2*phir(ii)
+                  xphir(ii,11) = z**3*phir(ii)
+                  xphir(ii,12) = z**4*phir(ii)
+                  xphir(ii,13) = x*y*phir(ii)
+                  xphir(ii,14) = x**2*y*phir(ii)
+                  xphir(ii,15) = x*y**2*phir(ii)
+                  xphir(ii,16) = x**2*y**2*phir(ii)
+                  xphir(ii,17) = x*z*phir(ii)
+                  xphir(ii,18) = x**2*z*phir(ii)
+                  xphir(ii,19) = x*z**2*phir(ii)
+                  xphir(ii,20) = x**2*z**2*phir(ii)
+                  xphir(ii,21) = y*z*phir(ii)
+                  xphir(ii,22) = y**2*z*phir(ii)
+                  xphir(ii,23) = y*z**2*phir(ii)
+                  xphir(ii,24) = y**2*z**2*phir(ii)
+                  ii = ii + 1
+              end do
+          end do
+      end do
+      ! Transform the functions back to wavelets
+      do i=1,24
+          call isf_to_daub(lzd%llr(ilr), w, xphir(istr,i), xphi(ist,i))
+      end do
+      call deallocate_work_arrays_sumrho(w)
+      ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+      istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+  end do
+
+  ! Calculate the matrices
+  phit_c = f_malloc(collcom%ndimind_c,id='phit_c')
+  phit_f = f_malloc(7*collcom%ndimind_f,id='phit_f')
+  xphit_c = f_malloc(collcom%ndimind_c,id='xphit_c')
+  xphit_f = f_malloc(7*collcom%ndimind_f,id='xphit_f')
+  call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
+       TRANSPOSE_FULL, phi, phit_c, phit_f, lzd)
+  do i=1,24
+      call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
+           TRANSPOSE_FULL, xphi(:,i), xphit_c, xphit_f, lzd)
+      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
+           phit_c, xphit_c, phit_f, xphit_f, smat, rpower_matrix(i))
+  end do
+  !call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
+  !     TRANSPOSE_FULL, xphi(:,2), xphit_c, xphit_f, lzd)
+  !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
+  !     phit_c, xphit_c, xphit_f, xphit_f, smat, rpower_matrix(2))
+  call f_free(phit_c)
+  call f_free(phit_f)
+  call f_free(xphit_c)
+  call f_free(xphit_f)
+
+  !!if (iproc==0) then
+  !!    do iorb=1,smat%nvctr
+  !!        write(*,*) 'i, val', iorb, rpower_matrix(1)%matrix_compr(iorb)
+  !!    end do
+  !!end if
+
+  call f_free(xphi)
+  call f_free(phir)
+  call f_free(xphir)
+
+  call f_release_routine()
+
+end subroutine calculate_rpowerx_matrices
+
+
+  function get_quartic_penalty(n, j, i, penaltymat, ovrlp, rxyz) result(gqp)
+    implicit none
+
+    ! Calling arguments
+    integer,intent(in) :: n, j, i
+    real(kind=8),dimension(n,n,24),intent(in) :: penaltymat
+    real(kind=8),dimension(n,n),intent(in) :: ovrlp
+    real(kind=8),dimension(3) :: rxyz
+    real(kind=8) :: gqp
+
+    gqp = penaltymat(j,i,4) - 4.d0*rxyz(1)*penaltymat(j,i,3) &
+          + 6.d0*rxyz(1)**2*penaltymat(j,i,2) - 4.d0*rxyz(1)**3*penaltymat(j,i,1) &
+          + rxyz(1)**4*ovrlp(j,i) &
+          + penaltymat(j,i,8) - 4.d0*rxyz(2)*penaltymat(j,i,7) &
+          + 6.d0*rxyz(2)**2*penaltymat(j,i,6) - 4.d0*rxyz(2)**3*penaltymat(j,i,5) &
+          + rxyz(2)**4*ovrlp(j,i) &
+          + penaltymat(j,i,12) - 4.d0*rxyz(3)*penaltymat(j,i,11) &
+          + 6.d0*rxyz(3)**2*penaltymat(j,i,10) - 4.d0*rxyz(3)**3*penaltymat(j,i,9) &
+          + rxyz(3)**4*ovrlp(j,i) &
+          + 2.d0*(penaltymat(j,i,16) &
+                  - 2.d0*rxyz(2)*penaltymat(j,i,14) &
+                  + rxyz(2)**2*penaltymat(j,i,2) &
+                  - 2.d0*rxyz(1)*penaltymat(j,i,15) &
+                  + 4.d0*rxyz(1)*rxyz(2)*penaltymat(j,i,13) &
+                  - 2.d0*rxyz(1)*rxyz(2)**2*penaltymat(j,i,1) &
+                  + rxyz(1)**2*penaltymat(j,i,6) &
+                  - 2.d0*rxyz(1)**2*rxyz(2)*penaltymat(j,i,5) &
+                  + rxyz(1)**2*rxyz(2)**2*ovrlp(j,i) &
+                  + penaltymat(j,i,20) &
+                  - 2.d0*rxyz(3)*penaltymat(j,i,18) &
+                  + rxyz(3)**2*penaltymat(j,i,2) &
+                  - 2.d0*rxyz(1)*penaltymat(j,i,19) &
+                  + 4.d0*rxyz(1)*rxyz(3)*penaltymat(j,i,17) &
+                  - 2.d0*rxyz(1)*rxyz(3)**2*penaltymat(j,i,1) &
+                  + rxyz(1)**2*penaltymat(j,i,10) &
+                  - 2.d0*rxyz(1)**2*rxyz(3)*penaltymat(j,i,9) &
+                  + rxyz(1)**2*rxyz(3)**2*ovrlp(j,i) &
+                  + penaltymat(j,i,24) &
+                  - 2.d0*rxyz(3)*penaltymat(j,i,22) &
+                  + rxyz(3)**2*penaltymat(j,i,6) &
+                  - 2.d0*rxyz(2)*penaltymat(j,i,23) &
+                  + 4.d0*rxyz(2)*rxyz(3)*penaltymat(j,i,21) &
+                  - 2.d0*rxyz(2)*rxyz(3)**2*penaltymat(j,i,5) &
+                  + rxyz(2)**2*penaltymat(j,i,10) &
+                  - 2.d0*rxyz(2)**2*rxyz(3)*penaltymat(j,i,9) &
+                  + rxyz(2)**2*rxyz(3)**2*ovrlp(j,i) )
+
+  end function get_quartic_penalty
 
 end module multipole
