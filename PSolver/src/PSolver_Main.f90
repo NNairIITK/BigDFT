@@ -82,6 +82,8 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
       call f_err_throw('datacode ("'//kernel%opt%datacode//&
            '") not admitted in PSolver')
    end select
+   IntSur=0.0_gp
+   IntVol=0.0_gp
 
    !aliasing
    n23=kernel%grid%m3*kernel%grid%n3p
@@ -176,8 +178,10 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !add the ionic density to the potential, calculate also the integral
   !between the rho and pot_ion and the extra potential if present
   e_static=0.0_dp
-  IntSur=0.0_gp
-  IntVol=0.0_gp
+  if (kernel%opt%only_electrostatic) then
+   IntSur=0.0_gp
+   IntVol=0.0_gp
+  end if
   if (sum_ri) then
      if (sum_pi) then
         call finalize_hartree_results(.true.,cudasolver,kernel,rho_ion,&
@@ -629,7 +633,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    end if
 
    !retrieve the energy and stress
-   eh=energies%hartree+energies%eVextra
+   !eh=energies%hartree+energies%eVextra
+   eh=energies%hartree+energies%eVextra+energies%cavitation
    if (present(stress_tensor)) stress_tensor=energies%strten
 
 !!!>
