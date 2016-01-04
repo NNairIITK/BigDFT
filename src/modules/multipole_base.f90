@@ -24,6 +24,7 @@ module multipole_base
     character(len=20) :: sym
     real(dp),dimension(3) :: rxyz
     type(multipole),dimension(:),pointer :: qlm
+    real(dp),dimension(0:lmax) :: sigma !<sigmas for the radial Gaussian when constructing the potential from the multipoles
   end type multipole_set
 
   type,public :: external_potential_descriptors
@@ -68,6 +69,7 @@ module multipole_base
       type(multipole_set),intent(out) :: mps
       mps%sym = 'UNINITIALIZED'
       mps%rxyz(1:3) = 0._dp
+      mps%sigma(0:lmax) = 0._dp
       !mps%lmax = 0
       nullify(mps%qlm)
     end subroutine nullify_multipole_set
@@ -170,6 +172,14 @@ module multipole_base
           end if
           ep%mpl(impl+1)%rxyz = iter//'r'
           !call yaml_map('rxyz',ep%mpl(impl)%rxyz)
+          if ('sigma' .in. iter) then
+              ilen = dict_len(iter//'sigma')
+              if (ilen/=3) then
+                  call f_err_throw('For the multipole center no. '//trim(yaml_toa(impl+1))//&
+                       &' the number of sigmas specified are wrong ('//trim(yaml_toa(ilen))//')')
+              end if
+              ep%mpl(impl+1)%sigma(0:lmax) = iter//'sigma'
+          end if
           do l=0,lmax
               key='q'//trim(adjustl(yaml_toa(l)))
               if (key .in. iter) then

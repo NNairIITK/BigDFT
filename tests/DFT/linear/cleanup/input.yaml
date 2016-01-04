@@ -17,12 +17,14 @@
    correction_co_contra: no
    check_sumrho: 2
    check_overlap: 2
+   nsigma: 5
  lin_general:
    nit: [1, 2]
    rpnrm_cv: 9.9999999999999994E-012
    conf_damping: 0.5
    calc_dipole: Yes
    calc_pulay: old
+   charge_multipoles: 2
  lin_basis:
    nit: 2
    idsx: [3, 0]

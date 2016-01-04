@@ -4228,9 +4228,10 @@ contains
           do jorb=1,norb
               if (jproc==nproc-1) exit
               jjorb = jjorb + 1
-              if(jorb==norb) exit !just to be sure that no out of bound happens
+              jjorbtot = jjorbtot + 1
               tcount = tcount + workload(jorb)
               jcount = jcount + workload(jorb)
+              if(jorb==norb) exit !just to be sure that no out of bound happens
               if (abs(tcount-wli*real(jproc+1,kind=8)) <= &
                       abs(tcount+workload(jorb+1)-wli*real(jproc+1,kind=8))) then
               !!if (abs(tcount-workload_ideal*real(jproc+1,kind=8)) <= &
@@ -4239,16 +4240,22 @@ contains
               !!        tcount+workload(jorb+1)-workload_ideal*real(jproc+1,kind=8)>0.d0) then
                   norb_par(jproc) = jjorb
                   workload_par(jproc) = jcount
-                  jjorbtot = jjorbtot + jjorb
-                  !if (bigdft_mpi%iproc==0) write(*,'(a,2i6,2es14.6)') 'jproc, jjorb, tcount/(jproc+1), wli', jproc, jjorb, tcount/(jproc+1), wli
                   jcount = 0.d0
                   jjorb = 0
                   jproc = jproc + 1
                   wli = get_dynamic_ideal_workload(nproc,jproc, tcount, workload_ideal)
               end if
           end do
+          ! Take the rest
           norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
           workload_par(nproc-1) = sum(workload) - tcount
+
+          if (sum(norb_par)/=norb) then
+              call f_err_throw('wrong first partition of the workload; sum of distributed workload is '&
+                   &//trim(yaml_toa(sum(norb_par)))//', but should be '//trim(yaml_toa(norb)),&
+                   err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+
           !do jproc=0,nproc-1
           !    if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
           !end do
@@ -4291,29 +4298,15 @@ contains
           ! Equal distribution
           norb_par(0:norb-1) = 1
       end if
+
+      if (sum(norb_par)/=norb) then
+          call f_err_throw('wrong second partition of the workload; sum of distributed workload is '&
+               &//trim(yaml_toa(sum(norb_par)))//', but should be '//trim(yaml_toa(norb)),&
+               err_name='BIGDFT_RUNTIME_ERROR')
+      end if
     
       call f_release_routine()
     
-!!$      contains
-!!$    
-!!$        ! Get dynamically a new ideal workload
-!!$        function get_dynamic_ideal_workload(jproc, wltot, wli) result(wl)
-!!$          implicit none
-!!$          integer,intent(in) :: jproc !<currently handled task
-!!$          real(kind=8),intent(in) :: wltot !<total workload assigned so far
-!!$          real(kind=8),intent(in) :: wli !< theoretical ideal workload
-!!$          real(kind=8) :: wl !<new ideal workload
-!!$          real(kind=8) :: wls
-!!$    
-!!$          ! Average workload so far
-!!$          wls = wltot/real(jproc,kind=8)
-!!$     
-!!$          ! The new ideal workload is a weighted sum of the average workload so far
-!!$          ! and the theoretical ideal workload
-!!$          wl = (nproc-jproc)*wls + jproc*wli
-!!$          wl = wl/real(nproc,kind=8) 
-!!$    
-!!$        end function get_dynamic_ideal_workload
     end subroutine redistribute
 
     ! Get dynamically a new ideal workload
