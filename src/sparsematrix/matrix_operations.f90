@@ -50,7 +50,7 @@ module matrix_operations
         integer,dimension(ncalc),intent(in) :: power
         integer,intent(in) :: imode
         type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
-        type(matrices),intent(inout) :: ovrlp_mat
+        type(matrices),intent(in) :: ovrlp_mat
         type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp_mat
         logical,intent(in) :: check_accur
         real(kind=8),intent(out),optional :: max_error, mean_error
@@ -534,8 +534,8 @@ module matrix_operations
                 Amat22p_new=>Amat11p_new
                 Amat12_compr=>inv_ovrlp_mat(1)%matrix_compr(1:)
       
-                call transform_sparse_matrix_local(ovrlp_smat, inv_ovrlp_smat, &
-                     ovrlp_mat%matrix_compr, Amat12_compr, 'small_to_large')
+                call transform_sparse_matrix_local(ovrlp_smat, inv_ovrlp_smat, 'small_to_large', &
+                     smatrix_compr_in=ovrlp_mat%matrix_compr, lmatrix_compr_out=Amat12_compr)
                 Amat12_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat12_seq')
                 Amat21_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat21_seq')
                 Amat21_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='Amat21_compr')
@@ -692,8 +692,8 @@ module matrix_operations
                     ! This is a bit quick and dirty
                     tmparr = sparsematrix_malloc(ovrlp_smat,iaction=SPARSE_FULL,id='tmparr')
                     call gather_matrix_from_taskgroups(iproc, nproc, ovrlp_smat, ovrlp_mat%matrix_compr, tmparr)
-                    call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
-                         tmparr, ovrlp_large_compr, 'small_to_large')
+                    call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, 'small_to_large', &
+                         smat_in=tmparr, lmat_out=ovrlp_large_compr)
                     !!write(500+bigdft_mpi%iproc,'(a,2es16.8)') 'tmparr, large', tmparr(1), ovrlp_large_compr(1)
                     call f_free(tmparr)
       
@@ -884,8 +884,8 @@ module matrix_operations
                 invovrlpp_new = f_malloc(inv_ovrlp_smat%smmm%nvctrp, id='invovrlpp_new')
                 !!if (iorder<1 .or. iorder>=1000) then
                     ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_TASKGROUP, id='ovrlp_large_compr')
-                    call transform_sparse_matrix_local(ovrlp_smat, inv_ovrlp_smat, &
-                         ovrlp_mat%matrix_compr, ovrlp_large_compr, 'small_to_large')
+                    call transform_sparse_matrix_local(ovrlp_smat, inv_ovrlp_smat, 'small_to_large', &
+                         smatrix_compr_in=ovrlp_mat%matrix_compr, lmatrix_compr_out=ovrlp_large_compr)
                 !!end if
                 invovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_large_compr_seq')
                 !!ovrlp_largep = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='ovrlp_largep')

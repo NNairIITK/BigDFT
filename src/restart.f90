@@ -930,8 +930,8 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   iicol(1) = min(icol(1),iicol(1))
   iicol(2) = max(icol(2),iicol(2))
 
-  call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, .false., &
-       collcom_tmp, collcom_tmp, smat_tmp, iirow, iicol)
+  call init_matrix_taskgroups(iproc, nproc, .false., smat_tmp, &
+       at%astruct%nat, collcom_tmp, collcom_tmp, iirow, iicol)
 
   mat_tmp = matrices_null()
   mat_tmp%matrix_compr = sparsematrix_malloc_ptr(smat_tmp, iaction=SPARSE_TASKGROUP,id='mat_tmp%matrix_compr')

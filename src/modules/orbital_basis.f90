@@ -69,7 +69,7 @@ module orbitalbasis
   end type orbital_basis
 
   public :: ob_ket_map,orbital_basis_iterator,ket_next_locreg,ket_next,local_hamiltonian_ket
-  public :: orbital_basis_associate,orbital_basis_release,test_iterator
+  public :: orbital_basis_associate,orbital_basis_release,test_iterator,ket_next_kpt
 
 contains
 
@@ -219,12 +219,16 @@ contains
     implicit none
     type(ket), intent(inout) :: it
     logical :: ok
+    !local variables
+    logical :: noorb
     ok=.not. associated(it%ob) .or. it%ilr > it%ilr_max .or. &
          it%ikpt > it%ikpt_max
     ok=.not. ok
-
+    noorb=.false.
+    if (associated(it%ob)) noorb= it%ob%orbs%norbp==0
     !if we are at the end, nullify the iterator
-    if (it%ilr > it%ilr_max .and. it%ikpt > it%ikpt_max) call nullify_ket(it)
+    if ((it%ilr > it%ilr_max .and. it%ikpt > it%ikpt_max) .or. noorb)&
+         call nullify_ket(it)
 
   end function ket_is_valid
 
@@ -354,14 +358,15 @@ contains
     k%ispot=k%ob%orbs%ispot(k%iorbp)
     !find the psi shift for the association
     k%ispsi=1
-    do iorbq=1,k%iorbp-1
-       nvctr=k%ob%dd(iorbq)%lr%wfd%nvctr_c+7*k%ob%dd(iorbq)%lr%wfd%nvctr_f
-       k%ispsi=k%ispsi+nvctr*k%nspinor
-    end do
-    k%lr=>k%ob%dd(k%iorbp)%lr
-    k%nphidim=(k%lr%wfd%nvctr_c+7*k%lr%wfd%nvctr_f)*k%nspinor
-
-    k%phi_wvl=>ob_ket_map(k%ob%phis_wvl,k)
+    if (associated(k%ob%dd)) then
+       do iorbq=1,k%iorbp-1
+          nvctr=k%ob%dd(iorbq)%lr%wfd%nvctr_c+7*k%ob%dd(iorbq)%lr%wfd%nvctr_f
+          k%ispsi=k%ispsi+nvctr*k%nspinor
+       end do
+       k%lr=>k%ob%dd(k%iorbp)%lr
+       k%nphidim=(k%lr%wfd%nvctr_c+7*k%lr%wfd%nvctr_f)*k%nspinor
+    end if
+    if (associated(k%ob%phis_wvl)) k%phi_wvl=>ob_ket_map(k%ob%phis_wvl,k)
   end subroutine update_ket
 
   function ob_ket_map(ob_ptr,it)
@@ -496,11 +501,12 @@ contains
 
   end subroutine local_hamiltonian_ket
   
-  subroutine orbital_basis_associate(ob,orbs,Lzd,confdatarr,phis_wvl)
+  subroutine orbital_basis_associate(ob,orbs,Lzd,Glr,confdatarr,phis_wvl)
     implicit none
     type(orbital_basis), intent(inout) :: ob
     type(orbitals_data), intent(in), optional, target :: orbs
     type(local_zone_descriptors), intent(in), optional, target :: Lzd
+    type(locreg_descriptors), intent(in), optional, target :: Glr !< in the case where only one Lrr is needed
     type(confpot_data), dimension(:), optional, intent(in), target :: confdatarr
     real(wp), dimension(:), target, optional :: phis_wvl
     !other elements have to be added (comms etc)
@@ -512,12 +518,19 @@ contains
 
     if (present(orbs)) ob%orbs => orbs
     
+    if (.not. present(orbs) .and. (present(Lzd) .or. present(Glr))) &
+         call f_err_throw('orbs should be present with lzd or glr',err_name='BIGDFT_RUNTIME_ERROR')
+
     if (present(Lzd)) then
-       if (.not. present(orbs)) call f_err_throw('orbs should be present with lzd',err_name='BIGDFT_RUNTIME_ERROR')
        allocate(ob%dd(orbs%norbp))
        do iorb=1,orbs%norbp
           ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
           ob%dd(iorb)%lr => Lzd%Llr(ilr)
+       end do
+    else if (present(Glr)) then
+       allocate(ob%dd(orbs%norbp))
+       do iorb=1,orbs%norbp
+          ob%dd(iorb)%lr => Glr
        end do
     end if
 
@@ -525,7 +538,7 @@ contains
 
     if (present(phis_wvl)) ob%phis_wvl => phis_wvl
 
-    !before associating any iterator whatsoever, let us probe 
+    !before using any iterator whatsoever, let us probe 
     !its behaviour
     call probe_iterator(ob)
 
@@ -712,7 +725,7 @@ contains
     !local variables
     !logical, parameter :: debug_flag=.true.
     logical :: doso,increase
-    integer :: iorb,ikpt,ilr,isorb,ieorb,ispsi,ispsi_k,nsp
+    integer :: iorb,ikpt,ilr,isorb,ieorb,ispsi,ispsi_k,nsp,nkptp,ikptp
     logical, dimension(:), allocatable :: totreat
 
     totreat=f_malloc(ob%orbs%norbp,id='totreat')
@@ -790,6 +803,23 @@ contains
          call f_err_throw('Error for iterator (4), not all orbitals treated',&
          err_name='BIGDFT_RUNTIME_ERROR')
 
+    nkptp=0
+    if (ob%orbs%norbp > 0) nkptp=ob%orbs%iokpt(ob%orbs%norbp)-ob%orbs%iokpt(1)+1
+    totreat=.true.
+    it=orbital_basis_iterator(ob)
+    do while(ket_next_kpt(it))
+       ikptp=it%ikpt-ob%orbs%iokpt(1)+1
+       if (.not. totreat(ikptp)) &
+            call f_err_throw('Error for iterator (5), iorb='+iorb,err_name='BIGDFT_RUNTIME_ERROR')
+       totreat(ikptp)=.false.
+    end do
+    !print *,'totreat',totreat
+    if (any(totreat(1:nkptp))) &
+         call f_err_throw('Error for iterator (5), not all orbitals treated',&
+         err_name='BIGDFT_RUNTIME_ERROR')
+
+    !then there is also the case without the orbitals, iterate only on k_points
+
     !reverse testing
 
     totreat=.true.
@@ -813,7 +843,7 @@ contains
 
 
     !then test the iterator by ordering the wavefunctions in terms of localisation regions, for only one kpoint
-    if (ob%orbs%nkpts == 1 .or. maxval(ob%orbs%inwhichlocreg)==1) then
+    if ((ob%orbs%nkpts == 1 .or. maxval(ob%orbs%inwhichlocreg)==1) .and. associated(ob%dd)) then
        isorb=1
        ieorb=ob%orbs%norbp
        ispsi_k=1
@@ -866,74 +896,75 @@ contains
 
     !let us now probe the behaviour of the iterator with respect to the
     !kpoints only
-    if (ob%orbs%norbp >0)ikpt=ob%orbs%iokpt(1)
-    ispsi_k=1
-    totreat=.true.
-    it=orbital_basis_iterator(ob)
-    loop_kpt: do
-       !specialized treatment
-       if (ob%orbs%norbp ==0) then
-          increase=ket_next_kpt(it)
-          increase=ket_next(it,ikpt=it%ikpt)
-          if (increase) then
-             call f_err_throw(&
-               'Error for iterator, still valid at the end of the zero number of kpt iterations, ikpt='+ikpt,&
-               err_name='BIGDFT_RUNTIME_ERROR')
-             return
-          end if
-          exit loop_kpt
-       end if
-       call orbs_in_kpt(ikpt,ob%orbs,isorb,ieorb,nsp)
-
-       increase=ket_next_kpt(it)
-       if (.not. (verify_iterator(it,ikpt=ikpt) .and. increase)) then
-          call f_err_throw('Error for iterator, ikpt='+ikpt,err_name='BIGDFT_RUNTIME_ERROR')
-          return
-       end if
-
-       !localisation regions loop
-       loop_lrk: do ilr=1,it%ilr_max
-          !do something only if at least one of the orbitals lives in the ilr
-          doso=.false.
-          do iorb=isorb,ieorb
-             doso = (ob%orbs%inwhichlocreg(iorb+ob%orbs%isorb) == ilr)
-             if (doso) exit
-          end do
-          if (.not. doso) cycle loop_lrk
-          ispsi=ispsi_k
-          do iorb=isorb,ieorb
-             if (ob%orbs%inwhichlocreg(iorb+ob%orbs%isorb) /= ilr) then
-                !increase ispsi to meet orbital index
-                ispsi=ispsi+(ob%dd(iorb)%lr%wfd%nvctr_c+&
-                  7*ob%dd(iorb)%lr%wfd%nvctr_f)*nsp
-                cycle
-             end if
+    if (associated(ob%dd)) then
+       if (ob%orbs%norbp >0)ikpt=ob%orbs%iokpt(1)
+       ispsi_k=1
+       totreat=.true.
+       it=orbital_basis_iterator(ob)
+       loop_kpt: do
+          !specialized treatment
+          if (ob%orbs%norbp ==0) then
+             increase=ket_next_kpt(it)
              increase=ket_next(it,ikpt=it%ikpt)
-             if (.not. (verify_iterator(it,iorb=iorb,ispsi=ispsi) .and. increase ) .and. .not. totreat(it%iorbp)) then
-                call f_err_throw('Error for iterator, ikpt='+ikpt//' iorb='+iorb,err_name='BIGDFT_RUNTIME_ERROR')
+             if (increase) then
+                call f_err_throw(&
+                     'Error for iterator, still valid at the end of the zero number of kpt iterations, ikpt='+ikpt,&
+                     err_name='BIGDFT_RUNTIME_ERROR')
                 return
              end if
-             totreat(it%iorbp)=.false.
+             exit loop_kpt
+          end if
+          call orbs_in_kpt(ikpt,ob%orbs,isorb,ieorb,nsp)
 
-             ispsi=ispsi+(ob%dd(iorb)%lr%wfd%nvctr_c+&
-                  7*ob%dd(iorb)%lr%wfd%nvctr_f)*nsp
-          end do
+          increase=ket_next_kpt(it)
+          if (.not. (verify_iterator(it,ikpt=ikpt) .and. increase)) then
+             call f_err_throw('Error for iterator, ikpt='+ikpt,err_name='BIGDFT_RUNTIME_ERROR')
+             return
+          end if
 
-       end do loop_lrk
+          !localisation regions loop
+          loop_lrk: do ilr=1,it%ilr_max
+             !do something only if at least one of the orbitals lives in the ilr
+             doso=.false.
+             do iorb=isorb,ieorb
+                doso = (ob%orbs%inwhichlocreg(iorb+ob%orbs%isorb) == ilr)
+                if (doso) exit
+             end do
+             if (.not. doso) cycle loop_lrk
+             ispsi=ispsi_k
+             do iorb=isorb,ieorb
+                if (ob%orbs%inwhichlocreg(iorb+ob%orbs%isorb) /= ilr) then
+                   !increase ispsi to meet orbital index
+                   ispsi=ispsi+(ob%dd(iorb)%lr%wfd%nvctr_c+&
+                        7*ob%dd(iorb)%lr%wfd%nvctr_f)*nsp
+                   cycle
+                end if
+                increase=ket_next(it,ikpt=it%ikpt)
+                if (.not. (verify_iterator(it,iorb=iorb,ispsi=ispsi) .and. increase ) .and. .not. totreat(it%iorbp)) then
+                   call f_err_throw('Error for iterator, ikpt='+ikpt//' iorb='+iorb,err_name='BIGDFT_RUNTIME_ERROR')
+                   return
+                end if
+                totreat(it%iorbp)=.false.
 
-       !last k-point has been treated
-       if (ieorb == ob%orbs%norbp) exit loop_kpt
+                ispsi=ispsi+(ob%dd(iorb)%lr%wfd%nvctr_c+&
+                     7*ob%dd(iorb)%lr%wfd%nvctr_f)*nsp
+             end do
 
-       ikpt=ikpt+1
-       ispsi_k=ispsi
+          end do loop_lrk
 
-    end do loop_kpt
-    if (ket_next_kpt(it) .or. any(totreat)) then
-       call f_err_throw('Error for iterator, still valid at the end of the number of kpt iterations, ikpt='+ikpt,&
-            err_name='BIGDFT_RUNTIME_ERROR')
-       return
+          !last k-point has been treated
+          if (ieorb == ob%orbs%norbp) exit loop_kpt
+
+          ikpt=ikpt+1
+          ispsi_k=ispsi
+
+       end do loop_kpt
+       if (ket_next_kpt(it) .or. any(totreat)) then
+          call f_err_throw('Error for iterator, still valid at the end of the number of kpt iterations, ikpt='+ikpt,&
+               err_name='BIGDFT_RUNTIME_ERROR')
+          return
+       end if
     end if
-
     call f_free(totreat)
 
   end subroutine probe_iterator

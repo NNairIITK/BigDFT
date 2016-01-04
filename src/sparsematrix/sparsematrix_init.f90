@@ -1154,22 +1154,21 @@ contains
 
 
     !> Currently assuming square matrices
-    subroutine init_sparse_matrix(iproc, nproc, nspin, geocode, norbu, norbup, isorbu, store_index, &
-               on_which_atom, nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
-               allocate_full, print_info)
+    subroutine init_sparse_matrix(iproc, nproc, norbu, nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
+               nspin, geocode, norbup, isorbu, store_index, on_which_atom, allocate_full, print_info)
       use yaml_output
 !      use yaml_strings, only: yaml_toa
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, nspin, norbu, norbup, isorbu, nnonzero, nnonzero_mult
-      character(len=1),intent(in) :: geocode
-      logical,intent(in) :: store_index
-      integer,dimension(norbu),intent(in) :: on_which_atom
+      integer,intent(in) :: iproc, nproc, norbu, nnonzero, nnonzero_mult
       integer,dimension(2,nnonzero),intent(in) :: nonzero
       integer,dimension(2,nnonzero_mult),intent(in) :: nonzero_mult
       type(sparse_matrix), intent(out) :: sparsemat
-      logical,intent(in),optional :: allocate_full, print_info
+      character(len=1),intent(in),optional :: geocode
+      logical,intent(in),optional :: allocate_full, print_info, store_index
+      integer,dimension(norbu),intent(in),optional :: on_which_atom
+      integer,intent(in),optional :: nspin, norbup, isorbu
       
       ! Local variables
       integer :: jproc, iorb, jorb, iiorb, iseg
@@ -1180,12 +1179,13 @@ contains
       integer,dimension(:),allocatable :: nsegline_mult, istsegline_mult
       integer,dimension(:,:,:),allocatable :: keyg_mult
       integer,dimension(:),allocatable :: keyv_mult
-      logical :: allocate_full_, print_info_ !LG: internal variables have the underscore, not the opposite
+      logical :: allocate_full_, print_info_, store_index_ !LG: internal variables have the underscore, not the opposite
       integer(kind=8) :: ntot
 
       real(kind=4) :: tr0, tr1, trt0, trt1
       real(kind=8) :: time0, time1, time2, time3, time4, time5, ttime
       logical, parameter :: extra_timing=.false.
+
 
       call timing(iproc,'init_matrCompr','ON')
       if (extra_timing) call cpu_time(trt0)
@@ -1193,26 +1193,48 @@ contains
       
       allocate_full_=.false.
       print_info_=.true.
+      store_index_=.false.
       if (present(allocate_full)) allocate_full_=allocate_full
       if (present(print_info)) print_info_=print_info
+      if (present(store_index)) store_index_=store_index
+
 
       lut = f_malloc(norbu,id='lut')
     
       sparsemat=sparse_matrix_null()
     
-      sparsemat%nspin=nspin
-      sparsemat%geocode = geocode
+      if (present(nspin)) then
+          sparsemat%nspin=nspin
+      else
+          sparsemat%nspin=1
+      end if
+      if (present(geocode)) then
+          sparsemat%geocode = geocode
+      else
+          ! Set to 'U' for 'unknown'
+          sparsemat%geocode = 'U'
+      end if
       sparsemat%nfvctr=norbu
-      sparsemat%nfvctrp=norbup
-      sparsemat%isfvctr=isorbu
+      ! If both norbup and isorbu are present, assign the values to the sparse_matrix structure,
+      ! otherwise calculate them on the fly. For a standalone test the latter option should be ok.
+      if (present(norbup) .or. present(isorbu)) then
+          if (present(norbup) .and. present(isorbu)) then
+              sparsemat%nfvctrp=norbup
+              sparsemat%isfvctr=isorbu
+          else
+              call f_err_throw("the optional arguments 'norbup' and 'isorbu' must both be present at the same time")
+          end if
+      else
+          call distribute_columns_on_processes_simple(iproc, nproc, norbu, sparsemat%nfvctrp, sparsemat%isfvctr)
+      end if
       sparsemat%nfvctr_par=f_malloc0_ptr((/0.to.nproc-1/),id='sparsemat%nfvctr_par')
       sparsemat%isfvctr_par=f_malloc0_ptr((/0.to.nproc-1/),id='sparsemat%isfvctr_par')
       if (extra_timing) call cpu_time(tr0)
       ! Same as isorb_par and norb_par
       do jproc=0,nproc-1
           if (iproc==jproc) then
-              sparsemat%isfvctr_par(jproc)=isorbu
-              sparsemat%nfvctr_par(jproc)=norbup
+              sparsemat%isfvctr_par(jproc)=sparsemat%isfvctr
+              sparsemat%nfvctr_par(jproc)=sparsemat%nfvctrp
           end if
       end do
       if (nproc>1) then
@@ -1220,16 +1242,20 @@ contains
           call mpiallred(sparsemat%nfvctr_par, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
 
-      call allocate_sparse_matrix_basic(store_index, norbu, nproc, sparsemat)
+      call allocate_sparse_matrix_basic(store_index_, norbu, nproc, sparsemat)
 
-      call vcopy(norbu, on_which_atom(1), 1, sparsemat%on_which_atom(1), 1)
+      if (present(on_which_atom)) then
+          call vcopy(norbu, on_which_atom(1), 1, sparsemat%on_which_atom(1), 1)
+      else
+          sparsemat%on_which_atom(:) = UNINITIALIZED(1)
+      end if
 
 
       sparsemat%nseg=0
       sparsemat%nvctr=0
       sparsemat%nsegline=0
-      do iorb=1,norbup
-          iiorb=isorbu+iorb
+      do iorb=1,sparsemat%nfvctrp
+          iiorb=sparsemat%isfvctr+iorb
           call create_lookup_table(nnonzero, nonzero, iiorb, norbu, lut)
           call nseg_perline(norbu, lut, sparsemat%nseg, sparsemat%nvctr, sparsemat%nsegline(iiorb))
       end do
@@ -1260,13 +1286,13 @@ contains
           call yaml_map('sparsity in %',1.d2*real(ntot-int(sparsemat%nvctr,kind=8),kind=8)/real(ntot,kind=8),fmt='(f5.2)')
       end if
     
-      call allocate_sparse_matrix_keys(store_index, sparsemat)
+      call allocate_sparse_matrix_keys(store_index_, sparsemat)
     
 
       ivctr=0
       sparsemat%keyg=0
-      do iorb=1,norbup
-          iiorb=isorbu+iorb
+      do iorb=1,sparsemat%nfvctrp
+          iiorb=sparsemat%isfvctr+iorb
           call create_lookup_table(nnonzero, nonzero, iiorb, norbu, lut)
           call keyg_per_line(norbu, sparsemat%nseg, iiorb, sparsemat%istsegline(iiorb), &
                lut, ivctr, sparsemat%keyg)
@@ -1297,19 +1323,19 @@ contains
 
       if (extra_timing) call cpu_time(tr0)   
 
-      if (store_index) then
+      if (store_index_) then
           ! store the indices of the matrices in the sparse format
           sparsemat%store_index=.true.
     
           ! initialize sparsemat%matrixindex_in_compressed
           call f_zero(sparsemat%matrixindex_in_compressed_arr)
 
-          !$omp parallel do default(private) shared(sparsemat,norbu,norbup,isorbu) 
+          !$omp parallel do default(private) shared(sparsemat,norbu) 
           do iorb=1,norbu
-             do jorb=1,norbup
+             do jorb=1,sparsemat%nfvctrp
                 !sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norbu,sparsemat)
-                sparsemat%matrixindex_in_compressed_arr(iorb,jorb+isorbu) = &
-                     matrixindex_in_compressed(sparsemat, iorb, jorb+isorbu, .true., norbu)
+                sparsemat%matrixindex_in_compressed_arr(iorb,jorb+sparsemat%isfvctr) = &
+                     matrixindex_in_compressed(sparsemat, iorb, jorb+sparsemat%isfvctr, .true., norbu)
              end do
           end do
           !$omp end parallel do
@@ -1378,8 +1404,8 @@ contains
       istsegline_mult = f_malloc(norbu,id='istsegline_mult')
       nseg_mult=0
       nvctr_mult=0
-      do iorb=1,norbup
-          iiorb=isorbu+iorb
+      do iorb=1,sparsemat%nfvctrp
+          iiorb=sparsemat%isfvctr+iorb
           call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb, norbu, lut)
           call nseg_perline(norbu, lut, nseg_mult, nvctr_mult, nsegline_mult(iiorb))
       end do
@@ -1401,8 +1427,8 @@ contains
       keyv_mult = f_malloc0((/nseg_mult/),id='keyg_mult')
 
       ivctr_mult=0
-      do iorb=1,norbup
-         iiorb=isorbu+iorb
+      do iorb=1,sparsemat%nfvctrp
+         iiorb=sparsemat%isfvctr+iorb
          call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb, norbu, lut)
          call keyg_per_line(norbu, nseg_mult, iiorb, istsegline_mult(iiorb), &
               lut, ivctr_mult, keyg_mult)
@@ -1434,7 +1460,7 @@ contains
 
 
       ! Initialize the parameters for the spare matrix matrix multiplication
-      call init_sparse_matrix_matrix_multiplication_new(iproc, nproc, norbu, norbup, isorbu, nseg_mult, &
+      call init_sparse_matrix_matrix_multiplication_new(iproc, nproc, norbu, sparsemat%nfvctrp, sparsemat%isfvctr, nseg_mult, &
                nsegline_mult, istsegline_mult, keyv_mult, keyg_mult, sparsemat)
 
       if (extra_timing) call cpu_time(tr1)   
@@ -2294,18 +2320,19 @@ contains
     end subroutine init_matrix_parallelization
 
 
-    subroutine init_matrix_taskgroups(iproc, nproc, nat, parallel_layout, collcom, collcom_sr, smat, iirow, iicol)
+    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, smat, nat, collcom, collcom_sr, iirow, iicol)
       use communications_base, only: comms_linear
       use sparsematrix_base, only: sparse_matrix
       use yaml_output
       implicit none
 
       ! Caling arguments
-      integer,intent(in) :: iproc, nproc, nat
+      integer,intent(in) :: iproc, nproc
       logical,intent(in) :: parallel_layout
-      type(comms_linear),intent(in) :: collcom, collcom_sr
       type(sparse_matrix),intent(inout) :: smat
-      integer,dimension(2),intent(in) :: iirow, iicol
+      integer,intent(in),optional :: nat
+      type(comms_linear),intent(in),optional :: collcom, collcom_sr
+      integer,dimension(2),intent(in),optional :: iirow, iicol
 
       ! Local variables
       integer :: ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq
@@ -2334,91 +2361,100 @@ contains
 
 
       ! The matrices can be parallelized
+      parallel_if: if (parallel_layout) then
 
-      ind_min = smat%nvctr
-      ind_max = 0
+          ! Check that all arguments are present
+          if (.not.present(nat)) call f_err_throw("Optional argument 'nat' is not present")
+          if (.not.present(collcom)) call f_err_throw("Optional argument 'collcom' is not present")
+          if (.not.present(collcom_sr)) call f_err_throw("Optional argument 'collcom_sr' is not present")
+          if (.not.present(iirow)) call f_err_throw("Optional argument 'iirow' is not present")
+          if (.not.present(iicol)) call f_err_throw("Optional argument 'iicol' is not present")
 
-      ! The operations done in the transposed wavefunction layout
-      !call check_transposed_layout()
-      call get_modulo_array(smat, moduloarray)
-      call find_minmax_transposed(smat%matrixindex_in_compressed_fortransposed,collcom,smat%nfvctr,moduloarray,ind_min,ind_max)
-      call find_startendseg_transposed(ind_min,ind_max,smat)
+          ind_min = smat%nvctr
+          ind_max = 0
 
-
-      ! Now check the compress_distributed layout
-      call check_compress_distributed_layout(smat,ind_min,ind_max)
-
-      ! Now check the matrix matrix multiplications layout
-      call check_matmul_layout(smat%smmm%nseq,smat%smmm%indices_extract_sequential,ind_min,ind_max)
-      !!write(*,'(a,3i8)') 'after check_matmul: iproc, ind_min, ind_max', iproc, ind_min, ind_max
-
-      ! Now check the sumrho operations
-      !call check_sumrho_layout()
-      call check_sumrho_layout(collcom_sr,smat%nfvctr,moduloarray,smat%matrixindex_in_compressed_fortransposed,ind_min,ind_max)
-      call f_free_ptr(moduloarray)
-
-      ! Now check the pseudo-exact orthonormalization during the input guess
-      !call check_ortho_inguess()
-      call check_ortho_inguess(smat,ind_min,ind_max)
-
-      ! Now check the submatrix extraction for the projector charge analysis
-      call check_projector_charge_analysis(iproc, nproc, nat, smat, ind_min, ind_max)
+          ! The operations done in the transposed wavefunction layout
+          !call check_transposed_layout()
+          call get_modulo_array(smat, moduloarray)
+          call find_minmax_transposed(smat%matrixindex_in_compressed_fortransposed,collcom,smat%nfvctr,moduloarray,ind_min,ind_max)
+          call find_startendseg_transposed(ind_min,ind_max,smat)
 
 
-      ind_min1 = ind_min
-      ind_max1 = ind_max
+          ! Now check the compress_distributed layout
+          call check_compress_distributed_layout(smat,ind_min,ind_max)
 
-      !!write(*,'(a,3i8)') 'after init: iproc, ind_min1, ind_max1', iproc, ind_min1, ind_max1
+          ! Now check the matrix matrix multiplications layout
+          call check_matmul_layout(smat%smmm%nseq,smat%smmm%indices_extract_sequential,ind_min,ind_max)
+          !!write(*,'(a,3i8)') 'after check_matmul: iproc, ind_min, ind_max', iproc, ind_min, ind_max
 
-      !@ NEW #####################################################################
-      !@ Make sure that the min and max are at least as large as the reference
-      do i=1,2
-          if (i==1) then
-              istart = 1
-              iend = smat%nfvctr
-              inc = 1
-          else
-              istart = smat%nfvctr
-              iend = 1
-              inc = -1
-              !!write(*,*) 'iproc, iirow(i)', iproc, iirow(i)
-          end if
-          search_out: do irow=iirow(i),iend,inc
-              if (irow==iirow(i)) then
-                  ist = iicol(i)
+          ! Now check the sumrho operations
+          !call check_sumrho_layout()
+          call check_sumrho_layout(collcom_sr,smat%nfvctr,moduloarray,smat%matrixindex_in_compressed_fortransposed,ind_min,ind_max)
+          call f_free_ptr(moduloarray)
+
+          ! Now check the pseudo-exact orthonormalization during the input guess
+          !call check_ortho_inguess()
+          call check_ortho_inguess(smat,ind_min,ind_max)
+
+          ! Now check the submatrix extraction for the projector charge analysis
+          call check_projector_charge_analysis(iproc, nproc, nat, smat, ind_min, ind_max)
+
+
+          ind_min1 = ind_min
+          ind_max1 = ind_max
+
+          !!write(*,'(a,3i8)') 'after init: iproc, ind_min1, ind_max1', iproc, ind_min1, ind_max1
+
+          !@ NEW #####################################################################
+          !@ Make sure that the min and max are at least as large as the reference
+          do i=1,2
+              if (i==1) then
+                  istart = 1
+                  iend = smat%nfvctr
+                  inc = 1
               else
-                  ist = istart
+                  istart = smat%nfvctr
+                  iend = 1
+                  inc = -1
+                  !!write(*,*) 'iproc, iirow(i)', iproc, iirow(i)
               end if
-              do icol=ist,iend,inc
-                  ii = matrixindex_in_compressed(smat, icol, irow)
-                  if (ii>0) then
-                      if (i==1) then
-                          ind_min = ii
-                      else
-                          ind_max = ii
-                      end if
-                      exit search_out
+              search_out: do irow=iirow(i),iend,inc
+                  if (irow==iirow(i)) then
+                      ist = iicol(i)
+                  else
+                      ist = istart
                   end if
-              end do
-          end do search_out
-      end do
-      if (ind_min>ind_min1) then
-          write(*,*) 'ind_min, ind_min1', ind_min, ind_min1
-          stop 'ind_min>ind_min1'
-      end if
-      if (ind_max<ind_max1) then
-          write(*,*) 'ind_max, ind_max1', ind_max, ind_max1
-          stop 'ind_max<ind_max1'
-      end if
-      !!write(*,'(a,i3,3x,2(2i6,4x))') 'iproc, ind_min, ind_max, ind_min1, ind_max1', iproc,  ind_min, ind_max,  ind_min1, ind_max1
-      !@ END NEW #################################################################
+                  do icol=ist,iend,inc
+                      ii = matrixindex_in_compressed(smat, icol, irow)
+                      if (ii>0) then
+                          if (i==1) then
+                              ind_min = ii
+                          else
+                              ind_max = ii
+                          end if
+                          exit search_out
+                      end if
+                  end do
+              end do search_out
+          end do
+          if (ind_min>ind_min1) then
+              write(*,*) 'ind_min, ind_min1', ind_min, ind_min1
+              stop 'ind_min>ind_min1'
+          end if
+          if (ind_max<ind_max1) then
+              write(*,*) 'ind_max, ind_max1', ind_max, ind_max1
+              stop 'ind_max<ind_max1'
+          end if
+          !!write(*,'(a,i3,3x,2(2i6,4x))') 'iproc, ind_min, ind_max, ind_min1, ind_max1', iproc,  ind_min, ind_max,  ind_min1, ind_max1
+          !@ END NEW #################################################################
 
 
-      if (.not.parallel_layout) then
+      else parallel_if
           ! The matrices can not be parallelized
           ind_min = 1
           ind_max = smat%nvctr
-      end if
+          call find_startendseg_transposed(ind_min,ind_max,smat)
+      end if parallel_if
 
       ! Enlarge the values if necessary such that they always start and end with a complete segment
       do iseg=1,smat%nseg
@@ -3952,70 +3988,73 @@ contains
 
       stop 'must be reworked'
 
-      ! Calculate the values of nonzero and nonzero_mult which are required for
-      ! the init_sparse_matrix routine.
-      ! For the moment simple and stupid using a workarray of dimension ncol x ncol
-      nonzero = f_malloc((/2,nnonzero/),id='nonzero')
-      mat = f_malloc((/ncol,ncol/),id='mat')
-      mat = .false.
-      icol=1
-      do i=1,nnonzero
-          irow=row_ind(i)
-          if (icol<ncol) then
-              if (i>=col_ptr(icol+1)) then
-                  icol=icol+1
-              end if
-          end if
-          mat(irow,icol) = .true.
-      end do
-      ii = 0
-      do irow=1,ncol
-          write(333,*) col_ptr(irow)
-          do icol=1,ncol
-              if (mat(irow,icol)) then
-                  ii = ii + 1
-                  nonzero(2,ii) = irow
-                  nonzero(1,ii) = icol
-              end if
-          end do
-      end do
+      !!!! Calculate the values of nonzero and nonzero_mult which are required for
+      !!!! the init_sparse_matrix routine.
+      !!!! For the moment simple and stupid using a workarray of dimension ncol x ncol
+      !!!nonzero = f_malloc((/2,nnonzero/),id='nonzero')
+      !!!mat = f_malloc((/ncol,ncol/),id='mat')
+      !!!mat = .false.
+      !!!icol=1
+      !!!do i=1,nnonzero
+      !!!    irow=row_ind(i)
+      !!!    if (icol<ncol) then
+      !!!        if (i>=col_ptr(icol+1)) then
+      !!!            icol=icol+1
+      !!!        end if
+      !!!    end if
+      !!!    mat(irow,icol) = .true.
+      !!!end do
+      !!!ii = 0
+      !!!do irow=1,ncol
+      !!!    write(333,*) col_ptr(irow)
+      !!!    do icol=1,ncol
+      !!!        if (mat(irow,icol)) then
+      !!!            ii = ii + 1
+      !!!            nonzero(2,ii) = irow
+      !!!            nonzero(1,ii) = icol
+      !!!        end if
+      !!!    end do
+      !!!end do
 
-      call f_free(mat)
+      !!!call f_free(mat)
 
-      call init_sparse_matrix(iproc, nproc, 1, 'F', ncol, ncolp, iscol, .false., &
-           on_which_atom, nnonzero, nonzero, nnonzero, nonzero, smat)
+      !!!call init_sparse_matrix(iproc, nproc, 1, 'F', ncol, ncolp, iscol, .false., &
+      !!!     on_which_atom, nnonzero, nonzero, nnonzero, nonzero, smat)
 
-      collcom_dummy = comms_linear_null()
-      ! since no taskgroups are used, the values of iirow and iicol are just set to
-      ! the minimum and maximum, respectively.
-      call init_matrix_taskgroups(iproc, nproc, nat, .false., collcom_dummy, collcom_dummy, smat, &
-           (/1,ncol/), (/1,ncol/))
+      !!!collcom_dummy = comms_linear_null()
+      !!!! since no taskgroups are used, the values of iirow and iicol are just set to
+      !!!! the minimum and maximum, respectively.
+      !!!call init_matrix_taskgroups(iproc, nproc, .false., smat, nat, collcom_dummy, collcom_dummy, &
+      !!!     (/1,ncol/), (/1,ncol/))
 
-      call f_free(nonzero)
+      !!!call f_free(nonzero)
 
     end subroutine ccs_to_sparsebigdft
 
 
     !> Uses the BigDFT sparsity pattern to create a BigDFT sparse_matrix type
-    subroutine bigdft_to_sparsebigdft(iproc, nproc, nat, nspin, geocode, ncol, ncolp, iscol, &
-               on_which_atom, nvctr, nseg, keyg, smat)
+    subroutine bigdft_to_sparsebigdft(iproc, nproc, ncol, nvctr, nseg, keyg, smat, &
+               nspin, geocode, on_which_atom)
       use communications_base, only: comms_linear, comms_linear_null
       implicit none
-      integer,intent(in) :: iproc, nproc, nat, nspin, ncol, ncolp, iscol, nvctr, nseg
-      character(len=1),intent(in) :: geocode
-      integer,dimension(ncol),intent(in) :: on_which_atom
+      integer,intent(in) :: iproc, nproc, ncol, nvctr, nseg
       !logical,intent(in) :: store_index
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(out) :: smat
+      integer,intent(in),optional :: nspin
+      character(len=1),intent(in),optional :: geocode
+      integer,dimension(ncol),target,intent(in),optional :: on_which_atom
 
       ! Local variables
-      integer :: icol, irow, i, ii, iseg
+      integer :: icol, irow, i, ii, iseg, nspin_
       !integer :: ncolpx
       integer,dimension(:,:),allocatable :: nonzero
       logical,dimension(:,:),allocatable :: mat
+      character(len=1) :: geocode_
+      integer,dimension(:),pointer :: on_which_atom_
       !real(kind=8) :: tt
-      type(comms_linear) :: collcom_dummy
 
+      call f_routine(id='bigdft_to_sparsebigdft')
 
       ! Calculate the values of nonzero and nonzero_mult which are required for
       ! the init_sparse_matrix routine.
@@ -4063,16 +4102,31 @@ contains
       !!    end if
       !!end do
 
-      call init_sparse_matrix(iproc, nproc, nspin, geocode, ncol, ncolp, iscol, .false., &
-           on_which_atom, nvctr, nonzero, nvctr, nonzero, smat)
 
-      collcom_dummy = comms_linear_null()
+      nspin_ = 1
+      if (present(nspin)) nspin_ = nspin
+      geocode_ = 'U' !unknown
+      if (present(geocode)) geocode_ = geocode
+      if (present(on_which_atom)) then
+          on_which_atom_ => on_which_atom
+      else
+          on_which_atom_ = f_malloc_ptr(ncol,id='on_which_atom_')
+          on_which_atom_(:) = uninitialized(1)
+      end if
+      call init_sparse_matrix(iproc, nproc, ncol, nvctr, nonzero, nvctr, nonzero, smat, &
+           nspin=nspin_, geocode=geocode_, on_which_atom=on_which_atom_)
+
+      if (.not.present(on_which_atom)) then
+          call f_free_ptr(on_which_atom_)
+      end if
+
       ! since no taskgroups are used, the values of iirow and iicol are just set to
       ! the minimum and maximum, respectively.
-      call init_matrix_taskgroups(iproc, nproc, nat, .false., collcom_dummy, collcom_dummy, smat, &
-           (/1,ncol/), (/1,ncol/))
+      call init_matrix_taskgroups(iproc, nproc, .false., smat)
 
       call f_free(nonzero)
+
+      call f_release_routine()
 
     end subroutine bigdft_to_sparsebigdft
 
@@ -4771,7 +4825,7 @@ contains
                   !new segment in the same column
                   nseg = nseg + 1
               end if
-              write(*,*) 'icol, i, ii, nseg', icol, i, ii, nseg
+              !write(*,*) 'icol, i, ii, nseg', icol, i, ii, nseg
               ii_old = ii
           end do
       end do

@@ -708,6 +708,7 @@ module multipole
                  !write(*,*) 'sum(density)',sum(density)
                  call calculate_dipole_moment(denspot%dpbox, 1, at, rxyz, density, &
                       calculate_quadropole=.true., dipole=dipole_total, quiet_=.true.)
+                 !write(*,*) 'calling here, dipole_total', dipole_total
                  !write(*,*) 'calculate dipole with rho_work'
                  !write(*,*) 'sum(denspot%rho_work)',sum(denspot%rho_work)
                  !call vcopy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), density(is1,is2,is3), 1, denspot%rho_work(1), 1)
@@ -956,6 +957,8 @@ module multipole
 
     subroutine write_multipoles_new(ep, units, delta_rxyz, on_which_atom, scaled)
       use yaml_output
+      use numerics, only: Bohr_Ang
+      use f_precisions, only: db => f_double
       implicit none
       
       ! Calling arguments
@@ -984,18 +987,18 @@ module multipole
           ! See whether a conversion of the units is necessary
           select case (units)
           case ('angstroem','angstroemd0')
-              convert_units = 0.52917721092_gp
+              convert_units = Bohr_Ang
           case ('atomic','atomicd0','bohr','bohrd0','reduced')
-              convert_units = 1.d0
+              convert_units = 1.0_db
           case default
-              convert_units = 1.d0
+              convert_units = 1.0_db
               call yaml_warning('units not recognized, no conversion done')
           end select
 
 
           call yaml_mapping_open('Multipole coefficients')
-          call yaml_map('units for atomic positions',trim(units))
-          call yaml_sequence_open('Values')
+          call yaml_map('units',trim(units))
+          call yaml_sequence_open('values')
           do impl=1,ep%nmpl
               call yaml_sequence(advance='no')
               call yaml_map('sym',adjustl(trim(ep%mpl(impl)%sym))//' # '//adjustl(trim(yaml_toa(impl,fmt='(i4.4)'))))
@@ -1879,7 +1882,8 @@ module multipole
               call calculte_multipole_matrix(iproc, nproc, l, m, nphi, phi_ortho, phi_ortho, nphir, hgrids, &
                    orbs, collcom, lzd, smats, locregcenter, 'box', multipole_matrix)
 
-              call transform_sparse_matrix(smats, smatl, multipole_matrix%matrix_compr, multipole_matrix_large, 'small_to_large')
+              call transform_sparse_matrix(smats, smatl, 'small_to_large', &
+                   smat_in=multipole_matrix%matrix_compr, lmat_out=multipole_matrix_large)
 
 
               ! The minus sign is required since the phi*S_lm*phi represent the electronic charge which is a negative quantity
@@ -2014,7 +2018,7 @@ module multipole
                                    SPARSE_TASKGROUP, assignment(=), &
                                    matrices_null, deallocate_matrices
       use sparsematrix_init, only: matrixindex_in_compressed
-      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
+      use sparsematrix, only: matrix_matrix_mult_wrapper
       use matrix_operations, only: overlapPowerGeneral, overlap_plus_minus_one_half_exact
       use yaml_output
       use multipole_base, only: lmax
@@ -3753,7 +3757,7 @@ module multipole
    ! Local variables
    real(kind=8),dimension(:,:,:,:),allocatable :: test_pot
    logical :: rho_negative, exists, found, all_norms_ok
-   real(kind=8) :: ehart_ps, diff, tt, diff_min, diff_dipole, diff_dipole_min
+   real(kind=8) :: ehart_ps, diff, tt, diff_min, diff_dipole, diff_dipole_min, rdim
    !integer,parameter :: nsigma=3
    real(kind=8),parameter :: step=0.20d0
    integer :: i1, i2, i3, isigma0, isigma1, isigma2, impl, ixc, l
@@ -3847,6 +3851,7 @@ module multipole
    end if
    diff_min = huge(diff_min)
    diff_dipole_min = huge(diff_dipole_min)
+   factor_min(0:lmax) = 1.d0 !initialization
    do isigma2=1,nsigma
        do isigma1=1,nsigma
            do isigma0=1,nsigma
@@ -3873,19 +3878,22 @@ module multipole
                    diff_dipole = (dipole_exact(1)-dipole_trial(1))**2 + &
                                  (dipole_exact(2)-dipole_trial(2))**2 + &
                                  (dipole_exact(3)-dipole_trial(3))**2
+                   rdim = 1.d0/(real(size(denspot%V_ext,1),kind=8)*&
+                                real(size(denspot%V_ext,1),kind=8)*&
+                                real(size(denspot%V_ext,1),kind=8))
                    diff = 0.d0
                    do i3=1,size(denspot%V_ext,3)
                        do i2=1,size(denspot%V_ext,2)
                            do i1=1,size(denspot%V_ext,1)
                                !write(800,*) 'i1, i2, i3, vals', i1, i2, i3, test_pot(i1,i2,i3,1), test_pot(i1,i2,i3,2)
-                               diff = diff + (test_pot(i1,i2,i3,1)-test_pot(i1,i2,i3,2))**2
+                               diff = diff + rdim*(test_pot(i1,i2,i3,1)-test_pot(i1,i2,i3,2))**2
                            end do
                        end do
                    end do
                    call mpiallred(diff, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-                   tt = diff/(real(size(denspot%V_ext,1),kind=8)*&
-                              real(size(denspot%V_ext,1),kind=8)*&
-                              real(size(denspot%V_ext,1),kind=8))
+                   !!tt = diff/(real(size(denspot%V_ext,1),kind=8)*&
+                   !!           real(size(denspot%V_ext,1),kind=8)*&
+                   !!           real(size(denspot%V_ext,1),kind=8))
                end if
                if (iproc==0) then
                    call yaml_sequence(advance='no')
@@ -3894,14 +3902,14 @@ module multipole
                    call yaml_map('Gaussian norms ok',all_norms_ok)
                    if (all_norms_ok) then
                        call yaml_map('dipole norm diff (actual/min)',(/diff_dipole,diff_dipole_min/),fmt='(es9.3)')
-                       call yaml_map('avg pot diff (actual/min)',(/tt,diff_min/),fmt='(es9.3)')
+                       call yaml_map('avg pot diff (actual/min)',(/diff,diff_min/),fmt='(es9.3)')
                    end if
                    call yaml_mapping_close()
                end if
                if (all_norms_ok) then
-                   if (tt<diff_min) then
+                   if (diff<diff_min) then
                        !factor_min(0:lmax) = factor(0:lmax)
-                       diff_min = tt
+                       diff_min = diff
                    end if
                    if (diff_dipole<diff_dipole_min) then
                        factor_min(0:lmax) = factor(0:lmax)
@@ -4069,9 +4077,9 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
   real(kind=8),dimension(3),intent(out),optional :: dipole
   logical,intent(in),optional :: quiet_
 
-  integer :: ierr,n3p,nc1,nc2,nc3
+  integer :: ierr,n3p,nc1,nc2,nc3, nnc3, ii3, i3shift
   real(gp) :: q,qtot, delta_term,x,y,z,ri,rj
-  integer  :: iat,i1,i2,i3, nl1,nl2,nl3, ispin,n1i,n2i,n3i, i, j
+  integer  :: iat,i1,i2,i3, nl1,nl2,nl3, ispin,n1i,n2i,n3i, i, j, is, ie
   real(gp), dimension(3) :: dipole_el,dipole_cores,tmpdip,charge_center_cores
   real(gp),dimension(3,nspin) :: charge_center_elec
   real(gp), dimension(3,3) :: quadropole_el,quadropole_cores,tmpquadrop
@@ -4092,45 +4100,33 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
   n3i=dpbox%ndims(3)
   n3p=dpbox%n3p
 
-  if (dpbox%mpi_env%nproc > 1) then
-     !allocate full density in pot_ion array
-     ele_rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='ele_rho')
-
-!Commented out, it is enough to allocate the rho at 1
-!!$     ! rho_buf is used instead of rho for avoiding the case n3p=0 in 
-!!$     ! some procs which makes MPI_ALLGATHERV failed.
-!!$     if (n3p.eq.0) then
-!!$       allocate(rho_buf(n1i,n2i,n3p+1,nspin),stat=i_stat)
-!!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
-!!$       rho_buf = 0.0_dp
-!!$     else
-!!$       allocate(rho_buf(n1i,n2i,n3p,nspin),stat=i_stat)
-!!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
-!!$       rho_buf = rho
-!!$     endif  
-
-
-     do ispin=1,nspin
-        call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
-             mpidtypd,ele_rho(1,1,1,ispin),dpbox%ngatherarr(0,1),&
-             dpbox%ngatherarr(0,2),mpidtypd,dpbox%mpi_env%mpi_comm,ierr)
-     end do
-
-  else
-     ele_rho => rho
-  end if
 
   if (at%astruct%geocode /= 'F') then
      nl1=1
-     nl3=1
+     !nl3=1
      nc1=n1i
-     nc3=n3i
+     !nc3=n3i
+     nc3=n3p
+     nnc3=n3i
+     !is = 1
+     is = dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1
+     ie = dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+dpbox%nscatterarr(dpbox%mpi_env%iproc,2)
+     i3shift = 1
   else
      nl1=15
-     nl3=15
+     !nl3=15
+     !nl3=max(1,15-dpbox%nscatterarr(dpbox%mpi_env%iproc,3))
      nc1=n1i-31
-     nc3=n3i-31
+     !nc3=n3i-31
+     !nc3=n3p-31
+     is = max(dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1,15)
+     ie = min(dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+dpbox%nscatterarr(dpbox%mpi_env%iproc,2),n3i-17)
+     nnc3=n3i-31
+     i3shift = 15
+     !write(*,*) 'iproc, is, ie, nl3, nc3, n3p', bigdft_mpi%iproc, is, ie, nl3, nc3, n3p
   end if
+  nc3 = ie - is + 1 !number of z planes to be treated
+  nl3=max(1,i3shift-dpbox%nscatterarr(dpbox%mpi_env%iproc,3)) !offset within rho array
   !value of the buffer in the y direction
   if (at%astruct%geocode == 'P') then
      nl2=1
@@ -4141,34 +4137,90 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
   end if
 
   qtot=0.d0
-  dipole_cores(1:3)=0_gp
+  dipole_cores(1:3)=0._gp
   do iat=1,at%astruct%nat
      !write(*,*) 'iat, rxyz(1:3,iat)',iat, rxyz(1:3,iat)
      dipole_cores(1:3)=dipole_cores(1:3)+at%nelpsp(at%astruct%iatype(iat)) * rxyz(1:3,iat)
   end do
-  !write(*,*) 'dipole_cores',dipole_cores
+  !!write(*,*) 'dipole_cores',dipole_cores
+  !!write(*,*) 'nc3',nc3
 
-  dipole_el   (1:3)=0_gp
+  dipole_el   (1:3)=0._gp
   do ispin=1,nspin
      do i3=0,nc3 - 1
+        !ii3 = i3 + dpbox%nscatterarr(dpbox%mpi_env%iproc,3)
+        ii3 = i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3) - i3shift !real coordinate, without buffer
+        !write(*,*) 'iproc, i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3), ii3', &
+        !            bigdft_mpi%iproc, i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3), ii3
         do i2=0,nc2 - 1
            do i1=0,nc1 - 1
               !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
               !q= ( ele_rho(ind,ispin) ) * hxh*hyh*hzh 
-              q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+              !q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+              q= - rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+              !write(*,*) 'i1, i2, i3, nl1, nl2, nl3, q', i1, i2, i3, nl1, nl2, nl3, q
               qtot=qtot+q
               dipole_el(1)=dipole_el(1)+ q* at%astruct%cell_dim(1)/real(nc1,dp)*i1 
               dipole_el(2)=dipole_el(2)+ q* at%astruct%cell_dim(2)/real(nc2,dp)*i2
-              dipole_el(3)=dipole_el(3)+ q* at%astruct%cell_dim(3)/real(nc3,dp)*i3
+              dipole_el(3)=dipole_el(3)+ q* at%astruct%cell_dim(3)/real(nnc3,dp)*ii3
            end do
         end do
      end do
-  !write(*,*) 'dipole_el',dipole_el
-
+  !!write(*,*) 'iproc, dipole_el,sum(rho), qtot',bigdft_mpi%iproc,dipole_el,sum(rho), qtot
   end do
+
+  !!call mpi_barrier(mpi_comm_world,ispin)
+  call mpiallred(qtot, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  call mpiallred(dipole_el, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  !!call mpi_barrier(mpi_comm_world,ispin)
+  !!write(*,*) 'after allred: iproc, dipole_el,sum(rho), qtot',bigdft_mpi%iproc,dipole_el,sum(rho), qtot
+
+  !!write(*,*) 'dipole_cores first', dipole_cores
+  !!call mpi_barrier(mpi_comm_world,ispin)
 
 
   if (calculate_quadropole) then
+      ! Quadrupole not yet parallelized
+
+      if (at%astruct%geocode /= 'F') then
+         nl3=1
+         nc3=n3i
+      else
+         nl3=15
+         nc3=n3i-31
+      end if
+
+      if (dpbox%mpi_env%nproc > 1) then
+         !allocate full density in pot_ion array
+         ele_rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='ele_rho')
+    
+    !Commented out, it is enough to allocate the rho at 1
+    !!$     ! rho_buf is used instead of rho for avoiding the case n3p=0 in 
+    !!$     ! some procs which makes MPI_ALLGATHERV failed.
+    !!$     if (n3p.eq.0) then
+    !!$       allocate(rho_buf(n1i,n2i,n3p+1,nspin),stat=i_stat)
+    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
+    !!$       rho_buf = 0.0_dp
+    !!$     else
+    !!$       allocate(rho_buf(n1i,n2i,n3p,nspin),stat=i_stat)
+    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
+    !!$       rho_buf = rho
+    !!$     endif  
+    
+    
+         do ispin=1,nspin
+            call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
+                 mpidtypd,ele_rho(1,1,1,ispin),dpbox%ngatherarr(0,1),&
+                 dpbox%ngatherarr(0,2),mpidtypd,dpbox%mpi_env%mpi_comm,ierr)
+            !write(*,*) 'dpbox%ngatherarr(:,1)',dpbox%ngatherarr(:,1)
+            !write(*,*) 'dpbox%ngatherarr(:,2)',dpbox%ngatherarr(:,2)
+            !write(*,*) 'dpbox%nscatterarr(:,2)',dpbox%nscatterarr(:,2)
+            !write(*,*) 'dpbox%nscatterarr(:,3)',dpbox%nscatterarr(:,3)
+         end do
+    
+      else
+         ele_rho => rho
+      end if
 
       ! charge center
       charge_center_cores(1:3)=0.d0
@@ -4255,6 +4307,7 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
                   end do
               end do
           end do
+          !!write(*,*) 'qtot',qtot
           charge_center_elec(1:3,ispin)=charge_center_elec(1:3,ispin)/qtot
       end do
 
@@ -4315,9 +4368,28 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
 
       tmpquadrop=quadropole_cores+quadropole_el
 
+      if (dpbox%mpi_env%nproc > 1) then
+         call f_free_ptr(ele_rho)
+      else
+         nullify(ele_rho)
+      end if
+
   end if
 
+  !!write(*,*) 'dipole_cores second', dipole_cores
+  !!call mpi_barrier(mpi_comm_world,ispin)
+
+  !!write(*,*) 'dipole_cores', dipole_cores
+  !!call mpi_barrier(mpi_comm_world,ispin)
+  !!write(*,*) 'after cores'
+  !!write(*,*) 'dipole_el', dipole_el
+  !!call mpi_barrier(mpi_comm_world,ispin)
+  !!write(*,*) 'after el'
+
   tmpdip=dipole_cores+dipole_el
+  !!write(*,*) 'tmpdip before',tmpdip
+  !!call mpi_barrier(mpi_comm_world,ispin)
+  !!write(*,*) 'tmpdip',tmpdip
   if (present(dipole)) dipole(1:3) = tmpdip(1:3)
   if(bigdft_mpi%iproc==0 .and. .not.quiet) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
@@ -4348,21 +4420,28 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
           !end do
           !call yaml_sequence_close()
 
-          call yaml_sequence_open('Quadrupole Moment (AU)')
-          do i=1,3
-             call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
-          end do
-          call yaml_map('trace',tmpquadrop(1,1)+tmpquadrop(2,2)+tmpquadrop(3,3),fmt='(es12.2)')
-          call yaml_sequence_close()
+          !!call yaml_sequence_open('Quadrupole Moment (AU)')
+          !!do i=1,3
+          !!   call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
+          !!end do
+          !!call yaml_map('trace',tmpquadrop(1,1)+tmpquadrop(2,2)+tmpquadrop(3,3),fmt='(es12.2)')
+          !!call yaml_sequence_close()
+          !call yaml_sequence_open('Quadrupole Moment (AU)')
+          call yaml_mapping_open('Quadrupole Moment (AU)')
+            call yaml_map('Q matrix',tmpquadrop,fmt='(1pe13.4)')
+          !do i=1,3
+          !   call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
+          !end do
+           call yaml_map('trace',tmpquadrop(1,1)+tmpquadrop(2,2)+tmpquadrop(3,3),fmt='(es12.2)')
+          !call yaml_sequence_close()
+          call yaml_mapping_close()
       end if
 
-  endif
-
-  if (dpbox%mpi_env%nproc > 1) then
-     call f_free_ptr(ele_rho)
-  else
-     nullify(ele_rho)
   end if
+
+  !call mpi_barrier(mpi_comm_world,ispin)
+  !write(*,*) 'end calculate_dipole_moment'
+
 
   call f_release_routine()
 

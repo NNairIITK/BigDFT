@@ -79,7 +79,8 @@
    nplot                               : 0 #      No. of plotted orbs
    gnrm_cv_virt                        : 1.e-4 #  convergence criterion gradient for virtual orbitals
    itermax_virt                        : 50 #     Max. iterations of wfn. opt. steps for virtual orbitals
-   external_potential                  : 0.0 #    Multipole moments of an external potential
+   external_potential: 
+     values                            : __not_a_value__
    calculate_strten                    : Yes #    Boolean to activate the calculation of the stress tensor. Might be set to No for 
     #                                              performance reasons
  perf:
@@ -2313,8 +2314,8 @@
  Gross support functions moments:
    Orthonormalization                  : on-site
    Multipole coefficients:
-     units for atomic positions        : angstroem
-     Values:
+     units                             : angstroem
+     values:
      - sym                             : H-1 # 0001
        Atom number                     :  9
        r: [ 1.096982975433515E-003,  0.6336530697689509, -0.9256811243183914]
@@ -3303,8 +3304,8 @@
  optimal sigma multiplication factors  :  [  1.00,  1.00,  1.00 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
-   units for atomic positions          : angstroem
-   Values:
+   units                               : angstroem
+   values:
    - sym                               : C # 0001
      r                                 :  [  0.0,  0.0,  0.0 ]
      sigma                             :  [  0.338,  0.338,  0.338 ]

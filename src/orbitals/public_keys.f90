@@ -224,6 +224,7 @@ module public_keys
   character(len=*), parameter :: CONF_DAMPING    ='conf_damping'
   character(len=*), parameter :: TAYLOR_ORDER    ='taylor_order'
   character(len=*), parameter :: CALC_DIPOLE     ='calc_dipole'
+  character(len=*), parameter :: CALC_QUADRUPOLE ='calc_quadrupole'
   character(len=*), parameter :: CDFT_LAG_MULT_INIT='cdft_lag_mult_init'
   character(len=*), parameter :: CDFT_CONV_CRIT  ='cdft_conv_crit'
   character(len=*), parameter :: CALC_PULAY      ='calc_pulay'

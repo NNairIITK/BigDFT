@@ -40,7 +40,7 @@ module foe
       integer,intent(in) :: foe_verbosity
       character(len=*),intent(in) :: label
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
-      type(matrices),intent(inout) :: ham_, ovrlp_
+      type(matrices),intent(in) :: ham_, ovrlp_
       type(matrices),dimension(1),intent(inout) :: ovrlp_minus_one_half_
       type(matrices),intent(inout) :: kernel_
       type(foe_data),intent(inout) :: foe_obj
@@ -301,10 +301,10 @@ module foe
                       cc_check = f_malloc((/npl_check,3,1/),id='cc_check')
             
                       if (foe_data_get_real(foe_obj,"evlow",ispin)>=0.d0) then
-                          stop 'ERROR: lowest eigenvalue must be negative'
+                          call f_err_throw('Lowest eigenvalue must be negative')
                       end if
                       if (foe_data_get_real(foe_obj,"evhigh",ispin)<=0.d0) then
-                          stop 'ERROR: highest eigenvalue must be positive'
+                          call f_err_throw('Highest eigenvalue must be positive')
                       end if
             
                       call timing(iproc, 'FOE_auxiliary ', 'OF')

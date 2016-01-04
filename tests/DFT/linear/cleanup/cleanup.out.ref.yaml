@@ -79,7 +79,8 @@
    nplot                               : 0 #      No. of plotted orbs
    gnrm_cv_virt                        : 1.e-4 #  convergence criterion gradient for virtual orbitals
    itermax_virt                        : 50 #     Max. iterations of wfn. opt. steps for virtual orbitals
-   external_potential                  : 0.0 #    Multipole moments of an external potential
+   external_potential:
+     values                            : __not_a_value__
    calculate_strten                    : Yes #    Boolean to activate the calculation of the stress tensor. Might be set to No for 
     #                                              performance reasons
  perf:
@@ -1651,8 +1652,8 @@
  optimal sigma multiplication factors  :  [  0.80,  0.80,  1.40 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
-   units for atomic positions          : bohr
-   Values:
+   units                               : bohr
+   values:
    - sym                               : O # 0001
      r: [ 2.065621065394574,  0.7276197830051158,  0.7650374978227975]
      sigma                             :  [  0.198,  0.198,  0.347 ]
@@ -1693,6 +1694,12 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.5682E+00,  8.8668E-01,  9.7013E-01 ]
    norm(P)                             :  2.046099E+00
+ Quadrupole Moment (AU):
+   Q matrix:
+   -  [  1.6853E+00,  1.6366E+00,  1.4771E+00 ]
+   -  [  1.6366E+00, -6.4284E-01,  2.1340E+00 ]
+   -  [  1.4771E+00,  2.1340E+00, -1.0425E+00 ]
+   trace                               :  1.84E-12
  Calculate local forces                :  Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------- Warnings obtained during the run, check their relevance!
