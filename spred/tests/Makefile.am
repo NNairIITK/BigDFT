@@ -1,5 +1,5 @@
 # Give here the list of existing tests
-SHORT_TESTDIRS = MINHOP
+SHORT_TESTDIRS = MINHOP MHGPS_LJ_CONNECT
 
 LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	NEB \

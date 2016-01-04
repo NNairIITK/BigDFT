@@ -62,6 +62,7 @@ Keys to ignore:
  - psolver_groupsize
  - gps_method
  - solvent
+ - avg pot diff (actual/min)
  #- number of tasks
  #- IDs
  #- start / end
@@ -100,6 +101,7 @@ yaml_test:
    - Actual address of first element of ptr1
    - Predicted address for the starting point of ptr1
    - address of first element vs address of objects
+   - Timings for search
  Patterns to ignore:
    - errcode
    - Time
@@ -947,13 +949,13 @@ experimentalfoe_long:
  mean kappa: 1.1e-4
  diff from idempotency: 1.1e-6
  delta out: 1.1e-10
- ebs_check: 4.3e-9
+ ebs_check: 4.72e-9
  diff: 1.3e-8
- ebs: 4.3e-9
+ ebs: 4.73e-9
  decay length of error function: 1.1e-5
- relative diff: 3.3e-11
+ relative diff: 3.4e-11
  Energy (Hartree): 4.6e-10
- trace(KS): 2.55e-10
+ trace(KS): 2.72e-10
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -1178,8 +1180,9 @@ DIIShistory:
  multiplicator for the confinement: 5.4e-9
  Omega: 2.4e-8
  Total charge: 2.01e-11
- mean conf prefac: 1.0e-04
+ mean conf prefac: 1.01e-04
  Energy (Hartree): 5.05e-11
+
 
 Locreg:
  EH: 2.0e-8
@@ -1222,7 +1225,7 @@ PBE_densmixlin:
  EH: 1.0e-9
  Total charge: 2.1e-11
  Energy (Hartree): 4.8e-11
- fnrm2: 1.301e-11
+ fnrm2: 1.401e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1324,7 +1327,7 @@ geoptconstrained_SDCG:
  ebs: 7.8e-11
  Ion-Ion interaction energy: 2.3e-10
  Atomic structure: 3.1e-9
- trace(KS): 1.5e-11
+ trace(KS): 1.53e-11
  Total charge: 2.1e-11
 
 O2spin_diag:
@@ -1492,7 +1495,7 @@ FF_LENOSKY-sqnm:
 FF_LENOSKY-lbfgs:
   FORCES norm(Ha/Bohr): 9.01e-6
   Forces: 1.e-4
-  etot: 6.2e-6
+  etot: 6.43e-6
   maxval: 1.1e-5
   Alpha: 0.00101
   Keys to ignore:
@@ -1577,9 +1580,9 @@ periodic_silicon:
  Enl: 1.1e-9
  EXC: 1.1e-10
  Omega: 9.5e-11
- ebs_check: 1.1e-10
+ ebs_check: 1.31e-10
  charge diff: 6.3e-10
- ebs: 1.2e-10
+ ebs: 1.34e-10
  Energy (Hartree): 3.15e-11
  energy: 3.15e-11
  Total ionic charge: 6.7e-11
@@ -1661,7 +1664,7 @@ surface_graphene:
  Energy (Hartree): 2.5e-11
  Total charge: 1.1e-10
  energy: 2.0e-11
- trace: 2.41e-10
+ trace: 2.51e-10
  
 dev.ref.yaml:
  Epot: 1.1e-10

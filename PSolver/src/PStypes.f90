@@ -101,7 +101,7 @@ module PStypes
      integer(f_address) :: work1_GPU,work2_GPU,rho_GPU,pot_ion_GPU,k_GPU !<addresses for the GPU memory 
      integer(f_address) :: p_GPU,q_GPU,r_GPU,x_GPU,z_GPU,oneoeps_GPU,corr_GPU!<addresses for the GPU memory 
      !> GPU scalars. Event if they are scalars of course their address is needed
-     integer(f_address) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU
+     integer(f_address) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU, eexctX_GPU, reduc_GPU, ehart_GPU
   end type PS_workarrays
 
   !>Datatype defining the mode for the running of the Poisson solver
@@ -180,6 +180,7 @@ module PStypes
      integer :: gpuPCGRed !< control if GPU can be used for PCG reductions
      integer :: initCufftPlan
      integer :: keepGPUmemory
+     integer :: stay_on_gpu
      integer :: keepzf
      !parameters for the iterative methods
      !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
@@ -269,6 +270,7 @@ contains
     use f_utils, only: f_zero
     implicit none
     type(PS_workarrays), intent(out) :: w
+    nullify(w%eps)
     nullify(w%dlogeps)
     nullify(w%oneoeps)
     nullify(w%corr)
@@ -298,6 +300,9 @@ contains
     call f_zero(w%beta_GPU)
     call f_zero(w%kappa_GPU)
     call f_zero(w%beta0_GPU)
+    call f_zero(w%eexctX_GPU)
+    call f_zero(w%ehart_GPU)
+    call f_zero(w%reduc_GPU)
   end subroutine nullify_work_arrays
 
   pure function pkernel_null() result(k)
@@ -334,7 +339,10 @@ contains
   end function pkernel_null
 
   subroutine free_PS_workarrays(iproc,igpu,keepzf,gpuPCGred,keepGPUmemory,w)
+  use dictionaries, only: f_err_throw
+  implicit none
     integer, intent(in) :: keepzf,gpuPCGred,keepGPUmemory,igpu,iproc
+    integer :: i_stat
     type(PS_workarrays), intent(inout) :: w
     call f_free_ptr(w%eps)
     call f_free_ptr(w%dlogeps)
@@ -362,10 +370,16 @@ contains
           call cudafree(w%beta_GPU)
           call cudafree(w%beta0_GPU)
           call cudafree(w%kappa_GPU)
+          call cudafree(w%ehart_GPU)
+          call cudafree(w%eexctX_GPU)
+          call cudafree(w%reduc_GPU)
        end if
     end if
     if (igpu == 1) then
        if (iproc == 0) then
+         call cudadestroystream(i_stat)
+         if (i_stat /= 0) call f_err_throw('error freeing stream ')
+         call cudadestroycublashandle()
           if (keepGPUmemory == 1) then
              call cudafree(w%work1_GPU)
              call cudafree(w%work2_GPU)
@@ -721,12 +735,13 @@ contains
     case (SETUP_VARIABLES)
        select case (trim(dict_key(val)))       
        case (ACCEL)
-          dummy_l=val
-          if (dummy_l) then
+          strn=val
+          select case(trim(strn))
+          case('CUDA')
              k%igpu=1
-          else
+          case('none')
              k%igpu=0
-          end if
+          end select
        case (KEEP_GPU_MEMORY)
           dummy_l=val
           if (dummy_l) then
@@ -789,10 +804,23 @@ contains
 
     select case(trim(str(kernel%method)))
     case('PCG')
+!       if (use_input_guess .and. &
+!            all([associated(kernel%w%res),associated(kernel%w%pot)])) then
+!          !call axpy(n1*n23,1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
+!          call f_memcpy(src=rho,dest=kernel%w%res)
+!       else
+!          !allocate if it is the first time
+!          if (associated(kernel%w%pot)) then
+!             call f_zero(kernel%w%pot)
+!          else
+!             kernel%w%pot=f_malloc0_ptr([n1,n23],id='pot')
+!          end if
+!          if (.not. associated(kernel%w%res)) &
+!               kernel%w%res=f_malloc_ptr([n1,n23],id='res')
+!          call f_memcpy(src=rho,dest=kernel%w%res)
+!       end if
        if (use_input_guess .and. &
-            all([associated(kernel%w%res),associated(kernel%w%pot)])) then
-          !call axpy(n1*n23,1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
-          call f_memcpy(src=rho,dest=kernel%w%res)
+            associated(kernel%w%pot)) then
        else
           !allocate if it is the first time
           if (associated(kernel%w%pot)) then
@@ -800,10 +828,10 @@ contains
           else
              kernel%w%pot=f_malloc0_ptr([n1,n23],id='pot')
           end if
-          if (.not. associated(kernel%w%res)) &
-               kernel%w%res=f_malloc_ptr([n1,n23],id='res')
-          call f_memcpy(src=rho,dest=kernel%w%res)
        end if
+       kernel%w%res=f_malloc_ptr([n1,n23],id='res')
+       call f_memcpy(src=rho,dest=kernel%w%res)
+
        kernel%w%q=f_malloc0_ptr([n1,n23],id='q')
        kernel%w%p=f_malloc0_ptr([n1,n23],id='p')
        kernel%w%z=f_malloc_ptr([n1,n23],id='z')
@@ -844,7 +872,8 @@ contains
 !       else
 !          call f_free_ptr(kernel%w%res)
 !       end if
-       if (.not. use_input_guess) call f_free_ptr(kernel%w%res)
+!       if (.not. use_input_guess) call f_free_ptr(kernel%w%res)
+       call f_free_ptr(kernel%w%res)
        call f_free_ptr(kernel%w%q)
        call f_free_ptr(kernel%w%p)
        call f_free_ptr(kernel%w%z)
@@ -877,6 +906,7 @@ contains
        w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
     case('PI')
        !w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
+       w%eps=f_malloc_ptr([n1,n23],id='eps')
        w%dlogeps=f_malloc_ptr([3,ndims(1),ndims(2),ndims(3)],id='dlogeps')
        w%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
        w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
@@ -914,6 +944,7 @@ contains
              call f_zero(kernel%w%dlogeps)
              do i23=1,n23
                 do i1=1,n1
+                   kernel%w%eps(i1,i23)=vacuum_eps
                    kernel%w%oneoeps(i1,i23)=1.0_dp/vacuum_eps
                 end do
              end do
@@ -1104,6 +1135,12 @@ contains
           else
              call f_err_throw('For method "PI" the arrays oneoeps or epsilon should be present')
           end if
+          if (present(eps)) then
+             call f_memcpy(n=n1*n23,src=eps(1,1,i3s),&
+                  dest=kernel%w%eps)
+          else
+             call f_err_throw('For method "PCG" the arrays eps should be present')
+          end if
        else
           call f_err_throw('For method "PI" the arrays oneoeps '//&
                'and dlogeps have to be associated, call PS_allocate_cavity_workarrays')
@@ -1181,6 +1218,7 @@ contains
           do i2=1,n02
              do i1=1,n01
                 if (kernel%w%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
+                   kernel%w%eps(i1,i23)=1.d0 !eps(i1,i2,i3)
                    kernel%w%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
                    depsdrho(i1,i23)=0.d0
                    dsurfdrho(i1,i23)=0.d0
@@ -1191,6 +1229,7 @@ contains
                    dd = delta_rho(i1,i23)
                    de=epsprime(rh,kernel%cavity)
                    depsdrho(i1,i23)=de
+                   kernel%w%eps(i1,i23)=eps(rh,kernel%cavity)
                    kernel%w%oneoeps(i1,i23)=oneoeps(rh,kernel%cavity) 
                    dsurfdrho(i1,i23)=surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
 

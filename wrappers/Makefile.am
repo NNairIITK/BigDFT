@@ -50,7 +50,7 @@ endif
 if USE_CUDA_GPU
 CUBLAS_SOURCES = fortran.c
 else
-CUBLAS_SOURCES = cublas_fake.f90 interface_cuda_fake.f90
+CUBLAS_SOURCES = cublas_fake.f90
 endif
 if USE_OCL
 OCL_SOURCES =
