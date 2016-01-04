@@ -122,7 +122,7 @@ module multipole
 
     !> Calculate the external potential arising from the multipoles of the charge density
     subroutine potential_from_charge_multipoles(iproc, nproc, at, denspot, ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, &
-               verbosity, pot, lzd, rxyz, dipole_total, all_norms_ok)
+               verbosity, pot, lzd, rxyz, dipole_total, quadrupole_total, all_norms_ok)
       use module_types, only: DFT_local_fields, local_zone_descriptors
       use Poisson_Solver, except_dp => dp, except_gp => gp
       use module_atoms, only: atoms_data
@@ -142,6 +142,7 @@ module multipole
       type(local_zone_descriptors),intent(in),optional :: lzd
       real(kind=8),dimension(3,at%astruct%nat),intent(in),optional :: rxyz
       real(kind=8),dimension(3),intent(out),optional :: dipole_total
+      real(kind=8),dimension(3,3),intent(out),optional :: quadrupole_total
       logical,intent(out),optional :: all_norms_ok
 
       ! Local variables
@@ -707,8 +708,14 @@ module multipole
                  !end if
                  !write(*,*) 'calculate dipole with density'
                  !write(*,*) 'sum(density)',sum(density)
-                 call calculate_dipole_moment(denspot%dpbox, 1, at, rxyz, density, &
-                      calculate_quadropole=.true., dipole=dipole_total, quiet_=.true.)
+                 if (present(quadrupole_total)) then
+                     call calculate_dipole_moment(denspot%dpbox, 1, at, rxyz, density, &
+                          calculate_quadropole=.true., dipole=dipole_total, &
+                          quadrupole=quadrupole_total, quiet_=.true.)
+                 else
+                     call calculate_dipole_moment(denspot%dpbox, 1, at, rxyz, density, &
+                          calculate_quadropole=.true., dipole=dipole_total, quiet_=.true.)
+                 end if
                  !write(*,*) 'calling here, dipole_total', dipole_total
                  !write(*,*) 'calculate dipole with rho_work'
                  !write(*,*) 'sum(denspot%rho_work)',sum(denspot%rho_work)
@@ -1774,7 +1781,8 @@ module multipole
       use orthonormalization, only: orthonormalizelocalized
       use module_atoms, only: atoms_data
       use yaml_output
-      use multipole_base, only: external_potential_descriptors_null, multipole_set_null, multipole_null
+      use multipole_base, only: external_potential_descriptors_null, multipole_set_null, multipole_null, &
+                                deallocate_external_potential_descriptors
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, ll, nphi, nphir, nsigma
@@ -1799,18 +1807,22 @@ module multipole
 
       ! Local variables
       integer :: methTransformOverlap, iat, ind, ispin, ishift, iorb, iiorb, l, m, itype, natpx, isatx, nmaxx, kat, n, i, kkat
-      integer :: ilr, impl, mm
-      logical :: can_use_transposed
+      integer :: ilr, impl, mm, lcheck
+      logical :: can_use_transposed, all_norms_ok
       real(kind=8),dimension(:),pointer :: phit_c, phit_f
       real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, multipole_matrix_large
       real(kind=8),dimension(:,:),allocatable :: Qmat_tilde, kp, locregcenter
       real(kind=8),dimension(:,:,:),pointer :: atomic_multipoles
+      real(kind=8),dimension(:,:,:),allocatable :: test_pot
       real(kind=8),dimension(:,:),pointer :: projx
       real(kind=8) :: q, tt
       type(matrices) :: multipole_matrix
       logical,dimension(:,:),pointer :: neighborx
       integer,dimension(:),pointer :: nx
       character(len=20),dimension(:),allocatable :: names
+      real(kind=8),dimension(3) :: dipole_check
+      real(kind=8),dimension(3,3) :: quadrupole_check
+      type(external_potential_descriptors) :: ep_check
 
       call f_routine(id='multipole_analysis_driver')
 
@@ -1980,6 +1992,66 @@ module multipole
           call yaml_comment('Final result of the multipole analysis',hfill='~')
           call write_multipoles_new(ep, at%astruct%units)
       end if
+
+
+      ! Calculate the total dipole moment resulting from the previously calculated multipoles.
+      ! This is done by calling the following routine (which actually calculates the potential, but also
+      ! has the option to calculte the dipole on the fly).
+      test_pot = f_malloc((/size(denspot%V_ext,1),size(denspot%V_ext,2),size(denspot%V_ext,3)/),id='test_pot')
+      if (iproc==0) call yaml_sequence_open('Checking the total multipoles based on the atomic multipoles')
+      do lcheck=0,lmax
+          ep_check = external_potential_descriptors_null()
+          ep_check%nmpl = ep%nmpl
+          allocate(ep_check%mpl(ep_check%nmpl))
+          do impl=1,ep_check%nmpl
+              ep_check%mpl(impl) = multipole_set_null()
+              allocate(ep_check%mpl(impl)%qlm(0:lmax))
+              ep_check%mpl(impl)%rxyz = ep%mpl(impl)%rxyz
+              ep_check%mpl(impl)%sym = ep%mpl(impl)%sym
+              do l=0,lmax
+                  ep_check%mpl(impl)%sigma(l) = ep%mpl(impl)%sigma(l)
+                  ep_check%mpl(impl)%qlm(l) = multipole_null()
+                  if (l>lcheck) cycle
+                  ep_check%mpl(impl)%qlm(l)%q = f_malloc0_ptr(2*l+1,id='q')
+                  mm = 0
+                  do m=-l,l
+                      mm = mm + 1
+                      ep_check%mpl(impl)%qlm(l)%q(mm) = ep%mpl(impl)%qlm(l)%q(mm)
+                  end do
+              end do
+          end do
+          call dcopy(size(denspot%V_ext,1)*size(denspot%V_ext,2)*size(denspot%V_ext,3), &
+               denspot%V_ext(1,1,1,1), 1, test_pot(1,1,1), 1)
+          call potential_from_charge_multipoles(iproc, nproc, at, denspot, ep_check, 1, &
+               denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
+               denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
+               denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+&
+               denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
+               denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), &
+               shift, verbosity=0, pot=test_pot, &
+               lzd=lzd, rxyz=rxyz, dipole_total=dipole_check, quadrupole_total=quadrupole_check, &
+               all_norms_ok=all_norms_ok)
+          if (.not. all_norms_ok) then
+              call f_err_throw('When checking the previously calculated multipoles, all norms should be ok')
+          end if
+          dipole_check=dipole_check/0.393430307_gp  ! au2debye              
+          if (iproc==0) then
+              call yaml_sequence(advance='no')
+              call yaml_mapping_open('Up to multipole l='//trim(yaml_toa(lcheck)))
+              call yaml_mapping_open('Electric Dipole Moment (Debye)')
+              call yaml_map('P vector',dipole_check(1:3),fmt='(1es13.4)')
+              call yaml_map('norm(P)',sqrt(sum(dipole_check**2)),fmt='(1es14.6)')
+              call yaml_mapping_close()
+              call yaml_mapping_open('Quadrupole Moment (AU)')
+              call yaml_map('Q matrix',quadrupole_check,fmt='(1es13.4)')
+              call yaml_map('trace',quadrupole_check(1,1)+quadrupole_check(2,2)+quadrupole_check(3,3),fmt='(es12.2)')
+              call yaml_mapping_close()
+              call yaml_mapping_close()
+              call deallocate_external_potential_descriptors(ep_check)
+          end if
+      end do
+      if (iproc==0) call yaml_sequence_close()
+      call f_free(test_pot)
 
 
       call f_free_str(len(names),names)
@@ -4045,7 +4117,7 @@ module multipole
 
 !> Calculate the dipole of a Field given in the rho array.
 !! The parallel distribution used is the one of the potential
-subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,dipole,quiet_)
+subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,dipole,quadrupole,quiet_)
   use module_base
   use module_dpbox, only: denspot_distribution
   use module_types
@@ -4058,6 +4130,7 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
   real(dp), dimension(dpbox%ndims(1),dpbox%ndims(2),max(dpbox%n3p, 1),nspin), target, intent(in) :: rho
   logical,intent(in) :: calculate_quadropole
   real(kind=8),dimension(3),intent(out),optional :: dipole
+  real(kind=8),dimension(3,3),intent(out),optional :: quadrupole
   logical,intent(in),optional :: quiet_
 
   integer :: ierr,n3p,nc1,nc2,nc3, nnc3, ii3, i3shift
@@ -4350,6 +4423,10 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
       end do
 
       tmpquadrop=quadropole_cores+quadropole_el
+
+      if (present(quadrupole)) then
+          quadrupole = tmpquadrop
+      end if
 
       if (dpbox%mpi_env%nproc > 1) then
          call f_free_ptr(ele_rho)
