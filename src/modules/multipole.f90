@@ -2267,7 +2267,9 @@ module multipole
       bound_low_ok = .false.
       bound_up_ok = .false.
 
-      alpha_loop: do ialpha=0,100
+      eF = -1.d0
+
+      alpha_loop: do ialpha=0,10000
 
           if (bigdft_mpi%iproc==0) then
               call yaml_sequence(advance='no')
@@ -2281,7 +2283,7 @@ module multipole
               alpha = 0.5d0*(alpha_low+alpha_up)
           end if
 
-          if (ialpha==0) alpha = 1.d-2
+          if (ialpha==0) alpha = 2.d-1
 
           charge_net = 0.d0
           call f_zero(eval_all)
@@ -2334,11 +2336,21 @@ module multipole
               call f_free(tmpmat2d)
 
 
-              ! @ NEW #####################################################################
-              if (present( rpower_matrix)) then
+
+              ! Add the penalty term
+              if (mode=='verynew') then
+                  ! @ NEW #####################################################################
+                  if (.not.present(rpower_matrix)) then
+                      call f_err_throw('rpower_matrix not present')
+                  end if
+                  if (.not.present(orbs)) then
+                      call f_err_throw('orbs not present')
+                  end if
                   write(*,*) 'call extract_matrix with penaltymat'
                   write(*,*) 'orbs%onwhichatom',orbs%onwhichatom
                   write(*,*) 'rxyz(:,kkat)',rxyz(:,kkat)
+                  !write(*,*) 'HACK: SET ALPHA TO 0.5d0'
+                  !alpha = 0.02d0
                   do i=1,24
                       call extract_matrix(smats, rpower_matrix(i)%matrix_compr, neighbor(1:,kat), n, nmax, penaltymat(:,:,i))
                   end do
@@ -2352,6 +2364,13 @@ module multipole
                               !!    - 2.d0*(rxyz(1,kkat)*penaltymat(j,i,1) &
                               !!          + rxyz(2,kkat)*penaltymat(j,i,2) &
                               !!          + rxyz(3,kkat)*penaltymat(j,i,3)) &
+                              !!    + tt*ovrlp(j,i)
+                              !!ttt = penaltymat(j,i,2) &
+                              !!      + penaltymat(j,i,6) &
+                              !!      + penaltymat(j,i,10) &
+                              !!    - 2.d0*(rxyz(1,kkat)*penaltymat(j,i,1) &
+                              !!          + rxyz(2,kkat)*penaltymat(j,i,5) &
+                              !!          + rxyz(3,kkat)*penaltymat(j,i,9)) &
                               !!    + tt*ovrlp(j,i)
                               ttt = penaltymat(j,i,4) - 4.d0*rxyz(1,kkat)*penaltymat(j,i,3) &
                                     + 6.d0*rxyz(1,kkat)**2*penaltymat(j,i,2) - 4.d0*rxyz(1,kkat)**3*penaltymat(j,i,1) &
@@ -2393,7 +2412,8 @@ module multipole
                                   ttt = alpha*ttt
                               else
                                   !if (i==1 .or. i==6) ttt=3.d0*ttt
-                                  ttt = 1.5d0*alpha*ttt
+                                  ttt = 1.4641d0*alpha*ttt
+                                  !ttt = 5.0d0*alpha*ttt
                               end if
                               !ttt = alpha*penaltymat(j,i,2) - alpha*2.d0*tt*penaltymat(j,i,1) + alpha*tt**2*ovrlp(j,i)
                               ham(j,i) = ham(j,i) + ttt
@@ -2405,11 +2425,8 @@ module multipole
                           end if
                       end do
                   end do
-              end if
-              ! @ END NEW #################################################################
-
-              ! Add the penalty term
-              if (mode=='old') then
+                  ! @ END NEW #################################################################
+              elseif (mode=='old') then
                   call add_penalty_term(at%astruct%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
                        at%astruct%cell_dim, com, alpha, n, ovrlp, ham)
               else if (mode=='new') then
@@ -2489,17 +2506,25 @@ module multipole
     
     
               !ikT = ikT + 1
+
+              !kT = 1.d-1*abs(eval_all(1))
+              if (mode=='verynew') then
+                  kT = max(1.d-1*abs(eval_all(5)),1.d-1)
+                  write(*,*) 'adjust kT to',kT
+              end if
     
               call f_zero(charge_per_atom)
     
               ! Determine the "Fermi level" such that the iq-th state is still fully occupied even with a smearing
-              if (ialpha==0) then
+              if (ialpha>=0) then
                   ef = eval_all(1)
                   do
                       ef = ef + 1.d-3
                       occ = 1.d0/(1.d0+safe_exp( (eval_all(iq)-ef)*(1.d0/kT) ) )
                       if (abs(occ-1.d0)<1.d-8) exit
                   end do
+                  !!write(*,*) 'HACK: INCREASE eF by 0.001d0'
+                  !!eF = eF + 0.001d0
                   do ieval=1,ntot
                       ij = ij + 1
                       occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
@@ -2514,7 +2539,7 @@ module multipole
                       do i=1,ntot
                           !occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
                           occ = occ_all(i)
-                          if (occ>1.d-100) then
+                          if (.true. .or. occ>1.d-100) then
                               call yaml_sequence(advance='no')
                               call yaml_mapping_open(flow=.true.)
                               call yaml_map('eval',eval_all(i),fmt='(es13.4)')
@@ -2595,7 +2620,7 @@ module multipole
           end if
 
 
-          if (abs(charge_net)<convergence_criterion .or. ialpha==100) then
+          if (abs(charge_net)<convergence_criterion .or. ialpha==10000) then
           !if (.true.) then
               if (bigdft_mpi%iproc==0) then
                   call yaml_sequence_close()
@@ -2606,7 +2631,7 @@ module multipole
                   do i=1,ntot
                       !occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
                       occ = occ_all(i)
-                      if (occ>1.d-100) then
+                      if (.true. .or. occ>1.d-100) then
                           call yaml_sequence(advance='no')
                           call yaml_mapping_open(flow=.true.)
                           call yaml_map('eval',eval_all(i),fmt='(es13.4)')
@@ -2660,6 +2685,7 @@ module multipole
               !alpha = alpha*1.2
               alpha_low = alpha
           end if
+
 
 
       end do alpha_loop
