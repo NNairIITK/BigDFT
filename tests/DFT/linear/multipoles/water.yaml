@@ -49,6 +49,8 @@
    taylor_order: 1020
    max_inversion_error: 5.0e-8
    charge_multipoles: 1
+   calc_dipole: yes
+   calc_quadrupole: yes
  lin_basis:
    nit: 8
    idsx: 8

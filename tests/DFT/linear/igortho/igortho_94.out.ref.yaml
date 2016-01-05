@@ -2713,7 +2713,7 @@
    MPI tasks                           :  4
  Determine optimal sigmas:
  -  {rloc mult:  [  1.0,  1.0,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  2.458E-02,  1.7976931348623157E+308], avg pot diff (actual/min): [ 6.105E-01, 
+  3.985E-05,  1.7976931348623157E+308], avg pot diff (actual/min): [ 6.135E-01, 
   1.7976931348623157E+308]}
  optimal sigma multiplication factors  :  [  1.00,  1.00,  1.00 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis

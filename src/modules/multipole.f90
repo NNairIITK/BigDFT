@@ -633,7 +633,7 @@ module multipole
                                   if (l==0) then
                                       qq = -(ep%mpl(impl)%qlm(l)%q(mm)-real(nelpsp(impl),kind=8))
                                   else
-                                      qq = ep%mpl(impl)%qlm(l)%q(mm)
+                                      qq = -ep%mpl(impl)%qlm(l)%q(mm)
                                   end if
                                   if (abs(qq)>1.d-8) then
                                       select case (l)
