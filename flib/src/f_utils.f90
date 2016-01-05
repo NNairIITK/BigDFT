@@ -174,7 +174,8 @@ contains
             (100.0_f_double/percent-1.0_f_double)
     end if
     !compose the message
-    call f_strcpy(src=prc//'% '//ticker(bar%ncall)//&
+    call f_strcpy(src='('+yaml_time_toa()+')'//prc//&
+         '% '//ticker(bar%ncall)//&
          ' ['//stars//'] ('//trim(yaml_toa(istep))//'/'//&
          trim(adjustl(yaml_toa(bar%nstep)))//&
          ', '//&
