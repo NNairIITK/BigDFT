@@ -257,19 +257,6 @@ module multipole
           ! Get the parameters for each multipole, required to compensate for the pseudopotential part
           !nzatom = f_malloc(ep%nmpl,id='nzatom')
           nelpsp = f_malloc(ep%nmpl,id='nelpsp')
-          !npspcode = f_malloc(ep%nmpl,id='npspcode')
-          !psppar = f_malloc( (/0.to.4,0.to.6,1.to.ep%nmpl/),id='psppar')
-          !do impl=1,ep%nmpl
-          !    ixc = 1
-          !    if (iproc==0 .and. verbosity>0) then
-          !        call yaml_warning('WARNING: USE ixc = 1 IN POTENTIAL_FROM_CHARGE_MULTIPOLES')
-          !    end if
-          !    call psp_from_data(ep%mpl(impl)%sym, nzatom(impl), nelpsp(impl), npspcode(impl), ixc, psppar(:,:,impl), exists)
-          !    if (.not.exists) then
-          !        call f_err_throw('No PSP available for external multipole type '//trim(ep%mpl(impl)%sym), &
-          !             err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-          !    end if
-          !end do
          perx = (denspot%dpbox%geocode /= 'F')
          pery = (denspot%dpbox%geocode == 'P')
          perz = (denspot%dpbox%geocode /= 'F')
@@ -329,8 +316,6 @@ module multipole
                  rx = ep%mpl(impl)%rxyz(1) - shift(1)
                  ry = ep%mpl(impl)%rxyz(2) - shift(2)
                  rz = ep%mpl(impl)%rxyz(3) - shift(3)
-                 !write(*,*) 'nelpsp(impl)',nelpsp(impl)
-          !write(*,*) 'WARNING: GAUSSIAN_DENSITY COMMENTED!!!'
                  call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, &
                       rx, ry, rz, &
                       rloc, nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
@@ -579,28 +564,8 @@ module multipole
     
     
           if (iproc==0 .and. ep%nmpl > 0 .and. verbosity>0) then
-                  !do iat=1,nat
-                  !    call yaml_sequence(advance='no')
-                  !    atomname=atomnames(iatype(iat))
-                  !    call yaml_sequence_open(trim(atomname))
-                  !    do l=0,lmax
-                  !        call yaml_sequence(advance='no')
-                  !        !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat),fmt='(1es16.8)')
-                  !        !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat)*sqrt(4.d0**(2*l+3)),fmt='(1es16.8)')
-                  !        !do m=-l,l
-                  !            !multipoles(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax, l, m)
-                  !            !max_error = max(max_error,abs(multipoles(m,l,iat)-get_test_factor(l,m)))
-                  !        !end do
-                  !        call yaml_map('l='//yaml_toa(l),multipoles_tmp(-l:l,l,iat),fmt='(1es16.8)')
-                  !        call yaml_newline()
-                  !    end do
-                  !    !call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
-                  !    call yaml_sequence_close()
-                  !end do
-                  !call yaml_sequence_close()
               call yaml_mapping_open('Potential from multipoles')
               call yaml_map('Number of multipole centers',ep%nmpl)
-              !call yaml_map('Sigma of the Gaussians',sigma)
               call yaml_map('Threshold for the norm of the Gaussians',norm_threshold)
               call yaml_map('Minimal radius for divion of the solid harmonics by r^{2l}',rmin)
               call yaml_sequence_open('Details for each multipole')
@@ -622,14 +587,6 @@ module multipole
                               mm = 0
                               do m=-l,l
                                   mm = mm + 1
-                                  !if (l==0) then
-                                  !    max_error(l) = max(max_error(l), &
-                                  !                    abs(monopole(impl)-(ep%mpl(impl)%qlm(l)%q(mm)+real(nelpsp(impl),kind=8))))
-                                  !else if (l==1) then
-                                  !    max_error(l) = max(max_error(l),abs(dipole(mm,impl)-ep%mpl(impl)%qlm(l)%q(mm)))
-                                  !else if (l==2) then
-                                  !    max_error(l) = max(max_error(l),abs(quadrupole(mm,impl)-ep%mpl(impl)%qlm(l)%q(mm)))
-                                  !end if
                                   if (l==0) then
                                       qq = -(ep%mpl(impl)%qlm(l)%q(mm)-real(nelpsp(impl),kind=8))
                                   else
@@ -647,16 +604,6 @@ module multipole
                                   else
                                       error_meaningful(l) = 1
                                   end if
-                                  !!if (l==0) then
-                                  !!    max_error(l) = max(max_error(l), &
-                                  !!                    monopole(impl)/(ep%mpl(impl)%qlm(l)%q(mm)+real(nelpsp(impl),kind=8)))
-                                  !!else if (l==1) then
-                                  !!    max_error(l) = max(max_error(l),dipole(mm,impl)/ep%mpl(impl)%qlm(l)%q(mm))
-                                  !!    !write(*,*) 'calc, orig', dipole(mm,impl), ep%mpl(impl)%qlm(l)%q(mm)
-                                  !!else if (l==2) then
-                                  !!    max_error(l) = max(max_error(l),quadrupole(mm,impl)/ep%mpl(impl)%qlm(l)%q(mm))
-                                  !!    !write(*,*) 'calc, orig', quadrupole(mm,impl),ep%mpl(impl)%qlm(l)%q(mm)
-                                  !!end if
                               end do
                               ! Convert to percentaged deviation
                               if (error_meaningful(l)==0) then
@@ -676,14 +623,10 @@ module multipole
                               output_arr(l) = 'no mltpole l='//yaml_toa(l)
                           end select
                       end do
-                      !call yaml_map('Maximal deviation from the original values in percent',max_error(:),fmt='(1f6.1)')
                       call yaml_map('Maximal deviation from the original values in percent',output_arr(:))
                   else
                       call yaml_map('Method','Analytic expression')
                   end if
-                  !call yaml_map('monopole',monopole(impl),fmt='(1es16.8)')
-                  !call yaml_map('dipole',dipole(:,impl),fmt='(1es16.8)')
-                  !call yaml_map('quadrupole',quadrupole(:,impl),fmt='(1es16.8)')
                   call yaml_mapping_close()
               end do
               call yaml_sequence_close()
@@ -694,20 +637,6 @@ module multipole
 
 
              if (present(lzd) .and. present(rxyz) .and. present(dipole_total)) then
-                 !denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimrhopot,id='denspot%rho_work')
-                 !ioffset=lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%i3xcsh
-                 !if (denspot%dpbox%ndimrhopot>0) then
-                 !    call vcopy(denspot%dpbox%ndimpot,density(ioffset+1),1,denspot%rho_work(1),1)
-                 !    ! add the spin down part if present
-                 !    if (denspot%dpbox%nrhodim==2) then
-                 !        ishift=denspot%dpbox%ndimrhopot/denspot%dpbox%nrhodim !start of the spin down part
-                 !        call axpy(denspot%dpbox%ndimpot, 1.d0, &
-                 !                  denspot%rhov(ioffset+ishift+1), &
-                 !                  1, denspot%rho_work(1),1)
-                 !    end if
-                 !end if
-                 !write(*,*) 'calculate dipole with density'
-                 !write(*,*) 'sum(density)',sum(density)
                  if (present(quadrupole_total)) then
                      call calculate_dipole_moment(denspot%dpbox, 1, at, rxyz, density, &
                           calculate_quadropole=.true., dipole=dipole_total, &
@@ -716,27 +645,12 @@ module multipole
                      call calculate_dipole_moment(denspot%dpbox, 1, at, rxyz, density, &
                           calculate_quadropole=.true., dipole=dipole_total, quiet_=.true.)
                  end if
-                 !write(*,*) 'calling here, dipole_total', dipole_total
-                 !write(*,*) 'calculate dipole with rho_work'
-                 !write(*,*) 'sum(denspot%rho_work)',sum(denspot%rho_work)
-                 !call vcopy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), density(is1,is2,is3), 1, denspot%rho_work(1), 1)
-                 !call calculate_dipole_moment(denspot%dpbox, 1, at, rxyz, denspot%rho_work, calculate_quadropole=.true.)
-                 !do i3=is3,ie3
-                 !    do i2=is2,ie2
-                 !        do i1=is1,ie1
-                 !            write(200,*) density(i1,i2,i3)
-                 !        end do
-                 !    end do
-                 !end do
-                 !call f_free_ptr(denspot%rho_work)
              end if
 
              ! Add the core contribution
              call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, density_cores(is1,is2,is3), 1, density(is1,is2,is3), 1)
 
 
-             !call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
-             !     quiet=denspot%PSquiet)!,rho_ion=denspot%rho_ion)
              call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
                   quiet='yes')!,rho_ion=denspot%rho_ion)
              !write(*,*) 'ehart_ps',ehart_ps
