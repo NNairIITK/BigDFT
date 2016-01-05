@@ -1731,7 +1731,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !the energy values is printed out in this routine
            call calculate_energy_and_gradient(opt%iter,iproc,nproc,GPU,in%ncong,opt%iscf,&
                 energs,KSwfn,opt%gnrm,gnrm_zero)
-
+           
            !control the previous value of idsx_actual
            idsx_actual_before=KSwfn%diis%idsx
            iter_for_diis=iter_for_diis+1

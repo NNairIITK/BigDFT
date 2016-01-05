@@ -347,7 +347,8 @@ module io
                ! size orbs%norb is overkill but we don't know norb for env yet
                map_frag_and_env = f_malloc((/orbs%norb,3/),id='map_frag_and_env')
 
-               call find_neighbours(num_neighbours,at,rxyz,orbs,ref_frags(ifrag_ref),frag_map,ntmb_frag_and_env,map_frag_and_env)
+               call find_neighbours(num_neighbours,at,rxyz,orbs,ref_frags(ifrag_ref),frag_map,&
+                    ntmb_frag_and_env,map_frag_and_env,.false.)
                !full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)//'_env'
                full_filename=trim(dir_output)//trim(input_frag%label(ifrag_ref))//'_env'
                if (iproc==0) then
@@ -636,7 +637,7 @@ module io
 
    !> finds environment atoms and fills ref_frag%astruct_env accordingly
    !! also returns mapping array for fragment and environment
-   subroutine find_neighbours(num_neighbours,at,rxyz,orbs,ref_frag,frag_map,ntmb_frag_and_env,map_frag_and_env)
+   subroutine find_neighbours(num_neighbours,at,rxyz,orbs,ref_frag,frag_map,ntmb_frag_and_env,map_frag_and_env,closest_only)
       use module_fragments
       use module_types
       use module_atoms, only: deallocate_atomic_structure, nullify_atomic_structure
@@ -650,19 +651,25 @@ module io
       integer, dimension(ref_frag%fbasis%forbs%norb,3), intent(in) :: frag_map
       integer, intent(out) :: ntmb_frag_and_env
       integer, dimension(orbs%norb,3), intent(out) :: map_frag_and_env
+      logical, intent(in) :: closest_only
 
       !local variables
       integer :: iatnf, iat, ityp, iatf, iatt, num_before, num_after, jat, num_neighbours_tot, iorb
       integer, allocatable, dimension(:) :: map_not_frag, ipiv
       integer, allocatable, dimension(:) :: num_neighbours_type, atype_not_frag
 
-      real(kind=8), parameter :: tol=1.d-3
+      real(kind=8) :: tol
       real(kind=8), dimension(3) :: frag_centre
       real(kind=8), allocatable, dimension(:) :: dist
       real(kind=8), allocatable, dimension(:,:) :: rxyz_frag, rxyz_not_frag, rxyz_frag_and_env
 
       logical :: on_frag, perx, pery, perz
 
+      if (closest_only) then
+         tol=0.1d0
+      else
+         tol=1.0e-3
+      end if
 
       rxyz_frag = f_malloc((/ 3,ref_frag%astruct_frg%nat /),id='rxyz_frag') 
       rxyz_not_frag = f_malloc((/ 3,at%astruct%nat-ref_frag%astruct_frg%nat /),id='rxyz_not_frag')
@@ -691,14 +698,21 @@ module io
          end if
       end do
 
-      num_neighbours_tot=0
-      do ityp=1,at%astruct%ntypes
-         num_neighbours_type(ityp) = min(atype_not_frag(ityp),num_neighbours)
-         num_neighbours_tot = num_neighbours_tot + num_neighbours_type(ityp)
-         !write(*,'(a,6(i3,2x))') 'type',ifrag,ifrag_ref,ityp,at%astruct%ntypes,num_neighbours_type(ityp),num_neighbours_tot
-      end do
+      ! in this case we don't care about atom types, we just want the closest neighbours
+      if (closest_only) then
+         num_neighbours_tot=num_neighbours
+         num_neighbours_type=0
+      else
+         num_neighbours_tot=0
+         do ityp=1,at%astruct%ntypes
+            num_neighbours_type(ityp) = min(atype_not_frag(ityp),num_neighbours)
+            num_neighbours_tot = num_neighbours_tot + num_neighbours_type(ityp)
+            !write(*,'(a,6(i3,2x))') 'type',ifrag,ifrag_ref,ityp,at%astruct%ntypes,num_neighbours_type(ityp),num_neighbours_tot
+         end do
+      end if
       call f_free(atype_not_frag)
 
+     
       ! find distances from centre of fragment - not necessarily the best approach but fine if fragment has 1 atom (most likely case)
       frag_centre=frag_center(ref_frag%astruct_frg%nat,rxyz_frag)
 
@@ -728,7 +742,9 @@ module io
       ! sort atoms into neighbour order
       call sort_positions(at%astruct%nat-ref_frag%astruct_frg%nat,dist,ipiv)
 
-      rxyz_frag_and_env = f_malloc((/ 3,ref_frag%astruct_frg%nat+num_neighbours_tot /),id='rxyz_frag_and_env')
+      ! allocate this larger than needed in case we have to complete a 'shell' of neighbours
+      !rxyz_frag_and_env = f_malloc((/ 3,ref_frag%astruct_frg%nat+num_neighbours_tot /),id='rxyz_frag_and_env')
+      rxyz_frag_and_env = f_malloc((/ 3,at%astruct%nat-ref_frag%astruct_frg%nat /),id='rxyz_frag_and_env')
 
       ! take fragment and closest neighbours (assume that environment atoms were originally the closest)
       do iat=1,ref_frag%astruct_frg%nat
@@ -740,33 +756,44 @@ module io
       iatf=0
       do ityp=1,at%astruct%ntypes
          iatt=0
-         if (num_neighbours_type(ityp)==0) cycle
+         ! in this case no neighbours of that atomic species exist, so we can loop back around
+         if (num_neighbours_type(ityp)==0 .and. (.not. closest_only)) cycle
          do iat=1,at%astruct%nat-ref_frag%astruct_frg%nat
-            if (at%astruct%iatype(map_not_frag(ipiv(iat)))/=ityp) cycle
+            if (at%astruct%iatype(map_not_frag(ipiv(iat)))/=ityp .and. (.not. closest_only)) cycle
             iatf=iatf+1
             iatt=iatt+1
             rxyz_frag_and_env(:,iatf+ref_frag%astruct_frg%nat) = rxyz_not_frag(:,ipiv(iat))
             map_frag_and_env(iatf+ref_frag%astruct_frg%nat,3) = map_not_frag(ipiv(iat))
             !print*,'iatt',ityp,iatt,num_neighbours_type(ityp),iatf,iat
-            if (iatt==num_neighbours_type(ityp)) exit
+
+            ! exit if we've reached the number for this species or the total if we're not looking at species
+            if ((closest_only .and. iatt==num_neighbours_tot) &
+                 .or. ((.not. closest_only) .and. iatt==num_neighbours_type(ityp))) exit
          end do
 
          !never cut off a shell - either include all at that distance or none (depending on if at least at minimum?)
          ! - check distances of next point to see...
          num_after=0
          do jat=iat+1,at%astruct%nat-ref_frag%astruct_frg%nat
-            if (at%astruct%iatype(map_not_frag(ipiv(jat)))/=ityp) cycle
+            if (at%astruct%iatype(map_not_frag(ipiv(jat)))/=ityp .and. (.not. closest_only)) cycle
             if (abs(dist(ipiv(jat))-dist(ipiv(iat))) < tol) then
                num_after=num_after+1
             else
                exit
             end if
          end do
-         if (num_after==0) cycle
+         if (num_after==0) then
+            if (.not. closest_only) then
+               cycle
+            else
+               exit
+            end if
+         end if
+
          !also check before
          num_before=0
          do jat=iat-1,1,-1
-            if (at%astruct%iatype(map_not_frag(ipiv(jat)))/=ityp) cycle
+            if (at%astruct%iatype(map_not_frag(ipiv(jat)))/=ityp .and. (.not. closest_only)) cycle
             if (abs(dist(ipiv(jat))-dist(ipiv(iat))) < tol) then
                num_before=num_before+1
             else
@@ -774,7 +801,8 @@ module io
             end if
          end do
          !get rid of them (assuming we will still have at least one neighbour of this type left)
-         if (num_neighbours_type(ityp)>num_before+1) then
+         if (((.not. closest_only) .and. num_neighbours_type(ityp)>num_before+1) &
+              .or. (closest_only .and. num_neighbours_tot>num_before+1)) then
             num_neighbours_type(ityp)=num_neighbours_type(ityp)-num_before-1
             num_neighbours_tot=num_neighbours_tot-num_before-1
             iatf=iatf-num_before-1
@@ -783,16 +811,22 @@ module io
             num_neighbours_type(ityp)=num_neighbours_type(ityp)+num_after
             num_neighbours_tot=num_neighbours_tot+num_after
             do jat=iat+1,at%astruct%nat-ref_frag%astruct_frg%nat
-               if (at%astruct%iatype(map_not_frag(ipiv(jat)))/=ityp) cycle
+               if (at%astruct%iatype(map_not_frag(ipiv(jat)))/=ityp .and. (.not. closest_only)) cycle
                iatf=iatf+1
                iatt=iatt+1
                rxyz_frag_and_env(:,iatf+ref_frag%astruct_frg%nat) = rxyz_not_frag(:,ipiv(jat))
                map_frag_and_env(iatf+ref_frag%astruct_frg%nat,3) = map_not_frag(ipiv(jat))
-               if (iatt==num_neighbours_type(ityp)) exit 
+               if ((closest_only .and. iatt==num_neighbours_tot) &
+                    .or. ((.not. closest_only) .and. iatt==num_neighbours_type(ityp))) exit 
             end do
          end if
+
+         ! in this case we're ignoring atomic species so we should exit after first iteration
+         if (closest_only) exit
+
       end do
-      if (iatf/=num_neighbours_tot) stop 'Error num_neighbours_tot/=iatf in write_linear_fragments'
+
+      if (iatf/=num_neighbours_tot) stop 'Error num_neighbours_tot/=iatf in find_neighbours'
       call f_free(num_neighbours_type)
       call f_free(rxyz_not_frag)
       call f_free(map_not_frag)

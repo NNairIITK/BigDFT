@@ -29,7 +29,6 @@ driver_LDADD = -lbigdft-1 @LINALG_LIBS@
 driver_ccs_SOURCES = utilities.f90 driver_ccs.f90
 driver_ccs_LDADD = -lbigdft-1 @LINALG_LIBS@
 
-
 CLEANFILES = test-ccs.out.yaml test-ccs.report.yaml test-ccs.report
 
 test-ccs.report.yaml: $(srcdir)/test-ccs.ref.yaml test-ccs.out.yaml

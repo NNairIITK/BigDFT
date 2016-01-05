@@ -346,8 +346,9 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
   logical, intent(in) :: use_input_guess
   !local variables
   real(dp), parameter :: max_ratioex = 1.0e10_dp !< just to avoid crazy results
-  integer :: n1,n23,i1,i23,ip,i23s
-  real(dp) :: rpoints,rhores2,beta,ratio,normr,normb,alpha
+  real(dp), parameter :: no_ig_minres=1.0d-2 !< just to neglect wrong inputguess
+  integer :: n1,n23,i1,i23,ip,i23s,iinit
+  real(dp) :: rpoints,rhores2,beta,ratio,normr,normb,alpha,q
   !aliasings
   call f_timing(TCAT_PSOLV_COMPUT,'ON')
   rpoints=product(real(kernel%ndims,dp))
@@ -369,14 +370,17 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
 
      if (use_input_guess) then
         !gathering the data to obtain the distribution array
-        !call PS_gather(kernel%w%pot,kernel) not needed as in PI the W%pot array is global
+        !call PS_gather(kernel%w%pot,kernel) !not needed as in PI the W%pot array is global
         call update_rhopol(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
              kernel%ndims(3),&
-             kernel%w%pot,kernel%nord,kernel%hgrids,1.0_dp,kernel%w%dlogeps,kernel%w%rho,rhores2)
+             kernel%w%pot,kernel%nord,kernel%hgrids,1.0_dp,kernel%w%eps,&
+             kernel%w%dlogeps,kernel%w%rho,rhores2)
      end if
 
-     pi_loop: do ip=1,kernel%max_iter
-
+     ip=0
+     pi_loop: do while (ip <= kernel%max_iter)
+      ip=ip+1
+!     pi_loop: do ip=1,kernel%max_iter
         !update the needed part of rhopot array
         !irho=1
         !i3s=kernel%grid%istart
@@ -403,7 +407,8 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
         !reduction of the residue not necessary
         call update_rhopol(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
              kernel%ndims(3),&
-             kernel%w%pot,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%w%dlogeps,kernel%w%rho,rhores2)
+             kernel%w%pot,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%w%eps,&
+             kernel%w%dlogeps,kernel%w%rho,rhores2)
 
         rhores2=sqrt(rhores2/rpoints)
 
@@ -414,30 +419,90 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
         end if
 
         if (rhores2 < kernel%minres) exit pi_loop
+        if (rhores2 > no_ig_minres) then
+        i23s=kernel%grid%istart*kernel%grid%m3
+        do i23=1,n23
+           do i1=1,n1
+              kernel%w%rho(i1,i23+i23s)=0.0_dp !this is full
+           end do
+        end do
+        ip=0
+        call yaml_map('Input guess not used due to residual norm >',no_ig_minres)
+        end if
 
      end do pi_loop
      if (wrtmsg) call yaml_sequence_close()
   case('PCG')
      if (wrtmsg) then
         call yaml_newline()
-          call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
-       end if
+        call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
+     end if
 
-       !LG commented out, arrays  are distributed here
-!!$     if (use_input_guess) then
-!!$        !gathering the data to obtain the distribution array
-!!$        call PS_gather(kernel%w%pot,kernel)
-!!$        call Apply_GPe_operator(kernel%nord,kernel%geocode,kernel%ndims,&
-!!$                   kernel%hgrids,kernel%w%eps,kernel%w%pot,kernel%w%res)
-!!$     end if
+     normb=dot(n1*n23,kernel%w%res(1,1),1,kernel%w%res(1,1),1)
+     call PS_reduce(normb,kernel)
+     normb=sqrt(normb/rpoints)
+     normr=normb
+     
+     iinit=1
+     if (use_input_guess) then
+      iinit=2
+ 
+      !$omp parallel do default(shared) private(i1,i23)
+      do i23=1,n23
+         do i1=1,n1
+            q=kernel%w%pot(i1,i23)*kernel%w%corr(i1,i23)
+            kernel%w%q(i1,i23)=kernel%w%pot(i1,i23)
+            kernel%w%z(i1,i23)=(kernel%w%res(i1,i23)-q)*&
+                                 kernel%w%oneoeps(i1,i23)
+         end do
+      end do
+      !$omp end parallel do
+ 
+      call apply_kernel(cudasolver,kernel,kernel%w%z,offset,strten,kernel%w%zf,.true.)
+ 
+      !$omp parallel do default(shared) private(i1,i23)
+      do i23=1,n23
+         do i1=1,n1
+            kernel%w%pot(i1,i23)=kernel%w%z(i1,i23)*kernel%w%oneoeps(i1,i23)
+            kernel%w%z(i1,i23)=kernel%w%res(i1,i23)
+            kernel%w%res(i1,i23)=(kernel%w%q(i1,i23) - kernel%w%pot(i1,i23))*kernel%w%corr(i1,i23)
+            kernel%w%q(i1,i23)=0.d0
+         end do
+      end do
+      !$omp end parallel do
+ 
+      normr=dot(n1*n23,kernel%w%res(1,1),1,kernel%w%res(1,1),1)
+      call PS_reduce(normr,kernel)
+      normr=sqrt(normr/rpoints)
+      ratio=normr/normb
+ 
+      if (wrtmsg) then
+       call yaml_newline()
+       call yaml_sequence(advance='no')
+       call EPS_iter_output(1,normb,normr,ratio,1.d0,1.d0)
+      end if
+      if (normr < kernel%minres) iinit=kernel%max_iter+10
+ 
+      if (normr > no_ig_minres ) then
+ 
+       !$omp parallel do default(shared) private(i1,i23)
+       do i23=1,n23
+          do i1=1,n1
+             kernel%w%res(i1,i23)=kernel%w%z(i1,i23)
+             kernel%w%pot(i1,i23)=0.d0
+          end do
+       end do
+       !$omp end parallel do
+ 
+       iinit=1
+       !call yaml_warning('Input guess not used due to residual norm > 1')
+       call yaml_warning('Input guess not used due to residual norm >'+no_ig_minres)
+      end if
+
+     end if
 
      beta=1.d0
      ratio=1.d0
-     normr=1.d0
-
-     normb=dot(n1*n23,rho_dist(1,1),1,rho_dist(1,1),1)
-     call PS_reduce(normb,kernel)
-     normb=sqrt(normb/rpoints)
 
      !$omp parallel do default(shared) private(i1,i23)
      do i23=1,n23
@@ -447,7 +512,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
      end do
      !$omp end parallel do
 
-     PCG_loop: do ip=1,kernel%max_iter
+     PCG_loop: do ip=iinit,kernel%max_iter
 
         !initalise to zero the zf array 
         !call f_zero(kernel%w%zf)
@@ -539,7 +604,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !integer, dimension(:,:), allocatable :: gather_arr
    type(PSolver_energies) :: energies
 
-   kernel%opt=PSolver_options_null()
+   !kernel%opt=PSolver_options_null()
    global=.false.
    global=datacode=='G'
    verb=.true.
@@ -1142,7 +1207,7 @@ subroutine apply_reductions(ip, gpu, kernel, r, x, p, q, z, alpha, beta, normr)
   call cudamemset(kernel%w%beta_GPU, 0, sizeof(beta),i_stat)
   call first_reduction_kernel(n1,n23,kernel%w%p_GPU,kernel%w%q_GPU,kernel%w%r_GPU,&
 kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%alpha_GPU,&
- kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, beta)
+ kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, kernel%w%reduc_GPU, beta)
 
   call cudamemset(kernel%w%kappa_GPU, 0, sizeof(kappa),i_stat)
 
@@ -1159,7 +1224,7 @@ kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%
 
   call second_reduction_kernel(n1,n23,kernel%w%p_GPU,kernel%w%q_GPU,kernel%w%r_GPU,&
 kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%alpha_GPU,&
- kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, kappa)
+ kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, kernel%w%reduc_GPU, kappa)
 
 !  call get_gpu_data(size1,p,kernel%p_GPU)
 !  call get_gpu_data(size1,q,kernel%q_GPU)
@@ -1172,7 +1237,7 @@ kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%
 
   call third_reduction_kernel(n1,n23,kernel%w%p_GPU,kernel%w%q_GPU,kernel%w%r_GPU,&
 kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%alpha_GPU,&
- kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, normr)
+ kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, kernel%w%reduc_GPU, normr)
 
   call PS_reduce(normr,kernel)
   

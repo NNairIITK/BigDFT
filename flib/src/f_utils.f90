@@ -40,6 +40,12 @@ module f_utils
      character(len=1), dimension(:), pointer :: buf
   end type f_dump_buffer
 
+  type, public :: f_progress_bar
+     integer :: nstep !< number of steps for the progress
+     integer(f_long) :: t0 !< creation time of the progress bar
+     character(len=90) :: message !< Message of the progress bar to be updated
+     integer :: ncall !< number of times the progress bar is called
+  end type f_progress_bar
 
   !> Interface for difference between two intrinsic types
   interface f_diff
@@ -84,6 +90,7 @@ module f_utils
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring,f_increment
   public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
+  public :: f_progress_bar_new,update_progress_bar,f_tty
 
 contains
  
@@ -103,6 +110,94 @@ contains
     call nanosec(itime)
     f_time=itime
   end function f_time
+
+  pure function f_progress_bar_new(nstep) result(bar)
+    implicit none
+    integer, intent(in), optional :: nstep
+    type(f_progress_bar) :: bar
+
+    bar%nstep=-1
+    if (present(nstep)) bar%nstep=nstep
+    bar%t0=f_time()
+    call f_zero(bar%message)
+    bar%ncall=0    
+  end function f_progress_bar_new
+
+  pure function ticker(ncall) result(t)
+    implicit none
+    integer, intent(in) :: ncall
+    character :: t
+    select case(modulo(ncall,4))
+    case(0)
+       t='|'
+    case(1)
+       t='/'
+    case(2)
+       t='-'
+    case(3)
+       t="\ "
+    end select
+  end function ticker
+
+  !routine to build the message to be dump
+  subroutine update_progress_bar(bar,istep)
+    use yaml_strings
+    implicit none
+    integer, intent(in) :: istep
+    type(f_progress_bar), intent(inout) :: bar
+    !local variables
+    integer, parameter :: nstars=30
+    integer :: j,step
+    real(f_double) :: percent
+    real(f_double) :: time_elapsed, it_s !< in seconds
+    real(f_double) :: time_remaining !< seconds, estimation
+
+    character(len=3) :: prc
+    character(len=nstars) :: stars
+
+    percent=real(istep,f_double)/real(bar%nstep,f_double)*100.0_f_double
+    j=int(nstars*percent)/100
+    write(unit=prc,fmt="(i3)")int(percent)
+    if (j>0) then
+       call f_strcpy(src=repeat('=',j-1)//'>',dest=stars)
+    else
+       call f_zero(stars)
+    end if
+    bar%ncall=bar%ncall+1
+    time_elapsed=&
+         (f_time()-bar%t0)*real(1.e-9,f_double)
+    it_s=real(istep,f_double)/time_elapsed
+    if (percent==0.0_f_double) then
+       time_remaining=0.d0
+    else
+       time_remaining=time_elapsed*&
+            (100.0_f_double/percent-1.0_f_double)
+    end if
+    !compose the message
+    call f_strcpy(src='('+yaml_time_toa()+')'//prc//&
+         '% '//ticker(bar%ncall)//&
+         ' ['//stars//'] ('//trim(yaml_toa(istep))//'/'//&
+         trim(adjustl(yaml_toa(bar%nstep)))//&
+         ', '//&
+         trim(yaml_toa(it_s,fmt='(1pg12.2)'))//&
+         ' it/s), ETA (s)'//trim(yaml_toa(time_remaining,fmt='(1pg12.2)')),&
+         dest=bar%message)
+
+  end subroutine update_progress_bar
+
+  !>returns true if a unit is tty.
+  !! essentially only check if the unit is related to stdout and check if stdout is 
+  !! tty
+  function f_tty(unit)
+    implicit none
+    integer, intent(in) :: unit
+    logical :: f_tty
+    !local variables
+    integer :: itis
+    itis=0
+    if (unit == 6) call stdoutistty(itis)
+    f_tty=itis==1
+  end function f_tty
 
   !>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
   subroutine f_pause(sec,verbose)
