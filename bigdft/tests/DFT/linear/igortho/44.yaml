@@ -19,7 +19,6 @@
    check_overlap: 1
    experimental_mode: Yes
    calculate_KS_residue: No
-   method_updatekernel: 2
    loewdin_charge_analysis: Yes
    check_matrix_compression: No
    FOE_restart: 1
@@ -31,6 +30,7 @@
    taylor_order: 1020
    max_inversion_error: 5.0e-8
    charge_multipoles: 1
+   support_function_multipoles: yes
  lin_basis:
    nit: 8
    nit_ig: 3

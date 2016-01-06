@@ -55,7 +55,7 @@ module psp_projectors_base
      logical :: normalized             !< .true. if projectors are normalized to one.
      integer :: nproj,nprojel,natoms   !< Number of projectors and number of elements
      real(gp) :: zerovol               !< Proportion of zero components.
-     type(gaussian_basis_new) :: proj_G !< Store the projector representations is gaussians.
+     type(gaussian_basis_new) :: proj_G !< Store the projector representations in gaussians.
      real(wp), dimension(:), pointer :: proj !<storage space of the projectors in wavelet basis
      type(nonlocal_psp_descriptors), dimension(:), pointer :: pspd !<descriptor per projector, of size natom
      !>workspace for packing the wavefunctions in the case of multiple projectors

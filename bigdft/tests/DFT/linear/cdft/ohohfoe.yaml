@@ -13,7 +13,6 @@
    ef_interpol_det: 0.10E-19
    adjust_kernel_iterations: No
    correction_co_contra: No
-   purification_quickreturn: Yes
    coeff_weight_analysis: No
    FOE_restart: 1
  lin_general:

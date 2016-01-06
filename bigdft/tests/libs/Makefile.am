@@ -5,9 +5,9 @@ SUBDIRS = fft \
 	IO-wf \
 	wrappers \
 	overlapgeneral \
-	coordinatetransform \
+	coordinatetransform
 	xc \
-	sparsematrix
+#	sparsematrix
 
 if USE_BLACS
 SUBDIRS += dsygv

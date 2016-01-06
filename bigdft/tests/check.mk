@@ -92,12 +92,13 @@ PSPS = psppar.H \
        C.GGA_PBE-JTH.xml
 #$(TESTDIRS) 
 
-ALLDIRS = $(EXTRA_TESTDIRS) $(LONG_TESTDIRS)
+ALLDIRS = $(EXTRALONG_TESTDIRS) $(EXTRA_TESTDIRS) $(LONG_TESTDIRS)
 
 INS = $(ALLDIRS:=.in)
 RUNS = $(ALLDIRS:=.run)
 CHECKS = $(TESTDIRS:=.check) $(TESTDIRS:=.yaml-check)
 EXTRA_CHECKS = $(EXTRA_TESTDIRS:=.check) $(EXTRA_TESTDIRS:=.yaml-check)
+EXTRALONG_CHECKS = $(EXTRALONG_TESTDIRS:=.check) $(EXTRALONG_TESTDIRS:=.yaml-check)
 DIFFS = $(ALLDIRS:=.diff)
 UPDATES = $(ALLDIRS:=.updateref)
 FAILEDCHECKS = $(TESTDIRS:=.recheck)
@@ -111,6 +112,8 @@ in: $(INS)
 check: $(CHECKS) report
 
 complete-check: $(EXTRA_CHECKS) check
+
+long-check: $(EXTRALONG_CHECKS) check
 
 diff: $(DIFFS)
 

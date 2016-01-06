@@ -1,5 +1,6 @@
 !> @file
 !!  Application of the Hamiltonian + orthonormalize constraints
+
 !! @author
 !!    Copyright (C) 2007-2013 CEA
 !!    This file is distributed under the terms of the
@@ -512,8 +513,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(wp), dimension(npsidim_orbs), intent(in) :: psi
    type(confpot_data), dimension(orbs%norbp) :: confdatarr
-   !real(wp), dimension(:), pointer :: pot
-   real(wp), dimension(*) :: pot
+   real(wp), dimension(:), pointer :: pot
+   !real(wp), dimension(*) :: pot
    type(energy_terms), intent(inout) :: energs
    real(wp), target, dimension(max(1,npsidim_orbs)), intent(inout) :: hpsi
    type(GPU_pointers), intent(inout) :: GPU
@@ -528,8 +529,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    real(gp),intent(out),optional :: econf
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
-   logical :: exctX,op2p_flag
-   integer :: n3p,ispot,ipotmethod,ngroup,prc,nspin,isorb,jproc,ndim,norbp
+   logical :: exctX,op2p_flag, symmetric
+   integer :: n3p,ispot,ipotmethod,ngroup,prc,nspin,isorb,jproc,ndim,norbp,igpu,i_stat
    real(gp) :: evsic_tmp, ekin, epot,sfac,maxdiff
    real(f_double) :: tel,trm
    type(coulomb_operator) :: pkernelSIC
@@ -660,21 +661,28 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             end do
             ndim=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i
 
+            symmetric=.true.
             call f_zero(ndim*orbs%norbp,pot(ispot))
             !if (iproc==0) call yaml_map('Orbital repartition',nobj_par)
-            call OP2P_unitary_test(bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,.true.)
-
-            call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,.true.)
-
+            call OP2P_unitary_test(bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+            if(pkernel%igpu==1 .and. pkernel%initCufftPlan==0) then 
+              igpu=0
+              if (iproc==0) call yaml_warning("not enough memory to allocate cuFFT plans on the GPU - no GPUDirect either")
+            else
+              igpu=pkernel%igpu
+            end if
+            call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric)
+            if(igpu==1 .and. OP2P%gpudirect==1) pkernel%stay_on_gpu=1
             !allocate work array for the internal exctx calculation
             rp_ij = f_malloc(ndim,id='rp_ij')
             energs%eexctX=0.0_gp
             !initialize the OP2P descriptor for the communication
-            call set_OP2P_iterator(iproc,OP2P,iter,orbs%norbp,psir,pot(ispot))!vpsi_tmp)
+            call set_OP2P_iterator(iproc,OP2P,iter,orbs%norbp,psir,pot(ispot:ispot+OP2P%ndim*orbs%norbp-1))!vpsi_tmp)
             !main loop
             if (iproc == 0) call yaml_newline()
             OP2P_exctx_loop: do
                call OP2P_communication_step(iproc,OP2P,iter)
+               if(igpu==1) call synchronize()
                if (iter%event == OP2P_EXIT) exit OP2P_exctx_loop
                call internal_calculation_exctx(iter%istep,sfac,pkernel,orbs%norb,orbs%occup,orbs%spinsgn,&
                     iter%remote_result,iter%nloc_i,iter%nloc_j,iter%isloc_i,iter%isloc_j,&
@@ -687,12 +695,18 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
                end if
             end do OP2P_exctx_loop
 
+            !we need to get the result back from the card (and synchronize with it, finally)
+            if(pkernel%igpu==1 .and. pkernel%stay_on_gpu==1) then
+              call get_gpu_data(1, energs%eexctX, pkernel%w%eexctX_GPU )
+              call cudamemset(pkernel%w%eexctX_GPU,0,1,i_stat)
+              if (i_stat /= 0) call f_err_throw('error cudamalloc eexctX_GPU (GPU out of memory ?) ')
+              pkernel%stay_on_gpu=0
+            end if 
             call free_OP2P_data(OP2P)
             if (nproc>1) call mpiallred(energs%eexctX,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
             !the exact exchange energy is half the Hartree energy (which already has another half)
             energs%eexctX=-xc_exctXfac(xc)*energs%eexctX
             if (iproc == 0) call yaml_map('Exact Exchange Energy',energs%eexctX,fmt='(1pe18.11)')
-
             !call f_memcpy(n=ndim*orbs%norbp,src=vpsi_tmp(1,1),dest=pot(ispot))
             call f_free(nobj_par)
             call f_free(rp_ij)
@@ -782,9 +796,9 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
 
          !iterate over the orbital_basis
          psi_it=orbital_basis_iterator(psi_ob)
-         !print *,'orbs',psi_it%iorb,psi_it%ilr
+! print *,'orbs0',psi_it%iorb,psi_it%ilr
          loop_lr: do while(ket_next_locreg(psi_it))
-            !print *,'orbs',psi_it%iorb,psi_it%ilr,psi_it%nspinor,associated(psi_it%lr)
+! print *,'orbs1',psi_it%iorb,psi_it%ilr,psi_it%nspinor,associated(psi_it%lr)
             psir = f_malloc0([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='psir')
             call initialize_work_arrays_locham(1,[psi_it%lr],psi_it%nspinor,.true.,wrk_lh)  
             ! wavefunction after application of the self-interaction potential
@@ -801,7 +815,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
                energs%ekin=energs%ekin+fi*ekin
                energs%epot=energs%epot+fi*epot
                energs%evsic=energs%evsic+SIC%alpha*eSIC_DCi
-!  print *,'orbs',psi_it%iorbp,psi_it%iorb,psi_it%kwgt,psi_it%occup,epot,ekin,psi_it%ispsi,psi_it%nspinor
+!  print *,'orbs2',psi_it%iorbp,psi_it%iorb,psi_it%ikpt,psi_it%kwgt,psi_it%occup,epot,ekin,psi_it%ispsi,psi_it%nspinor
             end do loop_psi_lr
             !deallocations of work arrays
             call f_free(psir)
@@ -859,10 +873,172 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
 
 END SUBROUTINE LocalHamiltonianApplication
 
+subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
+     Lzd,nl,psi,hpsi,eproj_sum,paw)
+  use module_base
+  use module_types
+  use yaml_output
+  !  use module_interfaces
+  use psp_projectors_base, only: PSP_APPLY_SKIP
+  use psp_projectors, only: projector_has_overlap,get_proj_locreg
+  use public_enums, only: PSPCODE_PAW
+  use module_atoms
+  use orbitalbasis
+  implicit none
+  integer, intent(in) :: iproc, npsidim_orbs
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data),  intent(in) :: orbs
+  type(local_zone_descriptors), intent(in) :: Lzd
+  type(DFT_PSP_projectors), intent(inout) :: nl
+  real(wp), dimension(npsidim_orbs), intent(in) :: psi
+  real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
+  type(paw_objects),intent(inout)::paw
+  real(gp), intent(out) :: eproj_sum
+  !local variables
+  logical :: newmethod
+  character(len=*), parameter :: subname='NonLocalHamiltonianApplication' 
+  logical :: dosome, overlap, goon
+  integer :: istart_ck,nwarnings
+  integer :: iproj,istart_c,mproj,iatype,ispinor,iilr,jlr
+  real(wp) :: hp,eproj
+  type(ket) :: psi_it
+  type(orbital_basis) :: psi_ob
+  type(atoms_iterator) :: atit
+  real(wp), dimension(:), pointer :: hpsi_ptr
+
+  !integer :: ierr
+  !real(kind=4) :: tr0, tr1, t0, t1
+  !real(kind=8) :: time0, time1, time2, time3, time4, time5, ttime
+  !real(kind=8), dimension(0:4) :: times
+
+  call f_routine(id='NonLocalHamiltonianApplication')
+
+  eproj_sum=0.0_gp
+
+  ! apply all PSP projectors for all orbitals belonging to iproc
+  call timing(iproc,'ApplyProj     ','ON')
+
+  !initialize the orbital basis object, for psi and hpsi
+  call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd)
+
+  nwarnings=0
+  if(paw%usepaw) call f_zero(orbs%npsidim_orbs, paw%spsi(1))
+
+  !here the localisation region should be changed, temporary only for cubic approach
+
+  !apply the projectors following the strategy (On-the-fly calculation or not)
+  
+  !apply the projectors  k-point of the processor
+  !starting k-point
+  istart_ck=1
+  !iterate over the orbital_basis
+  psi_it=orbital_basis_iterator(psi_ob)
+  loop_kpt: do while(ket_next_kpt(psi_it))
+     loop_lr: do while(ket_next_locreg(psi_it,ikpt=psi_it%ikpt))
+        if (nl%on_the_fly) then
+           iproj=0
+           atit = atoms_iter(at%astruct)
+           loop_atoms: do while(atoms_iter_next(atit))
+              ! Check whether the projectors of this atom have an overlap with locreg ilr
+              overlap = projector_has_overlap(atit%iat, psi_it%ilr,psi_it%lr,lzd%glr, nl)
+              if(.not. overlap) cycle loop_atoms
+              istart_c=1
+              mproj=nl%pspd(atit%iat)%mproj
+              call atom_projector(nl,atit%ityp,atit%iat, atit%name, &
+                   at%astruct%geocode, 0, Lzd%Glr,&
+                   Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
+                   psi_it%kpoint(1),psi_it%kpoint(2),psi_it%kpoint(3),&
+                   istart_c, iproj, nwarnings)
+
+              iilr=get_proj_locreg(nl,atit%iat,psi_it%ilr)
+              loop_psi_kpt: do while(ket_next(psi_it,ikpt=psi_it%ikpt,ilr=psi_it%ilr))
+                 istart_c=1
+                 call nl_psp_application()
+              end do loop_psi_kpt
+           end do loop_atoms
+        else        
+           loop_psi_kpt2: do while(ket_next(psi_it,ikpt=psi_it%ikpt,ilr=psi_it%ilr))
+              atit = atoms_iter(at%astruct)
+              istart_c=istart_ck !TO BE CHANGED IN ONCE-AND-FOR-ALL 
+              loop_atoms2: do while(atoms_iter_next(atit))
+                 overlap = projector_has_overlap(atit%iat,psi_it%ilr,psi_it%lr, lzd%glr, nl)
+                 if(.not. overlap) cycle loop_atoms2
+                 mproj=nl%pspd(atit%iat)%mproj
+
+                 iilr=get_proj_locreg(nl,atit%iat,psi_it%ilr)
+                 call nl_psp_application()
+              end do loop_atoms2
+           end do loop_psi_kpt2
+        end if
+     end do loop_lr
+     istart_ck=istart_c !only needed for the once-and-for-all
+  end do loop_kpt
+
+  call orbital_basis_release(psi_ob)
+
+  if (.not. nl%on_the_fly .and. Lzd%nlr==1) then !TO BE REMOVED WITH NEW PROJECTOR APPLICATION
+     if (istart_ck-1 /= nl%nprojel .and. orbs%norbp>0) then
+        call f_err_throw('Incorrect once-and-for-all psp application, istart_ck, nprojel= '+&
+             yaml_toa([istart_ck,nl%nprojel]),err_name='BIGDFT_RUNTIME_ERROR')
+     end if
+  end if
+
+  !used on the on-the-fly projector creation
+  if (nwarnings /= 0 .and. iproc == 0) then
+     call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
+     call yaml_newline()
+     call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
+  end if
+
+  call timing(iproc,'ApplyProj     ','OF')
+
+  call f_release_routine()
+
+contains
+
+  !>code factorization useful for routine restructuring
+  subroutine nl_psp_application()
+    implicit none
+    !local variables
+    integer :: ncplx_p,ncplx_w,n_w,nvctr_p
+    real(gp), dimension(3,3,4) :: hij
+    real(gp) :: eproj
+    
+    if (all(psi_it%kpoint == 0.0_gp)) then
+       ncplx_p=1
+    else
+       ncplx_p=2
+    end if
+    if (psi_it%nspinor > 1) then !which means 2 or 4
+       ncplx_w=2
+       n_w=psi_it%nspinor/2
+    else
+       ncplx_w=1
+       n_w=1
+    end if
+
+    !extract hij parameters
+    call hgh_hij_matrix(at%npspcode(atit%ityp),at%psppar(0,0,atit%ityp),hij)
+
+    hpsi_ptr => ob_ket_map(hpsi,psi_it)
+    call NL_HGH_application(hij,&
+         ncplx_p,mproj,nl%pspd(atit%iat)%plr%wfd,nl%proj(istart_c),&
+         ncplx_w,n_w,psi_it%lr%wfd,nl%pspd(atit%iat)%tolr(iilr),nl%wpack,nl%scpr,nl%cproj,nl%hcproj,&
+         psi_it%phi_wvl,hpsi_ptr,eproj)
+
+    nvctr_p=nl%pspd(atit%iat)%plr%wfd%nvctr_c+7*nl%pspd(atit%iat)%plr%wfd%nvctr_f
+    istart_c=istart_c+nvctr_p*ncplx_p*mproj
+
+    eproj_sum=eproj_sum+psi_it%kwgt*psi_it%occup*eproj
+    
+  end subroutine nl_psp_application
+ 
+end subroutine NonLocalHamiltonianApplication
+
 
 !> Routine which calculates the application of nonlocal projectors on the wavefunctions
 !! Reduce the wavefunction in case it is needed
-subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
+subroutine NonLocalHamiltonianApplication_old(iproc,at,npsidim_orbs,orbs,&
      Lzd,nl,psi,hpsi,eproj_sum,paw)
   use module_base
   use module_types
@@ -1237,7 +1413,7 @@ contains
     end if
   end subroutine nl_psp_application
 
-END SUBROUTINE NonLocalHamiltonianApplication
+END SUBROUTINE NonLocalHamiltonianApplication_old
 
 !> routine which puts a barrier to ensure that both local and nonlocal hamiltonians have been applied
 !! in the GPU case puts a barrier to end the overlapped Local and nonlocal applications

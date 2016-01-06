@@ -26,7 +26,8 @@ mod_src = defs.f90 base.f90 \
 	locreg_operations.f90 \
 	ao_inguess.f90 \
 	xc.f90 \
-	pseudopotentials.f90
+	pseudopotentials.f90 \
+	communications_base.f90
 
 routines = $(CONV_SOURCES) \
 	growshrink.f90 \
@@ -63,7 +64,8 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	LOCREG_OPERATIONS.@MODULE_EXT@ \
 	MODULE_XC.@MODULE_EXT@ \
 	PSEUDOPOTENTIALS.@MODULE_EXT@ \
-	LOCREGS.@MODULE_EXT@
+	LOCREGS.@MODULE_EXT@ \
+	COMMUNICATIONS_BASE.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -75,7 +77,8 @@ modules = module_base.@MODULE_EXT@ \
 	module_xc.@MODULE_EXT@ \
 	locreg_operations.@MODULE_EXT@ \
 	pseudopotentials.@MODULE_EXT@ \
-	locregs.@MODULE_EXT@
+	locregs.@MODULE_EXT@ \
+	communications_base.@MODULE_EXT@
 endif
 
 CLEANFILES = $(modules)
@@ -101,6 +104,7 @@ daubisf.o precondLinear.o locregs_basics.o: locreg_operations.o
 ao_inguess.o: $(AO_INCLUDES) base.o 
 pseudopotentials.o: defs.o ao_inguess.o public_keys.o xc.o
 xc.o: base.o
+communications_base.o: base.o
 $(routines:.f90=.o): defs.o
 
 convolut_common_per.o conv_per_common.o conv_per_optim.o: base.o

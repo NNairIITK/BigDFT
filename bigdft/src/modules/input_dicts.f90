@@ -833,15 +833,6 @@ contains
     call input_var("evboundsshrink_nsatur", 4, "maximal number of unsuccessful eigenvalue bounds shrinkings", dummy_int)
     call set(dict // EVBOUNDSSHRINK_NSATUR, dummy_int)
 
-    call input_var("method_updatekernel", 0, (/0,1,2/), "K update (sup fun opt) (0: purific., 1: FOE, 2: renorm.)", dummy_int)
-    call set(dict // METHOD_UPDATEKERNEL, dummy_int)
-
-    call input_var("purification_quickreturn", .true., "linear scaling: quick return in purification", dummy_bool)
-    call set(dict // PURIFICATION_QUICKRETURN, dummy_bool)
-
-    call input_var("adjust_FOE_temperature", .true., "dynamic adjustment of FOE error function decay length", dummy_bool)
-    call set(dict // ADJUST_FOE_TEMPERATURE, dummy_bool)
-
     call input_var("calculate_gap", .false., "calculate the HOMO LUMO gap", dummy_bool)
     call set(dict // CALCULATE_GAP, dummy_bool)
 
@@ -1789,8 +1780,9 @@ contains
              call yaml_set_default_stream(unit_log, ierrr)
           end if ! Logfile already connected
        else
+          call yaml_get_default_stream(unit_log)
           !use stdout, do not crash if unit is present
-          call yaml_set_stream(record_length=92,istat=ierrr)
+          if (unit_log /= 6) call yaml_set_stream(record_length=92,istat=ierrr)
        end if ! Need to create a named logfile.
 
        !start writing on logfile

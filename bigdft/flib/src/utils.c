@@ -221,3 +221,9 @@ void FC_FUNC(getprocid, GETPROCID)(int *procid)
 {
   *procid = (int) getpid();
 }
+
+void FC_FUNC(stdoutistty, STDOUTISTTY)(int *itis)
+{
+  int fd = STDOUT_FILENO;
+  *itis = isatty(fd);
+}

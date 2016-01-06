@@ -486,7 +486,7 @@ subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
      denspot%rhov = f_malloc_ptr(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d*&
           denspot%dpbox%nrhodim,id='denspot%rhov')
   else
-     denspot%rhov = f_malloc_ptr(denspot%dpbox%nrhodim,id='denspot%rhov')
+     denspot%rhov = f_malloc0_ptr(denspot%dpbox%nrhodim,id='denspot%rhov')
   end if
   !check if non-linear core correction should be applied, and allocate the 
   !pointer if it is the case
