@@ -379,7 +379,6 @@ class Pouet:
         self.style = "ascii"
         self.config = os.path.join(path, config)
 
-
 # Color options: one for the general text
 options = Pouet()
 #The second one for the remarks.

@@ -1777,7 +1777,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
 !  logical, parameter :: efwrite=.false.
   logical :: perx,pery,perz,gox,goy,goz
   logical :: htoobig=.false.,check_potion=.false.,use_iterator=.false.
-  integer :: i1,i2,i3,ierr,ityp !n(c) nspin
+  integer :: i1,i2,i3,ierr !n(c) nspin
   integer :: nloc,iloc
   integer  :: i3s,n3pi,nbl1,nbr1,nbl2,nbl3,nbr2,nbr3
   real(kind=8) :: raux1(1),rr1(1)
@@ -1786,9 +1786,9 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   real(gp) :: hxh,hyh,hzh
   real(gp) :: rloc,charge,cutoff,r2,arg,xp,tt,rx,ry,rz
   real(gp) :: tt_tot,potxyz
-  real(gp) :: raux2,r2paw,rlocinvsq,rlocinv2sq
+  real(gp) :: raux2,rlocinvsq,rlocinv2sq
   real(gp) :: x,y,z,yp,zp,zsq,yzsq,rholeaked,rholeaked_tot
-  real(gp), dimension(1) :: raux,rr
+!  real(gp), dimension(1) :: raux,rr
   real(wp) :: maxdiff
   real(gp) :: ehart
   real(dp), dimension(2) :: charges_mpi
@@ -1822,7 +1822,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
 
   !Creates charge density arising from the ionic PSP cores
   call f_zero(n1i*n2i*dpbox%n3pi,pot_ion(1))
-  
+
   !conditions for periodicity in the three directions
   if (.not. use_iterator) then
      perx=(dpbox%geocode /= 'F')
@@ -1876,52 +1876,52 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
         end if
 
         if (use_iterator) then
-        nbox(1,1)=floor((rx-cutoff)/hxh)
-        nbox(1,2)=floor((ry-cutoff)/hyh)
-        nbox(1,3)=floor((rz-cutoff)/hzh)
-        nbox(2,1)=ceiling((rx+cutoff)/hxh)
-        nbox(2,2)=ceiling((ry+cutoff)/hyh)
-        nbox(2,3)=ceiling((rz+cutoff)/hzh)
+           nbox(1,1)=floor((rx-cutoff)/hxh)
+           nbox(1,2)=floor((ry-cutoff)/hyh)
+           nbox(1,3)=floor((rz-cutoff)/hzh)
+           nbox(2,1)=ceiling((rx+cutoff)/hxh)
+           nbox(2,2)=ceiling((ry+cutoff)/hyh)
+           nbox(2,3)=ceiling((rz+cutoff)/hzh)
 
-        !Separable function: do 1-D integrals before and store it.
-        !mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
-        !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
-        !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
-        do i1=nbox(1,1),nbox(2,1)
-           mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
-        end do
-        do i2=nbox(1,2),nbox(2,2)
-           mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
-        end do
-        do i3=nbox(1,3),nbox(2,3)
-           mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
-        end do
+           !Separable function: do 1-D integrals before and store it.
+           !mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
+           !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
+           !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+           do i1=nbox(1,1),nbox(2,1)
+              mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+           end do
+           do i2=nbox(1,2),nbox(2,2)
+              mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+           end do
+           do i3=nbox(1,3),nbox(2,3)
+              mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+           end do
 
-     else
-        isx=floor((rx-cutoff)/hxh)
-        isy=floor((ry-cutoff)/hyh)
-        isz=floor((rz-cutoff)/hzh)
+        else
+           isx=floor((rx-cutoff)/hxh)
+           isy=floor((ry-cutoff)/hyh)
+           isz=floor((rz-cutoff)/hzh)
 
-        iex=ceiling((rx+cutoff)/hxh)
-        iey=ceiling((ry+cutoff)/hyh)
-        iez=ceiling((rz+cutoff)/hzh)
+           iex=ceiling((rx+cutoff)/hxh)
+           iey=ceiling((ry+cutoff)/hyh)
+           iez=ceiling((rz+cutoff)/hzh)
 
-        !Separable function: do 1-D integrals before and store it.
-        !call mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,at%multipole_preserving,mpx,mpy,mpz)
-        !!mpx = f_malloc( (/ isx.to.iex /),id='mpx')
-        !!mpy = f_malloc( (/ isy.to.iey /),id='mpy')
-        !!mpz = f_malloc( (/ isz.to.iez /),id='mpz')
-        do i1=isx,iex
-           mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
-        end do
-        do i2=isy,iey
-           mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
-        end do
-        do i3=isz,iez
-           mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
-        end do
+           !Separable function: do 1-D integrals before and store it.
+           !call mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,at%multipole_preserving,mpx,mpy,mpz)
+           !!mpx = f_malloc( (/ isx.to.iex /),id='mpx')
+           !!mpy = f_malloc( (/ isy.to.iey /),id='mpy')
+           !!mpz = f_malloc( (/ isz.to.iez /),id='mpz')
+           do i1=isx,iex
+              mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+           end do
+           do i2=isy,iey
+              mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+           end do
+           do i3=isz,iez
+              mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+           end do
 
-     end if
+        end if
 
         if ( .not. any(at%npspcode == PSPCODE_PAW) ) then
 
@@ -1969,29 +1969,29 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
         else
            !r2paw=at%pawtab(ityp)%rpaw**2
            if (use_iterator) then
-              r2paw=at%pawtab(atit%ityp)%rpaw**2
+              !r2paw=at%pawtab(atit%ityp)%rpaw**2
               do while(dpbox_iter_next(boxit))
                  xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
-                 r2 = (boxit%x-rx)**2 + (boxit%y-ry)**2 + (boxit%z-rz)**2
-                 rr = sqrt(r2)
-                 if (1==2) then
-                    !This converges very slow
-                    call splint(at%pawtab(ityp)%wvl%rholoc%msz, &
-                         & at%pawtab(ityp)%wvl%rholoc%rad, &
-                         & at%pawtab(ityp)%wvl%rholoc%d(:,1), &
-                         & at%pawtab(ityp)%wvl%rholoc%d(:,2), &
-                         & 1,rr,raux,ierr)
+                 r2 = (boxit%x-rx)**2 + (boxit%y-ry)**2 + (boxit%z-rz)**2                 
+                 if (.not. pawErfCorrection) then
+                    rr1(1) = sqrt(r2)
+                    !This converges very slowly
+                    call paw_splint(at%pawtab(atit%ityp)%wvl%rholoc%msz, &
+                         & at%pawtab(atit%ityp)%wvl%rholoc%rad, &
+                         & at%pawtab(atit%ityp)%wvl%rholoc%d(:,1), &
+                         & at%pawtab(atit%ityp)%wvl%rholoc%d(:,2), &
+                         & 1,rr1,raux1,ierr)
                  else
                     !Take the HGH form for rho_L (long range)
-                    raux(1)=-xp*charge
+                    raux1(1)=-xp*charge
                  end if
                  !raux=-4.d0**(3.0d0/2.0d0)*exp(-4.d0*pi*r2)
                  !Rholeaked is not calculated!!
-                 pot_ion(boxit%ind) = pot_ion(boxit%ind) + raux(1)
+                 pot_ion(boxit%ind) = pot_ion(boxit%ind) + raux1(1)
               enddo
            else
               !Calculate Ionic Density using splines, PAW case
-              r2paw=at%pawtab(ityp)%rpaw**2
+              !r2paw=at%pawtab(ityp)%rpaw**2
               do i3=isz,iez
                  zp = mpz(i3-isz)
                  if (abs(zp) < mp_tiny) cycle
@@ -2017,25 +2017,25 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
                        x=real(i1,gp)*hxh-rx
                        r2=x**2+yzsq
                        !if(r2>r2paw) cycle
-                    if(.not. pawErfCorrection) then
-                          !This converges very slow                
-                      rr1(1)=sqrt(r2)
-                      call paw_splint(at%pawtab(ityp)%wvl%rholoc%msz, &
-                               & at%pawtab(ityp)%wvl%rholoc%rad, &
-                               & at%pawtab(ityp)%wvl%rholoc%d(:,1), &
-                               & at%pawtab(ityp)%wvl%rholoc%d(:,2), &
-                           & 1,rr1,raux1,ierr)
+                       if(.not. pawErfCorrection) then
+                          !This converges very slowly                
+                          rr1(1)=sqrt(r2)
+                          call paw_splint(at%pawtab(atit%ityp)%wvl%rholoc%msz, &
+                               & at%pawtab(atit%ityp)%wvl%rholoc%rad, &
+                               & at%pawtab(atit%ityp)%wvl%rholoc%d(:,1), &
+                               & at%pawtab(atit%ityp)%wvl%rholoc%d(:,2), &
+                               & 1,rr1,raux1,ierr)
                        else
                           !Take the HGH form for rho_L (long range)
-                      raux1(1)=-xp*charge
+                          raux1(1)=-xp*charge
                        end if
                        !raux=-4.d0**(3.0d0/2.0d0)*exp(-4.d0*pi*r2)
 
                        if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                           ind=j1+indj23
-                       pot_ion(ind)=pot_ion(ind)+raux1(1)
+                          pot_ion(ind)=pot_ion(ind)+raux1(1)
                        else if (.not. goz) then
-                       rholeaked=rholeaked-raux1(1)
+                          rholeaked=rholeaked-raux1(1)
                        endif
                     enddo
                  enddo
@@ -2228,7 +2228,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
      if (at%astruct%nat >0) then
         cutoff=10.0_gp*maxval(at%psppar(0,0,:))
      else
-        cutoff=0.0
+        cutoff=0.0_gp
      end if
      if (at%multipole_preserving) then
         !We want to have a good accuracy of the last point rloc*10
@@ -2281,38 +2281,31 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
            iez=ceiling((rz+cutoff)/hzh)
         end if
 
-        if( at%npspcode(ityp) /= PSPCODE_PAW) then
+        if (use_iterator) then
+           !Separable function: do 1-D integrals before and store it.
+           do i1=nbox(1,1),nbox(2,1)
+              mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+           end do
+           do i2=nbox(1,2),nbox(2,2)
+              mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+           end do
+           do i3=nbox(1,3),nbox(2,3)
+              mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+           end do
 
-           if (use_iterator) then
-              !Separable function: do 1-D integrals before and store it.
-              !mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
-              !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
-              !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
-              do i1=nbox(1,1),nbox(2,1)
-                 mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
-              end do
-              do i2=nbox(1,2),nbox(2,2)
-                 mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
-              end do
-              do i3=nbox(1,3),nbox(2,3)
-                 mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
-              end do
+        else
+           do i1=isx,iex
+              mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+           end do
+           do i2=isy,iey
+              mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+           end do
+           do i3=isz,iez
+              mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+           end do
+        end if
 
-           else
-
-              !mpx = f_malloc( (/ isx.to.iex /),id='mpx')
-              !mpy = f_malloc( (/ isy.to.iey /),id='mpy')
-              !mpz = f_malloc( (/ isz.to.iez /),id='mpz')
-              do i1=isx,iex
-                 mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
-              end do
-              do i2=isy,iey
-                 mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
-              end do
-              do i3=isz,iez
-                 mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
-              end do
-           end if
+        if( at%npspcode(atit%ityp) /= PSPCODE_PAW) then
 
            ! Add the remaining local terms of Eq. (9) in JCP 129, 014109(2008)
 
@@ -2398,26 +2391,25 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
               do while(dpbox_iter_next(boxit))
                  xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
                  r2 = (boxit%x-rx)**2 + (boxit%y-ry)**2 + (boxit%z-rz)**2
-                 arg = r2*rlocinvsq
-                 rr(1)=sqrt(r2)
+                 rr1(1)=sqrt(r2)
                  !1) V_L^HGH
-                 if(rr(1)>0.01d0) then
-                    arg=rr(1)/(sqrt(2.0_gp)*rloc)
+                 if(rr1(1)>0.01d0) then
+                    arg=rr1(1)/(sqrt(2.0_gp)*rloc)
                     call derf_ab(tt,arg)
-                    raux2=-charge/rr(1)*tt  
+                    raux2=-charge/rr1(1)*tt  
                  else
                     !In this case we deduce the values
                     !from a quadratic interpolation (due to 1/rr factor)
-                    call interpol_vloc(rr(1),rloc,charge,raux2)
+                    call interpol_vloc(rr1(1),rloc,charge,raux2)
                  end if
                  !2) V^PAW from splines
-                 call splint(at%pawtab(atit%ityp)%wvl%rholoc%msz, &
+                 call paw_splint(at%pawtab(atit%ityp)%wvl%rholoc%msz, &
                       & at%pawtab(atit%ityp)%wvl%rholoc%rad, &
                       & at%pawtab(atit%ityp)%wvl%rholoc%d(:,3), &
                       & at%pawtab(atit%ityp)%wvl%rholoc%d(:,4), &
-                      & 1,rr,raux,ierr)
+                      & 1,rr1,raux1,ierr)
 
-                 pot_ion(boxit%ind)=pot_ion(boxit%ind)+raux(1)-raux2
+                 pot_ion(boxit%ind)=pot_ion(boxit%ind)+raux1(1)-raux2
                  !write(*,'(4(i0,1x),2(1pe20.10))') boxit%ibox(1),boxit%ibox(2),boxit%ibox(3),boxit%ind,xp,pot_ion(boxit%ind)
               end do
            else
@@ -2442,25 +2434,25 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
                              call ind_positions_new(perx,i1,n1i,j1,gox)
                              if (gox) then
                                 r2=x**2+yzsq
-                             rr1(1)=sqrt(r2)
+                                rr1(1)=sqrt(r2)
                                 !1) V_L^HGH
-                             if(rr1(1)>0.01d0) then
-                               arg=rr1(1)/(sqrt(2.0)*rloc)
-                               call abi_derf_ab(tt,arg)
-                               raux2=-charge/rr1(1)*tt  
+                                if(rr1(1)>0.01d0) then
+                                   arg=rr1(1)/(sqrt(2.0)*rloc)
+                                   call abi_derf_ab(tt,arg)
+                                   raux2=-charge/rr1(1)*tt  
                                 else
                                    !In this case we deduce the values
                                    !from a quadratic interpolation (due to 1/rr factor)
-                               call interpol_vloc(rr1(1),rloc,charge,raux2)
+                                   call interpol_vloc(rr1(1),rloc,charge,raux2)
                                 end if
                                 !2) V^PAW from splines
-                             call paw_splint(at%pawtab(ityp)%wvl%rholoc%msz, &
+                                call paw_splint(at%pawtab(atit%ityp)%wvl%rholoc%msz, &
                                      & at%pawtab(atit%ityp)%wvl%rholoc%rad, &
                                      & at%pawtab(atit%ityp)%wvl%rholoc%d(:,3), &
                                      & at%pawtab(atit%ityp)%wvl%rholoc%d(:,4), &
-                                  & 1,rr1,raux1,ierr)
+                                     & 1,rr1,raux1,ierr)
                                 ind=j1+indj23
-                             pot_ion(ind)=pot_ion(ind)+raux1(1)-raux2
+                                pot_ion(ind)=pot_ion(ind)+raux1(1)-raux2
                              end if
                           enddo
                        end if
@@ -2513,24 +2505,17 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
 !!-  print *,'actual offset',tt_tot*hxh*hyh*hzh
 
   !use rhopotential to calculate the potential from a constant electric field along y direction
-  if (.not. all(elecfield(1:3) == 0.0_gp)) then
+  if (any(elecfield(1:3) /= 0.0_gp)) then
      !constant electric field allowed only for surface and free BC
      if (dpbox%geocode == 'P') then
         !if (iproc == 0) 
         call f_err_throw('The constant electric field is not allowed for Fully Periodic BC.', &
              err_name='BIGDFT_RUNTIME_ERROR')
-        ! write(*,'(1x,a)') &
-        !'The constant electric field is not allowed for Fully Periodic BC.'
-        !'The constant electric field is allowed only for Free and Surfaces BC'
-        !stop
         !constant electric field allowed for surface BC only normal to the surface
      elseif (dpbox%geocode == 'S' .and. (elecfield(1) /= 0.0_gp .or. elecfield(3) /= 0.0_gp) ) then
         !if (iproc == 0) 
         call f_err_throw('Only normal constant electric field (Ex=Ez=0) is allowed for Surface BC.', &
              err_name='BIGDFT_RUNTIME_ERROR')
-        !write(*,'(1x,a)') &
-        !'Only normal constant electric field (Ex=Ez=0) is allowed for Surface BC.'
-        !stop
      end if
      if (verb) call yaml_map('Constant electric field (Ha/Bohr)',elecfield(1:3),fmt='(es10.2)')
      !if (verb) write(*,'(1x,a,"(",es10.2,", ",es10.2,", ",es10.2,") ", a)') &

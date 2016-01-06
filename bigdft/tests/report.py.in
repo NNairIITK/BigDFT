@@ -14,7 +14,8 @@ import sys
 PyYAML_path = "@AX_PYYAML_PATH@"
 if not PyYAML_path == "system":
   sys.path.insert(0, PyYAML_path)
-
+sys.path.insert(0, "@abs_srcdir@")
+  
 import yaml
 import yaml_hl
 
@@ -23,7 +24,10 @@ re_discrepancy = re.compile("Max [dD]iscrepancy[^:]*:[ ]+([^ ]+)[ ]+\(([^ ]+)")
 re_time = re.compile("-- time[ ]+([0-9.]+)")
 
 # path of the script (to find default yaml highlights)
-path = os.path.dirname(sys.argv[0])
+# path = os.path.dirname(sys.argv[0])
+# path of the script
+path = "@abs_srcdir@"
+
 
 def callback(pattern,dirname,names):
     "Return the files given by the pattern"

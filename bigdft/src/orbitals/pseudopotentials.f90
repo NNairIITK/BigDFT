@@ -473,9 +473,11 @@ module pseudopotentials
          call f_err_throw("Error in psp_file_merge_to_dict, either 'filename' or 'lstring' should be present.", &
               & err_name='BIGDFT_RUNTIME_ERROR')
       end if
+
       !ALEX: if npspcode==PSPCODE_HGH_K_NLCC, nlccpar are read from psppar.Xy via rcore and qcore 
       call psp_from_stream(ios, nzatom, nelpsp, npspcode, ixcpsp, &
            & psppar, donlcc, rcore, qcore, radii_cf, pawpatch)
+
       call f_iostream_release(ios)
 
       if (has_key(dict, key) .and. trim(dict_value(dict // key)) == TYPE_LIST) &
@@ -613,6 +615,7 @@ module pseudopotentials
       !        trim(filename),'"'
       !   stop
       !end if
+
       call f_iostream_get_line(ios, line)
       if (line(1:5)/='<?xml') then
          call f_iostream_get_line(ios, line)
@@ -626,6 +629,7 @@ module pseudopotentials
          nelpsp = 0
          ixcpsp = 0
          do
+
             call f_iostream_get_line(ios, line, eof)
             if (eof .or. (nzatom > 0 .and. nelpsp > 0 .and. ixcpsp > 0)) exit
 
@@ -679,7 +683,7 @@ module pseudopotentials
          if (.not.exists) &
               call f_err_throw('Implement here.',err_name='BIGDFT_RUNTIME_ERROR')
          ! PAW format using libPAW.
-         call pawpsp_read_header_2(ios%iunit,pspversion,basis_size,lmn_size)
+         if (ios%iunit /=0) call pawpsp_read_header_2(ios%iunit,pspversion,basis_size,lmn_size)
          ! PAW data will not be saved in the input dictionary,
          ! we keep their reading for later.
          pawpatch = .true.
