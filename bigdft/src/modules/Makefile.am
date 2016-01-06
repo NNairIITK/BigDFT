@@ -228,8 +228,8 @@ input_dicts.o: fragment_base.o input.o
 atoms_data.o: $(ATOMS_INCLUDES) internal_coordinates.o input_dicts.o
 input_keys.o: multipole_base.o atoms_data.o input.o fragment_base.o
 types.o: psp_projectors_base.o atoms_data.o input_keys.o \
-	sparsematrix_base.o ab7_mixing.o multipole_base.o dpbox.o
-interfaces.o: types.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o input_keys.o
+	ab7_mixing.o multipole_base.o dpbox.o
+interfaces.o: types.o fragments.o diis_module.o constrained_dft.o input_keys.o
 #op2p_module.o : base.o
 BigDFT_API.o: types.o interfaces.o atoms_data.o input_dicts.o psp_projectors.o communications_init.o bigdft_run.o
 vdwcorrection.o: types.o 
@@ -264,7 +264,7 @@ module_forces.o: types.o
 unitary_tests.o: types.o interfaces.o communications_init.o communications.o transposed_operations.o rhopotential.o
 io.o: types.o interfaces.o input_keys.o
 postprocessing_linear.o: types.o interfaces.o communications.o transposed_operations.o rhopotential.o sort.o communications_init.o locregs_init.o multipole_base.o multipole.o io.o
-rhopotential.o: types.o interfaces.o xc.o communications.o
+rhopotential.o: types.o interfaces.o communications.o
 multipole.o: multipole_base.o types.o interfaces.o orthonormalization.o io.o
 orbital_basis.o:  types.o interfaces.o
 orthonormalization.o: types.o communications.o transposed_operations.o atoms_data.o
