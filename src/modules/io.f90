@@ -658,6 +658,7 @@ module io
       integer, allocatable, dimension(:) :: map_not_frag, ipiv
       integer, allocatable, dimension(:) :: num_neighbours_type, atype_not_frag
 
+      real(kind=8), parameter :: cutoff=12.0d0 !make this an input variable
       real(kind=8) :: tol
       real(kind=8), dimension(3) :: frag_centre
       real(kind=8), allocatable, dimension(:) :: dist
@@ -760,6 +761,18 @@ module io
          if (num_neighbours_type(ityp)==0 .and. (.not. closest_only)) cycle
          do iat=1,at%astruct%nat-ref_frag%astruct_frg%nat
             if (at%astruct%iatype(map_not_frag(ipiv(iat)))/=ityp .and. (.not. closest_only)) cycle
+
+            ! first apply a distance cut-off so that all neighbours are ignored beyond some distance (needed e.g. for defects)
+            if (abs(dist(ipiv(iat))) > cutoff) then
+               ! subtract the neighbours that we won't be including
+               !print*,'cut',ityp,iatt,num_neighbours_type(ityp),iatf,iat,dist(ipiv),cutoff,&
+               !     num_neighbours_tot,num_neighbours_tot - (num_neighbours_type(ityp) - iatt)
+               num_neighbours_tot = num_neighbours_tot - (num_neighbours_type(ityp) - iatt)
+               num_neighbours_type(ityp) = iatt
+               exit
+            end if
+            !print*,'iat',ityp,iatt,num_neighbours_type(ityp),iatf,iat,dist(ipiv),cutoff,num_neighbours_tot
+
             iatf=iatf+1
             iatt=iatt+1
             rxyz_frag_and_env(:,iatf+ref_frag%astruct_frg%nat) = rxyz_not_frag(:,ipiv(iat))

@@ -2188,12 +2188,13 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            call f_increment(itoo_big)
         end if 
 
-        !if (iproc==0) then
-        !   write(*,'(A,1x,I3,1x,I3,1x,3(F12.6,1x),2(F12.6,1x),2(I8,1x))') 'ifrag,ifrag_ref,rot_axis,theta,error',&
-        !        ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp),&
-        !        Werror,itoo_big,iproc
-        !   write(*,*) ''
-        !end if
+        ! useful for identifying which fragments are problematic
+        if (iproc==0 .and. Werror>W_tol) then
+           write(*,'(A,1x,I3,1x,I3,1x,3(F12.6,1x),2(F12.6,1x),2(I8,1x))') 'ifrag,ifrag_ref,rot_axis,theta,error',&
+                ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp),&
+                Werror,itoo_big,iproc
+           write(*,*) ''
+        end if
 
         isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
         isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
