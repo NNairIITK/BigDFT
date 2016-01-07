@@ -14,6 +14,7 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 # ---------------
 SUBDIRS = \
 	orbitals \
+	sparsematrix \
 	modules \
 	xcPSolver \
 	$(sub_dirs_libconfig) \
@@ -38,6 +39,7 @@ subs_static_library = \
 	modules/libmodules.a \
 	CUDA/libCUDA.a \
 	orbitals/liborbitals.a \
+	sparsematrix/libsparsematrix.a \
 	geopt/libgeopt.a \
 	xcPSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
@@ -54,7 +56,7 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
+bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft-1.a
@@ -109,6 +111,12 @@ else
 ##cp2k_interfacemod = modules/cp2k_fake.f90 modules/module_cp2k.f90
 ##cp2k_interfacemodCAP = MODULES/CP2K_FAKE.F90 MODULES/MODULE_CP2K_FAKE.F90
 cp2k_ld =
+endif
+
+if HAVE_PEXSI
+pexsi_ld= @PEXSI_LINKLINE@ @LINALG_LIBS@
+else
+pexsi_ld =
 endif
 
 if USE_OCL
@@ -246,7 +254,7 @@ libbigdft-1.a: $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
 	$(RANLIB) $@
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
 	@chmod a+x $@
 
 libbigdft-1.so.7: $(bigdft_dynamic_library)

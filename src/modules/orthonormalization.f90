@@ -27,7 +27,8 @@ module orthonormalization
       use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace
       use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed, &
                                        normalize_transposed
-      use matrix_operations, only: overlapPowerGeneral, overlap_power_minus_one_half_parallel, check_taylor_order
+      use matrix_operations, only: overlapPowerGeneral, overlap_power_minus_one_half_parallel, check_taylor_order, &
+                                   calculate_S_minus_one_half_onsite
       use yaml_output
       implicit none
     
@@ -37,8 +38,8 @@ module orthonormalization
       real(kind=8),intent(in) :: max_inversion_error
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
-      type(sparse_matrix),intent(inout) :: ovrlp
-      type(sparse_matrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+      type(sparse_matrix),intent(in) :: ovrlp
+      type(sparse_matrix),intent(in) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
       type(comms_linear),intent(in) :: collcom
       type(orthon_data),intent(in) :: orthpar
       real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
@@ -58,6 +59,7 @@ module orthonormalization
     
     
       call f_routine(id='orthonormalizeLocalized')
+
     
       inv_ovrlp_half_(1) = matrices_null()
       call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_(1))
@@ -87,9 +89,12 @@ module orthonormalization
       !!end do
     
     
-      if (methTransformOverlap==-1) then
+      if (methTransformOverlap==-2) then
+          call calculate_S_minus_one_half_onsite(iproc, nproc, orbs%norb, orbs%onwhichatom, &
+               ovrlp, inv_ovrlp_half, ovrlp_, inv_ovrlp_half_(1))
+      else if (methTransformOverlap==-1) then
           !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
-          call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
+          call overlap_power_minus_one_half_parallel(iproc, nproc, 0, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
       else
           call overlapPowerGeneral(iproc, nproc, methTransformOverlap, 1, (/-2/), &
                orthpar%blocksize_pdgemm, &
@@ -261,8 +266,8 @@ module orthonormalization
       type(atoms_data),intent(in) :: at
       integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
       type(local_zone_descriptors),intent(in) :: lzd
-      type(sparse_matrix),intent(inout) :: ovrlp
-      type(sparse_matrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+      type(sparse_matrix),intent(in) :: ovrlp
+      type(sparse_matrix),intent(in) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
       type(comms_linear),intent(in) :: collcom
       type(orthon_data),intent(in) :: orthpar
       real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
@@ -374,7 +379,7 @@ module orthonormalization
           !call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
           !ovrlp_%matrix_compr=ovrlp%matrix_compr
           call overlap_power_minus_one_half_parallel(iproc, nproc, methTransformOverlap, &
-               orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
+               ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
           !call deallocate_matrices(ovrlp_)
       else
           nullify(inv_ovrlp_null)
@@ -497,7 +502,7 @@ module orthonormalization
       integer,intent(in) :: correction_orthoconstraint
       real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
       real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
-      type(sparse_matrix),intent(inout) :: lagmat
+      type(sparse_matrix),intent(in) :: lagmat
       type(matrices),intent(out) :: lagmat_
       real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_c
       real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: hpsit_f
@@ -572,7 +577,8 @@ module orthonormalization
       if (correction_orthoconstraint==0) then
           if (data_strategy_main==GLOBAL_MATRIX) then
               stop 'deprecated'
-              call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'small_to_large')
+              call transform_sparse_matrix(linmat%m, linmat%l, 'small_to_large', &
+                   smat_in=lagmat_%matrix_compr, lmat_out=lagmat_large)
           end if
           if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
           !!call uncompress_matrix_distributed2(iproc, linmat%l, DENSE_MATMUL, lagmat_large, lagmatp)
@@ -587,7 +593,8 @@ module orthonormalization
           end do
       end if
       if (data_strategy_main==SUBMATRIX) then
-          call transform_sparse_matrix_local(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'large_to_small')
+          call transform_sparse_matrix_local(linmat%m, linmat%l, 'large_to_small', &
+               lmatrix_compr_in=lagmat_large, smatrix_compr_out=lagmat_%matrix_compr)
       end if
       call f_free(lagmat_large)
       call f_free(inv_ovrlp_seq)
@@ -719,7 +726,8 @@ module orthonormalization
               ! Directly use the large sparsity pattern as this one is used later
               ! for the matrix vector multiplication
               tmp_mat_compr = sparsematrix_malloc(linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_mat_compr')
-              call transform_sparse_matrix_local(linmat%m, linmat%l, lagmat_%matrix_compr, tmp_mat_compr, 'small_to_large')
+              call transform_sparse_matrix_local(linmat%m, linmat%l, 'small_to_large', &
+                   smatrix_compr_in=lagmat_%matrix_compr, lmatrix_compr_out=tmp_mat_compr)
               do ispin=1,lagmat%nspin
                   ishift=(ispin-1)*linmat%l%nvctrp_tg
                   !$omp parallel default(none) &
@@ -762,7 +770,7 @@ module orthonormalization
     
       integer, intent(in) :: iproc, nproc, norbu, norb
       type(orbitals_data), intent(in) :: basis_orbs
-      type(sparse_matrix),intent(inout) :: basis_overlap
+      type(sparse_matrix),intent(in) :: basis_overlap
       type(matrices),intent(inout) :: basis_overlap_mat
       real(kind=8),dimension(basis_overlap%nfvctr,basis_orbs%norb),intent(inout) :: coeff
     
@@ -945,8 +953,8 @@ module orthonormalization
       type(atoms_data),intent(in) :: at
       integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
       type(local_zone_descriptors),intent(in) :: lzd
-      type(sparse_matrix),intent(inout) :: ovrlp
-      type(sparse_matrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+      type(sparse_matrix),intent(in) :: ovrlp
+      type(sparse_matrix),intent(in) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
       type(comms_linear),intent(in) :: collcom
       type(orthon_data),intent(in) :: orthpar
       real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi

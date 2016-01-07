@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.8a.2],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.8a.4],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -417,6 +417,19 @@ if test x"$ac_use_dgemmsy" = "xyes" ; then
 fi
 AC_SUBST(DGEMMSY_CPPFLAGS)
 AM_CONDITIONAL(USE_DGEMMSY, test "$ac_use_dgemmsy" = "yes")
+
+
+dnl PEXSI
+AC_ARG_WITH(pexsi, AS_HELP_STRING([--with-pexsi],
+            [Give the link-line for PEXSI.]),
+            ac_pexsi_linkline=$withval, ac_pexsi_linkline=)
+ac_use_pexsi="no"
+AM_CONDITIONAL(HAVE_PEXSI, test x"$ac_pexsi_linkline" != "x")
+if test -n "$ac_pexsi_linkline" ; then
+  PEXSI_LINKLINE="$ac_pexsi_linkline"
+  AC_SUBST(PEXSI_LINKLINE, $PEXSI_LINKLINE)
+  ac_use_pexsi="yes"
+fi
 
 
 dnl build the pseudo generation (build the executables atom and pseudo)
@@ -1175,6 +1188,7 @@ src/modules/bigdft_cst.h
 src/modules/configure.c
 src/orbitals/Makefile
 src/orbitals/configure.inc
+src/sparsematrix/Makefile
 src/xcPSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
@@ -1216,6 +1230,7 @@ tests/libs/wrappers/Makefile
 tests/libs/psp/Makefile
 tests/libs/overlapgeneral/Makefile
 tests/libs/coordinatetransform/Makefile
+tests/libs/sparsematrix/Makefile
 tests/benchs/Makefile
 tests/benchs/sparsealgebra/Makefile
 tests/DFT/Makefile
@@ -1284,6 +1299,7 @@ Options:
    | nab Compiler:           $NAB
   With CP2K:                 $ac_use_cp2k
   With dgemmsy support:      $ac_use_dgemmsy
+  With PEXSI:                $ac_use_pexsi
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE

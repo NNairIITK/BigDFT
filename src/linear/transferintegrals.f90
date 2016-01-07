@@ -278,7 +278,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
 
   integer, intent(in) :: iproc, nproc, nstates
   type(orbitals_data), intent(in) :: orbs
-  type(sparse_matrix), intent(inout) :: ham, ovrlp
+  type(sparse_matrix), intent(in) :: ham, ovrlp
   type(matrices),intent(inout) :: ovrlp_mat, ham_mat
   real(kind=gp), dimension(ovrlp%nfvctr,nstates), intent(in) :: homo_coeffs1, homo_coeffs2
   real(kind=gp), dimension(nstates), intent(inout) :: homo_ham, homo_ovrlp
@@ -356,8 +356,8 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   integer, intent(in) :: iproc, nproc, meth_overlap
   type(fragmentInputParameters), intent(in) :: input_frag
   type(orbitals_data), intent(in) :: orbs
-  type(sparse_matrix), intent(inout) :: ham, ovrlp
-  type(sparse_matrix),dimension(ham%nspin),intent(inout) :: KS_overlap
+  type(sparse_matrix), intent(in) :: ham, ovrlp
+  type(sparse_matrix),dimension(ham%nspin),intent(in) :: KS_overlap
   type(matrices), intent(inout) :: ovrlp_mat, ham_mat
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables

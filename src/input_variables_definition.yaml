@@ -1357,19 +1357,6 @@
    evboundsshrink_nsatur:
      COMMENT: maximal number of unsuccessful eigenvalue bounds shrinkings
      default: 4
-   method_updatekernel:
-     COMMENT: linear scaling update density kernel during the sup. func. optimization (0 purification, 1 FOE, 2 renormalization)
-     default: 0
-     EXCLUSIVE:
-       0: purification
-       1: FOE
-       2: renormalization
-   purification_quickreturn:
-     COMMENT: linear scaling quick return in purification
-     default: Yes
-   adjust_FOE_temperature:
-     COMMENT: linear scaling dynamic adjustment of the decay length of the FOE error function
-     default: Yes
    calculate_gap:
      COMMENT: linear scaling calculate the HOMO LUMO gap
      default: No
@@ -1431,6 +1418,11 @@
    foe_gap:
      COMMENT: Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
      default: False
+   nsigma:
+     COMMENT: Number of iterations (for each angular momentum l) to get an optimal sigma for the Gaussian used for the radial part of the function based on the multipoles.
+     DESCRIPTION: Warning -- The total number of iterations is nsigma**(lmax+1), so only use small values
+     default: 1
+     RANGE: [1,5]
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -1611,8 +1603,14 @@
      calc_dipole:
        DESCRIPTION: |
                     possible value: 1 logical
-                    Indicates whether the dipole moment should be calculated at the run or not
+                    Indicates whether the dipole moment should be calculated after the run or not
        COMMENT: calculate dipole
+       default: No
+     calc_quadrupole:
+       DESCRIPTION: |
+                    possible value: 1 logical
+                    Indicates whether the quadrupole moment should be calculated after the run or not
+       COMMENT: calculate quadrupole
        default: No
 # this is now an array!
      calc_pulay:
@@ -1638,9 +1636,21 @@
        COMMENT: calculate the onsite overlap matrix (has only an effect if the matrices are all written to disk)
        default: No
      charge_multipoles:
-       COMMENT: Calculate the atom-centered multipole coefficients of the electronic charge
-       DESCRIPTION: Calculate the multipole expansion coefficients which can then be used to establish a QM/MM coupling
-       default: no
+       COMMENT: Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 new approach Projector
+       DESCRIPTION: | 
+                    Calculate the multipole expansion coefficients of the atomic charge which can then be used to establish a QM/MM coupling.
+                    Possible values are:
+                    * 0 => no calculation
+                    * 1 => new approach using Loewdin
+                    * 2 => new approach using projector
+       default: 0
+       EXCLUSIVE:
+         0: no calculation
+         1: new approach using Loewdin
+         2: new approach using projector
+     support_function_multipoles:
+       COMMENT: Calculate the multipole moments of the support functions
+       default: False
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
@@ -1811,10 +1821,12 @@
                      * DIRMIN => direct minimization
                      * DIAG => diagonalization with density mixing
                      * FOE => Fermi Operator Expansion
+                     * PEXSI => PEXSI library
        EXCLUSIVE:
          DIRMIN: direct minimization
          DIAG: diagonalization
          FOE: Fermi Operator Expansion
+         PEXSI: external PEXSI lbrary
        default: DIAG
      mixing_method:
        COMMENT: quantity to be mixed
@@ -1857,6 +1869,36 @@
                     or systems where convergence is unstable.
        default: 1.0
        RANGE: [0.0,1.e1]
+     pexsi_npoles:
+       COMMENT: number of poles used by PEXSI
+       DESCRIPTION: number of poles used by PEXSI to calculate the density kernel from the Hamiltonian and overlap matrices
+       default: 40
+       RANGE: [20,200]
+     pexsi_mumin:
+       COMMENT: initial guess for the lower bound of the chemical potential used by PEXSI
+       DESCRIPTION: initial guesss for the lower bound of the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
+       default: -1.0
+       RANGE: [-5.0,5.0]
+     pexsi_mumax:
+       COMMENT: initial guess for the upper bound of the chemical potential used by PEXSI
+       DESCRIPTION: initial guesss for the upper bound of the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
+       default: 1.0
+       RANGE: [-5.0,5.0]
+     pexsi_mu:
+       COMMENT: initial guess for the  chemical potential used by PEXSI
+       DESCRIPTION: initial guesss for the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
+       default: 0.5
+       RANGE: [-5.0,5.0]
+     pexsi_temperature:
+       COMMENT: temperature used by PEXSI
+       DESCRIPTION: temperature (in atomic units?) used by PEXSI
+       default: 1.e-3
+       RANGE: [0.0,1.0]
+     pexsi_tol_charge:
+       COMMENT: charge tolerance used PEXSI
+       DESCRIPTION: tolerance on the number of electrons used by PEXSI
+       default: 1.e-3
+       RANGE: [1.e-10,1.0]
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:
@@ -1925,8 +1967,6 @@ linear_accurate:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    method_updatekernel: 2
-    purification_quickreturn: Yes
     correction_co_contra: Yes
     #check_sumrho: 1
     #calculate_KS_residue: No
@@ -1962,8 +2002,6 @@ linear_moderate:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    method_updatekernel: 2
-    purification_quickreturn: Yes
     correction_co_contra: Yes
   lin_general:
     hybrid: Yes
@@ -1994,8 +2032,6 @@ linear_fast:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    method_updatekernel: 2
-    purification_quickreturn: Yes
     correction_co_contra: Yes
   lin_general:
     hybrid: Yes
@@ -2056,8 +2092,6 @@ linear:
    check_overlap: 1
    experimental_mode: Yes
    calculate_KS_residue: No
-   method_updatekernel: 2
-   purification_quickreturn: Yes
    check_matrix_compression: No
    correction_co_contra: Yes
    store_index: No

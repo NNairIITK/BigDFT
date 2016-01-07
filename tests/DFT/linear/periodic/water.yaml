@@ -16,8 +16,6 @@
    ef_interpol_chargediff: 1.0
    experimental_mode: Yes
    calculate_KS_residue: No
-   method_updatekernel: 2
-   purification_quickreturn: Yes
    correction_co_contra: Yes
    kappa_conv: 7.2e-1
    check_sumrho: 1

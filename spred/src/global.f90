@@ -112,23 +112,6 @@ program MINHOP
   !however their atomic position are not shallow copied and have to be updated
   !before switching method
 
-!!$  !for each of the configuration set the input files
-!!$  !optimized input parameters
-!!$  call dict_init(user_inputs)
-!!$  call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
-!!$       & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
-!!$  call inputs_from_dict(inputs_opt, atoms, user_inputs)
-!!$  call dict_free(user_inputs)
-!!$
-!!$  !unoptimized input parameters
-!!$  call dict_init(user_inputs)
-!!$  call user_dict_from_files(user_inputs, 'md'//trim(run_id)//trim(bigdft_run_id_toa()), &
-!!$       & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
-!!$  call inputs_from_dict(inputs_md, md_atoms, user_inputs)
-!!$  call dict_free(user_inputs)
-!!$  !use only the atoms structure for the run
-!!$  call deallocate_atoms_data(md_atoms) 
-
 !   write(*,*) 'nat=',atoms%astruct%nat
   ! Create the state_properties container.
   call init_state_properties(outs, bigdft_nat(run_opt))

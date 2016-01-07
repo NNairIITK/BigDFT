@@ -492,3 +492,42 @@
     
     end subroutine init_matrix_parallelization
 
+
+    subroutine read_bigdft_format(filename, nfvctr, nvctr, nseg, keyv, keyg, val)
+      implicit none
+
+      ! Calling arguments
+      character(len=*),intent(in) :: filename
+      integer,intent(out) :: nfvctr, nvctr, nseg
+      integer,dimension(:),pointer,intent(out) :: keyv
+      integer,dimension(:,:,:),pointer,intent(out) :: keyg
+      real(kind=8),dimension(:),pointer,intent(out) :: val
+
+      ! Local variables
+      integer :: i, iseg
+      logical :: file_exists
+      integer,parameter :: iunit=123
+
+      inquire(file=filename,exist=file_exists)
+      if (file_exists) then
+          open(unit=iunit,file=filename)
+          read(iunit,*) nfvctr
+          read(iunit,*) nseg
+          read(iunit,*) nvctr
+          keyv = f_malloc_ptr(nseg,id='keyv')
+          keyg = f_malloc_ptr((/2,2,nseg/),id='keyg')
+          val = f_malloc_ptr(nvctr,id='val')
+          do iseg=1,nseg
+              read(iunit,*) keyv(iseg)
+          end do
+          do iseg=1,nseg
+              read(iunit,*) keyg(1:2,1:2,iseg)
+          end do
+          do i=1,nvctr
+              read(iunit,*) val(i)
+          end do
+      else
+          stop 'file not present'
+      end if
+      close(iunit)
+    end subroutine read_bigdft_format

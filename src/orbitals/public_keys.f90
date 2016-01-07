@@ -194,9 +194,6 @@ module public_keys
   character(len = *), parameter :: KAPPA_CONV = "kappa_conv"
   character(len = *), parameter :: EVBOUNDS_NSATUR = "evbounds_nsatur"
   character(len = *), parameter :: EVBOUNDSSHRINK_NSATUR = "evboundsshrink_nsatur"
-  character(len = *), parameter :: METHOD_UPDATEKERNEL = "method_updatekernel"
-  character(len = *), parameter :: PURIFICATION_QUICKRETURN = "purification_quickreturn"
-  character(len = *), parameter :: ADJUST_FOE_TEMPERATURE = "adjust_FOE_temperature"
   character(len = *), parameter :: CALCULATE_GAP = "calculate_gap"
   character(len = *), parameter :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
   character(len = *), parameter :: COEFF_WEIGHT_ANALYSIS = "coeff_weight_analysis"
@@ -204,6 +201,8 @@ module public_keys
   character(len = *), parameter :: CORRECTION_CO_CONTRA = "correction_co_contra"
   character(len = *), parameter :: GPS_METHOD = "gps_method"
   character(len = *), parameter :: FOE_GAP = "foe_gap"
+  character(len = *), parameter :: SUPPORT_FUNCTION_MULTIPOLES = "support_function_multipoles"
+  character(len = *), parameter :: NSIGMA = "nsigma"
 
   !keys for linear input variables
   !level keys
@@ -225,6 +224,7 @@ module public_keys
   character(len=*), parameter :: CONF_DAMPING    ='conf_damping'
   character(len=*), parameter :: TAYLOR_ORDER    ='taylor_order'
   character(len=*), parameter :: CALC_DIPOLE     ='calc_dipole'
+  character(len=*), parameter :: CALC_QUADRUPOLE ='calc_quadrupole'
   character(len=*), parameter :: CDFT_LAG_MULT_INIT='cdft_lag_mult_init'
   character(len=*), parameter :: CDFT_CONV_CRIT  ='cdft_conv_crit'
   character(len=*), parameter :: CALC_PULAY      ='calc_pulay'
@@ -261,6 +261,12 @@ module public_keys
   character(len=*), parameter :: ADJUST_KERNEL_THRESHOLD='adjust_kernel_threshold'
   character(len=*), parameter :: WF_EXTENT_ANALYSIS='wf_extent_analysis'
   character(len=*), parameter :: CALCULATE_ONSITE_OVERLAP='calculate_onsite_overlap'
+  character(len=*), parameter :: PEXSI_NPOLES='pexsi_npoles'
+  character(len=*), parameter :: PEXSI_MUMIN='pexsi_mumin'
+  character(len=*), parameter :: PEXSI_MUMAX='pexsi_mumax'
+  character(len=*), parameter :: PEXSI_MU='pexsi_mu'
+  character(len=*), parameter :: PEXSI_TEMPERATURE='pexsi_temperature'
+  character(len=*), parameter :: PEXSI_TOL_CHARGE='pexsi_tol_charge'
 
   !> Parameters to avoid typos in dictionary keys
   character(len=*), parameter :: ASTRUCT_UNITS = 'units' 
@@ -450,9 +456,11 @@ module public_enums
   integer, parameter, public :: LINEAR_MIXDENS_SIMPLE=101
   integer, parameter, public :: LINEAR_MIXPOT_SIMPLE=102
   integer, parameter, public :: LINEAR_FOE=103
+  integer, parameter, public :: LINEAR_PEXSI=104
   integer, parameter, public :: KERNELMODE_DIRMIN = 10
   integer, parameter, public :: KERNELMODE_DIAG = 11
   integer, parameter, public :: KERNELMODE_FOE = 12
+  integer, parameter, public :: KERNELMODE_PEXSI = 13
   integer, parameter, public :: MIXINGMODE_DENS = 20
   integer, parameter, public :: MIXINGMODE_POT = 21
   integer,parameter, public :: FOE_ACCURATE = 30

@@ -15,6 +15,19 @@ path=os.path.dirname(sys.argv[0])
 
 import yaml
 
+EVAL = "eval"
+SETUP = "let"
+
+PRE_POST = [EVAL, SETUP]
+
+ENERGY = "__ENERGY__"
+FERMI_LEVEL= "__FERMI_LEVEL__"
+
+BUILTIN={ENERGY: [["Last Iteration", "FKS"],["Last Iteration", "EKS"]],
+         FERMI_LEVEL: [["Ground State Optimization", -1, "Fermi Energy"]]}
+         
+#Builtin pathes to define the search paths
+
 # print out a python dictionary in yaml syntax
 def dict_dump(dict):
   sys.stdout.write(yaml.dump(dict,default_flow_style=False,explicit_start=True))
@@ -39,12 +52,22 @@ def clean_logfile(logfile_lines,to_remove):
       valid_line=line.split('#')[0]
       spaces='nospace'
       #control that the string between the key and the semicolon is only spaces
-      #print "here",remove_it,remove_it in valid_line and ":" in valid_line
       if remove_it in valid_line and ":" in valid_line:
-        valid_line= valid_line[valid_line.find(remove_it)+len(remove_it):]
+        #print "here",remove_it,remove_it in valid_line and ":" in valid_line,valid_line
+        starting_point=valid_line.find(remove_it)
+        tmp_buf=valid_line[:starting_point]
+        #find the closest comma to the staring point, if exists
+        tmp_buf=tmp_buf[::-1]
+        starting_comma=tmp_buf.find(',')
+        if starting_comma <0: st=0
+        tmp_buf=tmp_buf[st:]
+        tmp_buf=tmp_buf[::-1]
+        tmp_buf=tmp_buf.strip(' ')
+        #print "there",tmp_buf,'starting',starting_point,len(tmp_buf)
+        valid_line= valid_line[starting_point+len(remove_it):]
         spaces= valid_line[1:valid_line.find(':')]
         #if remove_it+':' in line.split('#')[0]:
-      if len(spaces.strip(' ')) == 0: #this means that the key has been found
+      if len(spaces.strip(' ')) == 0 and len(tmp_buf)==0: #this means that the key has been found
          #creates a new Yaml document starting from the line
          #treat the rest of the line following the key to be removed
          header=''.join(line.split(':')[1:])
@@ -133,12 +156,64 @@ def document_analysis(doc,to_extract):
       return None
   return analysis    
 
+# this is a tentative function written to extract information from the runs
+def document_quantities(doc,to_extract):
+  analysis={}
+  for quantity in to_extract:
+    if quantity in PRE_POST: pass
+    #follow the levels indicated to find the quantity
+    field=to_extract[quantity]
+    if type(field) is not type([]) and field in BUILTIN:
+        paths=BUILTIN[field]
+    else:
+        paths=[field]
+    #now try to find the first of the different alternatives
+    for path in paths:
+      #print path,BUILTIN,BUILTIN.keys(),field in BUILTIN,field
+      value=doc
+      for key in path:
+        #as soon as there is a problem the quantity is null
+        try:
+          value=value[key]
+        except:
+          value=None
+          break
+      if value is not None: break        
+    analysis[quantity]=value
+  return analysis    
+
+def perform_operations(variables,ops,debug=False):
+    #first evaluate the given variables
+    for key in variables:
+        command=key+"="+str(variables[key])
+        if debug: print command
+        exec command
+        #then evaluate the given expression
+    if debug: print ops
+    exec ops
+
+def get_logs(files):
+   logs=[]
+   for filename in files:
+     try:
+        logs+=[yaml.load(open(filename, "r").read(), Loader = yaml.CLoader)]
+     except:
+        try: 
+            logs+=yaml.load_all(open(filename, "r").read(), Loader = yaml.CLoader)
+        except:
+            logs+=[None]
+            print "warning, skipping logfile",filename
+   return logs
+    
+
 def parse_arguments():
   parser = optparse.OptionParser("This script is used to extract some information from a logfile")
-  parser.add_option('-d', '--data', dest='data',default=None, #sys.argv[2],
+  parser.add_option('-d', '--data', dest='data',default=None,action="store_true", #sys.argv[2],
                     help="BigDFT logfile, yaml compliant (check this if only this option is given)", metavar='FILE')
   parser.add_option('-v', '--invert-match', dest='remove',default=None, #sys.argv[2],
                     help="File containing the keys which have to be excluded from the logfile", metavar='FILE')
+  parser.add_option('-a', '--analyze', dest='analyze',default=None, #sys.argv[2],
+                    help="File containing the keys which have to be analysed and extracted to build the quantities", metavar='FILE')
   parser.add_option('-e', '--extract', dest='extract',default=None, #sys.argv[2],
                     help="File containing the keys which have to be extracted to build the quantities", metavar='FILE')
   parser.add_option('-o', '--output', dest='output', default="/dev/null", #sys.argv[4],
@@ -148,7 +223,7 @@ def parse_arguments():
   parser.add_option('-n', '--name', dest='name',default=None,
                     help="Give a name to the set of the plot represented", metavar='FILE')
   parser.add_option('-p', '--plot', dest='plottype',default='Seconds',
-                    help="Decide the starting point for the plotting", metavar='FILE')
+                    help="Decide the default yscale for the plotting", metavar='FILE')
   parser.add_option('-s', '--static', dest='static',default=False,action="store_true",
                     help="Show the plot statically for screenshot use", metavar='FILE')
   parser.add_option('-f', '--fontsize', dest='fontsize',default=15,
@@ -298,7 +373,8 @@ class polar_axis():
     self.info= self.ax.text( offset, offset, self.info_string(xdata,level),
                              fontsize = 15,transform = self.ax.transAxes )
     self.fig.canvas.draw()
-      
+
+          
 class BigDFTiming:
   def __init__(self,filenames,args):
     #here a try-catch section should be added for multiple documents
@@ -615,15 +691,29 @@ if args.timedata:
 
   #print allev
   #dump the loaded info
-
   
 
 if args.data is None:
   print "No input file given, exiting..."
   exit(0)
 
-with open(args.data, "r") as fp:
-  logfile_lines = fp.readlines()
+if args.analyze is not None and args.data:
+  instructions= yaml.load(open(args.analyze, "r").read(), Loader = yaml.CLoader)
+  print args.data,argcl
+  for f in argcl:
+    print "#########processing ",f
+    datas=get_logs([f])
+    for doc in datas:
+      doc_res=document_quantities(doc,instructions)
+      #print doc_res,instructions
+      if EVAL in instructions: perform_operations(doc_res,instructions[EVAL])
+  exit(0)
+
+if args.data:
+  with open(argcl[0], "r") as fp:
+    logfile_lines = fp.readlines()
+
+    
 #output file
 file_out=open(args.output, "w")
 #to_remove list
@@ -633,8 +723,8 @@ else:
   #standard list which removes long items from the logfile
   to_remove= ["Atomic positions within the cell (Atomic and Grid Units)",
               "Atomic Forces (Ha/Bohr)",
-              "Orbitals",
-              "Energies",
+              #"Orbitals",
+              #"Energies",
               "Properties of atoms in the system"]
   #to_remove=[]
 
@@ -660,6 +750,7 @@ datas=yaml.load_all(''.join(cleaned_logfile), Loader = yaml.CLoader)
 extracted_result=[]
 for doc in datas:
   doc_res=document_analysis(doc,to_extract)
+  print doc_res,to_extract
   if doc_res is not None:
     extracted_result.append(doc_res)
 
@@ -667,6 +758,8 @@ print "Number of valid documents:",len(extracted_result)
 for it in extracted_result:
   print it
 
+exit(0)
+    
 iterations = range(len(extracted_result))
 energies = [en for [f, en] in extracted_result]
 energy_min=min(energies)
@@ -674,9 +767,9 @@ energies = [en-energy_min for en in energies]
 forces = [f for [f, en] in extracted_result]
 
 import matplotlib.pyplot as plt
-plt.plot(iterations, energies, '.-',label='E - min(E)')
-plt.plot(iterations, forces, '.-',label='max F')
-plt.yscale('log')
+#plt.plot(iterations, energies, '.-',label='E - min(E)')
+plt.plot(energies, forces, '.-',label='Energy')
+#plt.yscale('log')
 plt.legend(loc='lower left')
 plt.show()
   
@@ -703,7 +796,7 @@ block sequence:
 #ddd
 #print args.ref,args.data,args.output
 
-datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
+datas    = [a for a in yaml.load_all(open(argcl[0], "r").read(), Loader = yaml.CLoader)]
 #i=0
 #for doc in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader):
 #  i+=1

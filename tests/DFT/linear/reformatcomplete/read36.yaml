@@ -10,7 +10,6 @@
    inputpsiid: linear_restart
  perf:
    correction_co_contra: no
-   purification_quickreturn: no
    coeff_weight_analysis: yes
  lin_general:
    nit: [0, 1]
