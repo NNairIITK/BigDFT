@@ -62,6 +62,7 @@ Keys to ignore:
  - psolver_groupsize
  - gps_method
  - solvent
+ - Operation  1
  #- avg pot diff (actual/min)
  #- number of tasks
  #- IDs
