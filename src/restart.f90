@@ -1089,10 +1089,10 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
      map_frag_and_env = f_malloc((/tmb%orbs%norb,3/),id='map_frag_and_env')
      ! version with most extensive matching
      call find_neighbours(num_neighbours,at,rxyz,tmb%orbs,ref_frags_atomic(iat),frag_map,&
-          ntmb_frag_and_env,map_frag_and_env,.false.)
+          ntmb_frag_and_env,map_frag_and_env,.false.,input%lin%frag_neighbour_cutoff)
      ! with only closest shell
      call find_neighbours(num_neighbours,at,rxyz,tmb%orbs,ref_frags_atomic_dfrag(iat),frag_map,&
-          ntmb_frag_and_env_dfrag,map_frag_and_env,.true.)
+          ntmb_frag_and_env_dfrag,map_frag_and_env,.true.,input%lin%frag_neighbour_cutoff)
      call f_free(map_frag_and_env)
 
      ! we also need nbasis_env
