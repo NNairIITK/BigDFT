@@ -355,11 +355,12 @@ contains
 
 
 subroutine give_rcov(iproc,astruct,nat,rcov)
-  use module_base, only: gp
+  use module_defs, only: gp
   use module_types, only: atomic_structure
   use yaml_output
   use module_mhgps_state
   use dictionaries, only: f_err_throw
+  use yaml_strings
   implicit none
   !Arguments
   integer, intent(in) :: iproc
