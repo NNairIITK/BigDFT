@@ -400,24 +400,16 @@ module postprocessing_linear
       real(kind=8),dimension(atoms%astruct%nat),intent(in) :: charge_per_atom
       ! Local variables
       integer :: iat
-      real(kind=8),dimension(3) :: dipole_elec, dipole_cores, dipole_net
+      real(kind=8),dimension(3) :: dipole
     
-      dipole_cores(1:3)=0._gp
+      dipole(1:3) = 0._gp
       do iat=1,atoms%astruct%nat
-         dipole_cores(1:3)=dipole_cores(1:3)+atoms%nelpsp(atoms%astruct%iatype(iat))*atoms%astruct%rxyz(1:3,iat)
+          dipole(1:3) = dipole(1:3) + &
+                            (atoms%nelpsp(atoms%astruct%iatype(iat))-charge_per_atom(iat))*atoms%astruct%rxyz(1:3,iat)
       end do
-    
-      dipole_elec=0.d0
-      do iat=1,atoms%astruct%nat
-          dipole_elec(1:3) = dipole_elec(1:3) -charge_per_atom(iat)*atoms%astruct%rxyz(1:3,iat)
-      end do
-    
-      dipole_net=dipole_cores+dipole_elec
     
       if (iproc==0) then
-          !!call yaml_map('core dipole', dipole_cores)
-          !!call yaml_map('electronic dipole', dipole_elec)
-          call yaml_map('net dipole', dipole_net,fmt='(es12.5)')
+          call yaml_map('net dipole', dipole,fmt='(es12.5)')
       end if
     
     end subroutine calculate_dipole
