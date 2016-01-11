@@ -10,7 +10,7 @@ program driver_singlerun
                           write_sparsematrix_CCS, write_sparsematrix, &
                           uncompress_matrix
   use matrix_operations, only: overlapPowerGeneral
-  use io, only: read_sparse_matrix, write_sparse_matrix
+  use sparsematrix_io, only: read_sparse_matrix, write_sparse_matrix
   use yaml_output
   implicit none
 

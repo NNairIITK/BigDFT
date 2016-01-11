@@ -4078,6 +4078,9 @@ contains
               end if
           end do
       end do
+      if (ii/=nvctr) then
+          call f_err_throw('ii/=nvctr')
+      end if
 
       call f_free(mat)
 
