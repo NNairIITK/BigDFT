@@ -21,6 +21,7 @@ module foe_common
   public :: scale_and_shift_matrix
   public :: retransform_ext
   public :: cheb_exp
+  public :: init_foe
 
 
   contains
@@ -793,6 +794,7 @@ module foe_common
       !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
     
       call f_routine(id='chebft')
+
     
       if (n>50000) stop 'chebft'
       bma=0.5d0*(b-a)
@@ -817,10 +819,136 @@ module foe_common
       end do
       !$omp end do
       !$omp end parallel
+
+      !!call accuracy_of_chebyshev_expansion(n, cc, (/A,B/), 1.d-2, ex)
     
       call f_release_routine()
     
     end subroutine cheb_exp
+
+
+    subroutine init_foe(iproc, nproc, nspin, charge, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
+               evlow, evhigh, fscale, ef_interpol_det, ef_interpol_chargediff, &
+               fscale_lowerbound, fscale_upperbound, foe_obj)
+      use module_base
+      use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
+      implicit none
+      
+      ! Calling arguments
+      integer, intent(in) :: iproc, nproc, nspin, evbounds_nsatur, evboundsshrink_nsatur
+      real(kind=8),dimension(nspin),intent(in) :: charge
+      real(kind=8),intent(in) :: evlow, evhigh, fscale, ef_interpol_det
+      real(kind=8),intent(in) :: ef_interpol_chargediff, fscale_lowerbound, fscale_upperbound
+      real(kind=8),intent(in) :: tmprtr
+      type(foe_data), intent(out) :: foe_obj
+      
+      ! Local variables
+      character(len=*), parameter :: subname='init_foe'
+      integer :: iorb, ispin
+      real(kind=8) :: incr
+    
+      call timing(iproc,'init_matrCompr','ON')
+    
+      foe_obj = foe_data_null()
+    
+      foe_obj%ef = f_malloc0_ptr(nspin,id='(foe_obj%ef)')
+      call foe_data_set_real(foe_obj,"ef",0.d0,1)
+      if (nspin==2) then
+          call foe_data_set_real(foe_obj,"ef",0.d0,2)
+      end if
+      foe_obj%evlow = f_malloc0_ptr(nspin,id='foe_obj%evlow')
+      call foe_data_set_real(foe_obj,"evlow",evlow,1)
+      if (nspin==2) then
+          call foe_data_set_real(foe_obj,"evlow",evlow,2)
+      end if
+      foe_obj%evhigh = f_malloc0_ptr(nspin,id='foe_obj%evhigh')
+      call foe_data_set_real(foe_obj,"evhigh",evhigh,1)
+      if (nspin==2) then
+          call foe_data_set_real(foe_obj,"evhigh",evhigh,2)
+      end if
+      foe_obj%bisection_shift = f_malloc0_ptr(nspin,id='foe_obj%bisection_shift')
+      call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,1)
+      if (nspin==2) then
+          call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,2)
+      end if
+      call foe_data_set_real(foe_obj,"fscale",fscale)
+      call foe_data_set_real(foe_obj,"ef_interpol_det",ef_interpol_det)
+      call foe_data_set_real(foe_obj,"ef_interpol_chargediff",ef_interpol_chargediff)
+      foe_obj%charge = f_malloc0_ptr(nspin,id='foe_obj%charge')
+      call foe_data_set_real(foe_obj,"charge",0.d0,1)
+      !!do iorb=1,orbs_KS%norbu
+      !!    call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)+orbs_KS%occup(iorb),1)
+      !!end do
+      !!if (nspin==2) then
+      !!    call foe_data_set_real(foe_obj,"charge",0.d0,2)
+      !!    do iorb=orbs_KS%norbu+1,orbs_KS%norb
+      !!         call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",2)+orbs_KS%occup(iorb),2)
+      !!    end do
+      !!end if
+      do ispin=1,nspin
+          call foe_data_set_real(foe_obj,"charge",charge(ispin),ispin)
+      end do
+      call foe_data_set_int(foe_obj,"evbounds_isatur",0)
+      call foe_data_set_int(foe_obj,"evboundsshrink_isatur",0)
+      call foe_data_set_int(foe_obj,"evbounds_nsatur",evbounds_nsatur)
+      call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",evboundsshrink_nsatur)
+      call foe_data_set_real(foe_obj,"fscale_lowerbound",fscale_lowerbound)
+      call foe_data_set_real(foe_obj,"fscale_upperbound",fscale_upperbound)
+      call foe_data_set_real(foe_obj,"tmprtr",tmprtr)
+    
+      call timing(iproc,'init_matrCompr','OF')
+    
+    
+    end subroutine init_foe
+
+
+    subroutine accuracy_of_chebyshev_expansion(npl, coeff, bounds, h, power)!func)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: npl
+      real(kind=8),dimension(npl),intent(in) :: coeff
+      real(kind=8),dimension(2),intent(in) :: bounds
+      real(kind=8),intent(in) :: h, power
+      !real(kind=8),external :: func
+
+      ! Local variables
+      integer :: is, ie, i, ipl
+      real(kind=8) :: x, xx, val_chebyshev, val_function, xxm1, xxm2, xxx, sigma, tau
+
+      sigma = 2.d0/(bounds(2)-bounds(1))
+      tau = (bounds(1)+bounds(2))/2.d0
+
+      is = nint(bounds(1)/h)
+      ie = nint(bounds(2)/h)
+      do i=is,ie
+          x = real(i,kind=8)*h
+          val_chebyshev = 0.5d0*coeff(1)*1.d0
+          xx = sigma*(x-tau)
+          val_chebyshev = val_chebyshev + coeff(2)*xx
+          xxm2 = 1.d0
+          xxm1 = xx
+          do ipl=3,npl
+              xx = sigma*(x-tau)
+              xxx = 2.d0*xx*xxm1 - xxm2
+              val_chebyshev = val_chebyshev + coeff(ipl)*xxx
+              xxm2 = xxm1
+              xxm1 = xx
+          end do
+          val_function = x**power
+          write(*,*) 'x, power, coeff(1), val_chebyshev, val_function', x, power, coeff(1), val_chebyshev, val_function
+      end do
+
+    end subroutine accuracy_of_chebyshev_expansion
+
+
+    !!pure function x_power(x, power)
+    !!  implicit none
+    !!  real(kind=8),intent(in) :: x
+    !!  real(kind=8),intent(in) :: power
+    !!  real(kind=8) :: x_power
+    !!  x_power = x**power
+    !!end function x_power
 
 
 end module foe_common

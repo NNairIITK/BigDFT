@@ -46,6 +46,8 @@ EXTRA_TESTDIRS = reformatcomplete \
 #\
 #	noortho
 
+EXTRALONG_TESTDIRS = largesystems
+
 
 EXTRA_DIST = 
 

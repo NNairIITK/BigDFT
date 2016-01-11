@@ -115,7 +115,7 @@ program mhgps
     call get_first_struct_file(mhgpsst,filename)
 
     if(mhgpsst%iproc==0) call print_logo_mhgps(mhgpsst)
-
+    if(mhgpsst%iproc==0) call print_input(uinp)
     !reset input and output positions of run
     call bigdft_get_run_properties(run,input_id=run_id,&
          naming_id=naming_id)
@@ -127,15 +127,11 @@ program mhgps
     !now read state of previous mhgps run (if present)
     call read_restart(mhgpsst,runObj)
 
-
     !options and run are not needed
     call dict_free(options)
     nullify(run)
 
     call init_state_properties(outs, bigdft_nat(runObj))
-
-
-    if(mhgpsst%iproc==0) call print_input(uinp)
 
     mhgpsst%nid = bigdft_nat(runObj) !s-overlap fingerprints
     
@@ -143,6 +139,9 @@ program mhgps
     hess     = f_malloc((/ 1.to.3*bigdft_nat(runObj),&
                 1.to.3*bigdft_nat(runObj)/),id='hess')
     eval  = f_malloc((/ 1.to.3*bigdft_nat(runObj)/),id='eval')
+    !LG: not sure that the workspace query is meaningful here as it depends on the matrix properties
+    !! and the hess matrix is empty here
+    !!better to put the maximum value suggested by the dsyev spec instead.
     call DSYEV('N','L',3*bigdft_nat(runObj),hess,3*bigdft_nat(runObj),eval,wd,-1,info)
     if (info.ne.0) stop 'info query'
     lwork=nint(wd(1))

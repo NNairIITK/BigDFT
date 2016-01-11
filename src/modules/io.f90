@@ -27,7 +27,6 @@ module io
   public :: read_dense_matrix
   public :: dist_and_shift
   public :: find_neighbours
-  public :: write_ccs_matrix
 
 
   contains
@@ -142,7 +141,8 @@ module io
     !> Write all my wavefunctions for fragments
     ! NB spin needs fixing!
     subroutine writemywaves_linear_fragments(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,coeff,&
-         dir_output,input_frag,ref_frags,linmat,methTransformOverlap,max_inversion_error,orthpar,num_neighbours)
+         dir_output,input_frag,ref_frags,linmat,methTransformOverlap,max_inversion_error,orthpar,&
+         num_neighbours,neighbour_cutoff)
       use module_types
       use module_atoms, only: astruct_dump_to_file, deallocate_atomic_structure, nullify_atomic_structure
       use module_base
@@ -170,6 +170,7 @@ module io
       real(kind=8),intent(in) :: max_inversion_error
       type(orthon_data),intent(in) :: orthpar
       integer, intent(in) :: num_neighbours
+      real(kind=8), intent(in) :: neighbour_cutoff
       !Local variables
       integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat
       integer :: jorb,jlr,isforb,isfat,ifrag,ifrag_ref,iforb,iiorb,iorbp,iiat,unitwf,ityp,iatt
@@ -349,7 +350,7 @@ module io
                map_frag_and_env = f_malloc((/orbs%norb,3/),id='map_frag_and_env')
 
                call find_neighbours(num_neighbours,at,rxyz,orbs,ref_frags(ifrag_ref),frag_map,&
-                    ntmb_frag_and_env,map_frag_and_env,.false.)
+                    ntmb_frag_and_env,map_frag_and_env,.false.,neighbour_cutoff)
                !full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)//'_env'
                full_filename=trim(dir_output)//trim(input_frag%label(ifrag_ref))//'_env'
                if (iproc==0) then
@@ -638,7 +639,8 @@ module io
 
    !> finds environment atoms and fills ref_frag%astruct_env accordingly
    !! also returns mapping array for fragment and environment
-   subroutine find_neighbours(num_neighbours,at,rxyz,orbs,ref_frag,frag_map,ntmb_frag_and_env,map_frag_and_env,closest_only)
+   subroutine find_neighbours(num_neighbours,at,rxyz,orbs,ref_frag,frag_map,ntmb_frag_and_env,map_frag_and_env,&
+        closest_only,cutoff)
       use module_fragments
       use module_types
       use module_atoms, only: deallocate_atomic_structure, nullify_atomic_structure
@@ -653,6 +655,7 @@ module io
       integer, intent(out) :: ntmb_frag_and_env
       integer, dimension(orbs%norb,3), intent(out) :: map_frag_and_env
       logical, intent(in) :: closest_only
+      real(kind=8), intent(in) :: cutoff
 
       !local variables
       integer :: iatnf, iat, ityp, iatf, iatt, num_before, num_after, jat, num_neighbours_tot, iorb
@@ -761,6 +764,18 @@ module io
          if (num_neighbours_type(ityp)==0 .and. (.not. closest_only)) cycle
          do iat=1,at%astruct%nat-ref_frag%astruct_frg%nat
             if (at%astruct%iatype(map_not_frag(ipiv(iat)))/=ityp .and. (.not. closest_only)) cycle
+
+            ! first apply a distance cut-off so that all neighbours are ignored beyond some distance (needed e.g. for defects)
+            if (abs(dist(ipiv(iat))) > cutoff) then
+               ! subtract the neighbours that we won't be including
+               !print*,'cut',ityp,iatt,num_neighbours_type(ityp),iatf,iat,dist(ipiv),cutoff,&
+               !     num_neighbours_tot,num_neighbours_tot - (num_neighbours_type(ityp) - iatt)
+               num_neighbours_tot = num_neighbours_tot - (num_neighbours_type(ityp) - iatt)
+               num_neighbours_type(ityp) = iatt
+               exit
+            end if
+            !print*,'iat',ityp,iatt,num_neighbours_type(ityp),iatf,iat,dist(ipiv),cutoff,num_neighbours_tot
+
             iatf=iatf+1
             iatt=iatt+1
             rxyz_frag_and_env(:,iatf+ref_frag%astruct_frg%nat) = rxyz_not_frag(:,ipiv(iat))
@@ -2265,8 +2280,8 @@ module io
               sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='SminusonehalfH%matrix_compr')
           ham_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='ham_large')
           tmp_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_large')
-          call transform_sparse_matrix_local(tmb%linmat%m, tmb%linmat%l, &
-               tmb%linmat%ham_%matrix_compr, ham_large, 'small_to_large')
+          call transform_sparse_matrix_local(tmb%linmat%m, tmb%linmat%l, 'small_to_large', &
+               smatrix_compr_in=tmb%linmat%ham_%matrix_compr, lmatrix_compr_out=ham_large)
           ! calculate S^-1/2
           call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, (/-2/), -1, &
                imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
@@ -2543,32 +2558,6 @@ module io
 
 
 
-    subroutine write_ccs_matrix(filename, nfvctr, nvctr, row_ind, col_ptr, mat_compr)
-      use module_base
-      implicit none
-      !Calling arguments
-      character(len=*),intent(in) :: filename
-      integer,intent(in) :: nfvctr !number of rows/columns
-      integer,intent(in) :: nvctr !number of non-zero elements
-      integer,dimension(nvctr),intent(in) :: row_ind
-      integer,dimension(nfvctr),intent(in) :: col_ptr
-      real(kind=8),dimension(nvctr),intent(in) :: mat_compr
-      ! Local variables
-      integer :: i, iunit
-
-      iunit = 99
-      call f_open_file(iunit, file=trim(filename), binary=.false.)
-
-      write(iunit,'(4(i0,1x))') nfvctr, nfvctr, nvctr, 0
-      write(iunit,'(100000(i0,1x))') (col_ptr(i),i=1,nfvctr),nvctr+1
-      write(iunit,'(100000(i0,1x))') (row_ind(i),i=1,nvctr)
-      do i=1,nvctr
-          write(iunit,'(es24.15)') mat_compr(i)
-      end do
-
-      call f_close(iunit)
-
-    end subroutine write_ccs_matrix
 
 
     subroutine write_partial_charges(atoms, charge_per_atom, write_gnuplot)

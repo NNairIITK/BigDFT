@@ -1418,6 +1418,11 @@
    foe_gap:
      COMMENT: Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
      default: False
+   nsigma:
+     COMMENT: Number of iterations (for each angular momentum l) to get an optimal sigma for the Gaussian used for the radial part of the function based on the multipoles.
+     DESCRIPTION: Warning -- The total number of iterations is nsigma**(lmax+1), so only use small values
+     default: 1
+     RANGE: [1,5]
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -1582,6 +1587,13 @@
                     Indicates how many neighbouring atoms should be written to frag_env.xyz  - only allow for a small number of neighbours
        RANGE: [0,4]
        default: 0
+     frag_neighbour_cutoff:
+       COMMENT: number of neighbours to output for each fragment
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+                    Distance (in bohr) beyond which neighbouring atoms are not included in frag_env.xyz
+       RANGE: [0,100]
+       default: 12.0d0
      cdft_lag_mult_init:
        COMMENT: CDFT initial value for Lagrange multiplier
        DESCRIPTION: |
@@ -1598,8 +1610,14 @@
      calc_dipole:
        DESCRIPTION: |
                     possible value: 1 logical
-                    Indicates whether the dipole moment should be calculated at the run or not
+                    Indicates whether the dipole moment should be calculated after the run or not
        COMMENT: calculate dipole
+       default: No
+     calc_quadrupole:
+       DESCRIPTION: |
+                    possible value: 1 logical
+                    Indicates whether the quadrupole moment should be calculated after the run or not
+       COMMENT: calculate quadrupole
        default: No
 # this is now an array!
      calc_pulay:

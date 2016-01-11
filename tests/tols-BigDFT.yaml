@@ -62,6 +62,7 @@ Keys to ignore:
  - psolver_groupsize
  - gps_method
  - solvent
+ - avg pot diff (actual/min)
  #- number of tasks
  #- IDs
  #- start / end
@@ -100,6 +101,7 @@ yaml_test:
    - Actual address of first element of ptr1
    - Predicted address for the starting point of ptr1
    - address of first element vs address of objects
+   - Timings for search
  Patterns to ignore:
    - errcode
    - Time
@@ -368,7 +370,7 @@ NLCC: &NLCCs
  Energies: 1.2e-10
  EKS: 5.9e-11
  Total electronic charge: 1.2e-11
- norm(P): 1.0e-10
+ norm(P): 2.0e-10
  GPa: 4.5e-11
 
 NLCC: &NLCCsnew
@@ -459,9 +461,11 @@ cleanup:
  ebs: 1.5e-9
  HOMO energy: 1.8e-10
  LUMO energy: 1.6e-10
- HOMO-LUMO gap (eV): 3.5e-9
- HOMO-LUMO gap (Ha): 1.3e-10
+ HOMO-LUMO gap (eV): 4.0e-9
+ HOMO-LUMO gap (Ha): 1.5e-10
  D eF: 1.1e-8
+ Pseudo Fermi level for occupations: 2.9e-10
+ Force Norm (Hartree/Bohr): 3.2e-10
 
 directmin:
  Patterns to ignore:
@@ -715,11 +719,11 @@ GEOPT-all_lbfgs:
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 4.3e-7
- guess for new ef: 2.5e-7
+ eF: 4.7e-7
+ guess for new ef: 4.7e-7
  Epot: 3.1e-10
  EH: 3.0e-10
- EXC: 3.1e-11
+ EXC: 4.1e-11
  EvXC: 4.1e-11
  Ekin: 1.1e-10
  charge diff: 7.1e-6
@@ -734,8 +738,8 @@ geopt_foe:
  Positions: 2.1e-9
  Omega: 1.2e-11
  Total charge: 1.3e-10
- guess for new ef: 4.2e-07
- trace(KS): 1.3e-10
+ guess for new ef: 4.7e-07
+ trace(KS): 1.4e-10
 
 geopt_diag:
  Epot: 1.1e-10
@@ -874,6 +878,8 @@ foe:
  guess for new ef: 4.2e-8
  D: 1.1e-10
  Energy (Hartree): 1.3e-10
+ norm(P): 1.1e-07
+ trace: 1.4e-11
 
 onlyhigh:
  Energies: 2.1e-9
@@ -943,14 +949,13 @@ experimentalfoe_long:
  mean kappa: 1.1e-4
  diff from idempotency: 1.1e-6
  delta out: 1.1e-10
- ebs_check: 4.3e-9
+ ebs_check: 4.72e-9
  diff: 1.3e-8
- ebs: 4.3e-9
+ ebs: 4.73e-9
  decay length of error function: 1.1e-5
- ebs: 2.1e-9
- relative diff: 3.3e-11
+ relative diff: 3.4e-11
  Energy (Hartree): 4.6e-10
- trace(KS): 2.5e-10
+ trace(KS): 2.72e-10
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -976,8 +981,8 @@ experimentalfoe_short:
  D: 1.1e-4
  decay length of error function: 1.1e-5
  Energy (Hartree): 6.1e-11
- ebs: 4.0e-11
- ebs_check: 3.9e-11
+ ebs: 4.1e-11
+ ebs_check: 4.0e-11
  trace(KS): 1.5e-11
 
 experimentalfoe_medium:
@@ -1175,13 +1180,18 @@ DIIShistory:
  multiplicator for the confinement: 5.4e-9
  Omega: 2.4e-8
  Total charge: 2.01e-11
- Locreg:
+ mean conf prefac: 1.01e-04
+ Energy (Hartree): 5.05e-11
+
+
+Locreg:
  EH: 2.0e-8
  Pulay forces (Ha/Bohr): 7.8e-09
  Max deviation from unity in reorthonormalize_coeff: 1.1e-9
  Energy (Hartree): 1.3e-10
  Force Norm (Hartree/Bohr): 1.79e-10
  mean conf prefac: 1.0e-04
+ norm(P): 1.0e-9
 
 sparsity:
  Total charge: 1.1e-10
@@ -1215,7 +1225,7 @@ PBE_densmixlin:
  EH: 1.0e-9
  Total charge: 2.1e-11
  Energy (Hartree): 4.8e-11
- fnrm2: 1.101e-11
+ fnrm2: 1.401e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1252,7 +1262,7 @@ PBE_potmixdiis:
  Enl: 2.2e-9
  Total charge: 2.1e-11
  multiplicator for the confinement: 4.3e-8
- Energy (Hartree): 2.4e-9
+ Energy (Hartree): 2.6e-9
  Force Norm (Hartree/Bohr): 5.4e-10
 
 PBE_densmixdiis:
@@ -1317,7 +1327,8 @@ geoptconstrained_SDCG:
  ebs: 7.8e-11
  Ion-Ion interaction energy: 2.3e-10
  Atomic structure: 3.1e-9
- trace(KS): 1.5e-11
+ trace(KS): 1.53e-11
+ Total charge: 2.1e-11
 
 O2spin_diag:
  Atomic Forces (Ha/Bohr): 2.8e-7
@@ -1375,26 +1386,26 @@ O2spin_dirmin:
  Raw forces norm (Ha/Bohr): 9.3e-5
  Electric Dipole Moment (AU): 2.4e-5
  Electric Dipole Moment (Debye): 2.62e-5
- eBS: 8.03e-6
+ eBS: 9.59e-6
  fnrm2: 9.9e-5
- EH: 1.39e-5
+ EH: 1.65e-5
  EXC: 5.6e-6
  Ekin: 8.5e-6
  Enl: 1.9e-7
  Epot: 1.56e-5
  EvXC: 6.0e-6
  energydiff: 6.0e-6
- energy: 1.69e-6
+ energy: 1.96e-6
  fnrm: 1.1e-5
  Energy (Hartree): 1.68e-6
  Omega: 6.1e-6
  D: 1.1e-4
- DIIS weights: 4.101
+ DIIS weights: 4.81
  Max deviation from unity in reorthonormalize_coeff: 1.1e-6
  Mean deviation from unity in reorthonormalize_coeff: 1.1e-7
  delta: 1.1e-10
  delta out: 1.1e-10
- Force Norm (Hartree/Bohr): 2.26e-5
+ Force Norm (Hartree/Bohr): 2.76e-5
 
 verysparse:
  Total charge: 2.3e-8
@@ -1484,7 +1495,7 @@ FF_LENOSKY-sqnm:
 FF_LENOSKY-lbfgs:
   FORCES norm(Ha/Bohr): 9.01e-6
   Forces: 1.e-4
-  etot: 6.2e-6
+  etot: 6.43e-6
   maxval: 1.1e-5
   Alpha: 0.00101
   Keys to ignore:
@@ -1569,14 +1580,15 @@ periodic_silicon:
  Enl: 1.1e-9
  EXC: 1.1e-10
  Omega: 9.5e-11
- ebs_check: 1.1e-10
- charge diff: 5.0e-10
- ebs: 1.2e-10
+ ebs_check: 1.31e-10
+ charge diff: 6.3e-10
+ ebs: 1.34e-10
  Energy (Hartree): 3.15e-11
  energy: 3.15e-11
  Total ionic charge: 6.7e-11
  Pressure: 1.5e-10
  D Tr: 1.0e-9
+ trace: 2.65e-10
 
 periodic_wateredge:
  Epot: 1.1e-9
@@ -1619,7 +1631,8 @@ periodic_water:
  Clean forces norm (Ha/Bohr): 1.9e-11
  Total charge: 2.1e-10
  Ion-Ion interaction energy: 1.6e-11
- Force Norm (Hartree/Bohr): 1.42e-11
+ Force Norm (Hartree/Bohr): 1.48e-11
+ fnrm2: 1.92e-11
 
 surface_boronnitride:
  Enl: 1.01e-9
@@ -1630,7 +1643,7 @@ surface_boronnitride:
  Total charge: 1.0e-10
  Total ionic charge: 4.2e-11
  Clean forces norm (Ha/Bohr): 1.3e-11
- fnrm2: 1.2e-11
+ fnrm2: 1.3e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1650,7 +1663,8 @@ surface_graphene:
  Total ionic charge: 1.2e-11
  Energy (Hartree): 2.5e-11
  Total charge: 1.1e-10
- energy: 1.2e-11
+ energy: 2.0e-11
+ trace: 2.51e-10
  
 dev.ref.yaml:
  Epot: 1.1e-10
@@ -1668,7 +1682,7 @@ multipoles_OH-:
  multiplicator for the confinement: 1.7e-9
  Epot: 1.3e-10
  EH: 2.1e-10
- Ekin: 7.0e-11
+ Ekin: 1.1e-10
  Charge analysis (charge / net charge): 6.8e-8
  EXC: 2.1e-11
  EvXC: 3.1e-11
@@ -1688,26 +1702,28 @@ multipoles_OH-:
 
 multipoles_water:
  Ekin: 1.1e-10
- EXC: 2.1e-11
+ EXC: 3.1e-11
  Epot: 2.1e-10
- EvXC: 3.1e-11
- eF: 3.9e-8
- guess for new ef: 4.0e-8
+ EvXC: 4.1e-11
+ eF: 2.2e-7
+ guess for new ef: 2.2e-7
  number of corrected points: 17
  multiplicator for the confinement: 1.8e-10
- EH: 1.1e-10
- D eF: 2.0e-8
- ebs_check: 1.2e-10
- ebs: 1.2e-10
- D Tr: 3.1e-11
- Total charge: 1.4e-11
- charge diff: 3.2e-11
+ EH: 2.1e-10
+ D eF: 2.7e-7
+ ebs_check: 1.5e-10
+ ebs: 1.6e-10
+ D Tr: 5.8e-10
+ Total charge: 2.1e-11
+ charge diff: 5.9e-10
  number of corrected points: 17.0
  total charge correction: 8.6e-11
- trace(KS): 1.4e-11
+ trace(KS): 2.1e-11
  Unitary check of the multipole calculations: 2.1e-2
  number of corrected points: 20
-
+ Tr(K): 1.1e-09
+ diff: 8.7-11
+ relative diff: 2.4e-11
 
 multipoles_CH4:
  Atomic Forces (Ha/Bohr): 1.5e-11
@@ -1741,6 +1757,7 @@ multipoles_CH4:
  number of corrected points: 27.0
  eval: 1.1e-8
  Unitary check of the multipole calculations: 9.1e-2
+ avg pot diff (actual/min): 1.0e-04
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
@@ -1758,7 +1775,7 @@ igortho_19:
  Energy (Hartree): 2.4e-9
  Multipole coefficients: 1.1e-6
  Charge analysis (charge / net charge): 4.1e-7
- Pseudo Fermi level for occupations: 3.74e-8
+ Pseudo Fermi level for occupations: 3.97e-8
  net charge: 1.1e-8
  Average noise forces: 7.8e-7
  eF: 3.7e-5
@@ -1785,7 +1802,7 @@ igortho_19:
  D: 4.1e-8
  Tr(K): 1.7e-8
  total charge correction: 1.5e-11
- multiplicator for the confinement: 3.13e-11
+ multiplicator for the confinement: 4.3e-11
  radius for normalization: 1.1e-2
  Force Norm (Hartree/Bohr): 3.91e-8
 
@@ -1830,6 +1847,7 @@ igortho_44:
  Force Norm (Hartree/Bohr): 9.3e-7
  Unitary check of the multipole calculations: 1.0e-2
  Multipole coefficients: 1.6e-6
+ avg pot diff (actual/min): 0.95
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1874,7 +1892,7 @@ igortho_94:
  number of corrected points: 116
  delta: 4.1e-11
  radius for normalization: 1.1e-2
- multiplicator for the confinement: 3.97e-11
+ multiplicator for the confinement: 4.38e-11
  Force Norm (Hartree/Bohr): 3.7e-8
 
 extendedfrags_nofrags:
@@ -1972,7 +1990,7 @@ Cavity_H2OfrigidPCG:
  Average noise forces: 6.01e-8
  Integral of the density in the nonvacuum region: 3.6e-8
  Ekin: 1.66e-07
- Total electronic charge: 1.48e-09
+ Total electronic charge: 1.53e-09
  beta: 0.00011
  norm(P): 1.01e-6
  ratio: 1.01e-05
@@ -2041,3 +2059,69 @@ counterions:
   Epot: 1.1e-10
   EvXC: 1.1e-10
   Ekin: 1.1e-10
+
+largesystems_dnalarge:
+  D Tr: 1.1e-07
+  D eF: 1.1e-9
+  EXC: 2.1e-8
+  Ekin: 1.1e-07
+  Energy (Hartree): 2.4e-10
+  Epot: 3.1e-07
+  EvXC: 4.1e-08
+  Enl: 1.1e-8
+  Force Norm (Hartree/Bohr): 6.8e-11
+  Omega: 9.4e-10
+  Pseudo Fermi level for occupations: 1.1e-9
+  charge diff: 6.5e-08
+  diff: 4.6e-09
+  eF: 2.1e-10
+  ebs: 3.4e-07
+  ebs_check: 3.5e-07
+  energy: 9.4e-10
+  eval: 1.1e-06
+  fnrm2: 1.8e-10
+  guess for new ef: 1.1e-9
+  multiplicator for the confinement: 5.7e-09
+  net charge: 1.1e-05
+  occ: 1.1e-5
+  q0: 1.1e-08
+  q1: 1.1e-07
+  q2: 1.1e-07
+  total net charge: 2.0e-06
+  trace of quadropole matrix: 1.4e-06
+  Charge analysis (charge / net charge): 2.4e-8
+  Atomic Forces (Ha/Bohr): 5.5e-11
+  Delta r: 1.1e-8
+  r: 3.7e-11
+  HOMO-LUMO gap (eV): 2.1e-11
+
+largesystems_dnawater:
+  total net charge: 2.9e-07
+  Charge analysis (charge / net charge): 1.7e-1
+  Omega: 4.1e-11
+  Pseudo Fermi level for occupations: 3.5e-8
+  eval: 1.1e-5
+  net charge: 1.1e-6
+  Ion-Ion interaction energy: 3.1e-11
+  D: 1.0e-10
+  D Tr: 1.2e-08
+  D eF: 1.1e-08
+  Delta r: 1.0e-9
+  Energy (Hartree): 3.37e-11
+  EvXC: 1.0e-08
+  HOMO-LUMO gap (Ha): 6.9e-11
+  HOMO-LUMO gap (eV): 1.9e-09
+  LUMO energy: 6.9e-11
+  PV (Ha): 2.2e-11
+  charge diff: 1.2e-08
+  eF: 4.4e-09
+  ebs: 1.1e-10
+  ebs_check: 1.1e-10
+  energy: 4.1e-11
+  guess for new ef: 4.5e-09
+  multiplicator for the confinement: 4.9e-10
+  occ: 1.1e-07
+  trace of quadropole matrix: 1.2e-08
+  trace(KS): 1.2e-11
+  Keys to ignore:
+    - atom

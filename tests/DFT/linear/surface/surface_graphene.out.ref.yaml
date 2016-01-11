@@ -82,7 +82,8 @@
    gnrm_cv_virt                        : 1.e-4 #  convergence criterion gradient for virtual orbitals
    itermax_virt                        : 50 #     Max. iterations of wfn. opt. steps for virtual orbitals
    disablesym                          : No #     Disable the symmetry detection
-   external_potential                  : 0.0 #    Multipole moments of an external potential
+   external_potential: 
+     values                            : __not_a_value__
    calculate_strten                    : Yes #    Boolean to activate the calculation of the stress tensor. Might be set to No for 
     #                                              performance reasons
  perf:
@@ -1057,6 +1058,12 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -6.0728E+02, -1.3204E+00, -4.5245E+02 ]
    norm(P)                             :  7.572997E+02
+ Quadrupole Moment (AU):
+   Q matrix:
+   -  [ -1.3325E+02, -1.1909E-01,  1.5445E+03 ]
+   -  [ -1.1909E-01, -2.4445E+02,  1.9910E-01 ]
+   -  [  1.5445E+03,  1.9910E-01,  3.7770E+02 ]
+   trace                               :  1.54E-09
  Calculate local forces                :  Yes
  Calculate NLCC forces                 :  Yes
  Calculate Non Local forces            :  Yes

@@ -1632,7 +1632,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
   if (any(sum(nvctr_par,dim=1) /= [orbs%norbu,orbs%norbd])) &
        call f_err_throw('Error in orbital repartition'+yaml_toa(iproc)+';'+yaml_toa(sum(nvctr_par,dim=1)),&
        err_name='BIGDFT_RUNTIME_ERROR')
-  call OP2P_unitary_test(bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nvctr_par,.true.)
+  call OP2P_unitary_test(bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nvctr_par,symmetric)
 
 
   !here we can start with the round-robin scheme
