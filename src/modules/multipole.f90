@@ -122,16 +122,17 @@ module multipole
 
     !> Calculate the external potential arising from the multipoles of the charge density
     subroutine potential_from_charge_multipoles(iproc, nproc, at, denspot, ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, &
-               verbosity, pot, lzd, rxyz, dipole_total, quadrupole_total, all_norms_ok)
+               verbosity, ixc, pot, lzd, rxyz, dipole_total, quadrupole_total, all_norms_ok)
       use module_types, only: DFT_local_fields, local_zone_descriptors
       use Poisson_Solver, except_dp => dp, except_gp => gp
       use module_atoms, only: atoms_data
       use bounds, only: ext_buffers
       use yaml_output
+      use io, only: plot_density
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, verbosity
+      integer,intent(in) :: iproc, nproc, verbosity, ixc
       type(atoms_data),intent(in) :: at
       type(DFT_local_fields),intent(inout) :: denspot
       type(external_potential_descriptors),intent(in) :: ep
@@ -158,22 +159,24 @@ module multipole
       logical,dimension(:),allocatable :: norm_ok
       real(kind=8),parameter :: norm_threshold = 1.d-2
       real(kind=8),dimension(0:lmax) :: max_error
-      integer :: ixc
+      integer :: ixc_tmp, nzatom, npspcode
       integer :: nbl1, nbl2, nbl3, nbr1, nbr2, nbr3, n3pi, i3s, lmax_avail
-      integer,dimension(:),allocatable :: nzatom, nelpsp, npspcode
-      real(gp),dimension(:,:,:),allocatable :: psppar
-      logical :: exists, perx, pery, perz, found, found_non_associated
+      integer,dimension(:),allocatable :: nelpsp, psp_source
+      real(gp),dimension(0:4,0:6) :: psppar
+      logical :: exists, perx, pery, perz, found, found_non_associated, written
       logical,parameter :: use_iterator = .false.
       real(kind=8) :: cutoff, rholeaked, hxh, hyh, hzh, rx, ry, rz, qq, ttl, sig
       real(kind=8),dimension(3) :: center
-      integer :: n1i, n2i, n3i, itype
-      integer :: nmpx, nmpy, nmpz, ndensity, izion, ioffset, ishift
+      integer :: n1i, n2i, n3i, itype, ntype
+      integer :: nmpx, nmpy, nmpz, ndensity, izion, ioffset, ishift, iat
       real(dp), dimension(:), allocatable  :: mpx,mpy,mpz
       real(kind=8),dimension(:),allocatable :: rmax
       !real(kind=8),parameter :: rmin=3.d-1
-      real(kind=8) :: rmin, rloc
+      real(kind=8) :: rmin
+      real(kind=8),dimension(:),allocatable :: rloc
       integer,dimension(0:lmax) :: error_meaningful
       character(len=20),dimension(0:lmax) :: output_arr
+      real(kind=8),dimension(:,:),allocatable :: rxyz_noshift
       !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
       call f_routine(id='potential_from_charge_multipoles')
@@ -257,6 +260,7 @@ module multipole
           ! Get the parameters for each multipole, required to compensate for the pseudopotential part
           !nzatom = f_malloc(ep%nmpl,id='nzatom')
           nelpsp = f_malloc(ep%nmpl,id='nelpsp')
+          rloc = f_malloc(ep%nmpl,id='rloc')
          perx = (denspot%dpbox%geocode /= 'F')
          pery = (denspot%dpbox%geocode == 'P')
          perz = (denspot%dpbox%geocode /= 'F')
@@ -273,8 +277,19 @@ module multipole
          call ext_buffers(perz,nbl3,nbr3)
          !write(*,*) 'ep%nmpl, n1i, n2i, n3i', ep%nmpl, n1i, n2i, n3i
     
+    
+    
+    
+         ! Generate the density that comes from the pseudopotential atoms
+         ndensity = (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1)
+         psp_source = f_malloc(ep%nmpl,id='psp_source')
+         do impl=1,ep%nmpl
+             ! Search the rloc and zion of the corresponding pseudopotential
+             call get_psp_info(trim(ep%mpl(impl)%sym), ixc, at, nelpsp(impl), psp_source(impl), rloc(impl))
+         end do
+
          !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
-         cutoff=10.0_gp*maxval(at%psppar(0,0,:))
+         cutoff=10.0_gp*maxval(rloc(:))
          if (at%multipole_preserving) then
             !We want to have a good accuracy of the last point rloc*10
             cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
@@ -286,31 +301,10 @@ module multipole
          mpx = f_malloc( (/ 0 .to. nmpx /),id='mpx')
          mpy = f_malloc( (/ 0 .to. nmpy /),id='mpy')
          mpz = f_malloc( (/ 0 .to. nmpz /),id='mpz')
-    
-    
-    
-         ! Generate the density that comes from the pseudopotential atoms
-         ndensity = (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1)
+
          do impl=1,ep%nmpl
              ! Search the rloc and zion of the corresponding pseudopotential
-             found = .false.
-             search_loop: do itype=1,at%astruct%ntypes
-                 !write(*,*) 'trim(ep%mpl(impl)%sym), trim(at%astruct%atomnames(itype))',&
-                 !            trim(ep%mpl(impl)%sym), trim(at%astruct%atomnames(itype))
-                 if (trim(ep%mpl(impl)%sym)==trim(at%astruct%atomnames(itype))) then
-                     rloc = at%psppar(0,0,itype)
-                     !izion = at%nelpsp(itype)
-                     nelpsp(impl) = at%nelpsp(itype)
-                     found = .true.
-                     exit search_loop
-                 end if
-             end do search_loop
-             if (.not.found) then
-                 call f_err_throw('No PSP available for external multipole type '//trim(ep%mpl(impl)%sym), &
-                      err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-             end if
-             ! Only do this if the norm of tha Gaussian is ok; otherwise the analytic
-             ! expression using the net monopole is used.
+             call get_psp_info(trim(ep%mpl(impl)%sym), ixc, at, nelpsp(impl), psp_source(impl), rloc(impl))
              if(norm_ok(impl)) then
                  ! The following routine needs the shifted positions
                  rx = ep%mpl(impl)%rxyz(1) - shift(1)
@@ -318,7 +312,7 @@ module multipole
                  rz = ep%mpl(impl)%rxyz(3) - shift(3)
                  call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, &
                       rx, ry, rz, &
-                      rloc, nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
+                      rloc(impl), nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
                       denspot%dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, ndensity, density_cores, rholeaked)
              end if
          end do
@@ -503,6 +497,31 @@ module multipole
           end do
           !$omp end do
           !$omp end parallel
+
+          ! Write the PSP info
+          if (verbosity> 0 .and. iproc==0) call write_psp_source(ep, psp_source)
+          !!ntype = 0
+          !!do impl=1,ep%nmpl
+          !!    ! Check whether the info for this type has already been written
+          !!    written = .false.
+          !!    do itype=1,ntype
+          !!        if (trim(ep%mpl(impl)%sym)==trim(multipole_type_names(itype))) then
+          !!            written = .true.
+          !!            exit
+          !!        end if
+          !!    end do
+          !!    if (.not. written) then
+          !!        ntype = ntype + 1
+          !!        if (ntype>nmax_multipole_types) call f_err_throw('More than 5000 different multipole types are not allowed')
+          !!        multipole_type_names(ntype) = trim(ep%mpl(impl)%sym)
+          !!        if (psp_source(impl)==0) then
+          !!            call yaml_map(trim(ep%mpl(impl)%sym),'PSP of QM region')
+          !!        else if (psp_source(impl)==1) then 
+          !!            call yaml_map(trim(ep%mpl(impl)%sym),'built-in PSP')
+          !!        end if
+          !!    end if
+          !!end do
+          call f_free(psp_source)
     
           if ((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1) > 0) then
              do ithread=0,nthread-1
@@ -688,33 +707,40 @@ module multipole
           call f_free(norm_ok)
     
     
-!!  UNCOMMENT FOR TEST          ii = 0
-!!  UNCOMMENT FOR TEST          do i3=is3,ie3
-!!  UNCOMMENT FOR TEST              ii3 = i3 - 15
-!!  UNCOMMENT FOR TEST              do i2=is2,ie2
-!!  UNCOMMENT FOR TEST                  ii2 = i2 - 15
-!!  UNCOMMENT FOR TEST                  do i1=is1,ie1
-!!  UNCOMMENT FOR TEST                      ii1 = i1 - 15
-!!  UNCOMMENT FOR TEST                      ii = ii + 1
-!!  UNCOMMENT FOR TEST                      write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
-!!  UNCOMMENT FOR TEST                      !do impl=1,ep%nmpl
-!!  UNCOMMENT FOR TEST                      !    r(1) = ep%mpl(impl)%rxyz(1) - x
-!!  UNCOMMENT FOR TEST                      !    r(2) = ep%mpl(impl)%rxyz(2) - y
-!!  UNCOMMENT FOR TEST                      !    r(3) = ep%mpl(impl)%rxyz(3) - z 
-!!  UNCOMMENT FOR TEST                      !    rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
-!!  UNCOMMENT FOR TEST                      !    rnrm1 = sqrt(rnrm2)
-!!  UNCOMMENT FOR TEST                      !    tt = spherical_harmonic(l, m, x, y, z)*gaussian(sigma, rnrm1)
-!!  UNCOMMENT FOR TEST                      !    density(i1,i2,i3) =+ tt
-!!  UNCOMMENT FOR TEST                      !    !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
-!!  UNCOMMENT FOR TEST                      !end do
-!!  UNCOMMENT FOR TEST                  end do
-!!  UNCOMMENT FOR TEST              end do
-!!  UNCOMMENT FOR TEST          end do
+          ii = 0
+          do i3=is3,ie3
+              ii3 = i3 - 15
+              do i2=is2,ie2
+                  ii2 = i2 - 15
+                  do i1=is1,ie1
+                      ii1 = i1 - 15
+                      ii = ii + 1
+                      !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+                      write(300+iproc,'(3(a,i6),a,es18.8)') 'i1= ',i1,' i2= ',i2,' i3= ',i3,' val= ',density(i1,i2,i3)
+                      !do impl=1,ep%nmpl
+                      !    r(1) = ep%mpl(impl)%rxyz(1) - x
+                      !    r(2) = ep%mpl(impl)%rxyz(2) - y
+                      !    r(3) = ep%mpl(impl)%rxyz(3) - z 
+                      !    rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
+                      !    rnrm1 = sqrt(rnrm2)
+                      !    tt = spherical_harmonic(l, m, x, y, z)*gaussian(sigma, rnrm1)
+                      !    density(i1,i2,i3) =+ tt
+                      !    !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
+                      !end do
+                  end do
+              end do
+          end do
+          rxyz_noshift = f_malloc((/3,at%astruct%nat/),id='rxyz_noshift')
+          do iat=1,at%astruct%nat
+              rxyz_noshift(1:3,iat) = at%astruct%rxyz(1:3,iat) - shift(1:3)
+          end do
+          call plot_density(iproc,nproc,'test.cube',at,rxyz_noshift,denspot%pkernel,nspin=1,rho=density)!,ixyz0=(/1,2,3/))
     
           call f_free(density)
           call f_free(density_cores)
           !call f_free(nzatom)
           call f_free(nelpsp)
+          call f_free(rloc)
           !call f_free(npspcode)
           !call f_free(psppar)
 
@@ -1201,6 +1227,7 @@ module multipole
       logical :: gox, goy, goz
     
       call f_routine(id='gaussian_density')
+
     
       !rloc=at%psppar(0,0,atit%ityp)
       rlocinv2sq=0.5_gp/rloc**2
@@ -1690,7 +1717,7 @@ module multipole
 
     subroutine multipole_analysis_driver(iproc, nproc, ll, nphi, lphi, nphir, at, hgrids, &
                orbs, smats, smatm, smatl, collcom, collcom_sr, lzd, denspot, orthpar, ovrlp, ham, kernel, rxyz, &
-               method, shift, nsigma, ep)
+               method, shift, nsigma, ixc, ep)
       use module_base
       use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, orthon_data, DFT_local_fields, comms_linear
       use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, sparsematrix_malloc0, assignment(=), &
@@ -1705,7 +1732,7 @@ module multipole
                                 deallocate_external_potential_descriptors
       implicit none
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, ll, nphi, nphir, nsigma
+      integer,intent(in) :: iproc, nproc, ll, nphi, nphir, nsigma, ixc
       real(kind=8),dimension(3) :: hgrids
       type(atoms_data),intent(in) :: at
       type(orbitals_data),intent(in) :: orbs
@@ -1906,7 +1933,7 @@ module multipole
       end do
 
       ! Calculate the optimal sigmas
-      call get_optimal_sigmas(iproc, nproc, nsigma, collcom_sr, smatl, kernel, at, lzd, ep, shift, rxyz, denspot)
+      call get_optimal_sigmas(iproc, nproc, nsigma, collcom_sr, smatl, kernel, at, lzd, ep, shift, rxyz, ixc, denspot)
 
       if (iproc==0) then
           call yaml_comment('Final result of the multipole analysis',hfill='~')
@@ -1948,7 +1975,7 @@ module multipole
                denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+&
                denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
                denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), &
-               shift, verbosity=0, pot=test_pot, &
+               shift, verbosity=0, ixc=ixc, pot=test_pot, &
                lzd=lzd, rxyz=rxyz, dipole_total=dipole_check, quadrupole_total=quadrupole_check, &
                all_norms_ok=all_norms_ok)
           if (.not. all_norms_ok) then
@@ -3708,7 +3735,7 @@ module multipole
  end subroutine support_function_gross_multipoles
 
 
- subroutine get_optimal_sigmas(iproc, nproc, nsigma, collcom_sr, smatl, kernel_, at, lzd, ep, shift, rxyz, denspot)
+ subroutine get_optimal_sigmas(iproc, nproc, nsigma, collcom_sr, smatl, kernel_, at, lzd, ep, shift, rxyz, ixc, denspot)
    use module_base
    use module_types, only: DFT_wavefunction, input_variables, DFT_local_fields, comms_linear, DFT_local_fields, &
                            local_zone_descriptors
@@ -3719,7 +3746,7 @@ module multipole
    use yaml_output
    implicit none
    ! Calling arguments
-   integer,intent(in) :: iproc, nproc, nsigma
+   integer,intent(in) :: iproc, nproc, nsigma, ixc
    type(comms_linear),intent(inout) :: collcom_sr
    type(sparse_matrix),intent(in) :: smatl
    type(matrices),intent(in) :: kernel_
@@ -3735,13 +3762,15 @@ module multipole
    real(kind=8) :: ehart_ps, diff, tt, diff_min, diff_dipole, diff_dipole_min, rdim
    !integer,parameter :: nsigma=3
    real(kind=8),parameter :: step=0.20d0
-   integer :: i1, i2, i3, isigma0, isigma1, isigma2, impl, ixc, l
+   integer :: i1, i2, i3, isigma0, isigma1, isigma2, impl, l
    integer :: nzatom, nelpsp, npspcode, itype, ioffset, ishift
    real(gp),dimension(0:4,0:6) :: psppar
    real(kind=8),dimension(:,:),allocatable :: sigmax
    real(kind=8),dimension(0:lmax) :: factor, factorx, factor_min
    real(kind=8),dimension(:),allocatable :: rhov_orig
    real(kind=8),dimension(3) :: dipole_exact, dipole_trial
+   real(kind=8) :: rloc
+   integer,dimension(:),allocatable :: psp_source
 
    call f_routine(id='get_optimal_sigmas')
 
@@ -3789,6 +3818,7 @@ module multipole
 
    ! Get an initial guess for the sigmas (use rloc from the pseudopotential)
    sigmax = f_malloc((/0.to.lmax,1.to.ep%nmpl/),id='sigmax')
+   psp_source = f_malloc(ep%nmpl,id='psp_source')
    do impl=1,ep%nmpl
        !ixc = 1
        !if (iproc==0) then
@@ -3801,19 +3831,23 @@ module multipole
        !end if
        !ep%mpl(impl)%sigma(0:lmax) = psppar(0,0)-min(0.9d0,step*real(nsigma/2,kind=8))*psppar(0,0)
        !sigmax(0:lmax,impl) = psppar(0,0)
-       found = .false.
-       search_loop: do itype=1,at%astruct%ntypes
-           if (trim(ep%mpl(impl)%sym)==trim(at%astruct%atomnames(itype))) then
-               sigmax(0:lmax,impl) = 1.0d0*at%psppar(0,0,itype)
-               found = .true.
-               exit search_loop
-           end if
-       end do search_loop
-       if (.not.found) then
-           call f_err_throw('No PSP available for external multipole type '//trim(ep%mpl(impl)%sym), &
-                err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-       end if
+       !!found = .false.
+       !!search_loop: do itype=1,at%astruct%ntypes
+       !!    if (trim(ep%mpl(impl)%sym)==trim(at%astruct%atomnames(itype))) then
+       !!        sigmax(0:lmax,impl) = 1.0d0*at%psppar(0,0,itype)
+       !!        found = .true.
+       !!        exit search_loop
+       !!    end if
+       !!end do search_loop
+       !!if (.not.found) then
+       !!    call f_err_throw('No PSP available for external multipole type '//trim(ep%mpl(impl)%sym), &
+       !!         err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       !!end if
+       call get_psp_info(trim(ep%mpl(impl)%sym), ixc, at, nelpsp, psp_source(impl), rloc)
+       sigmax(0:lmax,impl) = 1.d0*rloc
    end do
+   if (iproc==0) call write_psp_source(ep, psp_source)
+   call f_free(psp_source)
 
    if (iproc==0) then
        call yaml_sequence_open('Determine optimal sigmas')
@@ -3846,7 +3880,7 @@ module multipole
                     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+&
                     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
                     denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), &
-                    shift, verbosity=0, pot=test_pot(:,:,:,2), &
+                    shift, verbosity=0, ixc=ixc, pot=test_pot(:,:,:,2), &
                     lzd=lzd, rxyz=rxyz, dipole_total=dipole_trial, all_norms_ok=all_norms_ok)
 
                if (all_norms_ok) then
@@ -4610,5 +4644,92 @@ end subroutine calculate_rpowerx_matrices
                   + rxyz(2)**2*rxyz(3)**2*ovrlp(j,i) )
 
   end function get_quartic_penalty
+
+
+  subroutine get_psp_info(sym, ixc, at, nelpsp, psp_source, rloc)
+    use module_base
+    use module_atoms, only: atoms_data
+    implicit none
+
+    ! Calling arguments
+    character(len=*),intent(in) :: sym
+    integer,intent(in) :: ixc
+    type(atoms_data),intent(in) :: at
+    integer,intent(out) :: nelpsp, psp_source
+    real(kind=8),intent(out) :: rloc
+
+    ! Local variables
+    integer :: itype, ixc_tmp, npspcode, nzatom
+    logical :: found, exists
+    real(gp),dimension(0:4,0:6) :: psppar
+
+    found = .false.
+    search_loop: do itype=1,at%astruct%ntypes
+        if (trim(sym)==trim(at%astruct%atomnames(itype))) then
+            rloc = at%psppar(0,0,itype)
+            nelpsp = at%nelpsp(itype)
+            found = .true.
+            psp_source = 0
+            exit search_loop
+        end if
+    end do search_loop
+    if (.not.found) then
+        ixc_tmp = ixc
+        call psp_from_data(trim(sym), nzatom, nelpsp, npspcode, ixc_tmp, psppar, exists)
+        if (exists) then
+            rloc = psppar(0,0)
+            found = .true.
+            psp_source = 1
+        end if
+    end if
+    if (.not.found) then
+        call f_err_throw('No PSP available for external multipole type '//trim(sym), &
+             err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+    end if
+  end subroutine get_psp_info
+
+
+  subroutine write_psp_source(ep, psp_source)
+    use module_base
+    use yaml_output
+    implicit none
+
+    ! Calling arguments
+    type(external_potential_descriptors),intent(in) :: ep
+    integer,dimension(ep%nmpl),intent(in) :: psp_source
+
+    ! Local variables
+    integer :: ntype, itype, impl
+    logical :: written
+    integer,parameter :: nmax_multipole_types = 5000
+    character(len=20),dimension(nmax_multipole_types) :: multipole_type_names
+
+
+    ntype = 0
+    call yaml_sequence_open('Origin of the PSP data')
+    do impl=1,ep%nmpl
+        ! Check whether the info for this type has already been written
+        written = .false.
+        do itype=1,ntype
+            if (trim(ep%mpl(impl)%sym)==trim(multipole_type_names(itype))) then
+                written = .true.
+                exit
+            end if
+        end do
+        if (.not. written) then
+            ntype = ntype + 1
+            if (ntype>nmax_multipole_types) call f_err_throw('More than 5000 different multipole types are not allowed')
+            multipole_type_names(ntype) = trim(ep%mpl(impl)%sym)
+            call yaml_sequence(advance='no')
+            if (psp_source(impl)==0) then
+                call yaml_map(trim(ep%mpl(impl)%sym),'PSP of QM region')
+            else if (psp_source(impl)==1) then 
+                call yaml_map(trim(ep%mpl(impl)%sym),'built-in PSP')
+            end if
+        end if
+    end do
+    call yaml_sequence_close()
+
+  end subroutine write_psp_source
 
 end module multipole

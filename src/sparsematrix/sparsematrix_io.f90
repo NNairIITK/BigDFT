@@ -39,7 +39,6 @@ module sparsematrix_io
     subroutine read_sparse_matrix(filename, nspin, geocode, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, &
                nat, ntypes, nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
       use module_base
-      use module_types
       implicit none
       
       ! Calling arguments
