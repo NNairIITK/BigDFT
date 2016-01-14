@@ -164,7 +164,8 @@ module multipole
       integer :: nbl1, nbl2, nbl3, nbr1, nbr2, nbr3, n3pi, i3s, lmax_avail
       integer,dimension(:),allocatable :: nelpsp, psp_source
       real(gp),dimension(0:4,0:6) :: psppar
-      logical :: exists, perx, pery, perz, found, found_non_associated, written
+      logical :: exists, found, found_non_associated, written
+      logical :: perx, pery, perz
       logical,parameter :: use_iterator = .false.
       real(kind=8) :: cutoff, rholeaked, hxh, hyh, hzh, rx, ry, rz, qq, ttl, sig
       real(kind=8),dimension(3) :: center
@@ -182,6 +183,11 @@ module multipole
       !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
       call f_routine(id='potential_from_charge_multipoles')
+
+      ! Conditions for periodicity
+      perx=(at%astruct%geocode /= 'F')
+      pery=(at%astruct%geocode == 'P')
+      perz=(at%astruct%geocode /= 'F')
 
       ! No need to do this if there are no multipoles given.
       multipoles_if: if (ep%nmpl>0) then
@@ -207,9 +213,9 @@ module multipole
           gaussians2 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is2.to.ie2/),id='gaussians2')
           gaussians3 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is3.to.ie3/),id='gaussians3')
 
-          call calculate_gaussian(is1, ie1, 1, hx, shift, ep, gaussians1)
-          call calculate_gaussian(is2, ie2, 2, hy, shift, ep, gaussians2)
-          call calculate_gaussian(is3, ie3, 3, hz, shift, ep, gaussians3)
+          call calculate_gaussian(is1, ie1, 1, perx, hx, shift, ep, gaussians1)
+          call calculate_gaussian(is2, ie2, 2, pery, hy, shift, ep, gaussians2)
+          call calculate_gaussian(is3, ie3, 3, perz, hz, shift, ep, gaussians3)
     
     
           norm = f_malloc((/0.to.2,1.to.ep%nmpl/),id='norm')
@@ -1576,12 +1582,13 @@ module multipole
 
       ! Local variables
       integer :: ist, istr, iorb, i1, i2, i3, ii1, ii2, ii3, iiorb, ind, ilr, i
+      integer :: i1mod, i2mod, i3mod, is1, ie1, is2, ie2, is3, ie3, ii, nd, nu
       real(kind=8),dimension(:),allocatable :: phi2r, sphi2r, sphi2, phi1t_c, phi1t_f, sphi2t_c, sphi2t_f
       real(kind=8) :: norm, rmax, factor_normalization, tt, x, y, z
       type(workarr_sumrho) :: w
       real(kind=8) :: ddot
       character(len=*),parameter :: sphere = 'sphere', box = 'box'
-      logical :: integrate_in_sphere
+      logical :: integrate_in_sphere, perx, pery, perz
 
 
       call f_routine(id='calculte_multipole_matrix')
@@ -1630,6 +1637,11 @@ module multipole
 
       !write(*,*) 'after daub_to_isf'
 
+      ! Conditions for periodicity
+      perx=(smat%geocode /= 'F')
+      pery=(smat%geocode == 'P')
+      perz=(smat%geocode /= 'F')
+
 
       ! Apply the spherical harmonic
       ist = 0
@@ -1645,18 +1657,74 @@ module multipole
           !            (lzd%llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-14-1)*0.5d0*hgrids(2), locregcenter(2,ilr)
           !write(*,*) 'xmin, xmax, locregcenter(1)',  (lzd%llr(ilr)%nsi1+1-14-1)*0.5d0*hgrids(1), &
           !            (lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-14-1)*0.5d0*hgrids(1), locregcenter(1,ilr)
+
+          ! Calculate the boundaries:
+          ! - free BC: entire box
+          ! - periodic BC: half of the box size, with periodic wrap around
+          if (.not.perx) then
+              is1 = 1
+              ie1 = lzd%llr(ilr)%d%n1i
+          else
+              nd = (lzd%llr(ilr)%d%n1i + 1)/2 - 1
+              nu = lzd%llr(ilr)%d%n1i - nd
+              write(*,*) 'nu, nd, lzd%llr(ilr)%d%n1i',nu, nd, lzd%llr(ilr)%d%n1i
+              if (nu+nd+1/=lzd%llr(ilr)%d%n1i+1) call f_err_throw('wrong values of nu and nd')
+              ii = nint(locregcenter(1,ilr)/(0.5d0*hgrids(1)))
+              is1 = ii - nd + 15
+              ie1 = ii + nu + 15
+          end if
+          if (.not.pery) then
+              is2 = 1
+              ie2 = lzd%llr(ilr)%d%n2i
+          else
+              nd = (lzd%llr(ilr)%d%n2i + 1)/2 - 1
+              nu = lzd%llr(ilr)%d%n2i - nd
+              if (nu+nd+1/=lzd%llr(ilr)%d%n2i+1) call f_err_throw('wrong values of nu and nd')
+              ii = nint(locregcenter(2,ilr)/(0.5d0*hgrids(2)))
+              is2 = ii - nd + 15
+              ie2 = ii + nu + 15
+          end if
+          if (.not.perz) then
+              is3 = 1
+              ie3 = lzd%llr(ilr)%d%n3i
+          else
+              nd = (lzd%llr(ilr)%d%n3i + 1)/2 - 1
+              nu = lzd%llr(ilr)%d%n3i - nd
+              if (nu+nd+1/=lzd%llr(ilr)%d%n3i+1) call f_err_throw('wrong values of nu and nd')
+              ii = nint(locregcenter(3,ilr)/(0.5d0*hgrids(3)))
+              is3 = ii - nd + 15
+              ie3 = ii + nu + 15
+          end if
+
+          !!write(*,*) 'perx', perx
+          !!write(*,*) 'pery', pery
+          !!write(*,*) 'perz', perz
+
+          write(*,*) 'iorb, is1, ie1, n1, is2, ie2, n2, is3, ie3, n3', &
+              iorb, is1, ie1, lzd%llr(ilr)%d%n1i, is2, ie2, lzd%llr(ilr)%d%n2i, is3, ie3, lzd%llr(ilr)%d%n3i
+
           norm = 0.d0
           factor_normalization = sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3))
-          do i3=1,lzd%llr(ilr)%d%n3i
+          do i3=is3,ie3
               ii3 = lzd%llr(ilr)%nsi3 + i3 - 14 - 1
               z = ii3*0.5d0*hgrids(3) - locregcenter(3,ilr)
-              do i2=1,lzd%llr(ilr)%d%n2i
+              i3mod = modulo(i3-1,lzd%llr(ilr)%d%n3i) + 1
+              do i2=is2,ie2
                   ii2 = lzd%llr(ilr)%nsi2 + i2 - 14 - 1
                   y = ii2*0.5d0*hgrids(2) - locregcenter(2,ilr)
-                  do i1=1,lzd%llr(ilr)%d%n1i
+                  i2mod = modulo(i2-1,lzd%llr(ilr)%d%n2i) + 1
+                  do i1=is1,ie1
                       ii1 = lzd%llr(ilr)%nsi1 + i1 - 14 - 1
                       x = ii1*0.5d0*hgrids(1) - locregcenter(1,ilr)
-                      ind = (i3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2-1)*lzd%llr(ilr)%d%n1i + i1
+                      i1mod = modulo(i1-1,lzd%llr(ilr)%d%n1i) + 1
+                      !write(bigdft_mpi%iproc+20,*) 'is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod', &
+                      !                              is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod
+                      ind = (i3mod-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2mod-1)*lzd%llr(ilr)%d%n1i + i1mod
+                      !ind = (i3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2-1)*lzd%llr(ilr)%d%n1i + i1
+                      !!if (i1/=i1mod .or. i2/=i2mod .or. i3/=i3mod) then
+                      !!    write(*,*) 'iproc, is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod', &
+                      !!                iproc, is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod
+                      !!end if
                       if (integrate_in_sphere) then
                           if (x**2+y**2+z**2>rmax**2) cycle
                       end if
@@ -1725,6 +1793,10 @@ module multipole
            phi1t_c, sphi2t_c, phi1t_f, sphi2t_f, smat, multipole_matrix)
       !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       !     phi1t_c, phi1t_c, phi1t_f, phi1t_f, smat, multipole_matrix)
+
+      do i=1,size(multipole_matrix%matrix_compr)
+          write(*,*) 'i, val', i, multipole_matrix%matrix_compr(i)
+      end do
 
       !write(*,*) 'after overlap'
 
@@ -3975,20 +4047,21 @@ module multipole
 
  end subroutine get_optimal_sigmas
 
- subroutine calculate_gaussian(is, ie, idim, hh, shift, ep, gaussian_array)
+ subroutine calculate_gaussian(is, ie, idim, periodic, hh, shift, ep, gaussian_array)
    use module_base
    use multipole_base, only: lmax, external_potential_descriptors
    implicit none
 
    ! Calling arguments
    integer,intent(in) :: is, ie, idim
+   logical,intent(in) :: periodic
    real(kind=8),intent(in) :: hh
    real(kind=8),dimension(3),intent(in) :: shift
    type(external_potential_descriptors),intent(in) :: ep
    real(kind=8),dimension(0:lmax,ep%nmpl,is:ie),intent(out) :: gaussian_array
 
    ! Local variables
-   integer :: i, ii, impl, l
+   integer :: i, ii, impl, l, isx, iex, n, imod, nn, nu, nd
    real(kind=8) :: x, tt, sig
 
    call f_routine(id='calculate_gaussian')
@@ -3997,24 +4070,43 @@ module multipole
    !    write(*,*) 'idim, shift(idim), ep%mpl(impl)%rxyz(idim)', idim, shift(idim), ep%mpl(impl)%rxyz(idim)
    !end do
 
-   !$omp parallel default(none) &
-   !$omp shared(is, ie, hh, shift, idim, ep, gaussian_array) &
-   !$omp private(i, ii, x, impl, tt, l, sig)
-   !$omp do
-   do i=is,ie
-       ii = i - 15
-       x = real(ii,kind=8)*hh + shift(idim)
-       do impl=1,ep%nmpl
+   call f_zero(gaussian_array)
+
+   !!!$omp parallel default(none) &
+   !!!$omp shared(is, ie, hh, shift, idim, ep, gaussian_array) &
+   !!!$omp private(i, ii, x, impl, tt, l, sig)
+   !!!$omp do
+   do impl=1,ep%nmpl
+       ! Calculate the boundaries of the Gaussian to be calculated. To make it simple, take always the maximum:
+       ! - free BC: entire box
+       ! - periodic BC: half of the box size, with periodic wrap around
+       if (.not.periodic) then
+           isx = is
+           iex = ie
+       else
+           nd = (is - is + 1)/2
+           nu = ie - is + 1 - nd
+           if (nu+nd+1/=ie-is+1) call f_err_throw('wrong values of nu and nd')
+           ii = nint(ep%mpl(impl)%rxyz(idim)/hh)
+           isx = ii - nd + 15
+           iex = ii + nu + 15
+       end if
+       !nn = iex - isx
+       do i=isx,iex
+           ii = i - 15
+           x = real(ii,kind=8)*hh + shift(idim)
            tt = x - ep%mpl(impl)%rxyz(idim)
            tt = tt**2
            do l=0,lmax
                sig = ep%mpl(impl)%sigma(l)
-               gaussian_array(l,impl,i) = gaussian(sig,tt)
+               imod = modulo(i-isx,ie-isx+1) + is
+               !write(bigdft_mpi%iproc+10,*) 'is, isx, ie, iex, i, imod', is, isx, ie, iex, i, imod
+               gaussian_array(l,impl,imod) = gaussian(sig,tt)
            end do
        end do
    end do
-   !$omp end do
-   !$omp end parallel
+   !!!$omp end do
+   !!!$omp end parallel
 
    call f_release_routine()
 
