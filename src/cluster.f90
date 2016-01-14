@@ -649,7 +649,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, verbosity=1, ixc=in%ixc, pot=denspot%V_ext, &
-       rxyz=rxyz)
+       rxyz=rxyz, ixyz0=in%plot_mppot_axes)
   call interaction_multipoles_ions(bigdft_mpi%iproc, in%ep, atoms, energs%eion, fion)
   !write(*,*) 'eion before', energs%eion
   call ionic_energy_of_external_charges(bigdft_mpi%iproc, in%ep, atoms, energs%eion)
@@ -1004,16 +1004,26 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   !plot the ionic potential, if required by output_denspot
   if (in%output_denspot == 'DENSPOT' .and. DoLastRunThings) then
-     if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
-     !if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
-     call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
-          atoms,rxyz,denspot%pkernel,1,denspot%V_ext)
-!!$     call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
-!!$          atoms,rxyz,denspot%dpbox,1,denspot%V_ext)
-     if (iproc == 0) call yaml_map('Writing local potential in file','local_potential'//gridformat)
-     !if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
-     call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
-          atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov)
+     if (any((/in%plot_pot_axes>=0/))) then
+         if (all((/in%plot_pot_axes>=0/))) then
+             if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
+             call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
+                  atoms,rxyz,denspot%pkernel,1,denspot%V_ext,ixyz0=in%plot_pot_axes)
+             if (iproc == 0) call yaml_map('Writing local potential in file','local_potential'//gridformat)
+             call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
+                  atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov,ixyz0=in%plot_pot_axes)
+         else
+             call f_err_throw('The coordinates of the point through which &
+                               &the potential shall be plotted must all be non-zero')
+         end if
+     else
+         if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
+         call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
+              atoms,rxyz,denspot%pkernel,1,denspot%V_ext)
+         if (iproc == 0) call yaml_map('Writing local potential in file','local_potential'//gridformat)
+         call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
+              atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov)
+     end if
   end if
 
 
@@ -1065,7 +1075,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           fxyz, fnoise, fion, fdisp, fpulay, &
           & strten, pressure, ewaldstr, xcstr, GPU, denspot, atoms, rxyz, nlpsp, &
           & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole, calculate_quadrupole, &
-          & in%calculate_strten,in%nspin)
+          & in%calculate_strten,in%nspin, in%plot_pot_axes)
 
      call f_free_ptr(fpulay)
   end if
@@ -2001,7 +2011,8 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      & strten, pressure, ewaldstr, xcstr, &
      & GPU, denspot, atoms, rxyz, nlpsp, &
      & output_denspot, dir_output, gridformat, refill_proj, &
-     & calculate_dipole, calculate_quadrupole, calculate_strten,nspin)
+     & calculate_dipole, calculate_quadrupole, calculate_strten,nspin, &
+     & plot_pot_axes)
   use module_base
   use module_types
   use module_interfaces, only: XC_potential, density_and_hpot
@@ -2034,6 +2045,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   real(gp), intent(out) :: fnoise, pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3, atoms%astruct%nat), intent(out) :: fxyz
+  integer,dimension(3),intent(in) :: plot_pot_axes
 
   !Local variables
   character(len = *), parameter :: subname = "kswfn_post_treatments"
@@ -2115,8 +2127,19 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   if (output_denspot /= ENUM_EMPTY) then
      if (iproc == 0) call yaml_map('Writing electronic density in file','electronic_density'//gridformat)
 
-     call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
-          atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%rho_work)
+     if (any((/plot_pot_axes>=0/))) then
+         if (all((/plot_pot_axes>=0/))) then
+             call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
+                  atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%rho_work, &
+                  ixyz0=plot_pot_axes)
+         else
+             call f_err_throw('The coordinates of the point through which &
+                               &the potential shall be plotted must all be non-zero')
+         end if
+     else
+         call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
+              atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%rho_work)
+     end if
 !---------------------------------------------------
 ! giuseppe fisicaro dilectric cavity
      if (denspot%pkernel%method /= 'VAC') then
@@ -2142,8 +2165,19 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   !plot also the electrostatic potential
   if (output_denspot == 'DENSPOT') then
      if (iproc == 0) call yaml_map('Writing Hartree potential in file','hartree_potential'//gridformat)
-     call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
-          atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pot_work)
+     if (any((/plot_pot_axes>=0/))) then
+         if (all((/plot_pot_axes>=0/))) then
+             call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
+                  atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pot_work, &
+                  ixyz0=plot_pot_axes)
+         else
+             call f_err_throw('The coordinates of the point through which &
+                               &the potential shall be plotted must all be non-zero')
+         end if
+      else
+         call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
+              atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pot_work)
+      end if
   end if
 
   !     !plot also the electrostatic potential

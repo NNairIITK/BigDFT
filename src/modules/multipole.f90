@@ -122,7 +122,7 @@ module multipole
 
     !> Calculate the external potential arising from the multipoles of the charge density
     subroutine potential_from_charge_multipoles(iproc, nproc, at, denspot, ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, &
-               verbosity, ixc, pot, lzd, rxyz, dipole_total, quadrupole_total, all_norms_ok)
+               verbosity, ixc, pot, lzd, rxyz, ixyz0, dipole_total, quadrupole_total, all_norms_ok)
       use module_types, only: DFT_local_fields, local_zone_descriptors
       use Poisson_Solver, except_dp => dp, except_gp => gp
       use module_atoms, only: atoms_data
@@ -142,6 +142,7 @@ module multipole
       real(gp),dimension(is1:ie1,is2:ie2,is3:ie3),intent(inout) :: pot
       type(local_zone_descriptors),intent(in),optional :: lzd
       real(kind=8),dimension(3,at%astruct%nat),intent(in),optional :: rxyz
+      integer,dimension(3),intent(in),optional :: ixyz0
       real(kind=8),dimension(3),intent(out),optional :: dipole_total
       real(kind=8),dimension(3,3),intent(out),optional :: quadrupole_total
       logical,intent(out),optional :: all_norms_ok
@@ -177,6 +178,7 @@ module multipole
       integer,dimension(0:lmax) :: error_meaningful
       character(len=20),dimension(0:lmax) :: output_arr
       real(kind=8),dimension(:,:),allocatable :: rxyz_noshift
+      integer,dimension(3) :: ixyz0_
       !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
       call f_routine(id='potential_from_charge_multipoles')
@@ -707,34 +709,50 @@ module multipole
           call f_free(norm_ok)
     
     
-          ii = 0
-          do i3=is3,ie3
-              ii3 = i3 - 15
-              do i2=is2,ie2
-                  ii2 = i2 - 15
-                  do i1=is1,ie1
-                      ii1 = i1 - 15
-                      ii = ii + 1
-                      !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
-                      write(300+iproc,'(3(a,i6),a,es18.8)') 'i1= ',i1,' i2= ',i2,' i3= ',i3,' val= ',density(i1,i2,i3)
-                      !do impl=1,ep%nmpl
-                      !    r(1) = ep%mpl(impl)%rxyz(1) - x
-                      !    r(2) = ep%mpl(impl)%rxyz(2) - y
-                      !    r(3) = ep%mpl(impl)%rxyz(3) - z 
-                      !    rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
-                      !    rnrm1 = sqrt(rnrm2)
-                      !    tt = spherical_harmonic(l, m, x, y, z)*gaussian(sigma, rnrm1)
-                      !    density(i1,i2,i3) =+ tt
-                      !    !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
-                      !end do
-                  end do
+          !!$$ UNCOMMENT FOR TEST ii = 0
+          !!$$ UNCOMMENT FOR TEST do i3=is3,ie3
+          !!$$ UNCOMMENT FOR TEST     ii3 = i3 - 15
+          !!$$ UNCOMMENT FOR TEST     do i2=is2,ie2
+          !!$$ UNCOMMENT FOR TEST         ii2 = i2 - 15
+          !!$$ UNCOMMENT FOR TEST         do i1=is1,ie1
+          !!$$ UNCOMMENT FOR TEST             ii1 = i1 - 15
+          !!$$ UNCOMMENT FOR TEST             ii = ii + 1
+          !!$$ UNCOMMENT FOR TEST             !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+          !!$$ UNCOMMENT FOR TEST             write(300+iproc,'(3(a,i6),a,es18.8)') 'i1= ',i1,' i2= ',i2,' i3= ',i3,' val= ',density(i1,i2,i3)
+          !!$$ UNCOMMENT FOR TEST             !do impl=1,ep%nmpl
+          !!$$ UNCOMMENT FOR TEST             !    r(1) = ep%mpl(impl)%rxyz(1) - x
+          !!$$ UNCOMMENT FOR TEST             !    r(2) = ep%mpl(impl)%rxyz(2) - y
+          !!$$ UNCOMMENT FOR TEST             !    r(3) = ep%mpl(impl)%rxyz(3) - z 
+          !!$$ UNCOMMENT FOR TEST             !    rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
+          !!$$ UNCOMMENT FOR TEST             !    rnrm1 = sqrt(rnrm2)
+          !!$$ UNCOMMENT FOR TEST             !    tt = spherical_harmonic(l, m, x, y, z)*gaussian(sigma, rnrm1)
+          !!$$ UNCOMMENT FOR TEST             !    density(i1,i2,i3) =+ tt
+          !!$$ UNCOMMENT FOR TEST             !    !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
+          !!$$ UNCOMMENT FOR TEST             !end do
+          !!$$ UNCOMMENT FOR TEST         end do
+          !!$$ UNCOMMENT FOR TEST     end do
+          !!$$ UNCOMMENT FOR TEST end do
+
+          if (present(ixyz0)) then
+              ixyz0_(1:3) = ixyz0
+          else
+              ixyz0_(1:3) = -1
+          end if
+
+          if (any((/ixyz0_(1)>=0,ixyz0_(2)>=0,ixyz0_(3)>=0/))) then
+              if (.not.all((/ixyz0_(1)>=0,ixyz0_(2)>=0,ixyz0_(3)>=0/))) then
+                  call f_err_throw('The coordinates of the point through which &
+                                   &the potential shall be plotted must all be non-zero')
+              end if
+              rxyz_noshift = f_malloc((/3,at%astruct%nat/),id='rxyz_noshift')
+              do iat=1,at%astruct%nat
+                  rxyz_noshift(1:3,iat) = at%astruct%rxyz(1:3,iat) - shift(1:3)
               end do
-          end do
-          rxyz_noshift = f_malloc((/3,at%astruct%nat/),id='rxyz_noshift')
-          do iat=1,at%astruct%nat
-              rxyz_noshift(1:3,iat) = at%astruct%rxyz(1:3,iat) - shift(1:3)
-          end do
-          call plot_density(iproc,nproc,'test.cube',at,rxyz_noshift,denspot%pkernel,nspin=1,rho=density)!,ixyz0=(/1,2,3/))
+              ! Plot of the density, in particular along the axes through the point ixyz0_
+              call plot_density(iproc,nproc,'mppot.cube',at,rxyz_noshift,denspot%pkernel,nspin=1,rho=density, &
+                   ixyz0=ixyz0_)
+              call f_free(rxyz_noshift)
+          end if
     
           call f_free(density)
           call f_free(density_cores)

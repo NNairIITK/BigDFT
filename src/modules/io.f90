@@ -2546,11 +2546,11 @@ module io
 
     subroutine plot_density(iproc,nproc,filename,at,rxyz,kernel,nspin,rho,ixyz0)
       use module_defs, only: gp,dp
+      use module_base
       use PStypes, only: coulomb_operator
       use IObox, only: dump_field
       use PSbox, only: PS_gather
       use module_atoms, only: atoms_data
-      use dynamic_memory
       implicit none
       integer, intent(in) :: iproc,nproc,nspin
       type(atoms_data), intent(in) :: at
@@ -2572,8 +2572,25 @@ module io
          call f_memcpy(n=size(pot_ion),src=rho(1),dest=pot_ion(1,1,1,1))
       end if
     
-      call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
-           rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
+      if (present(ixyz0)) then
+          if (ixyz0(1)<1 .or. ixyz0(1)>kernel%ndims(1)) then
+              call f_err_throw('The x value of ixyz0('//trim(yaml_toa(ixyz0(1),fmt='(i0)'))//&
+                   &') should be within the size of the box (1 to'//trim(yaml_toa(kernel%ndims(1),fmt='(i0)'))//')')
+          end if
+          call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
+               rxyz,at%astruct%iatype,at%nzatom,at%nelpsp,ixyz0=ixyz0)
+          if (ixyz0(2)<1 .or. ixyz0(2)>kernel%ndims(2)) then
+              call f_err_throw('The y value of ixyz0('//trim(yaml_toa(ixyz0(2)))//&
+                   &') should be within the size of the box (1 to'//trim(yaml_toa(kernel%ndims(2),fmt='(i0)'))//')')
+          end if
+          if (ixyz0(3)<1 .or. ixyz0(3)>kernel%ndims(3)) then
+              call f_err_throw('The z value of ixyz0('//trim(yaml_toa(ixyz0(3),fmt='(i0)'))//&
+                   &') should be within the size of the box (1 to'//trim(yaml_toa(kernel%ndims(3),fmt='(i0)'))//')')
+          end if
+      else
+          call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
+               rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
+      end if
     
       call f_free(pot_ion)
     
