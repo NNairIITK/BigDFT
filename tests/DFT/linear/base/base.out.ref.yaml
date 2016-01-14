@@ -2499,104 +2499,41 @@
      pol. deg.                         :  20
    error estimation:
      max / mean error                  :  [  1.71E-12,  4.74E-13 ]
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Determine optimal sigmas for the radial Gaussians
- Total charge                          :  7.999999919752E+00
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  113,  113,  113 ]
-   MPI tasks                           :  4
- Determine optimal sigmas:
- -  {rloc mult:  [  0.8,  0.8,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  9.634E-02,  1.7976931348623157E+308], avg pot diff (actual/min): [ 6.710E-01, 
-  1.7976931348623157E+308]}
- -  {rloc mult:  [  1.0,  0.8,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  9.364E-02,  9.634E-02], avg pot diff (actual/min):  [  6.719E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.2,  0.8,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  9.363E-02,  9.364E-02], avg pot diff (actual/min):  [  6.729E-01,  6.710E-01 ]}
- -  {rloc mult:  [  0.8,  1.0,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  9.587E-02,  9.363E-02], avg pot diff (actual/min):  [  6.71E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.0,  1.0,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  9.318E-02,  9.363E-02], avg pot diff (actual/min):  [  6.719E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.2,  1.0,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  9.317E-02,  9.318E-02], avg pot diff (actual/min):  [  6.729E-01,  6.710E-01 ]}
- -  {rloc mult:  [  0.8,  1.2,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  9.587E-02,  9.317E-02], avg pot diff (actual/min):  [  6.71E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.0,  1.2,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  9.318E-02,  9.317E-02], avg pot diff (actual/min):  [  6.719E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.2,  1.2,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  9.317E-02,  9.317E-02], avg pot diff (actual/min):  [  6.729E-01,  6.710E-01 ]}
- -  {rloc mult:  [  0.8,  0.8,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  3.847E-05,  9.317E-02], avg pot diff (actual/min):  [  6.738E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.0,  0.8,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  3.160E-06,  3.847E-05], avg pot diff (actual/min):  [  6.747E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.2,  0.8,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  3.103E-06,  3.160E-06], avg pot diff (actual/min):  [  6.758E-01,  6.710E-01 ]}
- -  {rloc mult:  [  0.8,  1.0,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  2.973E-05,  3.103E-06], avg pot diff (actual/min):  [  6.738E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.0,  1.0,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.037E-06,  3.103E-06], avg pot diff (actual/min):  [  6.747E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.2,  1.0,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.005E-06,  1.037E-06], avg pot diff (actual/min):  [  6.758E-01,  6.710E-01 ]}
- -  {rloc mult:  [  0.8,  1.2,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  2.970E-05,  1.005E-06], avg pot diff (actual/min):  [  6.738E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.0,  1.2,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.031E-06,  1.005E-06], avg pot diff (actual/min):  [  6.747E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.2,  1.2,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  9.990E-07,  1.005E-06], avg pot diff (actual/min):  [  6.758E-01,  6.710E-01 ]}
- -  {rloc mult:  [  0.8,  0.8,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  2.607E-05,  9.990E-07], avg pot diff (actual/min):  [  6.736E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.0,  0.8,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  4.558E-07,  9.990E-07], avg pot diff (actual/min):  [  6.745E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.2,  0.8,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  4.347E-07,  4.558E-07], avg pot diff (actual/min):  [  6.756E-01,  6.710E-01 ]}
- -  {rloc mult:  [  0.8,  1.0,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.901E-05,  4.347E-07], avg pot diff (actual/min):  [  6.736E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.0,  1.0,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  7.548E-09,  4.347E-07], avg pot diff (actual/min):  [  6.745E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.2,  1.0,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.061E-08,  7.548E-09], avg pot diff (actual/min):  [  6.756E-01,  6.710E-01 ]}
- -  {rloc mult:  [  0.8,  1.2,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.898E-05,  7.548E-09], avg pot diff (actual/min):  [  6.736E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.0,  1.2,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  8.042E-09,  7.548E-09], avg pot diff (actual/min):  [  6.745E-01,  6.710E-01 ]}
- -  {rloc mult:  [  1.2,  1.2,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.120E-08,  7.548E-09], avg pot diff (actual/min):  [  6.756E-01,  6.710E-01 ]}
- optimal sigma multiplication factors  :  [  1.00,  1.00,  1.20 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr
    values:
    - sym                               : Si # 0001
      r: [ 0.2629801630973816,  3.7207301706075668E-002,  0.2071341574192047]
-     sigma                             :  [  0.440,  0.440,  0.528 ]
+     sigma                             :  [  0.440,  0.440,  0.440 ]
      q0                                :  [  8.585191E-01 ]
      q1                                :  [ -1.649878E-02,  1.843713E-02, -1.053556E-02 ]
      q2: [-1.645039E-02, -4.924450E-03,  4.073573E-03, -1.850477E-03, -1.414254E-02]
      type                              : s
    - sym                               : H # 0002
      r: [ 1.757244348526001,  1.673845648765564, -1.517748594284058]
-     sigma                             :  [  0.200,  0.200,  0.240 ]
+     sigma                             :  [  0.200,  0.200,  0.200 ]
      q0                                :  [ -2.05668E-01 ]
      q1                                :  [ -2.690944E-02,  2.370754E-02, -2.414753E-02 ]
      q2: [ 2.315318E-01, -2.446904E-01,  3.382121E-02, -2.217121E-01, -2.383661E-02]
      type                              : unknown
    - sym                               : H # 0003
      r: [-0.4041601121425629,  1.484101414680481,  2.52013373374939]
-     sigma                             :  [  0.200,  0.200,  0.240 ]
+     sigma                             :  [  0.200,  0.200,  0.200 ]
      q0                                :  [ -2.134139E-01 ]
      q1                                :  [ -1.45265E-02, -3.658030E-02,  4.035485E-03 ]
      q2: [-7.332049E-02,  3.008419E-01,  2.439952E-01, -1.363284E-01, -6.721271E-02]
      type                              : unknown
    - sym                               : H # 0004
      r: [-2.085475444793701, -0.7933043241500854, -1.089041948318481]
-     sigma                             :  [  0.200,  0.200,  0.240 ]
+     sigma                             :  [  0.200,  0.200,  0.200 ]
      q0                                :  [ -2.210527E-01 ]
      q1                                :  [  5.111762E-03,  7.284321E-03,  2.203577E-02 ]
      q2: [ 1.768475E-01,  1.010845E-01, -7.921165E-02,  2.666315E-01,  2.552075E-01]
      type                              : unknown
    - sym                               : H # 0005
      r: [ 1.781385540962219, -2.217728137969971,  0.9118762016296387]
-     sigma                             :  [  0.200,  0.200,  0.240 ]
+     sigma                             :  [  0.200,  0.200,  0.200 ]
      q0                                :  [ -2.183842E-01 ]
      q1                                :  [  1.961498E-02, -7.658765E-03, -1.590473E-02 ]
      q2: [-3.005677E-01, -1.400511E-01, -1.827049E-01,  1.018112E-01, -1.381847E-01]
