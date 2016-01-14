@@ -314,8 +314,12 @@ module multipole
                  rz = ep%mpl(impl)%rxyz(3) - shift(3)
                  call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, &
                       rx, ry, rz, &
-                      rloc(impl), nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
+                      ep%mpl(impl)%sigma(0), nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
                       denspot%dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, ndensity, density_cores, rholeaked)
+                 !!call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, &
+                 !!     rx, ry, rz, &
+                 !!     rloc(impl), nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
+                 !!     denspot%dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, ndensity, density_cores, rholeaked)
              end if
          end do
 !! UNCOMMENT FOR TEST          do i3=is3,ie3
@@ -413,7 +417,7 @@ module multipole
                                       gg = gg/(15.d0*sig**4)
                                   end if
                                   norm_check(l,impl) = norm_check(l,impl) + gg*hhh*rnrm2**l
-                                  if (rnrm2<=rmax(impl)**2) then
+                                  !if (rnrm2<=rmax(impl)**2) then
                                       mm = 0
                                       do m=-l,l
                                           mm = mm + 1
@@ -422,6 +426,7 @@ module multipole
                                           ! switched since the charge density is a positive quantity.
                                           if (l==0) then
                                               qq = -(ep%mpl(impl)%qlm(l)%q(mm) - real(nelpsp(impl),kind=8))
+                                              !qq = -ep%mpl(impl)%qlm(l)%q(mm)
                                           else
                                               qq = -ep%mpl(impl)%qlm(l)%q(mm)
                                           end if
@@ -431,7 +436,7 @@ module multipole
                                           tt = tt + ttt
                                           ttl = ttl + ttt
                                       end do
-                                  end if
+                                  !end if
                               end do
                               density_loc(i1,i2,i3,ithread) = density_loc(i1,i2,i3,ithread) + tt
                               ! Again calculate the multipole values to verify whether they are represented exactly
@@ -614,6 +619,7 @@ module multipole
                                   mm = mm + 1
                                   if (l==0) then
                                       qq = -(ep%mpl(impl)%qlm(l)%q(mm)-real(nelpsp(impl),kind=8))
+                                      !qq = -ep%mpl(impl)%qlm(l)%q(mm)
                                   else
                                       qq = -ep%mpl(impl)%qlm(l)%q(mm)
                                   end if
@@ -664,11 +670,12 @@ module multipole
              if (present(lzd) .and. present(rxyz) .and. present(dipole_total)) then
                  if (present(quadrupole_total)) then
                      call calculate_dipole_moment(denspot%dpbox, 1, at, rxyz, density, &
-                          calculate_quadropole=.true., dipole=dipole_total, &
-                          quadrupole=quadrupole_total, quiet_=.true.)
+                          calculate_quadrupole=.true., &
+                          dipole=dipole_total, quadrupole=quadrupole_total, quiet_=.true.)
                  else
                      call calculate_dipole_moment(denspot%dpbox, 1, at, rxyz, density, &
-                          calculate_quadropole=.true., dipole=dipole_total, quiet_=.true.)
+                          calculate_quadrupole=.true., &
+                          dipole=dipole_total, quiet_=.true.)
                  end if
              end if
 
@@ -1772,7 +1779,7 @@ module multipole
 
       ! Local variables
       integer :: methTransformOverlap, iat, ind, ispin, ishift, iorb, iiorb, l, m, itype, natpx, isatx, nmaxx, kat, n, i, kkat
-      integer :: ilr, impl, mm, lcheck
+      integer :: ilr, impl, mm, lcheck, nelpsp, psp_source
       logical :: can_use_transposed, all_norms_ok
       real(kind=8),dimension(:),pointer :: phit_c, phit_f
       real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, multipole_matrix_large
@@ -1780,7 +1787,7 @@ module multipole
       real(kind=8),dimension(:,:,:),pointer :: atomic_multipoles
       real(kind=8),dimension(:,:,:),allocatable :: test_pot
       real(kind=8),dimension(:,:),pointer :: projx
-      real(kind=8) :: q, tt
+      real(kind=8) :: q, tt, rloc
       type(matrices) :: multipole_matrix
       logical,dimension(:,:),pointer :: neighborx
       integer,dimension(:),pointer :: nx
@@ -1950,8 +1957,12 @@ module multipole
           end do
       end do
 
-      ! Calculate the optimal sigmas
-      call get_optimal_sigmas(iproc, nproc, nsigma, collcom_sr, smatl, kernel, at, lzd, ep, shift, rxyz, ixc, denspot)
+      !!! Calculate the optimal sigmas
+      !!call get_optimal_sigmas(iproc, nproc, nsigma, collcom_sr, smatl, kernel, at, lzd, ep, shift, rxyz, ixc, denspot)
+      do impl=1,ep%nmpl
+          call get_psp_info(trim(ep%mpl(impl)%sym), ixc, at, nelpsp, psp_source, rloc)
+          ep%mpl(impl)%sigma(0:lmax) = rloc
+      end do
 
       if (iproc==0) then
           call yaml_comment('Final result of the multipole analysis',hfill='~')
@@ -3826,7 +3837,7 @@ module multipole
    !end do
    !write(*,*) 'calculate dipole with rho_work'
    call calculate_dipole_moment(denspot%dpbox, 1, at, rxyz, denspot%rho_work, &
-        calculate_quadropole=.true., dipole=dipole_exact, quiet_=.true.)
+        calculate_quadrupole=.true., dipole=dipole_exact, quiet_=.true.)
    call f_free_ptr(denspot%rho_work)
 
    call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
@@ -4089,7 +4100,7 @@ module multipole
 
 !> Calculate the dipole of a Field given in the rho array.
 !! The parallel distribution used is the one of the potential
-subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,dipole,quadrupole,quiet_)
+subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,dipole,quadrupole,quiet_)
   use module_base
   use module_dpbox, only: denspot_distribution
   use module_types
@@ -4100,7 +4111,8 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(dp), dimension(dpbox%ndims(1),dpbox%ndims(2),max(dpbox%n3p, 1),nspin), target, intent(in) :: rho
-  logical,intent(in) :: calculate_quadropole
+  !!!!logical :: is_net_charge !< true if the charge density is already the net charge (i.e. including the compensating core charge)
+  logical,intent(in) :: calculate_quadrupole
   real(kind=8),dimension(3),intent(out),optional :: dipole
   real(kind=8),dimension(3,3),intent(out),optional :: quadrupole
   logical,intent(in),optional :: quiet_
@@ -4207,7 +4219,7 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
   !!call mpi_barrier(mpi_comm_world,ispin)
 
 
-  if (calculate_quadropole) then
+  if (calculate_quadrupole) then
       ! Quadrupole not yet parallelized
 
       if (at%astruct%geocode /= 'F') then
@@ -4394,7 +4406,11 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
           end do
       end do
 
-      tmpquadrop=quadropole_cores+quadropole_el
+      !!if (.not. is_net_charge) then
+          tmpquadrop=quadropole_cores+quadropole_el
+      !!else
+      !!    tmpquadrop=quadropole_el
+      !!end if
 
       if (present(quadrupole)) then
           quadrupole = tmpquadrop
@@ -4418,7 +4434,11 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
   !!call mpi_barrier(mpi_comm_world,ispin)
   !!write(*,*) 'after el'
 
-  tmpdip=dipole_cores+dipole_el
+  !!if (.not.is_net_charge) then
+      tmpdip=dipole_cores+dipole_el
+  !!else
+  !!    tmpdip=dipole_el
+  !!end if
   !!write(*,*) 'tmpdip before',tmpdip
   !!call mpi_barrier(mpi_comm_world,ispin)
   !!write(*,*) 'tmpdip',tmpdip
@@ -4439,7 +4459,7 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadropole,
      call yaml_mapping_close()
 
 
-      if (calculate_quadropole) then
+      if (calculate_quadrupole) then
           !call yaml_sequence_open('core quadropole')
           !do i=1,3
           !   call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es15.8)')))
