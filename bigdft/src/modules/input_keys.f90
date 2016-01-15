@@ -1521,6 +1521,8 @@ contains
           in%mm_paramset=val
        case(MM_PARAMFILE)
           in%mm_paramfile=val
+       case(SW_EQFACTOR)
+          in%sw_factor=val
        case(SECTIONS)
        case(SECTION_BUFFER)
        case(SECTION_PASSIVATION)
