@@ -4204,39 +4204,24 @@ module multipole
 
    call f_zero(gaussian_array)
 
+   ! Calculate the boundaries of the Gaussian to be calculated. To make it simple, take always the maximum:
+   ! - free BC: entire box
+   ! - periodic BC: half of the box size, with periodic wrap around
+   if (.not.periodic) then
+       js = 0
+       je = 0
+   else
+       js = -1
+       je = 1
+   end if
 
-   !!!$omp parallel default(none) &
-   !!!$omp shared(is, ie, hh, shift, idim, ep, gaussian_array) &
-   !!!$omp private(i, ii, x, impl, tt, l, sig)
-   !!!$omp do
+   !$omp parallel default(none) &
+   !$omp shared(is, ie, hh, shift, idim, ep, gaussian_array, js, je, nl, nglob) &
+   !$omp private(i, ii, x, impl, tt, l, sig, j, dr)
+   !$omp do
    do impl=1,ep%nmpl
-       ! Calculate the boundaries of the Gaussian to be calculated. To make it simple, take always the maximum:
-       ! - free BC: entire box
-       ! - periodic BC: half of the box size, with periodic wrap around
-       if (.not.periodic) then
-           isx = is
-           iex = ie
-           js = 0
-           je = 0
-       else
-           nd = (ie - is + 1)/2
-           nu = ie - is + 1 - nd - 1
-           if (nu+nd+1/=ie-is+1) call f_err_throw('wrong values of nu and nd')
-           ii = nint(ep%mpl(impl)%rxyz(idim)/hh)
-           isx = ii - nd + 15
-           iex = ii + nu + 15
-           if (iex-isx+1/=ie-is+1) call f_err_throw('wrong values of isx and iex')
-           js = -1
-           je = 1
-       end if
-       !write(*,*) 'impl, is, ie, isx, iex, ii', impl, is, ie, isx, iex, ii
-       !nn = iex - isx
-       !do i=isx,iex
        do i=is,ie
            ii = i - nl - 1
-           !!x = real(ii,kind=8)*hh + shift(idim)
-           !!tt = x - ep%mpl(impl)%rxyz(idim)
-           !!tt = tt**2
            tt = huge(tt)
            do j=js,je
                dr = real(ii+j*nglob,kind=8)*hh + shift(idim) - ep%mpl(impl)%rxyz(idim)
@@ -4245,18 +4230,12 @@ module multipole
            tt = tt**2
            do l=0,lmax
                sig = ep%mpl(impl)%sigma(l)
-               !imod = modulo(i-isx,ie-isx+1) + is
-               imod = modulo(i-is,ie-is+1) + is
-               write(bigdft_mpi%iproc+10,*) 'is, isx, ie, iex, i, imod', is, isx, ie, iex, i, imod
-               !gaussian_array(l,impl,imod) = gaussian(sig,tt)
-               !gaussian_array(l,impl,imod) = gaussian(sig,tt)
                gaussian_array(l,impl,i) = gaussian(sig,tt)
            end do
-           !write(*,*) 'impl, i, imod, gaussian_array(0,impl,imod)',impl, i, imod, gaussian_array(0,impl,imod)
        end do
    end do
-   !!!$omp end do
-   !!!$omp end parallel
+   !$omp end do
+   !$omp end parallel
 
    call f_release_routine()
 
