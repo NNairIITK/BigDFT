@@ -3291,17 +3291,6 @@
      pol. deg.                         :  20
    error estimation:
      max / mean error                  :  [  3.16E-07,  1.76E-08 ]
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Determine optimal sigmas for the radial Gaussians
- Total charge                          :  4.999997070217E+01
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  81,  83,  137 ]
-   MPI tasks                           :  4
- Determine optimal sigmas:
- -  {rloc mult:  [  1.0,  1.0,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  2.029E+01,  1.7976931348623157E+308], avg pot diff (actual/min): [ 2.997E+01, 
-  1.7976931348623157E+308]}
- optimal sigma multiplication factors  :  [  1.00,  1.00,  1.00 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : angstroem
