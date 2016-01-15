@@ -518,17 +518,28 @@ module multipole
                   do l=0,lmax
                       if (associated(ep%mpl(impl)%qlm(l)%q)) then
                           do i3=is3,ie3
-                              ii3 = i3 - 15
-                              z = real(ii3,kind=8)*hz + shift(3)
+                              ii3 = i3 - nl3 -1
+                              !z = real(ii3,kind=8)*hz + shift(3)
+                              r(3) = huge(r(3))
+                              do j3=j3s,j3e
+                                  dr = real(ii3+j3*lzd%glr%d%n3i,kind=8)*hz + shift(3) - ep%mpl(impl)%rxyz(3)
+                                  if (abs(dr)<abs(r(3))) r(3) = dr
+                              end do
                               do i2=is2,ie2
-                                  ii2 = i2 - 15
-                                  y = real(ii2,kind=8)*hy + shift(2)
+                                  r(2) = huge(r(2))
+                                  do j2=j2s,j2e
+                                      dr = real(ii2+j2*lzd%glr%d%n2i,kind=8)*hy + shift(2) - ep%mpl(impl)%rxyz(2)
+                                      if (abs(dr)<abs(r(2))) r(2) = dr
+                                  end do
                                   do i1=is1,ie1
-                                      ii1 = i1 - 15
-                                      x = real(ii1,kind=8)*hx + shift(1)
-                                      r(1) = x - ep%mpl(impl)%rxyz(1)
-                                      r(2) = y - ep%mpl(impl)%rxyz(2)
-                                      r(3) = z - ep%mpl(impl)%rxyz(3)
+                                      r(1) = huge(r(1))
+                                      do j1=j1s,j1e
+                                          dr = real(ii1+j1*lzd%glr%d%n1i,kind=8)*hx + shift(1) - ep%mpl(impl)%rxyz(1)
+                                          if (abs(dr)<abs(r(1))) r(1) = dr
+                                      end do
+                                      !r(1) = x - ep%mpl(impl)%rxyz(1)
+                                      !r(2) = y - ep%mpl(impl)%rxyz(2)
+                                      !r(3) = z - ep%mpl(impl)%rxyz(3)
                                       rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
                                       rnrm1 = sqrt(rnrm2)
                                       rnrm3 = rnrm1*rnrm2
