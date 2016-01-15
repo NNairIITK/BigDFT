@@ -18,6 +18,7 @@ SUBDIRS = \
 	global_files 
 
 EXTRA_DIST = \
+	bigdft_spred.h \
 	NEB_driver.sh
 
 # Build targets, binaries and libraries.
@@ -28,7 +29,6 @@ subs_static_library =
 out_static_library =  \
 	$(top_builddir)/PSolver/src/libPSolver-1.a \
 	$(top_builddir)/wrappers/libwrappers.a \
-	$(top_builddir)/flib/src/libflib-1.a \
 	$(top_builddir)/src/libbigdft-1.a
 
 if BUILD_DYNAMIC_LIBS
