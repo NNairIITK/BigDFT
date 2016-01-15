@@ -1183,7 +1183,7 @@ DIIShistory:
  Omega: 2.4e-8
  Total charge: 2.01e-11
  mean conf prefac: 1.01e-04
- Energy (Hartree): 5.05e-11
+ Energy (Hartree): 5.37e-11
 
 
 Locreg:
@@ -1310,7 +1310,7 @@ geoptconstrained_BFGS:
 geoptconstrained_SDCG:
  eF: 8.7e-8
  guess for new ef: 8.7e-8
- D eF: 1.1e-7
+ D eF: 1.11e-7
  EH: 2.1e-10
  Epot: 1.1e-10
  Ekin: 2.1e-10
@@ -1329,7 +1329,7 @@ geoptconstrained_SDCG:
  ebs: 7.8e-11
  Ion-Ion interaction energy: 2.3e-10
  Atomic structure: 3.1e-9
- trace(KS): 1.53e-11
+ trace(KS): 1.6e-11
  Total charge: 2.1e-11
 
 O2spin_diag:
@@ -1666,7 +1666,7 @@ surface_graphene:
  Energy (Hartree): 2.5e-11
  Total charge: 1.1e-10
  energy: 2.0e-11
- trace: 2.51e-10
+ trace: 2.62e-10
  
 dev.ref.yaml:
  Epot: 1.1e-10
@@ -1826,7 +1826,7 @@ igortho_19:
  total charge correction: 1.5e-11
  multiplicator for the confinement: 4.3e-11
  radius for normalization: 1.1e-2
- Force Norm (Hartree/Bohr): 3.91e-8
+ Force Norm (Hartree/Bohr): 4.93e-8
 
 igortho_44:
  Atomic Forces (Ha/Bohr): 8.2e-7
