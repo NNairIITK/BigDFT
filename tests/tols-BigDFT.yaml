@@ -1761,6 +1761,19 @@ multipoles_CH4:
  Unitary check of the multipole calculations: 9.1e-2
  avg pot diff (actual/min): 1.0e-04
 
+multipoles_periodic:
+  D eF: 5.0e-9
+  EH: 1.1e-10
+  Epot: 1.1e-10
+  HOMO-LUMO gap (eV): 5.2e-11
+  Pseudo Fermi level for occupations: 8.6e-11
+  Tr(K): 1.1e-09
+  charge diff: 6.0e-10
+  eF: 7.2e-09
+  ebs: 4.1e-11
+  ebs_check: 4.1e-11
+  guess for new ef: 7.1e-09
+
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
   - WARNINGS
