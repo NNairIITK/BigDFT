@@ -526,12 +526,14 @@ module multipole
                                   if (abs(dr)<abs(r(3))) r(3) = dr
                               end do
                               do i2=is2,ie2
+                                  ii2 = i2 - nl2 -1
                                   r(2) = huge(r(2))
                                   do j2=j2s,j2e
                                       dr = real(ii2+j2*lzd%glr%d%n2i,kind=8)*hy + shift(2) - ep%mpl(impl)%rxyz(2)
                                       if (abs(dr)<abs(r(2))) r(2) = dr
                                   end do
                                   do i1=is1,ie1
+                                      ii1 = i1 - nl1 -1
                                       r(1) = huge(r(1))
                                       do j1=j1s,j1e
                                           dr = real(ii1+j1*lzd%glr%d%n1i,kind=8)*hx + shift(1) - ep%mpl(impl)%rxyz(1)
