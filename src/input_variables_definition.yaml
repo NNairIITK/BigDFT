@@ -438,10 +438,10 @@
       If present and the chosen plotting format is .cube, the potential will be written in the .cube format and also be plotted 
       along axes through the specified point. If no plot is desired, the values should be negative.
      default: [-1,-1,-1]
-     CONDITION:
-       MASTER_KEY: output_denspot
-       WHEN:
-       - 22
+     #CONDITION:
+     #  MASTER_KEY: output_denspot
+     #  WHEN:
+     #  - 22
 #K points parameters
  kpt:
    DESCRIPTION: K points XXXXXXX defined in the Brillouin zone for periodic system calculations
