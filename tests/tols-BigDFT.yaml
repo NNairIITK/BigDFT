@@ -1590,7 +1590,7 @@ periodic_silicon:
  Total ionic charge: 6.7e-11
  Pressure: 1.5e-10
  D Tr: 1.0e-9
- trace: 2.65e-10
+ trace: 2.88e-10
 
 periodic_wateredge:
  Epot: 1.1e-9
@@ -1666,7 +1666,7 @@ surface_graphene:
  Energy (Hartree): 2.5e-11
  Total charge: 1.1e-10
  energy: 2.0e-11
- trace: 2.62e-10
+ trace: 3.31e-10
  
 dev.ref.yaml:
  Epot: 1.1e-10
@@ -1762,24 +1762,29 @@ multipoles_CH4:
  avg pot diff (actual/min): 1.0e-04
 
 multipoles_periodic:
-  D eF: 7.0e-9
+  D eF: 8.21e-9
   EH: 2.1e-10
-  EXC: 2.1e-11
-  EvXC: 3.1e-11
-  Epot: 1.1e-10
+  EXC: 4.1e-11
+  EvXC: 5.1e-11
+  Epot: 2.1e-10
   HOMO-LUMO gap (eV): 1.8e-10
-  Pseudo Fermi level for occupations: 8.6e-11
+  Pseudo Fermi level for occupations: 8.8e-11
   Tr(K): 2.1e-09
   charge diff: 1.6e-9
-  eF: 1.1e-08
-  ebs: 1.3e-10
-  ebs_check: 1.3e-10
-  guess for new ef: 1.1e-08
+  eF: 1.2e-08
+  ebs: 2.3e-10
+  ebs_check: 2.4e-10
+  guess for new ef: 1.2e-08
   Atomic Forces (Ha/Bohr): 1.4e-11
   Force Norm (Hartree/Bohr): 1.9e-11
   Clean forces norm (Ha/Bohr): 1.7e-11
   PV (Ha): 2.4e-11
   Charge analysis (charge / net charge): 3.6e-11
+  D Tr: 1.1e-10
+  Total charge: 2.4e-11
+  diff: 2.7e-11
+  trace: 1.4e-11
+  trace(KS): 2.5e-11
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
