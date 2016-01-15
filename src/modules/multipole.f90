@@ -232,9 +232,9 @@ module multipole
           density_loc = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3,0.to.nthread-1/),id='density_loc')
           potential_loc = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3,0.to.nthread-1/),id='potential_loc')
     
-          gaussians1 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is1.to.ie1/),id='gaussians1')
-          gaussians2 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is2.to.ie2/),id='gaussians2')
-          gaussians3 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is3.to.ie3/),id='gaussians3')
+          gaussians1 = f_malloc((/0.to.lmax,is1.to.ie1,1.to.ep%nmpl/),id='gaussians1')
+          gaussians2 = f_malloc((/0.to.lmax,is2.to.ie2,1.to.ep%nmpl/),id='gaussians2')
+          gaussians3 = f_malloc((/0.to.lmax,is3.to.ie3,1.to.ep%nmpl/),id='gaussians3')
 
           do ilr=1,lzd%nlr 
               if (lzd%Llr(ilr)%geocode/='F') then
@@ -459,7 +459,7 @@ module multipole
                               ttl = 0.d0
                               do l=0,lmax_avail
                                   ! Calculate the Gaussian as product of three 1D Gaussians
-                                  gg = gaussians1(l,impl,i1)*gaussians2(l,impl,i2)*gaussians3(l,impl,i3)
+                                  gg = gaussians1(l,i1,impl)*gaussians2(l,i2,impl)*gaussians3(l,i3,impl)
                                   ! Additional modification to avoid divergence
                                   sig = ep%mpl(impl)%sigma(l)
                                   if (l==1) then
@@ -4192,7 +4192,7 @@ module multipole
    real(kind=8),intent(in) :: hh
    real(kind=8),dimension(3),intent(in) :: shift
    type(external_potential_descriptors),intent(in) :: ep
-   real(kind=8),dimension(0:lmax,ep%nmpl,is:ie),intent(out) :: gaussian_array
+   real(kind=8),dimension(0:lmax,is:ie,ep%nmpl),intent(out) :: gaussian_array
 
    ! Local variables
    integer :: i, ii, impl, l, isx, iex, n, imod, nn, nu, nd, js, je, j
@@ -4232,7 +4232,7 @@ module multipole
            tt = tt**2
            do l=0,lmax
                sig = ep%mpl(impl)%sigma(l)
-               gaussian_array(l,impl,i) = gaussian(sig,tt)
+               gaussian_array(l,i,impl) = gaussian(sig,tt)
            end do
        end do
    end do
@@ -4274,9 +4274,9 @@ module multipole
    integer,intent(in) :: nproc, is1, ie1, is2, ie2, is3, ie3
    type(external_potential_descriptors),intent(in) :: ep
    real(kind=8),intent(in) :: hhh
-   real(kind=8),dimension(0:lmax,1:ep%nmpl,is1:ie1),intent(in) :: gaussians1
-   real(kind=8),dimension(0:lmax,1:ep%nmpl,is2:ie2),intent(in) :: gaussians2
-   real(kind=8),dimension(0:lmax,1:ep%nmpl,is3:ie3),intent(in) :: gaussians3
+   real(kind=8),dimension(0:lmax,is1:ie1,1:ep%nmpl),intent(in) :: gaussians1
+   real(kind=8),dimension(0:lmax,is2:ie2,1:ep%nmpl),intent(in) :: gaussians2
+   real(kind=8),dimension(0:lmax,is3:ie3,1:ep%nmpl),intent(in) :: gaussians3
    real(kind=8),dimension(0:2,ep%nmpl),intent(out) :: norm
 
    ! Local variables
@@ -4301,7 +4301,7 @@ module multipole
                    ii1 = i1 - 15
                    do l=0,lmax
                        ! Calculate the Gaussian as product of three 1D Gaussians
-                       gg = gaussians1(l,impl,i1)*gaussians2(l,impl,i2)*gaussians3(l,impl,i3)
+                       gg = gaussians1(l,i1,impl)*gaussians2(l,i2,impl)*gaussians3(l,i3,impl)
                        norm(l,impl) = norm(l,impl) + gg*hhh
                    end do
                end do
