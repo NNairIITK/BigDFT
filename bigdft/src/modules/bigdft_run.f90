@@ -1037,7 +1037,6 @@ contains
     integer :: ln, i
     type(dictionary), pointer :: sect
     type(atomic_structure) :: asub
-    character(len = max_field_length) :: mode
 
     if (associated(runObj%sections)) then
        do i = 1, size(runObj%sections)
@@ -1766,7 +1765,6 @@ contains
 
     if (bigdft_mpi%iproc==0 .and. .not. (runObj%run_mode .hasattr. RUN_MODE_CREATE_DOCUMENT)) &
          call yaml_sequence_open('Initializing '//trim(str(runObj%run_mode)))
-    call f_release_routine()
 
     if(trim(runObj%inputs%geopt_approach)/='SOCK') call bigdft_state(runObj,outs,infocode)
 
