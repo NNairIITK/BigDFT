@@ -10,22 +10,19 @@ module IOBoxETSF
 contains
 
   !> Write a field in the ISF basis in the ETSF format
-  subroutine write_etsf_density(filename,message,geocode,&
-       ndims,hgrids,&
-       rho,nspin,nat,rxyz,iatype,ntypes,nzatom)
-    !n(c) use module_base
+  subroutine write_etsf_density(filename,message,geocode,ndims,hgrids,&
+       x,nspin,nat,rxyz,iatype,ntypes,nzatom)
     use PSbase
     implicit none
     character(len=*), intent(in) :: filename,message
-    !integer,intent(in) :: fileunit0,fileunitx,fileunity,fileunitz
-    character(len=1), intent(in) :: geocode
-    integer, intent(in) :: nspin,nat,ntypes
+    character(len = 1), intent(in) :: geocode
+    integer, intent(in) :: nat, ntypes, nspin
     integer, dimension(3), intent(in) :: ndims
     real(gp), dimension(3), intent(in) :: hgrids
-    real(dp), dimension(ndims(1),ndims(2),ndims(3)), intent(in) :: rho
+    real(dp), dimension(ndims(1),ndims(2),ndims(3),nspin), target, intent(in) :: x
     real(gp), dimension(3,nat), intent(in) :: rxyz
-    integer, dimension(nat), intent(in) :: iatype
-    integer, dimension(ntypes), intent(in) :: nzatom !< of dimension ntypes
+    integer, dimension(nat), target, intent(in) :: iatype
+    integer, dimension(ntypes), intent(in) :: nzatom
 
     !local variables
 
@@ -33,7 +30,7 @@ contains
     stop
 
     !To avoid warnings from the compiler
-    write(*,*) filename,message,ndims,hgrids,rho(1,1,1),rxyz(1,1)
+    write(*,*) filename,message,ndims,hgrids,x(1,1,1,1),rxyz(1,1)
   END SUBROUTINE write_etsf_density
   
   !> @file
@@ -47,18 +44,20 @@ contains
   !!    or http://www.gnu.org/copyleft/gpl.txt .
   !!    For the list of contributors, see ~/AUTHORS 
   !> Read a field in the ISF basis in the ETSF format
-  subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
-       nat,rxyz)
+  subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,ldrho,nrho,rho,&
+       nat,rxyz, iatypes, znucl) !, rhoij)
     use PSbase
     implicit none
     character(len=*), intent(in) :: filename
     character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-    integer, intent(in) :: nspin
+    integer, intent(in) :: ldrho,nrho !<dimensions of the rho array
+    integer, intent(out) :: nspin
     integer, intent(out) ::  n1i,n2i,n3i
     real(gp), intent(out) :: hxh,hyh,hzh
-    real(dp), dimension(:,:), pointer :: rho
-    real(gp), dimension(:,:), pointer,  optional :: rxyz
-    integer, intent(out), optional ::  nat
+    real(dp), dimension(ldrho,nrho) :: rho
+    real(gp), dimension(:,:), pointer :: rxyz
+    integer, intent(out) ::  nat
+    integer, dimension(:), pointer :: iatypes, znucl
 
     write(0, "(A)") "Illegal call to read_etsf(), not compiled with ETSF_IO support."
     stop
@@ -72,10 +71,8 @@ contains
     hyh=0.0_gp
     hzh=0.0_gp
     rho(1,1)=0.0_gp
-    if (present(nat)) then
-       rxyz(1,1)=0.0_gp
-       nat=0
-    end if
+    nat=0
+    nspin=0
   END SUBROUTINE read_etsf
 
 end module IOBoxETSF
