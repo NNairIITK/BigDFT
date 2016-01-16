@@ -1220,6 +1220,7 @@ sparsity:
 PBE_densmixlin:
  Ekin: 1.1e-10
  Epot: 1.1e-10
+ Enl: 1.01e-10
  energy: 1.1e-10
  Omega: 2.0e-1
  EvXC: 1.1e-10
@@ -1548,9 +1549,9 @@ FF_LJ-sdcg:
   - disablesym
 
 FF_LJ-lbfgs:
-  etot: 2.18e-8
+  etot: 3.17e-8
   Forces: 1.01e-5
-  Energy: 1.54e-8
+  Energy: 2.21e-8
   fnrm2: 1.01e-5
   maxval: 1.01e-5
   Keys to ignore:
@@ -1590,7 +1591,7 @@ periodic_silicon:
  Total ionic charge: 6.7e-11
  Pressure: 1.5e-10
  D Tr: 1.0e-9
- trace: 2.88e-10
+ trace: 2.94e-10
 
 periodic_wateredge:
  Epot: 1.1e-9
@@ -1666,7 +1667,7 @@ surface_graphene:
  Energy (Hartree): 2.5e-11
  Total charge: 1.1e-10
  energy: 2.0e-11
- trace: 3.31e-10
+ trace: 5.88e-10
  
 dev.ref.yaml:
  Epot: 1.1e-10
@@ -1710,7 +1711,7 @@ multipoles_water:
  eF: 2.2e-7
  guess for new ef: 2.2e-7
  number of corrected points: 17
- multiplicator for the confinement: 1.8e-10
+ multiplicator for the confinement: 1.95e-10
  EH: 2.1e-10
  D eF: 2.7e-7
  ebs_check: 1.5e-10
@@ -1762,29 +1763,32 @@ multipoles_CH4:
  avg pot diff (actual/min): 1.0e-04
 
 multipoles_periodic:
-  D eF: 8.21e-9
-  EH: 2.1e-10
+  D eF: 7.7e-8
+  EH: 3.1e-10
   EXC: 4.1e-11
   EvXC: 5.1e-11
   Epot: 2.1e-10
-  HOMO-LUMO gap (eV): 1.8e-10
+  HOMO energy: 1.4e-11
+  HOMO-LUMO gap (Ha): 1.4e-11
+  HOMO-LUMO gap (eV): 3.7e-10
   Pseudo Fermi level for occupations: 8.8e-11
   Tr(K): 2.1e-09
-  charge diff: 1.6e-9
-  eF: 1.2e-08
+  charge diff: 2.4e-9
+  eF: 1.12e-07
   ebs: 2.3e-10
   ebs_check: 2.4e-10
-  guess for new ef: 1.2e-08
-  Atomic Forces (Ha/Bohr): 1.4e-11
-  Force Norm (Hartree/Bohr): 1.9e-11
+  guess for new ef: 1.12e-07
+  Atomic Forces (Ha/Bohr): 6.3e-11
+  Force Norm (Hartree/Bohr): 3.7e-11
   Clean forces norm (Ha/Bohr): 1.7e-11
-  PV (Ha): 2.4e-11
+  PV (Ha): 4.9e-11
   Charge analysis (charge / net charge): 3.6e-11
   D Tr: 1.1e-10
   Total charge: 2.4e-11
   diff: 2.7e-11
   trace: 1.4e-11
   trace(KS): 2.5e-11
+  e: 1.4e-11
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
