@@ -15,7 +15,8 @@ modulesets_dir = SRCDIR
 moduleset = 'bigdft'
 modules = [ 'bigdft' ]
 
-basic_configuration = os.environ.get("BIGDFT_CONFIGURE_FLAGS")
+def basic_configuration():
+    return os.environ.get("BIGDFT_CONFIGURE_FLAGS")
 
 # policy for modules to build, options are:
 #  - all: build everything requested
@@ -102,12 +103,12 @@ module_nopoison = {}
 # Specific autogenargs
 module_autogenargs['PyYAML'] = "build_ext -I%(prefix)s/include -L%(prefix)s/lib --rpath=%(prefix)s/lib " % {"prefix": prefix}
 module_autogenargs['etsf_io'] = "--with-moduledir=%(prefix)s/include " % {"prefix": prefix}
-if basic_configuration is not None: module_autogenargs['libyaml'] = basic_configuration
-if basic_configuration is not None: module_autogenargs['GaIn'] = basic_configuration
-if basic_configuration is not None: module_autogenargs['flib'] = basic_configuration
-if basic_configuration is not None: module_autogenargs['libxc'] = basic_configuration 
-if basic_configuration is not None: module_autogenargs['bigdft'] = basic_configuration
-if basic_configuration is not None: module_autogenargs['libABINIT'] = basic_configuration 
+if basic_configuration() is not None: module_autogenargs['libyaml'] = basic_configuration()
+if basic_configuration() is not None: module_autogenargs['GaIn'] = basic_configuration()
+if basic_configuration() is not None: module_autogenargs['flib'] = basic_configuration()
+if basic_configuration() is not None: module_autogenargs['libxc'] = basic_configuration()
+if basic_configuration() is not None: module_autogenargs['bigdft'] = basic_configuration()
+if basic_configuration() is not None: module_autogenargs['libABINIT'] = basic_configuration() 
 
 
 # control parts of the build process
