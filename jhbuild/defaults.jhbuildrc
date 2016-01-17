@@ -15,6 +15,8 @@ modulesets_dir = SRCDIR
 moduleset = 'bigdft'
 modules = [ 'bigdft' ]
 
+basic_configuration = os.environ.get("BIGDFT_CONFIGURE_FLAGS")
+
 # policy for modules to build, options are:
 #  - all: build everything requested
 #  - updated: build only modules that have changed
@@ -100,6 +102,13 @@ module_nopoison = {}
 # Specific autogenargs
 module_autogenargs['PyYAML'] = "build_ext -I%(prefix)s/include -L%(prefix)s/lib --rpath=%(prefix)s/lib " % {"prefix": prefix}
 module_autogenargs['etsf_io'] = "--with-moduledir=%(prefix)s/include " % {"prefix": prefix}
+if basic_configuration is not None: module_autogenargs['libyaml'] = basic_configuration
+if basic_configuration is not None: module_autogenargs['GaIn'] = basic_configuration
+if basic_configuration is not None: module_autogenargs['flib'] = basic_configuration
+if basic_configuration is not None: module_autogenargs['libxc'] = basic_configuration 
+if basic_configuration is not None: module_autogenargs['bigdft'] = basic_configuration
+if basic_configuration is not None: module_autogenargs['libABINIT'] = basic_configuration 
+
 
 # control parts of the build process
 nonetwork     = False  # never touch the network
@@ -239,5 +248,5 @@ system_prefix = '/usr'
 
 # A tuple of website name and URL. This is displayed in tinderbox output. URL
 # String may contain the variable %(module)s
-help_website = ('Gnome Live!',
-                'http://live.gnome.org/JhbuildIssues/%(module)s')
+help_website = ('BigDFT Live!',
+                'http://www.bigdft.org/Wiki/JhbuildIssues/%(module)s')
