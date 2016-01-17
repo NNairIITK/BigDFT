@@ -31,7 +31,7 @@ module numerics
   !> 1 Hartree, in cm^-1 (from abinit 5.7.x)
   real(db), parameter, public :: Ha_cmm1=219474.6313705_db 
   !> 1 Hartree, in eV
-  real(db), parameter, public :: Ha_eV=27.21138505_db                           
+  real(db), parameter, public :: Ha_eV=27.21138505_db                           !< 1 Hartree in eV
   real(db), parameter, public :: eV_Ha=3.674932379e-2_db                        !< 1 ev, in Hartree
   real(db), parameter, public :: Ha_K=315774.664550534774_db                    !< 1 Hartree, in Kelvin
   real(db), parameter, public :: Ha_THz=6579.683920722_db                       !< 1 Hartree, in THz
@@ -42,6 +42,7 @@ module numerics
   real(db), parameter, public :: AU_GPa=29421.010901602753_db                   !< 1 Ha/Bohr^3 in GPa
   real(db), parameter, public :: Radian_Degree = 57.29577951308232087679_db     !< 1 radian in degrees
   real(db), parameter, public :: eVAng_HaBohr = Bohr_Ang*eV_Ha                  !< convert forces from eV/Angstroem to hartree/bohr
+  real(db), parameter, public :: AU_Debye = 0.393430307_db                      !< 1 Hartree*Bohr in Debye
   !>  1 AU of force in dyn
   real(db), parameter, public :: dyn_AU=8.238722514e-3_db
   real(db), parameter, public :: kcalMol_Ha = 0.001593601437458137_db        !< from kcal_th/mol to hartree
