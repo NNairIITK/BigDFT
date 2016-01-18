@@ -6,7 +6,7 @@ module module_func
 
   ! Shared variables within the modules
   integer :: ifunc
-  real(kind=8) :: power, ef, fscale
+  real(kind=8) :: power, ef, fscale, beta, mu
 
   ! Public routines
   public :: func_set
@@ -15,13 +15,14 @@ module module_func
   ! Public parameters
   integer,parameter,public :: FUNCTION_POLYNOMIAL = 101
   integer,parameter,public :: FUNCTION_ERRORFUNCTION = 102
+  integer,parameter,public :: FUNCTION_EXPONENTIAL = 103
 
   contains
 
-    subroutine func_set(ifuncx, powerx, efx, fscalex)
+    subroutine func_set(ifuncx, powerx, efx, fscalex, betax, mux)
       implicit none
       integer,intent(in) :: ifuncx
-      real(kind=8),intent(in),optional :: powerx, efx, fscalex
+      real(kind=8),intent(in),optional :: powerx, efx, fscalex, betax, mux
       select case (ifuncx)
       case(FUNCTION_POLYNOMIAL)
           ifunc = FUNCTION_POLYNOMIAL
@@ -33,6 +34,12 @@ module module_func
           if (.not.present(fscalex)) call f_err_throw("'fscalex' not present")
           ef = efx
           fscale = fscalex
+      case(FUNCTION_EXPONENTIAL)
+          ifunc = FUNCTION_EXPONENTIAL
+          if (.not.present(betax)) call f_err_throw("'betax' not present")
+          if (.not.present(mux)) call f_err_throw("'mux' not present")
+          beta = betax
+          mu = mux
       case default
           call f_err_throw("wrong value of 'ifuncx'")
       end select
@@ -47,6 +54,8 @@ module module_func
           func = x**power
       case(FUNCTION_ERRORFUNCTION)
           func = 0.5d0*erfc((x-ef)*(1.d0/fscale))
+      case(FUNCTION_EXPONENTIAL)
+          func = safe_exp(beta*(x-mu))
       case default
           call f_err_throw("wrong value of 'ifunc'")
       end select
@@ -65,7 +74,7 @@ module foe_common
 
   !> Public routines
   public :: chebft
-  public :: chebft2
+  public :: chebyshev_coefficients_penalyfunction
   public :: chder
   public :: evnoise
   !public :: erfcc
@@ -148,53 +157,69 @@ module foe_common
     
     ! Calculates chebychev expansion of fermi distribution.
     ! Taken from numerical receipes: press et al
-    subroutine chebft2(a,b,n,cc)
+    subroutine chebyshev_coefficients_penalyfunction(a,b,n,cc)
       use module_base
+      use module_func
       implicit none
     
       ! Calling arguments
       real(kind=8),intent(in) :: a, b
       integer,intent(in) :: n
-      real(kind=8),dimension(n),intent(out) :: cc
+      real(kind=8),dimension(n,2),intent(out) :: cc
     
       ! Local variables
       integer :: k, j
       !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
-      real(kind=8) :: tt, ttt, y, arg, fac, bma, bpa
-      real(kind=8),dimension(50000) :: cf
+      real(kind=8) :: tt1, tt2, ttt, y, arg, fac, bma, bpa, tt3
+      real(kind=8),dimension(50000,2) :: cf
     
-      call f_routine(id='chebft2')
+      call f_routine(id='chebyshev_coefficients_penalyfunction')
     
-      if (n>50000) stop 'chebft2'
+      if (n>50000) stop 'chebyshev_coefficients_penalyfunction'
       bma=0.5d0*(b-a)
       bpa=0.5d0*(b+a)
       ! 3 gives broder safety zone than 4
       !ttt=3.0d0*n/(b-a)
       ttt=4.d0*n/(b-a)
       fac=2.d0/n
-      !$omp parallel default(none) shared(bma,bpa,ttt,fac,n,cf,b,cc) &
-      !$omp private(k,y,arg,tt,j)
+      !$omp parallel default(none) shared(bma,bpa,ttt,fac,n,cf,a,b,cc) &
+      !$omp private(k,y,arg,tt1,tt2,j)
       !$omp do
       do k=1,n
           y=cos(pi*(k-0.5d0)*(1.d0/n))
           arg=y*bma+bpa
-          cf(k)=safe_exp((arg-b)*ttt)
+          !write(*,*) 'arg, safe_exp(-(arg-a)*ttt)', arg, safe_exp(-(arg-a)*ttt)
+          cf(k,1)=safe_exp(-(arg-a)*ttt)
+          cf(k,2)=safe_exp((arg-b)*ttt)
       end do
       !$omp end do
       !$omp do
       do j=1,n
-          tt=0.d0
+          tt1=0.d0
+          tt2=0.d0
           do k=1,n
-              tt=tt+cf(k)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
+              tt1=tt1+cf(k,1)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
+              tt2=tt2+cf(k,2)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
           end do
-          cc(j)=fac*tt
+          cc(j,1)=fac*tt1
+          cc(j,2)=fac*tt2
       end do
       !$omp end do
       !$omp end parallel
     
+      !do j=1,n
+      !    write(*,*) 'j, cc(j,1), cc(j,2)', j, cc(j,1), cc(j,2)
+      !end do
+      call func_set(FUNCTION_EXPONENTIAL, betax=-ttt, mux=a)
+      call accuracy_of_chebyshev_expansion(n, cc(:,1), (/A,B/), 1.d-3, func, tt1, tt2, tt3)
+      write(*,*) 'tt1, tt2, tt3', tt1, tt2, tt3
+      call func_set(FUNCTION_EXPONENTIAL, betax=ttt, mux=b)
+      call accuracy_of_chebyshev_expansion(n, cc(:,2), (/A,B/), 1.d-3, func, tt1, tt2, tt3)
+      write(*,*) 'tt1, tt2, tt3', tt1, tt2, tt3
+      !stop
       call f_release_routine()
     
-    end subroutine chebft2
+    end subroutine chebyshev_coefficients_penalyfunction
     
     ! Calculates chebychev expansion of the derivative of Fermi distribution.
     subroutine chder(a,b,c,cder,n)
@@ -598,7 +623,8 @@ module foe_common
       real(kind=8),intent(in) :: factor_high, factor_low, anoise
       !real(kind=8),dimension(smat_l%nfvctr,smat_l%smmm%nfvctrp,2),intent(in) :: penalty_ev
       real(kind=8),dimension(smat_l%smmm%nvctrp,2),intent(in) :: penalty_ev
-      logical,intent(in) :: trace_with_overlap, emergency_stop
+      logical,intent(in) :: trace_with_overlap
+      logical,dimension(2) :: emergency_stop
       type(foe_data),intent(inout) :: foe_obj
       logical,intent(inout) :: restart
       logical,dimension(2),intent(out) :: eval_bounds_ok
@@ -610,7 +636,7 @@ module foe_common
     
       call f_routine(id='check_eigenvalue_spectrum_new')
     
-      if (.not.emergency_stop) then
+      if (.not.any(emergency_stop)) then
           ! The penalty function must be smaller than the noise.
           bound_low=0.d0
           bound_up=0.d0
@@ -639,16 +665,28 @@ module foe_common
               else
                   tt=0.d0
               end if
-              bound_low = bound_low + penalty_ev(i,2)*tt
-              bound_up = bound_up +penalty_ev(i,1)*tt
+              bound_low = bound_low + penalty_ev(i,1)*tt
+              bound_up = bound_up + penalty_ev(i,2)*tt
           end do
           !$omp end do
           !$omp end parallel
       else
           ! This means that the Chebyshev expansion exploded, so take a very large
           ! value for the error function such that eigenvalue bounds will be enlarged
-          bound_low = 1.d10
-          bound_up = 1.d10
+          if (emergency_stop(1)) then
+              ! Need to enlarge boundary
+              bound_low = 1.d10
+          else
+              ! No need to enlarge boundary
+              bound_low = 0.d0
+          end if
+          if (emergency_stop(2)) then
+              ! Need to enlarge boundary
+              bound_up = 1.d10
+          else
+              ! No need to enlarge boundary
+              bound_up = 0.d0
+          end if
       end if
     
       allredarr(1)=bound_low
@@ -662,9 +700,9 @@ module foe_common
       allredarr=abs(allredarr) !for some crazy situations this may be negative
       noise=1000.d0*anoise
     
-      !if (bigdft_mpi%iproc==0) then
-      !    call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
-      !end if
+      if (bigdft_mpi%iproc==0) then
+          call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
+      end if
       !write(*,*) 'allredarr, anoise', allredarr, anoise
       if (allredarr(1)>noise) then
           eval_bounds_ok(1)=.false.
@@ -1019,6 +1057,7 @@ module foe_common
           end if
           mean_error = mean_error + error
           !write(*,*) 'x, val_chebyshev, val_function', x, val_chebyshev, val_function
+          !write(*,*) 'x, val_chebyshev, exp(x-bounds(2))', x, val_chebyshev, exp(x-bounds(2))
       end do
       mean_error = mean_error/real(ie-is+1,kind=8)
 

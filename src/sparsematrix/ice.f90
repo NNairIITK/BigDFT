@@ -10,7 +10,8 @@ module ice
 
     ! New: chebyshev expansion of the inverse overlap (Inverse Chebyshev Expansion)
     subroutine inverse_chebyshev_expansion(iproc, nproc, norder_polynomial, &
-               ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp)
+               ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp, &
+               npl_auto)
       use module_base
       use yaml_output
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
@@ -25,7 +26,8 @@ module ice
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
-      use foe_common, only: scale_and_shift_matrix, cheb_exp, chder, chebft2, evnoise, check_eigenvalue_spectrum_new
+      use foe_common, only: scale_and_shift_matrix, cheb_exp, chder, chebyshev_coefficients_penalyfunction, &
+                            evnoise, check_eigenvalue_spectrum_new
       implicit none
     
       ! Calling arguments
@@ -34,6 +36,7 @@ module ice
       real(kind=8),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: ovrlp_mat
       type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp
+      logical,intent(in),optional :: npl_auto
     
       ! Local variables
       integer :: npl, jorb, it, ii, iseg
@@ -42,17 +45,19 @@ module ice
       integer,parameter :: nplx=50000
       real(kind=8),dimension(:,:),allocatable :: chebyshev_polynomials
       real(kind=8),dimension(:,:,:),pointer :: inv_ovrlp_matrixp
-      real(kind=8),dimension(:,:,:),allocatable :: cc, penalty_ev
+      real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
+      real(kind=8),dimension(:,:,:),pointer :: cc
       real(kind=8) :: anoise, scale_factor, shift_value
       real(kind=8) :: evlow_old, evhigh_old, tt
       real(kind=8) :: tt_ovrlp, tt_ham
-      logical :: restart, calculate_SHS, emergency_stop
+      logical :: restart, calculate_SHS
+      logical,dimension(2) :: emergency_stop
       real(kind=8),dimension(2) :: allredarr
       real(kind=8),dimension(:),allocatable :: hamscal_compr
       logical,dimension(2) :: eval_bounds_ok
       integer,dimension(2) :: irowcol
       integer :: irow, icol, iflag, ispin, isshift, ilshift, ilshift2
-      logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
+      logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit, npl_auto_
       integer,parameter :: NPL_MIN=5
       real(kind=8),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
       real(kind=8) :: degree_multiplicator
@@ -73,7 +78,13 @@ module ice
       !!real(kind=8),dimension(lwork) :: work
       !!integer :: info
     
-      call f_routine(id='ice')
+      call f_routine(id='inverse_chebyshev_expansion')
+
+      if (present(npl_auto)) then
+          npl_auto_ = npl_auto
+      else
+          npl_auto_ = .false.
+      end if
     
     
       penalty_ev_new = f_malloc((/inv_ovrlp_smat%smmm%nvctrp,2/),id='penalty_ev_new')
@@ -90,7 +101,7 @@ module ice
          do ispin=1,ovrlp_smat%nspin
              call foe_data_set_real(foe_obj,"ef",0.d0,ispin)
              call foe_data_set_real(foe_obj,"evlow",0.5d0,ispin)
-             call foe_data_set_real(foe_obj,"evhigh",1.5d0,ispin)
+             call foe_data_set_real(foe_obj,"evhigh",21.5d0,ispin)
              call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,ispin)
              call foe_data_set_real(foe_obj,"charge",0.d0,ispin)
          end do
@@ -109,34 +120,34 @@ module ice
     
       evbounds_shrinked = .false.
     
-      !!!@ TEMPORARY: eigenvalues of  the overlap matrix ###################
-      !!tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
-      !!do iseg=1,ovrlp_smat%nseg
-      !!    ii=ovrlp_smat%keyv(iseg)
-      !!    do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
-      !!        tempmat(i,ovrlp_smat%keyg(1,2,iseg)) = ovrlp_mat%matrix_compr(ii)
-      !!        ii = ii + 1
+      !@ TEMPORARY: eigenvalues of  the overlap matrix ###################
+      tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
+      do iseg=1,ovrlp_smat%nseg
+          ii=ovrlp_smat%keyv(iseg)
+          do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
+              tempmat(i,ovrlp_smat%keyg(1,2,iseg)) = ovrlp_mat%matrix_compr(ii)
+              ii = ii + 1
+          end do
+      end do
+      !!if (iproc==0) then
+      !!    do i=1,ovrlp_smat%nfvctr
+      !!        do j=1,ovrlp_smat%nfvctr
+      !!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
+      !!        end do
       !!    end do
-      !!end do
-      !!!!if (iproc==0) then
-      !!!!    do i=1,ovrlp_smat%nfvctr
-      !!!!        do j=1,ovrlp_smat%nfvctr
-      !!!!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
-      !!!!        end do
-      !!!!    end do
-      !!!!end if
-      !!eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
-      !!lwork=100*ovrlp_smat%nfvctr
-      !!work = f_malloc(lwork,id='work')
-      !!call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
-      !!!if (iproc==0) write(*,*) 'eval',eval
-      !!if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+      !!end if
+      eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
+      lwork=100*ovrlp_smat%nfvctr
+      work = f_malloc(lwork,id='work')
+      call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
+      !if (iproc==0) write(*,*) 'eval',eval
+      if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
     
-      !!call f_free(tempmat)
-      !!call f_free(eval)
-      !!call f_free(work)
+      call f_free(tempmat)
+      call f_free(eval)
+      call f_free(work)
     
-      !!!@ END TEMPORARY: eigenvalues of  the overlap matrix ###############
+      !@ END TEMPORARY: eigenvalues of  the overlap matrix ###############
     
     
       call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -223,26 +234,27 @@ module ice
             
             
                       ! Determine the degree of the polynomial
-                      npl=nint(degree_multiplicator* &
-                           (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin)))
-                      npl=max(npl,NPL_MIN)
-                      npl_boundaries = nint(degree_multiplicator* &
-                          (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin)) &
-                              /foe_data_get_real(foe_obj,"fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
-                      if (npl>npl_boundaries) then
-                          npl=npl_boundaries
-                          if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
-                          if (iproc==0) write(*,*) 'STOP SINCE THIS WILL CREATE PROBLEMS WITH NPL_CHECK'
-                          stop
+                      if (.not. npl_auto_) then
+                          npl=nint(degree_multiplicator* &
+                               (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin)))
+                          npl=max(npl,NPL_MIN)
+                          npl_boundaries = nint(degree_multiplicator* &
+                              (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin)) &
+                                  /foe_data_get_real(foe_obj,"fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
+                          if (npl>npl_boundaries) then
+                              npl=npl_boundaries
+                              if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
+                              if (iproc==0) write(*,*) 'STOP SINCE THIS WILL CREATE PROBLEMS WITH NPL_CHECK'
+                              stop
+                          end if
+                          if (npl>nplx) stop 'npl>nplx'
+                      else
+                          call get_poynomial_degree(iproc, ispin, ncalc, ex, foe_obj, 5, 100, 1.d-8, &
+                               npl, cc, anoise)
                       end if
-                      if (npl>nplx) stop 'npl>nplx'
-            
+
                       ! Array that holds the Chebyshev polynomials. Needs to be recalculated
                       ! every time the Hamiltonian has been modified.
-                      if (calculate_SHS) then
-                          call f_free(chebyshev_polynomials)
-                          chebyshev_polynomials = f_malloc((/nsize_polynomial,npl/),id='chebyshev_polynomials')
-                      end if
                       if (iproc==0) then
                           call yaml_newline()
                           call yaml_mapping_open('ICE')
@@ -251,49 +263,55 @@ module ice
                           call yaml_map('mult.',degree_multiplicator,fmt='(f5.2)')
                           call yaml_map('pol. deg.',npl)
                       end if
+                      if (calculate_SHS) then
+                          call f_free(chebyshev_polynomials)
+                          chebyshev_polynomials = f_malloc((/nsize_polynomial,npl/),id='chebyshev_polynomials')
+                      end if
         
             
-                      cc = f_malloc((/npl,3,ncalc/),id='cc')
+                      if (.not. npl_auto_) then
+                          cc = f_malloc_ptr((/npl,3,ncalc/),id='cc')
             
-                      !!if (foe_data_get_real(foe_obj,"evlow")>=0.d0) then
-                      !!    stop 'ERROR: lowest eigenvalue must be negative'
-                      !!end if
-                      if (foe_data_get_real(foe_obj,"evhigh",ispin)<=0.d0) then
-                          stop 'ERROR: highest eigenvalue must be positive'
-                      end if
+                          !!if (foe_data_get_real(foe_obj,"evlow")>=0.d0) then
+                          !!    stop 'ERROR: lowest eigenvalue must be negative'
+                          !!end if
+                          if (foe_data_get_real(foe_obj,"evhigh",ispin)<=0.d0) then
+                              stop 'ERROR: highest eigenvalue must be positive'
+                          end if
             
-                      call timing(iproc, 'FOE_auxiliary ', 'OF')
-                      call timing(iproc, 'chebyshev_coef', 'ON')
+                          call timing(iproc, 'FOE_auxiliary ', 'OF')
+                          call timing(iproc, 'chebyshev_coef', 'ON')
             
-                      max_error = f_malloc(ncalc,id='max_error')
-                      x_max_error = f_malloc(ncalc,id='x_max_error')
-                      mean_error = f_malloc(ncalc,id='mean_error')
-                      do icalc=1,ncalc
-                          call cheb_exp(foe_data_get_real(foe_obj,"evlow",ispin), &
-                               foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1,icalc), ex(icalc), &
-                               x_max_error(icalc), max_error(icalc), mean_error(icalc))
-                          call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
-                               foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1,icalc), cc(1,2,icalc), npl)
-                          call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
-                               foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,3,icalc))
-                          call evnoise(npl, cc(1,3,icalc), foe_data_get_real(foe_obj,"evlow",ispin), &
-                               foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
-                      end do
-                      if (iproc==0) then
-                          call yaml_mapping_open('accuracy (x, max err, mean err)')
+                          max_error = f_malloc(ncalc,id='max_error')
+                          x_max_error = f_malloc(ncalc,id='x_max_error')
+                          mean_error = f_malloc(ncalc,id='mean_error')
                           do icalc=1,ncalc
-                              call yaml_map('Operation '//trim(yaml_toa(icalc)), &
-                                  (/x_max_error(icalc),max_error(icalc),mean_error(icalc)/),fmt='(es9.2)')
+                              call cheb_exp(foe_data_get_real(foe_obj,"evlow",ispin), &
+                                   foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1:,1:,icalc:), ex(icalc), &
+                                   x_max_error(icalc), max_error(icalc), mean_error(icalc))
+                              !call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
+                              !     foe_data_get_real(foe_obj,"evhigh",ispin), cc(1:,1:,icalc:), cc(1:,2:,icalc:), npl)
+                              call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
+                                   foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1:,2:,icalc:))
+                              call evnoise(npl, cc(1:,2:,icalc:), foe_data_get_real(foe_obj,"evlow",ispin), &
+                                   foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
                           end do
-                          call yaml_mapping_close()
-                          call yaml_mapping_close()
-                      end if
-                      call f_free(mean_error)
-                      call f_free(max_error)
-                      call f_free(x_max_error)
+                          if (iproc==0) then
+                              call yaml_mapping_open('accuracy (x, max err, mean err)')
+                              do icalc=1,ncalc
+                                  call yaml_map('Operation '//trim(yaml_toa(icalc)), &
+                                      (/x_max_error(icalc),max_error(icalc),mean_error(icalc)/),fmt='(es9.2)')
+                              end do
+                              call yaml_mapping_close()
+                          end if
+                          call f_free(mean_error)
+                          call f_free(max_error)
+                          call f_free(x_max_error)
         
-                      call timing(iproc, 'chebyshev_coef', 'OF')
-                      call timing(iproc, 'FOE_auxiliary ', 'ON')
+                          call timing(iproc, 'chebyshev_coef', 'OF')
+                          call timing(iproc, 'FOE_auxiliary ', 'ON')
+                      end if
+                      call yaml_mapping_close()
                     
                     
                     
@@ -384,7 +402,7 @@ module ice
                                foe_obj, restart, eval_bounds_ok)
                       end if
             
-                      call f_free(cc)
+                      call f_free_ptr(cc)
             
                       if (restart) then
                           if(evbounds_shrinked) then
@@ -442,5 +460,124 @@ module ice
     
     
     end subroutine inverse_chebyshev_expansion
+
+
+
+    ! Determine the polynomial degree which yields the desired precision
+    subroutine get_poynomial_degree(iproc, ispin, ncalc, ex, foe_obj, &
+               npl_min, npl_max, max_polynomial_degree, npl, cc, anoise)
+      use module_base
+      use foe_base, only: foe_data, foe_data_get_real
+      use foe_common, only: cheb_exp, chder, chebyshev_coefficients_penalyfunction, evnoise
+      use yaml_output
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, ispin, ncalc
+      integer,intent(in) :: npl_min, npl_max
+      real(kind=8),dimension(ncalc),intent(in) :: ex
+      type(foe_data),intent(in) :: foe_obj
+      real(kind=8),intent(in) :: max_polynomial_degree
+      integer,intent(out) :: npl
+      real(kind=8),dimension(:,:,:),pointer,intent(inout) :: cc
+      real(kind=8),intent(out) :: anoise
+
+      ! Local variables
+      integer :: ipl, icalc
+      logical :: error_ok, found_degree
+      real(kind=8),dimension(:),allocatable :: max_error, x_max_error, mean_error
+      real(kind=8),dimension(:,:,:),allocatable :: cc_trial
+
+      call f_routine(id='get_poynomial_degree')
+
+      max_error = f_malloc(ncalc,id='max_error')
+      x_max_error = f_malloc(ncalc,id='x_max_error')
+      mean_error = f_malloc(ncalc,id='mean_error')
+
+      if (npl_min<3) then
+          call f_err_throw('npl_min must be at least 3')
+      end if
+      if (npl_min>npl_max) then
+          call f_err_throw('npl_min must be smaller or equal than npl_max')
+      end if
+
+      if (iproc==0) then
+          call yaml_sequence_open('Determine polynomial degree')
+      end if
+
+      cc_trial = f_malloc((/npl_max,3,ncalc/),id='cc_trial')
+
+      found_degree = .false.
+      degree_loop: do ipl=npl_min,npl_max
+          
+          if (foe_data_get_real(foe_obj,"evhigh",ispin)<=0.d0) then
+              stop 'ERROR: highest eigenvalue must be positive'
+          end if
+          
+          call timing(iproc, 'FOE_auxiliary ', 'OF')
+          call timing(iproc, 'chebyshev_coef', 'ON')
+          
+          do icalc=1,ncalc
+              call cheb_exp(foe_data_get_real(foe_obj,"evlow",ispin), &
+                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, cc_trial(1,1,icalc), ex(icalc), &
+                   x_max_error(icalc), max_error(icalc), mean_error(icalc))
+              !call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
+              !     foe_data_get_real(foe_obj,"evhigh",ispin), cc_trial(1,1,icalc), cc_trial(1,2,icalc), ipl)
+              call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
+                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, cc_trial(1,2,icalc))
+              call evnoise(ipl, cc_trial(1,2,icalc), foe_data_get_real(foe_obj,"evlow",ispin), &
+                   foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
+          end do
+
+          call timing(iproc, 'chebyshev_coef', 'OF')
+          call timing(iproc, 'FOE_auxiliary ', 'ON')
+
+          if (iproc==0) then
+              !call yaml_mapping_open('accuracy (x, max err, mean err)')
+              call yaml_mapping_open(flow=.true.)
+              call yaml_map('ipl',ipl)
+              do icalc=1,ncalc
+                  call yaml_map('Operation '//trim(yaml_toa(icalc)), &
+                      (/x_max_error(icalc),max_error(icalc),mean_error(icalc)/),fmt='(es9.2)')
+              end do
+              !call yaml_mapping_close()
+              call yaml_mapping_close()
+          end if
+
+          error_ok = .true.
+          do icalc=1,ncalc
+              if (max_error(icalc)>max_polynomial_degree) then
+                  error_ok = .false.
+                  exit
+              end if
+          end do
+          if (error_ok) then
+              npl = ipl
+              found_degree = .true.
+              exit degree_loop
+          end if
+
+
+      end do degree_loop
+
+      if (.not.found_degree) then
+          call yaml_warning('Not possible to reach desired accuracy, using highest available polynomial degree')
+          npl = npl_max
+      end if
+
+      if (iproc==0) then
+          call yaml_sequence_close()
+      end if
+
+      cc = f_malloc_ptr((/npl,3,ncalc/),id='cc')
+      call f_memcpy(src=cc_trial(1:npl,1:3,1:ncalc),dest=cc(1:npl,1:3,1:ncalc))
+      call f_free(cc_trial)
+      call f_free(mean_error)
+      call f_free(max_error)
+      call f_free(x_max_error)
+
+      call f_release_routine
+
+    end subroutine get_poynomial_degree
 
 end module ice

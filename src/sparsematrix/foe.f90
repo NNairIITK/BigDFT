@@ -27,7 +27,7 @@ module foe
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
-      use foe_common, only: scale_and_shift_matrix, chebft, chder, chebft2, evnoise, &
+      use foe_common, only: scale_and_shift_matrix, chebft, chder, chebyshev_coefficients_penalyfunction, evnoise, &
                             check_eigenvalue_spectrum_new, retransform_ext
       implicit none
     
@@ -56,7 +56,8 @@ module foe
       real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
       real(kind=8) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt
       real(kind=8) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check, fscale_new
-      logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible, emergency_stop
+      logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
+      logical,dimension(2) :: emergency_stop
       real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
       real(kind=8),dimension(:),allocatable :: hamscal_compr, fermi_check_compr
       real(kind=8),dimension(4,4) :: interpol_matrix
@@ -315,22 +316,22 @@ module foe
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1,1), &
                            foe_data_get_real(foe_obj,"ef",ispin), fscale, foe_data_get_real(foe_obj,"tmprtr"), &
                            x_max_error, max_error, mean_error)
-                      call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1,1), cc(1,2,1), npl)
-                      call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,3,1))
-                      call evnoise(npl, cc(1,3,1), foe_data_get_real(foe_obj,"evlow",ispin), &
+                      !!call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
+                      !!     foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1,1), cc(1,2,1), npl)
+                      call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
+                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,2,1))
+                      call evnoise(npl, cc(1,2,1), foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
         
                       call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,1,1), &
                            foe_data_get_real(foe_obj,"ef",ispin), fscale_check, foe_data_get_real(foe_obj,"tmprtr"), &
                            x_max_error_check, max_error_check, mean_error_check)
-                      call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), &
-                           cc_check(1,1,1), cc_check(1,2,1), npl_check)
-                      call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,3,1))
+                      !call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
+                      !     foe_data_get_real(foe_obj,"evhigh",ispin), &
+                      !     cc_check(1,1,1), cc_check(1,2,1), npl_check)
+                      call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
+                           foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,2,1))
 
                       if (iproc==0 .and. foe_verbosity>=1) then
                           call yaml_newline()

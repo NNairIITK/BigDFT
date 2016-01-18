@@ -423,7 +423,7 @@ module sparsematrix_highlevel
 
 
     subroutine matrix_chebyshev_expansion(iproc, nproc, ndeg, ncalc, ex, &
-               smat_in, smat_out, mat_in, mat_out)
+               smat_in, smat_out, mat_in, mat_out, npl_auto)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
       use ice, only: inverse_chebyshev_expansion
@@ -435,6 +435,7 @@ module sparsematrix_highlevel
       real(kind=8),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: mat_in
       type(matrices),dimension(ncalc),intent(inout) :: mat_out
+      logical,intent(in),optional :: npl_auto
 
       ! Local variables
       integer :: i
@@ -462,8 +463,13 @@ module sparsematrix_highlevel
                trim(yaml_toa(smat_out%nvctr))//')')
       end if
 
-      call inverse_chebyshev_expansion(iproc, nproc, ndeg, &
-           smat_in, smat_out, ncalc, ex, mat_in, mat_out)
+      if (present(npl_auto)) then
+          call inverse_chebyshev_expansion(iproc, nproc, ndeg, &
+               smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto)
+      else
+          call inverse_chebyshev_expansion(iproc, nproc, ndeg, &
+               smat_in, smat_out, ncalc, ex, mat_in, mat_out)
+      end if
 
       call f_release_routine()
 
