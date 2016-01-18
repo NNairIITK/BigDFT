@@ -1491,41 +1491,41 @@
  -  {rloc mult:  [  1.4,  0.6,  0.8 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.6,  0.8,  0.8 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  0.8,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.787E-02,  1.7976931348623157E+308], avg pot diff (actual/min): [ 9.732E-01, 
+  1.391E-03,  1.7976931348623157E+308], avg pot diff (actual/min): [ 9.815E-01, 
   1.7976931348623157E+308]}
  -  {rloc mult:  [  1.0,  0.8,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.774E-02,  1.787E-02], avg pot diff (actual/min):  [  9.746E-01,  9.732E-01 ]}
+  1.655E-03,  1.391E-03], avg pot diff (actual/min):  [  9.831E-01,  9.815E-01 ]}
  -  {rloc mult:  [  1.2,  0.8,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.774E-02,  1.774E-02], avg pot diff (actual/min):  [  9.763E-01,  9.732E-01 ]}
+  1.661E-03,  1.391E-03], avg pot diff (actual/min):  [  9.849E-01,  9.815E-01 ]}
  -  {rloc mult:  [  1.4,  0.8,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.774E-02,  1.774E-02], avg pot diff (actual/min):  [  9.784E-01,  9.732E-01 ]}
+  1.661E-03,  1.391E-03], avg pot diff (actual/min):  [  9.873E-01,  9.815E-01 ]}
  -  {rloc mult:  [  0.6,  1.0,  0.8 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  1.0,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.827E-02,  1.774E-02], avg pot diff (actual/min):  [  9.731E-01,  9.732E-01 ]}
+  1.518E-03,  1.391E-03], avg pot diff (actual/min):  [  9.815E-01,  9.815E-01 ]}
  -  {rloc mult:  [  1.0,  1.0,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.824E-02,  1.774E-02], avg pot diff (actual/min):  [  9.745E-01,  9.731E-01 ]}
+  1.678E-03,  1.391E-03], avg pot diff (actual/min):  [  9.83E-01,  9.815E-01 ]}
  -  {rloc mult:  [  1.2,  1.0,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.824E-02,  1.774E-02], avg pot diff (actual/min):  [  9.762E-01,  9.731E-01 ]}
+  1.683E-03,  1.391E-03], avg pot diff (actual/min):  [  9.849E-01,  9.815E-01 ]}
  -  {rloc mult:  [  1.4,  1.0,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.824E-02,  1.774E-02], avg pot diff (actual/min):  [  9.783E-01,  9.731E-01 ]}
+  1.683E-03,  1.391E-03], avg pot diff (actual/min):  [  9.873E-01,  9.815E-01 ]}
  -  {rloc mult:  [  0.6,  1.2,  0.8 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  1.2,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.828E-02,  1.774E-02], avg pot diff (actual/min):  [  9.73E-01,  9.731E-01 ]}
+  1.520E-03,  1.391E-03], avg pot diff (actual/min):  [  9.814E-01,  9.815E-01 ]}
  -  {rloc mult:  [  1.0,  1.2,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.825E-02,  1.774E-02], avg pot diff (actual/min):  [  9.745E-01,  9.730E-01 ]}
+  1.679E-03,  1.391E-03], avg pot diff (actual/min):  [  9.83E-01,  9.814E-01 ]}
  -  {rloc mult:  [  1.2,  1.2,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.825E-02,  1.774E-02], avg pot diff (actual/min):  [  9.761E-01,  9.730E-01 ]}
+  1.685E-03,  1.391E-03], avg pot diff (actual/min):  [  9.848E-01,  9.814E-01 ]}
  -  {rloc mult:  [  1.4,  1.2,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.825E-02,  1.774E-02], avg pot diff (actual/min):  [  9.783E-01,  9.730E-01 ]}
+  1.685E-03,  1.391E-03], avg pot diff (actual/min):  [  9.872E-01,  9.814E-01 ]}
  -  {rloc mult:  [  0.6,  1.4,  0.8 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  1.4,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.828E-02,  1.774E-02], avg pot diff (actual/min):  [  9.73E-01,  9.730E-01 ]}
+  1.520E-03,  1.391E-03], avg pot diff (actual/min):  [  9.813E-01,  9.814E-01 ]}
  -  {rloc mult:  [  1.0,  1.4,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.825E-02,  1.774E-02], avg pot diff (actual/min):  [  9.744E-01,  9.730E-01 ]}
+  1.679E-03,  1.391E-03], avg pot diff (actual/min):  [  9.829E-01,  9.813E-01 ]}
  -  {rloc mult:  [  1.2,  1.4,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.825E-02,  1.774E-02], avg pot diff (actual/min):  [  9.761E-01,  9.730E-01 ]}
+  1.685E-03,  1.391E-03], avg pot diff (actual/min):  [  9.847E-01,  9.813E-01 ]}
  -  {rloc mult:  [  1.4,  1.4,  0.8 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.825E-02,  1.774E-02], avg pot diff (actual/min):  [  9.783E-01,  9.730E-01 ]}
+  1.685E-03,  1.391E-03], avg pot diff (actual/min):  [  9.871E-01,  9.813E-01 ]}
  -  {rloc mult:  [  0.6,  0.6,  1.0 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  0.6,  1.0 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  1.0,  0.6,  1.0 ], Gaussian norms ok:  No}
@@ -1533,40 +1533,40 @@
  -  {rloc mult:  [  1.4,  0.6,  1.0 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.6,  0.8,  1.0 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  0.8,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.316E-02,  1.774E-02], avg pot diff (actual/min):  [  9.712E-01,  9.730E-01 ]}
+  2.597E-04,  1.391E-03], avg pot diff (actual/min):  [  9.812E-01,  9.813E-01 ]}
  -  {rloc mult:  [  1.0,  0.8,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.354E-02,  1.316E-02], avg pot diff (actual/min):  [  9.726E-01,  9.712E-01 ]}
+  8.411E-06,  2.597E-04], avg pot diff (actual/min):  [  9.828E-01,  9.812E-01 ]}
  -  {rloc mult:  [  1.2,  0.8,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.355E-02,  1.316E-02], avg pot diff (actual/min):  [  9.743E-01,  9.712E-01 ]}
+  9.400E-06,  8.411E-06], avg pot diff (actual/min):  [  9.846E-01,  9.812E-01 ]}
  -  {rloc mult:  [  1.4,  0.8,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.355E-02,  1.316E-02], avg pot diff (actual/min):  [  9.765E-01,  9.712E-01 ]}
+  9.404E-06,  8.411E-06], avg pot diff (actual/min):  [  9.87E-01,  9.812E-01 ]}
  -  {rloc mult:  [  0.6,  1.0,  1.0 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  1.0,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.353E-02,  1.316E-02], avg pot diff (actual/min):  [  9.711E-01,  9.712E-01 ]}
+  3.550E-04,  8.411E-06], avg pot diff (actual/min):  [  9.812E-01,  9.812E-01 ]}
  -  {rloc mult:  [  1.0,  1.0,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.401E-02,  1.316E-02], avg pot diff (actual/min):  [  9.725E-01,  9.711E-01 ]}
+  3.974E-07,  8.411E-06], avg pot diff (actual/min):  [  9.828E-01,  9.812E-01 ]}
  -  {rloc mult:  [  1.2,  1.0,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.402E-02,  1.316E-02], avg pot diff (actual/min):  [  9.742E-01,  9.711E-01 ]}
+  3.262E-07,  3.974E-07], avg pot diff (actual/min):  [  9.846E-01,  9.812E-01 ]}
  -  {rloc mult:  [  1.4,  1.0,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.402E-02,  1.316E-02], avg pot diff (actual/min):  [  9.764E-01,  9.711E-01 ]}
+  3.261E-07,  3.262E-07], avg pot diff (actual/min):  [  9.87E-01,  9.812E-01 ]}
  -  {rloc mult:  [  0.6,  1.2,  1.0 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  1.2,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.353E-02,  1.316E-02], avg pot diff (actual/min):  [  9.711E-01,  9.711E-01 ]}
+  3.558E-04,  3.261E-07], avg pot diff (actual/min):  [  9.811E-01,  9.812E-01 ]}
  -  {rloc mult:  [  1.0,  1.2,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.402E-02,  1.316E-02], avg pot diff (actual/min):  [  9.725E-01,  9.711E-01 ]}
+  4.384E-07,  3.261E-07], avg pot diff (actual/min):  [  9.827E-01,  9.811E-01 ]}
  -  {rloc mult:  [  1.2,  1.2,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.403E-02,  1.316E-02], avg pot diff (actual/min):  [  9.742E-01,  9.711E-01 ]}
+  3.594E-07,  3.261E-07], avg pot diff (actual/min):  [  9.845E-01,  9.811E-01 ]}
  -  {rloc mult:  [  1.4,  1.2,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.403E-02,  1.316E-02], avg pot diff (actual/min):  [  9.763E-01,  9.711E-01 ]}
+  3.592E-07,  3.261E-07], avg pot diff (actual/min):  [  9.869E-01,  9.811E-01 ]}
  -  {rloc mult:  [  0.6,  1.4,  1.0 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  1.4,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.353E-02,  1.316E-02], avg pot diff (actual/min):  [  9.711E-01,  9.711E-01 ]}
+  3.558E-04,  3.261E-07], avg pot diff (actual/min):  [  9.81E-01,  9.811E-01 ]}
  -  {rloc mult:  [  1.0,  1.4,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.402E-02,  1.316E-02], avg pot diff (actual/min):  [  9.725E-01,  9.711E-01 ]}
+  4.387E-07,  3.261E-07], avg pot diff (actual/min):  [  9.826E-01,  9.810E-01 ]}
  -  {rloc mult:  [  1.2,  1.4,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.403E-02,  1.316E-02], avg pot diff (actual/min):  [  9.741E-01,  9.711E-01 ]}
+  3.596E-07,  3.261E-07], avg pot diff (actual/min):  [  9.844E-01,  9.810E-01 ]}
  -  {rloc mult:  [  1.4,  1.4,  1.0 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.403E-02,  1.316E-02], avg pot diff (actual/min):  [  9.763E-01,  9.711E-01 ]}
+  3.594E-07,  3.261E-07], avg pot diff (actual/min):  [  9.868E-01,  9.810E-01 ]}
  -  {rloc mult:  [  0.6,  0.6,  1.2 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  0.6,  1.2 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  1.0,  0.6,  1.2 ], Gaussian norms ok:  No}
@@ -1574,40 +1574,40 @@
  -  {rloc mult:  [  1.4,  0.6,  1.2 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.6,  0.8,  1.2 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  0.8,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.311E-02,  1.316E-02], avg pot diff (actual/min):  [  9.708E-01,  9.711E-01 ]}
+  2.685E-04,  3.261E-07], avg pot diff (actual/min):  [  9.808E-01,  9.810E-01 ]}
  -  {rloc mult:  [  1.0,  0.8,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.351E-02,  1.311E-02], avg pot diff (actual/min):  [  9.722E-01,  9.708E-01 ]}
+  8.696E-06,  3.261E-07], avg pot diff (actual/min):  [  9.823E-01,  9.808E-01 ]}
  -  {rloc mult:  [  1.2,  0.8,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.351E-02,  1.311E-02], avg pot diff (actual/min):  [  9.738E-01,  9.708E-01 ]}
+  9.598E-06,  3.261E-07], avg pot diff (actual/min):  [  9.842E-01,  9.808E-01 ]}
  -  {rloc mult:  [  1.4,  0.8,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.351E-02,  1.311E-02], avg pot diff (actual/min):  [  9.76E-01,  9.708E-01 ]}
+  9.601E-06,  3.261E-07], avg pot diff (actual/min):  [  9.865E-01,  9.808E-01 ]}
  -  {rloc mult:  [  0.6,  1.0,  1.2 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  1.0,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.348E-02,  1.311E-02], avg pot diff (actual/min):  [  9.706E-01,  9.708E-01 ]}
+  3.634E-04,  3.261E-07], avg pot diff (actual/min):  [  9.807E-01,  9.808E-01 ]}
  -  {rloc mult:  [  1.0,  1.0,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.398E-02,  1.311E-02], avg pot diff (actual/min):  [  9.721E-01,  9.706E-01 ]}
+  2.704E-07,  3.261E-07], avg pot diff (actual/min):  [  9.823E-01,  9.807E-01 ]}
  -  {rloc mult:  [  1.2,  1.0,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.398E-02,  1.311E-02], avg pot diff (actual/min):  [  9.737E-01,  9.706E-01 ]}
+  1.113E-07,  2.704E-07], avg pot diff (actual/min):  [  9.841E-01,  9.807E-01 ]}
  -  {rloc mult:  [  1.4,  1.0,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.398E-02,  1.311E-02], avg pot diff (actual/min):  [  9.759E-01,  9.706E-01 ]}
+  1.108E-07,  1.113E-07], avg pot diff (actual/min):  [  9.865E-01,  9.807E-01 ]}
  -  {rloc mult:  [  0.6,  1.2,  1.2 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  1.2,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.349E-02,  1.311E-02], avg pot diff (actual/min):  [  9.706E-01,  9.706E-01 ]}
+  3.642E-04,  1.108E-07], avg pot diff (actual/min):  [  9.807E-01,  9.807E-01 ]}
  -  {rloc mult:  [  1.0,  1.2,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.398E-02,  1.311E-02], avg pot diff (actual/min):  [  9.72E-01,  9.706E-01 ]}
+  2.869E-07,  1.108E-07], avg pot diff (actual/min):  [  9.822E-01,  9.807E-01 ]}
  -  {rloc mult:  [  1.2,  1.2,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.399E-02,  1.311E-02], avg pot diff (actual/min):  [  9.737E-01,  9.706E-01 ]}
+  1.200E-07,  1.108E-07], avg pot diff (actual/min):  [  9.841E-01,  9.807E-01 ]}
  -  {rloc mult:  [  1.4,  1.2,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.399E-02,  1.311E-02], avg pot diff (actual/min):  [  9.759E-01,  9.706E-01 ]}
+  1.195E-07,  1.108E-07], avg pot diff (actual/min):  [  9.864E-01,  9.807E-01 ]}
  -  {rloc mult:  [  0.6,  1.4,  1.2 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  1.4,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.349E-02,  1.311E-02], avg pot diff (actual/min):  [  9.706E-01,  9.706E-01 ]}
+  3.642E-04,  1.108E-07], avg pot diff (actual/min):  [  9.806E-01,  9.807E-01 ]}
  -  {rloc mult:  [  1.0,  1.4,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.398E-02,  1.311E-02], avg pot diff (actual/min):  [  9.72E-01,  9.706E-01 ]}
+  2.870E-07,  1.108E-07], avg pot diff (actual/min):  [  9.822E-01,  9.806E-01 ]}
  -  {rloc mult:  [  1.2,  1.4,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.399E-02,  1.311E-02], avg pot diff (actual/min):  [  9.737E-01,  9.706E-01 ]}
+  1.200E-07,  1.108E-07], avg pot diff (actual/min):  [  9.84E-01,  9.806E-01 ]}
  -  {rloc mult:  [  1.4,  1.4,  1.2 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.399E-02,  1.311E-02], avg pot diff (actual/min):  [  9.759E-01,  9.706E-01 ]}
+  1.195E-07,  1.108E-07], avg pot diff (actual/min):  [  9.864E-01,  9.806E-01 ]}
  -  {rloc mult:  [  0.6,  0.6,  1.4 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  0.6,  1.4 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  1.0,  0.6,  1.4 ], Gaussian norms ok:  No}
@@ -1615,62 +1615,62 @@
  -  {rloc mult:  [  1.4,  0.6,  1.4 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.6,  0.8,  1.4 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  0.8,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.311E-02,  1.311E-02], avg pot diff (actual/min):  [  9.705E-01,  9.706E-01 ]}
+  2.686E-04,  1.108E-07], avg pot diff (actual/min):  [  9.805E-01,  9.806E-01 ]}
  -  {rloc mult:  [  1.0,  0.8,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.351E-02,  1.311E-02], avg pot diff (actual/min):  [  9.72E-01,  9.705E-01 ]}
+  8.698E-06,  1.108E-07], avg pot diff (actual/min):  [  9.821E-01,  9.805E-01 ]}
  -  {rloc mult:  [  1.2,  0.8,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.351E-02,  1.311E-02], avg pot diff (actual/min):  [  9.736E-01,  9.705E-01 ]}
+  9.599E-06,  1.108E-07], avg pot diff (actual/min):  [  9.839E-01,  9.805E-01 ]}
  -  {rloc mult:  [  1.4,  0.8,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.351E-02,  1.311E-02], avg pot diff (actual/min):  [  9.758E-01,  9.705E-01 ]}
+  9.603E-06,  1.108E-07], avg pot diff (actual/min):  [  9.863E-01,  9.805E-01 ]}
  -  {rloc mult:  [  0.6,  1.0,  1.4 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  1.0,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.348E-02,  1.311E-02], avg pot diff (actual/min):  [  9.704E-01,  9.705E-01 ]}
+  3.635E-04,  1.108E-07], avg pot diff (actual/min):  [  9.805E-01,  9.805E-01 ]}
  -  {rloc mult:  [  1.0,  1.0,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.398E-02,  1.311E-02], avg pot diff (actual/min):  [  9.719E-01,  9.704E-01 ]}
+  2.725E-07,  1.108E-07], avg pot diff (actual/min):  [  9.82E-01,  9.805E-01 ]}
  -  {rloc mult:  [  1.2,  1.0,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.398E-02,  1.311E-02], avg pot diff (actual/min):  [  9.735E-01,  9.704E-01 ]}
+  1.127E-07,  1.108E-07], avg pot diff (actual/min):  [  9.839E-01,  9.805E-01 ]}
  -  {rloc mult:  [  1.4,  1.0,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.398E-02,  1.311E-02], avg pot diff (actual/min):  [  9.757E-01,  9.704E-01 ]}
+  1.122E-07,  1.108E-07], avg pot diff (actual/min):  [  9.863E-01,  9.805E-01 ]}
  -  {rloc mult:  [  0.6,  1.2,  1.4 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  1.2,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.349E-02,  1.311E-02], avg pot diff (actual/min):  [  9.704E-01,  9.704E-01 ]}
+  3.642E-04,  1.108E-07], avg pot diff (actual/min):  [  9.804E-01,  9.805E-01 ]}
  -  {rloc mult:  [  1.0,  1.2,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.398E-02,  1.311E-02], avg pot diff (actual/min):  [  9.718E-01,  9.704E-01 ]}
+  2.889E-07,  1.108E-07], avg pot diff (actual/min):  [  9.82E-01,  9.804E-01 ]}
  -  {rloc mult:  [  1.2,  1.2,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.399E-02,  1.311E-02], avg pot diff (actual/min):  [  9.735E-01,  9.704E-01 ]}
+  1.213E-07,  1.108E-07], avg pot diff (actual/min):  [  9.838E-01,  9.804E-01 ]}
  -  {rloc mult:  [  1.4,  1.2,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.399E-02,  1.311E-02], avg pot diff (actual/min):  [  9.757E-01,  9.704E-01 ]}
+  1.208E-07,  1.108E-07], avg pot diff (actual/min):  [  9.862E-01,  9.804E-01 ]}
  -  {rloc mult:  [  0.6,  1.4,  1.4 ], Gaussian norms ok:  No}
  -  {rloc mult:  [  0.8,  1.4,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.349E-02,  1.311E-02], avg pot diff (actual/min):  [  9.704E-01,  9.704E-01 ]}
+  3.642E-04,  1.108E-07], avg pot diff (actual/min):  [  9.803E-01,  9.804E-01 ]}
  -  {rloc mult:  [  1.0,  1.4,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.398E-02,  1.311E-02], avg pot diff (actual/min):  [  9.718E-01,  9.704E-01 ]}
+  2.890E-07,  1.108E-07], avg pot diff (actual/min):  [  9.819E-01,  9.803E-01 ]}
  -  {rloc mult:  [  1.2,  1.4,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.399E-02,  1.311E-02], avg pot diff (actual/min):  [  9.735E-01,  9.704E-01 ]}
+  1.213E-07,  1.108E-07], avg pot diff (actual/min):  [  9.837E-01,  9.803E-01 ]}
  -  {rloc mult:  [  1.4,  1.4,  1.4 ], Gaussian norms ok:  Yes, dipole norm diff (actual/min): [
-  1.399E-02,  1.311E-02], avg pot diff (actual/min):  [  9.757E-01,  9.704E-01 ]}
- optimal sigma multiplication factors  :  [  0.80,  0.80,  1.40 ]
+  1.208E-07,  1.108E-07], avg pot diff (actual/min):  [  9.861E-01,  9.803E-01 ]}
+ optimal sigma multiplication factors  :  [  1.40,  1.00,  1.20 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr
    values:
    - sym                               : O # 0001
      r: [ 2.065621065394574,  0.7276197830051158,  0.7650374978227975]
-     sigma                             :  [  0.198,  0.198,  0.347 ]
+     sigma                             :  [  0.347,  0.248,  0.297 ]
      q0                                :  [ -7.733418E-01 ]
      q1                                :  [  1.300369E-01,  1.745191E-01, -2.214447E-01 ]
      q2: [ 3.023762E-01,  7.833939E-01, -2.013226E-01,  2.722153E-01,  3.434860E-01]
      type                              : unknown
    - sym                               : H # 0002
      r: [ 0.2609031030233364,  0.4497236554241762,  0.5729218373685834]
-     sigma                             :  [  0.160,  0.160,  0.280 ]
+     sigma                             :  [  0.280,  0.200,  0.240 ]
      q0                                :  [  3.953098E-01 ]
      q1                                :  [  3.87101E-02,  2.452400E-02,  2.448450E-01 ]
      q2: [ 1.247826E-01,  1.639029E-02, -2.445394E-01,  8.701912E-02,  4.122482E-01]
      type                              : unknown
    - sym                               : H # 0003
      r: [ 2.217505931689284,  2.044733573632779,  2.030559672968256]
-     sigma                             :  [  0.160,  0.160,  0.280 ]
+     sigma                             :  [  0.280,  0.200,  0.240 ]
      q0                                :  [  3.780458E-01 ]
      q1                                :  [ -2.08237E-01, -2.200980E-01,  1.528585E-02 ]
      q2: [ 8.529228E-02,  4.249781E-01,  7.974195E-02,  8.400818E-02, -2.283355E-01]

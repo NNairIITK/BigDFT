@@ -1,3 +1,60 @@
+module module_func
+  use module_base
+  implicit none
+
+  private
+
+  ! Shared variables within the modules
+  integer :: ifunc
+  real(kind=8) :: power, ef, fscale
+
+  ! Public routines
+  public :: func_set
+  public :: func
+
+  ! Public parameters
+  integer,parameter,public :: FUNCTION_POLYNOMIAL = 101
+  integer,parameter,public :: FUNCTION_ERRORFUNCTION = 102
+
+  contains
+
+    subroutine func_set(ifuncx, powerx, efx, fscalex)
+      implicit none
+      integer,intent(in) :: ifuncx
+      real(kind=8),intent(in),optional :: powerx, efx, fscalex
+      select case (ifuncx)
+      case(FUNCTION_POLYNOMIAL)
+          ifunc = FUNCTION_POLYNOMIAL
+          if (.not.present(powerx)) call f_err_throw("'powerx' not present")
+          power = powerx
+      case(FUNCTION_ERRORFUNCTION)
+          ifunc = FUNCTION_ERRORFUNCTION
+          if (.not.present(efx)) call f_err_throw("'efx' not present")
+          if (.not.present(fscalex)) call f_err_throw("'fscalex' not present")
+          ef = efx
+          fscale = fscalex
+      case default
+          call f_err_throw("wrong value of 'ifuncx'")
+      end select
+    end subroutine func_set
+
+    function func(x)
+      implicit none
+      real(kind=8),intent(in) :: x
+      real(kind=8) :: func
+      select case (ifunc)
+      case(FUNCTION_POLYNOMIAL)
+          func = x**power
+      case(FUNCTION_ERRORFUNCTION)
+          func = 0.5d0*erfc((x-ef)*(1.d0/fscale))
+      case default
+          call f_err_throw("wrong value of 'ifunc'")
+      end select
+    end function func
+
+end module module_func
+
+
 module foe_common
   use module_defs, only: uninitialized
   use module_base
@@ -29,14 +86,17 @@ module foe_common
 
     ! Calculates chebychev expansion of fermi distribution.
     ! Taken from numerical receipes: press et al
-    subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
+    subroutine chebft(A,B,N,cc,ef,fscale,tmprtr,x_max_error,max_error)
       use module_base
+      use module_func
+      use yaml_output
       implicit none
       
       ! Calling arguments
       real(kind=8),intent(in) :: A, B, ef, fscale, tmprtr
       integer,intent(in) :: n
       real(8),dimension(n),intent(out) :: cc
+      real(kind=8),intent(out) :: x_max_error, max_error
     
       ! Local variables
       integer :: k, j
@@ -45,6 +105,8 @@ module foe_common
       !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
     
       call f_routine(id='chebft')
+
+      if (tmprtr/=0.d0) call f_err_throw('tmprtr should be zero for the moment')
     
       if (n>50000) stop 'chebft'
       bma=0.5d0*(b-a)
@@ -73,6 +135,10 @@ module foe_common
       end do
       !$omp end do
       !$omp end parallel
+
+      call func_set(FUNCTION_ERRORFUNCTION, efx=ef, fscalex=fscale)
+      call accuracy_of_chebyshev_expansion(n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error)
+      !if (bigdft_mpi%iproc==0) call yaml_map('expected accuracy of Chebyshev expansion',max_error)
     
       call f_release_routine()
     
@@ -777,8 +843,10 @@ module foe_common
 
     ! Calculates chebychev expansion of x**ex, where ex is any value (typically -1, -1/2, 1/2)
     ! Taken from numerical receipes: press et al
-    subroutine cheb_exp(A,B,N,cc,ex)
+    subroutine cheb_exp(A,B,N,cc,ex,x_max_error,max_error)
       use module_base
+      use module_func
+      use yaml_output
       implicit none
       
       ! Calling arguments
@@ -786,6 +854,7 @@ module foe_common
       integer,intent(in) :: n
       real(kind=8),intent(in) :: ex
       real(8),dimension(n),intent(out) :: cc
+      real(kind=8),intent(out) :: x_max_error, max_error
     
       ! Local variables
       integer :: k, j
@@ -794,6 +863,7 @@ module foe_common
       !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
     
       call f_routine(id='chebft')
+
     
       if (n>50000) stop 'chebft'
       bma=0.5d0*(b-a)
@@ -818,6 +888,10 @@ module foe_common
       end do
       !$omp end do
       !$omp end parallel
+
+      call func_set(FUNCTION_POLYNOMIAL, powerx=ex)
+      call accuracy_of_chebyshev_expansion(n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error)
+      !if (bigdft_mpi%iproc==0) call yaml_map('expected accuracy of Chebyshev expansion',max_error)
     
       call f_release_routine()
     
@@ -897,6 +971,66 @@ module foe_common
     
     
     end subroutine init_foe
+
+
+    subroutine accuracy_of_chebyshev_expansion(npl, coeff, bounds, h, func, x_max_error, max_error)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: npl
+      real(kind=8),dimension(npl),intent(in) :: coeff
+      real(kind=8),dimension(2),intent(in) :: bounds
+      real(kind=8),intent(in) :: h
+      real(kind=8),external :: func
+      real(kind=8),intent(out) :: x_max_error, max_error
+
+      ! Local variables
+      integer :: is, ie, i, ipl
+      real(kind=8) :: x, xx, val_chebyshev, val_function, xxm1, xxm2, xxx, sigma, tau, error
+
+      call f_routine(id='accuracy_of_chebyshev_expansion')
+
+      sigma = 2.d0/(bounds(2)-bounds(1))
+      tau = (bounds(1)+bounds(2))/2.d0
+
+      is = nint(bounds(1)/h)
+      ie = nint(bounds(2)/h)
+      max_error = 0.d0
+      do i=is,ie
+          x = real(i,kind=8)*h
+          val_chebyshev = 0.5d0*coeff(1)*1.d0
+          xx = sigma*(x-tau)
+          val_chebyshev = val_chebyshev + coeff(2)*xx
+          xxm2 = 1.d0
+          xxm1 = xx
+          do ipl=3,npl
+              xx = sigma*(x-tau)
+              xxx = 2.d0*xx*xxm1 - xxm2
+              val_chebyshev = val_chebyshev + coeff(ipl)*xxx
+              xxm2 = xxm1
+              xxm1 = xxx
+          end do
+          val_function = func(x)
+          error = abs(val_chebyshev-val_function)
+          if (error>max_error) then
+              max_error = error
+              x_max_error = x
+          end if
+          !write(*,*) 'x, val_chebyshev, val_function', x, val_chebyshev, val_function
+      end do
+
+      call f_release_routine()
+
+    end subroutine accuracy_of_chebyshev_expansion
+
+
+    !!pure function x_power(x, power)
+    !!  implicit none
+    !!  real(kind=8),intent(in) :: x
+    !!  real(kind=8),intent(in) :: power
+    !!  real(kind=8) :: x_power
+    !!  x_power = x**power
+    !!end function x_power
 
 
 end module foe_common

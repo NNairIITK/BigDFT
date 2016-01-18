@@ -28,7 +28,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                                  TRANSPOSE_POST, TRANSPOSE_GATHER
   use communications, only: synchronize_onesided_communication, transpose_localized, untranspose_localized
   !use communications_init, only: orbitals_communicators
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
+  use sparsematrix_base, only: sparse_matrix, matrices, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc, sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL, DENSE_FULL, &
                                SPARSE_TASKGROUP, DENSE_PARALLEL, sparsematrix_malloc0
@@ -46,7 +46,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use locregs_init, only: small_to_large_locreg
   use public_enums
   use multipole, only: multipole_analysis_driver, projector_for_charge_analysis, &
-                       support_function_gross_multipoles, potential_from_charge_multipoles
+                       support_function_gross_multipoles, potential_from_charge_multipoles, &
+                       calculate_rpowerx_matrices
   use transposed_operations, only: calculate_overlap_transposed
   use matrix_operations, only: overlapPowerGeneral
   use foe, only: fermi_operator_expansion
@@ -136,6 +137,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   type(orbital_basis) :: ob
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot, max_error, mean_error, r2, occ, tot_occ, ef, ef_low, ef_up, q, fac
+  type(matrices),dimension(24) :: rpower_matrix
 
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp
   real(kind=8) :: max_deviation, mean_deviation, max_deviation_p, mean_deviation_p
@@ -2038,9 +2040,25 @@ end if
       !call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
       !     tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
       !     rxyz, calculate_centers=.false., multipoles=multipoles)
+
+
+
+      ! @ NEW ##################################################################################################
+      ! Calculate the matrices <phi|r**x|phi>
+      do i=1,24
+          rpower_matrix(i) = matrices_null()
+          rpower_matrix(i)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, SPARSE_FULL, id='rpower_matrix(i)%matrix_compr')
+      end do
+      call calculate_rpowerx_matrices(iproc, nproc, tmb%npsidim_orbs, tmb%collcom_sr%ndimpsi_c, tmb%lzd, &
+           tmb%orbs, tmb%collcom, tmb%psi, tmb%linmat%s, rpower_matrix)
+      ! @ END NEW ##############################################################################################
       call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
-           rxyz, calculate_centers=.false., write_output=.true.)
+           rxyz, calculate_centers=.false., write_output=.true., &
+           rpower_matrix=rpower_matrix, orbs=tmb%orbs)
+      do i=1,24
+          call deallocate_matrices(rpower_matrix(i))
+      end do
       !call f_free(multipoles)
       !call f_free(multipoles_out)
 
@@ -2248,7 +2266,7 @@ end if
         call writemywaves_linear_fragments(iproc,'minBasis',mod(input%lin%plotBasisFunctions,10),&
              max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff, &
              trim(input%dir_output),input%frag,ref_frags,tmb%linmat,norder_taylor,input%lin%max_inversion_error,&
-             tmb%orthpar,input%lin%frag_num_neighbours)
+             tmb%orthpar,input%lin%frag_num_neighbours,input%lin%frag_neighbour_cutoff)
 
 !      call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
 !           tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
