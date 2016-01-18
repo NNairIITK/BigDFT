@@ -32,8 +32,8 @@ program GPS_3D
    logical, parameter :: CFgrid = .false. !.true.
    logical, parameter :: Fgrid = .false. !.true.
 
-   real(kind=8), parameter :: acell = 20.d0 !10.d0
-   real(kind=8), parameter :: rad_cav = 2.5d0 !1.7d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
+   real(kind=8), parameter :: acell = 10.d0 !10.d0
+   real(kind=8), parameter :: rad_cav = 1.7d0 !1.7d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
    real(kind=8), parameter :: multp = 1.d0
    integer :: nat = 1 ! Number of atoms to build rigid cavity with nat=1.
    real(kind=8) :: erfL  ! To set 1 for Vacuum and correct analitic comparison with gaussian potential.
@@ -316,8 +316,9 @@ program GPS_3D
    call ApplyLaplace(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,.false.,multp)
 
   if (iproc==0) then
-   call yaml_comment('Comparison between Generalized Poisson operator and analytical density',hfill='-')
+   call yaml_mapping_open('Comparison between Generalized Poisson operator and analytical density')
    call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+   call yaml_mapping_close()
   end if
 
    geocodeprova='F'
@@ -325,8 +326,9 @@ program GPS_3D
    call ApplyLaplace2(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,dlogeps,nord,.false.,multp)
 
   if (iproc==0) then
-   call yaml_comment('Comparison between Generalized Poisson operator 2 and analytical density',hfill='-')
-   call writeroutinePot(n01,n02,n03,1,density,1,rvApp)
+     call yaml_mapping_open('Comparison between Generalized Poisson operator 2 and analytical density')
+     call writeroutinePot(n01,n02,n03,1,density,1,rvApp)
+     call yaml_mapping_close()
   end if
 
 !   geocodeprova='F'
@@ -334,7 +336,7 @@ program GPS_3D
 !   call ApplyLaplace_ISF(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,.false.,multp)
 !
 !  if (iproc==0) then
-!   call yaml_comment('Comparison between improved ISF Generalized Poisson operator and analytical density',hfill='-')
+!   call yaml_comment('Comparison between improved ISF Generalized Poisson operator and analytical density')
 !   call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
 !  end if
 
@@ -343,8 +345,9 @@ program GPS_3D
    call ApplyLaplace_corr(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,corr,oneosqrteps,nord,.false.,multp)
 
   if (iproc==0) then
-   call yaml_comment('Comparison between Generalized Poisson operator PCG-style and analytical density',hfill='-')
-   call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+     call yaml_mapping_open('Comparison between Generalized Poisson operator PCG-style and analytical density')
+     call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+     call yaml_mapping_close()
   end if
 
 !   geocodeprova='F'
@@ -352,7 +355,7 @@ program GPS_3D
 !   call ApplyLaplace_ISF_corr(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,corr,oneosqrteps,nord,.false.,multp)
 !
 !  if (iproc==0) then
-!   call yaml_comment('Comparison between improved ISF Generalized Poisson operator PCG-style and analytical density',hfill='-')
+!   call yaml_comment('Comparison between improved ISF Generalized Poisson operator PCG-style and analytical density')
 !   call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
 !  end if
 !------------------------------------------------------------------------
@@ -571,16 +574,18 @@ program GPS_3D
    call ApplyLaplace(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,rhopot(:,:,:,1),rvApp,acell,eps,nord,.false.,multp)
 
   if (iproc==0) then
-   call yaml_comment('Comparison between numerical and starting analytical density with old GPoperator',hfill='-')
+   call yaml_mapping_open('Comparison between numerical and starting analytical density with old GPoperator')
    call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+   call yaml_mapping_close()
   end if
 
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
    call ApplyLaplace2(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,rhopot(:,:,:,1),rvApp,acell,eps,dlogeps,nord,.false.,multp)
 
   if (iproc==0) then
-   call yaml_comment('Comparison between numerical and starting analytical density witn new 2 GPoperator',hfill='-')
+   call yaml_mapping_open('Comparison between numerical and starting analytical density witn new 2 GPoperator')
    call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+   call yaml_mapping_close()
   end if
 
 !   ! Calculate the charge starting from the potential applying the improved ISF Laplace operator.
@@ -596,8 +601,9 @@ program GPS_3D
         rhopot(:,:,:,1),rvApp,acell,eps,corr,oneosqrteps,nord,.false.,multp)
 
   if (iproc==0) then
-   call yaml_comment('Comparison between Generalized Poisson operator PCG-style and analytical density',hfill='-')
+   call yaml_mapping_open('Comparison between Generalized Poisson operator PCG-style and analytical density')
    call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+   call yaml_mapping_close()
   end if
 
 !   ! Calculate the charge starting from the potential applying the improved ISF Laplace operator PCG-style.
@@ -1219,8 +1225,9 @@ subroutine PolarizationIteration_Inputguess(n01,n02,n03,nspden,iproc,&
    call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,lv,rvApp,acell,eps,nord,.false.,multp)
 
    if (iproc==0) then
-    call yaml_comment('Comparison between Generalized Poisson operator and analytical density',hfill='-')
+    call yaml_mapping_open('Comparison between Generalized Poisson operator and analytical density')
     call writeroutinePot(n01,n02,n03,1,bb,0,rvApp)
+    call yaml_mapping_close()
    end if
 
 !   ! Calculate the charge starting from the potential applying the proper
@@ -1228,8 +1235,9 @@ subroutine PolarizationIteration_Inputguess(n01,n02,n03,nspden,iproc,&
    call ApplyLaplace2(geocode,n01,n02,n03,nspden,hx,hy,hz,lv,rvApp,acell,eps,dlogeps,nord,.false.,multp)
 
   if (iproc==0) then
-   call yaml_comment('Comparison between Generalized Poisson operator 2 and analytical density',hfill='-')
+   call yaml_mapping_open('Comparison between Generalized Poisson operator 2 and analytical density')
    call writeroutinePot(n01,n02,n03,1,bb,1,rvApp)
+   call yaml_mapping_close()
   end if
 
   end if
@@ -1453,16 +1461,18 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
    call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,b,rvApp,acell,eps,nord,.false.,multp)
 
    if (iproc==0) then
-    call yaml_comment('Comparison between Generalized Poisson operator and analytical density',hfill='-')
+    call yaml_mapping_open('Comparison between Generalized Poisson operator and analytical density')
     call writeroutinePot(n01,n02,n03,1,bb,0,rvApp)
+    call yaml_mapping_close()
    end if
 
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
    call ApplyLaplace2(geocode,n01,n02,n03,nspden,hx,hy,hz,b,rvApp,acell,eps,dlogeps,nord,.false.,multp)
 
   if (iproc==0) then
-   call yaml_comment('Comparison between Generalized Poisson operator 2 and analytical density',hfill='-')
+   call yaml_mapping_open('Comparison between Generalized Poisson operator 2 and analytical density')
    call writeroutinePot(n01,n02,n03,1,bb,1,rvApp)
+   call yaml_mapping_close()
   end if
 
   end if
@@ -1902,8 +1912,9 @@ subroutine Prec_conjugate_gradient_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,
    call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,rvApp,acell,eps,nord,.false.,multp)
 
    if (iproc==0) then
-    call yaml_comment('Comparison between Generalized Poisson operator and analytical density',hfill='-')
+    call yaml_mapping_open('Comparison between Generalized Poisson operator and analytical density')
     call writeroutinePot(n01,n02,n03,1,bb,0,rvApp)
+    call yaml_mapping_close()
    end if
 
 !   ! Calculate the charge starting from the potential applying the proper Laplace operator.
@@ -4167,8 +4178,9 @@ subroutine Prec_Steepest_Descent_Inputguess(n01,n02,n03,nspden,iproc,&
    call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,rvApp,acell,eps,nord,.false.,multp)
 
    if (iproc==0) then
-    call yaml_comment('Comparison between Generalized Poisson operator and analytical density',hfill='-')
+    call yaml_mapping_open('Comparison between Generalized Poisson operator and analytical density')
     call writeroutinePot(n01,n02,n03,1,bb,0,rvApp)
+    call yaml_mapping_close()
    end if
 
 !   ! Calculate the charge starting from the potential applying the proper
