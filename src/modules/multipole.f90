@@ -2008,6 +2008,9 @@ module multipole
       real(kind=8),dimension(3) :: dipole_check
       real(kind=8),dimension(3,3) :: quadrupole_check
       type(external_potential_descriptors) :: ep_check
+      character(len=*),parameter :: no='no', yes='yes'
+      character(len=*),parameter :: do_ortho = no!yes
+
 
       call f_routine(id='multipole_analysis_driver')
 
@@ -2032,29 +2035,40 @@ module multipole
                natpx=natpx, isatx=isatx, nmaxx=nmaxx, nx=nx, projx=projx, neighborx=neighborx)
       end if
 
-      ! Calculate the kernel for orthormal support functions
-      methTransformOverlap = 20
+      multipole_matrix_large = sparsematrix_malloc(smatl, SPARSE_FULL, id='multipole_matrix_large')
       kernel_ortho = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='kernel_ortho')
-      call kernel_for_orthonormal_basis(iproc, nproc, orbs%norbp, methTransformOverlap, smats, smatl, &
-           ovrlp, kernel, kernel_ortho)
 
-      ! Orthogonalize the support functions
-      can_use_transposed = .false.
-      methTransformOverlap = 1020
-      phit_c = f_malloc_ptr(collcom%ndimind_c,id='phit_c')
-      phit_f = f_malloc_ptr(7*collcom%ndimind_f,id='phit_f')
-      phi_ortho = f_malloc(nphi,id='phi_ortho')
-      call vcopy(nphi, lphi(1), 1, phi_ortho(1), 1)
-      if (iproc==0) then
-          call yaml_comment('Orthonormalizing the support functions',hfill='~')
+      if (do_ortho==yes) then
+          ! Calculate the kernel for orthormal support functions
+          methTransformOverlap = 20
+          call kernel_for_orthonormal_basis(iproc, nproc, orbs%norbp, methTransformOverlap, smats, smatl, &
+               ovrlp, kernel, kernel_ortho)
+       else if (do_ortho==no) then
+           ! Calculate K*S, use multipole_matrix_large as workarray
+           call transform_sparse_matrix(smats, smatl, 'small_to_large', &
+                smat_in=ovrlp%matrix_compr, lmat_out=multipole_matrix_large)
+           call matrix_matrix_mult_wrapper(iproc, nproc, smatl, kernel%matrix_compr, multipole_matrix_large, kernel_ortho)
+       end if
+
+      if (do_ortho==yes) then
+          ! Orthogonalize the support functions
+          can_use_transposed = .false.
+          methTransformOverlap = 1020
+          phit_c = f_malloc_ptr(collcom%ndimind_c,id='phit_c')
+          phit_f = f_malloc_ptr(7*collcom%ndimind_f,id='phit_f')
+          phi_ortho = f_malloc(nphi,id='phi_ortho')
+          call vcopy(nphi, lphi(1), 1, phi_ortho(1), 1)
+          if (iproc==0) then
+              call yaml_comment('Orthonormalizing the support functions',hfill='~')
+          end if
+          call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
+               1.d-8, nphi, orbs, lzd, &
+               smats, smatl, collcom, orthpar, &
+               phi_ortho, phit_c, phit_f, &
+               can_use_transposed)
+          call f_free_ptr(phit_c)
+          call f_free_ptr(phit_f)
       end if
-      call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
-           1.d-8, nphi, orbs, lzd, &
-           smats, smatl, collcom, orthpar, &
-           phi_ortho, phit_c, phit_f, &
-           can_use_transposed)
-      call f_free_ptr(phit_c)
-      call f_free_ptr(phit_f)
 
 
       Qmat = sparsematrix_malloc(smatl,iaction=SPARSE_FULL,id='Qmat')
@@ -2065,7 +2079,6 @@ module multipole
       multipole_matrix = matrices_null()
       multipole_matrix%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_FULL, id='multipole_matrix%matrix_compr')
 
-      multipole_matrix_large = sparsematrix_malloc(smatl, SPARSE_FULL, id='multipole_matrix_large')
 
       locregcenter = f_malloc((/3,lzd%nlr/),id='locregcenter')
       do ilr=1,lzd%nlr
@@ -2078,8 +2091,13 @@ module multipole
               call f_zero(multipole_matrix%matrix_compr)
 
               ! Calculate the multipole matrix
-              call calculte_multipole_matrix(iproc, nproc, l, m, nphi, phi_ortho, phi_ortho, nphir, hgrids, &
-                   orbs, collcom, lzd, smats, locregcenter, 'box', multipole_matrix)
+              if (do_ortho==yes) then
+                  call calculte_multipole_matrix(iproc, nproc, l, m, nphi, phi_ortho, phi_ortho, nphir, hgrids, &
+                       orbs, collcom, lzd, smats, locregcenter, 'box', multipole_matrix)
+              else if (do_ortho==no) then
+                  call calculte_multipole_matrix(iproc, nproc, l, m, nphi, lphi, lphi, nphir, hgrids, &
+                       orbs, collcom, lzd, smats, locregcenter, 'box', multipole_matrix)
+              end if
 
               call transform_sparse_matrix(smats, smatl, 'small_to_large', &
                    smat_in=multipole_matrix%matrix_compr, lmat_out=multipole_matrix_large)
@@ -2290,7 +2308,9 @@ module multipole
       call deallocate_matrices(multipole_matrix)
       call f_free(kernel_ortho)
       call f_free(Qmat)
-      call f_free(phi_ortho)
+      if (do_ortho==yes) then
+          call f_free(phi_ortho)
+      end if
       if (trim(method)=='projector') then
           call f_free_ptr(projx)
           call f_free_ptr(nx)
