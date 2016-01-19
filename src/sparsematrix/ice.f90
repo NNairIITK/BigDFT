@@ -17,7 +17,7 @@ module ice
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
                                    sparsematrix_malloc0_ptr, assignment(=), &
                                    SPARSE_TASKGROUP, SPARSE_MATMUL_SMALL, &
-                                   matrices, sparse_matrix
+                                   matrices, sparse_matrix, matrices_null, deallocate_matrices
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed_wrapper, &
                               transform_sparsity_pattern
@@ -49,7 +49,7 @@ module ice
       real(kind=8),dimension(:,:,:),pointer :: cc
       real(kind=8) :: anoise, scale_factor, shift_value
       real(kind=8) :: evlow_old, evhigh_old, tt, max_error_fake
-      real(kind=8) :: tt_ovrlp, tt_ham
+      real(kind=8) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total
       logical :: restart, calculate_SHS
       logical,dimension(2) :: emergency_stop
       real(kind=8),dimension(2) :: allredarr
@@ -71,6 +71,7 @@ module ice
       real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_new
       real(kind=8),dimension(:,:),allocatable :: penalty_ev_new
       real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_small_new
+      type(matrices) :: ovrlp_scaled
     
       !!real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
       !!real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
@@ -121,32 +122,33 @@ module ice
       evbounds_shrinked = .false.
     
       !@ TEMPORARY: eigenvalues of  the overlap matrix ###################
-      tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
-      do iseg=1,ovrlp_smat%nseg
-          ii=ovrlp_smat%keyv(iseg)
-          do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
-              tempmat(i,ovrlp_smat%keyg(1,2,iseg)) = ovrlp_mat%matrix_compr(ii)
-              ii = ii + 1
-          end do
-      end do
-      !!if (iproc==0) then
-      !!    do i=1,ovrlp_smat%nfvctr
-      !!        do j=1,ovrlp_smat%nfvctr
-      !!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
-      !!        end do
+      !call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat)
+
+      !!tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
+      !!do iseg=1,ovrlp_smat%nseg
+      !!    ii=ovrlp_smat%keyv(iseg)
+      !!    do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
+      !!        tempmat(i,ovrlp_smat%keyg(1,2,iseg)) = ovrlp_mat%matrix_compr(ii)
+      !!        ii = ii + 1
       !!    end do
-      !!end if
-      eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
-      lwork=100*ovrlp_smat%nfvctr
-      work = f_malloc(lwork,id='work')
-      call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
-      !if (iproc==0) write(*,*) 'eval',eval
-      if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+      !!end do
+      !!!!if (iproc==0) then
+      !!!!    do i=1,ovrlp_smat%nfvctr
+      !!!!        do j=1,ovrlp_smat%nfvctr
+      !!!!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
+      !!!!        end do
+      !!!!    end do
+      !!!!end if
+      !!eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
+      !!lwork=100*ovrlp_smat%nfvctr
+      !!work = f_malloc(lwork,id='work')
+      !!call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
+      !!!if (iproc==0) write(*,*) 'eval',eval
+      !!if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
     
-      call f_free(tempmat)
-      call f_free(eval)
-      call f_free(work)
-    
+      !!call f_free(tempmat)
+      !!call f_free(eval)
+      !!call f_free(work)
       !@ END TEMPORARY: eigenvalues of  the overlap matrix ###############
     
     
@@ -157,6 +159,12 @@ module ice
       !!penalty_ev = f_malloc((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%smmm%nfvctrp,2/),id='penalty_ev')
     
     
+      if (npl_auto_) then
+          ovrlp_scaled = matrices_null()
+          ovrlp_scaled%matrix_compr = sparsematrix_malloc_ptr(ovrlp_smat, &
+              iaction=SPARSE_TASKGROUP, id='ovrlp_scaled%matrix_compr')
+          call f_memcpy(src=ovrlp_mat%matrix_compr,dest=ovrlp_scaled%matrix_compr)
+      end if
       hamscal_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
     
         
@@ -187,6 +195,8 @@ module ice
               evlow_old=1.d100
               evhigh_old=-1.d100
               
+              eval_multiplicator = 1.d0
+              eval_multiplicator_total = 1.d0
         
             
                   !!calculate_SHS=.true.
@@ -203,14 +213,24 @@ module ice
                   main_loop: do 
                       
                       it=it+1
+
             
                       ! Scale the Hamiltonian such that all eigenvalues are in the intervall [0:1]
                       if (foe_data_get_real(foe_obj,"evlow",ispin)/=evlow_old .or. &
                           foe_data_get_real(foe_obj,"evhigh",ispin)/=evhigh_old) then
                           !!call scale_and_shift_matrix()
-                          call scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, inv_ovrlp_smat, &
-                               ovrlp_smat, ovrlp_mat, isshift, &
-                               matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
+                          if (npl_auto_) then
+                              call dscal(size(ovrlp_scaled%matrix_compr), eval_multiplicator, ovrlp_scaled%matrix_compr(1), 1)
+                              eval_multiplicator_total = eval_multiplicator_total*eval_multiplicator
+                              call scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, inv_ovrlp_smat, &
+                                   ovrlp_smat, ovrlp_scaled, isshift, &
+                                   matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
+                              write(*,*) 'eval_multiplicator, eval_multiplicator_total',eval_multiplicator, eval_multiplicator_total
+                          else
+                              call scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, inv_ovrlp_smat, &
+                                   ovrlp_smat, ovrlp_mat, isshift, &
+                                   matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
+                          end if
                           calculate_SHS=.true.
                       else
                           calculate_SHS=.false.
@@ -249,7 +269,7 @@ module ice
                           end if
                           if (npl>nplx) stop 'npl>nplx'
                       else
-                          call get_poynomial_degree(iproc, ispin, ncalc, ex, foe_obj, 5, 100, 1.d-8, &
+                          call get_poynomial_degree(iproc, ispin, ncalc, ex, foe_obj, 5, 100, 1.d-10, &
                                npl, cc, anoise)
                       end if
 
@@ -313,6 +333,9 @@ module ice
                       end if
                       call yaml_mapping_close()
                     
+                      !!do j=1,npl
+                      !!    write(*,*) 'in main: j, cc(j,1,1), cc(j,2,1)', j, cc(j,1,1), cc(j,2,1)
+                      !!end do
                     
                     
                       call timing(iproc, 'FOE_auxiliary ', 'OF')
@@ -399,7 +422,7 @@ module ice
                           !!     foe_obj, restart, eval_bounds_ok)
                           call check_eigenvalue_spectrum_new(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, ispin, &
                                0, 1.2d0, 1.d0/1.2d0, penalty_ev_new, anoise, .false., emergency_stop, &
-                               foe_obj, restart, eval_bounds_ok)
+                               foe_obj, restart, eval_bounds_ok, eval_multiplicator)
                       end if
             
                       call f_free_ptr(cc)
@@ -436,6 +459,13 @@ module ice
                            inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
                   end do
               !end if
+
+              if (npl_auto_) then
+                  do icalc=1,ncalc
+                      call dscal(inv_ovrlp_smat%nvctrp_tg, 1.d0/eval_multiplicator**ex(icalc), &
+                           inv_ovrlp(icalc)%matrix_compr(ilshift2+1), 1)
+                  end do
+              end if
         
     
           end do spin_loop
@@ -447,6 +477,9 @@ module ice
       !!call f_free(penalty_ev)
       call f_free(penalty_ev_new)
       call f_free(hamscal_compr)
+      if (npl_auto_) then
+          call deallocate_matrices(ovrlp_scaled)
+      end if
     
       call f_free_ptr(foe_obj%ef)
       call f_free_ptr(foe_obj%evlow)
@@ -483,7 +516,7 @@ module ice
       real(kind=8),intent(out) :: anoise
 
       ! Local variables
-      integer :: ipl, icalc
+      integer :: ipl, icalc, j
       logical :: error_ok, found_degree
       real(kind=8),dimension(:),allocatable :: max_error, x_max_error, mean_error
       real(kind=8),dimension(:,:,:),allocatable :: cc_trial
@@ -519,14 +552,14 @@ module ice
           
           do icalc=1,ncalc
               call cheb_exp(foe_data_get_real(foe_obj,"evlow",ispin), &
-                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, cc_trial(1,1,icalc), ex(icalc), &
+                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, cc_trial(1:ipl,1,icalc), ex(icalc), &
                    x_max_error(icalc), max_error(icalc), mean_error(icalc))
               !call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
               !     foe_data_get_real(foe_obj,"evhigh",ispin), cc_trial(1,1,icalc), cc_trial(1,2,icalc), ipl)
               call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
-                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, cc_trial(1,2,icalc), anoise)
-              !!call evnoise(ipl, cc_trial(1,2,icalc), foe_data_get_real(foe_obj,"evlow",ispin), &
-              !!     foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
+                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, cc_trial(1:ipl,2:3,icalc), anoise)
+              !call evnoise(ipl, cc_trial(1,2,icalc), foe_data_get_real(foe_obj,"evlow",ispin), &
+              !     foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
           end do
 
           call timing(iproc, 'chebyshev_coef', 'OF')
@@ -538,7 +571,7 @@ module ice
               call yaml_map('ipl',ipl)
               do icalc=1,ncalc
                   call yaml_map('Operation '//trim(yaml_toa(icalc)), &
-                      (/x_max_error(icalc),max_error(icalc),mean_error(icalc)/),fmt='(es9.2)')
+                      (/x_max_error(icalc),max_error(icalc),mean_error(icalc),anoise/),fmt='(es9.2)')
               end do
               !call yaml_mapping_close()
               call yaml_mapping_close()
@@ -551,6 +584,11 @@ module ice
                   exit
               end if
           end do
+          if (error_ok) then
+              if (anoise>1.d-2) then
+                  error_ok = .false.
+              end if
+          end if
           if (error_ok) then
               npl = ipl
               found_degree = .true.
@@ -568,9 +606,23 @@ module ice
       if (iproc==0) then
           call yaml_sequence_close()
       end if
+      !do j=1,npl
+      !    write(*,*) 'in sub: j, cc_trial(j,1,1), cc_trial(j,2,1)', j, cc_trial(j,1,1), cc_trial(j,2,1)
+      !end do
 
       cc = f_malloc_ptr((/npl,3,ncalc/),id='cc')
-      call f_memcpy(src=cc_trial(1:npl,1:3,1:ncalc),dest=cc(1:npl,1:3,1:ncalc))
+      !do j=1,npl
+      !    write(*,*) 'in sub: j, cc(j,1,1), cc(j,2,1)', j, cc(j,1,1), cc(j,2,1)
+      !end do
+      !call f_memcpy(src=cc_trial(1:npl,1:3,1:ncalc),dest=cc(1:npl,1:3,1:ncalc))
+      !cc(1:npl,1:3,1:ncalc)=cc_trial(1:npl,1:3,1:ncalc)
+      do icalc=1,ncalc
+          do j=1,3
+              do ipl=1,npl
+                  cc(ipl,j,icalc)=cc_trial(ipl,j,icalc)
+              end do
+          end do
+      end do
       call f_free(cc_trial)
       call f_free(mean_error)
       call f_free(max_error)
@@ -579,5 +631,54 @@ module ice
       call f_release_routine
 
     end subroutine get_poynomial_degree
+
+
+    subroutine get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix, matrices
+      use yaml_output
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc
+      type(sparse_matrix),intent(in) :: ovrlp_smat
+      type(matrices),intent(in) :: ovrlp_mat
+
+      ! Local variables
+      integer :: iseg, ii, i, lwork, info
+      real(kind=8),dimension(:,:),allocatable :: tempmat
+      real(kind=8),dimension(:),allocatable :: eval, work
+
+      call f_routine(id='get_minmax_eigenvalues')
+
+      tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
+      do iseg=1,ovrlp_smat%nseg
+          ii=ovrlp_smat%keyv(iseg)
+          do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
+              tempmat(i,ovrlp_smat%keyg(1,2,iseg)) = ovrlp_mat%matrix_compr(ii)
+              ii = ii + 1
+          end do
+      end do
+      !!if (iproc==0) then
+      !!    do i=1,ovrlp_smat%nfvctr
+      !!        do j=1,ovrlp_smat%nfvctr
+      !!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
+      !!        end do
+      !!    end do
+      !!end if
+      eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
+      lwork=100*ovrlp_smat%nfvctr
+      work = f_malloc(lwork,id='work')
+      call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
+      !if (iproc==0) write(*,*) 'eval',eval
+      if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+    
+      call f_free(tempmat)
+      call f_free(eval)
+      call f_free(work)
+
+      call f_release_routine()
+    
+    end subroutine get_minmax_eigenvalues
 
 end module ice

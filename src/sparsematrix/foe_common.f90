@@ -6,7 +6,7 @@ module module_func
 
   ! Shared variables within the modules
   integer :: ifunc
-  real(kind=8) :: power, ef, fscale, beta, mu
+  real(kind=8) :: power, ef, fscale, beta, mua, mub
 
   ! Public routines
   public :: func_set
@@ -19,10 +19,10 @@ module module_func
 
   contains
 
-    subroutine func_set(ifuncx, powerx, efx, fscalex, betax, mux)
+    subroutine func_set(ifuncx, powerx, efx, fscalex, betax, muax, mubx)
       implicit none
       integer,intent(in) :: ifuncx
-      real(kind=8),intent(in),optional :: powerx, efx, fscalex, betax, mux
+      real(kind=8),intent(in),optional :: powerx, efx, fscalex, betax, muax, mubx
       select case (ifuncx)
       case(FUNCTION_POLYNOMIAL)
           ifunc = FUNCTION_POLYNOMIAL
@@ -37,9 +37,11 @@ module module_func
       case(FUNCTION_EXPONENTIAL)
           ifunc = FUNCTION_EXPONENTIAL
           if (.not.present(betax)) call f_err_throw("'betax' not present")
-          if (.not.present(mux)) call f_err_throw("'mux' not present")
+          if (.not.present(muax)) call f_err_throw("'muax' not present")
+          if (.not.present(mubx)) call f_err_throw("'mubx' not present")
           beta = betax
-          mu = mux
+          mua = muax
+          mub = mubx
       case default
           call f_err_throw("wrong value of 'ifuncx'")
       end select
@@ -55,7 +57,8 @@ module module_func
       case(FUNCTION_ERRORFUNCTION)
           func = 0.5d0*erfc((x-ef)*(1.d0/fscale))
       case(FUNCTION_EXPONENTIAL)
-          func = safe_exp(beta*(x-mu))
+          !func = safe_exp(beta*(x-mu))
+          func = safe_exp(beta*(x-mua)) - safe_exp(-beta*(x-mub))
       case default
           call f_err_throw("wrong value of 'ifunc'")
       end select
@@ -181,7 +184,8 @@ module foe_common
       bpa=0.5d0*(b+a)
       ! 3 gives broder safety zone than 4
       !ttt=3.0d0*n/(b-a)
-      ttt=4.d0*n/(b-a)
+      !ttt=4.d0*n/(b-a)
+      ttt=40.d0
       fac=2.d0/n
       !$omp parallel default(none) shared(bma,bpa,ttt,fac,n,cf,a,b,cc) &
       !$omp private(k,y,arg,tt1,tt2,j)
@@ -190,8 +194,10 @@ module foe_common
           y=cos(pi*(k-0.5d0)*(1.d0/n))
           arg=y*bma+bpa
           !write(*,*) 'arg, safe_exp(-(arg-a)*ttt)', arg, safe_exp(-(arg-a)*ttt)
-          cf(k,1)=safe_exp(-(arg-a)*ttt)
-          cf(k,2)=safe_exp((arg-b)*ttt)
+          cf(k,1)= safe_exp(-(arg-a)*ttt)-safe_exp((arg-b)*ttt)
+          cf(k,2)=-safe_exp(-(arg-a)*ttt)+safe_exp((arg-b)*ttt)
+          !cf(k,1)= safe_exp(-(arg-a)*ttt)
+          !cf(k,2)= safe_exp((arg-b)*ttt)
       end do
       !$omp end do
       !$omp do
@@ -208,13 +214,13 @@ module foe_common
       !$omp end do
       !$omp end parallel
     
-      !do j=1,n
-      !    write(*,*) 'j, cc(j,1), cc(j,2)', j, cc(j,1), cc(j,2)
-      !end do
-      call func_set(FUNCTION_EXPONENTIAL, betax=-ttt, mux=a)
+      !!do j=1,n
+      !!    write(*,*) 'j, cc(j,1), cc(j,2)', j, cc(j,1), cc(j,2)
+      !!end do
+      call func_set(FUNCTION_EXPONENTIAL, betax=-ttt, muax=a, mubx=b)
       call accuracy_of_chebyshev_expansion(n, cc(:,1), (/A,B/), 1.d-3, func, x_max, max_err, mean_err)
       max_error = max_err
-      call func_set(FUNCTION_EXPONENTIAL, betax=ttt, mux=b)
+      call func_set(FUNCTION_EXPONENTIAL, betax=ttt, muax=b, mubx=a)
       call accuracy_of_chebyshev_expansion(n, cc(:,2), (/A,B/), 1.d-3, func, x_max, max_err, mean_err)
       max_error = max(max_error,max_err)
       call f_release_routine()
@@ -609,7 +615,7 @@ module foe_common
 
     subroutine check_eigenvalue_spectrum_new(nproc, smat_l, smat_s, mat, ispin, isshift, &
                factor_high, factor_low, penalty_ev, anoise, trace_with_overlap, &
-               emergency_stop, foe_obj, restart, eval_bounds_ok)
+               emergency_stop, foe_obj, restart, eval_bounds_ok, eval_multiplicator)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: matrixindex_in_compressed
@@ -628,66 +634,72 @@ module foe_common
       type(foe_data),intent(inout) :: foe_obj
       logical,intent(inout) :: restart
       logical,dimension(2),intent(out) :: eval_bounds_ok
+      real(kind=8),intent(inout),optional :: eval_multiplicator
     
       ! Local variables
-      integer :: isegstart, isegend, iseg, ii, jorb, irow, icol, iismall, iel, i, iline, icolumn
+      integer :: isegstart, isegend, iseg, ii, jorb, irow, icol, iismall, iel, i, iline, icolumn, ibound
       real(kind=8) :: bound_low, bound_up, tt, noise
       real(kind=8),dimension(2) :: allredarr
     
       call f_routine(id='check_eigenvalue_spectrum_new')
     
-      if (.not.any(emergency_stop)) then
-          ! The penalty function must be smaller than the noise.
-          bound_low=0.d0
-          bound_up=0.d0
+      bound_low=0.d0
+      bound_up=0.d0
+      do ibound=1,2
+          !if (.not.emergency_stop(ibound)) then
+              ! The penalty function must be smaller than the noise.
     
-          !$omp parallel default(none) &
-          !$omp shared(bound_low, bound_up, smat_l, smat_s, trace_with_overlap, mat, isshift, penalty_ev) &
-          !$omp private(i, ii, iline, icolumn, iismall, tt)
-          !$omp do reduction(+:bound_low, bound_up)
-          do i=1,smat_l%smmm%nvctrp
-              ii = smat_l%smmm%isvctr + i
-              iline = smat_l%smmm%line_and_column(1,i)
-              icolumn = smat_l%smmm%line_and_column(2,i)
-              iismall = matrixindex_in_compressed(smat_s, icolumn, iline)
-              if (iismall>0) then
-                  if (trace_with_overlap) then
-                      ! Take the trace of the product matrix times overlap
-                      tt=mat%matrix_compr(isshift+iismall-smat_s%isvctrp_tg)
-                  else
-                      ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
-                      if (iline==icolumn) then
-                          tt=1.d0
+              !$omp parallel default(none) &
+              !$omp shared(ibound,bound_low, bound_up, smat_l, smat_s, trace_with_overlap, mat, isshift, penalty_ev) &
+              !$omp private(i, ii, iline, icolumn, iismall, tt)
+              !$omp do reduction(+:bound_low, bound_up)
+              do i=1,smat_l%smmm%nvctrp
+                  ii = smat_l%smmm%isvctr + i
+                  iline = smat_l%smmm%line_and_column(1,i)
+                  icolumn = smat_l%smmm%line_and_column(2,i)
+                  iismall = matrixindex_in_compressed(smat_s, icolumn, iline)
+                  if (iismall>0) then
+                      if (trace_with_overlap) then
+                          ! Take the trace of the product matrix times overlap
+                          tt=mat%matrix_compr(isshift+iismall-smat_s%isvctrp_tg)
                       else
-                          tt=0.d0
+                          ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
+                          if (iline==icolumn) then
+                              tt=1.d0
+                          else
+                              tt=0.d0
+                          end if
                       end if
+                  else
+                      tt=0.d0
                   end if
-              else
-                  tt=0.d0
-              end if
-              bound_low = bound_low + penalty_ev(i,1)*tt
-              bound_up = bound_up + penalty_ev(i,2)*tt
-          end do
-          !$omp end do
-          !$omp end parallel
-      else
-          ! This means that the Chebyshev expansion exploded, so take a very large
-          ! value for the error function such that eigenvalue bounds will be enlarged
-          if (emergency_stop(1)) then
-              ! Need to enlarge boundary
-              bound_low = 1.d10
-          else
-              ! No need to enlarge boundary
-              bound_low = 0.d0
-          end if
-          if (emergency_stop(2)) then
-              ! Need to enlarge boundary
-              bound_up = 1.d10
-          else
-              ! No need to enlarge boundary
-              bound_up = 0.d0
-          end if
-      end if
+                  ! This should be improved...
+                  if (ibound==1) bound_low = bound_low + penalty_ev(i,1)*tt
+                  if (ibound==2) bound_up = bound_up + penalty_ev(i,2)*tt
+              end do
+              !$omp end do
+              !$omp end parallel
+          !else
+          !    ! This means that the Chebyshev expansion exploded, so take a very large
+          !    ! value for the error function such that eigenvalue bounds will be enlarged
+          !    if (ibound==1) bound_low = 1.d10
+          !    if (ibound==2) bound_up = 1.d10
+          !    !!if (emergency_stop(1)) then
+          !    !!    ! Need to enlarge boundary
+          !    !!    bound_low = 1.d10
+          !    !!else
+          !    !!    ! No need to enlarge boundary
+          !    !!    bound_low = 0.d0
+          !    !!end if
+          !    !!if (emergency_stop(2)) then
+          !    !!    ! Need to enlarge boundary
+          !    !!    bound_up = 1.d10
+          !    !!else
+          !    !!    ! No need to enlarge boundary
+          !    !!    bound_up = 0.d0
+          !    !!end if
+          !end if
+      end do
     
       allredarr(1)=bound_low
       allredarr(2)=bound_up
@@ -697,12 +709,45 @@ module foe_common
       end if
     
     
-      allredarr=abs(allredarr) !for some crazy situations this may be negative
-      noise=1000.d0*anoise
+      !allredarr=abs(allredarr) !for some crazy situations this may be negative
+      !noise=1000.d0*anoise
+      noise=10.d0*anoise
+      noise = 1.d-1
     
-      if (bigdft_mpi%iproc==0) then
-          call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
+      !if (bigdft_mpi%iproc==0) then
+      !    call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
+      !end if
+
+      eval_bounds_ok(1) = .true.
+      eval_bounds_ok(2) = .true.
+      if (any((/abs(allredarr(1))>noise,abs(allredarr(2))>noise/))) then
+          if (all((/abs(allredarr(1))>noise,abs(allredarr(2))>noise/))) then
+              if (allredarr(1)>0.d0 .and. allredarr(2)<0.d0) then
+                  ! lower bound too large
+                  eval_bounds_ok(1)=.false.
+                  call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*factor_low,ispin)
+                  restart=.true.
+                  if (present(eval_multiplicator)) then
+                      !eval_multiplicator = eval_multiplicator*2.0d0
+                      eval_multiplicator = 2.0d0
+                  end if
+              else if (allredarr(1)<0.d0 .and. allredarr(2)>0.d0) then
+                  ! upper bound too small
+                  eval_bounds_ok(2)=.false.
+                  call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*factor_high,ispin)
+                  restart=.true.
+                  if (present(eval_multiplicator)) then
+                      !eval_multiplicator = eval_multiplicator/2.0d0
+                      eval_multiplicator = 1.d0/2.0d0
+                  end if
+              else
+                  call f_err_throw('The errors should have opposite signs')
+              end if
+          else
+              call f_err_throw('The errors should have the same magnitude')
+          end if
       end if
+
       !write(*,*) 'allredarr, anoise', allredarr, anoise
       if (allredarr(1)>noise) then
           eval_bounds_ok(1)=.false.
@@ -1056,9 +1101,12 @@ module foe_common
               x_max_error = x
           end if
           mean_error = mean_error + error
-          !write(*,*) 'x, val_chebyshev, val_function', x, val_chebyshev, val_function
+          !if (abs(bounds(1)-0.15d0)<1.d-1 .and. abs(bounds(2)-30.0d0)<1.d-1 .and. npl==100) then
+          !    write(*,*) 'x, val_chebyshev, val_function, max_error', x, val_chebyshev, val_function, max_error
+          !end if
           !write(*,*) 'x, val_chebyshev, exp(x-bounds(2))', x, val_chebyshev, exp(x-bounds(2))
       end do
+      !write(*,*) 'max_error',max_error
       mean_error = mean_error/real(ie-is+1,kind=8)
 
       call f_release_routine()

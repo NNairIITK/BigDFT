@@ -83,7 +83,7 @@ program driver_single
   if (bigdft_mpi%iproc==0) then
       call yaml_mapping_close()
   end if
-  mat_in%matrix_compr(:) = 10.d0*mat_in%matrix_compr(:)
+  mat_in%matrix_compr(:) = 100.d0*mat_in%matrix_compr(:)
 
   ! Read the output matrix descriptors, and create the correpsonding structures
   if (bigdft_mpi%iproc==0) then

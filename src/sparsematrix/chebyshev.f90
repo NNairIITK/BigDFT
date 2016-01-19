@@ -45,7 +45,7 @@ module chebyshev
       logical,dimension(2),intent(out) :: emergency_stop
       ! Local variables
       character(len=*),parameter :: subname='chebyshev_clean'
-      integer :: iorb,iiorb, jorb, ipl, i, iline, icolumn, jj
+      integer :: iorb,iiorb, jorb, ipl, i, iline, icolumn, jj, j
       integer :: isegstart, isegend, iseg, ii, jjorb, icalc
       real(8), dimension(:,:,:), allocatable :: vectors
       real(8), dimension(:,:), allocatable :: vectors_new
@@ -57,6 +57,10 @@ module chebyshev
     
       call timing(iproc, 'chebyshev_comp', 'ON')
       call f_routine(id='chebyshev_clean')
+
+      !!do j=1,npl
+      !!    write(*,*) 'in cheby: j, cc(j,2,1), cc(j,3,1)', j, cc(j,2,1), cc(j,3,1)
+      !!end do
     
     
       mat_compr = f_malloc(kernel%nvctrp_tg,id='mat_compr')
@@ -136,8 +140,11 @@ module chebyshev
               do icalc=1,ncalc
                   call axpy(kernel%smmm%nvctrp, 0.5d0*cc(1,1,icalc), vectors_new(1,4), 1, fermi_new(1,icalc), 1)
               end do
+              !write(* *) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
+              !write(*,*) 'cc(1,2,1), cc(1,3,1)', cc(1,2,1), cc(1,3,1)
               call axpy(kernel%smmm%nvctrp, 0.5d0*cc(1,2,1), vectors_new(1,4), 1, penalty_ev_new(1,1), 1)
               call axpy(kernel%smmm%nvctrp, 0.5d0*cc(1,3,1), vectors_new(1,4), 1, penalty_ev_new(1,2), 1)
+              !write(*,*) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
             
               call sparsemm_new(kernel, mat_seq, vectors_new(1,3), vectors_new(1,1))
               call vcopy(kernel%smmm%nvctrp, vectors_new(1,1), 1, vectors_new(1,2), 1)
@@ -149,9 +156,11 @@ module chebyshev
               do icalc=1,ncalc
                   call axpy(kernel%smmm%nvctrp, cc(2,1,icalc), vectors_new(1,2), 1, fermi_new(1,icalc), 1)
               end do
+              !write(*,*) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
               call axpy(kernel%smmm%nvctrp, cc(2,2,1), vectors_new(1,2), 1, penalty_ev_new(1,1), 1)
               call axpy(kernel%smmm%nvctrp, cc(2,3,1), vectors_new(1,2), 1, penalty_ev_new(1,2), 1)
             
+              !write(*,*) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
             
               emergency_stop=.false.
               main_loop: do ipl=3,npl
@@ -165,6 +174,9 @@ module chebyshev
                   end do
                   call axpy(kernel%smmm%nvctrp, cc(ipl,2,1), vectors_new(1,3), 1, penalty_ev_new(1,1), 1)
                   call axpy(kernel%smmm%nvctrp, cc(ipl,3,1), vectors_new(1,3), 1, penalty_ev_new(1,2), 1)
+
+                  !write(*,*) 'in loop: sum(penalty_ev_new)', &
+                  !    ipl, sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2)), sum(fermi_new(:,1))
              
                   !if (mod(ipl,2)==1) then
                   !    tt=cc(ipl,3,1)
@@ -195,6 +207,7 @@ module chebyshev
                   !!end do
               end do main_loop
               !write(*,*) 'emergency_stop',emergency_stop
+              !write(*,*) 'sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
         
           end if
     
@@ -376,7 +389,7 @@ module chebyshev
 
       ces = .false.
       do i=1,nvctrp
-          if (column(i)>1.d10) then
+          if (abs(column(i))>1.d20) then
               ces = .true.
           end if
           !!write(*,*) 'sum(column(:,icalc))',sum(column(:,icalc))
