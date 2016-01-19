@@ -101,7 +101,7 @@ module ice
          do ispin=1,ovrlp_smat%nspin
              call foe_data_set_real(foe_obj,"ef",0.d0,ispin)
              call foe_data_set_real(foe_obj,"evlow",0.5d0,ispin)
-             call foe_data_set_real(foe_obj,"evhigh",21.5d0,ispin)
+             call foe_data_set_real(foe_obj,"evhigh",1.5d0,ispin)
              call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,ispin)
              call foe_data_set_real(foe_obj,"charge",0.d0,ispin)
          end do

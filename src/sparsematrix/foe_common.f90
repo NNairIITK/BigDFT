@@ -212,10 +212,10 @@ module foe_common
       !end do
       call func_set(FUNCTION_EXPONENTIAL, betax=-ttt, mux=a)
       call accuracy_of_chebyshev_expansion(n, cc(:,1), (/A,B/), 1.d-3, func, tt1, tt2, tt3)
-      write(*,*) 'tt1, tt2, tt3', tt1, tt2, tt3
+      !write(*,*) 'tt1, tt2, tt3', tt1, tt2, tt3
       call func_set(FUNCTION_EXPONENTIAL, betax=ttt, mux=b)
       call accuracy_of_chebyshev_expansion(n, cc(:,2), (/A,B/), 1.d-3, func, tt1, tt2, tt3)
-      write(*,*) 'tt1, tt2, tt3', tt1, tt2, tt3
+      !write(*,*) 'tt1, tt2, tt3', tt1, tt2, tt3
       !stop
       call f_release_routine()
     

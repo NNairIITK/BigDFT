@@ -194,7 +194,7 @@ module chebyshev
                   !!    end if
                   !!end do
               end do main_loop
-              write(*,*) 'emergency_stop',emergency_stop
+              !write(*,*) 'emergency_stop',emergency_stop
         
           end if
     
@@ -359,27 +359,32 @@ module chebyshev
     end subroutine compress_polynomial_vector_new
 
 
-    function check_emergency_stop(nvctrp, ncalc, fermi_new) result(ces)
+    function check_emergency_stop(nvctrp, ncalc, column) result(ces)
       use module_base
       implicit none
 
       ! Calling arguments
       integer,intent(in) :: nvctrp, ncalc
-      real(kind=8),dimension(nvctrp,ncalc),intent(in) :: fermi_new
+      real(kind=8),dimension(nvctrp),intent(in) :: column
       logical :: ces
 
       ! Local variables
-      integer :: icalc
+      integer :: i
       real(kind=8) :: tt
 
       call f_routine(id='check_emergency_stop')
 
       ces = .false.
-      do icalc=1,ncalc
-          tt = dot(nvctrp, fermi_new(1,icalc), 1, fermi_new(1,icalc), 1)
-          if (abs(tt)>100000.d0*real(nvctrp,kind=8)) then
+      do i=1,nvctrp
+          if (column(i)>1.d10) then
               ces = .true.
           end if
+          !!write(*,*) 'sum(column(:,icalc))',sum(column(:,icalc))
+          !!tt = dot(nvctrp, column(1,icalc), 1, column(1,icalc), 1)
+          !!write(*,*) 'tt',tt
+          !!if (abs(tt)>100000.d0*real(nvctrp,kind=8)) then
+          !!    ces = .true.
+          !!end if
       end do
 
       call f_release_routine()

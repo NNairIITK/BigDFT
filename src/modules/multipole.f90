@@ -996,7 +996,7 @@ module multipole
 
 
 
-    subroutine write_multipoles_new(ep, units, delta_rxyz, on_which_atom, scaled)
+    subroutine write_multipoles_new(ep, units, delta_rxyz, on_which_atom, scaled, monopoles_analytic)
       use yaml_output
       use numerics, only: Bohr_Ang
       use f_precisions, only: db => f_double
@@ -1010,19 +1010,22 @@ module multipole
                                                                       !! of a support function and its localization center
       integer,dimension(ep%nmpl),intent(in),optional :: on_which_atom !< can be used to display on which atom a given support function multipole is located
       real(kind=8),dimension(ep%nmpl),intent(in),optional :: scaled !< can be used to display by how muched the multipoles have been scaled
+      real(kind=8),dimension(ep%nmpl),intent(in),optional :: monopoles_analytic !< can be used to sidplay also the "analytical"
+                                                                                !! monopoles (i.e. the ones calculated directly with the overlap matrix, without numerical integration)
       
       ! Local variables
       character(len=20) :: atomname
       character(len=9) :: function_type
       integer :: i, impl, l, m, nit
-      real(kind=8) :: factor, convert_units!, get_normalization, get_test_factor
+      real(kind=8) :: factor, convert_units, tt!, get_normalization, get_test_factor
       real(kind=8),dimension(:,:,:),allocatable :: multipoles_tmp
       real(kind=8),dimension(-lmax:lmax,0:lmax) :: multipoles
-      logical :: present_delta_rxyz, present_on_which_atom, present_scaled
+      logical :: present_delta_rxyz, present_on_which_atom, present_scaled, present_monopoles_analytic
 
       present_delta_rxyz = present(delta_rxyz)
       present_on_which_atom = present(on_which_atom)
       present_scaled = present(scaled)
+      present_monopoles_analytic = present(monopoles_analytic)
 
 
           ! See whether a conversion of the units is necessary
@@ -1039,6 +1042,14 @@ module multipole
 
           call yaml_mapping_open('Multipole coefficients')
           call yaml_map('units',trim(units))
+          tt = 0.d0
+          do impl=1,ep%nmpl
+              tt = tt + ep%mpl(impl)%qlm(0)%q(1)
+          end do
+          call yaml_map('global monopole',tt,fmt='(es13.6)')
+          if (present_monopoles_analytic) then
+              call yaml_map('global monopole analytic',sum(monopoles_analytic),fmt='(es13.6)')
+          end if
           call yaml_sequence_open('values')
           do impl=1,ep%nmpl
               call yaml_sequence(advance='no')
@@ -1054,6 +1065,9 @@ module multipole
                   call yaml_map('sigma',ep%mpl(impl)%sigma(0:lmax),fmt='(f5.3)')
               endif
               call f_zero(multipoles)
+              if (present_monopoles_analytic) then
+                  call yaml_map('q0 analytic',monopoles_analytic(impl),fmt='(1es13.6)')
+              end if
               do l=0,lmax
                   call yaml_map('q'//adjustl(trim(yaml_toa(l))),ep%mpl(impl)%qlm(l)%q(:),fmt='(1es13.6)')
                   multipoles(-l:l,l) = ep%mpl(impl)%qlm(l)%q(1:2*l+1)
@@ -1983,6 +1997,7 @@ module multipole
       real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, multipole_matrix_large
       real(kind=8),dimension(:,:),allocatable :: Qmat_tilde, kp, locregcenter
       real(kind=8),dimension(:,:,:),pointer :: atomic_multipoles
+      real(kind=8),dimension(:),pointer :: atomic_monopoles_analytic
       real(kind=8),dimension(:,:,:),allocatable :: test_pot
       real(kind=8),dimension(:,:),pointer :: projx
       real(kind=8) :: q, tt, rloc
@@ -2044,6 +2059,7 @@ module multipole
 
       Qmat = sparsematrix_malloc(smatl,iaction=SPARSE_FULL,id='Qmat')
       atomic_multipoles = f_malloc0_ptr((/-ll.to.ll,0.to.ll,1.to.at%astruct%nat/),id='atomic_multipoles')
+      atomic_monopoles_analytic = f_malloc0_ptr(1.to.at%astruct%nat,id='atomic_monopoles_analytic')
 
 
       multipole_matrix = matrices_null()
@@ -2068,18 +2084,13 @@ module multipole
               call transform_sparse_matrix(smats, smatl, 'small_to_large', &
                    smat_in=multipole_matrix%matrix_compr, lmat_out=multipole_matrix_large)
 
-
               ! The minus sign is required since the phi*S_lm*phi represent the electronic charge which is a negative quantity
               call dscal(smatl%nvctr*smatl%nspin, -1.d0, multipole_matrix_large(1), 1)
 
               ! Multiply the orthogonalized kernel with the multipole matrix
               call f_zero(Qmat)
-              !if (iproc==0) write(*,*) 'multipole_matrix_large(1:13)',multipole_matrix_large(1:13)
-              !if (iproc==0) write(*,*) 'kernel_ortho(1)',kernel_ortho(1)
               call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
                    kernel_ortho, multipole_matrix_large, Qmat)
-              !if (iproc==0) write(*,*) 'Qmat(1)',Qmat(1)
-              !write(*,*) 'after matrix_matrix_mult_wrapper'
 
               if (trim(method)=='projector') then
                   do kat=1,natpx
@@ -2110,6 +2121,49 @@ module multipole
                   end do
               end if
 
+              ! For the monopole, do the same with the exact overlap matrix
+              if (l==0) then
+                  call transform_sparse_matrix(smats, smatl, 'small_to_large', &
+                       smat_in=ovrlp%matrix_compr, lmat_out=multipole_matrix_large)
+
+                  ! The minus sign is required since the phi*S_lm*phi represent the electronic charge which is a negative quantity
+                  call dscal(smatl%nvctr*smatl%nspin, -1.d0, multipole_matrix_large(1), 1)
+
+                  ! Multiply the kernel with the multipole matrix. Use the original kernel not the orthogonalized one
+                  call f_zero(Qmat)
+                  call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
+                       kernel%matrix_compr, multipole_matrix_large, Qmat)
+
+                  if (trim(method)=='projector') then
+                      do kat=1,natpx
+                          kkat = kat + isatx
+                          n = nx(kat)
+                          Qmat_tilde = f_malloc((/n,n/),id='Qmat_tilde')
+                          kp = f_malloc((/n,n/),id='kp')
+                          call extract_matrix(smatl, Qmat, neighborx(1:,kat), n, nmaxx, Qmat_tilde)
+                          call gemm('n', 'n', n, n, n, 1.d0, Qmat_tilde(1,1), n, projx(1,kat), n, 0.d0, kp(1,1), n)
+                          tt = 0.d0
+                          do i=1,n
+                              tt = tt + kp(i,i)
+                          end do
+                          atomic_monopoles_analytic(kkat) = tt
+                          call f_free(Qmat_tilde)
+                          call f_free(kp)
+                      end do
+                  else if (trim(method)=='loewdin') then
+                      do ispin=1,smatl%nspin
+                          ishift = (ispin-1)*smatl%nvctr
+                          do iorb=1,orbs%norb
+                              iiorb = modulo(iorb-1,smatl%nfvctr)+1
+                              iat=smatl%on_which_atom(iiorb)
+                              ind = matrixindex_in_compressed(smatl, iorb, iorb)
+                              ind = ind + ishift
+                              atomic_monopoles_analytic(iat) = atomic_monopoles_analytic(iat) + Qmat(ind)
+                          end do
+                      end do
+                  end if
+              end if
+
           end do
       end do
 
@@ -2117,6 +2171,7 @@ module multipole
 
       if (trim(method)=='projector') then
           call mpiallred(atomic_multipoles, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(atomic_monopoles_analytic, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
 
 
@@ -2125,6 +2180,7 @@ module multipole
           itype = at%astruct%iatype(iat)
           q = real(at%nelpsp(itype),kind=8)
           atomic_multipoles(0,0,iat) = atomic_multipoles(0,0,iat) + q
+          atomic_monopoles_analytic(iat) = atomic_monopoles_analytic(iat) + q
       end do
 
       names = f_malloc_str(len(names),at%astruct%nat,id='names')
@@ -2164,8 +2220,10 @@ module multipole
 
       if (iproc==0) then
           call yaml_comment('Final result of the multipole analysis',hfill='~')
-          call write_multipoles_new(ep, at%astruct%units)
+          call write_multipoles_new(ep, at%astruct%units, monopoles_analytic=atomic_monopoles_analytic)
       end if
+
+      call f_free_ptr(atomic_monopoles_analytic)
 
 
       ! Calculate the total dipole moment resulting from the previously calculated multipoles.
@@ -2239,6 +2297,7 @@ module multipole
           call f_free_ptr(neighborx)
       end if
       call f_free_ptr(atomic_multipoles)
+      call f_free_ptr(atomic_monopoles_analytic)
       call f_free(multipole_matrix_large)
 
       if (iproc==0) then
