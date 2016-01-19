@@ -86,7 +86,7 @@ module foe_common
 
     ! Calculates chebychev expansion of fermi distribution.
     ! Taken from numerical receipes: press et al
-    subroutine chebft(A,B,N,cc,ef,fscale,tmprtr,x_max_error,max_error)
+    subroutine chebft(A,B,N,cc,ef,fscale,tmprtr,x_max_error,max_error,mean_error)
       use module_base
       use module_func
       use yaml_output
@@ -96,7 +96,7 @@ module foe_common
       real(kind=8),intent(in) :: A, B, ef, fscale, tmprtr
       integer,intent(in) :: n
       real(8),dimension(n),intent(out) :: cc
-      real(kind=8),intent(out) :: x_max_error, max_error
+      real(kind=8),intent(out) :: x_max_error, max_error, mean_error
     
       ! Local variables
       integer :: k, j
@@ -137,7 +137,7 @@ module foe_common
       !$omp end parallel
 
       call func_set(FUNCTION_ERRORFUNCTION, efx=ef, fscalex=fscale)
-      call accuracy_of_chebyshev_expansion(n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error)
+      call accuracy_of_chebyshev_expansion(n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
       !if (bigdft_mpi%iproc==0) call yaml_map('expected accuracy of Chebyshev expansion',max_error)
     
       call f_release_routine()
@@ -843,7 +843,7 @@ module foe_common
 
     ! Calculates chebychev expansion of x**ex, where ex is any value (typically -1, -1/2, 1/2)
     ! Taken from numerical receipes: press et al
-    subroutine cheb_exp(A,B,N,cc,ex,x_max_error,max_error)
+    subroutine cheb_exp(A,B,N,cc,ex,x_max_error,max_error,mean_error)
       use module_base
       use module_func
       use yaml_output
@@ -854,7 +854,7 @@ module foe_common
       integer,intent(in) :: n
       real(kind=8),intent(in) :: ex
       real(8),dimension(n),intent(out) :: cc
-      real(kind=8),intent(out) :: x_max_error, max_error
+      real(kind=8),intent(out) :: x_max_error, max_error,mean_error
     
       ! Local variables
       integer :: k, j
@@ -890,7 +890,7 @@ module foe_common
       !$omp end parallel
 
       call func_set(FUNCTION_POLYNOMIAL, powerx=ex)
-      call accuracy_of_chebyshev_expansion(n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error)
+      call accuracy_of_chebyshev_expansion(n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
       !if (bigdft_mpi%iproc==0) call yaml_map('expected accuracy of Chebyshev expansion',max_error)
     
       call f_release_routine()
@@ -973,7 +973,7 @@ module foe_common
     end subroutine init_foe
 
 
-    subroutine accuracy_of_chebyshev_expansion(npl, coeff, bounds, h, func, x_max_error, max_error)
+    subroutine accuracy_of_chebyshev_expansion(npl, coeff, bounds, h, func, x_max_error, max_error, mean_error)
       implicit none
 
       ! Calling arguments
@@ -982,7 +982,7 @@ module foe_common
       real(kind=8),dimension(2),intent(in) :: bounds
       real(kind=8),intent(in) :: h
       real(kind=8),external :: func
-      real(kind=8),intent(out) :: x_max_error, max_error
+      real(kind=8),intent(out) :: x_max_error, max_error, mean_error
 
       ! Local variables
       integer :: is, ie, i, ipl
@@ -996,6 +996,7 @@ module foe_common
       is = nint(bounds(1)/h)
       ie = nint(bounds(2)/h)
       max_error = 0.d0
+      mean_error = 0.d0
       do i=is,ie
           x = real(i,kind=8)*h
           val_chebyshev = 0.5d0*coeff(1)*1.d0
@@ -1016,8 +1017,10 @@ module foe_common
               max_error = error
               x_max_error = x
           end if
+          mean_error = mean_error + error
           !write(*,*) 'x, val_chebyshev, val_function', x, val_chebyshev, val_function
       end do
+      mean_error = mean_error/real(ie-is+1,kind=8)
 
       call f_release_routine()
 

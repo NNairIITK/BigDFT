@@ -4,7 +4,10 @@ module sparsematrix_highlevel
 
   public :: sparse_matrix_and_matrices_init_from_file_ccs
   public :: sparse_matrix_init_from_file_ccs
-  public :: sparse_matrix_init_from_data
+  public :: sparse_matrix_init_from_data_ccs
+  public :: sparse_matrix_and_matrices_init_from_file_bigdft
+  public :: sparse_matrix_init_from_file_bigdft
+  public :: sparse_matrix_init_from_data_bigdft
   public :: matrices_init
   public :: matrices_set_values
   public :: matrices_get_values
@@ -39,7 +42,7 @@ module sparsematrix_highlevel
       call read_ccs_format(filename, nfvctr, nvctr, col_ptr, row_ind, val)
     
       ! Generate the sparse_matrix type
-      call sparse_matrix_init_from_data(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
+      call sparse_matrix_init_from_data_ccs(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
     
       ! Generate the matrices type
       call matrices_init_from_data(smat, val, mat)
@@ -76,7 +79,7 @@ module sparsematrix_highlevel
       call read_ccs_format(filename, nfvctr, nvctr, col_ptr, row_ind, val)
     
       ! Generate the sparse_matrix type
-      call sparse_matrix_init_from_data(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
+      call sparse_matrix_init_from_data_ccs(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
     
       ! Deallocate the pointers
       call f_free_ptr(col_ptr)
@@ -86,9 +89,9 @@ module sparsematrix_highlevel
       call f_release_routine()
     
     end subroutine sparse_matrix_init_from_file_ccs
-    
-    
-    subroutine sparse_matrix_init_from_data(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
+
+
+    subroutine sparse_matrix_init_from_data_ccs(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
       use module_base
       use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: ccs_to_sparsebigdft_short, &
@@ -106,7 +109,7 @@ module sparsematrix_highlevel
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
     
-      call f_routine(id='sparse_matrix_init_from_data')
+      call f_routine(id='sparse_matrix_init_from_data_ccs')
     
       ! Convert the sparsity pattern to the BigDFT format
       call ccs_to_sparsebigdft_short(nfvctr, nvctr, row_ind, col_ptr, nseg, keyv, keyg)
@@ -120,7 +123,107 @@ module sparsematrix_highlevel
     
       call f_release_routine()
     
-    end subroutine sparse_matrix_init_from_data
+    end subroutine sparse_matrix_init_from_data_ccs
+
+
+    subroutine sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc, smat, mat)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix, matrices
+      use sparsematrix_init, only: bigdft_to_sparsebigdft
+      use sparsematrix_io, only: read_sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      character(len=*),intent(in) :: filename
+      type(sparse_matrix),intent(out) :: smat
+      type(matrices),intent(out) :: mat
+    
+      ! Local variables
+      integer :: nspin, nfvctr, nseg, nvctr
+      character(len=1) :: geocode
+      integer,dimension(:),pointer :: keyv
+      integer,dimension(:,:,:),pointer :: keyg
+      real(kind=8),dimension(:),pointer :: val
+    
+      call f_routine(id='sparse_matrix_and_matrices_init_from_file_bigdft')
+    
+      ! Read in the matrix
+      call read_sparse_matrix(filename, nspin, geocode, nfvctr, nseg, nvctr, keyv, keyg, val)
+    
+      ! Create the sparse_matrix structure
+      call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
+    
+      ! Generate the matrices type
+      call matrices_init_from_data(smat, val, mat)
+    
+      ! Deallocate the pointers
+      call f_free_ptr(keyv)
+      call f_free_ptr(keyg)
+      call f_free_ptr(val)
+    
+      call f_release_routine()
+    
+    end subroutine sparse_matrix_and_matrices_init_from_file_bigdft
+
+
+    subroutine sparse_matrix_init_from_file_bigdft(filename, iproc, nproc, smat)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix
+      use sparsematrix_init, only: bigdft_to_sparsebigdft
+      use sparsematrix_io, only: read_sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      character(len=*),intent(in) :: filename
+      type(sparse_matrix),intent(out) :: smat
+    
+      ! Local variables
+      integer :: nspin, nfvctr, nseg, nvctr
+      character(len=1) :: geocode
+      integer,dimension(:),pointer :: keyv
+      integer,dimension(:,:,:),pointer :: keyg
+      real(kind=8),dimension(:),pointer :: val
+    
+      call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
+    
+      ! Read in the matrix
+      call read_sparse_matrix(filename, nspin, geocode, nfvctr, nseg, nvctr, keyv, keyg, val)
+    
+      ! Create the sparse_matrix structure
+      call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
+    
+      ! Deallocate the pointers
+      call f_free_ptr(keyv)
+      call f_free_ptr(keyg)
+      call f_free_ptr(val)
+    
+      call f_release_routine()
+    
+    end subroutine sparse_matrix_init_from_file_bigdft
+    
+
+    subroutine sparse_matrix_init_from_data_bigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix
+      use sparsematrix_init, only: ccs_to_sparsebigdft_short, &
+                                   bigdft_to_sparsebigdft, init_matrix_taskgroups
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, nfvctr, nvctr, nseg
+      integer,dimension(2,2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(out) :: smat
+    
+      call f_routine(id='sparse_matrix_init_from_data_ccs')
+    
+      ! Create the sparse_matrix structure
+      call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
+    
+      call f_release_routine()
+    
+    end subroutine sparse_matrix_init_from_data_bigdft
     
     
     subroutine matrices_init_from_data(smat, val, mat)

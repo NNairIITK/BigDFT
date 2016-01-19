@@ -7,7 +7,7 @@ program driver_css
   use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_ccs, &
                                     sparse_matrix_init_from_file_ccs, matrices_init, &
                                     matrices_get_values, matrices_set_values, &
-                                    sparse_matrix_init_from_data, &
+                                    sparse_matrix_init_from_data_ccs, &
                                     ccs_data_from_sparse_matrix, ccs_matrix_write, &
                                     matrix_matrix_multiplication, matrix_chebyshev_expansion
   use utilities, only: get_ccs_data_from_file
@@ -58,7 +58,7 @@ program driver_css
   ! Create another matrix type, this time directly with the CCS format descriptors.
   ! Get these descriptors from an auxiliary routine using again matrix2.dat
   call get_ccs_data_from_file('matrix2.dat', nfvctr, nvctr, row_ind, col_ptr)
-  call sparse_matrix_init_from_data(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr, nvctr, row_ind, col_ptr, smat3)
+  call sparse_matrix_init_from_data_ccs(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr, nvctr, row_ind, col_ptr, smat3)
 
   ! Extract the compressed matrix from the data type. The first routine allocates an array with the correct size,
   ! the second one extracts the result.

@@ -78,6 +78,7 @@ module foe
       integer,parameter :: NTEMP_ACCURATE=4
       integer,parameter :: NTEMP_FAST=1
       real(kind=8) :: degree_multiplicator, x_max_error, max_error, x_max_error_check, max_error_check
+      real(kind=8) :: mean_error, mean_error_check
       integer,parameter :: SPARSE=1
       integer,parameter :: DENSE=2
       integer,parameter :: imode=SPARSE
@@ -313,7 +314,7 @@ module foe
                       call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1,1), &
                            foe_data_get_real(foe_obj,"ef",ispin), fscale, foe_data_get_real(foe_obj,"tmprtr"), &
-                           x_max_error, max_error)
+                           x_max_error, max_error, mean_error)
                       call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1,1), cc(1,2,1), npl)
                       call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
@@ -324,7 +325,7 @@ module foe
                       call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,1,1), &
                            foe_data_get_real(foe_obj,"ef",ispin), fscale_check, foe_data_get_real(foe_obj,"tmprtr"), &
-                           x_max_error_check, max_error_check)
+                           x_max_error_check, max_error_check, mean_error_check)
                       call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), &
                            cc_check(1,1,1), cc_check(1,2,1), npl_check)
@@ -333,9 +334,9 @@ module foe
 
                       if (iproc==0 .and. foe_verbosity>=1) then
                           call yaml_newline()
-                          call yaml_mapping_open('accuracy (x,err)')
-                          call yaml_map('main',(/x_max_error,max_error/),fmt='(es9.2)')
-                          call yaml_map('check',(/x_max_error_check,max_error_check/),fmt='(es9.2)')
+                          call yaml_mapping_open('accuracy (x, max err, mean err)')
+                          call yaml_map('main',(/x_max_error,max_error,mean_error/),fmt='(es9.2)')
+                          call yaml_map('check',(/x_max_error_check,max_error_check,max_error/),fmt='(es9.2)')
                           call yaml_mapping_close()
                           call yaml_newline()
                       end if

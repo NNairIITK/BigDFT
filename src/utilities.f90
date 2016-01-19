@@ -16,10 +16,10 @@ program utilities
    use yaml_output
    use module_types, only: bigdft_init_errors, bigdft_init_timing_categories
    use module_atoms, only: atoms_data, atoms_data_null, deallocate_atoms_data
-   use io, only: read_sparse_matrix
    use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, assignment(=), SPARSE_FULL, &
                                 sparsematrix_malloc_ptr, deallocate_sparse_matrix, deallocate_matrices
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
+   use sparsematrix_io, only: read_sparse_matrix
    use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, &
                                     CHARGE_ANALYSIS_PROJECTOR, &
                                     loewdin_charge_analysis_core

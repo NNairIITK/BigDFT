@@ -178,14 +178,18 @@ module chebyshev
                   ! Check the norm of the columns of the kernel and set a flag if it explodes, which might
                   ! be a consequence of the eigenvalue bounds being to small. Only
                   ! check the first matrix to be calculated.
-                  do iorb=1,kernel%smmm%nfvctrp
-                      !!tt=ddot(kernel%nfvctr, fermi(1,iorb,1), 1, fermi(1,iorb,1), 1)
-                      tt=ddot(kernel%smmm%nvctrp, fermi_new(1,1), 1, fermi_new(1,1), 1)
-                      if (abs(tt)>1000.d0*kernel%smmm%nvctrp) then
-                          emergency_stop=.true.
-                          exit main_loop
-                      end if
-                  end do
+                  emergency_stop = check_emergency_stop(kernel%smmm%nvctrp, ncalc, fermi_new)
+                  if (emergency_stop) then
+                      exit main_loop
+                  end if
+                  !!do iorb=1,kernel%smmm%nfvctrp
+                  !!    !!tt=ddot(kernel%nfvctr, fermi(1,iorb,1), 1, fermi(1,iorb,1), 1)
+                  !!    tt=ddot(kernel%smmm%nvctrp, fermi_new(1,1), 1, fermi_new(1,1), 1)
+                  !!    if (abs(tt)>1000.d0*kernel%smmm%nvctrp) then
+                  !!        emergency_stop=.true.
+                  !!        exit main_loop
+                  !!    end if
+                  !!end do
               end do main_loop
         
           end if
@@ -349,5 +353,34 @@ module chebyshev
       call f_release_routine()
     
     end subroutine compress_polynomial_vector_new
+
+
+    function check_emergency_stop(nvctrp, ncalc, fermi_new) result(ces)
+      use module_base
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: nvctrp, ncalc
+      real(kind=8),dimension(nvctrp,ncalc),intent(in) :: fermi_new
+      logical :: ces
+
+      ! Local variables
+      integer :: icalc
+      real(kind=8) :: tt
+
+      call f_routine(id='check_emergency_stop')
+
+      ces = .false.
+      do icalc=1,ncalc
+          tt = dot(nvctrp, fermi_new(1,icalc), 1, fermi_new(1,icalc), 1)
+          if (abs(tt)>1000.d0*real(nvctrp,kind=8)) then
+              ces = .true.
+          end if
+      end do
+
+      call f_release_routine()
+
+    end function check_emergency_stop
+
 
 end module chebyshev
