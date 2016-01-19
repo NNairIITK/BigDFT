@@ -54,7 +54,7 @@ module foe
       real(kind=8),dimension(:,:),allocatable :: chebyshev_polynomials, fermip_check
       real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
       real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
-      real(kind=8) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt
+      real(kind=8) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt, max_error_fake
       real(kind=8) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check, fscale_new
       logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
       logical,dimension(2) :: emergency_stop
@@ -319,7 +319,7 @@ module foe
                       !!call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
                       !!     foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1,1), cc(1,2,1), npl)
                       call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,2,1))
+                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,2,1), max_error_fake)
                       call evnoise(npl, cc(1,2,1), foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
         
@@ -331,7 +331,7 @@ module foe
                       !     foe_data_get_real(foe_obj,"evhigh",ispin), &
                       !     cc_check(1,1,1), cc_check(1,2,1), npl_check)
                       call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,2,1))
+                           foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,2,1), max_error_fake)
 
                       if (iproc==0 .and. foe_verbosity>=1) then
                           call yaml_newline()

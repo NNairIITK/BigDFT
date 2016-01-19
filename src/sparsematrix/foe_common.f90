@@ -157,7 +157,7 @@ module foe_common
     
     ! Calculates chebychev expansion of fermi distribution.
     ! Taken from numerical receipes: press et al
-    subroutine chebyshev_coefficients_penalyfunction(a,b,n,cc)
+    subroutine chebyshev_coefficients_penalyfunction(a,b,n,cc,max_error)
       use module_base
       use module_func
       implicit none
@@ -166,11 +166,12 @@ module foe_common
       real(kind=8),intent(in) :: a, b
       integer,intent(in) :: n
       real(kind=8),dimension(n,2),intent(out) :: cc
+      real(kind=8),intent(out) :: max_error
     
       ! Local variables
       integer :: k, j
       !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
-      real(kind=8) :: tt1, tt2, ttt, y, arg, fac, bma, bpa, tt3
+      real(kind=8) :: tt1, tt2, ttt, y, arg, fac, bma, bpa, x_max, max_err, mean_err
       real(kind=8),dimension(50000,2) :: cf
     
       call f_routine(id='chebyshev_coefficients_penalyfunction')
@@ -211,12 +212,11 @@ module foe_common
       !    write(*,*) 'j, cc(j,1), cc(j,2)', j, cc(j,1), cc(j,2)
       !end do
       call func_set(FUNCTION_EXPONENTIAL, betax=-ttt, mux=a)
-      call accuracy_of_chebyshev_expansion(n, cc(:,1), (/A,B/), 1.d-3, func, tt1, tt2, tt3)
-      !write(*,*) 'tt1, tt2, tt3', tt1, tt2, tt3
+      call accuracy_of_chebyshev_expansion(n, cc(:,1), (/A,B/), 1.d-3, func, x_max, max_err, mean_err)
+      max_error = max_err
       call func_set(FUNCTION_EXPONENTIAL, betax=ttt, mux=b)
-      call accuracy_of_chebyshev_expansion(n, cc(:,2), (/A,B/), 1.d-3, func, tt1, tt2, tt3)
-      !write(*,*) 'tt1, tt2, tt3', tt1, tt2, tt3
-      !stop
+      call accuracy_of_chebyshev_expansion(n, cc(:,2), (/A,B/), 1.d-3, func, x_max, max_err, mean_err)
+      max_error = max(max_error,max_err)
       call f_release_routine()
     
     end subroutine chebyshev_coefficients_penalyfunction

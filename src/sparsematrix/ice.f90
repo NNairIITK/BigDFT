@@ -48,7 +48,7 @@ module ice
       real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
       real(kind=8),dimension(:,:,:),pointer :: cc
       real(kind=8) :: anoise, scale_factor, shift_value
-      real(kind=8) :: evlow_old, evhigh_old, tt
+      real(kind=8) :: evlow_old, evhigh_old, tt, max_error_fake
       real(kind=8) :: tt_ovrlp, tt_ham
       logical :: restart, calculate_SHS
       logical,dimension(2) :: emergency_stop
@@ -292,7 +292,7 @@ module ice
                               !call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
                               !     foe_data_get_real(foe_obj,"evhigh",ispin), cc(1:,1:,icalc:), cc(1:,2:,icalc:), npl)
                               call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
-                                   foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1:,2:,icalc:))
+                                   foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1:,2:,icalc:), max_error_fake)
                               call evnoise(npl, cc(1:,2:,icalc:), foe_data_get_real(foe_obj,"evlow",ispin), &
                                    foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
                           end do
@@ -524,9 +524,9 @@ module ice
               !call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
               !     foe_data_get_real(foe_obj,"evhigh",ispin), cc_trial(1,1,icalc), cc_trial(1,2,icalc), ipl)
               call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
-                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, cc_trial(1,2,icalc))
-              call evnoise(ipl, cc_trial(1,2,icalc), foe_data_get_real(foe_obj,"evlow",ispin), &
-                   foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
+                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, cc_trial(1,2,icalc), anoise)
+              !!call evnoise(ipl, cc_trial(1,2,icalc), foe_data_get_real(foe_obj,"evlow",ispin), &
+              !!     foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
           end do
 
           call timing(iproc, 'chebyshev_coef', 'OF')
