@@ -2208,7 +2208,7 @@ module multipole
           if (.not. all_norms_ok) then
               call f_err_throw('When checking the previously calculated multipoles, all norms should be ok')
           end if
-          dipole_check=dipole_check/0.393430307_gp  ! au2debye              
+          dipole_check=dipole_check/Debye_AU!0.393430307_gp  ! au2debye              
           if (iproc==0) then
               call yaml_sequence(advance='no')
               call yaml_mapping_open('Up to multipole l='//trim(yaml_toa(lcheck)))
