@@ -2666,7 +2666,7 @@ module multipole
 
       eF = -1.d0
 
-      alpha_loop: do ialpha=1,10!000
+      alpha_loop: do ialpha=1,10000
 
           if (bigdft_mpi%iproc==0) then
               call yaml_sequence(advance='no')
