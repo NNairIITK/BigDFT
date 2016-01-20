@@ -2177,7 +2177,7 @@ end if
                max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
                tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &
                denspot, tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
-               method='loewdin', do_ortho=do_ortho, shift=shift, nsigma=input%nsigma, ixc=input%ixc, ep=ep )
+               method=method, do_ortho=do_ortho, shift=shift, nsigma=input%nsigma, ixc=input%ixc, ep=ep )
       !!else if (input%lin%charge_multipoles==2) then
       !!    call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
       !!         max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
