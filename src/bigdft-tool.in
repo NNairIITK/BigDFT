@@ -4,7 +4,7 @@
 # This script is used to wrap the @ref memguess executable  but also to perform
 # some useful manipulations of atomic position files.
 # @author
-# Copyright (C) 2012-2015 BigDFT group <br>
+# Copyright (C) 2012-2016 BigDFT group <br>
 # This file is distributed under the terms of the
 # GNU General Public License, see ~/COPYING file
 # or http://www.gnu.org/copyleft/gpl.txt .
@@ -275,71 +275,69 @@ def runmenu(h, n, screen, menu, parent):
         lastoption = "Exit (press 'Q' key)"
     else:
         lastoption = "Return to %s menu (press 'Q' key)" % parent['title']
-
+    #Size of the window
+    screenH,screenW = screen.getmaxyx()
     optioncount = len(menu['options'])  # how many options in this menu
 
-    # pos is the zero-based index of the hightlighted menu option. Every time
-    # runmenu is called, position returns to 0, when runmenu ends the position
-    # is returned and tells the program what opt$
-    pos = 0
-    oldpos = None  # used to prevent the screen being redrawn every time
-    # control for while loop, let's you scroll through options until return
-    # key is pressed then returns pos to program
-    x = None
+    #Build the title
+    screen.border(0)
+    # Title for this menu
+    screen.addstr(2, 2, menu['title'], curses.A_STANDOUT)
+    iy = 4
+    if menu.has_key('strings'):
+        for chain in menu['strings'].split('\n'):
+            screen.addstr(iy, 2, chain, curses.A_BOLD)
+            iy += 1
+        iy += 1
+    # Subtitle for this menu
+    screen.addstr(iy, 2, menu['subtitle'], curses.A_BOLD)
+    #Build a pad
+    Wpad = screenW-2
+    Hpad_screen = screenH-6
+    menu_pad = curses.newpad(optioncount+1,Wpad)
+    # Display all the menu items, showing the 'line' item highlighted
+    for index in range(optioncount):
+        menu_pad.addstr(index, 0, "%d - %s" % (index + 1, menu['options'][index]['title']), n)
+    # Now display Exit/Return at bottom of menu
+    menu_pad.addstr(optioncount, 0, "%d - %s" % (optioncount + 1, lastoption), n)
+    #Important to display menu_pad before the first key-press!!
+    screen.refresh()
 
+    # line is the zero-based index of the hightlighted menu option. Every time
+    # runmenu is called, lineition returns to 0, when runmenu ends the lineition
+    # is returned and tells the program what opt$
+    line = 0
+    # control for while loop, let's you scroll through options until return
+    # key is pressed then returns line to program
+    x = None
+    pos = 0
     # Loop until return key is pressed, or esc key
     while x != ord('\n') and x != ord('q') and x != ord('Q'):
-        if pos != oldpos:
-            oldpos = pos
-            screen.border(0)
-            # Title for this menu
-            screen.addstr(2, 2, menu['title'], curses.A_STANDOUT)
-            iy = 4
-            if menu.has_key('strings'):
-                for chain in menu['strings'].split('\n'):
-                    screen.addstr(iy, 2, chain, curses.A_BOLD)
-                    iy += 1
-                iy += 1
-            # Subtitle for this menu
-            screen.addstr(iy, 2, menu['subtitle'], curses.A_BOLD)
-            iy += 1
-
-            # Display all the menu items, showing the 'pos' item highlighted
-            for index in range(optioncount):
-                textstyle = n
-                if pos == index:
-                    textstyle = h
-                screen.addstr(iy, 4, "%d - %s" % (index + 1, menu['options'][index]['title']), textstyle)
-                iy += 1
-            # Now display Exit/Return at bottom of menu
-            textstyle = n
-            if pos == optioncount:
-                textstyle = h
-            screen.addstr(iy, 4, "%d - %s" % (optioncount + 1, lastoption), textstyle)
-            screen.refresh()
-            # finished updating screen
-
+        menu_pad.chgat(line,0,Wpad,h)
+        menu_pad.refresh(pos,0,4,2,screenH-2,Wpad)
         x = screen.getch()  # Gets user input
-
+        menu_pad.chgat(line,0,Wpad,n)
         # What is user input?
         # this line can be used only if optioncount is lower than 8
         if x >= ord('1') and x <= ord(str(min(optioncount + 1, 9))):
             # convert keypress back to a number, then subtract 1 to get index
-            pos = x - ord('0') - 1
-        elif x == 258:  # down arrow
-            if pos < optioncount:
-                pos += 1
-            else:
+            line = x - ord('0') - 1
+        elif x == curses.KEY_DOWN:  # down arrow
+            line += 1
+            if line > optioncount:
+                line = 0
                 pos = 0
-        elif x == 259:  # up arrow
-            if pos > 0:
-                pos += -1
-            else:
-                pos = optioncount
+            if line-pos > Hpad_screen: pos += 1
+        elif x == curses.KEY_UP:  # up arrow
+            line += -1
+            if line < 0:
+                line = optioncount
+                pos = line - Hpad_screen
+            if line-pos < 0: pos -= 1
         elif x == ord('q') or x == ord('Q'):  # esc key
-            pos = optioncount
+            line = optioncount
     # return index of the selected item
-    return pos
+    return line
 
 
 

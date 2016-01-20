@@ -1,11 +1,14 @@
 !> @file 
+!! Handle operation about density (rho) and local potential
 !! @author
-!!   Copyright (C) 2011-2012 BigDFT group 
+!!   Copyright (C) 2011-2015 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
- 
+
+
+!> Handle operation about density (rho) and local potential
 module rhopotential
 
   implicit none
@@ -39,7 +42,6 @@ module rhopotential
     ! Local variables
     character(len=*), parameter :: subname='updatePotential'
     logical :: nullifyVXC
-    integer :: istat, iall
     real(gp) :: ehart_ps
     real(dp), dimension(6) :: xcstr
     
@@ -139,7 +141,8 @@ module rhopotential
        integer:: istl, ist, size_Lpot, i3s, i3e, i2s, i2e, i1s, i1e, iispin, ishift
        integer,dimension(:),allocatable:: ilrtable
        real(wp), dimension(:), pointer :: pot1
-       integer :: i1shift, i2shift, i3shift, i
+       integer :: i1shift, i2shift, i3shift
+       !integer :: i
        
        call timing(iproc,'Pot_commun    ','ON')
        call f_routine(id='full_local_potential')
@@ -509,14 +512,15 @@ module rhopotential
       logical,intent(in),optional :: print_results
     
       ! Local variables
-      integer :: ipt, ii, i0, iiorb, jjorb, iorb, jorb, istat, iall, i, j, ierr, ind, ispin, ishift, ishift_mat, iorb_shift
+      integer :: ipt, ii, i0, iiorb, jjorb, iorb, jorb, i, j, ierr, ind, ispin, ishift, ishift_mat, iorb_shift
       real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1, rho_neg
       integer,dimension(:),allocatable :: isend_total
       integer,dimension(:),pointer :: moduloarray
       real(kind=8),dimension(:),allocatable :: rho_local
       character(len=*),parameter :: subname='sumrho_for_TMBs'
       logical :: print_local
-      integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc, ishift_dest, ishift_source
+      integer :: size_of_double, mpisource, istsource, istdest, nsize, jproc, ishift_dest, ishift_source
+      !integer :: info
     
       call f_routine('sumrho_for_TMBs')
 

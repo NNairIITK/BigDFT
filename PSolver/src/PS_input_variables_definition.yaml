@@ -33,7 +33,7 @@
  kernel:
   DESCRIPTION: Parameters of  the Coulomb Kernel
   screening: 
-    COMMENT: mu screening parameter
+    COMMENT: Mu screening parameter
     DESCRIPTION: Activates the exponential (Yukawa-like) screening in the coulomb kernel
     RANGE: [0.0, .inf] #.inf might be implemented in the range detection
     default: 0
@@ -43,7 +43,7 @@
     default: 16
     EXCLUSIVE: [ 2, 4, 6, 8, 14, 16, 20, 24, 30, 40, 50, 60, 100]
   stress_tensor: 
-    COMMENT: triggers the calculation of the stress tensor
+    COMMENT: Triggers the calculation of the stress tensor
     DESCRIPTION: It calculates the derivative of the hartree energy with respect to the deformation. It makes sense only for a vacuum-like calculation
     default: Yes
  environment:
@@ -80,7 +80,7 @@
       WHEN: [rigid]
     PROFILE_FROM: cavity
   cavitation: 
-    COMMENT: triggers the evaluation of the extra cavtitation terms
+    COMMENT: Triggers the evaluation of the extra cavtitation terms
     default: No
   gammaS: 
     COMMENT: Cavitation term, surface tension of the solvent [dyn/cm]

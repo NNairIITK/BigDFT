@@ -1,3 +1,13 @@
+!> @file
+!! Local Region operations
+!! @author Copyright (C) 2015-2015 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module for the local region operations on orbitals
 module locreg_operations
   use module_base
   use locregs
@@ -816,10 +826,6 @@ module locreg_operations
       ! Calling arguments
       type(workarrays_quartic_convolutions),intent(inout):: work
 
-      ! Local variables
-      integer:: iall, istat
-
-
       call f_free_ptr(work%xx_c)
 
       call f_free_ptr(work%xy_c)
@@ -918,7 +924,7 @@ module locreg_operations
       type(workarrays_quartic_convolutions),intent(inout):: work
 
       ! Local variables
-      integer:: i, istat
+      integer:: i
       integer,parameter :: lowfil=-14,lupfil=14
 
       work%xx_c = f_malloc0_ptr((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='work%xx_c')
@@ -1029,7 +1035,7 @@ module locreg_operations
       character(len=*),intent(in):: subname
 
       ! Local variables
-      integer:: i, istat
+      integer:: i
       integer,parameter :: lowfil=-14,lupfil=14
 
       call f_routine(id='zero_local_work_arrays')
@@ -1144,7 +1150,6 @@ module locreg_operations
       integer :: nseg        ! total number of segments in Llr
       !integer, allocatable :: keymask(:,:)  ! shift for every segment of Llr (with respect to Glr)
       character(len=*), parameter :: subname='Lpsi_to_global'
-      integer :: i_all
       integer :: start,Gstart,Lindex
       integer :: lfinc,Gfinc,spinshift,ispin,Gindex,isegstart
       integer :: istart
@@ -1326,7 +1331,8 @@ module locreg_operations
      integer,dimension(6) :: ise
     
     ! Local variable
-     integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
+     integer :: ispin,ii1,ii2,ii3  !integer for loops
+     !integer :: i1,i2,i3
      integer :: indSmall, indSpin, indLarge ! indexes for the arrays
      integer :: ist2S,ist3S, ist2L, ist3L, istsa, ists, istl
      integer :: ii1shift, ii2shift, ii3shift, i1glob, i2glob, i3glob
@@ -1429,8 +1435,9 @@ module locreg_operations
       real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
       real(gp) :: weight_normalized
       !local variables
-      integer :: iorb, iiorb, ilr, iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ind 
+      integer :: iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ind 
       integer :: ij3, ij2, ij1, jj3, jj2, jj1, ijs3, ijs2, ijs1, ije3, ije2, ije1
+      !integer :: iorb, iiorb, ilr
       real(kind=8) :: h, x, y, z, d, weight_inside, weight_boundary, points_inside, points_boundary, ratio
       real(kind=8) :: boundary
       logical :: perx, pery, perz, on_boundary
