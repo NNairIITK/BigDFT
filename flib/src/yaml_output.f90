@@ -2442,7 +2442,7 @@ contains
        call yaml_comment(bar%message,unit=unt)
     end if
     !write(unit=unt,fmt="(a18)",advance='no')char(13)//bar
-    call f_utils_flush(unt)
+    call f_utils_flush(streams(strm)%unit)
   end subroutine dump_progress_bar
 
 

@@ -42,7 +42,7 @@ module numerics
   real(db), parameter, public :: AU_GPa=29421.010901602753_db                   !< 1 Ha/Bohr^3 in GPa
   real(db), parameter, public :: Radian_Degree = 57.29577951308232087679_db     !< 1 radian in degrees
   real(db), parameter, public :: eVAng_HaBohr = Bohr_Ang*eV_Ha                  !< convert forces from eV/Angstroem to hartree/bohr
-  real(db), parameter, public :: AU_Debye = 0.393430307_db                      !< 1 Hartree*Bohr in Debye
+  real(db), parameter, public :: Debye_AU = 0.393430307_db                      !< 1 Debye in Hartree*Bohr
   !>  1 AU of force in dyn
   real(db), parameter, public :: dyn_AU=8.238722514e-3_db
   real(db), parameter, public :: kcalMol_Ha = 0.001593601437458137_db        !< from kcal_th/mol to hartree
