@@ -2278,15 +2278,14 @@ end if
       call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
            input%lin%output_mat_format,tmb,at,rxyz,norder_taylor, &
            input%lin%calculate_onsite_overlap, write_SminusonehalfH=.true.)
+
+      !!temporary at the moment - to eventually be moved to more appropriate location
+      !tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
+      !call tmb_overlap_onsite(iproc, nproc, input%imethod_overlap, at, tmb, rxyz)
+      !call tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_frags)
+      !call f_free_ptr(tmb%linmat%ovrlp_%matrix)
       call timing(iproc,'write_matrices','OF')
   end if
-
-
-  !!temporary at the moment - to eventually be moved to more appropriate location
-  !tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-  !call tmb_overlap_onsite(iproc, nproc, input%imethod_overlap, at, tmb, rxyz)
-  !call tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_frags)
-  !call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
   ! Write the KS coefficients
   if (mod(input%lin%output_coeff_format,10) /= WF_FORMAT_NONE) then

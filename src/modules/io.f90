@@ -521,7 +521,8 @@ module io
             call f_free(rxyz_frag)
 
             ! also output 'environment' kernel
-            if (ref_frags(ifrag_ref)%astruct_env%nat/=ref_frags(ifrag_ref)%astruct_frg%nat) then
+            if (ref_frags(ifrag_ref)%astruct_env%nat/=ref_frags(ifrag_ref)%astruct_frg%nat &
+                 .and. num_neighbours/=0) then
                ! FIX SPIN
                unitm=99
                binary=(iformat /= WF_FORMAT_PLAIN)
