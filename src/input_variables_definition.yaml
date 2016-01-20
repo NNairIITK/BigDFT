@@ -19,6 +19,35 @@
 ##
 ## DO NOT USE the character ':' and "" in the COMMENT of DESCRIPTION
 ############################################
+#spred parameters
+ spred:
+   DESCRIPTION: Parameters for structure predicition and reaction pathway search modules
+   fpmethod: 
+     COMMENT: fingerprint method
+     EXCLUSIVE:
+       OMF: (O)verlap (M)atrix (F)ree boundary conditions 
+       OMP: (O)verlap (M)atrix (P)eriodic boundary conditions
+   natx_sphere:
+     COMMENT: Number of atoms in the sphere. Only for OMP.
+     default: 250
+     CONDITION:
+       MASTER_KEY: fpmethod
+       WHEN:
+       - OMP
+   angmom:
+     COMMENT: Angular momentum of gaussian orbitals. Only for OMF and OMP.
+     default: 1
+     EXCLUSIVE:
+       1: s-orbitals
+       4: s- and p-orbitals
+     #shortcuts
+     S: 1
+     SP: 4
+     CONDITION:
+       MASTER_KEY: fpmethod
+       WHEN:
+       - OMF
+       - OMP
 # Density Functional Theory parameters
  dft:
    DESCRIPTION: Density Functional Theory parameters

@@ -14,6 +14,8 @@ module module_fingerprints
 
     private
 
+    public :: init_fingerprint
+    public :: finalize_fingerprint
     public :: fingerprint
     public :: fpdistance
     public :: equal
@@ -22,7 +24,70 @@ module module_fingerprints
     contains
 
 !=====================================================================
-subroutine fingerprint(nat,nid,alat,geocode,rcov,rxyzIn,fp)
+subroutine finalize_fingerprint(runObj,fp)
+    use module_base
+    !parameters
+    type(run_objects), intent(in) :: runObj
+    real(gp), allocatable intent(out) :: fp(:)
+
+    if(allocated(fp))then
+       call f_free(fp) 
+    endif
+end subroutine finalize_fingerprint
+!=====================================================================
+subroutine init_fingerprint(runObj,fp)
+    use module_base
+    !parameters
+    type(run_objects), intent(in) :: runObj
+    real(gp), allocatable intent(out) :: fp(:)
+    !internal
+    integer :: nid
+    mhgpsst%nid = bigdft_nat(runObj) !s-overlap fingerprints
+
+    if(allocated(fp))then
+        call f_err_throw('Array fp is already allocated.')
+    endif
+
+
+    select case(trim(fpmethod))
+      case('OMF_FP_METHOD')
+        nid=runObj%inputs%angmom*nat
+        fp = f_malloc((/ 1.to.nid/),id='fp')
+      case('OMP_FP_METHOD')
+        nid=runObj%inputs%angmom*runObj%inputs%natx_sphere
+        fp = f_malloc((/ 1.to.nid/),id='fp')
+      case DEFAULT
+        call f_err_throw('Following FP method is unknown: '//trim(fpmethod))
+    end select
+end subroutine init_fingerprint
+!=================================================================ethod,nat,alat,geocode,rcov,rxyzIn,fp)
+subroutine fingerprint(runObj,fp)
+    use module_base
+    implicit none
+    !parameters
+    type(run_objects), intent(in) :: runObj
+    real(gp), intent(out) :: fp(:)
+    !internal
+    integer :: nid
+
+
+    select case(trim(fpmethod))
+      case('OMF_FP_METHOD')
+        nid=runObj%inputs%angmom*nat
+        if(size(fp)/=nid) then
+          call f_err_throw('Array fp has wrong size')
+        endif
+      case('OMP_FP_METHOD')
+        nid=runObj%inputs%angmom*nat
+        if(size(fp)/=nid) then
+          call f_err_throw('Array fp has wrong size')
+        endif
+      case DEFAULT
+        call f_err_throw('Following FP method is unknown: '//trim(fpmethod))
+    end select
+end subroutine fingerprint
+!=====================================================================
+subroutine fingerprint_freebc(nat,nid,alat,geocode,rcov,rxyzIn,fp)
     !calculates an overlap matrix for atom centered GTO of the form:
     !s-type: 1/norm_s  exp(-(1/2)*(r/rcov)**2)
     !px type: 1/norm_p exp(-(1/2)*(r/rcov)**2) x/r  and analageously
@@ -235,7 +300,7 @@ subroutine fingerprint(nat,nid,alat,geocode,rcov,rxyzIn,fp)
     call f_free(om)
     call f_free(rxyz)
     call f_free(workf)
-end subroutine fingerprint
+end subroutine fingerprint_freebc
 !=====================================================================
 subroutine fpdistance(nid,fp1,fp2,d)
     use module_base

@@ -497,7 +497,7 @@ module public_enums
   integer, parameter, public :: PSPCODE_HGH_K = 10
   integer, parameter, public :: PSPCODE_HGH_K_NLCC = 12
 
-  !run modes
+  !>run modes
   type(f_enumerator), parameter, public :: LENNARD_JONES_RUN_MODE      =f_enumerator('LENNARD_JONES_RUN_MODE',-1000,null())
   type(f_enumerator), parameter, public :: LENOSKY_SI_CLUSTERS_RUN_MODE=f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999,null())
   type(f_enumerator), parameter, public :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998,null())
@@ -511,7 +511,15 @@ module public_enums
   type(f_enumerator), parameter, public :: DFTBP_RUN_MODE         =f_enumerator('DFTBP_RUN_MODE',-990,null())
   type(f_enumerator), parameter, public :: TDPOT_RUN_MODE      =f_enumerator('TDPOT_RUN_MODE',-989,null())
   
-  type(f_enumerator), parameter, public :: MULTI_RUN_MODE         =f_enumerator('MULTI_RUN_MODE',-989,null())
+  type(f_enumerator), parameter, public :: MULTI_RUN_MODE         =f_enumerator('MULTI_RUN_MODE',-988,null())
+
+  !> spred 
+  character(len = *), parameter :: FP_METHOD_KEY = "fpmethod"
+  character(len = *), parameter :: FP_NATX_SPHERE = "natx_sphere"
+  character(len = *), parameter :: FP_ANGMOM = "angmom"
+
+  type(f_enumerator), parameter, public :: OMF_FP_METHOD      =f_enumerator('OMF_FP_METHOD',-1000,null())
+  type(f_enumerator), parameter, public :: OMP_FP_METHOD      =f_enumerator('OMP_FP_METHOD',-999,null())
 end module public_enums
 
 
