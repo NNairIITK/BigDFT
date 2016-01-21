@@ -714,9 +714,9 @@ module foe_common
       noise=10.d0*anoise
       noise = 1.d-1
     
-      !if (bigdft_mpi%iproc==0) then
-      !    call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
-      !end if
+      !!if (bigdft_mpi%iproc==0) then
+      !!    call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
+      !!end if
 
       eval_bounds_ok(1) = .true.
       eval_bounds_ok(2) = .true.
@@ -748,27 +748,27 @@ module foe_common
           end if
       end if
 
-      !write(*,*) 'allredarr, anoise', allredarr, anoise
-      if (allredarr(1)>noise) then
-          eval_bounds_ok(1)=.false.
-          call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*factor_low,ispin)
-          restart=.true.
-          !!if (bigdft_mpi%iproc==0) then
-          !!    call yaml_map('adjust lower bound',.true.)
-          !!end if
-      else
-          eval_bounds_ok(1)=.true.
-      end if
-      if (allredarr(2)>noise) then
-          eval_bounds_ok(2)=.false.
-          call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*factor_high,ispin)
-          restart=.true.
-          !!if (bigdft_mpi%iproc==0) then
-          !!    call yaml_map('adjust upper bound',.true.)
-          !!end if
-      else
-          eval_bounds_ok(2)=.true.
-      end if
+      !!write(*,*) 'allredarr, anoise', allredarr, anoise
+      !if (allredarr(1)>noise) then
+      !    eval_bounds_ok(1)=.false.
+      !    call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*factor_low,ispin)
+      !    restart=.true.
+      !    !!if (bigdft_mpi%iproc==0) then
+      !    !!    call yaml_map('adjust lower bound',.true.)
+      !    !!end if
+      !else
+      !    eval_bounds_ok(1)=.true.
+      !end if
+      !if (allredarr(2)>noise) then
+      !    eval_bounds_ok(2)=.false.
+      !    call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*factor_high,ispin)
+      !    restart=.true.
+      !    !!if (bigdft_mpi%iproc==0) then
+      !    !!    call yaml_map('adjust upper bound',.true.)
+      !    !!end if
+      !else
+      !    eval_bounds_ok(2)=.true.
+      !end if
     
       call f_release_routine()
     

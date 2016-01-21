@@ -160,6 +160,8 @@ module foe
           imshift=(ispin-1)*smatm%nvctrp_tg
           ilshift=(ispin-1)*smatl%nvctrp_tg
           ilshift2=(ispin-1)*smatl%nvctrp_tg
+
+          call get_minmax_eigenvalues(iproc, smatm, ham_, imshift, smats, ovrlp_, isshift)
     
           degree_sufficient=.true.
     
@@ -915,5 +917,64 @@ module foe
     
     
     end subroutine fermi_operator_expansion
+
+
+    subroutine get_minmax_eigenvalues(iproc, ham_smat, ham_mat, imshift, ovrlp_smat, ovrlp_mat, isshift)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix, matrices
+      use yaml_output
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, imshift, isshift
+      type(sparse_matrix),intent(in) :: ham_smat, ovrlp_smat
+      type(matrices),intent(in) :: ham_mat, ovrlp_mat
+
+      ! Local variables
+      integer :: iseg, ii, i, lwork, info
+      real(kind=8),dimension(:,:,:),allocatable :: tempmat
+      real(kind=8),dimension(:),allocatable :: eval, work
+
+      call f_routine(id='get_minmax_eigenvalues')
+
+      if (ham_smat%nfvctr/=ovrlp_smat%nfvctr) call f_err_throw('ham_smat&nfvctr/=ovrlp_smat%nfvctr')
+
+      tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr,2/),id='tempmat')
+      do iseg=1,ham_smat%nseg
+          ii=ham_smat%keyv(iseg)
+          do i=ham_smat%keyg(1,1,iseg),ham_smat%keyg(2,1,iseg)
+              tempmat(i,ham_smat%keyg(1,2,iseg),1) = ham_mat%matrix_compr(imshift+ii)
+              ii = ii + 1
+          end do
+      end do
+      do iseg=1,ovrlp_smat%nseg
+          ii=ovrlp_smat%keyv(iseg)
+          do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
+              tempmat(i,ovrlp_smat%keyg(1,2,iseg),2) = ovrlp_mat%matrix_compr(isshift+ii)
+              ii = ii + 1
+          end do
+      end do
+      !!if (iproc==0) then
+      !!    do i=1,ovrlp_smat%nfvctr
+      !!        do j=1,ovrlp_smat%nfvctr
+      !!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
+      !!        end do
+      !!    end do
+      !!end if
+      eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
+      lwork=100*ovrlp_smat%nfvctr
+      work = f_malloc(lwork,id='work')
+      call sygv(1, 'n','l', ovrlp_smat%nfvctr, tempmat(1,1,1), ovrlp_smat%nfvctr, tempmat(1,1,2), ovrlp_smat%nfvctr, &
+           eval(1), work(1), lwork, info)
+      !if (iproc==0) write(*,*) 'eval',eval
+      if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+    
+      call f_free(tempmat)
+      call f_free(eval)
+      call f_free(work)
+
+      call f_release_routine()
+    
+    end subroutine get_minmax_eigenvalues
 
 end module foe
