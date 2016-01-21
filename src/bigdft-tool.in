@@ -350,7 +350,10 @@ def dump_info(h, n, screen, menu, parent):
     lastoption = "Press Enter or 'Q' key to come back to %s menu" % parent['title']
     iyafterdesc = 3 + len(menu['DESCRIPTION'].split('\n'))
     screenH,screenW = screen.getmaxyx()
-    padH = (len(menu)-2)*3 + iyafterdesc
+    #Build the height of the pad
+    padH = iyafterdesc
+    for v in menu.values():
+        padH += len(yaml.dump(v,default_flow_style=False).split('\n')) + 2
     dump_pad = curses.newpad(padH,screenW-2)
     for (k,v) in menu.items():
         if k == 'title':
@@ -368,12 +371,16 @@ def dump_info(h, n, screen, menu, parent):
         elif k == 'type' or k == 'COMMENT':
             pass
         else:
+            iyafterdesc += 1
+            dump_pad.addstr(iyafterdesc, 2, k, curses.A_BOLD)
+            if isinstance(v,dict):
+                text = yaml.dump(v,default_flow_style=False)
+            else:
+                text = str(v)
+            for chain in text.split('\n'):
                 iyafterdesc += 1
-                dump_pad.addstr(iyafterdesc, 2, k, curses.A_BOLD)
-                for chain in str(v).split('\n'):
-                    iyafterdesc += 1
-                    dump_pad.addstr(iyafterdesc, 4, "%s" % chain, n)
-                iyafterdesc += 1
+                dump_pad.addstr(iyafterdesc, 4, "%s" % chain, n)
+            iyafterdesc += 1
     # Now display Exit/Return at bottom of menu
     iyafterdesc += 1
     dump_pad.addstr(iyafterdesc, 2, " %s" % lastoption, h)
@@ -633,7 +640,7 @@ options:
                 dd = {'type': PROMPT, 
                       'title': k + '     (' + str(params[f][k]['COMMENT']) + ')',
                       'subtitle': "Extended description for the input keyword '%s'" % str(k),
-                      'DESCRIPTION': 'No extended description for this key specified yet.',
+                      'DESCRIPTION': 'No extended description for this key specified yet.\n',
                       'COMMENT': '' }
                 dd.update(params[f][k])
                 dico['options'].append(dd)
