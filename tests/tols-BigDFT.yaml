@@ -63,6 +63,8 @@ Keys to ignore:
  - gps_method
  - solvent
  - Operation  1
+ - check
+ - main
  #- avg pot diff (actual/min)
  #- number of tasks
  #- IDs

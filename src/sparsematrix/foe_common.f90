@@ -714,9 +714,9 @@ module foe_common
       noise=10.d0*anoise
       noise = 1.d-1
     
-      !!if (bigdft_mpi%iproc==0) then
-      !!    call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
-      !!end if
+      if (bigdft_mpi%iproc==0) then
+          call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
+      end if
 
       eval_bounds_ok(1) = .true.
       eval_bounds_ok(2) = .true.
