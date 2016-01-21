@@ -49,7 +49,7 @@ subroutine init_fingerprint(runObj,fp)
     endif
 
 
-    select case(trim(fpmethod))
+    select case(trim(runObj%inputs%fpmethod))
       case('OMF_FP_METHOD')
         nid=runObj%inputs%angmom*nat
         fp = f_malloc((/ 1.to.nid/),id='fp')
@@ -61,24 +61,27 @@ subroutine init_fingerprint(runObj,fp)
     end select
 end subroutine init_fingerprint
 !=================================================================ethod,nat,alat,geocode,rcov,rxyzIn,fp)
-subroutine fingerprint(runObj,fp)
+subroutine fingerprint(runObj,rcov,rxyz,fp)
     use module_base
     implicit none
     !parameters
     type(run_objects), intent(in) :: runObj
+    real(gp), intent(in) :: rcov(:)
+    real(gp), intent(in) :: rxyz(:,:)
     real(gp), intent(out) :: fp(:)
     !internal
     integer :: nid
 
 
-    select case(trim(fpmethod))
+    select case(trim(runObj%inputs%fpmethod))
       case('OMF_FP_METHOD')
         nid=runObj%inputs%angmom*nat
         if(size(fp)/=nid) then
           call f_err_throw('Array fp has wrong size')
         endif
+        call fingerprint_freebc(bigdft_nat(runObj),nid,bigdft_get_cell(runObj),'F',rcov,rxyzIn,fp)
       case('OMP_FP_METHOD')
-        nid=runObj%inputs%angmom*nat
+        nid=runObj%inputs%angmom*runObj%inputs%natx_sphere
         if(size(fp)/=nid) then
           call f_err_throw('Array fp has wrong size')
         endif
