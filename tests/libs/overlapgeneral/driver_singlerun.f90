@@ -10,7 +10,8 @@ program driver_singlerun
                           write_sparsematrix_CCS, write_sparsematrix, &
                           uncompress_matrix
   use matrix_operations, only: overlapPowerGeneral
-  use io, only: read_sparse_matrix, write_sparse_matrix
+  use sparsematrix_io, only: read_sparse_matrix
+  use io, only: write_sparse_matrix
   use yaml_output
   implicit none
 
@@ -63,8 +64,8 @@ program driver_singlerun
 
   ! Create the corresponding BigDFT sparsity pattern
   !call ccs_to_sparsebigdft(iproc, nproc, nat, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
-  call distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
-  call bigdft_to_sparsebigdft(iproc, nproc, nat, nspin, geocode, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smatA)
+  !call distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
+  call bigdft_to_sparsebigdft(iproc, nproc, ncol, nnonzero, nseg, keyg, smatA, nspin, geocode, on_which_atom)
 
 
   ! Check the symmetry
@@ -85,8 +86,8 @@ program driver_singlerun
   call read_sparse_matrix(filename2, nspin, geocode, ncol, nseg, nnonzero, keyv, keyg, val, on_which_atom=on_which_atom)
        !nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
        !atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
-  call distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
-  call bigdft_to_sparsebigdft(iproc, nproc, nat, nspin, geocode, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smatB)
+  !call distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
+  call bigdft_to_sparsebigdft(iproc, nproc, ncol, nnonzero, nseg, keyg, smatB, nspin, geocode, on_which_atom)
 
   matB(1) = matrices_null()
 

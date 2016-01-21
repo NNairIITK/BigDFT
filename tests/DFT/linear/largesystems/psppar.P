@@ -1,0 +1,10 @@
+HGH for phosphorous (P) in PBE with NLCC
+   15    5  051512 zatom, zion, date (ddmmyy)
+   12 -101130 1 0 2002 0     pspcod, IXC, lmax, lloc, mmax, r2well
+        0.34000000  2     -1.62258310     -0.72412131 rloc nloc c1 c2
+   2                                                       nsep
+        0.38208906  2      3.47753509     -0.01266608      s-projector
+                                           3.47461367
+        0.43410975  1      3.37859278      p-projector
+                           0.00000000
+        0.39867636         0.45667400      rcore, qcore (NLCC width and fraction)

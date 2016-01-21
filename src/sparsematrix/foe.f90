@@ -40,7 +40,7 @@ module foe
       integer,intent(in) :: foe_verbosity
       character(len=*),intent(in) :: label
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
-      type(matrices),intent(inout) :: ham_, ovrlp_
+      type(matrices),intent(in) :: ham_, ovrlp_
       type(matrices),dimension(1),intent(inout) :: ovrlp_minus_one_half_
       type(matrices),intent(inout) :: kernel_
       type(foe_data),intent(inout) :: foe_obj
@@ -77,7 +77,8 @@ module foe
       !!type(matrices) :: inv_ovrlp
       integer,parameter :: NTEMP_ACCURATE=4
       integer,parameter :: NTEMP_FAST=1
-      real(kind=8) :: degree_multiplicator
+      real(kind=8) :: degree_multiplicator, x_max_error, max_error, x_max_error_check, max_error_check
+      real(kind=8) :: mean_error, mean_error_check
       integer,parameter :: SPARSE=1
       integer,parameter :: DENSE=2
       integer,parameter :: imode=SPARSE
@@ -301,10 +302,10 @@ module foe
                       cc_check = f_malloc((/npl_check,3,1/),id='cc_check')
             
                       if (foe_data_get_real(foe_obj,"evlow",ispin)>=0.d0) then
-                          stop 'ERROR: lowest eigenvalue must be negative'
+                          call f_err_throw('Lowest eigenvalue must be negative')
                       end if
                       if (foe_data_get_real(foe_obj,"evhigh",ispin)<=0.d0) then
-                          stop 'ERROR: highest eigenvalue must be positive'
+                          call f_err_throw('Highest eigenvalue must be positive')
                       end if
             
                       call timing(iproc, 'FOE_auxiliary ', 'OF')
@@ -312,7 +313,8 @@ module foe
             
                       call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1,1), &
-                           foe_data_get_real(foe_obj,"ef",ispin), fscale, foe_data_get_real(foe_obj,"tmprtr"))
+                           foe_data_get_real(foe_obj,"ef",ispin), fscale, foe_data_get_real(foe_obj,"tmprtr"), &
+                           x_max_error, max_error, mean_error)
                       call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1,1), cc(1,2,1), npl)
                       call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
@@ -322,12 +324,22 @@ module foe
         
                       call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,1,1), &
-                           foe_data_get_real(foe_obj,"ef",ispin), fscale_check, foe_data_get_real(foe_obj,"tmprtr"))
+                           foe_data_get_real(foe_obj,"ef",ispin), fscale_check, foe_data_get_real(foe_obj,"tmprtr"), &
+                           x_max_error_check, max_error_check, mean_error_check)
                       call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), &
                            cc_check(1,1,1), cc_check(1,2,1), npl_check)
                       call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,3,1))
+
+                      if (iproc==0 .and. foe_verbosity>=1) then
+                          call yaml_newline()
+                          call yaml_mapping_open('accuracy (x, max err, mean err)')
+                          call yaml_map('main',(/x_max_error,max_error,mean_error/),fmt='(es9.2)')
+                          call yaml_map('check',(/x_max_error_check,max_error_check,max_error/),fmt='(es9.2)')
+                          call yaml_mapping_close()
+                          call yaml_newline()
+                      end if
             
                       call timing(iproc, 'chebyshev_coef', 'OF')
                       call timing(iproc, 'FOE_auxiliary ', 'ON')

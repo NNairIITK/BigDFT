@@ -180,7 +180,7 @@ module yaml_output
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump,yaml_dict_dump_all
-  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa,dump_dict_impl,f_progress_bar
+  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa,dump_dict_impl,dump_progress_bar
 
   !for internal f_lib usage
   public :: yaml_output_errors
@@ -1473,6 +1473,7 @@ contains
              exit
           end if
        end do
+
        if (.not. stream_found) then
           if (present(istat)) then
              istat=YAML_STREAM_NOT_FOUND
@@ -2401,27 +2402,48 @@ contains
   end subroutine dump_dict_impl
 
   !>write the status of the advancment of something
-  subroutine f_progress_bar(percent,unit)
+  subroutine dump_progress_bar(bar,step,unit)
     use f_precisions
+    use f_utils
     implicit none
-    real(f_double), intent(in) :: percent
+    type(f_progress_bar), intent(inout) :: bar
+    integer, intent(in), optional :: step
     integer, intent(in), optional :: unit
     !local variables
-    integer :: j,k,unt
-    character(len=18)::bar="#???% |          |"
+    logical :: last
+    integer :: unt,strm
+!!$    character(len=18)::bar="#???% |          |"
 
     unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
+    call get_stream(unt,strm)
 
-    j=int(percent)/10
-    write(unit=bar(2:4),fmt="(i3)") 10*j
-    do k=1, j
-       bar(7+k:7+k)="*"
-    enddo
-    call yaml_comment(char(13)//bar,advance='no',unit=unt)
+!!$    j=int(percent)/10
+!!$    write(unit=bar(2:4),fmt="(i3)") 10*j
+!!$    do k=1, j
+!!$       bar(7+k:7+k)="*"
+!!$    enddo
+
+    !should check if the unit is tty if needed
+    if (bar%ncall==0) call yaml_newline(unit=unt)
+    last=.false.
+    if (present(step)) then
+       call update_progress_bar(bar,step)
+       last=step==bar%nstep
+    end if
+
+    !set the cursor to zero as the char(13) is a newline character
+    streams(strm)%icursor=0
+    if (f_tty(streams(strm)%unit) .and. .not. last) then
+       call yaml_comment(char(13)//'#'//bar%message,advance='no',unit=unt)
+    else if (f_tty(streams(strm)%unit)) then
+       call yaml_comment(char(13)//'#'//bar%message,unit=unt)
+    else
+       call yaml_comment(bar%message,unit=unt)
+    end if
     !write(unit=unt,fmt="(a18)",advance='no')char(13)//bar
-    call f_utils_flush(unt)
-  end subroutine f_progress_bar
+    call f_utils_flush(streams(strm)%unit)
+  end subroutine dump_progress_bar
 
 
 end module yaml_output

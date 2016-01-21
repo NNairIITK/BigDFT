@@ -155,7 +155,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_base
    use module_dpbox, only: denspot_distribution
    use module_types
-   use module_interfaces, only: IonicEnergyandForces, createProjectorsArrays, &
+   use module_interfaces, only: IonicEnergyandForces, &
         & createWavefunctionsDescriptors, orbitals_descriptors
    use Poisson_Solver, except_dp => dp, except_gp => gp
    use module_xc
@@ -175,6 +175,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use public_enums, only: LINEAR_PARTITION_NONE
    use module_input_keys, only: print_dft_parameters
    use IObox
+   use orbitalbasis
+   use io, only: plot_density
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -200,8 +202,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    character(len=3) :: PSquiet
    integer :: ixc,ncong,idsx,ncongt,nspin,itermax
    integer :: nvirt!,nsym
-   integer :: ndegree_ip,j,n1,n2,n3
-!   integer :: n3d,n3p,n3pi,i3xcsh,i3s
+   integer :: j,n1,n2,n3
+!   integer :: ndegree_ip, n3d,n3p,n3pi,i3xcsh,i3s
    integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
    integer :: iat,ierr
    real :: tcpu0,tcpu1
@@ -281,6 +283,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    integer, parameter :: noccmax=2
    integer, dimension(3) :: ndims
    real(gp), dimension(3) :: hgrids
+   type(orbital_basis) :: ob
 
    !! to apply pc_projector
    type(pcproj_data_type) ::PPD
@@ -442,9 +445,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,LINEAR_PARTITION_NONE)
    call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,orbs,comms)  
-
-   call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,orbs,&
-        cpmult,fpmult,hx,hy,hz,.false.,nlpsp)
+   call orbital_basis_associate(ob,orbs=orbs,Glr=KSwfn%Lzd%Glr)
+   call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,ob,&
+        cpmult,fpmult,hx,hy,hz,.false.,nlpsp,.true.)
+   call orbital_basis_release(ob)
    if (iproc == 0) call print_nlpsp(nlpsp)
 
    call check_linear_and_create_Lzd(iproc,nproc,in%linear,KSwfn%Lzd,atoms,orbs,in%nspin,rxyz)
@@ -717,8 +721,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          !if (in%output_denspot_format == output_denspot_FORMAT_TEXT) then
          if (in%output_denspot .hasattr. 'TEXT') then ! == output_denspot_FORMAT_TEXT) then
             if (iproc == 0) write(*,*) 'writing local_potential'
+            !call plot_density(iproc,nproc,'local_potentialb2B' // gridformat,&
+            !     atoms,rxyz,dpcom,in%nspin,rhopot(1,1,1,1))
             call plot_density(iproc,nproc,'local_potentialb2B' // gridformat,&
-                 atoms,rxyz,dpcom,in%nspin,rhopot(1,1,1,1))
+                 atoms,rxyz,pkernel,in%nspin,rhopot(1,1,1,1))
          else
             call plot_density_cube_old('local_potentialb2B',iproc,nproc,&
                &   n1,n2,n3,n1i,n2i,n3i,dpcom%n3p,&
@@ -1485,6 +1491,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    use psp_projectors, only: update_nlpsp
+   use io, only: plot_density
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc

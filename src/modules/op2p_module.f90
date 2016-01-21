@@ -11,6 +11,8 @@
 !> Modules which contains the defintions for overlap point to point
 module overlap_point_to_point
    use module_base
+   use iso_c_binding
+   use f_precisions, only: f_address
    implicit none
 
    !By default variables are internal to the module
@@ -45,6 +47,7 @@ module overlap_point_to_point
 
    type, public :: OP2P_pointer
       real(wp), dimension(:,:), pointer :: ptr
+      type(c_ptr):: ptr_gpu
    end type OP2P_pointer
 
    type, public :: local_data
@@ -56,6 +59,8 @@ module overlap_point_to_point
       integer, dimension(:), pointer :: displ_res !<displacements of each of the local results
       real(wp), dimension(:), pointer :: data !< array of local data
       real(wp), dimension(:), pointer :: res !< array of local results
+      type(c_ptr) :: data_GPU !< array of local data on GPU
+      type(c_ptr) :: res_GPU !< array of local results on GPU
    end type local_data
 
    !>structure exposing the local variable to be passed to the calculation routine
@@ -95,6 +100,7 @@ module overlap_point_to_point
       integer :: ngroupp !<number of groups treated by the present process
       integer :: ndim !< size of the data per each object (can be generalized to an array)
       integer :: mpi_comm !<handle of the communicator
+      integer :: gpudirect !<are we in a GPUDirect scenario? (cuda psolver + cuda-aware MPI)
       integer :: ncouples !<total number of couples considered
       !>stores the requests for the data
       integer, dimension(:), pointer :: requests_data 
@@ -120,6 +126,7 @@ module overlap_point_to_point
       type(OP2P_pointer), dimension(:,:), pointer :: resw
    end type OP2P_data
 
+
    contains
 
      !pure 
@@ -141,7 +148,7 @@ module overlap_point_to_point
        it%event=OP2P_EXIT
      end function OP2P_iter_null
 
-     pure subroutine nullify_local_data(ld)
+     subroutine nullify_local_data(ld)
        implicit none
        type(local_data), intent(out) :: ld
        ld%nobj=0
@@ -151,7 +158,9 @@ module overlap_point_to_point
        nullify(ld%displ)
        nullify(ld%displ_res)
        nullify(ld%data)
+       ld%data_GPU=C_NULL_PTR
        nullify(ld%res)
+       ld%res_GPU=C_NULL_PTR
      end subroutine nullify_local_data
 
      !> type to control the communication scheduling
@@ -187,19 +196,24 @@ module overlap_point_to_point
         nullify(OP2P%resw)
       end subroutine nullify_OP2P_data
 
-      subroutine free_OP2P_pointer(ptr)
+      subroutine free_OP2P_pointer(OP2P, ptr)
         implicit none
         type(OP2P_pointer), dimension(:,:), pointer :: ptr
+        type(OP2P_data), intent(out) :: OP2P
         !local variables
         integer :: i,j
         integer, dimension(2) :: lb,ub
-
+        
         if (associated(ptr)) then
            lb=lbound(ptr)
            ub=ubound(ptr)
            do j=lb(2),ub(2)
               do i=lb(1),ub(1)
-                 call f_free_ptr(ptr(i,j)%ptr)
+                if(OP2P%gpudirect /= 1) then 
+                  call f_free_ptr(ptr(i,j)%ptr)
+                else
+                  call cudafree(ptr(i,j)%ptr_gpu)
+                end if
               end do
            end do
            deallocate(ptr)
@@ -207,7 +221,7 @@ module overlap_point_to_point
         end if
       end subroutine free_OP2P_pointer
 
-     pure function local_data_init(norb,ndim) result(ld)
+     function local_data_init(norb,ndim) result(ld)
        implicit none
        integer, intent(in) :: norb,ndim
        type(local_data) :: ld
@@ -219,14 +233,16 @@ module overlap_point_to_point
        ld%nvctr_res=ld%nvctr
      end function local_data_init
 
-     subroutine set_local_data(ld,isorb,psir,dpsir)
+     subroutine set_local_data(ld,isorb,psir,dpsir,psir_gpu,dpsir_gpu)
        implicit none
        type(local_data), intent(inout) :: ld
        integer, intent(in) :: isorb
        real(wp), dimension(ld%nvctr), intent(in), target, optional :: psir
        real(wp), dimension(ld%nvctr_res), intent(in), target, optional :: dpsir
+       type(c_ptr), optional :: psir_gpu
+       type(c_ptr), optional :: dpsir_gpu
        !local variables
-       integer :: iorb,ndim,ntot,jorb
+       integer :: iorb,ndim,ntot,jorb,i_stat
 
        if (ld%nobj == 0) return
 
@@ -257,6 +273,17 @@ module overlap_point_to_point
        else
           nullify(ld%res)
        end if
+
+        if (present(psir_gpu)) then
+          ld%data_GPU=psir_gpu
+       else
+          ld%data_GPU=C_NULL_PTR
+       end if
+       if (present(dpsir_gpu)) then
+          ld%res_GPU=dpsir_gpu
+       else
+          ld%res_GPU=C_NULL_PTR
+       end if
      end subroutine set_local_data
 
      subroutine free_local_data(ld)
@@ -270,17 +297,68 @@ module overlap_point_to_point
 
      end subroutine free_local_data
 
-     subroutine initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+     subroutine cuda_estimate_memory_needs_gpudirect(iproc, nproc, OP2P, symmetric)
+       use iso_c_binding  
+       use yaml_output
+       implicit none
+       integer(kind=C_SIZE_T) :: freeGPUSize, totalGPUSize, gpudirectresSize,gpudirectdataSize,phimemSize
+       logical, intent(inout) :: symmetric
+       integer, intent(in) :: iproc, nproc
+       integer :: i, igroup, iproc_node, nproc_node
+       type(OP2P_data), intent(inout) :: OP2P
+       real(dp) alpha
+       freeGPUSize=0
+       totalGPUSize=0
+       gpudirectdataSize=0
+       gpudirectresSize=0
+       phimemSize=0
+
+       call cuda_get_mem_info(freeGPUSize,totalGPUSize)
+       call processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
+
+         do i=1,2
+            do igroup=1,OP2P%ngroupp
+                gpudirectdataSize=gpudirectdataSize+OP2P%ndim*maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))*sizeof(alpha)
+            end do
+         end do
+
+         allocate(OP2P%resw(OP2P%ngroupp,3))
+         do i=1,3
+            do igroup=1,OP2P%ngroupp
+               if (symmetric) then
+                   gpudirectresSize=gpudirectresSize+OP2P%ndim*maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))*sizeof(alpha)
+               end if
+            end do
+         end do
+
+       phimemSize=OP2P%ndim*sum(OP2P%nobj_par(iproc,:))*2*sizeof(alpha)
+
+       if((nproc_node * (phimemSize+gpudirectdataSize+gpudirectresSize) )< freeGPUSize) then
+         OP2P%gpudirect=1
+       else if ((nproc_node * (phimemSize+gpudirectdataSize))<freeGPUSize) then
+         if (iproc==0) call yaml_warning("insufficient GPU memory : don't store and exchange results'//&
+        ' (double the computation amount)")
+         symmetric = .false.
+         OP2P%gpudirect=1
+       else
+         if (iproc==0) call yaml_warning("insufficient GPU memory : using non gpudirect version ")
+         OP2P%gpudirect=0
+       end if
+    !  end if
+    call mpibarrier()
+     end subroutine  cuda_estimate_memory_needs_gpudirect
+
+     subroutine initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric)
        implicit none
        !>flag indicating the symmetricity of the operation. This reflects in the communication scheduling
-       logical, intent(in) :: symmetric
-       integer, intent(in) :: mpi_comm,iproc,nproc,ngroup,ndim
+       logical, intent(inout) :: symmetric
+       integer, intent(in) :: mpi_comm,iproc,nproc,ngroup,ndim,igpu
        integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
        type(OP2P_data), intent(out) :: OP2P
 
        !local variables
        integer :: igroup,icount,icountmax,iprocgrs,iprocgrr,jproc,igr,nobjp,nprocgr
-       integer :: istep,nsteps,isobj,iobj_local,i
+       integer :: istep,nsteps,isobj,iobj_local,i,i_stat
        integer, dimension(:,:,:), allocatable :: iprocpm1
 
        call nullify_OP2P_data(OP2P)
@@ -288,6 +366,8 @@ module overlap_point_to_point
        OP2P%ngroup=ngroup
        OP2P%ndim=ndim
        OP2P%mpi_comm=mpi_comm
+
+       
 
        OP2P%nobj_par=f_malloc_ptr([0.to.nproc-1,1.to.ngroup],id='nobj_par')
        call f_memcpy(src=nobj_par,dest=OP2P%nobj_par)
@@ -337,6 +417,8 @@ module overlap_point_to_point
              icountmax=icount
           end if
        end do
+
+       if(igpu/=0) call cuda_estimate_memory_needs_gpudirect(iproc, nproc, OP2P, symmetric)
 
        !decide the strategy for the communication
        if (symmetric) then
@@ -429,12 +511,19 @@ module overlap_point_to_point
        !real communication
        OP2P%iproc_dump=mpirank_null()-1! =no debug verbosity
 
+
        allocate(OP2P%dataw(OP2P%ngroupp,2))
        do i=1,2
           do igroup=1,OP2P%ngroupp
-             OP2P%dataw(igroup,i)%ptr=&
+            if(OP2P%gpudirect/=1) then 
+              OP2P%dataw(igroup,i)%ptr=&
                   f_malloc_ptr([OP2P%ndim, maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))],&
                   id='dataw'+yaml_toa(igroup)+yaml_toa(i))
+            else
+              call  cudamalloc(OP2P%ndim*maxval(OP2P%nobj_par(:,OP2P%group_id(igroup))),&
+                                OP2P%dataw(igroup,i)%ptr_gpu,i_stat)
+              if (i_stat /= 0) print *,'error cudamalloc dataw GPU',i_stat
+            end if
           end do
        end do
 
@@ -442,11 +531,21 @@ module overlap_point_to_point
        do i=1,3
           do igroup=1,OP2P%ngroupp
              if (symmetric) then
-                OP2P%resw(igroup,i)%ptr=&
+               if(OP2P%gpudirect/=1) then 
+                 OP2P%resw(igroup,i)%ptr=&
                      f_malloc_ptr([OP2P%ndim, maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))],&
                      id='resw'+yaml_toa(igroup)+yaml_toa(i))
+                else
+                  call cudamalloc(OP2P%ndim* maxval(OP2P%nobj_par(:,OP2P%group_id(igroup))),&
+                                  OP2P%resw(igroup,i)%ptr_gpu,i_stat)
+                  if (i_stat /= 0) print *,'error cudamalloc resw GPU',i_stat
+                end if
              else
-                nullify(OP2P%resw(igroup,i)%ptr)
+               if(OP2P%gpudirect/=1) then 
+                  nullify(OP2P%resw(igroup,i)%ptr)
+                else
+                 OP2P%resw(igroup,i)%ptr_gpu=C_NULL_PTR
+                end if
              end if
           end do
        end do
@@ -498,8 +597,8 @@ module overlap_point_to_point
        call f_free_ptr(OP2P%ranks)
        call f_free_ptr(OP2P%nobj_par)
        call f_free_ptr(OP2P%objects_id)
-       call free_OP2P_pointer(OP2P%dataw)
-       call free_OP2P_pointer(OP2P%resw)
+       call free_OP2P_pointer(OP2P,OP2P%dataw)
+       call free_OP2P_pointer(OP2P,OP2P%resw)
        call nullify_OP2P_data(OP2P)
      end subroutine free_OP2P_data
 
@@ -509,6 +608,7 @@ module overlap_point_to_point
        type(OP2P_data), intent(in) :: OP2P
        type(OP2P_iterator), intent(out) :: iter
        real(wp), dimension(OP2P%ndim*norbp), intent(in), target :: data,res
+       integer i_stat
 
        iter=OP2P_iter_null()
        !then create the local data object
@@ -517,8 +617,24 @@ module overlap_point_to_point
           call set_local_data(iter%phi_i,OP2P%objects_id(GLOBAL_,iproc,OP2P%group_id(1)))
        end if
        !basic pointer association, no further allocation
-       iter%phi_i%data=>data
-       iter%phi_i%res=>res
+
+         iter%phi_i%data=>data
+         iter%phi_i%res=>res
+       if(OP2P%gpudirect==1) then
+         ! initialize GPU arrays that will hold the data for all the computation
+         call cudamalloc(OP2P%ndim*norbp,iter%phi_i%data_GPU, i_stat)
+         if (i_stat /= 0) print *,'error cudamalloc data_GPU',i_stat
+         call reset_gpu_data(OP2P%ndim*norbp,data,iter%phi_i%data_GPU)
+
+         call cudamalloc(OP2P%ndim*norbp,iter%phi_i%res_GPU,i_stat)
+         if (i_stat /= 0) print *,'error cudamalloc res_GPU',i_stat
+         !is this necessary?
+         !call cudamemset(iter%phi_i%res_GPU, 0, OP2P%ndim*norbp,i_stat)
+         call reset_gpu_data(OP2P%ndim*norbp,res,iter%phi_i%res_GPU)
+         !if (i_stat /= 0) print *,'error cudamemset phi_i%res_GPU',i_stat
+
+       end if
+
 
        !example of the usage of the loop
        iter%event=OP2P_START
@@ -536,14 +652,18 @@ module overlap_point_to_point
      end subroutine release_OP2P_iterator
 
 
-     subroutine P2P_data(iproc,OP2P,norbp,psir)!,psiw)
+     subroutine P2P_data(iproc,OP2P,phi)!,psiw)
        implicit none
-       integer, intent(in) :: iproc,norbp!,norbp_max
+       integer, intent(in) :: iproc
+       
        type(OP2P_data), intent(inout) :: OP2P
-       real(wp), dimension(OP2P%ndim,norbp), intent(in) :: psir
+ !      real(wp), dimension(OP2P%ndim,norbp), intent(in) :: psir
+       type(local_data), intent(inout) :: phi
        !local variables
-       integer :: igroup,dest,source,count,igr,iobj_local
+       integer :: igroup,dest,source,count,igr,iobj_local,jshift
+       integer :: norbp!,norbp_max
 
+       norbp=phi%nobj
        !sending receiving data
        do igroup=1,OP2P%ngroupp
           igr=OP2P%group_id(igroup)
@@ -552,13 +672,22 @@ module overlap_point_to_point
              count=OP2P%nobj_par(iproc,igr)*OP2P%ndim
              iobj_local=OP2P%objects_id(LOCAL_,iproc,igr)
              OP2P%ndata_comms=OP2P%ndata_comms+1
+             jshift=phi%displ(iobj_local)
              !send the fixed array to the processor which comes in the list
              OP2P%ndatas(DATA_,dest,igr)=&
                   OP2P%ndatas(DATA_,dest,igr)+count
-             call mpisend(psir(1,iobj_local),count,&
+             if(OP2P%gpudirect/=1)then 
+               call mpisend(phi%data(1+jshift),count,&
                   dest=dest,tag=iproc,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_data(OP2P%ndata_comms),&
                   verbose=OP2P%verbose,simulate=OP2P%simulate) ! dest==OP2P%iproc_dump
+             else
+               call mpisend(phi%data_GPU,count,&
+                  dest=dest,tag=iproc,comm=OP2P%mpi_comm,&
+                  request=OP2P%requests_data(OP2P%ndata_comms),&
+                  verbose=OP2P%verbose,simulate=OP2P%simulate,&
+                  type=MPI_DOUBLE_PRECISION,offset=jshift) ! dest==OP2P%iproc_dump
+             end if 
           end if
 
           source=OP2P%ranks(RECV_DATA,igroup,OP2P%istep)
@@ -567,24 +696,37 @@ module overlap_point_to_point
              OP2P%ndata_comms=OP2P%ndata_comms+1
              OP2P%ndatas(DATA_,iproc,igr)=&
                   OP2P%ndatas(DATA_,iproc,igr)-count
-             call mpirecv(OP2P%dataw(igroup,OP2P%irecv_data)%ptr(1,1),count,&!psiw(1,1,igroup,OP2P%irecv_data),count,&
+             if(OP2P%gpudirect/=1)then 
+               call mpirecv(OP2P%dataw(igroup,OP2P%irecv_data)%ptr(1,1),count,&!psiw(1,1,igroup,OP2P%irecv_data),count,&
                   source=source,tag=source,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_data(OP2P%ndata_comms),&
                   verbose=OP2P%verbose,simulate=OP2P%simulate) ! source == OP2P%iproc_dump
+            else
+               call mpirecv(OP2P%dataw(igroup,OP2P%irecv_data)%ptr_gpu,count,&!psiw(1,1,igroup,OP2P%irecv_data),count,&
+                  source=source,tag=source,comm=OP2P%mpi_comm,&
+                  request=OP2P%requests_data(OP2P%ndata_comms),&
+                  verbose=OP2P%verbose,simulate=OP2P%simulate,&
+                  type=MPI_DOUBLE_PRECISION) ! source == OP2P%iproc_dump
+            end if 
           end if
        end do
 
      end subroutine P2P_data
 
-     subroutine P2P_res(iproc,OP2P,norbp,dpsir)!,dpsiw)
+     subroutine P2P_res(iproc,OP2P,phi)!,dpsiw)
        implicit none
-       integer, intent(in) :: iproc,norbp!,norbp_max
+       integer, intent(in) :: iproc
        type(OP2P_data), intent(inout) :: OP2P
-       real(wp), dimension(OP2P%ndim,norbp), intent(inout) :: dpsir
+       type(local_data), intent(inout) :: phi 
+       integer :: norbp!,norbp_max
+      ! real(wp), dimension(OP2P%ndim,norbp) :: dpsir
+
        !real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup,3), intent(inout) :: dpsiw
        !local variables
-       integer :: igroup,dest,source,count,igr,iobj_local,nproc
+       integer :: igroup,dest,source,count,igr,iobj_local,nproc,jshift
 
+
+       norbp = phi%nobj
        nproc=mpisize(OP2P%mpi_comm)
        if (OP2P%nres_comms > 0) then
           !verify that the messages have been passed
@@ -594,6 +736,7 @@ module overlap_point_to_point
           do igroup=1,OP2P%ngroupp
              source=OP2P%ranks(RECV_RES,igroup,OP2P%istep-1)
              igr=OP2P%group_id(igroup)
+             jshift=phi%displ(OP2P%objects_id(LOCAL_,iproc,igr))
              if (source /= mpirank_null()) then
                 if (OP2P%verbose) then
                    print '(5(1x,a,i8))','step',OP2P%istep,'group:',igr,&
@@ -602,10 +745,18 @@ module overlap_point_to_point
                 end if
                 OP2P%ndatac(igroup)=OP2P%ndatac(igroup)+&
                      OP2P%ndim*OP2P%nobj_par(source,igr)
-
-                call axpy(OP2P%ndim*OP2P%nobj_par(iproc,igr),1.0_wp,OP2P%resw(igroup,OP2P%irecv_res)%ptr(1,1),1,&
+                if(OP2P%gpudirect/=1) then 
+                  call axpy(OP2P%ndim*OP2P%nobj_par(iproc,igr),1.0_wp,OP2P%resw(igroup,OP2P%irecv_res)%ptr(1,1),1,&
                      !dpsiw(1,1,igroup,OP2P%irecv_res),1,&
-                     dpsir(1,OP2P%objects_id(LOCAL_,iproc,igr)),1)
+                     phi%res(1+jshift),1)
+                else
+
+!void CUBLAS_DAXPY (const int *n, const double *alpha, const devptr_t *devPtrx,
+!                   const int *incx, const devptr_t *devPtry, const int *incy)
+                   call poisson_cublas_daxpy(OP2P%ndim*OP2P%nobj_par(iproc,igr),1.0_wp,OP2P%resw(igroup,OP2P%irecv_res)%ptr_gpu,1,&
+                     !dpsiw(1,1,igroup,OP2P%irecv_res),1,&
+                   phi%res_GPU,1,jshift)
+                end if
              end if
           end do
        end if
@@ -620,12 +771,23 @@ module overlap_point_to_point
              OP2P%nres_comms=OP2P%nres_comms+1
              count=OP2P%ndim*OP2P%nobj_par(dest,igr)
              !here we can swap pointers
-             call f_memcpy(src=OP2P%resw(igroup,3)%ptr,&!dpsiw(1,1,igroup,3),&
+             if(OP2P%gpudirect/=1)then 
+               call f_memcpy(src=OP2P%resw(igroup,3)%ptr,&!dpsiw(1,1,igroup,3),&
                   dest=OP2P%resw(igroup,OP2P%isend_res)%ptr)!dpsiw(1,1,igroup,OP2P%isend_res))
-             call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr(1,1),&!dpsiw(1,1,igroup,OP2P%isend_res),&
+               call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr(1,1),&!dpsiw(1,1,igroup,OP2P%isend_res),&
                   count,dest=dest,&
                   tag=iproc+nproc+2*nproc*OP2P%istep,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose)
+              else
+               call copy_gpu_data(OP2P%ndim* maxval(OP2P%nobj_par(:,OP2P%group_id(igroup))),&
+                    OP2P%resw(igroup,OP2P%isend_res)%ptr_gpu,OP2P%resw(igroup,3)%ptr_gpu)
+          call synchronize()
+               call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr_gpu,&!dpsiw(1,1,igroup,OP2P%isend_res),&
+                  count,dest=dest,&
+                  tag=iproc+nproc+2*nproc*OP2P%istep,comm=OP2P%mpi_comm,&
+                  request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose,&
+                  type=MPI_DOUBLE_PRECISION)
+              end if
              OP2P%ndatas(RES_,dest,igr)=OP2P%ndatas(RES_,dest,igr)+&
                   OP2P%ndim*OP2P%nobj_par(dest,igr)
           end if
@@ -636,10 +798,18 @@ module overlap_point_to_point
           if (source /= mpirank_null()) then
              OP2P%nres_comms=OP2P%nres_comms+1
              count=OP2P%ndim*OP2P%nobj_par(iproc,igr)
-             call mpirecv(OP2P%resw(igroup,OP2P%irecv_res)%ptr(1,1),count,&!dpsiw(1,1,igroup,OP2P%irecv_res),count,&
+             if(OP2P%gpudirect/=1)then 
+               call mpirecv(OP2P%resw(igroup,OP2P%irecv_res)%ptr(1,1),count,&!dpsiw(1,1,igroup,OP2P%irecv_res),count,&
                   source=source,tag=source+nproc+2*nproc*OP2P%istep,&
                   comm=OP2P%mpi_comm,&
                   request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose)
+             else
+               call mpirecv(OP2P%resw(igroup,OP2P%irecv_res)%ptr_gpu,count,&!dpsiw(1,1,igroup,OP2P%irecv_res),count,&
+                  source=source,tag=source+nproc+2*nproc*OP2P%istep,&
+                  comm=OP2P%mpi_comm,&
+                  request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose,&
+                  type=MPI_DOUBLE_PRECISION)
+             end if
              OP2P%ndatas(RES_,iproc,igr)=OP2P%ndatas(RES_,iproc,igr)-count
           end if
        end do
@@ -695,12 +865,23 @@ module overlap_point_to_point
        if (OP2P%istep/=0) then
           iter%phi_j=local_data_init(iter%nloc_j,OP2P%ndim)
           if (iter%remote_result) then
+            if(OP2P%gpudirect/=1) then
              call set_local_data(iter%phi_j,jsorb,&
                   OP2P%dataw(OP2P%igroup,OP2P%isend_data)%ptr,OP2P%resw(OP2P%igroup,3)%ptr)
+            else
+             call set_local_data(iter%phi_j,jsorb,&
+                  psir_gpu=OP2P%dataw(OP2P%igroup,OP2P%isend_data)%ptr_gpu,&
+                  dpsir_gpu=OP2P%resw(OP2P%igroup,3)%ptr_gpu)
+            end if
              !OP2P%dataw(1,1,OP2P%igroup,OP2P%isend_data),OP2P%resw(1,1,OP2P%igroup,3))
           else
+            if(OP2P%gpudirect/=1) then
              call set_local_data(iter%phi_j,jsorb,&
                   OP2P%dataw(OP2P%igroup,OP2P%isend_data)%ptr)!OP2P%dataw(1,1,OP2P%igroup,OP2P%isend_data))
+            else
+             call set_local_data(iter%phi_j,jsorb,&
+                  psir_gpu=OP2P%dataw(OP2P%igroup,OP2P%isend_data)%ptr_gpu)!OP2P%dataw(1,1,OP2P%igroup,OP2P%isend_data))
+             end if
           end if
           !jorbs_tmp=1
           iter%isloc_j=1
@@ -719,7 +900,7 @@ module overlap_point_to_point
 !!$       real(wp), dimension(OP2P%ndim,norbp), intent(inout) :: dpsir
 !!$       type(local_data), intent(inout) :: phi_i,phi_j
        !local variables
-       integer :: igroup,igr
+       integer :: igroup,igr,i_stat,norbp
 
        if (iter%event==OP2P_START) OP2P%istep=0 !to be moved at the initialization
 
@@ -728,13 +909,18 @@ module overlap_point_to_point
              OP2P%irecv_data=3-OP2P%isend_data
              OP2P%ndata_comms=0
 
-             call P2P_data(iproc,OP2P,iter%phi_i%nobj,iter%phi_i%data)
+             call P2P_data(iproc,OP2P,iter%phi_i)
 
              do igroup=1,OP2P%ngroupp
                 if (OP2P%istep /= 0 .and. OP2P%ranks(SEND_RES,igroup,OP2P%istep) /= mpirank_null()) then
                    !put to zero the sending element
                    !call f_zero(OP2P%ndim*norbp_max,OP2P%resw(1,1,igroup,3))
-                   call f_zero(OP2P%resw(igroup,3)%ptr)
+                   if(OP2P%gpudirect/=1)then
+                     call f_zero(OP2P%resw(igroup,3)%ptr)
+                   else
+                     norbp=maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))
+                     call cudamemset(OP2P%resw(igroup,3)%ptr_gpu, 0, OP2P%ndim*norbp,i_stat)
+                   end if
                 end if
              end do
 
@@ -764,11 +950,13 @@ module overlap_point_to_point
              OP2P%do_calculation=.false. !now the loop can cycle
              if (OP2P%igroup > OP2P%ngroupp) exit group_loop
           end do group_loop
-          !if we come here this section can be done nonetheless
-          call P2P_res(iproc,OP2P,iter%phi_i%nobj,iter%phi_i%res)!,OP2P%resw)
+
 
           !verify that the messages have been passed
           call mpiwaitall(OP2P%ndata_comms,OP2P%requests_data)
+          if(OP2P%gpudirect == 1) call synchronize()
+          !if we come here this section can be done nonetheless
+          call P2P_res(iproc,OP2P,iter%phi_i)!,OP2P%resw)
 
           if (OP2P%istep>1) OP2P%isend_res=3-OP2P%isend_res
           OP2P%isend_data=3-OP2P%isend_data
@@ -776,6 +964,20 @@ module overlap_point_to_point
           OP2P%istep=OP2P%istep+1
           if (OP2P%istep > OP2P%nstep) exit step_loop
        end do step_loop
+!retrieve result from GPU
+       if(OP2P%gpudirect == 1) then 
+         call get_gpu_data(OP2P%ndim*sum(OP2P%nobj_par(iproc,:)),iter%phi_i%res,iter%phi_i%res_GPU)
+         call synchronize()
+         !call get_gpu_data(OP2P%ndim*sum(OP2P%nobj_par(iproc,:)),iter%phi_i%data,iter%phi_i%data_GPU)
+         if(C_ASSOCIATED(iter%phi_i%data_GPU)) then
+           call cudafree(iter%phi_i%data_GPU)
+           iter%phi_i%data_GPU=C_NULL_PTR
+         end if
+         if(C_ASSOCIATED(iter%phi_i%res_GPU )) then
+           call cudafree(iter%phi_i%res_GPU)
+           iter%phi_i%res_GPU=C_NULL_PTR
+         end if
+       end if
        !release iterator
        call release_OP2P_iterator(iter)
      end subroutine OP2P_communication_step
@@ -804,7 +1006,7 @@ module overlap_point_to_point
        use yaml_output, only: yaml_map
        implicit none
        !>flag indicating the symmetricity of the operation. This reflects in the communication scheduling
-       logical, intent(in) :: symmetric
+       logical, intent(inout) :: symmetric
        integer, intent(in) :: mpi_comm,iproc,nproc,ngroup,ndim
        integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
        !local variables
@@ -813,7 +1015,7 @@ module overlap_point_to_point
        type(OP2P_data) :: OP2P
 
        !first initialize the OP2P data
-       call initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+       call initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,0,symmetric)
 
        if (.not. OP2P_test(iproc,nproc,OP2P,maxdiff)) &
             call f_err_throw('OP2P Unitary test not passed, maxdiff='+maxdiff**'(1pe12.5)')

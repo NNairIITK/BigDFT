@@ -613,7 +613,6 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
     end if
     call cuda_estimate_memory_needs(kernel, n, myiproc_node, mynproc_node) 
 
-
     size2=2*n1*n2*n3
     sizek=(n1/2+1)*n2*n3
     size3=n1*n2*n3
@@ -643,9 +642,11 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
       if (i_stat /= 0) call f_err_throw('error cudamalloc kappa_GPU (GPU out of memory ?) ')
     end if 
   end if
-
    if (kernel%mpi_env%iproc == 0) then
-    if (kernel%igpu == 1) then
+     if (kernel%igpu == 1) then
+      call cudacreatestream(i_stat)      
+      if (i_stat /= 0) call f_err_throw('error creating stream ')
+      call cudacreatecublashandle()
       if (kernel%keepGPUmemory == 1) then
         call cudamalloc(size2,kernel%w%work1_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc work1_GPU (GPU out of memory ?) ')
@@ -656,6 +657,14 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
       endif
       call cudamalloc(sizek,kernel%w%k_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc k_GPU (GPU out of memory ?) ')
+      call cudamalloc(1,kernel%w%ehart_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc ehart_GPU (GPU out of memory ?) ')
+      call cudamalloc(1,kernel%w%eexctX_GPU,i_stat)
+      call cudamemset(kernel%w%eexctX_GPU,0,1,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc eexctX_GPU (GPU out of memory ?) ')
+      call cudamalloc(64,kernel%w%reduc_GPU,i_stat)
+!      call cudamemset(kernel%w%reduc_GPU,0,64,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc reduc_GPU (GPU out of memory ?) ')
     endif
 
     pkernel2 = f_malloc((n1/2+1)*n2*n3,id='pkernel2')

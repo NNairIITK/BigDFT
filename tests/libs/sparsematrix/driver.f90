@@ -1,7 +1,7 @@
 program driver
   use module_base
   use sparsematrix_init, only: sparsebigdft_to_ccs, read_ccs_format
-  use io, only: read_sparse_matrix, write_ccs_matrix
+  use sparsematrix_io, only: read_sparse_matrix, write_ccs_matrix
   use module_atoms,only: atoms_data, atoms_data_null
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, &
                                assignment(=), SPARSE_FULL
@@ -41,19 +41,17 @@ program driver
        matrix_compr_h, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
        at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz, on_which_atom=on_which_atom_h)
   at%refcnt=f_ref_new('atoms')
-  call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_h, nfvctrp_h, isfvctr_h)
-  call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, at%astruct%nat, &
-       nspin_h, geocode_h, nfvctr_h, nfvctrp_h, isfvctr_h, &
-       on_which_atom_h, nvctr_h, nseg_h, keyg_h, smat_h)
+  !call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_h, nfvctrp_h, isfvctr_h)
+  call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_h, nvctr_h, nseg_h, keyg_h, smat_h, &
+       nspin_h, geocode_h, on_which_atom_h)
   call f_free_ptr(keyv_h)
   call f_free_ptr(keyg_h)
 
   call read_sparse_matrix('overlap_sparse.bin', nspin_s, geocode_s, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
        matrix_compr_s, on_which_atom=on_which_atom_s)
-  call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
-  call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, at%astruct%nat, &
-       nspin_s, geocode_s, nfvctr_s, nfvctrp_s, isfvctr_s, &
-       on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
+  !call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
+  call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_s, nvctr_s, nseg_s, keyg_s, smat_s, &
+       nspin_s, geocode_s, on_which_atom_s)
   call f_free_ptr(keyv_s)
   call f_free_ptr(keyg_s)
 

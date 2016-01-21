@@ -60,7 +60,7 @@ module ice
       integer,parameter :: DENSE=2
       integer,parameter :: imode=SPARSE
       type(foe_data) :: foe_obj
-      real(kind=8),dimension(:),allocatable :: eval, work
+      real(kind=8),dimension(:),allocatable :: eval, work, x_max_error, max_error, mean_error
       real(kind=8),dimension(:,:),allocatable :: tempmat
       integer :: lwork, info, j, icalc, iline, icolumn
       real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_new
@@ -250,7 +250,6 @@ module ice
                                (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f5.2)')
                           call yaml_map('mult.',degree_multiplicator,fmt='(f5.2)')
                           call yaml_map('pol. deg.',npl)
-                          call yaml_mapping_close()
                       end if
         
             
@@ -266,9 +265,13 @@ module ice
                       call timing(iproc, 'FOE_auxiliary ', 'OF')
                       call timing(iproc, 'chebyshev_coef', 'ON')
             
+                      max_error = f_malloc(ncalc,id='max_error')
+                      x_max_error = f_malloc(ncalc,id='x_max_error')
+                      mean_error = f_malloc(ncalc,id='mean_error')
                       do icalc=1,ncalc
                           call cheb_exp(foe_data_get_real(foe_obj,"evlow",ispin), &
-                               foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1,icalc), ex(icalc))
+                               foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1,icalc), ex(icalc), &
+                               x_max_error(icalc), max_error(icalc), mean_error(icalc))
                           call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
                                foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1,icalc), cc(1,2,icalc), npl)
                           call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
@@ -276,6 +279,18 @@ module ice
                           call evnoise(npl, cc(1,3,icalc), foe_data_get_real(foe_obj,"evlow",ispin), &
                                foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
                       end do
+                      if (iproc==0) then
+                          call yaml_mapping_open('accuracy (x, max err, mean err)')
+                          do icalc=1,ncalc
+                              call yaml_map('Operation '//trim(yaml_toa(icalc)), &
+                                  (/x_max_error(icalc),max_error(icalc),mean_error(icalc)/),fmt='(es9.2)')
+                          end do
+                          call yaml_mapping_close()
+                          call yaml_mapping_close()
+                      end if
+                      call f_free(mean_error)
+                      call f_free(max_error)
+                      call f_free(x_max_error)
         
                       call timing(iproc, 'chebyshev_coef', 'OF')
                       call timing(iproc, 'FOE_auxiliary ', 'ON')

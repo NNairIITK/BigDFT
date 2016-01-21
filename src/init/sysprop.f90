@@ -16,7 +16,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      norb_par_ref, norbu_par_ref, norbd_par_ref,output_grid)
   use module_base
   use module_types
-  use module_interfaces, only: createProjectorsArrays, createWavefunctionsDescriptors, &
+  use module_interfaces, only: createWavefunctionsDescriptors, &
        init_orbitals_data_for_linear, orbitals_descriptors,input_check_psi_id,initialize_linear_from_file
   use module_xc
   use module_fragments
@@ -30,6 +30,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use f_enums
   use locreg_operations
   use locregs_init, only: initLocregs
+  use orbitalbasis
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
@@ -64,6 +65,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(kind=8),dimension(2) :: time_max, time_average
 ! real(kind=8) :: ratio_before, ratio_after
   logical :: init_projectors_completely
+  type(orbital_basis) :: ob
   call f_routine(id=subname)
 
 
@@ -384,9 +386,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !(inputpsi /= INPUT_PSI_LINEAR_AO .and. &
   !                              inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
   !                              inputpsi /= INPUT_PSI_MEMORY_LINEAR)
-  call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
+  call orbital_basis_associate(ob,orbs=orbs,Lzd=Lzd)
+  call createProjectorsArrays(Lzd%Glr,rxyz,atoms,ob,&
        in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
        Lzd%hgrids(3),dry_run,nlpsp,init_projectors_completely)
+  call orbital_basis_release(ob)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
   !the complicated part of the descriptors has not been filled
   if (dry_run) then
@@ -922,7 +926,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
      call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
           rcov=radii(it%iat))
   end do
-  if(bigdft_mpi%iproc==0) call yaml_map('Bohr_Ang',Bohr_Ang)
+  !if(bigdft_mpi%iproc==0) call yaml_map('Bohr_Ang',Bohr_Ang)
 
 !  radii(1)=1.5d0/Bohr_Ang
 !  radii(2)=1.2d0/Bohr_Ang
@@ -938,23 +942,33 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
    ! Set the Pauling's set of atomic radii [R.C. Weast, ed., Handbook of chemistry and physics (CRC Press, Cleveland, 1981)].
    select case(trim(atoms%astruct%atomnames(atoms%astruct%iatype(i))))
    case('H')
-    radii(i)=1.0d0
+    radii(i)=1.0d0 !Pauling's set
+    !radii(i)=1.20d0 !Bondi's radii 
    case('C')
-    radii(i)=1.5d0
+    radii(i)=1.50d0 !Pauling's set
+    !radii(i)=1.70d0 !Bondi's radii 
    case('N')
-    radii(i)=1.5d0
+    radii(i)=1.50d0 !Pauling's set
+    !radii(i)=1.55d0 !Bondi's radii 
    case('O')
-    radii(i)=1.4d0
+    radii(i)=1.40d0 !Pauling's set
+    !radii(i)=1.52d0 !Bondi's radii 
    case('P')
-    radii(i)=1.8d0
+    radii(i)=1.80d0 !Pauling's set
+    !radii(i)=1.8d0 !Bondi's radii 
+   case('S')
+    radii(i)=1.80d0 !Pauling's set
+    !radii(i)=1.80d0 !Bondi's radii 
    case('Cl')
-    radii(i)=1.8d0
+    radii(i)=1.80d0 !Pauling's set
+    !radii(i)=1.75d0 !Bondi's radii 
    case('Ti')
-    radii(i)=1.8d0
+    radii(i)=1.80d0 !Pauling's set
+    !radii(i)=1.80d0 !Bondi's radii 
    case default
     call f_err_throw('For rigid cavity a radius should be fixed for each atom type')
    end select
-   if (bigdft_mpi%iproc==0) call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
+   !if (bigdft_mpi%iproc==0) call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
    radii_nofact(i) = radii(i)/Bohr_Ang +1.05d0*delta
    radii(i) = fact*radii(i)/Bohr_Ang + 1.22d0*delta
   end do
@@ -1023,7 +1037,8 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
    call pkernel_set_epsilon(pkernel,eps=eps,oneosqrteps=oneosqrteps,corr=corr)
 !   call pkernel_set_epsilon(pkernel,eps=eps)
   case('PI') 
-   call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)
+   call pkernel_set_epsilon(pkernel,eps=eps,oneoeps=oneoeps,dlogeps=dlogeps)
+!   call pkernel_set_epsilon(pkernel,eps=eps)
   end select
 
 !!$  !starting point in third direction

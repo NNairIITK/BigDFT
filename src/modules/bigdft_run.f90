@@ -46,6 +46,8 @@ module bigdft_run
   !> Public container to be used with bigdft_state().
   type, public :: run_objects
      type(f_enumerator), pointer :: run_mode
+     !> number of times bigdft_state is called with this instance
+     integer :: nstate 
      !> user input specifications
      type(dictionary), pointer :: user_inputs
      !> structure of BigDFT input variables
@@ -606,6 +608,13 @@ contains
 
   END SUBROUTINE run_objects_associate
 
+  !> see if the write method foresee a mapping instead of new documents
+  function write_documents(runObj) result(ok)
+    implicit none
+    type(run_objects), intent(in) :: runObj
+    logical :: ok
+    ok=runObj%run_mode == 'QM_RUN_MODE'
+  end function write_documents
 
   !> copy the atom position in runObject into a workspace
   !! or retrieve the positions from a file
@@ -816,6 +825,7 @@ contains
     implicit none
     type(run_objects), intent(out) :: runObj
     nullify(runObj%run_mode)
+    runObj%nstate=0
     nullify(runObj%user_inputs)
     nullify(runObj%inputs)
     nullify(runObj%atoms)
@@ -841,7 +851,8 @@ contains
     !local variables
     integer :: count, i
     if (associated(runObj%run_mode)) then
-      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
+      if (bigdft_mpi%iproc==0 .and. (.not. write_documents(runObj)) &
+           .and. runObj%nstate/=0)&
            call yaml_sequence_close()
     end if
 
@@ -898,7 +909,8 @@ contains
     type(run_objects), intent(inout) :: runObj
     integer :: i
     if (associated(runObj%run_mode)) then
-      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
+      if (bigdft_mpi%iproc==0 .and. (.not. write_documents(runObj)) & 
+           .and. runObj%nstate/=0)&
            call yaml_sequence_close()
     end if
 
@@ -1020,7 +1032,7 @@ contains
   END SUBROUTINE set_run_objects
 
   !> Read all input files and create the objects to run BigDFT
-  subroutine run_objects_init(runObj,run_dict,source)
+  recursive subroutine run_objects_init(runObj,run_dict,source)
     use module_base, only: bigdft_mpi,dict_init
     use module_types
     use module_input_dicts, only: create_log_file
@@ -1114,8 +1126,6 @@ contains
             source%inputs,source%atoms,source%rst,source%mm_rst)
     end if
 
-    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE') &
-         call yaml_sequence_open('Initializing '//trim(f_str(runObj%run_mode)))
     call f_release_routine()
 
   END SUBROUTINE run_objects_init
@@ -1338,7 +1348,6 @@ contains
 
   end function bigdft_nat
 
-
   !> Get the number of orbitals of the run in rst
   function bigdft_norb(runObj) result(norb)
     implicit none
@@ -1350,6 +1359,17 @@ contains
     if (norb <= 0) call f_err_throw('Number of orbitals unitialized',&
          err_name='BIGDFT_RUNTIME_ERROR')
   end function bigdft_norb
+
+  !> returns true of the runObject is ready to be parsed
+  !! increments also the counter for the following call
+  function bigdft_valid_dataset(runObj) result(ok)
+    implicit none
+    type(run_objects), intent(inout) :: runObj
+    logical :: ok
+
+    
+    
+  end function bigdft_valid_dataset
 
   !> Fill the array eval with the number of orbitals of the last run
   !! the array eval should have been allocated with the correct size
@@ -1455,7 +1475,7 @@ contains
     use public_enums
     use module_defs
     use module_base, only: bigdft_mpi,mpibcast,Bohr_Ang,kcalMolAng_HaBohr,&
-         ev_Ha,evang_habohr,Kcalmol_ha
+         ev_Ha,evang_habohr,Kcalmol_ha,f_increment
     use dynamic_memory, only: f_memcpy,f_routine,f_release_routine
     use yaml_strings
     use yaml_output
@@ -1488,6 +1508,11 @@ contains
     rxyz_ptr => bigdft_get_rxyz_ptr(runObj)
     nat=bigdft_nat(runObj)
 
+    if (bigdft_mpi%iproc==0 .and. .not. write_documents(runObj) .and. &
+         runObj%nstate==0) &
+         call yaml_sequence_open('Initializing '//trim(f_str(runObj%run_mode)))
+
+
     !Check the consistency between MPI processes of the atomic coordinates and broadcast them
     if (bigdft_mpi%nproc >1) then
        call mpibcast(rxyz_ptr,comm=bigdft_mpi%mpi_comm,&
@@ -1502,12 +1527,10 @@ contains
        end if
     end if
 
-    !@NEW ####################################################
     ! Apply the constraints expressed in internal coordinates
     if (runObj%atoms%astruct%inputfile_format=='int') then
         call constraints_internal(runObj%atoms%astruct)
     end if
-    !#########################################################
 
     call clean_state_properties(outs) !zero the state first
 
@@ -1517,7 +1540,7 @@ contains
     !    The new document has been substituted by sequence, not to have multiple documents for FF runs
     !    However this hybrid scheme has to be tested in the case of QM/MM runs
     !    In any case the verbosity value is used to (un)mute the output
-    write_mapping= runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0 .and. verbose > 0
+    write_mapping= (.not. write_documents(runObj))  .and. bigdft_mpi%iproc==0 .and. verbose > 0
     !open the document if the run_mode has not it inside
     if (write_mapping) then
        call yaml_sequence(advance='no')
@@ -1620,6 +1643,7 @@ contains
        call yaml_map('Energy',outs%energy)
        call yaml_mapping_close()
     end if
+    call f_increment(runObj%nstate)
 
     call f_release_routine()
 

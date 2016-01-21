@@ -65,24 +65,26 @@ module module_interfaces
         END SUBROUTINE createWavefunctionsDescriptors
       end interface
 
-      interface
-        subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
-          cpmult,fpmult,hx,hy,hz,dry_run,nlpsp,&
-          init_projectors_completely_)
-       !n(c) use module_base
-       use module_types
-       implicit none
-       type(atoms_data), intent(in) :: at
-       type(orbitals_data), intent(in) :: orbs
-       real(kind=8), intent(in) :: cpmult,fpmult,hx,hy,hz
-       type(locreg_descriptors),intent(in) :: lr
-       real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
-       !real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
-       logical, intent(in) :: dry_run
-       type(DFT_PSP_projectors), intent(out) :: nlpsp
-       logical,intent(in),optional :: init_projectors_completely_
-        END SUBROUTINE createProjectorsArrays
-      end interface
+!!$      interface
+!!$        subroutine createProjectorsArrays(lr,rxyz,at,ob,&
+!!$          cpmult,fpmult,hx,hy,hz,dry_run,nlpsp,&
+!!$          init_projectors_completely)
+!!$       !n(c) use module_base
+!!$       use module_types
+!!$       use orbitalbasis
+!!$       implicit none
+!!$       type(atoms_data), intent(in) :: at
+!!$       !type(orbitals_data), intent(in) :: orbs
+!!$       type(orbital_basis), intent(in) :: ob
+!!$       real(kind=8), intent(in) :: cpmult,fpmult,hx,hy,hz
+!!$       type(locreg_descriptors),intent(in) :: lr
+!!$       real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
+!!$       !real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+!!$       logical, intent(in) :: dry_run
+!!$       type(DFT_PSP_projectors), intent(out) :: nlpsp
+!!$       logical,intent(in),optional :: init_projectors_completely
+!!$        END SUBROUTINE createProjectorsArrays
+!!$      end interface
 
 
        interface

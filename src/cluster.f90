@@ -21,7 +21,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use module_types
   use module_interfaces, only: IonicEnergyandForces, &
        & XC_potential, communicate_density, copy_old_wavefunctions, &
-       & createProjectorsArrays, denspot_set_history, &
+       denspot_set_history, &
        & gaussian_pswf_basis, local_analysis, &
        & orbitals_descriptors, sumrho, system_initialization
   use gaussians, only: deallocate_gwf
@@ -48,6 +48,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
                        ionic_energy_of_external_charges
   use public_enums
   use module_input_keys, only: SIC_data_null,print_dft_parameters,inputpsiid_set_policy,set_inputpsiid
+  use orbitalbasis
+  use io, only: plot_density
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc
@@ -73,7 +75,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !Local variables
   character(len=*), parameter :: subname='cluster'
   character(len=5) :: gridformat, wfformat
-  logical :: refill_proj, calculate_dipole !,potential_from_disk=.false.
+  logical :: refill_proj, calculate_dipole, calculate_quadrupole !,potential_from_disk=.false.
   logical :: DoDavidson,DoLastRunThings
   integer :: nvirt,norbv
   integer :: i, input_wf_format
@@ -112,7 +114,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   real(gp), dimension(:), allocatable :: wkptv
   type(f_enumerator) :: inputpsi,output_denspot
   type(dictionary), pointer :: dict_timing_info
-  
+  type(orbital_basis) :: ob
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
 
   ! testing
@@ -419,7 +421,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!do ilr=1,tmb%lzd%nlr
      !!    locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
      !!end do
-     call init_foe(iproc, nproc, in, KSwfn%orbs, 0.d0, tmb%foe_obj, .true.)
+     call init_foe_wrapper(iproc, nproc, in, KSwfn%orbs, 0.d0, tmb%foe_obj)
      !!call f_free(locreg_centers)
      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
 
@@ -482,14 +484,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!write(*,*) 'after l: iirow', iirow
      !!write(*,*) 'after l: iicol', iicol
 
-     call init_matrix_taskgroups(iproc, nproc, atoms%astruct%nat, in%enable_matrix_taskgroups, &
-          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, tmb%linmat%s, &
+          atoms%astruct%nat, tmb%collcom, tmb%collcom_sr, iirow, iicol)
      !!write(*,*) 'after s'
-     call init_matrix_taskgroups(iproc, nproc, atoms%astruct%nat, in%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, tmb%linmat%m, &
+          atoms%astruct%nat,  tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
      !!write(*,*) 'after m'
-     call init_matrix_taskgroups(iproc, nproc, atoms%astruct%nat, in%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, tmb%linmat%l, &
+          atoms%astruct%nat, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
      !!write(*,*) 'after l'
 
      tmb%linmat%kernel_ = matrices_null()
@@ -646,7 +648,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   call potential_from_charge_multipoles(iproc, nproc, atoms, denspot, in%ep, 1, denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
-       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, denspot%V_ext)
+       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, verbosity=1, &
+       ixc=in%ixc, lzd=tmb%lzd, pot=denspot%V_ext, &
+       rxyz=rxyz, ixyz0=in%plot_mppot_axes)
   call interaction_multipoles_ions(bigdft_mpi%iproc, in%ep, atoms, energs%eion, fion)
   !write(*,*) 'eion before', energs%eion
   call ionic_energy_of_external_charges(bigdft_mpi%iproc, in%ep, atoms, energs%eion)
@@ -1001,16 +1005,26 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   !plot the ionic potential, if required by output_denspot
   if (in%output_denspot == 'DENSPOT' .and. DoLastRunThings) then
-     if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
-     !if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
-     call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
-          atoms,rxyz,denspot%pkernel,1,denspot%V_ext)
-!!$     call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
-!!$          atoms,rxyz,denspot%dpbox,1,denspot%V_ext)
-     if (iproc == 0) call yaml_map('Writing local potential in file','local_potential'//gridformat)
-     !if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
-     call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
-          atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov)
+     if (any((/in%plot_pot_axes>=0/))) then
+         if (all((/in%plot_pot_axes>=0/))) then
+             if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
+             call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
+                  atoms,rxyz,denspot%pkernel,1,denspot%V_ext,ixyz0=in%plot_pot_axes)
+             if (iproc == 0) call yaml_map('Writing local potential in file','local_potential'//gridformat)
+             call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
+                  atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov,ixyz0=in%plot_pot_axes)
+         else
+             call f_err_throw('The coordinates of the point through which &
+                               &the potential shall be plotted must all be non-zero')
+         end if
+     else
+         if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
+         call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
+              atoms,rxyz,denspot%pkernel,1,denspot%V_ext)
+         if (iproc == 0) call yaml_map('Writing local potential in file','local_potential'//gridformat)
+         call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
+              atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov)
+     end if
   end if
 
 
@@ -1044,13 +1058,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 !!$             .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
         if (inputpsi .hasattr. 'CUBIC') then
            calculate_dipole=.true.
+           calculate_quadrupole=.false.
         else
            calculate_dipole = in%lin%calc_dipole
+           calculate_quadrupole=in%lin%calc_quadrupole
         end if
         output_denspot = in%output_denspot
      else
         output_denspot = ENUM_EMPTY
         calculate_dipole = .false.
+        calculate_quadrupole = .false.
      end if
 
      call kswfn_post_treatments(iproc, nproc, KSwfn, tmb, inputpsi .hasattr. 'LINEAR',&
@@ -1058,7 +1075,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 !!$          & inputpsi == INPUT_PSI_MEMORY_LINEAR, &
           fxyz, fnoise, fion, fdisp, fpulay, &
           & strten, pressure, ewaldstr, xcstr, GPU, denspot, atoms, rxyz, nlpsp, &
-          & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole, in%calculate_strten,in%nspin)
+          & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole, calculate_quadrupole, &
+          & in%calculate_strten,in%nspin, in%plot_pot_axes)
 
      call f_free_ptr(fpulay)
   end if
@@ -1109,10 +1127,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
            ! Calculate all projectors, or allocate array for on-the-fly calculation
            call timing(iproc,'CrtProjectors ','ON')
-           call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,VTwfn%orbs,&
+           call orbital_basis_associate(ob,orbs=VTwfn%orbs,Lzd=KSwfn%Lzd)
+           call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,ob,&
                 in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-                .false.,nlpsp) 
-          
+                .false.,nlpsp,.true.) 
+           call orbital_basis_release(ob)
            call timing(iproc,'CrtProjectors ','OF') 
            if (iproc == 0) call print_nlpsp(nlpsp)
 
@@ -1725,7 +1744,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !the energy values is printed out in this routine
            call calculate_energy_and_gradient(opt%iter,iproc,nproc,GPU,in%ncong,opt%iscf,&
                 energs,KSwfn,opt%gnrm,gnrm_zero)
-
+           
            !control the previous value of idsx_actual
            idsx_actual_before=KSwfn%diis%idsx
            iter_for_diis=iter_for_diis+1
@@ -1992,7 +2011,9 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      & fxyz, fnoise, fion, fdisp, fpulay, &
      & strten, pressure, ewaldstr, xcstr, &
      & GPU, denspot, atoms, rxyz, nlpsp, &
-     & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole, calculate_strten,nspin)
+     & output_denspot, dir_output, gridformat, refill_proj, &
+     & calculate_dipole, calculate_quadrupole, calculate_strten,nspin, &
+     & plot_pot_axes)
   use module_base
   use module_types
   use module_interfaces, only: XC_potential, density_and_hpot
@@ -2001,9 +2022,11 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: deallocate_matrices, deallocate_sparse_matrix
+  use multipole, only: calculate_dipole_moment
   use public_enums
+  use orbitalbasis
+  use io, only: plot_density
   implicit none
-
   !Arguments
   type(DFT_wavefunction), intent(in) :: KSwfn
   type(DFT_wavefunction), intent(inout) :: tmb
@@ -2011,7 +2034,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   type(DFT_local_fields), intent(inout) :: denspot
   type(atoms_data), intent(in) :: atoms
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  logical, intent(in) :: linear, refill_proj, calculate_dipole,calculate_strten
+  logical, intent(in) :: linear, refill_proj, calculate_dipole, calculate_quadrupole, calculate_strten
   integer, intent(in) :: iproc, nproc, nspin
   type(f_enumerator), intent(in) :: output_denspot
   character(len = *), intent(in) :: dir_output
@@ -2023,6 +2046,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   real(gp), intent(out) :: fnoise, pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3, atoms%astruct%nat), intent(out) :: fxyz
+  integer,dimension(3),intent(in) :: plot_pot_axes
 
   !Local variables
   character(len = *), parameter :: subname = "kswfn_post_treatments"
@@ -2030,6 +2054,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   !integer :: i,ispin
   real(dp), dimension(6) :: hstrten
   real(gp) :: ehart_fake, exc_fake, evxc_fake
+  type(orbital_basis) :: ob
 
   call f_routine(id=subname)
   !manipulate scatter array for avoiding the GGA shift
@@ -2096,15 +2121,27 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   if (calculate_dipole) then
      ! calculate dipole moment associated to the charge density
      !call calc_dipole(denspot%dpbox,denspot%dpbox%nrhodim,atoms,rxyz,denspot%rho_work,.false.)
-     call calc_dipole(denspot%dpbox,1,atoms,rxyz,denspot%rho_work,.false.)
+     call calculate_dipole_moment(denspot%dpbox,1,atoms,rxyz,denspot%rho_work,&
+          calculate_quadrupole)
   end if
   !plot the density on the cube file
   !to be done either for post-processing or if a restart is to be done with mixing enabled
   if (output_denspot /= ENUM_EMPTY) then
      if (iproc == 0) call yaml_map('Writing electronic density in file','electronic_density'//gridformat)
 
-     call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
-          atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%rho_work)
+     if (any((/plot_pot_axes>=0/))) then
+         if (all((/plot_pot_axes>=0/))) then
+             call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
+                  atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%rho_work, &
+                  ixyz0=plot_pot_axes)
+         else
+             call f_err_throw('The coordinates of the point through which &
+                               &the potential shall be plotted must all be non-zero')
+         end if
+     else
+         call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
+              atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%rho_work)
+     end if
 !---------------------------------------------------
 ! giuseppe fisicaro dilectric cavity
      if (denspot%pkernel%method /= 'VAC') then
@@ -2124,14 +2161,25 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      if (associated(denspot%rho_C) .and. denspot%dpbox%n3d>0) then
         if (iproc == 0) call yaml_map('Writing core density in file','core_density'//gridformat)
         call plot_density(iproc,nproc,trim(dir_output)//'core_density' // gridformat,&
-             atoms,rxyz,denspot%pkernel,1,denspot%rho_C(1,1,i3xcsh_old+1,1))
+             atoms,rxyz,denspot%pkernel,1,denspot%rho_C(1:,1:,i3xcsh_old+1:,1:))
      end if
   end if
   !plot also the electrostatic potential
   if (output_denspot == 'DENSPOT') then
      if (iproc == 0) call yaml_map('Writing Hartree potential in file','hartree_potential'//gridformat)
-     call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
-          atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pot_work)
+     if (any((/plot_pot_axes>=0/))) then
+         if (all((/plot_pot_axes>=0/))) then
+             call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
+                  atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pot_work, &
+                  ixyz0=plot_pot_axes)
+         else
+             call f_err_throw('The coordinates of the point through which &
+                               &the potential shall be plotted must all be non-zero')
+         end if
+      else
+         call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
+              atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pot_work)
+      end if
   end if
 
   !     !plot also the electrostatic potential
@@ -2172,17 +2220,21 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 !         end do
 !         deallocate(tmb%linmat%ks_e)
 !     end if
+
   else
      imode = 0
      nsize_psi = (KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f)*KSwfn%orbs%nspinor*KSwfn%orbs%norbp
   end if
-  call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpsp,rxyz,&
+  !to be checked, as the description might change for the linear case
+  call orbital_basis_associate(ob,orbs=KSwfn%orbs,Lzd=KSwfn%Lzd)
+  call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,ob,nlpsp,rxyz,&
        KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
        denspot%dpbox, &
        denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
        denspot%dpbox%nrhodim,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
        denspot%pot_work,denspot%V_XC,nsize_psi,KSwfn%psi,fion,fdisp,fxyz,&
        calculate_strten,ewaldstr,hstrten,xcstr,strten,pressure,denspot%psoffset,imode,tmb,fpulay)
+  call orbital_basis_release(ob)
 
   call f_free_ptr(denspot%rho_work)
   !call f_free_ptr(denspot%pot_work)

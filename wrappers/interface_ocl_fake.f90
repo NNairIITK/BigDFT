@@ -49,4 +49,9 @@ subroutine local_partial_density_OCL()
     stop 'FAKE local_partial_density_OCL'
 END SUBROUTINE local_partial_density_OCL
 
+subroutine daub_to_isf_OCL()
+    implicit none
+    stop 'FAKE daub_to_isf_OCL'
+END SUBROUTINE daub_to_isf_OCL
+
 

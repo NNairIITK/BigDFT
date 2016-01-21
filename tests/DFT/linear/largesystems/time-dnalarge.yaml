@@ -1,0 +1,2429 @@
+---
+ INIT: #                      % ,  Time (s), Max, Min Load (relative)
+   Classes:
+     Flib LowLevel      : [ 18.1,  20.,  1.05,  0.77]
+     Communications     : [ 22.1,  24.,  1.74,  0.87]
+     BLAS-LAPACK        : [ 0.7,  0.78,  1.19,  0.68]
+     PS Computation     : [ 0.5,  0.50,  1.30,  0.37]
+     Potential          : [ 0.6,  0.68,  1.25,  0.00]
+     Convolutions       : [ 3.8,  4.2,  1.12,  0.92]
+     Linear Algebra     : [ 7.4,  8.1,  1.06,  0.91]
+     Other              : [ 32.6,  36.,  1.06,  0.74]
+     Initialization     : [ 11.0,  12.,  1.06,  0.79]
+     Total              : [ 96.8,  1.09E+02,  1.00,  1.00]
+   Categories: #Ordered by time consumption
+     ApplyProj:
+       Data             : [ 16.9,  18.,  1.11,  0.68]
+       Class            : Other
+       Info             : RMA pattern
+     Routine Profiling:
+       Data             : [ 8.2,  9.0,  1.06,  0.72]
+       Class            : Flib LowLevel
+       Info             : Profiling performances for debugging
+     Array allocations:
+       Data             : [ 7.3,  8.0,  1.06,  0.83]
+       Class            : Flib LowLevel
+       Info             : Heap storage allocation and associated profiling
+     Allreduce, Large Size:
+       Data             : [ 5.7,  6.2,  2.33,  0.74]
+       Class            : Communications
+       Info             : Allreduce operations for more than 5 elements
+     init_matrCompr:
+       Data             : [ 5.5,  6.0,  1.08,  0.47]
+       Class            : Initialization
+       Info             : Miscellaneous
+     wfd_creation:
+       Data             : [ 4.4,  4.8,  1.21,  0.96]
+       Class            : Other
+       Info             : Miscellaneous
+     sparse_matmul:
+       Data             : [ 3.9,  4.3,  1.10,  0.87]
+       Class            : Linear Algebra
+       Info             : self-made
+     ovrlptransComm:
+       Data             : [ 3.1,  3.4,  1.02,  0.79]
+       Class            : Communications
+       Info             : mpi_allreduce
+     matrix_extents:
+       Data             : [ 2.8,  3.1,  1.16,  0.38]
+       Class            : Other
+       Info             : Miscellaneous
+     Allreduce, Small Size:
+       Data             : [ 2.8,  3.1,  1.75,  0.72]
+       Class            : Communications
+       Info             : Allreduce operations for less than 5 elements
+     inittaskgroup:
+       Data             : [ 2.7,  3.0,  1.16,  0.38]
+       Class            : Other
+       Info             : Miscellaneous
+     comm_llr:
+       Data             : [ 2.5,  2.8,  1.00,  0.99]
+       Class            : Communications
+       Info             : Miscellaneous
+     ApplyLocPot:
+       Data             : [ 2.0,  2.2,  1.17,  0.92]
+       Class            : Convolutions
+       Info             : OpenCL ported
+     PSolver Communication:
+       Data             : [ 1.9,  2.1,  1.13,  0.94]
+       Class            : Communications
+       Info             : MPI_ALLTOALL and MPI_ALLGATHERV
+     init_collco_sr:
+       Data             : [ 1.8,  2.0,  1.18,  0.88]
+       Class            : Initialization
+       Info             : Miscellaneous
+     Vector copy:
+       Data             : [ 1.7,  1.9,  1.07,  0.77]
+       Class            : Flib LowLevel
+       Info             : Memory copy of arrays (excluded allocations)
+     lovrlp^-1/2par:
+       Data             : [ 1.7,  1.8,  1.06,  0.89]
+       Class            : Linear Algebra
+       Info             : exact or appr
+     check_sumrho:
+       Data             : [ 1.5,  1.7,  1.23,  0.98]
+       Class            : Initialization
+       Info             : unitary check
+     glsynchham2:
+       Data             : [ 1.5,  1.6,  4.66,  0.06]
+       Class            : Communications
+       Info             : load balancing
+     commbasis4dens:
+       Data             : [ 1.4,  1.6,  1.13,  0.68]
+       Class            : Communications
+       Info             : Miscellaneous
+     convolQuartic:
+       Data             : [ 1.4,  1.6,  1.13,  0.89]
+       Class            : Convolutions
+       Info             : No OpenCL
+     sumrho_TMB:
+       Data             : [ 1.4,  1.5,  1.32,  0.94]
+       Class            : Other
+       Info             : port to GPU?
+     init_collcomm:
+       Data             : [ 1.2,  1.3,  1.03,  0.98]
+       Class            : Initialization
+       Info             : Miscellaneous
+     lovrlp^-1:
+       Data             : [ 1.1,  1.3,  1.12,  0.72]
+       Class            : Linear Algebra
+       Info             : exact or appr
+     lin_inputguess:
+       Data             : [ 1.0,  1.1,  1.41,  0.92]
+       Class            : Other
+       Info             : Miscellaneous
+     lincombtrans:
+       Data             : [ 0.9,  0.98,  1.03,  0.93]
+       Class            : Other
+       Info             : Miscellaneous
+     Init to Zero:
+       Data             : [ 0.8,  0.84,  1.25,  0.85]
+       Class            : Flib LowLevel
+       Info             : Memset of storage space
+     sumrho_allred:
+       Data             : [ 0.7,  0.81,  1.09,  0.36]
+       Class            : Communications
+       Info             : mpiallred
+     Pot_commun:
+       Data             : [ 0.7,  0.81,  3.49,  0.03]
+       Class            : Communications
+       Info             : AllGathrv grid
+     Blas (d-s-c-z)GeMM:
+       Data             : [ 0.7,  0.78,  1.19,  0.68]
+       Class            : BLAS-LAPACK
+       Info             : Blas General Matrix-Matrix multiplications of any float type
+     chebyshev_comp:
+       Data             : [ 0.7,  0.74,  1.26,  0.92]
+       Class            : Linear Algebra
+       Info             : matmul/matadd
+     Un-TransComm:
+       Data             : [ 0.6,  0.69,  1.33,  0.85]
+       Class            : Communications
+       Info             : ALLtoALLV
+     Exchange-Correlation:
+       Data             : [ 0.6,  0.68,  1.25,  0.00]
+       Class            : Potential
+       Info             : Operations needed to construct local XC potential
+     ovrlptransComp:
+       Data             : [ 0.6,  0.63,  1.16,  0.96]
+       Class            : Other
+       Info             : Miscellaneous
+     determinespars:
+       Data             : [ 0.5,  0.57,  1.32,  0.67]
+       Class            : Other
+       Info             : Miscellaneous
+     FOE_auxiliary:
+       Data             : [ 0.5,  0.57,  1.07,  0.95]
+       Class            : Other
+       Info             : Miscellaneous
+     check_pot:
+       Data             : [ 0.5,  0.53,  1.04,  0.97]
+       Class            : Initialization
+       Info             : unitary check
+     ApplyLocKin:
+       Data             : [ 0.4,  0.40,  1.21,  0.84]
+       Class            : Convolutions
+       Info             : OpenCL ported
+     glsynchham1:
+       Data             : [ 0.4,  0.40,  1.33,  0.01]
+       Class            : Communications
+       Info             : load balancing
+     calc_bounds:
+       Data             : [ 0.3,  0.35,  1.34,  0.87]
+       Class            : Other
+       Info             : Miscellaneous
+     calctrace_comm:
+       Data             : [ 0.3,  0.32,  1.96,  0.27]
+       Class            : Communications
+       Info             : allreduce
+     PSolver Computation:
+       Data             : [ 0.3,  0.31,  1.37,  0.04]
+       Class            : PS Computation
+       Info             : 3D SG_FFT and related operations
+     init_orbs_lin:
+       Data             : [ 0.3,  0.30,  1.03,  0.94]
+       Class            : Initialization
+       Info             : Miscellaneous
+     compressd_comm:
+       Data             : [ 0.2,  0.26,  2.03,  0.81]
+       Class            : Communications
+       Info             : Allgatherv
+     Un-TransSwitch:
+       Data             : [ 0.2,  0.23,  1.16,  0.90]
+       Class            : Other
+       Info             : RMA pattern
+     PSolver Kernel Creation:
+       Data             : [ 0.2,  0.19,  1.26,  0.89]
+       Class            : PS Computation
+       Info             : ISF operations and creation of the kernel
+     CrtDescriptors:
+       Data             : [ 0.1,  0.15,  3.63,  0.84]
+       Class            : Initialization
+       Info             : RMA Pattern
+     Pot_comm start:
+       Data             : [ 0.1,  0.12,  1.36,  0.54]
+       Class            : Communications
+       Info             : MPI_types/_get
+     Pot_after_comm:
+       Data             : [ 0.1,  0.12,  1.22,  0.90]
+       Class            : Other
+       Info             : global_to_loca
+     transform_matr:
+       Data             : [ 0.1,  9.01E-02,  1.16,  0.90]
+       Class            : Other
+       Info             : small to large
+     ionic_energy:
+       Data             : [ 0.0,  5.28E-02,  1.25,  0.81]
+       Class            : Other
+       Info             : Miscellaneous
+     Scatter:
+       Data             : [ 0.0,  5.03E-02,  2.55,  0.00]
+       Class            : Communications
+       Info             : Scatter operations, in general moderate size arrays
+     CrtLocPot:
+       Data             : [ 0.0,  2.91E-02,  1.88,  0.00]
+       Class            : Initialization
+       Info             : Miscellaneous
+     optimize_DIIS:
+       Data             : [ 0.0,  2.53E-02,  1.88,  0.58]
+       Class            : Other
+       Info             : Other
+     init_locregs:
+       Data             : [ 0.0,  2.04E-02,  1.10,  0.71]
+       Class            : Initialization
+       Info             : Miscellaneous
+     small2large:
+       Data             : [ 0.0,  1.74E-02,  2.05,  0.76]
+       Class            : Other
+       Info             : Miscellaneous
+     large2small:
+       Data             : [ 0.0,  1.67E-02,  1.59,  0.87]
+       Class            : Other
+       Info             : Miscellaneous
+     transformspars:
+       Data             : [ 0.0,  1.14E-02,  1.42,  0.38]
+       Class            : Other
+       Info             : Miscellaneous
+     dev_from_unity:
+       Data             : [ 0.0,  1.09E-02,  2.12,  0.26]
+       Class            : Other
+       Info             : Miscellaneous
+     updatelocreg1:
+       Data             : [ 0.0,  1.06E-02,  1.29,  0.95]
+       Class            : Other
+       Info             : Miscellaneous
+     chebyshev_coef:
+       Data             : [ 0.0,  6.77E-03,  2.15,  0.70]
+       Class            : Other
+       Info             : Miscellaneous
+     Gather:
+       Data             : [ 0.0,  5.93E-03,  19.41,  0.02]
+       Class            : Communications
+       Info             : Gather operations, in general moderate size arrays
+     norm_trans:
+       Data             : [ 0.0,  5.09E-03,  3.88,  0.54]
+       Class            : Other
+       Info             : Miscellaneous
+     calctrace_comp:
+       Data             : [ 0.0,  1.44E-04,  6.58,  0.55]
+       Class            : Other
+       Info             : Miscellaneous
+     init_commPot:
+       Data             : [ 0.0,  1.35E-04,  2.26,  0.74]
+       Class            : Initialization
+       Info             : Miscellaneous
+     compressd_mcpy:
+       Data             : [ 0.0,  7.40E-05,  8.39,  0.82]
+       Class            : Other
+       Info             : Miscellaneous
+     getlocbasinit:
+       Data             : [ 0.0,  1.03E-05,  1.41,  0.95]
+       Class            : Other
+       Info             : Miscellaneous
+---
+ INIT: #                      % ,  Time (s), Max, Min Load (relative)
+   Classes:
+     Flib LowLevel      : [ 15.1,  13.,  1.07,  0.76]
+     Communications     : [ 29.6,  26.,  1.52,  0.84]
+     BLAS-LAPACK        : [ 0.4,  0.39,  1.35,  0.54]
+     PS Computation     : [ 0.5,  0.40,  1.24,  0.30]
+     Potential          : [ 0.5,  0.45,  1.42,  0.00]
+     Convolutions       : [ 4.3,  3.8,  1.14,  0.73]
+     Linear Algebra     : [ 8.2,  7.2,  1.06,  0.88]
+     Other              : [ 26.2,  23.,  1.12,  0.74]
+     Initialization     : [ 12.5,  11.,  1.07,  0.73]
+     Total              : [ 97.4,  88.,  1.00,  1.00]
+   Categories: #Ordered by time consumption
+     ApplyProj:
+       Data             : [ 9.5,  8.3,  1.21,  0.60]
+       Class            : Other
+       Info             : RMA pattern
+     Allreduce, Large Size:
+       Data             : [ 7.4,  6.5,  2.10,  0.77]
+       Class            : Communications
+       Info             : Allreduce operations for more than 5 elements
+     ovrlptransComm:
+       Data             : [ 7.2,  6.3,  1.07,  0.65]
+       Class            : Communications
+       Info             : mpi_allreduce
+     Array allocations:
+       Data             : [ 7.0,  6.1,  1.06,  0.82]
+       Class            : Flib LowLevel
+       Info             : Heap storage allocation and associated profiling
+     init_matrCompr:
+       Data             : [ 6.4,  5.6,  1.13,  0.43]
+       Class            : Initialization
+       Info             : Miscellaneous
+     Routine Profiling:
+       Data             : [ 6.2,  5.4,  1.09,  0.70]
+       Class            : Flib LowLevel
+       Info             : Profiling performances for debugging
+     wfd_creation:
+       Data             : [ 5.2,  4.6,  1.14,  0.95]
+       Class            : Other
+       Info             : Miscellaneous
+     sparse_matmul:
+       Data             : [ 4.4,  3.8,  1.10,  0.81]
+       Class            : Linear Algebra
+       Info             : self-made
+     Allreduce, Small Size:
+       Data             : [ 3.9,  3.4,  2.12,  0.70]
+       Class            : Communications
+       Info             : Allreduce operations for less than 5 elements
+     comm_llr:
+       Data             : [ 3.0,  2.6,  1.01,  0.98]
+       Class            : Communications
+       Info             : Miscellaneous
+     matrix_extents:
+       Data             : [ 2.5,  2.2,  1.31,  0.30]
+       Class            : Other
+       Info             : Miscellaneous
+     init_collcomm:
+       Data             : [ 2.4,  2.1,  1.02,  0.98]
+       Class            : Initialization
+       Info             : Miscellaneous
+     glsynchham2:
+       Data             : [ 2.4,  2.1,  2.91,  0.17]
+       Class            : Communications
+       Info             : load balancing
+     ApplyLocPot:
+       Data             : [ 2.4,  2.1,  1.13,  0.76]
+       Class            : Convolutions
+       Info             : OpenCL ported
+     inittaskgroup:
+       Data             : [ 2.3,  2.0,  1.27,  0.33]
+       Class            : Other
+       Info             : Miscellaneous
+     sumrho_TMB:
+       Data             : [ 1.8,  1.5,  1.29,  0.92]
+       Class            : Other
+       Info             : port to GPU?
+     lovrlp^-1:
+       Data             : [ 1.8,  1.5,  1.13,  0.65]
+       Class            : Linear Algebra
+       Info             : exact or appr
+     convolQuartic:
+       Data             : [ 1.5,  1.3,  1.14,  0.63]
+       Class            : Convolutions
+       Info             : No OpenCL
+     init_collco_sr:
+       Data             : [ 1.4,  1.2,  1.31,  0.91]
+       Class            : Initialization
+       Info             : Miscellaneous
+     lovrlp^-1/2par:
+       Data             : [ 1.4,  1.2,  1.09,  0.93]
+       Class            : Linear Algebra
+       Info             : exact or appr
+     commbasis4dens:
+       Data             : [ 1.4,  1.2,  1.26,  0.67]
+       Class            : Communications
+       Info             : Miscellaneous
+     check_sumrho:
+       Data             : [ 1.3,  1.1,  1.37,  0.99]
+       Class            : Initialization
+       Info             : unitary check
+     Vector copy:
+       Data             : [ 1.3,  1.1,  1.14,  0.70]
+       Class            : Flib LowLevel
+       Info             : Memory copy of arrays (excluded allocations)
+     lincombtrans:
+       Data             : [ 1.1,  0.96,  1.07,  0.90]
+       Class            : Other
+       Info             : Miscellaneous
+     FOE_auxiliary:
+       Data             : [ 1.0,  0.90,  1.05,  0.93]
+       Class            : Other
+       Info             : Miscellaneous
+     sumrho_allred:
+       Data             : [ 1.0,  0.89,  1.08,  0.57]
+       Class            : Communications
+       Info             : mpiallred
+     lin_inputguess:
+       Data             : [ 0.8,  0.74,  1.48,  0.82]
+       Class            : Other
+       Info             : Miscellaneous
+     PSolver Communication:
+       Data             : [ 0.7,  0.64,  1.42,  0.82]
+       Class            : Communications
+       Info             : MPI_ALLTOALL and MPI_ALLGATHERV
+     chebyshev_comp:
+       Data             : [ 0.7,  0.64,  1.29,  0.87]
+       Class            : Linear Algebra
+       Info             : matmul/matadd
+     Un-TransComm:
+       Data             : [ 0.7,  0.59,  1.22,  0.79]
+       Class            : Communications
+       Info             : ALLtoALLV
+     ovrlptransComp:
+       Data             : [ 0.7,  0.59,  1.14,  0.98]
+       Class            : Other
+       Info             : Miscellaneous
+     Init to Zero:
+       Data             : [ 0.7,  0.59,  1.19,  0.75]
+       Class            : Flib LowLevel
+       Info             : Memset of storage space
+     Pot_commun:
+       Data             : [ 0.6,  0.52,  3.17,  0.05]
+       Class            : Communications
+       Info             : AllGathrv grid
+     compressd_comm:
+       Data             : [ 0.6,  0.49,  1.73,  0.84]
+       Class            : Communications
+       Info             : Allgatherv
+     Exchange-Correlation:
+       Data             : [ 0.5,  0.45,  1.42,  0.00]
+       Class            : Potential
+       Info             : Operations needed to construct local XC potential
+     Blas (d-s-c-z)GeMM:
+       Data             : [ 0.4,  0.39,  1.35,  0.54]
+       Class            : BLAS-LAPACK
+       Info             : Blas General Matrix-Matrix multiplications of any float type
+     ApplyLocKin:
+       Data             : [ 0.4,  0.36,  1.16,  0.73]
+       Class            : Convolutions
+       Info             : OpenCL ported
+     check_pot:
+       Data             : [ 0.4,  0.35,  1.09,  0.93]
+       Class            : Initialization
+       Info             : unitary check
+     determinespars:
+       Data             : [ 0.4,  0.33,  1.34,  0.61]
+       Class            : Other
+       Info             : Miscellaneous
+     calctrace_comm:
+       Data             : [ 0.3,  0.30,  4.00,  0.10]
+       Class            : Communications
+       Info             : allreduce
+     init_orbs_lin:
+       Data             : [ 0.3,  0.28,  1.25,  0.96]
+       Class            : Initialization
+       Info             : Miscellaneous
+     PSolver Computation:
+       Data             : [ 0.3,  0.28,  1.43,  0.01]
+       Class            : PS Computation
+       Info             : 3D SG_FFT and related operations
+     Pot_comm start:
+       Data             : [ 0.3,  0.23,  1.18,  0.71]
+       Class            : Communications
+       Info             : MPI_types/_get
+     Un-TransSwitch:
+       Data             : [ 0.2,  0.20,  1.24,  0.77]
+       Class            : Other
+       Info             : RMA pattern
+     calc_bounds:
+       Data             : [ 0.2,  0.20,  1.53,  0.62]
+       Class            : Other
+       Info             : Miscellaneous
+     CrtDescriptors:
+       Data             : [ 0.2,  0.19,  1.71,  0.85]
+       Class            : Initialization
+       Info             : RMA Pattern
+     transform_matr:
+       Data             : [ 0.2,  0.14,  1.15,  0.87]
+       Class            : Other
+       Info             : small to large
+     PSolver Kernel Creation:
+       Data             : [ 0.1,  0.12,  1.47,  0.73]
+       Class            : PS Computation
+       Info             : ISF operations and creation of the kernel
+     Pot_after_comm:
+       Data             : [ 0.1,  0.11,  1.31,  0.78]
+       Class            : Other
+       Info             : global_to_loca
+     glsynchham1:
+       Data             : [ 0.1,  1.00E-01,  2.29,  0.05]
+       Class            : Communications
+       Info             : load balancing
+     Scatter:
+       Data             : [ 0.1,  7.69E-02,  1.79,  0.00]
+       Class            : Communications
+       Info             : Scatter operations, in general moderate size arrays
+     ionic_energy:
+       Data             : [ 0.1,  7.08E-02,  1.04,  0.98]
+       Class            : Other
+       Info             : Miscellaneous
+     CrtLocPot:
+       Data             : [ 0.0,  2.38E-02,  1.48,  0.00]
+       Class            : Initialization
+       Info             : Miscellaneous
+     init_locregs:
+       Data             : [ 0.0,  2.20E-02,  1.06,  0.90]
+       Class            : Initialization
+       Info             : Miscellaneous
+     small2large:
+       Data             : [ 0.0,  1.73E-02,  2.70,  0.48]
+       Class            : Other
+       Info             : Miscellaneous
+     optimize_DIIS:
+       Data             : [ 0.0,  1.14E-02,  2.47,  0.64]
+       Class            : Other
+       Info             : Other
+     transformspars:
+       Data             : [ 0.0,  1.12E-02,  1.16,  0.33]
+       Class            : Other
+       Info             : Miscellaneous
+     updatelocreg1:
+       Data             : [ 0.0,  1.09E-02,  1.66,  0.93]
+       Class            : Other
+       Info             : Miscellaneous
+     dev_from_unity:
+       Data             : [ 0.0,  9.65E-03,  2.21,  0.24]
+       Class            : Other
+       Info             : Miscellaneous
+     chebyshev_coef:
+       Data             : [ 0.0,  8.73E-03,  2.75,  0.88]
+       Class            : Other
+       Info             : Miscellaneous
+     large2small:
+       Data             : [ 0.0,  8.50E-03,  2.05,  0.73]
+       Class            : Other
+       Info             : Miscellaneous
+     Gather:
+       Data             : [ 0.0,  5.82E-03,  16.53,  0.02]
+       Class            : Communications
+       Info             : Gather operations, in general moderate size arrays
+     norm_trans:
+       Data             : [ 0.0,  3.46E-03,  4.79,  0.64]
+       Class            : Other
+       Info             : Miscellaneous
+     init_commPot:
+       Data             : [ 0.0,  1.24E-04,  1.72,  0.70]
+       Class            : Initialization
+       Info             : Miscellaneous
+     calctrace_comp:
+       Data             : [ 0.0,  1.21E-04,  18.71,  0.53]
+       Class            : Other
+       Info             : Miscellaneous
+     compressd_mcpy:
+       Data             : [ 0.0,  6.40E-05,  2.28,  0.89]
+       Class            : Other
+       Info             : Miscellaneous
+     getlocbasinit:
+       Data             : [ 0.0,  1.02E-05,  1.06,  0.92]
+       Class            : Other
+       Info             : Miscellaneous
+---
+ INIT: #                      % ,  Time (s), Max, Min Load (relative)
+   Classes:
+     Flib LowLevel      : [ 15.3,  13.,  1.06,  0.75]
+     Communications     : [ 27.7,  24.,  1.60,  0.85]
+     BLAS-LAPACK        : [ 0.4,  0.39,  1.32,  0.55]
+     PS Computation     : [ 0.5,  0.46,  1.19,  0.37]
+     Potential          : [ 0.5,  0.48,  1.39,  0.00]
+     Convolutions       : [ 4.3,  3.8,  1.14,  0.80]
+     Linear Algebra     : [ 8.5,  7.4,  1.07,  0.92]
+     Other              : [ 26.8,  23.,  1.10,  0.70]
+     Initialization     : [ 12.0,  10.,  1.08,  0.70]
+     Total              : [ 96.2,  87.,  1.00,  1.00]
+   Categories: #Ordered by time consumption
+     ApplyProj:
+       Data             : [ 9.5,  8.3,  1.19,  0.53]
+       Class            : Other
+       Info             : RMA pattern
+     Allreduce, Large Size:
+       Data             : [ 7.4,  6.5,  2.06,  0.73]
+       Class            : Communications
+       Info             : Allreduce operations for more than 5 elements
+     Array allocations:
+       Data             : [ 7.1,  6.2,  1.07,  0.80]
+       Class            : Flib LowLevel
+       Info             : Heap storage allocation and associated profiling
+     ovrlptransComm:
+       Data             : [ 6.6,  5.7,  1.05,  0.95]
+       Class            : Communications
+       Info             : mpi_allreduce
+     init_matrCompr:
+       Data             : [ 6.4,  5.6,  1.13,  0.42]
+       Class            : Initialization
+       Info             : Miscellaneous
+     Routine Profiling:
+       Data             : [ 6.2,  5.4,  1.10,  0.68]
+       Class            : Flib LowLevel
+       Info             : Profiling performances for debugging
+     wfd_creation:
+       Data             : [ 5.2,  4.6,  1.20,  0.96]
+       Class            : Other
+       Info             : Miscellaneous
+     sparse_matmul:
+       Data             : [ 4.5,  3.9,  1.13,  0.88]
+       Class            : Linear Algebra
+       Info             : self-made
+     Allreduce, Small Size:
+       Data             : [ 3.4,  3.0,  1.62,  0.76]
+       Class            : Communications
+       Info             : Allreduce operations for less than 5 elements
+     comm_llr:
+       Data             : [ 3.0,  2.6,  1.00,  0.98]
+       Class            : Communications
+       Info             : Miscellaneous
+     matrix_extents:
+       Data             : [ 2.6,  2.2,  1.30,  0.30]
+       Class            : Other
+       Info             : Miscellaneous
+     ApplyLocPot:
+       Data             : [ 2.4,  2.1,  1.17,  0.79]
+       Class            : Convolutions
+       Info             : OpenCL ported
+     inittaskgroup:
+       Data             : [ 2.3,  2.0,  1.27,  0.31]
+       Class            : Other
+       Info             : Miscellaneous
+     glsynchham2:
+       Data             : [ 2.1,  1.8,  3.40,  0.19]
+       Class            : Communications
+       Info             : load balancing
+     init_collcomm:
+       Data             : [ 1.9,  1.7,  1.03,  0.98]
+       Class            : Initialization
+       Info             : Miscellaneous
+     lovrlp^-1:
+       Data             : [ 1.8,  1.6,  1.05,  0.86]
+       Class            : Linear Algebra
+       Info             : exact or appr
+     sumrho_TMB:
+       Data             : [ 1.8,  1.5,  1.03,  0.93]
+       Class            : Other
+       Info             : port to GPU?
+     convolQuartic:
+       Data             : [ 1.5,  1.3,  1.16,  0.69]
+       Class            : Convolutions
+       Info             : No OpenCL
+     lovrlp^-1/2par:
+       Data             : [ 1.4,  1.3,  1.02,  0.93]
+       Class            : Linear Algebra
+       Info             : exact or appr
+     init_collco_sr:
+       Data             : [ 1.4,  1.2,  1.28,  0.88]
+       Class            : Initialization
+       Info             : Miscellaneous
+     Vector copy:
+       Data             : [ 1.3,  1.1,  1.16,  0.73]
+       Class            : Flib LowLevel
+       Info             : Memory copy of arrays (excluded allocations)
+     check_sumrho:
+       Data             : [ 1.3,  1.1,  1.38,  0.98]
+       Class            : Initialization
+       Info             : unitary check
+     FOE_auxiliary:
+       Data             : [ 1.3,  1.1,  1.03,  0.93]
+       Class            : Other
+       Info             : Miscellaneous
+     commbasis4dens:
+       Data             : [ 1.2,  1.0,  1.34,  0.71]
+       Class            : Communications
+       Info             : Miscellaneous
+     lincombtrans:
+       Data             : [ 1.1,  0.96,  1.11,  0.92]
+       Class            : Other
+       Info             : Miscellaneous
+     lin_inputguess:
+       Data             : [ 1.1,  0.92,  1.24,  0.91]
+       Class            : Other
+       Info             : Miscellaneous
+     chebyshev_comp:
+       Data             : [ 0.8,  0.72,  1.19,  0.90]
+       Class            : Linear Algebra
+       Info             : matmul/matadd
+     Pot_commun:
+       Data             : [ 0.8,  0.66,  2.89,  0.05]
+       Class            : Communications
+       Info             : AllGathrv grid
+     Init to Zero:
+       Data             : [ 0.7,  0.64,  1.08,  0.84]
+       Class            : Flib LowLevel
+       Info             : Memset of storage space
+     compressd_comm:
+       Data             : [ 0.7,  0.61,  1.09,  0.70]
+       Class            : Communications
+       Info             : Allgatherv
+     ovrlptransComp:
+       Data             : [ 0.7,  0.59,  1.14,  0.97]
+       Class            : Other
+       Info             : Miscellaneous
+     Un-TransComm:
+       Data             : [ 0.7,  0.59,  1.31,  0.76]
+       Class            : Communications
+       Info             : ALLtoALLV
+     Exchange-Correlation:
+       Data             : [ 0.5,  0.48,  1.39,  0.00]
+       Class            : Potential
+       Info             : Operations needed to construct local XC potential
+     sumrho_allred:
+       Data             : [ 0.5,  0.43,  1.15,  0.48]
+       Class            : Communications
+       Info             : mpiallred
+     calctrace_comm:
+       Data             : [ 0.5,  0.40,  2.96,  0.21]
+       Class            : Communications
+       Info             : allreduce
+     Blas (d-s-c-z)GeMM:
+       Data             : [ 0.4,  0.39,  1.32,  0.55]
+       Class            : BLAS-LAPACK
+       Info             : Blas General Matrix-Matrix multiplications of any float type
+     ApplyLocKin:
+       Data             : [ 0.4,  0.36,  1.15,  0.70]
+       Class            : Convolutions
+       Info             : OpenCL ported
+     glsynchham1:
+       Data             : [ 0.4,  0.34,  1.37,  0.01]
+       Class            : Communications
+       Info             : load balancing
+     check_pot:
+       Data             : [ 0.4,  0.34,  1.09,  0.94]
+       Class            : Initialization
+       Info             : unitary check
+     determinespars:
+       Data             : [ 0.4,  0.33,  1.37,  0.61]
+       Class            : Other
+       Info             : Miscellaneous
+     PSolver Communication:
+       Data             : [ 0.4,  0.33,  1.81,  0.82]
+       Class            : Communications
+       Info             : MPI_ALLTOALL and MPI_ALLGATHERV
+     init_orbs_lin:
+       Data             : [ 0.3,  0.30,  1.11,  0.96]
+       Class            : Initialization
+       Info             : Miscellaneous
+     PSolver Computation:
+       Data             : [ 0.3,  0.28,  1.22,  0.03]
+       Class            : PS Computation
+       Info             : 3D SG_FFT and related operations
+     Un-TransSwitch:
+       Data             : [ 0.2,  0.21,  1.22,  0.84]
+       Class            : Other
+       Info             : RMA pattern
+     calc_bounds:
+       Data             : [ 0.2,  0.20,  1.55,  0.63]
+       Class            : Other
+       Info             : Miscellaneous
+     CrtDescriptors:
+       Data             : [ 0.2,  0.19,  2.89,  0.84]
+       Class            : Initialization
+       Info             : RMA Pattern
+     PSolver Kernel Creation:
+       Data             : [ 0.2,  0.18,  1.34,  0.80]
+       Class            : PS Computation
+       Info             : ISF operations and creation of the kernel
+     transform_matr:
+       Data             : [ 0.2,  0.14,  1.12,  0.86]
+       Class            : Other
+       Info             : small to large
+     Pot_comm start:
+       Data             : [ 0.1,  0.11,  1.34,  0.59]
+       Class            : Communications
+       Info             : MPI_types/_get
+     Pot_after_comm:
+       Data             : [ 0.1,  0.11,  1.37,  0.75]
+       Class            : Other
+       Info             : global_to_loca
+     ionic_energy:
+       Data             : [ 0.1,  8.42E-02,  1.05,  0.96]
+       Class            : Other
+       Info             : Miscellaneous
+     Scatter:
+       Data             : [ 0.0,  3.90E-02,  1.90,  0.00]
+       Class            : Communications
+       Info             : Scatter operations, in general moderate size arrays
+     CrtLocPot:
+       Data             : [ 0.0,  2.43E-02,  1.78,  0.00]
+       Class            : Initialization
+       Info             : Miscellaneous
+     init_locregs:
+       Data             : [ 0.0,  2.22E-02,  1.34,  0.90]
+       Class            : Initialization
+       Info             : Miscellaneous
+     optimize_DIIS:
+       Data             : [ 0.0,  1.73E-02,  2.47,  0.45]
+       Class            : Other
+       Info             : Other
+     small2large:
+       Data             : [ 0.0,  1.69E-02,  2.67,  0.44]
+       Class            : Other
+       Info             : Miscellaneous
+     transformspars:
+       Data             : [ 0.0,  1.13E-02,  2.05,  0.33]
+       Class            : Other
+       Info             : Miscellaneous
+     updatelocreg1:
+       Data             : [ 0.0,  1.09E-02,  2.43,  0.93]
+       Class            : Other
+       Info             : Miscellaneous
+     dev_from_unity:
+       Data             : [ 0.0,  9.62E-03,  1.33,  0.24]
+       Class            : Other
+       Info             : Miscellaneous
+     large2small:
+       Data             : [ 0.0,  8.70E-03,  2.46,  0.80]
+       Class            : Other
+       Info             : Miscellaneous
+     chebyshev_coef:
+       Data             : [ 0.0,  8.69E-03,  2.33,  0.88]
+       Class            : Other
+       Info             : Miscellaneous
+     Gather:
+       Data             : [ 0.0,  5.60E-03,  11.94,  0.02]
+       Class            : Communications
+       Info             : Gather operations, in general moderate size arrays
+     norm_trans:
+       Data             : [ 0.0,  3.75E-03,  4.11,  0.60]
+       Class            : Other
+       Info             : Miscellaneous
+     init_commPot:
+       Data             : [ 0.0,  1.50E-04,  7.10,  0.60]
+       Class            : Initialization
+       Info             : Miscellaneous
+     calctrace_comp:
+       Data             : [ 0.0,  9.76E-05,  2.32,  0.64]
+       Class            : Other
+       Info             : Miscellaneous
+     compressd_mcpy:
+       Data             : [ 0.0,  6.67E-05,  1.74,  0.87]
+       Class            : Other
+       Info             : Miscellaneous
+     getlocbasinit:
+       Data             : [ 0.0,  1.02E-05,  1.38,  0.94]
+       Class            : Other
+       Info             : Miscellaneous
+ WFN_OPT: #                   % ,  Time (s), Max, Min Load (relative)
+   Classes:
+     Flib LowLevel      : [ 2.3,  1.52E+02,  1.10,  0.88]
+     Communications     : [ 13.0,  8.74E+02,  6.78,  0.30]
+     BLAS-LAPACK        : [ 0.2,  11.,  1.17,  0.56]
+     PS Computation     : [ 0.2,  12.,  1.12,  0.01]
+     Potential          : [ 0.1,  9.1,  1.11,  0.00]
+     Convolutions       : [ 1.3,  88.,  1.09,  0.87]
+     Linear Algebra     : [ 4.0,  2.69E+02,  1.07,  0.89]
+     Other              : [ 4.7,  3.17E+02,  1.11,  0.72]
+     Initialization     : [ 0.0,  1.70E-03,  1.12,  0.98]
+     Total              : [ 25.8,  6.70E+03,  1.00,  1.00]
+   Categories: #Ordered by time consumption
+     Allreduce, Large Size:
+       Data             : [ 9.1,  6.10E+02,  9.03,  0.05]
+       Class            : Communications
+       Info             : Allreduce operations for more than 5 elements
+     sparse_matmul:
+       Data             : [ 3.0,  1.98E+02,  1.11,  0.86]
+       Class            : Linear Algebra
+       Info             : self-made
+     ApplyProj:
+       Data             : [ 2.8,  1.90E+02,  1.18,  0.58]
+       Class            : Other
+       Info             : RMA pattern
+     ovrlptransComm:
+       Data             : [ 1.4,  92.,  1.03,  0.98]
+       Class            : Communications
+       Info             : mpi_allreduce
+     Routine Profiling:
+       Data             : [ 1.2,  78.,  1.16,  0.75]
+       Class            : Flib LowLevel
+       Info             : Profiling performances for debugging
+     ApplyLocPot:
+       Data             : [ 0.8,  54.,  1.10,  0.87]
+       Class            : Convolutions
+       Info             : OpenCL ported
+     Allreduce, Small Size:
+       Data             : [ 0.7,  48.,  1.75,  0.60]
+       Class            : Communications
+       Info             : Allreduce operations for less than 5 elements
+     sumrho_TMB:
+       Data             : [ 0.7,  47.,  1.01,  0.93]
+       Class            : Other
+       Info             : port to GPU?
+     chebyshev_comp:
+       Data             : [ 0.6,  41.,  1.16,  0.87]
+       Class            : Linear Algebra
+       Info             : matmul/matadd
+     Array allocations:
+       Data             : [ 0.6,  38.,  1.36,  0.93]
+       Class            : Flib LowLevel
+       Info             : Heap storage allocation and associated profiling
+     FOE_auxiliary:
+       Data             : [ 0.5,  36.,  1.02,  0.93]
+       Class            : Other
+       Info             : Miscellaneous
+     glsynchham2:
+       Data             : [ 0.5,  33.,  2.82,  0.35]
+       Class            : Communications
+       Info             : load balancing
+     lovrlp^-1:
+       Data             : [ 0.4,  30.,  1.13,  0.86]
+       Class            : Linear Algebra
+       Info             : exact or appr
+     convolQuartic:
+       Data             : [ 0.4,  26.,  1.09,  0.90]
+       Class            : Convolutions
+       Info             : No OpenCL
+     Pot_commun:
+       Data             : [ 0.4,  25.,  3.11,  0.12]
+       Class            : Communications
+       Info             : AllGathrv grid
+     Vector copy:
+       Data             : [ 0.3,  23.,  1.10,  0.73]
+       Class            : Flib LowLevel
+       Info             : Memory copy of arrays (excluded allocations)
+     compressd_comm:
+       Data             : [ 0.3,  20.,  1.08,  0.92]
+       Class            : Communications
+       Info             : Allgatherv
+     lincombtrans:
+       Data             : [ 0.2,  14.,  1.03,  0.92]
+       Class            : Other
+       Info             : Miscellaneous
+     Init to Zero:
+       Data             : [ 0.2,  14.,  1.08,  0.93]
+       Class            : Flib LowLevel
+       Info             : Memset of storage space
+     PSolver Communication:
+       Data             : [ 0.2,  14.,  1.81,  0.92]
+       Class            : Communications
+       Info             : MPI_ALLTOALL and MPI_ALLGATHERV
+     ovrlptransComp:
+       Data             : [ 0.2,  12.,  1.02,  0.98]
+       Class            : Other
+       Info             : Miscellaneous
+     PSolver Computation:
+       Data             : [ 0.2,  12.,  1.12,  0.01]
+       Class            : PS Computation
+       Info             : 3D SG_FFT and related operations
+     Exchange-Correlation:
+       Data             : [ 0.1,  9.1,  1.11,  0.00]
+       Class            : Potential
+       Info             : Operations needed to construct local XC potential
+     Blas (d-s-c-z)GeMM:
+       Data             : [ 0.1,  9.0,  1.21,  0.59]
+       Class            : BLAS-LAPACK
+       Info             : Blas General Matrix-Matrix multiplications of any float type
+     ApplyLocKin:
+       Data             : [ 0.1,  8.2,  1.13,  0.72]
+       Class            : Convolutions
+       Info             : OpenCL ported
+     buildgrad_mcpy:
+       Data             : [ 0.1,  7.1,  1.04,  0.88]
+       Class            : Other
+       Info             : Miscellaneous
+     commbasis4dens:
+       Data             : [ 0.1,  6.9,  1.37,  0.91]
+       Class            : Communications
+       Info             : Miscellaneous
+     sumrho_allred:
+       Data             : [ 0.1,  6.6,  1.47,  0.91]
+       Class            : Communications
+       Info             : mpiallred
+     calctrace_comm:
+       Data             : [ 0.1,  6.1,  1.77,  0.20]
+       Class            : Communications
+       Info             : allreduce
+     Un-TransComm:
+       Data             : [ 0.1,  5.9,  1.56,  0.71]
+       Class            : Communications
+       Info             : ALLtoALLV
+     glsynchham1:
+       Data             : [ 0.1,  4.6,  1.85,  0.35]
+       Class            : Communications
+       Info             : load balancing
+     Pot_after_comm:
+       Data             : [ 0.1,  3.7,  1.24,  0.78]
+       Class            : Other
+       Info             : global_to_loca
+     Un-TransSwitch:
+       Data             : [ 0.0,  2.7,  1.31,  0.92]
+       Class            : Other
+       Info             : RMA pattern
+     transform_matr:
+       Data             : [ 0.0,  2.0,  1.09,  0.85]
+       Class            : Other
+       Info             : small to large
+     Lapack (dsy-ssy-che-zhe)eev:
+       Data             : [ 0.0,  1.5,  1.88,  0.28]
+       Class            : BLAS-LAPACK
+       Info             : Lapack Eigenvalue Problem
+     Pot_comm start:
+       Data             : [ 0.0,  1.2,  1.03,  0.97]
+       Class            : Communications
+       Info             : MPI_types/_get
+     dev_from_unity:
+       Data             : [ 0.0,  0.90,  1.29,  0.27]
+       Class            : Other
+       Info             : Miscellaneous
+     chebyshev_coef:
+       Data             : [ 0.0,  0.83,  1.13,  0.93]
+       Class            : Other
+       Info             : Miscellaneous
+     transformspars:
+       Data             : [ 0.0,  0.43,  1.15,  0.34]
+       Class            : Other
+       Info             : Miscellaneous
+     small2large:
+       Data             : [ 0.0,  0.22,  1.14,  0.86]
+       Class            : Other
+       Info             : Miscellaneous
+     large2small:
+       Data             : [ 0.0,  0.20,  1.10,  0.92]
+       Class            : Other
+       Info             : Miscellaneous
+     optimize_DIIS:
+       Data             : [ 0.0,  0.20,  1.16,  0.88]
+       Class            : Other
+       Info             : Other
+     compressd_mcpy:
+       Data             : [ 0.0,  3.85E-03,  9.22,  0.85]
+       Class            : Other
+       Info             : Miscellaneous
+     linscalinit:
+       Data             : [ 0.0,  2.55E-03,  1.15,  0.88]
+       Class            : Other
+       Info             : Miscellaneous
+     calc_bounds:
+       Data             : [ 0.0,  1.79E-03,  1.07,  0.92]
+       Class            : Other
+       Info             : Miscellaneous
+     init_matrCompr:
+       Data             : [ 0.0,  1.70E-03,  1.12,  0.98]
+       Class            : Initialization
+       Info             : Miscellaneous
+     norm_trans:
+       Data             : [ 0.0,  1.61E-03,  1.29,  0.90]
+       Class            : Other
+       Info             : Miscellaneous
+     calctrace_comp:
+       Data             : [ 0.0,  1.59E-03,  2.39,  0.62]
+       Class            : Other
+       Info             : Miscellaneous
+     Gather:
+       Data             : [ 0.0,  2.91E-04,  10.74,  0.01]
+       Class            : Communications
+       Info             : Gather operations, in general moderate size arrays
+     getlocbasinit:
+       Data             : [ 0.0,  1.50E-04,  1.24,  0.98]
+       Class            : Other
+       Info             : Miscellaneous
+ LAST: #                      % ,  Time (s), Max, Min Load (relative)
+   Classes:
+     Flib LowLevel      : [ 91.0,  32.,  1.21,  0.37]
+     Communications     : [ 4.0,  1.4,  1.33,  0.65]
+     PS Computation     : [ 0.3,  9.20E-02,  1.13,  0.00]
+     Potential          : [ 0.5,  0.19,  1.62,  0.00]
+     Finalization       : [ 3.9,  1.4,  1.07,  0.88]
+     Total              : [ 99.8,  15.,  1.19,  0.43]
+   Categories: #Ordered by time consumption
+     Array allocations:
+       Data             : [ 90.5,  32.,  1.21,  0.37]
+       Class            : Flib LowLevel
+       Info             : Heap storage allocation and associated profiling
+     Forces:
+       Data             : [ 3.9,  1.4,  1.07,  0.88]
+       Class            : Finalization
+       Info             : Miscellaneous
+     Allreduce, Large Size:
+       Data             : [ 2.8,  0.97,  1.20,  0.24]
+       Class            : Communications
+       Info             : Allreduce operations for more than 5 elements
+     Allreduce, Small Size:
+       Data             : [ 0.9,  0.30,  1.72,  0.00]
+       Class            : Communications
+       Info             : Allreduce operations for less than 5 elements
+     Exchange-Correlation:
+       Data             : [ 0.5,  0.19,  1.62,  0.00]
+       Class            : Potential
+       Info             : Operations needed to construct local XC potential
+     PSolver Communication:
+       Data             : [ 0.4,  0.14,  1.64,  0.90]
+       Class            : Communications
+       Info             : MPI_ALLTOALL and MPI_ALLGATHERV
+     Routine Profiling:
+       Data             : [ 0.3,  0.11,  1.47,  0.27]
+       Class            : Flib LowLevel
+       Info             : Profiling performances for debugging
+     PSolver Computation:
+       Data             : [ 0.3,  9.20E-02,  1.13,  0.00]
+       Class            : PS Computation
+       Info             : 3D SG_FFT and related operations
+     Vector copy:
+       Data             : [ 0.2,  5.75E-02,  16.15,  0.22]
+       Class            : Flib LowLevel
+       Info             : Memory copy of arrays (excluded allocations)
+     Init to Zero:
+       Data             : [ 0.0,  4.09E-04,  17.01,  0.49]
+       Class            : Flib LowLevel
+       Info             : Memset of storage space
+ SUMMARY: #                   % ,  Time (s)
+   INIT                 : [ 1.3,  87.]
+   WFN_OPT              : [ 98.2,  6.70E+03]
+   LAST                 : [ 0.5,  35.]
+   Total                : [ 100.0,  6.83E+03]
+ Routines timing and number of calls:
+ - Main_program: [ 6.835E+03,  1, ~*]
+   Subroutines:
+   - process_run (id="posinp"): [ 6.832E+03,  1,  99.96%*]
+     Subroutines:
+     - bigdft_state: [ 6.832E+03,  1,  100.01%*]
+       Subroutines:
+       - quantum_mechanical_state: [ 6.832E+03,  1,  100.01%*]
+         Subroutines:
+         - cluster: [ 6.806E+03,  1,  99.62%]
+           Subroutines:
+           - linear_scaling: [ 6.704E+03,  1,  98.50%]
+             Subroutines:
+             - multipole_analysis_driver: [ 5.549E+03,  1,  82.77%]
+               Subroutines:
+               - get_optimal_sigmas: [ 5.520E+03,  1,  99.47%]
+                 Subroutines:
+                 - potential_from_charge_multipoles: [ 5.518E+03,  64,  99.97%]
+                   Subroutines:
+                   - Electrostatic_Solver: [ 13.3,  64,  0.24%]
+                     Subroutines:
+                     - apply_kernel: [ 12.5,  64,  94.20%]
+                       Subroutines:
+                       - G_PoissonSolver: [ 12.5,  64,  99.91%]
+                 - sumrho_for_TMBs: [ 1.04,  1,  0.02%]
+                   Subroutines:
+                   - communicate_density: [ 0.311,  1,  29.89%]
+                 - Electrostatic_Solver: [ 0.190,  1,  0.00%]
+                   Subroutines:
+                   - apply_kernel: [ 0.188,  1,  98.87%]
+                     Subroutines:
+                     - G_PoissonSolver: [ 0.187,  1,  99.66%]
+               - unitary_test_multipoles: [ 11.3,  1,  0.20%]
+                 Subroutines:
+                 - calculte_multipole_matrix: [ 10.7,  9,  94.31%]
+                   Subroutines:
+                   - calculate_overlap_transposed: [ 5.86,  9,  54.79%]
+                     Subroutines:
+                     - synchronize_matrix_taskgroups: [ 5.75,  9,  98.11%]
+                   - daub_to_isf: [ 1.45,  369,  13.57%]
+                   - transpose_localized: [ 0.844,  18,  7.89%]
+               - calculte_multipole_matrix: [ 10.7,  9,  0.19%]
+                 Subroutines:
+                 - calculate_overlap_transposed: [ 5.82,  9,  54.35%]
+                   Subroutines:
+                   - synchronize_matrix_taskgroups: [ 5.70,  9,  97.98%]
+                 - daub_to_isf: [ 1.48,  369,  13.81%]
+                 - transpose_localized: [ 0.767,  18,  7.17%]
+               - compress_matrix_distributed_wrapper_1: [ 1.66,  9,  0.03%]
+                 Subroutines:
+                 - compress_matrix_distributed_core: [ 1.62,  9,  97.80%]
+                 - transform_sparsity_pattern: [ 3.091E-02,  9,  1.86%]
+               - orthonormalizeLocalized: [ 1.60,  1,  0.03%]
+                 Subroutines:
+                 - overlapPowerGeneral: [ 0.950,  1,  59.38%]
+                   Subroutines:
+                   - ice: [ 0.790,  1,  83.18%]
+                     Subroutines:
+                     - chebyshev_clean: [ 0.485,  2,  61.37%]
+                       Subroutines:
+                       - sparsemm: [ 0.347,  46,  71.45%]
+                       - sequential_acces_matrix_fast2: [ 4.303E-02,  2,  8.87%]
+                       - compress_polynomial_vector_new: [ 1.982E-02,  48,  4.09%]
+                         Subroutines:
+                         - transform_sparsity_pattern: [ 1.700E-02,  48,  85.78%]
+                       - axbyz_kernel_vectors_new: [ 4.152E-03,  44,  0.86%]
+                     - check_eigenvalue_spectrum_new: [ 0.157,  2,  19.86%]
+                     - compress_matrix_distributed_wrapper_1: [ 8.598E-02,  1,  10.88%]
+                       Subroutines:
+                       - compress_matrix_distributed_core: [ 8.593E-02,  1,  99.94%]
+                     - scale_and_shift_matrix: [ 4.697E-02,  2,  5.95%]
+                     - chebft: [ 4.505E-03,  2,  0.57%]
+                     - transform_sparsity_pattern: [ 5.793E-04,  2,  0.07%]
+                     - chebft2: [ 6.717E-05,  2,  0.01%]
+                     - evnoise: [ 6.681E-05,  2,  0.01%]
+                     - chder: [ 5.424E-05,  2,  0.01%]
+                   - transform_sparse_matrix_local: [ 5.247E-02,  1,  5.52%]
+                     Subroutines:
+                     - transform_sparse_matrix: [ 1.515E-02,  1,  28.87%]
+                   - sequential_acces_matrix_fast2: [ 4.122E-02,  2,  4.34%]
+                   - check_accur_overlap_minus_one_sparse_new: [ 3.975E-02,  1,  4.18%]
+                     Subroutines:
+                     - sparsemm: [ 1.994E-02,  2,  50.16%]
+                     - deviation_from_unity_parallel: [ 1.940E-02,  1,  48.82%]
+                   - transform_sparsity_pattern: [ 2.899E-03,  2,  0.31%]
+                 - calculate_overlap_transposed: [ 0.578,  1,  36.10%]
+                   Subroutines:
+                   - synchronize_matrix_taskgroups: [ 0.562,  1,  97.25%]
+                 - transpose_localized: [ 2.212E-02,  1,  1.38%]
+                 - untranspose_localized: [ 2.000E-02,  1,  1.25%]
+                 - build_linear_combination_transposed: [ 1.374E-02,  1,  0.86%]
+               - kernel_for_orthonormal_basis: [ 1.13,  1,  0.02%]
+                 Subroutines:
+                 - overlapPowerGeneral: [ 0.607,  1,  53.69%]
+                   Subroutines:
+                   - sparsemm: [ 0.151,  19,  24.93%]
+                   - compress_matrix_distributed_wrapper_1: [ 0.125,  1,  20.63%]
+                     Subroutines:
+                     - compress_matrix_distributed_core: [ 0.123,  1,  98.00%]
+                     - transform_sparsity_pattern: [ 2.580E-03,  1,  2.06%]
+                   - gather_matrix_from_taskgroups: [ 0.107,  1,  17.55%]
+                   - transform_sparse_matrix_local: [ 5.133E-02,  1,  8.46%]
+                     Subroutines:
+                     - transform_sparse_matrix: [ 1.496E-02,  1,  29.15%]
+                   - check_accur_overlap_minus_one_sparse_new: [ 2.843E-02,  1,  4.68%]
+                     Subroutines:
+                     - sparsemm: [ 1.027E-02,  1,  36.14%]
+                   - sequential_acces_matrix_fast: [ 2.207E-02,  1,  3.64%]
+                   - sequential_acces_matrix_fast2: [ 1.946E-02,  1,  3.21%]
+                   - transform_sparse_matrix: [ 1.282E-02,  1,  2.11%]
+                   - transform_sparsity_pattern: [ 3.482E-03,  4,  0.57%]
+                 - compress_matrix_distributed_wrapper_1: [ 0.224,  2,  19.79%]
+                   Subroutines:
+                   - compress_matrix_distributed_core: [ 0.218,  2,  97.33%]
+                   - transform_sparsity_pattern: [ 5.349E-03,  2,  2.39%]
+                 - gather_matrix_from_taskgroups: [ 0.191,  1,  16.91%]
+                 - sequential_acces_matrix_fast2: [ 4.384E-02,  2,  3.88%]
+                 - sparsemm: [ 1.584E-02,  2,  1.40%]
+                 - transform_sparsity_pattern: [ 6.108E-04,  2,  0.05%]
+               - sequential_acces_matrix_fast2: [ 0.203,  9,  0.00%]
+               - transform_sparse_matrix: [ 9.089E-02,  9,  0.00%]
+               - sparsemm: [ 6.203E-02,  9,  0.00%]
+               - transform_sparsity_pattern: [ 2.906E-03,  9,  0.00%]
+             - get_coeff: [ 524.,  60,  7.82%]
+               Subroutines:
+               - foe: [ 287.,  60,  54.76%]
+                 Subroutines:
+                 - chebyshev_clean: [ 187.,  71,  65.27%]
+                   Subroutines:
+                   - sparsemm: [ 147.,  20383,  78.69%]
+                   - compress_matrix_distributed_wrapper_1: [ 12.9,  71,  6.92%]
+                     Subroutines:
+                     - compress_matrix_distributed_core: [ 12.7,  71,  98.50%]
+                     - transform_sparsity_pattern: [ 0.220,  71,  1.70%]
+                   - compress_polynomial_vector_new: [ 7.05,  20312,  3.77%]
+                     Subroutines:
+                     - transform_sparsity_pattern: [ 5.96,  20312,  84.54%]
+                   - sequential_acces_matrix_fast2: [ 3.02,  213,  1.62%]
+                   - axbyz_kernel_vectors_new: [ 2.02,  20170,  1.08%]
+                   - prepare_matrix: [ 6.786E-02,  71,  0.04%]
+                 - check_eigenvalue_spectrum_new: [ 51.8,  71,  18.04%]
+                 - retransform_ext: [ 24.7,  132,  8.60%]
+                   Subroutines:
+                   - compress_matrix_distributed_wrapper_1: [ 14.4,  132,  58.16%]
+                     Subroutines:
+                     - compress_matrix_distributed_core: [ 13.9,  132,  96.43%]
+                     - transform_sparsity_pattern: [ 0.444,  132,  3.09%]
+                   - sequential_acces_matrix_fast2: [ 5.27,  264,  21.35%]
+                   - sparsemm: [ 1.99,  264,  8.07%]
+                   - transform_sparsity_pattern: [ 4.644E-02,  132,  0.19%]
+                 - compress_matrix_distributed_wrapper_1: [ 12.5,  132,  4.35%]
+                   Subroutines:
+                   - compress_matrix_distributed_core: [ 12.5,  132,  99.76%]
+                 - calculate_trace_distributed_new: [ 2.44,  619,  0.85%]
+                 - scale_and_shift_matrix: [ 2.35,  71,  0.82%]
+                 - chebyshev_fast: [ 1.88,  553,  0.65%]
+                 - chebft: [ 1.40,  1116,  0.49%]
+                 - trace_sparse: [ 0.421,  198,  0.15%]
+                 - evnoise: [ 0.301,  558,  0.10%]
+                 - chebft2: [ 0.204,  1116,  0.07%]
+                 - determine_fermi_level: [ 6.592E-02,  553,  0.02%]
+                 - init_fermi_level: [ 5.627E-02,  66,  0.02%]
+                 - chder: [ 2.869E-02,  1116,  0.01%]
+                 - transform_sparsity_pattern: [ 2.146E-02,  71,  0.01%]
+               - full_local_potential: [ 80.9,  45,  15.44%]
+               - NonLocalHamiltonianApplication: [ 71.7,  45,  13.69%]
+                 Subroutines:
+                 - atom_projector: [ 64.4,  69750,  89.84%]
+                   Subroutines:
+                   - crtproj: [ 57.0,  148140,  88.45%]
+               - LocalHamiltonianApplication: [ 32.8,  90,  6.27%]
+                 Subroutines:
+                 - psi_to_vlocpsi: [ 26.9,  45,  82.04%]
+                   Subroutines:
+                   - daub_to_isf: [ 17.6,  1845,  65.40%]
+                   - psir_to_vpsi: [ 0.793,  1845,  2.95%]
+                     Subroutines:
+                     - apply_potential_lr_bounds: [ 0.680,  1845,  85.71%]
+               - calculate_overlap_transposed: [ 25.4,  45,  4.85%]
+                 Subroutines:
+                 - synchronize_matrix_taskgroups: [ 20.6,  45,  81.01%]
+               - communicate_basis_for_density_collective: [ 11.2,  15,  2.14%]
+                 Subroutines:
+                 - daub_to_isf: [ 2.83,  615,  25.23%]
+               - SynchronizeHamiltonianApplication: [ 8.55,  45,  1.63%]
+               - transpose_localized: [ 3.27,  45,  0.62%]
+               - deviation_from_unity_parallel: [ 1.51,  60,  0.29%]
+               - start_onesided_communication: [ 0.265,  45,  0.05%]
+               - small_to_large_locreg: [ 0.247,  45,  0.05%]
+                 Subroutines:
+                 - Lpsi_to_global: [ 0.139,  1845,  56.44%]
+               - local_potential_dimensions: [ 3.984E-03,  45,  0.00%]
+             - getLocalizedBasis: [ 479.,  15,  7.15%]
+               Subroutines:
+               - calculate_energy_and_gradient_linear: [ 148.,  45,  30.95%]
+                 Subroutines:
+                 - orthoconstraintNonorthogonal: [ 63.0,  45,  42.59%]
+                   Subroutines:
+                   - calculate_overlap_transposed: [ 25.3,  45,  40.22%]
+                     Subroutines:
+                     - synchronize_matrix_taskgroups: [ 20.6,  45,  81.39%]
+                   - symmetrize_matrix: [ 13.5,  45,  21.35%]
+                     Subroutines:
+                     - transform_sparse_matrix_local: [ 2.63,  45,  19.48%]
+                       Subroutines:
+                       - transform_sparse_matrix: [ 0.831,  45,  31.60%]
+                   - build_linear_combination_transposed: [ 8.84,  90,  14.03%]
+                   - compress_matrix_distributed_wrapper_1: [ 7.65,  45,  12.15%]
+                     Subroutines:
+                     - compress_matrix_distributed_core: [ 7.52,  45,  98.35%]
+                     - transform_sparsity_pattern: [ 0.120,  45,  1.57%]
+                   - untranspose_localized: [ 2.86,  90,  4.54%]
+                   - transform_sparse_matrix_local: [ 2.08,  45,  3.31%]
+                     Subroutines:
+                     - transform_sparse_matrix: [ 0.764,  45,  36.72%]
+                   - sequential_acces_matrix_fast2: [ 0.909,  45,  1.44%]
+                   - transpose_localized: [ 0.597,  45,  0.95%]
+                   - sparsemm: [ 0.310,  45,  0.49%]
+                   - transform_sparsity_pattern: [ 1.633E-02,  45,  0.03%]
+                 - preconditionall2: [ 58.0,  90,  39.20%]
+                   Subroutines:
+                   - solvePrecondEquation: [ 57.3,  3690,  98.87%]
+                     Subroutines:
+                     - differentiateBetweenBoundaryConditions: [ 38.4,  25830,  66.96%]
+                       Subroutines:
+                       - applyOperator: [ 37.3,  25830,  97.13%]
+                         Subroutines:
+                         - ConvolQuartic4: [ 24.5,  25830,  65.80%]
+                         - call_to_uncompress_for_quartic_convolutions: [ 7.51,  25830,  20.14%]
+                           Subroutines:
+                           - uncompress_for_quartic_convolutions: [ 6.44,  25830,  85.72%]
+                         - compress_forstandard: [ 2.64,  25830,  7.06%]
+                           Subroutines:
+                           - compress_forstandard: [ 1.50,  25830,  56.66%]
+                     - precondition_preconditioner: [ 13.5,  3690,  23.57%]
+                       Subroutines:
+                       - prec_diag: [ 7.89,  3690,  58.42%]
+                     - zero_local_work_arrays: [ 1.25,  3690,  2.18%]
+                     - calculate_rmr_new: [ 0.892,  22140,  1.56%]
+                     - finalise_precond_residue: [ 0.193,  3690,  0.34%]
+                 - calculate_trace_finish: [ 10.3,  45,  6.94%]
+                 - build_gradient: [ 8.19,  45,  5.54%]
+                   Subroutines:
+                   - build_linear_combination_transposed: [ 4.29,  45,  52.41%]
+                   - transpose_localized: [ 2.82,  45,  34.39%]
+                 - build_linear_combination_transposed: [ 4.28,  45,  2.89%]
+                 - communicate_fnrm: [ 1.44,  45,  0.98%]
+                 - transform_sparse_matrix_local: [ 1.43,  45,  0.97%]
+                   Subroutines:
+                   - transform_sparse_matrix: [ 0.610,  45,  42.66%]
+                 - psi_to_locreg: [ 0.583,  3690,  0.39%]
+                 - untranspose_localized: [ 0.407,  45,  0.27%]
+                 - communicate_alpha: [ 1.665E-02,  45,  0.01%]
+                 - calculate_trace_start: [ 6.953E-03,  45,  0.00%]
+               - SynchronizeHamiltonianApplication: [ 92.2,  45,  19.25%]
+               - NonLocalHamiltonianApplication: [ 72.0,  45,  15.02%]
+                 Subroutines:
+                 - atom_projector: [ 64.6,  69750,  89.68%]
+                   Subroutines:
+                   - crtproj: [ 57.0,  148140,  88.29%]
+               - renormalize_kernel: [ 68.0,  45,  14.20%]
+                 Subroutines:
+                 - overlapPowerGeneral: [ 49.0,  45,  72.13%]
+                   Subroutines:
+                   - ice: [ 38.0,  45,  77.59%]
+                     Subroutines:
+                     - chebyshev_clean: [ 14.0,  64,  36.83%]
+                       Subroutines:
+                       - sparsemm: [ 9.91,  1352,  70.81%]
+                       - sequential_acces_matrix_fast2: [ 1.28,  64,  9.16%]
+                       - compress_polynomial_vector_new: [ 0.491,  1416,  3.50%]
+                         Subroutines:
+                         - transform_sparsity_pattern: [ 0.412,  1416,  83.93%]
+                       - axbyz_kernel_vectors_new: [ 0.129,  1288,  0.92%]
+                     - compress_matrix_distributed_wrapper_1: [ 13.2,  135,  34.62%]
+                       Subroutines:
+                       - compress_matrix_distributed_core: [ 13.1,  135,  99.60%]
+                     - check_eigenvalue_spectrum_new: [ 8.79,  64,  23.12%]
+                     - scale_and_shift_matrix: [ 1.49,  64,  3.91%]
+                     - chebft: [ 0.136,  192,  0.36%]
+                     - transform_sparsity_pattern: [ 5.116E-02,  192,  0.13%]
+                     - evnoise: [ 5.876E-03,  192,  0.02%]
+                     - chebft2: [ 5.857E-03,  192,  0.02%]
+                     - chder: [ 4.620E-03,  192,  0.01%]
+                   - check_accur_overlap_minus_one_sparse_new: [ 4.45,  135,  9.08%]
+                     Subroutines:
+                     - deviation_from_unity_parallel: [ 1.90,  90,  42.76%]
+                     - sparsemm: [ 1.61,  180,  36.11%]
+                   - sequential_acces_matrix_fast2: [ 3.11,  180,  6.34%]
+                   - transform_sparse_matrix_local: [ 2.26,  45,  4.62%]
+                     Subroutines:
+                     - transform_sparse_matrix: [ 0.688,  45,  30.46%]
+                   - transform_sparsity_pattern: [ 0.174,  225,  0.35%]
+                 - retransform_ext: [ 19.0,  90,  27.89%]
+                   Subroutines:
+                   - compress_matrix_distributed_wrapper_1: [ 11.8,  90,  62.24%]
+                     Subroutines:
+                     - compress_matrix_distributed_core: [ 11.5,  90,  97.59%]
+                     - transform_sparsity_pattern: [ 0.285,  90,  2.42%]
+                   - sequential_acces_matrix_fast2: [ 3.53,  180,  18.60%]
+                   - sparsemm: [ 1.42,  180,  7.45%]
+                   - transform_sparsity_pattern: [ 3.223E-02,  90,  0.17%]
+               - LocalHamiltonianApplication: [ 42.1,  90,  8.79%]
+                 Subroutines:
+                 - psi_to_vlocpsi: [ 36.4,  45,  86.52%]
+                   Subroutines:
+                   - daub_to_isf: [ 15.8,  1845,  43.36%]
+                   - psir_to_vpsi: [ 4.37,  1845,  12.00%]
+                     Subroutines:
+                     - apply_potential_lr_conf_noconf: [ 4.23,  1845,  96.91%]
+               - calculate_overlap_transposed: [ 36.4,  60,  7.60%]
+                 Subroutines:
+                 - synchronize_matrix_taskgroups: [ 34.2,  60,  94.04%]
+               - overlapPowerGeneral: [ 11.0,  15,  2.31%]
+                 Subroutines:
+                 - ice: [ 9.35,  15,  85.04%]
+                   Subroutines:
+                   - chebyshev_clean: [ 4.84,  22,  51.77%]
+                     Subroutines:
+                     - sparsemm: [ 3.43,  472,  70.92%]
+                     - sequential_acces_matrix_fast2: [ 0.455,  22,  9.40%]
+                     - compress_polynomial_vector_new: [ 0.172,  494,  3.54%]
+                       Subroutines:
+                       - transform_sparsity_pattern: [ 0.144,  494,  83.74%]
+                     - axbyz_kernel_vectors_new: [ 4.400E-02,  450,  0.91%]
+                   - check_eigenvalue_spectrum_new: [ 1.93,  22,  20.62%]
+                   - compress_matrix_distributed_wrapper_1: [ 1.88,  15,  20.14%]
+                     Subroutines:
+                     - compress_matrix_distributed_core: [ 1.88,  15,  100.10%]
+                   - scale_and_shift_matrix: [ 0.521,  22,  5.57%]
+                   - chebft: [ 5.049E-02,  22,  0.54%]
+                   - transform_sparsity_pattern: [ 6.227E-03,  22,  0.07%]
+                   - chebft2: [ 7.487E-04,  22,  0.01%]
+                   - evnoise: [ 7.266E-04,  22,  0.01%]
+                   - chder: [ 5.936E-04,  22,  0.01%]
+                 - transform_sparse_matrix_local: [ 0.752,  15,  6.84%]
+                   Subroutines:
+                   - transform_sparse_matrix: [ 0.229,  15,  30.49%]
+                 - check_accur_overlap_minus_one_sparse_new: [ 0.420,  15,  3.81%]
+                   Subroutines:
+                   - sparsemm: [ 0.128,  15,  30.55%]
+                 - sequential_acces_matrix_fast2: [ 0.274,  15,  2.49%]
+                 - transform_sparsity_pattern: [ 4.652E-02,  30,  0.42%]
+               - transpose_localized: [ 3.28,  225,  0.68%]
+               - hpsitopsi_linear: [ 0.958,  30,  0.20%]
+                 Subroutines:
+                 - improveOrbitals: [ 0.490,  30,  51.19%]
+                   Subroutines:
+                   - optimizeDIIS: [ 0.440,  30,  89.74%]
+               - full_local_potential: [ 0.647,  45,  0.14%]
+               - untranspose_localized: [ 0.521,  45,  0.11%]
+               - estimate_energy_change: [ 0.345,  30,  0.07%]
+               - small_to_large_locreg: [ 0.205,  45,  0.04%]
+                 Subroutines:
+                 - Lpsi_to_global: [ 0.130,  1845,  63.29%]
+               - psi_to_locreg: [ 0.148,  1230,  0.03%]
+               - start_onesided_communication: [ 0.129,  15,  0.03%]
+               - local_potential_dimensions: [ 5.959E-03,  15,  0.00%]
+             - sumrho_for_TMBs: [ 53.1,  61,  0.79%]
+               Subroutines:
+               - communicate_density: [ 8.66,  61,  16.32%]
+             - support_function_gross_multipoles: [ 27.7,  1,  0.41%]
+               Subroutines:
+               - calculte_multipole_matrix: [ 10.9,  9,  39.24%]
+                 Subroutines:
+                 - calculate_overlap_transposed: [ 6.11,  9,  56.02%]
+                   Subroutines:
+                   - synchronize_matrix_taskgroups: [ 5.99,  9,  98.08%]
+                 - daub_to_isf: [ 1.44,  369,  13.18%]
+                 - transpose_localized: [ 0.638,  18,  5.86%]
+               - orthonormalizeLocalized: [ 1.24,  1,  4.46%]
+                 Subroutines:
+                 - calculate_S_minus_one_half_onsite: [ 0.646,  1,  52.06%]
+                   Subroutines:
+                   - overlap_plus_minus_one_half_exact: [ 1.030E-02,  14,  1.59%]
+                 - calculate_overlap_transposed: [ 0.492,  1,  39.71%]
+                   Subroutines:
+                   - synchronize_matrix_taskgroups: [ 0.477,  1,  96.92%]
+                 - untranspose_localized: [ 2.870E-02,  1,  2.31%]
+                 - transpose_localized: [ 2.107E-02,  1,  1.70%]
+                 - build_linear_combination_transposed: [ 1.288E-02,  1,  1.04%]
+               - daub_to_isf: [ 0.196,  41,  0.71%]
+             - updatePotential: [ 24.3,  60,  0.36%]
+               Subroutines:
+               - Electrostatic_Solver: [ 13.2,  60,  54.41%]
+                 Subroutines:
+                 - apply_kernel: [ 13.1,  60,  99.44%]
+                   Subroutines:
+                   - G_PoissonSolver: [ 13.1,  60,  99.88%]
+               - XC_potential: [ 11.1,  60,  45.53%]
+                 Subroutines:
+                 - xc_energy_new: [ 6.08,  60,  54.77%]
+                   Subroutines:
+                   - xc_getvxc: [ 5.27,  60,  86.69%]
+                   - vxcpostprocessing: [ 0.557,  60,  9.16%]
+             - foe: [ 21.2,  2,  0.32%]
+               Subroutines:
+               - chebyshev_clean: [ 13.2,  4,  62.24%]
+                 Subroutines:
+                 - sparsemm: [ 10.5,  1642,  79.80%]
+                 - compress_matrix_distributed_wrapper_1: [ 0.579,  4,  4.39%]
+                   Subroutines:
+                   - compress_matrix_distributed_core: [ 0.569,  4,  98.31%]
+                   - transform_sparsity_pattern: [ 9.032E-03,  4,  1.56%]
+                 - compress_polynomial_vector_new: [ 0.562,  1638,  4.26%]
+                   Subroutines:
+                   - transform_sparsity_pattern: [ 0.476,  1638,  84.63%]
+                 - sequential_acces_matrix_fast2: [ 0.175,  12,  1.32%]
+                 - axbyz_kernel_vectors_new: [ 0.161,  1630,  1.22%]
+                 - prepare_matrix: [ 3.550E-03,  4,  0.03%]
+               - check_eigenvalue_spectrum_new: [ 4.11,  4,  19.37%]
+               - overlap_minus_onehalf: [ 2.01,  2,  9.47%]
+                 Subroutines:
+                 - overlapPowerGeneral: [ 2.01,  2,  99.90%]
+                   Subroutines:
+                   - ice: [ 1.68,  2,  83.63%]
+                     Subroutines:
+                     - chebyshev_clean: [ 0.908,  4,  54.07%]
+                       Subroutines:
+                       - sparsemm: [ 0.628,  92,  69.15%]
+                       - sequential_acces_matrix_fast2: [ 8.288E-02,  4,  9.13%]
+                       - compress_polynomial_vector_new: [ 3.371E-02,  96,  3.71%]
+                         Subroutines:
+                         - transform_sparsity_pattern: [ 2.834E-02,  96,  84.06%]
+                       - axbyz_kernel_vectors_new: [ 8.362E-03,  88,  0.92%]
+                     - check_eigenvalue_spectrum_new: [ 0.420,  4,  25.01%]
+                     - compress_matrix_distributed_wrapper_1: [ 0.233,  2,  13.89%]
+                       Subroutines:
+                       - compress_matrix_distributed_core: [ 0.233,  2,  100.08%]
+                     - scale_and_shift_matrix: [ 9.064E-02,  4,  5.40%]
+                     - chebft: [ 7.133E-03,  4,  0.42%]
+                     - transform_sparsity_pattern: [ 1.147E-03,  4,  0.07%]
+                     - chebft2: [ 1.339E-04,  4,  0.01%]
+                     - evnoise: [ 1.314E-04,  4,  0.01%]
+                     - chder: [ 1.030E-04,  4,  0.01%]
+                   - transform_sparse_matrix_local: [ 0.104,  2,  5.16%]
+                     Subroutines:
+                     - transform_sparse_matrix: [ 2.915E-02,  2,  28.03%]
+                   - check_accur_overlap_minus_one_sparse_new: [ 8.234E-02,  2,  4.10%]
+                     Subroutines:
+                     - deviation_from_unity_parallel: [ 5.135E-02,  2,  62.37%]
+                     - sparsemm: [ 2.996E-02,  4,  36.38%]
+                   - sequential_acces_matrix_fast2: [ 7.937E-02,  4,  3.95%]
+                   - transform_sparsity_pattern: [ 3.942E-03,  4,  0.20%]
+               - retransform_ext: [ 0.724,  4,  3.41%]
+                 Subroutines:
+                 - compress_matrix_distributed_wrapper_1: [ 0.414,  4,  57.19%]
+                   Subroutines:
+                   - compress_matrix_distributed_core: [ 0.402,  4,  97.18%]
+                   - transform_sparsity_pattern: [ 1.049E-02,  4,  2.53%]
+                 - sequential_acces_matrix_fast2: [ 0.161,  8,  22.29%]
+                 - sparsemm: [ 5.068E-02,  8,  7.00%]
+                 - transform_sparsity_pattern: [ 1.383E-03,  4,  0.19%]
+               - compress_matrix_distributed_wrapper_1: [ 0.322,  4,  1.52%]
+                 Subroutines:
+                 - compress_matrix_distributed_core: [ 0.322,  4,  99.96%]
+               - calculate_trace_distributed_new: [ 0.239,  23,  1.13%]
+               - chebyshev_fast: [ 0.171,  21,  0.80%]
+               - scale_and_shift_matrix: [ 0.130,  4,  0.61%]
+               - chebft: [ 7.006E-02,  46,  0.33%]
+               - evnoise: [ 6.894E-02,  23,  0.33%]
+               - chebft2: [ 4.355E-02,  46,  0.21%]
+               - trace_sparse: [ 3.135E-03,  6,  0.01%]
+               - init_fermi_level: [ 2.757E-03,  2,  0.01%]
+               - determine_fermi_level: [ 1.962E-03,  21,  0.01%]
+               - chder: [ 1.219E-03,  46,  0.01%]
+               - transform_sparsity_pattern: [ 1.085E-03,  4,  0.01%]
+             - projector_for_charge_analysis: [ 18.8,  1,  0.28%]
+               Subroutines:
+               - overlap_plus_minus_one_half_exact: [ 1.51,  392,  8.02%]
+               - extract_matrix: [ 0.986,  588,  5.24%]
+               - overlapPowerGeneral: [ 0.894,  1,  4.75%]
+                 Subroutines:
+                 - ice: [ 0.775,  1,  86.74%]
+                   Subroutines:
+                   - chebyshev_clean: [ 0.436,  2,  56.25%]
+                     Subroutines:
+                     - sparsemm: [ 0.294,  46,  67.46%]
+                     - sequential_acces_matrix_fast2: [ 4.028E-02,  2,  9.24%]
+                     - compress_polynomial_vector_new: [ 1.661E-02,  48,  3.81%]
+                       Subroutines:
+                       - transform_sparsity_pattern: [ 1.401E-02,  48,  84.34%]
+                     - axbyz_kernel_vectors_new: [ 4.494E-03,  44,  1.03%]
+                   - check_eigenvalue_spectrum_new: [ 0.197,  2,  25.36%]
+                   - compress_matrix_distributed_wrapper_1: [ 8.449E-02,  1,  10.90%]
+                     Subroutines:
+                     - compress_matrix_distributed_core: [ 8.443E-02,  1,  99.93%]
+                   - scale_and_shift_matrix: [ 4.512E-02,  2,  5.82%]
+                   - chebft: [ 2.683E-03,  2,  0.35%]
+                   - transform_sparsity_pattern: [ 6.189E-04,  2,  0.08%]
+                   - chebft2: [ 6.539E-05,  2,  0.01%]
+                   - evnoise: [ 6.330E-05,  2,  0.01%]
+                   - chder: [ 4.975E-05,  2,  0.01%]
+                 - transform_sparse_matrix_local: [ 5.068E-02,  1,  5.67%]
+                   Subroutines:
+                   - transform_sparse_matrix: [ 1.424E-02,  1,  28.10%]
+                 - check_accur_overlap_minus_one_sparse_new: [ 2.659E-02,  1,  2.97%]
+                   Subroutines:
+                   - sparsemm: [ 7.040E-03,  1,  26.48%]
+                 - sequential_acces_matrix_fast2: [ 1.950E-02,  1,  2.18%]
+                 - transform_sparsity_pattern: [ 1.942E-03,  2,  0.22%]
+               - order_eigenvalues: [ 0.821,  14,  4.37%]
+               - calculate_projector: [ 0.373,  196,  1.98%]
+               - compress_matrix_distributed_wrapper_1: [ 0.190,  2,  1.01%]
+                 Subroutines:
+                 - compress_matrix_distributed_core: [ 0.185,  2,  97.48%]
+                 - transform_sparsity_pattern: [ 4.243E-03,  2,  2.23%]
+               - add_penalty_term: [ 0.159,  196,  0.84%]
+               - sequential_acces_matrix_fast2: [ 4.332E-02,  2,  0.23%]
+               - sparsemm: [ 1.301E-02,  2,  0.07%]
+               - transform_sparsity_pattern: [ 6.946E-04,  2,  0.00%]
+             - loewdin_charge_analysis: [ 2.18,  1,  0.03%]
+               Subroutines:
+               - loewdin_charge_analysis_core: [ 1.68,  1,  77.20%]
+                 Subroutines:
+                 - overlapPowerGeneral: [ 0.957,  1,  56.95%]
+                   Subroutines:
+                   - ice: [ 0.842,  1,  87.95%]
+                     Subroutines:
+                     - chebyshev_clean: [ 0.415,  2,  49.33%]
+                       Subroutines:
+                       - sparsemm: [ 0.283,  46,  68.27%]
+                       - sequential_acces_matrix_fast2: [ 3.956E-02,  2,  9.53%]
+                       - compress_polynomial_vector_new: [ 1.640E-02,  48,  3.95%]
+                         Subroutines:
+                         - transform_sparsity_pattern: [ 1.371E-02,  48,  83.61%]
+                       - axbyz_kernel_vectors_new: [ 3.770E-03,  44,  0.91%]
+                     - check_eigenvalue_spectrum_new: [ 0.281,  2,  33.43%]
+                     - compress_matrix_distributed_wrapper_1: [ 8.992E-02,  1,  10.68%]
+                       Subroutines:
+                       - compress_matrix_distributed_core: [ 8.986E-02,  1,  99.93%]
+                     - scale_and_shift_matrix: [ 4.433E-02,  2,  5.26%]
+                     - chebft: [ 2.691E-03,  2,  0.32%]
+                     - transform_sparsity_pattern: [ 5.546E-04,  2,  0.07%]
+                     - chebft2: [ 6.585E-05,  2,  0.01%]
+                     - evnoise: [ 6.542E-05,  2,  0.01%]
+                     - chder: [ 5.213E-05,  2,  0.01%]
+                   - transform_sparse_matrix_local: [ 4.906E-02,  1,  5.13%]
+                     Subroutines:
+                     - transform_sparse_matrix: [ 1.395E-02,  1,  28.44%]
+                   - check_accur_overlap_minus_one_sparse_new: [ 2.872E-02,  1,  3.00%]
+                     Subroutines:
+                     - sparsemm: [ 6.801E-03,  1,  23.68%]
+                   - sequential_acces_matrix_fast2: [ 1.930E-02,  1,  2.02%]
+                   - transform_sparsity_pattern: [ 1.978E-03,  2,  0.21%]
+                 - gather_matrix_from_taskgroups: [ 0.299,  1,  17.79%]
+                 - compress_matrix_distributed_wrapper_1: [ 0.192,  2,  11.42%]
+                   Subroutines:
+                   - compress_matrix_distributed_core: [ 0.188,  2,  97.76%]
+                   - transform_sparsity_pattern: [ 3.772E-03,  2,  1.96%]
+                 - sequential_acces_matrix_fast2: [ 4.315E-02,  2,  2.57%]
+                 - sparsemm: [ 1.361E-02,  2,  0.81%]
+                 - transform_sparsity_pattern: [ 6.531E-04,  2,  0.04%]
+               - calculate_overlap_transposed: [ 0.478,  1,  21.91%]
+                 Subroutines:
+                 - synchronize_matrix_taskgroups: [ 0.464,  1,  97.09%]
+               - transpose_localized: [ 2.236E-02,  1,  1.03%]
+             - mix_rhopot: [ 1.90,  60,  0.03%]
+               Subroutines:
+               - ab7_mixing_eval: [ 1.72,  60,  90.63%]
+             - check_negative_rho: [ 0.684,  60,  0.01%]
+             - daub_to_isf: [ 0.165,  41,  0.00%]
+             - get_boundary_weight: [ 0.135,  15,  0.00%]
+           - input_wf: [ 47.6,  1,  0.70%]
+             Subroutines:
+             - inputguessConfinement: [ 47.6,  1,  100.09%]
+               Subroutines:
+               - getLocalizedBasis: [ 27.9,  1,  58.59%]
+                 Subroutines:
+                 - calculate_energy_and_gradient_linear: [ 11.5,  3,  41.36%]
+                   Subroutines:
+                   - orthoconstraintNonorthogonal: [ 5.86,  3,  51.00%]
+                     Subroutines:
+                     - overlapPowerGeneral: [ 1.75,  3,  29.91%]
+                       Subroutines:
+                       - ice: [ 1.35,  3,  77.42%]
+                         Subroutines:
+                         - chebyshev_clean: [ 0.559,  3,  41.40%]
+                           Subroutines:
+                           - sparsemm: [ 0.389,  57,  69.53%]
+                           - sequential_acces_matrix_fast2: [ 5.831E-02,  3,  10.43%]
+                           - compress_polynomial_vector_new: [ 2.070E-02,  60,  3.70%]
+                             Subroutines:
+                             - transform_sparsity_pattern: [ 1.753E-02,  60,  84.67%]
+                           - axbyz_kernel_vectors_new: [ 4.643E-03,  54,  0.83%]
+                         - compress_matrix_distributed_wrapper_1: [ 0.397,  3,  29.40%]
+                           Subroutines:
+                           - compress_matrix_distributed_core: [ 0.397,  3,  99.92%]
+                         - check_eigenvalue_spectrum_new: [ 0.299,  3,  22.15%]
+                         - scale_and_shift_matrix: [ 6.892E-02,  3,  5.11%]
+                         - chebft: [ 1.133E-02,  3,  0.84%]
+                         - transform_sparsity_pattern: [ 8.691E-04,  3,  0.06%]
+                         - chebft2: [ 2.211E-04,  3,  0.02%]
+                         - evnoise: [ 1.429E-04,  3,  0.01%]
+                         - chder: [ 8.225E-05,  3,  0.01%]
+                       - transform_sparse_matrix_local: [ 0.148,  3,  8.48%]
+                         Subroutines:
+                         - transform_sparse_matrix: [ 4.391E-02,  3,  29.67%]
+                       - check_accur_overlap_minus_one_sparse_new: [ 0.146,  3,  8.34%]
+                         Subroutines:
+                         - deviation_from_unity_parallel: [ 0.120,  3,  82.02%]
+                         - sparsemm: [ 2.528E-02,  3,  17.32%]
+                       - sequential_acces_matrix_fast2: [ 5.266E-02,  3,  3.01%]
+                       - transform_sparsity_pattern: [ 6.360E-03,  3,  0.36%]
+                     - calculate_overlap_transposed: [ 1.45,  3,  24.68%]
+                       Subroutines:
+                       - synchronize_matrix_taskgroups: [ 1.13,  3,  78.05%]
+                     - symmetrize_matrix: [ 0.902,  3,  15.39%]
+                       Subroutines:
+                       - transform_sparse_matrix_local: [ 0.178,  3,  19.71%]
+                         Subroutines:
+                         - transform_sparse_matrix: [ 5.437E-02,  3,  30.55%]
+                     - compress_matrix_distributed_wrapper_1: [ 0.643,  3,  10.98%]
+                       Subroutines:
+                       - compress_matrix_distributed_core: [ 0.634,  3,  98.65%]
+                       - transform_sparsity_pattern: [ 8.191E-03,  3,  1.27%]
+                     - build_linear_combination_transposed: [ 0.583,  6,  9.95%]
+                     - untranspose_localized: [ 0.206,  6,  3.52%]
+                     - transform_sparse_matrix_local: [ 0.144,  3,  2.46%]
+                       Subroutines:
+                       - transform_sparse_matrix: [ 5.255E-02,  3,  36.49%]
+                     - sequential_acces_matrix_fast2: [ 6.421E-02,  3,  1.10%]
+                     - transpose_localized: [ 3.686E-02,  3,  0.63%]
+                     - sparsemm: [ 2.090E-02,  3,  0.36%]
+                     - transform_sparsity_pattern: [ 1.032E-03,  3,  0.02%]
+                   - preconditionall2: [ 2.44,  3,  21.22%]
+                     Subroutines:
+                     - solvePrecondEquation: [ 2.42,  123,  99.19%]
+                       Subroutines:
+                       - differentiateBetweenBoundaryConditions: [ 1.70,  861,  70.39%]
+                         Subroutines:
+                         - applyOperator: [ 1.67,  861,  98.07%]
+                           Subroutines:
+                           - ConvolQuartic4: [ 1.24,  861,  74.49%]
+                           - call_to_uncompress_for_quartic_convolutions: [ 0.250,  861,  14.95%]
+                             Subroutines:
+                             - uncompress_for_quartic_convolutions: [ 0.213,  861,  85.35%]
+                           - compress_forstandard: [ 8.592E-02,  861,  5.14%]
+                             Subroutines:
+                             - compress_forstandard: [ 4.765E-02,  861,  55.45%]
+                       - precondition_preconditioner: [ 0.524,  123,  21.67%]
+                         Subroutines:
+                         - prec_diag: [ 0.262,  123,  50.05%]
+                       - zero_local_work_arrays: [ 5.535E-02,  123,  2.29%]
+                       - calculate_rmr_new: [ 2.977E-02,  738,  1.23%]
+                       - finalise_precond_residue: [ 6.376E-03,  123,  0.26%]
+                   - calculate_overlap_transposed: [ 1.75,  3,  15.22%]
+                     Subroutines:
+                     - synchronize_matrix_taskgroups: [ 1.71,  3,  97.91%]
+                   - calculate_trace_finish: [ 0.583,  3,  5.07%]
+                   - communicate_fnrm: [ 0.380,  3,  3.30%]
+                   - build_linear_combination_transposed: [ 0.291,  3,  2.53%]
+                   - transform_sparse_matrix_local: [ 9.646E-02,  3,  0.84%]
+                     Subroutines:
+                     - transform_sparse_matrix: [ 3.764E-02,  3,  39.02%]
+                   - transpose_localized: [ 6.318E-02,  3,  0.55%]
+                   - untranspose_localized: [ 2.223E-02,  3,  0.19%]
+                   - psi_to_locreg: [ 1.480E-02,  123,  0.13%]
+                   - communicate_alpha: [ 1.127E-03,  3,  0.01%]
+                   - calculate_trace_start: [ 4.117E-04,  3,  0.00%]
+                 - SynchronizeHamiltonianApplication: [ 6.28,  3,  22.52%]
+                 - NonLocalHamiltonianApplication: [ 4.34,  3,  15.55%]
+                   Subroutines:
+                   - atom_projector: [ 3.90,  4650,  89.87%]
+                     Subroutines:
+                     - crtproj: [ 3.43,  9876,  87.90%]
+                 - hpsitopsi_linear: [ 2.64,  2,  9.47%]
+                   Subroutines:
+                   - orthonormalizeLocalized: [ 2.54,  2,  96.31%]
+                     Subroutines:
+                     - overlapPowerGeneral: [ 1.23,  2,  48.31%]
+                       Subroutines:
+                       - ice: [ 0.921,  2,  74.86%]
+                         Subroutines:
+                         - chebyshev_clean: [ 0.397,  2,  43.13%]
+                           Subroutines:
+                           - sparsemm: [ 0.277,  38,  69.80%]
+                           - sequential_acces_matrix_fast2: [ 4.153E-02,  2,  10.46%]
+                           - compress_polynomial_vector_new: [ 1.367E-02,  40,  3.44%]
+                             Subroutines:
+                             - transform_sparsity_pattern: [ 1.156E-02,  40,  84.56%]
+                           - axbyz_kernel_vectors_new: [ 3.241E-03,  36,  0.82%]
+                         - check_eigenvalue_spectrum_new: [ 0.272,  2,  29.54%]
+                         - compress_matrix_distributed_wrapper_1: [ 0.183,  2,  19.91%]
+                           Subroutines:
+                           - compress_matrix_distributed_core: [ 0.183,  2,  100.14%]
+                         - scale_and_shift_matrix: [ 4.824E-02,  2,  5.24%]
+                         - chebft: [ 3.884E-03,  2,  0.42%]
+                         - transform_sparsity_pattern: [ 5.629E-04,  2,  0.06%]
+                         - chebft2: [ 6.152E-05,  2,  0.01%]
+                         - evnoise: [ 6.141E-05,  2,  0.01%]
+                         - chder: [ 4.937E-05,  2,  0.01%]
+                       - transform_sparse_matrix_local: [ 1.000E-01,  2,  8.13%]
+                         Subroutines:
+                         - transform_sparse_matrix: [ 3.006E-02,  2,  30.06%]
+                       - sequential_acces_matrix_fast2: [ 7.871E-02,  4,  6.40%]
+                       - check_accur_overlap_minus_one_sparse_new: [ 7.853E-02,  2,  6.38%]
+                         Subroutines:
+                         - deviation_from_unity_parallel: [ 4.218E-02,  2,  53.71%]
+                         - sparsemm: [ 3.531E-02,  4,  44.97%]
+                       - transform_sparsity_pattern: [ 5.280E-03,  4,  0.43%]
+                     - calculate_overlap_transposed: [ 1.17,  2,  46.11%]
+                       Subroutines:
+                       - synchronize_matrix_taskgroups: [ 1.14,  2,  97.47%]
+                     - transpose_localized: [ 4.663E-02,  2,  1.84%]
+                     - untranspose_localized: [ 3.852E-02,  2,  1.52%]
+                     - build_linear_combination_transposed: [ 2.641E-02,  2,  1.04%]
+                   - improveOrbitals: [ 7.956E-02,  2,  3.01%]
+                     Subroutines:
+                     - optimizeDIIS: [ 7.570E-02,  2,  95.15%]
+                 - LocalHamiltonianApplication: [ 1.92,  6,  6.87%]
+                   Subroutines:
+                   - psi_to_vlocpsi: [ 1.56,  3,  81.45%]
+                     Subroutines:
+                     - daub_to_isf: [ 0.776,  123,  49.76%]
+                     - psir_to_vpsi: [ 0.272,  123,  17.44%]
+                       Subroutines:
+                       - apply_potential_lr_conf: [ 0.266,  123,  97.69%]
+                 - calculate_overlap_transposed: [ 0.466,  1,  1.67%]
+                   Subroutines:
+                   - synchronize_matrix_taskgroups: [ 0.359,  1,  77.12%]
+                 - transpose_localized: [ 0.231,  15,  0.83%]
+                 - estimate_energy_change: [ 8.328E-02,  2,  0.30%]
+                 - full_local_potential: [ 3.975E-02,  3,  0.14%]
+                 - untranspose_localized: [ 3.408E-02,  3,  0.12%]
+                 - start_onesided_communication: [ 2.443E-02,  1,  0.09%]
+                 - small_to_large_locreg: [ 1.390E-02,  3,  0.05%]
+                   Subroutines:
+                   - Lpsi_to_global: [ 8.226E-03,  123,  59.18%]
+                 - psi_to_locreg: [ 1.010E-02,  82,  0.04%]
+                 - local_potential_dimensions: [ 4.207E-04,  1,  0.00%]
+               - get_coeff: [ 12.2,  1,  25.56%]
+                 Subroutines:
+                 - foe: [ 6.30,  1,  51.63%]
+                   Subroutines:
+                   - chebyshev_clean: [ 3.41,  2,  54.10%]
+                     Subroutines:
+                     - sparsemm: [ 2.60,  362,  76.13%]
+                     - compress_matrix_distributed_wrapper_1: [ 0.312,  2,  9.14%]
+                       Subroutines:
+                       - compress_matrix_distributed_core: [ 0.307,  2,  98.43%]
+                       - transform_sparsity_pattern: [ 4.327E-03,  2,  1.39%]
+                     - compress_polynomial_vector_new: [ 0.120,  360,  3.52%]
+                       Subroutines:
+                       - transform_sparsity_pattern: [ 0.102,  360,  84.88%]
+                     - sequential_acces_matrix_fast2: [ 8.908E-02,  6,  2.61%]
+                     - axbyz_kernel_vectors_new: [ 3.198E-02,  356,  0.94%]
+                     - prepare_matrix: [ 1.754E-03,  2,  0.05%]
+                   - check_eigenvalue_spectrum_new: [ 0.847,  2,  13.45%]
+                   - retransform_ext: [ 0.838,  4,  13.31%]
+                     Subroutines:
+                     - compress_matrix_distributed_wrapper_1: [ 0.531,  4,  63.39%]
+                       Subroutines:
+                       - compress_matrix_distributed_core: [ 0.523,  4,  98.53%]
+                       - transform_sparsity_pattern: [ 7.120E-03,  4,  1.34%]
+                     - sequential_acces_matrix_fast2: [ 0.156,  8,  18.67%]
+                     - sparsemm: [ 5.920E-02,  8,  7.06%]
+                     - transform_sparsity_pattern: [ 1.193E-03,  4,  0.14%]
+                   - overlap_minus_onehalf: [ 0.598,  1,  9.49%]
+                     Subroutines:
+                     - overlapPowerGeneral: [ 0.598,  1,  99.94%]
+                       Subroutines:
+                       - ice: [ 0.440,  1,  73.58%]
+                         Subroutines:
+                         - chebyshev_clean: [ 0.198,  1,  44.99%]
+                           Subroutines:
+                           - sparsemm: [ 0.137,  19,  69.38%]
+                           - sequential_acces_matrix_fast2: [ 1.986E-02,  1,  10.03%]
+                           - compress_polynomial_vector_new: [ 6.970E-03,  20,  3.52%]
+                             Subroutines:
+                             - transform_sparsity_pattern: [ 5.932E-03,  20,  85.11%]
+                           - axbyz_kernel_vectors_new: [ 1.555E-03,  18,  0.79%]
+                         - compress_matrix_distributed_wrapper_1: [ 0.139,  1,  31.65%]
+                           Subroutines:
+                           - compress_matrix_distributed_core: [ 0.139,  1,  100.15%]
+                         - check_eigenvalue_spectrum_new: [ 7.075E-02,  1,  16.08%]
+                         - scale_and_shift_matrix: [ 2.342E-02,  1,  5.32%]
+                         - chebft: [ 1.331E-03,  1,  0.30%]
+                         - transform_sparsity_pattern: [ 2.863E-04,  1,  0.07%]
+                         - chebft2: [ 3.095E-05,  1,  0.01%]
+                         - evnoise: [ 3.061E-05,  1,  0.01%]
+                         - chder: [ 2.477E-05,  1,  0.01%]
+                       - transform_sparse_matrix_local: [ 5.075E-02,  1,  8.49%]
+                         Subroutines:
+                         - transform_sparse_matrix: [ 1.517E-02,  1,  29.89%]
+                       - check_accur_overlap_minus_one_sparse_new: [ 4.001E-02,  1,  6.69%]
+                         Subroutines:
+                         - deviation_from_unity_parallel: [ 2.422E-02,  1,  60.54%]
+                         - sparsemm: [ 1.548E-02,  2,  38.69%]
+                       - sequential_acces_matrix_fast2: [ 3.858E-02,  2,  6.45%]
+                       - transform_sparsity_pattern: [ 1.860E-03,  2,  0.31%]
+                   - compress_matrix_distributed_wrapper_1: [ 0.325,  4,  5.15%]
+                     Subroutines:
+                     - compress_matrix_distributed_core: [ 0.324,  4,  99.77%]
+                   - calculate_trace_distributed_new: [ 0.106,  19,  1.69%]
+                   - scale_and_shift_matrix: [ 6.529E-02,  2,  1.04%]
+                   - chebyshev_fast: [ 3.300E-02,  17,  0.52%]
+                   - chebft: [ 2.513E-02,  34,  0.40%]
+                   - trace_sparse: [ 1.124E-02,  6,  0.18%]
+                   - evnoise: [ 3.803E-03,  17,  0.06%]
+                   - chebft2: [ 3.160E-03,  34,  0.05%]
+                   - determine_fermi_level: [ 1.905E-03,  17,  0.03%]
+                   - init_fermi_level: [ 1.458E-03,  2,  0.02%]
+                   - chder: [ 8.391E-04,  34,  0.01%]
+                   - transform_sparsity_pattern: [ 5.700E-04,  2,  0.01%]
+                 - full_local_potential: [ 1.96,  1,  16.10%]
+                 - NonLocalHamiltonianApplication: [ 1.49,  1,  12.24%]
+                   Subroutines:
+                   - atom_projector: [ 1.35,  1550,  90.37%]
+                     Subroutines:
+                     - crtproj: [ 1.19,  3292,  87.92%]
+                 - calculate_overlap_transposed: [ 1.09,  2,  8.96%]
+                   Subroutines:
+                   - synchronize_matrix_taskgroups: [ 0.974,  2,  89.38%]
+                 - LocalHamiltonianApplication: [ 0.667,  2,  5.46%]
+                   Subroutines:
+                   - psi_to_vlocpsi: [ 0.540,  1,  81.03%]
+                     Subroutines:
+                     - daub_to_isf: [ 0.335,  41,  62.12%]
+                     - psir_to_vpsi: [ 1.881E-02,  41,  3.48%]
+                       Subroutines:
+                       - apply_potential_lr_bounds: [ 1.616E-02,  41,  85.89%]
+                 - SynchronizeHamiltonianApplication: [ 0.474,  1,  3.88%]
+                 - transpose_localized: [ 8.622E-02,  1,  0.71%]
+                 - deviation_from_unity_parallel: [ 3.665E-02,  1,  0.30%]
+                 - start_onesided_communication: [ 1.583E-02,  1,  0.13%]
+                 - small_to_large_locreg: [ 5.291E-03,  1,  0.04%]
+                   Subroutines:
+                   - Lpsi_to_global: [ 2.846E-03,  41,  53.79%]
+                 - local_potential_dimensions: [ 8.042E-05,  1,  0.00%]
+               - orthonormalizeLocalized: [ 1.93,  1,  4.06%]
+                 Subroutines:
+                 - overlap_power_minus_one_half_parallel: [ 1.32,  1,  68.63%]
+                   Subroutines:
+                   - synchronize_matrix_taskgroups: [ 1.05,  1,  79.54%]
+                   - overlap_plus_minus_one_half_exact: [ 0.196,  41,  14.88%]
+                 - calculate_overlap_transposed: [ 0.495,  1,  25.64%]
+                   Subroutines:
+                   - synchronize_matrix_taskgroups: [ 0.480,  1,  97.03%]
+                 - untranspose_localized: [ 3.875E-02,  1,  2.01%]
+                 - transpose_localized: [ 2.403E-02,  1,  1.24%]
+                 - build_linear_combination_transposed: [ 1.164E-02,  1,  0.60%]
+               - sumrho_for_TMBs: [ 1.75,  2,  3.68%]
+                 Subroutines:
+                 - communicate_density: [ 0.299,  2,  17.11%]
+               - communicate_basis_for_density_collective: [ 1.28,  2,  2.69%]
+                 Subroutines:
+                 - daub_to_isf: [ 0.284,  82,  22.18%]
+               - updatePotential: [ 0.914,  2,  1.92%]
+                 Subroutines:
+                 - XC_potential: [ 0.533,  2,  58.35%]
+                   Subroutines:
+                   - xc_energy_new: [ 0.199,  2,  37.25%]
+                     Subroutines:
+                     - xc_getvxc: [ 0.174,  2,  87.26%]
+                     - vxcpostprocessing: [ 1.840E-02,  2,  9.25%]
+                 - Electrostatic_Solver: [ 0.380,  2,  41.58%]
+                   Subroutines:
+                   - apply_kernel: [ 0.359,  2,  94.38%]
+                     Subroutines:
+                     - G_PoissonSolver: [ 0.350,  2,  97.50%]
+               - mix_rhopot: [ 0.168,  3,  0.35%]
+                 Subroutines:
+                 - ab7_mixing_eval: [ 0.164,  3,  97.42%]
+           - system_initialization: [ 12.1,  1,  0.18%]
+             Subroutines:
+             - initLocregs: [ 4.83,  2,  39.95%]
+               Subroutines:
+               - determine_locregSphere_parallel: [ 4.83,  2,  100.06%]
+                 Subroutines:
+                 - determine_wfdSphere: [ 2.37,  82,  49.13%]
+                   Subroutines:
+                   - segkeys_Sphere: [ 1.36,  164,  57.53%]
+                     Subroutines:
+                     - distribute_on_threads: [ 1.407E-02,  164,  1.03%]
+                 - communicate_locreg_descriptors_keys: [ 1.01,  2,  20.84%]
+                 - determine_boxbounds_sphere: [ 0.805,  82,  16.66%]
+                 - communicate_locreg_descriptors_basics: [ 0.419,  2,  8.68%]
+                 - locreg_bounds: [ 8.967E-02,  82,  1.86%]
+             - createProjectorsArrays: [ 3.89,  1,  32.18%]
+               Subroutines:
+               - allocate_arrays: [ 2.65,  1,  68.10%]
+               - localize_projectors: [ 0.500,  1,  12.86%]
+                 Subroutines:
+                 - fill_logrid: [ 0.183,  4510,  36.61%]
+                 - num_segkeys: [ 0.133,  4510,  26.55%]
+               - fill_logrid: [ 0.195,  4510,  5.01%]
+               - segkeys: [ 0.179,  4510,  4.60%]
+               - transform_keyglob_to_keygloc: [ 0.127,  4510,  3.26%]
+               - nullify_structure: [ 3.925E-03,  1,  0.10%]
+               - gaussian_basis_from_psp: [ 3.671E-04,  1,  0.01%]
+             - init_orbitals_data_for_linear: [ 0.945,  2,  7.81%]
+               Subroutines:
+               - assignToLocreg2: [ 0.269,  4,  28.41%]
+             - update_wavefunctions_size: [ 0.396,  2,  3.28%]
+             - pkernel_set: [ 0.192,  1,  1.59%]
+               Subroutines:
+               - mpi_environment_set: [ 2.678E-05,  1,  0.01%]
+             - createWavefunctionsDescriptors: [ 0.166,  1,  1.38%]
+               Subroutines:
+               - fill_logrid: [ 0.135,  2,  81.37%]
+               - segkeys: [ 2.036E-02,  2,  12.26%]
+               - num_segkeys: [ 4.809E-03,  2,  2.90%]
+             - lzd_init_llr: [ 2.307E-02,  2,  0.19%]
+             - processor_id_per_node: [ 5.081E-03,  1,  0.04%]
+             - redistribute: [ 4.482E-04,  3,  0.00%]
+             - mpi_environment_set: [ 2.868E-05,  1,  0.00%]
+           - init_sparse_matrix_wrapper: [ 9.60,  3,  0.14%]
+             Subroutines:
+             - init_sparse_matrix: [ 9.36,  3,  97.50%]
+               Subroutines:
+               - init_sparse_matrix_matrix_multiplication_new: [ 6.41,  3,  68.52%]
+                 Subroutines:
+                 - determine_sequential_length_new2: [ 0.610,  6,  9.52%]
+                 - get_arrays_for_sequential_acces_new: [ 0.475,  3,  7.41%]
+                   Subroutines:
+                   - distribute_on_threads: [ 1.096E-03,  3,  0.23%]
+                 - init_sequential_acces_matrix_new: [ 0.473,  3,  7.38%]
+                   Subroutines:
+                   - distribute_on_threads: [ 1.160E-03,  3,  0.25%]
+                 - init_onedimindices_newnew: [ 0.405,  3,  6.31%]
+                 - init_matrix_parallelization: [ 4.945E-03,  6,  0.08%]
+                 - init_line_and_column: [ 2.655E-03,  6,  0.04%]
+                 - redistribute: [ 1.567E-03,  3,  0.02%]
+                 - get_nout: [ 2.920E-04,  6,  0.00%]
+               - init_matrix_parallelization: [ 4.159E-03,  3,  0.04%]
+             - determine_sparsity_pattern_distance: [ 0.134,  4,  1.39%]
+             - determine_sparsity_pattern: [ 0.102,  2,  1.06%]
+           - create_large_tmbs: [ 5.97,  1,  0.09%]
+             Subroutines:
+             - update_locreg: [ 5.20,  1,  87.13%]
+               Subroutines:
+               - initLocregs: [ 3.57,  1,  68.61%]
+                 Subroutines:
+                 - determine_locregSphere_parallel: [ 3.57,  1,  99.91%]
+                   Subroutines:
+                   - determine_wfdSphere: [ 1.21,  41,  33.98%]
+                     Subroutines:
+                     - segkeys_Sphere: [ 0.714,  82,  59.01%]
+                       Subroutines:
+                       - distribute_on_threads: [ 2.419E-02,  82,  3.39%]
+                   - communicate_locreg_descriptors_keys: [ 0.945,  1,  26.48%]
+                   - determine_boxbounds_sphere: [ 0.400,  41,  11.20%]
+                   - communicate_locreg_descriptors_basics: [ 0.293,  1,  8.21%]
+                   - locreg_bounds: [ 0.142,  41,  3.97%]
+               - init_comms_linear: [ 1.62,  1,  31.15%]
+                 Subroutines:
+                 - get_weights: [ 0.587,  1,  36.21%]
+                 - get_switch_indices: [ 0.571,  1,  35.25%]
+                 - determine_num_orbs_per_gridpoint_new: [ 0.188,  1,  11.62%]
+                 - assign_weight_to_process: [ 0.136,  1,  8.38%]
+                 - determine_communication_arrays: [ 0.132,  1,  8.16%]
+                 - get_index_in_global2: [ 3.076E-03,  1,  0.19%]
+             - update_nlpsp: [ 0.758,  1,  12.69%]
+               Subroutines:
+               - set_nlpsp_to_wfd: [ 0.714,  2255,  94.26%]
+                 Subroutines:
+                 - init_tolr: [ 0.533,  1550,  74.70%]
+           - init_matrix_taskgroups: [ 4.80,  3,  0.07%]
+             Subroutines:
+             - check_matmul_layout: [ 6.936E-03,  3,  0.14%]
+           - kswfn_post_treatments: [ 2.94,  1,  0.04%]
+             Subroutines:
+             - calculate_forces: [ 2.49,  1,  84.76%]
+               Subroutines:
+               - nonlocal_forces_linear: [ 1.39,  1,  55.92%]
+                 Subroutines:
+                 - transpose_scalprod: [ 0.770,  1,  55.37%]
+                 - gather_matrix_from_taskgroups: [ 0.289,  1,  20.78%]
+                 - calculate_scalprod: [ 0.262,  1,  18.83%]
+                   Subroutines:
+                   - atom_projector: [ 0.155,  156,  58.98%]
+                     Subroutines:
+                     - crtproj: [ 0.142,  336,  91.36%]
+                 - determine_dimension_scalprod: [ 4.983E-02,  1,  3.59%]
+                 - calculate_forces: [ 1.664E-02,  1,  1.20%]
+               - local_forces: [ 0.168,  1,  6.75%]
+               - rhocore_forces: [ 5.995E-04,  1,  0.02%]
+             - Electrostatic_Solver: [ 0.236,  1,  8.03%]
+               Subroutines:
+               - apply_kernel: [ 0.234,  1,  99.21%]
+                 Subroutines:
+                 - G_PoissonSolver: [ 0.234,  1,  99.87%]
+             - XC_potential: [ 0.205,  1,  6.98%]
+               Subroutines:
+               - xc_energy_new: [ 0.100,  1,  48.81%]
+                 Subroutines:
+                 - xc_getvxc: [ 8.695E-02,  1,  86.95%]
+                 - vxcpostprocessing: [ 9.704E-03,  1,  9.70%]
+           - check_communication_sumrho: [ 1.57,  1,  0.02%]
+           - init_comms_linear: [ 0.910,  1,  0.01%]
+             Subroutines:
+             - get_switch_indices: [ 0.278,  1,  30.53%]
+             - determine_num_orbs_per_gridpoint_new: [ 0.187,  1,  20.58%]
+             - assign_weight_to_process: [ 0.169,  1,  18.54%]
+             - determine_communication_arrays: [ 0.153,  1,  16.78%]
+             - get_weights: [ 0.118,  1,  13.00%]
+             - get_index_in_global2: [ 2.865E-03,  1,  0.31%]
+           - check_communications_locreg: [ 0.737,  2,  0.01%]
+             Subroutines:
+             - transpose_localized: [ 0.101,  2,  13.73%]
+             - untranspose_localized: [ 7.552E-02,  2,  10.25%]
+           - createIonicPotential: [ 0.313,  1,  0.00%]
+             Subroutines:
+             - Electrostatic_Solver: [ 0.285,  1,  91.02%]
+               Subroutines:
+               - apply_kernel: [ 0.255,  1,  89.62%]
+                 Subroutines:
+                 - G_PoissonSolver: [ 0.254,  1,  99.74%]
+           - XC_potential: [ 0.243,  1,  0.00%]
+             Subroutines:
+             - xc_energy_new: [ 0.134,  1,  55.12%]
+               Subroutines:
+               - xc_getvxc: [ 0.100,  1,  74.81%]
+               - vxcpostprocessing: [ 3.062E-02,  1,  22.85%]
+           - init_matrixindex_in_compressed_fortransposed: [ 0.240,  3,  0.00%]
+           - assign_weight_to_process_sumrho: [ 0.240,  1,  0.00%]
+           - full_local_potential: [ 0.120,  1,  0.00%]
+           - get_weights_sumrho: [ 0.107,  1,  0.00%]
+           - timing_dump_results: [ 3.051E-02,  2,  0.00%]
+           - start_onesided_communication: [ 8.009E-03,  1,  0.00%]
+           - check_matmul_layout: [ 5.633E-03,  3,  0.00%]
+           - communication_arrays_repartitionrho_general: [ 1.304E-03,  1,  0.00%]
+           - local_potential_dimensions: [ 3.684E-04,  1,  0.00%]
+           - interaction_multipoles_ions: [ 6.402E-05,  1,  0.00%]
+           - ionic_energy_of_external_charges: [ 3.583E-05,  1,  0.00%]
+           - potential_from_charge_multipoles: [ 3.284E-05,  1,  0.00%]
+         - timing_dump_results: [ 2.128E-03,  1,  0.00%]
+   - bigdft_init: [ 1.79,  1,  0.03%]
+     Subroutines:
+     - mpi_environment_set: [ 9.067E-03,  1,  0.51%]
+   - run_objects_init: [ 1.13,  1,  0.02%]
+     Subroutines:
+     - set_run_objects: [ 0.703,  1,  62.21%]
+       Subroutines:
+       - inputs_from_dict: [ 0.702,  1,  99.82%]
+         Subroutines:
+         - input_keys_fill_all: [ 0.355,  1,  50.60%]
+           Subroutines:
+           - PS_input_dict: [ 3.025E-02,  1,  8.52%]
+           - input_keys_init: [ 9.345E-03,  1,  2.63%]
+         - astruct_set_from_dict: [ 0.113,  1,  16.05%]
+         - atomic_data_set_from_dict: [ 6.278E-02,  1,  8.94%]
+         - input_keys_dump: [ 1.690E-02,  1,  2.41%]
+         - psp_dict_analyse: [ 1.929E-03,  1,  0.27%]
+         - psp_dict_fill_all: [ 3.758E-04,  5,  0.05%]
+         - allocateBasicArraysInputLin: [ 1.184E-04,  1,  0.02%]
+         - occupation_set_from_dict: [ 1.178E-04,  1,  0.02%]
+         - read_n_orbitals: [ 6.085E-05,  1,  0.01%]
+         - input_analyze: [ 2.964E-05,  1,  0.00%]
+     - astruct_file_merge_to_dict: [ 0.155,  1,  13.74%]
+     - read_input_dict_from_files: [ 5.000E-02,  1,  4.42%]
+       Subroutines:
+       - merge_input_file_to_dict: [ 2.734E-02,  1,  54.69%]
+     - processor_id_per_node: [ 3.916E-03,  1,  0.35%]
+ CPU parallelism:
+   MPI tasks            : 256
+   OMP threads          : 4
+ Hostnames:
+ - s02r1b56
+ - s02r1b56
+ - s02r1b56
+ - s02r1b56
+ - s03r1b33
+ - s03r1b33
+ - s03r1b33
+ - s03r1b33
+ - s06r2b07
+ - s06r2b07
+ - s06r2b07
+ - s06r2b07
+ - s06r2b24
+ - s06r2b24
+ - s06r2b24
+ - s06r2b24
+ - s07r1b51
+ - s07r1b51
+ - s07r1b51
+ - s07r1b51
+ - s08r2b25
+ - s08r2b25
+ - s08r2b25
+ - s08r2b25
+ - s11r2b27
+ - s11r2b27
+ - s11r2b27
+ - s11r2b27
+ - s13r1b41
+ - s13r1b41
+ - s13r1b41
+ - s13r1b41
+ - s13r1b42
+ - s13r1b42
+ - s13r1b42
+ - s13r1b42
+ - s13r1b40
+ - s13r1b40
+ - s13r1b40
+ - s13r1b40
+ - s14r2b09
+ - s14r2b09
+ - s14r2b09
+ - s14r2b09
+ - s14r2b64
+ - s14r2b64
+ - s14r2b64
+ - s14r2b64
+ - s16r2b18
+ - s16r2b18
+ - s16r2b18
+ - s16r2b18
+ - s03r1b04
+ - s03r1b04
+ - s03r1b04
+ - s03r1b04
+ - s02r2b45
+ - s02r2b45
+ - s02r2b45
+ - s02r2b45
+ - s02r2b43
+ - s02r2b43
+ - s02r2b43
+ - s02r2b43
+ - s02r2b06
+ - s02r2b06
+ - s02r2b06
+ - s02r2b06
+ - s03r1b06
+ - s03r1b06
+ - s03r1b06
+ - s03r1b06
+ - s02r2b05
+ - s02r2b05
+ - s02r2b05
+ - s02r2b05
+ - s03r1b05
+ - s03r1b05
+ - s03r1b05
+ - s03r1b05
+ - s02r2b47
+ - s02r2b47
+ - s02r2b47
+ - s02r2b47
+ - s02r2b46
+ - s02r2b46
+ - s02r2b46
+ - s02r2b46
+ - s03r1b03
+ - s03r1b03
+ - s03r1b03
+ - s03r1b03
+ - s02r2b44
+ - s02r2b44
+ - s02r2b44
+ - s02r2b44
+ - s03r1b02
+ - s03r1b02
+ - s03r1b02
+ - s03r1b02
+ - s11r2b02
+ - s11r2b02
+ - s11r2b02
+ - s11r2b02
+ - s12r1b02
+ - s12r1b02
+ - s12r1b02
+ - s12r1b02
+ - s11r2b47
+ - s11r2b47
+ - s11r2b47
+ - s11r2b47
+ - s12r1b01
+ - s12r1b01
+ - s12r1b01
+ - s12r1b01
+ - s11r2b48
+ - s11r2b48
+ - s11r2b48
+ - s11r2b48
+ - s11r2b01
+ - s11r2b01
+ - s11r2b01
+ - s11r2b01
+ - s11r2b03
+ - s11r2b03
+ - s11r2b03
+ - s11r2b03
+ - s12r1b05
+ - s12r1b05
+ - s12r1b05
+ - s12r1b05
+ - s12r1b04
+ - s12r1b04
+ - s12r1b04
+ - s12r1b04
+ - s11r2b06
+ - s11r2b06
+ - s11r2b06
+ - s11r2b06
+ - s12r1b03
+ - s12r1b03
+ - s12r1b03
+ - s12r1b03
+ - s11r2b44
+ - s11r2b44
+ - s11r2b44
+ - s11r2b44
+ - s14r2b02
+ - s14r2b02
+ - s14r2b02
+ - s14r2b02
+ - s14r2b03
+ - s14r2b03
+ - s14r2b03
+ - s14r2b03
+ - s18r1b04
+ - s18r1b04
+ - s18r1b04
+ - s18r1b04
+ - s18r1b46
+ - s18r1b46
+ - s18r1b46
+ - s18r1b46
+ - s18r1b05
+ - s18r1b05
+ - s18r1b05
+ - s18r1b05
+ - s18r1b02
+ - s18r1b02
+ - s18r1b02
+ - s18r1b02
+ - s18r1b47
+ - s18r1b47
+ - s18r1b47
+ - s18r1b47
+ - s18r1b48
+ - s18r1b48
+ - s18r1b48
+ - s18r1b48
+ - s18r1b06
+ - s18r1b06
+ - s18r1b06
+ - s18r1b06
+ - s18r1b45
+ - s18r1b45
+ - s18r1b45
+ - s18r1b45
+ - s18r1b01
+ - s18r1b01
+ - s18r1b01
+ - s18r1b01
+ - s18r1b43
+ - s18r1b43
+ - s18r1b43
+ - s18r1b43
+ - s18r1b03
+ - s18r1b03
+ - s18r1b03
+ - s18r1b03
+ - s18r1b44
+ - s18r1b44
+ - s18r1b44
+ - s18r1b44
+ - s02r2b33
+ - s02r2b33
+ - s02r2b33
+ - s02r2b33
+ - s02r2b41
+ - s02r2b41
+ - s02r2b41
+ - s02r2b41
+ - s02r2b34
+ - s02r2b34
+ - s02r2b34
+ - s02r2b34
+ - s02r2b32
+ - s02r2b32
+ - s02r2b32
+ - s02r2b32
+ - s09r1b70
+ - s09r1b70
+ - s09r1b70
+ - s09r1b70
+ - s09r1b75
+ - s09r1b75
+ - s09r1b75
+ - s09r1b75
+ - s09r1b76
+ - s09r1b76
+ - s09r1b76
+ - s09r1b76
+ - s09r1b77
+ - s09r1b77
+ - s09r1b77
+ - s09r1b77
+ - s03r2b73
+ - s03r2b73
+ - s03r2b73
+ - s03r2b73
+ - s03r2b83
+ - s03r2b83
+ - s03r2b83
+ - s03r2b83
+ - s03r2b70
+ - s03r2b70
+ - s03r2b70
+ - s03r2b70
+ - s03r2b74
+ - s03r2b74
+ - s03r2b74
+ - s03r2b74
+ - s05r1b29
+ - s05r1b29
+ - s05r1b29
+ - s05r1b29
+ Report timestamp       : 2015-12-17 12:24:38.361
