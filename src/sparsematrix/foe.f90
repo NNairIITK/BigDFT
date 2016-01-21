@@ -161,7 +161,7 @@ module foe
           ilshift=(ispin-1)*smatl%nvctrp_tg
           ilshift2=(ispin-1)*smatl%nvctrp_tg
 
-          call get_minmax_eigenvalues(iproc, smatm, ham_, imshift, smats, ovrlp_, isshift)
+          !call get_minmax_eigenvalues(iproc, smatm, ham_, imshift, smats, ovrlp_, isshift)
     
           degree_sufficient=.true.
     
