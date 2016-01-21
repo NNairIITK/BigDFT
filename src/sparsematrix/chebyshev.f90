@@ -176,7 +176,8 @@ module chebyshev
                   call axpy(kernel%smmm%nvctrp, cc(ipl,3,1), vectors_new(1,3), 1, penalty_ev_new(1,2), 1)
 
                   !write(*,*) 'in loop: sum(penalty_ev_new)', &
-                  !    ipl, sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2)), sum(fermi_new(:,1))
+                  !    ipl, sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2)), &
+                  !    sum(vectors_new(:,3)), sum(fermi_new(:,1)), cc(ipl,2,1)
              
                   !if (mod(ipl,2)==1) then
                   !    tt=cc(ipl,3,1)
@@ -191,9 +192,11 @@ module chebyshev
                   ! Check the norm of the columns of the kernel and set a flag if it explodes, which might
                   ! be a consequence of the eigenvalue bounds being to small. Only
                   ! check the first matrix to be calculated.
-                  ! New: Do this check on the penalty matrix
-                  emergency_stop(1) = check_emergency_stop(kernel%smmm%nvctrp, ncalc, penalty_ev_new(1,1))
-                  emergency_stop(2) = check_emergency_stop(kernel%smmm%nvctrp, ncalc, penalty_ev_new(1,2))
+                  !! New: Do this check on the penalty matrix
+                  !!emergency_stop(1) = check_emergency_stop(kernel%smmm%nvctrp, ncalc, penalty_ev_new(1,1))
+                  !!emergency_stop(2) = check_emergency_stop(kernel%smmm%nvctrp, ncalc, penalty_ev_new(1,2))
+                  ! New: Do this check on the Chebyshev polynomials
+                  emergency_stop(1) = check_emergency_stop(kernel%smmm%nvctrp, ncalc, vectors_new(1,3))
                   if (any(emergency_stop)) then
                       exit main_loop
                   end if
@@ -389,7 +392,8 @@ module chebyshev
 
       ces = .false.
       do i=1,nvctrp
-          if (abs(column(i))>1.d20) then
+          !if (abs(column(i))>1.d4) then
+          if (abs(column(i))>1.d8) then
               ces = .true.
           end if
           !!write(*,*) 'sum(column(:,icalc))',sum(column(:,icalc))
