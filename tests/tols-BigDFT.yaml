@@ -65,6 +65,7 @@ Keys to ignore:
  - Operation  1
  - check
  - main
+ - noise
  #- avg pot diff (actual/min)
  #- number of tasks
  #- IDs
@@ -1965,6 +1966,7 @@ extendedfrags_read:
  Keys to ignore: [WARNINGS]
 
 extendedfrags_readrotated:
+ Ekin: 1.1e-10
  energy: 1.4e-11
  eF: 2.62e-9
  D eF: 1.1e-8
