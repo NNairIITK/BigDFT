@@ -306,13 +306,18 @@ program MINHOP
      call yaml_map('(MH) INPUT(relaxed), e_pos ',outs%energy,fmt='(e17.10)')
   end if
 
-  nid=natoms
-  fp = f_malloc(nid,id='fp')
-  wfp = f_malloc(nid,id='wfp')
-  fphop = f_malloc(nid,id='fphop')
+!  nid=natoms
+  call init_fingerprint(run_opt,fp)
+  call init_fingerprint(run_opt,wfp)
+  call init_fingerprint(run_opt,fphop)
+  nid = size(fp)
+!  fp = f_malloc(nid,id='fp')
+!  wfp = f_malloc(nid,id='wfp')
+!  fphop = f_malloc(nid,id='fphop')
   
-  call fingerprint(bigdft_nat(run_opt),nid,bigdft_get_cell(run_opt),bigdft_get_geocode(run_opt),&
-       rcov,pos,fp)
+!  call fingerprint(bigdft_nat(run_opt),nid,bigdft_get_cell(run_opt),bigdft_get_geocode(run_opt),&
+!       rcov,pos,fp)
+  call fingerprint(run_opt,rcov,pos,fp)
 
   !retrieve the eigenvalues from this run
   if(run_opt%run_mode=='QM_RUN_MODE') then
@@ -640,8 +645,9 @@ program MINHOP
      call yaml_mapping_close()
   endif
 
-  call fingerprint(bigdft_nat(run_opt),nid,bigdft_get_cell(run_opt),bigdft_get_geocode(run_opt),&
-       rcov,rxyz_opt,wfp)
+!  call fingerprint(bigdft_nat(run_opt),nid,bigdft_get_cell(run_opt),bigdft_get_geocode(run_opt),&
+!       rcov,rxyz_opt,wfp)
+  call fingerprint(run_opt,rcov,rxyz_opt,wfp)
 
      if (abs(outs%energy-e_pos).lt.en_delta) then
      call fpdistance(nid,wfp,fp,d)
@@ -873,6 +879,9 @@ end do hopping_loop
   call f_free(fphop)
   call f_free(rcov)
 !  if (iproc==0) write(*,*) 'quit 4'
+  call finalize_fingerprint(fp)
+  call finalize_fingerprint(wfp)
+  call finalize_fingerprint(fphop)
 
   call deallocate_state_properties(outs)
 !!$  call free_input_variables(inputs_md)
