@@ -670,10 +670,11 @@ subroutine fpdistance_omf(fp1,fp2,d)
     d=sqrt(d/nid)
 end subroutine fpdistance_omf
 !=====================================================================
-logical function equal(iproc,prefix,txt,nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
+logical function equal(runObj,iproc,prefix,txt,nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
     use module_base
     implicit none
     !parameter
+    type(run_objects), intent(in) :: runObj
     integer, intent(in) :: iproc
     character(len=*), intent(in) :: prefix
     integer, intent(in) :: nid
@@ -688,7 +689,7 @@ logical function equal(iproc,prefix,txt,nid,en_delta,fp_delta,epot1,epot2,fp1,fp
     call fpdistance(nid,fp1,fp2,d)
     if(iproc==0)write(*,'(a,1x,a,1x,es14.7,1x,es14.7)')trim(adjustl(prefix))//'ediff, fpdist ',txt,abs(epot1-epot2),d
     if (abs(epot1-epot2).lt.en_delta) then
-        call fpdistance(nid,fp1,fp2,d)
+        call fpdistance(runObj,fp1,fp2,d)
         if (d.lt.fp_delta) then ! identical
             equal=.true.
         endif
