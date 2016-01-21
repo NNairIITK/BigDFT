@@ -384,14 +384,14 @@
    itermax_virt:
      COMMENT: Max. iterations of wfn. opt. steps for virtual orbitals
      DESCRIPTION: |
-       Maximum number of gradient evaluations for a cycle of a wavefunction optimization for
-       virtual orbitals.
+       Maximum number of gradient evaluations for a cycle of a wavefunction optimization
+       for the virtual orbitals.
      RANGE: [0, 10000]
      default: 50
    disablesym:
      COMMENT: Disable the symmetry detection
      DESCRIPTION: |
-       Disable the symmetry detection (by default No except for isolated systems)
+       Disable the symmetry detection (by default No except for isolated systems).
        
        By default symmetries are used to update the density in periodic boundary condition calculations, and surface
        boundary conditions also. 

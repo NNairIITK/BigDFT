@@ -133,7 +133,7 @@ def parse():
                         "BigDFT wizard: Browse over all input variables to help the user")
     parser.add_option_group(group)
 
-    # conversion from cartesian to internal or vice versa, plus file format conversion
+    # Conversion from cartesian to internal or vice versa, plus file format conversion
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[10],
                         "conversion from cartesian to internal coordinates")
     #group.add_option("--direction", type="str", metavar="NAME",
@@ -343,37 +343,55 @@ def runmenu(h, n, screen, menu, parent):
 
 
 def dump_info(h, n, screen, menu, parent):
-    "Dump some information in the screen and come back to previous menu when done"
+    """Dump some information in the screen and come back to previous menu when done.
+    menu must contains 'title', 'subtitle' and 'DESCRIPTION'. """
     pos = 0
     oldpos = None
     x = None
-    strings = menu['DESCRIPTION']
-    infocount = len(strings)
     lastoption = "Press Enter or 'Q' key to come back to %s menu" % parent['title']
-    # Loop until return key is pressed
-    while x != ord('\n') and x != ord('q') and x != ord('Q'):
-        if pos != oldpos:
-            oldpos = pos
-            screen.border(0)
-            #screen.border(0)
+    iyafterdesc = 3 + len(menu['DESCRIPTION'].split('\n'))
+    screenH,screenW = screen.getmaxyx()
+    padH = (len(menu)-2)*3 + iyafterdesc
+    dump_pad = curses.newpad(padH,screenW-2)
+    for (k,v) in menu.items():
+        if k == 'title':
             # Title for this menu
-            screen.addstr(2, 2, menu['title'], curses.A_STANDOUT)
+            dump_pad.addstr(1, 2, v, curses.A_STANDOUT)
+        elif k == 'subtitle':
             # Subtitle for this menu
-            screen.addstr(4, 2, menu['subtitle'], curses.A_BOLD)
+            dump_pad.addstr(3, 2, v, curses.A_BOLD)
+        elif k == 'DESCRIPTION':
             # Display all the menu items, showing the 'pos' item highlighted
-            iy = 4
-            for index in range(infocount):
-                textstyle = n
-                for chain in strings[index].split('\n'):
-                    iy += 1
-                    screen.addstr(iy, 4, "%s" % chain, textstyle)
-            # Now display Exit/Return at bottom of menu
-            textstyle = h
-            screen.addstr(iy+1, 4, " %s" % lastoption, textstyle)
-            screen.refresh()
-            # finished updating screen
+            iy = 3
+            for chain in v.split('\n'):
+                iy += 1
+                dump_pad.addstr(iy, 4, "%s" % chain, n)
+        elif k == 'type' or k == 'COMMENT':
+            pass
+        else:
+                iyafterdesc += 1
+                dump_pad.addstr(iyafterdesc, 2, k, curses.A_BOLD)
+                for chain in str(v).split('\n'):
+                    iyafterdesc += 1
+                    dump_pad.addstr(iyafterdesc, 4, "%s" % chain, n)
+                iyafterdesc += 1
+    # Now display Exit/Return at bottom of menu
+    iyafterdesc += 1
+    dump_pad.addstr(iyafterdesc, 2, " %s" % lastoption, h)
+    #Display the information
+    screen.border(0)
+    screen.refresh()
+    # Loop until return key is pressed
+    pos = 0
+    while x != ord('\n') and x != ord('q') and x != ord('Q'):
+        dump_pad.refresh(pos,0,1,1,screenH-2,screenW-2)
         x = screen.getch()  # Gets user input
-
+        if x == curses.KEY_DOWN:
+            pos += 1
+            pos = min(pos, iyafterdesc - (screenH-4))
+        elif x == curses.KEY_UP:
+            pos -= 1
+            pos = max(pos,0)
     # return index of the selected item
     return 0
 
@@ -613,17 +631,13 @@ options:
                     dico['DESCRIPTION'] = params[f][k]
                     #dico['title'] += ' (%s)' % dico['DESCRIPTION']
                     continue
-                if params[f][k].has_key('DESCRIPTION'):
-                    helpstr = params[f][k]['DESCRIPTION']
-                else:
-                    helpstr = 'No extended description for this key specified yet'
-                if params[f][k].has_key('COMMENT'):
-                    comment = params[f][k]['COMMENT']
-                else:
-                    comment = ''
-                dico['options'].append({'type': PROMPT, 'title': k + '     (' + str(comment) + ')',
-                                        'subtitle': 'Extended description for the input keyword: ' + str(k),
-                                        'DESCRIPTION': [helpstr]})
+                dd = {'type': PROMPT, 
+                      'title': k + '     (' + str(params[f][k]['COMMENT']) + ')',
+                      'subtitle': "Extended description for the input keyword '%s'" % str(k),
+                      'DESCRIPTION': 'No extended description for this key specified yet.',
+                      'COMMENT': '' }
+                dd.update(params[f][k])
+                dico['options'].append(dd)
             dockey.append(dico)
         menu['options'][0]['options'] = dockey
         # now the same for the input file setups
@@ -642,7 +656,7 @@ options:
             helpstr += yaml.dump(inputfile,
                                  default_flow_style=False).split('\n')
             dico = {'type': PROMPT, 'title': f + '     (' + str(comment) + ')',
-                    'subtitle': 'Extended description for the input file: ' + str(f),
+                    'subtitle': "Extended description for the input file '%s'" % str(f),
                     'DESCRIPTION': helpstr}
             dockey.append(dico)
         menu['options'][1]['options'] = dockey
