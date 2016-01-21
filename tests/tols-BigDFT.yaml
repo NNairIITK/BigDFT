@@ -1330,7 +1330,7 @@ geoptconstrained_SDCG:
  ebs: 7.8e-11
  Ion-Ion interaction energy: 2.3e-10
  Atomic structure: 3.1e-9
- trace(KS): 1.6e-11
+ trace(KS): 1.7e-11
  Total charge: 2.1e-11
 
 O2spin_diag:
@@ -1620,13 +1620,13 @@ periodic_water:
  Omega: 5.9e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
- eF: 9.2e-9
- D eF: 1.4e-8
+ eF: 9.8e-8
+ D eF: 9.9e-8
  energy: 5.9e-10
- guess for new ef: 9.1e-9
+ guess for new ef: 9.9e-8
  number of corrected points: 1
  charge diff: 5.2e-7
- diff: 1.2e-10
+ diff: 2.2e-10
  Tr(K): 5.0e-7
  D Tr: 1.0e-6
  Total ionic charge: 9.5e-11
@@ -1636,6 +1636,8 @@ periodic_water:
  Ion-Ion interaction energy: 1.6e-11
  Force Norm (Hartree/Bohr): 1.48e-11
  fnrm2: 1.92e-11
+ trace(KS): 3.5e-11
+
 
 surface_boronnitride:
  Enl: 1.01e-9
