@@ -341,7 +341,6 @@ def runmenu(h, n, screen, menu, parent):
     return line
 
 
-
 def dump_info(h, n, screen, menu, parent):
     """Dump some information in the screen and come back to previous menu when done.
     menu must contains 'title', 'subtitle' and 'DESCRIPTION'. """
@@ -644,18 +643,17 @@ options:
         dockey = []
         for f in profs:
             inputfile = infiles[f]
-            helpstr = []
+            helpstr = ''
             if infiles[f].has_key('DESCRIPTION'):
-                helpstr.append(inputfile.pop('DESCRIPTION'))
+                helpstr += inputfile.pop('DESCRIPTION')
             if infiles[f].has_key('COMMENT'):
                 comment = inputfile.pop('COMMENT')
             else:
                 comment = ''
-            helpstr.append('Here should follow the File description')
-            helpstr.append(' ')
-            helpstr += yaml.dump(inputfile,
-                                 default_flow_style=False).split('\n')
-            dico = {'type': PROMPT, 'title': f + '     (' + str(comment) + ')',
+            helpstr += 'Here should follow the file description\n.'
+            helpstr += yaml.dump(inputfile, default_flow_style=False)
+            dico = {'type': PROMPT, 
+                    'title': f + '     (' + str(comment) + ')',
                     'subtitle': "Extended description for the input file '%s'" % str(f),
                     'DESCRIPTION': helpstr}
             dockey.append(dico)
