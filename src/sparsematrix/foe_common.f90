@@ -23,6 +23,9 @@ module module_func
       implicit none
       integer,intent(in) :: ifuncx
       real(kind=8),intent(in),optional :: powerx, efx, fscalex, betax, muax, mubx
+
+      call f_routine(id='func_set')
+
       select case (ifuncx)
       case(FUNCTION_POLYNOMIAL)
           ifunc = FUNCTION_POLYNOMIAL
@@ -45,6 +48,9 @@ module module_func
       case default
           call f_err_throw("wrong value of 'ifuncx'")
       end select
+
+      call f_release_routine()
+
     end subroutine func_set
 
     function func(x)
@@ -98,7 +104,7 @@ module foe_common
 
     ! Calculates chebychev expansion of fermi distribution.
     ! Taken from numerical receipes: press et al
-    subroutine chebft(A,B,N,cc,ef,fscale,tmprtr,x_max_error,max_error,mean_error)
+    subroutine chebft(iproc,nproc,A,B,N,cc,ef,fscale,tmprtr,x_max_error,max_error,mean_error)
       use module_base
       use module_func
       use yaml_output
@@ -106,12 +112,12 @@ module foe_common
       
       ! Calling arguments
       real(kind=8),intent(in) :: A, B, ef, fscale, tmprtr
-      integer,intent(in) :: n
+      integer,intent(in) :: iproc, nproc, n
       real(8),dimension(n),intent(out) :: cc
       real(kind=8),intent(out) :: x_max_error, max_error, mean_error
     
       ! Local variables
-      integer :: k, j
+      integer :: k, j, is, np, ii, jj
       real(kind=8) :: bma, bpa, y, arg, fac, tt
       real(kind=8),dimension(50000) :: cf
       !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
@@ -119,13 +125,26 @@ module foe_common
       call f_routine(id='chebft')
 
       if (tmprtr/=0.d0) call f_err_throw('tmprtr should be zero for the moment')
+
+      ! MPI parallelization... maybe only worth for large n?
+      ii = n/nproc
+      np = ii
+      is = iproc*ii
+      ii = n - nproc*ii
+      if (iproc<ii) then
+          np = np + 1
+      end if
+      is = is + min(iproc,ii)
+
+      !write(*,*) 'iproc, nproc, is, np, n', iproc, nproc, is, np, n
+      call f_zero(cc)
     
       if (n>50000) stop 'chebft'
       bma=0.5d0*(b-a)
       bpa=0.5d0*(b+a)
       fac=2.d0/n
-      !$omp parallel default(none) shared(bma,bpa,fac,n,tmprtr,cf,fscale,ef,cc) &
-      !$omp private(k,y,arg,tt,j)
+      !$omp parallel default(none) shared(bma,bpa,fac,n,tmprtr,cf,fscale,ef,cc,is,np,tt) &
+      !$omp private(k,y,arg,j,jj)
       !$omp do
       do k=1,n
           y=cos(pi*(k-0.5d0)*(1.d0/n))
@@ -137,16 +156,19 @@ module foe_common
           end if
       end do
       !$omp end do
-      !$omp do
-      do j=1,n
-          tt=0.d0
-          do  k=1,n
-              tt=tt+cf(k)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
-          end do
-          cc(j)=fac*tt
-      end do
-      !$omp end do
       !$omp end parallel
+      do j=1,np
+          jj = j + is
+          tt=0.d0
+          !$omp parallel do default(none) shared(n,cf,jj) private(k) reduction(+:tt)
+          do  k=1,n
+              tt=tt+cf(k)*cos((pi*(jj-1))*((k-0.5d0)*(1.d0/n)))
+          end do
+          !$omp end parallel do
+          cc(jj)=fac*tt
+      end do
+
+      call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
       call func_set(FUNCTION_ERRORFUNCTION, efx=ef, fscalex=fscale)
       call accuracy_of_chebyshev_expansion(n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)

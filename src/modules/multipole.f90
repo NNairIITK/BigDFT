@@ -942,7 +942,7 @@ module multipole
       integer :: iproc, nproc, norbp, meth_overlap
       type(sparse_matrix),intent(in) :: smats, smatl
       type(matrices),intent(in) :: kernel
-      type(matrices),intent(inout) :: ovrlp
+      type(matrices),intent(in) :: ovrlp
       real(kind=8),dimension(smatl%nvctr*smatl%nspin),intent(out) :: weight_matrix_compr
 
       ! Local variables
@@ -1976,11 +1976,11 @@ module multipole
       type(sparse_matrix),intent(in) :: smats
       type(sparse_matrix),intent(in) :: smatm
       type(sparse_matrix),intent(in) :: smatl
-      type(comms_linear),intent(inout) :: collcom, collcom_sr
+      type(comms_linear),intent(in) :: collcom, collcom_sr
       type(local_zone_descriptors),intent(in) :: lzd
       type(DFT_local_fields),intent(inout) :: denspot
       type(orthon_data),intent(in) :: orthpar
-      type(matrices),intent(inout) :: ovrlp
+      type(matrices),intent(in) :: ovrlp
       type(matrices),intent(in) :: ham
       type(matrices),intent(in) :: kernel
       real(kind=8),dimension(nphi),intent(in) :: lphi

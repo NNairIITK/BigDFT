@@ -314,7 +314,7 @@ module foe
                       call timing(iproc, 'FOE_auxiliary ', 'OF')
                       call timing(iproc, 'chebyshev_coef', 'ON')
             
-                      call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
+                      call chebft(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1,1), &
                            foe_data_get_real(foe_obj,"ef",ispin), fscale, foe_data_get_real(foe_obj,"tmprtr"), &
                            x_max_error, max_error, mean_error)
@@ -325,7 +325,7 @@ module foe
                       call evnoise(npl, cc(1,2,1), foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
         
-                      call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
+                      call chebft(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,1,1), &
                            foe_data_get_real(foe_obj,"ef",ispin), fscale_check, foe_data_get_real(foe_obj,"tmprtr"), &
                            x_max_error_check, max_error_check, mean_error_check)
