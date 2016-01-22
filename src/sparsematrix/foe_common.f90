@@ -82,6 +82,7 @@ module foe_common
   private
 
   !> Public routines
+  public :: get_chebyshev_expansion_coefficients
   public :: chebft
   public :: chebyshev_coefficients_penalyfunction
   public :: chder
@@ -101,6 +102,71 @@ module foe_common
 
   contains
 
+
+    subroutine get_chebyshev_expansion_coefficients(iproc, nproc, A, B, N, func, cc, x_max_error,max_error,mean_error)
+      use module_base
+      use yaml_output
+      implicit none
+      
+      ! Calling arguments
+      real(kind=8),intent(in) :: A, B
+      integer,intent(in) :: iproc, nproc, n
+      real(kind=8),external :: func
+      real(8),dimension(n),intent(out) :: cc
+      real(kind=8),intent(out) :: x_max_error, max_error, mean_error
+    
+      ! Local variables
+      integer :: k, j, is, np, ii, jj
+      real(kind=8) :: bma, bpa, y, arg, fac, tt
+      real(kind=8),dimension(:),allocatable :: cf
+    
+      call f_routine(id='get_chebyshev_expansion_coefficients')
+
+      ! MPI parallelization... maybe only worth for large n?
+      ii = n/nproc
+      np = ii
+      is = iproc*ii
+      ii = n - nproc*ii
+      if (iproc<ii) then
+          np = np + 1
+      end if
+      is = is + min(iproc,ii)
+
+      call f_zero(cc)
+      cf = f_malloc0(n,id='cf')
+    
+      bma=0.5d0*(b-a)
+      bpa=0.5d0*(b+a)
+      fac=2.d0/n
+      !$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,is,np,tt) &
+      !$omp private(k,y,arg,j,jj)
+      !$omp do
+      do k=1,n
+          y=cos(pi*(k-0.5d0)*(1.d0/n))
+          arg=y*bma+bpa
+              cf(k)=func(arg)
+      end do
+      !$omp end do
+      !$omp end parallel
+      do j=1,np
+          jj = j + is
+          tt=0.d0
+          !$omp parallel do default(none) shared(n,cf,jj) private(k) reduction(+:tt)
+          do  k=1,n
+              tt=tt+cf(k)*cos((pi*(jj-1))*((k-0.5d0)*(1.d0/n)))
+          end do
+          !$omp end parallel do
+          cc(jj)=fac*tt
+      end do
+
+      call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+      call f_free(cf)
+      call accuracy_of_chebyshev_expansion(n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
+    
+      call f_release_routine()
+
+    end subroutine get_chebyshev_expansion_coefficients
 
     ! Calculates chebychev expansion of fermi distribution.
     ! Taken from numerical receipes: press et al
@@ -197,7 +263,7 @@ module foe_common
       integer :: k, j
       !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
       real(kind=8) :: tt1, tt2, ttt, y, arg, fac, bma, bpa, x_max, max_err, mean_err
-      real(kind=8),dimension(50000,2) :: cf
+      real(kind=8),dimension(50000) :: cf
     
       call f_routine(id='chebyshev_coefficients_penalyfunction')
     
@@ -216,8 +282,8 @@ module foe_common
           y=cos(pi*(k-0.5d0)*(1.d0/n))
           arg=y*bma+bpa
           !write(*,*) 'arg, safe_exp(-(arg-a)*ttt)', arg, safe_exp(-(arg-a)*ttt)
-          cf(k,1)= safe_exp(-(arg-a)*ttt)-safe_exp((arg-b)*ttt)
-          cf(k,2)=-safe_exp(-(arg-a)*ttt)+safe_exp((arg-b)*ttt)
+          cf(k)= safe_exp(-(arg-a)*ttt)-safe_exp((arg-b)*ttt)
+          !cf(k,2)=-safe_exp(-(arg-a)*ttt)+safe_exp((arg-b)*ttt)
           !cf(k,1)= safe_exp(-(arg-a)*ttt)
           !cf(k,2)= safe_exp((arg-b)*ttt)
       end do
@@ -227,11 +293,16 @@ module foe_common
           tt1=0.d0
           tt2=0.d0
           do k=1,n
-              tt1=tt1+cf(k,1)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
-              tt2=tt2+cf(k,2)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
+              tt1=tt1+cf(k)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
+              !tt2=tt2+cf(k,2)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
           end do
           cc(j,1)=fac*tt1
-          cc(j,2)=fac*tt2
+          !cc(j,2)=fac*tt2
+      end do
+      !$omp end do
+      !$omp do
+      do j=1,n
+          cc(j,2) = -cc(j,1)
       end do
       !$omp end do
       !$omp end parallel

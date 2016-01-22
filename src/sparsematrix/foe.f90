@@ -28,7 +28,8 @@ module foe
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: scale_and_shift_matrix, chebft, chder, chebyshev_coefficients_penalyfunction, evnoise, &
-                            check_eigenvalue_spectrum_new, retransform_ext
+                            check_eigenvalue_spectrum_new, retransform_ext, get_chebyshev_expansion_coefficients
+      use module_func
       implicit none
     
       ! Calling arguments
@@ -54,7 +55,8 @@ module foe
       real(kind=8),dimension(:,:),allocatable :: chebyshev_polynomials, fermip_check
       real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
       real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
-      real(kind=8) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt, max_error_fake
+      real(kind=8) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt
+      real(kind=8) :: x_max_error_fake, max_error_fake, mean_error_fake
       real(kind=8) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check, fscale_new
       logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
       logical,dimension(2) :: emergency_stop
@@ -314,17 +316,34 @@ module foe
                       call timing(iproc, 'FOE_auxiliary ', 'OF')
                       call timing(iproc, 'chebyshev_coef', 'ON')
             
+                      if (foe_data_get_real(foe_obj,"tmprtr")/=0.d0) call f_err_throw('tmprtr must be zero')
+                      !!##call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
+                      !!##call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                      !!##     foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
+                      !!##     x_max_error, max_error, mean_error)
                       call chebft(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1,1), &
                            foe_data_get_real(foe_obj,"ef",ispin), fscale, foe_data_get_real(foe_obj,"tmprtr"), &
                            x_max_error, max_error, mean_error)
                       !!call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
                       !!     foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1,1), cc(1,2,1), npl)
+                      !!##call func_set(FUNCTION_EXPONENTIAL, betax=40.d0, &
+                      !!##     muax=foe_data_get_real(foe_obj,"evhigh",ispin), mubx=foe_data_get_real(foe_obj,"evlow",ispin))
+                      !!##call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                      !!##     foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,2,1), &
+                      !!##     x_max_error_fake, max_error_fake, mean_error_fake)
+                      !!##do ipl=1,npl
+                      !!##   cc(ipl,3,1) = -cc(ipl,2,1)
+                      !!##end do
                       call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,2,1), max_error_fake)
                       call evnoise(npl, cc(1,2,1), foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
         
+                      !!##call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
+                      !!##call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                      !!##     foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, func, cc_check(1,1,1), &
+                      !!##     x_max_error_check, max_error_check, mean_error_check)
                       call chebft(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,1,1), &
                            foe_data_get_real(foe_obj,"ef",ispin), fscale_check, foe_data_get_real(foe_obj,"tmprtr"), &
@@ -332,6 +351,13 @@ module foe
                       !call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
                       !     foe_data_get_real(foe_obj,"evhigh",ispin), &
                       !     cc_check(1,1,1), cc_check(1,2,1), npl_check)
+                      !!##call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
+                      !!##call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                      !!##     foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, func, cc_check(1,2,1), &
+                      !!##     x_max_error_check, max_error_check, mean_error_check)
+                      !!##do ipl=1,npl_check
+                      !!##   cc_check(ipl,3,1) = -cc_check(ipl,2,1)
+                      !!##end do
                       call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,2,1), max_error_fake)
 
