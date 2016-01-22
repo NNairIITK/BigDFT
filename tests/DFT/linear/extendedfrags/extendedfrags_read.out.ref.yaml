@@ -636,7 +636,6 @@
          errors, noise                 :  [ -4.508E-03,  4.5080E-03,  1.0000E-01 ]
          error estimation:
            max / mean error            :  [  1.08E-06,  1.43E-07 ]
-       eval max/min                    :  [ -7.037078E-01,  1.284556E+00 ]
        decay length of error function  :  5.000E-02
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -821,7 +820,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -7.030899E-01,  1.284217E+00 ]
        decay length of error function  :  3.125E-02
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -908,7 +906,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -7.027286E-01,  1.283557E+00 ]
        decay length of error function  :  3.906E-02
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -1063,7 +1060,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -7.027937E-01,  1.283447E+00 ]
        decay length of error function  :  2.441E-02
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -1156,7 +1152,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -7.028762E-01,  1.283311E+00 ]
        decay length of error function  :  3.052E-02
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -1234,7 +1229,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -7.029249E-01,  1.283231E+00 ]
        decay length of error function  :  3.815E-02
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -1385,7 +1379,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -7.029252E-01,  1.283231E+00 ]
        decay length of error function  :  2.384E-02
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -1500,7 +1493,6 @@
        errors, noise                   :  [ -4.508E-03,  4.5080E-03,  1.0000E-01 ]
        error estimation:
          max / mean error              :  [  1.08E-06,  1.43E-07 ]
-     eval max/min                      :  [ -7.02925E-01,  1.283231E+00 ]
      decay length of error function    :  2.980E-02
      decay length multiplicator        :  1.000E+00
      polynomial degree multiplicator   :  3.000E+00
@@ -1613,7 +1605,6 @@
          errors, noise                 :  [ -4.508E-03,  4.5080E-03,  1.0000E-01 ]
          error estimation:
            max / mean error            :  [  1.08E-06,  1.43E-07 ]
-       eval max/min                    :  [ -7.02925E-01,  1.283231E+00 ]
        decay length of error function  :  3.725E-02
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00

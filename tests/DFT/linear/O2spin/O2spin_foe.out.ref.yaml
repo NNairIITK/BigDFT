@@ -597,7 +597,6 @@
        error estimation:
          spin up, max / mean error     :  [  3.22E-15,  5.34E-16 ]
          spin down, max / mean error   :  [  2.66E-15,  4.98E-16 ]
-     eval max/min                      :  [ -9.885939E-01,  1.454534E+00 ]
      decay length of error function    :  5.000E-02
      decay length multiplicator        :  1.000E+00
      polynomial degree multiplicator   :  3.000E+00
@@ -689,7 +688,6 @@
      fscale reached upper limit; reset to:  5.0000000000000003E-002
      trace(KS)                         :  7.999999568094173
      need to repeat with sharper decay (new):  No
-     eval max/min                      :  [ -8.572785E-01,  1.550737E+00 ]
      decay length of error function    :  5.000E-02
      decay length multiplicator        :  1.000E+00
      polynomial degree multiplicator   :  3.000E+00
@@ -1172,7 +1170,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -9.973557E-01,  1.529275E+00 ]
        decay length of error function  :  7.812E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -1222,7 +1219,6 @@
        modify fscale                   : increase
        trace(KS)                       :  7.999999939077641
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -8.673364E-01,  1.568343E+00 ]
        decay length of error function  :  7.812E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -1338,7 +1334,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.002399E+00,  1.526731E+00 ]
        decay length of error function  :  9.766E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -1369,7 +1364,6 @@
        modify fscale                   : increase
        trace(KS)                       :  8.000000411043516
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -8.724668E-01,  1.565596E+00 ]
        decay length of error function  :  9.766E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -1474,7 +1468,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.085886E+00,  1.487928E+00 ]
        decay length of error function  :  1.221E-02
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -1514,7 +1507,6 @@
        modify fscale                   : increase
        trace(KS)                       :  7.999999832462427
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -9.598335E-01,  1.525161E+00 ]
        decay length of error function  :  1.221E-02
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -1703,7 +1695,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.079437E+00,  1.490951E+00 ]
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -1729,7 +1720,6 @@
        modify fscale                   : increase
        trace(KS)                       :  8.000000207675605
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -9.533183E-01,  1.528766E+00 ]
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -1964,7 +1954,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.071295E+00,  1.504266E+00 ]
        decay length of error function  :  6.250E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -2000,7 +1989,6 @@
        modify fscale                   : increase
        trace(KS)                       :  8.000000127352585
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -9.518385E-01,  1.551700E+00 ]
        decay length of error function  :  6.250E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -2126,7 +2114,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.083154E+00,  1.494934E+00 ]
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -2152,7 +2139,6 @@
        modify fscale                   : increase
        trace(KS)                       :  8.000000310883225
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -9.638166E-01,  1.542201E+00 ]
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -2268,7 +2254,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.135138E+00,  1.455554E+00 ]
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -2310,7 +2295,6 @@
        modify fscale                   : increase
        trace(KS)                       :  8.000000175296297
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -1.015892E+00,  1.501802E+00 ]
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -2432,7 +2416,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.268872E+00,  1.359453E+00 ]
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -2463,7 +2446,6 @@
        modify fscale                   : increase
        trace(KS)                       :  8.000000566884209
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -1.148643E+00,  1.402292E+00 ]
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -2740,7 +2722,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.292504E+00,  1.320748E+00 ]
        decay length of error function  :  6.250E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -2766,7 +2747,6 @@
        modify fscale                   : increase
        trace(KS)                       :  8.000000316139378
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -1.171032E+00,  1.386910E+00 ]
        decay length of error function  :  6.250E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -2866,7 +2846,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.285092E+00,  1.325568E+00 ]
        decay length of error function  :  6.250E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -2892,7 +2871,6 @@
        modify fscale                   : increase
        trace(KS)                       :  8.000000127166345
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -1.163428E+00,  1.391833E+00 ]
        decay length of error function  :  6.250E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -2990,7 +2968,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.181706E+00,  1.394725E+00 ]
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -3016,7 +2993,6 @@
        modify fscale                   : increase
        trace(KS)                       :  8.000000101862259
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -1.056938E+00,  1.463388E+00 ]
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -3145,7 +3121,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.168439E+00,  1.404877E+00 ]
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -3176,7 +3151,6 @@
        modify fscale                   : increase
        trace(KS)                       :  8.000000091477935
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -1.042751E+00,  1.473739E+00 ]
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -3402,7 +3376,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.170313E+00,  1.397196E+00 ]
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -3443,7 +3416,6 @@
        modify fscale                   : increase
        trace(KS)                       :  8.000000262896107
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -1.043419E+00,  1.476433E+00 ]
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -3511,7 +3483,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.176725E+00,  1.392873E+00 ]
        decay length of error function  :  6.250E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -3537,7 +3508,6 @@
        modify fscale                   : increase
        trace(KS)                       :  8.000000282581524
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -1.04981E+00,  1.471741E+00 ]
        decay length of error function  :  6.250E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -3624,7 +3594,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.279261E+00,  1.325116E+00 ]
        decay length of error function  :  7.812E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -3656,7 +3625,6 @@
        modify fscale                   : increase
        trace(KS)                       :  8.000000519432973
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -1.151998E+00,  1.398727E+00 ]
        decay length of error function  :  7.812E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -3773,7 +3741,6 @@
        method                          : FOE
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : from memory
-       eval max/min                    :  [ -1.283148E+00,  1.320871E+00 ]
        decay length of error function  :  9.766E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
@@ -3824,7 +3791,6 @@
        modify fscale                   : increase
        trace(KS)                       :  8.000000331232339
        need to repeat with sharper decay (new):  No
-       eval max/min                    :  [ -1.154645E+00,  1.394742E+00 ]
        decay length of error function  :  9.766E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
