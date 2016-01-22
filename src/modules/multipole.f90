@@ -943,7 +943,7 @@ module multipole
       type(sparse_matrix),intent(in) :: smats, smatl
       type(matrices),intent(in) :: kernel
       type(matrices),intent(in) :: ovrlp
-      real(kind=8),dimension(smatl%nvctr*smatl%nspin),intent(out) :: weight_matrix_compr
+      real(kind=8),dimension(smatl%nvctrp_tg*smatl%nspin),intent(out) :: weight_matrix_compr
 
       ! Local variables
       type(matrices),dimension(1) :: inv_ovrlp
@@ -970,20 +970,20 @@ module multipole
          call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
               kernel%matrix_compr, inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr)
       !end if
-      weight_matrix_compr_tg = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='weight_matrix_compr_tg')
+      !weight_matrix_compr_tg = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='weight_matrix_compr_tg')
       !if (norbp>0) then
          call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
-              inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr, weight_matrix_compr_tg)
+              inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr, weight_matrix_compr)
       !end if
       call f_free(proj_ovrlp_half_compr)
 
       call deallocate_matrices(inv_ovrlp(1))
 
-      ! Maybe this can be improved... not really necessary to gather the entire matrix
-      !weight_matrix_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='weight_matrix_compr')
-      call gather_matrix_from_taskgroups(iproc, nproc, smatl, weight_matrix_compr_tg, weight_matrix_compr)
+      !!! Maybe this can be improved... not really necessary to gather the entire matrix
+      !!!weight_matrix_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='weight_matrix_compr')
+      !!call gather_matrix_from_taskgroups(iproc, nproc, smatl, weight_matrix_compr_tg, weight_matrix_compr)
 
-      call f_free(weight_matrix_compr_tg)
+      !call f_free(weight_matrix_compr_tg)
 
       if (iproc==0) then
           call yaml_comment('Kernel calculated',hfill='~')
@@ -1957,10 +1957,11 @@ module multipole
                method, do_ortho, shift, nsigma, ixc, ep)
       use module_base
       use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, orthon_data, DFT_local_fields, comms_linear
-      use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, sparsematrix_malloc0, assignment(=), &
-                                   sparsematrix_malloc, matrices_null, sparsematrix_malloc_ptr, deallocate_matrices
+      use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
+                                   sparsematrix_malloc, matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
+                                   SPARSE_TASKGROUP
       use sparsematrix_init, only: matrixindex_in_compressed
-      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
+      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local
       use communications, only: transpose_localized
       use orthonormalization, only: orthonormalizelocalized
       use module_atoms, only: atoms_data
@@ -2034,14 +2035,17 @@ module multipole
 
 
       if (trim(method)=='projector') then
+          if (smatl%nspin/=1) then
+              call f_err_throw('projector not tested for spin polarized calculations, better to stop here')
+          end if
           ! Calculate the projector using the penalty term
           call projector_for_charge_analysis(at, smats, smatm, smatl, &
                ovrlp, ham, kernel, rxyz, calculate_centers=.false., write_output=.false., ortho=do_ortho, &
                natpx=natpx, isatx=isatx, nmaxx=nmaxx, nx=nx, projx=projx, neighborx=neighborx)
       end if
 
-      multipole_matrix_large = sparsematrix_malloc(smatl, SPARSE_FULL, id='multipole_matrix_large')
-      kernel_ortho = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='kernel_ortho')
+      multipole_matrix_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='multipole_matrix_large')
+      kernel_ortho = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='kernel_ortho')
 
       if (do_ortho==yes) then
           ! Calculate the kernel for orthormal support functions
@@ -2076,13 +2080,13 @@ module multipole
       end if
 
 
-      Qmat = sparsematrix_malloc(smatl,iaction=SPARSE_FULL,id='Qmat')
+      Qmat = sparsematrix_malloc(smatl,iaction=SPARSE_TASKGROUP,id='Qmat')
       atomic_multipoles = f_malloc0_ptr((/-ll.to.ll,0.to.ll,1.to.at%astruct%nat/),id='atomic_multipoles')
       atomic_monopoles_analytic = f_malloc0_ptr(1.to.at%astruct%nat,id='atomic_monopoles_analytic')
 
 
       multipole_matrix = matrices_null()
-      multipole_matrix%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_FULL, id='multipole_matrix%matrix_compr')
+      multipole_matrix%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_TASKGROUP, id='multipole_matrix%matrix_compr')
 
 
       locregcenter = f_malloc((/3,lzd%nlr/),id='locregcenter')
@@ -2104,11 +2108,11 @@ module multipole
                        orbs, collcom, lzd, smats, locregcenter, 'box', multipole_matrix)
               end if
 
-              call transform_sparse_matrix(smats, smatl, 'small_to_large', &
-                   smat_in=multipole_matrix%matrix_compr, lmat_out=multipole_matrix_large)
+              call transform_sparse_matrix_local(smats, smatl, 'small_to_large', &
+                   smatrix_compr_in=multipole_matrix%matrix_compr, lmatrix_compr_out=multipole_matrix_large)
 
               ! The minus sign is required since the phi*S_lm*phi represent the electronic charge which is a negative quantity
-              call dscal(smatl%nvctr*smatl%nspin, -1.d0, multipole_matrix_large(1), 1)
+              call dscal(smatl%nvctrp_tg*smatl%nspin, -1.d0, multipole_matrix_large(1), 1)
 
               ! Multiply the orthogonalized kernel with the multipole matrix
               call f_zero(Qmat)
@@ -2154,11 +2158,13 @@ module multipole
                   end do
               else if (trim(method)=='loewdin') then
                   do ispin=1,smatl%nspin
-                      ishift = (ispin-1)*smatl%nvctr
-                      do iorb=1,orbs%norb
-                          iiorb = modulo(iorb-1,smatl%nfvctr)+1
+                      ishift = (ispin-1)*smatl%nvctrp_tg
+                      ! Need to do this in parallel (norbp), since the matrices might not be fully filled (matrix taskgroup etc.)
+                      ! This should be carefull checked again.
+                      do iorb=1,orbs%norbp
+                          iiorb = modulo(orbs%isorb+iorb-1,smatl%nfvctr)+1
                           iat=smatl%on_which_atom(iiorb)
-                          ind = matrixindex_in_compressed(smatl, iorb, iorb)
+                          ind = matrixindex_in_compressed(smatl, iiorb, iiorb) - smatl%isvctrp_tg
                           ind = ind + ishift
                           atomic_multipoles(m,l,iat) = atomic_multipoles(m,l,iat) + qmat(ind)
                       end do
@@ -2167,11 +2173,11 @@ module multipole
 
               ! For the monopole, do the same with the exact overlap matrix
               if (l==0) then
-                  call transform_sparse_matrix(smats, smatl, 'small_to_large', &
-                       smat_in=ovrlp%matrix_compr, lmat_out=multipole_matrix_large)
+                  call transform_sparse_matrix_local(smats, smatl, 'small_to_large', &
+                       smatrix_compr_in=ovrlp%matrix_compr, lmatrix_compr_out=multipole_matrix_large)
 
                   ! The minus sign is required since the phi*S_lm*phi represent the electronic charge which is a negative quantity
-                  call dscal(smatl%nvctr*smatl%nspin, -1.d0, multipole_matrix_large(1), 1)
+                  call dscal(smatl%nvctrp_tg*smatl%nspin, -1.d0, multipole_matrix_large(1), 1)
 
                   ! Multiply the kernel with the multipole matrix. Use the original kernel not the orthogonalized one
                   call f_zero(Qmat)
@@ -2231,11 +2237,14 @@ module multipole
                       end do
                   else if (trim(method)=='loewdin') then
                       do ispin=1,smatl%nspin
-                          ishift = (ispin-1)*smatl%nvctr
-                          do iorb=1,orbs%norb
-                              iiorb = modulo(iorb-1,smatl%nfvctr)+1
+                          ishift = (ispin-1)*smatl%nvctrp_tg
+                          ! Need to do this in parallel (norbp), since the matrices might not be fully filled (matrix taskgroup etc.)
+                          ! This should be carefull checked again.
+                          do iorb=1,orbs%norbp
+                              iiorb = modulo(orbs%isorb+iorb-1,smatl%nfvctr)+1
                               iat=smatl%on_which_atom(iiorb)
-                              ind = matrixindex_in_compressed(smatl, iorb, iorb)
+                              ! SM: verufy this taskgroup shift
+                              ind = matrixindex_in_compressed(smatl, iiorb, iiorb) - smatl%isvctrp_tg
                               ind = ind + ishift
                               atomic_monopoles_analytic(iat) = atomic_monopoles_analytic(iat) + qmat(ind)
                           end do
@@ -2248,10 +2257,10 @@ module multipole
 
       call f_free(locregcenter)
 
-      if (trim(method)=='projector') then
+      !if (trim(method)=='projector') then
           call mpiallred(atomic_multipoles, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(atomic_monopoles_analytic, mpi_sum, comm=bigdft_mpi%mpi_comm)
-      end if
+      !end if
 
 
       ! The monopole term should be the net charge, i.e. add the positive atomic charges
@@ -3683,7 +3692,7 @@ module multipole
  subroutine unitary_test_multipoles(iproc, nproc, nphi, nphir, orbs, lzd, smat, collcom, hgrids)
    use module_base
    use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, comms_linear
-   use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, assignment(=), &
+   use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_TASKGROUP, assignment(=), &
                                 matrices_null, sparsematrix_malloc_ptr, deallocate_matrices
    use locreg_operations,only: workarr_sumrho, initialize_work_arrays_sumrho, deallocate_work_arrays_sumrho
    use sparsematrix_init, only: matrixindex_in_compressed
@@ -3715,7 +3724,7 @@ module multipole
    end if
 
    multipole_matrix = matrices_null()
-   multipole_matrix%matrix_compr = sparsematrix_malloc_ptr(smat, SPARSE_FULL, id='multipole_matrix%matrix_compr')
+   multipole_matrix%matrix_compr = sparsematrix_malloc_ptr(smat, SPARSE_TASKGROUP, id='multipole_matrix%matrix_compr')
 
    phi2r = f_malloc0(nphir,id='phi2r')
    phi1r = f_malloc(nphir,id='phi1r')
@@ -3898,7 +3907,7 @@ module multipole
    use yaml_output
    use multipole_base, only: lmax
    use bounds, only: geocode_buffers
-   use sparsematrix_base, only: matrices, matrices_null, sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=), &
+   use sparsematrix_base, only: matrices, matrices_null, sparsematrix_malloc_ptr, SPARSE_TASKGROUP, assignment(=), &
                                 deallocate_matrices
    use sparsematrix_init, only: matrixindex_in_compressed
    use orthonormalization, only: orthonormalizelocalized
@@ -3986,7 +3995,7 @@ module multipole
    center_locreg = f_malloc0((/3,tmb%lzd%nlr/),id='center_locreg')
    center_orb = f_malloc0((/3,tmb%lzd%nlr/),id='center_orb')
    multipole_matrix = matrices_null()
-   multipole_matrix%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, SPARSE_FULL, id='multipole_matrix%matrix_compr')
+   multipole_matrix%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, SPARSE_TASKGROUP, id='multipole_matrix%matrix_compr')
 
   ! Set phi1 to 1
   phi1r = f_malloc(max(tmb%collcom_sr%ndimpsi_c,1),id='phi1r')
