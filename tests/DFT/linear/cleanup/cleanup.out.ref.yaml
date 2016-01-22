@@ -1123,7 +1123,6 @@
      order                             :  0
      error estimation:
        max / mean error                :  [  1.67E-15,  5.27E-16 ]
-   eval max/min                        :  [ -9.658421E-01,  1.414256E-01 ]
    decay length of error function      :  1.000E-02
    decay length multiplicator          :  1.000E+00
    polynomial degree multiplicator     :  3.000E+00
@@ -1288,7 +1287,6 @@
      order                             :  0
      error estimation:
        max / mean error                :  [  1.67E-15,  5.27E-16 ]
-   eval max/min                        :  [ -9.658421E-01,  1.414256E-01 ]
    decay length of error function      :  1.000E-02
    decay length multiplicator          :  1.000E+00
    polynomial degree multiplicator     :  3.000E+00

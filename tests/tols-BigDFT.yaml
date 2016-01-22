@@ -671,6 +671,7 @@ hybrid-directmin:
 
 cdft_ohohfoe:
  Epsilon: 7.1e-10
+ Tr(K): 1.1e-08
 
 cdft_ohoh:
  Epsilon: 7.1e-10
@@ -1314,7 +1315,7 @@ geoptconstrained_BFGS:
 geoptconstrained_SDCG:
  eF: 8.7e-8
  guess for new ef: 8.7e-8
- D eF: 1.11e-7
+ D eF: 1.21e-7
  EH: 2.1e-10
  Epot: 1.1e-10
  Ekin: 2.1e-10
@@ -1333,7 +1334,7 @@ geoptconstrained_SDCG:
  ebs: 7.8e-11
  Ion-Ion interaction energy: 2.3e-10
  Atomic structure: 3.1e-9
- trace(KS): 1.7e-11
+ trace(KS): 1.74e-11
  Total charge: 2.1e-11
 
 O2spin_diag:
