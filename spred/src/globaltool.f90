@@ -15,8 +15,29 @@ program globaltool
     use module_globaltool
     implicit none
     type(gt_data) :: gdat
+    type(dictionary), pointer :: options
+    type(dictionary), pointer :: run
+    character(len=60)         :: run_id, naming_id
 
     call f_lib_initialize()
+
+    call bigdft_command_line_options(options)
+    call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
+    if (bigdft_nruns(options) > 1) then
+        call f_err_throw('runs-file not supported for globaltools')
+    endif
+    run => options // 'BigDFT' // 0
+
+    call bigdft_get_run_properties(run,input_id=run_id,&
+         naming_id=naming_id)
+    call bigdft_set_run_properties(run,&
+         posinp_id=trim(adjustl(filename))//trim(naming_id))
+
+    call run_objects_init(runObj,run)
+
+    !options and run are not needed
+    call dict_free(options)
+    nullify(run)
 
     call yaml_new_document()
 

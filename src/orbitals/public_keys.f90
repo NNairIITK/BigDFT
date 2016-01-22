@@ -302,6 +302,11 @@ module public_keys
   character(len=*), parameter :: ELECTRON_NUMBER = 'No. of Electrons'
   character(len=*), parameter :: POSINP_SOURCE = 'source'
 
+  !> spred 
+  character(len = *), parameter :: SPRED_VARIABLES = "spred"
+  character(len = *), parameter :: FP_METHOD_KEY = "fpmethod"
+  character(len = *), parameter :: FP_NATX_SPHERE = "natx_sphere"
+  character(len = *), parameter :: FP_ANGMOM = "angmom"
 end module public_keys
 
 !>module identifying constants that have to be used as enumerators
@@ -513,11 +518,7 @@ module public_enums
   
   type(f_enumerator), parameter, public :: MULTI_RUN_MODE         =f_enumerator('MULTI_RUN_MODE',-988,null())
 
-  !> spred 
-  character(len = *), parameter :: FP_METHOD_KEY = "fpmethod"
-  character(len = *), parameter :: FP_NATX_SPHERE = "natx_sphere"
-  character(len = *), parameter :: FP_ANGMOM = "angmom"
-
+  !> spred
   type(f_enumerator), parameter, public :: OMF_FP_METHOD      =f_enumerator('OMF_FP_METHOD',-1000,null())
   type(f_enumerator), parameter, public :: OMP_FP_METHOD      =f_enumerator('OMP_FP_METHOD',-999,null())
 end module public_enums

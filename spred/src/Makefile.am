@@ -58,6 +58,15 @@ sub_dirs_bin =
 check_PROGRAMS =
 endif
 
+# C objects
+c_level = SPRED_input_variables_fetch.c
+
+SPRED_input_variables_fetch.o: SPRED_input_variables_definition-inc.h
+#build the fortran include file with the stream of input variables into a local string
+#the sed command below will transform the entire yaml document into a c string, to be passed to fortran
+SPRED_input_variables_definition-inc.h: SPRED_input_variables_definition.yaml
+	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
+
 if HAVE_AMBERTOOLS
 amber_ld= @LIB_AMBERTOOLS@  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack
 else
@@ -87,7 +96,7 @@ AM_CFLAGS = @CUDA_INCLUDE@
 #objects which depends from module_types
 high_level = images.f90
 
-libmain_a_SOURCES = $(high_level)
+libmain_a_SOURCES = $(high_level) $(c_level)
 
 libspred_1_a_SOURCES =
 
@@ -161,3 +170,4 @@ check:
 
 NEB.o: images.o
 
+SPREDtypes.o: SPREDbase.o

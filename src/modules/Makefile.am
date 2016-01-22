@@ -270,7 +270,7 @@ module_dftbp.o: types.o
 module_tersoff.o: atoms_data.o
 module_bornmayerhugginstosifumi.o: atoms_data.o
 #module_lenosky_si.o: base.o defs.o
-#module_fingerprints.o: base.o
+module_fingerprints.o: bigdft_run.o 
 transposed_operations.o: types.o
 module_forces.o: types.o 
 unitary_tests.o: types.o interfaces.o communications_init.o communications.o transposed_operations.o rhopotential.o

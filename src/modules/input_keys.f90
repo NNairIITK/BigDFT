@@ -411,11 +411,6 @@ module module_input_keys
      !> Calculate the support function multipoles
      logical :: support_function_multipoles
 
-     !> spred input variables
-     type(f_enumerator) :: fp_method
-     integer :: natx_sphere       !< number of atoms in each sphere (for periodic fingerprint)
-     integer :: angmom       !< angular momentum of gaussian orbitals for overlap matrix fingerprints (both periodic and free BC)
-     
   end type input_variables
 
   interface input_set
@@ -1508,6 +1503,7 @@ contains
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
     case(MODE_VARIABLES)
        select case (trim(dict_key(val)))
        case(METHOD_KEY)

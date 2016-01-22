@@ -10,7 +10,6 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 module module_fingerprints
-    implicit none
 
     private
 
@@ -26,8 +25,9 @@ module module_fingerprints
 !=====================================================================
 subroutine finalize_fingerprint(fp)
     use module_base
+    implicit none
     !parameters
-    real(gp), allocatable intent(out) :: fp(:)
+    real(gp), allocatable, intent(out) :: fp(:)
 
     if(allocated(fp))then
        call f_free(fp) 
@@ -36,6 +36,8 @@ end subroutine finalize_fingerprint
 !=====================================================================
 subroutine init_fingerprint(runObj,fp)
     use module_base
+    use bigdft_run
+    implicit none
     !parameters
     type(run_objects), intent(in) :: runObj
     real(gp), allocatable, intent(out) :: fp(:) !the fingerprint array
@@ -82,6 +84,7 @@ end subroutine init_fingerprint
 !=================================================================
 subroutine fingerprint(runObj,rcov,rxyz,fp)
     use module_base
+    use bigdft_run
     implicit none
     !parameters
     type(run_objects), intent(in) :: runObj
@@ -101,7 +104,7 @@ subroutine fingerprint(runObj,rcov,rxyz,fp)
         if(size(fp)/=nid) then
           call f_err_throw('Array fp has wrong size')
         endif
-        call fingerprint_freebc(bigdft_nat(runObj),nid,bigdft_get_cell(runObj),'F',rcov,rxyzIn,fp)
+        call fingerprint_freebc(nat,nid,bigdft_get_cell(runObj),'F',rcov,rxyzIn,fp)
       case('OMP_FP_METHOD')
         nid=runObj%inputs%angmom*runObj%inputs%natx_sphere*nat
         if(size(fp)/=nid) then
@@ -112,24 +115,24 @@ subroutine fingerprint(runObj,rcov,rxyz,fp)
         if(size(fp)/=nid) then
           call f_err_throw('Array fp has wrong size')
         endif
-        call fingerprint_freebc(bigdft_nat(runObj),nid,bigdft_get_cell(runObj),'P',rcov,rxyzIn,fp)
+        call fingerprint_freebc(nat,nid,bigdft_get_cell(runObj),'P',rcov,rxyzIn,fp)
       case('OMSOLD_FP_METHOD')
         nid=runObj%inputs%angmom*nat
         if(size(fp)/=nid) then
           call f_err_throw('Array fp has wrong size')
         endif
-        call fingerprint_freebc(bigdft_nat(runObj),nid,bigdft_get_cell(runObj),'S',rcov,rxyzIn,fp)
+        call fingerprint_freebc(nat,nid,bigdft_get_cell(runObj),'S',rcov,rxyzIn,fp)
       case DEFAULT
         call f_err_throw('Following FP method is unknown: '//trim(fpmethod))
     end select
 end subroutine fingerprint
 !=====================================================================
-subroutine fingerprint_periodic(nat, natx_sphere, iatypes, lseg, alat, rxyz, rcov, fp)
+subroutine fingerprint_periodic(nat, natx_sphere, iatypes, lseg, alat, rxyz, rcov, fpall)
   implicit real*8 (a-h,o-z)
   parameter(nwork=100)
   dimension workalat(nwork) 
   dimension rxyz_sphere(3, natx_sphere),rcov_sphere(natx_sphere)
-  dimension fp(lseg*natx_sphere,nat),fp(lseg*natx_sphere),amplitude(natx_sphere)
+  dimension fpall(lseg*natx_sphere,nat),fp(lseg*natx_sphere),amplitude(natx_sphere)
   dimension rxyz(3,nat),rcov(nat),iatypes(nat)
   dimension alat(3, 3),alatalat(3,3),eigalat(3)
   allocatable   :: om(:,:) , work(:)
@@ -232,10 +235,10 @@ subroutine fingerprint_periodic(nat, natx_sphere, iatypes, lseg, alat, rxyz, rco
 
 
           do i=1,nid
-          fp(i,iat)=fp(nid+1-i)
+          fpall(i,iat)=fp(nid+1-i)
           enddo
           do i=nid+1,lseg*natx_sphere
-          fp(i,iat)=0.d0
+          fpall(i,iat)=0.d0
           enddo
 
 !          write(*,*) 'fpall,iat=',iat,nid,nat_sphere,lseg
@@ -615,9 +618,12 @@ end subroutine fingerprint_freebc
 !=====================================================================
 subroutine fpdistance(runObj,fp1,fp2,d)
     use module_base
+    use bigdft_run
     implicit none
     !parameters
     type(run_objects), intent(in) :: runObj
+    real(gp), intent(in) :: fp1(:), fp2(:)
+    real(gp), intent(out) :: d 
     !internal
     select case(trim(runObj%inputs%fpmethod))
       case('OMF_FP_METHOD','OMPOLD_FP_METHOD','OMSOLD_FP_METHOD')
@@ -627,18 +633,22 @@ subroutine fpdistance(runObj,fp1,fp2,d)
       case DEFAULT
         call f_err_throw('Following FP method is unknown: '//trim(fpmethod))
     end select
-end subroutine init_fingerprint
 end subroutine fpdistance
 !=====================================================================
 subroutine fpdistance_omp(runObj,fp1,fp2,d)
     use module_base
+    use bigdft_run
     implicit none
     !parameters
     type(run_objects), intent(in) :: runObj
-    integer, intent(in) :: iat, jat
+    real(gp), intent(in) :: fp1(:), fp2(:)
+    real(gp), intent(out) :: d 
     !internal
     integer :: iat, jat
     real(gp) :: tt
+    integer :: nat
+
+    nat = bigdft_nat(runObj)
 
     do iat=1,nat
         do jat=1,nat
@@ -650,14 +660,13 @@ subroutine fpdistance_omp(runObj,fp1,fp2,d)
             cost(iat,jat)=tt
         enddo
     enddo
-    call apc(nat, cost, iassign, fpd)
+    call apc(nat, cost, iassign, d)
 end subroutine fpdistance_omp
 !=====================================================================
 subroutine fpdistance_omf(fp1,fp2,d)
     use module_base
     implicit none
     !parameters
-    integer, intent(in) :: nid
     real(gp), intent(in) :: fp1(:), fp2(:)
     real(gp), intent(out) :: d
     !internal
@@ -672,6 +681,7 @@ end subroutine fpdistance_omf
 !=====================================================================
 logical function equal(runObj,iproc,prefix,txt,nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
     use module_base
+    use bigdft_run
     implicit none
     !parameter
     type(run_objects), intent(in) :: runObj
