@@ -1624,7 +1624,7 @@ periodic_water:
  Omega: 5.9e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
- eF: 9.8e-8
+ eF: 9.81e-8
  D eF: 9.9e-8
  energy: 5.9e-10
  guess for new ef: 9.9e-8
