@@ -23,10 +23,10 @@ module SPREDtypes
   
   !>Datatype defining the inputs variables for SPRED
   type, public :: SPRED_inputs
-    !> spred input variables
+    !> fingerprint input variables
     type(f_enumerator) :: fp_method
-    integer :: natx_sphere       !< number of atoms in each sphere (for periodic fingerprint)
-    integer :: angmom       !< angular momentum of gaussian orbitals for overlap matrix fingerprints (both periodic and free BC)
+    integer :: fp_natx_sphere       !< number of atoms in each sphere (for periodic fingerprint)
+    integer :: fp_angmom       !< angular momentum of gaussian orbitals for overlap matrix fingerprints (both periodic and free BC)
   end type SPRED_inputs
 
 
@@ -37,7 +37,87 @@ contains
     implicit none
   end subroutine SPRED_init 
 
-  !>routine to fill the input variables of the kernel
+  subroutine merge_input_file_to_dict(dict, fname)
+    use module_base
+    !use yaml_output, only :yaml_map
+    use yaml_parse, only: yaml_parse_from_char_array
+    use yaml_output
+    implicit none
+    !Arguments
+    type(dictionary), pointer :: dict            !< Dictionary of the input files. Should be initialized on entry
+    character(len = *), intent(in) :: fname      !< Name of the file where the dictionary has to be read from 
+    !local variables
+    integer(kind = 8) :: cbuf, cbuf_len
+    integer :: ierr
+    character(len = max_field_length) :: val
+    character, dimension(:), allocatable :: fbuf
+    type(dictionary), pointer :: udict
+    external :: getFileContent,copyCBuffer,freeCBuffer
+
+
+    call f_routine(id='merge_input_file_to_dict')
+       call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
+
+    fbuf=f_malloc0_str(1,int(cbuf_len),id='fbuf')
+
+       call copyCBuffer(fbuf, cbuf, cbuf_len)
+       call freeCBuffer(cbuf)
+    end if
+
+
+    call f_err_open_try()
+    call yaml_parse_from_char_array(udict, fbuf)
+    call f_free_str(1,fbuf)
+    ! Handle with possible partial dictionary.
+    if (dict_len(udict) > 0) then
+       call dict_update(dict, udict // 0)
+    end if
+    call dict_free(udict)
+    ierr = 0
+    if (f_err_check()) ierr = f_get_last_error(val)
+    !call f_dump_all_errors()
+    call f_err_close_try()
+    if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
+    call f_release_routine()
+
+  END SUBROUTINE merge_input_file_to_dict
+
+
+  !> This function returns a dictionary with all the input variables of a SPRED run filled.
+  !! This dictionary is constructed from an updated version of the input variables dictionary
+  !! following the input files as defined by the user
+  subroutine read_input_dict_from_files(radical,dict)
+    use SPRED_base
+    !use module_input_dicts, only: merge_input_file_to_dict
+    use input_old_text_format
+    !use yaml_output
+    implicit none
+    character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
+    type(dictionary), pointer :: dict            !< Input dictionary, has to be nullified at input
+    !local variables
+    integer :: ierr
+    logical :: exists_default, exists_user
+    character(len = max_field_length) :: fname
+
+    call f_routine(id='read_input_dict_from_files')
+
+
+    ! We try first default.yaml
+    inquire(file = "default.yaml", exist = exists_default)
+    if (exists_default) call merge_input_file_to_dict(dict, "default.yaml")
+    ! We try then radical.yaml
+    if (len_trim(radical) == 0 .or. trim(radical) == LOGFILE) then
+       fname(1:len(fname)) = "input.yaml"
+    else
+       fname(1:len(fname)) = trim(radical) // ".yaml"
+    end if
+    inquire(file = trim(fname), exist = exists_user)
+    if (exists_user) call merge_input_file_to_dict(dict, trim(fname))
+
+    call f_release_routine()
+  end subroutine read_input_dict_from_files
+
+  !>routine to fill the input variables of spred
   subroutine SPRED_input_dict(dict,dict_minimal)
     use dictionaries
     use f_input_file
@@ -56,17 +136,17 @@ contains
     type(dictionary), pointer :: profiles
     type(dictionary), pointer :: nested,asis
 
-    call f_routine(id='PS_input_dict')
+    call f_routine(id='SPRED_input_dict')
 
     nullify(parameters,parsed_parameters,profiles)
 
     !alternative filling of parameters from hard-coded source file
     !call getstaticinputdef(cbuf_add,params_size)
-    call getpsinputdefsize(params_size)
+    call getspredinputdefsize(params_size)
     !allocate array
     params=f_malloc_str(1,params_size,id='params')
     !fill it and parse dictionary
-    call getpsinputdef(params)
+    call getspredinputdef(params)
 
     call yaml_parse_from_char_array(parsed_parameters,params)
     !there is only one document in the input variables specifications
@@ -96,7 +176,7 @@ contains
 
   end subroutine SPRED_input_dict
 
-  subroutine PS_fill_variables(k,inputs,dict)
+  subroutine SPRED_fill_variables(k,inputs,dict)
     use dictionaries
     implicit none
     type(coulomb_operator), intent(inout) :: k
@@ -110,23 +190,20 @@ contains
     do while(associated(lvl))
        var => dict_iter(lvl)
        do while(associated(var))
-          call PS_input_fill(k,inputs,dict_key(lvl),var)
+          call SPRED_input_fill(k,inputs,dict_key(lvl),var)
           var => dict_next(var)
        end do
        lvl => dict_next(lvl)
     end do
 
-  end subroutine PS_fill_variables
+  end subroutine SPRED_fill_variables
 
   !> Set the dictionary from the input variables
-  subroutine PS_input_fill(k,inputs, level, val)
-    use PSbase
-    use environment
+  subroutine SPRED_input_fill(inputs, level, val)
+    use SPREDbase
     use yaml_output, only: yaml_warning
     use dictionaries
-    use numerics
     implicit none
-    type(coulomb_operator), intent(inout) :: k
     type(SPRED_inputs), intent(inout) :: inputs
     type(dictionary), pointer :: val
     character(len = *), intent(in) :: level
@@ -143,117 +220,20 @@ contains
     if (index(dict_key(val), "_attributes") > 0) return
 
     select case(trim(level))
-    case(KERNEL_VARIABLES)
+    case(FP_VARIABLES)
        select case (trim(dict_key(val)))
-       case(SCREENING)
-          k%mu=val
-       case(ISF_ORDER)
-          k%itype_scf=val
-       case(STRESS_TENSOR)
-          inputs%calculate_strten=val
+       case(FP_METHOD)
+          inputs%fp_method=val
+       case(FP_NATX_SPHERE)
+          inputs%fp_natx_sphere=val
+       case(FP_ANGMOM)
+          inputs%fp_angmom=val
        case DEFAULT
-          if (k%mpi_env%iproc==0) &
-               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
-       end select
-    case (ENVIRONMENT_VARIABLES)
-       select case (trim(dict_key(val)))
-       case (CAVITY_KEY)
-          strn=val
-
-          select case(trim(strn))
-          case('vacuum')
-             call f_enum_attr(k%method,PS_NONE_ENUM)
-          case('rigid')
-             call f_enum_attr(k%method,PS_RIGID_ENUM)
-          case('sccs')   
-             call f_enum_attr(k%method,PS_SCCS_ENUM)
-          end select
-       case (EPSILON_KEY)
-          k%cavity%epsilon0=val
-       case (EDENSMAXMIN)
-          dummy_gp=val
-          k%cavity%edensmin=dummy_gp(1)
-          k%cavity%edensmax=dummy_gp(2)
-       case (DELTA_KEY)
-          dummy_d=val
-          ! Divided by 4 because both rigid cavities are 4*delta spread 
-          k%cavity%delta=0.25_gp*dummy_d
-       case (CAVITATION)
-          dummy_l=val
-          inputs%only_electrostatic=.not. dummy_l
-       case (GAMMAS_KEY)
-          dummy_d=val
-          k%cavity%gammaS=dummy_d*SurfAU
-       case (ALPHAS_KEY)
-          dummy_d=val
-          k%cavity%alphaS=dummy_d*SurfAU
-       case (BETAV_KEY)
-          dummy_d=val
-          k%cavity%betaV=dummy_d/AU_GPa
-       case (GPS_ALGORITHM)
-          strn=val
-          select case(trim(strn))
-          case('PI')
-             call f_enum_update(dest=k%method,src=PS_PI_ENUM)
-          case('PCG')
-             call f_enum_update(dest=k%method,src=PS_PCG_ENUM)
-          end select
-       case (PI_ETA)
-          k%PI_eta=val
-       case (INPUT_GUESS)
-          inputs%use_input_guess=val
-       case (FD_ORDER)
-          k%nord=val
-       case (ITERMAX)
-          k%max_iter=val
-       case (MINRES)
-          k%minres=val
-       case DEFAULT
-          if (k%mpi_env%iproc==0) &
-               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
-       end select
-    case (SETUP_VARIABLES)
-       select case (trim(dict_key(val)))       
-       case (ACCEL)
-          strn=val
-          select case(trim(strn))
-          case('CUDA')
-             k%igpu=1
-          case('none')
-             k%igpu=0
-          end select
-       case (KEEP_GPU_MEMORY)
-          dummy_l=val
-          if (dummy_l) then
-             k%keepGPUmemory=1
-          else
-             k%keepGPUmemory=0
-          end if
-       case (TASKGROUP_SIZE_KEY)
-
-       case (GLOBAL_DATA)
-          dummy_l=val
-          if (dummy_l) then
-             inputs%datacode='G'
-          else
-             inputs%datacode='D'
-          end if
-       case (VERBOSITY)
-          dummy_l=val
-          if (dummy_l) then
-             inputs%verbosity_level=1
-          else
-             inputs%verbosity_level=0
-          end if
-       case (OUTPUT)
-          !for the moment no treatment, to be added
-       case DEFAULT
-          if (k%mpi_env%iproc==0) &
-               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
     case DEFAULT
     end select
-  END SUBROUTINE PS_input_fill
+  END SUBROUTINE SPRED_input_fill
 
 
 end module SPREDtypes

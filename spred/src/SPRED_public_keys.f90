@@ -12,8 +12,8 @@ module SPRED_public_keys
   public ! guess why?
 
   !> spred 
-  character(len = *), parameter :: SPRED_VARIABLES = "spred"
-  character(len = *), parameter :: FP_METHOD_KEY = "fpmethod"
+  character(len = *), parameter :: FP_VARIABLES = "fingerprints"
+  character(len = *), parameter :: FP_METHOD = "fpmethod"
   character(len = *), parameter :: FP_NATX_SPHERE = "natx_sphere"
   character(len = *), parameter :: FP_ANGMOM = "angmom"
 end module SPRED_public_keys
