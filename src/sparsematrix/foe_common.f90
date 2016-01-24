@@ -139,7 +139,7 @@ module foe_common
     
       ! Local variables
       integer :: k, j, is, np, ii, jj
-      real(kind=8) :: bma, bpa, y, arg, fac, tt
+      real(kind=8) :: bma, bpa, y, arg, fac, tt, one_over_n
       real(kind=8),dimension(:),allocatable :: cf
     
       call f_routine(id='get_chebyshev_expansion_coefficients')
@@ -153,18 +153,26 @@ module foe_common
           np = np + 1
       end if
       is = is + min(iproc,ii)
+      !check
+      ii = np
+      call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      if (ii/=n) then
+          call f_err_throw('wrong partition of n')
+      end if
+      
 
       call f_zero(cc)
       cf = f_malloc0(n,id='cf')
     
       bma=0.5d0*(b-a)
       bpa=0.5d0*(b+a)
-      fac=2.d0/n
-      !$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,is,np,tt) &
+      fac=2.d0/real(n,kind=8)
+      one_over_n = 1.d0/real(n,kind=8)
+      !$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,is,np,tt,one_over_n) &
       !$omp private(k,y,arg,j,jj)
       !$omp do
       do k=1,n
-          y=cos(pi*(k-0.5d0)*(1.d0/n))
+          y=cos(pi*(real(k,kind=8)-0.5d0)*(one_over_n))
           arg=y*bma+bpa
           cf(k)=func(arg)
       end do
@@ -173,9 +181,9 @@ module foe_common
       do j=1,np
           jj = j + is
           tt=0.d0
-          !$omp parallel do default(none) shared(n,cf,jj) private(k) reduction(+:tt)
+          !$omp parallel do default(none) shared(n,cf,jj,one_over_n) private(k) reduction(+:tt)
           do  k=1,n
-              tt=tt+cf(k)*cos((pi*(jj-1))*((k-0.5d0)*(1.d0/n)))
+              tt=tt+cf(k)*cos((pi*real(jj-1,kind=8))*((real(k,kind=8)-0.5d0)*(one_over_n)))
           end do
           !$omp end parallel do
           cc(jj)=fac*tt
