@@ -1702,7 +1702,7 @@ multipoles_OH-:
  diff from reference kernel: 1.1e-8
  Atomic Forces (Ha/Bohr): 3.3e-11
  Clean forces norm (Ha/Bohr): 3.4e-11
- Raw forces norm (Ha/Bohr): 3.7e-11
+ Raw forces norm (Ha/Bohr): 5.1e-11
  Average noise forces: 1.01e-9
  decay length of error function: 1.1e-5
  number of corrected points: 92

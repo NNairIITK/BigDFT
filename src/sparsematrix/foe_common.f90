@@ -61,7 +61,7 @@ module module_func
       case(FUNCTION_POLYNOMIAL)
           func = x**power
       case(FUNCTION_ERRORFUNCTION)
-          func = 0.5d0*erfc((x-ef)*(1.d0/fscale))
+          func = 0.5d0*erfcc((x-ef)*(1.d0/fscale))
       case(FUNCTION_EXPONENTIAL)
           !func = safe_exp(beta*(x-mu))
           func = safe_exp(beta*(x-mua)) - safe_exp(-beta*(x-mub))
@@ -69,6 +69,28 @@ module module_func
           call f_err_throw("wrong value of 'ifunc'")
       end select
     end function func
+
+
+
+    !> Calculates the error function complement with an error of less than 1.2E-7
+    function erfcc(x)
+      implicit none
+    
+      ! Calling arguments
+      real(8),intent(in) :: x
+      real(8) :: erfcc
+    
+      ! Local variables
+      real(8) :: z, t
+    
+      z=abs(x)
+      t=1.d0/(1.+0.5d0*z)
+      erfcc=t*safe_exp(-z*z-1.26551223+t*(1.00002368+t*(.37409196+ &
+            & t*(.09678418+t*(-.18628806+t*(.27886807+t*(-1.13520398+ &
+            & t*(1.48851587+t*(-.82215223+t*.17087277)))))))))
+      if (x.lt.0.) erfcc=2.D0-erfcc
+    
+    end function erfcc
 
 end module module_func
 
@@ -83,8 +105,8 @@ module foe_common
 
   !> Public routines
   public :: get_chebyshev_expansion_coefficients
-  public :: chebft
-  public :: chebyshev_coefficients_penalyfunction
+  !public :: chebft
+  !public :: chebyshev_coefficients_penalyfunction
   public :: chder
   public :: evnoise
   !public :: erfcc
@@ -144,7 +166,7 @@ module foe_common
       do k=1,n
           y=cos(pi*(k-0.5d0)*(1.d0/n))
           arg=y*bma+bpa
-              cf(k)=func(arg)
+          cf(k)=func(arg)
       end do
       !$omp end do
       !$omp end parallel
@@ -168,81 +190,81 @@ module foe_common
 
     end subroutine get_chebyshev_expansion_coefficients
 
-    ! Calculates chebychev expansion of fermi distribution.
-    ! Taken from numerical receipes: press et al
-    subroutine chebft(iproc,nproc,A,B,N,cc,ef,fscale,tmprtr,x_max_error,max_error,mean_error)
-      use module_base
-      use module_func
-      use yaml_output
-      implicit none
-      
-      ! Calling arguments
-      real(kind=8),intent(in) :: A, B, ef, fscale, tmprtr
-      integer,intent(in) :: iproc, nproc, n
-      real(8),dimension(n),intent(out) :: cc
-      real(kind=8),intent(out) :: x_max_error, max_error, mean_error
-    
-      ! Local variables
-      integer :: k, j, is, np, ii, jj
-      real(kind=8) :: bma, bpa, y, arg, fac, tt
-      real(kind=8),dimension(50000) :: cf
-      !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
-    
-      call f_routine(id='chebft')
+    !!! Calculates chebychev expansion of fermi distribution.
+    !!! Taken from numerical receipes: press et al
+    !!subroutine chebft(iproc,nproc,A,B,N,cc,ef,fscale,tmprtr,x_max_error,max_error,mean_error)
+    !!  use module_base
+    !!  use module_func
+    !!  use yaml_output
+    !!  implicit none
+    !!  
+    !!  ! Calling arguments
+    !!  real(kind=8),intent(in) :: A, B, ef, fscale, tmprtr
+    !!  integer,intent(in) :: iproc, nproc, n
+    !!  real(8),dimension(n),intent(out) :: cc
+    !!  real(kind=8),intent(out) :: x_max_error, max_error, mean_error
+    !!
+    !!  ! Local variables
+    !!  integer :: k, j, is, np, ii, jj
+    !!  real(kind=8) :: bma, bpa, y, arg, fac, tt
+    !!  real(kind=8),dimension(50000) :: cf
+    !!  !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
+    !!
+    !!  call f_routine(id='chebft')
 
-      if (tmprtr/=0.d0) call f_err_throw('tmprtr should be zero for the moment')
+    !!  if (tmprtr/=0.d0) call f_err_throw('tmprtr should be zero for the moment')
 
-      ! MPI parallelization... maybe only worth for large n?
-      ii = n/nproc
-      np = ii
-      is = iproc*ii
-      ii = n - nproc*ii
-      if (iproc<ii) then
-          np = np + 1
-      end if
-      is = is + min(iproc,ii)
+    !!  ! MPI parallelization... maybe only worth for large n?
+    !!  ii = n/nproc
+    !!  np = ii
+    !!  is = iproc*ii
+    !!  ii = n - nproc*ii
+    !!  if (iproc<ii) then
+    !!      np = np + 1
+    !!  end if
+    !!  is = is + min(iproc,ii)
 
-      !write(*,*) 'iproc, nproc, is, np, n', iproc, nproc, is, np, n
-      call f_zero(cc)
-    
-      if (n>50000) stop 'chebft'
-      bma=0.5d0*(b-a)
-      bpa=0.5d0*(b+a)
-      fac=2.d0/n
-      !$omp parallel default(none) shared(bma,bpa,fac,n,tmprtr,cf,fscale,ef,cc,is,np,tt) &
-      !$omp private(k,y,arg,j,jj)
-      !$omp do
-      do k=1,n
-          y=cos(pi*(k-0.5d0)*(1.d0/n))
-          arg=y*bma+bpa
-          if (tmprtr.eq.0.d0) then
-              cf(k)=.5d0*erfcc((arg-ef)*(1.d0/fscale))
-          else
-              cf(k)=1.d0/(1.d0+safe_exp( (arg-ef)*(1.d0/tmprtr) ) )
-          end if
-      end do
-      !$omp end do
-      !$omp end parallel
-      do j=1,np
-          jj = j + is
-          tt=0.d0
-          !$omp parallel do default(none) shared(n,cf,jj) private(k) reduction(+:tt)
-          do  k=1,n
-              tt=tt+cf(k)*cos((pi*(jj-1))*((k-0.5d0)*(1.d0/n)))
-          end do
-          !$omp end parallel do
-          cc(jj)=fac*tt
-      end do
+    !!  !write(*,*) 'iproc, nproc, is, np, n', iproc, nproc, is, np, n
+    !!  call f_zero(cc)
+    !!
+    !!  if (n>50000) stop 'chebft'
+    !!  bma=0.5d0*(b-a)
+    !!  bpa=0.5d0*(b+a)
+    !!  fac=2.d0/n
+    !!  !$omp parallel default(none) shared(bma,bpa,fac,n,tmprtr,cf,fscale,ef,cc,is,np,tt) &
+    !!  !$omp private(k,y,arg,j,jj)
+    !!  !$omp do
+    !!  do k=1,n
+    !!      y=cos(pi*(k-0.5d0)*(1.d0/n))
+    !!      arg=y*bma+bpa
+    !!      if (tmprtr.eq.0.d0) then
+    !!          cf(k)=.5d0*erfcc((arg-ef)*(1.d0/fscale))
+    !!      else
+    !!          cf(k)=1.d0/(1.d0+safe_exp( (arg-ef)*(1.d0/tmprtr) ) )
+    !!      end if
+    !!  end do
+    !!  !$omp end do
+    !!  !$omp end parallel
+    !!  do j=1,np
+    !!      jj = j + is
+    !!      tt=0.d0
+    !!      !$omp parallel do default(none) shared(n,cf,jj) private(k) reduction(+:tt)
+    !!      do  k=1,n
+    !!          tt=tt+cf(k)*cos((pi*(jj-1))*((k-0.5d0)*(1.d0/n)))
+    !!      end do
+    !!      !$omp end parallel do
+    !!      cc(jj)=fac*tt
+    !!  end do
 
-      call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+    !!  call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
-      call func_set(FUNCTION_ERRORFUNCTION, efx=ef, fscalex=fscale)
-      call accuracy_of_chebyshev_expansion(n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
-      !if (bigdft_mpi%iproc==0) call yaml_map('expected accuracy of Chebyshev expansion',max_error)
-    
-      call f_release_routine()
-    
-    end subroutine chebft
+    !!  call func_set(FUNCTION_ERRORFUNCTION, efx=ef, fscalex=fscale)
+    !!  call accuracy_of_chebyshev_expansion(n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
+    !!  !if (bigdft_mpi%iproc==0) call yaml_map('expected accuracy of Chebyshev expansion',max_error)
+    !!
+    !!  call f_release_routine()
+    !!
+    !!end subroutine chebft
     
     
     
@@ -404,25 +426,6 @@ module foe_common
     
     
     
-    !> Calculates the error function complement with an error of less than 1.2E-7
-    function erfcc(x)
-      implicit none
-    
-      ! Calling arguments
-      real(8),intent(in) :: x
-      real(8) :: erfcc
-    
-      ! Local variables
-      real(8) :: z, t
-    
-      z=abs(x)
-      t=1.d0/(1.+0.5d0*z)
-      erfcc=t*safe_exp(-z*z-1.26551223+t*(1.00002368+t*(.37409196+ &
-            & t*(.09678418+t*(-.18628806+t*(.27886807+t*(-1.13520398+ &
-            & t*(1.48851587+t*(-.82215223+t*.17087277)))))))))
-      if (x.lt.0.) erfcc=2.D0-erfcc
-    
-    end function erfcc
     
     
     !> Evaluates chebychev expansion

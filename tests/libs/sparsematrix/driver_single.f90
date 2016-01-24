@@ -63,9 +63,9 @@ program driver_single
   ! 2) name of the file with the descriptors for the output matrix
   ! 3) exponent for the operation (mat**exponent)
   ! 4) the degree of the polynomial that shall be used
-  read(*,*) filename_in, filename_out, exp_power, norder_polynomial
-
   if (bigdft_mpi%iproc==0) then
+       read(*,*) filename_in, filename_out, exp_power, norder_polynomial
+
       call yaml_mapping_open('Input parameters')
       call yaml_map('File with input matrix',trim(filename_in))
       call yaml_map('File with output matrix descriptors',trim(filename_out))
@@ -73,6 +73,12 @@ program driver_single
       call yaml_map('Polynomial degree',norder_polynomial)
       call yaml_mapping_close()
   end if
+
+  ! Send the input parameters to all MPI tasks
+  call mpibcast(filename_in, root=0, comm=bigdft_mpi%mpi_comm)
+  call mpibcast(filename_out, root=0, comm=bigdft_mpi%mpi_comm)
+  call mpibcast(exp_power, root=0, comm=bigdft_mpi%mpi_comm)
+  call mpibcast(norder_polynomial, root=0, comm=bigdft_mpi%mpi_comm)
 
   ! Read the input matrix descriptors and the matrix itself, and create the correpsonding structures
   if (bigdft_mpi%iproc==0) then
@@ -230,10 +236,12 @@ program driver_single
          end do
       end do
 
-      call yaml_mapping_open('Check the deviation from unity of the operation S^x*S^-x')
-      call yaml_map('max_error',max_error,fmt='(es10.3)')
-      call yaml_map('sum_error',sum_error/real(smat%nvctr,kind=8),fmt='(es10.3)')
-      call yaml_mapping_close()
+      if (bigdft_mpi%iproc==0) then
+          call yaml_mapping_open('Check the deviation from unity of the operation S^x*S^-x')
+          call yaml_map('max_error',max_error,fmt='(es10.3)')
+          call yaml_map('sum_error',sum_error/real(smat%nvctr,kind=8),fmt='(es10.3)')
+          call yaml_mapping_close()
+      end if
 
     end subroutine check_deviation_from_unity
 

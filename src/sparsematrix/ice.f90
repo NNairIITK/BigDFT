@@ -26,8 +26,9 @@ module ice
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
-      use foe_common, only: scale_and_shift_matrix, cheb_exp, chder, chebyshev_coefficients_penalyfunction, &
-                            evnoise, check_eigenvalue_spectrum_new
+      use foe_common, only: scale_and_shift_matrix, cheb_exp, chder, &
+                            evnoise, check_eigenvalue_spectrum_new, get_chebyshev_expansion_coefficients
+      use module_func
       implicit none
     
       ! Calling arguments
@@ -41,14 +42,15 @@ module ice
       ! Local variables
       integer :: npl, jorb, it, ii, iseg
       integer :: isegstart, isegend, iismall, nsize_polynomial
-      integer :: iismall_ovrlp, iismall_ham, npl_boundaries, i
+      integer :: iismall_ovrlp, iismall_ham, npl_boundaries, i, ipl
       integer,parameter :: nplx=50000
       real(kind=8),dimension(:,:),allocatable :: chebyshev_polynomials
       real(kind=8),dimension(:,:,:),pointer :: inv_ovrlp_matrixp
       real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
       real(kind=8),dimension(:,:,:),pointer :: cc
       real(kind=8) :: anoise, scale_factor, shift_value
-      real(kind=8) :: evlow_old, evhigh_old, tt, max_error_fake
+      real(kind=8) :: evlow_old, evhigh_old, tt
+      real(kind=8) :: x_max_error_fake, max_error_fake, mean_error_fake
       real(kind=8) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total
       logical :: restart, calculate_SHS
       logical,dimension(2) :: emergency_stop
@@ -225,7 +227,10 @@ module ice
                               call scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, inv_ovrlp_smat, &
                                    ovrlp_smat, ovrlp_scaled, isshift, &
                                    matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
-                              write(*,*) 'eval_multiplicator, eval_multiplicator_total',eval_multiplicator, eval_multiplicator_total
+                              if (iproc==0) then
+                                  write(*,*) 'eval_multiplicator, eval_multiplicator_total', &
+                                              eval_multiplicator, eval_multiplicator_total
+                              end if
                           else
                               call scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, inv_ovrlp_smat, &
                                    ovrlp_smat, ovrlp_mat, isshift, &
@@ -269,7 +274,7 @@ module ice
                           end if
                           if (npl>nplx) stop 'npl>nplx'
                       else
-                          call get_poynomial_degree(iproc, ispin, ncalc, ex, foe_obj, 5, 100, 1.d-10, &
+                          call get_poynomial_degree(iproc, nproc, ispin, ncalc, ex, foe_obj, 5, 100, 1.d-10, &
                                npl, cc, anoise)
                       end if
 
@@ -311,8 +316,16 @@ module ice
                                    x_max_error(icalc), max_error(icalc), mean_error(icalc))
                               !call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
                               !     foe_data_get_real(foe_obj,"evhigh",ispin), cc(1:,1:,icalc:), cc(1:,2:,icalc:), npl)
-                              call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
-                                   foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1:,2:,icalc:), max_error_fake)
+                              call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
+                                   muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
+                              call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                                   foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1:,2:,icalc), &
+                                   x_max_error_fake, max_error_fake, mean_error_fake)
+                              do ipl=1,npl
+                                 cc(ipl,3,1) = -cc(ipl,2,1)
+                              end do
+                              !!##call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
+                              !!##     foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1:,2:,icalc:), max_error_fake)
                               call evnoise(npl, cc(1:,2:,icalc:), foe_data_get_real(foe_obj,"evlow",ispin), &
                                    foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
                           end do
@@ -497,16 +510,17 @@ module ice
 
 
     ! Determine the polynomial degree which yields the desired precision
-    subroutine get_poynomial_degree(iproc, ispin, ncalc, ex, foe_obj, &
+    subroutine get_poynomial_degree(iproc, nproc, ispin, ncalc, ex, foe_obj, &
                npl_min, npl_max, max_polynomial_degree, npl, cc, anoise)
       use module_base
       use foe_base, only: foe_data, foe_data_get_real
-      use foe_common, only: cheb_exp, chder, chebyshev_coefficients_penalyfunction, evnoise
+      use foe_common, only: cheb_exp, chder, evnoise, get_chebyshev_expansion_coefficients
       use yaml_output
+      use module_func
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, ispin, ncalc
+      integer,intent(in) :: iproc, nproc, ispin, ncalc
       integer,intent(in) :: npl_min, npl_max
       real(kind=8),dimension(ncalc),intent(in) :: ex
       type(foe_data),intent(in) :: foe_obj
@@ -516,10 +530,11 @@ module ice
       real(kind=8),intent(out) :: anoise
 
       ! Local variables
-      integer :: ipl, icalc, j
+      integer :: ipl, icalc, j, jpl
       logical :: error_ok, found_degree
       real(kind=8),dimension(:),allocatable :: max_error, x_max_error, mean_error
       real(kind=8),dimension(:,:,:),allocatable :: cc_trial
+      real(kind=8) :: x_max_error_penaltyfunction, max_error_penaltyfunction, mean_error_penaltyfunction
 
       call f_routine(id='get_poynomial_degree')
 
@@ -556,8 +571,24 @@ module ice
                    x_max_error(icalc), max_error(icalc), mean_error(icalc))
               !call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
               !     foe_data_get_real(foe_obj,"evhigh",ispin), cc_trial(1,1,icalc), cc_trial(1,2,icalc), ipl)
-              call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
-                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, cc_trial(1:ipl,2:3,icalc), anoise)
+              call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
+                   muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
+              call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,2,icalc), &
+                   x_max_error_penaltyfunction, max_error_penaltyfunction, mean_error_penaltyfunction)
+              do jpl=1,ipl
+                  cc_trial(jpl,3,icalc) = -cc_trial(jpl,2,icalc)
+              end do
+              !!do jpl=1,ipl
+              !!    write(100,*) 'NEW: jpl, val', jpl, cc_trial(jpl,2,icalc)
+              !!    write(100,*) 'NEW: jpl, val', jpl, cc_trial(jpl,3,icalc)
+              !!end do
+              !!call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
+              !!     foe_data_get_real(foe_obj,"evhigh",ispin), ipl, cc_trial(1:ipl,2:3,icalc), anoise)
+              !!do jpl=1,ipl
+              !!    write(200,*) 'OLD: jpl, val', jpl, cc_trial(jpl,2,icalc)
+              !!    write(200,*) 'OLD: jpl, val', jpl, cc_trial(jpl,3,icalc)
+              !!end do
               !call evnoise(ipl, cc_trial(1,2,icalc), foe_data_get_real(foe_obj,"evlow",ispin), &
               !     foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
           end do
@@ -585,7 +616,8 @@ module ice
               end if
           end do
           if (error_ok) then
-              if (anoise>1.d-2) then
+              !!if (anoise>1.d-2) then
+              if (max_error_penaltyfunction>1.d-2) then
                   error_ok = .false.
               end if
           end if
