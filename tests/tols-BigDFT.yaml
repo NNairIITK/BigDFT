@@ -461,7 +461,7 @@ cleanup:
  Tr(K): 2.7e-7
  guess for new ef: 3.1e-9
  eF: 2.8e-9
- D Tr: 1.1e-8
+ D Tr: 1.1e-6
  ebs: 1.5e-9
  HOMO energy: 1.8e-10
  LUMO energy: 1.6e-10
@@ -672,6 +672,7 @@ hybrid-directmin:
 cdft_ohohfoe:
  Epsilon: 7.1e-10
  Tr(K): 1.1e-08
+ guess for new ef: 1.1e-09
 
 cdft_ohoh:
  Epsilon: 7.1e-10
@@ -885,7 +886,7 @@ foe:
  D: 1.1e-10
  Energy (Hartree): 1.3e-10
  norm(P): 1.1e-07
- trace: 1.4e-11
+ trace: 2.0e-11
 
 onlyhigh:
  Energies: 2.1e-9
@@ -1624,13 +1625,13 @@ periodic_water:
  Omega: 5.9e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
- eF: 9.81e-8
- D eF: 9.9e-8
+ eF: 2.0e-7
+ D eF: 2.0e-7
  energy: 5.9e-10
- guess for new ef: 9.9e-8
+ guess for new ef: 1.0e-7
  number of corrected points: 1
  charge diff: 5.2e-7
- diff: 2.2e-10
+ diff: 4.4e-10
  Tr(K): 5.0e-7
  D Tr: 1.0e-6
  Total ionic charge: 9.5e-11
@@ -1640,7 +1641,7 @@ periodic_water:
  Ion-Ion interaction energy: 1.6e-11
  Force Norm (Hartree/Bohr): 1.48e-11
  fnrm2: 1.92e-11
- trace(KS): 3.5e-11
+ trace(KS): 7.0e-11
 
 
 surface_boronnitride:
@@ -1931,12 +1932,12 @@ igortho_94:
  delta: 4.1e-11
  radius for normalization: 1.1e-2
  multiplicator for the confinement: 4.38e-11
- Force Norm (Hartree/Bohr): 3.7e-8
+ Force Norm (Hartree/Bohr): 4.3e-8
 
 extendedfrags_nofrags:
- eF: 1.6e-9
+ eF: 1.7e-9
  guess for new ef: 2.0e-9
- charge diff: 1.8e-8
+ charge diff: 1.9e-8
  Tr(K): 2.1e-8
  D Tr: 1.0e-9
  D eF: 1.1e-8
@@ -1945,11 +1946,12 @@ extendedfrags_nofrags:
  EXC: 1.1e-10
  Energies: 1.1e-10
  Pressure: 3.4e-11
+ Omega: 1.3e-11
 
 extendedfrags_read:
  Omega: 1.5e-10
  eF: 1.5e-9
- charge diff: 2.3e-9
+ charge diff: 6.0e-9
  Tr(K): 1.1e-8
  D eF: 1.1e-9
  guess for new ef: 1.5e-9
@@ -1975,7 +1977,7 @@ extendedfrags_readrotated:
  D Tr: 1.1e-9
  ebs_check: 1.4e-10
  ebs: 1.4e-10
- charge diff: 2.0e-9
+ charge diff: 6.0e-9
  Pressure: 4.7e-11
  Epot: 1.1e-10
  EvXC: 1.01e-10
@@ -1986,6 +1988,7 @@ extendedfrags_readrotated:
  Atomic Forces (Ha/Bohr): 1.7e-11
  Omega: 9.1e-11
  Average noise forces: 1.1e-10
+ Clean forces norm (Ha/Bohr): 1.2e-11
  Keys to ignore: [WARNINGS]
 
 
@@ -2000,9 +2003,9 @@ extendedfrags_write:
  ebs_check: 1.04e-9
  ebs: 1.04e-9
  guess for new ef: 6.0e-9
- Tr(K): 4.01e-8
+ Tr(K): 6.1e-8
  Total charge: 6.01e-11
- charge diff: 3.2e-8
+ charge diff: 5.8e-8
  trace(KS): 6.18e-11
  eF: 7.0e-9
  Pressure: 6.9e-11
