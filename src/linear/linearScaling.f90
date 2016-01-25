@@ -138,6 +138,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot, max_error, mean_error, r2, occ, tot_occ, ef, ef_low, ef_up, q, fac
   type(matrices),dimension(24) :: rpower_matrix
+  character(len=20) :: method, do_ortho
 
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp
   real(kind=8) :: max_deviation, mean_deviation, max_deviation_p, mean_deviation_p
@@ -2054,7 +2055,7 @@ end if
       ! @ END NEW ##############################################################################################
       call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
-           rxyz, calculate_centers=.false., write_output=.true., &
+           rxyz, calculate_centers=.false., write_output=.true., ortho='yes', &
            rpower_matrix=rpower_matrix, orbs=tmb%orbs)
       do i=1,24
           call deallocate_matrices(rpower_matrix(i))
@@ -2153,19 +2154,37 @@ end if
       !    !write(300+iproc,*) tmb%linmat%ovrlp_%matrix_compr
       !    !write(310+iproc,*) tmb%linmat%kernel_%matrix_compr
       multipoles = f_malloc_ptr((/-lmax.to.lmax,0.to.lmax,1.to.at%astruct%nat/),id='multipoles')
-      if (input%lin%charge_multipoles==1) then
-          call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
-               max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
-               tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &
-               denspot, tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
-               method='loewdin', shift=shift, nsigma=input%nsigma, ixc=input%ixc, ep=ep )
-      else if (input%lin%charge_multipoles==2) then
-          call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
-               max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
-               tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &
-               denspot, tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
-               method='projector', shift=shift, nsigma=input%nsigma, ixc=input%ixc, ep=ep)
+      if (input%lin%charge_multipoles/=0) then
+          select case (input%lin%charge_multipoles)
+          case (1,11)
+              method='loewdin'
+          case (2,12) 
+              method='projector'
+          case default
+              call f_err_throw('wrong value of charge_multipoles')
+          end select
+          select case (input%lin%charge_multipoles)
+          case (1,2)
+              do_ortho='yes'
+          case (11,12) 
+              do_ortho='no'
+          case default
+              call f_err_throw('wrong value of charge_multipoles')
+          end select
       end if
+      !if (input%lin%charge_multipoles==1) then
+          call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
+               max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
+               tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &
+               denspot, tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
+               method=method, do_ortho=do_ortho, shift=shift, nsigma=input%nsigma, ixc=input%ixc, ep=ep )
+      !!else if (input%lin%charge_multipoles==2) then
+      !!    call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
+      !!         max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
+      !!         tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &
+      !!         denspot, tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
+      !!         method='projector', do_ortho=do_ortho, shift=shift, nsigma=input%nsigma, ixc=input%ixc, ep=ep)
+      !!end if
       !call get_optimal_sigmas(iproc, nproc, KSwfn, tmb, at, input, ep, shift, denspot)
       !!# TEST ######################################################################################################
       !test_pot = f_malloc0((/size(denspot%V_ext,1),size(denspot%V_ext,2),size(denspot%V_ext,3),2/),id='test_pot')

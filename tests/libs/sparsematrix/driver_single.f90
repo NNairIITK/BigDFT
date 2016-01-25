@@ -63,9 +63,9 @@ program driver_single
   ! 2) name of the file with the descriptors for the output matrix
   ! 3) exponent for the operation (mat**exponent)
   ! 4) the degree of the polynomial that shall be used
-  read(*,*) filename_in, filename_out, exp_power, norder_polynomial
-
   if (bigdft_mpi%iproc==0) then
+       read(*,*) filename_in, filename_out, exp_power, norder_polynomial
+
       call yaml_mapping_open('Input parameters')
       call yaml_map('File with input matrix',trim(filename_in))
       call yaml_map('File with output matrix descriptors',trim(filename_out))
@@ -74,21 +74,45 @@ program driver_single
       call yaml_mapping_close()
   end if
 
+  ! Send the input parameters to all MPI tasks
+  call mpibcast(filename_in, root=0, comm=bigdft_mpi%mpi_comm)
+  call mpibcast(filename_out, root=0, comm=bigdft_mpi%mpi_comm)
+  call mpibcast(exp_power, root=0, comm=bigdft_mpi%mpi_comm)
+  call mpibcast(norder_polynomial, root=0, comm=bigdft_mpi%mpi_comm)
+
   ! Read the input matrix descriptors and the matrix itself, and create the correpsonding structures
+  if (bigdft_mpi%iproc==0) then
+      call yaml_comment('Input matrix',hfill='-')
+      call yaml_mapping_open('Input matrix structure')
+  end if
   call sparse_matrix_and_matrices_init_from_file_bigdft(filename_in, bigdft_mpi%iproc, bigdft_mpi%nproc, smat_in, mat_in)
-  !mat_in%matrix_compr(:) = 10.d0*mat_in%matrix_compr(:)
+  if (bigdft_mpi%iproc==0) then
+      call yaml_mapping_close()
+  end if
+  mat_in%matrix_compr(:) = 100.d0*mat_in%matrix_compr(:)
 
   ! Read the output matrix descriptors, and create the correpsonding structures
+  if (bigdft_mpi%iproc==0) then
+      call yaml_comment('Output matrix',hfill='-')
+      call yaml_mapping_open('Output matrix structure')
+  end if
   call sparse_matrix_init_from_file_bigdft(filename_out, bigdft_mpi%iproc, bigdft_mpi%nproc, smat_out)
+  if (bigdft_mpi%iproc==0) then
+      call yaml_mapping_close()
+  end if
 
   ! Prepare the output matrix structure
   call matrices_init(smat_out, mat_out(1))
+
+  if (bigdft_mpi%iproc==0) then
+      call yaml_comment('Performing Matrix Chebyshev Expansion',hfill='-')
+  end if
 
   call timing(bigdft_mpi%mpi_comm,'INIT','PR')
 
   ! Perform the operation mat_out = mat_in**exp_power
   call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, 1, (/exp_power/), &
-       smat_in, smat_out, mat_in, mat_out)
+       smat_in, smat_out, mat_in, mat_out, npl_auto=.true.)
 
   call timing(bigdft_mpi%mpi_comm,'CALC','PR')
 
@@ -99,13 +123,19 @@ program driver_single
   call matrices_init(smat_out, mat_check_accur(2))
 
   ! Perform the operation mat_out = mat_in**exp_power
+  if (bigdft_mpi%iproc==0) then
+      call yaml_comment('Performing Matrix Chebyshev Expansion',hfill='-')
+  end if
   call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, 1, (/-exp_power/), &
-       smat_in, smat_out, mat_in, mat_check_accur(1))
+       smat_in, smat_out, mat_in, mat_check_accur(1), npl_auto=.true.)
   ! Multiply the previously calculated one with this new none. The result should be the identity.
   call matrix_matrix_multiplication(bigdft_mpi%iproc, bigdft_mpi%nproc, smat_out, &
        mat_out(1), mat_check_accur(1), mat_check_accur(2))
 
   ! Check the deviation from unity
+  if (bigdft_mpi%iproc==0) then
+      call yaml_comment('Check deviation from Unity')
+  end if
   call check_deviation_from_unity(smat_out, mat_check_accur(2))
 
   ! Deallocate all structures
@@ -206,10 +236,12 @@ program driver_single
          end do
       end do
 
-      call yaml_mapping_open('Check the deviation from unity of the operation S^x*S^-x')
-      call yaml_map('max_error',max_error)
-      call yaml_map('sum_error',sum_error/real(smat%nvctr,kind=8))
-      call yaml_mapping_close()
+      if (bigdft_mpi%iproc==0) then
+          call yaml_mapping_open('Check the deviation from unity of the operation S^x*S^-x')
+          call yaml_map('max_error',max_error,fmt='(es10.3)')
+          call yaml_map('sum_error',sum_error/real(smat%nvctr,kind=8),fmt='(es10.3)')
+          call yaml_mapping_close()
+      end if
 
     end subroutine check_deviation_from_unity
 
