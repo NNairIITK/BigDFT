@@ -609,8 +609,10 @@ module ice
               call yaml_mapping_open(flow=.true.)
               call yaml_map('ipl',ipl)
               do icalc=1,ncalc
+                  !!call yaml_map('Operation '//trim(yaml_toa(icalc)), &
+                  !!    (/x_max_error(icalc),max_error(icalc),mean_error(icalc),anoise/),fmt='(es9.2)')
                   call yaml_map('Operation '//trim(yaml_toa(icalc)), &
-                      (/x_max_error(icalc),max_error(icalc),mean_error(icalc),anoise/),fmt='(es9.2)')
+                      (/x_max_error(icalc),max_error(icalc),mean_error(icalc),max_error_penaltyfunction/),fmt='(es9.2)')
               end do
               !call yaml_mapping_close()
               call yaml_mapping_close()
