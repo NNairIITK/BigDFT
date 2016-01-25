@@ -542,8 +542,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           if (tmb%linmat%s%ntaskgroup/=1 .or. tmb%linmat%m%ntaskgroup/=1 .or. tmb%linmat%l%ntaskgroup/=1) then
               call f_err_throw('PEXSI is not yet tested with matrix taskgroups', err_name='BIGDFT_RUNTIME_ERROR')
           end if
-          call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%l, tmb%linmat%ovrlp_%matrix_compr, ovrlp_large, 'small_to_large')
-          call transform_sparse_matrix(tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_%matrix_compr, ham_large, 'small_to_large')
+          call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%l, 'small_to_large', &
+               smat_in=tmb%linmat%ovrlp_%matrix_compr, lmat_out=ovrlp_large)
+          call transform_sparse_matrix(tmb%linmat%m, tmb%linmat%l, 'small_to_large', &
+               smat_in=tmb%linmat%ham_%matrix_compr, lmat_out=ham_large)
           !write(*,*) 'iproc, ham_large', iproc, ham_large
           call pexsi_driver(iproc, nproc, tmb%linmat%l%nfvctr, tmb%linmat%l%nvctr, row_ind, col_ptr, &
                ham_large, ovrlp_large, foe_data_get_real(tmb%foe_obj,"charge",1), pexsi_npoles, &
@@ -3104,7 +3106,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       kernel(1) = matrices_null()
       kernel(1)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
       foe_obj = foe_data_null()
-      call init_foe(iproc, nproc, input, orbs_KS, 0.d0, foe_obj, .true.)
+      call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, foe_obj)
       do ispin=1,input%nspin
           call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",ispin)-dq,ispin)
       end do
@@ -3126,7 +3128,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       kernel(2) = matrices_null()
       kernel(2)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
       foe_obj = foe_data_null()
-      call init_foe(iproc, nproc, input, orbs_KS, 0.d0, foe_obj, .true.)
+      call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, foe_obj)
       do ispin=1,input%nspin
           call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",ispin)+dq,ispin)
       end do
@@ -3171,7 +3173,7 @@ end subroutine calculate_gap_FOE
 subroutine write_pexsi_matrices(nproc, smat_h, smat_s, matrix_compr_h, matrix_compr_s)
   use module_base
   use sparsematrix_init, only: sparsebigdft_to_ccs
-  use io, only:  write_ccs_matrix
+  use sparsematrix_io, only:  write_ccs_matrix
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, &
                                assignment(=), SPARSE_FULL
   use sparsematrix, only: transform_sparsity_pattern

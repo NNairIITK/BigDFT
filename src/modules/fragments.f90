@@ -878,8 +878,8 @@ contains
 
        !replace with no rotation
        if (J0<J .or. J0-J<1e-6) then
-          write(*,'(a,6(es12.4,2x))') 'replacing suggested transformation with zero transformation ',&
-               J0,J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans%rot_axis
+          !write(*,'(a,6(es12.4,2x))') 'replacing suggested transformation with zero transformation ',&
+          !     J0,J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans%rot_axis
           frag_trans%Rmat=0.0d0
           frag_trans%Rmat(1,1)=1.0d0
           frag_trans%Rmat(2,2)=1.0d0

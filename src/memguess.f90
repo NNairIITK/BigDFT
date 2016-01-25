@@ -27,15 +27,17 @@ program memguess
    use communications_base, only: deallocate_comms
    use psp_projectors_base, only: free_DFT_PSP_projectors
    use io, only: read_linear_matrix_dense, read_coeff_minbasis, writeLinearCoefficients, &
-                 read_sparse_matrix, read_linear_coefficients
+                 read_linear_coefficients
    use sparsematrix_base, only: sparse_matrix, matrices_null, assignment(=), SPARSE_FULL, &
                                 sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, DENSE_FULL
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
    use sparsematrix, only: uncompress_matrix
+   use sparsematrix_io, only: read_sparse_matrix
    !use postprocessing_linear, only: loewdin_charge_analysis_core
    use public_enums
    use module_input_keys, only: print_dft_parameters
    use IObox
+   use io, only: plot_density
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical
@@ -554,7 +556,10 @@ program memguess
       write(*,*) "Write new density file..."
       dpbox%ngatherarr = f_malloc_ptr((/ 0.to.0, 1.to.2 /),id='dpbox%ngatherarr')
 
-      call plot_density(0,1,trim(fileTo),at,at%astruct%rxyz,dpbox,nspin,rhocoeff)
+      !call plot_density(0,1,trim(fileTo),at,at%astruct%rxyz,dpbox,nspin,rhocoeff)
+      call dump_field(trim(fileTo),at%astruct%geocode,dpbox%ndims,dpbox%hgrids,nspin,rhocoeff,&
+                      at%astruct%rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
+
       call f_free_ptr(rhocoeff)
       write(*,*) "Done"
       stop
@@ -728,9 +733,9 @@ program memguess
             at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
        !!call read_sparse_matrix(trim(ham_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
        !!     matrix_compr, on_which_atom=on_which_atom_s)
-       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
-       call bigdft_to_sparsebigdft(iproc, nproc, at%astruct%nat, nspin, geocode, nfvctr_s, nfvctrp_s, isfvctr_s, &
-            on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
+       !call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
+       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_s, nvctr_s, nseg_s, keyg_s, smat_s, &
+            nspin, geocode, on_which_atom_s)
        ovrlp_mat = matrices_null()
        ovrlp_mat%matrix = sparsematrix_malloc0_ptr(smat_s,iaction=DENSE_FULL,id='smat_s%matrix')
        call uncompress_matrix(iproc, smat_s, matrix_compr, ovrlp_mat%matrix)
@@ -744,9 +749,9 @@ program memguess
        !     at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_m)
        call read_sparse_matrix(trim(ham_file), nspin, geocode, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
             matrix_compr, on_which_atom=on_which_atom_m)
-       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
-       call bigdft_to_sparsebigdft(iproc, nproc, at%astruct%nat, nspin, geocode, nfvctr_m, nfvctrp_m, isfvctr_m, &
-            on_which_atom_m, nvctr_m, nseg_m, keyg_m, smat_m)
+       !call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
+       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_m, nvctr_m, nseg_m, keyg_m, smat_m, &
+            nspin, geocode, on_which_atom_m)
        ham_mat = matrices_null()
        ham_mat%matrix = sparsematrix_malloc0_ptr(smat_m,iaction=DENSE_FULL,id='smat_m%matrix')
        call uncompress_matrix(iproc, smat_m, matrix_compr, ham_mat%matrix)

@@ -110,7 +110,8 @@
    nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
    solvent                             : vacuum # Electrostatic environment for Poisson Equation
-   external_potential                  : 0.0 #    Multipole moments on an external potential
+   external_potential:
+     values                            : __not_a_value__
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates

@@ -1367,7 +1367,7 @@ contains
     use module_base
     !use module_input_dicts, only: merge_input_file_to_dict
     use input_old_text_format
-    !use yaml_output
+    use yaml_output
     implicit none
     character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
     type(mpi_environment), intent(in) :: mpi_env !< The environment where the variables have to be updated
@@ -1379,7 +1379,6 @@ contains
 
     call f_routine(id='read_input_dict_from_files')
 
-
     ! We try first default.yaml
     inquire(file = "default.yaml", exist = exists_default)
     if (exists_default) call merge_input_file_to_dict(dict, "default.yaml", mpi_env)
@@ -1390,6 +1389,7 @@ contains
        fname(1:len(fname)) = trim(radical) // ".yaml"
     end if
     inquire(file = trim(fname), exist = exists_user)
+
     if (exists_user) call merge_input_file_to_dict(dict, trim(fname), mpi_env)
 
     !in the case if input_minimal is required, then accept the conversion
@@ -1487,50 +1487,13 @@ contains
 
     if (present(input_id)) then
        call get_run_field(run,INPUT_NAME,input_id,'input')
-!!$       if (INPUT_NAME .in. run) then
-!!$          input_id = run // INPUT_NAME
-!!$       else if (RADICAL_NAME .in. run) then
-!!$          input_id = run // RADICAL_NAME
-!!$       else
-!!$          call f_zero(input_id)
-!!$          !input_id = " "
-!!$       end if
-!!$       if (len_trim(input_id) == 0) call f_strcpy(src=&
-!!$            "input" // trim(run_id_toa()),dest=input_id)
     end if
     if (present(posinp_id)) then 
        call get_run_field(run,POSINP,posinp_id,'posinp')
-!!$       if (POSINP .in. run) then
-!!$          posinp_id = run // POSINP
-!!$       else if (RADICAL_NAME .in. run) then
-!!$          posinp_id = run // RADICAL_NAME
-!!$          if (trim(posinp_id) == LOGFILE) call f_zero(posinp_id)
-!!$       else
-!!$          call f_zero(posinp_id)
-!!$          !posinp_id = " "
-!!$       end if
-!!$       if (len_trim(posinp_id) == 0) call f_strcpy(src=&
-!!$            "posinp" // trim(run_id_toa()),dest=posinp_id)
     end if
     if (present(naming_id)) then
        call get_run_field(run,RADICAL_NAME,naming_id,'')
        if (naming_id /= trim(run_id_toa())) call f_strcpy(src="-" // trim(naming_id),dest=naming_id)
-!!$       if (RADICAL_NAME .in. run) then
-!!$          naming_id = run // RADICAL_NAME
-!!$          if (trim(naming_id) == LOGFILE) call f_zero(naming_id)
-!!$       else
-!!$          call f_zero(naming_id)
-!!$          !naming_id = " "
-!!$       end if
-!!$       if (len_trim(naming_id) == 0) then
-!!$          !naming_id = trim(run_id_toa())
-!!$          call f_strcpy(src=trim(run_id_toa()),dest=naming_id)
-!!$          !if it is still empty then use the logfile
-!!$          !if (len_trim(naming_id)==0) call f_strcpy(naming_id,LOGFILE)
-!!$       else
-!!$          call f_strcpy(src="-" // trim(naming_id),dest=naming_id)
-!!$          !naming_id = "-" // trim(naming_id)
-!!$       end if
     end if
     if (present(run_id)) then
        if (RADICAL_NAME .in. run) then
@@ -1707,17 +1670,7 @@ contains
        !add the output directory in the directory name
        if (bigdft_mpi%iproc == 0 .and. trim(writing_directory) /= '.') then
           call f_mkdir(writing_directory,path)
-!!$          call getdir(writing_directory,&
-!!$               int(len_trim(writing_directory),kind=4),path,int(len(path),kind=4),ierr)
-!!$          if (ierr /= 0) then
-!!$             write(*,*) "ERROR: cannot create writing directory '"&
-!!$                  //trim(writing_directory) // "'."
-!!$             call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
-!!$          end if
        end if
-!!$       call MPI_BCAST(path,len(path),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
-!!$       lgt=min(len(writing_directory),len(path))
-!!$       writing_directory(1:lgt)=path(1:lgt)
        if (bigdft_mpi%nproc>1) then
            call mpibcast(path,comm=bigdft_mpi%mpi_comm)
        end if
@@ -1779,8 +1732,9 @@ contains
              call yaml_set_default_stream(unit_log, ierrr)
           end if ! Logfile already connected
        else
+          call yaml_get_default_stream(unit_log)
           !use stdout, do not crash if unit is present
-          call yaml_set_stream(record_length=92,istat=ierrr)
+          if (unit_log /= 6) call yaml_set_stream(record_length=92,istat=ierrr)
        end if ! Need to create a named logfile.
 
        !start writing on logfile
@@ -1803,7 +1757,7 @@ contains
 
   !> Routine to read YAML input files and create input dictionary.
   !! Update the input dictionary with the result of yaml_parse
-  subroutine merge_input_file_to_dict(dict, fname, mpi_env)
+  subroutine merge_input_file_to_dict(dict, fname, mpi_env,document_id)
     use module_base
     !use yaml_output, only :yaml_map
     use yaml_parse, only: yaml_parse_from_char_array
@@ -1813,9 +1767,10 @@ contains
     type(dictionary), pointer :: dict            !< Dictionary of the input files. Should be initialized on entry
     character(len = *), intent(in) :: fname      !< Name of the file where the dictionary has to be read from 
     type(mpi_environment), intent(in) :: mpi_env !< Environment of the reading. Used for broadcasting the result
+    integer, intent(in), optional :: document_id !< if the file has several yaml_documents, read the document_id. Defaults to zero
     !local variables
     integer(kind = 8) :: cbuf, cbuf_len
-    integer :: ierr
+    integer :: ierr,id
     character(len = max_field_length) :: val
     character, dimension(:), allocatable :: fbuf
     type(dictionary), pointer :: udict
@@ -1846,12 +1801,14 @@ contains
     !this call can be replaced with the size of the character array
     if (mpi_env%nproc > 1) call mpibcast(fbuf,comm=mpi_env%mpi_comm)
 
+    id=0
+    if (present(document_id)) id=document_id
     call f_err_open_try()
     call yaml_parse_from_char_array(udict, fbuf)
     call f_free_str(1,fbuf)
     ! Handle with possible partial dictionary.
-    if (dict_len(udict) > 0) then
-       call dict_update(dict, udict // 0)
+    if (dict_len(udict) > id) then
+       call dict_update(dict, udict // id)
     end if
     call dict_free(udict)
     ierr = 0

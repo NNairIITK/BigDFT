@@ -18,7 +18,7 @@ module psp_projectors
 
   private
 
-  public :: projector_has_overlap
+  public :: projector_has_overlap,get_proj_locreg
   public :: bounds_to_plr_limits,pregion_size,set_nlpsp_to_wfd
   public :: hgh_psp_application
   public :: update_nlpsp
@@ -684,6 +684,26 @@ module psp_projectors
 
   end subroutine full_coefficients
 
+  !> find the locreg that is associated to the given projector of atom iat
+  !! for a locreg of label ilr. Shoudl the locreg not be found, the result is zero.
+  function get_proj_locreg(nl,iat,ilr) result(iilr)
+    implicit none
+    integer, intent(in) :: iat,ilr
+    type(DFT_PSP_projectors), intent(in) :: nl
+    integer :: iilr
+    !local variables
+    integer :: jlr
+
+    iilr=0
+    do jlr=1,nl%pspd(iat)%noverlap
+       if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
+          iilr=jlr
+          exit
+       end if
+    end do
+
+  end function get_proj_locreg
+
   function projector_has_overlap(iat, ilr, llr, glr, nl) result(overlap)
     implicit none
     ! Calling arguments
@@ -698,14 +718,15 @@ module psp_projectors
     overlap = .false.
   
     ! Check whether the projectors of this atom have an overlap with locreg ilr
-    goon=.false.
-    do jlr=1,nl%pspd(iat)%noverlap
-        if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
-            goon=.true.
-            iilr=jlr
-            exit
-        end if
-    end do
+    iilr=get_proj_locreg(nl,iat,ilr)
+    goon=iilr/=0
+!!$    do jlr=1,nl%pspd(iat)%noverlap
+!!$        if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
+!!$            goon=.true.
+!!$            iilr=jlr
+!!$            exit
+!!$        end if
+!!$    end do
     if (.not.goon) return
   
     mproj=nl%pspd(iat)%mproj

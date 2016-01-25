@@ -183,6 +183,11 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 #	mv log-mdinput.yaml log.yaml
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
+%.mhgps.out: $(abs_top_builddir)/spred/src/mhgps
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
+	$(run_parallel) $(abs_top_builddir)/spred/src/mhgps -l yes > $@
+	name=`basename $@ .out` ; \
+	$(MAKE) -f ../Makefile $$name".post-out"
 
 $(PSPS):
 	cp $(abs_top_srcdir)/utils/PSPfiles/$@ .
@@ -213,7 +218,7 @@ in_message:
 $(INS): in_message
 	@name=`basename $@ .in` ; dir=$$name-test ; \
 	if test ! -d $$dir ; then mkdir $$dir ; fi ; \
-	for i in $(srcdir)/$$name/* ; do cp -f $$i $$dir ; done ; \
+	for i in $(srcdir)/$$name/* ; do cp -rf $$i $$dir ; done ; \
 	chmod u+w $$dir/* ; \
 	if test -n "$(accel_in_message)" -a -n "$(run_ocl)" ; then \
 		if test "$(run_ocl)" = "CPU" ; then \
