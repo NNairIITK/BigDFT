@@ -118,7 +118,7 @@ module foe_common
   public :: check_eigenvalue_spectrum_new
   public :: scale_and_shift_matrix
   public :: retransform_ext
-  public :: cheb_exp
+  !!public :: cheb_exp
   public :: init_foe
 
 
@@ -1028,62 +1028,62 @@ module foe_common
 
 
 
-    ! Calculates chebychev expansion of x**ex, where ex is any value (typically -1, -1/2, 1/2)
-    ! Taken from numerical receipes: press et al
-    subroutine cheb_exp(iproc, nproc, A,B,N,cc,ex,x_max_error,max_error,mean_error)
-      use module_base
-      use module_func
-      use yaml_output
-      implicit none
-      
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc
-      real(kind=8),intent(in) :: A, B
-      integer,intent(in) :: n
-      real(kind=8),intent(in) :: ex
-      real(8),dimension(n),intent(out) :: cc
-      real(kind=8),intent(out) :: x_max_error, max_error,mean_error
-    
-      ! Local variables
-      integer :: k, j
-      real(kind=8) :: bma, bpa, y, arg, fac, tt
-      real(kind=8),dimension(50000) :: cf
-      !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
-    
-      call f_routine(id='chebft')
+    !!##! Calculates chebychev expansion of x**ex, where ex is any value (typically -1, -1/2, 1/2)
+    !!##! Taken from numerical receipes: press et al
+    !!##subroutine cheb_exp(iproc, nproc, A,B,N,cc,ex,x_max_error,max_error,mean_error)
+    !!##  use module_base
+    !!##  use module_func
+    !!##  use yaml_output
+    !!##  implicit none
+    !!##  
+    !!##  ! Calling arguments
+    !!##  integer,intent(in) :: iproc, nproc
+    !!##  real(kind=8),intent(in) :: A, B
+    !!##  integer,intent(in) :: n
+    !!##  real(kind=8),intent(in) :: ex
+    !!##  real(8),dimension(n),intent(out) :: cc
+    !!##  real(kind=8),intent(out) :: x_max_error, max_error,mean_error
+    !!##
+    !!##  ! Local variables
+    !!##  integer :: k, j
+    !!##  real(kind=8) :: bma, bpa, y, arg, fac, tt
+    !!##  real(kind=8),dimension(50000) :: cf
+    !!##  !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
+    !!##
+    !!##  call f_routine(id='chebft')
 
-    
-      if (n>50000) stop 'chebft'
-      bma=0.5d0*(b-a)
-      bpa=0.5d0*(b+a)
-      fac=2.d0/n
-      !$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,ex) &
-      !$omp private(k,y,arg,j,tt)
-      !$omp do
-      do k=1,n
-          y=cos(pi*(k-0.5d0)*(1.d0/n))
-          arg=y*bma+bpa
-          cf(k)=arg**ex
-      end do
-      !$omp end do
-      !$omp do
-      do j=1,n
-          tt=0.d0
-          do  k=1,n
-              tt=tt+cf(k)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
-          end do
-          cc(j)=fac*tt
-      end do
-      !$omp end do
-      !$omp end parallel
+    !!##
+    !!##  if (n>50000) stop 'chebft'
+    !!##  bma=0.5d0*(b-a)
+    !!##  bpa=0.5d0*(b+a)
+    !!##  fac=2.d0/n
+    !!##  !$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,ex) &
+    !!##  !$omp private(k,y,arg,j,tt)
+    !!##  !$omp do
+    !!##  do k=1,n
+    !!##      y=cos(pi*(k-0.5d0)*(1.d0/n))
+    !!##      arg=y*bma+bpa
+    !!##      cf(k)=arg**ex
+    !!##  end do
+    !!##  !$omp end do
+    !!##  !$omp do
+    !!##  do j=1,n
+    !!##      tt=0.d0
+    !!##      do  k=1,n
+    !!##          tt=tt+cf(k)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
+    !!##      end do
+    !!##      cc(j)=fac*tt
+    !!##  end do
+    !!##  !$omp end do
+    !!##  !$omp end parallel
 
-      call func_set(FUNCTION_POLYNOMIAL, powerx=ex)
-      call accuracy_of_chebyshev_expansion(iproc, nproc, n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
-      !if (bigdft_mpi%iproc==0) call yaml_map('expected accuracy of Chebyshev expansion',max_error)
-    
-      call f_release_routine()
-    
-    end subroutine cheb_exp
+    !!##  call func_set(FUNCTION_POLYNOMIAL, powerx=ex)
+    !!##  call accuracy_of_chebyshev_expansion(iproc, nproc, n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
+    !!##  !if (bigdft_mpi%iproc==0) call yaml_map('expected accuracy of Chebyshev expansion',max_error)
+    !!##
+    !!##  call f_release_routine()
+    !!##
+    !!##end subroutine cheb_exp
 
 
     subroutine init_foe(iproc, nproc, nspin, charge, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
