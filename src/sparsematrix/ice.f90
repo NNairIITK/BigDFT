@@ -311,7 +311,7 @@ module ice
                           x_max_error = f_malloc(ncalc,id='x_max_error')
                           mean_error = f_malloc(ncalc,id='mean_error')
                           do icalc=1,ncalc
-                              call cheb_exp(foe_data_get_real(foe_obj,"evlow",ispin), &
+                              call cheb_exp(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
                                    foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1:,1:,icalc:), ex(icalc), &
                                    x_max_error(icalc), max_error(icalc), mean_error(icalc))
                               !call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
@@ -566,7 +566,7 @@ module ice
           call timing(iproc, 'chebyshev_coef', 'ON')
           
           do icalc=1,ncalc
-              call cheb_exp(foe_data_get_real(foe_obj,"evlow",ispin), &
+              call cheb_exp(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
                    foe_data_get_real(foe_obj,"evhigh",ispin), ipl, cc_trial(1:ipl,1,icalc), ex(icalc), &
                    x_max_error(icalc), max_error(icalc), mean_error(icalc))
               !call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
