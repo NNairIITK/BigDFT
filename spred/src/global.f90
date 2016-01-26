@@ -14,8 +14,10 @@ program MINHOP
   use yaml_output
   use module_atoms, only: deallocate_atoms_data,atoms_data,astruct_dump_to_file
   use module_fingerprints
+  use SPREDtypes
   !implicit real(kind=8) (a-h,o-z) !!!dangerous when using modules!!!
   implicit none
+  type(SPRED_inputs) :: spredinputs
   logical :: newmin,CPUcheck,occured,exist_poslocm,exist_posacc,singlestep
   ! character(len=20) :: unitsp,atmn
   character(len=60) :: run_id
@@ -70,6 +72,8 @@ program MINHOP
   real(kind=4) :: builtin_rand, rtmp
 
   call f_lib_initialize()
+
+  call SPRED_read_uinp('',spredinputs)
 
   call bigdft_command_line_options(options)
   call bigdft_init(options)
@@ -468,7 +472,7 @@ call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rc
 !!$     enddo
 
   else  ! continuation run, check whether the poscur file has been modified by hand
-     call identical(run_opt,bigdft_mpi%iproc,nlminx,nlmin,nid,e_pos,fp,en_arr,fp_arr,en_delta,fp_delta,&
+     call identical(spredinputs,run_opt,bigdft_mpi%iproc,nlminx,nlmin,nid,e_pos,fp,en_arr,fp_arr,en_delta,fp_delta,&
           newmin,kid,dmin,k_e,n_unique,n_nonuni)
      if (newmin) then  
         if (bigdft_mpi%iproc == 0) call yaml_map('(MH) initial minimum is new, dmin= ',dmin)
@@ -649,7 +653,8 @@ call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rc
 call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rcov,rxyz_opt,wfp)
 
      if (abs(outs%energy-e_pos).lt.en_delta) then
-     call fpdistance(run_opt,wfp,fp,d)
+     call fpdistance(spredinputs,nid,bigdft_nat(run_opt),wfp,fp,d)
+     !call fpdistance(run_opt,wfp,fp,d)
        if (bigdft_mpi%iproc == 0) call yaml_map('(MH) checked fpdistance',(/outs%energy-e_pos,d/),fmt='(e11.4)')
      if (d.lt.fp_delta) then ! not escaped
        escape_sam=escape_sam+1.d0
@@ -677,7 +682,7 @@ call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rc
      endif
 
   !C  check whether new minimum
-  call identical(run_opt,bigdft_mpi%iproc,nlminx,nlmin,nid,outs%energy,wfp,en_arr,fp_arr,en_delta,fp_delta,&
+  call identical(spredinputs,run_opt,bigdft_mpi%iproc,nlminx,nlmin,nid,outs%energy,wfp,en_arr,fp_arr,en_delta,fp_delta,&
        newmin,kid,dmin,k_e,n_unique,n_nonuni)
   if (newmin) then
       escape_new=escape_new+1.d0
@@ -2559,10 +2564,13 @@ call yaml_map('Reference Paper','The Journal of Chemical Physics 120 (21): 9911-
 END SUBROUTINE print_logo_MH
 
 
-subroutine identical(runObj,iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp_delta,newmin,kid,dmin,k_e_wpos,n_unique,n_nonuni)
+subroutine identical(spredinputs,runObj,iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp_delta,newmin,kid,dmin,k_e_wpos,n_unique,n_nonuni)
   use yaml_output
   use module_fingerprints
+  use bigdft_run
+  use SPREDtypes
   implicit real*8 (a-h,o-z)
+  type(SPRED_inputs), intent(in) :: spredinputs
   type(run_objects), intent(in) :: runObj
   dimension fp_arr(nid,nlminx),wfp(nid),en_arr(nlminx)
   logical newmin
@@ -2600,7 +2608,8 @@ subroutine identical(runObj,iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_d
   dmin=1.d100
   do k=max(1,klow),min(nlmin,khigh)
   if (abs(e_wpos-en_arr(k)).le.en_delta) then
-     call fpdistance(runObj,wfp,fp_arr(1,k),d)
+     call fpdistance(spredinputs,nid,bigdft_nat(runObj),wfp,fp_arr(1,k),d)
+     !call fpdistance(runObj,wfp,fp_arr(1,k),d)
      if (iproc == 0) call yaml_map('(MH) Checking fpdistance',(/e_wpos-en_arr(k),d/),fmt='(e11.4)')
 !     if (iproc.eq.0) write(*,*) '(MH)  k,d',k,d
 !     if (iproc.eq.0) write(*,*) '(MH)  e_wpos,en_arr(k)', e_wpos,en_arr(k)

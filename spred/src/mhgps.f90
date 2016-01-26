@@ -269,14 +269,16 @@ program mhgps
               call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, runObj)
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,&
                                         fat,energy2,infocode)
-              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
-                              runObj%atoms%astruct%cell_dim,&
-                              bigdft_get_geocode(runObj),rcov,&
-                              rxyz(1,1),fp(1))
-              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
-                              runObj%atoms%astruct%cell_dim,&
-                              bigdft_get_geocode(runObj),rcov,&
-                              rxyz2(1,1),fp2(1))
+              call fingerprint(spredinputs,mhgpsst%nid,bigdft_nat(runObj),runObj%atoms%astruct%cell_dim,rcov,rxyz(1,1),fp(1))
+!              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
+!                              runObj%atoms%astruct%cell_dim,&
+!                              bigdft_get_geocode(runObj),rcov,&
+!                              rxyz(1,1),fp(1))
+              call fingerprint(spredinputs,mhgpsst%nid,bigdft_nat(runObj),runObj%atoms%astruct%cell_dim,rcov,rxyz2(1,1),fp2(1))
+!              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
+!                              runObj%atoms%astruct%cell_dim,&
+!                              bigdft_get_geocode(runObj),rcov,&
+!                              rxyz2(1,1),fp2(1))
               if(mhgpsst%iproc==0)then
                  call yaml_comment('(MHGPS) Connect '//&
                       trim(adjustl(mhgpsst%joblist(1,ijob)))//' and '//&
@@ -386,11 +388,12 @@ program mhgps
                       minmode(1,1),rotforce(1,1))
               endif
               if(trim(adjustl(uinp%operation_mode))=='simpleandminimize')then
-                call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
-                              runObj%atoms%astruct%cell_dim,&
-                              bigdft_get_geocode(runObj),rcov,&
-                              rxyz(1,1),fp(1))
-                call pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,& 
+                call fingerprint(spredinputs,mhgpsst%nid,bigdft_nat(runObj),runObj%atoms%astruct%cell_dim,rcov,rxyz(1,1),fp(1))
+!                call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
+!                              runObj%atoms%astruct%cell_dim,&
+!                              bigdft_get_geocode(runObj),rcov,&
+!                              rxyz(1,1),fp(1))
+                call pushoff_and_relax_bothSides(spredinputs,uinp,mhgpsst,runObj,outs,rcov,& 
                      rxyz(1,1),energy,fp(1),minmode(1,1),rxyz_minL,fxyz_minL,&      
                      ener_minL,fp_minL,rxyz_minR,fxyz_minR,ener_minR,fp_minR,istat)
                 if(istat/=0)then

@@ -137,19 +137,23 @@ bart_LDADD = art/libart.a $(spred_library) @LINALG_LIBS@
 
 mhgps_SOURCES = mhgps.f90
 mhgps_FCFLAGS = -I. -Ispred_baselib -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-mhgps_LDADD = spred_baselib/libspredbasef.a mhgps_files/libmhgps.a $(spred_library) @LINALG_LIBS@
+###mhgps_LDADD = spred_baselib/libspredbasef.a mhgps_files/libmhgps.a $(spred_library) @LINALG_LIBS@
+mhgps_LDADD = $(spred_library) mhgps_files/libmhgps.a spred_baselib/libspredbasef.a @LINALG_LIBS@
 
 mhgpstool_SOURCES = mhgpstool.f90
 mhgpstool_FCFLAGS = -I. -Ispred_baselib -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-mhgpstool_LDADD = spred_baselib/libspredbasef.a $(spred_library) mhgps_files/libmhgps.a @LINALG_LIBS@
+##mhgpstool_LDADD = spred_baselib/libspredbasef.a $(spred_library) mhgps_files/libmhgps.a @LINALG_LIBS@
+mhgpstool_LDADD = $(spred_library) mhgps_files/libmhgps.a spred_baselib/libspredbasef.a @LINALG_LIBS@
 
 global_SOURCES = global.f90
-global_FCFLAGS = -I. -Ispred_baselib
-global_LDADD = spred_baselib/libspredbasef.a $(spred_library) @LINALG_LIBS@
+global_FCFLAGS = -I. -Ispred_baselib -Iglobal_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+###global_LDADD = spred_baselib/libspredbasef.a $(spred_library) @LINALG_LIBS@
+global_LDADD = $(spred_library) spred_baselib/libspredbasef.a @LINALG_LIBS@
 
 globaltool_SOURCES = globaltool.f90
 globaltool_FCFLAGS = -I. -Ispred_baselib -Iglobal_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-globaltool_LDADD = spred_baselib/libspredbasef.a  global_files/libglobalf.a $(spred_library)  @LINALG_LIBS@
+##globaltool_LDADD = spred_baselib/libspredbasef.a  global_files/libglobalf.a $(spred_library)  @LINALG_LIBS@
+globaltool_LDADD = global_files/libglobalf.a $(spred_library) spred_baselib/libspredbasef.a  @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libspred-1.* input_variables_definition-inc.h
 clean-local:

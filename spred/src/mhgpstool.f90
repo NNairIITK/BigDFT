@@ -44,7 +44,7 @@ program mhgpstool
     call set_astruct_from_file(trim(filename),0,mdat%astruct,energy=energy)
     call yaml_comment('Covalent radii ....',hfill='-')
     call give_rcov(0,mdat%astruct,mdat%astruct%nat,mdat%rcov)
-    call read_and_merge_data(spredinputs,spredinputs,folders,nsad,mdat)
+    call read_and_merge_data(spredinputs,folders,nsad,mdat)
 
 !write(fsaddle,'(a,i5.5,a)')trim(adjustl(folders(1)))//&
 !                               '/sad',1,'_finalF'
