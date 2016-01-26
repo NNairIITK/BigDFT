@@ -31,7 +31,7 @@ program mhgps
     use module_connect, only: connect,&
                               pushoff_and_relax_bothSides,&
                               addToPreviouslyconnected
-    use module_fingerprints, only: fingerprint
+    use module_fingerprints
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
     use bigdft_run
