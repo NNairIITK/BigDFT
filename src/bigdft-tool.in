@@ -28,6 +28,9 @@ actions = ["memory-estimation", "rotate", "convert-field",
 abs_srcdir = "@abs_srcdir@"
 inputvarfile = abs_srcdir + '/input_variables_definition.yaml'
 abs_top_builddir = "@abs_top_builddir@"
+#Working with PSolver
+#abs_top_srcdir = "@abs_top_srcdir@"
+#inputvarfile = abs_top_srcdir + '/PSolver/src/PS_input_variables_definition.yaml'
 bindir = "@prefix@"
 # Other part of the script needs no processing.
 
@@ -348,42 +351,41 @@ def dump_info(h, n, screen, menu, parent):
     oldpos = None
     x = None
     lastoption = "Press Enter or 'Q' key to come back to %s menu" % parent['title']
-    iyafterdesc = 3 + len(menu['DESCRIPTION'].split('\n'))
     screenH,screenW = screen.getmaxyx()
     #Build the height of the pad
-    padH = iyafterdesc
+    padH = 2*len(menu) + len(menu['DESCRIPTION'].split('\n'))
     for v in menu.values():
         padH += len(yaml.dump(v,default_flow_style=False).split('\n')) + 2
     dump_pad = curses.newpad(padH,screenW-2)
-    for (k,v) in menu.items():
-        if k == 'title':
-            # Title for this menu
-            dump_pad.addstr(1, 2, v, curses.A_STANDOUT)
-        elif k == 'subtitle':
-            # Subtitle for this menu
-            dump_pad.addstr(3, 2, v, curses.A_BOLD)
-        elif k == 'DESCRIPTION':
-            # Display all the menu items, showing the 'pos' item highlighted
-            iy = 3
-            for chain in v.split('\n'):
-                iy += 1
-                dump_pad.addstr(iy, 4, "%s" % chain, n)
-        elif k == 'type' or k == 'COMMENT':
+    m = menu.items()
+    m.sort(menu_cmp, key= lambda s: s[0])
+    # Title for this menu
+    dump_pad.addstr(1, 2, m[0][1], curses.A_STANDOUT)
+    # Subtitle for this menu
+    dump_pad.addstr(3, 2, m[1][1], curses.A_BOLD)
+    # Display all the menu items, showing the 'pos' item highlighted
+    iy = 3
+    for chain in m[2][1].split('\n'):
+        iy += 1
+        dump_pad.addstr(iy, 4, "%s" % chain, n)
+    #Now all the other keys
+    for (k,v) in m[3:]:
+        if k == 'type' or k == 'COMMENT':
             pass
         else:
-            iyafterdesc += 1
-            dump_pad.addstr(iyafterdesc, 2, k, curses.A_BOLD)
+            iy += 1
+            dump_pad.addstr(iy, 2, k, curses.A_BOLD)
             if isinstance(v,dict):
                 text = yaml.dump(v,default_flow_style=False)
             else:
                 text = str(v)
             for chain in text.split('\n'):
-                iyafterdesc += 1
-                dump_pad.addstr(iyafterdesc, 4, "%s" % chain, n)
-            iyafterdesc += 1
+                iy += 1
+                dump_pad.addstr(iy, 4, "%s" % chain, n)
+            iy += 1
     # Now display Exit/Return at bottom of menu
-    iyafterdesc += 1
-    dump_pad.addstr(iyafterdesc, 2, " %s" % lastoption, h)
+    iy += 1
+    dump_pad.addstr(iy, 2, " %s" % lastoption, h)
     #Display the information
     screen.border(0)
     screen.refresh()
@@ -394,7 +396,7 @@ def dump_info(h, n, screen, menu, parent):
         x = screen.getch()  # Gets user input
         if x == curses.KEY_DOWN:
             pos += 1
-            pos = min(pos, iyafterdesc - (screenH-4))
+            pos = min(pos, iy - (screenH-4))
         elif x == curses.KEY_UP:
             pos -= 1
             pos = max(pos,0)
@@ -448,6 +450,14 @@ def processmenu(h, n, screen, menu, parent=None):
             screen.clear()
         elif whattodo == EXITMENU:
             exitmenu = True
+
+dico_menu = { 'title': 0, 'subtitle': 1, 'DESCRIPTION': 2, 'default': 3}
+def menu_cmp(key_x,key_y):
+    "Function compare to sort the keys in order to compose the menu"
+    global dico_menu
+    kx = dico_menu.get(key_x,key_x)
+    ky = dico_menu.get(key_y,key_y)
+    return cmp(kx,ky)
 
 
 # Start the main script
@@ -584,7 +594,7 @@ options:
   title: Inspect the possible keys of input file
   subtitle: Select the key field
 - type: menu
-  title: Inspect the possible input file setups
+  title: Inspect the possible input file setups ('import key')
   subtitle: Select the input setup
 - type: menu
   title: Search for a key name
@@ -657,11 +667,11 @@ options:
                 comment = inputfile.pop('COMMENT')
             else:
                 comment = ''
-            helpstr += 'Here should follow the file description\n.'
+            helpstr += 'Here should follow the file description.\n'
             helpstr += yaml.dump(inputfile, default_flow_style=False)
             dico = {'type': PROMPT, 
                     'title': f + '     (' + str(comment) + ')',
-                    'subtitle': "Extended description for the input file '%s'" % str(f),
+                    'subtitle': "Extended description for the import key '%s'" % str(f),
                     'DESCRIPTION': helpstr}
             dockey.append(dico)
         menu['options'][1]['options'] = dockey

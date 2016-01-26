@@ -1944,8 +1944,8 @@
        default: 14.0
 --- #here starts the document of possible profiles, that have to be evoked with the 'import' keyword
 linear_accurate:
-  COMMENT: appropriate input parameters for a high accuracy linear scaling calculation
-  DESCRIPTION: This profile should be chosen if highly accurate energy differences are required
+  COMMENT: Appropriate input parameters for a high accuracy linear scaling calculation
+  DESCRIPTION: This profile should be chosen if highly accurate energy differences are required.
   dft:
     hgrids: accurate
     ixc: PBE
@@ -2038,13 +2038,6 @@ linear_fast:
     alphamix: [0.2,0.2]
     rpnrm_cv: [1.e-10,1.e-10]
     linear_method: FOE
-structural:
-  COMMENT: for geopt
-  dft:
-    hgrids: fast
-    ixc: PBE
-  geopt:
-    method: FIRE
 mixing:
   COMMENT: to be used for metallic systems
   dft:

@@ -169,6 +169,7 @@
     default: none
 --- #here starts the document of possible profiles, that have to be evoked with the 'import' keyword
 water:
+ COMMENT: Solvation in water
  environment:
   cavity: sccs
   epsilon: water
