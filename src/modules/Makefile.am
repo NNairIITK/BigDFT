@@ -75,7 +75,6 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	sparsematrix_wrappers.f90 \
 	internal_coordinates.f90 \
 	module_sqn.f90 \
-	module_fingerprints.f90 \
 	transposed_operations.f90 \
 	module_forces.f90 \
 	unitary_tests.f90 \
@@ -183,7 +182,6 @@ modules = module_types.@MODULE_EXT@ \
 	internal_coordinates.@MODULE_EXT@ \
 	module_sqn.@MODULE_EXT@ \
 	module_forces.@MODULE_EXT@ \
-	module_fingerprints.@MODULE_EXT@ \
 	transposed_operations.@MODULE_EXT@ \
 	unitary_tests.@MODULE_EXT@ \
 	io.@MODULE_EXT@ \
@@ -270,7 +268,6 @@ module_dftbp.o: types.o
 module_tersoff.o: atoms_data.o
 module_bornmayerhugginstosifumi.o: atoms_data.o
 #module_lenosky_si.o: base.o defs.o
-module_fingerprints.o: bigdft_run.o 
 transposed_operations.o: types.o
 module_forces.o: types.o 
 unitary_tests.o: types.o interfaces.o communications_init.o communications.o transposed_operations.o rhopotential.o

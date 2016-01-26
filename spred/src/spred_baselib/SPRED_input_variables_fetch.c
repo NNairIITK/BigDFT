@@ -9,7 +9,7 @@
 #include <string.h>
 
 static const char spred_input_vars_def[] = 
-#include "PS_input_variables_definition-inc.h"
+#include "SPRED_input_variables_definition-inc.h"
   ;
 
 // function to recuperate the size of the definition of the input variables

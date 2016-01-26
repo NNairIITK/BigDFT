@@ -15,6 +15,7 @@ program mhgpstool
     use module_atoms, only: set_astruct_from_file
     use module_mhgpstool
     use module_userinput, read_mhgps_input => read_input
+    use SPREDtypes
     implicit none
     type(atoms_data) :: atoms
     type(mhgpstool_data) :: mdat
@@ -24,10 +25,13 @@ program mhgpstool
     character(len=600) :: filename
     integer, allocatable :: nsad(:)
     real(gp) :: energy
+    type(SPRED_inputs) :: spredinputs
 
     call f_lib_initialize()
 
     call yaml_new_document()
+
+    call SPRED_read_uinp('',spredinputs)
 
     call read_folders(nfolder,folders)
     call read_mhgps_input(mdat%mhgps_uinp)
@@ -40,13 +44,13 @@ program mhgpstool
     call set_astruct_from_file(trim(filename),0,mdat%astruct,energy=energy)
     call yaml_comment('Covalent radii ....',hfill='-')
     call give_rcov(0,mdat%astruct,mdat%astruct%nat,mdat%rcov)
-    call read_and_merge_data(folders,nsad,mdat)
+    call read_and_merge_data(spredinputs,spredinputs,folders,nsad,mdat)
 
 !write(fsaddle,'(a,i5.5,a)')trim(adjustl(folders(1)))//&
 !                               '/sad',1,'_finalF'
 !    call bigdft_get_rxyz(filename=trim(adjustl(fsaddle)),rxyz=rxyz,energy=energy)
 !write(*,*)energy
-    call write_data(mdat)
+    call write_data(spredinputs,mdat)
 
     call finalize_mhgpstool_data(mdat)
     call f_free_str(500,folders)

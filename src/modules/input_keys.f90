@@ -1486,24 +1486,6 @@ contains
     if (index(dict_key(val), "_attributes") > 0) return
 
     select case(trim(level))
-    case(SPRED_VARIABLES)
-       select case (trim(dict_key(val)))
-       case(FP_METHOD_KEY)
-          str=val
-          select case(trim(str))
-          case('OMF')
-             in%fp_method=OMF_FP_METHOD
-          case('OMP')
-             in%fp_method=OMP_FP_METHOD
-          end select
-       case(FP_NATX_SPHERE)
-          in%natx_sphere = val !spin and polarization
-       case(FP_ANGMOM)
-          in%angmom = val !spin and polarization
-       case DEFAULT
-          if (bigdft_mpi%iproc==0) &
-               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
-       end select
     case(MODE_VARIABLES)
        select case (trim(dict_key(val)))
        case(METHOD_KEY)

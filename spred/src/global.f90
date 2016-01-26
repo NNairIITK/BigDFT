@@ -307,10 +307,9 @@ program MINHOP
   end if
 
 !  nid=natoms
-  call init_fingerprint(run_opt,fp)
-  call init_fingerprint(run_opt,wfp)
-  call init_fingerprint(run_opt,fphop)
-  nid = size(fp)
+  call init_fingerprint(spredinputs,bigdft_nat(run_opt),bigdft_get_geocode(run_opt),nid,fp)
+  call init_fingerprint(spredinputs,bigdft_nat(run_opt),bigdft_get_geocode(run_opt),nid,wfp)
+  call init_fingerprint(spredinputs,bigdft_nat(run_opt),bigdft_get_geocode(run_opt),nid,fphop)
 !  fp = f_malloc(nid,id='fp')
 !  wfp = f_malloc(nid,id='wfp')
 !  fphop = f_malloc(nid,id='fphop')
@@ -870,8 +869,8 @@ end do hopping_loop
   call f_free(en_arr)
   call f_free(ct_arr)
   call f_free(fp_arr)
-  call f_free(fp)
-  call f_free(wfp)
+  call finalize_fingerprint(fp)
+  call finalize_fingerprint(wfp)
   call f_free(vxyz)
   call f_free(gg)
   call f_free(pl_arr)

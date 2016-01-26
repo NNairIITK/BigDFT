@@ -35,6 +35,7 @@ program mhgps
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
     use bigdft_run
+    use SPREDtypes
     implicit none
     integer                   :: u
     integer                   :: istat
@@ -68,6 +69,7 @@ program mhgps
     type(state_properties)    :: outs
     type(findsad_work)        :: fsw
     type(userinput)           :: uinp
+    type(SPRED_inputs)        :: spredinputs
 
     !simple atomic datastructre
     real(gp), allocatable :: rxyz(:,:),fxyz(:,:)
@@ -96,6 +98,8 @@ program mhgps
     premature_exit=.false.
 
     call f_lib_initialize()
+
+    call SPRED_read_uinp('',spredinputs)
 
     call bigdft_command_line_options(options)
     call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
@@ -133,7 +137,7 @@ program mhgps
 
     call init_state_properties(outs, bigdft_nat(runObj))
 
-    mhgpsst%nid = bigdft_nat(runObj) !s-overlap fingerprints
+ !   mhgpsst%nid = bigdft_nat(runObj) !s-overlap fingerprints
     
     !allocate arrays
     hess     = f_malloc((/ 1.to.3*bigdft_nat(runObj),&
@@ -156,10 +160,12 @@ program mhgps
                 id='minmode')
     rxyz     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
                 id='rxyz')
-    fp       = f_malloc((/ 1.to.mhgpsst%nid/),&
-                id='fp')
-    fp2      = f_malloc((/ 1.to.mhgpsst%nid/),&
-                id='fp2')
+    call init_fingerprint(spredinputs,bigdft_nat(runObj),bigdft_get_geocode(runObj),mhgpsst%nid,fp)
+    call init_fingerprint(spredinputs,bigdft_nat(runObj),bigdft_get_geocode(runObj),mhgpsst%nid,fp2)
+!    fp       = f_malloc((/ 1.to.mhgpsst%nid/),&
+!                id='fp')
+!    fp2      = f_malloc((/ 1.to.mhgpsst%nid/),&
+!                id='fp2')
     fxyz     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
                 id='fxyz')
     rxyz2     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
@@ -176,14 +182,16 @@ program mhgps
                 id='rxyz_minL')
     fxyz_minL     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
                 id='fxyz_minL')
-    fp_minL       = f_malloc((/ 1.to.mhgpsst%nid/),&
-                id='fp_minL')
+    call init_fingerprint(spredinputs,bigdft_nat(runObj),bigdft_get_geocode(runObj),mhgpsst%nid,fp_minL)
+!    fp_minL       = f_malloc((/ 1.to.mhgpsst%nid/),&
+!                id='fp_minL')
     rxyz_minR     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
                 id='rxyz_minR')
     fxyz_minR     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
                 id='fxyz_minR')
-    fp_minR       = f_malloc((/ 1.to.mhgpsst%nid/),&
-                id='fp_minR')
+    call init_fingerprint(spredinputs,bigdft_nat(runObj),bigdft_get_geocode(runObj),mhgpsst%nid,fp_minR)
+!    fp_minR       = f_malloc((/ 1.to.mhgpsst%nid/),&
+!                id='fp_minR')
 
 
     call allocate_connect_object(bigdft_nat(runObj),mhgpsst%nid,uinp%nsadmax,cobj)
@@ -280,10 +288,10 @@ program mhgps
               if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))/='restart')then
                   mhgpsst%nsad=0
               endif
-              call connect(mhgpsst,fsw,uinp,runObj,outs,rcov,&
+              call connect(spredinputs,mhgpsst,fsw,uinp,runObj,outs,rcov,&
                    rxyz,rxyz2,energy,energy2,fp,fp2,&
                    cobj,connected,premature_exit,nsad)
-!              call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,&
+!              call connect_recursively(spredinputs,mhgpsst,fsw,uinp,runObj,outs,rcov,&
 !                   isame,rxyz,rxyz2,energy,energy2,fp,&
 !                   fp2,cobj,connected)
               if(connected)then
@@ -476,8 +484,10 @@ program mhgps
     call f_free(tsgforces)
     call f_free(minmodeguess)
     call f_free(minmode)
-    call f_free(fp)
-    call f_free(fp2)
+    call finalize_fingerprint(fp)
+    call finalize_fingerprint(fp2)
+    call finalize_fingerprint(fp_minL)
+    call finalize_fingerprint(fp_minR)
     call f_free(rxyz)
     call f_free(fat)
     call f_free(fxyz) 
@@ -491,8 +501,6 @@ program mhgps
     call f_free(fxyz_minL)
     call f_free(rxyz_minR)
     call f_free(fxyz_minR)
-    call f_free(fp_minL)
-    call f_free(fp_minR)
     call deallocate_connect_object(cobj)
     call deallocate_finsad_workarrays(fsw)
 

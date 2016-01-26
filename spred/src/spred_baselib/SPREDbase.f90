@@ -10,8 +10,18 @@
 !!    For the list of contributors, see ~/AUTHORS 
 module SPREDbase
   use f_precisions
+!!  use wrapper_linalg
+!!  use wrapper_MPI
+  use numerics
+  use dictionaries, dict_set => set !error_handling
+  use dynamic_memory
+!!  use time_profiling
+  use f_utils
+  use f_enums, f_char=>str, f_int => int
+  use f_refcnts
+  use f_trees
+  use yaml_strings
   implicit none
-  private
   ! General precision, density and the potential types, to be moved in a low-levle module
   integer, parameter, public :: gp=f_double  !< general-type precision
   integer, parameter, public :: dp=f_double  !< density-type precision

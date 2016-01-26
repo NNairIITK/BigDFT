@@ -9,7 +9,7 @@ globalf_SOURCES = $(globalf_objects)
 
 ##AM_FCFLAGS = -I. -I$(top_builddir)/includes
 ##AM_FCFLAGS = -I. I$(top_builddir)/includes
-AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@\
+AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/spred/src/spred_baselib -I$(top_builddir)/includes @MPI_INCLUDE@\
              @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 EXTRA_DIST = hunt-inc.f90

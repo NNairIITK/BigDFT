@@ -24,7 +24,7 @@ module module_fingerprints
 
 !=====================================================================
 subroutine finalize_fingerprint(fp)
-    use module_base
+    use SPREDbase
     implicit none
     !parameters
     real(gp), allocatable, intent(out) :: fp(:)
@@ -34,96 +34,98 @@ subroutine finalize_fingerprint(fp)
     endif
 end subroutine finalize_fingerprint
 !=====================================================================
-subroutine init_fingerprint(runObj,fp)
-    use module_base
-    use bigdft_run
+subroutine init_fingerprint(inputs,nat,geocode,nid,fp)
+    use SPREDbase
+    use SPREDtypes
+   !! use f_enums, f_str => str
     implicit none
     !parameters
-    type(run_objects), intent(in) :: runObj
+    type(SPRED_inputs), intent(in) :: inputs
+    integer, intent(in) :: nat
+    character(len=*), intent(in) :: geocode
+    integer, intent(out) :: nid   
     real(gp), allocatable, intent(out) :: fp(:) !the fingerprint array
     !internal
-    integer :: nid
-    integer :: nat
-    nat = bigdft_nat(runObj)
 
     if(allocated(fp))then
         call f_err_throw('Array fp is already allocated.')
     endif
 
-
-    select case(trim(runObj%inputs%fpmethod))
+    select case(trim(f_char(inputs%fp_method)))
       case('OMF_FP_METHOD')
-        if(bigdft_get_geocode(runObj)/='F')then
+        if(geocode/='F')then
           call f_err_throw('geocode /= F but a fingerprint (OMF) for free BC is used')
 !!          call yaml_warning('geocode /= F but a fingerprint (OMF) for free BC is used')
         endif
-        nid=runObj%inputs%angmom*nat
+        nid=inputs%fp_angmom*nat
         fp = f_malloc((/ 1.to.nid/),id='fp')
       case('OMP_FP_METHOD')
-        if(bigdft_get_geocode(runObj)/='P' .or. bigdft_get_geocode(runObj)/='S')then
+        if(geocode/='P' .or. geocode/='S')then
           call f_err_throw('geocode /= P or S but a fingerprint (OMP) for periodic BC is used')
         endif
-        nid=runObj%inputs%angmom*runObj%inputs%natx_sphere*nat
+        nid=inputs%fp_angmom*inputs%fp_natx_sphere*nat
         fp = f_malloc((/ 1.to.nid/),id='fp')
       case('OMPOLD_FP_METHOD')
-        if(bigdft_get_geocode(runObj)/='P')then
+        if(geocode/='P')then
           call f_err_throw('geocode /= P but a fingerprint (OMPOLD) for periodic BC is used')
         endif
-        nid=runObj%inputs%angmom*nat
+        nid=inputs%fp_angmom*nat
         fp = f_malloc((/ 1.to.nid/),id='fp')
       case('OMSOLD_FP_METHOD')
-        if(bigdft_get_geocode(runObj)/='S')then
+        if(geocode/='S')then
           call f_err_throw('geocode /= S but a fingerprint (OMSOLD) for slab BC is used')
         endif
-        nid=runObj%inputs%angmom*nat
+        nid=inputs%fp_angmom*nat
         fp = f_malloc((/ 1.to.nid/),id='fp')
       case DEFAULT
-        call f_err_throw('Following FP method is unknown: '//trim(fpmethod))
+        call f_err_throw('Following FP method is unknown: '//trim(f_char(inputs%fp_method)))
     end select
 end subroutine init_fingerprint
 !=================================================================
-subroutine fingerprint(runObj,rcov,rxyz,fp)
-    use module_base
-    use bigdft_run
+subroutine fingerprint(inputs,nidIn,nat,alat,rcov,rxyz,fp)
+    use SPREDbase
+    use SPREDtypes
     implicit none
     !parameters
-    type(run_objects), intent(in) :: runObj
-    real(gp), intent(in) :: rcov(:)
-    real(gp), intent(in) :: rxyz(:,:)
-    real(gp), intent(out) :: fp(:)
+    type(SPRED_inputs), intent(in) :: inputs
+    integer, intent(in) :: nidIn
+    integer, intent(in) :: nat
+    real(gp), intent(in)         :: alat(3)
+    real(gp), intent(in) :: rcov(nat)
+    real(gp), intent(in) :: rxyz(3,nat)
+    real(gp), intent(out) :: fp(nidIn)
     !internal
     integer :: nid
-    integer :: nat
  
-    nat = bigdft_nat(runObj)
 
 
-    select case(trim(runObj%inputs%fpmethod))
+    select case(trim(f_char(inputs%fp_method)))
       case('OMF_FP_METHOD')
-        nid=runObj%inputs%angmom*nat
-        if(size(fp)/=nid) then
+        nid=inputs%fp_angmom*nat
+        if(nidIn/=nid) then
           call f_err_throw('Array fp has wrong size')
         endif
-        call fingerprint_freebc(nat,nid,bigdft_get_cell(runObj),'F',rcov,rxyzIn,fp)
+        call fingerprint_freebc(nat,nid,alat,'F',rcov,rxyz,fp)
       case('OMP_FP_METHOD')
-        nid=runObj%inputs%angmom*runObj%inputs%natx_sphere*nat
-        if(size(fp)/=nid) then
+        nid=inputs%fp_angmom*inputs%fp_natx_sphere*nat
+        if(nidIn/=nid) then
           call f_err_throw('Array fp has wrong size')
         endif
+    !    call fingerprint_periodic(nat, inputs%fp_natx_sphere, iatypes, inputs%fp_angmom, alat, rxyz, rcov, fpall)
       case('OMPOLD_FP_METHOD')
-        nid=runObj%inputs%angmom*nat
-        if(size(fp)/=nid) then
+        nid=inputs%fp_angmom*nat
+        if(nidIn/=nid) then
           call f_err_throw('Array fp has wrong size')
         endif
-        call fingerprint_freebc(nat,nid,bigdft_get_cell(runObj),'P',rcov,rxyzIn,fp)
+        call fingerprint_freebc(nat,nid,alat,'P',rcov,rxyz,fp)
       case('OMSOLD_FP_METHOD')
-        nid=runObj%inputs%angmom*nat
-        if(size(fp)/=nid) then
+        nid=inputs%fp_angmom*nat
+        if(nidIn/=nid) then
           call f_err_throw('Array fp has wrong size')
         endif
-        call fingerprint_freebc(nat,nid,bigdft_get_cell(runObj),'S',rcov,rxyzIn,fp)
+        call fingerprint_freebc(nat,nid,alat,'S',rcov,rxyz,fp)
       case DEFAULT
-        call f_err_throw('Following FP method is unknown: '//trim(fpmethod))
+        call f_err_throw('Following FP method is unknown: '//trim(f_char(inputs%fp_method)))
     end select
 end subroutine fingerprint
 !=====================================================================
@@ -136,6 +138,7 @@ subroutine fingerprint_periodic(nat, natx_sphere, iatypes, lseg, alat, rxyz, rco
   dimension rxyz(3,nat),rcov(nat),iatypes(nat)
   dimension alat(3, 3),alatalat(3,3),eigalat(3)
   allocatable   :: om(:,:) , work(:)
+  integer :: nid
   
 
 ! parameters for cutoff function
@@ -406,7 +409,7 @@ subroutine fingerprint_freebc(nat,nid,alat,geocode,rcov,rxyzIn,fp)
     !s-type: 1/norm_s  exp(-(1/2)*(r/rcov)**2)
     !px type: 1/norm_p exp(-(1/2)*(r/rcov)**2) x/r  and analageously
     !         for py and pz
-    use module_base
+    use SPREDbase
     implicit none
     !parameters
     integer, intent(in)          :: nat
@@ -616,45 +619,49 @@ subroutine fingerprint_freebc(nat,nid,alat,geocode,rcov,rxyzIn,fp)
     call f_free(workf)
 end subroutine fingerprint_freebc
 !=====================================================================
-subroutine fpdistance(runObj,fp1,fp2,d)
-    use module_base
-    use bigdft_run
+subroutine fpdistance(inputs,nid,nat,fp1,fp2,d)
+    use SPREDbase
+    use SPREDtypes
     implicit none
     !parameters
-    type(run_objects), intent(in) :: runObj
-    real(gp), intent(in) :: fp1(:), fp2(:)
+    type(SPRED_inputs), intent(in) :: inputs
+    integer, intent(in) :: nid
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: fp1(nid), fp2(nid)
     real(gp), intent(out) :: d 
     !internal
-    select case(trim(runObj%inputs%fpmethod))
+    select case(trim(f_char(inputs%fp_method)))
       case('OMF_FP_METHOD','OMPOLD_FP_METHOD','OMSOLD_FP_METHOD')
-        call fpdistance_omf(fp1,fp2,d)
+        call fpdistance_omf(inputs,nid,nat,fp1,fp2,d)
       case('OMP_FP_METHOD')
-        call fpdistance_omp(runObj,fp1,fp2,d)
+        call fpdistance_omp(inputs,nid,nat,fp1,fp2,d)
       case DEFAULT
-        call f_err_throw('Following FP method is unknown: '//trim(fpmethod))
+        call f_err_throw('Following FP method is unknown: '//trim(f_char(inputs%fp_method)))
     end select
 end subroutine fpdistance
 !=====================================================================
-subroutine fpdistance_omp(runObj,fp1,fp2,d)
-    use module_base
-    use bigdft_run
+subroutine fpdistance_omp(inputs,nid,nat,fp1,fp2,d)
+    use SPREDbase
+    use SPREDtypes
     implicit none
     !parameters
-    type(run_objects), intent(in) :: runObj
-    real(gp), intent(in) :: fp1(:), fp2(:)
+    type(SPRED_inputs), intent(in) :: inputs
+    integer, intent(in) :: nid
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: fp1(inputs%fp_angmom*inputs%fp_natx_sphere,nat), fp2(inputs%fp_angmom*inputs%fp_natx_sphere,nat)
     real(gp), intent(out) :: d 
     !internal
-    integer :: iat, jat
+    integer :: iat, jat, l
     real(gp) :: tt
-    integer :: nat
+    real(gp) :: cost(nat,nat)
+    integer :: iassign(nat)
 
-    nat = bigdft_nat(runObj)
 
     do iat=1,nat
         do jat=1,nat
             tt=0.d0
-            do l=1,runObj%inputs%lseg*runObj%inputs%natx_sphere
-                tt=tt+(fpall(l,iat,iconf)-fpall(l,jat,jconf))**2
+            do l=1,inputs%fp_angmom*inputs%fp_natx_sphere
+                tt=tt+(fp1(l,iat)-fp2(l,jat))**2
             enddo
             tt=sqrt(tt) !really taking the sqrt here?
             cost(iat,jat)=tt
@@ -663,31 +670,36 @@ subroutine fpdistance_omp(runObj,fp1,fp2,d)
     call apc(nat, cost, iassign, d)
 end subroutine fpdistance_omp
 !=====================================================================
-subroutine fpdistance_omf(fp1,fp2,d)
-    use module_base
+subroutine fpdistance_omf(inputs,nid,nat,fp1,fp2,d)
+    use SPREDbase
+    use SPREDtypes
     implicit none
     !parameters
-    real(gp), intent(in) :: fp1(:), fp2(:)
+    type(SPRED_inputs), intent(in) :: inputs
+    integer, intent(in) :: nid
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: fp1(nid), fp2(nid)
     real(gp), intent(out) :: d
     !internal
     integer :: i
 
     d=0.0_gp
-    do i=1,size(fp1)
+    do i=1,nid
         d = d + (fp1(i)-fp2(i))**2
     enddo
-    d=sqrt(d/nid)
+    d=sqrt(d/(inputs%fp_angmom*nat))
 end subroutine fpdistance_omf
 !=====================================================================
-logical function equal(runObj,iproc,prefix,txt,nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
-    use module_base
-    use bigdft_run
+logical function equal(inputs,nid,nat,iproc,prefix,txt,en_delta,fp_delta,epot1,epot2,fp1,fp2)
+    use SPREDbase
+    use SPREDtypes
     implicit none
     !parameter
-    type(run_objects), intent(in) :: runObj
+    type(SPRED_inputs), intent(in) :: inputs
+    integer, intent(in) :: nid
+    integer, intent(in) :: nat
     integer, intent(in) :: iproc
     character(len=*), intent(in) :: prefix
-    integer, intent(in) :: nid
     real(gp), intent(in) :: epot1,epot2
     real(gp), intent(in) :: en_delta, fp_delta
     real(gp), intent(in) :: fp1(nid), fp2(nid)
@@ -696,10 +708,10 @@ logical function equal(runObj,iproc,prefix,txt,nid,en_delta,fp_delta,epot1,epot2
     real(gp) :: d
 
     equal=.false.
-    call fpdistance(nid,fp1,fp2,d)
+    call fpdistance(inputs,nid,nat,fp1,fp2,d)
     if(iproc==0)write(*,'(a,1x,a,1x,es14.7,1x,es14.7)')trim(adjustl(prefix))//'ediff, fpdist ',txt,abs(epot1-epot2),d
     if (abs(epot1-epot2).lt.en_delta) then
-        call fpdistance(runObj,fp1,fp2,d)
+        call fpdistance(inputs,nid,nat,fp1,fp2,d)
         if (d.lt.fp_delta) then ! identical
             equal=.true.
         endif
@@ -766,7 +778,7 @@ implicit none
 
 ! COMPUTATION OF THE SOLUTION COST  Z .
       Z = sum(u(1:N)) + sum(V(1:N))
-      END
+      END SUBROUTINE
 
 
       SUBROUTINE INCR(n,F,J,FB,RC)
@@ -781,7 +793,7 @@ implicit none
       J = JJ
       IF ( J > 0 ) GO TO 10
       RETURN
-      END
+      END SUBROUTINE
 
 
       SUBROUTINE INIT(N,A,F,M,U,V,FB,P)
@@ -860,7 +872,7 @@ implicit none
         P(I) = J + 1
   110 CONTINUE
       RETURN
-      END
+      END SUBROUTINE
       SUBROUTINE PATH(N,A,II,F,JJ,U,V,FB,RC)
 !
 ! DETERMINATION OF AN AUGMENTING PATH STARTING FROM
@@ -933,7 +945,7 @@ implicit none
 ! DETERMINATION OF THE UNASSIGNED COLUMN  J .
   110 JJ = J
       RETURN
-      END
+      END SUBROUTINE
  
 
 end module

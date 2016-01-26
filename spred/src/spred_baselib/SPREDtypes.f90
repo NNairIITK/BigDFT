@@ -30,15 +30,58 @@ module SPREDtypes
   end type SPRED_inputs
 
 
-  public :: SPRED_input_dict
+  public :: SPRED_read_uinp
 
 contains
-  subroutine SPRED_init(inputs)
+ 
+  !> read user input
+  subroutine SPRED_read_uinp(radical,inputs)
+    use SPREDbase
+    use dictionaries
     implicit none
-  end subroutine SPRED_init 
+    !parameter
+    character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
+    type(SPRED_inputs), intent(out) :: inputs
+    !internal
+    logical :: exists_user
+    character(len = max_field_length) :: fname
+    type(dictionary), pointer :: dict
+
+    call f_routine(id='SPRED_read_uinp')
+
+
+    call dict_init(dict)
+
+    ! fill dictionary with hard coded default values 
+    call SPRED_init_input_dict(dict)
+
+
+    !Now read a user input yaml file
+    ! try radical.yaml. If radical is empty, use input.yaml
+    if (len_trim(radical) == 0) then
+       fname(1:len(fname)) = "input.yaml"
+    else
+       fname(1:len(fname)) = trim(radical) // ".yaml"
+    end if
+    inquire(file = trim(fname), exist = exists_user)
+    if (exists_user) call merge_input_file_to_dict(dict, trim(fname))
+
+
+    !now transfer the information from the dictionary to the SPRED input data
+    !structure
+    call SPRED_fill_variables(inputs,dict)
+
+    ! We put a barrier here to be sure that non master proc will be stopped
+    ! by any issue on the master proc.
+!    call mpibarrier(comm=mpi_env%mpi_comm)
+
+    call dict_free(dict)
+    call f_release_routine()
+  end subroutine SPRED_read_uinp
 
   subroutine merge_input_file_to_dict(dict, fname)
-    use module_base
+    use SPREDbase
+    use dictionaries
     !use yaml_output, only :yaml_map
     use yaml_parse, only: yaml_parse_from_char_array
     use yaml_output
@@ -54,16 +97,32 @@ contains
     type(dictionary), pointer :: udict
     external :: getFileContent,copyCBuffer,freeCBuffer
 
-
     call f_routine(id='merge_input_file_to_dict')
+!    if (mpi_env%iproc == 0) then
        call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
+       !if (mpi_env%nproc > 1) &
+       !     & call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm,
+       !     ierr)
+    !else
+       !call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
+!    end if
 
+!    if (mpi_env%nproc > 1) call mpibcast(cbuf_len,comm=mpi_env%mpi_comm)
     fbuf=f_malloc0_str(1,int(cbuf_len),id='fbuf')
 
+!    if (mpi_env%iproc == 0) then
        call copyCBuffer(fbuf, cbuf, cbuf_len)
        call freeCBuffer(cbuf)
-    end if
+!!       if (mpi_env%nproc > 1 .and. cbuf_len > 0) &
+!!            & call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0,
+!!            mpi_env%mpi_comm, ierr)
+!!    else
+!!       if (cbuf_len > 0) call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER,
+!!       0, mpi_env%mpi_comm, ierr)
+!    end if
 
+    !this call can be replaced with the size of the character array
+!    if (mpi_env%nproc > 1) call mpibcast(fbuf,comm=mpi_env%mpi_comm)
 
     call f_err_open_try()
     call yaml_parse_from_char_array(udict, fbuf)
@@ -77,48 +136,17 @@ contains
     if (f_err_check()) ierr = f_get_last_error(val)
     !call f_dump_all_errors()
     call f_err_close_try()
+
     if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
     call f_release_routine()
+
 
   END SUBROUTINE merge_input_file_to_dict
 
 
-  !> This function returns a dictionary with all the input variables of a SPRED run filled.
-  !! This dictionary is constructed from an updated version of the input variables dictionary
-  !! following the input files as defined by the user
-  subroutine read_input_dict_from_files(radical,dict)
-    use SPRED_base
-    !use module_input_dicts, only: merge_input_file_to_dict
-    use input_old_text_format
-    !use yaml_output
-    implicit none
-    character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
-    type(dictionary), pointer :: dict            !< Input dictionary, has to be nullified at input
-    !local variables
-    integer :: ierr
-    logical :: exists_default, exists_user
-    character(len = max_field_length) :: fname
-
-    call f_routine(id='read_input_dict_from_files')
-
-
-    ! We try first default.yaml
-    inquire(file = "default.yaml", exist = exists_default)
-    if (exists_default) call merge_input_file_to_dict(dict, "default.yaml")
-    ! We try then radical.yaml
-    if (len_trim(radical) == 0 .or. trim(radical) == LOGFILE) then
-       fname(1:len(fname)) = "input.yaml"
-    else
-       fname(1:len(fname)) = trim(radical) // ".yaml"
-    end if
-    inquire(file = trim(fname), exist = exists_user)
-    if (exists_user) call merge_input_file_to_dict(dict, trim(fname))
-
-    call f_release_routine()
-  end subroutine read_input_dict_from_files
-
-  !>routine to fill the input variables of spred
-  subroutine SPRED_input_dict(dict,dict_minimal)
+  !> initializes the input dictionary
+  !! by populating it from hard-coded source file
+  subroutine SPRED_init_input_dict(dict)
     use dictionaries
     use f_input_file
     use yaml_parse
@@ -126,7 +154,6 @@ contains
     !>input dictionary, a copy of the user input, to be filled
     !!with all the variables on exit
     type(dictionary), pointer :: dict
-    type(dictionary), pointer, optional :: dict_minimal
     !local variables
     integer(f_integer) :: params_size
     !integer(kind = 8) :: cbuf_add !< address of c buffer
@@ -136,7 +163,7 @@ contains
     type(dictionary), pointer :: profiles
     type(dictionary), pointer :: nested,asis
 
-    call f_routine(id='SPRED_input_dict')
+    call f_routine(id='SPRED_init_input_dict')
 
     nullify(parameters,parsed_parameters,profiles)
 
@@ -156,10 +183,10 @@ contains
 
     call input_file_complete(parameters,dict,imports=profiles)
 
-    if (present(dict_minimal)) then
-       nullify(nested,asis)
-       call input_file_minimal(parameters,dict,dict_minimal,nested,asis)
-    end if
+!    if (present(dict_minimal)) then
+!       nullify(nested,asis)
+!       call input_file_minimal(parameters,dict,dict_minimal,nested,asis)
+!    end if
 
     if (associated(parsed_parameters)) then
        call dict_free(parsed_parameters)
@@ -174,13 +201,12 @@ contains
 
     call f_release_routine()
 
-  end subroutine SPRED_input_dict
+  end subroutine SPRED_init_input_dict
 
-  subroutine SPRED_fill_variables(k,inputs,dict)
+  subroutine SPRED_fill_variables(inputs,dict)
     use dictionaries
     implicit none
-    type(coulomb_operator), intent(inout) :: k
-    type(SPRED_inputs), intent(inout) :: inputs
+    type(SPRED_inputs), intent(out) :: inputs
     type(dictionary), pointer :: dict
     !local variables
     type(dictionary), pointer :: lvl,var
@@ -190,7 +216,7 @@ contains
     do while(associated(lvl))
        var => dict_iter(lvl)
        do while(associated(var))
-          call SPRED_input_fill(k,inputs,dict_key(lvl),var)
+          call SPRED_input_fill(inputs,dict_key(lvl),var)
           var => dict_next(var)
        end do
        lvl => dict_next(lvl)
@@ -201,10 +227,12 @@ contains
   !> Set the dictionary from the input variables
   subroutine SPRED_input_fill(inputs, level, val)
     use SPREDbase
+    use SPRED_public_keys
+    use SPRED_public_enums
     use yaml_output, only: yaml_warning
     use dictionaries
     implicit none
-    type(SPRED_inputs), intent(inout) :: inputs
+    type(SPRED_inputs), intent(out) :: inputs
     type(dictionary), pointer :: val
     character(len = *), intent(in) :: level
     !local variables
@@ -214,7 +242,7 @@ contains
     real(gp), dimension(2) :: dummy_gp !< to fill the input variables
     logical, dimension(2) :: dummy_log !< to fill the input variables
     character(len=256) :: dummy_char
-    character(len = max_field_length) :: strn
+    character(len = max_field_length) :: str
     integer :: i, ipos
 
     if (index(dict_key(val), "_attributes") > 0) return
@@ -223,7 +251,17 @@ contains
     case(FP_VARIABLES)
        select case (trim(dict_key(val)))
        case(FP_METHOD)
-          inputs%fp_method=val
+          str=val
+          select case(trim(str))
+          case('OMF')
+             inputs%fp_method=OMF_FP_METHOD
+          case('OMP')
+             inputs%fp_method=OMP_FP_METHOD
+          case('OMPOLD')
+             inputs%fp_method=OMPOLD_FP_METHOD
+          case('OMSOLD')
+             inputs%fp_method=OMSOLD_FP_METHOD
+          end select
        case(FP_NATX_SPHERE)
           inputs%fp_natx_sphere=val
        case(FP_ANGMOM)

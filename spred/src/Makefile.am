@@ -13,6 +13,7 @@ dynlib_DATA         = $(spred_dynamic_library)
 # Sub-directories.
 # ---------------
 SUBDIRS = \
+	spred_baselib \
 	art \
 	mhgps_files \
 	global_files 
@@ -58,14 +59,6 @@ sub_dirs_bin =
 check_PROGRAMS =
 endif
 
-# C objects
-c_level = SPRED_input_variables_fetch.c
-
-SPRED_input_variables_fetch.o: SPRED_input_variables_definition-inc.h
-#build the fortran include file with the stream of input variables into a local string
-#the sed command below will transform the entire yaml document into a c string, to be passed to fortran
-SPRED_input_variables_definition-inc.h: SPRED_input_variables_definition.yaml
-	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
 
 if HAVE_AMBERTOOLS
 amber_ld= @LIB_AMBERTOOLS@  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack
@@ -96,7 +89,7 @@ AM_CFLAGS = @CUDA_INCLUDE@
 #objects which depends from module_types
 high_level = images.f90
 
-libmain_a_SOURCES = $(high_level) $(c_level)
+libmain_a_SOURCES = $(high_level)
 
 libspred_1_a_SOURCES =
 
@@ -143,19 +136,20 @@ bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_I
 bart_LDADD = art/libart.a $(spred_library) @LINALG_LIBS@
 
 mhgps_SOURCES = mhgps.f90
-mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-mhgps_LDADD = mhgps_files/libmhgps.a $(spred_library) @LINALG_LIBS@
+mhgps_FCFLAGS = -I. -Ispred_baselib -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+mhgps_LDADD = spred_baselib/libspredbasef.a mhgps_files/libmhgps.a $(spred_library) @LINALG_LIBS@
 
 mhgpstool_SOURCES = mhgpstool.f90
-mhgpstool_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-mhgpstool_LDADD = mhgps_files/libmhgps.a $(spred_library)  @LINALG_LIBS@
+mhgpstool_FCFLAGS = -I. -Ispred_baselib -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+mhgpstool_LDADD = spred_baselib/libspredbasef.a $(spred_library) mhgps_files/libmhgps.a @LINALG_LIBS@
 
 global_SOURCES = global.f90
-global_LDADD = $(spred_library) @LINALG_LIBS@
+global_FCFLAGS = -I. -Ispred_baselib
+global_LDADD = spred_baselib/libspredbasef.a $(spred_library) @LINALG_LIBS@
 
 globaltool_SOURCES = globaltool.f90
-globaltool_FCFLAGS = -I. -Iglobal_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-globaltool_LDADD = global_files/libglobalf.a $(spred_library)  @LINALG_LIBS@
+globaltool_FCFLAGS = -I. -Ispred_baselib -Iglobal_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+globaltool_LDADD = spred_baselib/libspredbasef.a  global_files/libglobalf.a $(spred_library)  @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libspred-1.* input_variables_definition-inc.h
 clean-local:
@@ -170,4 +164,3 @@ check:
 
 NEB.o: images.o
 
-SPREDtypes.o: SPREDbase.o

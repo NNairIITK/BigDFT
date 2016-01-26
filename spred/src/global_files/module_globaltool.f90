@@ -13,6 +13,7 @@
 module module_globaltool
     use module_base
     use module_atoms, only: atomic_structure
+    use SPREDtypes
     implicit none
 
     private
@@ -87,6 +88,8 @@ module module_globaltool
                                  !global.mon)
 
         integer, allocatable :: mn(:)
+
+        type(SPRED_inputs) :: spredinputs
     end type
     contains
 !=====================================================================
@@ -508,7 +511,7 @@ subroutine write_transitionpairs(gdat)
         call unpair(gdat%transpairs(itrans),IDmin1,IDmin2)
         kIDmin1=gdat%mn(IDmin1)
         kIDmin2=gdat%mn(IDmin2)
-        call fpdistance(gdat%nid,gdat%fp_arr(1,kIDmin1),&
+        call fpdistance(gdat%spredinputs,gdat%nid,gdat%fp_arr(1,kIDmin1),&
              gdat%fp_arr(1,kIDmin2),fpd)
         write(*,'(a,1x,i6.6,3x,i6.6,2x,4(1x,es24.17),1x,i13.13)')'   Trans',&
              IDmin1,IDmin2,gdat%en_arr(kIDmin1),gdat%en_arr(kIDmin2),&
@@ -648,7 +651,7 @@ subroutine add_transpairs_to_database(gdat)
         endif
         call check_given_pairs(gdat,iposloc_curr,iposloc_next)
         id_transpair = getPairId(idcurr,idnext)
-        call fpdistance(gdat%nid,gdat%fp_arr(1,kidcurr),&
+        call fpdistance(gdat%spredinputs,gdat%nid,gdat%fp_arr(1,kidcurr),&
              gdat%fp_arr(1,kidnext),fpd)
         write(*,'(a,1x,i6.6,3x,i6.6,2x,4(1x,es24.17))')'   trans',idcurr,&
              idnext,gdat%en_arr(kidcurr),gdat%en_arr(kidnext),&
@@ -692,12 +695,12 @@ subroutine check_given_pairs(gdat,iposloc_curr,iposloc_next)
     do itrans=1,gdat%uinp%ntranspairs
         if(.not.gdat%input_transpair_found(itrans))then
             !check icurr
-            if (equal_gt(gdat%nid,gdat%uinp%en_arr_trans_pairs(1,itrans),&
+            if (equal_gt(gdat%spredinputs,gdat%nid,gdat%uinp%en_arr_trans_pairs(1,itrans),&
                 gdat%gmon_ener(iposloc_curr),&
                 gdat%uinp%fp_arr_trans_pairs(1,1,itrans),&
                 gdat%gmon_fp(1,iposloc_curr),&
                 gdat%uinp%en_delta,gdat%uinp%fp_delta))then
-                if(equal_gt(gdat%nid,gdat%uinp%en_arr_trans_pairs(2,itrans),&
+                if(equal_gt(dat%spredinputs,gdat%nid,gdat%uinp%en_arr_trans_pairs(2,itrans),&
                    gdat%gmon_ener(iposloc_next),&
                    gdat%uinp%fp_arr_trans_pairs(1,2,itrans),&
                    gdat%gmon_fp(1,iposloc_next),&
@@ -707,12 +710,12 @@ subroutine check_given_pairs(gdat,iposloc_curr,iposloc_next)
                     gdat%trans_pairs_paths_found(2,itrans)=gdat%gmon_path(iposloc_next)
                     gdat%input_transpair_found(itrans)=.true.
                 endif
-            else if((equal_gt(gdat%nid,gdat%uinp%en_arr_trans_pairs(2,itrans),&
+            else if((dat%spredinputs,equal_gt(gdat%nid,gdat%uinp%en_arr_trans_pairs(2,itrans),&
                 gdat%gmon_ener(iposloc_curr),&
                 gdat%uinp%fp_arr_trans_pairs(1,2,itrans),&
                 gdat%gmon_fp(1,iposloc_curr),&
                 gdat%uinp%en_delta,gdat%uinp%fp_delta))) then
-                if(equal_gt(gdat%nid,gdat%uinp%en_arr_trans_pairs(1,itrans),&
+                if(equal_gt(dat%spredinputs,gdat%nid,gdat%uinp%en_arr_trans_pairs(1,itrans),&
                    gdat%gmon_ener(iposloc_next),&
                    gdat%uinp%fp_arr_trans_pairs(1,1,itrans),&
                    gdat%gmon_fp(1,iposloc_next),&
@@ -947,7 +950,7 @@ subroutine identical(cf,gdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     dmin=huge(1.e0_gp)
     do k=max(1,klow),min(ndat,khigh)
         if (abs(epot-en_arr(k)).le.en_delta) then
-            call fpdistance(nid,fp,fp_arr(1,k),d)
+            call fpdistance(gdat%spredinputs,nid,fp,fp_arr(1,k),d)
             write(*,*)'fpdist '//trim(adjustl(cf)),abs(en_arr(k)-epot),d
             if (d.lt.fp_delta) then
                 lnew=.false.
@@ -1088,11 +1091,13 @@ subroutine give_rcov(iproc,astruct,rcov)
 
 end subroutine give_rcov
 !=====================================================================
-function equal_gt(nid,ener1,ener2,fp1,fp2,en_delta,fp_delta)
+function equal_gt(spredinputs,nid,ener1,ener2,fp1,fp2,en_delta,fp_delta)
     use module_base
     use module_fingerprints
+    use SPREDtypes
     implicit none
     !parameter
+    type(SPRED_inputs), intent(in) :: spredinputs
     integer, intent(in) :: nid
     real(gp), intent(in) :: ener1, ener2
     real(gp), intent(in) :: fp1(nid),fp2(nid)
@@ -1103,7 +1108,7 @@ function equal_gt(nid,ener1,ener2,fp1,fp2,en_delta,fp_delta)
 
     equal_gt=.false.
     if (abs(ener1-ener2).le.en_delta) then
-        call fpdistance(nid,fp1,fp2,d)
+        call fpdistance(spredinputs,nid,fp1,fp2,d)
         if(d.le.fp_delta)equal_gt=.true.
     endif
 end function equal_gt
