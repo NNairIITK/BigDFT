@@ -335,7 +335,7 @@ write(*,*)'ID MH  ---> ID MHGPS '
 !        call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
 !             mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
 !             fp(1))
-        call identical('min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
+        call identical(spredinputs,'min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
              mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
              k_epot)
         if(lnew)then
@@ -354,6 +354,7 @@ subroutine read_and_merge_data(spredinputs,folders,nsad,mdat)
     use module_atoms, only: set_astruct_from_file,&
                             deallocate_atomic_structure
     use module_fingerprints
+    use SPREDtypes
     implicit none
     !parameters
     type(SPRED_inputs), intent(in) :: spredinputs
@@ -409,7 +410,7 @@ write(*,*)trim(fminL)
 !                 fp(1))
 write(*,*)trim(adjustl(fminL))
 write(*,*)'***'
-            call identical('min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
+            call identical(spredinputs,'min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
                  mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
                  k_epot)
             if(lnew)then
@@ -442,7 +443,7 @@ write(*,*)trim(fminR)
 
 write(*,*)trim(adjustl(fminR))
 write(*,*)'***'
-            call identical('min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
+            call identical(spredinputs,'min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
                  mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
                  k_epot)
             if(lnew)then
@@ -472,7 +473,7 @@ write(*,*)trim(fsaddle)
 !            call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
 !                 mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
 !                 fp(1))
-            call identical('sad',mdat,mdat%nsadtot,mdat%nsad,mdat%nid,epot,fp,&
+            call identical(spredinputs,'sad',mdat,mdat%nsadtot,mdat%nsad,mdat%nid,epot,fp,&
                  mdat%en_arr_sad,mdat%fp_arr_sad,en_delta_sad,&
                  fp_delta_sad,lnew,kid,k_epot)
             if(lnew)then
@@ -680,7 +681,7 @@ subroutine identical(spredinputs,cf,mdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,
     dmin=huge(1.e0_gp)
     do k=max(1,klow),min(ndat,khigh)
         if (abs(epot-en_arr(k)).le.en_delta) then
-            call fpdistance(spredinputs,nid,fp,fp_arr(1,k),d)
+            call fpdistance(spredinputs,nid,mdat%nat,fp,fp_arr(1,k),d)
             write(*,*)'fpdist '//cf,abs(en_arr(k)-epot),d
             if (d.lt.fp_delta) then
                 lnew=.false.

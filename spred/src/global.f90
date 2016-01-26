@@ -316,7 +316,7 @@ program MINHOP
   
 !  call fingerprint(bigdft_nat(run_opt),nid,bigdft_get_cell(run_opt),bigdft_get_geocode(run_opt),&
 !       rcov,pos,fp)
-  call fingerprint(run_opt,rcov,pos,fp)
+call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rcov,pos,fp)
 
   !retrieve the eigenvalues from this run
   if(run_opt%run_mode=='QM_RUN_MODE') then
@@ -646,7 +646,7 @@ program MINHOP
 
 !  call fingerprint(bigdft_nat(run_opt),nid,bigdft_get_cell(run_opt),bigdft_get_geocode(run_opt),&
 !       rcov,rxyz_opt,wfp)
-  call fingerprint(run_opt,rcov,rxyz_opt,wfp)
+call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rcov,rxyz_opt,wfp)
 
      if (abs(outs%energy-e_pos).lt.en_delta) then
      call fpdistance(run_opt,wfp,fp,d)
