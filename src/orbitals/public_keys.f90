@@ -42,6 +42,7 @@ module public_keys
   character(len = *), parameter :: KERNEL_RESTART_MODE = "kernel_restart_mode"
   character(len = *), parameter :: KERNEL_RESTART_NOISE = "kernel_restart_noise"
   character(len = *), parameter :: FRAG_NUM_NEIGHBOURS = "frag_num_neighbours"
+  character(len = *), parameter :: FRAG_NEIGHBOUR_CUTOFF = "frag_neighbour_cutoff"
   character(len = *), parameter :: RBUF = "rbuf"
   character(len = *), parameter :: NCONGT = "ncongt"
   character(len = *), parameter :: NORBV = "norbv", NVIRT = "nvirt"
@@ -203,6 +204,8 @@ module public_keys
   character(len = *), parameter :: FOE_GAP = "foe_gap"
   character(len = *), parameter :: SUPPORT_FUNCTION_MULTIPOLES = "support_function_multipoles"
   character(len = *), parameter :: NSIGMA = "nsigma"
+  character(len = *), parameter :: PLOT_MPPOT_AXES = "plot_mppot_axes"
+  character(len = *), parameter :: PLOT_POT_AXES = "plot_pot_axes"
 
   !keys for linear input variables
   !level keys

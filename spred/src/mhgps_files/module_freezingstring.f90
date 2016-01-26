@@ -63,7 +63,7 @@ subroutine get_ts_guess(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,tsguess,minmodegues
                  rxyz2,tsguess, minmodeguess,tsgenergy,tsgforces)
         endif
     endif
-    if(mhgpsst%iproc==0)call yaml_map('(MHGPS) # Energy evaluations for '//&
+    if(mhgpsst%iproc==0)call yaml_map('(MHGPS) No. Energy evaluations for '//&
                               'TS guess',mhgpsst%ef_counter-efcounter_start)
 end subroutine
 subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&

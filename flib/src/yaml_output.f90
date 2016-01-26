@@ -180,7 +180,7 @@ module yaml_output
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump,yaml_dict_dump_all
-  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa,dump_dict_impl,dump_progress_bar
+  public :: is_atoi,is_atof,is_atol,dump_dict_impl,dump_progress_bar
 
   !for internal f_lib usage
   public :: yaml_output_errors
@@ -2325,63 +2325,63 @@ contains
 
   end subroutine yaml_dict_dump_all
 
-  !>get the string associated to walltime format 
-  function yaml_walltime_toa(walltime) result(timestamp)
-    implicit none
-    integer(kind=8), intent(in) :: walltime
-    character(len=tot_max_record_length) :: timestamp
-    !local variables
-    character(len=*), parameter :: fmt='(i2.2)'
-    integer(kind=8), parameter :: billion=int(1000000000,kind=8),sixty=int(60,kind=8)
-    integer(kind=8), parameter :: tsf=int(365,kind=8),tf=int(24,kind=8)
-    integer(kind=8) :: s,ns,m,h,d,y
-
-    !get the seconds
-    s=walltime/billion
-    !then get nanosecs
-    ns=walltime-s*billion
-    !then take minutes from seconds
-    m=s/sixty; s=s-m*sixty
-    !and hours from minutes
-    h=m/sixty; m=m-h*sixty   
-
-    !split the treatment in the case of multiple days
-    if (h > tf) then
-       !days
-       d=h/tf; h=h-d*tf
-       !years
-       y=d/tsf; d=d-y*tsf
-
-       !and the winner is...
-       call f_strcpy(dest=timestamp,src=&
-            trim(adjustl(yaml_toa(y)))//'y '//&
-            trim(adjustl(yaml_toa(d)))//'d '//&
-            trim(adjustl(yaml_toa(h,fmt=fmt)))//':'//&
-            trim(adjustl(yaml_toa(m,fmt=fmt)))//':'//&
-            trim(adjustl(yaml_toa(s,fmt=fmt)))//'.'//&
-            trim(adjustl(yaml_toa(ns,fmt='(i9.9)'))))
-
-!!$       !test with new API to deal with strings
-!!$       !that would be the best solution
-!!$       call f_strcpy(dest=timestamp,src=&
-!!$            y+'y'//d+'d'//h**fmt+':'+m**fmt+':'+s**fmt+'.'ns**'(i9.9)'
-!!$       !a problem might arise with dictionaries
-!!$       dict//'ciao'//0
-!!$       !can be confused with
-!!$       dict//'ciao 0'
-!!$       !however if it is read from left to right there should be no ambiguity
-
-
-    else
-       !then put everything in the same string
-       call f_strcpy(dest=timestamp,src=&
-            trim(adjustl(yaml_toa(h,fmt=fmt)))//':'//&
-            trim(adjustl(yaml_toa(m,fmt=fmt)))//':'//&
-            trim(adjustl(yaml_toa(s,fmt=fmt)))//'.'//&
-            trim(adjustl(yaml_toa(ns,fmt='(i9.9)'))))
-    end if
-
-  end function yaml_walltime_toa
+!!!  !>get the string associated to walltime format 
+!!!  function yaml_walltime_toa(walltime) result(timestamp)
+!!!    implicit none
+!!!    integer(kind=8), intent(in) :: walltime
+!!!    character(len=tot_max_record_length) :: timestamp
+!!!    !local variables
+!!!    character(len=*), parameter :: fmt='(i2.2)'
+!!!    integer(kind=8), parameter :: billion=int(1000000000,kind=8),sixty=int(60,kind=8)
+!!!    integer(kind=8), parameter :: tsf=int(365,kind=8),tf=int(24,kind=8)
+!!!    integer(kind=8) :: s,ns,m,h,d,y
+!!!
+!!!    !get the seconds
+!!!    s=walltime/billion
+!!!    !then get nanosecs
+!!!    ns=walltime-s*billion
+!!!    !then take minutes from seconds
+!!!    m=s/sixty; s=s-m*sixty
+!!!    !and hours from minutes
+!!!    h=m/sixty; m=m-h*sixty   
+!!!    !days
+!!!    d=h/tf; h=h-d*tf
+!!!    !years
+!!!    y=d/tsf; d=d-y*tsf
+!!!
+!!!    !test with new API to deal with strings
+!!!    !that would be the best solution
+!!!    call f_strcpy(dest=timestamp,src=&
+!!!         h**fmt+':'+m**fmt+':'+s**fmt+'.'ns**'(i9.9)'
+!!!
+!!!    !split the treatment in the case of multiple days
+!!!    if (d >0.0_f_double .or. y > 0.0_f_double ) call f_strcpy(&
+!!!         dest=timestamp,src=y+'y'//d+'d'+timestamp)
+!!!!!$    if (h > tf) then      
+!!!!!$       !days
+!!!!!$       d=h/tf; h=h-d*tf
+!!!!!$       !years
+!!!!!$       y=d/tsf; d=d-y*tsf
+!!!       !and the winner is...
+!!!!!$       call f_strcpy(dest=timestamp,src=&
+!!!!!$            trim(adjustl(yaml_toa(y)))//'y '//&
+!!!!!$            trim(adjustl(yaml_toa(d)))//'d '//&
+!!!!!$            trim(adjustl(yaml_toa(h,fmt=fmt)))//':'//&
+!!!!!$            trim(adjustl(yaml_toa(m,fmt=fmt)))//':'//&
+!!!!!$            trim(adjustl(yaml_toa(s,fmt=fmt)))//'.'//&
+!!!!!$            trim(adjustl(yaml_toa(ns,fmt='(i9.9)'))))
+!!!!!$
+!!!!!$    else
+!!!!!$       !then put everything in the same string
+!!!!!$       call f_strcpy(dest=timestamp,src=&
+!!!!!$            trim(adjustl(yaml_toa(h,fmt=fmt)))//':'//&
+!!!!!$            trim(adjustl(yaml_toa(m,fmt=fmt)))//':'//&
+!!!!!$            trim(adjustl(yaml_toa(s,fmt=fmt)))//'.'//&
+!!!!!$            trim(adjustl(yaml_toa(ns,fmt='(i9.9)'))))
+!!!!!$    end if
+!!!
+!!!  end function yaml_walltime_toa
+!!!
 
   !> to be used for debugging
   subroutine dump_dict_impl(dict)
@@ -2442,7 +2442,7 @@ contains
        call yaml_comment(bar%message,unit=unt)
     end if
     !write(unit=unt,fmt="(a18)",advance='no')char(13)//bar
-    call f_utils_flush(unt)
+    call f_utils_flush(streams(strm)%unit)
   end subroutine dump_progress_bar
 
 

@@ -16,10 +16,10 @@ program utilities
    use yaml_output
    use module_types, only: bigdft_init_errors, bigdft_init_timing_categories
    use module_atoms, only: atoms_data, atoms_data_null, deallocate_atoms_data
-   use io, only: read_sparse_matrix
    use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, assignment(=), SPARSE_FULL, &
                                 sparsematrix_malloc_ptr, deallocate_sparse_matrix, deallocate_matrices
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
+   use sparsematrix_io, only: read_sparse_matrix
    use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, &
                                     CHARGE_ANALYSIS_PROJECTOR, &
                                     loewdin_charge_analysis_core
@@ -191,7 +191,7 @@ program utilities
        case(CHARGE_ANALYSIS_PROJECTOR)
            call projector_for_charge_analysis(at, smat_s, smat_m, smat_l, &
                 ovrlp_mat, hamiltonian_mat, kernel_mat, &
-                at%astruct%rxyz, calculate_centers=.false., write_output=.true.)
+                at%astruct%rxyz, calculate_centers=.false., write_output=.true., ortho='yes')
        case default
            call f_err_throw('wrong method',err_name='BIGDFT_RUNTIME_ERROR')
        end select

@@ -8,7 +8,7 @@ include $(srcdir)/../check.mk
 EXTRA_DIST = test-ccs.ref.yaml \
 	matrix1.dat matrix2.dat
 
-check_PROGRAMS = driver driver_ccs
+check_PROGRAMS = driver driver_ccs driver_single
 
 if BUILD_LIBYAML
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
@@ -28,6 +28,9 @@ driver_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 driver_ccs_SOURCES = utilities.f90 driver_ccs.f90
 driver_ccs_LDADD = -lbigdft-1 @LINALG_LIBS@
+
+driver_single_SOURCES = utilities.f90 driver_single.f90
+driver_single_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 CLEANFILES = test-ccs.out.yaml test-ccs.report.yaml test-ccs.report
 

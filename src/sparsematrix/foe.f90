@@ -27,8 +27,9 @@ module foe
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
-      use foe_common, only: scale_and_shift_matrix, chebft, chder, chebft2, evnoise, &
-                            check_eigenvalue_spectrum_new, retransform_ext
+      use foe_common, only: scale_and_shift_matrix, chder, evnoise, &
+                            check_eigenvalue_spectrum_new, retransform_ext, get_chebyshev_expansion_coefficients
+      use module_func
       implicit none
     
       ! Calling arguments
@@ -55,8 +56,10 @@ module foe
       real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
       real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
       real(kind=8) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt
+      real(kind=8) :: x_max_error_fake, max_error_fake, mean_error_fake
       real(kind=8) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check, fscale_new
-      logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible, emergency_stop
+      logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
+      logical,dimension(2) :: emergency_stop
       real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
       real(kind=8),dimension(:),allocatable :: hamscal_compr, fermi_check_compr
       real(kind=8),dimension(4,4) :: interpol_matrix
@@ -77,7 +80,8 @@ module foe
       !!type(matrices) :: inv_ovrlp
       integer,parameter :: NTEMP_ACCURATE=4
       integer,parameter :: NTEMP_FAST=1
-      real(kind=8) :: degree_multiplicator
+      real(kind=8) :: degree_multiplicator, x_max_error, max_error, x_max_error_check, max_error_check
+      real(kind=8) :: mean_error, mean_error_check
       integer,parameter :: SPARSE=1
       integer,parameter :: DENSE=2
       integer,parameter :: imode=SPARSE
@@ -158,6 +162,8 @@ module foe
           imshift=(ispin-1)*smatm%nvctrp_tg
           ilshift=(ispin-1)*smatl%nvctrp_tg
           ilshift2=(ispin-1)*smatl%nvctrp_tg
+
+          !call get_minmax_eigenvalues(iproc, smatm, ham_, imshift, smats, ovrlp_, isshift)
     
           degree_sufficient=.true.
     
@@ -310,24 +316,60 @@ module foe
                       call timing(iproc, 'FOE_auxiliary ', 'OF')
                       call timing(iproc, 'chebyshev_coef', 'ON')
             
-                      call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1,1), &
-                           foe_data_get_real(foe_obj,"ef",ispin), fscale, foe_data_get_real(foe_obj,"tmprtr"))
-                      call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1,1), cc(1,2,1), npl)
-                      call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,3,1))
-                      call evnoise(npl, cc(1,3,1), foe_data_get_real(foe_obj,"evlow",ispin), &
+                      if (foe_data_get_real(foe_obj,"tmprtr")/=0.d0) call f_err_throw('tmprtr must be zero')
+                      call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
+                      call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
+                           x_max_error, max_error, mean_error)
+                      !!##call chebft(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                      !!##     foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1,1), &
+                      !!##     foe_data_get_real(foe_obj,"ef",ispin), fscale, foe_data_get_real(foe_obj,"tmprtr"), &
+                      !!##     x_max_error, max_error, mean_error)
+                      !!call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
+                      !!     foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1,1), cc(1,2,1), npl)
+                      call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
+                           muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
+                      call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,2,1), &
+                           x_max_error_fake, max_error_fake, mean_error_fake)
+                      do ipl=1,npl
+                         cc(ipl,3,1) = -cc(ipl,2,1)
+                      end do
+                      !!##call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
+                      !!##     foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,2,1), max_error_fake)
+                      call evnoise(npl, cc(1,2,1), foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
         
-                      call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,1,1), &
-                           foe_data_get_real(foe_obj,"ef",ispin), fscale_check, foe_data_get_real(foe_obj,"tmprtr"))
-                      call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), &
-                           cc_check(1,1,1), cc_check(1,2,1), npl_check)
-                      call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,3,1))
+                      call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale_check)
+                      call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                           foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, func, cc_check(1,1,1), &
+                           x_max_error_check, max_error_check, mean_error_check)
+                      !!##call chebft(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                      !!##     foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,1,1), &
+                      !!##     foe_data_get_real(foe_obj,"ef",ispin), fscale_check, foe_data_get_real(foe_obj,"tmprtr"), &
+                      !!##     x_max_error_check, max_error_check, mean_error_check)
+                      !call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
+                      !     foe_data_get_real(foe_obj,"evhigh",ispin), &
+                      !     cc_check(1,1,1), cc_check(1,2,1), npl_check)
+                      call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
+                           muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
+                      call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                           foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, func, cc_check(1,2,1), &
+                           x_max_error_check, max_error_check, mean_error_check)
+                      do ipl=1,npl_check
+                         cc_check(ipl,3,1) = -cc_check(ipl,2,1)
+                      end do
+                      !!##call chebyshev_coefficients_penalyfunction(foe_data_get_real(foe_obj,"evlow",ispin), &
+                      !!##     foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,2,1), max_error_fake)
+
+                      if (iproc==0 .and. foe_verbosity>=1) then
+                          call yaml_newline()
+                          call yaml_mapping_open('accuracy (x, max err, mean err)')
+                          call yaml_map('main',(/x_max_error,max_error,mean_error/),fmt='(es9.2)')
+                          call yaml_map('check',(/x_max_error_check,max_error_check,max_error/),fmt='(es9.2)')
+                          call yaml_mapping_close()
+                          call yaml_newline()
+                      end if
             
                       call timing(iproc, 'chebyshev_coef', 'OF')
                       call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -902,5 +944,64 @@ module foe
     
     
     end subroutine fermi_operator_expansion
+
+
+    subroutine get_minmax_eigenvalues(iproc, ham_smat, ham_mat, imshift, ovrlp_smat, ovrlp_mat, isshift)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix, matrices
+      use yaml_output
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, imshift, isshift
+      type(sparse_matrix),intent(in) :: ham_smat, ovrlp_smat
+      type(matrices),intent(in) :: ham_mat, ovrlp_mat
+
+      ! Local variables
+      integer :: iseg, ii, i, lwork, info
+      real(kind=8),dimension(:,:,:),allocatable :: tempmat
+      real(kind=8),dimension(:),allocatable :: eval, work
+
+      call f_routine(id='get_minmax_eigenvalues')
+
+      if (ham_smat%nfvctr/=ovrlp_smat%nfvctr) call f_err_throw('ham_smat&nfvctr/=ovrlp_smat%nfvctr')
+
+      tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr,2/),id='tempmat')
+      do iseg=1,ham_smat%nseg
+          ii=ham_smat%keyv(iseg)
+          do i=ham_smat%keyg(1,1,iseg),ham_smat%keyg(2,1,iseg)
+              tempmat(i,ham_smat%keyg(1,2,iseg),1) = ham_mat%matrix_compr(imshift+ii)
+              ii = ii + 1
+          end do
+      end do
+      do iseg=1,ovrlp_smat%nseg
+          ii=ovrlp_smat%keyv(iseg)
+          do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
+              tempmat(i,ovrlp_smat%keyg(1,2,iseg),2) = ovrlp_mat%matrix_compr(isshift+ii)
+              ii = ii + 1
+          end do
+      end do
+      !!if (iproc==0) then
+      !!    do i=1,ovrlp_smat%nfvctr
+      !!        do j=1,ovrlp_smat%nfvctr
+      !!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
+      !!        end do
+      !!    end do
+      !!end if
+      eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
+      lwork=100*ovrlp_smat%nfvctr
+      work = f_malloc(lwork,id='work')
+      call sygv(1, 'n','l', ovrlp_smat%nfvctr, tempmat(1,1,1), ovrlp_smat%nfvctr, tempmat(1,1,2), ovrlp_smat%nfvctr, &
+           eval(1), work(1), lwork, info)
+      !if (iproc==0) write(*,*) 'eval',eval
+      if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+    
+      call f_free(tempmat)
+      call f_free(eval)
+      call f_free(work)
+
+      call f_release_routine()
+    
+    end subroutine get_minmax_eigenvalues
 
 end module foe

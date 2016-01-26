@@ -94,9 +94,12 @@ subroutine f_utils_test()
   !wait one second
   !t0=dble(f_time())*1.d-9
   i0=f_time()
-  call yaml_map('Absolute time before pause (since epoch)',yaml_walltime_toa(i0))
+  call yaml_map('Absolute time before pause (since epoch)',f_humantime(i0))
+  call yaml_map('Short version',f_humantime(i0,short=.true.))
   call f_pause(1)
-  call yaml_map('Time spent after pause (s)',yaml_walltime_toa(f_time()-i0))!dble(f_time())*1.d-9-t0)
+  call yaml_map('Time spent after pause (s)',f_humantime(f_time()-i0))!dble(f_time())*1.d-9-t0)
+  call yaml_map('Short version',f_humantime(f_time()-i0,short=.true.))
+
   !call yaml_map('Conversion of walltimes in standard form',yaml_walltime_toa(f_time()))
   !open files and get free_units
   unt=f_get_free_unit()

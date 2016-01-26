@@ -2305,7 +2305,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use module_interfaces, only: calculate_density_kernel, &
         get_coeff, inputguessConfinement, &
        & read_gaussian_information, readmywaves, readmywaves_linear_new, &
-       & restart_from_gaussians, sumrho
+       & restart_from_gaussians, sumrho, write_orbital_density
   use module_fragments
   use constrained_dft
   use dynamic_memory

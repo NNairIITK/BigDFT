@@ -35,7 +35,6 @@ module yaml_parse
   character(len=*), parameter :: OPTHELP    = 'help'
   character(len=*), parameter :: OPTCONFL    = 'conflicts'
 
-
   !> command line parser to determine options
   type, public :: yaml_cl_parse
      !>default value of the key for the first command line options
@@ -45,6 +44,10 @@ module yaml_parse
      !> parsed dictionary, filled by options which have valid default value
      type(dictionary), pointer :: args
   end type yaml_cl_parse
+
+  interface yaml_cl_parse_option
+     module procedure yaml_cl_parse_option_from_string,yaml_cl_parse_option
+  end interface
   
   public :: yaml_parse_from_file
   public :: yaml_parse_from_char_array
@@ -133,47 +136,52 @@ contains
     end if
 
     option => dict_new(OPTDEFAULT .is. default, OPTSHELP .is. help_string)
+
     if (present(shortname)) then
        if (shortname == 'h') then
           call f_err_throw('Option shortname "h" is reserved for shorthelp.',&
                err_id=ERROR_YAML_COMMAND_LINE_PARSER)
           return
        end if
-       !search if another shortname has already been specified
-       shname='h' !protected value
-       iter => dict_iter(parser%options)
-       do while (associated(iter))
-          shname = iter .get. OPTSNAME
-          if (shname == shortname) then
-             call f_err_throw('Option "'//trim(name)//&
-                  '" error; shortname "'//trim(shortname)//&
-                  '" already specified in option "'//&
-                  trim(dict_key(iter))//'"',&
-                  err_id=ERROR_YAML_COMMAND_LINE_PARSER)
-             return
-          end if
-          iter => dict_next(iter)
-       end do
+       if (len_trim(shortname) /=0) then
+          !search if another shortname has already been specified
+          shname='h' !protected value
+          iter => dict_iter(parser%options)
+          do while (associated(iter))
+             shname = iter .get. OPTSNAME
+             if (shname == shortname) then
+                call f_err_throw('Option "'//trim(name)//&
+                     '" error; shortname "'//trim(shortname)//&
+                     '" already specified in option "'//&
+                     trim(dict_key(iter))//'"',&
+                     err_id=ERROR_YAML_COMMAND_LINE_PARSER)
+                return
+             end if
+             iter => dict_next(iter)
+          end do
 
-       call set(option//OPTSNAME,shortname)
+          call set(option//OPTSNAME,shortname)
+       end if
     end if
     if (present(help_dict)) then
-       call set(option//OPTHELP,help_dict)
+       if (associated(help_dict)) call set(option//OPTHELP,help_dict)
     end if
 
     if (present(conflicts)) then
-       if (trim(default) /= "None") then
+       if (trim(default) /= "None" .and. len_trim(conflicts) /=0) then
           call f_err_throw('Error in defining "'//&
                trim(name)//&
                '"; a conflicting option must have "None" as its default value.',&
                err_id=ERROR_YAML_COMMAND_LINE_PARSER)
           return
        end if
-       iter=>yaml_load(trim(conflicts),OPTCONFL)
-       call dict_update(option,iter)
-       call dict_free(iter)
-    end if
 
+       if (len_trim(conflicts) /=0) then
+          iter=>yaml_load(trim(conflicts),OPTCONFL)
+          call dict_update(option,iter)
+          call dict_free(iter)
+       end if
+    end if
 
     !then insert it in the dict of options
     if (.not. associated(parser%options)) call dict_init(parser%options)
@@ -195,6 +203,50 @@ contains
 
   end subroutine yaml_cl_parse_option
 
+  !> accept the definition of the input variable from a yaml_string
+  subroutine yaml_cl_parse_option_from_string(parser,string)
+    use dictionaries
+    use f_utils, only: f_zero
+    implicit none
+    !> the parser which has to be updated
+    type(yaml_cl_parse), intent(inout) :: parser
+    !>definition of the input variable, contains the informations
+    !in a dictionary
+    character(len=*), intent(in) :: string
+    !local variables
+    logical :: first_option
+    character(len=1) :: shortname
+    character(len=max_field_length) :: name,default,help_string,conflicts
+    type(dictionary), pointer :: dict,help_dict
+    
+    !load the input variable definition
+    dict=>yaml_load(string)
+
+    !then check the options
+    call f_zero(name)
+    call f_zero(default)
+    call f_zero(help_string)
+    call f_zero(conflicts)
+    call f_zero(shortname)
+    call f_zero(first_option)
+    nullify(help_dict)
+    
+    !compulsory
+    name=dict .get. 'name'
+    default=dict .get. 'default'
+    help_string=dict .get. 'help_string'
+    !optionals
+    conflicts=dict .get. 'conflicts'
+    shortname=dict .get. 'shortname'
+    first_option=dict .get. 'first_option'
+    if ('help_dict' .in. dict) call dict_copy(src=dict // 'help_dict',dest=help_dict)
+
+    call yaml_cl_parse_option(parser,name,default,help_string,&
+       shortname,help_dict,first_option,conflicts)
+
+    call dict_free(dict)
+
+  end subroutine yaml_cl_parse_option_from_string
 
   !> Fill the parsed dictionary with default values
   subroutine yaml_cl_parse_init(parser)

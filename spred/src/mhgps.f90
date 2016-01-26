@@ -145,7 +145,7 @@ program mhgps
     eval  = f_malloc((/ 1.to.3*bigdft_nat(runObj)/),id='eval')
     !LG: not sure that the workspace query is meaningful here as it depends on the matrix properties
     !! and the hess matrix is empty here
-    !!better to put the maximum value suggested by the dsyev spec instead.
+    !!better to put the safe value suggested by the dsyev spec instead.
     call DSYEV('N','L',3*bigdft_nat(runObj),hess,3*bigdft_nat(runObj),eval,wd,-1,info)
     if (info.ne.0) stop 'info query'
     lwork=nint(wd(1))
