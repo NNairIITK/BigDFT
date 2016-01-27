@@ -35,22 +35,30 @@ module SPREDtypes
 contains
  
   !> read user input
-  subroutine SPRED_read_uinp(radical,inputs,mpi_env)
+  subroutine SPRED_read_uinp(radical,inputs,mpi_env_)
     use SPREDbase
     use dictionaries
     use yaml_output
+    use f_input_file, only: input_file_dump
     implicit none
     !parameter
     character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
     type(SPRED_inputs), intent(out) :: inputs
-    type(mpi_environment), intent(in) :: mpi_env !< Environment of the reading. Used for broadcasting the result
+    type(mpi_environment), optional, intent(in) :: mpi_env_ !< Environment of the reading. Used for broadcasting the result
     !internal
     logical :: exists_user
+    type(mpi_environment) :: mpi_env !< Environment of the reading. Used for broadcasting the result
     character(len = max_field_length) :: fname
     type(dictionary), pointer :: dict
 
     call f_routine(id='SPRED_read_uinp')
 
+    if(present(mpi_env_))then
+        mpi_env=mpi_env_
+    else
+        mpi_env%iproc=0
+        mpi_env%nproc=1
+    endif
 
     call dict_init(dict)
 
@@ -65,11 +73,9 @@ contains
        fname(1:len(fname)) = trim(radical) // ".yaml"
     end if
     inquire(file = trim(fname), exist = exists_user)
-    if (exists_user) call merge_input_file_to_dict(dict, trim(fname))
+    if (exists_user)  call merge_input_file_to_dict(dict, trim(fname),mpi_env)
 
-!debug
-call yaml_dict_dump(dict)
-!stop
+    call input_file_dump(dict)
 
     !now transfer the information from the dictionary to the SPRED input data
     !structure
@@ -77,7 +83,7 @@ call yaml_dict_dump(dict)
 
     ! We put a barrier here to be sure that non master proc will be stopped
     ! by any issue on the master proc.
-    call mpibarrier(comm=mpi_env%mpi_comm)
+    if(present(mpi_env_))  call mpibarrier(comm=mpi_env%mpi_comm)
 
     call dict_free(dict)
     call f_release_routine()

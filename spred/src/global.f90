@@ -84,7 +84,7 @@ program MINHOP
   !actual value of iproc
   iproc=bigdft_mpi%iproc+bigdft_mpi%igroup*bigdft_mpi%ngroup
    
-  call SPRED_read_uinp('globalinputs',spredinputs,bigdft_mpi)
+  call SPRED_read_uinp('globalinput',spredinputs,bigdft_mpi)
 
    if (iproc==0) call print_logo_MH()
 

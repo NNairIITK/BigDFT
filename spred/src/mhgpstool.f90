@@ -31,7 +31,7 @@ program mhgpstool
 
     call yaml_new_document()
 
-    call SPRED_read_uinp('',spredinputs,bigdft_mpi)
+    call SPRED_read_uinp('mhgpsinput',spredinputs)
 
     call read_folders(nfolder,folders)
     call read_mhgps_input(mdat%mhgps_uinp)

@@ -108,7 +108,7 @@ program mhgps
     endif
     run => options // 'BigDFT' // 0
 
-    call SPRED_read_uinp('',spredinputs,bigdft_mpi)
+    call SPRED_read_uinp('mhgpsinput',spredinputs,bigdft_mpi)
 
     !initalize mhgps internal state
     !(only non-system dependent variables)
