@@ -99,7 +99,6 @@ program mhgps
 
     call f_lib_initialize()
 
-    call SPRED_read_uinp('',spredinputs)
 
     call bigdft_command_line_options(options)
     call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
@@ -108,6 +107,8 @@ program mhgps
                          'executable')
     endif
     run => options // 'BigDFT' // 0
+
+    call SPRED_read_uinp('',spredinputs,bigdft_mpi)
 
     !initalize mhgps internal state
     !(only non-system dependent variables)

@@ -27,11 +27,9 @@ subroutine finalize_fingerprint(fp)
     use SPREDbase
     implicit none
     !parameters
-    real(gp), allocatable, intent(out) :: fp(:)
+    real(gp), allocatable, intent(inout) :: fp(:)
 
-    if(allocated(fp))then
-       call f_free(fp) 
-    endif
+    call f_free(fp) 
 end subroutine finalize_fingerprint
 !=====================================================================
 subroutine init_fingerprint(inputs,nat,geocode,nid,fp)

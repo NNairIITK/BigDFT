@@ -21,7 +21,7 @@ program globaltool
 
     call yaml_new_document()
 
-    call SPRED_read_uinp('',gdat%spredinputs)
+    call SPRED_read_uinp('',gdat%spredinputs,bigdft_mp)
 
     call read_globaltool_uinp(gdat)
     call write_globaltool_uinp(gdat)

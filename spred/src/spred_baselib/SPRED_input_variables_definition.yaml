@@ -34,6 +34,7 @@
        OMP: (O)verlap (M)atrix (P)eriodic boundary conditions
        OMPOLD: (O)verlap (M)atrix (P)eriodic boundary conditions (old implementation)
        OMSOLD: (O)verlap (M)atrix (S)lab boundary conditions (old implementation)
+     default: OMF
    natx_sphere:
      COMMENT: Number of atoms in the sphere. Only for OMP.
      default: 250

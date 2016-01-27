@@ -73,7 +73,6 @@ program MINHOP
 
   call f_lib_initialize()
 
-  call SPRED_read_uinp('',spredinputs)
 
   call bigdft_command_line_options(options)
   call bigdft_init(options)
@@ -85,6 +84,7 @@ program MINHOP
   !actual value of iproc
   iproc=bigdft_mpi%iproc+bigdft_mpi%igroup*bigdft_mpi%ngroup
    
+  call SPRED_read_uinp('globalinputs',spredinputs,bigdft_mpi)
 
    if (iproc==0) call print_logo_MH()
 
@@ -119,6 +119,10 @@ program MINHOP
 !   write(*,*) 'nat=',atoms%astruct%nat
   ! Create the state_properties container.
   call init_state_properties(outs, bigdft_nat(run_opt))
+
+  call init_fingerprint(spredinputs,bigdft_nat(run_opt),bigdft_get_geocode(run_opt),nid,fp)
+  call init_fingerprint(spredinputs,bigdft_nat(run_opt),bigdft_get_geocode(run_opt),nid,wfp)
+  call init_fingerprint(spredinputs,bigdft_nat(run_opt),bigdft_get_geocode(run_opt),nid,fphop)
 
   !performs few checks
   if (run_opt%inputs%inguess_geopt .ne. run_md%inputs%inguess_geopt) then 
@@ -311,9 +315,6 @@ program MINHOP
   end if
 
 !  nid=natoms
-  call init_fingerprint(spredinputs,bigdft_nat(run_opt),bigdft_get_geocode(run_opt),nid,fp)
-  call init_fingerprint(spredinputs,bigdft_nat(run_opt),bigdft_get_geocode(run_opt),nid,wfp)
-  call init_fingerprint(spredinputs,bigdft_nat(run_opt),bigdft_get_geocode(run_opt),nid,fphop)
 !  fp = f_malloc(nid,id='fp')
 !  wfp = f_malloc(nid,id='wfp')
 !  fphop = f_malloc(nid,id='fphop')
@@ -874,18 +875,19 @@ end do hopping_loop
   call f_free(en_arr)
   call f_free(ct_arr)
   call f_free(fp_arr)
+  !call f_free(fp)
+  !call f_free(wfp)
   call finalize_fingerprint(fp)
   call finalize_fingerprint(wfp)
   call f_free(vxyz)
   call f_free(gg)
   call f_free(pl_arr)
   call f_free(poshop)
-  call f_free(fphop)
+  !call f_free(fphop)
+  call finalize_fingerprint(fphop)
   call f_free(rcov)
 !  if (iproc==0) write(*,*) 'quit 4'
-  call finalize_fingerprint(fp)
-  call finalize_fingerprint(wfp)
-  call finalize_fingerprint(fphop)
+
 
   call deallocate_state_properties(outs)
 !!$  call free_input_variables(inputs_md)

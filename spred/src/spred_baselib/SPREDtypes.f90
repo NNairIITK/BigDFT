@@ -35,13 +35,15 @@ module SPREDtypes
 contains
  
   !> read user input
-  subroutine SPRED_read_uinp(radical,inputs)
+  subroutine SPRED_read_uinp(radical,inputs,mpi_env)
     use SPREDbase
     use dictionaries
+    use yaml_output
     implicit none
     !parameter
     character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
     type(SPRED_inputs), intent(out) :: inputs
+    type(mpi_environment), intent(in) :: mpi_env !< Environment of the reading. Used for broadcasting the result
     !internal
     logical :: exists_user
     character(len = max_field_length) :: fname
@@ -55,7 +57,6 @@ contains
     ! fill dictionary with hard coded default values 
     call SPRED_init_input_dict(dict)
 
-
     !Now read a user input yaml file
     ! try radical.yaml. If radical is empty, use input.yaml
     if (len_trim(radical) == 0) then
@@ -66,6 +67,9 @@ contains
     inquire(file = trim(fname), exist = exists_user)
     if (exists_user) call merge_input_file_to_dict(dict, trim(fname))
 
+!debug
+call yaml_dict_dump(dict)
+!stop
 
     !now transfer the information from the dictionary to the SPRED input data
     !structure
@@ -73,13 +77,13 @@ contains
 
     ! We put a barrier here to be sure that non master proc will be stopped
     ! by any issue on the master proc.
-!    call mpibarrier(comm=mpi_env%mpi_comm)
+    call mpibarrier(comm=mpi_env%mpi_comm)
 
     call dict_free(dict)
     call f_release_routine()
   end subroutine SPRED_read_uinp
 
-  subroutine merge_input_file_to_dict(dict, fname)
+  subroutine merge_input_file_to_dict(dict, fname, mpi_env)
     use SPREDbase
     use dictionaries
     !use yaml_output, only :yaml_map
@@ -89,6 +93,7 @@ contains
     !Arguments
     type(dictionary), pointer :: dict            !< Dictionary of the input files. Should be initialized on entry
     character(len = *), intent(in) :: fname      !< Name of the file where the dictionary has to be read from 
+    type(mpi_environment), intent(in) :: mpi_env !< Environment of the reading. Used for broadcasting the result
     !local variables
     integer(kind = 8) :: cbuf, cbuf_len
     integer :: ierr
@@ -98,19 +103,14 @@ contains
     external :: getFileContent,copyCBuffer,freeCBuffer
 
     call f_routine(id='merge_input_file_to_dict')
-!    if (mpi_env%iproc == 0) then
+    if (mpi_env%iproc == 0) then
        call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
-       !if (mpi_env%nproc > 1) &
-       !     & call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm,
-       !     ierr)
-    !else
-       !call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
-!    end if
+    end if
 
-!    if (mpi_env%nproc > 1) call mpibcast(cbuf_len,comm=mpi_env%mpi_comm)
+    if (mpi_env%nproc > 1) call mpibcast(cbuf_len,comm=mpi_env%mpi_comm)
     fbuf=f_malloc0_str(1,int(cbuf_len),id='fbuf')
 
-!    if (mpi_env%iproc == 0) then
+    if (mpi_env%iproc == 0) then
        call copyCBuffer(fbuf, cbuf, cbuf_len)
        call freeCBuffer(cbuf)
 !!       if (mpi_env%nproc > 1 .and. cbuf_len > 0) &
@@ -119,10 +119,10 @@ contains
 !!    else
 !!       if (cbuf_len > 0) call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER,
 !!       0, mpi_env%mpi_comm, ierr)
-!    end if
+    end if
 
     !this call can be replaced with the size of the character array
-!    if (mpi_env%nproc > 1) call mpibcast(fbuf,comm=mpi_env%mpi_comm)
+    if (mpi_env%nproc > 1) call mpibcast(fbuf,comm=mpi_env%mpi_comm)
 
     call f_err_open_try()
     call yaml_parse_from_char_array(udict, fbuf)
@@ -232,7 +232,7 @@ contains
     use yaml_output, only: yaml_warning
     use dictionaries
     implicit none
-    type(SPRED_inputs), intent(out) :: inputs
+    type(SPRED_inputs), intent(inout) :: inputs
     type(dictionary), pointer :: val
     character(len = *), intent(in) :: level
     !local variables
