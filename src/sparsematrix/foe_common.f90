@@ -113,8 +113,6 @@ module foe_common
   !public :: chebev
   public :: pltwght
   public :: pltexp
-  public :: get_roots_of_cubic_polynomial
-  public :: determinant
   public :: check_eigenvalue_spectrum_new
   public :: scale_and_shift_matrix
   public :: retransform_ext
@@ -624,99 +622,6 @@ module foe_common
     end subroutine pltexp
     
     
-    
-    ! Finds the real root of the equation ax**3 + bx**2 + cx + d which is closest to target_solution
-    subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
-      use module_base
-      implicit none
-    
-      ! Calling arguments
-      real(kind=8),intent(in) :: a, b, c, d
-      real(kind=8),intent(in) :: target_solution
-      real(kind=8),intent(out) :: solution
-    
-      ! Local variables
-      complex(kind=8) :: a_c, b_c, c_c, d_c, Q_c, S_c, ttp_c, ttm_c
-      complex(kind=8),dimension(3) :: sol_c
-      double complex :: test
-      real(kind=8) :: ttmin, tt
-      integer :: i
-    
-      a_c=cmplx(a,0.d0,kind=8)
-      b_c=cmplx(b,0.d0,kind=8)
-      c_c=cmplx(c,0.d0,kind=8)
-      d_c=cmplx(d,0.d0,kind=8)
-    
-      Q_c = sqrt( (2*b_c**3-9*a_c*b_c*c_c+27*a_c**2*d_c)**2 - 4*(b_c**2-3*a_c*c_c)**3 )
-      S_c = ( .5d0*(Q_c+2*b_c**3-9*a_c*b_c*c_c+27*a_c**2*d_c) )**(1.d0/3.d0)
-      ttp_c = cmplx(1.d0,sqrt(3.d0),kind=8)
-      ttm_c = cmplx(1.d0,-sqrt(3.d0),kind=8)
-    
-      sol_c(1) = -b_c/(3*a_c) &
-           - S_c/(3*a_c) &
-           - (b_c**2-3*a_c*c_c)/(3*a_c*S_c)
-      sol_c(2) = -b_c/(3*a_c) + (S_c*ttp_c)/(6*a_c) + ttm_c*(b_c**2-3*a_c*c_c)/(6*a_c*S_c)
-      sol_c(3) = -b_c/(3*a_c) + (S_c*ttm_c)/(6*a_c) + ttp_c*(b_c**2-3*a_c*c_c)/(6*a_c*S_c)
-      !!if (iproc==0) then
-      !!    write(*,*) 'sol 1', sol_c(1)
-      !!    write(*,*) 'sol 2', sol_c(2)
-      !!    write(*,*) 'sol 3', sol_c(3)
-      !!end if
-    
-      ! Select the real solution that is closest to target_solution
-      ttmin=1.d100
-      do i=1,3
-          if (abs(aimag(sol_c(i)))>1.d-14) cycle !complex solution
-          tt=abs(real(sol_c(i),kind=8)-target_solution)
-          if (tt<ttmin) then
-              ttmin=tt
-              solution=real(sol_c(i),kind=8)
-          end if
-      end do
-    
-    end subroutine get_roots_of_cubic_polynomial
-    
-    
-    
-    real(kind=8) function determinant(iproc, n, mat)
-        use module_base
-        implicit none
-    
-        ! Calling arguments
-        integer,intent(in) :: iproc, n
-        real(kind=8),dimension(n,n),intent(in) :: mat
-    
-        ! Local variables
-        integer :: i, info
-        integer,dimension(n) :: ipiv
-        real(kind=8),dimension(n,n) :: mat_tmp
-        real(kind=8) :: sgn
-    
-        call vcopy(n**2, mat(1,1), 1, mat_tmp(1,1), 1)
-    
-        call dgetrf(n, n, mat_tmp, n, ipiv, info)
-        if (info/=0) then
-            if (iproc==0) write(*,'(a,i0,a)') 'ERROR in dgetrf, info=',info,'. Set determinant to zero.'
-            determinant=0
-            return
-        end if
-    
-        determinant=1.d0
-        do i=1,n
-            determinant=determinant*mat_tmp(i,i)
-        end do
-    
-        sgn=1.d0
-        do i=1,n
-            if(ipiv(i)/=i) then
-                sgn=-sgn
-            end if
-        end do
-    
-        determinant=sgn*determinant   
-    
-    end function determinant
-
 
     subroutine check_eigenvalue_spectrum_new(nproc, smat_l, ispin, isshift, &
                factor_high, factor_low, penalty_ev, anoise, trace_with_overlap, &
