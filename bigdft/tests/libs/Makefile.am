@@ -5,7 +5,7 @@ SUBDIRS = fft \
 	IO-wf \
 	wrappers \
 	overlapgeneral \
-	coordinatetransform
+	coordinatetransform \
 	xc \
 	sparsematrix
 
