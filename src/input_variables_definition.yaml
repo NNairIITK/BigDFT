@@ -1887,9 +1887,8 @@
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:
-       COMMENT: number of support functions per atom
+       COMMENT: Number of support functions per atom
        DESCRIPTION: |
-                    possible value: 1 positive integer
                     Indicates the number of support fuctions centered on this atom type. Possible values are:
                      * 1 (s orbital type)
                      * 4 (s,p orbital types)
@@ -1902,42 +1901,40 @@
          16: s,p,d,f orbital types
        default: 4
      ao_confinement:
-       COMMENT: prefactor for the input guess confining potential
+       COMMENT: Prefactor for the input guess confining potential
        DESCRIPTION: |
-                    possible value: 1 non-negative real value
-                    Indicates the prefactor of the confining potential of this atom type which is used to generate the input guess.
+                    Indicates the prefactor of the confining potential 
+                    of this atom type which is used to generate the input guess.
        RANGE: [0.0,10.0]
        default: 8.3e-3
      confinement:
-       COMMENT: prefactor for the confining potential (low/high accuracy)
+       COMMENT: Prefactor for the confining potential (low/high accuracy)
        DESCRIPTION: |
-                    possible value: 2 non-negative real values
                     Indicates the prefactor of the confining potential of this atom type.
                     The first entry is used for the low accuracy part, the second one for the high accuracy part.
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0.0,10.0]
        default: [8.3e-3,0.0]
      rloc:
-       COMMENT: localization radius for the support functions
+       COMMENT: Localization radius for the support functions
        DESCRIPTION: |
-                    possible value: 2 real numbers
                     Indicates the cutoff radius for the support functions.
-                    The first entry is used for the low accuracy part, the second one for the high accuracy part; the second value must not be smaller than the first one.
+                    The first entry is used for the low accuracy part, the second one 
+                    for the high accuracy part; the second value must not be smaller than the first one.
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [2.0,1000.0]
        default: [7.0,7.0]
      rloc_kernel:
-       COMMENT: localization radius for the density kernel
+       COMMENT: Localization radius for the density kernel
        DESCRIPTION: |
-                    possible value: 1 real number
                     Indicates the cutoff radius for the density kernel.
-                    Must be at least as large as the support function cutoff plus 8 times the grid spacing; will be adjusted automatically if it is chosen too small.
+                    Must be at least as large as the support function cutoff 
+                    plus 8 times the grid spacing; will be adjusted automatically if it is chosen too small.
        RANGE: [2.0,1000.0] 
        default: 9.0
      rloc_kernel_foe:
        COMMENT: cutoff radius for the FOE matrix vector multiplications
        DESCRIPTION: |
-                    possible value: 1 real number
                     Indicates the cutoff radius used for the matrix vector multiplications.
                     Must be at least as large as the kernel cutoff.
        RANGE: [2.0,1000]
@@ -1945,7 +1942,8 @@
 --- #here starts the document of possible profiles, that have to be evoked with the 'import' keyword
 linear_accurate:
   COMMENT: Appropriate input parameters for a high accuracy linear scaling calculation
-  DESCRIPTION: This profile should be chosen if highly accurate energy differences are required.
+  DESCRIPTION: |
+          This profile should be chosen if highly accurate energy differences are required.
   dft:
     hgrids: accurate
     ixc: PBE
@@ -1979,8 +1977,10 @@ linear_accurate:
     rpnrm_cv: [1.e-12,1.e-12]
     linear_method: FOE
 linear_moderate:
-  COMMENT: appropriate input parameters for a moderate accuracy linear scaling calculation
-  DESCRIPTION: This profile should be chosen if accurate forces are required, but there is no need for extremely accurate energies
+  COMMENT: Appropriate input parameters for a moderate accuracy linear scaling calculation
+  DESCRIPTION: |
+          This profile should be chosen if accurate forces are required, 
+          but there is no need for extremely accurate energies.
   dft:
     hgrids: accurate
     ixc: PBE
@@ -2009,8 +2009,9 @@ linear_moderate:
     rpnrm_cv: [1.e-11,1.e-11]
     linear_method: FOE
 linear_fast:
-  COMMENT: appropriate input parameters for a low accuracy linear scaling calculation
-  DESCRIPTION: This profile should be chosen if speed is more important than accuracy
+  COMMENT: Appropriate input parameters for a low accuracy linear scaling calculation
+  DESCRIPTION: |
+          This profile should be chosen if speed is more important than accuracy.
   dft:
     hgrids: accurate
     ixc: PBE
@@ -2039,7 +2040,9 @@ linear_fast:
     rpnrm_cv: [1.e-10,1.e-10]
     linear_method: FOE
 mixing:
-  COMMENT: to be used for metallic systems
+  COMMENT: To be used for metallic systems
+  DECRIPTION: |
+           Parameters for the mixing scheme associated to the diagonalization method.
   dft:
    gnrm_cv: 1.e-6
    nrepmax: 1
@@ -2055,7 +2058,9 @@ mixing:
    alphamix: 0.8
    alphadiis: 1.d0
 linear:
- COMMENT: linear parameters sufficient for PDoS, charge analysis, MD
+ COMMENT: Linear parameters sufficient for PDoS, charge analysis, MD
+ DESCRIPTION: |
+         Basic parameters to perform a linear calculation.
  dft:
    gnrm_cv: accurate
    itermax: 50
@@ -2119,7 +2124,7 @@ linear:
    Cl: {nbasis: 4, rloc: 5.5}
    K:  {nbasis: 1, rloc: 7.0}
 md:
-  COMMENT: Molecular dynamics Input file for H2O molecules
+  COMMENT: Molecular dynamics input parameters for H2O molecules
   geopt:
     method: AB6MD
     ionmov: 8

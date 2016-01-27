@@ -662,12 +662,12 @@ options:
             inputfile = infiles[f]
             helpstr = ''
             if infiles[f].has_key('DESCRIPTION'):
-                helpstr += inputfile.pop('DESCRIPTION')
+                helpstr += inputfile.pop('DESCRIPTION') 
             if infiles[f].has_key('COMMENT'):
                 comment = inputfile.pop('COMMENT')
             else:
                 comment = ''
-            helpstr += 'Here should follow the file description.\n'
+            helpstr += "List of specific keys associated with the import key '%s'.\n\n" % str(f)
             helpstr += yaml.dump(inputfile, default_flow_style=False)
             dico = {'type': PROMPT, 
                     'title': f + '     (' + str(comment) + ')',
