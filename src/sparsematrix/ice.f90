@@ -27,7 +27,8 @@ module ice
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: scale_and_shift_matrix, &
-                            evnoise, check_eigenvalue_spectrum_new, get_chebyshev_expansion_coefficients
+                            evnoise, check_eigenvalue_spectrum_new, get_chebyshev_expansion_coefficients, &
+                            get_chebyshev_polynomials
       use module_func
       implicit none
     
@@ -44,7 +45,7 @@ module ice
       integer :: isegstart, isegend, iismall, nsize_polynomial
       integer :: iismall_ovrlp, iismall_ham, npl_boundaries, i, ipl
       integer,parameter :: nplx=50000
-      real(kind=8),dimension(:,:),allocatable :: chebyshev_polynomials
+      real(kind=8),dimension(:,:),pointer :: chebyshev_polynomials
       real(kind=8),dimension(:,:,:),pointer :: inv_ovrlp_matrixp
       real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
       real(kind=8),dimension(:,:,:),pointer :: cc
@@ -74,6 +75,9 @@ module ice
       real(kind=8),dimension(:,:),allocatable :: penalty_ev_new
       real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_small_new
       type(matrices) :: ovrlp_scaled
+      character(len=3),parameter :: old='old'
+      character(len=3),parameter :: new='new'
+      character(len=3) :: mode=old
     
       !!real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
       !!real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
@@ -124,7 +128,7 @@ module ice
       evbounds_shrinked = .false.
     
       !@ TEMPORARY: eigenvalues of  the overlap matrix ###################
-      !call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat)
+      call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat)
 
       !!tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
       !!do iseg=1,ovrlp_smat%nseg
@@ -175,7 +179,7 @@ module ice
       
       
       ! Fake allocation, will be modified later
-      chebyshev_polynomials = f_malloc((/nsize_polynomial,1/),id='chebyshev_polynomials')
+      chebyshev_polynomials = f_malloc_ptr((/nsize_polynomial,1/),id='chebyshev_polynomials')
     
     
       !inv_ovrlp_matrixp = sparsematrix_malloc0_ptr(inv_ovrlp_smat, &
@@ -289,8 +293,8 @@ module ice
                           call yaml_map('pol. deg.',npl)
                       end if
                       if (calculate_SHS) then
-                          call f_free(chebyshev_polynomials)
-                          chebyshev_polynomials = f_malloc((/nsize_polynomial,npl/),id='chebyshev_polynomials')
+                          call f_free_ptr(chebyshev_polynomials)
+                          chebyshev_polynomials = f_malloc_ptr((/nsize_polynomial,npl/),id='chebyshev_polynomials')
                       end if
         
             
@@ -363,9 +367,20 @@ module ice
                           ! used, to be improved...
                           call chebyshev_clean(iproc, nproc, npl, cc, &
                                inv_ovrlp_smat, hamscal_compr, &
-                               inv_ovrlp(1)%matrix_compr(ilshift2+1:), .false., &
+                               .false., &
                                nsize_polynomial, ncalc, inv_ovrlp_matrixp_new, penalty_ev_new, chebyshev_polynomials, &
                                emergency_stop)
+                           !@NEW#####################################################################################
+                           if (mode==new) then
+                               call f_free_ptr(chebyshev_polynomials)
+                               call get_chebyshev_polynomials(iproc, nproc, 1, 2, npl, ovrlp_smat, inv_ovrlp_smat, &     
+                                                         ovrlp_scaled, foe_obj, chebyshev_polynomials, eval_bounds_ok)
+                               call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
+                                    inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
+                                    inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc, inv_ovrlp_matrixp_new)
+                               penalty_ev_new = 0.d0
+                           end if
+                           !@END NEW#################################################################################
                            !!do i=1,size(inv_ovrlp_matrixp_new,1)
                            !!    write(400+iproc,*) i, inv_ovrlp_matrixp_new(i,1)
                            !!end do
@@ -437,9 +452,23 @@ module ice
                           !!call check_eigenvalue_spectrum(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, 1, &
                           !!     0, 1.2d0, 1.d0/1.2d0, penalty_ev, anoise, .false., emergency_stop, &
                           !!     foe_obj, restart, eval_bounds_ok)
-                          call check_eigenvalue_spectrum_new(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, ispin, &
-                               0, 1.2d0, 1.d0/1.2d0, penalty_ev_new, anoise, .false., emergency_stop, &
-                               foe_obj, restart, eval_bounds_ok, eval_multiplicator)
+                          if (mode==old) then
+                              call check_eigenvalue_spectrum_new(nproc, inv_ovrlp_smat, ispin, &
+                                   0, 1.2d0, 1.d0/1.2d0, penalty_ev_new, anoise, .false., emergency_stop, &
+                                   foe_obj, restart, eval_bounds_ok, eval_multiplicator)
+                          else if (mode==new) then
+                              if (.not.eval_bounds_ok(1)) then
+                                  ! lower bound too large
+                                  call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)/1.2d0,ispin)
+                                  restart=.true.
+                                  eval_multiplicator = 2.0d0
+                              else if (.not.eval_bounds_ok(2)) then
+                                  ! upper bound too small
+                                  call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*1.2d0,ispin)
+                                  restart=.true.
+                                  eval_multiplicator = 1.d0/2.0d0
+                              end if
+                          end if
                       end if
             
                       call f_free_ptr(cc)
@@ -490,7 +519,7 @@ module ice
       !call f_free_ptr(inv_ovrlp_matrixp)
       call f_free(inv_ovrlp_matrixp_small_new)
       call f_free(inv_ovrlp_matrixp_new)
-      call f_free(chebyshev_polynomials)
+      call f_free_ptr(chebyshev_polynomials)
       !!call f_free(penalty_ev)
       call f_free(penalty_ev_new)
       call f_free(hamscal_compr)

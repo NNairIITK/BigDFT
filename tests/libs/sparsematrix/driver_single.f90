@@ -11,8 +11,6 @@ program driver_single
                                     matrices_init, &
                                     matrix_chebyshev_expansion, &
                                     matrix_matrix_multiplication
-  use sparsematrix, only: uncompress_matrix
-  use parallel_linalg, only: dgemm_parallel
   implicit none
 
   ! External routines
@@ -27,8 +25,6 @@ program driver_single
   real(kind=8) :: exp_power
   character(len=200) :: filename_in, filename_out
   type(dictionary), pointer :: dict_timing_info
-  real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
-  real(kind=8),dimension(:,:,:),allocatable :: mat_check_accur_dense
   !$ integer :: omp_get_max_threads
 
   ! Initialize flib
@@ -118,7 +114,7 @@ program driver_single
   call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, 1, (/exp_power/), &
        smat_in, smat_out, mat_in, mat_out, npl_auto=.true.)
 
-  call timing(bigdft_mpi%mpi_comm,'CALC','PR')
+  call timing(bigdft_mpi%mpi_comm,'CALC_LINEAR','PR')
 
   ! Now perform a check of the accuracy by calculating the matrix with the inverse power. The previously
   ! calculated matrix times this result should the give the identity.
@@ -142,24 +138,13 @@ program driver_single
   end if
   call check_deviation_from_unity(smat_out, mat_check_accur(2))
 
+  call timing(bigdft_mpi%mpi_comm,'CHECK_LINEAR','PR')
+
   ! Do the operation using exact LAPACK and the dense matrices
-  blocksize = -100
-  mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
-  mat_out_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_out_dense')
-  mat_check_accur_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr,2/),id='mat_check_accur_dense')
-  call uncompress_matrix(bigdft_mpi%iproc, smat_in, mat_in%matrix_compr, mat_in_dense)
-  call matrix_power_dense(bigdft_mpi%iproc, bigdft_mpi%nproc, blocksize, smat_in%nfvctr, &
-       mat_in_dense, exp_power, mat_out_dense)
-  call matrix_power_dense(bigdft_mpi%iproc, bigdft_mpi%nproc, blocksize, smat_in%nfvctr, &
-       mat_in_dense, -exp_power, mat_check_accur_dense)
-  call dgemm_parallel(bigdft_mpi%iproc, bigdft_mpi%nproc, blocksize, bigdft_mpi%mpi_comm, 'n', 'n', &
-       smat_in%nfvctr, smat_in%nfvctr, smat_in%nfvctr, &
-       1.d0, mat_out_dense(1,1), smat_in%nfvctr, &
-       mat_check_accur_dense(1,1,1), smat_in%nfvctr, 0.d0, mat_check_accur_dense(1,1,2), smat_in%nfvctr)
-  call check_deviation_from_unity_dense(smat_in%nfvctr, mat_check_accur_dense(1,1,2))
-  call f_free(mat_check_accur_dense)
-  call f_free(mat_in_dense)
-  call f_free(mat_out_dense)
+  if (bigdft_mpi%iproc==0) then
+      call yaml_comment('Do the same calculation using dense LAPACK',hfill='-')
+  end if
+  call operation_using_dense_lapack(bigdft_mpi%iproc, bigdft_mpi%nproc, smat_in, mat_in)
 
   ! Deallocate all structures
   call deallocate_sparse_matrix(smat_in)
@@ -357,5 +342,48 @@ program driver_single
     end subroutine matrix_power_dense
 
 
+    subroutine operation_using_dense_lapack(iproc, nproc, smat_in, mat_in)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix, matrices
+      use sparsematrix, only: uncompress_matrix
+      use parallel_linalg, only: dgemm_parallel
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      type(sparse_matrix),intent(in) :: smat_in
+      type(matrices),intent(in) :: mat_in
+
+      ! Local variables
+      integer :: blocksize
+      real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
+      real(kind=8),dimension(:,:,:),allocatable :: mat_check_accur_dense
+
+      call f_routine(id='operation_using_dense_lapack')
+
+      blocksize = -100
+      mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
+      mat_out_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_out_dense')
+      mat_check_accur_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr,2/),id='mat_check_accur_dense')
+      call uncompress_matrix(bigdft_mpi%iproc, smat_in, mat_in%matrix_compr, mat_in_dense)
+      call timing(bigdft_mpi%mpi_comm,'INIT_CUBIC','PR')
+      call matrix_power_dense(bigdft_mpi%iproc, bigdft_mpi%nproc, blocksize, smat_in%nfvctr, &
+           mat_in_dense, exp_power, mat_out_dense)
+      call timing(bigdft_mpi%mpi_comm,'CALC_CUBIC','PR')
+      call matrix_power_dense(bigdft_mpi%iproc, bigdft_mpi%nproc, blocksize, smat_in%nfvctr, &
+           mat_in_dense, -exp_power, mat_check_accur_dense)
+      call dgemm_parallel(bigdft_mpi%iproc, bigdft_mpi%nproc, blocksize, bigdft_mpi%mpi_comm, 'n', 'n', &
+           smat_in%nfvctr, smat_in%nfvctr, smat_in%nfvctr, &
+           1.d0, mat_out_dense(1,1), smat_in%nfvctr, &
+           mat_check_accur_dense(1,1,1), smat_in%nfvctr, 0.d0, mat_check_accur_dense(1,1,2), smat_in%nfvctr)
+      call check_deviation_from_unity_dense(smat_in%nfvctr, mat_check_accur_dense(1,1,2))
+      call timing(bigdft_mpi%mpi_comm,'CHECK_CUBIC','PR')
+      call f_free(mat_check_accur_dense)
+      call f_free(mat_in_dense)
+      call f_free(mat_out_dense)
+
+      call f_release_routine()
+
+    end subroutine operation_using_dense_lapack
 
 end program driver_single

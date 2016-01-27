@@ -410,9 +410,9 @@ module foe
                           !!write(*,*) 'calling chebyshev_clean, iproc', iproc
                           call chebyshev_clean(iproc, nproc, npl, cc, &
                                smatl, hamscal_compr, &
-                               ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), calculate_SHS, &
+                               calculate_SHS, &
                                nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
-                               emergency_stop)
+                               emergency_stop, invovrlp_compr=ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:))
                            
                           !!write(*,*) 'before mpi_barrier, iproc', iproc
                           !!call mpi_barrier(bigdft_mpi%mpi_comm, ipl)
@@ -482,9 +482,9 @@ module foe
                           !!call check_eigenvalue_spectrum(nproc, smatl, smats, ovrlp_, ispin, &
                           !!      isshift, 1.2d0, 1.2d0, penalty_ev, anoise, .true., emergency_stop, &
                           !!      foe_obj, restart, eval_bounds_ok)
-                          call check_eigenvalue_spectrum_new(nproc, smatl, smats, ovrlp_, ispin, &
+                          call check_eigenvalue_spectrum_new(nproc, smatl, ispin, &
                                 isshift, 1.2d0, 1.2d0, penalty_ev_new, anoise, .true., emergency_stop, &
-                                foe_obj, restart, eval_bounds_ok)
+                                foe_obj, restart, eval_bounds_ok, smat_s=smats, mat=ovrlp_)
                       end if
             
                       call f_free(cc)
@@ -1003,5 +1003,8 @@ module foe
       call f_release_routine()
     
     end subroutine get_minmax_eigenvalues
+
+
+
 
 end module foe

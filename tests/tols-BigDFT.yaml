@@ -783,7 +783,7 @@ water_dirmin:
  EH: 1.1e-9
  Epot: 1.1e-9
  Enl: 1.1e-10
- eBS: 2.92e-11
+ eBS: 2.99e-11
  energy: 1.7e-10
  Omega: 1.7e-10
  etot: 1.7e-10
@@ -1625,10 +1625,10 @@ periodic_water:
  Omega: 5.9e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
- eF: 2.0e-7
- D eF: 2.0e-7
+ eF: 3.0e-7
+ D eF: 3.0e-7
  energy: 5.9e-10
- guess for new ef: 2.0e-7
+ guess for new ef: 3.0e-7
  number of corrected points: 1
  charge diff: 5.2e-7
  diff: 6.5e-10
@@ -1641,7 +1641,8 @@ periodic_water:
  Ion-Ion interaction energy: 1.6e-11
  Force Norm (Hartree/Bohr): 1.48e-11
  fnrm2: 1.92e-11
- trace(KS): 7.0e-11
+ trace(KS): 1.1e-10
+ relative diff: 1.5e-11
 
 
 surface_boronnitride:
@@ -1667,14 +1668,15 @@ surface_graphene:
  charge diff: 1.5e-7
  Tr(K): 2.0e-7
  guess for new ef: 1.1e-9
- eF: 7.1e-10
+ eF: 8.1e-10
  D eF: 1.1e-9
  diff: 2.2e-11
  Total ionic charge: 1.2e-11
  Energy (Hartree): 2.5e-11
  Total charge: 1.1e-10
  energy: 2.0e-11
- trace: 6.3e-10
+ trace: 6.4e-10
+ D Tr: 2.1e-11
  
 dev.ref.yaml:
  Epot: 1.1e-10
@@ -1709,6 +1711,7 @@ multipoles_OH-:
  number of corrected points: 92
  total charge correction: 5.2e-8
  Unitary check of the multipole calculations: 6.1e-2
+ Force Norm (Hartree/Bohr): 1.2e-11
 
 multipoles_water:
  Ekin: 1.1e-10
@@ -1988,7 +1991,7 @@ extendedfrags_readrotated:
  Atomic Forces (Ha/Bohr): 1.7e-11
  Omega: 9.1e-11
  Average noise forces: 1.1e-10
- Clean forces norm (Ha/Bohr): 1.3e-11
+ Clean forces norm (Ha/Bohr): 1.5e-11
  Keys to ignore: [WARNINGS]
 
 
