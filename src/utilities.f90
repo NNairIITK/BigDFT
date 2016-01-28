@@ -191,7 +191,7 @@ program utilities
        case(CHARGE_ANALYSIS_PROJECTOR)
            call projector_for_charge_analysis(at, smat_s, smat_m, smat_l, &
                 ovrlp_mat, hamiltonian_mat, kernel_mat, &
-                at%astruct%rxyz, calculate_centers=.false., write_output=.true.)
+                at%astruct%rxyz, calculate_centers=.false., write_output=.true., ortho='yes')
        case default
            call f_err_throw('wrong method',err_name='BIGDFT_RUNTIME_ERROR')
        end select

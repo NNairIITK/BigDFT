@@ -42,10 +42,10 @@ module chebyshev
       real(kind=8),dimension(kernel%smmm%nvctrp,ncalc),intent(out) :: fermi_new
       real(kind=8),dimension(kernel%smmm%nvctrp,2),intent(out) :: penalty_ev_new
       real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
-      logical,intent(out) :: emergency_stop
+      logical,dimension(2),intent(out) :: emergency_stop
       ! Local variables
       character(len=*),parameter :: subname='chebyshev_clean'
-      integer :: iorb,iiorb, jorb, ipl, i, iline, icolumn, jj
+      integer :: iorb,iiorb, jorb, ipl, i, iline, icolumn, jj, j
       integer :: isegstart, isegend, iseg, ii, jjorb, icalc
       real(8), dimension(:,:,:), allocatable :: vectors
       real(8), dimension(:,:), allocatable :: vectors_new
@@ -57,6 +57,10 @@ module chebyshev
     
       call timing(iproc, 'chebyshev_comp', 'ON')
       call f_routine(id='chebyshev_clean')
+
+      !!do j=1,npl
+      !!    write(*,*) 'in cheby: j, cc(j,2,1), cc(j,3,1)', j, cc(j,2,1), cc(j,3,1)
+      !!end do
     
     
       mat_compr = f_malloc(kernel%nvctrp_tg,id='mat_compr')
@@ -136,8 +140,11 @@ module chebyshev
               do icalc=1,ncalc
                   call axpy(kernel%smmm%nvctrp, 0.5d0*cc(1,1,icalc), vectors_new(1,4), 1, fermi_new(1,icalc), 1)
               end do
-              call axpy(kernel%smmm%nvctrp, 0.5d0*cc(1,3,1), vectors_new(1,4), 1, penalty_ev_new(1,1), 1)
+              !write(* *) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
+              !write(*,*) 'cc(1,2,1), cc(1,3,1)', cc(1,2,1), cc(1,3,1)
+              call axpy(kernel%smmm%nvctrp, 0.5d0*cc(1,2,1), vectors_new(1,4), 1, penalty_ev_new(1,1), 1)
               call axpy(kernel%smmm%nvctrp, 0.5d0*cc(1,3,1), vectors_new(1,4), 1, penalty_ev_new(1,2), 1)
+              !write(*,*) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
             
               call sparsemm_new(kernel, mat_seq, vectors_new(1,3), vectors_new(1,1))
               call vcopy(kernel%smmm%nvctrp, vectors_new(1,1), 1, vectors_new(1,2), 1)
@@ -149,9 +156,11 @@ module chebyshev
               do icalc=1,ncalc
                   call axpy(kernel%smmm%nvctrp, cc(2,1,icalc), vectors_new(1,2), 1, fermi_new(1,icalc), 1)
               end do
-              call axpy(kernel%smmm%nvctrp, cc(2,3,1), vectors_new(1,2), 1, penalty_ev_new(1,1), 1)
-              call axpy(kernel%smmm%nvctrp, -cc(2,3,1), vectors_new(1,2), 1, penalty_ev_new(1,2), 1)
+              !write(*,*) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
+              call axpy(kernel%smmm%nvctrp, cc(2,2,1), vectors_new(1,2), 1, penalty_ev_new(1,1), 1)
+              call axpy(kernel%smmm%nvctrp, cc(2,3,1), vectors_new(1,2), 1, penalty_ev_new(1,2), 1)
             
+              !write(*,*) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
             
               emergency_stop=.false.
               main_loop: do ipl=3,npl
@@ -163,14 +172,19 @@ module chebyshev
                   do icalc=1,ncalc
                       call axpy(kernel%smmm%nvctrp, cc(ipl,1,icalc), vectors_new(1,3), 1, fermi_new(1,icalc), 1)
                   end do
-                  call axpy(kernel%smmm%nvctrp, cc(ipl,3,1), vectors_new(1,3), 1, penalty_ev_new(1,1), 1)
+                  call axpy(kernel%smmm%nvctrp, cc(ipl,2,1), vectors_new(1,3), 1, penalty_ev_new(1,1), 1)
+                  call axpy(kernel%smmm%nvctrp, cc(ipl,3,1), vectors_new(1,3), 1, penalty_ev_new(1,2), 1)
+
+                  !write(*,*) 'in loop: sum(penalty_ev_new)', &
+                  !    ipl, sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2)), &
+                  !    sum(vectors_new(:,3)), sum(fermi_new(:,1)), cc(ipl,2,1)
              
-                  if (mod(ipl,2)==1) then
-                      tt=cc(ipl,3,1)
-                  else
-                      tt=-cc(ipl,3,1)
-                  end if
-                  call axpy(kernel%smmm%nvctrp, tt, vectors_new(1,3), 1, penalty_ev_new(1,2), 1)
+                  !if (mod(ipl,2)==1) then
+                  !    tt=cc(ipl,3,1)
+                  !else
+                  !    tt=-cc(ipl,3,1)
+                  !end if
+                  !call axpy(kernel%smmm%nvctrp, tt, vectors_new(1,3), 1, penalty_ev_new(1,2), 1)
              
                   call vcopy(kernel%smmm%nvctrp, vectors_new(1,1), 1, vectors_new(1,4), 1)
                   call vcopy(kernel%smmm%nvctrp, vectors_new(1,3), 1, vectors_new(1,1), 1)
@@ -178,8 +192,12 @@ module chebyshev
                   ! Check the norm of the columns of the kernel and set a flag if it explodes, which might
                   ! be a consequence of the eigenvalue bounds being to small. Only
                   ! check the first matrix to be calculated.
-                  emergency_stop = check_emergency_stop(kernel%smmm%nvctrp, ncalc, fermi_new)
-                  if (emergency_stop) then
+                  !! New: Do this check on the penalty matrix
+                  !!emergency_stop(1) = check_emergency_stop(kernel%smmm%nvctrp, ncalc, penalty_ev_new(1,1))
+                  !!emergency_stop(2) = check_emergency_stop(kernel%smmm%nvctrp, ncalc, penalty_ev_new(1,2))
+                  ! New: Do this check on the Chebyshev polynomials
+                  emergency_stop(1) = check_emergency_stop(kernel%smmm%nvctrp, ncalc, vectors_new(1,3))
+                  if (any(emergency_stop)) then
                       exit main_loop
                   end if
                   !!do iorb=1,kernel%smmm%nfvctrp
@@ -191,6 +209,8 @@ module chebyshev
                   !!    end if
                   !!end do
               end do main_loop
+              !write(*,*) 'emergency_stop',emergency_stop
+              !write(*,*) 'sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
         
           end if
     
@@ -355,27 +375,33 @@ module chebyshev
     end subroutine compress_polynomial_vector_new
 
 
-    function check_emergency_stop(nvctrp, ncalc, fermi_new) result(ces)
+    function check_emergency_stop(nvctrp, ncalc, column) result(ces)
       use module_base
       implicit none
 
       ! Calling arguments
       integer,intent(in) :: nvctrp, ncalc
-      real(kind=8),dimension(nvctrp,ncalc),intent(in) :: fermi_new
+      real(kind=8),dimension(nvctrp),intent(in) :: column
       logical :: ces
 
       ! Local variables
-      integer :: icalc
+      integer :: i
       real(kind=8) :: tt
 
       call f_routine(id='check_emergency_stop')
 
       ces = .false.
-      do icalc=1,ncalc
-          tt = dot(nvctrp, fermi_new(1,icalc), 1, fermi_new(1,icalc), 1)
-          if (abs(tt)>1000.d0*real(nvctrp,kind=8)) then
+      do i=1,nvctrp
+          !if (abs(column(i))>1.d4) then
+          if (abs(column(i))>1.d8) then
               ces = .true.
           end if
+          !!write(*,*) 'sum(column(:,icalc))',sum(column(:,icalc))
+          !!tt = dot(nvctrp, column(1,icalc), 1, column(1,icalc), 1)
+          !!write(*,*) 'tt',tt
+          !!if (abs(tt)>100000.d0*real(nvctrp,kind=8)) then
+          !!    ces = .true.
+          !!end if
       end do
 
       call f_release_routine()
