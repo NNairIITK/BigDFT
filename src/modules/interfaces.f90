@@ -1377,7 +1377,7 @@ module module_interfaces
 
   interface
      subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,&
-          hgrids,n,centre_old,centre_new,da,frag_trans,psi,psirold)
+          hgrids,n,centre_old,centre_new,da,frag_trans,psi,psirold,tag)
        use module_defs, only: gp,dp,wp
        use module_types
        use module_fragments
@@ -1392,6 +1392,7 @@ module module_interfaces
        real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
        real(wp), dimension(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f), intent(out) :: psi
        real(wp), dimension(llr_old%d%n1i,llr_old%d%n2i,llr_old%d%n3i), optional, intent(in) :: psirold
+       integer,optional,intent(in) :: tag
      END SUBROUTINE reformat_one_supportfunction
   end interface
 
