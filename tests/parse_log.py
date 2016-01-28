@@ -17,8 +17,9 @@ import yaml
 
 EVAL = "eval"
 SETUP = "let"
+INITIALIZATION = "globals"
 
-PRE_POST = [EVAL, SETUP]
+PRE_POST = [EVAL, SETUP, INITIALIZATION]
 
 ENERGY = "__ENERGY__"
 FERMI_LEVEL= "__FERMI_LEVEL__"
@@ -160,10 +161,10 @@ def document_analysis(doc,to_extract):
 def document_quantities(doc,to_extract):
   analysis={}
   for quantity in to_extract:
-    if quantity in PRE_POST: pass
+    if quantity in PRE_POST: continue
     #follow the levels indicated to find the quantity
     field=to_extract[quantity]
-    if type(field) is not type([]) and field in BUILTIN:
+    if type(field) is not type([]) is not type({}) and field in BUILTIN:
         paths=BUILTIN[field]
     else:
         paths=[field]
@@ -182,15 +183,19 @@ def document_quantities(doc,to_extract):
     analysis[quantity]=value
   return analysis    
 
-def perform_operations(variables,ops,debug=False):
+def perform_operations(variables,ops,globs,debug=False):
+    glstr=''
+    if globs is not None:
+        for var in globs:
+            glstr+= "global "+var+"\n"
     #first evaluate the given variables
     for key in variables:
         command=key+"="+str(variables[key])
         if debug: print command
-        exec command
+        exec(command)
         #then evaluate the given expression
     if debug: print ops
-    exec ops
+    exec(glstr+ops, globals(), locals())
 
 def get_logs(files):
    logs=[]
@@ -699,14 +704,17 @@ if args.data is None:
 
 if args.analyze is not None and args.data:
   instructions= yaml.load(open(args.analyze, "r").read(), Loader = yaml.CLoader)
+  if INITIALIZATION in instructions:
+      for var in instructions[INITIALIZATION]:
+          exec var +" = "+ str(instructions[INITIALIZATION][var])
   print args.data,argcl
   for f in argcl:
-    print "#########processing ",f
+    sys.stderr.write("#########processing "+f+"\n")
     datas=get_logs([f])
     for doc in datas:
       doc_res=document_quantities(doc,instructions)
       #print doc_res,instructions
-      if EVAL in instructions: perform_operations(doc_res,instructions[EVAL])
+      if EVAL in instructions: perform_operations(doc_res,instructions[EVAL],instructions.get(INITIALIZATION))
   exit(0)
 
 if args.data:
