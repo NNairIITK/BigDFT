@@ -26,7 +26,7 @@ module ice
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
-      use foe_common, only: scale_and_shift_matrix, cheb_exp, chder, &
+      use foe_common, only: scale_and_shift_matrix, &
                             evnoise, check_eigenvalue_spectrum_new, get_chebyshev_expansion_coefficients
       use module_func
       implicit none
@@ -311,9 +311,13 @@ module ice
                           x_max_error = f_malloc(ncalc,id='x_max_error')
                           mean_error = f_malloc(ncalc,id='mean_error')
                           do icalc=1,ncalc
-                              call cheb_exp(foe_data_get_real(foe_obj,"evlow",ispin), &
-                                   foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1:,1:,icalc:), ex(icalc), &
+                              call func_set(FUNCTION_POLYNOMIAL, powerx=ex(icalc))
+                              call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                                   foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1:,1:,icalc), &
                                    x_max_error(icalc), max_error(icalc), mean_error(icalc))
+                              !!##call cheb_exp(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                              !!##     foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1:,1:,icalc:), ex(icalc), &
+                              !!##     x_max_error(icalc), max_error(icalc), mean_error(icalc))
                               !call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
                               !     foe_data_get_real(foe_obj,"evhigh",ispin), cc(1:,1:,icalc:), cc(1:,2:,icalc:), npl)
                               call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
@@ -514,7 +518,7 @@ module ice
                npl_min, npl_max, max_polynomial_degree, npl, cc, anoise)
       use module_base
       use foe_base, only: foe_data, foe_data_get_real
-      use foe_common, only: cheb_exp, chder, evnoise, get_chebyshev_expansion_coefficients
+      use foe_common, only: evnoise, get_chebyshev_expansion_coefficients
       use yaml_output
       use module_func
       implicit none
@@ -566,9 +570,13 @@ module ice
           call timing(iproc, 'chebyshev_coef', 'ON')
           
           do icalc=1,ncalc
-              call cheb_exp(foe_data_get_real(foe_obj,"evlow",ispin), &
-                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, cc_trial(1:ipl,1,icalc), ex(icalc), &
+              call func_set(FUNCTION_POLYNOMIAL, powerx=ex(icalc))
+              call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,1,icalc), &
                    x_max_error(icalc), max_error(icalc), mean_error(icalc))
+              !!##call cheb_exp(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+              !!##     foe_data_get_real(foe_obj,"evhigh",ispin), ipl, cc_trial(1:ipl,1,icalc), ex(icalc), &
+              !!##     x_max_error(icalc), max_error(icalc), mean_error(icalc))
               !call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
               !     foe_data_get_real(foe_obj,"evhigh",ispin), cc_trial(1,1,icalc), cc_trial(1,2,icalc), ipl)
               call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
@@ -601,8 +609,10 @@ module ice
               call yaml_mapping_open(flow=.true.)
               call yaml_map('ipl',ipl)
               do icalc=1,ncalc
+                  !!call yaml_map('Operation '//trim(yaml_toa(icalc)), &
+                  !!    (/x_max_error(icalc),max_error(icalc),mean_error(icalc),anoise/),fmt='(es9.2)')
                   call yaml_map('Operation '//trim(yaml_toa(icalc)), &
-                      (/x_max_error(icalc),max_error(icalc),mean_error(icalc),anoise/),fmt='(es9.2)')
+                      (/x_max_error(icalc),max_error(icalc),mean_error(icalc),max_error_penaltyfunction/),fmt='(es9.2)')
               end do
               !call yaml_mapping_close()
               call yaml_mapping_close()

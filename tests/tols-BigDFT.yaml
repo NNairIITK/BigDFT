@@ -1356,7 +1356,7 @@ O2spin_diag:
  multiplicator for the confinement: 1.4e-6
  D: 1.1e-9
  kappa: 1.1e-4
- Force Norm (Hartree/Bohr): 3.09e-8
+ Force Norm (Hartree/Bohr): 3.1e-8
 
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 1.5e-8
@@ -1628,10 +1628,10 @@ periodic_water:
  eF: 2.0e-7
  D eF: 2.0e-7
  energy: 5.9e-10
- guess for new ef: 1.0e-7
+ guess for new ef: 2.0e-7
  number of corrected points: 1
  charge diff: 5.2e-7
- diff: 4.4e-10
+ diff: 6.5e-10
  Tr(K): 5.0e-7
  D Tr: 1.0e-6
  Total ionic charge: 9.5e-11
@@ -1988,7 +1988,7 @@ extendedfrags_readrotated:
  Atomic Forces (Ha/Bohr): 1.7e-11
  Omega: 9.1e-11
  Average noise forces: 1.1e-10
- Clean forces norm (Ha/Bohr): 1.2e-11
+ Clean forces norm (Ha/Bohr): 1.3e-11
  Keys to ignore: [WARNINGS]
 
 

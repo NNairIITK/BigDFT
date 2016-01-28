@@ -118,7 +118,7 @@ module foe_common
   public :: check_eigenvalue_spectrum_new
   public :: scale_and_shift_matrix
   public :: retransform_ext
-  public :: cheb_exp
+  !!public :: cheb_exp
   public :: init_foe
 
 
@@ -192,7 +192,7 @@ module foe_common
       call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
       call f_free(cf)
-      call accuracy_of_chebyshev_expansion(n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
+      call accuracy_of_chebyshev_expansion(iproc, nproc, n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
     
       call f_release_routine()
 
@@ -276,79 +276,79 @@ module foe_common
     
     
     
-    ! Calculates chebychev expansion of fermi distribution.
-    ! Taken from numerical receipes: press et al
-    subroutine chebyshev_coefficients_penalyfunction(a,b,n,cc,max_error)
-      use module_base
-      use module_func
-      implicit none
-    
-      ! Calling arguments
-      real(kind=8),intent(in) :: a, b
-      integer,intent(in) :: n
-      real(kind=8),dimension(n,2),intent(out) :: cc
-      real(kind=8),intent(out) :: max_error
-    
-      ! Local variables
-      integer :: k, j
-      !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
-      real(kind=8) :: tt1, tt2, ttt, y, arg, fac, bma, bpa, x_max, max_err, mean_err
-      real(kind=8),dimension(50000) :: cf
-    
-      call f_routine(id='chebyshev_coefficients_penalyfunction')
-    
-      if (n>50000) stop 'chebyshev_coefficients_penalyfunction'
-      bma=0.5d0*(b-a)
-      bpa=0.5d0*(b+a)
-      ! 3 gives broder safety zone than 4
-      !ttt=3.0d0*n/(b-a)
-      !ttt=4.d0*n/(b-a)
-      ttt=40.d0
-      fac=2.d0/n
-      !$omp parallel default(none) shared(bma,bpa,ttt,fac,n,cf,a,b,cc) &
-      !$omp private(k,y,arg,tt1,tt2,j)
-      !$omp do
-      do k=1,n
-          y=cos(pi*(k-0.5d0)*(1.d0/n))
-          arg=y*bma+bpa
-          !write(*,*) 'arg, safe_exp(-(arg-a)*ttt)', arg, safe_exp(-(arg-a)*ttt)
-          cf(k)= safe_exp(-(arg-a)*ttt)-safe_exp((arg-b)*ttt)
-          !cf(k,2)=-safe_exp(-(arg-a)*ttt)+safe_exp((arg-b)*ttt)
-          !cf(k,1)= safe_exp(-(arg-a)*ttt)
-          !cf(k,2)= safe_exp((arg-b)*ttt)
-      end do
-      !$omp end do
-      !$omp do
-      do j=1,n
-          tt1=0.d0
-          tt2=0.d0
-          do k=1,n
-              tt1=tt1+cf(k)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
-              !tt2=tt2+cf(k,2)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
-          end do
-          cc(j,1)=fac*tt1
-          !cc(j,2)=fac*tt2
-      end do
-      !$omp end do
-      !$omp do
-      do j=1,n
-          cc(j,2) = -cc(j,1)
-      end do
-      !$omp end do
-      !$omp end parallel
-    
-      !!do j=1,n
-      !!    write(*,*) 'j, cc(j,1), cc(j,2)', j, cc(j,1), cc(j,2)
-      !!end do
-      call func_set(FUNCTION_EXPONENTIAL, betax=-ttt, muax=a, mubx=b)
-      call accuracy_of_chebyshev_expansion(n, cc(:,1), (/A,B/), 1.d-3, func, x_max, max_err, mean_err)
-      max_error = max_err
-      call func_set(FUNCTION_EXPONENTIAL, betax=ttt, muax=b, mubx=a)
-      call accuracy_of_chebyshev_expansion(n, cc(:,2), (/A,B/), 1.d-3, func, x_max, max_err, mean_err)
-      max_error = max(max_error,max_err)
-      call f_release_routine()
-    
-    end subroutine chebyshev_coefficients_penalyfunction
+    !!!! Calculates chebychev expansion of fermi distribution.
+    !!!! Taken from numerical receipes: press et al
+    !!!subroutine chebyshev_coefficients_penalyfunction(a,b,n,cc,max_error)
+    !!!  use module_base
+    !!!  use module_func
+    !!!  implicit none
+    !!!
+    !!!  ! Calling arguments
+    !!!  real(kind=8),intent(in) :: a, b
+    !!!  integer,intent(in) :: n
+    !!!  real(kind=8),dimension(n,2),intent(out) :: cc
+    !!!  real(kind=8),intent(out) :: max_error
+    !!!
+    !!!  ! Local variables
+    !!!  integer :: k, j
+    !!!  !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
+    !!!  real(kind=8) :: tt1, tt2, ttt, y, arg, fac, bma, bpa, x_max, max_err, mean_err
+    !!!  real(kind=8),dimension(50000) :: cf
+    !!!
+    !!!  call f_routine(id='chebyshev_coefficients_penalyfunction')
+    !!!
+    !!!  if (n>50000) stop 'chebyshev_coefficients_penalyfunction'
+    !!!  bma=0.5d0*(b-a)
+    !!!  bpa=0.5d0*(b+a)
+    !!!  ! 3 gives broder safety zone than 4
+    !!!  !ttt=3.0d0*n/(b-a)
+    !!!  !ttt=4.d0*n/(b-a)
+    !!!  ttt=40.d0
+    !!!  fac=2.d0/n
+    !!!  !$omp parallel default(none) shared(bma,bpa,ttt,fac,n,cf,a,b,cc) &
+    !!!  !$omp private(k,y,arg,tt1,tt2,j)
+    !!!  !$omp do
+    !!!  do k=1,n
+    !!!      y=cos(pi*(k-0.5d0)*(1.d0/n))
+    !!!      arg=y*bma+bpa
+    !!!      !write(*,*) 'arg, safe_exp(-(arg-a)*ttt)', arg, safe_exp(-(arg-a)*ttt)
+    !!!      cf(k)= safe_exp(-(arg-a)*ttt)-safe_exp((arg-b)*ttt)
+    !!!      !cf(k,2)=-safe_exp(-(arg-a)*ttt)+safe_exp((arg-b)*ttt)
+    !!!      !cf(k,1)= safe_exp(-(arg-a)*ttt)
+    !!!      !cf(k,2)= safe_exp((arg-b)*ttt)
+    !!!  end do
+    !!!  !$omp end do
+    !!!  !$omp do
+    !!!  do j=1,n
+    !!!      tt1=0.d0
+    !!!      tt2=0.d0
+    !!!      do k=1,n
+    !!!          tt1=tt1+cf(k)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
+    !!!          !tt2=tt2+cf(k,2)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
+    !!!      end do
+    !!!      cc(j,1)=fac*tt1
+    !!!      !cc(j,2)=fac*tt2
+    !!!  end do
+    !!!  !$omp end do
+    !!!  !$omp do
+    !!!  do j=1,n
+    !!!      cc(j,2) = -cc(j,1)
+    !!!  end do
+    !!!  !$omp end do
+    !!!  !$omp end parallel
+    !!!
+    !!!  !!do j=1,n
+    !!!  !!    write(*,*) 'j, cc(j,1), cc(j,2)', j, cc(j,1), cc(j,2)
+    !!!  !!end do
+    !!!  call func_set(FUNCTION_EXPONENTIAL, betax=-ttt, muax=a, mubx=b)
+    !!!  call accuracy_of_chebyshev_expansion(n, cc(:,1), (/A,B/), 1.d-3, func, x_max, max_err, mean_err)
+    !!!  max_error = max_err
+    !!!  call func_set(FUNCTION_EXPONENTIAL, betax=ttt, muax=b, mubx=a)
+    !!!  call accuracy_of_chebyshev_expansion(n, cc(:,2), (/A,B/), 1.d-3, func, x_max, max_err, mean_err)
+    !!!  max_error = max(max_error,max_err)
+    !!!  call f_release_routine()
+    !!!
+    !!!end subroutine chebyshev_coefficients_penalyfunction
     
     ! Calculates chebychev expansion of the derivative of Fermi distribution.
     subroutine chder(a,b,c,cder,n)
@@ -1028,61 +1028,62 @@ module foe_common
 
 
 
-    ! Calculates chebychev expansion of x**ex, where ex is any value (typically -1, -1/2, 1/2)
-    ! Taken from numerical receipes: press et al
-    subroutine cheb_exp(A,B,N,cc,ex,x_max_error,max_error,mean_error)
-      use module_base
-      use module_func
-      use yaml_output
-      implicit none
-      
-      ! Calling arguments
-      real(kind=8),intent(in) :: A, B
-      integer,intent(in) :: n
-      real(kind=8),intent(in) :: ex
-      real(8),dimension(n),intent(out) :: cc
-      real(kind=8),intent(out) :: x_max_error, max_error,mean_error
-    
-      ! Local variables
-      integer :: k, j
-      real(kind=8) :: bma, bpa, y, arg, fac, tt
-      real(kind=8),dimension(50000) :: cf
-      !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
-    
-      call f_routine(id='chebft')
+    !!##! Calculates chebychev expansion of x**ex, where ex is any value (typically -1, -1/2, 1/2)
+    !!##! Taken from numerical receipes: press et al
+    !!##subroutine cheb_exp(iproc, nproc, A,B,N,cc,ex,x_max_error,max_error,mean_error)
+    !!##  use module_base
+    !!##  use module_func
+    !!##  use yaml_output
+    !!##  implicit none
+    !!##  
+    !!##  ! Calling arguments
+    !!##  integer,intent(in) :: iproc, nproc
+    !!##  real(kind=8),intent(in) :: A, B
+    !!##  integer,intent(in) :: n
+    !!##  real(kind=8),intent(in) :: ex
+    !!##  real(8),dimension(n),intent(out) :: cc
+    !!##  real(kind=8),intent(out) :: x_max_error, max_error,mean_error
+    !!##
+    !!##  ! Local variables
+    !!##  integer :: k, j
+    !!##  real(kind=8) :: bma, bpa, y, arg, fac, tt
+    !!##  real(kind=8),dimension(50000) :: cf
+    !!##  !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
+    !!##
+    !!##  call f_routine(id='chebft')
 
-    
-      if (n>50000) stop 'chebft'
-      bma=0.5d0*(b-a)
-      bpa=0.5d0*(b+a)
-      fac=2.d0/n
-      !$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,ex) &
-      !$omp private(k,y,arg,j,tt)
-      !$omp do
-      do k=1,n
-          y=cos(pi*(k-0.5d0)*(1.d0/n))
-          arg=y*bma+bpa
-          cf(k)=arg**ex
-      end do
-      !$omp end do
-      !$omp do
-      do j=1,n
-          tt=0.d0
-          do  k=1,n
-              tt=tt+cf(k)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
-          end do
-          cc(j)=fac*tt
-      end do
-      !$omp end do
-      !$omp end parallel
+    !!##
+    !!##  if (n>50000) stop 'chebft'
+    !!##  bma=0.5d0*(b-a)
+    !!##  bpa=0.5d0*(b+a)
+    !!##  fac=2.d0/n
+    !!##  !$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,ex) &
+    !!##  !$omp private(k,y,arg,j,tt)
+    !!##  !$omp do
+    !!##  do k=1,n
+    !!##      y=cos(pi*(k-0.5d0)*(1.d0/n))
+    !!##      arg=y*bma+bpa
+    !!##      cf(k)=arg**ex
+    !!##  end do
+    !!##  !$omp end do
+    !!##  !$omp do
+    !!##  do j=1,n
+    !!##      tt=0.d0
+    !!##      do  k=1,n
+    !!##          tt=tt+cf(k)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
+    !!##      end do
+    !!##      cc(j)=fac*tt
+    !!##  end do
+    !!##  !$omp end do
+    !!##  !$omp end parallel
 
-      call func_set(FUNCTION_POLYNOMIAL, powerx=ex)
-      call accuracy_of_chebyshev_expansion(n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
-      !if (bigdft_mpi%iproc==0) call yaml_map('expected accuracy of Chebyshev expansion',max_error)
-    
-      call f_release_routine()
-    
-    end subroutine cheb_exp
+    !!##  call func_set(FUNCTION_POLYNOMIAL, powerx=ex)
+    !!##  call accuracy_of_chebyshev_expansion(iproc, nproc, n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
+    !!##  !if (bigdft_mpi%iproc==0) call yaml_map('expected accuracy of Chebyshev expansion',max_error)
+    !!##
+    !!##  call f_release_routine()
+    !!##
+    !!##end subroutine cheb_exp
 
 
     subroutine init_foe(iproc, nproc, nspin, charge, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
@@ -1160,11 +1161,11 @@ module foe_common
     end subroutine init_foe
 
 
-    subroutine accuracy_of_chebyshev_expansion(npl, coeff, bounds, h, func, x_max_error, max_error, mean_error)
+    subroutine accuracy_of_chebyshev_expansion(iproc, nproc, npl, coeff, bounds, h, func, x_max_error, max_error, mean_error)
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: npl
+      integer,intent(in) :: iproc, nproc, npl
       real(kind=8),dimension(npl),intent(in) :: coeff
       real(kind=8),dimension(2),intent(in) :: bounds
       real(kind=8),intent(in) :: h
@@ -1172,20 +1173,53 @@ module foe_common
       real(kind=8),intent(out) :: x_max_error, max_error, mean_error
 
       ! Local variables
-      integer :: is, ie, i, ipl
+      integer :: isx, iex, i, ipl, n, iimin, iimax, ii, is, np, jproc
       real(kind=8) :: x, xx, val_chebyshev, val_function, xxm1, xxm2, xxx, sigma, tau, error
+      real(kind=8),dimension(:,:),allocatable :: max_errors
 
       call f_routine(id='accuracy_of_chebyshev_expansion')
 
       sigma = 2.d0/(bounds(2)-bounds(1))
       tau = (bounds(1)+bounds(2))/2.d0
 
-      is = nint(bounds(1)/h)
-      ie = nint(bounds(2)/h)
+      isx = nint(bounds(1)/h)
+      iex = nint(bounds(2)/h)
+      n = iex - isx + 1
+
+      ! MPI parallelization... maybe only worth for large n?
+      ii = n/nproc
+      np = ii
+      is = iproc*ii
+      ii = n - nproc*ii
+      if (iproc<ii) then
+          np = np + 1
+      end if
+      is = is + min(iproc,ii)
+      is = is + isx - 1 !shift of the starting index
+      !check
+      ii = np
+      call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      if (ii/=n) then
+          call f_err_throw('wrong partition of n')
+      end if
+      iimin = 1 + is
+      call mpiallred(iimin, 1, mpi_min, comm=bigdft_mpi%mpi_comm)
+      if (iimin/=isx) then
+          call f_err_throw('wrong starting index')
+      end if
+      iimax = np + is
+      call mpiallred(iimax, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+      if (iimax/=iex) then
+          call f_err_throw('wrong ending index')
+      end if
+
+
       max_error = 0.d0
       mean_error = 0.d0
-      do i=is,ie
-          x = real(i,kind=8)*h
+      !do i=isx,iex
+      do i=1,np
+          ii = i + is
+          x = real(ii,kind=8)*h
           val_chebyshev = 0.5d0*coeff(1)*1.d0
           xx = sigma*(x-tau)
           val_chebyshev = val_chebyshev + coeff(2)*xx
@@ -1211,7 +1245,22 @@ module foe_common
           !write(*,*) 'x, val_chebyshev, exp(x-bounds(2))', x, val_chebyshev, exp(x-bounds(2))
       end do
       !write(*,*) 'max_error',max_error
-      mean_error = mean_error/real(ie-is+1,kind=8)
+      mean_error = mean_error/real(iex-isx+1,kind=8)
+
+      ! Communicate the results... for the maximum in an array since also the position is required
+      call mpiallred(mean_error, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      max_errors = f_malloc0((/1.to.2,0.to.nproc-1/),id='max_errors')
+      max_errors(1,iproc) = max_error
+      max_errors(2,iproc) = x_max_error
+      call mpiallred(max_errors, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      max_error = 0.d0
+      do jproc=0,nproc-1
+          if (max_errors(1,jproc)>max_error) then
+              max_error = max_errors(1,jproc)
+              x_max_error = max_errors(2,jproc)
+          end if
+      end do
+      call f_free(max_errors)
 
       call f_release_routine()
 
