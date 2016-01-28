@@ -277,7 +277,7 @@ unitary_tests.o: types.o interfaces.o communications_init.o communications.o tra
 io.o: types.o interfaces.o input_keys.o
 postprocessing_linear.o: types.o interfaces.o communications.o transposed_operations.o rhopotential.o sort.o communications_init.o locregs_init.o multipole_base.o multipole.o io.o
 rhopotential.o: types.o interfaces.o xc.o communications.o
-multipole.o: multipole_base.o types.o interfaces.o orthonormalization.o io.o
+multipole.o: multipole_base.o interfaces.o orthonormalization.o io.o orbital_basis.o
 orbital_basis.o:  types.o interfaces.o
 orthonormalization.o: types.o communications.o transposed_operations.o atoms_data.o
 locregs_init.o: types.o communications.o

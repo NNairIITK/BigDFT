@@ -1620,16 +1620,198 @@ module multipole
 
     end function nearest_gridpoint
 
+    !>apply the Slm operator onto a set of support functions
+    subroutine apply_Slm(l,m,geocode,hgrids,acell,psi_ob,nphi,Slmphi,integrate_in_sphere,centers)
+      use module_base
+      use locreg_operations
+      use orbitalbasis
+      use bounds, only: geocode_buffers
+      implicit none
+      integer, intent(in) :: l, m, nphi
+      character(len=1), intent(in) :: geocode
+      real(gp),dimension(3) :: hgrids,acell
+      type(orbital_basis), intent(in) :: psi_ob
+      real(wp),dimension(nphi),intent(out) :: Slmphi
+      logical, intent(in), optional :: integrate_in_sphere
+      real(gp), dimension(3,*), intent(in), optional :: centers
+      !local variables
+      logical :: perx,pery,perz,sphere
+      integer :: npsir,ii1,ii2,ii3,nl1,nl2,nl3,i1,i2,i3,ind
+      type(ket) :: psi_it
+      type(workarr_sumrho) :: w
+      real(wp) :: norm, rmax, tt, x, y, z
+      real(wp), dimension(3) :: lrcntr
+      real(wp),dimension(:),allocatable :: phi2r, sphi2r
+      real(wp), dimension(:), pointer :: sphi_ptr
+      
+      call f_routine(id='apply_Slm')
+
+      sphere=.false.
+      if (present(integrate_in_sphere)) sphere=integrate_in_sphere
+      ! Conditions for periodicity
+      perx=(geocode /= 'F')
+      pery=(geocode == 'P')
+      perz=(geocode /= 'F')
+
+      !first search the maximum sizes of psir array
+      npsir=1
+      psi_it=orbital_basis_iterator(psi_ob)
+      do while(ket_next_locreg(psi_it))
+         npsir=max(npsir,psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i)
+      end do
+
+      phi2r = f_malloc(npsir,id='phi2r')
+      sphi2r = f_malloc(npsir,id='sphi2r')
+
+      call f_zero(Slmphi)
+      !iterate over the orbital_basis
+      psi_it=orbital_basis_iterator(psi_ob)
+      do while(ket_next_locreg(psi_it))
+         call initialize_work_arrays_sumrho(1,[psi_it%lr],.true.,w)
+         rmax = min(psi_it%lr%d%n1*0.5d0*hgrids(1),psi_it%lr%d%n2*0.5d0*hgrids(2),&
+              psi_it%lr%d%n3*0.5d0*hgrids(3))+1.e-3_gp*maxval(hgrids)
+         call geocode_buffers(psi_it%lr%geocode,geocode, nl1, nl2, nl3)
+         if (present(centers)) then
+            lrcntr=centers(:,psi_it%ilr)
+         else
+            lrcntr=psi_it%lr%locregcenter
+         end if
+         do while(ket_next(psi_it,ilr=psi_it%ilr))
+            if (sphere) call f_zero(sphi2r)
+            call daub_to_isf(psi_it%lr,w,psi_it%phi_wvl,phi2r)
+            do i3=1,psi_it%lr%d%n3i
+               ii3 = psi_it%lr%nsi3 + i3 - nl3 - 1
+               z=ii3*0.5d0*hgrids(3)-lrcntr(3)
+               z=closest_image(z,acell(3),perz)
+               do i2=1,psi_it%lr%d%n2i
+                  ii2 = psi_it%lr%nsi2 + i2 - nl2 - 1
+                  y=ii2*0.5d0*hgrids(2)-lrcntr(2)
+                  y=closest_image(y,acell(2),pery)
+                  do i1=1,psi_it%lr%d%n1i
+                     ii1 = psi_it%lr%nsi1 + i1 - nl1 - 1
+                     x=ii1*0.5d0*hgrids(1)-lrcntr(1)
+                     x=closest_image(x,acell(1),perx)
+                     ind = (i3-1)*psi_it%lr%d%n2i*psi_it%lr%d%n1i + (i2-1)*psi_it%lr%d%n1i + i1
+                     if (sphere) then
+                        if (x**2+y**2+z**2>rmax**2) cycle
+                     end if
+                     tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
+                     tt = tt*sqrt(4.d0*pi/real(2*l+1,gp))
+                     sphi2r(ind) = tt*phi2r(ind)
+                  end do
+               end do
+            end do
+            sphi_ptr => ob_ket_map(Slmphi,psi_it)
+            call isf_to_daub(psi_it%lr, w, sphi2r, sphi_ptr)
+         end do
+         !deallocations of work arrays
+         call deallocate_work_arrays_sumrho(w)
+      end do
+      call f_free(phi2r)
+      call f_free(sphi2r)
+
+      call f_release_routine()
+
+    end subroutine apply_Slm
 
 
+    !>calculate the multipoles of phi
+    subroutine Qlm_phi(lmax,geocode,hgrids,acell,psi_ob,Qlm,integrate_in_sphere,centers)
+      use module_base
+      use locreg_operations
+      use orbitalbasis
+      use bounds, only: geocode_buffers
+      implicit none
+      integer, intent(in) :: lmax
+      character(len=1), intent(in) :: geocode
+      real(gp),dimension(3) :: hgrids,acell
+      type(orbital_basis), intent(in) :: psi_ob
+      real(wp), dimension((lmax+1)**2), intent(out) :: Qlm
+      logical, intent(in), optional :: integrate_in_sphere
+      real(gp), dimension(3,*), intent(in), optional :: centers
+      !local variables
+      logical :: perx,pery,perz,sphere
+      integer :: npsir,ii1,ii2,ii3,nl1,nl2,nl3,i1,i2,i3,ind,ll,l,m
+      type(ket) :: psi_it
+      type(workarr_sumrho) :: w
+      real(wp) :: norm, rmax, tt, x, y, z
+      real(wp), dimension(3) :: lrcntr
+      real(wp),dimension(:),allocatable :: phi2r
+      real(wp), dimension(:), pointer :: sphi_ptr
+
+      call f_routine(id='apply_Slm')
+
+      sphere=.false.
+      if (present(integrate_in_sphere)) sphere=integrate_in_sphere
+      ! Conditions for periodicity
+      perx=(geocode /= 'F')
+      pery=(geocode == 'P')
+      perz=(geocode /= 'F')
+
+      !first search the maximum sizes of psir array
+      npsir=1
+      psi_it=orbital_basis_iterator(psi_ob)
+      do while(ket_next_locreg(psi_it))
+         npsir=max(npsir,psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i)
+      end do
+
+      call f_zero(Qlm)
+      phi2r = f_malloc(npsir,id='phi2r')
+
+      !iterate over the orbital_basis
+      psi_it=orbital_basis_iterator(psi_ob)
+      do while(ket_next_locreg(psi_it))
+         call initialize_work_arrays_sumrho(1,[psi_it%lr],.true.,w)
+         rmax = min(psi_it%lr%d%n1*0.5d0*hgrids(1),psi_it%lr%d%n2*0.5d0*hgrids(2),&
+              psi_it%lr%d%n3*0.5d0*hgrids(3))+1.e-3_gp*maxval(hgrids)
+         call geocode_buffers(psi_it%lr%geocode,geocode, nl1, nl2, nl3)
+         if (present(centers)) then
+            lrcntr=centers(:,psi_it%ilr)
+         else
+            lrcntr=psi_it%lr%locregcenter
+         end if
+         do while(ket_next(psi_it,ilr=psi_it%ilr))
+            call daub_to_isf(psi_it%lr,w,psi_it%phi_wvl,phi2r)
+            do i3=1,psi_it%lr%d%n3i
+               ii3 = psi_it%lr%nsi3 + i3 - nl3 - 1
+               z=ii3*0.5d0*hgrids(3)-lrcntr(3)
+               z=closest_image(z,acell(3),perz)
+               do i2=1,psi_it%lr%d%n2i
+                  ii2 = psi_it%lr%nsi2 + i2 - nl2 - 1
+                  y=ii2*0.5d0*hgrids(2)-lrcntr(2)
+                  y=closest_image(y,acell(2),pery)
+                  do i1=1,psi_it%lr%d%n1i
+                     ii1 = psi_it%lr%nsi1 + i1 - nl1 - 1
+                     x=ii1*0.5d0*hgrids(1)-lrcntr(1)
+                     x=closest_image(x,acell(1),perx)
+                     ind = (i3-1)*psi_it%lr%d%n2i*psi_it%lr%d%n1i + (i2-1)*psi_it%lr%d%n1i + i1
+                     if (sphere) then
+                        if (x**2+y**2+z**2>rmax**2) cycle
+                     end if
+                     ll=0
+                     do l=0,lmax
+                        do m=-l,l
+                           ll=ll+1  
+                           tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
+                           tt = tt*sqrt(4.d0*pi/real(2*l+1,gp))
+                           Qlm(ll)=Qlm(ll)+tt*phi2r(ind)
+                        end do
+                     end do
+                  end do
+               end do
+            end do
+         end do
+         !deallocations of work arrays
+         call deallocate_work_arrays_sumrho(w)
+      end do
+      call f_free(phi2r)
+
+      call f_release_routine()
+
+    end subroutine Qlm_phi
 
 
-
-
-
-
-
-    subroutine calculte_multipole_matrix(iproc, nproc, l, m, nphi, phi1, phi2, nphir, hgrids, &
+    subroutine calculate_multipole_matrix(iproc, nproc, l, m, nphi, phi1, phi2, nphir, hgrids, &
                orbs, collcom, lzd, smat, locregcenter, ingegration_volume, multipole_matrix)
       use module_base
       use module_types, only: orbitals_data, comms_linear, local_zone_descriptors
@@ -1639,6 +1821,8 @@ module multipole
       use transposed_operations, only: calculate_overlap_transposed
       use communications, only: transpose_localized
       use bounds, only: geocode_buffers
+      use orthonormalization, only: overlap_matrix
+      use orbitalbasis
       implicit none
 
       ! Calling arguments
@@ -1654,7 +1838,7 @@ module multipole
       character(len=*),intent(in) :: ingegration_volume
 
       ! Local variables
-      integer :: ist, istr, iorb, i1, i2, i3, ii1, ii2, ii3, iiorb, ind, ilr, i, nl1, nl2, nl3
+      integer :: ist, istr, iorb, i1, i2, i3, ii1, ii2, ii3, iiorb, ind, ilr, i, nl1, nl2, nl3,npsir
       integer :: i1mod, i2mod, i3mod, is1, ie1, is2, ie2, is3, ie3, ii, nd, nu, j1, j2, j3
       real(kind=8),dimension(:),allocatable :: phi2r, sphi2r, sphi2, phi1t_c, phi1t_f, sphi2t_c, sphi2t_f
       real(kind=8) :: norm, rmax, factor_normalization, tt, x, y, z
@@ -1663,9 +1847,12 @@ module multipole
       character(len=*),parameter :: sphere = 'sphere', box = 'box'
       logical :: integrate_in_sphere, perx, pery, perz
       integer :: j1s, j1e, j2s, j2e, j3s, j3e
+      type(orbital_basis) :: psi_ob
+      type(ket) :: psi_it
+      real(gp), dimension(3) :: acell
+      real(wp), dimension(:), pointer :: sphi_ptr
 
-
-      call f_routine(id='calculte_multipole_matrix')
+      call f_routine(id='calculate_multipole_matrix')
 
       ! Check the arguments
       if (trim(ingegration_volume)==sphere) then
@@ -1677,279 +1864,390 @@ module multipole
                err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
-      ! Transform the support functions to real space
-      phi2r = f_malloc0(max(nphir,1),id='phi2r')
-      sphi2r = f_malloc0(max(nphir,1),id='sphi2r')
-      ist=1
-      istr=1
-      do iorb=1,orbs%norbp
-          iiorb=orbs%isorb+iorb
-          ilr=orbs%inwhichlocreg(iiorb)
-          call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.true.,w)
-          call daub_to_isf(lzd%llr(ilr), w, phi2(ist), phi2r(istr))
-          !write(*,*) 'iorb, n, tt', iorb, &
-          !     lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, &
-          !     lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f, &
-          !     ddot(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, phi2r(istr), 1, phi2r(istr), 1), &
-          !     ddot(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, phi2(ist), 1, phi2(ist), 1)
-          call deallocate_work_arrays_sumrho(w)
-          call deallocate_work_arrays_sumrho(w)
-          ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
-          istr = istr + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-      end do
-      !!do i=1,ist-1
-      !!    write(556,*) i, phi_ortho(i)
-      !!end do
-
-      !do i=1,nphir
-      !    write(700,*) i, phi2r(i)
-      !end do
-      !if(istr/=collcom_sr%ndimpsi_c+1) then
-      !    write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=collcom_sr%ndimpsi_c+1'
-      !    stop
-      !end if
-
-      !write(*,*) 'after daub_to_isf'
-
-      ! Conditions for periodicity
-      perx=(smat%geocode /= 'F')
-      pery=(smat%geocode == 'P')
-      perz=(smat%geocode /= 'F')
-      if (perx) then
-          j1s = -1
-          j1e = 1
-      else
-          j1s = 0
-          j1e = 0
-      end if
-      if (pery) then
-          j2s = -1
-          j2e = 1
-      else
-          j2s = 0
-          j2e = 0
-      end if
-      if (perz) then
-          j3s = -1
-          j3e = 1
-      else
-          j3s = 0
-          j3e = 0
-      end if
-
-
-
-      ! Apply the spherical harmonic
-      ist = 0
-      do iorb=1,orbs%norbp
-          iiorb = orbs%isorb + iorb
-          ilr = orbs%inwhichlocreg(iiorb)
-          !rmax = min(lzd%llr(ilr)%d%n1i*0.25d0*hgrids(1),lzd%llr(ilr)%d%n2i*0.25d0*hgrids(2),lzd%llr(ilr)%d%n3i*0.25d0*hgrids(3))
-          rmax = min(lzd%llr(ilr)%d%n1*0.5d0*hgrids(1),lzd%llr(ilr)%d%n2*0.5d0*hgrids(2),lzd%llr(ilr)%d%n3*0.5d0*hgrids(3))
-          !write(*,*) 'iorb, ilr, rmax', iorb, ilr, rmax
-          !write(*,*) 'zmin, zmax, locregcenter(3)',  (lzd%llr(ilr)%nsi3+1-14-1)*0.5d0*hgrids(3), &
-          !            (lzd%llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-14-1)*0.5d0*hgrids(3), locregcenter(3,ilr)
-          !write(*,*) 'ymin, ymax, locregcenter(2)',  (lzd%llr(ilr)%nsi2+1-14-1)*0.5d0*hgrids(2), &
-          !            (lzd%llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-14-1)*0.5d0*hgrids(2), locregcenter(2,ilr)
-          !write(*,*) 'xmin, xmax, locregcenter(1)',  (lzd%llr(ilr)%nsi1+1-14-1)*0.5d0*hgrids(1), &
-          !            (lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-14-1)*0.5d0*hgrids(1), locregcenter(1,ilr)
-
-          call geocode_buffers(lzd%Llr(ilr)%geocode, lzd%glr%geocode, nl1, nl2, nl3)
-
-          ! Calculate the boundaries:
-          ! - free BC: entire box
-          ! - periodic BC: half of the box size, with periodic wrap around
-          if (.not.perx) then
-              is1 = 1
-              ie1 = lzd%llr(ilr)%d%n1i
-          else
-              nd = (lzd%llr(ilr)%d%n1i + 1)/2 - 1
-              nu = lzd%llr(ilr)%d%n1i - nd -1
-              !write(*,*) 'nu, nd, lzd%llr(ilr)%d%n1i',nu, nd, lzd%llr(ilr)%d%n1i
-              if (nu+nd+1/=lzd%llr(ilr)%d%n1i) call f_err_throw('wrong values of nu and nd')
-              ii1 = nint(locregcenter(1,ilr)/(0.5d0*hgrids(1)))
-              is1 = ii1 - nd + nl1 + 1
-              ie1 = ii1 + nu + nl1 + 1
-              if (ie1-is1+1/=lzd%llr(ilr)%d%n1i) call f_err_throw('wrong values of is1 and ie1')
-          end if
-          if (.not.pery) then
-              is2 = 1
-              ie2 = lzd%llr(ilr)%d%n2i
-          else
-              nd = (lzd%llr(ilr)%d%n2i + 1)/2 - 1
-              nu = lzd%llr(ilr)%d%n2i - nd -1
-              if (nu+nd+1/=lzd%llr(ilr)%d%n2i) call f_err_throw('wrong values of nu and nd')
-              ii2 = nint(locregcenter(2,ilr)/(0.5d0*hgrids(2)))
-              is2 = ii2 - nd + nl2 + 1
-              ie2 = ii2 + nu + nl2 + 1
-              if (ie2-is2+1/=lzd%llr(ilr)%d%n2i) call f_err_throw('wrong values of is2 and ie2')
-          end if
-          if (.not.perz) then
-              is3 = 1
-              ie3 = lzd%llr(ilr)%d%n3i
-          else
-              nd = (lzd%llr(ilr)%d%n3i + 1)/2 - 1
-              nu = lzd%llr(ilr)%d%n3i - nd -1
-              if (nu+nd+1/=lzd%llr(ilr)%d%n3i) call f_err_throw('wrong values of nu and nd')
-              ii3 = nint(locregcenter(3,ilr)/(0.5d0*hgrids(3)))
-              is3 = ii3 - nd + nl3 + 1
-              ie3 = ii3 + nu + nl3 + 1
-              if (ie3-is3+1/=lzd%llr(ilr)%d%n3i) call f_err_throw('wrong values of is3 and ie3')
-          end if
-
-          !!write(*,*) 'perx', perx
-          !!write(*,*) 'pery', pery
-          !!write(*,*) 'perz', perz
-
-          !!write(*,*) 'iorb, is1, ie1, ii1, n1, is2, ie2, ii2, n2, is3, ie3, ii3, n3', &
-          !!    iorb, is1, ie1, ii1, lzd%llr(ilr)%d%n1i, is2, ie2, ii2, lzd%llr(ilr)%d%n2i, is3, ie3, ii3, lzd%llr(ilr)%d%n3i
-
-
-          norm = 0.d0
-          factor_normalization = sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3))
-          !do i3=is3,ie3
-          do i3=1,lzd%llr(ilr)%d%n3i
-              !j3 = i3 - is3 + 1
-              !i3mod = modulo(i3-1,lzd%llr(ilr)%d%n3i) + 1
-              ii3 = lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
-              !z = ii3*0.5d0*hgrids(3) - locregcenter(3,ilr)
-              ! Search the closest locregcenter (might be in a periodically replicated cell)
-              z = huge(z)
-              do j3=j3s,j3e
-                  dr = (ii3+j3*lzd%glr%d%n3i)*0.5d0*hgrids(3) - locregcenter(3,ilr)
-                  if (abs(dr)<abs(z)) z = dr
-              end do
-              !write(*,*) 'is3, ie3, n3, i3, i3mod, ii3, z', is3, ie3, lzd%llr(ilr)%d%n3i, i3, i3mod, ii3, z
-              !write(*,*) 'is3, ie3, n3, i3, ii3, z', is3, ie3, lzd%llr(ilr)%d%n3i, i3, ii3, z
-              !do i2=is2,ie2
-              do i2=1,lzd%llr(ilr)%d%n2i
-                  !j2 = i2 - is2 + 1
-                  !i2mod = modulo(i2-1,lzd%llr(ilr)%d%n2i) + 1
-                  ii2 = lzd%llr(ilr)%nsi2 + i2 - nl2 - 1
-                  !y = ii2*0.5d0*hgrids(2) - locregcenter(2,ilr)
-                  ! Search the closest locregcenter (might be in a periodically replicated cell)
-                  y = huge(y)
-                  do j2=j2s,j2e
-                      dr = (ii2+j2*lzd%glr%d%n2i)*0.5d0*hgrids(2) - locregcenter(2,ilr)
-                      if (abs(dr)<abs(y)) y = dr
-                  end do
-                  !do i1=is1,ie1
-                  do i1=1,lzd%llr(ilr)%d%n1i
-                      !j1 = i1 - is1 + 1
-                      !i1mod = modulo(i1-1,lzd%llr(ilr)%d%n1i) + 1
-                      ii1 = lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
-                      !x = ii1*0.5d0*hgrids(1) - locregcenter(1,ilr)
-                      x = huge(x)
-                      do j1=j1s,j1e
-                          dr = (ii1+j1*lzd%glr%d%n1i)*0.5d0*hgrids(1) - locregcenter(1,ilr)
-                          if (abs(dr)<abs(x)) x = dr
-                      end do
-                      !ind = (i3mod-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2mod-1)*lzd%llr(ilr)%d%n1i + i1mod
-                      !ind = (j3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (j2-1)*lzd%llr(ilr)%d%n1i + j1
-                      ind = (i3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2-1)*lzd%llr(ilr)%d%n1i + i1
-                      !ind = (i3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2-1)*lzd%llr(ilr)%d%n1i + i1
-                      !!if (i1/=i1mod .or. i2/=i2mod .or. i3/=i3mod) then
-                      !!    write(*,*) 'iproc, is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod', &
-                      !!                iproc, is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod
-                      !!end if
-                      !!if (iorb==orbs%norbp) then
-                      !!    write(bigdft_mpi%iproc+20,*) 'is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod', &
-                      !!                                  is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod
-                      !!    write(bigdft_mpi%iproc+30,*) 'ind',ind
-                      !!end if
-                      if (integrate_in_sphere) then
-                          if (x**2+y**2+z**2>rmax**2) cycle
-                      end if
-                      tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
-                      tt = tt*sqrt(4.d0*pi/real(2*l+1,kind=8))
-                      sphi2r(ist+ind) = tt*phi2r(ist+ind)
-                      !!if (iorb==orbs%norbp) then
-                      !!    write(bigdft_mpi%iproc+40,*) 'is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod', &
-                      !!                                  is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod
-                      !!    write(bigdft_mpi%iproc+50,*) 'ind, phi2r(ist+ind), sphi2r(ist+ind)',ind, phi2r(ist+ind), sphi2r(ist+ind)
-                      !!end if
-                      !write(*,*) 'iorb, i1, i1, i2, tt, phi2r', iorb, i1, i2, i3, tt, phi2r(ist+ind)
-                      ! For the calculation of the norm, do the integration always only in the sphere
-                      if (x**2+y**2+z**2>rmax**2) cycle
-                      norm = norm + (tt*factor_normalization)**2*&
-                          real((2*l+3)*(2*l+1),kind=8)/(4.d0*pi*rmax**(2*l+3)) !normalization of a solid harmonic within a sphere of radius rmax... hopefully correct
-                      !write(*,*) 'iorb, i1, i2, i3, tt, phi', iorb, i1, i2, i3, tt, phir(ist+ind)
-                  end do
-              end do
-          end do
-          ist = ist + ind
-      end do
-
-
+      acell(1)=0.5_gp*hgrids(1)*Lzd%glr%d%n1i
+      acell(2)=0.5_gp*hgrids(2)*Lzd%glr%d%n2i
+      acell(3)=0.5_gp*hgrids(3)*Lzd%glr%d%n3i
 
       ! Transform back to wavelets
       sphi2 = f_malloc0(nphi,id='sphi2')
-      ist=1
-      istr=1
-      do iorb=1,orbs%norbp
-          iiorb=orbs%isorb+iorb
-          ilr=orbs%inwhichlocreg(iiorb)
-          call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.true.,w)
-          call isf_to_daub(lzd%llr(ilr), w, sphi2r(istr), sphi2(ist))
-          !call isf_to_daub(lzd%llr(ilr), w, phi2r(istr), sphi2(ist))
-          call deallocate_work_arrays_sumrho(w)
-          !write(*,*) 'iorb, n, firsts, tt', iorb, &
-          !     lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, &
-          !     phi2r(istr), sphi2r(istr), &
-          !     ddot(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, phi2r(istr), 1, sphi2r(istr), 1), &
-          !     ddot(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, phi2r(istr), 1, phi2r(istr), 1), &
-          !     ddot(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, phi1(ist), 1, sphi2(ist), 1)
-          !do i=1,lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-          !    write(*,*) i, phir(istr+i-1), sphir(istr+i-1)
-          !end do
-          ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
-          istr = istr + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-      end do
-      !if(istr/=collcom_sr%ndimpsi_c+1) then
-      !    write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=collcom_sr%ndimpsi_c+1'
-      !    stop
-      !end if
 
-      !write(*,*) 'after isf_to_daub'
+      call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=phi2,Lzd=Lzd)
 
-      call f_free(phi2r)
-      call f_free(sphi2r)
+      call apply_Slm(l,m,smat%geocode,hgrids,acell,psi_ob,nphi,sphi2,&
+           integrate_in_sphere,centers=locregcenter)
 
+      call orbital_basis_release(psi_ob)
 
-
-      ! Calculate the scalar products, i.e. the matrix <phi_ab|S_lm|phi_ab>
-      phi1t_c = f_malloc(collcom%ndimind_c,id='phi1t_c')
-      phi1t_f = f_malloc(7*collcom%ndimind_f,id='phi1t_f')
-      sphi2t_c = f_malloc(collcom%ndimind_c,id='sphit2_c')
-      sphi2t_f = f_malloc(7*collcom%ndimind_f,id='sphit2_f')
-      call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
-           TRANSPOSE_FULL, phi1, phi1t_c, phi1t_f, lzd)
-      call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
-           TRANSPOSE_FULL, sphi2, sphi2t_c, sphi2t_f, lzd)
-      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
-           phi1t_c, sphi2t_c, phi1t_f, sphi2t_f, smat, multipole_matrix)
-      !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
-      !     phi1t_c, phi1t_c, phi1t_f, phi1t_f, smat, multipole_matrix)
-
-      !!do i=1,size(multipole_matrix%matrix_compr)
-      !!    write(*,*) 'i, val', i, multipole_matrix%matrix_compr(i)
-      !!end do
-
-      !write(*,*) 'after overlap'
+      call overlap_matrix(phi1,nphi,lzd,orbs,collcom,smat,multipole_matrix,sphi2)      
 
       call f_free(sphi2)
-      call f_free(phi1t_c)
-      call f_free(phi1t_f)
-      call f_free(sphi2t_c)
-      call f_free(sphi2t_f)
+
+
+!!!
+!!!!!!!
+!!!      ! Conditions for periodicity
+!!!      perx=(smat%geocode /= 'F')
+!!!      pery=(smat%geocode == 'P')
+!!!      perz=(smat%geocode /= 'F')
+!!!      factor_normalization = sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3))
+!!!            
+!!!
+!!!      !first search the maximum sizes of psir array
+!!!      npsir=1
+!!!      psi_it=orbital_basis_iterator(psi_ob)
+!!!      do while(ket_next_locreg(psi_it))
+!!!         npsir=max(npsir,psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i)
+!!!      end do
+!!!
+!!!      phi2r = f_malloc(npsir,id='phi2r')
+!!!      sphi2r = f_malloc(npsir,id='sphi2r')
+!!!
+!!!      !iterate over the orbital_basis
+!!!      psi_it=orbital_basis_iterator(psi_ob)
+!!!      do while(ket_next_locreg(psi_it))
+!!!         call initialize_work_arrays_sumrho(1,[psi_it%lr],.true.,w)
+!!!         rmax = min(psi_it%lr%d%n1*0.5d0*hgrids(1),psi_it%lr%d%n2*0.5d0*hgrids(2),&
+!!!              psi_it%lr%d%n3*0.5d0*hgrids(3))+1.e-3_gp*maxval(hgrids)
+!!!         call geocode_buffers(psi_it%lr%geocode, lzd%glr%geocode, nl1, nl2, nl3)
+!!!         do while(ket_next(psi_it,ilr=psi_it%ilr))
+!!!            if (integrate_in_sphere) call f_zero(sphi2r)
+!!!            call daub_to_isf(psi_it%lr,w,psi_it%phi_wvl,phi2r)
+!!!
+!!!!!$            norm = 0.d0
+!!!            do i3=1,psi_it%lr%d%n3i
+!!!               ii3 = psi_it%lr%nsi3 + i3 - nl3 - 1
+!!!               z=closest_image(ii3*0.5d0*hgrids(3)-locregcenter(3,psi_it%ilr),lzd%glr%d%n3i*0.5d0*hgrids(3),perz)
+!!!               do i2=1,psi_it%lr%d%n2i
+!!!                  ii2 = psi_it%lr%nsi2 + i2 - nl2 - 1
+!!!                  y=closest_image(ii2*0.5d0*hgrids(2)-locregcenter(2,psi_it%ilr),lzd%glr%d%n2i*0.5d0*hgrids(2),pery)
+!!!                  do i1=1,psi_it%lr%d%n1i
+!!!                     ii1 = psi_it%lr%nsi1 + i1 - nl1 - 1
+!!!                     x=closest_image(ii1*0.5d0*hgrids(1)-locregcenter(1,psi_it%ilr),lzd%glr%d%n1i*0.5d0*hgrids(1),perx)
+!!!                     ind = (i3-1)*psi_it%lr%d%n2i*psi_it%lr%d%n1i + (i2-1)*psi_it%lr%d%n1i + i1
+!!!                     if (integrate_in_sphere) then
+!!!                        if (x**2+y**2+z**2>rmax**2) cycle
+!!!                     end if
+!!!                     tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
+!!!                     tt = tt*sqrt(4.d0*pi/real(2*l+1,gp))
+!!!                     sphi2r(ind) = tt*phi2r(ind)
+!!!                     !normalization of a solid harmonic within a sphere of radius rmax... hopefully correct
+!!!!!$                     norm = norm + (tt*factor_normalization)**2*&
+!!!!!$                          real((2*l+3)*(2*l+1),kind=8)/(4.d0*pi*rmax**(2*l+3)) 
+!!!                  end do
+!!!               end do
+!!!            end do
+!!!            sphi_ptr => ob_ket_map(sphi2,psi_it)
+!!!            call isf_to_daub(psi_it%lr, w, sphi2r, sphi_ptr)
+!!!         end do
+!!!         !deallocations of work arrays
+!!!         call deallocate_work_arrays_sumrho(w)
+!!!      end do
+!!!      call f_free(phi2r)
+!!!      call f_free(sphi2r)
+!!!
+!!!      call orbital_basis_release(psi_ob)
+!!!
+!!!      call overlap_matrix(phi1,nphi,lzd,orbs,collcom,smat,multipole_matrix,sphi2)      
+      
+!!$
+!!$      ! Transform the support functions to real space
+!!$      phi2r = f_malloc0(max(nphir,1),id='phi2r')
+!!$      sphi2r = f_malloc0(max(nphir,1),id='sphi2r')
+!!$      ist=1
+!!$      istr=1
+!!$      do iorb=1,orbs%norbp
+!!$          iiorb=orbs%isorb+iorb
+!!$          ilr=orbs%inwhichlocreg(iiorb)
+!!$          call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.true.,w)
+!!$          call daub_to_isf(lzd%llr(ilr), w, phi2(ist), phi2r(istr))
+!!$          !write(*,*) 'iorb, n, tt', iorb, &
+!!$          !     lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, &
+!!$          !     lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f, &
+!!$          !     ddot(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, phi2r(istr), 1, phi2r(istr), 1), &
+!!$          !     ddot(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, phi2(ist), 1, phi2(ist), 1)
+!!$          call deallocate_work_arrays_sumrho(w)
+!!$          !call deallocate_work_arrays_sumrho(w)
+!!$          ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+!!$          istr = istr + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+!!$      end do
+!!$      !!do i=1,ist-1
+!!$      !!    write(556,*) i, phi_ortho(i)
+!!$      !!end do
+!!$
+!!$      !do i=1,nphir
+!!$      !    write(700,*) i, phi2r(i)
+!!$      !end do
+!!$      !if(istr/=collcom_sr%ndimpsi_c+1) then
+!!$      !    write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=collcom_sr%ndimpsi_c+1'
+!!$      !    stop
+!!$      !end if
+!!$
+!!$      !write(*,*) 'after daub_to_isf'
+!!$
+!!$      ! Conditions for periodicity
+!!$      perx=(smat%geocode /= 'F')
+!!$      pery=(smat%geocode == 'P')
+!!$      perz=(smat%geocode /= 'F')
+!!$      if (perx) then
+!!$          j1s = -1
+!!$          j1e = 1
+!!$      else
+!!$          j1s = 0
+!!$          j1e = 0
+!!$      end if
+!!$      if (pery) then
+!!$          j2s = -1
+!!$          j2e = 1
+!!$      else
+!!$          j2s = 0
+!!$          j2e = 0
+!!$      end if
+!!$      if (perz) then
+!!$          j3s = -1
+!!$          j3e = 1
+!!$      else
+!!$          j3s = 0
+!!$          j3e = 0
+!!$      end if
+!!$
+!!$
+!!$
+!!$      ! Apply the spherical harmonic
+!!$      ist = 0
+!!$      do iorb=1,orbs%norbp
+!!$          iiorb = orbs%isorb + iorb
+!!$          ilr = orbs%inwhichlocreg(iiorb)
+!!$          !rmax = min(lzd%llr(ilr)%d%n1i*0.25d0*hgrids(1),lzd%llr(ilr)%d%n2i*0.25d0*hgrids(2),lzd%llr(ilr)%d%n3i*0.25d0*hgrids(3))
+!!$          rmax = min(lzd%llr(ilr)%d%n1*0.5d0*hgrids(1),lzd%llr(ilr)%d%n2*0.5d0*hgrids(2),lzd%llr(ilr)%d%n3*0.5d0*hgrids(3))
+!!$          !write(*,*) 'iorb, ilr, rmax', iorb, ilr, rmax
+!!$          !write(*,*) 'zmin, zmax, locregcenter(3)',  (lzd%llr(ilr)%nsi3+1-14-1)*0.5d0*hgrids(3), &
+!!$          !            (lzd%llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-14-1)*0.5d0*hgrids(3), locregcenter(3,ilr)
+!!$          !write(*,*) 'ymin, ymax, locregcenter(2)',  (lzd%llr(ilr)%nsi2+1-14-1)*0.5d0*hgrids(2), &
+!!$          !            (lzd%llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-14-1)*0.5d0*hgrids(2), locregcenter(2,ilr)
+!!$          !write(*,*) 'xmin, xmax, locregcenter(1)',  (lzd%llr(ilr)%nsi1+1-14-1)*0.5d0*hgrids(1), &
+!!$          !            (lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-14-1)*0.5d0*hgrids(1), locregcenter(1,ilr)
+!!$
+!!$          call geocode_buffers(lzd%Llr(ilr)%geocode, lzd%glr%geocode, nl1, nl2, nl3)
+!!$
+!!$          ! Calculate the boundaries:
+!!$          ! - free BC: entire box
+!!$          ! - periodic BC: half of the box size, with periodic wrap around
+!!$          if (.not.perx) then
+!!$              is1 = 1
+!!$              ie1 = lzd%llr(ilr)%d%n1i
+!!$          else
+!!$              nd = (lzd%llr(ilr)%d%n1i + 1)/2 - 1
+!!$              nu = lzd%llr(ilr)%d%n1i - nd -1
+!!$              !write(*,*) 'nu, nd, lzd%llr(ilr)%d%n1i',nu, nd, lzd%llr(ilr)%d%n1i
+!!$              if (nu+nd+1/=lzd%llr(ilr)%d%n1i) call f_err_throw('wrong values of nu and nd')
+!!$              ii1 = nint(locregcenter(1,ilr)/(0.5d0*hgrids(1)))
+!!$              is1 = ii1 - nd + nl1 + 1
+!!$              ie1 = ii1 + nu + nl1 + 1
+!!$              if (ie1-is1+1/=lzd%llr(ilr)%d%n1i) call f_err_throw('wrong values of is1 and ie1')
+!!$          end if
+!!$          if (.not.pery) then
+!!$              is2 = 1
+!!$              ie2 = lzd%llr(ilr)%d%n2i
+!!$          else
+!!$              nd = (lzd%llr(ilr)%d%n2i + 1)/2 - 1
+!!$              nu = lzd%llr(ilr)%d%n2i - nd -1
+!!$              if (nu+nd+1/=lzd%llr(ilr)%d%n2i) call f_err_throw('wrong values of nu and nd')
+!!$              ii2 = nint(locregcenter(2,ilr)/(0.5d0*hgrids(2)))
+!!$              is2 = ii2 - nd + nl2 + 1
+!!$              ie2 = ii2 + nu + nl2 + 1
+!!$              if (ie2-is2+1/=lzd%llr(ilr)%d%n2i) call f_err_throw('wrong values of is2 and ie2')
+!!$          end if
+!!$          if (.not.perz) then
+!!$              is3 = 1
+!!$              ie3 = lzd%llr(ilr)%d%n3i
+!!$          else
+!!$              nd = (lzd%llr(ilr)%d%n3i + 1)/2 - 1
+!!$              nu = lzd%llr(ilr)%d%n3i - nd -1
+!!$              if (nu+nd+1/=lzd%llr(ilr)%d%n3i) call f_err_throw('wrong values of nu and nd')
+!!$              ii3 = nint(locregcenter(3,ilr)/(0.5d0*hgrids(3)))
+!!$              is3 = ii3 - nd + nl3 + 1
+!!$              ie3 = ii3 + nu + nl3 + 1
+!!$              if (ie3-is3+1/=lzd%llr(ilr)%d%n3i) call f_err_throw('wrong values of is3 and ie3')
+!!$          end if
+!!$
+!!$          !!write(*,*) 'perx', perx
+!!$          !!write(*,*) 'pery', pery
+!!$          !!write(*,*) 'perz', perz
+!!$
+!!$          !!write(*,*) 'iorb, is1, ie1, ii1, n1, is2, ie2, ii2, n2, is3, ie3, ii3, n3', &
+!!$          !!    iorb, is1, ie1, ii1, lzd%llr(ilr)%d%n1i, is2, ie2, ii2, lzd%llr(ilr)%d%n2i, is3, ie3, ii3, lzd%llr(ilr)%d%n3i
+!!$
+!!$
+!!$          norm = 0.d0
+!!$          factor_normalization = sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3))
+!!$          !do i3=is3,ie3
+!!$          do i3=1,lzd%llr(ilr)%d%n3i
+!!$              !j3 = i3 - is3 + 1
+!!$              !i3mod = modulo(i3-1,lzd%llr(ilr)%d%n3i) + 1
+!!$              ii3 = lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
+!!$              !z = ii3*0.5d0*hgrids(3) - locregcenter(3,ilr)
+!!$              ! Search the closest locregcenter (might be in a periodically replicated cell)
+!!$              z = huge(z)
+!!$              do j3=j3s,j3e
+!!$                  dr = (ii3+j3*lzd%glr%d%n3i)*0.5d0*hgrids(3) - locregcenter(3,ilr)
+!!$                  if (abs(dr)<abs(z)) z = dr
+!!$              end do
+!!$              !write(*,*) 'is3, ie3, n3, i3, i3mod, ii3, z', is3, ie3, lzd%llr(ilr)%d%n3i, i3, i3mod, ii3, z
+!!$              !write(*,*) 'is3, ie3, n3, i3, ii3, z', is3, ie3, lzd%llr(ilr)%d%n3i, i3, ii3, z
+!!$              !do i2=is2,ie2
+!!$              do i2=1,lzd%llr(ilr)%d%n2i
+!!$                  !j2 = i2 - is2 + 1
+!!$                  !i2mod = modulo(i2-1,lzd%llr(ilr)%d%n2i) + 1
+!!$                  ii2 = lzd%llr(ilr)%nsi2 + i2 - nl2 - 1
+!!$                  !y = ii2*0.5d0*hgrids(2) - locregcenter(2,ilr)
+!!$                  ! Search the closest locregcenter (might be in a periodically replicated cell)
+!!$                  y = huge(y)
+!!$                  do j2=j2s,j2e
+!!$                      dr = (ii2+j2*lzd%glr%d%n2i)*0.5d0*hgrids(2) - locregcenter(2,ilr)
+!!$                      if (abs(dr)<abs(y)) y = dr
+!!$                  end do
+!!$                  !do i1=is1,ie1
+!!$                  do i1=1,lzd%llr(ilr)%d%n1i
+!!$                      !j1 = i1 - is1 + 1
+!!$                      !i1mod = modulo(i1-1,lzd%llr(ilr)%d%n1i) + 1
+!!$                      ii1 = lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
+!!$                      !x = ii1*0.5d0*hgrids(1) - locregcenter(1,ilr)
+!!$                      x = huge(x)
+!!$                      do j1=j1s,j1e
+!!$                          dr = (ii1+j1*lzd%glr%d%n1i)*0.5d0*hgrids(1) - locregcenter(1,ilr)
+!!$                          if (abs(dr)<abs(x)) x = dr
+!!$                      end do
+!!$                      !ind = (i3mod-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2mod-1)*lzd%llr(ilr)%d%n1i + i1mod
+!!$                      !ind = (j3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (j2-1)*lzd%llr(ilr)%d%n1i + j1
+!!$                      ind = (i3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2-1)*lzd%llr(ilr)%d%n1i + i1
+!!$                      !ind = (i3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2-1)*lzd%llr(ilr)%d%n1i + i1
+!!$                      !!if (i1/=i1mod .or. i2/=i2mod .or. i3/=i3mod) then
+!!$                      !!    write(*,*) 'iproc, is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod', &
+!!$                      !!                iproc, is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod
+!!$                      !!end if
+!!$                      !!if (iorb==orbs%norbp) then
+!!$                      !!    write(bigdft_mpi%iproc+20,*) 'is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod', &
+!!$                      !!                                  is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod
+!!$                      !!    write(bigdft_mpi%iproc+30,*) 'ind',ind
+!!$                      !!end if
+!!$                      if (integrate_in_sphere) then
+!!$                          if (x**2+y**2+z**2>rmax**2) cycle
+!!$                      end if
+!!$                      tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
+!!$                      tt = tt*sqrt(4.d0*pi/real(2*l+1,kind=8))
+!!$                      sphi2r(ist+ind) = tt*phi2r(ist+ind)
+!!$                      !!if (iorb==orbs%norbp) then
+!!$                      !!    write(bigdft_mpi%iproc+40,*) 'is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod', &
+!!$                      !!                                  is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod
+!!$                      !!    write(bigdft_mpi%iproc+50,*) 'ind, phi2r(ist+ind), sphi2r(ist+ind)',ind, phi2r(ist+ind), sphi2r(ist+ind)
+!!$                      !!end if
+!!$                      !write(*,*) 'iorb, i1, i1, i2, tt, phi2r', iorb, i1, i2, i3, tt, phi2r(ist+ind)
+!!$                      ! For the calculation of the norm, do the integration always only in the sphere
+!!$                      if (x**2+y**2+z**2>rmax**2) cycle
+!!$                      norm = norm + (tt*factor_normalization)**2*&
+!!$                          real((2*l+3)*(2*l+1),kind=8)/(4.d0*pi*rmax**(2*l+3)) !normalization of a solid harmonic within a sphere of radius rmax... hopefully correct
+!!$                      !write(*,*) 'iorb, i1, i2, i3, tt, phi', iorb, i1, i2, i3, tt, phir(ist+ind)
+!!$                  end do
+!!$              end do
+!!$          end do
+!!$          ist = ist + ind
+!!$      end do
+!!$
+!!$
+!!$
+!!$      ! Transform back to wavelets
+!!$      sphi2 = f_malloc0(nphi,id='sphi2')
+!!$      ist=1
+!!$      istr=1
+!!$      do iorb=1,orbs%norbp
+!!$          iiorb=orbs%isorb+iorb
+!!$          ilr=orbs%inwhichlocreg(iiorb)
+!!$          call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.true.,w)
+!!$          call isf_to_daub(lzd%llr(ilr), w, sphi2r(istr), sphi2(ist))
+!!$          !call isf_to_daub(lzd%llr(ilr), w, phi2r(istr), sphi2(ist))
+!!$          call deallocate_work_arrays_sumrho(w)
+!!$          !write(*,*) 'iorb, n, firsts, tt', iorb, &
+!!$          !     lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, &
+!!$          !     phi2r(istr), sphi2r(istr), &
+!!$          !     ddot(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, phi2r(istr), 1, sphi2r(istr), 1), &
+!!$          !     ddot(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, phi2r(istr), 1, phi2r(istr), 1), &
+!!$          !     ddot(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, phi1(ist), 1, sphi2(ist), 1)
+!!$          !do i=1,lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+!!$          !    write(*,*) i, phir(istr+i-1), sphir(istr+i-1)
+!!$          !end do
+!!$          ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+!!$          istr = istr + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+!!$      end do
+!!$      !if(istr/=collcom_sr%ndimpsi_c+1) then
+!!$      !    write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=collcom_sr%ndimpsi_c+1'
+!!$      !    stop
+!!$      !end if
+
+!!$      !write(*,*) 'after isf_to_daub'
+!!$
+!!$      call f_free(phi2r)
+!!$      call f_free(sphi2r)
+!!$
+!!$
+!!$      ! Calculate the scalar products, i.e. the matrix <phi_ab|S_lm|phi_ab>
+!!$      phi1t_c = f_malloc(collcom%ndimind_c,id='phi1t_c')
+!!$      phi1t_f = f_malloc(7*collcom%ndimind_f,id='phi1t_f')
+!!$      sphi2t_c = f_malloc(collcom%ndimind_c,id='sphit2_c')
+!!$      sphi2t_f = f_malloc(7*collcom%ndimind_f,id='sphit2_f')
+!!$      call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
+!!$           TRANSPOSE_FULL, phi1, phi1t_c, phi1t_f, lzd)
+!!$      call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
+!!$           TRANSPOSE_FULL, sphi2, sphi2t_c, sphi2t_f, lzd)
+!!$      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
+!!$           phi1t_c, sphi2t_c, phi1t_f, sphi2t_f, smat, multipole_matrix)
+!!$      !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
+!!$      !     phi1t_c, phi1t_c, phi1t_f, phi1t_f, smat, multipole_matrix)
+!!$
+!!$      !!do i=1,size(multipole_matrix%matrix_compr)
+!!$      !!    write(*,*) 'i, val', i, multipole_matrix%matrix_compr(i)
+!!$      !!end do
+!!$
+!!$      !write(*,*) 'after overlap'
+!!$
+!!$      call f_free(phi1t_c)
+!!$      call f_free(phi1t_f)
+!!$      call f_free(sphi2t_c)
+!!$      call f_free(sphi2t_f)
+!!$
+!!$      call f_free(sphi2)
 
       call f_release_routine()
 
       !!call mpi_finalize(ii)
       !!stop
 
-    end subroutine calculte_multipole_matrix
+    end subroutine calculate_multipole_matrix
 
+    pure function closest_image(t,L,periodic) result(x)
+      implicit none
+      logical, intent(in) :: periodic
+      real(gp), intent(in) :: t !< point
+      real(gp), intent(in) :: L !< size of the simulation domain
+      real(gp) :: x
+      !local varaibles
+      integer :: j,js,je
+      real(gp) :: dx
+
+      if (periodic) then
+         js = -1
+         je = 1
+      else
+         js = 0
+         je = 0
+      end if
+
+      x = huge(x)
+      do j=js,je
+         dx = t + j*L
+         if (abs(dx)<abs(x)) x = dx
+      end do
+
+    end function closest_image
 
 
     subroutine multipole_analysis_driver(iproc, nproc, ll, nphi, lphi, nphir, at, hgrids, &
@@ -1963,11 +2261,12 @@ module multipole
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local
       use communications, only: transpose_localized
-      use orthonormalization, only: orthonormalizelocalized
+      use orthonormalization, only: orthonormalizelocalized,overlap_matrix
       use module_atoms, only: atoms_data
       use yaml_output
       use multipole_base, only: external_potential_descriptors_null, multipole_set_null, multipole_null, &
-                                deallocate_external_potential_descriptors
+           deallocate_external_potential_descriptors
+      use orbitalbasis
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, ll, nphi, nphir, nsigma, ixc
@@ -1996,7 +2295,7 @@ module multipole
       integer :: ilr, impl, mm, lcheck, nelpsp, psp_source
       logical :: can_use_transposed, all_norms_ok
       real(kind=8),dimension(:),pointer :: phit_c, phit_f
-      real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, multipole_matrix_large, Qmat_tmp
+      real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, multipole_matrix_large, Qmat_tmp,Slmphi
       real(kind=8),dimension(:,:),allocatable :: Qmat_tilde, kp, locregcenter, overlap_small
       real(kind=8),dimension(:,:,:),pointer :: atomic_multipoles
       real(kind=8),dimension(:),pointer :: atomic_monopoles_analytic
@@ -2010,6 +2309,8 @@ module multipole
       real(kind=8),dimension(3) :: dipole_check
       real(kind=8),dimension(3,3) :: quadrupole_check
       type(external_potential_descriptors) :: ep_check
+      type(orbital_basis) :: psi_ob
+      real(gp), dimension(3) :: acell
       character(len=*),parameter :: no='no', yes='yes'
       !character(len=*),parameter :: do_ortho = no!yes
 
@@ -2094,6 +2395,12 @@ module multipole
           locregcenter(1:3,ilr) = lzd%llr(ilr)%locregcenter(1:3)
       end do
 
+!!$      Slmphi=f_malloc(nphi,id='Slmphi')
+!!$           
+!!$      acell(1)=0.5_gp*hgrids(1)*Lzd%glr%d%n1i
+!!$      acell(2)=0.5_gp*hgrids(2)*Lzd%glr%d%n2i
+!!$      acell(3)=0.5_gp*hgrids(3)*Lzd%glr%d%n3i
+
       do l=0,ll
           do m=-l,l
 
@@ -2101,12 +2408,25 @@ module multipole
 
               ! Calculate the multipole matrix
               if (do_ortho==yes) then
-                  call calculte_multipole_matrix(iproc, nproc, l, m, nphi, phi_ortho, phi_ortho, nphir, hgrids, &
+                  call calculate_multipole_matrix(iproc, nproc, l, m, nphi, phi_ortho, phi_ortho, nphir, hgrids, &
                        orbs, collcom, lzd, smats, locregcenter, 'box', multipole_matrix)
+!!$                 call orbital_basis_associate(psi_ob,orbs=orbs,&
+!!$                      phis_wvl=phi_ortho,Lzd=Lzd)
+!!$                  call apply_Slm(l,m,smats%geocode,hgrids,acell,psi_ob,&
+!!$                       nphi,Slmphi)
+!!$                  call overlap_matrix(phi_ortho,nphi,lzd,orbs,collcom,smats,multipole_matrix,Slmphi)
               else if (do_ortho==no) then
-                  call calculte_multipole_matrix(iproc, nproc, l, m, nphi, lphi, lphi, nphir, hgrids, &
-                       orbs, collcom, lzd, smats, locregcenter, 'box', multipole_matrix)
+                  call calculate_multipole_matrix(iproc, nproc, l, m, nphi, lphi, lphi, nphir, hgrids, &
+                       orbs, collcom, lzd, smats, locregcenter, 'box', multipole_matrix) 
+!!$                  call orbital_basis_associate(psi_ob,orbs=orbs,&
+!!$                       phis_wvl=lphi,Lzd=Lzd)
+!!$                  call apply_Slm(l,m,smats%geocode,hgrids,acell,psi_ob,&
+!!$                       nphi,Slmphi)
+!!$                  call overlap_matrix(lphi,nphi,lzd,orbs,collcom,smats,multipole_matrix,Slmphi)
               end if
+
+!!$              call orbital_basis_release(psi_ob)
+!!$              call f_free(Slmphi)
 
               call transform_sparse_matrix_local(smats, smatl, 'small_to_large', &
                    smatrix_compr_in=multipole_matrix%matrix_compr, lmatrix_compr_out=multipole_matrix_large)
@@ -2116,6 +2436,7 @@ module multipole
 
               ! Multiply the orthogonalized kernel with the multipole matrix
               call f_zero(Qmat)
+
               if (do_ortho==yes) then
                   call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
                        kernel_ortho, multipole_matrix_large, Qmat)
@@ -2183,7 +2504,6 @@ module multipole
                   call f_zero(Qmat)
                   call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
                        kernel%matrix_compr, multipole_matrix_large, Qmat)
-
                   !!if (trim(method)=='projector') then
                   !!    do kat=1,natpx
                   !!        kkat = kat + isatx
@@ -2236,6 +2556,7 @@ module multipole
                           call f_free(kp)
                       end do
                   else if (trim(method)=='loewdin') then
+
                       do ispin=1,smatl%nspin
                           ishift = (ispin-1)*smatl%nvctrp_tg
                           ! Need to do this in parallel (norbp), since the matrices might not be fully filled (matrix taskgroup etc.)
@@ -2316,7 +2637,7 @@ module multipole
 
       ! Calculate the total dipole moment resulting from the previously calculated multipoles.
       ! This is done by calling the following routine (which actually calculates the potential, but also
-      ! has the option to calculte the dipole on the fly).
+      ! has the option to calculate the dipole on the fly).
       test_pot = f_malloc((/size(denspot%V_ext,1),size(denspot%V_ext,2),size(denspot%V_ext,3)/),id='test_pot')
       if (iproc==0) call yaml_sequence_open('Checking the total multipoles based on the atomic multipoles')
       do lcheck=0,lmax
@@ -3687,8 +4008,6 @@ module multipole
  end subroutine calculate_projector
 
 
-
-
  subroutine unitary_test_multipoles(iproc, nproc, nphi, nphir, orbs, lzd, smat, collcom, hgrids)
    use module_base
    use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, comms_linear
@@ -3749,10 +4068,7 @@ module multipole
        ii = 0
        ! Since the radial function is constant and thus not decaying towards the boundaries of the integration sphere, the center
        ! of the integration volume must be on a gridpoint to avoid truncation artifacts.
-       locregcenter(1:3,ilr) = get_closest_gridpoint((/lzd%llr(ilr)%locregcenter(1),&
-                                                       lzd%llr(ilr)%locregcenter(2),&
-                                                       lzd%llr(ilr)%locregcenter(3)/),&
-                                                       hgrids)
+       locregcenter(1:3,ilr) = get_closest_gridpoint(lzd%llr(ilr)%locregcenter,hgrids)
        do i3=1,lzd%llr(1)%d%n3i
            ii3 = lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
            z = ii3*0.5d0*lzd%hgrids(3) - locregcenter(3,ilr)
@@ -3819,8 +4135,8 @@ module multipole
 
    do l=0,lmax
        do m=-l,l
-           call calculte_multipole_matrix(iproc, nproc, l, m, nphi, phi1, phi2, nphir, hgrids, &
-                    orbs, collcom, lzd, smat, locregcenter, 'sphere', multipole_matrix)
+           call calculate_multipole_matrix(iproc, nproc, l, m, nphi, phi1, phi2, nphir, hgrids, &
+                orbs, collcom, lzd, smat, locregcenter, 'sphere', multipole_matrix) !==> values
            val = 0.d0
            do iorb=1,orbs%norb
                iiorb = modulo(iorb-1,smat%nfvctr)+1
@@ -4075,9 +4391,9 @@ module multipole
       do m=-l,l
           call f_zero(multipole_matrix%matrix_compr)
           ! Calculate the multipole matrix
-          call calculte_multipole_matrix(iproc, nproc, l, m, tmb%npsidim_orbs, phi1, phi_ortho, &
+          call calculate_multipole_matrix(iproc, nproc, l, m, tmb%npsidim_orbs, phi1, phi_ortho, &
                max(tmb%collcom_sr%ndimpsi_c,1), tmb%lzd%hgrids, &
-               tmb%orbs, tmb%collcom, tmb%lzd, tmb%linmat%s, center_locreg, 'box', multipole_matrix)
+               tmb%orbs, tmb%collcom, tmb%lzd, tmb%linmat%s, center_locreg, 'box', multipole_matrix)! =>>multipoles
           !write(*,*) 'multipole_matrix%matrix_compr(1)',multipole_matrix%matrix_compr(1)
           ! Take the diagonal elements and scale by factor (anyway there is no really physical meaning in the actual numbers)
           do iorb=1,tmb%orbs%norbp
