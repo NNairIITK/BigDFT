@@ -4139,7 +4139,7 @@ sigma=0.5d0
    call Qlm_phi(lmax,smat%geocode,hgrids,acell,psi_ob,Qlm,.false.,centers=locregcenter)
    call orbital_basis_release(psi_ob)
    do l=0,lmax
-      do m=-lmax,lmax !to copy also zeros
+      do m=-l,l 
          val = 0.d0
          do iorb=1,orbs%norbp
             val = val + Qlm(m,l,iorb)
@@ -4151,7 +4151,7 @@ sigma=0.5d0
 
   if (nproc > 1) call mpiallred(values,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
   do l=0,lmax
-     do m=-lmax,lmax !to copy also zeros
+     do m=-l,l !to copy also zeros
         errors(m,l) = 100.d0*abs(values(m,l)/get_test_factor(l,m)-1.d0)
         values_orig(m,l) = get_test_factor(l,m)
      end do
