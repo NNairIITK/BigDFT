@@ -1726,12 +1726,12 @@ module multipole
       character(len=1), intent(in) :: geocode
       real(gp),dimension(3) :: hgrids,acell
       type(orbital_basis), intent(in) :: psi_ob
-      real(wp), dimension((lmax+1)**2), intent(out) :: Qlm
+      real(wp), dimension(-lmax:lmax,0:lmax,psi_ob%orbs%norbp), intent(out) :: Qlm
       logical, intent(in), optional :: integrate_in_sphere
       real(gp), dimension(3,*), intent(in), optional :: centers
       !local variables
       logical :: perx,pery,perz,sphere
-      integer :: npsir,ii1,ii2,ii3,nl1,nl2,nl3,i1,i2,i3,ind,ll,l,m
+      integer :: npsir,ii1,ii2,ii3,nl1,nl2,nl3,i1,i2,i3,ind,l,m
       type(ket) :: psi_it
       type(workarr_sumrho) :: w
       real(wp) :: norm, rmax, tt, x, y, z
@@ -1757,7 +1757,6 @@ module multipole
 
       call f_zero(Qlm)
       phi2r = f_malloc(npsir,id='phi2r')
-
       !iterate over the orbital_basis
       psi_it=orbital_basis_iterator(psi_ob)
       do while(ket_next_locreg(psi_it))
@@ -1788,13 +1787,11 @@ module multipole
                      if (sphere) then
                         if (x**2+y**2+z**2>rmax**2) cycle
                      end if
-                     ll=0
                      do l=0,lmax
                         do m=-l,l
-                           ll=ll+1  
                            tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
                            tt = tt*sqrt(4.d0*pi/real(2*l+1,gp))
-                           Qlm(ll)=Qlm(ll)+tt*phi2r(ind)
+                           Qlm(m,l,psi_it%iorbp)=Qlm(m,l,psi_it%iorbp)+tt*phi2r(ind)
                         end do
                      end do
                   end do
@@ -3287,7 +3284,6 @@ module multipole
                   !!write(*,*) 'HACK: INCREASE eF by 0.001d0'
                   !!eF = eF + 0.001d0
                   do ieval=1,ntot
-                      ij = ij + 1
                       occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
                       occ_all(ieval) = occ
                   end do
@@ -4017,6 +4013,7 @@ module multipole
    use sparsematrix_init, only: matrixindex_in_compressed
    use yaml_output
    use bounds, only: geocode_buffers
+   use orbitalbasis
    implicit none
    ! Calling arguments
    integer,intent(in) :: iproc, nproc, nphi, nphir
@@ -4027,7 +4024,7 @@ module multipole
    real(kind=8),dimension(3) :: hgrids
    ! Local variables
    integer :: iorb, iiorb, ilr, i1, i2, i3, ii1, ii2, ii3, l, m, i, ind, ist, istr, ii, nl1, nl2, nl3
-   real(kind=8) :: x, y, z, r2, r, factor, rmax, factor_normalization, val
+   real(kind=8) :: x, y, z, r2, r, factor, rmax, factor_normalization, val,sigma
    real(kind=8),dimension(:),allocatable :: phi2r, phi2, phi1r, phi1
    real(kind=8),dimension(:,:),allocatable :: locregcenter
    type(matrices) :: multipole_matrix
@@ -4035,6 +4032,10 @@ module multipole
    real(kind=8),dimension(-lmax:lmax,0:lmax) :: errors
    real(kind=8),dimension(-lmax:lmax,0:lmax) :: values_orig
    real(kind=8),dimension(-lmax:lmax,0:lmax) :: values
+   type(orbital_basis) :: psi_ob
+   real(gp), dimension(3) :: acell
+   real(wp), dimension(:,:,:), allocatable :: Qlm
+
 
    call f_routine(id='unitary_test_multipoles')
 
@@ -4058,41 +4059,50 @@ module multipole
    end do
    call geocode_buffers('F', lzd%glr%geocode, nl1, nl2, nl3)
 
+sigma=0.5d0
+
    ist = 0
    do iorb=1,orbs%norbp
        iiorb = orbs%isorb + iorb
        ilr = orbs%inwhichlocreg(iiorb)
        !rmax = min(lzd%llr(ilr)%d%n1i*0.25d0*hgrids(1),lzd%llr(ilr)%d%n2i*0.25d0*hgrids(2),lzd%llr(ilr)%d%n3i*0.25d0*hgrids(3))
        rmax = min(lzd%llr(ilr)%d%n1*0.5d0*hgrids(1),lzd%llr(ilr)%d%n2*0.5d0*hgrids(2),lzd%llr(ilr)%d%n3*0.5d0*hgrids(3))
-       factor_normalization = 3.d0/(4.d0*pi*rmax**3)*0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3)
+       factor_normalization = 0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3) !*3.d0/(4.d0*pi*rmax**3)
        ii = 0
        ! Since the radial function is constant and thus not decaying towards the boundaries of the integration sphere, the center
        ! of the integration volume must be on a gridpoint to avoid truncation artifacts.
        locregcenter(1:3,ilr) = get_closest_gridpoint(lzd%llr(ilr)%locregcenter,hgrids)
-       do i3=1,lzd%llr(1)%d%n3i
+
+       do i3=1,lzd%llr(ilr)%d%n3i
            ii3 = lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
            z = ii3*0.5d0*lzd%hgrids(3) - locregcenter(3,ilr)
-           do i2=1,lzd%llr(1)%d%n2i
+           do i2=1,lzd%llr(ilr)%d%n2i
                ii2 = lzd%llr(ilr)%nsi2 + i2 - nl2 - 1
                y = ii2*0.5d0*lzd%hgrids(2) - locregcenter(2,ilr)
-               do i1=1,lzd%llr(1)%d%n1i
+               do i1=1,lzd%llr(ilr)%d%n1i
                    ii1 = lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
                    x = ii1*0.5d0*lzd%hgrids(1) - locregcenter(1,ilr)
                    r2 = x**2+y**2+z**2
-                   if (r2>rmax**2) cycle
+                   !if (r2>rmax**2) cycle
                    !r = sqrt(r2)
                    !r = max(0.5d0,r)
                    ind = (i3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2-1)*lzd%llr(ilr)%d%n1i + i1
                    ii = ii + 1
                    do l=0,lmax
                        do m=-l,l
-                           factor = get_test_factor(l,m)*factor_normalization*sqrt(4.d0*pi*real(2*l+1,kind=8))
+                           factor = get_test_factor(l,m)*factor_normalization*sqrt(4.d0*pi*real(2*l+1,kind=8))/sigma**3
                            if (l==1) then
-                               factor = factor*5.d0/(3.d0*rmax**2)
+                              factor = factor/(3.d0*sigma**2)
                            else if (l==2) then
-                               factor = factor*7.d0/(3.d0*rmax**4)
+                              factor = factor/(15.d0*sigma**4)
                            end if
-                           phi2r(ist+ind) = phi2r(ist+ind) + factor*solid_harmonic(0, r, l, m , x, y, z)
+!!$                           if (l==1) then
+!!$                               factor = factor*5.d0/(3.d0*rmax**2)
+!!$                           else if (l==2) then
+!!$                               factor = factor*7.d0/(3.d0*rmax**4)
+!!$                           end if
+                           phi2r(ist+ind) = phi2r(ist+ind) + &
+                                safe_exp(-0.5d0*r2/sigma**2)*factor*solid_harmonic(0, r, l, m , x, y, z)/sqrt(twopi**3)
                        end do
                    end do
                    !write(*,*) 'i1, i2, i3, ist+ind, val', i1, i2, i3, ist+ind, phi2r(ist+ind)
@@ -4100,57 +4110,99 @@ module multipole
            end do
        end do
        ist = ist + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-   end do
+    end do
 
    if (nproc>1) then
        call mpiallred(locregcenter, mpi_sum, comm=bigdft_mpi%mpi_comm)
    end if
-
-
-   ! Set phi1 to 1
-   phi1r(:) = 1.d0
 
    ! Transform back to wavelets
    phi2 = f_malloc0(nphi,id='phi2')
    ist=1
    istr=1
    do iorb=1,orbs%norbp
-       iiorb=orbs%isorb+iorb
-       ilr=orbs%inwhichlocreg(iiorb)
-       call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.true.,w)
-       call isf_to_daub(lzd%llr(ilr), w, phi2r(istr), phi2(ist))
-       call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.false.,w)
-       call isf_to_daub(lzd%llr(ilr), w, phi1r(istr), phi1(ist))
-       call deallocate_work_arrays_sumrho(w)
-       ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
-       istr = istr + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.true.,w)
+      call isf_to_daub(lzd%llr(ilr), w, phi2r(istr), phi2(ist))
+      call deallocate_work_arrays_sumrho(w)
+      ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+      istr = istr + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
    end do
 
-
-   !do ind=1,nphi
-   !    write(*,*) 'ind, val', ind, phi2(ind)
-   !end do
-
-
-
+   !alternative solution, less memory, less operations, less communications
+   acell(1)=0.5_gp*hgrids(1)*Lzd%glr%d%n1i
+   acell(2)=0.5_gp*hgrids(2)*Lzd%glr%d%n2i
+   acell(3)=0.5_gp*hgrids(3)*Lzd%glr%d%n3i
+   Qlm=f_malloc([-lmax .to. lmax ,0 .to. lmax,1 .to. orbs%norbp ],id='Qlm')
+   call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=phi2,Lzd=Lzd)
+   call Qlm_phi(lmax,smat%geocode,hgrids,acell,psi_ob,Qlm,.false.,centers=locregcenter)
+   call orbital_basis_release(psi_ob)
    do l=0,lmax
-       do m=-l,l
-           call calculate_multipole_matrix(iproc, nproc, l, m, nphi, phi1, phi2, nphir, hgrids, &
-                orbs, collcom, lzd, smat, locregcenter, 'sphere', multipole_matrix) !==> values
-           val = 0.d0
-           do iorb=1,orbs%norb
-               iiorb = modulo(iorb-1,smat%nfvctr)+1
-               ind = matrixindex_in_compressed(smat, iorb, iorb)
-               val = val + multipole_matrix%matrix_compr(ind)
-               !write(*,*) 'l, m, iorb, ind, val', &
-               !    l, m, iorb, ind, multipole_matrix%matrix_compr(ind)
-           end do
-           values(m,l) = val/real(orbs%norb,kind=8)
-           errors(m,l) = 100.d0*abs(values(m,l)/get_test_factor(l,m)-1.d0)
-           values_orig(m,l) = get_test_factor(l,m)
-           !if (iproc==0) write(*,*) 'l, m, val, error', l, m, val, abs(val-get_test_factor(l,m))
-       end do
+      do m=-lmax,lmax !to copy also zeros
+         val = 0.d0
+         do iorb=1,orbs%norbp
+            val = val + Qlm(m,l,iorb)
+         end do
+         values(m,l) = val/real(orbs%norb,kind=8)
+      end do
    end do
+   call f_free(Qlm)
+
+  if (nproc > 1) call mpiallred(values,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+  do l=0,lmax
+     do m=-lmax,lmax !to copy also zeros
+        errors(m,l) = 100.d0*abs(values(m,l)/get_test_factor(l,m)-1.d0)
+        values_orig(m,l) = get_test_factor(l,m)
+     end do
+  end do
+
+
+
+!!$   ! Set phi1 to 1
+!!$   phi1r(:) = 1.d0
+!!$
+!!$   ! Transform back to wavelets
+!!$   phi2 = f_malloc0(nphi,id='phi2')
+!!$   ist=1
+!!$   istr=1
+!!$   do iorb=1,orbs%norbp
+!!$       iiorb=orbs%isorb+iorb
+!!$       ilr=orbs%inwhichlocreg(iiorb)
+!!$       call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.true.,w)
+!!$       call isf_to_daub(lzd%llr(ilr), w, phi2r(istr), phi2(ist))
+!!$       call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.false.,w)
+!!$       call isf_to_daub(lzd%llr(ilr), w, phi1r(istr), phi1(ist))
+!!$       call deallocate_work_arrays_sumrho(w)
+!!$       ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+!!$       istr = istr + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+!!$   end do
+!!$
+!!$
+!!$   !do ind=1,nphi
+!!$   !    write(*,*) 'ind, val', ind, phi2(ind)
+!!$   !end do
+!!$
+!!$
+!!$
+!!$   do l=0,lmax
+!!$       do m=-l,l
+!!$           call calculate_multipole_matrix(iproc, nproc, l, m, nphi, phi1, phi2, nphir, hgrids, &
+!!$                orbs, collcom, lzd, smat, locregcenter, 'sphere', multipole_matrix) !==> values
+!!$           val = 0.d0
+!!$           do iorb=1,orbs%norb
+!!$               iiorb = modulo(iorb-1,smat%nfvctr)+1
+!!$               ind = matrixindex_in_compressed(smat, iorb, iorb)
+!!$               val = val + multipole_matrix%matrix_compr(ind)
+!!$               !write(*,*) 'l, m, iorb, ind, val', &
+!!$               !    l, m, iorb, ind, multipole_matrix%matrix_compr(ind)
+!!$           end do
+!!$           values(m,l) = val/real(orbs%norb,kind=8)
+!!$           errors(m,l) = 100.d0*abs(values(m,l)/get_test_factor(l,m)-1.d0)
+!!$           values_orig(m,l) = get_test_factor(l,m)
+!!$           !if (iproc==0) write(*,*) 'l, m, val, error', l, m, val, abs(val-get_test_factor(l,m))
+!!$       end do
+!!$   end do
 
    call f_free(locregcenter)
 
@@ -4233,7 +4285,7 @@ module multipole
    use communications, only: transpose_localized
    use multipole_base, only: external_potential_descriptors, external_potential_descriptors_null, &
                              multipole_set_null, multipole_null, deallocate_external_potential_descriptors
-   
+   use orbitalbasis
    ! Calling arguments
    integer,intent(in) :: iproc, nproc
    type(DFT_wavefunction),intent(inout) :: tmb
@@ -4260,7 +4312,10 @@ module multipole
    type(external_potential_descriptors) :: ep
    character(len=*),parameter :: no='none', onsite='on-site'
    character(len=*),parameter :: do_ortho = onsite
- 
+   type(orbital_basis) :: psi_ob
+   real(gp), dimension(3) :: acell
+   real(wp), dimension(:,:,:), allocatable :: Qlm
+
    call f_routine(id='support_function_gross_multipoles')
 
    phi_ortho = f_malloc(size(tmb%psi),id='phi_ortho')
@@ -4387,23 +4442,41 @@ module multipole
 
   factor = hxh*hyh*hzh
 
-  do l=0,lmax
-      do m=-l,l
-          call f_zero(multipole_matrix%matrix_compr)
-          ! Calculate the multipole matrix
-          call calculate_multipole_matrix(iproc, nproc, l, m, tmb%npsidim_orbs, phi1, phi_ortho, &
-               max(tmb%collcom_sr%ndimpsi_c,1), tmb%lzd%hgrids, &
-               tmb%orbs, tmb%collcom, tmb%lzd, tmb%linmat%s, center_locreg, 'box', multipole_matrix)! =>>multipoles
-          !write(*,*) 'multipole_matrix%matrix_compr(1)',multipole_matrix%matrix_compr(1)
-          ! Take the diagonal elements and scale by factor (anyway there is no really physical meaning in the actual numbers)
-          do iorb=1,tmb%orbs%norbp
-              iiorb = tmb%orbs%isorb + iorb
-              ind = matrixindex_in_compressed(tmb%linmat%s, iiorb, iiorb)
-              multipoles(m,l,iiorb) = multipole_matrix%matrix_compr(ind)*factor
-              !write(*,*) 'iorb, multipoles(:,:,iiorb)',iorb, multipoles(:,:,iiorb)
-          end do
-      end do
+  !alternative solution, less memory, less operations, less communications
+  acell(1)=0.5_gp*tmb%lzd%hgrids(1)*tmb%Lzd%glr%d%n1i
+  acell(2)=0.5_gp*tmb%lzd%hgrids(2)*tmb%Lzd%glr%d%n2i
+  acell(3)=0.5_gp*tmb%lzd%hgrids(3)*tmb%Lzd%glr%d%n3i
+  Qlm=f_malloc([-lmax .to. lmax ,0 .to. lmax,1 .to. tmb%orbs%norbp ],id='Qlm')
+  call orbital_basis_associate(psi_ob,orbs=tmb%orbs,phis_wvl=phi_ortho,Lzd=tmb%Lzd)
+  call Qlm_phi(lmax,tmb%linmat%s%geocode,tmb%lzd%hgrids,acell,psi_ob,Qlm,.false.,centers=center_locreg)
+  call orbital_basis_release(psi_ob)
+  do iorb=1,tmb%orbs%norbp
+     iiorb = tmb%orbs%isorb + iorb
+     do l=0,lmax
+        do m=-lmax,lmax !to copy also zeros
+           multipoles(m,l,iiorb) = Qlm(m,l,iorb)*factor
+        end do
+     end do
   end do
+  call f_free(Qlm)
+
+!!$  do l=0,lmax
+!!$      do m=-l,l
+!!$          call f_zero(multipole_matrix%matrix_compr)
+!!$          ! Calculate the multipole matrix
+!!$          call calculate_multipole_matrix(iproc, nproc, l, m, tmb%npsidim_orbs, phi1, phi_ortho, &
+!!$               max(tmb%collcom_sr%ndimpsi_c,1), tmb%lzd%hgrids, &
+!!$               tmb%orbs, tmb%collcom, tmb%lzd, tmb%linmat%s, center_locreg, 'box', multipole_matrix)! =>>multipoles
+!!$          !write(*,*) 'multipole_matrix%matrix_compr(1)',multipole_matrix%matrix_compr(1)
+!!$          ! Take the diagonal elements and scale by factor (anyway there is no really physical meaning in the actual numbers)
+!!$          do iorb=1,tmb%orbs%norbp
+!!$              iiorb = tmb%orbs%isorb + iorb
+!!$              ind = matrixindex_in_compressed(tmb%linmat%s, iiorb, iiorb)
+!!$              multipoles(m,l,iiorb) = multipole_matrix%matrix_compr(ind)*factor
+!!$              !write(*,*) 'iorb, multipoles(:,:,iiorb)',iorb, multipoles(:,:,iiorb)
+!!$          end do
+!!$      end do
+!!$  end do
 
   ! Normalize the multipoles such that the largest component has the magnitude 1
   do iorb=1,tmb%orbs%norbp
