@@ -2566,7 +2566,8 @@ call yaml_map('Reference Paper','The Journal of Chemical Physics 120 (21): 9911-
 END SUBROUTINE print_logo_MH
 
 
-subroutine identical(spredinputs,runObj,iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp_delta,newmin,kid,dmin,k_e_wpos,n_unique,n_nonuni)
+subroutine identical(spredinputs,runObj,iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,&
+     fp_delta,newmin,kid,dmin,k_e_wpos,n_unique,n_nonuni)
   use yaml_output
   use module_fingerprints
   use bigdft_run

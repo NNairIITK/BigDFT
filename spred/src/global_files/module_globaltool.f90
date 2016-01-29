@@ -378,7 +378,8 @@ subroutine read_globaltool_uinp(gdat)
                 err_name='BIGDFT_RUNTIME_ERROR')
             end if
             gdat%uinp%en_arr_trans_pairs(1,iline) = energy
-           call fingerprint(gdat%spredinputs,gdat%nid,gdat%nat,gdat%astruct%cell_dim,gdat%rcov,gdat%astruct%rxyz,gdat%uinp%fp_arr_trans_pairs(1,1,iline))
+           call fingerprint(gdat%spredinputs,gdat%nid,gdat%nat,gdat%astruct%cell_dim,gdat%rcov,gdat%astruct%rxyz,&
+                gdat%uinp%fp_arr_trans_pairs(1,1,iline))
 !            call fingerprint(gdat%spredinputs,gdat%nid,gdat%nat,gdat%astruct%cell_dim,&
 !                 gdat%astruct%geocode,gdat%rcov,gdat%astruct%rxyz,&
 !                 gdat%uinp%fp_arr_trans_pairs(1,1,iline))
@@ -392,7 +393,8 @@ subroutine read_globaltool_uinp(gdat)
                 err_name='BIGDFT_RUNTIME_ERROR')
             end if
             gdat%uinp%en_arr_trans_pairs(2,iline) = energy
-           call fingerprint(gdat%spredinputs,gdat%nid,gdat%nat,gdat%astruct%cell_dim,gdat%rcov,gdat%astruct%rxyz,gdat%uinp%fp_arr_trans_pairs(1,2,iline))
+           call fingerprint(gdat%spredinputs,gdat%nid,gdat%nat,gdat%astruct%cell_dim,gdat%rcov,&
+                gdat%astruct%rxyz,gdat%uinp%fp_arr_trans_pairs(1,2,iline))
 !            call fingerprint(gdat%spredinputs,gdat%nid,gdat%nat,gdat%astruct%cell_dim,&
 !                 gdat%astruct%geocode,gdat%rcov,gdat%astruct%rxyz,&
 !                 gdat%uinp%fp_arr_trans_pairs(1,2,iline))
@@ -463,7 +465,8 @@ subroutine read_poslocs(gdat,idict)
         if(indx==0)cycle
         iposloc=iposloc+1
         gdat%en_arr_currDir(iposloc) = energy
-        call fingerprint(gdat%spredinputs,gdat%nid,gdat%nat,gdat%astruct%cell_dim,gdat%rcov,gdat%astruct%rxyz,gdat%fp_arr_currDir(1,iposloc))
+        call fingerprint(gdat%spredinputs,gdat%nid,gdat%nat,gdat%astruct%cell_dim,gdat%rcov,&
+             gdat%astruct%rxyz,gdat%fp_arr_currDir(1,iposloc))
   !      call fingerprint(gdat%spredinputs,gdat%nid,gdat%nat,gdat%astruct%cell_dim,&
   !           gdat%astruct%geocode,gdat%rcov,gdat%astruct%rxyz,&
   !           gdat%fp_arr_currDir(1,iposloc))
