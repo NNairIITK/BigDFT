@@ -94,7 +94,7 @@ module foe
       
     
     
-      call f_routine(id='foe')
+      call f_routine(id='fermi_operator_expansion')
     
     
       if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='~')
@@ -254,6 +254,8 @@ module foe
                                smatm, ham_, imshift, &
                                smat2=smats, mat2=ovrlp_, i2shift=isshift, &
                                matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
+                          !write(*,*) 'scale_factor, shift_value, sum(hamscal_compr), sum(ham_%matrix_compr)', &
+                          !            scale_factor, shift_value, sum(hamscal_compr), sum(ham_%matrix_compr)
                           calculate_SHS=.true.
                       else
                           calculate_SHS=.false.
@@ -657,7 +659,8 @@ module foe
               ebsp = temparr(1)
               ebs_check = temparr(2)
     
-              !!write(*,'(a,i6,4es16.8)') 'iproc, ebsp, scale_factor, shift_value, sumn', iproc, ebsp, scale_factor, shift_value, sumn
+              !write(*,'(a,i6,5es16.8)') 'iproc, ebsp, scale_factor, shift_value, sumn, sum(hamscal_compr)', &
+              !    iproc, ebsp, scale_factor, shift_value, sumn, sum(hamscal_compr)
               ebsp=ebsp/scale_factor+shift_value*sumn
               ebs_check=ebs_check/scale_factor+shift_value*sumn_check
               diff=abs(ebs_check-ebsp)
@@ -1056,7 +1059,7 @@ module foe
       real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
       real(kind=8) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt
       real(kind=8) :: x_max_error_fake, max_error_fake, mean_error_fake
-      real(kind=8) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check, fscale_new
+      real(kind=8) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check, fscale_new, fscale_newx
       logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
       logical,dimension(2) :: emergency_stop
       real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
@@ -1093,7 +1096,7 @@ module foe
       
     
     
-      call f_routine(id='foe')
+      call f_routine(id='fermi_operator_expansion_new')
     
     
       if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='~')
@@ -1129,8 +1132,8 @@ module foe
       nsize_polynomial = smatl%smmm%nvctrp_mm
       
       
-      ! Fake allocation, will be modified later
-      chebyshev_polynomials = f_malloc_ptr((/nsize_polynomial,1/),id='chebyshev_polynomials')
+      !! Fake allocation, will be modified later
+      !chebyshev_polynomials = f_malloc_ptr((/nsize_polynomial,1/),id='chebyshev_polynomials')
     
     
       ! try to decrease the eigenvalue spectrum a bit
@@ -1144,6 +1147,8 @@ module foe
       else
           evbounds_shrinked=.false.
       end if
+
+      write(*,*) 'evlow, evhigh', foe_data_get_real(foe_obj,"evlow",1), foe_data_get_real(foe_obj,"evhigh",1)
     
       ntemp = NTEMP_ACCURATE
       degree_multiplicator = DEGREE_MULTIPLICATOR_ACCURATE
@@ -1152,8 +1157,15 @@ module foe
       fscale_new=1.d100
     
       ebs=0.d0
+
+       hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
+
+      fscale_newx = temp_multiplicator*foe_data_get_real(foe_obj,"fscale")
     
       spin_loop: do ispin=1,smatl%nspin
+
+          fscale_new = fscale_newx
+          call foe_data_set_real(foe_obj,"fscale",fscale_new)
     
           isshift=(ispin-1)*smats%nvctrp_tg
           imshift=(ispin-1)*smatm%nvctrp_tg
@@ -1164,7 +1176,6 @@ module foe
     
           degree_sufficient=.true.
     
-          fscale_new = temp_multiplicator*foe_data_get_real(foe_obj,"fscale")
     
           temp_loop: do itemp=1,ntemp
     
@@ -1220,8 +1231,10 @@ module foe
                   !!    end if
                   !!end if
 
-                  hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
             
+                  if (iproc==0) then
+                      call yaml_sequence_open('determine eigenvalue bounds')
+                  end if
                   bounds_loop: do
                       !!call scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
                       !!     smatm, ham_, imshift, &
@@ -1242,10 +1255,22 @@ module foe
                       end if
                       if (npl>nplx) stop 'npl>nplx'
                       cc = f_malloc((/npl,3,1/),id='cc')
+                      if (iproc==0) then
+                          call yaml_sequence(advance='no')
+                          call yaml_mapping_open(flow=.true.)
+                          call yaml_map('npl',npl)
+                          call yaml_map('bounds', &
+                               (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/))
+                      end if
                       call get_chebyshev_polynomials(iproc, nproc, 2, foe_verbosity, npl, smatm, smatl, &
-                           ham_, foe_obj, chebyshev_polynomials, eval_bounds_ok, hamscal_compr, &
+                           ham_, foe_obj, chebyshev_polynomials, ispin, eval_bounds_ok, hamscal_compr, &
                            scale_factor, shift_value, &
+                           smats=smats, ovrlp_=ovrlp_, &
                            ovrlp_minus_one_half=ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:))
+                      if (iproc==0) then
+                          call yaml_map('ok',eval_bounds_ok)
+                          call yaml_mapping_close()
+                      end if
                       if (all(eval_bounds_ok)) then
                           exit bounds_loop
                       else
@@ -1258,23 +1283,33 @@ module foe
                           end if
                       end if
                       call f_free(cc)
+                      call f_free_ptr(chebyshev_polynomials)
                   end do bounds_loop
+                  if (iproc==0) then
+                      call yaml_sequence_close()
+                  end if
 
-                  write(*,*) 'after bounds_loop'
+                  !write(*,*) 'after bounds_loop'
 
+                  !!if (iproc==0) then
+                  !!    call yaml_sequence_open('determine Fermi energy')
+                  !!end if
                   call find_fermi_level(iproc, nproc, npl, chebyshev_polynomials, &
-                       2, 'test', smatl, foe_obj, kernel_)
-                  write(*,*) 'after find_fermi_level'
+                       2, 'test', smatl, ispin, foe_obj, kernel_)
+                  !!if (iproc==0) then
+                  !!    call yaml_sequence_close()
+                  !!end if
+                  !write(*,*) 'after find_fermi_level'
 
                   npl_check = nint(real(npl,kind=8)/CHECK_RATIO)
                   cc_check = f_malloc((/npl_check,3,1/),id='cc_check')
-                  call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
-                  call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
-                       x_max_error, max_error, mean_error)
-                  call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-                       smatl%nfvctr, smatl%smmm%nfvctrp, &
-                      smatl, chebyshev_polynomials, 1, cc, fermi_small_new)
+                  !!call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
+                  !!call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                  !!     foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
+                  !!     x_max_error, max_error, mean_error)
+                  !!call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
+                  !!     smatl%nfvctr, smatl%smmm%nfvctrp, &
+                  !!    smatl, chebyshev_polynomials, 1, cc, fermi_small_new)
                   call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale_check)
                   call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
                        foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, func, cc_check(1,1,1), &
@@ -1289,6 +1324,7 @@ module foe
                   call chebyshev_fast(iproc, nproc, nsize_polynomial, npl_check, &
                        smatl%nfvctr, smatl%smmm%nfvctrp, &
                        smatl, chebyshev_polynomials, 1, cc_check, fermi_check_new)
+                  call f_free(cc)
                   call f_free(cc_check)
                   call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
                        fermi_check_new, fermi_check_compr)
@@ -1314,7 +1350,7 @@ module foe
                   sumn_check = trace_sparse(iproc, nproc, smats, smatl, &
                                ovrlp_%matrix_compr(isshift+1:), &
                                fermi_check_compr, ispin)
-                  write(*,*) 'sumn, sumn_check', sumn, sumn_check
+                  !write(*,*) 'sumn, sumn_check', sumn, sumn_check
                   !@ENDNEW #######################
             
         
@@ -1326,7 +1362,7 @@ module foe
                   !write(*,*) 'ddot kernel_%matrix_compr(ilshift+istl)', &
                   !    iproc, kernel_%matrix_compr(ilshift+istl), ilshift+istl, hamscal_compr(istl)
                   ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
-                  write(*,*) 'ebsp',ebsp
+                  !write(*,*) 'ebsp',ebsp
                   !write(*,*) 'iproc, ncount, ebsp', iproc, ncount, ebsp
                   !!write(*,'(a,3i8,3es16.8)') 'iproc, ncount, istl, sum(k), sum(h), ebsp', &
                   !!    iproc, ncount, istl, sum(kernel_%matrix_compr(ilshift+istl:)), sum(hamscal_compr(istl:)), ebsp
@@ -1335,7 +1371,7 @@ module foe
                   istl = smatl%smmm%istartend_mm_dj(1)
                   ebs_check = ddot(ncount, fermi_check_compr(istl-smatl%isvctrp_tg), 1, &
                               hamscal_compr(istl-smatl%isvctrp_tg), 1)
-                  write(*,*) 'ebs_check',ebs_check
+                  !write(*,*) 'ebs_check',ebs_check
     
                   temparr(1) = ebsp
                   temparr(2) = ebs_check
@@ -1345,8 +1381,8 @@ module foe
                   ebsp = temparr(1)
                   ebs_check = temparr(2)
     
-                  write(*,'(a,i6,4es16.8)') 'iproc, ebsp, scale_factor, shift_value, sumn', &
-                       iproc, ebsp, scale_factor, shift_value, sumn
+                  !write(*,'(a,i6,5es16.8)') 'iproc, ebsp, scale_factor, shift_value, sumn, sum(hamscal_compr)', &
+                  !    iproc, ebsp, scale_factor, shift_value, sumn, sum(hamscal_compr)
                   ebsp=ebsp/scale_factor+shift_value*sumn
                   ebs_check=ebs_check/scale_factor+shift_value*sumn_check
                   diff=abs(ebs_check-ebsp)
@@ -1399,6 +1435,8 @@ module foe
                       reached_limit=.false.
                   end if
 
+                  call foe_data_set_real(foe_obj,"fscale",fscale_new)
+
 
                   diff=0.d0
                   do i=1,smatl%smmm%nvctrp_mm
@@ -1410,7 +1448,7 @@ module foe
                   end if
         
                   diff=sqrt(diff)
-                  if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
+                  !if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
 
 
                   ! Calculate trace(KS).
@@ -1985,18 +2023,20 @@ module foe
 !             end if
         
         
+             call f_free_ptr(chebyshev_polynomials)
             
         
           end do temp_loop
 
-          write(*,*) 'after temp_loop'
     
           ! Sum up the band structure energy
           ebs = ebs + ebsp
+
     
       end do spin_loop
     
     
+      ! This always takes the value for ispin=2... should be improved
       call foe_data_set_real(foe_obj,"fscale",fscale_new)
     
       degree_sufficient=.true.
@@ -2004,7 +2044,6 @@ module foe
       if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='~')
     
     
-      call f_free_ptr(chebyshev_polynomials)
       !!call f_free(penalty_ev)
       call f_free(hamscal_compr)
       !!call f_free(fermip_check)

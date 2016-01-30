@@ -864,8 +864,9 @@ module ice
               call get_poynomial_degree(iproc, nproc, ispin, ncalc, ex, foe_obj, 5, 100, 1.d-10, &
                    npl, cc, anoise)
               call f_free_ptr(chebyshev_polynomials)
+              ! The second isshift is wrong, but is not used
               call get_chebyshev_polynomials(iproc, nproc, 1, 2, npl, ovrlp_smat, inv_ovrlp_smat, &     
-                                        ovrlp_scaled, foe_obj, chebyshev_polynomials, &
+                                        ovrlp_scaled, foe_obj, chebyshev_polynomials, ispin, &
                                         eval_bounds_ok, hamscal_compr, scale_factor, shift_value)
               if (all(eval_bounds_ok)) then
                   exit bounds_loop

@@ -337,7 +337,7 @@ module fermi_level
               end if
           end if
           if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) then
-              call yaml_map('guess for new ef',ef,fmt='(es15.8)')
+              !call yaml_map('guess for new ef',ef,fmt='(es15.8)')
               call yaml_mapping_close()
           end if
 
