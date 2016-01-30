@@ -34,7 +34,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use transposed_operations, only: calculate_overlap_transposed
   use parallel_linalg, only: dsygv_parallel
   use matrix_operations, only: deviation_from_unity_parallel
-  use foe, only: fermi_operator_expansion
+  use foe, only: fermi_operator_expansion, fermi_operator_expansion_new
   use public_enums
   use locregs_init, only: small_to_large_locreg
   use locreg_operations, only: confpot_data
@@ -558,13 +558,20 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call f_free(col_ptr)
       else if (scf_mode==LINEAR_FOE) then
           if (iproc==0) call yaml_map('method','FOE')
-          call fermi_operator_expansion(iproc, nproc, &
+          call fermi_operator_expansion_new(iproc, nproc, &
                energs%ebs, order_taylor, max_inversion_error, &
                invert_overlap_matrix, 2, &
                trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))&
                //'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
                tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
                tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, tmb%foe_obj)
+          !!call fermi_operator_expansion(iproc, nproc, &
+          !!     energs%ebs, order_taylor, max_inversion_error, &
+          !!     invert_overlap_matrix, 2, &
+          !!     trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))&
+          !!     //'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
+          !!     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
+          !!     tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, tmb%foe_obj)
       end if
 
       ! Eigenvalues not available, therefore take -.5d0
