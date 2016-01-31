@@ -1606,7 +1606,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   logical :: endloop, scpot, endlooprp, lcs
   integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,iter_for_diis
   integer :: ikpt_homo,ikpt_lumo,ispin_homo,ispin_lumo
-  real(gp) :: gnrm_zero,homo,lumo,occup_lumo
+  real(gp) :: gnrm_zero,homo,lumo,occup_lumo,minres_gpe
   character(len=5) :: final_out
   !temporary variables for PAPI computation
   ! real(kind=4) :: rtime, ptime,  mflops
@@ -1712,6 +1712,9 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            linflag = 1                                 
            if(in%linear == INPUT_IG_OFF) linflag = 0
            if(in%linear == INPUT_IG_TMO) linflag = 2
+
+           !if (opt%iter == 1) minres_gpe=denspot%pkernel%minres
+           !denspot%pkernel%minres=max(min(1.e-4_gp,opt%gnrm**2) ,minres_gpe)!!opt%gnrm_cv**2)
 
            !Calculates the application of the Hamiltonian on the wavefunction
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%iscf,alphamix,&
@@ -2117,16 +2120,16 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 !---------------------------------------------------
 ! giuseppe fisicaro dilectric cavity
      if (denspot%pkernel%method /= 'VAC') then
-        if (iproc == 0) call yaml_map('Writing polarization charge in file','polarization_charge'//gridformat)
+!!$        if (iproc == 0) call yaml_map('Writing polarization charge in file','polarization_charge'//gridformat)
 
 !this one should be plotted otherwise as the array is now deallocated
 !!$        call plot_density(iproc,nproc,trim(dir_output)//'polarization_charge' // gridformat,&
 !!$             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pkernel%w%rho_pol)
 
-!!$        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
-!!$
-!!$        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
-!!$             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%eps)
+        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
+
+        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
+             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pkernel%w%eps)
      end if
 !---------------------------------------------------
 
