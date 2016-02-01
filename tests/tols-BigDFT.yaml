@@ -66,6 +66,7 @@ Keys to ignore:
  - check
  - main
  - noise
+ - penalty
  #- avg pot difference (actual/min)
  #- number of tasks
  #- IDs

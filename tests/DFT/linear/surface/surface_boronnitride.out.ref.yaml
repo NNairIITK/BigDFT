@@ -28,12 +28,12 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.4
- Timestamp of this run                 : 2016-02-01 10:56:01.307
- Root process Hostname                 : stephan-Latitude-E6420
- Number of MPI tasks                   :  4
+ Timestamp of this run                 : 2016-02-01 12:01:46.057
+ Root process Hostname                 : phys-comp-03
+ Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  2
- MPI tasks of root process node        :  4
+ Maximal OpenMP threads per MPI task   :  1
+ MPI tasks of root process node        :  8
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
@@ -710,20 +710,20 @@
      global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
      verbose                           : Yes #    Verbosity switch
      output                            : none #   Quantities to be plotted after the main solver routine
-   MPI tasks                           :  4
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  8
+   OpenMP threads per MPI task         :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Surface
    Memory Requirements per MPI task:
-     Density (MB)                      :  1.12
-     Kernel (MB)                       :  0.31
+     Density (MB)                      :  0.56
+     Kernel (MB)                       :  0.16
      Full Grid Arrays (MB)             :  4.43
      Load Balancing of calculations:
        Density:
-         MPI tasks 0-3                 : 100%
+         MPI tasks 0-7                 : 100%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  82%
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  22%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -736,20 +736,21 @@
  Total Number of Electrons             :  440
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 3                     :  55
+   MPI tasks  0- 3                     :  28
+   MPI tasks  4- 7                     :  27
  Total Number of Orbitals              :  220
  Input Occupation Numbers:
     #Kpt #0001  BZ coord. =  [  0.000000,  0.000000,  0.000000 ]
  - Occupation Numbers: {Orbitals No. 1-220:  2.0000}
- preconditioning load balancing before :  1.00E+00
- preconditioning load balancing after  :  1.00E+00
- task with max load                    :  [  0 ]
+ preconditioning load balancing before :  1.01E+00
+ preconditioning load balancing after  :  1.01E+00
+ task with max load                    :  [  2 ]
  Total No. Support Functions           :  440
  Support Function Repartition:
-   Minimum                             :  110
-   Maximum                             :  110
-   Average                             :  110.0
- Wavefunctions memory occupation for root MPI process:  22 MB 1022 KB 320 B
+   Minimum                             :  54
+   Maximum                             :  56
+   Average                             :  55.0
+ Wavefunctions memory occupation for root MPI process:  11 MB 725 KB 256 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  165
@@ -765,36 +766,36 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.48 #   (Number of Orbitals: 220)
    Single orbital                      : 0.429 #  (Number of Components: 54808)
-   All (distributed) orbitals          : 68.1019 # (Number of Orbitals per MPI task: 55)
-   Wavefunction storage size           : 344.999 # (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 35.128 # (Number of Orbitals per MPI task: 28)
+   Wavefunction storage size           : 175.639 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.19
    Full Uncompressed (ISF) grid        : 4.440
    Workspaces storage size             : 1.110
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 5.939
-   Density Construction                : 361.992
-   Poisson Solver                      : 358.824
-   Hamiltonian application             : 366.408
-   Orbitals Orthonormalization         : 366.455
- Estimated Memory Peak (MB)            :  366
+   Kernel calculation                  : 3.136
+   Density Construction                : 190.802
+   Poisson Solver                      : 182.570
+   Hamiltonian application             : 195.218
+   Orbitals Orthonormalization         : 195.265
+ Estimated Memory Peak (MB)            :  195
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  165
    Total number of components          :  2321
    Percent of zero components          :  0
    Size of workspaces                  :  9316
-   Maximum size of masking arrays for a projector:  38280
-   Cumulative size of masking arrays   :  1126848
+   Maximum size of masking arrays for a projector:  20550
+   Cumulative size of masking arrays   :  549936
  total elements                        :  193600
  non-zero elements                     :  100256
   #segments:  7304
  sparsity in %                         :  48.21
- sparse matmul load balancing naive / optimized:  [  1.01,  1.00 ]
+ sparse matmul load balancing naive / optimized:  [  1.02,  1.01 ]
  total elements                        :  193600
  non-zero elements                     :  12128
   #segments:  2376
  sparsity in %                         :  93.74
- sparse matmul load balancing naive / optimized:  [  1.02,  1.00 ]
+ sparse matmul load balancing naive / optimized:  [  1.03,  1.01 ]
  check of kernel cutoff radius:
  -  {atom type: N, adjustment required:  No}
  -  {atom type: B, adjustment required:  No}
@@ -802,21 +803,21 @@
  non-zero elements                     :  106080
   #segments:  7540
  sparsity in %                         :  45.21
- sparse matmul load balancing naive / optimized:  [  1.01,  1.00 ]
+ sparse matmul load balancing naive / optimized:  [  1.02,  1.01 ]
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, start / end:  [  1,  12128 ], start / end disjoint: [ 1, 
+   -  {number of tasks:  8, start / end:  [  1,  12128 ], start / end disjoint: [ 1, 
   12128]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, start / end:  [  1,  100256 ], start / end disjoint: [ 1, 
+   -  {number of tasks:  8, start / end:  [  1,  100256 ], start / end disjoint: [ 1, 
   100256]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, start / end:  [  1,  106080 ], start / end disjoint: [ 1, 
+   -  {number of tasks:  8, start / end:  [  1,  106080 ], start / end disjoint: [ 1, 
   106080]}
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -825,8 +826,8 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ sparse matmul load balancing naive / optimized:  [  1.02,  1.02 ]
+ sparse matmul load balancing naive / optimized:  [  1.02,  1.02 ]
  Checking Compression/Uncompression of large sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -841,27 +842,27 @@
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  9261,  694 ]
-   Tolerances for this check: [ 5.17545461455427498E-08,  9.76996261670137756E-14]
+   Number of coarse and fine DoF (MasterMPI task):  [  4796,  345 ]
+   Tolerances for this check: [ 5.23109097893346363E-08,  9.76996261670137756E-14]
    Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  9342,  711 ]
-   Tolerances for this check: [ 5.91614553353446772E-07,  9.76996261670137756E-14]
-   Maxdiff for transpose (checksum)    :  2.32830643653869629E-09
+   Number of coarse and fine DoF (MasterMPI task):  [  4754,  355 ]
+   Tolerances for this check: [ 5.91285462439962093E-07,  9.76996261670137756E-14]
+   Maxdiff for transpose (checksum)    :  2.79396772384643555E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
- Value for Exc[rhoc]                   : -33.50543645650762
+ Value for Exc[rhoc]                   : -33.50543645650796
  Poisson Solver:
    BC                                  : Surface
    Box                                 :  [  96,  63,  96 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Ion-Ion interaction energy            : -1.07931102348799E+03
   #---------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -440.000000000021
+ Total ionic charge                    : -440.000000000030
  Poisson Solver:
    BC                                  : Surface
    Box                                 :  [  96,  63,  96 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Interaction energy ions multipoles    :  0.0
  Interaction energy multipoles multipoles:  0.0
   #------------------------------------------------------------ Input Wavefunctions Creation
@@ -872,9 +873,9 @@
    -  {atom type: B, value:  5.00E-02, origin: file}
    Total No. of Atomic Input Orbitals  :  440
    Inputguess Orbitals Repartition:
-     Minimum                           :  110
-     Maximum                           :  110
-     Average                           :  110.0
+     Minimum                           :  54
+     Maximum                           :  56
+     Average                           :  55.0
    Atomic Input Orbital Generation:
    -  {Atom Type: N, Electronic configuration: {s: [ 2.00], p: [ 1.00,  1.00,  1.00]}}
    -  {Atom Type: B, Electronic configuration: {s: [ 2.00], p: [ 1/3,  1/3,  1/3]}}
@@ -884,7 +885,7 @@
    Poisson Solver:
      BC                                : Surface
      Box                               :  [  96,  63,  96 ]
-     MPI tasks                         :  4
+     MPI tasks                         :  8
    orthonormalization of input guess   : standard
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
    Confinement prefactor for extended input guess:
@@ -896,36 +897,36 @@
      support function optimization: &it_supfun000
      -  { #------------------------------------------------------------------------ iter: 1
  target function: TRACE, 
- Calculating wavelets expansion of projectors, found warnings:  368, 
+ Calculating wavelets expansion of projectors, found warnings:  180, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.46245737300E+02, Epot: -7.46526052267E+02, Enl:  1.76385432831E+02}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D: -0.00E+00, 
- iter:  1, fnrm:  5.93E-01, Omega: -1.999527566350512E+02, D: -2.00E+02, D best: -2.00E+02, 
+ iter:  1, fnrm:  5.93E-01, Omega: -1.999527566351592E+02, D: -2.00E+02, D best: -2.00E+02, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 2
  target function: TRACE, 
- Calculating wavelets expansion of projectors, found warnings:  368, 
+ Calculating wavelets expansion of projectors, found warnings:  180, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  7.86410141900E+02, Epot: -7.89355408457E+02, Enl:  1.95364219930E+02}, 
+ Energies: {Ekin:  7.86410141900E+02, Epot: -7.89355408457E+02, Enl:  1.95364219931E+02}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, 
   #WARNING: target function larger than its minimal value reached so far, D= 2.777E+01
  Preconditioning:  Yes, rel D: -1.39E-01,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  4.79E-01, Omega: -1.721786663384376E+02, D:  2.78E+01, D best:  2.78E+01, 
+ iter:  2, fnrm:  4.79E-01, Omega: -1.721786663385664E+02, D:  2.78E+01, D best:  2.78E+01, 
  exit criterion: extended input guess}
      -  &final_supfun000  { #------------------------------------------------------ iter: 2
  target function: TRACE, 
- Energies: {Ekin:  7.86410141900E+02, Epot: -7.89355408457E+02, Enl:  1.95364219930E+02}, 
- iter:  2, fnrm:  4.79E-01, Omega: -1.721786663384376E+02, D:  2.78E+01, D best:  2.78E+01}
+ Energies: {Ekin:  7.86410141900E+02, Epot: -7.89355408457E+02, Enl:  1.95364219931E+02}, 
+ iter:  2, fnrm:  4.79E-01, Omega: -1.721786663385664E+02, D:  2.78E+01, D best:  2.78E+01}
         #Support functions created
    Kernel update:
      Hamiltonian application required  :  Yes
-     Calculating wavelets expansion of projectors, found warnings:  368
+     Calculating wavelets expansion of projectors, found warnings:  180
       #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
      calculate overlap matrix          :  Yes
      max dev from unity                :  6.34E-02
@@ -940,231 +941,231 @@
      Coefficients available            :  Yes
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
- {e: -4.410142087479E-01, f:  2.0000},  # 00001
- {e: -4.361196101145E-01, f:  2.0000},  # 00002
- {e: -4.307805697830E-01, f:  2.0000},  # 00003
- {e: -4.288301755053E-01, f:  2.0000},  # 00004
- {e: -4.281312242864E-01, f:  2.0000},  # 00005
- {e: -4.228957221799E-01, f:  2.0000},  # 00006
- {e: -4.222237814520E-01, f:  2.0000},  # 00007
- {e: -4.210818897085E-01, f:  2.0000},  # 00008
- {e: -4.168597962509E-01, f:  2.0000},  # 00009
- {e: -4.091765156471E-01, f:  2.0000},  # 00010
- {e: -4.057307683345E-01, f:  2.0000},  # 00011
- {e: -4.035903738215E-01, f:  2.0000},  # 00012
- {e: -4.025903395821E-01, f:  2.0000},  # 00013
- {e: -4.000665256432E-01, f:  2.0000},  # 00014
- {e: -3.988348869784E-01, f:  2.0000},  # 00015
- {e: -3.980654660564E-01, f:  2.0000},  # 00016
- {e: -3.966080619252E-01, f:  2.0000},  # 00017
- {e: -3.948177567193E-01, f:  2.0000},  # 00018
- {e: -3.944429683303E-01, f:  2.0000},  # 00019
- {e: -3.910557183475E-01, f:  2.0000},  # 00020
- {e: -3.904109659685E-01, f:  2.0000},  # 00021
- {e: -3.804295446639E-01, f:  2.0000},  # 00022
- {e: -3.776992946289E-01, f:  2.0000},  # 00023
- {e: -3.749320416248E-01, f:  2.0000},  # 00024
- {e: -3.736274861000E-01, f:  2.0000},  # 00025
- {e: -3.732812082824E-01, f:  2.0000},  # 00026
- {e: -3.730224788100E-01, f:  2.0000},  # 00027
- {e: -3.702841087711E-01, f:  2.0000},  # 00028
- {e: -3.687498952915E-01, f:  2.0000},  # 00029
- {e: -3.683068640659E-01, f:  2.0000},  # 00030
- {e: -3.675131997497E-01, f:  2.0000},  # 00031
- {e: -3.658053779425E-01, f:  2.0000},  # 00032
- {e: -3.647889910648E-01, f:  2.0000},  # 00033
- {e: -3.619111072182E-01, f:  2.0000},  # 00034
- {e: -3.599070674123E-01, f:  2.0000},  # 00035
- {e: -3.567408942635E-01, f:  2.0000},  # 00036
- {e: -3.553829424924E-01, f:  2.0000},  # 00037
- {e: -3.545187144224E-01, f:  2.0000},  # 00038
- {e: -3.528393229804E-01, f:  2.0000},  # 00039
- {e: -3.512229824385E-01, f:  2.0000},  # 00040
- {e: -3.511710312593E-01, f:  2.0000},  # 00041
- {e: -3.491392026349E-01, f:  2.0000},  # 00042
- {e: -3.486048901818E-01, f:  2.0000},  # 00043
- {e: -3.476882406258E-01, f:  2.0000},  # 00044
- {e: -3.467982772218E-01, f:  2.0000},  # 00045
- {e: -3.449704675507E-01, f:  2.0000},  # 00046
- {e: -3.440697471428E-01, f:  2.0000},  # 00047
- {e: -3.415341758821E-01, f:  2.0000},  # 00048
- {e: -3.406067310073E-01, f:  2.0000},  # 00049
- {e: -3.388170068183E-01, f:  2.0000},  # 00050
- {e: -3.369424477400E-01, f:  2.0000},  # 00051
- {e: -3.367459936240E-01, f:  2.0000},  # 00052
- {e: -3.356866740626E-01, f:  2.0000},  # 00053
- {e: -3.346386171295E-01, f:  2.0000},  # 00054
- {e: -3.180629357367E-01, f:  2.0000},  # 00055
- {e: -1.023569746107E-01, f:  2.0000},  # 00056
- {e: -9.518360161486E-02, f:  2.0000},  # 00057
- {e: -9.180744675844E-02, f:  2.0000},  # 00058
- {e: -9.173120822597E-02, f:  2.0000},  # 00059
- {e: -8.754343593021E-02, f:  2.0000},  # 00060
- {e: -8.441733392280E-02, f:  2.0000},  # 00061
- {e: -8.311545649883E-02, f:  2.0000},  # 00062
- {e: -8.181700029426E-02, f:  2.0000},  # 00063
- {e: -8.070073918660E-02, f:  2.0000},  # 00064
- {e: -8.029477335166E-02, f:  2.0000},  # 00065
- {e: -7.875032172774E-02, f:  2.0000},  # 00066
- {e: -7.476388982233E-02, f:  2.0000},  # 00067
- {e: -7.458142110936E-02, f:  2.0000},  # 00068
- {e: -7.071588517186E-02, f:  2.0000},  # 00069
- {e: -7.038694290644E-02, f:  2.0000},  # 00070
- {e: -6.736608137653E-02, f:  2.0000},  # 00071
- {e: -6.525646103822E-02, f:  2.0000},  # 00072
- {e: -6.386892371866E-02, f:  2.0000},  # 00073
- {e: -6.113832784752E-02, f:  2.0000},  # 00074
- {e: -5.907311435557E-02, f:  2.0000},  # 00075
- {e: -5.699165695062E-02, f:  2.0000},  # 00076
- {e: -5.476047072571E-02, f:  2.0000},  # 00077
- {e: -5.123267761908E-02, f:  2.0000},  # 00078
- {e: -4.897387652610E-02, f:  2.0000},  # 00079
- {e: -4.881444945241E-02, f:  2.0000},  # 00080
- {e: -4.533384124219E-02, f:  2.0000},  # 00081
- {e: -4.312840571667E-02, f:  2.0000},  # 00082
- {e: -4.236004887579E-02, f:  2.0000},  # 00083
- {e: -4.092763563126E-02, f:  2.0000},  # 00084
- {e: -4.039370540004E-02, f:  2.0000},  # 00085
- {e: -3.931212804975E-02, f:  2.0000},  # 00086
- {e: -3.768514624180E-02, f:  2.0000},  # 00087
- {e: -3.641460597075E-02, f:  2.0000},  # 00088
- {e: -3.427119166858E-02, f:  2.0000},  # 00089
- {e: -2.685553446097E-02, f:  2.0000},  # 00090
- {e: -2.496705059575E-02, f:  2.0000},  # 00091
- {e: -2.192185822642E-02, f:  2.0000},  # 00092
- {e: -1.738519036146E-02, f:  2.0000},  # 00093
- {e: -1.563233856841E-02, f:  2.0000},  # 00094
- {e: -1.157887954858E-02, f:  2.0000},  # 00095
- {e: -7.454073258361E-03, f:  2.0000},  # 00096
- {e: -6.077005130079E-03, f:  2.0000},  # 00097
- {e: -2.704862880315E-03, f:  2.0000},  # 00098
- {e: -1.544803434969E-03, f:  2.0000},  # 00099
- {e:  1.482257730508E-03, f:  2.0000},  # 00100
- {e:  2.999563943203E-03, f:  2.0000},  # 00101
- {e:  7.273490783065E-03, f:  2.0000},  # 00102
- {e:  7.692860673148E-03, f:  2.0000},  # 00103
- {e:  9.333515296214E-03, f:  2.0000},  # 00104
- {e:  1.128394261839E-02, f:  2.0000},  # 00105
- {e:  1.387967777278E-02, f:  2.0000},  # 00106
- {e:  1.522137422446E-02, f:  2.0000},  # 00107
- {e:  1.632737565331E-02, f:  2.0000},  # 00108
- {e:  2.084375814410E-02, f:  2.0000},  # 00109
- {e:  2.336846064875E-02, f:  2.0000},  # 00110
- {e:  2.478472671915E-02, f:  2.0000},  # 00111
- {e:  2.575034393640E-02, f:  2.0000},  # 00112
- {e:  2.769657532489E-02, f:  2.0000},  # 00113
- {e:  2.905780848070E-02, f:  2.0000},  # 00114
- {e:  3.023140431755E-02, f:  2.0000},  # 00115
- {e:  3.107838451054E-02, f:  2.0000},  # 00116
- {e:  3.227540854993E-02, f:  2.0000},  # 00117
- {e:  3.271060355881E-02, f:  2.0000},  # 00118
- {e:  3.504108644260E-02, f:  2.0000},  # 00119
- {e:  3.537524814939E-02, f:  2.0000},  # 00120
- {e:  3.708916656643E-02, f:  2.0000},  # 00121
- {e:  3.825466626145E-02, f:  2.0000},  # 00122
- {e:  3.874574788297E-02, f:  2.0000},  # 00123
- {e:  3.973333896063E-02, f:  2.0000},  # 00124
- {e:  4.045455512474E-02, f:  2.0000},  # 00125
- {e:  4.247747799515E-02, f:  2.0000},  # 00126
- {e:  4.338103344981E-02, f:  2.0000},  # 00127
- {e:  4.381478871058E-02, f:  2.0000},  # 00128
- {e:  4.428941285468E-02, f:  2.0000},  # 00129
- {e:  4.573799770757E-02, f:  2.0000},  # 00130
- {e:  4.818964365185E-02, f:  2.0000},  # 00131
- {e:  5.170277699118E-02, f:  2.0000},  # 00132
- {e:  5.316431863312E-02, f:  2.0000},  # 00133
- {e:  5.987916927701E-02, f:  2.0000},  # 00134
- {e:  6.132574749415E-02, f:  2.0000},  # 00135
- {e:  6.368484487833E-02, f:  2.0000},  # 00136
- {e:  7.151816678431E-02, f:  2.0000},  # 00137
- {e:  7.438607665528E-02, f:  2.0000},  # 00138
- {e:  7.666823545667E-02, f:  2.0000},  # 00139
- {e:  8.154792922776E-02, f:  2.0000},  # 00140
- {e:  8.298606869939E-02, f:  2.0000},  # 00141
- {e:  8.649281098547E-02, f:  2.0000},  # 00142
- {e:  8.789527338724E-02, f:  2.0000},  # 00143
- {e:  8.955934249168E-02, f:  2.0000},  # 00144
- {e:  9.164889056922E-02, f:  2.0000},  # 00145
- {e:  9.348604107076E-02, f:  2.0000},  # 00146
- {e:  9.541356231580E-02, f:  2.0000},  # 00147
- {e:  9.566679387335E-02, f:  2.0000},  # 00148
- {e:  9.660055596460E-02, f:  2.0000},  # 00149
- {e:  9.917915399592E-02, f:  2.0000},  # 00150
- {e:  1.025598620827E-01, f:  2.0000},  # 00151
- {e:  1.030986714690E-01, f:  2.0000},  # 00152
- {e:  1.055421965858E-01, f:  2.0000},  # 00153
- {e:  1.073222873466E-01, f:  2.0000},  # 00154
- {e:  1.084629985995E-01, f:  2.0000},  # 00155
- {e:  1.117979619839E-01, f:  2.0000},  # 00156
- {e:  1.133746836277E-01, f:  2.0000},  # 00157
- {e:  1.146632345951E-01, f:  2.0000},  # 00158
- {e:  1.171570677795E-01, f:  2.0000},  # 00159
- {e:  1.189140607703E-01, f:  2.0000},  # 00160
- {e:  1.214392592982E-01, f:  2.0000},  # 00161
- {e:  1.267686505058E-01, f:  2.0000},  # 00162
- {e:  1.289730799026E-01, f:  2.0000},  # 00163
- {e:  1.300255815910E-01, f:  2.0000},  # 00164
- {e:  1.311145378225E-01, f:  2.0000},  # 00165
- {e:  1.323793719044E-01, f:  2.0000},  # 00166
- {e:  1.343228942159E-01, f:  2.0000},  # 00167
- {e:  1.348444905711E-01, f:  2.0000},  # 00168
- {e:  1.356141942041E-01, f:  2.0000},  # 00169
- {e:  1.387317174077E-01, f:  2.0000},  # 00170
- {e:  1.389004587307E-01, f:  2.0000},  # 00171
- {e:  1.400897652278E-01, f:  2.0000},  # 00172
- {e:  1.413260929857E-01, f:  2.0000},  # 00173
- {e:  1.428139282814E-01, f:  2.0000},  # 00174
- {e:  1.433098885144E-01, f:  2.0000},  # 00175
- {e:  1.442238817873E-01, f:  2.0000},  # 00176
- {e:  1.447950069219E-01, f:  2.0000},  # 00177
- {e:  1.453906210795E-01, f:  2.0000},  # 00178
- {e:  1.479392144831E-01, f:  2.0000},  # 00179
- {e:  1.481811537409E-01, f:  2.0000},  # 00180
- {e:  1.489981352246E-01, f:  2.0000},  # 00181
- {e:  1.578578421994E-01, f:  2.0000},  # 00182
- {e:  1.594091070398E-01, f:  2.0000},  # 00183
- {e:  1.639604397623E-01, f:  2.0000},  # 00184
- {e:  1.642482786180E-01, f:  2.0000},  # 00185
- {e:  1.655728250887E-01, f:  2.0000},  # 00186
- {e:  1.665042811449E-01, f:  2.0000},  # 00187
- {e:  1.669997467533E-01, f:  2.0000},  # 00188
- {e:  1.678862841834E-01, f:  2.0000},  # 00189
- {e:  1.683292600451E-01, f:  2.0000},  # 00190
- {e:  1.703068542680E-01, f:  2.0000},  # 00191
- {e:  1.721113089081E-01, f:  2.0000},  # 00192
- {e:  1.735777100025E-01, f:  2.0000},  # 00193
- {e:  1.752958845425E-01, f:  2.0000},  # 00194
- {e:  1.772309634016E-01, f:  2.0000},  # 00195
- {e:  1.781091149940E-01, f:  2.0000},  # 00196
- {e:  1.793744187184E-01, f:  2.0000},  # 00197
- {e:  1.802559260556E-01, f:  2.0000},  # 00198
- {e:  1.813326716339E-01, f:  2.0000},  # 00199
- {e:  1.833749229051E-01, f:  2.0000},  # 00200
- {e:  1.856156359274E-01, f:  2.0000},  # 00201
- {e:  1.869063723815E-01, f:  2.0000},  # 00202
- {e:  1.882452328023E-01, f:  2.0000},  # 00203
- {e:  1.889552360504E-01, f:  2.0000},  # 00204
- {e:  1.890813390061E-01, f:  2.0000},  # 00205
- {e:  1.906218129787E-01, f:  2.0000},  # 00206
- {e:  1.917891352610E-01, f:  2.0000},  # 00207
- {e:  1.931714000931E-01, f:  2.0000},  # 00208
- {e:  1.936668016831E-01, f:  2.0000},  # 00209
- {e:  1.952288610325E-01, f:  2.0000},  # 00210
- {e:  1.975516300187E-01, f:  2.0000},  # 00211
- {e:  1.986496388104E-01, f:  2.0000},  # 00212
- {e:  1.997562859823E-01, f:  2.0000},  # 00213
- {e:  2.018422982500E-01, f:  2.0000},  # 00214
- {e:  2.026785689648E-01, f:  2.0000},  # 00215
- {e:  2.048281958267E-01, f:  2.0000},  # 00216
- {e:  2.053760792316E-01, f:  2.0000},  # 00217
- {e:  2.090504058067E-01, f:  2.0000},  # 00218
- {e:  2.113906787442E-01, f:  2.0000},  # 00219
- {e:  2.208130239377E-01, f:  2.0000}] # 00220
+ {e: -4.410142087483E-01, f:  2.0000},  # 00001
+ {e: -4.361196101149E-01, f:  2.0000},  # 00002
+ {e: -4.307805697834E-01, f:  2.0000},  # 00003
+ {e: -4.288301755057E-01, f:  2.0000},  # 00004
+ {e: -4.281312242869E-01, f:  2.0000},  # 00005
+ {e: -4.228957221803E-01, f:  2.0000},  # 00006
+ {e: -4.222237814524E-01, f:  2.0000},  # 00007
+ {e: -4.210818897089E-01, f:  2.0000},  # 00008
+ {e: -4.168597962514E-01, f:  2.0000},  # 00009
+ {e: -4.091765156476E-01, f:  2.0000},  # 00010
+ {e: -4.057307683349E-01, f:  2.0000},  # 00011
+ {e: -4.035903738220E-01, f:  2.0000},  # 00012
+ {e: -4.025903395826E-01, f:  2.0000},  # 00013
+ {e: -4.000665256437E-01, f:  2.0000},  # 00014
+ {e: -3.988348869789E-01, f:  2.0000},  # 00015
+ {e: -3.980654660569E-01, f:  2.0000},  # 00016
+ {e: -3.966080619256E-01, f:  2.0000},  # 00017
+ {e: -3.948177567198E-01, f:  2.0000},  # 00018
+ {e: -3.944429683308E-01, f:  2.0000},  # 00019
+ {e: -3.910557183480E-01, f:  2.0000},  # 00020
+ {e: -3.904109659690E-01, f:  2.0000},  # 00021
+ {e: -3.804295446644E-01, f:  2.0000},  # 00022
+ {e: -3.776992946294E-01, f:  2.0000},  # 00023
+ {e: -3.749320416253E-01, f:  2.0000},  # 00024
+ {e: -3.736274861005E-01, f:  2.0000},  # 00025
+ {e: -3.732812082829E-01, f:  2.0000},  # 00026
+ {e: -3.730224788105E-01, f:  2.0000},  # 00027
+ {e: -3.702841087716E-01, f:  2.0000},  # 00028
+ {e: -3.687498952920E-01, f:  2.0000},  # 00029
+ {e: -3.683068640664E-01, f:  2.0000},  # 00030
+ {e: -3.675131997502E-01, f:  2.0000},  # 00031
+ {e: -3.658053779430E-01, f:  2.0000},  # 00032
+ {e: -3.647889910653E-01, f:  2.0000},  # 00033
+ {e: -3.619111072188E-01, f:  2.0000},  # 00034
+ {e: -3.599070674128E-01, f:  2.0000},  # 00035
+ {e: -3.567408942640E-01, f:  2.0000},  # 00036
+ {e: -3.553829424929E-01, f:  2.0000},  # 00037
+ {e: -3.545187144229E-01, f:  2.0000},  # 00038
+ {e: -3.528393229809E-01, f:  2.0000},  # 00039
+ {e: -3.512229824391E-01, f:  2.0000},  # 00040
+ {e: -3.511710312598E-01, f:  2.0000},  # 00041
+ {e: -3.491392026355E-01, f:  2.0000},  # 00042
+ {e: -3.486048901823E-01, f:  2.0000},  # 00043
+ {e: -3.476882406264E-01, f:  2.0000},  # 00044
+ {e: -3.467982772224E-01, f:  2.0000},  # 00045
+ {e: -3.449704675512E-01, f:  2.0000},  # 00046
+ {e: -3.440697471433E-01, f:  2.0000},  # 00047
+ {e: -3.415341758826E-01, f:  2.0000},  # 00048
+ {e: -3.406067310078E-01, f:  2.0000},  # 00049
+ {e: -3.388170068188E-01, f:  2.0000},  # 00050
+ {e: -3.369424477405E-01, f:  2.0000},  # 00051
+ {e: -3.367459936245E-01, f:  2.0000},  # 00052
+ {e: -3.356866740631E-01, f:  2.0000},  # 00053
+ {e: -3.346386171301E-01, f:  2.0000},  # 00054
+ {e: -3.180629357372E-01, f:  2.0000},  # 00055
+ {e: -1.023569746110E-01, f:  2.0000},  # 00056
+ {e: -9.518360161520E-02, f:  2.0000},  # 00057
+ {e: -9.180744675878E-02, f:  2.0000},  # 00058
+ {e: -9.173120822631E-02, f:  2.0000},  # 00059
+ {e: -8.754343593056E-02, f:  2.0000},  # 00060
+ {e: -8.441733392312E-02, f:  2.0000},  # 00061
+ {e: -8.311545649917E-02, f:  2.0000},  # 00062
+ {e: -8.181700029460E-02, f:  2.0000},  # 00063
+ {e: -8.070073918693E-02, f:  2.0000},  # 00064
+ {e: -8.029477335200E-02, f:  2.0000},  # 00065
+ {e: -7.875032172807E-02, f:  2.0000},  # 00066
+ {e: -7.476388982267E-02, f:  2.0000},  # 00067
+ {e: -7.458142110970E-02, f:  2.0000},  # 00068
+ {e: -7.071588517221E-02, f:  2.0000},  # 00069
+ {e: -7.038694290680E-02, f:  2.0000},  # 00070
+ {e: -6.736608137688E-02, f:  2.0000},  # 00071
+ {e: -6.525646103856E-02, f:  2.0000},  # 00072
+ {e: -6.386892371900E-02, f:  2.0000},  # 00073
+ {e: -6.113832784786E-02, f:  2.0000},  # 00074
+ {e: -5.907311435594E-02, f:  2.0000},  # 00075
+ {e: -5.699165695098E-02, f:  2.0000},  # 00076
+ {e: -5.476047072606E-02, f:  2.0000},  # 00077
+ {e: -5.123267761944E-02, f:  2.0000},  # 00078
+ {e: -4.897387652645E-02, f:  2.0000},  # 00079
+ {e: -4.881444945278E-02, f:  2.0000},  # 00080
+ {e: -4.533384124256E-02, f:  2.0000},  # 00081
+ {e: -4.312840571704E-02, f:  2.0000},  # 00082
+ {e: -4.236004887616E-02, f:  2.0000},  # 00083
+ {e: -4.092763563163E-02, f:  2.0000},  # 00084
+ {e: -4.039370540040E-02, f:  2.0000},  # 00085
+ {e: -3.931212805012E-02, f:  2.0000},  # 00086
+ {e: -3.768514624218E-02, f:  2.0000},  # 00087
+ {e: -3.641460597113E-02, f:  2.0000},  # 00088
+ {e: -3.427119166897E-02, f:  2.0000},  # 00089
+ {e: -2.685553446135E-02, f:  2.0000},  # 00090
+ {e: -2.496705059613E-02, f:  2.0000},  # 00091
+ {e: -2.192185822679E-02, f:  2.0000},  # 00092
+ {e: -1.738519036184E-02, f:  2.0000},  # 00093
+ {e: -1.563233856880E-02, f:  2.0000},  # 00094
+ {e: -1.157887954898E-02, f:  2.0000},  # 00095
+ {e: -7.454073258751E-03, f:  2.0000},  # 00096
+ {e: -6.077005130472E-03, f:  2.0000},  # 00097
+ {e: -2.704862880709E-03, f:  2.0000},  # 00098
+ {e: -1.544803435359E-03, f:  2.0000},  # 00099
+ {e:  1.482257730115E-03, f:  2.0000},  # 00100
+ {e:  2.999563942812E-03, f:  2.0000},  # 00101
+ {e:  7.273490782667E-03, f:  2.0000},  # 00102
+ {e:  7.692860672746E-03, f:  2.0000},  # 00103
+ {e:  9.333515295817E-03, f:  2.0000},  # 00104
+ {e:  1.128394261799E-02, f:  2.0000},  # 00105
+ {e:  1.387967777238E-02, f:  2.0000},  # 00106
+ {e:  1.522137422404E-02, f:  2.0000},  # 00107
+ {e:  1.632737565291E-02, f:  2.0000},  # 00108
+ {e:  2.084375814369E-02, f:  2.0000},  # 00109
+ {e:  2.336846064834E-02, f:  2.0000},  # 00110
+ {e:  2.478472671874E-02, f:  2.0000},  # 00111
+ {e:  2.575034393599E-02, f:  2.0000},  # 00112
+ {e:  2.769657532449E-02, f:  2.0000},  # 00113
+ {e:  2.905780848030E-02, f:  2.0000},  # 00114
+ {e:  3.023140431714E-02, f:  2.0000},  # 00115
+ {e:  3.107838451014E-02, f:  2.0000},  # 00116
+ {e:  3.227540854952E-02, f:  2.0000},  # 00117
+ {e:  3.271060355840E-02, f:  2.0000},  # 00118
+ {e:  3.504108644220E-02, f:  2.0000},  # 00119
+ {e:  3.537524814899E-02, f:  2.0000},  # 00120
+ {e:  3.708916656602E-02, f:  2.0000},  # 00121
+ {e:  3.825466626104E-02, f:  2.0000},  # 00122
+ {e:  3.874574788256E-02, f:  2.0000},  # 00123
+ {e:  3.973333896023E-02, f:  2.0000},  # 00124
+ {e:  4.045455512432E-02, f:  2.0000},  # 00125
+ {e:  4.247747799474E-02, f:  2.0000},  # 00126
+ {e:  4.338103344940E-02, f:  2.0000},  # 00127
+ {e:  4.381478871017E-02, f:  2.0000},  # 00128
+ {e:  4.428941285426E-02, f:  2.0000},  # 00129
+ {e:  4.573799770716E-02, f:  2.0000},  # 00130
+ {e:  4.818964365145E-02, f:  2.0000},  # 00131
+ {e:  5.170277699076E-02, f:  2.0000},  # 00132
+ {e:  5.316431863270E-02, f:  2.0000},  # 00133
+ {e:  5.987916927658E-02, f:  2.0000},  # 00134
+ {e:  6.132574749373E-02, f:  2.0000},  # 00135
+ {e:  6.368484487791E-02, f:  2.0000},  # 00136
+ {e:  7.151816678388E-02, f:  2.0000},  # 00137
+ {e:  7.438607665485E-02, f:  2.0000},  # 00138
+ {e:  7.666823545623E-02, f:  2.0000},  # 00139
+ {e:  8.154792922731E-02, f:  2.0000},  # 00140
+ {e:  8.298606869894E-02, f:  2.0000},  # 00141
+ {e:  8.649281098505E-02, f:  2.0000},  # 00142
+ {e:  8.789527338682E-02, f:  2.0000},  # 00143
+ {e:  8.955934249125E-02, f:  2.0000},  # 00144
+ {e:  9.164889056878E-02, f:  2.0000},  # 00145
+ {e:  9.348604107035E-02, f:  2.0000},  # 00146
+ {e:  9.541356231538E-02, f:  2.0000},  # 00147
+ {e:  9.566679387293E-02, f:  2.0000},  # 00148
+ {e:  9.660055596410E-02, f:  2.0000},  # 00149
+ {e:  9.917915399550E-02, f:  2.0000},  # 00150
+ {e:  1.025598620822E-01, f:  2.0000},  # 00151
+ {e:  1.030986714685E-01, f:  2.0000},  # 00152
+ {e:  1.055421965853E-01, f:  2.0000},  # 00153
+ {e:  1.073222873461E-01, f:  2.0000},  # 00154
+ {e:  1.084629985991E-01, f:  2.0000},  # 00155
+ {e:  1.117979619834E-01, f:  2.0000},  # 00156
+ {e:  1.133746836272E-01, f:  2.0000},  # 00157
+ {e:  1.146632345946E-01, f:  2.0000},  # 00158
+ {e:  1.171570677790E-01, f:  2.0000},  # 00159
+ {e:  1.189140607698E-01, f:  2.0000},  # 00160
+ {e:  1.214392592977E-01, f:  2.0000},  # 00161
+ {e:  1.267686505054E-01, f:  2.0000},  # 00162
+ {e:  1.289730799021E-01, f:  2.0000},  # 00163
+ {e:  1.300255815906E-01, f:  2.0000},  # 00164
+ {e:  1.311145378219E-01, f:  2.0000},  # 00165
+ {e:  1.323793719040E-01, f:  2.0000},  # 00166
+ {e:  1.343228942154E-01, f:  2.0000},  # 00167
+ {e:  1.348444905706E-01, f:  2.0000},  # 00168
+ {e:  1.356141942035E-01, f:  2.0000},  # 00169
+ {e:  1.387317174073E-01, f:  2.0000},  # 00170
+ {e:  1.389004587302E-01, f:  2.0000},  # 00171
+ {e:  1.400897652273E-01, f:  2.0000},  # 00172
+ {e:  1.413260929853E-01, f:  2.0000},  # 00173
+ {e:  1.428139282808E-01, f:  2.0000},  # 00174
+ {e:  1.433098885139E-01, f:  2.0000},  # 00175
+ {e:  1.442238817868E-01, f:  2.0000},  # 00176
+ {e:  1.447950069214E-01, f:  2.0000},  # 00177
+ {e:  1.453906210789E-01, f:  2.0000},  # 00178
+ {e:  1.479392144825E-01, f:  2.0000},  # 00179
+ {e:  1.481811537405E-01, f:  2.0000},  # 00180
+ {e:  1.489981352241E-01, f:  2.0000},  # 00181
+ {e:  1.578578421989E-01, f:  2.0000},  # 00182
+ {e:  1.594091070394E-01, f:  2.0000},  # 00183
+ {e:  1.639604397618E-01, f:  2.0000},  # 00184
+ {e:  1.642482786175E-01, f:  2.0000},  # 00185
+ {e:  1.655728250882E-01, f:  2.0000},  # 00186
+ {e:  1.665042811444E-01, f:  2.0000},  # 00187
+ {e:  1.669997467527E-01, f:  2.0000},  # 00188
+ {e:  1.678862841828E-01, f:  2.0000},  # 00189
+ {e:  1.683292600446E-01, f:  2.0000},  # 00190
+ {e:  1.703068542675E-01, f:  2.0000},  # 00191
+ {e:  1.721113089076E-01, f:  2.0000},  # 00192
+ {e:  1.735777100019E-01, f:  2.0000},  # 00193
+ {e:  1.752958845419E-01, f:  2.0000},  # 00194
+ {e:  1.772309634011E-01, f:  2.0000},  # 00195
+ {e:  1.781091149934E-01, f:  2.0000},  # 00196
+ {e:  1.793744187179E-01, f:  2.0000},  # 00197
+ {e:  1.802559260550E-01, f:  2.0000},  # 00198
+ {e:  1.813326716334E-01, f:  2.0000},  # 00199
+ {e:  1.833749229045E-01, f:  2.0000},  # 00200
+ {e:  1.856156359268E-01, f:  2.0000},  # 00201
+ {e:  1.869063723809E-01, f:  2.0000},  # 00202
+ {e:  1.882452328018E-01, f:  2.0000},  # 00203
+ {e:  1.889552360499E-01, f:  2.0000},  # 00204
+ {e:  1.890813390055E-01, f:  2.0000},  # 00205
+ {e:  1.906218129781E-01, f:  2.0000},  # 00206
+ {e:  1.917891352604E-01, f:  2.0000},  # 00207
+ {e:  1.931714000925E-01, f:  2.0000},  # 00208
+ {e:  1.936668016825E-01, f:  2.0000},  # 00209
+ {e:  1.952288610319E-01, f:  2.0000},  # 00210
+ {e:  1.975516300181E-01, f:  2.0000},  # 00211
+ {e:  1.986496388098E-01, f:  2.0000},  # 00212
+ {e:  1.997562859817E-01, f:  2.0000},  # 00213
+ {e:  2.018422982494E-01, f:  2.0000},  # 00214
+ {e:  2.026785689642E-01, f:  2.0000},  # 00215
+ {e:  2.048281958261E-01, f:  2.0000},  # 00216
+ {e:  2.053760792310E-01, f:  2.0000},  # 00217
+ {e:  2.090504058061E-01, f:  2.0000},  # 00218
+ {e:  2.113906787436E-01, f:  2.0000},  # 00219
+ {e:  2.208130239372E-01, f:  2.0000}] # 00220
    Hamiltonian update: {
- Energies: {Ekin:  7.86410141900E+02, Epot: -8.67644415265E+02, Enl:  1.95364219930E+02, 
+ Energies: {Ekin:  7.86410141900E+02, Epot: -8.67644415266E+02, Enl:  1.95364219931E+02, 
               EH: -3.91194519823E+02,  EXC: -2.70405657331E+02, EvXC: -2.96543566312E+02}, 
     Total charge:  4.399984351926E+02, 
- Poisson Solver: {BC: Surface, Box:  [  96,  63,  96 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Surface, Box:  [  96,  63,  96 ], MPI tasks:  8}}
     #================================================================= Input guess generated
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
@@ -1178,13 +1179,13 @@
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  368, 
+ Calculating wavelets expansion of projectors, found warnings:  180, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.00228208660E+02, Epot: -7.49770072479E+02, Enl:  9.81160825174E+01}, 
+ Energies: {Ekin:  9.00228208660E+02, Epot: -7.49770072479E+02, Enl:  9.81160825175E+01}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D: -0.00E+00, 
- iter:  1, fnrm:  6.46E-01, Omega: -6.104171878627606E+02, D: -6.10E+02, D best: -6.10E+02, 
+ iter:  1, fnrm:  6.46E-01, Omega: -6.104171878627836E+02, D: -6.10E+02, D best: -6.10E+02, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, Normalization:  Yes, 
@@ -1194,18 +1195,18 @@
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  368, 
+ Calculating wavelets expansion of projectors, found warnings:  180, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.85490596303E+02, Epot: -7.50187371053E+02, Enl:  9.93916093482E+01}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D:  2.63E-02,         kappa:  3.924E-01, kappa to history:  Yes, 
- iter:  2, fnrm:  2.41E-01, Omega: -6.264738447363179E+02, D: -1.61E+01, D best: -1.61E+01, 
+ iter:  2, fnrm:  2.41E-01, Omega: -6.264738447363316E+02, D: -1.61E+01, D best: -1.61E+01, 
  exit criterion: energy difference}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  8.85490596303E+02, Epot: -7.50187371053E+02, Enl:  9.93916093482E+01}, 
- iter:  2, fnrm:  2.41E-01, Omega: -6.264738447363179E+02, D: -1.61E+01, D best: -1.61E+01}
+ iter:  2, fnrm:  2.41E-01, Omega: -6.264738447363316E+02, D: -1.61E+01, D best: -1.61E+01}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.66E-01,  9.23E-01 ], warnings:  440}
@@ -1227,621 +1228,621 @@
        communication strategy kernel   : ALLREDUCE
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  7.86410141900E+02, Epot: -8.67644415265E+02, Enl:  1.95364219930E+02, 
+ Energies: {Ekin:  7.86410141900E+02, Epot: -8.67644415266E+02, Enl:  1.95364219931E+02, 
               EH: -3.85451347037E+02,  EXC: -2.71726334661E+02, EvXC: -2.98080475734E+02}, 
     Total charge:  4.399987643934E+02, 
- Poisson Solver: {BC: Surface, Box:  [  96,  63,  96 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Surface, Box:  [  96,  63,  96 ], MPI tasks:  8}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -4.742460717721E-01, f:  2.0000},  # 00001
- {e: -4.536520494768E-01, f:  2.0000},  # 00002
- {e: -4.515789119856E-01, f:  2.0000},  # 00003
- {e: -4.435031231894E-01, f:  2.0000},  # 00004
- {e: -4.421769091353E-01, f:  2.0000},  # 00005
- {e: -4.396170660894E-01, f:  2.0000},  # 00006
- {e: -4.362249597680E-01, f:  2.0000},  # 00007
- {e: -4.351685832636E-01, f:  2.0000},  # 00008
- {e: -4.322211452026E-01, f:  2.0000},  # 00009
- {e: -4.311723792455E-01, f:  2.0000},  # 00010
- {e: -4.253530145753E-01, f:  2.0000},  # 00011
- {e: -4.197772958139E-01, f:  2.0000},  # 00012
- {e: -4.172807570678E-01, f:  2.0000},  # 00013
- {e: -4.160526261800E-01, f:  2.0000},  # 00014
- {e: -4.144614152271E-01, f:  2.0000},  # 00015
- {e: -4.131790934605E-01, f:  2.0000},  # 00016
- {e: -4.122193948908E-01, f:  2.0000},  # 00017
- {e: -4.100753328842E-01, f:  2.0000},  # 00018
- {e: -4.088217535847E-01, f:  2.0000},  # 00019
- {e: -4.080874941076E-01, f:  2.0000},  # 00020
- {e: -4.055191990314E-01, f:  2.0000},  # 00021
- {e: -3.982538552913E-01, f:  2.0000},  # 00022
- {e: -3.959400375377E-01, f:  2.0000},  # 00023
- {e: -3.939256610854E-01, f:  2.0000},  # 00024
- {e: -3.926976694612E-01, f:  2.0000},  # 00025
- {e: -3.907996490604E-01, f:  2.0000},  # 00026
- {e: -3.886580475376E-01, f:  2.0000},  # 00027
- {e: -3.875650612555E-01, f:  2.0000},  # 00028
- {e: -3.854818888742E-01, f:  2.0000},  # 00029
- {e: -3.847007104702E-01, f:  2.0000},  # 00030
- {e: -3.838679091345E-01, f:  2.0000},  # 00031
- {e: -3.831526569773E-01, f:  2.0000},  # 00032
- {e: -3.810898395502E-01, f:  2.0000},  # 00033
- {e: -3.791147184972E-01, f:  2.0000},  # 00034
- {e: -3.774004360456E-01, f:  2.0000},  # 00035
- {e: -3.759911959815E-01, f:  2.0000},  # 00036
- {e: -3.743852743139E-01, f:  2.0000},  # 00037
- {e: -3.735965285395E-01, f:  2.0000},  # 00038
- {e: -3.716122107926E-01, f:  2.0000},  # 00039
- {e: -3.705582598273E-01, f:  2.0000},  # 00040
- {e: -3.697909337325E-01, f:  2.0000},  # 00041
- {e: -3.681669825910E-01, f:  2.0000},  # 00042
- {e: -3.671191635411E-01, f:  2.0000},  # 00043
- {e: -3.663520926901E-01, f:  2.0000},  # 00044
- {e: -3.656134565095E-01, f:  2.0000},  # 00045
- {e: -3.645478619323E-01, f:  2.0000},  # 00046
- {e: -3.633158336735E-01, f:  2.0000},  # 00047
- {e: -3.607575319202E-01, f:  2.0000},  # 00048
- {e: -3.590480145443E-01, f:  2.0000},  # 00049
- {e: -3.578183789371E-01, f:  2.0000},  # 00050
- {e: -3.564114671127E-01, f:  2.0000},  # 00051
- {e: -3.555166280190E-01, f:  2.0000},  # 00052
- {e: -3.509968711150E-01, f:  2.0000},  # 00053
- {e: -3.038398303066E-01, f:  2.0000},  # 00054
- {e: -2.818888682457E-01, f:  2.0000},  # 00055
- {e: -1.294517441314E-01, f:  2.0000},  # 00056
- {e: -1.167552864311E-01, f:  2.0000},  # 00057
- {e: -1.146657223084E-01, f:  2.0000},  # 00058
- {e: -1.103329153223E-01, f:  2.0000},  # 00059
- {e: -1.087309589742E-01, f:  2.0000},  # 00060
- {e: -1.060253793957E-01, f:  2.0000},  # 00061
- {e: -1.049214073959E-01, f:  2.0000},  # 00062
- {e: -1.016105620764E-01, f:  2.0000},  # 00063
- {e: -9.973535145636E-02, f:  2.0000},  # 00064
- {e: -9.879532858032E-02, f:  2.0000},  # 00065
- {e: -9.674359314001E-02, f:  2.0000},  # 00066
- {e: -9.527977375830E-02, f:  2.0000},  # 00067
- {e: -9.473826430131E-02, f:  2.0000},  # 00068
- {e: -9.244994316976E-02, f:  2.0000},  # 00069
- {e: -9.040055431803E-02, f:  2.0000},  # 00070
- {e: -8.805633866254E-02, f:  2.0000},  # 00071
- {e: -8.566810478315E-02, f:  2.0000},  # 00072
- {e: -8.375707210728E-02, f:  2.0000},  # 00073
- {e: -8.079040450893E-02, f:  2.0000},  # 00074
- {e: -8.042290588033E-02, f:  2.0000},  # 00075
- {e: -7.831315565679E-02, f:  2.0000},  # 00076
- {e: -7.547936667954E-02, f:  2.0000},  # 00077
- {e: -7.361156639901E-02, f:  2.0000},  # 00078
- {e: -6.967427141888E-02, f:  2.0000},  # 00079
- {e: -6.943890450406E-02, f:  2.0000},  # 00080
- {e: -6.568183228723E-02, f:  2.0000},  # 00081
- {e: -6.444804011107E-02, f:  2.0000},  # 00082
- {e: -6.288700505449E-02, f:  2.0000},  # 00083
- {e: -6.142431476155E-02, f:  2.0000},  # 00084
- {e: -5.989374809655E-02, f:  2.0000},  # 00085
- {e: -5.833472092785E-02, f:  2.0000},  # 00086
- {e: -5.829513450766E-02, f:  2.0000},  # 00087
- {e: -5.561265016179E-02, f:  2.0000},  # 00088
- {e: -4.961311284476E-02, f:  2.0000},  # 00089
- {e: -4.617140156724E-02, f:  2.0000},  # 00090
- {e: -4.490423332562E-02, f:  2.0000},  # 00091
- {e: -4.044361292861E-02, f:  2.0000},  # 00092
- {e: -3.428866711991E-02, f:  2.0000},  # 00093
- {e: -3.352913289349E-02, f:  2.0000},  # 00094
- {e: -2.902413617484E-02, f:  2.0000},  # 00095
- {e: -2.738542665939E-02, f:  2.0000},  # 00096
- {e: -2.519110799619E-02, f:  2.0000},  # 00097
- {e: -2.356678326576E-02, f:  2.0000},  # 00098
- {e: -2.038393846381E-02, f:  2.0000},  # 00099
- {e: -1.776771609294E-02, f:  2.0000},  # 00100
- {e: -1.664018008187E-02, f:  2.0000},  # 00101
- {e: -1.458799703090E-02, f:  2.0000},  # 00102
- {e: -1.432953076679E-02, f:  2.0000},  # 00103
- {e: -1.245657332765E-02, f:  2.0000},  # 00104
- {e: -9.223673694023E-03, f:  2.0000},  # 00105
- {e: -7.613624676030E-03, f:  2.0000},  # 00106
- {e: -6.724484570767E-03, f:  2.0000},  # 00107
- {e: -5.234465299159E-03, f:  2.0000},  # 00108
- {e: -2.484907493253E-03, f:  2.0000},  # 00109
- {e: -9.014184108440E-04, f:  2.0000},  # 00110
- {e:  1.986972238414E-03, f:  2.0000},  # 00111
- {e:  3.074669661324E-03, f:  2.0000},  # 00112
- {e:  5.293725160068E-03, f:  2.0000},  # 00113
- {e:  5.775121705384E-03, f:  2.0000},  # 00114
- {e:  8.114538958682E-03, f:  2.0000},  # 00115
- {e:  1.019628706314E-02, f:  2.0000},  # 00116
- {e:  1.083330146443E-02, f:  2.0000},  # 00117
- {e:  1.161342070767E-02, f:  2.0000},  # 00118
- {e:  1.324404796457E-02, f:  2.0000},  # 00119
- {e:  1.379203339530E-02, f:  2.0000},  # 00120
- {e:  1.557648069631E-02, f:  2.0000},  # 00121
- {e:  1.583891498634E-02, f:  2.0000},  # 00122
- {e:  1.722673789209E-02, f:  2.0000},  # 00123
- {e:  1.829071449231E-02, f:  2.0000},  # 00124
- {e:  2.021915515394E-02, f:  2.0000},  # 00125
- {e:  2.097164016947E-02, f:  2.0000},  # 00126
- {e:  2.147211428623E-02, f:  2.0000},  # 00127
- {e:  2.216520145335E-02, f:  2.0000},  # 00128
- {e:  2.385504754117E-02, f:  2.0000},  # 00129
- {e:  2.539012951480E-02, f:  2.0000},  # 00130
- {e:  2.794345475398E-02, f:  2.0000},  # 00131
- {e:  2.926013643484E-02, f:  2.0000},  # 00132
- {e:  3.253308600589E-02, f:  2.0000},  # 00133
- {e:  3.717255918845E-02, f:  2.0000},  # 00134
- {e:  3.953604520973E-02, f:  2.0000},  # 00135
- {e:  4.405809910270E-02, f:  2.0000},  # 00136
- {e:  4.957935981826E-02, f:  2.0000},  # 00137
- {e:  5.276646315803E-02, f:  2.0000},  # 00138
- {e:  5.400704877305E-02, f:  2.0000},  # 00139
- {e:  5.752875605240E-02, f:  2.0000},  # 00140
- {e:  5.999819240204E-02, f:  2.0000},  # 00141
- {e:  6.105475128026E-02, f:  2.0000},  # 00142
- {e:  6.167401147521E-02, f:  2.0000},  # 00143
- {e:  6.485929211621E-02, f:  2.0000},  # 00144
- {e:  6.684147482107E-02, f:  2.0000},  # 00145
- {e:  6.850062670210E-02, f:  2.0000},  # 00146
- {e:  7.014386069152E-02, f:  2.0000},  # 00147
- {e:  7.353954037022E-02, f:  2.0000},  # 00148
- {e:  8.266374235625E-02, f:  2.0000},  # 00149
- {e:  8.444637359124E-02, f:  2.0000},  # 00150
- {e:  8.659100637175E-02, f:  2.0000},  # 00151
- {e:  8.860117008927E-02, f:  2.0000},  # 00152
- {e:  9.016985198202E-02, f:  2.0000},  # 00153
- {e:  9.562959451046E-02, f:  2.0000},  # 00154
- {e:  9.974416780016E-02, f:  2.0000},  # 00155
- {e:  1.029470337366E-01, f:  2.0000},  # 00156
- {e:  1.052568192906E-01, f:  2.0000},  # 00157
- {e:  1.066952723063E-01, f:  2.0000},  # 00158
- {e:  1.119915632543E-01, f:  2.0000},  # 00159
- {e:  1.126570857361E-01, f:  2.0000},  # 00160
- {e:  1.141342021578E-01, f:  2.0000},  # 00161
- {e:  1.161331219846E-01, f:  2.0000},  # 00162
- {e:  1.234737720751E-01, f:  2.0000},  # 00163
- {e:  1.256924863258E-01, f:  2.0000},  # 00164
- {e:  1.262604998598E-01, f:  2.0000},  # 00165
- {e:  1.284232259383E-01, f:  2.0000},  # 00166
- {e:  1.296030585822E-01, f:  2.0000},  # 00167
- {e:  1.317960613088E-01, f:  2.0000},  # 00168
- {e:  1.327386036364E-01, f:  2.0000},  # 00169
- {e:  1.355102278144E-01, f:  2.0000},  # 00170
- {e:  1.381198495601E-01, f:  2.0000},  # 00171
- {e:  1.392005908457E-01, f:  2.0000},  # 00172
- {e:  1.469981504682E-01, f:  2.0000},  # 00173
- {e:  1.487227238506E-01, f:  2.0000},  # 00174
- {e:  1.542578646114E-01, f:  2.0000},  # 00175
- {e:  1.554002358617E-01, f:  2.0000},  # 00176
- {e:  1.567632849212E-01, f:  2.0000},  # 00177
- {e:  1.587935957223E-01, f:  2.0000},  # 00178
- {e:  1.632468965680E-01, f:  2.0000},  # 00179
- {e:  1.646349892820E-01, f:  2.0000},  # 00180
- {e:  1.657277832689E-01, f:  2.0000},  # 00181
- {e:  1.670958616073E-01, f:  2.0000},  # 00182
- {e:  1.671565226533E-01, f:  2.0000},  # 00183
- {e:  1.714674137507E-01, f:  2.0000},  # 00184
- {e:  1.778292686959E-01, f:  2.0000},  # 00185
- {e:  1.854518385439E-01, f:  2.0000},  # 00186
- {e:  1.855532699154E-01, f:  2.0000},  # 00187
- {e:  1.863004479920E-01, f:  2.0000},  # 00188
- {e:  1.878349112646E-01, f:  2.0000},  # 00189
- {e:  1.896712362375E-01, f:  2.0000},  # 00190
- {e:  1.906347751010E-01, f:  2.0000},  # 00191
- {e:  1.923961171739E-01, f:  2.0000},  # 00192
- {e:  1.947892267766E-01, f:  2.0000},  # 00193
- {e:  1.969980524256E-01, f:  2.0000},  # 00194
- {e:  1.981818011165E-01, f:  2.0000},  # 00195
- {e:  1.985396704171E-01, f:  2.0000},  # 00196
- {e:  2.013714234415E-01, f:  2.0000},  # 00197
- {e:  2.026887861629E-01, f:  2.0000},  # 00198
- {e:  2.041553908602E-01, f:  2.0000},  # 00199
- {e:  2.071306402718E-01, f:  2.0000},  # 00200
- {e:  2.081417949433E-01, f:  2.0000},  # 00201
- {e:  2.105261749935E-01, f:  2.0000},  # 00202
- {e:  2.110412743140E-01, f:  2.0000},  # 00203
- {e:  2.139726493347E-01, f:  2.0000},  # 00204
- {e:  2.143955488014E-01, f:  2.0000},  # 00205
- {e:  2.157935645577E-01, f:  2.0000},  # 00206
- {e:  2.180377036600E-01, f:  2.0000},  # 00207
- {e:  2.182652953362E-01, f:  2.0000},  # 00208
- {e:  2.189869368581E-01, f:  2.0000},  # 00209
- {e:  2.208498075515E-01, f:  2.0000},  # 00210
- {e:  2.237416985204E-01, f:  2.0000},  # 00211
- {e:  2.248925757680E-01, f:  2.0000},  # 00212
- {e:  2.267271568309E-01, f:  2.0000},  # 00213
- {e:  2.293767208830E-01, f:  2.0000},  # 00214
- {e:  2.320702496637E-01, f:  2.0000},  # 00215
- {e:  2.343238812232E-01, f:  2.0000},  # 00216
- {e:  2.385941919639E-01, f:  2.0000},  # 00217
- {e:  2.674265688564E-01, f:  2.0000},  # 00218
- {e:  2.787967966538E-01, f:  2.0000},  # 00219
- {e:  2.838337883061E-01, f:  2.0000}] # 00220
+ {e: -4.742460717724E-01, f:  2.0000},  # 00001
+ {e: -4.536520494771E-01, f:  2.0000},  # 00002
+ {e: -4.515789119859E-01, f:  2.0000},  # 00003
+ {e: -4.435031231897E-01, f:  2.0000},  # 00004
+ {e: -4.421769091356E-01, f:  2.0000},  # 00005
+ {e: -4.396170660897E-01, f:  2.0000},  # 00006
+ {e: -4.362249597683E-01, f:  2.0000},  # 00007
+ {e: -4.351685832639E-01, f:  2.0000},  # 00008
+ {e: -4.322211452029E-01, f:  2.0000},  # 00009
+ {e: -4.311723792459E-01, f:  2.0000},  # 00010
+ {e: -4.253530145756E-01, f:  2.0000},  # 00011
+ {e: -4.197772958142E-01, f:  2.0000},  # 00012
+ {e: -4.172807570681E-01, f:  2.0000},  # 00013
+ {e: -4.160526261804E-01, f:  2.0000},  # 00014
+ {e: -4.144614152274E-01, f:  2.0000},  # 00015
+ {e: -4.131790934609E-01, f:  2.0000},  # 00016
+ {e: -4.122193948912E-01, f:  2.0000},  # 00017
+ {e: -4.100753328845E-01, f:  2.0000},  # 00018
+ {e: -4.088217535850E-01, f:  2.0000},  # 00019
+ {e: -4.080874941079E-01, f:  2.0000},  # 00020
+ {e: -4.055191990318E-01, f:  2.0000},  # 00021
+ {e: -3.982538552916E-01, f:  2.0000},  # 00022
+ {e: -3.959400375381E-01, f:  2.0000},  # 00023
+ {e: -3.939256610857E-01, f:  2.0000},  # 00024
+ {e: -3.926976694615E-01, f:  2.0000},  # 00025
+ {e: -3.907996490608E-01, f:  2.0000},  # 00026
+ {e: -3.886580475380E-01, f:  2.0000},  # 00027
+ {e: -3.875650612558E-01, f:  2.0000},  # 00028
+ {e: -3.854818888746E-01, f:  2.0000},  # 00029
+ {e: -3.847007104706E-01, f:  2.0000},  # 00030
+ {e: -3.838679091349E-01, f:  2.0000},  # 00031
+ {e: -3.831526569776E-01, f:  2.0000},  # 00032
+ {e: -3.810898395506E-01, f:  2.0000},  # 00033
+ {e: -3.791147184976E-01, f:  2.0000},  # 00034
+ {e: -3.774004360459E-01, f:  2.0000},  # 00035
+ {e: -3.759911959819E-01, f:  2.0000},  # 00036
+ {e: -3.743852743142E-01, f:  2.0000},  # 00037
+ {e: -3.735965285398E-01, f:  2.0000},  # 00038
+ {e: -3.716122107930E-01, f:  2.0000},  # 00039
+ {e: -3.705582598277E-01, f:  2.0000},  # 00040
+ {e: -3.697909337329E-01, f:  2.0000},  # 00041
+ {e: -3.681669825914E-01, f:  2.0000},  # 00042
+ {e: -3.671191635415E-01, f:  2.0000},  # 00043
+ {e: -3.663520926905E-01, f:  2.0000},  # 00044
+ {e: -3.656134565099E-01, f:  2.0000},  # 00045
+ {e: -3.645478619327E-01, f:  2.0000},  # 00046
+ {e: -3.633158336738E-01, f:  2.0000},  # 00047
+ {e: -3.607575319205E-01, f:  2.0000},  # 00048
+ {e: -3.590480145447E-01, f:  2.0000},  # 00049
+ {e: -3.578183789375E-01, f:  2.0000},  # 00050
+ {e: -3.564114671131E-01, f:  2.0000},  # 00051
+ {e: -3.555166280193E-01, f:  2.0000},  # 00052
+ {e: -3.509968711154E-01, f:  2.0000},  # 00053
+ {e: -3.038398303070E-01, f:  2.0000},  # 00054
+ {e: -2.818888682460E-01, f:  2.0000},  # 00055
+ {e: -1.294517441318E-01, f:  2.0000},  # 00056
+ {e: -1.167552864314E-01, f:  2.0000},  # 00057
+ {e: -1.146657223087E-01, f:  2.0000},  # 00058
+ {e: -1.103329153227E-01, f:  2.0000},  # 00059
+ {e: -1.087309589745E-01, f:  2.0000},  # 00060
+ {e: -1.060253793960E-01, f:  2.0000},  # 00061
+ {e: -1.049214073962E-01, f:  2.0000},  # 00062
+ {e: -1.016105620767E-01, f:  2.0000},  # 00063
+ {e: -9.973535145666E-02, f:  2.0000},  # 00064
+ {e: -9.879532858062E-02, f:  2.0000},  # 00065
+ {e: -9.674359314032E-02, f:  2.0000},  # 00066
+ {e: -9.527977375861E-02, f:  2.0000},  # 00067
+ {e: -9.473826430162E-02, f:  2.0000},  # 00068
+ {e: -9.244994317006E-02, f:  2.0000},  # 00069
+ {e: -9.040055431833E-02, f:  2.0000},  # 00070
+ {e: -8.805633866285E-02, f:  2.0000},  # 00071
+ {e: -8.566810478346E-02, f:  2.0000},  # 00072
+ {e: -8.375707210758E-02, f:  2.0000},  # 00073
+ {e: -8.079040450924E-02, f:  2.0000},  # 00074
+ {e: -8.042290588063E-02, f:  2.0000},  # 00075
+ {e: -7.831315565710E-02, f:  2.0000},  # 00076
+ {e: -7.547936667985E-02, f:  2.0000},  # 00077
+ {e: -7.361156639933E-02, f:  2.0000},  # 00078
+ {e: -6.967427141919E-02, f:  2.0000},  # 00079
+ {e: -6.943890450437E-02, f:  2.0000},  # 00080
+ {e: -6.568183228755E-02, f:  2.0000},  # 00081
+ {e: -6.444804011138E-02, f:  2.0000},  # 00082
+ {e: -6.288700505481E-02, f:  2.0000},  # 00083
+ {e: -6.142431476187E-02, f:  2.0000},  # 00084
+ {e: -5.989374809687E-02, f:  2.0000},  # 00085
+ {e: -5.833472092817E-02, f:  2.0000},  # 00086
+ {e: -5.829513450798E-02, f:  2.0000},  # 00087
+ {e: -5.561265016211E-02, f:  2.0000},  # 00088
+ {e: -4.961311284510E-02, f:  2.0000},  # 00089
+ {e: -4.617140156756E-02, f:  2.0000},  # 00090
+ {e: -4.490423332595E-02, f:  2.0000},  # 00091
+ {e: -4.044361292894E-02, f:  2.0000},  # 00092
+ {e: -3.428866712024E-02, f:  2.0000},  # 00093
+ {e: -3.352913289383E-02, f:  2.0000},  # 00094
+ {e: -2.902413617517E-02, f:  2.0000},  # 00095
+ {e: -2.738542665972E-02, f:  2.0000},  # 00096
+ {e: -2.519110799653E-02, f:  2.0000},  # 00097
+ {e: -2.356678326610E-02, f:  2.0000},  # 00098
+ {e: -2.038393846414E-02, f:  2.0000},  # 00099
+ {e: -1.776771609327E-02, f:  2.0000},  # 00100
+ {e: -1.664018008220E-02, f:  2.0000},  # 00101
+ {e: -1.458799703124E-02, f:  2.0000},  # 00102
+ {e: -1.432953076713E-02, f:  2.0000},  # 00103
+ {e: -1.245657332799E-02, f:  2.0000},  # 00104
+ {e: -9.223673694361E-03, f:  2.0000},  # 00105
+ {e: -7.613624676367E-03, f:  2.0000},  # 00106
+ {e: -6.724484571112E-03, f:  2.0000},  # 00107
+ {e: -5.234465299497E-03, f:  2.0000},  # 00108
+ {e: -2.484907493591E-03, f:  2.0000},  # 00109
+ {e: -9.014184111822E-04, f:  2.0000},  # 00110
+ {e:  1.986972238073E-03, f:  2.0000},  # 00111
+ {e:  3.074669660976E-03, f:  2.0000},  # 00112
+ {e:  5.293725159729E-03, f:  2.0000},  # 00113
+ {e:  5.775121705045E-03, f:  2.0000},  # 00114
+ {e:  8.114538958341E-03, f:  2.0000},  # 00115
+ {e:  1.019628706280E-02, f:  2.0000},  # 00116
+ {e:  1.083330146409E-02, f:  2.0000},  # 00117
+ {e:  1.161342070733E-02, f:  2.0000},  # 00118
+ {e:  1.324404796423E-02, f:  2.0000},  # 00119
+ {e:  1.379203339496E-02, f:  2.0000},  # 00120
+ {e:  1.557648069598E-02, f:  2.0000},  # 00121
+ {e:  1.583891498599E-02, f:  2.0000},  # 00122
+ {e:  1.722673789175E-02, f:  2.0000},  # 00123
+ {e:  1.829071449197E-02, f:  2.0000},  # 00124
+ {e:  2.021915515360E-02, f:  2.0000},  # 00125
+ {e:  2.097164016912E-02, f:  2.0000},  # 00126
+ {e:  2.147211428588E-02, f:  2.0000},  # 00127
+ {e:  2.216520145301E-02, f:  2.0000},  # 00128
+ {e:  2.385504754083E-02, f:  2.0000},  # 00129
+ {e:  2.539012951446E-02, f:  2.0000},  # 00130
+ {e:  2.794345475363E-02, f:  2.0000},  # 00131
+ {e:  2.926013643449E-02, f:  2.0000},  # 00132
+ {e:  3.253308600555E-02, f:  2.0000},  # 00133
+ {e:  3.717255918810E-02, f:  2.0000},  # 00134
+ {e:  3.953604520938E-02, f:  2.0000},  # 00135
+ {e:  4.405809910236E-02, f:  2.0000},  # 00136
+ {e:  4.957935981791E-02, f:  2.0000},  # 00137
+ {e:  5.276646315768E-02, f:  2.0000},  # 00138
+ {e:  5.400704877270E-02, f:  2.0000},  # 00139
+ {e:  5.752875605205E-02, f:  2.0000},  # 00140
+ {e:  5.999819240169E-02, f:  2.0000},  # 00141
+ {e:  6.105475127991E-02, f:  2.0000},  # 00142
+ {e:  6.167401147486E-02, f:  2.0000},  # 00143
+ {e:  6.485929211585E-02, f:  2.0000},  # 00144
+ {e:  6.684147482073E-02, f:  2.0000},  # 00145
+ {e:  6.850062670175E-02, f:  2.0000},  # 00146
+ {e:  7.014386069117E-02, f:  2.0000},  # 00147
+ {e:  7.353954036987E-02, f:  2.0000},  # 00148
+ {e:  8.266374235590E-02, f:  2.0000},  # 00149
+ {e:  8.444637359089E-02, f:  2.0000},  # 00150
+ {e:  8.659100637138E-02, f:  2.0000},  # 00151
+ {e:  8.860117008892E-02, f:  2.0000},  # 00152
+ {e:  9.016985198166E-02, f:  2.0000},  # 00153
+ {e:  9.562959451010E-02, f:  2.0000},  # 00154
+ {e:  9.974416779979E-02, f:  2.0000},  # 00155
+ {e:  1.029470337363E-01, f:  2.0000},  # 00156
+ {e:  1.052568192903E-01, f:  2.0000},  # 00157
+ {e:  1.066952723059E-01, f:  2.0000},  # 00158
+ {e:  1.119915632539E-01, f:  2.0000},  # 00159
+ {e:  1.126570857357E-01, f:  2.0000},  # 00160
+ {e:  1.141342021574E-01, f:  2.0000},  # 00161
+ {e:  1.161331219842E-01, f:  2.0000},  # 00162
+ {e:  1.234737720748E-01, f:  2.0000},  # 00163
+ {e:  1.256924863254E-01, f:  2.0000},  # 00164
+ {e:  1.262604998594E-01, f:  2.0000},  # 00165
+ {e:  1.284232259379E-01, f:  2.0000},  # 00166
+ {e:  1.296030585818E-01, f:  2.0000},  # 00167
+ {e:  1.317960613084E-01, f:  2.0000},  # 00168
+ {e:  1.327386036361E-01, f:  2.0000},  # 00169
+ {e:  1.355102278140E-01, f:  2.0000},  # 00170
+ {e:  1.381198495597E-01, f:  2.0000},  # 00171
+ {e:  1.392005908453E-01, f:  2.0000},  # 00172
+ {e:  1.469981504678E-01, f:  2.0000},  # 00173
+ {e:  1.487227238503E-01, f:  2.0000},  # 00174
+ {e:  1.542578646110E-01, f:  2.0000},  # 00175
+ {e:  1.554002358613E-01, f:  2.0000},  # 00176
+ {e:  1.567632849208E-01, f:  2.0000},  # 00177
+ {e:  1.587935957219E-01, f:  2.0000},  # 00178
+ {e:  1.632468965676E-01, f:  2.0000},  # 00179
+ {e:  1.646349892816E-01, f:  2.0000},  # 00180
+ {e:  1.657277832685E-01, f:  2.0000},  # 00181
+ {e:  1.670958616069E-01, f:  2.0000},  # 00182
+ {e:  1.671565226529E-01, f:  2.0000},  # 00183
+ {e:  1.714674137503E-01, f:  2.0000},  # 00184
+ {e:  1.778292686955E-01, f:  2.0000},  # 00185
+ {e:  1.854518385434E-01, f:  2.0000},  # 00186
+ {e:  1.855532699150E-01, f:  2.0000},  # 00187
+ {e:  1.863004479916E-01, f:  2.0000},  # 00188
+ {e:  1.878349112642E-01, f:  2.0000},  # 00189
+ {e:  1.896712362371E-01, f:  2.0000},  # 00190
+ {e:  1.906347751005E-01, f:  2.0000},  # 00191
+ {e:  1.923961171735E-01, f:  2.0000},  # 00192
+ {e:  1.947892267762E-01, f:  2.0000},  # 00193
+ {e:  1.969980524252E-01, f:  2.0000},  # 00194
+ {e:  1.981818011161E-01, f:  2.0000},  # 00195
+ {e:  1.985396704167E-01, f:  2.0000},  # 00196
+ {e:  2.013714234411E-01, f:  2.0000},  # 00197
+ {e:  2.026887861624E-01, f:  2.0000},  # 00198
+ {e:  2.041553908598E-01, f:  2.0000},  # 00199
+ {e:  2.071306402714E-01, f:  2.0000},  # 00200
+ {e:  2.081417949429E-01, f:  2.0000},  # 00201
+ {e:  2.105261749930E-01, f:  2.0000},  # 00202
+ {e:  2.110412743136E-01, f:  2.0000},  # 00203
+ {e:  2.139726493342E-01, f:  2.0000},  # 00204
+ {e:  2.143955488010E-01, f:  2.0000},  # 00205
+ {e:  2.157935645573E-01, f:  2.0000},  # 00206
+ {e:  2.180377036596E-01, f:  2.0000},  # 00207
+ {e:  2.182652953357E-01, f:  2.0000},  # 00208
+ {e:  2.189869368577E-01, f:  2.0000},  # 00209
+ {e:  2.208498075510E-01, f:  2.0000},  # 00210
+ {e:  2.237416985199E-01, f:  2.0000},  # 00211
+ {e:  2.248925757675E-01, f:  2.0000},  # 00212
+ {e:  2.267271568305E-01, f:  2.0000},  # 00213
+ {e:  2.293767208826E-01, f:  2.0000},  # 00214
+ {e:  2.320702496632E-01, f:  2.0000},  # 00215
+ {e:  2.343238812227E-01, f:  2.0000},  # 00216
+ {e:  2.385941919634E-01, f:  2.0000},  # 00217
+ {e:  2.674265688559E-01, f:  2.0000},  # 00218
+ {e:  2.787967966534E-01, f:  2.0000},  # 00219
+ {e:  2.838337883057E-01, f:  2.0000}] # 00220
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  6, conv crit:  2.41E-11, 
- iter:  1, delta:  1.72E-05, energy: -6.90168101974347564E+02, D: -6.902E+02}]
+ iter:  1, delta:  1.72E-05, energy: -6.90168101974368369E+02, D: -6.902E+02}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  6, conv crit:  2.41E-11, 
- iter:  2, delta:  1.72E-05, energy: -6.90168101974347564E+02, D: -6.902E+02}]}
+ iter:  2, delta:  1.72E-05, energy: -6.90168101974368369E+02, D: -6.902E+02}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: HYBRID, mean conf prefac:  5.00E-02, damping:  1.00E+00, 
         iterations to converge support functions:  2, kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  1, delta out:  1.733E-06, energy: -6.90168101974347564E+02, D: -6.902E+02}
+ iter low:  1, delta out:  1.733E-06, energy: -6.90168101974368369E+02, D: -6.902E+02}
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
- {e: -4.742460717721E-01, f:  1.0000},  # 00001
- {e: -4.536520494768E-01, f:  1.0000},  # 00002
- {e: -4.515789119856E-01, f:  1.0000},  # 00003
- {e: -4.435031231894E-01, f:  1.0000},  # 00004
- {e: -4.421769091353E-01, f:  1.0000},  # 00005
- {e: -4.396170660894E-01, f:  1.0000},  # 00006
- {e: -4.362249597680E-01, f:  1.0000},  # 00007
- {e: -4.351685832636E-01, f:  1.0000},  # 00008
- {e: -4.322211452026E-01, f:  1.0000},  # 00009
- {e: -4.311723792455E-01, f:  1.0000},  # 00010
- {e: -4.253530145753E-01, f:  1.0000},  # 00011
- {e: -4.197772958139E-01, f:  1.0000},  # 00012
- {e: -4.172807570678E-01, f:  1.0000},  # 00013
- {e: -4.160526261800E-01, f:  1.0000},  # 00014
- {e: -4.144614152271E-01, f:  1.0000},  # 00015
- {e: -4.131790934605E-01, f:  1.0000},  # 00016
- {e: -4.122193948908E-01, f:  1.0000},  # 00017
- {e: -4.100753328842E-01, f:  1.0000},  # 00018
- {e: -4.088217535847E-01, f:  1.0000},  # 00019
- {e: -4.080874941076E-01, f:  1.0000},  # 00020
- {e: -4.055191990314E-01, f:  1.0000},  # 00021
- {e: -3.982538552913E-01, f:  1.0000},  # 00022
- {e: -3.959400375377E-01, f:  1.0000},  # 00023
- {e: -3.939256610854E-01, f:  1.0000},  # 00024
- {e: -3.926976694612E-01, f:  1.0000},  # 00025
- {e: -3.907996490604E-01, f:  1.0000},  # 00026
- {e: -3.886580475376E-01, f:  1.0000},  # 00027
- {e: -3.875650612555E-01, f:  1.0000},  # 00028
- {e: -3.854818888742E-01, f:  1.0000},  # 00029
- {e: -3.847007104702E-01, f:  1.0000},  # 00030
- {e: -3.838679091345E-01, f:  1.0000},  # 00031
- {e: -3.831526569773E-01, f:  1.0000},  # 00032
- {e: -3.810898395502E-01, f:  1.0000},  # 00033
- {e: -3.791147184972E-01, f:  1.0000},  # 00034
- {e: -3.774004360456E-01, f:  1.0000},  # 00035
- {e: -3.759911959815E-01, f:  1.0000},  # 00036
- {e: -3.743852743139E-01, f:  1.0000},  # 00037
- {e: -3.735965285395E-01, f:  1.0000},  # 00038
- {e: -3.716122107926E-01, f:  1.0000},  # 00039
- {e: -3.705582598273E-01, f:  1.0000},  # 00040
- {e: -3.697909337325E-01, f:  1.0000},  # 00041
- {e: -3.681669825910E-01, f:  1.0000},  # 00042
- {e: -3.671191635411E-01, f:  1.0000},  # 00043
- {e: -3.663520926901E-01, f:  1.0000},  # 00044
- {e: -3.656134565095E-01, f:  1.0000},  # 00045
- {e: -3.645478619323E-01, f:  1.0000},  # 00046
- {e: -3.633158336735E-01, f:  1.0000},  # 00047
- {e: -3.607575319202E-01, f:  1.0000},  # 00048
- {e: -3.590480145443E-01, f:  1.0000},  # 00049
- {e: -3.578183789371E-01, f:  1.0000},  # 00050
- {e: -3.564114671127E-01, f:  1.0000},  # 00051
- {e: -3.555166280190E-01, f:  1.0000},  # 00052
- {e: -3.509968711150E-01, f:  1.0000},  # 00053
- {e: -3.038398303066E-01, f:  1.0000},  # 00054
- {e: -2.818888682457E-01, f:  1.0000},  # 00055
- {e: -1.294517441314E-01, f:  1.0000},  # 00056
- {e: -1.167552864311E-01, f:  1.0000},  # 00057
- {e: -1.146657223084E-01, f:  1.0000},  # 00058
- {e: -1.103329153223E-01, f:  1.0000},  # 00059
- {e: -1.087309589742E-01, f:  1.0000},  # 00060
- {e: -1.060253793957E-01, f:  1.0000},  # 00061
- {e: -1.049214073959E-01, f:  1.0000},  # 00062
- {e: -1.016105620764E-01, f:  1.0000},  # 00063
- {e: -9.973535145636E-02, f:  1.0000},  # 00064
- {e: -9.879532858032E-02, f:  1.0000},  # 00065
- {e: -9.674359314001E-02, f:  1.0000},  # 00066
- {e: -9.527977375830E-02, f:  1.0000},  # 00067
- {e: -9.473826430131E-02, f:  1.0000},  # 00068
- {e: -9.244994316976E-02, f:  1.0000},  # 00069
- {e: -9.040055431803E-02, f:  1.0000},  # 00070
- {e: -8.805633866254E-02, f:  1.0000},  # 00071
- {e: -8.566810478315E-02, f:  1.0000},  # 00072
- {e: -8.375707210728E-02, f:  1.0000},  # 00073
- {e: -8.079040450893E-02, f:  1.0000},  # 00074
- {e: -8.042290588033E-02, f:  1.0000},  # 00075
- {e: -7.831315565679E-02, f:  1.0000},  # 00076
- {e: -7.547936667954E-02, f:  1.0000},  # 00077
- {e: -7.361156639901E-02, f:  1.0000},  # 00078
- {e: -6.967427141888E-02, f:  1.0000},  # 00079
- {e: -6.943890450406E-02, f:  1.0000},  # 00080
- {e: -6.568183228723E-02, f:  1.0000},  # 00081
- {e: -6.444804011107E-02, f:  1.0000},  # 00082
- {e: -6.288700505449E-02, f:  1.0000},  # 00083
- {e: -6.142431476155E-02, f:  1.0000},  # 00084
- {e: -5.989374809655E-02, f:  1.0000},  # 00085
- {e: -5.833472092785E-02, f:  1.0000},  # 00086
- {e: -5.829513450766E-02, f:  1.0000},  # 00087
- {e: -5.561265016179E-02, f:  1.0000},  # 00088
- {e: -4.961311284476E-02, f:  1.0000},  # 00089
- {e: -4.617140156724E-02, f:  1.0000},  # 00090
- {e: -4.490423332562E-02, f:  1.0000},  # 00091
- {e: -4.044361292861E-02, f:  1.0000},  # 00092
- {e: -3.428866711991E-02, f:  1.0000},  # 00093
- {e: -3.352913289349E-02, f:  1.0000},  # 00094
- {e: -2.902413617484E-02, f:  1.0000},  # 00095
- {e: -2.738542665939E-02, f:  1.0000},  # 00096
- {e: -2.519110799619E-02, f:  1.0000},  # 00097
- {e: -2.356678326576E-02, f:  1.0000},  # 00098
- {e: -2.038393846381E-02, f:  1.0000},  # 00099
- {e: -1.776771609294E-02, f:  1.0000},  # 00100
- {e: -1.664018008187E-02, f:  1.0000},  # 00101
- {e: -1.458799703090E-02, f:  1.0000},  # 00102
- {e: -1.432953076679E-02, f:  1.0000},  # 00103
- {e: -1.245657332765E-02, f:  1.0000},  # 00104
- {e: -9.223673694023E-03, f:  1.0000},  # 00105
- {e: -7.613624676030E-03, f:  1.0000},  # 00106
- {e: -6.724484570767E-03, f:  1.0000},  # 00107
- {e: -5.234465299159E-03, f:  1.0000},  # 00108
- {e: -2.484907493253E-03, f:  1.0000},  # 00109
- {e: -9.014184108440E-04, f:  1.0000},  # 00110
- {e:  1.986972238414E-03, f:  1.0000},  # 00111
- {e:  3.074669661324E-03, f:  1.0000},  # 00112
- {e:  5.293725160068E-03, f:  1.0000},  # 00113
- {e:  5.775121705384E-03, f:  1.0000},  # 00114
- {e:  8.114538958682E-03, f:  1.0000},  # 00115
- {e:  1.019628706314E-02, f:  1.0000},  # 00116
- {e:  1.083330146443E-02, f:  1.0000},  # 00117
- {e:  1.161342070767E-02, f:  1.0000},  # 00118
- {e:  1.324404796457E-02, f:  1.0000},  # 00119
- {e:  1.379203339530E-02, f:  1.0000},  # 00120
- {e:  1.557648069631E-02, f:  1.0000},  # 00121
- {e:  1.583891498634E-02, f:  1.0000},  # 00122
- {e:  1.722673789209E-02, f:  1.0000},  # 00123
- {e:  1.829071449231E-02, f:  1.0000},  # 00124
- {e:  2.021915515394E-02, f:  1.0000},  # 00125
- {e:  2.097164016947E-02, f:  1.0000},  # 00126
- {e:  2.147211428623E-02, f:  1.0000},  # 00127
- {e:  2.216520145335E-02, f:  1.0000},  # 00128
- {e:  2.385504754117E-02, f:  1.0000},  # 00129
- {e:  2.539012951480E-02, f:  1.0000},  # 00130
- {e:  2.794345475398E-02, f:  1.0000},  # 00131
- {e:  2.926013643484E-02, f:  1.0000},  # 00132
- {e:  3.253308600589E-02, f:  1.0000},  # 00133
- {e:  3.717255918845E-02, f:  1.0000},  # 00134
- {e:  3.953604520973E-02, f:  1.0000},  # 00135
- {e:  4.405809910270E-02, f:  1.0000},  # 00136
- {e:  4.957935981826E-02, f:  1.0000},  # 00137
- {e:  5.276646315803E-02, f:  1.0000},  # 00138
- {e:  5.400704877305E-02, f:  1.0000},  # 00139
- {e:  5.752875605240E-02, f:  1.0000},  # 00140
- {e:  5.999819240204E-02, f:  1.0000},  # 00141
- {e:  6.105475128026E-02, f:  1.0000},  # 00142
- {e:  6.167401147521E-02, f:  1.0000},  # 00143
- {e:  6.485929211621E-02, f:  1.0000},  # 00144
- {e:  6.684147482107E-02, f:  1.0000},  # 00145
- {e:  6.850062670210E-02, f:  1.0000},  # 00146
- {e:  7.014386069152E-02, f:  1.0000},  # 00147
- {e:  7.353954037022E-02, f:  1.0000},  # 00148
- {e:  8.266374235625E-02, f:  1.0000},  # 00149
- {e:  8.444637359124E-02, f:  1.0000},  # 00150
- {e:  8.659100637175E-02, f:  1.0000},  # 00151
- {e:  8.860117008927E-02, f:  1.0000},  # 00152
- {e:  9.016985198202E-02, f:  1.0000},  # 00153
- {e:  9.562959451046E-02, f:  1.0000},  # 00154
- {e:  9.974416780016E-02, f:  1.0000},  # 00155
- {e:  1.029470337366E-01, f:  1.0000},  # 00156
- {e:  1.052568192906E-01, f:  1.0000},  # 00157
- {e:  1.066952723063E-01, f:  1.0000},  # 00158
- {e:  1.119915632543E-01, f:  1.0000},  # 00159
- {e:  1.126570857361E-01, f:  1.0000},  # 00160
- {e:  1.141342021578E-01, f:  1.0000},  # 00161
- {e:  1.161331219846E-01, f:  1.0000},  # 00162
- {e:  1.234737720751E-01, f:  1.0000},  # 00163
- {e:  1.256924863258E-01, f:  1.0000},  # 00164
- {e:  1.262604998598E-01, f:  1.0000},  # 00165
- {e:  1.284232259383E-01, f:  1.0000},  # 00166
- {e:  1.296030585822E-01, f:  1.0000},  # 00167
- {e:  1.317960613088E-01, f:  1.0000},  # 00168
- {e:  1.327386036364E-01, f:  1.0000},  # 00169
- {e:  1.355102278144E-01, f:  1.0000},  # 00170
- {e:  1.381198495601E-01, f:  1.0000},  # 00171
- {e:  1.392005908457E-01, f:  1.0000},  # 00172
- {e:  1.469981504682E-01, f:  1.0000},  # 00173
- {e:  1.487227238506E-01, f:  1.0000},  # 00174
- {e:  1.542578646114E-01, f:  1.0000},  # 00175
- {e:  1.554002358617E-01, f:  1.0000},  # 00176
- {e:  1.567632849212E-01, f:  1.0000},  # 00177
- {e:  1.587935957223E-01, f:  1.0000},  # 00178
- {e:  1.632468965680E-01, f:  1.0000},  # 00179
- {e:  1.646349892820E-01, f:  1.0000},  # 00180
- {e:  1.657277832689E-01, f:  1.0000},  # 00181
- {e:  1.670958616073E-01, f:  1.0000},  # 00182
- {e:  1.671565226533E-01, f:  1.0000},  # 00183
- {e:  1.714674137507E-01, f:  1.0000},  # 00184
- {e:  1.778292686959E-01, f:  1.0000},  # 00185
- {e:  1.854518385439E-01, f:  1.0000},  # 00186
- {e:  1.855532699154E-01, f:  1.0000},  # 00187
- {e:  1.863004479920E-01, f:  1.0000},  # 00188
- {e:  1.878349112646E-01, f:  1.0000},  # 00189
- {e:  1.896712362375E-01, f:  1.0000},  # 00190
- {e:  1.906347751010E-01, f:  1.0000},  # 00191
- {e:  1.923961171739E-01, f:  1.0000},  # 00192
- {e:  1.947892267766E-01, f:  1.0000},  # 00193
- {e:  1.969980524256E-01, f:  1.0000},  # 00194
- {e:  1.981818011165E-01, f:  1.0000},  # 00195
- {e:  1.985396704171E-01, f:  1.0000},  # 00196
- {e:  2.013714234415E-01, f:  1.0000},  # 00197
- {e:  2.026887861629E-01, f:  1.0000},  # 00198
- {e:  2.041553908602E-01, f:  1.0000},  # 00199
- {e:  2.071306402718E-01, f:  1.0000},  # 00200
- {e:  2.081417949433E-01, f:  1.0000},  # 00201
- {e:  2.105261749935E-01, f:  1.0000},  # 00202
- {e:  2.110412743140E-01, f:  1.0000},  # 00203
- {e:  2.139726493347E-01, f:  1.0000},  # 00204
- {e:  2.143955488014E-01, f:  1.0000},  # 00205
- {e:  2.157935645577E-01, f:  1.0000},  # 00206
- {e:  2.180377036600E-01, f:  1.0000},  # 00207
- {e:  2.182652953362E-01, f:  1.0000},  # 00208
- {e:  2.189869368581E-01, f:  1.0000},  # 00209
- {e:  2.208498075515E-01, f:  1.0000},  # 00210
- {e:  2.237416985204E-01, f:  1.0000},  # 00211
- {e:  2.248925757680E-01, f:  1.0000},  # 00212
- {e:  2.267271568309E-01, f:  1.0000},  # 00213
- {e:  2.293767208830E-01, f:  1.0000},  # 00214
- {e:  2.320702496637E-01, f:  1.0000},  # 00215
- {e:  2.343238812232E-01, f:  1.0000},  # 00216
- {e:  2.385941919639E-01, f:  1.0000},  # 00217
- {e:  2.674265688564E-01, f:  1.0000},  # 00218
- {e:  2.787967966538E-01, f:  1.0000},  # 00219
- {e:  2.838337883061E-01, f:  1.0000},  # 00220
- {e:  3.461241769706E-01, f:  1.0000},  # 00221
- {e:  4.341622329757E-01, f:  1.0000},  # 00222
- {e:  4.861454220445E-01, f:  1.0000},  # 00223
- {e:  5.070790539674E-01, f:  1.0000},  # 00224
- {e:  5.075792213514E-01, f:  1.0000},  # 00225
+ {e: -4.742460717724E-01, f:  1.0000},  # 00001
+ {e: -4.536520494771E-01, f:  1.0000},  # 00002
+ {e: -4.515789119859E-01, f:  1.0000},  # 00003
+ {e: -4.435031231897E-01, f:  1.0000},  # 00004
+ {e: -4.421769091356E-01, f:  1.0000},  # 00005
+ {e: -4.396170660897E-01, f:  1.0000},  # 00006
+ {e: -4.362249597683E-01, f:  1.0000},  # 00007
+ {e: -4.351685832639E-01, f:  1.0000},  # 00008
+ {e: -4.322211452029E-01, f:  1.0000},  # 00009
+ {e: -4.311723792459E-01, f:  1.0000},  # 00010
+ {e: -4.253530145756E-01, f:  1.0000},  # 00011
+ {e: -4.197772958142E-01, f:  1.0000},  # 00012
+ {e: -4.172807570681E-01, f:  1.0000},  # 00013
+ {e: -4.160526261804E-01, f:  1.0000},  # 00014
+ {e: -4.144614152274E-01, f:  1.0000},  # 00015
+ {e: -4.131790934609E-01, f:  1.0000},  # 00016
+ {e: -4.122193948912E-01, f:  1.0000},  # 00017
+ {e: -4.100753328845E-01, f:  1.0000},  # 00018
+ {e: -4.088217535850E-01, f:  1.0000},  # 00019
+ {e: -4.080874941079E-01, f:  1.0000},  # 00020
+ {e: -4.055191990318E-01, f:  1.0000},  # 00021
+ {e: -3.982538552916E-01, f:  1.0000},  # 00022
+ {e: -3.959400375381E-01, f:  1.0000},  # 00023
+ {e: -3.939256610857E-01, f:  1.0000},  # 00024
+ {e: -3.926976694615E-01, f:  1.0000},  # 00025
+ {e: -3.907996490608E-01, f:  1.0000},  # 00026
+ {e: -3.886580475380E-01, f:  1.0000},  # 00027
+ {e: -3.875650612558E-01, f:  1.0000},  # 00028
+ {e: -3.854818888746E-01, f:  1.0000},  # 00029
+ {e: -3.847007104706E-01, f:  1.0000},  # 00030
+ {e: -3.838679091349E-01, f:  1.0000},  # 00031
+ {e: -3.831526569776E-01, f:  1.0000},  # 00032
+ {e: -3.810898395506E-01, f:  1.0000},  # 00033
+ {e: -3.791147184976E-01, f:  1.0000},  # 00034
+ {e: -3.774004360459E-01, f:  1.0000},  # 00035
+ {e: -3.759911959819E-01, f:  1.0000},  # 00036
+ {e: -3.743852743142E-01, f:  1.0000},  # 00037
+ {e: -3.735965285398E-01, f:  1.0000},  # 00038
+ {e: -3.716122107930E-01, f:  1.0000},  # 00039
+ {e: -3.705582598277E-01, f:  1.0000},  # 00040
+ {e: -3.697909337329E-01, f:  1.0000},  # 00041
+ {e: -3.681669825914E-01, f:  1.0000},  # 00042
+ {e: -3.671191635415E-01, f:  1.0000},  # 00043
+ {e: -3.663520926905E-01, f:  1.0000},  # 00044
+ {e: -3.656134565099E-01, f:  1.0000},  # 00045
+ {e: -3.645478619327E-01, f:  1.0000},  # 00046
+ {e: -3.633158336738E-01, f:  1.0000},  # 00047
+ {e: -3.607575319205E-01, f:  1.0000},  # 00048
+ {e: -3.590480145447E-01, f:  1.0000},  # 00049
+ {e: -3.578183789375E-01, f:  1.0000},  # 00050
+ {e: -3.564114671131E-01, f:  1.0000},  # 00051
+ {e: -3.555166280193E-01, f:  1.0000},  # 00052
+ {e: -3.509968711154E-01, f:  1.0000},  # 00053
+ {e: -3.038398303070E-01, f:  1.0000},  # 00054
+ {e: -2.818888682460E-01, f:  1.0000},  # 00055
+ {e: -1.294517441318E-01, f:  1.0000},  # 00056
+ {e: -1.167552864314E-01, f:  1.0000},  # 00057
+ {e: -1.146657223087E-01, f:  1.0000},  # 00058
+ {e: -1.103329153227E-01, f:  1.0000},  # 00059
+ {e: -1.087309589745E-01, f:  1.0000},  # 00060
+ {e: -1.060253793960E-01, f:  1.0000},  # 00061
+ {e: -1.049214073962E-01, f:  1.0000},  # 00062
+ {e: -1.016105620767E-01, f:  1.0000},  # 00063
+ {e: -9.973535145666E-02, f:  1.0000},  # 00064
+ {e: -9.879532858062E-02, f:  1.0000},  # 00065
+ {e: -9.674359314032E-02, f:  1.0000},  # 00066
+ {e: -9.527977375861E-02, f:  1.0000},  # 00067
+ {e: -9.473826430162E-02, f:  1.0000},  # 00068
+ {e: -9.244994317006E-02, f:  1.0000},  # 00069
+ {e: -9.040055431833E-02, f:  1.0000},  # 00070
+ {e: -8.805633866285E-02, f:  1.0000},  # 00071
+ {e: -8.566810478346E-02, f:  1.0000},  # 00072
+ {e: -8.375707210758E-02, f:  1.0000},  # 00073
+ {e: -8.079040450924E-02, f:  1.0000},  # 00074
+ {e: -8.042290588063E-02, f:  1.0000},  # 00075
+ {e: -7.831315565710E-02, f:  1.0000},  # 00076
+ {e: -7.547936667985E-02, f:  1.0000},  # 00077
+ {e: -7.361156639933E-02, f:  1.0000},  # 00078
+ {e: -6.967427141919E-02, f:  1.0000},  # 00079
+ {e: -6.943890450437E-02, f:  1.0000},  # 00080
+ {e: -6.568183228755E-02, f:  1.0000},  # 00081
+ {e: -6.444804011138E-02, f:  1.0000},  # 00082
+ {e: -6.288700505481E-02, f:  1.0000},  # 00083
+ {e: -6.142431476187E-02, f:  1.0000},  # 00084
+ {e: -5.989374809687E-02, f:  1.0000},  # 00085
+ {e: -5.833472092817E-02, f:  1.0000},  # 00086
+ {e: -5.829513450798E-02, f:  1.0000},  # 00087
+ {e: -5.561265016211E-02, f:  1.0000},  # 00088
+ {e: -4.961311284510E-02, f:  1.0000},  # 00089
+ {e: -4.617140156756E-02, f:  1.0000},  # 00090
+ {e: -4.490423332595E-02, f:  1.0000},  # 00091
+ {e: -4.044361292894E-02, f:  1.0000},  # 00092
+ {e: -3.428866712024E-02, f:  1.0000},  # 00093
+ {e: -3.352913289383E-02, f:  1.0000},  # 00094
+ {e: -2.902413617517E-02, f:  1.0000},  # 00095
+ {e: -2.738542665972E-02, f:  1.0000},  # 00096
+ {e: -2.519110799653E-02, f:  1.0000},  # 00097
+ {e: -2.356678326610E-02, f:  1.0000},  # 00098
+ {e: -2.038393846414E-02, f:  1.0000},  # 00099
+ {e: -1.776771609327E-02, f:  1.0000},  # 00100
+ {e: -1.664018008220E-02, f:  1.0000},  # 00101
+ {e: -1.458799703124E-02, f:  1.0000},  # 00102
+ {e: -1.432953076713E-02, f:  1.0000},  # 00103
+ {e: -1.245657332799E-02, f:  1.0000},  # 00104
+ {e: -9.223673694361E-03, f:  1.0000},  # 00105
+ {e: -7.613624676367E-03, f:  1.0000},  # 00106
+ {e: -6.724484571112E-03, f:  1.0000},  # 00107
+ {e: -5.234465299497E-03, f:  1.0000},  # 00108
+ {e: -2.484907493591E-03, f:  1.0000},  # 00109
+ {e: -9.014184111822E-04, f:  1.0000},  # 00110
+ {e:  1.986972238073E-03, f:  1.0000},  # 00111
+ {e:  3.074669660976E-03, f:  1.0000},  # 00112
+ {e:  5.293725159729E-03, f:  1.0000},  # 00113
+ {e:  5.775121705045E-03, f:  1.0000},  # 00114
+ {e:  8.114538958341E-03, f:  1.0000},  # 00115
+ {e:  1.019628706280E-02, f:  1.0000},  # 00116
+ {e:  1.083330146409E-02, f:  1.0000},  # 00117
+ {e:  1.161342070733E-02, f:  1.0000},  # 00118
+ {e:  1.324404796423E-02, f:  1.0000},  # 00119
+ {e:  1.379203339496E-02, f:  1.0000},  # 00120
+ {e:  1.557648069598E-02, f:  1.0000},  # 00121
+ {e:  1.583891498599E-02, f:  1.0000},  # 00122
+ {e:  1.722673789175E-02, f:  1.0000},  # 00123
+ {e:  1.829071449197E-02, f:  1.0000},  # 00124
+ {e:  2.021915515360E-02, f:  1.0000},  # 00125
+ {e:  2.097164016912E-02, f:  1.0000},  # 00126
+ {e:  2.147211428588E-02, f:  1.0000},  # 00127
+ {e:  2.216520145301E-02, f:  1.0000},  # 00128
+ {e:  2.385504754083E-02, f:  1.0000},  # 00129
+ {e:  2.539012951446E-02, f:  1.0000},  # 00130
+ {e:  2.794345475363E-02, f:  1.0000},  # 00131
+ {e:  2.926013643449E-02, f:  1.0000},  # 00132
+ {e:  3.253308600555E-02, f:  1.0000},  # 00133
+ {e:  3.717255918810E-02, f:  1.0000},  # 00134
+ {e:  3.953604520938E-02, f:  1.0000},  # 00135
+ {e:  4.405809910236E-02, f:  1.0000},  # 00136
+ {e:  4.957935981791E-02, f:  1.0000},  # 00137
+ {e:  5.276646315768E-02, f:  1.0000},  # 00138
+ {e:  5.400704877270E-02, f:  1.0000},  # 00139
+ {e:  5.752875605205E-02, f:  1.0000},  # 00140
+ {e:  5.999819240169E-02, f:  1.0000},  # 00141
+ {e:  6.105475127991E-02, f:  1.0000},  # 00142
+ {e:  6.167401147486E-02, f:  1.0000},  # 00143
+ {e:  6.485929211585E-02, f:  1.0000},  # 00144
+ {e:  6.684147482073E-02, f:  1.0000},  # 00145
+ {e:  6.850062670175E-02, f:  1.0000},  # 00146
+ {e:  7.014386069117E-02, f:  1.0000},  # 00147
+ {e:  7.353954036987E-02, f:  1.0000},  # 00148
+ {e:  8.266374235590E-02, f:  1.0000},  # 00149
+ {e:  8.444637359089E-02, f:  1.0000},  # 00150
+ {e:  8.659100637138E-02, f:  1.0000},  # 00151
+ {e:  8.860117008892E-02, f:  1.0000},  # 00152
+ {e:  9.016985198166E-02, f:  1.0000},  # 00153
+ {e:  9.562959451010E-02, f:  1.0000},  # 00154
+ {e:  9.974416779979E-02, f:  1.0000},  # 00155
+ {e:  1.029470337363E-01, f:  1.0000},  # 00156
+ {e:  1.052568192903E-01, f:  1.0000},  # 00157
+ {e:  1.066952723059E-01, f:  1.0000},  # 00158
+ {e:  1.119915632539E-01, f:  1.0000},  # 00159
+ {e:  1.126570857357E-01, f:  1.0000},  # 00160
+ {e:  1.141342021574E-01, f:  1.0000},  # 00161
+ {e:  1.161331219842E-01, f:  1.0000},  # 00162
+ {e:  1.234737720748E-01, f:  1.0000},  # 00163
+ {e:  1.256924863254E-01, f:  1.0000},  # 00164
+ {e:  1.262604998594E-01, f:  1.0000},  # 00165
+ {e:  1.284232259379E-01, f:  1.0000},  # 00166
+ {e:  1.296030585818E-01, f:  1.0000},  # 00167
+ {e:  1.317960613084E-01, f:  1.0000},  # 00168
+ {e:  1.327386036361E-01, f:  1.0000},  # 00169
+ {e:  1.355102278140E-01, f:  1.0000},  # 00170
+ {e:  1.381198495597E-01, f:  1.0000},  # 00171
+ {e:  1.392005908453E-01, f:  1.0000},  # 00172
+ {e:  1.469981504678E-01, f:  1.0000},  # 00173
+ {e:  1.487227238503E-01, f:  1.0000},  # 00174
+ {e:  1.542578646110E-01, f:  1.0000},  # 00175
+ {e:  1.554002358613E-01, f:  1.0000},  # 00176
+ {e:  1.567632849208E-01, f:  1.0000},  # 00177
+ {e:  1.587935957219E-01, f:  1.0000},  # 00178
+ {e:  1.632468965676E-01, f:  1.0000},  # 00179
+ {e:  1.646349892816E-01, f:  1.0000},  # 00180
+ {e:  1.657277832685E-01, f:  1.0000},  # 00181
+ {e:  1.670958616069E-01, f:  1.0000},  # 00182
+ {e:  1.671565226529E-01, f:  1.0000},  # 00183
+ {e:  1.714674137503E-01, f:  1.0000},  # 00184
+ {e:  1.778292686955E-01, f:  1.0000},  # 00185
+ {e:  1.854518385434E-01, f:  1.0000},  # 00186
+ {e:  1.855532699150E-01, f:  1.0000},  # 00187
+ {e:  1.863004479916E-01, f:  1.0000},  # 00188
+ {e:  1.878349112642E-01, f:  1.0000},  # 00189
+ {e:  1.896712362371E-01, f:  1.0000},  # 00190
+ {e:  1.906347751005E-01, f:  1.0000},  # 00191
+ {e:  1.923961171735E-01, f:  1.0000},  # 00192
+ {e:  1.947892267762E-01, f:  1.0000},  # 00193
+ {e:  1.969980524252E-01, f:  1.0000},  # 00194
+ {e:  1.981818011161E-01, f:  1.0000},  # 00195
+ {e:  1.985396704167E-01, f:  1.0000},  # 00196
+ {e:  2.013714234411E-01, f:  1.0000},  # 00197
+ {e:  2.026887861624E-01, f:  1.0000},  # 00198
+ {e:  2.041553908598E-01, f:  1.0000},  # 00199
+ {e:  2.071306402714E-01, f:  1.0000},  # 00200
+ {e:  2.081417949429E-01, f:  1.0000},  # 00201
+ {e:  2.105261749930E-01, f:  1.0000},  # 00202
+ {e:  2.110412743136E-01, f:  1.0000},  # 00203
+ {e:  2.139726493342E-01, f:  1.0000},  # 00204
+ {e:  2.143955488010E-01, f:  1.0000},  # 00205
+ {e:  2.157935645573E-01, f:  1.0000},  # 00206
+ {e:  2.180377036596E-01, f:  1.0000},  # 00207
+ {e:  2.182652953357E-01, f:  1.0000},  # 00208
+ {e:  2.189869368577E-01, f:  1.0000},  # 00209
+ {e:  2.208498075510E-01, f:  1.0000},  # 00210
+ {e:  2.237416985199E-01, f:  1.0000},  # 00211
+ {e:  2.248925757675E-01, f:  1.0000},  # 00212
+ {e:  2.267271568305E-01, f:  1.0000},  # 00213
+ {e:  2.293767208826E-01, f:  1.0000},  # 00214
+ {e:  2.320702496632E-01, f:  1.0000},  # 00215
+ {e:  2.343238812227E-01, f:  1.0000},  # 00216
+ {e:  2.385941919634E-01, f:  1.0000},  # 00217
+ {e:  2.674265688559E-01, f:  1.0000},  # 00218
+ {e:  2.787967966534E-01, f:  1.0000},  # 00219
+ {e:  2.838337883057E-01, f:  1.0000},  # 00220
+ {e:  3.461241769705E-01, f:  1.0000},  # 00221
+ {e:  4.341622329756E-01, f:  1.0000},  # 00222
+ {e:  4.861454220444E-01, f:  1.0000},  # 00223
+ {e:  5.070790539673E-01, f:  1.0000},  # 00224
+ {e:  5.075792213513E-01, f:  1.0000},  # 00225
  {e:  5.085831604104E-01, f:  1.0000},  # 00226
- {e:  5.144654186676E-01, f:  1.0000},  # 00227
+ {e:  5.144654186675E-01, f:  1.0000},  # 00227
  {e:  5.191252884682E-01, f:  1.0000},  # 00228
- {e:  5.198095783258E-01, f:  1.0000},  # 00229
- {e:  5.213372361553E-01, f:  1.0000},  # 00230
- {e:  5.241483239620E-01, f:  1.0000},  # 00231
- {e:  5.254109657315E-01, f:  1.0000},  # 00232
- {e:  5.273918360809E-01, f:  1.0000},  # 00233
- {e:  5.285086340970E-01, f:  1.0000},  # 00234
- {e:  5.307198795880E-01, f:  1.0000},  # 00235
- {e:  5.311331039621E-01, f:  1.0000},  # 00236
- {e:  5.331909036683E-01, f:  1.0000},  # 00237
- {e:  5.370650334480E-01, f:  1.0000},  # 00238
- {e:  5.372608581119E-01, f:  1.0000},  # 00239
- {e:  5.421039175892E-01, f:  1.0000},  # 00240
- {e:  5.445214623413E-01, f:  1.0000},  # 00241
- {e:  5.465305021023E-01, f:  1.0000},  # 00242
- {e:  5.493143053123E-01, f:  1.0000},  # 00243
- {e:  5.515335940110E-01, f:  1.0000},  # 00244
- {e:  5.528663393343E-01, f:  1.0000},  # 00245
- {e:  5.554201785165E-01, f:  1.0000},  # 00246
- {e:  5.570197888308E-01, f:  1.0000},  # 00247
- {e:  5.579157833838E-01, f:  1.0000},  # 00248
- {e:  5.596518032239E-01, f:  1.0000},  # 00249
- {e:  5.610366368409E-01, f:  1.0000},  # 00250
- {e:  5.618788641086E-01, f:  1.0000},  # 00251
- {e:  5.657917426599E-01, f:  1.0000},  # 00252
- {e:  5.702066475416E-01, f:  1.0000},  # 00253
- {e:  5.710671167580E-01, f:  1.0000},  # 00254
- {e:  5.760528055836E-01, f:  1.0000},  # 00255
- {e:  5.815524608937E-01, f:  1.0000},  # 00256
- {e:  5.940805479759E-01, f:  1.0000},  # 00257
- {e:  5.994411838958E-01, f:  1.0000},  # 00258
- {e:  6.031556066316E-01, f:  1.0000},  # 00259
- {e:  6.043763782127E-01, f:  1.0000},  # 00260
- {e:  6.047094826480E-01, f:  1.0000},  # 00261
- {e:  6.085704523665E-01, f:  1.0000},  # 00262
- {e:  6.094108056203E-01, f:  1.0000},  # 00263
- {e:  6.127064991442E-01, f:  1.0000},  # 00264
- {e:  6.176573419837E-01, f:  1.0000},  # 00265
- {e:  6.186507095522E-01, f:  1.0000},  # 00266
- {e:  6.219891034863E-01, f:  1.0000},  # 00267
- {e:  6.327965803301E-01, f:  1.0000},  # 00268
- {e:  6.433953235008E-01, f:  1.0000},  # 00269
- {e:  6.487850105758E-01, f:  1.0000},  # 00270
- {e:  6.535670522146E-01, f:  1.0000},  # 00271
- {e:  6.576965093844E-01, f:  1.0000},  # 00272
- {e:  6.653864229676E-01, f:  1.0000},  # 00273
- {e:  6.676598791662E-01, f:  1.0000},  # 00274
- {e:  6.737381047653E-01, f:  1.0000},  # 00275
- {e:  6.850894173391E-01, f:  1.0000},  # 00276
- {e:  6.890719184197E-01, f:  1.0000},  # 00277
- {e:  7.003981264219E-01, f:  1.0000},  # 00278
- {e:  7.485342208816E-01, f:  1.0000},  # 00279
- {e:  7.675141723829E-01, f:  1.0000},  # 00280
- {e:  7.756519500177E-01, f:  1.0000},  # 00281
- {e:  7.870360861666E-01, f:  1.0000},  # 00282
- {e:  7.923546752660E-01, f:  1.0000},  # 00283
- {e:  7.947308595438E-01, f:  1.0000},  # 00284
- {e:  7.951951156169E-01, f:  1.0000},  # 00285
- {e:  7.987523971409E-01, f:  1.0000},  # 00286
- {e:  8.001826445047E-01, f:  1.0000},  # 00287
- {e:  8.018235294261E-01, f:  1.0000},  # 00288
- {e:  8.043973391002E-01, f:  1.0000},  # 00289
- {e:  8.074395950700E-01, f:  1.0000},  # 00290
- {e:  8.095457542099E-01, f:  1.0000},  # 00291
- {e:  8.109727902400E-01, f:  1.0000},  # 00292
- {e:  8.120291390282E-01, f:  1.0000},  # 00293
- {e:  8.131548039783E-01, f:  1.0000},  # 00294
- {e:  8.144253853965E-01, f:  1.0000},  # 00295
- {e:  8.162000584770E-01, f:  1.0000},  # 00296
- {e:  8.195737370931E-01, f:  1.0000},  # 00297
- {e:  8.203241569548E-01, f:  1.0000},  # 00298
- {e:  8.215205302594E-01, f:  1.0000},  # 00299
- {e:  8.226690057878E-01, f:  1.0000},  # 00300
- {e:  8.242350679656E-01, f:  1.0000},  # 00301
- {e:  8.263297954289E-01, f:  1.0000},  # 00302
- {e:  8.280380490081E-01, f:  1.0000},  # 00303
- {e:  8.281768427366E-01, f:  1.0000},  # 00304
- {e:  8.308791122585E-01, f:  1.0000},  # 00305
- {e:  8.314343075723E-01, f:  1.0000},  # 00306
- {e:  8.319610467865E-01, f:  1.0000},  # 00307
- {e:  8.353584480733E-01, f:  1.0000},  # 00308
- {e:  8.359620318418E-01, f:  1.0000},  # 00309
- {e:  8.393077979256E-01, f:  1.0000},  # 00310
- {e:  8.398165502704E-01, f:  1.0000},  # 00311
- {e:  8.416096704809E-01, f:  1.0000},  # 00312
- {e:  8.438955910601E-01, f:  1.0000},  # 00313
- {e:  8.457435848458E-01, f:  1.0000},  # 00314
- {e:  8.472195387580E-01, f:  1.0000},  # 00315
- {e:  8.483648939287E-01, f:  1.0000},  # 00316
- {e:  8.501120355358E-01, f:  1.0000},  # 00317
- {e:  8.519485315015E-01, f:  1.0000},  # 00318
- {e:  8.536046008241E-01, f:  1.0000},  # 00319
- {e:  8.547485690974E-01, f:  1.0000},  # 00320
- {e:  8.576876568752E-01, f:  1.0000},  # 00321
- {e:  8.598303512228E-01, f:  1.0000},  # 00322
- {e:  8.625761483686E-01, f:  1.0000},  # 00323
- {e:  8.667717001954E-01, f:  1.0000},  # 00324
- {e:  8.674200302506E-01, f:  1.0000},  # 00325
- {e:  8.704492755927E-01, f:  1.0000},  # 00326
- {e:  8.719689548131E-01, f:  1.0000},  # 00327
- {e:  8.747762088115E-01, f:  1.0000},  # 00328
- {e:  8.772149436540E-01, f:  1.0000},  # 00329
- {e:  8.797813506646E-01, f:  1.0000},  # 00330
- {e:  8.828816748571E-01, f:  1.0000},  # 00331
- {e:  8.860534348855E-01, f:  1.0000},  # 00332
- {e:  8.871089716737E-01, f:  1.0000},  # 00333
- {e:  8.920014500155E-01, f:  1.0000},  # 00334
- {e:  8.953395606338E-01, f:  1.0000},  # 00335
- {e:  8.978535244711E-01, f:  1.0000},  # 00336
- {e:  8.988435374504E-01, f:  1.0000},  # 00337
- {e:  9.024471818590E-01, f:  1.0000},  # 00338
- {e:  9.044356501158E-01, f:  1.0000},  # 00339
- {e:  9.053831778098E-01, f:  1.0000},  # 00340
- {e:  9.073127268326E-01, f:  1.0000},  # 00341
- {e:  9.092014148767E-01, f:  1.0000},  # 00342
- {e:  9.115207388047E-01, f:  1.0000},  # 00343
- {e:  9.135635740706E-01, f:  1.0000},  # 00344
- {e:  9.173928574396E-01, f:  1.0000},  # 00345
- {e:  9.229106140944E-01, f:  1.0000},  # 00346
- {e:  9.253611216853E-01, f:  1.0000},  # 00347
- {e:  9.305184331916E-01, f:  1.0000},  # 00348
- {e:  9.335008923412E-01, f:  1.0000},  # 00349
- {e:  9.351444804559E-01, f:  1.0000},  # 00350
- {e:  9.392539452430E-01, f:  1.0000},  # 00351
- {e:  9.435474055388E-01, f:  1.0000},  # 00352
- {e:  9.445640379944E-01, f:  1.0000},  # 00353
- {e:  9.488011387527E-01, f:  1.0000},  # 00354
- {e:  9.501568390372E-01, f:  1.0000},  # 00355
- {e:  9.517036145269E-01, f:  1.0000},  # 00356
- {e:  9.556592161981E-01, f:  1.0000},  # 00357
- {e:  9.610363062672E-01, f:  1.0000},  # 00358
- {e:  9.624779392168E-01, f:  1.0000},  # 00359
- {e:  9.630068484803E-01, f:  1.0000},  # 00360
- {e:  9.672297858520E-01, f:  1.0000},  # 00361
- {e:  9.689323751573E-01, f:  1.0000},  # 00362
- {e:  9.698280327298E-01, f:  1.0000},  # 00363
- {e:  9.747889635094E-01, f:  1.0000},  # 00364
- {e:  9.779107198413E-01, f:  1.0000},  # 00365
- {e:  9.793120872487E-01, f:  1.0000},  # 00366
- {e:  9.799033694608E-01, f:  1.0000},  # 00367
- {e:  9.838344251666E-01, f:  1.0000},  # 00368
- {e:  9.863505749659E-01, f:  1.0000},  # 00369
- {e:  9.873153017031E-01, f:  1.0000},  # 00370
- {e:  9.912894045241E-01, f:  1.0000},  # 00371
- {e:  9.925018789561E-01, f:  1.0000},  # 00372
- {e:  9.933706319749E-01, f:  1.0000},  # 00373
- {e:  9.936696301300E-01, f:  1.0000},  # 00374
- {e:  9.955019129904E-01, f:  1.0000},  # 00375
- {e:  9.985444267126E-01, f:  1.0000},  # 00376
- {e:  9.996353906426E-01, f:  1.0000},  # 00377
+ {e:  5.198095783257E-01, f:  1.0000},  # 00229
+ {e:  5.213372361552E-01, f:  1.0000},  # 00230
+ {e:  5.241483239619E-01, f:  1.0000},  # 00231
+ {e:  5.254109657314E-01, f:  1.0000},  # 00232
+ {e:  5.273918360808E-01, f:  1.0000},  # 00233
+ {e:  5.285086340969E-01, f:  1.0000},  # 00234
+ {e:  5.307198795879E-01, f:  1.0000},  # 00235
+ {e:  5.311331039620E-01, f:  1.0000},  # 00236
+ {e:  5.331909036682E-01, f:  1.0000},  # 00237
+ {e:  5.370650334479E-01, f:  1.0000},  # 00238
+ {e:  5.372608581118E-01, f:  1.0000},  # 00239
+ {e:  5.421039175891E-01, f:  1.0000},  # 00240
+ {e:  5.445214623412E-01, f:  1.0000},  # 00241
+ {e:  5.465305021022E-01, f:  1.0000},  # 00242
+ {e:  5.493143053122E-01, f:  1.0000},  # 00243
+ {e:  5.515335940108E-01, f:  1.0000},  # 00244
+ {e:  5.528663393342E-01, f:  1.0000},  # 00245
+ {e:  5.554201785164E-01, f:  1.0000},  # 00246
+ {e:  5.570197888306E-01, f:  1.0000},  # 00247
+ {e:  5.579157833837E-01, f:  1.0000},  # 00248
+ {e:  5.596518032237E-01, f:  1.0000},  # 00249
+ {e:  5.610366368408E-01, f:  1.0000},  # 00250
+ {e:  5.618788641084E-01, f:  1.0000},  # 00251
+ {e:  5.657917426597E-01, f:  1.0000},  # 00252
+ {e:  5.702066475414E-01, f:  1.0000},  # 00253
+ {e:  5.710671167578E-01, f:  1.0000},  # 00254
+ {e:  5.760528055834E-01, f:  1.0000},  # 00255
+ {e:  5.815524608935E-01, f:  1.0000},  # 00256
+ {e:  5.940805479757E-01, f:  1.0000},  # 00257
+ {e:  5.994411838957E-01, f:  1.0000},  # 00258
+ {e:  6.031556066314E-01, f:  1.0000},  # 00259
+ {e:  6.043763782126E-01, f:  1.0000},  # 00260
+ {e:  6.047094826479E-01, f:  1.0000},  # 00261
+ {e:  6.085704523664E-01, f:  1.0000},  # 00262
+ {e:  6.094108056201E-01, f:  1.0000},  # 00263
+ {e:  6.127064991440E-01, f:  1.0000},  # 00264
+ {e:  6.176573419836E-01, f:  1.0000},  # 00265
+ {e:  6.186507095520E-01, f:  1.0000},  # 00266
+ {e:  6.219891034862E-01, f:  1.0000},  # 00267
+ {e:  6.327965803299E-01, f:  1.0000},  # 00268
+ {e:  6.433953235007E-01, f:  1.0000},  # 00269
+ {e:  6.487850105757E-01, f:  1.0000},  # 00270
+ {e:  6.535670522144E-01, f:  1.0000},  # 00271
+ {e:  6.576965093843E-01, f:  1.0000},  # 00272
+ {e:  6.653864229674E-01, f:  1.0000},  # 00273
+ {e:  6.676598791660E-01, f:  1.0000},  # 00274
+ {e:  6.737381047652E-01, f:  1.0000},  # 00275
+ {e:  6.850894173389E-01, f:  1.0000},  # 00276
+ {e:  6.890719184195E-01, f:  1.0000},  # 00277
+ {e:  7.003981264217E-01, f:  1.0000},  # 00278
+ {e:  7.485342208813E-01, f:  1.0000},  # 00279
+ {e:  7.675141723826E-01, f:  1.0000},  # 00280
+ {e:  7.756519500174E-01, f:  1.0000},  # 00281
+ {e:  7.870360861663E-01, f:  1.0000},  # 00282
+ {e:  7.923546752657E-01, f:  1.0000},  # 00283
+ {e:  7.947308595435E-01, f:  1.0000},  # 00284
+ {e:  7.951951156166E-01, f:  1.0000},  # 00285
+ {e:  7.987523971406E-01, f:  1.0000},  # 00286
+ {e:  8.001826445044E-01, f:  1.0000},  # 00287
+ {e:  8.018235294258E-01, f:  1.0000},  # 00288
+ {e:  8.043973390999E-01, f:  1.0000},  # 00289
+ {e:  8.074395950697E-01, f:  1.0000},  # 00290
+ {e:  8.095457542096E-01, f:  1.0000},  # 00291
+ {e:  8.109727902397E-01, f:  1.0000},  # 00292
+ {e:  8.120291390278E-01, f:  1.0000},  # 00293
+ {e:  8.131548039779E-01, f:  1.0000},  # 00294
+ {e:  8.144253853962E-01, f:  1.0000},  # 00295
+ {e:  8.162000584767E-01, f:  1.0000},  # 00296
+ {e:  8.195737370928E-01, f:  1.0000},  # 00297
+ {e:  8.203241569544E-01, f:  1.0000},  # 00298
+ {e:  8.215205302591E-01, f:  1.0000},  # 00299
+ {e:  8.226690057874E-01, f:  1.0000},  # 00300
+ {e:  8.242350679653E-01, f:  1.0000},  # 00301
+ {e:  8.263297954286E-01, f:  1.0000},  # 00302
+ {e:  8.280380490078E-01, f:  1.0000},  # 00303
+ {e:  8.281768427362E-01, f:  1.0000},  # 00304
+ {e:  8.308791122581E-01, f:  1.0000},  # 00305
+ {e:  8.314343075720E-01, f:  1.0000},  # 00306
+ {e:  8.319610467861E-01, f:  1.0000},  # 00307
+ {e:  8.353584480730E-01, f:  1.0000},  # 00308
+ {e:  8.359620318414E-01, f:  1.0000},  # 00309
+ {e:  8.393077979253E-01, f:  1.0000},  # 00310
+ {e:  8.398165502701E-01, f:  1.0000},  # 00311
+ {e:  8.416096704806E-01, f:  1.0000},  # 00312
+ {e:  8.438955910597E-01, f:  1.0000},  # 00313
+ {e:  8.457435848455E-01, f:  1.0000},  # 00314
+ {e:  8.472195387576E-01, f:  1.0000},  # 00315
+ {e:  8.483648939284E-01, f:  1.0000},  # 00316
+ {e:  8.501120355354E-01, f:  1.0000},  # 00317
+ {e:  8.519485315012E-01, f:  1.0000},  # 00318
+ {e:  8.536046008238E-01, f:  1.0000},  # 00319
+ {e:  8.547485690971E-01, f:  1.0000},  # 00320
+ {e:  8.576876568748E-01, f:  1.0000},  # 00321
+ {e:  8.598303512225E-01, f:  1.0000},  # 00322
+ {e:  8.625761483683E-01, f:  1.0000},  # 00323
+ {e:  8.667717001951E-01, f:  1.0000},  # 00324
+ {e:  8.674200302502E-01, f:  1.0000},  # 00325
+ {e:  8.704492755924E-01, f:  1.0000},  # 00326
+ {e:  8.719689548127E-01, f:  1.0000},  # 00327
+ {e:  8.747762088112E-01, f:  1.0000},  # 00328
+ {e:  8.772149436536E-01, f:  1.0000},  # 00329
+ {e:  8.797813506643E-01, f:  1.0000},  # 00330
+ {e:  8.828816748568E-01, f:  1.0000},  # 00331
+ {e:  8.860534348852E-01, f:  1.0000},  # 00332
+ {e:  8.871089716734E-01, f:  1.0000},  # 00333
+ {e:  8.920014500151E-01, f:  1.0000},  # 00334
+ {e:  8.953395606334E-01, f:  1.0000},  # 00335
+ {e:  8.978535244707E-01, f:  1.0000},  # 00336
+ {e:  8.988435374501E-01, f:  1.0000},  # 00337
+ {e:  9.024471818587E-01, f:  1.0000},  # 00338
+ {e:  9.044356501155E-01, f:  1.0000},  # 00339
+ {e:  9.053831778094E-01, f:  1.0000},  # 00340
+ {e:  9.073127268323E-01, f:  1.0000},  # 00341
+ {e:  9.092014148764E-01, f:  1.0000},  # 00342
+ {e:  9.115207388044E-01, f:  1.0000},  # 00343
+ {e:  9.135635740703E-01, f:  1.0000},  # 00344
+ {e:  9.173928574392E-01, f:  1.0000},  # 00345
+ {e:  9.229106140941E-01, f:  1.0000},  # 00346
+ {e:  9.253611216850E-01, f:  1.0000},  # 00347
+ {e:  9.305184331913E-01, f:  1.0000},  # 00348
+ {e:  9.335008923409E-01, f:  1.0000},  # 00349
+ {e:  9.351444804556E-01, f:  1.0000},  # 00350
+ {e:  9.392539452426E-01, f:  1.0000},  # 00351
+ {e:  9.435474055384E-01, f:  1.0000},  # 00352
+ {e:  9.445640379941E-01, f:  1.0000},  # 00353
+ {e:  9.488011387524E-01, f:  1.0000},  # 00354
+ {e:  9.501568390370E-01, f:  1.0000},  # 00355
+ {e:  9.517036145266E-01, f:  1.0000},  # 00356
+ {e:  9.556592161978E-01, f:  1.0000},  # 00357
+ {e:  9.610363062669E-01, f:  1.0000},  # 00358
+ {e:  9.624779392165E-01, f:  1.0000},  # 00359
+ {e:  9.630068484800E-01, f:  1.0000},  # 00360
+ {e:  9.672297858516E-01, f:  1.0000},  # 00361
+ {e:  9.689323751570E-01, f:  1.0000},  # 00362
+ {e:  9.698280327295E-01, f:  1.0000},  # 00363
+ {e:  9.747889635091E-01, f:  1.0000},  # 00364
+ {e:  9.779107198410E-01, f:  1.0000},  # 00365
+ {e:  9.793120872484E-01, f:  1.0000},  # 00366
+ {e:  9.799033694605E-01, f:  1.0000},  # 00367
+ {e:  9.838344251662E-01, f:  1.0000},  # 00368
+ {e:  9.863505749656E-01, f:  1.0000},  # 00369
+ {e:  9.873153017028E-01, f:  1.0000},  # 00370
+ {e:  9.912894045238E-01, f:  1.0000},  # 00371
+ {e:  9.925018789557E-01, f:  1.0000},  # 00372
+ {e:  9.933706319745E-01, f:  1.0000},  # 00373
+ {e:  9.936696301297E-01, f:  1.0000},  # 00374
+ {e:  9.955019129901E-01, f:  1.0000},  # 00375
+ {e:  9.985444267123E-01, f:  1.0000},  # 00376
+ {e:  9.996353906422E-01, f:  1.0000},  # 00377
  {e:  1.001804667313E+00, f:  1.0000},  # 00378
  {e:  1.003487116739E+00, f:  1.0000},  # 00379
  {e:  1.004167332405E+00, f:  1.0000},  # 00380
@@ -1852,15 +1853,15 @@
  {e:  1.012792036303E+00, f:  1.0000},  # 00385
  {e:  1.013993127643E+00, f:  1.0000},  # 00386
  {e:  1.016464680959E+00, f:  1.0000},  # 00387
- {e:  1.017609834408E+00, f:  1.0000},  # 00388
- {e:  1.018971070660E+00, f:  1.0000},  # 00389
+ {e:  1.017609834407E+00, f:  1.0000},  # 00388
+ {e:  1.018971070659E+00, f:  1.0000},  # 00389
  {e:  1.020606185470E+00, f:  1.0000},  # 00390
- {e:  1.024683961467E+00, f:  1.0000},  # 00391
- {e:  1.029963405581E+00, f:  1.0000},  # 00392
- {e:  1.033149283137E+00, f:  1.0000},  # 00393
+ {e:  1.024683961466E+00, f:  1.0000},  # 00391
+ {e:  1.029963405580E+00, f:  1.0000},  # 00392
+ {e:  1.033149283136E+00, f:  1.0000},  # 00393
  {e:  1.038024374653E+00, f:  1.0000},  # 00394
  {e:  1.041280057584E+00, f:  1.0000},  # 00395
- {e:  1.043781733497E+00, f:  1.0000},  # 00396
+ {e:  1.043781733496E+00, f:  1.0000},  # 00396
  {e:  1.046962737941E+00, f:  1.0000},  # 00397
  {e:  1.048255856140E+00, f:  1.0000},  # 00398
  {e:  1.055458825542E+00, f:  1.0000},  # 00399
@@ -1868,14 +1869,14 @@
  {e:  1.061954724833E+00, f:  1.0000},  # 00401
  {e:  1.062789989289E+00, f:  1.0000},  # 00402
  {e:  1.068204372341E+00, f:  1.0000},  # 00403
- {e:  1.072180095910E+00, f:  1.0000},  # 00404
+ {e:  1.072180095909E+00, f:  1.0000},  # 00404
  {e:  1.079128713580E+00, f:  1.0000},  # 00405
- {e:  1.080187747793E+00, f:  1.0000},  # 00406
+ {e:  1.080187747792E+00, f:  1.0000},  # 00406
  {e:  1.081244199025E+00, f:  1.0000},  # 00407
  {e:  1.086115600248E+00, f:  1.0000},  # 00408
- {e:  1.089233395708E+00, f:  1.0000},  # 00409
+ {e:  1.089233395707E+00, f:  1.0000},  # 00409
  {e:  1.092802757942E+00, f:  1.0000},  # 00410
- {e:  1.096653574247E+00, f:  1.0000},  # 00411
+ {e:  1.096653574246E+00, f:  1.0000},  # 00411
  {e:  1.100892234029E+00, f:  1.0000},  # 00412
  {e:  1.104875123556E+00, f:  1.0000},  # 00413
  {e:  1.107069993371E+00, f:  1.0000},  # 00414
@@ -1884,23 +1885,23 @@
  {e:  1.117810253561E+00, f:  1.0000},  # 00417
  {e:  1.119499263320E+00, f:  1.0000},  # 00418
  {e:  1.122443926545E+00, f:  1.0000},  # 00419
- {e:  1.125303346604E+00, f:  1.0000},  # 00420
- {e:  1.128702266982E+00, f:  1.0000},  # 00421
- {e:  1.130859081207E+00, f:  1.0000},  # 00422
+ {e:  1.125303346603E+00, f:  1.0000},  # 00420
+ {e:  1.128702266981E+00, f:  1.0000},  # 00421
+ {e:  1.130859081206E+00, f:  1.0000},  # 00422
  {e:  1.132872800029E+00, f:  1.0000},  # 00423
  {e:  1.140698225836E+00, f:  1.0000},  # 00424
- {e:  1.147627965930E+00, f:  1.0000},  # 00425
- {e:  1.151492965803E+00, f:  1.0000},  # 00426
+ {e:  1.147627965929E+00, f:  1.0000},  # 00425
+ {e:  1.151492965802E+00, f:  1.0000},  # 00426
  {e:  1.158648476052E+00, f:  1.0000},  # 00427
  {e:  1.166149439303E+00, f:  1.0000},  # 00428
- {e:  1.168342019491E+00, f:  1.0000},  # 00429
+ {e:  1.168342019490E+00, f:  1.0000},  # 00429
  {e:  1.171830414562E+00, f:  1.0000},  # 00430
- {e:  1.177425043211E+00, f:  1.0000},  # 00431
- {e:  1.178997867148E+00, f:  1.0000},  # 00432
- {e:  1.180393693169E+00, f:  1.0000},  # 00433
- {e:  1.190912921157E+00, f:  1.0000},  # 00434
- {e:  1.199412430364E+00, f:  1.0000},  # 00435
- {e:  1.203212249498E+00, f:  1.0000},  # 00436
+ {e:  1.177425043210E+00, f:  1.0000},  # 00431
+ {e:  1.178997867147E+00, f:  1.0000},  # 00432
+ {e:  1.180393693168E+00, f:  1.0000},  # 00433
+ {e:  1.190912921156E+00, f:  1.0000},  # 00434
+ {e:  1.199412430363E+00, f:  1.0000},  # 00435
+ {e:  1.203212249497E+00, f:  1.0000},  # 00436
  {e:  1.206629317943E+00, f:  1.0000},  # 00437
  {e:  1.244353677678E+00, f:  1.0000},  # 00438
  {e:  1.331166144372E+00, f:  1.0000},  # 00439
@@ -1908,17 +1909,17 @@
     #========================================================================= final results
    self consistency summary:
    -  {iter:  1, 
- Energies: {Ekin:  7.86410141900E+02, Epot: -8.67644415265E+02, Enl:  1.95364219930E+02, 
+ Energies: {Ekin:  7.86410141900E+02, Epot: -8.67644415266E+02, Enl:  1.95364219931E+02, 
               EH: -3.79732228680E+02,  EXC: -2.72913148519E+02, EvXC: -2.99493933253E+02}, 
         iter low:  1,            delta out:  1.733E-06, 
-          energy: -6.90168101974347564E+02,                       D:  0.000E+00,  #FINAL
+          energy: -6.90168101974368369E+02,                       D:  0.000E+00,  #FINAL
  }
  Total charge                          :  4.399987643934E+02
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Surface
    Box                                 :  [  96,  63,  96 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Electric Dipole Moment (AU):
    P vector                            :  [  5.7252E+01, -3.5109E+00,  1.2527E+02 ]
    norm(P)                             :  1.377820E+02
@@ -1939,136 +1940,136 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  157.09
-   Elapsed time (s)                    :  100.42
+   CPU time (s)                        :  35.13
+   Elapsed time (s)                    :  35.20
  BigDFT infocode                       :  0
  Average noise forces: {x:  5.43060846E-01, y:  7.88538228E-01, z:  2.02970523E-02, 
                     total:  9.57663610E-01}
- Clean forces norm (Ha/Bohr): {maxval:  8.379967337743E-01, fnrm2:  4.556676189306E+00}
- Raw forces norm (Ha/Bohr): {maxval:  8.428775121098E-01, fnrm2:  5.178468726929E+00}
+ Clean forces norm (Ha/Bohr): {maxval:  8.379967337753E-01, fnrm2:  4.556676189312E+00}
+ Raw forces norm (Ha/Bohr): {maxval:  8.428775121108E-01, fnrm2:  5.178468726934E+00}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {N: [ 6.400854002529E-01, -5.485557863707E-02,  2.212945419109E-01]} # 0001
- -  {N: [ 7.034654469854E-01,  3.474355435161E-01,  1.264857690301E-01]} # 0002
- -  {N: [ 3.517854659648E-01, -6.117650160285E-03, -2.569638446159E-02]} # 0003
- -  {N: [ 2.121157587418E-01,  1.640513398119E-02, -5.107433850351E-02]} # 0004
- -  {N: [ 1.917596723480E-01, -9.408115306126E-03,  7.234838504795E-03]} # 0005
- -  {N: [-2.688461644855E-02, -2.703627451014E-02,  3.329104748174E-01]} # 0006
- -  {B: [-3.202386999485E-02, -2.909837005327E-02,  8.467168328881E-02]} # 0007
- -  {B: [-4.662384996083E-02, -1.930787130071E-02,  3.209245181904E-01]} # 0008
- -  {B: [-6.928960976121E-03, -4.135338557533E-02,  5.639348040768E-02]} # 0009
- -  {B: [-3.675843408588E-03, -4.386204175734E-02,  6.833560677630E-02]} # 0010
- -  {B: [ 9.610140447286E-03, -4.757691462621E-02,  9.571609590402E-02]} # 0011
- -  {B: [ 1.492470591579E-01, -4.332143838392E-02,  2.678422351161E-01]} # 0012
- -  {N: [-6.152553511018E-02,  2.848992954561E-02,  1.103745538393E-01]} # 0013
- -  {N: [ 3.769192584854E-02, -3.155478020926E-02,  7.896708263317E-02]} # 0014
- -  {N: [ 4.328223813014E-02,  3.008189029594E-02,  3.522010597497E-02]} # 0015
- -  {N: [ 5.149040215010E-02, -1.060682391743E-02,  3.341774108543E-02]} # 0016
- -  {N: [ 1.641484681912E-01, -6.752195477044E-03,  5.639003677541E-02]} # 0017
- -  {N: [ 8.332804472248E-01,  1.696710336676E-02, -8.714550758682E-02]} # 0018
- -  {N: [-6.975513222688E-01,  6.641266534431E-02, -3.749617279617E-02]} # 0019
- -  {B: [-6.060211260578E-02, -3.097555918463E-02, -1.452543748478E-02]} # 0020
- -  {B: [-5.795153061643E-04, -4.094659755169E-02, -5.842895781714E-04]} # 0021
- -  {B: [ 2.874954632159E-02, -4.054842211338E-02,  2.806078285048E-02]} # 0022
- -  {B: [ 8.172721307746E-02, -4.567349679169E-02,  2.767678740235E-02]} # 0023
- -  {B: [-1.618053222757E-01, -3.306319575481E-02, -1.428489946316E-01]} # 0024
- -  {B: [ 1.155784600591E-01, -4.643282397256E-02,  1.182433187357E-02]} # 0025
- -  {B: [ 1.413355260373E-01, -2.529538206164E-02, -1.852527840190E-01]} # 0026
- -  {N: [ 6.681766615154E-02,  2.154325118675E-01, -8.521909440420E-02]} # 0027
- -  {N: [ 1.035604021934E-01, -2.732593699567E-02, -3.074897525921E-02]} # 0028
- -  {N: [-4.674607390391E-02,  2.093823997194E-01, -8.565902160563E-02]} # 0029
- -  {N: [ 1.296044174983E-01,  3.144716910495E-02, -1.739069730170E-02]} # 0030
- -  {N: [ 1.631643172149E-01,  1.152921731448E-02, -4.191114169391E-02]} # 0031
- -  {N: [ 2.272690406926E-01, -2.463872381832E-02, -1.273250960468E-01]} # 0032
- -  {N: [-4.101304562636E-03,  2.224509164588E-01, -1.934795599274E-01]} # 0033
- -  {B: [ 2.213363285316E-02, -3.240989494592E-02, -1.969486583461E-02]} # 0034
- -  {B: [ 1.578451357307E-02, -3.330951379345E-02, -2.721838853304E-03]} # 0035
- -  {B: [ 4.140721305969E-03, -3.820970503139E-02,  3.778690614082E-02]} # 0036
- -  {B: [ 7.133650466873E-03, -2.811197601697E-02, -1.903861100481E-02]} # 0037
- -  {B: [ 3.442187354541E-03, -4.075485334275E-02,  3.137445018421E-02]} # 0038
- -  {B: [ 4.774446777141E-03, -4.758968403880E-02,  9.118622488886E-04]} # 0039
- -  {B: [-5.162398082383E-02, -5.862982940114E-02, -2.993010247369E-02]} # 0040
- -  {N: [-4.227658595304E-02,  1.826082208294E-01,  6.472768441580E-02]} # 0041
- -  {N: [ 1.071508482758E-01, -1.426193976670E-02,  4.312650699075E-02]} # 0042
- -  {N: [ 8.666837653713E-02,  2.037049897760E-01, -1.926862867800E-02]} # 0043
- -  {N: [ 6.440590579719E-02,  4.622636550421E-03,  1.129111319094E-02]} # 0044
- -  {N: [ 4.849697187697E-02, -9.766875011858E-03, -3.375704638460E-02]} # 0045
- -  {N: [ 5.159327924170E-02, -2.287457360719E-02, -1.069934603525E-01]} # 0046
- -  {N: [ 1.199065264301E-01,  1.883735227099E-01, -7.169754365613E-04]} # 0047
- -  {B: [-3.847830889853E-02, -2.851098938244E-02,  9.862098323678E-03]} # 0048
- -  {B: [ 7.373860633265E-03, -2.713650891855E-02,  2.119571042425E-02]} # 0049
- -  {B: [-1.031810241927E-02, -2.456760919650E-02,  1.910611093469E-02]} # 0050
- -  {B: [ 3.122483488416E-02, -3.548076348612E-02,  2.730746545828E-02]} # 0051
- -  {B: [ 6.535689058497E-02, -4.478407307954E-02,  8.152309581688E-04]} # 0052
- -  {B: [ 3.932335654849E-02, -2.315354473017E-02,  8.343498724868E-04]} # 0053
- -  {B: [ 2.026104908461E-02, -4.527454220165E-02,  2.925439935587E-02]} # 0054
- -  {N: [ 7.070519431734E-02,  2.039072340516E-02, -7.725985474611E-02]} # 0055
- -  {N: [ 1.149442996612E-01,  3.871960935946E-02, -1.038055930248E-01]} # 0056
- -  {N: [ 5.471500151742E-02,  2.017770739455E-01, -1.879172765688E-02]} # 0057
- -  {N: [ 1.273772362649E-01,  1.680101296976E-02, -6.706007901386E-02]} # 0058
- -  {N: [ 1.061644074442E-01, -2.571678076154E-02, -3.960318656218E-02]} # 0059
- -  {N: [ 4.879659693300E-02,  2.023730298998E-01,  1.387014256503E-02]} # 0060
- -  {N: [-1.644118262050E-02,  2.221513633771E-01,  3.919197459072E-02]} # 0061
- -  {B: [ 3.848902337950E-02, -3.552376152659E-02,  2.283945208089E-02]} # 0062
- -  {B: [ 1.218700892537E-02, -3.295159002332E-02,  2.370869169128E-02]} # 0063
- -  {B: [-3.614518858650E-03, -3.842858526814E-02,  3.161548732385E-02]} # 0064
- -  {B: [ 5.641606219201E-02, -4.404272509986E-02,  1.191398209603E-02]} # 0065
- -  {B: [-2.438581750797E-02, -4.424544527284E-02,  2.080158692499E-02]} # 0066
- -  {B: [ 1.900160636711E-02, -3.216184068871E-02,  2.379107337020E-02]} # 0067
- -  {B: [-3.019239289605E-02, -3.927160206395E-02,  1.009623512265E-02]} # 0068
- -  {N: [ 2.048639537006E-02,  1.527949292727E-02,  4.275996236454E-02]} # 0069
- -  {N: [ 5.973302171682E-02, -7.575615074530E-02,  1.997075384509E-02]} # 0070
- -  {N: [ 6.702053973626E-02,  4.062704326574E-03, -1.758075149988E-02]} # 0071
- -  {N: [ 3.155362058587E-02, -1.124515801932E-02, -6.877601117576E-02]} # 0072
- -  {N: [ 1.238262109402E-01, -2.293740581496E-02,  1.471751024736E-02]} # 0073
- -  {N: [ 1.357246681238E-01,  3.590291134715E-02, -1.189884461804E-01]} # 0074
- -  {N: [ 1.122950910938E-01,  2.250036278082E-02, -2.566457264757E-02]} # 0075
- -  {B: [ 4.776936199705E-02, -4.260380505306E-02,  5.337911734226E-03]} # 0076
- -  {B: [-3.667556656575E-02, -2.885701676619E-02,  3.290949161138E-02]} # 0077
- -  {B: [ 1.268136239358E-02, -3.576034061971E-02,  2.543439456591E-02]} # 0078
- -  {B: [ 4.297977159817E-02, -4.372702802305E-02, -2.144018452483E-03]} # 0079
- -  {B: [-1.791774505075E-02, -4.279592213590E-02,  4.146010963168E-02]} # 0080
- -  {B: [ 1.849009459209E-02, -2.764347689351E-02,  4.978931617380E-02]} # 0081
- -  {B: [ 3.359428174821E-02, -2.066251803381E-02,  2.753320127631E-02]} # 0082
- -  {N: [ 7.776559089110E-02, -3.136776794436E-02, -8.533728209068E-02]} # 0083
- -  {N: [ 1.153867293411E-01,  3.533502526804E-02, -1.313393215733E-01]} # 0084
- -  {N: [ 8.820137022329E-02,  2.036207433610E-02, -1.289788303845E-01]} # 0085
- -  {N: [ 6.862034776129E-02, -2.562922903406E-03, -3.871137619989E-02]} # 0086
- -  {N: [ 1.226669644570E-01, -3.711386429358E-02,  7.209885097622E-02]} # 0087
- -  {N: [ 6.934430864062E-02, -2.546408211095E-02,  1.634588224459E-02]} # 0088
- -  {N: [ 2.101394317659E-02, -2.842399264367E-02, -4.575712839955E-03]} # 0089
- -  {B: [-7.744699220395E-02, -4.672296524041E-02, -1.750935660928E-02]} # 0090
- -  {B: [-1.429156602527E-02, -2.857624396000E-02,  4.190264633777E-02]} # 0091
- -  {B: [ 1.403522426497E-02, -3.030967069532E-02,  4.943987389643E-02]} # 0092
- -  {B: [ 3.448914318754E-02, -3.901596940370E-02,  2.737612179592E-02]} # 0093
- -  {B: [ 5.818439985512E-02, -3.067177234232E-02,  4.936322627677E-02]} # 0094
- -  {B: [ 7.620775336138E-02, -3.195418875981E-02,  3.023529006940E-02]} # 0095
- -  {B: [ 2.377465407739E-03, -4.266696834928E-02, -9.673525180728E-02]} # 0096
- -  {N: [-6.203459914449E-02, -7.391571939463E-03, -3.144334784709E-01]} # 0097
- -  {N: [ 1.824282876770E-03,  1.026742620586E-02, -1.309653976038E-02]} # 0098
- -  {N: [ 2.247837684409E-02, -7.319111750485E-02,  4.253421067498E-02]} # 0099
- -  {N: [-1.154906124921E-04, -3.513911315775E-02,  7.938637118892E-02]} # 0100
- -  {N: [ 7.825486281920E-02, -2.735366461558E-02,  5.983295696048E-02]} # 0101
- -  {N: [ 1.317828662114E-01,  1.557932164457E-02,  9.271797851008E-02]} # 0102
- -  {N: [ 2.821935338820E-01,  1.791599279266E-02, -1.759186017286E-01]} # 0103
- -  {B: [-2.281951771791E-01, -4.211298513548E-02,  4.382288798774E-02]} # 0104
- -  {B: [-2.503044106503E-02, -4.216355763865E-02,  6.420237564746E-02]} # 0105
- -  {B: [ 1.054856581615E-02, -3.804215046125E-02,  3.884033479738E-02]} # 0106
- -  {B: [-1.309769818843E-02, -4.204523670724E-02,  1.309840955633E-02]} # 0107
- -  {B: [-9.278360391877E-02, -5.226746489417E-02, -5.691143605959E-02]} # 0108
- -  {B: [-2.810843529531E-01, -1.422426056299E-02, -1.677242465728E-01]} # 0109
- -  {B: [ 1.354559997457E-01, -2.107083678309E-02, -9.797126949750E-02]} # 0110
- Energy (Hartree)                      : -6.90168101974347564E+02
- Force Norm (Hartree/Bohr)             :  2.13463725005123761E+00
+ -  {N: [ 6.400854002534E-01, -5.485557863705E-02,  2.212945419107E-01]} # 0001
+ -  {N: [ 7.034654469860E-01,  3.474355435162E-01,  1.264857690298E-01]} # 0002
+ -  {N: [ 3.517854659652E-01, -6.117650160295E-03, -2.569638446176E-02]} # 0003
+ -  {N: [ 2.121157587421E-01,  1.640513398112E-02, -5.107433850366E-02]} # 0004
+ -  {N: [ 1.917596723481E-01, -9.408115306164E-03,  7.234838504670E-03]} # 0005
+ -  {N: [-2.688461644858E-02, -2.703627451018E-02,  3.329104748173E-01]} # 0006
+ -  {B: [-3.202386999488E-02, -2.909837005326E-02,  8.467168328875E-02]} # 0007
+ -  {B: [-4.662384996076E-02, -1.930787130069E-02,  3.209245181904E-01]} # 0008
+ -  {B: [-6.928960976112E-03, -4.135338557533E-02,  5.639348040766E-02]} # 0009
+ -  {B: [-3.675843408582E-03, -4.386204175733E-02,  6.833560677628E-02]} # 0010
+ -  {B: [ 9.610140447257E-03, -4.757691462620E-02,  9.571609590398E-02]} # 0011
+ -  {B: [ 1.492470591579E-01, -4.332143838392E-02,  2.678422351160E-01]} # 0012
+ -  {N: [-6.152553511036E-02,  2.848992954566E-02,  1.103745538391E-01]} # 0013
+ -  {N: [ 3.769192584840E-02, -3.155478020922E-02,  7.896708263297E-02]} # 0014
+ -  {N: [ 4.328223813008E-02,  3.008189029595E-02,  3.522010597479E-02]} # 0015
+ -  {N: [ 5.149040215006E-02, -1.060682391747E-02,  3.341774108530E-02]} # 0016
+ -  {N: [ 1.641484681912E-01, -6.752195477115E-03,  5.639003677528E-02]} # 0017
+ -  {N: [ 8.332804472257E-01,  1.696710336670E-02, -8.714550758730E-02]} # 0018
+ -  {N: [-6.975513222700E-01,  6.641266534434E-02, -3.749617279646E-02]} # 0019
+ -  {B: [-6.060211260582E-02, -3.097555918461E-02, -1.452543748474E-02]} # 0020
+ -  {B: [-5.795153061949E-04, -4.094659755166E-02, -5.842895781414E-04]} # 0021
+ -  {B: [ 2.874954632158E-02, -4.054842211337E-02,  2.806078285047E-02]} # 0022
+ -  {B: [ 8.172721307747E-02, -4.567349679168E-02,  2.767678740232E-02]} # 0023
+ -  {B: [-1.618053222758E-01, -3.306319575481E-02, -1.428489946315E-01]} # 0024
+ -  {B: [ 1.155784600591E-01, -4.643282397255E-02,  1.182433187354E-02]} # 0025
+ -  {B: [ 1.413355260374E-01, -2.529538206160E-02, -1.852527840191E-01]} # 0026
+ -  {N: [ 6.681766615148E-02,  2.154325118675E-01, -8.521909440421E-02]} # 0027
+ -  {N: [ 1.035604021934E-01, -2.732593699564E-02, -3.074897525926E-02]} # 0028
+ -  {N: [-4.674607390396E-02,  2.093823997194E-01, -8.565902160560E-02]} # 0029
+ -  {N: [ 1.296044174982E-01,  3.144716910496E-02, -1.739069730185E-02]} # 0030
+ -  {N: [ 1.631643172149E-01,  1.152921731446E-02, -4.191114169398E-02]} # 0031
+ -  {N: [ 2.272690406925E-01, -2.463872381834E-02, -1.273250960469E-01]} # 0032
+ -  {N: [-4.101304562746E-03,  2.224509164589E-01, -1.934795599274E-01]} # 0033
+ -  {B: [ 2.213363285318E-02, -3.240989494591E-02, -1.969486583462E-02]} # 0034
+ -  {B: [ 1.578451357302E-02, -3.330951379347E-02, -2.721838853376E-03]} # 0035
+ -  {B: [ 4.140721305951E-03, -3.820970503138E-02,  3.778690614077E-02]} # 0036
+ -  {B: [ 7.133650466895E-03, -2.811197601698E-02, -1.903861100479E-02]} # 0037
+ -  {B: [ 3.442187354518E-03, -4.075485334273E-02,  3.137445018419E-02]} # 0038
+ -  {B: [ 4.774446777123E-03, -4.758968403879E-02,  9.118622488885E-04]} # 0039
+ -  {B: [-5.162398082388E-02, -5.862982940117E-02, -2.993010247377E-02]} # 0040
+ -  {N: [-4.227658595312E-02,  1.826082208294E-01,  6.472768441565E-02]} # 0041
+ -  {N: [ 1.071508482757E-01, -1.426193976669E-02,  4.312650699055E-02]} # 0042
+ -  {N: [ 8.666837653713E-02,  2.037049897761E-01, -1.926862867806E-02]} # 0043
+ -  {N: [ 6.440590579716E-02,  4.622636550370E-03,  1.129111319076E-02]} # 0044
+ -  {N: [ 4.849697187690E-02, -9.766875011898E-03, -3.375704638478E-02]} # 0045
+ -  {N: [ 5.159327924165E-02, -2.287457360725E-02, -1.069934603526E-01]} # 0046
+ -  {N: [ 1.199065264302E-01,  1.883735227099E-01, -7.169754366386E-04]} # 0047
+ -  {B: [-3.847830889858E-02, -2.851098938244E-02,  9.862098323708E-03]} # 0048
+ -  {B: [ 7.373860633253E-03, -2.713650891853E-02,  2.119571042432E-02]} # 0049
+ -  {B: [-1.031810241932E-02, -2.456760919651E-02,  1.910611093470E-02]} # 0050
+ -  {B: [ 3.122483488417E-02, -3.548076348611E-02,  2.730746545833E-02]} # 0051
+ -  {B: [ 6.535689058498E-02, -4.478407307953E-02,  8.152309581959E-04]} # 0052
+ -  {B: [ 3.932335654847E-02, -2.315354473013E-02,  8.343498725241E-04]} # 0053
+ -  {B: [ 2.026104908466E-02, -4.527454220166E-02,  2.925439935592E-02]} # 0054
+ -  {N: [ 7.070519431731E-02,  2.039072340511E-02, -7.725985474611E-02]} # 0055
+ -  {N: [ 1.149442996611E-01,  3.871960935950E-02, -1.038055930248E-01]} # 0056
+ -  {N: [ 5.471500151738E-02,  2.017770739456E-01, -1.879172765692E-02]} # 0057
+ -  {N: [ 1.273772362649E-01,  1.680101296974E-02, -6.706007901388E-02]} # 0058
+ -  {N: [ 1.061644074441E-01, -2.571678076156E-02, -3.960318656226E-02]} # 0059
+ -  {N: [ 4.879659693299E-02,  2.023730298999E-01,  1.387014256496E-02]} # 0060
+ -  {N: [-1.644118262059E-02,  2.221513633772E-01,  3.919197459066E-02]} # 0061
+ -  {B: [ 3.848902337951E-02, -3.552376152660E-02,  2.283945208090E-02]} # 0062
+ -  {B: [ 1.218700892537E-02, -3.295159002333E-02,  2.370869169128E-02]} # 0063
+ -  {B: [-3.614518858682E-03, -3.842858526813E-02,  3.161548732386E-02]} # 0064
+ -  {B: [ 5.641606219202E-02, -4.404272509985E-02,  1.191398209602E-02]} # 0065
+ -  {B: [-2.438581750800E-02, -4.424544527283E-02,  2.080158692499E-02]} # 0066
+ -  {B: [ 1.900160636712E-02, -3.216184068869E-02,  2.379107337021E-02]} # 0067
+ -  {B: [-3.019239289611E-02, -3.927160206395E-02,  1.009623512268E-02]} # 0068
+ -  {N: [ 2.048639537007E-02,  1.527949292720E-02,  4.275996236437E-02]} # 0069
+ -  {N: [ 5.973302171672E-02, -7.575615074538E-02,  1.997075384488E-02]} # 0070
+ -  {N: [ 6.702053973620E-02,  4.062704326545E-03, -1.758075150000E-02]} # 0071
+ -  {N: [ 3.155362058582E-02, -1.124515801939E-02, -6.877601117582E-02]} # 0072
+ -  {N: [ 1.238262109402E-01, -2.293740581501E-02,  1.471751024734E-02]} # 0073
+ -  {N: [ 1.357246681238E-01,  3.590291134716E-02, -1.189884461804E-01]} # 0074
+ -  {N: [ 1.122950910938E-01,  2.250036278081E-02, -2.566457264764E-02]} # 0075
+ -  {B: [ 4.776936199710E-02, -4.260380505304E-02,  5.337911734241E-03]} # 0076
+ -  {B: [-3.667556656579E-02, -2.885701676620E-02,  3.290949161137E-02]} # 0077
+ -  {B: [ 1.268136239357E-02, -3.576034061969E-02,  2.543439456591E-02]} # 0078
+ -  {B: [ 4.297977159816E-02, -4.372702802304E-02, -2.144018452476E-03]} # 0079
+ -  {B: [-1.791774505080E-02, -4.279592213589E-02,  4.146010963167E-02]} # 0080
+ -  {B: [ 1.849009459207E-02, -2.764347689352E-02,  4.978931617384E-02]} # 0081
+ -  {B: [ 3.359428174827E-02, -2.066251803381E-02,  2.753320127632E-02]} # 0082
+ -  {N: [ 7.776559089107E-02, -3.136776794438E-02, -8.533728209071E-02]} # 0083
+ -  {N: [ 1.153867293411E-01,  3.533502526806E-02, -1.313393215733E-01]} # 0084
+ -  {N: [ 8.820137022332E-02,  2.036207433613E-02, -1.289788303845E-01]} # 0085
+ -  {N: [ 6.862034776124E-02, -2.562922903497E-03, -3.871137619992E-02]} # 0086
+ -  {N: [ 1.226669644569E-01, -3.711386429360E-02,  7.209885097612E-02]} # 0087
+ -  {N: [ 6.934430864066E-02, -2.546408211105E-02,  1.634588224448E-02]} # 0088
+ -  {N: [ 2.101394317651E-02, -2.842399264363E-02, -4.575712840025E-03]} # 0089
+ -  {B: [-7.744699220399E-02, -4.672296524039E-02, -1.750935660930E-02]} # 0090
+ -  {B: [-1.429156602528E-02, -2.857624396001E-02,  4.190264633780E-02]} # 0091
+ -  {B: [ 1.403522426498E-02, -3.030967069534E-02,  4.943987389646E-02]} # 0092
+ -  {B: [ 3.448914318759E-02, -3.901596940370E-02,  2.737612179592E-02]} # 0093
+ -  {B: [ 5.818439985513E-02, -3.067177234231E-02,  4.936322627678E-02]} # 0094
+ -  {B: [ 7.620775336143E-02, -3.195418875979E-02,  3.023529006937E-02]} # 0095
+ -  {B: [ 2.377465407657E-03, -4.266696834927E-02, -9.673525180737E-02]} # 0096
+ -  {N: [-6.203459914473E-02, -7.391571939531E-03, -3.144334784711E-01]} # 0097
+ -  {N: [ 1.824282876682E-03,  1.026742620587E-02, -1.309653976055E-02]} # 0098
+ -  {N: [ 2.247837684408E-02, -7.319111750491E-02,  4.253421067474E-02]} # 0099
+ -  {N: [-1.154906124546E-04, -3.513911315771E-02,  7.938637118873E-02]} # 0100
+ -  {N: [ 7.825486281917E-02, -2.735366461561E-02,  5.983295696049E-02]} # 0101
+ -  {N: [ 1.317828662115E-01,  1.557932164459E-02,  9.271797851008E-02]} # 0102
+ -  {N: [ 2.821935338822E-01,  1.791599279268E-02, -1.759186017287E-01]} # 0103
+ -  {B: [-2.281951771795E-01, -4.211298513548E-02,  4.382288798755E-02]} # 0104
+ -  {B: [-2.503044106497E-02, -4.216355763865E-02,  6.420237564746E-02]} # 0105
+ -  {B: [ 1.054856581622E-02, -3.804215046126E-02,  3.884033479736E-02]} # 0106
+ -  {B: [-1.309769818835E-02, -4.204523670725E-02,  1.309840955631E-02]} # 0107
+ -  {B: [-9.278360391870E-02, -5.226746489416E-02, -5.691143605965E-02]} # 0108
+ -  {B: [-2.810843529531E-01, -1.422426056294E-02, -1.677242465728E-01]} # 0109
+ -  {B: [ 1.354559997461E-01, -2.107083678303E-02, -9.797126949765E-02]} # 0110
+ Energy (Hartree)                      : -6.90168101974368369E+02
+ Force Norm (Hartree/Bohr)             :  2.13463725005254989E+00
  Memory Consumption Report:
-   Tot. No. of Allocations             :  58459
-   Tot. No. of Deallocations           :  58459
+   Tot. No. of Allocations             :  32052
+   Tot. No. of Deallocations           :  32052
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  1158.717
+     Peak Value (MB)                   :  599.544
      for the array                     : tmp2p
      in the routine                    : check_accur_overlap_minus_one_sp
-     Memory Peak of process            : 1089.000 MB
- Walltime since initialization         : 00:01:42.121986287
- Max No. of dictionaries used          :  20931 #( 909 still in use)
- Number of dictionary folders allocated:  3
+     Memory Peak of process            : 614.880 MB
+ Walltime since initialization         : 00:00:35.971378416
+ Max No. of dictionaries used          :  13791 #( 909 still in use)
+ Number of dictionary folders allocated:  2
