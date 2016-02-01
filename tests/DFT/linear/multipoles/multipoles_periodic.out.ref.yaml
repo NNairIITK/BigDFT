@@ -753,21 +753,21 @@
        -  {npl:  120, bounds:  [ -1.0,  1.0 ], penalty:  1.5E-04, ok:  [  Yes,  Yes ]}
        determine Fermi energy:
        -  { #-------------------------------------------------------------------- it FOE: 1
- ef: -1.000000E-01, Tr(K):  6.9739451E+00, D Tr(K): -1.03E+00, new ef: bisec bounds}
+ eF: -1.000000E-01, Tr(K):  6.9739451E+00, D Tr(K): -1.03E+00, new eF: bisec bounds}
        -  { #-------------------------------------------------------------------- it FOE: 2
- ef:  1.000000E-01, Tr(K):  7.9999983E+00, D Tr(K): -1.75E-06, new ef: bisec bounds}
+ eF:  1.000000E-01, Tr(K):  7.9999983E+00, D Tr(K): -1.75E-06, new eF: bisec bounds}
        -  { #-------------------------------------------------------------------- it FOE: 3
- ef:  1.900000E-01, Tr(K):  8.0000037E+00, D Tr(K):  3.67E-06, new ef: bisection/secant}
+ eF:  1.900000E-01, Tr(K):  8.0000037E+00, D Tr(K):  3.67E-06, new eF: bisection/secant}
        -  { #-------------------------------------------------------------------- it FOE: 4
- ef:  1.174995E-01, Tr(K):  7.9999962E+00, D Tr(K): -3.77E-06, new ef: bisection/secant}
+ eF:  1.174995E-01, Tr(K):  7.9999962E+00, D Tr(K): -3.77E-06, new eF: bisection/secant}
        -  { #-------------------------------------------------------------------- it FOE: 5
- ef:  1.539888E-01, Tr(K):  7.9999975E+00, D Tr(K): -2.51E-06, new ef: bisection/secant}
+ eF:  1.539888E-01, Tr(K):  7.9999975E+00, D Tr(K): -2.51E-06, new eF: bisection/secant}
        -  { #-------------------------------------------------------------------- it FOE: 6
- ef:  1.703124E-01, Tr(K):  7.9999977E+00, D Tr(K): -2.34E-06, new ef: cubic interpol}
+ eF:  1.703124E-01, Tr(K):  7.9999977E+00, D Tr(K): -2.34E-06, new eF: cubic interpol}
        -  { #-------------------------------------------------------------------- it FOE: 7
- ef:  1.815526E-01, Tr(K):  8.0000028E+00, D Tr(K):  2.83E-06, new ef: cubic interpol}
+ eF:  1.815526E-01, Tr(K):  8.0000028E+00, D Tr(K):  2.83E-06, new eF: cubic interpol}
        -  { #-------------------------------------------------------------------- it FOE: 8
- ef:  1.768908E-01, Tr(K):  8.0000009E+00, D Tr(K):  8.93E-07, new ef: cubic interpol}
+ eF:  1.768908E-01, Tr(K):  8.0000009E+00, D Tr(K):  8.93E-07, new eF: cubic interpol}
        EBS                             : -2.747416424288E+00
        EBS higher temperature          : -2.747417810159E+00
        difference                      : -1.385870592063E-06
@@ -837,19 +837,19 @@
          -  {npl:  120, bounds:  [ -1.0,  1.0 ], penalty:  1.5E-04, ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  8.596915E-02, Tr(K):  7.9999881E+00, D Tr(K): -1.19E-05, new ef: bisec bounds}
+ eF:  8.596915E-02, Tr(K):  7.9999881E+00, D Tr(K): -1.19E-05, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  2.641691E-01, Tr(K):  8.0000026E+00, D Tr(K):  2.60E-06, new ef: bisection/secant}
+ eF:  2.641691E-01, Tr(K):  8.0000026E+00, D Tr(K):  2.60E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  2.036543E-01, Tr(K):  8.0000010E+00, D Tr(K):  1.01E-06, new ef: bisection/secant}
+ eF:  2.036543E-01, Tr(K):  8.0000010E+00, D Tr(K):  1.01E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- ef:  1.696373E-01, Tr(K):  8.0000034E+00, D Tr(K):  3.36E-06, new ef: bisection/secant}
+ eF:  1.696373E-01, Tr(K):  8.0000034E+00, D Tr(K):  3.36E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- ef:  1.395254E-01, Tr(K):  7.9999944E+00, D Tr(K): -5.56E-06, new ef: bisection/secant}
+ eF:  1.395254E-01, Tr(K):  7.9999944E+00, D Tr(K): -5.56E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 6
- ef:  1.564372E-01, Tr(K):  8.0000038E+00, D Tr(K):  3.78E-06, new ef: bisection/secant}
+ eF:  1.564372E-01, Tr(K):  8.0000038E+00, D Tr(K):  3.78E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 7
- ef:  1.487868E-01, Tr(K):  7.9999992E+00, D Tr(K): -7.73E-07, new ef: bisection/secant}
+ eF:  1.487868E-01, Tr(K):  7.9999992E+00, D Tr(K): -7.73E-07, new eF: bisection/secant}
          EBS                           : -2.698499513720E+00
          EBS higher temperature        : -2.698499254453E+00
          difference                    :  2.592660974798E-07
@@ -882,9 +882,9 @@
          -  {npl:  120, bounds:  [ -1.0,  1.0 ], penalty:  1.2E-04, ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  7.917798E-02, Tr(K):  7.9999406E+00, D Tr(K): -5.94E-05, new ef: bisec bounds}
+ eF:  7.917798E-02, Tr(K):  7.9999406E+00, D Tr(K): -5.94E-05, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  2.235200E-01, Tr(K):  8.0000003E+00, D Tr(K):  2.63E-07, new ef: bisection/secant}
+ eF:  2.235200E-01, Tr(K):  8.0000003E+00, D Tr(K):  2.63E-07, new eF: bisection/secant}
          EBS                           : -2.631395688611E+00
          EBS higher temperature        : -2.631395019632E+00
          difference                    :  6.689793776715E-07
@@ -918,21 +918,21 @@
          -  {npl:  120, bounds:  [ -1.0,  1.0 ], penalty:  4.3E-05, ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  1.286576E-01, Tr(K):  7.9950838E+00, D Tr(K): -4.92E-03, new ef: bisec bounds}
+ eF:  1.286576E-01, Tr(K):  7.9950838E+00, D Tr(K): -4.92E-03, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  2.455746E-01, Tr(K):  7.9999971E+00, D Tr(K): -2.91E-06, new ef: bisec bounds}
+ eF:  2.455746E-01, Tr(K):  7.9999971E+00, D Tr(K): -2.91E-06, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  2.981873E-01, Tr(K):  7.9999993E+00, D Tr(K): -7.14E-07, new ef: bisec bounds}
+ eF:  2.981873E-01, Tr(K):  7.9999993E+00, D Tr(K): -7.14E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 4
- ef:  3.560612E-01, Tr(K):  8.0001113E+00, D Tr(K):  1.11E-04, new ef: bisection/secant}
+ eF:  3.560612E-01, Tr(K):  8.0001113E+00, D Tr(K):  1.11E-04, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- ef:  2.966939E-01, Tr(K):  7.9999985E+00, D Tr(K): -1.52E-06, new ef: bisection/secant}
+ eF:  2.966939E-01, Tr(K):  7.9999985E+00, D Tr(K): -1.52E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 6
- ef:  3.119368E-01, Tr(K):  8.0000042E+00, D Tr(K):  4.24E-06, new ef: bisection/secant}
+ eF:  3.119368E-01, Tr(K):  8.0000042E+00, D Tr(K):  4.24E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 7
- ef:  3.025200E-01, Tr(K):  8.0000016E+00, D Tr(K):  1.59E-06, new ef: cubic interpol}
+ eF:  3.025200E-01, Tr(K):  8.0000016E+00, D Tr(K):  1.59E-06, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
- ef:  2.990987E-01, Tr(K):  7.9999998E+00, D Tr(K): -2.15E-07, new ef: linear interpol}
+ eF:  2.990987E-01, Tr(K):  7.9999998E+00, D Tr(K): -2.15E-07, new eF: linear interpol}
          EBS                           : -2.189055707745E+00
          EBS higher temperature        : -2.189050215113E+00
          difference                    :  5.492632601189E-06
@@ -966,17 +966,17 @@
          -  {npl:  108, bounds:  [ -0.9,  0.9 ], penalty:  7.4E-03, ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  2.422100E-01, Tr(K):  8.0000026E+00, D Tr(K):  2.57E-06, new ef: bisec bounds}
+ eF:  2.422100E-01, Tr(K):  8.0000026E+00, D Tr(K):  2.57E-06, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  1.849148E-01, Tr(K):  8.0000055E+00, D Tr(K):  5.45E-06, new ef: bisec bounds}
+ eF:  1.849148E-01, Tr(K):  8.0000055E+00, D Tr(K):  5.45E-06, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  1.218901E-01, Tr(K):  7.9997213E+00, D Tr(K): -2.79E-04, new ef: bisec bounds}
+ eF:  1.218901E-01, Tr(K):  7.9997213E+00, D Tr(K): -2.79E-04, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 4
- ef:  3.568004E-01, Tr(K):  8.0008189E+00, D Tr(K):  8.19E-04, new ef: bisection/secant}
+ eF:  3.568004E-01, Tr(K):  8.0008189E+00, D Tr(K):  8.19E-04, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- ef:  2.104392E-01, Tr(K):  7.9999949E+00, D Tr(K): -5.10E-06, new ef: bisection/secant}
+ eF:  2.104392E-01, Tr(K):  7.9999949E+00, D Tr(K): -5.10E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 6
- ef:  2.474827E-01, Tr(K):  7.9999997E+00, D Tr(K): -3.35E-07, new ef: bisection/secant}
+ eF:  2.474827E-01, Tr(K):  7.9999997E+00, D Tr(K): -3.35E-07, new eF: bisection/secant}
          EBS                           : -2.419156133082E+00
          EBS higher temperature        : -2.419152420065E+00
          difference                    :  3.713016962781E-06
@@ -1053,11 +1053,11 @@
   Yes,  Yes]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  2.186794E-01, Tr(K):  7.9999991E+00, D Tr(K): -8.78E-07, new ef: bisec bounds}
+ eF:  2.186794E-01, Tr(K):  7.9999991E+00, D Tr(K): -8.78E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  3.309894E-01, Tr(K):  8.0002381E+00, D Tr(K):  2.38E-04, new ef: bisection/secant}
+ eF:  3.309894E-01, Tr(K):  8.0002381E+00, D Tr(K):  2.38E-04, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  2.469633E-01, Tr(K):  8.0000005E+00, D Tr(K):  5.25E-07, new ef: bisection/secant}
+ eF:  2.469633E-01, Tr(K):  8.0000005E+00, D Tr(K):  5.25E-07, new eF: bisection/secant}
          EBS                           : -2.672694425633E+00
          EBS higher temperature        : -2.672692804985E+00
          difference                    :  1.620648300449E-06
@@ -1091,17 +1091,17 @@
   Yes,  Yes]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  1.891137E-01, Tr(K):  8.0000002E+00, D Tr(K):  1.53E-07, new ef: bisec bounds}
+ eF:  1.891137E-01, Tr(K):  8.0000002E+00, D Tr(K):  1.53E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  1.436282E-01, Tr(K):  8.0000004E+00, D Tr(K):  3.84E-07, new ef: bisec bounds}
+ eF:  1.436282E-01, Tr(K):  8.0000004E+00, D Tr(K):  3.84E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  9.359406E-02, Tr(K):  8.0000002E+00, D Tr(K):  1.64E-07, new ef: bisec bounds}
+ eF:  9.359406E-02, Tr(K):  8.0000002E+00, D Tr(K):  1.64E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 4
- ef:  3.855653E-02, Tr(K):  7.9995966E+00, D Tr(K): -4.03E-04, new ef: bisec bounds}
+ eF:  3.855653E-02, Tr(K):  7.9995966E+00, D Tr(K): -4.03E-04, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 5
- ef:  2.800849E-01, Tr(K):  8.0000015E+00, D Tr(K):  1.47E-06, new ef: bisection/secant}
+ eF:  2.800849E-01, Tr(K):  8.0000015E+00, D Tr(K):  1.47E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 6
- ef:  2.192635E-01, Tr(K):  7.9999998E+00, D Tr(K): -2.48E-07, new ef: bisection/secant}
+ eF:  2.192635E-01, Tr(K):  7.9999998E+00, D Tr(K): -2.48E-07, new eF: bisection/secant}
          EBS                           : -2.803822383492E+00
          EBS higher temperature        : -2.803821160899E+00
          difference                    :  1.222593256411E-06
@@ -1136,13 +1136,13 @@
   Yes,  Yes]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  1.898074E-01, Tr(K):  7.9999978E+00, D Tr(K): -2.23E-06, new ef: bisec bounds}
+ eF:  1.898074E-01, Tr(K):  7.9999978E+00, D Tr(K): -2.23E-06, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  2.878843E-01, Tr(K):  8.0026946E+00, D Tr(K):  2.69E-03, new ef: bisection/secant}
+ eF:  2.878843E-01, Tr(K):  8.0026946E+00, D Tr(K):  2.69E-03, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  2.143672E-01, Tr(K):  8.0000022E+00, D Tr(K):  2.21E-06, new ef: bisection/secant}
+ eF:  2.143672E-01, Tr(K):  8.0000022E+00, D Tr(K):  2.21E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- ef:  2.021181E-01, Tr(K):  7.9999993E+00, D Tr(K): -7.28E-07, new ef: bisection/secant}
+ eF:  2.021181E-01, Tr(K):  7.9999993E+00, D Tr(K): -7.28E-07, new eF: bisection/secant}
          EBS                           : -3.485523058966E+00
          EBS higher temperature        : -3.485513415666E+00
          difference                    :  9.643299459849E-06
@@ -1179,17 +1179,17 @@
   Yes,  Yes]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  1.669777E-01, Tr(K):  8.0000011E+00, D Tr(K):  1.14E-06, new ef: bisec bounds}
+ eF:  1.669777E-01, Tr(K):  8.0000011E+00, D Tr(K):  1.14E-06, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  1.272566E-01, Tr(K):  7.9999991E+00, D Tr(K): -9.33E-07, new ef: bisec bounds}
+ eF:  1.272566E-01, Tr(K):  7.9999991E+00, D Tr(K): -9.33E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  2.464200E-01, Tr(K):  8.0001597E+00, D Tr(K):  1.60E-04, new ef: bisection/secant}
+ eF:  2.464200E-01, Tr(K):  8.0001597E+00, D Tr(K):  1.60E-04, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- ef:  1.573934E-01, Tr(K):  8.0000015E+00, D Tr(K):  1.53E-06, new ef: bisection/secant}
+ eF:  1.573934E-01, Tr(K):  8.0000015E+00, D Tr(K):  1.53E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- ef:  1.405038E-01, Tr(K):  7.9999984E+00, D Tr(K): -1.62E-06, new ef: bisection/secant}
+ eF:  1.405038E-01, Tr(K):  7.9999984E+00, D Tr(K): -1.62E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 6
- ef:  1.490681E-01, Tr(K):  8.0000001E+00, D Tr(K):  1.26E-07, new ef: cubic interpol}
+ eF:  1.490681E-01, Tr(K):  8.0000001E+00, D Tr(K):  1.26E-07, new eF: cubic interpol}
          EBS                           : -3.582617185561E+00
          EBS higher temperature        : -3.582617167989E+00
          difference                    :  1.757215306597E-08
@@ -1265,15 +1265,15 @@
   Yes,  Yes]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  1.129540E-01, Tr(K):  8.0000005E+00, D Tr(K):  5.39E-07, new ef: bisec bounds}
+ eF:  1.129540E-01, Tr(K):  8.0000005E+00, D Tr(K):  5.39E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  7.756250E-02, Tr(K):  7.9999996E+00, D Tr(K): -4.18E-07, new ef: bisec bounds}
+ eF:  7.756250E-02, Tr(K):  7.9999996E+00, D Tr(K): -4.18E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  1.837371E-01, Tr(K):  7.9999998E+00, D Tr(K): -2.06E-07, new ef: bisec bounds}
+ eF:  1.837371E-01, Tr(K):  7.9999998E+00, D Tr(K): -2.06E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 4
- ef:  2.187747E-01, Tr(K):  8.0000108E+00, D Tr(K):  1.08E-05, new ef: bisection/secant}
+ eF:  2.187747E-01, Tr(K):  8.0000108E+00, D Tr(K):  1.08E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- ef:  1.154961E-01, Tr(K):  8.0000005E+00, D Tr(K):  4.71E-07, new ef: bisection}
+ eF:  1.154961E-01, Tr(K):  8.0000005E+00, D Tr(K):  4.71E-07, new eF: bisection}
          EBS                           : -3.606728857142E+00
          EBS higher temperature        : -3.606728314644E+00
          difference                    :  5.424984612645E-07
@@ -1307,9 +1307,9 @@
   Yes,  Yes]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  6.184205E-02, Tr(K):  7.9999999E+00, D Tr(K): -9.02E-08, new ef: bisec bounds}
+ eF:  6.184205E-02, Tr(K):  7.9999999E+00, D Tr(K): -9.02E-08, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  1.312165E-01, Tr(K):  8.0000002E+00, D Tr(K):  2.20E-07, new ef: bisection}
+ eF:  1.312165E-01, Tr(K):  8.0000002E+00, D Tr(K):  2.20E-07, new eF: bisection}
          EBS                           : -3.626409167171E+00
          EBS higher temperature        : -3.626409357620E+00
          difference                    : -1.904492226146E-07
@@ -1346,13 +1346,13 @@
   Yes,  Yes]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  6.843263E-02, Tr(K):  8.0000008E+00, D Tr(K):  7.54E-07, new ef: bisec bounds}
+ eF:  6.843263E-02, Tr(K):  8.0000008E+00, D Tr(K):  7.54E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  4.033596E-02, Tr(K):  7.9999985E+00, D Tr(K): -1.55E-06, new ef: bisec bounds}
+ eF:  4.033596E-02, Tr(K):  7.9999985E+00, D Tr(K): -1.55E-06, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  1.246260E-01, Tr(K):  7.9999994E+00, D Tr(K): -6.14E-07, new ef: bisec bounds}
+ eF:  1.246260E-01, Tr(K):  7.9999994E+00, D Tr(K): -6.14E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 4
- ef:  1.524416E-01, Tr(K):  8.0000009E+00, D Tr(K):  8.74E-07, new ef: bisection/secant}
+ eF:  1.524416E-01, Tr(K):  8.0000009E+00, D Tr(K):  8.74E-07, new eF: bisection/secant}
          EBS                           : -3.742824151207E+00
          EBS higher temperature        : -3.742824684916E+00
          difference                    : -5.337095405622E-07
@@ -1387,13 +1387,13 @@
   Yes,  Yes]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  7.663809E-02, Tr(K):  7.9999989E+00, D Tr(K): -1.10E-06, new ef: bisec bounds}
+ eF:  7.663809E-02, Tr(K):  7.9999989E+00, D Tr(K): -1.10E-06, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  1.317132E-01, Tr(K):  7.9999987E+00, D Tr(K): -1.28E-06, new ef: bisec bounds}
+ eF:  1.317132E-01, Tr(K):  7.9999987E+00, D Tr(K): -1.28E-06, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  1.564970E-01, Tr(K):  8.0000011E+00, D Tr(K):  1.06E-06, new ef: bisection/secant}
+ eF:  1.564970E-01, Tr(K):  8.0000011E+00, D Tr(K):  1.06E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- ef:  1.169544E-01, Tr(K):  8.0000008E+00, D Tr(K):  7.71E-07, new ef: bisection/secant}
+ eF:  1.169544E-01, Tr(K):  8.0000008E+00, D Tr(K):  7.71E-07, new eF: bisection/secant}
          EBS                           : -3.741708513322E+00
          EBS higher temperature        : -3.741708614254E+00
          difference                    : -1.009319827716E-07
@@ -1469,13 +1469,13 @@
   Yes,  Yes]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  7.402376E-02, Tr(K):  7.9999996E+00, D Tr(K): -4.27E-07, new ef: bisec bounds}
+ eF:  7.402376E-02, Tr(K):  7.9999996E+00, D Tr(K): -4.27E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  1.230957E-01, Tr(K):  7.9999997E+00, D Tr(K): -2.69E-07, new ef: bisec bounds}
+ eF:  1.230957E-01, Tr(K):  7.9999997E+00, D Tr(K): -2.69E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  1.451780E-01, Tr(K):  8.0000000E+00, D Tr(K): -4.13E-08, new ef: bisec bounds}
+ eF:  1.451780E-01, Tr(K):  8.0000000E+00, D Tr(K): -4.13E-08, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 4
- ef:  1.694686E-01, Tr(K):  8.0000001E+00, D Tr(K):  5.63E-08, new ef: bisection}
+ eF:  1.694686E-01, Tr(K):  8.0000001E+00, D Tr(K):  5.63E-08, new eF: bisection}
          EBS                           : -3.746438147064E+00
          EBS higher temperature        : -3.746439041563E+00
          difference                    : -8.944990437243E-07
@@ -1509,11 +1509,11 @@
   Yes,  Yes]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  9.769849E-02, Tr(K):  7.9999998E+00, D Tr(K): -2.15E-07, new ef: bisec bounds}
+ eF:  9.769849E-02, Tr(K):  7.9999998E+00, D Tr(K): -2.15E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  1.457939E-01, Tr(K):  7.9999999E+00, D Tr(K): -1.24E-07, new ef: bisec bounds}
+ eF:  1.457939E-01, Tr(K):  7.9999999E+00, D Tr(K): -1.24E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  1.674368E-01, Tr(K):  8.0000001E+00, D Tr(K):  1.01E-07, new ef: bisection}
+ eF:  1.674368E-01, Tr(K):  8.0000001E+00, D Tr(K):  1.01E-07, new eF: bisection}
          EBS                           : -3.758172471815E+00
          EBS higher temperature        : -3.758172569389E+00
          difference                    : -9.757429086932E-08
@@ -1550,11 +1550,11 @@
   Yes,  Yes]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  1.111411E-01, Tr(K):  7.9999999E+00, D Tr(K): -1.18E-07, new ef: bisec bounds}
+ eF:  1.111411E-01, Tr(K):  7.9999999E+00, D Tr(K): -1.18E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  1.539941E-01, Tr(K):  7.9999999E+00, D Tr(K): -5.87E-08, new ef: bisec bounds}
+ eF:  1.539941E-01, Tr(K):  7.9999999E+00, D Tr(K): -5.87E-08, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  1.732780E-01, Tr(K):  8.0000002E+00, D Tr(K):  2.01E-07, new ef: bisection}
+ eF:  1.732780E-01, Tr(K):  8.0000002E+00, D Tr(K):  2.01E-07, new eF: bisection}
          EBS                           : -3.818601940504E+00
          EBS higher temperature        : -3.818601656132E+00
          difference                    :  2.843725179780E-07
@@ -1589,13 +1589,13 @@
   Yes,  Yes]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  1.231186E-01, Tr(K):  8.0000000E+00, D Tr(K):  1.16E-09, new ef: bisec bounds}
+ eF:  1.231186E-01, Tr(K):  8.0000000E+00, D Tr(K):  1.16E-09, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  1.040276E-01, Tr(K):  7.9999999E+00, D Tr(K): -9.82E-08, new ef: bisec bounds}
+ eF:  1.040276E-01, Tr(K):  7.9999999E+00, D Tr(K): -9.82E-08, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  1.613005E-01, Tr(K):  8.0000000E+00, D Tr(K): -4.54E-08, new ef: bisec bounds}
+ eF:  1.613005E-01, Tr(K):  8.0000000E+00, D Tr(K): -4.54E-08, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 4
- ef:  1.802006E-01, Tr(K):  8.0000006E+00, D Tr(K):  6.46E-07, new ef: bisection}
+ eF:  1.802006E-01, Tr(K):  8.0000006E+00, D Tr(K):  6.46E-07, new eF: bisection}
          EBS                           : -3.829719060302E+00
          EBS higher temperature        : -3.829718918314E+00
          difference                    :  1.419871527020E-07
@@ -1662,13 +1662,13 @@
   Yes,  Yes]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  1.234030E-01, Tr(K):  8.0000000E+00, D Tr(K):  6.61E-09, new ef: bisec bounds}
+ eF:  1.234030E-01, Tr(K):  8.0000000E+00, D Tr(K):  6.61E-09, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  1.046919E-01, Tr(K):  7.9999999E+00, D Tr(K): -1.09E-07, new ef: bisec bounds}
+ eF:  1.046919E-01, Tr(K):  7.9999999E+00, D Tr(K): -1.09E-07, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  1.608252E-01, Tr(K):  7.9999999E+00, D Tr(K): -5.01E-08, new ef: bisec bounds}
+ eF:  1.608252E-01, Tr(K):  7.9999999E+00, D Tr(K): -5.01E-08, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 4
- ef:  1.793492E-01, Tr(K):  8.0000006E+00, D Tr(K):  5.75E-07, new ef: bisection}
+ eF:  1.793492E-01, Tr(K):  8.0000006E+00, D Tr(K):  5.75E-07, new eF: bisection}
          EBS                           : -3.829468968466E+00
          EBS higher temperature        : -3.829468800882E+00
          difference                    :  1.675838188220E-07
@@ -1713,11 +1713,11 @@
          penalty: -3.1E-02, ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- ef:  1.236818E-01, Tr(K):  8.0000000E+00, D Tr(K):  1.13E-08, new ef: bisec bounds}
+ eF:  1.236818E-01, Tr(K):  8.0000000E+00, D Tr(K):  1.13E-08, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- ef:  1.053431E-01, Tr(K):  8.0000000E+00, D Tr(K): -1.17E-08, new ef: bisec bounds}
+ eF:  1.053431E-01, Tr(K):  8.0000000E+00, D Tr(K): -1.17E-08, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- ef:  1.603593E-01, Tr(K):  8.0000000E+00, D Tr(K):  3.03E-08, new ef: bisection}
+ eF:  1.603593E-01, Tr(K):  8.0000000E+00, D Tr(K):  3.03E-08, new eF: bisection}
          EBS                           : -3.829478959901E+00
          EBS higher temperature        : -3.829478821218E+00
          difference                    :  1.386825361216E-07
@@ -1813,29 +1813,29 @@
      -  {npl:  600, bounds:  [ -1.0,  1.0 ], penalty:  4.4E-02, ok:  [  Yes,  Yes ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
- ef: -1.000000E-01, Tr(K):  7.9999986E+00, D Tr(K):  1.00E+00, new ef: bisec bounds}
+ eF: -1.000000E-01, Tr(K):  7.9999986E+00, D Tr(K):  1.00E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 2
- ef: -2.000000E-01, Tr(K):  8.0000003E+00, D Tr(K):  1.00E+00, new ef: bisec bounds}
+ eF: -2.000000E-01, Tr(K):  8.0000003E+00, D Tr(K):  1.00E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 3
- ef: -3.100000E-01, Tr(K):  5.3957315E+00, D Tr(K): -1.60E+00, new ef: bisec bounds}
+ eF: -3.100000E-01, Tr(K):  5.3957315E+00, D Tr(K): -1.60E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 4
- ef:  1.000000E-01, Tr(K):  7.9999985E+00, D Tr(K):  1.00E+00, new ef: bisection/secant}
+ eF:  1.000000E-01, Tr(K):  7.9999985E+00, D Tr(K):  1.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 5
- ef: -8.121685E-02, Tr(K):  8.0000001E+00, D Tr(K):  1.00E+00, new ef: bisection/secant}
+ eF: -8.121685E-02, Tr(K):  8.0000001E+00, D Tr(K):  1.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 6
- ef: -1.823373E-01, Tr(K):  7.9999987E+00, D Tr(K):  1.00E+00, new ef: bisection/secant}
+ eF: -1.823373E-01, Tr(K):  7.9999987E+00, D Tr(K):  1.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 7
- ef: -2.387632E-01, Tr(K):  6.7440227E+00, D Tr(K): -2.56E-01, new ef: bisection/secant}
+ eF: -2.387632E-01, Tr(K):  6.7440227E+00, D Tr(K): -2.56E-01, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 8
- ef: -2.189067E-01, Tr(K):  7.9869222E+00, D Tr(K):  9.87E-01, new ef: bisection/secant}
+ eF: -2.189067E-01, Tr(K):  7.9869222E+00, D Tr(K):  9.87E-01, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 9
- ef: -2.317544E-01, Tr(K):  7.4937377E+00, D Tr(K):  4.94E-01, new ef: cubic interpol}
+ eF: -2.317544E-01, Tr(K):  7.4937377E+00, D Tr(K):  4.94E-01, new eF: cubic interpol}
      -  { #--------------------------------------------------------------------- it FOE: 10
- ef: -2.367721E-01, Tr(K):  6.9641468E+00, D Tr(K): -3.59E-02, new ef: linear interpol}
+ eF: -2.367721E-01, Tr(K):  6.9641468E+00, D Tr(K): -3.59E-02, new eF: linear interpol}
      -  { #--------------------------------------------------------------------- it FOE: 11
- ef: -2.364324E-01, Tr(K):  7.0024655E+00, D Tr(K):  2.47E-03, new ef: linear interpol}
+ eF: -2.364324E-01, Tr(K):  7.0024655E+00, D Tr(K):  2.47E-03, new eF: linear interpol}
      -  { #--------------------------------------------------------------------- it FOE: 12
- ef: -2.364543E-01, Tr(K):  6.9999992E+00, D Tr(K): -7.75E-07, new ef: linear interpol}
+ eF: -2.364543E-01, Tr(K):  6.9999992E+00, D Tr(K): -7.75E-07, new eF: linear interpol}
      EBS                               : -3.593032478083E+00
      EBS higher temperature            : -3.593032582424E+00
      difference                        : -1.043408226487E-07
@@ -1868,35 +1868,35 @@
      -  {npl:  600, bounds:  [ -1.0,  1.0 ], penalty:  4.4E-02, ok:  [  Yes,  Yes ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
- ef: -1.000000E-01, Tr(K):  7.9999986E+00, D Tr(K): -1.00E+00, new ef: bisec bounds}
+ eF: -1.000000E-01, Tr(K):  7.9999986E+00, D Tr(K): -1.00E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 2
- ef:  1.000000E-01, Tr(K):  7.9999985E+00, D Tr(K): -1.00E+00, new ef: bisec bounds}
+ eF:  1.000000E-01, Tr(K):  7.9999985E+00, D Tr(K): -1.00E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 3
- ef:  1.900000E-01, Tr(K):  7.9999998E+00, D Tr(K): -1.00E+00, new ef: bisec bounds}
+ eF:  1.900000E-01, Tr(K):  7.9999998E+00, D Tr(K): -1.00E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 4
- ef:  2.890000E-01, Tr(K):  8.0000018E+00, D Tr(K): -1.00E+00, new ef: bisec bounds}
+ eF:  2.890000E-01, Tr(K):  8.0000018E+00, D Tr(K): -1.00E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 5
- ef:  3.979000E-01, Tr(K):  1.1139299E+01, D Tr(K):  2.14E+00, new ef: bisection/secant}
+ eF:  3.979000E-01, Tr(K):  1.1139299E+01, D Tr(K):  2.14E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 6
- ef:  1.037762E-01, Tr(K):  8.0000015E+00, D Tr(K): -1.00E+00, new ef: bisection/secant}
+ eF:  1.037762E-01, Tr(K):  8.0000015E+00, D Tr(K): -1.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 7
- ef:  2.241526E-01, Tr(K):  7.9999986E+00, D Tr(K): -1.00E+00, new ef: bisection/secant}
+ eF:  2.241526E-01, Tr(K):  7.9999986E+00, D Tr(K): -1.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 8
- ef:  2.952624E-01, Tr(K):  7.9999990E+00, D Tr(K): -1.00E+00, new ef: bisection/secant}
+ eF:  2.952624E-01, Tr(K):  7.9999990E+00, D Tr(K): -1.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 9
- ef:  3.372690E-01, Tr(K):  8.0055932E+00, D Tr(K): -9.94E-01, new ef: bisection/secant}
+ eF:  3.372690E-01, Tr(K):  8.0055932E+00, D Tr(K): -9.94E-01, new eF: bisection/secant}
      -  { #--------------------------------------------------------------------- it FOE: 10
- ef:  3.620467E-01, Tr(K):  9.5365875E+00, D Tr(K):  5.37E-01, new ef: bisection/secant}
+ eF:  3.620467E-01, Tr(K):  9.5365875E+00, D Tr(K):  5.37E-01, new eF: bisection/secant}
      -  { #--------------------------------------------------------------------- it FOE: 11
- ef:  3.515102E-01, Tr(K):  8.4491423E+00, D Tr(K): -5.51E-01, new ef: cubic interpol}
+ eF:  3.515102E-01, Tr(K):  8.4491423E+00, D Tr(K): -5.51E-01, new eF: cubic interpol}
      -  { #--------------------------------------------------------------------- it FOE: 12
- ef:  3.577885E-01, Tr(K):  9.1042627E+00, D Tr(K):  1.04E-01, new ef: cubic interpol}
+ eF:  3.577885E-01, Tr(K):  9.1042627E+00, D Tr(K):  1.04E-01, new eF: cubic interpol}
      -  { #--------------------------------------------------------------------- it FOE: 13
- ef:  3.568161E-01, Tr(K):  8.9948388E+00, D Tr(K): -5.16E-03, new ef: linear interpol}
+ eF:  3.568161E-01, Tr(K):  8.9948388E+00, D Tr(K): -5.16E-03, new eF: linear interpol}
      -  { #--------------------------------------------------------------------- it FOE: 14
- ef:  3.568620E-01, Tr(K):  9.0000141E+00, D Tr(K):  1.41E-05, new ef: linear interpol}
+ eF:  3.568620E-01, Tr(K):  9.0000141E+00, D Tr(K):  1.41E-05, new eF: linear interpol}
      -  { #--------------------------------------------------------------------- it FOE: 15
- ef:  3.568619E-01, Tr(K):  9.0000000E+00, D Tr(K): -9.56E-11, new ef: linear interpol}
+ eF:  3.568619E-01, Tr(K):  9.0000000E+00, D Tr(K): -9.56E-11, new eF: linear interpol}
      EBS                               : -3.472625001728E+00
      EBS higher temperature            : -3.472622350812E+00
      difference                        :  2.650915641667E-06

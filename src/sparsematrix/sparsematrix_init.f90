@@ -995,7 +995,7 @@ contains
       narr = f_malloc(0.to.nproc-1,id='narr')
       isarr = f_malloc(0.to.nproc-1,id='n=isarr')
       if (nproc>1) then
-          call mpigather(n_, narr, nproc-1)
+          call mpigather(sendbuf=n_, recvbuf=narr, comm=bigdft_mpi%mpi_comm)
       else
           narr(0) = n_(1)
       end if
@@ -1006,7 +1006,7 @@ contains
           end do
       end if
       if (nproc>1) then
-          call mpiscatter(isarr, is_, nproc-1)
+          call mpiscatter(sendbuf=isarr, recvbuf=is_, comm=bigdft_mpi%mpi_comm)
       else
           is_(1) = isarr(0)
       end if

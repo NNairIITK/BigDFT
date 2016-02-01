@@ -1891,7 +1891,7 @@ module foe_common
                       if (iproc==0) then
                           !call yaml_newline()
                           !call yaml_map('iter',it)
-                          call yaml_map('ef',foe_data_get_real(foe_obj,"ef",ispin),fmt='(es13.6)')
+                          call yaml_map('eF',foe_data_get_real(foe_obj,"ef",ispin),fmt='(es13.6)')
                           !call yaml_map('bisec bounds ok',&
                           !     (/bisection_bounds_ok(1),bisection_bounds_ok(2)/))
                           call yaml_map('Tr(K)',sumn,fmt='(es13.7)')

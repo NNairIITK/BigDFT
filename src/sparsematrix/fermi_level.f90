@@ -163,7 +163,7 @@ module fermi_level
 
       if (internal_info < 0) then
           call f_release_routine()
-          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new ef','bisec bounds')
+          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new eF','bisec bounds')
           return ! no need to proceed further
       end if
 
