@@ -312,13 +312,13 @@ module fermi_level
               !if(abs(det) > f%ef_interpol_det) then
               if(cubicinterpol_possible .and. .not.interpolation_nonsense) then
                   ef = ef_interpol
-                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new ef','cubic interpol')
+                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new eF','cubic interpol')
               else
                   ! linear interpolation
                   m = (f%interpol_vector(4)-f%interpol_vector(3))/(f%interpol_matrix(4,3)-f%interpol_matrix(3,3))
                   b = f%interpol_vector(4)-m*f%interpol_matrix(4,3)
                   ef = -b/m
-                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new ef','linear interpol')
+                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new eF','linear interpol')
               end if
           else
               ! Use mean value of bisection and secant method if possible,
@@ -332,9 +332,9 @@ module fermi_level
                   ef = ef + f%efarr(2)-(f%sumnarr(2)-f%target_charge)*(f%efarr(2)-f%efarr(1))/(f%sumnarr(2)-f%sumnarr(1))
                   ! Take the mean value
                   ef = 0.5d0*ef
-                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new ef','bisection/secant')
+                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new eF','bisection/secant')
               else
-                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new ef','bisection')
+                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new eF','bisection')
               end if
           end if
           if (f%verbosity>=2 .and. bigdft_mpi%iproc==0) then

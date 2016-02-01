@@ -34,7 +34,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use transposed_operations, only: calculate_overlap_transposed
   use parallel_linalg, only: dsygv_parallel
   use matrix_operations, only: deviation_from_unity_parallel
-  use foe, only: fermi_operator_expansion, fermi_operator_expansion_new
+  use foe, only: fermi_operator_expansion_new
   use public_enums
   use locregs_init, only: small_to_large_locreg
   use locreg_operations, only: confpot_data
@@ -674,7 +674,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use sparsematrix,only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use transposed_operations, only: calculate_overlap_transposed
   use matrix_operations, only: overlapPowerGeneral, check_taylor_order
-  use foe, only: fermi_operator_expansion
   use public_enums
   use locreg_operations
   use locregs_init, only: small_to_large_locreg
@@ -3048,7 +3047,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
   use module_base
   use module_types    
   use foe_base, only: foe_data, foe_data_null, foe_data_get_real, foe_data_set_real, foe_data_deallocate
-  use foe, only: fermi_operator_expansion, fermi_operator_expansion_new
+  use foe, only:  fermi_operator_expansion_new
   use sparsematrix_base, only: matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                SPARSE_TASKGROUP, assignment(=)
   use yaml_output
