@@ -28,12 +28,12 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.4
- Timestamp of this run                 : 2016-02-01 11:02:12.630
- Root process Hostname                 : stephan-Latitude-E6420
- Number of MPI tasks                   :  4
+ Timestamp of this run                 : 2016-02-01 12:04:04.513
+ Root process Hostname                 : phys-comp-03
+ Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  2
- MPI tasks of root process node        :  4
+ Maximal OpenMP threads per MPI task   :  1
+ MPI tasks of root process node        :  8
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
@@ -468,20 +468,21 @@
      global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
      verbose                           : Yes #    Verbosity switch
      output                            : none #   Quantities to be plotted after the main solver routine
-   MPI tasks                           :  4
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  8
+   OpenMP threads per MPI task         :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  1.21
-     Kernel (MB)                       :  1.28
+     Density (MB)                      :  0.63
+     Kernel (MB)                       :  0.61
      Full Grid Arrays (MB)             :  4.47
      Load Balancing of calculations:
        Density:
-         MPI tasks 0-3                 : 100%
+         MPI tasks 0-6                 : 100%
+         MPI task7                     : 64%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  86%
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  73%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -495,17 +496,18 @@
  Spin treatment                        : Averaged
  Orbitals Repartition:
    MPI tasks  0- 3                     :  1
+   MPI tasks  4- 7                     :  0
  Total Number of Orbitals              :  4
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-4:  2.0000}
  preconditioning load balancing before :  1.33E+00
  preconditioning load balancing after  :  1.33E+00
- task with max load                    :  [  2 ]
+ task with max load                    :  [  0 ]
  Total No. Support Functions           :  6
  Support Function Repartition:
-   Minimum                             :  1
-   Maximum                             :  2
-   Average                             :  1.5
+   Minimum                             :  0
+   Maximum                             :  1
+   Average                             :  0.8
  Wavefunctions memory occupation for root MPI process:  0 MB 74 KB 832 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -524,12 +526,12 @@
    Full Uncompressed (ISF) grid        : 4.479
    Workspaces storage size             : 0.297
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 24.684
-   Density Construction                : 17.707
-   Poisson Solver                      : 17.543
-   Hamiltonian application             : 17.897
-   Orbitals Orthonormalization         : 17.897
- Estimated Memory Peak (MB)            :  24
+   Kernel calculation                  : 12.342
+   Density Construction                : 15.319
+   Poisson Solver                      : 9.982
+   Hamiltonian application             : 15.509
+   Orbitals Orthonormalization         : 15.509
+ Estimated Memory Peak (MB)            :  15
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -559,15 +561,15 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+   -  {number of tasks:  8, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+   -  {number of tasks:  8, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+   -  {number of tasks:  8, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -575,8 +577,8 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ sparse matmul load balancing naive / optimized:  [  2.00,  2.00 ]
+ sparse matmul load balancing naive / optimized:  [  2.00,  2.00 ]
  Checking Compression/Uncompression of large sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -595,16 +597,16 @@
    Tolerance for the following test    :  1.000000000000000036E-10
    calculation check, error max        :  0.000000000000000000E+00
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  2483,  12 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  1568,  6 ]
    Tolerances for this check: [ 4.54200006064220396E-07,  1.33226762955018785E-15]
-   Maxdiff for transpose (checksum)    :  1.09139364212751389E-11
-   Maxdiff for overlap calculation     :  1.89174897968769073E-10
+   Maxdiff for transpose (checksum)    :  7.27595761418342590E-12
+   Maxdiff for overlap calculation     :  2.61934474110603333E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  2306,  12 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  1153,  6 ]
    Tolerances for this check: [ 9.57600012785331245E-07,  1.33226762955018785E-15]
    Maxdiff for transpose (checksum)    :  2.91038304567337036E-11
-   Maxdiff for overlap calculation     :  1.28056854009628296E-09
+   Maxdiff for overlap calculation     :  1.62981450557708740E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Ion-Ion interaction energy            :  6.88446996418391E+00
   #---------------------------------------------------------------- Ionic Potential Creation
@@ -612,7 +614,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Interaction energy ions multipoles    :  0.0
  Interaction energy multipoles multipoles:  0.0
   #------------------------------------------------------------ Input Wavefunctions Creation
@@ -623,9 +625,9 @@
    -  {atom type: H, value:  1.00E-04, origin: file}
    Total No. of Atomic Input Orbitals  :  6
    Inputguess Orbitals Repartition:
-     Minimum                           :  1
-     Maximum                           :  2
-     Average                           :  1.5
+     Minimum                           :  0
+     Maximum                           :  1
+     Average                           :  0.8
    Atomic Input Orbital Generation:
    -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
@@ -635,7 +637,7 @@
    Poisson Solver:
      BC                                : Free
      Box                               :  [  85,  83,  83 ]
-     MPI tasks                         :  4
+     MPI tasks                         :  8
    orthonormalization of input guess   : standard
    Kernel update:
      Hamiltonian application required  :  Yes
@@ -652,15 +654,15 @@
      Coefficients available            :  Yes
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
- {e: -1.032466469911E+00, f:  2.0000},  # 00001
- {e: -5.564406914458E-01, f:  2.0000},  # 00002
- {e: -4.569418433596E-01, f:  2.0000},  # 00003
- {e: -3.757602347025E-01, f:  2.0000}] # 00004
+ {e: -1.032466469910E+00, f:  2.0000},  # 00001
+ {e: -5.564406914483E-01, f:  2.0000},  # 00002
+ {e: -4.569418433657E-01, f:  2.0000},  # 00003
+ {e: -3.757602347097E-01, f:  2.0000}] # 00004
    Hamiltonian update: {
- Energies: {Ekin:  1.57946564118E+01, Epot: -2.06079737479E+01, Enl:  1.46732642420E+00, 
+ Energies: {Ekin:  1.57946564118E+01, Epot: -2.06079737480E+01, Enl:  1.46732642422E+00, 
               EH:  2.00693076876E+01,  EXC: -3.90682443678E+00, EvXC: -5.11982502067E+00}, 
     Total charge:  7.999965710124E+00, 
- Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}}
     #================================================================= Input guess generated
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
@@ -673,22 +675,22 @@
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  1.15586915832E+01, Epot: -1.32945519571E+01, Enl:  7.35368167966E-01}, 
+ Energies: {Ekin:  1.15586915832E+01, Epot: -1.32945519571E+01, Enl:  7.35368167976E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  7.55E-01, Omega: -1.577049455578490E+01, D: -1.58E+01, D best: -1.58E+01, 
+ iter:  1, fnrm:  7.55E-01, Omega: -1.577049455582069E+01, D: -1.58E+01, D best: -1.58E+01, 
  Optimization: {algorithm: DIIS, history length:  3, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.87638201910E+00, Epot: -1.19586040031E+01, Enl:  7.32221880366E-01}, 
+ Energies: {Ekin:  9.87638201911E+00, Epot: -1.19586040031E+01, Enl:  7.32221880366E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  2.18E-01, Omega: -1.646951035114819E+01, D: -6.99E-01, D best: -6.99E-01, 
+ iter:  2, fnrm:  2.18E-01, Omega: -1.646951035114967E+01, D: -6.99E-01, D best: -6.99E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 2
  target function: TRACE, 
- Energies: {Ekin:  9.87638201910E+00, Epot: -1.19586040031E+01, Enl:  7.32221880366E-01}, 
- iter:  2, fnrm:  2.18E-01, Omega: -1.646951035114819E+01, D: -6.99E-01, D best: -6.99E-01}
+ Energies: {Ekin:  9.87638201911E+00, Epot: -1.19586040031E+01, Enl:  7.32221880366E-01}, 
+ iter:  2, fnrm:  2.18E-01, Omega: -1.646951035114967E+01, D: -6.99E-01, D best: -6.99E-01}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.76E-02,  2.80E-02 ], warnings:  6}
@@ -712,18 +714,18 @@
        Kohn-Sham residue               :  2.258E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  9.87638201910E+00, Epot: -1.19683547130E+01, Enl:  7.32221880366E-01, 
-              EH:  2.19664842500E+01,  EXC: -4.21697438874E+00, EvXC: -5.52947853070E+00}, 
+ Energies: {Ekin:  9.87638201911E+00, Epot: -1.19683547130E+01, Enl:  7.32221880366E-01, 
+              EH:  2.19664842500E+01,  EXC: -4.21697438874E+00, EvXC: -5.52947853069E+00}, 
     Total charge:  7.999982384609E+00, 
- Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.630076794076E-01, f:  2.0000},  # 00001
- {e: -4.447127156020E-01, f:  2.0000},  # 00002
- {e: -2.107059512584E-01, f:  2.0000},  # 00003
- {e: -1.329499080390E-01, f:  2.0000}] # 00004
+ {e: -8.630076794108E-01, f:  2.0000},  # 00001
+ {e: -4.447127156040E-01, f:  2.0000},  # 00002
+ {e: -2.107059512598E-01, f:  2.0000},  # 00003
+ {e: -1.329499080411E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.18E-14, 
- iter:  1, delta:  5.55E-06, energy: -1.70722626524466108E+01, D: -1.707E+01}]
+ iter:  1, delta:  5.55E-06, energy: -1.70722626524517622E+01, D: -1.707E+01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -738,18 +740,18 @@
        Kohn-Sham residue               :  2.126E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  9.87638201910E+00, Epot: -1.26589017797E+01, Enl:  7.32221880366E-01, 
-              EH:  2.06814249480E+01,  EXC: -4.00336581732E+00, EvXC: -5.24711123543E+00}, 
+ Energies: {Ekin:  9.87638201911E+00, Epot: -1.26589017798E+01, Enl:  7.32221880366E-01, 
+              EH:  2.06814249480E+01,  EXC: -4.00336581731E+00, EvXC: -5.24711123542E+00}, 
     Total charge:  7.999979933319E+00, 
- Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.947440560903E-01, f:  2.0000},  # 00001
- {e: -5.366841126826E-01, f:  2.0000},  # 00002
- {e: -3.750838331359E-01, f:  2.0000},  # 00003
- {e: -2.935567011950E-01, f:  2.0000}] # 00004
+ {e: -9.947440560939E-01, f:  2.0000},  # 00001
+ {e: -5.366841126846E-01, f:  2.0000},  # 00002
+ {e: -3.750838331379E-01, f:  2.0000},  # 00003
+ {e: -2.935567011973E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.18E-14, 
- iter:  2, delta:  1.42E-06, energy: -1.69533469719144989E+01, D:  1.189E-01}]
+ iter:  2, delta:  1.42E-06, energy: -1.69533469719167016E+01, D:  1.189E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -764,26 +766,26 @@
        Kohn-Sham residue               :  2.101E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  9.87638201910E+00, Epot: -1.25996588701E+01, Enl:  7.32221880366E-01, 
-              EH:  2.07618504064E+01,  EXC: -4.01076627624E+00, EvXC: -5.25676692173E+00}, 
+ Energies: {Ekin:  9.87638201911E+00, Epot: -1.25996588701E+01, Enl:  7.32221880366E-01, 
+              EH:  2.07618504064E+01,  EXC: -4.01076627624E+00, EvXC: -5.25676692172E+00}, 
     Total charge:  7.999979979014E+00, 
- Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.779108099327E-01, f:  2.0000},  # 00001
- {e: -5.229639816184E-01, f:  2.0000},  # 00002
- {e: -3.714962292457E-01, f:  2.0000},  # 00003
- {e: -2.866085103904E-01, f:  2.0000}] # 00004
+ {e: -9.779108099370E-01, f:  2.0000},  # 00001
+ {e: -5.229639816210E-01, f:  2.0000},  # 00002
+ {e: -3.714962292484E-01, f:  2.0000},  # 00003
+ {e: -2.866085103933E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.18E-14, 
- iter:  3, delta:  7.00E-07, energy: -1.69493388591055023E+01, D:  4.008E-03}]
+ iter:  3, delta:  7.00E-07, energy: -1.69493388591077903E+01, D:  4.008E-03}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 4
  summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.18E-14, 
- iter:  4, delta:  7.00E-07, energy: -1.69493388591055023E+01, D:  4.008E-03}]}
+ iter:  4, delta:  7.00E-07, energy: -1.69493388591077903E+01, D:  4.008E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  1, delta out:  3.317E-06, energy: -1.69493388591055023E+01, D: -1.695E+01}
+ iter low:  1, delta out:  3.317E-06, energy: -1.69493388591077903E+01, D: -1.695E+01}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -813,9 +815,9 @@
  - support function optimization: &it_supfun002
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.87638201910E+00, Epot: -1.25782627619E+01, Enl:  7.32221880366E-01}, 
+ Energies: {Ekin:  9.87638201911E+00, Epot: -1.25782627619E+01, Enl:  7.32221880366E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  2.52E-01, Omega: -1.694841980630954E+01, D: -1.18E+00, D best: -1.18E+00, 
+ iter:  1, fnrm:  2.52E-01, Omega: -1.694841980631162E+01, D: -1.18E+00, D best: -1.18E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.000E-04, max alpha:  1.000E-04, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, 
@@ -827,12 +829,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.87442694667E+00, Epot: -1.25779550070E+01, Enl:  7.32068619386E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  2.51E-01, Omega: -1.694850498561996E+01, D: -8.52E-05, D best: -8.52E-05, 
+ iter:  2, fnrm:  2.51E-01, Omega: -1.694850498562204E+01, D: -8.52E-05, D best: -8.52E-05, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.87442694667E+00, Epot: -1.25779550070E+01, Enl:  7.32068619386E-01}, 
- iter:  2, fnrm:  2.51E-01, Omega: -1.694850498561996E+01, D: -8.52E-05, D best: -8.52E-05}
+ iter:  2, fnrm:  2.51E-01, Omega: -1.694850498562204E+01, D: -8.52E-05, D best: -8.52E-05}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.75E-02,  2.80E-02 ], warnings:  6}
@@ -855,18 +857,18 @@
        communication strategy kernel   : ALLREDUCE
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  9.87638201910E+00, Epot: -1.25782627619E+01, Enl:  7.32221880366E-01, 
-              EH:  2.07889300170E+01,  EXC: -4.01291454550E+00, EvXC: -5.25954252578E+00}, 
+ Energies: {Ekin:  9.87638201911E+00, Epot: -1.25782627619E+01, Enl:  7.32221880366E-01, 
+              EH:  2.07889300169E+01,  EXC: -4.01291454549E+00, EvXC: -5.25954252578E+00}, 
     Total charge:  7.999979975165E+00, 
- Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.716753311663E-01, f:  2.0000},  # 00001
- {e: -5.174935419908E-01, f:  2.0000},  # 00002
- {e: -3.711617594283E-01, f:  2.0000},  # 00003
- {e: -2.850060196402E-01, f:  2.0000}] # 00004
+ {e: -9.716753311706E-01, f:  2.0000},  # 00001
+ {e: -5.174935419934E-01, f:  2.0000},  # 00002
+ {e: -3.711617594311E-01, f:  2.0000},  # 00003
+ {e: -2.850060196431E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.51E-14, 
- iter:  1, delta:  3.50E-07, energy: -1.69485053769324310E+01, D:  8.335E-04}]
+ iter:  1, delta:  3.50E-07, energy: -1.69485053769345022E+01, D:  8.335E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -882,17 +884,17 @@
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  9.87442694667E+00, Epot: -1.25672003804E+01, Enl:  7.32068619386E-01, 
-              EH:  2.08027923433E+01,  EXC: -4.01416411057E+00, EvXC: -5.26116123617E+00}, 
+              EH:  2.08027923433E+01,  EXC: -4.01416411057E+00, EvXC: -5.26116123616E+00}, 
     Total charge:  7.999979973041E+00, 
- Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.686568929894E-01, f:  2.0000},  # 00001
- {e: -5.147278585877E-01, f:  2.0000},  # 00002
- {e: -3.708841121572E-01, f:  2.0000},  # 00003
- {e: -2.842127008144E-01, f:  2.0000}] # 00004
+ {e: -9.686568929937E-01, f:  2.0000},  # 00001
+ {e: -5.147278585903E-01, f:  2.0000},  # 00002
+ {e: -3.708841121600E-01, f:  2.0000},  # 00003
+ {e: -2.842127008173E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.51E-14, 
- iter:  2, delta:  1.75E-07, energy: -1.69482883826594843E+01, D:  2.170E-04}]
+ iter:  2, delta:  1.75E-07, energy: -1.69482883826615307E+01, D:  2.170E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -907,18 +909,18 @@
        Kohn-Sham residue               :  2.085E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  9.87442694667E+00, Epot: -1.25618567660E+01, Enl:  7.32068619386E-01, 
-              EH:  2.08097477908E+01,  EXC: -4.01482108067E+00, EvXC: -5.26201289538E+00}, 
+ Energies: {Ekin:  9.87442694667E+00, Epot: -1.25618567661E+01, Enl:  7.32068619386E-01, 
+              EH:  2.08097477907E+01,  EXC: -4.01482108066E+00, EvXC: -5.26201289538E+00}, 
     Total charge:  7.999979972017E+00, 
- Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.671977238563E-01, f:  2.0000},  # 00001
- {e: -5.133455025876E-01, f:  2.0000},  # 00002
- {e: -3.707071795851E-01, f:  2.0000},  # 00003
- {e: -2.838249713952E-01, f:  2.0000}] # 00004
+ {e: -9.671977238606E-01, f:  2.0000},  # 00001
+ {e: -5.133455025902E-01, f:  2.0000},  # 00002
+ {e: -3.707071795879E-01, f:  2.0000},  # 00003
+ {e: -2.838249713981E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.51E-14, 
- iter:  3, delta:  8.79E-08, energy: -1.69482367667205125E+01, D:  5.162E-05}]
+ iter:  3, delta:  8.79E-08, energy: -1.69482367667228004E+01, D:  5.162E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -934,25 +936,25 @@
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  9.87442694667E+00, Epot: -1.25592011583E+01, Enl:  7.32068619386E-01, 
-              EH:  2.08132288539E+01,  EXC: -4.01515602436E+00, EvXC: -5.26244718689E+00}, 
+              EH:  2.08132288539E+01,  EXC: -4.01515602435E+00, EvXC: -5.26244718688E+00}, 
     Total charge:  7.999979971573E+00, 
- Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.664879918837E-01, f:  2.0000},  # 00001
- {e: -5.126541883667E-01, f:  2.0000},  # 00002
- {e: -3.706022299873E-01, f:  2.0000},  # 00003
- {e: -2.836339116749E-01, f:  2.0000}] # 00004
+ {e: -9.664879918879E-01, f:  2.0000},  # 00001
+ {e: -5.126541883693E-01, f:  2.0000},  # 00002
+ {e: -3.706022299900E-01, f:  2.0000},  # 00003
+ {e: -2.836339116778E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.51E-14, 
- iter:  4, delta:  4.41E-08, energy: -1.69482243710581812E+01, D:  1.240E-05}]
+ iter:  4, delta:  4.41E-08, energy: -1.69482243710603271E+01, D:  1.240E-05}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.51E-14, 
- iter:  5, delta:  4.41E-08, energy: -1.69482243710581812E+01, D:  1.240E-05}]}
+ iter:  5, delta:  4.41E-08, energy: -1.69482243710603271E+01, D:  1.240E-05}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter high:  2, delta out:  3.282E-07, energy: -1.69482243710581812E+01, D:  1.114E-03}
+ iter high:  2, delta out:  3.282E-07, energy: -1.69482243710603271E+01, D:  1.114E-03}
     #WARNING: oscillation of the energy, increase counter
    energy_scillation_counter           :  1
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
@@ -966,7 +968,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.87442694667E+00, Epot: -1.25578862810E+01, Enl:  7.32068619386E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  2.50E-01, Omega: -1.694822135739419E+01, D:  1.98E-04, D best:  1.98E-04, 
+ iter:  1, fnrm:  2.50E-01, Omega: -1.694822135739637E+01, D:  1.98E-04, D best:  1.98E-04, 
  Optimization: {algorithm: SD, mean alpha:  1.100E-04, max alpha:  1.100E-04, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, 
@@ -976,14 +978,14 @@
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.87451157769E+00, Epot: -1.25579946534E+01, Enl:  7.32075977207E-01}, 
+ Energies: {Ekin:  9.87451157770E+00, Epot: -1.25579946534E+01, Enl:  7.32075977207E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  2.50E-01, Omega: -1.694823662541749E+01, D: -1.53E-05, D best: -1.53E-05, 
+ iter:  2, fnrm:  2.50E-01, Omega: -1.694823662541967E+01, D: -1.53E-05, D best: -1.53E-05, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
- Energies: {Ekin:  9.87451157769E+00, Epot: -1.25579946534E+01, Enl:  7.32075977207E-01}, 
- iter:  2, fnrm:  2.50E-01, Omega: -1.694823662541749E+01, D: -1.53E-05, D best: -1.53E-05}
+ Energies: {Ekin:  9.87451157770E+00, Epot: -1.25579946534E+01, Enl:  7.32075977207E-01}, 
+ iter:  2, fnrm:  2.50E-01, Omega: -1.694823662541967E+01, D: -1.53E-05, D best: -1.53E-05}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.75E-02,  2.80E-02 ], warnings:  6}
@@ -1007,17 +1009,17 @@
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  9.87442694667E+00, Epot: -1.25592011583E+01, Enl:  7.32068619386E-01, 
-              EH:  2.08149602777E+01,  EXC: -4.01532294528E+00, EvXC: -5.26266358128E+00}, 
-    Total charge:  7.999979971624E+00, 
- Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  4}}
+              EH:  2.08149602777E+01,  EXC: -4.01532294528E+00, EvXC: -5.26266358127E+00}, 
+    Total charge:  7.999979971623E+00, 
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.661446965574E-01, f:  2.0000},  # 00001
- {e: -5.123128702490E-01, f:  2.0000},  # 00002
- {e: -3.705446872540E-01, f:  2.0000},  # 00003
- {e: -2.835412330774E-01, f:  2.0000}] # 00004
+ {e: -9.661446965616E-01, f:  2.0000},  # 00001
+ {e: -5.123128702516E-01, f:  2.0000},  # 00002
+ {e: -3.705446872567E-01, f:  2.0000},  # 00003
+ {e: -2.835412330803E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.50E-14, 
- iter:  1, delta:  2.21E-08, energy: -1.69482366518453560E+01, D: -1.228E-05}]
+ iter:  1, delta:  2.21E-08, energy: -1.69482366518475303E+01, D: -1.228E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1032,18 +1034,18 @@
        Kohn-Sham residue               :  2.084E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  9.87451157769E+00, Epot: -1.25573038106E+01, Enl:  7.32075977207E-01, 
-              EH:  2.08158831949E+01,  EXC: -4.01541725147E+00, EvXC: -5.26278607664E+00}, 
+ Energies: {Ekin:  9.87451157770E+00, Epot: -1.25573038106E+01, Enl:  7.32075977207E-01, 
+              EH:  2.08158831948E+01,  EXC: -4.01541725147E+00, EvXC: -5.26278607663E+00}, 
     Total charge:  7.999979971600E+00, 
- Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.659675147030E-01, f:  2.0000},  # 00001
- {e: -5.121336941397E-01, f:  2.0000},  # 00002
- {e: -3.705062198959E-01, f:  2.0000},  # 00003
- {e: -2.834883263867E-01, f:  2.0000}] # 00004
+ {e: -9.659675147073E-01, f:  2.0000},  # 00001
+ {e: -5.121336941423E-01, f:  2.0000},  # 00002
+ {e: -3.705062198987E-01, f:  2.0000},  # 00003
+ {e: -2.834883263896E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.50E-14, 
- iter:  2, delta:  1.11E-08, energy: -1.69482359157633766E+01, D:  7.361E-07}]
+ iter:  2, delta:  1.11E-08, energy: -1.69482359157655011E+01, D:  7.361E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1058,18 +1060,18 @@
        Kohn-Sham residue               :  2.084E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  9.87451157769E+00, Epot: -1.25569723669E+01, Enl:  7.32075977207E-01, 
-              EH:  2.08163234241E+01,  EXC: -4.01546085686E+00, EvXC: -5.26284263512E+00}, 
+ Energies: {Ekin:  9.87451157770E+00, Epot: -1.25569723669E+01, Enl:  7.32075977207E-01, 
+              EH:  2.08163234241E+01,  EXC: -4.01546085685E+00, EvXC: -5.26284263511E+00}, 
     Total charge:  7.999979971563E+00, 
- Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.658832167885E-01, f:  2.0000},  # 00001
- {e: -5.120461285866E-01, f:  2.0000},  # 00002
- {e: -3.704880051471E-01, f:  2.0000},  # 00003
- {e: -2.834646765167E-01, f:  2.0000}] # 00004
+ {e: -9.658832167927E-01, f:  2.0000},  # 00001
+ {e: -5.120461285892E-01, f:  2.0000},  # 00002
+ {e: -3.704880051499E-01, f:  2.0000},  # 00003
+ {e: -2.834646765196E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.50E-14, 
- iter:  3, delta:  5.59E-09, energy: -1.69482357357180575E+01, D:  1.800E-07}]
+ iter:  3, delta:  5.59E-09, energy: -1.69482357357205053E+01, D:  1.800E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1084,44 +1086,44 @@
        Kohn-Sham residue               :  2.084E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  9.87451157769E+00, Epot: -1.25568088455E+01, Enl:  7.32075977207E-01, 
-              EH:  2.08165409434E+01,  EXC: -4.01548214621E+00, EvXC: -5.26287023486E+00}, 
+ Energies: {Ekin:  9.87451157770E+00, Epot: -1.25568088455E+01, Enl:  7.32075977207E-01, 
+              EH:  2.08165409434E+01,  EXC: -4.01548214620E+00, EvXC: -5.26287023486E+00}, 
     Total charge:  7.999979971546E+00, 
- Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  8}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.658420902063E-01, f:  2.0000},  # 00001
- {e: -5.120025709325E-01, f:  2.0000},  # 00002
- {e: -3.704785182855E-01, f:  2.0000},  # 00003
- {e: -2.834532210282E-01, f:  2.0000}] # 00004
+ {e: -9.658420902106E-01, f:  2.0000},  # 00001
+ {e: -5.120025709351E-01, f:  2.0000},  # 00002
+ {e: -3.704785182883E-01, f:  2.0000},  # 00003
+ {e: -2.834532210311E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.50E-14, 
- iter:  4, delta:  2.81E-09, energy: -1.69482356914903178E+01, D:  4.423E-08}]
+ iter:  4, delta:  2.81E-09, energy: -1.69482356914926271E+01, D:  4.423E-08}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.50E-14, 
- iter:  5, delta:  2.81E-09, energy: -1.69482356914903178E+01, D:  4.423E-08}]}
+ iter:  5, delta:  2.81E-09, energy: -1.69482356914926271E+01, D:  4.423E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter high:  3, delta out:  2.083E-08, energy: -1.69482356914903178E+01, D: -1.132E-05}
+ iter high:  3, delta out:  2.083E-08, energy: -1.69482356914926271E+01, D: -1.132E-05}
     #WARNING: oscillation of the energy, increase counter
    energy_scillation_counter           :  2
    new nit_scc                         :  5
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
- {e: -9.658420902063E-01, f:  1.0000},  # 00001
- {e: -5.120025709325E-01, f:  1.0000},  # 00002
- {e: -3.704785182855E-01, f:  1.0000},  # 00003
- {e: -2.834532210282E-01, f:  1.0000},  # 00004
- {e:  4.013022055052E-02, f:  1.0000},  # 00005
- {e:  1.414255762542E-01, f:  1.0000}] # 00006
+ {e: -9.658420902106E-01, f:  1.0000},  # 00001
+ {e: -5.120025709351E-01, f:  1.0000},  # 00002
+ {e: -3.704785182883E-01, f:  1.0000},  # 00003
+ {e: -2.834532210311E-01, f:  1.0000},  # 00004
+ {e:  4.013022055086E-02, f:  1.0000},  # 00005
+ {e:  1.414255762549E-01, f:  1.0000}] # 00006
     #========================================================================= final results
    self consistency summary:
    -  {iter:  3, 
- Energies: {Ekin:  9.87451157769E+00, Epot: -1.25568088455E+01, Enl:  7.32075977207E-01, 
-              EH:  2.08166486687E+01,  EXC: -4.01549257358E+00, EvXC: -5.26288374709E+00}, 
+ Energies: {Ekin:  9.87451157770E+00, Epot: -1.25568088455E+01, Enl:  7.32075977207E-01, 
+              EH:  2.08166486687E+01,  EXC: -4.01549257357E+00, EvXC: -5.26288374708E+00}, 
        iter high:  3,            delta out:  2.083E-08, 
-          energy: -1.69482356914903178E+01,                       D:  0.000E+00,  #FINAL
+          energy: -1.69482356914926271E+01,                       D:  0.000E+00,  #FINAL
  }
   #================================================== FOE calculation for HOMO-LUMO analysis
  Check possibility to calculate the gap:
@@ -1140,7 +1142,7 @@
        x                               : -1/2
      order                             :  0
      error estimation:
-       max / mean error                :  [  1.67E-15,  5.34E-16 ]
+       max / mean error                :  [  1.78E-15,  7.10E-16 ]
    Kernel calculation:
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
@@ -1180,12 +1182,12 @@
  ef: -2.834495E-01, Tr(K):  7.0004157E+00, D Tr(K):  4.16E-04, new ef: cubic interpol}
      -  { #--------------------------------------------------------------------- it FOE: 14
  ef: -2.834532E-01, Tr(K):  7.0000000E+00, D Tr(K): -4.43E-08, new ef: linear interpol}
-     EBS                               : -3.980099546559E+00
-     EBS higher temperature            : -3.980100604561E+00
-     difference                        : -1.058002771614E-06
-     relative difference               :  2.658231934247E-07
+     EBS                               : -3.980099546583E+00
+     EBS higher temperature            : -3.980100604584E+00
+     difference                        : -1.058000735910E-06
+     relative difference               :  2.658226819522E-07
      modify error function decay length: increase
-     trace(KS)                         :  6.999999955742081
+     trace(KS)                         :  6.999999955749299
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  calculate LUMO kernel:
@@ -1197,7 +1199,7 @@
        x                               : -1/2
      order                             :  0
      error estimation:
-       max / mean error                :  [  1.67E-15,  5.34E-16 ]
+       max / mean error                :  [  1.78E-15,  7.10E-16 ]
    Kernel calculation:
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
@@ -1227,19 +1229,19 @@
  ef:  4.013003E-02, Tr(K):  8.9999783E+00, D Tr(K): -2.17E-05, new ef: cubic interpol}
      -  { #---------------------------------------------------------------------- it FOE: 9
  ef:  4.013022E-02, Tr(K):  9.0000000E+00, D Tr(K):  1.69E-09, new ef: linear interpol}
-     EBS                               : -4.223422578646E+00
-     EBS higher temperature            : -4.223422587073E+00
-     difference                        : -8.426987108123E-09
-     relative difference               :  1.995298114551E-09
+     EBS                               : -4.223422578671E+00
+     EBS higher temperature            : -4.223422587098E+00
+     difference                        : -8.426988884480E-09
+     relative difference               :  1.995298535135E-09
      modify error function decay length: increase
-     trace(KS)                         :  9.000000001686161
+     trace(KS)                         :  9.00000000168615
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  HOMO-LUMO analysis:
-   HOMO energy                         :  [ -0.2834532028289142 ]
-   LUMO energy                         :  [  4.013022132002346E-002 ]
-   HOMO-LUMO gap (Ha)                  :  [  0.3235834241489377 ]
-   HOMO-LUMO gap (eV)                  :  [  8.805153150314213 ]
+   HOMO energy                         :  [ -0.2834532028318096 ]
+   LUMO energy                         :  [  4.0130221320363542E-002 ]
+   HOMO-LUMO gap (Ha)                  :  [  0.3235834241521732 ]
+   HOMO-LUMO gap (eV)                  :  [  8.805153150402255 ]
   #================================================= Atomic multipole analysis, new approach
  Method                                : projector
  Orthogonalized support functions      : yes
@@ -1271,7 +1273,7 @@
      pol. deg.                         :  20
      accuracy (x, max err, mean err):
        Operation  1                    :  [  5.0E-01,  3.74E-14,  1.34E-14 ]
-   penalty                             :  2.0E-15
+   penalty                             :  2.1E-15
    error estimation:
      max / mean error                  :  [  3.97E-14,  1.61E-14 ]
  Calculating projector for charge analysis:
@@ -1291,7 +1293,7 @@
    -  {alpha:  5.1200E+03, net charge: -1.3183E-05, bisection bounds ok:  [  Yes,  No ]}
    -  {alpha:  1.0240E+04, net charge: -6.5844E-06, bisection bounds ok:  [  Yes,  No ]}
    number of states to be occupied (without smearing):  5
-   Pseudo Fermi level for occupations  :  4.1265277237420891E-002
+   Pseudo Fermi level for occupations  :  4.12652771318852E-002
    ordered eigenvalues and occupations:
    -  {eval: -7.4773E-01, atom:  00001, occ:  1.0000} # 00001
    -  {eval: -3.3244E-01, atom:  00001, occ:  1.0000} # 00002
@@ -1308,7 +1310,7 @@
      x                                 : 1/2
    order                               :  20
    error estimation:
-     max / mean error                  :  [  2.22E-16,  4.90E-17 ]
+     max / mean error                  :  [  3.33E-16,  7.85E-17 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Orthonormalizing the support functions
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
@@ -1351,7 +1353,7 @@
        -  [  1.0212E+00,  1.2223E+00,  1.0436E+00 ]
        -  [  1.2223E+00, -4.0250E-01,  1.6992E+00 ]
        -  [  1.0436E+00,  1.6992E+00, -6.1874E-01 ]
-       trace                           :  2.20E-13
+       trace                           :  1.81E-13
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
        P vector                        :  [ -1.5691E+00,  8.8599E-01,  9.6950E-01 ]
@@ -1361,7 +1363,7 @@
        -  [  4.0905E-01,  7.4939E-01,  7.0961E-01 ]
        -  [  7.4939E-01, -9.7329E-02,  1.1775E-02 ]
        -  [  7.0961E-01,  1.1775E-02, -3.1172E-01 ]
-       trace                           : -6.39E-14
+       trace                           : -3.55E-15
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
        P vector                        :  [ -1.5681E+00,  8.8693E-01,  9.6855E-01 ]
@@ -1371,20 +1373,20 @@
        -  [  1.6857E+00,  1.6355E+00,  1.4779E+00 ]
        -  [  1.6355E+00, -6.4238E-01,  2.1337E+00 ]
        -  [  1.4779E+00,  2.1337E+00, -1.0434E+00 ]
-       trace                           : -2.10E-13
+       trace                           : -5.33E-14
   #========================================================== Atomic multipole analysis done
   #WARNING: commented correction_locrad
   #------------------------------------------------------------------------ Pulay Correction
  Pulay Forces (Ha/Bohr):
- -  {O: [-1.574613434169E-01,  7.366116317691E-02,  8.119914175436E-02]} # 0001
- -  {H: [ 1.116513456137E-02,  2.862951638677E-03,  1.800985962004E-03]} # 0002
- -  {H: [ 3.994655942048E-03, -1.682926875698E-02, -1.926677185500E-02]} # 0003
+ -  {O: [-1.574613434149E-01,  7.366116317650E-02,  8.119914175490E-02]} # 0001
+ -  {H: [ 1.116513455887E-02,  2.862951637757E-03,  1.800985961288E-03]} # 0002
+ -  {H: [ 3.994655941689E-03, -1.682926875504E-02, -1.926677185354E-02]} # 0003
  Total charge                          :  7.999979971546E+00
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Electric Dipole Moment (AU):
    P vector                            :  [ -6.1697E-01,  3.4884E-01,  3.8168E-01 ]
    norm(P)                             :  8.049974E-01
@@ -1396,7 +1398,7 @@
    -  [  1.6853E+00,  1.6366E+00,  1.4771E+00 ]
    -  [  1.6366E+00, -6.4284E-01,  2.1340E+00 ]
    -  [  1.4771E+00,  2.1340E+00, -1.0425E+00 ]
-   trace                               :  7.74E-13
+   trace                               :  6.82E-13
  Calculate local forces                :  Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------- Warnings obtained during the run, check their relevance!
@@ -1409,29 +1411,29 @@
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.49
-   Elapsed time (s)                    :  5.83
+   CPU time (s)                        :  4.18
+   Elapsed time (s)                    :  4.21
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.81627853E-01, y:  2.49290264E-02, z:  1.39157120E-02, 
                     total:  1.83858044E-01}
- Clean forces norm (Ha/Bohr): {maxval:  2.104908259625E-01, fnrm2:  7.423338712790E-02}
- Raw forces norm (Ha/Bohr): {maxval:  3.317449327123E-01, fnrm2:  1.132394119933E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  2.104908259661E-01, fnrm2:  7.423338713050E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  3.317449327157E-01, fnrm2:  1.132394119961E-01}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 2.100634594604E-01, -4.045120913449E-03, -1.278154179673E-02]} # 0001
- -  {H: [-1.669767462827E-01,  5.602723976278E-03,  1.246531258026E-02]} # 0002
- -  {H: [-4.308671317770E-02, -1.557603062830E-03,  3.162292164688E-04]} # 0003
- Energy (Hartree)                      : -1.69482356914903178E+01
- Force Norm (Hartree/Bohr)             :  2.72458046546437904E-01
+ -  {O: [ 2.100634594637E-01, -4.045120917068E-03, -1.278154180037E-02]} # 0001
+ -  {H: [-1.669767462860E-01,  5.602723976164E-03,  1.246531258029E-02]} # 0002
+ -  {H: [-4.308671317780E-02, -1.557603059096E-03,  3.162292200787E-04]} # 0003
+ Energy (Hartree)                      : -1.69482356914926271E+01
+ Force Norm (Hartree/Bohr)             :  2.72458046551210642E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  7064
-   Tot. No. of Deallocations           :  7064
+   Tot. No. of Allocations             :  6869
+   Tot. No. of Deallocations           :  6869
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  84.262
+     Peak Value (MB)                   :  73.968
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 79.700 MB
- Walltime since initialization         : 00:00:06.202219539
- Max No. of dictionaries used          :  6841 #( 909 still in use)
+     Memory Peak of process            : 74.192 MB
+ Walltime since initialization         : 00:00:04.581784931
+ Max No. of dictionaries used          :  6845 #( 909 still in use)
  Number of dictionary folders allocated:  1

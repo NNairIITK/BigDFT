@@ -28,12 +28,12 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.4
- Timestamp of this run                 : 2016-02-01 11:01:05.788
- Root process Hostname                 : stephan-Latitude-E6420
- Number of MPI tasks                   :  4
+ Timestamp of this run                 : 2016-02-01 12:03:33.149
+ Root process Hostname                 : phys-comp-03
+ Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  2
- MPI tasks of root process node        :  4
+ Maximal OpenMP threads per MPI task   :  1
+ MPI tasks of root process node        :  8
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
@@ -494,20 +494,20 @@
      global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
      verbose                           : Yes #    Verbosity switch
      output                            : none #   Quantities to be plotted after the main solver routine
-   MPI tasks                           :  4
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  8
+   OpenMP threads per MPI task         :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  1.58
-     Kernel (MB)                       :  1.63
+     Density (MB)                      :  0.79
+     Kernel (MB)                       :  0.85
      Full Grid Arrays (MB)             :  5.37
      Load Balancing of calculations:
        Density:
-         MPI tasks 0-3                 : 100%
+         MPI tasks 0-7                 : 100%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  96%
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  58%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -521,18 +521,19 @@
  Spin treatment                        : Averaged
  Orbitals Repartition:
    MPI tasks  0- 3                     :  1
+   MPI tasks  4- 7                     :  0
  Total Number of Orbitals              :  4
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-4:  2.0000}
  preconditioning load balancing before :  1.40E+00
- preconditioning load balancing after  :  1.30E+00
- task with max load                    :  [  0 ]
+ preconditioning load balancing after  :  1.40E+00
+ task with max load                    :  [  1 ]
  Total No. Support Functions           :  6
  Support Function Repartition:
-   Minimum                             :  1
-   Maximum                             :  2
-   Average                             :  1.5
- Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 672 B
+   Minimum                             :  0
+   Maximum                             :  1
+   Average                             :  0.8
+ Wavefunctions memory occupation for root MPI process:  0 MB 138 KB 656 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  2
@@ -548,26 +549,26 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
    Single orbital                      : 0.139 #  (Number of Components: 17746)
-   All (distributed) orbitals          : 0.416 #  (Number of Orbitals per MPI task: 1)
-   Wavefunction storage size           : 2.32 #   (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 0.417 #  (Number of Orbitals per MPI task: 1)
+   Wavefunction storage size           : 2.33 #   (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.163
    Full Uncompressed (ISF) grid        : 5.380
    Workspaces storage size             : 0.388
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 31.379
-   Density Construction                : 22.44
-   Poisson Solver                      : 22.846
-   Hamiltonian application             : 22.368
-   Orbitals Orthonormalization         : 22.368
- Estimated Memory Peak (MB)            :  31
+   Kernel calculation                  : 16.376
+   Density Construction                : 18.902
+   Poisson Solver                      : 12.558
+   Hamiltonian application             : 19.202
+   Orbitals Orthonormalization         : 19.202
+ Estimated Memory Peak (MB)            :  19
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  2
    Total number of components          :  20860
    Percent of zero components          :  0
    Size of workspaces                  :  41752
-   Maximum size of masking arrays for a projector:  2856
-   Cumulative size of masking arrays   :  2856
+   Maximum size of masking arrays for a projector:  1428
+   Cumulative size of masking arrays   :  1428
  total elements                        :  36
  non-zero elements                     :  36
   #segments:  6
@@ -589,15 +590,15 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+   -  {number of tasks:  8, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+   -  {number of tasks:  8, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+   -  {number of tasks:  8, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
  Checking operations for potential communication:
    Tolerance for the following test    :  9.999999999999999799E-13
    calculation check, error sum        :  0.000000000000000000E+00
@@ -608,13 +609,13 @@
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  3849,  176 ]
-   Tolerances for this check: [ 8.20950010960858068E-07,  1.33226762955018785E-15]
-   Maxdiff for transpose (checksum)    :  3.63797880709171295E-11
+   Number of coarse and fine DoF (MasterMPI task):  [  2707,  88 ]
+   Tolerances for this check: [ 7.72600010315316332E-07,  1.33226762955018785E-15]
+   Maxdiff for transpose (checksum)    :  2.91038304567337036E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  3290,  176 ]
-   Tolerances for this check: [ 1.66600002224348565E-06,  1.33226762955018785E-15]
+   Number of coarse and fine DoF (MasterMPI task):  [  1722,  88 ]
+   Tolerances for this check: [ 1.59930002135294513E-06,  1.33226762955018785E-15]
    Maxdiff for transpose (checksum)    :  4.36557456851005554E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Value for Exc[rhoc]                   : -0.2112499689706133
@@ -624,7 +625,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  91,  85,  91 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Origin of the PSP data:
  - O                                   : PSP of QM region
  - H                                   : PSP of QM region
@@ -639,7 +640,7 @@
 
        Deviation from normalization for the radial function:  [  7.0E-15,  7.0E-15,  7.0E-15 ]
 
-       Maximal deviation from the original values in percent:  [ -2.0E-13,  2.5E-12,  1.1E-12 ]
+       Maximal deviation from the original values in percent:  [ -2.1E-13,  2.4E-12,  1.7E-12 ]
    -  2:
        Method                          : Density based on Gaussians
        Sigma of the Gaussians          :  [  0.244,  0.244,  0.244 ]
@@ -664,9 +665,9 @@
    -  {atom type: H, value:  3.77E-02, origin: automatic}
    Total No. of Atomic Input Orbitals  :  6
    Inputguess Orbitals Repartition:
-     Minimum                           :  1
-     Maximum                           :  2
-     Average                           :  1.5
+     Minimum                           :  0
+     Maximum                           :  1
+     Average                           :  0.8
    Atomic Input Orbital Generation:
    -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
@@ -676,7 +677,7 @@
    Poisson Solver:
      BC                                : Free
      Box                               :  [  91,  85,  91 ]
-     MPI tasks                         :  4
+     MPI tasks                         :  8
    orthonormalization of input guess   : standard
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
    Confinement prefactor for extended input guess:
@@ -691,7 +692,7 @@
  Energies: {Ekin:  1.56446597180E+01, Epot: -1.89835199312E+01, Enl:  2.76427496730E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D: -0.00E+00, 
- iter:  1, fnrm:  2.84E-01, Omega: -1.472735366381271E+01, D: -1.47E+01, D best: -1.47E+01, 
+ iter:  1, fnrm:  2.84E-01, Omega: -1.472735366381038E+01, D: -1.47E+01, D best: -1.47E+01, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  Yes}
@@ -700,21 +701,21 @@
  Energies: {Ekin:  1.57562567888E+01, Epot: -1.93214529244E+01, Enl:  2.85142591558E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D:  1.01E-02,         kappa:  8.116E-01, 
- iter:  2, fnrm:  1.79E-01, Omega: -1.487627516144644E+01, D: -1.49E-01, D best: -1.49E-01, 
+ iter:  2, fnrm:  1.79E-01, Omega: -1.487627516144370E+01, D: -1.49E-01, D best: -1.49E-01, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 3
  target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  1.59184499292E+01, Epot: -1.97389872784E+01, Enl:  2.96860067914E+00}, 
+ Energies: {Ekin:  1.59184499292E+01, Epot: -1.97389872783E+01, Enl:  2.96860067914E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D:  1.74E-02,         kappa:  5.775E-01, 
- iter:  3, fnrm:  7.58E-02, Omega: -1.498433274652558E+01, D: -1.08E-01, D best: -1.08E-01, 
+ iter:  3, fnrm:  7.58E-02, Omega: -1.498433274652276E+01, D: -1.08E-01, D best: -1.08E-01, 
  exit criterion: gradient}
      -  &final_supfun000  { #------------------------------------------------------ iter: 3
  target function: TRACE, 
- Energies: {Ekin:  1.59184499292E+01, Epot: -1.97389872784E+01, Enl:  2.96860067914E+00}, 
- iter:  3, fnrm:  7.58E-02, Omega: -1.498433274652558E+01, D: -1.08E-01, D best: -1.08E-01}
+ Energies: {Ekin:  1.59184499292E+01, Epot: -1.97389872783E+01, Enl:  2.96860067914E+00}, 
+ iter:  3, fnrm:  7.58E-02, Omega: -1.498433274652276E+01, D: -1.08E-01, D best: -1.08E-01}
         #Support functions created
    Kernel update:
      Hamiltonian application required  :  Yes
@@ -735,7 +736,7 @@
          pol. deg.                     :  20
          accuracy (x, max err, mean err):
            Operation  1                :  [  5.0E-01,  1.67E-12,  5.95E-13 ]
-       penalty                         :  2.0E-15
+       penalty                         :  2.1E-15
        error estimation:
          max / mean error              :  [  1.71E-12,  6.97E-13 ]
      Kernel calculation:
@@ -760,13 +761,13 @@
  ef:  1.257994E-01, Tr(K):  8.0000033E+00, D Tr(K):  3.30E-06, new ef: bisection/secant}
        -  { #-------------------------------------------------------------------- it FOE: 8
  ef:  1.219121E-01, Tr(K):  7.9999998E+00, D Tr(K): -2.28E-07, new ef: bisection/secant}
-       EBS                             : -3.143715633048E+00
-       EBS higher temperature          : -3.143716215816E+00
-       difference                      : -5.827684210757E-07
-       relative difference             :  1.853756793234E-07
+       EBS                             : -3.143715633041E+00
+       EBS higher temperature          : -3.143716215809E+00
+       difference                      : -5.827684192994E-07
+       relative difference             :  1.853756787587E-07
        modify error function decay length: increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
-       trace(KS)                       :  7.999999772161095
+       trace(KS)                       :  7.999999772161097
        need to repeat with sharper decay (new):  No
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
      Kohn-Sham residue                 : not calculated
@@ -775,7 +776,7 @@
  Energies: {Ekin:  1.59184499292E+01, Epot: -2.04863370561E+01, Enl:  2.96860067914E+00, 
               EH:  2.20205234657E+01,  EXC: -4.83206569791E+00, EvXC: -5.82067170577E+00}, 
     Total charge:  7.999997979230E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
     #================================================================= Input guess generated
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
@@ -792,7 +793,7 @@
  Energies: {Ekin:  1.19861058814E+01, Epot: -1.35642079667E+01, Enl:  1.50147425814E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D: -0.00E+00, 
- iter:  1, fnrm:  2.32E-01, Omega: -1.687772144906125E+01, D: -1.69E+01, D best: -1.69E+01, 
+ iter:  1, fnrm:  2.32E-01, Omega: -1.687772144906103E+01, D: -1.69E+01, D best: -1.69E+01, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, Normalization:  Yes}
@@ -801,12 +802,12 @@
  Energies: {Ekin:  1.19769797876E+01, Epot: -1.34474253819E+01, Enl:  1.45303427674E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D:  5.86E-04,         kappa:  2.875E-02, kappa to history:  Yes, 
- iter:  2, fnrm:  4.79E-01, Omega: -1.688761979575552E+01, D: -9.90E-03, D best: -9.90E-03, 
+ iter:  2, fnrm:  4.79E-01, Omega: -1.688761979575524E+01, D: -9.90E-03, D best: -9.90E-03, 
  exit criterion: energy difference}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.19769797876E+01, Epot: -1.34474253819E+01, Enl:  1.45303427674E+00}, 
- iter:  2, fnrm:  4.79E-01, Omega: -1.688761979575552E+01, D: -9.90E-03, D best: -9.90E-03}
+ iter:  2, fnrm:  4.79E-01, Omega: -1.688761979575524E+01, D: -9.90E-03, D best: -9.90E-03}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.41E-03,  5.71E-03 ], warnings:  0}
@@ -846,23 +847,23 @@
  ef:  1.779081E-01, Tr(K):  7.9999987E+00, D Tr(K): -1.28E-06, new ef: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 9
  ef:  1.811800E-01, Tr(K):  8.0000000E+00, D Tr(K): -6.73E-09, new ef: linear interpol}
-         EBS                           : -2.946241550221E+00
-         EBS higher temperature        : -2.946240832141E+00
-         difference                    :  7.180792880312E-07
-         relative difference           :  2.437272286712E-07
+         EBS                           : -2.946241550217E+00
+         EBS higher temperature        : -2.946240832138E+00
+         difference                    :  7.180792902517E-07
+         relative difference           :  2.437272294252E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  7.999999993259981
+         trace(KS)                     :  7.999999993259977
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Coefficients available          :  No
      Hamiltonian update: {
  Energies: {Ekin:  1.59184499292E+01, Epot: -2.04863370561E+01, Enl:  2.96860067914E+00, 
-              EH:  2.22886268892E+01,  EXC: -4.88129794456E+00, EvXC: -5.88223923698E+00}, 
+              EH:  2.22886268892E+01,  EXC: -4.88129794456E+00, EvXC: -5.88223923699E+00}, 
     Total charge:  7.999998254110E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  4.79E-11, 
- iter:  1, delta:  2.09E-06, energy: -1.76976558506810484E+01, D: -1.770E+01}]
+ iter:  1, delta:  2.09E-06, energy: -1.76976558506812367E+01, D: -1.770E+01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -895,10 +896,10 @@
  ef:  1.269522E-01, Tr(K):  7.9999980E+00, D Tr(K): -2.00E-06, new ef: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 9
  ef:  1.315711E-01, Tr(K):  8.0000001E+00, D Tr(K):  1.47E-07, new ef: linear interpol}
-         EBS                           : -2.873558715054E+00
-         EBS higher temperature        : -2.873558355966E+00
+         EBS                           : -2.873558715052E+00
+         EBS higher temperature        : -2.873558355964E+00
          difference                    :  3.590885118143E-07
-         relative difference           :  1.249629979485E-07
+         relative difference           :  1.249629979486E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
          trace(KS)                     :  8.000000147149105
@@ -910,9 +911,9 @@
  Energies: {Ekin:  1.19769797876E+01, Epot: -1.40601010170E+01, Enl:  1.45303427674E+00, 
               EH:  2.23540906831E+01,  EXC: -4.89231774173E+00, EvXC: -5.89583291158E+00}, 
     Total charge:  7.999998426543E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  4.79E-11, 
- iter:  2, delta:  1.69E-06, energy: -1.76878629319352569E+01, D:  9.793E-03}]
+ iter:  2, delta:  1.69E-06, energy: -1.76878629319355056E+01, D:  9.793E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -939,13 +940,13 @@
  ef:  1.781091E-01, Tr(K):  7.9999979E+00, D Tr(K): -2.09E-06, new ef: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 6
  ef:  1.813328E-01, Tr(K):  8.0000001E+00, D Tr(K):  7.72E-08, new ef: linear interpol}
-         EBS                           : -2.688845899332E+00
-         EBS higher temperature        : -2.688843682868E+00
+         EBS                           : -2.688845899334E+00
+         EBS higher temperature        : -2.688843682871E+00
          difference                    :  2.216463851568E-06
-         relative difference           :  8.243179172591E-07
+         relative difference           :  8.243179172582E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000077156528
+         trace(KS)                     :  8.000000077156527
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
@@ -954,9 +955,9 @@
  Energies: {Ekin:  1.19769797876E+01, Epot: -1.39853670341E+01, Enl:  1.45303427674E+00, 
               EH:  2.25359280410E+01,  EXC: -4.92857759158E+00, EvXC: -5.94102733513E+00}, 
     Total charge:  7.999998411598E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  4.79E-11, 
- iter:  3, delta:  4.95E-07, energy: -1.76760529004372842E+01, D:  1.181E-02}]
+ iter:  3, delta:  4.95E-07, energy: -1.76760529004375471E+01, D:  1.181E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -981,13 +982,13 @@
  ef:  1.384612E-01, Tr(K):  7.9999987E+00, D Tr(K): -1.27E-06, new ef: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
  ef:  1.465823E-01, Tr(K):  8.0000006E+00, D Tr(K):  6.06E-07, new ef: cubic interpol}
-         EBS                           : -2.818896610204E+00
-         EBS higher temperature        : -2.818896255409E+00
-         difference                    :  3.547951434868E-07
-         relative difference           :  1.258631275097E-07
+         EBS                           : -2.818896610206E+00
+         EBS higher temperature        : -2.818896255411E+00
+         difference                    :  3.547951461513E-07
+         relative difference           :  1.258631284549E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000605937197
+         trace(KS)                     :  8.000000605937196
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
@@ -996,18 +997,18 @@
  Energies: {Ekin:  1.19769797876E+01, Epot: -1.40693117831E+01, Enl:  1.45303427674E+00, 
               EH:  2.23993854212E+01,  EXC: -4.90863725168E+00, EvXC: -5.91596704106E+00}, 
     Total charge:  7.999998915302E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  4.79E-11, 
- iter:  4, delta:  5.54E-08, energy: -1.76746809456759131E+01, D:  1.372E-03}]
+ iter:  4, delta:  5.54E-08, energy: -1.76746809456761831E+01, D:  1.372E-03}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  4.79E-11, 
- iter:  5, delta:  5.54E-08, energy: -1.76746809456759131E+01, D:  1.372E-03}]}
+ iter:  5, delta:  5.54E-08, energy: -1.76746809456761831E+01, D:  1.372E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: HYBRID, mean conf prefac:  2.95E-02, damping:  1.00E+00, 
         iterations to converge support functions:  2, kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  1, delta out:  2.136E-06, energy: -1.76746809456759131E+01, D: -1.767E+01}
-   multiplicator for the confinement   :  8.2647797444001256E-004
+ iter low:  1, delta out:  2.136E-06, energy: -1.76746809456761831E+01, D: -1.767E+01}
+   multiplicator for the confinement   :  8.2647797442987527E-004
     #WARNING: No orthogonalizing of the support functions
     #========================================================= support function optimization
  - support function optimization: &it_supfun002
@@ -1016,7 +1017,7 @@
  Energies: {Ekin:  1.19769797876E+01, Epot: -1.40648397096E+01, Enl:  1.45303427674E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D: -0.00E+00, 
- iter:  1, fnrm:  2.89E-01, Omega: -1.767400335545553E+01, D: -7.96E-01, D best: -7.96E-01, 
+ iter:  1, fnrm:  2.89E-01, Omega: -1.767400335545578E+01, D: -7.96E-01, D best: -7.96E-01, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, Normalization:  Yes}
@@ -1025,12 +1026,12 @@
  Energies: {Ekin:  1.11445870532E+01, Epot: -1.32205761948E+01, Enl:  1.30971291232E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D:  1.13E-02,         kappa:  3.583E-01, kappa to history:  Yes, 
- iter:  2, fnrm:  1.45E-01, Omega: -1.787458903570925E+01, D: -2.01E-01, D best: -2.01E-01, 
+ iter:  2, fnrm:  1.45E-01, Omega: -1.787458903570921E+01, D: -2.01E-01, D best: -2.01E-01, 
  exit criterion: energy difference}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.11445870532E+01, Epot: -1.32205761948E+01, Enl:  1.30971291232E+00}, 
- iter:  2, fnrm:  1.45E-01, Omega: -1.787458903570925E+01, D: -2.01E-01, D best: -2.01E-01}
+ iter:  2, fnrm:  1.45E-01, Omega: -1.787458903570921E+01, D: -2.01E-01, D best: -2.01E-01}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.14E-03,  1.13E-02 ], warnings:  1}
@@ -1060,13 +1061,13 @@
  ef:  9.714285E-02, Tr(K):  7.9999988E+00, D Tr(K): -1.18E-06, new ef: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
  ef:  1.899610E-01, Tr(K):  8.0000003E+00, D Tr(K):  3.35E-07, new ef: bisection/secant}
-         EBS                           : -3.012963989361E+00
-         EBS higher temperature        : -3.012963446651E+00
-         difference                    :  5.427096758659E-07
-         relative difference           :  1.801248464244E-07
+         EBS                           : -3.012963989362E+00
+         EBS higher temperature        : -3.012963446652E+00
+         difference                    :  5.427096732014E-07
+         relative difference           :  1.801248455400E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000335408311
+         trace(KS)                     :  8.000000335408314
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Coefficients available          :  No
@@ -1074,9 +1075,9 @@
  Energies: {Ekin:  1.19769797876E+01, Epot: -1.40693117831E+01, Enl:  1.45303427674E+00, 
               EH:  2.24066448789E+01,  EXC: -4.90998924694E+00, EvXC: -5.91765539387E+00}, 
     Total charge:  7.999998792882E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.45E-11, 
- iter:  1, delta:  1.84E-06, energy: -1.78756714249805455E+01, D: -2.010E-01}]
+ iter:  1, delta:  1.84E-06, energy: -1.78756714249804922E+01, D: -2.010E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1102,13 +1103,13 @@
  ef:  1.422634E-01, Tr(K):  8.0000028E+00, D Tr(K):  2.79E-06, new ef: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
  ef:  1.312457E-01, Tr(K):  7.9999993E+00, D Tr(K): -6.51E-07, new ef: bisection/secant}
-         EBS                           : -3.246226399037E+00
-         EBS higher temperature        : -3.246226614141E+00
-         difference                    : -2.151036682108E-07
-         relative difference           :  6.626268219448E-08
+         EBS                           : -3.246226399038E+00
+         EBS higher temperature        : -3.246226614142E+00
+         difference                    : -2.151036668785E-07
+         relative difference           :  6.626268178406E-08
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  7.999999349429562
+         trace(KS)                     :  7.999999349429567
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
@@ -1117,9 +1118,9 @@
  Energies: {Ekin:  1.11445870532E+01, Epot: -1.33808284406E+01, Enl:  1.30971291232E+00, 
               EH:  2.21449589433E+01,  EXC: -4.85193847686E+00, EvXC: -5.84426630522E+00}, 
     Total charge:  7.999997779301E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.45E-11, 
- iter:  2, delta:  1.37E-06, energy: -1.78625862175863936E+01, D:  1.309E-02}]
+ iter:  2, delta:  1.37E-06, energy: -1.78625862175864363E+01, D:  1.309E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1143,11 +1144,11 @@
  ef:  1.258904E-01, Tr(K):  7.9999995E+00, D Tr(K): -5.31E-07, new ef: bisection/secant}
          EBS                           : -3.714533509247E+00
          EBS higher temperature        : -3.714522863843E+00
-         difference                    :  1.064540452544E-05
-         relative difference           :  2.865879254809E-06
+         difference                    :  1.064540452145E-05
+         relative difference           :  2.865879253733E-06
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  7.999999468656488
+         trace(KS)                     :  7.999999468656489
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
@@ -1156,9 +1157,9 @@
  Energies: {Ekin:  1.11445870532E+01, Epot: -1.37010341859E+01, Enl:  1.30971291232E+00, 
               EH:  2.16333815152E+01,  EXC: -4.73252119469E+00, EvXC: -5.69367837516E+00}, 
     Total charge:  7.999997849133E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.45E-11, 
- iter:  3, delta:  6.36E-07, energy: -1.78504865476686376E+01, D:  1.210E-02}]
+ iter:  3, delta:  6.36E-07, energy: -1.78504865476686660E+01, D:  1.210E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1182,10 +1183,10 @@
  ef:  1.620903E-01, Tr(K):  8.0000314E+00, D Tr(K):  3.14E-05, new ef: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
  ef:  1.262728E-01, Tr(K):  8.0000009E+00, D Tr(K):  9.22E-07, new ef: bisection/secant}
-         EBS                           : -3.808337804122E+00
-         EBS higher temperature        : -3.808331158961E+00
-         difference                    :  6.645160969931E-06
-         relative difference           :  1.744897987447E-06
+         EBS                           : -3.808337804123E+00
+         EBS higher temperature        : -3.808331158962E+00
+         difference                    :  6.645160969043E-06
+         relative difference           :  1.744897987214E-06
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
          trace(KS)                     :  8.000000921663531
@@ -1197,18 +1198,18 @@
  Energies: {Ekin:  1.11445870532E+01, Epot: -1.37757975642E+01, Enl:  1.30971291232E+00, 
               EH:  2.15274058040E+01,  EXC: -4.69163774378E+00, EvXC: -5.64216068489E+00}, 
     Total charge:  7.999999307335E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.45E-11, 
- iter:  4, delta:  3.49E-08, energy: -1.78489493706934077E+01, D:  1.537E-03}]
+ iter:  4, delta:  3.49E-08, energy: -1.78489493706934716E+01, D:  1.537E-03}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.45E-11, 
- iter:  5, delta:  3.49E-08, energy: -1.78489493706934077E+01, D:  1.537E-03}]}
+ iter:  5, delta:  3.49E-08, energy: -1.78489493706934716E+01, D:  1.537E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, Omega: HYBRID, mean conf prefac:  2.43E-05, damping:  1.00E+00, 
         iterations to converge support functions:  2, kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  2, delta out:  1.653E-06, energy: -1.78489493706934077E+01, D: -1.743E-01}
-   multiplicator for the confinement   :  0.128400493623464
+ iter low:  2, delta out:  1.653E-06, energy: -1.78489493706934716E+01, D: -1.743E-01}
+   multiplicator for the confinement   :  0.1284004936234587
     #WARNING: No orthogonalizing of the support functions
     #========================================================= support function optimization
  - support function optimization: &it_supfun003
@@ -1217,7 +1218,7 @@
  Energies: {Ekin:  1.11445870532E+01, Epot: -1.37728389940E+01, Enl:  1.30971291232E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D: -0.00E+00, 
- iter:  1, fnrm:  1.03E-01, Omega: -1.784880394952995E+01, D: -1.75E-01, D best: -1.75E-01, 
+ iter:  1, fnrm:  1.03E-01, Omega: -1.784880394953001E+01, D: -1.75E-01, D best: -1.75E-01, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, Normalization:  Yes}
@@ -1227,12 +1228,12 @@
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D:  1.29E-03,         kappa:  3.578E-01, kappa to history:  Yes, 
       mean kappa:  2.483E-01,                     dynamic conv crit:  4.03E-04, 
- iter:  2, fnrm:  5.09E-02, Omega: -1.787176388875962E+01, D: -2.30E-02, D best: -2.30E-02, 
+ iter:  2, fnrm:  5.09E-02, Omega: -1.787176388875964E+01, D: -2.30E-02, D best: -2.30E-02, 
  exit criterion: energy difference}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.09958433269E+01, Epot: -1.36657009620E+01, Enl:  1.34447855390E+00}, 
- iter:  2, fnrm:  5.09E-02, Omega: -1.787176388875962E+01, D: -2.30E-02, D best: -2.30E-02}
+ iter:  2, fnrm:  5.09E-02, Omega: -1.787176388875964E+01, D: -2.30E-02, D best: -2.30E-02}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.25E-03,  1.22E-02 ], warnings:  2}
@@ -1263,12 +1264,12 @@
          -  { #------------------------------------------------------------------ it FOE: 3
  ef:  1.113368E-01, Tr(K):  7.9999992E+00, D Tr(K): -7.55E-07, new ef: bisection/secant}
          EBS                           : -3.826342856849E+00
-         EBS higher temperature        : -3.826332866534E+00
-         difference                    :  9.990314250086E-06
-         relative difference           :  2.610930233867E-06
+         EBS higher temperature        : -3.826332866535E+00
+         difference                    :  9.990314246533E-06
+         relative difference           :  2.610930232938E-06
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  7.999999244803231
+         trace(KS)                     :  7.999999244803236
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Coefficients available          :  No
@@ -1276,9 +1277,9 @@
  Energies: {Ekin:  1.11445870532E+01, Epot: -1.37757975642E+01, Enl:  1.30971291232E+00, 
               EH:  2.15325173320E+01,  EXC: -4.69208006184E+00, EvXC: -5.64271213051E+00}, 
     Total charge:  7.999997666736E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  5.09E-12, 
- iter:  1, delta:  3.23E-07, energy: -1.78719568238455899E+01, D: -2.301E-02}]
+ iter:  1, delta:  3.23E-07, energy: -1.78719568238455935E+01, D: -2.301E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1302,13 +1303,13 @@
  ef:  1.373788E-01, Tr(K):  8.0000021E+00, D Tr(K):  2.11E-06, new ef: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
  ef:  1.067097E-01, Tr(K):  8.0000004E+00, D Tr(K):  4.24E-07, new ef: bisection/secant}
-         EBS                           : -3.860046287748E+00
+         EBS                           : -3.860046287749E+00
          EBS higher temperature        : -3.860046595877E+00
-         difference                    : -3.081287451856E-07
-         relative difference           :  7.982514255427E-08
+         difference                    : -3.081287460738E-07
+         relative difference           :  7.982514278436E-08
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000423612022
+         trace(KS)                     :  8.00000042361202
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
@@ -1317,9 +1318,9 @@
  Energies: {Ekin:  1.09958433269E+01, Epot: -1.36874575022E+01, Enl:  1.34447855390E+00, 
               EH:  2.14963816469E+01,  EXC: -4.68463330771E+00, EvXC: -5.63313018276E+00}, 
     Total charge:  7.999998841432E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  5.09E-12, 
- iter:  2, delta:  2.54E-07, energy: -1.78716597632833363E+01, D:  2.971E-04}]
+ iter:  2, delta:  2.54E-07, energy: -1.78716597632832688E+01, D:  2.971E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1351,11 +1352,11 @@
  ef:  8.055803E-02, Tr(K):  8.0000005E+00, D Tr(K):  5.12E-07, new ef: bisection/secant}
          EBS                           : -3.937311270503E+00
          EBS higher temperature        : -3.937311578250E+00
-         difference                    : -3.077464589829E-07
-         relative difference           :  7.816157723887E-08
+         difference                    : -3.077464563184E-07
+         relative difference           :  7.816157656212E-08
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000512247494
+         trace(KS)                     :  8.000000512247496
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
@@ -1364,9 +1365,9 @@
  Energies: {Ekin:  1.09958433269E+01, Epot: -1.37371377801E+01, Enl:  1.34447855390E+00, 
               EH:  2.14137283792E+01,  EXC: -4.66702062343E+00, EvXC: -5.61039706305E+00}, 
     Total charge:  7.999998921379E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  5.09E-12, 
- iter:  3, delta:  1.16E-07, energy: -1.78713919137453345E+01, D:  2.678E-04}]
+ iter:  3, delta:  1.16E-07, energy: -1.78713919137453381E+01, D:  2.678E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1387,12 +1388,12 @@
          -  { #------------------------------------------------------------------ it FOE: 2
  ef:  8.279920E-02, Tr(K):  8.0000005E+00, D Tr(K):  4.89E-07, new ef: bisection}
          EBS                           : -3.938993946783E+00
-         EBS higher temperature        : -3.938994306749E+00
+         EBS higher temperature        : -3.938994306750E+00
          difference                    : -3.599669131660E-07
          relative difference           :  9.138549539026E-08
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000489209508
+         trace(KS)                     :  8.000000489209514
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
@@ -1401,18 +1402,18 @@
  Energies: {Ekin:  1.09958433269E+01, Epot: -1.37387452410E+01, Enl:  1.34447855390E+00, 
               EH:  2.14111170328E+01,  EXC: -4.66471171642E+00, EvXC: -5.60718775185E+00}, 
     Total charge:  7.999998900108E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  5.09E-12, 
- iter:  4, delta:  4.19E-09, energy: -1.78713636477808535E+01, D:  2.827E-05}]
+ iter:  4, delta:  4.19E-09, energy: -1.78713636477808357E+01, D:  2.827E-05}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  5.09E-12, 
- iter:  5, delta:  4.19E-09, energy: -1.78713636477808535E+01, D:  2.827E-05}]}
+ iter:  5, delta:  4.19E-09, energy: -1.78713636477808357E+01, D:  2.827E-05}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, Omega: HYBRID, mean conf prefac:  3.13E-06, damping:  1.00E+00, 
         iterations to converge support functions:  2, kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  3, delta out:  3.213E-07, energy: -1.78713636477808535E+01, D: -2.241E-02}
-   multiplicator for the confinement   :  0.1279889595268037
+ iter low:  3, delta out:  3.213E-07, energy: -1.78713636477808357E+01, D: -2.241E-02}
+   multiplicator for the confinement   :  0.1279889595266628
     #WARNING: No orthogonalizing of the support functions
     #========================================================= support function optimization
  - support function optimization: &it_supfun004
@@ -1421,7 +1422,7 @@
  Energies: {Ekin:  1.09958433269E+01, Epot: -1.37384777595E+01, Enl:  1.34447855390E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D: -0.00E+00,    mean kappa:  2.483E-01, dynamic conv crit:  4.03E-04, 
- iter:  1, fnrm:  4.66E-02, Omega: -1.787134330992034E+01, D: -2.25E-02, D best: -2.25E-02, 
+ iter:  1, fnrm:  4.66E-02, Omega: -1.787134330992037E+01, D: -2.25E-02, D best: -2.25E-02, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, Normalization:  Yes}
@@ -1431,12 +1432,12 @@
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D:  2.36E-04,         kappa:  3.744E-01, kappa to history:  Yes, 
       mean kappa:  3.635E-01,                     dynamic conv crit:  2.75E-04, 
- iter:  2, fnrm:  2.50E-02, Omega: -1.787555930418067E+01, D: -4.22E-03, D best: -4.22E-03, 
+ iter:  2, fnrm:  2.50E-02, Omega: -1.787555930418072E+01, D: -4.22E-03, D best: -4.22E-03, 
  exit criterion: energy difference}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.09196261535E+01, Epot: -1.36749044595E+01, Enl:  1.35520550793E+00}, 
- iter:  2, fnrm:  2.50E-02, Omega: -1.787555930418067E+01, D: -4.22E-03, D best: -4.22E-03}
+ iter:  2, fnrm:  2.50E-02, Omega: -1.787555930418072E+01, D: -4.22E-03, D best: -4.22E-03}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.93E-03,  1.25E-02 ], warnings:  2}
@@ -1466,11 +1467,11 @@
  ef:  7.984580E-02, Tr(K):  8.0000002E+00, D Tr(K):  2.35E-07, new ef: bisection}
          EBS                           : -3.942763642169E+00
          EBS higher temperature        : -3.942763722133E+00
-         difference                    : -7.996387241249E-08
-         relative difference           :  2.028117322511E-08
+         difference                    : -7.996387285658E-08
+         relative difference           :  2.028117333774E-08
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000235319465
+         trace(KS)                     :  8.000000235319471
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Coefficients available          :  No
@@ -1478,9 +1479,9 @@
  Energies: {Ekin:  1.09958433269E+01, Epot: -1.37387452410E+01, Enl:  1.34447855390E+00, 
               EH:  2.14115961700E+01,  EXC: -4.66478522758E+00, EvXC: -5.60728059307E+00}, 
     Total charge:  7.999998663641E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.50E-12, 
- iter:  1, delta:  1.49E-07, energy: -1.78755931503650061E+01, D: -4.230E-03}]
+ iter:  1, delta:  1.49E-07, energy: -1.78755931503650451E+01, D: -4.230E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1501,12 +1502,12 @@
          -  { #------------------------------------------------------------------ it FOE: 2
  ef:  7.745354E-02, Tr(K):  8.0000001E+00, D Tr(K):  6.43E-08, new ef: bisection}
          EBS                           : -3.963400321394E+00
-         EBS higher temperature        : -3.963400438395E+00
-         difference                    : -1.170013437246E-07
-         relative difference           :  2.952044563680E-08
+         EBS higher temperature        : -3.963400438396E+00
+         difference                    : -1.170013410601E-07
+         relative difference           :  2.952044496452E-08
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000064277943
+         trace(KS)                     :  8.000000064277948
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
@@ -1515,9 +1516,9 @@
  Energies: {Ekin:  1.09196261535E+01, Epot: -1.36885632673E+01, Enl:  1.35520550793E+00, 
               EH:  2.13896538460E+01,  EXC: -4.66039709233E+00, EvXC: -5.60167112984E+00}, 
     Total charge:  7.999998490359E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.50E-12, 
- iter:  2, delta:  1.13E-07, energy: -1.78755088334865526E+01, D:  8.432E-05}]
+ iter:  2, delta:  1.13E-07, energy: -1.78755088334865775E+01, D:  8.432E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1541,13 +1542,13 @@
  ef:  7.551582E-02, Tr(K):  8.0000000E+00, D Tr(K): -2.89E-08, new ef: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
  ef:  8.295057E-02, Tr(K):  8.0000001E+00, D Tr(K):  1.50E-07, new ef: bisection}
-         EBS                           : -4.005020488630E+00
+         EBS                           : -4.005020488629E+00
          EBS higher temperature        : -4.005020336493E+00
          difference                    :  1.521366916890E-07
          relative difference           :  3.798649523041E-08
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000149755664
+         trace(KS)                     :  8.000000149755667
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
@@ -1556,9 +1557,9 @@
  Energies: {Ekin:  1.09196261535E+01, Epot: -1.37162904513E+01, Enl:  1.35520550793E+00, 
               EH:  2.13453941107E+01,  EXC: -4.65127761593E+00, EvXC: -5.58998107221E+00}, 
     Total charge:  7.999998571745E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.50E-12, 
- iter:  3, delta:  5.74E-08, energy: -1.78754398467128048E+01, D:  6.899E-05}]
+ iter:  3, delta:  5.74E-08, energy: -1.78754398467127977E+01, D:  6.899E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1579,12 +1580,12 @@
          -  { #------------------------------------------------------------------ it FOE: 2
  ef:  7.833276E-02, Tr(K):  8.0000001E+00, D Tr(K):  5.40E-08, new ef: bisection}
          EBS                           : -4.014255857749E+00
-         EBS higher temperature        : -4.014255694507E+00
-         difference                    :  1.632418404895E-07
-         relative difference           :  4.066552962099E-08
+         EBS higher temperature        : -4.014255694508E+00
+         difference                    :  1.632418369368E-07
+         relative difference           :  4.066552873597E-08
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000053966438
+         trace(KS)                     :  8.000000053966437
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
@@ -1593,18 +1594,18 @@
  Energies: {Ekin:  1.09196261535E+01, Epot: -1.37231994790E+01, Enl:  1.35520550793E+00, 
               EH:  2.13352095364E+01,  EXC: -4.64832020487E+00, EvXC: -5.58608109556E+00}, 
     Total charge:  7.999998476378E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.50E-12, 
- iter:  4, delta:  1.36E-09, energy: -1.78754332070921755E+01, D:  6.640E-06}]
+ iter:  4, delta:  1.36E-09, energy: -1.78754332070921471E+01, D:  6.640E-06}]
    -  &final_kernel004  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.50E-12, 
- iter:  5, delta:  1.36E-09, energy: -1.78754332070921755E+01, D:  6.640E-06}]}
+ iter:  5, delta:  1.36E-09, energy: -1.78754332070921471E+01, D:  6.640E-06}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc004
    -  {iter:  4, Omega: HYBRID, mean conf prefac:  4.00E-07, damping:  1.00E+00, 
         iterations to converge support functions:  2, kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  4, delta out:  1.401E-07, energy: -1.78754332070921755E+01, D: -4.070E-03}
-   multiplicator for the confinement   :  0.1402126309605404
+ iter low:  4, delta out:  1.401E-07, energy: -1.78754332070921471E+01, D: -4.070E-03}
+   multiplicator for the confinement   :  0.1402126309619841
     #WARNING: No orthogonalizing of the support functions
     #========================================================= support function optimization
  - support function optimization: &it_supfun005
@@ -1643,12 +1644,12 @@
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D:  7.07E-05,         kappa:  3.167E-01, kappa to history:  Yes, 
       mean kappa:  3.302E-01,                     dynamic conv crit:  3.03E-04, 
- iter:  4, fnrm:  1.88E-03, Omega: -1.787669463521806E+01, D: -2.97E-05, D best: -2.97E-05, 
+ iter:  4, fnrm:  1.88E-03, Omega: -1.787669463521804E+01, D: -2.97E-05, D best: -2.97E-05, 
  exit criterion: gradient}
    -  &final_supfun005  { #-------------------------------------------------------- iter: 4
  target function: HYBRID, 
  Energies: {Ekin:  1.08418597252E+01, Epot: -1.36572220596E+01, Enl:  1.36621374776E+00}, 
- iter:  4, fnrm:  1.88E-03, Omega: -1.787669463521806E+01, D: -2.97E-05, D best: -2.97E-05}
+ iter:  4, fnrm:  1.88E-03, Omega: -1.787669463521804E+01, D: -2.97E-05, D best: -2.97E-05}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  7.76E-03,  1.27E-02 ], warnings:  3}
@@ -1676,13 +1677,13 @@
  ef:  6.501043E-02, Tr(K):  7.9999999E+00, D Tr(K): -1.08E-07, new ef: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
  ef:  7.693429E-02, Tr(K):  8.0000000E+00, D Tr(K):  3.93E-08, new ef: bisection}
-         EBS                           : -4.015328615578E+00
-         EBS higher temperature        : -4.015328422094E+00
-         difference                    :  1.934841806772E-07
-         relative difference           :  4.818638751672E-08
+         EBS                           : -4.015328615579E+00
+         EBS higher temperature        : -4.015328422095E+00
+         difference                    :  1.934841833418E-07
+         relative difference           :  4.818638818030E-08
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000039328814
+         trace(KS)                     :  8.000000039328812
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Coefficients available          :  No
@@ -1690,9 +1691,9 @@
  Energies: {Ekin:  1.09196261535E+01, Epot: -1.37231994790E+01, Enl:  1.35520550793E+00, 
               EH:  2.13354099474E+01,  EXC: -4.64835029111E+00, EvXC: -5.58611838977E+00}, 
     Total charge:  7.999998491997E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.88E-13, 
- iter:  1, delta:  1.54E-07, energy: -1.78766991679262368E+01, D: -1.266E-03}]
+ iter:  1, delta:  1.54E-07, energy: -1.78766991679262155E+01, D: -1.266E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1722,22 +1723,22 @@
  ef:  9.018759E-02, Tr(K):  8.0000001E+00, D Tr(K):  1.04E-07, new ef: bisection}
          EBS                           : -4.035469522741E+00
          EBS higher temperature        : -4.035468961406E+00
-         difference                    :  5.613349713940E-07
-         relative difference           :  1.391002876445E-07
+         difference                    :  5.613349696176E-07
+         relative difference           :  1.391002872043E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000104254461
+         trace(KS)                     :  8.000000104254459
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  1.08418597252E+01, Epot: -1.36704739943E+01, Enl:  1.36621374776E+00, 
+ Energies: {Ekin:  1.08418597252E+01, Epot: -1.36704739944E+01, Enl:  1.36621374776E+00, 
               EH:  2.13140260636E+01,  EXC: -4.64404848332E+00, EvXC: -5.58066134955E+00}, 
     Total charge:  7.999998554663E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.88E-13, 
- iter:  2, delta:  1.17E-07, energy: -1.78766114237106031E+01, D:  8.774E-05}]
+ iter:  2, delta:  1.17E-07, energy: -1.78766114237105782E+01, D:  8.774E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1762,12 +1763,12 @@
          -  { #------------------------------------------------------------------ it FOE: 4
  ef:  9.321180E-02, Tr(K):  8.0000002E+00, D Tr(K):  1.75E-07, new ef: bisection}
          EBS                           : -4.076406259341E+00
-         EBS higher temperature        : -4.076404962578E+00
-         difference                    :  1.296763270098E-06
-         relative difference           :  3.181143359120E-07
+         EBS higher temperature        : -4.076404962577E+00
+         difference                    :  1.296763271874E-06
+         relative difference           :  3.181143363478E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000175492728
+         trace(KS)                     :  8.000000175492733
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
@@ -1776,9 +1777,9 @@
  Energies: {Ekin:  1.08418597252E+01, Epot: -1.36976061226E+01, Enl:  1.36621374776E+00, 
               EH:  2.12705727533E+01,  EXC: -4.63502596000E+00, EvXC: -5.56919355334E+00}, 
     Total charge:  7.999998621704E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.88E-13, 
- iter:  3, delta:  5.79E-08, energy: -1.78765401229341769E+01, D:  7.130E-05}]
+ iter:  3, delta:  5.79E-08, energy: -1.78765401229342196E+01, D:  7.130E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1800,10 +1801,10 @@
  ef:  8.818817E-02, Tr(K):  8.0000000E+00, D Tr(K): -4.97E-08, new ef: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
  ef:  9.278066E-02, Tr(K):  8.0000001E+00, D Tr(K):  1.31E-07, new ef: bisection}
-         EBS                           : -4.083969979804E+00
-         EBS higher temperature        : -4.083968062792E+00
-         difference                    :  1.917012286690E-06
-         relative difference           :  4.693992111033E-07
+         EBS                           : -4.083969979803E+00
+         EBS higher temperature        : -4.083968062791E+00
+         difference                    :  1.917012285801E-06
+         relative difference           :  4.693992108859E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
          trace(KS)                     :  8.000000130961052
@@ -1815,18 +1816,18 @@
  Energies: {Ekin:  1.08418597252E+01, Epot: -1.37033516228E+01, Enl:  1.36621374776E+00, 
               EH:  2.12622139696E+01,  EXC: -4.63239972100E+00, EvXC: -5.56577873173E+00}, 
     Total charge:  7.999998577628E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.88E-13, 
- iter:  4, delta:  1.57E-09, energy: -1.78765336423527792E+01, D:  6.481E-06}]
+ iter:  4, delta:  1.57E-09, energy: -1.78765336423527650E+01, D:  6.481E-06}]
    -  &final_kernel005  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.88E-13, 
- iter:  5, delta:  1.57E-09, energy: -1.78765336423527792E+01, D:  6.481E-06}]}
+ iter:  5, delta:  1.57E-09, energy: -1.78765336423527650E+01, D:  6.481E-06}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc005
    -  {iter:  5, Omega: HYBRID, mean conf prefac:  5.61E-08, damping:  1.00E+00, 
         iterations to converge support functions:  4, kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  5, delta out:  1.444E-07, energy: -1.78765336423527792E+01, D: -1.100E-03}
-   multiplicator for the confinement   :  0.1002815378499326
+ iter low:  5, delta out:  1.444E-07, energy: -1.78765336423527650E+01, D: -1.100E-03}
+   multiplicator for the confinement   :  0.1002815377042498
     #WARNING: No orthogonalizing of the support functions
     #========================================================= support function optimization
  - support function optimization: &it_supfun006
@@ -1845,7 +1846,7 @@
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D:  4.80E-06,         kappa:  3.508E-01, kappa to history:  Yes, 
       mean kappa:  3.222E-01,                     dynamic conv crit:  3.10E-04, 
- iter:  2, fnrm:  3.58E-03, Omega: -1.787661917120601E+01, D: -8.59E-05, D best: -8.59E-05, 
+ iter:  2, fnrm:  3.58E-03, Omega: -1.787661917120598E+01, D: -8.59E-05, D best: -8.59E-05, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, Normalization:  Yes}
@@ -1855,12 +1856,12 @@
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D:  6.30E-06,         kappa:  3.376E-01, kappa to history:  Yes, 
       mean kappa:  3.350E-01,                     dynamic conv crit:  2.98E-04, 
- iter:  3, fnrm:  1.76E-03, Omega: -1.787664587533244E+01, D: -2.67E-05, D best: -2.67E-05, 
+ iter:  3, fnrm:  1.76E-03, Omega: -1.787664587533240E+01, D: -2.67E-05, D best: -2.67E-05, 
  exit criterion: gradient}
    -  &final_supfun006  { #-------------------------------------------------------- iter: 3
  target function: HYBRID, 
  Energies: {Ekin:  1.08765531586E+01, Epot: -1.37426033740E+01, Enl:  1.37169761701E+00}, 
- iter:  3, fnrm:  1.76E-03, Omega: -1.787664587533244E+01, D: -2.67E-05, D best: -2.67E-05}
+ iter:  3, fnrm:  1.76E-03, Omega: -1.787664587533240E+01, D: -2.67E-05, D best: -2.67E-05}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  7.52E-03,  1.23E-02 ], warnings:  3}
@@ -1888,23 +1889,23 @@
  ef:  8.083509E-02, Tr(K):  8.0000000E+00, D Tr(K): -1.01E-08, new ef: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
  ef:  8.992822E-02, Tr(K):  8.0000001E+00, D Tr(K):  5.89E-08, new ef: bisection}
-         EBS                           : -4.083873739058E+00
-         EBS higher temperature        : -4.083871753133E+00
+         EBS                           : -4.083873739050E+00
+         EBS higher temperature        : -4.083871753125E+00
          difference                    :  1.985925516479E-06
-         relative difference           :  4.862847490816E-07
+         relative difference           :  4.862847490826E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000058922943
+         trace(KS)                     :  8.000000058922948
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Coefficients available          :  No
      Hamiltonian update: {
  Energies: {Ekin:  1.08418597252E+01, Epot: -1.37033516228E+01, Enl:  1.36621374776E+00, 
-              EH:  2.12624306755E+01,  EXC: -4.63243122853E+00, EvXC: -5.56581776285E+00}, 
+              EH:  2.12624306756E+01,  EXC: -4.63243122853E+00, EvXC: -5.56581776285E+00}, 
     Total charge:  7.999998497218E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.76E-13, 
- iter:  1, delta:  7.93E-08, energy: -1.78766465839368713E+01, D: -1.129E-04}]
+ iter:  1, delta:  7.93E-08, energy: -1.78766465839368287E+01, D: -1.129E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1928,10 +1929,10 @@
  ef:  8.169894E-02, Tr(K):  8.0000000E+00, D Tr(K): -3.90E-08, new ef: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
  ef:  8.906437E-02, Tr(K):  8.0000001E+00, D Tr(K):  7.53E-08, new ef: bisection}
-         EBS                           : -4.072293743118E+00
-         EBS higher temperature        : -4.072291943358E+00
-         difference                    :  1.799759222543E-06
-         relative difference           :  4.419522107374E-07
+         EBS                           : -4.072293743114E+00
+         EBS higher temperature        : -4.072291943355E+00
+         difference                    :  1.799759220766E-06
+         relative difference           :  4.419522103015E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
          trace(KS)                     :  8.000000075307305
@@ -1943,9 +1944,9 @@
  Energies: {Ekin:  1.08765531586E+01, Epot: -1.37348382152E+01, Enl:  1.37169761701E+00, 
               EH:  2.12746139404E+01,  EXC: -4.63493783627E+00, EvXC: -5.56895712171E+00}, 
     Total charge:  7.999998514836E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.76E-13, 
- iter:  2, delta:  5.85E-08, energy: -1.78766171017243920E+01, D:  2.948E-05}]
+ iter:  2, delta:  5.85E-08, energy: -1.78766171017242677E+01, D:  2.948E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1965,13 +1966,13 @@
  ef:  8.239866E-02, Tr(K):  8.0000000E+00, D Tr(K): -1.10E-08, new ef: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
  ef:  8.836465E-02, Tr(K):  8.0000000E+00, D Tr(K):  2.42E-08, new ef: bisection}
-         EBS                           : -4.049719888612E+00
-         EBS higher temperature        : -4.049718410657E+00
-         difference                    :  1.477955572149E-06
-         relative difference           :  3.649525430894E-07
+         EBS                           : -4.049719888614E+00
+         EBS higher temperature        : -4.049718410659E+00
+         difference                    :  1.477955570373E-06
+         relative difference           :  3.649525426506E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000024230022
+         trace(KS)                     :  8.000000024230021
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
@@ -1980,9 +1981,9 @@
  Energies: {Ekin:  1.08765531586E+01, Epot: -1.37195195370E+01, Enl:  1.37169761701E+00, 
               EH:  2.12984460549E+01,  EXC: -4.64000820165E+00, EvXC: -5.57531157928E+00}, 
     Total charge:  7.999998465942E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.76E-13, 
- iter:  3, delta:  2.84E-08, energy: -1.78765912694954991E+01, D:  2.583E-05}]
+ iter:  3, delta:  2.84E-08, energy: -1.78765912694955098E+01, D:  2.583E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2020,13 +2021,13 @@
  ef:  5.015430E-02, Tr(K):  8.0000000E+00, D Tr(K): -1.06E-08, new ef: bisec bounds}
          -  { #----------------------------------------------------------------- it FOE: 11
  ef:  8.779788E-02, Tr(K):  8.0000000E+00, D Tr(K):  6.99E-09, new ef: bisection}
-         EBS                           : -4.043746397098E+00
-         EBS higher temperature        : -4.043746264275E+00
+         EBS                           : -4.043746397103E+00
+         EBS higher temperature        : -4.043746264280E+00
          difference                    :  1.328234455755E-07
-         relative difference           :  3.284663095362E-08
+         relative difference           :  3.284663095358E-08
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000006986628
+         trace(KS)                     :  8.00000000698663
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
@@ -2035,24 +2036,24 @@
  Energies: {Ekin:  1.08765531586E+01, Epot: -1.37148879384E+01, Enl:  1.37169761701E+00, 
               EH:  2.13049182676E+01,  EXC: -4.64194521406E+00, EvXC: -5.57775039295E+00}, 
     Total charge:  7.999998448532E+00, 
- Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  91,  85,  91 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.76E-13, 
- iter:  4, delta:  7.58E-10, energy: -1.78765881894318710E+01, D:  3.080E-06}]
+ iter:  4, delta:  7.58E-10, energy: -1.78765881894319527E+01, D:  3.080E-06}]
    -  &final_kernel006  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  1.76E-13, 
- iter:  5, delta:  7.58E-10, energy: -1.78765881894318710E+01, D:  3.080E-06}]}
+ iter:  5, delta:  7.58E-10, energy: -1.78765881894319527E+01, D:  3.080E-06}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc006
    -  {iter:  6, Omega: HYBRID, mean conf prefac:  5.63E-09, damping:  1.00E+00, 
         iterations to converge support functions:  3, kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  6, delta out:  6.983E-08, energy: -1.78765881894318710E+01, D: -5.455E-05}
+ iter low:  6, delta out:  6.983E-08, energy: -1.78765881894319527E+01, D: -5.455E-05}
     #========================================================================= final results
    self consistency summary:
    -  {iter:  6, 
  Energies: {Ekin:  1.08765531586E+01, Epot: -1.37148879384E+01, Enl:  1.37169761701E+00, 
               EH:  2.13050477357E+01,  EXC: -4.64196722289E+00, EvXC: -5.57777782354E+00}, 
         iter low:  6,            delta out:  6.983E-08, 
-          energy: -1.78765881894318710E+01,                       D:  0.000E+00,  #FINAL
+          energy: -1.78765881894319527E+01,                       D:  0.000E+00,  #FINAL
  }
   #================================================= Atomic multipole analysis, new approach
  Method                                : loewdin
@@ -2080,14 +2081,14 @@
      x                                 : 1/2
    order                               :  20
    error estimation:
-     max / mean error                  :  [  7.77E-16,  1.45E-16 ]
+     max / mean error                  :  [  4.44E-16,  1.07E-16 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Orthonormalizing the support functions
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr
    global monopole                     : -6.518881E-04
-   global monopole analytic            : -6.986630E-09
+   global monopole analytic            : -6.986629E-09
    values:
    - sym                               : O # 0001
      r: [ 1.991107840087889,  1.221655223875441,  0.6920672692234883]
@@ -2123,7 +2124,7 @@
        -  [  9.1994E-01,  9.4698E-01,  1.3287E+00 ]
        -  [  9.4698E-01, -1.4788E+00,  1.8802E-01 ]
        -  [  1.3287E+00,  1.8802E-01,  5.5883E-01 ]
-       trace                           : -3.62E-13
+       trace                           : -3.94E-13
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
        P vector                        :  [ -1.2513E+00, -6.9041E-01,  1.1484E+00 ]
@@ -2133,7 +2134,7 @@
        -  [  6.3772E-01,  3.2648E-01,  1.0303E+00 ]
        -  [  3.2648E-01, -4.6615E-01,  3.7225E-01 ]
        -  [  1.0303E+00,  3.7225E-01, -1.7157E-01 ]
-       trace                           : -2.38E-13
+       trace                           : -2.03E-13
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
        P vector                        :  [ -1.251E+00, -6.9024E-01,  1.1486E+00 ]
@@ -2143,14 +2144,14 @@
        -  [  1.6068E+00,  1.6824E+00,  2.1571E+00 ]
        -  [  1.6824E+00, -2.5786E+00,  2.6947E-01 ]
        -  [  2.1571E+00,  2.6947E-01,  9.7179E-01 ]
-       trace                           : -1.15E-13
+       trace                           : -2.31E-14
   #========================================================== Atomic multipole analysis done
  Total charge                          :  7.999998448532E+00
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  91,  85,  91 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  8
  Electric Dipole Moment (AU):
    P vector                            :  [ -4.8603E-01, -2.6624E-01,  4.5584E-01 ]
    norm(P)                             :  7.175689E-01
@@ -2162,7 +2163,7 @@
    -  [  1.6115E+00,  1.6903E+00,  2.1622E+00 ]
    -  [  1.6903E+00, -2.5859E+00,  2.7054E-01 ]
    -  [  2.1622E+00,  2.7054E-01,  9.7438E-01 ]
-   trace                               : -1.08E-12
+   trace                               : -7.92E-13
  Calculate local forces                :  Yes
  Calculate NLCC forces                 :  Yes
  Calculate Non Local forces            :  Yes
@@ -2176,29 +2177,29 @@
  - The support function localization radii might be too small, got 3 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  49.44
-   Elapsed time (s)                    :  35.67
+   CPU time (s)                        :  9.56
+   Elapsed time (s)                    :  9.57
  BigDFT infocode                       :  0
  Average noise forces: {x:  2.73563556E-02, y: -6.19037752E-03, z:  4.88062718E-02, 
                     total:  5.62915902E-02}
- Clean forces norm (Ha/Bohr): {maxval:  2.671278492907E-02, fnrm2:  1.133445278614E-03}
- Raw forces norm (Ha/Bohr): {maxval:  4.343297464797E-02, fnrm2:  4.991421045296E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  2.671278493118E-02, fnrm2:  1.133445278772E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  4.343297465375E-02, fnrm2:  4.991421045764E-03}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [-2.366459254940E-02, -1.077729294181E-02,  6.116362888490E-03]} # 0001
- -  {H: [ 1.578009936646E-02,  7.541943132893E-03, -6.422872297953E-03]} # 0002
- -  {H: [ 7.884493182942E-03,  3.235349808920E-03,  3.065094094628E-04]} # 0003
- Energy (Hartree)                      : -1.78765881894318710E+01
- Force Norm (Hartree/Bohr)             :  3.36666790553161732E-02
+ -  {O: [-2.366459255047E-02, -1.077729294278E-02,  6.116362891919E-03]} # 0001
+ -  {H: [ 1.578009936691E-02,  7.541943133242E-03, -6.422872299033E-03]} # 0002
+ -  {H: [ 7.884493183561E-03,  3.235349809533E-03,  3.065094071140E-04]} # 0003
+ Energy (Hartree)                      : -1.78765881894319527E+01
+ Force Norm (Hartree/Bohr)             :  3.36666790576715530E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  12097
-   Tot. No. of Deallocations           :  12097
+   Tot. No. of Allocations             :  10460
+   Tot. No. of Deallocations           :  10460
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  125.381
+     Peak Value (MB)                   :  98.021
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 139.184 MB
- Walltime since initialization         : 00:00:36.136226507
- Max No. of dictionaries used          :  8152 #( 909 still in use)
+     Memory Peak of process            : 101.320 MB
+ Walltime since initialization         : 00:00:09.949519373
+ Max No. of dictionaries used          :  8122 #( 909 still in use)
  Number of dictionary folders allocated:  1
