@@ -484,7 +484,7 @@ module sparsematrix_highlevel
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
       use foe_base, only: foe_data
-      use foe, only: fermi_operator_expansion
+      use foe, only: fermi_operator_expansion_new
       implicit none
 
       ! Calling arguments
@@ -552,7 +552,7 @@ module sparsematrix_highlevel
                trim(yaml_toa(smat_h%nvctr))//')')
       end if
 
-      call fermi_operator_expansion(iproc, nproc, &
+      call fermi_operator_expansion_new(iproc, nproc, &
            ebs, ndeg, max_inversion_error_, &
            calculate_minusonehalf_, foe_verbosity_, &
            label_, smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj)

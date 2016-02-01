@@ -317,8 +317,11 @@ module chebyshev
           call f_zero(kernel_compressed)
     
           do icalc=1,ncalc
+              !write(*,*) 'icalc, ipl, kernel_compressed(1,icalc)', icalc, 0, kernel_compressed(1,icalc)
               call axpy(nsize_polynomial, 0.5d0*cc(1,icalc), chebyshev_polynomials(1,1), 1, kernel_compressed(1,icalc), 1)
+              !write(*,*) 'icalc, ipl, kernel_compressed(1,icalc)', icalc, 1, kernel_compressed(1,icalc), cc(1,icalc)
               do ipl=2,npl
+                  !write(*,*) 'icalc, ipl, kernel_compressed(1,icalc)', icalc, ipl, kernel_compressed(1,icalc), cc(ipl,icalc)
                   call axpy(nsize_polynomial, cc(ipl,icalc), chebyshev_polynomials(1,ipl), 1, kernel_compressed(1,icalc), 1)
               end do
           end do

@@ -597,7 +597,7 @@ module ice
           call yaml_sequence_open('Determine polynomial degree')
       end if
 
-      cc_trial = f_malloc((/npl_max,3,ncalc/),id='cc_trial')
+      cc_trial = f_malloc0((/npl_max,3,ncalc/),id='cc_trial')
 
       found_degree = .false.
       degree_loop: do ipl=npl_min,npl_max
@@ -622,6 +622,7 @@ module ice
               do jpl=1,ipl
                   cc_trial(jpl,3,icalc) = -cc_trial(jpl,2,icalc)
               end do
+              !write(*,*) 'icalc, sum(cc_trial(:,1,icalc))', icalc, sum(cc_trial(:,1,icalc)), ex(icalc)
           end do
 
           call timing(iproc, 'chebyshev_coef', 'OF')
@@ -672,6 +673,7 @@ module ice
           do j=1,3
               do ipl=1,npl
                   cc(ipl,j,icalc)=cc_trial(ipl,j,icalc)
+                  !write(*,*) 'icalc, ipl, cc(ipl,1,icalc)', icalc, ipl, cc(ipl,1,icalc)
               end do
           end do
       end do
@@ -904,7 +906,7 @@ module ice
           end do bounds_loop
           call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
-               inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc, inv_ovrlp_matrixp_new)
+               inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc(:,1,:), inv_ovrlp_matrixp_new)
           !!!! TEST ##################################################
           !!!call foe_data_set_real(foe_obj,"ef",1.d0,ispin)
           !!!call foe_data_set_real(foe_obj,"charge",10.d0,ispin)
@@ -929,6 +931,8 @@ module ice
                    inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
               call dscal(inv_ovrlp_smat%nvctrp_tg, 1.d0/eval_multiplicator**ex(icalc), &
                    inv_ovrlp(icalc)%matrix_compr(ilshift2+1), 1)
+              !write(*,*) 'icalc, sum(inv_ovrlp(icalc)%matrix_compr)', &
+              !    icalc, sum(inv_ovrlp(icalc)%matrix_compr), sum(inv_ovrlp_matrixp_new(:,icalc)), sum(cc(:,:,icalc))
           end do
 
       end do spin_loop
