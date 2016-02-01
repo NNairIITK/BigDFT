@@ -876,7 +876,7 @@ module matrix_operations
                             stop 'wrong value of power(icalc)'
                         end select
                     end do
-                    call inverse_chebyshev_expansion(iproc, nproc, iorder-1000, &
+                    call inverse_chebyshev_expansion_new(iproc, nproc, iorder-1000, &
                          ovrlp_smat, inv_ovrlp_smat, ncalc, rpower, ovrlp_mat, inv_ovrlp_mat, verbosity=verbosity_)
                     call f_free(rpower)
                     !!call vcopy(ovrlp_smat%nvctr, tmpmat(1), 1, ovrlp_mat%matrix_compr(1), 1)

@@ -1550,7 +1550,7 @@ module foe_common
                       ! (otherwise this has already been checked in the previous iteration).
                       call check_eigenvalue_spectrum_new(nproc, smatl, ispin, &
                             0, 1.0d0, 1.0d0, penalty_ev_new, anoise, .false., emergency_stop, &
-                            foe_obj, restart, eval_bounds_ok)
+                            foe_obj, restart, eval_bounds_ok, foe_verbosity)
             
                       call f_free(cc)
             
