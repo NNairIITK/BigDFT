@@ -121,9 +121,9 @@ module PStypes
      !> Trigger the calculation of the electrostatic contribution only
      !! if .true., the code only calculates the electrostatic contribution
      !! and the cavitation terms are neglected
+     logical :: only_electrostatic
      !> extract the polarization charge and the dielectric function, to be used for plotting purposes
      logical :: cavity_info
-     logical :: only_electrostatic
      !> Total integral on the supercell of the final potential on output
      !! clearly meaningful only for Fully periodic BC, ignored in the other cases
      real(gp) :: potential_integral
@@ -1201,9 +1201,9 @@ contains
                    kernel%w%eps(i1,i23)=eps(rh,kernel%cavity)
                    kernel%w%oneoeps(i1,i23)=oneosqrteps(rh,kernel%cavity)
                    kernel%w%corr(i1,i23)=corr_term(rh,d2,dd,kernel%cavity)
-                   dsurfdrho(i1,i23)=surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
+                   dsurfdrho(i1,i23)=-surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
                    !evaluate surfaces and volume integrals
-                   IntSur=IntSur + de*d/epsm1
+                   IntSur=IntSur - de*d/epsm1
                    IntVol=IntVol + (kernel%cavity%epsilon0-eps(rh,kernel%cavity))/epsm1
                 end if
              end do
@@ -1231,10 +1231,10 @@ contains
                    depsdrho(i1,i23)=de
                    kernel%w%eps(i1,i23)=eps(rh,kernel%cavity)
                    kernel%w%oneoeps(i1,i23)=oneoeps(rh,kernel%cavity) 
-                   dsurfdrho(i1,i23)=surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
+                   dsurfdrho(i1,i23)=-surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
 
                    !evaluate surfaces and volume integrals
-                   IntSur=IntSur + de*d/epsm1
+                   IntSur=IntSur - de*d/epsm1
                    IntVol=IntVol + (kernel%cavity%epsilon0-eps(rh,kernel%cavity))/epsm1
                 end if
              end do

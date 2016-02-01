@@ -26,7 +26,7 @@ program GPS_3D
    ! 3 for real electron density from cube file, 4 for rigid cavity.
    integer :: SetEps! = 1!3 
    logical :: usegpu
-   logical, parameter :: lin_PB = .false.
+   logical :: lin_PB
    logical, parameter :: PCGstart = .false. !.true.
    logical, parameter :: PIstart = .false. !.true.
    logical, parameter :: CFgrid = .false. !.true.
@@ -103,7 +103,7 @@ program GPS_3D
    logyes= options // 'logfile'
    delta=0.3d0
    delta= options .get. 'deltacav'
-
+   lin_PB = SetEps == 17
 
    call dict_free(options)
 
@@ -360,13 +360,14 @@ program GPS_3D
 !  end if
 !------------------------------------------------------------------------
 
+   geocodeprova='F'
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
-!   call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,lin_PB,multp)
-!
-!  if (iproc==0) then
-!     call yaml_comment('Comparison between Poisson-Boltzmann operator and analytical density')
-!     call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
-!  end if
+   call ApplyLaplace(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,lin_PB,multp)
+
+  if (iproc==0) then
+     call yaml_comment('Comparison between Poisson-Boltzmann operator and analytical density')
+     call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+  end if
 
 !!$   max_diffpot = 0.d0
 !!$   i1_max = 1
@@ -556,6 +557,9 @@ program GPS_3D
             eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode,.false.)
        call Prec_conjugate_gradient_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
             eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB)
+  case(17)
+       call Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,&
+            pkernel,potential,density,oneoeps,dlogeps,corr,oneosqrteps,multp,geocode)
   end select
 
   pot_check(:,:,:,:,i_check) = rhopot(:,:,:,:)
@@ -787,7 +791,7 @@ subroutine PS_Check_options(parser)
        dict_new('1' .is. 'Analytical epsilon' ,&
                 '2' .is. 'analytical electron dependence',&
                 '3' .is. 'real electron density from cube file (need electroninc_density.cube)',&
-                '4' .is. 'calculate the caviti and dump it on disk',&
+                '4' .is. 'calculate the cavity and dump it on disk',&
                 '5' .is. 'Solves GPe with PCG customized (should be identical to 4 + PCG)',&
                 '6' .is. 'Modified Poisson Botzmann Equation solver',&
                 '7' .is. 'Solves GPe with PCG customized and a restart is implemented',&
@@ -925,7 +929,8 @@ pure function PB_charge(x) result(ions_conc)
    ! Modified Poisson-Boltzmann Equation.
    ions_conc = 0.d0
    do i=1,n_ions
-    y=x/k_bT!*0.05d0
+    y=x/k_bT ! correct one
+    !y=x/k_bT*0.05d0
     t = -z_ions(i)*y 
     h=0.d0
     do j=1,n_ions
@@ -935,7 +940,8 @@ pure function PB_charge(x) result(ions_conc)
     t=1.d0/l
     ions_conc = ions_conc + z_ions(i)*c_ions(i)*t 
    end do
-   ions_conc = ions_conc*fact!*5.0d2
+   ions_conc = ions_conc*fact ! correct one
+   !ions_conc = ions_conc*fact*5.0d2
   end if
   !--------------------------------------------------------
 
@@ -1408,7 +1414,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
   real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
   real(kind=8) :: eps1,eps2,eps3
   integer :: i,ii,j,i1,i2,i3,isp
-  real(kind=8), parameter :: error = 1.0d-8
+  real(kind=8), parameter :: error = 1.0d-13
   real(kind=8), parameter :: eps0 = 78.36d0
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
   real(kind=8) :: ehartree,pi,switch,rpoints,a
@@ -1838,7 +1844,7 @@ subroutine Prec_conjugate_gradient_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,
   real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
   real(kind=8) :: eps1,eps2,eps3
   integer :: i,ii,j,i1,i2,i3,isp,i_scf,inn
-  real(kind=8), parameter :: error = 1.0d-12
+  real(kind=8), parameter :: error = 1.0d-13
   real(kind=8), parameter :: eps0 = 78.36d0
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
   real(kind=8) :: ehartree,pi,switch,rpoints,a,errorcur
@@ -1909,7 +1915,7 @@ subroutine Prec_conjugate_gradient_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,
    call f_memcpy(src=b,dest=x)
 
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
-   call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,rvApp,acell,eps,nord,.false.,multp)
+   call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,rvApp,acell,eps,nord,.true.,multp)
 
    if (iproc==0) then
     call yaml_mapping_open('Comparison between Generalized Poisson operator and analytical density')
@@ -2020,7 +2026,7 @@ subroutine Prec_conjugate_gradient_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,
         rval=r(i1,i2,i3,isp)
         pval = zeta+(beta/beta0)*pval
         ! Additional contribution to the Generalized Poisson operator
-        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) 
+        !pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) 
         prod=zeta*epsc
         qval = prod !+rval+pbval+(beta/beta0)*qval
         !k = k + pval*(qval+rval)
@@ -2141,6 +2147,7 @@ subroutine Prec_conjugate_gradient_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,
         pval = zeta+(beta/beta0)*pval
         ! Additional contribution to the Generalized Poisson operator
         pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) 
+        pbval=0.d0
         prod=zeta*epsc
         qval = prod+rval+pbval+(beta/beta0)*qval
         k = k + pval*qval
@@ -3255,6 +3262,199 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEp
 
 end subroutine Poisson_Boltzmann
 
+subroutine Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEps,nord,pkernel,potential,&
+  density,oneoeps,dlogeps,corr3,oneosqrteps,multp,geocode)
+
+  use Poisson_Solver
+  use yaml_output
+  use f_utils
+  use dynamic_memory
+  implicit none
+  integer, intent(in) :: n01
+  integer, intent(in) :: n02
+  integer, intent(in) :: n03
+  integer, intent(in) :: nspden,iproc
+  real(kind=8), intent(in) :: hx,hy,hz
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell,multp
+  type(coulomb_operator), intent(inout) :: pkernel
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
+  integer, intent(in) :: SetEps
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,oneoeps,dlogeps,corr3,oneosqrteps
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: b
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: density
+  character(len=2), intent(in) :: geocode
+
+  real(kind=8), dimension(:,:,:,:), allocatable :: x,r,z,p,q,qold,lv,corr,deps,r_PB
+  !real(kind=8), dimension(n01,n02,n03,3) :: deps
+  real(kind=8), dimension(:,:,:), allocatable :: de2,ddeps
+  integer, parameter :: max_iter = 50
+  integer, parameter :: max_iter_PB = 150
+  real(kind=8), parameter :: max_ratioex = 1.0d10
+  real(kind=8), parameter :: max_ratioex_PB = 1.0d10
+  real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
+  integer :: i,ii,j,i1,i2,i3,isp,i_PB
+  real(kind=8), parameter :: error = 1.0d-13
+  real(kind=8), parameter :: eps0 = 78.36d0
+  real(kind=8), parameter :: eta = 1.0d0 ! Mixing parameter for the Poisson-Boltzmann ionic charge.
+  real(kind=8), parameter :: tauPB = 1.0d-13 ! Polarization Iterative Method parameter.
+  real(kind=8), dimension(n01,n02,n03) ::pot_ion
+  real(kind=8) :: ehartree,offset,pi,switch,rpoints,res,rho,rhores2,normrPB
+  real(kind=8) :: PB_charge
+
+  !allocate heap arrays
+  x=f_malloc([n01,n02,n03,nspden],id='x')
+  r=f_malloc([n01,n02,n03,nspden],id='r')
+  z=f_malloc([n01,n02,n03,nspden],id='z')
+  p=f_malloc([n01,n02,n03,nspden],id='p')
+  q=f_malloc([n01,n02,n03,nspden],id='q')
+  qold=f_malloc([n01,n02,n03,nspden],id='qold')
+  lv=f_malloc([n01,n02,n03,nspden],id='lv')
+  corr=f_malloc([n01,n02,n03,nspden],id='corr')
+  deps=f_malloc([n01,n02,n03,3],id='deps')
+  ddeps=f_malloc([n01,n02,n03],id='ddeps')
+  de2=f_malloc([n01,n02,n03],id='de2')
+  r_PB=f_malloc([n01,n02,n03,nspden],id='r_PB')
+
+  pi = 4.d0*datan(1.d0)   
+  rpoints=product(real([n01,n02,n03],kind=8))
+
+  open(unit=18,file='PB_PCG_normr.dat',status='unknown')
+  open(unit=38,file='PB_PCG_accuracy.dat',status='unknown')
+
+  if (iproc ==0) then
+   write(18,'(1x,a)')'iter_PB normrPB rhores2'
+   write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
+   call yaml_map('rpoints',rpoints)
+   call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
+  end if
+
+  !switch=0.0d0
+  !if (SetEps.eq.6) then
+  switch=1.0d0
+  !end if
+
+  if (iproc==0) then
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   write(*,'(a)')'Starting a Poisson-Bolzmann run'
+  end if
+  
+  call f_zero(x)
+  call f_zero(r_PB)
+  call f_memcpy(src=b,dest=r)
+
+  beta=1.d0
+  ratio=1.d0
+
+  do i_PB=1,max_iter_PB ! Poisson-Boltzmann loop.
+
+   if (iproc==0) then
+    write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+    write(*,*)'Starting Poisson-Boltzmann iteration ',i_PB
+   end if
+
+
+  if (iproc==0) then
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   write(*,'(a)')'Starting Preconditioned Conjugate Gradient'
+  end if
+
+!-------------------------------------------------------------------------------------
+  if (i_PB.eq.1) then
+   call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,r,density,acell,&
+        eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,dlogeps,multp,offset,geocode,.false.,.false.,.false.)
+  else
+   call Prec_conjugate_gradient_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,x,r,acell,&
+        eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,dlogeps,multp,offset,geocode,.false.)
+  end if
+  !call PolarizationIteration_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
+  !     eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
+
+!-------------------------------------------------------------------------------------
+
+   if (i_PB.eq.1) call f_memcpy(src=r,dest=x)
+   rhores2=0.d0
+   isp=1
+   do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+      zeta=x(i1,i2,i3,isp)
+      x(i1,i2,i3,isp)=zeta
+      res=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
+                                                                      ! for the Poisson-Boltzmann equation.
+      rho=r_PB(i1,i2,i3,isp)
+      res=res-rho
+      res=eta*res
+      rhores2=rhores2+res*res
+      r_PB(i1,i2,i3,isp)=res+rho
+      r(i1,i2,i3,isp) = b(i1,i2,i3,isp) + r_PB(i1,i2,i3,isp)
+     end do
+    end do
+   end do
+
+  normrPB=sqrt(rhores2/rpoints)
+
+   if (iproc==0) then
+    write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+    write(*,*)'End Poisson-Boltzmann iteration ',i_PB
+   end if
+
+  if (iproc ==0) then
+   call yaml_map('iter PB',i_PB)
+   call yaml_map('normrPB',normrPB)
+   call yaml_map('rhores2',rhores2)
+   write(18,'(1x,I8,3(1x,e14.7))')i_PB,normrPB,rhores2
+   call writeroutinePot(n01,n02,n03,nspden,x,i_PB,potential)
+  end if
+
+   if (normrPB.lt.tauPB) exit
+   if (normrPB.gt.max_ratioex_PB) exit
+
+ end do ! Poisson-Boltzmann loop
+
+   isp=1
+   do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+      b(i1,i2,i3,isp) = x(i1,i2,i3,isp)
+     end do
+    end do
+   end do
+
+  call yaml_sequence_close()
+   !write(*,*)
+   !write(*,'(1x,a,1x,I8)')'PCG iterations =',i-1
+   !write(*,'(1x,a,1x,e14.7)')'PCG error =',ratio
+   !write(*,*)
+   !write(*,*)'Max abs difference between analytic potential and the computed one'
+!  if (iproc==0) then
+!   call writeroutinePot(n01,n02,n03,nspden,b,i-1,potential)
+!   write(*,*)
+!  end if
+
+  close(unit=18)
+  close(unit=38)
+
+  if (iproc==0) then
+   write(*,'(a)')'Termination of Preconditioned Conjugate Gradient'
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+  end if
+
+  call f_free(x)
+  call f_free(r)
+  call f_free(z)
+  call f_free(p)
+  call f_free(q)
+  call f_free(qold)
+  call f_free(lv)
+  call f_free(corr)
+  call f_free(deps)
+  call f_free(ddeps)
+  call f_free(de2)
+  call f_free(r_PB)
+
+end subroutine Poisson_Boltzmann_good
+
 subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
      acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp)
 
@@ -3451,7 +3651,8 @@ subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
         rval=r(i1,i2,i3,isp)
         pval = zeta+(beta/beta0)*pval
         pbval=0.d0
-!        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
+ ! Additional contribution to the Generalized Poisson operator
+!        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta)
 !                                                                           ! for the Poisson-Boltzmann solution.
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*zeta)
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*zeta*dcosh(multp*x(i1,i2,i3,isp))
@@ -3617,10 +3818,10 @@ subroutine Poisson_Boltzmann_improved2(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
   real(kind=8), parameter :: max_ratioex_PB = 1.0d10
   real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
   integer :: i,ii,j,i1,i2,i3,isp,i_PB
-  real(kind=8), parameter :: error = 1.0d-10 !1.0d-13
+  real(kind=8), parameter :: error = 1.0d-13 !1.0d-13
   real(kind=8), parameter :: eps0 = 78.36d0
   real(kind=8), parameter :: eta = 1.0d0 ! Mixing parameter for the Poisson-Boltzmann ionic charge.
-  real(kind=8), parameter :: tauPB = 1.0d-10 ! Exit of Poisson-Boltzmann loop, to be = error for GPE.
+  real(kind=8), parameter :: tauPB = 1.0d-13 ! Exit of Poisson-Boltzmann loop, to be = error for GPE.
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
   real(kind=8) :: ehartree,offset,pi,switch,rpoints,res,rho,rhores2,normrPB,errorvar
   real(kind=8) :: PB_charge
@@ -3736,9 +3937,11 @@ subroutine Poisson_Boltzmann_improved2(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
 
   if (i_PB.eq.1) then
    errorvar=1.0d-6
+   errorvar=error
    errorvar=max(error,errorvar)
   else if (i_PB.eq.2) then
    errorvar=1.0d-8
+   errorvar=error
    errorvar=max(error,errorvar)
   else
    errorvar=error
@@ -7314,7 +7517,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
 
   end if
 
- else if (any(SetEps == [2,3,4,5,6,7,8,9,10,11,12,13,14,15,16])) then
+ else if (any(SetEps == [2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17])) then
 
 ! Set initial potential as gaussian and density as the correct Generalized
 ! Laplace operator. It works with a gaussian epsilon.
@@ -7513,7 +7716,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
   
   call f_free(rxyz)
 
- else if (SetEps.eq.17) then
+ else if (SetEps.eq.18) then
 
 ! Set initial potential as gaussian and density as the correct Generalized
 ! Laplace operator. It works with a gaussian epsilon.
