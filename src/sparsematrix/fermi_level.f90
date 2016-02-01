@@ -163,6 +163,7 @@ module fermi_level
 
       if (internal_info < 0) then
           call f_release_routine()
+          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new ef','bisec bounds')
           return ! no need to proceed further
       end if
 
@@ -192,7 +193,7 @@ module fermi_level
           if (abs(sumn-f%sumn_old)<1.d-10) then
               interpolation_possible = .false.
           end if
-          if (f%verbosity >= 1 .and. bigdft_mpi%iproc==0) then
+          if (f%verbosity >= 2 .and. bigdft_mpi%iproc==0) then
               call yaml_newline()
               call yaml_mapping_open('interpol check',flow=.true.)
                  call yaml_map('D eF',ef-f%ef_old,fmt='(es13.6)')
@@ -296,7 +297,7 @@ module fermi_level
           end if
         
           ! Calculate the new Fermi energy.
-          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) then
+          if (f%verbosity>=2 .and. bigdft_mpi%iproc==0) then
               call yaml_newline()
               call yaml_mapping_open('Search new eF',flow=.true.)
           end if
@@ -304,20 +305,20 @@ module fermi_level
               abs(sumn-f%target_charge) < f%ef_interpol_chargediff) then! .and. &
               !.not.interpolation_nonsense) then
               !det=determinant(bigdft_mpi%iproc,4,f%interpol_matrix)
-              if (f%verbosity >= 1 .and. bigdft_mpi%iproc==0) then
+              if (f%verbosity >= 2 .and. bigdft_mpi%iproc==0) then
                   call yaml_map('det',det,fmt='(es10.3)')
                   call yaml_map('limit',f%ef_interpol_det,fmt='(es10.3)')
               end if
               !if(abs(det) > f%ef_interpol_det) then
               if(cubicinterpol_possible .and. .not.interpolation_nonsense) then
                   ef = ef_interpol
-                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','cubic interpolation')
+                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new ef','cubic interpol')
               else
                   ! linear interpolation
                   m = (f%interpol_vector(4)-f%interpol_vector(3))/(f%interpol_matrix(4,3)-f%interpol_matrix(3,3))
                   b = f%interpol_vector(4)-m*f%interpol_matrix(4,3)
                   ef = -b/m
-                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','linear interpolation')
+                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new ef','linear interpol')
               end if
           else
               ! Use mean value of bisection and secant method if possible,
@@ -331,12 +332,12 @@ module fermi_level
                   ef = ef + f%efarr(2)-(f%sumnarr(2)-f%target_charge)*(f%efarr(2)-f%efarr(1))/(f%sumnarr(2)-f%sumnarr(1))
                   ! Take the mean value
                   ef = 0.5d0*ef
-                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','bisection / secant method')
+                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new ef','bisection/secant')
               else
-                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','bisection method')
+                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('new ef','bisection')
               end if
           end if
-          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) then
+          if (f%verbosity>=2 .and. bigdft_mpi%iproc==0) then
               !call yaml_map('guess for new ef',ef,fmt='(es15.8)')
               call yaml_mapping_close()
           end if

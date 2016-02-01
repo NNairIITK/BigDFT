@@ -1042,18 +1042,19 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end do
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
                tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-          if (iproc==0) call yaml_newline()
-          if (iproc==0) call yaml_sequence_open('kernel update by renormalization')
+          !if (iproc==0) call yaml_newline()
+          !if (iproc==0) call yaml_sequence_open('kernel update by renormalization')
           if (it==1 .or. energy_increased .or. .not.experimental_mode) then
               ! Calculate S^1/2, as it can not be taken from memory
               call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
+                   verbosity=0, &
                    check_accur=.true., max_error=max_error, mean_error=mean_error)
               call check_taylor_order(mean_error, max_inversion_error, order_taylor)
           end if
           call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
-          if (iproc==0) call yaml_sequence_close()
+          !if (iproc==0) call yaml_sequence_close()
       else
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                TRANSPOSE_GATHER, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
@@ -2890,6 +2891,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   call overlapPowerGeneral(iproc, nproc, order_taylor, 3, (/2,-2,1/), -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
+       verbosity=0, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
@@ -3046,7 +3048,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
   use module_base
   use module_types    
   use foe_base, only: foe_data, foe_data_null, foe_data_get_real, foe_data_set_real, foe_data_deallocate
-  use foe, only: fermi_operator_expansion
+  use foe, only: fermi_operator_expansion, fermi_operator_expansion_new
   use sparsematrix_base, only: matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                SPARSE_TASKGROUP, assignment(=)
   use yaml_output
@@ -3119,11 +3121,16 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       end do
       call foe_data_set_real(foe_obj,"fscale",1.d-2)
       norder_taylor = input%lin%order_taylor
-      call fermi_operator_expansion(iproc, nproc, &
+      call fermi_operator_expansion_new(iproc, nproc, &
            ebs, norder_taylor, input%lin%max_inversion_error, &
            .true., 2, &
            'HOMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
+      !call fermi_operator_expansion(iproc, nproc, &
+      !     ebs, norder_taylor, input%lin%max_inversion_error, &
+      !     .true., 2, &
+      !     'HOMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
       do ispin=1,input%nspin
           e_homo(ispin) = foe_data_get_real(foe_obj,"ef",ispin)
       end do
@@ -3141,11 +3148,16 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       end do
       call foe_data_set_real(foe_obj,"fscale",1.d-2)
       norder_taylor = input%lin%order_taylor
-      call fermi_operator_expansion(iproc, nproc, &
+      call fermi_operator_expansion_new(iproc, nproc, &
            ebs, norder_taylor, input%lin%max_inversion_error, &
            .true., 2, &
            'LUMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
+      !call fermi_operator_expansion(iproc, nproc, &
+      !     ebs, norder_taylor, input%lin%max_inversion_error, &
+      !     .true., 2, &
+      !     'LUMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
       do ispin=1,input%nspin
           e_lumo(ispin) = foe_data_get_real(foe_obj,"ef",ispin)
       end do

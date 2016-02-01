@@ -1148,7 +1148,7 @@ module foe
           evbounds_shrinked=.false.
       end if
 
-      write(*,*) 'evlow, evhigh', foe_data_get_real(foe_obj,"evlow",1), foe_data_get_real(foe_obj,"evhigh",1)
+      !write(*,*) 'evlow, evhigh', foe_data_get_real(foe_obj,"evlow",1), foe_data_get_real(foe_obj,"evhigh",1)
     
       ntemp = NTEMP_ACCURATE
       degree_multiplicator = DEGREE_MULTIPLICATOR_ACCURATE
@@ -1161,8 +1161,13 @@ module foe
        hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
 
       fscale_newx = temp_multiplicator*foe_data_get_real(foe_obj,"fscale")
+
+      if (bigdft_mpi%iproc==0) then
+          call yaml_sequence_open('Kernel calculation')
+      end if
     
       spin_loop: do ispin=1,smatl%nspin
+
 
           fscale_new = fscale_newx
           call foe_data_set_real(foe_obj,"fscale",fscale_new)
@@ -1178,6 +1183,12 @@ module foe
     
     
           temp_loop: do itemp=1,ntemp
+
+              if (bigdft_mpi%iproc==0) then
+                  call yaml_sequence(advance='no')
+                  call yaml_comment('ispin:'//trim(yaml_toa(ispin))//', itemp:'//trim(yaml_toa(itemp)),hfill='-')
+                  call yaml_newline()
+              end if
     
               fscale = fscale_new
               fscale = max(fscale,FSCALE_LOWER_LIMIT)
@@ -1189,8 +1200,8 @@ module foe
               
               if (iproc==0) then
                   call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
-                  call yaml_map('decay length multiplicator',temp_multiplicator,fmt='(es10.3)')
-                  call yaml_map('polynomial degree multiplicator',degree_multiplicator,fmt='(es10.3)')
+                  !call yaml_map('decay length multiplicator',temp_multiplicator,fmt='(es10.3)')
+                  !call yaml_map('polynomial degree multiplicator',degree_multiplicator,fmt='(es10.3)')
               end if
         
             
@@ -1389,23 +1400,23 @@ module foe
                   diff=diff/abs(ebsp)
         
                   if (iproc==0) then
-                      call yaml_map('ebs',ebsp)
-                      call yaml_map('ebs_check',ebs_check)
-                      call yaml_map('diff',ebs_check-ebsp)
-                      call yaml_map('relative diff',diff)
+                      call yaml_map('EBS',ebsp,fmt='(es19.12)')
+                      call yaml_map('EBS higher temperature',ebs_check,fmt='(es19.12)')
+                      call yaml_map('difference',ebs_check-ebsp,fmt='(es19.12)')
+                      call yaml_map('relative difference',diff,fmt='(es19.12)')
                   end if
         
                   if (diff<5.d-5) then
                       ! can decrease polynomial degree
                       !!call foe_data_set_real(foe_obj,"fscale", 1.25d0*foe_data_get_real(foe_obj,"fscale"))
-                      if (iproc==0) call yaml_map('modify fscale','increase')
+                      if (iproc==0) call yaml_map('modify error function decay length','increase')
                       !fscale_new=min(fscale_new,1.25d0*foe_data_get_real(foe_obj,"fscale"))
                       fscale_new=1.25d0*fscale_new
                       degree_sufficient=.true.
                   else if (diff>=5.d-5 .and. diff < 1.d-4) then
                       ! polynomial degree seems to be appropriate
                       degree_sufficient=.true.
-                      if (iproc==0) call yaml_map('modify fscale','No')
+                      if (iproc==0) call yaml_map('modify error function decay length','No')
                       !fscale_new=min(fscale_new,foe_data_get_real(foe_obj,"fscale"))
                       fscale_new=fscale_new
                   else
@@ -1413,7 +1424,7 @@ module foe
                       ! the kernel
                       degree_sufficient=.false.
                       !!call foe_data_set_real(foe_obj,"fscale", 0.5*foe_data_get_real(foe_obj,"fscale"))
-                      if (iproc==0) call yaml_map('modify fscale','decrease')
+                      if (iproc==0) call yaml_map('modify error function decay length','decrease')
                       !fscale_new=min(fscale_new,0.5d0*foe_data_get_real(foe_obj,"fscale"))
                       fscale_new=0.5d0*fscale_new
                   end if
@@ -1476,11 +1487,17 @@ module foe
                   if (iproc==0) then
                       call yaml_map('need to repeat with sharper decay (new)',.not.degree_sufficient)
                   end if
-                  if (degree_sufficient) exit temp_loop
-                  if (reached_limit) then
-                      if (iproc==0) call yaml_map('limit reached, exit loop',.true.)
+                  if (degree_sufficient) then
+                      call f_free_ptr(chebyshev_polynomials)
                       exit temp_loop
                   end if
+                  if (reached_limit) then
+                      if (iproc==0) call yaml_map('limit reached, exit loop',.true.)
+                      call f_free_ptr(chebyshev_polynomials)
+                      exit temp_loop
+                  end if
+
+                  call f_free_ptr(chebyshev_polynomials)
 
                   !# END NEW ################################################
 
@@ -2022,8 +2039,6 @@ module foe
 !                 exit temp_loop
 !             end if
         
-        
-             call f_free_ptr(chebyshev_polynomials)
             
         
           end do temp_loop
@@ -2035,6 +2050,9 @@ module foe
     
       end do spin_loop
     
+      if (bigdft_mpi%iproc==0) then
+          call yaml_sequence_close()
+      end if
     
       ! This always takes the value for ispin=2... should be improved
       call foe_data_set_real(foe_obj,"fscale",fscale_new)

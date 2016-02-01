@@ -627,7 +627,7 @@ module foe_common
     subroutine check_eigenvalue_spectrum_new(nproc, smat_l, ispin, isshift, &
                factor_high, factor_low, penalty_ev, anoise, trace_with_overlap, &
                emergency_stop, foe_obj, restart, eval_bounds_ok, &
-               eval_multiplicator, smat_s, mat)
+               verbosity, eval_multiplicator, smat_s, mat)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: matrixindex_in_compressed
@@ -645,16 +645,23 @@ module foe_common
       type(foe_data),intent(inout) :: foe_obj
       logical,intent(inout) :: restart
       logical,dimension(2),intent(out) :: eval_bounds_ok
+      integer,intent(in),optional :: verbosity
       real(kind=8),intent(inout),optional :: eval_multiplicator
       type(sparse_matrix),intent(in),optional :: smat_s
       type(matrices),intent(in),optional :: mat
     
       ! Local variables
-      integer :: isegstart, isegend, iseg, ii, jorb, irow, icol, iismall, iel, i, iline, icolumn, ibound
+      integer :: isegstart, isegend, iseg, ii, jorb, irow, icol, iismall, iel, i, iline, icolumn, ibound, verbosity_
       real(kind=8) :: bound_low, bound_up, tt, noise
       real(kind=8),dimension(2) :: allredarr
     
       call f_routine(id='check_eigenvalue_spectrum_new')
+
+      if (present(verbosity)) then
+          verbosity_ = verbosity
+      else
+          verbosity_ = 1
+      end if
 
       if (trace_with_overlap) then
           if (.not.present(smat_s) .or. .not.present(mat)) then
@@ -733,7 +740,7 @@ module foe_common
       noise=10.d0*anoise
       noise = 1.d-1
     
-      if (bigdft_mpi%iproc==0) then
+      if (bigdft_mpi%iproc==0 .and. verbosity_>0) then
           !call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
           !call yaml_map('pnlty',(/allredarr(1),allredarr(2)/),fmt='(es8.1)')
           call yaml_map('penalty',allredarr(1),fmt='(es8.1)')
@@ -1688,7 +1695,7 @@ module foe_common
       call f_routine(id='find_fermi_level')
 
     
-      if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='~')
+      !if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='~')
     
     
       call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -1740,11 +1747,11 @@ module foe_common
               evlow_old=1.d100
               evhigh_old=-1.d100
               
-              if (iproc==0) then
-                  call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
-                  call yaml_map('decay length multiplicator',temp_multiplicator,fmt='(es10.3)')
-                  call yaml_map('polynomial degree multiplicator',degree_multiplicator,fmt='(es10.3)')
-              end if
+              !if (iproc==0) then
+              !    call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
+              !    call yaml_map('decay length multiplicator',temp_multiplicator,fmt='(es10.3)')
+              !    call yaml_map('polynomial degree multiplicator',degree_multiplicator,fmt='(es10.3)')
+              !end if
         
             
                   ! Don't let this value become too small.
@@ -1760,20 +1767,21 @@ module foe_common
                   sumnarr(2)=1.d100
                   call init_fermi_level(foe_data_get_real(foe_obj,"charge",ispin), foe_data_get_real(foe_obj,"ef",ispin), f, &
                        foe_data_get_real(foe_obj,"bisection_shift",ispin), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
-                       foe_data_get_real(foe_obj,"ef_interpol_det"), foe_verbosity)
+                       foe_data_get_real(foe_obj,"ef_interpol_det"), verbosity=1) !foe_verbosity)
                   call foe_data_set_real(foe_obj,"ef",efarr(1),ispin)
             
             
                   if (iproc==0) then
-                      if (foe_verbosity>=1) then
-                          call yaml_sequence_open('FOE to determine density kernel',&
-                               label='it_foe'//trim(label)//'-'//&
-                               trim(adjustl(yaml_toa(itemp,fmt='(i2.2)')))//'-'//&
-                               trim(adjustl(yaml_toa(ispin,fmt='(i2.2)'))))
-                      else
-                          call yaml_sequence_open('FOE to determine density kernel')
-                          if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='-')
-                      end if
+                      !if (foe_verbosity>=1) then
+                      !    call yaml_sequence_open('FOE to determine density kernel',&
+                      !         label='it_foe'//trim(label)//'-'//&
+                      !         trim(adjustl(yaml_toa(itemp,fmt='(i2.2)')))//'-'//&
+                      !         trim(adjustl(yaml_toa(ispin,fmt='(i2.2)'))))
+                      !else
+                      !    call yaml_sequence_open('FOE to determine density kernel')
+                      !    if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='-')
+                      !end if
+                      call yaml_sequence_open('determine Fermi energy')
                   end if
             
             
@@ -1871,9 +1879,6 @@ module foe_common
                       call calculate_trace_distributed_new(iproc, nproc, smatl, fermi_small_new, sumn)
                       !write(*,*) 'sumn',sumn
             
-                      call yaml_map('bisec bounds ok',&
-                           (/bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                      call yaml_map('ef',ef)
         
                       if (all(eval_bounds_ok) .and. all(bisection_bounds_ok)) then
                           ! Print these informations already now if all entries are true.
@@ -1882,9 +1887,21 @@ module foe_common
                               !!     (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
                           end if
                       end if
+
+                      if (iproc==0) then
+                          !call yaml_newline()
+                          !call yaml_map('iter',it)
+                          call yaml_map('ef',foe_data_get_real(foe_obj,"ef",ispin),fmt='(es13.6)')
+                          !call yaml_map('bisec bounds ok',&
+                          !     (/bisection_bounds_ok(1),bisection_bounds_ok(2)/))
+                          call yaml_map('Tr(K)',sumn,fmt='(es13.7)')
+                          call yaml_map('D Tr(K)',sumn-foe_data_get_real(foe_obj,"charge",ispin),fmt='(es9.2)')
+                      end if
                       call determine_fermi_level(f, sumn, ef, info)
                       bisection_bounds_ok(1) = fermilevel_get_logical(f,"bisection_bounds_ok(1)")
                       bisection_bounds_ok(2) = fermilevel_get_logical(f,"bisection_bounds_ok(2)")
+
+
                       if (info<0) then
                           if (iproc==0) then
                               !if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
@@ -1909,12 +1926,6 @@ module foe_common
         
         
             
-                      if (iproc==0) then
-                          if (foe_verbosity>=1) call yaml_newline()
-                          if (foe_verbosity>=1) call yaml_map('iter',it)
-                          if (foe_verbosity>=1) call yaml_map('Tr(K)',sumn,fmt='(es16.9)')
-                          call yaml_map('charge diff',sumn-foe_data_get_real(foe_obj,"charge",ispin),fmt='(es16.9)')
-                      end if
             
                       if (iproc==0) then
                           call yaml_mapping_close()
@@ -1929,7 +1940,7 @@ module foe_common
                           end if
         
                           diff=sqrt(diff)
-                          if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
+                          !if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
                           exit
                       end if
         

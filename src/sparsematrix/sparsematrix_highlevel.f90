@@ -467,7 +467,7 @@ module sparsematrix_highlevel
           !!call inverse_chebyshev_expansion(iproc, nproc, ndeg, &
           !!     smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto)
           call inverse_chebyshev_expansion_new(iproc, nproc, ndeg, &
-               smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto)
+               smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto=npl_auto)
       else
           call inverse_chebyshev_expansion(iproc, nproc, ndeg, &
                smat_in, smat_out, ncalc, ex, mat_in, mat_out)

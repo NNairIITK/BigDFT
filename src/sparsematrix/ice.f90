@@ -12,7 +12,7 @@ module ice
     ! New: chebyshev expansion of the inverse overlap (Inverse Chebyshev Expansion)
     subroutine inverse_chebyshev_expansion(iproc, nproc, norder_polynomial, &
                ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp, &
-               npl_auto)
+               verbosity, npl_auto)
       use module_base
       use yaml_output
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
@@ -39,10 +39,11 @@ module ice
       real(kind=8),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: ovrlp_mat
       type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp
+      integer,intent(in),optional :: verbosity
       logical,intent(in),optional :: npl_auto
     
       ! Local variables
-      integer :: npl, jorb, it, ii, iseg
+      integer :: npl, jorb, it, ii, iseg, verbosity_
       integer :: isegstart, isegend, iismall, nsize_polynomial
       integer :: iismall_ovrlp, iismall_ham, npl_boundaries, i, ipl
       integer,parameter :: nplx=50000
@@ -93,6 +94,12 @@ module ice
       else
           npl_auto_ = .false.
       end if
+
+      if (present(verbosity)) then
+          verbosity_ = verbosity
+      else
+          verbosity_ = 1
+      end if
     
     
       penalty_ev_new = f_malloc((/inv_ovrlp_smat%smmm%nvctrp,2/),id='penalty_ev_new')
@@ -129,7 +136,7 @@ module ice
       evbounds_shrinked = .false.
     
       !@ TEMPORARY: eigenvalues of  the overlap matrix ###################
-      call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat)
+      !call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat)
 
       !!tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
       !!do iseg=1,ovrlp_smat%nseg
@@ -285,7 +292,7 @@ module ice
 
                       ! Array that holds the Chebyshev polynomials. Needs to be recalculated
                       ! every time the Hamiltonian has been modified.
-                      if (iproc==0) then
+                      if (iproc==0 .and. verbosity_>0) then
                           call yaml_newline()
                           call yaml_mapping_open('ICE')
                           call yaml_map('eval bounds',&
@@ -338,7 +345,7 @@ module ice
                               call evnoise(npl, cc(1:,2:,icalc:), foe_data_get_real(foe_obj,"evlow",ispin), &
                                    foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
                           end do
-                          if (iproc==0) then
+                          if (iproc==0 .and. verbosity_>0) then
                               call yaml_mapping_open('accuracy (x, max err, mean err)')
                               do icalc=1,ncalc
                                   call yaml_map('Operation '//trim(yaml_toa(icalc)), &
@@ -353,7 +360,9 @@ module ice
                           call timing(iproc, 'chebyshev_coef', 'OF')
                           call timing(iproc, 'FOE_auxiliary ', 'ON')
                       end if
-                      call yaml_mapping_close()
+                      if (iproc==0 .and. verbosity_>0) then
+                          call yaml_mapping_close()
+                      end if
                     
                       !!do j=1,npl
                       !!    write(*,*) 'in main: j, cc(j,1,1), cc(j,2,1)', j, cc(j,1,1), cc(j,2,1)
@@ -456,7 +465,8 @@ module ice
                           if (mode==old) then
                               call check_eigenvalue_spectrum_new(nproc, inv_ovrlp_smat, ispin, &
                                    0, 1.2d0, 1.d0/1.2d0, penalty_ev_new, anoise, .false., emergency_stop, &
-                                   foe_obj, restart, eval_bounds_ok, eval_multiplicator)
+                                   foe_obj, restart, eval_bounds_ok, &
+                                   verbosity=verbosity_, eval_multiplicator=eval_multiplicator)
                           else if (mode==new) then
                               if (.not.eval_bounds_ok(1)) then
                                   ! lower bound too large
@@ -727,7 +737,7 @@ module ice
     ! New: chebyshev expansion of the inverse overlap (Inverse Chebyshev Expansion)
     subroutine inverse_chebyshev_expansion_new(iproc, nproc, norder_polynomial, &
                ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp, &
-               npl_auto)
+               verbosity, npl_auto)
       use module_base
       use yaml_output
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
@@ -754,6 +764,7 @@ module ice
       real(kind=8),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: ovrlp_mat
       type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp
+      integer,intent(in),optional :: verbosity
       logical,intent(in),optional :: npl_auto
     
       ! Local variables
@@ -775,7 +786,7 @@ module ice
       real(kind=8),dimension(:),allocatable :: hamscal_compr
       logical,dimension(2) :: eval_bounds_ok
       integer,dimension(2) :: irowcol
-      integer :: irow, icol, iflag, ispin, isshift, ilshift, ilshift2
+      integer :: irow, icol, iflag, ispin, isshift, ilshift, ilshift2, verbosity_
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit, npl_auto_
       integer,parameter :: NPL_MIN=5
       real(kind=8),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
@@ -796,6 +807,12 @@ module ice
       character(len=3) :: mode=old
 
       call f_routine(id='inverse_chebyshev_expansion')
+
+      if (present(verbosity)) then
+          verbosity_ = verbosity
+      else
+          verbosity_ = 1
+      end if
 
       inv_ovrlp_matrixp_new = f_malloc((/max(inv_ovrlp_smat%smmm%nvctrp,1),ncalc/),id='inv_ovrlp_matrixp_new')
       inv_ovrlp_matrixp_small_new = f_malloc((/max(inv_ovrlp_smat%smmm%nvctrp_mm,1),ncalc/),id='inv_ovrlp_matrixp_small_new')
