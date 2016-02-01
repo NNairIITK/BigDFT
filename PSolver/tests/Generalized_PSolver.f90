@@ -105,6 +105,12 @@ program GPS_3D
    delta= options .get. 'deltacav'
    lin_PB = SetEps == 17
 
+   call dict_init(dict_input)
+
+   if ('input' .in. options) &
+        call dict_copy(dest=dict_input,src=options//'input')
+
+
    call dict_free(options)
 
 
@@ -411,7 +417,6 @@ program GPS_3D
 !   rhopot(:,:,:,:) = density(:,:,:,:)
 !  end if
 
-   call dict_init(dict_input)
 
    if (usegpu) call dict_set(dict_input//'setup'//'accel','CUDA')
    call dict_set(dict_input//'environment'//'delta',delta)
@@ -422,11 +427,11 @@ program GPS_3D
 
   !new method
    if (CFgrid) then
-    pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndimsc,hgridsc)  
+    pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndimsc,hgridsc)
    else if (Fgrid) then
-    pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndimsf,hgridsf)  
+    pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndimsf,hgridsf)
    else
-    pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids)  
+    pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids)
    end if
 
 !!$  pkernel=pkernel_init(.true.,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,alg=PSol)
@@ -449,7 +454,7 @@ program GPS_3D
         call back_trans_ISF_3D(geocode,8,ndimsf(1),ndimsf(2),ndimsf(3),rhopot,rhopotf)
         call pkernel_set_epsilon(pkernel,eps=epsf)
      else
-      if (any(SetEps == [2,3,4]))  then
+      if (any(SetEps == [2,3,4,17]))  then
         call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr,eps=eps)
       else
         call pkernel_set_epsilon(pkernel,eps=eps)
@@ -473,7 +478,7 @@ program GPS_3D
 !!$   else
 !!$     call pkernel_set(pkernel,verbose=.true.,eps=eps)
 !!$   end if
-   if (any(SetEps == [2,3,4])) then
+   if (any(SetEps == [2,3,4,17])) then
       call pkernel_set_epsilon(pkernel,eps=eps,oneoeps=oneoeps,dlogeps=dlogeps)
    else
       call pkernel_set_epsilon(pkernel,eps=eps)
@@ -502,8 +507,10 @@ program GPS_3D
       call PS_gather(src=rhopotf,kernel=pkernel)
       call for_trans_ISF_3D(geocode,8,ndimsf(1),ndimsf(2),ndimsf(3),rhopotf,rhopot)
      else
-      call H_potential('D',pkernel,rhopot(1,1,pkernel%grid%istart+1,1),rhopot(1,1,pkernel%grid%istart+1,1),ehartree,offset,.false.)
+      call H_potential('D',pkernel,rhopot(1,1,pkernel%grid%istart+1,1),rhopot(1,1,pkernel%grid%istart+1,1),&
+           ehartree,offset,.false.)
       call PS_gather(src=rhopot,kernel=pkernel)
+!!$      call H_potential('G',pkernel,rhopot,rhopot,ehartree,offset,.false.)
      end if
   case(5)
   !else if (any(SetEps == [5])) then
@@ -815,6 +822,13 @@ subroutine PS_Check_options(parser)
        'Sizes of the delta for error function',&
        'Allowed values' .is. &
        'Real value'))
+
+  call yaml_cl_parse_option(parser,'input','None',&
+       'Inputfile of Poisson solver','i',&
+       dict_new('Usage' .is. &
+       'Put the dictionary of PS inputfile to preload some parameters',&
+       'Allowed values' .is. &
+       'yaml Dictionary'))
 
 
 end subroutine PS_Check_options
@@ -3269,6 +3283,7 @@ subroutine Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,
   use yaml_output
   use f_utils
   use dynamic_memory
+  use PSbox, only: PS_gather
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -3316,7 +3331,7 @@ subroutine Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,
   de2=f_malloc([n01,n02,n03],id='de2')
   r_PB=f_malloc([n01,n02,n03,nspden],id='r_PB')
 
-  pi = 4.d0*datan(1.d0)   
+  pi = 4.d0*datan(1.d0)
   rpoints=product(real([n01,n02,n03],kind=8))
 
   open(unit=18,file='PB_PCG_normr.dat',status='unknown')
@@ -3338,7 +3353,7 @@ subroutine Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,
    write(*,'(a)')'--------------------------------------------------------------------------------------------'
    write(*,'(a)')'Starting a Poisson-Bolzmann run'
   end if
-  
+
   call f_zero(x)
   call f_zero(r_PB)
   call f_memcpy(src=b,dest=r)
@@ -3360,15 +3375,20 @@ subroutine Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,
   end if
 
 !-------------------------------------------------------------------------------------
-  if (i_PB.eq.1) then
-   call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,r,density,acell,&
-        eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,dlogeps,multp,offset,geocode,.false.,.false.,.false.)
-  else
-   call Prec_conjugate_gradient_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,x,r,acell,&
-        eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,dlogeps,multp,offset,geocode,.false.)
-  end if
-  !call PolarizationIteration_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
-  !     eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
+!!$  if (i_PB.eq.1) then
+!!$   call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,r,density,acell,&
+!!$        eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,dlogeps,multp,offset,geocode,.false.,.false.,.false.)
+!!$  else
+!!$   call Prec_conjugate_gradient_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,x,r,acell,&
+!!$        eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,dlogeps,multp,offset,geocode,.false.)
+!!$  end if
+!!$  !call PolarizationIteration_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
+!!$  !     eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
+
+  call H_potential('D',pkernel,r(1,1,pkernel%grid%istart+1,1),r(1,1,pkernel%grid%istart+1,1),&
+       ehartree,offset,.false.)
+  call PS_gather(r,pkernel)
+  call f_memcpy(src=r,dest=x)
 
 !-------------------------------------------------------------------------------------
 
@@ -3379,7 +3399,7 @@ subroutine Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,
     do i2=1,n02
      do i1=1,n01
       zeta=x(i1,i2,i3,isp)
-      x(i1,i2,i3,isp)=zeta
+      !x(i1,i2,i3,isp)=zeta
       res=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
                                                                       ! for the Poisson-Boltzmann equation.
       rho=r_PB(i1,i2,i3,isp)

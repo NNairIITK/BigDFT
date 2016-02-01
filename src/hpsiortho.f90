@@ -1000,8 +1000,8 @@ contains
     if (paw%usepaw) then
        spsi_ptr => ob_ket_map(paw%spsi,psi_it)
        call apply_atproj_iorb_paw(atit%iat,psi_it%iorbp,istart_c,&
-            at,psi_it%ob%orbs,psi_it%lr%%wfd,nl,&
-            psit_it%phi_wvl,hpsi_ptr,spsi_ptr,eproj_sum,&
+            at,psi_it%ob%orbs,psi_it%lr%wfd,nl,&
+            psi_it%phi_wvl,hpsi_ptr,spsi_ptr,eproj_sum,&
             paw)
     else
        if (all(psi_it%kpoint == 0.0_gp)) then
