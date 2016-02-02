@@ -40,8 +40,6 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   nl%nproj=0
   nl%nprojel=0
 
-  !Pb of inout
-  izero=0
 
   do iat=1,at%astruct%nat
 
@@ -55,9 +53,6 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      !assign the number of projector to the localization region
      nl%pspd(iat)%mproj=mproj
 
-     !this is not really needed, see below
-     if (mproj == 0) call bounds_to_plr_limits(.true.,1,nl%pspd(iat)%plr,&
-                          izero,izero,izero,izero,izero,izero)
      if (mproj /= 0) then 
 
         !if some projectors are there at least one locreg interacts with the psp
@@ -112,6 +107,12 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         !print *,'iat,nprojelat',iat,nprojelat,mvctr,mseg
 
      else  !(atom has no nonlocal PSP, e.g. H)
+        !Pb of inout
+        izero=0
+
+        !this is not really needed, see below
+        call bounds_to_plr_limits(.true.,1,nl%pspd(iat)%plr,&
+             izero,izero,izero,izero,izero,izero)
 
         nl%pspd(iat)%plr%wfd%nseg_c=0
         nl%pspd(iat)%plr%wfd%nvctr_c=0
@@ -136,7 +137,6 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
              nl1,nl2,nl3,nu1,nu2,nu3)
      endif
   enddo
-  
 
   !control the strategy to be applied following the memory limit
   !if the projectors takes too much memory allocate only one atom at the same time
@@ -227,7 +227,6 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   nl%nprojel=nkptsproj*nl%nprojel
 
   !print *,'iproc,nkptsproj',iproc,nkptsproj,nlpspd%nprojel,orbs%iskpts,orbs%iskpts+orbs%nkptsp
-
 
   call f_release_routine()
 
