@@ -115,8 +115,8 @@ module ice
          foe_obj%charge = f_malloc0_ptr(ovrlp_smat%nspin,id='foe_obj%charge')
          do ispin=1,ovrlp_smat%nspin
              call foe_data_set_real(foe_obj,"ef",0.d0,ispin)
-             call foe_data_set_real(foe_obj,"evlow",0.5d0,ispin)
-             call foe_data_set_real(foe_obj,"evhigh",1.5d0,ispin)
+             call foe_data_set_real(foe_obj,"evlow",0.3d0,ispin)
+             call foe_data_set_real(foe_obj,"evhigh",2.2d0,ispin)
              call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,ispin)
              call foe_data_set_real(foe_obj,"charge",0.d0,ispin)
          end do
@@ -381,6 +381,13 @@ module ice
                                .false., &
                                nsize_polynomial, ncalc, inv_ovrlp_matrixp_new, penalty_ev_new, chebyshev_polynomials, &
                                emergency_stop)
+                           !write(*,*) 'sum(hamscal_compr)', sum(hamscal_compr)
+                           !write(*,*) 'npl, sum(cc(:,1,1)), sum(chebyshev_polynomials)', &
+                           !    npl, sum(cc(:,1,1)), sum(chebyshev_polynomials)
+                           !write(*,*) 'sum(inv_ovrlp_matrixp_new)',sum(inv_ovrlp_matrixp_new)
+                           !do i=1,size(inv_ovrlp_matrixp_new)
+                           !    write(300,*) 'i, inv_ovrlp_matrixp_new(i)', i, inv_ovrlp_matrixp_new(i,1)
+                           !end do
                            !!!@NEW#####################################################################################
                            !!if (mode==new) then
                            !!    call f_free_ptr(chebyshev_polynomials)
@@ -410,6 +417,8 @@ module ice
                                  !!end do
                               end do
                           end if
+                          !write(*,*) 'size(inv_ovrlp_matrixp_small_new), sum(inv_ovrlp_matrixp_small_new), ncalc', &
+                          !     size(inv_ovrlp_matrixp_small_new), sum(inv_ovrlp_matrixp_small_new), ncalc
     
                            !write(*,'(a,i5,2es24.8)') 'iproc, sum(inv_ovrlp_matrixp(:,:,1:2)', (sum(inv_ovrlp_matrixp(:,:,icalc)),icalc=1,ncalc)
                           !!do i=1,inv_ovrlp_smat%smmm%nvctrp
@@ -427,9 +436,9 @@ module ice
                           call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                                inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
                                inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc, inv_ovrlp_matrixp_new)
-                          do icalc=1,ncalc
-                              write(*,*) 'sum(inv_ovrlp_matrixp_new(:,icalc))',sum(inv_ovrlp_matrixp_new(:,icalc))
-                          end do
+                          !do icalc=1,ncalc
+                          !    write(*,*) 'sum(inv_ovrlp_matrixp_new(:,icalc))',sum(inv_ovrlp_matrixp_new(:,icalc))
+                          !end do
                           !!do icalc=1,ncalc
                           !!    call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
                           !!         inv_ovrlp_smat, inv_ovrlp_matrixp_new, inv_ovrlp_matrixp(:,:,icalc))
@@ -515,6 +524,7 @@ module ice
                       call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, &
                            SPARSE_MATMUL_SMALL, inv_ovrlp_matrixp_small_new(:,icalc), &
                            inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
+                      !write(*,*) 'sum(inv_ovrlp(icalc)%matrix_compr)', sum(inv_ovrlp(icalc)%matrix_compr)
                   end do
               !end if
 
@@ -522,6 +532,7 @@ module ice
                   do icalc=1,ncalc
                       call dscal(inv_ovrlp_smat%nvctrp_tg, 1.d0/eval_multiplicator**ex(icalc), &
                            inv_ovrlp(icalc)%matrix_compr(ilshift2+1), 1)
+                      !write(*,*) 'sum(inv_ovrlp(icalc)%matrix_compr)', sum(inv_ovrlp(icalc)%matrix_compr)
                   end do
               end if
         
@@ -830,8 +841,8 @@ module ice
            foe_obj%charge = f_malloc0_ptr(ovrlp_smat%nspin,id='foe_obj%charge')
            do ispin=1,ovrlp_smat%nspin
                call foe_data_set_real(foe_obj,"ef",0.d0,ispin)
-               call foe_data_set_real(foe_obj,"evlow",0.5d0,ispin)
-               call foe_data_set_real(foe_obj,"evhigh",1.5d0,ispin)
+               call foe_data_set_real(foe_obj,"evlow",0.3d0,ispin)
+               call foe_data_set_real(foe_obj,"evhigh",2.2d0,ispin)
                call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,ispin)
                call foe_data_set_real(foe_obj,"charge",0.d0,ispin)
            end do
@@ -932,33 +943,44 @@ module ice
           end if
           call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
-               inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc(:,1,:), inv_ovrlp_matrixp_new)
+               inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc(:,1,:), inv_ovrlp_matrixp_small_new)
+          !write(*,*) 'sum(cc(:,1,1))',sum(cc(:,1,1))
+          !write(*,*) 'sum(ovrlp_scaled%matrix_compr)',sum(ovrlp_scaled%matrix_compr)
+          !write(*,*) 'sum(chebyshev_polynomials)', sum(chebyshev_polynomials)
+          !write(*,*) 'sum(inv_ovrlp_matrixp_new)',sum(inv_ovrlp_matrixp_new)
+          !do i=1,size(inv_ovrlp_matrixp_new)
+          !    write(200,*) 'i, inv_ovrlp_matrixp_new(i)', i, inv_ovrlp_matrixp_new(i,1)
+          !end do
           !!!! TEST ##################################################
           !!!call foe_data_set_real(foe_obj,"ef",1.d0,ispin)
           !!!call foe_data_set_real(foe_obj,"charge",10.d0,ispin)
           !!!!call find_fermi_level(iproc, nproc, npl, chebyshev_polynomials, &
           !!!!     2, 'test', inv_ovrlp_smat, foe_obj, inv_ovrlp(1))
           !!!! END TEST ##############################################
-          if (inv_ovrlp_smat%smmm%nvctrp>0) then
-              do icalc=1,ncalc
-                  call transform_sparsity_pattern(inv_ovrlp_smat%nfvctr, &
-                       inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
-                       inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
-                       inv_ovrlp_smat%smmm%line_and_column_mm, &
-                       inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
-                       inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
-                       inv_ovrlp_smat%smmm%istsegline, 'large_to_small', &
-                       inv_ovrlp_matrixp_small_new(1,icalc), inv_ovrlp_matrixp_new(1,icalc))
-              end do
-          end if
+          !!if (inv_ovrlp_smat%smmm%nvctrp>0) then
+          !!    do icalc=1,ncalc
+          !!        call transform_sparsity_pattern(inv_ovrlp_smat%nfvctr, &
+          !!             inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
+          !!             inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+          !!             inv_ovrlp_smat%smmm%line_and_column_mm, &
+          !!             inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
+          !!             inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
+          !!             inv_ovrlp_smat%smmm%istsegline, 'large_to_small', &
+          !!             inv_ovrlp_matrixp_small_new(1,icalc), inv_ovrlp_matrixp_new(1,icalc))
+          !!    end do
+          !!end if
+          !write(*,*) 'size(inv_ovrlp_matrixp_small_new), sum(inv_ovrlp_matrixp_small_new), ncalc', &
+          !     size(inv_ovrlp_matrixp_small_new), sum(inv_ovrlp_matrixp_small_new), ncalc
           do icalc=1,ncalc
               call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, &
                    SPARSE_MATMUL_SMALL, inv_ovrlp_matrixp_small_new(:,icalc), &
                    inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
-              call dscal(inv_ovrlp_smat%nvctrp_tg, 1.d0/eval_multiplicator**ex(icalc), &
+              !write(*,*) 'sum(inv_ovrlp(icalc)%matrix_compr)',sum(inv_ovrlp(icalc)%matrix_compr)
+              call dscal(inv_ovrlp_smat%nvctrp_tg, 1.d0/eval_multiplicator_total**ex(icalc), &
                    inv_ovrlp(icalc)%matrix_compr(ilshift2+1), 1)
               !write(*,*) 'icalc, sum(inv_ovrlp(icalc)%matrix_compr)', &
               !    icalc, sum(inv_ovrlp(icalc)%matrix_compr), sum(inv_ovrlp_matrixp_new(:,icalc)), sum(cc(:,:,icalc))
+              !write(*,*) 'sum(inv_ovrlp(icalc)%matrix_compr)',sum(inv_ovrlp(icalc)%matrix_compr)
           end do
 
       end do spin_loop

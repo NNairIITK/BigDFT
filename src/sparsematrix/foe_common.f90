@@ -1533,6 +1533,11 @@ module foe_common
                                    nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
                                    emergency_stop)
                           end if
+                          !write(*,*) 'sum(hamscal_compr)',sum(hamscal_compr)
+                          !write(*,*) 'npl, sum(cc(:,1,1)), sum(chebyshev_polynomials)', &
+                          !            npl, sum(cc(:,1,1)), sum(chebyshev_polynomials)
+
+
                            
                           !!call transform_sparsity_pattern(smatl%nfvctr, &
                           !!     smatl%smmm%nvctrp_mm, smatl%smmm%isvctr_mm, &
