@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.4
- Timestamp of this run                 : 2016-02-02 11:06:06.349
+ Timestamp of this run                 : 2016-02-02 17:18:48.997
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -760,7 +760,7 @@
          x                             : -1/2
        order                           :  1020
        determine eigenvalue bounds:
-       -  {npl:  16, scale:  1.00E+00, bounds:  [  0.5,  1.5 ], ok:  [  Yes,  Yes ], 
+       -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
      exp accur:  [  3.61E-10 ]}
        error estimation:
          max / mean error              :  [  3.7E-10,  1.31E-10 ]
@@ -1372,29 +1372,23 @@
  eF:  7.227914E-02, Tr(K):  8.0000010E+00, D Tr(K):  1.05E-06, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
  eF:  4.810625E-02, Tr(K):  7.9999992E+00, D Tr(K): -7.51E-07, new eF: bisec bounds}
-         -  { #------------------------------------------------------------------ it FOE: 3
- eF:  1.206249E-01, Tr(K):  8.0000012E+00, D Tr(K):  1.22E-06, new eF: bisection/secant}
-         -  { #------------------------------------------------------------------ it FOE: 4
- eF:  8.003014E-02, Tr(K):  7.9999983E+00, D Tr(K): -1.68E-06, new eF: bisection/secant}
-         -  { #------------------------------------------------------------------ it FOE: 5
- eF:  1.019345E-01, Tr(K):  8.0000006E+00, D Tr(K):  5.72E-07, new eF: bisection/secant}
-         EBS                           : -3.135982033423E+00
-         EBS higher temperature        : -3.135981815974E+00
-         difference                    :  2.174482389705E-07
-         relative difference           :  6.933975917368E-08
+         EBS                           : -3.135981952584E+00
+         EBS higher temperature        : -3.135983163547E+00
+         difference                    : -1.210963287868E-06
+         relative difference           :  3.861512298787E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000572882797
+         trace(KS)                     :  7.999999249829611
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Coefficients available          :  No
      Hamiltonian update: {
  Energies: {Ekin:  1.11092324978E+01, Epot: -1.19453011802E+01, Enl:  9.10539949176E-01, 
               EH:  1.54043987380E+01,  EXC: -4.17692931550E+00, EvXC: -4.33164902755E+00}, 
-    Total charge:  8.000000234828E+00, 
+    Total charge:  7.999998911775E+00, 
  Poisson Solver: {BC: Free, Box:  [  85,  85,  83 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.40E-12, 
- iter:  1, delta:  6.04E-08, energy: -8.90654400772530686E+00, D: -3.702E-03}]
+ iter:  1, delta:  6.04E-08, energy: -8.90654392688620611E+00, D: -3.702E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1411,42 +1405,44 @@
          penalty: -2.6E-02, ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF:  7.213963E-02, Tr(K):  7.9999982E+00, D Tr(K): -1.75E-06, new eF: bisec bounds}
+ eF:  9.669376E-02, Tr(K):  8.0000011E+00, D Tr(K):  1.14E-06, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF:  1.152157E-01, Tr(K):  8.0000004E+00, D Tr(K):  4.22E-07, new eF: bisection/secant}
-         EBS                           : -3.143550995378E+00
-         EBS higher temperature        : -3.143550971416E+00
-         difference                    :  2.396163001350E-08
-         relative difference           :  7.622472181534E-09
+ eF:  7.276260E-02, Tr(K):  7.9999981E+00, D Tr(K): -1.85E-06, new eF: bisec bounds}
+         -  { #------------------------------------------------------------------ it FOE: 3
+ eF:  1.445561E-01, Tr(K):  8.0000001E+00, D Tr(K):  1.42E-07, new eF: bisection/secant}
+         EBS                           : -3.143553737626E+00
+         EBS higher temperature        : -3.143553412562E+00
+         difference                    :  3.250635667307E-07
+         relative difference           :  1.034063973012E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  8.000000422534116
+         trace(KS)                     :  8.000000142468526
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  1.10512192389E+01, Epot: -1.19417298313E+01, Enl:  9.13081550139E-01, 
-              EH:  1.53962634938E+01,  EXC: -4.17461327873E+00, EvXC: -4.32877966102E+00}, 
-    Total charge:  8.000000084622E+00, 
+ Energies: {Ekin:  1.10512192389E+01, Epot: -1.19417308305E+01, Enl:  9.13081550139E-01, 
+              EH:  1.53962624619E+01,  EXC: -4.17461312968E+00, EvXC: -4.32877947234E+00}, 
+    Total charge:  7.999999804557E+00, 
  Poisson Solver: {BC: Free, Box:  [  85,  85,  83 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.40E-12, 
- iter:  2, delta:  4.82E-08, energy: -8.90653105519302990E+00, D:  1.295E-05}]
+ iter:  2, delta:  4.82E-08, energy: -8.90653280523512514E+00, D:  1.112E-05}]
    -  &final_kernel005  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.40E-12, 
- iter:  3, delta:  4.82E-08, energy: -8.90653105519302990E+00, D:  1.295E-05}]}
+ iter:  3, delta:  4.82E-08, energy: -8.90653280523512514E+00, D:  1.112E-05}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc005
    -  {iter:  5, Omega: HYBRID, mean conf prefac:  4.25E-06, damping:  1.00E+00, 
         iterations to converge support functions:  2, kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  5, delta out:  4.479E-08, energy: -8.90653105519302990E+00, D: -3.689E-03}
+ iter low:  5, delta out:  4.478E-08, energy: -8.90653280523512514E+00, D: -3.691E-03}
     #========================================================================= final results
    self consistency summary:
    -  {iter:  5, 
- Energies: {Ekin:  1.10512192389E+01, Epot: -1.19417298313E+01, Enl:  9.13081550139E-01, 
-              EH:  1.53761153459E+01,  EXC: -4.16861800297E+00, EvXC: -4.32131173271E+00}, 
-        iter low:  5,            delta out:  4.479E-08, 
-          energy: -8.90653105519302990E+00,                       D:  0.000E+00,  #FINAL
+ Energies: {Ekin:  1.10512192389E+01, Epot: -1.19417308305E+01, Enl:  9.13081550139E-01, 
+              EH:  1.53761160439E+01,  EXC: -4.16861829261E+00, EvXC: -4.32131210278E+00}, 
+        iter low:  5,            delta out:  4.478E-08, 
+          energy: -8.90653280523512514E+00,                       D:  0.000E+00,  #FINAL
  }
  Charge analysis, projector approach:
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculate projector for multipole analysis
@@ -1456,7 +1452,7 @@
        x                               : 1/2
      order                             :  1020
      determine eigenvalue bounds:
-     -  {npl:  13, scale:  1.00E+00, bounds:  [  0.5,  1.5 ], ok:  [  Yes,  Yes ], 
+     -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
    exp accur:  [  6.93E-10 ]}
      error estimation:
        max / mean error                :  [  7.09E-10,  2.25E-10 ]
@@ -1465,39 +1461,39 @@
      maximal size of a submatrix       :  8
      Searching alpha for charge neutrality:
      -  {alpha:  1.0000E-03, net charge: -1.4077E+01, bisection bounds ok:  [  No,  No ]}
-     -  {alpha:  1.0000E+01, net charge: -8.5244E-03, bisection bounds ok:  [  Yes,  No ]}
-     -  {alpha:  2.0000E+01, net charge: -4.2624E-03, bisection bounds ok:  [  Yes,  No ]}
-     -  {alpha:  4.0000E+01, net charge: -2.1314E-03, bisection bounds ok:  [  Yes,  No ]}
-     -  {alpha:  8.0000E+01, net charge: -1.0659E-03, bisection bounds ok:  [  Yes,  No ]}
-     -  {alpha:  1.6000E+02, net charge: -5.3313E-04, bisection bounds ok:  [  Yes,  No ]}
-     -  {alpha:  3.2000E+02, net charge: -2.6676E-04, bisection bounds ok:  [  Yes,  No ]}
-     -  {alpha:  6.4000E+02, net charge: -1.3357E-04, bisection bounds ok:  [  Yes,  No ]}
-     -  {alpha:  1.2800E+03, net charge: -6.6973E-05, bisection bounds ok:  [  Yes,  No ]}
-     -  {alpha:  2.5600E+03, net charge: -3.3676E-05, bisection bounds ok:  [  Yes,  No ]}
-     -  {alpha:  5.1200E+03, net charge: -1.7028E-05, bisection bounds ok:  [  Yes,  No ]}
-     -  {alpha:  1.0240E+04, net charge: -8.7035E-06, bisection bounds ok:  [  Yes,  No ]}
-     -  {alpha:  2.0480E+04, net charge: -4.5414E-06, bisection bounds ok:  [  Yes,  No ]}
+     -  {alpha:  1.0000E+01, net charge: -8.5241E-03, bisection bounds ok:  [  Yes,  No ]}
+     -  {alpha:  2.0000E+01, net charge: -4.2621E-03, bisection bounds ok:  [  Yes,  No ]}
+     -  {alpha:  4.0000E+01, net charge: -2.1311E-03, bisection bounds ok:  [  Yes,  No ]}
+     -  {alpha:  8.0000E+01, net charge: -1.0656E-03, bisection bounds ok:  [  Yes,  No ]}
+     -  {alpha:  1.6000E+02, net charge: -5.3285E-04, bisection bounds ok:  [  Yes,  No ]}
+     -  {alpha:  3.2000E+02, net charge: -2.6648E-04, bisection bounds ok:  [  Yes,  No ]}
+     -  {alpha:  6.4000E+02, net charge: -1.3329E-04, bisection bounds ok:  [  Yes,  No ]}
+     -  {alpha:  1.2800E+03, net charge: -6.6693E-05, bisection bounds ok:  [  Yes,  No ]}
+     -  {alpha:  2.5600E+03, net charge: -3.3396E-05, bisection bounds ok:  [  Yes,  No ]}
+     -  {alpha:  5.1200E+03, net charge: -1.6748E-05, bisection bounds ok:  [  Yes,  No ]}
+     -  {alpha:  1.0240E+04, net charge: -8.4235E-06, bisection bounds ok:  [  Yes,  No ]}
+     -  {alpha:  2.0480E+04, net charge: -4.2613E-06, bisection bounds ok:  [  Yes,  No ]}
      number of states to be occupied (without smearing):  6
-     Pseudo Fermi level for occupations:  0.2636052963849209
+     Pseudo Fermi level for occupations:  0.2636051505456887
      ordered eigenvalues and occupations:
      -  {eval: -2.1039E-01, atom:  00001, occ:  1.0000} # 00001
      -  {eval:  6.1843E-02, atom:  00004, occ:  1.0000} # 00002
      -  {eval:  6.2553E-02, atom:  00003, occ:  1.0000} # 00003
      -  {eval:  6.2881E-02, atom:  00002, occ:  1.0000} # 00004
-     -  {eval:  6.3871E-02, atom:  00005, occ:  1.0000} # 00005
-     -  {eval:  7.9243E-02, atom:  00001, occ:  1.0000} # 00006
+     -  {eval:  6.3870E-02, atom:  00005, occ:  1.0000} # 00005
+     -  {eval:  7.9242E-02, atom:  00001, occ:  1.0000} # 00006
      -  {eval:  8.1031E-02, atom:  00001, occ:  1.0000} # 00007
      -  {eval:  8.1769E-02, atom:  00001, occ:  1.0000} # 00008
      -  {remaining states:  32, occ: <1.d-100}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Projector calculation finished
    Charge analysis (charge / net charge):
-   -  {C:  [ -4.175562237583E+00, -1.755622375829E-01 ]} # 0001
-   -  {H:  [ -9.574496565284E-01,  4.255034347163E-02 ]} # 0002
-   -  {H:  [ -9.561743115776E-01,  4.382568842238E-02 ]} # 0003
-   -  {H:  [ -9.545687455053E-01,  4.543125449468E-02 ]} # 0004
-   -  {H:  [ -9.562495901954E-01,  4.375040980462E-02 ]} # 0005
-   - total charge                      : -8.00000454E+00
-   - total net charge                  : -4.54138960E-06
+   -  {C:  [ -4.17556257729E+00, -1.755625772897E-01 ]} # 0001
+   -  {H:  [ -9.574498314926E-01,  4.255016850739E-02 ]} # 0002
+   -  {H:  [ -9.561741090477E-01,  4.382589095235E-02 ]} # 0003
+   -  {H:  [ -9.545682288722E-01,  4.543177112784E-02 ]} # 0004
+   -  {H:  [ -9.562495146241E-01,  4.375048537592E-02 ]} # 0005
+   - total charge                      : -8.00000426E+00
+   - total net charge                  : -4.26132618E-06
  Charge analysis, Loewdin approach:
    Method                              : Loewdin
    calculate S^x:
@@ -1506,26 +1502,26 @@
        x                               : 1/2
      order                             :  1020
      determine eigenvalue bounds:
-     -  {npl:  13, scale:  1.00E+00, bounds:  [  0.5,  1.5 ], ok:  [  Yes,  Yes ], 
+     -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
    exp accur:  [  6.93E-10 ]}
      error estimation:
        max / mean error                :  [  7.09E-10,  2.25E-10 ]
    Charge analysis (charge / net charge):
-   -  {C:  [ -4.175560189918E+00, -1.755601899176E-01 ]} # 0001
-   -  {H:  [ -9.574491381007E-01,  4.255086189930E-02 ]} # 0002
-   -  {H:  [ -9.5617379249E-01,  4.382620750997E-02 ]} # 0003
-   -  {H:  [ -9.545682290871E-01,  4.543177091294E-02 ]} # 0004
-   -  {H:  [ -9.562490700969E-01,  4.375092990314E-02 ]} # 0005
-   - total charge                      : -8.00000042E+00
-   - total net charge                  : -4.19692293E-07
+   -  {C:  [ -4.175560529623E+00, -1.755605296233E-01 ]} # 0001
+   -  {H:  [ -9.574493130648E-01,  4.255068693517E-02 ]} # 0002
+   -  {H:  [ -9.561735899598E-01,  4.382641004022E-02 ]} # 0003
+   -  {H:  [ -9.545677124534E-01,  4.543228754655E-02 ]} # 0004
+   -  {H:  [ -9.562489945253E-01,  4.375100547466E-02 ]} # 0005
+   - total charge                      : -8.00000014E+00
+   - total net charge                  : -1.39626700E-07
    output file                         : chargeanalysis.gp
    Multipole analysis (based on the Loewdin charges):
-     net dipole                        :  [ -9.51409E-04, -3.05990E-03, -4.32846E-03 ]
+     net dipole                        :  [ -9.51807E-04, -3.06055E-03, -4.32789E-03 ]
      net quadropole:
-     -  [ -2.16058E-03,  4.35883E-03,  1.97894E-03 ]
-     -  [  4.35883E-03,  1.44234E-02,  6.36461E-03 ]
-     -  [  1.97894E-03,  6.36461E-03, -1.22628E-02 ]
-     - trace of quadropole matrix      :  0.00E+00
+     -  [ -2.16866E-03,  4.35937E-03,  1.97976E-03 ]
+     -  [  4.35937E-03,  1.44197E-02,  6.36597E-03 ]
+     -  [  1.97976E-03,  6.36597E-03, -1.22510E-02 ]
+     - trace of quadropole matrix      : -2.84E-14
  Gross support functions moments:
    Orthonormalization                  : on-site
    Multipole coefficients:
@@ -1636,99 +1632,99 @@
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : angstroem
-   global monopole                     :  5.151187E-03
-   global monopole analytic            : -4.225341E-07
+   global monopole                     :  5.151478E-03
+   global monopole analytic            : -1.424685E-07
    values:
    - sym                               : C # 0001
      r                                 :  [  0.0,  0.0,  2.78977169 ]
      sigma                             :  [  0.473,  0.473,  0.473 ]
-     q0 analytic                       : -1.761701E-01
-     q0                                :  [ -1.744141E-01 ]
-     q1                                :  [ -5.242174E-03, -4.542170E-03, -7.448000E-03 ]
-     q2: [-1.994421E-03, -3.204429E-03,  3.400448E-03,  3.412437E-03,  8.611745E-03]
+     q0 analytic                       : -1.761705E-01
+     q0                                :  [ -1.744144E-01 ]
+     q1                                :  [ -5.242084E-03, -4.542138E-03, -7.447887E-03 ]
+     q2: [-1.994338E-03, -3.204068E-03,  3.399798E-03,  3.412730E-03,  8.611206E-03]
      type                              : s
    - sym                               : H # 0002
      r                                 :  [  0.0,  0.0,  3.88489619 ]
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0 analytic                       :  4.271319E-02
-     q0                                :  [  4.364017E-02 ]
-     q1                                :  [ -4.613589E-04, -2.145362E-01, -9.683060E-04 ]
-     q2: [ 3.232636E-04, -2.569830E-03,  2.968896E-01, -2.739170E-03,  3.005451E-04]
+     q0 analytic                       :  4.271302E-02
+     q0                                :  [  4.364E-02 ]
+     q1                                :  [ -4.613697E-04, -2.145362E-01, -9.683161E-04 ]
+     q2: [ 3.232639E-04, -2.569896E-03,  2.968898E-01, -2.739230E-03,  3.005269E-04]
      type                              : unknown
    - sym                               : H # 0003
      r                                 :  [ -0.72912121,  0.72912121,  2.42221856 ]
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0 analytic                       :  4.402238E-02
-     q0                                :  [  4.48344E-02 ]
-     q1                                :  [ -1.448155E-01,  7.158329E-02,  1.429814E-01 ]
-     q2: [-2.300407E-01, -1.178582E-01, -9.917500E-02,  1.183634E-01,  2.076417E-03]
+     q0 analytic                       :  4.402259E-02
+     q0                                :  [  4.48346E-02 ]
+     q1                                :  [ -1.448155E-01,  7.158327E-02,  1.429814E-01 ]
+     q2: [-2.300408E-01, -1.178583E-01, -9.917503E-02,  1.183635E-01,  2.076477E-03]
      type                              : unknown
    - sym                               : H # 0004
      r                                 :  [ -0.26687689, -0.9959981,  2.42221856 ]
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0 analytic                       :  4.549632E-02
-     q0                                :  [  4.630675E-02 ]
-     q1                                :  [  1.95212E-01,  7.171226E-02,  5.189197E-02 ]
-     q2: [ 1.175268E-01,  1.617632E-01, -1.037065E-01,  4.342018E-02, -2.033730E-01]
+     q0 analytic                       :  4.549684E-02
+     q0                                :  [  4.630727E-02 ]
+     q1                                :  [  1.952119E-01,  7.171224E-02,  5.189194E-02 ]
+     q2: [ 1.175269E-01,  1.617633E-01, -1.037066E-01,  4.342023E-02, -2.033731E-01]
      type                              : unknown
    - sym                               : H # 0005
      r                                 :  [  0.9959981,  0.26687689,  2.42221856 ]
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0 analytic                       :  4.393781E-02
-     q0                                :  [  4.478398E-02 ]
-     q1                                :  [ -5.22857E-02,  7.055314E-02, -1.975345E-01 ]
-     q2: [ 1.106955E-01, -4.330917E-02, -9.555944E-02, -1.567231E-01,  1.944740E-01]
+     q0 analytic                       :  4.393789E-02
+     q0                                :  [  4.478406E-02 ]
+     q1                                :  [ -5.22857E-02,  7.055312E-02, -1.975345E-01 ]
+     q2: [ 1.106955E-01, -4.330918E-02, -9.555946E-02, -1.567233E-01,  1.944741E-01]
      type                              : unknown
  Checking the total multipoles based on the atomic multipoles:
  - Up to multipole l= 0:
      Electric Dipole Moment (Debye):
-       P vector                        :  [  9.1729E-02,  9.3342E-02,  7.4144E-02 ]
-       norm(P)                         :  1.504137E-01
+       P vector                        :  [  9.1733E-02,  9.3346E-02,  7.4147E-02 ]
+       norm(P)                         :  1.504200E-01
      Quadrupole Moment (AU):
        Q matrix:
-       -  [ -1.4491E-01,  4.0476E-03,  1.7414E-03 ]
-       -  [  4.0476E-03, -1.2989E-01,  5.8172E-03 ]
-       -  [  1.7414E-03,  5.8172E-03,  2.7480E-01 ]
-       trace                           :  1.76E-12
+       -  [ -1.4492E-01,  4.0481E-03,  1.7422E-03 ]
+       -  [  4.0481E-03, -1.2989E-01,  5.8186E-03 ]
+       -  [  1.7422E-03,  5.8186E-03,  2.7481E-01 ]
+       trace                           :  2.47E-12
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
-       P vector                        :  [  6.3522E-02,  7.3987E-02,  6.0812E-02 ]
-       norm(P)                         :  1.149228E-01
+       P vector                        :  [  6.3527E-02,  7.3991E-02,  6.0815E-02 ]
+       norm(P)                         :  1.149292E-01
      Quadrupole Moment (AU):
        Q matrix:
-       -  [ -1.53E-01,  1.1247E-02, -4.7567E-03 ]
-       -  [  1.1247E-02, -1.2812E-01,  4.5952E-03 ]
-       -  [ -4.7567E-03,  4.5952E-03,  2.8112E-01 ]
-       trace                           :  2.73E-12
+       -  [ -1.5301E-01,  1.1248E-02, -4.7559E-03 ]
+       -  [  1.1248E-02, -1.2812E-01,  4.5966E-03 ]
+       -  [ -4.7559E-03,  4.5966E-03,  2.8114E-01 ]
+       trace                           : -1.59E-12
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
-       P vector                        :  [  6.3175E-02,  7.3784E-02,  6.0598E-02 ]
-       norm(P)                         :  1.144869E-01
+       P vector                        :  [  6.318E-02,  7.3788E-02,  6.0600E-02 ]
+       norm(P)                         :  1.144933E-01
      Quadrupole Moment (AU):
        Q matrix:
-       -  [ -1.5086E-01,  5.2710E-03,  5.1908E-03 ]
-       -  [  5.271E-03, -1.3322E-01, -4.3924E-03 ]
-       -  [  5.1908E-03, -4.3924E-03,  2.8407E-01 ]
+       -  [ -1.5086E-01,  5.2717E-03,  5.1921E-03 ]
+       -  [  5.2717E-03, -1.3322E-01, -4.3904E-03 ]
+       -  [  5.1921E-03, -4.3904E-03,  2.8408E-01 ]
        trace                           : -1.42E-12
   #========================================================== Atomic multipole analysis done
- Total charge                          :  8.000000084622E+00
+ Total charge                          :  7.999999804557E+00
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  85,  83 ]
    MPI tasks                           :  8
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.153E-02, -9.6198E-03, -8.6353E-03 ]
-   norm(P)                             :  1.732184E-02
+   P vector                            :  [ -1.1528E-02, -9.6183E-03, -8.6344E-03 ]
+   norm(P)                             :  1.731944E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -2.9306E-02, -2.4451E-02, -2.1949E-02 ]
-   norm(P)                             :  4.402771E-02
+   P vector                            :  [ -2.9302E-02, -2.4447E-02, -2.1947E-02 ]
+   norm(P)                             :  4.402162E-02
  Quadrupole Moment (AU):
    Q matrix:
-   -  [ -9.7008E-03,  7.0914E-03,  5.1675E-03 ]
-   -  [  7.0914E-03,  1.1501E-02, -3.8738E-03 ]
-   -  [  5.1675E-03, -3.8738E-03, -1.8002E-03 ]
-   trace                               :  7.59E-12
+   -  [ -9.7091E-03,  7.0922E-03,  5.1688E-03 ]
+   -  [  7.0922E-03,  1.1499E-02, -3.8717E-03 ]
+   -  [  5.1688E-03, -3.8717E-03, -1.7901E-03 ]
+   trace                               :  4.69E-12
  Calculate local forces                :  Yes
  Calculate NLCC forces                 :  Yes
  Calculate Non Local forces            :  Yes
@@ -1743,31 +1739,31 @@
  - set to 1.d-20 instead of 0.d0
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  6.70
-   Elapsed time (s)                    :  6.93
+   CPU time (s)                        :  6.60
+   Elapsed time (s)                    :  6.61
  BigDFT infocode                       :  0
- Average noise forces: {x:  9.46964411E-05, y:  9.77785521E-04, z: -3.63255375E-04, 
-                    total:  1.04737119E-03}
- Clean forces norm (Ha/Bohr): {maxval:  5.642415444940E-03, fnrm2:  1.106249618522E-04}
- Raw forces norm (Ha/Bohr): {maxval:  5.877802106021E-03, fnrm2:  1.118021729332E-04}
+ Average noise forces: {x:  9.47120941E-05, y:  9.77838778E-04, z: -3.63163615E-04, 
+                    total:  1.04739050E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  5.642505518330E-03, fnrm2:  1.106354165784E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  5.877853455573E-03, fnrm2:  1.118126676907E-04}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [ 5.548406114863E-04, -9.672153669461E-04, -1.401280146409E-03]} # 0001
- -  {H: [-2.608160729592E-04,  4.096100300941E-04, -5.621480823825E-03]} # 0002
- -  {H: [ 3.247025898712E-03, -3.455162432841E-03,  2.533472132731E-03]} # 0003
- -  {H: [ 4.580371334015E-04,  4.491286983404E-03,  2.218486659274E-03]} # 0004
- -  {H: [-3.999087570641E-03, -4.785192137101E-04,  2.270802178229E-03]} # 0005
- Energy (Hartree)                      : -8.90653105519302990E+00
- Force Norm (Hartree/Bohr)             :  1.05178401705013028E-02
+ -  {C: [ 5.547111208505E-04, -9.673700290884E-04, -1.401432472934E-03]} # 0001
+ -  {H: [-2.608165947481E-04,  4.096005377023E-04, -5.621571900083E-03]} # 0002
+ -  {H: [ 3.247205914405E-03, -3.455359161420E-03,  2.533543038712E-03]} # 0003
+ -  {H: [ 4.581492462777E-04,  4.491703931940E-03,  2.218620057535E-03]} # 0004
+ -  {H: [-3.999249686785E-03, -4.785752791335E-04,  2.270841276769E-03]} # 0005
+ Energy (Hartree)                      : -8.90653280523512514E+00
+ Force Norm (Hartree/Bohr)             :  1.05183371584300234E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  11952
-   Tot. No. of Deallocations           :  11952
+   Tot. No. of Allocations             :  10718
+   Tot. No. of Deallocations           :  10718
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  94.174
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 138.456 MB
- Walltime since initialization         : 00:00:07.450234000
+     Memory Peak of process            : 134.372 MB
+ Walltime since initialization         : 00:00:06.982132606
  Max No. of dictionaries used          :  9611 #( 909 still in use)
  Number of dictionary folders allocated:  1
