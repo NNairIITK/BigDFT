@@ -1108,8 +1108,8 @@ module foe_common
       sigma = 2.d0/(bounds(2)-bounds(1))
       tau = (bounds(1)+bounds(2))/2.d0
 
-      isx = nint(bounds(1)/h)
-      iex = nint(bounds(2)/h)
+      isx = ceiling(bounds(1)/h)
+      iex = floor(bounds(2)/h)
       n = iex - isx + 1
 
       ! MPI parallelization... maybe only worth for large n?
@@ -2052,6 +2052,8 @@ module foe_common
       case (FUNCTION_ERRORFUNCTION)
           if (.not. present(ef)) call f_err_throw("arguments 'ef' is not present")
           if (.not. present(fscale)) call f_err_throw("arguments 'fscale' is not present")
+          !write(*,*) 'iproc, ef, fscale, evlow, evhigh', &
+          !    iproc, ef, fscale, foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin)
       case default
           call f_err_throw("wrong value of argument 'fun'")
       end select
