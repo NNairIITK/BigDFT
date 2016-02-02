@@ -41,7 +41,7 @@ module matrix_operations
                                 uncompress_matrix2, transform_sparsity_pattern, &
                                 sparsemm_new, matrix_matrix_mult_wrapper
         use parallel_linalg, only: dpotrf_parallel, dpotri_parallel
-        use ice, only: inverse_chebyshev_expansion, inverse_chebyshev_expansion_new
+        use ice, only: inverse_chebyshev_expansion_new
         use yaml_output
         implicit none
         

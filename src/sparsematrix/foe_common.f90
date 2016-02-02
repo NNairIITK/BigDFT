@@ -120,6 +120,7 @@ module foe_common
   public :: init_foe
   public :: get_chebyshev_polynomials
   public :: find_fermi_level
+  public :: get_poynomial_degree
 
 
   contains
@@ -159,7 +160,7 @@ module foe_common
       if (ii/=n) then
           call f_err_throw('wrong partition of n')
       end if
-      
+
 
       call f_zero(cc)
       cf = f_malloc0(n,id='cf')
@@ -178,6 +179,7 @@ module foe_common
       end do
       !$omp end do
       !$omp end parallel
+
       do j=1,np
           jj = j + is
           tt=0.d0
@@ -2011,6 +2013,158 @@ module foe_common
 
       call f_release_routine()
     end subroutine calculate_trace_distributed_new
+
+
+    ! Determine the polynomial degree which yields the desired precision
+    subroutine get_poynomial_degree(iproc, nproc, ispin, ncalc, fun, foe_obj, &
+               npl_min, npl_max, npl_stride, max_polynomial_degree, verbosity, npl, cc, &
+               max_error, x_max_error, mean_error, anoise, &
+               ex, ef, fscale)
+      use module_base
+      use foe_base, only: foe_data, foe_data_get_real
+      use yaml_output
+      use module_func
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, ispin, ncalc, fun, verbosity
+      integer,intent(in) :: npl_min, npl_max, npl_stride
+      type(foe_data),intent(in) :: foe_obj
+      real(kind=8),intent(in) :: max_polynomial_degree
+      integer,intent(out) :: npl
+      real(kind=8),dimension(:,:,:),pointer,intent(inout) :: cc
+      real(kind=8),dimension(ncalc),intent(out) :: max_error, x_max_error, mean_error
+      real(kind=8),intent(out) :: anoise
+      real(kind=8),dimension(ncalc),intent(in),optional :: ex, ef, fscale
+
+      ! Local variables
+      integer :: ipl, icalc, j, jpl
+      logical :: error_ok, found_degree
+      real(kind=8),dimension(:,:,:),allocatable :: cc_trial
+      real(kind=8) :: x_max_error_penaltyfunction, max_error_penaltyfunction, mean_error_penaltyfunction
+
+      call f_routine(id='get_poynomial_degree')
+
+      ! Check the arguments
+      select case (fun)
+      case (FUNCTION_POLYNOMIAL)
+          if (.not. present(ex)) call f_err_throw("arguments 'ex' is not present")
+      case (FUNCTION_ERRORFUNCTION)
+          if (.not. present(ef)) call f_err_throw("arguments 'ef' is not present")
+          if (.not. present(fscale)) call f_err_throw("arguments 'fscale' is not present")
+      case default
+          call f_err_throw("wrong value of argument 'fun'")
+      end select
+
+      !max_error = f_malloc(ncalc,id='max_error')
+      !x_max_error = f_malloc(ncalc,id='x_max_error')
+      !mean_error = f_malloc(ncalc,id='mean_error')
+
+      if (npl_min<3) then
+          call f_err_throw('npl_min must be at least 3')
+      end if
+      if (npl_min>npl_max) then
+          call f_err_throw('npl_min must be smaller or equal than npl_max')
+      end if
+
+      if (iproc==0 .and. verbosity>0) then
+          call yaml_sequence_open('Determine polynomial degree')
+      end if
+
+      cc_trial = f_malloc0((/npl_max,3,ncalc/),id='cc_trial')
+
+      found_degree = .false.
+      degree_loop: do ipl=npl_min,npl_max,npl_stride
+          
+          if (foe_data_get_real(foe_obj,"evhigh",ispin)<=0.d0) then
+              stop 'ERROR: highest eigenvalue must be positive'
+          end if
+          
+          call timing(iproc, 'FOE_auxiliary ', 'OF')
+          call timing(iproc, 'chebyshev_coef', 'ON')
+          
+          do icalc=1,ncalc
+              select case (fun)
+              case (FUNCTION_POLYNOMIAL)
+                  call func_set(FUNCTION_POLYNOMIAL, powerx=ex(icalc))
+              case (FUNCTION_ERRORFUNCTION)
+                  call func_set(FUNCTION_ERRORFUNCTION, efx=ef(icalc), fscalex=fscale(icalc))
+              end select
+              call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,1,icalc), &
+                   x_max_error(icalc), max_error(icalc), mean_error(icalc))
+              call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
+                   muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
+              call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,2,icalc), &
+                   x_max_error_penaltyfunction, max_error_penaltyfunction, mean_error_penaltyfunction)
+              do jpl=1,ipl
+                  cc_trial(jpl,3,icalc) = -cc_trial(jpl,2,icalc)
+              end do
+              !write(*,*) 'icalc, sum(cc_trial(:,1,icalc))', icalc, sum(cc_trial(:,1,icalc)), ex(icalc)
+          end do
+
+          call timing(iproc, 'chebyshev_coef', 'OF')
+          call timing(iproc, 'FOE_auxiliary ', 'ON')
+
+          if (iproc==0 .and. verbosity>0) then
+              call yaml_mapping_open(flow=.true.)
+              call yaml_map('ipl',ipl)
+              do icalc=1,ncalc
+                  call yaml_map('Operation '//trim(yaml_toa(icalc)), &
+                      (/x_max_error(icalc),max_error(icalc),mean_error(icalc),max_error_penaltyfunction/),fmt='(es9.2)')
+              end do
+              call yaml_mapping_close()
+          end if
+
+          error_ok = .true.
+          do icalc=1,ncalc
+              if (max_error(icalc)>max_polynomial_degree) then
+                  error_ok = .false.
+                  exit
+              end if
+          end do
+          if (error_ok) then
+              if (max_error_penaltyfunction>1.d-2) then
+                  error_ok = .false.
+              end if
+          end if
+          if (error_ok) then
+              npl = ipl
+              found_degree = .true.
+              exit degree_loop
+          end if
+
+
+      end do degree_loop
+
+      if (.not.found_degree) then
+          call yaml_warning('Not possible to reach desired accuracy, using highest available polynomial degree')
+          npl = npl_max
+      end if
+
+      if (iproc==0 .and. verbosity>0) then
+          call yaml_sequence_close()
+      end if
+
+      cc = f_malloc_ptr((/npl,3,ncalc/),id='cc')
+      do icalc=1,ncalc
+          do j=1,3
+              do ipl=1,npl
+                  cc(ipl,j,icalc)=cc_trial(ipl,j,icalc)
+                  !write(*,*) 'icalc, ipl, cc(ipl,1,icalc)', icalc, ipl, cc(ipl,1,icalc)
+              end do
+          end do
+      end do
+      call f_free(cc_trial)
+      !call f_free(mean_error)
+      !call f_free(max_error)
+      !call f_free(x_max_error)
+
+      call f_release_routine
+
+    end subroutine get_poynomial_degree
+
 
 
 end module foe_common

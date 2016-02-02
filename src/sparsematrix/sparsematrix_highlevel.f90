@@ -426,7 +426,7 @@ module sparsematrix_highlevel
                smat_in, smat_out, mat_in, mat_out, npl_auto)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
-      use ice, only: inverse_chebyshev_expansion, inverse_chebyshev_expansion_new
+      use ice, only: inverse_chebyshev_expansion_new
       implicit none
 
       ! Calling arguments
@@ -469,7 +469,7 @@ module sparsematrix_highlevel
           call inverse_chebyshev_expansion_new(iproc, nproc, ndeg, &
                smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto=npl_auto)
       else
-          call inverse_chebyshev_expansion(iproc, nproc, ndeg, &
+          call inverse_chebyshev_expansion_new(iproc, nproc, ndeg, &
                smat_in, smat_out, ncalc, ex, mat_in, mat_out)
       end if
 

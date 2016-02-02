@@ -1029,7 +1029,7 @@ module foe
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: scale_and_shift_matrix, evnoise, &
                             check_eigenvalue_spectrum_new, retransform_ext, get_chebyshev_expansion_coefficients, &
-                            get_chebyshev_polynomials, find_fermi_level
+                            get_chebyshev_polynomials, find_fermi_level, get_poynomial_degree
       use module_func
       implicit none
     
@@ -1052,7 +1052,7 @@ module foe
       integer :: isegstart, isegend, iismall, iilarge, nsize_polynomial
       integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift, npl_check, npl_boundaries
       integer,parameter :: nplx=50000
-      real(kind=8),dimension(:,:,:),allocatable :: cc, cc_check
+      real(kind=8),dimension(:,:,:),pointer :: cc, cc_check
       real(kind=8),dimension(:,:),pointer :: chebyshev_polynomials
       real(kind=8),dimension(:,:),allocatable :: fermip_check
       real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
@@ -1082,8 +1082,8 @@ module foe
       !!type(matrices) :: inv_ovrlp
       integer,parameter :: NTEMP_ACCURATE=4
       integer,parameter :: NTEMP_FAST=1
-      real(kind=8) :: degree_multiplicator, x_max_error, max_error, x_max_error_check, max_error_check
-      real(kind=8) :: mean_error, mean_error_check
+      real(kind=8) :: degree_multiplicator
+      real(kind=8),dimension(1) :: x_max_error, max_error, x_max_error_check, max_error_check, mean_error, mean_error_check
       integer,parameter :: SPARSE=1
       integer,parameter :: DENSE=2
       integer,parameter :: imode=SPARSE
@@ -1251,21 +1251,25 @@ module foe
                       !!     smatm, ham_, imshift, &
                       !!     smat2=smats, mat2=ovrlp_, i2shift=isshift, &
                       !!     matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
-                      npl=nint(degree_multiplicator* &
-                          (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))/fscale)
-                      npl=max(npl,NPL_MIN)
-                      npl_check = nint(real(npl,kind=8)/CHECK_RATIO)
-                      npl_boundaries = nint(degree_multiplicator* &
-                          (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin)) &
-                              /foe_data_get_real(foe_obj,"fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
-                      if (npl>npl_boundaries) then
-                          npl=npl_boundaries
-                          if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
-                          if (iproc==0) write(*,*) 'STOP SINCE THIS WILL CREATE PROBLEMS WITH NPL_CHECK'
-                          stop
-                      end if
-                      if (npl>nplx) stop 'npl>nplx'
-                      cc = f_malloc((/npl,3,1/),id='cc')
+                      !npl=nint(degree_multiplicator* &
+                      !    (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))/fscale)
+                      !npl=max(npl,NPL_MIN)
+                      !npl_check = nint(real(npl,kind=8)/CHECK_RATIO)
+                      !npl_boundaries = nint(degree_multiplicator* &
+                      !    (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin)) &
+                      !        /foe_data_get_real(foe_obj,"fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
+                      !if (npl>npl_boundaries) then
+                      !    npl=npl_boundaries
+                      !    if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
+                      !    if (iproc==0) write(*,*) 'STOP SINCE THIS WILL CREATE PROBLEMS WITH NPL_CHECK'
+                      !    stop
+                      !end if
+                      !if (npl>nplx) stop 'npl>nplx'
+                      !cc = f_malloc((/npl,3,1/),id='cc')
+                      call get_poynomial_degree(iproc, nproc, ispin, 1, FUNCTION_ERRORFUNCTION, foe_obj, &
+                           10, 10000, 10, 1.d-5, 0, npl, cc, &
+                           max_error, x_max_error, mean_error, anoise, &
+                           ef=(/foe_data_get_real(foe_obj,"ef",ispin)/), fscale=(/foe_data_get_real(foe_obj,"fscale",ispin)/))
                       if (iproc==0) then
                           call yaml_sequence(advance='no')
                           call yaml_mapping_open(flow=.true.)
@@ -1273,6 +1277,7 @@ module foe
                           call yaml_map('bounds', &
                                (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/))
                       end if
+
                       call get_chebyshev_polynomials(iproc, nproc, 2, foe_verbosity, npl, smatm, smatl, &
                            ham_, foe_obj, chebyshev_polynomials, ispin, eval_bounds_ok, hamscal_compr, &
                            scale_factor, shift_value, &
@@ -1293,7 +1298,7 @@ module foe
                               call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*1.2d0,ispin)
                           end if
                       end if
-                      call f_free(cc)
+                      call f_free_ptr(cc)
                       call f_free_ptr(chebyshev_polynomials)
                   end do bounds_loop
                   if (iproc==0) then
@@ -1313,7 +1318,7 @@ module foe
                   !write(*,*) 'after find_fermi_level'
 
                   npl_check = nint(real(npl,kind=8)/CHECK_RATIO)
-                  cc_check = f_malloc((/npl_check,3,1/),id='cc_check')
+                  cc_check = f_malloc_ptr((/npl_check,3,1/),id='cc_check')
                   !!call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
                   !!call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
                   !!     foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
@@ -1323,8 +1328,8 @@ module foe
                   !!    smatl, chebyshev_polynomials, 1, cc, fermi_small_new)
                   call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale_check)
                   call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, func, cc_check(1,1,1), &
-                       x_max_error_check, max_error_check, mean_error_check)
+                       foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, func, cc_check(1:,1:,1:), &
+                       x_max_error_check(1), max_error_check(1), mean_error_check(1))
                   if (smatl%nspin==1) then
                       do ipl=1,npl_check
                           cc_check(ipl,1,1)=2.d0*cc_check(ipl,1,1)
@@ -1335,8 +1340,8 @@ module foe
                   call chebyshev_fast(iproc, nproc, nsize_polynomial, npl_check, &
                        smatl%nfvctr, smatl%smmm%nfvctrp, &
                        smatl, chebyshev_polynomials, 1, cc_check, fermi_check_new)
-                  call f_free(cc)
-                  call f_free(cc_check)
+                  call f_free_ptr(cc)
+                  call f_free_ptr(cc_check)
                   call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
                        fermi_check_new, fermi_check_compr)
 
