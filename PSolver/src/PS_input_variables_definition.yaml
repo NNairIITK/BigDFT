@@ -80,7 +80,7 @@
       WHEN: [rigid]
     PROFILE_FROM: cavity
   cavitation: 
-    COMMENT: triggers the evaluation of the extra cavtitation terms
+    COMMENT: triggers the evaluation of the extra cavitation terms
     default: No
   gammaS: 
     COMMENT: Cavitation term, surface tension of the solvent [dyn/cm]
@@ -94,7 +94,7 @@
   alphaS: 
     COMMENT: Proportionality of repulsion free energy in term of the surface integral [dyn/cm]
     default: water
-    water: 22.0
+    water: -22.0
     vacuum: 0.0
     CONDITION: 
       MASTER_KEY: cavitation
@@ -103,7 +103,7 @@
   betaV: 
     COMMENT: Proportionality of dispersion free energy in term of volume integral [GPa]
     default: water
-    water: 0.35
+    water: -0.35
     vacuum: 0.0
     CONDITION: 
       MASTER_KEY: cavitation

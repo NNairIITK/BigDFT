@@ -75,7 +75,6 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	sparsematrix_wrappers.f90 \
 	internal_coordinates.f90 \
 	module_sqn.f90 \
-	module_fingerprints.f90 \
 	transposed_operations.f90 \
 	module_forces.f90 \
 	unitary_tests.f90 \
@@ -183,7 +182,6 @@ modules = module_types.@MODULE_EXT@ \
 	internal_coordinates.@MODULE_EXT@ \
 	module_sqn.@MODULE_EXT@ \
 	module_forces.@MODULE_EXT@ \
-	module_fingerprints.@MODULE_EXT@ \
 	transposed_operations.@MODULE_EXT@ \
 	unitary_tests.@MODULE_EXT@ \
 	io.@MODULE_EXT@ \
@@ -270,14 +268,13 @@ module_dftbp.o: types.o
 module_tersoff.o: atoms_data.o
 module_bornmayerhugginstosifumi.o: atoms_data.o
 #module_lenosky_si.o: base.o defs.o
-#module_fingerprints.o: base.o
 transposed_operations.o: types.o
 module_forces.o: types.o 
 unitary_tests.o: types.o interfaces.o communications_init.o communications.o transposed_operations.o rhopotential.o
 io.o: types.o interfaces.o input_keys.o
 postprocessing_linear.o: types.o interfaces.o communications.o transposed_operations.o rhopotential.o sort.o communications_init.o locregs_init.o multipole_base.o multipole.o io.o
 rhopotential.o: types.o interfaces.o xc.o communications.o
-multipole.o: multipole_base.o types.o interfaces.o orthonormalization.o io.o
+multipole.o: multipole_base.o interfaces.o orthonormalization.o io.o orbital_basis.o
 orbital_basis.o:  types.o interfaces.o
 orthonormalization.o: types.o communications.o transposed_operations.o atoms_data.o
 locregs_init.o: types.o communications.o

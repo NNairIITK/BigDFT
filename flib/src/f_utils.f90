@@ -150,7 +150,7 @@ contains
     integer, intent(in) :: istep
     type(f_progress_bar), intent(inout) :: bar
     !local variables
-    integer, parameter :: nstars=30
+    integer, parameter :: nstars=25
     integer :: j,step
     real(f_double) :: percent
     real(f_double) :: time_elapsed, it_s !< in seconds
