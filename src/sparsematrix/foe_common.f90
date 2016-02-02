@@ -1908,8 +1908,11 @@ module foe_common
                       bisection_bounds_ok(1) = fermilevel_get_logical(f,"bisection_bounds_ok(1)")
                       bisection_bounds_ok(2) = fermilevel_get_logical(f,"bisection_bounds_ok(2)")
 
+                      charge_diff = sumn-foe_data_get_real(foe_obj,"charge",ispin)
 
-                      if (info<0) then
+                      ! If the charge difference is smaller than the threshold, there is no need to cycle even though we
+                      ! are in principle still looking for the bisection bounds.
+                      if (info<0 .and. abs(charge_diff)>=charge_tolerance) then
                           if (iproc==0) then
                               !if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
                               !     (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
@@ -1925,7 +1928,6 @@ module foe_common
                       call foe_data_set_real(foe_obj,"ef",ef,ispin)
                       call foe_data_set_real(foe_obj,"bisection_shift",fermilevel_get_real(f,"bisection_shift"),ispin)
         
-                      charge_diff = sumn-foe_data_get_real(foe_obj,"charge",ispin)
             
         
                       ef_old=foe_data_get_real(foe_obj,"ef",ispin)
