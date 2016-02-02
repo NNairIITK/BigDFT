@@ -777,7 +777,7 @@ module ice
                    call yaml_map('npl',npl)
                    call yaml_map('scale',eval_multiplicator_total,fmt='(es9.2)')
                    call yaml_map('bounds', &
-                        (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/))
+                        (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f6.2)')
                end if
 
               call get_chebyshev_polynomials(iproc, nproc, 1, 0, npl, ovrlp_smat, inv_ovrlp_smat, &     
