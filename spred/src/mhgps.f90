@@ -31,10 +31,11 @@ program mhgps
     use module_connect, only: connect,&
                               pushoff_and_relax_bothSides,&
                               addToPreviouslyconnected
-    use module_fingerprints, only: fingerprint
+    use module_fingerprints
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
     use bigdft_run
+    use SPREDtypes
     implicit none
     integer                   :: u
     integer                   :: istat
@@ -68,6 +69,7 @@ program mhgps
     type(state_properties)    :: outs
     type(findsad_work)        :: fsw
     type(userinput)           :: uinp
+    type(SPRED_inputs)        :: spredinputs
 
     !simple atomic datastructre
     real(gp), allocatable :: rxyz(:,:),fxyz(:,:)
@@ -97,6 +99,7 @@ program mhgps
 
     call f_lib_initialize()
 
+
     call bigdft_command_line_options(options)
     call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
     if (bigdft_nruns(options) > 1) then
@@ -104,6 +107,8 @@ program mhgps
                          'executable')
     endif
     run => options // 'BigDFT' // 0
+
+    call SPRED_read_uinp('mhgpsinput',spredinputs,bigdft_mpi)
 
     !initalize mhgps internal state
     !(only non-system dependent variables)
@@ -133,7 +138,7 @@ program mhgps
 
     call init_state_properties(outs, bigdft_nat(runObj))
 
-    mhgpsst%nid = bigdft_nat(runObj) !s-overlap fingerprints
+ !   mhgpsst%nid = bigdft_nat(runObj) !s-overlap fingerprints
     
     !allocate arrays
     hess     = f_malloc((/ 1.to.3*bigdft_nat(runObj),&
@@ -141,7 +146,7 @@ program mhgps
     eval  = f_malloc((/ 1.to.3*bigdft_nat(runObj)/),id='eval')
     !LG: not sure that the workspace query is meaningful here as it depends on the matrix properties
     !! and the hess matrix is empty here
-    !!better to put the maximum value suggested by the dsyev spec instead.
+    !!better to put the safe value suggested by the dsyev spec instead.
     call DSYEV('N','L',3*bigdft_nat(runObj),hess,3*bigdft_nat(runObj),eval,wd,-1,info)
     if (info.ne.0) stop 'info query'
     lwork=nint(wd(1))
@@ -156,10 +161,12 @@ program mhgps
                 id='minmode')
     rxyz     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
                 id='rxyz')
-    fp       = f_malloc((/ 1.to.mhgpsst%nid/),&
-                id='fp')
-    fp2      = f_malloc((/ 1.to.mhgpsst%nid/),&
-                id='fp2')
+    call init_fingerprint(spredinputs,bigdft_nat(runObj),bigdft_get_geocode(runObj),mhgpsst%nid,fp)
+    call init_fingerprint(spredinputs,bigdft_nat(runObj),bigdft_get_geocode(runObj),mhgpsst%nid,fp2)
+!    fp       = f_malloc((/ 1.to.mhgpsst%nid/),&
+!                id='fp')
+!    fp2      = f_malloc((/ 1.to.mhgpsst%nid/),&
+!                id='fp2')
     fxyz     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
                 id='fxyz')
     rxyz2     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
@@ -176,14 +183,16 @@ program mhgps
                 id='rxyz_minL')
     fxyz_minL     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
                 id='fxyz_minL')
-    fp_minL       = f_malloc((/ 1.to.mhgpsst%nid/),&
-                id='fp_minL')
+    call init_fingerprint(spredinputs,bigdft_nat(runObj),bigdft_get_geocode(runObj),mhgpsst%nid,fp_minL)
+!    fp_minL       = f_malloc((/ 1.to.mhgpsst%nid/),&
+!                id='fp_minL')
     rxyz_minR     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
                 id='rxyz_minR')
     fxyz_minR     = f_malloc((/ 1.to.3, 1.to.bigdft_nat(runObj)/),&
                 id='fxyz_minR')
-    fp_minR       = f_malloc((/ 1.to.mhgpsst%nid/),&
-                id='fp_minR')
+    call init_fingerprint(spredinputs,bigdft_nat(runObj),bigdft_get_geocode(runObj),mhgpsst%nid,fp_minR)
+!    fp_minR       = f_malloc((/ 1.to.mhgpsst%nid/),&
+!                id='fp_minR')
 
 
     call allocate_connect_object(bigdft_nat(runObj),mhgpsst%nid,uinp%nsadmax,cobj)
@@ -261,14 +270,16 @@ program mhgps
               call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, runObj)
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,&
                                         fat,energy2,infocode)
-              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
-                              runObj%atoms%astruct%cell_dim,&
-                              bigdft_get_geocode(runObj),rcov,&
-                              rxyz(1,1),fp(1))
-              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
-                              runObj%atoms%astruct%cell_dim,&
-                              bigdft_get_geocode(runObj),rcov,&
-                              rxyz2(1,1),fp2(1))
+              call fingerprint(spredinputs,mhgpsst%nid,bigdft_nat(runObj),runObj%atoms%astruct%cell_dim,rcov,rxyz(1,1),fp(1))
+!              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
+!                              runObj%atoms%astruct%cell_dim,&
+!                              bigdft_get_geocode(runObj),rcov,&
+!                              rxyz(1,1),fp(1))
+              call fingerprint(spredinputs,mhgpsst%nid,bigdft_nat(runObj),runObj%atoms%astruct%cell_dim,rcov,rxyz2(1,1),fp2(1))
+!              call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
+!                              runObj%atoms%astruct%cell_dim,&
+!                              bigdft_get_geocode(runObj),rcov,&
+!                              rxyz2(1,1),fp2(1))
               if(mhgpsst%iproc==0)then
                  call yaml_comment('(MHGPS) Connect '//&
                       trim(adjustl(mhgpsst%joblist(1,ijob)))//' and '//&
@@ -280,10 +291,10 @@ program mhgps
               if(trim(adjustl(mhgpsst%joblist(1,ijob)(10:16)))/='restart')then
                   mhgpsst%nsad=0
               endif
-              call connect(mhgpsst,fsw,uinp,runObj,outs,rcov,&
+              call connect(spredinputs,mhgpsst,fsw,uinp,runObj,outs,rcov,&
                    rxyz,rxyz2,energy,energy2,fp,fp2,&
                    cobj,connected,premature_exit,nsad)
-!              call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,&
+!              call connect_recursively(spredinputs,mhgpsst,fsw,uinp,runObj,outs,rcov,&
 !                   isame,rxyz,rxyz2,energy,energy2,fp,&
 !                   fp2,cobj,connected)
               if(connected)then
@@ -378,11 +389,12 @@ program mhgps
                       minmode(1,1),rotforce(1,1))
               endif
               if(trim(adjustl(uinp%operation_mode))=='simpleandminimize')then
-                call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
-                              runObj%atoms%astruct%cell_dim,&
-                              bigdft_get_geocode(runObj),rcov,&
-                              rxyz(1,1),fp(1))
-                call pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,& 
+                call fingerprint(spredinputs,mhgpsst%nid,bigdft_nat(runObj),runObj%atoms%astruct%cell_dim,rcov,rxyz(1,1),fp(1))
+!                call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
+!                              runObj%atoms%astruct%cell_dim,&
+!                              bigdft_get_geocode(runObj),rcov,&
+!                              rxyz(1,1),fp(1))
+                call pushoff_and_relax_bothSides(spredinputs,uinp,mhgpsst,runObj,outs,rcov,& 
                      rxyz(1,1),energy,fp(1),minmode(1,1),rxyz_minL,fxyz_minL,&      
                      ener_minL,fp_minL,rxyz_minR,fxyz_minR,ener_minR,fp_minR,istat)
                 if(istat/=0)then
@@ -476,8 +488,10 @@ program mhgps
     call f_free(tsgforces)
     call f_free(minmodeguess)
     call f_free(minmode)
-    call f_free(fp)
-    call f_free(fp2)
+    call finalize_fingerprint(fp)
+    call finalize_fingerprint(fp2)
+    call finalize_fingerprint(fp_minL)
+    call finalize_fingerprint(fp_minR)
     call f_free(rxyz)
     call f_free(fat)
     call f_free(fxyz) 
@@ -491,8 +505,6 @@ program mhgps
     call f_free(fxyz_minL)
     call f_free(rxyz_minR)
     call f_free(fxyz_minR)
-    call f_free(fp_minL)
-    call f_free(fp_minR)
     call deallocate_connect_object(cobj)
     call deallocate_finsad_workarrays(fsw)
 

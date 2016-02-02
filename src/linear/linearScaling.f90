@@ -28,7 +28,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                                  TRANSPOSE_POST, TRANSPOSE_GATHER
   use communications, only: synchronize_onesided_communication, transpose_localized, untranspose_localized
   !use communications_init, only: orbitals_communicators
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
+  use sparsematrix_base, only: sparse_matrix, matrices, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc, sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL, DENSE_FULL, &
                                SPARSE_TASKGROUP, DENSE_PARALLEL, sparsematrix_malloc0
@@ -46,7 +46,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use locregs_init, only: small_to_large_locreg
   use public_enums
   use multipole, only: multipole_analysis_driver, projector_for_charge_analysis, &
-                       support_function_gross_multipoles, potential_from_charge_multipoles
+                       support_function_gross_multipoles, potential_from_charge_multipoles, &
+                       calculate_rpowerx_matrices
   use transposed_operations, only: calculate_overlap_transposed
   use matrix_operations, only: overlapPowerGeneral
   use foe, only: fermi_operator_expansion
@@ -136,6 +137,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   type(orbital_basis) :: ob
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot, max_error, mean_error, r2, occ, tot_occ, ef, ef_low, ef_up, q, fac
+  type(matrices),dimension(24) :: rpower_matrix
+  character(len=20) :: method, do_ortho
 
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp
   real(kind=8) :: max_deviation, mean_deviation, max_deviation_p, mean_deviation_p
@@ -162,6 +165,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   ! needs for the application of the Hamlitonian to all orbitals on that process.
   call allocate_p2pComms_buffer(tmb%comgp)
 
+  cdft_it=0
   pnrm=1.d100
   pnrm_out=1.d100
   energyold=0.d0
@@ -2038,9 +2042,25 @@ end if
       !call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
       !     tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
       !     rxyz, calculate_centers=.false., multipoles=multipoles)
+
+
+
+      ! @ NEW ##################################################################################################
+      ! Calculate the matrices <phi|r**x|phi>
+      do i=1,24
+          rpower_matrix(i) = matrices_null()
+          rpower_matrix(i)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, SPARSE_FULL, id='rpower_matrix(i)%matrix_compr')
+      end do
+      call calculate_rpowerx_matrices(iproc, nproc, tmb%npsidim_orbs, tmb%collcom_sr%ndimpsi_c, tmb%lzd, &
+           tmb%orbs, tmb%collcom, tmb%psi, tmb%linmat%s, rpower_matrix)
+      ! @ END NEW ##############################################################################################
       call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
-           rxyz, calculate_centers=.false., write_output=.true.)
+           rxyz, calculate_centers=.false., write_output=.true., ortho='yes', &
+           rpower_matrix=rpower_matrix, orbs=tmb%orbs)
+      do i=1,24
+          call deallocate_matrices(rpower_matrix(i))
+      end do
       !call f_free(multipoles)
       !call f_free(multipoles_out)
 
@@ -2079,53 +2099,53 @@ end if
   end if
 
   if (input%lin%charge_multipoles>0) then
-      !!write(200+iproc,*) tmb%linmat%ovrlp_%matrix_compr
-      !!write(210+iproc,*) tmb%linmat%kernel_%matrix_compr
+    !!$$ UNCOMMENT FOR TEST  !!write(200+iproc,*) tmb%linmat%ovrlp_%matrix_compr
+    !!$$ UNCOMMENT FOR TEST  !!write(210+iproc,*) tmb%linmat%kernel_%matrix_compr
 
-!! UNCOMMENT FOR TESTS      ! TEST ################################################
-!! UNCOMMENT FOR TESTS      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-!! UNCOMMENT FOR TESTS           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
-!! UNCOMMENT FOR TESTS           denspot%dpbox%ndimrhopot, &
-!! UNCOMMENT FOR TESTS           denspot%rhov, rho_negative)
-!! UNCOMMENT FOR TESTS      if (rho_negative) then
-!! UNCOMMENT FOR TESTS          call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
-!! UNCOMMENT FOR TESTS      end if
-!! UNCOMMENT FOR TESTS      is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
-!! UNCOMMENT FOR TESTS      ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
-!! UNCOMMENT FOR TESTS      is2 = 1
-!! UNCOMMENT FOR TESTS      ie2 = denspot%dpbox%ndims(2)
-!! UNCOMMENT FOR TESTS      is1 = 1
-!! UNCOMMENT FOR TESTS      ie1 = denspot%dpbox%ndims(1)
-!! UNCOMMENT FOR TESTS      ii = 0
-!! UNCOMMENT FOR TESTS      do i3=is3,ie3
-!! UNCOMMENT FOR TESTS          do i2=is2,ie2
-!! UNCOMMENT FOR TESTS              do i1=is1,ie1
-!! UNCOMMENT FOR TESTS                  ii = ii + 1
-!! UNCOMMENT FOR TESTS                  write(190+iproc,*) 'i1, i2, i3, val', i1, i2, i3, denspot%rhov(ii)
-!! UNCOMMENT FOR TESTS              end do
-!! UNCOMMENT FOR TESTS          end do
-!! UNCOMMENT FOR TESTS      end do
-!! UNCOMMENT FOR TESTS
-!! UNCOMMENT FOR TESTS      !write(*,*) 'BEFORE: sum(rhov)',sum(denspot%rhov)
-!! UNCOMMENT FOR TESTS      !write(*,*) 'BEFORE: sum(V_ext)',sum(denspot%V_ext)
-!! UNCOMMENT FOR TESTS      call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
-!! UNCOMMENT FOR TESTS           quiet=denspot%PSquiet)!,rho_ion=denspot%rho_ion)
-!! UNCOMMENT FOR TESTS      !write(*,*) 'AFTER: sum(rhov)',sum(denspot%rhov)
-!! UNCOMMENT FOR TESTS      is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
-!! UNCOMMENT FOR TESTS      ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
-!! UNCOMMENT FOR TESTS      is2 = 1
-!! UNCOMMENT FOR TESTS      ie2 = denspot%dpbox%ndims(2)
-!! UNCOMMENT FOR TESTS      is1 = 1
-!! UNCOMMENT FOR TESTS      ie1 = denspot%dpbox%ndims(1)
-!! UNCOMMENT FOR TESTS      ii = 0
-!! UNCOMMENT FOR TESTS      do i3=is3,ie3
-!! UNCOMMENT FOR TESTS          do i2=is2,ie2
-!! UNCOMMENT FOR TESTS              do i1=is1,ie1
-!! UNCOMMENT FOR TESTS                  ii = ii + 1
-!! UNCOMMENT FOR TESTS                  write(200+iproc,*) 'i1, i2, i3, val', i1, i2, i3, denspot%rhov(ii)
-!! UNCOMMENT FOR TESTS              end do
-!! UNCOMMENT FOR TESTS          end do
-!! UNCOMMENT FOR TESTS      end do
+    !!$$ UNCOMMENT FOR TEST  ! TEST ################################################
+    !!$$ UNCOMMENT FOR TEST  call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+    !!$$ UNCOMMENT FOR TEST       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
+    !!$$ UNCOMMENT FOR TEST       denspot%dpbox%ndimrhopot, &
+    !!$$ UNCOMMENT FOR TEST       denspot%rhov, rho_negative)
+    !!$$ UNCOMMENT FOR TEST  if (rho_negative) then
+    !!$$ UNCOMMENT FOR TEST      call corrections_for_negative_charge(iproc, nproc, at, denspot)
+    !!$$ UNCOMMENT FOR TEST  end if
+    !!$$ UNCOMMENT FOR TEST  is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
+    !!$$ UNCOMMENT FOR TEST  ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
+    !!$$ UNCOMMENT FOR TEST  is2 = 1
+    !!$$ UNCOMMENT FOR TEST  ie2 = denspot%dpbox%ndims(2)
+    !!$$ UNCOMMENT FOR TEST  is1 = 1
+    !!$$ UNCOMMENT FOR TEST  ie1 = denspot%dpbox%ndims(1)
+    !!$$ UNCOMMENT FOR TEST  ii = 0
+    !!$$ UNCOMMENT FOR TEST  do i3=is3,ie3
+    !!$$ UNCOMMENT FOR TEST      do i2=is2,ie2
+    !!$$ UNCOMMENT FOR TEST          do i1=is1,ie1
+    !!$$ UNCOMMENT FOR TEST              ii = ii + 1
+    !!$$ UNCOMMENT FOR TEST              write(190+iproc,'(3(a,i6),a,es18.8)') 'i1= ',i1,' i2= ',i2,' i3= ',i3,' val= ',denspot%rhov(ii)
+    !!$$ UNCOMMENT FOR TEST          end do
+    !!$$ UNCOMMENT FOR TEST      end do
+    !!$$ UNCOMMENT FOR TEST  end do
+
+    !!$$ UNCOMMENT FOR TEST  !write(*,*) 'BEFORE: sum(rhov)',sum(denspot%rhov)
+    !!$$ UNCOMMENT FOR TEST  !write(*,*) 'BEFORE: sum(V_ext)',sum(denspot%V_ext)
+    !!$$ UNCOMMENT FOR TEST  call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
+    !!$$ UNCOMMENT FOR TEST       quiet=denspot%PSquiet)!,rho_ion=denspot%rho_ion)
+    !!$$ UNCOMMENT FOR TEST  !write(*,*) 'AFTER: sum(rhov)',sum(denspot%rhov)
+    !!$$ UNCOMMENT FOR TEST  is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
+    !!$$ UNCOMMENT FOR TEST  ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
+    !!$$ UNCOMMENT FOR TEST  is2 = 1
+    !!$$ UNCOMMENT FOR TEST  ie2 = denspot%dpbox%ndims(2)
+    !!$$ UNCOMMENT FOR TEST  is1 = 1
+    !!$$ UNCOMMENT FOR TEST  ie1 = denspot%dpbox%ndims(1)
+    !!$$ UNCOMMENT FOR TEST  ii = 0
+    !!$$ UNCOMMENT FOR TEST  do i3=is3,ie3
+    !!$$ UNCOMMENT FOR TEST      do i2=is2,ie2
+    !!$$ UNCOMMENT FOR TEST          do i1=is1,ie1
+    !!$$ UNCOMMENT FOR TEST              ii = ii + 1
+    !!$$ UNCOMMENT FOR TEST              write(200+iproc,'(3(a,i6),a,es18.8)') 'i1= ',i1,' i2= ',i2,' i3= ',i3,' val= ',denspot%rhov(ii)
+    !!$$ UNCOMMENT FOR TEST          end do
+    !!$$ UNCOMMENT FOR TEST      end do
+    !!$$ UNCOMMENT FOR TEST  end do
 
 
       !if (input%lin%charge_multipoles==1) then
@@ -2135,19 +2155,37 @@ end if
       !    !write(300+iproc,*) tmb%linmat%ovrlp_%matrix_compr
       !    !write(310+iproc,*) tmb%linmat%kernel_%matrix_compr
       multipoles = f_malloc_ptr((/-lmax.to.lmax,0.to.lmax,1.to.at%astruct%nat/),id='multipoles')
-      if (input%lin%charge_multipoles==1) then
-          call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
-               max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
-               tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &
-               denspot, tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
-               method='loewdin', shift=shift, nsigma=input%nsigma, ep=ep )
-      else if (input%lin%charge_multipoles==2) then
-          call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
-               max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
-               tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &
-               denspot, tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
-               method='projector', shift=shift, nsigma=input%nsigma, ep=ep)
+      if (input%lin%charge_multipoles/=0) then
+          select case (input%lin%charge_multipoles)
+          case (1,11)
+              method='loewdin'
+          case (2,12) 
+              method='projector'
+          case default
+              call f_err_throw('wrong value of charge_multipoles')
+          end select
+          select case (input%lin%charge_multipoles)
+          case (1,2)
+              do_ortho='yes'
+          case (11,12) 
+              do_ortho='no'
+          case default
+              call f_err_throw('wrong value of charge_multipoles')
+          end select
       end if
+      !if (input%lin%charge_multipoles==1) then
+          call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
+               max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
+               tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &
+               denspot, tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
+               method=method, do_ortho=do_ortho, shift=shift, nsigma=input%nsigma, ixc=input%ixc, ep=ep )
+      !!else if (input%lin%charge_multipoles==2) then
+      !!    call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
+      !!         max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
+      !!         tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &
+      !!         denspot, tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
+      !!         method='projector', do_ortho=do_ortho, shift=shift, nsigma=input%nsigma, ixc=input%ixc, ep=ep)
+      !!end if
       !call get_optimal_sigmas(iproc, nproc, KSwfn, tmb, at, input, ep, shift, denspot)
       !!# TEST ######################################################################################################
       !test_pot = f_malloc0((/size(denspot%V_ext,1),size(denspot%V_ext,2),size(denspot%V_ext,3),2/),id='test_pot')
@@ -2248,7 +2286,7 @@ end if
         call writemywaves_linear_fragments(iproc,'minBasis',mod(input%lin%plotBasisFunctions,10),&
              max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff, &
              trim(input%dir_output),input%frag,ref_frags,tmb%linmat,norder_taylor,input%lin%max_inversion_error,&
-             tmb%orthpar,input%lin%frag_num_neighbours)
+             tmb%orthpar,input%lin%frag_num_neighbours,input%lin%frag_neighbour_cutoff)
 
 !      call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
 !           tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)

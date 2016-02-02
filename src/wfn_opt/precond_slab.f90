@@ -365,7 +365,7 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   integer,parameter :: lowfil=-14,lupfil=14
   real(gp) :: scale
   real(gp) :: fil(lowfil:lupfil)
-  !$omp threadprivate(b,ab)
+  !!$omp threadprivate(b,ab)
 
   call f_routine(id='segment_invert')
   
@@ -400,18 +400,19 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   ldab=kd+1!
   ldb=n2+1
 
+  !commenting OMP for the moment due to crash on BG/Q
   ! hit the fourier transform of x with the kernel
   !We avoid to use f_malloc in an omp parallel section
-  !$omp parallel default(none) & 
-  !$omp private (i3,i1,i2,j,i,ct,info) &
-  !$omp shared (n1,n2,n3,zx,fil,kd,ldb,ldab,nrhs,n,c,kern_k1,kern_k3)
+  !!$omp parallel default(none) & 
+  !!$omp private (i3,i1,i2,j,i,ct,info) &
+  !!$omp shared (n1,n2,n3,zx,fil,kd,ldb,ldab,nrhs,n,c,kern_k1,kern_k3)
 
-  !$omp critical
+  !!$omp critical
   ab = f_malloc((/ ldab, n /),id='ab')
   b = f_malloc((/ 0.to.n2, 1.to.2 /),id='b')
-  !$omp end critical
+  !!$omp end critical
 
-  !$omp do schedule(static,1)
+  !!$omp do schedule(static,1)
   do i3=0,n3
      !   do i1=0,n1
      do i1=0,(n1+1)/2
@@ -438,14 +439,14 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
         enddo
      enddo
   enddo
-  !$omp end do
+  !!$omp end do
 
-  !$omp critical
+  !!$omp critical
   call f_free(ab)
   call f_free(b)
-  !$omp end critical
+  !!$omp end critical
 
-  !$omp end parallel
+  !!$omp end parallel
 
 call f_release_routine()
 

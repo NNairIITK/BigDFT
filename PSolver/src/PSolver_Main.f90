@@ -349,6 +349,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
   real(dp), dimension(6), intent(out) :: strten !<stress tensor
   logical, intent(in) :: use_input_guess
   !local variables
+  integer, parameter :: NEVER_DONE=0,DONE=1
   real(dp), parameter :: max_ratioex = 1.0e10_dp !< just to avoid crazy results
   real(dp), parameter :: no_ig_minres=1.0d-2 !< just to neglect wrong inputguess
   integer :: n1,n23,i1,i23,ip,i23s,iinit
@@ -381,10 +382,11 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
              kernel%w%dlogeps,kernel%w%rho,rhores2)
      end if
 
-!     ip=0
-!     pi_loop: do while (ip <= kernel%max_iter)
-!      ip=ip+1
-     pi_loop: do ip=1,kernel%max_iter
+     ip=0
+     iinit=NEVER_DONE
+     pi_loop: do while (ip <= kernel%max_iter)
+      ip=ip+1
+!     pi_loop: do ip=1,kernel%max_iter
         !update the needed part of rhopot array
         !irho=1
         !i3s=kernel%grid%istart
@@ -424,17 +426,18 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
 
         if (rhores2 < kernel%minres) exit pi_loop
 
-!        if ((rhores2 > no_ig_minres).and.use_input_guess) then
-!        i23s=kernel%grid%istart*kernel%grid%m3
-!        do i23=1,n23
-!           do i1=1,n1
-!              kernel%w%rho(i1,i23+i23s)=0.0_dp !this is full
-!           end do
-!        end do
-!        ip=0
-!        call yaml_map('Input guess not used due to residual norm >',no_ig_minres)
-!        end if
-
+        if ((rhores2 > no_ig_minres).and.use_input_guess .and. iinit==NEVER_DONE) then
+           call f_zero(kernel%w%rho)
+!!$           i23s=kernel%grid%istart*kernel%grid%m3
+!!$           do i23=1,n23
+!!$              do i1=1,n1
+!!$                 kernel%w%rho(i1,i23+i23s)=0.0_dp !this is full
+!!$              end do
+!!$           end do
+           if (kernel%mpi_env%iproc==0) &
+                call yaml_warning('Input guess not used due to residual norm >'+no_ig_minres)
+           iinit=DONE
+        end if
      end do pi_loop
      if (wrtmsg) call yaml_sequence_close()
   case('PCG')
@@ -490,6 +493,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
  
       if (normr > no_ig_minres ) then
  
+       !wipe out the IG information as it turned out to be useless
        !$omp parallel do default(shared) private(i1,i23)
        do i23=1,n23
           do i1=1,n1
@@ -501,7 +505,8 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
  
        iinit=1
        !call yaml_warning('Input guess not used due to residual norm > 1')
-       call yaml_warning('Input guess not used due to residual norm >'+no_ig_minres)
+       if (kernel%mpi_env%iproc==0) &
+            call yaml_warning('Input guess not used due to residual norm >'+no_ig_minres)
       end if
 
      end if

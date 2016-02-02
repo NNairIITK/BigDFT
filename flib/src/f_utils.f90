@@ -76,6 +76,10 @@ module f_utils
      module procedure f_inc_i0
   end interface f_increment
 
+  interface f_humantime
+     module procedure f_humantime,f_ht_long
+  end interface f_humantime
+
   !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
   interface
      pure subroutine nanosec(itime)
@@ -90,7 +94,7 @@ module f_utils
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring,f_increment
   public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
-  public :: f_progress_bar_new,update_progress_bar,f_tty
+  public :: f_progress_bar_new,update_progress_bar,f_tty,f_humantime
 
 contains
  
@@ -120,7 +124,7 @@ contains
     if (present(nstep)) bar%nstep=nstep
     bar%t0=f_time()
     call f_zero(bar%message)
-    bar%ncall=0    
+    bar%ncall=0
   end function f_progress_bar_new
 
   pure function ticker(ncall) result(t)
@@ -146,13 +150,14 @@ contains
     integer, intent(in) :: istep
     type(f_progress_bar), intent(inout) :: bar
     !local variables
-    integer, parameter :: nstars=30
+    integer, parameter :: nstars=25
     integer :: j,step
     real(f_double) :: percent
     real(f_double) :: time_elapsed, it_s !< in seconds
     real(f_double) :: time_remaining !< seconds, estimation
 
     character(len=3) :: prc
+    character(len=32) ::endtime
     character(len=nstars) :: stars
 
     percent=real(istep,f_double)/real(bar%nstep,f_double)*100.0_f_double
@@ -173,19 +178,100 @@ contains
        time_remaining=time_elapsed*&
             (100.0_f_double/percent-1.0_f_double)
     end if
+
+    if (istep <  bar%nstep) then
+       call f_strcpy(src='ETA '//trim(f_humantime(time_remaining*1.e9_f_double,.true.)),&
+            dest=endtime)
+    else
+       call f_strcpy(src='Tot '//trim(f_humantime(time_elapsed*1.e9_f_double,.true.)),dest=endtime)
+    end if
+
     !compose the message
-    call f_strcpy(src=prc//'% '//ticker(bar%ncall)//&
+    call f_strcpy(src='('+yaml_time_toa()+')'//prc//&
+         '% '//ticker(bar%ncall)//&
          ' ['//stars//'] ('//trim(yaml_toa(istep))//'/'//&
          trim(adjustl(yaml_toa(bar%nstep)))//&
          ', '//&
          trim(yaml_toa(it_s,fmt='(1pg12.2)'))//&
-         ' it/s), ETA (s)'//trim(yaml_toa(time_remaining,fmt='(1pg12.2)')),&
+         ' it/s), '//trim(endtime),&
          dest=bar%message)
 
   end subroutine update_progress_bar
 
+  pure function f_ht_long(ns,short) result(time)
+    implicit none
+    integer(f_long), intent(in) :: ns !<nanoseconds
+    logical, intent(in), optional :: short !<if .true. only shows one units after the leading one
+    character(len=95) :: time
+
+    time=f_humantime(real(ns,f_double),short)
+
+  end function f_ht_long
+
+  !convert a time in seconds into a string of the format e.g 3.5s,10m3s,12h10m,350d12h,1y120d
+  pure function f_humantime(ns,short) result(time)
+    use yaml_strings
+    implicit none
+    real(f_double), intent(in) :: ns !<nanoseconds
+    logical, intent(in), optional :: short !<if .true. only shows one units after the leading one
+    character(len=95) :: time
+    !local variables
+    logical :: sht
+    character(len=*), parameter :: fmt='(i2.2)'
+    integer(f_long), parameter :: billion=int(1000000000,f_long),sixty=int(60,f_long)
+    integer(f_long), parameter :: tsf=int(365,f_long),tf=int(24,f_long),zr=int(0,f_long)
+    integer(f_long) :: s,nsn,m,h,d,y
+
+    sht=.false.
+    if (present(short)) sht=short
+
+    !get the seconds
+    s=ns/billion
+    !then get nanosecs
+    nsn=ns-s*billion
+    !then take minutes from seconds
+    m=s/sixty; s=s-m*sixty
+    !and hours from minutes
+    h=m/sixty; m=m-h*sixty
+    !days
+    d=h/tf; h=h-d*tf
+    !years
+    y=d/tsf; d=d-y*tsf
+
+    if (sht) then
+       !find the first unit which is not zero
+       if (y > zr) then
+          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(y)))+'y'//&
+               trim(adjustl(yaml_toa(d)))+'d')
+       else if (d > zr) then
+          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(d)))+'d'//&
+               trim(adjustl(yaml_toa(h,fmt)))+'h')
+       else if (h > zr) then
+          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(h,fmt)))+'h'//&
+               trim(adjustl(yaml_toa(m,fmt)))+'m')
+       else if (m > zr) then
+          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(m,fmt)))+'m'//&
+               trim(adjustl(yaml_toa(s,fmt)))+'s')
+       else
+          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(real(s,f_double),'(f5.1)')))+'s')
+       end if
+    else
+       !test with new API to deal with strings
+       !that would be the best solution
+       call f_strcpy(dest=time,src=&
+            h**fmt+':'+m**fmt+':'+s**fmt+'.'+nsn**'(i9.9)')
+!!$
+       !split the treatment in the case of multiple days
+       if (d >0.0_f_double .or. y > 0.0_f_double ) call f_strcpy(&
+            dest=time,src=trim(adjustl(yaml_toa(y)))+'y'//&
+            trim(adjustl(yaml_toa(d)))+'d'+time)
+    end if
+
+  end function f_humantime
+
+
   !>returns true if a unit is tty.
-  !! essentially only check if the unit is related to stdout and check if stdout is 
+  !! essentially only check if the unit is related to stdout and check if stdout is
   !! tty
   function f_tty(unit)
     implicit none
@@ -233,7 +319,7 @@ contains
     integer, intent(in) :: recl_max !< maximum value for record length
     !> Value for the record length. This corresponds to the minimum between recl_max and the processor-dependent value
     !! provided by inquire statement
-    integer, intent(out) :: recl 
+    integer, intent(out) :: recl
     !local variables
     logical :: unit_is_open
     integer :: ierr,ierr_recl
@@ -261,7 +347,7 @@ contains
     character(len=*), intent(in) :: file
     logical, intent(out) :: exists
     !local variables
-    integer :: ierr 
+    integer :: ierr
 
     exists=.false.
     inquire(file=trim(file),exist=exists,iostat=ierr)
