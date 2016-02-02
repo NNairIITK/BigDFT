@@ -1078,7 +1078,7 @@ module foe
       real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
       real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0 !2.d0 !1.2d0
       real(kind=8),parameter :: CHECK_RATIO=1.25d0
-      integer,parameter :: NPL_MIN=100
+      !integer,parameter :: NPL_MIN=100
       !!type(matrices) :: inv_ovrlp
       integer,parameter :: NTEMP_ACCURATE=4
       integer,parameter :: NTEMP_FAST=1
@@ -1091,7 +1091,7 @@ module foe
       real(kind=8),dimension(2) :: temparr
       real(kind=8),dimension(:,:),allocatable :: penalty_ev_new
       real(kind=8),dimension(:),allocatable :: fermi_new, fermi_check_new, fermi_small_new
-      integer :: iline, icolumn, icalc
+      integer :: iline, icolumn, icalc, npl_min, npl_max, npl_stride
       real(kind=8),dimension(:),allocatable :: ham_large
       
     
@@ -1180,6 +1180,10 @@ module foe
           !call get_minmax_eigenvalues(iproc, smatm, ham_, imshift, smats, ovrlp_, isshift)
     
           degree_sufficient=.true.
+
+          npl_min = 10
+          npl_max = 10000
+          npl_stride = 10
     
     
           temp_loop: do itemp=1,ntemp
@@ -1267,9 +1271,10 @@ module foe
                       !if (npl>nplx) stop 'npl>nplx'
                       !cc = f_malloc((/npl,3,1/),id='cc')
                       call get_poynomial_degree(iproc, nproc, ispin, 1, FUNCTION_ERRORFUNCTION, foe_obj, &
-                           10, 10000, 10, 1.d-5, 0, npl, cc, &
+                           npl_min, npl_max, npl_stride, 1.d-5, 0, npl, cc, &
                            max_error, x_max_error, mean_error, anoise, &
                            ef=(/foe_data_get_real(foe_obj,"ef",ispin)/), fscale=(/foe_data_get_real(foe_obj,"fscale",ispin)/))
+                      npl_min = npl !to be used to speed up the search for npl in a following iteration in case the temperature must be lowered
                       if (iproc==0) then
                           call yaml_sequence(advance='no')
                           call yaml_mapping_open(flow=.true.)

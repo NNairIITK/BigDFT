@@ -2095,14 +2095,6 @@ module foe_common
               call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
                    foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,1,icalc), &
                    x_max_error(icalc), max_error(icalc), mean_error(icalc))
-              call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
-                   muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
-              call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
-                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,2,icalc), &
-                   x_max_error_penaltyfunction, max_error_penaltyfunction, mean_error_penaltyfunction)
-              do jpl=1,ipl
-                  cc_trial(jpl,3,icalc) = -cc_trial(jpl,2,icalc)
-              end do
               !write(*,*) 'icalc, sum(cc_trial(:,1,icalc))', icalc, sum(cc_trial(:,1,icalc)), ex(icalc)
           end do
 
@@ -2127,6 +2119,14 @@ module foe_common
               end if
           end do
           if (error_ok) then
+              call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
+                   muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
+              call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,2,icalc), &
+                   x_max_error_penaltyfunction, max_error_penaltyfunction, mean_error_penaltyfunction)
+              do jpl=1,ipl
+                  cc_trial(jpl,3,icalc) = -cc_trial(jpl,2,icalc)
+              end do
               if (max_error_penaltyfunction>1.d-2) then
                   error_ok = .false.
               end if
