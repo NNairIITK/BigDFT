@@ -137,7 +137,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot, max_error, mean_error, r2, occ, tot_occ, ef, ef_low, ef_up, q, fac
   type(matrices),dimension(24) :: rpower_matrix
-  character(len=20) :: method, do_ortho
+  character(len=20) :: method, do_ortho, projectormode
 
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp
   real(kind=8) :: max_deviation, mean_deviation, max_deviation_p, mean_deviation_p
@@ -2054,7 +2054,7 @@ end if
       ! @ END NEW ##############################################################################################
       call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
-           rxyz, calculate_centers=.false., write_output=.true., ortho='yes', &
+           rxyz, calculate_centers=.false., write_output=.true., ortho='yes', mode='simple', &
            rpower_matrix=rpower_matrix, orbs=tmb%orbs)
       do i=1,24
           call deallocate_matrices(rpower_matrix(i))
@@ -2157,16 +2157,26 @@ end if
           select case (input%lin%charge_multipoles)
           case (1,11)
               method='loewdin'
-          case (2,12) 
+          case (2,3,12,13) 
               method='projector'
           case default
               call f_err_throw('wrong value of charge_multipoles')
           end select
           select case (input%lin%charge_multipoles)
-          case (1,2)
+          case (1,2,3)
               do_ortho='yes'
-          case (11,12) 
+          case (11,12,13) 
               do_ortho='no'
+          case default
+              call f_err_throw('wrong value of charge_multipoles')
+          end select
+          select case (input%lin%charge_multipoles)
+          case (1,11)
+              projectormode='none'
+          case (2,12)
+              projectormode='simple'
+          case (3,13) 
+              projectormode='full'
           case default
               call f_err_throw('wrong value of charge_multipoles')
           end select
@@ -2176,7 +2186,8 @@ end if
                max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
                tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &
                denspot, tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
-               method=method, do_ortho=do_ortho, shift=shift, nsigma=input%nsigma, ixc=input%ixc, ep=ep )
+               method=method, projectormode=projectormode, do_ortho=do_ortho, &
+               shift=shift, nsigma=input%nsigma, ixc=input%ixc, ep=ep )
       !!else if (input%lin%charge_multipoles==2) then
       !!    call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
       !!         max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
