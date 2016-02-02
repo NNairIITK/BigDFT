@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.4
- Timestamp of this run                 : 2016-02-01 12:04:04.513
+ Timestamp of this run                 : 2016-02-02 11:07:22.125
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -1147,47 +1147,47 @@
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
      determine eigenvalue bounds:
-     -  {npl:  300, bounds:  [ -0.5,  0.5 ], penalty:  4.4E+05, ok:  [  No,  Yes ]}
-     -  {npl:  330, bounds:  [ -0.6,  0.5 ], penalty:  1.6E+05, ok:  [  No,  Yes ]}
-     -  {npl:  366, bounds:  [ -0.72,  0.5 ], penalty:  1.9E+04, ok:  [  No,  Yes ]}
-     -  {npl:  409, bounds:  [ -0.864,  0.5 ], penalty:  1.2E+02, ok:  [  No,  Yes ]}
-     -  {npl:  461, bounds:  [ -1.0368,  0.5 ], penalty:  1.2E-01, ok:  [  No,  Yes ]}
-     -  {npl:  523, bounds:  [ -1.24416,  0.5 ], penalty:  2.8E-05, ok:  [  Yes,  Yes ]}
+     -  {npl:  280, bounds:  [ -0.5,  0.5 ], penalty:  4.4E+05, ok:  [  No,  Yes ]}
+     -  {npl:  310, bounds:  [ -0.6,  0.5 ], penalty:  1.6E+05, ok:  [  No,  Yes ]}
+     -  {npl:  350, bounds:  [ -0.72,  0.5 ], penalty:  1.9E+04, ok:  [  No,  Yes ]}
+     -  {npl:  380, bounds:  [ -0.864,  0.5 ], penalty:  1.2E+02, ok:  [  No,  Yes ]}
+     -  {npl:  420, bounds:  [ -1.0368,  0.5 ], penalty:  1.2E-01, ok:  [  No,  Yes ]}
+     -  {npl:  450, bounds:  [ -1.24416,  0.5 ], penalty:  2.8E-05, ok:  [  Yes,  Yes ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
- eF: -1.000000E-01, Tr(K):  7.9999999E+00, D Tr(K):  1.00E+00, new eF: bisec bounds}
+ eF: -1.000000E-01, Tr(K):  7.9999985E+00, D Tr(K):  1.00E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 2
- eF: -2.000000E-01, Tr(K):  7.9999998E+00, D Tr(K):  1.00E+00, new eF: bisec bounds}
+ eF: -2.000000E-01, Tr(K):  8.0000034E+00, D Tr(K):  1.00E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 3
- eF: -3.100000E-01, Tr(K):  6.0001761E+00, D Tr(K): -1.00E+00, new eF: bisec bounds}
+ eF: -3.100000E-01, Tr(K):  6.0001602E+00, D Tr(K): -1.00E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 4
- eF:  1.000000E-01, Tr(K):  1.0000000E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
+ eF:  1.000000E-01, Tr(K):  1.0000003E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 5
- eF: -1.562568E-01, Tr(K):  8.0000002E+00, D Tr(K):  1.00E+00, new eF: bisection/secant}
+ eF: -1.562562E-01, Tr(K):  8.0000077E+00, D Tr(K):  1.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 6
- eF: -2.331318E-01, Tr(K):  7.9999990E+00, D Tr(K):  1.00E+00, new eF: bisection/secant}
+ eF: -2.331313E-01, Tr(K):  7.9999874E+00, D Tr(K):  1.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 7
- eF: -2.715676E-01, Tr(K):  7.9072142E+00, D Tr(K):  9.07E-01, new eF: cubic interpol}
+ eF: -2.715671E-01, Tr(K):  7.9072447E+00, D Tr(K):  9.07E-01, new eF: cubic interpol}
      -  { #---------------------------------------------------------------------- it FOE: 8
- eF: -3.728841E-01, Tr(K):  4.7337087E+00, D Tr(K): -2.27E+00, new eF: cubic interpol}
+ eF: -3.729102E-01, Tr(K):  4.7309821E+00, D Tr(K): -2.27E+00, new eF: cubic interpol}
      -  { #---------------------------------------------------------------------- it FOE: 9
- eF: -3.238331E-01, Tr(K):  5.9999987E+00, D Tr(K): -1.00E+00, new eF: cubic interpol}
+ eF: -3.238260E-01, Tr(K):  5.9999799E+00, D Tr(K): -1.00E+00, new eF: cubic interpol}
      -  { #--------------------------------------------------------------------- it FOE: 10
- eF: -2.991952E-01, Tr(K):  6.0259995E+00, D Tr(K): -9.74E-01, new eF: cubic interpol}
+ eF: -2.991954E-01, Tr(K):  6.0259806E+00, D Tr(K): -9.74E-01, new eF: cubic interpol}
      -  { #--------------------------------------------------------------------- it FOE: 11
- eF: -2.801396E-01, Tr(K):  7.3606597E+00, D Tr(K):  3.61E-01, new eF: cubic interpol}
+ eF: -2.801391E-01, Tr(K):  7.3606977E+00, D Tr(K):  3.61E-01, new eF: cubic interpol}
      -  { #--------------------------------------------------------------------- it FOE: 12
- eF: -2.834808E-01, Tr(K):  6.9968874E+00, D Tr(K): -3.11E-03, new eF: cubic interpol}
+ eF: -2.834805E-01, Tr(K):  6.9969379E+00, D Tr(K): -3.06E-03, new eF: cubic interpol}
      -  { #--------------------------------------------------------------------- it FOE: 13
- eF: -2.834495E-01, Tr(K):  7.0004157E+00, D Tr(K):  4.16E-04, new eF: cubic interpol}
+ eF: -2.834498E-01, Tr(K):  7.0004093E+00, D Tr(K):  4.09E-04, new eF: cubic interpol}
      -  { #--------------------------------------------------------------------- it FOE: 14
- eF: -2.834532E-01, Tr(K):  7.0000000E+00, D Tr(K): -4.43E-08, new eF: linear interpol}
-     EBS                               : -3.980099546583E+00
-     EBS higher temperature            : -3.980100604584E+00
-     difference                        : -1.058000735910E-06
-     relative difference               :  2.658226819522E-07
+ eF: -2.834534E-01, Tr(K):  7.0000000E+00, D Tr(K): -4.26E-08, new eF: linear interpol}
+     EBS                               : -3.980099399352E+00
+     EBS higher temperature            : -3.980103530359E+00
+     difference                        : -4.131006895669E-06
+     relative difference               :  1.037915509432E-06
      modify error function decay length: increase
-     trace(KS)                         :  6.999999955749299
+     trace(KS)                         :  6.999999957392648
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  calculate LUMO kernel:
@@ -1204,44 +1204,44 @@
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
      determine eigenvalue bounds:
-     -  {npl:  300, bounds:  [ -0.5,  0.5 ], penalty:  4.4E+05, ok:  [  No,  Yes ]}
-     -  {npl:  330, bounds:  [ -0.6,  0.5 ], penalty:  1.6E+05, ok:  [  No,  Yes ]}
-     -  {npl:  366, bounds:  [ -0.72,  0.5 ], penalty:  1.9E+04, ok:  [  No,  Yes ]}
-     -  {npl:  409, bounds:  [ -0.864,  0.5 ], penalty:  1.2E+02, ok:  [  No,  Yes ]}
-     -  {npl:  461, bounds:  [ -1.0368,  0.5 ], penalty:  1.2E-01, ok:  [  No,  Yes ]}
-     -  {npl:  523, bounds:  [ -1.24416,  0.5 ], penalty:  2.8E-05, ok:  [  Yes,  Yes ]}
+     -  {npl:  280, bounds:  [ -0.5,  0.5 ], penalty:  4.4E+05, ok:  [  No,  Yes ]}
+     -  {npl:  310, bounds:  [ -0.6,  0.5 ], penalty:  1.6E+05, ok:  [  No,  Yes ]}
+     -  {npl:  350, bounds:  [ -0.72,  0.5 ], penalty:  1.9E+04, ok:  [  No,  Yes ]}
+     -  {npl:  380, bounds:  [ -0.864,  0.5 ], penalty:  1.2E+02, ok:  [  No,  Yes ]}
+     -  {npl:  420, bounds:  [ -1.0368,  0.5 ], penalty:  1.2E-01, ok:  [  No,  Yes ]}
+     -  {npl:  450, bounds:  [ -1.24416,  0.5 ], penalty:  2.8E-05, ok:  [  Yes,  Yes ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
- eF: -1.000000E-01, Tr(K):  7.9999999E+00, D Tr(K): -1.00E+00, new eF: bisec bounds}
+ eF: -1.000000E-01, Tr(K):  7.9999985E+00, D Tr(K): -1.00E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 2
- eF:  1.000000E-01, Tr(K):  1.0000000E+01, D Tr(K):  1.00E+00, new eF: bisection/secant}
+ eF:  1.000000E-01, Tr(K):  1.0000003E+01, D Tr(K):  1.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 3
- eF:  2.260854E-09, Tr(K):  8.0000000E+00, D Tr(K): -1.00E+00, new eF: bisection/secant}
+ eF: -3.588989E-08, Tr(K):  7.9999961E+00, D Tr(K): -1.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 4
- eF:  5.000000E-02, Tr(K):  9.8372246E+00, D Tr(K):  8.37E-01, new eF: bisection/secant}
+ eF:  4.999999E-02, Tr(K):  9.8372261E+00, D Tr(K):  8.37E-01, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 5
- eF:  2.610748E-02, Tr(K):  8.0473547E+00, D Tr(K): -9.53E-01, new eF: cubic interpol}
+ eF:  2.610747E-02, Tr(K):  8.0473579E+00, D Tr(K): -9.53E-01, new eF: cubic interpol}
      -  { #---------------------------------------------------------------------- it FOE: 6
- eF:  3.974886E-02, Tr(K):  8.9569884E+00, D Tr(K): -4.30E-02, new eF: cubic interpol}
+ eF:  3.974881E-02, Tr(K):  8.9569846E+00, D Tr(K): -4.30E-02, new eF: cubic interpol}
      -  { #---------------------------------------------------------------------- it FOE: 7
- eF:  4.028417E-02, Tr(K):  9.0173694E+00, D Tr(K):  1.74E-02, new eF: cubic interpol}
+ eF:  4.028417E-02, Tr(K):  9.0173699E+00, D Tr(K):  1.74E-02, new eF: cubic interpol}
      -  { #---------------------------------------------------------------------- it FOE: 8
  eF:  4.013003E-02, Tr(K):  8.9999783E+00, D Tr(K): -2.17E-05, new eF: cubic interpol}
      -  { #---------------------------------------------------------------------- it FOE: 9
- eF:  4.013022E-02, Tr(K):  9.0000000E+00, D Tr(K):  1.69E-09, new eF: linear interpol}
-     EBS                               : -4.223422578671E+00
-     EBS higher temperature            : -4.223422587098E+00
-     difference                        : -8.426988884480E-09
-     relative difference               :  1.995298535135E-09
+ eF:  4.013022E-02, Tr(K):  9.0000000E+00, D Tr(K):  1.73E-09, new eF: linear interpol}
+     EBS                               : -4.223422718166E+00
+     EBS higher temperature            : -4.223422049507E+00
+     difference                        :  6.686591671468E-07
+     relative difference               :  1.583216295804E-07
      modify error function decay length: increase
-     trace(KS)                         :  9.00000000168615
+     trace(KS)                         :  9.000000001725573
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  HOMO-LUMO analysis:
-   HOMO energy                         :  [ -0.2834532028318096 ]
-   LUMO energy                         :  [  4.0130221320363542E-002 ]
-   HOMO-LUMO gap (Ha)                  :  [  0.3235834241521732 ]
-   HOMO-LUMO gap (eV)                  :  [  8.805153150402255 ]
+   HOMO energy                         :  [ -0.2834533965957351 ]
+   LUMO energy                         :  [  4.0130217447119601E-002 ]
+   HOMO-LUMO gap (Ha)                  :  [  0.3235836140428547 ]
+   HOMO-LUMO gap (eV)                  :  [  8.805158317590706 ]
   #================================================= Atomic multipole analysis, new approach
  Method                                : projector
  Orthogonalized support functions      : yes
@@ -1267,15 +1267,11 @@
    powers:
      x                                 : 1/2
    order                               :  1020
-   ICE:
-     eval bounds                       :  [  0.50,  1.50 ]
-     mult.                             :  20.00
-     pol. deg.                         :  20
-     accuracy (x, max err, mean err):
-       Operation  1                    :  [  5.0E-01,  3.74E-14,  1.34E-14 ]
-   penalty                             :  2.1E-15
+   determine eigenvalue bounds:
+   -  {npl:  13, scale:  1.00E+00, bounds:  [  0.5,  1.5 ], ok:  [  Yes,  Yes ], 
+ exp accur:  [  6.93E-10 ]}
    error estimation:
-     max / mean error                  :  [  3.97E-14,  1.61E-14 ]
+     max / mean error                  :  [  2.99E-13,  7.20E-14 ]
  Calculating projector for charge analysis:
    convergence criterion               :  7.9999999999999996E-006
    maximal size of a submatrix         :  6
@@ -1353,7 +1349,7 @@
        -  [  1.0212E+00,  1.2223E+00,  1.0436E+00 ]
        -  [  1.2223E+00, -4.0250E-01,  1.6992E+00 ]
        -  [  1.0436E+00,  1.6992E+00, -6.1874E-01 ]
-       trace                           :  1.81E-13
+       trace                           :  1.53E-13
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
        P vector                        :  [ -1.5691E+00,  8.8599E-01,  9.6950E-01 ]
@@ -1363,7 +1359,7 @@
        -  [  4.0905E-01,  7.4939E-01,  7.0961E-01 ]
        -  [  7.4939E-01, -9.7329E-02,  1.1775E-02 ]
        -  [  7.0961E-01,  1.1775E-02, -3.1172E-01 ]
-       trace                           : -3.55E-15
+       trace                           :  1.42E-14
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
        P vector                        :  [ -1.5681E+00,  8.8693E-01,  9.6855E-01 ]
@@ -1373,7 +1369,7 @@
        -  [  1.6857E+00,  1.6355E+00,  1.4779E+00 ]
        -  [  1.6355E+00, -6.4238E-01,  2.1337E+00 ]
        -  [  1.4779E+00,  2.1337E+00, -1.0434E+00 ]
-       trace                           : -5.33E-14
+       trace                           : -9.24E-14
   #========================================================== Atomic multipole analysis done
   #WARNING: commented correction_locrad
   #------------------------------------------------------------------------ Pulay Correction
@@ -1411,8 +1407,8 @@
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  4.18
-   Elapsed time (s)                    :  4.21
+   CPU time (s)                        :  4.86
+   Elapsed time (s)                    :  4.87
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.81627853E-01, y:  2.49290264E-02, z:  1.39157120E-02, 
                     total:  1.83858044E-01}
@@ -1426,14 +1422,14 @@
  Energy (Hartree)                      : -1.69482356914926271E+01
  Force Norm (Hartree/Bohr)             :  2.72458046551210642E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  6869
-   Tot. No. of Deallocations           :  6869
+   Tot. No. of Allocations             :  8747
+   Tot. No. of Deallocations           :  8747
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  73.968
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 74.192 MB
- Walltime since initialization         : 00:00:04.581784931
- Max No. of dictionaries used          :  6845 #( 909 still in use)
+     Memory Peak of process            : 74.628 MB
+ Walltime since initialization         : 00:00:05.243515032
+ Max No. of dictionaries used          :  7005 #( 909 still in use)
  Number of dictionary folders allocated:  1
