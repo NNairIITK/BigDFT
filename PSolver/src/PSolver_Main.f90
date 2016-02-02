@@ -49,9 +49,10 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !! of the energies are calculated only with the input rho.
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p), intent(inout), optional, target :: rho_ion
   !local variables
-  logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver
-  integer :: i3start,n1,n23,i3s,i23s,i23sd2,i3sd2
-  real(dp) :: IntSur,IntVol,e_static,norm_nonvac,ehartreeLOC
+  real(dp), parameter :: max_ratioex_PB = 1.0d2
+  logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver,poisson_boltzmann
+  integer :: i3start,n1,n23,i3s,i23s,i23sd2,i3sd2,i_PB,i3s_pot_pb
+  real(dp) :: IntSur,IntVol,e_static,norm_nonvac,ehartreeLOC,res_PB
   real(dp), dimension(:,:), allocatable :: depsdrho,dsurfdrho
   real(dp), dimension(:,:,:), allocatable :: rhopot_full,nabla2_rhopot,delta_rho,cc_rho
   real(dp), dimension(:,:,:,:), allocatable :: nabla_rho
@@ -96,7 +97,8 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
       i23sd2=1
    end if
 
-
+   poisson_boltzmann=.not. (kernel%method .hasattr. PS_PB_NONE_ENUM)
+  
 
   select case(kernel%opt%verbosity_level)
   case(0)
@@ -204,12 +206,40 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   end if
   
   !the allocation of the rho array is maybe not needed
-  call PS_allocate_lowlevel_workarrays(cudasolver,kernel%opt%use_input_guess,&
+  call PS_allocate_lowlevel_workarrays(poisson_boltzmann,cudasolver,&
        rhov(1,1,i3s),kernel)
 
-  !call the Generalized Poisson Solver
-  call Parallel_GPS(kernel,cudasolver,kernel%opt%potential_integral,energies%strten,&
-       wrtmsg,rhov(1,1,i3s),kernel%opt%use_input_guess)
+  i3s_pot_pb=0  !in the SCCS case
+  if (kernel%method == PS_PI_ENUM) i3s_pot_pb=i23sd2-1
+
+  !switch between neutral and ionic solution (GPe or PBe)
+  if (poisson_boltzmann) then
+     if (kernel%opt%use_pb_input_guess) then
+        call PB_iteration(n1,n23,i3s_pot_pb,1.0_dp,kernel%cavity,rhov(1,1,i3s),kernel%w%pot,kernel%w%eps,&
+             kernel%w%rho_ions,kernel%w%rho_pb,res_PB)
+        if (.not. kernel%opt%use_input_guess .and. kernel%method == PS_PCG_ENUM ) call f_zero(kernel%w%pot)
+     else
+        call f_zero(kernel%w%rho_ions)
+     end if
+     if (wrtmsg) call yaml_sequence_open('Poisson Boltzmann solver')
+     loop_pb: do i_PB=1,kernel%max_iter_PB
+        
+        call Parallel_GPS(kernel,cudasolver,kernel%opt%potential_integral,energies%strten,&
+             wrtmsg,kernel%w%rho_pb,kernel%opt%use_input_guess)
+        
+        call PB_iteration(n1,n23,i3s_pot_pb,kernel%PB_eta,kernel%cavity,rhov(1,1,i3s),kernel%w%pot,kernel%w%eps,&
+             kernel%w%rho_ions,kernel%w%rho_pb,res_PB)
+        res_PB=sqrt(res_PB/product(kernel%ndims))
+        if (wrtmsg) call EPS_iter_output(i_PB,0.0_dp,res_PB,0.0_dp,0.0_dp,0.0_dp)
+        if (res_PB < kernel%minres_PB .or. res_PB > max_ratioex_PB) exit loop_pb
+     end do loop_pb
+     if (wrtmsg) call yaml_sequence_close()
+
+  else
+     !call the Generalized Poisson Solver
+     call Parallel_GPS(kernel,cudasolver,kernel%opt%potential_integral,energies%strten,&
+          wrtmsg,rhov(1,1,i3s),kernel%opt%use_input_guess)
+  end if
 
   !this part is not important now, to be fixed later
 !!$  if (plot_cavity) then
@@ -233,8 +263,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
 !!$  !--------------------------------------
 
 
-  call PS_release_lowlevel_workarrays(kernel%opt%cavity_info,kernel%opt%use_input_guess,&
-       rhov(1,1,i3s),kernel)
+   call PS_release_lowlevel_workarrays(kernel)
 
   !the external ionic potential is referenced if present
   if (sum_pi) then
@@ -314,7 +343,8 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   end if
   nullify(vextra_eff,pot_ion_eff)
 
-  call release_PS_workarrays(kernel%keepzf,kernel%w,kernel%opt%use_input_guess)
+  call release_PS_potential(kernel%keepzf,kernel%w,kernel%opt%use_input_guess &
+       .or. (kernel%opt%use_pb_input_guess .and. poisson_boltzmann))
   
   !gather the full result in the case of datacode = G
   if (kernel%opt%datacode == 'G') call PS_gather(rhov,kernel)
