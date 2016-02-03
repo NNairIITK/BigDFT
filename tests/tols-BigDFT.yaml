@@ -167,22 +167,22 @@ SiBulk:
 SiH4:
  #due to lack of functionality in fldifference, since energies field is updated
  Energies: &etol 4.6e-9
- Eion: 5.6e-9
- EH: 5.1e-9
+ Eion: 6.6e-9
+ EH: 5.8e-9
  EXC: *etol
  Ekin: *etol
  Enl: *etol
- Epot: 5.6e-9
+ Epot: 6.5e-9
  EvXC: *etol
  Epsilon: 1.4e-10
- Ion-Ion interaction energy: 5.6e-9
+ Ion-Ion interaction energy: 6.6e-9
  Atomic Forces (Ha/Bohr): 2.e-9
  Positions: 1.1e-9
  maxval: 2.e-9
- Average noise forces: 2.46e-10
+ Average noise forces: 2.9e-10
  Average CG stepsize in terms of betax: 1.1e-5
  H: 1.1e-9
- e: 1.67e-10
+ e: 1.96e-10
 
 Mn2:
  Keys to ignore:
@@ -2242,3 +2242,54 @@ largesystems_dnawater:
   trace(KS): 1.2e-11
   Keys to ignore:
     - atom
+
+H2Omultipoles_1:
+  EBS: 2.0e-10
+  EBS higher temperature: 2.0e-10
+  EH: 2.1e-10
+  EXC: 3.1e-11
+  Epot: 2.1e-10
+  EvXC: 4.1e-11
+  Charge analysis (charge / net charge): 2.2e-11
+H2Omultipoles_11:
+  EBS: 1.5e-10
+  EBS higher temperature: 1.5e-10
+  EH: 2.1e-10
+  EXC: 3.1e-11
+  Epot: 2.1e-10
+  EvXC: 3.1e-11
+  Charge analysis (charge / net charge): 1.5e-11
+H2Omultipoles_12:
+  EBS: 1.7e-10
+  EBS higher temperature: 1.7e-10
+  EH: 2.1e-10
+  EXC: 3.1e-11
+  Ekin: 1.1e-10
+  Epot: 2.1e-10
+  EvXC: 4.1e-11
+  Pseudo Fermi level for occupations: 1.4e-11
+  Charge analysis (charge / net charge): 1.7e-11
+H2Omultipoles_13:
+  EBS: 1.8e-10
+  EBS higher temperature: 1.8e-10
+  EH: 2.1e-10
+  EXC: 3.1e-11
+  Epot: 2.1e-10
+  EvXC: 3.1e-11
+  Pseudo Fermi level for occupations: 7.5e-07
+  Charge analysis (charge / net charge): 2.0e-11
+H2Omultipoles_2:
+  EBS: 1.6e-10
+  EBS higher temperature: 1.6e-10
+  EH: 2.1e-10
+  EXC: 3.1e-11
+  Epot: 2.1e-10
+  EvXC: 3.1e-11
+  Charge analysis (charge / net charge): 1.8e-11
+H2Omultipoles_3:
+  EBS: 4.8e-11
+  EBS higher temperature: 4.9e-11
+  EH: 1.1e-10
+  Ekin: 1.1e-10
+  Epot: 1.1e-10
+  Pseudo Fermi level for occupations: 1.6e-08

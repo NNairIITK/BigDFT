@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.4
- Timestamp of this run                 : 2016-02-02 11:07:22.125
+ Timestamp of this run                 : 2016-02-02 18:37:56.745
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -1244,6 +1244,7 @@
    HOMO-LUMO gap (eV)                  :  [  8.805158317590706 ]
   #================================================= Atomic multipole analysis, new approach
  Method                                : projector
+ Projector mode                        : simple
  Orthogonalized support functions      : yes
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Unitary test of the multipole routines
  Unitary check of the multipole calculations:
@@ -1261,6 +1262,16 @@
    - q0                                :  [  4.84E+00 ]
    - q1                                :  [  4.66E+00,  3.94E+00,  4.68E+00 ]
    - q2: [ 5.63E+00,  5.40E+00,  7.08E+00,  5.60E+00,  7.64E+00]
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating kernel for orthonormal support functions
+ calculate S^x:
+   mode                                : sparse
+   powers:
+     x                                 : 1/2
+   order                               :  20
+   error estimation:
+     max / mean error                  :  [  3.33E-16,  7.85E-17 ]
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Orthonormalizing the support functions
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculate projector for multipole analysis
  calculate S^x:
    mode                                : sparse
@@ -1268,7 +1279,7 @@
      x                                 : 1/2
    order                               :  1020
    determine eigenvalue bounds:
-   -  {npl:  13, scale:  1.00E+00, bounds:  [  0.5,  1.5 ], ok:  [  Yes,  Yes ], 
+   -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
  exp accur:  [  6.93E-10 ]}
    error estimation:
      max / mean error                  :  [  2.99E-13,  7.20E-14 ]
@@ -1276,18 +1287,30 @@
    convergence criterion               :  7.9999999999999996E-006
    maximal size of a submatrix         :  6
    Searching alpha for charge neutrality:
-   -  {alpha:  1.0000E-03, net charge: -1.2968E+01, bisection bounds ok:  [  No,  No ]}
-   -  {alpha:  1.0000E+01, net charge: -6.7572E-03, bisection bounds ok:  [  Yes,  No ]}
-   -  {alpha:  2.0000E+01, net charge: -3.3786E-03, bisection bounds ok:  [  Yes,  No ]}
-   -  {alpha:  4.0000E+01, net charge: -1.6893E-03, bisection bounds ok:  [  Yes,  No ]}
-   -  {alpha:  8.0000E+01, net charge: -8.4463E-04, bisection bounds ok:  [  Yes,  No ]}
-   -  {alpha:  1.6000E+02, net charge: -4.2231E-04, bisection bounds ok:  [  Yes,  No ]}
-   -  {alpha:  3.2000E+02, net charge: -2.1115E-04, bisection bounds ok:  [  Yes,  No ]}
-   -  {alpha:  6.4000E+02, net charge: -1.0557E-04, bisection bounds ok:  [  Yes,  No ]}
-   -  {alpha:  1.2800E+03, net charge: -5.2776E-05, bisection bounds ok:  [  Yes,  No ]}
-   -  {alpha:  2.5600E+03, net charge: -2.6381E-05, bisection bounds ok:  [  Yes,  No ]}
-   -  {alpha:  5.1200E+03, net charge: -1.3183E-05, bisection bounds ok:  [  Yes,  No ]}
-   -  {alpha:  1.0240E+04, net charge: -6.5844E-06, bisection bounds ok:  [  Yes,  No ]}
+   -  {alpha:  1.0000E-03, net charge: -1.2968E+01, bisection bounds ok:  [  No,  No ], 
+          kT:  1.0000E-02}
+   -  {alpha:  1.0000E+01, net charge: -6.7572E-03, bisection bounds ok:  [  Yes,  No ], 
+          kT:  1.0000E-02}
+   -  {alpha:  2.0000E+01, net charge: -3.3786E-03, bisection bounds ok:  [  Yes,  No ], 
+          kT:  1.0000E-02}
+   -  {alpha:  4.0000E+01, net charge: -1.6893E-03, bisection bounds ok:  [  Yes,  No ], 
+          kT:  1.0000E-02}
+   -  {alpha:  8.0000E+01, net charge: -8.4463E-04, bisection bounds ok:  [  Yes,  No ], 
+          kT:  1.0000E-02}
+   -  {alpha:  1.6000E+02, net charge: -4.2231E-04, bisection bounds ok:  [  Yes,  No ], 
+          kT:  1.0000E-02}
+   -  {alpha:  3.2000E+02, net charge: -2.1115E-04, bisection bounds ok:  [  Yes,  No ], 
+          kT:  1.0000E-02}
+   -  {alpha:  6.4000E+02, net charge: -1.0557E-04, bisection bounds ok:  [  Yes,  No ], 
+          kT:  1.0000E-02}
+   -  {alpha:  1.2800E+03, net charge: -5.2776E-05, bisection bounds ok:  [  Yes,  No ], 
+          kT:  1.0000E-02}
+   -  {alpha:  2.5600E+03, net charge: -2.6381E-05, bisection bounds ok:  [  Yes,  No ], 
+          kT:  1.0000E-02}
+   -  {alpha:  5.1200E+03, net charge: -1.3183E-05, bisection bounds ok:  [  Yes,  No ], 
+          kT:  1.0000E-02}
+   -  {alpha:  1.0240E+04, net charge: -6.5844E-06, bisection bounds ok:  [  Yes,  No ], 
+          kT:  1.0000E-02}
    number of states to be occupied (without smearing):  5
    Pseudo Fermi level for occupations  :  4.12652771318852E-002
    ordered eigenvalues and occupations:
@@ -1299,16 +1322,6 @@
    -  {eval: -1.3972E-01, atom:  00003, occ:  1.0000} # 00006
    -  {remaining states:  12, occ: <1.d-100}
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Projector calculation finished
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating kernel for orthonormal support functions
- calculate S^x:
-   mode                                : sparse
-   powers:
-     x                                 : 1/2
-   order                               :  20
-   error estimation:
-     max / mean error                  :  [  3.33E-16,  7.85E-17 ]
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Orthonormalizing the support functions
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr
@@ -1407,8 +1420,8 @@
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  4.86
-   Elapsed time (s)                    :  4.87
+   CPU time (s)                        :  4.20
+   Elapsed time (s)                    :  4.20
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.81627853E-01, y:  2.49290264E-02, z:  1.39157120E-02, 
                     total:  1.83858044E-01}
@@ -1422,14 +1435,14 @@
  Energy (Hartree)                      : -1.69482356914926271E+01
  Force Norm (Hartree/Bohr)             :  2.72458046551210642E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  8747
-   Tot. No. of Deallocations           :  8747
+   Tot. No. of Allocations             :  7181
+   Tot. No. of Deallocations           :  7181
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  73.968
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 74.628 MB
- Walltime since initialization         : 00:00:05.243515032
+     Memory Peak of process            : 75.348 MB
+ Walltime since initialization         : 00:00:04.578666341
  Max No. of dictionaries used          :  7005 #( 909 still in use)
  Number of dictionary folders allocated:  1
