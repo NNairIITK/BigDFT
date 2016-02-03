@@ -3384,7 +3384,8 @@ subroutine Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,
 !!$  end if
 !!$  !call PolarizationIteration_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
 !!$  !     eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
-
+  !pkernel%minres=1.0d-13
+  !pkernel%opt%use_input_guess=.true.
   call H_potential('D',pkernel,r(1,1,pkernel%grid%istart+1,1),r(1,1,pkernel%grid%istart+1,1),&
        ehartree,offset,.false.)
   call PS_gather(r,pkernel)
