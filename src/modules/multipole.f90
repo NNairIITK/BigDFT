@@ -2105,7 +2105,7 @@ module multipole
           ! Calculate the projector using the penalty term
           call projector_for_charge_analysis(at, smats, smatm, smatl, &
                ovrlp, ham, kernel, rxyz, calculate_centers=.false., write_output=.false., ortho=do_ortho, mode=projectormode, &
-               natpx=natpx, isatx=isatx, nmaxx=nmaxx, nx=nx, projx=projx, neighborx=neighborx, &
+               lzd=lzd, orbs=orbs, natpx=natpx, isatx=isatx, nmaxx=nmaxx, nx=nx, projx=projx, neighborx=neighborx, &
                rpower_matrix=rpower_matrix)
           if (projectormode=='full') then
               do i=1,24
@@ -2480,9 +2480,9 @@ module multipole
       ! Local variables
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl, lwork
       integer :: k, l, iatold, isat, natp, kkat, istot, ntotp, i1, i2, i3, is1, ie1, is2, ie2, is3, ie3, j1, j2, j3, ikT, info
-      integer :: ialpha
+      integer :: ialpha, ilr
       real(kind=8) :: r2, cutoff2, rr2, tt, ef, q, occ, max_error, mean_error, rr2i, rr2j, ttxi, ttyi, ttzi, ttxj, ttyj, ttzj
-      real(kind=8) :: tti, ttj, charge_net, charge_total
+      real(kind=8) :: tti, ttj, charge_net, charge_total, rloc
       real(kind=8) :: xi, xj, yi, yj, zi, zj, ttx, tty, ttz, xx, yy, zz, x, y, z
       real(kind=8),dimension(:),allocatable :: work, occ_all
       real(kind=8),dimension(:,:),allocatable :: com
@@ -2494,6 +2494,7 @@ module multipole
       integer,dimension(:),allocatable :: id_all, n_all, itmparr
       real(kind=8),dimension(3) :: rr
       logical,dimension(:,:),allocatable :: neighbor
+      integer,dimension(:),allocatable :: locregs_ID
       type(matrices),dimension(1) :: ovrlp_onehalf_
       logical :: perx, pery, perz, final, bound_low_ok, bound_up_ok
       !real(kind=8),parameter :: kT = 5.d-2
@@ -2508,8 +2509,19 @@ module multipole
 
 
       select case (trim(mode))
-      case ('simple','full')
+      case ('simple')
           ! everything ok
+      case ('full')
+          ! check the optional arguments
+          if (.not.present(rpower_matrix)) then
+              call f_err_throw('rpower_matrix not present')
+          end if
+          if (.not.present(orbs)) then
+              call f_err_throw('orbs not present')
+          end if
+          if (.not.present(lzd)) then
+              call f_err_throw('lzd not present')
+          end if
       case default
           call f_err_throw('wrong value of mode')
       end select
@@ -2533,7 +2545,7 @@ module multipole
       do iat=1,at%astruct%nat
           tt = tt + real(at%nelpsp(at%astruct%iatype(iat)),kind=8)
       end do
-      convergence_criterion = 1.d-6*abs(tt)
+      convergence_criterion = max(1.d-6*abs(tt),1.d-4)
 
       ! Check the arguments
       if (calculate_centers) then
@@ -2694,6 +2706,7 @@ module multipole
 
 
       charge_per_atom = f_malloc0(at%astruct%nat,id='charge_per_atom')
+      locregs_ID = f_malloc(smats%nfvctr,id='locregs_ID')
 
 
       ! Calculate how many states should be included
@@ -2735,7 +2748,8 @@ module multipole
               alpha = 0.5d0*(alpha_low+alpha_up)
           end if
 
-          if (ialpha==0) alpha = 2.d-1
+          !if (ialpha==0) alpha = 2.d-1
+          if (ialpha==0) alpha = 0.d-1
 
           charge_net = 0.d0
           call f_zero(eval_all)
@@ -2750,6 +2764,8 @@ module multipole
               do j=1,smats%nfvctr
                   if (neighbor(j,kat)) then
                       n = n + 1
+                      locregs_ID(n) = orbs%inwhichlocreg(j)
+                      !write(*,*) 'j, n, ID', j, n, locregs_ID(n)
                   end if
               end do
               n_all(kat) = n
@@ -2794,12 +2810,6 @@ module multipole
               ! Add the penalty term
               if (mode=='full') then
                   ! @ NEW #####################################################################
-                  if (.not.present(rpower_matrix)) then
-                      call f_err_throw('rpower_matrix not present')
-                  end if
-                  !if (.not.present(orbs)) then
-                  !    call f_err_throw('orbs not present')
-                  !end if
                   !write(*,*) 'call extract_matrix with penaltymat'
                   !write(*,*) 'orbs%onwhichatom',orbs%onwhichatom
                   !write(*,*) 'rxyz(:,kkat)',rxyz(:,kkat)
@@ -2863,13 +2873,18 @@ module multipole
                                             + rxyz(2,kkat)**2*penaltymat(j,i,10) &
                                             - 2.d0*rxyz(2,kkat)**2*rxyz(3,kkat)*penaltymat(j,i,9) &
                                             + rxyz(2,kkat)**2*rxyz(3,kkat)**2*ovrlp(j,i) )
-                              if (kkat==1) then
-                                  ttt = alpha*ttt
-                              else
-                                  !if (i==1 .or. i==6) ttt=3.d0*ttt
-                                  ttt = 1.4641d0*alpha*ttt
-                                  !ttt = 5.0d0*alpha*ttt
-                              end if
+                              itype = at%astruct%iatype(kkat)
+                              !rloc = at%psppar(0,0,itype)
+                              ilr = locregs_ID(i)
+                              rloc = lzd%llr(ilr)%locrad
+                              !write(*,*) 'kkat, itype, at%psppar(0,0,itype), rloc', kkat, itype, at%psppar(0,0,itype), rloc
+                              !if (kkat==1) then
+                                  ttt = ttt*alpha/rloc**4
+                              !else
+                              !    !if (i==1 .or. i==6) ttt=3.d0*ttt
+                              !    ttt = 1.4641d0*alpha*ttt
+                              !    !ttt = 5.0d0*alpha*ttt
+                              !end if
                               !ttt = alpha*penaltymat(j,i,2) - alpha*2.d0*tt*penaltymat(j,i,1) + alpha*tt**2*ovrlp(j,i)
                               !ham(j,i) = ham(j,i) + ttt
                               tmpmat2d(j,i,1) = ttt
@@ -3015,7 +3030,8 @@ module multipole
 
               !kT = 1.d-1*abs(eval_all(1))
               if (mode=='full') then
-                  kT = max(1.d-1*abs(eval_all(5)),1.d-1)
+                  kT = max(1.d-1*abs(eval_all(iq)),1.d-1)
+                  !kT = 1.d-2
                   !write(*,*) 'adjust kT to',kT
               end if
     
@@ -3024,12 +3040,14 @@ module multipole
               ! Determine the "Fermi level" such that the iq-th state is still fully occupied even with a smearing
               if (ialpha>=0) then
                   ef = eval_all(1)
+                  tt = ef
                   do
-                      ef = ef + 1.d-3
+                      ef = ef + max(1.d-3,1.d-3*tt)
                       occ = 1.d0/(1.d0+safe_exp( (eval_all(iq)-ef)*(1.d0/kT) ) )
                       if (abs(occ-1.d0)<1.d-8) exit
                   end do
-                  !!write(*,*) 'HACK: INCREASE eF by 0.001d0'
+                  !write(*,*) 'HACK: SET EF TO 0.0'
+                  !ef = 0.0
                   !!eF = eF + 0.001d0
                   do ieval=1,ntot
                       ij = ij + 1
@@ -3137,6 +3155,32 @@ module multipole
               call yaml_mapping_close()
           end if
 
+!!call yaml_sequence_open('ordered eigenvalues and occupations')
+!!ii = 0
+!!do i=1,ntot
+!!    !occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
+!!    occ = occ_all(i)
+!!    if (occ>1.d-100) then
+!!        call yaml_sequence(advance='no')
+!!        call yaml_mapping_open(flow=.true.)
+!!        call yaml_map('eval',eval_all(i),fmt='(es13.4)')
+!!        call yaml_map('atom',id_all(i),fmt='(i5.5)')
+!!        call yaml_map('occ',occ,fmt='(1pg13.5e3)')
+!!        call yaml_mapping_close(advance='no')
+!!        call yaml_comment(trim(yaml_toa(i,fmt='(i5.5)')))
+!!    else
+!!        ii = ii + 1
+!!    end if
+!!end do
+!!if (ii>0) then
+!!    call yaml_sequence(advance='no')
+!!    call yaml_mapping_open(flow=.true.)
+!!    call yaml_map('remaining states',ii)
+!!    call yaml_map('occ','<1.d-100')
+!!    call yaml_mapping_close()
+!!end if
+!!call yaml_sequence_close()
+
 
           if (abs(charge_net)<convergence_criterion .or. ialpha==10000) then
           !if (.true.) then
@@ -3237,6 +3281,7 @@ module multipole
           call write_partial_charges(at, charge_per_atom, write_gnuplot=.false.)
       end if
 
+      call f_free(locregs_ID)
       call f_free(charge_per_atom)
       call f_free(neighbor)
       call f_free(eval_all)
