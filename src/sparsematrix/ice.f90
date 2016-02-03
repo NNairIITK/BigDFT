@@ -1,3 +1,13 @@
+!> @file
+!!   Module to performe the Chebyshev expansion of the inverse
+!! @author
+!!    Copyright (C) 2015-2016 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+!> Module Inverse Chebyshev Expansion
 module ice
   implicit none
 
@@ -8,7 +18,7 @@ module ice
 
   contains
 
-    ! New: chebyshev expansion of the inverse overlap (Inverse Chebyshev Expansion)
+    !> Chebyshev expansion of the inverse overlap (Inverse Chebyshev Expansion)
     subroutine inverse_chebyshev_expansion(iproc, nproc, norder_polynomial, &
                ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp, &
                npl_auto)
@@ -509,7 +519,7 @@ module ice
 
 
 
-    ! Determine the polynomial degree which yields the desired precision
+    !> Determine the polynomial degree which yields the desired precision
     subroutine get_poynomial_degree(iproc, nproc, ispin, ncalc, ex, foe_obj, &
                npl_min, npl_max, max_polynomial_degree, npl, cc, anoise)
       use module_base
