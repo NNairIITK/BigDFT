@@ -436,8 +436,6 @@ module forces_linear
     
     END SUBROUTINE nonlocal_forces_linear
     
-    
-    
     subroutine determine_dimension_scalprod(calculate_strten, natp, isat, at, lzd, nlpsp, &
                orbs, supfun_per_atom, ndir, nscalprod_send)
       use module_base

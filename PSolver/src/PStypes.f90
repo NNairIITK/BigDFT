@@ -38,7 +38,12 @@ module PStypes
   character(len=*), parameter :: FD_ORDER                = 'fd_order' 
   character(len=*), parameter :: ITERMAX                 = 'itermax' 
   character(len=*), parameter :: MINRES                  = 'minres' 
-  character(len=*), parameter, public :: SETUP_VARIABLES         = 'setup'
+  character(len=*), parameter :: PB_METHOD               = 'pb_method' 
+  character(len=*), parameter :: PB_MINRES               = 'pb_minres' 
+  character(len=*), parameter :: PB_ITERMAX              = 'pb_itermax' 
+  character(len=*), parameter :: PB_INPUT_GUESS          = 'pb_input_guess' 
+  character(len=*), parameter :: PB_ETA                  = 'pb_eta'
+  character(len=*), parameter, public :: SETUP_VARIABLES = 'setup'
   character(len=*), parameter :: ACCEL                   = 'accel' 
   character(len=*), parameter :: KEEP_GPU_MEMORY         = 'keep_gpu_memory' 
   character(len=*), parameter :: TASKGROUP_SIZE_KEY      = 'taskgroup_size' 
@@ -80,6 +85,8 @@ module PStypes
      !> correction term, given in terms of the multiplicative factor of nabla*eps*nabla
      !! to be used for Preconditioned Conjugate Gradient 
      real(dp), dimension(:,:), pointer :: corr
+     !> ionic density, in the case of a PB approach
+     real(dp), dimension(:,:), pointer :: rho_ions
      !> inner rigid cavity to be integrated in the sccs method to avoit inner
      !! cavity discontinuity due to near-zero edens near atoms
      real(dp), dimension(:,:), pointer :: epsinnersccs
@@ -92,7 +99,7 @@ module PStypes
      !!or work arrays, might be of variable dimension
      !!(either full of distributed)
      real(dp), dimension(:,:), pointer :: pot
-     real(dp), dimension(:,:), pointer :: rho
+     real(dp), dimension(:,:), pointer :: rho,rho_pb
      !> Polarization charge vector for print purpose only.
      real(dp), dimension(:,:), pointer :: rho_pol
      !> arrays for the execution of the PCG algorithm
@@ -121,9 +128,12 @@ module PStypes
      !> Trigger the calculation of the electrostatic contribution only
      !! if .true., the code only calculates the electrostatic contribution
      !! and the cavitation terms are neglected
+     logical :: only_electrostatic
      !> extract the polarization charge and the dielectric function, to be used for plotting purposes
      logical :: cavity_info
-     logical :: only_electrostatic
+     !> Use the input guess procedure for the solution in the case of the Poisson Boltzmann Equation
+     !! this option is ignored in the case of a neutral solution
+     logical :: use_pb_input_guess
      !> Total integral on the supercell of the final potential on output
      !! clearly meaningful only for Fully periodic BC, ignored in the other cases
      real(gp) :: potential_integral
@@ -188,7 +198,10 @@ module PStypes
      integer :: max_iter !< maximum number of convergence iterations
      real(dp) :: minres !< convergence criterion for the iteration
      real(dp) :: PI_eta !<parameter for the update of PI iteration
-
+     integer :: max_iter_PB !< max conv iterations for PB treatment
+     real(dp) :: minres_PB !<convergence criterion for PB residue
+     real(dp) :: PB_eta !< mixing scheme for PB
+     
      integer, dimension(:), pointer :: counts !<array needed to gather the information of the poisson solver
      integer, dimension(:), pointer :: displs !<array needed to gather the information of the poisson solver
      integer, dimension(:), pointer :: rhocounts !<array needed to gather the information of the poisson solver on multiple gpus
@@ -216,7 +229,7 @@ module PStypes
   public :: pkernel_null,PSolver_energies_null,pkernel_free,pkernel_allocate_cavity
   public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays,build_cavity_from_rho
   public :: ps_allocate_lowlevel_workarrays,PSolver_options_null,PS_input_dict
-  public :: release_PS_workarrays,PS_release_lowlevel_workarrays,PS_set_options,pkernel_init
+  public :: release_PS_potential,PS_release_lowlevel_workarrays,PS_set_options,pkernel_init
 
 contains
 
@@ -277,6 +290,7 @@ contains
     nullify(w%epsinnersccs)
     nullify(w%rho_pol)
     nullify(w%rho)
+    nullify(w%rho_pb)
     nullify(w%pot)
     nullify(w%res)
     nullify(w%zf)
@@ -284,6 +298,7 @@ contains
     nullify(w%p)
     nullify(w%q)
     nullify(w%eps)
+    nullify(w%rho_ions)
     call f_zero(w%work1_GPU)
     call f_zero(w%work2_GPU)
     call f_zero(w%rho_GPU)
@@ -352,6 +367,7 @@ contains
     call f_free_ptr(w%rho_pol)
     call f_free_ptr(w%pot)
     call f_free_ptr(w%rho)
+    call f_free_ptr(w%rho_ions)
     call f_free_ptr(w%res)
     call f_free_ptr(w%z)
     call f_free_ptr(w%p)
@@ -392,7 +408,7 @@ contains
 
   end subroutine free_PS_workarrays
 
-  subroutine release_PS_workarrays(keepzf,w,use_input_guess)
+  subroutine release_PS_potential(keepzf,w,use_input_guess)
     implicit none
     integer, intent(in) :: keepzf
     type(PS_workarrays), intent(inout) :: w
@@ -400,7 +416,7 @@ contains
     if(keepzf /= 1) call f_free_ptr(w%zf)
 !    call f_free_ptr(w%pot)
     if (.not. use_input_guess) call f_free_ptr(w%pot)
-  end subroutine release_PS_workarrays
+  end subroutine release_PS_potential
 
   !> Free memory used by the kernel operation
   !! @ingroup PSOLVER
@@ -728,6 +744,26 @@ contains
           k%max_iter=val
        case (MINRES)
           k%minres=val
+       case (PB_METHOD)
+          strn=val
+          select case(trim(strn))
+          case('none')
+             call f_enum_attr(k%method,PS_PB_NONE_ENUM)
+          case('linear')
+             call f_enum_attr(k%method,PS_PB_LINEAR_ENUM)
+          case('standard')
+             call f_enum_attr(k%method,PS_PB_STANDARD_ENUM)
+          case('modified')
+             call f_enum_attr(k%method,PS_PB_MODIFIED_ENUM)
+          end select
+       case (PB_MINRES)
+          k%minres_PB=val
+       case (PB_ITERMAX)
+          k%max_iter_PB=val
+       case (PB_INPUT_GUESS)
+          opt%use_pb_input_guess=val
+       case (PB_ETA)
+          k%PB_eta=val
        case DEFAULT
           if (k%mpi_env%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -778,11 +814,11 @@ contains
 
   !> allocate the workarrays needed to perform the 
   !! GPS operation
-  subroutine PS_allocate_lowlevel_workarrays(cudasolver,use_input_guess,rho,kernel)
+  subroutine PS_allocate_lowlevel_workarrays(poisson_boltzmann,cudasolver,rho,kernel)
     use f_utils, only: f_zero
     use wrapper_linalg, only: axpy
     implicit none
-    logical, intent(in) :: cudasolver,use_input_guess
+    logical, intent(in) :: cudasolver,poisson_boltzmann
     type(coulomb_operator), intent(inout) :: kernel
     real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(in) :: rho !< initial rho, needed for PCG
     !local variables
@@ -804,84 +840,71 @@ contains
 
     select case(trim(str(kernel%method)))
     case('PCG')
-!       if (use_input_guess .and. &
-!            all([associated(kernel%w%res),associated(kernel%w%pot)])) then
-!          !call axpy(n1*n23,1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
-!          call f_memcpy(src=rho,dest=kernel%w%res)
-!       else
-!          !allocate if it is the first time
-!          if (associated(kernel%w%pot)) then
-!             call f_zero(kernel%w%pot)
-!          else
-!             kernel%w%pot=f_malloc0_ptr([n1,n23],id='pot')
-!          end if
-!          if (.not. associated(kernel%w%res)) &
-!               kernel%w%res=f_malloc_ptr([n1,n23],id='res')
-!          call f_memcpy(src=rho,dest=kernel%w%res)
-!       end if
-       if (use_input_guess .and. &
-            associated(kernel%w%pot)) then
-       else
-          !allocate if it is the first time
-          if (associated(kernel%w%pot)) then
-             call f_zero(kernel%w%pot)
-          else
-             kernel%w%pot=f_malloc0_ptr([n1,n23],id='pot')
-          end if
-       end if
+!!$       if (use_input_guess .and. &
+!!$            associated(kernel%w%pot)) then
+!!$       else
+!!$          !allocate if it is the first time
+!!$          if (associated(kernel%w%pot)) then
+!!$             !call f_zero(kernel%w%pot)
+!!$          else
+!!$             kernel%w%pot=f_malloc0_ptr([n1,n23],id='pot')
+!!$          end if
+!!$       end if
+       if (.not. associated(kernel%w%pot)) kernel%w%pot=f_malloc0_ptr([n1,n23],id='pot')
        kernel%w%res=f_malloc_ptr([n1,n23],id='res')
        call f_memcpy(src=rho,dest=kernel%w%res)
 
        kernel%w%q=f_malloc0_ptr([n1,n23],id='q')
        kernel%w%p=f_malloc0_ptr([n1,n23],id='p')
        kernel%w%z=f_malloc_ptr([n1,n23],id='z')
-       kernel%w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
+       kernel%w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol')
     case('PI')
-       if (use_input_guess .and. &
-            associated(kernel%w%pot)) then
-       else
-          !allocate if it is the first time
-          if (associated(kernel%w%pot)) then
-             call f_zero(kernel%w%pot)
-          else
-             kernel%w%pot=f_malloc_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='pot')
-          end if
-       end if
+!!$       if (use_input_guess .and. &
+!!$            associated(kernel%w%pot)) then
+!!$       else
+!!$          !allocate if it is the first time
+!!$          if (associated(kernel%w%pot)) then
+!!$             !call f_zero(kernel%w%pot)
+!!$          else
+!!$             kernel%w%pot=f_malloc_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='pot')
+!!$          end if
+!!$       end if
+
+       if (.not. associated(kernel%w%pot))&
+            kernel%w%pot=f_malloc0_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='pot')
 
        !kernel%w%pot=f_malloc_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='pot')
        kernel%w%rho=f_malloc0_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='rho')
-       kernel%w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
+       kernel%w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol')
     end select
+
+    if (poisson_boltzmann) then
+       kernel%w%rho_pb=f_malloc_ptr([n1,n23],id='rho_pb')
+       call f_memcpy(src=rho,dest=kernel%w%rho_pb)
+    end if
 
   end subroutine PS_allocate_lowlevel_workarrays
 
   !> this is useful to deallocate useless space and to 
   !! also perform extra treatment for the inputguess
-  subroutine PS_release_lowlevel_workarrays(cavity_info,use_input_guess,rho,kernel)
+  subroutine PS_release_lowlevel_workarrays(kernel)
     use wrapper_linalg, only: axpy
     implicit none
-    logical, intent(in) :: cavity_info,use_input_guess
     type(coulomb_operator), intent(inout) :: kernel
-    real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(in) :: rho !< initial rho, needed for PCG
 
     select case(trim(str(kernel%method)))
     case('PCG')
-!       if (use_input_guess) then
-!          !preserve the previous values for the input guess
-!          call axpy(size(kernel%w%res),-1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
-!       else
-!          call f_free_ptr(kernel%w%res)
-!       end if
-!       if (.not. use_input_guess) call f_free_ptr(kernel%w%res)
        call f_free_ptr(kernel%w%res)
        call f_free_ptr(kernel%w%q)
        call f_free_ptr(kernel%w%p)
        call f_free_ptr(kernel%w%z)
-       call f_free_ptr(kernel%w%rho_pol) !>>>>>>>>>>here the switch
+       call f_free_ptr(kernel%w%rho_pol) 
     case('PI')
        call f_free_ptr(kernel%w%rho)
-       call f_free_ptr(kernel%w%rho_pol) !>>>>>>>>>>here the switch
+       call f_free_ptr(kernel%w%rho_pol)
     end select
+
+    call f_free_ptr(kernel%w%rho_pb)
 
   end subroutine PS_release_lowlevel_workarrays
 
@@ -912,6 +935,9 @@ contains
        w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
        !w%epsinnersccs=f_malloc_ptr([n1,ndims(2)*ndims(3)],id='epsinnersccs')
     end select
+
+    w%rho_ions=f_malloc_ptr([n1,n23],id='rho_ions')
+
    end subroutine PS_allocate_cavity_workarrays
 
   !> create the memory space needed to store the arrays for the 
@@ -1201,9 +1227,9 @@ contains
                    kernel%w%eps(i1,i23)=eps(rh,kernel%cavity)
                    kernel%w%oneoeps(i1,i23)=oneosqrteps(rh,kernel%cavity)
                    kernel%w%corr(i1,i23)=corr_term(rh,d2,dd,kernel%cavity)
-                   dsurfdrho(i1,i23)=surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
+                   dsurfdrho(i1,i23)=-surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
                    !evaluate surfaces and volume integrals
-                   IntSur=IntSur + de*d/epsm1
+                   IntSur=IntSur - de*d/epsm1
                    IntVol=IntVol + (kernel%cavity%epsilon0-eps(rh,kernel%cavity))/epsm1
                 end if
              end do
@@ -1231,10 +1257,10 @@ contains
                    depsdrho(i1,i23)=de
                    kernel%w%eps(i1,i23)=eps(rh,kernel%cavity)
                    kernel%w%oneoeps(i1,i23)=oneoeps(rh,kernel%cavity) 
-                   dsurfdrho(i1,i23)=surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
+                   dsurfdrho(i1,i23)=-surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
 
                    !evaluate surfaces and volume integrals
-                   IntSur=IntSur + de*d/epsm1
+                   IntSur=IntSur - de*d/epsm1
                    IntVol=IntVol + (kernel%cavity%epsilon0-eps(rh,kernel%cavity))/epsm1
                 end if
              end do

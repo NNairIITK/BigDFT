@@ -143,7 +143,7 @@ contains
     !! if the number of k-point is equal to one
     integer, intent(in), optional :: ikpt
     logical :: ok
-    !local variables
+    !local variablesmul
     integer :: ikpt_tmp
 
     ok=ket_is_valid(it)

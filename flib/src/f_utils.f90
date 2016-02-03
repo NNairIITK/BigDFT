@@ -139,19 +139,19 @@ contains
     case(2)
        t='-'
     case(3)
-       t="\ "
+       t='\'
     end select
   end function ticker
 
-  !routine to build the message to be dump
+  !> Routine to build the message to be dump
   subroutine update_progress_bar(bar,istep)
     use yaml_strings
     implicit none
     integer, intent(in) :: istep
     type(f_progress_bar), intent(inout) :: bar
     !local variables
-    integer, parameter :: nstars=30
-    integer :: j,step
+    integer, parameter :: nstars=25
+    integer :: j
     real(f_double) :: percent
     real(f_double) :: time_elapsed, it_s !< in seconds
     real(f_double) :: time_remaining !< seconds, estimation
@@ -208,7 +208,7 @@ contains
 
   end function f_ht_long
 
-  !convert a time in seconds into a string of the format e.g 3.5s,10m3s,12h10m,350d12h,1y120d
+  !> Convert a time in seconds into a string of the format e.g 3.5s,10m3s,12h10m,350d12h,1y120d
   pure function f_humantime(ns,short) result(time)
     use yaml_strings
     implicit none
@@ -218,7 +218,8 @@ contains
     !local variables
     logical :: sht
     character(len=*), parameter :: fmt='(i2.2)'
-    integer(f_long), parameter :: billion=int(1000000000,f_long),sixty=int(60,f_long)
+    integer(f_long), parameter :: billion=int(1000000000,f_long)
+    integer(f_long), parameter :: sixty=int(60,f_long)
     integer(f_long), parameter :: tsf=int(365,f_long),tf=int(24,f_long),zr=int(0,f_long)
     integer(f_long) :: s,nsn,m,h,d,y
 
@@ -226,9 +227,9 @@ contains
     if (present(short)) sht=short
 
     !get the seconds
-    s=ns/billion
+    s=int(ns/billion,kind=f_long)
     !then get nanosecs
-    nsn=ns-s*billion
+    nsn=int(ns,kind=f_long)-s*billion
     !then take minutes from seconds
     m=s/sixty; s=s-m*sixty
     !and hours from minutes

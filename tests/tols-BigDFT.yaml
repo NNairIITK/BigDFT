@@ -75,6 +75,7 @@ Patterns to ignore:
  - Timestamp
  - memory
  - FLAGS
+ - input_guess
 
 
 Expected Test CPUtime: #
@@ -1718,7 +1719,7 @@ multipoles_water:
  eF: 2.2e-7
  guess for new ef: 2.2e-7
  number of corrected points: 17
- multiplicator for the confinement: 1.95e-10
+ multiplicator for the confinement: 1.97e-10
  EH: 2.1e-10
  D eF: 2.7e-7
  ebs_check: 1.5e-10

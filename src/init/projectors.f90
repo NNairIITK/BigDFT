@@ -40,8 +40,6 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   nl%nproj=0
   nl%nprojel=0
 
-  !Pb of inout
-  izero=0
 
   do iat=1,at%astruct%nat
 
@@ -55,9 +53,6 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      !assign the number of projector to the localization region
      nl%pspd(iat)%mproj=mproj
 
-     !this is not really needed, see below
-     if (mproj == 0) call bounds_to_plr_limits(.true.,1,nl%pspd(iat)%plr,&
-                          izero,izero,izero,izero,izero,izero)
      if (mproj /= 0) then 
 
         !if some projectors are there at least one locreg interacts with the psp
@@ -112,6 +107,12 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         !print *,'iat,nprojelat',iat,nprojelat,mvctr,mseg
 
      else  !(atom has no nonlocal PSP, e.g. H)
+        !Pb of inout
+        izero=0
+
+        !this is not really needed, see below
+        call bounds_to_plr_limits(.true.,1,nl%pspd(iat)%plr,&
+             izero,izero,izero,izero,izero,izero)
 
         nl%pspd(iat)%plr%wfd%nseg_c=0
         nl%pspd(iat)%plr%wfd%nvctr_c=0
@@ -136,7 +137,6 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
              nl1,nl2,nl3,nu1,nu2,nu3)
      endif
   enddo
-  
 
   !control the strategy to be applied following the memory limit
   !if the projectors takes too much memory allocate only one atom at the same time
@@ -228,10 +228,126 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
 
   !print *,'iproc,nkptsproj',iproc,nkptsproj,nlpspd%nprojel,orbs%iskpts,orbs%iskpts+orbs%nkptsp
 
-
   call f_release_routine()
 
 END SUBROUTINE localize_projectors
+
+!> Localize the projectors for pseudopotential calculations
+subroutine localize_projectors_new(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
+     logrid,at,nl)
+  use module_base
+  use module_types, only: atoms_data,orbitals_data
+  use gaussians, only: gaussian_basis_iter, gaussian_iter_start, gaussian_iter_next_shell
+  use psp_projectors_base, only: DFT_PSP_projectors
+  use psp_projectors, only: bounds_to_plr_limits, pregion_size
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  type(DFT_PSP_projectors), intent(inout) :: nl
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+  logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
+  !Local variables
+  !n(c) logical :: cmplxprojs
+  type(gaussian_basis_iter) :: iter
+  integer :: istart,ityp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,i,l
+  integer :: izero
+
+  call f_routine(id='localize_projectors')
+
+  nl%nproj=0
+
+  do iat=1,at%astruct%nat
+
+     mproj = 0
+     call gaussian_iter_start(nl%proj_G, iat, iter)
+     do
+        if (.not. gaussian_iter_next_shell(nl%proj_G, iter)) exit
+        mproj = mproj + 2 * iter%l - 1
+     end do
+
+     !assign the number of projector to the localization region
+     nl%pspd(iat)%mproj=mproj
+
+     if (mproj /= 0) then 
+
+        !if some projectors are there at least one locreg interacts with the psp
+        nl%pspd(iat)%nlr=1
+
+        !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&
+        !     'projector descriptors for atom with mproj ',iat,mproj
+        nl%nproj=nl%nproj+mproj
+
+        ! coarse grid quantities
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),at%radii_cf(at%astruct%iatype(iat),3),&
+             cpmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+
+        call bounds_to_plr_limits(.true.,1,nl%pspd(iat)%plr,&
+             nl1,nl2,nl3,nu1,nu2,nu3)
+
+        !these routines are associated to the handling of a locreg
+        call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,&
+             at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),at%radii_cf(1,3),&
+             cpmult,hx,hy,hz,logrid)
+        call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
+
+        nl%pspd(iat)%plr%wfd%nseg_c=mseg
+        nl%pspd(iat)%plr%wfd%nvctr_c=mvctr
+
+        !print *,'iat,mvctr',iat,mvctr,mseg,mproj
+
+        ! fine grid quantities
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),at%radii_cf(at%astruct%iatype(iat),2),fpmult,&
+             hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+
+        call bounds_to_plr_limits(.true.,2,nl%pspd(iat)%plr,&
+             nl1,nl2,nl3,nu1,nu2,nu3)
+
+        call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),&
+             at%radii_cf(1,2),fpmult,hx,hy,hz,logrid)
+        call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
+        !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr, fine  projectors ',mseg,mvctr
+
+        nl%pspd(iat)%plr%wfd%nseg_f=mseg
+        nl%pspd(iat)%plr%wfd%nvctr_f=mvctr
+
+     else  !(atom has no nonlocal PSP, e.g. H)
+        !Pb of inout
+        izero=0
+
+        !this is not really needed, see below
+        call bounds_to_plr_limits(.true.,1,nl%pspd(iat)%plr,&
+             izero,izero,izero,izero,izero,izero)
+
+        nl%pspd(iat)%plr%wfd%nseg_c=0
+        nl%pspd(iat)%plr%wfd%nvctr_c=0
+        nl%pspd(iat)%plr%wfd%nseg_f=0
+        nl%pspd(iat)%plr%wfd%nvctr_f=0
+
+        !! the following is necessary to the creation of preconditioning projectors
+        !! coarse grid quantities ( when used preconditioners are applied to all atoms
+        !! even H if present )
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),&
+             at%radii_cf(at%astruct%iatype(iat),3),cpmult, &
+             hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+
+        call bounds_to_plr_limits(.true.,1,nl%pspd(iat)%plr,&
+             nl1,nl2,nl3,nu1,nu2,nu3)
+
+        ! fine grid quantities
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),at%radii_cf(at%astruct%iatype(iat),2),fpmult,&
+             hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+
+        call bounds_to_plr_limits(.true.,2,nl%pspd(iat)%plr,&
+             nl1,nl2,nl3,nu1,nu2,nu3)
+     endif
+  enddo
+
+  call f_release_routine()
+
+END SUBROUTINE localize_projectors_new
 
 
 !> Fill the proj array with the PSP projectors or their derivatives, following idir value

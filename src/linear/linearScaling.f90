@@ -165,6 +165,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   ! needs for the application of the Hamlitonian to all orbitals on that process.
   call allocate_p2pComms_buffer(tmb%comgp)
 
+  cdft_it=0
   pnrm=1.d100
   pnrm_out=1.d100
   energyold=0.d0

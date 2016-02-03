@@ -441,7 +441,30 @@ def input_info(h, n, screen, menu, parent):
             pos -= 1
         screen.refresh()
         x = screen.getch()  # Gets user input
-    # 
+    #We have a key
+    curses.endwin()
+    searchfor = key
+    allkeys = []
+    for f in files:
+        allkeys += params[f].keys()
+    matching_keys = closest_keys(allkeys, searchfor)
+    print 'matching', searchfor, 'in:', matching_keys
+    print 'keys wich match the most with', searchfor
+    foundkeys = []
+    doc = []
+    for (i, ratio) in matching_keys:
+        if ratio > 0.5 and i not in foundkeys:
+            for f in find_files(params, i):
+                dc = {}
+                dc['Key found'] = i
+                dc['Similarity'] = ratio
+                dc['Field'] = f
+                dc['Description'] = params[f][i]
+                doc.append(dc)
+                foundkeys.append(i)
+    sys.stdout.write(
+        yaml.dump(doc, default_flow_style=False, explicit_start=True))
+    sys.exit(0)
     return 0
 
 

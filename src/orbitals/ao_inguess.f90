@@ -551,7 +551,7 @@ contains
 !!$ integer :: lsc
     real(gp) :: tt,sh_chg
     integer, dimension(lmax_ao+1) :: nl,nlsc
-    real(gp), dimension(2*(2*lmax_ao-1),nmax_ao,lmax_ao+1) :: allocc
+    real(gp), dimension(2*(2*lmax_ao+1),nmax_ao,lmax_ao+1) :: allocc
     type(dictionary), pointer :: dict_tmp!,dict_it
     character(len=1), dimension(max_size) :: empty_shells
     integer, dimension(lmax_ao+1) :: nl_empty
@@ -753,6 +753,7 @@ contains
                       end do
                    else if (nspin == 2) then
                       !collinear spin
+!print *,'here',tt,l,2*l,2*(2*l-1),lmax_ao,shape(allocc)
                       allocc(2*l:2*(2*l-1),n,l)=tt
                    else
                       !spin averaged

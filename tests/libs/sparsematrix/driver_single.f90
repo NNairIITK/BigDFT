@@ -36,7 +36,11 @@ program driver_single
   ! PROBLEM: This is in src/modules...
   call bigdft_init()
 
-  if (bigdft_mpi%iproc==0) then
+  call mpiinit()
+
+  iproc=mpirank()
+
+  if (iproc==0) then
       call yaml_new_document()
   end if
   call f_timing_reset(filename='time.yaml',master=bigdft_mpi%iproc==0,verbose_mode=.true. .and. bigdft_mpi%nproc>1)
@@ -155,7 +159,8 @@ program driver_single
 
 
   ! Finalize MPI
-  call bigdft_finalize(ierr)
+  call mpifinalize()
+  !call bigdft_finalize(ierr)
 
   ! Finalize flib
   call f_lib_finalize()
