@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.4
- Timestamp of this run                 : 2016-02-02 17:24:48.993
+ Timestamp of this run                 : 2016-02-03 11:09:43.165
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -1717,20 +1717,31 @@
      error estimation:
        max / mean error                :  [  3.01E-10,  4.44E-11 ]
    Calculating projector for charge analysis:
-     convergence criterion             :  7.2000000000000002E-005
+     convergence criterion             :  1.0E-004
      maximal size of a submatrix       :  46
      Searching alpha for charge neutrality:
-     -  {alpha:  1.0000E-03, net charge: -7.1333E+01, bisection bounds ok:  [  No,  No ]}
-     -  {alpha:  1.0000E+01, net charge: -3.0812E-04, bisection bounds ok:  [  Yes,  No ]}
-     -  {alpha:  2.0000E+01, net charge:  2.2212E-02, bisection bounds ok:  [  Yes,  No ]}
-     -  {alpha:  1.0001E+01, net charge: -3.0587E-04, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  1.5000E+01, net charge:  1.4705E-02, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  1.2500E+01, net charge:  8.7007E-03, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  1.1250E+01, net charge:  4.6977E-03, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  1.0625E+01, net charge:  2.3431E-03, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  1.0313E+01, net charge:  1.0587E-03, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  1.0157E+01, net charge:  3.8693E-04, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  1.0079E+01, net charge:  4.3217E-05, bisection bounds ok:  [  Yes,  Yes ]}
+     -  {alpha:  1.0000E-03, net charge: -7.1333E+01, bisection bounds ok:  [  No,  No ], 
+            kT:  1.0000E-02}
+     -  {alpha:  1.0000E+01, net charge: -3.0812E-04, bisection bounds ok:  [  Yes,  No ], 
+            kT:  1.0000E-02}
+     -  {alpha:  2.0000E+01, net charge:  2.2212E-02, bisection bounds ok:  [  Yes,  No ], 
+            kT:  1.0000E-02}
+     -  {alpha:  1.0001E+01, net charge: -3.0587E-04, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  1.5000E+01, net charge:  1.4705E-02, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  1.2500E+01, net charge:  8.7007E-03, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  1.1250E+01, net charge:  4.6977E-03, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  1.0625E+01, net charge:  2.3431E-03, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  1.0313E+01, net charge:  1.0587E-03, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  1.0157E+01, net charge:  3.8693E-04, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  1.0079E+01, net charge:  4.3217E-05, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
      number of states to be occupied (without smearing):  42
      Pseudo Fermi level for occupations:  0.3147623329575415
      ordered eigenvalues and occupations:
@@ -2437,8 +2448,8 @@
  - no improvement of the orbitals, recalculate gradient
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  39.20
-   Elapsed time (s)                    :  40.15
+   CPU time (s)                        :  39.05
+   Elapsed time (s)                    :  39.12
  BigDFT infocode                       :  0
  Average noise forces: {x:  9.18365322E-02, y:  6.07632245E-02, z:  1.47095732E-01, 
                     total:  1.83747850E-01}
@@ -2473,14 +2484,14 @@
  Energy (Hartree)                      : -1.35125793599654344E+02
  Force Norm (Hartree/Bohr)             :  4.89534230031736628E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  29917
-   Tot. No. of Deallocations           :  29917
+   Tot. No. of Allocations             :  29918
+   Tot. No. of Deallocations           :  29918
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  336.868
      for the array                     : psi_f
      in the routine                    : transpose_localized
-     Memory Peak of process            : 425.532 MB
- Walltime since initialization         : 00:00:40.555413501
+     Memory Peak of process            : 424.936 MB
+ Walltime since initialization         : 00:00:39.516847561
  Max No. of dictionaries used          :  7520 #( 909 still in use)
  Number of dictionary folders allocated:  1

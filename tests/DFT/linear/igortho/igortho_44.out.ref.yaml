@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.4
- Timestamp of this run                 : 2016-02-02 11:26:33.249
+ Timestamp of this run                 : 2016-02-03 11:22:42.093
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -698,11 +698,11 @@
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  orthonormalization of input guess: generalized, 
- calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [ {npl:  16, scale:  1.00E+00, bounds:  [  0.5,  1.5 ], ok:  [  Yes,  Yes ], 
+ calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [ {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
          exp accur:  [  3.61E-10 ]}], 
  error estimation: [
  max / mean error:  [  4.77E-09,  2.23E-10 ]]}, 
- calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [ {npl:  16, scale:  1.00E+00, bounds:  [  0.5,  1.5 ], ok:  [  Yes,  Yes ], 
+ calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [ {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
          exp accur:  [  3.61E-10 ]}], 
  error estimation: [
  max / mean error:  [  3.7E-10,  3.29E-11 ]]}, 
@@ -718,11 +718,11 @@
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  orthonormalization of input guess: generalized, 
- calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [ {npl:  16, scale:  1.00E+00, bounds:  [  0.5,  1.5 ], ok:  [  Yes,  Yes ], 
+ calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [ {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
          exp accur:  [  3.61E-10 ]}], 
  error estimation: [
  max / mean error:  [  9.14E-10,  4.76E-11 ]]}, 
- calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [ {npl:  16, scale:  1.00E+00, bounds:  [  0.5,  1.5 ], ok:  [  Yes,  Yes ], 
+ calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [ {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
          exp accur:  [  3.61E-10 ]}], 
  error estimation: [
  max / mean error:  [  3.7E-10,  3.63E-11 ]]}, 
@@ -757,7 +757,7 @@
          x                             : -1/2
        order                           :  1020
        determine eigenvalue bounds:
-       -  {npl:  16, scale:  1.00E+00, bounds:  [  0.5,  1.5 ], ok:  [  Yes,  Yes ], 
+       -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
      exp accur:  [  3.61E-10 ]}
        error estimation:
          max / mean error              :  [  9.45E-09,  5.50E-10 ]
@@ -1700,35 +1700,56 @@
        x                               : 1/2
      order                             :  1020
      determine eigenvalue bounds:
-     -  {npl:  13, scale:  1.00E+00, bounds:  [  0.5,  1.5 ], ok:  [  Yes,  Yes ], 
+     -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
    exp accur:  [  6.93E-10 ]}
      error estimation:
        max / mean error                :  [  4.02E-08,  2.97E-09 ]
    Calculating projector for charge analysis:
-     convergence criterion             :  4.9999999999999996E-005
+     convergence criterion             :  1.0E-004
      maximal size of a submatrix       :  100
      Searching alpha for charge neutrality:
-     -  {alpha:  1.0000E-03, net charge: -4.6246E+01, bisection bounds ok:  [  No,  No ]}
-     -  {alpha:  1.0000E+01, net charge:  2.2747E+00, bisection bounds ok:  [  Yes,  No ]}
-     -  {alpha:  5.0005E+00, net charge:  2.2199E+00, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  2.5008E+00, net charge:  2.1106E+00, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  1.2509E+00, net charge:  1.8926E+00, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  6.2594E-01, net charge:  1.4589E+00, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  3.1347E-01, net charge:  6.0103E-01, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  1.5723E-01, net charge: -1.0763E+00, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  2.3535E-01, net charge:  3.6206E-02, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  1.9629E-01, net charge: -4.1154E-01, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  2.1582E-01, net charge: -1.6777E-01, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  2.2559E-01, net charge: -6.1443E-02, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  2.3047E-01, net charge: -1.1601E-02, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  2.3291E-01, net charge:  1.2549E-02, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  2.3169E-01, net charge:  5.3619E-04, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  2.3108E-01, net charge: -5.5168E-03, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  2.3138E-01, net charge: -2.4864E-03, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  2.3154E-01, net charge: -9.7412E-04, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  2.3161E-01, net charge: -2.1872E-04, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  2.3165E-01, net charge:  1.5880E-04, bisection bounds ok:  [  Yes,  Yes ]}
-     -  {alpha:  2.3163E-01, net charge: -2.9946E-05, bisection bounds ok:  [  Yes,  Yes ]}
+     -  {alpha:  1.0000E-03, net charge: -4.6246E+01, bisection bounds ok:  [  No,  No ], 
+            kT:  1.0000E-02}
+     -  {alpha:  1.0000E+01, net charge:  2.2747E+00, bisection bounds ok:  [  Yes,  No ], 
+            kT:  1.0000E-02}
+     -  {alpha:  5.0005E+00, net charge:  2.2199E+00, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  2.5008E+00, net charge:  2.1106E+00, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  1.2509E+00, net charge:  1.8926E+00, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  6.2594E-01, net charge:  1.4589E+00, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  3.1347E-01, net charge:  6.0103E-01, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  1.5723E-01, net charge: -1.0763E+00, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  2.3535E-01, net charge:  3.6206E-02, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  1.9629E-01, net charge: -4.1154E-01, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  2.1582E-01, net charge: -1.6777E-01, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  2.2559E-01, net charge: -6.1443E-02, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  2.3047E-01, net charge: -1.1601E-02, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  2.3291E-01, net charge:  1.2549E-02, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  2.3169E-01, net charge:  5.3619E-04, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  2.3108E-01, net charge: -5.5168E-03, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  2.3138E-01, net charge: -2.4864E-03, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  2.3154E-01, net charge: -9.7412E-04, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  2.3161E-01, net charge: -2.1872E-04, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  2.3165E-01, net charge:  1.5880E-04, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
+     -  {alpha:  2.3163E-01, net charge: -2.9946E-05, bisection bounds ok:  [  Yes,  Yes ], 
+            kT:  1.0000E-02}
      number of states to be occupied (without smearing):  34
      Pseudo Fermi level for occupations:  0.5189458131445992
      ordered eigenvalues and occupations:
@@ -1875,7 +1896,7 @@
        x                               : 1/2
      order                             :  1020
      determine eigenvalue bounds:
-     -  {npl:  13, scale:  1.00E+00, bounds:  [  0.5,  1.5 ], ok:  [  Yes,  Yes ], 
+     -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
    exp accur:  [  6.93E-10 ]}
      error estimation:
        max / mean error                :  [  4.02E-08,  2.97E-09 ]
@@ -2860,6 +2881,7 @@
        type                            : unknown
   #================================================= Atomic multipole analysis, new approach
  Method                                : loewdin
+ Projector mode                        : none
  Orthogonalized support functions      : yes
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Unitary test of the multipole routines
  Unitary check of the multipole calculations:
@@ -3161,8 +3183,8 @@
  - set to 1.d-20 instead of 0.d0
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  42.57
-   Elapsed time (s)                    :  42.66
+   CPU time (s)                        :  41.99
+   Elapsed time (s)                    :  42.06
  BigDFT infocode                       :  0
  Average noise forces: {x:  4.14505423E-02, y:  4.90196644E-02, z:  4.05626469E-02, 
                     total:  7.59368374E-02}
@@ -3199,14 +3221,14 @@
  Energy (Hartree)                      : -5.55986843135020194E+01
  Force Norm (Hartree/Bohr)             :  3.46424638963738596E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  28297
-   Tot. No. of Deallocations           :  28297
+   Tot. No. of Allocations             :  26608
+   Tot. No. of Deallocations           :  26608
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  787.684
      for the array                     : psi_f
      in the routine                    : transpose_localized
-     Memory Peak of process            : 861.824 MB
- Walltime since initialization         : 00:00:43.089433941
+     Memory Peak of process            : 860.084 MB
+ Walltime since initialization         : 00:00:42.495917684
  Max No. of dictionaries used          :  10776 #( 909 still in use)
  Number of dictionary folders allocated:  2
