@@ -209,7 +209,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   call PS_allocate_lowlevel_workarrays(poisson_boltzmann,cudasolver,&
        rhov(1,1,i3s),kernel)
 
-  i3s_pot_pb=0  !in the SCCS case
+  i3s_pot_pb=0  !in the PCG case
   if (kernel%method == PS_PI_ENUM) i3s_pot_pb=i23sd2-1
 
   !switch between neutral and ionic solution (GPe or PBe)
@@ -223,14 +223,21 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
      end if
      if (wrtmsg) call yaml_sequence_open('Poisson Boltzmann solver')
      loop_pb: do i_PB=1,kernel%max_iter_PB
-        
+        if (wrtmsg) then
+           call yaml_sequence(advance='no')
+           call yaml_mapping_open()
+        end if
         call Parallel_GPS(kernel,cudasolver,kernel%opt%potential_integral,energies%strten,&
              wrtmsg,kernel%w%rho_pb,kernel%opt%use_input_guess)
         
         call PB_iteration(n1,n23,i3s_pot_pb,kernel%PB_eta,kernel%cavity,rhov(1,1,i3s),kernel%w%pot,kernel%w%eps,&
              kernel%w%rho_ions,kernel%w%rho_pb,res_PB)
+        if (kernel%method == PS_PCG_ENUM) call f_memcpy(src=kernel%w%rho_pb,dest=kernel%w%res)
         res_PB=sqrt(res_PB/product(kernel%ndims))
-        if (wrtmsg) call EPS_iter_output(i_PB,0.0_dp,res_PB,0.0_dp,0.0_dp,0.0_dp)
+        if (wrtmsg) then
+           call EPS_iter_output(i_PB,0.0_dp,res_PB,0.0_dp,0.0_dp,0.0_dp)
+           call yaml_mapping_close()
+        end if
         if (res_PB < kernel%minres_PB .or. res_PB > max_ratioex_PB) exit loop_pb
      end do loop_pb
      if (wrtmsg) call yaml_sequence_close()
@@ -485,7 +492,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
      if (use_input_guess) then
       iinit=2
  
-      !$omp parallel do default(shared) private(i1,i23)
+      !$omp parallel do default(shared) private(i1,i23,q)
       do i23=1,n23
          do i1=1,n1
             q=kernel%w%pot(i1,i23)*kernel%w%corr(i1,i23)
@@ -497,7 +504,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
       !$omp end parallel do
  
       call apply_kernel(cudasolver,kernel,kernel%w%z,offset,strten,kernel%w%zf,.true.)
- 
+
       !$omp parallel do default(shared) private(i1,i23)
       do i23=1,n23
          do i1=1,n1
