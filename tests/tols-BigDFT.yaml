@@ -1441,7 +1441,7 @@ O2spin_foe:
  Energy (Hartree): 3.9e-10
  Force Norm (Hartree/Bohr): 2.1e-9
  Maxdiff for transpose (checksum): 1.2e-10
- trace(KS): 3.7e-10
+ trace(KS): 5.1e-10
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 1.81e-5
