@@ -1093,6 +1093,7 @@ module foe
       real(kind=8),dimension(:),allocatable :: fermi_new, fermi_check_new, fermi_small_new
       integer :: iline, icolumn, icalc, npl_min, npl_max, npl_stride
       real(kind=8),dimension(:),allocatable :: ham_large
+      real(kind=8),dimension(2) :: fscale_ispin
       
     
     
@@ -1165,6 +1166,11 @@ module foe
       if (bigdft_mpi%iproc==0) then
           call yaml_sequence_open('Kernel calculation')
       end if
+
+      if (smatl%nspin>2) then
+          call f_err_throw('smatl%nspin>2')
+      end if
+      fscale_ispin(1:2) = huge(fscale_ispin(1:2))
     
       spin_loop: do ispin=1,smatl%nspin
 
@@ -1473,6 +1479,7 @@ module foe
           ! Sum up the band structure energy
           ebs = ebs + ebsp
 
+          fscale_ispin(ispin) = fscale_new
     
       end do spin_loop
     
@@ -1480,8 +1487,9 @@ module foe
           call yaml_sequence_close()
       end if
     
-      ! This always takes the value for ispin=2... should be improved
-      call foe_data_set_real(foe_obj,"fscale",fscale_new)
+      !!! This always takes the value for ispin=2... should be improved
+      !!call foe_data_set_real(foe_obj,"fscale",fscale_new)
+      call foe_data_set_real(foe_obj,"fscale",minval(fscale_ispin))
     
       degree_sufficient=.true.
     
