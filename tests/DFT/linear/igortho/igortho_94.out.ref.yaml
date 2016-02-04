@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.8a.4
- Timestamp of this run                 : 2016-02-03 11:23:24.649
+ Version Number                        : 1.8a.5
+ Timestamp of this run                 : 2016-02-04 11:47:44.305
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -173,6 +173,7 @@
     #                                              support function weights
    kernel_restart_noise                : 0.0d0 #  add random noise to kernel or coefficients when restarting
    frag_num_neighbours                 : 0 #      number of neighbours to output for each fragment
+   frag_neighbour_cutoff               : 12.0d0 # number of neighbours to output for each fragment
    cdft_lag_mult_init                  : 0.05d0 # CDFT initial value for Lagrange multiplier
    cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    calc_dipole                         : No #     calculate dipole
@@ -296,11 +297,12 @@
      stress_tensor                     : Yes #    triggers the calculation of the stress tensor
    environment:
      cavity                            : none #   Type of the cavity
-     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
-     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     cavitation                        : No #     triggers the evaluation of the extra cavitation terms
+     input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
      fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
      itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
      minres                            : 1.e-6 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
    setup:
      accel                             : none #   Material Acceleration
      taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
@@ -468,11 +470,12 @@
      stress_tensor                     : Yes #    triggers the calculation of the stress tensor
    environment:
      cavity                            : none #   Type of the cavity
-     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
-     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     cavitation                        : No #     triggers the evaluation of the extra cavitation terms
+     input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
      fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
      itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
      minres                            : 1.e-6 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
    setup:
      accel                             : none #   Material Acceleration
      taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
@@ -2063,42 +2066,42 @@
    Orthonormalization                  : on-site
    Multipole coefficients:
      units                             : bohr
-     global monopole                   :  3.303926E-01
+     global monopole                   :  3.304367E-01
      values:
      - sym                             : H-1 # 0001
        Atom number                     :  2
        r: [ 2.6231585246623723E-002,  0.4143888457952354,  0.5482519810733546]
        Delta r                         :  [ -2.346715E-01, -3.533481E-02, -2.466986E-02 ]
        q0                              :  [  1.0E+00 ]
-       q1                              :  [ -4.892346E-02, -2.834429E-02, -4.305314E-01 ]
-       q2: [-1.969211E-01, -6.706076E-02,  4.563092E-01, -1.181991E-01, -7.667581E-01]
+       q1                              :  [ -4.892778E-02, -2.835206E-02, -4.307900E-01 ]
+       q2: [-1.980582E-01, -6.709862E-02,  4.583224E-01, -1.192712E-01, -7.700226E-01]
        scaling factor                  :  7.20E-01
        type                            : unknown
      - sym                             : H-2 # 0002
        Atom number                     :  2
        r: [-0.4854844531162108,  0.3565926193412263,  0.5003950211527517]
        Delta r                         :  [ -7.463876E-01, -9.313104E-02, -7.252682E-02 ]
-       q0                              :  [ -2.943383E-01 ]
-       q1                              :  [ -1.21191E-01, -1.027913E-01,  1.000000E+00 ]
-       q2: [-3.158505E-01, -1.341033E-01, -1.957631E-01, -2.599214E-01,  3.740183E-01]
-       scaling factor                  :  9.53E-01
+       q0                              :  [ -2.943285E-01 ]
+       q1                              :  [ -1.211659E-01, -1.027674E-01,  1.000000E+00 ]
+       q2: [-3.157346E-01, -1.341257E-01, -1.959555E-01, -2.598039E-01,  3.743736E-01]
+       scaling factor                  :  9.54E-01
        type                            : unknown
      - sym                             : H-3 # 0003
        Atom number                     :  2
        r: [-0.1632242794239165,  0.3233362118049499,  0.529781940923721]
        Delta r                         :  [ -4.241274E-01, -1.263874E-01, -4.313990E-02 ]
-       q0                              :  [ -6.941985E-02 ]
-       q1                              :  [  1.0E+00, -5.269009E-02, -1.078283E-01 ]
-       q2: [-1.067719E-02, -2.653114E-02,  3.520902E-03, -1.605113E-01, -2.527026E-01]
+       q0                              :  [ -6.941878E-02 ]
+       q1                              :  [  1.0E+00, -5.267935E-02, -1.078114E-01 ]
+       q2: [-1.043238E-02, -2.632261E-02,  3.190200E-03, -1.604812E-01, -2.530821E-01]
        scaling factor                  :  1.30E+00
        type                            : unknown
      - sym                             : H-4 # 0004
        Atom number                     :  2
        r: [-0.1617174867114723,  0.3903799126756482,  0.4850208674707428]
        Delta r                         :  [ -4.226206E-01, -5.934374E-02, -8.790097E-02 ]
-       q0                              :  [ -5.712769E-02 ]
-       q1                              :  [ -5.342537E-02,  1.000000E+00, -9.301400E-02 ]
-       q2: [-1.590914E-01, -1.804567E-02,  1.718173E-01,  2.407147E-02, -1.025778E-01]
+       q0                              :  [ -5.712688E-02 ]
+       q1                              :  [ -5.341568E-02,  1.000000E+00, -9.299795E-02 ]
+       q2: [-1.590558E-01, -1.783875E-02,  1.723038E-01,  2.431480E-02, -1.024779E-01]
        scaling factor                  :  1.32E+00
        type                            : p_z
      - sym                             : O-1 # 0005
@@ -2106,80 +2109,80 @@
        r: [ 2.078063524744985,  0.7179065641300557,  0.7549078150750024]
        Delta r                         :  [  1.244246E-02, -9.713219E-03, -1.012968E-02 ]
        q0                              :  [ -1.0E+00 ]
-       q1                              :  [  1.741723E-01,  1.807484E-01, -2.883064E-01 ]
-       q2: [ 3.800248E-02,  2.628312E-01, -7.560253E-02,  1.706849E-02,  1.124401E-01]
+       q1                              :  [  1.740868E-01,  1.806631E-01, -2.883953E-01 ]
+       q2: [ 3.802245E-02,  2.630805E-01, -7.528001E-02,  1.708992E-02,  1.118860E-01]
        scaling factor                  :  8.03E-01
        type                            : unknown
      - sym                             : O-2 # 0006
        Atom number                     :  1
        r: [ 2.180239670352814,  0.7524976579615625,  0.7858137015338116]
        Delta r                         :  [  1.146186E-01,  2.487787E-02,  2.077620E-02 ]
-       q0                              :  [  1.021975E-01 ]
-       q1                              :  [ -1.073545E-01, -8.888454E-02,  1.000000E+00 ]
-       q2: [ 1.723211E-02, -2.624359E-02,  5.102653E-02,  1.666346E-02, -8.771022E-02]
+       q0                              :  [  1.02213E-01 ]
+       q1                              :  [ -1.074196E-01, -8.894553E-02,  1.000000E+00 ]
+       q2: [ 1.826322E-02, -2.627283E-02,  4.948949E-02,  1.767862E-02, -8.502606E-02]
        scaling factor                  :  1.22E+00
        type                            : p_x
      - sym                             : O-3 # 0007
        Atom number                     :  1
        r: [ 2.043098125896726,  0.6864556294600384,  0.7442500189558476]
        Delta r                         :  [ -2.252294E-02, -4.116415E-02, -2.078748E-02 ]
-       q0                              :  [ -4.582046E-02 ]
-       q1                              :  [  1.0E+00, -1.503888E-01, -7.949595E-02 ]
-       q2: [ 6.908811E-02,  3.440508E-02, -9.675809E-02,  6.600845E-04, -8.368385E-02]
+       q0                              :  [ -4.581818E-02 ]
+       q1                              :  [  1.0E+00, -1.503491E-01, -7.947708E-02 ]
+       q2: [ 6.992688E-02,  3.528756E-02, -9.795027E-02,  6.301980E-04, -8.570306E-02]
        scaling factor                  :  1.42E+00
        type                            : p_y
      - sym                             : O-4 # 0008
        Atom number                     :  1
        r: [ 2.041731256703066,  0.7079440908539798,  0.7282404214587945]
        Delta r                         :  [ -2.388981E-02, -1.967569E-02, -3.679708E-02 ]
-       q0                              :  [ -4.621622E-02 ]
-       q1                              :  [ -1.470807E-01,  1.000000E+00, -6.410163E-02 ]
-       q2: [ 3.294158E-03,  3.697035E-02,  1.147266E-01,  7.075703E-02,  3.988058E-02]
+       q0                              :  [ -4.621396E-02 ]
+       q1                              :  [ -1.470393E-01,  1.000000E+00, -6.408056E-02 ]
+       q2: [ 3.267902E-03,  3.784421E-02,  1.170143E-01,  7.159089E-02,  3.989528E-02]
        scaling factor                  :  1.44E+00
        type                            : p_z
      - sym                             : O-5 # 0009
        Atom number                     :  1
        r: [ 2.114244648147324,  0.51293351867184,  0.5296789283478169]
        Delta r                         :  [  4.862358E-02, -2.146863E-01, -2.353586E-01 ]
-       q0                              :  [ -1.542416E-01 ]
-       q1                              :  [ -2.119556E-01, -2.074372E-01, -3.997271E-02 ]
-       q2: [-6.367141E-02,  1.000000E+00, -1.551705E-01, -9.034074E-02,  2.455864E-01]
+       q0                              :  [ -1.542429E-01 ]
+       q1                              :  [ -2.119611E-01, -2.074426E-01, -3.997456E-02 ]
+       q2: [-6.367111E-02,  1.000000E+00, -1.551691E-01, -9.034106E-02,  2.455839E-01]
        scaling factor                  :  2.52E+00
        type                            : d_yz
      - sym                             : O-6 # 0010
        Atom number                     :  1
        r: [ 2.702051742000963,  0.6688152240083518,  0.4472770700109656]
        Delta r                         :  [  6.364307E-01, -5.880456E-02, -3.177604E-01 ]
-       q0                              :  [ -2.286653E-01 ]
-       q1                              :  [  4.939362E-03,  4.278292E-01, -1.748542E-01 ]
-       q2: [-4.906380E-01, -1.001533E-01, -4.795834E-02,  1.000000E+00,  1.357080E-01]
+       q0                              :  [ -2.286658E-01 ]
+       q1                              :  [  4.933573E-03,  4.278259E-01, -1.748611E-01 ]
+       q2: [-4.906557E-01, -1.001282E-01, -4.788214E-02,  1.000000E+00,  1.356731E-01]
        scaling factor                  :  1.24E+00
        type                            : unknown
      - sym                             : O-7 # 0011
        Atom number                     :  1
        r: [ 2.698541984635947,  0.4141278749592985,  0.6826189179350148]
        Delta r                         :  [  6.329209E-01, -3.134919E-01, -8.241858E-02 ]
-       q0                              :  [ -2.655107E-01 ]
-       q1                              :  [  4.325279E-01,  3.486806E-03, -1.418543E-01 ]
-       q2: [ 1.000000E+00, -2.908665E-02, -4.476692E-02, -5.121291E-01,  1.029078E-01]
+       q0                              :  [ -2.65509E-01 ]
+       q1                              :  [  4.325193E-01,  3.479666E-03, -1.418617E-01 ]
+       q2: [ 1.000000E+00, -2.906073E-02, -4.477432E-02, -5.121382E-01,  1.028263E-01]
        scaling factor                  :  1.22E+00
        type                            : unknown
      - sym                             : O-8 # 0012
        Atom number                     :  1
        r: [ 2.576940936872136,  0.2696890934319569,  0.6864680122689464]
        Delta r                         :  [  5.113199E-01, -4.579307E-01, -7.856949E-02 ]
-       q0                              :  [ -1.045687E-01 ]
-       q1                              :  [  3.424555E-01,  8.020030E-02,  6.260530E-01 ]
-       q2: [ 2.180096E-01,  4.311108E-01,  1.833407E-01, -1.420894E-01,  1.000000E+00]
+       q0                              :  [ -1.045714E-01 ]
+       q1                              :  [  3.424619E-01,  8.020419E-02,  6.260735E-01 ]
+       q2: [ 2.179992E-01,  4.311228E-01,  1.833247E-01, -1.421236E-01,  1.000000E+00]
        scaling factor                  :  1.30E+00
        type                            : unknown
      - sym                             : O-9 # 0013
        Atom number                     :  1
        r: [ 2.203178241887306,  0.5348599325033128,  0.199087155226561]
        Delta r                         :  [  1.375572E-01, -1.927599E-01, -5.659503E-01 ]
-       q0                              :  [  5.926355E-02 ]
-       q1                              :  [  8.936895E-02, -2.458079E-01, -2.378933E-01 ]
-       q2: [ 6.569844E-02, -1.464342E-01,  1.000000E+00, -2.653072E-01,  5.174732E-02]
+       q0                              :  [  5.926607E-02 ]
+       q1                              :  [  8.93708E-02, -2.458155E-01, -2.379045E-01 ]
+       q2: [ 6.571501E-02, -1.464445E-01,  1.000000E+00, -2.653183E-01,  5.173220E-02]
        scaling factor                  :  1.85E+00
        type                            : unknown
      - sym                             : H-1 # 0014
@@ -2187,35 +2190,35 @@
        r: [ 2.239423834346985,  2.217496700906448,  2.195672784242552]
        Delta r                         :  [  2.19179E-02,  1.727631E-01,  1.651131E-01 ]
        q0                              :  [  1.0E+00 ]
-       q1                              :  [  2.902211E-01,  2.828348E-01,  4.708303E-03 ]
-       q2: [-3.526103E-02, -7.363626E-01, -1.399639E-01, -2.868055E-02,  2.867724E-01]
+       q1                              :  [  2.900701E-01,  2.826850E-01,  4.690796E-03 ]
+       q2: [-3.470336E-02, -7.341208E-01, -1.387144E-01, -2.812924E-02,  2.844255E-01]
        scaling factor                  :  7.20E-01
        type                            : unknown
      - sym                             : H-2 # 0015
        Atom number                     :  3
        r: [ 2.312950896062949,  2.375997987226276,  2.348420408783804]
        Delta r                         :  [  9.544496E-02,  3.312644E-01,  3.178607E-01 ]
-       q0                              :  [  6.961053E-02 ]
-       q1                              :  [ -9.732896E-02, -9.096052E-02,  1.000000E+00 ]
-       q2: [ 7.029063E-02,  1.654804E-01,  9.170601E-02,  6.804368E-02, -1.839978E-01]
+       q0                              :  [  6.961292E-02 ]
+       q1                              :  [ -9.734754E-02, -9.097828E-02,  1.000000E+00 ]
+       q2: [ 7.065161E-02,  1.655767E-01,  9.143779E-02,  6.838159E-02, -1.835319E-01]
        scaling factor                  :  1.25E+00
        type                            : p_x
      - sym                             : H-3 # 0016
        Atom number                     :  3
        r: [ 2.262420641547736,  2.582775991415831,  2.323821733285008]
        Delta r                         :  [  4.491471E-02,  5.380424E-01,  2.932621E-01 ]
-       q0                              :  [  1.896033E-01 ]
-       q1                              :  [  1.0E+00, -1.603155E-01, -7.154399E-02 ]
-       q2: [ 1.824232E-01,  3.272808E-01,  3.778849E-01,  1.372221E-01,  3.893404E-01]
+       q0                              :  [  1.896089E-01 ]
+       q1                              :  [  1.0E+00, -1.603186E-01, -7.156483E-02 ]
+       q2: [ 1.826157E-01,  3.274108E-01,  3.773427E-01,  1.372146E-01,  3.889076E-01]
        scaling factor                  :  1.13E+00
        type                            : unknown
      - sym                             : H-4 # 0017
        Atom number                     :  3
        r: [ 2.256679375943376,  2.350473640908589,  2.54567182847204]
        Delta r                         :  [  3.917344E-02,  3.057401E-01,  5.151122E-01 ]
-       q0                              :  [  1.756263E-01 ]
-       q1                              :  [ -1.528314E-01,  1.000000E+00, -6.271535E-02 ]
-       q2: [ 1.292736E-01,  2.882731E-01, -5.310058E-01,  1.618645E-01, -1.325773E-01]
+       q0                              :  [  1.756314E-01 ]
+       q1                              :  [ -1.528352E-01,  1.000000E+00, -6.273302E-02 ]
+       q2: [ 1.292659E-01,  2.884079E-01, -5.303605E-01,  1.620382E-01, -1.323484E-01]
        scaling factor                  :  1.15E+00
        type                            : unknown
   #================================================= Atomic multipole analysis, new approach
@@ -2230,14 +2233,14 @@
    - q2: [ 2.10000000E+01,  2.20000000E+01,  2.30000000E+01,  2.40000000E+01, 
            2.50000000E+01]
    Calculated values:
-   - q0                                :  [  1.06591136E+00 ]
-   - q1: [ 1.06121507E+01,  1.15803232E+01,  1.25105384E+01]
-   - q2: [ 2.01087903E+01,  2.09824035E+01,  2.13066446E+01,  2.29696495E+01, 
-           2.33045351E+01]
+   - q0                                :  [  9.99999997E-01 ]
+   - q1: [ 1.10000000E+01,  1.20000001E+01,  1.30000000E+01]
+   - q2: [ 2.09999999E+01,  2.19999999E+01,  2.29999996E+01,  2.39999999E+01, 
+           2.49999996E+01]
    Relative errors in percent:
-   - q0                                :  [  6.59E+00 ]
-   - q1                                :  [  3.53E+00,  3.50E+00,  3.77E+00 ]
-   - q2: [ 4.24E+00,  4.63E+00,  7.36E+00,  4.29E+00,  6.78E+00]
+   - q0                                :  [  3.29E-07 ]
+   - q1                                :  [  4.31E-07,  4.30E-07,  1.86E-07 ]
+   - q2: [ 4.56E-07,  5.43E-07,  1.84E-06,  6.15E-07,  1.71E-06]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating kernel for orthonormal support functions
  calculate S^x:
    mode                                : sparse
@@ -2328,8 +2331,8 @@
  - set to 1.d-20 instead of 0.d0
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  19.60
-   Elapsed time (s)                    :  19.73
+   CPU time (s)                        :  19.18
+   Elapsed time (s)                    :  19.22
  BigDFT infocode                       :  0
  Average noise forces: {x:  2.80787545E-02, y: -1.62942748E-02, z: -1.66776579E-02, 
                     total:  3.64974536E-02}
@@ -2343,14 +2346,14 @@
  Energy (Hartree)                      : -1.74603498267478123E+01
  Force Norm (Hartree/Bohr)             :  4.92245312658659978E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  14532
-   Tot. No. of Deallocations           :  14532
+   Tot. No. of Allocations             :  13399
+   Tot. No. of Deallocations           :  13399
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  295.705
+     Peak Value (MB)                   :  296.950
      for the array                     : psi_f
      in the routine                    : transpose_localized
-     Memory Peak of process            : 377.160 MB
- Walltime since initialization         : 00:00:20.110406135
- Max No. of dictionaries used          :  9755 #( 909 still in use)
+     Memory Peak of process            : 379.276 MB
+ Walltime since initialization         : 00:00:19.594078956
+ Max No. of dictionaries used          :  9714 #( 909 still in use)
  Number of dictionary folders allocated:  1

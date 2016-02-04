@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.8a.4
- Timestamp of this run                 : 2016-02-03 11:04:47.205
+ Version Number                        : 1.8a.5
+ Timestamp of this run                 : 2016-02-04 11:29:20.205
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -175,6 +175,7 @@
     #                                              support function weights
    kernel_restart_noise                : 0.0d0 #  add random noise to kernel or coefficients when restarting
    frag_num_neighbours                 : 0 #      number of neighbours to output for each fragment
+   frag_neighbour_cutoff               : 12.0d0 # number of neighbours to output for each fragment
    cdft_lag_mult_init                  : 0.05d0 # CDFT initial value for Lagrange multiplier
    cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    subspace_diag                       : No #     diagonalization at the end
@@ -253,11 +254,12 @@
      stress_tensor                     : Yes #    triggers the calculation of the stress tensor
    environment:
      cavity                            : none #   Type of the cavity
-     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
-     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     cavitation                        : No #     triggers the evaluation of the extra cavitation terms
+     input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
      fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
      itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
      minres                            : 1.e-6 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
    setup:
      accel                             : none #   Material Acceleration
      taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
@@ -457,11 +459,12 @@
      stress_tensor                     : Yes #    triggers the calculation of the stress tensor
    environment:
      cavity                            : none #   Type of the cavity
-     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
-     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     cavitation                        : No #     triggers the evaluation of the extra cavitation terms
+     input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
      fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
      itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
      minres                            : 1.e-6 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
    setup:
      accel                             : none #   Material Acceleration
      taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
@@ -1254,14 +1257,14 @@
    - q2: [ 2.10000000E+01,  2.20000000E+01,  2.30000000E+01,  2.40000000E+01, 
            2.50000000E+01]
    Calculated values:
-   - q0                                :  [  1.04836742E+00 ]
-   - q1: [ 1.04873658E+01,  1.15268065E+01,  1.23911639E+01]
-   - q2: [ 1.98171785E+01,  2.08126742E+01,  2.13707991E+01,  2.26557953E+01, 
-           2.30890352E+01]
+   - q0                                :  [  9.99999983E-01 ]
+   - q1: [ 1.09999999E+01,  1.20000001E+01,  1.30000001E+01]
+   - q2: [ 2.10000001E+01,  2.19999998E+01,  2.29999992E+01,  2.39999996E+01, 
+           2.49999990E+01]
    Relative errors in percent:
-   - q0                                :  [  4.84E+00 ]
-   - q1                                :  [  4.66E+00,  3.94E+00,  4.68E+00 ]
-   - q2: [ 5.63E+00,  5.40E+00,  7.08E+00,  5.60E+00,  7.64E+00]
+   - q0                                :  [  1.72E-06 ]
+   - q1                                :  [  1.05E-06,  7.70E-07,  5.51E-07 ]
+   - q2: [ 3.18E-07,  8.13E-07,  3.58E-06,  1.66E-06,  4.09E-06]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating kernel for orthonormal support functions
  calculate S^x:
    mode                                : sparse
@@ -1414,8 +1417,8 @@
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  4.14
-   Elapsed time (s)                    :  4.15
+   CPU time (s)                        :  4.26
+   Elapsed time (s)                    :  4.28
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.81627853E-01, y:  2.49290264E-02, z:  1.39157120E-02, 
                     total:  1.83858044E-01}
@@ -1429,14 +1432,14 @@
  Energy (Hartree)                      : -1.69482356914926271E+01
  Force Norm (Hartree/Bohr)             :  2.72458046551210642E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  7095
-   Tot. No. of Deallocations           :  7095
+   Tot. No. of Allocations             :  6689
+   Tot. No. of Deallocations           :  6689
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  73.968
+     Peak Value (MB)                   :  74.560
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 74.476 MB
- Walltime since initialization         : 00:00:04.526873417
- Max No. of dictionaries used          :  7005 #( 909 still in use)
+     Memory Peak of process            : 74.988 MB
+ Walltime since initialization         : 00:00:04.652481892
+ Max No. of dictionaries used          :  6993 #( 909 still in use)
  Number of dictionary folders allocated:  1
