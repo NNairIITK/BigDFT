@@ -472,10 +472,10 @@ cleanup:
  EBS: 1.5e-9
  HOMO energy: 1.8e-10
  LUMO energy: 1.6e-10
- HOMO-LUMO gap (eV): 4.0e-9
+ HOMO-LUMO gap (eV): 4.1e-9
  HOMO-LUMO gap (Ha): 1.5e-10
  D eF: 1.1e-8
- Pseudo Fermi level for occupations: 2.9e-10
+ Pseudo Fermi level for occupations: 3.6e-10
  Force Norm (Hartree/Bohr): 3.2e-10
  Maxdiff for overlap calculation: 1.7e-9
  Maxdiff for transpose (checksum): 1.5e-11    
@@ -1965,7 +1965,7 @@ igortho_44:
  Unitary check of the multipole calculations: 1.0e-2
  Multipole coefficients: 1.6e-6
  avg pot difference (actual/min): 0.95
- trace: 4.7e-11
+ trace: 7.2e-11
  Maxdiff for transpose (checksum): 4.7e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
@@ -2261,9 +2261,9 @@ H2Omultipoles_1:
   EXC: 1.7e-10
   Ekin: 3.1e-10
   Enl: 7.1e-11
-  Epot: 9.1e-10
+  Epot: 1.1e-9
   EvXC: 2.2e-10
-  Charge analysis (charge / net charge): 9.6e-11
+  Charge analysis (charge / net charge): 9.7e-11
   Pseudo Fermi level for occupations: 1.9e-11
   Omega: 2.5e-11
   Total charge: 2.5e-11
@@ -2278,7 +2278,7 @@ H2Omultipoles_1:
 H2Omultipoles_11:
   EBS: 9.0e-10
   EBS higher temperature: 9.0e-10
-  EH: 9.0e-10
+  EH: 1.1e-9
   EXC: 1.7e-10
   Ekin: 3.1e-10
   Enl: 7.1e-11
@@ -2338,15 +2338,15 @@ H2Omultipoles_12:
 #  Maxdiff for transpose (checksum): 1.5e-11
 
 H2Omultipoles_2:
-  EBS: 8.8e-10
-  EBS higher temperature: 8.8e-10
+  EBS: 8.9e-10
+  EBS higher temperature: 8.9e-10
   EH: 9.0e-10
   EXC: 1.7e-10
   Ekin: 3.1e-10
   Enl: 7.1e-11
   Epot: 1.1e-9
   EvXC: 2.6e-10
-  Charge analysis (charge / net charge): 9.6e-11
+  Charge analysis (charge / net charge): 9.7e-11
   Omega: 2.3e-11
   Total charge: 2.5e-11
   Tr(K): 1.1e-07
