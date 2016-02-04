@@ -8691,20 +8691,20 @@ subroutine Eps_rigid_cavity_new2(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,e
 
 end subroutine Eps_rigid_cavity_new2
 
-! New value!! Modified nl=14 and nr=15 after else.
-subroutine ext_buffers(periodic,nl,nr)
-  implicit none
-  logical, intent(in) :: periodic
-  integer, intent(out) :: nl,nr
-
-  if (periodic) then
-     nl=0
-     nr=0
-  else
-     nl=0
-     nr=0
-  end if
-END SUBROUTINE ext_buffers
+!!$! New value!! Modified nl=14 and nr=15 after else.
+!!$subroutine ext_buffers(periodic,nl,nr)
+!!$  implicit none
+!!$  logical, intent(in) :: periodic
+!!$  integer, intent(out) :: nl,nr
+!!$
+!!$  if (periodic) then
+!!$     nl=0
+!!$     nr=0
+!!$  else
+!!$     nl=0
+!!$     nr=0
+!!$  end if
+!!$END SUBROUTINE ext_buffers
 
 !> calculates the value of the dielectric function for a smoothed cavity 
 !! given a set of centres and radii. Based on error function.
