@@ -9,7 +9,7 @@
 
 
 !> Calculate atomic forces
-subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,rxyz,hx,hy,hz, &
+subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxyz,hx,hy,hz, &
      dpbox, &
      i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
@@ -21,6 +21,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   use yaml_output
   use module_forces
   use forces_linear
+  use orbitalbasis
   implicit none
   logical, intent(in) :: calculate_strten
   logical, intent(in) :: refill_proj
@@ -29,7 +30,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   type(denspot_distribution), intent(in) :: dpbox
   type(locreg_descriptors), intent(in) :: Glr
   type(atoms_data), intent(in) :: atoms
-  type(orbitals_data), intent(in) :: orbs
+  type(orbital_basis), intent(in) :: ob
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
@@ -76,19 +77,17 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   !calculate forces originated by rhocore
   call rhocore_forces(iproc,atoms,dpbox,nspin,rxyz,potxc,fxyz)
 
-
   !for a taksgroup Poisson Solver, multiply by the ratio.
   !it is important that the forces are bitwise identical among the processors.
   if (psolver_groupsize < nproc) call vscal(3*atoms%astruct%nat,real(psolver_groupsize,gp)/real(nproc,gp),fxyz(1,1),1)
 
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
-
   if (extra_timing) call cpu_time(tr0)
   select case(imode)
   case(0)
      !cubic version of nonlocal forces
      call nonlocal_forces(Glr,hx,hy,hz,atoms,rxyz,&
-          orbs,nlpsp,Glr%wfd,psi,fxyz,refill_proj,&
+          ob,nlpsp,Glr%wfd,psi,fxyz,refill_proj,&
           calculate_strten .and. (atoms%astruct%geocode == 'P'),strtens(1,2))
   case(1)
      !linear version of nonlocal forces
@@ -112,7 +111,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   if (atoms%astruct%geocode == 'P' .and. psolver_groupsize == nproc .and. calculate_strten) then
      if (imode==0) then
         ! Otherwise psi is not available
-        call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
+        call local_hamiltonian_stress(ob%orbs,Glr,hx,hy,hz,psi,strtens(1,3))
      else
         call local_hamiltonian_stress_linear(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, &
              tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%ham_descr%npsidim_orbs, &
@@ -807,15 +806,16 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 
 END SUBROUTINE local_forces
 
-!> Calculates the nonlocal forces on all atoms arising from the wavefunctions 
+!> Calculates the nonlocal forces on all atoms arising from the wavefunctions
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
-     orbs,nlpsp,wfd,psi,fsep,refill,calculate_strten,strten)
+     ob,nlpsp,wfd,psi,fsep,refill,calculate_strten,strten)
   use module_base
   use module_types
   use public_enums, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
        PSPCODE_PAW
+  use orbitalbasis
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
@@ -824,9 +824,10 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
   logical, intent(in) :: refill,calculate_strten
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors) :: lr
-  type(orbitals_data), intent(in) :: orbs
+  !type(orbitals_data), intent(in) :: orbs
+  type(orbital_basis), intent(in) :: ob
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(in) :: psi
+  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*ob%orbs%norbp*ob%orbs%nspinor), intent(in) :: psi
   real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
@@ -843,10 +844,10 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(6) :: sab
 
   call f_routine(id=subname)
-  call f_zero(strten) 
+  call f_zero(strten)
 
   !quick return if no orbitals on this processor
-  if (orbs%norbp == 0) return
+  if (ob%orbs%norbp == 0) return
 
 
   if (calculate_strten) then
@@ -860,7 +861,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
   !  allocate(scalprod(2,0:3,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor),stat=i_stat)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
   scalprod = &
-       f_malloc0([1.to.2,0.to.ndir,1.to.7,1.to.3,1.to.4,1.to.at%astruct%nat,1.to.orbs%norbp*orbs%nspinor],id='scalprod')
+       f_malloc0([1.to.2,0.to.ndir,1.to.7,1.to.3,1.to.4,1.to.at%astruct%nat,1.to.ob%orbs%norbp*ob%orbs%nspinor],id='scalprod')
   !if (2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor>0) then
   !    call to_zero(2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
   !end if
@@ -908,14 +909,14 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
   if (DistProjApply) then
      !apply the projectors on the fly for each k-point of the processor
      !starting k-point
-     ikpt=orbs%iokpt(1)
+     ikpt=ob%orbs%iokpt(1)
      ispsi_k=1
      jorb=0
      loop_kptD: do
 
-        call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+        call orbs_in_kpt(ikpt,ob%orbs,isorb,ieorb,nspinor)
 
-        call ncplx_kpt(ikpt,orbs,ncplx)
+        call ncplx_kpt(ikpt,ob%orbs,ncplx)
 
         nwarnings=0 !not used, simply initialised 
         iproj=0 !should be equal to four times nproj at the end
@@ -933,7 +934,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
               istart_c=1
               call atom_projector(nlpsp, ityp, iat, at%astruct%atomnames(ityp), &
                    & at%astruct%geocode, idir, lr, hx, hy, hz, &
-                   & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
+                   & ob%orbs%kpts(1,ikpt), ob%orbs%kpts(2,ikpt), ob%orbs%kpts(3,ikpt), &
                    & istart_c, iproj, nwarnings)
               !!do i_all=1,nlpspd%nprojel
               !!    write(850+iat,*) i_all, proj(i_all)
@@ -976,29 +977,31 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
 
         end do
 
-        if (ieorb == orbs%norbp) exit loop_kptD
+        if (ieorb == ob%orbs%norbp) exit loop_kptD
         ikpt=ikpt+1
         ispsi_k=ispsi
      end do loop_kptD
 
   else
+     !associate the orbital basis structure
+     
      !calculate all the scalar products for each direction and each orbitals
      do idir=0,ndir
 
         if (idir /= 0) then !for the first run the projectors are already allocated
-           call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
+           call fill_projectors(lr,[hx,hy,hz],at%astruct,ob,rxyz,nlpsp,idir)
         end if
         !apply the projectors  k-point of the processor
         !starting k-point
-        ikpt=orbs%iokpt(1)
+        ikpt=ob%orbs%iokpt(1)
         istart_ck=1
         ispsi_k=1
         jorb=0
         loop_kpt: do
 
-           call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+           call orbs_in_kpt(ikpt,ob%orbs,isorb,ieorb,nspinor)
 
-           call ncplx_kpt(ikpt,orbs,ncplx)
+           call ncplx_kpt(ikpt,ob%orbs,ncplx)
 
            ! calculate the scalar product for all the orbitals
            ispsi=ispsi_k
@@ -1027,7 +1030,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
                                      nlpsp%pspd(iat)%plr%wfd%keyglob(1,jseg_c),&
                                      nlpsp%proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
-                                !write(*,'(a,6i6,es16.8)') 'idir,m,i,l,iat,jorb,scalprod',idir,m,i,l,iat,jorb,scalprod(1,idir,m,i,l,iat,jorb)
+               !write(*,'(a,6i6,es16.8)') 'idir,m,i,l,iat,jorb,scalprod',idir,m,i,l,iat,jorb,scalprod(1,idir,m,i,l,iat,jorb)
                              end do
                           end if
                        end do
@@ -1038,7 +1041,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
               if (iproj /= nlpsp%nproj) stop '1:applyprojectors'
            end do
            istart_ck=istart_c
-           if (ieorb == orbs%norbp) exit loop_kpt
+           if (ieorb == ob%orbs%norbp) exit loop_kpt
            ikpt=ikpt+1
            ispsi_k=ispsi
         end do loop_kpt
@@ -1047,8 +1050,8 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
      end do
 
      !restore the projectors in the proj array (for on the run forces calc., tails or so)
-     if (refill) then 
-        call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,0)
+     if (refill) then
+        call fill_projectors(lr,[hx,hy,hz],at%astruct,ob,rxyz,nlpsp,0)
      end if
 
   end if
@@ -1057,13 +1060,13 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
 
   !apply the projectors  k-point of the processor
   !starting k-point
-  ikpt=orbs%iokpt(1)
+  ikpt=ob%orbs%iokpt(1)
   jorb=0
   loop_kptF: do
 
-     call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+     call orbs_in_kpt(ikpt,ob%orbs,isorb,ieorb,nspinor)
 
-     call ncplx_kpt(ikpt,orbs,ncplx)
+     call ncplx_kpt(ikpt,ob%orbs,ncplx)
 
      ! loop over all my orbitals for calculating forces
      do iorb=isorb,ieorb
@@ -1083,7 +1086,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
                              sp0=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
                              !!write(200+iproc,'(a,9i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
                              !                                   iorb,jorb,icplx,0,m,i,l,iat,iat,sp0
-                             !write(250+iproc,'(a,7i8,es20.10)') & 
+                             !write(250+iproc,'(a,7i8,es20.10)') &
                              !      'icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)',&
                              !        icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)
                              do idir=1,3
@@ -1097,13 +1100,13 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
                              end do
 
                              Enl=Enl+sp0*sp0*at%psppar(l,i,ityp)*&
-                                  orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                  ob%orbs%occup(iorb+ob%orbs%isorb)*ob%orbs%kwgts(ob%orbs%iokpt(iorb))
                              do idir=4,ndir !for stress
                                 strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
                                 sab(idir-3)=&
-                                     sab(idir-3)+&   
+                                     sab(idir-3)+&
                                      at%psppar(l,i,ityp)*sp0*2.0_gp*strc*&
-                                     orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                     ob%orbs%occup(iorb+ob%orbs%isorb)*ob%orbs%kwgts(ob%orbs%iokpt(iorb))
                              end do
                           end do
                        end do
@@ -1116,7 +1119,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
                    at%npspcode(ityp) == PSPCODE_HGH_K_NLCC ) then
                  do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
                     do i=1,2
-                       if (at%psppar(l,i,ityp) /= 0.0_gp) then 
+                       if (at%psppar(l,i,ityp) /= 0.0_gp) then
                           loop_j: do j=i+1,3
                              if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j
                              !offdiagonal HGH term
@@ -1138,12 +1141,15 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
                                            hij*(sp0j*spi+spj*sp0i)
                                    end do
 
-                                   Enl = Enl + 2.0_gp*sp0i*sp0j*hij*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                   Enl = Enl + &
+                                        2.0_gp*sp0i*sp0j*hij*&
+                                        ob%orbs%occup(iorb+ob%orbs%isorb)*ob%orbs%kwgts(ob%orbs%iokpt(iorb))
                                    do idir=4,ndir
                                       spi = real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
                                       spj = real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
-                                      sab(idir-3) = sab(idir-3) + &   
-                                           2.0_gp*hij*(sp0j*spi+sp0i*spj)*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                      sab(idir-3) = sab(idir-3) + &
+                                           2.0_gp*hij*(sp0j*spi+sp0i*spj)*&
+                                           ob%orbs%occup(iorb+ob%orbs%isorb)*ob%orbs%kwgts(ob%orbs%iokpt(iorb))
                                    end do
                                 end do
                              end do
@@ -1156,13 +1162,13 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
         end do
 
         !orbital-dependent factor for the forces
-        orbfac=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*2.0_gp
+        orbfac=ob%orbs%kwgts(ob%orbs%iokpt(iorb))*ob%orbs%occup(iorb+ob%orbs%isorb)*2.0_gp
 
         if (calculate_strten) then
-           !seq: strten(1:6) =  11 22 33 23 13 12 
-           strten(1)=strten(1)+sab(1)/vol 
-           strten(2)=strten(2)+sab(2)/vol 
-           strten(3)=strten(3)+sab(3)/vol 
+           !seq: strten(1:6) =  11 22 33 23 13 12
+           strten(1)=strten(1)+sab(1)/vol
+           strten(2)=strten(2)+sab(2)/vol
+           strten(3)=strten(3)+sab(3)/vol
            strten(4)=strten(4)+sab(5)/vol
            strten(5)=strten(5)+sab(6)/vol
            strten(6)=strten(6)+sab(4)/vol
@@ -1175,7 +1181,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
         end do
 
      end do
-     if (ieorb == orbs%norbp) exit loop_kptF
+     if (ieorb == ob%orbs%norbp) exit loop_kptF
      ikpt=ikpt+1
      ispsi_k=ispsi
   end do loop_kptF

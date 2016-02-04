@@ -32,6 +32,10 @@ LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	   igortho \
        extendedfrags
 
+if HAVE_PEXSI
+  LONG_TESTDIRS += pexsi
+endif
+
 EXTRA_TESTDIRS = reformatcomplete \
     water \
 	molecule \
@@ -41,6 +45,8 @@ EXTRA_TESTDIRS = reformatcomplete \
 	rotate
 #\
 #	noortho
+
+EXTRALONG_TESTDIRS = largesystems
 
 
 EXTRA_DIST = 

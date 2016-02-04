@@ -26,9 +26,11 @@ program GPS_3D
    ! 3 for real electron density from cube file, 4 for rigid cavity.
    integer :: SetEps! = 1!3 
    logical :: usegpu
-   logical, parameter :: lin_PB = .false.
+   logical :: lin_PB
    logical, parameter :: PCGstart = .false. !.true.
    logical, parameter :: PIstart = .false. !.true.
+   logical, parameter :: CFgrid = .false. !.true.
+   logical, parameter :: Fgrid = .false. !.true.
 
    real(kind=8), parameter :: acell = 10.d0 !10.d0
    real(kind=8), parameter :: rad_cav = 1.7d0 !1.7d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
@@ -44,17 +46,18 @@ program GPS_3D
    character(len=2) :: geocode
    character(len=2) :: geocodeprova
    character(len=2), parameter :: datacode = 'G'
-   !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
+   !> Order of accuracy for derivatives into ApplyLaplace subroutine 
+   !!= Total number of points at left and right of the x0 where we want to calculate the derivative.
    integer, parameter :: nord = 16
-   integer, dimension(3) :: ndims
-   real(8), dimension(3) :: hgrids
+   integer, dimension(3) :: ndims,ndimsc,ndimsf
+   real(8), dimension(3) :: hgrids,hgridsc,hgridsf
    real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
    !integer :: m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,n1,n2,n3,
    integer :: itype_scf,i_all,i_stat,n_cell,iproc,nproc,ixc,n01,n02,n03,iat,n_iter
    real(kind=8) :: hx,hy,hz,freq,fz,fz1,fz2,pi,curr,average,CondNum,wcurr,ave1,ave2,rhores2,En1,En2,dVnorm,hgrid,sume,delta
    real(kind=8) :: Adiag,ersqrt,ercurr,factor,r,r2,max_diff,max_diffpot,fact,x1,x2,x3,derf_tt,diffcurr,diffcurrS,divprod,einit
    real(kind=8) :: ehartree,offset,epol
-   real(kind=8), dimension(:,:,:,:), allocatable :: density,rhopot,rvApp,rhoele,rhoion,potsol
+   real(kind=8), dimension(:,:,:,:), allocatable :: density,rhopot,rvApp,rhoele,rhoion,potsol,rhopotf,densityf
 
    logical :: logyes
    ! Now start modification for check.
@@ -68,7 +71,7 @@ program GPS_3D
    real(kind=8), pointer :: kernel(:)
    type(coulomb_operator) :: pkernel
 !   type(mpi_environment), intent(in), optional :: mpi_env
-   real(kind=8), dimension(:,:,:), allocatable :: eps,potential,pot_ion
+   real(kind=8), dimension(:,:,:), allocatable :: eps,potential,pot_ion,epsf,potentialf
    integer :: i1,i2,i3,isp,whichone,i,ii,j,info,icurr,ip,isd,i1_max,i2_max,i3_max,n3d,n3p,n3pi,i3xcsh,i3s,n3pr2,n3pr1,ierr
 !   type(mpi_environment) :: bigdft_mpi
   type(dictionary), pointer :: options,dict_input
@@ -100,6 +103,12 @@ program GPS_3D
    logyes= options // 'logfile'
    delta=0.3d0
    delta= options .get. 'deltacav'
+   lin_PB = SetEps == 17
+
+   call dict_init(dict_input)
+
+   if ('input' .in. options) &
+        call dict_copy(dest=dict_input,src=options//'input')
 
 
    call dict_free(options)
@@ -111,6 +120,12 @@ program GPS_3D
    n01=ndims(1)
    n02=ndims(2)
    n03=ndims(3)
+   ndimsc(1) = n01/2
+   ndimsc(2) = n02/2
+   ndimsc(3) = n03/2
+   ndimsf(1) = n01*2
+   ndimsf(2) = n02*2
+   ndimsf(3) = n03*2
 
    if (SetEps.eq.3) then
     call get_size_from_cube(n01,n02,n03,hx,hy,hz,nat)
@@ -122,6 +137,15 @@ program GPS_3D
     hy=acell/real(n02-1,kind=8)
     hz=acell/real(n03-1,kind=8)
    end if
+   hgridsc(1)=hx*2.d0 
+   hgridsc(2)=hy*2.d0 
+   hgridsc(3)=hz*2.d0 
+   !hgridsc(1)=acell/real(n01/2-1,kind=8)
+   !hgridsc(2)=acell/real(n02/2-1,kind=8)
+   !hgridsc(3)=acell/real(n03/2-1,kind=8)
+   hgridsf(1)=hx/2.d0 
+   hgridsf(2)=hy/2.d0 
+   hgridsf(3)=hz/2.d0 
 
    call mpiinit()
    iproc=mpirank()
@@ -169,6 +193,8 @@ program GPS_3D
    pot_check =f_malloc([n01,n02,n03,nspden,n_check],id='pot_check')
    rxyz   =f_malloc([3,nat],id='rxyz')
    radii   =f_malloc([nat],id='radii')
+   rhopotf =f_malloc([ndimsf(1),ndimsf(2),ndimsf(3),nspden],id='rhopotf')
+   densityf =f_malloc([ndimsf(1),ndimsf(2),ndimsf(3),nspden],id='densityf')
    
    eps=f_malloc([n01,n02,n03],id='eps')
    dlogeps=f_malloc([3,n01,n02,n03],id='dlogeps')
@@ -177,6 +203,8 @@ program GPS_3D
    corr=f_malloc([n01,n02,n03],id='corr')
    potential=f_malloc([n01,n02,n03],id='potential')
    pot_ion=f_malloc([n01,n02,n03],id='pot_ion')
+   epsf=f_malloc([ndimsf(1),ndimsf(2),ndimsf(3)],id='epsf')
+   potentialf=f_malloc([ndimsf(1),ndimsf(2),ndimsf(3)],id='potentialf')
 
    n_cell = max(n01,n02,n03)
    hgrid=max(hx,hy,hz)
@@ -245,9 +273,8 @@ program GPS_3D
    end if
 
 !   SetEps=4
-
-    call SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,&
-         4,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz,radii,delta)
+     call SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,&
+          4,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz,radii,delta)
 
     if (SetEps.lt.5) then
      if ( trim(PSol)=='VAC') then
@@ -266,7 +293,7 @@ program GPS_3D
     call print_PB_function(n01,n02,n03,iproc,hx,hy,hz,nord,acell)
 !------------------------------------------------------------------------
 ! Vacuum
-!   eps=1.0d0
+!   eps=1.d0
 !   dlogeps=0.d0
 !   oneoeps=1.d0
 !   oneosqrteps=1.d0
@@ -295,8 +322,9 @@ program GPS_3D
    call ApplyLaplace(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,.false.,multp)
 
   if (iproc==0) then
-   call yaml_comment('Comparison between Generalized Poisson operator and analytical density',hfill='-')
+   call yaml_mapping_open('Comparison between Generalized Poisson operator and analytical density')
    call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+   call yaml_mapping_close()
   end if
 
    geocodeprova='F'
@@ -304,14 +332,43 @@ program GPS_3D
    call ApplyLaplace2(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,dlogeps,nord,.false.,multp)
 
   if (iproc==0) then
-   call yaml_comment('Comparison between Generalized Poisson operator 2 and analytical density',hfill='-')
-   call writeroutinePot(n01,n02,n03,1,density,1,rvApp)
+     call yaml_mapping_open('Comparison between Generalized Poisson operator 2 and analytical density')
+     call writeroutinePot(n01,n02,n03,1,density,1,rvApp)
+     call yaml_mapping_close()
   end if
 
+!   geocodeprova='F'
+!   ! Calculate the charge starting from the potential applying the improved ISF Laplace operator.
+!   call ApplyLaplace_ISF(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,.false.,multp)
+!
+!  if (iproc==0) then
+!   call yaml_comment('Comparison between improved ISF Generalized Poisson operator and analytical density')
+!   call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+!  end if
+
+   geocodeprova='F'
+   ! Calculate the charge starting from the potential applying the improved ISF Laplace operator PCG-style.
+   call ApplyLaplace_corr(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,corr,oneosqrteps,nord,.false.,multp)
+
+  if (iproc==0) then
+     call yaml_mapping_open('Comparison between Generalized Poisson operator PCG-style and analytical density')
+     call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+     call yaml_mapping_close()
+  end if
+
+!   geocodeprova='F'
+!   ! Calculate the charge starting from the potential applying the improved ISF Laplace operator PCG-style.
+!   call ApplyLaplace_ISF_corr(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,corr,oneosqrteps,nord,.false.,multp)
+!
+!  if (iproc==0) then
+!   call yaml_comment('Comparison between improved ISF Generalized Poisson operator PCG-style and analytical density')
+!   call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+!  end if
 !------------------------------------------------------------------------
 
+   geocodeprova='F'
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
-   call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,lin_PB,multp)
+   call ApplyLaplace(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,lin_PB,multp)
 
   if (iproc==0) then
      call yaml_comment('Comparison between Poisson-Boltzmann operator and analytical density')
@@ -360,7 +417,6 @@ program GPS_3D
 !   rhopot(:,:,:,:) = density(:,:,:,:)
 !  end if
 
-   call dict_init(dict_input)
 
    if (usegpu) call dict_set(dict_input//'setup'//'accel','CUDA')
    call dict_set(dict_input//'environment'//'delta',delta)
@@ -370,10 +426,19 @@ program GPS_3D
    end if
 
   !new method
-   pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids)  
+   if (CFgrid) then
+    pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndimsc,hgridsc)
+   else if (Fgrid) then
+    pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndimsf,hgridsf)
+   else
+    pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids)
+   end if
+
 !!$  pkernel=pkernel_init(.true.,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,alg=PSol)
   call dict_free(dict_input)
   call pkernel_set(pkernel,verbose=.true.)
+
+  !pkernel%minres=1.0d-12
 
   if ( trim(PSol)=='PCG') then
      
@@ -383,10 +448,17 @@ program GPS_3D
 !!$   else
 !!$     call pkernel_set(pkernel,verbose=.true.,eps=eps)
 !!$   end if
-     if (any(SetEps == [2,3,4]))  then
-        call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr,eps=eps)
+     if (Fgrid) then
+        !pkernel%minres=1.0d-12
+        call back_trans_ISF_3D(geocode,8,ndimsf(1),ndimsf(2),ndimsf(3),eps,epsf)
+        call back_trans_ISF_3D(geocode,8,ndimsf(1),ndimsf(2),ndimsf(3),rhopot,rhopotf)
+        call pkernel_set_epsilon(pkernel,eps=epsf)
      else
+      if (any(SetEps == [2,3,4,17]))  then
+        call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr,eps=eps)
+      else
         call pkernel_set_epsilon(pkernel,eps=eps)
+      end if
      end if
 !!$     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
 !!$     if (iproc==0) call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,&
@@ -406,8 +478,8 @@ program GPS_3D
 !!$   else
 !!$     call pkernel_set(pkernel,verbose=.true.,eps=eps)
 !!$   end if
-   if (any(SetEps == [2,3,4])) then
-      call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)
+   if (any(SetEps == [2,3,4,17])) then
+      call pkernel_set_epsilon(pkernel,eps=eps,oneoeps=oneoeps,dlogeps=dlogeps)
    else
       call pkernel_set_epsilon(pkernel,eps=eps)
    end if
@@ -429,12 +501,21 @@ program GPS_3D
   select case(SetEps)
      !if (any(SetEps == [2,3,4])) then
   case(2,3,4)
-     call H_potential('D',pkernel,rhopot(1,1,pkernel%grid%istart+1,1),rhopot(1,1,pkernel%grid%istart+1,1),ehartree,offset,.false.)
-     call PS_gather(src=rhopot,kernel=pkernel)
+     if (Fgrid) then
+      call H_potential('D',pkernel,rhopotf(1,1,pkernel%grid%istart+1,1),&
+           rhopotf(1,1,pkernel%grid%istart+1,1),ehartree,offset,.false.)
+      call PS_gather(src=rhopotf,kernel=pkernel)
+      call for_trans_ISF_3D(geocode,8,ndimsf(1),ndimsf(2),ndimsf(3),rhopotf,rhopot)
+     else
+      call H_potential('D',pkernel,rhopot(1,1,pkernel%grid%istart+1,1),rhopot(1,1,pkernel%grid%istart+1,1),&
+           ehartree,offset,.false.)
+      call PS_gather(src=rhopot,kernel=pkernel)
+!!$      call H_potential('G',pkernel,rhopot,rhopot,ehartree,offset,.false.)
+     end if
   case(5)
   !else if (any(SetEps == [5])) then
      call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
-          eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB,.false.)
+          eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB,.false.,CFgrid)
    if (PIstart) call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
         eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode,PIstart)
   !     call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,&
@@ -453,12 +534,39 @@ program GPS_3D
        call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
             eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode,.false.)
    if (PCGstart) call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
-          eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB,PCGstart)
+          eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB,PCGstart,CFgrid)
   case(9)
        call Prec_Steepest_Descent(n01,n02,n03,nspden,hx,hy,hz,rhopot,acell,eps,dlogeps,nord,pkernel,potential,geocode)
   case(10)
      call Prec_conjugate_gradient_PSD(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,&
           eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,oneoeps,dlogeps,multp,offset,geocode,lin_PB)
+  case(11)
+     call Prec_conjugate_gradient_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
+          eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB)
+  case(12)
+       call PolarizationIteration_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
+            eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
+  case(13)
+       call Prec_Steepest_Descent_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,eps,&
+            dlogeps,nord,pkernel,potential,geocode,multp)
+  case(14)
+       call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
+            eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB,.false.,CFgrid)
+       call PolarizationIteration_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
+            eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
+  case(15)
+       call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
+            eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB,.false.,CFgrid)
+       call Prec_Steepest_Descent_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,eps,&
+            dlogeps,nord,pkernel,potential,geocode,multp)
+  case(16)
+       call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
+            eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode,.false.)
+       call Prec_conjugate_gradient_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
+            eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB)
+  case(17)
+       call Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,&
+            pkernel,potential,density,oneoeps,dlogeps,corr,oneosqrteps,multp,geocode)
   end select
 
   pot_check(:,:,:,:,i_check) = rhopot(:,:,:,:)
@@ -477,18 +585,45 @@ program GPS_3D
    call ApplyLaplace(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,rhopot(:,:,:,1),rvApp,acell,eps,nord,.false.,multp)
 
   if (iproc==0) then
-   call yaml_comment('Comparison between numerical and starting analytical density with old GPoperator',hfill='-')
+   call yaml_mapping_open('Comparison between numerical and starting analytical density with old GPoperator')
    call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+   call yaml_mapping_close()
   end if
 
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
    call ApplyLaplace2(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,rhopot(:,:,:,1),rvApp,acell,eps,dlogeps,nord,.false.,multp)
 
   if (iproc==0) then
-   call yaml_comment('Comparison between numerical and starting analytical density witn new 2 GPoperator',hfill='-')
+   call yaml_mapping_open('Comparison between numerical and starting analytical density witn new 2 GPoperator')
    call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+   call yaml_mapping_close()
   end if
 
+!   ! Calculate the charge starting from the potential applying the improved ISF Laplace operator.
+!   call ApplyLaplace_ISF(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,rhopot(:,:,:,1),rvApp,acell,eps,nord,.false.,multp)
+!
+!  if (iproc==0) then
+!   call yaml_comment('Comparison between improved ISF Generalized Poisson operator and analytical density',hfill='-')
+!   call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+!  end if
+
+   ! Calculate the charge starting from the potential applying the improved ISF Laplace operator PCG-style.
+   call ApplyLaplace_corr(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,&
+        rhopot(:,:,:,1),rvApp,acell,eps,corr,oneosqrteps,nord,.false.,multp)
+
+  if (iproc==0) then
+   call yaml_mapping_open('Comparison between Generalized Poisson operator PCG-style and analytical density')
+   call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+   call yaml_mapping_close()
+  end if
+
+!   ! Calculate the charge starting from the potential applying the improved ISF Laplace operator PCG-style.
+!   call ApplyLaplace_ISF_corr(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,rhopot(:,:,:,1),rvApp,acell,eps,corr,oneosqrteps,nord,.false.,multp)
+!
+!  if (iproc==0) then
+!   call yaml_comment('Comparison between improved ISF Generalized Poisson operator PCG-style and analytical density',hfill='-')
+!   call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+!  end if
 !
 ! call Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,rhopot,rvApp,acell,eps,nord)
 
@@ -567,7 +702,9 @@ program GPS_3D
 
   call pkernel_free(pkernel)
   call f_free(density)
+  call f_free(densityf)
   call f_free(rhopot)
+  call f_free(rhopotf)
   call f_free(potsol)
   call f_free(rhoele)
   call f_free(rhoion)
@@ -577,11 +714,13 @@ program GPS_3D
   call f_free(radii)
   call f_free(rvApp)
   call f_free(eps)
+  call f_free(epsf)
   call f_free(dlogeps)
   call f_free(oneoeps)
   call f_free(oneosqrteps)
   call f_free(corr)
   call f_free(potential)
+  call f_free(potentialf)
   call f_free(pot_ion)
 
 !!$  if (iproc ==0) then
@@ -659,7 +798,7 @@ subroutine PS_Check_options(parser)
        dict_new('1' .is. 'Analytical epsilon' ,&
                 '2' .is. 'analytical electron dependence',&
                 '3' .is. 'real electron density from cube file (need electroninc_density.cube)',&
-                '4' .is. 'calculate the caviti and dump it on disk',&
+                '4' .is. 'calculate the cavity and dump it on disk',&
                 '5' .is. 'Solves GPe with PCG customized (should be identical to 4 + PCG)',&
                 '6' .is. 'Modified Poisson Botzmann Equation solver',&
                 '7' .is. 'Solves GPe with PCG customized and a restart is implemented',&
@@ -683,6 +822,13 @@ subroutine PS_Check_options(parser)
        'Sizes of the delta for error function',&
        'Allowed values' .is. &
        'Real value'))
+
+  call yaml_cl_parse_option(parser,'input','None',&
+       'Inputfile of Poisson solver','i',&
+       dict_new('Usage' .is. &
+       'Put the dictionary of PS inputfile to preload some parameters',&
+       'Allowed values' .is. &
+       'yaml Dictionary'))
 
 
 end subroutine PS_Check_options
@@ -797,7 +943,8 @@ pure function PB_charge(x) result(ions_conc)
    ! Modified Poisson-Boltzmann Equation.
    ions_conc = 0.d0
    do i=1,n_ions
-    y=x/k_bT!*0.05d0
+    y=x/k_bT ! correct one
+    !y=x/k_bT*0.05d0
     t = -z_ions(i)*y 
     h=0.d0
     do j=1,n_ions
@@ -807,7 +954,8 @@ pure function PB_charge(x) result(ions_conc)
     t=1.d0/l
     ions_conc = ions_conc + z_ions(i)*c_ions(i)*t 
    end do
-   ions_conc = ions_conc*fact!*5.0d2
+   ions_conc = ions_conc*fact ! correct one
+   !ions_conc = ions_conc*fact*5.0d2
   end if
   !--------------------------------------------------------
 
@@ -837,7 +985,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,&
 
   real(kind=8), dimension(n01,n02,n03)  :: pot_ion
   real(kind=8), parameter :: eta = 0.6d0 !1.0d0 ! Polarization Iterative Method parameter.
-  real(kind=8), parameter :: taupol = 1.0d-12 ! Polarization Iterative Method parameter.
+  real(kind=8), parameter :: taupol = 1.0d-8 ! Polarization Iterative Method parameter.
   integer, parameter :: maxiterpol=50
   !real(kind=8), dimension(n01,n02,n03,nspden,3) :: dlv
   real(kind=8), dimension(:,:,:,:), allocatable :: dlv,deps,rhosol,rhopol,rhotot
@@ -892,7 +1040,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,&
   end do
 
   if (PIstart) then
-   call fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,b,nord,acell,1.d0,dlogeps,rhopol,rhores2)
+   call fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,b,nord,acell,1.d0,dlogeps,eps,rhopol,rhores2)
    normr=sqrt(rhores2/rpoints)
   end if
 
@@ -927,7 +1075,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,&
      end if
 
      !call fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,lv,nord,acell,eta,pkernel%dlogeps,rhopol,rhores2)
-     call fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,lv,nord,acell,eta,dlogeps,rhopol,rhores2)
+     call fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,lv,nord,acell,eta,dlogeps,eps,rhopol,rhores2)
      !call fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,lv,nord,acell,eta,dlv,rhopol,rhores2)
 
      normr=sqrt(rhores2/rpoints)
@@ -1019,8 +1167,236 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,&
 
 end subroutine PolarizationIteration
 
+subroutine PolarizationIteration_Inputguess(n01,n02,n03,nspden,iproc,&
+     hx,hy,hz,b,bb,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
+  use yaml_output
+  use Poisson_Solver
+  use wrapper_linalg
+  use dynamic_memory
+  use f_utils
+  implicit none
+  integer, intent(in) :: n01
+  integer, intent(in) :: n02
+  integer, intent(in) :: n03
+  integer, intent(in) :: nspden,iproc
+  real(kind=8), intent(in) :: hx,hy,hz
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell,multp,offset
+  type(coulomb_operator), intent(inout) :: pkernel
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: eps,potential,oneoeps
+  real(kind=8), dimension(3,n01,n02,n03), intent(in) :: dlogeps
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: b
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: bb
+  character(len=2), intent(in) :: geocode
+  logical :: PIig
+
+  real(kind=8), dimension(n01,n02,n03)  :: pot_ion
+  real(kind=8), parameter :: eta = 0.6d0 !1.0d0 ! Polarization Iterative Method parameter.
+  real(kind=8), parameter :: taupol = 1.0d-12 ! Polarization Iterative Method parameter.
+  integer, parameter :: maxiterpol=50
+  integer, parameter :: max_scf=1
+  !real(kind=8), dimension(n01,n02,n03,nspden,3) :: dlv
+  real(kind=8), dimension(:,:,:,:), allocatable :: dlv,deps,rhosol,rhopol,rhotot
+  real(kind=8), dimension(:,:,:,:), allocatable :: rhopolnew,rhopolold,rhores,lv,rvApp
+  integer :: i1,i2,i3,i,j,ip,isp,i_scf
+  real(kind=8) :: divprod,rhores2,diffcurr,pi,ehartree,res,rho,normr,rpoints,errorcur
+  
+  rhosol=f_malloc([n01,n02,n03,nspden],id='rhosol')
+  rhopol=f_malloc([n01,n02,n03,nspden],id='rhopol')
+  rhotot=f_malloc([n01,n02,n03,nspden],id='rhotot')
+  rhopolnew=f_malloc([n01,n02,n03,nspden],id='rhopolnew')
+  rhopolold=f_malloc([n01,n02,n03,nspden],id='rhopolold')
+  rhores=f_malloc([n01,n02,n03,nspden],id='rhores')
+  lv=f_malloc([n01,n02,n03,nspden],id='lv')
+  deps=f_malloc([n01,n02,n03,3],id='deps')
+  dlv=f_malloc([3,n01,n02,n03],id='dlv')
+  rvApp=f_malloc([n01,n02,n03,nspden],id='rvApp')
+
+  pi = 4.d0*datan(1.d0)
+  rpoints=product(real([n01,n02,n03],kind=8))
+
+  open(unit=18,file='PI_normr_'//trim(geocode)//'.dat',status='unknown')
+  open(unit=38,file='PI_accuracy_'//trim(geocode)//'.dat',status='unknown')
+
+  if (iproc==0) then
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   write(*,'(a)')'Starting an Inputguess PCG calculation'
+  end if
+
+  do i_scf=1,max_scf ! scf loop external
+
+  if (i_scf.eq.1) then
+   errorcur=taupol
+   PIig=.true.
+  else
+   !PIig=.false.
+   PIig=.true.
+   errorcur=taupol
+   !errorcur=errorcur
+  end if
+
+  call f_zero(rvApp)
+  if (PIig) then
+
+   call f_memcpy(src=b,dest=lv)
+
+   ! Calculate the charge starting from the potential applying the proper
+   ! Laplace operator.
+   call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,lv,rvApp,acell,eps,nord,.false.,multp)
+
+   if (iproc==0) then
+    call yaml_mapping_open('Comparison between Generalized Poisson operator and analytical density')
+    call writeroutinePot(n01,n02,n03,1,bb,0,rvApp)
+    call yaml_mapping_close()
+   end if
+
+!   ! Calculate the charge starting from the potential applying the proper
+!   Laplace operator.
+   call ApplyLaplace2(geocode,n01,n02,n03,nspden,hx,hy,hz,lv,rvApp,acell,eps,dlogeps,nord,.false.,multp)
+
+  if (iproc==0) then
+   call yaml_mapping_open('Comparison between Generalized Poisson operator 2 and analytical density')
+   call writeroutinePot(n01,n02,n03,1,bb,1,rvApp)
+   call yaml_mapping_close()
+  end if
+
+  end if
+
+  if (iproc==0) then
+   write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+   write(*,*)'Starting Inputguess iteration ',i_scf
+  end if
+
+
+  if (iproc ==0) then
+   write(18,'(1x,a)')'iter normr rhores2'
+   write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   write(*,'(a)')'Starting Polarization Iteration '
+  end if
+
+  if (iproc ==0) then
+   call yaml_map('rpoints',rpoints)
+   call yaml_sequence_open('Embedded PSolver, Polarization Iteration Method')
+  end if
+
+!  call fssnord3DmatNabla3var(n01,n02,n03,nspden,hx,hy,hz,eps,deps,nord,acell)
+
+  isp=1
+  do i3=1,n03
+   do i2=1,n02
+    do i1=1,n01
+     rhopol(i1,i2,i3,isp) = 0.d0
+     rhosol(i1,i2,i3,isp) = bb(i1,i2,i3,isp)
+
+!     !switch and create the logarithmic derivative of epsilon
+!     dlv(1,i1,i2,i3)=deps(i1,i2,i3,1)/eps(i1,i2,i3)
+!     dlv(2,i1,i2,i3)=deps(i1,i2,i3,2)/eps(i1,i2,i3)
+!     dlv(3,i1,i2,i3)=deps(i1,i2,i3,3)/eps(i1,i2,i3)
+
+    end do
+   end do
+  end do
+
+  if (PIig) then
+   call fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,lv,nord,acell,1.d0,dlogeps,eps,rhopol,rhores2)
+   normr=sqrt(rhores2/rpoints)
+  end if
+
+
+!    call writeroutinePot(n01,n02,n03,nspden,potential,0,potential)
+!    call writeroutine(n01,n02,n03,nspden,rhosol,0)
+
+    do ip=1,maxiterpol
+
+     if (iproc ==0) then
+      write(*,'(a)')'--------------------------------------------------------------------------------------------'
+      write(*,*)'Starting PI iteration ',ip
+     end if
+
+     isp=1
+     do i3=1,n03
+      do i2=1,n02
+       do i1=1,n01
+          !rhotot(i1,i2,i3,isp)=(1/eps(i1,i2,i3))*rhosol(i1,i2,i3,isp)+rhopol(i1,i2,i3,isp)
+          !rhotot(i1,i2,i3,isp)=pkernel%oneoeps(i1,i2,i3)*rhosol(i1,i2,i3,isp)+rhopol(i1,i2,i3,isp)
+          rhotot(i1,i2,i3,isp)=oneoeps(i1,i2,i3)*rhosol(i1,i2,i3,isp)+rhopol(i1,i2,i3,isp)
+          lv(i1,i2,i3,isp) = rhotot(i1,i2,i3,isp)
+       end do
+      end do
+     end do
+     
+     call yaml_sequence(advance='no')
+     call H_potential('G',pkernel,lv,pot_ion,ehartree,offset,.false.)
+
+     if (iproc ==0) then
+      call writeroutinePot(n01,n02,n03,nspden,lv,ip,potential)
+     end if
+
+     !call fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,lv,nord,acell,eta,pkernel%dlogeps,rhopol,rhores2)
+     call fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,lv,nord,acell,eta,dlogeps,eps,rhopol,rhores2)
+     !call fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,lv,nord,acell,eta,dlv,rhopol,rhores2)
+
+     normr=sqrt(rhores2/rpoints)
+
+    if (iproc ==0) then
+     write(18,'(1x,I8,2(1x,e14.7))')ip,normr,rhores2
+    end if
+     !write(*,'(1x,I8,1x,e14.7)')ip,rhores2
+
+     call EPS_iter_output_LG(ip,0.0_dp,normr,0.0_dp,0.0_dp,0.0_dp)
+     if (normr.lt.errorcur) exit
+
+!     call writeroutine(n01,n02,n03,nspden,rhores,ip)
+
+  end do ! PI loop
+
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   write(*,'(a)')'End Polarization Iteration '
+
+  end do ! scf external loop
+
+    isp=1
+    do i3=1,n03
+     do i2=1,n02
+      do i1=1,n01
+       b(i1,i2,i3,isp) = lv(i1,i2,i3,isp)
+      end do
+     end do
+    end do
+
+    call yaml_sequence_close()
+
+    close(unit=18)
+    close(unit=38)
+    !write(*,*)
+    !write(*,'(1x,a,1x,i8)')'Polarization iterations =',ip
+    !write(*,'(1x,a,1x,e14.7)')'rhores polarization square =',rhores2
+    !write(*,*)
+    !write(*,'(a)')'Max abs difference between analytic potential and the computed one'
+    if (iproc ==0) then
+     call writeroutinePot(n01,n02,n03,nspden,b,ip,potential)
+    end if
+    write(*,*)
+    write(*,'(a)')'End external scf loop'
+    write(*,'(a)')'--------------------------------------------------------------------------------------------'
+
+    call f_free(rhosol)
+    call f_free(rhopol)
+    call f_free(rhotot)
+    call f_free(rhopolnew)
+    call f_free(rhopolold)
+    call f_free(rhores)
+    call f_free(rvApp)
+    call f_free(lv)
+    call f_free(deps)
+    call f_free(dlv)
+
+end subroutine PolarizationIteration_Inputguess
+
 subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
-     acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB,PCGstart)
+     acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,dlogeps,multp,&
+     offset,geocode,lin_PB,PCGstart,CFgrid)
 
   use Poisson_Solver
   use yaml_output
@@ -1042,36 +1418,37 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
   real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: b
   real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: bb
   character(len=2), intent(in) :: geocode
-  logical, intent(in) :: lin_PB,PCGstart
+  logical, intent(in) :: lin_PB,PCGstart,CFgrid
 
-  real(kind=8), dimension(:,:,:,:), allocatable :: x,r,z,p,q,qold,lv,corr,deps,rvApp
+  real(kind=8), dimension(:,:,:,:), allocatable :: x,r,z,p,q,qold,lv,corr,deps,rvApp,lvc
   !real(kind=8), dimension(n01,n02,n03,3) :: deps
-  real(kind=8), dimension(:,:,:), allocatable :: de2,ddeps
+  real(kind=8), dimension(:,:,:), allocatable :: de2,ddeps,zcorr
   integer, parameter :: max_iter = 100
   real(kind=8), parameter :: max_ratioex = 1.0d10
   real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
   real(kind=8) :: eps1,eps2,eps3
   integer :: i,ii,j,i1,i2,i3,isp
-  real(kind=8), parameter :: error = 1.0d-12
+  real(kind=8), parameter :: error = 1.0d-13
   real(kind=8), parameter :: eps0 = 78.36d0
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
-  real(kind=8) :: ehartree,pi,switch,rpoints
-  real(kind=8) :: PB_charge,shift,offsetnew
+  real(kind=8) :: ehartree,pi,switch,rpoints,a
+  real(kind=8) :: PB_charge,shift,offsetnew,prod
 
   !allocate heap arrays
   x=f_malloc([n01,n02,n03,nspden],id='x')
   r=f_malloc([n01,n02,n03,nspden],id='r')
   rvApp=f_malloc([n01,n02,n03,nspden],id='rvApp')
   z=f_malloc([n01,n02,n03,nspden],id='z')
+  zcorr=f_malloc([n01,n02,n03],id='zcorr')
   p=f_malloc([n01,n02,n03,nspden],id='p')
   q=f_malloc([n01,n02,n03,nspden],id='q')
   qold=f_malloc([n01,n02,n03,nspden],id='qold')
   lv=f_malloc([n01,n02,n03,nspden],id='lv')
+  lvc=f_malloc([n01/2,n02/2,n03/2,nspden],id='lvc')
   corr=f_malloc([n01,n02,n03,nspden],id='corr')
   deps=f_malloc([n01,n02,n03,3],id='deps')
   ddeps=f_malloc([n01,n02,n03],id='ddeps')
   de2=f_malloc([n01,n02,n03],id='de2')
- write(*,*)'im here'
 
   pi = 4.d0*datan(1.d0)   
   rpoints=product(real([n01,n02,n03],kind=8))
@@ -1104,16 +1481,18 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
    call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,b,rvApp,acell,eps,nord,.false.,multp)
 
    if (iproc==0) then
-    call yaml_comment('Comparison between Generalized Poisson operator and analytical density',hfill='-')
+    call yaml_mapping_open('Comparison between Generalized Poisson operator and analytical density')
     call writeroutinePot(n01,n02,n03,1,bb,0,rvApp)
+    call yaml_mapping_close()
    end if
 
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
    call ApplyLaplace2(geocode,n01,n02,n03,nspden,hx,hy,hz,b,rvApp,acell,eps,dlogeps,nord,.false.,multp)
 
   if (iproc==0) then
-   call yaml_comment('Comparison between Generalized Poisson operator 2 and analytical density',hfill='-')
+   call yaml_mapping_open('Comparison between Generalized Poisson operator 2 and analytical density')
    call writeroutinePot(n01,n02,n03,1,bb,1,rvApp)
+   call yaml_mapping_close()
   end if
 
   end if
@@ -1228,12 +1607,15 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
   shift=0.d0
   offsetnew=0.d0 
 
+  ! Calculate the product in a finer grid by means of ISF.
+!  call ISF_product(geocode,8,n01,n02,n03,r,oneosqrteps,zcorr,a)
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
            !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
            !lv(i1,i2,i3,isp) = pkernel%oneoeps(i1,i2,i3)*r(i1,i2,i3,isp)
            lv(i1,i2,i3,isp) = oneosqrteps(i1,i2,i3)*r(i1,i2,i3,isp)
+!           lv(i1,i2,i3,isp) = zcorr(i1,i2,i3)
         end do
      end do
   end do
@@ -1267,8 +1649,14 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
    if (iproc ==0) then
     call yaml_sequence(advance='no')
    end if
-
+   
+   if (CFgrid) then
+    call for_trans_ISF_3D(geocode,8,n01,n02,n03,lv,lvc)
+    call H_potential('G',pkernel,lvc,pot_ion,ehartree,0.0_dp,.false.)
+    call back_trans_ISF_3D(geocode,8,n01,n02,n03,lvc,lv)
+   else
     call H_potential('G',pkernel,lv,pot_ion,ehartree,0.0_dp,.false.)
+   end if
 
    beta0 = beta
    beta=0.d0
@@ -1285,11 +1673,14 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
      end do
     end do
    end do
+!  call ISF_product_new(geocode,8,n01,n02,n03,hx,hy,hz,nord,acell,r,z,zcorr,beta)
 
+  ! Calculate the product in a finer grid by means of ISF.
+  !call ISF_product(geocode,8,n01,n02,n03,z,corr3,zcorr)
+!  call ISF_product_new(geocode,8,n01,n02,n03,hx,hy,hz,nord,acell,z,corr3,zcorr,a)
 
-   k=0.d0
-   isp=1
-
+  k=0.d0
+  isp=1
   do i3=1,n03
     do i2=1,n02
      do i1=1,n01
@@ -1309,8 +1700,10 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dtanh(multp*zeta)
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*zeta
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*(zeta**2)
-        qval = zeta*epsc+rval+pbval+(beta/beta0)*qval
-!        qval = zeta*epsc+rval+(beta/beta0)*qval
+        !qval = zeta*epsc+rval+pbval+(beta/beta0)*qval
+        prod=zeta*epsc
+        !prod=zcorr(i1,i2,i3)
+        qval = prod+rval+pbval+(beta/beta0)*qval
         k = k + pval*qval
         p(i1,i2,i3,isp) = pval
         q(i1,i2,i3,isp) = qval
@@ -1321,6 +1714,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
      end do
     end do
    end do
+!   call ISF_product_new(geocode,8,n01,n02,n03,hx,hy,hz,nord,acell,p,q,zcorr,k)
 
    alpha = beta/k
    !write(*,*)alpha
@@ -1341,6 +1735,17 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
      end do
     end do
    end do
+
+  ! Calculate the product in a finer grid by means of ISF.
+!  call ISF_product(geocode,8,n01,n02,n03,r,oneosqrteps,zcorr,a)
+!   do i3=1,n03
+!    do i2=1,n02
+!     do i1=1,n01
+!      lv(i1,i2,i3,isp) = zcorr(i1,i2,i3)
+!     end do
+!    end do
+!   end do
+
 !   normr=dsqrt(normr)
    normr=sqrt(normr/rpoints)
 
@@ -1401,10 +1806,461 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
    write(*,'(a)')'Termination of Preconditioned Conjugate Gradient'
    write(*,'(a)')'--------------------------------------------------------------------------------------------'
   end if
+
   call f_free(x)
   call f_free(r)
   call f_free(rvApp)
   call f_free(z)
+  call f_free(zcorr)
+  call f_free(p)
+  call f_free(q)
+  call f_free(qold)
+  call f_free(lv)
+  call f_free(corr)
+  call f_free(deps)
+  call f_free(ddeps)
+  call f_free(de2)
+  call f_free(lvc)
+
+end subroutine  Prec_conjugate_gradient
+
+subroutine Prec_conjugate_gradient_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
+     acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB)
+
+  use Poisson_Solver
+  use yaml_output
+  use f_utils
+  use dynamic_memory
+  implicit none
+  integer, intent(in) :: n01
+  integer, intent(in) :: n02
+  integer, intent(in) :: n03
+  integer, intent(in) :: nspden,iproc
+  real(kind=8), intent(in) :: hx,hy,hz
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell,multp,offset
+  type(coulomb_operator), intent(inout) :: pkernel
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
+  integer, intent(in) :: SetEps
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,corr3,oneosqrteps
+  real(kind=8), dimension(3,n01,n02,n03), intent(in) :: dlogeps
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: b
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: bb
+  character(len=2), intent(in) :: geocode
+  logical, intent(in) :: lin_PB
+
+  real(kind=8), dimension(:,:,:,:), allocatable :: x,r,z,p,q,qold,lv,corr,deps,rvApp,r0
+  !real(kind=8), dimension(n01,n02,n03,3) :: deps
+  real(kind=8), dimension(:,:,:), allocatable :: de2,ddeps,zcorr
+  integer, parameter :: max_iter = 100
+  integer, parameter :: max_scf = 1
+  real(kind=8), parameter :: max_ratioex = 1.0d10
+  real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
+  real(kind=8) :: eps1,eps2,eps3
+  integer :: i,ii,j,i1,i2,i3,isp,i_scf,inn
+  real(kind=8), parameter :: error = 1.0d-13
+  real(kind=8), parameter :: eps0 = 78.36d0
+  real(kind=8), dimension(n01,n02,n03) ::pot_ion
+  real(kind=8) :: ehartree,pi,switch,rpoints,a,errorcur
+  real(kind=8) :: PB_charge,shift,offsetnew,prod
+  logical :: PCGig
+
+  !allocate heap arrays
+  x=f_malloc([n01,n02,n03,nspden],id='x')
+  r=f_malloc([n01,n02,n03,nspden],id='r')
+  r0=f_malloc([n01,n02,n03,nspden],id='r0')
+  rvApp=f_malloc([n01,n02,n03,nspden],id='rvApp')
+  z=f_malloc([n01,n02,n03,nspden],id='z')
+  zcorr=f_malloc([n01,n02,n03],id='zcorr')
+  p=f_malloc([n01,n02,n03,nspden],id='p')
+  q=f_malloc([n01,n02,n03,nspden],id='q')
+  qold=f_malloc([n01,n02,n03,nspden],id='qold')
+  lv=f_malloc([n01,n02,n03,nspden],id='lv')
+  corr=f_malloc([n01,n02,n03,nspden],id='corr')
+  deps=f_malloc([n01,n02,n03,3],id='deps')
+  ddeps=f_malloc([n01,n02,n03],id='ddeps')
+  de2=f_malloc([n01,n02,n03],id='de2')
+
+  pi = 4.d0*datan(1.d0)   
+  rpoints=product(real([n01,n02,n03],kind=8))
+
+  if (lin_PB) then
+   open(unit=18,file='LinPB_PCG_normr_'//trim(geocode)//'.dat',status='unknown')
+   open(unit=38,file='LinPB_PCG_accuracy_'//trim(geocode)//'.dat',status='unknown')
+  else
+   open(unit=18,file='PCG_normr_'//trim(geocode)//'.dat',status='unknown')
+   open(unit=38,file='PCG_accuracy_'//trim(geocode)//'.dat',status='unknown')
+  end if
+
+
+  if (iproc ==0) then
+   write(18,'(1x,a)')'iter normr ratio beta'
+   write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
+   call yaml_map('rpoints',rpoints)
+   call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
+  end if
+
+  switch=0.0d0
+  if (lin_PB) then
+   switch=1.0d0
+  end if
+
+
+  if (iproc==0) then
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   write(*,'(a)')'Starting an Inputguess PCG calculation'
+  end if
+
+  do i_scf=1,max_scf ! scf loop external
+
+  if (i_scf.eq.1) then
+   errorcur=error
+   PCGig=.true.
+  else
+   !PCGig=.false.
+   PCGig=.true.
+   !errorcur=error
+   errorcur=error
+  end if
+
+  call f_zero(rvApp)
+  if (PCGig) then
+
+   call f_memcpy(src=b,dest=x)
+
+   ! Calculate the charge starting from the potential applying the proper Laplace operator.
+   call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,rvApp,acell,eps,nord,.true.,multp)
+
+   if (iproc==0) then
+    call yaml_mapping_open('Comparison between Generalized Poisson operator and analytical density')
+    call writeroutinePot(n01,n02,n03,1,bb,0,rvApp)
+    call yaml_mapping_close()
+   end if
+
+!   ! Calculate the charge starting from the potential applying the proper Laplace operator.
+!   call ApplyLaplace2(geocode,n01,n02,n03,nspden,hx,hy,hz,x,rvApp,acell,eps,dlogeps,nord,.false.,multp)
+!
+!  if (iproc==0) then
+!   call yaml_comment('Comparison between Generalized Poisson operator 2 and analytical density',hfill='-')
+!   call writeroutinePot(n01,n02,n03,1,bb,1,rvApp)
+!  end if
+
+  end if
+
+  if (iproc==0) then
+   write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+   write(*,*)'Starting Inputguess iteration ',i_scf
+  end if
+
+  if (iproc==0) then
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   write(*,'(a)')'Starting Preconditioned Conjugate Gradient'
+  end if
+
+  normb=0.d0
+  isp=1
+  do i3=1,n03
+   do i2=1,n02
+    do i1=1,n01
+     !!lv(i1,i2,i3,isp) = b(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+     if (PCGig) then
+      !b(i1,i2,i3,isp) = bb(i1,i2,i3,isp)-rvApp(i1,i2,i3,isp)
+      r0(i1,i2,i3,isp) = x(i1,i2,i3,isp)*corr3(i1,i2,i3)
+      b(i1,i2,i3,isp) = bb(i1,i2,i3,isp) - r0(i1,i2,i3,isp)
+     end if
+     normb=normb+b(i1,i2,i3,isp)*b(i1,i2,i3,isp)
+    end do
+   end do
+  end do
+!!  normb=dsqrt(normb)
+  normb=sqrt(normb/rpoints)
+
+  call f_memcpy(src=b,dest=r)
+  if (.not.PCGig) call f_zero(x)
+  if (.not.PCGig) call f_zero(q)
+  if (.not.PCGig) call f_zero(p)
+  call f_zero(x)
+  call f_zero(q)
+  call f_zero(p)
+  !call f_memcpy(src=b,dest=p)
+
+  beta=1.d0
+  ratio=1.d0
+  normr=normb
+  shift=0.d0
+  offsetnew=0.d0 
+
+  ! Calculate the product in a finer grid by means of ISF.
+!  call ISF_product(geocode,8,n01,n02,n03,r,oneosqrteps,zcorr,a)
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+           !lv(i1,i2,i3,isp) = pkernel%oneoeps(i1,i2,i3)*r(i1,i2,i3,isp)
+           lv(i1,i2,i3,isp) = oneosqrteps(i1,i2,i3)*r(i1,i2,i3,isp)
+!           lv(i1,i2,i3,isp) = zcorr(i1,i2,i3)
+        end do
+     end do
+  end do
+
+  inn=1
+  if (PCGig) then
+   i=1
+   inn=2
+
+   call H_potential('G',pkernel,lv,pot_ion,ehartree,0.0_dp,.false.)
+
+   beta0 = beta
+   beta=0.d0
+   isp=1
+   do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+        !z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+        !z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
+        z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)*oneosqrteps(i1,i2,i3)
+        beta=beta+r(i1,i2,i3,isp)*z(i1,i2,i3,isp)
+! Apply the Generalized Laplace operator nabla(eps*nabla) to the potential correction
+      !q(i1,i2,i3,isp)=r(i1,i2,i3,isp)+z(i1,i2,i3,isp)*corr(i1,i2,i3,isp)
+     end do
+    end do
+   end do
+
+  k=0.d0
+  isp=1
+  do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+        zeta=z(i1,i2,i3,isp)
+        !epsc=corr(i1,i2,i3,isp)
+        !epsc=pkernel%corr(i1,i2,i3)
+        epsc=corr3(i1,i2,i3)
+        pval=p(i1,i2,i3,isp)
+        qval=q(i1,i2,i3,isp)
+        rval=r(i1,i2,i3,isp)
+        pval = zeta+(beta/beta0)*pval
+        ! Additional contribution to the Generalized Poisson operator
+        !pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) 
+        prod=zeta*epsc
+        qval = prod !+rval+pbval+(beta/beta0)*qval
+        !k = k + pval*(qval+rval)
+        k = k + pval*(qval+rval)
+        p(i1,i2,i3,isp) = pval
+        q(i1,i2,i3,isp) = qval
+     end do
+    end do
+   end do
+
+   alpha = beta/k
+   !write(*,*)alpha
+   !alpha=1.d0
+!   if ((PCGig).and.(i.eq.1)) alpha = 1.d0
+
+   offsetnew=0.d0
+   normr=0.d0
+   isp=1
+   do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+      !x(i1,i2,i3,isp) = x(i1,i2,i3,isp) + alpha*p(i1,i2,i3,isp)
+      x(i1,i2,i3,isp) = p(i1,i2,i3,isp)
+      offsetnew=offsetnew+alpha*p(i1,i2,i3,isp)
+      !r(i1,i2,i3,isp) = alpha*(r0(i1,i2,i3,isp) - q(i1,i2,i3,isp))
+      r(i1,i2,i3,isp) = r0(i1,i2,i3,isp) - q(i1,i2,i3,isp)
+      !r(i1,i2,i3,isp) = r(i1,i2,i3,isp) - alpha*q(i1,i2,i3,isp)
+      normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
+      !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+      !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
+      lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)*oneosqrteps(i1,i2,i3)
+      p(i1,i2,i3,isp) = 0.d0
+      q(i1,i2,i3,isp) = 0.d0
+     end do
+    end do
+   end do
+  beta=1.d0
+  ratio=1.d0
+
+!   normr=dsqrt(normr)
+   normr=sqrt(normr/rpoints)
+
+   if (trim(geocode) == 'P') then
+
+    if (i.eq.1) then
+     shift=offsetnew/(n01*n02*n03)-offset/(acell**3)
+    else if (i.gt.1) then
+     shift=offsetnew/(n01*n02*n03)
+    end if
+
+    isp=1
+    do i3=1,n03
+     do i2=1,n02
+      do i1=1,n01
+       x(i1,i2,i3,isp) = x(i1,i2,i3,isp) - shift
+      end do
+     end do
+    end do
+
+   end if
+
+   ratio=normr/normb
+   if (iproc ==0) then
+   write(18,'(1x,I8,3(1x,e14.7))')i,normr,ratio,beta
+   !write(*,'(1x,I8,2(1x,e14.7))')i,ratio,beta
+   call EPS_iter_output_LG(i,normb,normr,ratio,alpha,beta)
+!   call writeroutine(n01,n02,n03,nspden,r,i)
+   call writeroutinePot(n01,n02,n03,nspden,x,i,potential)
+   end if
+
+  end if
+!  if (PCGig) stop
+  do i=inn,max_iter
+
+   if (normr.lt.errorcur) exit
+   if (normr.gt.max_ratioex) exit
+
+   if (iproc==0) then
+    write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+    write(*,*)'Starting PCG iteration ',i
+   end if
+
+
+   if (iproc ==0) then
+    call yaml_sequence(advance='no')
+   end if
+   
+    call H_potential('G',pkernel,lv,pot_ion,ehartree,0.0_dp,.false.)
+
+   beta0 = beta
+   beta=0.d0
+   isp=1
+   do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+        !z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+        !z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
+        z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)*oneosqrteps(i1,i2,i3)
+        beta=beta+r(i1,i2,i3,isp)*z(i1,i2,i3,isp)
+! Apply the Generalized Laplace operator nabla(eps*nabla) to the potential correction
+      !q(i1,i2,i3,isp)=r(i1,i2,i3,isp)+z(i1,i2,i3,isp)*corr(i1,i2,i3,isp)
+     end do
+    end do
+   end do
+
+  k=0.d0
+  isp=1
+  do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+        zeta=z(i1,i2,i3,isp)
+        !epsc=corr(i1,i2,i3,isp)
+        !epsc=pkernel%corr(i1,i2,i3)
+        epsc=corr3(i1,i2,i3)
+        pval=p(i1,i2,i3,isp)
+        qval=q(i1,i2,i3,isp)
+        rval=r(i1,i2,i3,isp)
+        pval = zeta+(beta/beta0)*pval
+        ! Additional contribution to the Generalized Poisson operator
+        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) 
+        pbval=0.d0
+        prod=zeta*epsc
+        qval = prod+rval+pbval+(beta/beta0)*qval
+        k = k + pval*qval
+        p(i1,i2,i3,isp) = pval
+        q(i1,i2,i3,isp) = qval
+     end do
+    end do
+   end do
+
+   alpha = beta/k
+   !write(*,*)alpha
+
+!   if ((PCGig).and.(i.eq.1)) alpha = 1.d0
+
+   offsetnew=0.d0
+   normr=0.d0
+   isp=1
+   do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+      !x(i1,i2,i3,isp) = x(i1,i2,i3,isp) + alpha*p(i1,i2,i3,isp)
+      x(i1,i2,i3,isp) = x(i1,i2,i3,isp) + alpha*p(i1,i2,i3,isp)
+      offsetnew=offsetnew+alpha*p(i1,i2,i3,isp)
+      r(i1,i2,i3,isp) = r(i1,i2,i3,isp) - alpha*q(i1,i2,i3,isp)
+      normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
+      !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+      !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
+      lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)*oneosqrteps(i1,i2,i3)
+     end do
+    end do
+   end do
+
+!   normr=dsqrt(normr)
+   normr=sqrt(normr/rpoints)
+
+   if (trim(geocode) == 'P') then
+
+    if (i.eq.1) then
+     shift=offsetnew/(n01*n02*n03)-offset/(acell**3)
+    else if (i.gt.1) then
+     shift=offsetnew/(n01*n02*n03)
+    end if
+
+    isp=1
+    do i3=1,n03
+     do i2=1,n02
+      do i1=1,n01
+       x(i1,i2,i3,isp) = x(i1,i2,i3,isp) - shift
+      end do
+     end do
+    end do
+
+   end if
+
+   ratio=normr/normb
+   if (iproc ==0) then
+   write(18,'(1x,I8,3(1x,e14.7))')i,normr,ratio,beta
+   !write(*,'(1x,I8,2(1x,e14.7))')i,ratio,beta
+   call EPS_iter_output_LG(i,normb,normr,ratio,alpha,beta)
+!   call writeroutine(n01,n02,n03,nspden,r,i)
+   call writeroutinePot(n01,n02,n03,nspden,x,i,potential)
+   end if
+
+  end do ! PCG loop
+
+  if (iproc==0) then
+   write(*,'(a)')'Termination of Preconditioned Conjugate Gradient'
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+  end if
+
+  end do !scf loop
+
+  call yaml_sequence_close()
+   !write(*,*)
+   !write(*,'(1x,a,1x,I8)')'PCG iterations =',i-1
+   !write(*,'(1x,a,1x,e14.7)')'PCG error =',ratio
+   !write(*,*)
+   !write(*,*)'Max abs difference between analytic potential and the computed one'
+!  if (iproc==0) then
+!   call writeroutinePot(n01,n02,n03,nspden,b,i-1,potential)
+!   write(*,*)
+!  end if
+
+  close(unit=18)
+  close(unit=38)
+  
+  call f_memcpy(src=x,dest=b)
+
+  if (iproc==0) then
+   write(*,'(a)')'Termination of restart loop'
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+  end if
+
+  call f_free(x)
+  call f_free(r)
+  call f_free(r0)
+  call f_free(rvApp)
+  call f_free(z)
+  call f_free(zcorr)
   call f_free(p)
   call f_free(q)
   call f_free(qold)
@@ -1414,7 +2270,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
   call f_free(ddeps)
   call f_free(de2)
 
-end subroutine  Prec_conjugate_gradient
+end subroutine  Prec_conjugate_gradient_Inputguess
 
 subroutine Prec_conjugate_gradient_PSD(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
      acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,oneoeps,dlogeps,multp,offset,geocode,lin_PB)
@@ -2420,6 +3276,213 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEp
 
 end subroutine Poisson_Boltzmann
 
+subroutine Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEps,nord,pkernel,potential,&
+  density,oneoeps,dlogeps,corr3,oneosqrteps,multp,geocode)
+
+  use Poisson_Solver
+  use yaml_output
+  use f_utils
+  use dynamic_memory
+  use PSbox, only: PS_gather
+  use f_enums
+  implicit none
+  integer, intent(in) :: n01
+  integer, intent(in) :: n02
+  integer, intent(in) :: n03
+  integer, intent(in) :: nspden,iproc
+  real(kind=8), intent(in) :: hx,hy,hz
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell,multp
+  type(coulomb_operator), intent(inout) :: pkernel
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
+  integer, intent(in) :: SetEps
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,oneoeps,dlogeps,corr3,oneosqrteps
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: b
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: density
+  character(len=2), intent(in) :: geocode
+
+  real(kind=8), dimension(:,:,:,:), allocatable :: x,r,z,p,q,qold,lv,corr,deps,r_PB
+  !real(kind=8), dimension(n01,n02,n03,3) :: deps
+  real(kind=8), dimension(:,:,:), allocatable :: de2,ddeps
+  integer, parameter :: max_iter = 50
+  integer, parameter :: max_iter_PB = 150
+  real(kind=8), parameter :: max_ratioex = 1.0d10
+  real(kind=8), parameter :: max_ratioex_PB = 1.0d10
+  real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
+  integer :: i,ii,j,i1,i2,i3,isp,i_PB
+  real(kind=8), parameter :: error = 1.0d-13
+  real(kind=8), parameter :: eps0 = 78.36d0
+  real(kind=8), parameter :: eta = 1.0d0 ! Mixing parameter for the Poisson-Boltzmann ionic charge.
+  real(kind=8), parameter :: tauPB = 1.0d-13 ! Polarization Iterative Method parameter.
+  real(kind=8), dimension(n01,n02,n03) ::pot_ion
+  real(kind=8) :: ehartree,offset,pi,switch,rpoints,res,rho,rhores2,normrPB
+  real(kind=8) :: PB_charge
+
+  !allocate heap arrays
+  x=f_malloc([n01,n02,n03,nspden],id='x')
+  r=f_malloc([n01,n02,n03,nspden],id='r')
+  z=f_malloc([n01,n02,n03,nspden],id='z')
+  p=f_malloc([n01,n02,n03,nspden],id='p')
+  q=f_malloc([n01,n02,n03,nspden],id='q')
+  qold=f_malloc([n01,n02,n03,nspden],id='qold')
+  lv=f_malloc([n01,n02,n03,nspden],id='lv')
+  corr=f_malloc([n01,n02,n03,nspden],id='corr')
+  deps=f_malloc([n01,n02,n03,3],id='deps')
+  ddeps=f_malloc([n01,n02,n03],id='ddeps')
+  de2=f_malloc([n01,n02,n03],id='de2')
+  r_PB=f_malloc([n01,n02,n03,nspden],id='r_PB')
+
+  pi = 4.d0*datan(1.d0)
+  rpoints=product(real([n01,n02,n03],kind=8))
+
+  open(unit=18,file='PB_PCG_normr.dat',status='unknown')
+  open(unit=38,file='PB_PCG_accuracy.dat',status='unknown')
+
+  if (iproc ==0) then
+     write(18,'(1x,a)')'iter_PB normrPB rhores2'
+     write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
+  end if
+
+  !switch=0.0d0
+  !if (SetEps.eq.6) then
+  switch=1.0d0
+  !end if
+
+  if (.not. (pkernel%method .hasattr. 'PB_NONE')) then
+     call H_potential('D',pkernel,b(1,1,pkernel%grid%istart+1,1),b(1,1,pkernel%grid%istart+1,1),&
+          ehartree,offset,.false.)
+  else
+     call yaml_map('rpoints',rpoints)
+     call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
+     if (iproc==0) then
+        write(*,'(a)')'--------------------------------------------------------------------------------------------'
+        write(*,'(a)')'Starting a Poisson-Bolzmann run'
+     end if
+
+     call f_zero(x)
+     call f_zero(r_PB)
+     call f_memcpy(src=b,dest=r)
+
+     beta=1.d0
+     ratio=1.d0
+
+     do i_PB=1,max_iter_PB ! Poisson-Boltzmann loop.
+
+        if (iproc==0) then
+           write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+           write(*,*)'Starting Poisson-Boltzmann iteration ',i_PB
+        end if
+
+
+        if (iproc==0) then
+           write(*,'(a)')'--------------------------------------------------------------------------------------------'
+           write(*,'(a)')'Starting Preconditioned Conjugate Gradient'
+        end if
+
+        !-------------------------------------------------------------------------------------
+!!$  if (i_PB.eq.1) then
+!!$   call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,r,density,acell,&
+!!$        eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,dlogeps,multp,offset,geocode,.false.,.false.,.false.)
+!!$  else
+!!$   call Prec_conjugate_gradient_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,x,r,acell,&
+!!$        eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,dlogeps,multp,offset,geocode,.false.)
+!!$  end if
+!!$  !call PolarizationIteration_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
+!!$  !     eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
+        !pkernel%minres=1.0d-13
+        !pkernel%opt%use_input_guess=.true.
+        call H_potential('D',pkernel,r(1,1,pkernel%grid%istart+1,1),r(1,1,pkernel%grid%istart+1,1),&
+             ehartree,offset,.false.)
+        call PS_gather(r,pkernel)
+        call f_memcpy(src=r,dest=x)
+
+        !-------------------------------------------------------------------------------------
+
+        if (i_PB.eq.1) call f_memcpy(src=r,dest=x)
+        rhores2=0.d0
+        isp=1
+        do i3=1,n03
+           do i2=1,n02
+              do i1=1,n01
+                 zeta=x(i1,i2,i3,isp)
+                 !x(i1,i2,i3,isp)=zeta
+                 res=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
+                 ! for the Poisson-Boltzmann equation.
+                 rho=r_PB(i1,i2,i3,isp)
+                 res=res-rho
+                 res=eta*res
+                 rhores2=rhores2+res*res
+                 r_PB(i1,i2,i3,isp)=res+rho
+                 r(i1,i2,i3,isp) = b(i1,i2,i3,isp) + r_PB(i1,i2,i3,isp)
+              end do
+           end do
+        end do
+
+        normrPB=sqrt(rhores2/rpoints)
+
+        if (iproc==0) then
+           write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+           write(*,*)'End Poisson-Boltzmann iteration ',i_PB
+        end if
+
+        if (iproc ==0) then
+           call yaml_map('iter PB',i_PB)
+           call yaml_map('normrPB',normrPB)
+           call yaml_map('rhores2',rhores2)
+           write(18,'(1x,I8,3(1x,e14.7))')i_PB,normrPB,rhores2
+           call writeroutinePot(n01,n02,n03,nspden,x,i_PB,potential)
+        end if
+
+        if (normrPB.lt.tauPB) exit
+        if (normrPB.gt.max_ratioex_PB) exit
+
+     end do ! Poisson-Boltzmann loop
+
+     isp=1
+     do i3=1,n03
+        do i2=1,n02
+           do i1=1,n01
+              b(i1,i2,i3,isp) = x(i1,i2,i3,isp)
+           end do
+        end do
+     end do
+
+     call yaml_sequence_close()
+     !write(*,*)
+     !write(*,'(1x,a,1x,I8)')'PCG iterations =',i-1
+     !write(*,'(1x,a,1x,e14.7)')'PCG error =',ratio
+     !write(*,*)
+     !write(*,*)'Max abs difference between analytic potential and the computed one'
+     !  if (iproc==0) then
+     !   call writeroutinePot(n01,n02,n03,nspden,b,i-1,potential)
+     !   write(*,*)
+     !  end if
+
+  end if
+
+  close(unit=18)
+  close(unit=38)
+
+  if (iproc==0) then
+     write(*,'(a)')'Termination of Preconditioned Conjugate Gradient'
+     write(*,'(a)')'--------------------------------------------------------------------------------------------'
+  end if
+
+  call f_free(x)
+  call f_free(r)
+  call f_free(z)
+  call f_free(p)
+  call f_free(q)
+  call f_free(qold)
+  call f_free(lv)
+  call f_free(corr)
+  call f_free(deps)
+  call f_free(ddeps)
+  call f_free(de2)
+  call f_free(r_PB)
+
+end subroutine Poisson_Boltzmann_good
+
 subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
      acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp)
 
@@ -2616,7 +3679,8 @@ subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
         rval=r(i1,i2,i3,isp)
         pval = zeta+(beta/beta0)*pval
         pbval=0.d0
-!        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
+ ! Additional contribution to the Generalized Poisson operator
+!        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta)
 !                                                                           ! for the Poisson-Boltzmann solution.
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*zeta)
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*zeta*dcosh(multp*x(i1,i2,i3,isp))
@@ -2782,10 +3846,10 @@ subroutine Poisson_Boltzmann_improved2(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
   real(kind=8), parameter :: max_ratioex_PB = 1.0d10
   real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
   integer :: i,ii,j,i1,i2,i3,isp,i_PB
-  real(kind=8), parameter :: error = 1.0d-10 !1.0d-13
+  real(kind=8), parameter :: error = 1.0d-13 !1.0d-13
   real(kind=8), parameter :: eps0 = 78.36d0
   real(kind=8), parameter :: eta = 1.0d0 ! Mixing parameter for the Poisson-Boltzmann ionic charge.
-  real(kind=8), parameter :: tauPB = 1.0d-10 ! Exit of Poisson-Boltzmann loop, to be = error for GPE.
+  real(kind=8), parameter :: tauPB = 1.0d-13 ! Exit of Poisson-Boltzmann loop, to be = error for GPE.
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
   real(kind=8) :: ehartree,offset,pi,switch,rpoints,res,rho,rhores2,normrPB,errorvar
   real(kind=8) :: PB_charge
@@ -2901,9 +3965,11 @@ subroutine Poisson_Boltzmann_improved2(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
 
   if (i_PB.eq.1) then
    errorvar=1.0d-6
+   errorvar=error
    errorvar=max(error,errorvar)
   else if (i_PB.eq.2) then
    errorvar=1.0d-8
+   errorvar=error
    errorvar=max(error,errorvar)
   else
    errorvar=error
@@ -3181,8 +4247,8 @@ subroutine Prec_Steepest_Descent(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,dlogeps
       divprod = divprod + dlogeps(j,i1,i2,i3)*dx(i1,i2,i3,isp,j)
      end do
      r(i1,i2,i3,isp)=eta*0.25d0*divprod*eps(i1,i2,i3)/pi
-     !normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
-     normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)/(eps(i1,i2,i3)**2)
+     normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
+     !normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)/(eps(i1,i2,i3)**2)
      lv(i1,i2,i3,isp) = eta*0.25d0*divprod/pi
     end do
    end do
@@ -3232,8 +4298,8 @@ subroutine Prec_Steepest_Descent(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,dlogeps
        divprod = divprod + dlogeps(j,i1,i2,i3)*dx(i1,i2,i3,isp,j)
       end do
       r(i1,i2,i3,isp)=eta*0.25d0*divprod*eps(i1,i2,i3)/pi +(1.d0-eta)*r(i1,i2,i3,isp)
-      !normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
-      normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)/(eps(i1,i2,i3)**2)
+      normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
+      !normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)/(eps(i1,i2,i3)**2)
       lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/eps(i1,i2,i3)
      end do
     end do
@@ -3273,6 +4339,257 @@ subroutine Prec_Steepest_Descent(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,dlogeps
   write(*,'(a)')'--------------------------------------------------------------------------------------------'
 
 end subroutine  Prec_Steepest_Descent
+
+subroutine Prec_Steepest_Descent_Inputguess(n01,n02,n03,nspden,iproc,&
+     hx,hy,hz,b,bb,acell,eps,dlogeps,nord,pkernel,potential,geocode,multp)
+  use yaml_output
+  use Poisson_Solver
+  use f_utils
+  use dynamic_memory
+
+  implicit none
+  integer, intent(in) :: n01
+  integer, intent(in) :: n02
+  integer, intent(in) :: n03
+  integer, intent(in) :: nspden,iproc
+  real(kind=8), intent(in) :: hx,hy,hz
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell,multp
+  type(coulomb_operator), intent(inout) :: pkernel
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
+  real(kind=8), dimension(3,n01,n02,n03), intent(in) :: dlogeps
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: potential
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: b
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: bb
+  character(len=2), intent(in) :: geocode
+
+  real(kind=8), dimension(n01,n02,n03,nspden) :: x,r,p,lv,rvApp,r0
+  real(kind=8), dimension(n01,n02,n03,nspden,3) :: dx
+  real(kind=8), dimension(n01,n02,n03,3) :: deps
+  real(kind=8), parameter :: eta = 0.6d0 !1.0d0 !Like eta in the Polarization Iterative Method.
+  integer, parameter :: max_iter = 50
+  integer, parameter :: max_scf = 1
+  real(kind=8), parameter :: max_ratioex = 1.0d10
+  real(kind=8) :: alpha,beta,normb,normr,ratio,k,rpoints
+  integer :: i,ii,j,i1,i2,i3,isp,i1_max,i2_max,i3_max,i_scf
+  real(kind=8), parameter :: error = 1.0d-12
+  real(kind=8), dimension(n01,n02,n03) ::pot_ion,re
+  real(kind=8) :: ehartree,offset,pi,divprod,fact,max_val,errorcur,rr,kk
+  logical :: PSDig
+
+  pi = 4.d0*datan(1.d0)
+  rpoints=product(real([n01,n02,n03],kind=8))
+
+  open(unit=18,file='PSDConvergence.dat',status='unknown')
+  open(unit=38,file='MaxAnalysisPSD.dat',status='unknown')
+
+  if (iproc==0) then
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   write(*,'(a)')'Starting an Inputguess PSD calculation'
+  end if
+
+  do i_scf=1,max_scf ! scf loop external
+
+  if (i_scf.eq.1) then
+   errorcur=error
+   PSDig=.true.
+  else
+   !PSDig=.false.
+   PSDig=.true.
+   !errorcur=error
+   errorcur=error
+  end if
+
+  if (PSDig) then
+
+   call f_memcpy(src=b,dest=x)
+
+   ! Calculate the charge starting from the potential applying the proper
+   ! Laplace operator.
+   call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,rvApp,acell,eps,nord,.false.,multp)
+
+   if (iproc==0) then
+    call yaml_mapping_open('Comparison between Generalized Poisson operator and analytical density')
+    call writeroutinePot(n01,n02,n03,1,bb,0,rvApp)
+    call yaml_mapping_close()
+   end if
+
+!   ! Calculate the charge starting from the potential applying the proper
+!   Laplace operator.
+!   call
+!   ApplyLaplace2(geocode,n01,n02,n03,nspden,hx,hy,hz,x,rvApp,acell,eps,dlogeps,nord,.false.,multp)
+!
+!  if (iproc==0) then
+!   call yaml_comment('Comparison between Generalized Poisson operator 2 and
+!   analytical density',hfill='-')
+!   call writeroutinePot(n01,n02,n03,1,bb,1,rvApp)
+!  end if
+
+  end if
+
+  if (iproc==0) then
+   write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+   write(*,*)'Starting Inputguess iteration ',i_scf
+  end if
+
+
+  write(*,'(a)')'--------------------------------------------------------------------------------------------'
+  write(*,'(a)')'Starting Preconditioned Steepest Descent'
+  write(*,'(a)')'Starting PSD iteration 1'
+
+!------------------------------------------------------------------------------------
+! Set the correction vector for the Generalized Laplace operator
+
+!  call fssnord3DmatNabla3var(n01,n02,n03,nspden,hx,hy,hz,eps,deps,nord,acell)
+  if (PSDig) call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
+
+  normb=0.d0
+  isp=1
+  do i3=1,n03
+   do i2=1,n02
+    do i1=1,n01
+     r0(i1,i2,i3,isp)=0.d0
+     kk=0.d0
+     if (PSDig) then
+      kk=1.d0
+      divprod = 0.d0
+      do j=1,3
+       !divprod = divprod + deps(i1,i2,i3,j)*dx(i1,i2,i3,isp,j)
+       divprod = divprod + dlogeps(j,i1,i2,i3)*dx(i1,i2,i3,isp,j)
+      end do
+      r0(i1,i2,i3,isp)=0.25d0*divprod*eps(i1,i2,i3)/pi
+     end if
+     r(i1,i2,i3,isp)=bb(i1,i2,i3,isp)+r0(i1,i2,i3,isp)
+     normb=normb+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
+     lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/eps(i1,i2,i3)
+    end do
+   end do
+  end do
+  normb=dsqrt(normb/rpoints)
+
+  !call H_potential('G',pkernel,lv,pot_ion,ehartree,0.0_dp,.false.)
+  call H_potential('G',pkernel,lv,pot_ion,ehartree,offset,.false.)
+
+!------------------------------------------------------------------------------------
+! Apply the Generalized Laplace operator nabla(eps*nabla) to the potential
+! correction
+
+  call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,lv,dx,nord,acell)
+
+  normr=0.d0
+  beta=0.d0
+  isp=1
+  do i3=1,n03
+   do i2=1,n02
+    do i1=1,n01
+     x(i1,i2,i3,isp) = lv(i1,i2,i3,isp)
+     beta=beta+b(i1,i2,i3,isp)*lv(i1,i2,i3,isp)
+! Apply the Generalized Laplace operator nabla(eps*nabla) to the potential
+! correction
+     divprod = 0.d0
+     do j=1,3
+      !divprod = divprod + deps(i1,i2,i3,j)*dx(i1,i2,i3,isp,j)
+      divprod = divprod + dlogeps(j,i1,i2,i3)*dx(i1,i2,i3,isp,j)
+     end do
+     !r(i1,i2,i3,isp)=eta*0.25d0*divprod*eps(i1,i2,i3)/pi +kk*(1.d0-eta)*r0(i1,i2,i3,isp)*eps(i1,i2,i3)
+     !r(i1,i2,i3,isp)=eta*0.25d0*divprod*eps(i1,i2,i3)/pi +kk*(1.d0-eta)*r(i1,i2,i3,isp)
+     r(i1,i2,i3,isp)=eta*(0.25d0*divprod*eps(i1,i2,i3)/pi - kk*r0(i1,i2,i3,isp))
+     normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
+     !normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)/(eps(i1,i2,i3)**2)
+     !lv(i1,i2,i3,isp) = eta*0.25d0*divprod/pi
+     lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/eps(i1,i2,i3)
+    end do
+   end do
+  end do
+  normr=dsqrt(normr/rpoints)
+
+!------------------------------------------------------------------------------------
+
+  ratio=normr/normb
+
+!  call writeroutine(n01,n02,n03,nspden,r,1)
+  call writeroutinePot(n01,n02,n03,nspden,potential,0,potential)
+  call writeroutinePot(n01,n02,n03,nspden,x,1,potential)
+
+  write(18,'(1x,I8,2(1x,e14.7))')1,normr,beta
+  !write(*,'(1x,I8,2(1x,e14.7))')1,normr,beta
+  call EPS_iter_output_LG(1,0.0_dp,normr,0.0_dp,0.0_dp,0.0_dp)
+  !if (PSDig) stop
+
+  do i=2,max_iter
+
+   if (normr.lt.errorcur) exit
+   if (ratio.gt.max_ratioex) exit
+
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   write(*,*)'Starting PSD iteration ',i
+
+!  Apply the Preconditioner
+
+   call H_potential('G',pkernel,lv,pot_ion,ehartree,offset,.false.)
+
+   call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,lv,dx,nord,acell)
+   !call fssnord3DmatNabla(n01,n02,n03,nspden,lv,dx,nord,acell)
+
+   beta=0.d0
+   normr=0.d0
+   isp=1
+   do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+      x(i1,i2,i3,isp) = x(i1,i2,i3,isp) + lv(i1,i2,i3,isp)
+      beta=beta+r(i1,i2,i3,isp)*lv(i1,i2,i3,isp)
+! Apply the Generalized Laplace operator nabla(eps*nabla) to the potential
+! correction
+      divprod = 0.d0
+      do j=1,3
+       !divprod = divprod + deps(i1,i2,i3,j)*dx(i1,i2,i3,isp,j)
+       divprod = divprod + dlogeps(j,i1,i2,i3)*dx(i1,i2,i3,isp,j)
+      end do
+      r(i1,i2,i3,isp)=eta*0.25d0*divprod*eps(i1,i2,i3)/pi +(1.d0-eta)*r(i1,i2,i3,isp)
+      normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
+      !normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)/(eps(i1,i2,i3)**2)
+      lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/eps(i1,i2,i3)
+     end do
+    end do
+   end do
+   normr=dsqrt(normr/rpoints)
+
+   ratio=normr/normb
+   write(18,'(1x,I8,2(1x,e14.7))')i,normr,beta
+   write(*,'(1x,I8,2(1x,e14.7))')i,normr,beta
+!   call writeroutine(n01,n02,n03,nspden,r,i)
+   call writeroutinePot(n01,n02,n03,nspden,x,i,potential)
+   call EPS_iter_output_LG(i,0.0_dp,normr,0.0_dp,0.0_dp,0.0_dp)
+
+  end do ! Loop PSD.
+
+  end do ! Scf external loop.
+
+   isp=1
+   do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+      b(i1,i2,i3,isp) = x(i1,i2,i3,isp)
+     end do
+    end do
+   end do
+
+  write(*,*)
+  write(*,'(1x,a,1x,I8)')'PSD iterations =',i-1
+  write(*,'(1x,a,1x,e14.7)')'PSD error =',normr
+  write(*,*)
+  write(*,*)'Max abs difference between analytic potential and the computed one'
+  call writeroutinePot(n01,n02,n03,nspden,b,i-1,potential)
+  write(*,*)
+
+  close(unit=18)
+  close(unit=38)
+
+  write(*,'(a)')'Termination of Preconditioned Steepest Descent'
+  write(*,'(a)')'--------------------------------------------------------------------------------------------'
+
+end subroutine  Prec_Steepest_Descent_Inputguess
 
 subroutine EPS_iter_output_LG(iter,normb,normr,ratio,alpha,beta)
   !use module_defs, only: dp
@@ -3490,6 +4807,843 @@ subroutine FluxSurface(n01,n02,n03,nspden,hx,hy,hz,x,acell,eps,nord)
 
 end subroutine FluxSurface 
 
+subroutine  ISF_product(geocode,itype,n01,n02,n03,x,c,y)
+  use yaml_output
+  use dynamic_memory
+  implicit none
+  character(len=2), intent(in) :: geocode
+  integer, intent(in) :: itype
+  integer, intent(in) :: n01
+  integer, intent(in) :: n02
+  integer, intent(in) :: n03
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: x
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: c
+  real(kind=8), dimension(n01,n02,n03), intent(out) :: y
+
+  ! Local variables.
+  real(kind=8), dimension(:,:,:), allocatable :: xx,cc,yy,ycur,re
+  real(kind=8), dimension(:), allocatable :: coarse1,finer1,coarse2,finer2
+  integer :: i,i1,i2,i3,n01d,n02d,n03d,nd,nt
+  integer :: i1_max,i2_max,i3_max
+  real(kind=8) :: max_val,fact
+
+  n01d=2*n01
+  n02d=2*n02
+  n03d=2*n03
+  xx=f_malloc([n01d,n02d,n03d],id='xx')
+  cc=f_malloc([n01d,n02d,n03d],id='cc')
+  yy=f_malloc([n01d,n02d,n03d],id='yy')
+  ycur=f_malloc([n01,n02,n03],id='ycur')
+  re=f_malloc([n01,n02,n03],id='re')
+
+  !Input grid product.
+  do i3=1,n03
+   do i2=1,n02
+    do i1=1,n01
+     y(i1,i2,i3)=x(i1,i2,i3)*c(i1,i2,i3)
+     ycur(i1,i2,i3)=x(i1,i2,i3)*c(i1,i2,i3)
+    end do
+   end do
+  end do
+
+!---------------------------------------------------------
+  ! 3D-backward transformation.
+  ! x-axis
+  nd=n01d
+  nt=n01d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  coarse2=f_malloc(nd,id='coarse2')
+  finer2=f_malloc(nd,id='finer2')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+   coarse2(i)=0.d0
+   finer2(i)=0.d0
+  end do
+  do i3=1,n03
+   do i2=1,n02
+    coarse1(1:n01)=x(1:n01,i2,i3)
+    coarse2(1:n01)=c(1:n01,i2,i3)
+    call back_trans_ISC(itype,nd,nt,coarse1,finer1,coarse2,finer2)
+    xx(1:n01d,i2,i3)=finer1(1:n01d)
+    cc(1:n01d,i2,i3)=finer2(1:n01d)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+  call f_free(coarse2)
+  call f_free(finer2)
+  ! y-axis
+  nd=n02d
+  nt=n02d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  coarse2=f_malloc(nd,id='coarse2')
+  finer2=f_malloc(nd,id='finer2')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+   coarse2(i)=0.d0
+   finer2(i)=0.d0
+  end do
+  do i3=1,n03
+   do i1=1,n01
+    coarse1(1:n02)=x(i1,1:n02,i3)
+    coarse2(1:n02)=c(i1,1:n02,i3)
+    call back_trans_ISC(itype,nd,nt,coarse1,finer1,coarse2,finer2)
+    xx(i1,1:n02d,i3)=finer1(1:n02d)
+    cc(i1,1:n02d,i3)=finer2(1:n02d)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+  call f_free(coarse2)
+  call f_free(finer2)
+  ! z-axis
+  nd=n03d
+  nt=n03d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  coarse2=f_malloc(nd,id='coarse2')
+  finer2=f_malloc(nd,id='finer2')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+   coarse2(i)=0.d0
+   finer2(i)=0.d0
+  end do
+  do i2=1,n02
+   do i1=1,n01
+    coarse1(1:n03)=x(i1,i2,1:n03)
+    coarse2(1:n03)=c(i1,i2,1:n03)
+    call back_trans_ISC(itype,nd,nt,coarse1,finer1,coarse2,finer2)
+    xx(i1,i2,1:n03d)=finer1(1:n03d)
+    cc(i1,i2,1:n03d)=finer2(1:n03d)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+  call f_free(coarse2)
+  call f_free(finer2)
+!---------------------------------------------------------
+
+  !Finer grid product.
+  do i3=1,n03d
+   do i2=1,n02d
+    do i1=1,n01d
+     yy(i1,i2,i3)=xx(i1,i2,i3)*cc(i1,i2,i3)
+    end do
+   end do
+  end do
+
+!---------------------------------------------------------
+  ! 3D-forward transformation.
+  ! x-axis
+  nd=n01d
+  nt=n01d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+  end do
+  do i3=1,n03
+   do i2=1,n02
+    finer1(1:nd)=yy(1:nd,i2,i3)
+    call for_trans_ISC(itype,nd,nt,finer1,coarse1)
+    y(1:n01,i2,i3)=coarse1(1:n01)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+  ! y-axis
+  nd=n02d
+  nt=n02d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+  end do
+  do i3=1,n03
+   do i1=1,n01
+    finer1(1:nd)=yy(i1,1:nd,i3)
+    call for_trans_ISC(itype,nd,nt,finer1,coarse1)
+    y(i1,1:n02,i3)=coarse1(1:n02)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+  ! z-axis
+  nd=n03d
+  nt=n03d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+  end do
+  do i2=1,n02
+   do i1=1,n01
+    finer1(1:nd)=yy(i1,i2,1:nd)
+    call for_trans_ISC(itype,nd,nt,finer1,coarse1)
+    y(i1,i2,1:n03)=coarse1(1:n03)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+!---------------------------------------------------------
+
+!---------------------------------------------------------
+!Checking difference between coarse/finer grid product.
+
+  max_val = 0.d0
+  i1_max = 1
+  i2_max = 1
+  i3_max = 1
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           re(i1,i2,i3) = ycur(i1,i2,i3) - y(i1,i2,i3)
+           fact=abs(re(i1,i2,i3))
+           if (max_val < fact) then
+              max_val = fact
+              i1_max = i1
+              i2_max = i2
+              i3_max = i3
+           end if
+        end do
+     end do
+  end do
+  call yaml_map('Diff c-f product',max_val,fmt='(1pe22.15)')
+!---------------------------------------------------------
+
+
+  call f_free(xx)
+  call f_free(cc)
+  call f_free(yy)
+  call f_free(ycur)
+  call f_free(re)
+
+end subroutine ISF_product
+
+subroutine ISF_product_new(geocode,itype,n01,n02,n03,hx,hy,hz,nord,acell,x,c,y,k)
+  use yaml_output
+  use dynamic_memory
+  implicit none
+  character(len=2), intent(in) :: geocode
+  integer, intent(in) :: itype
+  integer, intent(in) :: n01
+  integer, intent(in) :: n02
+  integer, intent(in) :: n03
+  real(kind=8), intent(in) :: hx,hy,hz,acell
+  integer, intent(in) :: nord
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: x
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: c
+  real(kind=8), dimension(n01,n02,n03), intent(out) :: y
+  real(kind=8), intent(out) :: k
+
+  ! Local variables.
+  real(kind=8), dimension(:,:,:), allocatable :: xx,cc,yy,ycur,re
+  real(kind=8), dimension(:,:,:,:), allocatable :: nxx,ncc
+  real(kind=8), dimension(3) :: hgrids
+  real(kind=8), dimension(:), allocatable :: coarse1,finer1,coarse2,finer2
+  integer :: i,i1,i2,i3,i11,i22,i33,n01d,n02d,n03d,nd,nt
+  integer :: i1_max,i2_max,i3_max
+  real(kind=8) :: max_val,fact,xxx,ccc
+
+  n01d=2*n01
+  n02d=2*n02
+  n03d=2*n03
+  xx=f_malloc([n01d,n02d,n03d],id='xx')
+  cc=f_malloc([n01d,n02d,n03d],id='cc')
+  yy=f_malloc([n01d,n02d,n03d],id='yy')
+  ycur=f_malloc([n01,n02,n03],id='ycur')
+  re=f_malloc([n01,n02,n03],id='re')
+  nxx=f_malloc([n01d,n02d,n03d,3],id='nxx')
+  ncc=f_malloc([n01d,n02d,n03d,3],id='ncc')
+
+  hgrids(1)=hx
+  hgrids(2)=hy
+  hgrids(3)=hz
+
+  !Input grid product.
+  do i3=1,n03
+   do i2=1,n02
+    do i1=1,n01
+     ycur(i1,i2,i3)=x(i1,i2,i3)*c(i1,i2,i3)
+     xx(i1,i2,i3)=x(i1,i2,i3)
+     cc(i1,i2,i3)=c(i1,i2,i3)
+     i11=i1+n01
+     i22=i2+n02
+     i33=i3+n03
+     xx(i11,i22,i33)=0.d0
+     cc(i11,i22,i33)=0.d0
+    end do
+   end do
+  end do
+
+!---------------------------------------------------------
+  ! 3D-backward transformation.
+  ! z-axis
+  nd=n03d
+  nt=n03d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  coarse2=f_malloc(nd,id='coarse2')
+  finer2=f_malloc(nd,id='finer2')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+   coarse2(i)=0.d0
+   finer2(i)=0.d0
+  end do
+  do i2=1,n02
+   do i1=1,n01
+    coarse1(1:n03)=xx(i1,i2,1:n03)
+    coarse2(1:n03)=cc(i1,i2,1:n03)
+    call back_trans_ISC(itype,nd,nt,coarse1,finer1,coarse2,finer2)
+    xx(i1,i2,1:n03d)=finer1(1:n03d)
+    cc(i1,i2,1:n03d)=finer2(1:n03d)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+  call f_free(coarse2)
+  call f_free(finer2)
+  ! y-axis
+  nd=n02d
+  nt=n02d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  coarse2=f_malloc(nd,id='coarse2')
+  finer2=f_malloc(nd,id='finer2')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+   coarse2(i)=0.d0
+   finer2(i)=0.d0
+  end do
+  do i3=1,n03d
+   do i1=1,n01
+    coarse1(1:n02)=xx(i1,1:n02,i3)
+    coarse2(1:n02)=cc(i1,1:n02,i3)
+    call back_trans_ISC(itype,nd,nt,coarse1,finer1,coarse2,finer2)
+    xx(i1,1:n02d,i3)=finer1(1:n02d)
+    cc(i1,1:n02d,i3)=finer2(1:n02d)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+  call f_free(coarse2)
+  call f_free(finer2)
+  ! x-axis
+  nd=n01d
+  nt=n01d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  coarse2=f_malloc(nd,id='coarse2')
+  finer2=f_malloc(nd,id='finer2')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+   coarse2(i)=0.d0
+   finer2(i)=0.d0
+  end do
+  do i3=1,n03d
+   do i2=1,n02d
+    coarse1(1:n01)=xx(1:n01,i2,i3)
+    coarse2(1:n01)=cc(1:n01,i2,i3)
+    call back_trans_ISC(itype,nd,nt,coarse1,finer1,coarse2,finer2)
+    xx(1:n01d,i2,i3)=finer1(1:n01d)
+    cc(1:n01d,i2,i3)=finer2(1:n01d)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+  call f_free(coarse2)
+  call f_free(finer2)
+!---------------------------------------------------------
+
+!  call fssnord3DmatNabla(geocode,n01d,n02d,n03d,1,hx,hy,hz,xx,nxx,nord,acell)
+!  call fssnord3DmatNabla(geocode,n01d,n02d,n03d,1,hx,hy,hz,cc,ncc,nord,acell)
+
+  !Finer grid product.
+  k=0.d0
+  do i3=1,n03d
+   do i2=1,n02d
+    do i1=1,n01d
+!     yy(i1,i2,i3)=xx(i1,i2,i3)*cc(i1,i2,i3)
+!     xxx=0.d0
+!     ccc=0.d0
+!     do i=1,3
+!      xxx=xxx+nxx(i1,i2,i3,i)*hgrids(i)
+!      ccc=ccc+ncc(i1,i2,i3,i)*hgrids(i)
+!     end do
+!     xx(i1,i2,i3)=xx(i1,i2,i3)+0.5d0*xxx
+!     cc(i1,i2,i3)=cc(i1,i2,i3)+0.5d0*ccc
+     yy(i1,i2,i3)=xx(i1,i2,i3)*cc(i1,i2,i3)
+     k=k+yy(i1,i2,i3)
+    end do
+   end do
+  end do
+
+!---------------------------------------------------------
+  ! 3D-forward transformation.
+  ! x-axis
+  nd=n01d
+  nt=n01d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+  end do
+  do i3=1,n03d
+   do i2=1,n02d
+    finer1(1:nd)=yy(1:nd,i2,i3)
+    call for_trans_ISC(itype,nd,nt,finer1,coarse1)
+    yy(1:n01,i2,i3)=coarse1(1:n01)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+  ! y-axis
+  nd=n02d
+  nt=n02d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+  end do
+  do i3=1,n03d
+   do i1=1,n01
+    finer1(1:nd)=yy(i1,1:nd,i3)
+    call for_trans_ISC(itype,nd,nt,finer1,coarse1)
+    yy(i1,1:n02,i3)=coarse1(1:n02)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+  ! z-axis
+  nd=n03d
+  nt=n03d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+  end do
+  do i2=1,n02
+   do i1=1,n01
+    finer1(1:nd)=yy(i1,i2,1:nd)
+    call for_trans_ISC(itype,nd,nt,finer1,coarse1)
+    yy(i1,i2,1:n03)=coarse1(1:n03)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+!---------------------------------------------------------
+
+  do i3=1,n03
+   do i2=1,n02
+    do i1=1,n01
+     y(i1,i2,i3)=yy(i1,i2,i3)
+    end do
+   end do
+  end do
+
+!---------------------------------------------------------
+!Checking difference between coarse/finer grid product.
+
+  max_val = 0.d0
+  i1_max = 1
+  i2_max = 1
+  i3_max = 1
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           re(i1,i2,i3) = ycur(i1,i2,i3) - y(i1,i2,i3)
+           fact=abs(re(i1,i2,i3))
+           if (max_val < fact) then
+              max_val = fact
+              i1_max = i1
+              i2_max = i2
+              i3_max = i3
+           end if
+        end do
+     end do
+  end do
+  call yaml_map('Diff c-f product',max_val,fmt='(1pe22.15)')
+!---------------------------------------------------------
+
+  call f_free(xx)
+  call f_free(cc)
+  call f_free(yy)
+  call f_free(ycur)
+  call f_free(re)
+  call f_free(nxx)
+  call f_free(ncc)
+
+end subroutine ISF_product_new
+
+subroutine for_trans_ISF_3D(geocode,itype,n01c,n02c,n03c,x,y)
+  use yaml_output
+  use dynamic_memory
+  implicit none
+  character(len=2), intent(in) :: geocode
+  integer, intent(in) :: itype
+  integer, intent(in) :: n01c
+  integer, intent(in) :: n02c
+  integer, intent(in) :: n03c
+  real(kind=8), dimension(n01c,n02c,n03c), intent(in) :: x
+  real(kind=8), dimension(n01c/2,n02c/2,n03c/2), intent(out) :: y
+
+  ! Local variables.
+  real(kind=8), dimension(:,:,:), allocatable :: xx
+  real(kind=8), dimension(:), allocatable :: coarse1,finer1
+  integer :: i,i1,i2,i3,i11,i22,i33,n01d,n02d,n03d,nd,nt
+  integer :: i1_max,i2_max,i3_max,n01,n02,n03
+  real(kind=8) :: max_val,fact,xxx,ccc
+
+  n01=n01c/2
+  n02=n02c/2
+  n03=n03c/2
+  n01d=n01c
+  n02d=n02c
+  n03d=n03c
+  
+  xx=f_malloc([n01d,n02d,n03d],id='xx')
+
+  do i3=1,n03d
+   do i2=1,n02d
+    do i1=1,n01d
+     xx(i1,i2,i3)=x(i1,i2,i3)
+    end do
+   end do
+  end do
+
+!---------------------------------------------------------
+  ! 3D-forward transformation.
+  ! x-axis
+  nd=n01d
+  nt=n01d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+  end do
+  do i3=1,n03d
+   do i2=1,n02d
+    finer1(1:nd)=xx(1:nd,i2,i3)
+    call for_trans_ISC(itype,nd,nt,finer1,coarse1)
+    xx(1:n01,i2,i3)=coarse1(1:n01)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+  ! y-axis
+  nd=n02d
+  nt=n02d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+  end do
+  do i3=1,n03d
+   do i1=1,n01
+    finer1(1:nd)=xx(i1,1:nd,i3)
+    call for_trans_ISC(itype,nd,nt,finer1,coarse1)
+    xx(i1,1:n02,i3)=coarse1(1:n02)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+  ! z-axis
+  nd=n03d
+  nt=n03d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+  end do
+  do i2=1,n02
+   do i1=1,n01
+    finer1(1:nd)=xx(i1,i2,1:nd)
+    call for_trans_ISC(itype,nd,nt,finer1,coarse1)
+    xx(i1,i2,1:n03)=coarse1(1:n03)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+!---------------------------------------------------------
+
+  do i3=1,n03
+   do i2=1,n02
+    do i1=1,n01
+     y(i1,i2,i3)=xx(i1,i2,i3)
+    end do
+   end do
+  end do
+
+!---------------------------------------------------------
+  
+  call f_free(xx)
+
+end subroutine for_trans_ISF_3D
+
+subroutine back_trans_ISF_3D(geocode,itype,n01c,n02c,n03c,x,y)
+  use yaml_output
+  use dynamic_memory
+  implicit none
+  character(len=2), intent(in) :: geocode
+  integer, intent(in) :: itype
+  integer, intent(in) :: n01c
+  integer, intent(in) :: n02c
+  integer, intent(in) :: n03c
+  real(kind=8), dimension(n01c/2,n02c/2,n03c/2), intent(in) :: x
+  real(kind=8), dimension(n01c,n02c,n03c), intent(out) :: y
+
+  ! Local variables.
+  real(kind=8), dimension(:,:,:), allocatable :: xx
+  real(kind=8), dimension(:), allocatable :: coarse1,finer1
+  integer :: i,i1,i2,i3,i11,i22,i33,n01d,n02d,n03d,nd,nt
+  integer :: i1_max,i2_max,i3_max,n01,n02,n03
+  real(kind=8) :: max_val,fact,xxx,ccc
+
+  n01=n01c/2
+  n02=n02c/2
+  n03=n03c/2
+  n01d=n01c
+  n02d=n02c
+  n03d=n03c
+  
+  xx=f_malloc([n01d,n02d,n03d],id='xx')
+  
+  do i3=1,n03
+   do i2=1,n02
+    do i1=1,n01
+     xx(i1,i2,i3)=x(i1,i2,i3)
+     i11=i1+n01
+     i22=i2+n02
+     i33=i3+n03
+     xx(i11,i22,i33)=0.d0
+    end do
+   end do
+  end do
+
+!---------------------------------------------------------
+  ! 3D-backward transformation.
+  ! z-axis
+  nd=n03d
+  nt=n03d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+  end do
+  do i2=1,n02
+   do i1=1,n01
+    coarse1(1:n03)=xx(i1,i2,1:n03)
+    call back_trans_ISC1vect(itype,nd,nt,coarse1,finer1)
+    xx(i1,i2,1:n03d)=finer1(1:n03d)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+  ! y-axis
+  nd=n02d
+  nt=n02d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+  end do
+  do i3=1,n03d
+   do i1=1,n01
+    coarse1(1:n02)=xx(i1,1:n02,i3)
+    call back_trans_ISC1vect(itype,nd,nt,coarse1,finer1)
+    xx(i1,1:n02d,i3)=finer1(1:n02d)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+  ! x-axis
+  nd=n01d
+  nt=n01d
+  coarse1=f_malloc(nd,id='coarse1')
+  finer1=f_malloc(nd,id='finer1')
+  do i=1,nd
+   coarse1(i)=0.d0
+   finer1(i)=0.d0
+  end do
+  do i3=1,n03d
+   do i2=1,n02d
+    coarse1(1:n01)=xx(1:n01,i2,i3)
+    call back_trans_ISC1vect(itype,nd,nt,coarse1,finer1)
+    xx(1:n01d,i2,i3)=finer1(1:n01d)
+   end do
+  end do
+  call f_free(coarse1)
+  call f_free(finer1)
+!---------------------------------------------------------
+
+  do i3=1,n03d
+   do i2=1,n02d
+    do i1=1,n01d
+     y(i1,i2,i3)=xx(i1,i2,i3)
+    end do
+   end do
+  end do
+
+  call f_free(xx)
+
+end subroutine back_trans_ISF_3D
+
+subroutine back_trans_ISC1vect(itype,nd,nt,x1,y1)
+! backward wavelet transform
+! nd: length of data set
+! nt length of data in data set to be transformed
+! m filter length (m has to be even!)
+! x input data, y output data
+  implicit real*8 (a-h,o-z)
+  integer, intent(in) :: itype
+  dimension x1(0:nd-1),y1(0:nd-1)
+
+  ! Allowed ISF 2,4,6,8,14,16,20,24,30,40,50,60,100
+  !include 'lazy_8_lifted.inc'
+  !include 'lazy_8.inc'
+  include 'lazy_16.inc'
+  !include 'lazy_30.inc'
+
+        do 100,i=0,nt/2-1
+        y1(2*i+0)=0.d0
+        y1(2*i+1)=0.d0
+
+        do 50,j=-m/2,m/2-1
+
+! periodically wrap index if necessary
+        ind=i-j
+99      continue
+        if (ind.lt.0) then
+        ind=ind+nt/2
+        goto 99
+        endif
+        if (ind.ge.nt/2) then
+        ind=ind-nt/2
+        goto 99
+        endif
+
+        y1(2*i+0)=y1(2*i+0) + ch(2*j-0)*x1(ind)+cg(2*j-0)*x1(ind+nt/2)
+        y1(2*i+1)=y1(2*i+1) + ch(2*j+1)*x1(ind)+cg(2*j+1)*x1(ind+nt/2)
+
+50      continue
+
+100     continue
+
+        return
+end subroutine back_trans_ISC1vect
+
+subroutine back_trans_ISC(itype,nd,nt,x1,y1,x2,y2)
+! backward wavelet transform
+! nd: length of data set
+! nt length of data in data set to be transformed
+! m filter length (m has to be even!)
+! x input data, y output data
+  implicit real*8 (a-h,o-z)
+  integer, intent(in) :: itype
+  dimension x1(0:nd-1),y1(0:nd-1)
+  dimension x2(0:nd-1),y2(0:nd-1)
+
+  ! Allowed ISF 2,4,6,8,14,16,20,24,30,40,50,60,100
+  !include 'lazy_8_lifted.inc'
+  !include 'lazy_8.inc'
+  include 'lazy_16.inc'
+  !include 'lazy_30.inc'
+
+        do 100,i=0,nt/2-1
+        y1(2*i+0)=0.d0
+        y1(2*i+1)=0.d0
+
+        y2(2*i+0)=0.d0
+        y2(2*i+1)=0.d0
+
+        do 50,j=-m/2,m/2-1
+
+! periodically wrap index if necessary
+        ind=i-j
+99      continue
+        if (ind.lt.0) then
+        ind=ind+nt/2
+        goto 99
+        endif
+        if (ind.ge.nt/2) then
+        ind=ind-nt/2
+        goto 99
+        endif
+
+        y1(2*i+0)=y1(2*i+0) + ch(2*j-0)*x1(ind)+cg(2*j-0)*x1(ind+nt/2)
+        y1(2*i+1)=y1(2*i+1) + ch(2*j+1)*x1(ind)+cg(2*j+1)*x1(ind+nt/2)
+
+        y2(2*i+0)=y2(2*i+0) + ch(2*j-0)*x2(ind)+cg(2*j-0)*x2(ind+nt/2)
+        y2(2*i+1)=y2(2*i+1) + ch(2*j+1)*x2(ind)+cg(2*j+1)*x2(ind+nt/2)
+50      continue
+
+100     continue
+
+        return
+end subroutine back_trans_ISC
+
+subroutine for_trans_ISC(itype,nd,nt,x,y)
+! forward wavelet transform
+! nd: length of data set
+! nt length of data in data set to be transformed
+! m filter length (m has to be even!)
+! x input data, y output data
+  implicit real*8 (a-h,o-z)
+  integer, intent(in) :: itype
+  dimension x(0:nd-1),y(0:nd-1)
+  
+  ! Allowed ISF 2,4,6,8,14,16,20,24,30,40,50,60,100
+  !include 'lazy_8_lifted.inc'
+  !include 'lazy_8.inc'
+  include 'lazy_16.inc'
+  !include 'lazy_30.inc'
+
+        do 100,i=0,nt/2-1
+        y(     i)=0.d0
+        y(nt/2+i)=0.d0
+
+        do 50,j=-m+1,m
+
+! periodically wrap index if necessary
+        ind=j+2*i
+99      continue
+        if (ind.lt.0) then
+        ind=ind+nt
+        goto 99
+        endif
+        if (ind.ge.nt) then
+        ind=ind-nt
+        goto 99
+        endif
+
+        y(     i)=y(     i)+cht(j)*x(ind)
+        y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
+50      continue
+
+100     continue
+
+        return
+end subroutine for_trans_ISC
+
 subroutine ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord,lin_PB,multp)
   use dynamic_memory
   implicit none
@@ -3558,6 +5712,431 @@ subroutine ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord,l
    call f_free(dx)
 
 end subroutine ApplyLaplace
+
+subroutine ApplyLaplace_ISF(geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord,lin_PB,multp)
+  use yaml_output
+  use dynamic_memory
+  implicit none
+  character(len=2), intent(in) :: geocode
+  integer, intent(in) :: n01
+  integer, intent(in) :: n02
+  integer, intent(in) :: n03
+  integer, intent(in) :: nspden
+  real(kind=8), intent(in) :: hx,hy,hz
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell,multp
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: x
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: y
+  logical, intent(in) :: lin_PB
+
+  ! Local variables.
+  real(kind=8), dimension(:,:,:,:), allocatable :: ddx,xx,yy,ycur
+  real(kind=8), dimension(:,:,:,:,:), allocatable :: dx,dxx
+  real(kind=8), dimension(:,:,:,:), allocatable :: deps
+  real(kind=8), dimension(:,:,:), allocatable :: eeps,re
+  real(kind=8) :: pi,switch,hxd,hyd,hzd
+  integer :: i1,i2,i3,isp,i,n01d,n02d,n03d,i1_max,i2_max,i3_max
+  real(kind=8), parameter :: eps0 = 78.36d0
+  real(kind=8) :: PB_charge,max_val,fact
+
+  pi = 4.d0*datan(1.d0)   
+  n01d=n01*2
+  n02d=n02*2
+  n03d=n03*2
+  hxd=hx/2.d0
+  hyd=hy/2.d0
+  hzd=hz/2.d0
+  !hxd=acell/real(n01d-1,kind=8)
+  !hyd=acell/real(n02d-1,kind=8)
+  !hzd=acell/real(n03d-1,kind=8)
+
+  ddx=f_malloc([n01,n02,n03,nspden],id='ddx')
+  ycur=f_malloc([n01,n02,n03,nspden],id='ycur')
+  xx=f_malloc([n01d,n02d,n03d,nspden],id='xx')
+  yy=f_malloc([n01d,n02d,n03d,nspden],id='yy')
+  dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
+  dxx=f_malloc([n01d,n02d,n03d,nspden,3],id='dxx')
+  deps=f_malloc([n01,n02,n03,3],id='deps')
+  eeps=f_malloc([n01d,n02d,n03d],id='eeps')
+  re=f_malloc([n01,n02,n03],id='re')
+  !write(*,*)geocode
+  call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
+
+      isp=1
+      do i3=1,n03
+       do i2=1,n02
+        do i1=1,n01
+         do i=1,3
+          dx(i1,i2,i3,isp,i)=eps(i1,i2,i3)*dx(i1,i2,i3,isp,i)
+         end do
+        end do
+       end do
+      end do
+
+   call fssnord3DmatDiv(geocode,n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
+
+   y(:,:,:,:)=-y(:,:,:,:)/(4.d0*pi)
+   ycur(:,:,:,:)=y(:,:,:,:)
+
+!------------------------------------------------------------------------------------
+   !Apply the improved ISF Generalized Poisson operator.
+
+   !call H_potential('G',pkernel,lvc,pot_ion,ehartree,0.0_dp,.false.)
+   call back_trans_ISF_3D(geocode,16,n01d,n02d,n03d,x,xx)
+   call back_trans_ISF_3D(geocode,16,n01d,n02d,n03d,eps,eeps)
+
+   call fssnord3DmatNabla(geocode,n01d,n02d,n03d,nspden,hxd,hyd,hzd,xx,dxx,nord,acell)
+
+      isp=1
+      do i3=1,n03d
+       do i2=1,n02d
+        do i1=1,n01d
+         do i=1,3
+          dxx(i1,i2,i3,isp,i)=eeps(i1,i2,i3)*dxx(i1,i2,i3,isp,i)
+         end do
+        end do
+       end do
+      end do
+
+   call fssnord3DmatDiv(geocode,n01d,n02d,n03d,nspden,hxd,hyd,hzd,dxx,yy,nord,acell)
+
+   call for_trans_ISF_3D(geocode,16,n01d,n02d,n03d,yy,y)
+
+   y(:,:,:,:)=-y(:,:,:,:)/(4.d0*pi)
+   yy(:,:,:,:)=-yy(:,:,:,:)/(4.d0*pi)
+
+!---------------------------------------------------------
+!Checking difference between coarse/finer grid product.
+
+  max_val = 0.d0
+  i1_max = 1
+  i2_max = 1
+  i3_max = 1
+  isp=1
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           !re(i1,i2,i3) = ycur(i1,i2,i3,1) - y(i1,i2,i3,1)
+           re(i1,i2,i3) = ycur(i1,i2,i3,1) - yy(2*i1-1,2*i2-1,2*i3-1,1)
+           fact=abs(re(i1,i2,i3))
+           if (max_val < fact) then
+              max_val = fact
+              i1_max = i1
+              i2_max = i2
+              i3_max = i3
+           end if
+        end do
+     end do
+  end do
+  call yaml_map('Diff ISF operator c-f ISF grid',max_val,fmt='(1pe22.15)')
+  write(*,*)i1_max,i2_max,i3_max
+!---------------------------------------------------------
+
+!------------------------------------------------------------------------------------
+   !Apply linear PB operator.
+   if (lin_PB) then
+    isp=1
+    do i3=1,n03
+     do i2=1,n02
+      do i1=1,n01
+       y(i1,i2,i3,isp) = y(i1,i2,i3,isp) - ((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(x(i1,i2,i3,isp))
+      end do
+     end do
+    end do
+   end if
+
+   call f_free(ddx)
+   call f_free(ycur)
+   call f_free(xx)
+   call f_free(yy)
+   call f_free(dx)
+   call f_free(dxx)
+   call f_free(deps)
+   call f_free(eeps)
+   call f_free(re)
+
+end subroutine ApplyLaplace_ISF
+
+subroutine ApplyLaplace_corr(geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,corr,oneosqrteps,nord,lin_PB,multp)
+  use yaml_output
+  use dynamic_memory
+  implicit none
+  character(len=2), intent(in) :: geocode
+  integer, intent(in) :: n01
+  integer, intent(in) :: n02
+  integer, intent(in) :: n03
+  integer, intent(in) :: nspden
+  real(kind=8), intent(in) :: hx,hy,hz
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell,multp
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: x
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: corr
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: oneosqrteps
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: y
+  logical, intent(in) :: lin_PB
+
+  ! Local variables.
+  real(kind=8), dimension(:,:,:,:), allocatable :: ddx,xx,yy,ycur,xp,dddx,xxp
+  real(kind=8), dimension(:,:,:,:,:), allocatable :: dx,dxx
+  real(kind=8), dimension(:,:,:,:), allocatable :: deps
+  real(kind=8), dimension(:,:,:), allocatable :: re,ccorr,ooneosqrteps
+  real(kind=8) :: pi,switch,hxd,hyd,hzd
+  integer :: i1,i2,i3,isp,i,n01d,n02d,n03d,i1_max,i2_max,i3_max
+  real(kind=8), parameter :: eps0 = 78.36d0
+  real(kind=8) :: PB_charge,max_val,fact
+
+  pi = 4.d0*datan(1.d0)   
+  n01d=n01*2
+  n02d=n02*2
+  n03d=n03*2
+  hxd=hx/2.d0
+  hyd=hy/2.d0
+  hzd=hz/2.d0
+  !hxd=acell/real(n01d-1,kind=8)
+  !hyd=acell/real(n02d-1,kind=8)
+  !hzd=acell/real(n03d-1,kind=8)
+
+  ddx=f_malloc([n01,n02,n03,nspden],id='ddx')
+  dddx=f_malloc([n01d,n02d,n03d,nspden],id='ddx')
+  xp=f_malloc([n01,n02,n03,nspden],id='xp')
+  ycur=f_malloc([n01,n02,n03,nspden],id='ycur')
+  xx=f_malloc([n01d,n02d,n03d,nspden],id='xx')
+  xxp=f_malloc([n01d,n02d,n03d,nspden],id='xxp')
+  yy=f_malloc([n01d,n02d,n03d,nspden],id='yy')
+  dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
+  dxx=f_malloc([n01d,n02d,n03d,nspden,3],id='dxx')
+  deps=f_malloc([n01,n02,n03,3],id='deps')
+  ccorr=f_malloc([n01d,n02d,n03d],id='eeps')
+  ooneosqrteps=f_malloc([n01d,n02d,n03d],id='eeps')
+  re=f_malloc([n01,n02,n03],id='re')
+  !write(*,*)geocode
+
+      isp=1
+      do i3=1,n03
+       do i2=1,n02
+        do i1=1,n01
+          xp(i1,i2,i3,isp)=x(i1,i2,i3,isp)/oneosqrteps(i1,i2,i3)
+        end do
+       end do
+      end do
+
+!  call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,xp,dx,nord,acell)
+!  call fssnord3DmatDiv(geocode,n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
+  call fssnordEpsilonDerivative(n01,n02,n03,nspden,hx,hy,hz,xp,ddx,y,nord,acell)
+
+      isp=1
+      do i3=1,n03
+       do i2=1,n02
+        do i1=1,n01
+          y(i1,i2,i3,isp)=-y(i1,i2,i3,isp)/oneosqrteps(i1,i2,i3)*0.25d0/pi+x(i1,i2,i3,isp)*corr(i1,i2,i3)
+        end do
+       end do
+      end do
+
+
+!   y(:,:,:,:)=-y(:,:,:,:)/(4.d0*pi)
+
+!------------------------------------------------------------------------------------
+   !Apply linear PB operator.
+   if (lin_PB) then
+    isp=1
+    do i3=1,n03
+     do i2=1,n02
+      do i1=1,n01
+       y(i1,i2,i3,isp) = y(i1,i2,i3,isp) - ((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(x(i1,i2,i3,isp))
+      end do
+     end do
+    end do
+   end if
+
+   call f_free(ddx)
+   call f_free(dddx)
+   call f_free(ycur)
+   call f_free(xx)
+   call f_free(xxp)
+   call f_free(xp)
+   call f_free(yy)
+   call f_free(dx)
+   call f_free(dxx)
+   call f_free(deps)
+   call f_free(ccorr)
+   call f_free(ooneosqrteps)
+   call f_free(re)
+
+end subroutine ApplyLaplace_corr
+
+subroutine ApplyLaplace_ISF_corr(geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,corr,oneosqrteps,nord,lin_PB,multp)
+  use yaml_output
+  use dynamic_memory
+  implicit none
+  character(len=2), intent(in) :: geocode
+  integer, intent(in) :: n01
+  integer, intent(in) :: n02
+  integer, intent(in) :: n03
+  integer, intent(in) :: nspden
+  real(kind=8), intent(in) :: hx,hy,hz
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell,multp
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: x
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: corr
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: oneosqrteps
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: y
+  logical, intent(in) :: lin_PB
+
+  ! Local variables.
+  real(kind=8), dimension(:,:,:,:), allocatable :: ddx,xx,yy,ycur,xp,dddx,xxp
+  real(kind=8), dimension(:,:,:,:,:), allocatable :: dx,dxx
+  real(kind=8), dimension(:,:,:,:), allocatable :: deps
+  real(kind=8), dimension(:,:,:), allocatable :: re,ccorr,ooneosqrteps
+  real(kind=8) :: pi,switch,hxd,hyd,hzd
+  integer :: i1,i2,i3,isp,i,n01d,n02d,n03d,i1_max,i2_max,i3_max
+  real(kind=8), parameter :: eps0 = 78.36d0
+  real(kind=8) :: PB_charge,max_val,fact
+
+  pi = 4.d0*datan(1.d0)   
+  n01d=n01*2
+  n02d=n02*2
+  n03d=n03*2
+  hxd=hx/2.d0
+  hyd=hy/2.d0
+  hzd=hz/2.d0
+  !hxd=acell/real(n01d-1,kind=8)
+  !hyd=acell/real(n02d-1,kind=8)
+  !hzd=acell/real(n03d-1,kind=8)
+
+  ddx=f_malloc([n01,n02,n03,nspden],id='ddx')
+  dddx=f_malloc([n01d,n02d,n03d,nspden],id='ddx')
+  xp=f_malloc([n01,n02,n03,nspden],id='xp')
+  ycur=f_malloc([n01,n02,n03,nspden],id='ycur')
+  xx=f_malloc([n01d,n02d,n03d,nspden],id='xx')
+  xxp=f_malloc([n01d,n02d,n03d,nspden],id='xxp')
+  yy=f_malloc([n01d,n02d,n03d,nspden],id='yy')
+  dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
+  dxx=f_malloc([n01d,n02d,n03d,nspden,3],id='dxx')
+  deps=f_malloc([n01,n02,n03,3],id='deps')
+  ccorr=f_malloc([n01d,n02d,n03d],id='eeps')
+  ooneosqrteps=f_malloc([n01d,n02d,n03d],id='eeps')
+  re=f_malloc([n01,n02,n03],id='re')
+  !write(*,*)geocode
+
+      isp=1
+      do i3=1,n03
+       do i2=1,n02
+        do i1=1,n01
+          xp(i1,i2,i3,isp)=x(i1,i2,i3,isp)/oneosqrteps(i1,i2,i3)
+        end do
+       end do
+      end do
+
+!  call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,xp,dx,nord,acell)
+!  call fssnord3DmatDiv(geocode,n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
+  call fssnordEpsilonDerivative(n01,n02,n03,nspden,hx,hy,hz,xp,ddx,y,nord,acell)
+
+      isp=1
+      do i3=1,n03
+       do i2=1,n02
+        do i1=1,n01
+          y(i1,i2,i3,isp)=-y(i1,i2,i3,isp)/oneosqrteps(i1,i2,i3)*0.25d0/pi+x(i1,i2,i3,isp)*corr(i1,i2,i3)
+        end do
+       end do
+      end do
+
+
+!   y(:,:,:,:)=-y(:,:,:,:)/(4.d0*pi)
+   ycur(:,:,:,:)=y(:,:,:,:)
+!
+!!------------------------------------------------------------------------------------
+!   !Apply the improved ISF Generalized Poisson operator.
+!
+   call back_trans_ISF_3D(geocode,16,n01d,n02d,n03d,x,xx)
+   call back_trans_ISF_3D(geocode,16,n01d,n02d,n03d,oneosqrteps,ooneosqrteps)
+   call back_trans_ISF_3D(geocode,16,n01d,n02d,n03d,corr,ccorr)
+
+      isp=1
+      do i3=1,n03d
+       do i2=1,n02d
+        do i1=1,n01d
+          xxp(i1,i2,i3,isp)=xx(i1,i2,i3,isp)/ooneosqrteps(i1,i2,i3)
+        end do
+       end do
+      end do
+!  call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,xp,dx,nord,acell)
+!  call fssnord3DmatDiv(geocode,n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
+  call fssnordEpsilonDerivative(n01d,n02d,n03d,nspden,hxd,hyd,hzd,xxp,dddx,yy,nord,acell)
+      
+      isp=1
+      do i3=1,n03d
+       do i2=1,n02d
+        do i1=1,n01d
+          yy(i1,i2,i3,isp)=-yy(i1,i2,i3,isp)/ooneosqrteps(i1,i2,i3)*0.25d0/pi+xx(i1,i2,i3,isp)*ccorr(i1,i2,i3)
+        end do
+       end do
+      end do
+
+
+   call for_trans_ISF_3D(geocode,16,n01d,n02d,n03d,yy,y)
+!
+!   y(:,:,:,:)=-y(:,:,:,:)/(4.d0*pi)
+!   yy(:,:,:,:)=-yy(:,:,:,:)/(4.d0*pi)
+
+!---------------------------------------------------------
+!Checking difference between coarse/finer grid product.
+
+  max_val = 0.d0
+  i1_max = 1
+  i2_max = 1
+  i3_max = 1
+  isp=1
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           !re(i1,i2,i3) = ycur(i1,i2,i3,1) - y(i1,i2,i3,1)
+           re(i1,i2,i3) = ycur(i1,i2,i3,1) - yy(2*i1-1,2*i2-1,2*i3-1,1)
+           fact=abs(re(i1,i2,i3))
+           if (max_val < fact) then
+              max_val = fact
+              i1_max = i1
+              i2_max = i2
+              i3_max = i3
+           end if
+        end do
+     end do
+  end do
+  call yaml_map('Diff ISF operator c-f ISF grid',max_val,fmt='(1pe22.15)')
+  write(*,*)i1_max,i2_max,i3_max
+!---------------------------------------------------------
+
+!------------------------------------------------------------------------------------
+   !Apply linear PB operator.
+   if (lin_PB) then
+    isp=1
+    do i3=1,n03
+     do i2=1,n02
+      do i1=1,n01
+       y(i1,i2,i3,isp) = y(i1,i2,i3,isp) - ((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(x(i1,i2,i3,isp))
+      end do
+     end do
+    end do
+   end if
+
+   call f_free(ddx)
+   call f_free(dddx)
+   call f_free(ycur)
+   call f_free(xx)
+   call f_free(xxp)
+   call f_free(xp)
+   call f_free(yy)
+   call f_free(dx)
+   call f_free(dxx)
+   call f_free(deps)
+   call f_free(ccorr)
+   call f_free(ooneosqrteps)
+   call f_free(re)
+
+end subroutine ApplyLaplace_ISF_corr
 
 subroutine ApplyLaplace2(geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,dlogeps,nord,lin_PB,multp)
   use dynamic_memory
@@ -3867,7 +6446,7 @@ end subroutine fssnord3DmatNabla
 
 !> Like fssnord3DmatNabla but corrected such that the index goes at the beginning
 !! Multiplies also times (nabla epsilon)/(4pi*epsilon)= nabla (log(epsilon))/(4*pi)
-subroutine fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,u,nord,acell,eta,dlogeps,rhopol,rhores2)
+subroutine fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,u,nord,acell,eta,dlogeps,eps,rhopol,rhores2)
   !use module_defs, only: pi_param
   implicit none
 
@@ -3888,6 +6467,7 @@ subroutine fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,u,nord,acell,eta,dlogeps,r
   real(kind=8), intent(in) :: acell,eta
   real(kind=8), dimension(n01,n02,n03), intent(in) :: u
   real(kind=8), dimension(3,n01,n02,n03), intent(in) :: dlogeps
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
   real(kind=8), dimension(n01,n02,n03), intent(inout) :: rhopol
   real(kind=8), intent(out) :: rhores2
 
@@ -3988,7 +6568,7 @@ subroutine fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,u,nord,acell,eta,dlogeps,r
            rho=rhopol(i1,i2,i3)
            res=res-rho
            res=eta*res
-           rhores2=rhores2+res*res
+           rhores2=rhores2+res*res*eps(i1,i2,i3)**2
            rhopol(i1,i2,i3)=res+rho
 
         end do
@@ -4305,8 +6885,8 @@ subroutine fssnordEpsilonDerivative(n01,n02,n03,nspden,hx,hy,hz,u,du2,ddu,nord,a
               end do
              end if
 
-             du2(i1,i2,i3) = d*d*(real(n01,kind=8)/acell)**2
-             ddu(i1,i2,i3) = dd*(real(n01,kind=8)/acell)**2
+             du2(i1,i2,i3) = d*d/hx/hx
+             ddu(i1,i2,i3) = dd/hx/hx
 
              d=0.d0
              dd=0.d0
@@ -4328,8 +6908,8 @@ subroutine fssnordEpsilonDerivative(n01,n02,n03,nspden,hx,hy,hz,u,du2,ddu,nord,a
               end do
              end if
 
-             du2(i1,i2,i3) = du2(i1,i2,i3) + d*d*(real(n02,kind=8)/acell)**2
-             ddu(i1,i2,i3) = ddu(i1,i2,i3) + dd*(real(n02,kind=8)/acell)**2
+             du2(i1,i2,i3) = du2(i1,i2,i3) + d*d/hy/hy
+             ddu(i1,i2,i3) = ddu(i1,i2,i3) + dd/hy/hy
 
              d=0.d0
              dd=0.d0
@@ -4351,8 +6931,8 @@ subroutine fssnordEpsilonDerivative(n01,n02,n03,nspden,hx,hy,hz,u,du2,ddu,nord,a
               end do
              end if
 
-             du2(i1,i2,i3) = du2(i1,i2,i3) + d*d*(real(n03,kind=8)/acell)**2
-             ddu(i1,i2,i3) = ddu(i1,i2,i3) + dd*(real(n03,kind=8)/acell)**2
+             du2(i1,i2,i3) = du2(i1,i2,i3) + d*d/hz/hz
+             ddu(i1,i2,i3) = ddu(i1,i2,i3) + dd/hz/hz
 
             end do
          end do
@@ -4965,7 +7545,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
 
   end if
 
- else if (any(SetEps == [2,3,4,5,6,7,8,9,10])) then
+ else if (any(SetEps == [2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17])) then
 
 ! Set initial potential as gaussian and density as the correct Generalized
 ! Laplace operator. It works with a gaussian epsilon.
@@ -5164,7 +7744,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
   
   call f_free(rxyz)
 
- else if (SetEps.eq.11) then
+ else if (SetEps.eq.18) then
 
 ! Set initial potential as gaussian and density as the correct Generalized
 ! Laplace operator. It works with a gaussian epsilon.
@@ -7149,6 +9729,7 @@ subroutine derf_local(derf_yy,yy)
   done=1
  end if
 
+!.477 < abs(yy) < 4.0 , evaluate approximation for erfc
 !.477 < abs(yy) < 4.0 , evaluate approximation for erfc
  if (xx<=4.0e0_dp .and. done==0 ) then
   xsq = xx*xx

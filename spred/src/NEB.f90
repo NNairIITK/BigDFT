@@ -117,7 +117,8 @@ MODULE NEB_routines
 
 
 !! default values are assigned
-      call dict_init(dict)
+      !call dict_init(dict)
+      dict => dict_new('input_minimal_file' .is. trim(run_id))
       call read_input_dict_from_files(trim(run_id), bigdft_mpi, dict)
       call input_keys_fill_all(dict, dict_min)
       call neb_set_from_dict(dict, neb_%optimization, neb_%climbing, &
@@ -156,7 +157,7 @@ MODULE NEB_routines
               & run_id    = job_name+i**'(i3)', &
               & input_id  = run_id+i**'(i3)', &
               & posinp_id = posinp1+i**'(i3)', &
-              & run_from_files = .true.)
+              & run_from_files = .true.,minimal_file=job_name+i**'(i3)')
 !!$         call bigdft_set_run_properties(dict_min, &
 !!$              & run_id    = trim(job_name) // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
 !!$              & input_id  = trim(run_id)   // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
@@ -444,7 +445,7 @@ END MODULE NEB_routines
 
 PROGRAM NEB
 
-  USE NEB_routines
+  USE NEB_routines, fake=> dict_free
   use dictionaries
   use bigdft_run
 

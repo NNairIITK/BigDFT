@@ -4,12 +4,6 @@ module_DATA = $(modules)
 include_HEADERS = bigdft.h bigdft_input_keys.h
 nodist_include_HEADERS = bigdft_cst.h
 
-# Code source.
-if USE_BLACS
-BLACS = 
-else
-BLACS = blacs_fake.f90
-endif
 
 #if USE_MPI
 #mpi_include =
@@ -31,7 +25,6 @@ cp2k_interfacemod = module_cp2k.f90
 cp2k_interfacemodCAP = MODULE_CP2k.F90
 cp2k_interfacemodmod = module_cp2k
 cp2k_interfacemodCAPmod = MODULE_CP2k
-BLACS = 
 else
 cp2k_interfacemod = cp2k_fake.f90 module_cp2k.f90
 cp2k_interfacemodCAP = CP2K_FAKE.F90 MODULE_CP2K.F90
@@ -39,6 +32,16 @@ cp2k_interfacemodmod = cp2k_fake module_cp2k
 cp2k_interfacemodCAPmod = CP2K_FAKE MODULE_CP2K
 cp2k_ld =
 endif
+
+if HAVE_PEXSI
+PEXSI_SRC = pexsi_base.f90 pexsi_interfaces.f90 pexsi.f90
+pexsi_ld= @PEXSI_LINKLINE@ @LINALG_LIBS@
+else
+PEXSI_SRC = pexsi_base.f90 pexsi_interfaces_fake.f90 pexsi.f90
+pexsi_ld= 
+endif
+
+
 
 libmodules_a_SOURCES = ab7_mixing.f90 \
 	dpbox.f90 \
@@ -57,6 +60,7 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	module_lenosky_si.f90 \
 	module_tersoff.f90 \
 	module_bornmayerhugginstosifumi.f90 \
+	module_tdpot.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
@@ -64,32 +68,19 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	fragment_base.f90 \
 	constrained_dft.f90 \
 	diis_module.f90 \
-	ao_inguess.f90 \
 	reformatting.f90 \
 	atoms_data.f90 \
-	communications_base.f90 \
 	communications_init.f90 \
 	communications.f90 \
-	sparsematrix_base.f90 \
-	sparsematrix_init.f90 \
-	sparsematrix.f90 \
-	foe_base.f90 \
-	foe_common.f90 \
+	sparsematrix_wrappers.f90 \
 	internal_coordinates.f90 \
-	fermi_level.f90 \
 	module_sqn.f90 \
-	module_fingerprints.f90 \
 	transposed_operations.f90 \
 	module_forces.f90 \
-	chebyshev.f90 \
 	unitary_tests.f90 \
-	matrix_operations.f90 \
-	parallel_linalg.f90 \
 	io.f90 \
 	postprocessing_linear.f90 \
 	orbital_basis.f90 \
-	foe.f90 \
-	ice.f90 \
 	bigdft_run.f90 \
 	sockets.c \
 	fsockets.f90 \
@@ -100,9 +91,9 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	locregs_init.f90 \
 	sort.f90 \
 	forces_linear.f90 \
+	$(PEXSI_SRC) \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
-	$(BLACS) \
 	configure.c \
 	$(cp2k_interfacemod) \
 	module_dftbp.f90
@@ -128,31 +119,19 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
 	PSP_PROJECTORS_BASE.@MODULE_EXT@ \
 	MODULE_DPBOX.@MODULE_EXT@ \
-	AO_INGUESS.@MODULE_EXT@ \
 	REFORMATTING.@MODULE_EXT@ \
 	MODULE_ATOMS.@MODULE_EXT@ \
-	COMMUNICATIONS_BASE.@MODULE_EXT@ \
 	COMMUNICATIONS_INIT.@MODULE_EXT@ \
 	COMMUNICATIONS.@MODULE_EXT@ \
-	SPARSEMATRIX_BASE.@MODULE_EXT@ \
-	SPARSEMATRIX_INIT.@MODULE_EXT@ \
-	SPARSEMATRIX.@MODULE_EXT@ \
-	FOE_BASE.@MODULE_EXT@ \
-	FOE_COMMON.@MODULE_EXT@ \
+	SPARSEMATRIX_WRAPPERS.@MODULE_EXT@ \
 	INTERNAL_COORDINATES.@MODULE_EXT@ \
-	FERMI_LEVEL.@MODULE_EXT@ \
 	MODULE_SQN.@MODULE_EXT@ \
 	MODULE_FORCES.@MODULE_EXT@ \
 	MODULE_FINGERPRINTS.@MODULE_EXT@ \
 	TRANSPOSED_OPERATIONS.@MODULE_EXT@ \
-	CHEBYSHEV.@MODULE_EXT@ \
 	UNITARY_TESTS.@MODULE_EXT@ \
-	MATRIX_OPERATIONS.@MODULE_EXT@ \
-	PARALLEL_LINALG.@MODULE_EXT@ \
 	IO.@MODULE_EXT@ \
 	POSTPROCESSING_LINEAR.@MODULE_EXT@ \
-	FOE.@MODULE_EXT@ \
-	ICE.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@ \
 	RHOPOTENTIAL.@MODULE_EXT@ \
 	MULTIPOLE_BASE.@MODULE_EXT@ \
@@ -168,8 +147,12 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_MORSE_BULK.@MODULE_EXT@\
 	MODULE_TERSOFF.@MODULE_EXT@\
 	MODULE_BORNMAYERHUGGINSTOSIFUMI.@MODULE_EXT@\
-        MODULE_DFTBP.@MODULE_EXT@ \
+    MODULE_DFTBP.@MODULE_EXT@ \
 	ORBITALBASIS.@MODULE_EXT@ \
+	MODULE_TDPOT.@MODULE_EXT@ \
+	PEXSI_BASE.@MODULE_EXT@ \
+	PEXSI_INTERFACES.@MODULE_EXT@ \
+	PEXSI.@MODULE_EXT@ \
 	MODULE_CP2K.@MODULE_EXT@
 else
 modules = module_types.@MODULE_EXT@ \
@@ -191,31 +174,18 @@ modules = module_types.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
 	psp_projectors_base.@MODULE_EXT@ \
 	module_dpbox.@MODULE_EXT@ \
-	ao_inguess.@MODULE_EXT@ \
 	reformatting.@MODULE_EXT@ \
 	module_atoms.@MODULE_EXT@ \
-	communications_base.@MODULE_EXT@ \
 	communications_init.@MODULE_EXT@ \
 	communications.@MODULE_EXT@ \
-	sparsematrix_base.@MODULE_EXT@ \
-	sparsematrix_init.@MODULE_EXT@ \
-	sparsematrix.@MODULE_EXT@ \
-	foe_base.@MODULE_EXT@ \
-	foe_common.@MODULE_EXT@ \
+	sparsematrix_wrappers.@MODULE_EXT@ \
 	internal_coordinates.@MODULE_EXT@ \
-	fermi_level.@MODULE_EXT@ \
 	module_sqn.@MODULE_EXT@ \
 	module_forces.@MODULE_EXT@ \
-	module_fingerprints.@MODULE_EXT@ \
 	transposed_operations.@MODULE_EXT@ \
-	chebyshev.@MODULE_EXT@ \
 	unitary_tests.@MODULE_EXT@ \
-	matrix_operations.@MODULE_EXT@ \
-	parallel_linalg.@MODULE_EXT@ \
 	io.@MODULE_EXT@ \
 	postprocessing_linear.@MODULE_EXT@ \
-	foe.@MODULE_EXT@ \
-	ice.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
 	rhopotential.@MODULE_EXT@ \
 	multipole_base.@MODULE_EXT@ \
@@ -232,19 +202,24 @@ modules = module_types.@MODULE_EXT@ \
 	module_bornmayerhugginstosifumi.@MODULE_EXT@ \
 	module_lenosky_si.@MODULE_EXT@ \
 	orbitalbasis.@MODULE_EXT@ \
-        module_dftbp.@MODULE_EXT@ \
+	module_dftbp.@MODULE_EXT@ \
+	module_tdpot.@MODULE_EXT@ \
+	pexsi_base.@MODULE_EXT@ \
+	pexsi_interfaces.@MODULE_EXT@ \
+	pexsi.@MODULE_EXT@ \
 	module_cp2k.@MODULE_EXT@
 else
 
 
 endif
 
-AO_INCLUDES = eleconf-inc.f90 
+
+
 ATOMS_INCLUDES = astruct-inc.f90
 COMMS_INCLUDES = check_array-inc.f90
 
 EXTRA_DIST = bigdft_cst.h.in BigDFT.py \
-	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES) $(overrides_DATA)
+	$(ATOMS_INCLUDES) $(COMMS_INCLUDES) $(overrides_DATA)
 CLEANFILES = $(modules)
 
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
@@ -257,63 +232,62 @@ PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
 $(modules): $(libmodules_a_OBJECTS)
 #multipole_base.o: base.o
 #fragment_base.o: public_keys.o
-ao_inguess.o: $(AO_INCLUDES) 
+
 input.o: fragment_base.o
-input_dicts.o: ao_inguess.o fragment_base.o input.o
-atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o input_dicts.o
+input_dicts.o: fragment_base.o input.o
+atoms_data.o: $(ATOMS_INCLUDES) internal_coordinates.o input_dicts.o
 input_keys.o: multipole_base.o atoms_data.o xc.o input.o fragment_base.o
-types.o: psp_projectors_base.o ao_inguess.o atoms_data.o communications_base.o input_keys.o \
-	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o multipole_base.o dpbox.o
-interfaces.o: types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o input_keys.o
+types.o: psp_projectors_base.o atoms_data.o input_keys.o \
+	xc.o ab7_mixing.o multipole_base.o dpbox.o
+interfaces.o: types.o xc.o fragments.o diis_module.o constrained_dft.o input_keys.o
 #op2p_module.o : base.o
-BigDFT_API.o: types.o interfaces.o xc.o atoms_data.o input_dicts.o ao_inguess.o psp_projectors.o communications_base.o communications_init.o
+BigDFT_API.o: types.o interfaces.o xc.o atoms_data.o input_dicts.o psp_projectors.o communications_init.o
 vdwcorrection.o: types.o
 private_api.o: types.o interfaces.o
 diis_module.o: types.o
 fragments.o: input_keys.o types.o fragment_base.o
-constrained_dft.o: input_keys.o sparsematrix_base.o
+constrained_dft.o: input_keys.o
 #psp_projectors_base.o:  gaussians.o
 psp_projectors.o: locregs_init.o psp_projectors_base.o
 #reformatting.o: base.o
 #communications_base.o: base.o
 #dpbox.o: base.o bounds.o
-communications_init.o: types.o communications_base.o
-communications.o: types.o communications_base.o xc.o
-#sparsematrix_base.o: base.o
-sparsematrix_init.o: types.o interfaces.o sparsematrix_base.o locregs_init.o
-sparsematrix.o: types.o sparsematrix_base.o sparsematrix_init.o
-#foe_base.o: base.o defs.o
-foe_common.o: foe_base.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
-fermi_level.o: foe_common.o
+communications_init.o: types.o
+communications.o: types.o xc.o
+sparsematrix_wrappers.o: types.o interfaces.o
 gaussdaub.o: psp_projectors_base.o
 #module_sqn.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o \
-		module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o
+		module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o module_tdpot.o
 #ab7_mixing.o: defs.o
 #module_lj.o: base.o defs.o
+#module_tdpot.o: base.o defs.o
 #module_cp2k.o: base.o defs.o
 #module_morse_bulk.o: base.o
 module_dftbp.o: types.o 
 module_tersoff.o: atoms_data.o
 module_bornmayerhugginstosifumi.o: atoms_data.o
 #module_lenosky_si.o: base.o defs.o
-#module_fingerprints.o: base.o
-transposed_operations.o: types.o sparsematrix_base.o sparsematrix.o sparsematrix_init.o communications_base.o
+transposed_operations.o: types.o
 module_forces.o: types.o 
-chebyshev.o: types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
-unitary_tests.o: types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o rhopotential.o
-matrix_operations.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
-parallel_linalg.o: types.o
-io.o: types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o matrix_operations.o
-postprocessing_linear.o: types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o sort.o communications_init.o locregs_init.o
-foe.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
-ice.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
-rhopotential.o: types.o interfaces.o xc.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o
-multipole.o: multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o orthonormalization.o
-orbital_basis.o:  types.o communications_base.o interfaces.o
-orthonormalization.o: types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
+unitary_tests.o: types.o interfaces.o communications_init.o communications.o transposed_operations.o rhopotential.o
+io.o: types.o interfaces.o input_keys.o
+postprocessing_linear.o: types.o interfaces.o communications.o transposed_operations.o rhopotential.o sort.o communications_init.o locregs_init.o multipole_base.o multipole.o io.o
+rhopotential.o: types.o interfaces.o xc.o communications.o
+multipole.o: multipole_base.o interfaces.o orthonormalization.o io.o orbital_basis.o
+orbital_basis.o:  types.o interfaces.o
+orthonormalization.o: types.o communications.o transposed_operations.o atoms_data.o
 locregs_init.o: types.o communications.o
-forces_linear.o: types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o psp_projectors.o transposed_operations.o
+forces_linear.o: types.o psp_projectors.o transposed_operations.o
+#pexsi.o also depends on pexsi_interfaces, but it is not known which one...
+if HAVE_PEXSI
+pexsi_interfaces.o: pexsi_base.o
+pexsi.o: pexsi_base.o pexsi_interfaces.o
+else
+pexsi_interfaces_fake.o: pexsi_base.o
+pexsi.o: pexsi_base.o pexsi_interfaces_fake.o
+endif
+
 
 # Copy modules in a common include directory.
 all: all-am insmod

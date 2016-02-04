@@ -23,7 +23,7 @@ subroutine f_utils_test()
   !  double precision :: t0
   integer(kind=8) :: i0
   integer, parameter :: nstep=10,n_inc=10**7
-  integer :: istep,icount
+  integer :: istep,icount,recl,icur,unit
   integer(f_long) :: t0,t1
   real(f_simple), dimension(3) :: r1
   real(f_double), dimension(3) :: r2
@@ -35,6 +35,7 @@ subroutine f_utils_test()
   integer(f_integer), dimension(3) :: i4
   integer(f_long), dimension(3) :: il
   logical(f_byte), dimension(3) :: lb
+  type(f_progress_bar) :: bar
   !character(len=256) :: path
   logical, dimension(3) :: l
 
@@ -93,9 +94,12 @@ subroutine f_utils_test()
   !wait one second
   !t0=dble(f_time())*1.d-9
   i0=f_time()
-  call yaml_map('Absolute time before pause (since epoch)',yaml_walltime_toa(i0))
+  call yaml_map('Absolute time before pause (since epoch)',f_humantime(i0))
+  call yaml_map('Short version',f_humantime(i0,short=.true.))
   call f_pause(1)
-  call yaml_map('Time spent after pause (s)',yaml_walltime_toa(f_time()-i0))!dble(f_time())*1.d-9-t0)
+  call yaml_map('Time spent after pause (s)',f_humantime(f_time()-i0))!dble(f_time())*1.d-9-t0)
+  call yaml_map('Short version',f_humantime(f_time()-i0,short=.true.))
+
   !call yaml_map('Conversion of walltimes in standard form',yaml_walltime_toa(f_time()))
   !open files and get free_units
   unt=f_get_free_unit()
@@ -168,15 +172,19 @@ subroutine f_utils_test()
   t1=f_time()
   call yaml_map('Count f_increment omp (ns)',[int(icount,f_long),t1-t0])
 
-
-!we cannot flush a unit with advance no, we would lose the output
+  !we cannot flush a unit with advance no, we would lose the output
   !test the counter with advance no
+  call yaml_stream_attributes(record_length=recl,icursor=icur)
+  call yaml_map('Record length',recl)
+  call yaml_map('Cursor',icur)
   call yaml_mapping_open('Progress bar test')
+  bar=f_progress_bar_new(nstep=nstep)
   do istep=1,nstep
      call f_pause(1)
-     call f_progress_bar(real(istep,f_double)/real(nstep,f_double)*100.0_f_double)
+     call dump_progress_bar(bar,step=istep)
   end do
   call yaml_mapping_close()
+  call yaml_newline()
   
 
   !create a directory (we should add the test to remove it)

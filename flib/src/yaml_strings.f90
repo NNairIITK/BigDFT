@@ -60,7 +60,7 @@ module yaml_strings
 
   interface operator(+)
      module procedure combine_strings,attach_ci,attach_cli,attach_cd,combine_msg
-     module procedure attach_c_msg,attach_msg_c
+     module procedure attach_c_msg,attach_msg_c,attach_lic
   end interface
 
   interface assignment(=)
@@ -844,6 +844,16 @@ contains
     call f_strcpy(c%msg,trim(s)//trim(adjustl(yaml_toa(num))))
   end function attach_cli
 
+  pure function attach_lic(num,s) result(c)
+    implicit none
+    integer(f_long), intent(in) :: num
+    character(len=*), intent(in) :: s
+!!$    character(len=len_trim(s)+len_trim(adjustl(yaml_litoa(num)))) :: c
+!!$    c=trim(s)//trim(adjustl(yaml_toa(num)))
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(adjustl(yaml_toa(num)))//trim(adjustl(s)))
+  end function attach_lic
+
   pure function attach_cd(s,num) result(c)
     implicit none
     real(f_double), intent(in) :: num
@@ -854,7 +864,7 @@ contains
     call f_strcpy(c%msg,trim(s)//trim(adjustl(yaml_toa(num))))
   end function attach_cd
   
-  function yaml_itoa_fmt(num,fmt) result(c)
+  pure function yaml_itoa_fmt(num,fmt) result(c)
     implicit none
     integer(f_integer), intent(in) :: num
     character(len=*), intent(in) :: fmt
@@ -864,7 +874,7 @@ contains
     call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
   end function yaml_itoa_fmt
 
-  function yaml_litoa_fmt(num,fmt) result(c)
+  pure function yaml_litoa_fmt(num,fmt) result(c)
     implicit none
     integer(f_long), intent(in) :: num
     character(len=*), intent(in) :: fmt
@@ -874,7 +884,7 @@ contains
     call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
   end function yaml_litoa_fmt
 
-  function yaml_dtoa_fmt(num,fmt) result(c)
+  pure function yaml_dtoa_fmt(num,fmt) result(c)
     implicit none
     real(f_double), intent(in) :: num
     character(len=*), intent(in) :: fmt
@@ -884,7 +894,7 @@ contains
     call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
   end function yaml_dtoa_fmt
 
-  function yaml_ctoa_fmt(num,fmt) result(c)
+  pure function yaml_ctoa_fmt(num,fmt) result(c)
     implicit none
     character(len=*), intent(in) :: num
     character(len=*), intent(in) :: fmt

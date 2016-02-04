@@ -40,8 +40,6 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   nl%nproj=0
   nl%nprojel=0
 
-  !Pb of inout
-  izero=0
 
   do iat=1,at%astruct%nat
 
@@ -55,9 +53,6 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      !assign the number of projector to the localization region
      nl%pspd(iat)%mproj=mproj
 
-     !this is not really needed, see below
-     if (mproj == 0) call bounds_to_plr_limits(.true.,1,nl%pspd(iat)%plr,&
-                          izero,izero,izero,izero,izero,izero)
      if (mproj /= 0) then 
 
         !if some projectors are there at least one locreg interacts with the psp
@@ -112,6 +107,12 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         !print *,'iat,nprojelat',iat,nprojelat,mvctr,mseg
 
      else  !(atom has no nonlocal PSP, e.g. H)
+        !Pb of inout
+        izero=0
+
+        !this is not really needed, see below
+        call bounds_to_plr_limits(.true.,1,nl%pspd(iat)%plr,&
+             izero,izero,izero,izero,izero,izero)
 
         nl%pspd(iat)%plr%wfd%nseg_c=0
         nl%pspd(iat)%plr%wfd%nvctr_c=0
@@ -136,7 +137,6 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
              nl1,nl2,nl3,nu1,nu2,nu3)
      endif
   enddo
-  
 
   !control the strategy to be applied following the memory limit
   !if the projectors takes too much memory allocate only one atom at the same time
@@ -228,100 +228,296 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
 
   !print *,'iproc,nkptsproj',iproc,nkptsproj,nlpspd%nprojel,orbs%iskpts,orbs%iskpts+orbs%nkptsp
 
-
   call f_release_routine()
 
 END SUBROUTINE localize_projectors
 
+!> Localize the projectors for pseudopotential calculations
+subroutine localize_projectors_new(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
+     logrid,at,nl)
+  use module_base
+  use module_types, only: atoms_data,orbitals_data
+  use gaussians, only: gaussian_basis_iter, gaussian_iter_start, gaussian_iter_next_shell
+  use psp_projectors_base, only: DFT_PSP_projectors
+  use psp_projectors, only: bounds_to_plr_limits, pregion_size
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  type(DFT_PSP_projectors), intent(inout) :: nl
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+  logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
+  !Local variables
+  !n(c) logical :: cmplxprojs
+  type(gaussian_basis_iter) :: iter
+  integer :: istart,ityp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,i,l
+  integer :: izero
+
+  call f_routine(id='localize_projectors')
+
+  nl%nproj=0
+
+  do iat=1,at%astruct%nat
+
+     mproj = 0
+     call gaussian_iter_start(nl%proj_G, iat, iter)
+     do
+        if (.not. gaussian_iter_next_shell(nl%proj_G, iter)) exit
+        mproj = mproj + 2 * iter%l - 1
+     end do
+
+     !assign the number of projector to the localization region
+     nl%pspd(iat)%mproj=mproj
+
+     if (mproj /= 0) then 
+
+        !if some projectors are there at least one locreg interacts with the psp
+        nl%pspd(iat)%nlr=1
+
+        !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&
+        !     'projector descriptors for atom with mproj ',iat,mproj
+        nl%nproj=nl%nproj+mproj
+
+        ! coarse grid quantities
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),at%radii_cf(at%astruct%iatype(iat),3),&
+             cpmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+
+        call bounds_to_plr_limits(.true.,1,nl%pspd(iat)%plr,&
+             nl1,nl2,nl3,nu1,nu2,nu3)
+
+        !these routines are associated to the handling of a locreg
+        call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,&
+             at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),at%radii_cf(1,3),&
+             cpmult,hx,hy,hz,logrid)
+        call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
+
+        nl%pspd(iat)%plr%wfd%nseg_c=mseg
+        nl%pspd(iat)%plr%wfd%nvctr_c=mvctr
+
+        !print *,'iat,mvctr',iat,mvctr,mseg,mproj
+
+        ! fine grid quantities
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),at%radii_cf(at%astruct%iatype(iat),2),fpmult,&
+             hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+
+        call bounds_to_plr_limits(.true.,2,nl%pspd(iat)%plr,&
+             nl1,nl2,nl3,nu1,nu2,nu3)
+
+        call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),&
+             at%radii_cf(1,2),fpmult,hx,hy,hz,logrid)
+        call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
+        !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr, fine  projectors ',mseg,mvctr
+
+        nl%pspd(iat)%plr%wfd%nseg_f=mseg
+        nl%pspd(iat)%plr%wfd%nvctr_f=mvctr
+
+     else  !(atom has no nonlocal PSP, e.g. H)
+        !Pb of inout
+        izero=0
+
+        !this is not really needed, see below
+        call bounds_to_plr_limits(.true.,1,nl%pspd(iat)%plr,&
+             izero,izero,izero,izero,izero,izero)
+
+        nl%pspd(iat)%plr%wfd%nseg_c=0
+        nl%pspd(iat)%plr%wfd%nvctr_c=0
+        nl%pspd(iat)%plr%wfd%nseg_f=0
+        nl%pspd(iat)%plr%wfd%nvctr_f=0
+
+        !! the following is necessary to the creation of preconditioning projectors
+        !! coarse grid quantities ( when used preconditioners are applied to all atoms
+        !! even H if present )
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),&
+             at%radii_cf(at%astruct%iatype(iat),3),cpmult, &
+             hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+
+        call bounds_to_plr_limits(.true.,1,nl%pspd(iat)%plr,&
+             nl1,nl2,nl3,nu1,nu2,nu3)
+
+        ! fine grid quantities
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),at%radii_cf(at%astruct%iatype(iat),2),fpmult,&
+             hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+
+        call bounds_to_plr_limits(.true.,2,nl%pspd(iat)%plr,&
+             nl1,nl2,nl3,nu1,nu2,nu3)
+     endif
+  enddo
+
+  call f_release_routine()
+
+END SUBROUTINE localize_projectors_new
+
 
 !> Fill the proj array with the PSP projectors or their derivatives, following idir value
-subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
+subroutine fill_projectors(lr,hgrids,astruct,ob,rxyz,nlpsp,idir)
   use module_base
-  use module_types
+  use locregs
+  use psp_projectors_base
+  use psp_projectors
   use yaml_output
+  use orbitalbasis
+  use module_atoms
   implicit none
   integer, intent(in) :: idir
-  real(gp), intent(in) :: hx,hy,hz
-  type(atoms_data), intent(in) :: at
-  type(orbitals_data), intent(in) :: orbs
+  real(gp), dimension(3), intent(in) :: hgrids
+  type(atomic_structure), intent(in) :: astruct
+  type(orbital_basis), intent(in) :: ob
+  !type(orbitals_data), intent(in) :: orbs
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  type(locreg_descriptors),intent(in) :: lr
-  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  type(locreg_descriptors),intent(in) :: lr !< Global localisation region
+  real(gp), dimension(3,astruct%nat), intent(in) :: rxyz
   !Local variables
-  !n(c) integer, parameter :: nterm_max=20 !if GTH nterm_max=4
+  logical :: overlap
   integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt
+  type(ket) :: psi_it
+  type(atoms_iterator) :: atit
 
   call f_routine(id='fill_projectors')
 
   !if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) &
-       !write(*,'(1x,a)',advance='no') 'Calculating wavelets expansion of projectors...'
+  !write(*,'(1x,a)',advance='no') 'Calculating wavelets expansion of projectors...'
   !warnings related to the projectors norm
   nwarnings=0
   !allocate these vectors up to the maximum size we can get
   istart_c=1
 
-  !create projectors for any of the k-point hosted by the processor
-  !starting kpoint
-  if (orbs%norbp > 0) then
-     iskpt=orbs%iokpt(1)
-     iekpt=orbs%iokpt(orbs%norbp)
-  else
-     iskpt=1
-     iekpt=1
-  end if
-
-  do ikpt=iskpt,iekpt
-     iproj=0
-     do iat=1,at%astruct%nat
-        !this routine is defined to uniformise the call for on-the-fly application
-        call atom_projector(nlpsp, at%astruct%iatype(iat), iat, &
-             & at%astruct%atomnames(at%astruct%iatype(iat)), &
-             & at%astruct%geocode, idir, lr, hx, hy, hz, &
-             & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
-             & istart_c, iproj, nwarnings)
-     enddo
+  !initialize the orbital basis object, for psi and hpsi
+  !call orbital_basis_associate(ob,orbs=orbs)
+  !iterate over the orbital_basis
+  psi_it=orbital_basis_iterator(ob)
+  loop_kpt: do while(ket_next_kpt(psi_it))
+     loop_lr: do while(ket_next_locreg(psi_it,ikpt=psi_it%ikpt))
+        iproj=0
+        atit = atoms_iter(astruct)
+        loop_atoms: do while(atoms_iter_next(atit))
+           overlap = projector_has_overlap(atit%iat,psi_it%ilr,psi_it%lr, lr, nlpsp)
+           if(.not. overlap) cycle loop_atoms
+           !this routine is defined to uniformise the call for on-the-fly application
+           call atom_projector(nlpsp,atit%ityp, atit%iat, &
+                atit%name, astruct%geocode, idir, lr,&
+                hgrids(1),hgrids(2),hgrids(3), &
+                psi_it%kpoint(1),psi_it%kpoint(2),psi_it%kpoint(3),&
+                istart_c, iproj, nwarnings)
+        end do loop_atoms
+     end do loop_lr
+     !this part should be updated by update_nlpspd according to the overlap
      if (iproj /= nlpsp%nproj) then
-        call yaml_warning('Incorrect number of projectors created')
+        call f_err_throw('Incorrect number of projectors created',&
+             err_name='BIGDFT_RUNTIME_ERROR')
      end if
      ! projector part finished
-  end do
+  end do loop_kpt
 
-  if (istart_c-1 /= nlpsp%nprojel) then
-     call yaml_warning('Incorrect once-and-for-all psp generation')
-     stop
+!call orbital_basis_release(ob)
+
+if (istart_c-1 /= nlpsp%nprojel) then
+  call yaml_warning('Incorrect once-and-for-all psp generation')
+  stop
+end if
+
+if (nwarnings /= 0 .and. bigdft_mpi%iproc == 0 .and. nlpsp%nproj /=0 .and. idir == 0) then
+  call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
+  if (nwarnings /= 0) then
+     call yaml_newline()
+     call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
   end if
+end if
 
-  if (nwarnings /= 0 .and. bigdft_mpi%iproc == 0 .and. nlpsp%nproj /=0 .and. idir == 0) then
-     call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
-     if (nwarnings /= 0) then
-        call yaml_newline()
-        call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
-        !write(*,'(1x,a,i0,a)') 'found ',nwarnings,' warnings.'
-        !write(*,'(1x,a)') 'Some projectors may be too rough.'
-        !write(*,'(1x,a,f6.3)') 'Consider the possibility of modifying hgrid and/or the localisation radii.'
-     end if
+call f_release_routine()
+
+END SUBROUTINE fill_projectors!_new
+
+
+!> Fill the proj array with the PSP projectors or their derivatives, following idir value
+subroutine fill_projectors_old(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
+use module_base
+use module_types
+use yaml_output
+implicit none
+integer, intent(in) :: idir
+real(gp), intent(in) :: hx,hy,hz
+type(atoms_data), intent(in) :: at
+type(orbitals_data), intent(in) :: orbs
+type(DFT_PSP_projectors), intent(inout) :: nlpsp
+type(locreg_descriptors),intent(in) :: lr
+real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+!Local variables
+!n(c) integer, parameter :: nterm_max=20 !if GTH nterm_max=4
+integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt
+
+call f_routine(id='fill_projectors')
+
+!if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) &
+!write(*,'(1x,a)',advance='no') 'Calculating wavelets expansion of projectors...'
+!warnings related to the projectors norm
+nwarnings=0
+!allocate these vectors up to the maximum size we can get
+istart_c=1
+
+!create projectors for any of the k-point hosted by the processor
+!starting kpoint
+if (orbs%norbp > 0) then
+  iskpt=orbs%iokpt(1)
+  iekpt=orbs%iokpt(orbs%norbp)
+else
+  iskpt=1
+  iekpt=1
+end if
+
+do ikpt=iskpt,iekpt
+  iproj=0
+  do iat=1,at%astruct%nat
+     !this routine is defined to uniformise the call for on-the-fly application
+     call atom_projector(nlpsp, at%astruct%iatype(iat), iat, &
+          & at%astruct%atomnames(at%astruct%iatype(iat)), &
+          & at%astruct%geocode, idir, lr, hx, hy, hz, &
+          & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
+          & istart_c, iproj, nwarnings)
+  enddo
+  if (iproj /= nlpsp%nproj) then
+     call yaml_warning('Incorrect number of projectors created')
   end if
+  ! projector part finished
+end do
 
-  call f_release_routine()
+if (istart_c-1 /= nlpsp%nprojel) then
+  call yaml_warning('Incorrect once-and-for-all psp generation')
+  stop
+end if
 
-END SUBROUTINE fill_projectors
+if (nwarnings /= 0 .and. bigdft_mpi%iproc == 0 .and. nlpsp%nproj /=0 .and. idir == 0) then
+  call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
+  if (nwarnings /= 0) then
+     call yaml_newline()
+     call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
+     !write(*,'(1x,a,i0,a)') 'found ',nwarnings,' warnings.'
+     !write(*,'(1x,a)') 'Some projectors may be too rough.'
+     !write(*,'(1x,a,f6.3)') 'Consider the possibility of modifying hgrid and/or the localisation radii.'
+  end if
+end if
+
+call f_release_routine()
+
+END SUBROUTINE fill_projectors_old
 
 
 !> Create projectors from gaussian decomposition.
 subroutine atom_projector(nl, ityp, iat, atomname, &
-     & geocode, idir, lr, hx, hy, hz, kx, ky, kz, &
-     & istart_c, iproj, nwarnings)
-  use module_base
-  use locregs
-  use gaussians, only: gaussian_basis_new, gaussian_basis_iter, &
-       & gaussian_iter_start, gaussian_iter_next_shell, gaussian_iter_next_gaussian
-  use psp_projectors_base, only: DFT_PSP_projectors
-  use yaml_output, only: yaml_warning
-  use yaml_strings, only: yaml_toa
-  implicit none
-  type(DFT_PSP_projectors), intent(inout) :: nl
-  integer, intent(in) :: ityp, iat
-  character(len = 1), intent(in) :: geocode
+  & geocode, idir, lr, hx, hy, hz, kx, ky, kz, &
+  & istart_c, iproj, nwarnings)
+use module_base
+use locregs
+use gaussians, only: gaussian_basis_new, gaussian_basis_iter, &
+    & gaussian_iter_start, gaussian_iter_next_shell, gaussian_iter_next_gaussian
+use psp_projectors_base, only: DFT_PSP_projectors
+use yaml_output, only: yaml_warning
+use yaml_strings, only: yaml_toa
+implicit none
+type(DFT_PSP_projectors), intent(inout) :: nl
+integer, intent(in) :: ityp, iat
+character(len = 1), intent(in) :: geocode
   type(locreg_descriptors), intent(in) :: lr
   integer, intent(in) :: idir
   character(len = *), intent(in) :: atomname

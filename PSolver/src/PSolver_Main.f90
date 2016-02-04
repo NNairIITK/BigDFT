@@ -49,9 +49,10 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !! of the energies are calculated only with the input rho.
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p), intent(inout), optional, target :: rho_ion
   !local variables
-  logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver
-  integer :: i3start,n1,n23,i3s,i23s,i23sd2,i3sd2
-  real(dp) :: IntSur,IntVol,e_static,norm_nonvac,ehartreeLOC
+  real(dp), parameter :: max_ratioex_PB = 1.0d2
+  logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver,poisson_boltzmann,calc_nabla2pot
+  integer :: i3start,n1,n23,i3s,i23s,i23sd2,i3sd2,i_PB,i3s_pot_pb
+  real(dp) :: IntSur,IntVol,e_static,norm_nonvac,ehartreeLOC,res_PB
   real(dp), dimension(:,:), allocatable :: depsdrho,dsurfdrho
   real(dp), dimension(:,:,:), allocatable :: rhopot_full,nabla2_rhopot,delta_rho,cc_rho
   real(dp), dimension(:,:,:,:), allocatable :: nabla_rho
@@ -82,6 +83,8 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
       call f_err_throw('datacode ("'//kernel%opt%datacode//&
            '") not admitted in PSolver')
    end select
+   IntSur=0.0_gp
+   IntVol=0.0_gp
 
    !aliasing
    n23=kernel%grid%m3*kernel%grid%n3p
@@ -94,7 +97,8 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
       i23sd2=1
    end if
 
-
+   poisson_boltzmann=.not. (kernel%method .hasattr. PS_PB_NONE_ENUM)
+  
 
   select case(kernel%opt%verbosity_level)
   case(0)
@@ -110,7 +114,8 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !decide what to do 
   sum_pi=present(pot_ion) .and. n23 > 0
   sum_ri=present(rho_ion) .and. n23 > 0
-  build_c=(kernel%method .hasattr. PS_SCCS_ENUM) .and. kernel%opt%update_cavity 
+  build_c=(kernel%method .hasattr. PS_SCCS_ENUM) .and. kernel%opt%update_cavity
+  calc_nabla2pot=build_c .or. .false.
   is_vextra=sum_pi .or. build_c
   plot_cavity=kernel%opt%cavity_info .and. (kernel%method /= PS_VAC_ENUM)
   cudasolver= (kernel%igpu==1 .and. .not. kernel%opt%calculate_strten)
@@ -176,8 +181,10 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !add the ionic density to the potential, calculate also the integral
   !between the rho and pot_ion and the extra potential if present
   e_static=0.0_dp
-  IntSur=0.0_gp
-  IntVol=0.0_gp
+  if (kernel%opt%only_electrostatic) then
+   IntSur=0.0_gp
+   IntVol=0.0_gp
+  end if
   if (sum_ri) then
      if (sum_pi) then
         call finalize_hartree_results(.true.,cudasolver,kernel,rho_ion,&
@@ -200,12 +207,47 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   end if
   
   !the allocation of the rho array is maybe not needed
-  call PS_allocate_lowlevel_workarrays(cudasolver,kernel%opt%use_input_guess,&
+  call PS_allocate_lowlevel_workarrays(poisson_boltzmann,cudasolver,&
        rhov(1,1,i3s),kernel)
 
-  !call the Generalized Poisson Solver
-  call Parallel_GPS(kernel,cudasolver,kernel%opt%potential_integral,energies%strten,&
-       wrtmsg,rhov(1,1,i3s),kernel%opt%use_input_guess)
+  i3s_pot_pb=0  !in the PCG case
+  if (kernel%method == PS_PI_ENUM) i3s_pot_pb=i23sd2-1
+
+  !switch between neutral and ionic solution (GPe or PBe)
+  if (poisson_boltzmann) then
+     if (kernel%opt%use_pb_input_guess) then
+        call PB_iteration(n1,n23,i3s_pot_pb,1.0_dp,kernel%cavity,rhov(1,1,i3s),kernel%w%pot,kernel%w%eps,&
+             kernel%w%rho_ions,kernel%w%rho_pb,res_PB)
+        if (.not. kernel%opt%use_input_guess .and. kernel%method == PS_PCG_ENUM ) call f_zero(kernel%w%pot)
+     else
+        call f_zero(kernel%w%rho_ions)
+     end if
+     if (wrtmsg) call yaml_sequence_open('Poisson Boltzmann solver')
+     loop_pb: do i_PB=1,kernel%max_iter_PB
+        if (wrtmsg) then
+           call yaml_sequence(advance='no')
+           call yaml_mapping_open()
+        end if
+        call Parallel_GPS(kernel,cudasolver,kernel%opt%potential_integral,energies%strten,&
+             wrtmsg,kernel%w%rho_pb,kernel%opt%use_input_guess)
+        
+        call PB_iteration(n1,n23,i3s_pot_pb,kernel%PB_eta,kernel%cavity,rhov(1,1,i3s),kernel%w%pot,kernel%w%eps,&
+             kernel%w%rho_ions,kernel%w%rho_pb,res_PB)
+        if (kernel%method == PS_PCG_ENUM) call f_memcpy(src=kernel%w%rho_pb,dest=kernel%w%res)
+        res_PB=sqrt(res_PB/product(kernel%ndims))
+        if (wrtmsg) then
+           call EPS_iter_output(i_PB,0.0_dp,res_PB,0.0_dp,0.0_dp,0.0_dp)
+           call yaml_mapping_close()
+        end if
+        if (res_PB < kernel%minres_PB .or. res_PB > max_ratioex_PB) exit loop_pb
+     end do loop_pb
+     if (wrtmsg) call yaml_sequence_close()
+
+  else
+     !call the Generalized Poisson Solver
+     call Parallel_GPS(kernel,cudasolver,kernel%opt%potential_integral,energies%strten,&
+          wrtmsg,rhov(1,1,i3s),kernel%opt%use_input_guess)
+  end if
 
   !this part is not important now, to be fixed later
 !!$  if (plot_cavity) then
@@ -229,8 +271,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
 !!$  !--------------------------------------
 
 
-  call PS_release_lowlevel_workarrays(kernel%opt%cavity_info,kernel%opt%use_input_guess,&
-       rhov(1,1,i3s),kernel)
+   call PS_release_lowlevel_workarrays(kernel)
 
   !the external ionic potential is referenced if present
   if (sum_pi) then
@@ -266,18 +307,18 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
         !in the PI method the potential is allocated as a full array
         call nabla_u_square(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
              kernel%w%pot,nabla2_rhopot,kernel%nord,kernel%hgrids)
-        call add_Vextra(n1,n23,nabla2_rhopot(1,1,i3sd2),&
-             depsdrho,dsurfdrho,kernel%cavity,kernel%opt%only_electrostatic,&
-             sum_pi,pot_ion_eff,vextra_eff)
+!!$        call add_Vextra(n1,n23,nabla2_rhopot(1,1,i3sd2),&
+!!$             depsdrho,dsurfdrho,kernel%cavity,kernel%opt%only_electrostatic,&
+!!$             sum_pi,pot_ion_eff,vextra_eff)
        end if
 
-     !here the harteee energy can be calculated and the ionic potential
-       !added
-       call finalize_hartree_results(is_vextra,cudasolver,kernel,&
-          vextra_eff,& 
-          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-          rhov(1,1,i3s),kernel%w%pot(1,i23sd2),rhov(1,1,i3s),ehartreeLOC)
+!!$     !here the harteee energy can be calculated and the ionic potential
+!!$       !added
+!!$       call finalize_hartree_results(is_vextra,cudasolver,kernel,&
+!!$          vextra_eff,& 
+!!$          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!$          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!$          rhov(1,1,i3s),kernel%w%pot(1,i23sd2),rhov(1,1,i3s),ehartreeLOC)
 
   case('PCG')
      !only useful for gpu, bring back the x array
@@ -287,21 +328,39 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
         call PS_gather(src=kernel%w%pot,dest=rhopot_full,kernel=kernel)
         call nabla_u_square(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
              rhopot_full,nabla2_rhopot,kernel%nord,kernel%hgrids)
+        call f_free(rhopot_full)
+!!$        call add_Vextra(n1,n23,nabla2_rhopot(1,1,i3sd2),&
+!!$             depsdrho,dsurfdrho,kernel%cavity,kernel%opt%only_electrostatic,&
+!!$             sum_pi,pot_ion_eff,vextra_eff)
+     end if
+
+!!$     !here the harteee energy can be calculated and the ionic potential
+!!$     !added
+!!$     call finalize_hartree_results(is_vextra,cudasolver,kernel,&
+!!$          vextra_eff,&
+!!$          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!$          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!$          rhov(1,1,i3s),kernel%w%pot,rhov(1,1,i3s),ehartreeLOC)
+
+  end select
+
+  if (kernel%method /= PS_VAC_ENUM) then
+     !here the harteee energy can be calculated and the ionic potential
+     !added
+
+     if (build_c) then
         call add_Vextra(n1,n23,nabla2_rhopot(1,1,i3sd2),&
              depsdrho,dsurfdrho,kernel%cavity,kernel%opt%only_electrostatic,&
              sum_pi,pot_ion_eff,vextra_eff)
-        call f_free(rhopot_full)
      end if
 
-     !here the harteee energy can be calculated and the ionic potential
-     !added
      call finalize_hartree_results(is_vextra,cudasolver,kernel,&
-          vextra_eff,&
+          vextra_eff,& 
           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-          rhov(1,1,i3s),kernel%w%pot,rhov(1,1,i3s),ehartreeLOC)
+          rhov(1,1,i3s),kernel%w%pot(1,i3s_pot_pb+1),rhov(1,1,i3s),ehartreeLOC)
+  end if
 
-  end select
 
   if (build_c) then
      call f_free(nabla2_rhopot)
@@ -310,7 +369,8 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   end if
   nullify(vextra_eff,pot_ion_eff)
 
-  call release_PS_workarrays(kernel%keepzf,kernel%w,kernel%opt%use_input_guess)
+  call release_PS_potential(kernel%keepzf,kernel%w,kernel%opt%use_input_guess &
+       .or. (kernel%opt%use_pb_input_guess .and. poisson_boltzmann))
   
   !gather the full result in the case of datacode = G
   if (kernel%opt%datacode == 'G') call PS_gather(rhov,kernel)
@@ -345,9 +405,11 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
   real(dp), dimension(6), intent(out) :: strten !<stress tensor
   logical, intent(in) :: use_input_guess
   !local variables
+  integer, parameter :: NEVER_DONE=0,DONE=1
   real(dp), parameter :: max_ratioex = 1.0e10_dp !< just to avoid crazy results
-  integer :: n1,n23,i1,i23,ip,i23s
-  real(dp) :: rpoints,rhores2,beta,ratio,normr,normb,alpha
+  real(dp), parameter :: no_ig_minres=1.0d-2 !< just to neglect wrong inputguess
+  integer :: n1,n23,i1,i23,ip,i23s,iinit
+  real(dp) :: rpoints,rhores2,beta,ratio,normr,normb,alpha,q
   !aliasings
   call f_timing(TCAT_PSOLV_COMPUT,'ON')
   rpoints=product(real(kernel%ndims,dp))
@@ -369,14 +431,18 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
 
      if (use_input_guess) then
         !gathering the data to obtain the distribution array
-        !call PS_gather(kernel%w%pot,kernel) not needed as in PI the W%pot array is global
+        !call PS_gather(kernel%w%pot,kernel) !not needed as in PI the W%pot array is global
         call update_rhopol(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
              kernel%ndims(3),&
-             kernel%w%pot,kernel%nord,kernel%hgrids,1.0_dp,kernel%w%dlogeps,kernel%w%rho,rhores2)
+             kernel%w%pot,kernel%nord,kernel%hgrids,1.0_dp,kernel%w%eps,&
+             kernel%w%dlogeps,kernel%w%rho,rhores2)
      end if
 
-     pi_loop: do ip=1,kernel%max_iter
-
+     ip=0
+     iinit=NEVER_DONE
+     pi_loop: do while (ip <= kernel%max_iter)
+      ip=ip+1
+!     pi_loop: do ip=1,kernel%max_iter
         !update the needed part of rhopot array
         !irho=1
         !i3s=kernel%grid%istart
@@ -403,7 +469,8 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
         !reduction of the residue not necessary
         call update_rhopol(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
              kernel%ndims(3),&
-             kernel%w%pot,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%w%dlogeps,kernel%w%rho,rhores2)
+             kernel%w%pot,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%w%eps,&
+             kernel%w%dlogeps,kernel%w%rho,rhores2)
 
         rhores2=sqrt(rhores2/rpoints)
 
@@ -415,29 +482,93 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
 
         if (rhores2 < kernel%minres) exit pi_loop
 
+        if ((rhores2 > no_ig_minres).and.use_input_guess .and. iinit==NEVER_DONE) then
+           call f_zero(kernel%w%rho)
+!!$           i23s=kernel%grid%istart*kernel%grid%m3
+!!$           do i23=1,n23
+!!$              do i1=1,n1
+!!$                 kernel%w%rho(i1,i23+i23s)=0.0_dp !this is full
+!!$              end do
+!!$           end do
+           if (kernel%mpi_env%iproc==0) &
+                call yaml_warning('Input guess not used due to residual norm >'+no_ig_minres)
+           iinit=DONE
+        end if
      end do pi_loop
      if (wrtmsg) call yaml_sequence_close()
   case('PCG')
      if (wrtmsg) then
         call yaml_newline()
-          call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
-       end if
+        call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
+     end if
 
-       !LG commented out, arrays  are distributed here
-!!$     if (use_input_guess) then
-!!$        !gathering the data to obtain the distribution array
-!!$        call PS_gather(kernel%w%pot,kernel)
-!!$        call Apply_GPe_operator(kernel%nord,kernel%geocode,kernel%ndims,&
-!!$                   kernel%hgrids,kernel%w%eps,kernel%w%pot,kernel%w%res)
-!!$     end if
+     normb=dot(n1*n23,kernel%w%res(1,1),1,kernel%w%res(1,1),1)
+     call PS_reduce(normb,kernel)
+     normb=sqrt(normb/rpoints)
+     normr=normb
+     
+     iinit=1
+     if (use_input_guess) then
+      iinit=2
+ 
+      !$omp parallel do default(shared) private(i1,i23,q)
+      do i23=1,n23
+         do i1=1,n1
+            q=kernel%w%pot(i1,i23)*kernel%w%corr(i1,i23)
+            kernel%w%q(i1,i23)=kernel%w%pot(i1,i23)
+            kernel%w%z(i1,i23)=(kernel%w%res(i1,i23)-q)*&
+                                 kernel%w%oneoeps(i1,i23)
+         end do
+      end do
+      !$omp end parallel do
+ 
+      call apply_kernel(cudasolver,kernel,kernel%w%z,offset,strten,kernel%w%zf,.true.)
+
+      !$omp parallel do default(shared) private(i1,i23)
+      do i23=1,n23
+         do i1=1,n1
+            kernel%w%pot(i1,i23)=kernel%w%z(i1,i23)*kernel%w%oneoeps(i1,i23)
+            kernel%w%z(i1,i23)=kernel%w%res(i1,i23)
+            kernel%w%res(i1,i23)=(kernel%w%q(i1,i23) - kernel%w%pot(i1,i23))*kernel%w%corr(i1,i23)
+            kernel%w%q(i1,i23)=0.d0
+         end do
+      end do
+      !$omp end parallel do
+ 
+      normr=dot(n1*n23,kernel%w%res(1,1),1,kernel%w%res(1,1),1)
+      call PS_reduce(normr,kernel)
+      normr=sqrt(normr/rpoints)
+      ratio=normr/normb
+ 
+      if (wrtmsg) then
+       call yaml_newline()
+       call yaml_sequence(advance='no')
+       call EPS_iter_output(1,normb,normr,ratio,1.d0,1.d0)
+      end if
+      if (normr < kernel%minres) iinit=kernel%max_iter+10
+ 
+      if (normr > no_ig_minres ) then
+ 
+       !wipe out the IG information as it turned out to be useless
+       !$omp parallel do default(shared) private(i1,i23)
+       do i23=1,n23
+          do i1=1,n1
+             kernel%w%res(i1,i23)=kernel%w%z(i1,i23)
+             kernel%w%pot(i1,i23)=0.d0
+          end do
+       end do
+       !$omp end parallel do
+ 
+       iinit=1
+       !call yaml_warning('Input guess not used due to residual norm > 1')
+       if (kernel%mpi_env%iproc==0) &
+            call yaml_warning('Input guess not used due to residual norm >'+no_ig_minres)
+      end if
+
+     end if
 
      beta=1.d0
      ratio=1.d0
-     normr=1.d0
-
-     normb=dot(n1*n23,rho_dist(1,1),1,rho_dist(1,1),1)
-     call PS_reduce(normb,kernel)
-     normb=sqrt(normb/rpoints)
 
      !$omp parallel do default(shared) private(i1,i23)
      do i23=1,n23
@@ -447,7 +578,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
      end do
      !$omp end parallel do
 
-     PCG_loop: do ip=1,kernel%max_iter
+     PCG_loop: do ip=iinit,kernel%max_iter
 
         !initalise to zero the zf array 
         !call f_zero(kernel%w%zf)
@@ -539,7 +670,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !integer, dimension(:,:), allocatable :: gather_arr
    type(PSolver_energies) :: energies
 
-   kernel%opt=PSolver_options_null()
+   !kernel%opt=PSolver_options_null()
    global=.false.
    global=datacode=='G'
    verb=.true.
@@ -564,7 +695,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    end if
 
    !retrieve the energy and stress
-   eh=energies%hartree+energies%eVextra
+   !eh=energies%hartree+energies%eVextra
+   eh=energies%hartree+energies%eVextra+energies%cavitation
    if (present(stress_tensor)) stress_tensor=energies%strten
 
 !!!>
@@ -1142,7 +1274,7 @@ subroutine apply_reductions(ip, gpu, kernel, r, x, p, q, z, alpha, beta, normr)
   call cudamemset(kernel%w%beta_GPU, 0, sizeof(beta),i_stat)
   call first_reduction_kernel(n1,n23,kernel%w%p_GPU,kernel%w%q_GPU,kernel%w%r_GPU,&
 kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%alpha_GPU,&
- kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, beta)
+ kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, kernel%w%reduc_GPU, beta)
 
   call cudamemset(kernel%w%kappa_GPU, 0, sizeof(kappa),i_stat)
 
@@ -1159,7 +1291,7 @@ kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%
 
   call second_reduction_kernel(n1,n23,kernel%w%p_GPU,kernel%w%q_GPU,kernel%w%r_GPU,&
 kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%alpha_GPU,&
- kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, kappa)
+ kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, kernel%w%reduc_GPU, kappa)
 
 !  call get_gpu_data(size1,p,kernel%p_GPU)
 !  call get_gpu_data(size1,q,kernel%q_GPU)
@@ -1172,7 +1304,7 @@ kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%
 
   call third_reduction_kernel(n1,n23,kernel%w%p_GPU,kernel%w%q_GPU,kernel%w%r_GPU,&
 kernel%w%x_GPU,kernel%w%z_GPU,kernel%w%corr_GPU, kernel%w%oneoeps_GPU, kernel%w%alpha_GPU,&
- kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, normr)
+ kernel%w%beta_GPU, kernel%w%beta0_GPU, kernel%w%kappa_GPU, kernel%w%reduc_GPU, normr)
 
   call PS_reduce(normr,kernel)
   

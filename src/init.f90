@@ -213,39 +213,42 @@ END SUBROUTINE wfd_from_grids
 
 
 !> Determine localization region for all projectors, but do not yet fill the descriptor arrays
-subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
+subroutine createProjectorsArrays(lr,rxyz,at,ob,&
      cpmult,fpmult,hx,hy,hz,dry_run,nl,&
-     init_projectors_completely_)
+     init_projectors_completely)
   use module_base
   use psp_projectors_base, only: DFT_PSP_projectors_null, nonlocal_psp_descriptors_null, allocate_workarrays_projectors
   use psp_projectors, only: set_nlpsp_to_wfd, bounds_to_plr_limits
   use module_types
   use gaussians, only: gaussian_basis, gaussian_basis_from_psp, gaussian_basis_from_paw
   use public_enums, only: PSPCODE_PAW
+  use orbitalbasis
   implicit none
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(locreg_descriptors),intent(in) :: lr
   type(atoms_data), intent(in) :: at
-  type(orbitals_data), intent(in) :: orbs
+  !type(orbitals_data), intent(in) :: orbs
+  type(orbital_basis), intent(in) :: ob
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
   logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
   type(DFT_PSP_projectors), intent(out) :: nl
-  logical,intent(in),optional :: init_projectors_completely_
+  logical,intent(in) :: init_projectors_completely !< decide if the projectors has to be filled
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
   integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,nbseg_dim,npack_dim,mproj_max
   integer :: iat,iseg
+  !type(orbital_basis) :: ob
   integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
   logical, dimension(:,:,:), allocatable :: logrid
-  logical :: init_projectors_completely
+!  logical :: init_projectors_completely_
   call f_routine(id=subname)
 
-  if (present(init_projectors_completely_)) then
-      init_projectors_completely = init_projectors_completely_
-  else
-      init_projectors_completely = .true.
-  end if
+!!$  if (present(init_projectors_completely)) then
+!!$      init_projectors_completely_ = init_projectors_completely
+!!$  else
+!!$      init_projectors_completely_ = .true.
+!!$  end if
 
   call nullify_structure()
 
@@ -273,7 +276,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   logrid=f_malloc((/0.to.n1,0.to.n2,0.to.n3/),id='logrid')
 
   call localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,&
-       rxyz,logrid,at,orbs,nl)
+       rxyz,logrid,at,ob%orbs,nl)
 
   if (dry_run) then
      call f_free(logrid)
@@ -353,9 +356,9 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   call f_free(keyg_lin)
   call f_free(nbsegs_cf)
   !fill the projectors if the strategy is a distributed calculation
-  if (.not. nl%on_the_fly) then
+  if (.not. nl%on_the_fly .and. init_projectors_completely) then
      !calculate the wavelet expansion of projectors
-     call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nl,0)
+     call fill_projectors(lr,[hx,hy,hz],at%astruct,ob,rxyz,nl,0)
   end if
 
   call f_release_routine()
@@ -620,7 +623,7 @@ use wfn_extrap
 
   !local variables
   character(len=*), parameter :: subname='input_wf_memory_history'
-  logical, parameter :: debug_flag=.true.
+  logical, parameter :: debug_flag=.false.
   integer :: istep,jstep,nvctr
   real(wp), dimension(:,:), allocatable :: psi_istep, psi_nstep
   integer, save :: icall=0
@@ -669,7 +672,7 @@ use wfn_extrap
   if (istep_history == 0) then
      if(iproc==0 .and. debug_flag)print *, "NNdbg: istep_history ==0; copying oldpsis(1..to wfn_history+1)"
      do istep=1,wfn_history
-        if(iproc==0)print *,    ".... ..istep=", istep,istep_history,"wfn_history =",wfn_history
+        if(iproc==0 .and. debug_flag)print *,    ".... ..istep=", istep,istep_history,"wfn_history =",wfn_history
         call old_wavefunction_set(oldpsis(istep),&
              atoms%astruct%nat,orbs%norbp*orbs%nspinor,&
              oldpsis(wfn_history+1)%Lzd,oldpsis(wfn_history+1)%rxyz,&
@@ -706,7 +709,7 @@ use wfn_extrap
 
   if(istep_history<wfn_history)then
 
-     if(iproc==0)print *, "NNdbg: ....istep_history <= wfn_history; doing vcopy"
+     if(iproc==0 .and. debug_flag)print *, "NNdbg: ....istep_history <= wfn_history; doing vcopy"
 
      nvctr=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
 
@@ -763,7 +766,7 @@ use wfn_extrap
      if(iproc.eq.0 .and. debug_flag)print *, "NNdbg; overlap is computed for <Psi(",jstep,")|Psi(",wfn_history+1,")>"
 
      !if(orbs%norbp>0)
-     if(iproc.eq.0)print *, "Considering Psi(",jstep,") ; cc(",jstep,")=",cc(jstep)
+     if(iproc.eq.0 .and. debug_flag)print *, "Considering Psi(",jstep,") ; cc(",jstep,")=",cc(jstep)
      call rotate_wavefunction(orbs,comms,lzd,nproc,iproc,nspin,norbArr, &
           ndim_ovrlp,ovrlp,cc(jstep),psi_istep(1,1),psi(1,1))
      !     if(iproc.eq.0)print *, "Overlap of Psi (partial) for oldpsis(:",jstep,")"
@@ -1519,7 +1522,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       call f_free(tmparr)
 
      if (rho_negative) then
-         call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+         call corrections_for_negative_charge(iproc, nproc, at, denspot)
          !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
          !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
          !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
@@ -2299,10 +2302,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      locregcenters)
   use module_base
   use module_types
-  use module_interfaces, only: calculate_density_kernel, createProjectorsArrays, &
+  use module_interfaces, only: calculate_density_kernel, &
         get_coeff, inputguessConfinement, &
        & read_gaussian_information, readmywaves, readmywaves_linear_new, &
-       & restart_from_gaussians, sumrho
+       & restart_from_gaussians, sumrho, write_orbital_density
   use module_fragments
   use constrained_dft
   use dynamic_memory
@@ -2320,6 +2323,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use transposed_operations, only: normalize_transposed
   use rhopotential, only: updatepotential, sumrho_for_TMBs, clean_rho
   use public_enums
+  use orbitalbasis
   implicit none
 
   integer, intent(in) :: iproc, nproc, input_wf_format
@@ -2358,6 +2362,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(kind=8) :: pnrm
   integer, dimension(:,:,:), pointer :: frag_env_mapping
   type(work_mpiaccumulate) :: energs_work
+  type(orbital_basis) :: ob
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
   integer :: itmb, jtmb, ispin, ifrag_ref, max_nbasis_env, ifrag
@@ -2631,9 +2636,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (any(atoms%npspcode == PSPCODE_PAW)) then
         ! Cheating line here.
         atoms%npspcode(1) = PSPCODE_HGH
-        call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,KSwfn%orbs,&
+        call orbital_basis_associate(ob,orbs=KSwfn%orbs,Lzd=KSwfn%Lzd)
+        call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,ob,&
              in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
-             KSwfn%Lzd%hgrids(3),.false.,nl)
+             KSwfn%Lzd%hgrids(3),.false.,nl,.true.)
+        call orbital_basis_release(ob)
         if (iproc == 0) call print_nlpsp(nl)
      else
         nl = nlpsp
@@ -2814,7 +2821,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      call readmywaves_linear_new(iproc,nproc,trim(in%dir_output),'minBasis',input_wf_format,&
           atoms,tmb,rxyz,ref_frags,in%frag,in%lin%fragment_calculation,in%lin%kernel_restart_mode==LIN_RESTART_KERNEL,&
-          frag_env_mapping)
+          max_nbasis_env,frag_env_mapping)
 
      !call write_orbital_density(iproc, .true., 1, 'SupFun', &
      !     tmb%npsidim_orbs, tmb%psi, in, tmb%orbs, KSwfn%lzd, atoms, rxyz, .false., tmb%lzd)
@@ -2989,20 +2996,21 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
            ! purify kernel? - need to do more testing but doesn't seem to be particularly beneficial
            if (.false.) then
-              if (iproc==0) then
-                  call yaml_sequence(advance='no')
-                  call yaml_mapping_open(flow=.true.)
-                  call yaml_map('Initial kernel purification',.true.)
-              end if
-              !overlap_calculated=.true.
-              do ispin=1,tmb%linmat%l%nspin
+              ! Commented as false anyway... Needed since purify_kernel has been moved to the unused directory
+              !!!!if (iproc==0) then
+              !!!!    call yaml_sequence(advance='no')
+              !!!!    call yaml_mapping_open(flow=.true.)
+              !!!!    call yaml_map('Initial kernel purification',.true.)
+              !!!!end if
+              !!!!!overlap_calculated=.true.
+              !!!!do ispin=1,tmb%linmat%l%nspin
 
-                  !subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor, &
-                  !           max_inversion_error, purification_quickreturn, ispin)
-                  call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, in%lin%order_taylor, &
-                       in%lin%max_inversion_error, .false., ispin)
-              end do
-              if (iproc==0) call yaml_mapping_close()
+              !!!!    !subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor, &
+              !!!!    !           max_inversion_error, purification_quickreturn, ispin)
+              !!!!    call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, in%lin%order_taylor, &
+              !!!!         in%lin%max_inversion_error, .false., ispin)
+              !!!!end do
+              !!!!if (iproc==0) call yaml_mapping_close()
            end if
         else
            ! come back to this - reconstruct kernel too expensive with exact version, but Taylor needs to be done ~ 3 times here...
@@ -3074,9 +3082,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call vcopy(tmb%linmat%l%nvctrp_tg, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
      call f_free(tmparr)
      if (rho_negative) then
-         if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+         !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
          !there's a problem here if we set init to false, as init_foe will then nullify foe_obj without deallocating/reallocating
-         call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.) !.false.)
+         !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .false.)
          call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
      end if
 
@@ -3170,8 +3178,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call get_coeff(iproc,nproc,scf_mode,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
-             in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap, &
-             energs_work,.false.,in%lin%coeff_factor) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             in%calculate_KS_residue,in%calculate_gap, &
+             energs_work,.false.,in%lin%coeff_factor,&
+             in%lin%pexsi_npoles,in%lin%pexsi_mumin,in%lin%pexsi_mumax,in%lin%pexsi_mu,&
+             in%lin%pexsi_temperature,in%lin%pexsi_tol_charge) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         call deallocate_work_mpiaccumulate(energs_work)
 

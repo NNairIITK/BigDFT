@@ -514,8 +514,8 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   nat = norbu !fake nat
   on_which_atom = f_malloc0(norbu,id='on_which_atom')
   ! on_which_atoms set to zero is of course not meaningful, but just be ok for this test...
-  call init_sparse_matrix(iproc, nproc, nspin, geocode, norb, norbp, isorb, norbu, norbup, isorbu, .false., &
-             on_which_atom, nnonzero, nonzero, nnonzero, nonzero, smat, allocate_full=.true.)
+  call init_sparse_matrix(iproc, nproc, norbu, nnonzero, nonzero, nnonzero, nonzero, smat, &
+       nspin, geocode, norbup, isorbu, .false., on_which_atom, allocate_full=.true.)
   call f_free_ptr(nonzero)
   call f_free(on_which_atom)
 
@@ -524,8 +524,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   collcom_dummy = comms_linear_null()
   ! since no taskgroups are used, the values of iirow and iicol are just set to
   ! the minimum and maximum, respectively.
-  call init_matrix_taskgroups(iproc, nproc, nat, .false., collcom_dummy, collcom_dummy, smat, &
-       (/1,norb/), (/1,norb/))
+  call init_matrix_taskgroups(iproc, nproc, .false., smat)
 
   !!! Initialize the parameters for the spare matrix matrix multiplication
   !!call init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, smat%nseg, &

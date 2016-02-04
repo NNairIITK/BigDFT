@@ -27,7 +27,8 @@
 !! Waals energy correction as a sum of damped London potentials.
 module vdwcorrection
 
-  use module_base, only: gp,f_malloc,f_malloc0,f_free,f_malloc_ptr,f_malloc0_ptr,f_free_ptr,assignment(=)
+  use module_base, only: gp,f_malloc,f_malloc0,f_free,f_malloc_ptr,f_malloc0_ptr,f_free_ptr,assignment(=), &
+                         f_routine, f_release_routine
 
   implicit none
 
@@ -986,6 +987,8 @@ contains
     real(kind=GP) :: c6d3,cni,cnj,e8,e6,c8
     real(kind=GP) :: dum
 
+    call f_routine(id='vdwcorrection_calculate_energy')
+
     dispersion_energy = 0.0_GP
     dum = 0.0_GP
 !!vama!!          write(*,'(1x,a, e12.5)') &
@@ -1071,6 +1074,8 @@ contains
 !!$       end if
     end if
 
+    call f_release_routine()
+
   END SUBROUTINE vdwcorrection_calculate_energy
 
 
@@ -1121,6 +1126,8 @@ contains
     real(kind=GP), DIMENSION(3,atoms%astruct%nat)            :: cnij
     real(kind=GP), DIMENSION(3,atoms%astruct%nat,atoms%astruct%nat)  :: cnijk
     real(kind=GP), DIMENSION(3)                      :: grad_c6
+
+    call f_routine(id='vdwcorrection_calculate_forces')
 
     vdw_forces = 0.0_GP
 
@@ -1330,6 +1337,7 @@ contains
 !           atom1,trim(atoms%astruct%atomnames(atoms%astruct%iatype(atom1))),(vdw_forces(atom2,atom1),atom2=1,3)
 !        enddo
 
+    call f_release_routine()
 
 
   END SUBROUTINE vdwcorrection_calculate_forces
