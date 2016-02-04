@@ -969,6 +969,8 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
            oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
            oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
 
+
+           !todo: inclusion of the compact formula for the surface term
            do i=1,3
               deps(i)=0.d0
               do jat=0,nat-1
@@ -981,6 +983,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
               deps(i) = deps(i)*(epsilon0-1.d0)
            end do
 
+           !here we should implement THe surface term in a different way
            d12=0.d0
            do i=1,3
               dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)

@@ -50,7 +50,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p), intent(inout), optional, target :: rho_ion
   !local variables
   real(dp), parameter :: max_ratioex_PB = 1.0d2
-  logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver,poisson_boltzmann
+  logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver,poisson_boltzmann,calc_nabla2pot
   integer :: i3start,n1,n23,i3s,i23s,i23sd2,i3sd2,i_PB,i3s_pot_pb
   real(dp) :: IntSur,IntVol,e_static,norm_nonvac,ehartreeLOC,res_PB
   real(dp), dimension(:,:), allocatable :: depsdrho,dsurfdrho
@@ -114,7 +114,8 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !decide what to do 
   sum_pi=present(pot_ion) .and. n23 > 0
   sum_ri=present(rho_ion) .and. n23 > 0
-  build_c=(kernel%method .hasattr. PS_SCCS_ENUM) .and. kernel%opt%update_cavity 
+  build_c=(kernel%method .hasattr. PS_SCCS_ENUM) .and. kernel%opt%update_cavity
+  calc_nabla2pot=build_c .or. .false.
   is_vextra=sum_pi .or. build_c
   plot_cavity=kernel%opt%cavity_info .and. (kernel%method /= PS_VAC_ENUM)
   cudasolver= (kernel%igpu==1 .and. .not. kernel%opt%calculate_strten)
@@ -306,18 +307,18 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
         !in the PI method the potential is allocated as a full array
         call nabla_u_square(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
              kernel%w%pot,nabla2_rhopot,kernel%nord,kernel%hgrids)
-        call add_Vextra(n1,n23,nabla2_rhopot(1,1,i3sd2),&
-             depsdrho,dsurfdrho,kernel%cavity,kernel%opt%only_electrostatic,&
-             sum_pi,pot_ion_eff,vextra_eff)
+!!$        call add_Vextra(n1,n23,nabla2_rhopot(1,1,i3sd2),&
+!!$             depsdrho,dsurfdrho,kernel%cavity,kernel%opt%only_electrostatic,&
+!!$             sum_pi,pot_ion_eff,vextra_eff)
        end if
 
-     !here the harteee energy can be calculated and the ionic potential
-       !added
-       call finalize_hartree_results(is_vextra,cudasolver,kernel,&
-          vextra_eff,& 
-          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-          rhov(1,1,i3s),kernel%w%pot(1,i23sd2),rhov(1,1,i3s),ehartreeLOC)
+!!$     !here the harteee energy can be calculated and the ionic potential
+!!$       !added
+!!$       call finalize_hartree_results(is_vextra,cudasolver,kernel,&
+!!$          vextra_eff,& 
+!!$          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!$          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!$          rhov(1,1,i3s),kernel%w%pot(1,i23sd2),rhov(1,1,i3s),ehartreeLOC)
 
   case('PCG')
      !only useful for gpu, bring back the x array
@@ -327,21 +328,39 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
         call PS_gather(src=kernel%w%pot,dest=rhopot_full,kernel=kernel)
         call nabla_u_square(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
              rhopot_full,nabla2_rhopot,kernel%nord,kernel%hgrids)
+        call f_free(rhopot_full)
+!!$        call add_Vextra(n1,n23,nabla2_rhopot(1,1,i3sd2),&
+!!$             depsdrho,dsurfdrho,kernel%cavity,kernel%opt%only_electrostatic,&
+!!$             sum_pi,pot_ion_eff,vextra_eff)
+     end if
+
+!!$     !here the harteee energy can be calculated and the ionic potential
+!!$     !added
+!!$     call finalize_hartree_results(is_vextra,cudasolver,kernel,&
+!!$          vextra_eff,&
+!!$          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!$          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!$          rhov(1,1,i3s),kernel%w%pot,rhov(1,1,i3s),ehartreeLOC)
+
+  end select
+
+  if (kernel%method /= PS_VAC_ENUM) then
+     !here the harteee energy can be calculated and the ionic potential
+     !added
+
+     if (build_c) then
         call add_Vextra(n1,n23,nabla2_rhopot(1,1,i3sd2),&
              depsdrho,dsurfdrho,kernel%cavity,kernel%opt%only_electrostatic,&
              sum_pi,pot_ion_eff,vextra_eff)
-        call f_free(rhopot_full)
      end if
 
-     !here the harteee energy can be calculated and the ionic potential
-     !added
      call finalize_hartree_results(is_vextra,cudasolver,kernel,&
-          vextra_eff,&
+          vextra_eff,& 
           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-          rhov(1,1,i3s),kernel%w%pot,rhov(1,1,i3s),ehartreeLOC)
+          rhov(1,1,i3s),kernel%w%pot(1,i3s_pot_pb+1),rhov(1,1,i3s),ehartreeLOC)
+  end if
 
-  end select
 
   if (build_c) then
      call f_free(nabla2_rhopot)
