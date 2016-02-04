@@ -42,6 +42,7 @@ module public_keys
   character(len = *), parameter :: KERNEL_RESTART_MODE = "kernel_restart_mode"
   character(len = *), parameter :: KERNEL_RESTART_NOISE = "kernel_restart_noise"
   character(len = *), parameter :: FRAG_NUM_NEIGHBOURS = "frag_num_neighbours"
+  character(len = *), parameter :: FRAG_NEIGHBOUR_CUTOFF = "frag_neighbour_cutoff"
   character(len = *), parameter :: RBUF = "rbuf"
   character(len = *), parameter :: NCONGT = "ncongt"
   character(len = *), parameter :: NORBV = "norbv", NVIRT = "nvirt"
@@ -303,7 +304,6 @@ module public_keys
   character(len=*), parameter :: ATOMIC_NUMBER = 'Atomic number'
   character(len=*), parameter :: ELECTRON_NUMBER = 'No. of Electrons'
   character(len=*), parameter :: POSINP_SOURCE = 'source'
-
 end module public_keys
 
 !>module identifying constants that have to be used as enumerators
@@ -499,7 +499,7 @@ module public_enums
   integer, parameter, public :: PSPCODE_HGH_K = 10
   integer, parameter, public :: PSPCODE_HGH_K_NLCC = 12
 
-  !run modes
+  !>run modes
   type(f_enumerator), parameter, public :: LENNARD_JONES_RUN_MODE      =f_enumerator('LENNARD_JONES_RUN_MODE',-1000,null())
   type(f_enumerator), parameter, public :: LENOSKY_SI_CLUSTERS_RUN_MODE=f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999,null())
   type(f_enumerator), parameter, public :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998,null())
@@ -513,7 +513,7 @@ module public_enums
   type(f_enumerator), parameter, public :: DFTBP_RUN_MODE         =f_enumerator('DFTBP_RUN_MODE',-990,null())
   type(f_enumerator), parameter, public :: TDPOT_RUN_MODE      =f_enumerator('TDPOT_RUN_MODE',-989,null())
   
-  type(f_enumerator), parameter, public :: MULTI_RUN_MODE         =f_enumerator('MULTI_RUN_MODE',-989,null())
+  type(f_enumerator), parameter, public :: MULTI_RUN_MODE         =f_enumerator('MULTI_RUN_MODE',-988,null())
 end module public_enums
 
 

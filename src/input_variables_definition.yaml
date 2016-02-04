@@ -1603,6 +1603,13 @@
                     Indicates how many neighbouring atoms should be written to frag_env.xyz  - only allow for a small number of neighbours
        RANGE: [0,4]
        default: 0
+     frag_neighbour_cutoff:
+       COMMENT: number of neighbours to output for each fragment
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+                    Distance (in bohr) beyond which neighbouring atoms are not included in frag_env.xyz
+       RANGE: [0,100]
+       default: 12.0d0
      cdft_lag_mult_init:
        COMMENT: CDFT initial value for Lagrange multiplier
        DESCRIPTION: |

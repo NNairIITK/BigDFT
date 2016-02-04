@@ -11,8 +11,66 @@ module orthonormalization
   public :: gramschmidt_coeff_trans
   !!public :: orthonormalize_subset
   !!public :: gramschmidt_subset
+  public :: overlap_matrix
 
   contains
+
+    !> extract the overlap matrix from two compressed functions
+    !this is a quick wrapper to be used whan memory allocation of work arrays is not to be optimized
+    subroutine overlap_matrix(phi1,nphi,lzd,orbs,collcom,smat,matrix,phi2)
+      use module_base
+      use module_types, only: orbitals_data,local_zone_descriptors
+      use sparsematrix_base, only: sparse_matrix,matrices
+      use transposed_operations, only: calculate_overlap_transposed
+      use communications_base, only: TRANSPOSE_FULL,comms_linear
+      use communications, only: transpose_localized
+      implicit none
+      integer, intent(in) :: nphi
+      type(orbitals_data),intent(in) :: orbs
+      type(comms_linear),intent(in) :: collcom
+      type(local_zone_descriptors),intent(in) :: lzd
+      real(wp),dimension(nphi),intent(in) :: phi1
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(inout) :: matrix
+      
+      real(wp), dimension(nphi),intent(in), optional :: phi2
+      !local variables
+      logical :: binary
+      real(wp), dimension(:), pointer :: phi1t_c, phi1t_f, sphi2t_c, sphi2t_f
+
+      binary=present(phi2)
+
+      ! Calculate the scalar products, i.e. the matrix <phi_ab|S_lm|phi_ab>
+      phi1t_c = f_malloc_ptr(collcom%ndimind_c,id='phi1t_c')
+      phi1t_f = f_malloc_ptr(7*collcom%ndimind_f,id='phi1t_f')
+      call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, nphi, orbs, collcom, &
+           TRANSPOSE_FULL, phi1, phi1t_c, phi1t_f, lzd)
+
+      if (binary) then
+         sphi2t_c = f_malloc_ptr(collcom%ndimind_c,id='sphit2_c')
+         sphi2t_f = f_malloc_ptr(7*collcom%ndimind_f,id='sphit2_f')
+         call transpose_localized(bigdft_mpi%iproc,bigdft_mpi%nproc,&
+              nphi, orbs, collcom, &
+              TRANSPOSE_FULL, phi2, sphi2t_c, sphi2t_f, lzd)
+      else
+         sphi2t_c => phi1t_c
+         sphi2t_f => phi1t_f
+      end if
+      call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, orbs, collcom, &
+           phi1t_c, sphi2t_c, phi1t_f, sphi2t_f, smat, matrix)
+
+      call f_free_ptr(phi1t_c)
+      call f_free_ptr(phi1t_f)
+
+      if (binary) then
+         call f_free_ptr(sphi2t_c)
+         call f_free_ptr(sphi2t_f)
+      else
+         nullify(sphi2t_c)
+         nullify(sphi2t_f)
+      end if
+
+    end subroutine overlap_matrix
 
 
     !> Orthonormalized the localized orbitals

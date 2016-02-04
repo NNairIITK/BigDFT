@@ -352,7 +352,6 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
            if (use_iterator) then
 
-
               nbox(1,1)=floor((rx-cutoff)/hxh)
               nbox(1,2)=floor((ry-cutoff)/hyh)
               nbox(1,3)=floor((rz-cutoff)/hzh)
@@ -970,6 +969,8 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
            oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
            oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
 
+
+           !todo: inclusion of the compact formula for the surface term
            do i=1,3
               deps(i)=0.d0
               do jat=0,nat-1
@@ -982,6 +983,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
               deps(i) = deps(i)*(epsilon0-1.d0)
            end do
 
+           !here we should implement THe surface term in a different way
            d12=0.d0
            do i=1,3
               dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
@@ -1749,7 +1751,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
 !  logical, parameter :: efwrite=.false.
   logical :: perx,pery,perz,gox,goy,goz
   logical :: htoobig=.false.,check_potion=.false.,use_iterator=.false.
-  integer :: i1,i2,i3,ierr,ityp !n(c) nspin
+  integer :: i1,i2,i3,ierr!n(c) nspin
   integer :: nloc,iloc
   integer  :: i3s,n3pi,nbl1,nbr1,nbl2,nbl3,nbr2,nbr3
   integer :: iat,iex,iey,iez,ind,indj3,indj23,isx,isy,isz,j1,j2,j3
@@ -1947,10 +1949,10 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
                  rr = sqrt(r2)
                  if (1==2) then
                     !This converges very slow
-                    call splint(at%pawtab(ityp)%wvl%rholoc%msz, &
-                         & at%pawtab(ityp)%wvl%rholoc%rad, &
-                         & at%pawtab(ityp)%wvl%rholoc%d(:,1), &
-                         & at%pawtab(ityp)%wvl%rholoc%d(:,2), &
+                    call splint(at%pawtab(atit%ityp)%wvl%rholoc%msz, &
+                         & at%pawtab(atit%ityp)%wvl%rholoc%rad, &
+                         & at%pawtab(atit%ityp)%wvl%rholoc%d(:,1), &
+                         & at%pawtab(atit%ityp)%wvl%rholoc%d(:,2), &
                          & 1,rr,raux,ierr)
                  else
                     !Take the HGH form for rho_L (long range)
@@ -1962,7 +1964,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
               enddo
            else
               !Calculate Ionic Density using splines, PAW case
-              r2paw=at%pawtab(ityp)%rpaw**2
+              r2paw=at%pawtab(atit%ityp)%rpaw**2
               do i3=isz,iez
                  zp = mpz(i3-isz)
                  if (abs(zp) < mp_tiny) cycle
@@ -1991,10 +1993,10 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
                        rr=sqrt(r2)
                        if(1==2) then
                           !This converges very slow                
-                          call splint(at%pawtab(ityp)%wvl%rholoc%msz, &
-                               & at%pawtab(ityp)%wvl%rholoc%rad, &
-                               & at%pawtab(ityp)%wvl%rholoc%d(:,1), &
-                               & at%pawtab(ityp)%wvl%rholoc%d(:,2), &
+                          call splint(at%pawtab(atit%ityp)%wvl%rholoc%msz, &
+                               & at%pawtab(atit%ityp)%wvl%rholoc%rad, &
+                               & at%pawtab(atit%ityp)%wvl%rholoc%d(:,1), &
+                               & at%pawtab(atit%ityp)%wvl%rholoc%d(:,2), &
                                & 1,rr,raux,ierr)
                        else
                           !Take the HGH form for rho_L (long range)

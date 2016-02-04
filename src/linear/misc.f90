@@ -115,7 +115,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
           !call f_open_file(iunitz, file=filez, binary=binary)
           !!write(*,'(a,6i9)') 'iproc, iorb, iunit0, iunitx, iunity, iunitz',iproc, iorb, iunit0, iunitx, iunity, iunitz
           !call plot_wf(.true.,'', 2, at, 1.d0, lzd_g%glr, &
-          !     lzd_g%hgrids(1), lzd_g%hgrids(2), lzd_g%hgrids(2), &
+          !     lzd_g%hgrids(1), lzd_g%hgrids(2), lzd_g%hgrids(3), &
           !     rxyz, psi_g, &
           !     iunit0, iunitx, iunity, iunitz)
           !call f_close(iunit0)
@@ -180,12 +180,12 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor,
   !call f_open_file(iunitz, file=filez, binary=binary)
   if (dens) then
      call plot_wf(.true.,trim(filebase0), 2, at, 1.d0, lr, &
-          hgrids(1), hgrids(2), hgrids(2), &
+          hgrids(1), hgrids(2), hgrids(3), &
           rxyz, psi_g, &
           iunit0, iunitx, iunity, iunitz)
   else
      call plot_wf(.true.,trim(filebase0), 1, at, 1.d0, lr, &
-          hgrids(1), hgrids(2), hgrids(2), &
+          hgrids(1), hgrids(2), hgrids(3), &
           rxyz, psi_g, &
           iunit0, iunitx, iunity, iunitz)
   end if

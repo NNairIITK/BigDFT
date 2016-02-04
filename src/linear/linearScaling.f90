@@ -164,6 +164,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   ! needs for the application of the Hamlitonian to all orbitals on that process.
   call allocate_p2pComms_buffer(tmb%comgp)
 
+  cdft_it=0
   pnrm=1.d100
   pnrm_out=1.d100
   energyold=0.d0
@@ -2295,7 +2296,7 @@ end if
         call writemywaves_linear_fragments(iproc,'minBasis',mod(input%lin%plotBasisFunctions,10),&
              max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff, &
              trim(input%dir_output),input%frag,ref_frags,tmb%linmat,norder_taylor,input%lin%max_inversion_error,&
-             tmb%orthpar,input%lin%frag_num_neighbours)
+             tmb%orthpar,input%lin%frag_num_neighbours,input%lin%frag_neighbour_cutoff)
 
 !      call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
 !           tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)

@@ -14,8 +14,10 @@ program MINHOP
   use yaml_output
   use module_atoms, only: deallocate_atoms_data,atoms_data,astruct_dump_to_file
   use module_fingerprints
+  use SPREDtypes
   !implicit real(kind=8) (a-h,o-z) !!!dangerous when using modules!!!
   implicit none
+  type(SPRED_inputs) :: spredinputs
   logical :: newmin,CPUcheck,occured,exist_poslocm,exist_posacc,singlestep
   ! character(len=20) :: unitsp,atmn
   character(len=60) :: run_id
@@ -71,6 +73,7 @@ program MINHOP
 
   call f_lib_initialize()
 
+
   call bigdft_command_line_options(options)
   call bigdft_init(options)
   if (bigdft_nruns(options) > 1) call f_err_throw('runs-file not supported for MINHOP executable')
@@ -81,6 +84,7 @@ program MINHOP
   !actual value of iproc
   iproc=bigdft_mpi%iproc+bigdft_mpi%igroup*bigdft_mpi%ngroup
    
+  call SPRED_read_uinp('globalinput',spredinputs,bigdft_mpi)
 
    if (iproc==0) call print_logo_MH()
 
@@ -115,6 +119,10 @@ program MINHOP
 !   write(*,*) 'nat=',atoms%astruct%nat
   ! Create the state_properties container.
   call init_state_properties(outs, bigdft_nat(run_opt))
+
+  call init_fingerprint(spredinputs,bigdft_nat(run_opt),bigdft_get_geocode(run_opt),nid,fp)
+  call init_fingerprint(spredinputs,bigdft_nat(run_opt),bigdft_get_geocode(run_opt),nid,wfp)
+  call init_fingerprint(spredinputs,bigdft_nat(run_opt),bigdft_get_geocode(run_opt),nid,fphop)
 
   !performs few checks
   if (run_opt%inputs%inguess_geopt .ne. run_md%inputs%inguess_geopt) then 
@@ -306,13 +314,14 @@ program MINHOP
      call yaml_map('(MH) INPUT(relaxed), e_pos ',outs%energy,fmt='(e17.10)')
   end if
 
-  nid=natoms
-  fp = f_malloc(nid,id='fp')
-  wfp = f_malloc(nid,id='wfp')
-  fphop = f_malloc(nid,id='fphop')
+!  nid=natoms
+!  fp = f_malloc(nid,id='fp')
+!  wfp = f_malloc(nid,id='wfp')
+!  fphop = f_malloc(nid,id='fphop')
   
-  call fingerprint(bigdft_nat(run_opt),nid,bigdft_get_cell(run_opt),bigdft_get_geocode(run_opt),&
-       rcov,pos,fp)
+!  call fingerprint(bigdft_nat(run_opt),nid,bigdft_get_cell(run_opt),bigdft_get_geocode(run_opt),&
+!       rcov,pos,fp)
+call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rcov,pos,fp)
 
   !retrieve the eigenvalues from this run
   if(run_opt%run_mode=='QM_RUN_MODE') then
@@ -464,7 +473,7 @@ program MINHOP
 !!$     enddo
 
   else  ! continuation run, check whether the poscur file has been modified by hand
-     call identical(bigdft_mpi%iproc,nlminx,nlmin,nid,e_pos,fp,en_arr,fp_arr,en_delta,fp_delta,&
+     call identical(spredinputs,run_opt,bigdft_mpi%iproc,nlminx,nlmin,nid,e_pos,fp,en_arr,fp_arr,en_delta,fp_delta,&
           newmin,kid,dmin,k_e,n_unique,n_nonuni)
      if (newmin) then  
         if (bigdft_mpi%iproc == 0) call yaml_map('(MH) initial minimum is new, dmin= ',dmin)
@@ -640,11 +649,13 @@ program MINHOP
      call yaml_mapping_close()
   endif
 
-  call fingerprint(bigdft_nat(run_opt),nid,bigdft_get_cell(run_opt),bigdft_get_geocode(run_opt),&
-       rcov,rxyz_opt,wfp)
+!  call fingerprint(bigdft_nat(run_opt),nid,bigdft_get_cell(run_opt),bigdft_get_geocode(run_opt),&
+!       rcov,rxyz_opt,wfp)
+call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rcov,rxyz_opt,wfp)
 
      if (abs(outs%energy-e_pos).lt.en_delta) then
-     call fpdistance(nid,wfp,fp,d)
+     call fpdistance(spredinputs,nid,bigdft_nat(run_opt),wfp,fp,d)
+     !call fpdistance(run_opt,wfp,fp,d)
        if (bigdft_mpi%iproc == 0) call yaml_map('(MH) checked fpdistance',(/outs%energy-e_pos,d/),fmt='(e11.4)')
      if (d.lt.fp_delta) then ! not escaped
        escape_sam=escape_sam+1.d0
@@ -672,7 +683,7 @@ program MINHOP
      endif
 
   !C  check whether new minimum
-  call identical(bigdft_mpi%iproc,nlminx,nlmin,nid,outs%energy,wfp,en_arr,fp_arr,en_delta,fp_delta,&
+  call identical(spredinputs,run_opt,bigdft_mpi%iproc,nlminx,nlmin,nid,outs%energy,wfp,en_arr,fp_arr,en_delta,fp_delta,&
        newmin,kid,dmin,k_e,n_unique,n_nonuni)
   if (newmin) then
       escape_new=escape_new+1.d0
@@ -864,15 +875,19 @@ end do hopping_loop
   call f_free(en_arr)
   call f_free(ct_arr)
   call f_free(fp_arr)
-  call f_free(fp)
-  call f_free(wfp)
+  !call f_free(fp)
+  !call f_free(wfp)
+  call finalize_fingerprint(fp)
+  call finalize_fingerprint(wfp)
   call f_free(vxyz)
   call f_free(gg)
   call f_free(pl_arr)
   call f_free(poshop)
-  call f_free(fphop)
+  !call f_free(fphop)
+  call finalize_fingerprint(fphop)
   call f_free(rcov)
 !  if (iproc==0) write(*,*) 'quit 4'
+
 
   call deallocate_state_properties(outs)
 !!$  call free_input_variables(inputs_md)
@@ -2551,10 +2566,15 @@ call yaml_map('Reference Paper','The Journal of Chemical Physics 120 (21): 9911-
 END SUBROUTINE print_logo_MH
 
 
-subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp_delta,newmin,kid,dmin,k_e_wpos,n_unique,n_nonuni)
+subroutine identical(spredinputs,runObj,iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,&
+     fp_delta,newmin,kid,dmin,k_e_wpos,n_unique,n_nonuni)
   use yaml_output
   use module_fingerprints
+  use bigdft_run
+  use SPREDtypes
   implicit real*8 (a-h,o-z)
+  type(SPRED_inputs), intent(in) :: spredinputs
+  type(run_objects), intent(in) :: runObj
   dimension fp_arr(nid,nlminx),wfp(nid),en_arr(nlminx)
   logical newmin
 
@@ -2591,7 +2611,8 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
   dmin=1.d100
   do k=max(1,klow),min(nlmin,khigh)
   if (abs(e_wpos-en_arr(k)).le.en_delta) then
-     call fpdistance(nid,wfp,fp_arr(1,k),d)
+     call fpdistance(spredinputs,nid,bigdft_nat(runObj),wfp,fp_arr(1,k),d)
+     !call fpdistance(runObj,wfp,fp_arr(1,k),d)
      if (iproc == 0) call yaml_map('(MH) Checking fpdistance',(/e_wpos-en_arr(k),d/),fmt='(e11.4)')
 !     if (iproc.eq.0) write(*,*) '(MH)  k,d',k,d
 !     if (iproc.eq.0) write(*,*) '(MH)  e_wpos,en_arr(k)', e_wpos,en_arr(k)

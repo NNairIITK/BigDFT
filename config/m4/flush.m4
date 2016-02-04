@@ -24,6 +24,16 @@ program test_flush
 
 end program test_flush
 EOF
+  cat > flushtest_sub.f90 <<EOF
+program test_flush
+
+  implicit none
+
+  write(*,"(A)") "yes"
+  call flush(6)
+
+end program test_flush
+EOF
   dnl Assume first that it should compile and run.
   ax_fc_flush="no"
   ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 1>&AC_FD_CC'
@@ -33,7 +43,7 @@ EOF
     if test "$?" != 0 ; then
       ax_fc_flush="no"
     fi
-  fi
+   fi
   dnl Assume second that it should compile and run with Intel option.
   FCFLAGS_SVG="$FCFLAGS"
   if test x"$ax_fc_flush" == x"no" ; then
@@ -57,11 +67,26 @@ EOF
       ax_fc_flush="yes"
     fi
   fi
-  rm -f flushtest*
   if test x"$ax_fc_flush" == x"yes" ; then
-    AC_DEFINE([HAVE_FC_FLUSH], [1], [Flush(6) can be used safely in fortran])
+  AC_DEFINE([HAVE_FC_FLUSH], [1], [Flush(6) can be used safely in fortran])
   fi
   AM_CONDITIONAL([HAVE_FC_FLUSH], [test x"$ax_fc_flush" == x"yes"])
+  dnl then assume that flush is a subroutine
+  if test x"$ax_fc_flush" == x"no" ; then
+  ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest_sub.f90 1>&AC_FD_CC'
+  if AC_TRY_EVAL(ac_try); then
+    ac_try=""
+    ax_fc_flush=`./flushtest.x 2> /dev/null`;
+    if test "$?" != 0 ; then
+      ax_fc_flush="no"
+    fi
+  fi
+  fi
+  rm -f flushtest*
+  if test x"$ax_fc_flush" == x"yes" ; then
+    AC_DEFINE([HAVE_FC_FLUSH_SUB], [1], [call flush(6) can be used safely in fortran])
+  fi
+  AM_CONDITIONAL([HAVE_FC_FLUSH_SUB], [test x"$ax_fc_flush" == x"yes"])
   AC_LANG_POP(Fortran)
 
   AC_MSG_RESULT([$ax_fc_flush])
