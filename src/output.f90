@@ -3,7 +3,7 @@
 !!  Routines which are present in this file should have *all* arguments as intent(in)
 !!  Also, the master process only should acces these routines
 !! @author
-!!    Copyright (C) 2011-2013 BigDFT group
+!!    Copyright (C) 2011-2016 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -97,6 +97,7 @@ subroutine print_logo()
 END SUBROUTINE print_logo
 
 
+!> Display the options of the configure tool (autotools)
 subroutine print_configure_options()
   use yaml_output
   implicit none
@@ -127,8 +128,6 @@ subroutine print_configure_options()
  call yaml_mapping_close()
 
 end subroutine print_configure_options
-
-
 
 
 !> Write the energies for a given iteration
@@ -460,11 +459,11 @@ contains
 END SUBROUTINE write_eigenvalues_data
 
 
-!>Writing rules, control if the last eigenvector is degenerate
-!!do this for each spin
-!!for each spin it is supposed that only the last group is not completely passed
-!!and also that the components of each of the group but the last are the same for up and 
-!!down polarisation. Do not work properly in the other cases
+!> Writing rules, control if the last eigenvector is degenerate
+!! do this for each spin
+!! for each spin it is supposed that only the last group is not completely passed
+!! and also that the components of each of the group but the last are the same for up and 
+!! down polarisation. Do not work properly in the other cases
 subroutine write_ig_eigenvectors(etol,orbse,nspin,norb,norbu,norbd)
    use module_base
    use module_types
@@ -736,6 +735,7 @@ subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
      end do
   end if
 END SUBROUTINE write_diis_weights
+
 
 !> Print gnrms (residue per orbital)
 subroutine write_gnrms(nkpts,norb,gnrms)
@@ -1134,10 +1134,10 @@ subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
   real(gp), dimension(3), intent(in) :: shift
   real(gp), intent(in) :: hx, hy, hz
   !Local variables
-  integer :: iat, iunit
+  integer :: iunit !, iat
 
   if (atoms%astruct%ntypes > 0) then
-     call yaml_comment('Atom Positions',hfill='-')
+     call yaml_comment('Atom Positions (specified and grid units)',hfill='-')
 !!$     call yaml_sequence_open('Atomic positions within the cell (Atomic and Grid Units)')
 !!$     do iat=1,atoms%astruct%nat
 !!$        call yaml_sequence(advance='no')
@@ -1171,6 +1171,7 @@ subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
   call yaml_map('High Res. box is treated separately',Glr%hybrid_on)
 END SUBROUTINE print_atoms_and_grid
 
+
 !> Write atomic file in yaml format
 subroutine wtyaml(iunit,energy,rxyz,astruct,wrtforces,forces, &
      & wrtlog, shift, hgrids)
@@ -1183,8 +1184,8 @@ subroutine wtyaml(iunit,energy,rxyz,astruct,wrtforces,forces, &
   implicit none
   !Arguments
   logical, intent(in) :: wrtforces !< True if write the atomic forces
-  logical, intent(in) :: wrtlog
-  integer, intent(in) :: iunit
+  logical, intent(in) :: wrtlog    !< Level of verbosity (false remove some parts)
+  integer, intent(in) :: iunit     !< File unit
   type(atomic_structure), intent(in) :: astruct
   real(gp), intent(in) :: energy
   real(gp), dimension(3,astruct%nat), intent(in) :: rxyz,forces
@@ -1210,7 +1211,8 @@ subroutine wtyaml(iunit,energy,rxyz,astruct,wrtforces,forces, &
   case('atomic','atomicd0','bohr','bohrd0')
      ! Default
      factor=1.0_gp
-     !call yaml_map('Units','bohr')
+     !Important to display the default units (TD)
+     if (wrtlog) call yaml_map('Units','bohr')
   case default
      call f_err_throw('Writing the atomic file. Error, unknown units ("'// trim(astruct%units)//'")', & 
           & err_name='BIGDFT_RUNTIME_ERROR')
@@ -1348,6 +1350,8 @@ contains
 
 END SUBROUTINE wtyaml
 
+
+!> Display the waefunctions descriptors (segments and points)
 subroutine print_wfd(wfd)
   use module_types, only: wavefunctions_descriptors
   use yaml_output
