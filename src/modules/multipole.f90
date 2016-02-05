@@ -2504,6 +2504,7 @@ module multipole
                       tt = 0.d0
                       do i=1,n
                           tt = tt + kp(i,i)
+                          !write(*,*) 'kat, i, owa(i), qmat_tilde(i,i)', kat, i, orbs%onwhichatom(i), qmat_tilde(i,i)
                       end do
                       atomic_multipoles(m,l,kkat) = tt
                       call f_free(qmat_tilde)
@@ -3082,8 +3083,10 @@ module multipole
               do j=1,smats%nfvctr
                   if (neighbor(j,kat)) then
                       n = n + 1
-                      locregs_ID(n) = orbs%inwhichlocreg(j)
-                      !write(*,*) 'j, n, ID', j, n, locregs_ID(n)
+                      if (mode=='full') then
+                          locregs_ID(n) = orbs%inwhichlocreg(j)
+                          !write(*,*) 'j, n, ID', j, n, locregs_ID(n)
+                      end if
                   end if
               end do
               n_all(kat) = n
@@ -3233,7 +3236,7 @@ module multipole
                    call axpy(n**2, 1.d0, tmpmat2d(1,1,1), 1, ham(1,1), 1)
                    call f_free(tmpmat2d)
                   ! @ END NEW #################################################################
-              elseif (mode=='simple') then
+              else if (mode=='simple') then
                   if (ortho=='yes') then
                       ! directly add the penalty terms to ham
                       call add_penalty_term(at%astruct%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
@@ -3320,6 +3323,7 @@ module multipole
               call f_free(penaltymat)
               call f_free(proj)
               call f_free(eval)
+
     
           end do
 
