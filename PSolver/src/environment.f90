@@ -562,7 +562,7 @@ contains
     
     !$omp parallel do default(shared) private(i123)
     do i123=1,n1*n23
-       np2em1(i23)=(eps(i23)-vacuum_eps)*nabla2_pot(i23)
+       np2em1(i123)=(eps(i123)-vacuum_eps)*nabla2_pot(i123)
     end do
     !$omp end parallel do
 
