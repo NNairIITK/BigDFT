@@ -45,6 +45,10 @@ endif
 
 
 # Source code.
+if HAVE_FC_FLUSH_SUB
+flush_files = flush_sub.f90
+flush_object= flush_sub.o
+else
 if HAVE_FC_FLUSH
 flush_files = flush.f90
 flush_object= flush.o
@@ -52,6 +56,8 @@ else
 flush_files = flush_fake.f90
 flush_object= flush_fake.o
 endif
+endif
+
 if USE_MPI
 mpi_source =
 mpi_include =

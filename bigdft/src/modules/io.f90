@@ -23,10 +23,10 @@ module io
   public :: io_read_descr, read_psi_compress
   public :: io_gcoordToLocreg
   public :: read_psig
-  public :: read_sparse_matrix
   public :: read_dense_matrix
   public :: dist_and_shift
   public :: find_neighbours
+  public :: plot_density
 
 
   contains
@@ -141,7 +141,8 @@ module io
     !> Write all my wavefunctions for fragments
     ! NB spin needs fixing!
     subroutine writemywaves_linear_fragments(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,coeff,&
-         dir_output,input_frag,ref_frags,linmat,methTransformOverlap,max_inversion_error,orthpar,num_neighbours)
+         dir_output,input_frag,ref_frags,linmat,methTransformOverlap,max_inversion_error,orthpar,&
+         num_neighbours,neighbour_cutoff)
       use module_types
       use module_atoms, only: astruct_dump_to_file, deallocate_atomic_structure, nullify_atomic_structure
       use module_base
@@ -169,6 +170,7 @@ module io
       real(kind=8),intent(in) :: max_inversion_error
       type(orthon_data),intent(in) :: orthpar
       integer, intent(in) :: num_neighbours
+      real(kind=8), intent(in) :: neighbour_cutoff
       !Local variables
       integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat
       integer :: jorb,jlr,isforb,isfat,ifrag,ifrag_ref,iforb,iiorb,iorbp,iiat,unitwf,ityp,iatt
@@ -348,7 +350,7 @@ module io
                map_frag_and_env = f_malloc((/orbs%norb,3/),id='map_frag_and_env')
 
                call find_neighbours(num_neighbours,at,rxyz,orbs,ref_frags(ifrag_ref),frag_map,&
-                    ntmb_frag_and_env,map_frag_and_env,.false.)
+                    ntmb_frag_and_env,map_frag_and_env,.false.,neighbour_cutoff)
                !full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)//'_env'
                full_filename=trim(dir_output)//trim(input_frag%label(ifrag_ref))//'_env'
                if (iproc==0) then
@@ -637,7 +639,8 @@ module io
 
    !> finds environment atoms and fills ref_frag%astruct_env accordingly
    !! also returns mapping array for fragment and environment
-   subroutine find_neighbours(num_neighbours,at,rxyz,orbs,ref_frag,frag_map,ntmb_frag_and_env,map_frag_and_env,closest_only)
+   subroutine find_neighbours(num_neighbours,at,rxyz,orbs,ref_frag,frag_map,ntmb_frag_and_env,map_frag_and_env,&
+        closest_only,cutoff)
       use module_fragments
       use module_types
       use module_atoms, only: deallocate_atomic_structure, nullify_atomic_structure
@@ -652,6 +655,7 @@ module io
       integer, intent(out) :: ntmb_frag_and_env
       integer, dimension(orbs%norb,3), intent(out) :: map_frag_and_env
       logical, intent(in) :: closest_only
+      real(kind=8), intent(in) :: cutoff
 
       !local variables
       integer :: iatnf, iat, ityp, iatf, iatt, num_before, num_after, jat, num_neighbours_tot, iorb
@@ -760,6 +764,18 @@ module io
          if (num_neighbours_type(ityp)==0 .and. (.not. closest_only)) cycle
          do iat=1,at%astruct%nat-ref_frag%astruct_frg%nat
             if (at%astruct%iatype(map_not_frag(ipiv(iat)))/=ityp .and. (.not. closest_only)) cycle
+
+            ! first apply a distance cut-off so that all neighbours are ignored beyond some distance (needed e.g. for defects)
+            if (abs(dist(ipiv(iat))) > cutoff) then
+               ! subtract the neighbours that we won't be including
+               !print*,'cut',ityp,iatt,num_neighbours_type(ityp),iatf,iat,dist(ipiv),cutoff,&
+               !     num_neighbours_tot,num_neighbours_tot - (num_neighbours_type(ityp) - iatt)
+               num_neighbours_tot = num_neighbours_tot - (num_neighbours_type(ityp) - iatt)
+               num_neighbours_type(ityp) = iatt
+               exit
+            end if
+            !print*,'iat',ityp,iatt,num_neighbours_type(ityp),iatf,iat,dist(ipiv),cutoff,num_neighbours_tot
+
             iatf=iatf+1
             iatt=iatt+1
             rxyz_frag_and_env(:,iatf+ref_frag%astruct_frg%nat) = rxyz_not_frag(:,ipiv(iat))
@@ -1910,116 +1926,6 @@ module io
     end subroutine write_dense_matrix
 
 
-    subroutine read_sparse_matrix(filename, nspin, geocode, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, &
-               nat, ntypes, nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
-      use module_base
-      use module_types
-      implicit none
-      
-      ! Calling arguments
-      character(len=*),intent(in) :: filename
-      integer,intent(out) :: nspin, nfvctr, nseg, nvctr
-      character(len=1),intent(out) :: geocode
-      integer,dimension(:),pointer,intent(out) :: keyv
-      integer,dimension(:,:,:),pointer,intent(out) :: keyg
-      real(kind=8),dimension(:),pointer,intent(out) :: mat_compr
-      integer,intent(out),optional :: nat, ntypes
-      integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
-      character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
-      real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
-      integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
-
-      ! Local variables
-      integer :: iunit, dummy_int, iseg, icol, irow, jorb, ind, ispin, iat, ntypes_, nat_, itype
-      real(kind=8) :: dummy_double
-      character(len=20) :: dummy_char
-      logical :: read_rxyz, read_on_which_atom
-
-      call f_routine(id='read_sparse_matrix')
-
-      if (present(nat) .and. present(ntypes) .and. present(nzatom) .and.  &
-          present(nelpsp) .and. present(atomnames) .and. present(iatype) .and. present(rxyz)) then
-          read_rxyz = .true.
-      else if (present(nat) .or. present(ntypes) .or. present(nzatom) .or.  &
-          present(nelpsp) .or. present(atomnames) .or. present(iatype) .or. present(rxyz)) then
-          call f_err_throw("not all optional arguments were given", &
-               err_name='BIGDFT_RUNTIME_ERROR')
-      else
-          read_rxyz = .false.
-      end if
-      
-      if (present(on_which_atom)) then
-          read_on_which_atom = .true.
-      else
-          read_on_which_atom = .false.
-      end if
-
-      iunit = 99
-      call f_open_file(iunit, file=trim(filename), binary=.false.)
-
-      if (read_rxyz) then
-          read(iunit,*) nat, ntypes, nspin, geocode
-          nzatom = f_malloc_ptr(ntypes,id='nzatom')
-          nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
-          atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')
-
-          do itype=1,ntypes
-              read(iunit,*) nzatom(itype), nelpsp(itype), atomnames(itype)
-          end do
-          rxyz = f_malloc_ptr((/3,nat/),id='rxyz')
-          iatype = f_malloc_ptr(nat,id='iatype')
-          do iat=1,nat
-              read(iunit,*) iatype(iat), rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
-          end do
-      else
-          read(iunit,*) nat_, ntypes_, nspin, geocode
-          do itype=1,ntypes_
-              read(iunit,*) dummy_int, dummy_int, dummy_char
-          end do
-          do iat=1,nat_
-              read(iunit,*) dummy_int, dummy_double, dummy_double, dummy_double
-          end do
-      end if
-      read(iunit,*) nfvctr, nseg, nvctr
-      keyv = f_malloc_ptr(nseg,id='keyv')
-      keyg = f_malloc_ptr((/2,2,nseg/),id='keyg')
-      do iseg=1,nseg
-          read(iunit,*) keyv(iseg), keyg(1,1,iseg), keyg(2,1,iseg), keyg(1,2,iseg), keyg(2,2,iseg)
-      end do
-      mat_compr = f_malloc_ptr(nvctr*nspin,id='mat_compr')
-      if (read_on_which_atom) then
-          nullify(on_which_atom)
-          on_which_atom = f_malloc_ptr(nfvctr,id='on_which_atom')
-          ind = 0
-          do ispin=1,nspin
-              do iseg=1,nseg
-                  icol = keyg(1,2,iseg)
-                  do jorb=keyg(1,1,iseg),keyg(2,1,iseg)
-                      irow = jorb
-                      ind = ind + 1
-                      read(iunit,*) mat_compr(ind), on_which_atom(irow), on_which_atom(icol)
-                  end do
-              end do
-          end do
-      else
-          ind = 0
-          do ispin=1,nspin
-              do iseg=1,nseg
-                  icol = keyg(1,2,iseg)
-                  do jorb=keyg(1,1,iseg),keyg(2,1,iseg)
-                      irow = jorb
-                      ind = ind + 1
-                      read(iunit,*) mat_compr(ind), dummy_int, dummy_int
-                  end do
-              end do
-          end do
-      end if
-
-      call f_close(iunit)
-
-      call f_release_routine()
-
-    end subroutine read_sparse_matrix
 
     !subroutine read_dense_matrix(nat, ntypes, iatype, rxyz, nzatom, nelpsp, atomnames, smat, mat, filename, binary, orbs)
     !eventually have the same header information as write_sparse?
@@ -2652,6 +2558,204 @@ module io
           end do
       end if
     end subroutine write_partial_charges
+
+
+    subroutine plot_density(iproc,nproc,filename,at,rxyz,kernel,nspin,rho,ixyz0)
+      use module_defs, only: gp,dp
+      use module_base
+      use PStypes, only: coulomb_operator
+      use IObox, only: dump_field
+      use PSbox, only: PS_gather
+      use module_atoms, only: atoms_data
+      implicit none
+      integer, intent(in) :: iproc,nproc,nspin
+      type(atoms_data), intent(in) :: at
+      type(coulomb_operator), intent(in) :: kernel
+      character(len=*), intent(in) :: filename
+      real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+      real(dp), dimension(*) :: rho !< intent(in)
+      integer, dimension(3), intent(in), optional ::  ixyz0 !< points that have to be plot as lines
+      !local variables
+      integer :: ispin
+      real(dp), dimension(:,:,:,:), allocatable :: pot_ion
+    
+      pot_ion = f_malloc((/kernel%ndims(1),kernel%ndims(2),kernel%ndims(3), nspin /),id='pot_ion')
+      if (nproc > 1) then
+    
+         !here we might add an extra interface
+         call PS_gather(src=rho,dest=pot_ion,kernel=kernel,nsrc=nspin)
+      else
+         call f_memcpy(n=size(pot_ion),src=rho(1),dest=pot_ion(1,1,1,1))
+      end if
+    
+      if (present(ixyz0)) then
+          if (ixyz0(1)<1 .or. ixyz0(1)>kernel%ndims(1)) then
+              call f_err_throw('The x value of ixyz0('//trim(yaml_toa(ixyz0(1),fmt='(i0)'))//&
+                   &') should be within the size of the box (1 to'//trim(yaml_toa(kernel%ndims(1),fmt='(i0)'))//')')
+          end if
+          call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
+               rxyz,at%astruct%iatype,at%nzatom,at%nelpsp,ixyz0=ixyz0)
+          if (ixyz0(2)<1 .or. ixyz0(2)>kernel%ndims(2)) then
+              call f_err_throw('The y value of ixyz0('//trim(yaml_toa(ixyz0(2)))//&
+                   &') should be within the size of the box (1 to'//trim(yaml_toa(kernel%ndims(2),fmt='(i0)'))//')')
+          end if
+          if (ixyz0(3)<1 .or. ixyz0(3)>kernel%ndims(3)) then
+              call f_err_throw('The z value of ixyz0('//trim(yaml_toa(ixyz0(3),fmt='(i0)'))//&
+                   &') should be within the size of the box (1 to'//trim(yaml_toa(kernel%ndims(3),fmt='(i0)'))//')')
+          end if
+      else
+          call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
+               rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
+      end if
+    
+      call f_free(pot_ion)
+    
+    !!$  character(len=*), parameter :: subname='plot_density'
+    !!$  character(len=5) :: suffix
+    !!$  character(len=65) :: message
+    !!$  integer :: ierr,ia,ib,isuffix,fformat,n1i,n2i,n3i
+    !!$  real(dp) :: a,b
+    !!$  real(gp) :: hxh,hyh,hzh
+    !!$  real(dp), dimension(:,:), pointer :: pot_ion
+    !!$  integer,parameter :: unit0 = 22
+    !!$  integer,parameter :: unitx = 23
+    !!$  integer,parameter :: unity = 24
+    !!$  integer,parameter :: unitz = 25
+    !!$
+    !!$  n1i=box%ndims(1)
+    !!$  n2i=box%ndims(2)
+    !!$  n3i=box%ndims(3)
+    !!$
+    !!$  hxh=box%hgrids(1)
+    !!$  hyh=box%hgrids(2)
+    !!$  hzh=box%hgrids(3)
+    !!$
+    !!$  if (nproc > 1) then
+    !!$     !allocate full density in pot_ion array
+    !!$     pot_ion = f_malloc_ptr((/ box%ndimgrid, nspin /),id='pot_ion')
+    !!$     
+    !!$     call mpiallgather(sendbuf=rho(1,1),sendcount=box%ndimpot,&
+    !!$          recvbuf=pot_ion(1,1),recvcounts=box%ngatherarr(:,1),&
+    !!$          displs=box%ngatherarr(:,2),comm=box%mpi_env%mpi_comm)
+    !!$
+    !!$     !case for npspin==2
+    !!$     if (nspin==2) then
+    !!$        call mpiallgather(sendbuf=rho(1,2),sendcount=box%ndimpot,&
+    !!$             recvbuf=pot_ion(1,2),recvcounts=box%ngatherarr(:,1),&
+    !!$             displs=box%ngatherarr(:,2),comm=box%mpi_env%mpi_comm)
+    !!$     end if
+    !!$
+    !!$  else
+    !!$     !pot_ion => rho
+    !!$     pot_ion = f_malloc_ptr(shape(rho),id='pot_ion')
+    !!$     call f_memcpy(dest=pot_ion,src=rho)
+    !!$  end if
+    !!$
+    !!$  ! Format = 1 -> cube (default)
+    !!$  ! Format = 2 -> ETSF
+    !!$  ! ...
+    !!$  fformat = 1
+    !!$  isuffix = index(filename, ".cube", back = .true.)
+    !!$  if (isuffix > 0) then
+    !!$     isuffix = isuffix - 1
+    !!$     fformat = 1
+    !!$  else
+    !!$     isuffix = index(filename, ".etsf", back = .true.)
+    !!$     if (isuffix <= 0) isuffix = index(filename, ".etsf.nc", back = .true.)
+    !!$     if (isuffix > 0) then
+    !!$        isuffix = isuffix - 1
+    !!$        fformat = 2
+    !!$     else
+    !!$        isuffix = len(trim(filename))
+    !!$     end if
+    !!$  end if
+    !!$  if (iproc == 0) then
+    !!$
+    !!$
+    !!$     open(unit=unit0,file=trim(filename(:isuffix))//'.cube',status='unknown')
+    !!$     open(unit=unitx,file=trim(filename(:isuffix))//'_avg_x',status='unknown')
+    !!$     open(unit=unity,file=trim(filename(:isuffix))//'_avg_y',status='unknown')
+    !!$     open(unit=unitz,file=trim(filename(:isuffix))//'_avg_z',status='unknown')
+    !!$
+    !!$     if (nspin /=2) then
+    !!$        message='total spin'
+    !!$        if (fformat == 1) then
+    !!$           suffix=''
+    !!$           a=1.0_dp
+    !!$           ia=1
+    !!$           b=0.0_dp
+    !!$           ib=1
+    !!$           call write_cube_fields(unit0,unitx,unity,unitz,message,&
+    !!$                at,1.d0,rxyz,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
+    !!$                a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+    !!$        else
+    !!$           call write_etsf_density(filename(:isuffix),message,&
+    !!$                at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
+    !!$                pot_ion, 1)
+    !!$        end if
+    !!$     else
+    !!$        if (fformat == 1) then
+    !!$           suffix=''
+    !!$           message='total spin'
+    !!$           a=1.0_dp
+    !!$           ia=1
+    !!$           b=0.0_dp
+    !!$           ib=2
+    !!$           call write_cube_fields(unit0,unitx,unity,unitz,message,&
+    !!$                at,1.d0,rxyz,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
+    !!$                a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+    !!$
+    !!$           suffix='-down'
+    !!$           message='spin down'
+    !!$           a=0.0_dp
+    !!$           ia=1
+    !!$           b=1.0_dp
+    !!$           ib=2
+    !!$           call write_cube_fields(unit0,unitx,unity,unitz,message,&
+    !!$                at,1.d0,rxyz,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
+    !!$                a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+    !!$
+    !!$           suffix='-u-d'
+    !!$           message='spin difference'
+    !!$           a=1.0_dp
+    !!$           ia=1
+    !!$           b=-2.0_dp
+    !!$           ib=2
+    !!$           call write_cube_fields(unit0,unitx,unity,unitz,message,&
+    !!$                at,1.d0,rxyz,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
+    !!$                a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+    !!$
+    !!$           suffix='-up'
+    !!$           message='spin up'
+    !!$           a=1.0_dp
+    !!$           ia=1
+    !!$           b=-1.0_dp
+    !!$           ib=2
+    !!$           call write_cube_fields(unit0,unitx,unity,unitz,message,&
+    !!$                at,1.d0,rxyz,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
+    !!$                a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+    !!$        else
+    !!$           message = 'spin up, down, total, difference'
+    !!$           call write_etsf_density(filename(:isuffix),message,&
+    !!$                at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
+    !!$                pot_ion, 2)
+    !!$        end if
+    !!$
+    !!$     end if
+    !!$
+    !!$     close(unit=unit0)
+    !!$     close(unit=unitx)
+    !!$     close(unit=unity)
+    !!$     close(unit=unitz)
+    !!$
+    !!$  end if
+    !!$
+    !!$
+    !!$  !if (nproc > 1) then
+    !!$     call f_free_ptr(pot_ion)
+    !!$  !end if
+    
+    END SUBROUTINE plot_density
 
 
 end module io

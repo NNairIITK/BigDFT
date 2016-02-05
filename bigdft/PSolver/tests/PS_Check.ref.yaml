@@ -452,26 +452,49 @@
  Potential monopole          :  0.9999999999999597
  Potential at the boundary 1 n02/2 1:  1.732498312834022E-044
  Density at the boundary 1 n02/2 1: -8.5205212778188711E-041
-  #------------------ Comparison between Generalized Poisson operator and analytical density
- Inf. Norm difference with reference:
-   Value                     :  4.578332286965341E-03
-   Point                     :  [  28,  49,  31 ]
-   Some values: [ 1.315593650741409E-06, -3.015883444265577E-06, -3.853770792771686E-08]
-  #---------------- Comparison between Generalized Poisson operator 2 and analytical density
- Inf. Norm difference with reference:
-   Value                     :  9.045796963507610E-04
-   Point                     :  [  29,  1,  32 ]
-   Some values: [-1.669882803145839E-07,  1.410225315375007E-07,  2.741444257770549E-09]
-  #Comparison between Poisson-Boltzmann operator and analytical density
- Inf. Norm difference with reference:
-   Value                     :  4.578332286965341E-03
-   Point                     :  [  28,  49,  31 ]
-   Some values: [ 1.315593650741409E-06, -3.015883444265577E-06, -3.853770792771686E-08]
+ Comparison between Generalized Poisson operator and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  4.578332286965341E-03
+     Point                   :  [  28,  49,  31 ]
+     Some values: [ 1.315593650741409E-06, -3.015883444265577E-06, -3.853770792771686E-08]
+ Comparison between Generalized Poisson operator 2 and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  9.045796963507610E-04
+     Point                   :  [  29,  1,  32 ]
+     Some values: [-1.669882803145839E-07,  1.410225315375007E-07,  2.741444257770549E-09]
+ Comparison between Generalized Poisson operator PCG-style and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  1.455230159788816E-02
+     Point                   :  [  29,  1,  32 ]
+     Some values: [-1.190891528723981E-07,  6.909115295565407E-06, -1.906544144443733E-09]
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   environment:
+     delta                   : 0.3 #              Amplitude of the transition region in the rigid cavity (AU)
+     cavity                  : rigid #            Type of the cavity
+     gps_algorithm           : PI #               Algorithm for the Generalised Poisson Equation
+     epsilon                 : 78.36 #            Dielectric constant of the exterior region
+     cavitation              : No #               triggers the evaluation of the extra cavtitation terms
+     pi_eta                  : 0.6 #              Mixing parameter of the PI algorithm
+     input_guess             : No #               Triggers the input guess procedure of gps_algorithm
+     fd_order                : 16 #               Order of the Finite-difference derivatives for the GPS solver
+     itermax                 : 50 #               Maximum number of iterations of the GPS outer loop
+     minres                  : 1.e-6 #            Convergence threshold of the loop
+   kernel:
+     screening               : 0 #                mu screening parameter
+     isf_order               : 16 #               Order of the Interpolating Scaling Function family
+     stress_tensor           : Yes #              triggers the calculation of the stress tensor
+   setup:
+     accel                   : none #             Material Acceleration
+     taskgroup_size          : 0 #                Size of the taskgroups of the Poisson Solver
+     global_data             : No #               Charge density and Electrostatic potential are given by global arrays
+     verbose                 : Yes #              Verbosity switch
+     output                  : none #             Quantities to be plotted after the main solver routine
    MPI tasks                 :  2
    OpenMP threads per MPI task:  2
    Iterative method for Generalised Equation: PI
+   Cavity determination      : rigid
  Poisson Kernel Creation:
    Boundary Conditions       : Free
    Memory Requirements per MPI task:
@@ -509,27 +532,32 @@
  Expected hartree energy     :  4.3393317352253109E-002
  Computed Hartree energy     :  4.3393537117483935E-002
  Diff of expected-computed Hartree energy: -2.1976523082584132E-007
-  #-------- Comparison between numerical and starting analytical density with old GPoperator
- Inf. Norm difference with reference:
-   Value                     :  8.095744492718444E-03
-   Point                     :  [  29,  1,  32 ]
-   Some values: [ 1.307067035105636E-06, -7.955922915093029E-06, -1.810225854939597E-07]
-  #------ Comparison between numerical and starting analytical density witn new 2 GPoperator
- Inf. Norm difference with reference:
-   Value                     :  4.242340491271814E-03
-   Point                     :  [  29,  1,  32 ]
-   Some values: [-1.748405677459708E-07, -4.862489572590425E-06, -1.396769826660007E-07]
+ Comparison between numerical and starting analytical density with old GPoperator:
+   Inf. Norm difference with reference:
+     Value                   :  8.095744492718444E-03
+     Point                   :  [  29,  1,  32 ]
+     Some values: [ 1.307067035105636E-06, -7.955922915093029E-06, -1.810225854939597E-07]
+ Comparison between numerical and starting analytical density witn new 2 GPoperator:
+   Inf. Norm difference with reference:
+     Value                   :  4.242340491271814E-03
+     Point                   :  [  29,  1,  32 ]
+     Some values: [-1.748405677459708E-07, -4.862489572590425E-06, -1.396769826660007E-07]
+ Comparison between Generalized Poisson operator PCG-style and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  1.294224485431469E-02
+     Point                   :  [  29,  49,  32 ]
+     Some values: [-1.288000220367458E-07,  1.042369842074593E-05, -2.186319926865753E-08]
  Memory Consumption Report:
-   Tot. No. of Allocations   :  419
-   Tot. No. of Deallocations :  419
+   Tot. No. of Allocations   :  449
+   Tot. No. of Deallocations :  449
    Remaining Memory (B)      :  0
    Memory occupation:
-     Peak Value (MB)         :  39.925
-     for the array           : zmpi1
-     in the routine          : G_PoissonSolver
-     Memory Peak of process  : 61.224 MB
- Walltime since initialization: 00:00:01.022064730
- Max No. of dictionaries used:  258 #( 170 still in use)
+     Peak Value (MB)         :  184.175
+     for the array           : re
+     in the routine          : Main_program
+     Memory Peak of process  : 61.588 MB
+ Walltime since initialization: 00:00:02.375273160
+ Max No. of dictionaries used:  447 #( 170 still in use)
  Number of dictionary folders allocated:  1
 ---
  rad_cav                     :  1.7
@@ -562,26 +590,48 @@
  Potential monopole          :  0.9999999999999597
  Potential at the boundary 1 n02/2 1:  1.732498312834022E-044
  Density at the boundary 1 n02/2 1: -8.5205212778188711E-041
-  #------------------ Comparison between Generalized Poisson operator and analytical density
- Inf. Norm difference with reference:
-   Value                     :  4.578332286965341E-03
-   Point                     :  [  28,  49,  31 ]
-   Some values: [ 1.315593650741409E-06, -3.015883444265577E-06, -3.853770792771686E-08]
-  #---------------- Comparison between Generalized Poisson operator 2 and analytical density
- Inf. Norm difference with reference:
-   Value                     :  9.045796963507610E-04
-   Point                     :  [  29,  1,  32 ]
-   Some values: [-1.669882803145839E-07,  1.410225315375007E-07,  2.741444257770549E-09]
-  #Comparison between Poisson-Boltzmann operator and analytical density
- Inf. Norm difference with reference:
-   Value                     :  4.578332286965341E-03
-   Point                     :  [  28,  49,  31 ]
-   Some values: [ 1.315593650741409E-06, -3.015883444265577E-06, -3.853770792771686E-08]
+ Comparison between Generalized Poisson operator and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  4.578332286965341E-03
+     Point                   :  [  28,  49,  31 ]
+     Some values: [ 1.315593650741409E-06, -3.015883444265577E-06, -3.853770792771686E-08]
+ Comparison between Generalized Poisson operator 2 and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  9.045796963507610E-04
+     Point                   :  [  29,  1,  32 ]
+     Some values: [-1.669882803145839E-07,  1.410225315375007E-07,  2.741444257770549E-09]
+ Comparison between Generalized Poisson operator PCG-style and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  1.455230159788816E-02
+     Point                   :  [  29,  1,  32 ]
+     Some values: [-1.190891528723981E-07,  6.909115295565407E-06, -1.906544144443733E-09]
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   environment:
+     delta                   : 0.3 #              Amplitude of the transition region in the rigid cavity (AU)
+     cavity                  : rigid #            Type of the cavity
+     gps_algorithm           : PCG #              Algorithm for the Generalised Poisson Equation
+     epsilon                 : 78.36 #            Dielectric constant of the exterior region
+     cavitation              : No #               triggers the evaluation of the extra cavtitation terms
+     input_guess             : No #               Triggers the input guess procedure of gps_algorithm
+     fd_order                : 16 #               Order of the Finite-difference derivatives for the GPS solver
+     itermax                 : 50 #               Maximum number of iterations of the GPS outer loop
+     minres                  : 1.e-6 #            Convergence threshold of the loop
+   kernel:
+     screening               : 0 #                mu screening parameter
+     isf_order               : 16 #               Order of the Interpolating Scaling Function family
+     stress_tensor           : Yes #              triggers the calculation of the stress tensor
+   setup:
+     accel                   : none #             Material Acceleration
+     taskgroup_size          : 0 #                Size of the taskgroups of the Poisson Solver
+     global_data             : No #               Charge density and Electrostatic potential are given by global arrays
+     verbose                 : Yes #              Verbosity switch
+     output                  : none #             Quantities to be plotted after the main solver routine
    MPI tasks                 :  2
    OpenMP threads per MPI task:  2
    Iterative method for Generalised Equation: PCG
+   Cavity determination      : rigid
  Poisson Kernel Creation:
    Boundary Conditions       : Free
    Memory Requirements per MPI task:
@@ -633,25 +683,30 @@
  Expected hartree energy     :  4.3393317352253109E-002
  Computed Hartree energy     :  4.3393349694823474E-002
  Diff of expected-computed Hartree energy: -3.2342570364940482E-008
-  #-------- Comparison between numerical and starting analytical density with old GPoperator
- Inf. Norm difference with reference:
-   Value                     :  1.074395547093221E-01
-   Point                     :  [  30,  49,  32 ]
-   Some values: [-1.378115944050684E-05, -7.152095426906259E-05, -9.388836662274370E-07]
-  #------ Comparison between numerical and starting analytical density witn new 2 GPoperator
- Inf. Norm difference with reference:
-   Value                     :  1.061561747149636E-01
-   Point                     :  [  30,  49,  32 ]
-   Some values: [-1.535375177574849E-05, -6.902506233993356E-05, -9.159698826880163E-07]
+ Comparison between numerical and starting analytical density with old GPoperator:
+   Inf. Norm difference with reference:
+     Value                   :  1.074395547093221E-01
+     Point                   :  [  30,  49,  32 ]
+     Some values: [-1.378115944050684E-05, -7.152095426906259E-05, -9.388836662274370E-07]
+ Comparison between numerical and starting analytical density witn new 2 GPoperator:
+   Inf. Norm difference with reference:
+     Value                   :  1.061561747149636E-01
+     Point                   :  [  30,  49,  32 ]
+     Some values: [-1.535375177574849E-05, -6.902506233993356E-05, -9.159698826880163E-07]
+ Comparison between Generalized Poisson operator PCG-style and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  7.975271991911000E-03
+     Point                   :  [  27,  1,  31 ]
+     Some values: [ 3.608227814588805E-06,  3.856589120582665E-06, -1.312188376836985E-08]
  Memory Consumption Report:
-   Tot. No. of Allocations   :  405
-   Tot. No. of Deallocations :  405
+   Tot. No. of Allocations   :  434
+   Tot. No. of Deallocations :  434
    Remaining Memory (B)      :  0
    Memory occupation:
-     Peak Value (MB)         :  37.986
-     for the array           : zmpi1
-     in the routine          : G_PoissonSolver
-     Memory Peak of process  : 60.460 MB
- Walltime since initialization: 00:00:00.693081657
- Max No. of dictionaries used:  259 #( 170 still in use)
+     Peak Value (MB)         :  180.829
+     for the array           : re
+     in the routine          : Main_program
+     Memory Peak of process  : 58.400 MB
+ Walltime since initialization: 00:00:01.812291478
+ Max No. of dictionaries used:  444 #( 170 still in use)
  Number of dictionary folders allocated:  1

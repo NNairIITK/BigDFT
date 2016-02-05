@@ -62,6 +62,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   type(dpbox_iterator) :: boxit
   integer, dimension(2,3) :: nbox
 
+  call f_routine(id='IonicEnergyandForces')
   call timing(iproc,'ionic_energy','ON')
   fion = f_malloc_ptr((/ 3, at%astruct%nat /),id='fion')
   fdisp = f_malloc_ptr((/ 3, at%astruct%nat /),id='fdisp')
@@ -383,7 +384,6 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
            if (use_iterator) then
 
-
               nbox(1,1)=floor((rx-cutoff)/hxh)
               nbox(1,2)=floor((ry-cutoff)/hyh)
               nbox(1,3)=floor((rz-cutoff)/hzh)
@@ -700,6 +700,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   call vdwcorrection_freeparams() 
 
   if (at%multipole_preserving) call finalize_real_space_conversion()
+  call f_release_routine()
   call timing(iproc,'ionic_energy','OF')
 
 END SUBROUTINE IonicEnergyandForces
@@ -1709,6 +1710,8 @@ subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift,
   real(dp), dimension(:), allocatable :: counter_ions
   integer :: ncounter_ions
 
+  call f_routine(id='createEffectiveIonicPotential')
+
   ! Compute the main ionic potential.
   call createIonicPotential(iproc, verb, atoms, rxyz, &
        & elecfield, dpbox, pkernel, pot_ion, rho_ion, psoffset)
@@ -1734,6 +1737,7 @@ subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift,
      call f_free(counter_ions)
   end if
 
+  call f_release_routine()
 
 END SUBROUTINE createEffectiveIonicPotential
 
@@ -1991,7 +1995,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
               enddo
            else
               !Calculate Ionic Density using splines, PAW case
-              !r2paw=at%pawtab(ityp)%rpaw**2
+              !r2paw=at%pawtab(atit%ityp)%rpaw**2
               do i3=isz,iez
                  zp = mpz(i3-isz)
                  if (abs(zp) < mp_tiny) cycle

@@ -427,7 +427,9 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
            end do
         end do
         ip=0
-        call yaml_map('Input guess not used due to residual norm >',no_ig_minres)
+        if (kernel%mpi_env%iproc==0) &
+             call yaml_warning('Input guess not used due to residual norm >'+no_ig_minres)
+        !call yaml_map('Input guess not used due to residual norm >',no_ig_minres)
         end if
 
      end do pi_loop
@@ -496,7 +498,8 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
  
        iinit=1
        !call yaml_warning('Input guess not used due to residual norm > 1')
-       call yaml_warning('Input guess not used due to residual norm >'+no_ig_minres)
+       if (kernel%mpi_env%iproc==0) &
+            call yaml_warning('Input guess not used due to residual norm >'+no_ig_minres)
       end if
 
      end if

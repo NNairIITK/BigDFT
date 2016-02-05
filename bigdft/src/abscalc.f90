@@ -176,6 +176,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_input_keys, only: print_dft_parameters
    use IObox
    use orbitalbasis
+   use io, only: plot_density
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -720,8 +721,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          !if (in%output_denspot_format == output_denspot_FORMAT_TEXT) then
          if (in%output_denspot .hasattr. 'TEXT') then ! == output_denspot_FORMAT_TEXT) then
             if (iproc == 0) write(*,*) 'writing local_potential'
+            !call plot_density(iproc,nproc,'local_potentialb2B' // gridformat,&
+            !     atoms,rxyz,dpcom,in%nspin,rhopot(1,1,1,1))
             call plot_density(iproc,nproc,'local_potentialb2B' // gridformat,&
-                 atoms,rxyz,dpcom,in%nspin,rhopot(1,1,1,1))
+                 atoms,rxyz,pkernel,in%nspin,rhopot(1,1,1,1))
          else
             call plot_density_cube_old('local_potentialb2B',iproc,nproc,&
                &   n1,n2,n3,n1i,n2i,n3i,dpcom%n3p,&
@@ -1488,6 +1491,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    use psp_projectors, only: update_nlpsp
+   use io, only: plot_density
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc
