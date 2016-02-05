@@ -378,7 +378,7 @@ module module_types
  !> Timing categories
  character(len=*), parameter, private :: tgrp_pot='Potential'
  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
- integer, parameter, private :: ncls_max=6,ncat_bigdft=153   ! define timimg categories and classes
+ integer, parameter, private :: ncls_max=6,ncat_bigdft=158   ! define timimg categories and classes
  character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
       'Communications'    ,  &
       'Convolutions  '    ,  &
@@ -445,7 +445,6 @@ module module_types
       'sumrho_TMB    ','Other         ' ,'port to GPU?  ' ,  &
       'TMB_kernel    ','Linear Algebra' ,'dgemm         ' ,  &
       'diagonal_seq  ','Linear Algebra' ,'dsygv         ' ,  &
-      'diagonal_par  ','Linear Algebra' ,'pdsygvx       ' ,  &
       'lovrlp^-1     ','Linear Algebra' ,'exact or appr ' ,  &
       'lagmat_orthoco','Linear Algebra' ,'dgemm seq/par ' ,  &
       'optimize_DIIS ','Other         ' ,'Other         ' ,  &
@@ -547,6 +546,12 @@ module module_types
       'matrix_extents','Other         ' ,'Miscellaneous ' ,  &
       'lin_inputguess','Other         ' ,'Miscellaneous ' ,  &
       'ionic_energy  ','Other         ' ,'Miscellaneous ' ,  &
+      'dgemm_parallel','Linear Algebra' ,'(Sca)LAPACK   ' ,  &
+      'dsyev_parallel','Linear Algebra' ,'(Sca)LAPACK   ' ,  &
+      'dsygv_parallel','Linear Algebra' ,'(Sca)LAPACK   ' ,  &
+      'dgesv_parallel','Linear Algebra' ,'(Sca)LAPACK   ' ,  &
+      'dpotrf_paralle','Linear Algebra' ,'(Sca)LAPACK   ' ,  &
+      'dpotri_paralle','Linear Algebra' ,'(Sca)LAPACK   ' ,  &
       'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat_bigdft/))
  integer, dimension(ncat_bigdft), private, save :: cat_ids !< id of the categories to be converted
 

@@ -12,7 +12,7 @@ program driver
   use foe_base, only: foe_data, foe_data_deallocate
   use foe_common, only: init_foe
   use foe, only: fermi_operator_expansion
-  use ice, only: inverse_chebyshev_expansion
+  use ice, only: inverse_chebyshev_expansion_new
   implicit none
 
   ! Variables
@@ -56,7 +56,7 @@ program driver
   inv_overlap(1)%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='inv_overlap%matrix_compr')
 
   order_taylor = 1020
-  call inverse_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, &
+  call inverse_chebyshev_expansion_new(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, &
        smat_s, smat_l, 1, (/-1.d0/), overlap, inv_overlap)
 
 !!!FOE  charge = 10.d0

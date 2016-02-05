@@ -47,6 +47,9 @@ module parallel_linalg
       integer,dimension(9) :: desc_lc, desc_la, desc_lb
       character(len=*),parameter :: subname='dgemm_parallel'
 
+      call f_routine(id='dgemm_parallel')
+      call timing(iproc, 'dgemm_parallel', 'ON')
+
       blocksize_if: if (blocksize<0) then
           call dgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
       else blocksize_if
@@ -157,6 +160,9 @@ module parallel_linalg
     
           !call blacs_exit(0)
       end if blocksize_if
+
+      call timing(iproc, 'dgemm_parallel', 'OF')
+      call f_release_routine()
     
     end subroutine dgemm_parallel
     
@@ -183,6 +189,9 @@ module parallel_linalg
       integer,dimension(9) :: desc_lz, desc_la
       integer,dimension(:),allocatable :: iwork, ifail, icluster
       character(len=*),parameter :: subname='dsyev_parallel'
+
+      call f_routine(id='dsyev_parallel')
+      call timing(iproc, 'dsyev_parallel', 'ON')
       
       blocksize_if: if (blocksize<0) then
           lwork = 100*n
@@ -322,6 +331,9 @@ module parallel_linalg
     
           !call blacs_exit(0)
       end if blocksize_if
+
+      call timing(iproc, 'dsyev_parallel', 'OF')
+      call f_release_routine()
     
     end subroutine dsyev_parallel
     
@@ -350,8 +362,10 @@ module parallel_linalg
       integer,dimension(9) :: desc_lz, desc_la, desc_lb
       integer,dimension(:),allocatable :: iwork, ifail, icluster
       character(len=*),parameter :: subname='dsygv_parallel'
+
+      call f_routine(id='dsygv_parallel')
       
-     call timing(iproc,'diagonal_par  ','ON') 
+      call timing(iproc,'dsygv_parallel','ON') 
       
       ! Block size for scalapack
       mbrow=blocksize
@@ -490,7 +504,9 @@ module parallel_linalg
     
      !call blacs_exit(0)
     
-     call timing(iproc,'diagonal_par  ','OF') 
+      call timing(iproc,'dsygv_parallel','OF') 
+
+      call f_release_routine()
     
     end subroutine dsygv_parallel
     
@@ -516,7 +532,8 @@ module parallel_linalg
       integer,dimension(:),allocatable:: ipiv
       character(len=*),parameter:: subname='dgsev_parallel'
       
-      
+      call f_routine(id='dgesv_parallel') 
+      call timing(iproc, 'dgesv_parallel', 'ON')
       
       ! Block size for scalapack
       mbrow=blocksize
@@ -619,6 +636,9 @@ module parallel_linalg
       end if
       
       !call blacs_exit(0)
+
+      call timing(iproc, 'dgesv_parallel', 'OF')
+      call f_release_routine()
     
     end subroutine dgesv_parallel
     
@@ -642,6 +662,9 @@ module parallel_linalg
       real(kind=8),dimension(:,:),allocatable :: la
       integer,dimension(9) :: desc_la
       character(len=*),parameter :: subname='dpotrf_parallel'
+
+      call f_routine(id='dpotrf_parallel')
+      call timing(iproc, 'dpotrf_paralle', 'ON')
     
       ! Block size for scalapack
       mbrow=blocksize
@@ -729,6 +752,9 @@ module parallel_linalg
       end if
     
       !call blacs_exit(0)
+
+      call timing(iproc, 'dpotrf_paralle', 'OF')
+      call f_release_routine()
     
     end subroutine dpotrf_parallel
     
@@ -749,7 +775,10 @@ module parallel_linalg
       real(kind=8) :: tt1, tt2
       real(kind=8),dimension(:,:),allocatable :: la
       integer,dimension(9) :: desc_la
-      character(len=*),parameter :: subname='dpotrf_parallel'
+      character(len=*),parameter :: subname='dpotri_parallel'
+
+      call f_routine(id='dpotri_parallel')
+      call timing(iproc, 'dpotri_paralle', 'ON')
     
       ! Block size for scalapack
       mbrow=blocksize
@@ -836,6 +865,9 @@ module parallel_linalg
       end if
     
       !call blacs_exit(0)
+
+      call timing(iproc, 'dpotri_paralle', 'OF')
+      call f_release_routine()
     
     end subroutine dpotri_parallel
 

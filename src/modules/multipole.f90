@@ -2249,7 +2249,7 @@ module multipole
 
     subroutine multipole_analysis_driver(iproc, nproc, ll, nphi, lphi, nphir, at, hgrids, &
                orbs, smats, smatm, smatl, collcom, collcom_sr, lzd, denspot, orthpar, ovrlp, ham, kernel, rxyz, &
-               method, do_ortho, shift, nsigma, ixc, ep)
+               method, projectormode, do_ortho, shift, nsigma, ixc, ep)
       use module_base
       use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, orthon_data, DFT_local_fields, comms_linear
       use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
@@ -2284,6 +2284,7 @@ module multipole
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
       character(len=*),intent(in) :: method
       character(len=*),intent(in) :: do_ortho
+      character(len=*),intent(in) :: projectormode
       real(kind=8),dimension(3),intent(in) :: shift
       type(external_potential_descriptors),intent(out) :: ep
 
@@ -2306,9 +2307,11 @@ module multipole
       real(kind=8),dimension(3) :: dipole_check
       real(kind=8),dimension(3,3) :: quadrupole_check
       type(external_potential_descriptors) :: ep_check
+      type(matrices),dimension(24) :: rpower_matrix
       type(orbital_basis) :: psi_ob
       real(gp), dimension(3) :: acell
       character(len=*),parameter :: no='no', yes='yes'
+      !character(len=*),parameter :: projectormode='verynew'!'old'
       !character(len=*),parameter :: do_ortho = no!yes
 
 
@@ -2318,6 +2321,7 @@ module multipole
       if (iproc==0) then
           call yaml_comment('Atomic multipole analysis, new approach',hfill='=')
           call yaml_map('Method',trim(method))
+          call yaml_map('Projector mode',trim(projectormode))
           call yaml_map('Orthogonalized support functions',trim(do_ortho))
       end if
 
@@ -2330,17 +2334,14 @@ module multipole
       if (trim(do_ortho)/='no' .and. trim(do_ortho)/='yes') then
           call f_err_throw('wrong do_ortho',err_name='BIGDFT_RUNTIME_ERROR')
       end if
+      select case (trim(projectormode))
+      case ('none','simple','full')
+          ! everything ok
+      case default
+          call f_err_throw('wrong projectormode',err_name='BIGDFT_RUNTIME_ERROR')
+      end select
 
 
-      if (trim(method)=='projector') then
-          if (smatl%nspin/=1) then
-              call f_err_throw('projector not tested for spin polarized calculations, better to stop here')
-          end if
-          ! Calculate the projector using the penalty term
-          call projector_for_charge_analysis(at, smats, smatm, smatl, &
-               ovrlp, ham, kernel, rxyz, calculate_centers=.false., write_output=.false., ortho=do_ortho, &
-               natpx=natpx, isatx=isatx, nmaxx=nmaxx, nx=nx, projx=projx, neighborx=neighborx)
-      end if
 
       multipole_matrix_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='multipole_matrix_large')
       kernel_ortho = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='kernel_ortho')
@@ -2375,6 +2376,40 @@ module multipole
                can_use_transposed)
           call f_free_ptr(phit_c)
           call f_free_ptr(phit_f)
+      end if
+
+
+      if (trim(method)=='projector') then
+          if (smatl%nspin/=1) then
+              call f_err_throw('projector not tested for spin polarized calculations, better to stop here')
+          end if
+
+          if (projectormode=='full') then
+              do i=1,24
+                  rpower_matrix(i) = matrices_null()
+                  rpower_matrix(i)%matrix_compr = &
+                      sparsematrix_malloc_ptr(smats, SPARSE_TASKGROUP, id='rpower_matrix(i)%matrix_compr')
+              end do
+
+              !call yaml_warning('NOT SURE WHAT HAPPENS IN THE CASE OF ORTHOGONALIZED SUPPORT FUNCTIONS')
+              if (do_ortho==yes) then
+                  call calculate_rpowerx_matrices(iproc, nproc, nphi, collcom_sr%ndimpsi_c, lzd, &
+                       orbs, collcom, phi_ortho, smats, rpower_matrix)
+              else if (do_ortho==no) then
+                  call calculate_rpowerx_matrices(iproc, nproc, nphi, collcom_sr%ndimpsi_c, lzd, &
+                       orbs, collcom, lphi, smats, rpower_matrix)
+              end if
+          end if
+          ! Calculate the projector using the penalty term
+          call projector_for_charge_analysis(at, smats, smatm, smatl, &
+               ovrlp, ham, kernel, rxyz, calculate_centers=.false., write_output=.false., ortho=do_ortho, mode=projectormode, &
+               lzd=lzd, orbs=orbs, natpx=natpx, isatx=isatx, nmaxx=nmaxx, nx=nx, projx=projx, neighborx=neighborx, &
+               rpower_matrix=rpower_matrix)
+          if (projectormode=='full') then
+              do i=1,24
+                  call deallocate_matrices(rpower_matrix(i))
+              end do
+          end if
       end if
 
 
@@ -2719,7 +2754,7 @@ module multipole
 
 
     subroutine projector_for_charge_analysis(at, smats, smatm, smatl, &
-               ovrlp_, ham_, kernel_, rxyz, calculate_centers, write_output, ortho, &
+               ovrlp_, ham_, kernel_, rxyz, calculate_centers, write_output, ortho, mode, &
                lzd, nphirdim, psi, orbs, &
                multipoles, &
                natpx, isatx, nmaxx, nx, projx, neighborx, &
@@ -2748,7 +2783,7 @@ module multipole
       type(matrices),intent(in) :: ham_, kernel_
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
       logical,intent(in) :: calculate_centers, write_output
-      character(len=*),intent(in) :: ortho
+      character(len=*),intent(in) :: ortho, mode
       type(local_zone_descriptors),intent(in),optional :: lzd
       integer,intent(in),optional :: nphirdim
       real(kind=8),dimension(:),intent(in),optional :: psi
@@ -2763,9 +2798,9 @@ module multipole
       ! Local variables
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl, lwork
       integer :: k, l, iatold, isat, natp, kkat, istot, ntotp, i1, i2, i3, is1, ie1, is2, ie2, is3, ie3, j1, j2, j3, ikT, info
-      integer :: ialpha
+      integer :: ialpha, ilr
       real(kind=8) :: r2, cutoff2, rr2, tt, ef, q, occ, max_error, mean_error, rr2i, rr2j, ttxi, ttyi, ttzi, ttxj, ttyj, ttzj
-      real(kind=8) :: tti, ttj, charge_net, charge_total
+      real(kind=8) :: tti, ttj, charge_net, charge_total, rloc
       real(kind=8) :: xi, xj, yi, yj, zi, zj, ttx, tty, ttz, xx, yy, zz, x, y, z
       real(kind=8),dimension(:),allocatable :: work, occ_all
       real(kind=8),dimension(:,:),allocatable :: com
@@ -2777,6 +2812,7 @@ module multipole
       integer,dimension(:),allocatable :: id_all, n_all, itmparr
       real(kind=8),dimension(3) :: rr
       logical,dimension(:,:),allocatable :: neighbor
+      integer,dimension(:),allocatable :: locregs_ID
       type(matrices),dimension(1) :: ovrlp_onehalf_
       logical :: perx, pery, perz, final, bound_low_ok, bound_up_ok
       !real(kind=8),parameter :: kT = 5.d-2
@@ -2785,9 +2821,28 @@ module multipole
       real(kind=8) :: alpha, alpha_up, alpha_low, convergence_criterion
       real(kind=8),dimension(:,:,:),allocatable :: multipoles_fake, penalty_matrices
       real(kind=8),dimension(:),allocatable :: alpha_calc
-      character(len=*),parameter :: mode='old'
+      !character(len=*),parameter :: mode='old'
 
       call f_routine(id='projector_for_charge_analysis')
+
+
+      select case (trim(mode))
+      case ('simple')
+          ! everything ok
+      case ('full')
+          ! check the optional arguments
+          if (.not.present(rpower_matrix)) then
+              call f_err_throw('rpower_matrix not present')
+          end if
+          if (.not.present(orbs)) then
+              call f_err_throw('orbs not present')
+          end if
+          if (.not.present(lzd)) then
+              call f_err_throw('lzd not present')
+          end if
+      case default
+          call f_err_throw('wrong value of mode')
+      end select
 
       if (bigdft_mpi%iproc==0) then
           call yaml_comment('Calculate projector for multipole analysis',hfill='~')
@@ -2808,7 +2863,7 @@ module multipole
       do iat=1,at%astruct%nat
           tt = tt + real(at%nelpsp(at%astruct%iatype(iat)),kind=8)
       end do
-      convergence_criterion = 1.d-6*abs(tt)
+      convergence_criterion = max(1.d-6*abs(tt),1.d-4)
 
       ! Check the arguments
       if (calculate_centers) then
@@ -2969,6 +3024,7 @@ module multipole
 
 
       charge_per_atom = f_malloc0(at%astruct%nat,id='charge_per_atom')
+      locregs_ID = f_malloc(smats%nfvctr,id='locregs_ID')
 
 
       ! Calculate how many states should be included
@@ -2993,6 +3049,9 @@ module multipole
 
       eF = -1.d0
 
+      ! Calculate the matrices <phi|r**x|phi>
+
+
       alpha_loop: do ialpha=1,10000
 
           if (bigdft_mpi%iproc==0) then
@@ -3007,7 +3066,8 @@ module multipole
               alpha = 0.5d0*(alpha_low+alpha_up)
           end if
 
-          if (ialpha==0) alpha = 2.d-1
+          !if (ialpha==0) alpha = 2.d-1
+          if (ialpha==0) alpha = 0.d-1
 
           charge_net = 0.d0
           call f_zero(eval_all)
@@ -3022,6 +3082,8 @@ module multipole
               do j=1,smats%nfvctr
                   if (neighbor(j,kat)) then
                       n = n + 1
+                      locregs_ID(n) = orbs%inwhichlocreg(j)
+                      !write(*,*) 'j, n, ID', j, n, locregs_ID(n)
                   end if
               end do
               n_all(kat) = n
@@ -3064,17 +3126,11 @@ module multipole
 
 
               ! Add the penalty term
-              if (mode=='verynew') then
+              if (mode=='full') then
                   ! @ NEW #####################################################################
-                  if (.not.present(rpower_matrix)) then
-                      call f_err_throw('rpower_matrix not present')
-                  end if
-                  if (.not.present(orbs)) then
-                      call f_err_throw('orbs not present')
-                  end if
-                  write(*,*) 'call extract_matrix with penaltymat'
-                  write(*,*) 'orbs%onwhichatom',orbs%onwhichatom
-                  write(*,*) 'rxyz(:,kkat)',rxyz(:,kkat)
+                  !write(*,*) 'call extract_matrix with penaltymat'
+                  !write(*,*) 'orbs%onwhichatom',orbs%onwhichatom
+                  !write(*,*) 'rxyz(:,kkat)',rxyz(:,kkat)
                   !write(*,*) 'HACK: SET ALPHA TO 0.5d0'
                   !alpha = 0.02d0
                   do i=1,24
@@ -3082,6 +3138,7 @@ module multipole
                   end do
                   !tt = sqrt(rxyz(1,kkat)**2+rxyz(2,kkat)**2+rxyz(3,kkat)**2)
                   tt = rxyz(1,kkat)**2 + rxyz(2,kkat)**2 + rxyz(3,kkat)**2
+                  tmpmat2d = f_malloc0((/n,n,2/),id='tmppmat2d')
                   do i=1,n
                       do j=1,n
                           !if (i==j .and. orbs%onwhichatom(i)/=kkat) then
@@ -3134,25 +3191,49 @@ module multipole
                                             + rxyz(2,kkat)**2*penaltymat(j,i,10) &
                                             - 2.d0*rxyz(2,kkat)**2*rxyz(3,kkat)*penaltymat(j,i,9) &
                                             + rxyz(2,kkat)**2*rxyz(3,kkat)**2*ovrlp(j,i) )
-                              if (kkat==1) then
-                                  ttt = alpha*ttt
-                              else
-                                  !if (i==1 .or. i==6) ttt=3.d0*ttt
-                                  ttt = 1.4641d0*alpha*ttt
-                                  !ttt = 5.0d0*alpha*ttt
-                              end if
+                              itype = at%astruct%iatype(kkat)
+                              !rloc = at%psppar(0,0,itype)
+                              ilr = locregs_ID(i)
+                              rloc = lzd%llr(ilr)%locrad
+                              !write(*,*) 'kkat, itype, at%psppar(0,0,itype), rloc', kkat, itype, at%psppar(0,0,itype), rloc
+                              !if (kkat==1) then
+                                  ttt = ttt*alpha/rloc**4
+                              !else
+                              !    !if (i==1 .or. i==6) ttt=3.d0*ttt
+                              !    ttt = 1.4641d0*alpha*ttt
+                              !    !ttt = 5.0d0*alpha*ttt
+                              !end if
                               !ttt = alpha*penaltymat(j,i,2) - alpha*2.d0*tt*penaltymat(j,i,1) + alpha*tt**2*ovrlp(j,i)
-                              ham(j,i) = ham(j,i) + ttt
-                              write(*,*) 'kkat, j, i, owa(j), owa(i), alpha, tt, pm1, pm2, pm3, pm4, ovrlp, ttt', &
-                                          kkat, j, i, orbs%onwhichatom(j), orbs%onwhichatom(i), &
-                                          alpha, tt, penaltymat(j,i,1), penaltymat(j,i,2), &
-                                          penaltymat(j,i,3), penaltymat(j,i,4), &
-                                          ovrlp(j,i), ttt
+                              !ham(j,i) = ham(j,i) + ttt
+                              tmpmat2d(j,i,1) = ttt
+                              !write(*,*) 'kkat, j, i, owa(j), owa(i), alpha, tt, pm1, pm2, pm3, pm4, ovrlp, ttt', &
+                              !            kkat, j, i, orbs%onwhichatom(j), orbs%onwhichatom(i), &
+                              !            alpha, tt, penaltymat(j,i,1), penaltymat(j,i,2), &
+                              !            penaltymat(j,i,3), penaltymat(j,i,4), &
+                              !            ovrlp(j,i), ttt
                           end if
                       end do
                   end do
+                  if (ortho=='no') then
+                      ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
+                      ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
+                      call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
+                      call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, smats)
+                      do i=1,n
+                          call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
+                      end do
+                      call f_free(ovrlp_tmp)
+
+                      ! Calculate S^1/2 * penalty * S^1/2
+                      call gemm('n', 'n', n, n, n, 1.d0, tmpmat2d(1,1,1), n, &
+                           ovrlp_onehalf_all(1,1,kat), nmax, 0.d0, tmpmat2d(1,1,2), n)
+                      call gemm('n', 'n', n, n, n, 1.d0, ovrlp_onehalf_all(1,1,kat), nmax, &
+                           tmpmat2d(1,1,2), n, 0.d0, tmpmat2d(1,1,1), n)
+                   end if
+                   call axpy(n**2, 1.d0, tmpmat2d(1,1,1), 1, ham(1,1), 1)
+                   call f_free(tmpmat2d)
                   ! @ END NEW #################################################################
-              elseif (mode=='old') then
+              elseif (mode=='simple') then
                   if (ortho=='yes') then
                       ! directly add the penalty terms to ham
                       call add_penalty_term(at%astruct%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
@@ -3266,9 +3347,10 @@ module multipole
               !ikT = ikT + 1
 
               !kT = 1.d-1*abs(eval_all(1))
-              if (mode=='verynew') then
-                  kT = max(1.d-1*abs(eval_all(5)),1.d-1)
-                  write(*,*) 'adjust kT to',kT
+              if (mode=='full') then
+                  kT = max(1.d-1*abs(eval_all(iq)),1.d-1)
+                  !kT = 1.d-2
+                  !write(*,*) 'adjust kT to',kT
               end if
     
               call f_zero(charge_per_atom)
@@ -3276,12 +3358,14 @@ module multipole
               ! Determine the "Fermi level" such that the iq-th state is still fully occupied even with a smearing
               if (ialpha>=0) then
                   ef = eval_all(1)
+                  tt = ef
                   do
-                      ef = ef + 1.d-3
+                      ef = ef + max(1.d-3,1.d-3*tt)
                       occ = 1.d0/(1.d0+safe_exp( (eval_all(iq)-ef)*(1.d0/kT) ) )
                       if (abs(occ-1.d0)<1.d-8) exit
                   end do
-                  !!write(*,*) 'HACK: INCREASE eF by 0.001d0'
+                  !write(*,*) 'HACK: SET EF TO 0.0'
+                  !ef = 0.0
                   !!eF = eF + 0.001d0
                   do ieval=1,ntot
                       occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
@@ -3384,8 +3468,35 @@ module multipole
               call yaml_map('alpha',alpha,fmt='(es12.4)')
               call yaml_map('net charge',charge_net,fmt='(es12.4)')
               call yaml_map('bisection bounds ok',(/bound_low_ok,bound_up_ok/))
+              call yaml_map('kT',kT,fmt='(es12.4)')
               call yaml_mapping_close()
           end if
+
+!!call yaml_sequence_open('ordered eigenvalues and occupations')
+!!ii = 0
+!!do i=1,ntot
+!!    !occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
+!!    occ = occ_all(i)
+!!    if (occ>1.d-100) then
+!!        call yaml_sequence(advance='no')
+!!        call yaml_mapping_open(flow=.true.)
+!!        call yaml_map('eval',eval_all(i),fmt='(es13.4)')
+!!        call yaml_map('atom',id_all(i),fmt='(i5.5)')
+!!        call yaml_map('occ',occ,fmt='(1pg13.5e3)')
+!!        call yaml_mapping_close(advance='no')
+!!        call yaml_comment(trim(yaml_toa(i,fmt='(i5.5)')))
+!!    else
+!!        ii = ii + 1
+!!    end if
+!!end do
+!!if (ii>0) then
+!!    call yaml_sequence(advance='no')
+!!    call yaml_mapping_open(flow=.true.)
+!!    call yaml_map('remaining states',ii)
+!!    call yaml_map('occ','<1.d-100')
+!!    call yaml_mapping_close()
+!!end if
+!!call yaml_sequence_close()
 
 
           if (abs(charge_net)<convergence_criterion .or. ialpha==10000) then
@@ -3463,6 +3574,7 @@ module multipole
           call yaml_comment('Projector calculation finished',hfill='~')
       end if
 
+
       !call f_free(tmpmat2)
       if (ortho=='yes') then
           call f_free(tmpmat1)
@@ -3486,6 +3598,7 @@ module multipole
           call write_partial_charges(at, charge_per_atom, write_gnuplot=.false.)
       end if
 
+      call f_free(locregs_ID)
       call f_free(charge_per_atom)
       call f_free(neighbor)
       call f_free(eval_all)

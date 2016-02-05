@@ -168,7 +168,7 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
                         rho,kernel%w%rho_GPU)
        call synchronize()
         end if
-    end if
+     end if
 
      if (kernel%keepGPUmemory == 0) then
         call cudafree(kernel%w%work1_GPU)

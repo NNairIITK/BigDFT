@@ -3284,6 +3284,7 @@ subroutine Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,
   use f_utils
   use dynamic_memory
   use PSbox, only: PS_gather
+  use f_enums
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -3338,10 +3339,8 @@ subroutine Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,
   open(unit=38,file='PB_PCG_accuracy.dat',status='unknown')
 
   if (iproc ==0) then
-   write(18,'(1x,a)')'iter_PB normrPB rhores2'
-   write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
-   call yaml_map('rpoints',rpoints)
-   call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
+     write(18,'(1x,a)')'iter_PB normrPB rhores2'
+     write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
   end if
 
   !switch=0.0d0
@@ -3349,32 +3348,38 @@ subroutine Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,
   switch=1.0d0
   !end if
 
-  if (iproc==0) then
-   write(*,'(a)')'--------------------------------------------------------------------------------------------'
-   write(*,'(a)')'Starting a Poisson-Bolzmann run'
-  end if
+  if (.not. (pkernel%method .hasattr. 'PB_NONE')) then
+     call H_potential('D',pkernel,b(1,1,pkernel%grid%istart+1,1),b(1,1,pkernel%grid%istart+1,1),&
+          ehartree,offset,.false.)
+  else
+     call yaml_map('rpoints',rpoints)
+     call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
+     if (iproc==0) then
+        write(*,'(a)')'--------------------------------------------------------------------------------------------'
+        write(*,'(a)')'Starting a Poisson-Bolzmann run'
+     end if
 
-  call f_zero(x)
-  call f_zero(r_PB)
-  call f_memcpy(src=b,dest=r)
+     call f_zero(x)
+     call f_zero(r_PB)
+     call f_memcpy(src=b,dest=r)
 
-  beta=1.d0
-  ratio=1.d0
+     beta=1.d0
+     ratio=1.d0
 
-  do i_PB=1,max_iter_PB ! Poisson-Boltzmann loop.
+     do i_PB=1,max_iter_PB ! Poisson-Boltzmann loop.
 
-   if (iproc==0) then
-    write(*,'(a)')'--------------------------------------------------------------------------------------------!'
-    write(*,*)'Starting Poisson-Boltzmann iteration ',i_PB
-   end if
+        if (iproc==0) then
+           write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+           write(*,*)'Starting Poisson-Boltzmann iteration ',i_PB
+        end if
 
 
-  if (iproc==0) then
-   write(*,'(a)')'--------------------------------------------------------------------------------------------'
-   write(*,'(a)')'Starting Preconditioned Conjugate Gradient'
-  end if
+        if (iproc==0) then
+           write(*,'(a)')'--------------------------------------------------------------------------------------------'
+           write(*,'(a)')'Starting Preconditioned Conjugate Gradient'
+        end if
 
-!-------------------------------------------------------------------------------------
+        !-------------------------------------------------------------------------------------
 !!$  if (i_PB.eq.1) then
 !!$   call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,r,density,acell,&
 !!$        eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,dlogeps,multp,offset,geocode,.false.,.false.,.false.)
@@ -3384,80 +3389,83 @@ subroutine Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,
 !!$  end if
 !!$  !call PolarizationIteration_Inputguess(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
 !!$  !     eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
+        !pkernel%minres=1.0d-13
+        !pkernel%opt%use_input_guess=.true.
+        call H_potential('D',pkernel,r(1,1,pkernel%grid%istart+1,1),r(1,1,pkernel%grid%istart+1,1),&
+             ehartree,offset,.false.)
+        call PS_gather(r,pkernel)
+        call f_memcpy(src=r,dest=x)
 
-  call H_potential('D',pkernel,r(1,1,pkernel%grid%istart+1,1),r(1,1,pkernel%grid%istart+1,1),&
-       ehartree,offset,.false.)
-  call PS_gather(r,pkernel)
-  call f_memcpy(src=r,dest=x)
+        !-------------------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------------
+        if (i_PB.eq.1) call f_memcpy(src=r,dest=x)
+        rhores2=0.d0
+        isp=1
+        do i3=1,n03
+           do i2=1,n02
+              do i1=1,n01
+                 zeta=x(i1,i2,i3,isp)
+                 !x(i1,i2,i3,isp)=zeta
+                 res=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
+                 ! for the Poisson-Boltzmann equation.
+                 rho=r_PB(i1,i2,i3,isp)
+                 res=res-rho
+                 res=eta*res
+                 rhores2=rhores2+res*res
+                 r_PB(i1,i2,i3,isp)=res+rho
+                 r(i1,i2,i3,isp) = b(i1,i2,i3,isp) + r_PB(i1,i2,i3,isp)
+              end do
+           end do
+        end do
 
-   if (i_PB.eq.1) call f_memcpy(src=r,dest=x)
-   rhores2=0.d0
-   isp=1
-   do i3=1,n03
-    do i2=1,n02
-     do i1=1,n01
-      zeta=x(i1,i2,i3,isp)
-      !x(i1,i2,i3,isp)=zeta
-      res=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
-                                                                      ! for the Poisson-Boltzmann equation.
-      rho=r_PB(i1,i2,i3,isp)
-      res=res-rho
-      res=eta*res
-      rhores2=rhores2+res*res
-      r_PB(i1,i2,i3,isp)=res+rho
-      r(i1,i2,i3,isp) = b(i1,i2,i3,isp) + r_PB(i1,i2,i3,isp)
+        normrPB=sqrt(rhores2/rpoints)
+
+        if (iproc==0) then
+           write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+           write(*,*)'End Poisson-Boltzmann iteration ',i_PB
+        end if
+
+        if (iproc ==0) then
+           call yaml_map('iter PB',i_PB)
+           call yaml_map('normrPB',normrPB)
+           call yaml_map('rhores2',rhores2)
+           write(18,'(1x,I8,3(1x,e14.7))')i_PB,normrPB,rhores2
+           call writeroutinePot(n01,n02,n03,nspden,x,i_PB,potential)
+        end if
+
+        if (normrPB.lt.tauPB) exit
+        if (normrPB.gt.max_ratioex_PB) exit
+
+     end do ! Poisson-Boltzmann loop
+
+     isp=1
+     do i3=1,n03
+        do i2=1,n02
+           do i1=1,n01
+              b(i1,i2,i3,isp) = x(i1,i2,i3,isp)
+           end do
+        end do
      end do
-    end do
-   end do
 
-  normrPB=sqrt(rhores2/rpoints)
+     call yaml_sequence_close()
+     !write(*,*)
+     !write(*,'(1x,a,1x,I8)')'PCG iterations =',i-1
+     !write(*,'(1x,a,1x,e14.7)')'PCG error =',ratio
+     !write(*,*)
+     !write(*,*)'Max abs difference between analytic potential and the computed one'
+     !  if (iproc==0) then
+     !   call writeroutinePot(n01,n02,n03,nspden,b,i-1,potential)
+     !   write(*,*)
+     !  end if
 
-   if (iproc==0) then
-    write(*,'(a)')'--------------------------------------------------------------------------------------------!'
-    write(*,*)'End Poisson-Boltzmann iteration ',i_PB
-   end if
-
-  if (iproc ==0) then
-   call yaml_map('iter PB',i_PB)
-   call yaml_map('normrPB',normrPB)
-   call yaml_map('rhores2',rhores2)
-   write(18,'(1x,I8,3(1x,e14.7))')i_PB,normrPB,rhores2
-   call writeroutinePot(n01,n02,n03,nspden,x,i_PB,potential)
   end if
-
-   if (normrPB.lt.tauPB) exit
-   if (normrPB.gt.max_ratioex_PB) exit
-
- end do ! Poisson-Boltzmann loop
-
-   isp=1
-   do i3=1,n03
-    do i2=1,n02
-     do i1=1,n01
-      b(i1,i2,i3,isp) = x(i1,i2,i3,isp)
-     end do
-    end do
-   end do
-
-  call yaml_sequence_close()
-   !write(*,*)
-   !write(*,'(1x,a,1x,I8)')'PCG iterations =',i-1
-   !write(*,'(1x,a,1x,e14.7)')'PCG error =',ratio
-   !write(*,*)
-   !write(*,*)'Max abs difference between analytic potential and the computed one'
-!  if (iproc==0) then
-!   call writeroutinePot(n01,n02,n03,nspden,b,i-1,potential)
-!   write(*,*)
-!  end if
 
   close(unit=18)
   close(unit=38)
 
   if (iproc==0) then
-   write(*,'(a)')'Termination of Preconditioned Conjugate Gradient'
-   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+     write(*,'(a)')'Termination of Preconditioned Conjugate Gradient'
+     write(*,'(a)')'--------------------------------------------------------------------------------------------'
   end if
 
   call f_free(x)
