@@ -7562,9 +7562,17 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
 
-  call ext_buffers(perx,nbl1,nbr1)
-  call ext_buffers(pery,nbl2,nbr2)
-  call ext_buffers(perz,nbl3,nbr3)
+!!$  call ext_buffers(perx,nbl1,nbr1)
+!!$  call ext_buffers(pery,nbl2,nbr2)
+!!$  call ext_buffers(perz,nbl3,nbr3)
+
+  nbl1=0
+  nbl2=0
+  nbl3=0
+  nbr1=0
+  nbr2=0
+  nbr3=0
+
 
 !------------------------------------------------------------------------------------------------------
 ! Depending of Free, Periodic or Surface bc, image atoms are or not included.
@@ -8691,20 +8699,20 @@ subroutine Eps_rigid_cavity_new2(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,e
 
 end subroutine Eps_rigid_cavity_new2
 
-! New value!! Modified nl=14 and nr=15 after else.
-subroutine ext_buffers(periodic,nl,nr)
-  implicit none
-  logical, intent(in) :: periodic
-  integer, intent(out) :: nl,nr
-
-  if (periodic) then
-     nl=0
-     nr=0
-  else
-     nl=0
-     nr=0
-  end if
-END SUBROUTINE ext_buffers
+!!$! New value!! Modified nl=14 and nr=15 after else.
+!!$subroutine ext_buffers(periodic,nl,nr)
+!!$  implicit none
+!!$  logical, intent(in) :: periodic
+!!$  integer, intent(out) :: nl,nr
+!!$
+!!$  if (periodic) then
+!!$     nl=0
+!!$     nr=0
+!!$  else
+!!$     nl=0
+!!$     nr=0
+!!$  end if
+!!$END SUBROUTINE ext_buffers
 
 !> calculates the value of the dielectric function for a smoothed cavity 
 !! given a set of centres and radii. Based on error function.
@@ -8769,9 +8777,16 @@ subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,natreal,rx
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
 
-  call ext_buffers(perx,nbl1,nbr1)
-  call ext_buffers(pery,nbl2,nbr2)
-  call ext_buffers(perz,nbl3,nbr3)
+!!$  call ext_buffers(perx,nbl1,nbr1)
+!!$  call ext_buffers(pery,nbl2,nbr2)
+!!$  call ext_buffers(perz,nbl3,nbr3)
+  nbl1=0
+  nbl2=0
+  nbl3=0
+  nbr1=0
+  nbr2=0
+  nbr3=0
+
 
 !------------------------------------------------------------------------------------------------------
 ! Depending of Free, Periodic or Surface bc, image atoms are or not included.

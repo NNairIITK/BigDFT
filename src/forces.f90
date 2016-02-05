@@ -7,6 +7,44 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+!> calculate the forces terms for PCM
+subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,np2epm1,fpcm)
+  use module_defs, only: dp,gp
+  use environment, only: cavity_data,rigid_cavity_forces
+  use box
+  use bounds, only: locreg_mesh_origin
+  implicit none
+  type(cell), intent(in) :: mesh
+  type(cavity_data), intent(in) :: cavity
+  integer, intent(in) :: n1,n2,n3p,nat,i3s
+  real(dp), dimension(nat), intent(in) :: radii
+  real(dp), dimension(3,nat), intent(in) :: rxyz
+  real(dp), dimension(n1,n2,n3p), intent(in) :: np2epm1 !<square of potential gradient times epsilon(r)-1
+  real(dp), dimension(3,nat), intent(inout) :: fpcm !<forces
+  !local variables
+  real(dp), parameter :: thr=1.e-10
+  integer :: i,i1,i2,i3
+  real(dp) :: tt
+  real(dp), dimension(3) :: v,origin
+
+  !mesh=cell_new(geocode,[n1,n2,n3],hgrids)
+
+  origin=locreg_mesh_origin(mesh) !this function in bigdft and not in PSolver
+  do i3=1,n3p
+     v(3)=cell_r(mesh,i3+i3s,dim=3)
+     do i2=1,n2
+        v(2)=cell_r(mesh,i2,dim=2)
+        do i1=1,n1
+           tt=np2epm1(i1,i2,i3)
+           if (abs(tt) < thr) cycle
+           v(1)=cell_r(mesh,i1,dim=1)
+           v=v-origin
+           call rigid_cavity_forces(cavity,mesh,v,nat,rxyz,radii,tt,fpcm)
+        end do
+     end do
+  end do
+
+end subroutine soft_PCM_forces
 
 !> Calculate atomic forces
 subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxyz,hx,hy,hz, &
