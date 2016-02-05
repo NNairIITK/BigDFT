@@ -367,7 +367,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   if (calc_nabla2pot) then
      !destroy oneoverepsilon array in the case of the forces for the rigid case
      if (tmplog) then
-        call nabla2pot_epsm1(n1,n23,kernel%w%epsilon,nabla2_pot(1,1,i3sd2),kernel%w%oneoeps)
+        call nabla2pot_epsm1(n1,n23,kernel%w%eps,nabla2_pot(1,1,i3sd2),kernel%w%oneoeps)
      end if
      call f_free(nabla2_rhopot)
   end if
