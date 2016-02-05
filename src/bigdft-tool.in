@@ -414,7 +414,6 @@ def input_info(h, n, screen, menu, parent):
     pos = 0
     oldpos = None
     x = None
-    lastoption = "Press Enter or 'Q' key to come back to %s menu" % parent['title']
     screenH,screenW = screen.getmaxyx()
     # Title for this menu
     screen.addstr(1, 2, 'Search a key', curses.A_STANDOUT)
@@ -426,6 +425,7 @@ def input_info(h, n, screen, menu, parent):
     # Loop until return key is pressed
     key = ''
     posmin = 1 + len('Please type a key:') + 1
+    blank = ' '*(screenW-posmin)
     pos = posmin
     while x != ord('\n'):
         pos = max(posmin,pos)
@@ -434,22 +434,22 @@ def input_info(h, n, screen, menu, parent):
         elif x >= ord('a') and x <= ord('z'):
             key += chr(x)
             pos += 1
-            screen.addstr(3,pos,chr(x), curses.A_NORMAL)
         elif x == curses.KEY_BACKSPACE:
             key = key[:-1]
-            screen.addstr(3,pos,' ', curses.A_NORMAL)
             pos -= 1
+        screen.addstr(3,posmin,key,curses.A_NORMAL)
         screen.refresh()
         x = screen.getch()  # Gets user input
+        #Remove the key and generate it (no pb with cursor)
+        screen.addstr(3,posmin,blank,curses.A_NORMAL)
     #We have a key
-    curses.endwin()
     searchfor = key
     allkeys = []
     for f in files:
         allkeys += params[f].keys()
     matching_keys = closest_keys(allkeys, searchfor)
-    print 'matching', searchfor, 'in:', matching_keys
-    print 'keys wich match the most with', searchfor
+    #print 'matching', searchfor, 'in:', matching_keys
+    #print "keys wich match the most with '%s'" % searchfor
     foundkeys = []
     doc = []
     for (i, ratio) in matching_keys:
@@ -462,9 +462,46 @@ def input_info(h, n, screen, menu, parent):
                 dc['Description'] = params[f][i]
                 doc.append(dc)
                 foundkeys.append(i)
-    sys.stdout.write(
-        yaml.dump(doc, default_flow_style=False, explicit_start=True))
-    sys.exit(0)
+    #sys.stdout.write(yaml.dump(doc, default_flow_style=False, explicit_start=True))
+    if len(doc) == 0:
+        text=''
+    else:
+        text=yaml.dump(doc, default_flow_style=False, explicit_start=True)
+    #curses.endwin()
+    #for chain in text.split('\n'):
+    #    print text
+    #sys.exit(0)
+    #Build the pad
+    padH = 3 + max(len(text.split('\n')),200)
+    dump_pad = curses.newpad(padH,screenW-2)
+    # Title for this menu
+    dump_pad.addstr(1, 2, "Keys wich match the most with '%s'" % searchfor, curses.A_STANDOUT)
+    # Display all the menu items, showing the 'pos' item highlighted
+    iy = 1
+    if text == '':
+        iy += 1
+        dump_pad.addstr(iy, 4, "No key found", curses.A_NORMAL)
+    else:   
+        for chain in text.split('\n'):
+            iy += 1
+            dump_pad.addstr(iy, 4, "%s" % chain, curses.A_NORMAL)
+    lastoption = "Press Enter or 'Q' key to come back to '%s menu'" % parent['title']
+    dump_pad.addstr(iy+1, 2, " %s" % lastoption, curses.A_STANDOUT)
+    #Display the information
+    screen.border(0)
+    screen.refresh()
+    # Loop until return key is pressed
+    pos = 0
+    x = None
+    while x != ord('\n') and x != ord('q') and x != ord('Q'):
+        dump_pad.refresh(pos,0,1,1,screenH-2,screenW-2)
+        x = screen.getch()  # Gets user input
+        if x == curses.KEY_DOWN:
+            pos += 1
+            pos = min(pos, iy - (screenH-4))
+        elif x == curses.KEY_UP:
+            pos -= 1
+            pos = max(pos,0)
     return 0
 
 
