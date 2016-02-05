@@ -6,7 +6,8 @@ SHORT_TESTDIRS= base \
 	verysparse \
 	periodic \
 	surface \
-	multipoles
+	multipoles \
+	H2Omultipoles
 
 LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	Locreg \

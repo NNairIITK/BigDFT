@@ -12,6 +12,7 @@ program globaltool
     use module_interfaces
     use yaml_output
     use bigdft_run
+    use SPREDtypes
     use module_globaltool
     implicit none
     type(gt_data) :: gdat
@@ -19,6 +20,8 @@ program globaltool
     call f_lib_initialize()
 
     call yaml_new_document()
+
+    call SPRED_read_uinp('globalinput',gdat%spredinputs)
 
     call read_globaltool_uinp(gdat)
     call write_globaltool_uinp(gdat)

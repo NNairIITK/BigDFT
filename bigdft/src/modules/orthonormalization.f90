@@ -11,8 +11,66 @@ module orthonormalization
   public :: gramschmidt_coeff_trans
   !!public :: orthonormalize_subset
   !!public :: gramschmidt_subset
+  public :: overlap_matrix
 
   contains
+
+    !> extract the overlap matrix from two compressed functions
+    !this is a quick wrapper to be used whan memory allocation of work arrays is not to be optimized
+    subroutine overlap_matrix(phi1,nphi,lzd,orbs,collcom,smat,matrix,phi2)
+      use module_base
+      use module_types, only: orbitals_data,local_zone_descriptors
+      use sparsematrix_base, only: sparse_matrix,matrices
+      use transposed_operations, only: calculate_overlap_transposed
+      use communications_base, only: TRANSPOSE_FULL,comms_linear
+      use communications, only: transpose_localized
+      implicit none
+      integer, intent(in) :: nphi
+      type(orbitals_data),intent(in) :: orbs
+      type(comms_linear),intent(in) :: collcom
+      type(local_zone_descriptors),intent(in) :: lzd
+      real(wp),dimension(nphi),intent(in) :: phi1
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(inout) :: matrix
+      
+      real(wp), dimension(nphi),intent(in), optional :: phi2
+      !local variables
+      logical :: binary
+      real(wp), dimension(:), pointer :: phi1t_c, phi1t_f, sphi2t_c, sphi2t_f
+
+      binary=present(phi2)
+
+      ! Calculate the scalar products, i.e. the matrix <phi_ab|S_lm|phi_ab>
+      phi1t_c = f_malloc_ptr(collcom%ndimind_c,id='phi1t_c')
+      phi1t_f = f_malloc_ptr(7*collcom%ndimind_f,id='phi1t_f')
+      call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, nphi, orbs, collcom, &
+           TRANSPOSE_FULL, phi1, phi1t_c, phi1t_f, lzd)
+
+      if (binary) then
+         sphi2t_c = f_malloc_ptr(collcom%ndimind_c,id='sphit2_c')
+         sphi2t_f = f_malloc_ptr(7*collcom%ndimind_f,id='sphit2_f')
+         call transpose_localized(bigdft_mpi%iproc,bigdft_mpi%nproc,&
+              nphi, orbs, collcom, &
+              TRANSPOSE_FULL, phi2, sphi2t_c, sphi2t_f, lzd)
+      else
+         sphi2t_c => phi1t_c
+         sphi2t_f => phi1t_f
+      end if
+      call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, orbs, collcom, &
+           phi1t_c, sphi2t_c, phi1t_f, sphi2t_f, smat, matrix)
+
+      call f_free_ptr(phi1t_c)
+      call f_free_ptr(phi1t_f)
+
+      if (binary) then
+         call f_free_ptr(sphi2t_c)
+         call f_free_ptr(sphi2t_f)
+      else
+         nullify(sphi2t_c)
+         nullify(sphi2t_f)
+      end if
+
+    end subroutine overlap_matrix
 
 
     !> Orthonormalized the localized orbitals
@@ -100,6 +158,7 @@ module orthonormalization
                orthpar%blocksize_pdgemm, &
                imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
                ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
+               verbosity=0, &
                check_accur=.true., mean_error=mean_error, max_error=max_error)!!, &
           !if (iproc==0) call yaml_map('max error',max_error)
           !if (iproc==0) call yaml_map('mean error',mean_error)
@@ -528,6 +587,7 @@ module orthonormalization
       real(kind=8),dimension(:),pointer :: matrix_local
       integer,parameter :: GLOBAL_MATRIX=101, SUBMATRIX=102
       integer,parameter :: data_strategy_main=SUBMATRIX!GLOBAL_MATRIX
+      integer,parameter :: verbosity = 0
       !type(work_transpose) :: wt_
     
       call f_routine(id='orthoconstraintNonorthogonal')
@@ -542,19 +602,20 @@ module orthonormalization
     
       if (calculate_inverse) then
           ! Invert the overlap matrix
-          if (iproc==0) call yaml_map('calculation of S^-1','direct calculation')
+          if (iproc==0 .and. verbosity>0) call yaml_map('calculation of S^-1','direct calculation')
           !!tmparr = sparsematrix_malloc(linmat%s,iaction=SPARSE_FULL,id='tmparr')
           !!call vcopy(linmat%s%nvctr*linmat%s%nspin, linmat%ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
           !!call extract_taskgroup_inplace(linmat%s, linmat%ovrlp_)
           call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, (/1/), -1, &
                imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
                ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=linmat%ovrlppowers_(3), &
+               verbosity=0, &
                check_accur=.true., max_error=max_error, mean_error=mean_error)
           !!call vcopy(linmat%s%nvctr*linmat%s%nspin, tmparr(1), 1, linmat%ovrlp_%matrix_compr(1), 1)
           !!call f_free(tmparr)
           call check_taylor_order(mean_error, max_inversion_error, norder_taylor)
       else
-          if (iproc==0) call yaml_map('calculation of S^-1','from memory')
+          if (iproc==0 .and. verbosity>0) call yaml_map('calculation of S^-1','from memory')
       end if
     
       ! Gather together the data (has been posted in getLocalizedBasis

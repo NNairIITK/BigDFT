@@ -846,6 +846,7 @@ src/geopt/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
 spred/Makefile
+spred/src/spred_baselib/Makefile
 spred/src/Makefile
 spred/src/art/Makefile
 spred/src/mhgps_files/Makefile

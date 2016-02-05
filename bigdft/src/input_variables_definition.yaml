@@ -1689,16 +1689,20 @@
                     Possible values are:
                     * 0 => no calculation
                     * 1 => new approach using Loewdin and orthogonalized support functions
-                    * 2 => new approach using projector and orthogonalized support functions
+                    * 2 => new approach using simple projector and orthogonalized support functions
+                    #* 3 => new approach using full projector and orthogonalized support functions
                     * 11 => same a 1, but with non-orthogonalized support functions
                     * 12 => same as 2, but with non-orthogonalized support functions
+                    #* 13 => same as 3, but with non-orthogonalized support functions
        default: 0
        EXCLUSIVE:
          0: no calculation
          1: new approach using Loewdin and orthogonalized support functions
-         2: new approach using projector and orthogonalized support functions
+         2: new approach using simple projector and orthogonalized support functions
+         #3: new approach using full projector and orthogonalized support functions
          11: same a 1, but with non-orthogonalized support functions
          12: same as 2, but with non-orthogonalized support functions
+         #13: same as 3, but with non-orthogonalized support functions
      support_function_multipoles:
        COMMENT: Calculate the multipole moments of the support functions
        default: False
