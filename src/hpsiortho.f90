@@ -1217,7 +1217,7 @@ subroutine NonLocalHamiltonianApplication_old(iproc,at,npsidim_orbs,orbs,&
                     end if
                     istart_c=1
 
-                    call nl_psp_application()
+                    call nl_psp_application_old()
 
                     !                print *,'iorb,iat,eproj',iorb+orbs%isorb,ispsi,iat,eproj_sum
                     ispsi=ispsi+&
@@ -1278,7 +1278,7 @@ subroutine NonLocalHamiltonianApplication_old(iproc,at,npsidim_orbs,orbs,&
                      end if
                  end do
                  mproj=nl%pspd(iat)%mproj
-                 call nl_psp_application()
+                 call nl_psp_application_old()
 
                  !print *,'iorb,iat,eproj',iorb+orbs%isorb,iat,eproj_sum
               end do loop_atoms_2
@@ -1354,7 +1354,7 @@ contains
 !!$  end function nproj
 
   !>code factorization useful for routine restructuring
-  subroutine nl_psp_application()
+  subroutine nl_psp_application_old()
     implicit none
     !local variables
     integer :: ncplx_p,ncplx_w,n_w,nvctr_p
@@ -1402,7 +1402,7 @@ contains
                nl%proj,psi(ispsi),hpsi(ispsi),eproj_sum)
        end if
     end if
-  end subroutine nl_psp_application
+  end subroutine nl_psp_application_old
 
 END SUBROUTINE NonLocalHamiltonianApplication_old
 
