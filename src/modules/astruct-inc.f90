@@ -16,6 +16,7 @@
       use dynamic_memory
       use numerics, only: Bohr_Ang
       use module_base, only: bigdft_mpi
+      use yaml_output, only: yaml_warning
       implicit none
       !Arguments
       integer, intent(in) :: ifile
