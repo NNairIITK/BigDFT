@@ -1164,7 +1164,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
         ref_frags_atomic_dfrag(iat)%nbasis_env=ref_frags_atomic_dfrag(iat)%nbasis_env+input%lin%norbsPerType(ityp)
      end do
 
-     do jat=1,iat-1
+     do jat=1,at%astruct%nat
         ! now we treat ref_frags_atomic and environment data therein as if it came from a file
         ! and find transformation between that and current atom
         ! in case where Wahba gives a huge error just do no transformation?****************** (actually maybe want to ignore Si atom i.e. those further away?)
@@ -1177,25 +1177,19 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
            ! if we are an identical fragment then do full matching 
            if (ifrag_ref(iat)==ifrag_ref(jat)) then
               call match_environment_atoms(jat-1,at,rxyz,tmb%orbs,ref_frags_atomic(iat),&
-                   ref_frags_atomic(iat)%nbasis_env,map_frag_and_env,frag_trans(iat,jat),Werror,.false.)
+                   ref_frags_atomic(iat)%nbasis_env,map_frag_and_env,frag_trans(jat,iat),Werror,.false.)
            ! otherwise just look at nearest neighbours, i.e. n closest, not n closest of each type
            else
               call match_environment_atoms(jat-1,at,rxyz,tmb%orbs,ref_frags_atomic_dfrag(iat),&
-                   ref_frags_atomic_dfrag(iat)%nbasis_env,map_frag_and_env,frag_trans(iat,jat),Werror,.true.)
+                   ref_frags_atomic_dfrag(iat)%nbasis_env,map_frag_and_env,frag_trans(jat,iat),Werror,.true.)
            end if
 
            call f_free(map_frag_and_env)
 
-           reformat_error(iat,jat)=Werror
            reformat_error(jat,iat)=Werror
-           frag_trans(jat,iat)%theta=frag_trans(iat,jat)%theta
-           frag_trans(jat,iat)%rot_axis=frag_trans(iat,jat)%rot_axis
-           frag_trans(jat,iat)%rot_center=frag_trans(iat,jat)%rot_center
-           frag_trans(jat,iat)%rot_center_new=frag_trans(iat,jat)%rot_center_new
 
            !if (Werror > W_tol) call f_increment(itoo_big)
         end if
-
 
      end do
 
@@ -2640,7 +2634,7 @@ END SUBROUTINE readmywaves_linear_new
       integer, allocatable, dimension(:) :: ipiv, array_tmp, num_neighbours_type
       integer, dimension(:,:), allocatable :: permutations
 
-      real(kind=gp) :: minerror, mintheta
+      real(kind=gp) :: minerror, mintheta, err_tol, rot_tol
       real(kind=gp), allocatable, dimension(:) :: dist
       real(kind=gp), dimension(:,:), allocatable :: rxyz_new_all, rxyz_frg_new, rxyz_new_trial, rxyz_ref, rxyz_new
 
@@ -2844,10 +2838,21 @@ END SUBROUTINE readmywaves_linear_new
          !        ifrag,ifrag_ref,iat,rxyz_new_trial(:,iat),rxyz_ref(:,iat)
          !end do
          !write(*,'(A,I3,2x,3(I3,1x),1x,F12.6)') 'i,perms,error: ',i,permutations(:,i),Werror
-         !prioritize no rotation
+         !prioritize no rotation, and if not possible 180 degrees
          !could improve logic/efficiency here, i.e. stop checking once below some threshold
-         if ((Werror < minerror .and. (mintheta/=0 .or. minerror-Werror>1e-6)) &
-              .or. (Werror-minerror<1e-6.and.frag_trans%theta==0.0d0)) then
+         !if ((Werror < minerror .and. (mintheta/=0 .or. minerror-Werror>1e-6)) &
+         !     .or. (Werror-minerror<1e-6.and.frag_trans%theta==0.0d0) then
+
+         err_tol = 1e-3 !1e-6
+         rot_tol = 1e-3 !1e-6
+         ! less than minerror by more than some tol
+         ! or ~same error and zero rotation (wrt tol)
+         ! or ~same error, 180 rotation (wrt tol) and not already zero rotation
+         if ( (Werror < minerror - err_tol) &
+              .or. (abs(Werror - minerror) < err_tol .and. abs(frag_trans%theta - 0.0d0) < rot_tol) &
+              .or. (abs(Werror - minerror) < err_tol .and. mintheta /= 0.0d0 &
+                   .and. abs(frag_trans%theta - 4.0_gp*atan(1.d0)) < rot_tol) ) then
+
             mintheta = frag_trans%theta
             minerror = Werror
             minperm = i
@@ -3665,7 +3670,7 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   implicit none
 
   logical, intent(out) :: reformat_needed ! logical telling whether reformat is needed
-  integer, dimension(0:6), intent(inout) :: reformat_reason ! array giving reasons for reformatting
+  integer, dimension(0:7), intent(inout) :: reformat_reason ! array giving reasons for reformatting
   real(gp), intent(in) :: tol ! tolerance for rotations and shifts
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3), intent(in) :: hgrids, hgrids_old
