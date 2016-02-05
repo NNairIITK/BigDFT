@@ -67,7 +67,7 @@ module environment
 
   public :: cavity_init,eps,epsprime,epssecond,oneoeps,oneosqrteps,logepsprime,corr_term
   public :: cavity_default,surf_term,epsle0,epsl,d1eps,dlepsdrho_sccs,add_Vextra,PB_iteration
-  public :: rigid_cavity_arrays,rigid_cavity_forces
+  public :: rigid_cavity_arrays,rigid_cavity_forces,nabla2pot_epsm1
 
 contains
 
@@ -414,7 +414,7 @@ contains
        dlogh=d1eps(d,rad,cavity%delta)
        if (abs(dlogh) < thr) cycle
        dlogh=dlogh/epsl(d,rad,cavity%delta)
-       tt=tt*dlogh/d*hh !shouldnt we have to put also epsilon0?
+       tt=tt*dlogh/d*hh
        !here the forces can be calculated
        fxyz(:,iat)=fxyz(:,iat)+tt*closest_r(mesh,v,center=rxyz(:,iat))
     end do
@@ -551,7 +551,24 @@ contains
     end if
   end subroutine add_Vextra
 
-  !> Calcultion of the Poisson-Boltzmann function.
+  subroutine nabla2pot_epsm1(n1,n23,eps,nabla2_pot,np2em1)
+    implicit none
+    integer, intent(in) :: n1,n23
+    real(dp), dimension(n1*n23), intent(in) :: eps,nabla2_pot
+    real(dp), dimension(n1*n23), intent(out) :: np2em1
+    !local variables
+    integer :: i123
+
+    
+    !$omp parallel do default(shared) private(i123)
+    do i123=1,n1*n23
+       np2em1(i23)=(eps(i23)-vacuum_eps)*nabla2_pot(i23)
+    end do
+    !$omp end parallel do
+
+  end subroutine nabla2pot_epsm1
+
+  !> Calculation of the Poisson-Boltzmann function.
   !! following the definitions given in J. J. López-García, J. Horno, C. Grosse Langmuir 27, 13970-13974 (2011).
   pure function PB_charge(epsilon,cavity,pot) result(ions_conc)
 

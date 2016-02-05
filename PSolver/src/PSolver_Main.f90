@@ -274,7 +274,6 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
 !!$  call pol_charge(kernel,pot_full,rho,kernel%w%pot)
 !!$  !--------------------------------------
 
-
    call PS_release_lowlevel_workarrays(kernel)
 
   !the external ionic potential is referenced if present
@@ -367,7 +366,9 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
 
   if (calc_nabla2pot) then
      !destroy oneoverepsilon array in the case of the forces for the rigid case
-     if (tmplog) call f_memcpy(n=n1*n23,src=nabla2_rhopot(1,1,i3sd2),dest=kernel%w%oneoeps(1,1))
+     if (tmplog) then
+        call nabla2pot_epsm1(n1,n23,kernel%w%epsilon,nabla2_pot(1,1,i3sd2),kernel%w%oneoeps)
+     end if
      call f_free(nabla2_rhopot)
   end if
 

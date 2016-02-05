@@ -15,6 +15,7 @@
       use dictionaries, only: f_err_raise, f_err_throw
       use dynamic_memory
       use numerics, only: Bohr_Ang
+      use module_base, only: bigdft_mpi
       implicit none
       !Arguments
       integer, intent(in) :: ifile
@@ -69,6 +70,8 @@
             if (ierrsfx /= 0) then
                read(line,*, iostat = ierrsfx) iat
                write(astruct%units, "(A)") "bohr"
+               if (bigdft_mpi%iproc==0) call yaml_warning('No units specified in the xyz input file.'//&
+                    ' Atomic Units are assumed implicitly. If convergence problems arise check this.')
             end if
          end if
       else
