@@ -11,6 +11,7 @@
 !> Modules which defines wrappers for the linear alegra.
 module wrapper_linalg
   use time_profiling, only: TIMING_UNINITIALIZED
+  use f_precisions
   implicit none
 
 
@@ -857,5 +858,17 @@ contains
     !call to BLAS routine
     call ZHERK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
   end subroutine herk_double
+
+  !> Determinant of a 3x3 matrix
+  pure function det_3x3(a) result(det)
+    implicit none
+    real(f_double), dimension(3,3), intent(in) :: a
+    real(f_double) :: det
+
+    det = a(1,1)*(a(2,2)*a(3,3) - a(3,2)*a(2,3)) &
+         + a(1,2)*(a(3,1)*a(2,3) - a(2,1)*a(3,3))  &
+         + a(1,3)*(a(2,1)*a(3,2) - a(3,1)*a(2,2))
+  end function det_3x3
+
 
 end module wrapper_linalg

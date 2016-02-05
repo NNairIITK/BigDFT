@@ -46,6 +46,9 @@ module environment
   type(f_enumerator), parameter, public :: PS_PI_ENUM=f_enumerator('PI',PS_PI,null())
   type(f_enumerator), parameter, public :: PS_PCG_ENUM=f_enumerator('PCG',PS_PCG,null())
 
+  !>threshold for comparison with zero
+  real(dp), parameter :: thr=1.d-12
+
   !conversion factors in AU
 
   !> dyn/cm into atomic units (5.291772109217d-9/8.238722514d-3)
@@ -64,6 +67,7 @@ module environment
 
   public :: cavity_init,eps,epsprime,epssecond,oneoeps,oneosqrteps,logepsprime,corr_term
   public :: cavity_default,surf_term,epsle0,epsl,d1eps,dlepsdrho_sccs,add_Vextra,PB_iteration
+  public :: rigid_cavity_arrays,rigid_cavity_forces
 
 contains
 
@@ -115,7 +119,7 @@ contains
   pure function epsilon_transition(rho,pow,der,cavity) result(eps)
     implicit none
     character(len=*), intent(in) :: pow !<power to epsilon
-    integer, intent(in) :: der !< derivative of epsolin
+    integer, intent(in) :: der !< derivative of epsilon
     real(dp), intent(in) :: rho
     type(cavity_data), intent(in) :: cavity
     real(gp) :: eps
@@ -339,6 +343,84 @@ contains
 
   end function surf_term
 
+  !rigid cavity terms
+  subroutine rigid_cavity_arrays(cavity,mesh,v,nat,rxyz,radii,eps,dleps,corr)
+    use box
+    implicit none
+    type(cavity_data), intent(in) :: cavity
+    type(cell), intent(in) :: mesh
+    integer, intent(in) :: nat !< number of centres defining the cavity
+    real(gp), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+    !>array of the position in the reference frame of rxyz
+    real(gp), dimension(3), intent(in) :: v
+    !> position of all the atoms in the grid coordinates
+    real(gp), dimension(3,nat), intent(in) :: rxyz
+    real(gp), intent(out) :: eps,corr
+    real(gp), dimension(3), intent(out) :: dleps
+    !local variables
+    integer :: iat
+    real(gp) :: ep,dcorrha,rad,eh,d1e,dlogh,d2e,d,d2ha
+    real(gp), dimension(3) :: dha
+
+    ep=1.0_dp
+    dha=0.0_dp
+    dcorrha=0.0_dp
+    loop_at: do iat=1,nat
+       rad=radii(iat)
+       d=minimum_distance(mesh,v,rxyz(1,iat))
+       eh=epsl(d,rad,cavity%delta)
+       ep=ep*eh
+       d1e=d1eps(d,rad,cavity%delta)
+       if (ep < thr) then
+          ep=0.0_dp
+          exit loop_at
+       end if
+       if (abs(dlogh) < thr) then
+          dlogh=0.0_gp
+       else
+          dlogh=d1e/epsl(d,rad,cavity%delta)
+          d2e=d2eps(d,rad,cavity%delta)
+          dcorrha=dcorrha+(d2e-d1e**2)/eh**2+2.0_gp*d1e/eh/d
+          dha=dha+dlogh*closest_r(mesh,v,center=rxyz(:,iat))/d
+       end if
+    end do loop_at
+    ep=(cavity%epsilon0-vacuum_eps)*ep+vacuum_eps
+    dleps=(ep-vacuum_eps)/ep*dha
+    d2ha=square(mesh,dha)
+    corr=0.5_gp*(ep-vacuum_eps)/ep*(0.5_gp*d2ha*(1+ep)/ep+dcorrha)
+  end subroutine rigid_cavity_arrays
+
+  subroutine rigid_cavity_forces(cavity,mesh,v,nat,rxyz,radii,npot2epsm1,fxyz)
+    use box
+    implicit none
+    type(cavity_data), intent(in) :: cavity
+    type(cell), intent(in) :: mesh
+    integer, intent(in) :: nat !< number of centres defining the cavity
+    real(gp), intent(in) :: npot2epsm1
+    real(gp), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+    !>array of the position in the reference frame of rxyz
+    real(gp), dimension(3), intent(in) :: v
+    !> position of all the atoms in the grid coordinates
+    real(gp), dimension(3,nat), intent(in) :: rxyz
+    real(gp), dimension(3,nat), intent(inout) :: fxyz !<forces array
+    !local variables
+    integer :: iat,i
+    real(gp) :: d,dlogh,rad,tt,hh
+
+    hh=mesh%volume_element
+    do iat=1,nat
+       d=minimum_distance(mesh,v,rxyz(1,iat))
+       rad=radii(iat)
+       dlogh=d1eps(d,rad,cavity%delta)
+       if (abs(dlogh) < thr) cycle
+       dlogh=dlogh/epsl(d,rad,cavity%delta)
+       tt=tt*dlogh/d*hh !shouldnt we have to put also epsilon0?
+       !here the forces can be calculated
+       fxyz(:,iat)=fxyz(:,iat)+tt*closest_r(mesh,v,center=rxyz(:,iat))
+    end do
+  end subroutine rigid_cavity_forces
+
+
   pure function depsoeps(r,rc,delta,epsilon0)
     implicit none
     real(kind=8), intent(in) :: r,rc,delta,epsilon0
@@ -359,8 +441,20 @@ contains
     real(kind=8) :: d
 
     d=(r-rc)/delta
-    d1eps=(1.d0/(delta*sqrt(pi)))*max(safe_exp(-d**2),1.0d-24)
+    d1eps=(1.d0/(delta*sqrt(pi)))*safe_exp(-d**2)
   end function d1eps
+
+  function d2eps(r,rc,delta)
+    implicit none
+    real(kind=8), intent(in) :: r,rc,delta
+    real(kind=8) :: d2eps
+    !local variables
+    real(kind=8) :: d
+
+    d=(r-rc)/delta
+    d2eps=-0.5_gp*d/delta*d1eps(r,rc,delta)
+    
+  end function d2eps
 
   pure function epsl(r,rc,delta)
     implicit none

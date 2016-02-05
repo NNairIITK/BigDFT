@@ -150,7 +150,7 @@
       modified: Bikermann-type modified expression
   pb_minres:
     COMMENT: Convergence criterion of the PBe loop
-    RANGE: [0.0 .inf ]
+    RANGE: [0.0, .inf ]
     default: 1.e-10
     CONDITION:
       MASTER_KEY: pb_method
