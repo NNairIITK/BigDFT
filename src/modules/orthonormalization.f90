@@ -158,6 +158,7 @@ module orthonormalization
                orthpar%blocksize_pdgemm, &
                imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
                ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
+               verbosity=0, &
                check_accur=.true., mean_error=mean_error, max_error=max_error)!!, &
           !if (iproc==0) call yaml_map('max error',max_error)
           !if (iproc==0) call yaml_map('mean error',mean_error)
@@ -586,6 +587,7 @@ module orthonormalization
       real(kind=8),dimension(:),pointer :: matrix_local
       integer,parameter :: GLOBAL_MATRIX=101, SUBMATRIX=102
       integer,parameter :: data_strategy_main=SUBMATRIX!GLOBAL_MATRIX
+      integer,parameter :: verbosity = 0
       !type(work_transpose) :: wt_
     
       call f_routine(id='orthoconstraintNonorthogonal')
@@ -600,19 +602,20 @@ module orthonormalization
     
       if (calculate_inverse) then
           ! Invert the overlap matrix
-          if (iproc==0) call yaml_map('calculation of S^-1','direct calculation')
+          if (iproc==0 .and. verbosity>0) call yaml_map('calculation of S^-1','direct calculation')
           !!tmparr = sparsematrix_malloc(linmat%s,iaction=SPARSE_FULL,id='tmparr')
           !!call vcopy(linmat%s%nvctr*linmat%s%nspin, linmat%ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
           !!call extract_taskgroup_inplace(linmat%s, linmat%ovrlp_)
           call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, (/1/), -1, &
                imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
                ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=linmat%ovrlppowers_(3), &
+               verbosity=0, &
                check_accur=.true., max_error=max_error, mean_error=mean_error)
           !!call vcopy(linmat%s%nvctr*linmat%s%nspin, tmparr(1), 1, linmat%ovrlp_%matrix_compr(1), 1)
           !!call f_free(tmparr)
           call check_taylor_order(mean_error, max_inversion_error, norder_taylor)
       else
-          if (iproc==0) call yaml_map('calculation of S^-1','from memory')
+          if (iproc==0 .and. verbosity>0) call yaml_map('calculation of S^-1','from memory')
       end if
     
       ! Gather together the data (has been posted in getLocalizedBasis
