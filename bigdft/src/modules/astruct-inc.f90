@@ -17,6 +17,7 @@
       use numerics, only: Bohr_Ang
       use module_base, only: bigdft_mpi
       use yaml_strings, only: yaml_toa
+      use yaml_output, only: yaml_warning
       implicit none
       !Arguments
       integer, intent(in) :: ifile
