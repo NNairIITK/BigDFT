@@ -19,7 +19,7 @@ libspredbasef_SOURCES = $(libspredbasef_objects)
 
 
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@\
-             @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+             @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
 
 EXTRA_DIST = 
 

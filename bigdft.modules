@@ -24,7 +24,9 @@
 
   <autotools id="libxc" check-target="false" autogen-sh="autoreconf">
     <!--<branch repo="libxc" checkoutdir="libxc-2.0.x"/>-->
-    <branch repo="local" module="libxc-2.0.x.tar.gz" version="2.0.x" checkoutdir="libxc"/>
+    <branch repo="local" module="libxc-2.0.x.tar.gz" version="2.0.x" checkoutdir="libxc">
+      <patch file="libxc-2.0.x.patch" />
+    </branch>
   </autotools>
 
   <autotools id="libyaml" autogen-sh="autoreconf">
@@ -147,7 +149,6 @@
       <dep package="cmake-dev"/>
     </dependencies> -->
   </makesys>
-
 
   <metamodule id="bigdft-suite">
     <dependencies>

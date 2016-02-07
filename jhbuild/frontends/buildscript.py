@@ -140,7 +140,7 @@ class BuildScript:
             # The force_phase variable flags that condition.
             force_phase = False
 
-            print build_phases
+            print module.name,':',build_phases
             while num_phase < len(build_phases):
                 last_phase, phase = phase, build_phases[num_phase]
                 try:

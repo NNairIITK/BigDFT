@@ -10,22 +10,26 @@ LIST=' list '
 BUILD=' build '
 TINDERBOX=' tinderbox -o build '
 DOT=' dot | dot -Tpng > buildprocedure.png '
+DIST=' distone bigdft-suite '
 
 CHECKMODULES= ['flib','bigdft']
+MAKEMODULES= ['flib','libABINIT','bigdft']
 
 #allowed actions and corresponfing description
 ACTIONS={'build':
-         'compiles the code with the given configuration',
+         'Compiles and install the code with the given configuration',
+         'make':
+         'Recompiles the bigdft internal branches, skip configuring step',
          'clean':
-         'clean the branches for a fresh reinstall',
+         'Clean the branches for a fresh reinstall',
          'autogen':
-         'perform the autogen in the modules which need that. For developers only',
+         'Perform the autogen in the modules which need that. For developers only',
          'dist':
-         'creates a tarfile for the bigdft-suite tailored to reproduce the compilation options specified',
+         'Creates a tarfile for the bigdft-suite tailored to reproduce the compilation options specified',
          'check':
-         'perform check in the bigdft branches, skip external libraries',
+         'Perform check in the bigdft branches, skip external libraries',
          'dry_run':
-         'visualize the list of modules that will be compiled with the provided configuration in the buildprocedure.png file'}
+         'Visualize the list of modules that will be compiled with the provided configuration in the buildprocedure.png file'}
 
 
 class BigDFTInstaller():
@@ -35,14 +39,22 @@ class BigDFTInstaller():
         self.verbose=verbose
         #look where we are
         self.srcdir = os.path.dirname(__file__)
+        #look the builddir
+        self.builddir=os.getcwd()
+        if os.path.abspath(self.srcdir) == os.path.abspath(self.builddir):
+            print 50*'-'
+            print "ERROR: BigDFT Installer works better with a build directory different from the source directory, install from another directory"
+            print "SOLUTION: Create a separate directory and invoke this script from it"
+            print 50*'-'
+            exit(1)
         #hostname
         hostname=os.uname()[1]
         #determine the rcfile
         if rcfile is not None:
             self.rcfile=rcfile
         else:
-            rcfile='jhbuildrc'
-            if not os.path.exists(rcfile): self.rcfile=''
+            self.rcfile='jhbuildrc'
+            if not os.path.exists(self.rcfile): self.rcfile=''
             #check for environment variable or for configuration file
             if self.rcfile == '' and (BIGDFT_CFG not in os.environ.keys()):
                 #here we might explore the list of present rc files and prompt for their usage
@@ -66,7 +78,24 @@ class BigDFTInstaller():
         if self.verbose:
             for m in msg:
                 print m
+                
+    def selected(self,l):
+        return [val for val in l if val in self.modulelist]
 
+    def shellaction(self,path,modules,action):
+        import os
+        for mod in self.selected(modules):
+            directory=os.path.join(path,mod)
+            here = os.getcwd()
+            if os.path.isdir(directory):
+                self.__dump('Treating directory '+directory)
+                os.chdir(directory)
+                os.system(action)
+                os.chdir(here)
+                self.__dump('done.')
+            else:
+                print 'Cannot perform action "',action,'" on module "',mod,'" directory not present in the build'
+    
     def get_output(self,cmd):
         import subprocess
         self.__dump('executing:',cmd)
@@ -76,7 +105,7 @@ class BigDFTInstaller():
         return out.rstrip('\n')
 
     def removefile(self,pattern,dirname,names):
-        import fnmatch
+        import os,fnmatch
         "Return the files given by the pattern"
         for name in names:
             if fnmatch.fnmatch(name,pattern):
@@ -84,52 +113,35 @@ class BigDFTInstaller():
                 os.remove(os.path.join(dirname,name))
 
     def autogen(self):
-        import os
-        for mod in self.modulelist:
-            directory=os.path.join(self.srcdir,mod)
-            here = os.getcwd()
-            if os.path.isdir(directory):
-                self.__dump('Treating directory '+directory)
-                os.chdir(directory)
-                self.get_output('autoreconf -fi')
-                os.chdir(here)
-                self.__dump('done.')
+        self.shellaction(self.srcdir,self.modulelist,'autoreconf -fi')
 
     def check(self):
-        import os
-        for module in [mod for mod in CHECKMODULES if mod in self.modulelist]:
-            here = os.getcwd()
-            directory=os.path.join(here,module)
-            if os.path.isdir(directory):
-                self.__dump('Treating directory '+directory)
-                os.chdir(directory)
-                os.system('make check')
-                os.chdir(here)
-                self.__dump('done.')
-            else:
-                print 'Cannot check module "',module,'", directory not present in the build'
+        self.shellaction('.',CHECKMODULES,'make check')
 
+    def make(self):
+        self.shellaction('.',MAKEMODULES,'make -j6 && make install')
+        
     def dist(self):
-        print 'dist to be defined'
-                        
+        self.shellaction('.',self.modulelist,'make dist')
+        self.get_output(self.jhb+DIST)
+                                
     def build(self):
         "Build the bigdft module with the options provided by the rcfile"
-        #also the force-checkout might be interesting
         import os
         if (self.verbose): 
             os.system(self.jhb+BUILD)
         else:
             os.system(self.jhb+TINDERBOX)
-                
+
     def clean(self):#clean files
-        print 'clean'
-        for mod in self.modulelist:
+        import os
+        for mod in self.selected(MAKEMODULES):
             self.get_output(self.jhb+UNINSTALL+mod)
             self.get_output(self.jhb+CLEANONE+mod)
-        self.get_output(self.jhb+CLEAN)
-        #here we should eliminate residual .mod files
-        os.path.walk(".",self.removefile,"*.mod")
-        os.path.walk(".",self.removefile,"*.MOD")
+            #here we should eliminate residual .mod files
+            os.path.walk(mod,self.removefile,"*.mod")
+            os.path.walk(mod,self.removefile,"*.MOD")
+        #self.get_output(self.jhb+CLEAN)
 
     def dry_run(self):
         self.get_output(self.jhb+DOT)
