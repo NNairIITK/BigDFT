@@ -884,8 +884,10 @@ module multipole
       real(dp),intent(in) :: rnrm3
       real(dp),dimension(3),intent(in) :: r
       real(dp) :: dpm
+      real(kind=8),parameter :: factor = sqrt(4.d0*pi/3.d0)
 
-      dpm = q(1)*r(1) + q(2)*r(2) + q(3)*r(3)
+      !dpm = q(1)*r(1) + q(2)*r(2) + q(3)*r(3)
+      dpm = factor*(q(3)*r(1) + q(1)*r(2) + q(2)*r(3))
       dpm = -dpm/rnrm3
 
     end function calc_dipole
@@ -900,26 +902,46 @@ module multipole
       real(dp) :: qpm
       ! Local variables
       real(dp),dimension(3,3) :: qq
+      real(kind=8),parameter :: factor=sqrt(4.d0*pi/15.d0)
+      real(kind=8),parameter :: sqrt3=sqrt(3.d0)
+      real(kind=8),dimension(3) :: Qr
 
-      qq(1,1) = q(1)
-      qq(2,1) = q(2)
-      qq(3,1) = q(3)
+      !!qq(1,1) = q(1)
+      !!qq(2,1) = q(2)
+      !!qq(3,1) = q(3)
+      !!qq(1,2) = qq(2,1)
+      !!qq(2,2) = q(4)
+      !!qq(3,2) = q(5)
+      !!qq(1,3) = qq(3,1)
+      !!qq(2,3) = qq(3,2)
+      !!qq(3,3) = 1.0_dp-qq(1,1)-qq(2,2)
+
+      qq(1,1) = factor*(-sqrt3*q(3)+q(5))
+      qq(2,1) = factor*q(1)
+      qq(3,1) = factor*q(4)
       qq(1,2) = qq(2,1)
-      qq(2,2) = q(4)
-      qq(3,2) = q(5)
+      qq(2,2) = factor*(-sqrt3*q(3)-q(5))
+      qq(3,2) = factor*q(2)
       qq(1,3) = qq(3,1)
       qq(2,3) = qq(3,2)
-      qq(3,3) = 1.0_dp-qq(1,1)-qq(2,2)
+      qq(3,3) = factor*2.d0*sqrt3*q(3)
 
-      qpm = qq(1,1)*r(1)*r(1) + &
-           qq(2,1)*r(2)*r(1) + &
-           qq(3,1)*r(3)*r(1) + &
-           qq(1,2)*r(1)*r(2) + &
-           qq(2,2)*r(2)*r(2) + &
-           qq(3,2)*r(3)*r(2) + &
-           qq(1,3)*r(1)*r(3) + &
-           qq(2,3)*r(2)*r(3) + &
-           qq(3,3)*r(3)*r(3)
+      !qpm = qq(1,1)*r(1)*r(1) + &
+      !      qq(2,1)*r(2)*r(1) + &
+      !      qq(3,1)*r(3)*r(1) + &
+      !      qq(1,2)*r(1)*r(2) + &
+      !      qq(2,2)*r(2)*r(2) + &
+      !      qq(3,2)*r(3)*r(2) + &
+      !      qq(1,3)*r(1)*r(3) + &
+      !      qq(2,3)*r(2)*r(3) + &
+      !      qq(3,3)*r(3)*r(3)
+
+      ! Calculate r^T*Q*r
+      Qr(1) = qq(1,1)*r(1) + qq(2,1)*r(2) + qq(3,1)*r(3)
+      Qr(2) = qq(1,2)*r(1) + qq(2,2)*r(2) + qq(3,2)*r(3)
+      Qr(3) = qq(1,3)*r(1) + qq(2,3)*r(2) + qq(3,3)*r(3)
+      qpm = r(1)*Qr(1) + r(2)*Qr(2) + r(3)*Qr(3)
+
       qpm = -0.5_dp*qpm/rnrm5
 
     end function calc_quadropole
