@@ -9,6 +9,7 @@ bin_SCRIPTS         = $(scripts_sources)
 lib_LIBRARIES       = $(lib_spred)
 module_DATA         = $(mod_spred)
 dynlib_DATA         = $(spred_dynamic_library)
+include_HEADERS = bigdft_spred.h
 
 # Sub-directories.
 # ---------------

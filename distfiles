@@ -2,8 +2,6 @@ jhbuild/
 jhbuild.py
 bigdft.modules
 gnome.modules
-jhbuildrc
-turing.rc
-curie.rc
+rcfiles/
 distfiles
 Installer.py
