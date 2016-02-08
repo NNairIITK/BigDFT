@@ -86,7 +86,7 @@ class BigDFTInstaller():
         self.rcfile=os.path.join(rcdir,self.rcfile)
         if os.path.exists(self.rcfile): return
         #see if the environment variables BIGDFT_CFG is present
-        self.rcfile == ''
+        self.rcfile = ''
         if BIGDFT_CFG in os.environ.keys(): return
         #otherwise search for rcfiles similar to hostname and propose a choice
         rcs=[]
@@ -134,6 +134,7 @@ class BigDFTInstaller():
         print ' Configuration options:'
         if self.rcfile=='':
             print '  Source: Environment variable "'+BIGDFT_CFG+'"'
+	    print '  Value:'+os.environ[BIGDFT_CFG]
         else:
             print '  Source: Configuration file "'+os.path.abspath(self.rcfile)+'"'
         while True:
@@ -225,7 +226,7 @@ class BigDFTInstaller():
             from shutil import copyfile
             copyfile(self.rcfile,RCFILE)
             return
-        if BIGDFT_CFG not in os.environ.keys(): return
+        if BIGDFT_CFG not in os.environ.keys() or os.path.isfile(RCFILE): return
         print 'The suite has been built without configuration file.'
         rclist=[]
         rclist.append("modules = ['bigdft',]")
