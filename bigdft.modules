@@ -13,6 +13,10 @@
   <repository type="tarball" name="unidata"
               href="ftp://ftp.unidata.ucar.edu/pub/"/>
   <repository type="tarball" name="etsf" href="http://www.etsf.eu/system/files/"/>
+  <repository type="tarball" name="metis" 
+              href="http://glaros.dtc.umn.edu/gkhome/fetch/sw/parmetis/"/>
+<!--  <repository type="tarball" name="cmake-rep" 
+              href="https://cmake.org/files/v3.3/"/> -->
 
   <repository type="tarball" name="local" href="./"/>
 
@@ -20,7 +24,9 @@
 
   <autotools id="libxc" check-target="false" autogen-sh="autoreconf">
     <!--<branch repo="libxc" checkoutdir="libxc-2.0.x"/>-->
-    <branch repo="local" module="libxc-2.0.x.tar.gz" version="2.0.x" checkoutdir="libxc"/>
+    <branch repo="local" module="libxc-2.0.x.tar.gz" version="2.0.x" checkoutdir="libxc">
+      <patch file="libxc-2.0.x.patch" />
+    </branch>
   </autotools>
 
   <autotools id="libyaml" autogen-sh="autoreconf">
@@ -44,8 +50,13 @@
     </dependencies>
   </autotools>
 
+  <autotools id="GaIn">
+    <branch repo="local" module="GaIn-1.0.tar.gz"
+            version="1.0"/>
+  </autotools>
+
   <autotools id="flib" autogenargs="--disable-libpsolver" autogen-sh="autoreconf">
-    <branch repo="local" module="bigdft-1.8a.1.tar.gz" version="1.8a.1" checkoutdir="bigdft"/>
+    <branch repo="local" module="bigdft-1.8.tar.gz" version="1.8.0" checkoutdir="bigdft"/>
     <dependencies>
       <dep package="libyaml"/>
       <if condition-set="testing">
@@ -67,13 +78,14 @@
 
   <autotools id="bigdft" autogenargs="--without-internal-flib" autogen-sh="autoreconf">
     <!--<branch repo="bigdft" module="bigdft" version="1.7.5"/>-->
-    <branch repo="local" module="bigdft-1.8a.1.tar.gz" version="1.8a.1" checkoutdir="bigdft"/>
+    <branch repo="local" module="bigdft-1.8.tar.gz" version="1.8.0" checkoutdir="bigdft"/>
     <dependencies>
       <dep package="flib"/>
       <!--<dep package="psolver"/>-->
       <dep package="libyaml"/>
       <dep package="libxc"/>
       <dep package="libABINIT"/>
+      <dep package="GaIn"/>
       <if condition-set="testing">
         <dep package="PyYAML"/>
       </if>
@@ -102,8 +114,8 @@
   </makesys>
 
   <autotools id="netcdf" autogenargs="--disable-netcdf-4">
-    <branch repo="unidata" module="netcdf/netcdf-4.3.2.tar.gz"
-            version="4.3.2"/>
+    <branch repo="unidata" module="netcdf/netcdf-4.3.3.tar.gz"
+            version="4.3.3"/>
   </autotools>
 
   <autotools id="netcdff">
@@ -121,6 +133,22 @@
       <dep package="netcdff"/>
     </dependencies>
   </autotools>
+
+<!--  <autotools id="cmake-dev">
+    <branch repo="cmake-rep" module="cmake-3.3.2.tar.gz"
+            version="3.3.2"/>
+    <dependencies>
+      <dep package="cmake-dev"/>
+    </dependencies>
+  </autotools> -->
+
+  <makesys id="parmetis">
+    <branch repo="metis" module="parmetis-4.0.2.tar.gz"
+            version="4.0.2"/>
+<!--    <dependencies>
+      <dep package="cmake-dev"/>
+    </dependencies> -->
+  </makesys>
 
   <metamodule id="bigdft-suite">
     <dependencies>

@@ -30,6 +30,9 @@ mpif.h:
 	echo "integer, parameter :: MPI_TAG_UB=1, MPI_ADDRESS_KIND=8, MPI_INFO_NULL=0" >> mpif.h &&\
 	echo "integer, parameter :: MPI_MODE_NOPRECEDE=0, MPI_MODE_NOSUCCEED=0" >> mpif.h &&\
 	echo "integer, parameter :: MPI_LOCK_EXCLUSIVE=0, MPI_LOCK_SHARED=0" >> mpif.h &&\
+	echo "integer, parameter :: MPI_ANY_SOURCE=0, MPI_ANY_TAG=0" >> mpif.h &&\
+	echo "integer, parameter :: MPI_MODE_NOPUT=0, MPI_MODE_NOSTORE=0, MPI_MODE_NOCHECK=0" >> mpif.h &&\
+	echo "integer, parameter :: MPI_GROUP_NULL=0, MPI_PROC_NULL=0, MPI_WIN_NULL=0" >> mpif.h &&\
 	echo "real(kind=8), external :: mpi_wtime" >> mpif.h
 
 
@@ -47,7 +50,7 @@ endif
 if USE_CUDA_GPU
 CUBLAS_SOURCES = fortran.c
 else
-CUBLAS_SOURCES = cublas_fake.f90 interface_cuda_fake.f90
+CUBLAS_SOURCES = cublas_fake.f90
 endif
 if USE_OCL
 OCL_SOURCES =
@@ -76,7 +79,7 @@ interface_dgemmsy_fake.o: linalg.o
 interface_dgemmsy_fake.o: linalg.o
 mpi.o: $(mpi_include)
 
-AM_FCFLAGS = @LIB_FLIB_CFLAGS@ @MPI_INCLUDE@
+AM_FCFLAGS = -I. -I$(top_builddir)/includes @LIB_FLIB_CFLAGS@ @MPI_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
 if USE_CUDA_GPU
 AM_CPPFLAGS += -I@CUDA_PATH@/include @LIBSGPU_INCLUDE@

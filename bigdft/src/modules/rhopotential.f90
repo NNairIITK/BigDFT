@@ -117,6 +117,7 @@ module rhopotential
        use communications_base, only: p2pComms
        use communications, only: synchronize_onesided_communication
        use locreg_operations, only: global_to_local_parallel, global_to_local
+       use module_dpbox, only: denspot_distribution
        implicit none
        !Arguments
        integer, intent(in) :: iproc,nproc,iflag!,nspin,ndimpot,ndimgrid
@@ -758,7 +759,7 @@ module rhopotential
     end subroutine sumrho_for_TMBs
 
 
-    subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+    subroutine corrections_for_negative_charge(iproc, nproc, at, denspot)
       use module_types
       use yaml_output
       use dynamic_memory
@@ -766,10 +767,7 @@ module rhopotential
     
       ! Calling arguments
       integer, intent(in) :: iproc, nproc
-      type(DFT_wavefunction), intent(in) :: KSwfn
       type(atoms_data), intent(in) :: at
-      type(input_variables), intent(in) :: input
-      type(DFT_wavefunction), intent(inout) :: tmb
       type(DFT_local_fields), intent(inout) :: denspot
     
       call f_routine(id='corrections_for_negative_charge')

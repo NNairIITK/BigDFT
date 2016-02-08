@@ -6,7 +6,8 @@ SHORT_TESTDIRS= base \
 	verysparse \
 	periodic \
 	surface \
-	multipoles
+	multipoles \
+	H2Omultipoles
 
 LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	Locreg \
@@ -32,6 +33,10 @@ LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	   igortho \
        extendedfrags
 
+if HAVE_PEXSI
+  LONG_TESTDIRS += pexsi
+endif
+
 EXTRA_TESTDIRS = reformatcomplete \
     water \
 	molecule \
@@ -41,6 +46,8 @@ EXTRA_TESTDIRS = reformatcomplete \
 	rotate
 #\
 #	noortho
+
+EXTRALONG_TESTDIRS = largesystems
 
 
 EXTRA_DIST = 

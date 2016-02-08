@@ -14,6 +14,7 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 # ---------------
 SUBDIRS = \
 	orbitals \
+	sparsematrix \
 	modules \
 	xcPSolver \
 	$(sub_dirs_libconfig) \
@@ -38,6 +39,7 @@ subs_static_library = \
 	modules/libmodules.a \
 	CUDA/libCUDA.a \
 	orbitals/liborbitals.a \
+	sparsematrix/libsparsematrix.a \
 	geopt/libgeopt.a \
 	xcPSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
@@ -56,7 +58,7 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
+bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft-1.a
@@ -113,6 +115,12 @@ else
 cp2k_ld =
 endif
 
+if HAVE_PEXSI
+pexsi_ld= @PEXSI_LINKLINE@ @LINALG_LIBS@
+else
+pexsi_ld =
+endif
+
 if USE_OCL
 OCL_CONV = interface_ocl.f90
 else
@@ -143,8 +151,8 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	tddft.f90 \
 	output.f90 \
-	$(OCL_CONV) \
-	external.f90
+	external.f90 \
+	$(OCL_CONV)
 
 #objects which can be compiled only with module_base
 low_level = \
@@ -235,7 +243,7 @@ libbigdft_1_a_SOURCES =
 
 input_variables_description.o: input_variables_definition-inc.h
 #build the fortran include file with the stream of input variables into a local string
-#the sed command below will transform the entire yaml document into a fortran string
+#the sed command below will transform the entire yaml document into a c string, to be passed to fortran
 input_variables_definition-inc.h: input_variables_definition.yaml
 	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
 
@@ -253,7 +261,7 @@ libbigdft-1.a: $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
 	$(RANLIB) $@
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
 	@chmod a+x $@
 
 libbigdft-1.so.@BIGDFT_MINOR_VERSION@: $(bigdft_dynamic_library)

@@ -1,7 +1,7 @@
 !> @file
 !!  Module to handle the fragments of a system
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -19,7 +19,6 @@ module module_fragments
   implicit none
 
   private
-
 
   !> information about the basis set metadata shared between cubic and ASF approaches
   type, public :: minimal_orbitals_data
@@ -82,13 +81,15 @@ module module_fragments
   !public operator(*)
 
   public :: fragment_null, fragment_free, init_fragments, minimal_orbitals_data_null, rotate_vector, fragmentInputParameters
-  public :: frag_center, find_frag_trans, calculate_fragment_density,fragment_transformation_identity
+  public :: frag_center, find_frag_trans, calculate_fragment_density,fragment_transformation_identity, init_minimal_orbitals_data
+
 
 contains
 
-  ! nned to check somewhere if fragment linking is consistent - initialize linear from file?!
-  ! initializes reference fragments (already nullified), if it isn't a fragment calculation sets to appropriate dummy values
-  ! ignoring environment for now
+
+  !> Need to check somewhere if fragment linking is consistent - initialize linear from file?!
+  !! initializes reference fragments (already nullified), if it isn't a fragment calculation sets to appropriate dummy values
+  !! ignoring environment for now
   subroutine init_fragments(in,orbs,astruct,ref_frags)
     implicit none
     type(input_variables), intent(in) :: in
@@ -209,7 +210,7 @@ contains
   end subroutine init_fragment_from_file
 
 
-  ! sanity check on fragment definitions
+  !> Sanity check on fragment definitions
   subroutine check_fragments(input,ref_frags,astruct)
     implicit none
     type(input_variables), intent(in) :: input
@@ -255,14 +256,14 @@ contains
   end subroutine check_fragments
 
 
-    !type, public :: minimal_orbitals_data
-    !   integer :: norb          !< Total number of orbitals per k point
-    !   integer :: norbp         !< Total number of orbitals for the given processors
-    !   integer :: isorb         !< Total number of orbitals for the given processors
-    !   integer, dimension(:), pointer :: inwhichlocreg,onwhichatom !< associate the basis centers
-    !   integer, dimension(:), pointer :: isorb_par,ispot
-    !   integer, dimension(:,:), pointer :: norb_par
-  !> just initializing norb for now, come back and do the rest later
+  !type, public :: minimal_orbitals_data
+  !   integer :: norb          !< Total number of orbitals per k point
+  !   integer :: norbp         !< Total number of orbitals for the given processors
+  !   integer :: isorb         !< Total number of orbitals for the given processors
+  !   integer, dimension(:), pointer :: inwhichlocreg,onwhichatom !< associate the basis centers
+  !   integer, dimension(:), pointer :: isorb_par,ispot
+  !   integer, dimension(:,:), pointer :: norb_par
+  !> Just initializing norb for now, come back and do the rest later
   subroutine init_minimal_orbitals_data(iproc, nproc, nspinor, input, astruct, forbs, astruct_full)
     use module_base
     implicit none
@@ -360,7 +361,7 @@ contains
   end subroutine init_minimal_orbitals_data
 
 
-  ! point minimal orbs structure to a given full orbs structure
+  !> Point minimal orbs structure to a given full orbs structure
   subroutine orbs_to_min_orbs_point(orbs,forbs)
     implicit none
     ! Calling arguments
@@ -399,6 +400,7 @@ contains
 !!$    end if
 
   end subroutine orbs_to_min_orbs_point
+
 
   subroutine calculate_fragment_density(frag,ndimrho,tmb,iorb_start,charge,atoms,rxyz,denspot)
     use locreg_operations, only: Lpsi_to_global2,workarr_sumrho,initialize_work_arrays_sumrho,deallocate_work_arrays_sumrho
@@ -591,6 +593,7 @@ contains
 
   end function fragment_null
 
+
   pure function fragment_basis_null() result(basis)
     implicit none
     type(fragment_basis) :: basis
@@ -610,8 +613,9 @@ contains
     nullify(basis%phi)
     nullify(basis%density)
   end subroutine nullify_fragment_basis
+  
 
-  !> this routine is dangerous as it frees orbs, when forbs points to it
+  !> This routine is dangerous as it frees orbs, when forbs points to it
   !! either garbage collectors or other techniques should be considered
   subroutine minimal_orbitals_data_free(forbs)
     implicit none
@@ -625,6 +629,7 @@ contains
     forbs=minimal_orbitals_data_null()
   end subroutine minimal_orbitals_data_free
 
+
   subroutine fragment_basis_free(basis)
     implicit none
     type(fragment_basis), intent(inout) :: basis
@@ -635,6 +640,7 @@ contains
     if (associated(basis%density)) call f_free_ptr(basis%density)
     basis=fragment_basis_null()
   end subroutine fragment_basis_free
+
 
   subroutine fragment_free(frag)
     implicit none
@@ -657,6 +663,7 @@ contains
 
   end subroutine fragment_free
 
+
   subroutine fragment_allocate(frag)
     implicit none
     type(system_fragment), intent(inout) :: frag
@@ -674,7 +681,8 @@ contains
 
   end subroutine fragment_allocate
 
-  !>defines a identity transformation
+
+  !> Defines an identity transformation
   function fragment_transformation_identity() result(ft)
     implicit none
     type(fragment_transformation) :: ft
@@ -724,7 +732,6 @@ contains
   !end function transform_fragment
 
 
-
   !> Express the coordinates of a vector into a rotated reference frame
   pure function rotate_vector(newz,theta,vec) result(vecn)
     !use module_base
@@ -751,6 +758,7 @@ contains
           + y*(sint*newz(1) + onemc*newz(2)*newz(3))
 
   end function rotate_vector
+
 
   !pure function transform_fragment_basis(trans,basis) result(basis_new)
   !  implicit none
@@ -802,7 +810,7 @@ contains
     if (f_err_raise(info/=0,'Problem in DGESVD')) return
     
     !multiply last line of VT_mat by det(U)*det(V)
-    dets=det_33(U_mat)*det_33(VT_mat)
+    dets=det_3x3(U_mat)*det_3x3(VT_mat)
     VT_mat(3,:)=VT_mat(3,:)*dets
 
     !find rotation matrix
@@ -849,11 +857,11 @@ contains
        J=J+J_arr(1,iat)**2+J_arr(2,iat)**2+J_arr(3,iat)**2
     end do
 
-    !here yaml output
-    !make it optional whether to print the warning from here or leave it to external function
-    if (J>1.0e-3) then
-       write(*,'(a,2es18.8)') "Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
-    end if
+!!$    !here yaml output
+!!$    !make it optional whether to print the warning from here or leave it to external function
+!!$    if (J>1.0e-3) then
+!!$       write(*,'(a,2es18.8)') "Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+!!$    end if
 
     !check the pertinence of the suggested rotation
     !if (abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp)) print*,'frag_trans%theta=',frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
@@ -870,8 +878,8 @@ contains
 
        !replace with no rotation
        if (J0<J .or. J0-J<1e-6) then
-          write(*,'(a,6(es12.4,2x))') 'replacing suggested transformation with zero transformation ',&
-               J0,J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans%rot_axis
+          !write(*,'(a,6(es12.4,2x))') 'replacing suggested transformation with zero transformation ',&
+          !     J0,J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans%rot_axis
           frag_trans%Rmat=0.0d0
           frag_trans%Rmat(1,1)=1.0d0
           frag_trans%Rmat(2,2)=1.0d0
@@ -886,6 +894,7 @@ contains
      end if
 
   end subroutine find_frag_trans
+
 
   pure function theta_from_r(R_mat) result(theta)
     implicit none
@@ -906,6 +915,7 @@ contains
     end if
 
   end function theta_from_r
+
 
   function axis_from_r(R_mat) result(rot_axis)
     implicit none
@@ -950,6 +960,7 @@ contains
 
   end function axis_from_r
 
+
   pure function frag_center(nat,rxyz) result(cen)
     implicit none
     integer, intent(in) :: nat 
@@ -970,28 +981,4 @@ contains
     
   end function frag_center
 
-  !>determinant of a 3x3 matrix
-  pure function det_33(a) result(det)
-    implicit none
-    real(gp), dimension(3,3), intent(in) :: a
-    real(gp) :: det
-
-    det = a(1,1)*(a(2,2)*a(3,3) - a(3,2)*a(2,3)) &
-         + a(1,2)*(a(3,1)*a(2,3) - a(2,1)*a(3,3))  &
-         + a(1,3)*(a(2,1)*a(3,2) - a(3,1)*a(2,2))
-  end function det_33
-
-
 end module module_fragments
-
-
-
-
-
-
-
-
-
-
-
-

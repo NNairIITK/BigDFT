@@ -1,7 +1,7 @@
 !> @file
 !! Empirical potential for Si type Lenosky
 !! @author
-!!    Copyright (C) 2014 BigDFT group
+!!    Copyright (C) 2014-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -1031,7 +1031,7 @@ end subroutine lenosky_si_shift
                 ( 2.0_gp*dof_ggg(8-1)+dof_ggg(8-2) )*hsixth_ggg
                  gjik=cof_ggg(8-1) + (costheta-tmax_ggg)*gjikp
         else
-           klo_ggg=tt_ggg
+           klo_ggg=int(tt_ggg,kind=4)
            khi_ggg=klo_ggg+1
            cof_ggg_klo=cof_ggg(klo_ggg)
            dof_ggg_klo=dof_ggg(klo_ggg)
@@ -1068,7 +1068,7 @@ end subroutine lenosky_si_shift
         tt_fff=tt_fff*hi_fff
         costheta=costheta+fyij*fyik
         fzik=rel(3,kbr)
-        klo_fff=tt_fff
+        klo_fff=int(tt_fff,kind=4)
         costheta=costheta+fzij*fzik
         sik=rel(5,kbr)
         tt_ggg=(costheta-tmin_ggg)*hi_ggg
@@ -1104,7 +1104,7 @@ end subroutine lenosky_si_shift
           fik=fik + (yt1_fff+yt2_fff)*h2sixth_fff
           fikp=fikp + ( ypt1_fff - ypt2_fff )*hsixth_fff
          else
-              klo_ggg=tt_ggg
+              klo_ggg=int(tt_ggg,kind=4)
               khi_ggg=klo_ggg+1
            khi_fff=klo_fff+1
               cof_ggg_klo=cof_ggg(klo_ggg)
@@ -1269,12 +1269,22 @@ end subroutine lenosky_si_shift
         return
         end subroutine
 
+
         subroutine splint(ya,y2a,tmin,tmax,hsixth,h2sixth,hi,n,x,y,yp)
         use module_defs, only: gp
-        implicit real(gp) (a-h,o-z)
-        dimension y2a(0:n-1),ya(0:n-1)
-
-! interpolate if the argument is outside the cubic spline interval [tmin,tmax]
+        implicit none
+        !implicit real(gp) (a-h,o-z)
+        !Arguments
+        integer, intent(in) :: n
+        real(gp), dimension(0:n-1), intent(in) :: y2a,ya
+        real(gp), intent(in) :: tmin,tmax,hsixth,h2sixth,hi,x
+        real(gp), intent(out) :: y,yp
+        !Local variables
+        integer :: khi,klo
+        real(gp) :: tt
+        real(gp) :: a,b,ya_khi,ya_klo,b2,a2,y2a_khi,y2a_klo
+        real(gp) :: cof1,cof2,cof3,cof4,yt1,yt2,ypt1,ypt2
+        ! interpolate if the argument is outside the cubic spline interval [tmin,tmax]
         tt=(x-tmin)*hi
         if (x.lt.tmin) then
           yp=hi*(ya(1)-ya(0)) -  &
@@ -1284,9 +1294,9 @@ end subroutine lenosky_si_shift
           yp=hi*(ya(n-1)-ya(n-2)) +  &
           ( 2.0_gp*y2a(n-1)+y2a(n-2) )*hsixth
           y=ya(n-1) + (x-tmax)*yp
-! otherwise evaluate cubic spline
         else
-          klo=tt
+          ! otherwise evaluate cubic spline
+          klo=int(tt,kind=4)
           khi=klo+1
           ya_klo=ya(klo)
           y2a_klo=y2a(klo)
@@ -1315,6 +1325,7 @@ end subroutine lenosky_si_shift
           y=y + (yt1+yt2)*h2sixth
           yp=yp + ( ypt1 - ypt2 )*hsixth
         endif
-      return
       end subroutine
+
+
 end module

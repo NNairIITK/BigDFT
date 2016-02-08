@@ -2,7 +2,7 @@
 !! Manage different low-level operations
 !! like operations on external files and basic operations in memory
 !! @author
-!!    Copyright (C) 2012-2014 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -40,6 +40,12 @@ module f_utils
      character(len=1), dimension(:), pointer :: buf
   end type f_dump_buffer
 
+  type, public :: f_progress_bar
+     integer :: nstep !< number of steps for the progress
+     integer(f_long) :: t0 !< creation time of the progress bar
+     character(len=90) :: message !< Message of the progress bar to be updated
+     integer :: ncall !< number of times the progress bar is called
+  end type f_progress_bar
 
   !> Interface for difference between two intrinsic types
   interface f_diff
@@ -70,6 +76,10 @@ module f_utils
      module procedure f_inc_i0
   end interface f_increment
 
+  interface f_humantime
+     module procedure f_humantime,f_ht_long
+  end interface f_humantime
+
   !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
   interface
      pure subroutine nanosec(itime)
@@ -84,15 +94,16 @@ module f_utils
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring,f_increment
   public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
+  public :: f_progress_bar_new,update_progress_bar,f_tty,f_humantime
 
 contains
  
   subroutine f_utils_errors()
 
     call f_err_define('INPUT_OUTPUT_ERROR',&
-         'Some of intrinsic I/O fortan routines returned an error code',&
+         'Some of intrinsic I/O fortran routines returned an error code.',&
          INPUT_OUTPUT_ERROR,&
-         err_action='Check if you have correct file system permission in i/o library or check the fortan runtime library')
+         err_action='Check if you have correct file system permission in I/O library or check the fortran runtime library.')
 
   end subroutine f_utils_errors
 
@@ -103,6 +114,175 @@ contains
     call nanosec(itime)
     f_time=itime
   end function f_time
+
+  pure function f_progress_bar_new(nstep) result(bar)
+    implicit none
+    integer, intent(in), optional :: nstep
+    type(f_progress_bar) :: bar
+
+    bar%nstep=-1
+    if (present(nstep)) bar%nstep=nstep
+    bar%t0=f_time()
+    call f_zero(bar%message)
+    bar%ncall=0
+  end function f_progress_bar_new
+
+  pure function ticker(ncall) result(t)
+    implicit none
+    integer, intent(in) :: ncall
+    character :: t
+    select case(modulo(ncall,4))
+    case(0)
+       t='|'
+    case(1)
+       t='/'
+    case(2)
+       t='-'
+    case(3)
+       t="\ "
+    end select
+  end function ticker
+
+  !routine to build the message to be dump
+  subroutine update_progress_bar(bar,istep)
+    use yaml_strings
+    implicit none
+    integer, intent(in) :: istep
+    type(f_progress_bar), intent(inout) :: bar
+    !local variables
+    integer, parameter :: nstars=25
+    integer :: j,step
+    real(f_double) :: percent
+    real(f_double) :: time_elapsed, it_s !< in seconds
+    real(f_double) :: time_remaining !< seconds, estimation
+
+    character(len=3) :: prc
+    character(len=32) ::endtime
+    character(len=nstars) :: stars
+
+    percent=real(istep,f_double)/real(bar%nstep,f_double)*100.0_f_double
+    j=int(nstars*percent)/100
+    write(unit=prc,fmt="(i3)")int(percent)
+    if (j>0) then
+       call f_strcpy(src=repeat('=',j-1)//'>',dest=stars)
+    else
+       call f_zero(stars)
+    end if
+    bar%ncall=bar%ncall+1
+    time_elapsed=&
+         (f_time()-bar%t0)*real(1.e-9,f_double)
+    it_s=real(istep,f_double)/time_elapsed
+    if (percent==0.0_f_double) then
+       time_remaining=0.d0
+    else
+       time_remaining=time_elapsed*&
+            (100.0_f_double/percent-1.0_f_double)
+    end if
+
+    if (istep <  bar%nstep) then
+       call f_strcpy(src='ETA '//trim(f_humantime(time_remaining*1.e9_f_double,.true.)),&
+            dest=endtime)
+    else
+       call f_strcpy(src='Tot '//trim(f_humantime(time_elapsed*1.e9_f_double,.true.)),dest=endtime)
+    end if
+
+    !compose the message
+    call f_strcpy(src='('+yaml_time_toa()+')'//prc//&
+         '% '//ticker(bar%ncall)//&
+         ' ['//stars//'] ('//trim(yaml_toa(istep))//'/'//&
+         trim(adjustl(yaml_toa(bar%nstep)))//&
+         ', '//&
+         trim(yaml_toa(it_s,fmt='(1pg12.2)'))//&
+         ' it/s), '//trim(endtime),&
+         dest=bar%message)
+
+  end subroutine update_progress_bar
+
+  pure function f_ht_long(ns,short) result(time)
+    implicit none
+    integer(f_long), intent(in) :: ns !<nanoseconds
+    logical, intent(in), optional :: short !<if .true. only shows one units after the leading one
+    character(len=95) :: time
+
+    time=f_humantime(real(ns,f_double),short)
+
+  end function f_ht_long
+
+  !convert a time in seconds into a string of the format e.g 3.5s,10m3s,12h10m,350d12h,1y120d
+  pure function f_humantime(ns,short) result(time)
+    use yaml_strings
+    implicit none
+    real(f_double), intent(in) :: ns !<nanoseconds
+    logical, intent(in), optional :: short !<if .true. only shows one units after the leading one
+    character(len=95) :: time
+    !local variables
+    logical :: sht
+    character(len=*), parameter :: fmt='(i2.2)'
+    integer(f_long), parameter :: billion=int(1000000000,f_long),sixty=int(60,f_long)
+    integer(f_long), parameter :: tsf=int(365,f_long),tf=int(24,f_long),zr=int(0,f_long)
+    integer(f_long) :: s,nsn,m,h,d,y
+
+    sht=.false.
+    if (present(short)) sht=short
+
+    !get the seconds
+    s=ns/billion
+    !then get nanosecs
+    nsn=ns-s*billion
+    !then take minutes from seconds
+    m=s/sixty; s=s-m*sixty
+    !and hours from minutes
+    h=m/sixty; m=m-h*sixty
+    !days
+    d=h/tf; h=h-d*tf
+    !years
+    y=d/tsf; d=d-y*tsf
+
+    if (sht) then
+       !find the first unit which is not zero
+       if (y > zr) then
+          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(y)))+'y'//&
+               trim(adjustl(yaml_toa(d)))+'d')
+       else if (d > zr) then
+          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(d)))+'d'//&
+               trim(adjustl(yaml_toa(h,fmt)))+'h')
+       else if (h > zr) then
+          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(h,fmt)))+'h'//&
+               trim(adjustl(yaml_toa(m,fmt)))+'m')
+       else if (m > zr) then
+          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(m,fmt)))+'m'//&
+               trim(adjustl(yaml_toa(s,fmt)))+'s')
+       else
+          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(real(s,f_double),'(f5.1)')))+'s')
+       end if
+    else
+       !test with new API to deal with strings
+       !that would be the best solution
+       call f_strcpy(dest=time,src=&
+            h**fmt+':'+m**fmt+':'+s**fmt+'.'+nsn**'(i9.9)')
+!!$
+       !split the treatment in the case of multiple days
+       if (d >0.0_f_double .or. y > 0.0_f_double ) call f_strcpy(&
+            dest=time,src=trim(adjustl(yaml_toa(y)))+'y'//&
+            trim(adjustl(yaml_toa(d)))+'d'+time)
+    end if
+
+  end function f_humantime
+
+
+  !>returns true if a unit is tty.
+  !! essentially only check if the unit is related to stdout and check if stdout is
+  !! tty
+  function f_tty(unit)
+    implicit none
+    integer, intent(in) :: unit
+    logical :: f_tty
+    !local variables
+    integer :: itis
+    itis=0
+    if (unit == 6) call stdoutistty(itis)
+    f_tty=itis==1
+  end function f_tty
 
   !>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
   subroutine f_pause(sec,verbose)
@@ -139,7 +319,7 @@ contains
     integer, intent(in) :: recl_max !< maximum value for record length
     !> Value for the record length. This corresponds to the minimum between recl_max and the processor-dependent value
     !! provided by inquire statement
-    integer, intent(out) :: recl 
+    integer, intent(out) :: recl
     !local variables
     logical :: unit_is_open
     integer :: ierr,ierr_recl
@@ -167,7 +347,7 @@ contains
     character(len=*), intent(in) :: file
     logical, intent(out) :: exists
     !local variables
-    integer :: ierr 
+    integer :: ierr
 
     exists=.false.
     inquire(file=trim(file),exist=exists,iostat=ierr)
@@ -248,7 +428,7 @@ contains
     unt2=unt
   end function f_get_free_unit
 
-  !>create a directory from CWD path
+  !> Create a directory from CWD path
   subroutine f_mkdir(dir,path)
     use f_precisions, only: f_integer
     implicit none

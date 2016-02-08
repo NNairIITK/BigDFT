@@ -27,9 +27,11 @@ module public_keys
   character(len = *), parameter :: ELECFIELD = "elecfield"
   character(len = *), parameter :: NSPIN = "nspin", MPOL = "mpol"
   character(len = *), parameter :: GNRM_CV = "gnrm_cv"
+  character(len = *), parameter :: GNRM_CV_VIRT = "gnrm_cv_virt"
   character(len = *), parameter :: GNRM_IG = "gnrm_ig"
   character(len = *), parameter :: NIT_IG = "nit_ig"
   character(len = *), parameter :: ITERMAX = "itermax",ITERMIN = "itermin", NREPMAX = "nrepmax"
+  character(len = *), parameter :: ITERMAX_VIRT = "itermax_virt"
   character(len = *), parameter :: NCONG = "ncong", IDSX = "idsx"
   character(len = *), parameter :: DISPERSION = "dispersion"
   character(len = *), parameter :: INPUTPSIID = "inputpsiid"
@@ -41,6 +43,7 @@ module public_keys
   character(len = *), parameter :: KERNEL_RESTART_MODE = "kernel_restart_mode"
   character(len = *), parameter :: KERNEL_RESTART_NOISE = "kernel_restart_noise"
   character(len = *), parameter :: FRAG_NUM_NEIGHBOURS = "frag_num_neighbours"
+  character(len = *), parameter :: FRAG_NEIGHBOUR_CUTOFF = "frag_neighbour_cutoff"
   character(len = *), parameter :: RBUF = "rbuf"
   character(len = *), parameter :: NCONGT = "ncongt"
   character(len = *), parameter :: NORBV = "norbv", NVIRT = "nvirt"
@@ -51,6 +54,7 @@ module public_keys
   character(len = *), parameter :: CHARGE_MULTIPOLES = "charge_multipoles"
   character(len = *), parameter :: CALCULATE_STRTEN = "calculate_strten"
 
+  character(len = *), parameter :: PSOLVER = "psolver"
 
   character(len = *), parameter :: KPT_VARIABLES = "kpt"
   character(len = *), parameter :: KPT_METHOD = "method"
@@ -119,6 +123,7 @@ module public_keys
   character(len = *), parameter :: NOSE_MTS_SIZE = "nose_mts_size"
   character(len = *), parameter :: NOSE_YOSHIDA_FACTOR = "nose_yoshida_factor"
   character(len = *), parameter :: NOSE_FREQUENCY = "nose_frequency"
+  character(len = *), parameter :: WAVEFUNCTION_EXTRAPOLATION="wavefunction_extrapolation"
 
   !mode parameter keywords
   character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
@@ -194,9 +199,6 @@ module public_keys
   character(len = *), parameter :: KAPPA_CONV = "kappa_conv"
   character(len = *), parameter :: EVBOUNDS_NSATUR = "evbounds_nsatur"
   character(len = *), parameter :: EVBOUNDSSHRINK_NSATUR = "evboundsshrink_nsatur"
-  character(len = *), parameter :: METHOD_UPDATEKERNEL = "method_updatekernel"
-  character(len = *), parameter :: PURIFICATION_QUICKRETURN = "purification_quickreturn"
-  character(len = *), parameter :: ADJUST_FOE_TEMPERATURE = "adjust_FOE_temperature"
   character(len = *), parameter :: CALCULATE_GAP = "calculate_gap"
   character(len = *), parameter :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
   character(len = *), parameter :: COEFF_WEIGHT_ANALYSIS = "coeff_weight_analysis"
@@ -204,6 +206,10 @@ module public_keys
   character(len = *), parameter :: CORRECTION_CO_CONTRA = "correction_co_contra"
   character(len = *), parameter :: GPS_METHOD = "gps_method"
   character(len = *), parameter :: FOE_GAP = "foe_gap"
+  character(len = *), parameter :: SUPPORT_FUNCTION_MULTIPOLES = "support_function_multipoles"
+  character(len = *), parameter :: NSIGMA = "nsigma"
+  character(len = *), parameter :: PLOT_MPPOT_AXES = "plot_mppot_axes"
+  character(len = *), parameter :: PLOT_POT_AXES = "plot_pot_axes"
 
   !keys for linear input variables
   !level keys
@@ -225,6 +231,7 @@ module public_keys
   character(len=*), parameter :: CONF_DAMPING    ='conf_damping'
   character(len=*), parameter :: TAYLOR_ORDER    ='taylor_order'
   character(len=*), parameter :: CALC_DIPOLE     ='calc_dipole'
+  character(len=*), parameter :: CALC_QUADRUPOLE ='calc_quadrupole'
   character(len=*), parameter :: CDFT_LAG_MULT_INIT='cdft_lag_mult_init'
   character(len=*), parameter :: CDFT_CONV_CRIT  ='cdft_conv_crit'
   character(len=*), parameter :: CALC_PULAY      ='calc_pulay'
@@ -261,6 +268,12 @@ module public_keys
   character(len=*), parameter :: ADJUST_KERNEL_THRESHOLD='adjust_kernel_threshold'
   character(len=*), parameter :: WF_EXTENT_ANALYSIS='wf_extent_analysis'
   character(len=*), parameter :: CALCULATE_ONSITE_OVERLAP='calculate_onsite_overlap'
+  character(len=*), parameter :: PEXSI_NPOLES='pexsi_npoles'
+  character(len=*), parameter :: PEXSI_MUMIN='pexsi_mumin'
+  character(len=*), parameter :: PEXSI_MUMAX='pexsi_mumax'
+  character(len=*), parameter :: PEXSI_MU='pexsi_mu'
+  character(len=*), parameter :: PEXSI_TEMPERATURE='pexsi_temperature'
+  character(len=*), parameter :: PEXSI_TOL_CHARGE='pexsi_tol_charge'
 
   !> Parameters to avoid typos in dictionary keys
   character(len=*), parameter :: ASTRUCT_UNITS = 'units' 
@@ -295,7 +308,6 @@ module public_keys
   character(len=*), parameter :: ATOMIC_NUMBER = 'Atomic number'
   character(len=*), parameter :: ELECTRON_NUMBER = 'No. of Electrons'
   character(len=*), parameter :: POSINP_SOURCE = 'source'
-
 end module public_keys
 
 !>module identifying constants that have to be used as enumerators
@@ -451,9 +463,11 @@ module public_enums
   integer, parameter, public :: LINEAR_MIXDENS_SIMPLE=101
   integer, parameter, public :: LINEAR_MIXPOT_SIMPLE=102
   integer, parameter, public :: LINEAR_FOE=103
+  integer, parameter, public :: LINEAR_PEXSI=104
   integer, parameter, public :: KERNELMODE_DIRMIN = 10
   integer, parameter, public :: KERNELMODE_DIAG = 11
   integer, parameter, public :: KERNELMODE_FOE = 12
+  integer, parameter, public :: KERNELMODE_PEXSI = 13
   integer, parameter, public :: MIXINGMODE_DENS = 20
   integer, parameter, public :: MIXINGMODE_POT = 21
   integer,parameter, public :: FOE_ACCURATE = 30
@@ -493,6 +507,7 @@ module public_enums
   !> Output for run modes
   type(f_enumerator), public :: RUN_MODE_CREATE_DOCUMENT = &
        & f_enumerator('RUN_MODE_CREATE_DOCUMENT',1,null())
+  type(f_enumerator), parameter, public :: TDPOT_RUN_MODE      =f_enumerator('TDPOT_RUN_MODE',-989,null())
 
   !run modes
   type(f_enumerator), parameter, public :: LENNARD_JONES_RUN_MODE      = &

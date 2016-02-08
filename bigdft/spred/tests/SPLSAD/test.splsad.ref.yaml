@@ -97,10 +97,7 @@
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
    evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
    evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
-   method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
     #                                              purification, 1 FOE, 2 renormalization)
-   purification_quickreturn            : Yes #    linear scaling quick return in purification
-   adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
    calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
@@ -618,7 +615,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -5.3267E-04, -4.8043E-04, -1.4772E+00 ]
    norm(P)                             :  1.477209E+00
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.04244855E-04, y:  2.57427383E-06, z:  2.55423414E-05, 
                     total:  2.05851886E-04}
@@ -806,10 +803,7 @@
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
    evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
    evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
-   method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
     #                                              purification, 1 FOE, 2 renormalization)
-   purification_quickreturn            : Yes #    linear scaling quick return in purification
-   adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
    calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
@@ -1254,7 +1248,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -5.5443E-04, -4.8145E-04,  1.4719E+00 ]
    norm(P)                             :  1.471863E+00
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.04571255E-04, y:  2.76674121E-06, z:  3.07587332E-06, 
                     total:  2.04613084E-04}
@@ -1584,7 +1578,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -2.6535E-03, -2.7933E-03, -1.4314E+00 ]
    norm(P)                             :  1.431381E+00
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.89828935E-05, y:  3.53982493E-05, z: -1.98445540E-03, 
                     total:  1.98498269E-03}
@@ -1914,7 +1908,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -2.8143E-03, -2.9478E-03,  1.4053E+00 ]
    norm(P)                             :  1.405263E+00
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  3.06140221E-05, y:  3.60020108E-05, z:  2.31507486E-03, 
                     total:  2.31555716E-03}
@@ -2235,7 +2229,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -2.6305E-03, -2.5697E-03, -1.4600E-02 ]
    norm(P)                             :  1.505602E-02
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.27313772E-06, y:  3.05601544E-05, z:  1.40404409E-04, 
                     total:  1.43697397E-04}
@@ -2556,7 +2550,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -2.7244E-03, -2.7903E-03, -1.5232E-02 ]
    norm(P)                             :  1.572298E-02
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  6.91713986E-04, y:  3.20610357E-05, z:  1.34215053E-04, 
                     total:  7.05343767E-04}
@@ -2877,7 +2871,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -2.7779E-03, -2.7898E-03, -5.4018E-01 ]
    norm(P)                             :  5.401918E-01
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  6.90964804E-04, y:  2.86477873E-05, z: -2.53009175E-04, 
                     total:  7.36387601E-04}
@@ -3198,7 +3192,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -2.7826E-03, -2.7933E-03,  5.1002E-01 ]
    norm(P)                             :  5.100340E-01
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  6.91618107E-04, y:  3.11697181E-05, z:  5.49233373E-04, 
                     total:  8.83721934E-04}
@@ -3519,7 +3513,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -2.7233E-03, -2.7903E-03,  4.2952E-03 ]
    norm(P)                             :  5.800957E-03
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  6.71311569E-04, y:  3.22398709E-05, z:  2.02760906E-04, 
                     total:  7.02004713E-04}
@@ -3850,7 +3844,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -9.2507E-04, -5.3104E-04,  1.7203E-02 ]
    norm(P)                             :  1.723598E-02
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.49967393E-04, y:  2.90539100E-06, z:  1.17292374E-04, 
                     total:  2.76133373E-04}
@@ -4171,7 +4165,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -2.3579E-03, -2.7578E-03, -1.4911E-02 ]
    norm(P)                             :  1.534651E-02
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  6.44602731E-04, y:  3.32692942E-05, z:  1.35824508E-04, 
                     total:  6.59596713E-04}
@@ -4492,7 +4486,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -2.3576E-03, -2.7579E-03, -5.2184E-03 ]
    norm(P)                             :  6.355806E-03
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  6.39203098E-04, y:  3.33386899E-05, z:  1.67117972E-04, 
                     total:  6.61528900E-04}
@@ -4746,7 +4740,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -2.3481E-03, -2.7519E-03, -7.6173E-03 ]
    norm(P)                             :  8.432636E-03
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  6.41740030E-04, y:  3.13757608E-05, z:  1.70372779E-04, 
                     total:  6.64711658E-04}
@@ -5077,7 +5071,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -7.336E-04, -4.7650E-04,  4.6380E-03 ]
    norm(P)                             :  4.719757E-03
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.53178678E-04, y:  3.21475036E-06, z:  5.30476456E-05, 
                     total:  2.58696405E-04}

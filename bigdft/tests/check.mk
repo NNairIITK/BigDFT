@@ -92,12 +92,13 @@ PSPS = psppar.H \
        C.GGA_PBE-JTH.xml
 #$(TESTDIRS) 
 
-ALLDIRS = $(EXTRA_TESTDIRS) $(LONG_TESTDIRS)
+ALLDIRS = $(EXTRALONG_TESTDIRS) $(EXTRA_TESTDIRS) $(LONG_TESTDIRS)
 
 INS = $(ALLDIRS:=.in)
 RUNS = $(ALLDIRS:=.run)
 CHECKS = $(TESTDIRS:=.check) $(TESTDIRS:=.yaml-check)
 EXTRA_CHECKS = $(EXTRA_TESTDIRS:=.check) $(EXTRA_TESTDIRS:=.yaml-check)
+EXTRALONG_CHECKS = $(EXTRALONG_TESTDIRS:=.check) $(EXTRALONG_TESTDIRS:=.yaml-check)
 DIFFS = $(ALLDIRS:=.diff)
 UPDATES = $(ALLDIRS:=.updateref)
 FAILEDCHECKS = $(TESTDIRS:=.recheck)
@@ -105,11 +106,14 @@ CLEANS = $(ALLDIRS:=.clean)
 
 EXTRA_DIST += README $(ALLDIRS)
 
+
 in: $(INS)
 
 check: $(CHECKS) report
 
 complete-check: $(EXTRA_CHECKS) check
+
+long-check: $(EXTRALONG_CHECKS) check
 
 diff: $(DIFFS)
 
@@ -139,9 +143,21 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
 	@name=`basename $@ .out.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
-	if test -n "$$name"; then name="-n "$$name; fi; \
 	if test -f list_posinp; then \
 	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
+	else \
+	if test -n "$$name"; then \
+	   if test ! -f $$name".yaml"; then \
+	      echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 --name=$$name"; \
+	      $(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 --name=$$name; \
+	   fi; \
+	   name="-n "$$name; \
+	else \
+	   if test ! -f "input.yaml"; then \
+	      echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1"; \
+	      $(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1; \
+	   fi; \
+	fi; \
 	fi; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft -l yes $$name > $@" ; \
@@ -164,36 +180,14 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 	@name=`basename $@ .freq.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/frequencies -l yes > $@" ; \
+	$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1
 	$(run_parallel) $(abs_top_builddir)/src/frequencies -l yes > $@
 	name=`basename $@ .freq.out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
-%.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
-	rm -f neb.it*
-	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_serial) $(abs_top_builddir)/src/NEB | tee $@
-	cat neb.NEB.0*/log.yaml | grep -v "Unable to read mpd.hosts" > log.yaml
-	echo "---" >> log.yaml
-	grep ":" NEB.NEB.out | grep -v "<BigDFT>" >> log.yaml
-	grep -v ":" NEB.NEB.out > tmp-neb.out
-	mv tmp-neb.out NEB.NEB.out
-	rm -rf neb.NEB.0*
-	rm -f gen_output_file velocities_file
-	name=`basename $@ .out` ; \
-	$(MAKE) -f ../Makefile $$name".post-out"
-%.splsad.out: $(abs_top_builddir)/src/splsad
-	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_parallel) $(abs_top_builddir)/src/splsad -l yes > $@
-	name=`basename $@ .out` ; \
-	$(MAKE) -f ../Makefile $$name".post-out"
-%.minhop.out: $(abs_top_builddir)/src/global
-	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_parallel) $(abs_top_builddir)/src/global -l yes > $@
-#	mv log-mdinput.yaml log.yaml
-	name=`basename $@ .out` ; \
-	$(MAKE) -f ../Makefile $$name".post-out"
 %.xabs.out: $(abs_top_builddir)/src/abscalc
-	name=`basename $@ .xabs.out` ; \
+	@name=`basename $@ .xabs.out` ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
+	echo "$(run_serial) $(abs_top_builddir)/src/abscalc $$name -l yes > $@"; \
 	$(run_serial) $(abs_top_builddir)/src/abscalc $$name -l yes > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"

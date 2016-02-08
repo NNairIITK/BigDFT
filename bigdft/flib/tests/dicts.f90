@@ -1,7 +1,9 @@
 !> @file
 !! Test the dictionaries of flib
+!! @example dicts.f90
+!! Some examples about dictionaries
 !! @author
-!!    Copyright (C) 2013-2014 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group <br>
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -46,9 +48,11 @@ subroutine test_dictionaries0()
   !alternative way of initializing a dictionary
   !call dict_init(dict1)
 
+!!! [Creation]
   dict1=>dict_new()
+!!! [Creation]
   call f_err_open_try()
-  ival=dict1//'Toto' 
+  ival=dict1//'Toto'
 
   call yaml_map('ival not existing, fake value',ival)
 
@@ -199,14 +203,12 @@ subroutine test_dictionaries0()
 
   call dict_free(dict1)
 
-
 !!$
 !!$  !new test, build list on-the-fly
 !!$  dict1=list_new((/ .item. 'Val1', .item. 'Val2', .item. 'Val3' ,&
 !!$       .item. 'Val4'/))
 !!$  call yaml_dict_dump(dict1)
 !!$  call dict_free(dict1)
-
   
 end subroutine test_dictionaries0
 
@@ -488,6 +490,14 @@ subroutine test_dictionaries1()
       dict_tmp=>dict_next(dict_tmp)
    end do
 
+!!! [newiter]
+   nullify(dict_tmp)
+   do while(iterating(dict_tmp,on=dictA))
+      call yaml_map('Iterating in dictA, again',.true.)
+      call yaml_map('Key of dictA, again',dict_key(dict_tmp))
+      call yaml_map('Value of dictA, again',dict_value(dict_tmp))
+   end do
+!!! [newiter]
    call dict_free(dictA)
 
    !fill a list and iterate over it
@@ -641,7 +651,7 @@ subroutine test_dictionaries1()
       call yaml_map('i2='+yaml_toa(i),dictA2)
       dictA2 => dict_next(dictA2)
    end do
-   
+
    call dict_free(dict_tmp)
 
  end subroutine test_dictionaries1
@@ -649,6 +659,8 @@ subroutine test_dictionaries1()
  subroutine test_copy_merge()
    use dictionaries
    use yaml_output
+   use yaml_parse
+   use yaml_strings
    implicit none
 
    type(dictionary), pointer :: dict, cpy, subd
@@ -667,6 +679,15 @@ subroutine test_dictionaries1()
    call yaml_mapping_open("copy")
    call yaml_dict_dump(cpy)
    call yaml_mapping_close()
+   call dict_free(cpy)
+   call yaml_mapping_close()
+
+   cpy => yaml_load('{__comment__ : Grid shifts, __cond__: '//&
+        '   { __master_key__: kpt_method, __when__ : [ MPGrid ]},'//&
+         '__default__ : ['//0.//','//0.//','// 0.//'] }')
+   call yaml_mapping_open("new method")
+   call yaml_dict_dump(cpy)
+   call yaml_map('dicts are equal',cpy==dict)
    call dict_free(cpy)
    call yaml_mapping_close()
 
@@ -735,6 +756,8 @@ subroutine test_dictionary_for_atoms()
 
   !now print some double precision values to understand which is the best format
   tt=real(0.5e0,kind=8) !use a conversion from float
+  call yaml_map('Test clean_zeroes',clean_zeroes(yaml_toa('20')))
+  call yaml_map('Retest clean_zeroes',clean_zeroes(yaml_toa('20.0e+00')))
   call yaml_map('Real without format',clean_zeroes(yaml_toa('0.2000000000000000000')))
   fmts(1:len(fmts))='(1pe25.17)'
   call yaml_map('Real with format '//trim(fmts),clean_zeroes(yaml_toa(tt,fmt=fmts)))
@@ -750,11 +773,13 @@ subroutine test_dictionary_for_atoms()
   call yaml_map('Iostat for format',ierr)
   fmts(1:len(fmts))='(i3)'
   call yaml_map('Integer with too little format '//trim(fmts),10000,fmt=fmts)
-  write(tmp,fmt=fmts,iostat=ierr)10000
+  write(tmp,fmt=fmts,iostat=ierr) 10000
   call yaml_map('Iostat for format',ierr)
   fmts(1:len(fmts))='(f3.2)'
   call yaml_map('Float with too little format '//trim(fmts),1000.4,fmt=fmts)
-  write(tmp,fmt=fmts,iostat=ierr)1000.4
+  fmts(1:len(fmts))='(f3.0)'
+  call yaml_map('Real as integer '//trim(fmts),10.0,fmt=fmts)
+  write(tmp,fmt=fmts,iostat=ierr) 1000.4
   call yaml_map('Iostat for format',ierr)
   fmts(1:len(fmts))='(f3.2)'
   call yaml_map('Double with too little format '//trim(fmts),1000.4d0,fmt=fmts)
@@ -779,6 +804,7 @@ subroutine test_dictionary_for_atoms()
 
 
   contains
+
     subroutine print_one_atom(atomname,rxyz,hgrids,id)
       implicit none
       integer, intent(in) :: id
@@ -798,7 +824,7 @@ subroutine test_dictionary_for_atoms()
     end subroutine print_one_atom
 
     !> when str represents a real number, clean it if there are lot of zeroes after the decimal point
-    !pure 
+    !! pure 
     function clean_zeroes(str)
       implicit none
       integer, parameter:: max_value_length=95
@@ -837,12 +863,13 @@ subroutine test_dictionary_for_atoms()
 
 end subroutine test_dictionary_for_atoms
 
-!> test the usage of the new f_trees structure
+
+!> Test the usage of the new f_trees structure
 subroutine test_f_trees()
   use f_trees
   use yaml_output
   implicit none
-  type(f_tree) :: dict1,dict2
+  type(f_tree) :: dict1
 
   !initialization
   dict1=f_tree_new()
@@ -858,11 +885,12 @@ subroutine test_f_trees()
   call f_tree_free(dict1)
 end subroutine test_f_trees
 
-!> this routine consider the usage of dictionaries for intensive data storage (of course to be avoided)
+
+!> This routine consider the usage of dictionaries for intensive data storage (of course to be avoided)
 !! and compares it to the usage of an array for doing similar things
 subroutine profile_dictionary_usage()
   use dictionaries
-  use f_utils, only : f_time
+  use f_utils
   use yaml_output
   implicit none
   !local variables
@@ -871,6 +899,7 @@ subroutine profile_dictionary_usage()
   double precision :: tel,tot
   type(dictionary), pointer :: dict
   integer, dimension(:), allocatable :: itest !< used to simulate search with an array
+  type(f_progress_bar) :: bar
   
 
 !!$!$  !profiling
@@ -879,6 +908,7 @@ subroutine profile_dictionary_usage()
   nstep=10000
   allocate(itest(nprof))
   itest=0
+  bar=f_progress_bar_new(nstep=nprof/nstep)
   do iprof=1,nprof,nstep
 
      !call system_clock(ncount0,ncount_rate,ncount_max)
@@ -893,10 +923,12 @@ subroutine profile_dictionary_usage()
      !tel=dble(ncount1-ncount0)/dble(ncount_rate)*(1d6/dble(ntry))
      tot=dble(ntry)*dble(nprof)
      tel = dble(t1-t0)/tot
-     call yaml_mapping_open('Timings for search',flow=.true.)
-     call yaml_map('No. of items',iprof)
-     call yaml_map('Elapsed time (ns)',tel,fmt='(f12.2)')
-     call yaml_mapping_close() 
+     !here all the steps are identical
+     call dump_progress_bar(bar,step=iprof/nstep)
+!!$     call yaml_mapping_open('Timings for search',flow=.true.)
+!!$     call yaml_map('No. of items',iprof)
+!!$     call yaml_map('Elapsed time (ns)',tel,fmt='(f12.2)')
+!!$     call yaml_mapping_close() 
   end do
   call yaml_map('Some value',itest(1)+itest(ntry))
   deallocate(itest)
@@ -906,6 +938,7 @@ subroutine profile_dictionary_usage()
   ntry=100
   nstep=5000
   call dict_init(dict)
+  bar=f_progress_bar_new(nstep=nprof/nstep)
   do iprof=1,nprof,nstep
      do jprof=0,nstep-1
         call set(dict//'Test'//(jprof+iprof-1),jprof+iprof-1)
@@ -922,10 +955,13 @@ subroutine profile_dictionary_usage()
      !call system_clock(ncount1,ncount_rate,ncount_max)
      !tel=dble(ncount1-ncount0)/dble(ncount_rate)*(1d6/dble(ntry))
      tel=dble(t1-t0)/dble(ntry)*1.d-3
-     call yaml_mapping_open('Timings for search',flow=.true.)
-     call yaml_map('No. of items',iprof)
-     call yaml_map('Elapsed time (mus)',tel,fmt='(f12.2)')
-     call yaml_mapping_close() 
+     !here each step costs more
+     call dump_progress_bar(bar,step=iprof/nstep)
+
+!!$     call yaml_mapping_open('Timings for search',flow=.true.)
+!!$     call yaml_map('No. of items',iprof)
+!!$     call yaml_map('Elapsed time (mus)',tel,fmt='(f12.2)')
+!!$     call yaml_mapping_close() 
   end do
   call yaml_map('Other value',tot)
   call dict_free(dict)

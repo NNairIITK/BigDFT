@@ -1,7 +1,7 @@
 !> @file
 !! BigDFT package performing ab initio calculation based on wavelets
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -33,16 +33,20 @@ program BigDFT
   !this key will contain the runs which are associated to the current BigDFT instance
   run => dict_iter(options .get. 'BigDFT')
   do while(associated(run))
+     !here a loop on the documents of the input file starts
+     !this loop is useful if we want to restart a run without saving the wavefunctions on the disk
+     !number of atoms and number of orbitals in the run have to be the same
+     !     do while(valid_dataset(runObj,on=run))
+     
      call run_objects_init(runObj,run)
      call init_state_properties(outs,bigdft_nat(runObj))
-
      call bigdft_get_run_properties(run, posinp_id = posinp_id)
 
      !central routine, in bigdft_run, needed also for QM/MM approaches
      call process_run(posinp_id,runObj,outs)
-
      ! Deallocations.
      call deallocate_state_properties(outs)
+     !     end do
      call free_run_objects(runObj)
      run => dict_next(run)
   end do !loop over iconfig

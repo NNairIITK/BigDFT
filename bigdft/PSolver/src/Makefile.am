@@ -27,6 +27,17 @@ endif
 psolver_noinst =
 endif
 
+# C objects
+c_level = PS_input_variables_fetch.c
+
+PS_input_variables_fetch.o: PS_input_variables_definition-inc.h
+#build the fortran include file with the stream of input variables into a local string
+#the sed command below will transform the entire yaml document into a c string, to be passed to fortran
+PS_input_variables_definition-inc.h: PS_input_variables_definition.yaml
+	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
+
+
+
 if HAVE_ETSF_IO
 etsf_files = IOetsf.f90
 etsf_dep   = IOetsf.o
@@ -53,8 +64,10 @@ libPSolver_1_a_SOURCES = Build_Kernel.f90 \
 	PStypes.f90 \
 	PSbox.f90 \
 	PSbase.f90 \
+	box.f90 \
 	$(fdder_file) \
 	IObox.f90 \
+	$(c_level) \
 	$(etsf_files)
 
 # Modules.
@@ -65,8 +78,9 @@ modules = POISSON_SOLVER.@MODULE_EXT@ \
 	PSBASE.@MODULE_EXT@ \
 	PSBOX.@MODULE_EXT@ \
 	FDDER.@MODULE_EXT@ \
-	IOBOX.@MODULE_EXT@
-
+	IOBOXETSF.@MODULE_EXT@ \
+	IOBOX.@MODULE_EXT@ \
+	BOX.@MODULE_EXT@
 else
 modules = poisson_solver.@MODULE_EXT@ \
 	environment.@MODULE_EXT@ \
@@ -74,7 +88,9 @@ modules = poisson_solver.@MODULE_EXT@ \
 	psbase.@MODULE_EXT@ \
 	psbox.@MODULE_EXT@ \
 	fdder.@MODULE_EXT@ \
-	iobox.@MODULE_EXT@
+	ioboxetsf.@MODULE_EXT@ \
+	iobox.@MODULE_EXT@ \
+	box.@MODULE_EXT@
 endif
 
 CLEANFILES = $(modules) $(psolver_dynamic_library) $(psolver_library_soname) libPSolver-1.so
@@ -110,6 +126,7 @@ EXTRA_DIST = \
 	configure.inc.in\
 	FiniteDiffCorff.inc\
 	FiniteDiffCorff_2der.inc\
+	PS_input_variables_definition.yaml \
 	$(SOURCES_MOD)
 
 # Build targets.
@@ -162,7 +179,8 @@ PStypes.o: environment.o FDder.o
 PSbox.o: PStypes.o PSbase.o IObox.o
 FDder.o: PSbase.o
 IObox.o: PSbase.o $(etsf_dep)
-environment.o: PSbase.o
+box.o: PSbase.o
+environment.o: PSbase.o box.o
 conv_check_fft.o: cufft.o
 conv_check_fftw.o: fftw.o
 IOetsf.o: PSbase.o

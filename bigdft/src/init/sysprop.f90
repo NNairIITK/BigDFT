@@ -16,7 +16,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      norb_par_ref, norbu_par_ref, norbd_par_ref,output_grid)
   use module_base
   use module_types
-  use module_interfaces, only: createProjectorsArrays, createWavefunctionsDescriptors, &
+  use module_interfaces, only: createWavefunctionsDescriptors, &
        & init_orbitals_data_for_linear, orbitals_descriptors
   use module_xc
   use module_fragments
@@ -30,6 +30,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use f_enums
   use locreg_operations
   use locregs_init, only: initLocregs
+  use orbitalbasis
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
@@ -64,6 +65,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(kind=8),dimension(2) :: time_max, time_average
   !real(kind=8) :: ratio_before, ratio_after
   logical :: init_projectors_completely
+  type(orbital_basis) :: ob
   call f_routine(id=subname)
 
 
@@ -96,7 +98,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
               !write(*,'(a,2es16.6)') 'locregcenters(2,iat), dble(lzd%glr%d%n2+1)*lzd%hgrids(2)', locregcenters(2,iat), dble(lzd%glr%d%n2+1)*lzd%hgrids(2)
               !write(*,'(a,2es16.6)') 'locregcenters(3,iat), dble(lzd%glr%d%n3+1)*lzd%hgrids(3)', locregcenters(3,iat), dble(lzd%glr%d%n3+1)*lzd%hgrids(3)
               !write(*,'(a,3es16.6)') 'atoms%astruct%rxyz(1:3,iat)', atoms%astruct%rxyz(1:3,iat)
-              stop 'locregcenter outside of global box!'
+              !stop 'locregcenter outside of global box!'
+              call f_err_throw('locregcenter outside of global box!', err_name='BIGDFT_RUNTIME_ERROR')
           end if
       end do
   end if
@@ -283,26 +286,39 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call f_free(locrad)
      call f_free(norbsc_arr)
 
+     !Check if orbitals and electrons are present
+     if (orbs%norb*orbs%nkpts == 0) &
+        & call f_err_throw('No electrons in the system! Check your input variables or atomic positions.', &
+        & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
      ! Check the maximum number of orbitals
      if (in%nspin==1 .or. in%nspin==4) then
         if (orbs%norb>norbe) then
-           write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',orbs%norb,&
-                &   ') must not be greater than the number of orbitals (',norbe,&
-                &   ') generated from the input guess.'
-           stop
+           !write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',orbs%norb,&
+           !     &   ') must not be greater than the number of orbitals (',norbe,&
+           !     &   ') generated from the input guess.'
+           !stop
+           call f_err_throw('The number of orbitals ('+yaml_toa(orbs%norb)// &
+                &   ') must not be greater than the number of orbitals ('+yaml_toa(norbe)// &
+                &   ') generated from the input guess.',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
         end if
      else if (in%nspin == 2) then
         if (orbs%norbu > norbe) then
-           write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',orbs%norbu,&
-                &   ') must not be greater than the number of orbitals (',norbe,&
-                &   ') generated from the input guess.'
-           stop
+           !write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',orbs%norbu,&
+           !     &   ') must not be greater than the number of orbitals (',norbe,&
+           !     &   ') generated from the input guess.'
+           !stop
+           call f_err_throw('The number of orbitals up ('+yaml_toa(orbs%norbu)// &
+                &   ') must not be greater than the number of orbitals ('+yaml_toa(norbe)// &
+                &   ') generated from the input guess.',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
         end if
         if (orbs%norbd > norbe) then
-           write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',orbs%norbd,&
-                &   ') must not be greater than the number of orbitals (',norbe,&
-                &   ') generated from the input guess.'
-           stop
+           !write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',orbs%norbd,&
+           !     &   ') must not be greater than the number of orbitals (',norbe,&
+           !     &   ') generated from the input guess.'
+           !stop
+           call f_err_throw('The number of orbitals down ('+yaml_toa(orbs%norbd) //&
+                &   ') must not be greater than the number of orbitals ('+yaml_toa(norbe) //&
+                &   ') generated from the input guess.',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
         end if
      end if
   end if
@@ -370,9 +386,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !(inputpsi /= INPUT_PSI_LINEAR_AO .and. &
   !                              inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
   !                              inputpsi /= INPUT_PSI_MEMORY_LINEAR)
-  call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
+  call orbital_basis_associate(ob,orbs=orbs,Lzd=Lzd)
+  call createProjectorsArrays(Lzd%Glr,rxyz,atoms,ob,&
        in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
        Lzd%hgrids(3),dry_run,nlpsp,init_projectors_completely)
+  call orbital_basis_release(ob)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
   if (iproc == 0 .and. .not. nlpsp%on_the_fly .and. .false.) then
      call writemyproj("proj",WF_FORMAT_BINARY,orbs,Lzd%hgrids(1),Lzd%hgrids(2),&
@@ -413,16 +431,12 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       !if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
   end if
 
-  !Check if orbitals and electrons
-  if (orbs%norb*orbs%nkpts == 0) &
-     & call f_err_throw('No electrons in the system! Check your input variables or atomic positions.', &
-     & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
-
   call f_release_routine()
   !---end of system definition routine
 
 
   contains
+
 
     subroutine init_linear_orbs(linear_partition)
       use module_interfaces, only: init_orbitals_data_for_linear
@@ -444,7 +458,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
                   norb_par, norbu_par, norbd_par)
          end if
      else
-         stop 'init_linear_orbs: wrong value of linear_partition'
+         !stop 'init_linear_orbs: wrong value of linear_partition'
+         call f_err_throw('init_linear_orbs: wrong value of linear_partition',err_name='BIGDFT_RUNTIME_ERROR')
      end if
 
        ! There are needed for the restart (at least if the atoms have moved...)
@@ -452,8 +467,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        present_onwhichatom_old = present(onwhichatom_old)
        if (present_inwhichlocreg_old .and. .not.present_onwhichatom_old &
            .or. present_onwhichatom_old .and. .not.present_inwhichlocreg_old) then
-           call yaml_warning('inwhichlocreg_old and onwhichatom_old should be present at the same time')
-           stop 
+           call f_err_throw('inwhichlocreg_old and onwhichatom_old should be present at the same time', &
+           & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+           !stop 
        end if
        if (present_inwhichlocreg_old .and. present_onwhichatom_old) then
            call vcopy(lorbs%norb, onwhichatom_old(1), 1, lorbs%onwhichatom(1), 1)
@@ -737,6 +753,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      !!  integer,dimension(0:nproc-1),intent(out) :: norb_par
      !!  integer :: jjorbtot, jjorb, jproc, jlr, jorb
      !!  real(kind=8) :: tcount
+       !integer :: jlr
 
      !!  call f_zero(norb_par)
      !!  if (norb>=nproc) then
@@ -818,17 +835,23 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
 
   integer, parameter :: ndegree_ip = 16
 
-  denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
-       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
-       mpi_env=denspot%dpbox%mpi_env,alg=in%GPS_method,cavity=in%set_epsilon)
+!!$  denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
+!!$       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
+!!$       mpi_env=denspot%dpbox%mpi_env,alg=in%GPS_method,cavity=in%set_epsilon)
+  denspot%pkernel=pkernel_init(iproc,nproc,in%PS_dict,&
+       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,&
+       mpi_env=denspot%dpbox%mpi_env)
+
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac(denspot%xc) /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. denspot%dpbox%mpi_env%nproc > 1) then
      !the communicator of this kernel is bigdft_mpi%mpi_comm
      !this might pose problems when using SIC or exact exchange with taskgroups
-     denspot%pkernelseq=pkernel_init(iproc==0 .and. verb,0,1,in%matacc%PSolver_igpu,&
-          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
-          alg=in%GPS_method,cavity=in%set_epsilon)
+!!$     denspot%pkernelseq=pkernel_init(iproc==0 .and. verb,0,1,in%matacc%PSolver_igpu,&
+!!$          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
+!!$          alg=in%GPS_method,cavity=in%set_epsilon)
+     denspot%pkernelseq=pkernel_init(0,1,in%PS_dict_seq,&
+          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids)
   else 
      denspot%pkernelseq = denspot%pkernel
   end if
@@ -877,7 +900,8 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   !local variables
   real(gp), parameter :: epsilon0=78.36d0 ! Constant dielectric permittivity of water.
   real(gp), parameter :: fact=1.2d0 ! Multiplying factor to enlarge the rigid cavity.
-  integer :: i,i3s,i23
+  integer :: i
+  !integer :: i1,i2,i3,unt,i3s,i23
   real(gp) :: delta,IntSur,IntVol,noeleene,Cavene,Repene,Disene
   type(atoms_iterator) :: it
   real(gp), dimension(:), allocatable :: radii,radii_nofact
@@ -910,7 +934,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
      call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
           rcov=radii(it%iat))
   end do
-  if(bigdft_mpi%iproc==0) call yaml_map('Bohr_Ang',Bohr_Ang)
+  !if(bigdft_mpi%iproc==0) call yaml_map('Bohr_Ang',Bohr_Ang)
 
 !  radii(1)=1.5d0/Bohr_Ang
 !  radii(2)=1.2d0/Bohr_Ang
@@ -926,23 +950,33 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
    ! Set the Pauling's set of atomic radii [R.C. Weast, ed., Handbook of chemistry and physics (CRC Press, Cleveland, 1981)].
    select case(trim(atoms%astruct%atomnames(atoms%astruct%iatype(i))))
    case('H')
-    radii(i)=1.0d0
+    radii(i)=1.0d0 !Pauling's set
+    !radii(i)=1.20d0 !Bondi's radii 
    case('C')
-    radii(i)=1.5d0
+    radii(i)=1.50d0 !Pauling's set
+    !radii(i)=1.70d0 !Bondi's radii 
    case('N')
-    radii(i)=1.5d0
+    radii(i)=1.50d0 !Pauling's set
+    !radii(i)=1.55d0 !Bondi's radii 
    case('O')
-    radii(i)=1.4d0
+    radii(i)=1.40d0 !Pauling's set
+    !radii(i)=1.52d0 !Bondi's radii 
    case('P')
-    radii(i)=1.8d0
+    radii(i)=1.80d0 !Pauling's set
+    !radii(i)=1.8d0 !Bondi's radii 
+   case('S')
+    radii(i)=1.80d0 !Pauling's set
+    !radii(i)=1.80d0 !Bondi's radii 
    case('Cl')
-    radii(i)=1.8d0
+    radii(i)=1.80d0 !Pauling's set
+    !radii(i)=1.75d0 !Bondi's radii 
    case('Ti')
-    radii(i)=1.8d0
+    radii(i)=1.80d0 !Pauling's set
+    !radii(i)=1.80d0 !Bondi's radii 
    case default
     call f_err_throw('For rigid cavity a radius should be fixed for each atom type')
    end select
-   if (bigdft_mpi%iproc==0) call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
+   !if (bigdft_mpi%iproc==0) call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
    radii_nofact(i) = radii(i)/Bohr_Ang +1.05d0*delta
    radii(i) = fact*radii(i)/Bohr_Ang + 1.22d0*delta
   end do
@@ -1011,7 +1045,8 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
    call pkernel_set_epsilon(pkernel,eps=eps,oneosqrteps=oneosqrteps,corr=corr)
 !   call pkernel_set_epsilon(pkernel,eps=eps)
   case('PI') 
-   call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)
+   call pkernel_set_epsilon(pkernel,eps=eps,oneoeps=oneoeps,dlogeps=dlogeps)
+!   call pkernel_set_epsilon(pkernel,eps=eps)
   end select
 
 !!$  !starting point in third direction
@@ -1046,7 +1081,8 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   call f_free(corr)
 end subroutine epsilon_cavity
 
-!> calculate the inner cavity for a sccs run to avoit discontinuity in epsilon
+
+!> Calculate the inner cavity for a sccs run to avoit discontinuity in epsilon
 !! due to near-zero edens near atoms
 subroutine epsinnersccs_cavity(atoms,rxyz,pkernel)
   use dynamic_memory
@@ -1150,6 +1186,7 @@ END SUBROUTINE system_properties
 subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
   use module_base
   use module_types
+  use module_dpbox, only: denspot_distribution
   use public_enums, only: PSPCODE_PAW
   use m_pawrad,  only : pawrad_type, pawrad_init, pawrad_free
   use yaml_output
@@ -1300,339 +1337,6 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
 END SUBROUTINE calculate_rhocore
 
 
-subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
-     & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, pawpatch)
-  use module_defs, only: gp, dp, UNINITIALIZED, pi_param, BIGDFT_INPUT_VARIABLES_ERROR
-  use module_xc, only: xc_get_id_from_name
-  use yaml_strings, only: yaml_toa
-  use public_enums, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_PAW, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC
-  use ao_inguess
-  use dictionaries
-  use f_utils
-  implicit none
-  
-  type(io_stream), intent(inout) :: ios
-  integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp
-  real(gp), intent(out) :: psppar(0:4,0:6), radii_cf(3), rcore, qcore
-  logical, intent(out) :: pawpatch
-  logical, intent(inout) ::  donlcc
-  
-  !ALEX: Some local variables
-  real(gp):: sqrt2pi
-  character(len=2) :: symbol
-
-  integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l, nzatom_, nelpsp_, npspcode_
-  integer :: lmax,lloc,mmax, ixc_
-  real(dp) :: nelpsp_dp,nzatom_dp,r2well
-  character(len=max_field_length) :: line
-  logical :: exists, eof
-
-  radii_cf = UNINITIALIZED(1._gp)
-  pawpatch = .false.
-  !inquire(file=trim(filename),exist=exists)
-  !if (.not. exists) return
-
-  ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
-  !open(unit=11,file=trim(filename),status='old',iostat=ierror)
-  !Check the open statement
-  !if (ierror /= 0) then
-  !   write(*,*) ': Failed to open the file (it must be in ABINIT format!): "',&
-  !        trim(filename),'"'
-  !   stop
-  !end if
-  call f_iostream_get_line(ios, line)
-  if (line(1:5)/='<?xml') then
-     call f_iostream_get_line(ios, line)
-     read(line,*) nzatom_dp, nelpsp_dp
-     nzatom=int(nzatom_dp); nelpsp=int(nelpsp_dp)
-     call f_iostream_get_line(ios, line)
-     read(line,*) npspcode, ixcpsp, lmax, lloc, mmax, r2well
-  else
-     npspcode = PSPCODE_PAW ! XML pseudo, try to get nzatom, nelpsp and ixcpsp by hand
-     nzatom = 0
-     nelpsp = 0
-     ixcpsp = 0
-     do
-        call f_iostream_get_line(ios, line, eof)
-        if (eof .or. (nzatom > 0 .and. nelpsp > 0 .and. ixcpsp > 0)) exit
-        
-        if (line(1:6) == "<atom ") then
-           i = index(line, " Z")
-           i = i + index(line(i:max_field_length), '"')
-           j = i + index(line(i:max_field_length), '"') - 2
-           read(line(i:j), *) nzatom_dp
-           i = index(line, " valence")
-           i = i + index(line(i:max_field_length), '"')
-           j = i + index(line(i:max_field_length), '"') - 2
-           read(line(i:j), *) nelpsp_dp
-           nzatom = int(nzatom_dp)
-           nelpsp = int(nelpsp_dp)
-        end if
-        if (line(1:15) == "<xc_functional ") then
-           i = index(line, "name")
-           i = i + index(line(i:max_field_length), '"')
-           j = i + index(line(i:max_field_length), '"') - 2
-           call xc_get_id_from_name(ixcpsp, line(i:j))
-        end if
-     end do
-  end if
-
-  psppar(:,:)=0._gp
-  if (npspcode == PSPCODE_GTH) then !GTH case
-     call f_iostream_get_line(ios, line)
-     read(line,*) (psppar(0,j),j=0,4)
-     do i=1,2
-        call f_iostream_get_line(ios, line)
-        read(line,*) (psppar(i,j),j=0,3-i)
-     enddo
-  else if (npspcode == PSPCODE_HGH) then !HGH case
-     call f_iostream_get_line(ios, line)
-     read(line,*) (psppar(0,j),j=0,4)
-     call f_iostream_get_line(ios, line)
-     read(line,*) (psppar(1,j),j=0,3)
-     do i=2,4
-        call f_iostream_get_line(ios, line)
-        read(line,*) (psppar(i,j),j=0,3)
-        !ALEX: Maybe this can prevent reading errors on CRAY machines?
-        call f_iostream_get_line(ios, line)
-        !read(11,*) skip !k coefficients, not used for the moment (no spin-orbit coupling)
-     enddo
-  else if (npspcode == PSPCODE_PAW) then !PAW Pseudos
-     ! PAW format using libPAW.
-     !call pawpsp_read_header_2(ios%iunit,pspversion,basis_size,lmn_size)
-     ! PAW data will not be saved in the input dictionary,
-     ! we keep their reading for later.
-     pawpatch = .true.
-  else if (npspcode == PSPCODE_HGH_K) then !HGH-K case
-     call f_iostream_get_line(ios, line)
-     read(line,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
-     call f_iostream_get_line(ios, line)
-     read(line,*) nlterms !number of channels of the pseudo
-     prjloop: do l=1,nlterms
-        call f_iostream_get_line(ios, line)
-        read(line,*) psppar(l,0),nprl,psppar(l,1),&
-             (psppar(l,j+2),j=2,nprl) !h_ij terms
-        do i=2,nprl
-           call f_iostream_get_line(ios, line)
-           read(line,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij 
-        end do
-        if (l==1) cycle
-        do i=1,nprl
-           !ALEX: Maybe this can prevent reading errors on CRAY machines?
-           call f_iostream_get_line(ios, line)
-           !read(11,*)skip !k coefficients, not used
-        end do
-     end do prjloop
-  !ALEX: Add support for reading NLCC from psppar
-  else if (npspcode == PSPCODE_HGH_K_NLCC) then !HGH-NLCC: Same as HGH-K + one additional line
-     call f_iostream_get_line(ios, line)
-     read(line,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
-     call f_iostream_get_line(ios, line)
-     read(line,*) nlterms !number of channels of the pseudo
-     do l=1,nlterms
-        call f_iostream_get_line(ios, line)
-        read(line,*) psppar(l,0),nprl,psppar(l,1),&
-             (psppar(l,j+2),j=2,nprl) !h_ij terms
-        do i=2,nprl
-           call f_iostream_get_line(ios, line)
-           read(line,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij
-        end do
-        if (l==1) cycle
-        do i=1,nprl
-           !ALEX: Maybe this can prevent reading errors on CRAY machines?
-           call f_iostream_get_line(ios, line)
-           !read(11,*) skip !k coefficients, not used
-        end do
-     end do 
-     call f_iostream_get_line(ios, line)
-     read(line,*) rcore, qcore
-     !convert the core charge fraction qcore to the amplitude of the Gaussian
-     !multiplied by 4pi. This is the convention used in nlccpar(1,:).
-     !fourpi=4.0_gp*pi_param!8.0_gp*dacos(0.0_gp)
-     sqrt2pi=sqrt(0.5_gp*4.0_gp*pi_param)
-     qcore=4.0_gp*pi_param*qcore*real(nzatom-nelpsp,gp)/&
-          (sqrt2pi*rcore)**3
-     donlcc=.true.
-  else
-     call f_err_throw('PSP code not recognised (' // trim(yaml_toa(npspcode)) // ')', &
-          err_id=BIGDFT_INPUT_VARIABLES_ERROR)
-  end if
-
-  if (npspcode /= PSPCODE_PAW) then
-     
-     !old way of calculating the radii, requires modification of the PSP files
-     call f_iostream_get_line(ios, line, eof)
-     if (eof) then
-        !if (iproc ==0) write(*,*)&
-        !     ' WARNING: last line of pseudopotential missing, put an empty line'
-        line=''
-     end if
-     read(line,*,iostat=ierror1) radii_cf(1),radii_cf(2),radii_cf(3)
-     if (ierror1 /= 0 ) then
-        read(line,*,iostat=ierror) radii_cf(1),radii_cf(2)
-        radii_cf(3)=UNINITIALIZED(1._gp)
-        ! Open64 behaviour, if line is PAWPATCH, then radii_cf(1) = 0.
-        if (ierror /= 0) radii_cf = UNINITIALIZED(1._gp)
-     end if
-     pawpatch = (trim(line) == "PAWPATCH")
-     do
-        call f_iostream_get_line(ios, line, eof)
-        if (eof .or. pawpatch) exit
-        pawpatch = (trim(line) == "PAWPATCH")
-     end do
-  else
-     ! Need NC psp for input guess.
-     call atomic_info(nzatom, nelpsp, symbol = symbol)
-     ixc_ = ixcpsp ! Because psp_from_data() will change ixc_.
-     call psp_from_data(symbol, nzatom_, nelpsp_, npspcode_, ixc_, &
-          & psppar, exists)
-     ! Fallback to LDA case, anyway, this is only for input guess.
-     if (.not.exists) then
-        ixc_ = 1
-        call psp_from_data(symbol, nzatom_, nelpsp_, npspcode_, ixc_, &
-             & psppar, exists)
-        if (.not. exists) stop 'Serious issue'
-     end if
-  end if
-END SUBROUTINE psp_from_stream
-
-subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
-  use module_defs, only: dp, gp, pi_param
-  use module_base, only: bigdft_mpi
-  use module_xc
-  use abi_defs_basis, only: tol14, fnlen
-  use m_pawpsp, only: pawpsp_main
-  use m_pawxmlps, only: paw_setup, rdpawpsxml, ipsp2xml, paw_setup_free
-  use m_pawrad, only: pawrad_type !, pawrad_nullify
-  use m_pawtab, only: pawtab_type, pawtab_nullify
-  use dictionaries, only: max_field_length
-  use dynamic_memory
-  use f_utils
-
-  implicit none
-
-  type(pawrad_type), intent(out) :: pawrad
-  type(pawtab_type), intent(out) :: pawtab
-  real(gp), intent(out) :: epsatm
-  character(len = *), intent(in) :: filename
-  integer, intent(in) :: nzatom, nelpsp, ixc
-
-  integer:: icoulomb,ipsp !, ib, i, ii
-  integer:: pawxcdev,usewvl,usexcnhat,xclevel
-  integer::pspso
-  real(dp) :: xc_denpos
-  real(dp) :: xcccrc
-  character(len = fnlen) :: filpsp   ! name of the psp file
-  character(len = max_field_length) :: line
-  type(io_stream) :: ios
-  type(xc_info) :: xc
-  !!arrays
-  integer:: wvl_ngauss(2)
-  integer, parameter :: mqgrid_ff = 0, mqgrid_vl = 0
-  real(dp):: qgrid_ff(mqgrid_ff),qgrid_vl(mqgrid_vl)
-  real(dp):: ffspl(mqgrid_ff,2,1)
-  real(dp):: vlspl(mqgrid_vl,2)
-
-  !call pawrad_nullify(pawrad)
-  call pawtab_nullify(pawtab)
-  !These should be passed as arguments:
-  !Defines the number of Gaussian functions for projectors
-  !See ABINIT input files documentation
-  wvl_ngauss=[10,10]
-  icoulomb= 1 !Fake argument, this only indicates that we are inside bigdft..
-  !do not change, even if icoulomb/=1
-  ipsp=1      !This is relevant only for XML.
-  ! For the moment, it will just work for LDA
-  pspso=0 !No spin-orbit for the moment
-
-  call xc_init(xc, ixc, XC_MIXED, 1)
-  xclevel = 1 ! xclevel=XC functional level (1=LDA, 2=GGA)
-  if (xc_isgga(xc)) xclevel = 2
-  call xc_end(xc)
-
-  ! Define parameters:
-  pawxcdev=1; usewvl=1 ; usexcnhat=0 !default
-  xc_denpos=tol14
-  filpsp=trim(filename)
-
-  ! Always allocate paw_setup, but fill it only for iproc == 0.
-  allocate(paw_setup(1))
-  if (bigdft_mpi%iproc == 0) then
-     ! Parse the PAW file if in XML format
-     call f_iostream_from_file(ios, trim(filename))
-     call f_iostream_get_line(ios, line)
-     call f_iostream_release(ios)
-     if (line(1:5) == "<?xml") then
-        call rdpawpsxml(filpsp, paw_setup(1), 789)
-        ipsp2xml = f_malloc(1, id = "ipsp2xml")
-        ipsp2xml(1) = 1
-     end if
-  end if
-
-  call pawpsp_main( &
-       & pawrad,pawtab,&
-       & filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
-       & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,real(nelpsp, dp),real(nzatom, dp),&
-       & wvl_ngauss,comm_mpi=bigdft_mpi%mpi_comm,psxml = paw_setup(1))
-
-  call paw_setup_free(paw_setup(1))
-  deallocate(paw_setup)
-  if (allocated(ipsp2xml)) call f_free(ipsp2xml)
-
-!!$  ii = 0
-!!$  do ib = 1, pawtab%basis_size
-!!$     do i = 1, pawtab%wvl%pngau(ib)
-!!$        ii = ii + 1
-!!$        write(80 + ib,*) pawtab%wvl%pfac(:, ii), pawtab%wvl%parg(:, ii)
-!!$     end do
-!!$     close(80 + ib)
-!!$  end do
-END SUBROUTINE paw_from_file
-
-
-subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
-  use module_base
-  implicit none
-  
-  character(len = *), intent(in) :: filename
-  integer, intent(inout) :: dim
-  integer, intent(out) :: ngv, ngc
-  logical, intent(out) :: read_nlcc
-
-  integer :: ig, j
-  real(gp), dimension(0:4) :: fake_nlcc
-
-  inquire(file=filename,exist=read_nlcc)
-  if (read_nlcc) then
-     !associate the number of gaussians
-     open(unit=79,file=filename,status='unknown')
-     read(79,*)ngv
-     if (ngv==0) then 
-        ngv=UNINITIALIZED(1)
-     else
-        dim=dim+(ngv*(ngv+1)/2)
-        do ig=1,(ngv*(ngv+1))/2
-           read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
-        end do
-     end if
-     read(79,*)ngc
-     if (ngc==0) then
-        ngc=UNINITIALIZED(1)
-     else
-        dim=dim+(ngc*(ngc+1))/2
-
-        !better to read values in a fake array
-        do ig=1,(ngc*(ngc+1))/2
-           read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
-        end do
-     end if
-     !no need to go further for the moment
-     close(unit=79)
-  else
-     ngv=UNINITIALIZED(1)
-     ngc=UNINITIALIZED(1)
-  end if
-END SUBROUTINE nlcc_dim_from_file
 
 
 !> Calculate the number of electrons and check the polarisation (mpol)
@@ -1640,7 +1344,9 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
      & atoms, qcharge, nspin, mpol, norbsempty)
   use module_atoms, only: atoms_data
   use ao_inguess, only: charge_and_spol
-  use module_base, only: gp, f_err_throw,yaml_toa
+  use module_defs, only: gp
+  use dictionaries, only: f_err_throw
+  use yaml_strings
   use yaml_output, only: yaml_warning, yaml_comment
   use dynamic_memory
   !use ao_inguess, only : count_atomic_shells
@@ -1652,6 +1358,7 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
   real(gp), intent(in) :: qcharge
   integer, intent(in) :: nspin, mpol, norbsempty, iproc
   !Local variables
+  logical :: int_charge
   integer :: nel, nel_up,nel_dwn,nchg,iat, ityp, ispinsum, ichgsum, ichg, ispol,iabspol!, nspinor
   real(gp) :: qelec
 
@@ -1672,6 +1379,7 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
   if (-qcharge - real(nchg,gp) > 1.e-12_gp) nchg=nchg+1
   nchg=-nchg
 
+  int_charge = real(nint(qelec),gp) == qelec
 
   if(qelec < 0.0_gp ) then
     call f_err_throw('Number of electrons is negative:' // trim(yaml_toa(qelec)) // &
@@ -1686,9 +1394,9 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
      qelec_up=qelec
      qelec_down=0.0_gp
   else 
-     if (mod(nel+mpol,2) /=0) then
+     if (mod(nel+mpol,2) /=0 .and. int_charge) then
           call f_err_throw('The mpol polarization should have the same parity of the (rounded) number of electrons. ' // &
-            & '(mpol=' // trim(yaml_toa(mpol)) // ' and qelec=' // trim(yaml_toa(qelec)) // ')', &
+            & '(mpol='+mpol+' and qelec='+qelec+')', &
             & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
 
      end if
@@ -1712,7 +1420,7 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
         iabspol=iabspol+abs(ispol)
      end do
 
-     if (ispinsum /= nel_up-nel_dwn) then
+     if (ispinsum /= nel_up-nel_dwn .and. int_charge) then
         call f_err_throw('Total polarisation for the input guess (found ' // &
              trim(yaml_toa(ispinsum)) // &
              ') must be equal to rounded nel_up-nel_dwn ' // &
@@ -2242,7 +1950,9 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
            exit find_isproc
         end if
      end do find_isproc
-     if (isproc == UNINITIALIZED(1)) stop 'ERROR(check_kpt_distributions): isproc cannot be found'
+     !if (isproc == UNINITIALIZED(1)) stop 'ERROR(check_kpt_distributions): isproc cannot be found'
+     if (isproc == UNINITIALIZED(1)) call f_err_throw( &
+        & 'isproc cannot be found',err_name='BIGDFT_RUNTIME_ERROR')
      ieproc=UNINITIALIZED(1)
      find_ieproc : do kproc=nproc-1,0,-1
         if (ncomp_par(kproc,ikpt) > 0) then
@@ -2250,7 +1960,9 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
            exit find_ieproc
         end if
      end do find_ieproc
-     if (ieproc == UNINITIALIZED(1)) stop 'ERROR(check_kpt_distributions): ieproc cannot be found'
+     !if (ieproc == UNINITIALIZED(1)) stop 'ERROR(check_kpt_distributions): ieproc cannot be found'
+     if (ieproc == UNINITIALIZED(1)) call f_err_throw( &
+        & 'ieproc cannot be found', err_name='BIGDFT_RUNTIME_ERROR')
 
      norbs=0
      ncomps=0
@@ -2316,7 +2028,7 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
 
 END SUBROUTINE check_kpt_distributions
 
-!>routine which associates to any of the processor a given number of objects
+!> Routine which associates to any of the processor a given number of objects
 !! depending of the number of processors and k-points
 subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   use module_base
@@ -2665,8 +2377,8 @@ end subroutine pawpatch_from_file
 subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb, nkpts)
   !use module_base
   use module_defs, only: gp
-  use module_types, only: atoms_data, paw_objects, nullify_paw_objects, &
-       & denspot_distribution
+  use module_types, only: atoms_data, paw_objects, nullify_paw_objects
+  use module_dpbox, only: denspot_distribution
   use locregs, only: grid_dimensions
   use dynamic_memory
   use m_paw_an, only: paw_an_init

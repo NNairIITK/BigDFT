@@ -23,10 +23,14 @@ EXTRA_DIST = PS_Check.ref.yaml tols.yaml $(OTHERS)
 
 check_PROGRAMS = PS_Check PS_Program PS_Exercise Generalized_PSolver
 
-AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_srcdir)/PSolver/src -I. @MPI_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_srcdir)/PSolver/src -I. @LIB_FLIB_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/PSolver/src
 
-f_libraries = $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib-1.a
+f_libraries = $(top_builddir)/wrappers/libwrappers.a 
+
+if BUILD_FLIB
+f_libraries += $(top_builddir)/flib/src/libflib-1.a
+endif
 
 if BUILD_LIB_BIGDFT
 psolver_libraries = $(top_builddir)/PSolver/src/libPSolver-1.a $(f_libraries)
@@ -60,9 +64,9 @@ PS_Check.out.yaml: PS_Check PS_Program PS_Exercise Generalized_PSolver
 	-$(run_parallel) ./PS_Check -n [57,48,63] -g F > PS_Check.out.yaml
 	-$(run_parallel) ./PS_Check -n [64,64,64] -g P >> PS_Check.out.yaml
 	-$(run_parallel) ./PS_Check -n [32,64,48] -g S >> PS_Check.out.yaml
-	-$(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PI 
+	-$(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PI -i '{environment: {input_guess: No}}'
 	cat log.yaml >> PS_Check.out.yaml
-	-$(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PCG 
+	-$(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PCG -i '{environment: {input_guess: No}}'
 	cat log.yaml >> PS_Check.out.yaml
 	cp PS_Check.out.yaml tmp
 	cat tmp | grep -v 'Unable to read mpd.hosts' > PS_Check.out.yaml

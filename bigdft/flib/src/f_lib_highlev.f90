@@ -1,8 +1,9 @@
 !> @file
 !!  High level routines which needs more medium-level modules of the f_lib.
 !!  They should be external, in the sense that no interface should be needed to call them.
+
 !! @author Luigi Genovese
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -166,22 +167,24 @@ subroutine f_lib_err_severe_external(message)
   call f_err_severe()
 end subroutine f_lib_err_severe_external
 
-!> Routine which finalize f_lib and dummp the finalization information
+
+!> Routine which finalize f_lib and dump the finalization information
 subroutine f_lib_finalize()
   use dictionaries_base, only: dictionary_check_leak
   use dictionaries, only: f_err_finalize,dict_get_num
   use dynamic_memory, only: f_malloc_finalize
-  use yaml_output, only: yaml_close_all_streams,yaml_map,yaml_comment,yaml_walltime_toa
+  use yaml_output, only: yaml_close_all_streams,yaml_map,yaml_comment!,yaml_walltime_toa
   use yaml_parse, only: yaml_parse_errors_finalize
   use time_profiling, only: f_timing_finalize,f_clock
   use yaml_strings, only: operator(//)
+  use f_utils, only: f_humantime
   implicit none
   !local variables
   integer :: ndict,ndict_max,iproc,nlibs,nlibs_max
   call f_malloc_finalize(process_id=iproc)
   !print maximal value of dictionary usage
   if (iproc == 0) then
-     call yaml_map('Walltime since initialization',yaml_walltime_toa(f_clock()))
+     call yaml_map('Walltime since initialization',f_humantime(f_clock()))
      call dict_get_num(ndict,ndict_max,nlibs,nlibs_max)
      call yaml_map('Max No. of dictionaries used',ndict_max, advance='no')
      call yaml_comment('('//ndict//' still in use)')
@@ -196,7 +199,8 @@ subroutine f_lib_finalize()
   call dictionary_check_leak()
 end subroutine f_lib_finalize
 
-!> finalize f_lib but do not print out report information
+
+!> Finalize f_lib but do not print out report information
 subroutine f_lib_finalize_noreport()
   use dynamic_memory, only: f_malloc_finalize
   use dictionaries, only: f_err_finalize

@@ -2,7 +2,7 @@
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markeup Language (ML for Human)
 !! @author
-!!    Copyright (C) 2011-2013 BigDFT group
+!!    Copyright (C) 2011-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -30,8 +30,7 @@ module yaml_strings
   type, public :: f_string
      character(len=4*max_value_length) :: msg
   end type f_string
-
-  interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
+  interface yaml_toa
      module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_ctoa
      module procedure yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,yaml_ztoa,yaml_zvtoa,yaml_lvtoa,yaml_rvtoa
      module procedure yaml_livtoa
@@ -46,17 +45,22 @@ module yaml_strings
   end interface
 
   interface operator(.eqv.)
-     module procedure case_insensitive_equiv
+     module procedure string_equivalence
   end interface operator(.eqv.)
 
+  interface operator(.neqv.)
+     module procedure string_inequivalence
+  end interface operator(.neqv.)
+
   interface operator(//)
-     module procedure string_and_integer,string_and_double,string_and_long,string_and_msg,msg_and_string
+     module procedure string_and_integer,string_and_double,string_and_simple
+     module procedure string_and_long,string_and_msg,msg_and_string
      module procedure integer_and_string,integer_and_msg,msg_and_msg
   end interface
 
   interface operator(+)
      module procedure combine_strings,attach_ci,attach_cli,attach_cd,combine_msg
-     module procedure attach_c_msg,attach_msg_c
+     module procedure attach_c_msg,attach_msg_c,attach_lic
   end interface
 
   interface assignment(=)
@@ -73,7 +77,7 @@ module yaml_strings
   public :: yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol,is_atoli
   public :: read_fraction_string,f_strcpy
-  public :: operator(.eqv.),operator(+),operator(//),operator(**),assignment(=)
+  public :: operator(.eqv.),operator(.neqv.),operator(+),operator(//),operator(**),assignment(=)
 
 contains
 
@@ -134,11 +138,10 @@ contains
     implicit none
     character(len=*), intent(out) :: dest
     type(f_string), intent(in) :: src
-    !local variables
-    integer :: i,n
-    call f_strcpy(dest=dest,src=src%msg)
-  end subroutine f_strcpy_str
 
+    call f_strcpy(dest=dest,src=src%msg)
+
+  end subroutine f_strcpy_str
   
 
   !> Add a buffer to a string and increase its length
@@ -638,6 +641,26 @@ contains
     if (ierror /= 0) var = huge(1.d0) 
   END SUBROUTINE read_fraction_string
 
+  pure function string_inequivalence(a,b) result(notok)
+    implicit none
+    character(len=*), intent(in) :: a,b
+    logical :: notok
+    notok = .not. string_equivalence(a,b)
+  end function string_inequivalence
+
+  pure function string_equivalence(a,b) result(ok)
+    implicit none
+    character(len=*), intent(in) :: a,b
+    logical :: ok
+    !local variables
+    integer :: ln
+    !to be equivalent the two strings must have already the same length
+    ln= len_trim(adjustl(a))
+    ok= ln == len_trim(adjustl(b))
+    if (.not. ok .or. ln ==0) return
+    ok=case_insensitive_equiv(trim(adjustl(a)),trim(adjustl(b)))
+  end function string_equivalence
+
   !> Compare two strings (case-insensitive). Blanks are relevant!
   pure function case_insensitive_equiv(stra,strb)
     implicit none
@@ -752,6 +775,17 @@ contains
     call f_strcpy(c%msg,trim(adjustl(a))//trim(yaml_toa(num)))
   end function string_and_double
 
+  pure function string_and_simple(a,num) result(c)
+    implicit none
+    real(f_simple), intent(in) :: num
+    character(len=*), intent(in) :: a
+!!$    character(len=len_trim(adjustl(a))+len_trim(yaml_dtoa(num))) :: c
+!!$    c=a//trim(yaml_toa(num))
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(adjustl(a))//trim(yaml_toa(num)))
+  end function string_and_simple
+
+
   pure function string_and_msg(a,num) result(c)
     implicit none
     type(f_string), intent(in) :: num
@@ -810,6 +844,16 @@ contains
     call f_strcpy(c%msg,trim(s)//trim(adjustl(yaml_toa(num))))
   end function attach_cli
 
+  pure function attach_lic(num,s) result(c)
+    implicit none
+    integer(f_long), intent(in) :: num
+    character(len=*), intent(in) :: s
+!!$    character(len=len_trim(s)+len_trim(adjustl(yaml_litoa(num)))) :: c
+!!$    c=trim(s)//trim(adjustl(yaml_toa(num)))
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(adjustl(yaml_toa(num)))//trim(adjustl(s)))
+  end function attach_lic
+
   pure function attach_cd(s,num) result(c)
     implicit none
     real(f_double), intent(in) :: num
@@ -820,7 +864,7 @@ contains
     call f_strcpy(c%msg,trim(s)//trim(adjustl(yaml_toa(num))))
   end function attach_cd
   
-  function yaml_itoa_fmt(num,fmt) result(c)
+  pure function yaml_itoa_fmt(num,fmt) result(c)
     implicit none
     integer(f_integer), intent(in) :: num
     character(len=*), intent(in) :: fmt
@@ -830,7 +874,7 @@ contains
     call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
   end function yaml_itoa_fmt
 
-  function yaml_litoa_fmt(num,fmt) result(c)
+  pure function yaml_litoa_fmt(num,fmt) result(c)
     implicit none
     integer(f_long), intent(in) :: num
     character(len=*), intent(in) :: fmt
@@ -840,7 +884,7 @@ contains
     call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
   end function yaml_litoa_fmt
 
-  function yaml_dtoa_fmt(num,fmt) result(c)
+  pure function yaml_dtoa_fmt(num,fmt) result(c)
     implicit none
     real(f_double), intent(in) :: num
     character(len=*), intent(in) :: fmt
@@ -850,7 +894,7 @@ contains
     call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
   end function yaml_dtoa_fmt
 
-  function yaml_ctoa_fmt(num,fmt) result(c)
+  pure function yaml_ctoa_fmt(num,fmt) result(c)
     implicit none
     character(len=*), intent(in) :: num
     character(len=*), intent(in) :: fmt

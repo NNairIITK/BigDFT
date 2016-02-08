@@ -68,9 +68,8 @@ MODULE NEB_routines
   CONTAINS
 
     SUBROUTINE read_input(options)
-       use module_defs, only: BIGDFT_INPUT_VARIABLES_ERROR
-       use yaml_output
-       use yaml_strings
+      use yaml_output
+      use yaml_strings
       use dictionaries
       use module_input_keys, only: input_keys_fill_all,user_dict_from_files
       use module_input_dicts
@@ -91,7 +90,7 @@ MODULE NEB_routines
       INTEGER, PARAMETER :: unit = 10
       integer :: ierr
       type(mpi_environment) :: bigdft_mpi_svg
-      character(len=max_field_length) :: run_id, input_id, posinp_id
+      character(len=max_field_length) :: run_id, input_id, posinp_id,msg
       type(dictionary), pointer :: dict, dict_min, dict_pos
       REAL (gp) :: tolerance
 
@@ -116,8 +115,10 @@ MODULE NEB_routines
       call bigdft_get_run_properties(options, outdir_id = scratch_dir)
       bigdft_mpi%ngroup = neb_mpi%nproc
 
+
 !! default values are assigned
-      call dict_init(dict)
+      !call dict_init(dict)
+      dict => dict_new('input_minimal_file' .is. trim(run_id))
       call read_input_dict_from_files(trim(run_id), bigdft_mpi, dict)
       call input_keys_fill_all(dict, dict_min)
       call neb_set_from_dict(dict, neb_%optimization, neb_%climbing, &
@@ -156,7 +157,7 @@ MODULE NEB_routines
               & run_id    = job_name+i**'(i3)', &
               & input_id  = run_id+i**'(i3)', &
               & posinp_id = posinp1+i**'(i3)', &
-              & run_from_files = .true.)
+              & run_from_files = .true.,minimal_file=job_name+i**'(i3)')
 !!$         call bigdft_set_run_properties(dict_min, &
 !!$              & run_id    = trim(job_name) // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
 !!$              & input_id  = trim(run_id)   // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
@@ -168,7 +169,16 @@ MODULE NEB_routines
 
          call bigdft_get_run_properties(dict, input_id = input_id, posinp_id = posinp_id)
 
+         !run images if provided
+         call f_err_open_try()
          call user_dict_from_files(dict, trim(input_id), trim(posinp_id), bigdft_mpi)
+         ierr = f_get_last_error(msg)
+         call f_err_close_try()
+
+         !Ignore the error
+         !if (ierr == 0) then
+         !  print *,i,ierr,msg
+         !endif
 
          ! Take the astruct from source if not provided.
          if (trim(dict_value(dict // POSINP)) /= TYPE_DICT) then
@@ -435,7 +445,7 @@ END MODULE NEB_routines
 
 PROGRAM NEB
 
-  USE NEB_routines
+  USE NEB_routines, fake=> dict_free
   use dictionaries
   use bigdft_run
 

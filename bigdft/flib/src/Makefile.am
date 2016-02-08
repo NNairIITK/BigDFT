@@ -45,6 +45,10 @@ endif
 
 
 # Source code.
+if HAVE_FC_FLUSH_SUB
+flush_files = flush_sub.f90
+flush_object= flush_sub.o
+else
 if HAVE_FC_FLUSH
 flush_files = flush.f90
 flush_object= flush.o
@@ -52,6 +56,8 @@ else
 flush_files = flush_fake.f90
 flush_object= flush_fake.o
 endif
+endif
+
 if USE_MPI
 mpi_source =
 mpi_include =
@@ -101,7 +107,7 @@ DICT_INCLUDES = error_handling.f90 $(ERR_INCLUDES) dict_add-inc.f90 dict_getvec-
 GETADD_INCLUDES = getadd-c-inc.f90
 NOOMP_INCLUDES = remove_omp-inc.f90 halt_omp-inc.f90
 
-EXTRA_DIST = $(DYN_INCLUDES) $(YAML_INCLUDES) $(STRINGS_INCLUDES) $(ERR_INCLUDES) \
+EXTRA_DIST = $(DYN_INCLUDES) $(YAML_INCLUDES) $(STRINGS_INCLUDES) \
 	$(DICT_INCLUDES) $(GETADD_INCLUDES) $(F_MALLOC_INCLUDES) $(NOOMP_INCLUDES)
 
 # Module files.
@@ -222,3 +228,4 @@ insmod: $(modules)
 	for mod in "$(modules)" ; do \
 	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \
 	done
+

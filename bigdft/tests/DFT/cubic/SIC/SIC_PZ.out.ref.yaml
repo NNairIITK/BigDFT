@@ -145,10 +145,7 @@
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
    evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
    evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
-   method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
     #                                              purification, 1 FOE, 2 renormalization)
-   purification_quickreturn            : Yes #    linear scaling quick return in purification
-   adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
    calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
@@ -593,7 +590,7 @@
    norm(P)                             :  3.319505E+00
  Writing electronic density in file    : electronic_density
  Writing Hartree potential in file     : hartree_potential
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Generation of input wavefunction data for atom: H
  Electronic configuration: {s: [ 1.00]}
@@ -669,14 +666,10 @@
  Total Charge considered on the centers:  9.722858062042
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - 
-   Do not read the linear input files in the old format. If you use the .yaml format you can 
-   igno
  - No convergence within the allowed number of minimization steps
  - KS Hamiltonian is not Hermitian in the subspace, diff: 1.08E-02
  - Wavefunctions not converged after cycle  1
  - Self-consistent cycle did not meet convergence criteria
-
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  33.63

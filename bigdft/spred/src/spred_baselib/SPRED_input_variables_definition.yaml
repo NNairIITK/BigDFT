@@ -1,0 +1,60 @@
+## Definitions of the input variables
+##inputvar: #name of the variable as declared in the code
+## DESCRIPTION: Extended description of the variable to be used for documentation
+## COMMENT: This is the description of the variable as will appear in the logfile
+## RANGE: [from,to] #always put two numbers (also .inf can be put)
+## EXCLUSIVE: #here follows a mapping of allowed values (either RANGE or EXCLUSIVE)
+##  Value1:  comments of value1
+##  Value2:  comment of value2
+##  Alternatively, it follows a list of the allowed values without comments
+## (to be considered in the case of self-explanatory values, e.g. list of integers)
+##  [ Val1, Val2, Val3 ]
+## CONDITION: #here the conditions for which the variable makes sense are written
+##   MASTER_KEY: foo #this means that inputvar makes sense only if foo is specified
+##   WHEN: #provide a list of allowed values of foo for which inputvar is meaningful
+##     - fooval1
+##     - fooval2
+##   WHEN_NOT: #provide a list of forbidden values
+##     - fooval3
+##     - fooval4
+## PROFILE_FROM: foo #inputvar inherit the profile from the one specified by foo variable
+###then the profiles follows, which gives to the variables the allowed name
+## default: value of the default, written as a string 
+## profile1: value1 # if the user specifies inputvar: profile1 then inputvars will be value1
+## profile2: value2
+##
+## DO NOT USE the character ':' and "" in the COMMENT of DESCRIPTION
+############################################
+ fingerprints:
+   DESCRIPTION: Parameters for structure predicition and reaction pathway search modules
+   fpmethod:
+     COMMENT: fingerprint method
+     EXCLUSIVE:
+       OMF: (O)verlap (M)atrix (F)ree boundary conditions
+       OMP: (O)verlap (M)atrix (P)eriodic boundary conditions
+       OMPOLD: (O)verlap (M)atrix (P)eriodic boundary conditions (old implementation)
+       OMSOLD: (O)verlap (M)atrix (S)lab boundary conditions (old implementation)
+     default: OMF
+   natx_sphere:
+     COMMENT: Number of atoms in the sphere. Only for OMP.
+     default: 250
+     CONDITION:
+       MASTER_KEY: fpmethod
+       WHEN:
+       - OMP
+   angmom:
+     COMMENT: Angular momentum of gaussian orbitals. Only for OMF and OMP.
+     default: 1
+     EXCLUSIVE:
+       1: s-orbitals
+       4: s- and p-orbitals
+     #shortcuts
+     S: 1
+     SP: 4
+     CONDITION:
+       MASTER_KEY: fpmethod
+       WHEN:
+       - OMF
+       - OMP
+       - OMPOLD
+       - OMSOLD

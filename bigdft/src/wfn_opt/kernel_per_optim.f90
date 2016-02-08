@@ -1,7 +1,7 @@
 !> @file
 !!  OPtimzed routines using kernels
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -195,9 +195,9 @@ subroutine hit_with_kernel(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,
 END SUBROUTINE hit_with_kernel
 
 
-!>   Construct the kernel (-1/2 d^2/dx^2)_{ij}
-!!   at a real space grid with grid size hgrid
-!!   and then fourier transform it to momentum space
+!> Construct the kernel (-1/2 d^2/dx^2)_{ij}
+!! at a real space grid with grid size hgrid
+!! and then fourier transform it to momentum space
 subroutine make_kernel(n1,hgrid,kern)
   use module_fft_sg
   use module_base
@@ -256,8 +256,10 @@ subroutine make_kernel(n1,hgrid,kern)
   z(1,1,inzee)=fil(0)
 
   if (nd1 < 14) then
-     write(*,*)'ERROR: dimension too little dimension n',nd1,n1
-     stop
+     call f_err_throw('ERROR: dimension too little dimension n=' // trim(yaml_toa(nd1)) // ' n1=' // trim(yaml_toa(n1)), &
+          &         err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+     !write(*,*)'ERROR: dimension too little dimension n',nd1,n1
+     !stop
   end if
 
   do i=1,14

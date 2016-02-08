@@ -13,6 +13,8 @@ program MP_gaussian
   use module_base
   use gaussians
   use yaml_output
+  use yaml_parse
+  use pseudopotentials
   implicit none
   integer, parameter :: iunit=16        !< File unit for the plot
   integer, parameter :: nmoms=1         !< Number of calculated moments
@@ -27,90 +29,198 @@ program MP_gaussian
   real(gp), dimension(0:nmoms,2) :: moments
   real(gp), dimension(3,2,0:nmoms) :: avgmaxmin
   real(gp), dimension(:,:,:), allocatable :: fj_phi,fj_coll
+  integer :: nat,ntyp,iat,i
+  integer(f_long) :: t0,t1
+  real(gp) :: diff
+  type(gaussian_basis_new) :: G
+  type(dictionary), pointer :: dict,types
+  integer, dimension(:), allocatable :: iatype
+  real(gp), dimension(:,:), allocatable :: rxyz,Sab,S2ab,Tab,T2ab
+  real(gp), dimension(:,:,:), allocatable :: psppar
   
 
   call f_lib_initialize()
 
-  pow=0
+  types=>yaml_load('[ Zn, Er]')
+  !extract a set of gaussian basis of two PSP
+  nat=dict_len(types)
+  ntyp=dict_len(types)
+  iatype=f_malloc(nat,id='iatype') !all atoms are different
+  call f_memcpy(src=[(iat,iat=1,nat)],dest=iatype)
+  psppar=f_malloc0([0.to.4,0.to.6,1.to.ntyp],id='psppar')
+  !put two atoms far apart
+  rxyz=f_malloc0([3,nat],id='rxyz')
+  rxyz(3,2)=3.d0 
 
-  !pgauss=0.5_gp/((0.1_gp*hgrid)**2)!8.0e-3_dp*1.25_dp**(6*(8-1))
-  !array where we have to write the value of the discretization
-  fj_phi=f_malloc( (/ -npts .to. npts, -npts .to. npts, -npts .to. npts/), id='fj_phi')
-  fj_coll=f_malloc((/ -npts .to. npts, -npts .to. npts, -npts .to. npts/), id='fj_coll')
-  call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
+  !retrieve the parameters of the PSP by default
+  call dict_init(dict)
+  call psp_dict_fill_all(dict,dict_value( types // 0), 11, 15.d0, 5.d0, 8.d0)!a PSP-rich atom  
+  call psp_dict_fill_all(dict,dict_value( types // 1), 1, 15.d0, 5.d0, 8.d0)!a PSP-richer atom
 
-  ! Calculate for different nsigma sigma
-  do isigma=1,nsigma
-     pgauss=0.5_gp/((sigma+0.01_gp*(isigma-1)*hgrid)**2)
-     call yaml_map('sigma/h',sqrt(0.5_gp/pgauss)/hgrid)
-     !plot raw function (fort.iunit)
-     do j=-npts,npts
-        if (pow /= 0) then
-           write(iunit,*) j,exp(-pgauss*(j*hgrid)**2)*((j*hgrid)**pow)
-        else
-           write(iunit,*) j,exp(-pgauss*(j*hgrid)**2)
-        end if
-     end do
+!  call update_psp_dict(dict,'C') 
+!  call update_psp_dict(dict,'N') 
 
-     avgmaxmin=0.0_gp
-     avgmaxmin(3,:,:)=1.d100
-     max_fj=0.0_gp
-     do istep=1,nstep
-        x0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
-        y0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
-        z0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
-        call yaml_map('x0',x0,advance='no')
-        call yaml_comment('Step No.'//trim(yaml_toa(istep)),tabbing=70)
-        call evaluate_moments3D(nmoms,npts,hgrid,pgauss,pow,x0,y0,z0,fj_phi,fj_coll,moments)
-        max_fj=max(max_fj,maxval(abs(fj_coll-fj_phi)))
-!!$  !print moments value
-!!$  do imoms=0,nmoms
-!!$     reference=gauint0(pgauss,imoms+pow)
-!!$     if (reference /=0.0_gp) then
-!!$        call yaml_map('Mom No.'//trim(yaml_toa(imoms)),&
-!!$             (moments(imoms,:)-reference)/reference,fmt='(1pe22.14)',advance='no')
-!!$     else
-!!$        call yaml_map('Mom No.'//trim(yaml_toa(imoms)),&
-!!$             moments(imoms,:),fmt='(1pe22.14)',advance='no')
-!!$     end if
-!!$     call yaml_comment('Ref: '//trim(yaml_toa(reference,fmt='(1pe22.14)')))
-!!$  end do
-
-        !calculate the average, maximum and minimum of each moment in function of the reference
-        !j=1 use the elemental property of the mp_exp function with fj_phi
-        !j=2 collocation array with fj_coll
-        do j=1,2
-           do imoms=0,nmoms
-              reference=gauint0(pgauss,imoms+pow)**3
-              print *,j,imoms,reference,moments(imoms,j)
-              if (reference /= 0.0_gp) then
-                 !x^even
-                 moments(imoms,j) = abs((moments(imoms,j)-reference))!/reference)
-              else
-                 !x^odd
-                 moments(imoms,j) = abs(moments(imoms,j))
-              end if
-              avgmaxmin(1,j,imoms) = avgmaxmin(1,j,imoms)+moments(imoms,j)/real(nstep,gp)
-              avgmaxmin(2,j,imoms) = max(moments(imoms,j),avgmaxmin(2,j,imoms))
-              avgmaxmin(3,j,imoms) = min(moments(imoms,j),avgmaxmin(3,j,imoms))
-           end do
-        end do
-     end do
-
-     !Plot fort.(iunit+1)
-     write(iunit+1,'(104(1pe14.5))') sqrt(0.5_gp/pgauss)/hgrid,avgmaxmin
-     call yaml_map('maxdiff' // trim(yaml_toa(isigma)), (/ sqrt(0.5_gp/pgauss)/hgrid, max_fj /) )
-     !print *,'maxdiff',sqrt(0.5_gp/pgauss)/hgrid,max_fj
-  end do
-
-  call yaml_map('Results',reshape(avgmaxmin,(/6,nmoms+1/)),fmt='(1pe14.5)')
-
-  call finalize_real_space_conversion()
+  !print the dictionary
+  call yaml_map('PSP dictionary',dict)
   
-  call f_free(fj_phi)
-  call f_free(fj_coll)
+  !then retrieve the psppar components
+  call psp_set_from_dict(dict //("psppar."+dict_value(types//0)), psppar=psppar(1:,:,1))
+  call psp_set_from_dict(dict //("psppar."+dict_value(types//1)), psppar=psppar(1:,:,2))
+  
+  call yaml_map('Psppar for '+dict_value(types//0),psppar(:,:,1))
+  call yaml_map('Psppar for '+dict_value(types//1),psppar(:,:,2))
+
+  call gaussian_basis_from_psp(nat,iatype,rxyz,psppar,ntyp,G)
+
+  Sab=f_malloc([G%ncoeff,G%ncoeff],id='Sab')
+  S2ab=f_malloc([G%ncoeff,G%ncoeff],id='S2ab')
+  Tab=f_malloc([G%ncoeff,G%ncoeff],id='Tab')
+  T2ab=f_malloc([G%ncoeff,G%ncoeff],id='T2ab')
+
+  call yaml_mapping_open('Basis set generated, calculating overlap')
+  call yaml_map('Number of basis elements',G%ncoeff)
+  !calculate the overlap matrix of the basis
+  t0=f_time()
+  do i=1,1000
+     call overlap(G,G,Sab)
+  end do
+  t1=f_time()
+  call yaml_map('Overlap matrix',Sab,fmt='(1pg12.3)')
+  call yaml_map('Elapsed time',real(t1-t0,f_double)*1.e-9)
+
+  t0=f_time()
+  do i=1,1000
+     call overlap_gain(G,G,S2ab)
+  end do
+  t1=f_time()
+  call yaml_map('Overlap matrix with GaIn library',S2ab,fmt='(1pg12.3)')
+  call yaml_map('Elapsed time',real(t1-t0,f_double)*1.e-9)
+
+  call f_diff(G%ncoeff**2,Sab,S2ab,diff)
+  call yaml_map('Maxdiff of both objects',diff)
+
+  call yaml_mapping_close()
+
+  call yaml_mapping_open('Basis set generated, calculating kinetic term')
+  call yaml_map('Number of basis elements',G%ncoeff)
+  !calculate the overlap matrix of the basis
+  t0=f_time()
+  do i=1,1000
+     call kinetic(G,G,Tab)
+  end do
+  t1=f_time()
+  call yaml_map('Laplacian matrix',Tab,fmt='(1pg12.3)')
+  call yaml_map('Elapsed time',real(t1-t0,f_double)*1.e-9)
+
+  t0=f_time()
+  do i=1,1000
+     call kinetic_gain(G,G,T2ab)
+  end do
+  t1=f_time()
+  call yaml_map('Laplacian matrix with GaIn library',T2ab,fmt='(1pg12.3)')
+  call yaml_map('Elapsed time',real(t1-t0,f_double)*1.e-9)
+
+  call f_diff(G%ncoeff**2,Tab,-0.5d0*T2ab,diff)
+  call yaml_map('Maxdiff of both objects',diff)
+
+  call yaml_mapping_close()
+
+
+  call f_free(Sab)
+  call f_free(S2ab)
+  call f_free(Tab)
+  call f_free(T2ab)
+  call f_free(iatype)
+  call f_free(psppar)
+  call dict_free(dict,types)
+
+  !as the basis set is now generated we can use it to play with the Gaussian operations
+
+
+  call f_free(rxyz)
+  call gaussian_basis_free(G)
   call f_lib_finalize()
 
+!!!>  pow=0
+!!!>
+!!!>  !pgauss=0.5_gp/((0.1_gp*hgrid)**2)!8.0e-3_dp*1.25_dp**(6*(8-1))
+!!!>  !array where we have to write the value of the discretization
+!!!>  fj_phi=f_malloc( (/ -npts .to. npts, -npts .to. npts, -npts .to. npts/), id='fj_phi')
+!!!>  fj_coll=f_malloc((/ -npts .to. npts, -npts .to. npts, -npts .to. npts/), id='fj_coll')
+!!!>  call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
+!!!>
+!!!>  ! Calculate for different nsigma sigma
+!!!>  do isigma=1,nsigma
+!!!>     pgauss=0.5_gp/((sigma+0.01_gp*(isigma-1)*hgrid)**2)
+!!!>     call yaml_map('sigma/h',sqrt(0.5_gp/pgauss)/hgrid)
+!!!>     !plot raw function (fort.iunit)
+!!!>     do j=-npts,npts
+!!!>        if (pow /= 0) then
+!!!>           write(iunit,*) j,exp(-pgauss*(j*hgrid)**2)*((j*hgrid)**pow)
+!!!>        else
+!!!>           write(iunit,*) j,exp(-pgauss*(j*hgrid)**2)
+!!!>        end if
+!!!>     end do
+!!!>
+!!!>     avgmaxmin=0.0_gp
+!!!>     avgmaxmin(3,:,:)=1.d100
+!!!>     max_fj=0.0_gp
+!!!>     do istep=1,nstep
+!!!>        x0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
+!!!>        y0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
+!!!>        z0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
+!!!>        call yaml_map('x0',x0,advance='no')
+!!!>        call yaml_comment('Step No.'//trim(yaml_toa(istep)),tabbing=70)
+!!!>        call evaluate_moments3D(nmoms,npts,hgrid,pgauss,pow,x0,y0,z0,fj_phi,fj_coll,moments)
+!!!>        max_fj=max(max_fj,maxval(abs(fj_coll-fj_phi)))
+!!!>!!$  !print moments value
+!!!>!!$  do imoms=0,nmoms
+!!!>!!$     reference=gauint0(pgauss,imoms+pow)
+!!!>!!$     if (reference /=0.0_gp) then
+!!!>!!$        call yaml_map('Mom No.'//trim(yaml_toa(imoms)),&
+!!!>!!$             (moments(imoms,:)-reference)/reference,fmt='(1pe22.14)',advance='no')
+!!!>!!$     else
+!!!>!!$        call yaml_map('Mom No.'//trim(yaml_toa(imoms)),&
+!!!>!!$             moments(imoms,:),fmt='(1pe22.14)',advance='no')
+!!!>!!$     end if
+!!!>!!$     call yaml_comment('Ref: '//trim(yaml_toa(reference,fmt='(1pe22.14)')))
+!!!>!!$  end do
+!!!>
+!!!>        !calculate the average, maximum and minimum of each moment in function of the reference
+!!!>        !j=1 use the elemental property of the mp_exp function with fj_phi
+!!!>        !j=2 collocation array with fj_coll
+!!!>        do j=1,2
+!!!>           do imoms=0,nmoms
+!!!>              reference=gauint0(pgauss,imoms+pow)**3
+!!!>              print *,j,imoms,reference,moments(imoms,j)
+!!!>              if (reference /= 0.0_gp) then
+!!!>                 !x^even
+!!!>                 moments(imoms,j) = abs((moments(imoms,j)-reference))!/reference)
+!!!>              else
+!!!>                 !x^odd
+!!!>                 moments(imoms,j) = abs(moments(imoms,j))
+!!!>              end if
+!!!>              avgmaxmin(1,j,imoms) = avgmaxmin(1,j,imoms)+moments(imoms,j)/real(nstep,gp)
+!!!>              avgmaxmin(2,j,imoms) = max(moments(imoms,j),avgmaxmin(2,j,imoms))
+!!!>              avgmaxmin(3,j,imoms) = min(moments(imoms,j),avgmaxmin(3,j,imoms))
+!!!>           end do
+!!!>        end do
+!!!>     end do
+!!!>
+!!!>     !Plot fort.(iunit+1)
+!!!>     write(iunit+1,'(104(1pe14.5))') sqrt(0.5_gp/pgauss)/hgrid,avgmaxmin
+!!!>     call yaml_map('maxdiff' // trim(yaml_toa(isigma)), (/ sqrt(0.5_gp/pgauss)/hgrid, max_fj /) )
+!!!>     !print *,'maxdiff',sqrt(0.5_gp/pgauss)/hgrid,max_fj
+!!!>  end do
+!!!>
+!!!>  call yaml_map('Results',reshape(avgmaxmin,(/6,nmoms+1/)),fmt='(1pe14.5)')
+!!!>
+!!!>  call finalize_real_space_conversion()
+!!!>  
+!!!>  call f_free(fj_phi)
+!!!>  call f_free(fj_coll)
+!!!>  call f_lib_finalize()
+!!!>
 end program MP_gaussian
 
 

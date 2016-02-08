@@ -6,7 +6,8 @@ SUBDIRS = fft \
 	wrappers \
 	overlapgeneral \
 	coordinatetransform \
-	xc
+	xc \
+	sparsematrix
 
 if USE_BLACS
 SUBDIRS += dsygv

@@ -6,11 +6,13 @@
 !! No interface should be required to manipulate these routines
 !! Non-intrinsic objects should be mapped to addresses which have to be manipulated
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 !> Routine which initalizes the BigDFT environment
 subroutine bigdft_init_old(mpi_info,nconfig,run_id,ierr)
   use BigDFT_API
@@ -56,7 +58,6 @@ end subroutine bigdft_init_old
 subroutine bigdft_mpi_init(ierr)
   use wrapper_mpi, only: wmpi_init_thread,MPI_SUCCESS
   use module_types, only: bigdft_init_errors,bigdft_init_timing_categories
-  use exception_callbacks, only: severe_callback_add
   implicit none
   integer, intent(out) :: ierr
 
@@ -108,6 +109,7 @@ subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
   mpi_info(4)=bigdft_mpi%ngroup
 end subroutine bigdft_init_mpi_env
 
+
 subroutine bigdft_init_mpi_force(igroup, ngroup)
   use BigDFT_API
   implicit none
@@ -116,6 +118,7 @@ subroutine bigdft_init_mpi_force(igroup, ngroup)
   if (igroup >= 0) bigdft_mpi%igroup = igroup
   if (ngroup >= 0) bigdft_mpi%ngroup = ngroup
 END SUBROUTINE bigdft_init_mpi_force
+
 
 subroutine bigdft_finalize(ierr)
   use BigDFT_API
@@ -133,7 +136,7 @@ subroutine bigdft_finalize(ierr)
   !wait all processes before finalisation
   call mpibarrier() !over comm world
   call mpifinalize()
-  
+
 end subroutine bigdft_finalize
 
 
@@ -213,6 +216,7 @@ function bigdft_error_ret(err_signal,err_message) result (ierr)
   ierr=err_signal
   
 end function bigdft_error_ret
+
 
 !> Abort bigdft program
 subroutine bigdft_severe_abort()

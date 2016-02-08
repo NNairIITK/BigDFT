@@ -147,7 +147,7 @@
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
    ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
-   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
+   mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 2 #      Enables linear sumrho check
    check_overlap                       : 2 #      Enables linear overlap check
@@ -159,10 +159,7 @@
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
    evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
    evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
-   method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
     #                                              purification, 1 FOE, 2 renormalization)
-   purification_quickreturn            : Yes #    linear scaling quick return in purification
-   adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
    calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
@@ -297,12 +294,13 @@
  -  {Rc:  [  0.0000,  0.0000,  0.0000 ], Bz:  [  0.0000,  0.0000,  0.0000 ], Wgt:  1.0000} # 0001
  Material acceleration                 :  No #iproc=0
  Initializing LENOSKY_SI_BULK_RUN_MODE:
- - LENOSKY_SI_BULK_RUN_MODE: {}
-   Energy (Hartree)                    : -2.52891298656997110E+00
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.528912986569971}
+   Energy (Hartree)                    : -2.52891298656997066E+00
+   Force Norm (Hartree/Bohr)           :  1.08151286383217832E-01
    Wavefunction Optimization Finished, exit signal:  0
     #------------------------------------------------------ Geometry minimization using BFGS
    Begin of minimization using         : BFGS
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.528912986569971}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -315,7 +313,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  8.00E-1
      isatur                            :  0
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.580819141954915}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -330,7 +328,7 @@
      isatur                            :  0
     #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
     #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.620665073693573}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -343,7 +341,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  0
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.638774649198913}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -358,7 +356,7 @@
      isatur                            :  0
     #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
     #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.652872677970589}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -371,7 +369,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  0
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.661135879227356}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -384,7 +382,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  0
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.666676856531519}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -399,7 +397,7 @@
      isatur                            :  0
     #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
     #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.67045337454298}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -412,7 +410,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  0
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.673240115717528}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -425,7 +423,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  0
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.676202550515677}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -438,7 +436,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  0
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.678171550836211}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -453,7 +451,7 @@
      isatur                            :  0
     #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
     #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.679875529077072}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -466,7 +464,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  1
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.680849493402288}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -479,7 +477,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  2
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.681732793178747}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -492,7 +490,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  3
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.682510425389394}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -507,7 +505,7 @@
      isatur                            :  4
     #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
     #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.683099951391132}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -520,7 +518,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  5
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.6839318747974}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -533,7 +531,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  6
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.687607856348563}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -548,7 +546,7 @@
      isatur                            :  0
     #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
     #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.690634378631044}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -563,7 +561,7 @@
      isatur                            :  0
     #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
     #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.691305027242137}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -578,7 +576,7 @@
      isatur                            :  0
     #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
     #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.699710717237738}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -593,7 +591,7 @@
      isatur                            :  0
     #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
     #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.702175032504918}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -606,7 +604,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  0
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.707403060273202}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -621,7 +619,7 @@
      isatur                            :  0
     #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
     #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.709472732715898}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -636,7 +634,7 @@
      isatur                            :  0
     #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
     #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.712301415081777}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -651,7 +649,7 @@
      isatur                            :  0
     #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
     #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.71435679829084}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -666,7 +664,7 @@
      isatur                            :  0
     #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
     #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.715964752789365}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -681,7 +679,7 @@
      isatur                            :  1
     #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
     #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.716843327721229}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -694,9 +692,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  2
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.7171703333608}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -709,7 +705,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  3
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.717354899608591}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -722,7 +718,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  4
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.717424831147285}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -735,7 +731,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  5
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.717468393797405}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -748,9 +744,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  6
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.717484236700831}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -763,7 +757,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  7
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.717492643732371}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -776,7 +770,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  8
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.71749676643549}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -789,7 +783,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  9
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.717499916481096}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -802,7 +796,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  10
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.717506643389009}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -815,7 +809,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  11
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.717528170183301}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -828,9 +822,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  12
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.702423441992486}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -843,9 +835,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  0
-    #WARNING: Input positions not identical! (difference: 6.03961E-14 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.717545259079396}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -858,9 +848,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  0
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.718483125715743}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -873,9 +861,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  1
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.718818846938444}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -888,9 +874,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  2
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.719906527139998}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -903,9 +887,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  3
-    #WARNING: Input positions not identical! (difference: 1.06581E-14 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.706640056423807}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -918,9 +900,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  0
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.720317724770851}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -933,9 +913,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  0
-    #WARNING: Input positions not identical! (difference: 7.10543E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.721719717895137}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -948,9 +926,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  1
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.722133663907142}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -963,9 +939,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  2
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.722348282405475}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -978,9 +952,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  3
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.722768966134457}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -993,9 +965,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  4
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.720109538411787}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -1008,9 +978,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  0
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.722974586272815}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -1023,9 +991,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  1
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.723144001146103}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -1038,9 +1004,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  2
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.723213688455186}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -1053,9 +1017,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  3
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.72329108642331}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -1068,9 +1030,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  4
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.723353406023839}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -1083,9 +1043,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  5
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.723386499870053}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -1098,9 +1056,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  6
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.723398133540221}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -1113,9 +1069,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  7
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.723402207625207}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -1128,7 +1082,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  8
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.723403863906515}
    ICHECK                              :  0
    Geometry:
      Geometry Method                   : BFGS
@@ -1141,7 +1095,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  9
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.72340478631138}
    ICHECK                              :  1
    Geometry:
      Geometry Method                   : BFGS
@@ -1154,7 +1108,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  10
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.723405633473584}
    ICHECK                              :  2
    Geometry:
      Geometry Method                   : BFGS
@@ -1167,9 +1121,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  11
-    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
-    #master node
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.723405875953939}
    ICHECK                              :  3
    Geometry:
      Geometry Method                   : BFGS
@@ -1182,7 +1134,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  12
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.72340599852976}
    ICHECK                              :  4
    Geometry:
      Geometry Method                   : BFGS
@@ -1195,7 +1147,7 @@
      flt                               :  [  0.0E+00,  0.00E+00 ]
      Alpha                             :  9.00E-1
      isatur                            :  13
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy: -2.723406041234977}
    ICHECK                              :  5
    Geometry:
      Geometry Method                   : BFGS

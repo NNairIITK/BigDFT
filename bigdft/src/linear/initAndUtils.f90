@@ -8,77 +8,44 @@
 !!   For the list of contributors, see ~/AUTHORS 
 
 
-subroutine init_foe(iproc, nproc, input, orbs_KS, foe_obj, reset)
+subroutine init_foe_wrapper(iproc, nproc, input, orbs_KS, tmprtr, foe_obj)
   use module_base
-  use module_atoms, only: atomic_structure
-  use module_types
-  use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
+  use foe_base, only: foe_data
+  use foe_common, only: init_foe
+  use module_types, only: input_variables, orbitals_data
   implicit none
-  
   ! Calling arguments
   integer, intent(in) :: iproc, nproc
   type(input_variables), intent(in) :: input
   type(orbitals_data), intent(in) :: orbs_KS
+  real(kind=8),intent(in) :: tmprtr
   type(foe_data), intent(out) :: foe_obj
-  logical, intent(in) :: reset
-  
   ! Local variables
-  character(len=*), parameter :: subname='init_foe'
   integer :: iorb
-  real(kind=8) :: incr
+  real(kind=8),dimension(2) :: charges
 
-  call timing(iproc,'init_matrCompr','ON')
+  call f_routine(id='init_foe_wrapper')
 
-  foe_obj = foe_data_null()
-
-  if (reset) then
-      foe_obj%ef = f_malloc0_ptr(input%nspin,id='(foe_obj%ef)')
-      call foe_data_set_real(foe_obj,"ef",0.d0,1)
-      if (input%nspin==2) then
-          call foe_data_set_real(foe_obj,"ef",0.d0,2)
-      end if
-      foe_obj%evlow = f_malloc0_ptr(input%nspin,id='foe_obj%evlow')
-      call foe_data_set_real(foe_obj,"evlow",input%lin%evlow,1)
-      if (input%nspin==2) then
-          call foe_data_set_real(foe_obj,"evlow",input%lin%evlow,2)
-      end if
-      foe_obj%evhigh = f_malloc0_ptr(input%nspin,id='foe_obj%evhigh')
-      call foe_data_set_real(foe_obj,"evhigh",input%lin%evhigh,1)
-      if (input%nspin==2) then
-          call foe_data_set_real(foe_obj,"evhigh",input%lin%evhigh,2)
-      end if
-      foe_obj%bisection_shift = f_malloc0_ptr(input%nspin,id='foe_obj%bisection_shift')
-      call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,1)
-      if (input%nspin==2) then
-          call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,2)
-      end if
-      call foe_data_set_real(foe_obj,"fscale",input%lin%fscale)
-      call foe_data_set_real(foe_obj,"ef_interpol_det",input%lin%ef_interpol_det)
-      call foe_data_set_real(foe_obj,"ef_interpol_chargediff",input%lin%ef_interpol_chargediff)
-      foe_obj%charge = f_malloc0_ptr(input%nspin,id='foe_obj%charge')
-      call foe_data_set_real(foe_obj,"charge",0.d0,1)
-      do iorb=1,orbs_KS%norbu
-          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)+orbs_KS%occup(iorb),1)
+  charges(1) = 0.d0
+  do iorb=1,orbs_KS%norbu
+      charges(1) = charges(1) + orbs_KS%occup(iorb)
+  end do
+  if (input%nspin==2) then
+      charges(2) = 0.d0
+      do iorb=orbs_KS%norbu+1,orbs_KS%norb
+          charges(2) = charges(2) + orbs_KS%occup(iorb)
       end do
-      if (input%nspin==2) then
-          call foe_data_set_real(foe_obj,"charge",0.d0,2)
-          do iorb=orbs_KS%norbu+1,orbs_KS%norb
-               call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",2)+orbs_KS%occup(iorb),2)
-          end do
-      end if
-      call foe_data_set_int(foe_obj,"evbounds_isatur",0)
-      call foe_data_set_int(foe_obj,"evboundsshrink_isatur",0)
-      call foe_data_set_int(foe_obj,"evbounds_nsatur",input%evbounds_nsatur)
-      call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",input%evboundsshrink_nsatur)
-      call foe_data_set_real(foe_obj,"fscale_lowerbound",input%fscale_lowerbound)
-      call foe_data_set_real(foe_obj,"fscale_upperbound",input%fscale_upperbound)
-      call foe_data_set_logical(foe_obj,"adjust_FOE_temperature",input%adjust_FOE_temperature)
   end if
+  if (input%nspin/=1 .and. input%nspin /=2) call f_err_throw('Wrong value for nspin')
+  call init_foe(iproc, nproc, input%nspin, charges, tmprtr, input%evbounds_nsatur, input%evboundsshrink_nsatur, &
+       input%lin%evlow, input%lin%evhigh, input%lin%fscale, input%lin%ef_interpol_det, input%lin%ef_interpol_chargediff, &
+       input%fscale_lowerbound, input%fscale_upperbound, foe_obj)
 
-  call timing(iproc,'init_matrCompr','OF')
+  call f_release_routine()
+
+end subroutine init_foe_wrapper
 
 
-end subroutine init_foe
 
 
 subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,rxyz)
@@ -677,7 +644,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       do ilr=1,lzd%nlr
           locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
       end do
-      call init_foe(iproc, nproc, input, orbs_KS, lfoe, .true.)
+      call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, lfoe)
       call f_free(locreg_centers)
   end if
 
@@ -1172,10 +1139,10 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use yaml_output
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
-  use transposed_operations, only: init_matrixindex_in_compressed_fortransposed
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
-  use sparsematrix_init, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff, &
-                               init_matrix_taskgroups, check_local_matrix_extents
+  use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
+  use sparsematrix_init, only: init_matrix_taskgroups, check_local_matrix_extents, &
+                               init_matrixindex_in_compressed_fortransposed
   use foe_base, only: foe_data_deallocate
   use public_enums
   use locregs_init, only: small_to_large_locreg
@@ -1349,7 +1316,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
 
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
@@ -1358,7 +1325,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
      !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
      call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
@@ -1372,7 +1339,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      end do
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
@@ -1401,12 +1368,12 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
 
-     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
-          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, tmb%linmat%s, &
+          at%astruct%nat, tmb%collcom, tmb%collcom_sr, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, tmb%linmat%m, &
+          at%astruct%nat, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, tmb%linmat%l, &
+          at%astruct%nat, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
 
 
      nullify(tmb%linmat%ks)
@@ -1574,57 +1541,58 @@ end subroutine set_variables_for_hybrid
 
 
 
-subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
-  use module_base
-  use module_types
-  use yaml_output
-  use foe_base, only: foe_data
-  implicit none
-
-  ! Calling arguments
-  integer, intent(in) :: iproc, nproc
-  type(local_zone_descriptors), intent(in) :: lzd
-  type(atomic_structure), intent(in) :: astruct
-  type(input_variables), intent(in) :: input
-  type(orbitals_data), intent(in) :: orbs_KS, orbs
-  type(foe_data), intent(out) :: foe_obj
-  logical,intent(in) :: init
-  ! Local variables
-  integer :: ilr
-  real(kind=8),save :: cutoff_incr
-  real(kind=8),dimension(:,:), allocatable :: locreg_centers
-
-  call f_routine(id='increase_FOE_cutoff')
-
-  ! Just initialize the save variable
-  if (init) then
-      cutoff_incr=0.d0
-      call f_release_routine()
-      return
-  end if
-
-
-  ! How much should the cutoff be increased
-  cutoff_incr=cutoff_incr+1.d0
-
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('Need to re-initialize FOE cutoff',.true.)
-      call yaml_newline()
-      call yaml_map('Total increase of FOE cutoff wrt input values',cutoff_incr,fmt='(f5.1)')
-  end if
-
-  ! Re-initialize the foe data
-  locreg_centers = f_malloc((/3,lzd%nlr/),id='locreg_centers')
-  do ilr=1,lzd%nlr
-      locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
-  end do
-  call init_foe(iproc, nproc, input, orbs_KS, foe_obj,.false.)
-  call f_free(locreg_centers)
-
-  call f_release_routine()
-
-end subroutine increase_FOE_cutoff
+!SM probably not needed any more
+!!subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
+!!  use module_base
+!!  use module_types
+!!  use yaml_output
+!!  use foe_base, only: foe_data
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer, intent(in) :: iproc, nproc
+!!  type(local_zone_descriptors), intent(in) :: lzd
+!!  type(atomic_structure), intent(in) :: astruct
+!!  type(input_variables), intent(in) :: input
+!!  type(orbitals_data), intent(in) :: orbs_KS, orbs
+!!  type(foe_data), intent(out) :: foe_obj
+!!  logical,intent(in) :: init
+!!  ! Local variables
+!!  integer :: ilr
+!!  real(kind=8),save :: cutoff_incr
+!!  real(kind=8),dimension(:,:), allocatable :: locreg_centers
+!!
+!!  call f_routine(id='increase_FOE_cutoff')
+!!
+!!  ! Just initialize the save variable
+!!  if (init) then
+!!      cutoff_incr=0.d0
+!!      call f_release_routine()
+!!      return
+!!  end if
+!!
+!!
+!!  ! How much should the cutoff be increased
+!!  cutoff_incr=cutoff_incr+1.d0
+!!
+!!  if (iproc==0) then
+!!      call yaml_newline()
+!!      call yaml_map('Need to re-initialize FOE cutoff',.true.)
+!!      call yaml_newline()
+!!      call yaml_map('Total increase of FOE cutoff wrt input values',cutoff_incr,fmt='(f5.1)')
+!!  end if
+!!
+!!  ! Re-initialize the foe data
+!!  locreg_centers = f_malloc((/3,lzd%nlr/),id='locreg_centers')
+!!  do ilr=1,lzd%nlr
+!!      locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
+!!  end do
+!!  call init_foe(iproc, nproc, input, orbs_KS, foe_obj,.false.)
+!!  call f_free(locreg_centers)
+!!
+!!  call f_release_routine()
+!!
+!!end subroutine increase_FOE_cutoff
 
 
 

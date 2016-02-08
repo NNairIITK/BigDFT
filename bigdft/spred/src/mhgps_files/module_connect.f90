@@ -35,7 +35,7 @@ contains
 !! the full functionality of the non-recursive function
 !! ATTENTION: RECURSIVE ROUTINE IS DEPRECATED AND SHOULD NOT BE USED
 !! BEFORE THOROUGH TESTING
-recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
+recursive subroutine connect_recursively(spredinputs,mhgpsst,fsw,uinp,runObj,outs,&
                      rcov,isame,rxyz1,rxyz2,ener1,&
                      ener2,fp1,fp2,cobj,connected)
     !if called from outside recursion, connected has to be set 
@@ -53,8 +53,10 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
     use module_freezingstring
     use module_energyandforces
     use bigdft_run
+    use SPREDtypes
     implicit none
     !parameters
+    type(SPRED_inputs), intent(in)        :: spredinputs
     type(mhgps_state), intent(inout)      :: mhgpsst
     type(findsad_work), intent(inout)     :: fsw
     type(userinput), intent(in)           :: uinp
@@ -96,9 +98,8 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
         call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(ener2))))
     endif
 
-
     !check if input structures are distinct 
-    if(equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,&
+    if(equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','MM',uinp%en_delta_min,&
                            uinp%fp_delta_min,ener1,ener2,fp1,fp2))then
         if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) connect: '//&
                     'input minima are identical. Will NOT attempt'//&
@@ -172,13 +173,14 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
              cobj%minmode(1,1,mhgpsst%nsad),cobj%rotforce(1,1,mhgpsst%nsad))
     endif
 
-
-    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
-         runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),&
-         rcov,cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))
+    call fingerprint(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,runObj%atoms%astruct%cell_dim,rcov,&
+         cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))
+!    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
+!         runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),&
+!         rcov,cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))
 
     if(mhgpsst%nsad>1)then
-        if(equal(mhgpsst%iproc,'(MHGPS)','SS',mhgpsst%nid,uinp%en_delta_sad,&
+        if(equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','SS',uinp%en_delta_sad,&
           uinp%fp_delta_sad,cobj%enersad(mhgpsst%nsad-1),cobj%enersad(mhgpsst%nsad),&
           cobj%fpsad(1,mhgpsst%nsad-1),cobj%fpsad(1,mhgpsst%nsad)))then
             isame=isame+1
@@ -243,12 +245,13 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                   '/sad'//trim(adjustl(mhgpsst%isadc))//'_minFinalL',&
                   comment,cobj%enerleft(mhgpsst%nsad),cobj%leftmin(:,:,mhgpsst%nsad),&
                   cobj%fleft(:,:,mhgpsst%nsad))
-
-        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
-             runObj%atoms%astruct%cell_dim,&
-             bigdft_get_geocode(runObj),rcov,cobj%leftmin(1,1,mhgpsst%nsad),&
-             cobj%fpleft(1,mhgpsst%nsad))
-        if(.not.equal(mhgpsst%iproc,'(MHGPS)','MS',mhgpsst%nid,uinp%en_delta_sad,&
+        call fingerprint(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,runObj%atoms%astruct%cell_dim,&
+             rcov,cobj%leftmin(1,1,mhgpsst%nsad),cobj%fpleft(1,mhgpsst%nsad))
+!        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
+!             runObj%atoms%astruct%cell_dim,&
+!             bigdft_get_geocode(runObj),rcov,cobj%leftmin(1,1,mhgpsst%nsad),&
+!             cobj%fpleft(1,mhgpsst%nsad))
+        if(.not.equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','MS',uinp%en_delta_sad,&
            uinp%fp_delta_sad,cobj%enersad(mhgpsst%nsad),cobj%enerleft(mhgpsst%nsad),&
            cobj%fpsad(1,mhgpsst%nsad),cobj%fpleft(1,mhgpsst%nsad)))then
            exit loopL 
@@ -333,9 +336,12 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
              comment,&
              cobj%enerright(mhgpsst%nsad),cobj%rightmin(1,1,mhgpsst%nsad),&
              cobj%fright(1,1,mhgpsst%nsad))
-        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),rcov,&
-                        cobj%rightmin(1,1,mhgpsst%nsad),cobj%fpright(1,mhgpsst%nsad))
-        if(.not.equal(mhgpsst%iproc,'(MHGPS)','MS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
+        call fingerprint(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,runObj%atoms%astruct%cell_dim,&
+             rcov,cobj%rightmin(1,1,mhgpsst%nsad),cobj%fpright(1,mhgpsst%nsad))
+!        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),rcov,&
+!                        cobj%rightmin(1,1,mhgpsst%nsad),cobj%fpright(1,mhgpsst%nsad))
+        if(.not.equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,&
+             '(MHGPS)','MS',uinp%en_delta_sad,uinp%fp_delta_sad,&
            cobj%enersad(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad),&
            cobj%fpsad(1,mhgpsst%nsad),cobj%fpright(1,mhgpsst%nsad)))then
            exit loopR 
@@ -386,25 +392,25 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
 
     !is minimum, obtained by relaxation from left bar end identical to
     !left input minimum?
-    lnl=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,&
+    lnl=equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','MM',&
         uinp%en_delta_min,uinp%fp_delta_min,ener1,&
         cobj%enerleft(mhgpsst%nsad),fp1,cobj%fpleft(1,mhgpsst%nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !right input minimum?
-    rnr=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,&
+    rnr=equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','MM',&
         uinp%en_delta_min,uinp%fp_delta_min,ener2,&
         cobj%enerright(mhgpsst%nsad),fp2,cobj%fpright(1,mhgpsst%nsad))
 
     !is minimum obtained by relaxation from left bar end identical to 
     !right input minimum?
-    lnr=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,&
+    lnr=equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','MM',&
         uinp%en_delta_min,uinp%fp_delta_min,ener2,&
         cobj%enerleft(mhgpsst%nsad),fp2,cobj%fpleft(1,mhgpsst%nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !left input minimum?
-    rnl=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,&
+    rnl=equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','MM',&
         uinp%en_delta_min,uinp%fp_delta_min,ener1,&
         cobj%enerright(mhgpsst%nsad),fp1,cobj%fpright(1,mhgpsst%nsad))
 
@@ -426,7 +432,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                             '(MHGPS) connection check connected',&
                             cobj%enerleft(mhgpsst%nsad),&
                             cobj%enerright(mhgpsst%nsad)
-        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
+        call connect_recursively(spredinputs,mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
                      cobj%rightmin(1,1,nsad_loc),rxyz2,&
                      cobj%enerright(nsad_loc),ener2,&
                      cobj%fpright(1,nsad_loc),fp2,cobj,connected)
@@ -461,7 +467,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
 !    stop
 !endif
         !connect left relaxed bar end with left input min
-        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
+        call connect_recursively(spredinputs,mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
                      rxyz1,cobj%leftmin(1,1,nsad_loc),&
                      ener1,cobj%enerleft(nsad_loc),&
                      fp1,cobj%fpleft(1,nsad_loc),cobj,connected)
@@ -477,7 +483,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                              cobj%enerleft(mhgpsst%nsad),&
                              cobj%enerright(mhgpsst%nsad)
         !connect right relaxed bar end with left input min
-        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
+        call connect_recursively(spredinputs,mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
                      rxyz1,cobj%rightmin(1,1,nsad_loc),&
                      ener1,cobj%enerright(nsad_loc),&
                      fp1,cobj%fpright(1,nsad_loc),cobj,connected)
@@ -492,7 +498,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                         ' connection check connected',&
                         cobj%enerleft(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad)
         !connect left relaxed bar end with right input min
-        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
+        call connect_recursively(spredinputs,mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
                      rxyz2,cobj%leftmin(1,1,nsad_loc),&
                      ener2,cobj%enerleft(nsad_loc),&
                      fp2,cobj%fpleft(1,nsad_loc),cobj,connected)
@@ -512,11 +518,11 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                         cobj%enerright(mhgpsst%nsad)
         !connect left input min with left relaxed bar end  and right
         !input min with right relaxed bar end
-        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
+        call connect_recursively(spredinputs,mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
                      rxyz1,cobj%leftmin(1,1,nsad_loc),&
                      ener1,cobj%enerleft(nsad_loc),&
                      fp1,cobj%fpleft(1,nsad_loc),cobj,connected)
-        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
+        call connect_recursively(spredinputs,mhgpsst,fsw,uinp,runObj,outs,rcov,isame,&
                      cobj%rightmin(1,1,nsad_loc),rxyz2,&
                      cobj%enerright(nsad_loc),ener2,&
                      cobj%fpright(1,nsad_loc),fp2,cobj,connected)
@@ -534,7 +540,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
 
 end subroutine
 !=====================================================================
-subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,&
+subroutine connect(spredinputs,mhgpsst,fsw,uinp,runObj,outs,rcov,&
                      rxyz1,rxyz2,ener1,ener2,fp1,fp2,&
                      cobj,connected,premature_exit,nsad)
 !TODO: Some checks are only available for free boundary conditions.
@@ -555,8 +561,10 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,&
     use module_freezingstring
     use module_energyandforces
     use bigdft_run
+    use SPREDtypes
     implicit none
     !parameters
+    type(SPRED_inputs), intent(in) :: spredinputs
     type(mhgps_state), intent(inout)      :: mhgpsst
     type(findsad_work), intent(inout)      :: fsw
     type(userinput), intent(in) :: uinp
@@ -573,21 +581,19 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,&
     integer, intent(out)      :: nsad
     !local
     integer, parameter :: npushmax=3
-    integer  :: infocode
+!    integer  :: infocode
     real(gp) :: displ,ener_count
     real(gp) :: fnrm,fmax
     logical  :: converged
     logical  :: lnl, rnr, lnr, rnl 
     character(len=200) :: comment
-    integer :: ntodo
     real(gp) :: fp1cur(mhgpsst%nid), fp2cur(mhgpsst%nid)
     real(gp) :: ener1cur, ener2cur
     integer :: isame
-    integer :: ipush
+!    integer :: ipush
     integer :: iloop
     integer :: istat
-    real(gp) :: scl
-    logical :: dmyl
+!    real(gp) :: scl
 
     connected=.false.
     premature_exit = .false.
@@ -635,7 +641,7 @@ connectloop: do while(cobj%ntodo>=1)
     endif
 
     !check if input structures are distinct 
-    if(equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,&
+    if(equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','MM',uinp%en_delta_min,&
        uinp%fp_delta_min,cobj%todoenergy(1,cobj%ntodo),cobj%todoenergy(2,cobj%ntodo),&
                              cobj%todofp(1,1,cobj%ntodo),cobj%todofp(1,2,cobj%ntodo)))then
         if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) connect: '//&
@@ -716,13 +722,14 @@ connectloop: do while(cobj%ntodo>=1)
              cobj%minmode(1,1,mhgpsst%nsad),cobj%rotforce(1,1,mhgpsst%nsad))
     endif
 
-
-    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
-         runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),&
+    call fingerprint(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,runObj%atoms%astruct%cell_dim,&
          rcov,cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))
+!    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
+!         runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),&
+!         rcov,cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))
 
     if(mhgpsst%nsad>1 .and. (.not. uinp%singlestep))then
-        if(equal(mhgpsst%iproc,'(MHGPS)','SS',mhgpsst%nid,uinp%en_delta_sad,&
+        if(equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','SS',uinp%en_delta_sad,&
           uinp%fp_delta_sad,cobj%enersad(mhgpsst%nsad-1),cobj%enersad(mhgpsst%nsad),&
           cobj%fpsad(1,mhgpsst%nsad-1),cobj%fpsad(1,mhgpsst%nsad)))then
             isame=isame+1
@@ -757,7 +764,7 @@ connectloop: do while(cobj%ntodo>=1)
         endif
     endif
 
-   call pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,&
+   call pushoff_and_relax_bothSides(spredinputs,uinp,mhgpsst,runObj,outs,rcov,&
         cobj%saddle(1,1,mhgpsst%nsad),cobj%enersad(mhgpsst%nsad),&
         cobj%fpsad(1,mhgpsst%nsad),cobj%minmode(1,1,mhgpsst%nsad),&
         cobj%leftmin(1,1,mhgpsst%nsad),cobj%fleft(1,1,mhgpsst%nsad),&
@@ -1114,25 +1121,25 @@ connectloop: do while(cobj%ntodo>=1)
 
     !is minimum, obtained by relaxation from left bar end identical to
     !left input minimum?
-    lnl=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,&
+    lnl=equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','MM',uinp%en_delta_min,&
         uinp%fp_delta_min,ener1cur,cobj%enerleft(mhgpsst%nsad),fp1cur,&
         cobj%fpleft(1,mhgpsst%nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !right input minimum?
-    rnr=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,&
+    rnr=equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','MM',uinp%en_delta_min,&
         uinp%fp_delta_min,ener2cur,cobj%enerright(mhgpsst%nsad),fp2cur,&
         cobj%fpright(1,mhgpsst%nsad))
 
     !is minimum obtained by relaxation from left bar end identical to 
     !right input minimum?
-    lnr=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,&
+    lnr=equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','MM',uinp%en_delta_min,&
         uinp%fp_delta_min,ener2cur,cobj%enerleft(mhgpsst%nsad),fp2cur,&
         cobj%fpleft(1,mhgpsst%nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !left input minimum?
-    rnl=equal(mhgpsst%iproc,'(MHGPS)','MM',mhgpsst%nid,uinp%en_delta_min,&
+    rnl=equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','MM',uinp%en_delta_min,&
         uinp%fp_delta_min,ener1cur,cobj%enerright(mhgpsst%nsad),fp1cur,&
         cobj%fpright(1,mhgpsst%nsad))
 
@@ -1472,19 +1479,20 @@ enddo connectloop
         endif
     endif
 end subroutine
-!=====================================================================
+
+
+!> This function compares rxyz1 an rxyz2 with a non-permutational
+!! invariant rmsd if the have been tried to be connected previously.
+!! a non-permutationally invariant rmsd is used such that
+!! transition states between different premuational variants of the 
+!! same structures are computed
 function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
-    !this function compares rxyz1 and rxyz2 using a non-permutational
-    !invariant rmsd if they previously have been tried to be connected.
-    !a non-permutationally invariant rmsd is used such that
-    !transition states between different premuational variants of the 
-    !same structures are computed
     use module_base
     use bigdft_run, only: run_objects
     use module_mhgps_state
     use module_userinput
     implicit none
-    !parameters
+    !rguments
     type(mhgps_state), intent(inout) :: mhgpsst
     type(userinput), intent(in)  :: uinp
     type(run_objects), intent(in) :: runObj
@@ -1493,8 +1501,8 @@ function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
     logical :: previously_connected
     !local
     integer :: iatt
-    integer :: i
-    real(gp),allocatable :: attempted_connections_tmp(:,:,:,:)
+    !integer :: i
+    !real(gp), dimension(:,:,:,:), allocatable :: attempted_connections_tmp
 
     previously_connected = .false.
     outer: do iatt = 1 , mhgpsst%nattempted
@@ -1801,7 +1809,7 @@ subroutine write_todoList(uinp,mhgpsst,runObj,cobj)
     endif
 end subroutine
 !=====================================================================
-subroutine pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,&
+subroutine pushoff_and_relax_bothSides(spredinputs,uinp,mhgpsst,runObj,outs,rcov,&
            rxyz_sad,ener_sad,fp_sad,minmode,rxyz_minL,fxyz_minL,&
            ener_minL,fp_minL,rxyz_minR,fxyz_minR,ener_minR,fp_minR,istat)
     use module_base
@@ -1812,8 +1820,10 @@ subroutine pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,&
                           bigdft_set_input_policy,INPUT_POLICY_SCRATCH
     use module_userinput
     use module_mhgps_state
+    use SPREDtypes
     implicit none
     !parameters
+    type(SPRED_inputs), intent(in) :: spredinputs
     type(userinput), intent(in)     :: uinp
     type(mhgps_state), intent(inout) :: mhgpsst
     type(run_objects), intent(inout) :: runObj
@@ -1834,13 +1844,12 @@ subroutine pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,&
     integer, intent(out)  :: istat
     !internal variables
     real(gp) :: scl
-    integer :: ipush
     integer :: istatint
     istat=0
     if(mhgpsst%iproc==0)&
         call yaml_comment('(MHGPS) Relax from left side ',hfill='.')
     scl=-1.0_gp
-    call pushoff_and_relax_oneSide(uinp,mhgpsst,runObj,outs,rcov,scl,&
+    call pushoff_and_relax_oneSide(spredinputs,uinp,mhgpsst,runObj,outs,rcov,scl,&
            rxyz_sad,ener_sad,fp_sad,minmode,rxyz_minL,fxyz_minL,&
            ener_minL,fp_minL,istatint)
     if(istatint/=0)then
@@ -1856,7 +1865,7 @@ subroutine pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,&
     !runObj%inputs%inputPsiId=0
     call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,runObj)
     scl=1.0_gp
-    call pushoff_and_relax_oneSide(uinp,mhgpsst,runObj,outs,rcov,scl,&
+    call pushoff_and_relax_oneSide(spredinputs,uinp,mhgpsst,runObj,outs,rcov,scl,&
            rxyz_sad,ener_sad,fp_sad,minmode,rxyz_minR,fxyz_minR,&
            ener_minR,fp_minR,istatint)
     if(istatint/=0)then
@@ -1866,7 +1875,7 @@ subroutine pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,&
     endif
 end subroutine pushoff_and_relax_bothSides
 !=====================================================================
-subroutine pushoff_and_relax_oneSide(uinp,mhgpsst,runObj,outs,rcov,scl,&
+subroutine pushoff_and_relax_oneSide(spredinputs,uinp,mhgpsst,runObj,outs,rcov,scl,&
            rxyz_sad,ener_sad,fp_sad,minmode,rxyz_min,fxyz_min,&
            ener_min,fp_min,istat)
     use module_base
@@ -1880,6 +1889,7 @@ subroutine pushoff_and_relax_oneSide(uinp,mhgpsst,runObj,outs,rcov,scl,&
     use module_mhgps_state
     use module_energyandforces
     use module_minimizers
+    use SPREDtypes
     !istat:
     !istat=0 : all ok
     !ATTENTION: if istat/=0, rxyz_min may not contain the actual minimum!
@@ -1888,6 +1898,7 @@ subroutine pushoff_and_relax_oneSide(uinp,mhgpsst,runObj,outs,rcov,scl,&
     !istat=3 : converged back to saddle
     implicit none
     !parameters
+    type(SPRED_inputs), intent(in) :: spredinputs
     type(userinput), intent(in)     :: uinp
     type(mhgps_state), intent(inout) :: mhgpsst
     type(run_objects), intent(inout) :: runObj
@@ -1973,11 +1984,12 @@ subroutine pushoff_and_relax_oneSide(uinp,mhgpsst,runObj,outs,rcov,scl,&
                   '/sad'//trim(adjustl(mhgpsst%isadc))//'_minFinal'//LR,&
                   comment,ener_min,rxyz_min,fxyz_min)
 
-        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
-             runObj%atoms%astruct%cell_dim,&
-             bigdft_get_geocode(runObj),rcov,rxyz_min(1,1),&
-             fp_min(1))
-        if(.not.equal(mhgpsst%iproc,'(MHGPS)','MS',mhgpsst%nid,&
+    call fingerprint(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,runObj%atoms%astruct%cell_dim,rcov,rxyz_min(1,1),fp_min(1))
+!        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
+!             runObj%atoms%astruct%cell_dim,&
+!             bigdft_get_geocode(runObj),rcov,rxyz_min(1,1),&
+!             fp_min(1))
+        if(.not.equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','MS',&
              uinp%en_delta_sad,uinp%fp_delta_sad,ener_sad,ener_min,&
                                              fp_sad(1),fp_min(1)))then
             exit loopPush

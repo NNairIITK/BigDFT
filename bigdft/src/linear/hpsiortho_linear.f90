@@ -13,7 +13,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
            hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
-           norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
+           norder_taylor, max_inversion_error, precond_convol_workarrays, precond_workarrays,&
            wt_hphi, wt_philarge, wt_hpsinoprecond, &
            cdft, input_frag, ref_frags)
   use module_base
@@ -26,8 +26,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                                sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL, &
                                sparsematrix_malloc
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: transform_sparse_matrix, gather_matrix_from_taskgroups_inplace, &
-                          transform_sparse_matrix_local
+  use sparsematrix, only: transform_sparse_matrix_local
   use constrained_dft, only: cdft_data
   use module_fragments, only: system_fragment,fragmentInputParameters
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
@@ -37,7 +36,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: iproc, nproc, it, method_updatekernel
+  integer, intent(in) :: iproc, nproc, it
   integer,intent(inout) :: norder_taylor
   real(kind=8),intent(in) :: max_inversion_error
   type(DFT_wavefunction), target, intent(inout):: tmb
@@ -142,8 +141,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if (correction_co_contra) then
       !@NEW correction for contra / covariant gradient
 
-      if ((method_updatekernel/=UPDATE_BY_FOE .and. method_updatekernel/=UPDATE_BY_RENORMALIZATION) &
-           .or. target_function/=TARGET_FUNCTION_IS_HYBRID) then
+      if (target_function/=TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
@@ -157,8 +155,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
       ! Transform to the larger sparse region in order to be compatible with tmb%ham_descr%collcom.
       ! To this end use ham_.
-      call transform_sparse_matrix_local(tmb%linmat%s, tmb%linmat%m, &
-           tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ham_%matrix_compr, 'small_to_large')
+      call transform_sparse_matrix_local(tmb%linmat%s, tmb%linmat%m, 'small_to_large', &
+           smatrix_compr_in=tmb%linmat%ovrlp_%matrix_compr, lmatrix_compr_out=tmb%linmat%ham_%matrix_compr)
 
       !tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
       !call vcopy(tmb%linmat%m%nvctr, tmb%linmat%ham_%matrix_compr(1), 1, tmparr(1), 1)

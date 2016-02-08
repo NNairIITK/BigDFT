@@ -23,7 +23,11 @@ mod_src = defs.f90 base.f90 \
 	public_keys.f90 \
 	locregs.f90 \
 	gaussians.f90 \
-	locreg_operations.f90
+	locreg_operations.f90 \
+	ao_inguess.f90 \
+	xc.f90 \
+	pseudopotentials.f90 \
+	communications_base.f90
 
 routines = $(CONV_SOURCES) \
 	growshrink.f90 \
@@ -42,8 +46,11 @@ routines = $(CONV_SOURCES) \
 	bounds.f90
 
 liborbitals_a_SOURCES = $(mod_src) $(routines)
-# convolut_ib_sse.c \ #to be verified, not working yet
-EXTRA_DIST = configure.inc.in v.inc v_long.inc v_17.inc scalar_product-inc.f90 wpdot-inc.f90
+
+AO_INCLUDES = eleconf-inc.f90 
+
+# convolut_ib_sse.c \ #to be verified, not working
+EXTRA_DIST = configure.inc.in v.inc v_long.inc v_17.inc scalar_product-inc.f90 wpdot-inc.f90 $(AO_INCLUDES)
 
 # Module files.
 if CAPITALIZE
@@ -52,23 +59,31 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	PUBLIC_KEYS.@MODULE_EXT@ \
 	PUBLIC_ENUMS.@MODULE_EXT@ \
 	GAUSSIANS.@MODULE_EXT@ \
+	AO_INGUESS.@MODULE_EXT@ \
 	BOUNDS.@MODULE_EXT@ \
 	LOCREG_OPERATIONS.@MODULE_EXT@ \
-	LOCREGS.@MODULE_EXT@
+	MODULE_XC.@MODULE_EXT@ \
+	PSEUDOPOTENTIALS.@MODULE_EXT@ \
+	LOCREGS.@MODULE_EXT@ \
+	COMMUNICATIONS_BASE.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
 	public_keys.@MODULE_EXT@ \
 	public_enums.@MODULE_EXT@ \
 	gaussians.@MODULE_EXT@ \
+	ao_inguess.@MODULE_EXT@ \
 	bounds.@MODULE_EXT@ \
+	module_xc.@MODULE_EXT@ \
 	locreg_operations.@MODULE_EXT@ \
-	locregs.@MODULE_EXT@
+	pseudopotentials.@MODULE_EXT@ \
+	locregs.@MODULE_EXT@ \
+	communications_base.@MODULE_EXT@
 endif
 
 CLEANFILES = $(modules)
 
-AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_FLIB_CFLAGS@
+AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ @LIB_FLIB_CFLAGS@
 
 # Hack for MIC compilation.
 if USE_MIC
@@ -86,6 +101,10 @@ gaussians.o: base.o
 locreg_operations.o: locregs.o
 potential.o: locreg_operations.o
 daubisf.o precondLinear.o locregs_basics.o: locreg_operations.o
+ao_inguess.o: $(AO_INCLUDES) base.o 
+pseudopotentials.o: defs.o ao_inguess.o public_keys.o xc.o
+xc.o: base.o
+communications_base.o: base.o
 $(routines:.f90=.o): defs.o
 
 convolut_common_per.o conv_per_common.o conv_per_optim.o: base.o

@@ -51,10 +51,11 @@ program abscalc_main
    do iconfig=0,bigdft_nruns(options)-1!abs(nconfig)
       run => options // 'BigDFT' // iconfig
       !if (modulo(iconfig-1,ngroups)==igroup) then
+!call yaml_map('Run file',run)
       call bigdft_get_run_properties(run,run_id=run_id)
       !run_id =  run // 'name'
          !Welcome screen
-         call run_objects_init(runObj,run)! arr_radical(iconfig),arr_posinp(iconfig))
+         call run_objects_init(runObj,run)
 
          call f_file_exists(trim(run_id)//".abscalc",exists)
          !inquire(file=trim(run_id)//".abscalc",exist=exists)
@@ -110,8 +111,7 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    real(gp), dimension(3,runObj%atoms%astruct%nat), intent(out) :: fxyz
    !local variables
    character(len=*), parameter :: subname='call_abscalc'
-   character(len=40) :: comment
-   integer :: ierr
+   !integer :: ierr
    real(gp) :: hx_old, hy_old, hz_old
 
    !put a barrier for all the processes
@@ -153,8 +153,9 @@ END SUBROUTINE call_abscalc
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
      KSwfn,hx_old,hy_old,hz_old,in,GPU,infocode)
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
-   use module_interfaces, only: IonicEnergyandForces, createProjectorsArrays, &
+   use module_interfaces, only: IonicEnergyandForces, &
         & createWavefunctionsDescriptors, orbitals_descriptors
    use Poisson_Solver, except_dp => dp, except_gp => gp
    use module_xc
@@ -174,6 +175,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use public_enums, only: LINEAR_PARTITION_NONE
    use module_input_keys, only: print_dft_parameters
    use IObox
+   use orbitalbasis
+   use io, only: plot_density
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -280,6 +283,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    integer, parameter :: noccmax=2
    integer, dimension(3) :: ndims
    real(gp), dimension(3) :: hgrids
+   type(orbital_basis) :: ob
 
    !! to apply pc_projector
    type(pcproj_data_type) ::PPD
@@ -294,6 +298,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         use module_defs, only: gp,dp,wp
         use module_types
         use communications_base, only: comms_cubic
+        use module_dpbox
         implicit none
         !Arguments
         integer, intent(in) :: iproc,nproc,ixc
@@ -440,9 +445,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,LINEAR_PARTITION_NONE)
    call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,orbs,comms)  
-
-   call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,orbs,&
-        cpmult,fpmult,hx,hy,hz,.false.,nlpsp)
+   call orbital_basis_associate(ob,orbs=orbs,Glr=KSwfn%Lzd%Glr)
+   call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,ob,&
+        cpmult,fpmult,hx,hy,hz,.false.,nlpsp,.true.)
+   call orbital_basis_release(ob)
    if (iproc == 0) call print_nlpsp(nlpsp)
 
    call check_linear_and_create_Lzd(iproc,nproc,in%linear,KSwfn%Lzd,atoms,orbs,in%nspin,rxyz)
@@ -490,9 +496,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    rho_ion = f_malloc(1,id='rho_ion')
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-   ndegree_ip=16 !default value
-   pkernel=pkernel_init(.true.,iproc,nproc,in%matacc%PSolver_igpu,&
-        atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
+   !ndegree_ip=16 !default value
+   !pkernel=pkernel_init(.true.,iproc,nproc,in%matacc%PSolver_igpu,&
+   !     atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
+   pkernel=pkernel_init(iproc,nproc,in%PS_dict,&
+        atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids)
+
    call pkernel_set(pkernel,verbose=(verbose > 1))
    !call createKernel(iproc,nproc,atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip,pkernel,&
    !     (verbose > 1))
@@ -529,10 +538,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call IonicEnergyandForces(iproc,nproc,dpcom,atoms,in%elecfield,rxyz,&
         energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
-        n1,n2,n3,pot_ion,pkernel,psoffset)
+        pot_ion,pkernel,psoffset)
 
-   call createIonicPotential(atoms%astruct%geocode,iproc,nproc, (iproc == 0), atoms,rxyz,hxh,hyh,hzh,&
-        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,rho_ion,psoffset)
+   call createIonicPotential(iproc, (iproc == 0), atoms,rxyz, &
+        in%elecfield,dpcom,pkernel,pot_ion,rho_ion,psoffset)
 
 
    !Allocate Charge density, Potential in real space
@@ -712,8 +721,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          !if (in%output_denspot_format == output_denspot_FORMAT_TEXT) then
          if (in%output_denspot .hasattr. 'TEXT') then ! == output_denspot_FORMAT_TEXT) then
             if (iproc == 0) write(*,*) 'writing local_potential'
+            !call plot_density(iproc,nproc,'local_potentialb2B' // gridformat,&
+            !     atoms,rxyz,dpcom,in%nspin,rhopot(1,1,1,1))
             call plot_density(iproc,nproc,'local_potentialb2B' // gridformat,&
-                 atoms,rxyz,dpcom,in%nspin,rhopot(1,1,1,1))
+                 atoms,rxyz,pkernel,in%nspin,rhopot(1,1,1,1))
          else
             call plot_density_cube_old('local_potentialb2B',iproc,nproc,&
                &   n1,n2,n3,n1i,n2i,n3i,dpcom%n3p,&
@@ -782,9 +793,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
             rhopottmp = f_malloc_ptr((/ max(n1i_bB, n1i), max(n2i_bB, n2i), max(n3i_bB, n3i), in%nspin /),id='rhopottmp')
 
-
             rhotarget=0.0_gp
-
 
             itype=16
             nd=2**20
@@ -1474,6 +1483,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      nspin,potshortcut,symObj,GPU,input)
    use module_base
    use module_interfaces, only: XC_potential, communicate_density, inputguess_gaussian_orbitals, sumrho
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_xc
    use gaussians, only: gaussian_basis, deallocate_gwf
@@ -1481,6 +1491,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    use psp_projectors, only: update_nlpsp
+   use io, only: plot_density
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc

@@ -10,14 +10,14 @@
 
 !> Initialization of the Poisson kernel
 !! @ingroup PSOLVER
-function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
+function pkernel_init_old(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      alg,cavity,mu0_screening,angrad,mpi_env,taskgroup_size) result(kernel)
   use yaml_output
   use yaml_strings, only: f_strcpy
   use f_precisions, only: f_loc
   implicit none
-  logical, intent(in) :: verb       !< verbosity
-  integer, intent(in) :: itype_scf
+  logical, intent(in) :: verb       !< Verbosity
+  integer, intent(in) :: itype_scf  !< Type of interpolating scaling function
   integer, intent(in) :: iproc      !< Proc Id
   integer, intent(in) :: nproc      !< Number of processes
   integer, intent(in) :: igpu
@@ -39,17 +39,15 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   !integer :: ierr
   !$ integer :: omp_get_max_threads
 
-  group_size=nproc
-  if (present(taskgroup_size)) then
-     !if the taskgroup size is not a divisor of nproc do not create taskgroups
-     if (nproc >1 .and. taskgroup_size > 0 .and. taskgroup_size < nproc .and.&
-          mod(nproc,taskgroup_size)==0) then
-        group_size=taskgroup_size
-     end if
-  end if
-     
+  
   !nullification
   kernel=pkernel_null()
+
+  !geocode and ISF family
+  kernel%geocode=geocode
+  !dimensions and grid spacings
+  kernel%ndims=ndims
+  kernel%hgrids=hgrids
 
   if (present(angrad)) then
      kernel%angrad=angrad
@@ -59,11 +57,17 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      gammat = 2.0_dp*datan(1.0_dp)
      kernel%angrad=(/alphat,betat,gammat/)
   end if
+
+
+  !old approach of input variables, before dictionary
   if (.not. present(mu0_screening)) then
      mu0t=0.0_gp
   else
      mu0t=mu0_screening
   end if
+
+
+
   kernel%mu=mu0t
 
   if (present(alg)) then
@@ -106,13 +110,8 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      call f_enum_attr(kernel%method,PS_NONE_ENUM)
   end if
 
-  !geocode and ISF family
-  kernel%geocode=geocode
   kernel%itype_scf=itype_scf
 
-  !dimensions and grid spacings
-  kernel%ndims=ndims
-  kernel%hgrids=hgrids
 
   !gpu acceleration
   kernel%igpu=igpu  
@@ -131,6 +130,15 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      end if
   end if
   
+  group_size=nproc
+  if (present(taskgroup_size)) then
+     !if the taskgroup size is not a divisor of nproc do not create taskgroups
+     if (nproc >1 .and. taskgroup_size > 0 .and. taskgroup_size < nproc .and.&
+          mod(nproc,taskgroup_size)==0) then
+        group_size=taskgroup_size
+     end if
+  end if
+
   !import the mpi_environment if present
   if (present(mpi_env)) then
      call copy_mpi_environment(src=mpi_env,dest=kernel%mpi_env)
@@ -155,7 +163,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      call yaml_mapping_close() !kernel
   end if
 
-end function pkernel_init
+end function pkernel_init_old
 
 
 !> Allocate a pointer which corresponds to the zero-padded FFT slice needed for
@@ -605,7 +613,6 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
     end if
     call cuda_estimate_memory_needs(kernel, n, myiproc_node, mynproc_node) 
 
-
     size2=2*n1*n2*n3
     sizek=(n1/2+1)*n2*n3
     size3=n1*n2*n3
@@ -635,9 +642,11 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
       if (i_stat /= 0) call f_err_throw('error cudamalloc kappa_GPU (GPU out of memory ?) ')
     end if 
   end if
-
    if (kernel%mpi_env%iproc == 0) then
-    if (kernel%igpu == 1) then
+     if (kernel%igpu == 1) then
+      call cudacreatestream(i_stat)      
+      if (i_stat /= 0) call f_err_throw('error creating stream ')
+      call cudacreatecublashandle()
       if (kernel%keepGPUmemory == 1) then
         call cudamalloc(size2,kernel%w%work1_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc work1_GPU (GPU out of memory ?) ')
@@ -648,6 +657,14 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
       endif
       call cudamalloc(sizek,kernel%w%k_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc k_GPU (GPU out of memory ?) ')
+      call cudamalloc(1,kernel%w%ehart_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc ehart_GPU (GPU out of memory ?) ')
+      call cudamalloc(1,kernel%w%eexctX_GPU,i_stat)
+      call cudamemset(kernel%w%eexctX_GPU,0,1,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc eexctX_GPU (GPU out of memory ?) ')
+      call cudamalloc(64,kernel%w%reduc_GPU,i_stat)
+!      call cudamemset(kernel%w%reduc_GPU,0,64,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc reduc_GPU (GPU out of memory ?) ')
     endif
 
     pkernel2 = f_malloc((n1/2+1)*n2*n3,id='pkernel2')

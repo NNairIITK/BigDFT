@@ -3,7 +3,7 @@
 !!  In the spirit of this module each error message is handled separately.
 !!  The user of this module is able to define the stopping routine, the new error and the error codes.
 !! @author Luigi Genovese
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -355,6 +355,7 @@
     call err_abort(clbk_add,clbk_data_add)
   end subroutine f_err_throw_c
 
+
   subroutine f_err_throw_str(message,err_id,err_name,callback,callback_data) 
     use yaml_strings, only: f_string
     implicit none
@@ -367,7 +368,8 @@
     external :: callback
     optional :: callback
     !local variables
-    integer(kind=8) :: clbk_add,clbk_data_add
+    integer(kind=8) :: clbk_data_add
+!!$    integer(kind=8) :: clbk_add
 
     clbk_data_add=callback_data_add
     if (present(callback_data)) clbk_data_add=callback_data
@@ -478,6 +480,17 @@
   end function f_get_last_error
 
 
+  !> get all the errors that are present on the error pipe
+  subroutine f_get_errors(dict)
+    implicit none
+    type(dictionary), pointer, intent(out) :: dict !<output dictionary containing the result
+    !local variables
+    integer :: nerr
+    nullify(dict)
+    call dict_copy(src=dict_present_error,dest=dict)
+
+  end subroutine f_get_errors
+
   !> Clean the dictionary of present errors
    subroutine f_err_clean()
     implicit none
@@ -539,9 +552,18 @@
   !! the errors are cleaned. To recover an error in a try environment 
   !! the correct behaviour is to perform f_err_check before calling 
   !! f_err_close_try
-  subroutine f_err_close_try()
+  subroutine f_err_close_try(exceptions)
     implicit none
+    type(dictionary), pointer, intent(out), optional :: exceptions !<retrieve the exceptions
+    !local variables
     type(error_stack), pointer :: stack
+
+    !retrieve the exceptions if needed
+    if (present(exceptions)) then
+       nullify(exceptions)
+       if (f_err_check()) call f_get_errors(exceptions)
+    end if
+
     !call f_err_unset_callback()
     if (associated(error_pipelines%previous)) then
       nullify(dict_present_error)

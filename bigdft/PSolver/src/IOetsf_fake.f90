@@ -45,7 +45,7 @@ contains
   !!    For the list of contributors, see ~/AUTHORS 
   !> Read a field in the ISF basis in the ETSF format
   subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,ldrho,nrho,rho,&
-       nat,rxyz, iatypes, znucl) !, rhoij)
+       nat,rxyz,iatypes,znucl)
     use PSbase
     implicit none
     character(len=*), intent(in) :: filename
@@ -58,7 +58,6 @@ contains
     real(gp), dimension(:,:), pointer :: rxyz
     integer, intent(out) ::  nat
     integer, dimension(:), pointer :: iatypes, znucl
-
     write(0, "(A)") "Illegal call to read_etsf(), not compiled with ETSF_IO support."
     stop
 
@@ -71,6 +70,7 @@ contains
     hyh=0.0_gp
     hzh=0.0_gp
     rho(1,1)=0.0_gp
+    rxyz(1,1)=0.0_gp
     nat=0
     nspin=0
   END SUBROUTINE read_etsf

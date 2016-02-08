@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.8a.1],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.8],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -119,8 +119,8 @@ if test x"$ac_build_bindings" = x"yes" -a $F90_1D_POINTER_SIZE = 0 ; then
   ac_build_bindings="warn"
 fi
 AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
-                     [Build GObject bindings (default is yes).]),
-            ac_use_glib=$withval, ac_use_glib="yes")
+                     [Build GObject bindings (default is no).]),
+            ac_use_glib=$withval, ac_use_glib="no")
 if test x"$ac_use_glib" = x"yes"; then
   PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [have_glib=yes], [have_glib=no])
   PKG_CHECK_MODULES(GDBUS, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
@@ -275,11 +275,24 @@ AC_SUBST(DGEMMSY_CPPFLAGS)
 AM_CONDITIONAL(USE_DGEMMSY, test "$ac_use_dgemmsy" = "yes")
 
 
+dnl PEXSI
+AC_ARG_WITH(pexsi, AS_HELP_STRING([--with-pexsi],
+            [Give the link-line for PEXSI.]),
+            ac_pexsi_linkline=$withval, ac_pexsi_linkline=)
+ac_use_pexsi="no"
+AM_CONDITIONAL(HAVE_PEXSI, test x"$ac_pexsi_linkline" != "x")
+if test -n "$ac_pexsi_linkline" ; then
+  PEXSI_LINKLINE="$ac_pexsi_linkline"
+  AC_SUBST(PEXSI_LINKLINE, $PEXSI_LINKLINE)
+  ac_use_pexsi="yes"
+fi
+
+
 dnl test for the present of ambertools compiler (experimental)
 AC_PATH_PROG([NAB], [nab])
 AC_SUBST(NAB)
 AC_ARG_WITH(ambertools, AS_HELP_STRING([--with-ambertools],
-            [Give the path of the ambertools libraries (example = /home/<username>/lib/). Don't use the -L before the path(es), just give the plain path.]),
+            [Give the path of the ambertools libraries (example = /home/<username>/lib/). Do not use the -L before the path(es), just give the plain path.]),
             ac_ambertools_dir=$withval, ac_ambertools_dir=)
 ac_use_amber="no"
 AM_CONDITIONAL(HAVE_AMBERTOOLS, test x"$ac_ambertools_dir" != "x")
@@ -645,6 +658,7 @@ AX_PYYAML()
 dnl Test the libXC library
 if test "$ac_build_lib_BigDFT" = "yes" ; then
   AX_LIBXC()
+  AX_LIBGAIN()
 fi
 
 dnl Test the ABINIT library
@@ -768,7 +782,7 @@ LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 dnl Agregate all the optional libs.
 LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
 AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
-LIBS_SHORT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIB_FLIB_LIBS $LIBSGPU_LIBS $LIBS_EXT_DEPS"
+LIBS_SHORT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIB_GAIN_LIBS $LIB_FLIB_LIBS $LIBSGPU_LIBS $LIBS_EXT_DEPS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 
 dnl Test for the documentation.
@@ -781,6 +795,7 @@ AC_ARG_ENABLE(devel-doc,
                              [compile documentation for developers using Doxygen.]),
               ac_devel_doc=$enableval, ac_devel_doc="no")
 AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes" -a x"$ac_devel_doc" = x"yes")
+
 dnl default installation directories
 AC_ARG_WITH(moduledir,
             AS_HELP_STRING([--with-moduledir],
@@ -821,6 +836,7 @@ src/modules/bigdft_cst.h
 src/modules/configure.c
 src/orbitals/Makefile
 src/orbitals/configure.inc
+src/sparsematrix/Makefile
 src/xcPSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
@@ -830,6 +846,7 @@ src/geopt/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
 spred/Makefile
+spred/src/spred_baselib/Makefile
 spred/src/Makefile
 spred/src/art/Makefile
 spred/src/mhgps_files/Makefile
@@ -850,6 +867,7 @@ tests/libs/wrappers/Makefile
 tests/libs/psp/Makefile
 tests/libs/overlapgeneral/Makefile
 tests/libs/coordinatetransform/Makefile
+tests/libs/sparsematrix/Makefile
 tests/benchs/Makefile
 tests/benchs/sparsealgebra/Makefile
 tests/DFT/Makefile
@@ -905,6 +923,7 @@ Options:
    | nab Compiler:           $NAB
   With CP2K:                 $ac_use_cp2k
   With dgemmsy support:      $ac_use_dgemmsy
+  With PEXSI:                $ac_use_pexsi
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE

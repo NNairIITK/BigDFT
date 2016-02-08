@@ -1,7 +1,7 @@
 !> @file
 !!   Program to guess the used memory by BigDFT
 !! @author
-!!   Copyright (C) 2007-2013 BigDFT group (LG)
+!!   Copyright (C) 2007-2015 BigDFT group (LG)
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -13,6 +13,7 @@
 program memguess
 
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_interfaces
    use module_xc
@@ -26,15 +27,17 @@ program memguess
    use communications_base, only: deallocate_comms
    use psp_projectors_base, only: free_DFT_PSP_projectors
    use io, only: read_linear_matrix_dense, read_coeff_minbasis, writeLinearCoefficients, &
-                 read_sparse_matrix, read_linear_coefficients
+                 read_linear_coefficients
    use sparsematrix_base, only: sparse_matrix, matrices_null, assignment(=), SPARSE_FULL, &
                                 sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, DENSE_FULL
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
    use sparsematrix, only: uncompress_matrix
+   use sparsematrix_io, only: read_sparse_matrix
    !use postprocessing_linear, only: loewdin_charge_analysis_core
    use public_enums
    use module_input_keys, only: print_dft_parameters
    use IObox
+   use io, only: plot_density
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical
@@ -117,7 +120,8 @@ program memguess
    !call getarg(1,tatonam)
    call get_command_argument(1, value = tatonam, status = istat)
 
-   write(radical, "(A)") "input"
+   !write(radical, "(A)") "input"
+   call f_zero(radical)
    optimise=.false.
    GPUtest=.false.
    atwf=.false.
@@ -170,7 +174,7 @@ program memguess
       write(*,'(1x,a)')&
            &   '"analyse-coeffs" <coeff.bin>" ' 
       write(*,'(1x,a)')&
-           & 'analyse the coefficients by assiging them in to ncategories categories'
+           & 'analyse the coefficients by assigning them in to ncategories categories'
       write(*,'(1x,a)')&
            &   '"peel-matrix" <matrix.bin>" ' 
       write(*,'(1x,a)')&
@@ -182,7 +186,7 @@ program memguess
       write(*,'(1x,a)')&
            &   '"matrixpower" <matrix.bin>" ' 
       write(*,'(1x,a)')&
-           & 'caluclate the power of a matrix'
+           & 'calculate the power of a matrix'
       write(*,'(1x,a)')&
            &   '"suggest-cutoff" <posinp.xyz>" ' 
       write(*,'(1x,a)')&
@@ -544,6 +548,9 @@ program memguess
    !welcome screen
    !call print_logo()
 
+   !here we can convert the input file into the new format systematically
+   
+
    if (convert) then
       at%astruct%geocode = "P"
       write(*,*) "Read density file..."
@@ -555,7 +562,10 @@ program memguess
       write(*,*) "Write new density file..."
       dpbox%ngatherarr = f_malloc_ptr((/ 0.to.0, 1.to.2 /),id='dpbox%ngatherarr')
 
-      call plot_density(0,1,trim(fileTo),at,at%astruct%rxyz,dpbox,nspin,rhocoeff)
+      !call plot_density(0,1,trim(fileTo),at,at%astruct%rxyz,dpbox,nspin,rhocoeff)
+      call dump_field(trim(fileTo),at%astruct%geocode,dpbox%ndims,dpbox%hgrids,nspin,rhocoeff,&
+                      at%astruct%rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
+
       call f_free_ptr(rhocoeff)
       write(*,*) "Done"
       stop
@@ -729,9 +739,9 @@ program memguess
             at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
        !!call read_sparse_matrix(trim(ham_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
        !!     matrix_compr, on_which_atom=on_which_atom_s)
-       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
-       call bigdft_to_sparsebigdft(iproc, nproc, at%astruct%nat, nspin, geocode, nfvctr_s, nfvctrp_s, isfvctr_s, &
-            on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
+       !call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
+       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_s, nvctr_s, nseg_s, keyg_s, smat_s, &
+            nspin, geocode, on_which_atom_s)
        ovrlp_mat = matrices_null()
        ovrlp_mat%matrix = sparsematrix_malloc0_ptr(smat_s,iaction=DENSE_FULL,id='smat_s%matrix')
        call uncompress_matrix(iproc, smat_s, matrix_compr, ovrlp_mat%matrix)
@@ -745,9 +755,9 @@ program memguess
        !     at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_m)
        call read_sparse_matrix(trim(ham_file), nspin, geocode, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
             matrix_compr, on_which_atom=on_which_atom_m)
-       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
-       call bigdft_to_sparsebigdft(iproc, nproc, at%astruct%nat, nspin, geocode, nfvctr_m, nfvctrp_m, isfvctr_m, &
-            on_which_atom_m, nvctr_m, nseg_m, keyg_m, smat_m)
+       !call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
+       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_m, nvctr_m, nseg_m, keyg_m, smat_m, &
+            nspin, geocode, on_which_atom_m)
        ham_mat = matrices_null()
        ham_mat%matrix = sparsematrix_malloc0_ptr(smat_m,iaction=DENSE_FULL,id='smat_m%matrix')
        call uncompress_matrix(iproc, smat_m, matrix_compr, ham_mat%matrix)
@@ -1011,6 +1021,7 @@ program memguess
        call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
        call f_close(iunit01)
        call diagonalizeHamiltonian2(iproc, ntmb, ham, overlap, eval)
+       !write(*,*) '2.d0*sum(eval(1:4))',2.d0*sum(eval(1:4))
        call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
        call writeLinearCoefficients(iunit01, .true., nat, rxyz, &
             ntmb, ntmb, ntmb, ham, eval)
@@ -1299,7 +1310,8 @@ program memguess
 !!   end if
 
    nullify(run)
-   call bigdft_set_run_properties(run, run_id = trim(radical), run_from_files = .true., log_to_disk = logfile)
+   call bigdft_set_run_properties(run, run_id = trim(radical), &
+        run_from_files = .true., log_to_disk = logfile, minimal_file=trim(radical))
 
    call run_objects_init(runObj, run)
    call dict_free(run)

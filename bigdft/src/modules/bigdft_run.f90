@@ -46,7 +46,9 @@ module bigdft_run
   !> Public container to be used with bigdft_state().
   type, public :: run_objects
      type(f_enumerator), pointer :: run_mode
+     !> number of times bigdft_state is called with this instance
      character(len = max_field_length) :: label
+     integer :: nstate 
      !> user input specifications
      type(dictionary), pointer :: user_inputs
      !> structure of BigDFT input variables
@@ -177,6 +179,7 @@ contains
     use module_lj
     use module_lenosky_si
     use module_cp2k
+    use module_tdpot
     use yaml_output
     use SWpotential
     implicit none
@@ -187,6 +190,13 @@ contains
 
     !then check if extra workspaces have to be allocated
     select case(trim(f_str(run_mode)))
+    case('TDPOT_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
+       call init_tdpot(inputs%mm_paramset,&
+            inputs%mm_paramfile,astruct%units)
+        
     case('LENNARD_JONES_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
@@ -459,6 +469,7 @@ contains
   END SUBROUTINE nullify_state_properties
 
 
+  !> Initialized the state_properties structure
   subroutine init_state_properties(outs, nat)
     use module_base
     use dynamic_memory
@@ -472,7 +483,7 @@ contains
     outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
   END SUBROUTINE init_state_properties
 
-  !>clean the outs object with empty (but meaningful)
+  !> Clean the outs object with empty (but meaningful)
   !! values so that the structure can be used for optimization
   subroutine clean_state_properties(outs)
     use module_types, only: energy_terms_null
@@ -623,6 +634,14 @@ contains
 
   END SUBROUTINE run_objects_associate
 
+  !> see if the write method foresee a mapping instead of new documents
+  function write_documents(runObj) result(ok)
+    implicit none
+    type(run_objects), intent(in) :: runObj
+    logical :: ok
+    ok=runObj%run_mode == 'QM_RUN_MODE'
+  end function write_documents
+
   !> copy the atom position in runObject into a workspace
   !! or retrieve the positions from a file
   subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz,energy,disableTrans)
@@ -756,6 +775,7 @@ contains
 
   end subroutine bigdft_write_atomic_file
 
+
   !> Import positions for the run object from a given array
   subroutine bigdft_set_rxyz(runObj,rxyz_add,rxyz)
     use dynamic_memory, only: f_memcpy
@@ -790,6 +810,7 @@ contains
     end if
 
   end subroutine bigdft_set_rxyz
+
 
   subroutine state_properties_set_from_dict(outs, dict)
     use dictionaries
@@ -831,6 +852,7 @@ contains
     type(run_objects), intent(out) :: runObj
     write(runObj%label, "(A)") " "
     nullify(runObj%run_mode)
+    runObj%nstate=0
     nullify(runObj%user_inputs)
     nullify(runObj%inputs)
     nullify(runObj%atoms)
@@ -857,10 +879,11 @@ contains
     type(run_objects), intent(inout) :: runObj
     !local variables
     integer :: count, i
-!!$    if (associated(runObj%run_mode)) then
-!!$      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
-!!$           call yaml_sequence_close()
-!!$    end if
+   if (associated(runObj%run_mode)) then
+      if (bigdft_mpi%iproc==0 .and. (.not. write_documents(runObj)) &
+           .and. runObj%nstate/=0)&
+           call yaml_sequence_close()
+   end if
 
     if (associated(runObj%rst)) then
        call f_unref(runObj%rst%refcnt,count=count)
@@ -919,11 +942,13 @@ contains
     logical :: release
     integer :: claim, i
 
-!!$    if (associated(runObj%run_mode)) then
-!!$      !@todo in/out in a freeing routine of an object, how strange !
+    if (associated(runObj%run_mode)) then
+      !@todo in/out in a freeing routine of an object, how strange !
+      if (bigdft_mpi%iproc==0 .and. (.not. write_documents(runObj)) & 
+           .and. runObj%nstate/=0)&
 !!$      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
-!!$           call yaml_sequence_close()
-!!$    end if
+           call yaml_sequence_close()
+    end if
 
     ! Fortran release ownership
     release = .true.
@@ -1090,7 +1115,7 @@ contains
   end subroutine set_section_objects
 
   !> Read all input files and create the objects to run BigDFT
-  subroutine run_objects_init(runObj,run_dict,source)
+  recursive subroutine run_objects_init(runObj,run_dict,source)
     use module_base, only: bigdft_mpi,dict_init
     use module_types
     use module_input_dicts, only: create_log_file
@@ -1125,6 +1150,8 @@ contains
     call nullify_run_objects(runObj)
 
     if (present(run_dict)) then
+       !call yaml_map('Test dict',run_dict)
+       !stop
        !here the control of the logfile can be inserted, driven by run_dict and
        ! not anymore by user_inputs
        call create_log_file(run_dict,dict_from_files)
@@ -1226,6 +1253,7 @@ contains
     call nullify_MM_restart_objects(runObj%mm_rst)
     call init_MM_restart_objects(runObj%mm_rst,runObj%inputs,runObj%atoms%astruct,runObj%run_mode)
   END SUBROUTINE init_restart_objects
+
 
   subroutine bigdft_init(options, with_taskgroups)
     use yaml_parse
@@ -1390,7 +1418,8 @@ contains
 
   end subroutine bigdft_command_line_options
 
-  !> retrieve the number of runs for a given set of options
+
+  !> Retrieve the number of runs for a given set of options
   !! gives 0 if the option dictionary is invalid
   function bigdft_nruns(options)
     implicit none
@@ -1402,8 +1431,10 @@ contains
     if (bigdft_nruns < 0) bigdft_nruns=0
   end function bigdft_nruns
 
+
   !accessors for external programs
-  !> Get the number of orbitals of the run in rst
+
+  !> Return the number of atoms
   function bigdft_nat(runObj,filename) result(nat)
     use module_atoms, only: atomic_structure,nullify_atomic_structure,&
          set_astruct_from_file,deallocate_atomic_structure
@@ -1415,6 +1446,7 @@ contains
     !local
     type(atomic_structure) :: astruct
 
+    nat=-1
     if (present(runObj) .eqv. present(filename)) then
        call f_err_throw('Error in bigdft_nat: runObj *xor* filename '//&
             'should be present',err_name='BIGDFT_RUNTIME_ERROR')
@@ -1440,6 +1472,7 @@ contains
 
   end function bigdft_nat
 
+  !> Get the number of orbitals of the run in rst
   function bigdft_norb(runObj) result(norb)
     implicit none
     type(run_objects), intent(in) :: runObj
@@ -1450,6 +1483,17 @@ contains
     if (norb <= 0) call f_err_throw('Number of orbitals unitialized',&
          err_name='BIGDFT_RUNTIME_ERROR')
   end function bigdft_norb
+
+  !> returns true of the runObject is ready to be parsed
+  !! increments also the counter for the following call
+  function bigdft_valid_dataset(runObj) result(ok)
+    implicit none
+    type(run_objects), intent(inout) :: runObj
+    logical :: ok
+
+    
+    
+  end function bigdft_valid_dataset
 
   !> Fill the array eval with the number of orbitals of the last run
   !! the array eval should have been allocated with the correct size
@@ -1543,19 +1587,19 @@ contains
 
   end function bigdft_get_cell_ptr
 
-  !=====================================================================
+  
+  !> Do a calculation using runObjs and return outs²
+  !! returns energies in hartree and
+  !! forces in hartree/bohr
+  !! (except for LJ)
+  !! receives distances in Bohr
   subroutine bigdft_state(runObj,outs,infocode)
-    !IMPORTANT:
-    !returns energies in hartree and
-    !forces in hartree/bohr
-    !(except for LJ)
-    !receives distances in Bohr
     use module_lj
     use module_lenosky_si
     use public_enums
     use module_defs
     use module_base, only: bigdft_mpi,mpibcast,Bohr_Ang,kcalMolAng_HaBohr,&
-         ev_Ha,evang_habohr,Kcalmol_ha
+         ev_Ha,evang_habohr,Kcalmol_ha,f_increment
     use dynamic_memory, only: f_memcpy,f_routine,f_release_routine
     use yaml_strings
     use yaml_output
@@ -1565,6 +1609,7 @@ contains
     use module_BornMayerHugginsTosiFumi
     use module_cp2k
     use module_dftbp
+    use module_tdpot
     use SWpotential
     use f_enums, enum_int => int
     use wrapper_linalg, only: vscal
@@ -1574,7 +1619,7 @@ contains
     type(state_properties), intent(inout) :: outs
     integer, intent(inout) :: infocode
     !local variables
-    !logical :: write_mapping
+    logical :: write_mapping
     integer :: nat, ierr
     integer :: icc !for amber
     real(gp) :: maxdiff
@@ -1594,6 +1639,11 @@ contains
     rxyz_ptr => bigdft_get_rxyz_ptr(runObj)
     nat=bigdft_nat(runObj)
 
+    if (bigdft_mpi%iproc==0 .and. .not. write_documents(runObj) .and. &
+         runObj%nstate==0) &
+         call yaml_sequence_open('Initializing '//trim(f_str(runObj%run_mode)))
+
+
     !Check the consistency between MPI processes of the atomic coordinates and broadcast them
     if (bigdft_mpi%nproc >1) then
        call mpibcast(rxyz_ptr,comm=bigdft_mpi%mpi_comm,&
@@ -1608,12 +1658,10 @@ contains
        end if
     end if
     
-    !@NEW ####################################################
     ! Apply the constraints expressed in internal coordinates
     if (runObj%atoms%astruct%inputfile_format=='int') then
         call constraints_internal(runObj%atoms%astruct)
     end if
-    !#########################################################
 
     ! Run any Python hook post run.
     if ("pre" .in. runObj%py_hooks) then
@@ -1631,16 +1679,19 @@ contains
     !    However this hybrid scheme has to be tested in the case of QM/MM runs
     !    In any case the verbosity value is used to (un)mute the output
 !!$    write_mapping= runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0 .and. verbose > 0
-!!$    !open the document if the run_mode has not it inside
-!!$    if (write_mapping) then
-!!$       call yaml_sequence(advance='no')
-!!$       call yaml_mapping_open(trim(f_str(runObj%run_mode)),flow=.true.)
-!!$       !call yaml_new_document()
-!!$      end if
+    write_mapping= (.not. write_documents(runObj))  .and. bigdft_mpi%iproc==0 .and. verbose > 0
+   !open the document if the run_mode has not it inside
+   if (write_mapping) then
+      call yaml_sequence(advance='no')
+      call yaml_mapping_open(trim(f_str(runObj%run_mode)),flow=.true.)
+      !call yaml_new_document()
+     end if
 
     infocode = 0
     !choose what to do by following the mode prescription
     select case(trim(f_str(runObj%run_mode)))
+    case('TDPOT_RUN_MODE')
+        call tdpot(nat,rxyz_ptr,outs%fxyz,outs%energy)
     case('LENNARD_JONES_RUN_MODE')
        call lenjon(nat,rxyz_ptr,outs%fxyz,outs%energy)
        !         if (bigdft_mpi%iproc == 0) then
@@ -1737,16 +1788,18 @@ contains
        call bigdft_python_exec_dict(runObj%py_hooks // "post", ierr)
        if (ierr /= 0) stop
     end if
+    call f_increment(runObj%nstate)
     
-!!$    if (write_mapping) then
-!!$       !call yaml_release_document()
-!!$       call yaml_map('Energy',outs%energy)
-!!$       call yaml_mapping_close()
-!!$    end if
+   if (write_mapping) then
+      !call yaml_release_document()
+      call yaml_map('Energy',outs%energy)
+      call yaml_mapping_close()
+   end if
 
     call f_release_routine()
 
   end subroutine bigdft_state
+
 
   !>this routine treats the run_objects and provides the I/O in the outs structure
   subroutine process_run(id,runObj,outs)
@@ -1855,7 +1908,8 @@ contains
     inputPsiId_orig=runObj%inputs%inputPsiId
     loop_cluster: do
        !allocate history container if it has not been done
-       if (runObj%inputs%wfn_history > 1  .and. .not. associated(runObj%rst%KSwfn%oldpsis)) then
+!       if (runObj%inputs%wfn_history > 1  .and. .not. associated(runObj%rst%KSwfn%oldpsis)) then
+       if (runObj%inputs%wfn_history > 0  .and. .not. associated(runObj%rst%KSwfn%oldpsis)) then
           allocate(runObj%rst%KSwfn%oldpsis(0:runObj%inputs%wfn_history+1))
           runObj%rst%KSwfn%istep_history=0
           do istep=0,runObj%inputs%wfn_history+1
