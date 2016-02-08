@@ -887,7 +887,8 @@ module multipole
       real(kind=8),parameter :: factor = sqrt(4.d0*pi/3.d0)
 
       !dpm = q(1)*r(1) + q(2)*r(2) + q(3)*r(3)
-      dpm = factor*(q(3)*r(1) + q(1)*r(2) + q(2)*r(3))
+      !dpm = factor*(q(3)*r(1) + q(1)*r(2) + q(2)*r(3))
+      dpm = (q(3)*r(1) + q(1)*r(2) + q(2)*r(3))
       dpm = -dpm/rnrm3
 
     end function calc_dipole
@@ -902,8 +903,9 @@ module multipole
       real(dp) :: qpm
       ! Local variables
       real(dp),dimension(3,3) :: qq
-      real(kind=8),parameter :: factor=sqrt(4.d0*pi/15.d0)
       real(kind=8),parameter :: sqrt3=sqrt(3.d0)
+      !real(kind=8),parameter :: factor=sqrt(4.d0*pi/15.d0)
+      real(kind=8),parameter :: factor=1.d0/sqrt3
       real(kind=8),dimension(3) :: Qr
 
       !!qq(1,1) = q(1)
