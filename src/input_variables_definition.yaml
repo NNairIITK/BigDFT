@@ -118,7 +118,7 @@
      RANGE: [0, 10000]
      default: 50
    itermin:
-     COMMENT: Min. iterations of wfn. opt. steps
+     COMMENT: Minimal iterations of wfn. optimzed steps
      RANGE: [0, 10000]
      default: 0
    nrepmax:
@@ -1001,7 +1001,6 @@
      COMMENT: Mixing parameters
      DESCRIPTION: |
        An integer giving the mixing scheme and the mixing target.
-       
        It follows the ABINIT convention. For values lower than 10, the potential is mixed, while
        for values greater than 10, the density is mixed. A recommended option is Pulay mixing
        (7 or 17 for potential or charge mixing, respectively) 
