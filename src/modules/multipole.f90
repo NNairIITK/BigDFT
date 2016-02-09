@@ -3636,7 +3636,7 @@ module multipole
     
     
       if (write_output .and. bigdft_mpi%iproc==0) then
-          call write_partial_charges(at, charge_per_atom, write_gnuplot=.false.)
+          call write_partial_charges(at, charge_per_atom, write_gnuplot=.true.)
       end if
 
       call f_free(locregs_ID)
