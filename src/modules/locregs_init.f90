@@ -1,3 +1,14 @@
+!> @file
+!! LOCalized REGion initialization for support functions
+!! @author
+!!    Copyright (C) 2015-2015 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Initialization of the localized regions for the support functions
 module locregs_init
   implicit none
 
@@ -172,10 +183,11 @@ module locregs_init
       integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
       integer :: ilr,isx,isy,isz,iex,iey,iez
       integer :: ln1,ln2,ln3
-      integer :: ii, iall, istat, iorb, iat, norb, norbu, norbd, nspin, jproc, iiorb
-      integer,dimension(3) :: outofzone
-      integer,dimension(:),allocatable :: rootarr, norbsperatom, norbsperlocreg, onwhichmpi
-      real(8),dimension(:,:),allocatable :: locregCenter
+      integer :: ii, iorb, jproc, iiorb
+      ! integer :: iat, norb, norbu, norbd, nspin
+      integer, dimension(3) :: outofzone
+      integer, dimension(:),allocatable :: rootarr, norbsperatom, norbsperlocreg, onwhichmpi
+      !real(8),dimension(:,:),allocatable :: locregCenter
       type(orbitals_data) :: orbsder
       logical :: perx, pery, perz
     
@@ -796,7 +808,8 @@ module locregs_init
       !local variables
       character(len=*),parameter :: subname = 'segkeys_Sphere'
       integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
-      integer :: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc, n1p1, np, n1lp1, nlp, igridpointa, igridgloba
+      integer :: i1l, i2l, i3l, ii1, ii2, ii3, loc, n1p1, np, n1lp1, nlp, igridgloba
+      !integer :: igridpointa
       integer :: ij1, ij2, ij3, jj1, jj2, jj3, ii1mod, ii2mod, ii3mod, ivctr, jvctr, kvctr, ijs1, ijs2, ijs3, ije1, ije2, ije3
       real(kind=8) :: cut, dx, dy, dz
       logical :: segment, inside
@@ -1781,7 +1794,7 @@ module locregs_init
       integer, dimension(3),intent(in) :: outofzone
       !local variables
       logical :: lseg,go1,go2,go3
-      integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,nsrt,nend,nvctr_check,n1p1,np
+      integer :: iseg,j0,j1,ii,i1,i2,i3,i0,i,nsrt,nend,nvctr_check,n1p1,np
     
       nvctr_loc=0
       !control variable
@@ -1864,8 +1877,7 @@ module locregs_init
       !local variables
       character(len=*),parameter :: subname = 'segkeys_periodic'
       logical :: go1,go2,go3,lseg
-      integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l,n1p1,np,n1lp1,nlp
-      integer :: i_stat, i_all
+      integer :: iseg,j0,j1,ii,i1,i2,i3,i0,i,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l,n1p1,np,n1lp1,nlp
       integer :: ngridp,ngridlob,loc
       integer, allocatable :: keyg_loc(:,:)
     

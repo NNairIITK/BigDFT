@@ -1,11 +1,12 @@
 !> @file
 !!  Routines to initialize the information about localisation regions
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
 
 !> Calculates the descriptor arrays and nvctrp
 !! Calculates also the bounds arrays needed for convolutions
@@ -2114,7 +2115,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
   !deallocate potential
   call free_full_potential(denspot%dpbox%mpi_env%nproc,Lzde%lintyp,&
-       & denspot%xc,denspot%pot_work,subname)
+       & denspot%xc,denspot%pot_work)
   call f_free_ptr(orbse%ispot)
 
   deallocate(confdatarr)

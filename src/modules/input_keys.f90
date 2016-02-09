@@ -1107,7 +1107,7 @@ contains
        call yaml_map(POSINP,sourcefile)
     else
        call yaml_mapping_open(POSINP)
-       call input_file_dump(tmp, useronly=userOnly_,msg='Atomic positions')
+       call input_file_dump(tmp, useronly=userOnly_,msg='Atomic positions (by default bohr units)')
        call yaml_mapping_close()
     end if
     nullify(tmp)
