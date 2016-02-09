@@ -1009,7 +1009,7 @@ contains
     !then we can complete the Poisson solver dictionary
     call PS_input_dict(dict // PSOLVER,dict_ps_min)
     
-    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested)
+    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested,verbose=.true.)
 
     !create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)
@@ -2733,14 +2733,18 @@ contains
        ngkpt_(1:3) = dict // NGKPT
        if (geocode == 'S') ngkpt_(2) = 1
        !shift
-       nshiftk = dict_len(dict//SHIFTK)
-       !read the shifts
+       nshiftk=1
        shiftk_=0.0_gp
-       do i=1,nshiftk
-          shiftk_(1,i) = dict // SHIFTK // (i-1) // 0
-          shiftk_(2,i) = dict // SHIFTK // (i-1) // 1
-          shiftk_(3,i) = dict // SHIFTK // (i-1) // 2
-       end do
+       if (SHIFTK .in. dict) then
+          nshiftk = dict_len(dict//SHIFTK)
+          !read the shifts
+          shiftk_=0.0_gp
+          do i=1,nshiftk
+             shiftk_(1,i) = dict // SHIFTK // (i-1) // 0
+             shiftk_(2,i) = dict // SHIFTK // (i-1) // 1
+             shiftk_(3,i) = dict // SHIFTK // (i-1) // 2
+          end do
+       end if
 
        !control whether we are giving k-points to Free BC
        if (geocode == 'F') then
@@ -2752,6 +2756,7 @@ contains
           in%gen_wkpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
           in%gen_wkpt = 1.
        else
+
           call kpoints_get_mp_k_grid(sym%symObj, in%gen_nkpt, gen_kpt, gen_wkpt, &
                & ngkpt_, nshiftk, shiftk_, ierror)
           if (ierror /= AB7_NO_ERROR) then
