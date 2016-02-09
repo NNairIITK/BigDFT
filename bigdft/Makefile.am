@@ -30,11 +30,11 @@ SUBDIRS += \
 	utils
 
 # Tests subdir is include only if binaries are compiled.
-if BUILD_BINARIES
-if HAVE_PYYAML
+#if BUILD_BINARIES
+#if HAVE_PYYAML
 SUBDIRS += tests
-endif
-endif
+#endif
+#endif
 
 check report:
 	python $(top_builddir)/tests/report.py

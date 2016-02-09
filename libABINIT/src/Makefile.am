@@ -33,13 +33,13 @@ LIBPAW_DEFS += @LIBPAW_HOST_DEFS@ -DHAVE_DFT_LIBXC
 ##  LIBXC_DEFS =
 
 ## === MPI section ===
-#mpi_include =
+mpi_include =
 MPI_DEFS =
 if USE_MPI
 ##Force MPI level 1
 MPI_DEFS += -DHAVE_MPI -DHAVE_MPI1
-#else
-#mpi_include += mpif.h
+else
+mpi_include += mpif.h
 endif
 
 ## === Fortran compiler directives ===

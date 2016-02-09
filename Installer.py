@@ -1,6 +1,12 @@
 #!/usr/bin/env python
+# -*- coding: us-ascii -*-
 
-
+#--------------------------------------------------------------------------------
+# Copyright (C) 2015-2016 BigDFT group
+# This file is distributed under the terms of the
+# GNU General Public License, see ~abinit/COPYING
+# or http://www.gnu.org/copyleft/gpl.txt .
+#--------------------------------------------------------------------------------
 
 BIGDFT_CFG='BIGDFT_CONFIGURE_FLAGS'
 CLEAN=' clean '
@@ -18,19 +24,19 @@ MAKEMODULES= ['flib','libABINIT','bigdft']
 
 #allowed actions and corresponfing description
 ACTIONS={'build':
-         'Compiles and install the code with the given configuration',
+         'Compile and install the code with the given configuration.',
          'make':
-         'Recompiles the bigdft internal branches, skip configuring step',
+         'Recompile the bigdft internal branches, skip configuring step.',
          'clean':
-         'Clean the branches for a fresh reinstall',
+         'Clean the branches for a fresh reinstall.',
          'autogen':
-         'Perform the autogen in the modules which need that. For developers only',
+         'Perform the autogen in the modules which need that. For developers only.',
          'dist':
-         'Creates a tarfile for the bigdft-suite tailored to reproduce the compilation options specified',
+         'Creates a tarfile for the bigdft-suite tailored to reproduce the compilation options specified.',
          'check':
-         'Perform check in the bigdft branches, skip external libraries',
+         'Perform check in the bigdft branches, skip external libraries.',
          'dry_run':
-         'Visualize the list of modules that will be compiled with the provided configuration in the buildprocedure.png file'}
+         "Visualize the list of modules that will be compiled with the provided configuration in the 'buildprocedure.png' file."}
 
 
 class BigDFTInstaller():
@@ -73,8 +79,8 @@ class BigDFTInstaller():
 
 
     def get_rcfile(self,rcfile):
+        "Determine the rcfile"
         import os
-        #determine the rcfile
         if rcfile is not None:
             self.rcfile=rcfile
         else:
@@ -94,10 +100,11 @@ class BigDFTInstaller():
             testname=os.path.basename(file)
             base=os.path.splitext(testname)[0]
             if base in self.hostname or self.hostname in base: rcs.append(file)
+        print "Search in the configuration directory '%s'" % rcdir
         if len(rcs)==1:
             self.rcfile=os.path.join(rcdir,rcs[0])
         elif len(rcs) > 0:
-            print 'No valid configuration file specified, found various that matches the hostname'
+            print "No valid configuration file specified, found various that matches the hostname '%s'" % self.hostname
             print 'In the directory "'+rcdir+'"'
             print 'Choose among the following options'
             for i,rc in enumerate(rcs):
@@ -124,19 +131,20 @@ class BigDFTInstaller():
 
     def print_present_configuration(self):
         import  os
+        indent = ' '*2
         print 'Configuration chosen for the Installer:'
-        print ' Hostname:',self.hostname
-        print ' Source directory:',os.path.abspath(self.srcdir)
-        print ' Compiling from a branch:',self.branch
-        print ' Build directory:',os.path.abspath(self.builddir)
-        print ' Action chosen:',self.action
-        print ' Verbose:',self.verbose
-        print ' Configuration options:'
+        print indent + 'Hostname:',self.hostname
+        print indent + 'Source directory:',os.path.abspath(self.srcdir)
+        print indent + 'Compiling from a branch:',self.branch
+        print indent + 'Build directory:',os.path.abspath(self.builddir)
+        print indent + 'Action chosen:',self.action
+        print indent + 'Verbose:',self.verbose
+        print indent + 'Configuration options:'
         if self.rcfile=='':
-            print '  Source: Environment variable "'+BIGDFT_CFG+'"'
-	    print '  Value:'+os.environ[BIGDFT_CFG]
+            print indent*2 + "Source: Environment variable '%s'" % BIGDFT_CFG
+	    print indent*2 + "Value: '%s'" % os.environ[BIGDFT_CFG]
         else:
-            print '  Source: Configuration file "'+os.path.abspath(self.rcfile)+'"'
+            print indent*2 + "Source: Configuration file '%s'" % os.path.abspath(self.rcfile)
         while True:
             ok = raw_input('Do you want to continue (y/n)? ')
             if ok == 'n' or ok=='N':
@@ -172,23 +180,27 @@ class BigDFTInstaller():
         return out.rstrip('\n')
 
     def removefile(self,pattern,dirname,names):
-        import os,fnmatch
         "Return the files given by the pattern"
+        import os,fnmatch
         for name in names:
             if fnmatch.fnmatch(name,pattern):
                 self.__dump('removing',os.path.join(dirname,name))
                 os.remove(os.path.join(dirname,name))
 
     def autogen(self):
+        "Perform the autogen action"
         self.shellaction(self.srcdir,self.modulelist,'autoreconf -fi')
 
     def check(self):
+        "Perform the check action"
         self.shellaction('.',CHECKMODULES,'make check')
 
     def make(self):
+        "Perform the simple make action"
         self.shellaction('.',MAKEMODULES,'make -j6 && make install')
         
     def dist(self):
+        "Perform make dist action"
         self.shellaction('.',self.modulelist,'make dist')
         self.get_output(self.jhb+DIST)
                                 
@@ -206,7 +218,8 @@ class BigDFTInstaller():
         else:
             os.system(self.jhb+TINDERBOX+co)
 
-    def clean(self):#clean files
+    def clean(self):
+        "Clean files in the build directory"
         import os
         for mod in self.selected(MAKEMODULES):
             self.get_output(self.jhb+UNINSTALL+mod)
@@ -217,6 +230,7 @@ class BigDFTInstaller():
         #self.get_output(self.jhb+CLEAN)
 
     def dry_run(self):
+        "Do dry build"
         self.get_output(self.jhb+DOT)
 
     def rcfile_from_env(self):
@@ -240,9 +254,9 @@ class BigDFTInstaller():
             rcfile.write("%s\n" % item)
             rcfile.write("\n")
         rcfile.close()
-        print 'Your used configuration options have been saved in the file "'+RCFILE+'"'
-        print 'Such file will be used for next builds, you might also save it in the "rcfiles/"'
-        print 'Directory of the source for future use. The name might contain the hostname'
+        print "Your used configuration options have been saved in the file '%s'." % RCFILE
+        print "Such file will be used for next builds, you might also save it in the 'rcfiles/'."
+        print "Directory of the source for future use. The name might contain the hostname."
         
     def __del__(self):
         print 50*'-'
@@ -250,19 +264,35 @@ class BigDFTInstaller():
         print 'The action considered was:',self.action
         if self.action == 'build': self.rcfile_from_env()
 
-
-
-#now follows the available actions, argparse might be called
+#Now follows the available actions, argparse might be called
 import argparse
-parser = argparse.ArgumentParser(description='BigDFT suite Installer',
+
+#Redefine ArgumentParser to ahve the help message if no arguments
+class Installer_Parser(argparse.ArgumentParser):
+    def error(self, message):
+        import sys
+        sys.stderr.write('error: %s\n' % message)
+        self.print_help()
+        self.exit()
+
+parser = Installer_Parser(description='BigDFT suite Installer',
                                  epilog='For more information, visit www.bigdft.org')
+#parser = argparse.ArgumentParser(description='BigDFT suite Installer',
+#                                 epilog='For more information, visit www.bigdft.org')
+
 parser.add_argument('-f','--file',
-                   help='Use an alternative configuration file instead of the default given by the environment variable '+BIGDFT_CFG)
+                   help='Use an alternative configuration file instead of the default configuration '
+                    + 'given by the environment variable %s' % BIGDFT_CFG)
 parser.add_argument('-d','--verbose',action='store_true',
                    help='Verbose output')
 
-parser.add_argument('action',choices=[act for act in ACTIONS],
-                   help='Define the installer action to be taken')
-args = parser.parse_args()
 
+#Define the possible actions
+subparsers = parser.add_subparsers(title='The following actions are available',
+                                   dest='action',
+                                   help='Define the installer action to be taken.')
+for (k,v) in ACTIONS.items():
+    subparsers.add_parser(k,help=v)
+
+args = parser.parse_args()
 BigDFTInstaller(args.action,args.file,args.verbose)

@@ -2461,7 +2461,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
                  !1) V_L^HGH
                  if(rr1(1)>0.01d0) then
                     arg=rr1(1)/(sqrt(2.0_gp)*rloc)
-                    call derf_ab(tt,arg)
+                    call abi_derf_ab(tt,arg)
                     raux2=-charge/rr1(1)*tt  
                  else
                     !In this case we deduce the values
