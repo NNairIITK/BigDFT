@@ -296,7 +296,7 @@ module multipole
     
           ! Get the parameters for each multipole, required to compensate for the pseudopotential part
           !nzatom = f_malloc(ep%nmpl,id='nzatom')
-          nelpsp = f_malloc(ep%nmpl,id='nelpsp')
+          !nelpsp = f_malloc(ep%nmpl,id='nelpsp')
           rloc = f_malloc(ep%nmpl,id='rloc')
          perx = (denspot%dpbox%geocode /= 'F')
          pery = (denspot%dpbox%geocode == 'P')
@@ -319,14 +319,15 @@ module multipole
     
          ! Generate the density that comes from the pseudopotential atoms
          ndensity = (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1)
-         psp_source = f_malloc(ep%nmpl,id='psp_source')
-         do impl=1,ep%nmpl
-             ! Search the rloc and zion of the corresponding pseudopotential
-             call get_psp_info(trim(ep%mpl(impl)%sym), ixc, at, nelpsp(impl), psp_source(impl), rloc(impl))
-         end do
+         !psp_source = f_malloc(ep%nmpl,id='psp_source')
+         !do impl=1,ep%nmpl
+         !    ! Search the rloc and zion of the corresponding pseudopotential
+         !    call get_psp_info(trim(ep%mpl(impl)%sym), ixc, at, nelpsp(impl), psp_source(impl), rloc(impl))
+         !end do
 
          !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
-         cutoff=10.0_gp*maxval(rloc(:))
+         !cutoff=10.0_gp*maxval(rloc(:))
+         cutoff=10.0_gp*maxval(ep%mpl(:)%sigma(0))
          if (at%multipole_preserving) then
             !We want to have a good accuracy of the last point rloc*10
             cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
@@ -340,8 +341,8 @@ module multipole
          mpz = f_malloc( (/ 0 .to. nmpz /),id='mpz')
 
          do impl=1,ep%nmpl
-             ! Search the rloc and zion of the corresponding pseudopotential
-             call get_psp_info(trim(ep%mpl(impl)%sym), ixc, at, nelpsp(impl), psp_source(impl), rloc(impl))
+             !! Search the rloc and zion of the corresponding pseudopotential
+             !call get_psp_info(trim(ep%mpl(impl)%sym), ixc, at, nelpsp(impl), psp_source(impl), rloc(impl))
              if(norm_ok(impl)) then
                  ! The following routine needs the shifted positions
                  rx = ep%mpl(impl)%rxyz(1) - shift(1)
@@ -349,8 +350,12 @@ module multipole
                  rz = ep%mpl(impl)%rxyz(3) - shift(3)
                  call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, &
                       rx, ry, rz, &
-                      ep%mpl(impl)%sigma(0), nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
+                      ep%mpl(impl)%sigma(0), ep%mpl(impl)%nzion, at%multipole_preserving, use_iterator, at%mp_isf, &
                       denspot%dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, ndensity, density_cores, rholeaked)
+                 !!call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, &
+                 !!     rx, ry, rz, &
+                 !!     ep%mpl(impl)%sigma(0), nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
+                 !!     denspot%dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, ndensity, density_cores, rholeaked)
                  !!call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, &
                  !!     rx, ry, rz, &
                  !!     rloc(impl), nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
@@ -392,7 +397,7 @@ module multipole
           !$omp default(none) &
           !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, hhh, ep, shift, nthread, norm_ok) &
           !$omp shared(norm_check, monopole, dipole, quadrupole, density, density_loc, potential_loc) &
-          !$omp shared (gaussians1, gaussians2, gaussians3, nelpsp, rmax, rmin) &
+          !$omp shared (gaussians1, gaussians2, gaussians3, rmax, rmin) &
           !$omp shared (j1s, j1e, j2s, j2e, j3s, j3e, nl1, nl2, nl3, lzd) &
           !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, l, gg, m, mm, tt, ttt, ttl, ithread, center, ll) &
           !$omp private(rnrm1, rnrm2, rnrm3, rnrm5, qq, ii, sig, lmax_avail, found_non_associated, j1, j2, j3, dr)
@@ -476,7 +481,8 @@ module multipole
                                           ! above) has to be added in order to compensate it. In addition the sign has to be
                                           ! switched since the charge density is a positive quantity.
                                           if (l==0) then
-                                              qq = -(ep%mpl(impl)%qlm(l)%q(mm) - real(nelpsp(impl),kind=8))
+                                              !qq = -(ep%mpl(impl)%qlm(l)%q(mm) - real(nelpsp(impl),kind=8))
+                                              qq = -(ep%mpl(impl)%qlm(l)%q(mm) - real(ep%mpl(impl)%nzion,kind=8))
                                               !qq = -ep%mpl(impl)%qlm(l)%q(mm)
                                           else
                                               qq = -ep%mpl(impl)%qlm(l)%q(mm)
@@ -570,7 +576,7 @@ module multipole
           !$omp end parallel
 
           ! Write the PSP info
-          if (verbosity> 0 .and. iproc==0) call write_psp_source(ep, psp_source)
+          !if (verbosity> 0 .and. iproc==0) call write_psp_source(ep, psp_source)
           !!ntype = 0
           !!do impl=1,ep%nmpl
           !!    ! Check whether the info for this type has already been written
@@ -592,7 +598,7 @@ module multipole
           !!        end if
           !!    end if
           !!end do
-          call f_free(psp_source)
+          !call f_free(psp_source)
     
           if ((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1) > 0) then
              do ithread=0,nthread-1
@@ -682,7 +688,8 @@ module multipole
                               do m=-l,l
                                   mm = mm + 1
                                   if (l==0) then
-                                      qq = -(ep%mpl(impl)%qlm(l)%q(mm)-real(nelpsp(impl),kind=8))
+                                      !qq = -(ep%mpl(impl)%qlm(l)%q(mm)-real(nelpsp(impl),kind=8))
+                                      qq = -(ep%mpl(impl)%qlm(l)%q(mm)-real(ep%mpl(impl)%nzion,kind=8))
                                       !qq = -ep%mpl(impl)%qlm(l)%q(mm)
                                   else
                                       qq = -ep%mpl(impl)%qlm(l)%q(mm)
@@ -828,7 +835,7 @@ module multipole
           call f_free(density)
           call f_free(density_cores)
           !call f_free(nzatom)
-          call f_free(nelpsp)
+          !call f_free(nelpsp)
           call f_free(rloc)
           !call f_free(npspcode)
           !call f_free(psppar)
@@ -2664,6 +2671,12 @@ module multipole
           allocate(ep%mpl(impl)%qlm(0:lmax))
           ep%mpl(impl)%rxyz = at%astruct%rxyz(1:3,impl)
           ep%mpl(impl)%sym = trim(names(impl))
+          call get_psp_info(ep%mpl(impl)%sym, ixc, at, nelpsp, psp_source, rloc)
+          if (psp_source/=0 .and. iproc==0) then
+              call yaml_warning('Taking internal PSP information for multipole '//trim(yaml_toa(impl)))
+          end if
+          ep%mpl(impl)%nzion = nelpsp
+          ep%mpl(impl)%sigma(0:lmax) = rloc
           do l=0,lmax
               ep%mpl(impl)%qlm(l) = multipole_null()
               !if (l>=3) cycle
@@ -2679,10 +2692,9 @@ module multipole
 
       !!! Calculate the optimal sigmas
       !!call get_optimal_sigmas(iproc, nproc, nsigma, collcom_sr, smatl, kernel, at, lzd, ep, shift, rxyz, ixc, denspot)
-      do impl=1,ep%nmpl
-          call get_psp_info(trim(ep%mpl(impl)%sym), ixc, at, nelpsp, psp_source, rloc)
-          ep%mpl(impl)%sigma(0:lmax) = rloc
-      end do
+      !!do impl=1,ep%nmpl
+      !!    call get_psp_info(trim(ep%mpl(impl)%sym), ixc, at, nelpsp, psp_source, rloc)
+      !!end do
 
       if (iproc==0) then
           call yaml_comment('Final result of the multipole analysis',hfill='~')
@@ -2706,6 +2718,7 @@ module multipole
               allocate(ep_check%mpl(impl)%qlm(0:lmax))
               ep_check%mpl(impl)%rxyz = ep%mpl(impl)%rxyz
               ep_check%mpl(impl)%sym = ep%mpl(impl)%sym
+              ep_check%mpl(impl)%nzion = ep%mpl(impl)%nzion
               do l=0,lmax
                   ep_check%mpl(impl)%sigma(l) = ep%mpl(impl)%sigma(l)
                   ep_check%mpl(impl)%qlm(l) = multipole_null()

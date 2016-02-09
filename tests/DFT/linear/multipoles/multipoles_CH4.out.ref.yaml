@@ -649,9 +649,6 @@
    BC                                  : Free
    Box                                 :  [  85,  85,  83 ]
    MPI tasks                           :  8
- Origin of the PSP data:
- - C                                   : PSP of QM region
- - H                                   : PSP of QM region
  Potential from multipoles:
    Number of multipole centers         :  5
    Threshold for the norm of the Gaussians:  1.0E-002
