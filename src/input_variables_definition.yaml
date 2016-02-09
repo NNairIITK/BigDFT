@@ -47,7 +47,7 @@
        Determine the exchange-correlation functional.
        Integer specifying which exchange correlation functional will be used.
        The Abinit conventions are used and detailed information can be found on the Abinit Web page.
-       Here is only a short summary of some wide-ly used functionals
+       Here is only a short summary of some widely used functionals
        
        - Pade LDA from Abinit XC library;
        - PBE from Abinit XC library;
@@ -111,7 +111,7 @@
      accurate: 1.e-5
    itermax:
      COMMENT: Max. iterations of wfn. opt. steps
-     DESCRIPTION: |
+     DESCRIPTION: >
        Maximum number of gradient evaluations for a single cycle in a wavefunction optimization and maximum number of
        cycles. At the end of each cycle a subspace diagonalization is done which helps in cases where one has near
        degeneracy between the HOMO and LUMO orbitals. 50 and 2 are usually sufficient.
@@ -123,7 +123,7 @@
      default: 0
    nrepmax:
      COMMENT: Max. number of re-diag. runs
-     DESCRIPTION: |
+     DESCRIPTION: >
        Maximum number of gradient evaluations for a single cycle in a wavefunction optimization and maximum number of
        cycles. At the end of each cycle a subspace diagonalization is done which helps in cases where one has near
        degeneracy between the HOMO and LUMO orbitals. 50 and 2 are usually sufficient.
@@ -1021,14 +1021,14 @@
      default: 0
    itrpmax:
      COMMENT: Maximum number of diagonalisation iterations
-     DESCRIPTION: |
+     DESCRIPTION: >
        Maximum number of repeats for the mixing scheme. Each iteration implies an optimization
-       of the wavefunctions at constant potential according to the settings in input.dft. 
+       of the wavefunctions at constant potential according to the settings in input.dft.
      RANGE: [0, 10000]
      default: 1
    rpnrm_cv:
      COMMENT: Stop criterion on the residue of potential or density
-     DESCRIPTION: |
+     DESCRIPTION: >
        The stop criterion on the residue of the potential or the density. Typical values are in
        the order of 1e-10 to 1e-12. 
      RANGE: [0., 10.]
