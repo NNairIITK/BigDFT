@@ -2330,6 +2330,7 @@ module multipole
       real(kind=8),dimension(:),pointer :: atomic_monopoles_analytic
       real(kind=8),dimension(:,:,:),allocatable :: test_pot
       real(kind=8),dimension(:,:),pointer :: projx
+      real(kind=8),dimension(:,:),allocatable :: kernel_extracted, multipole_extracted
       real(kind=8) :: q, tt, rloc
       type(matrices) :: multipole_matrix
       logical,dimension(:,:),pointer :: neighborx
@@ -2455,8 +2456,11 @@ module multipole
 
       locregcenter = f_malloc((/3,lzd%nlr/),id='locregcenter')
       do ilr=1,lzd%nlr
-          locregcenter(1:3,ilr) = lzd%llr(ilr)%locregcenter(1:3)
+          !locregcenter(1:3,ilr) = lzd%llr(ilr)%locregcenter(1:3) !+ (/1.d0,2.d0,3.d0/)
+          locregcenter(1:3,ilr) = (/0.d0,0.d0,0.d0/)
+          !if (iproc==0) write(*,*) 'lzd%llr(ilr)%locregcenter(1:3)',lzd%llr(ilr)%locregcenter(1:3)
       end do
+      if (iproc==0) write(*,*) rxyz
 
 !!$      Slmphi=f_malloc(nphi,id='Slmphi')
 !!$           
@@ -2481,6 +2485,7 @@ module multipole
               else if (do_ortho==no) then
                   call calculate_multipole_matrix(iproc, nproc, l, m, nphi, lphi, lphi, nphir, hgrids, &
                        orbs, collcom, lzd, smats, locregcenter, 'box', multipole_matrix) 
+                   if (iproc==0) write(*,*) 'multipole_matrix%matrix_compr(1)',multipole_matrix%matrix_compr(1)
 !!$                  call orbital_basis_associate(psi_ob,orbs=orbs,&
 !!$                       phis_wvl=lphi,Lzd=Lzd)
 !!$                  call apply_Slm(l,m,smats%geocode,hgrids,acell,psi_ob,&
@@ -2524,6 +2529,37 @@ module multipole
                       qmat_tilde = f_malloc((/n,n/),id='qmat_tilde')
                       kp = f_malloc((/n,n/),id='kp')
                       call extract_matrix(smatl, qmat, neighborx(1:,kat), n, nmaxx, qmat_tilde)
+                 ! @NEW: correction for the dipoles
+                 kernel_extracted = f_malloc((/n,n/),id='kernel_extracted')
+                 multipole_extracted = f_malloc((/n,n/),id='multipole_extracted')
+                 call extract_matrix(smatl, kernel%matrix_compr, neighborx(1:,kat), n, nmaxx, kernel_extracted)
+                 call extract_matrix(smatl, multipole_matrix_large, neighborx(1:,kat), n, nmaxx, multipole_extracted)
+                 if (smatl%nvctr/=smats%nvctr) stop 'YOU HAVE TO CONVERT THE SPARSITY PATTERN'
+                 overlap_small = f_malloc((/n,n/),id='overlap_small')
+                 call extract_matrix(smats, ovrlp%matrix_compr, neighborx(1:,kat), n, nmaxx, overlap_small)
+                 ! Warning stack overflow
+                 if (l==1) then
+                     select case (m)
+                     case (-1)
+                         multipole_extracted = multipole_extracted + rxyz(2,kkat)*overlap_small
+                         if (iproc==0) write(*,*) 'm, kkat, multipole_extracted(1,1), overlap_small(1,1)'&
+                             , m, kkat, multipole_extracted(1,1), overlap_small(1,1)
+                     case (0)
+                         multipole_extracted = multipole_extracted + rxyz(3,kkat)*overlap_small
+                         if (iproc==0) write(*,*) 'm, kkat, multipole_extracted(1,1), overlap_small(1,1)'&
+                             , m, kkat, multipole_extracted(1,1), overlap_small(1,1)
+                     case (1)
+                         multipole_extracted = multipole_extracted + rxyz(1,kkat)*overlap_small
+                         if (iproc==0) write(*,*) 'm, kkat, multipole_extracted(1,1), overlap_small(1,1)'&
+                             , m, kkat, multipole_extracted(1,1), overlap_small(1,1)
+                     end select
+                 end if
+                 call gemm('n', 'n', n, n, n, 1.d0, kernel_extracted(1,1), n, &
+                      multipole_extracted(1,1), n, 0.d0, qmat_tilde(1,1), n)
+                 call f_free(kernel_extracted)
+                 call f_free(multipole_extracted)
+                 call f_free(overlap_small)
+                 ! #################### END NEW
                       call gemm('n', 'n', n, n, n, 1.d0, qmat_tilde(1,1), n, projx(1,kat), n, 0.d0, kp(1,1), n)
                       if (do_ortho==no) then
                           overlap_small = f_malloc((/n,n/),id='overlap_small')
@@ -2545,7 +2581,7 @@ module multipole
                   do ispin=1,smatl%nspin
                       ishift = (ispin-1)*smatl%nvctrp_tg
                       ! Need to do this in parallel (norbp), since the matrices might not be fully filled (matrix taskgroup etc.)
-                      ! This should be carefull checked again.
+                      ! This should be carefully checked again.
                       do iorb=1,orbs%norbp
                           iiorb = modulo(orbs%isorb+iorb-1,smatl%nfvctr)+1
                           iat=smatl%on_which_atom(iiorb)
@@ -2860,6 +2896,7 @@ module multipole
       real(kind=8),dimension(:,:,:),allocatable :: multipoles_fake, penalty_matrices
       real(kind=8),dimension(:),allocatable :: alpha_calc
       !character(len=*),parameter :: mode='old'
+      real(kind=8),dimension(3) :: target_charges
 
       call f_routine(id='projector_for_charge_analysis')
 
@@ -2901,7 +2938,7 @@ module multipole
       do iat=1,at%astruct%nat
           tt = tt + real(at%nelpsp(at%astruct%iatype(iat)),kind=8)
       end do
-      convergence_criterion = max(1.d-6*abs(tt),1.d-4)
+      convergence_criterion = max(1.d-3*abs(tt),1.d-2)
 
       ! Check the arguments
       if (calculate_centers) then
@@ -3105,7 +3142,7 @@ module multipole
           end if
 
           !if (ialpha==0) alpha = 2.d-1
-          if (ialpha==0) alpha = 0.d-1
+          if (ialpha==0) alpha = 2.d-1 !1.d-1
 
           charge_net = 0.d0
           call f_zero(eval_all)
@@ -3232,9 +3269,9 @@ module multipole
                                             - 2.d0*rxyz(2,kkat)**2*rxyz(3,kkat)*penaltymat(j,i,9) &
                                             + rxyz(2,kkat)**2*rxyz(3,kkat)**2*ovrlp(j,i) )
                               itype = at%astruct%iatype(kkat)
-                              !rloc = at%psppar(0,0,itype)
+                              rloc = at%psppar(0,0,itype)
                               ilr = locregs_ID(i)
-                              rloc = lzd%llr(ilr)%locrad
+                              !rloc = lzd%llr(ilr)%locrad
                               !write(*,*) 'kkat, itype, at%psppar(0,0,itype), rloc', kkat, itype, at%psppar(0,0,itype), rloc
                               !if (kkat==1) then
                                   ttt = ttt*alpha/rloc**4
@@ -3254,6 +3291,9 @@ module multipole
                           end if
                       end do
                   end do
+                  ! Additinal term
+                  !call add_penalty_term(at%astruct%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
+                  !     at%astruct%cell_dim, com, 10.d0*alpha, n, ovrlp, tmpmat2d)
                   if (ortho=='no') then
                       ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
                       ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
@@ -3412,6 +3452,53 @@ module multipole
                       occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
                       occ_all(ieval) = occ
                   end do
+target_charges(1) = 6.d0
+target_charges(2) = 1.d0
+target_charges(3) = 1.d0
+kT = 5.d-2
+do itype=1,3
+    tt = 0.d0
+    do ieval=1,ntot
+        if(id_all(ieval)==itype) then
+            tt = tt + 2.d0
+        end if
+        if (tt>=target_charges(itype)-1.d-1) then
+            iq = ieval
+            exit
+        end if
+    end do
+
+    ef = eval_all(1)
+    do
+        ef = ef + max(1.d-3,1.d-3*tt)
+        occ = 1.d0/(1.d0+safe_exp( (eval_all(iq)-ef)*(1.d0/kT) ) )
+        if (abs(occ-1.d0)<1.d-8) exit
+    end do
+    if (bigdft_mpi%iproc==0) write(*,*) 'itype, ef', itype, ef
+    !write(*,*) 'HACK: SET EF TO 0.0'
+    !ef = 0.0
+    !!eF = eF + 0.001d0
+    do ieval=1,ntot
+        if (id_all(ieval)==itype) then
+            occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
+            !if (bigdft_mpi%iproc==0) write(*,*) 'itype, eval_all(ieval), ef, kT, occ', itype, itype, eval_all(ieval), ef, kT, occ
+            occ_all(ieval) = occ
+        end if
+    end do
+end do
+do ieval=1,ntot
+ !!!$   if (target_charges(id_all(ieval))>1.d-10) then
+ !!!$       occ = 1.d0
+ !!!$       target_charges(id_all(ieval)) = target_charges(id_all(ieval)) - 2.d0
+ !!!$   else
+ !!!$       occ = 0.d0
+ !!!$   end if
+ !!!$   occ_all(ieval) = occ
+    !occ = max(1.d0,0.5d0*target_charges(id_all(ieval)))
+    !occ = real(ceiling(occ),kind=8)
+    !target_charges(id_all(ieval)) = target_charges(id_all(ieval)) - 2.d0*occ
+    if (bigdft_mpi%iproc==0) write(*,*) 'ieval, eval, ID, occ', ieval, eval_all(ieval), id_all(ieval), occ_all(ieval)
+end do
                   !!!if (bigdft_mpi%iproc==0) then
                   !!!    call yaml_sequence_close()
                   !!!    call yaml_map('number of states to be occupied (without smearing)',iq)
@@ -3443,9 +3530,18 @@ module multipole
                   !!!    call yaml_sequence_close()
                   !!!end if
               end if
+
+!!ef = 0.d0
+!!kT = 1.d-3
+!!ef_loop: do        
+!!    do ieval=1,ntot
+!!        occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
+!!        occ_all(ieval) = occ
+!!    end do
         
               ! Calculate the projector. First for each single atom, then insert it into the big one.
               charge_total = 0.d0
+              call f_zero(charge_per_atom)
               do kat=1,natp
                   kkat = kat + isat
                   n = n_all(kat)
@@ -3510,6 +3606,7 @@ module multipole
               call yaml_map('net charge',charge_net,fmt='(es12.4)')
               call yaml_map('bisection bounds ok',(/bound_low_ok,bound_up_ok/))
               call yaml_map('kT',kT,fmt='(es12.4)')
+              call yaml_map('eF',ef,fmt='(es12.4)')
               call yaml_mapping_close()
           end if
 
@@ -3574,6 +3671,14 @@ module multipole
               end if
               exit alpha_loop
           end if
+
+!!    if (charge_net<0.d0) then
+!!        ef = ef - 1.d-4
+!!    else
+!!        ef = ef + 1.d-4
+!!    end if
+!!
+!!end do ef_loop
 
           ! If we are still searching the boundaries for the bisection...
           if (.not.bound_low_ok) then
