@@ -29,7 +29,7 @@ SUBDIRS += \
 	doc \
 	utils
 
-# Tests subdir is include only if binaries are compiled.
+# Tests subdir is included only if binaries are compiled.
 #if BUILD_BINARIES
 #if HAVE_PYYAML
 SUBDIRS += tests
