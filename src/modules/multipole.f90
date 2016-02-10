@@ -2806,7 +2806,7 @@ module multipole
                                    SPARSE_TASKGROUP, assignment(=), &
                                    matrices_null, deallocate_matrices
       use sparsematrix_init, only: matrixindex_in_compressed
-      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
+      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix, trace_sparse
       use matrix_operations, only: overlapPowerGeneral, overlap_plus_minus_one_half_exact
       use yaml_output
       use multipole_base, only: lmax
@@ -2836,9 +2836,9 @@ module multipole
       ! Local variables
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl, lwork
       integer :: k, l, iatold, isat, natp, kkat, istot, ntotp, i1, i2, i3, is1, ie1, is2, ie2, is3, ie3, j1, j2, j3, ikT, info
-      integer :: ialpha, ilr
+      integer :: ialpha, ilr, isshift, ilshift, ispin
       real(kind=8) :: r2, cutoff2, rr2, tt, ef, q, occ, max_error, mean_error, rr2i, rr2j, ttxi, ttyi, ttzi, ttxj, ttyj, ttzj
-      real(kind=8) :: tti, ttj, charge_net, charge_total, rloc
+      real(kind=8) :: tti, ttj, charge_net, charge_total, rloc, charge
       real(kind=8) :: xi, xj, yi, yj, zi, zj, ttx, tty, ttz, xx, yy, zz, x, y, z
       real(kind=8),dimension(:),allocatable :: work, occ_all
       real(kind=8),dimension(:,:),allocatable :: com
@@ -2854,7 +2854,7 @@ module multipole
       type(matrices),dimension(1) :: ovrlp_onehalf_
       logical :: perx, pery, perz, final, bound_low_ok, bound_up_ok
       !real(kind=8),parameter :: kT = 5.d-2
-      real(kind=8) :: kT, ttt
+      real(kind=8) :: kT, ttt, tr_KS
       !real(kind=8),parameter :: alpha = 5.d-1
       real(kind=8) :: alpha, alpha_up, alpha_low, convergence_criterion
       real(kind=8),dimension(:,:,:),allocatable :: multipoles_fake, penalty_matrices
@@ -2893,6 +2893,16 @@ module multipole
               call f_err_throw('not all optional arguments present',err_name='BIGDFT_RUNTIME_ERROR')
           end if
       end if
+
+      ! Determine the overall target charge, by calculating tr(KS). Only for ispin=1, the rest might not work
+      ispin=1
+      isshift=(ispin-1)*smats%nvctrp_tg
+      ilshift=(ispin-1)*smatl%nvctrp_tg
+      tr_KS = trace_sparse(bigdft_mpi%iproc, bigdft_mpi%nproc, smats, smatl, &
+             ovrlp_%matrix_compr(isshift+1:), &
+             kernel_%matrix_compr(ilshift+1:), ispin)
+
+
 
       kT = 1.d-2
 
@@ -3499,14 +3509,18 @@ module multipole
               !end do
               !write(*,*) 'charge_total',charge_total
           end if
-          charge_net = 0.d0
+          !charge_net = 0.d0
+          charge = 0.d0
           do iat=1,at%astruct%nat
-              charge_net = charge_net -(charge_per_atom(iat)-real(at%nelpsp(at%astruct%iatype(iat)),kind=8))
+              !charge_net = charge_net -(charge_per_atom(iat)-real(at%nelpsp(at%astruct%iatype(iat)),kind=8))
+              charge = charge - charge_per_atom(iat)
           end do
+          charge_net = charge + tr_KS
           if (bigdft_mpi%iproc==0) then
               !write(*,*) 'net charge', charge_net
               call yaml_mapping_open(flow=.true.)
               call yaml_map('alpha',alpha,fmt='(es12.4)')
+              call yaml_map('charge',charge,fmt='(es12.4)')
               call yaml_map('net charge',charge_net,fmt='(es12.4)')
               call yaml_map('bisection bounds ok',(/bound_low_ok,bound_up_ok/))
               call yaml_map('kT',kT,fmt='(es12.4)')
