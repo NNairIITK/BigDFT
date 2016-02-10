@@ -221,7 +221,8 @@ subroutine subspace_matrix(symm,psi,hpsi,ncplx,nvctrp,norb,lambda)
 end subroutine subspace_matrix
 
 !>perform an update of the orbitals of the subspace
-! given two initial array and a matrix times
+!! given two initial array and a matrix 
+!! calculates y = y - A*x
 subroutine subspace_update(ncplx,nvctrp,norb,y,a,x)
   use module_defs, only: wp
   use wrapper_linalg, only: gemm,c_gemm
@@ -272,8 +273,8 @@ subroutine lagrange_multiplier(symm,occup,ncplx,norb,lambda,trace)
               lij(icplx)=lij(icplx)+(-1)**(icplx-1)*lji(icplx)
            end do
            do icplx=1,ncplx
-              lambda(icplx,iorb,jorb)=lij(icplx)
-              lambda(icplx,jorb,iorb)=lij(icplx)
+              lambda(icplx,iorb,jorb)=0.5_wp*lij(icplx)
+              lambda(icplx,jorb,iorb)=0.5_wp*lij(icplx)
            end do
         end do
      end if
@@ -448,34 +449,34 @@ do ikptp=1,orbs%nkptsp
       ncomponents=ncomp*nvctrp
       if (nspinor/=1) ncomplex=2
 
-!!$      call lagrange_multiplier(symm,orbs%occup((ikpt-1)*orbs%norb+1+ise),&
-!!$           ncomplex,norb,&
-!!$           alag(ndim_ovrlp(ispin,ikpt-1)+1),trace)
+      call lagrange_multiplier(symm,orbs%occup((ikpt-1)*orbs%norb+1+ise),&
+           ncomplex,norb,&
+           alag(ndim_ovrlp(ispin,ikpt-1)+1),trace)
 
 !!$        !correct the orthogonality constraint if there are some orbitals which have zero occupation number
-      if (symm) then
-         do iorb=1,norb
-            do jorb=iorb+1,norb
-!!$              if (orbs%occup((ikpt-1)*orbs%norb+iorb+ise) /= 0.0_gp .and. &
-!!$                   orbs%occup((ikpt-1)*orbs%norb+jorb+ise) == 0.0_gp) then
-               aij(1)=alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs)
-               aji(1)=alag(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs)
-               aij(2)=0.0_gp
-               aji(2)=0.0_gp
-               alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs) = 0.5_gp*(aij(1)+aji(1))!0.0_wp
-               alag(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs) = 0.5_gp*(aij(1)+aji(1))!0.0_wp
-               if (norbs == 2*norb) then !imaginary part, if present
-                  aij(2)=alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs+1)
-                  aji(2)=alag(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs+1)
-                  alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs+1)=0.5_gp*(aij(2)-aji(2))
-                  alag(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs+1)=0.5_gp*(aji(2)-aij(2))
-               end if
-!!$                 !if (iproc ==0) print *,'i,j',iorb,jorb,alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs)
-!!$              end if
-            end do
-         end do
-      end if
-
+!!!      if (symm) then
+!!!         do iorb=1,norb
+!!!            do jorb=iorb+1,norb
+!!!!!$              if (orbs%occup((ikpt-1)*orbs%norb+iorb+ise) /= 0.0_gp .and. &
+!!!!!$                   orbs%occup((ikpt-1)*orbs%norb+jorb+ise) == 0.0_gp) then
+!!!               aij(1)=alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs)
+!!!               aji(1)=alag(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs)
+!!!               aij(2)=0.0_gp
+!!!               aji(2)=0.0_gp
+!!!               alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs) = 0.5_gp*(aij(1)+aji(1))!0.0_wp
+!!!               alag(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs) = 0.5_gp*(aij(1)+aji(1))!0.0_wp
+!!!               if (norbs == 2*norb) then !imaginary part, if present
+!!!                  aij(2)=alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs+1)
+!!!                  aji(2)=alag(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs+1)
+!!!                  alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs+1)=0.5_gp*(aij(2)-aji(2))
+!!!                  alag(ndim_ovrlp(ispin,ikpt-1)+jorb+(iorb-1)*norbs+1)=0.5_gp*(aji(2)-aij(2))
+!!!               end if
+!!!!!$                 !if (iproc ==0) print *,'i,j',iorb,jorb,alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs)
+!!!!!$              end if
+!!!            end do
+!!!         end do
+!!!      end if
+!!!
 !!$        if (iproc ==0) print *,'matrix'
 !!$        do iorb=1,norb
 !!$           if (iproc ==0) print '(a,i3,100(1pe14.4))','i,j',iorb,&
@@ -487,26 +488,26 @@ do ikptp=1,orbs%nkptsp
       if (orbs%ikptproc(ikpt) == iproc) then
          occ=real(orbs%kwgts(ikpt),dp)*real(3-orbs%nspin,gp)
          if (nspinor == 4) occ=real(orbs%kwgts(ikpt),dp)
-!!$         scprsum=scprsum+occ*trace
-         if(nspinor == 1) then
-            do iorb=1,norb
-               !write(*,'(a,2i5,2es14.7)') 'iproc, iorb, occ, lagMatVal', iproc, iorb, occ, real(alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs),dp)
-               scprsum=scprsum+&
-                    occ*real(alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs),dp)
-            enddo
-         else if (nspinor == 4 .or. nspinor == 2) then
-            !not sure about the imaginary part of the diagonal (should be zero if H is hermitian)
-            do iorb=1,norb
-               scprsum=scprsum+&
-                    occ*real(alag(ndim_ovrlp(ispin,ikpt-1)+2*iorb-1+(iorb-1)*norbs),dp)
-               scprsum=scprsum+&
-                    occ*real(alag(ndim_ovrlp(ispin,ikpt-1)+2*iorb+(iorb-1)*norbs),dp)
-            enddo
-         end if
+         scprsum=scprsum+occ*trace
+!!$         if(nspinor == 1) then
+!!$            do iorb=1,norb
+!!$               !write(*,'(a,2i5,2es14.7)') 'iproc, iorb, occ, lagMatVal', iproc, iorb, occ, real(alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs),dp)
+!!$               scprsum=scprsum+&
+!!$                    occ*real(alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs),dp)
+!!$            enddo
+!!$         else if (nspinor == 4 .or. nspinor == 2) then
+!!$            !not sure about the imaginary part of the diagonal (should be zero if H is hermitian)
+!!$            do iorb=1,norb
+!!$               scprsum=scprsum+&
+!!$                    occ*real(alag(ndim_ovrlp(ispin,ikpt-1)+2*iorb-1+(iorb-1)*norbs),dp)
+!!$               scprsum=scprsum+&
+!!$                    occ*real(alag(ndim_ovrlp(ispin,ikpt-1)+2*iorb+(iorb-1)*norbs),dp)
+!!$            enddo
+!!$         end if
       end if
       ise=norb
 
-      if (nvctrp /=0) call subspace_update(ncomplex,ncomponents,norb,&
+      call subspace_update(ncomplex,ncomponents,norb,&
            hpsi(ispsi),alag(ndim_ovrlp(ispin,ikpt-1)+1),psi(ispsi))
 
 !!$      if(nspinor==1 .and. nvctrp /= 0) then
@@ -520,7 +521,7 @@ do ikptp=1,orbs%nkptsp
 
       !Only for PAW:
       if (present(spsi)) then
-         if (nvctrp /=0) call subspace_update(ncomplex,ncomponents,norb,&
+         call subspace_update(ncomplex,ncomponents,norb,&
               hpsi(ispsi),alag(ndim_ovrlp(ispin,ikpt-1)+1),spsi(ispsi))
 
 !!$         if(nspinor==1 .and. nvctrp /= 0) then
