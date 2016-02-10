@@ -3077,10 +3077,13 @@ module multipole
 
       ! Calculate how many states should be included
       q = 0.d0
+      tt = 0.d0
       do iat=1,at%astruct%nat
           itype = at%astruct%iatype(iat)
           q = q + ceiling(0.5d0*real(at%nelpsp(itype),kind=8))
+          tt = tt + real(at%nelpsp(itype),kind=8)
       end do
+      q = q + 0.5d0*(tr_KS - tt)
       iq = nint(q)
       if (bigdft_mpi%iproc==0) then
           call yaml_mapping_open('Calculating projector for charge analysis')
