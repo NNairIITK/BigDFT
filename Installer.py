@@ -68,6 +68,9 @@ class BigDFTInstaller():
         self.jhb=os.path.join(self.srcdir,'jhbuild.py ')
         if self.rcfile != '': self.jhb += '-f '+self.rcfile
 
+        #date of bigdft executable if present
+        self.time0=self.bigdft_time()
+            
         self.print_present_configuration()
                             
         #now get the list of modules that has to be treated with the given command
@@ -77,7 +80,14 @@ class BigDFTInstaller():
         #then choose the actions to be taken
         getattr(self,action)()
 
-
+    def bigdft_time(self):
+        import os
+        bigdft=os.path.join(self.builddir,'install','bin','bigdft')
+        if os.path.isfile(bigdft):
+            return os.path.getmtime(bigdft)
+        else:
+            return None
+    
     def get_rcfile(self,rcfile):
         "Determine the rcfile"
         import os
@@ -146,10 +156,10 @@ class BigDFTInstaller():
         else:
             print indent*2 + "Source: Configuration file '%s'" % os.path.abspath(self.rcfile)
         while True:
-            ok = raw_input('Do you want to continue (y/n)? ')
+            ok = raw_input('Do you want to continue (Y/n)? ')
             if ok == 'n' or ok=='N':
                 exit(0)
-            elif ok != 'y' and ok != 'Y':
+            elif ok != 'y' and ok != 'Y' and repr(ok) != repr(''):
                 print 'Please answer y or n'
             else:
                 break
@@ -263,11 +273,21 @@ class BigDFTInstaller():
         print 'Thank you for using the Installer of BigDFT suite.'
         print 'The action considered was:',self.action
         if self.action == 'build': self.rcfile_from_env()
-
+        if self.time0 is not None and self.bigdft_time() > self.time0:
+            print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
+            print 'All the available executables and scripts can be found in the directory'
+            print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
+        elif self.action == 'build' or self.action == 'make':
+            print 'WARNING: The Installer seems NOT have created or updated bigdft executable'
+            print '        (maybe everything already compiled?)'
+            print 'ACTION: check the compiling procedure:'
+            if not self.verbose and self.action == 'build':
+                print '  Have a look at the file index.html of the build/ directory to find the reason'
+    
 #Now follows the available actions, argparse might be called
 import argparse
 
-#Redefine ArgumentParser to ahve the help message if no arguments
+#Redefine ArgumentParser to have the help message if no arguments
 class Installer_Parser(argparse.ArgumentParser):
     def error(self, message):
         import sys
@@ -290,7 +310,7 @@ parser.add_argument('-d','--verbose',action='store_true',
 #Define the possible actions
 subparsers = parser.add_subparsers(title='The following actions are available',
                                    dest='action',
-                                   help='Define the installer action to be taken.')
+                                   help='Action to be performed by the Installer.')
 for (k,v) in ACTIONS.items():
     subparsers.add_parser(k,help=v)
 
