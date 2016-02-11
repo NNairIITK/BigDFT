@@ -269,6 +269,7 @@ class BigDFTInstaller():
         print "Directory of the source for future use. The name might contain the hostname."
 
     def __del__(self):
+        import os
         print 50*'-'
         print 'Thank you for using the Installer of BigDFT suite.'
         print 'The action considered was:',self.action
@@ -277,7 +278,7 @@ class BigDFTInstaller():
             print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
             print 'All the available executables and scripts can be found in the directory'
             print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
-        elif self.action == 'build' or self.action == 'make':
+        elif (self.action == 'build' or self.action == 'make') and self.bigdft_time() is None:
             print 'WARNING: The Installer seems NOT have created or updated bigdft executable'
             print '        (maybe everything already compiled?)'
             print 'ACTION: check the compiling procedure:'
