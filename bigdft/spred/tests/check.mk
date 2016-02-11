@@ -102,7 +102,7 @@ UPDATES = $(ALLDIRS:=.updateref)
 FAILEDCHECKS = $(TESTDIRS:=.recheck)
 CLEANS = $(ALLDIRS:=.clean)
 
-EXTRA_DIST += README $(ALLDIRS)
+EXTRA_DIST += $(ALLDIRS)
 
 in: $(INS)
 

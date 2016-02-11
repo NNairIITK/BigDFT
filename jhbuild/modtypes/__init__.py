@@ -581,6 +581,7 @@ class MetaModule(Package):
                                            buildscript.config.nonet):
                 tar = os.path.join(mod.get_builddir(buildscript), os.path.basename(mod.branch.module))
                 try:
+                    print tar
                     shutil.copy(tar, destdir)
                 except:
                     tar = os.path.join(SRCDIR, os.path.basename(mod.branch.module))

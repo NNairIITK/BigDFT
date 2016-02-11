@@ -1341,6 +1341,38 @@ program memguess
    !Time initialization
    !call cpu_time(tcpu0)
    !call system_clock(ncount0,ncount_rate,ncount_max)
+   
+   ! Run memory estimation on sections, if DFT mode.
+   if (associated(runObj%sections) .and. .not. exportwf .and. .not. exportproj) then
+      do i = 1, size(runObj%sections)
+         if (runObj%sections(i)%run_mode == QM_RUN_MODE) then
+            inputpsi = runObj%sections(i)%inputs%inputPsiId
+            call system_initialization(0, nproc, .true.,inputpsi, input_wf_format, .true., &
+                 & runObj%sections(i)%inputs, runObj%sections(i)%atoms, &
+                 & runObj%sections(i)%atoms%astruct%rxyz, runObj%sections(i)%rst%GPU%OCLconv, &
+                 & runObj%sections(i)%rst%KSwfn%orbs, runObj%sections(i)%rst%tmb%npsidim_orbs, &
+                 & runObj%sections(i)%rst%tmb%npsidim_comp, runObj%sections(i)%rst%tmb%orbs, &
+                 & runObj%sections(i)%rst%KSwfn%Lzd, runObj%sections(i)%rst%tmb%Lzd, nlpsp, &
+                 & runObj%sections(i)%rst%KSwfn%comms, shift, ref_frags, &
+                 & output_grid = (output_grid > 0))
+            call MemoryEstimator(nproc,runObj%sections(i)%inputs%idsx, &
+                 & runObj%sections(i)%rst%KSwfn%Lzd%Glr, runObj%sections(i)%rst%KSwfn%orbs%norb, &
+                 & runObj%sections(i)%rst%KSwfn%orbs%nspinor, runObj%sections(i)%rst%KSwfn%orbs%nkpts, &
+                 & nlpsp%nprojel, runObj%sections(i)%inputs%nspin, &
+                 & runObj%sections(i)%inputs%itrpmax,runObj%sections(i)%inputs%iscf,mem)
+            call free_DFT_PSP_projectors(nlpsp)
+            call deallocate_Lzd_except_Glr(runObj%sections(i)%rst%KSwfn%Lzd)
+            call deallocate_comms(runObj%sections(i)%rst%KSwfn%comms)
+            call deallocate_orbs(runObj%sections(i)%rst%KSwfn%orbs)
+
+            call print_memory_estimation(mem)
+
+            call astruct_dump_to_file(runObj%sections(i)%atoms%astruct,&
+                 & trim(runObj%sections(i)%inputs%dir_output)//trim(runObj%sections(i)%label),&
+                 & "extracted for section " // trim(runObj%sections(i)%label))
+         end if
+      end do
+   end if
 
    inputpsi = runObj%inputs%inputPsiId
    call system_initialization(0, nproc, .true.,inputpsi, input_wf_format, .true., &
@@ -1353,7 +1385,8 @@ program memguess
         & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
         runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,mem)
    
-   if (.not. exportwf .and. .not. exportproj) then
+   if (runObj%run_mode /= MULTI_RUN_MODE .and. &
+        & .not. exportwf .and. .not. exportproj) then
       call print_memory_estimation(mem)
    end if
 

@@ -59,7 +59,7 @@ modules = sparsematrix_base.@MODULE_EXT@ \
 		  sparsematrix_io.@MODULE_EXT@
 endif
 
-CLEANFILES = $(modules)
+CLEANFILES = *.@MODULE_EXT@
 
 AM_FCFLAGS = -I. -I$(srcdir) @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
 

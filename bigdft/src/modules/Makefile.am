@@ -208,7 +208,7 @@ COMMS_INCLUDES = check_array-inc.f90
 
 EXTRA_DIST = bigdft_cst.h.in \
 	$(ATOMS_INCLUDES) $(COMMS_INCLUDES) $(overrides_DATA)
-CLEANFILES = $(modules)
+CLEANFILES = *.mod
 
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ @LIB_FLIB_CFLAGS@
 

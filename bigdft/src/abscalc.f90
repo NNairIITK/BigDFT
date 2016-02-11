@@ -152,9 +152,10 @@ END SUBROUTINE call_abscalc
 !! @warning psi should be freed after use outside of the routine.
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
      KSwfn,hx_old,hy_old,hz_old,in,GPU,infocode)
-   use module_base
+   !use module_base
    use module_dpbox, only: denspot_distribution
-   use module_types
+   !use module_types
+   use module_input_keys, only: input_variables
    use module_interfaces, only: IonicEnergyandForces, &
         & createWavefunctionsDescriptors, orbitals_descriptors
    use Poisson_Solver, except_dp => dp, except_gp => gp
