@@ -126,7 +126,8 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_init_from_data_ccs
 
 
-    subroutine sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc, smat, mat)
+    subroutine sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc, smat, mat, &
+            nspin, nat, ntypes, nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: bigdft_to_sparsebigdft
@@ -138,18 +139,68 @@ module sparsematrix_highlevel
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
       type(matrices),intent(out) :: mat
+      ! Optional variables that are contained within the sparse matrix format
+      integer,intent(out),optional :: nspin, nat, ntypes
+      integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
+      character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
+      real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
+      integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
     
       ! Local variables
-      integer :: nspin, nfvctr, nseg, nvctr
+      integer :: nspin_, nfvctr, nseg, nvctr, i
       character(len=1) :: geocode
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
       real(kind=8),dimension(:),pointer :: val
+      integer :: nat_, ntypes_
+      integer,dimension(:),pointer :: nzatom_, nelpsp_, iatype_
+      character(len=20),dimension(:),pointer :: atomnames_
+      real(kind=8),dimension(:,:),pointer :: rxyz_
+      integer,dimension(:),pointer :: on_which_atom_
     
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_bigdft')
     
       ! Read in the matrix
-      call read_sparse_matrix(filename, nspin, geocode, nfvctr, nseg, nvctr, keyv, keyg, val)
+      call read_sparse_matrix(filename, nspin_, geocode, nfvctr, nseg, nvctr, keyv, keyg, val, &
+           nat=nat_, ntypes=ntypes_, nzatom=nzatom_, nelpsp=nelpsp_, atomnames=atomnames_, &
+           iatype=iatype_, rxyz=rxyz_, on_which_atom=on_which_atom_)
+
+      ! Copy the optional variables, if present
+      if (present(nspin)) then
+          nspin = nspin_
+      end if
+      if (present(nat)) then
+          nat = nat_
+      end if
+      if (present(ntypes)) then
+          ntypes = ntypes_
+      end if
+      if (present(nzatom)) then
+          nzatom_ = f_malloc_ptr(ntypes_,id='nzatom')
+          call f_memcpy(src=nzatom_, dest=nzatom)
+      end if
+      if (present(nelpsp)) then
+          nelpsp = f_malloc_ptr(ntypes_,id='nelpsp')
+          call f_memcpy(src=nelpsp_, dest=nelpsp)
+      end if
+      if (present(iatype)) then
+          iatype = f_malloc_ptr(nat_,id='iatype')
+          call f_memcpy(src=iatype_, dest=iatype)
+      end if
+      if (present(atomnames)) then
+          atomnames = f_malloc0_str_ptr(len(atomnames),ntypes_,id='atomnames')
+          do i=1,ntypes_
+              atomnames(i) = atomnames_(i)
+          end do
+          !call f_memcpy(src=atomnames_, dest=atomnames)
+      end if
+      if (present(rxyz)) then
+          rxyz = f_malloc_ptr((/3,nat_/),id='rxyz')
+          call f_memcpy(src=rxyz_, dest=rxyz)
+      end if
+      if (present(on_which_atom)) then
+          call f_memcpy(src=on_which_atom_, dest=on_which_atom)
+      end if
     
       ! Create the sparse_matrix structure
       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
@@ -161,6 +212,13 @@ module sparsematrix_highlevel
       call f_free_ptr(keyv)
       call f_free_ptr(keyg)
       call f_free_ptr(val)
+
+      call f_free_ptr(nzatom_)
+      call f_free_ptr(nelpsp_)
+      call f_free_ptr(iatype_)
+      call f_free_str_ptr(len(atomnames_),atomnames_)
+      call f_free_ptr(rxyz_)
+      call f_free_ptr(on_which_atom_)
     
       call f_release_routine()
     

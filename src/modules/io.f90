@@ -2263,15 +2263,16 @@ module io
 
 
     !> Basically the same as writeLinearCoefficients, but with a slightly different format
-    subroutine write_linear_coefficients(iroot, filename, at, rxyz, nfvctr, ntmb, nspin, coeff, eval)
+    subroutine write_linear_coefficients(iroot, filename, nat, rxyz, ntypes, nzatom, &
+               nelpsp, atomnames, nfvctr, ntmb, nspin, coeff, eval)
       use module_base
       use module_types
       use yaml_output
       implicit none
       ! Calling arguments
       character(len=*),intent(in) :: filename
-      type(atoms_data),intent(in) :: at
-      real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+      !type(atoms_data),intent(in) :: at
+      real(gp), dimension(3,nat), intent(in) :: rxyz
       integer,intent(in) :: iroot, nfvctr, ntmb, nspin
       real(wp), dimension(nfvctr,ntmb), intent(in) :: coeff
       real(wp), dimension(ntmb), intent(in) :: eval
@@ -2288,14 +2289,19 @@ module io
           call f_open_file(iunit, file=trim(filename), binary=.false.)
     
           ! Write the Header
-          write(iunit,'(i10,2i6,a)') at%astruct%nat, at%astruct%ntypes, nspin, &
+          !write(iunit,'(i10,2i6,a)') at%astruct%nat, at%astruct%ntypes, nspin, &
+          write(iunit,'(i10,2i6,a)') nat, ntypes, nspin, &
               '   # number of atoms, number of atom types, nspin'
-          do itype=1,at%astruct%ntypes
-              write(iunit,'(2i8,3x,a,a)') at%nzatom(itype), at%nelpsp(itype), trim(at%astruct%atomnames(itype)), &
+          !do itype=1,at%astruct%ntypes
+          do itype=1,ntypes
+              !write(iunit,'(2i8,3x,a,a)') at%nzatom(itype), at%nelpsp(itype), trim(at%astruct%atomnames(itype)), &
+              write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
                   '   # nz, nelpsp, name'
           end do
-          do iat=1,at%astruct%nat
-              write(iunit,'(i5, 3es24.16,a,i0)') at%astruct%iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
+          !do iat=1,at%astruct%nat
+          do iat=1,nat
+              !write(iunit,'(i5, 3es24.16,a,i0)') at%astruct%iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
+              write(iunit,'(i5, 3es24.16,a,i0)') iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
           end do
           write(iunit,'(2i12,a)') nfvctr, ntmb, '   # nfvctr, ntmb'
           do i=1,ntmb

@@ -16,22 +16,26 @@ program utilities
    use yaml_output
    use module_types, only: bigdft_init_errors, bigdft_init_timing_categories
    use module_atoms, only: atoms_data, atoms_data_null, deallocate_atoms_data
-   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, assignment(=), SPARSE_FULL, &
+   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, assignment(=), SPARSE_FULL, DENSE_FULL, &
                                 sparsematrix_malloc_ptr, deallocate_sparse_matrix, deallocate_matrices
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
    use sparsematrix_io, only: read_sparse_matrix
+   use sparsematrix, only: uncompress_matrix
+   use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft
    use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, &
                                     CHARGE_ANALYSIS_PROJECTOR, &
                                     loewdin_charge_analysis_core
    use multipole, only: projector_for_charge_analysis
+   use io, only: writeLinearCoefficients
    use bigdft_run, only: bigdft_init
    implicit none
    external :: gather_timings
    character(len=*), parameter :: subname='utilities'
    character(len=1) :: geocode
    character(len=30) :: tatonam, radical
-   character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file
+   character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file, coeff_file
    logical :: charge_analysis = .false.
+   logical :: solve_eigensystem = .false.
    type(atoms_data) :: at
    integer :: istat, i_arg, ierr, nspin, icount, nthread, method
    integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
@@ -41,9 +45,12 @@ program utilities
    integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l, on_which_atom_s, on_which_atom_m, on_which_atom_l
    integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
    real(kind=8),dimension(:),pointer :: matrix_compr
+   real(kind=8),dimension(:,:),pointer :: rxyz
+   real(kind=8),dimension(:),allocatable :: eval
    type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat
    type(sparse_matrix) :: smat_s, smat_m, smat_l
    type(dictionary), pointer :: dict_timing_info
+   integer :: iunit, nat
    !$ integer :: omp_get_max_threads
 
    call f_lib_initialize()
@@ -109,6 +116,17 @@ program utilities
             !write(*,'(1x,2a)')&
             !   &   'perform a Loewdin charge analysis'
             charge_analysis = .true.
+            exit loop_getargs
+         else if (trim(tatonam)=='solve-eigensystem') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = hamiltonian_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = overlap_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = coeff_file)
+            !write(*,'(1x,2a)')&
+            !   &   'perform a Loewdin charge analysis'
+            solve_eigensystem = .true.
             exit loop_getargs
          end if
          i_arg = i_arg + 1
@@ -212,6 +230,32 @@ program utilities
            call yaml_comment('done',hfill='-')
        end if
 
+   end if
+
+
+   if (solve_eigensystem) then
+
+       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, nat=nat, rxyz=rxyz)
+       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_m, hamiltonian_mat)
+       ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
+       call uncompress_matrix(bigdft_mpi%iproc, smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)
+       hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='hamiltonian_mat%matrix')
+       call uncompress_matrix(bigdft_mpi%iproc, smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
+       eval = f_malloc(smat_s%nfvctr,id='eval')
+       call diagonalizeHamiltonian2(bigdft_mpi%iproc, smat_s%nfvctr, hamiltonian_mat%matrix, ovrlp_mat%matrix, eval)
+       call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
+       call writeLinearCoefficients(iunit, .true., nat, rxyz, smat_s%nfvctr, smat_s%nfvctr, &
+            smat_s%nfvctr, hamiltonian_mat%matrix, eval)
+       call f_close(iunit)
+
+       call f_free(eval)
+       call deallocate_matrices(ovrlp_mat)
+       call deallocate_matrices(hamiltonian_mat)
+       call deallocate_sparse_matrix(smat_s)
+       call deallocate_sparse_matrix(smat_m)
+       call f_free_ptr(rxyz)
    end if
 
    call build_dict_info(dict_timing_info)
