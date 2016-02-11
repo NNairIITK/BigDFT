@@ -2532,11 +2532,17 @@ module multipole
                  ! @NEW: correction for the dipoles
                  kernel_extracted = f_malloc((/n,n/),id='kernel_extracted')
                  multipole_extracted = f_malloc((/n,n/),id='multipole_extracted')
-                 call extract_matrix(smatl, kernel%matrix_compr, neighborx(1:,kat), n, nmaxx, kernel_extracted)
+                 !call extract_matrix(smatl, kernel%matrix_compr, neighborx(1:,kat), n, nmaxx, kernel_extracted)
+                 call extract_matrix(smatl, kernel_ortho, neighborx(1:,kat), n, nmaxx, kernel_extracted)
                  call extract_matrix(smatl, multipole_matrix_large, neighborx(1:,kat), n, nmaxx, multipole_extracted)
                  if (smatl%nvctr/=smats%nvctr) stop 'YOU HAVE TO CONVERT THE SPARSITY PATTERN'
                  overlap_small = f_malloc((/n,n/),id='overlap_small')
                  call extract_matrix(smats, ovrlp%matrix_compr, neighborx(1:,kat), n, nmaxx, overlap_small)
+                 !! ONLY FOR ORTHOGONAL SUPPORT FUNCTIONS
+                 overlap_small=0.d0
+                 do iorb=1,n
+                     overlap_small(iorb,iorb)=1.d0
+                 end do
                  ! Warning stack overflow
                  if (l==1) then
                      select case (m)
@@ -2560,6 +2566,20 @@ module multipole
                  call f_free(multipole_extracted)
                  call f_free(overlap_small)
                  ! #################### END NEW
+                 !! HACK #######################
+                 !tt = 0.d0
+                 !do iorb=1,n
+                 !    tt = tt + qmat_tilde(iorb,iorb)
+                 !end do
+                 !write(*,*) 'orbs%norb, n, tr(qmat_tilde)', orbs%norb, n, tt
+                 !projx=0.d0
+                 !do iorb=1,n
+                 !    if (orbs%onwhichatom(iorb)==kkat) then
+                 !        projx((iorb-1)*n+iorb,kat) = 1.d0
+                 !    end if
+                 !end do
+                 !!! END HACK ###################
+                      if (iproc==0) write(*,*) 'IS THIS REALLY N OR RATHER NX AS LEADING DIMENSION OF PROJX??'
                       call gemm('n', 'n', n, n, n, 1.d0, qmat_tilde(1,1), n, projx(1,kat), n, 0.d0, kp(1,1), n)
                       if (do_ortho==no) then
                           overlap_small = f_malloc((/n,n/),id='overlap_small')
