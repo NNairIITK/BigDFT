@@ -10,10 +10,10 @@
 ##   MASTER_KEY: foo #this means that inputvar makes sense only if foo is specified
 ##   WHEN: #provide a list of allowed values of foo for which inputvar is meaningful
 ##     - fooval1
-##     - fooval2   
+##     - fooval2
 ## PROFILE_FROM: foo #inputvar inherit the profile from the one specified by foo variable
 ###then the profiles follows, which gives to the variables the allowed name
-## default: value of the default, written as a string 
+## default: value of the default, written as a string
 ## profile1: value1 # if the user specifies inputvar: profile1 then inputvars will be value1
 ## profile2: value2
 ##
@@ -28,7 +28,7 @@
       Grid spacing in three directions (Bohr units) of the coarse mesh as [0.5, 0.45, 0.4].
       A scalar can also be given as 0.45.
       The grid spacing of the Cartesian grid, in Bohr.
-      As described in the wavelet formalism section, the nodes of this grid serve as the centers for the scaling 
+      As described in the wavelet formalism section, the nodes of this grid serve as the centers for the scaling
       function/wavelet basis.
       Values are in most cases between 0.3 and 0.6 bohr.
      RANGE: [0., 4.]
@@ -47,15 +47,15 @@
        Determine the exchange-correlation functional.
        Integer specifying which exchange correlation functional will be used.
        The Abinit conventions are used and detailed information can be found on the Abinit Web page.
-       Here is only a short summary of some wide-ly used functionals
-       
+       Here is only a short summary of some widely used functionals
+
        - Pade LDA from Abinit XC library;
        - PBE from Abinit XC library;
        - Pade LDA from libXC;
        - PBE from libXC;
        - PBEsol from libXC;
        - PBE0 Hybrid functional (local part from libXC).
-       
+
        A positive integer refers to a functional from ABINIT library and a negative one from libXC library.
        In this case, you concatenate the codes for the exchange part and for the correlation part (see the table of codes).
      default: 1
@@ -71,14 +71,14 @@
      NONE: 1000
    qcharge:
      COMMENT: Charge of the system. Can be integer or real.
-     DESCRIPTION: | 
+     DESCRIPTION: |
       Total charge of the system.
       A positive qcharge means that electrons are taken away and a negative one means that extra electrons are added.
      RANGE: [-500., 500.]
      default: 0
    elecfield:
      COMMENT: Electric field (Ex,Ey,Ez)
-     DESCRIPTION: | 
+     DESCRIPTION: |
       Uniform electric field Ex, Ey, Ez in units of Ha/Bohr.
       The electric field can not have components in periodic directions, e.g. Ex = Ez = 0 in case surface BC is used.
      default: [0., 0., 0.]
@@ -111,19 +111,19 @@
      accurate: 1.e-5
    itermax:
      COMMENT: Max. iterations of wfn. opt. steps
-     DESCRIPTION: |
+     DESCRIPTION: >
        Maximum number of gradient evaluations for a single cycle in a wavefunction optimization and maximum number of
        cycles. At the end of each cycle a subspace diagonalization is done which helps in cases where one has near
        degeneracy between the HOMO and LUMO orbitals. 50 and 2 are usually sufficient.
      RANGE: [0, 10000]
      default: 50
    itermin:
-     COMMENT: Min. iterations of wfn. opt. steps
+     COMMENT: Minimal iterations of wfn. optimzed steps
      RANGE: [0, 10000]
      default: 0
    nrepmax:
      COMMENT: Max. number of re-diag. runs
-     DESCRIPTION: |
+     DESCRIPTION: >
        Maximum number of gradient evaluations for a single cycle in a wavefunction optimization and maximum number of
        cycles. At the end of each cycle a subspace diagonalization is done which helps in cases where one has near
        degeneracy between the HOMO and LUMO orbitals. 50 and 2 are usually sufficient.
@@ -135,34 +135,21 @@
      DESCRIPTION: |
        ncong gives the number of iterations in the solution of the preconditioning equation. For free boundary
        conditions 5 is a good value whereas for other boundary condition a value from 0 to 2 is in general sufficient.
-       
+
        Large values of ncong lead to a smaller number of iterations in the wavefunction optimization and better
        forces, but each iteration is more costly.
-       So an optimal compromise value has to be found. idsx gives the history length of the DIIS convergence
-       acceleration in the wavefunction optimization. 6 is usually a good value for fast convergence.
-       
-       In case of convergence problems it can be advantageous to switch off DIIS by setting idsx = 0. The memory
-       requirements grow considerably with large values of idsx.
-       
-       If memory is the limiting factor one has to choose idsx smaller than the value which gives the fastest
-       convergence.
-       The bigdft-tool tool can be used to predict the memory requirements for different choices of idsx.
+       So an optimal compromise value has to be found.
      RANGE: [0, 20]
      default: 6
    idsx:
      COMMENT: Wfn. diis history
      DESCRIPTION: |
-       ncong gives the number of iterations in the solution of the preconditioning equation. For free boundary
-       conditions 5 is a good value whereas for other boundary condition a value from 0 to 2 is in general sufficient.
-       
-       Large values of ncong lead to a smaller number of iterations in the wavefunction optimization and better
-       forces, but each iteration is more costly.
-       So an optimal compromise value has to be found. idsx gives the history length of the DIIS convergence
+       idsx gives the history length of the DIIS convergence
        acceleration in the wavefunction optimization. 6 is usually a good value for fast convergence.
-       
+
        In case of convergence problems it can be advantageous to switch off DIIS by setting idsx = 0. The memory
        requirements grow considerably with large values of idsx.
-       
+
        If memory is the limiting factor one has to choose idsx smaller than the value which gives the fastest
        convergence.
        The bigdft-tool tool can be used to predict the memory requirements for different choices of idsx.
@@ -173,7 +160,7 @@
      COMMENT: Dispersion correction potential (values 1,2,3,4,5), 0=none
      DESCRIPTION: |
        A non-zero values activates an empirical add-on treatment of dispersion effects.
-       
+
        The values 1, 2 and 3 specify different switching on functions using the convention.
      RANGE: [0, 5]
      default: 0
@@ -181,37 +168,37 @@
      COMMENT: Input guess wavefunctions
      DESCRIPTION: |
        specifies how the input guess wavefunction is generated
-       
+
        - InputPsiId = -2 Random numbers are used as input guess.
        his is of course a poor input guess which will need many iterations of the wavefunction optimization
        and might even lead to divergences.
-       
+
         - InputPsiId = -1 The input wavefunction is imported from the CP2K code which uses Gaussian functions.
         The basis set should be contained in a file named gaubasis.dat whereas the coefficients should appear
-        in the gaucoeff.dat file. Both files are the output files of CP2K code. See the H2O-CP2K test for an example. 
-        
+        in the gaucoeff.dat file. Both files are the output files of CP2K code. See the H2O-CP2K test for an example.
+
         - InputPsiId = 0 A subspace diagonalization in a minimal atomic basis set is used. This input guess should be
         used in general if one starts a new calculation.
-       
+
         - InputPsiId = 1 The previously calculated wavefunctions (for instance from the previous geometry optimization
         step) are used as input guess. Setting InputPsiId to this value does only make sense from within a main program
         where call_cluster() subroutine was called previously. The old wavefunction is passed to the new call via the
         data structure restart.
-        
+
         - InputPsiId = 2 The input wavefunction is read from the wavefunction. files which contain all the scaling
         function and wavelet coefficients. In case some parameters such as hgrids or crmult have changed, compared to
         the previous run, the wavefunctions will be also transformed to the new parameter set. Use also this value to
         restart from ETSF file format wavefunction-etsf.nc.
-        
+
 #        - InputPsiId = 10 The same as 0 but activates the ’Gaussian help’ after convergence the wavefunctions are projected
 #        onto the localised basis set used for the input guess, and Mulliken Charge Population Analysis (MCPA) is performed on
 #        this basis. The user has the possibility to perform MCPA with separate basis set (functionality to be added).
-#        
+#
 #        -  InputPsiId = 11 Restart with Gaussian approximation contained in the ’restart’ data structure.
-#        
+#
 #        - InputPsiId = 12 The input wavefunction is read from the wavefunctions.gau file, which contains an approximation in
 #        a minimal Gaussian basis set of the previously calculated wavefunctions.
-#        
+#
 #        - InputPsiId = 13 To be described
      default: 0
      EXCLUSIVE:
@@ -234,20 +221,20 @@
      COMMENT: Output of the support functions
      DESCRIPTION: |
        controls the output of wavefunctions on disk at the end of the calculation
-       
+
           - output_wf = 0, Do not write the wavefunctions to disk.
-          
+
           - output_wf = 1, The output wavefunctions are written at the end of the wavefunction optimization into
           plain text files. If InputPsiId was greater than 10 the wavefunction will be written in the Gaussian
-          approximation into a single wavefunctions.gau file otherwise into wavefunction. files. Writing a 
+          approximation into a single wavefunctions.gau file otherwise into wavefunction. files. Writing a
           wavefunction. file for each orbital can take a considerable amount of time and disk space.
-          
+
           - output_wf = 2, The output wavefunctions are written at the end of the wavefunction optimization into
           Fortran binary files. This format is not portable between compilers and machines.
-          
+
           - output_wf = 3, The output wavefunctions are written at the end of the wavefunction optimization into
           ETSF binary files. This format is portable between compilers and machines since based on NetCDF. Parallel
-          IO are taken into account. 
+          IO are taken into account.
      default: 0
      EXCLUSIVE:
        0: None
@@ -266,27 +253,27 @@
      COMMENT: Output of the density or the potential
      DESCRIPTION: |
        controls the output of density and pontentials on disk at the end of the calculation
-       
+
        - output_denspot = 0, No output density is written.
-       
+
        - output_denspot = 1, Output electronic density is written in the .pot format of V_Sim into the file
        electronic_density.pot (deprecated, use 11 instead).
-       
-       - output_denspot = 2, In addition to the electronic density, the potential (local_potential.pot) and its 
-       components (external_potential.pot and Hartree_potential.pot) are also output in plain text .pot 
+
+       - output_denspot = 2, In addition to the electronic density, the potential (local_potential.pot) and its
+       components (external_potential.pot and Hartree_potential.pot) are also output in plain text .pot
        files (deprecated, use 12 instead).
-       
-       - output_denspot = 11, Same as output_denspot = 1, but files are written in ETSF file format 
+
+       - output_denspot = 11, Same as output_denspot = 1, but files are written in ETSF file format
        (portable binary format based on NetCDF).
-       
-       - output_denspot = 12, Same as output_denspot = 2, but files are written in ETSF file format 
+
+       - output_denspot = 12, Same as output_denspot = 2, but files are written in ETSF file format
        (portable binary format based on NetCDF).
-       
-       - output_denspot = 21, Same as output_denspot = 1, but files are written in .cube file format 
+
+       - output_denspot = 21, Same as output_denspot = 1, but files are written in .cube file format
        (plain text).
-       
+
        - output_denspot = 22, Same as output_denspot = 2, but files are written in .cube file format
-       (plain text). 
+       (plain text).
      default: 0
      EXCLUSIVE:
        0:  None
@@ -300,17 +287,17 @@
      COMMENT: Length of the tail (AU)
      description: |
        Far reaching tails of the wavefunctions decaying into the vacuum are added in a perturbative treatment if
-       the variable rbuf is set to a strictly positive value. 
+       the variable rbuf is set to a strictly positive value.
        This allows to do a calculation with some moderate value of crmult and then to extrapolate to the limit of
        large crmult. This procedure is not variational and gives too low energies.
-       
-       The true energy is in between the two energies and in general much closer to the extrapolated energy. 
-       
+
+       The true energy is in between the two energies and in general much closer to the extrapolated energy.
+
        This procedure can also be used to judge whether the chosen value of crmult is large enough for a certain
        required precision. rbuf gives the amount by which the radii for the coarse resolution region are increased
        in atomic units. ncongt gives the number of iterations used in the perturbation calculation.
-       
-       Reasonable values for ncongt are around 30. 
+
+       Reasonable values for ncongt are around 30.
      RANGE: [0., 10.]
      default: 0.
      #Here shortcut
@@ -319,17 +306,17 @@
      COMMENT: No. of tail CG iterations
      DESCRIPTION: |
        Far reaching tails of the wavefunctions decaying into the vacuum are added in a perturbative treatment if
-       the variable rbuf is set to a strictly positive value. 
+       the variable rbuf is set to a strictly positive value.
        This allows to do a calculation with some moderate value of crmult and then to extrapolate to the limit of
        large crmult. This procedure is not variational and gives too low energies.
-       
-       The true energy is in between the two energies and in general much closer to the extrapolated energy. 
-       
+
+       The true energy is in between the two energies and in general much closer to the extrapolated energy.
+
        This procedure can also be used to judge whether the chosen value of crmult is large enough for a certain
        required precision. rbuf gives the amount by which the radii for the coarse resolution region are increased
        in atomic units. ncongt gives the number of iterations used in the perturbation calculation.
-       
-       Reasonable values for ncongt are around 30. 
+
+       Reasonable values for ncongt are around 30.
      RANGE: [0, 50]
      default: 30
    norbv:
@@ -337,10 +324,10 @@
      DESCRIPTION: |
         Determine the dimension of the subspace i.e. the number of virtual orbitals
         to calculate via a Davidson diagonalisation.
-        
+
         Usually unoccupied orbitals are not calculated since they are not needed for the total energy and other
-        physical properties of the electronic ground state. 
-        
+        physical properties of the electronic ground state.
+
         Putting norbv to a non-zero value will result in the calculation of norbv virtual orbitals in a postprocessing
         routine after the occupied orbitals have been calculated, which uses Davidson iterative treatment . nplot
         of these orbitals will be written in the virtual.*.pot files and nplot (if that many exist) of the highest
@@ -354,10 +341,10 @@
      DESCRIPTION: |
         Determine the dimension of the subspace i.e. the number of virtual orbitals
         to calculate via a Davidson diagonalisation. (should be < norbv)
-        
+
         Usually unoccupied orbitals are not calculated since they are not needed for the total energy and other
-        physical properties of the electronic ground state. 
-        
+        physical properties of the electronic ground state.
+
         Putting norbv to a non-zero value will result in the calculation of norbv virtual orbitals in a postprocessing
         routine after the occupied orbitals have been calculated, which uses Davidson iterative treatment . nplot
         of these orbitals will be written in the virtual.*.pot files and nplot (if that many exist) of the highest
@@ -370,13 +357,13 @@
      COMMENT: No. of plotted orbs
      DESCRIPTION: |
         Number of orbitals to be plotted
-        
+
         Determine the dimension of the subspace i.e. the number of virtual orbitals
         to calculate via a Davidson diagonalisation.
-        
+
         Usually unoccupied orbitals are not calculated since they are not needed for the total energy and other
-        physical properties of the electronic ground state. 
-        
+        physical properties of the electronic ground state.
+
         Putting norbv to a non-zero value will result in the calculation of norbv virtual orbitals in a postprocessing
         routine after the occupied orbitals have been calculated, which uses Davidson iterative treatment . nplot
         of these orbitals will be written in the virtual.*.pot files and nplot (if that many exist) of the highest
@@ -397,17 +384,17 @@
    itermax_virt:
      COMMENT: Max. iterations of wfn. opt. steps for virtual orbitals
      DESCRIPTION: |
-       Maximum number of gradient evaluations for a cycle of a wavefunction optimization for
-       virtual orbitals.
+       Maximum number of gradient evaluations for a cycle of a wavefunction optimization
+       for the virtual orbitals.
      RANGE: [0, 10000]
      default: 50
    disablesym:
      COMMENT: Disable the symmetry detection
      DESCRIPTION: |
-       Disable the symmetry detection (by default No except for isolated systems)
-       
+       Disable the symmetry detection (by default No except for isolated systems).
+
        By default symmetries are used to update the density in periodic boundary condition calculations, and surface
-       boundary conditions also. 
+       boundary conditions also.
      default: No
 #   solvent:
 #     COMMENT: Electrostatic environment for Poisson Equation
@@ -423,25 +410,35 @@
      default: 0.0
    calculate_strten:
      COMMENT: Boolean to activate the calculation of the stress tensor. Might be set to No for performance reasons
-     DESCRIPTION: In some cases, for example when doing MD for fixed volume systems, il might be useful to disable the 
-                    calculation of the stress tensor, to save computational time.
+     DESCRIPTION: |
+      In some cases, for example when doing MD for fixed volume systems, it might be useful to disable the
+      calculation of the stress tensor, to save computational time.
      default: Yes
    plot_mppot_axes:
      COMMENT: Plot the potential generated by the multipoles along axes through this point. Negative values mean no plot.
-     DESCRIPTION: | 
-      If present, the potential generated by the multipoles will be written in the .cube format and also be plotted 
+     DESCRIPTION: |
+      If present, the potential generated by the multipoles will be written in the .cube format and also be plotted
       along axes through the specified point. If no plot is desired, the values should be negative.
      default: [-1,-1,-1]
    plot_pot_axes:
      COMMENT: Plot the potential along axes through this point. Negative values mean no plot.
-     DESCRIPTION: | 
-      If present and the chosen plotting format is .cube, the potential will be written in the .cube format and also be plotted 
+     DESCRIPTION: |
+      If present and the chosen plotting format is .cube, the potential will be written in the .cube format and also be plotted
       along axes through the specified point. If no plot is desired, the values should be negative.
      default: [-1,-1,-1]
      #CONDITION:
      #  MASTER_KEY: output_denspot
      #  WHEN:
      #  - 22
+#output parameters, decide what to dump of write to file
+ output:
+  DESCRIPTION: Output parameters, control the information that will be printed out
+  atomic_density_matrix:
+    COMMENT: Dictionary of the atoms for which the atomic density matrix has to be plotted
+    DESCRIPTION: |
+     The atomic species or the atoms written as Atom No are specified, followed by a list
+     of the shells for which the density matrix can be plotted
+    default: None
 #K points parameters
  kpt:
    DESCRIPTION: K points XXXXXXX defined in the Brillouin zone for periodic system calculations
@@ -532,32 +529,32 @@
  geopt:
    DESCRIPTION: |
           This character string specifies the method used for the geometry optimization.
-          
+
           - VSSD Variable Stepsize Steepest Descent method.
-          
+
           - SDCG A combination of Steepest Descent and Conjugate Gradient.
-          
+
           - LBFGS Limited Memory BFGS.
-          
+
      #    - BFGS Preconditioned steepest descent with energy feedback. A preconditioning matrix is build
-     #    up according to the BFGS algorithm. The initial Hessian is a diagonal matrix where the 
+     #    up according to the BFGS algorithm. The initial Hessian is a diagonal matrix where the
      #    diagonal elements are the inverse of the step size. This method is usually the most efficient
      #    one.
-     #     
+     #
      #     - PBFGS Same as BFGS except that an initial Hessian is obtained from a force field. Force field
      #     parameters are only available for systems consisting of H,C,N,O. For such systems the method
      #     is the most efficient one in general
-     #     
-     #    - FIRE The Fast Inertial Relaxation Engine as described by Bitzek et al.[1] with optimized 
+     #
+     #    - FIRE The Fast Inertial Relaxation Engine as described by Bitzek et al.[1] with optimized
      #    parameters. An additional line is required in the input.geopt file with two parameters
-     #    initial time step dtinit and the maximum time step dtmax. 
+     #    initial time step dtinit and the maximum time step dtmax.
      ###    A good starting point to estimate dtmax is by using dtmax=0.25 pi sqrt(betax_(VSSD)) and
      #    dtinit=0.5dtmax, and gradually increasing dtmax. betax is not used.
-          
+
      #    - AB6MD The molecular dynamic routines from ABINIT 6.
-     #    
+     #
      #    - DIIS a Direct Inversion of Iterative Subspace. In that case, an additional parameter is required
-     #    qqwith the history length (default is 4) on the line of betax. 
+     #    qqwith the history length (default is 4) on the line of betax.
    method:
      COMMENT: Geometry optimisation method
      EXCLUSIVE:
@@ -574,7 +571,7 @@
        NEB:    Nudged Elastic Band
        SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by SQNM in future release
        SQNM:   Stabilized quasi-Newton minimzer
-       MD: Molecular dynamics, NVT (Nose-Hoover Chains) or NVE ensemble 
+       MD: Molecular dynamics, NVT (Nose-Hoover Chains) or NVE ensemble
      default: none
    ncount_cluster_x:
      COMMENT: Maximum number of force evaluations
@@ -611,21 +608,21 @@
      COMMENT: Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
      DESCRIPTION: |
        Convergence criteria for the geometry optimization.
-       
+
        The geometry optimization stops either if the norm of the individual forces acting on any atom in the
        system is smaller than forcemax or if the forces get noisy.
        Noise is present because of the underlying integration grid. The parameter frac_fluct specifies how
        small the forces should become compared to the noise level to stop the geometry optimization.
-       
+
        Values in between 1 and 10 is are reasonable for this parameter. A value of 2 means that the geometry
        optimization will stop when the largest atomic force is comparable to the 2 times the average noise
        in the forces themselves.
-       For values of frac_fluct smaller than 1 one can under certain circumstances obtain better relaxed 
-       geometries but one risks that the geometry optimization will not converge since the forces are too 
+       For values of frac_fluct smaller than 1 one can under certain circumstances obtain better relaxed
+       geometries but one risks that the geometry optimization will not converge since the forces are too
        noisy.
-       
+
        In such a case one should closely monitor the progress of the geometry optimization by looking at the
-       posout. files which are written at each step of the geometry optimization and at the data/geopt.mon 
+       posout. files which are written at each step of the geometry optimization and at the data/geopt.mon
        file.
      RANGE: [0., 10.]
      default: 1.
@@ -633,21 +630,21 @@
      COMMENT: Max forces criterion when stop
      DESCRIPTION: |
        Convergence criteria for the geometry optimization.
-       
+
        The geometry optimization stops either if the norm of the individual forces acting on any atom in the
        system is smaller than forcemax or if the forces get noisy.
        Noise is present because of the underlying integration grid. The parameter frac_fluct specifies how
        small the forces should become compared to the noise level to stop the geometry optimization.
-       
+
        Values in between 1 and 10 is are reasonable for this parameter. A value of 2 means that the geometry
        optimization will stop when the largest atomic force is comparable to the 2 times the average noise
        in the forces themselves.
-       For values of frac_fluct smaller than 1 one can under certain circumstances obtain better relaxed 
-       geometries but one risks that the geometry optimization will not converge since the forces are too 
+       For values of frac_fluct smaller than 1 one can under certain circumstances obtain better relaxed
+       geometries but one risks that the geometry optimization will not converge since the forces are too
        noisy.
-       
+
        In such a case one should closely monitor the progress of the geometry optimization by looking at the
-       posout. files which are written at each step of the geometry optimization and at the data/geopt.mon 
+       posout. files which are written at each step of the geometry optimization and at the data/geopt.mon
        file.
      RANGE: [0., 10.]
      PROFILE_FROM: method
@@ -658,25 +655,25 @@
      DESCRIPTION: |
        This parameter allows to add random displacements with amplitude randdis to the atomic positions in
        the input file posinp.
-       
+
        This can for instance be useful to break degeneracies (which would lead to convergence problems in
-       the wavefunction optimization) in highly symmetric structures. 
+       the wavefunction optimization) in highly symmetric structures.
      RANGE: [0., 10.]
      default: 0.
    betax:
      COMMENT: Stepsize for the geometry optimization
      DESCRIPTION: |
        This is the stepsize for the geometry optimization.
-       
+
        This stepsize is system dependent and it has therefore to be determined for each system.
        If the VSSD method is used one can start with a small stepsize of around 1 and VSSD will suggest than
        a better value for {betax} in the last line of the data/geopt.mon file. Whether the stepsize is correct
        can also be seen from the data/geopt.mon output of the SDCG method.
-       
+
        In this case the average stepsize in terms of betax should be around 4 (after a brief initial period
        where it is around 8).
-       In contrast to the SDCG method, the BFGS method is not very sensitive to the correct stepsize but 
-       nevertheless one should try to find reasonable values also in this case. 
+       In contrast to the SDCG method, the BFGS method is not very sensitive to the correct stepsize but
+       nevertheless one should try to find reasonable values also in this case.
      CONDITION:
        MASTER_KEY: method
        WHEN:
@@ -937,7 +934,7 @@
      default: 15
 #Molecular Dynamics (BigDFT)
  md:
-   DESCRIPTION: Molecular dynamics parameters 
+   DESCRIPTION: Molecular dynamics parameters
    mdsteps:
      COMMENT: Number of MD steps
      DESCRIPTION: A value greater than 0 will activate molecular dynamics
@@ -956,14 +953,14 @@
      RANGE: [0, 99999.0]
      default: 20.d0
    no_translation:
-     COMMENT: logical input to set translational correction   
+     COMMENT: Logical input to set translational correction
      default: No
    thermostat:
      COMMENT: Activates a thermostat for MD
-     EXCLUSIVE: 
+     EXCLUSIVE:
        none: no thermostat
        nose_hoover_chain: Nose-Hoover Chain thermostat
-     default: none 
+     default: none
    nose_chain_length:
      COMMENT: Length of the Nose-Hoover Chains (integer input)
      RANGE: [2, 10]
@@ -988,20 +985,20 @@
        WHEN:
        - nose_hoover_chain
      default: 7
-   nose_frequency: 
-     COMMENT: Frequency in (cm^-1) corresponding to the inertia of the thermostat degrees of freedom 
+   nose_frequency:
+     COMMENT: Frequency in (cm^-1) corresponding to the inertia of the thermostat degrees of freedom
      RANGE: [1., .inf ]
      CONDITION:
        MASTER_KEY: thermostat
        WHEN:
        - nose_hoover_chain
      default: 3000.0
-   wavefunction_extrapolation: 
+   wavefunction_extrapolation:
      COMMENT: Activates the wavefunction extrapolation for MD
      DESCRIPTION: A value greater than 0 activates wfn extrapolation
      EXCLUSIVE: [ 0, 1, 2, 4 ]
      default: 0
-#     
+#
 #Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
  mix:
    DESCRIPTION: |
@@ -1013,10 +1010,9 @@
      COMMENT: Mixing parameters
      DESCRIPTION: |
        An integer giving the mixing scheme and the mixing target.
-       
        It follows the ABINIT convention. For values lower than 10, the potential is mixed, while
        for values greater than 10, the density is mixed. A recommended option is Pulay mixing
-       (7 or 17 for potential or charge mixing, respectively) 
+       (7 or 17 for potential or charge mixing, respectively)
      EXCLUSIVE:
        -1: Reserved, do not use it.
        0:  Direct minimization
@@ -1034,16 +1030,16 @@
      default: 0
    itrpmax:
      COMMENT: Maximum number of diagonalisation iterations
-     DESCRIPTION: |
+     DESCRIPTION: >
        Maximum number of repeats for the mixing scheme. Each iteration implies an optimization
-       of the wavefunctions at constant potential according to the settings in input.dft. 
+       of the wavefunctions at constant potential according to the settings in input.dft.
      RANGE: [0, 10000]
      default: 1
    rpnrm_cv:
      COMMENT: Stop criterion on the residue of potential or density
-     DESCRIPTION: |
+     DESCRIPTION: >
        The stop criterion on the residue of the potential or the density. Typical values are in
-       the order of 1e-10 to 1e-12. 
+       the order of 1e-10 to 1e-12.
      RANGE: [0., 10.]
      default: 1.e-4
    norbsempty:
@@ -1051,7 +1047,7 @@
      DESCRIPTION: |
        The maximum number of additional (initially unoccupied) bands considered.
        If a larger value is given, The maximum of orbitals available via the input guess
-       procedure will be used automatically 
+       procedure will be used automatically
      RANGE: [0, 10000]
      default: 0
    tel:
@@ -1065,7 +1061,7 @@
      DESCRIPTION: |
        The smearing function to determine the occupation. The conventions differ from those
        used by ABINIT. 1 = Gaussian, 2 = Fermi, 3 = Marzari (bumb minimization), 4 = Marzari
-       (monotonic tail), 5 = Methfessel and Paxton. 
+       (monotonic tail), 5 = Methfessel and Paxton.
      EXCLUSIVE:
        1: Error function smearing
        2: Normal Fermi distribution
@@ -1077,14 +1073,14 @@
      COMMENT: Multiplying factors for the mixing
      DESCRIPTION: |
        The closer this value gets to one, the more cautious will be the mixing of the charge or potential.
-       
+
        In the case of straight mixing, it corresponds to alpha according to
-       
+
        rho_{new} <-- alpha rho_{old} + (1-alpha) - rho_{new}
-       
+
        alphamix must be larger than one half.
-       
-       A typical choice for metals is 0.95. 
+
+       A typical choice for metals is 0.95.
      RANGE: [0, 1.]
      default: 0.
    alphadiis:
@@ -1096,7 +1092,7 @@
 
 #Self-Interaction Correction
  sic:
-   DESCRIPTION: Self-Interaction Correction parameters 
+   DESCRIPTION: Self-Interaction Correction parameters
    sic_approach:
      COMMENT: SIC (self-interaction correction) method
      EXCLUSIVE:
@@ -1356,7 +1352,7 @@
        2: In addition output wavefunction densities in interpolating scaling functions (cube file)
        3: In addition output wavefunctions in interpolating scaling functions (cube file)
    explicit_locregcenters:
-     COMMENT: Linear scaling explicitly specify localization centers 
+     COMMENT: Linear scaling explicitly specify localization centers
      default: No
    calculate_KS_residue:
      COMMENT: Linear scaling calculate Kohn-Sham residue
@@ -1401,10 +1397,10 @@
      EXCLUSVE:
        0: AO
        1: REFORMAT
-     default: 0 
+     default: 0
    imethod_overlap:
      COMMENT: method to calculate the overlap matrices (1=old, 2=new)
-     EXCLUSIVE: 
+     EXCLUSIVE:
        1: old
        2: new
      default: 1
@@ -1440,16 +1436,15 @@
      default: 1
      RANGE: [1,5]
  lin_general:
-     hybrid: 
+     hybrid:
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
        default: No
      nit:
        COMMENT: number of iteration with low/high accuracy
        DESCRIPTION: |
-                    possible value: 2 non-negative integer numbers
-                    Maximal number of outer loop iterations (high / low accuracy).
-                    In each iteration both the support function and the kernel are optimized.
-                    When the hybrid mode is used, only the first entry is taken into account.
+         Maximal number of outer loop iterations (high / low accuracy).
+         In each iteration both the support function and the kernel are optimized.
+         When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0,1000]
        PROFILE_FROM: hybrid
        default: [100,100]
@@ -1457,58 +1452,53 @@
      rpnrm_cv:
        COMMENT: convergence criterion for low/high accuracy
        DESCRIPTION: |
-                    possible value: 2 non-negative real numbers
-                    Convergence criterion for the outer loop iterations (high / low accuracy).
-                    The optimization stops if the mean change of the charge density / potential falls below this threshold.
-                    When the hybrid mode is used, only the first entry is taken into account.
+         Convergence criterion for the outer loop iterations (high / low accuracy).
+         The optimization stops if the mean change of the charge density / potential falls below this threshold.
+         When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-15,1.e-5]
        default: [1.e-12,1.e-12]
      conf_damping:
        COMMENT: how the confinement should be decreased, only relevant for hybrid mode; negative -> automatic
        DESCRIPTION: |
-                    possible value: 1 real number
-                    Prescription how the prefactor for the confining potential should be decreased:
-                     * negative value => automatic adjustment (recommended)
-                     * positive value => at each iteration the prefactor is multiplied with the specified value
-                    This variable is only relevant for the hybrid mode.
+         Prescription how the prefactor for the confining potential should be decreased
+         * negative value => automatic adjustment (recommended)
+         * positive value => at each iteration the prefactor is multiplied with the specified value
+         This variable is only relevant for the hybrid mode.
        RANGE: [-1.0,1.0]
        default: -0.5
      taylor_order:
        COMMENT: order of the Taylor approximation; 0 -> exact
        DESCRIPTION: |
-                    possible value: 1 integer number
-                    Indicates how the matrix powers are calculated:
-                     * n<0 => Laura's method of order n
-                     * n=0 => exact calculation
-                     * n>0 => Taylor series of order n
+         Indicates how the matrix powers are calculated:
+         * n<0 => Laura's method of order n
+         * n=0 => exact calculation
+         * n>0 => Taylor series of order n
        RANGE: [-100,10000]
        default: 0
      max_inversion_error:
        COMMENT: linear scaling maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
        DESCRIPTION: |
-                    possible value: 1 positive real number
-                    Maximal error of the Taylor approximations which are used to  calculate the inverse of the overlap matrix.
-                    If this error is larger than the specified value, the order of the Taylor approximation is increased.
-                    The default value is set very large, such such in this case no automatic adjustment is performed.
+         Maximal error of the Taylor approximations which are used to  calculate the inverse of the overlap matrix.
+         If this error is larger than the specified value, the order of the Taylor approximation is increased.
+         The default value is set very large, such such in this case no automatic adjustment is performed.
        default: 1.d0
        RANGE: [1.e-20,1.0]
      output_wf:
        COMMENT: output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
        DESCRIPTION: |
-                    possible value: 1 nonnegative-integer number
-                    Indicates how the support functions should be written to disk at the end of the run:
-                     *  0 => None
-                     *  1 => Wavelet, Plain text
-                     *  2 => Wavelet, Fortran binary
-                     *  3 => Wavelet, ETSF file format
-                     * 10 => None
-                     * 11 => Wavelet and Interpolating Scaling Function (density), Plain text
-                     * 12 => Wavelet and Interpolating Scaling Function (density), Fortran binary
-                     * 13 => Wavelet and Interpolating Scaling Function (density), ETSF file format
-                     * 20 => None
-                     * 21 => Wavelet and Interpolating Scaling Function (wavefunction), Plain text
-                     * 22 => Wavelet and Interpolating Scaling Function (wavefunction), Fortran binary
-                     * 23 => Wavelet and Interpolating Scaling Function (wavefunction), ETSF file format
+         Indicates how the support functions should be written to disk at the end of the run:
+          *  0 => None
+          *  1 => Wavelet, Plain text
+          *  2 => Wavelet, Fortran binary
+          *  3 => Wavelet, ETSF file format
+          * 10 => None
+          * 11 => Wavelet and Interpolating Scaling Function (density), Plain text
+          * 12 => Wavelet and Interpolating Scaling Function (density), Fortran binary
+          * 13 => Wavelet and Interpolating Scaling Function (density), ETSF file format
+          * 20 => None
+          * 21 => Wavelet and Interpolating Scaling Function (wavefunction), Plain text
+          * 22 => Wavelet and Interpolating Scaling Function (wavefunction), Fortran binary
+          * 23 => Wavelet and Interpolating Scaling Function (wavefunction), ETSF file format
        default: 0
        EXCLUSIVE:
          0:  None
@@ -1530,12 +1520,11 @@
      output_mat:
        COMMENT: output sparse matrices; 0 no output, 1 formatted sparse, 11 formatted dense, 21 formatted both
        DESCRIPTION: |
-                    possible value: 1 nonnegative-integer number
-                    Indicates how the support functions should be written to disk at the end of the run:
-                     *  0 => None
-                     *  1 => Plain text in sparse format
-                     * 11 => Plain text in dense format
-                     * 21 => Plain text in both formats
+         Indicates how the support functions should be written to disk at the end of the run:
+          *  0 => None
+          *  1 => Plain text in sparse format
+          * 11 => Plain text in dense format
+          * 21 => Plain text in both formats
        default: 0
        EXCLUSIVE:
          0:  None
@@ -1545,10 +1534,9 @@
      output_coeff:
        COMMENT: output KS coefficients; 0 no output, 1 formatted output
        DESCRIPTION: |
-                    possible value: 1 nonnegative-integer number
-                    Indicates how the support functions should be written to disk at the end of the run:
-                     *  0 => None
-                     *  1 => Plain text
+         Indicates how the support functions should be written to disk at the end of the run:
+          *  0 => None
+          *  1 => Plain text
        default: 0
        EXCLUSIVE:
          0:  None
@@ -1556,11 +1544,10 @@
      output_fragments:
        COMMENT: output support functions, kernel and coeffs; 0 fragments and full system, 1 fragments only, 2 full system only
        DESCRIPTION: |
-                    possible value: 1 nonnegative-integer number
-                    Indicates how the support functions should be written to disk at the end of the run:
-                     *  0 => Fragments and full system
-                     *  1 => Fragments only
-                     *  2 => Full system only
+         Indicates how the support functions should be written to disk at the end of the run:
+          *  0 => Fragments and full system
+          *  1 => Fragments only
+          *  2 => Full system only
        default: 0
        EXCLUSIVE:
          0:  Fragments and full system
@@ -1569,13 +1556,12 @@
      kernel_restart_mode:
        COMMENT: method for restarting kernel; 0 kernel, 1 coefficients, 2 random, 3 diagonal, 4 support function weights
        DESCRIPTION: |
-                    possible value: 1 nonnegative-integer number
-                    Indicates how the kernel should be generated for a restart calculation:
-                     *  0 => Density kernel
-                     *  1 => Coefficients
-                     *  2 => Random
-                     *  3 => Diagonal kernel, i.e. support functions scaled by number of electrons (per fragment)
-                     *  4 => Support functions weights
+         Indicates how the kernel should be generated for a restart calculation:
+          *  0 => Density kernel
+          *  1 => Coefficients
+          *  2 => Random
+          *  3 => Diagonal kernel, i.e. support functions scaled by number of electrons (per fragment)
+          *  4 => Support functions weights
        default: 0
        EXCLUSIVE:
          0:  Density kernel
@@ -1592,64 +1578,56 @@
      kernel_restart_noise:
        COMMENT: add random noise to kernel or coefficients when restarting
        DESCRIPTION: |
-                    possible value: 1 positive real number
-                    Indicates how much noise should be added to kernel or coefficients for a restart calculation
+         Indicates how much noise should be added to kernel or coefficients for a restart calculation
        default: 0.0d0
        RANGE: [0.0,1.0]
      frag_num_neighbours:
        COMMENT: number of neighbours to output for each fragment
        DESCRIPTION: |
-                    possible value: 1 nonnegative-integer number
-                    Indicates how many neighbouring atoms should be written to frag_env.xyz  - only allow for a small number of neighbours
+         Indicates how many neighbouring atoms should be written to frag_env.xyz  - only allow for a small number of neighbours
        RANGE: [0,4]
        default: 0
      frag_neighbour_cutoff:
        COMMENT: number of neighbours to output for each fragment
        DESCRIPTION: |
-                    possible value: 1 positive real number
-                    Distance (in bohr) beyond which neighbouring atoms are not included in frag_env.xyz
+         Distance (in bohr) beyond which neighbouring atoms are not included in frag_env.xyz
        RANGE: [0,100]
        default: 12.0d0
      cdft_lag_mult_init:
        COMMENT: CDFT initial value for Lagrange multiplier
        DESCRIPTION: |
-                    possible value: 1 positive real number
-                    The sign is set automatically based on the charge to be constrained
+         The sign is set automatically based on the charge to be constrained
        default: 0.05d0
        RANGE: [0.0,10.0]
      cdft_conv_crit:
        COMMENT: CDFT convergence threshold for the constrained charge
        DESCRIPTION: |
-                    possible value: 1 positive real number
+         possible value: 1 positive real number
        default: 1.e-2
        RANGE: [1.e-20,1.0]
      calc_dipole:
        DESCRIPTION: |
-                    possible value: 1 logical
-                    Indicates whether the dipole moment should be calculated after the run or not
+         Indicates whether the dipole moment should be calculated after the run or not
        COMMENT: calculate dipole
        default: No
      calc_quadrupole:
        DESCRIPTION: |
-                    possible value: 1 logical
-                    Indicates whether the quadrupole moment should be calculated after the run or not
+         Indicates whether the quadrupole moment should be calculated after the run or not
        COMMENT: calculate quadrupole
        default: No
 # this is now an array!
      calc_pulay:
        COMMENT: calculate Pulay forces (old/new version)
        DESCRIPTION: |
-                    possible value: 2 logicals
-                    Indicates whether the Pulay corrections (old / new) shall be calculated at the end of the run
+         Indicates whether the Pulay corrections (old / new) shall be calculated at the end of the run
        default: [No,No]
        new: [ No, Yes]
-       old: [ Yes, No] 
+       old: [ Yes, No]
 # this name might be misleading
      subspace_diag: #called calc_ks, to be renamed
        COMMENT: diagonalization at the end
        DESCRIPTION: |
-                    possible value: logical
-                    Indicates whether a diagonalization shall be performed at the end of the run
+         Indicates whether a diagonalization shall be performed at the end of the run
        default: No
      extra_states:
        COMMENT: extra states to optimize (dmin only)
@@ -1660,10 +1638,10 @@
        default: No
      charge_multipoles:
        COMMENT: Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 new approach Projector
-       DESCRIPTION: | 
-                    Calculate the multipole expansion coefficients of the atomic charge which can then be used to establish a QM/MM coupling.
-                    Possible values are:
-                    * 0 => no calculation
+       DESCRIPTION: |
+         Calculate the multipole expansion coefficients of the atomic charge which can then be used to establish a QM/MM coupling.
+         Possible values are:
+         * 0 => no calculation
                     * 1 => new approach using Loewdin and orthogonalized support functions
                     * 2 => new approach using simple projector and orthogonalized support functions
                     #* 3 => new approach using full projector and orthogonalized support functions
@@ -1687,10 +1665,9 @@
      nit:
        COMMENT: maximal number of iterations in the optimization of the support functions
        DESCRIPTION: |
-                    possible value: 2 non-negative integers
-                    Maximal number of iterations in the optimization of the support functions.
-                    The first number is used for the low accuracy part, the second one for the high accuracy part.
-                    If the hybrid mode is used, only the first value is taken into account.
+         Maximal number of iterations in the optimization of the support functions.
+         The first number is used for the low accuracy part, the second one for the high accuracy part.
+         If the hybrid mode is used, only the first value is taken into account.
        RANGE: [0,100]
        default: [4,5]
      nit_ig:
@@ -1700,19 +1677,17 @@
      idsx:
        COMMENT: DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
        DESCRIPTION: |
-                    possible values: 2 non-negative integers
-                    Indicates the method with which the support functions are optimized
-                     * n=0 => steepest descent
-                     * n>0 => DIIS with history length n
+         Indicates the method with which the support functions are optimized
+          * n=0 => steepest descent
+          * n>0 => DIIS with history length n
        RANGE: [0,20]
        default: [6,6]
      gnrm_cv:
        COMMENT: convergence criterion for the optimization of the support functions (low/high accuracy)
        DESCRIPTION: |
-                    possible value: 2 non-negative real numbers
-                    Convergence criterion for optimization of the support functions (high / low accuracy).
-                    The optimization stops if the mean gradient norm falls below this threshold.
-                    When the hybrid mode is used, only the first entry is taken into account.
+         Convergence criterion for optimization of the support functions (high / low accuracy).
+         The optimization stops if the mean gradient norm falls below this threshold.
+         When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-6,1.0]
        default: [1.e-2,1.e-4]
      gnrm_ig:
@@ -1722,26 +1697,26 @@
      deltae_cv:
        COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
        DESCRIPTION: |
-                    possible value: 1 non-negative real number
-                    The optimization of the support functions stops if the total relative gain in the target function during the given cycle of support function optimization falls below this threshold
+         The optimization of the support functions stops if the total relative gain in the target function
+         during the given cycle of support function optimization falls below this threshold
        RANGE: [1.e-6,1.e-1]
        default: 1.e-4
      gnrm_dyn:
        COMMENT: dynamic convergence criterion ('experimental_mode' only)
        DESCRIPTION: |
-                    possible value: 1 non-negative real number
-                    From this value the effective dynamic convergence criterion is calculated by a division by kappa.
-                    Then the optimization of the support functions stops if the mean gradient norm falls below this effective dynamic convergence criterion 
-                    and is at the same time smaller than the value of min_gnrm_for_dynamic.
-                    The specified value should be approximately 10 times smaller than the value of gnrm_cv.
-                    This value is only used for the experimental mode.
+         From this value the effective dynamic convergence criterion is calculated by a division by kappa.
+         Then the optimization of the support functions stops if the mean gradient norm falls
+         below this effective dynamic convergence criterion
+         and is at the same time smaller than the value of min_gnrm_for_dynamic.
+         The specified value should be approximately 10 times smaller than the value of gnrm_cv.
+         This value is only used for the experimental mode.
        RANGE: [1.e-7,1.e-1]
        default: 1.e-4
      min_gnrm_for_dynamic:
        COMMENT: minimal gnrm to active the dynamic gnrm criterion
        DESCRIPTION: |
-                    possible value: non-negative real number
-                    The dynamic convergence criterion (specified by gnrm_dyn) is only active if the mean gradient norm of the support functions is below this threshold
+         The dynamic convergence criterion (specified by gnrm_dyn) is only active if the mean gradient norm
+         of the support functions is below this threshold
        RANGE: [1.e-7,1.0]
        default: 1.e-3
      alpha_diis:
@@ -1756,18 +1731,16 @@
      alpha_sd:
        COMMENT: initial step size for SD
        DESCRIPTION: |
-                    possible values: 2 positive real numbers
-                    The initial step size which is used to optimize the support functions with steepest descent.
-                    If the specified value is not appropriate, it will be adjusted automatically.
-                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
-                    When the hybrid mode is used, only the first entry is taken into account.
+         The initial step size which is used to optimize the support functions with steepest descent.
+         If the specified value is not appropriate, it will be adjusted automatically.
+         The first entry is used for the low accuracy part, the second one for the high accuracy part.
+         When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-4,10.0]
        default: 1.0
      nstep_prec:
        COMMENT: number of iterations in the preconditioner
        DESCRIPTION: |
-                    possible values: non-negative integer
-                    Indicates how many iterations in the preconditioning of the gradient shall be performed
+         Indicates how many iterations in the preconditioning of the gradient shall be performed
        RANGE: [1,30]
        default: 5
      fix_basis:
@@ -1777,82 +1750,78 @@
      correction_orthoconstraint:
        COMMENT: correction for the slight non-orthonormality in the orthoconstraint
        DESCRIPTION: |
-                    possible values: non-negative integer
-                    Indicates whether the slight non-orthogonality of the support functions should be taken into account during the application of the orthogonality constraint:
-                      * 0 => take into account
-                      * 1 => don't take into account
-       default: 1 
+         Indicates whether the slight non-orthogonality of the support functions
+         should be taken into account during the application of the orthogonality constraint
+           - 0 => take into account
+           - 1 => don't take into account
+       default: 1
+       RANGE:  [0,1]
  #Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:
        COMMENT: number of steps taken when updating the coefficients via direct minimization for each iteration of the density kernel loop
        DESCRIPTION: |
-                    possible value: 2 non-negative integers
-                    Indicates the number of steps taken when updating the coefficients via direct minimization for each iteration of the density kernel loop.
-                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
-                    When the hybrid mode is used, only the first entry is taken into account.
+         Indicates the number of steps taken when updating the coefficients
+         via direct minimization for each iteration of the density kernel loop.
+         The first entry is used for the low accuracy part, the second one for the high accuracy part.
+         When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0,100]
        default: [1,1]
      nit:
        COMMENT: number of iterations in the (self-consistent) optimization of the density kernel
        DESCRIPTION: |
-                    possible value: 2 non-negative integers
-                    Indicates the number of iterations in the (self-consistent) optimization of the density kernel.
-                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
-                    When the hybrid mode is used, only the first entry is taken into account.
+         Indicates the number of iterations in the (self-consistent) optimization of the density kernel.
+         The first entry is used for the low accuracy part, the second one for the high accuracy part.
+         When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0,1000]
        default: [5,5]
-# check whether there are different DIIS histories...
+     # check whether there are different DIIS histories...
      idsx_coeff:
        COMMENT: DIIS history for direct mininimization
        default: [0,0]
      idsx:
        COMMENT: mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
        DESCRIPTION: |
-                    possible value: 2 non-negative integer numbers
-                    Indicates how the density / potential mixing shall be performed:
-                    n=0 => linear mixing
-                    n=1 => Pulay mixing with history length n
-                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
-                    When the hybrid mode is used, only the first entry is taken into account.
+         Indicates how the density / potential mixing shall be performed:
+         n=0 => linear mixing
+         n=1 => Pulay mixing with history length n
+         The first entry is used for the low accuracy part, the second one for the high accuracy part.
+         When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0,20]
        default: [0,0]
      alphamix:
        COMMENT: mixing parameter (low/high accuracy)
        DESCRIPTION: |
-                    possible value: 2 non-negative real numbers
-                    Indicates the mixing parameter used for the mixing of the charge density / potential.
-                    The larger the value, the more of the previous value will be kept.
-                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
-                    When the hybrid mode is used, only the first entry is taken into account.
+         Indicates the mixing parameter used for the mixing of the charge density / potential.
+         The larger the value, the more of the previous value will be kept.
+         The first entry is used for the low accuracy part, the second one for the high accuracy part.
+         When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0.0,1.0]
        default: [0.5,0.5]
      gnrm_cv_coeff:
        COMMENT: convergence criterion on the gradient for direct minimization
        DESCRIPTION: |
-                    possible value: 2 non-negative real numbers
-                    Convergence criterion on the gradient for direct minimization.
-                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
-                    When the hybrid mode is used, only the first entry is taken into account.
+         Convergence criterion on the gradient for direct minimization.
+         The first entry is used for the low accuracy part, the second one for the high accuracy part.
+         When the hybrid mode is used, only the first entry is taken into account.
        default: [1.e-5,1.e-5]
      rpnrm_cv:
        COMMENT: convergence criterion (change in density/potential) for the kernel optimization
        DESCRIPTION: |
-                    possible value: 2 non-negative real numbers
-                    The optimization of the density kernel is stopped as soon as the mean change of the charge density / potential between two iterations falls below this threshold.
-                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
-                    When the hybrid mode is used, only the first entry is taken into account.
+         The optimization of the density kernel is stopped as soon as the mean change
+         of the charge density / potential between two iterations falls below this threshold.
+         The first entry is used for the low accuracy part, the second one for the high accuracy part.
+         When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-14,1.e-5]
        default: [1.e-10,1.e-10]
      linear_method:
        COMMENT: method to optimize the density kernel
        DESCRIPTION: |
-                    possible value: string
-                    Indicates the method with which the density kernel is optimized:
-                     * DIRMIN => direct minimization
-                     * DIAG => diagonalization with density mixing
-                     * FOE => Fermi Operator Expansion
-                     * PEXSI => PEXSI library
+         Indicates the method with which the density kernel is optimized:
+         * DIRMIN => direct minimization
+         * DIAG => diagonalization with density mixing
+         * FOE => Fermi Operator Expansion
+         * PEXSI => PEXSI library
        EXCLUSIVE:
          DIRMIN: direct minimization
          DIAG: diagonalization
@@ -1862,10 +1831,9 @@
      mixing_method:
        COMMENT: quantity to be mixed
        DESCRIPTION: |
-                    type: string scalar
-                    Indicates which quantity should be used for the mixing procedure:
-                     DEN => density mixing
-                     POT => potential mixing
+         Indicates which quantity should be used for the mixing procedure:
+          DEN => density mixing
+          POT => potential mixing
        EXCLUSIVE:
          DEN: density mixing
          POT: potential mixing
@@ -1874,30 +1842,30 @@
        COMMENT: initial step size for SD for direct minimization
        default: 0.2
      alpha_fit_coeff:
-       COMMENT: update the SD step size by fitting a quadratic polynomial to the energy along the direction of the gradient during direct mininimization.     
+       COMMENT: Update the SD step size by fitting a quadratic polynomial
+       DESCRIPTION: |
+         Update the SD step size by fitting a quadratic polynomial to the energy
+         along the direction of the gradient during direct mininimization.
        default: No
      eval_range_foe:
-       COMMENT: lower and upper bound of the eigenvalue spectrum, will be adjusted automatically if chosen unproperly
+       COMMENT: Lower and upper bound of the eigenvalue spectrum, will be adjusted automatically if chosen unproperly
        DESCRIPTION: |
-                    possible value: 2 real numbers (one negative, one positive)
-                    Indicates the lower and upper bound of the eigenvalue spectrum which is used for the Fermi Operator Expansion.
-                    This spectrum will be adjusted automatically if not chosen appropriately.
+         Indicates the lower and upper bound of the eigenvalue spectrum which is used for the Fermi Operator Expansion.
+         This spectrum will be adjusted automatically if not chosen appropriately.
        RANGE: [-10.0,10.0]
        default: [-0.5,0.5]
-     fscale_foe: 
+     fscale_foe:
        COMMENT: decay length of the error function
        DESCRIPTION: |
-                    possible value: 1 non-negative real number
-                    Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
-                    This value will be adjusted automatically if not chosen appropriately.
+         Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
+         This value will be adjusted automatically if not chosen appropriately.
        RANGE: [1.e-3,5.e-2]
        default: 2.e-2
      coeff_scaling_factor:
        COMMENT: factor to scale the gradient in direct minimization
        DESCRIPTION: |
-                    possible value: 1 non-negative real number
-                    Specifies a scaling factor for the coefficient gradient, recommended to be around 0.1 - 0.5 for CDFT, fragment calculations
-                    or systems where convergence is unstable.
+         Specifies a scaling factor for the coefficient gradient, recommended to be around 0.1 - 0.5 for CDFT, fragment calculations
+         or systems where convergence is unstable.
        default: 1.0
        RANGE: [0.0,1.e1]
      pexsi_npoles:
@@ -1906,8 +1874,10 @@
        default: 40
        RANGE: [20,200]
      pexsi_mumin:
-       COMMENT: initial guess for the lower bound of the chemical potential used by PEXSI
-       DESCRIPTION: initial guesss for the lower bound of the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
+       COMMENT: Initial guess for the lower bound of the chemical potential used by PEXSI
+       DESCRIPTION: |
+         Initial guesss for the lower bound of the chemical potential (in hartree?)
+         used by PEXSI, will be adjusted automatically later.
        default: -1.0
        RANGE: [-5.0,5.0]
      pexsi_mumax:
@@ -1933,9 +1903,8 @@
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:
-       COMMENT: number of support functions per atom
+       COMMENT: Number of support functions per atom
        DESCRIPTION: |
-                    possible value: 1 positive integer
                     Indicates the number of support fuctions centered on this atom type. Possible values are:
                      * 1 (s orbital type)
                      * 4 (s,p orbital types)
@@ -1948,50 +1917,49 @@
          16: s,p,d,f orbital types
        default: 4
      ao_confinement:
-       COMMENT: prefactor for the input guess confining potential
+       COMMENT: Prefactor for the input guess confining potential
        DESCRIPTION: |
-                    possible value: 1 non-negative real value
-                    Indicates the prefactor of the confining potential of this atom type which is used to generate the input guess.
+                    Indicates the prefactor of the confining potential
+                    of this atom type which is used to generate the input guess.
        RANGE: [0.0,10.0]
        default: 8.3e-3
      confinement:
-       COMMENT: prefactor for the confining potential (low/high accuracy)
+       COMMENT: Prefactor for the confining potential (low/high accuracy)
        DESCRIPTION: |
-                    possible value: 2 non-negative real values
                     Indicates the prefactor of the confining potential of this atom type.
                     The first entry is used for the low accuracy part, the second one for the high accuracy part.
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0.0,10.0]
        default: [8.3e-3,0.0]
      rloc:
-       COMMENT: localization radius for the support functions
+       COMMENT: Localization radius for the support functions
        DESCRIPTION: |
-                    possible value: 2 real numbers
                     Indicates the cutoff radius for the support functions.
-                    The first entry is used for the low accuracy part, the second one for the high accuracy part; the second value must not be smaller than the first one.
+                    The first entry is used for the low accuracy part, the second one
+                    for the high accuracy part; the second value must not be smaller than the first one.
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [2.0,1000.0]
        default: [7.0,7.0]
      rloc_kernel:
-       COMMENT: localization radius for the density kernel
+       COMMENT: Localization radius for the density kernel
        DESCRIPTION: |
-                    possible value: 1 real number
                     Indicates the cutoff radius for the density kernel.
-                    Must be at least as large as the support function cutoff plus 8 times the grid spacing; will be adjusted automatically if it is chosen too small.
-       RANGE: [2.0,1000.0] 
+                    Must be at least as large as the support function cutoff
+                    plus 8 times the grid spacing; will be adjusted automatically if it is chosen too small.
+       RANGE: [2.0,1000.0]
        default: 9.0
      rloc_kernel_foe:
        COMMENT: cutoff radius for the FOE matrix vector multiplications
        DESCRIPTION: |
-                    possible value: 1 real number
                     Indicates the cutoff radius used for the matrix vector multiplications.
                     Must be at least as large as the kernel cutoff.
        RANGE: [2.0,1000]
        default: 14.0
 --- #here starts the document of possible profiles, that have to be evoked with the 'import' keyword
 linear_accurate:
-  COMMENT: appropriate input parameters for a high accuracy linear scaling calculation
-  DESCRIPTION: This profile should be chosen if highly accurate energy differences are required
+  COMMENT: Appropriate input parameters for a high accuracy linear scaling calculation
+  DESCRIPTION: |
+          This profile should be chosen if highly accurate energy differences are required.
   dft:
     hgrids: accurate
     ixc: PBE
@@ -2025,8 +1993,10 @@ linear_accurate:
     rpnrm_cv: [1.e-12,1.e-12]
     linear_method: FOE
 linear_moderate:
-  COMMENT: appropriate input parameters for a moderate accuracy linear scaling calculation
-  DESCRIPTION: This profile should be chosen if accurate forces are required, but there is no need for extremely accurate energies
+  COMMENT: Appropriate input parameters for a moderate accuracy linear scaling calculation
+  DESCRIPTION: |
+          This profile should be chosen if accurate forces are required,
+          but there is no need for extremely accurate energies.
   dft:
     hgrids: accurate
     ixc: PBE
@@ -2055,8 +2025,9 @@ linear_moderate:
     rpnrm_cv: [1.e-11,1.e-11]
     linear_method: FOE
 linear_fast:
-  COMMENT: appropriate input parameters for a low accuracy linear scaling calculation
-  DESCRIPTION: This profile should be chosen if speed is more important than accuracy
+  COMMENT: Appropriate input parameters for a low accuracy linear scaling calculation
+  DESCRIPTION: |
+          This profile should be chosen if speed is more important than accuracy.
   dft:
     hgrids: accurate
     ixc: PBE
@@ -2084,15 +2055,10 @@ linear_fast:
     alphamix: [0.2,0.2]
     rpnrm_cv: [1.e-10,1.e-10]
     linear_method: FOE
-structural:
-  COMMENT: for geopt
-  dft:
-    hgrids: fast
-    ixc: PBE
-  geopt:
-    method: FIRE
 mixing:
-  COMMENT: to be used for metallic systems
+  COMMENT: To be used for metallic systems
+  DECRIPTION: |
+           Parameters for the mixing scheme associated to the diagonalization method.
   dft:
    gnrm_cv: 1.e-6
    nrepmax: 1
@@ -2108,7 +2074,9 @@ mixing:
    alphamix: 0.8
    alphadiis: 1.d0
 linear:
- COMMENT: linear parameters sufficient for PDoS, charge analysis, MD
+ COMMENT: Linear parameters sufficient for PDoS, charge analysis, MD
+ DESCRIPTION: |
+         Basic parameters to perform a linear calculation.
  dft:
    gnrm_cv: accurate
    itermax: 50
@@ -2172,7 +2140,7 @@ linear:
    Cl: {nbasis: 4, rloc: 5.5}
    K:  {nbasis: 1, rloc: 7.0}
 md:
-  COMMENT: Molecular dynamics Input file for H2O molecules
+  COMMENT: Molecular dynamics input parameters for H2O molecules
   geopt:
     method: AB6MD
     ionmov: 8

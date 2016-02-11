@@ -590,11 +590,10 @@ module module_interfaces
        end interface
 
       interface
-        subroutine free_full_potential(nproc,flag,xc,pot,subname)
+        subroutine free_full_potential(nproc,flag,xc,pot)
          use module_defs, only: gp,dp,wp
          use module_xc
          implicit none
-         character(len=*), intent(in) :: subname
          integer, intent(in) :: nproc,flag
          type(xc_info), intent(in) :: xc
          real(wp), dimension(:), pointer :: pot

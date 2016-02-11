@@ -47,13 +47,13 @@ module module_atoms
      ! Iterator part (to avoid to create yet another type.
      integer :: iat, ind
   end type atomic_neighbours
-  
+
   !> Structure of the system. This derived type contains the information about the physical properties
   type, public :: atomic_structure
      character(len=1) :: geocode           !< @copydoc poisson_solver::doc::geocode
      character(len=5) :: inputfile_format  !< Can be xyz, ascii, int or yaml
      character(len=256) :: source          !< Name of the file or origin
-     character(len=20) :: units            !< Can be angstroem or bohr 
+     character(len=20) :: units            !< Can be angstroem or bohr
      character(len=20) :: angle            !< Can be radian or degree
      integer :: nat                        !< Number of atoms
      integer :: ntypes                     !< Number of atomic species in the structure
@@ -89,9 +89,9 @@ module module_atoms
      logical :: donlcc                                   !< Activate non-linear core correction treatment
      logical :: multipole_preserving                     !< Activate preservation of the multipole moment for the ionic charge
      integer :: mp_isf                                   !< Interpolating scaling function order for the multipole preserving
-     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc !< Number of valence and core gaussians describing NLCC 
+     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc !< Number of valence and core gaussians describing NLCC
      real(gp), dimension(:,:), pointer :: nlccpar        !< Parameters for the non-linear core correction, if present
-     !     real(gp), dimension(:,:), pointer :: ig_nlccpar    !< Parameters for the input NLCC
+     logical, dimension(:,:), pointer :: dogamma         !< density matrix is calculated
      type(pawrad_type), dimension(:), pointer :: pawrad  !< PAW radial objects.
      type(pawtab_type), dimension(:), pointer :: pawtab  !< PAW objects for something.
      type(pawang_type) :: pawang                         !< PAW angular mesh definition.
@@ -102,7 +102,7 @@ module module_atoms
      integer, dimension(:), pointer ::  paw_nofgaussians
      real(gp), dimension(:), pointer :: paw_Greal, paw_Gimag, paw_Gcoeffs
      real(gp), dimension(:), pointer :: paw_H_matrices, paw_S_matrices, paw_Sm1_matrices
-     integer :: iat_absorber 
+     integer :: iat_absorber
   end type atoms_data
 
   !> Iterator on atoms object
@@ -132,7 +132,7 @@ module module_atoms
   ! Types from dictionaries
   public :: astruct_set_from_dict
   public :: astruct_file_merge_to_dict,atoms_file_merge_to_dict
-  public :: psp_dict_analyse, nlcc_set_from_dict
+  public :: psp_dict_analyse, nlcc_set_from_dict,atoms_gamma_from_dict
 
 
 contains
@@ -155,7 +155,7 @@ contains
   pure function atoms_iterator_null() result(it)
     implicit none
     type(atoms_iterator) :: it
-    
+
     call nullify_atoms_iterator(it)
   end function atoms_iterator_null
 
@@ -184,7 +184,7 @@ contains
     call f_strcpy(src=it%astruct_ptr%atomnames(it%ityp),dest=it%name)
     it%frz(1)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),1)
     it%frz(2)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),2)
-    it%frz(3)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),3)    
+    it%frz(3)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),3)
     it%rxyz=it%astruct_ptr%rxyz(:,it%iat)
   end subroutine atoms_refresh_iterator
 
@@ -194,7 +194,7 @@ contains
   pure subroutine increment_atoms_iter(it)
     implicit none
     type(atoms_iterator), intent(inout) :: it
-    
+
     if (associated(it%astruct_ptr)) then
        if (it%iat < it%astruct_ptr%nat) then
           it%iat=it%iat+1
@@ -212,7 +212,7 @@ contains
     implicit none
     type(atoms_iterator), intent(in) :: it
     logical :: atoms_iter_is_valid
-    
+
     atoms_iter_is_valid=associated(it%astruct_ptr)
   end function atoms_iter_is_valid
 
@@ -314,9 +314,9 @@ contains
     nullify(at%radii_cf)
     nullify(at%iradii_source)
     nullify(at%amu)
-    !     nullify(at%aocc)
     !nullify(at%rloc)
     nullify(at%psppar)
+    nullify(at%dogamma)
     nullify(at%nlcc_ngv)
     nullify(at%nlcc_ngc)
     nullify(at%nlccpar)
@@ -365,7 +365,7 @@ contains
   end subroutine deallocate_atomic_neighbours
 
   !> Deallocate the structure atoms_data.
-  subroutine deallocate_atomic_structure(astruct)!,subname) 
+  subroutine deallocate_atomic_structure(astruct)!,subname)
     use dynamic_memory, only: f_free_ptr,f_free_str_ptr
     use dictionaries, only: dict_free
     implicit none
@@ -407,7 +407,7 @@ contains
 
 
   !> Deallocate the structure atoms_data.
-  subroutine deallocate_atoms_data(atoms) 
+  subroutine deallocate_atoms_data(atoms)
     use module_base
     use m_pawrad, only: pawrad_destroy
     use m_pawtab, only: pawtab_destroy
@@ -422,11 +422,12 @@ contains
     call f_ref_free(atoms%refcnt)
 
     ! Deallocate atomic structure
-    call deallocate_atomic_structure(atoms%astruct) 
+    call deallocate_atomic_structure(atoms%astruct)
 
     ! Deallocations related to pseudos.
     call f_free_ptr(atoms%nzatom)
     call f_free_ptr(atoms%psppar)
+    call f_free_ptr(atoms%dogamma)
     call f_free_ptr(atoms%nelpsp)
     call f_free_ptr(atoms%ixcpsp)
     call f_free_ptr(atoms%npspcode)
@@ -491,7 +492,7 @@ contains
       implicit none
       type(atomic_neighbours), intent(inout) :: neighb
       integer, intent(out) :: inei
-      
+
       logical :: astruct_neighbours_next
 
       astruct_neighbours_next = .false.
@@ -499,10 +500,82 @@ contains
 
       neighb%ind = neighb%ind + 1
       if (neighb%ind > neighb%keynei(1, neighb%iat)) return
-      
+
       inei = neighb%nei(neighb%keynei(2, neighb%iat) + neighb%ind - 1)
       astruct_neighbours_next = .true.
     END FUNCTION astruct_neighbours_next
+
+    !> determine the atomic dictionary from the key
+    subroutine get_atomic_dict(dict_tmp,dict,iat,name)
+      use dictionaries
+      use yaml_strings
+      implicit none
+      integer, intent(in) :: iat
+      character(len=*), intent(in) :: name
+      type(dictionary), pointer :: dict_tmp,dict
+      !local variables
+      character(len = max_field_length) :: at
+
+      nullify(dict_tmp)
+
+      call f_strcpy(src="Atom "//trim(adjustl(yaml_toa(iat))),dest=at)
+      dict_tmp = dict .get. at
+      if (.not. associated(dict_tmp)) dict_tmp = &
+           dict .get. name
+
+    end subroutine get_atomic_dict
+
+    subroutine atoms_gamma_from_dict(dict,lmax,astruct, dogamma)
+      use module_defs, only: gp
+      use ao_inguess, only: ao_ig_charge,atomic_info,aoig_set_from_dict,&
+           print_eleconf,aoig_set,shell_toi
+      use dictionaries
+      use yaml_output, only: yaml_warning, yaml_dict_dump
+      use yaml_strings, only: f_strcpy, yaml_toa
+      use module_base, only: bigdft_mpi
+      use dynamic_memory
+      implicit none
+      integer, intent(in) :: lmax
+      type(dictionary), pointer :: dict
+      type(atomic_structure), intent(in) :: astruct
+      logical, dimension(0:lmax,astruct%nat), intent(out) :: dogamma
+      !local variables
+      integer :: ln,i
+      character(len=1), dimension(lmax+1) :: shells
+      type(dictionary), pointer :: dict_tmp
+      type(atoms_iterator) :: it
+
+      call f_routine(id='atomic_gamma_from_dict')
+
+      !iterate above atoms
+      it=atoms_iter(astruct)
+      do while(atoms_iter_next(it))
+        dogamma(:,it%iat)=.false.
+        ! Possible overwrite, if the dictionary has the item
+        !get the particular species
+        call get_atomic_dict(dict_tmp,dict,it%iat,it%name)
+        !according to the dictionary
+        if (associated(dict_tmp)) then
+          !list case
+          ln=dict_len(dict_tmp)
+          if (ln > 0) then
+            shells(1:ln)=dict_tmp
+          else
+            ln=1
+            shells(1)=dict_tmp
+          end if
+          do i=1,ln
+            dogamma(shell_toi(shells(i)),it%iat)=.true.
+          end do
+        end if
+
+      end do
+
+   call f_release_routine()
+
+  end subroutine atoms_gamma_from_dict
+
+
 
     subroutine atomic_data_set_from_dict(dict, key, atoms, nspin)
       use module_defs, only: gp
@@ -521,7 +594,6 @@ contains
 
       !integer :: iat, ityp
       real(gp) :: elec
-      character(len = max_field_length) :: at
       type(dictionary), pointer :: dict_tmp
       type(atoms_iterator) :: it
 
@@ -548,11 +620,12 @@ contains
          ! Possible overwrite, if the dictionary has the item
          if (key .in. dict) then
             !get the particular species
-            !override by particular atom if present
-            call f_strcpy(src="Atom "//trim(adjustl(yaml_toa(it%iat))),dest=at)
-            dict_tmp = dict // key .get. at
-            if (.not. associated(dict_tmp)) dict_tmp = &
-                 dict // key .get. it%name
+            call get_atomic_dict(dict_tmp,dict//key,it%iat,it%name)
+!!$            !override by particular atom if present
+!!$            call f_strcpy(src="Atom "//trim(adjustl(yaml_toa(it%iat))),dest=at)
+!!$            dict_tmp = dict // key .get. at
+!!$            if (.not. associated(dict_tmp)) dict_tmp = &
+!!$                 dict // key .get. it%name
             !therefore the aiog structure has to be rebuilt
             !according to the dictionary
             if (associated(dict_tmp)) then
@@ -570,49 +643,6 @@ contains
 !!$         !fortran method
 !!$         call increment_atoms_iter(it)
       end do
-
-!!$      !old loop
-!!$      do ityp = 1, atoms%astruct%ntypes, 1
-!!$         !only amu and rcov are extracted here
-!!$         call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
-!!$              amu=atoms%amu(ityp))
-!!$
-!!$         do iat = 1, atoms%astruct%nat, 1
-!!$            if (atoms%astruct%iatype(iat) /= ityp) cycle
-!!$
-!!$            !fill the atomic IG configuration from the input_polarization
-!!$            atoms%aoig(iat)=aoig_set(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
-!!$                 atoms%astruct%input_polarization(iat),nspin)
-!!$  
-!!$            ! Possible overwrite, if the dictionary has the item
-!!$            if (has_key(dict, key)) then
-!!$               nullify(dict_tmp)
-!!$               at(1:len(at))="Atom "//trim(adjustl(yaml_toa(iat)))
-!!$               if (has_key(dict // key,trim(at))) &
-!!$                    dict_tmp=>dict//key//trim(at)
-!!$               if (has_key(dict // key, trim(atoms%astruct%atomnames(ityp)))) &
-!!$                    dict_tmp=>dict // key // trim(atoms%astruct%atomnames(ityp))
-!!$               if (associated(dict_tmp)) then
-!!$                  atoms%aoig(iat)=aoig_set_from_dict(dict_tmp,nspin)
-!!$                  !check the total number of electrons
-!!$                  elec=ao_ig_charge(nspin,atoms%aoig(iat)%aocc)
-!!$                  if (nint(elec) /= atoms%nelpsp(ityp)) then
-!!$                     call print_eleconf(nspin,atoms%aoig(iat)%aocc,atoms%aoig(iat)%nl_sc)
-!!$                     call yaml_warning('The total atomic charge '//trim(yaml_toa(elec))//&
-!!$                          ' is different from the PSP charge '//trim(yaml_toa(atoms%nelpsp(ityp))))
-!!$                  end if
-!!$               end if
-!!$            end if
-!!$         end do
-!!$
-!!$      end do
-
-!!$      !number of atoms with semicore channels
-!!$      atoms%natsc = 0
-!!$      do iat=1,atoms%astruct%nat
-!!$         if (atoms%aoig(iat)%nao_sc /= 0) atoms%natsc=atoms%natsc+1
-!!$         !if (atoms%aoig(iat)%iasctype /= 0) atoms%natsc=atoms%natsc+1
-!!$      enddo
 
       call f_release_routine()
 
@@ -1165,7 +1195,7 @@ contains
       if (present(igspin))  igspin = 0
       if (present(igchrg))  igchrg = 0
       if (present(mode)) write(mode, "(A)") ""
-      
+
       atData => dict_iter(dict)
       do while(associated(atData))
          str = dict_key(atData)
@@ -1369,7 +1399,7 @@ contains
       end if
      !print *,'test2',associated(fxyz)
      !Check if BIGDFT_INPUT_FILE_ERROR
-     ierr = f_get_last_error(msg) 
+     ierr = f_get_last_error(msg)
      call f_err_close_try()
 
      if (ierr == 0) then
@@ -1399,7 +1429,7 @@ contains
        msg = "No section 'posinp' for the atomic positions in the file '"//&
              & trim(radical) // ".yaml'. " // trim(msg)
        call f_err_throw(err_msg=msg,err_id=ierr)
-     else 
+     else
        ! Raise an error
        call f_err_throw(err_msg=msg,err_id=ierr)
      end if
@@ -1547,7 +1577,7 @@ contains
       implicit none
       type(atoms_data), intent(inout) :: atoms
       external :: allocate_atoms_nat,allocate_atoms_ntypes
-      
+
       call allocate_atoms_nat(atoms)
       call allocate_atoms_ntypes(atoms)
     end subroutine allocate_atoms_data
@@ -1679,7 +1709,7 @@ contains
          atoms%nlcc_ngc(ityp)=UNINITIALIZED(atoms%nlcc_ngc(ityp))
          atoms%nlcc_ngv(ityp)=UNINITIALIZED(atoms%nlcc_ngv(ityp))
          filename = 'psppar.' // trim(atoms%astruct%atomnames(ityp))
-         if (.not. has_key(dict, filename)) cycle    
+         if (.not. has_key(dict, filename)) cycle
          if (.not. has_key(dict // filename, 'Non Linear Core Correction term')) cycle
          nloc => dict // filename // 'Non Linear Core Correction term'
          if (has_key(nloc, "Valence") .or. has_key(nloc, "Core")) then
@@ -1734,7 +1764,7 @@ contains
                atoms%nlcc_ngv(ityp)=0
                atoms%nlccpar(0,nlcc_dim)=nloc // "Rcore"
                atoms%nlccpar(1,nlcc_dim)=nloc // "Core charge"
-               atoms%nlccpar(2:4,nlcc_dim)=0.0_gp 
+               atoms%nlccpar(2:4,nlcc_dim)=0.0_gp
             end if
          end do fill_nlcc
       end if
@@ -1907,7 +1937,7 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
      call symmetry_get_group(astruct%sym%symObj, astruct%sym%spaceGroup, &
           & spaceGroupId, pointGroupMagn, genAfm, ierr)
 !     if (ierr == AB7_ERROR_SYM_NOT_PRIMITIVE) write(astruct%sym%spaceGroup, "(A)") "not prim."
-  else 
+  else
      astruct%sym%nSym = 0
      astruct%sym%spaceGroup = 'disabled'
   end if
@@ -1919,7 +1949,7 @@ END SUBROUTINE astruct_set_symmetries
 subroutine allocate_atoms_nat(atoms)
   use module_base
   use module_atoms, only: atoms_data
-  use ao_inguess, only : aoig_data_null
+  use ao_inguess, only : aoig_data_null,lmax_ao
   implicit none
   type(atoms_data), intent(inout) :: atoms
   integer :: iat
@@ -1930,6 +1960,9 @@ subroutine allocate_atoms_nat(atoms)
   do iat=1,atoms%astruct%nat
      atoms%aoig(iat)=aoig_data_null()
   end do
+
+  atoms%dogamma=f_malloc_ptr([0.to.lmax_ao,1.to.atoms%astruct%nat],&
+       id='dogamma')
 
 END SUBROUTINE allocate_atoms_nat
 
@@ -1968,7 +2001,7 @@ subroutine atoms_new(atoms)
   implicit none
   type(atoms_data), pointer :: atoms
   type(atoms_data), pointer, save :: intern
-  
+
   allocate(intern)
   call nullify_atoms_data(intern)! = atoms_data_null()
   atoms => intern
@@ -1981,7 +2014,7 @@ subroutine atoms_free(atoms)
   use f_refcnts, only: f_ref_count, f_ref_new
   implicit none
   type(atoms_data), pointer :: atoms
-  
+
   if (f_ref_count(atoms%refcnt) < 0) then
      ! Trick here to be sure that the deallocate won't complain in case of not
      ! fully initialised atoms.
@@ -2017,7 +2050,7 @@ subroutine astruct_set_displacement(astruct, randdis)
    end if
 
    call rxyz_inside_box(astruct)
-   
+
 END SUBROUTINE astruct_set_displacement
 
 !> Compute a list of neighbours for the given structure.
@@ -2038,10 +2071,10 @@ subroutine astruct_neighbours(astruct, rxyz, neighb)
   real(gp), dimension(:), allocatable :: rcuts
 
   call nullify_atomic_neighbours(neighb)
-  
+
   neighb%nat = astruct%nat
   neighb%keynei = f_malloc0_ptr((/ 2, neighb%nat /), id = "neighb%keynei")
-  
+
   maxnei = min(astruct%nat, 50)
   tmp_nei = f_malloc((/ maxnei, astruct%nat /), id = "tmp_nei")
 
@@ -2094,7 +2127,7 @@ subroutine astruct_neighbours(astruct, rxyz, neighb)
      nnei = nnei + neighb%keynei(1, i)
   end do
 
-  call f_free(tmp_nei)  
+  call f_free(tmp_nei)
 END SUBROUTINE astruct_neighbours
 
 subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
@@ -2105,7 +2138,7 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
   use dynamic_memory
   use dictionaries
   use public_keys, only: ASTRUCT_ATT_ORIG_ID
-  use ao_inguess, only: atomic_info,atomic_z 
+  use ao_inguess, only: atomic_info,atomic_z
   implicit none
   type(atomic_structure), intent(out) :: asub
   type(atomic_structure), intent(in) :: astruct
@@ -2120,11 +2153,11 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
   logical, dimension(3) :: per
   real(gp), dimension(3) :: dxyz
   real(gp), dimension(:), allocatable :: rcuts
-  
+
   call nullify_atomic_structure(asub)
 
   call dict_init(hlist)
-  if (passivate) then 
+  if (passivate) then
      ! In case of passivation, every old neighbours that are cut, are replaced
      ! by an hydrogen.
      call astruct_neighbours(astruct, rxyz, nei)
@@ -2174,7 +2207,7 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
   asub%inputfile_format = astruct%inputfile_format
 
   ! Count the number of types in the subset.
-  call dict_init(types)  
+  call dict_init(types)
   do iat = 1, astruct%nat
      if (mask(iat) .and. .not. (trim(astruct%atomnames(astruct%iatype(iat))) .in. types)) &
           & call set(types // trim(astruct%atomnames(astruct%iatype(iat))), dict_size(types))
