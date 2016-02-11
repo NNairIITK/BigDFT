@@ -3,7 +3,8 @@
 EXTRA_DIST = \
 	README \
 	fldiff.py \
-	styles images \
+	styles \
+	images \
 	yaml_hl.cfg \
 	yaml_hl.py \
 	parse_log.py \
@@ -12,18 +13,13 @@ EXTRA_DIST = \
 	fldiff_yaml.py.in \
 	report.py.in
 
-SUBDIRS = 
-# Tests subdir is include only if binaries are compiled.
-if BUILD_BINARIES
-if HAVE_PYYAML
-SUBDIRS += \
+SUBDIRS = \
 	  DFT \
 	  overDFT \
 	  tutorials \
 	  libs \
 	  benchs
-endif
-endif
+
 
 if USE_OCL
 oclrun_message = oclrun

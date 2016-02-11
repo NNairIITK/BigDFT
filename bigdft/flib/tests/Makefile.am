@@ -1,8 +1,15 @@
 ## Process this file with automake to produce Makefile.in
 
-OTHERS = yaml_test.f90
+EXTRA_DIST = \
+	yaml_hl.cfg \
+	yaml_hl.py \
+	tols.yaml \
+	yaml_hl_remarks.cfg \
+	fldiff_yaml.py.in \
+	report.py.in \
+	yaml_test.ref.yaml $(OTHERS)
 
-EXTRA_DIST = yaml_test.ref.yaml $(OTHERS)
+OTHERS = yaml_test.f90
 
 check_PROGRAMS = yaml_test
 
@@ -45,4 +52,3 @@ yaml_test.report.yaml: $(top_builddir)/tests/fldiff_yaml.py $(top_srcdir)/tests/
 		-r $(abs_srcdir)/yaml_test.ref.yaml -d yaml_test.out.yaml --output $@
 
 check: yaml_test.report.yaml
-

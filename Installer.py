@@ -298,8 +298,6 @@ class Installer_Parser(argparse.ArgumentParser):
 
 parser = Installer_Parser(description='BigDFT suite Installer',
                                  epilog='For more information, visit www.bigdft.org')
-parser = argparse.ArgumentParser(description='BigDFT suite Installer',
-                                 epilog='For more information, visit www.bigdft.org')
 
 parser.add_argument('-f','--file',
                    help='Use an alternative configuration file instead of the default configuration '
