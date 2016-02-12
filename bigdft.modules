@@ -13,9 +13,9 @@
   <repository type="tarball" name="unidata"
               href="ftp://ftp.unidata.ucar.edu/pub/"/>
   <repository type="tarball" name="etsf" href="http://www.etsf.eu/system/files/"/>
-  <repository type="tarball" name="metis" 
+  <repository type="tarball" name="metis"
               href="http://glaros.dtc.umn.edu/gkhome/fetch/sw/parmetis/"/>
-<!--  <repository type="tarball" name="cmake-rep" 
+<!--  <repository type="tarball" name="cmake-rep"
               href="https://cmake.org/files/v3.3/"/> -->
 
   <repository type="tarball" name="local" href="./"/>
@@ -153,8 +153,6 @@
   <metamodule id="bigdft-suite">
     <dependencies>
       <dep package="bigdft"/>
-      <dep package="pseudo"/>
-      <dep package="wannier90"/>
       <dep package="PyYAML"/>
     </dependencies>
   </metamodule>

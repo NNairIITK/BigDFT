@@ -10,7 +10,7 @@
 
 !> Module defining the interfaces for routines which handle diagonalization
 module lanczos_interface
-  use module_base
+  !use module_base
   use module_types
   use module_xc, only : xc_info
   use module_abscalc
@@ -337,7 +337,7 @@ contains
   END SUBROUTINE EP_copy
 
   subroutine   EP_scalare_multik(i,j, scalari)
-    use module_base
+    !use module_base
     implicit none
     !Arguments
     integer, intent(in) :: i,j
@@ -637,7 +637,7 @@ contains
   !>   Hits the input array x with the kernel @f$((-1/2\Delta+C)_{ij})^{-1}@f$
   subroutine hit_with_kernel_spectra(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,&
        &   n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,ene, gamma )
-    use module_base
+    !use module_base
     implicit none
     ! Arguments
     integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3
@@ -737,7 +737,7 @@ contains
   !> Multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
   subroutine wscal_f_spectra(mvctr_f,psi_f,hx,hy,hz,ene, gamma)
     ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
-    use module_base
+    !use module_base
     implicit none
     integer,intent(in)::mvctr_f
     real(gp),intent(in)::hx,hy,hz, ene, gamma
@@ -783,7 +783,7 @@ contains
        &   ene, gamma,hx,hy,hz,hpsi,&
        &   kern_k1,kern_k2,kern_k3,z1,z3,x_c,&
        &   nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b)
-    use module_base
+    !use module_base
     implicit none 
     integer, intent(in) :: n1,n2,n3
     integer,intent(in)::nd1,nd2,nd3
@@ -824,7 +824,7 @@ contains
 
 
   subroutine EP_precondition(p,i, ene, gamma)
-    use module_base
+    !use module_base
     use communications, only: transpose_v, untranspose_v
     use locreg_operations
     !Arguments
@@ -1332,7 +1332,7 @@ contains
 
 
   subroutine gaussians_to_wavelets_nonorm(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wfn_gau,psi)
-    use module_base
+    !use module_base
     use module_types
     use gaussians
     implicit none
@@ -1477,7 +1477,7 @@ contains
 
 
   subroutine lowpass_projector(n1,n2,n3,nvctr,psi)
-    use module_base
+    !use module_base
     implicit none
     integer, intent(in) :: nvctr,n1,n2,n3
     real(wp), dimension(nvctr), intent(inout) :: psi
@@ -1612,7 +1612,7 @@ contains
        nlpsp,Lzd,dpcom,potential,&
        energs,xc,nspin,GPU,in_iat_absorber,&
        in , PAWD , orbs )! add to interface
-    use module_base
+    !use module_base
     use module_dpbox, only: denspot_distribution
     use module_types
     use module_xc
@@ -1762,7 +1762,7 @@ contains
        nlpsp,Lzd,dpcom,potential,&
        energs,xc,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
 
-    use module_base
+    !use module_base
     use module_dpbox, only: denspot_distribution
     use module_types
     use module_xc
@@ -1998,7 +1998,7 @@ contains
        nlpsp,Lzd,dpcom,potential,&
        energs,xc,nspin,GPU,in_iat_absorber,&
        in , rhoXanes, PAWD , PPD, orbs )
-    use module_base
+    !use module_base
     use module_dpbox, only: denspot_distribution
     use module_types
     use lanczos_base

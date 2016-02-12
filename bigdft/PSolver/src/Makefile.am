@@ -93,7 +93,7 @@ modules = poisson_solver.@MODULE_EXT@ \
 	box.@MODULE_EXT@
 endif
 
-CLEANFILES = $(modules) $(psolver_dynamic_library) $(psolver_library_soname) libPSolver-1.so
+CLEANFILES = *.@MODULE_EXT@ $(psolver_dynamic_library) $(psolver_library_soname) libPSolver-1.so
 SOURCES_MOD = PSolver_Main.f90 createKernel.f90
 EXTRA_DIST = \
 	gaussfit_wires.inc\

@@ -1062,7 +1062,6 @@ contains
     integer :: ln, i
     type(dictionary), pointer :: sect
     type(atomic_structure) :: asub
-    character(len = max_field_length) :: mode
 
     if (associated(runObj%sections)) then
        do i = 1, size(runObj%sections)

@@ -20,6 +20,7 @@ SUBDIRS = \
 	global_files 
 
 EXTRA_DIST = \
+	bigdft_spred.h \
 	NEB_driver.sh
 
 # Build targets, binaries and libraries.

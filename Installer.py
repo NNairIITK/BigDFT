@@ -51,7 +51,7 @@ class BigDFTInstaller():
         #look if we are building from a branch
         bigdftdir=os.path.join(self.srcdir,'bigdft')
         self.branch=os.path.isfile(os.path.join(bigdftdir,'branchfile'))
-        
+
         if os.path.abspath(self.srcdir) == os.path.abspath(self.builddir):
             print 50*'-'
             print "ERROR: BigDFT Installer works better with a build directory different from the source directory, install from another directory"
@@ -63,20 +63,20 @@ class BigDFTInstaller():
 
         #rcfile
         self.get_rcfile(rcfile)
-        
+
         #jhbuild script
         self.jhb=os.path.join(self.srcdir,'jhbuild.py ')
         if self.rcfile != '': self.jhb += '-f '+self.rcfile
 
         #date of bigdft executable if present
         self.time0=self.bigdft_time()
-            
+
         self.print_present_configuration()
-                            
+
         #now get the list of modules that has to be treated with the given command
         self.modulelist=self.get_output(self.jhb + LIST).split('\n')
         print " List of modules to be treated:",self.modulelist
-        
+
         #then choose the actions to be taken
         getattr(self,action)()
 
@@ -87,7 +87,7 @@ class BigDFTInstaller():
             return os.path.getmtime(bigdft)
         else:
             return None
-    
+
     def get_rcfile(self,rcfile):
         "Determine the rcfile"
         import os
@@ -128,12 +128,12 @@ class BigDFTInstaller():
                     ch=rcs[ival-1]
                     break
                 except:
-                    print 'The choice must be a valid integer among the above'                  
+                    print 'The choice must be a valid integer among the above'
             self.rcfile=os.path.join(rcdir,ch)
         elif len(rcs) == 0:
             print 'No valid configuration file provided and '+BIGDFT_CFG+' variable not present, exiting...'
             exit(1)
-        
+
     def __dump(self,*msg):
         if self.verbose:
             for m in msg:
@@ -163,7 +163,7 @@ class BigDFTInstaller():
                 print 'Please answer y or n'
             else:
                 break
-                
+
     def selected(self,l):
         return [val for val in l if val in self.modulelist]
 
@@ -180,7 +180,7 @@ class BigDFTInstaller():
                 self.__dump('done.')
             else:
                 print 'Cannot perform action "',action,'" on module "',mod,'" directory not present in the build'
-    
+
     def get_output(self,cmd):
         import subprocess
         self.__dump('executing:',cmd)
@@ -208,12 +208,12 @@ class BigDFTInstaller():
     def make(self):
         "Perform the simple make action"
         self.shellaction('.',MAKEMODULES,'make -j6 && make install')
-        
+
     def dist(self):
         "Perform make dist action"
         self.shellaction('.',self.modulelist,'make dist')
         self.get_output(self.jhb+DIST)
-                                
+
     def build(self):
         "Build the bigdft module with the options provided by the rcfile"
         import os
@@ -222,8 +222,8 @@ class BigDFTInstaller():
         if self.branch:
             co=''
         else:
-            co='-C'        
-        if (self.verbose): 
+            co='-C'
+        if (self.verbose):
             os.system(self.jhb+BUILD+co)
         else:
             os.system(self.jhb+TINDERBOX+co)
@@ -255,7 +255,7 @@ class BigDFTInstaller():
         rclist=[]
         rclist.append("modules = ['bigdft',]")
         sep='"""'
-        confline=sep+os.environ[BIGDFT_CFG]+sep    
+        confline=sep+os.environ[BIGDFT_CFG]+sep
         for mod in self.modulelist:
             rclist.append("module_autogenargs['"+mod+"']="+confline)
         #then write the file
@@ -267,8 +267,9 @@ class BigDFTInstaller():
         print "Your used configuration options have been saved in the file '%s'." % RCFILE
         print "Such file will be used for next builds, you might also save it in the 'rcfiles/'."
         print "Directory of the source for future use. The name might contain the hostname."
-        
+
     def __del__(self):
+        import os
         print 50*'-'
         print 'Thank you for using the Installer of BigDFT suite.'
         print 'The action considered was:',self.action
@@ -277,13 +278,13 @@ class BigDFTInstaller():
             print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
             print 'All the available executables and scripts can be found in the directory'
             print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
-        elif self.action == 'build' or self.action == 'make':
+        elif (self.action == 'build' or self.action == 'make') and self.bigdft_time() is None:
             print 'WARNING: The Installer seems NOT have created or updated bigdft executable'
             print '        (maybe everything already compiled?)'
             print 'ACTION: check the compiling procedure:'
             if not self.verbose and self.action == 'build':
                 print '  Have a look at the file index.html of the build/ directory to find the reason'
-    
+
 #Now follows the available actions, argparse might be called
 import argparse
 
@@ -297,8 +298,6 @@ class Installer_Parser(argparse.ArgumentParser):
 
 parser = Installer_Parser(description='BigDFT suite Installer',
                                  epilog='For more information, visit www.bigdft.org')
-#parser = argparse.ArgumentParser(description='BigDFT suite Installer',
-#                                 epilog='For more information, visit www.bigdft.org')
 
 parser.add_argument('-f','--file',
                    help='Use an alternative configuration file instead of the default configuration '
@@ -309,8 +308,8 @@ parser.add_argument('-d','--verbose',action='store_true',
 
 #Define the possible actions
 subparsers = parser.add_subparsers(title='The following actions are available',
-                                   dest='action',
-                                   help='Action to be performed by the Installer.')
+                    dest='action',
+                    help='Action to be performed by the Installer.')
 for (k,v) in ACTIONS.items():
     subparsers.add_parser(k,help=v)
 

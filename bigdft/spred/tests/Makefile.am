@@ -56,8 +56,8 @@ global.mon.out : test.minhop.out
 	name=`basename $< .xabs.ref.yaml`  ; fi;\
 	tols=`basename $< .out.ref.yaml` ;\
 	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ; \
-	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
-		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
+	python $(abs_top_builddir)/tests/fldiff_yaml.py \
+		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@
 
 ##if USE_OCL
 ##oclrun_message = oclrun
