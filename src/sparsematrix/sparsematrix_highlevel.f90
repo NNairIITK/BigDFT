@@ -176,7 +176,7 @@ module sparsematrix_highlevel
           ntypes = ntypes_
       end if
       if (present(nzatom)) then
-          nzatom_ = f_malloc_ptr(ntypes_,id='nzatom')
+          nzatom = f_malloc_ptr(ntypes_,id='nzatom')
           call f_memcpy(src=nzatom_, dest=nzatom)
       end if
       if (present(nelpsp)) then

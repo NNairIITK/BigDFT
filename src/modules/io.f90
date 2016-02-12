@@ -2263,7 +2263,7 @@ module io
 
 
     !> Basically the same as writeLinearCoefficients, but with a slightly different format
-    subroutine write_linear_coefficients(iroot, filename, nat, rxyz, ntypes, nzatom, &
+    subroutine write_linear_coefficients(iroot, filename, nat, rxyz, iatype, ntypes, nzatom, &
                nelpsp, atomnames, nfvctr, ntmb, nspin, coeff, eval)
       use module_base
       use module_types
@@ -2272,8 +2272,11 @@ module io
       ! Calling arguments
       character(len=*),intent(in) :: filename
       !type(atoms_data),intent(in) :: at
+      integer,intent(in) :: iroot, nat, ntypes, nfvctr, ntmb, nspin
       real(gp), dimension(3,nat), intent(in) :: rxyz
-      integer,intent(in) :: iroot, nfvctr, ntmb, nspin
+      integer,dimension(nat),intent(in) :: iatype
+      integer,dimension(ntypes),intent(in) :: nzatom, nelpsp
+      character(len=20),dimension(ntypes),intent(in) :: atomnames
       real(wp), dimension(nfvctr,ntmb), intent(in) :: coeff
       real(wp), dimension(ntmb), intent(in) :: eval
       ! Local variables

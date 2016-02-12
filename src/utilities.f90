@@ -26,7 +26,7 @@ program utilities
                                     CHARGE_ANALYSIS_PROJECTOR, &
                                     loewdin_charge_analysis_core
    use multipole, only: projector_for_charge_analysis
-   use io, only: writeLinearCoefficients
+   use io, only: write_linear_coefficients
    use bigdft_run, only: bigdft_init
    implicit none
    external :: gather_timings
@@ -37,12 +37,13 @@ program utilities
    logical :: charge_analysis = .false.
    logical :: solve_eigensystem = .false.
    type(atoms_data) :: at
-   integer :: istat, i_arg, ierr, nspin, icount, nthread, method
+   integer :: istat, i_arg, ierr, nspin, icount, nthread, method, ntypes
    integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
    integer :: nfvctr_m, nseg_m, nvctr_m, nfvctrp_m, isfvctr_m
    integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
    integer,dimension(:),allocatable :: on_which_atom
    integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l, on_which_atom_s, on_which_atom_m, on_which_atom_l
+   integer,dimension(:),pointer :: iatype, nzatom, nelpsp
    integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
    real(kind=8),dimension(:),pointer :: matrix_compr
    real(kind=8),dimension(:,:),pointer :: rxyz
@@ -51,6 +52,7 @@ program utilities
    type(sparse_matrix) :: smat_s, smat_m, smat_l
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat
+   character(len=20),dimension(:),pointer :: atomnames
    !$ integer :: omp_get_max_threads
 
    call f_lib_initialize()
@@ -236,7 +238,8 @@ program utilities
    if (solve_eigensystem) then
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
-            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, nat=nat, rxyz=rxyz)
+            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
+            nspin=nspin, nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_m, hamiltonian_mat)
        ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
@@ -246,8 +249,11 @@ program utilities
        eval = f_malloc(smat_s%nfvctr,id='eval')
        call diagonalizeHamiltonian2(bigdft_mpi%iproc, smat_s%nfvctr, hamiltonian_mat%matrix, ovrlp_mat%matrix, eval)
        call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
-       call writeLinearCoefficients(iunit, .true., nat, rxyz, smat_s%nfvctr, smat_s%nfvctr, &
-            smat_s%nfvctr, hamiltonian_mat%matrix, eval)
+       !call writeLinearCoefficients(iunit, .true., nat, rxyz, smat_s%nfvctr, smat_s%nfvctr, &
+       !     smat_s%nfvctr, hamiltonian_mat%matrix, eval)
+       call write_linear_coefficients(0, trim(coeff_file), nat, rxyz, iatype, ntypes, nzatom, &
+            nelpsp, atomnames, smat_s%nfvctr, smat_s%nfvctr, nspin, hamiltonian_mat%matrix, eval)
+
        call f_close(iunit)
 
        call f_free(eval)
@@ -256,6 +262,10 @@ program utilities
        call deallocate_sparse_matrix(smat_s)
        call deallocate_sparse_matrix(smat_m)
        call f_free_ptr(rxyz)
+       call f_free_ptr(iatype)
+       call f_free_ptr(nzatom)
+       call f_free_ptr(nelpsp)
+       call f_free_str_ptr(len(atomnames),atomnames)
    end if
 
    call build_dict_info(dict_timing_info)

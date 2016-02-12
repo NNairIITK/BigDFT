@@ -2323,7 +2323,7 @@ end if
       !call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at, rxyz, &
       !     tmb%linmat%l%nfvctr, tmb%orbs%norb, tmb%linmat%l%nspin, tmb%coeff, tmb%orbs%eval)
       call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at%astruct%nat, &
-           rxyz, at%astruct%ntypes, at%nzatom, at%nelpsp, at%astruct%atomnames, &
+           at%astruct%rxyz, at%astruct%iatype, at%astruct%ntypes, at%nzatom, at%nelpsp, at%astruct%atomnames, &
            tmb%linmat%l%nfvctr, tmb%orbs%norb, tmb%linmat%l%nspin, tmb%coeff, tmb%orbs%eval)
   end if
 
