@@ -3732,10 +3732,10 @@ do ieval=iq,ntot
 end do
 sigma2 = 1.d-2/real(ii,kind=8)
 do
-    ef = ef + 1.d-3
+    ef = ef + 1.d-4
     tt = 0.d0
     do ieval=iq,ntot
-        tt = tt + safe_exp(-0.5d0*(eval_all(iq)-ef)**2/sigma2)
+        tt = tt + safe_exp(-0.5d0*(ef-eval_all(ieval))**2/sigma2)
     end do
     if (tt<1.d-6) exit
 end do
