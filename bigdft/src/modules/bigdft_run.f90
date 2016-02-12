@@ -634,14 +634,6 @@ contains
 
   END SUBROUTINE run_objects_associate
 
-  !> see if the write method foresee a mapping instead of new documents
-  function write_documents(runObj) result(ok)
-    implicit none
-    type(run_objects), intent(in) :: runObj
-    logical :: ok
-    ok=runObj%run_mode == 'QM_RUN_MODE'
-  end function write_documents
-
   !> copy the atom position in runObject into a workspace
   !! or retrieve the positions from a file
   subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz,energy,disableTrans)
@@ -879,11 +871,6 @@ contains
     type(run_objects), intent(inout) :: runObj
     !local variables
     integer :: count, i
-   if (associated(runObj%run_mode)) then
-      if (bigdft_mpi%iproc==0 .and. (.not. write_documents(runObj)) &
-           .and. runObj%nstate/=0)&
-           call yaml_sequence_close()
-   end if
 
     if (associated(runObj%rst)) then
        call f_unref(runObj%rst%refcnt,count=count)
@@ -941,14 +928,6 @@ contains
     type(run_objects), intent(inout) :: runObj
     logical :: release
     integer :: claim, i
-
-    if (associated(runObj%run_mode)) then
-      !@todo in/out in a freeing routine of an object, how strange !
-      if (bigdft_mpi%iproc==0 .and. (.not. write_documents(runObj)) & 
-           .and. runObj%nstate/=0)&
-!!$      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
-           call yaml_sequence_close()
-    end if
 
     ! Fortran release ownership
     release = .true.
@@ -1107,6 +1086,9 @@ contains
             & runObj%sections(i)%user_inputs)
        if (bigdft_mpi%iproc == 0) call yaml_mapping_close()
        runObj%sections(i)%run_mode => runObj%sections(i)%inputs%run_mode
+       if (runObj%sections(i)%run_mode == QM_RUN_MODE) then
+          call f_enum_attr(runObj%sections(i)%run_mode, RUN_MODE_CREATE_DOCUMENT)
+       end if
 
        nullify(runObj%sections(i)%user_inputs)
 
@@ -1630,19 +1612,25 @@ contains
 !!real(gp) :: anoise,tt
     call f_routine(id='bigdft_state')
 
-    if (bigdft_mpi%iproc==0 .and. .not. (runObj%run_mode .hasattr. RUN_MODE_CREATE_DOCUMENT)) then
+    !BS: is new document necessary (high overhead for FF)?
+    !LG: unfortunately it it important to make testing possible. We should probably investigate 
+    !    the reasons for such high overhead
+    !    The new document has been substituted by sequence, not to have multiple documents for FF runs
+    !    However this hybrid scheme has to be tested in the case of QM/MM runs
+    !    In any case the verbosity value is used to (un)mute the output
+!!$    write_mapping= runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0 .and. verbose > 0
+    !open the document if the run_mode has not it inside
+    write_mapping = (bigdft_mpi%iproc==0 .and. &
+        & .not. (runObj%run_mode .hasattr. RUN_MODE_CREATE_DOCUMENT) .and. &
+        & verbose > 0)
+    if (write_mapping) then
        call yaml_sequence(advance='no')
-       call yaml_mapping_open(trim(str(runObj%run_mode)),flow=.true.)
+       call yaml_mapping_open(trim(f_str(runObj%run_mode)),flow=.true.)
        !call yaml_new_document()
     end if
 
     rxyz_ptr => bigdft_get_rxyz_ptr(runObj)
     nat=bigdft_nat(runObj)
-
-    if (bigdft_mpi%iproc==0 .and. .not. write_documents(runObj) .and. &
-         runObj%nstate==0) &
-         call yaml_sequence_open('Initializing '//trim(f_str(runObj%run_mode)))
-
 
     !Check the consistency between MPI processes of the atomic coordinates and broadcast them
     if (bigdft_mpi%nproc >1) then
@@ -1671,21 +1659,6 @@ contains
     end if
 
     call clean_state_properties(outs) !zero the state first
-
-    !BS: is new document necessary (high overhead for FF)?
-    !LG: unfortunately it it important to make testing possible. We should probably investigate 
-    !    the reasons for such high overhead
-    !    The new document has been substituted by sequence, not to have multiple documents for FF runs
-    !    However this hybrid scheme has to be tested in the case of QM/MM runs
-    !    In any case the verbosity value is used to (un)mute the output
-!!$    write_mapping= runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0 .and. verbose > 0
-    write_mapping= (.not. write_documents(runObj))  .and. bigdft_mpi%iproc==0 .and. verbose > 0
-   !open the document if the run_mode has not it inside
-   if (write_mapping) then
-      call yaml_sequence(advance='no')
-      call yaml_mapping_open(trim(f_str(runObj%run_mode)),flow=.true.)
-      !call yaml_new_document()
-     end if
 
     infocode = 0
     !choose what to do by following the mode prescription
@@ -1790,9 +1763,11 @@ contains
     end if
     call f_increment(runObj%nstate)
     
+    if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
+    if (bigdft_mpi%iproc ==0 ) call yaml_map('Force Norm (Hartree/Bohr)',sqrt(sum(outs%fxyz**2)),fmt='(es24.17)')
+
    if (write_mapping) then
       !call yaml_release_document()
-      call yaml_map('Energy',outs%energy)
       call yaml_mapping_close()
    end if
 
@@ -1821,8 +1796,6 @@ contains
 
     if(trim(runObj%inputs%geopt_approach)/='SOCK') call bigdft_state(runObj,outs,infocode)
 
-    if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
-    if (bigdft_mpi%iproc ==0 ) call yaml_map('Force Norm (Hartree/Bohr)',sqrt(sum(outs%fxyz**2)),fmt='(es24.17)')
     if (runObj%inputs%ncount_cluster_x > 1) then
        if (bigdft_mpi%iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
        ! geometry optimization
