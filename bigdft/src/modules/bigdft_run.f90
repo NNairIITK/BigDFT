@@ -940,7 +940,7 @@ contains
     implicit none
     type(run_objects), intent(inout) :: runObj
     logical :: release
-    integer :: i
+    integer :: i,claim
 
     if (associated(runObj%run_mode)) then
       !@todo in/out in a freeing routine of an object, how strange !

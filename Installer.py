@@ -274,16 +274,18 @@ class BigDFTInstaller():
         print 'Thank you for using the Installer of BigDFT suite.'
         print 'The action considered was:',self.action
         if self.action == 'build': self.rcfile_from_env()
-        if self.time0 is not None and self.bigdft_time() > self.time0:
+        if (self.time0 is not None and self.bigdft_time() > self.time0) or self.bigdft_time() is not None:
             print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
             print 'All the available executables and scripts can be found in the directory'
             print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
-        elif (self.action == 'build' or self.action == 'make') and self.bigdft_time() is None:
+        elif (self.action == 'build' or self.action == 'make'):
             print 'WARNING: The Installer seems NOT have created or updated bigdft executable'
-            print '        (maybe everything already compiled?)'
-            print 'ACTION: check the compiling procedure:'
+            print '        (maybe everything was already compiled?)'
+            print 'ACTION: check the compiling procedure.'
+            if self.branch:
+                print 'HINT: It appears you are compiling from a branch source tree. Did you perform the action "autogen"?'
             if not self.verbose and self.action == 'build':
-                print '  Have a look at the file index.html of the build/ directory to find the reason'
+                print '  HINT: Have a look at the file index.html of the build/ directory to find the reason'
 
 #Now follows the available actions, argparse might be called
 import argparse
