@@ -1,0 +1,204 @@
+# To be installed:
+dynlibdir        = $(libdir)
+noinst_LIBRARIES = $(psolver_noinst)
+lib_LIBRARIES    = $(psolver_lib)
+module_DATA      = $(modules)
+dynlib_DATA      = $(psolver_dynlib)
+noinst_DATA      = $(psolver_linklib)
+
+# Static or dynamic library
+psolver_dynamic_library = libPSolver-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
+psolver_library_soname  = libPSolver-1.so.@BIGDFT_MINOR_VERSION@
+
+# We install a PSolver library only if BigDFT is deactivated.
+if BUILD_LIB_BIGDFT
+psolver_lib    =
+psolver_dynlib =
+psolver_noinst = libPSolver-1.a
+else
+psolver_lib    = libPSolver-1.a
+if BUILD_DYNAMIC_LIBS
+psolver_dynlib = $(psolver_dynamic_library)
+psolver_linklib = $(psolver_library_soname)
+else
+psolver_dynlib =
+psolver_linklib =
+endif
+psolver_noinst =
+endif
+
+# C objects
+c_level = PS_input_variables_fetch.c
+
+PS_input_variables_fetch.o: PS_input_variables_definition-inc.h
+#build the fortran include file with the stream of input variables into a local string
+#the sed command below will transform the entire yaml document into a c string, to be passed to fortran
+PS_input_variables_definition-inc.h: PS_input_variables_definition.yaml
+	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
+
+
+
+if HAVE_ETSF_IO
+etsf_files = IOetsf.f90
+etsf_dep   = IOetsf.o
+else
+etsf_files = IOetsf_fake.f90
+etsf_dep   = IOetsf_fake.o
+endif
+
+fdder_file=FDder.f90
+
+# Code source.
+if USE_CUDA_GPU
+CUDA_SOURCES = cufft.cu
+else
+CUDA_SOURCES = cufft_fake.f90
+endif
+libPSolver_1_a_SOURCES = Build_Kernel.f90 \
+	scaling_function.f90 \
+	PSolver_Base_new.f90 \
+	wofz.f90 \
+	$(CUDA_SOURCES) \
+	Poisson_Solver.f90 \
+	environment.f90 \
+	PStypes.f90 \
+	PSbox.f90 \
+	PSbase.f90 \
+	box.f90 \
+	$(fdder_file) \
+	IObox.f90 \
+	$(c_level) \
+	$(etsf_files)
+
+# Modules.
+if CAPITALIZE
+modules = POISSON_SOLVER.@MODULE_EXT@ \
+	ENVIRONMENT.@MODULE_EXT@ \
+	PSTYPES.@MODULE_EXT@ \
+	PSBASE.@MODULE_EXT@ \
+	PSBOX.@MODULE_EXT@ \
+	FDDER.@MODULE_EXT@ \
+	IOBOXETSF.@MODULE_EXT@ \
+	IOBOX.@MODULE_EXT@ \
+	BOX.@MODULE_EXT@
+else
+modules = poisson_solver.@MODULE_EXT@ \
+	environment.@MODULE_EXT@ \
+	pstypes.@MODULE_EXT@ \
+	psbase.@MODULE_EXT@ \
+	psbox.@MODULE_EXT@ \
+	fdder.@MODULE_EXT@ \
+	ioboxetsf.@MODULE_EXT@ \
+	iobox.@MODULE_EXT@ \
+	box.@MODULE_EXT@
+endif
+
+CLEANFILES = *.@MODULE_EXT@ $(psolver_dynamic_library) $(psolver_library_soname) libPSolver-1.so
+SOURCES_MOD = PSolver_Main.f90 createKernel.f90
+EXTRA_DIST = \
+	gaussfit_wires.inc\
+	gaussfit_Yukawa.inc\
+	lazy_100.inc\
+	lazy_14.inc\
+	lazy_16.inc\
+	lazy_20.inc\
+	lazy_24.inc\
+	lazy_2.inc\
+	lazy_30.inc\
+	lazy_40.inc\
+	lazy_4.inc\
+	lazy_50.inc\
+	lazy_60.inc\
+	lazy_6.inc\
+	lazy_8.inc\
+	lazy_ISF_100_2048.inc\
+	lazy_ISF_14_2048.inc\
+	lazy_ISF_16_2048.inc\
+	lazy_ISF_16_2048.preinc\
+	lazy_ISF_20_2048.inc\
+	lazy_ISF_24_2048.inc\
+	lazy_ISF_30_2048.inc\
+	lazy_ISF_40_2048.inc\
+	lazy_ISF_50_2048.inc\
+	lazy_ISF_60_2048.inc\
+	lazy_ISF_8_2048.inc\
+	perfdata.inc\
+	configure.inc.in\
+	FiniteDiffCorff.inc\
+	FiniteDiffCorff_2der.inc\
+	PS_input_variables_definition.yaml \
+	$(SOURCES_MOD)
+
+# Build targets.
+if USE_CUDA_GPU
+CONV_CHECK = conv_check_fft
+else
+CONV_CHECK = conv_check_fftw
+endif
+EXTRA_PROGRAMS = $(CONV_CHECK)
+conv_check_fft_SOURCES = conv_check_fft.f90
+conv_check_fft_LDADD = libPSolver.a $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib-1.a @LIBS_EXT_DEPS@
+conv_check_fftw_SOURCES = conv_check_fftw.f90 fftw.cpp
+conv_check_fftw_LDADD = @LIBS_EXT_DEPS@ -lfftw3 -lfftw3_threads
+
+AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @LIB_FLIB_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
+AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
+AM_LDFLAGS = -L$(top_builddir)/src
+if BUILD_DYNAMIC_LIBS
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+else
+LIBS += @LIBS_EXT_DEPS@
+endif
+
+SUFFIXES = .cu
+
+NVCC = @NVCC@
+NVCC_FLAGS = -arch sm_20 @NVCC_FLAGS@
+
+# Dynamic library building
+$(psolver_dynamic_library): $(libPSolver_1_a_OBJECTS)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) -o $@ $^ $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib-1.a @LIBS_EXT_DEPS@
+	@chmod a+x $@
+
+$(psolver_library_soname): $(psolver_dynamic_library)
+	ln -fs $^ $@
+	ln -fs $@ libPSolver-1.so
+
+install-data-hook:
+	if test -n "$(psolver_dynlib)" ; then \
+	  cd $(DESTDIR)$(dynlibdir) ; \
+	  chmod a+x $(psolver_dynamic_library) ; \
+	  ln -fs $(psolver_dynamic_library) $(psolver_library_soname) ; \
+	  ln -fs $(psolver_library_soname) libPSolver-1.so ; \
+	fi
+
+#dependencies
+$(modules): $(libPSolver_1_a_OBJECTS)
+Poisson_Solver.o: $(SOURCES_MOD) configure.inc environment.o PStypes.o PSbox.o PSbase.o FDder.o
+PStypes.o: environment.o FDder.o
+PSbox.o: PStypes.o PSbase.o IObox.o
+FDder.o: PSbase.o
+IObox.o: PSbase.o $(etsf_dep)
+box.o: PSbase.o
+environment.o: PSbase.o box.o
+conv_check_fft.o: cufft.o
+conv_check_fftw.o: fftw.o
+IOetsf.o: PSbase.o
+IOetsf_fake.o: PSbase.o
+wofz.o Build_Kernel.o scaling_function.o PSolver_Base_new.o: Poisson_Solver.o
+
+.cu.o:
+	$(NVCC) $(NVCC_FLAGS) $(AM_CPPFLAGS) -c $< -o $@
+
+.cpp.o:
+	icc -openmp -lfftw3 -lfftw3_threads -c $< -o $@
+
+# Copy modules in a common include directory.
+all: all-am insmod
+install: install-am insmod
+check: check-am insmod
+insmod: $(modules)
+	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
+	for mod in "$(modules)" ; do \
+	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \
+	done
