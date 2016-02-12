@@ -3290,7 +3290,7 @@ module multipole
                   if (ortho=='yes') then
                       ! directly add the penalty terms to ham
                       call add_penalty_term(at%astruct%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
-                           at%astruct%cell_dim, com, alpha, n, ovrlp, ham)
+                           smats%cell_dim, com, alpha, n, ovrlp, ham)
                    else if (ortho=='no') then
                           ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
                           ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
@@ -3302,9 +3302,8 @@ module multipole
                           call f_free(ovrlp_tmp)
                           ! Calculate the penaly term separately and then calculate S^1/2*penalty*S^1/2
                           tmpmat2d = f_malloc0((/n,n,2/),id='tmppmat2d')
-                      write(*,*) 'at%astruct%cell_dim, smats%cell_dim', at%astruct%cell_dim, smats%cell_dim
                           call add_penalty_term(at%astruct%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
-                               at%astruct%cell_dim, com, alpha, n, ovrlp, tmpmat2d(1,1,1))
+                               smats%cell_dim, com, alpha, n, ovrlp, tmpmat2d(1,1,1))
 
                           ! Calculate S^1/2 * penalty * S^1/2
                           call gemm('n', 'n', n, n, n, 1.d0, tmpmat2d(1,1,1), n, &
@@ -3323,13 +3322,13 @@ module multipole
                           write(*,*) 'call with multipoles'
                           call add_penalty_term_new(at%astruct%geocode, at%astruct%nat, smats%nfvctr, &
                                neighbor(1:,kat), rxyz(1:,kkat), smats%on_which_atom, &
-                               multipoles, at%astruct%cell_dim, com, alpha, n, ham, &
+                               multipoles, smats%cell_dim, com, alpha, n, ham, &
                                nmax, penalty_matrices(1:n,1:n,kat))
                       else
                           write(*,*) 'call with multipoles_fake'
                           call add_penalty_term_new(at%astruct%geocode, at%astruct%nat, smats%nfvctr, &
                                neighbor(1:,kat), rxyz(1:,kkat), smats%on_which_atom, &
-                               multipoles_fake, at%astruct%cell_dim, com, alpha, n, ham, &
+                               multipoles_fake, smats%cell_dim, com, alpha, n, ham, &
                                nmax, penalty_matrices(1:n,1:n,kat))
                       end if
                       alpha_calc(kat) = alpha
