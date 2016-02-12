@@ -3035,7 +3035,7 @@ module multipole
       integer :: k, l, iatold, isat, natp, kkat, istot, ntotp, i1, i2, i3, is1, ie1, is2, ie2, is3, ie3, j1, j2, j3, ikT, info
       integer :: ialpha, ilr
       real(kind=8) :: r2, cutoff2, rr2, tt, ef, q, occ, max_error, mean_error, rr2i, rr2j, ttxi, ttyi, ttzi, ttxj, ttyj, ttzj
-      real(kind=8) :: tti, ttj, charge_net, charge_total, rloc
+      real(kind=8) :: tti, ttj, charge_net, charge_total, rloc, sigma2
       real(kind=8) :: xi, xj, yi, yj, zi, zj, ttx, tty, ttz, xx, yy, zz, x, y, z
       real(kind=8),dimension(:),allocatable :: work, occ_all, ef_atom
       real(kind=8),dimension(:,:),allocatable :: com
@@ -3267,16 +3267,16 @@ module multipole
       q = 0.d0
       do iat=1,at%astruct%nat
           itype = at%astruct%iatype(iat)
-          !q = q + ceiling(0.5d0*real(at%nelpsp(itype),kind=8))
-          if (at%nelpsp(itype)<=2) then
-              q = q + 1.d0
-          else if (at%nelpsp(itype)<=8) then
-              q = q + 4.d0
-          else if (at%nelpsp(itype)<=18) then
-              q = q + 9.d0
-          else
-              call f_err_throw('strange electronic configuration')
-          end if
+          q = q + ceiling(0.5d0*real(at%nelpsp(itype),kind=8))
+          !!if (at%nelpsp(itype)<=2) then
+          !!    q = q + 1.d0
+          !!else if (at%nelpsp(itype)<=8) then
+          !!    q = q + 4.d0
+          !!else if (at%nelpsp(itype)<=18) then
+          !!    q = q + 9.d0
+          !!else
+          !!    call f_err_throw('strange electronic configuration')
+          !!end if
       end do
       iq = nint(q)
       if (bigdft_mpi%iproc==0) then
@@ -3719,6 +3719,31 @@ module multipole
 !!        occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
 !!        occ_all(ieval) = occ
 !!    end do
+
+
+ef = eval_all(iq)
+ii = 0
+do ieval=iq,ntot
+    if (eval_all(ieval)<=eval_all(iq)+1.d0) then
+        ii = ii + 1
+    else
+        exit
+    end if
+end do
+sigma2 = 1.d-2/real(ii,kind=8)
+do
+    ef = ef + 1.d-3
+    tt = 0.d0
+    do ieval=iq,ntot
+        tt = tt + safe_exp(-0.5d0*(eval_all(iq)-ef)**2/sigma2)
+    end do
+    if (tt<1.d-6) exit
+end do
+if (bigdft_mpi%iproc==0) write(*,*) 'sigma2, ef',sigma2, ef
+do ieval=1,ntot
+    occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
+    occ_all(ieval) = occ
+end do
         
               ! Calculate the projector. First for each single atom, then insert it into the big one.
               charge_total = 0.d0
@@ -3832,7 +3857,7 @@ module multipole
                   do i=1,ntot
                       !occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
                       occ = occ_all(i)
-                      if (occ>1.d-100) then
+                      if (occ>1.d-100 .or. .true.) then
                           call yaml_sequence(advance='no')
                           call yaml_mapping_open(flow=.true.)
                           call yaml_map('eval',eval_all(i),fmt='(es13.4)')
