@@ -1,12 +1,12 @@
 !> @file
 !!  Application of the Hamiltonian + orthonormalize constraints
-
 !! @author
-!!    Copyright (C) 2007-2013 CEA
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
 
 !> Calculates the application of the Hamiltonian on the wavefunction. The hamiltonian can be self-consistent or not.
 !! In the latter case, the potential should be given in the rhov array of denspot structure. 
@@ -398,7 +398,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
 
 
   !deallocate potential
-  call free_full_potential(denspot%dpbox%mpi_env%nproc,linflag,denspot%xc,denspot%pot_work,subname)
+  call free_full_potential(denspot%dpbox%mpi_env%nproc,linflag,denspot%xc,denspot%pot_work)
   !----
   if (iproc==0 .and. verbose > 0) then
      if (correcth==2) then
@@ -530,8 +530,9 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX,op2p_flag, symmetric
-  integer :: n3p,ispot,ipotmethod,ngroup,prc,nspin,isorb,jproc,ndim,norbp,igpu,i_stat
-  real(gp) :: evsic_tmp, ekin, epot,sfac,maxdiff
+  integer :: n3p,ispot,ipotmethod,ngroup,prc,isorb,jproc,ndim,norbp
+  integer :: igpu,i_stat
+  real(gp) :: evsic_tmp, ekin, epot,sfac
   real(f_double) :: tel,trm
   type(coulomb_operator) :: pkernelSIC
   type(ket) :: psi_it
@@ -542,7 +543,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
   type(OP2P_iterator) :: iter
   integer, dimension(:,:), allocatable :: nobj_par
   real(wp), dimension(:,:), allocatable :: vsicpsir
-  real(wp), dimension(:,:), allocatable :: psir,vpsi_tmp
+  real(wp), dimension(:,:), allocatable :: psir
+  !real(wp), dimension(:,:), allocatable :: vpsi_tmp
   real(wp), dimension(:), allocatable :: rp_ij
   real(wp), dimension(:), pointer :: hpsi_ptr
   real(gp) :: eSIC_DCi,fi
@@ -895,12 +897,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   type(paw_objects),intent(inout)::paw
   real(gp), intent(out) :: eproj_sum
   !local variables
-  logical :: newmethod
   character(len=*), parameter :: subname='NonLocalHamiltonianApplication' 
-  logical :: dosome, overlap, goon
+  logical :: overlap
   integer :: istart_ck,nwarnings
-  integer :: iproj,istart_c,mproj,iatype,ispinor,iilr,jlr
-  real(wp) :: hp,eproj
+  integer :: iproj,istart_c,mproj,iilr
   type(ket) :: psi_it
   type(orbital_basis) :: psi_ob
   type(atoms_iterator) :: atit
@@ -1070,7 +1070,8 @@ subroutine NonLocalHamiltonianApplication_old(iproc,at,npsidim_orbs,orbs,&
   !local variables
   logical :: newmethod
   character(len=*), parameter :: subname='NonLocalHamiltonianApplication' 
-  logical :: dosome, overlap !, goon
+  logical :: dosome, overlap
+  !logical :: goon
   integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
   integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ispinor,iilr,jlr
   real(wp) :: hp,eproj
@@ -1514,11 +1515,11 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
 END SUBROUTINE SynchronizeHamiltonianApplication
 
 
-subroutine free_full_potential(nproc,flag,xc,pot,subname)
+!> Nullify potential (pot)
+subroutine free_full_potential(nproc,flag,xc,pot)
    use module_base
    use module_xc
    implicit none
-   character(len=*), intent(in) :: subname
    integer, intent(in) :: nproc, flag
    type(xc_info), intent(in) :: xc
    real(wp), dimension(:), pointer :: pot
@@ -1817,12 +1818,14 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    !end debug
 
    if(wfn%paw%usepaw) then
-     if( (.not. present(eproj_sum))) then
-         write(*,*)'ERROR: hpsitopsi for PAW needs the following optional variables::'
-         write(*,*)'       eproj'
-         stop
+     if ( .not. present(eproj_sum)) then
+        call f_err_throw('hpsitopsi for PAW needs the following optional variables: eproj',err_name='BIGDFT_RUNTIME_ERROR')
+        !write(*,*)'ERROR: hpsitopsi for PAW needs the following optional variables::'
+        !write(*,*)'       eproj'
+        !stop
      end if
    end if
+
    !adjust the save variables for DIIS/SD switch
    if (iter == 1) then
       wfn%diis%ids=0
@@ -1919,7 +1922,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    end if
 
    if (iter > 0) then
-      call diis_or_sd(iproc,idsx,wfn%orbs%nkptsp,wfn%diis)
+      call diis_or_sd(iproc,idsx,wfn%diis)
    end if
 
    !previous value already filled

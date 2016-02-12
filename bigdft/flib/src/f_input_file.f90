@@ -431,10 +431,11 @@ contains
           call input_keys_set(inputdef,user, dict // file, file, dict_key(ref_iter))
           call f_err_close_try(exceptions=errs)
           if (associated(errs)) then
-             if (verbose) call yaml_map('List of error found',errs)
+             if (verbose) call yaml_map('List of error found while parsing input variables',errs)
              call dict_free(errs)
              call f_err_throw('Error(s) found in input_keys_fill for the field "'//trim(file)//&
-                  '" and the key "'//trim(dict_key(ref_iter))//'", see details in the above message"',&
+                  '" and the key "'//trim(dict_key(ref_iter))//'", see details in the above message(s),'//&
+                  ' before the input file printout.',&
                   err_id=INPUT_VAR_ILLEGAL)
           end if
           hasUserDef = (hasUserDef .or. user)

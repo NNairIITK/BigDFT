@@ -197,6 +197,7 @@ subroutine abi_smpbz(brav,iout,kptrlatt,mkpt,nkpt,nshiftk,option,shiftk,spkpt)
      end do
    end do
    nkpt=nn-1
+
    if(nkpt/=nkptlatt*nshiftk)then
      write(message, '(a,a,a,i8,a,a,a,i8,a)' )&
 &     ' abi_smpbz : BUG -',ch10,&

@@ -1,7 +1,7 @@
 !> @file
 !! Datatypes and associated methods relative to the localization regions
 !! @author
-!!    Copyright (C) 2007-2014 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -232,13 +232,14 @@ contains
 
   end function ket_is_valid
 
+
   function ket_next(it,ilr,ikpt) result(ok)
     implicit none
     type(ket), intent(inout) :: it
     integer, intent(in), optional :: ilr,ikpt
     logical :: ok
     !local variables
-    integer :: ilr_tmp,ikpt_tmp
+    integer :: ikpt_tmp
 
     ok=ket_is_valid(it)
 !print *,'ket next',ok
@@ -301,7 +302,8 @@ contains
 
   end function ket_next
 
-  !> find next valid iorb in this lr
+
+  !> Find next valid iorb in this lr
   !! put iorbp to zero if ilr_tmp is not found
   function dosome(it,ilr_tmp,ikpt_tmp)
     implicit none
@@ -318,6 +320,7 @@ contains
     end do find_iorb
     if (.not. dosome) it%iorbp=0
   end function dosome
+
 
   function dosome_lr(it,ikpt) result(ok)
     implicit none
@@ -337,11 +340,12 @@ contains
     if (.not. ok) it%iorbp=0
   end function dosome_lr
 
+
   subroutine update_ket(k)
     implicit none
     type(ket), intent(inout) :: k
     !local variables
-    integer :: ikpt,ispsi,iorbq,ilr_orb,nvctr
+    integer :: ikpt,iorbq,nvctr
     !the orbital id
     k%iorb=k%ob%orbs%isorb+k%iorbp
     k%nspin=k%ob%orbs%nspin
@@ -388,9 +392,9 @@ contains
   !the iterator must go in order of localization regions
 
 
-  !> this function gives the number of componenets
+  !> This function gives the number of components
   !! if the ket is in non-colinear spin description, this value is four
-  !! otherwise it counts the number of complex componenet of the key
+  !! otherwise it counts the number of complex components of the key
   !! result is one for real functions
   pure function nspinor(spin_enum)
     implicit none
@@ -402,6 +406,7 @@ contains
 !!$    end if
     nspinor=1
   end function nspinor
+
 
   subroutine local_hamiltonian_ket(psi,hgrids,ipotmethod,xc,pkernel,wrk_lh,psir,vsicpsir,hpsi,pot,eSIC_DCi,alphaSIC,epot,ekin)
     use module_xc, only: xc_info, xc_exctXfac

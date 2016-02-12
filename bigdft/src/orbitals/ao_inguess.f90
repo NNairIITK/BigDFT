@@ -19,15 +19,15 @@ module ao_inguess
   private
 
   integer, parameter :: nmax_ao=7              !< Maximum allowed value of principal quantum number for the electron configuration
-  integer, parameter :: lmax_ao=3              !< Maximum value of the angular momentum for the electron configuration
+  integer, parameter, public :: lmax_ao=3              !< Maximum value of the angular momentum for the electron configuration
   integer, parameter :: noccmax_ao=3           !< Maximum number of the occupied input guess orbitals for a given shell
   !> Size of the interesting values of the compressed atomic input polarization
   !! should be able to contain all the possible configuration
   integer, parameter :: nelecmax_ao=((lmax_ao+1)**2)*2*noccmax_ao+(lmax_ao+1) !100 in this case
   !> Maximum number of total occupied orbitals for generating the ig functions
-  integer, parameter, public :: nmax_occ_ao=(lmax_ao+1)*noccmax_ao !12 in present case 
+  integer, parameter, public :: nmax_occ_ao=(lmax_ao+1)*noccmax_ao !12 in present case
 
-  private :: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
+  private :: nmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
 
   !> Parameters of the input guess atomic orbitals, to be continued
   type, public :: aoig_data
@@ -35,19 +35,19 @@ module ao_inguess
 !!$     !! The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
 !!$     !! where n_l are the number of semicore orbitals for a given angular momentum
 !!$     !! starting from the lower principal quantum number of course
-!!$     integer :: iasctype 
+!!$     integer :: iasctype
      integer :: nao     !< Number of atomic orbitals, counting the total number of shells with nonzero occupation
      integer :: nao_sc  !< Number of atomic orbitals which have to be considered as semicore orbitals
      integer, dimension(0:lmax_ao) :: nl      !< Number of orbitals in each of the shells
      integer, dimension(0:lmax_ao) :: nl_sc   !< Number of semicore orbitals in each of the shells
-     real(gp), dimension(nelecmax_ao) :: aocc !< Compressed information of the occupation numbers. 
+     real(gp), dimension(nelecmax_ao) :: aocc !< Compressed information of the occupation numbers.
   end type aoig_data
 
 
   public :: atomic_info, atomic_z
   public :: iguess_generator,count_atomic_shells,print_eleconf
   public :: ao_nspin_ig,ao_ig_charge,aoig_set_from_dict,aoig_set,aoig_data_null
-  public :: set_aocc_from_string,charge_and_spol
+  public :: set_aocc_from_string,charge_and_spol,shell_toi,ishell_toa
 
 
 contains
@@ -103,7 +103,7 @@ contains
     integer, intent(in) :: nspin !<the only compulsory
     integer, intent(in), optional :: nspinor,noncoll
     integer :: ao_nspin_ig
-    
+
     ao_nspin_ig=nspin
     if (present(nspinor)) then
        if (nspinor==4) ao_nspin_ig=4
@@ -295,7 +295,7 @@ contains
     call gatom(rcov,rprb,lmax_ao,lpx,noccmax_ao,occup,&
          zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
          aeval,ng,psi,res,chrg,iorder)
-    
+
     !post-treatment of the inguess data
     do i=1,ng+1
        expo(i)=sqrt(0.5_gp/xp(i-1))
@@ -396,7 +396,7 @@ contains
     if (present(nsccode)) nsccode=nsccode_
     if (present(maxpol))   maxpol=mxpl_
     if (present(maxchg))   maxchg=mxchg_
-    
+
   end subroutine atomic_info
 
 
@@ -565,7 +565,7 @@ contains
     nlsc(:)=0
     allocc(:,:,:) = UNINITIALIZED(1._gp)
 
-    !first, check if the dictionary of the atoms has an explicit 
+    !first, check if the dictionary of the atoms has an explicit
     !expression or if it only gives the empty shells
 
     if (EXTRA_SHELLS_KEY .in. dict) then
@@ -588,7 +588,7 @@ contains
        empty_shells(1:nempty)=dict // EXTRA_SHELLS_KEY
        nl_empty=0
        do is=1,nempty
-          l=ishell(empty_shells(is))
+          l=shell_toi(empty_shells(is))+1
           nl_empty(l)=nl_empty(l)+1
        end do
 
@@ -646,7 +646,7 @@ contains
           end if
           is = is + 1
           ! Read the channel
-          l=ishell(key(is:is))
+          l=shell_toi(key(is:is))+1
           nl(l) = nl(l) + 1
           if (is == 3) nlsc(l) = nlsc(l) + 1
           if (f_err_raise(nlsc(l) > noccmax_ao,'Cannot admit more than '//&
@@ -678,7 +678,7 @@ contains
                       allocc(2*(m-1)+2 ,n,l) = 0.5_gp*tt
                    end do
                 end if
-             else 
+             else
                 !third case, too many values given: results of up and down have to be summed
                 do m = 1,2*l-1
                    allocc(m, n, l)=dict_tmp//(m - 1)
@@ -835,7 +835,7 @@ contains
     integer, intent(in) :: nspin_in!,nelecmax,noccmax,lmax
     integer, dimension(lmax_ao+1), intent(in) :: nl_sc
     real(gp), dimension(nelecmax_ao), intent(in) :: aocc
-    
+
     !local variables
     character(len=10) :: tmp
     character(len=500) :: string
@@ -927,7 +927,7 @@ contains
 
   END SUBROUTINE print_eleconf
 
-  !>calculate the total charge of a given set of occupation numbers in compressed form 
+  !>calculate the total charge of a given set of occupation numbers in compressed form
   function ao_ig_charge(nspin,occupIG) result(elec)
     integer, intent(in) :: nspin
     double precision, dimension(nelecmax_ao), intent(in) :: occupIG
@@ -1002,7 +1002,7 @@ contains
                 end if
              end do
           end do
-          !!        !charge only unoccupied shells 
+          !!        !charge only unoccupied shells
           !!        print *,'Atom ',symbol,': cannot charge occupied shells for the moment'
           !!        stop
        end if
@@ -1031,7 +1031,7 @@ contains
                 inocc=eleconf(i,l) /= 0.0_gp
              end do
           end do
-          !!        !charge only occupied shells 
+          !!        !charge only occupied shells
           !!        print *,'Atom ',symbol,': cannot charge unoccupied shells for the moment'
           !!        stop
        end if
@@ -1088,7 +1088,7 @@ contains
     integer, intent(inout) :: ipolres
     integer, dimension(lmax), intent(out) :: nl !> array of the number of shells
     real(gp), dimension(nelecmax), intent(out) :: occupIG !> aocc array
-    
+
     !local variables
     logical :: polarised
     integer :: iocc,ipolorb,norbpol_nc,i,l,m,noncoll,icoll,ispin, ipolsign
@@ -1125,7 +1125,7 @@ contains
        !print *,'rnl,l',l,rnl,eleconf(:,l)
        nl(l)=nint(rnl)
        do i=1,nmax
-          if (eleconf(i,l) > 0.0_gp) then  
+          if (eleconf(i,l) > 0.0_gp) then
              shelloccup=eleconf(i,l)
              ipolorb=0
              !decide the polarisation of the orbital by changing the population
@@ -1147,11 +1147,11 @@ contains
              end if
 
              if( polarised .AND. nspinor==4 .and. ipolorb /=0) then
-                stop " in non-collinear case at_moments must be used for polarising, not natpol input"  
+                stop " in non-collinear case at_moments must be used for polarising, not natpol input"
              endif
 
              do ispin=1,nspin
-                occshell=shelloccup                 
+                occshell=shelloccup
                 if (nspin==2 .or. nspinor==4) then
                    if (polarised) then
                       occshell=0.5_gp*(occshell+real(1-2*(ispin-1),gp)*ipolorb)
@@ -1161,12 +1161,12 @@ contains
                 end if
 
                 !residue for the occupation number, to be used for
-                !non-collinear case 
+                !non-collinear case
                 occres=occshell
                 !number of orbitals which will be polarised in this shell
                 norbpol_nc=2*l-1
                 do m=1,2*l-1
-                   !each orbital has two electrons in the case of the 
+                   !each orbital has two electrons in the case of the
                    !non-collinear case
                    do icoll=1,noncoll !non-trivial only for nspinor=4
                       iocc=iocc+1
@@ -1201,25 +1201,43 @@ contains
     end do
   END SUBROUTINE at_occnums
 
-  function ishell(sh) result(l)
+  pure function ishell_toa(l) result(s)
+    implicit none
+    integer, intent(in) :: l
+    character(len=1) :: s
+    select case(l)
+    case(0)
+       s='s'
+    case(1)
+       s='p'
+    case(2)
+       s='d'
+    case(3)
+       s='f'
+    case default
+       s='x'  
+    end select
+  end function ishell_toa
+
+  function shell_toi(sh) result(l)
     use dictionaries, only: f_err_throw
     implicit none
     character(len=1), intent(in) :: sh
     integer :: l
-    
+
     select case(sh)
     case('s')
-       l=1
+       l=0
     case('p')
-       l=2
+       l=1
     case('d')
-       l=3
+       l=2
     case('f')
-       l=4
+       l=3
     case default
        call f_err_throw("wrong channel specified",err_name='BIGDFT_INPUT_VARIABLES_ERROR')
     end select
-  end function ishell
+  end function shell_toi
 
   !> Read the electronic configuration, with the semicore orbitals
   subroutine set_aocc_from_string(string_in,aocc,nl_sc,ndeg)

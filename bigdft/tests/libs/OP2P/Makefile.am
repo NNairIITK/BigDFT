@@ -5,9 +5,9 @@ SOURCES_CONV_CHECK =
 SOURCES_SHARED =
 
 check_PROGRAMS =
-my_tests = op2p_test
+my_tests = op2p_test diis_check
 
-EXTRA_PROGRAMS = op2p_test op2p_check kpts_check mpi_check
+EXTRA_PROGRAMS = op2p_test op2p_check kpts_check mpi_check diis_check
 
 CLEANFILES = op2p_check.out kpts_check.out\
 	mpi_layer.@MODULE_EXT@ MPI_LAYER.@MODULE_EXT@ \
@@ -32,6 +32,9 @@ mpi_check_LDADD = -lbigdft-1
 
 op2p_test_SOURCES = op2p_check.f90
 op2p_test_LDADD = -lbigdft-1
+
+diis_check_SOURCES = diis_check.f90
+diis_check_LDADD = -lbigdft-1
 
 op2p_check.o: $(top_builddir)/src/libbigdft-1.a
 

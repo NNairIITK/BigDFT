@@ -480,16 +480,15 @@
   end function f_get_last_error
 
 
-  !> get all the errors that are present on the error pipe
+  !> Get all the errors that are present on the error pipe
   subroutine f_get_errors(dict)
     implicit none
     type(dictionary), pointer, intent(out) :: dict !<output dictionary containing the result
-    !local variables
-    integer :: nerr
     nullify(dict)
     call dict_copy(src=dict_present_error,dest=dict)
 
   end subroutine f_get_errors
+
 
   !> Clean the dictionary of present errors
    subroutine f_err_clean()

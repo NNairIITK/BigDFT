@@ -1,7 +1,7 @@
 !> @file
 !! DIIS and Steepest descent routines
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,21 +12,26 @@
 module diis_sd_optimization
   use module_base
 
-  !> control objects of DIIS procedure
+  !> Control objects of DIIS procedure
   type, public :: DIIS_ctrl
-     logical :: switchSD
-     integer :: idiistol
-     real(gp) :: energy_min,energy_old,energy,alpha_max
+    logical :: switchSD     !< Switch to Steepest Descent if .true.
+     integer :: idiistol    !< Number of iterations when the energy is increasing
+     real(gp) :: energy_min !< Minimal energy during the iterated process
+     real(gp) :: energy_old !< Previous value already fulfilled
+     real(gp) :: energy     !< Current value of energy
+     real(gp) :: alpha_max  !< Maximal value of alpha (for step size with SD)
   end type DIIS_ctrl
 
   !> Contains the arguments needed for the diis procedure
   type, public :: DIIS_obj
      type(DIIS_ctrl) :: ctrl
-     integer :: mids,ids,idsx
-     real(tp), dimension(:), pointer :: psidst
-     real(tp), dimension(:), pointer :: hpsidst
-     real(tp), dimension(:,:,:), pointer :: ads
-     real(gp) :: alpha_coeff
+     integer :: mids !< Size of the current DIIS history (or matrix) <= idsx
+     integer :: ids  !< Iteration number
+     integer :: idsx !< History of the diis (also if idiistol > idsx switch to SD)
+     real(tp), dimension(:), pointer :: psidst   !< History of the given vectors (psi)
+     real(tp), dimension(:), pointer :: hpsidst  !< History of the corresponding hpsi
+     real(tp), dimension(:,:,:), pointer :: ads  !< DIIS matrix
+     real(gp) :: alpha_coeff !< Mixing coefficient
   end type DIIS_obj
 
   private
@@ -40,7 +45,7 @@ contains
 !!$  end function DIIS_ctrl_init
 
 
-  !> allocate diis objects
+  !> Allocate diis objects
   subroutine DIIS_set(idsx,alphaSD,ndim_psi,ngrpp,diis) !n(m)
     use module_base
     use module_types
@@ -84,7 +89,8 @@ contains
 
   END SUBROUTINE DIIS_free
 
-  !> fill the diis matrices with the error of the previous step
+
+  !> Fill the DIIS matrices with the error of the previous step
   subroutine DIIS_update_errors(ngrp,isgrp,ngrpp,ncomp_grp,ndim_psi,psi,hpsi,diis)
     use yaml_strings, only: yaml_toa
     implicit none 
@@ -119,7 +125,7 @@ contains
   end subroutine DIIS_update_errors
 
 
-  !> fill the psi array with the diis combination of previous errors
+  !> Fill the psi array with the DIIS combination of previous errors
   subroutine DIIS_update_psi(ngrp,isgrp,ngrpp,ncomp_grp,ndim_psi,psi,diis)
     use yaml_strings, only: yaml_toa
     implicit none 
@@ -131,7 +137,6 @@ contains
     !local variables
     integer :: ispsi,ispsidst,ncomp,igrpp,igrp
 
-    
     !update the psit array with the difference stored in the psidst work array
     ispsi=1
     ispsidst=1
@@ -148,8 +153,9 @@ contains
 
   end subroutine DIIS_update_psi
 
+
   !> Calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
-  !! using  the previous iteration points psidst and the associated error 
+  !! using the previous iteration points psidst and the associated error 
   !! vectors (preconditioned gradients) hpsidst
   subroutine diis_step(iproc,nproc,ngrp,isgrp,ngrpp,igrpproc,ncomp_grp,diis)
     use module_types
@@ -317,7 +323,7 @@ contains
 
   
 
-  !> temporary routine to test the diis_step procedure
+  !> Temporary routine to test the diis_step procedure
   subroutine DIIS_obj_fill(diis_old,diis)
     use module_types
     implicit none
@@ -339,20 +345,21 @@ contains
 
   end subroutine DIIS_obj_fill
 
+
   subroutine DIIS_obj_release(diis,diis_old)
     use module_types
     implicit none
     type(DIIS_obj), intent(inout) :: diis
     type(diis_objects), intent(inout) :: diis_old
     
-    !fill the integers
+    !Fill the integers
     diis_old%ids  =diis%ids 
     diis_old%mids =diis%mids
     diis_old%idsx =diis%idsx
        
     call vcopy(product(shape(diis%ads)),diis%ads(1,1,1),1,diis_old%ads(1,1,1,1,1,1),1)
 
-    !nullify pointers
+    !Nullify pointers
     nullify(diis%psidst)
     nullify(diis%hpsidst)
 
@@ -362,16 +369,17 @@ contains
 
 end module diis_sd_optimization
 
+
 subroutine diis_opt(iproc,nproc,ngrp,isgrp,ngrpp,igrpproc,ncomp_grp,ndim_psi,psi,hpsi,diis)
     use module_defs, only: wp
     use diis_sd_optimization
     implicit none
     ! Arguments
     integer, intent(in) :: nproc,iproc,ngrp,isgrp,ngrpp
-    integer, dimension(ngrp), intent(in) :: igrpproc !<array which associate each group to only one iproc for broadcasting
-    integer, dimension(ngrp), intent(in) :: ncomp_grp !< number of components per group
+    integer, dimension(ngrp), intent(in) :: igrpproc  !< Array which associate each group to only one iproc for broadcasting
+    integer, dimension(ngrp), intent(in) :: ncomp_grp !< Number of components per group
     type(DIIS_obj), intent(inout) :: diis
-    integer, intent(in) :: ndim_psi !< should be greater or equal to sum(ncomp_grp(isgrp+1:isgrp+ngrpp)
+    integer, intent(in) :: ndim_psi                   !< Should be greater or equal to sum(ncomp_grp(isgrp+1:isgrp+ngrpp)
     real(wp), dimension(ndim_psi), intent(inout) :: psi
     real(wp), dimension(ndim_psi), intent(in) :: hpsi
 
@@ -381,7 +389,4 @@ subroutine diis_opt(iproc,nproc,ngrp,isgrp,ngrpp,igrpproc,ncomp_grp,ndim_psi,psi
 
     call DIIS_update_psi(ngrp,isgrp,ngrpp,ncomp_grp,ndim_psi,psi,diis)
 
-  end subroutine diis_opt
-
-
-
+end subroutine diis_opt
