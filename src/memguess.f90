@@ -101,6 +101,7 @@ program memguess
    real(kind=8),dimension(:),allocatable :: eval, coeff_cat, work, d2min_list, dtype, rcov
    real(kind=8),dimension(:),pointer :: eval_ptr
    real(kind=8),dimension(:),pointer :: matrix_compr
+   real(kind=8),dimension(3) :: cell_dim
    type(matrices) :: ovrlp_mat, ham_mat, kernel_mat
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
@@ -728,14 +729,14 @@ program memguess
 
        !call f_open_file(iunit01, file=overlap_file, binary=.false.)
        !call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
-       call read_sparse_matrix(trim(overlap_file), nspin, geocode, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
+       call read_sparse_matrix(trim(overlap_file), nspin, geocode, cell_dim, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
             matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
             at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
        !!call read_sparse_matrix(trim(ham_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
        !!     matrix_compr, on_which_atom=on_which_atom_s)
        !call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
        call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_s, nvctr_s, nseg_s, keyg_s, smat_s, &
-            nspin, geocode, on_which_atom_s)
+            nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_s)
        ovrlp_mat = matrices_null()
        ovrlp_mat%matrix = sparsematrix_malloc0_ptr(smat_s,iaction=DENSE_FULL,id='smat_s%matrix')
        call uncompress_matrix(iproc, smat_s, matrix_compr, ovrlp_mat%matrix)
@@ -747,11 +748,11 @@ program memguess
        !call read_sparse_matrix(trim(ham_file), nspin, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
        !     matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
        !     at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_m)
-       call read_sparse_matrix(trim(ham_file), nspin, geocode, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
+       call read_sparse_matrix(trim(ham_file), nspin, geocode, cell_dim, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
             matrix_compr, on_which_atom=on_which_atom_m)
        !call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
        call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_m, nvctr_m, nseg_m, keyg_m, smat_m, &
-            nspin, geocode, on_which_atom_m)
+            nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_m)
        ham_mat = matrices_null()
        ham_mat%matrix = sparsematrix_malloc0_ptr(smat_m,iaction=DENSE_FULL,id='smat_m%matrix')
        call uncompress_matrix(iproc, smat_m, matrix_compr, ham_mat%matrix)

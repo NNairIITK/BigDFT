@@ -36,7 +36,7 @@ module sparsematrix_io
     end subroutine write_ccs_matrix
 
 
-    subroutine read_sparse_matrix(filename, nspin, geocode, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, &
+    subroutine read_sparse_matrix(filename, nspin, geocode, cell_dim, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, &
                nat, ntypes, nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
       use module_base
       implicit none
@@ -45,6 +45,7 @@ module sparsematrix_io
       character(len=*),intent(in) :: filename
       integer,intent(out) :: nspin, nfvctr, nseg, nvctr
       character(len=1),intent(out) :: geocode
+      real(kind=8),dimension(3),intent(out) :: cell_dim
       integer,dimension(:),pointer,intent(out) :: keyv
       integer,dimension(:,:,:),pointer,intent(out) :: keyg
       real(kind=8),dimension(:),pointer,intent(out) :: mat_compr
@@ -83,7 +84,7 @@ module sparsematrix_io
       call f_open_file(iunit, file=trim(filename), binary=.false.)
 
       if (read_rxyz) then
-          read(iunit,*) nat, ntypes, nspin, geocode
+          read(iunit,*) nat, ntypes, nspin, geocode, cell_dim
           nzatom = f_malloc_ptr(ntypes,id='nzatom')
           nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
           atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')

@@ -35,6 +35,7 @@ program driver_singlerun
   logical :: symmetric
   real(kind=8) :: time_start, time_end
   type(dictionary), pointer :: dict_timing_info
+  real(kind=8),dimension(3) :: cell_dim
 
   ! Initialize
   call f_lib_initialize()
@@ -58,14 +59,15 @@ program driver_singlerun
 
   ! Read in a file in the BigDFT format
   !call read_bigdft_format(filename, ncol, nnonzero, nseg, keyv, keyg, val, on_which_atom=on_which_atom)
-  call read_sparse_matrix(filename1, nspin, geocode, ncol, nseg, nnonzero, keyv, keyg, val, &
+  call read_sparse_matrix(filename1, nspin, geocode, cell_dim, ncol, nseg, nnonzero, keyv, keyg, val, &
        nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
        atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
 
   ! Create the corresponding BigDFT sparsity pattern
   !call ccs_to_sparsebigdft(iproc, nproc, nat, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
   !call distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
-  call bigdft_to_sparsebigdft(iproc, nproc, ncol, nnonzero, nseg, keyg, smatA, nspin, geocode, on_which_atom)
+  call bigdft_to_sparsebigdft(iproc, nproc, ncol, nnonzero, nseg, keyg, smatA, &
+       nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom)
 
 
   ! Check the symmetry
@@ -83,11 +85,12 @@ program driver_singlerun
   call f_free_ptr(on_which_atom)
   call f_free_ptr(val)
 
-  call read_sparse_matrix(filename2, nspin, geocode, ncol, nseg, nnonzero, keyv, keyg, val, on_which_atom=on_which_atom)
+  call read_sparse_matrix(filename2, nspin, geocode, cell_dim, ncol, nseg, nnonzero, keyv, keyg, val, on_which_atom=on_which_atom)
        !nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
        !atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
   !call distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
-  call bigdft_to_sparsebigdft(iproc, nproc, ncol, nnonzero, nseg, keyg, smatB, nspin, geocode, on_which_atom)
+  call bigdft_to_sparsebigdft(iproc, nproc, ncol, nnonzero, nseg, keyg, smatB, &
+       nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom)
 
   matB(1) = matrices_null()
 

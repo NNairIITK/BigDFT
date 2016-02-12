@@ -1155,7 +1155,7 @@ contains
 
     !> Currently assuming square matrices
     subroutine init_sparse_matrix(iproc, nproc, norbu, nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
-               nspin, geocode, norbup, isorbu, store_index, on_which_atom, allocate_full, print_info)
+               nspin, geocode, cell_dim, norbup, isorbu, store_index, on_which_atom, allocate_full, print_info)
       use yaml_output
 !      use yaml_strings, only: yaml_toa
       implicit none
@@ -1166,6 +1166,7 @@ contains
       integer,dimension(2,nnonzero_mult),intent(in) :: nonzero_mult
       type(sparse_matrix), intent(out) :: sparsemat
       character(len=1),intent(in),optional :: geocode
+      real(kind=8),dimension(3),intent(in),optional :: cell_dim
       logical,intent(in),optional :: allocate_full, print_info, store_index
       integer,dimension(norbu),intent(in),optional :: on_which_atom
       integer,intent(in),optional :: nspin, norbup, isorbu
@@ -1213,6 +1214,12 @@ contains
       else
           ! Set to 'U' for 'unknown'
           sparsemat%geocode = 'U'
+      end if
+      if (present(cell_dim)) then
+          sparsemat%cell_dim = cell_dim
+      else
+          ! Set to 0, which is obviously fake
+          sparsemat%cell_dim = (/0.d0,0.d0,0.d0/)
       end if
       sparsemat%nfvctr=norbu
       ! If both norbup and isorbu are present, assign the values to the sparse_matrix structure,
@@ -4034,7 +4041,7 @@ contains
 
     !> Uses the BigDFT sparsity pattern to create a BigDFT sparse_matrix type
     subroutine bigdft_to_sparsebigdft(iproc, nproc, ncol, nvctr, nseg, keyg, smat, &
-               nspin, geocode, on_which_atom)
+               nspin, geocode, cell_dim, on_which_atom)
       use communications_base, only: comms_linear, comms_linear_null
       implicit none
       integer,intent(in) :: iproc, nproc, ncol, nvctr, nseg
@@ -4043,6 +4050,7 @@ contains
       type(sparse_matrix),intent(out) :: smat
       integer,intent(in),optional :: nspin
       character(len=1),intent(in),optional :: geocode
+      real(kind=8),dimension(3),intent(in),optional :: cell_dim
       integer,dimension(ncol),target,intent(in),optional :: on_which_atom
 
       ! Local variables
@@ -4051,6 +4059,7 @@ contains
       integer,dimension(:,:),allocatable :: nonzero
       logical,dimension(:,:),allocatable :: mat
       character(len=1) :: geocode_
+      real(kind=8),dimension(3) :: cell_dim_
       integer,dimension(:),pointer :: on_which_atom_
       !real(kind=8) :: tt
 
@@ -4110,6 +4119,8 @@ contains
       if (present(nspin)) nspin_ = nspin
       geocode_ = 'U' !unknown
       if (present(geocode)) geocode_ = geocode
+      cell_dim_ = (/0.d0,0.d0,0.d0/)
+      if (present(cell_dim)) cell_dim_ = cell_dim
       if (present(on_which_atom)) then
           on_which_atom_ => on_which_atom
       else
@@ -4117,7 +4128,7 @@ contains
           on_which_atom_(:) = uninitialized(1)
       end if
       call init_sparse_matrix(iproc, nproc, ncol, nvctr, nonzero, nvctr, nonzero, smat, &
-           nspin=nspin_, geocode=geocode_, on_which_atom=on_which_atom_)
+           nspin=nspin_, geocode=geocode_, cell_dim=cell_dim_, on_which_atom=on_which_atom_)
 
       if (.not.present(on_which_atom)) then
           call f_free_ptr(on_which_atom_)

@@ -1779,8 +1779,8 @@ module io
           iunit = 99
           call f_open_file(iunit, file=trim(filename), binary=.false.)
 
-          write(iunit,'(i10,2i6,3x,a,a)') nat, ntypes, smat%nspin, smat%geocode, &
-              '   # number of atoms, number of atom types, nspin, geocode'
+          write(iunit,'(i10,2i6,3x,a,3es24.16,a)') nat, ntypes, smat%nspin, smat%geocode, smat%cell_dim, &
+              '   # number of atoms, number of atom types, nspin, geocode, cell_dim'
           do itype=1,ntypes
               write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
                   '   # nz, nelpsp, name'

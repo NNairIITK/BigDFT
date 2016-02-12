@@ -53,6 +53,7 @@ program utilities
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat
    character(len=20),dimension(:),pointer :: atomnames
+   real(kind=8),dimension(3) :: cell_dim
    !$ integer :: omp_get_max_threads
 
    call f_lib_initialize()
@@ -157,13 +158,13 @@ program utilities
 
        at = atoms_data_null()
 
-       call read_sparse_matrix(trim(overlap_file), nspin, geocode, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
+       call read_sparse_matrix(trim(overlap_file), nspin, geocode, cell_dim, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
             matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
             at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
        at%refcnt=f_ref_new('atoms')
        !call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
        call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_s, nvctr_s, nseg_s, keyg_s, smat_s, &
-            nspin, geocode, on_which_atom_s)
+            nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_s)
        call f_free_ptr(keyv_s)
        call f_free_ptr(keyg_s)
        call f_free_ptr(on_which_atom_s)
@@ -172,11 +173,11 @@ program utilities
        call vcopy(smat_s%nvctr*smat_s%nspin, matrix_compr(1), 1, ovrlp_mat%matrix_compr(1), 1)
        call f_free_ptr(matrix_compr)
 
-       call read_sparse_matrix(trim(kernel_file), nspin, geocode, nfvctr_l, nseg_l, nvctr_l, keyv_l, keyg_l, &
+       call read_sparse_matrix(trim(kernel_file), nspin, geocode, cell_dim, nfvctr_l, nseg_l, nvctr_l, keyv_l, keyg_l, &
             matrix_compr, on_which_atom=on_which_atom_l)
        !call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_l, nfvctrp_l, isfvctr_l)
        call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_l, nvctr_l, nseg_l, keyg_l, smat_l, &
-            nspin, geocode, on_which_atom_l)
+            nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_l)
        call f_free_ptr(keyv_l)
        call f_free_ptr(keyg_l)
        call f_free_ptr(on_which_atom_l)
@@ -186,11 +187,11 @@ program utilities
        call f_free_ptr(matrix_compr)
 
        if (method==CHARGE_ANALYSIS_PROJECTOR) then
-           call read_sparse_matrix(trim(hamiltonian_file), nspin, geocode, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
+           call read_sparse_matrix(trim(hamiltonian_file), nspin, geocode, cell_dim, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
                 matrix_compr, on_which_atom=on_which_atom_m)
            !call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
            call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_m, nvctr_m, nseg_m, keyg_m, smat_m, &
-                nspin, geocode, on_which_atom_m)
+                nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_m)
            call f_free_ptr(keyv_m)
            call f_free_ptr(keyg_m)
            call f_free_ptr(on_which_atom_m)
@@ -239,7 +240,7 @@ program utilities
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
-            nspin=nspin, nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
+            nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_m, hamiltonian_mat)
        ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
@@ -252,7 +253,7 @@ program utilities
        !call writeLinearCoefficients(iunit, .true., nat, rxyz, smat_s%nfvctr, smat_s%nfvctr, &
        !     smat_s%nfvctr, hamiltonian_mat%matrix, eval)
        call write_linear_coefficients(0, trim(coeff_file), nat, rxyz, iatype, ntypes, nzatom, &
-            nelpsp, atomnames, smat_s%nfvctr, smat_s%nfvctr, nspin, hamiltonian_mat%matrix, eval)
+            nelpsp, atomnames, smat_s%nfvctr, smat_s%nfvctr, smat_s%nspin, hamiltonian_mat%matrix, eval)
 
        call f_close(iunit)
 

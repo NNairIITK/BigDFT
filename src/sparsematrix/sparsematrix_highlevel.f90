@@ -127,7 +127,7 @@ module sparsematrix_highlevel
 
 
     subroutine sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc, smat, mat, &
-            nspin, nat, ntypes, nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
+               nat, ntypes, nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: bigdft_to_sparsebigdft
@@ -140,14 +140,14 @@ module sparsematrix_highlevel
       type(sparse_matrix),intent(out) :: smat
       type(matrices),intent(out) :: mat
       ! Optional variables that are contained within the sparse matrix format
-      integer,intent(out),optional :: nspin, nat, ntypes
+      integer,intent(out),optional :: nat, ntypes
       integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
       character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
       real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
       integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
     
       ! Local variables
-      integer :: nspin_, nfvctr, nseg, nvctr, i
+      integer :: nspin, nfvctr, nseg, nvctr, i
       character(len=1) :: geocode
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
@@ -157,18 +157,16 @@ module sparsematrix_highlevel
       character(len=20),dimension(:),pointer :: atomnames_
       real(kind=8),dimension(:,:),pointer :: rxyz_
       integer,dimension(:),pointer :: on_which_atom_
+      real(kind=8),dimension(3) :: cell_dim
     
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_bigdft')
     
       ! Read in the matrix
-      call read_sparse_matrix(filename, nspin_, geocode, nfvctr, nseg, nvctr, keyv, keyg, val, &
+      call read_sparse_matrix(filename, nspin, geocode, cell_dim, nfvctr, nseg, nvctr, keyv, keyg, val, &
            nat=nat_, ntypes=ntypes_, nzatom=nzatom_, nelpsp=nelpsp_, atomnames=atomnames_, &
            iatype=iatype_, rxyz=rxyz_, on_which_atom=on_which_atom_)
 
       ! Copy the optional variables, if present
-      if (present(nspin)) then
-          nspin = nspin_
-      end if
       if (present(nat)) then
           nat = nat_
       end if
@@ -203,7 +201,8 @@ module sparsematrix_highlevel
       end if
     
       ! Create the sparse_matrix structure
-      call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
+      call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat, &
+           nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_)
     
       ! Generate the matrices type
       call matrices_init_from_data(smat, val, mat)
@@ -243,14 +242,18 @@ module sparsematrix_highlevel
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
       real(kind=8),dimension(:),pointer :: val
+      real(kind=8),dimension(3) :: cell_dim
+      integer,dimension(:),pointer :: on_which_atom
     
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
     
       ! Read in the matrix
-      call read_sparse_matrix(filename, nspin, geocode, nfvctr, nseg, nvctr, keyv, keyg, val)
+      call read_sparse_matrix(filename, nspin, geocode, cell_dim, nfvctr, nseg, nvctr, keyv, keyg, val, &
+           on_which_atom=on_which_atom)
     
       ! Create the sparse_matrix structure
-      call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
+      call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat, &
+           nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom)
     
       ! Deallocate the pointers
       call f_free_ptr(keyv)

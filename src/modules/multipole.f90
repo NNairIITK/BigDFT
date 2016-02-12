@@ -3302,6 +3302,7 @@ module multipole
                           call f_free(ovrlp_tmp)
                           ! Calculate the penaly term separately and then calculate S^1/2*penalty*S^1/2
                           tmpmat2d = f_malloc0((/n,n,2/),id='tmppmat2d')
+                      write(*,*) 'at%astruct%cell_dim, smats%cell_dim', at%astruct%cell_dim, smats%cell_dim
                           call add_penalty_term(at%astruct%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
                                at%astruct%cell_dim, com, alpha, n, ovrlp, tmpmat2d(1,1,1))
 
