@@ -3267,7 +3267,8 @@ module multipole
       q = 0.d0
       do iat=1,at%astruct%nat
           itype = at%astruct%iatype(iat)
-          q = q + ceiling(0.5d0*real(at%nelpsp(itype),kind=8))
+          !q = q + ceiling(0.5d0*real(at%nelpsp(itype),kind=8))
+          q = q + 0.5d0*real(at%nelpsp(itype),kind=8)
           !!if (at%nelpsp(itype)<=2) then
           !!    q = q + 1.d0
           !!else if (at%nelpsp(itype)<=8) then
