@@ -1,4 +1,4 @@
-=== modified file 'libxc-2.0.x/src/Makefile.am'
+=== modified file 'libxc/src/Makefile.am'
 --- libxc/src/Makefile.am	2013-04-16 17:32:44 +0000
 +++ libxc/src/Makefile.am	2013-04-16 17:33:08 +0000
 @@ -129,16 +129,23 @@
