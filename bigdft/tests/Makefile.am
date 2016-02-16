@@ -3,7 +3,8 @@
 EXTRA_DIST = \
 	README \
 	fldiff.py \
-	styles images \
+	styles \
+	images \
 	yaml_hl.cfg \
 	yaml_hl.py \
 	parse_log.py \
@@ -18,6 +19,7 @@ SUBDIRS = \
 	  tutorials \
 	  libs \
 	  benchs
+
 
 if USE_OCL
 oclrun_message = oclrun

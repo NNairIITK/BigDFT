@@ -1115,7 +1115,7 @@ module foe
     
       fermi_check_new = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='fermip_check_new')
       fermi_new = f_malloc((/smatl%smmm%nvctrp/),id='fermi_new')
-      fermi_small_new = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='fermi_small_new')
+!      fermi_small_new = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='fermi_small_new')
     
     
       call timing(iproc, 'FOE_auxiliary ', 'OF')
@@ -1285,7 +1285,7 @@ module foe
                   !write(*,*) 'after find_fermi_level'
 
                   npl_check = nint(real(npl,kind=8)/CHECK_RATIO)
-                  cc_check = f_malloc_ptr((/npl_check,3,1/),id='cc_check')
+                  cc_check = f_malloc0_ptr((/npl_check,3,1/),id='cc_check')
                   !!call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
                   !!call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
                   !!     foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
@@ -1421,17 +1421,18 @@ module foe
                   call foe_data_set_real(foe_obj,"fscale",fscale_new)
 
 
-                  diff=0.d0
-                  do i=1,smatl%smmm%nvctrp_mm
-                      diff = diff + (fermi_small_new(i)-fermi_check_new(i))**2
-                  end do
-        
-                  if (nproc > 1) then
-                      call mpiallred(diff, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-                  end if
-        
-                  diff=sqrt(diff)
-                  !if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
+!!$                  !mpimaxdiff might be used (however fermi_small_new is not initialised there
+!!$                  diff=0.d0
+!!$                  do i=1,smatl%smmm%nvctrp_mm
+!!$                      diff = diff + (fermi_small_new(i)-fermi_check_new(i))**2
+!!$                  end do
+!!$        
+!!$                  if (nproc > 1) then
+!!$                      call mpiallred(diff, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+!!$                  end if
+!!$        
+!!$                  diff=sqrt(diff)
+!!$                  !if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
 
 
                   ! Calculate trace(KS).
@@ -1504,7 +1505,7 @@ module foe
       !call f_free(penalty_ev_new)
       call f_free(fermi_check_new)
       call f_free(fermi_new)
-      call f_free(fermi_small_new)
+!      call f_free(fermi_small_new)
     
       call timing(iproc, 'FOE_auxiliary ', 'OF')
     

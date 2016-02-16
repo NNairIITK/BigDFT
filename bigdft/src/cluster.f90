@@ -1,17 +1,17 @@
-!> @file 
+!> @file
 !!   Routines to use BigDFT as a blackbox
 !! @author
-!!   Copyright (C) 2005-2015 BigDFT group 
+!!   Copyright (C) 2005-2015 BigDFT group
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
-!!   For the list of contributors, see ~/AUTHORS 
+!!   For the list of contributors, see ~/AUTHORS
 
 
 !>  Main routine which does self-consistent loop.
 !!  Does not parse input file and no geometry optimization.
-!!  Does an electronic structure calculation. 
-!!  Output is the total energy and the forces 
+!!  Does an electronic structure calculation.
+!!  Output is the total energy and the forces
 !!   @warning psi, keyg, keyv and eval should be freed after use outside of the routine.
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,pressure,&
      KSwfn,tmb,rxyz_old,in,GPU,infocode)
@@ -68,7 +68,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !> Encloses some information about the status of the run
   !!   - 0 run successfully succeded
   !!   - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
-  !!       forces may be meaningless   
+  !!       forces may be meaningless
   !!   - 2 (present only for inputPsiId=INPUT_PSI_MEMORY_WVL) gnrm of the first iteration > 1 AND growing in
   !!       the second iteration OR grnm 1st >2.
   !!       Input wavefunctions need to be recalculated. Routine exits.
@@ -109,7 +109,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   real(wp), dimension(:), pointer :: psi_old
   type(memory_estimation) :: mem
   !real(gp) :: energy_constrained
-  ! PSP projectors 
+  ! PSP projectors
   real(kind=8), dimension(:), pointer :: gbd_occ!,rhocore
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd
@@ -278,7 +278,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !this section is of course not needed
   !note that this procedure is convenient ONLY in the case of scalar variables
   !an array would have been copied, thus occupying more memory space
-  !Hence WARNING: these variables are copied, in case of an update the new value should be 
+  !Hence WARNING: these variables are copied, in case of an update the new value should be
   !reassigned inside the structure
 
   if (iproc == 0) then
@@ -299,7 +299,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   inputpsi = in%inputPsiId
   if (in%inputPsiId == 'INPUT_PSI_MEMORY_WVL') then
      !if (in%inputPsiId .hasattr. 'MEMORY') then
-     !if ((in%inputPsiId .hasattr. 'CUBIC') .and. .not. (in%inputPsiId .hasattr. 'GAUSSIAN')) then 
+     !if ((in%inputPsiId .hasattr. 'CUBIC') .and. .not. (in%inputPsiId .hasattr. 'GAUSSIAN')) then
      if (associated(KSwfn%psi)) then
         call copy_local_zone_descriptors(KSwfn%Lzd, lzd_old, subname)
         !if the history is bigger than two, create the workspace to store the wavefunction
@@ -353,7 +353,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         call f_free_ptr(KSwfn%psi)
         call deallocate_locreg_descriptors(KSwfn%Lzd%Glr)
         !call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
-     else      
+     else
         !inputpsi = INPUT_PSI_LINEAR_AO
         call inputpsiid_set_policy(ENUM_SCRATCH,inputpsi)
      end if
@@ -419,7 +419,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 !!$  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
 !!$      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
   if (inputpsi .hasattr. 'LINEAR') then
-     
+
      !!call init_p2p_tags(nproc)
      !!tag=0
 
@@ -556,7 +556,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
          if (in%lin%fragment_calculation) then
             if (in%lin%extra_states/=0) then
-               !if (iproc==0) 
+               !if (iproc==0)
                call f_err_throw('ERROR: extra_states must be zero for fragment calculation',&
                     err_name='BIGDFT_INPUT_VARIABLES_ERROR')
                !call MPI_ABORT(bigdft_mpi%mpi_comm,10,ierr)
@@ -595,7 +595,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      if (iproc ==0) call yaml_mapping_close()
 
      if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction .or.  in%lin%new_pulay_correction .or. &
-         (mod(in%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE) .or. in%lin%diag_end .or. in%write_orbitals>0 & 
+         (mod(in%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE) .or. in%lin%diag_end .or. in%write_orbitals>0 &
           .or. f_int(inputpsi) == INPUT_PSI_DISK_LINEAR .or. mod(in%lin%output_coeff_format,10) /= WF_FORMAT_NONE) then
         tmb%coeff = f_malloc_ptr((/ tmb%linmat%m%nfvctr , tmb%orbs%norb /),id='tmb%coeff')
      else
@@ -700,7 +700,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
          ! This must be fixed later
          stop 'in%lin%mixHist_lowaccuracy /= in%lin%mixHist_highaccuracy'
      end if
-     select case (in%lin%scf_mode) 
+     select case (in%lin%scf_mode)
      case (LINEAR_DIRECT_MINIMIZATION)
          ! still do a density mixing, maybe  to be modified later
          if (in%lin%mixHist_lowaccuracy==0) then
@@ -710,7 +710,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
              ! Pulay mixing
              linear_iscf = 17
          end if
-     case (LINEAR_MIXDENS_SIMPLE) 
+     case (LINEAR_MIXDENS_SIMPLE)
          if (in%lin%mixHist_lowaccuracy==0) then
              ! simple mixing
              linear_iscf = 12
@@ -718,7 +718,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
              ! Pulay mixing
              linear_iscf = 17
          end if
-     case (LINEAR_MIXPOT_SIMPLE) 
+     case (LINEAR_MIXPOT_SIMPLE)
          if (in%lin%mixHist_lowaccuracy==0) then
              ! simple mixing
              linear_iscf = 2
@@ -817,14 +817,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            !cdft%charge=-cdft%charge
 
            !call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-           !     KSwfn%orbs, tmb, overlap_calculated)     
+           !     KSwfn%orbs, tmb, overlap_calculated)
            !tmb%can_use_transposed=.false. ! - do we really need to deallocate here?
-           !i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
-           !deallocate(tmb%psit_c,stat=i_stat)                                                 
-           !call memocc(i_stat,i_all,'tmb%psit_c',subname)                                     
-           !i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)                               
-           !deallocate(tmb%psit_f,stat=i_stat)                                                 
-           !call memocc(i_stat,i_all,'tmb%psit_f',subname)     
+           !i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
+           !deallocate(tmb%psit_c,stat=i_stat)
+           !call memocc(i_stat,i_all,'tmb%psit_c',subname)
+           !i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)
+           !deallocate(tmb%psit_f,stat=i_stat)
+           !call memocc(i_stat,i_all,'tmb%psit_f',subname)
 
            !! Now need to calculate the charge density and the potential related to this inputguess
            !call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
@@ -882,7 +882,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      end if
 
      !!call finalize_p2p_tags()
-  
+
      !temporary allocation of the density
      !!allocate(denspot%rho_work(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=i_stat)
      !!call memocc(i_stat,denspot%rho_work,'rho',subname)
@@ -1125,7 +1125,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
                 in%kptv(:,sum(in%nkptsv_group(1:igroup - 1)) + 1:sum(in%nkptsv_group(1:igroup))), &
                 wkptv,VTwfn%orbs,LINEAR_PARTITION_NONE)
            !allocate communications arrays for virtual orbitals
-           call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,VTwfn%orbs,VTwfn%comms)  
+           call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,VTwfn%orbs,VTwfn%comms)
 
            call f_free(wkptv)
 
@@ -1137,9 +1137,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            call orbital_basis_associate(ob,orbs=VTwfn%orbs,Lzd=KSwfn%Lzd)
            call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,ob,&
                 in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-                .false.,nlpsp,.true.) 
+                .false.,nlpsp,.true.)
            call orbital_basis_release(ob)
-           call timing(iproc,'CrtProjectors ','OF') 
+           call timing(iproc,'CrtProjectors ','OF')
            if (iproc == 0) call print_nlpsp(nlpsp)
 
         else
@@ -1151,7 +1151,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
                 basedistd=KSwfn%orbs%norbd_par(0:,1:))
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,VTwfn%orbs,VTwfn%comms,&
-                basedist=KSwfn%comms%nvctr_par(0:,1:))  
+                basedist=KSwfn%comms%nvctr_par(0:,1:))
 
         end if
 
@@ -1169,7 +1169,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         call default_confinement_data(VTwfn%confdatarr,VTwfn%orbs%norbp)
 
         if (in%norbv < 0) then
-           call direct_minimization(iproc,nproc,in,atoms,& 
+           call direct_minimization(iproc,nproc,in,atoms,&
                 nvirt,rxyz,denspot%rhov,nlpsp, &
                 denspot%pkernelseq,denspot%dpbox,denspot%xc,GPU,KSwfn,VTwfn)
 
@@ -1177,7 +1177,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
               if(iproc==0) call yaml_warning('More plots requested than orbitals calculated')
            end if
         else if (in%norbv > 0) then
-           call davidson(iproc,nproc,in,atoms,& 
+           call davidson(iproc,nproc,in,atoms,&
                 KSwfn%orbs,VTwfn%orbs,in%nvirt,VTwfn%Lzd,&
                 KSwfn%comms,VTwfn%comms,&
                 rxyz,denspot%rhov,nlpsp, &
@@ -1198,7 +1198,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         deallocate(VTwfn%confdatarr)
 
         !this seems unnecessary
-!!$        ! Write virtual wavefunctions in ETSF format: WORKS ONLY FOR ONE KPOINT 
+!!$        ! Write virtual wavefunctions in ETSF format: WORKS ONLY FOR ONE KPOINT
 !!$        if(in%output_wf == ENUM_ETSF .and. abs(in%norbv) > 0) then
 !!$           write(wfformat, "(A)") ""
 !!$           select case (in%output_wf_format)
@@ -1222,7 +1222,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
                 atoms,rxyz,KSwfn%Lzd%Glr%wfd,VTwfn%psi)
         end if
 
-        !start the Casida's treatment 
+        !start the Casida's treatment
         if (in%tddft_approach=='TDA') then
 
            !does it make sense to use GPU only for a one-shot sumrho?
@@ -1306,7 +1306,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         call f_free(band_structure_eval)
      end if
 
-  else if (in%nplot > 0 .and. DoLastRunThings) then 
+  else if (in%nplot > 0 .and. DoLastRunThings) then
      !plot the occupied wavefunctions for visualization purposes
      call dump_eigenfunctions(trim(in%dir_output),-in%nplot,atoms,KSwfn%Lzd%hgrids,KSwfn%Lzd%Glr,&
           KSwfn%orbs,KSwfn%orbs,rxyz,KSwfn%psi,KSwfn%psi)
@@ -1331,7 +1331,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   end if
   if (((in%exctxpar == 'OP2P' .and. xc_exctXfac(denspot%xc) /= 0.0_gp) &
        .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
-     
+
      !if (loc(denspot%pkernelseq%kernel) /= loc(denspot%pkernel%kernel)) then !this is not standard
      if (.not. associated(denspot%pkernelseq%kernel,target=denspot%pkernel%kernel) .and. &
           associated(denspot%pkernelseq%kernel)) then
@@ -1397,9 +1397,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   ! --- End if of tail calculation
 
   !?!   !Finally, we add the entropic contribution to the energy from non-integer occnums
-  !?!   if(orbs%eTS>0_gp) then 
-  !?!      energy=energy - orbs%eTS 
-  !?! 
+  !?!   if(orbs%eTS>0_gp) then
+  !?!      energy=energy - orbs%eTS
+  !?!
   !?!      if (iproc == 0) then
   !?!         write( *,'(1x,a,1(1x,1pe18.11))')&
   !?!              '  Entropic correction due to electronic tempertature',orbs%eTS
@@ -1417,11 +1417,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
 contains
 
-  !> Routine which deallocate the pointers and the arrays before exiting 
+  !> Routine which deallocate the pointers and the arrays before exiting
   subroutine deallocate_before_exiting
     use communications_base, only: deallocate_comms
     implicit none
-    external :: gather_timings    
+    external :: gather_timings
   !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1 .and. inputpsi /= 'INPUT_PSI_EMPTY') then
        call f_free_ptr(denspot%V_ext)
@@ -1600,7 +1600,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   type(atoms_data), intent(in) :: atoms
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  type(input_variables), intent(in) :: in !<todo: Remove me
+  type(input_variables), intent(in) :: in !< @todo Remove me
 
   character(len = *), parameter :: subname = "kswfn_optimization_loop"
   logical :: endloop, scpot, endlooprp, lcs
@@ -1644,7 +1644,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   rhopot_loop: do
      KSwfn%diis%energy_old=1.d100
      if (opt%itrp > opt%itrpmax) exit
-     !yaml output 
+     !yaml output
      if (iproc==0) then
         call yaml_sequence(advance='no')
         call yaml_sequence_open("Hamiltonian Optimization",label=&
@@ -1657,7 +1657,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      iter_for_diis=0 !initialize it here for keeping the history also after a subspace diagonalization
      subd_loop: do
         if (opt%itrep > opt%nrepmax) exit subd_loop
-        !yaml output 
+        !yaml output
         if (iproc==0) then
            call yaml_sequence(advance='no')
            call yaml_mapping_open("Subspace Optimization",label=&
@@ -1677,7 +1677,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !control whether the minimisation iterations should end after the hamiltionian application
            endloop= (opt%gnrm <= opt%gnrm_cv .or. opt%iter == opt%itermax) .and. opt%iter >= opt%itermin !Bastian
 
-           if (iproc == 0) then 
+           if (iproc == 0) then
               !yaml output
               if (endloop .and. (opt%itrpmax==1 .or. opt%itrpmax >1 .and. endlooprp)) then
                  call yaml_sequence(label='FINAL'//trim(adjustl(yaml_toa(opt%itrep,fmt='(i3.3)'))),advance='no')
@@ -1709,7 +1709,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
                 .not. (denspot%xc%ixc == XC_NO_HARTREE) ! Need to calculate the scp pot (i.e. Hartree + XC)
            !allocate the potential in the full box
            !temporary, should change the use of flag in full_local_potential2
-           linflag = 1                                 
+           linflag = 1
            if(in%linear == INPUT_IG_OFF) linflag = 0
            if(in%linear == INPUT_IG_TMO) linflag = 2
 
@@ -1727,14 +1727,14 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !check for convergence or whether max. numb. of iterations exceeded
            if (endloop) then
               if (opt%gnrm < opt%gnrm_cv) opt%infocode=0
-              exit wfn_loop 
+              exit wfn_loop
            endif
 
            !evaluate the functional of the wavefunctions and put it into the diis structure
            !the energy values is printed out in this routine
            call calculate_energy_and_gradient(opt%iter,iproc,nproc,GPU,in%ncong,opt%iscf,&
                 energs,KSwfn,opt%gnrm,gnrm_zero)
-           
+
            !control the previous value of idsx_actual
            idsx_actual_before=KSwfn%diis%idsx
            iter_for_diis=iter_for_diis+1
@@ -1841,7 +1841,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if (opt%itrpmax == 1 .and. in%norbsempty > 0) then
               !recalculate orbitals occupation numbers
               call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
-              
+
               !opt%gnrm =1.d10
               KSwfn%diis%energy_min=1.d10
               !KSwfn%diis%alpha=2.d0
@@ -1849,7 +1849,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
         end if
 
-        if (opt%itrpmax ==1) then 
+        if (opt%itrpmax ==1) then
            call eigensystem_info(iproc,nproc,opt%gnrm,&
              KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f,&
              KSwfn%orbs,KSwfn%psi)
@@ -1868,7 +1868,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
         if (opt%c_obj /= 0) then
            call optloop_emit_iter(opt, OPTLOOP_SUBSPACE, energs, iproc, nproc)
         end if
-        
+
         opt%itrep = opt%itrep + 1
      end do subd_loop
      if (opt%c_obj /= 0) then
@@ -1882,7 +1882,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
      if (opt%itrpmax > 1) then
 
-        !recalculate orbitals occupation numbers 
+        !recalculate orbitals occupation numbers
         call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
 
         call eigensystem_info(iproc,nproc,opt%gnrm,&
@@ -1977,7 +1977,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   if (inputpsi /= 'INPUT_PSI_EMPTY') then
      energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
      !write this warning only if the system is closed shell
-     call check_closed_shell(KSwfn%orbs,lcs)  
+     call check_closed_shell(KSwfn%orbs,lcs)
      if (abs(energs%evsum-energs%ebs) > 1.d-8 .and. iproc==0 .and. lcs) then
         call yaml_newline()
         call yaml_mapping_open('Energy inconsistencies')
@@ -2229,6 +2229,8 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   call orbital_basis_release(ob)
   end if
 
+  !here we might printout the atomic density matrix
+
   call f_free_ptr(denspot%rho_work)
   !call f_free_ptr(denspot%pot_work)
   call f_free_ptr(denspot%pot_work)
@@ -2263,11 +2265,11 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      !!if (iproc==0) then
      !!     do iat=1,atoms%astruct%nat
      !!         write(*,'(a,3es18.8)') 'new forces',fxyz(1,iat), fxyz(2,iat), fxyz(3,iat)
-     !!     end do 
-     !!end if 
+     !!     end do
+     !!end if
 !!!! #######################
   end if
-  
+
   !!stop
   call timing(iproc,'Forces        ','OF')
   call f_release_routine()

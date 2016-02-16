@@ -23,10 +23,11 @@ EXTRA_DIST = PS_Check.ref.yaml tols.yaml $(OTHERS)
 
 check_PROGRAMS = PS_Check PS_Program PS_Exercise Generalized_PSolver
 
-AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_srcdir)/PSolver/src -I. @LIB_FLIB_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
+AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(top_srcdir)/PSolver/src \
+			 @LIB_FLIB_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/PSolver/src
 
-f_libraries = $(top_builddir)/wrappers/libwrappers.a 
+f_libraries = $(top_builddir)/wrappers/libwrappers.a  @LIB_FLIB_LIBS@
 
 if BUILD_FLIB
 f_libraries += $(top_builddir)/flib/src/libflib-1.a

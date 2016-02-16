@@ -5,7 +5,7 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 !> Define all static strings to store input variables
 module module_input_keys
   use dictionaries
@@ -43,7 +43,7 @@ module module_input_keys
        "Fermi      ", &
        "Cold (bumb)", &
        "Cold (mono)", &
-       "Meth.-Pax. " /) !< Name of the smearing methods 
+       "Meth.-Pax. " /) !< Name of the smearing methods
 
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
@@ -80,7 +80,7 @@ module module_input_keys
   end type SIC_data
 
   !> Contains all parameters related to the linear scaling version.
-  type, public :: linearInputParameters 
+  type, public :: linearInputParameters
      integer :: DIIS_hist_lowaccur
      integer :: DIIS_hist_highaccur
      integer :: nItPrecond
@@ -106,7 +106,7 @@ module module_input_keys
      real(kind=8), dimension(:,:), pointer :: locrad_type
      real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
      real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel, locrad_mult
-     real(kind=8) :: early_stop, gnrm_dynamic, min_gnrm_for_dynamic 
+     real(kind=8) :: early_stop, gnrm_dynamic, min_gnrm_for_dynamic
      integer, dimension(:), pointer :: norbsPerType
      integer :: kernel_mode, mixing_mode
      integer :: scf_mode, nlevel_accuracy
@@ -156,7 +156,7 @@ module module_input_keys
      !> Strings of the input files
      character(len=100) :: file_occnum !< Occupation number (input)
      character(len=100) :: file_igpop
-     character(len=100) :: file_lin   
+     character(len=100) :: file_lin
      character(len=100) :: file_frag   !< Fragments
      character(len=max_field_length) :: dir_output  !< Strings of the directory which contains all data output files
      character(len=max_field_length) :: naming_id
@@ -219,6 +219,9 @@ module module_input_keys
      !> solver parameters
      type(dictionary), pointer :: PS_dict,PS_dict_seq
 
+     !> atomic density matrix requests
+     type(dictionary), pointer :: at_gamma
+
      !> For absorption calculations
      integer :: iabscalc_type   !< 0 non calc, 1 cheb ,  2 lanc
      !! integer :: iat_absorber, L_absorber, N_absorber, rpower_absorber, Linit_absorber
@@ -257,7 +260,7 @@ module module_input_keys
 
      ! Geometry variables from *.geopt
      character(len=10) :: geopt_approach !<id of geopt driver
-     integer :: ncount_cluster_x         !< Maximum number of geopt steps 
+     integer :: ncount_cluster_x         !< Maximum number of geopt steps
      integer :: wfn_history              !< Number of previous steps saved for wfn reformatting
      integer :: history                  !< History of DIIS method
      real(gp) :: betax,forcemax,randdis
@@ -301,7 +304,7 @@ module module_input_keys
      integer  :: nhnc
      integer  :: nmultint
      integer  :: nsuzuki
-     real(gp) :: nosefrq 
+     real(gp) :: nosefrq
 
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
@@ -314,7 +317,7 @@ module module_input_keys
      integer :: signalTimeout                !< Timeout for inet connection.
      character(len = 64) :: domain           !< Domain to get the IP from hostname.
      double precision :: gmainloop           !< Internal C pointer on the signaling structure.
-     integer :: inguess_geopt                !< 0= Wavelet input guess, 1 = real space input guess 
+     integer :: inguess_geopt                !< 0= Wavelet input guess, 1 = real space input guess
 
      !> Orthogonalisation data
      type(orthon_data) :: orthpar
@@ -337,14 +340,14 @@ module module_input_keys
      !! works only if the number of MPI processes is a multiple of it
      integer :: PSolver_groupsize
      !> Global MPI group size (will be written in the mpi_environment)
-     ! integer :: mpi_groupsize 
+     ! integer :: mpi_groupsize
 
      type(external_potential_descriptors) :: ep
 
      ! Linear scaling parameters
      type(linearInputParameters) :: lin    !< Linear scaling data
      type(fragmentInputParameters) :: frag !< Fragment data
-     logical :: store_index                !< (LS) Store indices of the sparse matrices or recalculate them 
+     logical :: store_index                !< (LS) Store indices of the sparse matrices or recalculate them
      integer :: check_sumrho               !< (LS) Perform a check of sumrho (no check, light check or full check)
      integer :: check_overlap              !< (LS) Perform a check of the overlap calculation
      logical :: experimental_mode          !< (LS) Activate the experimental mode
@@ -449,7 +452,7 @@ contains
     SIC%approach=repeat(' ',len(SIC%approach))
     SIC%ixc=0
     SIC%alpha=0.0_gp
-    SIC%fref=0.0_gp 
+    SIC%fref=0.0_gp
   end function SIC_data_null
 
 
@@ -460,49 +463,6 @@ contains
     ma%OCL_platform=repeat(' ',len(ma%OCL_platform))
     ma%OCL_platform=repeat(' ',len(ma%OCL_devices))
   end function material_acceleration_null
-
-
-!!$  function input_psi_validate(id)
-!!$    integer, intent(in) :: id
-!!$    logical :: input_psi_validate
-!!$
-!!$    integer :: i
-!!$
-!!$    input_psi_validate = .false.
-!!$    do i = 1, size(input_psi_values)
-!!$       if (id == input_psi_values(i)) then
-!!$          input_psi_validate = .true.
-!!$          return
-!!$       end if
-!!$    end do
-!!$  end function input_psi_validate
-!!$
-!!$  function output_wf_format_validate(id)
-!!$    integer, intent(in) :: id
-!!$    logical :: output_wf_format_validate
-!!$
-!!$    output_wf_format_validate = (id >= 0 .and. id < size(wf_format_names))
-!!$  end function output_wf_format_validate
-
-
-!!$ subroutine output_denspot_help()
-!!$   integer :: i, j
-!!$
-!!$   write(*, "(1x,A)") "Available values of output_denspot are:"
-!!$   do i = 0, size(output_denspot_format_names) - 1
-!!$      do j = 0, size(output_denspot_names) - 1
-!!$         if (j == 0 .and. i == 0) then
-!!$            write(*, "(1x,A,I5,A,A,A)") " | ", i * 10 + j, &
-!!$                 & " - ", trim(output_denspot_names(j)), "."
-!!$         else if (j /= 0) then
-!!$            write(*, "(1x,A,I5,A,A,A,A,A)") " | ", i * 10 + j, &
-!!$                 & " - ", trim(output_denspot_names(j)), &
-!!$                 & " in ", trim(output_denspot_format_names(i)), " format."
-!!$         end if
-!!$      end do
-!!$   end do
-!!$ end subroutine output_denspot_help
-
 
   function output_denspot_validate(id, fid)
     integer, intent(in) :: id, fid
@@ -566,7 +526,7 @@ contains
     call f_free_str(1,params)
 
     !call yaml_dict_dump(parameters, comment_key = COMMENT)
-    
+
 !!$    !in the case the errors have not been initialized before
 !!$    call input_keys_errors()
 
@@ -607,6 +567,7 @@ contains
     ! check_atoms_positions,psp_set_from_dict,astruct_set_from_dict
     use pseudopotentials, only: psp_set_from_dict,psp_dict_fill_all
     use yaml_strings
+    use ao_inguess, only: lmax_ao
     use m_ab6_symmetry, only: symmetry_get_n_sym
     use multipole_base, only: external_potential_descriptors, multipoles_from_dict, lmax
     use public_enums
@@ -773,6 +734,10 @@ contains
     call psp_dict_analyse(dict, atoms, in%frmult)
     call atomic_data_set_from_dict(dict,IG_OCCUPATION, atoms, in%nspin)
 
+    !fill the requests for the atomic density matrix
+    call atoms_gamma_from_dict(dict//OUTPUT_VARIABLES//ATOMIC_DENSITY_MATRIX,&
+     lmax_ao,atoms%astruct,atoms%dogamma)
+
     ! Add multipole preserving information
     atoms%multipole_preserving = in%multipole_preserving
     atoms%mp_isf = in%mp_isf
@@ -836,7 +801,7 @@ contains
 !!$  ! Stop code for unproper input variables combination.
 !!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%geocode == 'S') then
 !!$     if (bigdft_mpi%iproc==0) then
-!!$        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
+!!$        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'
 !!$        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
 !!$     end if
 !!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
@@ -1024,8 +989,8 @@ contains
 
     !then we can complete the Poisson solver dictionary
     call PS_input_dict(dict // PSOLVER,dict_ps_min)
-    
-    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested)
+
+    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested,verbose=.true.)
 
     !create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)
@@ -1084,7 +1049,7 @@ contains
     use f_input_file, only: input_file_dump
     use dynamic_memory
     use public_keys, only: POSINP,ASTRUCT_PROPERTIES,ASTRUCT_POSITIONS
-    
+
     implicit none
     type(dictionary), pointer :: dict   !< Dictionary to dump
     logical, intent(in), optional :: userOnly
@@ -1122,7 +1087,7 @@ contains
        call yaml_map(POSINP,sourcefile)
     else
        call yaml_mapping_open(POSINP)
-       call input_file_dump(tmp, useronly=userOnly_,msg='Atomic positions')
+       call input_file_dump(tmp, useronly=userOnly_,msg='Atomic positions (by default bohr units)')
        call yaml_mapping_close()
     end if
     nullify(tmp)
@@ -1311,7 +1276,7 @@ contains
     call dict_free(dict)
   END SUBROUTINE input_set_bool_array
 
-  !> set the inputpsiid enumerator, based on the 
+  !> set the inputpsiid enumerator, based on the
   !! profile input variable
   subroutine set_inputpsiid(profile,inputPsiid)
     use yaml_strings, only: yaml_toa
@@ -1369,12 +1334,12 @@ contains
        call f_enum_attr(inputPsiid,ENUM_CUBIC)
     case(INPUT_PSI_MEMORY_GAUSS)
        inputPsiid=f_enumerator('INPUT_PSI_MEMORY_GAUSS',INPUT_PSI_MEMORY_GAUSS,null())
-       call f_enum_attr(inputPsiid,ENUM_MEMORY) 
+       call f_enum_attr(inputPsiid,ENUM_MEMORY)
        call f_enum_attr(inputPsiid,ENUM_CUBIC)
        call f_enum_attr(inputPsiid,ENUM_GAUSSIAN) !this attribute should be already in the ENUM_CUBIC
     case(INPUT_PSI_MEMORY_LINEAR)
        inputPsiid=f_enumerator('INPUT_PSI_MEMORY_LINEAR',INPUT_PSI_MEMORY_LINEAR,null())
-       call f_enum_attr(inputPsiid,ENUM_MEMORY) 
+       call f_enum_attr(inputPsiid,ENUM_MEMORY)
        call f_enum_attr(inputPsiid,ENUM_LINEAR)
     case default !the other are from memory
        call f_err_throw(err_name="BIGDFT_INPUT_VARIABLES_ERROR",err_msg='The value '//trim(yaml_toa(profile))//&
@@ -1559,6 +1524,12 @@ contains
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
+    case (OUTPUT_VARIABLES)
+        ! the DFT variables ------------------------------------------------------
+        select case (trim(dict_key(val)))
+        case(ATOMIC_DENSITY_MATRIX)
+          call dict_copy(src=val,dest=in%at_gamma)
+        end select
     case (DFT_VARIABLES)
        ! the DFT variables ------------------------------------------------------
        select case (trim(dict_key(val)))
@@ -1575,14 +1546,14 @@ contains
           in%frmult = dummy_gp(2)
        case (IXC)
           in%ixc = val !XC functional (ABINIT XC codes)
-       case (NCHARGE) !charge 
+       case (NCHARGE) !charge
           str=val
           !check if the provided value is a integer
           if (is_atoi(str)) then
              ipos=val
              in%qcharge=real(ipos,gp) !exact conversion
           else
-             in%qcharge = val 
+             in%qcharge = val
           end if
        case (ELECFIELD) !electric field
           in%elecfield = val
@@ -1658,7 +1629,7 @@ contains
        end select
     case (PERF_VARIABLES)
        ! the PERF variables -----------------------------------------------------
-       select case (trim(dict_key(val)))       
+       select case (trim(dict_key(val)))
        case (DEBUG)
           in%debug = val
        case (PROFILING_DEPTH)
@@ -1685,7 +1656,7 @@ contains
              in%matacc%iacceleration = 3
           else if (trim(str) .eqv. "OCLACC") then
              in%matacc%iacceleration = 4
-          else 
+          else
              in%matacc%iacceleration = 0
           end if
        case (OCL_PLATFORM)
@@ -1830,16 +1801,16 @@ contains
        case (IMETHOD_OVERLAP)
           ! linear scaling: method to calculate the overlap matrices (1=old, 2=new)
           in%imethod_overlap = val
-       case (ENABLE_MATRIX_TASKGROUPS) 
+       case (ENABLE_MATRIX_TASKGROUPS)
           ! linear scaling: enable the matrix taskgroups
           in%enable_matrix_taskgroups = val
        case (HAMAPP_RADIUS_INCR)
           ! linear scaling: radius enlargement for the Hamiltonian application (in grid points)
           in%hamapp_radius_incr = val
-       case (ADJUST_KERNEL_ITERATIONS) 
+       case (ADJUST_KERNEL_ITERATIONS)
           ! linear scaling: enable the adaptive ajustment of the number of kernel iterations
           in%adjust_kernel_iterations = val
-       case (ADJUST_KERNEL_THRESHOLD) 
+       case (ADJUST_KERNEL_THRESHOLD)
           ! linear scaling: enable the adaptive ajustment of the kernel convergence threshold
           in%adjust_kernel_threshold = val
        case(WF_EXTENT_ANALYSIS)
@@ -1943,13 +1914,13 @@ contains
        case (NO_TRANSLATION) !.true. or .false. ?
           in%no_translation = val
        case (THERMOSTAT) !string
-         str = dict_value(val) 
+         str = dict_value(val)
          if (trim(str).eqv."nose_hoover_chain") then
            in%nhc=.true.
          else
            in%nhc=.false.
          end if
-       case (NOSE_CHAIN_LENGTH) 
+       case (NOSE_CHAIN_LENGTH)
          in%nhnc = val
        case (NOSE_MTS_SIZE)
          in%nmultint = val
@@ -2029,7 +2000,7 @@ contains
           dummy_gp(1:2) = val
           in%lin%lowaccuracy_conv_crit = dummy_gp(1)
           in%lin%highaccuracy_conv_crit = dummy_gp(2)
-       case (CONF_DAMPING) 
+       case (CONF_DAMPING)
           in%lin%reduce_confinement_factor = val
        case (TAYLOR_ORDER)
           in%lin%order_taylor = val
@@ -2175,9 +2146,9 @@ contains
           dummy_gp(1:2) = val
           in%lin%evlow = dummy_gp(1)
           in%lin%evhigh = dummy_gp(2)
-       case (FSCALE_FOE) 
+       case (FSCALE_FOE)
           in%lin%fscale = val
-       case (COEFF_SCALING_FACTOR) 
+       case (COEFF_SCALING_FACTOR)
           in%lin%coeff_factor = val
        case (PEXSI_NPOLES)
           in%lin%pexsi_npoles = val
@@ -2233,9 +2204,9 @@ contains
        !locradType_lowaccur(jtype)=dummy_darr(1) !lrl
        !locradType_highaccur(jtype)=dummy_darr(2) !lrh
        !atoms%rloc(jtype,:)=locradType(jtype)
-    case(RLOC_KERNEL) 
+    case(RLOC_KERNEL)
        lin%kernel_cutoff(jtype)=dict_basis !kco
-    case(RLOC_KERNEL_FOE) 
+    case(RLOC_KERNEL_FOE)
        lin%kernel_cutoff_FOE(jtype)=dict_basis !kco_FOE
     end select
 
@@ -2270,8 +2241,8 @@ contains
 
     call f_free_ptr(in%qmass)
   end subroutine free_geopt_variables
-  
-  
+
+
   !> Set default values for input variables
   subroutine default_input_variables(in)
     use module_base
@@ -2297,6 +2268,7 @@ contains
     nullify(in%nkptsv_group)
     nullify(in%PS_dict)
     nullify(in%PS_dict_seq)
+    nullify(in%at_gamma)
     call f_zero(in%calculate_strten)
     in%profiling_depth=-1
     in%gen_norb = UNINITIALIZED(0)
@@ -2310,9 +2282,9 @@ contains
     ! Default frequencies variables
     call frequencies_input_variables_default(in)
     ! Default values for geopt.
-    call geopt_input_variables_default(in) 
+    call geopt_input_variables_default(in)
     ! Default values for mixing procedure
-    call mix_input_variables_default(in) 
+    call mix_input_variables_default(in)
     ! Default values for tddft
     call tddft_input_variables_default(in)
     !Default for Self-Interaction Correction variables
@@ -2408,7 +2380,7 @@ contains
     in%nmultint = 1
     in%nsuzuki  = 7
     in%nosefrq  = 3000.d0
-  END SUBROUTINE md_input_variables_default 
+  END SUBROUTINE md_input_variables_default
 
   !> Assign default values for self-interaction correction variables
   subroutine sic_input_variables_default(in)
@@ -2444,6 +2416,7 @@ contains
     call f_ref_free(in%refcnt)
     call dict_free(in%PS_dict)
     call dict_free(in%PS_dict_seq)
+    call dict_free(in%at_gamma)
     call free_geopt_variables(in)
     call free_kpt_variables(in)
     call f_free_ptr(in%gen_occup)
@@ -2506,13 +2479,13 @@ contains
        itype=astruct%iatype(iat)
        nlr=nlr+nspin*lin%norbsPerType(itype)
     end do
-  
+
     lin%locrad = f_malloc_ptr(nlr,id='lin%locrad')
     lin%locrad_kernel = f_malloc_ptr(nlr,id='lin%locrad_kernel')
     lin%locrad_mult = f_malloc_ptr(nlr,id='lin%locrad_mult')
     lin%locrad_lowaccuracy = f_malloc_ptr(nlr,id='lin%locrad_lowaccuracy')
     lin%locrad_highaccuracy = f_malloc_ptr(nlr,id='lin%locrad_highaccuracy')
-  
+
     ! Assign the localization radius to each atom.
     iiorb=0
     do ispin=1,nspin
@@ -2598,7 +2571,7 @@ contains
 
     ! the PERF variables -----------------------------------------------------
     !Check after collecting all values
-    if(.not.in%orthpar%directDiag .or. in%orthpar%methOrtho==1) then 
+    if(.not.in%orthpar%directDiag .or. in%orthpar%methOrtho==1) then
        write(*,'(1x,a)') 'Input Guess: Block size used for the orthonormalization (ig_blocks)'
        if(in%orthpar%bsLow==in%orthpar%bsUp) then
           write(*,'(5x,a,i0)') 'Take block size specified by user: ',in%orthpar%bsLow
@@ -2622,7 +2595,7 @@ contains
     ! But not if we use linear scaling version (in%inputPsiId >= 100)
     !in%gaussian_help=(in%inputPsiId >= 10 .and. in%inputPsiId < 100)
 
-!!$    !switch on the gaussian auxiliary treatment 
+!!$    !switch on the gaussian auxiliary treatment
 !!$    !and the zero of the forces
 !!$    if (in%inputPsiId == 10) then
 !!$       in%inputPsiId = 0
@@ -2725,7 +2698,7 @@ contains
     character(len = 6) :: method
     real(gp), dimension(:,:), pointer :: gen_kpt   !< K points coordinates
     real(gp), dimension(:), pointer :: gen_wkpt    !< Weights of k points
-    
+
     call f_routine(id='kpt_input_analyse')
 
     ! Set default values.
@@ -2763,12 +2736,16 @@ contains
        ngkpt_(1:3) = dict // NGKPT
        if (geocode == 'S') ngkpt_(2) = 1
        !shift
-       nshiftk = dict_len(dict//SHIFTK)
-       !read the shifts
+       nshiftk=1
        shiftk_=0.0_gp
-       do i=1,nshiftk
+       if (SHIFTK .in. dict) then
+          nshiftk = dict_len(dict//SHIFTK)
+          !read the shifts
+          shiftk_=0.0_gp
+          do i=1,nshiftk
           shiftk_(1:3,i) = dict // SHIFTK // (i-1)
-       end do
+          end do
+       end if
 
        !control whether we are giving k-points to Free BC
        if (geocode == 'F') then
@@ -2780,6 +2757,7 @@ contains
           in%gen_wkpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
           in%gen_wkpt = 1.
        else
+
           call kpoints_get_mp_k_grid(sym%symObj, in%gen_nkpt, gen_kpt, gen_wkpt, &
                & ngkpt_, nshiftk, shiftk_, ierror)
           if (ierror /= AB7_NO_ERROR) then
@@ -2788,7 +2766,7 @@ contains
                   & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
              stop
           end if
-          !assumes that the allocation went through 
+          !assumes that the allocation went through
           !(arrays allocated by abinit routines)
           in%gen_kpt=f_malloc_ptr(src_ptr=gen_kpt,id='gen_kpt')
           in%gen_wkpt=f_malloc_ptr(src_ptr=gen_wkpt,id='gen_wkpt')
@@ -2915,7 +2893,7 @@ contains
     end if
 
     if (in%nkptv > 0 .and. geocode == 'F' .and. iproc == 0) &
-         & call yaml_warning('Defining a k-point path in free boundary conditions.') 
+         & call yaml_warning('Defining a k-point path in free boundary conditions.')
 
     call f_release_routine()
 
@@ -3303,7 +3281,7 @@ contains
                   call set(at // FORMAT_KEY, FORMAT_YAML)
           end if
           !Add a warning if source and format keys are at the same positions.
-          if (has_key(dict // POSINP, POSINP_SOURCE)) then 
+          if (has_key(dict // POSINP, POSINP_SOURCE)) then
             call yaml_warning("The key 'source' in posinp section is ignored when the positions are specified.")
             !Remove the key source
             call dict_remove(dict // POSINP, POSINP_SOURCE)

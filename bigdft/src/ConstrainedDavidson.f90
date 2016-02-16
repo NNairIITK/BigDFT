@@ -940,7 +940,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
 
   call f_free(g)
 
-  call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
+  call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot)
 
   call f_free(ndimovrlp)
 

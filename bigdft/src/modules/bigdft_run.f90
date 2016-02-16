@@ -1,7 +1,7 @@
 !> @file
 !!  Define main module for using BigDFT as a blackbox
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group (LG, DC)
+!!    Copyright (C) 2007-2015 BigDFT group (LG, DC)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -927,7 +927,7 @@ contains
     implicit none
     type(run_objects), intent(inout) :: runObj
     logical :: release
-    integer :: claim, i
+    integer :: i,claim
 
     ! Fortran release ownership
     release = .true.

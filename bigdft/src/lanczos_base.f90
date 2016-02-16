@@ -1,11 +1,11 @@
-!> @file 
+!> @file
 !!   Diagonalization schme (module)
 !! @author
-!!   Copyright (C) 2010-2011 BigDFT group 
+!!   Copyright (C) 2010-2011 BigDFT group
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
-!!   For the list of contributors, see ~/AUTHORS 
+!!   For the list of contributors, see ~/AUTHORS
 
 
 !> Module to handle diagonalization scheme
@@ -33,7 +33,7 @@ module lanczos_base
    integer :: LB_nsteps
    integer :: hasoldalpha
    integer :: i_stat,i_all
-   integer :: LB_iproc, LB_nproc, LB_norbp 
+   integer :: LB_iproc, LB_nproc, LB_norbp
 
    contains
 
@@ -88,11 +88,10 @@ module lanczos_base
       diagwork = f_malloc_ptr(0.to.LB_nsteps*(3+LB_nsteps),id='diagwork')
       oldalpha  = f_malloc_ptr(0.to. LB_nsteps,id='oldalpha ')
 
-
-
       omega(:,:)=0.0D0
 
    END SUBROUTINE LB_allocate_for_lanczos
+
 
    subroutine LB_de_allocate_for_lanczos( )
 
@@ -181,7 +180,7 @@ module lanczos_base
       call DSYEV( 'V', 'U', m, evect(0,0) , m, LB_eval(0), diagwork(0), LWORK, INFO )
 
       if(LB_iproc==0) then
-         print *, " evals  " 
+         print *, " evals  "
          print *, LB_eval-LB_shift
       endif
 
@@ -192,7 +191,7 @@ module lanczos_base
          print *, " problem with dsyev"
          stop
       endif
-      return 
+      return
    END SUBROUTINE diago
 
    function  LB_cerca( nd, shift, tol, set_EP_shift, EP_allocate_for_eigenprob,&
@@ -218,7 +217,7 @@ module lanczos_base
          subroutine EP_make_dummy_vectors(nd)
             implicit none
             integer, intent(in):: nd
-            ! :::::::::::::::::::::::    
+            ! :::::::::::::::::::::::
          END SUBROUTINE
          function get_EP_dim()
             implicit none
@@ -226,34 +225,34 @@ module lanczos_base
          END FUNCTION
 
          subroutine EP_initialize_start()
-         END SUBROUTINE 
+         END SUBROUTINE
          subroutine EP_normalizza(i)
             integer, intent(in) :: i
-         END SUBROUTINE 
+         END SUBROUTINE
          subroutine EP_Moltiplica(i,j)
             integer, intent(in) :: i,j
-         END SUBROUTINE 
+         END SUBROUTINE
          function EP_scalare(i,j)
             real(kind=8) :: EP_scalare
             integer, intent(in) :: i,j
-         END FUNCTION 
+         END FUNCTION
          subroutine EP_add_from_vect_with_fact( i, j  ,   a )
             integer, intent(in) :: i,j
             real(kind=8), intent(in) :: a
-         END SUBROUTINE 
+         END SUBROUTINE
          subroutine EP_GramSchmidt(i,j)
             integer, intent(in) :: i,j
-         END SUBROUTINE 
+         END SUBROUTINE
          subroutine EP_set_all_random(i)
             integer, intent(in) :: i
-         END SUBROUTINE 
+         END SUBROUTINE
          subroutine EP_copy(i,j)
             integer, intent(in) :: i,j
          END SUBROUTINE
          subroutine EP_mat_mult(m,k ,  EV )
             integer, intent(in):: m,k
             real(kind=8), intent(in):: EV(1 )
-         END SUBROUTINE        
+         END SUBROUTINE
 
       end interface
 
@@ -305,7 +304,7 @@ module lanczos_base
          endif
 
 
-         if ( (nc+2*nd) .ge. m) then 
+         if ( (nc+2*nd) .ge. m) then
             k=m-1
          else
             k=nc+2*nd
@@ -326,7 +325,7 @@ module lanczos_base
       else
          LB_cerca= k
       endif
-      return 
+      return
    END FUNCTION LB_cerca
 
    function notzero(k, tol)
@@ -342,7 +341,7 @@ module lanczos_base
             notzero=notzero+1
          endif
       enddo
-      return 
+      return
    END FUNCTION notzero
 
 
@@ -370,7 +369,7 @@ module lanczos_base
 
       LB_beta(0:k-1) = LB_beta(m-1)*evect(m-1, 0:k-1)
 
-      call EP_mat_mult(m,k,  evect(0:, 0:  )   ) 
+      call EP_mat_mult(m,k,  evect(0:, 0:  )   )
 
       do i=0, k-1
          call EP_normalizza(-i-1)
@@ -418,34 +417,34 @@ module lanczos_base
          subroutine EP_mat_mult(m,k ,  EV )
             integer, intent(in)::  m,k
             real(kind=8), intent(in)::  EV(1 )
-         END SUBROUTINE  
+         END SUBROUTINE
          function get_EP_dim()
             implicit none
             integer :: get_EP_dim
          END FUNCTION
          subroutine EP_initialize_start()
-         END SUBROUTINE 
+         END SUBROUTINE
          subroutine EP_normalizza(i)
             integer, intent(in) :: i
-         END SUBROUTINE 
+         END SUBROUTINE
          subroutine EP_Moltiplica(i,j)
             integer, intent(in) :: i,j
-         END SUBROUTINE 
+         END SUBROUTINE
          function EP_scalare(i,j)
             implicit none
             real(kind=8) :: EP_scalare
             integer, intent(in) :: i,j
-         END FUNCTION 
+         END FUNCTION
          subroutine EP_add_from_vect_with_fact( i, j  ,   a )
             integer, intent(in) :: i,j
             real(kind=8), intent(in) :: a
-         END SUBROUTINE 
+         END SUBROUTINE
          subroutine EP_GramSchmidt(i,j)
             integer, intent(in) :: i,j
-         END SUBROUTINE 
+         END SUBROUTINE
          subroutine EP_set_all_random(i)
             integer, intent(in) :: i
-         END SUBROUTINE 
+         END SUBROUTINE
          subroutine EP_copy(i,j)
             integer, intent(in) :: i,j
          END SUBROUTINE
@@ -521,9 +520,9 @@ module lanczos_base
                   omega(i+1,j) = omega(i+1,j)+ add / LB_beta(i)
 
 
-               else if (j.eq.k)  then                        
+               else if (j.eq.k)  then
                   add = 2 * eusn + abs(LB_alpha(j)-LB_alpha(i))* abs( omega(i,j) )
-                  do w=0,k-1 
+                  do w=0,k-1
                      add = add + LB_beta(w)* abs( omega(i,w) )
                   enddo
                   if (i.ne.(k+1)) then
@@ -536,12 +535,12 @@ module lanczos_base
 
                   omega(i+1,j)  = omega(i+1,j) + add / LB_beta(i)
 
-               else if( j.lt.i) then 
+               else if( j.lt.i) then
 
                   add = 2 * eusn + abs(LB_alpha(j)- LB_alpha(i))  * abs(omega(i,j) )
 
                   if( i.ne.(j+1)) then
-                     add =  add +  LB_beta(j) * abs( omega(i,j+1) ) 
+                     add =  add +  LB_beta(j) * abs( omega(i,j+1) )
                   endif
                   if (i.gt.0 .and. j.gt.0) then
                      add = add +  LB_beta(j-1)*abs( omega(i-1,j-1))
@@ -555,7 +554,7 @@ module lanczos_base
 
                   add = eusn
 
-                  if (i.gt.0) then 
+                  if (i.gt.0) then
                      add = add +  LB_beta(i-1)*abs( omega(i,i-1))
                   endif
 
@@ -646,7 +645,7 @@ module lanczos_base
          !!!       ! controlla hermitianicita
          !!!       call EP_Moltiplica(p, i+1 )
          !!!       print *, "alla rovescio " , EP_scalare(p,i)- LB_beta(i)
-         !!!       
+         !!!
          !!!       if (i.gt.2) then
          !!!          print *, "con due prima " , EP_scalare(i-1,i+1)
          !!!
@@ -659,7 +658,7 @@ module lanczos_base
 
 
    subroutine CalcolaSpettroChebychev( cheb_shift, fact_cheb,   Nu, xabs_res_prefix, norbp , wgts)
-      use module_types 
+      use module_types
       real(gp) cheb_shift, fact_cheb
       integer Nu, norbp
       character(len=*) :: xabs_res_prefix
@@ -680,10 +679,10 @@ module lanczos_base
 
       Pi=acos(-1.0_gp)
       Nbar =1
-      do while(Nbar<Nu) 
+      do while(Nbar<Nu)
          Nbar=Nbar*2
       enddo
-      Nbar=Nbar*2   
+      Nbar=Nbar*2
 
       Xs = f_malloc_ptr(0.to.Nbar-1,id='Xs')
       res = f_malloc_ptr(0.to.Nbar-1,id='res')
@@ -704,12 +703,12 @@ module lanczos_base
          do i=0,Nbar-1
             Xs(i)=cos( (Nbar-1 - i +0.5_gp)*Pi/Nbar)
             !!$       res(i)=LB_alpha(0)
-            !!$       alphas(i) = exp(   ((0.0_gp,1.0_gp) * ( Nbar-1 - i +0.5_gp)) *Pi/Nbar     ) 
+            !!$       alphas(i) = exp(   ((0.0_gp,1.0_gp) * ( Nbar-1 - i +0.5_gp)) *Pi/Nbar     )
             !!$       expn(i)=(1.0_gp,0)
             !!$
 
             !!$
-            !!$       exp(   ((0.0_gp,1.0_gp) * (  - i )) *Pi/Nbar     ) 
+            !!$       exp(   ((0.0_gp,1.0_gp) * (  - i )) *Pi/Nbar     )
             !!$       exp(   ((0.0_gp,1.0_gp) * ( Nbar-1  +0.5_gp)) *Pi/Nbar     ) = -exp(   ((0.0_gp,1.0_gp) * ( -0.5_gp)) *Pi/Nbar     )
 
             if(i<Nu) then
@@ -740,8 +739,8 @@ module lanczos_base
 
          call vcopy(2*Nbar,zinout(1,1,inzee),2,cfftreal(0),1)
          call vcopy(2*Nbar,zinout(2,1,inzee),2,cfftimag(0),1)
-         !cfftreal(:)  =   zinout(1,1:2*Nbar,inzee)   
-         !cfftimag(:)  =   zinout(2,1:2*Nbar,inzee)    
+         !cfftreal(:)  =   zinout(1,1:2*Nbar,inzee)
+         !cfftimag(:)  =   zinout(2,1:2*Nbar,inzee)
 
          cfftreal=cfftreal-(LB_alpha_cheb(iorb, 0)*0.5) *wgts(iorb)
 
@@ -752,7 +751,7 @@ module lanczos_base
          !!$       res(:)=res(:)+2*REAL(expn(:))*LB_alpha(n)*fact
          !!$    enddo
 
-         print *, " done " 
+         print *, " done "
 
          !!$    res =res/Pi/sqrt(1-Xs*Xs)
 
@@ -763,7 +762,7 @@ module lanczos_base
 
 
          write(filename,'(a,a,I0,a,I0)') trim(xabs_res_prefix),  "cheb_spectra_proc_", LB_iproc,"_orbp_", iorb
-         write(*, '(a,1x, a)') " writing spectra to " , trim(filename) 
+         write(*, '(a,1x, a)') " writing spectra to " , trim(filename)
          open(unit=22,file=filename)
          do i=0, Nbar-1
             write(22,*) Xs(i) / fact_cheb + cheb_shift , cfftreal(i)/wgts(iorb)
@@ -783,7 +782,7 @@ module lanczos_base
 
       if(LB_iproc==0) then
          write(filename,'(a,a,I0)') trim(xabs_res_prefix),  "cheb_spectra_", Nu+1
-         write(*, '(a,1x, a)') " writing spectra to " , trim(filename) 
+         write(*, '(a,1x, a)') " writing spectra to " , trim(filename)
 
          open(unit=22,file=filename)
          do i=0, Nbar-1
@@ -823,19 +822,19 @@ module lanczos_base
          subroutine EP_mat_mult(m,k ,  EV )
             integer, intent(in)::  m,k
             real(kind=8), intent(in)::  EV(1 )
-         END SUBROUTINE  
+         END SUBROUTINE
          function get_EP_dim()
             implicit none
             integer :: get_EP_dim
          END FUNCTION
          subroutine EP_initialize_start()
-         END SUBROUTINE 
+         END SUBROUTINE
          subroutine EP_normalizza(i)
             integer, intent(in) :: i
-         END SUBROUTINE 
+         END SUBROUTINE
          subroutine EP_Moltiplica(i,j)
             integer, intent(in) :: i,j
-         END SUBROUTINE 
+         END SUBROUTINE
          function EP_scalare(i,j)
             implicit none
             real(kind=8) :: EP_scalare
@@ -851,15 +850,15 @@ module lanczos_base
          subroutine EP_add_from_vect_with_fact( i, j  ,   a )
             integer, intent(in) :: i,j
             real(kind=8), intent(in) :: a
-         END SUBROUTINE 
+         END SUBROUTINE
 
          subroutine EP_GramSchmidt(i,j)
             integer, intent(in) :: i,j
-         END SUBROUTINE 
+         END SUBROUTINE
 
          subroutine EP_set_all_random(i)
             integer, intent(in) :: i
-         END SUBROUTINE 
+         END SUBROUTINE
 
          subroutine EP_copy(i,j)
             integer, intent(in) :: i,j
@@ -887,7 +886,7 @@ module lanczos_base
       integer :: i
       integer :: tmp1, attuale, precedente
       integer :: Stmp1, Sattuale, Sprecedente, dspl( 0:LB_nproc-1)
-      logical :: S_do_cg ,Sinv_do_cg 
+      logical :: S_do_cg ,Sinv_do_cg
       real(gp) tol
       real(wp) alphacollect(nkpts)
 
@@ -919,19 +918,19 @@ module lanczos_base
             !!$          call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
                !!$               EP_ApplySinv ,  EP_copy,  &
                !!$               EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol, Sattuale, attuale)
-            STOP " S_do_cg temporarily disactivate beacause chebychev is potentially multik " 
+            STOP " S_do_cg temporarily disactivate beacause chebychev is potentially multik "
 
 
             !!$       call  EP_ApplySinv( tmp1 , Sattuale)
-            !!$       call EP_add_from_vect_with_fact( tmp1  , attuale ,-1.0_gp ) 
-            !!$       print *, " residuo " , EP_scalare(tmp1,tmp1) 
+            !!$       call EP_add_from_vect_with_fact( tmp1  , attuale ,-1.0_gp )
+            !!$       print *, " residuo " , EP_scalare(tmp1,tmp1)
             !!$       STOP "  !! qua fare un test rimoltiplicando per sinv "
 
          else
             call  EP_ApplyS(Sattuale   ,attuale )
          endif
 
-         call EP_scalare_multik(attuale,Sattuale, LB_alpha_cheb(:,0)  ) 
+         call EP_scalare_multik(attuale,Sattuale, LB_alpha_cheb(:,0)  )
       else
          call EP_scalare_multik(attuale,attuale, LB_alpha_cheb(:,0) )
       endif
@@ -946,50 +945,50 @@ module lanczos_base
             !!$          close(unit=22)
             call CalcolaSpettroChebychev( cheb_shift,&
                &   fact_cheb,   2*i+1 , xabs_res_prefix, &
-               &   norb_par(LB_iproc), wgts) 
+               &   norb_par(LB_iproc), wgts)
          endif
 
          call EP_Moltiplica(tmp1, attuale )
          if(dopaw) then
-            call EP_add_from_vect_with_fact( tmp1 , Sattuale, -cheb_shift ) 
+            call EP_add_from_vect_with_fact( tmp1 , Sattuale, -cheb_shift )
          else
-            call EP_add_from_vect_with_fact(  tmp1 ,attuale  ,-cheb_shift )           
+            call EP_add_from_vect_with_fact(  tmp1 ,attuale  ,-cheb_shift )
          endif
 
 
          call EP_multbyfact(tmp1,fact_cheb)
          if(i==0) then
-            !!$          LB_alpha(1)=EP_scalare(tmp1,attuale)  
-            call EP_scalare_multik(tmp1,attuale, LB_alpha_cheb(:, 1))  
+            !!$          LB_alpha(1)=EP_scalare(tmp1,attuale)
+            call EP_scalare_multik(tmp1,attuale, LB_alpha_cheb(:, 1))
             if(dopaw) then
                call EP_copy(Stmp1,tmp1)
                if(   Sinv_do_cg ) then
                   !!$                call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
 !!$                     EP_ApplyS ,  EP_copy,  &
-!!$                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol,tmp1 ,Stmp1 )  
-                  STOP " Sinv_do_cg temporarily disactivate beacaause chebychev is potentially multik" 
+!!$                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol,tmp1 ,Stmp1 )
+                  STOP " Sinv_do_cg temporarily disactivate beacaause chebychev is potentially multik"
 
                else
-                  call EP_ApplySinv(tmp1, Stmp1 )             
+                  call EP_ApplySinv(tmp1, Stmp1 )
                endif
             end if
          else
             if(dopaw) then
                call EP_copy(Stmp1,tmp1)
                call EP_multbyfact(Stmp1,2.0_gp)
-               call EP_add_from_vect_with_fact( Stmp1 , Sprecedente,-1.0_gp ) 
+               call EP_add_from_vect_with_fact( Stmp1 , Sprecedente,-1.0_gp )
 
                if(   Sinv_do_cg ) then
                   !!$                call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
                      !!$                     EP_ApplyS ,  EP_copy,  &
                      !!$                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol, tmp1,Stmp1 )
-                  STOP " Sinv_do_cg temporarily disactivate beacaause chebychev is potentially multik " 
+                  STOP " Sinv_do_cg temporarily disactivate beacaause chebychev is potentially multik "
                else
-                  call EP_ApplySinv(tmp1, Stmp1 )             
+                  call EP_ApplySinv(tmp1, Stmp1 )
                endif
             else
                call EP_multbyfact(tmp1,2.0_gp)
-               call EP_add_from_vect_with_fact( tmp1 , precedente,-1.0_gp )              
+               call EP_add_from_vect_with_fact( tmp1 , precedente,-1.0_gp )
             end if
          endif
          if(dopaw) then
@@ -1051,24 +1050,24 @@ module lanczos_base
          integer function get_EP_dim()
       END FUNCTION
       subroutine EP_initialize_start()
-      END SUBROUTINE 
+      END SUBROUTINE
       subroutine EP_normalizza(i)
          integer , intent(in)  :: i
-      END SUBROUTINE 
+      END SUBROUTINE
       subroutine EP_Moltiplica4spectra(i,j, ene, gamma)
          use module_base
          integer , intent(in)  :: i,j
          real(gp) :: ene, gamma
-      END SUBROUTINE 
+      END SUBROUTINE
       function EP_scalare(i,j)
          implicit none
          real(kind=8) :: EP_scalare
          integer , intent(in)  :: i,j
-      END FUNCTION 
+      END FUNCTION
       subroutine EP_add_from_vect_with_fact( i, j  ,   a )
          integer , intent(in)  :: i,j
          real(kind=8) , intent(in)  :: a
-      END SUBROUTINE 
+      END SUBROUTINE
       subroutine EP_copy(i,j)
          integer , intent(in)  :: i,j
       END SUBROUTINE
@@ -1129,7 +1128,7 @@ module lanczos_base
 
    maxerr=err0
 
-   do while(k<500 .and. err/maxerr>tol) 
+   do while(k<500 .and. err/maxerr>tol)
       if(err>maxerr) maxerr=err
       call EP_Moltiplica4spectra(Ap, p, ene, gamma)
 
@@ -1140,7 +1139,7 @@ module lanczos_base
       call EP_add_from_vect_with_fact(x,p,alpha)
       call EP_add_from_vect_with_fact(r, Ap,-alpha)
 
-      ! precondiziona qui 
+      ! precondiziona qui
       call EP_precondition(z,r, ene, gamma)
       ! call EP_copy(z,r)
 
@@ -1182,7 +1181,7 @@ subroutine  LB_generic_cg(    get_EP_dim,  EP_normalizza,&
       END FUNCTION
       subroutine EP_normalizza(i)
          integer , intent(in):: i
-      END SUBROUTINE 
+      END SUBROUTINE
       subroutine EP_gen_Moltiplica(i,j)
          use module_base
          integer, intent(in) :: i,j
@@ -1191,11 +1190,11 @@ subroutine  LB_generic_cg(    get_EP_dim,  EP_normalizza,&
       function EP_scalare(i,j)
          real(kind=8) :: EP_scalare
          integer , intent(in) :: i,j
-      END FUNCTION 
+      END FUNCTION
       subroutine EP_add_from_vect_with_fact( i, j  ,   a )
          integer , intent(in) :: i,j
          real(kind=8) , intent(in)  :: a
-      END SUBROUTINE 
+      END SUBROUTINE
       subroutine EP_copy(i,j)
          integer , intent(in) :: i,j
       END SUBROUTINE
@@ -1235,7 +1234,7 @@ subroutine  LB_generic_cg(    get_EP_dim,  EP_normalizza,&
 
    maxerr=err0
 
-   do while(k<500 .and. err/maxerr>tol) 
+   do while(k<500 .and. err/maxerr>tol)
       if(err>maxerr) maxerr=err
       call EP_gen_Moltiplica(Ap, p)
 
@@ -1260,7 +1259,7 @@ subroutine  LB_generic_cg(    get_EP_dim,  EP_normalizza,&
    write(*,'(1x,A30,ES13.2)') " generic CG ERR ,  result :  ", err
 
 
-   return  
+   return
 
 END SUBROUTINE LB_generic_cg
 

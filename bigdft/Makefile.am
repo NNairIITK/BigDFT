@@ -14,27 +14,26 @@ if BUILD_FLIB
 SUBDIRS += flib
 endif
 
+#Poisson Solver and wrappers
 if BUILD_LIB_PSOLVER
 SUBDIRS += wrappers PSolver
 endif
 
+# BigDFT itself and structure prediction library at the end
 if BUILD_LIB_BIGDFT
-# BigDFT itself.
-SUBDIRS += src
-# And structure prediction library
-SUBDIRS += spred
+SUBDIRS += src spred
 endif
 
-SUBDIRS += \
-	doc \
-	utils
-
-# Tests subdir is include only if binaries are compiled.
+# Tests subdir is included only if binaries are compiled.
 if BUILD_BINARIES
 if HAVE_PYYAML
 SUBDIRS += tests
 endif
 endif
+
+SUBDIRS += \
+	doc \
+	utils
 
 check report:
 	python $(top_builddir)/tests/report.py
