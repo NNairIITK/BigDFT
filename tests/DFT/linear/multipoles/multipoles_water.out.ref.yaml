@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-02-04 11:28:08.437
+ Timestamp of this run                 : 2016-02-15 18:14:47.829
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -63,6 +63,7 @@
      units                             : atomic
      values:
      - sym                             : O
+       nzion                           : 6
        r: [2.06562106539457391E+00, 7.27619783005115761E-01, 6.76503749782279762E+00]
        sigma: [0.450, 0.450, 0.450]
        q0: [0.64799043E+00]
@@ -70,6 +71,7 @@
        q2: [-2.44853719E-01, -4.18493862E-01, 2.33373064E-01, -2.26006558E-02, 
          -3.81967570E-01]
      - sym                             : H
+       nzion                           : 1
        r: [3.07145313043265089E-01, 2.08503970823405854E-01, 6.73578314472255357E+00]
        sigma: [0.244, 0.244, 0.244]
        q0: [-0.325133348E+00]
@@ -77,6 +79,7 @@
        q2: [-1.55142655E-03, 1.88444563E-03, 1.07913549E-02, 7.98938948E-05, 
          -6.47131350E-03]
      - sym                             : H
+       nzion                           : 1
        r: [2.15712775822406000E+00, 1.92204932680980578E+00, 8.15614355059263474E+00]
        sigma: [0.244, 0.244, 0.244]
        q0: [-0.330044244E+00]
@@ -2077,20 +2080,45 @@
    - q0                                :  [  1.21E-05 ]
    - q1                                :  [  3.79E-06,  3.96E-06,  1.88E-07 ]
    - q2: [ 1.71E-06,  2.39E-06,  2.31E-05,  5.58E-06,  1.40E-05]
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating kernel for orthonormal support functions
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating matrix for orthonormal support functions
  calculate S^x:
    mode                                : sparse
    powers:
      x                                 : 1/2
-   order                               :  20
+   order                               :  1020
+   determine eigenvalue bounds:
+   -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
+ exp accur:  [  6.93E-10 ]}
    error estimation:
-     max / mean error                  :  [  6.66E-16,  1.49E-16 ]
+     max / mean error                  :  [  5.07E-10,  2.16E-10 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Orthonormalizing the support functions
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating matrix for orthonormal support functions
+ calculate S^x:
+   mode                                : sparse
+   powers:
+     x                                 : -1/2
+   order                               :  1020
+   determine eigenvalue bounds:
+   -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
+ exp accur:  [  3.61E-10 ]}
+   error estimation:
+     max / mean error                  :  [  2.46E-10,  1.22E-10 ]
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
+ calculate S^x:
+   mode                                : sparse
+   powers:
+     x                                 : -1
+   order                               :  1020
+   determine eigenvalue bounds:
+   -  {npl:  17, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
+ exp accur:  [  7.57E-10 ]}
+   error estimation:
+     max / mean error                  :  [  4.11E-15,  1.55E-15 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr
-   global monopole                     : -6.518446E-04
+   global monopole                     : -6.518430E-04
    global monopole analytic            :  3.216350E-08
    values:
    - sym                               : O # 0001
@@ -2098,24 +2126,24 @@
      sigma                             :  [  0.450,  0.450,  0.450 ]
      q0 analytic                       : -6.406300E-01
      q0                                :  [ -6.390676E-01 ]
-     q1                                :  [ -8.782511E-02,  1.747634E-01, -1.541845E-01 ]
-     q2: [ 6.823534E-01, -8.793025E-02,  5.087669E-01,  4.824232E-01,  7.533118E-01]
+     q1                                :  [ -8.769945E-02,  1.744830E-01, -1.539848E-01 ]
+     q2: [ 6.100708E-01, -3.341782E-02,  4.327407E-01,  5.321047E-01,  6.927851E-01]
      type                              : unknown
    - sym                               : H # 0002
      r: [ 0.233534956652829,  0.513721445220362,  0.5361759933301388]
      sigma                             :  [  0.244,  0.244,  0.244 ]
      q0 analytic                       :  3.288000E-01
      q0                                :  [  3.275509E-01 ]
-     q1                                :  [  6.439193E-02, -1.645404E-02,  1.446160E-01 ]
-     q2: [ 1.137484E-01,  2.989233E-02, -1.112271E-01,  6.390229E-02,  1.299019E-01]
+     q1                                :  [  6.428328E-02, -1.648415E-02,  1.443440E-01 ]
+     q2: [ 1.834161E-01,  9.741719E-03, -1.626217E-01,  1.821868E-02,  1.919189E-01]
      type                              : unknown
    - sym                               : H # 0003
      r: [ 2.366235518969471,  1.111238475158637,  2.450408084576114]
      sigma                             :  [  0.244,  0.244,  0.244 ]
      q0 analytic                       :  3.118300E-01
      q0                                :  [  3.108649E-01 ]
-     q1                                :  [  2.31284E-02, -1.971719E-01, -1.780531E-02 ]
-     q2: [-1.322952E-02, -1.300477E-03,  1.740807E-01,  1.041772E-01,  6.342492E-03]
+     q1                                :  [  2.311139E-02, -1.968614E-01, -1.773308E-02 ]
+     q2: [-1.066270E-02, -3.566531E-02,  3.016401E-01,  1.001932E-01,  4.785406E-03]
      type                              : unknown
  Checking the total multipoles based on the atomic multipoles:
  - Up to multipole l= 0:
@@ -2127,27 +2155,27 @@
        -  [  9.1992E-01,  9.4697E-01,  1.3287E+00 ]
        -  [  9.4697E-01, -1.4788E+00,  1.8802E-01 ]
        -  [  1.3287E+00,  1.8802E-01,  5.5883E-01 ]
-       trace                           : -4.83E-13
+       trace                           : -4.01E-13
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
        P vector                        :  [ -1.2513E+00, -6.9041E-01,  1.1484E+00 ]
        norm(P)                         :  1.833355E+00
      Quadrupole Moment (AU):
        Q matrix:
-       -  [  6.3772E-01,  3.2647E-01,  1.0303E+00 ]
-       -  [  3.2647E-01, -4.6614E-01,  3.7225E-01 ]
-       -  [  1.0303E+00,  3.7225E-01, -1.7157E-01 ]
-       trace                           : -2.10E-13
+       -  [  6.3848E-01,  3.2758E-01,  1.0313E+00 ]
+       -  [  3.2758E-01, -4.6794E-01,  3.7217E-01 ]
+       -  [  1.0313E+00,  3.7217E-01, -1.7054E-01 ]
+       trace                           : -2.88E-13
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -1.251E+00, -6.9023E-01,  1.1487E+00 ]
-       norm(P)                         :  1.833249E+00
+       P vector                        :  [ -1.2507E+00, -6.9005E-01,  1.1489E+00 ]
+       norm(P)                         :  1.833151E+00
      Quadrupole Moment (AU):
        Q matrix:
-       -  [  1.6068E+00,  1.6824E+00,  2.1571E+00 ]
-       -  [  1.6824E+00, -2.5786E+00,  2.6947E-01 ]
-       -  [  2.1571E+00,  2.6947E-01,  9.7182E-01 ]
-       trace                           : -1.30E-13
+       -  [  1.6072E+00,  1.6835E+00,  2.1582E+00 ]
+       -  [  1.6835E+00, -2.5804E+00,  2.6939E-01 ]
+       -  [  2.1582E+00,  2.6939E-01,  9.7320E-01 ]
+       trace                           : -2.26E-13
   #========================================================== Atomic multipole analysis done
  Total charge                          :  7.999998409383E+00
   #---------------------------------------------------------------------- Forces Calculation
@@ -2180,8 +2208,8 @@
  - The support function localization radii might be too small, got 3 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.81
-   Elapsed time (s)                    :  9.83
+   CPU time (s)                        :  9.74
+   Elapsed time (s)                    :  11.04
  BigDFT infocode                       :  0
  Average noise forces: {x:  2.73525197E-02, y: -6.19179407E-03, z:  4.88045027E-02, 
                     total:  5.62883481E-02}
@@ -2195,14 +2223,14 @@
  Energy (Hartree)                      : -1.78765876206261183E+01
  Force Norm (Hartree/Bohr)             :  3.36701601254520561E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  12263
-   Tot. No. of Deallocations           :  12263
+   Tot. No. of Allocations             :  12544
+   Tot. No. of Deallocations           :  12544
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  98.730
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 102.452 MB
- Walltime since initialization         : 00:00:10.210813577
- Max No. of dictionaries used          :  8550 #( 909 still in use)
+     Memory Peak of process            : 101.176 MB
+ Walltime since initialization         : 00:00:11.413098592
+ Max No. of dictionaries used          :  9427 #( 909 still in use)
  Number of dictionary folders allocated:  1

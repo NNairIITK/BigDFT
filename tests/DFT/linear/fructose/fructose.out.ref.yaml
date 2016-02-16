@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-02-04 11:34:13.813
+ Timestamp of this run                 : 2016-02-15 15:02:14.517
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -1723,120 +1723,128 @@
      convergence criterion             :  1.0E-004
      maximal size of a submatrix       :  46
      Searching alpha for charge neutrality:
-     -  {alpha:  1.0000E-03, net charge: -7.1333E+01, bisection bounds ok:  [  No,  No ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.0000E+01, net charge: -3.0812E-04, bisection bounds ok:  [  Yes,  No ], 
-            kT:  1.0000E-02}
-     -  {alpha:  2.0000E+01, net charge:  2.2212E-02, bisection bounds ok:  [  Yes,  No ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.0001E+01, net charge: -3.0587E-04, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.5000E+01, net charge:  1.4705E-02, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.2500E+01, net charge:  8.7007E-03, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.1250E+01, net charge:  4.6977E-03, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.0625E+01, net charge:  2.3431E-03, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.0313E+01, net charge:  1.0587E-03, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.0157E+01, net charge:  3.8693E-04, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.0079E+01, net charge:  4.3217E-05, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     number of states to be occupied (without smearing):  42
-     Pseudo Fermi level for occupations:  0.3147623329575415
+     -  {alpha:  1.0000E-03, net charge: -1.8102E+02, bisection bounds ok:  [  No,  No ], 
+        sigma2:  1.3699E-04,         eF:  7.7372E-01}
+     -  {alpha:  1.0000E+01, net charge: -1.5840E-02, bisection bounds ok:  [  Yes,  No ], 
+        sigma2:  8.0000E-04,         eF:  4.2058E-01}
+     -  {alpha:  2.0000E+01, net charge:  6.5526E-03, bisection bounds ok:  [  Yes,  No ], 
+        sigma2:  8.0000E-04,         eF:  4.2070E-01}
+     -  {alpha:  1.0001E+01, net charge: -1.5838E-02, bisection bounds ok:  [  Yes,  Yes ], 
+        sigma2:  8.0000E-04,         eF:  4.2058E-01}
+     -  {alpha:  1.5000E+01, net charge: -9.1119E-04, bisection bounds ok:  [  Yes,  Yes ], 
+        sigma2:  8.0000E-04,         eF:  4.2066E-01}
+     -  {alpha:  1.7500E+01, net charge:  3.3538E-03, bisection bounds ok:  [  Yes,  Yes ], 
+        sigma2:  8.0000E-04,         eF:  4.2068E-01}
+     -  {alpha:  1.6250E+01, net charge:  1.3853E-03, bisection bounds ok:  [  Yes,  Yes ], 
+        sigma2:  8.0000E-04,         eF:  4.2067E-01}
+     -  {alpha:  1.5625E+01, net charge:  2.8299E-04, bisection bounds ok:  [  Yes,  Yes ], 
+        sigma2:  8.0000E-04,         eF:  4.2067E-01}
+     -  {alpha:  1.5313E+01, net charge: -3.0192E-04, bisection bounds ok:  [  Yes,  Yes ], 
+        sigma2:  8.0000E-04,         eF:  4.2066E-01}
+     -  {alpha:  1.5469E+01, net charge: -6.5081E-06, bisection bounds ok:  [  Yes,  Yes ], 
+        sigma2:  8.0000E-04,         eF:  4.2066E-01}
+     number of states to be occupied (without smearing):  36
+     Pseudo Fermi level for occupations:  0.4206640779662968
      ordered eigenvalues and occupations:
-     -  {eval: -6.6024E-01, atom:  00005, occ:  1.0000} # 00001
-     -  {eval: -6.2271E-01, atom:  00012, occ:  1.0000} # 00002
-     -  {eval: -6.2205E-01, atom:  00007, occ:  1.0000} # 00003
-     -  {eval: -6.0800E-01, atom:  00011, occ:  1.0000} # 00004
-     -  {eval: -6.0723E-01, atom:  00009, occ:  1.0000} # 00005
-     -  {eval: -5.9120E-01, atom:  00008, occ:  1.0000} # 00006
-     -  {eval: -1.8370E-01, atom:  00004, occ:  1.0000} # 00007
+     -  {eval: -6.6022E-01, atom:  00005, occ:  1.0000} # 00001
+     -  {eval: -6.2267E-01, atom:  00012, occ:  1.0000} # 00002
+     -  {eval: -6.2201E-01, atom:  00007, occ:  1.0000} # 00003
+     -  {eval: -6.0789E-01, atom:  00011, occ:  1.0000} # 00004
+     -  {eval: -6.0712E-01, atom:  00009, occ:  1.0000} # 00005
+     -  {eval: -5.9109E-01, atom:  00008, occ:  1.0000} # 00006
+     -  {eval: -1.8368E-01, atom:  00004, occ:  1.0000} # 00007
      -  {eval: -1.4256E-01, atom:  00005, occ:  1.0000} # 00008
      -  {eval: -1.4242E-01, atom:  00009, occ:  1.0000} # 00009
      -  {eval: -1.4035E-01, atom:  00011, occ:  1.0000} # 00010
-     -  {eval: -1.3961E-01, atom:  00003, occ:  1.0000} # 00011
-     -  {eval: -1.3791E-01, atom:  00002, occ:  1.0000} # 00012
-     -  {eval: -1.3405E-01, atom:  00001, occ:  1.0000} # 00013
+     -  {eval: -1.3957E-01, atom:  00003, occ:  1.0000} # 00011
+     -  {eval: -1.3786E-01, atom:  00002, occ:  1.0000} # 00012
+     -  {eval: -1.3401E-01, atom:  00001, occ:  1.0000} # 00013
      -  {eval: -1.1845E-01, atom:  00008, occ:  1.0000} # 00014
      -  {eval: -1.1224E-01, atom:  00007, occ:  1.0000} # 00015
      -  {eval: -1.0589E-01, atom:  00012, occ:  1.0000} # 00016
-     -  {eval: -9.1158E-02, atom:  00010, occ:  1.0000} # 00017
-     -  {eval: -8.8528E-02, atom:  00005, occ:  1.0000} # 00018
-     -  {eval: -8.0833E-02, atom:  00006, occ:  1.0000} # 00019
-     -  {eval: -7.5362E-02, atom:  00011, occ:  1.0000} # 00020
-     -  {eval: -7.3844E-02, atom:  00007, occ:  1.0000} # 00021
-     -  {eval: -6.8026E-02, atom:  00009, occ:  1.0000} # 00022
-     -  {eval: -6.7539E-02, atom:  00012, occ:  1.0000} # 00023
-     -  {eval: -5.7226E-02, atom:  00008, occ:  1.0000} # 00024
-     -  {eval: -3.0823E-02, atom:  00005, occ:  1.0000} # 00025
-     -  {eval:  1.7009E-02, atom:  00017, occ:  1.0000} # 00026
-     -  {eval:  2.6341E-02, atom:  00019, occ:  1.0000} # 00027
-     -  {eval:  2.7342E-02, atom:  00011, occ:  1.0000} # 00028
-     -  {eval:  3.0294E-02, atom:  00007, occ:  1.0000} # 00029
-     -  {eval:  3.3079E-02, atom:  00009, occ:  1.0000} # 00030
-     -  {eval:  3.4050E-02, atom:  00012, occ:  1.0000} # 00031
-     -  {eval:  3.4451E-02, atom:  00021, occ:  1.0000} # 00032
-     -  {eval:  3.8065E-02, atom:  00013, occ:  1.0000} # 00033
-     -  {eval:  3.9447E-02, atom:  00023, occ:  1.0000} # 00034
-     -  {eval:  4.0025E-02, atom:  00014, occ:  1.0000} # 00035
-     -  {eval:  4.3178E-02, atom:  00016, occ:  1.0000} # 00036
-     -  {eval:  5.8868E-02, atom:  00022, occ:  1.0000} # 00037
-     -  {eval:  6.1870E-02, atom:  00024, occ:  1.0000} # 00038
-     -  {eval:  6.4843E-02, atom:  00008, occ:  1.0000} # 00039
-     -  {eval:  9.7467E-02, atom:  00018, occ:  1.0000} # 00040
-     -  {eval:  1.1064E-01, atom:  00015, occ:  1.0000} # 00041
-     -  {eval:  1.2977E-01, atom:  00020, occ:  1.0000} # 00042
-     -  {eval:  1.4576E-01, atom:  00010, occ:  1.0000} # 00043
-     -  {eval:  1.5012E-01, atom:  00002, occ:  1.0000} # 00044
-     -  {eval:  1.5591E-01, atom:  00004, occ:  1.0000} # 00045
-     -  {eval:  1.5786E-01, atom:  00003, occ:  1.0000} # 00046
-     -  {eval:  1.6628E-01, atom:  00001, occ:  1.0000} # 00047
-     -  {eval:  1.7157E-01, atom:  00004, occ:  1.0000} # 00048
-     -  {eval:  1.7796E-01, atom:  00006, occ:  1.0000} # 00049
-     -  {eval:  1.8502E-01, atom:  00004, occ:  1.0000} # 00050
-     -  {eval:  1.8619E-01, atom:  00002, occ:  1.0000} # 00051
-     -  {eval:  1.8861E-01, atom:  00001, occ:  1.0000} # 00052
-     -  {eval:  1.9325E-01, atom:  00003, occ:  0.99999} # 00053
-     -  {eval:  2.2180E-01, atom:  00010, occ:  0.99991} # 00054
-     -  {eval:  2.3234E-01, atom:  00006, occ:  0.99974} # 00055
-     -  {eval:  2.4081E-01, atom:  00002, occ:  0.99939} # 00056
-     -  {eval:  2.4135E-01, atom:  00003, occ:  0.99935} # 00057
-     -  {eval:  2.5125E-01, atom:  00001, occ:  0.99826} # 00058
-     -  {eval:  2.6452E-01, atom:  00006, occ:  0.99347} # 00059
-     -  {eval:  2.7023E-01, atom:  00010, occ:  0.98849} # 00060
+     -  {eval: -9.1088E-02, atom:  00010, occ:  1.0000} # 00017
+     -  {eval: -8.8518E-02, atom:  00005, occ:  1.0000} # 00018
+     -  {eval: -8.0766E-02, atom:  00006, occ:  1.0000} # 00019
+     -  {eval: -7.5342E-02, atom:  00011, occ:  1.0000} # 00020
+     -  {eval: -7.3837E-02, atom:  00007, occ:  1.0000} # 00021
+     -  {eval: -6.8008E-02, atom:  00009, occ:  1.0000} # 00022
+     -  {eval: -6.7532E-02, atom:  00012, occ:  1.0000} # 00023
+     -  {eval: -5.7205E-02, atom:  00008, occ:  1.0000} # 00024
+     -  {eval: -3.0803E-02, atom:  00005, occ:  1.0000} # 00025
+     -  {eval:  1.7093E-02, atom:  00017, occ:  1.0000} # 00026
+     -  {eval:  2.6429E-02, atom:  00019, occ:  1.0000} # 00027
+     -  {eval:  2.7558E-02, atom:  00011, occ:  1.0000} # 00028
+     -  {eval:  3.0376E-02, atom:  00007, occ:  1.0000} # 00029
+     -  {eval:  3.3309E-02, atom:  00009, occ:  1.0000} # 00030
+     -  {eval:  3.4131E-02, atom:  00012, occ:  1.0000} # 00031
+     -  {eval:  3.4557E-02, atom:  00021, occ:  1.0000} # 00032
+     -  {eval:  3.8151E-02, atom:  00013, occ:  1.0000} # 00033
+     -  {eval:  3.9562E-02, atom:  00023, occ:  1.0000} # 00034
+     -  {eval:  4.0112E-02, atom:  00014, occ:  1.0000} # 00035
+     -  {eval:  4.3264E-02, atom:  00016, occ:  1.0000} # 00036
+     -  {eval:  5.8988E-02, atom:  00022, occ:  1.0000} # 00037
+     -  {eval:  6.1987E-02, atom:  00024, occ:  1.0000} # 00038
+     -  {eval:  6.5078E-02, atom:  00008, occ:  1.0000} # 00039
+     -  {eval:  9.7801E-02, atom:  00018, occ:  1.0000} # 00040
+     -  {eval:  1.1099E-01, atom:  00015, occ:  1.0000} # 00041
+     -  {eval:  1.3010E-01, atom:  00020, occ:  1.0000} # 00042
+     -  {eval:  1.4577E-01, atom:  00010, occ:  1.0000} # 00043
+     -  {eval:  1.5013E-01, atom:  00002, occ:  1.0000} # 00044
+     -  {eval:  1.5593E-01, atom:  00004, occ:  1.0000} # 00045
+     -  {eval:  1.5787E-01, atom:  00003, occ:  1.0000} # 00046
+     -  {eval:  1.6629E-01, atom:  00001, occ:  1.0000} # 00047
+     -  {eval:  1.7158E-01, atom:  00004, occ:  1.0000} # 00048
+     -  {eval:  1.7798E-01, atom:  00006, occ:  1.0000} # 00049
+     -  {eval:  1.8503E-01, atom:  00004, occ:  1.0000} # 00050
+     -  {eval:  1.8621E-01, atom:  00002, occ:  1.0000} # 00051
+     -  {eval:  1.8863E-01, atom:  00001, occ:  1.0000} # 00052
+     -  {eval:  1.9327E-01, atom:  00003, occ:  1.0000} # 00053
+     -  {eval:  2.2187E-01, atom:  00010, occ:  1.0000} # 00054
+     -  {eval:  2.3240E-01, atom:  00006, occ:  1.0000} # 00055
+     -  {eval:  2.4087E-01, atom:  00002, occ:  1.0000} # 00056
+     -  {eval:  2.4142E-01, atom:  00003, occ:  1.0000} # 00057
+     -  {eval:  2.5131E-01, atom:  00001, occ:  1.0000} # 00058
+     -  {eval:  2.6459E-01, atom:  00006, occ:  1.0000} # 00059
+     -  {eval:  2.7032E-01, atom:  00010, occ:  1.0000} # 00060
+     -  {eval:  4.9133E+02, atom:  00015, occ:  0.0000} # 00061
+     -  {eval:  4.9180E+02, atom:  00015, occ:  0.0000} # 00062
+     -  {eval:  4.9186E+02, atom:  00015, occ:  0.0000} # 00063
+     -  {eval:  4.9199E+02, atom:  00015, occ:  0.0000} # 00064
+     -  {eval:  4.9203E+02, atom:  00008, occ:  0.0000} # 00065
+     -  {eval:  4.9923E+02, atom:  00018, occ:  0.0000} # 00066
+     -  {eval:  4.9970E+02, atom:  00018, occ:  0.0000} # 00067
+     -  {eval:  4.9977E+02, atom:  00018, occ:  0.0000} # 00068
+     -  {eval:  4.9988E+02, atom:  00018, occ:  0.0000} # 00069
+     -  {eval:  4.9994E+02, atom:  00009, occ:  0.0000} # 00070
      -  {remaining states:  724, occ: <1.d-100}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Projector calculation finished
    Charge analysis (charge / net charge):
-   -  {C:  [ -3.536705198474E+00,  4.632948015256E-01 ]} # 0001
-   -  {C:  [ -3.541860134279E+00,  4.581398657207E-01 ]} # 0002
-   -  {C:  [ -3.53238846584E+00,  4.676115341595E-01 ]} # 0003
-   -  {C:  [ -3.438939683436E+00,  5.610603165643E-01 ]} # 0004
-   -  {O:  [ -6.523520932519E+00, -5.235209325192E-01 ]} # 0005
-   -  {C:  [ -3.347561612816E+00,  6.524383871837E-01 ]} # 0006
-   -  {O:  [ -6.391229393774E+00, -3.912293937740E-01 ]} # 0007
-   -  {O:  [ -6.361393086899E+00, -3.613930868987E-01 ]} # 0008
-   -  {O:  [ -6.368396961644E+00, -3.683969616437E-01 ]} # 0009
-   -  {C:  [ -3.345239087149E+00,  6.547609128513E-01 ]} # 0010
-   -  {O:  [ -6.423350432047E+00, -4.233504320472E-01 ]} # 0011
-   -  {O:  [ -6.381604787304E+00, -3.816047873041E-01 ]} # 0012
-   -  {H:  [ -1.199626482062E+00, -1.996264820616E-01 ]} # 0013
-   -  {H:  [ -1.200629795343E+00, -2.006297953426E-01 ]} # 0014
-   -  {H:  [ -8.961538402451E-01,  1.038461597549E-01 ]} # 0015
-   -  {H:  [ -1.197340391609E+00, -1.973403916089E-01 ]} # 0016
-   -  {H:  [ -1.202087549729E+00, -2.020875497287E-01 ]} # 0017
-   -  {H:  [ -8.824637137253E-01,  1.175362862747E-01 ]} # 0018
-   -  {H:  [ -1.189024352414E+00, -1.890243524137E-01 ]} # 0019
-   -  {H:  [ -8.644713008553E-01,  1.355286991447E-01 ]} # 0020
-   -  {H:  [ -1.198855908998E+00, -1.988559089985E-01 ]} # 0021
-   -  {H:  [ -8.884393992291E-01,  1.115606007709E-01 ]} # 0022
-   -  {H:  [ -1.193697317147E+00, -1.936973171466E-01 ]} # 0023
-   -  {H:  [ -8.949769549848E-01,  1.050230450152E-01 ]} # 0024
-   - total charge                      : -7.19999568E+01
-   - total net charge                  :  4.32174780E-05
+   -  {C:  [ -3.537475691654E+00,  4.625243083463E-01 ]} # 0001
+   -  {C:  [ -3.541768345457E+00,  4.582316545430E-01 ]} # 0002
+   -  {C:  [ -3.532326908432E+00,  4.676730915675E-01 ]} # 0003
+   -  {C:  [ -3.438705269667E+00,  5.612947303327E-01 ]} # 0004
+   -  {O:  [ -6.523353710107E+00, -5.233537101066E-01 ]} # 0005
+   -  {C:  [ -3.351676416501E+00,  6.483235834995E-01 ]} # 0006
+   -  {O:  [ -6.390690715107E+00, -3.906907151065E-01 ]} # 0007
+   -  {O:  [ -6.360139130474E+00, -3.601391304744E-01 ]} # 0008
+   -  {O:  [ -6.367171081187E+00, -3.671710811874E-01 ]} # 0009
+   -  {C:  [ -3.352630794473E+00,  6.473692055270E-01 ]} # 0010
+   -  {O:  [ -6.422193950567E+00, -4.221939505674E-01 ]} # 0011
+   -  {O:  [ -6.381071922697E+00, -3.810719226971E-01 ]} # 0012
+   -  {H:  [ -1.19927649714E+00, -1.992764971398E-01 ]} # 0013
+   -  {H:  [ -1.200276961489E+00, -2.002769614892E-01 ]} # 0014
+   -  {H:  [ -8.949871544553E-01,  1.050128455447E-01 ]} # 0015
+   -  {H:  [ -1.196992904087E+00, -1.969929040872E-01 ]} # 0016
+   -  {H:  [ -1.201743064289E+00, -2.017430642893E-01 ]} # 0017
+   -  {H:  [ -8.813253414712E-01,  1.186746585288E-01 ]} # 0018
+   -  {H:  [ -1.188669411732E+00, -1.886694117319E-01 ]} # 0019
+   -  {H:  [ -8.63385462263E-01,  1.366145377370E-01 ]} # 0020
+   -  {H:  [ -1.198438379708E+00, -1.984383797079E-01 ]} # 0021
+   -  {H:  [ -8.879468648307E-01,  1.120531351693E-01 ]} # 0022
+   -  {H:  [ -1.193269611701E+00, -1.932696117013E-01 ]} # 0023
+   -  {H:  [ -8.944909185663E-01,  1.055090814337E-01 ]} # 0024
+   - total charge                      : -7.20000065E+01
+   - total net charge                  : -6.50805658E-06
  Charge analysis, Loewdin approach:
    Method                              : Loewdin
    calculate S^x:
@@ -2451,8 +2459,8 @@
  - no improvement of the orbitals, recalculate gradient
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  38.22
-   Elapsed time (s)                    :  38.28
+   CPU time (s)                        :  38.25
+   Elapsed time (s)                    :  38.33
  BigDFT infocode                       :  0
  Average noise forces: {x:  9.18365322E-02, y:  6.07632245E-02, z:  1.47095732E-01, 
                     total:  1.83747850E-01}
@@ -2487,14 +2495,14 @@
  Energy (Hartree)                      : -1.35125793599654344E+02
  Force Norm (Hartree/Bohr)             :  4.89534230031736628E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  29060
-   Tot. No. of Deallocations           :  29060
+   Tot. No. of Allocations             :  28978
+   Tot. No. of Deallocations           :  28978
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  338.377
      for the array                     : psi_f
      in the routine                    : transpose_localized
-     Memory Peak of process            : 422.560 MB
- Walltime since initialization         : 00:00:38.684333939
+     Memory Peak of process            : 427.176 MB
+ Walltime since initialization         : 00:00:38.734774436
  Max No. of dictionaries used          :  7497 #( 909 still in use)
  Number of dictionary folders allocated:  1

@@ -425,6 +425,7 @@ base:
   Unitary check of the multipole calculations: 2.1e-2
   Maxdiff for overlap calculation: 3.5e-08
   Maxdiff for transpose (checksum): 1.2e-10 
+  Pseudo Fermi level for occupations: 4.5e-10
 
 Davidson-SiH4:
   e_virtual: 1.7e-11
@@ -547,6 +548,7 @@ rotate_read1:
  Omega: 8.1e-11
  D: 1.1e-10
  Energy (Hartree): 2.6e-11
+ Maxdiff for transpose (checksum): 9.4e-10
 
 rotate_read2:
  eBS: 2.6e-11
@@ -556,12 +558,14 @@ rotate_read2:
  Omega: 7.1e-11
  Epot: 1.1e-9
  Energy (Hartree): 3.4e-11
+ Maxdiff for transpose (checksum): 9.4e-10
  
 rotate_write:
  EvXC: 1.1e-10
  EXC: 1.1e-10
  energy: 2.2e-11
  Omega: 2.1e-11
+ Maxdiff for transpose (checksum): 9.4e-10
  Patterns to ignore:
  - Wavefunction written
 
@@ -806,6 +810,7 @@ water_foe:
  EBS higher temperature: 4.97e-9
  Energy (Hartree): 5.0e-11
  difference: 1.4e-11
+ Maxdiff for transpose (checksum): 1.5e-11
 
 water_dirmin:
  max alpha: 1.1e-04
@@ -822,6 +827,7 @@ water_dirmin:
  energydiff: 2.6e-11
  D: 1.1e-09
  Energy (Hartree): 4.6e-11
+ Maxdiff for transpose (checksum): 1.5e-11
  Keys to ignore:
   - WARNINGS
 
@@ -839,6 +845,7 @@ water_mixdens:
  etot: 1.7e-10
  Omega: 1.7e-10
  Energy (Hartree): 4.8e-11
+ Maxdiff for transpose (checksum): 1.5e-11
  Keys to ignore:
   - WARNINGS
 
@@ -854,6 +861,7 @@ water_mixpot:
  Omega: 1.8e-10
  etot: 1.8e-10
  Energy (Hartree): 5.2e-11
+ Maxdiff for transpose (checksum): 1.5e-11
  Keys to ignore:
   - WARNINGS
 
@@ -875,6 +883,7 @@ deltascf_read_charge:
  EH: 1.1e-9
  Energy (Hartree): 1.3e-10
  D: 1.01e-9
+ Maxdiff for transpose (checksum): 9.4e-10
 
 deltascf_write_neut:
  eBS: 6.1e-9
@@ -889,7 +898,8 @@ deltascf_write_neut:
  Enl: 4.1e-9
  energy: 2.4e-10
  D: 6.1e-9
- Energy (Hartree): 4.9e-11
+ Energy (Hartree): 9.4e-11
+ Maxdiff for transpose (checksum): 9.4e-10
 
 foe:
  Epot: 1.1e-10
@@ -1136,7 +1146,7 @@ reformatcomplete_read45:
  EvXC: 8.5e-8
  EH: 3.8e-7
  value: 1.6e-8
- Maxdiff for transpose (checksum): 5.9e-11
+ Maxdiff for transpose (checksum): 1.2e-10
 
 reformatcomplete_write:
  EH: 1.6e-7
@@ -1175,6 +1185,7 @@ reformat_read:
  Energy (Hartree): 3.6e-11
  Force Norm (Hartree/Bohr): 1.6e-11
  Total charge: 3.0e-11
+ Maxdiff for transpose (checksum): 9.4e-10
 
 reformat_write:
  Kohn-Sham residue: 4.1e-4
@@ -1396,7 +1407,7 @@ geoptconstrained_SDCG:
  Atomic structure: 3.1e-9
  trace(KS): 1.74e-11
  Total charge: 2.1e-11
- Maxdiff for transpose (checksum): 5.9e-11
+ Maxdiff for transpose (checksum): 1.2e-10
  difference: 2.6e-11
 
 O2spin_diag:
@@ -1973,6 +1984,7 @@ igortho_44:
  avg pot difference (actual/min): 0.95
  trace: 7.2e-11
  Maxdiff for transpose (checksum): 4.7e-10
+ norm(P): 1.0e-5
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
