@@ -127,7 +127,7 @@ module sparsematrix_highlevel
 
 
     subroutine sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc, smat, mat, &
-               nat, ntypes, nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
+               init_matmul, nat, ntypes, nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: bigdft_to_sparsebigdft
@@ -139,6 +139,7 @@ module sparsematrix_highlevel
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
       type(matrices),intent(out) :: mat
+      logical,intent(in),optional :: init_matmul
       ! Optional variables that are contained within the sparse matrix format
       integer,intent(out),optional :: nat, ntypes
       integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
@@ -152,6 +153,7 @@ module sparsematrix_highlevel
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
       real(kind=8),dimension(:),pointer :: val
+      logical :: init_matmul_
       integer :: nat_, ntypes_
       integer,dimension(:),pointer :: nzatom_, nelpsp_, iatype_
       character(len=20),dimension(:),pointer :: atomnames_
@@ -199,10 +201,16 @@ module sparsematrix_highlevel
       if (present(on_which_atom)) then
           call f_memcpy(src=on_which_atom_, dest=on_which_atom)
       end if
+
+      if (present(init_matmul)) then
+          init_matmul_ = init_matmul
+      else
+          init_matmul_ = .true.
+      end if
     
       ! Create the sparse_matrix structure
       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat, &
-           nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_)
+           init_matmul=init_matmul_, nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_)
     
       ! Generate the matrices type
       call matrices_init_from_data(smat, val, mat)
