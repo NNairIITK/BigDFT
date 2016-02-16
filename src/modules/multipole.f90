@@ -1102,6 +1102,7 @@ module multipole
                   call yaml_map('Atom number',on_which_atom(impl))
               end if
               call yaml_map('r',convert_units*ep%mpl(impl)%rxyz)
+              call yaml_map('nzion',ep%mpl(impl)%nzion)
               if (present_delta_rxyz) then
                   call yaml_map('Delta r',convert_units*delta_rxyz(1:3,impl),fmt='(es13.6)')
               end if
