@@ -154,7 +154,6 @@ module sparsematrix_io
     !! in distributed among the matrix taksgroups
     subroutine write_sparse_matrix(nat, ntypes, iatype, rxyz, nzatom, nelpsp, atomnames, smat, mat, filename)
       use module_base
-      use module_types
       use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, &
                                    assignment(=), sparsematrix_malloc
       use sparsematrix, only: gather_matrix_from_taskgroups
