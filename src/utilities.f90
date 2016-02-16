@@ -240,9 +240,12 @@ program utilities
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
-            nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
+            init_matmul=.false., nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, &
+            nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
-            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_m, hamiltonian_mat)
+            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_m, hamiltonian_mat, &
+            init_matmul=.false.)
+
        ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
        call uncompress_matrix(bigdft_mpi%iproc, smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)
        hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='hamiltonian_mat%matrix')

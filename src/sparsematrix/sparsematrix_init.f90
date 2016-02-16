@@ -1155,7 +1155,7 @@ contains
 
     !> Currently assuming square matrices
     subroutine init_sparse_matrix(iproc, nproc, norbu, nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
-               nspin, geocode, cell_dim, norbup, isorbu, store_index, on_which_atom, allocate_full, print_info)
+               init_matmul, nspin, geocode, cell_dim, norbup, isorbu, store_index, on_which_atom, allocate_full, print_info)
       use yaml_output
 !      use yaml_strings, only: yaml_toa
       implicit none
@@ -1165,6 +1165,7 @@ contains
       integer,dimension(2,nnonzero),intent(in) :: nonzero
       integer,dimension(2,nnonzero_mult),intent(in) :: nonzero_mult
       type(sparse_matrix), intent(out) :: sparsemat
+      logical,intent(in),optional :: init_matmul
       character(len=1),intent(in),optional :: geocode
       real(kind=8),dimension(3),intent(in),optional :: cell_dim
       logical,intent(in),optional :: allocate_full, print_info, store_index
@@ -1175,6 +1176,7 @@ contains
       integer :: jproc, iorb, jorb, iiorb, iseg
       !integer :: jst_line, jst_seg, segn, ind
       integer :: ist, ivctr
+      logical :: init_matmul_
       logical,dimension(:),allocatable :: lut
       integer :: nseg_mult, nvctr_mult, ivctr_mult
       integer,dimension(:),allocatable :: nsegline_mult, istsegline_mult
@@ -1195,9 +1197,11 @@ contains
       allocate_full_=.false.
       print_info_=.true.
       store_index_=.false.
+      init_matmul_ = .true.
       if (present(allocate_full)) allocate_full_=allocate_full
       if (present(print_info)) print_info_=print_info
       if (present(store_index)) store_index_=store_index
+      if (present(init_matmul)) init_matmul_ = init_matmul
 
 
       lut = f_malloc(norbu,id='lut')
@@ -1467,8 +1471,13 @@ contains
 
 
       ! Initialize the parameters for the spare matrix matrix multiplication
-      call init_sparse_matrix_matrix_multiplication_new(iproc, nproc, norbu, sparsemat%nfvctrp, sparsemat%isfvctr, nseg_mult, &
-               nsegline_mult, istsegline_mult, keyv_mult, keyg_mult, sparsemat)
+      if (init_matmul_) then
+          sparsemat%smatmul_initialized = .true.
+          call init_sparse_matrix_matrix_multiplication_new(iproc, nproc, norbu, sparsemat%nfvctrp, sparsemat%isfvctr, nseg_mult, &
+                   nsegline_mult, istsegline_mult, keyv_mult, keyg_mult, sparsemat)
+      else
+          sparsemat%smatmul_initialized = .false.
+      end if
 
       if (extra_timing) call cpu_time(tr1)   
       if (extra_timing) time5=real(tr1-tr0,kind=8)    
@@ -2350,11 +2359,11 @@ contains
       integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
       !logical :: go_on
       integer,dimension(:,:),allocatable :: in_taskgroup
-      integer :: iproc_start, iproc_end, imin, imax
+      integer :: iproc_start, iproc_end, imin, imax, niter
       logical :: found, found_start, found_end
       !integer :: jstart, kkproc, kproc, jend, lproc, llproc
       !integer :: iprocstart_current, iprocend_current, iprocend_prev, iprocstart_next
-      integer :: irow, icol, inc, ist, ind_min1, ind_max1
+      integer :: irow, icol, inc, ist, ind_min1, ind_max1, nloop
       integer,dimension(:),pointer :: isvctr_par, nvctr_par
       logical, parameter :: print_full=.false.
       integer,dimension(:),pointer :: moduloarray
@@ -2369,6 +2378,12 @@ contains
 
       ! The matrices can be parallelized
       parallel_if: if (parallel_layout) then
+
+          ! Otherwiese this might lead to segfaults etc. due to non-initialized variables
+          if (.not.smat%smatmul_initialized) then
+              call f_err_throw('Matrix taskgroups should only be used when &
+                  &the sparse matrix multiplications have been initialized')
+          end if
 
           ! Check that all arguments are present
           if (.not.present(nat)) call f_err_throw("Optional argument 'nat' is not present")
@@ -3119,11 +3134,18 @@ contains
       !!!    stop
       !!!end if
 
-      do i=1,2
-          if (i==1) then
+      ! Make sure that the sparse matmul stuff is only used if it has been initialized
+      if (smat%smatmul_initialized) then
+          niter = 2
+      else
+          niter = 1
+      end if
+
+      do i=1,niter
+          if (i==2) then
               isvctr_par => smat%smmm%isvctr_mm_par
               nvctr_par => smat%smmm%nvctr_mm_par
-          else if (i==2) then
+          else if (i==1) then
               isvctr_par => smat%isvctr_par
               nvctr_par => smat%nvctr_par
           end if
@@ -3141,10 +3163,10 @@ contains
               ii = ii + 1
           end do
 
-          if (i==1) then
+          if (i==2) then
               smat%smmm%nccomm_smmm = ii
               smat%smmm%luccomm_smmm = f_malloc_ptr((/4,smat%smmm%nccomm_smmm/),id='smat%smmm%luccomm_smmm')
-          else if (i==2) then
+          else if (i==1) then
               smat%nccomm = ii
               smat%luccomm = f_malloc_ptr((/4,smat%nccomm/),id='smatluccomm')
           end if
@@ -3164,12 +3186,12 @@ contains
               iend = min(smat%istartend_local(2),isvctr_par(jproc)+nvctr_par(jproc))
               if (istart>iend) cycle
               ii = ii + 1
-              if (i==1) then
+              if (i==2) then
                   smat%smmm%luccomm_smmm(1,ii) = jproc !get data from this process
                   smat%smmm%luccomm_smmm(2,ii) = istart-isvctr_par(jproc) !starting address on sending process
                   smat%smmm%luccomm_smmm(3,ii) = istart-smat%isvctrp_tg !starting address on receiving process
                   smat%smmm%luccomm_smmm(4,ii) = iend-istart+1 !number of elements
-              else if (i==2) then
+              else if (i==1) then
                   smat%luccomm(1,ii) = jproc !get data from this process
                   smat%luccomm(2,ii) = istart-isvctr_par(jproc) !starting address on sending process
                   smat%luccomm(3,ii) = istart-smat%isvctrp_tg !starting address on receiving process
@@ -4041,13 +4063,14 @@ contains
 
     !> Uses the BigDFT sparsity pattern to create a BigDFT sparse_matrix type
     subroutine bigdft_to_sparsebigdft(iproc, nproc, ncol, nvctr, nseg, keyg, smat, &
-               nspin, geocode, cell_dim, on_which_atom)
+               init_matmul, nspin, geocode, cell_dim, on_which_atom)
       use communications_base, only: comms_linear, comms_linear_null
       implicit none
       integer,intent(in) :: iproc, nproc, ncol, nvctr, nseg
       !logical,intent(in) :: store_index
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(out) :: smat
+      logical,intent(in),optional :: init_matmul
       integer,intent(in),optional :: nspin
       character(len=1),intent(in),optional :: geocode
       real(kind=8),dimension(3),intent(in),optional :: cell_dim
@@ -4058,6 +4081,7 @@ contains
       !integer :: ncolpx
       integer,dimension(:,:),allocatable :: nonzero
       logical,dimension(:,:),allocatable :: mat
+      logical :: init_matmul_
       character(len=1) :: geocode_
       real(kind=8),dimension(3) :: cell_dim_
       integer,dimension(:),pointer :: on_which_atom_
@@ -4127,8 +4151,14 @@ contains
           on_which_atom_ = f_malloc_ptr(ncol,id='on_which_atom_')
           on_which_atom_(:) = uninitialized(1)
       end if
+
+      if (present(init_matmul)) then
+          init_matmul_ = init_matmul
+      else
+          init_matmul_ = .true.
+      end if
       call init_sparse_matrix(iproc, nproc, ncol, nvctr, nonzero, nvctr, nonzero, smat, &
-           nspin=nspin_, geocode=geocode_, cell_dim=cell_dim_, on_which_atom=on_which_atom_)
+           init_matmul=init_matmul_, nspin=nspin_, geocode=geocode_, cell_dim=cell_dim_, on_which_atom=on_which_atom_)
 
       if (.not.present(on_which_atom)) then
           call f_free_ptr(on_which_atom_)
