@@ -2776,8 +2776,8 @@ module multipole
                            !end if
                        end if
                        !! END HACK ###################
-                      !call gemm('n', 'n', n, n, n, 1.d0, qmat_tilde(1,1), n, projx(1,kat), n, 0.d0, kp(1,1), n)
-                      call gemm('n', 'n', n, n, n, 1.d0, projx(1,kat), n, qmat_tilde(1,1), n, 0.d0, kp(1,1), n)
+                      call gemm('n', 'n', n, n, n, 1.d0, qmat_tilde(1,1), n, projx(1,kat), n, 0.d0, kp(1,1), n)
+                      !call gemm('n', 'n', n, n, n, 1.d0, projx(1,kat), n, qmat_tilde(1,1), n, 0.d0, kp(1,1), n)
                       if (do_ortho==no) then
                           overlap_small = f_malloc((/n,n/),id='overlap_small')
                           call extract_matrix(smats, ovrlp%matrix_compr, neighborx(1:,kat), n, nmaxx, overlap_small)

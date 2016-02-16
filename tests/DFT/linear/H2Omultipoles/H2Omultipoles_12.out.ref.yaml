@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-02-15 18:01:56.505
+ Timestamp of this run                 : 2016-02-16 11:41:54.429
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -1986,24 +1986,24 @@
      convergence criterion             :  1.0E-004
      maximal size of a submatrix       :  6
      Searching alpha for charge neutrality:
-     -  {alpha:  1.0000E-03, net charge: -1.5748E+01, bisection bounds ok:  [  No,  No ], 
-        sigma2:  1.5385E-03,         eF:  1.8218E-02}
-     -  {alpha:  1.0000E+01, net charge: -8.4215E-03, bisection bounds ok:  [  Yes,  No ], 
-        sigma2:  6.6667E-03,         eF:  4.8925E-01}
-     -  {alpha:  2.0000E+01, net charge: -4.2108E-03, bisection bounds ok:  [  Yes,  No ], 
-        sigma2:  6.6667E-03,         eF:  4.8957E-01}
-     -  {alpha:  4.0000E+01, net charge: -2.1054E-03, bisection bounds ok:  [  Yes,  No ], 
-        sigma2:  6.6667E-03,         eF:  4.8978E-01}
-     -  {alpha:  8.0000E+01, net charge: -1.0527E-03, bisection bounds ok:  [  Yes,  No ], 
-        sigma2:  6.6667E-03,         eF:  4.8984E-01}
-     -  {alpha:  1.6000E+02, net charge: -5.2634E-04, bisection bounds ok:  [  Yes,  No ], 
-        sigma2:  6.6667E-03,         eF:  4.8986E-01}
-     -  {alpha:  3.2000E+02, net charge: -2.6317E-04, bisection bounds ok:  [  Yes,  No ], 
-        sigma2:  6.6667E-03,         eF:  4.8988E-01}
-     -  {alpha:  6.4000E+02, net charge: -1.3158E-04, bisection bounds ok:  [  Yes,  No ], 
-        sigma2:  6.6667E-03,         eF:  4.8989E-01}
-     -  {alpha:  1.2800E+03, net charge: -6.5791E-05, bisection bounds ok:  [  Yes,  No ], 
-        sigma2:  6.6667E-03,         eF:  4.8989E-01}
+     -  {alpha:  1.0000E-03, charge: -2.3748E+01, net charge: -1.5748E+01, bisection bounds ok: [
+  No,  No], sigma2:  1.5385E-03, eF:  1.8218E-02}
+     -  {alpha:  1.0000E+01, charge: -8.0084E+00, net charge: -8.4215E-03, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8925E-01}
+     -  {alpha:  2.0000E+01, charge: -8.0042E+00, net charge: -4.2108E-03, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8957E-01}
+     -  {alpha:  4.0000E+01, charge: -8.0021E+00, net charge: -2.1054E-03, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8978E-01}
+     -  {alpha:  8.0000E+01, charge: -8.0011E+00, net charge: -1.0527E-03, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8984E-01}
+     -  {alpha:  1.6000E+02, charge: -8.0005E+00, net charge: -5.2634E-04, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8986E-01}
+     -  {alpha:  3.2000E+02, charge: -8.0003E+00, net charge: -2.6317E-04, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8988E-01}
+     -  {alpha:  6.4000E+02, charge: -8.0001E+00, net charge: -1.3158E-04, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8989E-01}
+     -  {alpha:  1.2800E+03, charge: -8.0001E+00, net charge: -6.5791E-05, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8989E-01}
      number of states to be occupied (without smearing):  4
      Pseudo Fermi level for occupations:  0.4898887219355604
      ordered eigenvalues and occupations:
@@ -2031,6 +2031,7 @@
    -  {H:  [ -7.072905455039E-01,  2.927094544961E-01 ]} # 0003
    - total charge                      : -8.00006579E+00
    - total net charge                  : -6.57914778E-05
+   output file                         : chargeanalysis.gp
  Charge analysis, Loewdin approach:
    Method                              : Loewdin
    calculate S^x:
@@ -2082,24 +2083,24 @@
    convergence criterion               :  1.0E-004
    maximal size of a submatrix         :  6
    Searching alpha for charge neutrality:
-   -  {alpha:  1.0000E-03, net charge: -1.5748E+01, bisection bounds ok:  [  No,  No ], 
-      sigma2:  1.5385E-03,         eF:  1.8218E-02}
-   -  {alpha:  1.0000E+01, net charge: -8.4215E-03, bisection bounds ok:  [  Yes,  No ], 
-      sigma2:  6.6667E-03,         eF:  4.8925E-01}
-   -  {alpha:  2.0000E+01, net charge: -4.2108E-03, bisection bounds ok:  [  Yes,  No ], 
-      sigma2:  6.6667E-03,         eF:  4.8957E-01}
-   -  {alpha:  4.0000E+01, net charge: -2.1054E-03, bisection bounds ok:  [  Yes,  No ], 
-      sigma2:  6.6667E-03,         eF:  4.8978E-01}
-   -  {alpha:  8.0000E+01, net charge: -1.0527E-03, bisection bounds ok:  [  Yes,  No ], 
-      sigma2:  6.6667E-03,         eF:  4.8984E-01}
-   -  {alpha:  1.6000E+02, net charge: -5.2635E-04, bisection bounds ok:  [  Yes,  No ], 
-      sigma2:  6.6667E-03,         eF:  4.8986E-01}
-   -  {alpha:  3.2000E+02, net charge: -2.6317E-04, bisection bounds ok:  [  Yes,  No ], 
-      sigma2:  6.6667E-03,         eF:  4.8988E-01}
-   -  {alpha:  6.4000E+02, net charge: -1.3159E-04, bisection bounds ok:  [  Yes,  No ], 
-      sigma2:  6.6667E-03,         eF:  4.8989E-01}
-   -  {alpha:  1.2800E+03, net charge: -6.5793E-05, bisection bounds ok:  [  Yes,  No ], 
-      sigma2:  6.6667E-03,         eF:  4.8989E-01}
+   -  {alpha:  1.0000E-03, charge: -2.3748E+01, net charge: -1.5748E+01, bisection bounds ok: [
+  No,  No], sigma2:  1.5385E-03, eF:  1.8218E-02}
+   -  {alpha:  1.0000E+01, charge: -8.0084E+00, net charge: -8.4215E-03, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8925E-01}
+   -  {alpha:  2.0000E+01, charge: -8.0042E+00, net charge: -4.2108E-03, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8957E-01}
+   -  {alpha:  4.0000E+01, charge: -8.0021E+00, net charge: -2.1054E-03, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8978E-01}
+   -  {alpha:  8.0000E+01, charge: -8.0011E+00, net charge: -1.0527E-03, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8984E-01}
+   -  {alpha:  1.6000E+02, charge: -8.0005E+00, net charge: -5.2635E-04, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8986E-01}
+   -  {alpha:  3.2000E+02, charge: -8.0003E+00, net charge: -2.6317E-04, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8988E-01}
+   -  {alpha:  6.4000E+02, charge: -8.0001E+00, net charge: -1.3159E-04, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8989E-01}
+   -  {alpha:  1.2800E+03, charge: -8.0001E+00, net charge: -6.5793E-05, bisection bounds ok: [
+  Yes,  No], sigma2:  6.6667E-03, eF:  4.8989E-01}
    number of states to be occupied (without smearing):  4
    Pseudo Fermi level for occupations  :  0.4898887219331253
    ordered eigenvalues and occupations:
@@ -2124,64 +2125,64 @@
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr
-   global monopole                     : -6.435033E-05
+   global monopole                     : -6.420590E-05
    global monopole analytic            : -6.579335E-05
    values:
    - sym                               : O # 0001
      r: [ 1.991107840087889,  1.221655223875441,  0.6920672692234883]
      sigma                             :  [  0.450,  0.450,  0.450 ]
      q0 analytic                       : -5.814547E-01
-     q0                                :  [ -5.883456E-01 ]
-     q1                                :  [ -7.896997E-02,  1.780102E-01, -1.145245E-01 ]
-     q2: [ 5.161743E-01, -2.308619E-02,  3.955106E-01,  5.026714E-01,  5.829725E-01]
+     q0                                :  [ -5.81453E-01 ]
+     q1                                :  [ -1.171633E-01,  2.477269E-01, -1.793319E-01 ]
+     q2: [ 6.148226E-01, -3.310716E-02,  4.470009E-01,  5.675703E-01,  6.885168E-01]
      type                              : unknown
    - sym                               : H # 0002
      r: [ 0.233534956652829,  0.513721445220362,  0.5361759933301388]
      sigma                             :  [  0.244,  0.244,  0.244 ]
      q0 analytic                       :  2.886794E-01
-     q0                                :  [  2.926128E-01 ]
-     q1                                :  [  3.190979E-02, -1.757479E-02,  6.586598E-02 ]
-     q2: [ 1.039216E-01,  3.236529E-03, -8.910909E-02,  7.513859E-03,  1.073635E-01]
+     q0                                :  [  2.886794E-01 ]
+     q1                                :  [  6.116677E-02, -1.491811E-02,  1.359949E-01 ]
+     q2: [ 1.890567E-01,  8.738316E-03, -1.643253E-01,  1.716161E-02,  1.956414E-01]
      type                              : unknown
    - sym                               : H # 0003
      r: [ 2.366235518969471,  1.111238475158637,  2.450408084576114]
      sigma                             :  [  0.244,  0.244,  0.244 ]
      q0 analytic                       :  2.927095E-01
-     q0                                :  [  2.956684E-01 ]
-     q1                                :  [  1.460813E-02, -1.013130E-01, -2.028704E-03 ]
-     q2: [-4.499781E-03, -2.418236E-02,  1.920255E-01,  6.407506E-02,  4.865262E-03]
+     q0                                :  [  2.927094E-01 ]
+     q1                                :  [  2.043257E-02, -1.690953E-01, -1.315450E-02 ]
+     q2: [-1.087431E-02, -3.945105E-02,  3.081213E-01,  9.972478E-02,  3.917178E-03]
      type                              : unknown
  Checking the total multipoles based on the atomic multipoles:
  - Up to multipole l= 0:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -1.0267E+00, -6.1079E-01,  1.2042E+00 ]
-       norm(P)                         :  1.696316E+00
+       P vector                        :  [ -1.012E+00, -6.0288E-01,  1.1926E+00 ]
+       norm(P)                         :  1.676262E+00
      Quadrupole Moment (AU):
        Q matrix:
-       -  [  7.8482E-01,  8.4328E-01,  1.2418E+00 ]
-       -  [  8.4328E-01, -1.3689E+00,  1.7147E-01 ]
-       -  [  1.2418E+00,  1.7147E-01,  5.8410E-01 ]
-       trace                           : -2.27E-13
+       -  [  7.7204E-01,  8.3137E-01,  1.2286E+00 ]
+       -  [  8.3137E-01, -1.3530E+00,  1.6958E-01 ]
+       -  [  1.2286E+00,  1.6958E-01,  5.8091E-01 ]
+       trace                           : -1.67E-13
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -1.1556E+00, -6.9328E-01,  1.3545E+00 ]
-       norm(P)                         :  1.910688E+00
+       P vector                        :  [ -1.1556E+00, -6.9329E-01,  1.3545E+00 ]
+       norm(P)                         :  1.910693E+00
      Quadrupole Moment (AU):
        Q matrix:
-       -  [  7.1457E-01,  5.2996E-01,  1.2210E+00 ]
-       -  [  5.2996E-01, -8.6268E-01,  3.3033E-01 ]
-       -  [  1.221E+00,  3.3033E-01,  1.4811E-01 ]
-       trace                           : -2.98E-13
+       -  [  4.7288E-01,  2.2268E-01,  1.0301E+00 ]
+       -  [  2.2268E-01, -4.3625E-01,  3.6460E-01 ]
+       -  [  1.0301E+00,  3.6460E-01, -3.6635E-02 ]
+       trace                           : -2.59E-13
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -1.1552E+00, -6.9303E-01,  1.3549E+00 ]
-       norm(P)                         :  1.910611E+00
+       P vector                        :  [ -1.155E+00, -6.9292E-01,  1.3550E+00 ]
+       norm(P)                         :  1.910576E+00
      Quadrupole Moment (AU):
        Q matrix:
-       -  [  1.4202E+00,  1.5962E+00,  2.2157E+00 ]
-       -  [  1.5962E+00, -2.5653E+00,  2.5407E-01 ]
-       -  [  2.2157E+00,  2.5407E-01,  1.1451E+00 ]
-       trace                           : -8.88E-14
+       -  [  1.4202E+00,  1.5962E+00,  2.2158E+00 ]
+       -  [  1.5962E+00, -2.5653E+00,  2.5406E-01 ]
+       -  [  2.2158E+00,  2.5406E-01,  1.1452E+00 ]
+       trace                           : -1.10E-13
   #========================================================== Atomic multipole analysis done
  calculate S^x:
    mode                                : sparse
@@ -2211,8 +2212,8 @@
  - The support function localization radii might be too small, got 3 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.05
-   Elapsed time (s)                    :  9.12
+   CPU time (s)                        :  9.06
+   Elapsed time (s)                    :  9.07
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.45198153E-02, y:  5.98134787E-03, z: -1.62969681E-02, 
                     total:  2.26316753E-02}
@@ -2233,7 +2234,7 @@
      Peak Value (MB)                   :  102.019
      for the array                     : w%w2
      in the routine                    : calculate_rpowerx_matrices
-     Memory Peak of process            : 151.668 MB
- Walltime since initialization         : 00:00:09.494501185
- Max No. of dictionaries used          :  9339 #( 909 still in use)
+     Memory Peak of process            : 148.012 MB
+ Walltime since initialization         : 00:00:09.447434363
+ Max No. of dictionaries used          :  9357 #( 909 still in use)
  Number of dictionary folders allocated:  1
