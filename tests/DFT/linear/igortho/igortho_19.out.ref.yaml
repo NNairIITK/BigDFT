@@ -2553,19 +2553,10 @@
  -  {H: [-1.078223357186E-02,  2.121217826630E-03,  2.504012419643E-03]} # 0003
  Energy (Hartree)                      : -1.74604651838715590E+01
  Force Norm (Hartree/Bohr)             :  2.64753914020900948E-02
-  #WARNING: Heap memory has not been completely freed! See status at finalization to find where.
- Size of the global database           :  3
- Status of the memory at finalization:
-   107373712:
-     [ newovrlp%matrix_compr, projector_for_charge_analysis,  3872,  1]
-   Timestamp of Profile initialization:
-     2016-02-15 17:44:00.999
-   Process Id:
-     0
  Memory Consumption Report:
    Tot. No. of Allocations             :  14950
-   Tot. No. of Deallocations           :  14949
-   Remaining Memory (B)                :  3872
+   Tot. No. of Deallocations           :  14950
+   Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  301.828
      for the array                     : psi_f
