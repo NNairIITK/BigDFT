@@ -33,7 +33,7 @@ program utilities
    external :: gather_timings
    character(len=*), parameter :: subname='utilities'
    character(len=1) :: geocode
-   character(len=30) :: tatonam, radical
+   character(len=30) :: tatonam, radical, colorname, linestart, lineend, cname
    character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file, coeff_file, pdos_file
    character(len=128) :: line, cc, output_pdos
    logical :: charge_analysis = .false.
@@ -50,8 +50,8 @@ program utilities
    integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
    real(kind=8),dimension(:),pointer :: matrix_compr, eval_ptr
    real(kind=8),dimension(:,:),pointer :: rxyz, coeff_ptr
-   real(kind=8),dimension(:),allocatable :: eval
-   real(kind=8),dimension(:,:),allocatable :: denskernel, pdos
+   real(kind=8),dimension(:),allocatable :: eval, energy_arr, occups
+   real(kind=8),dimension(:,:),allocatable :: denskernel, pdos, occup_arr
    logical,dimension(:,:),allocatable :: calc_array
    type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat
    type(sparse_matrix) :: smat_s, smat_m, smat_l
@@ -59,9 +59,25 @@ program utilities
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
    integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb
    character(len=20),dimension(:),pointer :: atomnames
+   character(len=30),dimension(:),allocatable :: pdos_name
    real(kind=8),dimension(3) :: cell_dim
    character(len=2) :: backslash, num
    real(kind=8) :: energy, occup, occup_pdos, total_occup
+   type(f_progress_bar) :: bar
+   integer,parameter :: ncolors = 12
+   ! Presumably well suited colorschemes from colorbrewer2.org
+   character(len=20),dimension(ncolors),parameter :: colors=(/'#a6cee3', &
+                                                              '#1f78b4', &
+                                                              '#b2df8a', &
+                                                              '#33a02c', &
+                                                              '#fb9a99', &
+                                                              '#e31a1c', &
+                                                              '#fdbf6f', &
+                                                              '#ff7f00', &
+                                                              '#cab2d6', &
+                                                              '#6a3d9a', &
+                                                              '#ffff99', &
+                                                              '#b15928'/)
    !$ integer :: omp_get_max_threads
 
    call f_lib_initialize()
@@ -72,6 +88,7 @@ program utilities
 
     if (bigdft_mpi%iproc==0) then
         call yaml_new_document()
+        call print_logo()
     end if
 
 
@@ -300,11 +317,13 @@ program utilities
 
    if (calculate_pdos) then
        iunit = 99
+       if (bigdft_mpi%iproc==0) call yaml_comment('Reading from file '//trim(coeff_file),hfill='~')
        call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
        call read_linear_coefficients(trim(coeff_file), nspin, ntmb, norbks, coeff_ptr, &
             eval=eval_ptr)
        call f_close(iunit)
 
+       if (bigdft_mpi%iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
             init_matmul=.false., iatype=iatype, ntypes=ntypes, atomnames=atomnames, &
@@ -315,6 +334,7 @@ program utilities
        call uncompress_matrix_distributed2(bigdft_mpi%iproc, smat_s, DENSE_PARALLEL, &
             ovrlp_mat%matrix_compr, ovrlp_mat%matrix(1:,1:,1))
 
+       if (bigdft_mpi%iproc==0) call yaml_comment('Reading from file '//trim(hamiltonian_file),hfill='~')
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_m, hamiltonian_mat, &
             init_matmul=.false.)
@@ -328,20 +348,28 @@ program utilities
        read(iunit,*) npdos
 
        calc_array = f_malloc((/ntmb,npdos/),id='calc_array')
+       pdos_name = f_malloc_str(len(pdos_name),npdos,id='pdos_name')
 
        do ipdos=1,npdos
            do itmb=1,ntmb
                calc_array(itmb,ipdos) = .false.
            end do
        end do
-       npdos_loop: do ipdos=1,npdos
+       ipdos = 0
+       !npdos_loop: do !ipdos=1,npdos
            do 
                !read(iunit01,*,iostat=ios) cc, ival
                read(iunit,'(a128)',iostat=ios) line
                if (ios/=0) exit
-               write(*,*) 'line',line
+               !write(*,*) 'line',line
+               read(line,*,iostat=ios) cc, cname
+               if (cc=='#') then
+                   ipdos = ipdos + 1
+                   pdos_name(ipdos) = trim(cname)
+                   cycle 
+               end if
+               write(*,*) 'ipdos, line', ipdos, line
                read(line,*,iostat=ios) cc, ival
-               if (cc=='#') cycle npdos_loop
                do itype=1,ntypes
                    if (trim(atomnames(itype))==trim(cc)) then
                        iitype = itype
@@ -364,34 +392,27 @@ program utilities
                end do
            end do
 
-       end do npdos_loop
+       !end do npdos_loop
        call f_close(iunit)
+
+       energy_arr = f_malloc0(norbks,id='energy_arr')
+       occup_arr = f_malloc0((/npdos,norbks/),id='occup_arr')
+       occups = f_malloc0(npdos,id='occups')
 
        denskernel = f_malloc((/ntmb,smat_s%nfvctrp/),id='denskernel')
        pdos = f_malloc0((/npt,npdos/),id='pdos')
-       output_pdos='PDoS.gp'
-       if (bigdft_mpi%iproc==0) call yaml_map('output file',trim(output_pdos))
-       iunit = 99
-       call f_open_file(iunit, file=trim(output_pdos), binary=.false.)
-       write(iunit,'(a)') '# plot the DOS as a sum of Gaussians'
-       write(iunit,'(a)') 'set samples 1000'
-       write(iunit,'(a,2(es12.5,a))') 'set xrange[',eval_ptr(1),':',eval_ptr(ntmb),']'
-       write(iunit,'(a)') 'sigma=0.01'
-       write(backslash,'(a)') '\ '
        ! Calculate a partial kernel for each KS orbital
-       total_occup = 0.d0
-       do ipdos=1,npdos
-           if (bigdft_mpi%iproc==0) call yaml_map('PDoS number',ipdos)
-           if (bigdft_mpi%iproc==0) call yaml_map('start, increment',(/ipdos,npdos/))
-           write(num,fmt='(i2.2)') ipdos
-           write(iunit,'(a,i0,a)') 'f',ipdos,'(x) = '//trim(backslash)
-           occup_pdos = 0.d0
+       !do ipdos=1,npdos
+           !if (bigdft_mpi%iproc==0) call yaml_map('PDoS number',ipdos)
+           !if (bigdft_mpi%iproc==0) call yaml_map('start, increment',(/ipdos,npdos/))
+           !write(num,fmt='(i2.2)') ipdos
+           if (bigdft_mpi%iproc==0) bar=f_progress_bar_new(nstep=norbks)
            do iorb=1,norbks
                if (bigdft_mpi%iproc==0) call yaml_map('orbital being processed',iorb)
                call gemm('n', 't', ntmb, smat_s%nfvctrp, 1, 1.d0, coeff_ptr(1,iorb), ntmb, &
                     coeff_ptr(smat_s%isfvctr+1,iorb), ntmb, 0.d0, denskernel(1,1), ntmb)
                energy = 0.d0
-               occup = 0.d0
+               call f_zero(occups)
                do ispin=1,nspin
                    !$omp parallel default(none) &
                    !$omp shared(ispin,smat_s,ntmb,denskernel,hamiltonian_mat,energy) &
@@ -405,42 +426,52 @@ program utilities
                    end do
                    !$omp end do
                    !$omp end parallel
+                   energy_arr(iorb) = energy
                end do
-               call mpiallred(energy, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+               !call mpiallred(energy, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
                do ispin=1,nspin
                    !$omp parallel default(none) &
-                   !$omp shared(ispin,smat_s,ntmb,denskernel,ovrlp_mat,calc_array,ipdos,occup) &
-                   !$omp private(itmb,jtmb,jjtmb)
-                   !$omp do reduction(+:occup)
+                   !$omp shared(ispin,smat_s,ntmb,denskernel,ovrlp_mat,calc_array,npdos,occups) &
+                   !$omp private(itmb,jtmb,jjtmb,occup,ipdos)
+                   !$omp do reduction(+:occups)
                    do jtmb=1,smat_s%nfvctrp
                        jjtmb = smat_s%isfvctr + jtmb
-                       if (calc_array(jjtmb,ipdos)) then
+                       !if (calc_array(jjtmb,ipdos)) then
                            do itmb=1,ntmb!ipdos,ntmb,npdos
-                               if (calc_array(itmb,ipdos)) then
-                                   occup = occup + denskernel(itmb,jtmb)*ovrlp_mat%matrix(itmb,jtmb,ispin)
-                               end if
+                               !if (calc_array(itmb,ipdos)) then
+                                   occup = denskernel(itmb,jtmb)*ovrlp_mat%matrix(itmb,jtmb,ispin)
+                                   do ipdos=1,npdos
+                                       if (calc_array(itmb,ipdos) .and. calc_array(jjtmb,ipdos)) then
+                                           occups(ipdos) = occups(ipdos) + occup
+                                       end if
+                                   end do
+                                   !occup = occup + denskernel(itmb,jtmb)*ovrlp_mat%matrix(itmb,jtmb,ispin)
+                               !end if
                            end do
-                       end if
+                       !end if
                    end do
                    !$omp end do
                    !$omp end parallel
+                   do ipdos=1,npdos
+                       occup_arr(ipdos,iorb) = occups(ipdos)
+                   end do
                end do
-               call mpiallred(occup, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-               occup_pdos = occup_pdos + occup
-               if (iorb<norbks) then
-                   write(iunit,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2)) + '//trim(backslash)
-               else
-                   write(iunit,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2))'
-               end if
-               !write(*,'(a,i6,3es16.8)')'iorb, eval(iorb), energy, occup', iorb, eval(iorb), energy, occup
+               !occup_pdos = occup_pdos + occup
+               !!if (iorb<norbks) then
+               !!    write(iunit,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2)) + '//trim(backslash)
+               !!else
+               !!    write(iunit,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2))'
+               !!end if
+               !!!write(*,'(a,i6,3es16.8)')'iorb, eval(iorb), energy, occup', iorb, eval(iorb), energy, occup
+               if (bigdft_mpi%iproc==0) call dump_progress_bar(bar,step=iorb)
            end do
-           total_occup = total_occup + occup_pdos
-           if (ipdos==1) then
-               write(iunit,'(a,i0,a)') "plot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
-           else
-               write(iunit,'(a,i0,a)') "replot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
-           end if
-           if (bigdft_mpi%iproc==0) call yaml_map('sum of PDoS',occup_pdos)
+           !total_occup = total_occup + occup_pdos
+           !!if (ipdos==1) then
+           !!    write(iunit,'(a,i0,a)') "plot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
+           !!else
+           !!    write(iunit,'(a,i0,a)') "replot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
+           !!end if
+           !!if (bigdft_mpi%iproc==0) call yaml_map('sum of PDoS',occup_pdos)
            !!output_pdos='PDoS_'//num//'.dat'
            !!call yaml_map('output file',trim(output_pdos))
            !!call f_open_file(iunit01, file=trim(output_pdos), binary=.false.)
@@ -449,6 +480,57 @@ program utilities
            !!    write(iunit01,'(2es20.12)') energy_bins(1,ipt), pdos(ipt,ipdos)
            !!end do
            !!call f_close(iunit01)
+       !end do
+       call mpiallred(occup_arr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+       call mpiallred(energy_arr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+       output_pdos='PDoS.gp'
+       if (bigdft_mpi%iproc==0) call yaml_map('output file',trim(output_pdos))
+       iunit = 99
+       call f_open_file(iunit, file=trim(output_pdos), binary=.false.)
+       write(iunit,'(a)') '# plot the DOS as a sum of Gaussians'
+       write(iunit,'(a)') 'set samples 1000'
+       write(iunit,'(a,2(es12.5,a))') 'set xrange[',eval_ptr(1),':',eval_ptr(ntmb),']'
+       write(iunit,'(a)') 'sigma=0.01'
+       write(backslash,'(a)') '\ '
+       total_occup = 0.d0
+       do ipdos=1,npdos
+           occup_pdos = 0.d0
+           if (bigdft_mpi%iproc==0) call yaml_map('PDoS number',ipdos)
+           if (bigdft_mpi%iproc==0) call yaml_map('start, increment',(/ipdos,npdos/))
+           write(num,fmt='(i2.2)') ipdos
+           write(iunit,'(a,i0,a)') 'f',ipdos,'(x) = '//trim(backslash)
+           do iorb=1,norbks
+               if (iorb<norbks) then
+                   write(iunit,'(2(a,es16.9),a)') '  ',occup_arr(ipdos,iorb),&
+                       &'*exp(-(x-',energy_arr(iorb),')**2/(2*sigma**2)) + '//trim(backslash)
+               else
+                   write(iunit,'(2(a,es16.9),a)') '  ',occup_arr(ipdos,iorb),&
+                       &'*exp(-(x-',energy_arr(iorb),')**2/(2*sigma**2))'
+               end if
+               occup_pdos = occup_pdos + occup_arr(ipdos,iorb)
+           end do
+           total_occup = total_occup + occup_pdos
+           if (bigdft_mpi%iproc==0) call yaml_map('sum of PDoS',occup_pdos)
+       end do
+       do ipdos=1,npdos
+           if (ipdos<ncolors) then
+               colorname = colors(ipdos)
+           else
+               colorname = 'color'
+           end if
+           if (ipdos<npdos) then
+               lineend = ' ,\'
+           else
+               lineend = ''
+           end if
+           if (ipdos==1) then
+               linestart = 'plot'
+           else
+               linestart = '    '
+           end if
+           write(iunit,'(a,i0,a)') trim(linestart)//" f",ipdos,"(x) lc rgb '"//trim(colorname)//&
+               &"' lt 1 lw 2 w l title '"//trim(pdos_name(ipdos))//"'"//trim(lineend)
        end do
        call f_close(iunit)
        if (bigdft_mpi%iproc==0) call yaml_map('sum of total DoS',total_occup)
@@ -465,9 +547,13 @@ program utilities
        call f_free_ptr(nzatom)
        call f_free_ptr(nelpsp)
        call f_free_str_ptr(len(atomnames),atomnames)
+       call f_free_str(len(pdos_name),pdos_name)
        call f_free(calc_array)
        call f_free_ptr(on_which_atom)
        call f_free_ptr(coeff_ptr)
+       call f_free(energy_arr)
+       call f_free(occup_arr)
+       call f_free(occups)
    end if
 
    call build_dict_info(dict_timing_info)
