@@ -16,11 +16,12 @@ program utilities
    use yaml_output
    use module_types, only: bigdft_init_errors, bigdft_init_timing_categories
    use module_atoms, only: atoms_data, atoms_data_null, deallocate_atoms_data
-   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, assignment(=), SPARSE_FULL, DENSE_FULL, &
+   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, assignment(=), &
+                                SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, &
                                 sparsematrix_malloc_ptr, deallocate_sparse_matrix, deallocate_matrices
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
    use sparsematrix_io, only: read_sparse_matrix
-   use sparsematrix, only: uncompress_matrix
+   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed2
    use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft
    use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, &
                                     CHARGE_ANALYSIS_PROJECTOR, &
@@ -56,7 +57,7 @@ program utilities
    type(sparse_matrix) :: smat_s, smat_m, smat_l
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
-   integer :: jtmb, norbks, npdos, npt, ntmb
+   integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb
    character(len=20),dimension(:),pointer :: atomnames
    real(kind=8),dimension(3) :: cell_dim
    character(len=2) :: backslash, num
@@ -309,16 +310,18 @@ program utilities
             init_matmul=.false., iatype=iatype, ntypes=ntypes, atomnames=atomnames, &
             on_which_atom=on_which_atom)
        if (ntmb/=smat_s%nfvctr) call f_err_throw('ntmb/=smat_s%nfvctr')
-       ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
-       call uncompress_matrix(bigdft_mpi%iproc, smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)
+       ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_PARALLEL, id='ovrlp_mat%matrix')
+       !call uncompress_matrix(bigdft_mpi%iproc, smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)
+       call uncompress_matrix_distributed2(bigdft_mpi%iproc, smat_s, DENSE_PARALLEL, &
+            ovrlp_mat%matrix_compr, ovrlp_mat%matrix(1:,1:,1))
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_m, hamiltonian_mat, &
             init_matmul=.false.)
-       hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='hamiltonian_mat%matrix')
-       call uncompress_matrix(bigdft_mpi%iproc, smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
-
-       write(*,*) 'smat_s%nfvctrp, smat_s%isfvctr', smat_s%nfvctrp, smat_s%isfvctr
+       hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_PARALLEL, id='hamiltonian_mat%matrix')
+       !call uncompress_matrix(bigdft_mpi%iproc, smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
+       call uncompress_matrix_distributed2(bigdft_mpi%iproc, smat_m, DENSE_PARALLEL, &
+            hamiltonian_mat%matrix_compr, hamiltonian_mat%matrix(1:,1:,1))
 
        iunit=99
        call f_open_file(iunit, file=pdos_file, binary=.false.)
@@ -365,7 +368,7 @@ program utilities
        end do npdos_loop
        call f_close(iunit)
 
-       denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
+       denskernel = f_malloc((/ntmb,smat_s%nfvctrp/),id='denskernel')
        pdos = f_malloc0((/npt,npdos/),id='pdos')
        output_pdos='PDoS.gp'
        if (bigdft_mpi%iproc==0) call yaml_map('output file',trim(output_pdos))
@@ -387,17 +390,18 @@ program utilities
            do iorb=1,norbks
                if (bigdft_mpi%iproc==0) call yaml_map('orbital being processed',iorb)
                call gemm('n', 't', ntmb, smat_s%nfvctrp, 1, 1.d0, coeff_ptr(1,iorb), ntmb, &
-                    coeff_ptr(smat_s%isfvctr+1,iorb), ntmb, 0.d0, denskernel(1,smat_s%isfvctr+1), ntmb)
+                    coeff_ptr(smat_s%isfvctr+1,iorb), ntmb, 0.d0, denskernel(1,1), ntmb)
                energy = 0.d0
                occup = 0.d0
                do ispin=1,nspin
                    !$omp parallel default(none) &
                    !$omp shared(ispin,smat_s,ntmb,denskernel,hamiltonian_mat,energy) &
-                   !$omp private(itmb,jtmb)
+                   !$omp private(itmb,jtmb,jjtmb)
                    !$omp do reduction(+:energy)
-                   do jtmb=smat_s%isfvctr+1,smat_s%isfvctr+smat_s%nfvctrp
+                   do jtmb=1,smat_s%nfvctrp
+                       jjtmb = smat_s%isfvctr + jtmb
                        do itmb=1,ntmb
-                           energy = energy + denskernel(itmb,jtmb)*hamiltonian_mat%matrix(jtmb,itmb,ispin)
+                           energy = energy + denskernel(itmb,jtmb)*hamiltonian_mat%matrix(itmb,jtmb,ispin)
                        end do
                    end do
                    !$omp end do
@@ -407,13 +411,14 @@ program utilities
                do ispin=1,nspin
                    !$omp parallel default(none) &
                    !$omp shared(ispin,smat_s,ntmb,denskernel,ovrlp_mat,calc_array,ipdos,occup) &
-                   !$omp private(itmb,jtmb)
+                   !$omp private(itmb,jtmb,jjtmb)
                    !$omp do reduction(+:occup)
-                   do jtmb=smat_s%isfvctr+1,smat_s%isfvctr+smat_s%nfvctrp
-                       if (calc_array(jtmb,ipdos)) then
+                   do jtmb=1,smat_s%nfvctrp
+                       jjtmb = smat_s%isfvctr + jtmb
+                       if (calc_array(jjtmb,ipdos)) then
                            do itmb=1,ntmb!ipdos,ntmb,npdos
                                if (calc_array(itmb,ipdos)) then
-                                   occup = occup + denskernel(itmb,jtmb)*ovrlp_mat%matrix(jtmb,itmb,ispin)
+                                   occup = occup + denskernel(itmb,jtmb)*ovrlp_mat%matrix(itmb,jtmb,ispin)
                                end if
                            end do
                        end if
