@@ -697,8 +697,12 @@ def fitPAW(file, N):
   for grid in psp.findall('radial_grid'):
     grids[grid.get('id')] = numpy.fromstring(grid.find('values').text.replace('\n', ''), sep = ' ')
 
-  projs = {state.get('id'):{'n': int(state.get('n', '1')),
-                            'l': int(state.get('l'))} for state in psp.find('valence_states')}
+  #Only version > 2.7
+  #projs = {state.get('id'):{'n': int(state.get('n', '1')),
+  #                          'l': int(state.get('l'))} for state in psp.find('valence_states')}
+  projs = {}
+  for state in psp.find('valence_states'):
+      projs[state.get('id')] = {'n': int(state.get('n', '1')), 'l': int(state.get('l'))}
 
   jobs = [GaussianFit(proj.get('state'), projs[proj.get('state')]['l'], N, grids[proj.get('grid')], numpy.fromstring(proj.text.replace('\n',''), sep = ' ', dtype = numpy.float64), cutoff) for proj in psp.findall('projector_function')]
   fits = Pool().map(jobFit, jobs)

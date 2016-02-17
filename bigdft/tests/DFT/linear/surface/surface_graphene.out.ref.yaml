@@ -63,7 +63,7 @@
    mpol                                : 0 #      Total magnetic moment
    gnrm_cv                             : 1.e-4 #  convergence criterion gradient
    itermax                             : 50 #     Max. iterations of wfn. opt. steps
-   itermin                             : 0 #      Min. iterations of wfn. opt. steps
+   itermin                             : 0 #      Minimal iterations of wfn. optimzed steps
    idsx                                : 6 #      Wfn. diis history
    dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
    output_wf                           : 0 #      Output of the support functions
@@ -231,11 +231,11 @@
      rloc                              : 3.0
      rloc_kernel                       : 7.0
      rloc_kernel_foe                   : 9.0
-   nbasis                              : 4 #      number of support functions per atom
-   ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential
-   confinement: [8.3e-3, 0.0] #                   prefactor for the confining potential (low/high accuracy)
-   rloc: [7.0, 7.0] #                             localization radius for the support functions
-   rloc_kernel                         : 9.0 #    localization radius for the density kernel
+   nbasis                              : 4 #      Number of support functions per atom
+   ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential
+   confinement: [8.3e-3, 0.0] #                   Prefactor for the confining potential (low/high accuracy)
+   rloc: [7.0, 7.0] #                             Localization radius for the support functions
+   rloc_kernel                         : 9.0 #    Localization radius for the density kernel
    rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
  psppar.C:
    Pseudopotential type                : HGH-K + NLCC
@@ -266,8 +266,8 @@
      stress_tensor                     : Yes #    triggers the calculation of the stress tensor
    environment:
      cavity                            : none #   Type of the cavity
-     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
-     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     cavitation                        : No #     Triggers the evaluation of the extra cavitation terms
+     input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
      fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
      itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
      minres                            : 1.e-6 #  Convergence threshold of the loop
@@ -315,7 +315,7 @@
  mode:
    method                              : dft #    Run method of BigDFT call
  posinp:
-    #---------------------------------------------------------------------- Atomic positions
+    #---------------------------------------------- Atomic positions (by default bohr units)
    cell: [23.069401, .inf, 23.97438]
    positions:
    - C: [9.2277603, 0.0, 7.9914598]
@@ -461,8 +461,9 @@
      -  [  0.00000,  0.00000,  0.00000 ]
    No. of projectors                   :  2
    PSP XC                              : "XC: Perdew, Burke & Ernzerhof"
-  #-------------------------------------------------------------------------- Atom Positions
+  #----------------------------------------------- Atom Positions (specified and grid units)
  Atomic structure:
+   Units                               : bohr
    Cell: [ 23.069401, .inf,  23.97438]
    Positions:
    - C: [ 9.227760300,  4.500000000,  7.991459800] # [  16.00,  7.50,  13.33 ] 0001
@@ -605,7 +606,7 @@
  Analytic core charges for atom species:
    C                                   :  69.1480823
  Total core charge                     :  69.1480823
- Total core charge on the grid (To be compared with analytic one):  69.1480823
+ Total core charge on the grid         :  69.1480823 #To be compared with analytic one
   #WARNING: Do not call check_communications in the linear scaling version!
   #-------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):

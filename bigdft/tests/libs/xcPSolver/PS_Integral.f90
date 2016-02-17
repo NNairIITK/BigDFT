@@ -5,7 +5,7 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Program using the integral form for the Poisson solver
@@ -14,7 +14,6 @@ program PS_Integral
   use Poisson_Solver
   use yaml_output
   use dynamic_memory
-  use m_profiling
   use reformatting
   use yaml_strings
   implicit none
@@ -38,7 +37,7 @@ program PS_Integral
   !real(dp) :: p0_cell,p0gauss,absci,kern,moment
   character(len=64) :: chain
   !character(len=*) :: chain
-  logical :: timings_switch = .false. 
+  logical :: timings_switch = .false.
   real(dp), dimension(0:2048) :: fISF
 
   integer :: n1,n1_old,n2,n2_old,n3,n3_old,nb1,nb2,nb3,itype,nd,nrange
@@ -64,7 +63,7 @@ program PS_Integral
 !!$  include 'lazy_ISF_60_2048.inc'
 !!$  include 'lazy_ISF_100_2048.inc'
 
-!!$  interface 
+!!$  interface
 !!$     subroutine my_analytic_integral(alpha,ntot,m,fwork,fISF,argument_nf)
 !!$       use module_base
 !!$       implicit none
@@ -72,7 +71,7 @@ program PS_Integral
 !!$       real(dp), intent(in) :: alpha
 !!$       real(dp), dimension(0:ntot), intent(inout) :: fwork
 !!$       real(dp), dimension(0:2048), intent(in) :: fISF
-!!$       integer, optional, intent(in) :: argument_nf  
+!!$       integer, optional, intent(in) :: argument_nf
 !!$     end subroutine my_analytic_integral
 !!$  end interface
 
@@ -93,7 +92,7 @@ program PS_Integral
      timings_switch = .false.
   else if (trim(chain)=='timings') then
      timings_switch = .true.
-  else 
+  else
      write(*,'(1x,a)')&
           'Usage: ./PS_Integral itype_scf [timings]'
      stop
@@ -106,13 +105,13 @@ program PS_Integral
 
 !!$  select case(itype_scf)
 !!$  case(8)
-!!$     fISF => fISF8   
+!!$     fISF => fISF8
 !!$  case(14)
 !!$     fISF => fISF14
 !!$  case(16)
 !!$     fISF => fISF16
 !!$  case(20)
-!!$     fISF => fISF20    
+!!$     fISF => fISF20
 !!$  case(24)
 !!$     fISF => fISF24
 !!$  case(30)
@@ -130,7 +129,7 @@ program PS_Integral
 !!$     stop
 !!$  end select
 
-  n_range=2*itype_scf  
+  n_range=2*itype_scf
 
   print *,'here'
 
@@ -155,8 +154,10 @@ n2=22
   itype=16
   nd=2**20
 
-allocate(dx_field(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,1+ndebug),stat=i_stat)
-allocate(dy_field(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,1+ndebug),stat=i_stat)
+dx_field = f_malloc( (/ -nb1.to.2*n1_old+1+nb1, -nb2.to.2*n2_old+1+nb2, 1.to.1 /),id='dx_field')
+dy_field = f_malloc( (/ -nb1.to.2*n1_old+1+nb1, -nb2.to.2*n2_old+1+nb2, 1.to.1 /),id='dy_field')
+!allocate(dx_field(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,1+ndebug),stat=i_stat)
+!allocate(dy_field(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,1+ndebug),stat=i_stat)
 
 dx_field=dx/hx
 
@@ -221,7 +222,7 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
      dx_field(2*n1_old,j,1) = 0.0_gp
      dx_field(2*n1_old+1,j,1) = 0.0_gp
   end do
-  
+
 !!$     allocate(x_phi(0:nd+ndebug),stat=i_stat )
 
   x_phi=f_malloc(bounds=(/0.to.nd/),id='x_phi')
@@ -230,9 +231,9 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
 
   print *, " scaling function for interpolation "
 
-!    call scaling_function(itype,nd,nrange,x_phi,y_phi) 
+!    call scaling_function(itype,nd,nrange,x_phi,y_phi)
 !cut the size of the array to exclude points outside support
-  call my_scaling_function4b2B(itype,nd,nrange,x_phi,y_phi)  
+  call my_scaling_function4b2B(itype,nd,nrange,x_phi,y_phi)
   !    if( abs(y_phi(nd/2)-1)>1.0e-10 ) then
   do i=0,nd
  ! if (abs(y_phi(i)-0.97821193752582369d0) <= 1.d-5) then
@@ -429,11 +430,11 @@ stop
 !!
 !!  print *,'...interpolating second dimension...'
 !!  call my_interpolate_and_transpose(dy/hy,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n1+2+2*nb1),&
-!!         (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2) 
+!!         (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2)
 !!
 !!  print *,'...interpolating third dimension...'
 !!  call my_interpolate_and_transpose(dz/hz,nd,nrange,y_phi,(2*n2+2+2*nb2)*(2*n1+2+2*nb1),&
-!!    (2*n3_old+2+2*nb3),psi_w2,(2*n3+2+2*nb3),psifscf) 
+!!    (2*n3_old+2+2*nb3),psi_w2,(2*n3+2+2*nb3),psifscf)
 !!
 !!  print *,'done'
 
@@ -483,15 +484,15 @@ stop
   !allocate(kernel_scf(-n_range:n_range), stat=i_stat)
 
 
-  !Convergence test for the subroutine gauss_conv_scf 
+  !Convergence test for the subroutine gauss_conv_scf
   !with 6 different values of n_points and 7 different pgauss
   multiple_naive=f_malloc(lbounds=(/1,1,-n_range/),ubounds=(/6,7,n_range/),id='multiple_naive',routine_id=subname)
   timings       =f_malloc((/2,7,7/),id='timings')
-!  allocate(multiple_naive(1:6,1:7,-n_range:n_range), stat = i_stat) 
+!  allocate(multiple_naive(1:6,1:7,-n_range:n_range), stat = i_stat)
 !  allocate(timings(1:2,1:7,1:7), stat = i_stat)
   timings = 0.0_dp
 
-  n_points_list = (/ 2, 8, 32, 64, 256, 512, 0 /) 
+  n_points_list = (/ 2, 8, 32, 64, 256, 512, 0 /)
 
 
 
@@ -542,7 +543,7 @@ stop
 !!$           write(*,'(a28,1pe9.3,a7,1pe23.16)') 'Gaussian test ---> pgauss = ', pgauss(j), ' err = ', &
 !!$                abs(kern-sqrt(4*datan(1.d0)/pgauss(j)))
 !!$        end do
-!!$        ! plot to file the Gaussian & the scaling function 
+!!$        ! plot to file the Gaussian & the scaling function
 !!$        ! >>> only in the case of the highest n_points <<<
 !!$        write(chain,'(a18)') 'gauss_scf_plot.out'
 !!$        !write(chain,j)
@@ -555,7 +556,7 @@ stop
 !!$                gaussian(1,k), gaussian(2,k), gaussian(3,k), &
 !!$                gaussian(4,k), gaussian(5,k), gaussian(6,k), gaussian(7,k)
 !!$        end do
-!!$        close(51) 
+!!$        close(51)
 !!$     end if
 !!$
 !!$
@@ -583,7 +584,7 @@ stop
 !!$        multiple_naive(i,j,:) = kernel_scf(:)
 !!$     end do
 
-     
+
    call f_free(x_scf)
    call f_free(y_scf)
    call f_free(gaussian)
@@ -603,7 +604,7 @@ stop
 !!$     write(51, *) ' '
 !!$     do k = -n_range, n_range
 !!$        write(51, '(i4, 6(1pe21.12e3))') k, &
-!!$             multiple_naive(1,j,k), & 
+!!$             multiple_naive(1,j,k), &
 !!$             multiple_naive(2,j,k), &
 !!$             multiple_naive(3,j,k), &
 !!$             multiple_naive(4,j,k), &
@@ -694,14 +695,14 @@ stop
 !!$              call my_analytic_integral(hgrid*sqrt(pgauss(j)),0.0_dp/hgrid,&
 !!$                   n_range, itype_scf, analytic_integral_result(i,j,-n_range:n_range), fISF, n_points_list(i))
 !!$           end do
-!!$        else 
+!!$        else
 !!$           call my_analytic_integral(hgrid*sqrt(pgauss(j)),0.0_dp/hgrid,&
 !!$                n_range, itype_scf, analytic_integral_result(i,j,-n_range:n_range), fISF, n_points_list(i))
 !!$        end if
 !!$        call cpu_time(t1)
 !!$        timings(2,i,j) = t1-t0
 !!$        ! norm infinity with respect to the naive integral computed with the highest n_points
-!!$        analytic_vs_naive(i,j) = maxval(abs(analytic_integral_result(i,j,0:n_range) - & 
+!!$        analytic_vs_naive(i,j) = maxval(abs(analytic_integral_result(i,j,0:n_range) - &
 !!$             multiple_naive(6,j,0:n_range)))
 !!$     end do
 !!$
@@ -728,13 +729,13 @@ stop
 !!$     write(61, *) ' '
 !!$     do k = 0, n_range
 !!$        write(61, '(i3, 8(1pe21.12e3))') k, &
-!!$             analytic_integral_result(1,j,k), & 
+!!$             analytic_integral_result(1,j,k), &
 !!$             analytic_integral_result(2,j,k), &
 !!$             analytic_integral_result(3,j,k), &
 !!$             analytic_integral_result(4,j,k), &
 !!$             analytic_integral_result(5,j,k), &
 !!$             analytic_integral_result(6,j,k), &
-!!$             analytic_integral_result(7,j,k), & 
+!!$             analytic_integral_result(7,j,k), &
 !!$             multiple_naive(6,j,k) ! <<< reference
 !!$     end do
 !!$     close(61)
@@ -893,7 +894,7 @@ subroutine discretize_gaussian(nrange,fac,pgauss,x0,hgrid,filename)
 !     f_phi_i2(k)=f_phi_i2(-k)
 !  end do
   !call dscal(2*nrange+1,fac,f_phi_i2,1)
-  
+
   !use daubechies wavelets for expressing the function
 !  call gauss_to_daub(hgrid,fac,x0,sqrt(0.5/pgauss),0,&!no err, errsuc
 !       2*nrange+1,n_left,n_right,c,err_norm,&         !no err_wav. nmax instead of n_intvx
@@ -954,7 +955,7 @@ subroutine my_gauss_conv_scf(itype_scf,pgauss,x0,hgrid,dx,n_range,n_scf,x_scf,y_
   !To have a correct integration
   p0_cell = p0_ref/(hgrid*hgrid)
 
-  !write(*,*) 'p0_cell = ', p0_cell 
+  !write(*,*) 'p0_cell = ', p0_cell
 
   !We calculate the number of iterations to go from pgauss to p0_ref
   n_iter = nint((log(pgauss) - log(p0_cell))/log(4.0_dp))
@@ -1004,12 +1005,13 @@ END SUBROUTINE my_gauss_conv_scf
 !! the final result is fwork(j+m)-fwork(j-m)
 subroutine my_analytic_integral(alpha,x0,ntot,m,fwork,fISF,argument_nf)
   use module_base
+  use abi_interfaces_numeric, only: abi_derf_ab
   implicit none
   integer, intent(in) :: ntot,m
   real(dp), intent(in) :: alpha,x0 !<x0 is the deviation wrt the grid spacing
   real(dp), dimension(-ntot:ntot), intent(inout) :: fwork
   real(dp), dimension(0:2048), intent(in) :: fISF
-  integer, intent(in) :: argument_nf 
+  integer, intent(in) :: argument_nf
 
   !local variables
   integer :: nf
@@ -1020,7 +1022,7 @@ subroutine my_analytic_integral(alpha,x0,ntot,m,fwork,fISF,argument_nf)
 
   !write(*,*) fISF(1000), fISF16(1000)
 
-  !  if(present(argument_nf)) then 
+  !  if(present(argument_nf)) then
   nf=argument_nf
   !  else
   !     nf = 64 ! "default value"
@@ -1036,8 +1038,8 @@ subroutine my_analytic_integral(alpha,x0,ntot,m,fwork,fISF,argument_nf)
   loop_nonzero: do j=-ntot,ntot
      ypm=alpha*(real(j+m,dp)+x0)
      ymm=alpha*(real(j-m,dp)+x0)
-     call derfcf(erfcpm,ypm) ! erfcpm = erfc(ypm)
-     call derfcf(erfcmm,ymm)
+     call abi_derfcf(erfcpm,ypm) ! erfcpm = erfc(ypm)
+     call abi_derfcf(erfcmm,ymm)
 
      !assume nf even
      res=0._dp
@@ -1058,7 +1060,7 @@ subroutine my_analytic_integral(alpha,x0,ntot,m,fwork,fISF,argument_nf)
         flag=flag1 .or. flag2 .or. flag
         !if (flag) then
         !   print *,'here',r1,if,q,j,x0
-        !   stop 
+        !   stop
         !end if
 !!$        call wofz_mod(alpha,m,q-1,-j-m,r1,if,flag1)
 !!$        call wofz_mod(alpha,m,q-1,-j+m,r2,if,flag2)
@@ -1068,14 +1070,14 @@ subroutine my_analytic_integral(alpha,x0,ntot,m,fwork,fISF,argument_nf)
         flag=flag1 .or. flag2 .or. flag
         !if (flag) then
         !   print *,'there',xo,y
-        !   stop 
+        !   stop
         !end if
         !write(16,'(2(i4),6(1pe15.7))')j,q,re,ro,erfcmm-erfcpm
         re=re*fISF(q)
         ro=ro*fISF(q-1)
         res=res+re-ro
      end do
-     !q=0 
+     !q=0
      !fwork(j)=derf(y)+rese-reso
      fwork(j)=erfcmm-erfcpm+2.0_dp*res!e-reso
      fwork(j)=factorend*fwork(j)
@@ -1117,7 +1119,7 @@ END SUBROUTINE my_analytic_integral
 !       call my_analytic_integral(hgrid*sqrt(pgauss(j)),&
 !            n_range, itype_scf, analytic_integral_result(i, 0:n_range), n_points_list(i))
 !       !write(*,*) 'analytic_integral with nf =', 2**i, ' ---> done!'
-!       analytic_vs_naive(i,j) = maxval(abs(analytic_integral_result(i,0:n_range) - & 
+!       analytic_vs_naive(i,j) = maxval(abs(analytic_integral_result(i,0:n_range) - &
 !            multiple_naive(6,j,0:n_range))) ! NB: norm infinity
 !       !write(*,*)  analytic_integral_result(0), multiple_naive(6,j,0)
 !       !analytic_vs_naive(i-5,j) = analytic_integral_result(0)
@@ -1207,7 +1209,7 @@ subroutine GcplxInt(alpha,m,q,jm,t,u,v,flag)
      !using a power-series (abramowitz/stegun, equation (7.1.5), p.297)
      !n is the minimum number of terms needed to obtain the required
      !accuracy
-     
+
      qrho  = (1._dp-0.85_dp*y)*sqrt(qrho)
      n     = nint(6._dp + 72._dp*qrho)
      j     = 2*n+1
@@ -1332,7 +1334,7 @@ subroutine GcplxInt(alpha,m,q,jm,t,u,v,flag)
         daux = real(q,kind=8)*fac
         daux = daux*daux
         daux = dexp(-daux)
-        w1 = 2.0_dp*daux    
+        w1 = 2.0_dp*daux
         !w1 =  2*dexp(xquad-yabs**2)
         u2  =  w1*dcos(yquadmod)
         v2  = -w1*dsin(yquadmod)
@@ -1404,7 +1406,7 @@ subroutine GcplxInt2(alpha,m,q,p,t,u,v,flag)
      !using a power-series (abramowitz/stegun, equation (7.1.5), p.297)
      !n is the minimum number of terms needed to obtain the required
      !accuracy
-     
+
      qrho  = (1._dp-0.85_dp*y)*sqrt(qrho)
      n     = nint(6._dp + 72._dp*qrho)
      j     = 2*n+1
@@ -1532,7 +1534,7 @@ subroutine GcplxInt2(alpha,m,q,p,t,u,v,flag)
         daux = real(q,kind=8)*fac
         daux = daux*daux
         daux = dexp(-daux)
-        w1 = 2.0_dp*daux    
+        w1 = 2.0_dp*daux
         !w1 =  2*dexp(xquad-yabs**2)
         u2  =  w1*dcos(yquadmod)
         v2  = -w1*dsin(yquadmod)
@@ -1574,7 +1576,7 @@ subroutine my_interpolate_and_transpose(t0,nphi,nrange,phi,ndat,nin,psi_in,nout,
  shf = f_malloc(-m_isf.to.m_isf,id='shf')
 
  !number of points for a unit displacement
- nunit=nphi/nrange 
+ nunit=nphi/nrange
  !this should be number between -0.5 and 0.5
  dt=t0-nint(t0)
  !evaluate the shift
@@ -1585,21 +1587,21 @@ print *,'start interpolation',ish,real(nunit,gp)*dt,dt
  if (ish<=0) then
    shf(-m_isf)=0.0_gp
  else
-   shf(-m_isf)=phi(ish)  
- end if 
+   shf(-m_isf)=phi(ish)
+ end if
  ipos=ish
 
  do i=-m_isf+1,m_isf-1 !extremes excluded
    !position of the shifted argument in the phi array
    ipos=ipos+nunit
-   shf(i)=phi(ipos)  
+   shf(i)=phi(ipos)
  end do
 
  if (ish<=0) then
    shf(m_isf)=phi(ipos+nunit)
  else
    shf(m_isf)=0.0_gp
- end if 
+ end if
 
  !define the shift for output results
  ish=nint(t0)
@@ -1622,7 +1624,7 @@ end do
          tt=tt+shf(l)*psi_in(i+l,j)
       end do
 !      tt=h*tt
-      
+
       if (i+ish > 0 .and. i+ish < nout) psi_out(j,i+ish)=tt
 !	      write(102,*)i+ish,psi_out(j,i+ish)
    end do
@@ -1649,7 +1651,7 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
    !Local variables
    character(len=*), parameter :: subname='scaling_function4b2B'
    real(kind=8), dimension(:), allocatable :: y
-   integer :: i,nt,ni  
+   integer :: i,nt,ni
 
    !Only itype=8,14,16,20,24,30,40,50,60,100
    select case(itype)
@@ -1748,7 +1750,7 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
 !!$ allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
 !!$
 !!$ !number of points for a unit displacement
-!!$ nunit=nphi/nrange 
+!!$ nunit=nphi/nrange
 !!$
 !!$!print *,'start interpolation',ish,t0,shf
 !!$
@@ -1767,7 +1769,7 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
 !!$     if (k-real(i,gp) > tol) exit find_trans
 !!$     kold=k
 !!$end do find_trans
-!!$    
+!!$
 !!$!idist=k-kold
 !!$
 !!$!if (idist > 1) then
@@ -1816,7 +1818,7 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
 !!$tt2=0.0_gp
 !!$ksh2=1
 !!$ksh1=0
-!!$end if 
+!!$end if
 !!$
 !!$    alpha=ksh2/(ksh1+ksh2)
 !!$!alpha=1.0_gp
@@ -1828,8 +1830,8 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
 !!$!     dt=t0_l-nint(t0_l*(2.0_gp))/2
 !!$!else
 !!$   dt=t0_l-nint(t0_l)
-!!$   
-!!$   diff=real(i,gp)-(k1+t0_l)   
+!!$
+!!$   diff=real(i,gp)-(k1+t0_l)
 !!$
 !!$   if (abs(diff - dt) < abs(diff+dt)) dt=-dt
 !!$   !dt=-real(i,gp)+(k1+t0_l)
@@ -1845,8 +1847,8 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
 !!$     if (ish<=0) then
 !!$       shf(-m_isf)=0.0_gp
 !!$     else
-!!$       shf(-m_isf)=phi(ish)  
-!!$     end if 
+!!$       shf(-m_isf)=phi(ish)
+!!$     end if
 !!$     ipos=ish
 !!$
 !!$     print *,'j',j,'start',k1,'shift',t0_l,'end',i,'dt',dt,'difference',real(i,gp)-(k1+t0_l)
@@ -1854,14 +1856,14 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
 !!$     do l=-m_isf+1,m_isf-1 !extremes excluded
 !!$       !position of the shifted argument in the phi array
 !!$       ipos=ipos+nunit
-!!$       shf(l)=phi(ipos)  
+!!$       shf(l)=phi(ipos)
 !!$     end do
 !!$
 !!$     if (ish<=0) then
 !!$       shf(m_isf)=phi(ipos+nunit)
 !!$     else
 !!$       shf(m_isf)=0.0_gp
-!!$     end if 
+!!$     end if
 !!$
 !!$     !define the shift for output results
 !!$     !ish=nint(t0_l)
@@ -1896,4 +1898,3 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
 !!$ deallocate(shf,stat=i_stat)
 !!$
 !!$end subroutine my_morph_and_transpose
-

@@ -532,7 +532,7 @@
  Analytic core charges for atom species:
    O                                   :  0.4210514
  Total core charge                     :  0.4210514
- Total core charge on the grid (To be compared with analytic one):  0.4210514
+ Total core charge on the grid:  0.4210514
   #WARNING: Do not call check_communications in the linear scaling version!
   #-------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):

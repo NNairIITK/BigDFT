@@ -1,3 +1,13 @@
+!> @file
+!! Test of the sparsematrix library
+!! @author
+!!    Copyright (C) 2015-2016 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 program driver
   use module_base
   use sparsematrix_init, only: sparsebigdft_to_ccs, read_ccs_format
@@ -22,7 +32,7 @@ program driver
   integer,dimension(:,:,:),pointer :: keyg
   real(kind=8),dimension(:),pointer :: mat_compr
   integer,dimension(:),pointer :: row_ind, col_ptr
-  
+
   integer :: nspin_h, nfvctr_h, nseg_h, nvctr_h, nfvctrp_h, isfvctr_h
   integer :: nspin_s, nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
   integer :: nspin_l, nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
@@ -117,7 +127,7 @@ program driver
   call f_free_ptr(on_which_atom_s)
   call f_free_ptr( on_which_atom_l)
   call deallocate_atoms_data(at)
-  
+
   !matrix_compr_sl = sparsematrix_malloc_ptr(smat_h, iaction=SPARSE_FULL, id='matrix_compr_sl')
   !call transform_sparsity_pattern(smat_h%nfvctr, smat_s%smmm%nvctrp_mm, smat_s%smmm%isvctr_mm, &
   !     smat_s%nseg, smat_s%keyv, smat_s%keyg, smat_s%smmm%line_and_column_mm, &
@@ -143,7 +153,7 @@ program driver
   !!!OLD   call sparsebigdft_to_ccs(nfvctr, nvctr, nseg, keyg, row_ind, col_ptr)
 
   !!!OLD   call write_ccs_matrix('matrix_ccs.dat', nfvctr, nvctr, row_ind, col_ptr, mat_compr)
-  !!!OLD   
+  !!!OLD
   !!!OLD   !do i=1,nvctr
   !!!OLD   !    write(*,*) 'i, row_ind', i, row_ind(i)
   !!!OLD   !end do
