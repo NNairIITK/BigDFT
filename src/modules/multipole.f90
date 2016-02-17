@@ -122,7 +122,7 @@ module multipole
 
     !> Calculate the external potential arising from the multipoles of the charge density
     subroutine potential_from_charge_multipoles(iproc, nproc, at, denspot, ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, &
-               verbosity, ixc, lzd, pot, rxyz, ixyz0, dipole_total, quadrupole_total, all_norms_ok)
+               verbosity, ixc, lzd, pot, rxyz, ixyz0, write_directory, dipole_total, quadrupole_total, all_norms_ok)
       use module_types, only: DFT_local_fields, local_zone_descriptors
       use Poisson_Solver, except_dp => dp, except_gp => gp
       use module_atoms, only: atoms_data
@@ -144,6 +144,7 @@ module multipole
       real(gp),dimension(is1:ie1,is2:ie2,is3:ie3),intent(inout) :: pot
       real(kind=8),dimension(3,at%astruct%nat),intent(in),optional :: rxyz
       integer,dimension(3),intent(in),optional :: ixyz0
+      character(len=*),intent(in),optional :: write_directory
       real(kind=8),dimension(3),intent(out),optional :: dipole_total
       real(kind=8),dimension(3,3),intent(out),optional :: quadrupole_total
       logical,intent(out),optional :: all_norms_ok
@@ -182,6 +183,7 @@ module multipole
       character(len=20),dimension(0:lmax) :: output_arr
       real(kind=8),dimension(:,:),allocatable :: rxyz_noshift
       integer,dimension(3) :: ixyz0_
+      character(len=128) :: filename
       !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
       call f_routine(id='potential_from_charge_multipoles')
@@ -827,7 +829,12 @@ module multipole
                   rxyz_noshift(1:3,iat) = at%astruct%rxyz(1:3,iat) - shift(1:3)
               end do
               ! Plot of the density, in particular along the axes through the point ixyz0_
-              call plot_density(iproc,nproc,'mppot.cube',at,rxyz_noshift,denspot%pkernel,nspin=1,rho=density, &
+              if (present(write_directory)) then
+                  filename = trim(write_directory)//'mppot.cube'
+              else
+                  filename = 'mppot.cube'
+              end if
+              call plot_density(iproc,nproc,trim(filename),at,rxyz_noshift,denspot%pkernel,nspin=1,rho=density, &
                    ixyz0=ixyz0_)
               call f_free(rxyz_noshift)
           end if
