@@ -484,55 +484,57 @@ program utilities
        call mpiallred(occup_arr, mpi_sum, comm=bigdft_mpi%mpi_comm)
        call mpiallred(energy_arr, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
-       output_pdos='PDoS.gp'
-       if (bigdft_mpi%iproc==0) call yaml_map('output file',trim(output_pdos))
-       iunit = 99
-       call f_open_file(iunit, file=trim(output_pdos), binary=.false.)
-       write(iunit,'(a)') '# plot the DOS as a sum of Gaussians'
-       write(iunit,'(a)') 'set samples 1000'
-       write(iunit,'(a,2(es12.5,a))') 'set xrange[',eval_ptr(1),':',eval_ptr(ntmb),']'
-       write(iunit,'(a)') 'sigma=0.01'
-       write(backslash,'(a)') '\ '
-       total_occup = 0.d0
-       do ipdos=1,npdos
-           occup_pdos = 0.d0
-           if (bigdft_mpi%iproc==0) call yaml_map('PDoS number',ipdos)
-           if (bigdft_mpi%iproc==0) call yaml_map('start, increment',(/ipdos,npdos/))
-           write(num,fmt='(i2.2)') ipdos
-           write(iunit,'(a,i0,a)') 'f',ipdos,'(x) = '//trim(backslash)
-           do iorb=1,norbks
-               if (iorb<norbks) then
-                   write(iunit,'(2(a,es16.9),a)') '  ',occup_arr(ipdos,iorb),&
-                       &'*exp(-(x-',energy_arr(iorb),')**2/(2*sigma**2)) + '//trim(backslash)
-               else
-                   write(iunit,'(2(a,es16.9),a)') '  ',occup_arr(ipdos,iorb),&
-                       &'*exp(-(x-',energy_arr(iorb),')**2/(2*sigma**2))'
-               end if
-               occup_pdos = occup_pdos + occup_arr(ipdos,iorb)
+       if (bigdft_mpi%iproc==0) then
+           output_pdos='PDoS.gp'
+           call yaml_map('output file',trim(output_pdos))
+           iunit = 99
+           call f_open_file(iunit, file=trim(output_pdos), binary=.false.)
+           write(iunit,'(a)') '# plot the DOS as a sum of Gaussians'
+           write(iunit,'(a)') 'set samples 1000'
+           write(iunit,'(a,2(es12.5,a))') 'set xrange[',eval_ptr(1),':',eval_ptr(ntmb),']'
+           write(iunit,'(a)') 'sigma=0.01'
+           write(backslash,'(a)') '\ '
+           total_occup = 0.d0
+           do ipdos=1,npdos
+               occup_pdos = 0.d0
+               call yaml_map('PDoS number',ipdos)
+               call yaml_map('start, increment',(/ipdos,npdos/))
+               write(num,fmt='(i2.2)') ipdos
+               write(iunit,'(a,i0,a)') 'f',ipdos,'(x) = '//trim(backslash)
+               do iorb=1,norbks
+                   if (iorb<norbks) then
+                       write(iunit,'(2(a,es16.9),a)') '  ',occup_arr(ipdos,iorb),&
+                           &'*exp(-(x-',energy_arr(iorb),')**2/(2*sigma**2)) + '//trim(backslash)
+                   else
+                       write(iunit,'(2(a,es16.9),a)') '  ',occup_arr(ipdos,iorb),&
+                           &'*exp(-(x-',energy_arr(iorb),')**2/(2*sigma**2))'
+                   end if
+                   occup_pdos = occup_pdos + occup_arr(ipdos,iorb)
+               end do
+               total_occup = total_occup + occup_pdos
+               call yaml_map('sum of PDoS',occup_pdos)
            end do
-           total_occup = total_occup + occup_pdos
-           if (bigdft_mpi%iproc==0) call yaml_map('sum of PDoS',occup_pdos)
-       end do
-       do ipdos=1,npdos
-           if (ipdos<ncolors) then
-               colorname = colors(ipdos)
-           else
-               colorname = 'color'
-           end if
-           if (ipdos<npdos) then
-               lineend = ' ,\'
-           else
-               lineend = ''
-           end if
-           if (ipdos==1) then
-               linestart = 'plot'
-           else
-               linestart = '    '
-           end if
-           write(iunit,'(a,i0,a)') trim(linestart)//" f",ipdos,"(x) lc rgb '"//trim(colorname)//&
-               &"' lt 1 lw 2 w l title '"//trim(pdos_name(ipdos))//"'"//trim(lineend)
-       end do
-       call f_close(iunit)
+           do ipdos=1,npdos
+               if (ipdos<ncolors) then
+                   colorname = colors(ipdos)
+               else
+                   colorname = 'color'
+               end if
+               if (ipdos<npdos) then
+                   lineend = ' ,\'
+               else
+                   lineend = ''
+               end if
+               if (ipdos==1) then
+                   linestart = 'plot'
+               else
+                   linestart = '    '
+               end if
+               write(iunit,'(a,i0,a)') trim(linestart)//" f",ipdos,"(x) lc rgb '"//trim(colorname)//&
+                   &"' lt 1 lw 2 w l title '"//trim(pdos_name(ipdos))//"'"//trim(lineend)
+           end do
+           call f_close(iunit)
+       end if
        if (bigdft_mpi%iproc==0) call yaml_map('sum of total DoS',total_occup)
 
        call f_free(pdos)
