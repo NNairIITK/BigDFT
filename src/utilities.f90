@@ -251,7 +251,15 @@ program utilities
        hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='hamiltonian_mat%matrix')
        call uncompress_matrix(bigdft_mpi%iproc, smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
        eval = f_malloc(smat_s%nfvctr,id='eval')
+
+       if (bigdft_mpi%iproc==0) then
+           call yaml_comment('Diagonalizing the matrix',hfill='~')
+       end if
        call diagonalizeHamiltonian2(bigdft_mpi%iproc, smat_s%nfvctr, hamiltonian_mat%matrix, ovrlp_mat%matrix, eval)
+       if (bigdft_mpi%iproc==0) then
+           call yaml_comment('Matrix succesfully diagonalized',hfill='~')
+       end if
+       iunit=99
        call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
        !call writeLinearCoefficients(iunit, .true., nat, rxyz, smat_s%nfvctr, smat_s%nfvctr, &
        !     smat_s%nfvctr, hamiltonian_mat%matrix, eval)
