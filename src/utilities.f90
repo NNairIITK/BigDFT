@@ -26,34 +26,41 @@ program utilities
                                     CHARGE_ANALYSIS_PROJECTOR, &
                                     loewdin_charge_analysis_core
    use multipole, only: projector_for_charge_analysis
-   use io, only: write_linear_coefficients
+   use io, only: write_linear_coefficients, read_linear_coefficients
    use bigdft_run, only: bigdft_init
    implicit none
    external :: gather_timings
    character(len=*), parameter :: subname='utilities'
    character(len=1) :: geocode
    character(len=30) :: tatonam, radical
-   character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file, coeff_file
+   character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file, coeff_file, pdos_file
+   character(len=128) :: line, cc, output_pdos
    logical :: charge_analysis = .false.
    logical :: solve_eigensystem = .false.
+   logical :: calculate_pdos = .false.
    type(atoms_data) :: at
    integer :: istat, i_arg, ierr, nspin, icount, nthread, method, ntypes
    integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
    integer :: nfvctr_m, nseg_m, nvctr_m, nfvctrp_m, isfvctr_m
    integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
-   integer,dimension(:),allocatable :: on_which_atom
+   integer,dimension(:),pointer :: on_which_atom
    integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l, on_which_atom_s, on_which_atom_m, on_which_atom_l
    integer,dimension(:),pointer :: iatype, nzatom, nelpsp
    integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
-   real(kind=8),dimension(:),pointer :: matrix_compr
-   real(kind=8),dimension(:,:),pointer :: rxyz
+   real(kind=8),dimension(:),pointer :: matrix_compr, eval_ptr
+   real(kind=8),dimension(:,:),pointer :: rxyz, coeff_ptr
    real(kind=8),dimension(:),allocatable :: eval
+   real(kind=8),dimension(:,:),allocatable :: denskernel, pdos
+   logical,dimension(:,:),allocatable :: calc_array
    type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat
    type(sparse_matrix) :: smat_s, smat_m, smat_l
    type(dictionary), pointer :: dict_timing_info
-   integer :: iunit, nat
+   integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
+   integer :: jtmb, norbks, npdos, npt, ntmb
    character(len=20),dimension(:),pointer :: atomnames
    real(kind=8),dimension(3) :: cell_dim
+   character(len=2) :: backslash, num
+   real(kind=8) :: energy, occup, occup_pdos, total_occup
    !$ integer :: omp_get_max_threads
 
    call f_lib_initialize()
@@ -131,6 +138,16 @@ program utilities
             !   &   'perform a Loewdin charge analysis'
             solve_eigensystem = .true.
             exit loop_getargs
+         else if (trim(tatonam)=='pdos') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = coeff_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = hamiltonian_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = overlap_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = pdos_file)
+            calculate_pdos = .true.
          end if
          i_arg = i_arg + 1
       end do loop_getargs
@@ -257,7 +274,6 @@ program utilities
        !     smat_s%nfvctr, hamiltonian_mat%matrix, eval)
        call write_linear_coefficients(0, trim(coeff_file), nat, rxyz, iatype, ntypes, nzatom, &
             nelpsp, atomnames, smat_s%nfvctr, smat_s%nfvctr, smat_s%nspin, hamiltonian_mat%matrix, eval)
-
        call f_close(iunit)
 
        call f_free(eval)
@@ -270,6 +286,176 @@ program utilities
        call f_free_ptr(nzatom)
        call f_free_ptr(nelpsp)
        call f_free_str_ptr(len(atomnames),atomnames)
+   end if
+
+
+   if (calculate_pdos) then
+       iunit = 99
+       call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
+       call read_linear_coefficients(trim(coeff_file), nspin, ntmb, norbks, coeff_ptr, &
+            eval=eval_ptr)
+       call f_close(iunit)
+
+       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
+            init_matmul=.false., iatype=iatype, ntypes=ntypes, atomnames=atomnames, &
+            on_which_atom=on_which_atom)
+       if (ntmb/=smat_s%nfvctr) call f_err_throw('ntmb/=smat_s%nfvctr')
+       ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
+       call uncompress_matrix(bigdft_mpi%iproc, smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)
+
+       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_m, hamiltonian_mat, &
+            init_matmul=.false.)
+       hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='hamiltonian_mat%matrix')
+       call uncompress_matrix(bigdft_mpi%iproc, smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
+
+       write(*,*) 'smat_s%nfvctrp, smat_s%isfvctr', smat_s%nfvctrp, smat_s%isfvctr
+
+       iunit=99
+       call f_open_file(iunit, file=pdos_file, binary=.false.)
+       read(iunit,*) npdos
+
+       calc_array = f_malloc((/ntmb,npdos/),id='calc_array')
+
+       do ipdos=1,npdos
+           do itmb=1,ntmb
+               calc_array(itmb,ipdos) = .false.
+           end do
+       end do
+       npdos_loop: do ipdos=1,npdos
+           do 
+               !read(iunit01,*,iostat=ios) cc, ival
+               read(iunit,'(a128)',iostat=ios) line
+               if (ios/=0) exit
+               write(*,*) 'line',line
+               read(line,*,iostat=ios) cc, ival
+               if (cc=='#') cycle npdos_loop
+               do itype=1,ntypes
+                   if (trim(atomnames(itype))==trim(cc)) then
+                       iitype = itype
+                       exit
+                   end if
+               end do
+               write(*,'(a,i7,a,2i7)') 'ipdos, cc, ival, iitype', ipdos, trim(cc), ival, iitype
+               iat_prev = -1
+               do itmb=1,ntmb
+                   iat = on_which_atom(itmb)
+                   if (iat/=iat_prev) then
+                       ii = 0
+                   end if
+                   iat_prev = iat
+                   itype = iatype(iat)
+                   ii = ii + 1
+                   if (itype==iitype .and. ii==ival) then
+                       if (calc_array(itmb,ipdos)) stop 'calc_array(itmb)'
+                       calc_array(itmb,ipdos) = .true.
+                   end if
+               end do
+           end do
+
+       end do npdos_loop
+       call f_close(iunit)
+
+       denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
+       pdos = f_malloc0((/npt,npdos/),id='pdos')
+       output_pdos='PDoS.gp'
+       if (bigdft_mpi%iproc==0) call yaml_map('output file',trim(output_pdos))
+       iunit = 99
+       call f_open_file(iunit, file=trim(output_pdos), binary=.false.)
+       write(iunit,'(a)') '# plot the DOS as a sum of Gaussians'
+       write(iunit,'(a)') 'set samples 1000'
+       write(iunit,'(a,2(es12.5,a))') 'set xrange[',eval_ptr(1),':',eval_ptr(ntmb),']'
+       write(iunit,'(a)') 'sigma=0.01'
+       write(backslash,'(a)') '\ '
+       ! Calculate a partial kernel for each KS orbital
+       total_occup = 0.d0
+       do ipdos=1,npdos
+           if (bigdft_mpi%iproc==0) call yaml_map('PDoS number',ipdos)
+           if (bigdft_mpi%iproc==0) call yaml_map('start, increment',(/ipdos,npdos/))
+           write(num,fmt='(i2.2)') ipdos
+           write(iunit,'(a,i0,a)') 'f',ipdos,'(x) = '//trim(backslash)
+           occup_pdos = 0.d0
+           do iorb=1,norbks
+               if (bigdft_mpi%iproc==0) call yaml_map('orbital being processed',iorb)
+               call gemm('n', 't', ntmb, smat_s%nfvctrp, 1, 1.d0, coeff_ptr(1,iorb), ntmb, &
+                    coeff_ptr(smat_s%isfvctr+1,iorb), ntmb, 0.d0, denskernel(1,smat_s%isfvctr+1), ntmb)
+               energy = 0.d0
+               occup = 0.d0
+               do ispin=1,nspin
+                   !$omp parallel default(none) &
+                   !$omp shared(ispin,smat_s,ntmb,denskernel,hamiltonian_mat,energy) &
+                   !$omp private(itmb,jtmb)
+                   !$omp do reduction(+:energy)
+                   do jtmb=smat_s%isfvctr+1,smat_s%isfvctr+smat_s%nfvctrp
+                       do itmb=1,ntmb
+                           energy = energy + denskernel(itmb,jtmb)*hamiltonian_mat%matrix(jtmb,itmb,ispin)
+                       end do
+                   end do
+                   !$omp end do
+                   !$omp end parallel
+               end do
+               call mpiallred(energy, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+               do ispin=1,nspin
+                   !$omp parallel default(none) &
+                   !$omp shared(ispin,smat_s,ntmb,denskernel,ovrlp_mat,calc_array,ipdos,occup) &
+                   !$omp private(itmb,jtmb)
+                   !$omp do reduction(+:occup)
+                   do jtmb=smat_s%isfvctr+1,smat_s%isfvctr+smat_s%nfvctrp
+                       if (calc_array(jtmb,ipdos)) then
+                           do itmb=1,ntmb!ipdos,ntmb,npdos
+                               if (calc_array(itmb,ipdos)) then
+                                   occup = occup + denskernel(itmb,jtmb)*ovrlp_mat%matrix(jtmb,itmb,ispin)
+                               end if
+                           end do
+                       end if
+                   end do
+                   !$omp end do
+                   !$omp end parallel
+               end do
+               call mpiallred(occup, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+               occup_pdos = occup_pdos + occup
+               if (iorb<norbks) then
+                   write(iunit,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2)) + '//trim(backslash)
+               else
+                   write(iunit,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2))'
+               end if
+               !write(*,'(a,i6,3es16.8)')'iorb, eval(iorb), energy, occup', iorb, eval(iorb), energy, occup
+           end do
+           total_occup = total_occup + occup_pdos
+           if (ipdos==1) then
+               write(iunit,'(a,i0,a)') "plot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
+           else
+               write(iunit,'(a,i0,a)') "replot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
+           end if
+           if (bigdft_mpi%iproc==0) call yaml_map('sum of PDoS',occup_pdos)
+           !!output_pdos='PDoS_'//num//'.dat'
+           !!call yaml_map('output file',trim(output_pdos))
+           !!call f_open_file(iunit01, file=trim(output_pdos), binary=.false.)
+           !!write(iunit01,'(a)') '#             energy                pdos'
+           !!do ipt=1,npt
+           !!    write(iunit01,'(2es20.12)') energy_bins(1,ipt), pdos(ipt,ipdos)
+           !!end do
+           !!call f_close(iunit01)
+       end do
+       call f_close(iunit)
+       if (bigdft_mpi%iproc==0) call yaml_map('sum of total DoS',total_occup)
+
+       call f_free(pdos)
+       call f_free(denskernel)
+       call f_free_ptr(eval_ptr)
+       call deallocate_matrices(ovrlp_mat)
+       call deallocate_matrices(hamiltonian_mat)
+       call deallocate_sparse_matrix(smat_s)
+       call deallocate_sparse_matrix(smat_m)
+       call f_free_ptr(rxyz)
+       call f_free_ptr(iatype)
+       call f_free_ptr(nzatom)
+       call f_free_ptr(nelpsp)
+       call f_free_str_ptr(len(atomnames),atomnames)
+       call f_free(calc_array)
+       call f_free_ptr(on_which_atom)
+       call f_free_ptr(coeff_ptr)
    end if
 
    call build_dict_info(dict_timing_info)

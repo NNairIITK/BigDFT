@@ -199,6 +199,7 @@ module sparsematrix_highlevel
           call f_memcpy(src=rxyz_, dest=rxyz)
       end if
       if (present(on_which_atom)) then
+          on_which_atom = f_malloc_ptr(nfvctr,id='on_which_atom')
           call f_memcpy(src=on_which_atom_, dest=on_which_atom)
       end if
 

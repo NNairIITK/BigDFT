@@ -787,7 +787,11 @@ program memguess
 
        calc_array = f_malloc((/ntmb,npdos/),id='calc_array')
 
-       calc_array = .false.
+       do ipdos=1,npdos
+           do itmb=1,ntmb
+               calc_array(itmb,ipdos) = .false.
+           end do
+       end do
        npdos_loop: do ipdos=1,npdos
            do 
                !read(iunit01,*,iostat=ios) cc, ival
