@@ -348,7 +348,6 @@ program utilities
                        exit
                    end if
                end do
-               write(*,'(a,i7,a,2i7)') 'ipdos, cc, ival, iitype', ipdos, trim(cc), ival, iitype
                iat_prev = -1
                do itmb=1,ntmb
                    iat = on_which_atom(itmb)
