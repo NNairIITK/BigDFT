@@ -2343,7 +2343,7 @@ module multipole
 
       ! Local variables
       integer :: methTransformOverlap, iat, ind, ispin, ishift, iorb, jorb, iiorb, l, m, itype, natpx, isatx, nmaxx, kat, n, i, kkat
-      integer :: ilr, impl, mm, lcheck, nelpsp, psp_source, j, lwork
+      integer :: ilr, impl, mm, lcheck, nelpsp, psp_source, j, lwork, ii
       logical :: can_use_transposed, all_norms_ok
       real(kind=8),dimension(:),pointer :: phit_c, phit_f
       real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, multipole_matrix_large, Qmat_tmp,Slmphi
@@ -2359,9 +2359,11 @@ module multipole
       type(matrices) :: multipole_matrix, newovrlp
       type(matrices),dimension(-1:1,0:1) :: lower_multipole_matrices
       type(matrices),dimension(1) :: inv_ovrlp
+      logical :: perx, pery, perz
       logical,dimension(:,:),pointer :: neighborx
       integer,dimension(:),pointer :: nx
       character(len=20),dimension(:),allocatable :: names
+      real(kind=8) :: rr1, rr2, rr3
       real(kind=8),dimension(3) :: dipole_check
       real(kind=8),dimension(3,3) :: quadrupole_check
       type(external_potential_descriptors) :: ep_check
@@ -2374,6 +2376,10 @@ module multipole
 
 
       call f_routine(id='multipole_analysis_driver')
+
+      perx=(smats%geocode /= 'F')
+      pery=(smats%geocode == 'P')
+      perz=(smats%geocode /= 'F')
 
 
       if (iproc==0) then
@@ -2568,17 +2574,17 @@ module multipole
       center(1:3) = 0.5d0*at%astruct%cell_dim(1:3)
       locregcenter = f_malloc((/3,lzd%nlr/),id='locregcenter')
       do ilr=1,lzd%nlr
-          !locregcenter(1:3,ilr) = lzd%llr(ilr)%locregcenter(1:3) !+ (/1.d0,2.d0,3.d0/)
+          locregcenter(1:3,ilr) = lzd%llr(ilr)%locregcenter(1:3) !+ (/1.d0,2.d0,3.d0/)
           !locregcenter(1:3,ilr) = (/0.d0,0.d0,0.d0/)
-          locregcenter(1:3,ilr) = center(1:3)
+          !locregcenter(1:3,ilr) = center(1:3)
           !if (iproc==0) write(*,*) 'lzd%llr(ilr)%locregcenter(1:3)',lzd%llr(ilr)%locregcenter(1:3)
       end do
 
 !!$      Slmphi=f_malloc(nphi,id='Slmphi')
 !!$           
-!!$      acell(1)=0.5_gp*hgrids(1)*Lzd%glr%d%n1i
-!!$      acell(2)=0.5_gp*hgrids(2)*Lzd%glr%d%n2i
-!!$      acell(3)=0.5_gp*hgrids(3)*Lzd%glr%d%n3i
+      acell(1)=0.5_gp*hgrids(1)*Lzd%glr%d%n1i
+      acell(2)=0.5_gp*hgrids(2)*Lzd%glr%d%n2i
+      acell(3)=0.5_gp*hgrids(3)*Lzd%glr%d%n3i
 
       do l=0,ll
           do m=-l,l
@@ -2672,20 +2678,56 @@ module multipole
                            call extract_matrix(smatl, kernel_ortho, neighborx(1:,kat), n, nmaxx, kernel_extracted)
                        end if
                        if (l==1) then
+                           !!tmpmat = f_malloc((/n,n/),id='tmpmat')
+                           !!call extract_matrix(smats, lower_multipole_matrices(0,0)%matrix_compr, &
+                           !!     neighborx(1:,kat), n, nmaxx, tmpmat)
+                           lmp_extracted = f_malloc((/1.to.n,1.to.n,0.to.0,0.to.0/),id='lmp_extracted')
                            tmpmat = f_malloc((/n,n/),id='tmpmat')
                            call extract_matrix(smats, lower_multipole_matrices(0,0)%matrix_compr, &
-                                neighborx(1:,kat), n, nmaxx, tmpmat)
+                                neighborx(1:,kat), n, nmaxx, lmp_extracted(1,1,0,0))
                            select case (m)
                            case (-1)
-                               call axpy(n**2, rxyz(2,kkat)-center(2), tmpmat(1,1), 1, multipole_extracted(1,1), 1)
-                               !multipole_extracted = multipole_extracted + rxyz(2,kkat)*tmpmat
+                               !call axpy(n**2, rxyz(2,kkat)-center(2), tmpmat(1,1), 1, multipole_extracted(1,1), 1)
+                               ii = 0
+                               do i=1,smats%nfvctr
+                                   if (neighborx(i,kat)) then
+                                       ii = ii + 1
+                                       ilr = orbs%inwhichlocreg(i)
+                                       rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                                       do j=1,n
+                                           tmpmat(j,i) = rr2*lmp_extracted(j,i,0,0)
+                                       end do
+                                   end if
+                               end do
                            case (0)
-                               call axpy(n**2, rxyz(3,kkat)-center(3), tmpmat(1,1), 1, multipole_extracted(1,1), 1)
-                               !multipole_extracted = multipole_extracted + rxyz(3,kkat)*overlap_small
+                               !call axpy(n**2, rxyz(3,kkat)-center(3), tmpmat(1,1), 1, multipole_extracted(1,1), 1)
+                               ii = 0
+                               do i=1,smats%nfvctr
+                                   if (neighborx(i,kat)) then
+                                       ii = ii + 1
+                                       ilr = orbs%inwhichlocreg(i)
+                                       rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                                       do j=1,n
+                                           tmpmat(j,i) = rr3*lmp_extracted(j,i,0,0)
+                                       end do
+                                   end if
+                               end do
                            case (1)
-                               call axpy(n**2, rxyz(1,kkat)-center(1), tmpmat(1,1), 1, multipole_extracted(1,1), 1)
-                               !multipole_extracted = multipole_extracted + rxyz(1,kkat)*overlap_small
+                               !call axpy(n**2, rxyz(1,kkat)-center(1), tmpmat(1,1), 1, multipole_extracted(1,1), 1)
+                               ii = 0
+                               do i=1,smats%nfvctr
+                                   if (neighborx(i,kat)) then
+                                       ii = ii + 1
+                                       ilr = orbs%inwhichlocreg(i)
+                                       rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                                       do j=1,n
+                                           tmpmat(j,i) = rr1*lmp_extracted(j,i,0,0)
+                                       end do
+                                   end if
+                               end do
                            end select
+                           call axpy(n**2, 1.d0, tmpmat(1,1), 1, multipole_extracted(1,1), 1)
+                           call f_free(lmp_extracted)
                            call f_free(tmpmat)
                        else if (l==2) then
                            lmp_extracted = f_malloc((/1.to.n,1.to.n,-1.to.1,0.to.1/),id='lmp_extracted')
@@ -2698,51 +2740,85 @@ module multipole
                            end do
                            select case (m)
                            case (-2)
-                               do i=1,n
-                                   do j=1,n
-                                       tmpmat(j,i) = -sqrt(3.d0)*(rxyz(1,kkat)-center(1))*lmp_extracted(j,i,-1,1) &
-                                                     -sqrt(3.d0)*(rxyz(2,kkat)-center(2))*lmp_extracted(j,i,1,1) &
-                                                     +sqrt(3.d0)*(rxyz(1,kkat)-center(1))*(rxyz(2,kkat)-center(2))&
-                                                       *lmp_extracted(j,i,0,0)
-                                   end do
+                               ii = 0
+                               do i=1,smats%nfvctr
+                                   if (neighborx(i,kat)) then
+                                       ii = ii + 1
+                                       ilr = orbs%inwhichlocreg(i)
+                                       rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                                       rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                                       rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                                       do j=1,n
+                                           tmpmat(j,i) = -sqrt(3.d0)*rr1*lmp_extracted(j,i,-1,1) &
+                                                         -sqrt(3.d0)*rr2*lmp_extracted(j,i,1,1) &
+                                                         +sqrt(3.d0)*rr1*rr2*lmp_extracted(j,i,0,0)
+                                       end do
+                                   end if
                                end do
                            case (-1)
-                               do i=1,n
-                                   do j=1,n
-                                       tmpmat(j,i) = -sqrt(3.d0)*(rxyz(2,kkat)-center(2))*lmp_extracted(j,i,0,1) &
-                                                     -sqrt(3.d0)*(rxyz(3,kkat)-center(3))*lmp_extracted(j,i,-1,1) &
-                                                     +sqrt(3.d0)*(rxyz(2,kkat)-center(2))*(rxyz(3,kkat)-center(3))&
-                                                       *lmp_extracted(j,i,0,0)
-                                   end do
+                               do i=1,smats%nfvctr
+                                   if (neighborx(i,kat)) then
+                                       ii = ii + 1
+                                       ilr = orbs%inwhichlocreg(i)
+                                       rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                                       rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                                       rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                                       do j=1,n
+                                           tmpmat(j,i) = -sqrt(3.d0)*rr2*lmp_extracted(j,i,0,1) &
+                                                         -sqrt(3.d0)*rr3*lmp_extracted(j,i,-1,1) &
+                                                         +sqrt(3.d0)*rr2*rr3*lmp_extracted(j,i,0,0)
+                                       end do
+                                   end if
                                end do
                            case (0)
-                               do i=1,n
-                                   do j=1,n
-                                       tmpmat(j,i) =  (rxyz(1,kkat)-center(1))*lmp_extracted(j,i,1,1) &
-                                                     +(rxyz(2,kkat)-center(2))*lmp_extracted(j,i,-1,1) &
-                                                     -2.d0*(rxyz(3,kkat)-center(3))*lmp_extracted(j,i,0,1) &
-                                                     +0.5d0*(-(rxyz(1,kkat)-center(1))**2-(rxyz(2,kkat)-center(2))**2+&
-                                                       2.d0*(rxyz(3,kkat)-center(3))**2)&
-                                                       *lmp_extracted(j,i,0,0)
-                                   end do
+                               do i=1,smats%nfvctr
+                                   if (neighborx(i,kat)) then
+                                       ii = ii + 1
+                                       ilr = orbs%inwhichlocreg(i)
+                                       rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                                       rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                                       rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                                       do j=1,n
+                                           tmpmat(j,i) =  rr1*lmp_extracted(j,i,1,1) &
+                                                         +rr2*lmp_extracted(j,i,-1,1) &
+                                                         -2.d0*rr3*lmp_extracted(j,i,0,1) &
+                                                         +0.5d0*(-rr1**2-rr2**2+&
+                                                           2.d0*rr3**2)&
+                                                           *lmp_extracted(j,i,0,0)
+                                       end do
+                                   end if
                                end do
                            case (1)
-                               do i=1,n
-                                   do j=1,n
-                                       tmpmat(j,i) = -sqrt(3.d0)*(rxyz(1,kkat)-center(1))*lmp_extracted(j,i,0,1) &
-                                                     -sqrt(3.d0)*(rxyz(3,kkat)-center(3))*lmp_extracted(j,i,1,1) &
-                                                     +sqrt(3.d0)*(rxyz(1,kkat)-center(1))*(rxyz(3,kkat)-center(3))&
-                                                       *lmp_extracted(j,i,0,0)
-                                   end do
+                               do i=1,smats%nfvctr
+                                   if (neighborx(i,kat)) then
+                                       ii = ii + 1
+                                       ilr = orbs%inwhichlocreg(i)
+                                       rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                                       rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                                       rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                                       do j=1,n
+                                           tmpmat(j,i) = -sqrt(3.d0)*rr1*lmp_extracted(j,i,0,1) &
+                                                         -sqrt(3.d0)*rr3*lmp_extracted(j,i,1,1) &
+                                                         +sqrt(3.d0)*rr1*rr3&
+                                                           *lmp_extracted(j,i,0,0)
+                                       end do
+                                   end if
                                end do
                            case (2)
-                               do i=1,n
-                                   do j=1,n
-                                       tmpmat(j,i) = -sqrt(3.d0)*(rxyz(1,kkat)-center(1))*lmp_extracted(j,i,1,1) &
-                                                     +sqrt(3.d0)*(rxyz(2,kkat)-center(2))*lmp_extracted(j,i,-1,1) &
-                                                     +sqrt(0.75d0)*((rxyz(1,kkat)-center(1))**2-(rxyz(2,kkat)-center(2))**2)&
-                                                       *lmp_extracted(j,i,0,0)
-                                   end do
+                               do i=1,smats%nfvctr
+                                   if (neighborx(i,kat)) then
+                                       ii = ii + 1
+                                       ilr = orbs%inwhichlocreg(i)
+                                       rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                                       rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                                       rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                                       do j=1,n
+                                           tmpmat(j,i) = -sqrt(3.d0)*(rr1)*lmp_extracted(j,i,1,1) &
+                                                         +sqrt(3.d0)*(rr2)*lmp_extracted(j,i,-1,1) &
+                                                         +sqrt(0.75d0)*(rr1**2-rr2**2)&
+                                                           *lmp_extracted(j,i,0,0)
+                                       end do
+                                   end if
                                end do
                            end select
                            call axpy(n**2, -1.d0, tmpmat(1,1), 1, multipole_extracted(1,1), 1)
