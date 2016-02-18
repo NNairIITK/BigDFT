@@ -923,7 +923,8 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
           centre_old,centre_new,irp,&
           hgridsh_old,(/llr_old%d%n1i,llr_old%d%n2i,llr_old%d%n3i/),psirold,&
           hgridsh,(/llr%d%n1i,llr%d%n2i,llr%d%n3i/),psir)
-!!$     write(*,*) 'iproc,norm psirnew ',dnrm2(llr%d%n1i*llr%d%n2i*llr%d%n3i,psir,1),llr%d%n1i,llr%d%n2i,llr%d%n3i
+!!$     write(*,'(A,I4,1x,F12.6,3(1x,I4))') 'iproc,norm psirnew ',bigdft_mpi%iproc,&
+!!$          dnrm2(llr%d%n1i*llr%d%n2i*llr%d%n3i,psir,1),llr%d%n1i,llr%d%n2i,llr%d%n3i
 !!$     print *,'sumpsirnew',sum(psir)*sqrt(product(hgridsh))
 
   end if

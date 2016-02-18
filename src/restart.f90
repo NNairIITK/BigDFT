@@ -728,6 +728,8 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   use sparsematrix_init, only: init_matrix_taskgroups, check_local_matrix_extents, &
                                init_matrixindex_in_compressed_fortransposed
   use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
+  !!use bounds, only: ext_buffers
+  !!use locreg_operations
   implicit none
 
   ! Calling arguments
@@ -758,6 +760,11 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   integer,dimension(2) :: irow, icol, iirow, iicol
   logical :: wrap_around
   real(gp) :: ddot
+  !!real(kind=gp), dimension(:,:,:), allocatable :: workarraytmp
+  !!real(wp), allocatable, dimension(:,:,:) :: psirold
+  !!integer, dimension(3) :: nl, nr
+  !!logical, dimension(3) :: per
+  !!type(workarr_sumrho) :: w
 
   ! move all psi into psi_tmp all centred in the same place and calculate overlap matrix
   tol=1.d-3
@@ -862,7 +869,8 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
       call reformat_check(reformat,reformat_reason,tol,at,tmb%lzd%hgrids,tmb%lzd%hgrids,&
            tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
            tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c,tmb%lzd%llr(ilr_tmp)%wfd%nvctr_f,&
-           n,n_tmp,ns,ns_tmp,nglr,nglr,frag_trans,centre_old_box,centre_new_box,da,wrap_around)
+           n,n_tmp,ns,ns_tmp,nglr,nglr,at%astruct%geocode,& !tmb%lzd%llr(ilr_tmp)%geocode,&
+           frag_trans,centre_old_box,centre_new_box,da,wrap_around)
 
       if ((.not. reformat) .and. (.not. wrap_around)) then ! copy psi into psi_tmp
 
@@ -902,7 +910,46 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
 
           if (reformat) then
 
-             call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(ilr),tmb%lzd%llr(ilr_tmp)%geocode,&
+             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+             !!! reformatting using psir - can only be done if keys are communicated for ilr_tmp
+             !!workarraytmp=f_malloc((2*n+31),id='workarraytmp')
+             !!psirold=f_malloc0((2*n+31),id='psirold')
+
+             !!!call f_zero((2*n_old(1)+31)*(2*n_old(2)+31)*(2*n_old(3)+31),psirold(1,1,1))
+             !!call vcopy((2*n(1)+2)*(2*n(2)+2)*(2*n(3)+2),phigold(0,1,0,1,0,1),1,psirold(1,1,1),1)
+             !!call psig_to_psir_free(n(1),n(2),n(3),workarraytmp,psirold)
+             !!call f_free(workarraytmp)
+
+             !!per(1)=(at%astruct%geocode /= 'F')
+             !!per(2)=(at%astruct%geocode == 'P')
+             !!per(3)=(at%astruct%geocode /= 'F')
+
+             !!!buffers related to periodicity
+             !!!WARNING: the boundary conditions are not assumed to change between new and old
+             !!call ext_buffers(per(1),nl(1),nr(1))
+             !!call ext_buffers(per(2),nl(2),nr(2))
+             !!call ext_buffers(per(3),nl(3),nr(3))
+
+             !!! centre of rotation with respect to start of box
+             !!centre_old_box(1)=frag_trans%rot_center(1)-0.5d0*tmb%lzd%hgrids(1)*(tmb%lzd%llr(ilr)%nsi1-nl(1))
+             !!centre_old_box(2)=frag_trans%rot_center(2)-0.5d0*tmb%lzd%hgrids(2)*(tmb%lzd%llr(ilr)%nsi2-nl(2))
+             !!centre_old_box(3)=frag_trans%rot_center(3)-0.5d0*tmb%lzd%hgrids(3)*(tmb%lzd%llr(ilr)%nsi3-nl(3))
+
+             !!centre_new_box(1)=frag_trans%rot_center_new(1)-0.5d0*tmb%lzd%hgrids(1)*(tmb%lzd%llr(ilr_tmp)%nsi1-nl(1))
+             !!centre_new_box(2)=frag_trans%rot_center_new(2)-0.5d0*tmb%lzd%hgrids(2)*(tmb%lzd%llr(ilr_tmp)%nsi2-nl(2))
+             !!centre_new_box(3)=frag_trans%rot_center_new(3)-0.5d0*tmb%lzd%hgrids(3)*(tmb%lzd%llr(ilr_tmp)%nsi3-nl(3))
+
+
+             !!da=centre_new_box-centre_old_box-(tmb%lzd%hgrids-tmb%lzd%hgrids)*0.5d0
+
+             !!call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(ilr),tmb%lzd%llr(ilr_tmp)%geocode,&
+             !!     & tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,n_tmp,centre_old_box,centre_new_box,da,&
+             !!     & frag_trans,psi_tmp(jstart_tmp:),psirold)
+
+             !!call f_free(psirold)
+             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+             call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(ilr),at%astruct%geocode,& !,tmb%lzd%llr(ilr_tmp)%geocode,&
                   & tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,n_tmp,centre_old_box,centre_new_box,da,&
                   & frag_trans,psi_tmp(jstart_tmp:))
 
@@ -1321,7 +1368,8 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
       call reformat_check(reformat,reformat_reason,tol,at,tmb%lzd%hgrids,tmb%lzd%hgrids,&
            tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
            tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c,tmb%lzd%llr(ilr_tmp)%wfd%nvctr_f,&
-           n,n_tmp,ns,ns_tmp,nglr,nglr,frag_trans(iiat,iiat),centre_old_box,centre_new_box,da,wrap_around)  
+           n,n_tmp,ns,ns_tmp,nglr,nglr,at%astruct%geocode,& !,tmb%lzd%llr(ilr_tmp)%geocode,&
+           frag_trans(iiat,iiat),centre_old_box,centre_new_box,da,wrap_around)  
 
       if ((.not. reformat) .and. (.not. wrap_around)) then ! copy psi into psi_tmp
           do j=1,tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c
@@ -1353,7 +1401,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
 
           if (reformat) then
 
-             call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(ilr),tmb%lzd%glr%geocode,& !tmb%lzd%llr(ilr_tmp)%geocode,&
+             call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(ilr),at%astruct%geocode,& !,tmb%lzd%llr(ilr_tmp)%geocode,&
                   & tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,n_tmp,centre_old_box,centre_new_box,da,&
                   & frag_trans(iiat,iiat),psi_tmp(jstart_tmp:))
 
@@ -1457,7 +1505,8 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
          call reformat_check(reformat,reformat_reason,tol,at,tmb%lzd%hgrids,tmb%lzd%hgrids,&
               tmb%lzd%llr(jlr)%wfd%nvctr_c,tmb%lzd%llr(jlr)%wfd%nvctr_f,&
               tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c,tmb%lzd%llr(ilr_tmp)%wfd%nvctr_f,&
-              n,n_tmp,ns,ns_tmp,nglr,nglr,frag_trans(iiat,jjat),centre_old_box,centre_new_box,da,wrap_around)
+              n,n_tmp,ns,ns_tmp,nglr,nglr,at%astruct%geocode,& !,tmb%lzd%llr(ilr_tmp)%geocode,&
+              frag_trans(iiat,jjat),centre_old_box,centre_new_box,da,wrap_around)
 
          if ((.not. reformat) .and. (.not. wrap_around)) then ! copy psi into psi_tmp
              jstart_tmp=1
@@ -1504,7 +1553,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
 
              if (reformat) then
 
-                call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(jlr),tmb%lzd%glr%geocode,& !tmb%lzd%llr(ilr_tmp)%geocode,&
+                call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(jlr),at%astruct%geocode,&  !tmb%lzd%llr(ilr_tmp)%geocode,&
                      & tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,n_tmp,centre_old_box,centre_new_box,da,&
                      & frag_trans(iiat,jjat),psi_tmp_j) !,tag=30000+iiorb*100+jjorb)
 
@@ -2138,7 +2187,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   character(len=*), parameter :: subname='readmywaves_linear_new'
   ! to eventually be part of the fragment structure?
   integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat, ind, i, iorb
-  integer :: iatt, iatf, ityp
+  integer :: iatt, iatf, ityp, num_env
   type(local_zone_descriptors) :: lzd_old
   real(wp), dimension(:), pointer :: psi_old
   type(phi_array), dimension(:), pointer :: phi_array_old
@@ -2146,8 +2195,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   integer, dimension(:), allocatable :: ipiv
   real(gp), dimension(:,:), allocatable :: rxyz_new, rxyz4_ref, rxyz4_new, rxyz_ref
   real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
-  real(kind=gp), dimension(:), allocatable :: dist
-  real(gp) :: max_shift, Werror, dtol
+  real(kind=gp), dimension(:), allocatable :: dist, Werror
+  real(gp) :: max_shift, dtol
 
   logical :: skip, binary
   integer :: itmb, jtmb, jat
@@ -2198,6 +2247,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   end do
 
   !allocate(frag_trans_orb(tmb%orbs%norbp))
+
+  Werror=f_malloc(input_frag%nfrag,id='Werror')
 
   unitwf=99
   isforb=0
@@ -2352,7 +2403,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               rxyz_new(:,iat)=rxyz_new(:,iat)-frag_trans_frag(ifrag)%rot_center_new
            end do
 
-           call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans_frag(ifrag),Werror)
+           call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans_frag(ifrag),Werror(ifrag))
 
            call f_free(rxyz_ref)
            call f_free(rxyz_new)
@@ -2360,20 +2411,20 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
         ! take into account environment coordinates
         else
            call match_environment_atoms(isfat,at,rxyz,tmb%orbs,ref_frags(ifrag_ref),&
-                max_nbasis_env,frag_env_mapping(ifrag,:,:),frag_trans_frag(ifrag),Werror,.false.)
+                max_nbasis_env,frag_env_mapping(ifrag,:,:),frag_trans_frag(ifrag),Werror(ifrag),.false.)
         end if
 
         ! in environment case we're calculating all transformations on each MPI, so no need to incrememnt on each
-        if (Werror > W_tol .and. ((ref_frags(ifrag_ref)%astruct_env%nat/=0 .and. iproc==0) &
+        if (Werror(ifrag) > W_tol .and. ((ref_frags(ifrag_ref)%astruct_env%nat/=0 .and. iproc==0) &
              .or. ref_frags(ifrag_ref)%astruct_env%nat==0))then
            call f_increment(itoo_big)
         end if
 
         ! useful for identifying which fragments are problematic
-        if (iproc==0 .and. Werror>W_tol) then
+        if (iproc==0 .and. Werror(ifrag)>W_tol) then
            write(*,'(A,1x,I3,1x,I3,1x,3(F12.6,1x),2(F12.6,1x),2(I8,1x))') 'ifrag,ifrag_ref,rot_axis,theta,error',&
                 ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp),&
-                Werror,itoo_big,iproc
+                Werror(ifrag),itoo_big,iproc
            write(*,*) ''
         end if
 
@@ -2479,8 +2530,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
                  rxyz4_new(:,iat)=rxyz_new(:,ipiv(iat))
               end do
 
-              call find_frag_trans(min(4,ref_frags(ifrag_ref)%astruct_frg%nat),rxyz4_ref,rxyz4_new,frag_trans_orb(iorbp),Werror)
-              if (Werror > W_tol) call f_increment(itoo_big)
+              call find_frag_trans(min(4,ref_frags(ifrag_ref)%astruct_frg%nat),rxyz4_ref,rxyz4_new,frag_trans_orb(iorbp),Werror(ifrag))
+              if (Werror(ifrag) > W_tol) call f_increment(itoo_big)
 
 !!$              print *,'transformation of the fragment, iforb',iforb
 !!$              write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,iorb,rot_axis,theta',&
@@ -2507,6 +2558,25 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   if (nproc >1) call mpiallred(itoo_big,1,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
   if (itoo_big > 0 .and. iproc==0) call yaml_warning('Found '//itoo_big//' warning of high Wahba cost functions')
+
+
+  !debug - check calculated transformations
+  if (iproc==0) then
+     open(109)
+     do ifrag=1,input_frag%nfrag
+        ! find reference fragment this corresponds to
+        ifrag_ref=input_frag%frag_index(ifrag)
+        num_env=ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat
+        write(109,'((a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6),2x,F6.2,2(2x,I5))') &
+             trim(input_frag%label(ifrag_ref)),ifrag,&
+             frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans_frag(ifrag)%rot_axis,&
+             frag_trans_frag(ifrag)%rot_center,frag_trans_frag(ifrag)%rot_center_new,&
+             Werror(ifrag),num_env,ifrag_ref
+     end do
+     close(109)
+  end if
+
+  call f_free(Werror)
 
   call timing(iproc,'tmbrestart','OF')
   call reformat_supportfunctions(iproc,nproc,&
@@ -2854,9 +2924,9 @@ END SUBROUTINE readmywaves_linear_new
          ! or ~same error and zero rotation (wrt tol)
          ! or ~same error, 180 rotation (wrt tol) and not already zero rotation
          if ( (Werror < minerror - err_tol) &
-              .or. (abs(Werror - minerror) < err_tol .and. abs(frag_trans%theta - 0.0d0) < rot_tol) &
-              .or. (abs(Werror - minerror) < err_tol .and. mintheta /= 0.0d0 &
-                   .and. abs(frag_trans%theta - 4.0_gp*atan(1.d0)) < rot_tol) ) then
+              .or. (abs(Werror - minerror) < err_tol .and. abs(frag_trans%theta - 0.0d0) < rot_tol)) then ! &
+!              .or. (abs(Werror - minerror) < err_tol .and. mintheta /= 0.0d0 &
+!                   .and. abs(frag_trans%theta - 4.0_gp*atan(1.d0)) < rot_tol) ) then
 
             mintheta = frag_trans%theta
             minerror = Werror
@@ -3392,9 +3462,10 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
       call reformat_check(reformat,reformat_reason,tol,at,lzd_old%hgrids,tmb%lzd%hgrids,&
            lzd_old%llr(ilr_old)%wfd%nvctr_c,lzd_old%llr(ilr_old)%wfd%nvctr_f,&
            tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
-           n_old,n,ns_old,ns,nglr_old,nglr,frag_trans(iorb),centre_old_box,centre_new_box,da,wrap_around)
-                 max_shift = max(max_shift,sqrt(da(1)**2+da(2)**2+da(3)**2))
-!reformat=.true. !!!!temporary hack
+           n_old,n,ns_old,ns,nglr_old,nglr,at%astruct%geocode,& !lzd_old%llr(ilr)%geocode,&
+           frag_trans(iorb),centre_old_box,centre_new_box,da,wrap_around)
+      max_shift = max(max_shift,sqrt(da(1)**2+da(2)**2+da(3)**2))
+
       ! just copy psi from old to new as reformat not necessary
       if (.not. reformat) then
 
@@ -3621,12 +3692,12 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
 
              da=centre_new_box-centre_old_box-(lzd_old%hgrids-tmb%lzd%hgrids)*0.5d0
 
-             call reformat_one_supportfunction(tmb%lzd%llr(ilr),lzd_old%llr(ilr_old),tmb%lzd%llr(ilr)%geocode,&
+             call reformat_one_supportfunction(tmb%lzd%llr(ilr),lzd_old%llr(ilr_old),at%astruct%geocode,& !,tmb%lzd%llr(ilr)%geocode,&
                   lzd_old%hgrids,n_old,phigold,tmb%lzd%hgrids,n,centre_old_box,centre_new_box,da,&
                   frag_trans(iorb),tmb%psi(jstart:),psirold)
              call f_free(psirold)
           else ! don't have psirold from file, so reformat using old way
-             call reformat_one_supportfunction(tmb%lzd%llr(ilr),lzd_old%llr(ilr_old),tmb%lzd%llr(ilr)%geocode,&
+             call reformat_one_supportfunction(tmb%lzd%llr(ilr),lzd_old%llr(ilr_old),at%astruct%geocode,& !,tmb%lzd%llr(ilr)%geocode,&
                   lzd_old%hgrids,n_old,phigold,tmb%lzd%hgrids,n,centre_old_box,centre_new_box,da,&
                   frag_trans(iorb),tmb%psi(jstart:))
           end if
@@ -3667,7 +3738,7 @@ END SUBROUTINE reformat_supportfunctions
 
 !> Checks whether reformatting is needed based on various criteria and returns final shift and centres needed for reformat
 subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgrids,nvctr_c_old,nvctr_f_old,&
-       nvctr_c,nvctr_f,n_old,n,ns_old,ns,nglr_old,nglr,frag_trans,centre_old_box,centre_new_box,da,wrap_around)
+       nvctr_c,nvctr_f,n_old,n,ns_old,ns,nglr_old,nglr,geocode,frag_trans,centre_old_box,centre_new_box,da,wrap_around)
   use module_base
   use module_types
   use module_fragments
@@ -3682,6 +3753,7 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   real(gp), dimension(3), intent(in) :: hgrids, hgrids_old
   integer, intent(in) :: nvctr_c, nvctr_f, nvctr_c_old, nvctr_f_old
   integer, dimension(3), intent(in) :: n, n_old, ns, ns_old, nglr_old, nglr
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   real(gp), dimension(3), intent(out) :: centre_old_box, centre_new_box ! centres of rotation wrt box
   real(gp), dimension(3), intent(out) :: da ! shift to be used in reformat
   type(fragment_transformation), intent(in) :: frag_trans ! includes centres of rotation in global coordinates, shift and angle
@@ -3699,9 +3771,9 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
 
   mesh=cell_new(at%astruct%geocode,n,hgrids)
   !conditions for periodicity in the three directions
-  per(1)=(at%astruct%geocode /= 'F')
-  per(2)=(at%astruct%geocode == 'P')
-  per(3)=(at%astruct%geocode /= 'F')
+  per(1)=(geocode /= 'F')
+  per(2)=(geocode == 'P')
+  per(3)=(geocode /= 'F')
 
   !buffers related to periodicity
   !WARNING: the boundary conditions are not assumed to change between new and old
@@ -3711,14 +3783,14 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
 
   !use new (internal) version of mindist, mindist doesn't do the right thing in this case
   ! centre of rotation with respect to start of box
-  !centre_old_box(1)=mindist_new(per(1),at%astruct%cell_dim(1),frag_trans%rot_center(1),hgrids_old(1)*(ns_old(1)-0.5_dp*nb(1)))
-  !centre_old_box(2)=mindist_new(per(2),at%astruct%cell_dim(2),frag_trans%rot_center(2),hgrids_old(2)*(ns_old(2)-0.5_dp*nb(2)))
-  !centre_old_box(3)=mindist_new(per(3),at%astruct%cell_dim(3),frag_trans%rot_center(3),hgrids_old(3)*(ns_old(3)-0.5_dp*nb(3)))
-  !centre_new_box(1)=mindist_new(per(1),at%astruct%cell_dim(1),frag_trans%rot_center_new(1),hgrids(1)*(ns(1)-0.5_dp*nb(1)))
-  !centre_new_box(2)=mindist_new(per(2),at%astruct%cell_dim(2),frag_trans%rot_center_new(2),hgrids(2)*(ns(2)-0.5_dp*nb(2)))
-  !centre_new_box(3)=mindist_new(per(3),at%astruct%cell_dim(3),frag_trans%rot_center_new(3),hgrids(3)*(ns(3)-0.5_dp*nb(3)))
-  centre_old_box=closest_r(mesh,frag_trans%rot_center,center=hgrids_old*(ns_old-0.5_dp*nb))
-  centre_new_box=closest_r(mesh,frag_trans%rot_center_new,center=hgrids*(ns-0.5_dp*nb))
+  centre_old_box(1)=mindist_new(per(1),at%astruct%cell_dim(1),frag_trans%rot_center(1),hgrids_old(1)*(ns_old(1)-0.5_dp*nb(1)))
+  centre_old_box(2)=mindist_new(per(2),at%astruct%cell_dim(2),frag_trans%rot_center(2),hgrids_old(2)*(ns_old(2)-0.5_dp*nb(2)))
+  centre_old_box(3)=mindist_new(per(3),at%astruct%cell_dim(3),frag_trans%rot_center(3),hgrids_old(3)*(ns_old(3)-0.5_dp*nb(3)))
+  centre_new_box(1)=mindist_new(per(1),at%astruct%cell_dim(1),frag_trans%rot_center_new(1),hgrids(1)*(ns(1)-0.5_dp*nb(1)))
+  centre_new_box(2)=mindist_new(per(2),at%astruct%cell_dim(2),frag_trans%rot_center_new(2),hgrids(2)*(ns(2)-0.5_dp*nb(2)))
+  centre_new_box(3)=mindist_new(per(3),at%astruct%cell_dim(3),frag_trans%rot_center_new(3),hgrids(3)*(ns(3)-0.5_dp*nb(3)))
+  !centre_old_box=closest_r(mesh,frag_trans%rot_center,center=hgrids_old*(ns_old-0.5_dp*nb))
+  !centre_new_box=closest_r(mesh,frag_trans%rot_center_new,center=hgrids*(ns-0.5_dp*nb))
 
   ! centre_new_box(1)=mindist(per(1),at%astruct%cell_dim(1),frag_trans%rot_center_new(1),hgrids(1)*(ns(1)-0.5_dp*nb(1)))
   ! centre_new_box(2)=mindist(per(2),at%astruct%cell_dim(2),frag_trans%rot_center_new(2),hgrids(2)*(ns(2)-0.5_dp*nb(2)))

@@ -673,7 +673,7 @@ module io
       if (closest_only) then
          tol=0.1d0
       else
-         tol=1.0e-3
+         tol=1.0e-2
       end if
 
       rxyz_frag = f_malloc((/ 3,ref_frag%astruct_frg%nat /),id='rxyz_frag') 
