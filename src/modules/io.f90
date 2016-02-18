@@ -2290,7 +2290,7 @@ module io
       integer :: iunit, itype, iat, i, j, dummy_int, ntypes_, nat_
       logical :: scaled, read_rxyz, read_eval
 
-      call f_routine(id='write_linear_coefficients')
+      call f_routine(id='read_linear_coefficients')
 
       if (present(nat) .and. present(ntypes) .and. present(nzatom) .and.  &
           present(nelpsp) .and. present(atomnames) .and. present(iatype) .and. present(rxyz)) then
