@@ -536,6 +536,7 @@ program utilities
            call f_close(iunit)
        end if
        if (bigdft_mpi%iproc==0) call yaml_map('sum of total DoS',total_occup)
+       call mpibarrier(bigdft_mpi%mpi_comm)
 
        call f_free(pdos)
        call f_free(denskernel)
@@ -544,10 +545,7 @@ program utilities
        call deallocate_matrices(hamiltonian_mat)
        call deallocate_sparse_matrix(smat_s)
        call deallocate_sparse_matrix(smat_m)
-       call f_free_ptr(rxyz)
        call f_free_ptr(iatype)
-       call f_free_ptr(nzatom)
-       call f_free_ptr(nelpsp)
        call f_free_str_ptr(len(atomnames),atomnames)
        call f_free_str(len(pdos_name),pdos_name)
        call f_free(calc_array)
