@@ -23,32 +23,24 @@ EXTRA_DIST = \
 	bigdft_spred.h \
 	NEB_driver.sh
 
-# Build targets, binaries and libraries.
-# -------------
-noinst_LIBRARIES = libmain.a
 # put all subs
-subs_static_library =
-out_static_library =  \
-	$(top_builddir)/PSolver/src/libPSolver-1.a \
-	$(top_builddir)/wrappers/libwrappers.a
-
-if BUILD_FLIB
-out_static_library += $(top_builddir)/flib/src/libflib-1.a
-endif
-
-out_static_library +=  \
-	$(top_builddir)/src/libbigdft-1.a
-
+subs_static_library = \
+	art/libart.a \
+	mhgps_files/libmhgps.a \
+	spred_baselib/libspredbasef.a \
+	global_files/libglobalf.a 
 
 if BUILD_DYNAMIC_LIBS
 spred_dynamic_library = libspred-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
 spred_soname_library = libspred-1.so.@BIGDFT_MINOR_VERSION@
-spred_library = $(spred_soname_library)
+LIB_BIGDFT_LIBS = -L$(top_builddir)/src -lbigdft-1
+spred_library = $(spred_soname_library) $(LIB_BIGDFT_LIBS)
 AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 spred_dynamic_library =
 spred_soname_library =
-spred_library = libspred-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
+LIB_BIGDFT_LIBS = $(top_builddir)/src/libbigdft-1.a
+spred_library = libspred-1.a $(LIB_BIGDFT_LIBS) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
 endif
 if BUILD_LIB_BIGDFT
 lib_spred = libspred-1.a
@@ -94,14 +86,9 @@ AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @LIBSGPU_INCLUDE@
 
 AM_CFLAGS = -I$(top_srcdir)/src/bindings -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules @GLIB_CFLAGS@
 
-#objects which depends from module_types
-high_level = images.f90
+libspred_1_a_SOURCES = images.f90 wrapper_neb.c
 
-libmain_a_SOURCES = $(high_level) wrapper_neb.c
-
-libspred_1_a_SOURCES =
-
-tmp-libspred/extract.stamp: $(subs_static_library) $(out_static_library)
+tmp-libspred/extract.stamp: $(subs_static_library)
 	test -e "tmp-libspred" || $(INSTALL) -d -m 755 tmp-libspred
 	cd tmp-libspred ; \
 	rm -f *; \
@@ -110,12 +97,12 @@ tmp-libspred/extract.stamp: $(subs_static_library) $(out_static_library)
 	done ; \
 	touch extract.stamp
 
-libspred-1.a: $(libmain_a_OBJECTS) tmp-libspred/extract.stamp
-	$(AR) $(ARFLAGS) $@ $(libmain_a_OBJECTS) tmp-libspred/*.o
+libspred-1.a: $(libspred_1_a_OBJECTS) tmp-libspred/extract.stamp
+	$(AR) $(ARFLAGS) $@ $(libspred_1_a_OBJECTS) tmp-libspred/*.o
 	$(RANLIB) $@
 
-$(spred_dynamic_library): $(libmain_a_OBJECTS) tmp-libspred/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(spred_library) -o $@ $(libmain_a_OBJECTS) tmp-libspred/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
+$(spred_dynamic_library): $(libspred_1_a_OBJECTS) tmp-libspred/extract.stamp
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(spred_soname_library) -Wl,-rpath=$(DESTDIR)$(dynlibdir) -o $@ $(libspred_1_a_OBJECTS) tmp-libspred/*.o $(LIB_BIGDFT_LIBS) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
 	@chmod a+x $@
 
 libspred-1.so.@BIGDFT_MINOR_VERSION@: $(spred_dynamic_library)
@@ -126,8 +113,8 @@ install-data-hook:
 	if test -n "$(spred_dynamic_library)" ; then \
 	  cd $(DESTDIR)$(dynlibdir) ; \
 	  chmod a+x $(spred_dynamic_library) ; \
-	  ln -fs $(spred_dynamic_library) $(spred_library) ; \
-	  ln -fs $(spred_library) libspred-1.so ; \
+	  ln -fs $(spred_dynamic_library) $(spred_soname_library) ; \
+	  ln -fs $(spred_soname_library) libspred-1.so ; \
 	fi
 
 #NEB_images_SOURCES = NEB_images.f90
@@ -141,11 +128,11 @@ NEB_LDADD = $(spred_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart
-bart_LDADD = art/libart.a $(spred_library) @LINALG_LIBS@
+bart_LDADD = $(spred_library) @LINALG_LIBS@
 
 mhgps_SOURCES = mhgps.f90
 mhgps_FCFLAGS = -I. -Ispred_baselib -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
-mhgps_LDADD = $(spred_library) spred_baselib/libspredbasef.a  mhgps_files/libmhgps.a spred_baselib/libspredbasef.a @LIB_FLIB_LIBS@ @LINALG_LIBS@
+mhgps_LDADD = $(spred_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 ###mhgps_FCFLAGS = -I. -Ispred_baselib -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 ###mhgps_LDADD = spred_baselib/libspredbasef.a mhgps_files/libmhgps.a $(spred_library) @LINALG_LIBS@
 ###mhgps_LDADD = $(spred_library) mhgps_files/libmhgps.a spred_baselib/libspredbasef.a @LINALG_LIBS@
@@ -153,17 +140,17 @@ mhgps_LDADD = $(spred_library) spred_baselib/libspredbasef.a  mhgps_files/libmhg
 mhgpstool_SOURCES = mhgpstool.f90
 mhgpstool_FCFLAGS = -I. -Ispred_baselib -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
 ##mhgpstool_LDADD = spred_baselib/libspredbasef.a $(spred_library) mhgps_files/libmhgps.a @LINALG_LIBS@
-mhgpstool_LDADD = $(spred_library) mhgps_files/libmhgps.a spred_baselib/libspredbasef.a @LINALG_LIBS@
+mhgpstool_LDADD = $(spred_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 global_SOURCES = global.f90
 global_FCFLAGS = -I. -Ispred_baselib -Iglobal_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
 ###global_LDADD = spred_baselib/libspredbasef.a $(spred_library) @LINALG_LIBS@
-global_LDADD = $(spred_library) spred_baselib/libspredbasef.a  @LIB_FLIB_LIBS@ @LINALG_LIBS@
+global_LDADD = $(spred_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 globaltool_SOURCES = globaltool.f90
 globaltool_FCFLAGS = -I. -Ispred_baselib -Iglobal_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
 ##globaltool_LDADD = spred_baselib/libspredbasef.a  global_files/libglobalf.a $(spred_library)  @LINALG_LIBS@
-globaltool_LDADD = global_files/libglobalf.a $(spred_library) spred_baselib/libspredbasef.a  @LINALG_LIBS@
+globaltool_LDADD = $(spred_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libspred-1.* input_variables_definition-inc.h
 clean-local:
