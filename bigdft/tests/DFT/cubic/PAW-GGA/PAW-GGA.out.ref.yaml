@@ -523,7 +523,26 @@
  High Res. box is treated separately   :  No
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  1
+    #---------------------------------------------------------------------- Input parameters
+   kernel:
+     screening                         : 0 #      Mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     cavitation                        : No #     Triggers the evaluation of the extra cavitation terms
+     input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-6 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
+   MPI tasks                           :  3
  Poisson Kernel Creation:
    Boundary Conditions                 : Periodic
    Memory Requirements per MPI task:
@@ -587,7 +606,7 @@
 
  Ion-Ion interaction energy            : -4.39677536606898E+00
   #---------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -3.999999999999781
+ Total ionic charge                    : -4.000000000000
  Poisson Solver:
    BC                                  : Periodic
    Box                                 :  [  28,  28,  28 ]

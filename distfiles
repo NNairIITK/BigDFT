@@ -5,3 +5,5 @@ gnome.modules
 rcfiles/
 distfiles
 Installer.py
+INSTALL
+README
