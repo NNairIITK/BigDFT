@@ -468,8 +468,36 @@ module public_enums
   integer, parameter, public :: KERNELMODE_PEXSI = 13
   integer, parameter, public :: MIXINGMODE_DENS = 20
   integer, parameter, public :: MIXINGMODE_POT = 21
-  integer,parameter, public :: FOE_ACCURATE = 30
-  integer,parameter, public :: FOE_FAST = 31
+  integer, parameter, public :: FOE_ACCURATE = 30
+  integer, parameter, public :: FOE_FAST = 31
+
+  integer, parameter :: MIXING= 1000
+  integer, parameter :: DIRMIN= 0
+
+  integer, parameter, public :: AB7_MIXING_NONE        = 0
+  integer, parameter, public :: AB7_MIXING_EIG         = 1
+  integer, parameter, public :: AB7_MIXING_SIMPLE      = 2
+  integer, parameter, public :: AB7_MIXING_ANDERSON    = 3
+  integer, parameter, public :: AB7_MIXING_ANDERSON_2  = 4
+  integer, parameter, public :: AB7_MIXING_CG_ENERGY   = 5
+  integer, parameter, public :: AB7_MIXING_CG_ENERGY_2 = 6
+  integer, parameter, public :: AB7_MIXING_PULAY       = 7
+
+  integer, parameter, public :: AB7_MIXING_POTENTIAL  = 0
+  integer, parameter, public :: AB7_MIXING_DENSITY    = 1
+
+  integer, parameter, public :: AB7_MIXING_REAL_SPACE    = 1
+  integer, parameter, public :: AB7_MIXING_FOURIER_SPACE = 2
+
+  type(f_enumerator), public :: MIX_ENUM=f_enumerator('MIXING',MIXING,null())
+
+  type(f_enumerator), public :: POT_MIX_ENUM=f_enumerator('MIXING_ON',AB7_MIXING_POTENTIAL,null())
+  type(f_enumerator), public :: DEN_MIX_ENUM=f_enumerator('MIXING_ON',AB7_MIXING_DENSITY,null())
+
+  type(f_enumerator), public :: RSPACE_MIX_ENUM=f_enumerator('MIXING_SPACE',AB7_MIXING_REAL_SPACE,null())
+  type(f_enumerator), public :: FSPACE_MIX_ENUM=f_enumerator('MIXING_SPACE',AB7_MIXING_FOURIER_SPACE,null())
+
+
 
   !> How to update the density kernel during teh support function optimization
   integer, parameter, public :: UPDATE_BY_PURIFICATION = 0

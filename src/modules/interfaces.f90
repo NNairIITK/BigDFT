@@ -601,13 +601,14 @@ module module_interfaces
       end interface
 
       interface
-        subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,&
+        subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,tr_min,&
             psi,hpsi,scprsum,spsi) !n(c) wfd (arg:5)
         use module_defs, only: gp,dp,wp
         use module_types
         use communications_base, only: comms_cubic
         implicit none
         logical, intent(in) :: symm !< symmetrize the lagrange multiplier after calculation
+        logical, intent(in) :: tr_min !< optimize the trace of the hamiltonian instead of the energy
         integer, intent(in) :: iproc,nproc
         type(orbitals_data), intent(in) :: orbs
         type(comms_cubic), intent(in) :: comms
@@ -920,13 +921,14 @@ module module_interfaces
 
      interface
        subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
-          psi,hpsi,psit,orthpar,passmat,iscf,Tel,occopt,& !mandatory
+          psi,hpsi,psit,orthpar,passmat,mixing,Tel,occopt,& !mandatory
           orbse,commse,etol,norbsc_arr) !optional
        use module_defs, only: gp,dp,wp
        use module_types
        use communications_base, only: comms_cubic
        implicit none
-       integer, intent(in) :: iproc,nproc,natsc,nspin,occopt,iscf
+       logical, intent(in) :: mixing
+       integer, intent(in) :: iproc,nproc,natsc,nspin,occopt
        real(gp), intent(in) :: Tel
        type(local_zone_descriptors) :: Lzd        !< Information about the locregs after LIG
        type(local_zone_descriptors) :: Lzde       !< Information about the locregs for LIG
@@ -1203,10 +1205,12 @@ module module_interfaces
 
         interface
         subroutine denspot_set_history(denspot, iscf, nspin, npulayit)
-          use module_types
+          use module_types, only: DFT_local_fields
+          use f_enums, only: f_enumerator
           implicit none
           type(DFT_local_fields), intent(inout) :: denspot
-          integer, intent(in) :: iscf, nspin
+          type(f_enumerator), intent(in) :: iscf
+          integer, intent(in) ::  nspin
           integer,intent(in),optional :: npulayit
           END SUBROUTINE denspot_set_history
         end interface
@@ -1467,14 +1471,16 @@ module module_interfaces
   end interface
 
   interface
-     subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
+     subroutine write_energies(iter,energs,gnrm,gnrm_zero,comment,scf_mode,only_energies)
        use module_defs, only: gp,dp,wp
-       use module_types
+       use module_types, only: energy_terms
+       use f_enums, only: f_enumerator
        implicit none
-       integer, intent(in) :: iter,iscf
+       integer, intent(in) :: iter
        type(energy_terms), intent(in) :: energs
        real(gp), intent(in) :: gnrm,gnrm_zero
        character(len=*), intent(in) :: comment
+       type(f_enumerator), intent(in), optional :: scf_mode
        logical,intent(in),optional :: only_energies
      END SUBROUTINE write_energies
   end interface

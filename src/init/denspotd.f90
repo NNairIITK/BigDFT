@@ -144,46 +144,74 @@ end subroutine dpbox_set_box
 
 
 !> Set the history for mixing in denspot%mix
-subroutine denspot_set_history(denspot, iscf, nspin, &
+subroutine denspot_set_history(denspot, scf_enum, nspin, &
      npulayit)
   use module_base
   use module_types
   use m_ab7_mixing
-  use public_enums, only: SCF_KIND_DIRECT_MINIMIZATION
+  use public_enums
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
-  integer, intent(in) :: iscf, nspin
+  integer, intent(in) :: nspin
+  type(f_enumerator), intent(in) :: scf_enum
   integer,intent(in),optional :: npulayit
   
-  integer :: potden, npoints, ierr
+  integer :: potden, npoints, ierr,irealfour,imeth
   character(len=500) :: errmess
 
-  if (iscf < 10) then
-     ! Mixing over potential so use dimension of pot (n3p)
-     potden = AB7_MIXING_POTENTIAL
-     npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
-!!!     npoints = n1i*n2i*denspot%dpbox%n3p
-  else
-     ! Mixing over density so use dimension of density (n3d)
-     potden = AB7_MIXING_DENSITY
-     npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d
-!!!     npoints = n1i*n2i*denspot%dpbox%n3d
-  end if
-  if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
+  if (scf_enum .hasattr. 'MIXING') then
+     potden = f_int(scf_enum .getattr. 'MIXING_ON')
+     select case(potden)
+     case(AB7_MIXING_POTENTIAL)
+        npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*&
+             denspot%dpbox%n3p
+     case(AB7_MIXING_DENSITY)
+        npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*&
+             denspot%dpbox%n3d
+     end select
+     irealfour=f_int(scf_enum .getattr. 'MIXING_SPACE')
+     imeth=f_int(scf_enum)
      allocate(denspot%mix)
      if (present(npulayit)) then
-         call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
-              AB7_MIXING_REAL_SPACE, npoints, nspin, 0, &
-              ierr, errmess, npulayit=npulayit, useprec = .false.)
+        call ab7_mixing_new(denspot%mix,imeth, potden, &
+             irealfour, npoints, nspin, 0, &
+             ierr, errmess, npulayit=npulayit, useprec = .false.)
      else
-         call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
-              AB7_MIXING_REAL_SPACE, npoints, nspin, 0, &
-              ierr, errmess, useprec = .false.)
+        call ab7_mixing_new(denspot%mix, imeth, potden, &
+             irealfour, npoints, nspin, 0, &
+             ierr, errmess, useprec = .false.)
      end if
      call ab7_mixing_eval_allocate(denspot%mix)
   else
      nullify(denspot%mix)
   end if
+
+!!$  if (iscf < 10) then
+!!$     ! Mixing over potential so use dimension of pot (n3p)
+!!$     potden = AB7_MIXING_POTENTIAL
+!!$     npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
+!!$!!!     npoints = n1i*n2i*denspot%dpbox%n3p
+!!$  else
+!!$     ! Mixing over density so use dimension of density (n3d)
+!!$     potden = AB7_MIXING_DENSITY
+!!$     npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d
+!!$!!!     npoints = n1i*n2i*denspot%dpbox%n3d
+!!$  end if
+!!$  if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
+!!$     allocate(denspot%mix)
+!!$     if (present(npulayit)) then
+!!$         call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
+!!$              AB7_MIXING_REAL_SPACE, npoints, nspin, 0, &
+!!$              ierr, errmess, npulayit=npulayit, useprec = .false.)
+!!$     else
+!!$         call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
+!!$              AB7_MIXING_REAL_SPACE, npoints, nspin, 0, &
+!!$              ierr, errmess, useprec = .false.)
+!!$     end if
+!!$     call ab7_mixing_eval_allocate(denspot%mix)
+!!$  else
+!!$     nullify(denspot%mix)
+!!$  end if
 end subroutine denspot_set_history
 
 
@@ -196,6 +224,7 @@ subroutine denspot_free_history(denspot)
   if (associated(denspot%mix)) then
       call ab7_mixing_deallocate(denspot%mix)
       deallocate(denspot%mix)
+      nullify(denspot%mix)
   end if
 end subroutine denspot_free_history
 

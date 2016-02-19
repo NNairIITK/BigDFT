@@ -2633,7 +2633,7 @@ end if
                ! Use this subroutine to write the energies, with some
                ! fake number
                ! to prevent it from writing too much
-               call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+               call write_energies(0,energs,0.d0,0.d0,'',only_energies=.true.)
            end if
            !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
            !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
@@ -3121,7 +3121,7 @@ end if
           call yaml_sequence(advance='no')
           call yaml_mapping_open(flow=.true.)
           call yaml_map('iter',itout)
-          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+          call write_energies(0,energs,0.d0,0.d0,'',only_energies=.true.)
           if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
                  call yaml_map('iter low',itout)

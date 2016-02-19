@@ -67,6 +67,7 @@ Keys to ignore:
  - main
  - noise
  - penalty
+ - SCF criterion
  #- avg pot difference (actual/min)
  #- number of tasks
  #- IDs
@@ -77,6 +78,7 @@ Patterns to ignore:
  - memory
  - FLAGS
  - input_guess
+
 
 
 Expected Test CPUtime: #

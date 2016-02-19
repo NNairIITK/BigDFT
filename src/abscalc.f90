@@ -457,7 +457,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !memory estimation
    call MemoryEstimator(nproc,idsx,KSwfn%Lzd%Glr,&
         orbs%norb,orbs%nspinor,orbs%nkpts,nlpsp%nprojel,&
-        in%nspin,in%itrpmax,in%iscf,mem)
+        in%nspin,in%itrpmax,f_int(in%scf),mem)
    if (iproc==0 .and. verbose > 0) call print_memory_estimation(mem)
 
    !complete dpbox initialization

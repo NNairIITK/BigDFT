@@ -1727,7 +1727,7 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
   !reduce the value for all the eigenvectors
   if (nproc > 1) call mpiallred(orbs%eval,MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
-  if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
+  if (in%scf .hasattr. 'MIXING') then
      !recalculate orbitals occupation numbers
      call evaltoocc(iproc,nproc,.false.,in%Tel,orbs,in%occopt)
      !read potential depending of the mixing scheme
@@ -2167,8 +2167,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
   if (iproc==0) then
      !yaml output
-     !call write_energies(0,0,energs,0.0_gp,0.0_gp,'Input Guess')
-     call write_energies(0,0,energs,0.0_gp,0.0_gp,'')
+     call write_energies(0,energs,0.0_gp,0.0_gp,'')
   endif
 
 !!!  call Gaussian_DiagHam(iproc,nproc,at%natsc,nspin,orbs,G,mpirequests,&
@@ -2211,12 +2210,13 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
   !test merging of Linear and cubic
   call LDiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzd,Lzde,comms,&
-       psi,hpsi,psit,input%orthpar,passmat,input%iscf,input%Tel,input%occopt,&
+       psi,hpsi,psit,input%orthpar,passmat,input%scf .hasattr. 'MIXING',&
+       input%Tel,input%occopt,&
        orbse,commse,etol,norbsc_arr)
 
   call f_free(passmat)
 
-  if (input%iscf > SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
+  if ((input%scf .hasattr. 'MIXING') .or. input%Tel > 0.0_gp) then
 
      !restore the occupations as they are extracted from DiagHam
      !use correct copying due to k-points
@@ -2743,7 +2743,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call f_err_throw('Wrong value of inguess_geopt in input.perf', &
              err_name='BIGDFT_RUNTIME_ERROR')
      end if
-     if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
+     if (in%scf .hasattr. 'MIXING') &
            call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
 
   case(INPUT_PSI_MEMORY_LINEAR)
@@ -3266,7 +3266,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end select
 
   !save the previous potential if the rho_work is associated
-  if (denspot%rhov_is==KS_POTENTIAL .and. in%iscf==SCF_KIND_GENERALIZED_DIRMIN) then
+  if (denspot%rhov_is==KS_POTENTIAL .and. f_int(in%scf)==SCF_KIND_GENERALIZED_DIRMIN) then
      if (associated(denspot%rho_work)) then
         call f_err_throw('The reference potential should be empty to correct the hamiltonian!',&
              err_name='BIGDFT_RUNTIME_ERROR')

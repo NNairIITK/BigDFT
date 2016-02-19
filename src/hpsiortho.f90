@@ -11,7 +11,7 @@
 !> Calculates the application of the Hamiltonian on the wavefunction. The hamiltonian can be self-consistent or not.
 !! In the latter case, the potential should be given in the rhov array of denspot structure. 
 !! Otherwise, rhov array is filled by the self-consistent density
-subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
+subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,&
      nlpsp,linflag,unblock_comms,GPU,wfn,&
      energs,rpnrm,xcstr)
   use module_base
@@ -27,7 +27,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   implicit none
   !Arguments
   logical, intent(in) :: scf  !< If .false. do not calculate the self-consistent potential
-  integer, intent(in) :: iproc,nproc,itrp,iscf,linflag,itwfn
+  integer, intent(in) :: iproc,nproc,itrp,linflag,itwfn
+  type(f_enumerator), intent(in) :: scf_mode
   character(len=3), intent(in) :: unblock_comms
   real(gp), intent(in) :: alphamix
   type(atoms_data), intent(in) :: atoms
@@ -52,9 +53,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   !in the default case, non local hamiltonian is done after potential creation
   whilepot=.true.
 
-
   !flag for saving the local fields (rho,vxc,vh)
-  savefields= (iscf==SCF_KIND_GENERALIZED_DIRMIN)
+  savefields= (f_int(scf_mode)==SCF_KIND_GENERALIZED_DIRMIN)
   correcth=1
   !do not do that if rho_work is already associated
   if (savefields .and. associated(denspot%rho_work)) then
@@ -146,7 +146,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      nthread=1
 
      !here the density can be mixed
-     if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
+     if (scf_mode .hasattr. 'MIXING') then
         if (denspot%mix%kind == AB7_MIXING_DENSITY) then
            call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
                 denspot%rhov,itrp,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
@@ -234,7 +234,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      end if
 
      !here the potential can be mixed
-     if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
+     if (scf_mode .hasattr. 'MIXING') then
         if (denspot%mix%kind == AB7_MIXING_POTENTIAL) then
            call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
                 denspot%rhov,itrp,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
@@ -1550,7 +1550,7 @@ end subroutine total_energies
 !! The energy can be the actual Kohn-Sham energy or the trace of the hamiltonian, 
 !! depending of the functional we want to calculate. The gradient wrt the wavefunction
 !! is put in hpsi accordingly to the functional
-subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
+subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,scf_mode,&
      energs,wfn,gnrm,gnrm_zero)
   use module_base
   use module_types
@@ -1559,29 +1559,18 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   use communications, only: transpose_v, untranspose_v
   use communications, only: toglobal_and_transpose
   implicit none
-  integer, intent(in) :: iproc,nproc,ncong,iscf,iter
+  integer, intent(in) :: iproc,nproc,ncong,iter
+  type(f_enumerator), intent(in) :: scf_mode
   type(energy_terms), intent(inout) :: energs
   type(GPU_pointers), intent(in) :: GPU
   type(DFT_wavefunction), intent(inout) :: wfn
   real(gp), intent(out) :: gnrm,gnrm_zero
   !local variables
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
-  logical :: lcs
+  logical :: lcs,tr_min
   integer :: ikpt,iorb,k
   real(gp) :: rzeroorbs,tt,garray(2)
   real(wp), dimension(:,:,:), pointer :: mom_vec
-
-
-!!$  !calculate the entropy contribution (TO BE VERIFIED for fractional occupation numbers and Fermi-Dirac Smearing)
-!!$  eTS=0.0_gp
-!!$  do iorb=1,orbs%norbu  ! for closed shell case
-!!$     !  if (iproc == 0)  print '("iorb,occup,eval,fermi:  ",i,e10.2,e27.17,e27.17)',iorb,orbs%occup(iorb),orbs%eval(iorb),orbs%efermi
-!!$     eTS=eTS+exp(-((orbs%eval(iorb)-orbs%efermi)/in%Tel)**2)
-!!$  enddo
-!!$  if eTS=eTS*2._gp   ! for closed shell case
-!!$  eTS=in%Tel/(2._gp*sqrt(3.1415926535897932_gp))* eTS
-!!$  energy=energy-eTS
-!!$  if (iproc == 0)  print '(" Free energy (energy-ST) = ",e27.17,"  , ST= ",e27.17," ,energy= " , e27.17)',energy,ST,energy+ST
 
   !calculate orbital polarisation directions
   if(wfn%orbs%nspinor==4) then
@@ -1591,13 +1580,6 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
           wfn%Lzd%Glr%wfd%nvctr_c+7*wfn%Lzd%Glr%wfd%nvctr_f,wfn%orbs%nspinor,wfn%psi,mom_vec)
   else
      nullify(mom_vec)
-  end if
-
-
-  if (iproc==0 .and. verbose > 1) then
-!!$     write(*,'(1x,a)',advance='no')&
-!!$          &   'done,  orthoconstraint...'
-     !call yaml_comment('Orthoconstraint, ',advance='no')
   end if
   
 
@@ -1624,12 +1606,15 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !here the orthogonality with respect to other occupied functions should be 
   !passed as an optional argument
   energs%trH_prev=energs%trH
+  tr_min=scf_mode .hasattr. 'MIXING'
   if(wfn%paw%usepaw) then
     !PAW: spsi is used.
-    call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,wfn%psit,wfn%hpsi,energs%trH,wfn%paw%spsi) !n(m)
+    call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,tr_min,&
+         wfn%psit,wfn%hpsi,energs%trH,wfn%paw%spsi)
   else
     !NC:
-    call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,wfn%psit,wfn%hpsi,energs%trH) !n(m)
+    call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,tr_min,&
+         wfn%psit,wfn%hpsi,energs%trH)
   end if
 
   !retranspose the hpsi wavefunction
@@ -1639,16 +1624,10 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%paw%spsi(1),wfn%psi(1))
   end if
 
-  !deallocate temporary array
-  !i_all=-product(shape(work))*kind(work)
-  !deallocate(work,stat=i_stat)
-  !call memocc(i_stat,i_all,'work',subname)
-
-
 
   !after having calcutated the trace of the hamiltonian, the functional have to be defined
   !new value without the trace, to be added in hpsitopsi
-  if (iscf >1) then
+  if (scf_mode .hasattr. 'MIXING') then
      wfn%diis%energy=energs%trH
   else
      wfn%diis%energy=energs%eKS!trH-eh+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
@@ -1674,19 +1653,10 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
            call yaml_map('Trace of the Hamiltonian',energs%trH,fmt='(1pe22.14)')
            call yaml_map('Relative inconsistency',tt,fmt='(1pe9.2)')
         call yaml_mapping_close()
-!        write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
-!             &   'ERROR: inconsistency between gradient and energy',tt,energs%ebs,energs%trH
      end if
   endif
 
-
   call timing(iproc,'Precondition  ','ON')
-  if (iproc==0 .and. verbose > 1) then
-     !call yaml_comment('Preconditioning')
-     !write(*,'(1x,a)',advance='no')&
-     !     &   'done,  preconditioning...'
-  end if
-
 
   !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
@@ -1766,11 +1736,8 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      call f_free_ptr(mom_vec)
   end if
 
-
   !write the energy information
-  if (iproc == 0) then
-     call write_energies(iter,iscf,energs,gnrm,gnrm_zero,' ')
-  endif
+  if (iproc == 0) call write_energies(iter,energs,gnrm,gnrm_zero,' ',scf_mode)
 
 END SUBROUTINE calculate_energy_and_gradient
 

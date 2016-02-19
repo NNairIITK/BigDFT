@@ -354,7 +354,7 @@ module module_types
 
   !> Used to control the optimization of wavefunctions
   type, public :: DFT_optimization_loop
-     integer :: iscf !< Kind of optimization scheme.
+     type(f_enumerator) :: scf !< Kind of optimization scheme.
 
      integer :: itrpmax !< specify the maximum number of mixing cycle on potential or density
      integer :: nrepmax !< specify the maximum number of restart after re-diagonalization

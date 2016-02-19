@@ -119,7 +119,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
-  integer :: ilr, nlr, ioffset, linear_iscf
+  integer :: ilr, nlr, ioffset
+  type(f_enumerator) :: linear_iscf
   integer,dimension(2) :: irow, icol, iirow, iicol
   character(len=20) :: comment
 
@@ -396,7 +397,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !memory estimation, to be rebuilt in a more modular way
   call MemoryEstimator(nproc,in%idsx,KSwfn%Lzd%Glr,&
        KSwfn%orbs%norb,KSwfn%orbs%nspinor,KSwfn%orbs%nkpts,&
-       nlpsp%nprojel,in%nspin,in%itrpmax,in%iscf,mem)
+       nlpsp%nprojel,in%nspin,in%itrpmax,f_int(in%scf),mem)
   if (iproc==0 .and. verbose > 0) call print_memory_estimation(mem)
 
   if (in%lin%fragment_calculation .and. inputpsi == 'INPUT_PSI_DISK_LINEAR') then
@@ -601,7 +602,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   end if
 
   !the lookup tables for the application of the nonlocal potential can be created from now on
-  optLoop%iscf = in%iscf
+  optLoop%scf = in%scf
   optLoop%itrpmax = in%itrpmax
   optLoop%nrepmax = in%nrepmax
   optLoop%itermax = in%itermax
@@ -690,45 +691,60 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      ! Setup the mixing, if necessary -- NEW
      if (in%lin%mixHist_lowaccuracy /= in%lin%mixHist_highaccuracy) then
          ! This must be fixed later
-         stop 'in%lin%mixHist_lowaccuracy /= in%lin%mixHist_highaccuracy'
+        call f_err_throw('in%lin%mixHist_lowaccuracy /= in%lin%mixHist_highaccuracy',&
+             err_name='BIGDFT_RUNTIME_ERROR')
      end if
+
+     if (in%lin%mixHist_lowaccuracy==0) then
+        ! simple mixing
+        linear_iscf=f_enumerator('METHOD',AB7_MIXING_SIMPLE,null())
+     else
+        ! Pulay mixing
+        linear_iscf=f_enumerator('METHOD',AB7_MIXING_PULAY,null())
+     end if
+
      select case (in%lin%scf_mode)
-     case (LINEAR_DIRECT_MINIMIZATION)
-         ! still do a density mixing, maybe  to be modified later
-         if (in%lin%mixHist_lowaccuracy==0) then
-             ! simple mixing
-             linear_iscf = 12
-         else
-             ! Pulay mixing
-             linear_iscf = 17
-         end if
-     case (LINEAR_MIXDENS_SIMPLE)
-         if (in%lin%mixHist_lowaccuracy==0) then
-             ! simple mixing
-             linear_iscf = 12
-         else
-             ! Pulay mixing
-             linear_iscf = 17
-         end if
+!!$     case (LINEAR_DIRECT_MINIMIZATION)
+!!$         ! still do a density mixing, maybe  to be modified later
+!!$         if (in%lin%mixHist_lowaccuracy==0) then
+!!$             ! simple mixing
+!!$             linear_iscf = 12
+!!$         else
+!!$             ! Pulay mixing
+!!$             linear_iscf = 17
+!!$         end if
+!!$     case (LINEAR_MIXDENS_SIMPLE)
+!!$         if (in%lin%mixHist_lowaccuracy==0) then
+!!$             ! simple mixing
+!!$             linear_iscf = 12
+!!$         else
+!!$             ! Pulay mixing
+!!$             linear_iscf = 17
+!!$         end if
      case (LINEAR_MIXPOT_SIMPLE)
-         if (in%lin%mixHist_lowaccuracy==0) then
-             ! simple mixing
-             linear_iscf = 2
-         else
-             ! Pulay mixing
-             linear_iscf = 7
-         end if
-     case (LINEAR_FOE,LINEAR_PEXSI)
-         if (in%lin%mixHist_lowaccuracy==0) then
-             ! simple mixing
-             linear_iscf = 12
-         else
-             ! Pulay mixing
-             linear_iscf = 17
-         end if
+!!$         if (in%lin%mixHist_lowaccuracy==0) then
+!!$             ! simple mixing
+!!$             linear_iscf = 2
+!!$         else
+!!$             ! Pulay mixing
+!!$             linear_iscf = 7
+!!$         end if
+        call f_enum_attr(linear_iscf,POT_MIX_ENUM)
+     case (LINEAR_FOE,LINEAR_PEXSI,LINEAR_DIRECT_MINIMIZATION,&
+          LINEAR_MIXDENS_SIMPLE)
+!!$         if (in%lin%mixHist_lowaccuracy==0) then
+!!$             ! simple mixing
+!!$             linear_iscf = 12
+!!$         else
+!!$             ! Pulay mixing
+!!$             linear_iscf = 17
+!!$         end if
+        call f_enum_attr(linear_iscf,DEN_MIX_ENUM)
      case default
          stop 'ERROR: wrong in%lin%scf_mode'
      end select
+     call f_enum_attr(linear_iscf,RSPACE_MIX_ENUM)
+     call f_enum_attr(linear_iscf,MIX_ENUM)
 
      call denspot_set_history(denspot,linear_iscf,in%nspin, &
           npulayit=in%lin%mixHist_lowaccuracy)
@@ -1629,7 +1645,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 !  if (iproc==0) call PAPIF_flops(rtime, ptime, flpops, mflops,ierr)
 
   ! Setup the mixing, if necessary
-  call denspot_set_history(denspot,opt%iscf,in%nspin)
+  call denspot_set_history(denspot,opt%scf,in%nspin)
 
   ! allocate arrays necessary for DIIS convergence acceleration
   call allocate_diis_objects(idsx,in%alphadiis,sum(KSwfn%comms%ncntt(0:nproc-1)),&
@@ -1717,8 +1733,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if (endloop .and. opt%itrpmax==1 .and. (opt%itrep == opt%nrepmax .or. opt%gnrm < opt%gnrm_cv)) &
                 call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
            !logical flag for the self-consistent potential
-           scpot=((opt%iscf > SCF_KIND_DIRECT_MINIMIZATION .and. opt%iter==1 .and. opt%itrep==1) .or. & !mixing to be done
-                (opt%iscf <= SCF_KIND_DIRECT_MINIMIZATION)) .and. & !direct minimisation
+           scpot=(( (opt%scf .hasattr. 'MIXING') .and. opt%iter==1 .and. opt%itrep==1) .or. & !mixing to be done
+                (.not. (opt%scf .hasattr. 'MIXING'))) .and. & !direct minimisation
                 .not. (denspot%xc%ixc == XC_NO_HARTREE) ! Need to calculate the scp pot (i.e. Hartree + XC)
            !allocate the potential in the full box
            !temporary, should change the use of flag in full_local_potential2
@@ -1730,7 +1746,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !denspot%pkernel%minres=max(min(1.e-4_gp,opt%gnrm**2) ,minres_gpe)!!opt%gnrm_cv**2)
 
            !Calculates the application of the Hamiltonian on the wavefunction
-           call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%iscf,alphamix,&
+           call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%scf,alphamix,&
                 nlpsp,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr)
 
            endlooprp= (opt%itrp > 1 .and. opt%rpnrm <= opt%rpnrm_cv) .or. opt%itrp == opt%itrpmax
@@ -1745,7 +1761,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            !evaluate the functional of the wavefunctions and put it into the diis structure
            !the energy values is printed out in this routine
-           call calculate_energy_and_gradient(opt%iter,iproc,nproc,GPU,in%ncong,opt%iscf,&
+           call calculate_energy_and_gradient(opt%iter,iproc,nproc,GPU,in%ncong,opt%scf,&
                 energs,KSwfn,opt%gnrm,gnrm_zero)
 
            !control the previous value of idsx_actual
@@ -1808,7 +1824,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            else
               write(final_out, "(A5)") "final"
            end if
-           call write_energies(opt%iter,0,energs,opt%gnrm,gnrm_zero,final_out)
+           call write_energies(opt%iter,energs,opt%gnrm,gnrm_zero,final_out)
            call yaml_mapping_close()
            call yaml_flush_document()
            if (opt%itrpmax >1) then

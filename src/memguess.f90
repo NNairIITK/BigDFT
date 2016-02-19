@@ -1345,7 +1345,7 @@ program memguess
    call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
         & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
         & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
-        runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,mem)
+        runObj%inputs%nspin,runObj%inputs%itrpmax,f_int(runObj%inputs%scf),mem)
    
    if (.not. exportwf) then
       call print_memory_estimation(mem)

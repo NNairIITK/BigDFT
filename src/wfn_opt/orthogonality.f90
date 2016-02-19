@@ -245,29 +245,41 @@ end subroutine subspace_update
 !>calculates the lagrange multiplier matrix and correct it with the 
 !!contributions coming from the occupation numbers if they are 
 !! not the same
-subroutine lagrange_multiplier(symm,occup,ncplx,norb,lambda,trace)
+subroutine lagrange_multiplier(symm,correction,occup,ncplx,norb,lambda,trace,asymm,mix)
   use module_defs, only: wp,gp
   implicit none
   logical, intent(in) :: symm !<symmetrize explicitly
+  logical, intent(in) :: correction !< apply the correction to the lagrange multiplier
   integer, intent(in) :: ncplx,norb
   real(gp), dimension(norb), intent(in) :: occup
-  real(wp), intent(out) :: trace
+  real(wp), intent(out) :: trace,asymm,mix
   real(wp), dimension(ncplx,norb,norb), intent(inout) :: lambda
   !local variables
   integer :: iorb,jorb,icplx
+  real(wp) :: tt
+  real(gp) :: fi,fj,fac
   real(wp), dimension(2) :: lij,lji
 
   !symmetrize the matrix and then add the terms for the orthogonality
   !!constraint
+  asymm=0.0_wp
+  mix=0.0_wp
   trace=0.0_wp
   do iorb=1,norb
      trace=trace+lambda(1,iorb,iorb)
-     if (symm) then
-        do jorb=iorb+1,norb
-           do icplx=1,ncplx
-              lij(icplx)=lambda(icplx,iorb,jorb)
-              lji(icplx)=lambda(icplx,jorb,iorb)
-           end do
+     do jorb=iorb+1,norb
+        do icplx=1,ncplx
+           lij(icplx)=lambda(icplx,iorb,jorb)
+           lji(icplx)=lambda(icplx,jorb,iorb)
+        end do
+        !calculate maximum asymmetry of the 
+        !lagrange multiplier in the subspace
+        tt=0.0_wp
+        do icplx=1,ncplx
+           tt=tt+(lij(icplx)+(-1)**icplx*lji(icplx))**2
+        end do
+        asymm=max(asymm,tt)
+        if (symm) then
            !then make H mermitian
            do icplx=1,ncplx
               lij(icplx)=lij(icplx)+(-1)**(icplx-1)*lji(icplx)
@@ -276,8 +288,31 @@ subroutine lagrange_multiplier(symm,occup,ncplx,norb,lambda,trace)
               lambda(icplx,iorb,jorb)=0.5_wp*lij(icplx)
               lambda(icplx,jorb,iorb)=0.5_wp*lij(icplx)
            end do
-        end do
-     end if
+        end if
+     end do
+     !then here calculate the mix between all the states which appear
+     !to have different occupation numbers
+     fi=occup(iorb)
+     do jorb=1,norb
+        fj=occup(jorb)
+        if (fi /= fj) then
+           tt=0.0_wp
+           do icplx=1,ncplx
+              tt=tt+lambda(icplx,iorb,jorb)**2
+           end do
+           mix=max(mix,tt)
+           !correct the lagrange multiplier such that
+           !the gradient will follow the occupation numbers
+           if (correction) then
+              if (fi /=0.0_wp) then
+                 fac=0.5*(1.d0-fj/fi)
+              else
+                 fac=0.5
+              end if
+              lambda(:,iorb,jorb)=fac*lambda(:,iorb,jorb)
+           end if
+        end if
+     end do
   end do
 
 !at this point the lagrange multiplier might be corrected
@@ -290,13 +325,15 @@ end subroutine lagrange_multiplier
 
 !> Orthogonality constraint routine, for all the orbitals
 !! Uses wavefunctions in their transposed form
-subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n(c) wfd (arg:5)
+subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,tr_min,psi,hpsi,scprsum,spsi) !n(c) wfd (arg:5)
   use module_base
   use module_types
   use communications_base, only: comms_cubic
+  use yaml_output
   implicit none
 
   logical, intent(in) :: symm !< symmetrize the lagrange multiplier after calculation
+  logical, intent(in) :: tr_min !< optimize the trace of the hamiltonian instead of the energy
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
   type(comms_cubic), intent(in) :: comms
@@ -309,7 +346,8 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
   character(len=*), parameter :: subname='orthoconstraint'
   integer :: iorb,ialag,jorb,ncomponents,ncomplex,ise !ierr
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
-  real(dp) :: occ,trace !n(c) tt
+  real(dp) :: occ,trace,asymm,mix !n(c) tt
+  real(gp), dimension(3) :: redarr
   real(gp), dimension(2) :: aij,aji
   integer, dimension(:,:), allocatable :: ndim_ovrlp
   real(wp), dimension(:), allocatable :: alag,paw_ovrlp
@@ -328,16 +366,16 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
 
   !number of components for the overlap matrix in wp-kind real numbers
 
-          ndim_ovrlp = f_malloc((/ 1.to.nspin, 0.to.orbs%nkpts /),id='ndim_ovrlp')
+  ndim_ovrlp = f_malloc((/ 1.to.nspin, 0.to.orbs%nkpts /),id='ndim_ovrlp')
 
   call dimension_ovrlp(nspin,orbs,ndim_ovrlp)
 
-          alag = f_malloc0(ndim_ovrlp(nspin, orbs%nkpts),id='alag')
-  
+  alag = f_malloc0(ndim_ovrlp(nspin, orbs%nkpts),id='alag')
+
   !Allocate ovrlp for PAW: 
   if(present(spsi)) then
-    norb=max(orbs%norbu,orbs%norbd,1)
-    paw_ovrlp = f_malloc(norb,id='paw_ovrlp')
+     norb=max(orbs%norbu,orbs%norbd,1)
+     paw_ovrlp = f_malloc(norb,id='paw_ovrlp')
   end if
 
   !put to zero all the k-points which are not needed
@@ -388,70 +426,72 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
         !Hence the following part is not done:
         if (present(spsi) .and. 1==2) then
 
-          if(nspinor==1) then
-             !dgemmsy desactivated for the moment due to SIC
-             !call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-             call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-                  max(1,nvctrp),psi(ispsi),max(1,nvctrp),0.0_wp,&
-                  paw_ovrlp(1),norb)
-                  !write(*,*)'orthoconstraint l260, erase me:'
-                  !write(*,*)'<psi|psi>',paw_ovrlp
-             call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-                  max(1,nvctrp),spsi(ispsi),max(1,nvctrp),1.0_wp,&
-                  paw_ovrlp(1),norb)
-          else
-             !this part should be recheck in the case of nspinor == 2
-             call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
-                  max(1,ncomp*nvctrp), &
-                  psi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-                  paw_ovrlp(1),norb)
-             call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
-                  max(1,ncomp*nvctrp), &
-                  spsi(ispsi),max(1,ncomp*nvctrp),(1.0_wp,0.0_wp),&
-                  paw_ovrlp(1),norb)
-          end if
-          if(nproc>1) call mpiallred(paw_ovrlp,MPI_SUM,comm=bigdft_mpi%mpi_comm)
-          alag(ialag:ialag+norb)=alag(ialag:ialag+norb)/paw_ovrlp(1:norb)
-          !write(*,*)'orthoconstraint l268, erase me:'
-          !write(*,*)'<psi|S|psi>',paw_ovrlp
-       end if
+           if(nspinor==1) then
+              !dgemmsy desactivated for the moment due to SIC
+              !call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+              call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+                   max(1,nvctrp),psi(ispsi),max(1,nvctrp),0.0_wp,&
+                   paw_ovrlp(1),norb)
+              !write(*,*)'orthoconstraint l260, erase me:'
+              !write(*,*)'<psi|psi>',paw_ovrlp
+              call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
+                   max(1,nvctrp),spsi(ispsi),max(1,nvctrp),1.0_wp,&
+                   paw_ovrlp(1),norb)
+           else
+              !this part should be recheck in the case of nspinor == 2
+              call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
+                   max(1,ncomp*nvctrp), &
+                   psi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
+                   paw_ovrlp(1),norb)
+              call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
+                   max(1,ncomp*nvctrp), &
+                   spsi(ispsi),max(1,ncomp*nvctrp),(1.0_wp,0.0_wp),&
+                   paw_ovrlp(1),norb)
+           end if
+           if(nproc>1) call mpiallred(paw_ovrlp,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+           alag(ialag:ialag+norb)=alag(ialag:ialag+norb)/paw_ovrlp(1:norb)
+           !write(*,*)'orthoconstraint l268, erase me:'
+           !write(*,*)'<psi|S|psi>',paw_ovrlp
+        end if
         ispsi=ispsi+nvctrp*norb*nspinor
      end do
   end do
 
-if (nproc > 1) then
-  call timing(iproc,'LagrM_comput  ','OF')
-  call timing(iproc,'LagrM_commun  ','ON')
-  call mpiallred(alag,MPI_SUM,comm=bigdft_mpi%mpi_comm)
-  call timing(iproc,'LagrM_commun  ','OF')
-  call timing(iproc,'LagrM_comput  ','ON')
-end if
+  if (nproc > 1) then
+     call timing(iproc,'LagrM_comput  ','OF')
+     call timing(iproc,'LagrM_commun  ','ON')
+     call mpiallred(alag,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+     call timing(iproc,'LagrM_commun  ','OF')
+     call timing(iproc,'LagrM_comput  ','ON')
+  end if
 
-!now each processors knows all the overlap matrices for each k-point
-!even if it does not handle it.
-!this is somehow redundant but it is one way of reducing the number of communications
-!without defining group of processors
+  !now each processors knows all the overlap matrices for each k-point
+  !even if it does not handle it.
+  !this is somehow redundant but it is one way of reducing the number of communications
+  !without defining group of processors
 
-!calculate the sum of the diagonal of the overlap matrix, for each k-point
-scprsum=0.0_dp
-!for each k-point calculate the gradient
-ispsi=1
-do ikptp=1,orbs%nkptsp
-   ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
+  !calculate the sum of the diagonal of the overlap matrix, for each k-point
+  scprsum=0.0_dp
+  !maximum deviation of the symmetri for all the k-points and processors
+  redarr=0.0_wp
+  !for each k-point calculate the gradient
+  ispsi=1
+  do ikptp=1,orbs%nkptsp
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
-   do ispin=1,nspin
-      if (ispin==1) ise=0
-      call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
-           nvctrp,norb,norbs,ncomp,nspinor)
-      if (nvctrp == 0) cycle
+     do ispin=1,nspin
+        if (ispin==1) ise=0
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
+             nvctrp,norb,norbs,ncomp,nspinor)
+        if (nvctrp == 0) cycle
 
-      ncomplex=1
-      ncomponents=ncomp*nvctrp
-      if (nspinor/=1) ncomplex=2
+        ncomplex=1
+        ncomponents=ncomp*nvctrp
+        if (nspinor/=1) ncomplex=2
 
-      call lagrange_multiplier(symm,orbs%occup((ikpt-1)*orbs%norb+1+ise),&
-           ncomplex,norb,&
-           alag(ndim_ovrlp(ispin,ikpt-1)+1),trace)
+        call lagrange_multiplier(symm,.not. tr_min,orbs%occup((ikpt-1)*orbs%norb+1+ise),&
+             ncomplex,norb,&
+             alag(ndim_ovrlp(ispin,ikpt-1)+1),trace,asymm,mix)
 
 !!$        !correct the orthogonality constraint if there are some orbitals which have zero occupation number
 !!!      if (symm) then
@@ -483,12 +523,14 @@ do ikptp=1,orbs%nkptsp
 !!$                (alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(jorb-1)*norbs),jorb=1,norb)
 !!$        end do
 
-      !calculate the scprsum if the k-point is associated to this processor
-      !the scprsum always coincide with the trace of the hamiltonian
-      if (orbs%ikptproc(ikpt) == iproc) then
-         occ=real(orbs%kwgts(ikpt),dp)*real(3-orbs%nspin,gp)
-         if (nspinor == 4) occ=real(orbs%kwgts(ikpt),dp)
-         scprsum=scprsum+occ*trace
+        !calculate the scprsum if the k-point is associated to this processor
+        !the scprsum always coincide with the trace of the hamiltonian
+        if (orbs%ikptproc(ikpt) == iproc) then
+           occ=real(orbs%kwgts(ikpt),dp)*real(3-orbs%nspin,gp)
+           if (nspinor == 4) occ=real(orbs%kwgts(ikpt),dp)
+           scprsum=scprsum+occ*trace
+           redarr(2)=redarr(2)+occ*asymm
+           redarr(3)=redarr(3)+occ*mix
 !!$         if(nspinor == 1) then
 !!$            do iorb=1,norb
 !!$               !write(*,'(a,2i5,2es14.7)') 'iproc, iorb, occ, lagMatVal', iproc, iorb, occ, real(alag(ndim_ovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs),dp)
@@ -504,11 +546,11 @@ do ikptp=1,orbs%nkptsp
 !!$                    occ*real(alag(ndim_ovrlp(ispin,ikpt-1)+2*iorb+(iorb-1)*norbs),dp)
 !!$            enddo
 !!$         end if
-      end if
-      ise=norb
+        end if
+        ise=norb
 
-      call subspace_update(ncomplex,ncomponents,norb,&
-           hpsi(ispsi),alag(ndim_ovrlp(ispin,ikpt-1)+1),psi(ispsi))
+        call subspace_update(ncomplex,ncomponents,norb,&
+             hpsi(ispsi),alag(ndim_ovrlp(ispin,ikpt-1)+1),psi(ispsi))
 
 !!$      if(nspinor==1 .and. nvctrp /= 0) then
 !!$         call gemm('N','N',nvctrp,norb,norb,-1.0_wp,psi(ispsi),max(1,nvctrp),&
@@ -519,10 +561,10 @@ do ikptp=1,orbs%nkptsp
 !!$              alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
 !!$      end if
 
-      !Only for PAW:
-      if (present(spsi)) then
-         call subspace_update(ncomplex,ncomponents,norb,&
-              hpsi(ispsi),alag(ndim_ovrlp(ispin,ikpt-1)+1),spsi(ispsi))
+        !Only for PAW:
+        if (present(spsi)) then
+           call subspace_update(ncomplex,ncomponents,norb,&
+                hpsi(ispsi),alag(ndim_ovrlp(ispin,ikpt-1)+1),spsi(ispsi))
 
 !!$         if(nspinor==1 .and. nvctrp /= 0) then
 !!$            call gemm('N','N',nvctrp,norb,norb,-1.0_wp,spsi(ispsi),max(1,nvctrp),&
@@ -532,24 +574,30 @@ do ikptp=1,orbs%nkptsp
 !!$            call c_gemm('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),spsi(ispsi),max(1,ncomp*nvctrp),&
 !!$                 alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
 !!$         end if
-      end if
+        end if
 
-      ispsi=ispsi+nvctrp*norb*nspinor
-   end do
-end do
+        ispsi=ispsi+nvctrp*norb*nspinor
+     end do
+  end do
 
-if (nproc > 1) then
-   !n(c) tt=scprsum
-   call mpiallred(scprsum,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
-   !call MPI_ALLREDUCE(tt,scprsum,1,mpidtypd,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-end if
+  if (nproc > 1) then
+     !n(c) tt=scprsum
+     redarr(1)=scprsum
+     !call mpiallred(scprsum,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+     call mpiallred(redarr,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+     scprsum=redarr(1)
 
-call f_free(alag)
+  end if
 
-if(present(spsi)) then
-   call f_free(paw_ovrlp)
-end if
+  if (abs(redarr(2)) > 1.d-10 .and. iproc==0) &
+       call yaml_map('Max. asymmetry of Lagrange Multiplier',redarr(2))
+  if (abs(redarr(3)) > 1.d-12 .and. iproc==0) &
+       call yaml_map('Max. violation of rotational invariance',redarr(3))
 
+  call f_free(alag)
+  
+  if (present(spsi)) call f_free(paw_ovrlp)
+  
   call f_free(ndim_ovrlp)
 
   call timing(iproc,'LagrM_comput  ','OF')
@@ -573,7 +621,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   real(wp), intent(out) :: evsum
   !local variables
   character(len=*), parameter :: subname='subspace_diagonalisation'
-  integer :: info,iorb,n_lp,n_rp,npsiw,isorb,ise,jorb,ncplx
+  integer :: info,iorb,n_lp,n_rp,npsiw,isorb,ise,jorb,ncplx,ncomplex
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   !integer :: istart
   real(wp) :: occ,asymm
@@ -622,17 +670,23 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
 
-        if(nspinor==1) then
-           call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),max(1,nvctrp),hpsi(ispsi),&
-                max(1,nvctrp),0.0_wp,&
-                hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb)
-        else
-           !this part should be recheck in the case of nspinor == 2
-           call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
-                max(1,ncomp*nvctrp), &
-                hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-                hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb)
-        end if
+        ncomplex=1
+        if (nspinor/=1) ncomplex=2
+
+        call subspace_matrix(.false.,psi(ispsi),hpsi(ispsi),&
+             ncomplex,ncomp*nvctrp,norb,hamks(ndim_ovrlp(ispin,ikpt-1)+1))
+
+!!$        if(nspinor==1) then
+!!$           call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),max(1,nvctrp),hpsi(ispsi),&
+!!$                max(1,nvctrp),0.0_wp,&
+!!$                hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb)
+!!$        else
+!!$           !this part should be recheck in the case of nspinor == 2
+!!$           call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
+!!$                max(1,ncomp*nvctrp), &
+!!$                hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
+!!$                hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb)
+!!$        end if
         ispsi=ispsi+nvctrp*norb*nspinor
 
         !dimensions of the work arrays
@@ -755,7 +809,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
 
         if(nspinor==1) then
 
-                   call syev('V','U',norb,hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb,&
+           call syev('V','U',norb,hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb,&
                 orbs%eval(isorb+(ikpt-1)*orbs%norb),work_lp(1),n_lp,info)
            if (info /= 0) write(*,*) 'SYEV ERROR',info
 

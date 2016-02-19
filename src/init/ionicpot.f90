@@ -1044,10 +1044,10 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
 
            !here we should implement THe surface term in a different way
            d12=0.d0
-           do i=1,3
-              dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
-              d12 = d12 + deps(i)**2
-           end do
+!!$           do i=1,3
+!!$              dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
+!!$              d12 = d12 + deps(i)**2
+!!$           end do
 
            IntSur = IntSur + dsqrt(d12)
 
@@ -1540,6 +1540,7 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
   use f_utils
   use bounds, only: ext_buffers
   use environment, only: epsl,epsle0,d1eps
+  use numerics, only: safe_exp
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: nat !< number of centres defining the cavity
@@ -1619,12 +1620,12 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
               else
                  r=fact1*(-(dmax**2) + d2)
                  t=fact2*(r-dsin(r)) 
-                 ep(iat)=dexp(t)-1.d0
+                 ep(iat)=safe_exp(t)-1.d0
                  dtx=fact3*(1.d0-dcos(r))
                  do i=1,3
-                    dep(i,iat)=dexp(t)*dtx*2.d0*(v(i)-rxyz(i,iat))
+                    dep(i,iat)=safe_exp(t)*dtx*2.d0*(v(i)-rxyz(i,iat))
                  end do
-                 ddep(iat) = dexp(t)*(4.d0*(dtx**2)*d2 + 4.d0*fact1*fact3*dsin(r)*d2 + 6.d0*dtx)
+                 ddep(iat) = safe_exp(t)*(4.d0*(dtx**2)*d2 + 4.d0*fact1*fact3*dsin(r)*d2 + 6.d0*dtx)
               end if
            end do
 
