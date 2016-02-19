@@ -30,8 +30,8 @@ program OP2P_check
   call yaml_dict_dump(options)
   nproc=mpisize()
   ngroup=dict_len(options//'objects')
-  print *,dict_len(options//'objects')
   if (iproc == 0 .and. ngroup <= 0) call f_err_throw('Error, number of groups must be more than one')
+
   nobj=f_malloc(ngroup,id='nobj')
   nobj=options//'objects'
   ndim=options//'ndim'

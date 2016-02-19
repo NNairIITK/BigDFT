@@ -116,6 +116,12 @@ yaml_test:
    - time
    - Count
 
+op2p_check:
+  Keys to ignore:
+   - Orbital repartition per group
+   - Orbital repartition per mpi
+   - Groups per proc
+
 xc:
  nosp: 3.1e-6
  scol: 2.72e-5

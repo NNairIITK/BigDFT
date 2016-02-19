@@ -1,11 +1,6 @@
  ndim                                  : 100
- objects: [ ndim                                  : 100
  objects: [10, 10]
  symmetric                             : Yes
-10, 10]
- symmetric                             : Yes
-           2
-           2
  Orbital repartition per group         :  [  10,  10 ]
  Orbital repartition per mpi           :  [  10,  10 ]
  Groups per proc:
