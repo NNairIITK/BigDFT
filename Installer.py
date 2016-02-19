@@ -167,7 +167,7 @@ class BigDFTInstaller():
     def selected(self,l):
         return [val for val in l if val in self.modulelist]
 
-    def shellaction(self,path,modules,action):
+    def shellaction(self,path,modules,action,hidden=False):
         import os
         for mod in self.selected(modules):
             directory=os.path.join(path,mod)
@@ -175,7 +175,10 @@ class BigDFTInstaller():
             if os.path.isdir(directory):
                 self.__dump('Treating directory '+directory)
                 os.chdir(directory)
-                os.system(action)
+                if hidden:
+                    self.get_output(action)
+                else:
+                    os.system(action)
                 os.chdir(here)
                 self.__dump('done.')
             else:
@@ -211,7 +214,7 @@ class BigDFTInstaller():
 
     def dist(self):
         "Perform make dist action"
-        self.shellaction('.',self.modulelist,'make dist')
+        self.shellaction('.',self.modulelist,'make dist',hidden=not self.verbose)
         self.get_output(self.jhb+DIST)
 
     def build(self):
@@ -274,16 +277,18 @@ class BigDFTInstaller():
         print 'Thank you for using the Installer of BigDFT suite.'
         print 'The action considered was:',self.action
         if self.action == 'build': self.rcfile_from_env()
-        if self.time0 is not None and self.bigdft_time() > self.time0:
+        if (self.time0 is not None and self.bigdft_time() > self.time0) or (self.time0 is None and self.bigdft_time() is not None):
             print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
             print 'All the available executables and scripts can be found in the directory'
             print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
-        elif (self.action == 'build' or self.action == 'make') and self.bigdft_time() is None:
+        elif (self.action == 'build' or self.action == 'make'):
             print 'WARNING: The Installer seems NOT have created or updated bigdft executable'
-            print '        (maybe everything already compiled?)'
-            print 'ACTION: check the compiling procedure:'
+            print '        (maybe everything was already compiled?)'
+            print 'ACTION: check the compiling procedure.'
+            if self.branch:
+                print 'HINT: It appears you are compiling from a branch source tree. Did you perform the action "autogen"?'
             if not self.verbose and self.action == 'build':
-                print '  Have a look at the file index.html of the build/ directory to find the reason'
+                print '  HINT: Have a look at the file index.html of the build/ directory to find the reason'
 
 #Now follows the available actions, argparse might be called
 import argparse

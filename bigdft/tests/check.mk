@@ -297,8 +297,11 @@ run_message:
 			name=`basename $@ .diff` ; dir=$$name-test ; \
 				chks="$(srcdir)/$$name/*.ref" ; \
 			for c in $$chks ; do \
-			    echo "$$DIFF $$c $$dir/$$(basename $$c .ref).out"; \
-				$$DIFF $$c $$dir/$$(basename $$c .ref)".out"; \
+			    cmd="$$c $$dir/$$(basename $$c .ref).out";\
+			    dfcmd="$$(diff -q $$cmd)" ; echo "diff output is:'" "$$dfcmd" "'" ;\
+			    if test -n "$$dfcmd"; then \
+			    echo "$$DIFF $$c $$cmd"; \
+				$$DIFF $$c $$dir/$$(basename $$c .ref)".out"; fi; \
 			done ; \
 				ychks="$(srcdir)/$$name/*.ref.yaml" ; \
 			for c in $$ychks ; do base=`basename $$c .out.ref.yaml | $(SED) s/.out// | $(SED) s/.xabs// | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \

@@ -12,9 +12,12 @@ EXTRA_DIST = \
 	write.dft \
 	read.dft \
 	posinp.xyz \
-	write.ref.yaml \
-	read.ref.yaml \
-    check_lib_plain.ref.yaml
+	write_plain.ref.yaml \
+	write_binary.ref.yaml \
+	read_plain.ref.yaml \
+	read_binary.ref.yaml \
+  check_lib_plain.ref.yaml \
+	check_lib_binary.ref.yaml
 
 PPFILES = psppar.O
 
@@ -34,7 +37,8 @@ endif
 #	exportwf.report check_lib_plain.report check_lib_binary.report \
 #	$(etsf_tests) $(bindings_tests)
 
-check: check_lib_plain.report.yaml check_lib_binary.report.yaml $(etsf_tests) $(bindings_tests)
+check: write_plain.report.yaml read_plain.report.yaml write_binary.report.yaml read_binary.report.yaml \
+	check_lib_plain.report.yaml check_lib_binary.report.yaml $(etsf_tests) $(bindings_tests)
 report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
 
@@ -97,9 +101,9 @@ write_etsf.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz 
 	@cp input.kpt etsf.kpt
 	@cp posinp.xyz etsf.xyz
 	@rm -f etsf.yaml
-	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=etsf
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=etsf > $@
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	$(run_parallel) $(top_builddir)/src/bigdft etsf > $@
+	$(run_parallel) $(top_builddir)/src/bigdft etsf >> $@
 	@rm -f etsf.dft etsf.kpt etsf.xyz
 	$(MAKE) clean.in
 
@@ -108,11 +112,11 @@ write_plain.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz
 	@cp write.dft plain.dft
 	@cp input.kpt plain.kpt
 	@cp posinp.xyz plain.xyz
-	sed -i "s/^0 3 0/0 1 0/g" plain.dft
+	@sed -i "s/^0 3 0/0 1 0/g" plain.dft
 	@rm -f plain.yaml
-	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=plain
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=plain > $@
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	$(run_parallel) $(top_builddir)/src/bigdft plain > $@
+	$(run_parallel) $(top_builddir)/src/bigdft plain >> $@
 	@rm -f plain.dft plain.kpt plain.xyz
 	$(MAKE) clean.in
 
@@ -121,11 +125,11 @@ write_binary.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xy
 	@cp write.dft binary.dft
 	@cp input.kpt binary.kpt
 	@cp posinp.xyz binary.xyz
-	sed -i "s/^0 3 0/0 2 0/g" binary.dft
+	@sed -i "s/^0 3 0/0 2 0/g" binary.dft
 	@rm -f binary.yaml
-	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=binary
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=binary > $@
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	$(run_parallel) $(top_builddir)/src/bigdft binary > $@
+	$(run_parallel) $(top_builddir)/src/bigdft binary >> $@
 	@rm -f binary.dft binary.kpt binary.xyz
 	$(MAKE) clean.in
 
@@ -136,25 +140,25 @@ read_etsf.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz r
 	@cp input.kpt etsf.kpt
 	@cp posinp.xyz etsf.xyz
 	@rm -f etsf.yaml
-	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=etsf
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=etsf >$@
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	$(run_parallel) $(top_builddir)/src/bigdft etsf > $@
+	$(run_parallel) $(top_builddir)/src/bigdft etsf >> $@
 	@rm -f etsf.dft etsf.kpt etsf.xyz
 	$(MAKE) clean.in
 
-read_plain.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft write_plain.out
+read_plain.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft write_plain.out.yaml
 	$(MAKE) in
 	@cp read.dft plain.dft
 	@cp input.kpt plain.kpt
 	@cp posinp.xyz plain.xyz
 	@rm -f plain.yaml
-	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=plain
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=plain > $@
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	$(run_parallel) $(top_builddir)/src/bigdft plain > $@
+	$(run_parallel) $(top_builddir)/src/bigdft plain >> $@
 	@rm -f plain.dft plain.kpt plain.xyz
 	$(MAKE) clean.in
 
-read_binary.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft write_binary.out
+read_binary.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz read.dft write_binary.out.yaml
 	$(MAKE) in
 	@cp read.dft binary.dft
 	@cp input.kpt binary.kpt
@@ -216,7 +220,7 @@ check_lib_bindings.out.yaml: check_lib_c write_binary.out.yaml
 
 # Write tests.
 write_plain.report.yaml: write_plain.out.yaml
-	python $(top_builddir)/tests/fldiff_yaml.py -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml -r $(srcdir)/write.ref.yaml -d $< -o $@
+	python $(top_builddir)/tests/fldiff_yaml.py -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml -r $(srcdir)/write_plain.ref.yaml -d $< -o $@
 
 write_binary.report.yaml: write_binary.out.yaml
 	python $(top_builddir)/tests/fldiff_yaml.py -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml -r $(srcdir)/write_binary.ref.yaml -d $< -o $@

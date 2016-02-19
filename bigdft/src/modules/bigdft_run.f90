@@ -122,7 +122,7 @@ module bigdft_run
        integer, intent(out) :: status
      end subroutine bigdft_python_exec_dict
   end interface
-
+  
   !> Keys of a run dict. All private, use get_run_prop() and set_run_prop() to change them.
   character(len = *), parameter :: RADICAL_NAME = "radical"
   character(len = *), parameter :: INPUT_NAME   = "input_file"
@@ -1657,7 +1657,7 @@ contains
           end if
        end if
     end if
-
+    
     ! Apply the constraints expressed in internal coordinates
     if (runObj%atoms%astruct%inputfile_format=='int') then
         call constraints_internal(runObj%atoms%astruct)

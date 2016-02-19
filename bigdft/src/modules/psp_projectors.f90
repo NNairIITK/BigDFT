@@ -282,8 +282,6 @@ module psp_projectors
     end do
     if (ioverlap/=noverlap) stop 'ioverlap/=noverlap'
 
-
-
     if (present(lrs) .and. present(lr_mask)) then
        if (f_err_raise(nlr /= size(lr_mask),'The sizes of lr_mask and lrs should coincide',&
             err_name='BIGDFT_RUNTIME_ERROR')) return

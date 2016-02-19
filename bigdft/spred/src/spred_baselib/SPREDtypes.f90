@@ -74,7 +74,9 @@ contains
     inquire(file = trim(fname), exist = exists_user)
     if (exists_user)  call merge_input_file_to_dict(dict, trim(fname),mpi_env)
 
+    if (mpi_env%iproc == 0) then
     call input_file_dump(dict)
+    endif
 
     !now transfer the information from the dictionary to the SPRED input data
     !structure

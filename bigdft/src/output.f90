@@ -7,7 +7,7 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Display the logo of BigDFT subroutine print_logo()
@@ -34,7 +34,7 @@ subroutine print_logo()
   call yaml_scalar('|     |-0+--|-0+--|     |     |    B    B         i     g        g     ')
   call yaml_scalar('|_____|__:__|__:__|_____|_____|___ BBBBB          i     g         g    ')
   call yaml_scalar('|  :  |     |     |  :  |     |    B    B         i     g         g    ')
-  call yaml_scalar('|--+0-|     |     |-0+--|     |    B     B     iiii     g         g    ')                                  
+  call yaml_scalar('|--+0-|     |     |-0+--|     |    B     B     iiii     g         g    ')
   call yaml_scalar('|__:__|_____|_____|__:__|_____|    B     B        i      g        g    ')
   call yaml_scalar('|     |  :  |  :  |     |     |    B BBBB        i        g      g     ')
   call yaml_scalar('|     |-0+--|-0+--|     |     |    B        iiiii          gggggg      ')
@@ -47,36 +47,36 @@ subroutine print_logo()
   call yaml_scalar('|_____|_____|_____|__:__|_____|D___      D     F         T    T        ')
   call yaml_scalar('|     |     |  :  |     |     |D         D     F          TTTTT        ')
   call yaml_scalar('|     |     |--+0-|     |     | D        D     F         T    T        ')
-  call yaml_scalar('|_____|_____|__:__|_____|_____|          D     F        T     T        ')                                       
+  call yaml_scalar('|_____|_____|__:__|_____|_____|          D     F        T     T        ')
   call yaml_scalar('|     |     |     |     |     |         D               T    T         ')
   call yaml_scalar('|     |     |     |     |     |   DDDDDD       F         TTTT          ')
-  call yaml_scalar('|_____|_____|_____|_____|_____|______                    www.bigdft.org   "') 
+  call yaml_scalar('|_____|_____|_____|_____|_____|______                    www.bigdft.org   "')
 
-  !old version 
-!!$  call yaml_scalar('      TTTT         F       DDDDD    ')     
-!!$  call yaml_scalar('     T    T               D         ')     
-!!$  call yaml_scalar('    T     T        F     D          ')     
-!!$  call yaml_scalar('    T    T         F     D        D ')     
-!!$  call yaml_scalar('    TTTTT          F     D         D')     
-!!$  call yaml_scalar('    T    T         F     D         D')     
-!!$  call yaml_scalar('    T     T        F     D         D')     
-!!$  call yaml_scalar('    T      T       F     D         D')     
-!!$  call yaml_scalar('    T     T     FFFF     D         D')     
-!!$  call yaml_scalar('    T TTTT         F      D        D')     
-!!$  call yaml_scalar('    T             F        D      D ')     
-!!$  call yaml_scalar('TTTTTTTTT    FFFFF          DDDDDD  ')     
-!!$  call yaml_scalar('  gggggg          iiiii    BBBBBBBBB')     
-!!$  call yaml_scalar(' g      g        i             B    ')     
-!!$  call yaml_scalar('g        g      i         BBBB B    ')     
-!!$  call yaml_scalar('g         g     iiii     B     B    ')     
-!!$  call yaml_scalar('g         g     i       B      B    ')     
-!!$  call yaml_scalar('g         g     i        B     B    ')     
-!!$  call yaml_scalar('g         g     i         B    B    ')     
-!!$  call yaml_scalar('g         g     i          BBBBB    ')     
-!!$  call yaml_scalar(' g        g     i         B    B    ')     
-!!$  call yaml_scalar('          g     i        B     B    ')     
-!!$  call yaml_scalar('         g               B    B     ')     
-!!$  call yaml_scalar('    ggggg       i         BBBB      ') 
+  !old version
+!!$  call yaml_scalar('      TTTT         F       DDDDD    ')
+!!$  call yaml_scalar('     T    T               D         ')
+!!$  call yaml_scalar('    T     T        F     D          ')
+!!$  call yaml_scalar('    T    T         F     D        D ')
+!!$  call yaml_scalar('    TTTTT          F     D         D')
+!!$  call yaml_scalar('    T    T         F     D         D')
+!!$  call yaml_scalar('    T     T        F     D         D')
+!!$  call yaml_scalar('    T      T       F     D         D')
+!!$  call yaml_scalar('    T     T     FFFF     D         D')
+!!$  call yaml_scalar('    T TTTT         F      D        D')
+!!$  call yaml_scalar('    T             F        D      D ')
+!!$  call yaml_scalar('TTTTTTTTT    FFFFF          DDDDDD  ')
+!!$  call yaml_scalar('  gggggg          iiiii    BBBBBBBBB')
+!!$  call yaml_scalar(' g      g        i             B    ')
+!!$  call yaml_scalar('g        g      i         BBBB B    ')
+!!$  call yaml_scalar('g         g     iiii     B     B    ')
+!!$  call yaml_scalar('g         g     i       B      B    ')
+!!$  call yaml_scalar('g         g     i        B     B    ')
+!!$  call yaml_scalar('g         g     i         B    B    ')
+!!$  call yaml_scalar('g         g     i          BBBBB    ')
+!!$  call yaml_scalar(' g        g     i         B    B    ')
+!!$  call yaml_scalar('          g     i        B     B    ')
+!!$  call yaml_scalar('         g               B    B     ')
+!!$  call yaml_scalar('    ggggg       i         BBBB      ')
   call yaml_mapping_close()
 
   call yaml_map('Reference Paper','The Journal of Chemical Physics 129, 014109 (2008)')
@@ -86,7 +86,7 @@ subroutine print_logo()
   call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
   if (ierr ==0) call yaml_map('Root process Hostname',trim(nodename_local))
   call yaml_map('Number of MPI tasks',bigdft_mpi%nproc)
-  
+
   nthreads = 0
 !$  nthreads=omp_get_max_threads()
   call yaml_map('OpenMP parallelization',nthreads>0)
@@ -155,7 +155,7 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
   if (len(trim(comment)) > 0 .and. .not.write_only_energies) then
      if (verbose >0) call yaml_newline()
      call write_iter()
-     if (verbose >0) call yaml_comment(trim(comment))    
+     if (verbose >0) call yaml_comment(trim(comment))
   end if
 
   if (iscf < 1 .and. verbose > 0) then
@@ -259,7 +259,7 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
   else
      tolerance=etol
   end if
-  
+
   ! Calculate and print the magnetisation, no matter the verbosity
   if (orbs%nspin == 2) then
      mpol = 0._gp
@@ -455,7 +455,7 @@ contains
     end if
 
     if (.not. wrt) preval(2)=orbs%eval(iorb)
-   
+
   end function find_degeneracy_down
 
 END SUBROUTINE write_eigenvalues_data
@@ -485,7 +485,7 @@ subroutine write_ig_eigenvectors(etol,orbse,nspin,norb,norbu,norbd)
   commentline=repeat(' ',len(commentline))
 
 
-   !loop over all the k-points of the IG 
+   !loop over all the k-points of the IG
    iorbst=0 !starting orbital in the k-points distribution
    !check if norbu and norbd are equal
    if (nspin==2 .and. orbse%norbu /= orbse%norbd) then
@@ -534,7 +534,7 @@ subroutine write_ig_eigenvectors(etol,orbse,nspin,norb,norbu,norbd)
             end if
             if (iorb == norb) then
                !calculate the IG HOMO-LUMO gap
-               if(norb<orbse%norbu) then 
+               if(norb<orbse%norbu) then
                   HLIGgap=orbse%eval(iorb+1+iorbst)-orbse%eval(iorb+iorbst)
                   write(gapstring,'(a,f8.4,a)') ', H-L IG gap: ',HLIGgap*Ha_eV,' eV'
                else
@@ -556,7 +556,7 @@ subroutine write_ig_eigenvectors(etol,orbse,nspin,norb,norbu,norbd)
                !write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
                !   &   'evale(',iorb,')=',orbse%eval(iorb+iorbst),trim(message)
             else
-               !if ((iorb <= 5 .or. iorb >= orbse%norbu-5) .or. verbose > 0) & 
+               !if ((iorb <= 5 .or. iorb >= orbse%norbu-5) .or. verbose > 0) &
                !write(*,'(1x,a,i0,a,1x,1pe21.14)') &
                !   &   'evale(',iorb,')=',orbse%eval(iorb+iorbst)
             end if
@@ -579,7 +579,7 @@ subroutine write_ig_eigenvectors(etol,orbse,nspin,norb,norbu,norbd)
          end if
          if (iorb == norbu .and. iorb == norbd) then
             nwrtmsg=1
-            message='  <-Last-> ' 
+            message='  <-Last-> '
             preval(1)=orbse%eval(iorb+iorbst)
             preval(2)=orbse%eval(iorb+orbse%norbu+iorbst)
          else if (iorb == norbu) then
@@ -601,13 +601,13 @@ subroutine write_ig_eigenvectors(etol,orbse,nspin,norb,norbu,norbd)
                  orbse%occup(iorb+iorbst+orbse%norbu),&
                  -1.0_gp,ikptw,mx,my,mz)
          end if
-         
+
          if (nwrtmsg==1) then
             !write(*,'(1x,a,i4,a,1x,1pe21.14,a12,a,i4,a,1x,1pe21.14)') &
             !   &   'evale(',iorb,',u)=',orbse%eval(iorb+iorbst),message,&
             !   &   'evale(',iorb,',d)=',orbse%eval(iorb+orbse%norbu+iorbst)
          else
-            !if ((iorb <= 5 .or. iorb >= orbse%norbu-5) .or. verbose > 0) & 
+            !if ((iorb <= 5 .or. iorb >= orbse%norbu-5) .or. verbose > 0) &
             !write(*,'(1x,a,i4,a,1x,1pe21.14,12x,a,i4,a,1x,1pe21.14)') &
             !   &   'evale(',iorb,',u)=',orbse%eval(iorb+iorbst),&
             !   &   'evale(',iorb,',d)=',orbse%eval(iorb+orbse%norbu+iorbst)
@@ -640,7 +640,7 @@ subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
   use module_base
   use yaml_output
   implicit none
-  integer, intent(in) :: ikpt !< k-point id 
+  integer, intent(in) :: ikpt !< k-point id
   real(gp), intent(in) :: eval !< orbital energy
   real(gp), intent(in) :: occup !< orbital occupation number
   real(gp), intent(in) :: spinsign !< orbital spin (collinear and averaged)
@@ -676,7 +676,7 @@ subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
   if (mx /= UNINITIALIZED(mx) .and. my /= UNINITIALIZED(my) .and. mz /= UNINITIALIZED(mz)) &
      call yaml_map('M',(/mx,my,mz/),fmt='(f8.5)')
   call yaml_mapping_close(advance='no')
- 
+
 END SUBROUTINE write_orbital_data
 
 
@@ -690,7 +690,7 @@ subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
   !local variables
   integer :: j,igroup,ikpt
   character(len=2) :: mesupdw
-  if (verbose < 10) then  
+  if (verbose < 10) then
      !we restrict the printing to the first k point only.
      if (ngroup==1) then
         if (verbose >0) then
@@ -761,7 +761,7 @@ subroutine write_gnrms(nkpts,norb,gnrms)
         call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')))
      end do
   end do
-  
+
 END SUBROUTINE write_gnrms
 
 
@@ -811,7 +811,7 @@ subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
   character(len=*), intent(in) :: message
   real(gp), dimension(6), intent(in) :: strten
   !local variables
-  
+
   call yaml_sequence_open(trim(message)//' stress tensor matrix (Ha/Bohr^3)')
   call yaml_sequence(yaml_toa((/strten(1),strten(6),strten(5)/),fmt='(1pg20.12)'))
   call yaml_sequence(yaml_toa((/strten(6),strten(2),strten(4)/),fmt='(1pg20.12)'))
@@ -834,6 +834,53 @@ subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
   end if
 
 END SUBROUTINE write_strten_info
+
+subroutine write_atomic_density_matrix(nspin,astruct,nl)
+  use psp_projectors_base, only: DFT_PSP_projectors
+  use yaml_output
+  use module_atoms
+  use ao_inguess, only: lmax_ao,ishell_toa
+  use yaml_strings
+  implicit none
+  integer, intent(in) :: nspin
+  type(DFT_PSP_projectors), intent(in) :: nl
+  type(atomic_structure), intent(in) :: astruct
+  !local variables
+  integer :: ispin,l
+  integer, dimension(0:lmax_ao) :: igamma
+  character(len=32) :: msg
+  type(atoms_iterator) :: atit
+
+  if (.not. associated(nl%iagamma)) return
+  call yaml_sequence_open('Atomic density matrix in the PSP projectors')
+  !iterate above atoms
+  atit=atoms_iter(astruct)
+  do while(atoms_iter_next(atit))
+    igamma=nl%iagamma(:,atit%iat)
+    if (all(igamma == 0)) cycle
+    call yaml_sequence(advance='no')
+    call yaml_map('Symbol',trim(atit%name),advance='no')
+    call yaml_comment('Atom '//trim(yaml_toa(atit%iat)))
+    do l=0,lmax_ao
+      !for the moment no imaginary part printed out
+      if (igamma(l) == 0) cycle
+      call yaml_mapping_open('Channel '//ishell_toa(l))
+      do ispin=1,nspin
+        if (nspin==1) then
+          call f_strcpy(src='Matrix',dest=msg)
+        else if (ispin==1) then
+          call f_strcpy(src='Spin up',dest=msg)
+        else if (ispin==2) then
+          call f_strcpy(src='Spin down',dest=msg)
+        end if
+        call yaml_map(trim(msg),&
+            nl%gamma_mmp(1,1:2*l+1,1:2*l+1,ispin,igamma(l)),fmt='(1pg15.5)')
+      end do
+      call yaml_mapping_close()
+    end do
+  end do
+  call yaml_sequence_close()
+end subroutine write_atomic_density_matrix
 
 
 !> Assign some of the physical system variables
@@ -1136,7 +1183,7 @@ contains
 
     MiBdotKiB=trim(adjustl(yaml_toa(int(mega(omemory)))))//'.'//&
          trim(adjustl(yaml_toa(int(kappa(omemory)))))
-    
+
   end function MiBdotKiB
 
 END SUBROUTINE print_memory_estimation
@@ -1157,7 +1204,7 @@ subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
   real(gp), dimension(3), intent(in) :: shift
   real(gp), intent(in) :: hx, hy, hz
   !Local variables
-  integer :: iunit
+  integer :: iunit !, iat
 
   if (atoms%astruct%ntypes > 0) then
      call yaml_comment('Atom Positions (specified and grid units)',hfill='-')
@@ -1237,7 +1284,7 @@ subroutine wtyaml(iunit,energy,rxyz,astruct,wrtforces,forces, &
      !Important to display the default units (TD)
      if (wrtlog) call yaml_map('Units','bohr')
   case default
-     call f_err_throw('Writing the atomic file. Error, unknown units ("'// trim(astruct%units)//'")', & 
+     call f_err_throw('Writing the atomic file. Error, unknown units ("'// trim(astruct%units)//'")', &
           & err_name='BIGDFT_RUNTIME_ERROR')
   end select Units
 
@@ -1399,7 +1446,7 @@ subroutine print_wfd(wfd)
   call yaml_map('No. of points',wfd%nvctr_f)
   call yaml_mapping_close()
   call yaml_mapping_close()
-  
+
 END SUBROUTINE print_wfd
 
 subroutine print_nlpsp(nlpsp)
@@ -1463,7 +1510,7 @@ subroutine print_orbitals(orbs, geocode)
   implicit none
   type(orbitals_data), intent(in) :: orbs
   character(len = 1), intent(in) :: geocode
-  
+
   integer :: jproc, nproc, jpst, norbme, norbyou, nelec
   integer :: ikpts, iorb1, iorb
   real(gp) :: rocc
@@ -1482,7 +1529,7 @@ subroutine print_orbitals(orbs, geocode)
      end if
   else if(orbs%nspin==4) then
      call yaml_map('Spin treatment','Spinorial (non-collinearity possible)')
-  else 
+  else
      call yaml_map('Spin treatment','Collinear')
   end if
 
@@ -1504,7 +1551,7 @@ subroutine print_orbitals(orbs, geocode)
   !write(*,'(3(a,i0),a)')&
   !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
   call yaml_mapping_close()
-  
+
   call yaml_map('Total Number of Orbitals',orbs%norb,fmt='(i8)')
 
   !No orbs finished

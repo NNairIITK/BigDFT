@@ -434,6 +434,15 @@
      #  MASTER_KEY: output_denspot
      #  WHEN:
      #  - 22
+#output parameters, decide what to dump of write to file
+ output:
+  DESCRIPTION: Output parameters, control the information that will be printed out
+  atomic_density_matrix:
+    COMMENT: Dictionary of the atoms for which the atomic density matrix has to be plotted
+    DESCRIPTION: |
+     The atomic species or the atoms written as Atom No are specified, followed by a list
+     of the shells for which the density matrix can be plotted
+    default: None
 #K points parameters
  kpt:
    DESCRIPTION: K points XXXXXXX defined in the Brillouin zone for periodic system calculations

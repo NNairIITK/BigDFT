@@ -3,11 +3,11 @@
 !!
 !! @author
 !!    G. Fisicaro, L. Genovese (September 2015)
-!!    Copyright (C) 2016-2016 BigDFT group 
+!!    Copyright (C) 2016-2016 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 module box
 
   use PSbase
@@ -29,7 +29,7 @@ module box
      real(gp), dimension(3,3) :: habc !<primitive volume elements in the translation vectors direction
   end type cell
 
-  public :: cell_r,cell_periodic_dims,minimum_distance,closest_r,square
+  public :: cell_r,cell_periodic_dims,minimum_distance,closest_r,square,cell_new
 
 contains
 
@@ -56,16 +56,16 @@ contains
        !some consistency check on the angles should be performed
        !1) sum(angrad) < twopi
        !2) all(angrad) > 0.0_gp
-       if (all(angrad==angrad(1)) .and. angrad(1) /= onehalf*pi) then 
-          !Treat the case of equal angles (except all right angles) : 
+       if (all(angrad==angrad(1)) .and. angrad(1) /= onehalf*pi) then
+          !Treat the case of equal angles (except all right angles) :
           !generates trigonal symmetry wrt third axis
-          cosang=cos(angrad(1)) 
+          cosang=cos(angrad(1))
           a2=2.0_gp/3.0_gp*(1.0_gp-cosang)
           aa=sqrt(a2)
           cc=sqrt(1.0_gp-a2)
-          mesh%habc(1,1)=aa; mesh%habc(2,1)=0.0_gp; mesh%habc(3,1)=cc 
-          mesh%habc(1,2)=-0.5_gp*aa ; mesh%habc(2,2)=sqrt(3.0_gp)*0.5_gp*aa ; mesh%habc(3,2)=cc 
-          mesh%habc(1,3)=-0.5_gp*aa ; mesh%habc(2,3)=-sqrt(3.0_gp)*0.5_gp*aa ; mesh%habc(3,3)=cc 
+          mesh%habc(1,1)=aa; mesh%habc(2,1)=0.0_gp; mesh%habc(3,1)=cc
+          mesh%habc(1,2)=-0.5_gp*aa ; mesh%habc(2,2)=sqrt(3.0_gp)*0.5_gp*aa ; mesh%habc(3,2)=cc
+          mesh%habc(1,3)=-0.5_gp*aa ; mesh%habc(2,3)=-sqrt(3.0_gp)*0.5_gp*aa ; mesh%habc(3,3)=cc
        else
           mesh%habc(:,:)=0.0_gp
           mesh%habc(1,1)=1.0_gp
@@ -176,7 +176,7 @@ contains
 
   end function r_wrap
 
-  !>find the closest center according to the periodiciy of the 
+  !>find the closest center according to the periodiciy of the
   !! box and provide the vector
   pure function closest_r(mesh,v,center) result(r)
     implicit none

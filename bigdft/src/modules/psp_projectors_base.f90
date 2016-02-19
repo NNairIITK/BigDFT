@@ -9,15 +9,15 @@ module psp_projectors_base
   integer,parameter,public :: NCPLX_MAX = 2
 
 
-  !> Parameters identifying the different strategy for the application of a projector 
+  !> Parameters identifying the different strategy for the application of a projector
   !! in a localisation region
   integer, parameter, public :: PSP_APPLY_SKIP=0 !< The projector is not applied. This might happend when ilr and iat does not interact
   integer, parameter :: PSP_APPLY_MASK=1         !< Use mask arrays. The mask array has to be created before.
   integer, parameter :: PSP_APPLY_KEYS=2         !< Use keys. No mask nor packing. Equivalend to traditional application
-  integer, parameter,public :: PSP_APPLY_MASK_PACK=3    !< Use masking and creates a pack arrays from them. 
+  integer, parameter,public :: PSP_APPLY_MASK_PACK=3    !< Use masking and creates a pack arrays from them.
                                                  !! Most likely this is the common usage for atoms
                                                  !! with lots of projectors and localization regions "close" to them
-  integer, parameter :: PSP_APPLY_KEYS_PACK=4    !< Use keys and pack arrays. Useful especially when there is no memory to create a lot of packing arrays, 
+  integer, parameter :: PSP_APPLY_KEYS_PACK=4    !< Use keys and pack arrays. Useful especially when there is no memory to create a lot of packing arrays,
                                                  !! for example when lots of lrs interacts with lots of atoms
 
 
@@ -50,7 +50,7 @@ module psp_projectors_base
 
 
   !> describe the information associated to the non-local part of Pseudopotentials
-  type, public :: DFT_PSP_projectors 
+  type, public :: DFT_PSP_projectors
      logical :: on_the_fly             !< strategy for projector creation
      logical :: normalized             !< .true. if projectors are normalized to one.
      integer :: nproj,nprojel,natoms   !< Number of projectors and number of elements
@@ -58,8 +58,13 @@ module psp_projectors_base
      type(gaussian_basis_new) :: proj_G !< Store the projector representations in gaussians.
      real(wp), dimension(:), pointer :: proj !<storage space of the projectors in wavelet basis
      type(nonlocal_psp_descriptors), dimension(:), pointer :: pspd !<descriptor per projector, of size natom
+     !> array to identify the order of the which are the atoms for which the density matrix is needed
+     !! array of size natom,lmax
+     integer, dimension(:,:), pointer :: iagamma
+     !> density matrix for the required atoms, allocated from 1 to maxval(iagamma)
+     real(wp), dimension(:,:,:,:,:), pointer :: gamma_mmp
      !>workspace for packing the wavefunctions in the case of multiple projectors
-     real(wp), dimension(:), pointer :: wpack 
+     real(wp), dimension(:), pointer :: wpack
      !> scalar product of the projectors and the wavefuntions, term by term (raw data)
      real(wp), dimension(:), pointer :: scpr
      !> full data of the scalar products
@@ -67,8 +72,7 @@ module psp_projectors_base
      !> same quantity after application of the hamiltonian
      real(wp), dimension(:), pointer :: hcproj
      type(workarrays_projectors) :: wpr !< contains the workarrays for the projector creation end type DFT_PSP_projectors
-   end type DFT_PSP_projectors 
-
+   end type DFT_PSP_projectors
 
   public :: free_DFT_PSP_projectors
   public :: DFT_PSP_projectors_null
@@ -132,6 +136,8 @@ contains
     nl%zerovol=100.0_gp
     call nullify_gaussian_basis_new(nl%proj_G)! = gaussian_basis_null()
     call nullify_workarrays_projectors(nl%wpr)
+    nullify(nl%iagamma)
+    nullify(nl%gamma_mmp)
     nullify(nl%proj)
     nullify(nl%pspd)
     nullify(nl%wpack)
@@ -184,6 +190,8 @@ contains
     nullify(nl%proj_G%rxyz)
     call gaussian_basis_free(nl%proj_G)
     call deallocate_workarrays_projectors(nl%wpr)
+    call f_free_ptr(nl%iagamma)
+    call f_free_ptr(nl%gamma_mmp)
     call f_free_ptr(nl%proj)
     call f_free_ptr(nl%wpack)
     call f_free_ptr(nl%scpr)

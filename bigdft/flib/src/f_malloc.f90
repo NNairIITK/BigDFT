@@ -47,13 +47,13 @@ module module_f_malloc
      logical :: profile                      !< activate profiling for this allocation
      logical :: put_to_zero                  !< initialize to zero after allocation
      integer :: rank                         !< rank of the array
-     integer(f_kind), dimension(max_rank) :: shape   !< shape of the structure 
+     integer(f_kind), dimension(max_rank) :: shape   !< shape of the structure
      integer(f_kind), dimension(max_rank) :: lbounds !< lower bounds
      integer(f_kind), dimension(max_rank) :: ubounds !< upper bounds
      integer(f_address) :: srcdata_add          !< physical address of source data
      character(len=f_malloc_namelen) :: array_id      !< label the array
      character(len=f_malloc_namelen) :: routine_id    !< label the routine
-     
+
   end type malloc_information_all
 
   !> Structure needed to allocate an allocatable array of string of implicit length (for non-2003 compilers)
@@ -63,7 +63,7 @@ module module_f_malloc
      logical :: put_to_zero                  !< initialize to zero after allocation
      integer :: rank                         !< rank of the array
      integer :: len                  !< length of the character
-     integer(f_kind), dimension(max_rank) :: shape   !< shape of the structure 
+     integer(f_kind), dimension(max_rank) :: shape   !< shape of the structure
      integer(f_kind), dimension(max_rank) :: lbounds !< lower bounds
      integer(f_kind), dimension(max_rank) :: ubounds !< upper bounds
      integer(f_address) :: srcdata_add          !< physical address of source data
@@ -78,7 +78,7 @@ module module_f_malloc
      logical :: profile                      !< activate profiling for this allocation
      logical :: put_to_zero                  !< initialize to zero after allocation
      integer :: rank                         !< rank of the pointer
-     integer(f_kind), dimension(max_rank) :: shape   !< shape of the structure 
+     integer(f_kind), dimension(max_rank) :: shape   !< shape of the structure
      integer(f_kind), dimension(max_rank) :: lbounds !< lower bounds
      integer(f_kind), dimension(max_rank) :: ubounds !< upper bounds
      integer(f_address) :: srcdata_add          !< physical address of source data
@@ -95,7 +95,7 @@ module module_f_malloc
      logical :: put_to_zero                  !< initialize to zero after allocation
      integer :: rank                         !< rank of the pointer
      integer :: len                  !< length of the character
-     integer(f_kind), dimension(max_rank) :: shape   !< shape of the structure 
+     integer(f_kind), dimension(max_rank) :: shape   !< shape of the structure
      integer(f_kind), dimension(max_rank) :: lbounds !< lower bounds
      integer(f_kind), dimension(max_rank) :: ubounds !< upper bounds
      integer(f_address) :: srcdata_add          !< physical address of source data
@@ -118,11 +118,11 @@ module module_f_malloc
      module procedure nullify_malloc_information_ptr
      module procedure nullify_malloc_information_str_all
      module procedure nullify_malloc_information_str_ptr
-  end interface 
+  end interface
 
   !> Fake structure needed to document common arguments of the module
   type, private :: doc
-     !> integer indicating the size of the array. Can be specified only if the target 
+     !> integer indicating the size of the array. Can be specified only if the target
      !! array has to be of rank one.
      integer :: size
      !> identification of the allocation. Usually called as the name of the allocatable variable
@@ -146,7 +146,7 @@ module module_f_malloc
      !here also the procedures for the copying of arrays have to be defined
      module procedure f_malloc_i2,f_malloc_d2
      module procedure f_malloc_d1,f_malloc_i3
-     module procedure f_malloc_d3,f_malloc_d4
+     module procedure f_malloc_d3,f_malloc_d4,f_malloc_d5
      module procedure f_malloc_r1,f_malloc_r2,f_malloc_r3,f_malloc_r4
   end interface
 
@@ -165,7 +165,7 @@ module module_f_malloc
      !module procedure f_malloc_ptr_d1,f_malloc_ptr_d2
      !module procedure f_malloc_ptr_d3,f_malloc_ptr_d4
      module procedure f_malloc_ptr_d1_sp,f_malloc_ptr_d2_sp
-     module procedure f_malloc_ptr_d3_sp,f_malloc_ptr_d4_sp
+     module procedure f_malloc_ptr_d3_sp,f_malloc_ptr_d4_sp,f_malloc_ptr_d5_sp
   end interface
 
   interface f_malloc0_ptr
@@ -236,7 +236,7 @@ contains
     nullify(w%ptr_l)
   end subroutine nullify_workspace
 
-  
+
   elemental pure function f_array_bounds_intint(nlow,nhigh) result(f_array_bounds)
     implicit none
     integer(f_integer), intent(in) :: nlow
@@ -297,7 +297,7 @@ contains
     include 'f_malloc-null-inc.f90'
     m%len=0
   end subroutine nullify_malloc_information_str_all
-  
+
   pure subroutine nullify_malloc_information_str_ptr(m)
     implicit none
     type(malloc_information_str_ptr), intent(out) :: m
@@ -306,7 +306,7 @@ contains
     m%ptr=.true.
   end subroutine nullify_malloc_information_str_ptr
 
-  !> f95-compliant routine to remap pointer bounds, as suggested from (as of Sep. 2015) 
+  !> f95-compliant routine to remap pointer bounds, as suggested from (as of Sep. 2015)
   !! https://en.wikipedia.org/wiki/Fortran_95_language_features#Pointers_as_dynamic_aliases
   !! What has to be verified if compiler perform workarrays constructions
   subroutine remap_bounds_d(lb,lu,heap,ptr)
@@ -349,10 +349,10 @@ contains
     ptr => heap
   end subroutine remap_bounds_l
 
-  
+
 
   !---routines for low-level dynamic memory handling
-  
+
   !> For rank-1 arrays
   pure function f_malloci_simple(size,id,routine_id,profile) result(m)
     implicit none
@@ -753,6 +753,15 @@ contains
     include 'f_malloc-inc.f90'
   end function f_malloc_d4
 
+  function f_malloc_d5(src,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    double precision, dimension(:,:,:,:,:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
+    type(malloc_information_all) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_d5
+
   function f_malloc_r1(src,lbounds,ubounds,id,routine_id,profile) result(m)
     implicit none
     real, dimension(:), intent(in) :: src
@@ -901,7 +910,18 @@ contains
     include 'f_malloc-ptr-inc.f90'
     include 'f_malloc-ptr-inc.f90'
   end function f_malloc_ptr_d4_sp
-  
+
+  function f_malloc_ptr_d5_sp(src_ptr,id,routine_id,profile) result(m)
+    implicit none
+    double precision, dimension(:,:,:,:,:), pointer, intent(in) :: src_ptr
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-null-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+    include 'f_malloc-ptr-inc.f90'
+  end function f_malloc_ptr_d5_sp
+
+
 !!$  function f_malloc_ptr_d1(id,src,routine_id,sizes,lbounds,ubounds,profile) result(m)
 !!$    implicit none
 !!$    double precision, dimension(:), optional, intent(in) :: src
@@ -937,5 +957,5 @@ contains
 !!$    include 'f_malloc-base-inc.f90'
 !!$    include 'f_malloc-inc.f90'
 !!$  end function f_malloc_ptr_d4
-  
+
 end module module_f_malloc
