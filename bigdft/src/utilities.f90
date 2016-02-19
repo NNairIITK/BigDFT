@@ -232,11 +232,11 @@ program utilities
   contains
    !> construct the dictionary needed for the timing information
     subroutine build_dict_info(dict_info)
-      !use module_base
+      use wrapper_MPI
       use dynamic_memory
       use dictionaries
       implicit none
-      include 'mpif.h'
+      !include 'mpif.h'
       type(dictionary), pointer :: dict_info
       !local variables
       integer :: ierr,namelen,nthreads

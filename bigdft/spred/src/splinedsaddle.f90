@@ -1802,6 +1802,7 @@ end subroutine splinedsaddle
 subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     !use minimization, only:parameterminimization
     use minimization_sp, only:parameterminimization_sp
+    use wrapper_MPI
     implicit none
     integer::iproc,nr,nwork,mf,my,ms,nrsqtwo,iw1,iw2,iw3,iw4,info,i,j,l,mx
     real(kind=8)::x(nr),f(nr),epot,work(nwork)
@@ -1813,7 +1814,7 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     logical, save::reset
     integer, save::isatur
     integer:: ierr
-    include 'mpif.h'
+    !include 'mpif.h'
     if(nwork/=nr*nr+3*nr+3*nr*nr+3*nr) then
         stop 'ERROR: size of work array is insufficient.'
     endif
