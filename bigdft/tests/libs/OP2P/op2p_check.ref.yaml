@@ -1,0 +1,28 @@
+ ndim                                  : 100
+ objects: [ ndim                                  : 100
+ objects: [10, 10]
+ symmetric                             : Yes
+10, 10]
+ symmetric                             : Yes
+           2
+           2
+ Orbital repartition per group         :  [  10,  10 ]
+ Orbital repartition per mpi           :  [  10,  10 ]
+ Groups per proc:
+ -  [  10,  0 ]
+ -  [  0,  10 ]
+ Starting simulation for the operator, symmetricity activated:  Yes
+  #OP2P Simulation:100%; Time (s): Elapsed=7.58E-05, Estimated Remaining=0.0
+ OP2P unitary test error               :  0.0
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  22
+   Tot. No. of Deallocations           :  22
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  0.054
+     for the array                     : displ_res
+     in the routine                    : Main_program
+     Memory Peak of process            : 12.140 MB
+ Walltime since initialization         : 00:00:01.020677885
+ Max No. of dictionaries used          :  214 #( 169 still in use)
+ Number of dictionary folders allocated:  1
