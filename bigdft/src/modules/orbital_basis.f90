@@ -17,17 +17,38 @@ module orbitalbasis
   use communications_base, only: comms_linear, comms_cubic
   use dictionaries, only: f_err_throw
   use locreg_operations, only: confpot_data
+  use f_utils
   implicit none
   private
 
   type, public :: transposed_descriptor
-     integer :: nspin
-     integer :: nup,ndown
-!     type(k_point_iterator) :: kit_p !< iterator on k-points belonging to the processor
+     integer :: nspin !< spin multiplicity
+     integer :: nup,ndown !<orbitals up and down
+     integer :: nkpts !< number of k points
+     !> lookup array indicating the dimensions
+     !! for the overlap matrices in each quantum numbers
+     integer, dimension(:,:), pointer :: ndim_ovrlp
      type(comms_cubic), pointer :: comms           !< communication objects for the cubic approach (can be checked to be
      type(comms_linear), pointer :: collcom        !< describes collective communication
      type(comms_linear), pointer :: collcom_sr     !< describes collective communication for the calculation of th
   end type transposed_descriptor
+
+  !> iterator in the subspace of the wavefunctions
+  type, public :: subspace
+     integer :: ncplx !<  real(1) and complex (2) arrays
+     integer :: nvctr !< number of components
+     integer :: norb !< number of orbitals
+     integer :: ispin !< spin index
+     integer :: ikpt !< k-point id
+     real(gp) :: kwgt !< k-point weight    
+     !>pointer on the occupation numbers of the subspace
+     real(gp), dimension(:), pointer :: occup_ptr
+     !>metadata
+     integer :: ispsi
+     integer :: ikptp
+     integer :: ise !<for occupation numbers
+     type(orbital_basis), pointer :: ob
+  end type subspace
 
 !  type, public :: support_function_descriptor
   type, public :: direct_descriptor
@@ -73,12 +94,26 @@ module orbitalbasis
 
 contains
 
+  pure subroutine nullify_transposed_descriptor(td)
+    implicit none
+    type(transposed_descriptor), intent(out) :: td
+   
+    td%nspin     =f_none()
+    td%nup       =f_none()
+    td%ndown     =f_none()
+    td%nkpts     =f_none()
+    td%ndim_ovrlp=f_none()
+    nullify(td%comms)
+    nullify(td%collcom)
+    nullify(td%collcom_sr)
+  end subroutine nullify_transposed_descriptor
+
   pure subroutine nullify_orbital_basis(ob)
     implicit none
     type(orbital_basis), intent(out) :: ob
     nullify(ob%dd)
     nullify(ob%orbs)
-    !type(transposed_descriptor) :: td
+    call nullify_transposed_descriptor(ob%td)
     nullify(ob%confdatarr)
     nullify(ob%phis_wvl)
   end subroutine nullify_orbital_basis
@@ -407,6 +442,93 @@ contains
     nspinor=1
   end function nspinor
 
+  function subspace_iterator(ob) result(ss)
+    implicit none
+    type(orbital_basis), intent(in), target :: ob
+    type(subspace) :: ss
+
+    call nullify_subspace(ss)
+    ss%ob => ob
+    ss%ispin=0
+    ss%ikptp=0
+  end function subspace_iterator
+
+  !case of subspace iterators
+  pure subroutine nullify_subspace(ss)
+    implicit none
+    type(subspace), intent(out) :: ss
+    ss%ncplx      =f_none()
+    ss%nvctr      =f_none()
+    ss%norb       =f_none()
+    ss%ispin      =f_none()
+    ss%ikpt       =f_none()
+    ss%kwgt       =f_none()
+    ss%occup_ptr  =f_none()
+    nullify(ss%ob)
+  end subroutine nullify_subspace
+
+  pure function subspace_is_valid(it) result(ok)
+    implicit none
+    type(subspace), intent(in) :: it
+    logical :: ok
+
+    ok=associated(it%ob)
+  end function subspace_is_valid
+
+  function subspace_next(it) result(ok)
+    implicit none
+    type(subspace), intent(inout) :: it
+    logical  :: ok
+
+    ok=subspace_is_valid(it)
+    if (ok) call increment_subspace(it)
+    ok=subspace_is_valid(it)
+  end function subspace_next
+
+  !pure 
+  subroutine increment_subspace(it)
+    implicit none
+    type(subspace), intent(inout) :: it
+    !local variables
+    integer :: ncomp,nvctrp,nspinor,ist,norbs
+
+    do
+       if (it%ispin < it%ob%td%nspin) then
+          it%ispin=it%ispin+1
+       else if (it%ikptp < it%ob%orbs%nkpts) then
+          it%ikptp=it%ikptp+1
+          it%ispin=1
+       else
+          call nullify_subspace(it)
+          exit
+       end if
+
+       it%ikpt=it%ob%orbs%iskpts+it%ikptp
+       call orbitals_and_components(0,it%ikpt,it%ispin,&
+            it%ob%orbs,it%ob%td%comms,&
+            nvctrp,it%norb,norbs,ncomp,nspinor)
+       if (nvctrp == 0) cycle
+
+       if (it%ispin==1) then
+          it%ise=0
+       else
+          it%ise=it%norb
+       end if
+
+       it%ncplx=1
+       it%nvctr=ncomp*nvctrp
+       if (nspinor/=1) it%ncplx=2
+
+       it%kwgt=it%ob%orbs%kwgts(it%ikpt)
+       ist=(it%ikpt-1)*it%ob%orbs%norb+1+it%ise
+       it%occup_ptr=>it%ob%orbs%occup(ist:ist+it%ob%orbs%norb)
+
+       if (it%ikptp/=1 .or. it%ispin/=1) &
+            it%ispsi=it%ispsi+nvctrp*it%norb*nspinor
+       exit
+    end do
+
+  end subroutine increment_subspace
 
   subroutine local_hamiltonian_ket(psi,hgrids,ipotmethod,xc,pkernel,wrk_lh,psir,vsicpsir,hpsi,pot,eSIC_DCi,alphaSIC,epot,ekin)
     use module_xc, only: xc_info, xc_exctXfac
@@ -561,6 +683,44 @@ contains
     call nullify_orbital_basis(ob)
   end subroutine orbital_basis_release
   
+
+!!>  !here we should prepare the API to iterate on the transposed orbitals
+!!>  !the orbitals should be arranged in terms of the quantum number
+!!>  alag = f_malloc0(ob%nmatrix,id='alag')
+!!>  qn=subspace_iterator(ob)
+!!>  do while(subspace_next(qn))
+!!>     psi_ptr=>ob_qn_map(psi,qn)
+!!>     hpsi_ptr=>ob_qn_map(hpsi,qn)
+!!>     lambda_ptr=>ob_qn_matrix_map(alag,qn)
+!!>
+!!>     call subspace_matrix(symm,psi_ptr,hpsi_ptr,&
+!!>          qn%ncmplx,qn%nvctr,qn%norb,lambda_ptr)
+!!>
+!!>  end do
+!!>
+!!>  !allreduce
+!!>  qn=subspace_iterator(ob)
+!!>  do while(subspace_next(qn))
+!!>     psi_ptr=>ob_qn_map(psi,qn)
+!!>     hpsi_ptr=>ob_qn_map(hpsi,qn)
+!!>
+!!>     lambda_ptr=>ob_qn_matrix_map(alag,qn)
+!!>
+!!>     call lagrange_multiplier(symm,qn%occup_ptr,&
+!!>          qn%ncmplx,qn%norb,lambda_ptr,trace)
+!!>
+!!>      if (qn%accumulate) then
+!!>         occ=qn%kwgt*real(3-orbs%nspin,gp)
+!!>         if (nspinor == 4) occ=qn%kwgt
+!!>         scprsum=scprsum+occ*trace
+!!>      end if
+!!>
+!!>      call subspace_update(qn%ncmplx,qn%nvctr,qn%norb,&
+!!>           hpsi_ptr,lambda_ptr,psi_ptr)
+!!>
+!!>
+!!>  end do
+!!>
 
 !!$
 !!$  it=orbital_basis_iter(orb_basis,onatom='Pb')

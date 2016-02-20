@@ -36,16 +36,21 @@ module f_enums
      module procedure enum_has_attribute,enum_has_char,enum_has_int
   end interface operator(.hasattr.)
 
-  interface int
+  interface operator(.getattr.)
+     module procedure enum_get_from_int,enum_get_from_enum,enum_get_from_char
+  end interface operator(.getattr.)
+
+
+  interface toi
      module procedure int_enum
-  end interface int
+  end interface toi
 
   interface str
      module procedure char_enum
   end interface str
 
   public :: f_enum_attr,operator(.hasattr.),nullify_f_enum,f_enum_update
-  public :: int,str,f_enumerator_null,operator(==),operator(/=)
+  public :: toi,str,f_enumerator_null,operator(==),operator(/=),operator(.getattr.)
 
 contains
 
@@ -87,20 +92,76 @@ contains
     end if
   end subroutine f_enum_attr
 
+  function enum_get_from_int(en,family) result(iter)
+    implicit none
+    integer, intent(in) :: family
+
+    type(f_enumerator), intent(in) :: en
+    type(f_enumerator), pointer :: iter
+    !local variables
+    logical :: ok
+    ok=.false.
+    iter=>en%family
+    do while(associated(iter))
+       ok= iter == family
+       if (ok) exit
+       iter => iter%family
+    end do
+
+  end function enum_get_from_int
+
+  function enum_get_from_char(en,family) result(iter)
+    implicit none
+    character(len=*), intent(in) :: family
+
+    type(f_enumerator), intent(in) :: en
+    type(f_enumerator), pointer :: iter
+    !local variables
+    logical :: ok
+    ok=.false.
+    iter=>en%family
+    do while(associated(iter))
+       ok= iter == family
+       if (ok) exit
+       iter => iter%family
+    end do
+
+  end function enum_get_from_char
+
+  function enum_get_from_enum(en,family) result(iter)
+    implicit none
+    type(f_enumerator), intent(in) :: family
+
+    type(f_enumerator), intent(in) :: en
+    type(f_enumerator), pointer :: iter
+    !local variables
+    logical :: ok
+    ok=.false.
+    iter=>en%family
+    do while(associated(iter))
+       ok= iter == family
+       if (ok) exit
+       iter => iter%family
+    end do
+
+  end function enum_get_from_enum
+
   function enum_has_attribute(en,family) result(ok)
     implicit none
     type(f_enumerator), intent(in) :: family
     type(f_enumerator), intent(in) :: en
     logical :: ok
-    !local variables
-    type(f_enumerator), pointer :: iter
 
-    ok=.false.
-    iter=>en%family
-    do while(associated(iter) .and. .not. ok)
-       ok= iter == family
-       iter => iter%family
-    end do
+    ok =associated(en .getattr. family)
+!!$    !local variables
+!!$    type(f_enumerator), pointer :: iter
+!!$
+!!$    ok=.false.
+!!$    iter=>en%family
+!!$    do while(associated(iter) .and. .not. ok)
+!!$       ok= iter == family
+!!$       iter => iter%family
+!!$    end do
   end function enum_has_attribute
 
   !> used in the assignment. Change the basic enumerator but combine hte attributes of the previous one 
@@ -128,15 +189,17 @@ contains
     character(len=*), intent(in) :: family
     type(f_enumerator), intent(in) :: en
     logical :: ok
-    !local variables
-    type(f_enumerator), pointer :: iter
 
-    ok=.false.
-    iter=>en%family
-    do while(associated(iter) .and. .not. ok)
-       ok= iter == family
-       iter => iter%family
-    end do
+    ok =associated(en .getattr. family)
+!!$    !local variables
+!!$    type(f_enumerator), pointer :: iter
+!!$
+!!$    ok=.false.
+!!$    iter=>en%family
+!!$    do while(associated(iter) .and. .not. ok)
+!!$       ok= iter == family
+!!$       iter => iter%family
+!!$    end do
   end function enum_has_char
 
   function enum_has_int(en,family) result(ok)
@@ -144,15 +207,18 @@ contains
     integer, intent(in) :: family
     type(f_enumerator), intent(in) :: en
     logical :: ok
-    !local variables
-    type(f_enumerator), pointer :: iter
 
-    ok=.false.
-    iter=>en%family
-    do while(associated(iter) .and. .not. ok)
-       ok= iter == family
-       iter => iter%family
-    end do
+    ok =associated(en .getattr. family)
+
+!!$    !local variables
+!!$    type(f_enumerator), pointer :: iter
+!!$
+!!$    ok=.false.
+!!$    iter=>en%family
+!!$    do while(associated(iter) .and. .not. ok)
+!!$       ok= iter == family
+!!$       iter => iter%family
+!!$    end do
   end function enum_has_int
 
   elemental pure function enum_is_enum(en,en1) result(ok)

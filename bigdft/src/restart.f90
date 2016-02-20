@@ -108,7 +108,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
   tz=0.0_gp
 displ=0.0_gp
   do iat=1,at%astruct%nat
-    displ=displ+minimum_distance(mesh,rxyz,rxyz_old)**2
+    displ=displ+minimum_distance(mesh,rxyz(:,iat),rxyz_old(:,iat))**2
     !  tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
     !  ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
     !  tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
@@ -150,7 +150,7 @@ displ=0.0_gp
            call yaml_map('Cell size has changed ', (/ n1_old,n1  , n2_old,n2 , n3_old,n3 /))
            !write(*,"(4x,a,6i5)") 'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
         else
-           call yaml_map('Molecule was shifted' ,  (/ tx,ty,tz /), fmt='(1pe19.12)')
+           call yaml_map('Molecule was shifted, norm' , displ , fmt='(1pe19.12)')
            !write(*,"(4x,a,3(1pe19.12))") 'molecule was shifted  ' , tx,ty,tz
         endif
         !write(*,"(1x,a)",advance='NO') 'Reformatting...'

@@ -131,26 +131,28 @@ end subroutine print_configure_options
 
 
 !> Write the energies for a given iteration
-subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
+subroutine write_energies(iter,energs,gnrm,gnrm_zero,comment,scf_mode,only_energies)
   use module_base
   use module_types
   use yaml_output
   implicit none
   !Arguments
   integer, intent(in) :: iter !< Iteration Id
-  integer, intent(in) :: iscf
   type(energy_terms), intent(in) :: energs
   real(gp), intent(in) :: gnrm,gnrm_zero
   character(len=*), intent(in) :: comment
   logical,intent(in),optional :: only_energies
+  type(f_enumerator), intent(in), optional :: scf_mode
   !local variables
-  logical :: write_only_energies
+  logical :: write_only_energies,yesen,noen
 
   if (present(only_energies)) then
       write_only_energies=only_energies
   else
       write_only_energies=.false.
   end if
+  noen=.false.
+  if (present(scf_mode)) noen=scf_mode .hasattr. 'MIXING'
 
   if (len(trim(comment)) > 0 .and. .not.write_only_energies) then
      if (verbose >0) call yaml_newline()
@@ -158,7 +160,10 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
      if (verbose >0) call yaml_comment(trim(comment))
   end if
 
-  if (iscf < 1 .and. verbose > 0) then
+  yesen=verbose > 0
+  if (present(scf_mode)) yesen=yesen .and. .not. (scf_mode .hasattr. 'MIXING')
+
+  if (yesen) then
      call yaml_newline()
      call yaml_mapping_open('Energies',flow=.true.)
   !call yaml_flow_map()
@@ -200,8 +205,8 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
      if (len(trim(comment)) == 0) then
         call write_iter()
         if (verbose >0) call yaml_newline()
-     else if (verbose > 1) then
-        call yaml_map('SCF criterion',iscf,fmt='(i6)')
+     else if (verbose > 1 .and. present(scf_mode)) then
+        call yaml_map('SCF criterion',scf_mode)
      end if
   end if
 
@@ -211,7 +216,7 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
     subroutine write_iter()
       implicit none
       if (iter > 0) call yaml_map('iter',iter,fmt='(i6)')
-      if (iscf > 1) then
+      if (noen) then
          call yaml_map('tr(H)',energs%trH,fmt='(1pe24.17)')
       else
          if (energs%eTS==0.0_gp) then
@@ -223,7 +228,7 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
       if (gnrm > 0.0_gp) call yaml_map('gnrm',gnrm,fmt='(1pe9.2)')
       if (gnrm_zero > 0.0_gp) &
            call yaml_map('gnrm0',gnrm_zero,fmt='(1pe8.1)')
-      if (iscf > 1) then
+      if (noen) then
          if (energs%trH_prev /=0.0_gp) &
               call yaml_map('D',energs%trH-energs%trH_prev,fmt='(1pe9.2)')
       else

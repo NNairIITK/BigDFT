@@ -299,7 +299,7 @@ contains
     use yaml_output
     use module_cp2k
     use module_BornMayerHugginsTosiFumi
-    use f_enums, enum_int => int
+    use f_enums, enum_int => toi
     use yaml_strings
     use SWpotential
     implicit none
@@ -1592,8 +1592,8 @@ contains
     use module_cp2k
     use module_dftbp
     use module_tdpot
+    use f_enums, enum_int => toi
     use SWpotential
-    use f_enums, enum_int => int
     use wrapper_linalg, only: vscal
     implicit none
     !parameters
@@ -2536,7 +2536,7 @@ END SUBROUTINE run_objects_update
 
 !> this routine should be used in memguess executable also
 subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
-  use module_base, only: gp,f_memcpy,f_enumerator
+  use module_base, only: gp,f_memcpy,f_enumerator,f_int
   use bigdft_run
   use module_types
   use module_fragments
@@ -2571,7 +2571,8 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
        & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
        & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
-       & runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,mem)
+       & runObj%inputs%nspin,runObj%inputs%itrpmax,&
+       f_int(runObj%inputs%scf),mem)
 
   ! De-allocations
   call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd)
