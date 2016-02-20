@@ -1,18 +1,18 @@
-!> @file 
+!> @file
 !!   Routines to test atomic forces
 !! @author
-!!   Copyright (C) 2005-2015 BigDFT group 
+!!   Copyright (C) 2005-2015 BigDFT group
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
-!!   For the list of contributors, see ~/AUTHORS 
+!!   For the list of contributors, see ~/AUTHORS
 
 
-!> Runs BigDFT and test whether the forces are the 
+!> Runs BigDFT and test whether the forces are the
 !! derivative of the energy.
 !! Performs the integration of the calculated forces over
-!! some random displacement and compare the result with the 
-!! difference of the energy between the final and the initial 
+!! some random displacement and compare the result with the
+!! difference of the energy between the final and the initial
 !! position
 !! @warning
 !!    Date: 10/07: THIS PROGRAM MUST BE COMPLETELY CHANGED
@@ -35,8 +35,8 @@ program test_forces
    type(run_objects) :: runObj
    type(state_properties) :: outs
    !character(len=60), parameter :: filename="list_posinp"
-   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
-   character(len=60) :: run_id
+!!$   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
+!!$   character(len=60) :: run_id
    ! atomic coordinates, forces
    real(gp), dimension(:,:), pointer :: drxyz
    !integer :: iconfig,nconfig,igroup,ngroups
@@ -49,7 +49,7 @@ program test_forces
    !integer, dimension(4) :: mpi_info
    type(dictionary), pointer :: run,options
    character(len = max_field_length) :: input_id, posinp_id
-      
+
 
    call f_lib_initialize()
 
@@ -66,7 +66,7 @@ program test_forces
 !!$   !number of groups
 !!$   ngroups=mpi_info(4)
 !!$
-!!$  
+!!$
 !!$   !allocate arrays of run ids
 !!$   allocate(arr_radical(abs(nconfig)))
 !!$   allocate(arr_posinp(abs(nconfig)))
@@ -133,18 +133,18 @@ program test_forces
          runObj%inputs%last_run = 1
       end if
 
-      ! path integral   
+      ! path integral
       path=0.d0
       !calculate the displacement at each integration step
       !(use sin instead of random numbers)
       allocate(drxyz(1:3,1:runObj%atoms%astruct%nat))
       do iat=1,runObj%atoms%astruct%nat
-         drxyz(1,iat)=dx*sin(iat+.2d0)   
-         drxyz(2,iat)=dx*sin(iat+.4d0)  
-         drxyz(3,iat)=dx*sin(iat+.7d0)  
+         drxyz(1,iat)=dx*sin(iat+.2d0)
+         drxyz(2,iat)=dx*sin(iat+.4d0)
+         drxyz(3,iat)=dx*sin(iat+.7d0)
       end do
 
-      ! loop for ipath 
+      ! loop for ipath
       do ipath=1,npath
 
          !update atomic positions along the path
@@ -181,8 +181,8 @@ program test_forces
             call yaml_map('Path iteration',ipath)
             call yaml_map('-F.dr',-fdr,fmt='(1pe13.5)')
             call yaml_map('Path integral',path,fmt='(1pe13.5)')
-            !write(*,"('path iter:',i3,'   -F.dr=',e13.5,'    path integral=',e13.5 )") ipath,-fdr, path 
-            
+            !write(*,"('path iter:',i3,'   -F.dr=',e13.5,'    path integral=',e13.5 )") ipath,-fdr, path
+
             !Print atomic forces
             call write_forces(bigdft_get_astruct_ptr(runObj),outs%fxyz)
          end if
@@ -190,13 +190,13 @@ program test_forces
 
       deallocate(drxyz)
 
-      if (bigdft_mpi%iproc==0) then 
-         write(*,*) 
+      if (bigdft_mpi%iproc==0) then
+         write(*,*)
          write(*,*) 'Check correctness of forces'
          write(*,*) 'Difference of total energies =',outs%energy-etot0
          write(*,*) 'Integral force*displacement = ',path
          write(*,*) 'Difference = ',(outs%energy-etot0)-path
-         write(*,*) 
+         write(*,*)
       endif
 
       call deallocate_state_properties(outs)

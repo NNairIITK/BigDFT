@@ -139,15 +139,12 @@
        Large values of ncong lead to a smaller number of iterations in the wavefunction optimization and better
        forces, but each iteration is more costly.
        So an optimal compromise value has to be found.
-
-
      RANGE: [0, 20]
      default: 6
    idsx:
      COMMENT: Wfn. diis history
      DESCRIPTION: |
        idsx gives the history length of the DIIS convergence
-
        acceleration in the wavefunction optimization. 6 is usually a good value for fast convergence.
 
        In case of convergence problems it can be advantageous to switch off DIIS by setting idsx = 0. The memory
@@ -418,7 +415,7 @@
    calculate_strten:
      COMMENT: Boolean to activate the calculation of the stress tensor. Might be set to No for performance reasons
      DESCRIPTION: |
-      In some cases, for example when doing MD for fixed volume systems, it might be useful to disable the
+      In some cases, for example when doing MD for fixed volume systems, it might be useful to disable the 
       calculation of the stress tensor, to save computational time.
      default: Yes
    plot_mppot_axes:
@@ -961,7 +958,7 @@
      RANGE: [0, 99999.0]
      default: 20.d0
    no_translation:
-     COMMENT: Logical input to set translational correction
+     COMMENT: Logical input to set translational correction   
      default: No
    thermostat:
      COMMENT: Activates a thermostat for MD
@@ -1017,7 +1014,6 @@
      COMMENT: Mixing parameters
      DESCRIPTION: |
        An integer giving the mixing scheme and the mixing target.
-
        It follows the ABINIT convention. For values lower than 10, the potential is mixed, while
        for values greater than 10, the density is mixed. A recommended option is Pulay mixing
        (7 or 17 for potential or charge mixing, respectively)
@@ -1727,7 +1723,7 @@
      deltae_cv:
        COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
        DESCRIPTION: |
-         The optimization of the support functions stops if the total relative gain in the target function
+         The optimization of the support functions stops if the total relative gain in the target function 
          during the given cycle of support function optimization falls below this threshold
        RANGE: [1.e-6,1.e-1]
        default: 1.e-4
@@ -1735,8 +1731,8 @@
        COMMENT: dynamic convergence criterion ('experimental_mode' only)
        DESCRIPTION: |
          From this value the effective dynamic convergence criterion is calculated by a division by kappa.
-         Then the optimization of the support functions stops if the mean gradient norm falls
-         below this effective dynamic convergence criterion
+         Then the optimization of the support functions stops if the mean gradient norm falls 
+         below this effective dynamic convergence criterion 
          and is at the same time smaller than the value of min_gnrm_for_dynamic.
          The specified value should be approximately 10 times smaller than the value of gnrm_cv.
          This value is only used for the experimental mode.
@@ -1745,7 +1741,7 @@
      min_gnrm_for_dynamic:
        COMMENT: minimal gnrm to active the dynamic gnrm criterion
        DESCRIPTION: |
-         The dynamic convergence criterion (specified by gnrm_dyn) is only active if the mean gradient norm
+         The dynamic convergence criterion (specified by gnrm_dyn) is only active if the mean gradient norm 
          of the support functions is below this threshold
        RANGE: [1.e-7,1.0]
        default: 1.e-3
@@ -1780,7 +1776,7 @@
      correction_orthoconstraint:
        COMMENT: correction for the slight non-orthonormality in the orthoconstraint
        DESCRIPTION: |
-         Indicates whether the slight non-orthogonality of the support functions
+         Indicates whether the slight non-orthogonality of the support functions 
          should be taken into account during the application of the orthogonality constraint
            - 0 => take into account
            - 1 => don't take into account
@@ -1791,7 +1787,7 @@
      nstep:
        COMMENT: number of steps taken when updating the coefficients via direct minimization for each iteration of the density kernel loop
        DESCRIPTION: |
-         Indicates the number of steps taken when updating the coefficients
+         Indicates the number of steps taken when updating the coefficients 
          via direct minimization for each iteration of the density kernel loop.
          The first entry is used for the low accuracy part, the second one for the high accuracy part.
          When the hybrid mode is used, only the first entry is taken into account.
@@ -1838,7 +1834,7 @@
      rpnrm_cv:
        COMMENT: convergence criterion (change in density/potential) for the kernel optimization
        DESCRIPTION: |
-         The optimization of the density kernel is stopped as soon as the mean change
+         The optimization of the density kernel is stopped as soon as the mean change 
          of the charge density / potential between two iterations falls below this threshold.
          The first entry is used for the low accuracy part, the second one for the high accuracy part.
          When the hybrid mode is used, only the first entry is taken into account.
@@ -1874,8 +1870,8 @@
      alpha_fit_coeff:
        COMMENT: Update the SD step size by fitting a quadratic polynomial
        DESCRIPTION: |
-         Update the SD step size by fitting a quadratic polynomial to the energy
-         along the direction of the gradient during direct mininimization.
+         Update the SD step size by fitting a quadratic polynomial to the energy 
+         along the direction of the gradient during direct mininimization.     
        default: No
      eval_range_foe:
        COMMENT: Lower and upper bound of the eigenvalue spectrum, will be adjusted automatically if chosen unproperly
@@ -1906,7 +1902,7 @@
      pexsi_mumin:
        COMMENT: Initial guess for the lower bound of the chemical potential used by PEXSI
        DESCRIPTION: |
-         Initial guesss for the lower bound of the chemical potential (in hartree?)
+         Initial guesss for the lower bound of the chemical potential (in hartree?) 
          used by PEXSI, will be adjusted automatically later.
        default: -1.0
        RANGE: [-5.0,5.0]
@@ -1949,7 +1945,7 @@
      ao_confinement:
        COMMENT: Prefactor for the input guess confining potential
        DESCRIPTION: |
-                    Indicates the prefactor of the confining potential
+                    Indicates the prefactor of the confining potential 
                     of this atom type which is used to generate the input guess.
        RANGE: [0.0,10.0]
        default: 8.3e-3
@@ -1965,7 +1961,7 @@
        COMMENT: Localization radius for the support functions
        DESCRIPTION: |
                     Indicates the cutoff radius for the support functions.
-                    The first entry is used for the low accuracy part, the second one
+                    The first entry is used for the low accuracy part, the second one 
                     for the high accuracy part; the second value must not be smaller than the first one.
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [2.0,1000.0]
@@ -1974,7 +1970,7 @@
        COMMENT: Localization radius for the density kernel
        DESCRIPTION: |
                     Indicates the cutoff radius for the density kernel.
-                    Must be at least as large as the support function cutoff
+                    Must be at least as large as the support function cutoff 
                     plus 8 times the grid spacing; will be adjusted automatically if it is chosen too small.
        RANGE: [2.0,1000.0]
        default: 9.0
@@ -2025,7 +2021,7 @@ linear_accurate:
 linear_moderate:
   COMMENT: Appropriate input parameters for a moderate accuracy linear scaling calculation
   DESCRIPTION: |
-          This profile should be chosen if accurate forces are required,
+          This profile should be chosen if accurate forces are required, 
           but there is no need for extremely accurate energies.
   dft:
     hgrids: accurate

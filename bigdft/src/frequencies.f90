@@ -1,11 +1,11 @@
 !> @file
 !!  Routines to do frequencies calculation by finite difference
 !! @author
-!!    Copyright (C) 2010-2014 BigDFT group
+!!    Copyright (C) 2010-2016 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 !!
 !! @todo
 !!  - Add higher order for finite difference
@@ -38,7 +38,6 @@ program frequencies
    !File unit
    integer, parameter :: u_hessian=20, u_dynamical=21, u_freq=15, u_hess=35
    real(gp) :: alat,dd,rmass
-   character(len=60) :: run_id
    !Input variables
    type(run_objects) :: runObj
    type(state_properties) :: outs
@@ -64,7 +63,7 @@ program frequencies
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy,tij,tji,dsym
    integer :: k,km,ii,jj,ik,imoves,order,n_order
    !integer :: iproc,nproc,igroup,ngroups
-   integer :: iat,jat,i,j,ierr,infocode,ity,nconfig,nfree,istart
+   integer :: iat,jat,i,j,ierr,infocode,ity,nfree,istart
    logical :: exists
    integer :: FREQUENCIES_RUNTIME_ERROR
    !integer, dimension(4) :: mpi_info
@@ -507,7 +506,7 @@ contains
       real(gp), dimension(n_order,0:3*nat), intent(out) :: energies        !< Energies of the already moves
       real(gp), dimension(3*nat,n_order,0:3*nat), intent(out) :: forces    !< Forces of the already moves
       real(gp), dimension(3), intent(in) :: freq_step     !< Frequency step in each direction
-      integer, intent(out) :: imoves                      !< Number of frequency already calculated   
+      integer, intent(out) :: imoves                      !< Number of frequency already calculated
       real(gp), dimension(:), intent(out) :: amu          !< Atomic masses
       integer, intent(out) :: ierror                      !< 0 means all calculations are done
       !Local variables
@@ -581,14 +580,14 @@ contains
          end if
 
          if (i_order > n_order) then
-            if (bigdft_mpi%iproc == 0) then 
+            if (bigdft_mpi%iproc == 0) then
                call yaml_warning('(F) The number of points per direction is bigger in the "frequencies.res" file.')
                call yaml_warning('(F) Increase the order of the finite difference scheme')
             end if
             stop
          end if
       end if
-      
+
       !Allocations
       rxyz=f_malloc(3*nat,id='rxyz')
       fxyz=f_malloc(3*nat,id='fxyz')
@@ -717,7 +716,7 @@ contains
      !Argument
      type(input_variables), intent(inout) :: inputs
      !inputs%inputPsiId=1
-     
+
      call inputpsiid_set_policy(ENUM_MEMORY,inputs%inputPsiId)
 
    END SUBROUTINE restart_inputs
@@ -725,9 +724,9 @@ contains
 
    !> Integrate forces (not used)
    subroutine integrate_forces(iproc,n_moves) !n(c) energies,forces (arg:2,3)
-   
+
       use module_base
-   
+
       implicit none
       !Arguments
       integer, intent(in) :: iproc,n_moves
@@ -738,10 +737,10 @@ contains
       real(gp), dimension(:), allocatable :: weight
       !n(c) real(gp) :: path
       integer :: i
-   
+
       !Allocation
       weight = f_malloc(n_moves,id='weight')
-   
+
       !Prepare the array of the correct weights of the iteration steps
       if (mod(n_moves,2).ne.1) then
          if (iproc == 0) write(*,*) 'the number of iteration steps has to be odd'
@@ -754,15 +753,15 @@ contains
          weight(i+1)=4.d0/3.d0
       enddo
       weight(n_moves)=1.d0/3.d0
-   
+
       !Start integration
       !n(c) path = 0_gp
       do i=1,n_moves
       end do
-   
+
       !De-allocation
       call f_free(weight)
-   
+
    END SUBROUTINE integrate_forces
 
 END PROGRAM frequencies
@@ -785,7 +784,7 @@ subroutine frequencies_input_variables_new(iproc,dump,filename,in)
   !n(c) integer, parameter :: iunit=111
 
   !Frequencies parameters
-  call input_set_file(iproc,dump,trim(filename),exists,'Frequencies Parameters')  
+  call input_set_file(iproc,dump,trim(filename),exists,'Frequencies Parameters')
   !if (exists) in%files = in%files + INPUTS_FREQ
   !call the variable, its default value, the line ends if there is a comment
 

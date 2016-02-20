@@ -2,11 +2,11 @@
 !!  Performs a check of the Poisson Solver suite by running with different regimes
 !!  and for different choices of the XC functionals
 !! @author
-!!    Copyright (C) 2002-2015 BigDFT group 
+!!    Copyright (C) 2002-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Check the Psolver components of BigDFT
@@ -43,7 +43,7 @@ program PS_Check
    integer :: n_cell,ixc,npoints
    integer, dimension(3) :: nxyz
    integer, dimension(3) :: ndims
-   real(wp), dimension(:,:,:,:), pointer :: rhocore
+   real(wp), dimension(:,:,:,:), pointer :: rhocore,rhohat
    real(dp), dimension(6) :: xcstr
    real(dp), dimension(3) :: hgrids
    type(dictionary), pointer :: options,dict
@@ -100,7 +100,7 @@ program PS_Check
    dual_scf=options//'dual'
    acell=options//'acell'
    shift=options//'shift'
-   
+
    call dict_free(options)
    n01=nxyz(1)
    n02=nxyz(2)
@@ -178,6 +178,7 @@ program PS_Check
 
 
    nullify(rhocore)
+   nullify(rhohat)
 
    do ispden=1,2
       if (ixc < 0) then
@@ -205,7 +206,7 @@ program PS_Check
       !with the global data distribution (also for xc potential)
 !print *,'xc',iproc,pkernel%iproc,pkernel%mpi_env%nproc,pkernel%mpi_comm,MPI_COMM_WORLD
       call XC_potential(geocode,'G',pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,[hx,hy,hz],&
-           rhopot,eexcu,vexcu,ispden,rhocore,xc_pot,xcstr)
+           rhopot,eexcu,vexcu,ispden,rhocore,rhohat,xc_pot,xcstr)
 !      print *,'xcend',iproc
       !eexcu=0.0_gp
       !vexcu=0.0_gp
@@ -251,7 +252,7 @@ program PS_Check
 !         deallocate(pkernel,stat=i_stat)
 !         call memocc(i_stat,i_all,'pkernel',subname)
 !
-!         !calculate the kernel 
+!         !calculate the kernel
 !         call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.false.)
 !
 !         call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
@@ -291,13 +292,13 @@ program PS_Check
       call yaml_mapping_open('Monoprocess run')
       rhopot=f_malloc(n01*n02*n03*2,id='rhopot')
 
-     do ispden = 1, 2 
+     do ispden = 1, 2
        if (ixc < 0) then
          call xc_init(xc, ixc, XC_MIXED, ispden)
        else
          call xc_init(xc, ixc, XC_ABINIT, ispden)
        end if
-     
+
        call yaml_map('Number of Spins',ispden)
 
        call test_functions(geocode,ixc,n01,n02,n03,ispden,acell,a_gauss,shift,hx,hy,hz,mp,&
@@ -324,7 +325,7 @@ program PS_Check
        call pkernel_free(pkernelseq)
        call yaml_mapping_close() !comparison
        if (ixc == 0) exit
-       call xc_end(xc)    
+       call xc_end(xc)
      enddo
      call f_free(rhopot)
 
@@ -355,7 +356,7 @@ program PS_Check
    end if
    !call yaml_stream_attributes()
    !&   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', pkernel%iproc,tel,tcpu1-tcpu0
-   
+
    call f_release_routine()
    if (iproc==0) then
       call yaml_release_document()
@@ -379,7 +380,7 @@ program PS_Check
     implicit none
     !> dictionary of the options of the run
     !! on entry, it contains the options for initializing
-    !! on exit, it contains in the key "BigDFT", a list of the 
+    !! on exit, it contains in the key "BigDFT", a list of the
     !! dictionaries of each of the run that the local instance of BigDFT
     !! code has to execute
     type(dictionary), pointer :: options
@@ -490,7 +491,7 @@ program PS_Check
      integer :: n3d,n3p,n3pi,i3xcsh,i3s,i3sd,i3,i2,i1,istden,istpot,isp,i
      real(kind=8) :: ehartree
      real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
-     
+
      call f_routine(id=subname)
 
 !     offset=0.d0
@@ -607,11 +608,12 @@ program PS_Check
      real(kind=8), dimension(:,:,:,:), allocatable :: rhopot
      real(kind=8), dimension(:), pointer :: xc_temp
      real(dp), dimension(6) :: xcstr
-     real(dp), dimension(:,:,:,:), pointer :: rhocore
+     real(dp), dimension(:,:,:,:), pointer :: rhocore,rhohat
 
      call f_routine(id=subname)
 
      nullify(rhocore)
+     nullify(rhohat)
 
      call PS_dim4allocation(geocode,distcode,pkernel%mpi_env%iproc,pkernel%mpi_env%nproc, &
            & n01,n02,n03,xc_isgga(xc), (xc%ixc /= 13), 0,n3d,n3p,n3pi,i3xcsh,i3s)
@@ -709,7 +711,7 @@ program PS_Check
      end if
 
       call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,[hx,hy,hz],&
-     rhopot,eexcu,vexcu,nspden,rhocore,test_xc,xcstr)
+                      & rhopot,eexcu,vexcu,nspden,rhocore,rhohat,test_xc,xcstr)
      call H_potential(distcode,pkernel,rhopot,rhopot,ehartree,offset,.false.,quiet='yes') !optional argument
      !compare the values of the analytic results (no dependence on spin)
      call compare(pkernel%mpi_env%iproc +pkernel%mpi_env%igroup,nproc,pkernel%mpi_env%mpi_comm,&
@@ -750,7 +752,7 @@ program PS_Check
      end if
 
       call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,[hx,hy,hz],&
-     rhopot(1,1,1,1),eexcu,vexcu,nspden,rhocore,test_xc,xcstr)
+     rhopot(1,1,1,1),eexcu,vexcu,nspden,rhocore,rhohat,test_xc,xcstr)
 
      call H_potential(distcode,pkernel,rhopot(1,1,1,1),pot_ion(istpoti),ehartree,offset,xc%ixc /= 0,quiet='yes') !optional argument
      !fill the other part, for spin, polarised
@@ -779,7 +781,7 @@ program PS_Check
      end if
 !!$      if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") &
 !!$      'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
-      
+
 
       call f_free(test)
       call f_free(test_xc)
@@ -817,7 +819,7 @@ program PS_Check
      i2_max = 1
      i3_max = 1
      do i3=1,n03
-        do i2=1,n02 
+        do i2=1,n02
            do i1=1,n01
               factor=abs(real(nspden,kind=8)*potential(i1,i2,i3)-density(i1,i2,i3))
               if (max_diff < factor) then
@@ -889,7 +891,7 @@ program PS_Check
   END SUBROUTINE compare
 
 
-  !> This subroutine builds some analytic functions that can be used for 
+  !> This subroutine builds some analytic functions that can be used for
   !! testing the poisson solver.
   !! The default choice is already well-tuned for comparison.
   !! WARNING: not all the test functions can be used for all the boundary conditions of
@@ -898,7 +900,8 @@ program PS_Check
   !! function in the isolated direction and an explicitly periodic function in the periodic ones.
   !! Beware of the high-frequency components that may false the results when hgrid is too high.
   subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,shift,hx,hy,hz,mp, &
-     density,potential,rhopot,pot_ion,offset)
+                          & density,potential,rhopot,pot_ion,offset)
+     use abi_interfaces_numeric, only: abi_derf_ab
      implicit none
      character(len=1), intent(in) :: geocode
      integer, intent(in) :: n01,n02,n03,ixc,nspden
@@ -934,7 +937,7 @@ program PS_Check
         !!!     !plot of the functions used
         !!!     do i1=1,n03
         !!!        x = hx*real(i1,kind=8)!valid if hy=hz
-        !!!        y = hz*real(i1,kind=8) 
+        !!!        y = hz*real(i1,kind=8)
         !!!        call functions(x,ax,bx,fx,fx2,ifx)
         !!!        call functions(y,az,bz,fz,fz2,ifz)
         !!!        write(20,*)i1,fx,fx2,fz,fz2
@@ -1037,7 +1040,7 @@ program PS_Check
                  if (r == 0.d0) then
                     potential(i1,i2,i3) = 2.d0/(sqrt(pi)*a_gauss)
                  else
-                    call derf_ab(derf_tt,r/a_gauss)
+                    call abi_derf_ab(derf_tt,r/a_gauss)
                     potential(i1,i2,i3) = derf_tt/r
                  end if
               end do
@@ -1061,7 +1064,7 @@ program PS_Check
      if (denval /= 0.d0) then
         rhopot(:,:,:,:) = density(:,:,:,:) + denval +1.d-14
      else
-        rhopot(:,:,:,:) = density(:,:,:,:) 
+        rhopot(:,:,:,:) = density(:,:,:,:)
      end if
 
      offset=0.d0
@@ -1071,7 +1074,7 @@ program PS_Check
               tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
               pot_ion(i1,i2,i3)=tt
               offset=offset+potential(i1,i2,i3)
-              !add the case for offset in the surfaces case 
+              !add the case for offset in the surfaces case
               !(for periodic case it is absorbed in offset)
               if (geocode == 'S' .and. denval /= 0.d0) then
                  x2 = hy*real(i2-1,kind=8)-0.5d0*acell+0.5d0*hy

@@ -4,32 +4,32 @@
 !! @author
 !!    Luigi Genovese (February 2007)
 !!    PSolverNC added by Anders Bergman, March 2008
-!!    Copyright (C) 2002-2013 BigDFT group 
+!!    Copyright (C) 2002-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Module used by the Poisson Solver library.
-!! It must be used in the parent routine. 
+!! It must be used in the parent routine.
 !! @details
 !!    In the main routine in which the Poisson Solver is called
-!!    -# The Poisson kernel must be declared as a pointer, then the 
+!!    -# The Poisson kernel must be declared as a pointer, then the
 !!       routine createKernel can be called. On exit, the kernel will be allocated and
 !!       ready to use. See the documentation of the createKernel routine for more details
 !!    -# The correct sizes for allocating the density/potential and the pot_ion arrays
 !!       are given from the routine PS_dim4allocation (see routine documentation for details).
-!!       Its argument MUST be in agreement with the arguments of the PSolver routine. 
+!!       Its argument MUST be in agreement with the arguments of the PSolver routine.
 !!       WARNING: No cross-check of the arguments is performed!
 !!    -# The PSolver routine can then be called. On exit, the Hartree potential is computed
-!!       and summed (following ixc value) to XC and external potential. 
+!!       and summed (following ixc value) to XC and external potential.
 !!       The input array is overwritten. Again, see routine documentation for details.
-!!    -# QUICK INSTRUCTION FOR THE IMPATIENT:If you want to use the Poisson Solver in the 
-!!       "ordinary" way, for a grid of dimensions nx,ny,nz and grid spacings hx,hy,hz, 
+!!    -# QUICK INSTRUCTION FOR THE IMPATIENT:If you want to use the Poisson Solver in the
+!!       "ordinary" way, for a grid of dimensions nx,ny,nz and grid spacings hx,hy,hz,
 !!       just create the Kernel with
 !!           call createKernel(geocode,nx,ny,nz,hx,hy,hz,14,0,1,kernel)
-!!       where kernel is a pointer as described above; 
+!!       where kernel is a pointer as described above;
 !!       geocode is 'F','S' or 'P' for Free, Surfaces of Periodic BC respectively.
 !!       (Beware that for Surfaces BC the isolated direction is y!)
 !!       After that you can calculate the potential with
@@ -46,7 +46,7 @@
 !!       See documentations of the Public routines
 !! @warning
 !!    This module REQUIRES the module of XC functional from ABINIT, defs_xc, which
-!!    require defs_basis and defs_datatypes. 
+!!    require defs_basis and defs_datatypes.
 !!    Such routines are provided inside the abinit directory of this bundle.
 !!    They are based on XC functionals present in ABINIT 5.x
 !!    If you want to use this Poisson Solver without the XC functionals, you can comment out
@@ -70,11 +70,11 @@ module Poisson_Solver
    use PSbox
    !use m_profiling
    ! TO BE REMOVED with f_malloc
-   
+
    implicit none
-   
+
    private
-   
+
    ! Associated MPI precisions.
    integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
    integer, parameter :: mpidtypd=MPI_DOUBLE_PRECISION
@@ -84,7 +84,7 @@ module Poisson_Solver
    integer, public, save :: TCAT_PSOLV_COMPUT=TIMING_UNINITIALIZED
    integer, public, save :: TCAT_PSOLV_COMMUN=TIMING_UNINITIALIZED
    integer, public, save :: TCAT_PSOLV_KERNEL=TIMING_UNINITIALIZED
-   
+
    include 'configure.inc'
 
    !intialization of the timings
@@ -102,14 +102,14 @@ module Poisson_Solver
    !> This structure is used to indicate the arguments of the routine which are used commonly
    !! Doxygen will duplicate the documentation for the arguments
    type doc
-      character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode 
+      character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
                                   !! @ingroup RESERVED
       !> Indicates the distribution of the data of the input/output array:
-      !!    - 'G' global data. Each process has the whole array of the density 
+      !!    - 'G' global data. Each process has the whole array of the density
       !!          which will be overwritten with the whole array of the potential.
       !!    - 'D' distributed data. Each process has only the needed part of the density
       !!          and of the potential. The data distribution is such that each processor
-      !!          has the xy planes needed for the calculation AND for the evaluation of the 
+      !!          has the xy planes needed for the calculation AND for the evaluation of the
       !!          gradient, needed for XC part, and for the White-Bird correction, which
       !!          may lead up to 8 planes more on each side. Due to this fact, the information
       !!          between the processors may overlap.

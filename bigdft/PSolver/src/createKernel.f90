@@ -5,7 +5,7 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Initialization of the Poisson kernel
@@ -39,7 +39,7 @@ function pkernel_init_old(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   !integer :: ierr
   !$ integer :: omp_get_max_threads
 
-  
+
   !nullification
   kernel=pkernel_null()
 
@@ -76,7 +76,7 @@ function pkernel_init_old(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%method=PS_VAC_ENUM
      case('PI')
         kernel%method=PS_PI_ENUM
-        kernel%nord=16 
+        kernel%nord=16
         !here the parameters can be specified from command line
         kernel%max_iter=50
         kernel%minres=1.0e-6_dp!
@@ -85,7 +85,7 @@ function pkernel_init_old(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%method=PS_PCG_ENUM
         kernel%nord=16
         kernel%max_iter=50
-        kernel%minres=1.0e-6_dp! 
+        kernel%minres=1.0e-6_dp!
      case default
         call f_err_throw('Error, kernel algorithm '//trim(alg)//&
              'not valid')
@@ -100,7 +100,7 @@ function pkernel_init_old(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         call f_enum_attr(kernel%method,PS_NONE_ENUM)
      case('rigid')
         call f_enum_attr(kernel%method,PS_RIGID_ENUM)
-     case('sccs')   
+     case('sccs')
         call f_enum_attr(kernel%method,PS_SCCS_ENUM)
      case default
         call f_err_throw('Error, cavity method '//trim(cavity)//&
@@ -114,14 +114,14 @@ function pkernel_init_old(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
 
 
   !gpu acceleration
-  kernel%igpu=igpu  
+  kernel%igpu=igpu
 
   kernel%initCufftPlan = 1
   kernel%keepGPUmemory = 1
   kernel%keepzf = 1
 
-  if (iproc == 0 .and. verb) then 
-     if (mu0t==0.0_gp) then 
+  if (iproc == 0 .and. verb) then
+     if (mu0t==0.0_gp) then
         call yaml_comment('Kernel Initialization',hfill='-')
         call yaml_mapping_open('Poisson Kernel Initialization')
      else
@@ -129,7 +129,7 @@ function pkernel_init_old(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
          call yaml_map('Screening Length (AU)',1/mu0t,fmt='(g25.17)')
      end if
   end if
-  
+
   group_size=nproc
   if (present(taskgroup_size)) then
      !if the taskgroup size is not a divisor of nproc do not create taskgroups
@@ -173,18 +173,18 @@ end function pkernel_init_old
 !!    @param iproc,nproc number of process, number of processes
 !!    @param n01,n02,n03 dimensions of the real space grid to be hit with the Poisson Solver
 !!    @param itype_scf   order of the interpolating scaling functions used in the decomposition
-!!    @param hx,hy,hz grid spacings. For the isolated BC case for the moment they are supposed to 
+!!    @param hx,hy,hz grid spacings. For the isolated BC case for the moment they are supposed to
 !!                    be equal in the three directions
 !!    @param kernel   pointer for the kernel FFT. Unallocated on input, allocated on output.
 !!                    Its dimensions are equivalent to the region of the FFT space for which the
-!!                    kernel is injective. This will divide by two each direction, 
+!!                    kernel is injective. This will divide by two each direction,
 !!                    since the kernel for the zero-padded convolution is real and symmetric.
 !!    @param gpu      tag for CUDA gpu   0: CUDA GPU is disabled
 !!
 !! @warning
 !!    Due to the fact that the kernel dimensions are unknown before the calling, the kernel
 !!    must be declared as pointer in input of this routine.
-!!    To avoid that, one can properly define the kernel dimensions by adding 
+!!    To avoid that, one can properly define the kernel dimensions by adding
 !!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
 !!    declaration.
 !! @ingroup PSOLVER
@@ -212,10 +212,10 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
   !! if absent, it will be calculated from the array of epsilon
   real(dp), dimension(:,:,:), intent(in), optional :: corr
   real(dp) :: alpha
-  logical, intent(in), optional :: verbose 
+  logical, intent(in), optional :: verbose
   !global number of processes running on the node, for GPU memory estimation
-  integer(kind=8), optional :: iproc_node 
-  integer(kind=8), optional :: nproc_node 
+  integer(kind=8), optional :: iproc_node
+  integer(kind=8), optional :: nproc_node
   !local variables
   logical :: dump,wrtmsg
   character(len=*), parameter :: subname='createKernel'
@@ -241,8 +241,8 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
   betat=kernel%angrad(2)
   gammat=kernel%angrad(3)
 
-  if (dump) then 
-     if (mu0t==0.0_gp) then 
+  if (dump) then
+     if (mu0t==0.0_gp) then
         call yaml_mapping_open('Poisson Kernel Creation')
      else
         call yaml_mapping_open('Helmholtz Kernel Creation')
@@ -259,7 +259,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
   case('P')
 
      kernel%geo=[1,1,1]
-     
+
      if (dump) then
         call yaml_map('Boundary Conditions','Periodic')
      end if
@@ -271,7 +271,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
      else
        kernel%kernel = f_malloc_ptr(nd1*nd2*nd3/kernelnproc,id='kernel%kernel')
      endif
-     !!! PSolver n1-n2 plane mpi partitioning !!!   
+     !!! PSolver n1-n2 plane mpi partitioning !!!
      call inplane_partitioning(kernel%mpi_env,md2,n2,n3/2+1,kernel%part_mpi,kernel%inplane_mpi,n3pr1,n3pr2)
 !!$     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
 !!$       n3pr1=kernel%mpi_env%nproc/(n3/2+1)
@@ -316,7 +316,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
 
 
   !else if (kernel%geocode == 'S') then
-  case('S')     
+  case('S')
 
      kernel%geo=[1,0,1]
 
@@ -326,14 +326,14 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
      !Build the Kernel
      call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
           m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
-     
+
      if (kernel%igpu > 0) then
        kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
      else
        kernel%kernel = f_malloc_ptr(nd1*nd2*nd3/kernelnproc,id='kernel%kernel')
      endif
 
-     !!! PSolver n1-n2 plane mpi partitioning !!!   
+     !!! PSolver n1-n2 plane mpi partitioning !!!
      call inplane_partitioning(kernel%mpi_env,md2,n2,n3/2+1,kernel%part_mpi,kernel%inplane_mpi,n3pr1,n3pr2)
 
 !!$     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
@@ -383,7 +383,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
      nlimd=n2
      nlimk=n3/2+1
 
-     !only one power of hgrid 
+     !only one power of hgrid
      !factor of -4*pi for the definition of the Poisson equation
      kernel%grid%scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2,dp)/real(n3,dp)
 
@@ -398,7 +398,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
      !Build the Kernel
      call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
           md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
- 
+
      if (kernel%igpu > 0) then
        kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
      else
@@ -406,7 +406,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
        kernel%kernel = f_malloc_ptr(nd1*nd2*(nd3/kernelnproc),id='kernel%kernel')
      endif
 
-     !!! PSolver n1-n2 plane mpi partitioning !!!   
+     !!! PSolver n1-n2 plane mpi partitioning !!!
      call inplane_partitioning(kernel%mpi_env,md2,n2/2,n3/2+1,kernel%part_mpi,kernel%inplane_mpi,n3pr1,n3pr2)
 !!$     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
 !!$       n3pr1=kernel%mpi_env%nproc/(n3/2+1)
@@ -468,7 +468,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
        kernel%kernel = f_malloc_ptr(nd1*nd2*(nd3/kernelnproc),id='kernel%kernel')
      endif
 
-     !!! PSolver n1-n2 plane mpi partitioning !!!   
+     !!! PSolver n1-n2 plane mpi partitioning !!!
      call inplane_partitioning(kernel%mpi_env,md2,n2,n3/2+1,kernel%part_mpi,kernel%inplane_mpi,n3pr1,n3pr2)
 
 !!$     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
@@ -510,7 +510,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
      nlimd=n2
      nlimk=n3/2+1
 
-     !only one power of hgrid 
+     !only one power of hgrid
      !factor of -1/(2pi) already included in the kernel definition
      kernel%grid%scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2,dp)/real(n3,dp)
 
@@ -590,10 +590,10 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
   if(kernel%keepzf == 1) then
     if(kernel%igpu /= 1) then
     !  kernel%w%zf = f_malloc_ptr([md1, md3, md2/kernel%mpi_env%nproc],id='zf')
-    !else 
+    !else
       kernel%w%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
     end if
-  end if 
+  end if
 
   kernel%gpuPCGRed=0
   if (kernel%igpu >0) then
@@ -606,12 +606,12 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
     else
         myiproc_node=iproc_node
     end if
-    if(.not. present(nproc_node)) then 
+    if(.not. present(nproc_node)) then
         mynproc_node=1
     else
         mynproc_node=nproc_node
     end if
-    call cuda_estimate_memory_needs(kernel, n, myiproc_node, mynproc_node) 
+    call cuda_estimate_memory_needs(kernel, n, myiproc_node, mynproc_node)
 
     size2=2*n1*n2*n3
     sizek=(n1/2+1)*n2*n3
@@ -640,11 +640,11 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
       if (i_stat /= 0) call f_err_throw('error cudamalloc beta0_GPU (GPU out of memory ?) ')
       call cudamalloc(sizeof(alpha),kernel%w%kappa_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc kappa_GPU (GPU out of memory ?) ')
-    end if 
+    end if
   end if
    if (kernel%mpi_env%iproc == 0) then
      if (kernel%igpu == 1) then
-      call cudacreatestream(i_stat)      
+      call cudacreatestream(i_stat)
       if (i_stat /= 0) call f_err_throw('error creating stream ')
       call cudacreatecublashandle()
       if (kernel%keepGPUmemory == 1) then
@@ -691,7 +691,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
    endif
 
    if (kernel%mpi_env%iproc == 0) then
-    if (kernel%igpu == 1) then 
+    if (kernel%igpu == 1) then
       call reset_gpu_data((n1/2+1)*n2*n3,pkernel2,kernel%w%k_GPU)
 
       if (dump) call yaml_map('Kernel Copied on GPU',.true.)
@@ -707,7 +707,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
  endif
 
 endif
-  
+
 !print *,'there',iproc,nproc,kernel%iproc,kernel%mpi_env%nproc,kernel%mpi_env%mpi_comm
 !call MPI_BARRIER(kernel%mpi_comm,ierr)
 !print *,'okcomm',kernel%mpi_comm,kernel%iproc
@@ -716,12 +716,12 @@ endif
   if (dump) call yaml_mapping_close() !kernel
 
   !here the FFT_metadata routine can be filled
-  kernel%grid%m1 =m1 
-  kernel%grid%m2 =m2 
-  kernel%grid%m3 =m3 
-  kernel%grid%n1 =n1 
-  kernel%grid%n2 =n2 
-  kernel%grid%n3 =n3 
+  kernel%grid%m1 =m1
+  kernel%grid%m2 =m2
+  kernel%grid%m3 =m3
+  kernel%grid%n1 =n1
+  kernel%grid%n2 =n2
+  kernel%grid%n3 =n3
   kernel%grid%md1=md1
   kernel%grid%md2=md2
   kernel%grid%md3=md3
@@ -744,7 +744,7 @@ if (kernel%igpu == 0) then
        call f_err_throw('Parallel convolution:ERROR:n2') !this can be avoided
   if (mod(kernel%grid%n3,2) /= 0 .and. kernel%geo(2)==0) &
        call f_err_throw('Parallel convolution:ERROR:n3') !this can be avoided
-  if (kernel%grid%nd1 < kernel%grid%n1/2+1) call f_err_throw('Parallel convolution:ERROR:nd1') 
+  if (kernel%grid%nd1 < kernel%grid%n1/2+1) call f_err_throw('Parallel convolution:ERROR:nd1')
   if (kernel%grid%nd2 < kernel%grid%n2/2+1) call f_err_throw('Parallel convolution:ERROR:nd2')
   if (kernel%grid%nd3 < kernel%grid%n3/2+1) call f_err_throw('Parallel convolution:ERROR:nd3')
   !these can be relaxed
@@ -754,8 +754,8 @@ if (kernel%igpu == 0) then
   if (mod(kernel%grid%nd3,kernel%mpi_env%nproc) /= 0) &
        call f_err_throw('Parallel convolution:ERROR:nd3')
   if (mod(kernel%grid%md2,kernel%mpi_env%nproc) /= 0) &
-       call f_err_throw('Parallel convolution:ERROR:md2'+&
-	yaml_toa(kernel%mpi_env%nproc)+yaml_toa(kernel%grid%md2))
+       call f_err_throw('Parallel convolution:ERROR:md2'+ &
+            & yaml_toa(kernel%mpi_env%nproc)+yaml_toa(kernel%grid%md2))
 end if
   !allocate and set the distributions for the Poisson Solver
   kernel%counts = f_malloc_ptr([0.to.kernel%mpi_env%nproc-1],id='counts')
@@ -830,13 +830,16 @@ END SUBROUTINE pkernel_set
 
 
 subroutine cuda_estimate_memory_needs(kernel, n,iproc_node, nproc_node)
-  use iso_c_binding  
+  use iso_c_binding
 !  use module_base
-implicit none
+  implicit none
+  !Arguments
   type(coulomb_operator), intent(inout) :: kernel
   integer,dimension(3), intent(in) :: n
+  integer(kind=8), intent(in) :: iproc_node,nproc_node
+  !Local variables
   integer(kind=C_SIZE_T) :: maxPlanSize, freeGPUSize, totalGPUSize
-  integer(kind=8) :: size2,sizek,size3,NX,NY,NZ,iproc_node,nproc_node
+  integer(kind=8) :: size2,sizek,size3,NX,NY,NZ
   integer(kind=8) :: kernelSize, PCGRedSize, plansSize
   real(dp) alpha
 
@@ -863,7 +866,7 @@ implicit none
 !all processes can use the GPU for apply_reductions
  if((kernel%gpuPCGRed)==1) then
    !add a 10% margin, because we use a little bit more
-   PCGRedSize=(7*size3+4*sizeof(alpha))*1.1
+   PCGRedSize=int(real(7*size3+4*sizeof(alpha),kind=8)*1.1d0)
    !print *,"PCG reductions size : %lu\n", PCGRedSize
  end if
 
@@ -875,7 +878,7 @@ implicit none
  if(freeGPUSize<nproc_node*(kernelSize+maxPlanSize)) then
      if(kernel%mpi_env%iproc==0)then
        call f_err_throw('Not Enough memory on the card to allocate GPU kernels, free Memory :' // &
-       trim(yaml_toa(freeGPUSize)) // ", total Memory :"// trim(yaml_toa(totalGPUSize)) //& 
+       trim(yaml_toa(freeGPUSize)) // ", total Memory :"// trim(yaml_toa(totalGPUSize)) //&
        ", minimum needed memory :"// trim(yaml_toa(nproc_node*(kernelSize+maxPlanSize))) )
      end if
  else if(freeGPUSize <nproc_node*(kernelSize+plansSize)) then
@@ -947,7 +950,7 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
         i23=i23+1
      end do
   end do
- 
+
   call f_free(nabla2_pot)
 
   if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) then
@@ -1005,7 +1008,7 @@ end subroutine polarization_charge
 
 !>build the needed arrays of the cavity from a given density
 !!according to the SCF cavity definition given by Andreussi et al. JCP 136, 064102 (2012)
-!! @warning: for the moment the density is supposed to be not distributed as the 
+!! @warning: for the moment the density is supposed to be not distributed as the
 !! derivatives are calculated sequentially
 subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
   use numerics, only: safe_exp
@@ -1016,13 +1019,13 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
   !> Poisson Solver kernel
   real(dp), intent(in) :: eps0
   type(coulomb_operator), intent(inout) :: kernel
-  !> electronic density in the full box. This is needed because of the calculation of the 
+  !> electronic density in the full box. This is needed because of the calculation of the
   !! gradient
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(inout) :: edens
-  !> functional derivative of the sc epsilon with respect to 
+  !> functional derivative of the sc epsilon with respect to
   !! the electronic density, in distributed memory
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(out) :: depsdrho
-  !> functional derivative of the surface integral with respect to 
+  !> functional derivative of the surface integral with respect to
   !! the electronic density, in distributed memory
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(out) :: dsurfdrho
   !local variables
@@ -1032,7 +1035,8 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
   real(kind=8), parameter :: innervalue = 0.9d0
   integer :: n01,n02,n03,i,i1,i2,i3,i23,i3s,unt
   real(dp) :: oneoeps0,oneosqrteps0,pi,coeff,coeff1,fact1,fact2,fact3,r,t,d2,dtx,dd,x,y,z
-  real(dp) :: de,dde,ddtx,d,c1,c2
+  real(dp) :: de,d
+  !real(dp) :: dde,ddtx,c1,c2
   real(dp), dimension(:,:,:), allocatable :: ddt_edens,epscurr,epsinner,depsdrho1,cc
   real(dp), dimension(:,:,:,:), allocatable :: nabla_edens
   real(dp), parameter :: gammaS = 72.d0 ![dyn/cm]
@@ -1202,7 +1206,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
                 kernel%w%oneoeps(i1,i23)=oneoeps(rho,kernel%cavity) !in pi
                 !c1=(cc(i1,i2,i3)/d2-dd)/d
                 dsurfdrho(i1,i23)=surf_term(rho,d2,dd,cc(i1,i2,i3),kernel%cavity)/epsm1
-                
+
                 !evaluate surfaces and volume integrals
                 IntSur=IntSur + de*d/epsm1
                 IntVol=IntVol + (kernel%cavity%epsilon0-eps(rho,kernel%cavity))/epsm1
@@ -1353,8 +1357,8 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
 
 end subroutine pkernel_build_epsilon
 
-!>new version of the pkernel_build epsilon Routine, 
-!! with explicit workarrays. This version is supposed not to allocate 
+!>new version of the pkernel_build epsilon Routine,
+!! with explicit workarrays. This version is supposed not to allocate
 !! any array
 subroutine rebuild_cavity_from_rho(rho_full,nabla_rho,nabla2_rho,delta_rho,cc_rho,depsdrho,dsurfdrho,&
      kernel,IntSur,IntVol)
@@ -1394,7 +1398,7 @@ subroutine rebuild_cavity_from_rho(rho_full,nabla_rho,nabla2_rho,delta_rho,cc_rh
      call PS_gather(src=kernel%w%epsinnersccs,dest=delta_rho,kernel=kernel)
      call dlepsdrho_sccs(kernel%ndims,rho_full,nabla_rho,delta_rho,kernel%w%dlogeps,kernel%cavity)
   end if
-    
+
 end subroutine rebuild_cavity_from_rho
 
 subroutine inplane_partitioning(mpi_env,mdz,n2wires,n3planes,part_mpi,inplane_mpi,n3pr1,n3pr2)
@@ -1407,7 +1411,7 @@ subroutine inplane_partitioning(mpi_env,mdz,n2wires,n3planes,part_mpi,inplane_mp
   integer, intent(out) :: n3pr1,n3pr2 !< mpi grid of processors based on mpi_env
   type(mpi_environment), intent(out) :: inplane_mpi,part_mpi !<internal environments for the partitioning
   !local variables
-  
+
   !condition for activation of the inplane partitioning (inactive for the moment due to breaking of OMP parallelization)
   if (mpi_env%nproc>2*(n3planes)-1 .and. .false.) then
      n3pr1=mpi_env%nproc/(n3planes)
@@ -1417,7 +1421,7 @@ subroutine inplane_partitioning(mpi_env,mdz,n2wires,n3planes,part_mpi,inplane_mp
 !!$        md2plus=.true.
 !!$     endif
 
-     if (mpi_env%iproc==0 .and. n3pr1>1 .and. mpi_env%igroup==0 ) then 
+     if (mpi_env%iproc==0 .and. n3pr1>1 .and. mpi_env%igroup==0 ) then
           call yaml_map('PSolver n1-n2 plane mpi partitioning activated:',&
           trim(yaml_toa(n3pr1,fmt='(i5)'))//' x'//trim(yaml_toa(n3pr2,fmt='(i5)'))//&
           ' taskgroups')
@@ -1437,4 +1441,3 @@ subroutine inplane_partitioning(mpi_env,mdz,n2wires,n3planes,part_mpi,inplane_mp
        mpi_env%nproc,mpi_env%mpi_comm,n3pr2)
 
 end subroutine inplane_partitioning
-

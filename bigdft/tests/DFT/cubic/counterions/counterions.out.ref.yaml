@@ -67,7 +67,7 @@
    nspin                               : 1 #      Spin polarization treatment
    mpol                                : 0 #      Total magnetic moment
    itermax                             : 50 #     Max. iterations of wfn. opt. steps
-   itermin                             : 0 #      Min. iterations of wfn. opt. steps
+   itermin                             : 0 #      Minimal iterations of wfn. optimzed steps
    nrepmax                             : 1 #      Max. number of re-diag. runs
    dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
    inputpsiid                          : 0 #      Input guess wavefunctions
@@ -296,11 +296,11 @@
    fscale_foe                          : 2.e-2 #  decay length of the error function
    coeff_scaling_factor                : 1.0 #    factor to scale the gradient in direct minimization
  lin_basis_params:
-   nbasis                              : 4 #      number of support functions per atom
-   ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential
-   confinement: [8.3e-3, 0.0] #                   prefactor for the confining potential (low/high accuracy)
-   rloc: [7.0, 7.0] #                             localization radius for the support functions
-   rloc_kernel                         : 9.0 #    localization radius for the density kernel
+   nbasis                              : 4 #      Number of support functions per atom
+   ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential
+   confinement: [8.3e-3, 0.0] #                   Prefactor for the confining potential (low/high accuracy)
+   rloc: [7.0, 7.0] #                             Localization radius for the support functions
+   rloc_kernel                         : 9.0 #    Localization radius for the density kernel
    rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
  posinp:
     #---------------------------------------------------------------------- Atomic positions
@@ -406,6 +406,7 @@
     #WARNING: PSP generated with a different XC. Input XC is "XC: Teter 93"
   #-------------------------------------------------------------------------- Atom Positions
  Atomic structure:
+   Units                               : bohr
    Positions:
    - O: [ 8.831350623,  8.440033882,  7.819243462] # [  19.63,  18.76,  17.38 ] 0001
    - H: [ 7.280407591,  7.201337065,  7.275255880] # [  16.18,  16.00,  16.17 ] 0002
@@ -459,7 +460,7 @@
  Analytic core charges for atom species:
    O                                   :  0.9299314
  Total core charge                     :  0.9299314
- Total core charge on the grid (To be compared with analytic one):  0.9299314
+ Total core charge on the grid         :  0.9299314 #To be compared with analytic one
  Communication checks:
    Transpositions                      :  Yes
    Reverse transpositions              :  Yes

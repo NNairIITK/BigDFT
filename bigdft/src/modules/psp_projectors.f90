@@ -32,31 +32,31 @@ module psp_projectors
     logical, intent(in) :: thatway !< if .true., the plr descriptors has to be filled
     !! if .false., the nl bounds are filled from the plr
     integer, intent(in) :: icoarse !<controls whether to assign coarse or fine
-    !!limits. Can be 1 or 2. 
-    !!The 2 case cannot be doe before 
+    !!limits. Can be 1 or 2.
+    !!The 2 case cannot be doe before
     !!the case with 1 has been filled
     type(locreg_descriptors), intent(inout) :: plr !<projectors locreg
     integer, intent(inout) :: nl1,nl2,nl3,nu1,nu2,nu3 !<lower and upper bounds of locregs
 
     if (thatway) then
        if (icoarse==1) then !coarse limits (to be done first)
-          plr%ns1=nl1     
-          plr%ns2=nl2       
-          plr%ns3=nl3       
+          plr%ns1=nl1
+          plr%ns2=nl2
+          plr%ns3=nl3
 
           plr%d%n1=nu1-nl1
           plr%d%n2=nu2-nl2
           plr%d%n3=nu3-nl3
        else if (icoarse == 2) then
           plr%d%nfl1=nl1-plr%ns1
-          plr%d%nfl2=nl2-plr%ns2       
+          plr%d%nfl2=nl2-plr%ns2
           plr%d%nfl3=nl3-plr%ns3
 
           plr%d%nfu1=nu1-plr%ns1
           plr%d%nfu2=nu2-plr%ns2
           plr%d%nfu3=nu3-plr%ns3
 !!$         else
-!!$            stop 'WRONG icoarse' 
+!!$            stop 'WRONG icoarse'
        end if
     else
        if (icoarse==1) then !coarse limits
@@ -76,14 +76,14 @@ module psp_projectors
           nu2=plr%d%nfu2+plr%ns2
           nu3=plr%d%nfu3+plr%ns3
 !!$         else
-!!$            stop 'WRONG icoarse, false case' 
+!!$            stop 'WRONG icoarse, false case'
        end if
     end if
 
   end subroutine bounds_to_plr_limits
 
 
-  !> Finds the size of the smallest subbox that contains a localization region made 
+  !> Finds the size of the smallest subbox that contains a localization region made
   !! out of atom centered spheres
   subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
     !use module_base, only: gp
@@ -104,12 +104,12 @@ module psp_projectors
     czmax=rxyz(3)+rad ; czmin=rxyz(3)-rad
     !n(c) onem=1.d0-eps_mach
 
-    nl1=ceiling(real(cxmin/hx,kind=8) - eps_mach)   
-    nl2=ceiling(real(cymin/hy,kind=8) - eps_mach)   
-    nl3=ceiling(real(czmin/hz,kind=8) - eps_mach)   
-    nu1=floor(real(cxmax/hx,kind=8) + eps_mach)  
-    nu2=floor(real(cymax/hy,kind=8) + eps_mach)  
-    nu3=floor(real(czmax/hz,kind=8) + eps_mach)  
+    nl1=ceiling(real(cxmin/hx,kind=8) - eps_mach)
+    nl2=ceiling(real(cymin/hy,kind=8) - eps_mach)
+    nl3=ceiling(real(czmin/hz,kind=8) - eps_mach)
+    nu1=floor(real(cxmax/hx,kind=8) + eps_mach)
+    nu2=floor(real(cymax/hy,kind=8) + eps_mach)
+    nu3=floor(real(czmax/hz,kind=8) + eps_mach)
 
     !for non-free BC the projectors are not allowed to be also outside the box
     if (geocode == 'F') then
@@ -156,7 +156,7 @@ module psp_projectors
     integer, intent(in) :: nlr
     type(locreg_descriptors), intent(in) :: Glr
     !>logical array of the localization regions active on site
-    !it is true for all the elements corresponding to localisation 
+    !it is true for all the elements corresponding to localisation
     !! regions whose descriptors are calculated
     logical, dimension(nlr), intent(in) :: lr_mask
     type(locreg_descriptors), dimension(nlr), intent(in) :: lrs
@@ -194,7 +194,7 @@ module psp_projectors
           nullify(nl%pspd(iat)%tolr)
           call f_free_ptr(nl%pspd(iat)%lut_tolr)
        end if
-       if (nl%pspd(iat)%mproj > 0) then 
+       if (nl%pspd(iat)%mproj > 0) then
           !then fill it again, if the locreg is demanded
           nl%pspd(iat)%nlr=nlr
           call set_nlpsp_to_wfd(Glr,nl%pspd(iat)%plr,&
@@ -223,7 +223,7 @@ module psp_projectors
     !>structures which have to be filled to prepare projector applications
     integer,dimension(:),pointer,intent(out) :: lut_tolr !< lookup table
     integer,intent(out) :: noverlap !< dimension of the arrays lut_tolr and tolr
-    type(nlpsp_to_wfd), dimension(:), pointer,intent(out) :: tolr 
+    type(nlpsp_to_wfd), dimension(:), pointer,intent(out) :: tolr
     !> mask array which is associated to the localization regions of interest in this processor
     logical, dimension(:), optional, intent(in) :: lr_mask
     !> descriptors of all the localization regions of the simulation domain
@@ -309,11 +309,11 @@ module psp_projectors
        else
           call init_tolr(tolr(ilr),Glr%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf)
        end if
-       !then the best strategy can be decided according to total number of 
+       !then the best strategy can be decided according to total number of
        !common points
        !complete stategy, the packing array is created after first projector
        if (overlap) tolr(ilr)%strategy=PSP_APPLY_MASK_PACK
-       !masking is used but packing is not created, 
+       !masking is used but packing is not created,
        !useful when only one projector has to be applied
        !tolr(ilr)%strategy=PSP_APPLY_MASK
        !old scheme, even though mask arrays is created it is never used.
@@ -327,7 +327,7 @@ module psp_projectors
 
   end subroutine set_nlpsp_to_wfd
 
-  !> initialize the nlpsp_to_wfd descriptor starting from 
+  !> initialize the nlpsp_to_wfd descriptor starting from
   !! the descriptors of the localization regions
   subroutine init_tolr(tolr,wfd_lr,wfd_p,keyag_lin_cf,nbsegs_cf)
     implicit none
@@ -343,7 +343,7 @@ module psp_projectors
     type(nlpsp_to_wfd), intent(inout) :: tolr
 
     call f_routine(id='init_tolr')
-    
+
     !calculate the size of the mask array
     call vcopy(wfd_lr%nseg_c+wfd_lr%nseg_f,&
          wfd_lr%keyglob(1,1),2,keyag_lin_cf(1),1)
@@ -421,7 +421,7 @@ module psp_projectors
     !> number of common segments of the wfd_w for each of the segment of wfd_p.
     !! should be created by mask_sizes routine
     integer, dimension(wfd_p%nseg_c+wfd_p%nseg_f), intent(in) :: nbsegs_cf
-    !>masking array. On output, it indicates for any of the segments 
+    !>masking array. On output, it indicates for any of the segments
     !which are common between the wavefunction and the projector
     !the starting positions in the packed arrays of projectors and wavefunction
     !respectively
@@ -459,11 +459,11 @@ module psp_projectors
     !> matrix of nonlocal HGH psp
     real(gp), dimension(3,3,4), intent(in) :: hij
     !> components of the projectors, real and imaginary parts
-    real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,ncplx_p,n_p), intent(in) :: proj 
+    real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,ncplx_p,n_p), intent(in) :: proj
     !> components of wavefunctions, real and imaginary parts
-    real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,ncplx_w,n_w), intent(in) :: psi 
+    real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,ncplx_w,n_w), intent(in) :: psi
     !> components of wavefunctions after application, real and imaginary parts
-    real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,ncplx_w,n_w), intent(inout) :: hpsi 
+    real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,ncplx_w,n_w), intent(inout) :: hpsi
     !> workspaces for the packing array
     real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w*ncplx_w), intent(inout) :: psi_pack
     !> array of the scalar product between the projectors and the wavefunctions
@@ -523,7 +523,7 @@ module psp_projectors
     !indicating the points where data have to be taken for dot product
     ! always produced. Has to be initialized to zero first
     real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w), intent(inout) :: hpsi_pack !< work array of hpsi in projector form
-    !needed only when n_p is bigger than one 
+    !needed only when n_p is bigger than one
 
     real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,n_w), intent(inout) :: hpsi !< wavefunction result
     !local variables
@@ -674,7 +674,7 @@ module psp_projectors
              prfr=scpr(1,iw,1,ip)
              if (cplx_p) pifr=scpr(1,iw,2,ip)
              if (cplx_w) prfi=scpr(2,iw,1,ip)
-             if (cplx_pw) pifi=scpr(2,iw,2,ip)   
+             if (cplx_pw) pifi=scpr(2,iw,2,ip)
              !real part
              pdpsi(1,iw,ip)=prfr-ieps_p*ieps_w*pifi
              !imaginary part
@@ -714,10 +714,11 @@ module psp_projectors
     logical :: overlap
     ! Local variables
     logical :: goon
-    integer :: mproj, jlr, iilr
-  
+    integer :: mproj, iilr
+!!$ integer :: jlr
+
     overlap = .false.
-  
+
     ! Check whether the projectors of this atom have an overlap with locreg ilr
     iilr=get_proj_locreg(nl,iat,ilr)
     goon=iilr/=0
@@ -729,14 +730,14 @@ module psp_projectors
 !!$        end if
 !!$    end do
     if (.not.goon) return
-  
+
     mproj=nl%pspd(iat)%mproj
     !no projector on this atom
     if(mproj == 0) return
     if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) return
-  
+
     call check_overlap(llr, nl%pspd(iat)%plr, glr, overlap)
-  
+
     end function projector_has_overlap
 
     !> Performs the scalar product of a projector with a wavefunction each one writeen in Daubechies basis
@@ -757,7 +758,7 @@ module psp_projectors
       !indicating the points where data have to be taken for dot product
       ! always produced. Has to be initialized to zero first
       real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w), intent(inout) :: psi_pack !< packed array of psi in projector form
-      !needed only when n_p is bigger than one 
+      !needed only when n_p is bigger than one
       real(wp), dimension(n_w,n_p), intent(out) :: scpr !< array of the scalar product of all the components
       !local variables
       logical, parameter :: mask=.true.,pack=.true.
@@ -787,7 +788,7 @@ module psp_projectors
                     proj(1,1),proj(is_p,1),&
                     psi_pack(1,iw),psi_pack(is_p,iw),scpr(iw,1))
             end do
-         else 
+         else
             do iw=1,n_w
                call wpdot_mask_pack(wfd_w%nvctr_c,wfd_w%nvctr_f,nmseg_c,nmseg_f,&
                     psi_mask(1,1),psi_mask(1,is_sm),psi(1,iw),psi(is_w,iw),&
@@ -819,7 +820,7 @@ module psp_projectors
          end do
       end if
     end subroutine proj_dot_psi
-  
+
   end module psp_projectors
 
 !>routine to drive the application of the projector in HGH formalism
@@ -832,7 +833,7 @@ subroutine NL_HGH_application(hij,ncplx_p,n_p,wfd_p,proj,&
   implicit none
   integer, intent(in) :: ncplx_p,n_p,ncplx_w,n_w
   !> interaction between the wavefuntion and the psp projector
-  type(nlpsp_to_wfd), intent(in) :: tolr 
+  type(nlpsp_to_wfd), intent(in) :: tolr
   type(wavefunctions_descriptors), intent(in) :: wfd_p !< descriptors of projectors
   type(wavefunctions_descriptors), intent(in) :: wfd_w !< descriptors of wavefunction
   !> matrix of nonlocal HGH psp
@@ -920,7 +921,7 @@ subroutine apply_oneproj_operator(wfd_p,proj,hp,n_w,wfd_w,psi,hpsi,scpr)
      call waxpy(hp*scpr(iw),wfd_p%nvctr_c,wfd_p%nvctr_f,&
           wfd_p%nseg_c,wfd_p%nseg_f,&
           wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),&
-          wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),proj(1),proj(is_p),& 
+          wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),proj(1),proj(is_p),&
           wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
           wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),&
           wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&

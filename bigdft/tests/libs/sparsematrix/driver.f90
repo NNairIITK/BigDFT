@@ -1,3 +1,13 @@
+!> @file
+!! Test of the sparsematrix library
+!! @author
+!!    Copyright (C) 2015-2016 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 program driver
   use module_base
   use sparsematrix_init, only: sparsebigdft_to_ccs, read_ccs_format
@@ -18,7 +28,7 @@ program driver
   integer,dimension(:,:,:),pointer :: keyg
   real(kind=8),dimension(:),pointer :: mat_compr
   integer,dimension(:),pointer :: row_ind, col_ptr
-  
+
   integer :: nspin_h, nfvctr_h, nseg_h, nvctr_h, nfvctrp_h, isfvctr_h
   integer :: nspin_s, nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
   integer,dimension(:),pointer :: keyv_h, keyv_s, on_which_atom_h, on_which_atom_s
@@ -81,7 +91,7 @@ program driver
   !!!OLD   call sparsebigdft_to_ccs(nfvctr, nvctr, nseg, keyg, row_ind, col_ptr)
 
   !!!OLD   call write_ccs_matrix('matrix_ccs.dat', nfvctr, nvctr, row_ind, col_ptr, mat_compr)
-  !!!OLD   
+  !!!OLD
   !!!OLD   !do i=1,nvctr
   !!!OLD   !    write(*,*) 'i, row_ind', i, row_ind(i)
   !!!OLD   !end do

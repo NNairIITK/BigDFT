@@ -4,7 +4,7 @@ EXTRA_DIST = test-smatmul.ref.yaml mat_114_8986.dat  mat_1202_77462.dat  mat_600
 
 check_PROGRAMS = smatmul
 
-AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
@@ -32,5 +32,5 @@ check: test-smatmul.out.yaml
 	        --output fldiff.report.yaml
 
 
-report: 
+report:
 	python $(top_builddir)/tests/report.py

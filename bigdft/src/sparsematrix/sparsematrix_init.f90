@@ -41,7 +41,7 @@ contains
 
   integer function matrixindex_in_compressed(sparsemat, iorb, jorb, init_, n_)
       implicit none
-    
+
       ! Calling arguments
       type(sparse_matrix),intent(in) :: sparsemat
       integer,intent(in) :: iorb, jorb
@@ -49,7 +49,7 @@ contains
       !! if one is sure what one is doing. Might be removed later.
       logical,intent(in),optional :: init_
       integer,intent(in),optional :: n_
-    
+
       ! Local variables
       integer :: ispin, iiorb, jjorb
       !integer :: ii
@@ -89,8 +89,8 @@ contains
       end if
       iiorb=mod(iorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
       jjorb=mod(jorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
-      
-    
+
+
       if (sparsemat%store_index) then
           ! Take the value from the array
           matrixindex_in_compressed = sparsemat%matrixindex_in_compressed_arr(iiorb,jjorb)
@@ -105,25 +105,25 @@ contains
               matrixindex_in_compressed = matrixindex_in_compressed + sparsemat%nvctr
           end if
       end if
-    
+
 !!$    contains
 
 !!$      ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
 !!$      integer function compressed_index_fn(irow, jcol, norb, sparsemat)
 !!$        use sparsematrix_base
 !!$        implicit none
-!!$      
+!!$
 !!$        ! Calling arguments
 !!$        integer,intent(in) :: irow, jcol, norb
 !!$        type(sparse_matrix),intent(in) :: sparsemat
-!!$      
+!!$
 !!$        ! Local variables
 !!$        integer(kind=8) :: ii, istart, iend, norb8
 !!$        integer :: iseg
-!!$      
+!!$
 !!$        norb8 = int(norb,kind=8)
 !!$        ii = int((jcol-1),kind=8)*norb8+int(irow,kind=8)
-!!$      
+!!$
 !!$        iseg=sparsemat%istsegline(jcol)
 !!$        do
 !!$            istart = int((sparsemat%keyg(1,2,iseg)-1),kind=8)*norb8 + &
@@ -143,10 +143,10 @@ contains
 !!$            iseg=iseg+1
 !!$            if (iseg>sparsemat%nseg) exit
 !!$        end do
-!!$      
+!!$
 !!$        ! Not found
 !!$        compressed_index_fn=0
-!!$      
+!!$
 !!$      end function compressed_index_fn
     end function matrixindex_in_compressed
 
@@ -309,17 +309,17 @@ contains
     !!!  ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
     !!!  integer function compressed_index_fn(irow, jcol, norb, sparsemat)
     !!!    implicit none
-    !!!  
+    !!!
     !!!    ! Calling arguments
     !!!    integer,intent(in) :: irow, jcol, norb
     !!!    type(sparse_matrix),intent(in) :: sparsemat
-    !!!  
+    !!!
     !!!    ! Local variables
     !!!    integer(kind=8) :: ii, istart, iend
     !!!    integer :: iseg
-    !!!  
+    !!!
     !!!    ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
-    !!!  
+    !!!
     !!!    iseg=sparsemat%istsegline(jcol)
     !!!    do
     !!!        istart = int((sparsemat%keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
@@ -338,10 +338,10 @@ contains
     !!!            return
     !!!        end if
     !!!    end do
-    !!!  
+    !!!
     !!!    ! Not found
     !!!    compressed_index_fn=0
-    !!!  
+    !!!
     !!!  end function compressed_index_fn
     !!!end function matrixindex_in_compressed2
 
@@ -467,7 +467,7 @@ contains
     !!          call yaml_map('sparse matmul load balancing naive / optimized','printing not meaningful (division by zero)')
     !!      end if
     !!  end if
-    !!  
+    !!
 
     !!  call f_free(nseq_per_line)
     !!  call f_free(rseq_per_line)
@@ -601,7 +601,7 @@ contains
       integer,dimension(:,:),allocatable :: temparr
       real(kind=8) :: rseq, rseq_ideal, ratio_before, ratio_after
       !real(kind=8) :: tt
-      logical :: printable
+      !logical :: printable
       real(kind=8),dimension(2) :: rseq_max, rseq_average
       real(kind=8),dimension(:),allocatable :: rseq_per_line
 
@@ -732,7 +732,7 @@ contains
           !!    call yaml_map('sparse matmul load balancing naive / optimized','printing not meaningful (division by zero)')
           !!end if
       end if
-      
+
 
       call f_free(nseq_per_line)
       !!call f_free(nseq_per_pt)
@@ -1057,13 +1057,13 @@ contains
 
     subroutine keyg_per_line(norb, nseg, iline, istseg, lut, ivctr, keyg)
       implicit none
-      
+
       ! Calling arguments
       integer,intent(in) :: norb, nseg, iline, istseg
       logical,dimension(norb),intent(in) :: lut
       integer,intent(inout) :: ivctr
       integer,dimension(2,2,nseg),intent(out) :: keyg
-      
+
       ! Local variables
       integer :: iseg, jorb, ijorb
       logical :: segment_started, overlap
@@ -1107,13 +1107,13 @@ contains
 
     !!subroutine keyg_per_line_old(norb, nseg, iline, istseg, lut, ivctr, keyg)
     !!  implicit none
-    !!  
+    !!
     !!  ! Calling arguments
     !!  integer,intent(in) :: norb, nseg, iline, istseg
     !!  logical,dimension(norb),intent(in) :: lut
     !!  integer,intent(inout) :: ivctr
     !!  integer,dimension(2,nseg),intent(out) :: keyg
-    !!  
+    !!
     !!  ! Local variables
     !!  integer :: iseg, jorb, ijorb
     !!  logical :: segment_started, overlap
@@ -1158,7 +1158,7 @@ contains
                nspin, geocode, norbup, isorbu, store_index, on_which_atom, allocate_full, print_info)
       use yaml_output
       implicit none
-      
+
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, norbu, nnonzero, nnonzero_mult
       integer,dimension(2,nnonzero),intent(in) :: nonzero
@@ -1168,7 +1168,7 @@ contains
       logical,intent(in),optional :: allocate_full, print_info, store_index
       integer,dimension(norbu),intent(in),optional :: on_which_atom
       integer,intent(in),optional :: nspin, norbup, isorbu
-      
+
       ! Local variables
       integer :: jproc, iorb, jorb, iiorb, iseg
       !integer :: jst_line, jst_seg, segn, ind
@@ -1189,7 +1189,7 @@ contains
       call timing(iproc,'init_matrCompr','ON')
       if (extra_timing) call cpu_time(trt0)
       call f_routine(id='init_sparse_matrix')
-      
+
       allocate_full_=.false.
       print_info_=.true.
       store_index_=.false.
@@ -1199,9 +1199,9 @@ contains
 
 
       lut = f_malloc(norbu,id='lut')
-    
+
       sparsemat=sparse_matrix_null()
-    
+
       if (present(nspin)) then
           sparsemat%nspin=nspin
       else
@@ -1276,7 +1276,7 @@ contains
           ist=ist+sparsemat%nsegline(jorb)
       end do
 
-    
+
       if (iproc==0 .and. print_info_) then
           ntot = int(norbu,kind=8)*int(norbu,kind=8)
           call yaml_map('total elements',ntot)
@@ -1284,9 +1284,9 @@ contains
           call yaml_comment('segments: '//sparsemat%nseg)
           call yaml_map('sparsity in %',1.d2*real(ntot-int(sparsemat%nvctr,kind=8),kind=8)/real(ntot,kind=8),fmt='(f5.2)')
       end if
-    
+
       call allocate_sparse_matrix_keys(store_index_, sparsemat)
-    
+
 
       ivctr=0
       sparsemat%keyg=0
@@ -1296,7 +1296,7 @@ contains
           call keyg_per_line(norbu, sparsemat%nseg, iiorb, sparsemat%istsegline(iiorb), &
                lut, ivctr, sparsemat%keyg)
       end do
-    
+
       ! check whether the number of elements agrees
       if (nproc>1) then
           call mpiallred(ivctr, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
@@ -1320,16 +1320,16 @@ contains
       if (extra_timing) call cpu_time(tr1)
       if (extra_timing) time1=real(tr1-tr0,kind=8)
 
-      if (extra_timing) call cpu_time(tr0)   
+      if (extra_timing) call cpu_time(tr0)
 
       if (store_index_) then
           ! store the indices of the matrices in the sparse format
           sparsemat%store_index=.true.
-    
+
           ! initialize sparsemat%matrixindex_in_compressed
           call f_zero(sparsemat%matrixindex_in_compressed_arr)
 
-          !$omp parallel do default(private) shared(sparsemat,norbu) 
+          !$omp parallel do default(private) shared(sparsemat,norbu)
           do iorb=1,norbu
              do jorb=1,sparsemat%nfvctrp
                 !sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norbu,sparsemat)
@@ -1354,15 +1354,15 @@ contains
           !!      sparsemat%orb_from_index(2,ind) = iorb
           !!   end do
           !!end do
-    
+
       else
           ! Otherwise always calculate them on-the-fly
           sparsemat%store_index=.false.
       end if
-      if (extra_timing) call cpu_time(tr1)   
+      if (extra_timing) call cpu_time(tr1)
       if (extra_timing) time2=real(tr1-tr0,kind=8)
 
-      if (extra_timing) call cpu_time(tr0)     
+      if (extra_timing) call cpu_time(tr0)
 
 
       ! parallelization of matrices, following same idea as norb/norbp/isorb
@@ -1370,10 +1370,10 @@ contains
       call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, sparsemat%nseg, sparsemat%nvctr, &
            sparsemat%isfvctr_par, sparsemat%nfvctr_par, sparsemat%istsegline, sparsemat%keyv, &
            sparsemat%isvctr, sparsemat%nvctrp, sparsemat%isvctr_par, sparsemat%nvctr_par)
-      if (extra_timing) call cpu_time(tr1)   
+      if (extra_timing) call cpu_time(tr1)
       if (extra_timing) time3=real(tr1-tr0,kind=8)
 
-      if (extra_timing) call cpu_time(tr0) 
+      if (extra_timing) call cpu_time(tr0)
 
       !!do jproc=0,nproc-1
       !!    jst_line = sparsemat%isfvctr_par(jproc)+1
@@ -1394,7 +1394,7 @@ contains
       !!   if (iproc==jproc) sparsemat%nvctrp=sparsemat%nvctr_par(jproc)
       !!end do
 
-    
+
       ! 0 - none, 1 - mpiallred, 2 - allgather
       sparsemat%parallel_compression=0
 
@@ -1449,10 +1449,10 @@ contains
       do iseg=2,nseg_mult
           keyv_mult(iseg) = keyv_mult(iseg-1) + keyg_mult(2,1,iseg-1) - keyg_mult(1,1,iseg-1) + 1
       end do
-      if (extra_timing) call cpu_time(tr1)   
+      if (extra_timing) call cpu_time(tr1)
       if (extra_timing) time4=real(tr1-tr0,kind=8)
 
-      if (extra_timing) call cpu_time(tr0) 
+      if (extra_timing) call cpu_time(tr0)
 
       ! Allocate the matrices
       !call allocate_sparse_matrix_matrices(sparsemat, allocate_full_)
@@ -1462,18 +1462,18 @@ contains
       call init_sparse_matrix_matrix_multiplication_new(iproc, nproc, norbu, sparsemat%nfvctrp, sparsemat%isfvctr, nseg_mult, &
                nsegline_mult, istsegline_mult, keyv_mult, keyg_mult, sparsemat)
 
-      if (extra_timing) call cpu_time(tr1)   
-      if (extra_timing) time5=real(tr1-tr0,kind=8)    
+      if (extra_timing) call cpu_time(tr1)
+      if (extra_timing) time5=real(tr1-tr0,kind=8)
 
       call f_free(nsegline_mult)
       call f_free(istsegline_mult)
       call f_free(keyg_mult)
       call f_free(keyv_mult)
       call f_free(lut)
-    
+
       call f_release_routine()
       call timing(iproc,'init_matrCompr','OF')
-      if (extra_timing) call cpu_time(trt1)   
+      if (extra_timing) call cpu_time(trt1)
       if (extra_timing) ttime=real(trt1-trt0,kind=8)
 
       if (extra_timing.and.iproc==0) print*,'imctime',time0,time1,time2,time3,time4,time5,&
@@ -1507,7 +1507,7 @@ contains
     subroutine determine_sequential_length(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, &
                sparsemat, nseq, nseq_per_line)
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: norb, norbp, isorb, nseg
       integer,dimension(norb),intent(in) :: nsegline, istsegline
@@ -1515,11 +1515,11 @@ contains
       type(sparse_matrix),intent(in) :: sparsemat
       integer,intent(out) :: nseq
       integer,dimension(norb),intent(out) :: nseq_per_line
-    
+
       ! Local variables
       integer :: i,iseg,jorb,iorb,jseg,ii,nseqline
       integer :: isegoffset, istart, iend
-    
+
       nseq=0
       do i = 1,norbp
          ii=isorb+i
@@ -1542,10 +1542,10 @@ contains
               end do
          end do
          nseq_per_line(ii)=nseqline
-      end do 
-    
+      end do
+
     end subroutine determine_sequential_length
-    
+
 
 
     !!subroutine determine_sequential_length_new(npt, ispt, nseg, keyv, keyg, smat, nsize_npp, nseq, nseq_per_pt)
@@ -1604,7 +1604,7 @@ contains
     !!  !!        end do
     !!  !!   end do
     !!  !!   nseq_per_line(ii)=nseqline
-    !!  !!end do 
+    !!  !!end do
 
     !!
     !!end subroutine determine_sequential_length_new
@@ -1613,7 +1613,7 @@ contains
 
     subroutine determine_sequential_length_new2(npt, ispt, nseg, nline, keyv, keyg, smat, istsegline, nseq, nseq_per_line)
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: npt, ispt, nseg, nline
       integer,dimension(nseg),intent(in) :: keyv
@@ -1622,7 +1622,7 @@ contains
       integer,dimension(smat%nfvctr),intent(in) :: istsegline
       integer,intent(out) :: nseq
       integer,dimension(nline),intent(out) :: nseq_per_line
-    
+
       ! Local variables
       integer :: ipt, iipt, iline, icolumn, nseq_pt, jseg, jorb, ii, iseg_start
 
@@ -1660,7 +1660,7 @@ contains
       !$omp end parallel
 
       call f_release_routine()
-    
+
     end subroutine determine_sequential_length_new2
 
 
@@ -1714,7 +1714,7 @@ contains
           call f_err_throw('get_line_and_column failed to determine the indices, iel='//iel, &
               err_id=BIGDFT_RUNTIME_ERROR)
       end if
-      
+
       iseg_start = ii
 
     end subroutine get_line_and_column
@@ -1723,19 +1723,19 @@ contains
 
     subroutine get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, nout)
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: norb, norbp, isorb, nseg
       integer,dimension(norb),intent(in) :: nsegline, istsegline
       integer,dimension(2,2,nseg),intent(in) :: keyg
       integer,intent(out) :: nout
-    
+
       ! Local variables
       integer :: i, iii, iseg, iorb
       integer :: isegoffset, istart, iend
 
       call f_routine(id='get_nout')
-    
+
       ! OpenMP for a norbp loop is not ideal, but better than nothing.
       nout=0
       !$omp parallel default(none) &
@@ -1758,13 +1758,13 @@ contains
       !$omp end parallel
 
       call f_release_routine()
-    
+
     end subroutine get_nout
 
 
     subroutine init_onedimindices_new(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat, nout, onedimindices)
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: norb, norbp, isorb, nseg
       integer,dimension(norb),intent(in) :: nsegline, istsegline
@@ -1772,12 +1772,12 @@ contains
       type(sparse_matrix),intent(in) :: sparsemat
       integer,intent(in) :: nout
       integer,dimension(4,nout) :: onedimindices
-    
+
       ! Local variables
       integer :: i, iii, iseg, iorb, ii, jseg, ilen, itot
       integer :: isegoffset, istart, iend
-    
-    
+
+
       ii=0
       itot=1
       do i = 1,norbp
@@ -1802,14 +1802,14 @@ contains
               end do
           end do
       end do
-    
+
     end subroutine init_onedimindices_new
 
 
 
     subroutine init_onedimindices_newnew(nout, ispt, nseg, keyv, keyg, smat, istsegline, onedimindices)
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: nout, ispt, nseg
       integer,dimension(nseg),intent(in) :: keyv
@@ -1817,15 +1817,15 @@ contains
       type(sparse_matrix),intent(in) :: smat
       integer,dimension(smat%nfvctr),intent(in) :: istsegline
       integer,dimension(4,nout) :: onedimindices
-    
+
       ! Local variables
       integer :: itot, ipt, iipt, iline, icolumn, ilen, jseg, ii, jorb, iseg_start
-    
+
       !!write(*,*) 'iproc, nout, ispt', bigdft_mpi%iproc, nout, ispt
       call f_routine(id='init_onedimindices_newnew')
 
       ! Handle index 3 separately to enable OpenMP
-    
+
       !itot = 1
       iseg_start = 1
       !$omp parallel default(none) &
@@ -1871,7 +1871,7 @@ contains
 
 
       call f_release_routine()
-    
+
     end subroutine init_onedimindices_newnew
 
 
@@ -1881,19 +1881,19 @@ contains
                nsegline, istsegline, keyg, sparsemat, nseq, &
                ivectorindex)
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: norb, norbp, isorb, nseg, nseq
       integer,dimension(norb),intent(in) :: nsegline, istsegline
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(in) :: sparsemat
       integer,dimension(nseq),intent(out) :: ivectorindex
-    
+
       ! Local variables
       integer :: i,iseg,jorb,jjorb,iorb,jseg,ii,iii
       integer :: isegoffset, istart, iend
-    
-    
+
+
       ii=1
       do i = 1,norbp
          iii=isorb+i
@@ -1914,16 +1914,16 @@ contains
                   end do
               end do
          end do
-      end do 
+      end do
       if (ii/=nseq+1) stop 'ii/=nseq+1'
-    
+
     end subroutine get_arrays_for_sequential_acces
 
 
 
     subroutine get_arrays_for_sequential_acces_new(nout, ispt, nseg, nseq, keyv, keyg, smat, istsegline, ivectorindex)
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: nout, ispt, nseg, nseq
       integer,dimension(nseg),intent(in) :: keyv
@@ -1931,7 +1931,7 @@ contains
       type(sparse_matrix),intent(in) :: smat
       integer,dimension(smat%nfvctr),intent(in) :: istsegline
       integer,dimension(nseq),intent(out) :: ivectorindex
-    
+
       ! Local variables
       integer :: ii, ipt, iipt, iline, icolumn, jseg, jorb, itest, ind, iseg_start
       integer :: ithread, jthread, nthread
@@ -1977,7 +1977,7 @@ contains
       !!if (ii/=nout) call f_err_throw('ii/=nout',err_name='BIGDFT_RUNTIME_ERROR')
 
       call distribute_on_threads(nout, nthread, ise)
-    
+
       iiarr = f_malloc(0.to.nthread-1,id='iiarr')
       ii = 0
       iseg_start = 1
@@ -2030,7 +2030,7 @@ contains
 
       call f_release_routine()
 
-    
+
     end subroutine get_arrays_for_sequential_acces_new
 
 
@@ -2038,7 +2038,7 @@ contains
     subroutine determine_consecutive_values(nout, nseq, ivectorindex, onedimindices_new, &
                nconsecutive_max, consecutive_lookup)
       implicit none
-      
+
       ! Calling arguments
       integer,intent(in) :: nout, nseq
       integer,dimension(nseq),intent(in) :: ivectorindex
@@ -2110,19 +2110,19 @@ contains
                nsegline, istsegline, keyg, sparsemat, nseq, &
                indices_extract_sequential)
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: norb, norbp, isorb, nseg, nseq
       integer,dimension(norb),intent(in) :: nsegline, istsegline
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(in) :: sparsemat
       integer,dimension(nseq),intent(out) :: indices_extract_sequential
-    
+
       ! Local variables
       integer :: i,iseg,jorb,jj,iorb,jseg,ii,iii
       integer :: isegoffset, istart, iend
-    
-    
+
+
       ii=1
       do i = 1,norbp
          iii=isorb+i
@@ -2143,8 +2143,8 @@ contains
                   end do
               end do
          end do
-      end do 
-    
+      end do
+
     end subroutine init_sequential_acces_matrix
 
 
@@ -2153,7 +2153,7 @@ contains
     subroutine init_sequential_acces_matrix_new(nout, ispt, nseg, nseq, keyv, keyg, smat, istsegline, &
                indices_extract_sequential)
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: nout, ispt, nseg, nseq
       integer,dimension(nseg),intent(in) :: keyv
@@ -2161,7 +2161,7 @@ contains
       type(sparse_matrix),intent(in) :: smat
       integer,dimension(smat%nfvctr),intent(in) :: istsegline
       integer,dimension(nseq),intent(out) :: indices_extract_sequential
-    
+
       ! Local variables
       integer :: ii, ipt, iipt, iline, icolumn, jseg, jj, jorb, ind, iseg_start
       integer :: ithread, jthread, nthread
@@ -2205,7 +2205,7 @@ contains
       !!end do
       !!if (ii/=nout) call f_err_throw('ii/=nout',err_name='BIGDFT_RUNTIME_ERROR')
       call distribute_on_threads(nout, nthread, ise)
-    
+
       iiarr = f_malloc(0.to.nthread-1,id='iiarr')
       ii = 0
       iseg_start = 1
@@ -2261,7 +2261,7 @@ contains
 
       call f_release_routine()
 
-    
+
     end subroutine init_sequential_acces_matrix_new
 
 
@@ -2279,7 +2279,7 @@ contains
       integer,dimension(nseg),intent(in) :: keyv
       integer,intent(out) :: isvctr, nvctrp
       integer,dimension(0:nproc-1),intent(out) :: isvctr_par, nvctr_par
-      
+
       ! Local variables
       integer :: jproc, jst_line, jst_seg
 
@@ -2477,11 +2477,11 @@ contains
       ! Make sure that the used parts are always "monotonically increasing"
       do jproc=nproc-2,0,-1
           ! The start of part jproc must not be greater than the start of part jproc+1
-          iuse_startend(1,jproc) = min(iuse_startend(1,jproc),iuse_startend(1,jproc+1)) 
+          iuse_startend(1,jproc) = min(iuse_startend(1,jproc),iuse_startend(1,jproc+1))
       end do
       do jproc=1,nproc-1
           ! The end of part jproc must not be smaller than the end of part jproc-1
-          iuse_startend(2,jproc) = max(iuse_startend(2,jproc),iuse_startend(2,jproc-1)) 
+          iuse_startend(2,jproc) = max(iuse_startend(2,jproc),iuse_startend(2,jproc-1))
       end do
 
 
@@ -2512,13 +2512,13 @@ contains
       !!        call yaml_map('iuse_startend',(/jproc,iuse_startend(1:2,jproc)/))
       !!    end do
       !!end if
- 
+
       !if (iproc==0) write(*,'(a,100(2i7,4x))') 'iuse_startend',iuse_startend
- 
+
 !!      ntaskgroups = 1
 !!      llproc=0 !the first task of the current taskgroup
 !!      ii = 0
-!!      do 
+!!      do
 !!          jproc = llproc + ii
 !!          if (jproc==nproc-1) exit
 !!          jstart = iuse_startend(1,jproc) !beginning of part used by task jproc
@@ -2618,7 +2618,7 @@ contains
 !!      ntaskgroups = 1
 !!      do
 !!          iprocend_prev = iprocend_current
-!!          iprocstart_current = iprocstart_next 
+!!          iprocstart_current = iprocstart_next
 !!          !itaskgroups_startend(1,itaskgroups) = iuse_startend(2,iprocstart_current)
 !!          ! Search the first process whose part starts later than then end of the part of iprocend_prev. This will be the first task of
 !!          ! the next taskgroup
@@ -2681,13 +2681,13 @@ contains
         !@END NEW3 #########################################
 
       smat%ntaskgroup = ntaskgroups
- 
+
       itaskgroups_startend = f_malloc0((/2,ntaskgroups/),id='itaskgroups_startend')
 !!      itaskgroups_startend(1,1) = 1
 !!      itaskgroups = 1
 !!      llproc=0
 !!      ii = 0
-!!      do 
+!!      do
 !!          jproc = llproc + ii
 !!          if (jproc==nproc-1) exit
 !!          jstart = iuse_startend(1,jproc) !beginning of part used by task jproc
@@ -2799,7 +2799,7 @@ contains
 !!      itaskgroups = 1
 !!      do
 !!          iprocend_prev = iprocend_current
-!!          iprocstart_current = iprocstart_next 
+!!          iprocstart_current = iprocstart_next
 !!          itaskgroups_startend(1,itaskgroups) = iuse_startend(1,iprocstart_current)
 !!          ! Search the first process whose part starts later than then end of the part of iprocend_prev. This will be the first task of
 !!          ! the next taskgroup
@@ -2878,7 +2878,7 @@ contains
 
       if (itaskgroups/=ntaskgroups) stop 'itaskgroups/=ntaskgroups'
       !if (iproc==0) write(*,'(a,i8,4x,1000(2i7,4x))') 'iproc, itaskgroups_startend', itaskgroups_startend
- 
+
       ! Assign the processes to the taskgroups
       ntaskgrp_calc = 0
       ntaskgrp_use = 0
@@ -3061,7 +3061,7 @@ contains
       call mpi_group_free(group, ierr)
 
       !do itaskgroups=1,smat%ntaskgroup
-      !    if (smat%mpi_groups(itaskgroups)%iproc==0) write(*,'(2(a,i0))') 'process ',iproc,' is first in taskgroup ',itaskgroups 
+      !    if (smat%mpi_groups(itaskgroups)%iproc==0) write(*,'(2(a,i0))') 'process ',iproc,' is first in taskgroup ',itaskgroups
       !end do
 
       ! Print a summary
@@ -3436,7 +3436,7 @@ contains
 !!$        nthread = 1
 !!$        !$ nthread = omp_get_max_threads()
 !!$        in_neighborhood = f_malloc((/1.to.smat%nfvctr,0.to.nthread-1/),id='in_neighborhood')
-!!$        
+!!$
 !!$        ithread = 0
 !!$        !$omp parallel default(none) &
 !!$        !$omp shared(smat, in_neighborhood, ind_min, ind_max) &
@@ -3495,7 +3495,7 @@ contains
 !!$
 !!$      end subroutine check_ortho_inguess
 
- 
+
     end subroutine init_matrix_taskgroups
 
 
@@ -3506,13 +3506,13 @@ contains
           use sparsematrix_base, only: sparse_matrix
           use yaml_output
           implicit none
-    
+
           ! Caling arguments
           integer,intent(in) :: iproc, nproc, nat
           type(comms_linear),intent(in) :: collcom, collcom_sr
           type(sparse_matrix),intent(in) :: smat
           integer,dimension(2),intent(out) :: irow, icol
-    
+
           ! Local variables
           integer :: ind_min, ind_max, i, ii_ref, iorb, jorb, ii, iseg
           logical :: found
@@ -3521,10 +3521,10 @@ contains
           real(kind=8) :: time0, time1, time2, time3, time4, time5, ttime
           logical, parameter :: extra_timing=.false.
           integer,dimension(:),pointer :: moduloarray
-                        
-    
+
+
           call timing(iproc,'matrix_extents','ON')
-          if (extra_timing) call cpu_time(trt0)  
+          if (extra_timing) call cpu_time(trt0)
 
           ind_min = smat%nvctr
           ind_max = 0
@@ -3537,7 +3537,7 @@ contains
 
           !write(*,'(a,2i8)') 'after check_transposed_layout: ind_min, ind_max', ind_min, ind_max
           if (extra_timing) call cpu_time(tr1)
-          if (extra_timing) time0=real(tr1-tr0,kind=8)    
+          if (extra_timing) time0=real(tr1-tr0,kind=8)
 
 
           ! Now check the compress_distributed layout
@@ -3546,14 +3546,14 @@ contains
 
           !write(*,'(a,2i8)') 'after check_compress_distributed_layout: ind_min, ind_max', ind_min, ind_max
           if (extra_timing) call cpu_time(tr0)
-          if (extra_timing) time1=real(tr0-tr1,kind=8)        
+          if (extra_timing) time1=real(tr0-tr1,kind=8)
 
           ! Now check the matrix matrix multiplications layout
           call check_matmul_layout(smat%smmm%nseq,smat%smmm%indices_extract_sequential,ind_min,ind_max)
           !write(*,'(a,2i8)') 'after check_matmul_layout: ind_min, ind_max', ind_min, ind_max
           if (extra_timing) call cpu_time(tr1)
-          if (extra_timing) time2=real(tr1-tr0,kind=8)    
-    
+          if (extra_timing) time2=real(tr1-tr0,kind=8)
+
           ! Now check the sumrho operations
           !call check_sumrho_layout()
           call check_sumrho_layout(collcom_sr,smat%nfvctr,moduloarray,smat%matrixindex_in_compressed_fortransposed,ind_min,ind_max)
@@ -3561,14 +3561,14 @@ contains
           call f_free_ptr(moduloarray)
           !write(*,'(a,2i8)') 'after check_sumrho_layout: ind_min, ind_max', ind_min, ind_max
           if (extra_timing) call cpu_time(tr0)
-          if (extra_timing) time3=real(tr0-tr1,kind=8)    
-    
+          if (extra_timing) time3=real(tr0-tr1,kind=8)
+
           ! Now check the pseudo-exact orthonormalization during the input guess
           !call check_ortho_inguess()
           call check_ortho_inguess(smat,ind_min,ind_max)
           !write(*,'(a,2i8)') 'after check_ortho_inguess: ind_min, ind_max', ind_min, ind_max
           if (extra_timing) call cpu_time(tr1)
-          if (extra_timing) time4=real(tr1-tr0,kind=8)        
+          if (extra_timing) time4=real(tr1-tr0,kind=8)
 
           ! Now check the submatrix extraction for the projector charge analysis
           call check_projector_charge_analysis(iproc, nproc, nat, smat, ind_min, ind_max)
@@ -3613,17 +3613,17 @@ contains
 
           end do
           if (extra_timing) call cpu_time(tr0)
-          if (extra_timing) time5=real(tr0-tr1,kind=8)    
-          if (extra_timing) call cpu_time(trt1)  
-          if (extra_timing) ttime=real(trt1-trt0,kind=8)  
+          if (extra_timing) time5=real(tr0-tr1,kind=8)
+          if (extra_timing) call cpu_time(trt1)
+          if (extra_timing) ttime=real(trt1-trt0,kind=8)
 
           if (extra_timing.and.iproc==0) print*,'matextent',time0,time1,time2,time3,time4,time5,&
                time0+time1+time2+time3+time4+time5,ttime
 
-          call timing(iproc,'matrix_extents','OF')    
-    
+          call timing(iproc,'matrix_extents','OF')
+
 !!$          contains
-    
+
 !!$            subroutine check_transposed_layout()
 !!$              implicit none
 !!$              integer :: ipt, ii, i0, i, i0i, iiorb, j, i0j, jjorb, ind, iorb, jorb
@@ -3683,7 +3683,7 @@ contains
 !!$
 !!$
 !!$              call f_free_ptr(moduloarray)
-!!$    
+!!$
 !!$            end subroutine check_transposed_layout
 
 
@@ -3704,8 +3704,8 @@ contains
             !    end if
             !    ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
             !end function get_transposed_index
-    
-    
+
+
 !!$            subroutine check_compress_distributed_layout()
 !!$              implicit none
 !!$              integer :: i, nfvctrp, isfvctr, isegstart, isegend, iseg, ii, jorb
@@ -3738,8 +3738,8 @@ contains
 !!$                  end if
 !!$              end do
 !!$            end subroutine check_compress_distributed_layout
-    
-    
+
+
 !!$            subroutine check_matmul_layout()
 !!$              implicit none
 !!$              integer :: iseq, ind
@@ -3750,7 +3750,7 @@ contains
 !!$              end do
 !!$              !!write(*,'(a,3i8)') 'after check_matmul_layout: iproc, ind_min, ind_max', iproc, ind_min, ind_max
 !!$            end subroutine check_matmul_layout
-    
+
 !!$            subroutine check_sumrho_layout()
 !!$              implicit none
 !!$              integer :: ipt, ii, i0, i, iiorb, ind, iorb
@@ -3800,28 +3800,28 @@ contains
 !!$              !      ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
 !!$              !  end function get_transposed_index
 !!$            end subroutine check_sumrho_layout
-    
-    
+
+
           !!  function get_start_of_segment(smat, iiseg) result(ist)
-    
+
           !!      do iseg=smat%nseg,1,-1
           !!          if (iiseg>=smat%keyv(iseg)) then
           !!              it = smat%keyv(iseg)
           !!              exit
           !!          end if
           !!      end do
-    
+
           !!  end function get_start_of_segment
-    
-    
+
+
 !!$          subroutine check_ortho_inguess()
 !!$            integer :: iorb, iiorb, isegstart, isegend, iseg, j, i, jorb, korb, ind
 !!$            logical,dimension(:),allocatable :: in_neighborhood
-!!$    
+!!$
 !!$            in_neighborhood = f_malloc(smat%nfvctr,id='in_neighborhood')
-!!$            
+!!$
 !!$            do iorb=1,smat%nfvctrp
-!!$    
+!!$
 !!$                iiorb = smat%isfvctr + iorb
 !!$                isegstart = smat%istsegline(iiorb)
 !!$                isegend = smat%istsegline(iiorb) + smat%nsegline(iiorb) -1
@@ -3842,8 +3842,8 @@ contains
 !!$                    end do
 !!$                end do
 !!$                !$omp end do
-!!$    
-!!$                !$omp do reduction(min: ind_min) reduction(max: ind_max) schedule(static,10) 
+!!$
+!!$                !$omp do reduction(min: ind_min) reduction(max: ind_max) schedule(static,10)
 !!$                do jorb=1,smat%nfvctr
 !!$                    if (.not.in_neighborhood(jorb)) cycle
 !!$                    do korb=1,smat%nfvctr
@@ -3858,11 +3858,11 @@ contains
 !!$                !$omp end do
 !!$
 !!$                !$omp end parallel
-!!$    
+!!$
 !!$            end do
-!!$    
+!!$
 !!$            call f_free(in_neighborhood)
-!!$    
+!!$
 !!$            !!do iorb=1,smat%nfvctrp
 !!$            !!    iiorb = smat%isfvctr + iorb
 !!$            !!    isegstart = smat%istsegline(iiorb)
@@ -3877,7 +3877,7 @@ contains
 !!$            !!        end do
 !!$            !!    end do
 !!$            !!end do
-!!$    
+!!$
 !!$          end subroutine check_ortho_inguess
 
 
@@ -4222,11 +4222,11 @@ contains
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, ncol
       integer,intent(out) :: ncolp, iscol
-    
+
       ! Local variables
       integer :: ncolpx, ii, i, jproc
       real(kind=8) :: tt
-    
+
       ! Determine the number of columns per process
       tt = real(ncol,kind=8)/real(nproc,kind=8)
       ncolpx = floor(tt)
@@ -4236,7 +4236,7 @@ contains
       else
           ncolp = ncolpx
       end if
-      
+
       ! Determine the first column of each process
       i = 0
       do jproc=0,nproc-1
@@ -4255,23 +4255,23 @@ contains
     !! redistributes the orbitals such that the load unbalancing is optimal
     subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: nproc, norb
       real(kind=8),dimension(norb),intent(in) :: workload
       real(kind=8),intent(in) :: workload_ideal
       integer,dimension(0:nproc-1),intent(out) :: norb_par
-    
+
       ! Local variables
       real(kind=8) :: tcount, jcount, wli, ratio, ratio_old, average
       real(kind=8),dimension(:),allocatable :: workload_par
       integer,dimension(:),allocatable :: norb_par_trial
       integer :: jproc, jjorb, jjorbtot, jorb, ii, imin, imax
-    
+
       call f_routine(id='redistribute')
-    
+
       wli = workload_ideal
-    
+
       call f_zero(norb_par)
       if (norb>nproc) then
           workload_par = f_malloc(0.to.nproc-1,id='workload_par')
@@ -4317,9 +4317,9 @@ contains
           !end do
           !if (bigdft_mpi%iproc==0) write(*,'(a,2i6,2es14.6)') 'jproc, jjorb, tcount/(jproc+1), workload_ideal', &
           !        jproc, jjorb+(norb-jjorbtot), sum(workload)-tcount, workload_ideal
-    
+
           ! Now take away one element from the maximum and add it to the minimum.
-          ! Repeat this as long as the ratio max/average decreases 
+          ! Repeat this as long as the ratio max/average decreases
           average = sum(workload_par)/real(nproc,kind=8)
           ratio_old = maxval(workload_par)/average
           adjust_loop: do
@@ -4328,7 +4328,7 @@ contains
               call vcopy(nproc, norb_par(0), 1, norb_par_trial(0), 1)
               norb_par_trial(imin) = norb_par(imin) + 1
               norb_par_trial(imax) = norb_par(imax) - 1
-    
+
               call f_zero(workload_par)
               ii = 0
               do jproc=0,nproc-1
@@ -4347,7 +4347,7 @@ contains
                   exit adjust_loop
               end if
           end do adjust_loop
-    
+
           call f_free(workload_par)
           call f_free(norb_par_trial)
       else
@@ -4360,9 +4360,9 @@ contains
                &//trim(yaml_toa(sum(norb_par)))//', but should be '//trim(yaml_toa(norb)),&
                err_name='BIGDFT_RUNTIME_ERROR')
       end if
-    
+
       call f_release_routine()
-    
+
     end subroutine redistribute
 
     ! Get dynamically a new ideal workload
@@ -4381,7 +4381,7 @@ contains
       ! The new ideal workload is a weighted sum of the average workload so far
       ! and the theoretical ideal workload
       wl = (nproc-jproc)*wls + jproc*wli
-      wl = wl/real(nproc,kind=8) 
+      wl = wl/real(nproc,kind=8)
 
     end function get_dynamic_ideal_workload
 
@@ -4569,7 +4569,7 @@ contains
       implicit none
       integer, intent(in) :: ind_min,ind_max
       type(sparse_matrix),intent(inout) :: smat
-      !local variables    
+      !local variables
       logical :: found
       integer :: iiseg1, iiseg2, iorb, jorb,iseg
 
@@ -4617,7 +4617,7 @@ contains
       integer, intent(inout) :: ind_min,ind_max
       !local variables
       integer :: i,nfvctrp,isfvctr,isegstart,isegend,iseg,jorb,ii
-      
+
       !call f_routine(id='check_compress_distributed_layout')
 
       do i=1,2
@@ -4887,12 +4887,12 @@ contains
       use communications_base, only: comms_linear
       use sparsematrix_base, only: sparse_matrix
       implicit none
-      
+
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
       type(comms_linear),intent(in) :: collcom, collcom_shamop, collcom_sr
       type(sparse_matrix),intent(inout) :: sparsemat
-      
+
       ! Local variables
       integer :: iorb, jorb, istat, imin, imax, nmiddle, imax_old, imin_old, iiorb, jjorb
       integer :: ii, imin_new, imax_new, i, nlen, j
@@ -4900,10 +4900,10 @@ contains
       !integer :: compressed_index
     !  integer,dimension(:,:),allocatable :: sendbuf, requests, iminmaxarr
       character(len=*),parameter :: subname='init_sparse_matrix'
-    
+
       call f_routine(id='init_matrixindex_in_compressed_fortransposed')
       call timing(iproc,'init_matrCompr','ON')
-    
+
       ! for the calculation of overlaps and the charge density
       !imin=minval(collcom%indexrecvorbital_c)
       !imin=min(imin,minval(collcom%indexrecvorbital_f))
@@ -4915,9 +4915,9 @@ contains
       !imax=max(imax,maxval(collcom_shamop%indexrecvorbital_c))
       !imax=max(imax,maxval(collcom_shamop%indexrecvorbital_f))
       !imax=max(imax,maxval(collcom_sr%indexrecvorbital_c))
-    
+
       nmiddle = sparsemat%nfvctr/2 + 1
-    
+
       imin_old = huge(1)
       imax_old = 0
       imin_new = huge(1)
@@ -4972,16 +4972,16 @@ contains
               imax_new = max(imax_new,ii+sparsemat%nfvctr)
           end if
       end do
-    
-    
+
+
       !!write(*,*) 'iproc, imin_old, imax_old', iproc, imin_old, imax_old
       !!write(*,*) 'iproc, imin_new, imax_new', iproc, imin_new, imax_new
-    
+
       !! values regardless of the spin
       !imin=mod(imin-1,sparsemat%nfvctr)+1
       !imax=mod(imax-1,sparsemat%nfvctr)+1
-    
-    
+
+
       ! Determine with which size the array should be allocated
       if (imax_new-imin_new<0) then
           ! everything in either first or second half
@@ -5002,28 +5002,28 @@ contains
               !sparsemat%offset_matrixindex_in_compressed_fortransposed = 1
           end if
       end if
-    
+
       !!! Check
       !!if (sparsemat%offset_matrixindex_in_compressed_fortransposed<sparsemat%nfvctr/2+1) then
       !!    stop 'sparsemat%offset_matrixindex_in_compressed_fortransposed<sparsemat%nfvctr/2+1'
       !!end if
-    
+
       nlen = imax - imin + 1
       sparsemat%offset_matrixindex_in_compressed_fortransposed = imin
       !!write(*,*) 'iproc, imin, imax, nlen', iproc, imin, imax, nlen
-    
+
       !!! This is a temporary solution for spin polarized systems
       !!imax=min(imax,orbs%norbu)
-    
-    
-    
+
+
+
       !!allocate(sparsemat%matrixindex_in_compressed_fortransposed(imin:imax,imin:imax), stat=istat)
       !!call memocc(istat, sparsemat%matrixindex_in_compressed_fortransposed, &
       !sparsemat%matrixindex_in_compressed_fortransposed=f_malloc_ptr((/imin.to.imax,imin.to.imax/),&
       !    id='sparsemat%matrixindex_in_compressed_fortransposed')
       sparsemat%matrixindex_in_compressed_fortransposed=f_malloc_ptr((/nlen,nlen/),&
           id='sparsemat%matrixindex_in_compressed_fortransposed')
-    
+
       !$omp parallel do default(private) shared(sparsemat,imin,imax)
       do iorb=imin,imax
           i = iorb - imin + 1
@@ -5043,15 +5043,15 @@ contains
           end do
       end do
       !$omp end parallel do
-    
+
       !@! Add the spin shift (i.e. the index is in the spin polarized matrix which is at the end)
       !@if (ispin==2) then
       !@    matrixindex_in_compressed = matrixindex_in_compressed + sparsemat%nvctr
       !@end if
-    
+
       call timing(iproc,'init_matrCompr','OF')
       call f_release_routine()
-    
+
     end subroutine init_matrixindex_in_compressed_fortransposed
 
 

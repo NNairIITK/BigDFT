@@ -41,7 +41,7 @@ program wvl
   type(rho_descriptors)                :: rhodsc
   type(denspot_distribution)           :: dpcom
   type(GPU_pointers)                   :: GPU
-  integer :: i, j, ierr, iproc, nproc 
+  integer :: i, j, ierr, iproc, nproc
   real(dp) :: nrm, epot_sum
   real(gp) :: psoffset
 !  real(gp), allocatable :: radii_cf(:,:)
@@ -93,8 +93,8 @@ program wvl
    nullify(rho_ion)
 !  allocate(radii_cf(atoms%astruct%ntypes,3))
   call system_properties(iproc,nproc,inputs,atoms,orbs)!,radii_cf)
-  
-  call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/)) 
+
+  call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/))
   call system_size(atoms,atoms%astruct%rxyz,inputs%crmult,inputs%frmult, &
        & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),GPU%OCLconv,Lzd%Glr,shift)
   call print_atoms_and_grid(Lzd%Glr, atoms, atoms%astruct%rxyz, shift, &
@@ -105,7 +105,7 @@ program wvl
   call createWavefunctionsDescriptors(iproc,inputs%hx,inputs%hy,inputs%hz, &
        & atoms,atoms%astruct%rxyz,inputs%crmult,inputs%frmult,.true.,Lzd%Glr)
   call print_wfd(Lzd%Glr%wfd)
-  call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
+  call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)
 
   call check_linear_and_create_Lzd(iproc,nproc,inputs%linear,Lzd,atoms,orbs,inputs%nspin,atoms%astruct%rxyz)
 
@@ -141,7 +141,7 @@ program wvl
      call yaml_comment("Proc" // trim(yaml_toa(iproc)) // " treats orbital" // &
                       & trim(yaml_toa(orbs%isorb + i)))
   end do
-  
+
   ! We can do some arithmetic on wavefunctions under compressed form.
   do i = 1, orbs%norbp, 1
      ! Norm calculation.
@@ -192,7 +192,7 @@ program wvl
      !write(*,*) "The overlap matrix is:"
      !do j = 1, orbs%norb, 1
      !   write(*, "(A)", advance = "NO") "("
-     !   do i = 1, orbs%norb, 1  
+     !   do i = 1, orbs%norb, 1
      !      write(*,"(G18.8)", advance = "NO") ovrlp(i, j)
      !   end do
      !   write(*, "(A)") ")"
@@ -210,7 +210,7 @@ program wvl
   !-------------------------!
   ! Using real-space values !
   !-------------------------!
-  ! Wavefunctions can be expressed in interpolating scaling functions, 
+  ! Wavefunctions can be expressed in interpolating scaling functions,
   !  in this representation, point coefficients are values on points.
   allocate(psir(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i))
   call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,psir(1))
@@ -292,7 +292,7 @@ program wvl
   if (nproc>1) then
       call mpiallred(epot_sum,1,MPI_SUM)
   end if
-  
+
   !if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
   if (iproc == 0) call yaml_map("System pseudo energy (Ha)", epot_sum)
 
@@ -305,7 +305,7 @@ program wvl
   deallocate(psi)
 
   call deallocate_comms(comms)
-  
+
   call deallocate_locreg_descriptors(Lzd%Glr)
 
   call deallocate_Lzd_except_Glr(Lzd)
@@ -313,7 +313,7 @@ program wvl
 
   call deallocate_orbs(orbs)
 
-  call deallocate_atoms_data(atoms) 
+  call deallocate_atoms_data(atoms)
   call xc_end(xc)
   call dpbox_free(dpcom)
   call pkernel_free(pkernel)
