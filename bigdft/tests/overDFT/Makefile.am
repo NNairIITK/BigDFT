@@ -25,6 +25,7 @@ LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	GEOPT-newIG \
 	MD-wf-Expl \
 	NH3 \
+	QMMM \
 	XabsCheb \
 	XabsLanc \
 	Xabsb2B \

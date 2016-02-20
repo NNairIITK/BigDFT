@@ -149,12 +149,15 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
 !!$  open(100+me)
 !!$  write(100+me,*)xcart
 !!$  close(100+me)
+  call init_state_properties(outs, 1)
+  call f_free_ptr(outs%fxyz)
   outs%fxyz => fcart
   !scfloop_obj%inputs%inputPsiId = 1
   call inputpsiid_set_policy(ENUM_MEMORY,scfloop_obj%inputs%inputPsiId)
   call bigdft_state(scfloop_obj,outs,infocode)
   epot = outs%energy
   nullify(outs%fxyz)
+  
   call deallocate_state_properties(outs)
   ! need to transform the forces into reduced ones.
   favg(:) = real(0, dp)
