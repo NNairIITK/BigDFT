@@ -25,10 +25,10 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.6.6
- Timestamp of this run                 : 2015-03-27 10:51:53.107
+ Version Number                        : 1.8
+ Timestamp of this run                 : 2016-02-20 23:11:11.191
  Root process Hostname                 : athelas
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -37,21 +37,22 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FCFLAGS=-O2 -fopenmp -g -fbounds-check -fbacktrace 
-     -ffpe-trap=invalid,zero,overflow,denormal' 
-     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 
-     -L/opt/intel/composer_xe_2013.1.117/compiler/lib/intel64 -lmkl_rt -liomp5 -lm' 
-     'CFLAGS=-O2 -fopenmp' 'CC=mpicc.openmpi' 'CXX=mpicxx.openmpi' 'FC=mpif90.openmpi' 
-     'F77=mpif77.openmpi' '--with-blas=no' '--with-lapack=no'"
-
-   Compilers (CC, FC, CXX)             :  [ mpicc.openmpi, mpif90.openmpi, mpicxx.openmpi ]
+     " '--prefix' '/local/binaries/intel-1.8/install' '--without-internal-flib' 
+     'FCFLAGS=-O2 -openmp' 
+     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 -lmkl_rt 
+     -liomp5 -lm' 'CFLAGS=-O2 -openmp' 'LDFLAGS=-L/local/binaries/intel-1.8/install/lib ' 
+     'C_INCLUDE_PATH=/local/binaries/intel-1.8/install/include:/opt/intel/composer_xe_2013.1.
+     117/compiler/include' 'CC=mpicc' 'CXX=mpicxx' 'FC=mpifc' 'F77=mpif77'"
+   Compilers (CC, FC, CXX)             :  [ mpicc, mpifc, mpicxx ]
    Compiler flags:
-     CFLAGS                            : -O2 -fopenmp
-                                        
-     FCFLAGS:
-       -O2 -fopenmp -g -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,denormal
+     CFLAGS                            : -O2 -openmp
+     FCFLAGS                           : -O2 -openmp
      CXXFLAGS                          : -g -O2
-  #WARNING: geopt/betax is not allowed in this context.
+ List of error found while parsing input variables:
+ - Id                                  :  27
+   Additional Info                     : geopt/betax is not allowed in this context.
+  #WARNING: Error(s) found in input_keys_fill for the field "geopt" and the key "betax", see 
+  #details in the above message(s), before the input file printout.
   #------------------------------------------------------------------------ Input parameters
  radical                               : LENOSKY-ab6md
  outdir                                : ./
@@ -60,7 +61,7 @@
  mode:
    method                              : lensib # Run method of BigDFT call
    mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
-   mm_paramfile                        : none #   name of parameter file
+   mm_paramfile                        : none #   Name of parameter or input file for the selected method or code
  geopt:
    method                              : AB6MD #  Geometry optimisation method
    ncount_cluster_x                    : 500 #    Maximum number of force evaluations
@@ -71,7 +72,263 @@
    randdis                             : 0. #     Random displacement amplitude
    ionmov                              : 6 #      Movement ion method
    mditemp                             : 300. #   Temperature of molecular dynamics
+ psolver:
+   kernel:
+     screening                         : 0 #      Mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     cavitation                        : No #     Triggers the evaluation of the extra cavitation terms
+     input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-6 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
+ dft:
+   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
+   rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+   ixc                                 : 1 #      Exchange-correlation parameter (LDA=1,PBE=11)
+   qcharge                             : 0 #      Charge of the system. Can be integer or real.
+   elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
+   nspin                               : 1 #      Spin polarization treatment
+   mpol                                : 0 #      Total magnetic moment
+   gnrm_cv                             : 1.e-4 #  convergence criterion gradient
+   itermax                             : 50 #     Max. iterations of wfn. opt. steps
+   itermin                             : 0 #      Minimal iterations of wfn. optimzed steps
+   nrepmax                             : 1 #      Max. number of re-diag. runs
+   ncong                               : 6 #      No. of CG it. for preconditioning eq.
+   idsx                                : 6 #      Wfn. diis history
+   dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
+   inputpsiid                          : 0 #      Input guess wavefunctions
+   output_wf                           : 0 #      Output of the support functions
+   output_denspot                      : 0 #      Output of the density or the potential
+   rbuf                                : 0. #     Length of the tail (AU)
+   ncongt                              : 30 #     No. of tail CG iterations
+   norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
+   nvirt                               : 0 #      No. of virtual orbs
+   nplot                               : 0 #      No. of plotted orbs
+   gnrm_cv_virt                        : 1.e-4 #  convergence criterion gradient for virtual orbitals
+   itermax_virt                        : 50 #     Max. iterations of wfn. opt. steps for virtual orbitals
+   disablesym                          : No #     Disable the symmetry detection
+   external_potential:
+     values                            : __not_a_value__
+   calculate_strten                    : Yes #    Boolean to activate the calculation of the stress tensor. Might be set to No for 
+    #                                              performance reasons
+   plot_mppot_axes: [-1, -1, -1] #                Plot the potential generated by the multipoles along axes through this 
+    #                                              point. Negative values mean no plot.
+   plot_pot_axes: [-1, -1, -1] #                  Plot the potential along axes through this point. Negative values mean 
+    #                                              no plot.
+ output:
+   atomic_density_matrix               : None #   Dictionary of the atoms for which the atomic density matrix has to be plotted
+ kpt:
+   method                              : manual # K-point sampling method
+   kpt: #                                         Kpt coordinates
+   -  [0., 0., 0.]
+   wkpt: [1.] #                                   Kpt weights
+   bands                               : No #     For doing band structure calculation
+ md:
+   mdsteps                             : 0 #      Number of MD steps
+   print_frequency                     : 1 #      Printing frequency for energy.dat and Trajectory.xyz files
+   temperature                         : 300.d0 # Initial temperature in Kelvin
+   timestep                            : 20.d0 #  Time step for integration (in a.u.)
+   no_translation                      : No #     Logical input to set translational correction
+   thermostat                          : none #   Activates a thermostat for MD
+   wavefunction_extrapolation          : 0 #      Activates the wavefunction extrapolation for MD
+ mix:
+   iscf                                : 0 #      Mixing parameters
+   itrpmax                             : 1 #      Maximum number of diagonalisation iterations
+   rpnrm_cv                            : 1.e-4 #  Stop criterion on the residue of potential or density
+   norbsempty                          : 0 #      No. of additional bands
+   tel                                 : 0. #     Electronic temperature
+   occopt                              : 1 #      Smearing method
+   alphamix                            : 0. #     Multiplying factors for the mixing
+   alphadiis                           : 2. #     Multiplying factors for the electronic DIIS
+ sic:
+   sic_approach                        : none #   SIC (self-interaction correction) method
+   sic_alpha                           : 0. #     SIC downscaling parameter
+ tddft:
+   tddft_approach                      : none #   Time-Dependent DFT method
+ perf:
+   debug                               : No #     Debug option
+   profiling_depth                     : -1 #     maximum level of the profiling for the tracking of the routines
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
+   ocl_platform                        : ~ #      Chosen OCL platform
+   ocl_devices                         : ~ #      Chosen OCL devices
+   blas                                : No #     CUBLAS acceleration
+   projrad                             : 15. #    Radius of the projector as a function of the maxrad
+   exctxpar                            : OP2P #   Exact exchange parallelisation scheme
+   ig_diag                             : Yes #    Input guess (T=Direct, F=Iterative) diag. of Ham.
+   ig_norbp                            : 5 #      Input guess Orbitals per process for iterative diag.
+   ig_blocks: [300, 800] #                        Input guess Block sizes for orthonormalisation
+   ig_tol                              : 1.0e-4 # Input guess Tolerance criterion
+   methortho                           : 0 #      Orthogonalisation
+   rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
+   unblock_comms                       : OFF #    Overlap Communications of fields (OFF,DEN,POT)
+   linear                              : OFF #    Linear Input Guess approach
+   tolsym                              : 1.0e-8 # Tolerance for symmetry detection
+   signaling                           : No #     Expose calculation results on Network
+   signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
+   domain                              : ~ #      Domain to add to the hostname to find the IP
+   inguess_geopt                       : 0 #      Input guess to be used during the optimization
+   store_index                         : Yes #    Store indices or recalculate them for linear scaling
+   verbosity                           : 2 #      Verbosity of the output
+   psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
+   multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
+   mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
+    #                                              preserving
+   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
+   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
+   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
+   ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
+   mixing_after_inputguess             : 1 #      Mixing step after linear input guess
+   iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
+   check_sumrho                        : 1 #      Enables linear sumrho check
+   check_overlap                       : 1 #      Enables linear overlap check
+   experimental_mode                   : No #     Activate the experimental mode in linear scaling
+   write_orbitals                      : 0 #      Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
+   explicit_locregcenters              : No #     Linear scaling explicitly specify localization centers
+   calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
+   intermediate_forces                 : No #     Linear scaling calculate intermediate forces
+   kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
+   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
+   evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
+   calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
+   loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
+   coeff_weight_analysis               : No #     linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
+    #                                              calculations
+   check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
+   correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
+   fscale_lowerbound                   : 5.e-3 #  linear scaling lower bound for the error function decay length
+   fscale_upperbound                   : 5.e-2 #  linear scaling upper bound for the error function decay length
+   FOE_restart                         : 0 #      Restart method to be used for the FOE method
+   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
+   enable_matrix_taskgroups            : True #   enable the matrix taskgroups
+   hamapp_radius_incr                  : 8 #      radius enlargement for the Hamiltonian application (in grid points)
+   adjust_kernel_iterations            : True #   enable the adaptive ajustment of the number of kernel iterations
+   adjust_kernel_threshold             : True #   enable the adaptive ajustment of the kernel convergence threshold according to the 
+    #                                              support function convergence
+   wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
+   foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
+   nsigma                              : 1 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
+    #                                              Gaussian used for the radial part of the 
+    #                                              function based on the multipoles.
+ lin_general:
+   hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
+   nit: [100, 100] #                              number of iteration with low/high accuracy
+   rpnrm_cv: [1.e-12, 1.e-12] #                   convergence criterion for low/high accuracy
+   conf_damping                        : -0.5 #   how the confinement should be decreased, only relevant for hybrid mode; negative -> 
+    #                                              automatic
+   taylor_order                        : 0 #      order of the Taylor approximation; 0 -> exact
+   max_inversion_error                 : 1.d0 #   linear scaling maximal error of the Taylor approximations to calculate the inverse of 
+    #                                              the overlap matrix
+   output_wf                           : 0 #      output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
+   output_mat                          : 0 #      output sparse matrices; 0 no output, 1 formatted sparse, 11 formatted dense, 21 
+    #                                              formatted both
+   output_coeff                        : 0 #      output KS coefficients; 0 no output, 1 formatted output
+   output_fragments                    : 0 #      output support functions, kernel and coeffs; 0 fragments and full system, 1 
+    #                                              fragments only, 2 full system only
+   kernel_restart_mode                 : 0 #      method for restarting kernel; 0 kernel, 1 coefficients, 2 random, 3 diagonal, 4 
+    #                                              support function weights
+   kernel_restart_noise                : 0.0d0 #  add random noise to kernel or coefficients when restarting
+   frag_num_neighbours                 : 0 #      number of neighbours to output for each fragment
+   frag_neighbour_cutoff               : 12.0d0 # number of neighbours to output for each fragment
+   cdft_lag_mult_init                  : 0.05d0 # CDFT initial value for Lagrange multiplier
+   cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
+   calc_dipole                         : No #     calculate dipole
+   calc_quadrupole                     : No #     calculate quadrupole
+   calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
+   subspace_diag                       : No #     diagonalization at the end
+   extra_states                        : 0 #      extra states to optimize (dmin only)
+   calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
+    #                                              written to disk)
+   charge_multipoles                   : 0 #      Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
+    #                                              new approach Projector
+   support_function_multipoles         : False #  Calculate the multipole moments of the support functions
+ lin_basis:
+   nit: [4, 5] #                                  maximal number of iterations in the optimization of the 
+    #                                              support functions
+   nit_ig                              : 50 #     maximal number of iterations to optimize the support functions in the extended input 
+    #                                              guess (experimental mode only)
+   idsx: [6, 6] #                                 DIIS history for optimization of the support functions 
+    #                                              (low/high accuracy); 0 -> SD
+   gnrm_cv: [1.e-2, 1.e-4] #                      convergence criterion for the optimization of the support functions 
+    #                                              (low/high accuracy)
+   gnrm_ig                             : 1.e-3 #  convergence criterion for the optimization of the support functions in the extended 
+    #                                              input guess (experimental mode only)
+   deltae_cv                           : 1.e-4 #  total relative energy difference to stop the optimization ('experimental_mode' only)
+   gnrm_dyn                            : 1.e-4 #  dynamic convergence criterion ('experimental_mode' only)
+   min_gnrm_for_dynamic                : 1.e-3 #  minimal gnrm to active the dynamic gnrm criterion
+   alpha_diis                          : 1.0 #    multiplicator for DIIS
+   alpha_sd                            : 1.0 #    initial step size for SD
+   nstep_prec                          : 5 #      number of iterations in the preconditioner
+   fix_basis                           : 1.e-10 # fix the support functions if the density change is below this threshold
+   correction_orthoconstraint          : 1 #      correction for the slight non-orthonormality in the orthoconstraint
+ lin_kernel:
+   nstep: [1, 1] #                                number of steps taken when updating the coefficients via 
+    #                                              direct minimization for each iteration of 
+    #                                              the density kernel loop
+   nit: [5, 5] #                                  number of iterations in the (self-consistent) 
+    #                                              optimization of the density kernel
+   idsx_coeff: [0, 0] #                           DIIS history for direct mininimization
+   idsx: [0, 0] #                                 mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
+   alphamix: [0.5, 0.5] #                         mixing parameter (low/high accuracy)
+   gnrm_cv_coeff: [1.e-5, 1.e-5] #                convergence criterion on the gradient for direct minimization
+   rpnrm_cv: [1.e-10, 1.e-10] #                   convergence criterion (change in density/potential) for the kernel 
+    #                                              optimization
+   linear_method                       : DIAG #   method to optimize the density kernel
+   mixing_method                       : DEN #    quantity to be mixed
+   alpha_sd_coeff                      : 0.2 #    initial step size for SD for direct minimization
+   alpha_fit_coeff                     : No #     Update the SD step size by fitting a quadratic polynomial
+   eval_range_foe: [-0.5, 0.5] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
+    #                                              automatically if chosen unproperly
+   fscale_foe                          : 2.e-2 #  decay length of the error function
+   coeff_scaling_factor                : 1.0 #    factor to scale the gradient in direct minimization
+   pexsi_npoles                        : 40 #     number of poles used by PEXSI
+   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
+   pexsi_mumax                         : 1.0 #    initial guess for the upper bound of the chemical potential used by PEXSI
+   pexsi_mu                            : 0.5 #    initial guess for the  chemical potential used by PEXSI
+   pexsi_temperature                   : 1.e-3 #  temperature used by PEXSI
+   pexsi_tol_charge                    : 1.e-3 #  charge tolerance used PEXSI
+ lin_basis_params:
+   nbasis                              : 4 #      Number of support functions per atom
+   ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential
+   confinement: [8.3e-3, 0.0] #                   Prefactor for the confining potential (low/high accuracy)
+   rloc: [7.0, 7.0] #                             Localization radius for the support functions
+   rloc_kernel                         : 9.0 #    Localization radius for the density kernel
+   rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
+ psppar.Si:
+   Pseudopotential type                : HGH-K
+   Atomic number                       : 14
+   No. of Electrons                    : 4
+   Pseudopotential XC                  : 1
+   Local Pseudo Potential (HGH convention):
+     Rloc                              : 0.44
+     Coefficients (c1 .. c4): [-7.33610297, 0.0, 0.0, 0.0]
+   NonLocal PSP Parameters:
+   - Channel (l)                       : 0
+     Rloc                              : 0.42273813
+     h_ij terms: [5.90692831, 3.25819622, 0.0, -1.26189397, 0.0, 0.0]
+   - Channel (l)                       : 1
+     Rloc                              : 0.48427842
+     h_ij terms: [2.72701346, 0.0, 0.0, 0.0, 0.0, 0.0]
+   Source                              : Hard-Coded
+   Radii of active regions (AU):
+     Coarse                            : 1.806025343502968
+     Fine                              : 0.42273813
+     Coarse PSP                        : 0.9080220375
+     Source                            : Hard-Coded
  posinp:
+    #---------------------------------------------- Atomic positions (by default bohr units)
    units                               : angstroem
    cell: [ 25.0,  25.0,  25.0]
    positions:
@@ -97,192 +354,10 @@
    - Si: [10.68289566040039, 11.56491088867188, 14.40401840209961]
    properties:
      format                            : ascii
-     source                            : LENOSKY-ab6md
- dft:
-   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
-   rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
-   ixc                                 : 1 #      Exchange-correlation parameter (LDA=1,PBE=11)
-   qcharge                             : 0 #      Charge of the system. Can be integer or real.
-   elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
-   nspin                               : 1 #      Spin polarization treatment
-   mpol                                : 0 #      Total magnetic moment
-   gnrm_cv                             : 1.e-4 #  convergence criterion gradient
-   itermax                             : 50 #     Max. iterations of wfn. opt. steps
-   itermin                             : 0 #      Min. iterations of wfn. opt. steps
-   nrepmax                             : 1 #      Max. number of re-diag. runs
-   ncong                               : 6 #      No. of CG it. for preconditioning eq.
-   idsx                                : 6 #      Wfn. diis history
-   dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
-   inputpsiid                          : 0 #      Input guess wavefunctions
-   output_wf                           : 0 #      Output of the support functions
-   output_denspot                      : 0 #      Output of the density or the potential
-   rbuf                                : 0. #     Length of the tail (AU)
-   ncongt                              : 30 #     No. of tail CG iterations
-   norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
-   nvirt                               : 0 #      No. of virtual orbs
-   nplot                               : 0 #      No. of plotted orbs
-   disablesym                          : No #     Disable the symmetry detection
- perf:
-   debug                               : No #     Debug option
-   fftcache                            : 8192 #   Cache size for the FFT
-   accel                               : NO #     Acceleration (hardware)
-   ocl_platform                        : ~ #      Chosen OCL platform
-   ocl_devices                         : ~ #      Chosen OCL devices
-   blas                                : No #     CUBLAS acceleration
-   projrad                             : 15. #    Radius of the projector as a function of the maxrad
-   exctxpar                            : OP2P #   Exact exchange parallelisation scheme
-   ig_diag                             : Yes #    Input guess (T=Direct, F=Iterative) diag. of Ham.
-   ig_norbp                            : 5 #      Input guess Orbitals per process for iterative diag.
-   ig_blocks: [300, 800] #                        Input guess Block sizes for orthonormalisation
-   ig_tol                              : 1.0e-4 # Input guess Tolerance criterion
-   methortho                           : 0 #      Orthogonalisation
-   rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
-   psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
-   psolver_accel                       : 0 #      Acceleration of the Poisson Solver (0=none, 1=CUDA)
-   unblock_comms                       : OFF #    Overlap Communications of fields (OFF,DEN,POT)
-   linear                              : OFF #    Linear Input Guess approach
-   tolsym                              : 1.0e-8 # Tolerance for symmetry detection
-   signaling                           : No #     Expose calculation results on Network
-   signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
-   domain                              : ~ #      Domain to add to the hostname to find the IP
-   inguess_geopt                       : 0 #      Input guess to be used during the optimization
-   store_index                         : Yes #    Store indices or recalculate them for linear scaling
-   verbosity                           : 2 #      Verbosity of the output
-   psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
-   multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
-   mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scalig function order for the multipole preserving
-   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
-   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
-   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
-   iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
-   check_sumrho                        : 2 #      Enables linear sumrho check
-   check_overlap                       : 2 #      Enables linear overlap check
-   experimental_mode                   : No #     Activate the experimental mode in linear scaling
-   write_orbitals                      : 0 #      Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
-   explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
-   calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
-   intermediate_forces                 : No #     Linear scaling calculate intermediate forces
-   kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
-   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-   evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
-    #                                              purification, 1 FOE, 2 renormalization)
-   calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
-   loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
-   check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
-   correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
-   fscale_lowerbound                   : 5.e-3 #  linear scaling lower bound for the error function decay length
-   fscale_upperbound                   : 5.e-2 #  linear scaling upper bound for the error function decay length
-   FOE_restart                         : 0 #      Restart method to be used for the FOE method
-   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
-   enable_matrix_taskgroups            : True #   enable the matrix taskgroups
-   hamapp_radius_incr                  : 8 #      radius enlargement for the Hamiltonian application (in grid points)
-   adjust_kernel_iterations            : True #   enable the addaptive ajustment of the number of kernel iterations
-   wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
- kpt:
-   method                              : manual # K-point sampling method
-   kpt: #                                         Kpt coordinates
-   -  [0., 0., 0.]
-   wkpt: [1.] #                                   Kpt weights
-   bands                               : No #     For doing band structure calculation
- mix:
-   iscf                                : 0 #      Mixing parameters
-   itrpmax                             : 1 #      Maximum number of diagonalisation iterations
-   rpnrm_cv                            : 1e-4 #   Stop criterion on the residue of potential or density
-   norbsempty                          : 0 #      No. of additional bands
-   tel                                 : 0. #     Electronic temperature
-   occopt                              : 1 #      Smearing method
-   alphamix                            : 0. #     Multiplying factors for the mixing
-   alphadiis                           : 2. #     Multiplying factors for the electronic DIIS
- sic:
-   sic_approach                        : none #   SIC (self-interaction correction) method
-   sic_alpha                           : 0. #     SIC downscaling parameter
- tddft:
-   tddft_approach                      : none #   Time-Dependent DFT method
- lin_general:
-   hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
-   nit: [100, 100] #                              number of iteration with low/high accuracy
-   rpnrm_cv: [1.e-12, 1.e-12] #                   convergence criterion for low/high accuracy
-   conf_damping                        : -0.5 #   how the confinement should be decreased, only relevant for hybrid mode; negative -> 
-    #                                              automatic
-   taylor_order                        : 0 #      order of the Taylor approximation; 0 -> exact
-   max_inversion_error                 : 1.d0 #   linear scaling maximal error of the Taylor approximations to calculate the inverse of 
-    #                                              the overlap matrix
-   output_wf                           : 0 #      output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
-   calc_dipole                         : No #     calculate dipole
-   calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
-   subspace_diag                       : No #     diagonalization at the end
-   extra_states                        : 0 #      extra states to optimize (dmin only)
- lin_basis:
-   nit: [4, 5] #                                  maximal number of iterations in the optimization of the 
-    #                                              support functions
-   idsx: [6, 6] #                                 DIIS history for optimization of the support functions 
-    #                                              (low/high accuracy); 0 -> SD
-   gnrm_cv: [1.e-2, 1.e-4] #                      convergence criterion for the optimization of the support functions 
-    #                                              (low/high accuracy)
-   deltae_cv                           : 1.e-4 #  total relative energy difference to stop the optimization ('experimental_mode' only)
-   gnrm_dyn                            : 1.e-4 #  dynamic convergence criterion ('experimental_mode' only)
-   min_gnrm_for_dynamic                : 1.e-3 #  minimal gnrm to active the dynamic gnrm criterion
-   alpha_diis                          : 1.0 #    multiplicator for DIIS
-   alpha_sd                            : 1.0 #    initial step size for SD
-   nstep_prec                          : 5 #      number of iterations in the preconditioner
-   fix_basis                           : 1.e-10 # fix the support functions if the density change is below this threshold
-   correction_orthoconstraint          : 1 #      correction for the slight non-orthonormality in the orthoconstraint
- lin_kernel:
-   nstep: [1, 1] #                                number of steps taken when updating the coefficients via 
-    #                                              direct minimization for each iteration of 
-    #                                              the density kernel loop
-   nit: [5, 5] #                                  number of iterations in the (self-consistent) 
-    #                                              optimization of the density kernel
-   idsx_coeff: [0, 0] #                           DIIS history for direct mininimization
-   idsx: [0, 0] #                                 mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
-   alphamix: [0.5, 0.5] #                         mixing parameter (low/high accuracy)
-   gnrm_cv_coeff: [1.e-5, 1.e-5] #                convergence criterion on the gradient for direct minimization
-   rpnrm_cv: [1.e-10, 1.e-10] #                   convergence criterion (change in density/potential) for the kernel 
-    #                                              optimization
-   linear_method                       : DIAG #   method to optimize the density kernel
-   mixing_method                       : DEN #    quantity to be mixed
-   alpha_sd_coeff                      : 0.2 #    initial step size for SD for direct minimization
-   alpha_fit_coeff                     : No #     update the SD step size by fitting a quadratic polynomial to the energy along the 
-    #                                              direction of the gradient during direct 
-    #                                              mininimization.
-   eval_range_foe: [-0.5, 0.5] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
-    #                                              automatically if chosen unproperly
-   fscale_foe                          : 2.e-2 #  decay length of the error function
- lin_basis_params:
-   nbasis                              : 4 #      number of support functions per atom
-   ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential
-   confinement: [8.3e-3, 0.0] #                   prefactor for the confining potential (low/high accuracy)
-   rloc: [7.0, 7.0] #                             localization radius for the support functions
-   rloc_kernel                         : 9.0 #    localization radius for the density kernel
-   rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
- psppar.Si:
-   Pseudopotential type                : HGH-K
-   Atomic number                       : 14
-   No. of Electrons                    : 4
-   Pseudopotential XC                  : 1
-   Local Pseudo Potential (HGH convention):
-     Rloc                              : 0.44
-     Coefficients (c1 .. c4): [-7.33610297, 0.0, 0.0, 0.0]
-   NonLocal PSP Parameters:
-   - Channel (l)                       : 0
-     Rloc                              : 0.42273813
-     h_ij terms: [5.90692831, 3.25819622, 0.0, -1.26189397, 0.0, 0.0]
-   - Channel (l)                       : 1
-     Rloc                              : 0.48427842
-     h_ij terms: [2.72701346, 0.0, 0.0, 0.0, 0.0, 0.0]
-   Source                              : Hard-Coded
-   Radii of active regions (AU):
-     Coarse                            : 1.806025343502968
-     Fine                              : 0.42273813
-     Coarse PSP                        : 0.9080220375
-     Source                            : Hard-Coded
+     source                            : LENOSKY-ab6md.ascii
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-LENOSKY-ab6md/
-  #--------------------------------------- Input Atomic System (file: __not_a_value__.ascii)
+  #----------------------------------------- Input Atomic System (file: LENOSKY-ab6md.ascii)
  Atomic System Properties:
    Number of atomic types              :  1
    Number of atoms                     :  20
@@ -307,1024 +382,1526 @@
  -  {Rc:  [  0.0000,  0.0000,  0.0000 ], Bz:  [  0.0000,  0.0000,  0.0000 ], Wgt:  1.0000} # 0001
  Material acceleration                 :  No #iproc=0
  Initializing LENOSKY_SI_BULK_RUN_MODE:
- - LENOSKY_SI_BULK_RUN_MODE: {}
-   Energy (Hartree)                    : -2.52891298656997110E+00
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52891298656997110E+00, 
+ Force Norm (Hartree/Bohr):  1.08151286383217832E-01}
    Wavefunction Optimization Finished, exit signal:  0
     #----------------------------------------------------- Geometry minimization using AB6MD
    Begin of minimization using         : AB6MD
    ENTERING Molecular Dynamics (ABINIT implementation):  0
    SCFloop API, call force calculation step:  1
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52891506895643126E+00, 
+ Force Norm (Hartree/Bohr):  1.08141110597950132E-01}
    SCFloop API, call force calculation step:  2
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52891771929686904E+00, 
+ Force Norm (Hartree/Bohr):  1.08130855120340971E-01}
    SCFloop API, call force calculation step:  3
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52892093695830544E+00, 
+ Force Norm (Hartree/Bohr):  1.08120520430066328E-01}
    SCFloop API, call force calculation step:  4
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52892472130677115E+00, 
+ Force Norm (Hartree/Bohr):  1.08110106974518991E-01}
    SCFloop API, call force calculation step:  5
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52892907170732562E+00, 
+ Force Norm (Hartree/Bohr):  1.08099615168791213E-01}
    SCFloop API, call force calculation step:  6
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52893398752408416E+00, 
+ Force Norm (Hartree/Bohr):  1.08089045396934688E-01}
    SCFloop API, call force calculation step:  7
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52893946812023307E+00, 
+ Force Norm (Hartree/Bohr):  1.08078398009450016E-01}
    SCFloop API, call force calculation step:  8
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52894551285803626E+00, 
+ Force Norm (Hartree/Bohr):  1.08067673323628516E-01}
    SCFloop API, call force calculation step:  9
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52895212109884904E+00, 
+ Force Norm (Hartree/Bohr):  1.08056871624043441E-01}
    SCFloop API, call force calculation step:  10
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52895929220312610E+00, 
+ Force Norm (Hartree/Bohr):  1.08045993162488793E-01}
    SCFloop API, call force calculation step:  11
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52896702553043129E+00, 
+ Force Norm (Hartree/Bohr):  1.08035038157924035E-01}
    SCFloop API, call force calculation step:  12
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52897532043945228E+00, 
+ Force Norm (Hartree/Bohr):  1.08024006796424696E-01}
    SCFloop API, call force calculation step:  13
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52898417628797834E+00, 
+ Force Norm (Hartree/Bohr):  1.08012899224584763E-01}
    SCFloop API, call force calculation step:  14
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52899359243281729E+00, 
+ Force Norm (Hartree/Bohr):  1.08001715552070623E-01}
    SCFloop API, call force calculation step:  15
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52900356822987016E+00, 
+ Force Norm (Hartree/Bohr):  1.07990455866498650E-01}
    SCFloop API, call force calculation step:  16
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52901410303417418E+00, 
+ Force Norm (Hartree/Bohr):  1.07979120222667035E-01}
    SCFloop API, call force calculation step:  17
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52902519619991706E+00, 
+ Force Norm (Hartree/Bohr):  1.07967708642379159E-01}
    SCFloop API, call force calculation step:  18
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52903684708042764E+00, 
+ Force Norm (Hartree/Bohr):  1.07956221115065851E-01}
    SCFloop API, call force calculation step:  19
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52904905502814303E+00, 
+ Force Norm (Hartree/Bohr):  1.07944657599717150E-01}
    SCFloop API, call force calculation step:  20
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52906181939461838E+00, 
+ Force Norm (Hartree/Bohr):  1.07933018019648636E-01}
    SCFloop API, call force calculation step:  21
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52907513953054686E+00, 
+ Force Norm (Hartree/Bohr):  1.07921302264785399E-01}
    SCFloop API, call force calculation step:  22
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52908901478575698E+00, 
+ Force Norm (Hartree/Bohr):  1.07909510192135516E-01}
    SCFloop API, call force calculation step:  23
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52910344450921398E+00, 
+ Force Norm (Hartree/Bohr):  1.07897641625825449E-01}
    SCFloop API, call force calculation step:  24
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52911842804900200E+00, 
+ Force Norm (Hartree/Bohr):  1.07885696357151464E-01}
    SCFloop API, call force calculation step:  25
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52913396475232766E+00, 
+ Force Norm (Hartree/Bohr):  1.07873674144632434E-01}
    SCFloop API, call force calculation step:  26
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52915005396549830E+00, 
+ Force Norm (Hartree/Bohr):  1.07861574714072914E-01}
    SCFloop API, call force calculation step:  27
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52916669503392377E+00, 
+ Force Norm (Hartree/Bohr):  1.07849397758633420E-01}
    SCFloop API, call force calculation step:  28
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52918388730209509E+00, 
+ Force Norm (Hartree/Bohr):  1.07837142938910502E-01}
    SCFloop API, call force calculation step:  29
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52920163011357602E+00, 
+ Force Norm (Hartree/Bohr):  1.07824809883024508E-01}
    SCFloop API, call force calculation step:  30
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52921992281098573E+00, 
+ Force Norm (Hartree/Bohr):  1.07812398186484124E-01}
    SCFloop API, call force calculation step:  31
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52923876473599663E+00, 
+ Force Norm (Hartree/Bohr):  1.07799907411541829E-01}
    SCFloop API, call force calculation step:  32
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52925815522931030E+00, 
+ Force Norm (Hartree/Bohr):  1.07787337089189389E-01}
    SCFloop API, call force calculation step:  33
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52927809363063538E+00, 
+ Force Norm (Hartree/Bohr):  1.07774686718522472E-01}
    SCFloop API, call force calculation step:  34
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52929857927866486E+00, 
+ Force Norm (Hartree/Bohr):  1.07761955766712061E-01}
    SCFloop API, call force calculation step:  35
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52931961151105611E+00, 
+ Force Norm (Hartree/Bohr):  1.07749143669140221E-01}
    SCFloop API, call force calculation step:  36
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52934118966440824E+00, 
+ Force Norm (Hartree/Bohr):  1.07736249828882247E-01}
    SCFloop API, call force calculation step:  37
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52936331307423945E+00, 
+ Force Norm (Hartree/Bohr):  1.07723273617042328E-01}
    SCFloop API, call force calculation step:  38
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52938598107496260E+00, 
+ Force Norm (Hartree/Bohr):  1.07710214374618557E-01}
    SCFloop API, call force calculation step:  39
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52940919299985811E+00, 
+ Force Norm (Hartree/Bohr):  1.07697071412667211E-01}
    SCFloop API, call force calculation step:  40
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52943294818104825E+00, 
+ Force Norm (Hartree/Bohr):  1.07683844010455984E-01}
    SCFloop API, call force calculation step:  41
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52945724594946952E+00, 
+ Force Norm (Hartree/Bohr):  1.07670531415951440E-01}
    SCFloop API, call force calculation step:  42
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52948208563483767E+00, 
+ Force Norm (Hartree/Bohr):  1.07657132846490824E-01}
    SCFloop API, call force calculation step:  43
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52950746656562320E+00, 
+ Force Norm (Hartree/Bohr):  1.07643647488974203E-01}
    SCFloop API, call force calculation step:  44
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52953338806901140E+00, 
+ Force Norm (Hartree/Bohr):  1.07630074500071393E-01}
    SCFloop API, call force calculation step:  45
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52955984947087664E+00, 
+ Force Norm (Hartree/Bohr):  1.07616413008812084E-01}
    SCFloop API, call force calculation step:  46
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52958685009575124E+00, 
+ Force Norm (Hartree/Bohr):  1.07602662121716583E-01}
    SCFloop API, call force calculation step:  47
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52961438926678861E+00, 
+ Force Norm (Hartree/Bohr):  1.07588820907336014E-01}
    SCFloop API, call force calculation step:  48
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52964246630571976E+00, 
+ Force Norm (Hartree/Bohr):  1.07574888389171994E-01}
    SCFloop API, call force calculation step:  49
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52967108053116707E+00, 
+ Force Norm (Hartree/Bohr):  1.07560862872255233E-01}
    SCFloop API, call force calculation step:  50
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52970023125626176E+00, 
+ Force Norm (Hartree/Bohr):  1.07546742904995940E-01}
    SCFloop API, call force calculation step:  51
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52972991779237466E+00, 
+ Force Norm (Hartree/Bohr):  1.07532527399508041E-01}
    SCFloop API, call force calculation step:  52
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52976013944934985E+00, 
+ Force Norm (Hartree/Bohr):  1.07518215292081915E-01}
    SCFloop API, call force calculation step:  53
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52979089553535852E+00, 
+ Force Norm (Hartree/Bohr):  1.07503805491052706E-01}
    SCFloop API, call force calculation step:  54
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52982218535685144E+00, 
+ Force Norm (Hartree/Bohr):  1.07489296877076798E-01}
    SCFloop API, call force calculation step:  55
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52985400821851769E+00, 
+ Force Norm (Hartree/Bohr):  1.07474688303415111E-01}
    SCFloop API, call force calculation step:  56
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52988636342323758E+00, 
+ Force Norm (Hartree/Bohr):  1.07459978596221667E-01}
    SCFloop API, call force calculation step:  57
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52991925027204134E+00, 
+ Force Norm (Hartree/Bohr):  1.07445166554840960E-01}
    SCFloop API, call force calculation step:  58
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52995266806405494E+00, 
+ Force Norm (Hartree/Bohr):  1.07430250952111339E-01}
    SCFloop API, call force calculation step:  59
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.52998661609560083E+00, 
+ Force Norm (Hartree/Bohr):  1.07415229730519257E-01}
    SCFloop API, call force calculation step:  60
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53002109365002958E+00, 
+ Force Norm (Hartree/Bohr):  1.07400098789127471E-01}
    SCFloop API, call force calculation step:  61
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53005610000094983E+00, 
+ Force Norm (Hartree/Bohr):  1.07384856630336756E-01}
    SCFloop API, call force calculation step:  62
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53009163441951923E+00, 
+ Force Norm (Hartree/Bohr):  1.07369501983276133E-01}
    SCFloop API, call force calculation step:  63
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53012769594558806E+00, 
+ Force Norm (Hartree/Bohr):  1.07353011813470178E-01}
    SCFloop API, call force calculation step:  64
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53016428247324265E+00, 
+ Force Norm (Hartree/Bohr):  1.07335390946836001E-01}
    SCFloop API, call force calculation step:  65
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53020139297206281E+00, 
+ Force Norm (Hartree/Bohr):  1.07317631963003327E-01}
    SCFloop API, call force calculation step:  66
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53023902662198852E+00, 
+ Force Norm (Hartree/Bohr):  1.07299733531227459E-01}
    SCFloop API, call force calculation step:  67
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53027718259964729E+00, 
+ Force Norm (Hartree/Bohr):  1.07281694257960566E-01}
    SCFloop API, call force calculation step:  68
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53031586007900877E+00, 
+ Force Norm (Hartree/Bohr):  1.07263507425747390E-01}
    SCFloop API, call force calculation step:  69
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53035505879594869E+00, 
+ Force Norm (Hartree/Bohr):  1.07245049261562780E-01}
    SCFloop API, call force calculation step:  70
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53039477839833582E+00, 
+ Force Norm (Hartree/Bohr):  1.07226441194779087E-01}
    SCFloop API, call force calculation step:  71
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53043501804173543E+00, 
+ Force Norm (Hartree/Bohr):  1.07207681749690573E-01}
    SCFloop API, call force calculation step:  72
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53047577687795844E+00, 
+ Force Norm (Hartree/Bohr):  1.07188769430197561E-01}
    SCFloop API, call force calculation step:  73
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53051705405499705E+00, 
+ Force Norm (Hartree/Bohr):  1.07169702720191162E-01}
    SCFloop API, call force calculation step:  74
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53055884871697012E+00, 
+ Force Norm (Hartree/Bohr):  1.07150480083948146E-01}
    SCFloop API, call force calculation step:  75
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53060116000406277E+00, 
+ Force Norm (Hartree/Bohr):  1.07131099966522716E-01}
    SCFloop API, call force calculation step:  76
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53064398705246418E+00, 
+ Force Norm (Hartree/Bohr):  1.07111560794153529E-01}
    SCFloop API, call force calculation step:  77
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53068732899431081E+00, 
+ Force Norm (Hartree/Bohr):  1.07091860974667552E-01}
    SCFloop API, call force calculation step:  78
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53073118495761928E+00, 
+ Force Norm (Hartree/Bohr):  1.07071998897892595E-01}
    SCFloop API, call force calculation step:  79
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53077555406623045E+00, 
+ Force Norm (Hartree/Bohr):  1.07051972936075990E-01}
    SCFloop API, call force calculation step:  80
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53082043543974322E+00, 
+ Force Norm (Hartree/Bohr):  1.07031781444306417E-01}
    SCFloop API, call force calculation step:  81
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53086582819344930E+00, 
+ Force Norm (Hartree/Bohr):  1.07011422760958333E-01}
    SCFloop API, call force calculation step:  82
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53091173143829717E+00, 
+ Force Norm (Hartree/Bohr):  1.06990895213425252E-01}
    SCFloop API, call force calculation step:  83
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53095814428088328E+00, 
+ Force Norm (Hartree/Bohr):  1.06970197111930801E-01}
    SCFloop API, call force calculation step:  84
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53100506582332185E+00, 
+ Force Norm (Hartree/Bohr):  1.06949326746938578E-01}
    SCFloop API, call force calculation step:  85
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53105249516316233E+00, 
+ Force Norm (Hartree/Bohr):  1.06928282393931845E-01}
    SCFloop API, call force calculation step:  86
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53110043139332586E+00, 
+ Force Norm (Hartree/Bohr):  1.06907062313867582E-01}
    SCFloop API, call force calculation step:  87
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53114887360203777E+00, 
+ Force Norm (Hartree/Bohr):  1.06885664753626569E-01}
    SCFloop API, call force calculation step:  88
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53119782087275969E+00, 
+ Force Norm (Hartree/Bohr):  1.06864087946475103E-01}
    SCFloop API, call force calculation step:  89
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53124727228411928E+00, 
+ Force Norm (Hartree/Bohr):  1.06842330112524961E-01}
    SCFloop API, call force calculation step:  90
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53129722690985082E+00, 
+ Force Norm (Hartree/Bohr):  1.06820389458785373E-01}
    SCFloop API, call force calculation step:  91
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53134768381872011E+00, 
+ Force Norm (Hartree/Bohr):  1.06798264179241084E-01}
    SCFloop API, call force calculation step:  92
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53139864207446541E+00, 
+ Force Norm (Hartree/Bohr):  1.06775952457294487E-01}
    SCFloop API, call force calculation step:  93
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53145010073579435E+00, 
+ Force Norm (Hartree/Bohr):  1.06753452413499247E-01}
    SCFloop API, call force calculation step:  94
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53150205885703317E+00, 
+ Force Norm (Hartree/Bohr):  1.06730762056890457E-01}
    SCFloop API, call force calculation step:  95
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53155451548771948E+00, 
+ Force Norm (Hartree/Bohr):  1.06707879523624899E-01}
    SCFloop API, call force calculation step:  96
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53160746967207695E+00, 
+ Force Norm (Hartree/Bohr):  1.06684802984915450E-01}
    SCFloop API, call force calculation step:  97
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53166092044927415E+00, 
+ Force Norm (Hartree/Bohr):  1.06661531145953656E-01}
    SCFloop API, call force calculation step:  98
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53171486685363423E+00, 
+ Force Norm (Hartree/Bohr):  1.06638062338700865E-01}
    SCFloop API, call force calculation step:  99
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53176930791404686E+00, 
+ Force Norm (Hartree/Bohr):  1.06614394686896957E-01}
    SCFloop API, call force calculation step:  100
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53182424265383821E+00, 
+ Force Norm (Hartree/Bohr):  1.06590526306458655E-01}
    SCFloop API, call force calculation step:  101
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53187967028400340E+00, 
+ Force Norm (Hartree/Bohr):  1.06566623966619395E-01}
    SCFloop API, call force calculation step:  102
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53193559092833098E+00, 
+ Force Norm (Hartree/Bohr):  1.06542680535102977E-01}
    SCFloop API, call force calculation step:  103
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53199200378359901E+00, 
+ Force Norm (Hartree/Bohr):  1.06518534284562566E-01}
    SCFloop API, call force calculation step:  104
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53204890786587500E+00, 
+ Force Norm (Hartree/Bohr):  1.06494183307575971E-01}
    SCFloop API, call force calculation step:  105
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53210630218543198E+00, 
+ Force Norm (Hartree/Bohr):  1.06469625691210781E-01}
    SCFloop API, call force calculation step:  106
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53216418574667568E+00, 
+ Force Norm (Hartree/Bohr):  1.06444859517534532E-01}
    SCFloop API, call force calculation step:  107
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53222255754807835E+00, 
+ Force Norm (Hartree/Bohr):  1.06419882864127555E-01}
    SCFloop API, call force calculation step:  108
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53228141658209616E+00, 
+ Force Norm (Hartree/Bohr):  1.06394693804597373E-01}
    SCFloop API, call force calculation step:  109
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53234076183510970E+00, 
+ Force Norm (Hartree/Bohr):  1.06369290409094860E-01}
    SCFloop API, call force calculation step:  110
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53240059228736136E+00, 
+ Force Norm (Hartree/Bohr):  1.06343670891585168E-01}
    SCFloop API, call force calculation step:  111
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53246090693951631E+00, 
+ Force Norm (Hartree/Bohr):  1.06317849360998085E-01}
    SCFloop API, call force calculation step:  112
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53252170486485984E+00, 
+ Force Norm (Hartree/Bohr):  1.06291834668153923E-01}
    SCFloop API, call force calculation step:  113
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53258298514621449E+00, 
+ Force Norm (Hartree/Bohr):  1.06265624780906648E-01}
    SCFloop API, call force calculation step:  114
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53264474686166619E+00, 
+ Force Norm (Hartree/Bohr):  1.06239217659578208E-01}
    SCFloop API, call force calculation step:  115
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53270698908448866E+00, 
+ Force Norm (Hartree/Bohr):  1.06212611257459372E-01}
    SCFloop API, call force calculation step:  116
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53276971088307734E+00, 
+ Force Norm (Hartree/Bohr):  1.06185803521312322E-01}
    SCFloop API, call force calculation step:  117
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53283291132086452E+00, 
+ Force Norm (Hartree/Bohr):  1.06158792391877060E-01}
    SCFloop API, call force calculation step:  118
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53289658945624829E+00, 
+ Force Norm (Hartree/Bohr):  1.06131575804379860E-01}
    SCFloop API, call force calculation step:  119
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53296074434249663E+00, 
+ Force Norm (Hartree/Bohr):  1.06104151675288860E-01}
    SCFloop API, call force calculation step:  120
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53302537502756975E+00, 
+ Force Norm (Hartree/Bohr):  1.06076517908204992E-01}
    SCFloop API, call force calculation step:  121
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53309048055411967E+00, 
+ Force Norm (Hartree/Bohr):  1.06048672424799123E-01}
    SCFloop API, call force calculation step:  122
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53315605995948356E+00, 
+ Force Norm (Hartree/Bohr):  1.06020613089439053E-01}
    SCFloop API, call force calculation step:  123
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53322211227721672E+00, 
+ Force Norm (Hartree/Bohr):  1.05992336999334288E-01}
    SCFloop API, call force calculation step:  124
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53328863653807979E+00, 
+ Force Norm (Hartree/Bohr):  1.05963841784690482E-01}
    SCFloop API, call force calculation step:  125
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53335563176747991E+00, 
+ Force Norm (Hartree/Bohr):  1.05935125347159889E-01}
    SCFloop API, call force calculation step:  126
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53342309698513590E+00, 
+ Force Norm (Hartree/Bohr):  1.05906185587177390E-01}
    SCFloop API, call force calculation step:  127
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53349103120500585E+00, 
+ Force Norm (Hartree/Bohr):  1.05877020404000668E-01}
    SCFloop API, call force calculation step:  128
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53355943343520540E+00, 
+ Force Norm (Hartree/Bohr):  1.05847627696334212E-01}
    SCFloop API, call force calculation step:  129
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53362830267793848E+00, 
+ Force Norm (Hartree/Bohr):  1.05818005362942322E-01}
    SCFloop API, call force calculation step:  130
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53369763792941471E+00, 
+ Force Norm (Hartree/Bohr):  1.05788151303175162E-01}
    SCFloop API, call force calculation step:  131
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53376743817977879E+00, 
+ Force Norm (Hartree/Bohr):  1.05758063417484033E-01}
    SCFloop API, call force calculation step:  132
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53383770241231465E+00, 
+ Force Norm (Hartree/Bohr):  1.05727740801572656E-01}
    SCFloop API, call force calculation step:  133
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53390842960087204E+00, 
+ Force Norm (Hartree/Bohr):  1.05697182767834408E-01}
    SCFloop API, call force calculation step:  134
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53397961871222099E+00, 
+ Force Norm (Hartree/Bohr):  1.05666387213283169E-01}
    SCFloop API, call force calculation step:  135
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53405126870690722E+00, 
+ Force Norm (Hartree/Bohr):  1.05635352042454347E-01}
    SCFloop API, call force calculation step:  136
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53412337853917302E+00, 
+ Force Norm (Hartree/Bohr):  1.05604075156104316E-01}
    SCFloop API, call force calculation step:  137
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53419594715689511E+00, 
+ Force Norm (Hartree/Bohr):  1.05572554456459397E-01}
    SCFloop API, call force calculation step:  138
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53426897350151803E+00, 
+ Force Norm (Hartree/Bohr):  1.05540787849892875E-01}
    SCFloop API, call force calculation step:  139
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53434245650797596E+00, 
+ Force Norm (Hartree/Bohr):  1.05508773247450380E-01}
    SCFloop API, call force calculation step:  140
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53441639510461547E+00, 
+ Force Norm (Hartree/Bohr):  1.05476508565373966E-01}
    SCFloop API, call force calculation step:  141
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53449078821312490E+00, 
+ Force Norm (Hartree/Bohr):  1.05443991717262764E-01}
    SCFloop API, call force calculation step:  142
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53456563474883056E+00, 
+ Force Norm (Hartree/Bohr):  1.05411220404031114E-01}
    SCFloop API, call force calculation step:  143
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53464093362118525E+00, 
+ Force Norm (Hartree/Bohr):  1.05378192374210589E-01}
    SCFloop API, call force calculation step:  144
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53471668373449743E+00, 
+ Force Norm (Hartree/Bohr):  1.05344905332634700E-01}
    SCFloop API, call force calculation step:  145
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53479288398704039E+00, 
+ Force Norm (Hartree/Bohr):  1.05311357199134814E-01}
    SCFloop API, call force calculation step:  146
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53486953327003395E+00, 
+ Force Norm (Hartree/Bohr):  1.05277545915376317E-01}
    SCFloop API, call force calculation step:  147
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53494663046755830E+00, 
+ Force Norm (Hartree/Bohr):  1.05243469432209413E-01}
    SCFloop API, call force calculation step:  148
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53502417445651007E+00, 
+ Force Norm (Hartree/Bohr):  1.05209125663203326E-01}
    SCFloop API, call force calculation step:  149
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53510216410681455E+00, 
+ Force Norm (Hartree/Bohr):  1.05174512396834563E-01}
    SCFloop API, call force calculation step:  150
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53518059828125919E+00, 
+ Force Norm (Hartree/Bohr):  1.05139627596777460E-01}
    SCFloop API, call force calculation step:  151
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53525947583519429E+00, 
+ Force Norm (Hartree/Bohr):  1.05104469255952321E-01}
    SCFloop API, call force calculation step:  152
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53533879561646236E+00, 
+ Force Norm (Hartree/Bohr):  1.05069035379126513E-01}
    SCFloop API, call force calculation step:  153
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53541855646532621E+00, 
+ Force Norm (Hartree/Bohr):  1.05033323983420898E-01}
    SCFloop API, call force calculation step:  154
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53549875721436413E+00, 
+ Force Norm (Hartree/Bohr):  1.04997333078720501E-01}
    SCFloop API, call force calculation step:  155
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53557939668815857E+00, 
+ Force Norm (Hartree/Bohr):  1.04961060668177245E-01}
    SCFloop API, call force calculation step:  156
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53566047370338365E+00, 
+ Force Norm (Hartree/Bohr):  1.04924504808597122E-01}
    SCFloop API, call force calculation step:  157
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53574198706886023E+00, 
+ Force Norm (Hartree/Bohr):  1.04887663572329912E-01}
    SCFloop API, call force calculation step:  158
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53582393558548569E+00, 
+ Force Norm (Hartree/Bohr):  1.04850535046598733E-01}
    SCFloop API, call force calculation step:  159
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53590631804617628E+00, 
+ Force Norm (Hartree/Bohr):  1.04813117333997341E-01}
    SCFloop API, call force calculation step:  160
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53598913323579600E+00, 
+ Force Norm (Hartree/Bohr):  1.04775408552979205E-01}
    SCFloop API, call force calculation step:  161
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53607237993595547E+00, 
+ Force Norm (Hartree/Bohr):  1.04737406742863234E-01}
    SCFloop API, call force calculation step:  162
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53615605694063895E+00, 
+ Force Norm (Hartree/Bohr):  1.04699109880576943E-01}
    SCFloop API, call force calculation step:  163
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53624016304099165E+00, 
+ Force Norm (Hartree/Bohr):  1.04660516024682071E-01}
    SCFloop API, call force calculation step:  164
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53632469701984409E+00, 
+ Force Norm (Hartree/Bohr):  1.04621623256501914E-01}
    SCFloop API, call force calculation step:  165
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53640965765165394E+00, 
+ Force Norm (Hartree/Bohr):  1.04582429676020813E-01}
    SCFloop API, call force calculation step:  166
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53649504370245271E+00, 
+ Force Norm (Hartree/Bohr):  1.04542933402274801E-01}
    SCFloop API, call force calculation step:  167
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53658085392977384E+00, 
+ Force Norm (Hartree/Bohr):  1.04503132573834145E-01}
    SCFloop API, call force calculation step:  168
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53666708708259492E+00, 
+ Force Norm (Hartree/Bohr):  1.04463025349284908E-01}
    SCFloop API, call force calculation step:  169
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53675374190127201E+00, 
+ Force Norm (Hartree/Bohr):  1.04422609907700192E-01}
    SCFloop API, call force calculation step:  170
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53684081711748233E+00, 
+ Force Norm (Hartree/Bohr):  1.04381884449112852E-01}
    SCFloop API, call force calculation step:  171
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53692831145416386E+00, 
+ Force Norm (Hartree/Bohr):  1.04340847194984529E-01}
    SCFloop API, call force calculation step:  172
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53701622362545365E+00, 
+ Force Norm (Hartree/Bohr):  1.04299496388668742E-01}
    SCFloop API, call force calculation step:  173
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53710455233785126E+00, 
+ Force Norm (Hartree/Bohr):  1.04257834510359082E-01}
    SCFloop API, call force calculation step:  174
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53719329630424673E+00, 
+ Force Norm (Hartree/Bohr):  1.04215874531666197E-01}
    SCFloop API, call force calculation step:  175
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53728245423967635E+00, 
+ Force Norm (Hartree/Bohr):  1.04173616268441391E-01}
    SCFloop API, call force calculation step:  176
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53737202485146174E+00, 
+ Force Norm (Hartree/Bohr):  1.04131058333601881E-01}
    SCFloop API, call force calculation step:  177
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53746200683897882E+00, 
+ Force Norm (Hartree/Bohr):  1.04088199362773456E-01}
    SCFloop API, call force calculation step:  178
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53755239889361217E+00, 
+ Force Norm (Hartree/Bohr):  1.04045038014684663E-01}
    SCFloop API, call force calculation step:  179
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53764319969871588E+00, 
+ Force Norm (Hartree/Bohr):  1.04001572952892987E-01}
    SCFloop API, call force calculation step:  180
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53773440792825600E+00, 
+ Force Norm (Hartree/Bohr):  1.03957802358774193E-01}
    SCFloop API, call force calculation step:  181
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53782602224526954E+00, 
+ Force Norm (Hartree/Bohr):  1.03913724732338356E-01}
    SCFloop API, call force calculation step:  182
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53791804130424570E+00, 
+ Force Norm (Hartree/Bohr):  1.03869338840313796E-01}
    SCFloop API, call force calculation step:  183
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53801046375144956E+00, 
+ Force Norm (Hartree/Bohr):  1.03824643474614287E-01}
    SCFloop API, call force calculation step:  184
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53810328822488263E+00, 
+ Force Norm (Hartree/Bohr):  1.03779637452712722E-01}
    SCFloop API, call force calculation step:  185
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53819651335425656E+00, 
+ Force Norm (Hartree/Bohr):  1.03734319618001447E-01}
    SCFloop API, call force calculation step:  186
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53829013775979417E+00, 
+ Force Norm (Hartree/Bohr):  1.03688689053455435E-01}
    SCFloop API, call force calculation step:  187
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53838416003479805E+00, 
+ Force Norm (Hartree/Bohr):  1.03642745099373712E-01}
    SCFloop API, call force calculation step:  188
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53847857872765115E+00, 
+ Force Norm (Hartree/Bohr):  1.03596485505924457E-01}
    SCFloop API, call force calculation step:  189
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53857339236238078E+00, 
+ Force Norm (Hartree/Bohr):  1.03549909357622844E-01}
    SCFloop API, call force calculation step:  190
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53866859945432166E+00, 
+ Force Norm (Hartree/Bohr):  1.03503015879103669E-01}
    SCFloop API, call force calculation step:  191
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53876419851030954E+00, 
+ Force Norm (Hartree/Bohr):  1.03455804005820481E-01}
    SCFloop API, call force calculation step:  192
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53886018802716462E+00, 
+ Force Norm (Hartree/Bohr):  1.03408270341127234E-01}
    SCFloop API, call force calculation step:  193
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53895656649120705E+00, 
+ Force Norm (Hartree/Bohr):  1.03360413533312767E-01}
    SCFloop API, call force calculation step:  194
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53905333237995290E+00, 
+ Force Norm (Hartree/Bohr):  1.03312232852283081E-01}
    SCFloop API, call force calculation step:  195
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53915048416221412E+00, 
+ Force Norm (Hartree/Bohr):  1.03263727597821764E-01}
    SCFloop API, call force calculation step:  196
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53924802029808339E+00, 
+ Force Norm (Hartree/Bohr):  1.03214897099883879E-01}
    SCFloop API, call force calculation step:  197
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53934593924180829E+00, 
+ Force Norm (Hartree/Bohr):  1.03165743952672889E-01}
    SCFloop API, call force calculation step:  198
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53944423948773679E+00, 
+ Force Norm (Hartree/Bohr):  1.03116285764843760E-01}
    SCFloop API, call force calculation step:  199
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53954291956364031E+00, 
+ Force Norm (Hartree/Bohr):  1.03066525047989840E-01}
    SCFloop API, call force calculation step:  200
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53964197799131419E+00, 
+ Force Norm (Hartree/Bohr):  1.03016461373740958E-01}
    SCFloop API, call force calculation step:  201
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53974141328522496E+00, 
+ Force Norm (Hartree/Bohr):  1.02966094344362227E-01}
    SCFloop API, call force calculation step:  202
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53984122395252454E+00, 
+ Force Norm (Hartree/Bohr):  1.02915423595388369E-01}
    SCFloop API, call force calculation step:  203
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.53994140849308225E+00, 
+ Force Norm (Hartree/Bohr):  1.02864448842376194E-01}
    SCFloop API, call force calculation step:  204
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54004196539955629E+00, 
+ Force Norm (Hartree/Bohr):  1.02813169800645851E-01}
    SCFloop API, call force calculation step:  205
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54014289315734976E+00, 
+ Force Norm (Hartree/Bohr):  1.02761586197189267E-01}
    SCFloop API, call force calculation step:  206
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54024419024462755E+00, 
+ Force Norm (Hartree/Bohr):  1.02709697789055907E-01}
    SCFloop API, call force calculation step:  207
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54034585513230082E+00, 
+ Force Norm (Hartree/Bohr):  1.02657504367972927E-01}
    SCFloop API, call force calculation step:  208
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54044788628399321E+00, 
+ Force Norm (Hartree/Bohr):  1.02605005758452578E-01}
    SCFloop API, call force calculation step:  209
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54055028215603729E+00, 
+ Force Norm (Hartree/Bohr):  1.02552201817609961E-01}
    SCFloop API, call force calculation step:  210
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54065304119749147E+00, 
+ Force Norm (Hartree/Bohr):  1.02499092435381356E-01}
    SCFloop API, call force calculation step:  211
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54075616185014574E+00, 
+ Force Norm (Hartree/Bohr):  1.02445677534735977E-01}
    SCFloop API, call force calculation step:  212
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54085964254853636E+00, 
+ Force Norm (Hartree/Bohr):  1.02391957071883297E-01}
    SCFloop API, call force calculation step:  213
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54096348192125854E+00, 
+ Force Norm (Hartree/Bohr):  1.02338075185787511E-01}
    SCFloop API, call force calculation step:  214
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54106768074860367E+00, 
+ Force Norm (Hartree/Bohr):  1.02284703527997373E-01}
    SCFloop API, call force calculation step:  215
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54117223888258614E+00, 
+ Force Norm (Hartree/Bohr):  1.02231022527457707E-01}
    SCFloop API, call force calculation step:  216
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54127715475318494E+00, 
+ Force Norm (Hartree/Bohr):  1.02177032249887029E-01}
    SCFloop API, call force calculation step:  217
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54138242678300985E+00, 
+ Force Norm (Hartree/Bohr):  1.02122732795377258E-01}
    SCFloop API, call force calculation step:  218
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54148805338732808E+00, 
+ Force Norm (Hartree/Bohr):  1.02068124298562754E-01}
    SCFloop API, call force calculation step:  219
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54159403297407982E+00, 
+ Force Norm (Hartree/Bohr):  1.02013206928779271E-01}
    SCFloop API, call force calculation step:  220
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54170036394390397E+00, 
+ Force Norm (Hartree/Bohr):  1.01957980890222705E-01}
    SCFloop API, call force calculation step:  221
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54180704469015772E+00, 
+ Force Norm (Hartree/Bohr):  1.01902446422094672E-01}
    SCFloop API, call force calculation step:  222
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54191407359894184E+00, 
+ Force Norm (Hartree/Bohr):  1.01846603798745911E-01}
    SCFloop API, call force calculation step:  223
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54202144905038807E+00, 
+ Force Norm (Hartree/Bohr):  1.01790454161719834E-01}
    SCFloop API, call force calculation step:  224
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54212916942287004E+00, 
+ Force Norm (Hartree/Bohr):  1.01733998760020969E-01}
    SCFloop API, call force calculation step:  225
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54223723308913030E+00, 
+ Force Norm (Hartree/Bohr):  1.01677237964460182E-01}
    SCFloop API, call force calculation step:  226
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54234563841487304E+00, 
+ Force Norm (Hartree/Bohr):  1.01620172180650031E-01}
    SCFloop API, call force calculation step:  227
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54245438375878852E+00, 
+ Force Norm (Hartree/Bohr):  1.01562801849615539E-01}
    SCFloop API, call force calculation step:  228
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54256346747259121E+00, 
+ Force Norm (Hartree/Bohr):  1.01505127447892390E-01}
    SCFloop API, call force calculation step:  229
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54267288790104740E+00, 
+ Force Norm (Hartree/Bohr):  1.01447149487621527E-01}
    SCFloop API, call force calculation step:  230
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54278264338201421E+00, 
+ Force Norm (Hartree/Bohr):  1.01388868516638156E-01}
    SCFloop API, call force calculation step:  231
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54289273224647294E+00, 
+ Force Norm (Hartree/Bohr):  1.01330285118553243E-01}
    SCFloop API, call force calculation step:  232
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54300315281856681E+00, 
+ Force Norm (Hartree/Bohr):  1.01271399912825980E-01}
    SCFloop API, call force calculation step:  233
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54311390341563914E+00, 
+ Force Norm (Hartree/Bohr):  1.01212213554835742E-01}
    SCFloop API, call force calculation step:  234
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54322498234827687E+00, 
+ Force Norm (Hartree/Bohr):  1.01152726735939696E-01}
    SCFloop API, call force calculation step:  235
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54333638792034344E+00, 
+ Force Norm (Hartree/Bohr):  1.01092940183531307E-01}
    SCFloop API, call force calculation step:  236
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54344811842917684E+00, 
+ Force Norm (Hartree/Bohr):  1.01032854569955644E-01}
    SCFloop API, call force calculation step:  237
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54356017216769059E+00, 
+ Force Norm (Hartree/Bohr):  1.00972470199075237E-01}
    SCFloop API, call force calculation step:  238
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54367254742034010E+00, 
+ Force Norm (Hartree/Bohr):  1.00911780559569259E-01}
    SCFloop API, call force calculation step:  239
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54378524243765547E+00, 
+ Force Norm (Hartree/Bohr):  1.00850769189259809E-01}
    SCFloop API, call force calculation step:  240
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54389825544162429E+00, 
+ Force Norm (Hartree/Bohr):  1.00789434404827710E-01}
    SCFloop API, call force calculation step:  241
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54401158464549804E+00, 
+ Force Norm (Hartree/Bohr):  1.00727776838262187E-01}
    SCFloop API, call force calculation step:  242
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54412522825462650E+00, 
+ Force Norm (Hartree/Bohr):  1.00665797158869363E-01}
    SCFloop API, call force calculation step:  243
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54423918446649644E+00, 
+ Force Norm (Hartree/Bohr):  1.00603496073317950E-01}
    SCFloop API, call force calculation step:  244
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54435345147077197E+00, 
+ Force Norm (Hartree/Bohr):  1.00540874325689283E-01}
    SCFloop API, call force calculation step:  245
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54446802744933809E+00, 
+ Force Norm (Hartree/Bohr):  1.00477932697514566E-01}
    SCFloop API, call force calculation step:  246
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54458291057634334E+00, 
+ Force Norm (Hartree/Bohr):  1.00414672007851313E-01}
    SCFloop API, call force calculation step:  247
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54469809901798882E+00, 
+ Force Norm (Hartree/Bohr):  1.00351093467476962E-01}
    SCFloop API, call force calculation step:  248
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54481359092905590E+00, 
+ Force Norm (Hartree/Bohr):  1.00287192183970017E-01}
    SCFloop API, call force calculation step:  249
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54492938442260508E+00, 
+ Force Norm (Hartree/Bohr):  1.00222948420127578E-01}
    SCFloop API, call force calculation step:  250
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54504547758066835E+00, 
+ Force Norm (Hartree/Bohr):  1.00158361281543817E-01}
    SCFloop API, call force calculation step:  251
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54516186847591008E+00, 
+ Force Norm (Hartree/Bohr):  1.00093431571802241E-01}
    SCFloop API, call force calculation step:  252
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54527855518622381E+00, 
+ Force Norm (Hartree/Bohr):  1.00028160211721756E-01}
    SCFloop API, call force calculation step:  253
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54539553581897726E+00, 
+ Force Norm (Hartree/Bohr):  9.99625485015683268E-02}
    SCFloop API, call force calculation step:  254
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54551280847956507E+00, 
+ Force Norm (Hartree/Bohr):  9.98965972615486475E-02}
    SCFloop API, call force calculation step:  255
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54563037126568270E+00, 
+ Force Norm (Hartree/Bohr):  9.98303081934574094E-02}
    SCFloop API, call force calculation step:  256
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54574822228194808E+00, 
+ Force Norm (Hartree/Bohr):  9.97636851621391124E-02}
    SCFloop API, call force calculation step:  257
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54586635963580932E+00, 
+ Force Norm (Hartree/Bohr):  9.96967291616353696E-02}
    SCFloop API, call force calculation step:  258
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54598478142729467E+00, 
+ Force Norm (Hartree/Bohr):  9.96294408608756205E-02}
    SCFloop API, call force calculation step:  259
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54610348574841217E+00, 
+ Force Norm (Hartree/Bohr):  9.95618211084498411E-02}
    SCFloop API, call force calculation step:  260
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54622247068278229E+00, 
+ Force Norm (Hartree/Bohr):  9.94938707986501580E-02}
    SCFloop API, call force calculation step:  261
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54634173430568467E+00, 
+ Force Norm (Hartree/Bohr):  9.94255908647624642E-02}
    SCFloop API, call force calculation step:  262
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54646127468409889E+00, 
+ Force Norm (Hartree/Bohr):  9.93569822790485724E-02}
    SCFloop API, call force calculation step:  263
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54658108987675602E+00, 
+ Force Norm (Hartree/Bohr):  9.92880460527134495E-02}
    SCFloop API, call force calculation step:  264
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54670117793419237E+00, 
+ Force Norm (Hartree/Bohr):  9.92187832358710220E-02}
    SCFloop API, call force calculation step:  265
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54682153689879254E+00, 
+ Force Norm (Hartree/Bohr):  9.91491949178153059E-02}
    SCFloop API, call force calculation step:  266
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54694216480477520E+00, 
+ Force Norm (Hartree/Bohr):  9.90792822523160477E-02}
    SCFloop API, call force calculation step:  267
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54706305967810520E+00, 
+ Force Norm (Hartree/Bohr):  9.90090464230547473E-02}
    SCFloop API, call force calculation step:  268
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54718421953673246E+00, 
+ Force Norm (Hartree/Bohr):  9.89384886360845928E-02}
    SCFloop API, call force calculation step:  269
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54730564239068391E+00, 
+ Force Norm (Hartree/Bohr):  9.88676101360706910E-02}
    SCFloop API, call force calculation step:  270
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54742732624212209E+00, 
+ Force Norm (Hartree/Bohr):  9.87964122062198608E-02}
    SCFloop API, call force calculation step:  271
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54754926908540513E+00, 
+ Force Norm (Hartree/Bohr):  9.87248961681970738E-02}
    SCFloop API, call force calculation step:  272
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54767146890714624E+00, 
+ Force Norm (Hartree/Bohr):  9.86530633820354719E-02}
    SCFloop API, call force calculation step:  273
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54779392368628166E+00, 
+ Force Norm (Hartree/Bohr):  9.85809152460454391E-02}
    SCFloop API, call force calculation step:  274
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54791663196803952E+00, 
+ Force Norm (Hartree/Bohr):  9.85083785788814503E-02}
    SCFloop API, call force calculation step:  275
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54803959235008870E+00, 
+ Force Norm (Hartree/Bohr):  9.84355251913198170E-02}
    SCFloop API, call force calculation step:  276
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54816280278532625E+00, 
+ Force Norm (Hartree/Bohr):  9.83623585805983858E-02}
    SCFloop API, call force calculation step:  277
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54828626121873736E+00, 
+ Force Norm (Hartree/Bohr):  9.82888802902628367E-02}
    SCFloop API, call force calculation step:  278
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54840996558789623E+00, 
+ Force Norm (Hartree/Bohr):  9.82150919016972213E-02}
    SCFloop API, call force calculation step:  279
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54853391382303274E+00, 
+ Force Norm (Hartree/Bohr):  9.81409950339956066E-02}
    SCFloop API, call force calculation step:  280
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54865810384730951E+00, 
+ Force Norm (Hartree/Bohr):  9.80665914425376956E-02}
    SCFloop API, call force calculation step:  281
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54878253357832918E+00, 
+ Force Norm (Hartree/Bohr):  9.79918830253198453E-02}
    SCFloop API, call force calculation step:  282
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54890720092735412E+00, 
+ Force Norm (Hartree/Bohr):  9.79168714946658664E-02}
    SCFloop API, call force calculation step:  283
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54903210379860745E+00, 
+ Force Norm (Hartree/Bohr):  9.78415585916772163E-02}
    SCFloop API, call force calculation step:  284
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54915724008933919E+00, 
+ Force Norm (Hartree/Bohr):  9.77659460941698311E-02}
    SCFloop API, call force calculation step:  285
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54928260768991288E+00, 
+ Force Norm (Hartree/Bohr):  9.76900358165102151E-02}
    SCFloop API, call force calculation step:  286
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54940820448387040E+00, 
+ Force Norm (Hartree/Bohr):  9.76138296094561514E-02}
    SCFloop API, call force calculation step:  287
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54953402834802256E+00, 
+ Force Norm (Hartree/Bohr):  9.75373293599744035E-02}
    SCFloop API, call force calculation step:  288
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54966007715252108E+00, 
+ Force Norm (Hartree/Bohr):  9.74605369910696157E-02}
    SCFloop API, call force calculation step:  289
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54978634876094334E+00, 
+ Force Norm (Hartree/Bohr):  9.73834544615952841E-02}
    SCFloop API, call force calculation step:  290
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.54991284103037730E+00, 
+ Force Norm (Hartree/Bohr):  9.73060837660657263E-02}
    SCFloop API, call force calculation step:  291
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55003955181149689E+00, 
+ Force Norm (Hartree/Bohr):  9.72284269344594054E-02}
    SCFloop API, call force calculation step:  292
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55016647894865489E+00, 
+ Force Norm (Hartree/Bohr):  9.71504860320182434E-02}
    SCFloop API, call force calculation step:  293
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55029362027996376E+00, 
+ Force Norm (Hartree/Bohr):  9.70722631590380386E-02}
    SCFloop API, call force calculation step:  294
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55042097363738618E+00, 
+ Force Norm (Hartree/Bohr):  9.69937604506593276E-02}
    SCFloop API, call force calculation step:  295
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55054853684681593E+00, 
+ Force Norm (Hartree/Bohr):  9.69149800766482689E-02}
    SCFloop API, call force calculation step:  296
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55067630772817600E+00, 
+ Force Norm (Hartree/Bohr):  9.68359242411711979E-02}
    SCFloop API, call force calculation step:  297
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55080428409550297E+00, 
+ Force Norm (Hartree/Bohr):  9.67565951825671150E-02}
    SCFloop API, call force calculation step:  298
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55093246375703897E+00, 
+ Force Norm (Hartree/Bohr):  9.66769951730715588E-02}
    SCFloop API, call force calculation step:  299
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55106084451512238E+00, 
+ Force Norm (Hartree/Bohr):  9.65971265158317022E-02}
    SCFloop API, call force calculation step:  300
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55118942416594185E+00, 
+ Force Norm (Hartree/Bohr):  9.65169915486307206E-02}
    SCFloop API, call force calculation step:  301
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55131820050008251E+00, 
+ Force Norm (Hartree/Bohr):  9.64365926441707322E-02}
    SCFloop API, call force calculation step:  302
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55144717130271381E+00, 
+ Force Norm (Hartree/Bohr):  9.63559322072712748E-02}
    SCFloop API, call force calculation step:  303
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55157633435399811E+00, 
+ Force Norm (Hartree/Bohr):  9.62750124092849879E-02}
    SCFloop API, call force calculation step:  304
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55170568743458448E+00, 
+ Force Norm (Hartree/Bohr):  9.61938343441859911E-02}
    SCFloop API, call force calculation step:  305
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55183522832772525E+00, 
+ Force Norm (Hartree/Bohr):  9.61124076039611142E-02}
    SCFloop API, call force calculation step:  306
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55196495486316843E+00, 
+ Force Norm (Hartree/Bohr):  9.60307726109830839E-02}
    SCFloop API, call force calculation step:  307
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55209486491377779E+00, 
+ Force Norm (Hartree/Bohr):  9.59489377213903205E-02}
    SCFloop API, call force calculation step:  308
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55222495635168078E+00, 
+ Force Norm (Hartree/Bohr):  9.58669059695635289E-02}
    SCFloop API, call force calculation step:  309
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55235522704673556E+00, 
+ Force Norm (Hartree/Bohr):  9.57846804194432966E-02}
    SCFloop API, call force calculation step:  310
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55248567486663669E+00, 
+ Force Norm (Hartree/Bohr):  9.57022641641795402E-02}
    SCFloop API, call force calculation step:  311
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55261629767703679E+00, 
+ Force Norm (Hartree/Bohr):  9.56196603257718908E-02}
    SCFloop API, call force calculation step:  312
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55274709334166161E+00, 
+ Force Norm (Hartree/Bohr):  9.55368720547220274E-02}
    SCFloop API, call force calculation step:  313
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55287805972242543E+00, 
+ Force Norm (Hartree/Bohr):  9.54539025127554147E-02}
    SCFloop API, call force calculation step:  314
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55300919465613330E+00, 
+ Force Norm (Hartree/Bohr):  9.53707512154932241E-02}
    SCFloop API, call force calculation step:  315
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55314049580193858E+00, 
+ Force Norm (Hartree/Bohr):  9.52874140264796804E-02}
    SCFloop API, call force calculation step:  316
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55327196073592688E+00, 
+ Force Norm (Hartree/Bohr):  9.52038944484653454E-02}
    SCFloop API, call force calculation step:  317
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55340358702441694E+00, 
+ Force Norm (Hartree/Bohr):  9.51201975943674477E-02}
    SCFloop API, call force calculation step:  318
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55353537219193294E+00, 
+ Force Norm (Hartree/Bohr):  9.50363292768076767E-02}
    SCFloop API, call force calculation step:  319
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55366731374801104E+00, 
+ Force Norm (Hartree/Bohr):  9.49522934577920058E-02}
    SCFloop API, call force calculation step:  320
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55379940920086668E+00, 
+ Force Norm (Hartree/Bohr):  9.48680941071064210E-02}
    SCFloop API, call force calculation step:  321
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55393165605784134E+00, 
+ Force Norm (Hartree/Bohr):  9.47837353712995268E-02}
    SCFloop API, call force calculation step:  322
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55406405182624230E+00, 
+ Force Norm (Hartree/Bohr):  9.46992214404463600E-02}
    SCFloop API, call force calculation step:  323
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55419659401272225E+00, 
+ Force Norm (Hartree/Bohr):  9.46145563679399310E-02}
    SCFloop API, call force calculation step:  324
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55432928012322336E+00, 
+ Force Norm (Hartree/Bohr):  9.45297442307549279E-02}
    SCFloop API, call force calculation step:  325
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55446210766311976E+00, 
+ Force Norm (Hartree/Bohr):  9.44447891289881686E-02}
    SCFloop API, call force calculation step:  326
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55459507517975126E+00, 
+ Force Norm (Hartree/Bohr):  9.43608508734799234E-02}
    SCFloop API, call force calculation step:  327
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55472818436298699E+00, 
+ Force Norm (Hartree/Bohr):  9.42775235196631756E-02}
    SCFloop API, call force calculation step:  328
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55486143319391923E+00, 
+ Force Norm (Hartree/Bohr):  9.41940662580206534E-02}
    SCFloop API, call force calculation step:  329
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55499481922102989E+00, 
+ Force Norm (Hartree/Bohr):  9.41104832118385415E-02}
    SCFloop API, call force calculation step:  330
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55512833999281241E+00, 
+ Force Norm (Hartree/Bohr):  9.40267785287272756E-02}
    SCFloop API, call force calculation step:  331
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55526199305794322E+00, 
+ Force Norm (Hartree/Bohr):  9.39429563767077841E-02}
    SCFloop API, call force calculation step:  332
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55539577596541800E+00, 
+ Force Norm (Hartree/Bohr):  9.38590209509252704E-02}
    SCFloop API, call force calculation step:  333
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55552968626492305E+00, 
+ Force Norm (Hartree/Bohr):  9.37749765146252551E-02}
    SCFloop API, call force calculation step:  334
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55566372150693111E+00, 
+ Force Norm (Hartree/Bohr):  9.36908272995834318E-02}
    SCFloop API, call force calculation step:  335
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55579787924254820E+00, 
+ Force Norm (Hartree/Bohr):  9.36065775328533412E-02}
    SCFloop API, call force calculation step:  336
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55593215702890886E+00, 
+ Force Norm (Hartree/Bohr):  9.35222282490196233E-02}
    SCFloop API, call force calculation step:  337
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55606655244047198E+00, 
+ Force Norm (Hartree/Bohr):  9.34377812547063924E-02}
    SCFloop API, call force calculation step:  338
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55620106305576789E+00, 
+ Force Norm (Hartree/Bohr):  9.33532407418906918E-02}
    SCFloop API, call force calculation step:  339
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55633568645426479E+00, 
+ Force Norm (Hartree/Bohr):  9.32686109198660046E-02}
    SCFloop API, call force calculation step:  340
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55647042021651094E+00, 
+ Force Norm (Hartree/Bohr):  9.31838960147234885E-02}
    SCFloop API, call force calculation step:  341
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55660526192427495E+00, 
+ Force Norm (Hartree/Bohr):  9.30991002688199981E-02}
    SCFloop API, call force calculation step:  342
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55674020916096856E+00, 
+ Force Norm (Hartree/Bohr):  9.30142281409386401E-02}
    SCFloop API, call force calculation step:  343
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55687525951429429E+00, 
+ Force Norm (Hartree/Bohr):  9.29292844677019475E-02}
    SCFloop API, call force calculation step:  344
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55701041057444511E+00, 
+ Force Norm (Hartree/Bohr):  9.28442728565067321E-02}
    SCFloop API, call force calculation step:  345
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55714565992444598E+00, 
+ Force Norm (Hartree/Bohr):  9.27591953467738900E-02}
    SCFloop API, call force calculation step:  346
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55728100514276724E+00, 
+ Force Norm (Hartree/Bohr):  9.26740530488674441E-02}
    SCFloop API, call force calculation step:  347
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55741644376754707E+00, 
+ Force Norm (Hartree/Bohr):  9.25888083009521884E-02}
    SCFloop API, call force calculation step:  348
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55755197327033423E+00, 
+ Force Norm (Hartree/Bohr):  9.25034516982462529E-02}
    SCFloop API, call force calculation step:  349
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55768759111625421E+00, 
+ Force Norm (Hartree/Bohr):  9.24179871775413914E-02}
    SCFloop API, call force calculation step:  350
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55782329477010029E+00, 
+ Force Norm (Hartree/Bohr):  9.23324186906717970E-02}
    SCFloop API, call force calculation step:  351
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55795908169646502E+00, 
+ Force Norm (Hartree/Bohr):  9.22467502058827299E-02}
    SCFloop API, call force calculation step:  352
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55809494935988058E+00, 
+ Force Norm (Hartree/Bohr):  9.21609857073512340E-02}
    SCFloop API, call force calculation step:  353
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55823089522502567E+00, 
+ Force Norm (Hartree/Bohr):  9.20751292513905112E-02}
    SCFloop API, call force calculation step:  354
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55836691675758443E+00, 
+ Force Norm (Hartree/Bohr):  9.19891850156958485E-02}
    SCFloop API, call force calculation step:  355
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55850301142406433E+00, 
+ Force Norm (Hartree/Bohr):  9.19031570401666886E-02}
    SCFloop API, call force calculation step:  356
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55863917669146579E+00, 
+ Force Norm (Hartree/Bohr):  9.18170493685354500E-02}
    SCFloop API, call force calculation step:  357
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55877541002741360E+00, 
+ Force Norm (Hartree/Bohr):  9.17308660580156698E-02}
    SCFloop API, call force calculation step:  358
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55891170890029285E+00, 
+ Force Norm (Hartree/Bohr):  9.16446111788137840E-02}
    SCFloop API, call force calculation step:  359
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55904807077937946E+00, 
+ Force Norm (Hartree/Bohr):  9.15582888136364514E-02}
    SCFloop API, call force calculation step:  360
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55918449313501917E+00, 
+ Force Norm (Hartree/Bohr):  9.14719029733678524E-02}
    SCFloop API, call force calculation step:  361
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55932097343926346E+00, 
+ Force Norm (Hartree/Bohr):  9.13854574522010993E-02}
    SCFloop API, call force calculation step:  362
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55945750916583759E+00, 
+ Force Norm (Hartree/Bohr):  9.12989563355851991E-02}
    SCFloop API, call force calculation step:  363
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55959409778987190E+00, 
+ Force Norm (Hartree/Bohr):  9.12124037487359041E-02}
    SCFloop API, call force calculation step:  364
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55973073678804264E+00, 
+ Force Norm (Hartree/Bohr):  9.11258038270339049E-02}
    SCFloop API, call force calculation step:  365
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.55986742363869269E+00, 
+ Force Norm (Hartree/Bohr):  9.10391607155278254E-02}
    SCFloop API, call force calculation step:  366
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56000415582198082E+00, 
+ Force Norm (Hartree/Bohr):  9.09524785595588747E-02}
    SCFloop API, call force calculation step:  367
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56014093082014638E+00, 
+ Force Norm (Hartree/Bohr):  9.08657614761836790E-02}
    SCFloop API, call force calculation step:  368
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56027774611741288E+00, 
+ Force Norm (Hartree/Bohr):  9.07790136344950455E-02}
    SCFloop API, call force calculation step:  369
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56041459919840575E+00, 
+ Force Norm (Hartree/Bohr):  9.06922388729741319E-02}
    SCFloop API, call force calculation step:  370
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56055148754887663E+00, 
+ Force Norm (Hartree/Bohr):  9.06054412786141405E-02}
    SCFloop API, call force calculation step:  371
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56068840865697034E+00, 
+ Force Norm (Hartree/Bohr):  9.05186250455127656E-02}
    SCFloop API, call force calculation step:  372
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56082536001340433E+00, 
+ Force Norm (Hartree/Bohr):  9.04317943740053920E-02}
    SCFloop API, call force calculation step:  373
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56096233911160320E+00, 
+ Force Norm (Hartree/Bohr):  9.03449534701612073E-02}
    SCFloop API, call force calculation step:  374
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56109934344786039E+00, 
+ Force Norm (Hartree/Bohr):  9.02581066987953179E-02}
    SCFloop API, call force calculation step:  375
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56123637052338760E+00, 
+ Force Norm (Hartree/Bohr):  9.01712621883747761E-02}
    SCFloop API, call force calculation step:  376
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56137341784478867E+00, 
+ Force Norm (Hartree/Bohr):  9.00844259149767707E-02}
    SCFloop API, call force calculation step:  377
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56151048292212158E+00, 
+ Force Norm (Hartree/Bohr):  8.99976021659468356E-02}
    SCFloop API, call force calculation step:  378
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56164756326908050E+00, 
+ Force Norm (Hartree/Bohr):  8.99107952319047055E-02}
    SCFloop API, call force calculation step:  379
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56178465640312991E+00, 
+ Force Norm (Hartree/Bohr):  8.98240094062372763E-02}
    SCFloop API, call force calculation step:  380
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56192175984522708E+00, 
+ Force Norm (Hartree/Bohr):  8.97372491985384546E-02}
    SCFloop API, call force calculation step:  381
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56205887111398711E+00, 
+ Force Norm (Hartree/Bohr):  8.96505223358019659E-02}
    SCFloop API, call force calculation step:  382
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56219598774855140E+00, 
+ Force Norm (Hartree/Bohr):  8.95638541511798725E-02}
    SCFloop API, call force calculation step:  383
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56233310734545627E+00, 
+ Force Norm (Hartree/Bohr):  8.94772645080914308E-02}
    SCFloop API, call force calculation step:  384
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56247022752899767E+00, 
+ Force Norm (Hartree/Bohr):  8.93907589890149262E-02}
    SCFloop API, call force calculation step:  385
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56260734593013328E+00, 
+ Force Norm (Hartree/Bohr):  8.93043422526178243E-02}
    SCFloop API, call force calculation step:  386
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56274446018639734E+00, 
+ Force Norm (Hartree/Bohr):  8.92180189898121312E-02}
    SCFloop API, call force calculation step:  387
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56288156794207822E+00, 
+ Force Norm (Hartree/Bohr):  8.91317938908600393E-02}
    SCFloop API, call force calculation step:  388
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56301866684487134E+00, 
+ Force Norm (Hartree/Bohr):  8.90456736135630533E-02}
    SCFloop API, call force calculation step:  389
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56315575446225630E+00, 
+ Force Norm (Hartree/Bohr):  8.89596758442409152E-02}
    SCFloop API, call force calculation step:  390
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56329282827797833E+00, 
+ Force Norm (Hartree/Bohr):  8.88738083026975739E-02}
    SCFloop API, call force calculation step:  391
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56342988577962494E+00, 
+ Force Norm (Hartree/Bohr):  8.87880764637156705E-02}
    SCFloop API, call force calculation step:  392
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56356692446311341E+00, 
+ Force Norm (Hartree/Bohr):  8.87024857938867040E-02}
    SCFloop API, call force calculation step:  393
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56370394183284711E+00, 
+ Force Norm (Hartree/Bohr):  8.86170417455959675E-02}
    SCFloop API, call force calculation step:  394
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56384093540186964E+00, 
+ Force Norm (Hartree/Bohr):  8.85317497633027473E-02}
    SCFloop API, call force calculation step:  395
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56397790269202419E+00, 
+ Force Norm (Hartree/Bohr):  8.84466152850762466E-02}
    SCFloop API, call force calculation step:  396
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56411484123411215E+00, 
+ Force Norm (Hartree/Bohr):  8.83616437382993003E-02}
    SCFloop API, call force calculation step:  397
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56425174861848415E+00, 
+ Force Norm (Hartree/Bohr):  8.82769213037847555E-02}
    SCFloop API, call force calculation step:  398
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56438862357139996E+00, 
+ Force Norm (Hartree/Bohr):  8.81926242089723644E-02}
    SCFloop API, call force calculation step:  399
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56452546415161331E+00, 
+ Force Norm (Hartree/Bohr):  8.81085044906714104E-02}
    SCFloop API, call force calculation step:  400
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56466226793413066E+00, 
+ Force Norm (Hartree/Bohr):  8.80245675120250592E-02}
    SCFloop API, call force calculation step:  401
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56479903250360408E+00, 
+ Force Norm (Hartree/Bohr):  8.79408186225634353E-02}
    SCFloop API, call force calculation step:  402
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56493575545448271E+00, 
+ Force Norm (Hartree/Bohr):  8.78572631575067348E-02}
    SCFloop API, call force calculation step:  403
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56507243439115484E+00, 
+ Force Norm (Hartree/Bohr):  8.77739064370832434E-02}
    SCFloop API, call force calculation step:  404
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56520906692809980E+00, 
+ Force Norm (Hartree/Bohr):  8.76907537656094471E-02}
    SCFloop API, call force calculation step:  405
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56534565069025167E+00, 
+ Force Norm (Hartree/Bohr):  8.76078104089489940E-02}
    SCFloop API, call force calculation step:  406
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56548218331350508E+00, 
+ Force Norm (Hartree/Bohr):  8.75250816329255221E-02}
    SCFloop API, call force calculation step:  407
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56561866244489112E+00, 
+ Force Norm (Hartree/Bohr):  8.74425727561125160E-02}
    SCFloop API, call force calculation step:  408
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56575508574266742E+00, 
+ Force Norm (Hartree/Bohr):  8.73602890259443932E-02}
    SCFloop API, call force calculation step:  409
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56589145087603354E+00, 
+ Force Norm (Hartree/Bohr):  8.72782356324085240E-02}
    SCFloop API, call force calculation step:  410
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56602775552658446E+00, 
+ Force Norm (Hartree/Bohr):  8.71964176639436345E-02}
    SCFloop API, call force calculation step:  411
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56616399738810941E+00, 
+ Force Norm (Hartree/Bohr):  8.71148402848262587E-02}
    SCFloop API, call force calculation step:  412
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56630017416473999E+00, 
+ Force Norm (Hartree/Bohr):  8.70335082376007679E-02}
    SCFloop API, call force calculation step:  413
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56643628356734688E+00, 
+ Force Norm (Hartree/Bohr):  8.69524260983551983E-02}
    SCFloop API, call force calculation step:  414
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56657232331678475E+00, 
+ Force Norm (Hartree/Bohr):  8.68715989822239770E-02}
    SCFloop API, call force calculation step:  415
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56670829114549104E+00, 
+ Force Norm (Hartree/Bohr):  8.67910319859050844E-02}
    SCFloop API, call force calculation step:  416
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56684418479763288E+00, 
+ Force Norm (Hartree/Bohr):  8.67107302189263490E-02}
    SCFloop API, call force calculation step:  417
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56698000203164112E+00, 
+ Force Norm (Hartree/Bohr):  8.66307000138606120E-02}
    SCFloop API, call force calculation step:  418
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56711574062353698E+00, 
+ Force Norm (Hartree/Bohr):  8.65509470447547447E-02}
    SCFloop API, call force calculation step:  419
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56725139836233573E+00, 
+ Force Norm (Hartree/Bohr):  8.64714763179386670E-02}
    SCFloop API, call force calculation step:  420
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56738697304940366E+00, 
+ Force Norm (Hartree/Bohr):  8.63922928148554148E-02}
    SCFloop API, call force calculation step:  421
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56752246249858285E+00, 
+ Force Norm (Hartree/Bohr):  8.63134014915159925E-02}
    SCFloop API, call force calculation step:  422
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56765786453630884E+00, 
+ Force Norm (Hartree/Bohr):  8.62348072773874430E-02}
    SCFloop API, call force calculation step:  423
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56779317700107157E+00, 
+ Force Norm (Hartree/Bohr):  8.61565151226611065E-02}
    SCFloop API, call force calculation step:  424
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56792839775186854E+00, 
+ Force Norm (Hartree/Bohr):  8.60785356277351948E-02}
    SCFloop API, call force calculation step:  425
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56806352468920407E+00, 
+ Force Norm (Hartree/Bohr):  8.60008797730884705E-02}
    SCFloop API, call force calculation step:  426
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56819855573405054E+00, 
+ Force Norm (Hartree/Bohr):  8.59235525231180075E-02}
    SCFloop API, call force calculation step:  427
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56833348882125678E+00, 
+ Force Norm (Hartree/Bohr):  8.58465586633131855E-02}
    SCFloop API, call force calculation step:  428
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56846832189965024E+00, 
+ Force Norm (Hartree/Bohr):  8.57699029471760133E-02}
    SCFloop API, call force calculation step:  429
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56860305293214086E+00, 
+ Force Norm (Hartree/Bohr):  8.56935900956896646E-02}
    SCFloop API, call force calculation step:  430
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56873767989624557E+00, 
+ Force Norm (Hartree/Bohr):  8.56176258048668704E-02}
    SCFloop API, call force calculation step:  431
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56887220079005552E+00, 
+ Force Norm (Hartree/Bohr):  8.55420189822339028E-02}
    SCFloop API, call force calculation step:  432
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56900661363118399E+00, 
+ Force Norm (Hartree/Bohr):  8.54667747700782743E-02}
    SCFloop API, call force calculation step:  433
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56914091645217946E+00, 
+ Force Norm (Hartree/Bohr):  8.53918978108759857E-02}
    SCFloop API, call force calculation step:  434
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56927510730048603E+00, 
+ Force Norm (Hartree/Bohr):  8.53173927118959646E-02}
    SCFloop API, call force calculation step:  435
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56940918423835685E+00, 
+ Force Norm (Hartree/Bohr):  8.52432638765950601E-02}
    SCFloop API, call force calculation step:  436
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56954314533688510E+00, 
+ Force Norm (Hartree/Bohr):  8.51695145425434980E-02}
    SCFloop API, call force calculation step:  437
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56967698867497552E+00, 
+ Force Norm (Hartree/Bohr):  8.50961489485968919E-02}
    SCFloop API, call force calculation step:  438
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56981071234635516E+00, 
+ Force Norm (Hartree/Bohr):  8.50231715726173232E-02}
    SCFloop API, call force calculation step:  439
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.56994431446008997E+00, 
+ Force Norm (Hartree/Bohr):  8.49505868560682109E-02}
    SCFloop API, call force calculation step:  440
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57007779314502871E+00, 
+ Force Norm (Hartree/Bohr):  8.48784047298079686E-02}
    SCFloop API, call force calculation step:  441
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57021114655897431E+00, 
+ Force Norm (Hartree/Bohr):  8.48066369858981040E-02}
    SCFloop API, call force calculation step:  442
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57034437287472883E+00, 
+ Force Norm (Hartree/Bohr):  8.47352812842787073E-02}
    SCFloop API, call force calculation step:  443
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57047747022781170E+00, 
+ Force Norm (Hartree/Bohr):  8.46643039738909364E-02}
    SCFloop API, call force calculation step:  444
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57061043671821388E+00, 
+ Force Norm (Hartree/Bohr):  8.45937029994789647E-02}
    SCFloop API, call force calculation step:  445
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57074327045822137E+00, 
+ Force Norm (Hartree/Bohr):  8.45234819837757667E-02}
    SCFloop API, call force calculation step:  446
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57087596957444831E+00, 
+ Force Norm (Hartree/Bohr):  8.44536445077405939E-02}
    SCFloop API, call force calculation step:  447
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57100853220790349E+00, 
+ Force Norm (Hartree/Bohr):  8.43841941102625448E-02}
    SCFloop API, call force calculation step:  448
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57114095651406371E+00, 
+ Force Norm (Hartree/Bohr):  8.43151342878705468E-02}
    SCFloop API, call force calculation step:  449
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57127324066167207E+00, 
+ Force Norm (Hartree/Bohr):  8.42464639567786361E-02}
    SCFloop API, call force calculation step:  450
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57140538273016617E+00, 
+ Force Norm (Hartree/Bohr):  8.41781120643465136E-02}
    SCFloop API, call force calculation step:  451
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57153738062929005E+00, 
+ Force Norm (Hartree/Bohr):  8.41100543443451809E-02}
    SCFloop API, call force calculation step:  452
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57166923219861232E+00, 
+ Force Norm (Hartree/Bohr):  8.40423008208749933E-02}
    SCFloop API, call force calculation step:  453
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57180093521644348E+00, 
+ Force Norm (Hartree/Bohr):  8.39748571527147020E-02}
    SCFloop API, call force calculation step:  454
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57193248746762748E+00, 
+ Force Norm (Hartree/Bohr):  8.39077270552844728E-02}
    SCFloop API, call force calculation step:  455
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57206388674812914E+00, 
+ Force Norm (Hartree/Bohr):  8.38409142145000730E-02}
    SCFloop API, call force calculation step:  456
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57219513086511897E+00, 
+ Force Norm (Hartree/Bohr):  8.37744222865397375E-02}
    SCFloop API, call force calculation step:  457
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57232621763704916E+00, 
+ Force Norm (Hartree/Bohr):  8.37082548976171015E-02}
    SCFloop API, call force calculation step:  458
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57245714489373034E+00, 
+ Force Norm (Hartree/Bohr):  8.36424156437632071E-02}
    SCFloop API, call force calculation step:  459
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57258791047640667E+00, 
+ Force Norm (Hartree/Bohr):  8.35769080906086786E-02}
    SCFloop API, call force calculation step:  460
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57271851223783710E+00, 
+ Force Norm (Hartree/Bohr):  8.35117357731794130E-02}
    SCFloop API, call force calculation step:  461
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57284894804236108E+00, 
+ Force Norm (Hartree/Bohr):  8.34469021956942836E-02}
    SCFloop API, call force calculation step:  462
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57297921576597588E+00, 
+ Force Norm (Hartree/Bohr):  8.33824108313709345E-02}
    SCFloop API, call force calculation step:  463
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57310931329640846E+00, 
+ Force Norm (Hartree/Bohr):  8.33182651222391657E-02}
    SCFloop API, call force calculation step:  464
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57323923853318082E+00, 
+ Force Norm (Hartree/Bohr):  8.32544684792677347E-02}
    SCFloop API, call force calculation step:  465
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57336898939055425E+00, 
+ Force Norm (Hartree/Bohr):  8.31910260367112048E-02}
    SCFloop API, call force calculation step:  466
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57349856380581166E+00, 
+ Force Norm (Hartree/Bohr):  8.31279427789080178E-02}
    SCFloop API, call force calculation step:  467
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57362795973104941E+00, 
+ Force Norm (Hartree/Bohr):  8.30652219801994579E-02}
    SCFloop API, call force calculation step:  468
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57375717513061097E+00, 
+ Force Norm (Hartree/Bohr):  8.30028668817675286E-02}
    SCFloop API, call force calculation step:  469
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57388620798114776E+00, 
+ Force Norm (Hartree/Bohr):  8.29408806914848917E-02}
    SCFloop API, call force calculation step:  470
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57401505627167815E+00, 
+ Force Norm (Hartree/Bohr):  8.28792665837682907E-02}
    SCFloop API, call force calculation step:  471
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57414371800344588E+00, 
+ Force Norm (Hartree/Bohr):  8.28180274731782629E-02}
    SCFloop API, call force calculation step:  472
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57427219118566342E+00, 
+ Force Norm (Hartree/Bohr):  8.27571652397743052E-02}
    SCFloop API, call force calculation step:  473
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57440047383564297E+00, 
+ Force Norm (Hartree/Bohr):  8.26966828231855827E-02}
    SCFloop API, call force calculation step:  474
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57452856398300023E+00, 
+ Force Norm (Hartree/Bohr):  8.26365833224502744E-02}
    SCFloop API, call force calculation step:  475
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57465645966989509E+00, 
+ Force Norm (Hartree/Bohr):  8.25768698036312282E-02}
    SCFloop API, call force calculation step:  476
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57478415895108581E+00, 
+ Force Norm (Hartree/Bohr):  8.25175452997048420E-02}
    SCFloop API, call force calculation step:  477
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57491165989398629E+00, 
+ Force Norm (Hartree/Bohr):  8.24586128104592142E-02}
    SCFloop API, call force calculation step:  478
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57503896057871806E+00, 
+ Force Norm (Hartree/Bohr):  8.24000753023993726E-02}
    SCFloop API, call force calculation step:  479
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57516605909816487E+00, 
+ Force Norm (Hartree/Bohr):  8.23419357086599413E-02}
    SCFloop API, call force calculation step:  480
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57529295355802024E+00, 
+ Force Norm (Hartree/Bohr):  8.22841969289189734E-02}
    SCFloop API, call force calculation step:  481
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57541964207684293E+00, 
+ Force Norm (Hartree/Bohr):  8.22268618293249820E-02}
    SCFloop API, call force calculation step:  482
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57554612278610229E+00, 
+ Force Norm (Hartree/Bohr):  8.21699332424302292E-02}
    SCFloop API, call force calculation step:  483
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57567239383022883E+00, 
+ Force Norm (Hartree/Bohr):  8.21134139671259727E-02}
    SCFloop API, call force calculation step:  484
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57579845336666047E+00, 
+ Force Norm (Hartree/Bohr):  8.20573067685891749E-02}
    SCFloop API, call force calculation step:  485
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57592429956588598E+00, 
+ Force Norm (Hartree/Bohr):  8.20016143782345414E-02}
    SCFloop API, call force calculation step:  486
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57604993061149301E+00, 
+ Force Norm (Hartree/Bohr):  8.19463394936718187E-02}
    SCFloop API, call force calculation step:  487
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57617534468041987E+00, 
+ Force Norm (Hartree/Bohr):  8.18914716710827245E-02}
    SCFloop API, call force calculation step:  488
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57630053981475982E+00, 
+ Force Norm (Hartree/Bohr):  8.18369863516713453E-02}
    SCFloop API, call force calculation step:  489
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57642551400099062E+00, 
+ Force Norm (Hartree/Bohr):  8.17828842801077427E-02}
    SCFloop API, call force calculation step:  490
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57655026522590402E+00, 
+ Force Norm (Hartree/Bohr):  8.17291631706000415E-02}
    SCFloop API, call force calculation step:  491
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57667479147910816E+00, 
+ Force Norm (Hartree/Bohr):  8.16758251356011211E-02}
    SCFloop API, call force calculation step:  492
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57679909076091640E+00, 
+ Force Norm (Hartree/Bohr):  8.16228725869005828E-02}
    SCFloop API, call force calculation step:  493
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57692316107660169E+00, 
+ Force Norm (Hartree/Bohr):  8.15703066960108969E-02}
    SCFloop API, call force calculation step:  494
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57704700043586676E+00, 
+ Force Norm (Hartree/Bohr):  8.15181297058919230E-02}
    SCFloop API, call force calculation step:  495
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57717060684009480E+00, 
+ Force Norm (Hartree/Bohr):  8.14663434490101313E-02}
    SCFloop API, call force calculation step:  496
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57729397825089768E+00, 
+ Force Norm (Hartree/Bohr):  8.14149542542469129E-02}
    SCFloop API, call force calculation step:  497
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57741711320796441E+00, 
+ Force Norm (Hartree/Bohr):  8.13643084335174821E-02}
    SCFloop API, call force calculation step:  498
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57754001256368781E+00, 
+ Force Norm (Hartree/Bohr):  8.13143529620574124E-02}
    SCFloop API, call force calculation step:  499
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57766267472206723E+00, 
+ Force Norm (Hartree/Bohr):  8.12648030171921054E-02}
    SCFloop API, call force calculation step:  500
- - LENOSKY_SI_BULK_RUN_MODE: {}
+ - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.57778509770169117E+00, 
+ Force Norm (Hartree/Bohr):  8.12156610967745829E-02}
    End of minimization using           : AB6MD
  Memory Consumption Report:
-   Tot. No. of Allocations             :  2563
-   Tot. No. of Deallocations           :  2563
+   Tot. No. of Allocations             :  3065
+   Tot. No. of Deallocations           :  3065
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  0.560
+     Peak Value (MB)                   :  0.561
      for the array                     : array_diff
-     in the routine                    : Main_program
-     Memory Peak of process            : 22.520 MB
- Max No. of dictionaries used          :  3368 #( 860 still in use)
+     in the routine                    : bigdft_state
+     Memory Peak of process            : 19.028 MB
+ Walltime since initialization         : 00:00:01.288318503
+ Max No. of dictionaries used          :  4395 #( 925 still in use)
  Number of dictionary folders allocated:  1
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - geopt/betax is not allowed in this context.
+ - Error(s) found in input_keys_fill for the field "geopt" and the key "betax", see details 
+   in the above message(s), before the input file printout.

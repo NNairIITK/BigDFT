@@ -27,18 +27,26 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.8a.0
- Timestamp of this run                 : 2015-10-16 10:23:41.961
- Root process Hostname                 : maia.cluster.bc2.ch
- Number of MPI tasks                   :  1
- OpenMP parallelization                :  No
+ Version Number                        : 1.8
+ Timestamp of this run                 : 2016-02-20 23:11:54.052
+ Root process Hostname                 : athelas
+ Number of MPI tasks                   :  2
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
+ MPI tasks of root process node        :  2
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
-   Configure arguments                 : " 'FC=mpif90' 'CC=icc' 'CXX=icpc' 'F77=ifort'"
-   Compilers (CC, FC, CXX)             :  [ icc, mpif90, icpc ]
+   Configure arguments:
+     " '--prefix' '/local/binaries/intel-1.8/install' '--without-internal-flib' 
+     'FCFLAGS=-O2 -openmp' 
+     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 -lmkl_rt 
+     -liomp5 -lm' 'CFLAGS=-O2 -openmp' 'LDFLAGS=-L/local/binaries/intel-1.8/install/lib ' 
+     'C_INCLUDE_PATH=/local/binaries/intel-1.8/install/include:/opt/intel/composer_xe_2013.1.
+     117/compiler/include' 'CC=mpicc' 'CXX=mpicxx' 'FC=mpifc' 'F77=mpif77'"
+   Compilers (CC, FC, CXX)             :  [ mpicc, mpifc, mpicxx ]
    Compiler flags:
-     CFLAGS                            : -g -O2
-     FCFLAGS                           : -g
+     CFLAGS                            : -O2 -openmp
+     FCFLAGS                           : -O2 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : LJ-NVT
@@ -48,7 +56,7 @@
  mode:
    method                              : lj #     Run method of BigDFT call
    mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
-   mm_paramfile                        : none #   name of parameter or input file for the selected method or code
+   mm_paramfile                        : none #   Name of parameter or input file for the selected method or code
  md:
    mdsteps                             : 10 #     Number of MD steps
    timestep                            : 1.0 #    Time step for integration (in a.u.)
@@ -61,7 +69,8 @@
    nose_frequency                      : 1000.0 # Frequency in (cm^-1) corresponding to the inertia of the thermostat degrees of freedom
    nose_mts_size                       : 5 #      Multiple time steps used to integrate Nose-Hoover Chains equations of motion 
     #                                              (integer input)
-   no_translation                      : No #     logical input to set translational correction
+   no_translation                      : No #     Logical input to set translational correction
+   wavefunction_extrapolation          : 0 #      Activates the wavefunction extrapolation for MD
  psppar.LJ:
    Pseudopotential type                : HGH
    Atomic number                       : 12
@@ -84,6 +93,25 @@
      Fine                              : 0.556478
      Coarse PSP                        : 1.055156312000789
      Source                            : Hard-Coded
+ psolver:
+   kernel:
+     screening                         : 0 #      Mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     cavitation                        : No #     Triggers the evaluation of the extra cavitation terms
+     input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-6 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
  dft:
    hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
    rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
@@ -94,7 +122,7 @@
    mpol                                : 0 #      Total magnetic moment
    gnrm_cv                             : 1.e-4 #  convergence criterion gradient
    itermax                             : 50 #     Max. iterations of wfn. opt. steps
-   itermin                             : 0 #      Min. iterations of wfn. opt. steps
+   itermin                             : 0 #      Minimal iterations of wfn. optimzed steps
    nrepmax                             : 1 #      Max. number of re-diag. runs
    ncong                               : 6 #      No. of CG it. for preconditioning eq.
    idsx                                : 6 #      Wfn. diis history
@@ -107,12 +135,19 @@
    norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
    nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
+   gnrm_cv_virt                        : 1.e-4 #  convergence criterion gradient for virtual orbitals
+   itermax_virt                        : 50 #     Max. iterations of wfn. opt. steps for virtual orbitals
    disablesym                          : No #     Disable the symmetry detection
-   solvent                             : vacuum # Electrostatic environment for Poisson Equation
    external_potential:
      values                            : __not_a_value__
    calculate_strten                    : Yes #    Boolean to activate the calculation of the stress tensor. Might be set to No for 
     #                                              performance reasons
+   plot_mppot_axes: [-1, -1, -1] #                Plot the potential generated by the multipoles along axes through this 
+    #                                              point. Negative values mean no plot.
+   plot_pot_axes: [-1, -1, -1] #                  Plot the potential along axes through this point. Negative values mean 
+    #                                              no plot.
+ output:
+   atomic_density_matrix               : None #   Dictionary of the atoms for which the atomic density matrix has to be plotted
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -129,7 +164,7 @@
  mix:
    iscf                                : 0 #      Mixing parameters
    itrpmax                             : 1 #      Maximum number of diagonalisation iterations
-   rpnrm_cv                            : 1e-4 #   Stop criterion on the residue of potential or density
+   rpnrm_cv                            : 1.e-4 #  Stop criterion on the residue of potential or density
    norbsempty                          : 0 #      No. of additional bands
    tel                                 : 0. #     Electronic temperature
    occopt                              : 1 #      Smearing method
@@ -142,6 +177,7 @@
    tddft_approach                      : none #   Time-Dependent DFT method
  perf:
    debug                               : No #     Debug option
+   profiling_depth                     : -1 #     maximum level of the profiling for the tracking of the routines
    fftcache                            : 8192 #   Cache size for the FFT
    accel                               : NO #     Acceleration (hardware)
    ocl_platform                        : ~ #      Chosen OCL platform
@@ -155,8 +191,6 @@
    ig_tol                              : 1.0e-4 # Input guess Tolerance criterion
    methortho                           : 0 #      Orthogonalisation
    rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
-   psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
-   psolver_accel                       : 0 #      Acceleration of the Poisson Solver (0=none, 1=CUDA)
    unblock_comms                       : OFF #    Overlap Communications of fields (OFF,DEN,POT)
    linear                              : OFF #    Linear Input Guess approach
    tolsym                              : 1.0e-8 # Tolerance for symmetry detection
@@ -168,26 +202,26 @@
    verbosity                           : 2 #      Verbosity of the output
    psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
    multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
-   mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scalig function order for the multipole preserving
+   mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
+    #                                              preserving
    pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
    pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
    maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
    ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
-   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
+   mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
-   check_sumrho                        : 2 #      Enables linear sumrho check
-   check_overlap                       : 2 #      Enables linear overlap check
+   check_sumrho                        : 1 #      Enables linear sumrho check
+   check_overlap                       : 1 #      Enables linear overlap check
    experimental_mode                   : No #     Activate the experimental mode in linear scaling
    write_orbitals                      : 0 #      Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
-   explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
+   explicit_locregcenters              : No #     Linear scaling explicitly specify localization centers
    calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
    evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
    evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
-    #                                              purification, 1 FOE, 2 renormalization)
    calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
    coeff_weight_analysis               : No #     linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
@@ -201,9 +235,13 @@
    enable_matrix_taskgroups            : True #   enable the matrix taskgroups
    hamapp_radius_incr                  : 8 #      radius enlargement for the Hamiltonian application (in grid points)
    adjust_kernel_iterations            : True #   enable the adaptive ajustment of the number of kernel iterations
+   adjust_kernel_threshold             : True #   enable the adaptive ajustment of the kernel convergence threshold according to the 
+    #                                              support function convergence
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
-   gps_method                          : VAC #    method for the Generalized Poisson Equation
    foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
+   nsigma                              : 1 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
+    #                                              Gaussian used for the radial part of the 
+    #                                              function based on the multipoles.
  lin_general:
    hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
    nit: [100, 100] #                              number of iteration with low/high accuracy
@@ -221,13 +259,21 @@
     #                                              fragments only, 2 full system only
    kernel_restart_mode                 : 0 #      method for restarting kernel; 0 kernel, 1 coefficients, 2 random, 3 diagonal, 4 
     #                                              support function weights
+   kernel_restart_noise                : 0.0d0 #  add random noise to kernel or coefficients when restarting
+   frag_num_neighbours                 : 0 #      number of neighbours to output for each fragment
+   frag_neighbour_cutoff               : 12.0d0 # number of neighbours to output for each fragment
+   cdft_lag_mult_init                  : 0.05d0 # CDFT initial value for Lagrange multiplier
+   cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    calc_dipole                         : No #     calculate dipole
+   calc_quadrupole                     : No #     calculate quadrupole
    calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
    subspace_diag                       : No #     diagonalization at the end
    extra_states                        : 0 #      extra states to optimize (dmin only)
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
     #                                              written to disk)
-   charge_multipoles                   : no #     Calculate the atom-centered multipole coefficients of the electronic charge
+   charge_multipoles                   : 0 #      Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
+    #                                              new approach Projector
+   support_function_multipoles         : False #  Calculate the multipole moments of the support functions
  lin_basis:
    nit: [4, 5] #                                  maximal number of iterations in the optimization of the 
     #                                              support functions
@@ -262,21 +308,26 @@
    linear_method                       : DIAG #   method to optimize the density kernel
    mixing_method                       : DEN #    quantity to be mixed
    alpha_sd_coeff                      : 0.2 #    initial step size for SD for direct minimization
-   alpha_fit_coeff                     : No #     update the SD step size by fitting a quadratic polynomial to the energy along the 
-    #                                              direction of the gradient during direct 
-    #                                              mininimization.
-   eval_range_foe: [-0.5, 0.5] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
+   alpha_fit_coeff                     : No #     Update the SD step size by fitting a quadratic polynomial
+   eval_range_foe: [-0.5, 0.5] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
    fscale_foe                          : 2.e-2 #  decay length of the error function
+   coeff_scaling_factor                : 1.0 #    factor to scale the gradient in direct minimization
+   pexsi_npoles                        : 40 #     number of poles used by PEXSI
+   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
+   pexsi_mumax                         : 1.0 #    initial guess for the upper bound of the chemical potential used by PEXSI
+   pexsi_mu                            : 0.5 #    initial guess for the  chemical potential used by PEXSI
+   pexsi_temperature                   : 1.e-3 #  temperature used by PEXSI
+   pexsi_tol_charge                    : 1.e-3 #  charge tolerance used PEXSI
  lin_basis_params:
-   nbasis                              : 4 #      number of support functions per atom
-   ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential
-   confinement: [8.3e-3, 0.0] #                   prefactor for the confining potential (low/high accuracy)
-   rloc: [7.0, 7.0] #                             localization radius for the support functions
-   rloc_kernel                         : 9.0 #    localization radius for the density kernel
+   nbasis                              : 4 #      Number of support functions per atom
+   ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential
+   confinement: [8.3e-3, 0.0] #                   Prefactor for the confining potential (low/high accuracy)
+   rloc: [7.0, 7.0] #                             Localization radius for the support functions
+   rloc_kernel                         : 9.0 #    Localization radius for the density kernel
    rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
  posinp:
-    #---------------------------------------------------------------------- Atomic positions
+    #---------------------------------------------- Atomic positions (by default bohr units)
    positions:
    - LJ: [-2.9389518104801747E-003, -7.846637254470154E-002, -0.1104684013727375]
    - LJ: [-3.5339654118662746E-003, -5.2323602430534421E-003, 1.005782882376979]
@@ -318,10 +369,10 @@
    - LJ: [1.729008907226007, 0.4664651252169732, -4.8745804521419203E-002]
    properties:
      format                            : xyz
-     source                            : LJ-NVT
+     source                            : LJ-NVT.xyz
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./
-  #----------------------------------------- Input Atomic System (file: __not_a_value__.xyz)
+  #-------------------------------------------------- Input Atomic System (file: LJ-NVT.xyz)
  Atomic System Properties:
    Number of atomic types              :  1
    Number of atoms                     :  38
@@ -353,42 +404,72 @@
   #------------------------------------------------------------------------- Initializing LJ
   #Using normalized Units for LJ (sigma=1, epsilon=1)
  Initializing LENNARD_JONES_RUN_MODE:
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9994633715879}
-   Energy (Hartree)                    : -1.70999463371587865E+02
-   Force Norm (Hartree/Bohr)           :  1.24350522280334379E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70999463371587865E+02, 
+ Force Norm (Hartree/Bohr):  1.24350522280331846E-02}
    Wavefunction Optimization Finished, exit signal:  0
    (MD): {istep:  0, T:  10.000000, Eke:  0.001805, Epe: -170.999463, Ete: -170.997500}
     #*************************************************************************** Starting MD
    Number of degrees of freedom        :  114
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9994558885562}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999455888556270E+02, 
+ Force Norm (Hartree/Bohr):  7.38760929856914911E-02}
    (MD): {istep:  1, T:  9.960779, Eke:  0.001798, Epe: -170.999456, Ete: -170.997500}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9994332655677}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999433265567859E+02, 
+ Force Norm (Hartree/Bohr):  1.45686697707427287E-01}
    (MD): {istep:  2, T:  9.837829, Eke:  0.001776, Epe: -170.999433, Ete: -170.997500}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9993962082629}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70999396208263050E+02, 
+ Force Norm (Hartree/Bohr):  2.16370460099458400E-01}
    (MD): {istep:  3, T:  9.635032, Eke:  0.001739, Epe: -170.999396, Ete: -170.997500}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.99934586486}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70999345864859947E+02, 
+ Force Norm (Hartree/Bohr):  2.84948222199795653E-01}
    (MD): {istep:  4, T:  9.358715, Eke:  0.001689, Epe: -170.999346, Ete: -170.997500}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9992837795772}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70999283779577269E+02, 
+ Force Norm (Hartree/Bohr):  3.50679698346677837E-01}
    (MD): {istep:  5, T:  9.017398, Eke:  0.001628, Epe: -170.999284, Ete: -170.997500}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9992118303151}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999211830315062E+02, 
+ Force Norm (Hartree/Bohr):  4.12900781705481945E-01}
    (MD): {istep:  6, T:  8.621445, Eke:  0.001556, Epe: -170.999212, Ete: -170.997499}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9991321534831}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70999132153483203E+02, 
+ Force Norm (Hartree/Bohr):  4.71008121835153559E-01}
    (MD): {istep:  7, T:  8.182653, Eke:  0.001477, Epe: -170.999132, Ete: -170.997499}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9990470594526}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.33227E-15 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70999047059452721E+02, 
+ Force Norm (Hartree/Bohr):  5.24461867832138329E-01}
    (MD): {istep:  8, T:  7.713782, Eke:  0.001392, Epe: -170.999047, Ete: -170.997499}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9989589425134}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70998958942513468E+02, 
+ Force Norm (Hartree/Bohr):  5.72791933155277433E-01}
    (MD): {istep:  9, T:  7.228059, Eke:  0.001305, Epe: -170.998959, Ete: -170.997499}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9988701894366}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.22045E-15 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70998870189436786E+02, 
+ Force Norm (Hartree/Bohr):  6.15604782675834517E-01}
    (MD): {istep:  10, T:  6.738675, Eke:  0.001216, Epe: -170.998870, Ete: -170.997499}
  Memory Consumption Report:
-   Tot. No. of Allocations             :  58
-   Tot. No. of Deallocations           :  58
+   Tot. No. of Allocations             :  94
+   Tot. No. of Deallocations           :  94
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  0.059
+     Peak Value (MB)                   :  0.083
      for the array                     : params
      in the routine                    : input_keys_init
-     Memory Peak of process            : 21.464 MB
- Walltime since initialization         : 00:00:00.312298770
- Max No. of dictionaries used          :  4209 #( 877 still in use)
+     Memory Peak of process            : 13.364 MB
+ Walltime since initialization         : 00:00:00.076385819
+ Max No. of dictionaries used          :  4608 #( 929 still in use)
  Number of dictionary folders allocated:  1
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - State properties not identical! (difference: 5.68434E-14 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.84217E-14 ), broadcasting from master node.
+ - State properties not identical! (difference: 3.55271E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 1.33227E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.22045E-15 ), broadcasting from master node.
