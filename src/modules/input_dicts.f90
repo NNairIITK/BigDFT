@@ -160,10 +160,10 @@ contains
     !call set_inputfile(f0, radical, 'lin')
     !call read_lin_and_frag_from_text_format(mpi_env%iproc,dict,trim(radical)) !as it also reads fragment
 
-    call set_inputfile(f0, radical, 'neb')
-    nullify(vals)
-    call read_neb_from_text_format(mpi_env%iproc,vals, trim(f0))
-    if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
+    ! call set_inputfile(f0, radical, 'neb')
+    ! nullify(vals)
+    ! call read_neb_from_text_format(mpi_env%iproc,vals, trim(f0))
+    ! if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
 
     if (mpi_env%iproc==0) then
        call yaml_warning('Input files read in the old format. '//&
@@ -1090,64 +1090,64 @@ contains
   END SUBROUTINE read_lin_and_frag_from_text_format
 
 
-  subroutine read_neb_from_text_format(iproc,dict,filename)
-    use module_base
-    use module_input
-    use public_keys
-    use dictionaries
-    implicit none
-    character(len=*), intent(in) :: filename
-    type(dictionary), pointer :: dict
-    integer, intent(in) :: iproc
-
-    INTEGER :: num_of_images
-    CHARACTER (LEN=20) :: minimization_scheme
-    logical :: climbing, optimization, restart, exists
-    integer :: max_iterations
-    real(gp) :: convergence, damp, k_min, k_max, ds, temp_req, tolerance
-    CHARACTER (LEN=80) :: first_config, last_config, job_name, scratch_dir
-
-    NAMELIST /NEB/ scratch_dir,         &
-         climbing,            &
-         optimization,        &
-         minimization_scheme, &
-         damp,                &
-         temp_req,            &
-         k_max, k_min,        &
-         ds,                  &
-         max_iterations,      &
-         tolerance,           &
-         convergence,         &
-         num_of_images,       &
-         restart,             & ! not used
-         job_name,            & ! not used
-         first_config,        & ! not used
-         last_config            ! not used
-
-    inquire(file=trim(filename),exist=exists)
-    if (.not. exists) return
-
-    open(unit = 123, file = trim(filename), action = "read")
-    READ(123 , NML=NEB )
-    close(123)
-
-    if (.not. associated(dict)) call dict_init(dict)
-
-    call set(dict // GEOPT_METHOD, "NEB")
-    call set(dict // NEB_CLIMBING, climbing)
-    call set(dict // EXTREMA_OPT, optimization)
-    call set(dict // NEB_METHOD, minimization_scheme)
-    if (trim(minimization_scheme) == 'damped-verlet') call set(dict // NEB_DAMP, damp)
-    call set(dict // SPRINGS_K // 0, k_min)
-    call set(dict // SPRINGS_K // 1, k_max)
-    if (trim(minimization_scheme) == 'sim-annealing') call set(dict // TEMP, temp_req)
-    call set(dict // BETAX, ds)
-    call set(dict // NCOUNT_CLUSTER_X, max_iterations)
-    call set(dict // FIX_TOL, tolerance)
-    call set(dict // FORCEMAX, convergence)
-    call set(dict // NIMG, num_of_images)
-
-  end subroutine read_neb_from_text_format
+  ! subroutine read_neb_from_text_format(iproc,dict,filename)
+  !   use module_base
+  !   use module_input
+  !   use public_keys
+  !   use dictionaries
+  !   implicit none
+  !   character(len=*), intent(in) :: filename
+  !   type(dictionary), pointer :: dict
+  !   integer, intent(in) :: iproc
+  !
+  !   INTEGER :: num_of_images
+  !   CHARACTER (LEN=20) :: minimization_scheme
+  !   logical :: climbing, optimization, restart, exists
+  !   integer :: max_iterations
+  !   real(gp) :: convergence, damp, k_min, k_max, ds, temp_req, tolerance
+  !   CHARACTER (LEN=80) :: first_config, last_config, job_name, scratch_dir
+  !
+  !   NAMELIST /NEB/ scratch_dir,         &
+  !        climbing,            &
+  !        optimization,        &
+  !        minimization_scheme, &
+  !        damp,                &
+  !        temp_req,            &
+  !        k_max, k_min,        &
+  !        ds,                  &
+  !        max_iterations,      &
+  !        tolerance,           &
+  !        convergence,         &
+  !        num_of_images,       &
+  !        restart,             & ! not used
+  !        job_name,            & ! not used
+  !        first_config,        & ! not used
+  !        last_config            ! not used
+  !
+  !   inquire(file=trim(filename),exist=exists)
+  !   if (.not. exists) return
+  !
+  !   open(unit = 123, file = trim(filename), action = "read")
+  !   READ(123 , NML=NEB )
+  !   close(123)
+  !
+  !   if (.not. associated(dict)) call dict_init(dict)
+  !
+  !   call set(dict // GEOPT_METHOD, "NEB")
+  !   call set(dict // NEB_CLIMBING, climbing)
+  !   call set(dict // EXTREMA_OPT, optimization)
+  !   call set(dict // NEB_METHOD, minimization_scheme)
+  !   if (trim(minimization_scheme) == 'damped-verlet') call set(dict // NEB_DAMP, damp)
+  !   call set(dict // SPRINGS_K // 0, k_min)
+  !   call set(dict // SPRINGS_K // 1, k_max)
+  !   if (trim(minimization_scheme) == 'sim-annealing') call set(dict // TEMP, temp_req)
+  !   call set(dict // BETAX, ds)
+  !   call set(dict // NCOUNT_CLUSTER_X, max_iterations)
+  !   call set(dict // FIX_TOL, tolerance)
+  !   call set(dict // FORCEMAX, convergence)
+  !   call set(dict // NIMG, num_of_images)
+  !
+  ! end subroutine read_neb_from_text_format
 
   !> Read fragment input parameters
   subroutine fragment_input_variables_from_text_format(iproc,dump,filename,shouldexist,dict)
@@ -1564,7 +1564,7 @@ contains
          .item. POSINP,&
          .item. MODE_VARIABLES,&
          .item. PERF_VARIABLES,&
-         .item. DFT_VARIABLES,&   
+         .item. DFT_VARIABLES,&
          .item. PSOLVER,&
          .item. KPT_VARIABLES,&
          .item. OUTPUT_VARIABLES,&
