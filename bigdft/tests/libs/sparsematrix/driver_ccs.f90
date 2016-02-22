@@ -1,3 +1,13 @@
+!> @file
+!! Test of the sparsematrix library
+!! @author
+!!    Copyright (C) 2015-2016 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 program driver_css
   use module_base
   use sparsematrix_base, only: sparse_matrix, matrices, &
@@ -101,7 +111,7 @@ program driver_css
   call matrix_matrix_multiplication(bigdft_mpi%iproc, bigdft_mpi%nproc, smat3, &
        mat3(1), mat3(2), mat2(1))
 
-  ! Write the result of the above multiplication to a file. Since we multiply the square root times the 
+  ! Write the result of the above multiplication to a file. Since we multiply the square root times the
   ! inverse square root, the result will be the unity matrix.
   call ccs_matrix_write('unity.dat', smat3, row_ind, col_ptr, mat2(1))
 

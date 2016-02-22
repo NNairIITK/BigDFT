@@ -48,7 +48,7 @@ module bigdft_run
      type(f_enumerator), pointer :: run_mode
      !> number of times bigdft_state is called with this instance
      character(len = max_field_length) :: label
-     integer :: nstate 
+     integer :: nstate
      !> user input specifications
      type(dictionary), pointer :: user_inputs
      !> structure of BigDFT input variables
@@ -75,7 +75,7 @@ module bigdft_run
      integer :: fdim                           !< Dimension of allocated forces (second dimension)
      real(gp), dimension(:,:), pointer :: fxyz !< Atomic forces
      real(gp), dimension(6) :: strten          !< Stress Tensor
-     
+
      integer(kind = 8) :: c_obj                !< Pointer to a C wrapper
   end type state_properties
 
@@ -196,7 +196,7 @@ contains
        mm_rst%refcnt=f_ref_new('mm_rst')
        call init_tdpot(inputs%mm_paramset,&
             inputs%mm_paramfile,astruct%units)
-        
+
     case('LENNARD_JONES_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
@@ -252,13 +252,13 @@ contains
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
        call init_tersoff(astruct%nat,astruct,inputs%mm_paramset,&
-            inputs%mm_paramfile,astruct%geocode) 
+            inputs%mm_paramfile,astruct%geocode)
     case('BMHTF_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
        call init_bmhtf(astruct%nat,astruct,inputs%mm_paramset,&
-            inputs%mm_paramfile,astruct%geocode) 
+            inputs%mm_paramfile,astruct%geocode)
     case('AMBER_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
           if (size(mm_rst%rf_extra) == astruct%nat) then
@@ -299,7 +299,7 @@ contains
     use yaml_output
     use module_cp2k
     use module_BornMayerHugginsTosiFumi
-    use f_enums, enum_int => int
+    use f_enums, enum_int => toi
     use yaml_strings
     use SWpotential
     implicit none
@@ -318,7 +318,7 @@ contains
     case default
     end select
 
-    
+
   end subroutine free_MM_restart_objects
 
   !> Allocate and nullify restart objects
@@ -362,7 +362,7 @@ contains
     rst%GPU%OCLconv=.false.
   END SUBROUTINE nullify_QM_restart_objects
 
-  !pure 
+  !pure
   subroutine QM_restart_objects_set_mode(rst, inputpsiid)
     implicit none
     type(QM_restart_objects), intent(inout) :: rst
@@ -464,7 +464,7 @@ contains
     outs%fnoise    = UNINITIALIZED(1.0_gp)
     outs%pressure  = UNINITIALIZED(1.0_gp)
     outs%strten(:) = UNINITIALIZED(1.0_gp)
-    
+
     outs%c_obj     = 0
   END SUBROUTINE nullify_state_properties
 
@@ -927,7 +927,7 @@ contains
     implicit none
     type(run_objects), intent(inout) :: runObj
     logical :: release
-    integer :: i,claim
+    integer :: claim, i
 
     ! Fortran release ownership
     release = .true.
@@ -949,7 +949,7 @@ contains
           deallocate(runObj%mm_rst)
        end if
        if (associated(runObj%atoms)) then
-          call deallocate_atoms_data(runObj%atoms) 
+          call deallocate_atoms_data(runObj%atoms)
           deallocate(runObj%atoms)
        end if
        if (associated(runObj%inputs)) then
@@ -1018,7 +1018,7 @@ contains
     if (PY_HOOKS .in. runObj%user_inputs) then
        call dict_copy(runObj%py_hooks, runObj%user_inputs // PY_HOOKS)
     end if
-    
+
     call f_release_routine()
   END SUBROUTINE set_run_objects
 
@@ -1060,7 +1060,7 @@ contains
     runObj%inputs%multi_buf = runObj%user_inputs // MODE_VARIABLES // SECTION_BUFFER
     runObj%inputs%multi_pass = f_malloc_ptr(ln, id = "in%multi_pass")
     runObj%inputs%multi_pass = runObj%user_inputs // MODE_VARIABLES // SECTION_PASSIVATION
-          
+
     allocate(runObj%sections(ln))
     sect => dict_iter(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
     do while (associated(sect))
@@ -1199,7 +1199,7 @@ contains
     type(run_objects), intent(inout) :: runObj
     type(QM_restart_objects), intent(in), target :: rst
     type(MM_restart_objects), intent(in), target :: mm_rst
-    
+
     if (f_ref_count(rst%refcnt) >= 0) then
        if (associated(runObj%rst)) call f_unref(runObj%rst%refcnt)
        runObj%rst => rst
@@ -1473,8 +1473,8 @@ contains
     type(run_objects), intent(inout) :: runObj
     logical :: ok
 
-    
-    
+
+
   end function bigdft_valid_dataset
 
   !> Fill the array eval with the number of orbitals of the last run
@@ -1569,7 +1569,7 @@ contains
 
   end function bigdft_get_cell_ptr
 
-  
+
   !> Do a calculation using runObjs and return outs²
   !! returns energies in hartree and
   !! forces in hartree/bohr
@@ -1592,8 +1592,8 @@ contains
     use module_cp2k
     use module_dftbp
     use module_tdpot
+    use f_enums, enum_int => toi
     use SWpotential
-    use f_enums, enum_int => int
     use wrapper_linalg, only: vscal
     implicit none
     !parameters
@@ -1762,7 +1762,7 @@ contains
        if (ierr /= 0) stop
     end if
     call f_increment(runObj%nstate)
-    
+
     if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
     if (bigdft_mpi%iproc ==0 ) call yaml_map('Force Norm (Hartree/Bohr)',sqrt(sum(outs%fxyz**2)),fmt='(es24.17)')
 
@@ -2370,7 +2370,7 @@ contains
     end select
 
     call inputpsiid_set_policy(policy_enum,runObj%inputs%inputPsiId)
-    
+
     !@todo: discuss if the policy should be propagated to sections.
     if (associated(runObj%sections)) then
        do i = 1, size(runObj%sections)
@@ -2536,7 +2536,7 @@ END SUBROUTINE run_objects_update
 
 !> this routine should be used in memguess executable also
 subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
-  use module_base, only: gp,f_memcpy,f_enumerator
+  use module_base, only: gp,f_memcpy,f_enumerator,f_int
   use bigdft_run
   use module_types
   use module_fragments
@@ -2571,7 +2571,8 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
        & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
        & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
-       & runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,mem)
+       & runObj%inputs%nspin,runObj%inputs%itrpmax,&
+       f_int(runObj%inputs%scf),mem)
 
   ! De-allocations
   call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd)

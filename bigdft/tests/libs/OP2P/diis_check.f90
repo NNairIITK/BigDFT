@@ -17,26 +17,28 @@ program DIIS_test
   real(kind=8) :: L       !< Length of the well potential
   real(kind=8) :: alphaSD !< SD step size
   integer :: idsx         !< Length of DIIS history
-  integer :: ndim_psi
-
+  integer, parameter :: ndim_psi=100
+  real(kind=8), dimension(ndim_psi) :: psi, hpsi
+  integer, parameter :: iproc=1,nproc=1,ngrp=1,isgrp=1,ngrpp=1,igrpproc=1
+  integer, dimension(1), parameter :: ncomp_grp = (/ ndim_psi /)
   V0 = 1.d0
   L = 1.d0
   idsx = 1
   alphaSD = 0.1d0
-  ndim_psi = 1
-  !Allocate the diis objects
- ! call DIIS_set(idsx,alphaSD,ndim_psi,ngrpp,diis)
- 
- ! call diis_opt(iproc,nproc,ngrp,isgrp,ngrpp,igrpproc,ncomp_grp,ndim_psi,psi,hpsi,diis)
 
- ! call diis_free(diis)
+  !Allocate the diis objects
+  call DIIS_set(idsx,alphaSD,ndim_psi,ngrpp,diis)
+
+  call diis_opt(iproc,nproc,ngrp,isgrp,ngrpp,igrpproc,ncomp_grp,ndim_psi,psi,hpsi,diis)
+
+  call diis_free(diis)
 
 contains
 
   function k2(k,V0)
     implicit none
     complex(kind=8), intent(in) :: k
-    real(kind=8), intent(in) :: V0
+    real(kind=8), intent(in) :: V0      !< Depth of the well potential
     complex(kind=8) :: k2
     k2 = sqrt(k**2 + 2.0d0*V0)
   end function k2
@@ -44,7 +46,7 @@ contains
   function diff_k2(k,V0)
     implicit none
     complex(kind=8), intent(in) :: k
-    real(kind=8), intent(in) :: V0
+    real(kind=8), intent(in) :: V0      !< Depth of the well potential
     complex(kind=8) :: diff_k2
     diff_k2 = -2.0*k/sqrt(k**2 + 2.0d0*V0)
   end function diff_k2

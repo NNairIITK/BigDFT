@@ -19,7 +19,7 @@ module ice
 
   contains
 
-!!    ! New: chebyshev expansion of the inverse overlap (Inverse Chebyshev Expansion)
+!> Chebyshev expansion of the inverse overlap (Inverse Chebyshev Expansion)
 !!    subroutine inverse_chebyshev_expansion(iproc, nproc, norder_polynomial, &
 !!               ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp, &
 !!               verbosity, npl_auto)

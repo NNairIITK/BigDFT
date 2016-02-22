@@ -1,11 +1,11 @@
 !> @file
 !!   Program to perform pre-/post-processing.
 !! @author
-!!   Copyright (C) 2015 BigDFT group (SM)
+!!   Copyright (C) 2015-2016 BigDFT group (SM)
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
-!!   For the list of contributors, see ~/AUTHORS 
+!!   For the list of contributors, see ~/AUTHORS
 
 
 !> Test the input files and estimates the memory occupation versus the number
@@ -33,11 +33,12 @@ program utilities
    character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file
    logical :: charge_analysis = .false.
    type(atoms_data) :: at
-   integer :: istat, i_arg, ierr, nspin, icount, nthread, method
-   integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
-   integer :: nfvctr_m, nseg_m, nvctr_m, nfvctrp_m, isfvctr_m
-   integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
-   integer,dimension(:),allocatable :: on_which_atom
+   integer :: istat, i_arg, ierr, nspin, nthread, method
+   integer :: nfvctr_s, nseg_s, nvctr_s
+   integer :: nfvctr_m, nseg_m, nvctr_m
+   integer :: nfvctr_l, nseg_l, nvctr_l
+   !integer :: nfvctrp_l, isfvctr_l, nfvctrp_m, isfvctr_m, nfvctrp_s, isfvctr_s
+   !integer,dimension(:),allocatable :: on_which_atom
    integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l, on_which_atom_s, on_which_atom_m, on_which_atom_l
    integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
    real(kind=8),dimension(:),pointer :: matrix_compr
@@ -56,10 +57,8 @@ program utilities
         call yaml_new_document()
     end if
 
-
    !Time initialization
    call f_timing_reset(filename='time.yaml',master=(bigdft_mpi%iproc==0),verbose_mode=.false.)
-
 
    if (bigdft_mpi%iproc==0) then
        call yaml_scalar('',hfill='~')
@@ -85,7 +84,7 @@ program utilities
       write(*,'(1x,a)')&
          &   '[option] can be the following: '
       write(*,'(1x,a)')&
-           &   '"charge-analysis"" ' 
+           &   '"charge-analysis"" '
       write(*,'(1x,a)')&
            & 'perform a charge analysis (Loewdin or Mulliken)'
 
@@ -120,7 +119,7 @@ program utilities
        if (bigdft_mpi%iproc==0) then
            call yaml_comment('Charge analysis',hfill='-')
        end if
-       
+
        !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
 
        ! Determine the method
@@ -228,15 +227,17 @@ program utilities
    call f_lib_finalize()
 
 
-  !SM: This routine should go to a module
   contains
-   !> construct the dictionary needed for the timing information
+
+
+    !> construct the dictionary needed for the timing information
+    !! SM: This routine should go to a module
     subroutine build_dict_info(dict_info)
       use wrapper_MPI
       use dynamic_memory
       use dictionaries
       implicit none
-      !include 'mpif.h'
+
       type(dictionary), pointer :: dict_info
       !local variables
       integer :: ierr,namelen,nthreads

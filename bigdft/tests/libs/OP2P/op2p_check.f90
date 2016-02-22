@@ -12,20 +12,26 @@ program OP2P_check
   use overlap_point_to_point
   implicit none
   logical :: symmetric
-  integer :: jproc,nproc,norbp,ngroup,igroup,ndim,norb,iobj,jobj,kobj
+  integer :: iproc,jproc,nproc,norbp,ngroup,igroup,ndim,norb,iobj,jobj,kobj
   integer, dimension(:), allocatable :: nobj,nobj_p
   integer, dimension(:,:), allocatable :: nobj_par
   type(dictionary), pointer :: options
 
   call f_lib_initialize()
+
   call mpiinit()
-  call f_malloc_set_status(iproc=mpirank())
+  iproc = mpirank()
+
+  call f_malloc_set_status(iproc=iproc)
+
   !read command line
   call OP2P_Check_command_line_options(options)
 
+  call yaml_dict_dump(options)
   nproc=mpisize()
   ngroup=dict_len(options//'objects')
-  if (ngroup <= 0) call f_err_throw('Error, number of groups must be more than one')
+  if (iproc == 0 .and. ngroup <= 0) call f_err_throw('Error, number of groups must be more than one')
+
   nobj=f_malloc(ngroup,id='nobj')
   nobj=options//'objects'
   ndim=options//'ndim'
@@ -42,7 +48,7 @@ program OP2P_check
   jproc=norb-norbp*nproc-1
   call f_increment(nobj_p(:jproc))
 
-  if (sum(nobj_p) /= norb) &
+  if (iproc == 0 .and. sum(nobj_p) /= norb) &
        call f_err_throw('Error in orbital repartition; norb is'+norb+' and nobj_p is'+yaml_toa(nobj_p))
 
   !construct the OP2P scheme and test it
@@ -64,10 +70,10 @@ program OP2P_check
      nobj_par(jproc,igroup)=kobj
   end do
 
-  if (any(sum(nobj_par,dim=1) /= nobj)) &
+  if (iproc == 0 .and. any(sum(nobj_par,dim=1) /= nobj)) &
         call f_err_throw('Error in orbital repartition'+yaml_toa(mpirank())+';'+yaml_toa(sum(nobj_par,dim=1)))
 
-  if (mpirank()==0) then
+  if (iproc == 0) then
      call yaml_map('Orbital repartition per group',nobj)
      call yaml_map('Orbital repartition per mpi',nobj_p)
      call yaml_map('Groups per proc',nobj_par)
@@ -86,7 +92,7 @@ program OP2P_check
 
   contains
 
-    !>identify the options from command line
+    !> Identify the options from command line
     !! and write the result in options dict
     subroutine OP2P_check_command_line_options(options)
       use yaml_parse
@@ -114,9 +120,10 @@ program OP2P_check
 
     end subroutine OP2P_check_command_line_options
 
-  
 end program OP2P_check
 
+
+!> Check the options
 subroutine OP2P_check_options(parser)
   use yaml_parse
   use dictionaries, only: dict_new,operator(.is.)

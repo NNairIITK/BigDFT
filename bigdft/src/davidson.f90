@@ -263,7 +263,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       if (endloop) then 
          if (iproc == 0) then 
             if (verbose > 1) call yaml_map('Minimization iterations required',iter)
-            call write_energies(iter,0,energs,gnrm,0.d0,' ')
+            call write_energies(iter,energs,gnrm,0.d0,' ')
             call yaml_mapping_close()
             call yaml_comment('End of Virtual Wavefunction Optimisation',hfill='-')
             if (VTwfn%diis%energy > VTwfn%diis%energy_min) then
@@ -277,7 +277,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       !evaluate the functional of the wavefucntions and put it into the diis structure
       !the energy values should be printed out here
       call total_energies(energs, iter, iproc)
-      call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,in%iscf,energs,&
+      call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,in%scf,energs,&
            VTwfn,gnrm,gnrm_zero)
 
       !control the previous value of idsx_actual

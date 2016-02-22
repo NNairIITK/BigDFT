@@ -11,7 +11,7 @@
 subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopotold,nlpsp,GPU,&
            energs,energy,fpulay,infocode,ref_frags,cdft, &
            fdisp, fion)
- 
+
   use module_base
   use module_types
   use module_interfaces, only: allocate_precond_arrays, deallocate_precond_arrays, &
@@ -57,34 +57,35 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use orthonormalization, only : orthonormalizeLocalized
   use multipole_base, only: lmax, external_potential_descriptors, deallocate_external_potential_descriptors
   use orbitalbasis
+
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(atoms_data),intent(inout) :: at
-  type(input_variables),intent(in) :: input ! need to hack to be inout for geopt changes
-  real(kind=8),dimension(3),intent(in) :: shift
-  real(kind=8),dimension(3,at%astruct%nat),intent(inout) :: rxyz
-  real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
+  integer, intent(in) :: iproc, nproc
+  type(atoms_data), intent(inout) :: at
+  type(input_variables), intent(in) :: input ! need to hack to be inout for geopt changes
+  real(kind=8), dimension(3), intent(in) :: shift
+  real(kind=8), dimension(3,at%astruct%nat), intent(inout) :: rxyz
+  real(kind=8), dimension(3,at%astruct%nat), intent(out) :: fpulay
   type(DFT_local_fields), intent(inout) :: denspot
   real(gp), dimension(*), intent(inout) :: rhopotold
-  type(DFT_PSP_projectors),intent(inout) :: nlpsp
-  type(GPU_pointers),intent(inout) :: GPU
-  type(energy_terms),intent(inout) :: energs
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
+  type(GPU_pointers), intent(inout) :: GPU
+  type(energy_terms), intent(inout) :: energs
   real(gp), dimension(:), pointer :: rho,pot
-  real(kind=8),intent(out) :: energy
-  type(DFT_wavefunction),intent(inout),target :: tmb
-  type(DFT_wavefunction),intent(inout),target :: KSwfn
-  integer,intent(out) :: infocode
+  real(kind=8), intent(out) :: energy
+  type(DFT_wavefunction), intent(inout),target :: tmb
+  type(DFT_wavefunction), intent(inout),target :: KSwfn
+  integer, intent(out) :: infocode
   type(system_fragment), dimension(:), pointer :: ref_frags ! for transfer integrals
   type(cdft_data), intent(inout) :: cdft
-  real(kind=8),dimension(3,at%astruct%nat),intent(in) :: fdisp, fion
+  real(kind=8), dimension(3,at%astruct%nat), intent(in) :: fdisp, fion
 
   !Local variables
   real(kind=8) :: pnrm,trace,trace_old,fnrm_tmb
   integer :: infoCoeff,istat,it_scc,itout,info_scf,i,iorb
   character(len=*), parameter :: subname='linearScaling'
-  real(kind=8),dimension(:),allocatable :: rhopotold_out, eval
+  real(kind=8), dimension(:), allocatable :: rhopotold_out, eval
   real(kind=8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix, convCritMix_init
   type(localizedDIISParameters) :: ldiis
   type(DIIS_obj) :: ldiis_coeff, vdiis
@@ -92,22 +93,25 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   logical :: fix_support_functions
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy, k, l
   integer :: ldiis_coeff_hist, nitdmin, lwork
-  logical :: ldiis_coeff_changed, overlap_calculated
+  logical :: ldiis_coeff_changed
+!!$  logical :: overlap_calculated
   integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy, nit_scc_changed
-  real(kind=8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin, tt1, tt2, ehart_ps
+  real(kind=8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin, ehart_ps
   logical :: lowaccur_converged, exit_outer_loop, calculate_overlap, invert_overlap_matrix
-  real(kind=8),dimension(:),allocatable :: locrad, kernel_orig, ovrlp_large, tmpmat, inv_full, inv_cropped, ovrlp_orig
-  real(kind=8),dimension(:),allocatable :: kernel_cropped, ovrlp_cropped, ham_cropped, kernel_foe_cropped, ham_large
-  real(kind=8),dimension(:),allocatable :: tmpmat_compr, hamtilde_compr, work
-  integer:: target_function, nit_basis, ieval
+  real(kind=8), dimension(:), allocatable :: locrad, kernel_orig, inv_full, inv_cropped
+  real(kind=8), dimension(:), allocatable :: kernel_cropped, ham_cropped, kernel_foe_cropped, ham_large
+  real(kind=8), dimension(:), allocatable :: hamtilde_compr
+!!$  real(kind=8), dimension(:), allocatable :: work, tmpmat, tmpmat_compr, tmparr, ovrlp_orig, ovrlp_large
+!!$ real(kind=8), dimension(:), allocatable :: ovrlp_cropped
+  integer :: target_function, nit_basis, ieval
   logical :: keep_value
-  type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
-  type(workarr_precond),dimension(:),pointer :: precond_workarrays
+  type(workarrays_quartic_convolutions), dimension(:), pointer :: precond_convol_workarrays
+  type(workarr_precond), dimension(:), pointer :: precond_workarrays
   type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
-  integer,dimension(:,:),allocatable :: ioffset_isf
+  integer, dimension(:,:), allocatable :: ioffset_isf
   integer :: is1, is2, is3, ie1, ie2, ie3, i1, i2, i3, ii, jj, info, ist
-  real(kind=8),dimension(:),pointer :: hpsit_c, hpsit_f
-  
+  real(kind=8), dimension(:), pointer :: hpsit_c, hpsit_f
+
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff, cdft_charge_thresh
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
   integer :: jorb, cdft_it, nelec, iat, ityp, norder_taylor, ispin, ishift
@@ -121,26 +125,29 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   integer(kind=8) :: nsize
   type(work_mpiaccumulate) :: fnrm_work, energs_work
   integer :: ilr, iiorb, iiat
-  real(kind=8),dimension(3) :: rr
-  real(kind=8),dimension(1,1) :: K_H
-  real(kind=8),dimension(4,4) :: K_O
+!!$  real(kind=8), dimension(3) :: rr
+  real(kind=8), dimension(1,1) :: K_H
+  real(kind=8), dimension(4,4) :: K_O
   integer :: j, ind, n, ishifts, ishiftm, iq
-  real(kind=8),dimension(:,:),allocatable :: tempmat, all_evals, ham_small, projector_small, ovrlp_small, theta, coeffs
-  real(kind=8),dimension(:,:),pointer :: com
-  real(kind=8),dimension(:,:),allocatable :: tmat, coeff, ovrlp_full
-  real(kind=8),dimension(:),allocatable :: projector_compr
-  real(kind=8),dimension(:,:,:),allocatable :: matrixElements, coeff_all, multipoles_out
-  real(kind=8),dimension(:,:,:),pointer :: multipoles
-  real(kind=8),dimension(:,:,:,:),allocatable :: test_pot
+  real(kind=8), dimension(:,:), allocatable :: ham_small, coeffs
+  real(kind=8), dimension(:,:), pointer :: com
+  real(kind=8), dimension(:,:), allocatable :: coeff
+  real(kind=8), dimension(:,:,:), allocatable :: matrixElements, coeff_all
+  real(kind=8), dimension(:,:,:), pointer :: multipoles
+!!$  real(kind=8), dimension(:), allocatable :: projector_compr
+!!$  real(kind=8), dimension(:), allocatable :: rho_tmp
+!!$  real(kind=8), dimension(:,:), allocatable :: tempmat, tmat, all_evals, theta, projector_small, ovrlp_small, ovrlp_full
+!!$  real(kind=8), dimension(:,:,:), allocatable :: multipoles_out
+!!$  real(kind=8), dimension(:,:,:,:), allocatable :: test_pot
   type(external_potential_descriptors) :: ep
   type(orbital_basis) :: ob
-  real(8),dimension(:),allocatable :: rho_tmp, tmparr
-  real(8) :: tt, ddot, max_error, mean_error, r2, occ, tot_occ, ef, ef_low, ef_up, q, fac
-  type(matrices),dimension(24) :: rpower_matrix
+  real(kind=8) :: tt, ddot, max_error, ef, ef_low, ef_up, fac
+  type(matrices), dimension(24) :: rpower_matrix
   character(len=20) :: method, do_ortho, projectormode
 
-  real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp
+  real(kind=8), dimension(:,:), allocatable :: ovrlp_fullp
   real(kind=8) :: max_deviation, mean_deviation, max_deviation_p, mean_deviation_p
+!!$ real(kind=8) :: tt1,tt2, tot_occ, r2, q, occ, mean_error
 
   !integer :: ind, ilr, iorbp, iiorb, indg, npsidim_global
   !real(kind=gp), allocatable, dimension(:) :: gpsi, psit_large_c, psit_large_f, kpsit_c, kpsit_f, kpsi, kpsi_small
@@ -201,7 +208,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
 
   ! Allocate the communication arrays for the calculation of the charge density.
 
-  if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then  
+  if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
      ldiis_coeff%alpha_coeff=input%lin%alphaSD_coeff
 !!$     call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
 !!$     call allocate_DIIS_coeff(tmb, ldiis_coeff)
@@ -491,7 +498,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
       end if
 
 
-      if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
+      if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
          !call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
          call DIIS_free(ldiis_coeff)
          if (input%lin%extra_states==0) then
@@ -654,7 +661,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
     !          else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
     !             !should already have overlap matrix so no need to recalculate
     !             call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,.false.,input%lin%order_taylor)
-    !          else 
+    !          else
     !             stop 'Error invalid method for calculating CDFT weight matrix'
     !          end if
     !       end if
@@ -664,7 +671,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
            if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) ldiis_coeff%alpha_coeff=input%lin%alphaSD_coeff !reset to default value
 
            ! I think this is causing a memory leak somehow in certain cases (possibly only with fragment calculations?)
-           if ((input%inputPsiId .hasattr. 'MEMORY') &!input%inputPsiId==101 
+           if ((input%inputPsiId .hasattr. 'MEMORY') &!input%inputPsiId==101
                 .and. info_basis_functions<=-2 .and. itout==1 .and. (.not.input%lin%fragment_calculation)) then
                ! There seem to be some convergence problems after a restart. Better to quit
                ! and start with a new AO input guess.
@@ -952,7 +959,7 @@ end if
 
   ! Diagonalize the matrix for the FOE/direct min case to get the coefficients. Only necessary if
   ! the Pulay forces are to be calculated, or if we are printing eigenvalues for restart
-  if ((input%lin%scf_mode==LINEAR_FOE.or.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION)& 
+  if ((input%lin%scf_mode==LINEAR_FOE.or.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION)&
        .and. (input%lin%pulay_correction.or.mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE&
        .or. input%lin%diag_end .or. mod(input%lin%output_coeff_format,10) /= WF_FORMAT_NONE)) then
 
@@ -973,7 +980,7 @@ end if
        !!    call f_free_ptr(tmb%coeff)
        !!end if
 
-       if (bigdft_mpi%iproc ==0) then 
+       if (bigdft_mpi%iproc ==0) then
           call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
        end if
   end if
@@ -984,7 +991,7 @@ end if
 
   ! only print eigenvalues if they have meaning, i.e. diag or the case above
   if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE.or.input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
-     if (bigdft_mpi%iproc ==0) then 
+     if (bigdft_mpi%iproc ==0) then
         call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
      end if
   end if
@@ -1262,7 +1269,7 @@ end if
 !!               end if
 !!
 !!               call vcopy(tmb%linmat%m%nfvctr*tmb%linmat%m%nfvctr, matrixElements(1,1,2), 1, ovrlp_full(1,1), 1)
-!!               
+!!
 !!               ! Add the specical confinement
 !!               do iorb=1,tmb%linmat%m%nfvctr
 !!                   do jorb=1,tmb%linmat%m%nfvctr
@@ -1413,7 +1420,7 @@ end if
 !!
 !!  ! Calculate the partial traces
 !!  ii = 1
-!!  do 
+!!  do
 !!      iat = tmb%linmat%l%on_which_atom(ii)
 !!      itype = at%astruct%iatype(iat)
 !!      n = input%lin%norbsPerType(itype)
@@ -1459,7 +1466,7 @@ end if
 !!      fac = 0.5d0
 !!  else if (input%nspin==2) then
 !!      fac = 1.d0
-!!  else 
+!!  else
 !!      stop 'wrong nspin'
 !!  end if
 !!  q = 0.d0
@@ -1478,7 +1485,7 @@ end if
 !!  !!do
 !!  !!    tot_occ = 0.d0
 !!  !!    do i=1,at%astruct%nat*tmb%linmat%l%nfvctr
-!!  !!        occ = 1.d0/(1.d0+safe_exp( (all_evals(i,1)-ef)*(1.d0/1.d-2) ) ) 
+!!  !!        occ = 1.d0/(1.d0+safe_exp( (all_evals(i,1)-ef)*(1.d0/1.d-2) ) )
 !!  !!        write(*,*) 'i, occ', i, occ
 !!  !!        tot_occ = tot_occ + occ
 !!  !!    end do
@@ -1493,17 +1500,17 @@ end if
 !!  !!    end if
 !!  !!end do
 !!  ef = all_evals(1,1)
-!!  do 
+!!  do
 !!      ef = ef + 1.d-3
-!!      occ = 1.d0/(1.d0+safe_exp( (all_evals(iq,1)-ef)*(1.d0/1.d-2) ) ) 
+!!      occ = 1.d0/(1.d0+safe_exp( (all_evals(iq,1)-ef)*(1.d0/1.d-2) ) )
 !!      write(*,*) 'ef, occ', ef, occ
 !!      if (abs(occ-1.d0)<1.d-6) exit
 !!  end do
 !!  call yaml_map('ef',ef)
 !!
 !!  do i=1,at%astruct%nat*tmb%linmat%l%nfvctr
-!!      occ = 1.d0/(1.d0+safe_exp( (all_evals(i,1)-ef)*(1.d0/1.d-2) ) ) 
-!!      !occ = 1.d0/(1.d0+safe_exp( (all_evals(i,1)-all_evals(iq,1))*(1.d0/1.d-2) ) ) 
+!!      occ = 1.d0/(1.d0+safe_exp( (all_evals(i,1)-ef)*(1.d0/1.d-2) ) )
+!!      !occ = 1.d0/(1.d0+safe_exp( (all_evals(i,1)-all_evals(iq,1))*(1.d0/1.d-2) ) )
 !!      call yaml_map('ordered',(/real(i,kind=8),all_evals(i,1),all_evals(i,2),occ/))
 !!  end do
 !!
@@ -1604,7 +1611,7 @@ end if
 !!
 !!  ! Calculate the partial traces
 !!  ii = 1
-!!  do 
+!!  do
 !!      iat = tmb%linmat%l%on_which_atom(ii)
 !!      itype = at%astruct%iatype(iat)
 !!      n = input%lin%norbsPerType(itype)
@@ -1617,7 +1624,7 @@ end if
 !!      ii = ii + n
 !!      if (ii==tmb%linmat%l%nfvctr+1) exit
 !!  end do
-!!  
+!!
 !!  !call deallocate_work_transpose(wt_philarge)
 !!  !call deallocate_work_transpose(wt_hpsinoprecond)
 !!  !call deallocate_work_transpose(wt_hphi)
@@ -1732,7 +1739,7 @@ end if
 
   !! Calculate the partial traces
   !ii = 1
-  !do 
+  !do
   !    iat = tmb%linmat%l%on_which_atom(ii)
   !    itype = at%astruct%iatype(iat)
   !    n = input%lin%norbsPerType(itype)
@@ -1794,7 +1801,7 @@ end if
 
   !kernel_foe_cropped = 0.d0
   !ii = 1
-  !do 
+  !do
   !    tmb%linmat%ovrlp_%matrix_compr = 0.d0
   !    tmb%linmat%ham_%matrix_compr = 0.d0
   !    tmb%linmat%kernel_%matrix_compr = 0.d0
@@ -1908,7 +1915,7 @@ end if
 
 
   !ii = 1
-  !do 
+  !do
   !    iat = tmb%linmat%l%on_which_atom(ii)
   !    itype = at%astruct%iatype(iat)
   !    n = input%lin%norbsPerType(itype)
@@ -1964,7 +1971,7 @@ end if
 
   !!call f_zero(tmb%linmat%kernel_%matrix_compr)
   !!ii = 1
-  !!do 
+  !!do
   !!    iat = tmb%linmat%l%on_which_atom(ii)
   !!    itype = at%astruct%iatype(iat)
   !!    n = input%lin%norbsPerType(itype)
@@ -1976,7 +1983,7 @@ end if
   !!            else if (n==4) then
   !!                tmb%linmat%kernel_%matrix_compr(ind) = K_O(i-ii+1,j-ii+1)
   !!            end if
-  !!        end do 
+  !!        end do
   !!    end do
   !!    ii = ii + n
   !!    if (ii==tmb%linmat%l%nfvctr+1) exit
@@ -1995,7 +2002,7 @@ end if
 
   !call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, ovrlp_large, tmpmat)
   !ii = 1
-  !do 
+  !do
   !    iat = tmb%linmat%l%on_which_atom(ii)
   !    itype = at%astruct%iatype(iat)
   !    n = input%lin%norbsPerType(itype)
@@ -2158,7 +2165,7 @@ end if
           select case (input%lin%charge_multipoles)
           case (1,11)
               method='loewdin'
-          case (2,3,12,13) 
+          case (2,3,12,13)
               method='projector'
           case default
               call f_err_throw('wrong value of charge_multipoles')
@@ -2166,7 +2173,7 @@ end if
           select case (input%lin%charge_multipoles)
           case (1,2,3)
               do_ortho='yes'
-          case (11,12,13) 
+          case (11,12,13)
               do_ortho='no'
           case default
               call f_err_throw('wrong value of charge_multipoles')
@@ -2176,7 +2183,7 @@ end if
               projectormode='none'
           case (2,12)
               projectormode='simple'
-          case (3,13) 
+          case (3,13)
               projectormode='full'
           case default
               call f_err_throw('wrong value of charge_multipoles')
@@ -2245,7 +2252,7 @@ end if
       !if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
       if (iproc==0) call yaml_warning('commented correction_locrad')
       !!! Testing energy corrections due to locrad
-      !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%coeff) 
+      !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%coeff)
       ! Calculate Pulay correction to the forces
       !!if (input%lin%scf_mode==LINEAR_FOE) then
       !!    tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
@@ -2336,8 +2343,8 @@ end if
        !      end do
        !   end do
        !   write(33,*) ''
-       !end if 
-       !call f_free_ptr(tmb%linmat%kernel_%matrix) 
+       !end if
+       !call f_free_ptr(tmb%linmat%kernel_%matrix)
        !! end debug
 
   ! TEMPORARY DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
@@ -2388,12 +2395,12 @@ end if
   !   call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
   !        tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
   !        1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
-  ! 
+  !
   !   call plot_wf(trim(input%dir_output)//trim(adjustl(yaml_toa(iiorb))),1,at,1.0_dp,tmb%Lzd%glr,&
   !        tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
   !   !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
   !   !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
-  ! 
+  !
   !   ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
   !   !indg = indg + tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f
   !end do
@@ -2404,7 +2411,7 @@ end if
   !call local_analysis(iproc,nproc,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),at,rxyz,tmb%lzd%glr,&
   !     tmb%orbs,fakeorbs,gpsi_all,gpsi_virt)
   !call f_free_ptr(gpsi_all)
-  ! END DEBUG 
+  ! END DEBUG
 
 
   ! check why this is here!
@@ -2444,9 +2451,9 @@ end if
        implicit none
 
        ! Calling arguments
-       integer,intent(in) :: nit_scc
-       logical,intent(in) :: remove_coupling_terms !<set the matrix elements coupling different atoms to zero
-       logical,intent(inout) :: update_phi
+       integer, intent(in) :: nit_scc
+       logical, intent(in) :: remove_coupling_terms !<set the matrix elements coupling different atoms to zero
+       logical, intent(inout) :: update_phi
 
        ! Local variables
        logical :: calculate_overlap, invert_overlap_matrix
@@ -2481,7 +2488,7 @@ end if
                  !PB: What should be done is storing of both constrained and unconstrained matrices,
                  !PB: so we determine the extrapolation coefficients from the constrained and apply them
                  !PB: to the unconstrained to get next matrix.
-                 if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
+                 if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
                     call DIIS_free(ldiis_coeff)
                     if (input%lin%extra_states==0) then
                        call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
@@ -2500,10 +2507,10 @@ end if
                          infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                          .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                          input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
-                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,& 
+                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
                       input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                          convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
-                    call get_lagrange_mult(cdft_it,vgrad) 
+                    call get_lagrange_mult(cdft_it,vgrad)
                     ! CDFT: exit when W is converged wrt both V and rho
                     if (abs(vgrad) < cdft_charge_thresh .or. target_function==TARGET_FUNCTION_IS_TRACE) then
                        exit
@@ -2517,7 +2524,7 @@ end if
                       infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                       .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
-                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,& 
+                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
                       input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
               end if
@@ -2532,7 +2539,7 @@ end if
                  !PB: What should be done is storing of both constrained and unconstrained matrices,
                  !PB: so we determine the extrapolation coefficients from the constrained and apply them
                  !PB: to the unconstrained to get next matrix.
-                 if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
+                 if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
                     call DIIS_free(ldiis_coeff)
                     if (input%lin%extra_states==0) then
                        call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
@@ -2551,7 +2558,7 @@ end if
                          infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                          .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                          input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
-                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,& 
+                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
                       input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                          convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                     call get_lagrange_mult(cdft_it,vgrad)
@@ -2568,7 +2575,7 @@ end if
                       infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                       .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
-                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,& 
+                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
                       input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
               end if
@@ -2634,7 +2641,7 @@ end if
                ! Use this subroutine to write the energies, with some
                ! fake number
                ! to prevent it from writing too much
-               call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+               call write_energies(0,energs,0.d0,0.d0,'',only_energies=.true.)
            end if
            !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
            !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
@@ -2688,7 +2695,7 @@ end if
                  pnrm_out=0.d0
                  do ispin=1,input%nspin
                      ! ishift gives the start of the spin down component
-                     ishift=(ispin-1)*KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d 
+                     ishift=(ispin-1)*KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d
                      do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
                         pnrm_out=pnrm_out+(denspot%rhov(ishift+ioffset+i)-rhopotOld_out(ishift+ioffset+i))**2
                      end do
@@ -2718,7 +2725,7 @@ end if
                !call yaml_map('update potential',.true.)
            end if
            if (iproc==0) call yaml_newline()
-           
+
 
            call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
            if (iproc==0) call yaml_mapping_close()
@@ -2754,7 +2761,7 @@ end if
                if (input%Tel > 0.0_gp) then
                    call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
                end if
-              if (bigdft_mpi%iproc ==0) then 
+              if (bigdft_mpi%iproc ==0) then
                  call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
               end if
            end if
@@ -2777,7 +2784,7 @@ end if
                  pnrm_out=0.d0
                  do ispin=1,input%nspin
                      ! ishift gives the start of the spin down component
-                     ishift=(ispin-1)*KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p 
+                     ishift=(ispin-1)*KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
                      do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
                         pnrm_out=pnrm_out+(denspot%rhov(ishift+i)-rhopotOld_out(ishift+i))**2
                      end do
@@ -2793,10 +2800,10 @@ end if
 
                  pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i)!)*input%nspin)
                  call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
-                      denspot%rhov(1), 1, rhopotOld_out(1), 1) 
+                      denspot%rhov(1), 1, rhopotOld_out(1), 1)
               end if
            end if
- 
+
            ! CDFT: need to pass V*w_ab to get_coeff so that it can be added to H_ab and the correct KS eqn can therefore be solved
            ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
            ! CDFT: all this will be in some extra CDFT loop
@@ -3026,7 +3033,7 @@ end if
 
           if (input%lin%constrained_dft) then
               call yaml_map('Tr(KW)',ebs,fmt='(es14.4)')
-          end if     
+          end if
 
           call yaml_mapping_close()
           call yaml_sequence_close()
@@ -3124,7 +3131,7 @@ end if
           call yaml_sequence(advance='no')
           call yaml_mapping_open(flow=.true.)
           call yaml_map('iter',itout)
-          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+          call write_energies(0,energs,0.d0,0.d0,'',only_energies=.true.)
           if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
                  call yaml_map('iter low',itout)
@@ -3208,9 +3215,9 @@ end if
       ! Local variables
       real(kind=8) :: eh_tmp, exc_tmp, evxc_tmp, eexctX_tmp
       real(kind=8) :: fnoise, pressure, ehart_fake
-      real(kind=8),dimension(6) :: ewaldstr, hstrten, xcstr, strten
-      real(kind=8),dimension(:),allocatable :: rhopot_work
-          real(kind=8),dimension(:,:),allocatable :: fxyz
+      real(kind=8), dimension(6) :: ewaldstr, hstrten, xcstr, strten
+      real(kind=8), dimension(:), allocatable :: rhopot_work
+          real(kind=8), dimension(:,:), allocatable :: fxyz
 
       ! TEST: calculate forces here ####################################################
       fxyz=f_malloc((/3,at%astruct%nat/),id='fxyz')
@@ -3267,12 +3274,12 @@ end if
       call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
       call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
            0.0_dp,.false.,stress_tensor=hstrten)
-      
+
       KSwfn%psi=f_malloc_ptr(1,id='KSwfn%psi')
       fpulay=0.d0
       !this is associated but not used in the routine for linear scaling
       call orbital_basis_associate(ob,orbs=KSwfn%orbs,Lzd=KSwfn%Lzd)
-      call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,at,ob,nlpsp,rxyz,& 
+      call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,at,ob,nlpsp,rxyz,&
            KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
            denspot%dpbox,&
            denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,denspot%dpbox%nrhodim,&
@@ -3300,7 +3307,7 @@ end if
     end subroutine intermediate_forces
 
 
-    
+
     subroutine get_lagrange_mult(cdft_it, vgrad)
        implicit none
 
@@ -3308,8 +3315,8 @@ end if
        integer, intent(in) :: cdft_it
        real(kind=gp), intent(out) :: vgrad
 
-       
-         ! CDFT: Calculate gradient of V=Tr[Kw]-Nc 
+
+         ! CDFT: Calculate gradient of V=Tr[Kw]-Nc
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
               tmb%linmat%kernel_,weight_matrix_,&
               ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
@@ -3344,7 +3351,7 @@ end if
 
          ! assuming density mixing/no mixing not potential mixing
          call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
-              rhopotOld_out(1), 1, rhopotOld(1), 1) 
+              rhopotOld_out(1), 1, rhopotOld(1), 1)
 
          call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
               rhopotOld_out(1), 1, denspot%rhov(1), 1)
@@ -3361,9 +3368,9 @@ end if
             vdiis%ids=vdiis%ids+1
             vold=cdft%lag_mult
             call diis_opt(0,1,1,0,1,(/0/),(/1/),1,&
-               cdft%lag_mult,-vgrad,vdiis) 
+               cdft%lag_mult,-vgrad,vdiis)
             !call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/1/),1,&
-            !   cdft%lag_mult,-vgrad,vdiis) 
+            !   cdft%lag_mult,-vgrad,vdiis)
          else if (.false.) then !sd
             if (abs(vgrad)<abs(vgrad_old)) then
                valpha=valpha*1.1d0
@@ -3511,6 +3518,7 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
 
 end subroutine output_fragment_rotations
 
+
 !> Check the relative weight which the support functions have at the
 !! boundaries of the localization regions.
 subroutine get_boundary_weight(iproc, nproc, orbs, lzd, atoms, crmult, nsize_psi, psi, crit)
@@ -3523,20 +3531,20 @@ subroutine get_boundary_weight(iproc, nproc, orbs, lzd, atoms, crmult, nsize_psi
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(orbitals_data),intent(in) :: orbs
-  type(local_zone_descriptors),intent(in) :: lzd
-  type(atoms_data),intent(in) :: atoms
-  real(kind=8),intent(in) :: crmult
-  integer,intent(in) :: nsize_psi
-  real(kind=8),dimension(nsize_psi),intent(in) :: psi
-  real(kind=8),intent(in) :: crit
+  integer, intent(in) :: iproc, nproc
+  type(orbitals_data), intent(in) :: orbs
+  type(local_zone_descriptors), intent(in) :: lzd
+  type(atoms_data), intent(in) :: atoms
+  real(kind=8), intent(in) :: crmult
+  integer, intent(in) :: nsize_psi
+  real(kind=8), dimension(nsize_psi), intent(in) :: psi
+  real(kind=8), intent(in) :: crit
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ind, iat, iatype, nwarnings
-  real(kind=8) :: atomrad, rad, boundary, weight_normalized, maxweight, meanweight
-  real(kind=8),dimension(:),allocatable :: maxweight_types, meanweight_types
-  integer,dimension(:),allocatable :: nwarnings_types, nsf_per_type
+  real(kind=8) :: atomrad, rad, weight_normalized, maxweight, meanweight
+  real(kind=8), dimension(:), allocatable :: maxweight_types, meanweight_types
+  integer, dimension(:), allocatable :: nwarnings_types, nsf_per_type
 
   call f_routine(id='get_boundary_weight')
 

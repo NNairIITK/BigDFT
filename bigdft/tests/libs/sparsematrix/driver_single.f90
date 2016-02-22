@@ -1,3 +1,13 @@
+!> @file
+!! Test of the sparsematrix library
+!! @author
+!!    Copyright (C) 2015-2016 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 program driver_single
   use module_base
   use yaml_output
@@ -21,7 +31,7 @@ program driver_single
   type(matrices) :: mat_in
   type(matrices),dimension(1) :: mat_out
   type(matrices),dimension(2) :: mat_check_accur
-  integer :: norder_polynomial, ierr, nthread, blocksize
+  integer :: norder_polynomial, ierr, nthread, blocksize, iproc
   real(kind=8) :: exp_power
   character(len=200) :: filename_in, filename_out
   type(dictionary), pointer :: dict_timing_info

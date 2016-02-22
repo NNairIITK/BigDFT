@@ -16,11 +16,27 @@ Four institutions were implicated in the BigDFT project (version < 1.1):
 </ul>
 
 From 2010, three laboratories are contributing: L_Sim (CEA), UNIBAS and ESRF.
-From 2012, L_Sim (CEA) and UNIBAS are the main contributors and Luigi Genovese is the lead programmer
+From 2012, L_Sim (CEA) and UNIBAS are the main contributors and Luigi Genovese is the lead programmer.
+
+
+<h2> Contributors (v1.8) </h2>
+<!-- Name              Initials  Email                         Institution -->
+<ul>
+<li> Damien Caliste          DC  Damien.Caliste@cea.fr         INAC, CEA-Grenoble, France </li>
+<li> Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France </li>
+<li> Ivan Duchemin           ID  Ivan.Duchemin@cea.fr          INAC, CEA-Grenoble, France </li>
+<li> Luigi Genovese          LG  Luigi.Genovese@esrf.fr        INAC, CEA-Grenoble, France </li>
+<li> Stefan Goedecker        SG  Stefan.Goedecker@unibas.ch    Basel Universität, Switzerland </li>
+<li> Stephan Mohr            SM  Stephan.Mohr@unibas.ch        Basel Universität, Switzerland </li>
+<li> Pascal Pochet           PP  Pascal.Pochet@cea.fr          INAC, CEA-Grenoble, France </li>
+<li> Laura Ratcliff          LR  Laura.Ratcliff@cea.fr         INAC, CEA-Grenoble, France </li>
+<li> Bastian Schaefer        BS  bastian.schaefer@unibas.ch    Basel Universität, Switzerland </li>
+<li> Brice Videau            BV  Brice.Videau@imag.fr          IMAG, Grenoble, France </li>
+</ul>
 
 
 <h2> Contributors (v1.7) </h2>
-<!-- Name          Initials Email                         Institution -->
+<!-- Name              Initials  Email                         Institution -->
 <ul>
 <li> Max Amsler              MA  m.amsler@unibas.ch            Basel Universität, Switzerland </li>
 <li> Frédéric Bonnet         FB  Frederic.Bonnet@cea.fr        INAC, CEA-Grenoble, France </li>
@@ -49,7 +65,7 @@ From 2012, L_Sim (CEA) and UNIBAS are the main contributors and Luigi Genovese i
 
 
 <h2> Contributors (v1.6) </h2>
-<!-- Name          Initials Email                         Institution -->
+<!-- Name              Initials  Email                         Institution -->
 <ul>
 <li> Max Amsler              MA  m.amsler@unibas.ch            Basel Universität, Switzerland </li>
 <li> Paul Boulanger          PB  Paul.Boulanger@cea.fr         INAC, CEA-Grenoble, France </li>
@@ -74,7 +90,7 @@ From 2012, L_Sim (CEA) and UNIBAS are the main contributors and Luigi Genovese i
 </ul>
 
 <h2> Contributors (v1.5) </h2>
-<!-- Name          Initials Email                         Institution -->
+<!-- Name              Initials  Email                         Institution -->
 <ul>
 <li> Max Amsler              MA  m.amsler@unibas.ch            Basel Universität, Switzerland </li>
 <li> Eric Bainville          EB  eric.bainville@bealto.com     Bealto, Italy </li>
@@ -95,7 +111,7 @@ From 2012, L_Sim (CEA) and UNIBAS are the main contributors and Luigi Genovese i
 </ul>
 
 <h2> Contributors (v1.4) </h2>
-<!-- Name          Initials Email                         Institution -->
+<!-- Name              Initials  Email                         Institution -->
 <ul>
 <li> Max Amsler              MA  M.Amsler@unibas.ch            Basel Universität, Switzerland </li>
 <li> Damien Caliste          DC  Damien.Caliste@cea.fr         INAC, CEA-Grenoble, France </li>
@@ -114,7 +130,7 @@ From 2012, L_Sim (CEA) and UNIBAS are the main contributors and Luigi Genovese i
 </ul>
 
 <h2> Contributors (v1.3) </h2>
-<!-- Name          Initials Email                         Institution -->
+<!-- Name              Initials  Email                         Institution -->
 <ul>
 <li> Damien Caliste          DC  Damien.Caliste@cea.fr         INAC, CEA-Grenoble, France </li>
 <li> Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France </li>
@@ -129,7 +145,7 @@ From 2012, L_Sim (CEA) and UNIBAS are the main contributors and Luigi Genovese i
 </ul>
 
 <h2> Contributors (v1.2) </h2>
-<!-- Name          Initials Email                         Institution -->
+<!-- Name              Initials  Email                         Institution -->
 <ul>
 <li> Damien Caliste          DC  damien.caliste@cea.fr         INAC, CEA-Grenoble, France </li>
 <li> Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France </li>
@@ -139,7 +155,7 @@ From 2012, L_Sim (CEA) and UNIBAS are the main contributors and Luigi Genovese i
 </ul>
 
 <h2> Contributors (v1.1) </h2>
-<!-- Name          Initials Email                         Institution -->
+<!-- Name              Initials  Email                         Institution -->
 <ul>
 <li> Anders Bergman          AB  Anders.Bergman@cea.fr         INAC, CEA-Grenoble, France </li>
 <li> Damien Caliste          DC  damien.caliste@cea.fr         INAC, CEA-Grenoble, France </li>
@@ -153,9 +169,9 @@ From 2012, L_Sim (CEA) and UNIBAS are the main contributors and Luigi Genovese i
 </ul>
 
 <h2> Contributors (v1.0) </h2>
-<!-- Name          Initials Email                         Institution -->
+<!-- Name               Initials  Email                         Institution -->
 <ul>
-<li> Pierre-Matthieu Anglade  PMA anglade@gmail.com            Université de Caen, France </li>
+<li> Pierre-Matthieu Anglade PMA  anglade@gmail.com            Université de Caen, France </li>
 <li> Anders Bergman           AB  Anders.Bergman@cea.fr        INAC, CEA-Grenoble, France </li>
 <li> Damien Caliste           DC  damien.caliste@cea.fr        INAC, CEA-Grenoble, France </li>
 <li> Thierry Deutsch          TD  Thierry.Deutsch@cea.fr       INAC, CEA-Grenoble, France </li>

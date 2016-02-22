@@ -15,7 +15,27 @@ module wrapper_linalg
   implicit none
 
 
-!!$  type, private :: 
+!!$  !> central type to handle the behaviour of the linear
+!!$  !! problem
+!!$  type, private :: f_linalg_data
+!!$     !> all the typical arguments of ev and sv routines
+!!$     integer :: n
+!!$     [etc,etc..]
+!!$  end type f_linalg_data
+!!$
+!!$  !exemple of API, inspired from numpy
+!!$  eig=f_linalg_eig(A=mat,n=n,symmetric=.true.,hermitian=.false.,complex=.true.,work=work,lwork=lwork,eigenvalues=eval)
+!!$
+!!$  eig=f_linalg_solve(A=mat,n=n,symmetric=.true.,hermitian=.false.,complex=.true.,work=work,lwork=lwork,eigenvalues=eval)
+!!$
+!!$  !then retrieve the information, if not specified in the caller
+!!$  call f_get_evals(eig,eval)
+!!$  !or maybe by 
+!!$  call f_memcpy(eig%eval_ptr,eval)
+!!$
+!!$  !all the thinkg which have not been specified are then destroyed by
+!!$  call f_linalg_free(eig)
+
 
   !> Flag for GPU computing, if CUDA libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation

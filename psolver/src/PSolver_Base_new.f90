@@ -1,11 +1,11 @@
 !> @file
 !!  New routines for Poisson solver
 !! @author
-!! Copyright (C) 2002-2011 BigDFT group 
+!! Copyright (C) 2002-2011 BigDFT group
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~/COPYING file
 !! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the list of contributors, see ~/AUTHORS 
+!! For the list of contributors, see ~/AUTHORS
 
 !regroup the psolver from here -------------
 subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
@@ -18,7 +18,7 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
   !>when true, the density is updated with the value of zf
   logical, intent(in) :: updaterho
   logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
-  type(coulomb_operator), intent(inout) :: kernel 
+  type(coulomb_operator), intent(inout) :: kernel
   !> Total integral on the supercell of the final potential on output
   real(dp), intent(in) :: offset
   real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: rho
@@ -28,12 +28,12 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
   !local variables
   integer, dimension(3) :: n
   integer :: size1,size2,switch_alg,i_stat,ierr,i23,j23,j3,i1,n3delta
-  real(dp) :: pt,rh
+  !real(dp) :: pt,rh
   real(dp), dimension(:), allocatable :: zf1
 
   call f_routine(id='apply_kernel')
 
-  !this routine builds the values for each process of the potential (zf), multiplying by scal   
+  !this routine builds the values for each process of the potential (zf), multiplying by scal
   !fill the array with the values of the charge density
   !no more overlap between planes
   !still the complex case should be defined
@@ -138,7 +138,7 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
         if(kernel%stay_on_gpu /= 1) then
         call reset_gpu_data( kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
                             rho, kernel%w%rho_GPU)
-        end if 
+        end if
 
         call pad_data( kernel%w%rho_GPU, kernel%w%work1_GPU, kernel%grid%m1,&
                     kernel%grid%n3p,kernel%grid%m3, kernel%grid%md1,&
@@ -194,15 +194,15 @@ subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
   !if .false., pot is only zf
   logical, intent(in) :: sumpion
   logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
-  type(coulomb_operator), intent(in) :: kernel 
+  type(coulomb_operator), intent(in) :: kernel
   integer, intent(in) :: m1,m2,m3p !< dimension of the grid
   integer, intent(in) :: md1,md2,md3p !< dimension of the zf array
   !> original density and final potential (can point to the same array)
   real(dp), dimension(m1,m2*m3p), intent(in) :: rho
-  real(dp), dimension(m1,m2*m3p), intent(out) :: pot 
+  real(dp), dimension(m1,m2*m3p), intent(out) :: pot
   !> ionic potential, to be added to the potential
   real(dp), dimension(m1,m2*m3p), intent(in) :: pot_ion
-  !> work array for the usage of the main routine 
+  !> work array for the usage of the main routine
   !!(might have the same dimension of rho, but generally is bigger)
   real(dp), dimension(md1,md2*md3p), intent(in) :: zf
   !>hartree energy, being \int d^3 x \rho(x) zf(x) (no volume element)
@@ -215,7 +215,7 @@ subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
   eh=0.0_dp
 
 
-  if(gpu) then 
+  if(gpu) then
 
      !in VAC case, rho and zf are already on the card and untouched
      if( kernel%stay_on_gpu /= 1 .and. trim(str(kernel%method))/='VAC') then
@@ -272,7 +272,7 @@ subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
            do i1=1,m1
               pt=zf(i1,j23)
               rh=rho(i1,i23)
-              rh=rh*pt      
+              rh=rh*pt
               eh=eh+rh
               pot(i1,i23)=pt
            end do
@@ -378,20 +378,20 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 !!$  if (mod(n1,2) /= 0 .and. .not. perx) stop 'Parallel convolution:ERROR:n1' !this can be avoided
 !!$  if (mod(n2,2) /= 0 .and. .not. perz) stop 'Parallel convolution:ERROR:n2' !this can be avoided
 !!$  if (mod(n3,2) /= 0 .and. .not. pery) stop 'Parallel convolution:ERROR:n3' !this can be avoided
-!!$  if (nd1 < n1/2+1) stop 'Parallel convolution:ERROR:nd1' 
-!!$  if (nd2 < n2/2+1) stop 'Parallel convolution:ERROR:nd2' 
-!!$  if (nd3 < n3/2+1) stop 'Parallel convolution:ERROR:nd3' 
+!!$  if (nd1 < n1/2+1) stop 'Parallel convolution:ERROR:nd1'
+!!$  if (nd2 < n2/2+1) stop 'Parallel convolution:ERROR:nd2'
+!!$  if (nd3 < n3/2+1) stop 'Parallel convolution:ERROR:nd3'
   if (md1 < n1dim) stop 'Parallel convolution:ERROR:md1'
   if (md2 < n2dim) stop 'Parallel convolution:ERROR:md2'
   if (md3 < n3dim) stop 'Parallel convolution:ERROR:md3'
 !!$  if (mod(nd3,nproc) /= 0) stop 'Parallel convolution:ERROR:nd3'
 !!$  if (mod(md2,nproc) /= 0) stop 'Parallel convolution:ERROR:md2'
-  
+
   if (ncache <= max(n1,n2,n3dim)*4) ncache=max(n1,n2,n3dim)*4
 
   if (timing_flag == 1 .and. iproc ==0) print *,'parallel ncache=',ncache
 
-  
+
   ntrig=max(n3dim,n1,n2)
 
   n1p=n1
@@ -479,10 +479,10 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 
   ! transform along z axis
   lot=ncache/(4*n3dim)
-  if (lot < 1) then  
-     write(6,*) & 
-          'convolxc_off:ncache has to be enlarged to be able to hold at' // &  
-          'least one 1-d FFT of this size even though this will' // & 
+  if (lot < 1) then
+     write(6,*) &
+          'convolxc_off:ncache has to be enlarged to be able to hold at' // &
+          'least one 1-d FFT of this size even though this will' // &
           'reduce the performance for shorter transform lengths'
      stop
   endif
@@ -504,7 +504,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !$omp private(j2,i1,i,j3,j) &
   !$omp firstprivate(lot, maxIter)
 !  !$omp firstprivate(before3, now3, after3)
-  
+
   allocate( zw(2, ncache/4, 2), stat=i_stat )
   allocate( zt(2,lzt/n3pr1, n1p), stat=i_stat )
   !$omp do schedule(static)
@@ -571,7 +571,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !$omp barrier
 
   !now each process perform complete convolution of its planes
- 
+
   if (n3pr1==1) then
     maxIter = min(nd3 /nproc, n3/2+1 - iproc*(nd3/nproc))
   else
@@ -581,7 +581,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
         maxIter = 0
     endif
   endif
- 
+
   strten_omp=0
 
   !$omp do schedule(static)
@@ -594,7 +594,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
           J2stf=1
           ! transform along x axis
           lot=ncache/(4*n1)
-          if (lot < 1) then  
+          if (lot < 1) then
              write(6,*)&
                   'convolxc_off:ncache has to be enlarged to be able to hold at' //&
                   'least one 1-d FFT of this size even though this will' //&
@@ -628,13 +628,13 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
              !storing the last step into zt array
              i=ic1
              call fftstp_sg(lot,nfft,n1,lzt/n3pr1,n1,zw(1,1,inzee),zt(1,j,1),&
-                  ntrig,btrig1,after1(i),now1(i),before1(i),1)           
+                  ntrig,btrig1,after1(i),now1(i),before1(i),1)
              !output: I2,i1,j3,(jp3)
           end do
 
           !transform along y axis
           lot=ncache/(4*n2)
-          if (lot < 1) then  
+          if (lot < 1) then
              write(6,*)&
                   'convolxc_off:ncache has to be enlarged to be able to hold at' //&
                   'least one 1-d FFT of this size even though this will' //&
@@ -655,10 +655,10 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
             call f_timing(TCAT_PSOLV_COMMUN,'OF')
             call f_timing(TCAT_PSOLV_COMPUT,'ON')
           endif
-        
+
           do j=1,n1p/n3pr1,lot
            nfft=min(j+(lot-1),n1p/n3pr1)-j+1
-             !reverse ordering 
+             !reverse ordering
              !input: I2,i1,j3,(jp3)
              if (n3pr1 >1) then
                call G_switch_upcorn2(nfft,n2,n2dim,lot,n1p,lzt,zt_t(1,1,1),zw(1,1,1),n3pr1,j)
@@ -689,7 +689,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
                 !write(*,*) 'pot(1,1,j3) = ', pot(1,1,j3)
                 call multkernel(nd1,nd2,n1,n2,lot,nfft,j+j1start,pot(1,1,j3),zw(1,1,inzee))
              end if
-            
+
 !TRANSFORM BACK IN REAL SPACE
              !transform along y axis
              !input: i1,i2,j3,(jp3)
@@ -745,7 +745,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
                      ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
                 inzee=3-inzee
              enddo
-             
+
              !output: I2,I1,j3,(jp3)
              !reverse ordering
              !input: J2,Jp2,I1,j3,(jp3)
@@ -754,7 +754,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
                      n1dim,md2,nd3,nproc,zw(1,1,inzee),zmpi2)
              else
                 call G_unmpiswitch_downcorn2(j3,nfft,Jp2stf,J2stf,lot,n1,&
-                     n1dim,md2,nd3,n3pr1,n3pr2,zw(1,1,inzee),zmpi1)  
+                     n1dim,md2,nd3,n3pr1,n3pr2,zw(1,1,inzee),zmpi1)
              endif
              ! output: I1,J2,j3,Jp2,(jp3)
           end do
@@ -816,7 +816,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
            !output: I1,i3,J2,(Jp2)
 
            !performing FFT
-           !input: I1,i3,J2,(Jp2)           
+           !input: I1,i3,J2,(Jp2)
            inzee=1
            do i=1,ic3
               call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee), &
@@ -852,7 +852,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 
 !END OF TRANSFORM IN Y DIRECTION
 
-  !De-allocations  
+  !De-allocations
   call f_free(btrig1)
   call f_free(ftrig1)
   call f_free(btrig2)
@@ -885,7 +885,7 @@ subroutine G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
   !Local variables
   integer :: mfft,Jp2,J2,I1,ish, imfft
 
-  
+
   !shift
   ish=n1-n1dim
   mfft=0
@@ -978,7 +978,7 @@ subroutine G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt,zw)
 
   !shift
   ish=n2-n2dim
-  ! Low frequencies 
+  ! Low frequencies
   do j=1,nfft
      do i=1,n2dim
         zw(1,j,i+ish)=zt(1,i,j)
@@ -986,7 +986,7 @@ subroutine G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt,zw)
      end do
   end do
 
-  ! High frequencies 
+  ! High frequencies
   do i=1,ish
      do j=1,nfft
         zw(1,j,i)=0.0_dp
@@ -1009,7 +1009,7 @@ subroutine G_switch_upcorn2(nfft,n2,n2dim,lot,n1,lzt,zt,zw,n3pr1,zt_init)
 
   !shift
   ish=n2-n2dim
-  ! Low frequencies 
+  ! Low frequencies
   do j=1,nfft
      do i=1,n2dim
         zw(1,j,i+ish)=zt(1,mod(i-1,lzt/n3pr1)+1,j+zt_init-1,(i-1)/(lzt/n3pr1)+1)
@@ -1017,7 +1017,7 @@ subroutine G_switch_upcorn2(nfft,n2,n2dim,lot,n1,lzt,zt,zw,n3pr1,zt_init)
      end do
   end do
 
-  ! High frequencies 
+  ! High frequencies
   do i=1,ish
      do j=1,nfft
         zw(1,j,i)=0.0_dp
@@ -1041,8 +1041,8 @@ END SUBROUTINE G_switch_upcorn2
 !!   @param  scal      Needed to achieve unitarity and correct dimensions
 !!
 !! @warning
-!!     Assuming that high frequencies are in the corners 
-!!     and that n3 is multiple of 4   
+!!     Assuming that high frequencies are in the corners
+!!     and that n3 is multiple of 4
 !!
 !! @author
 !!     Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
@@ -1066,7 +1066,7 @@ subroutine P_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
   do i3=1,n3
      do i1=1,nfft
         pot1 = scal*zw(1,i1,i3)
-        zf(i1,i3)= pot1 
+        zf(i1,i3)= pot1
      end do
   end do
 
@@ -1090,8 +1090,8 @@ subroutine C_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
      do i1=1,nfft
         pot1 = scal*zw(1,i1,i3)
         pot2 = scal*zw(2,i1,i3)
-        zf(1,i1,i3)= pot1 
-        zf(2,i1,i3)= pot2 
+        zf(1,i1,i3)= pot1
+        zf(2,i1,i3)= pot2
      end do
   end do
 
@@ -1269,14 +1269,14 @@ subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,s
      if (jS==1) then
         !zero fourier component (no strten contribution)
         i2=1
-        zw(1,1,1)=offset/(hx*hy*hz) 
-        zw(2,1,1)=0.d0              
+        zw(1,1,1)=offset/(hx*hy*hz)
+        zw(2,1,1)=0.d0
         !running recip space coordinates
         pxyz(2)=0.0_dp
         do i1=2,nfft
            j1=i1+jS-1
            !running recip space coordinate
-           pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx) 
+           pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx)
            !square of modulus of recip space coordinate
            g2=pxyz(1)**2+pxyz(2)**2+pxyz(3)**2
            !density squared over modulus
@@ -1297,12 +1297,12 @@ subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,s
         end do
         do i2=2,n2
            !running recip space coordinate
-           pxyz(2)=real(i2-(i2/(n2/2+2))*n2-1,dp)/(real(n2,dp)*hz) 
+           pxyz(2)=real(i2-(i2/(n2/2+2))*n2-1,dp)/(real(n2,dp)*hz)
 
            do i1=1,nfft
               j1=i1+jS-1
               !running recip space coordinate
-              pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx) 
+              pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx)
 
               !square of modulus of recip space coordinate
               g2=pxyz(1)**2+pxyz(2)**2+pxyz(3)**2
@@ -1327,12 +1327,12 @@ subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,s
         !generic case
         do i2=1,n2
            !running recip space coordinate
-           pxyz(2)=real(i2-(i2/(n2/2+2))*n2-1,dp)/(real(n2,dp)*hz) 
+           pxyz(2)=real(i2-(i2/(n2/2+2))*n2-1,dp)/(real(n2,dp)*hz)
 
            do i1=1,nfft
               j1=i1+jS-1
               !running recip space coordinate
-              pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx) 
+              pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx)
 
               !square of modulus of recip space coordinate
               g2=pxyz(1)**2+pxyz(2)**2+pxyz(3)**2
@@ -1365,11 +1365,11 @@ subroutine P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset,s
      !generic case
      do i2=1,n2
         !running recip space coordinate
-        pxyz(2)=real(i2-(i2/(n2/2+2))*n2-1,dp)/(real(n2,dp)*hz) 
+        pxyz(2)=real(i2-(i2/(n2/2+2))*n2-1,dp)/(real(n2,dp)*hz)
         do i1=1,nfft
            j1=i1+jS-1
            !running recip space coordinate
-           pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx) 
+           pxyz(1)=real(j1-(j1/(n1/2+2))*n1-1,dp)/(real(n1,dp)*hx)
 
            !square of modulus of recip space coordinate
            g2=pxyz(1)**2+pxyz(2)**2+pxyz(3)**2
@@ -1439,7 +1439,7 @@ subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
   integer :: j,j1,i2,j2
 
   !Body
-  
+
   !case i2=1
   do j=1,nfft
      j1=j+jS-1
@@ -1467,7 +1467,7 @@ subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
       !  write(*,*) 'Im[zw(i2=', i2, ')] = ', zw(2,j,i2)
      end do
   end do
-  
+
   !case i2=n2/2+1
   do j=1,nfft
      j1=j+jS-1
@@ -1577,7 +1577,7 @@ END SUBROUTINE G_unmpiswitch_downcorn2
 
 !>  (Based on suitable modifications of S.Goedecker routines)
 !!  Restore data into output array, calculating in the meanwhile
-!!  Hartree energy of the potential 
+!!  Hartree energy of the potential
 !!
 !! SYNOPSIS
 !!   @param  zf:          Original distributed density as well as
@@ -1590,8 +1590,8 @@ END SUBROUTINE G_unmpiswitch_downcorn2
 !!   @param  ehartreetmp: Hartree energy
 !!
 !! @warning
-!!     Assuming that high frequencies are in the corners 
-!!     and that n3 is multiple of 4   
+!!     Assuming that high frequencies are in the corners
+!!     and that n3 is multiple of 4
 !!
 !! @author
 !!     Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
@@ -1620,13 +1620,13 @@ subroutine unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
      do i1=1,nfft
         pot1 = scal*zw(1,i1,i3)
         !ehartreetmp =ehartreetmp + pot1* zf(i1,2*i3-1)
-      zf(i1,2*i3-1)= pot1 
+      zf(i1,2*i3-1)= pot1
       pot1 = scal*zw(2,i1,i3)
         !ehartreetmp =ehartreetmp + pot1* zf(i1,2*i3)
-      zf(i1,2*i3)= pot1 
+      zf(i1,2*i3)= pot1
      enddo
   end do
-  
+
 END SUBROUTINE unfill_downcorn
 
 
@@ -1637,10 +1637,10 @@ subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
   real(kind=8) ::  zw(2,lot,n3/2),zf(md1,md3)
 !Local variables
   integer :: i1,i3
-! WARNING: Assuming that high frequencies are in the corners 
+! WARNING: Assuming that high frequencies are in the corners
 !          and that n3 is multiple of 4
 !in principle we can relax this condition
-      
+
   do i3=1,n3/4
      do i1=1,nfft
         zw(1,i1,i3)=0.d0
@@ -1653,7 +1653,7 @@ subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
         zw(2,i1,i3)=zf(i1,2*i3-n3/2)
      end do
   end do
-      
+
 END SUBROUTINE halfill_upcorn
 
 
@@ -1689,7 +1689,7 @@ subroutine scramble_unpack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2,cosinarr)
   !Local variables
   integer :: i3,i,ind1,ind2
   real(kind=8) ::  a,b,c,d,cp,sp,feR,feI,foR,foI,fR,fI
-  
+
   !Body
 
   !case i3=1 and i3=n3/2+1
@@ -1715,7 +1715,7 @@ subroutine scramble_unpack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2,cosinarr)
         feR=.5d0*(a+c)
         feI=.5d0*(b-d)
         foR=.5d0*(a-c)
-        foI=.5d0*(b+d) 
+        foI=.5d0*(b+d)
         fR=feR+cp*foI-sp*foR
         fI=feI-cp*foR-sp*foI
         zmpi2(1,i1+i,j2,ind1)=fR
@@ -1725,11 +1725,11 @@ subroutine scramble_unpack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2,cosinarr)
 
 END SUBROUTINE scramble_unpack
 
- 
+
 !> (Based on suitable modifications of S.Goedecker routines)
 !! Insert the correct planes of the work array zmpi2
 !! in order to prepare for backward FFT transform
-!! In the meanwhile, it packs the data in order to be transformed with the HalFFT 
+!! In the meanwhile, it packs the data in order to be transformed with the HalFFT
 !! procedure
 !!
 !! SYNOPSIS
@@ -1775,7 +1775,7 @@ subroutine unscramble_pack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw,cosinarr)
         ie=(b+d)
         ro=(a-c)*cp-(b-d)*sp
         io=(a-c)*sp+(b-d)*cp
-        rh=re-io 
+        rh=re-io
         ih=ie+ro
         zw(1,i+1,indA)=rh
         zw(2,i+1,indA)=ih

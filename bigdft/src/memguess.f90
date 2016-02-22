@@ -1359,7 +1359,7 @@ program memguess
                  & runObj%sections(i)%rst%KSwfn%Lzd%Glr, runObj%sections(i)%rst%KSwfn%orbs%norb, &
                  & runObj%sections(i)%rst%KSwfn%orbs%nspinor, runObj%sections(i)%rst%KSwfn%orbs%nkpts, &
                  & nlpsp%nprojel, runObj%sections(i)%inputs%nspin, &
-                 & runObj%sections(i)%inputs%itrpmax,runObj%sections(i)%inputs%iscf,mem)
+                 & runObj%sections(i)%inputs%itrpmax,f_int(runObj%sections(i)%inputs%scf),mem)
             call free_DFT_PSP_projectors(nlpsp)
             call deallocate_Lzd_except_Glr(runObj%sections(i)%rst%KSwfn%Lzd)
             call deallocate_comms(runObj%sections(i)%rst%KSwfn%comms)
@@ -1383,7 +1383,7 @@ program memguess
    call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
         & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
         & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
-        runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,mem)
+        runObj%inputs%nspin,runObj%inputs%itrpmax,f_int(runObj%inputs%scf),mem)
    
    if (runObj%run_mode /= MULTI_RUN_MODE .and. &
         & .not. exportwf .and. .not. exportproj) then

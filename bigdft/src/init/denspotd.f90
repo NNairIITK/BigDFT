@@ -5,7 +5,7 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Denspot initialization
@@ -60,10 +60,10 @@ subroutine initialize_coulomb_operator(kernel)
   use module_types
   implicit none
   type(coulomb_operator), intent(out) :: kernel
-  
+
   nullify(kernel%kernel)
 
-  
+
 end subroutine initialize_coulomb_operator
 
 
@@ -80,7 +80,7 @@ subroutine initialize_rho_descriptors(rhod)
   rhod%n_fsegs=uninitialized(rhod%n_fsegs)
   rhod%dp_size=uninitialized(rhod%dp_size)
   rhod%sp_size=uninitialized(rhod%sp_size)
-  
+
   nullify(rhod%spkey,rhod%dpkey,rhod%cseg_b,rhod%fseg_b)
 
 end subroutine initialize_rho_descriptors
@@ -130,7 +130,7 @@ subroutine dpbox_set_box(dpbox,Lzd)
   implicit none
   type(local_zone_descriptors), intent(in) :: Lzd
   type(denspot_distribution), intent(inout) :: dpbox
- 
+
   !The grid for the potential is twice finer
   dpbox%hgrids(1)=0.5_gp*Lzd%hgrids(1)
   dpbox%hgrids(2)=0.5_gp*Lzd%hgrids(2)
@@ -144,46 +144,74 @@ subroutine dpbox_set_box(dpbox,Lzd)
 end subroutine dpbox_set_box
 
 
-subroutine denspot_set_history(denspot, iscf, &
+subroutine denspot_set_history(denspot, scf_enum, &
      npulayit)
   use module_base
   use module_types
   use module_mixing
-  use public_enums, only: SCF_KIND_DIRECT_MINIMIZATION
+  use public_enums
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
-  integer, intent(in) :: iscf
+
+  type(f_enumerator), intent(in) :: scf_enum
   integer,intent(in),optional :: npulayit
-  
-  integer :: potden, npoints, ierr
+
+  integer :: potden, npoints, ierr,irealfour,imeth
   character(len=500) :: errmess
 
-  if (iscf < 10) then
-     ! Mixing over potential so use dimension of pot (n3p)
-     potden = AB7_MIXING_POTENTIAL
-     npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
-!!!     npoints = n1i*n2i*denspot%dpbox%n3p
-  else
-     ! Mixing over density so use dimension of density (n3d)
-     potden = AB7_MIXING_DENSITY
-     npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d
-!!!     npoints = n1i*n2i*denspot%dpbox%n3d
-  end if
-  if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
+  if (scf_enum .hasattr. 'MIXING') then
+     potden = f_int(scf_enum .getattr. 'MIXING_ON')
+     select case(potden)
+     case(AB7_MIXING_POTENTIAL)
+        npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*&
+             denspot%dpbox%n3p
+     case(AB7_MIXING_DENSITY)
+        npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*&
+             denspot%dpbox%n3d
+     end select
+     irealfour=f_int(scf_enum .getattr. 'MIXING_SPACE')
+     imeth=f_int(scf_enum)
      allocate(denspot%mix)
      if (present(npulayit)) then
-         call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
-              AB7_MIXING_REAL_SPACE, npoints, denspot%dpbox%nrhodim, 0, &
-              ierr, errmess, npulayit=npulayit, useprec = .false.)
+        call ab7_mixing_new(denspot%mix,imeth, potden, &
+              irealfour, npoints, denspot%dpbox%nrhodim, 0, &
+             ierr, errmess, npulayit=npulayit, useprec = .false.)
      else
-         call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
-              AB7_MIXING_REAL_SPACE, npoints, denspot%dpbox%nrhodim, 0, &
-              ierr, errmess, useprec = .false.)
+        call ab7_mixing_new(denspot%mix, imeth, potden, &
+              irealfour, npoints, denspot%dpbox%nrhodim, 0, &
+             ierr, errmess, useprec = .false.)
      end if
      call ab7_mixing_eval_allocate(denspot%mix)
   else
      nullify(denspot%mix)
   end if
+
+!!$  if (iscf < 10) then
+!!$     ! Mixing over potential so use dimension of pot (n3p)
+!!$     potden = AB7_MIXING_POTENTIAL
+!!$     npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
+!!$!!!     npoints = n1i*n2i*denspot%dpbox%n3p
+!!$  else
+!!$     ! Mixing over density so use dimension of density (n3d)
+!!$     potden = AB7_MIXING_DENSITY
+!!$     npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d
+!!$!!!     npoints = n1i*n2i*denspot%dpbox%n3d
+!!$  end if
+!!$  if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
+!!$     allocate(denspot%mix)
+!!$     if (present(npulayit)) then
+!!$         call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
+!!$              AB7_MIXING_REAL_SPACE, npoints, nspin, 0, &
+!!$              ierr, errmess, npulayit=npulayit, useprec = .false.)
+!!$     else
+!!$         call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
+!!$              AB7_MIXING_REAL_SPACE, npoints, nspin, 0, &
+!!$              ierr, errmess, useprec = .false.)
+!!$     end if
+!!$     call ab7_mixing_eval_allocate(denspot%mix)
+!!$  else
+!!$     nullify(denspot%mix)
+!!$  end if
 end subroutine denspot_set_history
 
 
@@ -192,10 +220,11 @@ subroutine denspot_free_history(denspot)
   use module_mixing
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
-  
+
   if (associated(denspot%mix)) then
       call ab7_mixing_deallocate(denspot%mix)
       deallocate(denspot%mix)
+      nullify(denspot%mix)
   end if
 end subroutine denspot_free_history
 
@@ -249,7 +278,7 @@ subroutine denspot_set_rhov_status(denspot, status, istep, iproc, nproc)
   integer, intent(in) :: status, istep, iproc, nproc
 
   denspot%rhov_is = status
-  
+
   if (denspot%c_obj /= 0) then
      call denspot_emit_rhov(denspot, istep, iproc, nproc)
   end if
@@ -276,7 +305,7 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
         !allocate full density in pot_ion array
         rho_full = f_malloc_ptr(denspot%dpbox%ndimgrid*denspot%dpbox%nrhodim,id='rho_full')
         new = 1
-        
+
         ! Ask to gather density to other procs.
         !LG: wtf is that? call MPI_BCAST(0, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
@@ -285,7 +314,7 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
         irhoxcsh = nslice / denspot%dpbox%n3p * denspot%dpbox%i3xcsh
      else
         irhoxcsh = 0
-     end if     
+     end if
      do irhodim = 1, denspot%dpbox%nrhodim, 1
         if (iproc == 0) then
            call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
@@ -324,7 +353,7 @@ subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
         !allocate full density in pot_ion array
         pot_full = f_malloc_ptr(denspot%dpbox%ndimgrid,id='pot_full')
         new = 1
-      
+
         ! Ask to gather density to other procs.
         !!!call MPI_BCAST(1, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
@@ -348,7 +377,7 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
   character(len = *), parameter :: subname = "denspot_emit_rhov"
   integer, parameter :: SIGNAL_DONE = -1
   integer, parameter :: SIGNAL_DENSITY = 0
-  integer :: message, ierr, new
+  integer :: message, new
   real(gp), pointer :: full_dummy(:)
   interface
      subroutine denspot_full_density(denspot, rho_full, iproc, new)
@@ -402,7 +431,8 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
   !Local variables
   character(len = *), parameter :: subname = "denspot_emit_v_ext"
   integer, parameter :: SIGNAL_DONE = -1
-  integer :: message, ierr, new
+  integer :: message, new
+  !integer :: ierr
   real(gp), pointer :: full_dummy(:)
   interface
      subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
@@ -488,7 +518,7 @@ subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
   else
      denspot%rhov = f_malloc0_ptr(denspot%dpbox%nrhodim,id='denspot%rhov')
   end if
-  !check if non-linear core correction should be applied, and allocate the 
+  !check if non-linear core correction should be applied, and allocate the
   !pointer if it is the case
   !print *,'i3xcsh',denspot%dpbox%i3s,denspot%dpbox%i3xcsh,denspot%dpbox%n3d
   call calculate_rhocore(atoms,rxyz,denspot%dpbox,denspot%rho_C)
@@ -601,7 +631,7 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
   else if (rho_commun=='MIX' .and. (atoms%astruct%geocode.eq.'F') .and. (nproc > 1)) then
      rhodsc%icomm=2
   end if
-  
+
 !!$  !recent way
 !!$  if ((atoms%astruct%geocode.eq.'F') .and. (nproc > 1)) then
 !!$     rhodsc%icomm=2
@@ -636,14 +666,14 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
      nullify(rhodsc%cseg_b)
      nullify(rhodsc%fseg_b)
   end if
-  
+
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rhodsc%icomm==1) then
      rhodsc%nrhotot=sum(dpbox%nscatterarr(:,1))
   else
      rhodsc%nrhotot=dpbox%ndims(3)
   end if
- 
+
 end subroutine density_descriptors
 
 !> routine which initialised the potential data
@@ -711,7 +741,7 @@ subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
 
 end subroutine define_confinement_data
 
-  
+
 
 
 !> Print the distribution schemes
@@ -780,7 +810,7 @@ subroutine print_distribution_schemes(nproc,nkpts,norb_par,nvctr_par)
         call yaml_mapping_close() ! for Process jproc
      end do
   call yaml_sequence_close()  ! for Data distribution
-  
+
 END SUBROUTINE print_distribution_schemes
 
 
@@ -827,5 +857,5 @@ subroutine start_end_comps(nproc,jproc,ndist,is,ie)
      is=is+ndist(kproc)
   end do
   ie=is+ndist(jproc)-1
-  
+
 END SUBROUTINE start_end_comps

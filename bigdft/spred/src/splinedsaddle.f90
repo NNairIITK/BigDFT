@@ -5,7 +5,7 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !>  Program splined_saddle: Methot determine the saddle point
@@ -27,7 +27,7 @@ program splined_saddle
   !character(len=60) :: filename
   ! atomic coordinates, forces
   ! integer :: iconfig,nconfig
-  real(gp), dimension(:,:), allocatable :: ratsp,fatsp 
+  real(gp), dimension(:,:), allocatable :: ratsp,fatsp
   !integer, dimension(4) :: mpi_info
   type(dictionary), pointer :: run,options
   !include 'mpif.h' !non-BigDFT
@@ -43,7 +43,7 @@ program splined_saddle
 !!$  !just for backward compatibility
 !!$  iproc=mpi_info(1)
 !!$  nproc=mpi_info(2)
-!!$  
+!!$
 !!$  !allocate arrays of run ids
 !!$  allocate(arr_radical(abs(nconfig)))
 !!$  allocate(arr_posinp(abs(nconfig)))
@@ -53,7 +53,7 @@ program splined_saddle
 !!$  call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
 !!$  do iconfig=1,abs(nconfig)
 !!$     if (modulo(iconfig-1,mpi_info(4))==mpi_info(3)) then
-  
+
   call bigdft_command_line_options(options)
   call bigdft_init(options)
 
@@ -195,7 +195,7 @@ end module minimization_sp
 !> Module used by the program splined_saddle
 module modulesplinedsaddle
     implicit none
-    type parametersplinedsaddle 
+    type parametersplinedsaddle
         !integer, parameter::npmax=20
         !integer::napmax=50
         real(kind=8)::s(0:200)
@@ -329,7 +329,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
 !!$    call deallocate_atoms_data(ll_atoms)
     !associate the runobjects to the previous restart
     call run_objects_init(ll_runObj,run,source=run_opt)
-    !input files have been parsed  
+    !input files have been parsed
     call dict_free(run)
 
     !-----------------------------------------------------------
@@ -344,7 +344,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
     !---------------------------------------------------------------------------
     if(trim(pnow%runstat)=='restart') then
         x_t = f_malloc((/ 1.to.n, 0.to.100+ndeb2 /),id='x_t')
-        filename='anchorposinp.xyz' 
+        filename='anchorposinp.xyz'
         call readanchorpoints(n,np_t,x_t,filename,run_opt%atoms%astruct%units)
         if(np_t==np) then
             x(1:n,0:np)=x_t(1:n,0:np_t)
@@ -356,8 +356,8 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
     else
        call bigdft_get_rxyz(filename='posinp',rxyz_add=rxyz_tmp(1,1))
 !!$        open(unit=1336,file='posinp.xyz',status='old') !read atomic positions
-!!$        read(1336,*) 
-!!$        read(1336,*) 
+!!$        read(1336,*)
+!!$        read(1336,*)
 !!$        do iat=1,atoms%astruct%nat
 !!$          read(1336,*) tatonam,rxyz_tmp(1,iat),rxyz_tmp(2,iat),rxyz_tmp(3,iat)
 !!$          if(atoms%astruct%units == 'angstroemd0' .or. atoms%astruct%units == 'angstroem') then
@@ -367,8 +367,8 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
 !!$        close(1336)
        call bigdft_get_rxyz(filename='posinp2',rxyz_add=rxyz_2(1,1))
 !!$        open(unit=1336,file='posinp2.xyz',status='old') !read atomic positions
-!!$        read(1336,*) 
-!!$        read(1336,*) 
+!!$        read(1336,*)
+!!$        read(1336,*)
 !!$        do iat=1,atoms%astruct%nat
 !!$          read(1336,*) tatonam,rxyz_2(1,iat),rxyz_2(2,iat),rxyz_2(3,iat)
 !!$          if(atoms%astruct%units == 'angstroemd0' .or. atoms%astruct%units == 'angstroem') then
@@ -467,7 +467,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
         pnow%ex(0)=pnow%exends(1)
         pnow%ex(np_neb)=pnow%exends(2)
         call neb(n,nr,np_neb,xneb,parmin_neb,pnow, &
-            nproc,iproc,ll_runObj,ncount_bigdft)  
+            nproc,iproc,ll_runObj,ncount_bigdft)
         call finalminimize(parmin_neb)
         call change_np(n,np_neb,xneb,bigdft_get_astruct_ptr(ll_runObj),&
              np,x)
@@ -489,8 +489,8 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
     parmin%alphamin=1.d-1*parmin%alphax
     parmin%alphamax=3.d0*parmin%alphax
     call initminimize(parmin)
-    call splinedsaddle(n,nr,np,x,epot_sp,f,ratsp,parmin,outends,pnow, & 
-        nproc,iproc,run_opt,ll_runObj,ncount_bigdft,fatsp)  
+    call splinedsaddle(n,nr,np,x,epot_sp,f,ratsp,parmin,outends,pnow, &
+        nproc,iproc,run_opt,ll_runObj,ncount_bigdft,fatsp)
     endif
     if(iproc==0) call writepathway(n,np,x,'pathout.xyz',&
          bigdft_get_astruct_ptr(ll_runObj))
@@ -1069,7 +1069,7 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
     type(parameterminimization_sp)::parmin
     type(parametersplinedsaddle)::pnow !n(c) pold
     type(state_properties), dimension(1:np - 1) :: outs
-    
+
     integer, parameter::ndeb1=0,ndeb2=0
 
     parmin%converged=.false.
@@ -1165,7 +1165,7 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
                     write(pnow%ifile,'(a)') 'SD did not saturate, so diisminimum can not continue.'
                     write(*,'(a)') 'SD did not saturate, so diisminimum can not continue.'
                 endif
-                endif 
+                endif
             !elseif(.not. (parmin%iflag==0 .and.  parmin%converged)) then
             elseif(parmin%diisminimum) then
                 !call diisminimum(iproc,nr*(np-1),xa,fnrmtot,fa,parmin,nwork,work)
@@ -1180,7 +1180,7 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
                 parmin%sdsaturated=.false.
                 parmin%sdminimum=.true.
                 parmin%diisminimum=.false.
-            endif 
+            endif
             if(parmin%iflag==0 .and. parmin%converged) then
                 parmin%sdminimum=.false.
                 parmin%diisminimum=.false.
@@ -1375,7 +1375,7 @@ end subroutine calmaxforcecomponentanchors
 !    real(kind=8)::ratall(3,nat,0:np)
 !    do ip=0,np
 !    write(99,*) nat
-!    write(99,*) 
+!    write(99,*)
 !    do iat=1,nat
 !        write(99,*) ratall(1:3,iat,ip)
 !    enddo
@@ -1609,7 +1609,7 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,outends,pnow,nproc, &
                     write(pnow%ifile,'(a)') 'SD did not saturate, so diisminimum can not continue.'
                     write(*,'(a)') 'SD did not saturate, so diisminimum can not continue.'
                 endif
-                endif 
+                endif
             endif
             call testparmin(iproc,it,parmin,'after-sdminimum')
             if(.not. parmin%sdminimum .and. .not. parmin%converged) parmin%diisminimum=.true.
@@ -1627,7 +1627,7 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,outends,pnow,nproc, &
                 parmin%sdsaturated=.false.
                 parmin%diisminimum=.false.
                 parmin%sdminimum=.true.
-            endif 
+            endif
             call testparmin(iproc,it,parmin,'after-diisminimum-2')
             if(parmin%iflag==0 .or. parmin%converged) then
                 parmin%sdminimum=.false.
@@ -1801,6 +1801,7 @@ end subroutine splinedsaddle
 
 subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     !use minimization, only:parameterminimization
+    use wrapper_MPI
     use minimization_sp, only:parameterminimization_sp
     use wrapper_MPI
     implicit none
@@ -2112,7 +2113,7 @@ subroutine reportcalvmaxanchorforces(iproc,icall,n,np,x,etmax,fspnrm,fspmax,pnow
         write(* ,frt1) 'SP ',ncount_bigdft,icall,fspnrm,fspmax,' fort52 ',cbh1,cbh2
         !write(52,frt1) 'SP ',ncount_bigdft,fspnrm,fspmax,' fort52 ',cbh1,cbh2
         write(fn,'(i3.3)') icall
-        filename='anchorpoints'//fn//'.xyz' 
+        filename='anchorpoints'//fn//'.xyz'
         call writeanchorpoints(n,np,x,filename,astruct)
     endif
 end subroutine reportcalvmaxanchorforces
@@ -2285,7 +2286,7 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold
                 f(i,ip)=tt
             enddo
         enddo
-                !write(61,*) 
+                !write(61,*)
     else
         !write(*,*) 'granot',pnow%granot
         !call projectoutperpendicularforce(n,nr,np,x,f,pnow)
@@ -2371,7 +2372,7 @@ end subroutine checkpathway
 !        call inter_cubic(np,pnow%y,pnow%h,pnow%e1,pnow%e2,pnow%c)
 !        dt=pnow%s(np)/npv
 !        do ip=1,npv-1
-!            pnow%sv(ip)=dt*ip 
+!            pnow%sv(ip)=dt*ip
 !            call calindex(np,pnow%s,pnow%sv(ip),mp)
 !            call ffdfdd_cubic(np,pnow%y,pnow%s,mp,pnow%h(mp),pnow%sv(ip),pnow%c,xall(i,ip),t1,t2)
 !        enddo
@@ -2437,7 +2438,7 @@ subroutine caltmax2(istep,n,np,x,xold,outends,epot,xt,ft,pnow,pold,nproc,iproc,l
     !--------------------------------------------------------
     if(iproc==0) then
         write(fn,'(i3.3)') istep
-        filename='path'//fn//'.xyz' 
+        filename='path'//fn//'.xyz'
         call writepathway(n,np,x,filename,bigdft_get_astruct_ptr(ll_runObj))
     endif
     !--------------------------------------------------------
@@ -2549,7 +2550,7 @@ subroutine caltmax2(istep,n,np,x,xold,outends,epot,xt,ft,pnow,pold,nproc,iproc,l
     !call epot_along_traj(istep,n,nr,np,x,npv,pnow,nproc,iproc,atoms,rst,inputs,ncount_bigdft)
     vdtol=max(pnow%vdtol*fnrm,5.d-5)
     !vdtol=max(pnow%vdtol*fnrm,1.d-8) !non-BigDFT
-    if((abs(vd)<vdtol .and. vdd<0.d0) .or. (epot-max(pnow%exends(1),pnow%exends(2)))>1.d0) then 
+    if((abs(vd)<vdtol .and. vdd<0.d0) .or. (epot-max(pnow%exends(1),pnow%exends(2)))>1.d0) then
     !if((abs(vd)<vdtol .and. vdd<0.d0) .or. (epot-max(pnow%exends(1),pnow%exends(2)))>1.d2) then !non-BigDFT
         pnow%npv=npv
         return
@@ -2566,7 +2567,7 @@ subroutine caltmax2(istep,n,np,x,xold,outends,epot,xt,ft,pnow,pold,nproc,iproc,l
         call calindex(np,pnow%s,pnow%tmax,mp,'caltmax2_3')
         !-------------------------
         call func(pnow%tmax,epot,vd,n,np,x,pnow,mp,xt,ft,nproc,iproc,ll_runObj,ncount_bigdft)
-        
+
         call calindex(npv,pnow%sv,pnow%tmax,mpv,'caltmax2_4')
         call insertpoint(npv,epot,vd,mpv,np,pnow)
         !-------------------------
@@ -2630,7 +2631,7 @@ subroutine polish_sv(npv,pnow)
     lpvn=0
     do ipv=1,npv-1
         !ipv=ipv+1
-        !if(ipv==npv) 
+        !if(ipv==npv)
         diff=abs(pnow%ex(ipv)-pnow%tmax)
         if(pnow%ex(ipv)<pnow%ex(ipv-1) .and. pnow%ex(ipv)<pnow%ex(ipv+1) .and. diff>1.d-5) then
             lpvn=lpvn+1
@@ -2928,7 +2929,7 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,ll_r
     call init_state_properties(outs,bigdft_nat(ll_runObj))
     pnow%ex(0)=pnow%exends(1)
     pnow%ex(npv)=pnow%exends(2)
-    !test points along path will be distributed uniformly except one which is 
+    !test points along path will be distributed uniformly except one which is
     !close to the pold%tmax will be replaced by pold%tmax
     !n(c) dt=pnow%s(np)/npv
     call estimate_sv(iproc,istep,np,npv,pnow,pold)
@@ -3027,13 +3028,13 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,ll_r
 !!$            call atomic_dot(bigdft_get_astruct_ptr(ll_runObj),&
 !!$                 outends(1)%fxyz(1,1),tang,tt)
 !!$            pnow%exd(ip)=-tt
-!!$            !pnow%exd(ip)=-mydot(n,fends(1,1),tang) 
+!!$            !pnow%exd(ip)=-mydot(n,fends(1,1),tang)
             pnow%exd(ip)=-bigdft_dot(ll_runObj,dx=outends(1)%fxyz,dy=tang)
         elseif(ip==npv) then
 !!$            call atomic_dot(bigdft_get_astruct_ptr(ll_runObj),&
 !!$                 outends(2)%fxyz(1,1),tang,tt)
 !!$            pnow%exd(ip)=-tt
-!!$            !pnow%exd(ip)=-mydot(n,fends(1,2),tang) 
+!!$            !pnow%exd(ip)=-mydot(n,fends(1,2),tang)
             pnow%exd(ip)=-bigdft_dot(ll_runObj,dx=outends(2)%fxyz,dy=tang)
         else
             !call calenergyforces(n,xt,pnow%ex(ip),ft)
@@ -3050,7 +3051,7 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,ll_r
 !!$            call atomic_dot(bigdft_get_astruct_ptr(ll_runObj),&
 !!$                 ft,tang,tt)
 !!$            pnow%exd(ip)=-tt
-!!$            !pnow%exd(ip)=-mydot(n,ft,tang) 
+!!$            !pnow%exd(ip)=-mydot(n,ft,tang)
             pnow%exd(ip)=-bigdft_dot(ll_runObj,dx=ft,dy=tang)
         endif
     enddo
@@ -3343,7 +3344,7 @@ end subroutine estimate_sv
 !    call inter_cubic(npv,pnow%ex,pnow%hv,pnow%e1v,pnow%e2v,pnow%cv)
 !    call factor_inter_quintic(npv,pnow%hv,pnow%ex,pnow%exd,pnow%a,pnow%b)
 !    do ip=0,19
-!        t=dt*ip 
+!        t=dt*ip
 !        if(ip==20) then
 !            mpv=npv
 !            mp=np
@@ -3709,7 +3710,7 @@ subroutine ffdfdd_quintic(n,s,h,y,d,a,b,i,t,v,vd,vdd)
     t10=d(i-1)*t1 + d(i)*t2
     t11=3.d0*(s(i)**3 + s(i-1)**3)
     t12=-t2*y(i) + t1*y(i-1)
-    p0=(-h(i)*t9+h(i)**3*t10+b*t7+a*t8-t11*t0+3.d0*h(i)**2*t12)/(3.d0*h(i)**3) 
+    p0=(-h(i)*t9+h(i)**3*t10+b*t7+a*t8-t11*t0+3.d0*h(i)**2*t12)/(3.d0*h(i)**3)
     t13=d(i) + d(i-1)
     t14=t4*s(i)**2 + t3*s(i-1)**2
     t15=7.d0*s(i)**2 + 2.d0*s(i-1)**2
@@ -3799,7 +3800,7 @@ subroutine prepdd(astruct,n,np,x,e1,e2,h,s,mp,tmax,dd)
         ainv(ip,ip+1)=h(ip+1)
         !if(ip>1) ainv(ip,ip-1)=e2(ip)
     enddo
-    ainv(np-1,np-1)=2.d0*(h(np)+h(np-1)) 
+    ainv(np-1,np-1)=2.d0*(h(np)+h(np-1))
     call dpotrf('U',np-1,ainv,np-1,info)
     if(info/=0) write(*,*) 'ERROR, dpotrf: factorization failed: info',info
     call dpotri('U',np-1,ainv,np-1,info)
@@ -3832,7 +3833,7 @@ subroutine prepdd(astruct,n,np,x,e1,e2,h,s,mp,tmax,dd)
         !write(64,'(e24.15)') e2(1)
         !write(64,'(2e24.15)') ainv(1,1),ainv(1,2)
         !write(64,'(2e24.15)') ainv(2,1),ainv(2,2)
-        !write(64,*) 
+        !write(64,*)
         !write(*,*) 'ALIREZA ',ainv(1,1)*((yj(2)-yj(1))/h(2)-(yj(1)-yj(0))/h(1)),c(1)
         do i=1,n
             iat=(i-1)/3+1
@@ -3910,24 +3911,24 @@ subroutine prepcd3cd4(np,h,mp,ainv,i,j,yi,yj,cd1,cd2)
         tt1=0.d0
         tt2=0.d0
         do jp=1,np-1
-            t1=ainvdmpip  *1.d0*(yip-yipm1)/hip  *ainvd(ip-1,jp)  
-            t2=ainvdmpipp1*1.d0*(yipp1-yip)/hipp1*ainvd(ip,jp)    
-            t3=ainvdmpip  *2.d0*(yip-yipm1)/hip  *ainvd(ip,jp)   
-            t4=ainvdmpipp1*2.d0*(yipp1-yip)/hipp1*ainvd(ip+1,jp)  
-            t5=ainvdmpipm1*2.d0*(yip-yipm1)/hip  *ainvd(ip-1,jp)  
-            t6=ainvdmpip  *2.d0*(yipp1-yip)/hipp1*ainvd(ip,jp)    
-            t7=ainvdmpipm1*1.d0*(yip-yipm1)/hip  *ainvd(ip,jp)    
-            t8=ainvdmpip  *1.d0*(yipp1-yip)/hipp1*ainvd(ip+1,jp) 
+            t1=ainvdmpip  *1.d0*(yip-yipm1)/hip  *ainvd(ip-1,jp)
+            t2=ainvdmpipp1*1.d0*(yipp1-yip)/hipp1*ainvd(ip,jp)
+            t3=ainvdmpip  *2.d0*(yip-yipm1)/hip  *ainvd(ip,jp)
+            t4=ainvdmpipp1*2.d0*(yipp1-yip)/hipp1*ainvd(ip+1,jp)
+            t5=ainvdmpipm1*2.d0*(yip-yipm1)/hip  *ainvd(ip-1,jp)
+            t6=ainvdmpip  *2.d0*(yipp1-yip)/hipp1*ainvd(ip,jp)
+            t7=ainvdmpipm1*1.d0*(yip-yipm1)/hip  *ainvd(ip,jp)
+            t8=ainvdmpip  *1.d0*(yipp1-yip)/hipp1*ainvd(ip+1,jp)
             t9=((yj(jp+1)-yj(jp))/h(jp+1)-(yj(jp)-yj(jp-1))/h(jp))
             tt1=tt1+(-t1+t2-t3+t4-t5+t6-t7+t8)*t9
-            t1=ainvdmpm1ip  *1.d0*(yip-yipm1)/hip  *ainvd(ip-1,jp)  
-            t2=ainvdmpm1ipp1*1.d0*(yipp1-yip)/hipp1*ainvd(ip,jp)    
-            t3=ainvdmpm1ip  *2.d0*(yip-yipm1)/hip  *ainvd(ip,jp)    
-            t4=ainvdmpm1ipp1*2.d0*(yipp1-yip)/hipp1*ainvd(ip+1,jp)  
-            t5=ainvdmpm1ipm1*2.d0*(yip-yipm1)/hip  *ainvd(ip-1,jp)  
-            t6=ainvdmpm1ip  *2.d0*(yipp1-yip)/hipp1*ainvd(ip,jp)    
-            t7=ainvdmpm1ipm1*1.d0*(yip-yipm1)/hip  *ainvd(ip,jp)    
-            t8=ainvdmpm1ip  *1.d0*(yipp1-yip)/hipp1*ainvd(ip+1,jp) 
+            t1=ainvdmpm1ip  *1.d0*(yip-yipm1)/hip  *ainvd(ip-1,jp)
+            t2=ainvdmpm1ipp1*1.d0*(yipp1-yip)/hipp1*ainvd(ip,jp)
+            t3=ainvdmpm1ip  *2.d0*(yip-yipm1)/hip  *ainvd(ip,jp)
+            t4=ainvdmpm1ipp1*2.d0*(yipp1-yip)/hipp1*ainvd(ip+1,jp)
+            t5=ainvdmpm1ipm1*2.d0*(yip-yipm1)/hip  *ainvd(ip-1,jp)
+            t6=ainvdmpm1ip  *2.d0*(yipp1-yip)/hipp1*ainvd(ip,jp)
+            t7=ainvdmpm1ipm1*1.d0*(yip-yipm1)/hip  *ainvd(ip,jp)
+            t8=ainvdmpm1ip  *1.d0*(yipp1-yip)/hipp1*ainvd(ip+1,jp)
             t9=((yj(jp+1)-yj(jp))/h(jp+1)-(yj(jp)-yj(jp-1))/h(jp))
             tt2=tt2+(-t1+t2-t3+t4-t5+t6-t7+t8)*t9
         enddo
@@ -3959,8 +3960,8 @@ subroutine prepcd1cd2(np,h,mp,yi,yj,cd1,cd2,ainv)
         t2=1.d0/h(ip+1)
         t3=2.d0*(yj(ip)-yj(ip-1))*(yi(ip)-yi(ip-1))/h(ip)**3
         t4=2.d0*(yj(ip+1)-yj(ip))*(yi(ip+1)-yi(ip))/h(ip+1)**3
-        cd1(ip)=ainvd(mp,ip-1)*(t1-t3)-ainvd(mp,ip)*(t1+t2-t3-t4)+ainvd(mp,ip+1)*(t2-t4) 
-        cd2(ip)=ainvd(mp-1,ip-1)*(t1-t3)-ainvd(mp-1,ip)*(t1+t2-t3-t4)+ainvd(mp-1,ip+1)*(t2-t4) 
+        cd1(ip)=ainvd(mp,ip-1)*(t1-t3)-ainvd(mp,ip)*(t1+t2-t3-t4)+ainvd(mp,ip+1)*(t2-t4)
+        cd2(ip)=ainvd(mp-1,ip-1)*(t1-t3)-ainvd(mp-1,ip)*(t1+t2-t3-t4)+ainvd(mp-1,ip+1)*(t2-t4)
     enddo
     call f_free(ainvd)
 
@@ -4091,7 +4092,7 @@ subroutine factor_cubic(np,h,e1,e2)
     implicit none
     integer::np
     integer::ip,info
-    real(kind=8)::h(np),e1(np-1),e2(np-2) 
+    real(kind=8)::h(np),e1(np-1),e2(np-2)
     do ip=1,np-2;e1(ip)=2.d0*(h(ip+1)+h(ip));e2(ip)=h(ip+1);enddo
     e1(np-1)=2.d0*(h(np)+h(np-1)) !+h(np)
     !e1(1)=e1(1)+h(1)
@@ -4314,7 +4315,7 @@ subroutine checkconvergence(parmin,fspmax)
 end subroutine checkconvergence
 
 
-!routine for moving atomic positions, takes into account the 
+!routine for moving atomic positions, takes into account the
 !frozen atoms and the size of the cell
 !synopsis: xyzo=xyzi
 !all the shift are inserted into the box if there are periodic directions
@@ -4520,7 +4521,7 @@ subroutine sdminimum(iproc,n,nr,x,f,epot,parmin,nwork,work)
     !if(parmin%care .and. parmin%itsd>5 .and. parmin%alpha==alphax .and. fnrm/parmin%fnrmitm1>0.8d0 &
     if(parmin%care .and. parmin%itsd>1 .and. fnrm/parmin%fnrmitm1>0.5d0 .and. de1>-0.1d0 &
         .and. fnrm<parmin%fnrmtolsatur .and. de1<parmin%anoise .and. df1<parmin%anoise &
-        .and. de2>-2.d0*parmin%anoise .and. df2>-2.d0*parmin%anoise) then 
+        .and. de2>-2.d0*parmin%anoise .and. df2>-2.d0*parmin%anoise) then
         parmin%isatur=parmin%isatur+1
     else
         parmin%isatur=0
@@ -4578,12 +4579,12 @@ subroutine sdminimum(iproc,n,nr,x,f,epot,parmin,nwork,work)
     if(.not. parmin%care .and. parmin%alpha>2.d0*parmin%alphamin) then
         parmin%care=.true.
     if(iproc==0) then
-            write(parmin%ifile,'(a)') 'sdminimum starts to care whether energy goes up' 
-            write(*,'(a)') 'sdminimum starts to care whether energy goes up' 
+            write(parmin%ifile,'(a)') 'sdminimum starts to care whether energy goes up'
+            write(*,'(a)') 'sdminimum starts to care whether energy goes up'
     endif
     endif
     parmin%itsd=parmin%itsd+1
-    if(parmin%itsd>parmin%nitsd) then 
+    if(parmin%itsd>parmin%nitsd) then
         parmin%iflag=-1
         x(1:nr)=work(1:nr)
         f(1:nr)=work(nr+1:nr+nr)
@@ -4612,7 +4613,7 @@ subroutine diisminimum(iproc,n,nr,x,epot,f,parmin,nwork,work)
         !endif
     endif
     fnrm=dnrm2(nr,f,1)
-    if(epot>parmin%emin+1.d-2*abs(parmin%emin) .or. fnrm>2.d0*parmin%fnrmlowest) then 
+    if(epot>parmin%emin+1.d-2*abs(parmin%emin) .or. fnrm>2.d0*parmin%fnrmlowest) then
         if(iproc==0) then
             write(parmin%ifile,*) 'DIVERGENCE in DIIS, switch back to SD',parmin%itdiis
             write(*           ,*) 'DIVERGENCE in DIIS, switch back to SD',parmin%itdiis
@@ -4629,7 +4630,7 @@ subroutine diisminimum(iproc,n,nr,x,epot,f,parmin,nwork,work)
     parmin%ld=mod(parmin%ld,parmin%idsx)+1
     !call vcopy(n,x,1,xh(1,parmin%ld),1)
     call vcopy(nr,x(1),1,work(parmin%ld*nr+1),1)
-    if(epot<parmin%emin) then 
+    if(epot<parmin%emin) then
         parmin%emin=epot;parmin%fnrmlowest=fnrm
         call vcopy(nr,x(1),1,work((3*parmin%idsx+2)*nr+1),1)
     endif
@@ -4681,7 +4682,7 @@ subroutine diisminimum(iproc,n,nr,x,epot,f,parmin,nwork,work)
     do id=1,parmin%nd
         jd=mod(parmin%ld+id-1,parmin%nd)+1
         !xh(1:nr,0)=xh(1:nr,0)+b(id)*xh(1:nr,jd)
-        work(1:nr)=work(1:nr)+parmin%b(id)*work(jd*nr+1:jd*nr+nr)  
+        work(1:nr)=work(1:nr)+parmin%b(id)*work(jd*nr+1:jd*nr+nr)
         !fh(1:nr,0)=fh(1:nr,0)+b(id)*fh(1:nr,jd)
         work((parmin%idsx+1)*nr+1:(parmin%idsx+1)*nr+nr)=work((parmin%idsx+1)*nr+1:(parmin%idsx+1)*nr+nr)+&
             parmin%b(id)*work((parmin%idsx+1)*nr+jd*nr+1:(parmin%idsx+1)*nr+jd*nr+nr)
@@ -4764,7 +4765,7 @@ subroutine writepathway(n,np,x,filename,astruct)
     open(unit=1388,file=filename,status='replace')
     ip=1;dtt=s(np)/100.d0*(1.d0-1.d-14)
     do jp=0,100
-        tt=dtt*jp 
+        tt=dtt*jp
         call calindex(np,s,tt,ip,'writepathway')
         !write(*,*) 'jp,ip',jp,ip
         write(1388,*) n/3

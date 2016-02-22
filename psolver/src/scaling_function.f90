@@ -1,11 +1,11 @@
 !> @file
 !!  Routines which define and use scaling functions
 !! @author
-!! Copyright (C) 2002-2015 BigDFT group 
+!! Copyright (C) 2002-2015 BigDFT group
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~/COPYING file
 !! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the list of contributors, see ~/AUTHORS 
+!! For the list of contributors, see ~/AUTHORS
 
 !> Calculate the values of a scaling function in real uniform grid
 subroutine ISF_family(itype,nmoms,nd,nrange,a,x)
@@ -19,7 +19,7 @@ subroutine ISF_family(itype,nmoms,nd,nrange,a,x)
   !>Type of interpolating functions
   integer, intent(in) :: itype
   !>number of moments of the lifted dual function
-  !! to be preserved. If this value is different from 
+  !! to be preserved. If this value is different from
   !! 0, then the dual scaling function is given as output
   integer, intent(in) :: nmoms
   !>Number of points: must be 2**nex
@@ -29,8 +29,8 @@ subroutine ISF_family(itype,nmoms,nd,nrange,a,x)
   !Local variables
   character(len=*), parameter :: subname='scaling_function'
   integer, parameter :: m_max=200
-  integer :: i,nt,ni,unt,j,m
-  real(kind=8) :: mom
+  integer :: i,nt,ni,m !, m, j
+  !real(kind=8) :: mom
   real(kind=8), dimension(:), allocatable :: y
   double precision, dimension(-m_max:m_max) :: ch,cg
 
@@ -109,9 +109,9 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   integer :: m
   real(kind=8), dimension(:), allocatable :: y
   double precision, dimension(-m_max:m_max) :: ch,cg
-  integer :: i,nt,ni,unt,j
-  real(kind=8) :: mom
-  
+  integer :: i,nt,ni!,unt,j
+  !real(kind=8) :: mom
+
   !Only itype=2,8,14,16,20,24,30,40,50,60,100
   select case(itype)
   case(2,4,6,8,14,16,20,24,30,40,50,60,100)
@@ -127,7 +127,7 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   nrange = ni
 
   y = f_malloc(0.to.nd,id='y')
-  
+
   ! plot scaling function
   call zero(nd+1,x)
   call zero(nd+1,y)
@@ -218,8 +218,8 @@ subroutine wavelet_function(itype,nd,a,x)
   !Local variables
   character(len=*), parameter :: subname='wavelet_function'
   real(kind=8), dimension(:), allocatable :: y
-  integer :: i,nt,ni,unt,j
-  real(kind=8) :: mom
+  integer :: i,nt,ni!,unt,j
+  !real(kind=8) :: mom
 
   !Only itype=2,4,6,8,14,16,20,24,30,40,50,60,100
   Select case(itype)
@@ -235,8 +235,8 @@ subroutine wavelet_function(itype,nd,a,x)
   ni=2*itype
 
   y = f_malloc(0.to.nd,id='y')
-  
-  ! plot wavelet 
+
+  ! plot wavelet
   call zero(nd+1,x)
   call zero(nd+1,y)
   nt=ni
@@ -301,8 +301,9 @@ subroutine wavelet_function(itype,nd,a,x)
 !!$  call f_close(unt)
 
   call f_free(y)
- 
+
 END SUBROUTINE wavelet_function
+
 
 subroutine get_isf_family(m_max,itype,nmoms,m,nrange,ch,cg)
   use dictionaries, only: f_err_throw
@@ -313,7 +314,6 @@ subroutine get_isf_family(m_max,itype,nmoms,m,nrange,ch,cg)
   double precision, dimension(-m_max:m_max), intent(out) :: ch,cg
   !local variables
   integer :: i,dsflb,dsfrb,sflb,sfrb,unsflb,unsfrb,i1,ifac!,sfl,unsfl
-  double precision :: pref
   double precision, dimension(-m_max:m_max) :: cht,chu
 
   !Only itype=2,8,14,16,20,24,30,40,50,60,100
@@ -359,8 +359,8 @@ subroutine get_isf_family(m_max,itype,nmoms,m,nrange,ch,cg)
    ! dualscal/wave - lifted
      !print *,'ch',ch(sflb:sfrb)
      !print *,'chu',chu(unsflb:unsfrb)
-     do i1 = dsflb, dsfrb 
-        if( i1==0) then 
+     do i1 = dsflb, dsfrb
+        if( i1==0) then
            cht(i1) = 1.d0
         else
            cht(i1) = 0.d0
@@ -377,7 +377,7 @@ subroutine get_isf_family(m_max,itype,nmoms,m,nrange,ch,cg)
      cht=2*ch
      ch=2*chu
 !!$     cht=2*cht
-!!$     ch=2*ch    
+!!$     ch=2*ch
   else
      cht( 0)=1.d0
   end if
@@ -541,17 +541,17 @@ subroutine for_trans_2(nd,nt,x,y)
   do i=0,nt/2-1
      y(     i)=0.d0
      y(nt/2+i)=0.d0
-     
+
      do j=-m+1,m
-        
+
         ! periodically wrap index if necessary
         ind=j+2*i
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt
               cycle loop99
            end if
-           if (ind.ge.nt) then 
+           if (ind.ge.nt) then
               ind=ind-nt
               cycle loop99
            end if
@@ -561,7 +561,7 @@ subroutine for_trans_2(nd,nt,x,y)
         y(     i)=y(     i)+cht(j)*x(ind)
         y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
      end do
-     
+
   end do
 
 END SUBROUTINE for_trans_2
@@ -579,21 +579,21 @@ subroutine back_trans_2(nd,nt,x,y)
   integer :: i,j,ind
 
   include 'lazy_2.inc'
-  
+
   do i=0,nt/2-1
      y(2*i+0)=0.d0
      y(2*i+1)=0.d0
-     
+
      do j=-m/2,m/2-1
-        
+
         ! periodically wrap index if necessary
         ind=i-j
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt/2
               cycle loop99
            end if
-           if (ind.ge.nt/2) then 
+           if (ind.ge.nt/2) then
               ind=ind-nt/2
               cycle loop99
            end if
@@ -603,9 +603,9 @@ subroutine back_trans_2(nd,nt,x,y)
         y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
      end do
-        
+
   end do
-        
+
 END SUBROUTINE back_trans_2
 
 
@@ -619,11 +619,11 @@ subroutine ftest_2
   real(kind=8) :: t1,t2,t3,t4,eps
 
   include 'lazy_2.inc'
-  
+
   ! do i=-m,m
   ! write(6,*) i,ch(i),cg(i)
   ! end do
-  
+
   do i=-m,m
      do j=-m,m
         t1=0.d0
@@ -642,7 +642,7 @@ subroutine ftest_2
         eps=1.d-10
         if (i.eq.j) then
            if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
-             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
               write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
            end if
         else
@@ -653,9 +653,9 @@ subroutine ftest_2
         end if
      end do
   end do
-  
+
   write(6,*) 'FILTER TEST PASSED'
-  
+
 END SUBROUTINE ftest_2
 
 
@@ -720,17 +720,17 @@ subroutine for_trans_4(nd,nt,x,y)
   do i=0,nt/2-1
      y(     i)=0.d0
      y(nt/2+i)=0.d0
-     
+
      do j=-m+1,m
-        
+
         ! periodically wrap index if necessary
         ind=j+2*i
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt
               cycle loop99
            end if
-           if (ind.ge.nt) then 
+           if (ind.ge.nt) then
               ind=ind-nt
               cycle loop99
            end if
@@ -740,7 +740,7 @@ subroutine for_trans_4(nd,nt,x,y)
         y(     i)=y(     i)+cht(j)*x(ind)
         y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
      end do
-     
+
   end do
 
 END SUBROUTINE for_trans_4
@@ -758,21 +758,21 @@ subroutine back_trans_4(nd,nt,x,y)
   integer :: i,j,ind
 
   include 'lazy_4.inc'
-  
+
   do i=0,nt/2-1
      y(2*i+0)=0.d0
      y(2*i+1)=0.d0
-     
+
      do j=-m/2,m/2-1
-        
+
         ! periodically wrap index if necessary
         ind=i-j
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt/2
               cycle loop99
            end if
-           if (ind.ge.nt/2) then 
+           if (ind.ge.nt/2) then
               ind=ind-nt/2
               cycle loop99
            end if
@@ -782,9 +782,9 @@ subroutine back_trans_4(nd,nt,x,y)
         y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
      end do
-        
+
   end do
-        
+
 END SUBROUTINE back_trans_4
 
 
@@ -798,11 +798,11 @@ subroutine ftest_4
   real(kind=8) :: t1,t2,t3,t4,eps
 
   include 'lazy_4.inc'
-  
+
   ! do i=-m,m
   ! write(6,*) i,ch(i),cg(i)
   ! end do
-  
+
   do i=-m,m
      do j=-m,m
         t1=0.d0
@@ -821,7 +821,7 @@ subroutine ftest_4
         eps=1.d-10
         if (i.eq.j) then
            if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
-             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
               write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
            end if
         else
@@ -832,9 +832,9 @@ subroutine ftest_4
         end if
      end do
   end do
-  
+
   write(6,*) 'FILTER TEST PASSED'
-  
+
 END SUBROUTINE ftest_4
 
 
@@ -899,17 +899,17 @@ subroutine for_trans_6(nd,nt,x,y)
   do i=0,nt/2-1
      y(     i)=0.d0
      y(nt/2+i)=0.d0
-     
+
      do j=-m+1,m
-        
+
         ! periodically wrap index if necessary
         ind=j+2*i
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt
               cycle loop99
            end if
-           if (ind.ge.nt) then 
+           if (ind.ge.nt) then
               ind=ind-nt
               cycle loop99
            end if
@@ -919,7 +919,7 @@ subroutine for_trans_6(nd,nt,x,y)
         y(     i)=y(     i)+cht(j)*x(ind)
         y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
      end do
-     
+
   end do
 
 END SUBROUTINE for_trans_6
@@ -937,21 +937,21 @@ subroutine back_trans_6(nd,nt,x,y)
   integer :: i,j,ind
 
   include 'lazy_6.inc'
-  
+
   do i=0,nt/2-1
      y(2*i+0)=0.d0
      y(2*i+1)=0.d0
-     
+
      do j=-m/2,m/2-1
-        
+
         ! periodically wrap index if necessary
         ind=i-j
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt/2
               cycle loop99
            end if
-           if (ind.ge.nt/2) then 
+           if (ind.ge.nt/2) then
               ind=ind-nt/2
               cycle loop99
            end if
@@ -961,9 +961,9 @@ subroutine back_trans_6(nd,nt,x,y)
         y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
      end do
-        
+
   end do
-        
+
 END SUBROUTINE back_trans_6
 
 
@@ -977,11 +977,11 @@ subroutine ftest_6
   real(kind=8) :: t1,t2,t3,t4,eps
 
   include 'lazy_6.inc'
-  
+
   ! do i=-m,m
   ! write(6,*) i,ch(i),cg(i)
   ! end do
-  
+
   do i=-m,m
      do j=-m,m
         t1=0.d0
@@ -1000,7 +1000,7 @@ subroutine ftest_6
         eps=1.d-10
         if (i.eq.j) then
            if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
-             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
               write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
            end if
         else
@@ -1011,9 +1011,9 @@ subroutine ftest_6
         end if
      end do
   end do
-  
+
   write(6,*) 'FILTER TEST PASSED'
-  
+
 END SUBROUTINE ftest_6
 
 
@@ -1078,17 +1078,17 @@ subroutine for_trans_8(nd,nt,x,y)
   do i=0,nt/2-1
      y(     i)=0.d0
      y(nt/2+i)=0.d0
-     
+
      do j=-m+1,m
-        
+
         ! periodically wrap index if necessary
         ind=j+2*i
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt
               cycle loop99
            end if
-           if (ind.ge.nt) then 
+           if (ind.ge.nt) then
               ind=ind-nt
               cycle loop99
            end if
@@ -1098,7 +1098,7 @@ subroutine for_trans_8(nd,nt,x,y)
         y(     i)=y(     i)+cht(j)*x(ind)
         y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
      end do
-     
+
   end do
 
 END SUBROUTINE for_trans_8
@@ -1126,11 +1126,11 @@ subroutine back_trans(m,ch,cg,nd,nt,x,y)
         ! periodically wrap index if necessary
         ind=i-j
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt/2
               cycle loop99
            end if
-           if (ind.ge.nt/2) then 
+           if (ind.ge.nt/2) then
               ind=ind-nt/2
               cycle loop99
            end if
@@ -1158,21 +1158,21 @@ subroutine back_trans_8(nd,nt,x,y)
   include 'lazy_8.inc'
   !include 'lazy_8_lift.inc'
   !include 'lazy_8_lift_dual.inc'
-  
+
   do i=0,nt/2-1
      y(2*i+0)=0.d0
      y(2*i+1)=0.d0
-     
+
      do j=-m/2,m/2-1
-        
+
         ! periodically wrap index if necessary
         ind=i-j
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt/2
               cycle loop99
            end if
-           if (ind.ge.nt/2) then 
+           if (ind.ge.nt/2) then
               ind=ind-nt/2
               cycle loop99
            end if
@@ -1182,9 +1182,9 @@ subroutine back_trans_8(nd,nt,x,y)
         y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
      end do
-        
+
   end do
-        
+
 END SUBROUTINE back_trans_8
 
 
@@ -1198,11 +1198,11 @@ subroutine ftest_8
   real(kind=8) :: t1,t2,t3,t4,eps
 
   include 'lazy_8.inc'
-  
+
   ! do i=-m,m
   ! write(6,*) i,ch(i),cg(i)
   ! end do
-  
+
   do i=-m,m
      do j=-m,m
         t1=0.d0
@@ -1221,7 +1221,7 @@ subroutine ftest_8
         eps=1.d-10
         if (i.eq.j) then
            if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
-             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
               write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
            end if
         else
@@ -1232,9 +1232,9 @@ subroutine ftest_8
         end if
      end do
   end do
-  
+
   write(6,*) 'FILTER TEST PASSED'
-  
+
 END SUBROUTINE ftest_8
 
 
@@ -1298,17 +1298,17 @@ subroutine for_trans_14(nd,nt,x,y)
   do i=0,nt/2-1
      y(     i)=0.d0
      y(nt/2+i)=0.d0
-     
+
      do j=-m+1,m
-        
+
         ! periodically wrap index if necessary
         ind=j+2*i
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt
               cycle loop99
            end if
-           if (ind.ge.nt) then 
+           if (ind.ge.nt) then
               ind=ind-nt
               cycle loop99
            end if
@@ -1319,7 +1319,7 @@ subroutine for_trans_14(nd,nt,x,y)
         y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
      end do
   end do
-  
+
 END SUBROUTINE for_trans_14
 
 
@@ -1335,21 +1335,21 @@ subroutine back_trans_14(nd,nt,x,y)
   integer :: i,j,ind
 
   include 'lazy_14.inc'
-  
+
   do i=0,nt/2-1
      y(2*i+0)=0.d0
      y(2*i+1)=0.d0
-     
+
      do j=-m/2,m/2-1
-        
+
         ! periodically wrap index if necessary
         ind=i-j
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt/2
               cycle loop99
            end if
-           if (ind.ge.nt/2) then 
+           if (ind.ge.nt/2) then
               ind=ind-nt/2
               cycle loop99
            end if
@@ -1361,7 +1361,7 @@ subroutine back_trans_14(nd,nt,x,y)
 
      end do
   end do
-        
+
 END SUBROUTINE back_trans_14
 
 
@@ -1375,11 +1375,11 @@ subroutine ftest_14
   integer :: i,j,l
 
   include 'lazy_14.inc'
-  
+
   ! do i=-m,m
   ! write(6,*) i,ch(i),cg(i)
   ! end do
-  
+
   do i=-m,m
      do j=-m,m
         t1=0.d0
@@ -1398,7 +1398,7 @@ subroutine ftest_14
         eps=1.d-10
         if (i.eq.j) then
            if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
-             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
               write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
            end if
         else
@@ -1409,9 +1409,9 @@ subroutine ftest_14
         end if
      end do
   end do
-  
+
   write(6,*) 'FILTER TEST PASSED'
-  
+
 END SUBROUTINE ftest_14
 
 
@@ -1475,17 +1475,17 @@ subroutine for_trans_16(nd,nt,x,y)
   do i=0,nt/2-1
      y(     i)=0.d0
      y(nt/2+i)=0.d0
-     
+
      do j=-m+1,m
-        
+
         ! periodically wrap index if necessary
         ind=j+2*i
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt
               cycle loop99
            end if
-           if (ind.ge.nt) then 
+           if (ind.ge.nt) then
               ind=ind-nt
               cycle loop99
            end if
@@ -1496,7 +1496,7 @@ subroutine for_trans_16(nd,nt,x,y)
         y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
      end do
   end do
-  
+
 END SUBROUTINE for_trans_16
 
 
@@ -1512,21 +1512,21 @@ subroutine back_trans_16(nd,nt,x,y)
   integer :: i,j,ind
 
   include 'lazy_16.inc'
-  
+
   do i=0,nt/2-1
      y(2*i+0)=0.d0
      y(2*i+1)=0.d0
-     
+
      do j=-m/2,m/2-1
-        
+
         ! periodically wrap index if necessary
         ind=i-j
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt/2
               cycle loop99
            end if
-           if (ind.ge.nt/2) then 
+           if (ind.ge.nt/2) then
               ind=ind-nt/2
               cycle loop99
            end if
@@ -1537,7 +1537,7 @@ subroutine back_trans_16(nd,nt,x,y)
         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
      end do
   end do
-        
+
 END SUBROUTINE back_trans_16
 
 
@@ -1551,11 +1551,11 @@ subroutine ftest_16
   integer :: i,j,l
 
   include 'lazy_16.inc'
-  
+
   ! do i=-m,m
   ! write(6,*) i,ch(i),cg(i)
   ! end do
-  
+
   do i=-m,m
      do j=-m,m
         t1=0.d0
@@ -1574,7 +1574,7 @@ subroutine ftest_16
         eps=1.d-10
         if (i.eq.j) then
            if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
-             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
               write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
            end if
         else
@@ -1585,9 +1585,9 @@ subroutine ftest_16
         end if
      end do
   end do
-  
+
   write(6,*) 'FILTER TEST PASSED'
-  
+
 END SUBROUTINE ftest_16
 
 
@@ -1651,17 +1651,17 @@ subroutine for_trans_20(nd,nt,x,y)
   do i=0,nt/2-1
      y(     i)=0.d0
      y(nt/2+i)=0.d0
-     
+
      do j=-m+1,m
-        
+
         ! periodically wrap index if necessary
         ind=j+2*i
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt
               cycle loop99
            end if
-           if (ind.ge.nt) then 
+           if (ind.ge.nt) then
               ind=ind-nt
               cycle loop99
            end if
@@ -1672,7 +1672,7 @@ subroutine for_trans_20(nd,nt,x,y)
         y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
      end do
   end do
-  
+
 END SUBROUTINE for_trans_20
 
 
@@ -1688,21 +1688,21 @@ subroutine back_trans_20(nd,nt,x,y)
   integer :: i,j,ind
 
   include 'lazy_20.inc'
-  
+
   do i=0,nt/2-1
      y(2*i+0)=0.d0
      y(2*i+1)=0.d0
-     
+
      do j=-m/2,m/2-1
-        
+
         ! periodically wrap index if necessary
         ind=i-j
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt/2
               cycle loop99
            end if
-           if (ind.ge.nt/2) then 
+           if (ind.ge.nt/2) then
               ind=ind-nt/2
               cycle loop99
            end if
@@ -1713,7 +1713,7 @@ subroutine back_trans_20(nd,nt,x,y)
         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
      end do
   end do
-        
+
 END SUBROUTINE back_trans_20
 
 
@@ -1728,11 +1728,11 @@ subroutine ftest_20
   integer :: i,j,l
 
   include 'lazy_20.inc'
-  
+
   ! do i=-m,m
   ! write(6,*) i,ch(i),cg(i)
   ! end do
-  
+
   do i=-m,m
      do j=-m,m
         t1=0.d0
@@ -1751,7 +1751,7 @@ subroutine ftest_20
         eps=1.d-10
         if (i.eq.j) then
            if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
-             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
               write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
            end if
         else
@@ -1762,9 +1762,9 @@ subroutine ftest_20
         end if
      end do
   end do
-  
+
   write(6,*) 'FILTER TEST PASSED'
-  
+
 END SUBROUTINE ftest_20
 
 
@@ -1828,17 +1828,17 @@ subroutine for_trans_24(nd,nt,x,y)
   do i=0,nt/2-1
      y(     i)=0.d0
      y(nt/2+i)=0.d0
-     
+
      do j=-m+1,m
-        
+
         ! periodically wrap index if necessary
         ind=j+2*i
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt
               cycle loop99
            end if
-           if (ind.ge.nt) then 
+           if (ind.ge.nt) then
               ind=ind-nt
               cycle loop99
            end if
@@ -1849,7 +1849,7 @@ subroutine for_trans_24(nd,nt,x,y)
         y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
      end do
   end do
-  
+
 END SUBROUTINE for_trans_24
 
 
@@ -1865,21 +1865,21 @@ subroutine back_trans_24(nd,nt,x,y)
   integer :: i,j,ind
 
   include 'lazy_24.inc'
-  
+
   do i=0,nt/2-1
      y(2*i+0)=0.d0
      y(2*i+1)=0.d0
-     
+
      do j=-m/2,m/2-1
-        
+
         ! periodically wrap index if necessary
         ind=i-j
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt/2
               cycle loop99
            end if
-           if (ind.ge.nt/2) then 
+           if (ind.ge.nt/2) then
               ind=ind-nt/2
               cycle loop99
            end if
@@ -1890,7 +1890,7 @@ subroutine back_trans_24(nd,nt,x,y)
         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
      end do
   end do
-        
+
 END SUBROUTINE back_trans_24
 
 
@@ -1904,11 +1904,11 @@ subroutine ftest_24
   integer :: i,j,l
 
   include 'lazy_24.inc'
-  
+
   ! do i=-m,m
   ! write(6,*) i,ch(i),cg(i)
   ! end do
-  
+
   do i=-m,m
      do j=-m,m
         t1=0.d0
@@ -1927,7 +1927,7 @@ subroutine ftest_24
         eps=1.d-10
         if (i.eq.j) then
            if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
-             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
               write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
            end if
         else
@@ -1938,9 +1938,9 @@ subroutine ftest_24
         end if
      end do
   end do
-  
+
   write(6,*) 'FILTER TEST PASSED'
-  
+
 END SUBROUTINE ftest_24
 
 
@@ -2004,17 +2004,17 @@ subroutine for_trans_30(nd,nt,x,y)
   do i=0,nt/2-1
      y(     i)=0.d0
      y(nt/2+i)=0.d0
-     
+
      do j=-m+1,m
-        
+
         ! periodically wrap index if necessary
         ind=j+2*i
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt
               cycle loop99
            end if
-           if (ind.ge.nt) then 
+           if (ind.ge.nt) then
               ind=ind-nt
               cycle loop99
            end if
@@ -2025,7 +2025,7 @@ subroutine for_trans_30(nd,nt,x,y)
         y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
      end do
   end do
-  
+
 END SUBROUTINE for_trans_30
 
 
@@ -2041,21 +2041,21 @@ subroutine back_trans_30(nd,nt,x,y)
   integer :: i,j,ind
 
   include 'lazy_30.inc'
-  
+
   do i=0,nt/2-1
      y(2*i+0)=0.d0
      y(2*i+1)=0.d0
-     
+
      do j=-m/2,m/2-1
-        
+
         ! periodically wrap index if necessary
         ind=i-j
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt/2
               cycle loop99
            end if
-           if (ind.ge.nt/2) then 
+           if (ind.ge.nt/2) then
               ind=ind-nt/2
               cycle loop99
            end if
@@ -2066,7 +2066,7 @@ subroutine back_trans_30(nd,nt,x,y)
         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
      end do
   end do
-        
+
 END SUBROUTINE back_trans_30
 
 
@@ -2080,11 +2080,11 @@ subroutine ftest_30()
   integer :: i,j,l
 
   include 'lazy_30.inc'
-  
+
   ! do i=-m,m
   ! write(6,*) i,ch(i),cg(i)
   ! end do
-  
+
   do i=-m,m
      do j=-m,m
         t1=0.d0
@@ -2103,7 +2103,7 @@ subroutine ftest_30()
         eps=1.d-10
         if (i.eq.j) then
            if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
-             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
               write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
            end if
         else
@@ -2114,9 +2114,9 @@ subroutine ftest_30()
         end if
      end do
   end do
-  
+
   write(6,*) 'FILTER TEST PASSED'
-  
+
 END SUBROUTINE ftest_30
 
 
@@ -2180,17 +2180,17 @@ subroutine for_trans_40(nd,nt,x,y)
   do i=0,nt/2-1
      y(     i)=0.d0
      y(nt/2+i)=0.d0
-     
+
      do j=-m+1,m
-        
+
         ! periodically wrap index if necessary
         ind=j+2*i
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt
               cycle loop99
            end if
-           if (ind.ge.nt) then 
+           if (ind.ge.nt) then
               ind=ind-nt
               cycle loop99
            end if
@@ -2201,7 +2201,7 @@ subroutine for_trans_40(nd,nt,x,y)
         y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
      end do
   end do
-  
+
 END SUBROUTINE for_trans_40
 
 
@@ -2217,21 +2217,21 @@ subroutine back_trans_40(nd,nt,x,y)
   integer :: i,j,ind
 
   include 'lazy_40.inc'
-  
+
   do i=0,nt/2-1
      y(2*i+0)=0.d0
      y(2*i+1)=0.d0
-     
+
      do j=-m/2,m/2-1
-        
+
         ! periodically wrap index if necessary
         ind=i-j
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt/2
               cycle loop99
            end if
-           if (ind.ge.nt/2) then 
+           if (ind.ge.nt/2) then
               ind=ind-nt/2
               cycle loop99
            end if
@@ -2242,7 +2242,7 @@ subroutine back_trans_40(nd,nt,x,y)
         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
      end do
   end do
-        
+
 END SUBROUTINE back_trans_40
 
 
@@ -2256,11 +2256,11 @@ subroutine ftest_40
   integer :: i,j,l
 
   include 'lazy_40.inc'
-  
+
   ! do i=-m,m
   ! write(6,*) i,ch(i),cg(i)
   ! end do
-  
+
   do i=-m,m
      do j=-m,m
         t1=0.d0
@@ -2279,7 +2279,7 @@ subroutine ftest_40
         eps=1.d-10
         if (i.eq.j) then
            if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
-             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
               write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
            end if
         else
@@ -2290,9 +2290,9 @@ subroutine ftest_40
         end if
      end do
   end do
-  
+
   write(6,*) 'FILTER TEST PASSED'
-  
+
 END SUBROUTINE ftest_40
 
 
@@ -2357,17 +2357,17 @@ subroutine for_trans_50(nd,nt,x,y)
   do i=0,nt/2-1
      y(     i)=0.d0
      y(nt/2+i)=0.d0
-     
+
      do j=-m+1,m
-        
+
         ! periodically wrap index if necessary
         ind=j+2*i
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt
               cycle loop99
            end if
-           if (ind.ge.nt) then 
+           if (ind.ge.nt) then
               ind=ind-nt
               cycle loop99
            end if
@@ -2378,7 +2378,7 @@ subroutine for_trans_50(nd,nt,x,y)
         y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
      end do
   end do
-  
+
 END SUBROUTINE for_trans_50
 
 
@@ -2394,21 +2394,21 @@ subroutine back_trans_50(nd,nt,x,y)
   integer :: i,j,ind
 
   include 'lazy_50.inc'
-  
+
   do i=0,nt/2-1
      y(2*i+0)=0.d0
      y(2*i+1)=0.d0
-     
+
      do j=-m/2,m/2-1
-        
+
         ! periodically wrap index if necessary
         ind=i-j
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt/2
               cycle loop99
            end if
-           if (ind.ge.nt/2) then 
+           if (ind.ge.nt/2) then
               ind=ind-nt/2
               cycle loop99
            end if
@@ -2419,7 +2419,7 @@ subroutine back_trans_50(nd,nt,x,y)
         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
      end do
   end do
-        
+
 END SUBROUTINE back_trans_50
 
 
@@ -2433,11 +2433,11 @@ subroutine ftest_50
   integer :: i,j,l
 
   include 'lazy_50.inc'
-  
+
   ! do i=-m,m
   ! write(6,*) i,ch(i),cg(i)
   ! end do
-  
+
   do i=-m,m
      do j=-m,m
         t1=0.d0
@@ -2456,7 +2456,7 @@ subroutine ftest_50
         eps=1.d-10
         if (i.eq.j) then
            if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
-             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
               write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
            end if
         else
@@ -2467,9 +2467,9 @@ subroutine ftest_50
         end if
      end do
   end do
-  
+
   write(6,*) 'FILTER TEST PASSED'
-  
+
 END SUBROUTINE ftest_50
 
 
@@ -2533,17 +2533,17 @@ subroutine for_trans_60(nd,nt,x,y)
   do i=0,nt/2-1
      y(     i)=0.d0
      y(nt/2+i)=0.d0
-     
+
      do j=-m+1,m
-        
+
         ! periodically wrap index if necessary
         ind=j+2*i
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt
               cycle loop99
            end if
-           if (ind.ge.nt) then 
+           if (ind.ge.nt) then
               ind=ind-nt
               cycle loop99
            end if
@@ -2554,7 +2554,7 @@ subroutine for_trans_60(nd,nt,x,y)
         y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
      end do
   end do
-  
+
 END SUBROUTINE for_trans_60
 
 
@@ -2570,21 +2570,21 @@ subroutine back_trans_60(nd,nt,x,y)
   integer :: i,j,ind
 
   include 'lazy_60.inc'
-  
+
   do i=0,nt/2-1
      y(2*i+0)=0.d0
      y(2*i+1)=0.d0
-     
+
      do j=-m/2,m/2-1
-        
+
         ! periodically wrap index if necessary
         ind=i-j
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt/2
               cycle loop99
            end if
-           if (ind.ge.nt/2) then 
+           if (ind.ge.nt/2) then
               ind=ind-nt/2
               cycle loop99
            end if
@@ -2595,7 +2595,7 @@ subroutine back_trans_60(nd,nt,x,y)
         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
      end do
   end do
-        
+
 END SUBROUTINE back_trans_60
 
 
@@ -2609,11 +2609,11 @@ subroutine ftest_60
   integer :: i,j,l
 
   include 'lazy_60.inc'
-  
+
   ! do i=-m,m
   ! write(6,*) i,ch(i),cg(i)
   ! end do
-  
+
   do i=-m,m
      do j=-m,m
         t1=0.d0
@@ -2632,7 +2632,7 @@ subroutine ftest_60
         eps=1.d-10
         if (i.eq.j) then
            if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
-             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
               write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
            end if
         else
@@ -2643,9 +2643,9 @@ subroutine ftest_60
         end if
      end do
   end do
-  
+
   write(6,*) 'FILTER TEST PASSED'
-  
+
 END SUBROUTINE ftest_60
 
 
@@ -2709,17 +2709,17 @@ subroutine for_trans_100(nd,nt,x,y)
   do i=0,nt/2-1
      y(     i)=0.d0
      y(nt/2+i)=0.d0
-     
+
      do j=-m+1,m
-        
+
         ! periodically wrap index if necessary
         ind=j+2*i
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt
               cycle loop99
            end if
-           if (ind.ge.nt) then 
+           if (ind.ge.nt) then
               ind=ind-nt
               cycle loop99
            end if
@@ -2730,7 +2730,7 @@ subroutine for_trans_100(nd,nt,x,y)
         y(nt/2+i)=y(nt/2+i)+cgt(j)*x(ind)
      end do
   end do
-  
+
 END SUBROUTINE for_trans_100
 
 
@@ -2746,21 +2746,21 @@ subroutine back_trans_100(nd,nt,x,y)
   integer :: i,j,ind
 
   include 'lazy_100.inc'
-  
+
   do i=0,nt/2-1
      y(2*i+0)=0.d0
      y(2*i+1)=0.d0
-     
+
      do j=-m/2,m/2-1
-        
+
         ! periodically wrap index if necessary
         ind=i-j
         loop99: do
-           if (ind.lt.0) then 
+           if (ind.lt.0) then
               ind=ind+nt/2
               cycle loop99
            end if
-           if (ind.ge.nt/2) then 
+           if (ind.ge.nt/2) then
               ind=ind-nt/2
               cycle loop99
            end if
@@ -2771,7 +2771,7 @@ subroutine back_trans_100(nd,nt,x,y)
         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
      end do
   end do
-        
+
 END SUBROUTINE back_trans_100
 
 
@@ -2785,11 +2785,11 @@ subroutine ftest_100
   integer :: i,j,l
 
   include 'lazy_100.inc'
-  
+
   ! do i=-m,m
   ! write(6,*) i,ch(i),cg(i)
   ! end do
-  
+
   do i=-m,m
      do j=-m,m
         t1=0.d0
@@ -2808,7 +2808,7 @@ subroutine ftest_100
         eps=1.d-10
         if (i.eq.j) then
            if (abs(t1-1.d0).gt.eps .or. abs(t2-1.d0).gt.eps .or. &
-             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then 
+             & abs(t3).gt.eps  .or. abs(t4).gt.eps ) then
               write(6,fmt22) 'Orthogonality ERROR', i,j,t1,t2,t3,t4
            end if
         else
@@ -2819,9 +2819,9 @@ subroutine ftest_100
         end if
      end do
   end do
-  
+
   write(6,*) 'FILTER TEST PASSED'
-  
+
 END SUBROUTINE ftest_100
 
 

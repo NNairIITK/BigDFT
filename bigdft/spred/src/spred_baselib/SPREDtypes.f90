@@ -3,11 +3,11 @@
 !!
 !! @author
 !!    B. Schaefer, L. Genovese
-!!    Copyright (C) 2002-2015 BigDFT group 
+!!    Copyright (C) 2002-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 module SPREDtypes
   use f_enums
   use wrapper_MPI
@@ -20,8 +20,7 @@ module SPREDtypes
 
   character(len=*), parameter :: DICT_COMPLETED          = '__dict_has_been_checked__'//ATTRS
 
-  
-  !>Datatype defining the inputs variables for SPRED
+  !> Datatype defining the inputs variables for SPRED
   type, public :: SPRED_inputs
     !> fingerprint input variables
     type(f_enumerator) :: fp_method
@@ -29,11 +28,11 @@ module SPREDtypes
     integer :: fp_angmom       !< angular momentum of gaussian orbitals for overlap matrix fingerprints (both periodic and free BC)
   end type SPRED_inputs
 
-
   public :: SPRED_read_uinp
 
+
 contains
- 
+
   !> read user input
   subroutine SPRED_read_uinp(radical,inputs,mpi_env_)
     use SPREDbase
@@ -62,7 +61,7 @@ contains
 
     call dict_init(dict)
 
-    ! fill dictionary with hard coded default values 
+    ! fill dictionary with hard coded default values
     call SPRED_init_input_dict(dict)
 
     !Now read a user input yaml file
@@ -100,7 +99,7 @@ contains
     implicit none
     !Arguments
     type(dictionary), pointer :: dict            !< Dictionary of the input files. Should be initialized on entry
-    character(len = *), intent(in) :: fname      !< Name of the file where the dictionary has to be read from 
+    character(len = *), intent(in) :: fname      !< Name of the file where the dictionary has to be read from
     type(mpi_environment), intent(in) :: mpi_env !< Environment of the reading. Used for broadcasting the result
     !local variables
     integer(kind = 8) :: cbuf, cbuf_len
@@ -244,14 +243,9 @@ contains
     type(dictionary), pointer :: val
     character(len = *), intent(in) :: level
     !local variables
-    logical :: dummy_l
     real(gp) :: dummy_d
-    integer, dimension(2) :: dummy_int !<to use as filling for input variables
-    real(gp), dimension(2) :: dummy_gp !< to fill the input variables
-    logical, dimension(2) :: dummy_log !< to fill the input variables
-    character(len=256) :: dummy_char
     character(len = max_field_length) :: str
-    integer :: i, ipos
+    integer :: ipos
 
     if (index(dict_key(val), "_attributes") > 0) return
 

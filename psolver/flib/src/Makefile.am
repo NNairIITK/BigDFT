@@ -188,7 +188,7 @@ dictionaries_base.o: yaml_strings.o
 callbacks.o: $(NOOMP_INCLUDES)
 $(NVTX_DEP): $(NOOMP_INCLUDES)
 #mem_profiling.o : error_handling.o
-yaml_output.o : dictionaries.o f_utils.o $(YAML_INCLUDES)
+yaml_output.o : dictionaries.o f_utils.o f_enums.o $(YAML_INCLUDES)
 yaml_parse.o : dictionaries.o yaml_output.o
 #error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
 f_malloc.o: dictionaries.o $(F_MALLOC_INCLUDES)
