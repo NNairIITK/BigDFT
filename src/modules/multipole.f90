@@ -2665,7 +2665,8 @@ module multipole
                        kernel_extracted = f_malloc((/n,n/),id='kernel_extracted')
                        multipole_extracted = f_malloc((/n,n/),id='multipole_extracted')
                        !call extract_matrix(smatl, multipole_matrix_large, neighborx(1:,kat), n, nmaxx, multipole_extracted)
-                       call extract_matrix(smats, multipole_matrix%matrix_compr, neighborx(1:,kat), n, nmaxx, multipole_extracted)
+                       call extract_matrix(smats, multipole_matrix%matrix_compr, &
+                           neighborx(1:,kat), n, nmaxx, multipole_extracted)
                        !overlap_small = f_malloc((/n,n/),id='overlap_small')
                        if (do_ortho==no) then
                            !call extract_matrix(smats, ovrlp%matrix_compr, neighborx(1:,kat), n, nmaxx, overlap_small)
@@ -2695,7 +2696,7 @@ module multipole
                                        ilr = orbs%inwhichlocreg(i)
                                        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
                                        do j=1,n
-                                           tmpmat(j,i) = rr2*lmp_extracted(j,i,0,0)
+                                           tmpmat(j,ii) = rr2*lmp_extracted(j,ii,0,0)
                                        end do
                                    end if
                                end do
@@ -2708,7 +2709,7 @@ module multipole
                                        ilr = orbs%inwhichlocreg(i)
                                        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
                                        do j=1,n
-                                           tmpmat(j,i) = rr3*lmp_extracted(j,i,0,0)
+                                           tmpmat(j,ii) = rr3*lmp_extracted(j,ii,0,0)
                                        end do
                                    end if
                                end do
@@ -2721,7 +2722,7 @@ module multipole
                                        ilr = orbs%inwhichlocreg(i)
                                        rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
                                        do j=1,n
-                                           tmpmat(j,i) = rr1*lmp_extracted(j,i,0,0)
+                                           tmpmat(j,ii) = rr1*lmp_extracted(j,ii,0,0)
                                        end do
                                    end if
                                end do
@@ -2749,13 +2750,14 @@ module multipole
                                        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
                                        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
                                        do j=1,n
-                                           tmpmat(j,i) = -sqrt(3.d0)*rr1*lmp_extracted(j,i,-1,1) &
-                                                         -sqrt(3.d0)*rr2*lmp_extracted(j,i,1,1) &
-                                                         +sqrt(3.d0)*rr1*rr2*lmp_extracted(j,i,0,0)
+                                           tmpmat(j,ii) = -sqrt(3.d0)*rr1*lmp_extracted(j,ii,-1,1) &
+                                                          -sqrt(3.d0)*rr2*lmp_extracted(j,ii,1,1) &
+                                                          +sqrt(3.d0)*rr1*rr2*lmp_extracted(j,ii,0,0)
                                        end do
                                    end if
                                end do
                            case (-1)
+                               ii = 0
                                do i=1,smats%nfvctr
                                    if (neighborx(i,kat)) then
                                        ii = ii + 1
@@ -2764,13 +2766,14 @@ module multipole
                                        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
                                        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
                                        do j=1,n
-                                           tmpmat(j,i) = -sqrt(3.d0)*rr2*lmp_extracted(j,i,0,1) &
-                                                         -sqrt(3.d0)*rr3*lmp_extracted(j,i,-1,1) &
-                                                         +sqrt(3.d0)*rr2*rr3*lmp_extracted(j,i,0,0)
+                                           tmpmat(j,ii) = -sqrt(3.d0)*rr2*lmp_extracted(j,ii,0,1) &
+                                                          -sqrt(3.d0)*rr3*lmp_extracted(j,ii,-1,1) &
+                                                          +sqrt(3.d0)*rr2*rr3*lmp_extracted(j,ii,0,0)
                                        end do
                                    end if
                                end do
                            case (0)
+                               ii = 0
                                do i=1,smats%nfvctr
                                    if (neighborx(i,kat)) then
                                        ii = ii + 1
@@ -2779,16 +2782,17 @@ module multipole
                                        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
                                        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
                                        do j=1,n
-                                           tmpmat(j,i) =  rr1*lmp_extracted(j,i,1,1) &
-                                                         +rr2*lmp_extracted(j,i,-1,1) &
-                                                         -2.d0*rr3*lmp_extracted(j,i,0,1) &
-                                                         +0.5d0*(-rr1**2-rr2**2+&
-                                                           2.d0*rr3**2)&
-                                                           *lmp_extracted(j,i,0,0)
+                                           tmpmat(j,ii) =  rr1*lmp_extracted(j,ii,1,1) &
+                                                          +rr2*lmp_extracted(j,ii,-1,1) &
+                                                          -2.d0*rr3*lmp_extracted(j,ii,0,1) &
+                                                          +0.5d0*(-rr1**2-rr2**2+&
+                                                            2.d0*rr3**2)&
+                                                            *lmp_extracted(j,ii,0,0)
                                        end do
                                    end if
                                end do
                            case (1)
+                               ii = 0
                                do i=1,smats%nfvctr
                                    if (neighborx(i,kat)) then
                                        ii = ii + 1
@@ -2797,14 +2801,15 @@ module multipole
                                        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
                                        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
                                        do j=1,n
-                                           tmpmat(j,i) = -sqrt(3.d0)*rr1*lmp_extracted(j,i,0,1) &
-                                                         -sqrt(3.d0)*rr3*lmp_extracted(j,i,1,1) &
-                                                         +sqrt(3.d0)*rr1*rr3&
-                                                           *lmp_extracted(j,i,0,0)
+                                           tmpmat(j,ii) = -sqrt(3.d0)*rr1*lmp_extracted(j,ii,0,1) &
+                                                          -sqrt(3.d0)*rr3*lmp_extracted(j,ii,1,1) &
+                                                          +sqrt(3.d0)*rr1*rr3&
+                                                            *lmp_extracted(j,ii,0,0)
                                        end do
                                    end if
                                end do
                            case (2)
+                               ii = 0
                                do i=1,smats%nfvctr
                                    if (neighborx(i,kat)) then
                                        ii = ii + 1
@@ -2813,10 +2818,10 @@ module multipole
                                        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
                                        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
                                        do j=1,n
-                                           tmpmat(j,i) = -sqrt(3.d0)*(rr1)*lmp_extracted(j,i,1,1) &
-                                                         +sqrt(3.d0)*(rr2)*lmp_extracted(j,i,-1,1) &
-                                                         +sqrt(0.75d0)*(rr1**2-rr2**2)&
-                                                           *lmp_extracted(j,i,0,0)
+                                           tmpmat(j,ii) = -sqrt(3.d0)*(rr1)*lmp_extracted(j,ii,1,1) &
+                                                          +sqrt(3.d0)*(rr2)*lmp_extracted(j,ii,-1,1) &
+                                                          +sqrt(0.75d0)*(rr1**2-rr2**2)&
+                                                            *lmp_extracted(j,ii,0,0)
                                        end do
                                    end if
                                end do
@@ -3370,7 +3375,12 @@ module multipole
       if (present(neighborx)) then
           neighborx = f_malloc_ptr((/smats%nfvctr,natpx/),id='neighborx')
           !call f_memcpy(src=neighbor,dest=neighborx)
-          neighborx = neighbor
+          !neighborx = neighbor
+          do iat=1,natpx
+              do i=1,smats%nfvctr
+                  neighborx(i,iat) = neighbor(i,iat)
+              end do
+          end do
       end if
 
       if (present(nx)) then
@@ -3518,8 +3528,8 @@ module multipole
               proj = f_malloc0((/n,n/),id='proj')
               penaltymat = f_malloc0((/n,n,24/),id='penaltymat')
               eval = f_malloc0((/n/),id='eval')
-              call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1:,kat), n, nmax, ovrlp, ilup)
-              call extract_matrix(smatm, ham_%matrix_compr, neighbor(1:,kat), n, nmax, ham)
+              call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1:,kat), n_all(kat), nmax, ovrlp, ilup)
+              call extract_matrix(smatm, ham_%matrix_compr, neighbor(1:,kat), n_all(kat), nmax, ham)
 
 
 
@@ -3556,7 +3566,8 @@ module multipole
                   !write(*,*) 'HACK: SET ALPHA TO 0.5d0'
                   !alpha = 0.02d0
                   do i=1,24
-                      call extract_matrix(smats, rpower_matrix(i)%matrix_compr, neighbor(1:,kat), n, nmax, penaltymat(:,:,i))
+                      call extract_matrix(smats, rpower_matrix(i)%matrix_compr, &
+                          neighbor(1:,kat), n_all(kat), nmax, penaltymat(:,:,i))
                   end do
                   !tt = sqrt(rxyz(1,kkat)**2+rxyz(2,kkat)**2+rxyz(3,kkat)**2)
                   tt = rxyz(1,kkat)**2 + rxyz(2,kkat)**2 + rxyz(3,kkat)**2
@@ -3969,7 +3980,7 @@ end if
                   ! Extract ktilde
                   ktilde = f_malloc0((/n,n/),id='ktilde')
                   !if (ortho=='yes') then
-                      call extract_matrix(smatl, kerneltilde, neighbor(1:,kat), n, nmax, ktilde)
+                      call extract_matrix(smatl, kerneltilde, neighbor(1:,kat), n_all(kat), nmax, ktilde)
                   !else if (ortho=='no') then
                   !    call extract_matrix(smatl, kernel_%matrix_compr, neighbor(1:,kat), n, nmax, ktilde)
                   !end if
@@ -3978,7 +3989,7 @@ end if
                   if (ortho=='no') then
                       call f_memcpy(src=kp,dest=ktilde)
                       ovrlp = f_malloc0((/n,n/),id='ovrlp')
-                      call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1:,kat), n, nmax, ovrlp)
+                      call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1:,kat), n_all(kat), nmax, ovrlp)
                       call gemm('n', 'n', n, n, n, 1.d0, ktilde(1,1), n, ovrlp(1,1), n, 0.d0, kp(1,1), n)
                       call f_free(ovrlp)
                   end if
