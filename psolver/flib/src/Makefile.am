@@ -163,7 +163,7 @@ AM_CFLAGS = @LIB_YAML_CFLAGS@
 
 # Dynamic library building
 $(flib_dynamic_library): $(libflib_1_a_OBJECTS)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(flib_library_soname) -o $@ $^ @LIBS_EXT_DEPS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(flib_library_soname) -o $@ $^ @LIBS_EXT_DEPS@ $(LIBS)
 	@chmod a+x $@
 
 $(flib_library_soname): $(flib_dynamic_library)
