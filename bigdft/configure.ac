@@ -110,6 +110,7 @@ dnl Search for pkg-config
 PKG_PROG_PKG_CONFIG()
 
 dnl Libraries
+dnl PSolver provide testing for MPI and LINALG already.
 AX_PSOLVER()
 if test "$ax_have_psolver" != "yes" ; then
   AC_MSG_ERROR(["Cannot find PSolver library."])
@@ -190,9 +191,6 @@ else
   AC_SUBST([BUILD_BINDINGS_END], ["*/"])
 fi
 AX_DYNAMIC_LIBRARIES($force_build_dynamic)
-
-dnl Enable or not MPI.
-AX_MPI()
 
 dnl Enable ndebug variable (disabled by default)
 ac_use_debug="no"
@@ -302,7 +300,6 @@ AC_MSG_CHECKING([for BigDFT binaries build])
 AC_MSG_RESULT([$ac_build_bin_cluster])
 
 dnl ---------------------------------------
-AX_LINALG()
 AM_CONDITIONAL(USE_BLACS, test x"$ax_have_scalapack" = x"yes")
 
 dnl Error on the linking part only if required.

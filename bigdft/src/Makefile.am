@@ -299,20 +299,20 @@ MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = $(bigdft_library)
 
 abscalc_SOURCES = abscalc.f90 
-abscalc_LDADD = libabscalc.a $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+abscalc_LDADD = libabscalc.a $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@
+test_forces_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FLIB_LIBS@
 
 #to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
 memguess_SOURCES = memguess.f90 MPIfake.f90
-memguess_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+memguess_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 utilities_SOURCES = utilities.f90
-utilities_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+utilities_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+frequencies_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:
