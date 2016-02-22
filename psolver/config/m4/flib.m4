@@ -37,31 +37,52 @@ AC_DEFUN([AX_FLIB],
   call yaml_map("toto", "titi")
 end program]], withflibmod=yes, withflibmod=no)
   AC_MSG_RESULT($withflibmod)
-  FCFLAGS=$FCFLAGS_SVG
 
   dnl Test the library of flib.
+  AC_MSG_CHECKING([for flib library])
   LIBS_SVG=$LIBS
-  if test -n "$ac_flib_libdir" ; then
-    LIBS="$LIBS $ac_flib_libdir"
-  else
+  if test -z "$ac_flib_libdir" ; then
     ac_flib_libdir="-lflib-1"
   fi
-  AC_CHECK_LIB(flib-1, f_lib_initialize, ac_use_flib=yes, ac_use_flib=no, -lyaml -lrt)
-  LIBS=$LIBS_SVG
-  
-  if test "$ac_use_flib" = "yes" -a "$withflibmod" = "yes" ; then
+  LIBS="$ac_flib_libdir $LIBS_SVG"
+  AC_LINK_IFELSE(
+    AC_LANG_PROGRAM([], [[
+call f_lib_initialize()
+]]),
+    [ax_have_flib=yes],
+    [ax_have_flib=no])
+  if test $ax_have_flib != "yes" ; then
+    dnl Static case, need to link with additional libs.
+    ac_flib_libdir="$ac_flib_libdir -lyaml -lrt"
+    LIBS="$ac_flib_libdir $LIBS_SVG"
+    AC_LINK_IFELSE(
+      AC_LANG_PROGRAM([], [[
+call f_lib_initialize()
+]]),
+      [ax_have_flib=yes],
+      [ax_have_flib=no])
+  fi
+  AC_MSG_RESULT($ax_have_flib)
+
+  if test "$ax_have_flib" = "yes" -a "$withflibmod" = "yes" ; then
     LIB_FLIB_CFLAGS=$ac_flib_incdir
     LIB_FLIB_LIBS=$ac_flib_libdir
-    ac_use_flib="yes"
+    ax_have_flib="yes"
   else
-    ac_use_flib="no"
+    ax_have_flib="no"
   fi
 
   dnl LIB_XC_CFLAGS="-I/usr/include"
-  dnl   PKG_CHECK_MODULES(LIB_XC, flib >= 2.0, ac_use_flib="yes", ac_use_flib="no")
+  dnl   PKG_CHECK_MODULES(LIB_XC, flib >= 2.0, ax_have_flib="yes", ax_have_flib="no")
   
   AC_SUBST(LIB_FLIB_CFLAGS)
   AC_SUBST(LIB_FLIB_LIBS)
+
+  dnl Try to find libflib-1.a for possible later inclusion.
+  
+
+  FCFLAGS=$FCFLAGS_SVG
+  LIBS=$LIBS_SVG
 
   AC_LANG_POP(Fortran)
 ])

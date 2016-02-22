@@ -9,7 +9,9 @@ if BUILD_FLIB
 SUBDIRS += flib
 endif
 
+if BUILD_LIB_PSOLVER
 SUBDIRS += wrappers src
+endif
 
 if HAVE_PYYAML
 SUBDIRS += tests
