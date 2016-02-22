@@ -45,10 +45,10 @@ subs_static_library = \
 	OpenCL/libOpenCL.a \
 	bindings/libbindings.a
 
-out_static_library =  \
-	$(top_builddir)/PSolver/src/libPSolver-1.a \
-	$(top_builddir)/wrappers/libwrappers.a \
-	$(top_builddir)/flib/src/libflib-1.a
+#out_static_library =  \
+#	$(top_builddir)/PSolver/src/libPSolver-1.a \
+#	$(top_builddir)/wrappers/libwrappers.a \
+#	$(top_builddir)/flib/src/libflib-1.a
 
 if BUILD_DYNAMIC_LIBS
 bigdft_dynamic_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
