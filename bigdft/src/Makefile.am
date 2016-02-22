@@ -44,12 +44,12 @@ subs_static_library = \
 	xcPSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
 	bindings/libbindings.a
+
 out_static_library =  \
 	$(top_builddir)/PSolver/src/libPSolver-1.a \
-	$(top_builddir)/wrappers/libwrappers.a
-if BUILD_FLIB
-out_static_library += $(top_builddir)/flib/src/libflib-1.a
-endif
+	$(top_builddir)/wrappers/libwrappers.a \
+	$(top_builddir)/flib/src/libflib-1.a
+
 if BUILD_DYNAMIC_LIBS
 bigdft_dynamic_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
 bigdft_soname_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@
@@ -60,11 +60,8 @@ bigdft_dynamic_library =
 bigdft_soname_library =
 bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
 endif
-if BUILD_LIB_BIGDFT
+
 lib_bigdft = libbigdft-1.a
-else
-lib_bigdft =
-endif
 if BUILD_BINARIES
 binaries_sources = bigdft memguess frequencies abscalc utilities
 local_binaries = test_forces
@@ -130,9 +127,8 @@ endif
 
 AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ \
-	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
-	@MPI_INCLUDE@ @LIB_FLIB_CFLAGS@
-AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @LIBSGPU_INCLUDE@ -I$(srcdir)/modules -Imodules
+	@LIBETSFIO_INCLUDE@ @MPI_INCLUDE@ @LIB_FLIB_CFLAGS@
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ -I$(srcdir)/modules -Imodules
 #AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ -Wno-deprecated-declarations -Wno-cpp
 AM_CFLAGS = @CUDA_INCLUDE@
 
@@ -309,7 +305,7 @@ test_forces_SOURCES = test_forces.f90
 test_forces_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@
 
 #to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
-memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/src/MPIfake.f90
+memguess_SOURCES = memguess.f90 MPIfake.f90
 memguess_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 utilities_SOURCES = utilities.f90

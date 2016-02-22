@@ -7,17 +7,7 @@ DISTCLEANFILES = config.inc bigdft.pc
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = bigdft.pc
 
-SUBDIRS =
-
-#Poisson Solver and wrappers
-if BUILD_LIB_PSOLVER
-SUBDIRS += wrappers PSolver
-endif
-
-# BigDFT itself and structure prediction library at the end
-if BUILD_LIB_BIGDFT
-SUBDIRS += src spred
-endif
+SUBDIRS = src spred
 
 # Tests subdir is included only if binaries are compiled.
 if BUILD_BINARIES

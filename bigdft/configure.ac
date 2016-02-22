@@ -105,15 +105,17 @@ AM_PATH_PYTHON([2.3], , [:])
 dnl Search for pkg-config
 PKG_PROG_PKG_CONFIG()
 
-dnl Produce dynamic excecutables.
-AC_ARG_ENABLE(dynamic-libraries, AS_HELP_STRING([--enable-dynamic-libraries],
-                                               [Build dynamical libraries (disabled by default).]),
-              ac_build_dynamic=$enableval, ac_build_dynamic="no")
+dnl Libraries
+AX_PSOLVER()
+if test "$ax_have_psolver" != "yes" ; then
+  AC_MSG_ERROR(["Cannot find PSolver library."])
+fi
 
 dnl Basics for minimal bindings.
 AX_FC_POINTER()
 
 dnl Look for GLib and friends for bindings.
+force_build_dynamic="no"
 AC_ARG_ENABLE(bindings, AS_HELP_STRING([--enable-bindings], [Build C bindings (disabled by default).]),
               ac_build_bindings=$enableval, ac_build_bindings="no")
 if test x"$ac_build_bindings" = x"yes" -a $F90_1D_POINTER_SIZE = 0 ; then
@@ -143,7 +145,7 @@ if test x"$ac_use_glib" = x"yes"; then
     AC_SUBST([G_IR_SCANNER], [$($PKG_CONFIG --variable=g_ir_scanner gobject-introspection-1.0)])
     AC_SUBST([G_IR_COMPILER], [$($PKG_CONFIG --variable=g_ir_compiler gobject-introspection-1.0)])
     dnl Force dynamic library building.
-    ac_build_dynamic="yes"
+    force_build_dynamic="yes"
 
     dnl Add Python support for the PythonGI plug-in.
     AC_LANG_PUSH(C)
@@ -157,36 +159,6 @@ else
   have_gdbus=no
   enable_introspection=no
 fi
-dnl Test for library building tools.
-if test x"$ac_build_dynamic" = x"yes" ; then
-  AX_FLAG_PIC()
-  if test -z "$ax_flag_pic" ; then
-    AC_MSG_WARN(["No available position-independent code flag, bindings disabled."])
-    ac_build_dynamic=no
-    ac_build_bindings=warn
-    have_glib=no
-    have_gdbus=no
-    enable_introspection=no
-  else
-    case $CFLAGS   in *"$ax_flag_pic"*) ;; *) CFLAGS="$CFLAGS $ax_flag_pic";; esac
-    case $CXXFLAGS in *"$ax_flag_pic"*) ;; *) CXXFLAGS="$CXXFLAGS $ax_flag_pic";; esac
-    case $FCFLAGS  in *"$ax_flag_pic"*) ;; *) FCFLAGS="$FCFLAGS $ax_flag_pic";; esac
-
-    eval "set x $ac_configure_args"
-    shift
-    ac_configure_args=
-    for ac_arg ; do
-      case $ac_arg in
-        CFLAGS=* | CXXFLAGS=* | FCFLAGS=*) ;;
-        *) ac_configure_args="$ac_configure_args '$ac_arg'"
-      esac
-    done
-    ac_configure_args="$ac_configure_args 'CFLAGS=$CFLAGS' 'CXXFLAGS=$CXXFLAGS' 'FCFLAGS=$FCFLAGS'"
-  fi
-else
-  ax_flag_pic=""
-fi
-AM_CONDITIONAL([BUILD_DYNAMIC_LIBS], [test "x$ac_build_dynamic" = "xyes"])
 AM_CONDITIONAL([WITH_GOBJECT_INTROSPECTION], [test "x$enable_introspection" = "xyes"])
 if test x"$have_glib" = x"yes" ; then
   AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
@@ -213,6 +185,7 @@ else
   AC_SUBST([BUILD_BINDINGS_START], ["/*"])
   AC_SUBST([BUILD_BINDINGS_END], ["*/"])
 fi
+AX_DYNAMIC_LIBRARIES($force_build_dynamic)
 
 dnl Enable or not MPI.
 AX_MPI()
@@ -240,7 +213,6 @@ else
 fi
 AC_SUBST(MEMORY_LIMIT)
 AC_MSG_RESULT([$ac_with_memory_limit])
-
 
 dnl Use the simple or the optimised convolution code.
 AC_MSG_CHECKING([for convolution optimisation])
@@ -294,205 +266,12 @@ if test -n "$ac_cp2k_linkline" ; then
   ac_use_cp2k="yes"
 fi
 
-
-dnl Use the GPU computing (only NVIDIA cards with CUDA libraries)
-AC_MSG_CHECKING([for GPU computing with CUDA libraries])
-ac_use_cuda_gpu="no"
-AC_ARG_ENABLE(cuda-gpu, AS_HELP_STRING([--enable-cuda-gpu], [Use CUDA implementation for GPU convolutions (disabled by default).]),
-                         ac_use_cuda_gpu=$enableval, ac_use_cuda_gpu="no")
-AM_CONDITIONAL(USE_CUDA_GPU, test "$ac_use_cuda_gpu" = "yes")
-AC_MSG_RESULT([$ac_use_cuda_gpu])
-if test x"$ac_use_cuda_gpu" = "xyes" ; then
-  dnl Local CUDA usage (beside S_GPU).
-  dnl Optional Cuda installation dir.
-  AC_ARG_WITH(cuda-path, AS_HELP_STRING([--with-cuda-path], [give the path to the NVidia Cuda tools (default is /usr/local/cuda).]),
-                         [ac_with_cuda_path=$withval], [ac_with_cuda_path="/usr/local/cuda"])
-  if test x"$ac_with_cuda_path" = x"no" ; then
-    ac_with_cuda_path="/usr"
-  fi
-  CUDA_PATH=$ac_with_cuda_path
-  AC_SUBST(CUDA_PATH)
-  dnl Test the existence of things.
-  AC_PATH_PROG([NVCC], [nvcc], [$ac_with_nvcc], [$PATH:${ac_with_cuda_path}/bin])
-  AC_SUBST(NVCC)
-
-  dnl look for the cublas header
-  AC_LANG_PUSH(C)
-  CPPFLAGS_SVG=$CPPFLAGS
-  CPPFLAGS="$CPPFLAGS -I$ac_with_cuda_path/include"
-  AC_CHECK_HEADER([cublas.h],
-                  [ac_cublas_header="yes"],
-                  [ac_cublas_header="no"])
-  CPPFLAGS=$CPPFLAGS_SVG
-  if test "$ac_cublas_header" = "no"; then
-    AC_MSG_WARN(["No 'CUDA' header found, CUDA parts disabled."])
-    ac_use_cuda_gpu="no"
-  else
-    CUDA_INCLUDE_PATH=$ac_with_cuda_path"/include"
-    AC_SUBST(CUDA_INCLUDE_PATH)
-    CUDA_INCLUDE="-I"$ac_with_cuda_path"/include"
-    AC_SUBST(CUDA_INCLUDE)
-  dnl Test the link on libcudart and libcublas.
-  LIBS_OLD=$LIBS
-  fi
-  dnl look for the cublas library
-  ac_cuda_lib_path="$ac_with_cuda_path/lib"
-  LIBS="-L$ac_cuda_lib_path $LIBS_OLD"
-  AC_CHECK_LIB(cublas, cublasSsymv, withlibcublas=yes, withlibcublas=no, [-lcudart])
-  if test "$withlibcublas" = "no"; then
-    AC_CHECK_LIB(cublas, cublasSsymv_v2, withlibcublas=yes, withlibcublas=no, [-lcudart])
-  fi
-  if test "$withlibcublas" = "no"; then
-    ac_cuda_lib_path="$ac_with_cuda_path/lib64"
-    LIBS="-L$ac_cuda_lib_path $LIBS_OLD"
-    AC_CHECK_LIB(cublas, cublasScopy, withlibcublas=yes, withlibcublas=no, [-lcudart])
-    if test "$withlibcublas" = "no"; then
-      AC_CHECK_LIB(cublas, cublasScopy_v2, withlibcublas=yes, withlibcublas=no, [-lcudart])
-    fi
-  fi
-  if test "$withlibcublas" = "no"; then
-    AC_MSG_ERROR(["No 'cublas' library found, link will fail."])
-  fi
-  LIBS=$LIBS_OLD
-  AC_LANG_POP(C)
-
-  dnl Add the flags.
-  AC_MSG_CHECKING([for NVCC flags])
-  if test -z "$NVCC_FLAGS" ; then
-    NVCC_FLAGS="-O3 --compiler-options '-fno-strict-aliasing $ax_flag_pic'"
-  fi
-  AC_SUBST(NVCC_FLAGS)
-  AC_MSG_RESULT([$NVCC_FLAGS])
-  LIBCUDA_LIBS="-lcudart -lcublas -lcufft"
-  LDFLAGS="$LDFLAGS -L$ac_cuda_lib_path"
-fi
-
-dnl Use the OpenCL support
-ac_use_ocl="no"
-AC_ARG_ENABLE(opencl, AS_HELP_STRING([--enable-opencl], [Use OpenCL implementation for GPU convolutions (disabled by default).]),
-                         ac_use_ocl=$enableval, ac_use_ocl="no")
-AC_MSG_CHECKING([for OpenCL support])
-AC_MSG_RESULT([$ac_use_ocl])
-if test x"$ac_use_ocl" = "xyes" ; then
-  AC_LANG_PUSH(C)
-  dnl Optional OpenCL installation dir.
-  AC_ARG_WITH(ocl-path, AS_HELP_STRING([--with-ocl-path], [give the path to the OpenCL library (default is /usr).]),
-                         [ac_ocl_path=$withval], [ac_ocl_path=""])
-  dnl Test the link on libOpenCL.
-  dnl look for the header.
-  CPPFLAGS_SVG=$CPPFLAGS
-  if test -n "$ac_ocl_path" ; then
-     CPPFLAGS="$CPPFLAGS -I$ac_ocl_path/include"
-  fi
-  AC_CHECK_HEADER([CL/cl.h],
-                  [ac_ocl_header="yes"],
-                  [ac_ocl_header="no"])
-  CPPFLAGS=$CPPFLAGS_SVG
-  if test "$ac_ocl_header" = "no"; then
-    AC_MSG_WARN(["No 'OpenCL' header found, OpenCL parts disabled."])
-    ac_use_ocl="no"
-  else
-    if test -n "$ac_ocl_path" ; then
-       OCL_INCLUDE_PATH=$ac_ocl_path"/include"
-       OCL_INCLUDE="-I"$ac_ocl_path"/include"
-    fi
-    AC_SUBST(OCL_INCLUDE_PATH)
-    AC_SUBST(OCL_INCLUDE)
-    dnl Now test for the library.
-    LIBS_OLD=$LIBS
-    if test -n "$ac_ocl_path" ; then
-       LIBS="-L$ac_ocl_path/lib $LIBS"
-    fi
-    AC_CHECK_LIB(OpenCL, clCreateContext, withlibocl=yes, withlibocl=no)
-    if test "$withlibocl" = "no"; then
-      if test -n "$ac_ocl_path" ; then
-        LIBS="-L$ac_ocl_path/lib64 $LIBS"
-      fi
-      AC_CHECK_LIB(OpenCL, clCreateContext, withlibocl=yes, withlibocl=no)
-    fi
-    if test "$withlibocl" = "no"; then
-      AC_MSG_WARN(["No 'OpenCL' library found, OpenCL parts disabled."])
-      ac_use_ocl="no"
-    else
-      if test -n "$ac_ocl_path" ; then
-         LDFLAGS="$LDFLAGS -L$ac_ocl_path/lib"
-      fi
-      LIBOCL_LIBS="-lOpenCL -lm -lstdc++"
-    fi
-    LIBS=$LIBS_OLD
-  fi
-  AC_LANG_POP(C)
-fi
-AM_CONDITIONAL(USE_OCL, test "$ac_use_ocl" = "yes")
-
-dnl Use the OpenCL support
-ac_use_mic="no"
-AC_ARG_ENABLE(intel-mic, AS_HELP_STRING([--enable-intel-mic], [Use MIC implementation for GPU convolutions (disabled by default).]),
-                         ac_use_mic=$enableval, ac_use_mic="no")
-AC_MSG_CHECKING([for Intel MIC support])
-AC_MSG_RESULT([$ac_use_mic])
-AC_ARG_WITH(intel-mic-libs, AS_HELP_STRING([--with-intel-mic-libs], [Link MIC executable with the following addional libraries (default = empty).]), ac_mic_libs=$withval, ac_mic_libs=no)
-if test x"$ac_use_mic" = "xyes" ; then
-  if test x"$ac_mic_libs" != "xno" ; then
-    LDFLAGS_MIC="-offload-option,mic,ld,\"$ac_mic_libs\""
-  fi
-fi
-AM_CONDITIONAL(USE_MIC, test "$ac_use_mic" = "yes")
+AX_ACC_CUDA()
+AX_ACC_OCL()
+AX_ACC_MIC()
 
 dnl Use ETSF_IO
-ac_use_etsfio=no
-AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio="yes")
-AC_ARG_WITH(etsf-io-path, AS_HELP_STRING([--with-etsf-io-path], [Give the path of the ETSF_IO installation (default = /usr).]),
-            ac_etsfio_dir=$withval, ac_etsfio_dir=)
-AC_ARG_WITH(netcdf-path, AS_HELP_STRING([--with-netcdf-path], [Give the path to NetCDF (required by ETSF_IO) (default = /usr).]),
-            ac_netcdf_dir=$withval, ac_netcdf_dir=)
-AC_ARG_WITH(netcdf-libs, AS_HELP_STRING([--with-netcdf-libs], [Give the library to link with NetCDF (required by ETSF_IO) (default = -lnetcdff -lnetcdf).]),
-            ac_netcdf_libs=$withval, ac_netcdf_libs="-lnetcdff -lnetcdf")
-if test "$etsfio" = "yes" ; then
-   LDFLAGS_SVG="$LDFLAGS"
-   LIBS_SVG="$LIBS"
-   FCFLAGS_SVG="$FCFLAGS"
-   if test -n "$ac_etsfio_dir" ; then
-      LDFLAGS="$LDFLAGS -L$ac_etsfio_dir/lib"
-      ac_etsfio_incs="-I$ac_etsfio_dir/include"
-      FCFLAGS="$FCFLAGS $ac_etsfio_incs"
-   elif test -n "$C_INCLUDE_PATH"; then
-      for path in ${C_INCLUDE_PATH//:/ }; do
-         ac_etsfio_incs="$ac_etsfio_incs -I$path"
-      done
-      FCFLAGS="$FCFLAGS $ac_etsfio_incs"
-   fi
-   if test -n "$ac_netcdf_dir" -a x"$ac_netcdf_dir" != x"$ac_etsfio_dir" ; then
-      LDFLAGS="$LDFLAGS -L$ac_netcdf_dir/lib"
-      FCFLAGS="$FCFLAGS -I$ac_netcdf_dir/include"
-   fi
-   LIBS="$LIBS -letsf_io $ac_netcdf_libs"
-   AC_MSG_CHECKING([for ETSF_IO library])
-   AC_LINK_IFELSE([[
-program main
-  use etsf_io
-  
-  type(etsf_groups_flags) :: groups
-  type(etsf_dims) :: dims
-  logical :: lstat
-  type(etsf_io_low_error) :: error_data
-
-  call etsf_io_data_init("test", groups, dims, "test", "", lstat, error_data)
-end]], ac_use_etsfio=yes, ac_use_etsfio=no)
-   AC_MSG_RESULT([$ac_use_etsfio])
-   LIBS="$LIBS_SVG"
-   FCFLAGS="$FCFLAGS_SVG"
-   if test "$ac_use_etsfio" = "yes"; then
-      if test -n "$ac_netcdf_dir" -a x"$ac_netcdf_dir" != x"$ac_etsfio_dir" ; then
-         ac_etsfio_incs=$ac_etsfio_incs" -I$ac_netcdf_dir/include"
-      fi
-      AC_SUBST(LIBETSFIO_INCLUDE, $ac_etsfio_incs)
-      LIBETSFIO_LIBS="-letsf_io_utils -letsf_io $ac_netcdf_libs"
-   else
-      ac_use_etsfio="warn"
-   fi
-fi
-AM_CONDITIONAL(HAVE_ETSF_IO, test "$ac_use_etsfio" = "yes")
+AX_ETSF_IO()
 
 dnl Test libraries required for benching.
 AC_LANG_PUSH(C++)
@@ -512,20 +291,12 @@ ac_build_bin_cluster="yes"
 
 
 dnl disable different build
-dnl The BigDFT library
-AC_ARG_ENABLE(libbigdft, AS_HELP_STRING([--disable-libbigdft], [build the BigDFT library (default = yes).]), ac_build_lib_BigDFT=$enableval, ac_build_lib_BigDFT="yes")
-if test x"$ac_build_lib_PSolver" != x"yes" -a x"$ac_build_lib_BigDFT" == x"yes" ; then
-  ac_build_lib_BigDFT="disabled"
-fi
 dnl The cluster executable
 AC_ARG_ENABLE(binaries, AS_HELP_STRING([--disable-binaries], [build the binaries (default = yes).]), ac_build_bin_cluster=$enableval, ac_build_bin_cluster="yes")
 if test x"$ac_build_lib_BigDFT" != x"yes" -a x"$ac_build_bin_cluster" == x"yes" ; then
   ac_build_bin_cluster="disabled"
 fi
 
-AM_CONDITIONAL(BUILD_LIB_BIGDFT, test "$ac_build_lib_BigDFT" = "yes")
-AC_MSG_CHECKING([for BigDFT library build])
-AC_MSG_RESULT([$ac_build_lib_BigDFT])
 AM_CONDITIONAL(BUILD_BINARIES, test "$ac_build_bin_cluster" = "yes")
 AC_MSG_CHECKING([for BigDFT binaries build])
 AC_MSG_RESULT([$ac_build_bin_cluster])
@@ -586,10 +357,8 @@ dnl Python YAML support.
 AX_PYYAML()
 
 dnl Test the libXC library
-if test "$ac_build_lib_BigDFT" = "yes" ; then
-  AX_LIBXC()
-  AX_LIBGAIN()
-fi
+AX_LIBXC()
+AX_LIBGAIN()
 
 dnl Test the ABINIT library
 AC_ARG_WITH(libabinit-incs, AS_HELP_STRING([--with-libabinit-incs],
@@ -659,45 +428,6 @@ else
   LIB_ABINIT_LIBS="-lpaw $ac_libabinit_libs"
 fi
 
-dnl Test S_GPU library.
-ac_build_libsgpu="no"
-ac_use_libsgpu="no"
-dnl AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), ac_internal_sgpu=$enableval, ac_internal_sgpu="no")
-ac_internal_sgpu="no"
-ac_build_libsgpu=$ac_internal_sgpu
-if test x"$ax_have_acc_cuda" = "xnotdothat" ; then
-  dnl Test S_GPU library.
-  ac_internal_sgpu="yes"
-  AC_ARG_WITH(libsgpu-path, AS_HELP_STRING([--with-libsgpu-path], [Give the path for an external S_GPU library, lib and module files (default = None).]),
-            ac_libsgpu_dir=$withval, ac_libsgpu_dir=)
-  if test "$ac_internal_sgpu" = "yes" ; then
-    ac_build_libsgpu="yes"
-    ac_use_libsgpu="yes"
-    AC_SUBST(LIBSGPU_INCLUDE, "-DCUBLAS_USE_THUNKING -I\$(top_srcdir)"/S_GPU/src)
-  else
-    if test -n "$ac_libsgpu_dir" ; then
-      LDFLAGS="$LDFLAGS -L$ac_libsgpu_dir/lib"
-    
-      dnl Test the given implementation of sgpu.
-      AC_CHECK_LIB(s_gpu, sg_create_stream, withsgpu=yes, withsgpu=no)
-      AC_CHECK_FILE($ac_libsgpu_dir/include/s_gpu.h, header="yes", header="no")
-      if test "$withsgpu" = "yes" -a "$header" = "yes" ; then
-        ac_use_libsgpu="yes"
-        AC_SUBST(LIBSGPU_INCLUDE, "-DCUBLAS_USE_THUNKING -I"$ac_libsgpu_dir/include)
-      fi
-    fi
-  fi
-  if test x"$ac_use_libsgpu" = x"yes" ; then
-    AC_DEFINE([HAVE_LIBSGPU], [1], [use S_GPU in BigDFT.])
-    if test "$ac_internal_sgpu" = "yes" ; then
-      LIBSGPU_LIBS="\$(top_builddir)/S_GPU/src/.libs/libs_gpu.a -lstdc++"
-    else
-      LIBSGPU_LIBS="-ls_gpu -lstdc++"
-    fi
-  fi
-fi
-AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
-
 dnl Test the availability of clock_gettime() and rt library.
 dnl This will be added in libs, on top, therefore care should be taken for a linker which require ordering
 AC_LANG_PUSH(C)
@@ -712,7 +442,7 @@ LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 dnl Agregate all the optional libs.
 LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
 AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
-LIBS_SHORT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIB_GAIN_LIBS $LIB_FLIB_LIBS $LIBSGPU_LIBS $LIBS_EXT_DEPS"
+LIBS_SHORT_DEPS="$LIB_PSOLVER_LIBS $LIB_ABINIT_LIBS $LIB_XC_LIBS $LIB_GAIN_LIBS $LIB_FLIB_LIBS $LIBS_EXT_DEPS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 
 dnl Test for the documentation.
@@ -734,7 +464,7 @@ AC_ARG_WITH(moduledir,
 if test x"$ac_moduledir" != x"no" ; then
   moduledir=$ac_moduledir
 else
-  moduledir=${includedir}/${fc_type}
+  moduledir=${includedir}
 fi
 AC_SUBST(moduledir)
 docdir="${docdir}"
@@ -746,15 +476,6 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 bigdft.pc
-flib/Makefile
-flib/src/Makefile
-flib/src/f_utils.inc
-flib/tests/Makefile
-wrappers/Makefile
-PSolver/Makefile
-PSolver/src/configure.inc
-PSolver/src/Makefile
-PSolver/tests/Makefile
 config/Doxyfile
 utils/Makefile
 utils/PSPfiles/Makefile
@@ -816,16 +537,14 @@ BigDFT configure summary:
 
 Basics:
   Fortran90 compiler:        $FC
-  Fortran90 compiler name:   $fc_type
   Fortran90 flags:           $FCFLAGS
   Fortran77 compiler:        $F77
   Fortran77 flags:           $FFLAGS
   Linker flags:              $LDFLAGS
-  Linked libraries:          $LIBS_DEPENDENCIES $LIBS
+  Linked libraries:          $LIBS_EXT_DEPS $LIBS
   Linked dependencies:       $LIBS_SHORT_DEPS
 
 Build:
-  Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (bigdft,...):$ac_build_bin_cluster
   Bindings:                  $ac_build_bindings
   User documentation:        $ac_have_pdflatex
@@ -833,7 +552,6 @@ Build:
 
 Options:
   Debug version:             $ac_use_debug
-  Max. Memory per task (GB): $MEMORY_LIMIT
   With OpenMP:               $ax_fc_openmp_msg
   With MPI:                  $ac_use_mpi
    | include dir.:           $MPI_INCLUDE
@@ -855,17 +573,11 @@ Options:
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE
-  With libS_GPU:             $ac_use_libsgpu
-   | internal built:         $ac_build_libsgpu
-   | include dir.:           $LIBSGPU_INCLUDE
   With ETSF_IO:              $ac_use_etsfio
    | include dir.:           $LIBETSFIO_INCLUDE
   With libarchive:           $ac_use_archive
    | C flags:                $LIB_ARCHIVE_CFLAGS
    | linked libraries:       $LIB_ARCHIVE_LIBS
-  With libyaml:              $ax_have_yaml
-   | C flags:                $LIB_YAML_CFLAGS
-   | linked libraries:       $LIB_YAML_LIBS
   With GLib and co.:         $have_glib
    | linked libraries:       $GLIB_LIBS
 

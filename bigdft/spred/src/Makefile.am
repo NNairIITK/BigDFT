@@ -42,11 +42,7 @@ spred_soname_library =
 LIB_BIGDFT_LIBS = $(top_builddir)/src/libbigdft-1.a
 spred_library = libspred-1.a $(LIB_BIGDFT_LIBS) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
 endif
-if BUILD_LIB_BIGDFT
 lib_spred = libspred-1.a
-else
-lib_spred =
-endif
 if BUILD_BINARIES
 binaries_sources = splsad NEB global globaltool mhgps mhgpstool
 scripts_sources = NEB_driver.sh
@@ -80,9 +76,8 @@ endif
 
 AM_FCFLAGS = -I. -I$(top_builddir)/includes \
 	@LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ \
-	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
-	@MPI_INCLUDE@
-AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @LIBSGPU_INCLUDE@
+	@LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@
 
 AM_CFLAGS = -I$(top_srcdir)/src/bindings -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules @GLIB_CFLAGS@
 
