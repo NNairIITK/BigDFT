@@ -19,7 +19,7 @@ AC_DEFUN([AX_PSOLVER],
   AC_REQUIRE([AX_LINALG])
   
   dnl Test the modules for compilation
-  AC_MSG_CHECKING([for Psolver modules])
+  AC_MSG_CHECKING([for PSolver modules])
   FCFLAGS_SVG=$FCFLAGS
   if test -n "$ax_psolver_incdir" ; then
     FCFLAGS="$FCFLAGS $ax_psolver_incdir"
@@ -42,12 +42,12 @@ end program]], withpsolvermod=yes, withpsolvermod=no)
   AC_MSG_RESULT($withpsolvermod)
 
   dnl Test the psolver library.
-  AC_MSG_CHECKING([for Psolver library])
+  AC_MSG_CHECKING([for PSolver library])
   LIBS_SVG=$LIBS
   if test -z "$ax_psolver_libdir" ; then
     ax_psolver_libdir="-lPSolver-1"
   fi
-  LIBS="$ax_psolver_libdir $LINALG_LIBS $LIB_FLIB_LIBS -lyaml -lrt $LIBS"
+  LIBS="$ax_psolver_libdir $LINALG_LIBS $LIB_FLIB_LIBS $LIBS"
   AC_LINK_IFELSE(
     AC_LANG_PROGRAM([], [[
 use Poisson_solver
