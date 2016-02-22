@@ -75,6 +75,7 @@ Patterns to ignore:
  - Timestamp
  - memory
  - FLAGS
+ - input_guess
 
 
 Expected Test CPUtime: #
