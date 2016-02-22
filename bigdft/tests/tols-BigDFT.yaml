@@ -309,6 +309,8 @@ H2O-CP2K:
 test.splsad.ref.yaml:
  Epsilon: 1.1e-10
  Electric Dipole Moment (Debye): 1.21e-8
+ Keys to ignore:
+   - Molecule was shifted
 
 test.minhop.ref.yaml:
  Energies: &etol1 6.0e-9

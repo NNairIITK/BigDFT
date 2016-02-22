@@ -11,7 +11,7 @@ module SPRED_public_keys
 
   public ! guess why?
 
-  !> spred 
+  !> spred
   character(len = *), parameter :: FP_VARIABLES = "fingerprints"
     character(len = *), parameter :: FP_METHOD = "fpmethod"
     character(len = *), parameter :: FP_NATX_SPHERE = "natx_sphere"
@@ -23,7 +23,7 @@ end module SPRED_public_keys
 module SPRED_public_enums
   use f_enums
   implicit none
-  
+
   private !as we use at least one module, private become compulsory
 
   !> spred
