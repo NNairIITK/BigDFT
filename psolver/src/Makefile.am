@@ -161,7 +161,7 @@ libPSolver-1.a: $(libPSolver_1_a_OBJECTS) tmp-libPSolver/extract.stamp
 
 # Dynamic library building
 $(psolver_dynamic_library): $(libPSolver_1_a_OBJECTS) tmp-libPSolver/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) $(LD_RPATH) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LINALG_LIBS@ @LIB_FLIB_LIBS@ @LIBS_EXT_DEPS@ $(LIBS)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) $(LD_RPATH) -o $@ $(libPSolver_1_a_OBJECTS) tmp-libPSolver/*.o @LIBS_EXT_DEPS@ $(LIBS)
 	@chmod a+x $@
 
 $(psolver_library_soname): $(psolver_dynamic_library)
