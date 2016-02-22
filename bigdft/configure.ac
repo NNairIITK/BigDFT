@@ -279,10 +279,6 @@ AC_CHECK_LIB(config++, config_init, withconfig=yes, withconfig=no)
 AM_CONDITIONAL(HAVE_LIBCONFIG, test "$withconfig" = "yes")
 AC_LANG_POP(C++)
 
-AC_LANG_PUSH(C)
-AC_CHECK_FUNCS([strndup])
-AC_LANG_POP(C)
-
 dnl AM_CONDITIONAL for the different libraries, set default values.
 dnl the BigDFT library.
 ac_build_lib_BigDFT="yes"
@@ -303,6 +299,7 @@ AC_MSG_RESULT([$ac_build_bin_cluster])
 
 dnl ---------------------------------------
 AX_LINALG()
+AM_CONDITIONAL(USE_BLACS, test x"$ax_have_scalapack" = x"yes")
 
 dnl Error on the linking part only if required.
 if test "$ac_build_bin_cluster" = "yes" ; then
@@ -427,14 +424,6 @@ if test x"$ac_internal_libpaw" == x"yes" ; then
 else
   LIB_ABINIT_LIBS="-lpaw $ac_libabinit_libs"
 fi
-
-dnl Test the availability of clock_gettime() and rt library.
-dnl This will be added in libs, on top, therefore care should be taken for a linker which require ordering
-AC_LANG_PUSH(C)
-AC_CHECK_HEADERS([time.h])
-AC_CHECK_LIB([rt], [clock_gettime])
-AC_CHECK_FUNCS([clock_gettime])
-AC_LANG_POP(C)
 
 dnl Agregate all flags.
 LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
@@ -591,7 +580,7 @@ Installation paths:
   Documentation:             $docdir
 "
 
-if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$ac_build_bindings" = x"warn" -o x"$withscalapack" = x"warn" ; then
+if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$ac_build_bindings" = x"warn" -o x"$ax_have_scalapack" = x"warn" ; then
   echo "Warnings:"
   if test x"$ac_use_mpi" = x"warn" ; then
     echo "  MPI:                       disabled by tests"
@@ -605,7 +594,7 @@ if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_et
   if test x"$ac_build_bindings" = x"warn" ; then
     echo "  C bindings:                disabled by tests"
   fi
-  if test x"$withscalapack" = x"warn" ; then
+  if test x"$ax_have_scalapack" = x"warn" ; then
     echo "  Scalapack binding:         disabled by tests"
   fi
 

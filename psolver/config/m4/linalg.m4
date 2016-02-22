@@ -41,15 +41,15 @@ AC_DEFUN([AX_LINALG],
     fi
     AC_MSG_RESULT([$withlinalg])
     dnl test for scalapack presence in the ext-linalg
-    withscalapack=no
+    ax_have_scalapack=no
     if test "$withlinalg" = "yes"; then
      if test x"$withmpi" = x"yes" ; then
       AC_MSG_CHECKING([for pdsygvx and blacs_get in $ac_linalg])
       AC_LINK_IFELSE([[program main
       call pdsygvx
       call blacs_get
-  end]], withscalapack=yes, withscalapack=warn)
-      AC_MSG_RESULT([$withscalapack])
+  end]], ax_have_scalapack=yes, ax_have_scalapack=warn)
+      AC_MSG_RESULT([$ax_have_scalapack])
      fi
     fi
     LIBS=$LIBS_OLD
@@ -142,7 +142,7 @@ AC_DEFUN([AX_LINALG],
   if test -n "$ac_scalapack_dir" ; then
     LDFLAGS="$LDFLAGS -L$ac_scalapack_dir"
   fi
-  withscalapack=no
+  ax_have_scalapack=no
   if test "$ac_scalapack" != "no" ; then
     case $ac_scalapack in
       -l*)
@@ -160,17 +160,17 @@ AC_DEFUN([AX_LINALG],
       LIBS=$LIBS_SVG
       AC_MSG_RESULT([$ac_scalapack])
       if test x"$ac_scalapack" != x"no" ; then
-        withscalapack=yes
+        ax_have_scalapack=yes
       else
-        withscalapack=warn
+        ax_have_scalapack=warn
       fi
       ;;
       *)
-      AC_CHECK_LIB($ac_scalapack, pdsygvx, withscalapack=yes, withscalapack=warn,$LINALG_LIBS)
+      AC_CHECK_LIB($ac_scalapack, pdsygvx, ax_have_scalapack=yes, ax_have_scalapack=warn,$LINALG_LIBS)
       ac_scalapack=-l$ac_scalapack
       ;;
     esac
-    if test "$withscalapack" = "yes"; then
+    if test "$ax_have_scalapack" = "yes"; then
       LINALG_LIBS="$ac_scalapack $LINALG_LIBS"
     fi
   fi
@@ -179,5 +179,4 @@ AC_DEFUN([AX_LINALG],
   
   fi #end $withlinalg = no
   AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
-  AM_CONDITIONAL(USE_BLACS, test x"$withscalapack" = x"yes")
 ])

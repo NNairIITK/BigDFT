@@ -7,8 +7,8 @@ dynlib_DATA      = $(flib_dynlib)
 noinst_DATA      = $(flib_linklib)
 
 # Static or dynamic library
-flib_dynamic_library = libflib-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
-flib_library_soname  = libflib-1.so.@BIGDFT_MINOR_VERSION@
+flib_dynamic_library = libflib-1.so.@FLIB_MINOR_VERSION@.0.@FLIB_MICRO_VERSION@
+flib_library_soname  = libflib-1.so.@FLIB_MINOR_VERSION@
 
 # We install flib library only if PSolver is deactivated.
 if BUILD_LIB_PSOLVER
@@ -163,7 +163,7 @@ AM_CFLAGS = @LIB_YAML_CFLAGS@
 
 # Dynamic library building
 $(flib_dynamic_library): $(libflib_1_a_OBJECTS)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(flib_library_soname) -o $@ $^ @LIBS_SHORT_DEPS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(flib_library_soname) -o $@ $^ @LIBS_EXT_DEPS@
 	@chmod a+x $@
 
 $(flib_library_soname): $(flib_dynamic_library)

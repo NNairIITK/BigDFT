@@ -139,8 +139,6 @@ AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 LD_RPATH=-Wl,-rpath=$(DESTDIR)$(dynlibdir)
 AM_LDFLAGS += $(LD_RPATH)
-else
-LIBS += @LIBS_EXT_DEPS@
 endif
 
 SUFFIXES = .cu
@@ -148,9 +146,22 @@ SUFFIXES = .cu
 NVCC = @NVCC@
 NVCC_FLAGS = -arch sm_20 @NVCC_FLAGS@
 
+tmp-libPSolver/extract.stamp: $(top_builddir)/wrappers/libwrappers.a $(out_static_library)
+	test -e "tmp-libPSolver" || $(INSTALL) -d -m 755 tmp-libPSolver
+	cd tmp-libPSolver ; \
+	rm -f *; \
+	for lib in $^; do \
+	  $(AR) x ../$$lib ; \
+	done ; \
+	touch extract.stamp
+
+libPSolver-1.a: $(libPSolver_1_a_OBJECTS) tmp-libPSolver/extract.stamp
+	$(AR) $(ARFLAGS) $@ $(libPSolver_1_a_OBJECTS) tmp-libPSolver/*.o
+	$(RANLIB) $@
+
 # Dynamic library building
-$(psolver_dynamic_library): $(libPSolver_1_a_OBJECTS)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) $(LD_RPATH) -o $@ $^ $(top_builddir)/wrappers/libwrappers.a @LINALG_LIBS@ @LIB_FLIB_LIBS@ @LIBS_EXT_DEPS@ $(LIBS)
+$(psolver_dynamic_library): $(libPSolver_1_a_OBJECTS) tmp-libPSolver/extract.stamp
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) $(LD_RPATH) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LINALG_LIBS@ @LIB_FLIB_LIBS@ @LIBS_EXT_DEPS@ $(LIBS)
 	@chmod a+x $@
 
 $(psolver_library_soname): $(psolver_dynamic_library)

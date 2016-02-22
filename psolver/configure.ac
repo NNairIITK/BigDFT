@@ -34,6 +34,11 @@ AC_SUBST(PSOLVER_MINOR_VERSION)
 AC_SUBST(PSOLVER_MICRO_VERSION)
 AC_SUBST(PSOLVER_NANO_VERSION)
 
+AC_SUBST(FLIB_MAJOR_VERSION, [$PSOLVER_MAJOR_VERSION])
+AC_SUBST(FLIB_MINOR_VERSION, [$PSOLVER_MINOR_VERSION])
+AC_SUBST(FLIB_MICRO_VERSION, [$PSOLVER_MICRO_VERSION])
+AC_SUBST(FLIB_NANO_VERSION, [$PSOLVER_NANO_VERSION])
+
 dnl Check for sed and put it in the SED variable
 AC_PROG_SED()
 
@@ -122,13 +127,32 @@ else
 fi
 AM_CONDITIONAL(BUILD_FLIB, test "$internalflib" = "yes")
 
+dnl Test the availability of clock_gettime() and rt library.
+dnl This will be added in libs, on top, therefore care should be taken for a linker which require ordering
+AC_LANG_PUSH(C)
+AC_CHECK_HEADERS([time.h])
+AC_CHECK_LIB([rt], [clock_gettime])
+AC_CHECK_FUNCS([clock_gettime])
+AC_CHECK_FUNCS([strndup])
+AC_LANG_POP(C)
+
+dnl The Poisson solver library
+AC_ARG_ENABLE(libpsolver, AS_HELP_STRING([--disable-libpsolver], [build the PSolver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
+
+AM_CONDITIONAL(BUILD_LIB_PSOLVER, test "$ac_build_lib_PSolver" = "yes")
+AC_MSG_CHECKING([for PSolver library build])
+AC_MSG_RESULT([$ac_build_lib_PSolver])
+
 dnl Linalg libraries.
+if test $ac_build_lib_PSolver = "yes" ; then
 AX_LINALG()
 if test $ax_have_linalg != "yes" ; then
   AC_MSG_ERROR([Linear algebra libraries are not available.])
 fi
+fi
 
 dnl Use the dgemmsy
+if test $ac_build_lib_PSolver = "yes" ; then
 ax_have_dgemmsy="no"
 DGEMMSY_CPPFLAGS=
 AC_ARG_ENABLE(dgemmsy, AS_HELP_STRING([--enable-dgemmsy], [Use dgemmsy (disabled by default).]),
@@ -150,22 +174,20 @@ if test x"$ax_have_dgemmsy" = "xyes" ; then
   fi
 fi
 AC_SUBST(DGEMMSY_CPPFLAGS)
+fi
 AM_CONDITIONAL(USE_DGEMMSY, test "$ax_have_dgemmsy" = "yes")
 
-dnl The Poisson solver library
-AC_ARG_ENABLE(libpsolver, AS_HELP_STRING([--disable-libpsolver], [build the PSolver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
-
-AM_CONDITIONAL(BUILD_LIB_PSOLVER, test "$ac_build_lib_PSolver" = "yes")
-AC_MSG_CHECKING([for PSolver library build])
-AC_MSG_RESULT([$ac_build_lib_PSolver])
-
 dnl Support for ETSF_IO file format
+if test $ac_build_lib_PSolver = "yes" ; then
 AX_ETSF_IO()
+else
+AM_CONDITIONAL(HAVE_ETSF_IO, test "$ax_have_etsf_io" = "yes")
+fi
 
 dnl default installation directories
 AC_ARG_WITH(moduledir,
             AS_HELP_STRING([--with-moduledir],
-                           [installation directory for module files [[INCLUDEDIR/FC]]]),
+                           [installation directory for module files [[INCLUDEDIR]]]),
               ac_moduledir=$withval, ac_moduledir="no")
 if test x"$ac_moduledir" != x"no" ; then
   moduledir=$ac_moduledir

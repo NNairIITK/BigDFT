@@ -10,6 +10,7 @@ SUBDIRS += flib
 endif
 
 SUBDIRS += wrappers src
+
 if HAVE_PYYAML
 SUBDIRS += tests
 endif
@@ -18,4 +19,4 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
 
 report:
-	python $(top_builddir)/tests/report.py
+	python $(pythondir)/report.py
