@@ -86,7 +86,7 @@
     </dependencies>
   </autotools>
 
-  <autotools id="bigdft" autogenargs="--without-internal-flib" autogen-sh="autoreconf">
+  <autotools id="bigdft" autogen-sh="autoreconf">
     <!--<branch repo="bigdft" module="bigdft" version="1.7.5"/>-->
     <branch repo="local" module="bigdft-1.8.tar.gz" version="1.8.0" checkoutdir="bigdft"/>
     <dependencies>
