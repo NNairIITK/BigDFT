@@ -324,7 +324,7 @@ install: install-recursive
 	chmod ug+x bigdft-tool
 
 check:
-	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
 #dependencies
 convolutions_aux.o linear/convolutions_aux.o: linear/filterModule.f90 filterModule.o

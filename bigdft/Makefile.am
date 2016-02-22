@@ -21,7 +21,7 @@ SUBDIRS += \
 	utils
 
 check report:
-	python $(top_builddir)/tests/report.py
+	python $(pythondir)/report.py
 
 clean-local:
 	-rm -rf includes

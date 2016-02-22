@@ -85,15 +85,15 @@ SIC-test.post-in:
         case $* in \
           *)                    prec="1.1e-10" ;; \
         esac ; \
-    echo "python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*.out $<" ; \
-	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
+    echo "python $(pythondir)/fldiff.py $$mode --discrepancy=$$prec $*.out $<" ; \
+	python $(pythondir)/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
-%.report.yaml: %.ref.yaml $(abs_top_builddir)/tests/fldiff_yaml.py
+%.report.yaml: %.ref.yaml
 	@name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`; \
 	tols=`basename $< .out.ref.yaml` ;\
 	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ;\
-	echo "python $(abs_top_builddir)/tests/fldiff_yaml.py -r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@" ; \
-	python $(abs_top_builddir)/tests/fldiff_yaml.py \
+	echo "python $(pythondir)/fldiff_yaml.py -r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@" ; \
+	python $(pythondir)/fldiff_yaml.py \
 		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
 
 H-Rydberg-test.post-in:

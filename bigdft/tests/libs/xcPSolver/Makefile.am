@@ -54,9 +54,9 @@ PS_Check.out.yaml: PS_Check
 	rm -f tmp
 
 PS_Check.out.yaml.report: PS_Check.out.yaml
-	python $(top_builddir)/tests/fldiff_yaml.py \
+	python $(pythondir)/fldiff_yaml.py \
 		-r $(abs_srcdir)/PS_Check.ref.yaml -d PS_Check.out.yaml -t $(abs_srcdir)/tols.yaml \
 	        --output fldiff.report.yaml
 
 report: 
-	python $(top_builddir)/tests/report.py
+	python $(pythondir)/report.py

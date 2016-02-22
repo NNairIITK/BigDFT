@@ -38,5 +38,5 @@ xc.out.yaml: test_xc
 xc.report.yaml: xc.out.yaml
 	export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	python $(top_srcdir)/tests/fldiff_yaml.py -r $(srcdir)/xc.ref.yaml -d $^ -o $@ \
+	python $(pythondir)/fldiff_yaml.py -r $(srcdir)/xc.ref.yaml -d $^ -o $@ \
 			-t $(top_srcdir)/tests/tols-BigDFT.yaml --label=xc

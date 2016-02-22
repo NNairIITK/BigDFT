@@ -27,10 +27,10 @@ test-smatmul.out.yaml: smatmul
 
 
 check: test-smatmul.out.yaml
-	python $(top_builddir)/tests/fldiff_yaml.py \
+	python $(pythondir)/fldiff_yaml.py \
 		-r $(abs_srcdir)/test-smatmul.ref.yaml -d test-smatmul.out.yaml -t $(abs_srcdir)/tols.yaml \
 	        --output fldiff.report.yaml
 
 
 report: 
-	python $(top_builddir)/tests/report.py
+	python $(pythondir)/report.py

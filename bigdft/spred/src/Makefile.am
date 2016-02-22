@@ -156,7 +156,7 @@ all: all-recursive
 install: install-recursive
 
 check:
-	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
 NEB.o: images.o
 

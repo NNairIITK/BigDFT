@@ -28,7 +28,7 @@ conv_check.out.yaml: conv_check
 	-./conv_check > $@
 
 OpenCL.report.yaml: conv_check.out.yaml
-	python $(abs_top_builddir)/tests/fldiff_yaml.py \
+	python $(pythondir)/fldiff_yaml.py \
 		-r $(srcdir)/OpenCL.ref.yaml -d conv_check.out.yaml -t $(srcdir)/tols.yaml -o $@ 
 #	awk -f $(srcdir)/conv_check.awk $< | tee $@
 
