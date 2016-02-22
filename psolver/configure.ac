@@ -122,6 +122,12 @@ else
 fi
 AM_CONDITIONAL(BUILD_FLIB, test "$internalflib" = "yes")
 
+dnl Linalg libraries.
+AX_LINALG()
+if test $ax_have_linalg != "yes" ; then
+  AC_MSG_ERROR([Linear algebra libraries are not available.])
+fi
+
 dnl Use the dgemmsy
 ax_have_dgemmsy="no"
 DGEMMSY_CPPFLAGS=
@@ -146,20 +152,6 @@ fi
 AC_SUBST(DGEMMSY_CPPFLAGS)
 AM_CONDITIONAL(USE_DGEMMSY, test "$ax_have_dgemmsy" = "yes")
 
-dnl Setup memory limit value (disabled by default)
-ac_with_memory_limit="no"
-AC_MSG_CHECKING([for memory limit in GB])
-AC_ARG_WITH(memory-limit, AS_HELP_STRING([--with-memory-limit], [Memory limit value in GB. It stops EVERYTHING if some process passes such limit (disabled by default).]),
-              ac_with_memory_limit=$withval, ac_with_memory_limit="no")
-if test `echo "$ac_with_memory_limit" | $SED "s/[.].*//"` -ge "0" 2> /dev/null ; then
-  MEMORY_LIMIT=$ac_with_memory_limit
-else
-  ac_with_memory_limit="undefined"
-  MEMORY_LIMIT=0
-fi
-AC_SUBST(MEMORY_LIMIT)
-AC_MSG_RESULT([$ac_with_memory_limit])
-
 dnl The Poisson solver library
 AC_ARG_ENABLE(libpsolver, AS_HELP_STRING([--disable-libpsolver], [build the PSolver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
 
@@ -178,7 +170,7 @@ AC_ARG_WITH(moduledir,
 if test x"$ac_moduledir" != x"no" ; then
   moduledir=$ac_moduledir
 else
-  moduledir=${includedir}/$FC
+  moduledir=${includedir}
 fi
 AC_SUBST(moduledir)
 

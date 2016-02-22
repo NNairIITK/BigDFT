@@ -10,6 +10,10 @@
 
 AC_DEFUN([AX_LINALG],
 [dnl Substitute Lapack and Blas by another specific library
+  AC_REQUIRE([AX_MPI])
+  
+  ax_have_linalg="no"
+
   withlinalg=no
   AC_ARG_WITH(ext-linalg, AS_HELP_STRING([--with-ext-linalg],
               [Give the name of the libraries replacing Blas and Lapack (default = none specified). Use the -l before the name(s).]),
@@ -33,6 +37,7 @@ AC_DEFUN([AX_LINALG],
   #  AC_CHECK_LIB($ac_linalg, dsysv, withlinalg=yes, withlinalg=no)
     if test "$withlinalg" = "yes"; then
       LINALG_LIBS=$ac_linalg
+      ax_have_linalg="yes"
     fi
     AC_MSG_RESULT([$withlinalg])
     dnl test for scalapack presence in the ext-linalg
@@ -81,6 +86,10 @@ AC_DEFUN([AX_LINALG],
     if test "$withlapack" = "yes"; then
       LINALG_LIBS="-llapack $LINALG_LIBS"
     fi
+  fi
+
+  if test $withblas = "yes" -a $withlapack = "yes" ; then
+    ax_have_linalg="yes"
   fi
   
   dnl Test for Scalapack
