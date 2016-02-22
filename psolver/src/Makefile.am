@@ -1,21 +1,14 @@
 # To be installed:
 dynlibdir        = $(libdir)
-noinst_LIBRARIES = $(psolver_noinst)
 lib_LIBRARIES    = $(psolver_lib)
 module_DATA      = $(modules)
 dynlib_DATA      = $(psolver_dynlib)
 noinst_DATA      = $(psolver_linklib)
 
 # Static or dynamic library
-psolver_dynamic_library = libPSolver-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
-psolver_library_soname  = libPSolver-1.so.@BIGDFT_MINOR_VERSION@
+psolver_dynamic_library = libPSolver-1.so.@PSOLVER_MINOR_VERSION@.0.@PSOLVER_MICRO_VERSION@
+psolver_library_soname  = libPSolver-1.so.@PSOLVER_MINOR_VERSION@
 
-# We install a PSolver library only if BigDFT is deactivated.
-if BUILD_LIB_BIGDFT
-psolver_lib    =
-psolver_dynlib =
-psolver_noinst = libPSolver-1.a
-else
 psolver_lib    = libPSolver-1.a
 if BUILD_DYNAMIC_LIBS
 psolver_dynlib = $(psolver_dynamic_library)
@@ -23,8 +16,6 @@ psolver_linklib = $(psolver_library_soname)
 else
 psolver_dynlib =
 psolver_linklib =
-endif
-psolver_noinst =
 endif
 
 # C objects
@@ -144,8 +135,10 @@ conv_check_fftw_LDADD = @LIBS_EXT_DEPS@ -lfftw3 -lfftw3_threads
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @LIB_FLIB_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
 AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
 AM_LDFLAGS = -L$(top_builddir)/src
+
 if BUILD_DYNAMIC_LIBS
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+LD_RPATH=-Wl,-rpath=$(DESTDIR)$(dynlibdir)
+AM_LDFLAGS += $(LD_RPATH)
 else
 LIBS += @LIBS_EXT_DEPS@
 endif
@@ -157,7 +150,7 @@ NVCC_FLAGS = -arch sm_20 @NVCC_FLAGS@
 
 # Dynamic library building
 $(psolver_dynamic_library): $(libPSolver_1_a_OBJECTS)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) -o $@ $^ $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib-1.a @LIBS_EXT_DEPS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) $(LD_RPATH) -o $@ $^ $(top_builddir)/wrappers/libwrappers.a @LIB_FLIB_LIBS@ @LIBS_EXT_DEPS@ $(LIBS)
 	@chmod a+x $@
 
 $(psolver_library_soname): $(psolver_dynamic_library)

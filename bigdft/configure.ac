@@ -1,5 +1,3 @@
-
-
 AC_PREREQ(2.59)
 
 dnl Init basic data for package
@@ -253,31 +251,6 @@ AM_CONDITIONAL(USE_OPTI_CONVOLUT, test "$ac_use_opti_convolut" = "yes")
 AC_MSG_RESULT([$ac_use_opti_convolut])
 
 
-dnl Use the dgemmsy
-ac_use_dgemmsy="no"
-DGEMMSY_CPPFLAGS=
-AC_ARG_ENABLE(dgemmsy, AS_HELP_STRING([--enable-dgemmsy], [Use dgemmsy (disabled by default).]),
-                         ac_use_dgemmsy=$enableval, ac_use_dgemmsy="no")
-if test x"$ac_use_dgemmsy" = "xyes" ; then
-  AC_LANG_PUSH(C)
-
-  DGEMMSY_CPPFLAGS="-msse3"
-  CPPFLAGS_SVG=$CPPFLAGS
-  CPPFLAGS="$CPPFLAGS $DGEMMSY_CPPFLAGS"
-  AC_CHECK_HEADER([pmmintrin.h],
-                  [ac_use_dgemmsy="yes"],
-                  [ac_use_dgemmsy="no"])
-  CPPFLAGS=$CPPFLAGS_SVG
-  AC_LANG_POP(C)
-  if test "$ac_use_dgemmsy" = "no"; then
-    DGEMMSY_CPPFLAGS=
-    AC_MSG_WARN(["No SSE header found, dgemmsy disabled."])
-  fi
-fi
-AC_SUBST(DGEMMSY_CPPFLAGS)
-AM_CONDITIONAL(USE_DGEMMSY, test "$ac_use_dgemmsy" = "yes")
-
-
 dnl PEXSI
 AC_ARG_WITH(pexsi, AS_HELP_STRING([--with-pexsi],
             [Give the link-line for PEXSI.]),
@@ -466,21 +439,6 @@ if test x"$ac_use_mic" = "xyes" ; then
 fi
 AM_CONDITIONAL(USE_MIC, test "$ac_use_mic" = "yes")
 
-dnl Use external FLib.
-AC_ARG_WITH(internal-flib, AS_HELP_STRING([--with-internal-flib], [Compile internal FLib (default = yes).]), internalflib=$withval, internalflib="yes")
-if test x"$internalflib" != x"yes" ; then
-  AX_FLIB()
-  if test "$ac_use_flib" = "no" ; then
-    AC_MSG_ERROR([FLib is not available, install FLib and provide paths --with-flib-libs --with-flib-incs.])
-  fi
-else
-  LIB_FLIB_CFLAGS='-I$(top_builddir)/includes'
-  AC_SUBST(LIB_FLIB_CFLAGS)
-  LIB_FLIB_LIBS=""
-  AC_SUBST(LIB_FLIB_LIBS)
-fi
-AM_CONDITIONAL(BUILD_FLIB, test "$internalflib" = "yes")
-
 dnl Use ETSF_IO
 ac_use_etsfio=no
 AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio="yes")
@@ -554,8 +512,6 @@ ac_build_bin_cluster="yes"
 
 
 dnl disable different build
-dnl The Poisson solver library
-AC_ARG_ENABLE(libpsolver, AS_HELP_STRING([--disable-libpsolver], [build the PSolver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
 dnl The BigDFT library
 AC_ARG_ENABLE(libbigdft, AS_HELP_STRING([--disable-libbigdft], [build the BigDFT library (default = yes).]), ac_build_lib_BigDFT=$enableval, ac_build_lib_BigDFT="yes")
 if test x"$ac_build_lib_PSolver" != x"yes" -a x"$ac_build_lib_BigDFT" == x"yes" ; then
@@ -567,9 +523,6 @@ if test x"$ac_build_lib_BigDFT" != x"yes" -a x"$ac_build_bin_cluster" == x"yes" 
   ac_build_bin_cluster="disabled"
 fi
 
-AM_CONDITIONAL(BUILD_LIB_PSOLVER, test "$ac_build_lib_PSolver" = "yes")
-AC_MSG_CHECKING([for PSolver library build])
-AC_MSG_RESULT([$ac_build_lib_PSolver])
 AM_CONDITIONAL(BUILD_LIB_BIGDFT, test "$ac_build_lib_BigDFT" = "yes")
 AC_MSG_CHECKING([for BigDFT library build])
 AC_MSG_RESULT([$ac_build_lib_BigDFT])
@@ -627,33 +580,7 @@ AC_SUBST(LIB_ARCHIVE_CFLAGS)
 AC_SUBST(LIB_ARCHIVE_LIBS)
 
 dnl C-level YAML support.
-AC_ARG_WITH([yaml-path],
-            AS_HELP_STRING([--with-yaml-path], [give a path to find libyaml.]),
-            [ac_path_yaml=$withval])
-
-if test x"$ac_path_yaml" == x"" ; then
-   ac_path_yaml="/usr"
-fi
-
-LDFLAGS_SVG="$LDFLAGS"
-AC_LANG_PUSH(C)
-LDFLAGS="$LDFLAGS -L$ac_path_yaml/lib"
-AC_CHECK_LIB([yaml], [yaml_parser_parse],
-             [ac_use_libyaml=yes], [ac_use_libyaml=no])
-if test x"$ac_use_libyaml" = x"yes"; then
-   if test x"$ac_path_yaml" != x"/usr" ; then
-      LIB_YAML_CFLAGS="-I$ac_path_yaml/include"
-      LIB_YAML_LIBS="-L$ac_path_yaml/lib "
-   fi
-   LIB_YAML_LIBS=$LIB_YAML_LIBS"-lyaml"
-else
-   AC_MSG_ERROR([libyaml is not available, install YAML and provide path --with-yaml-path.])
-fi
-AC_LANG_POP(C)
-LDFLAGS="$LDFLAGS_SVG"
-
-AC_SUBST(LIB_YAML_CFLAGS)
-AC_SUBST(LIB_YAML_LIBS)
+AX_YAML()
 
 dnl Python YAML support.
 AX_PYYAML()
@@ -738,7 +665,7 @@ ac_use_libsgpu="no"
 dnl AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), ac_internal_sgpu=$enableval, ac_internal_sgpu="no")
 ac_internal_sgpu="no"
 ac_build_libsgpu=$ac_internal_sgpu
-if test x"$ac_use_cuda_gpu" = "xnotdothat" ; then
+if test x"$ax_have_acc_cuda" = "xnotdothat" ; then
   dnl Test S_GPU library.
   ac_internal_sgpu="yes"
   AC_ARG_WITH(libsgpu-path, AS_HELP_STRING([--with-libsgpu-path], [Give the path for an external S_GPU library, lib and module files (default = None).]),
@@ -898,8 +825,6 @@ Basics:
   Linked dependencies:       $LIBS_SHORT_DEPS
 
 Build:
-  Library flib:              yes
-  Library PSolver:           $ac_build_lib_PSolver
   Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (bigdft,...):$ac_build_bin_cluster
   Bindings:                  $ac_build_bindings
@@ -917,11 +842,11 @@ Options:
    | MPI_INIT_THREAD avail:  $ac_with_mpinithread
    | MPI2 support:           $ac_with_mpi2
   With optimised conv.:      $ac_use_opti_convolut
-  With Cuda GPU conv.:       $ac_use_cuda_gpu
+  With Cuda GPU conv.:       $ax_have_acc_cuda
    | NVidia Cuda Compiler:   $NVCC
    | Cuda flags:             $CUDA_FLAGS
   With OpenCL support:       $ac_use_ocl
-  With Intel MIC support:    $ac_use_mic
+  With Intel MIC support:    $ax_have_acc_mic
   With AMBERTOOLS compiler:  $ac_use_amber
    | nab Compiler:           $NAB
   With CP2K:                 $ac_use_cp2k
@@ -938,8 +863,7 @@ Options:
   With libarchive:           $ac_use_archive
    | C flags:                $LIB_ARCHIVE_CFLAGS
    | linked libraries:       $LIB_ARCHIVE_LIBS
-  With libyaml:              $ac_use_libyaml
-   | internal built:         $ac_build_libyaml
+  With libyaml:              $ax_have_yaml
    | C flags:                $LIB_YAML_CFLAGS
    | linked libraries:       $LIB_YAML_LIBS
   With GLib and co.:         $have_glib

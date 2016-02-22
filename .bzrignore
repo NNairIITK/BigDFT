@@ -1,6 +1,7 @@
 .svn
 install
 build
+psolver-*.tar.*
 bigdft-*.tar.*
 yaml-*.tar.*
 libxc-*.tar.*
@@ -11,6 +12,7 @@ Makefile
 jhbuildrc
 aclocal.m4
 autom4te.cache
+psolver/config/*
 bigdft/config/*
 configure
 config.inc
