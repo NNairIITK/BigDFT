@@ -1996,10 +1996,40 @@ contains
       call distribute_on_threads(nout, nthread, ise)
     
       iiarr = f_malloc(0.to.nthread-1,id='iiarr')
+
       ii = 0
       iseg_start = 1
       ithread = 0
-      ivectorindex_work = f_malloc((/1.to.nseq,0.to.nthread-1/),id='ivectorindex_work')
+      !$omp parallel &
+      !$omp default (none) &
+      !$omp shared(ise, ispt, nseg, keyv, keyg, smat, istsegline, iiarr, nthread) &
+      !$omp shared(nseq) &
+      !$omp private(ipt, iipt, iline, icolumn, ind, jthread,jseg,jorb) &
+      !$omp firstprivate(ii, iseg_start, ithread)
+      !$ ithread = omp_get_thread_num()
+      do ipt=ise(1,ithread),ise(2,ithread)
+          iipt = ispt + ipt
+          call get_line_and_column(iipt, nseg, keyv, keyg, iseg_start, iline, icolumn)
+          ! Take the column due to the symmetry of the sparsity pattern
+          do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
+              ! A segment is always on one line, therefore no double loop
+              do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
+                  ind = matrixindex_in_compressed_lowlevel(jorb, iline, smat%nfvctr, nseg, keyv, keyg, istsegline)
+                  if (ind>0) then
+                      ii = ii+1
+                  end if
+              end do
+          end do
+      end do
+      iiarr(ithread) = ii
+      !$omp barrier
+      !$omp end parallel
+      if (sum(iiarr)/=nseq) call f_err_throw('sum(iiarr)/=nseq')
+      ivectorindex_work = f_malloc((/1.to.maxval(iiarr),0.to.nthread-1/),id='ivectorindex_work')
+
+      ii = 0
+      iseg_start = 1
+      ithread = 0
       !$omp parallel &
       !$omp default (none) &
       !$omp shared(ise, ispt, nseg, keyv, keyg, smat, istsegline, iiarr, nthread) &
@@ -2222,12 +2252,46 @@ contains
       !!end do
       !!if (ii/=nout) call f_err_throw('ii/=nout',err_name='BIGDFT_RUNTIME_ERROR')
       call distribute_on_threads(nout, nthread, ise)
-    
-      iiarr = f_malloc(0.to.nthread-1,id='iiarr')
+
+      ! First have to determine the length of indices_extract_sequential_work... a bit wasteful, but otherwise 
+      ! the memory becomes too large
       ii = 0
       iseg_start = 1
       ithread = 0
-      indices_extract_sequential_work = f_malloc((/1.to.nseq,0.to.nthread-1/),id='indices_extract_sequential_work')
+      iiarr = f_malloc(0.to.nthread-1,id='iiarr')
+      !$omp parallel &
+      !$omp default (none) &
+      !$omp shared(ise, ispt, nseg, keyv, keyg, smat, istsegline, iiarr, nthread) &
+      !$omp private(ipt, iipt, iline, icolumn, ind, jj, jthread,jseg,jorb) &
+      !$omp firstprivate(ii, iseg_start, ithread)
+      !$ ithread = omp_get_thread_num()
+      do ipt=ise(1,ithread),ise(2,ithread)
+          iipt = ispt + ipt
+          call get_line_and_column(iipt, nseg, keyv, keyg, iseg_start, iline, icolumn)
+          ! Take the column due to the symmetry of the sparsity pattern
+          do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
+              ! A segment is always on one line, therefore no double loop
+              jj=1
+              do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
+                  ! Calculate the index in the large compressed format
+                  ind = matrixindex_in_compressed_lowlevel(jorb, iline, smat%nfvctr, nseg, keyv, keyg, istsegline)
+                  if (ind>0) then
+                      ii = ii + 1
+                  end if
+                  jj = jj+1
+              end do
+          end do
+      end do
+      iiarr(ithread) = ii
+      !$omp barrier
+      !$omp end parallel
+      if (sum(iiarr)/=nseq) call f_err_throw('sum(iiarr)/=nseq')
+
+      indices_extract_sequential_work = f_malloc((/1.to.maxval(iiarr),0.to.nthread-1/),id='indices_extract_sequential_work')
+    
+      ii = 0
+      iseg_start = 1
+      ithread = 0
       !$omp parallel &
       !$omp default (none) &
       !$omp shared(ise, ispt, nseg, keyv, keyg, smat, istsegline, iiarr, nthread) &

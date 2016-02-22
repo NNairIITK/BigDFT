@@ -737,7 +737,7 @@ fructose:
  net quadropole: 1.1e-10
  Energy (Hartree): 1.3e-10
  Charge analysis (charge / net charge): 7.6e-10
- Pseudo Fermi level for occupations: 4.3e-10
+ Pseudo Fermi level for occupations: 2.2e-8
  net charge: 1.0e-8
  Maxdiff for overlap calculation: 3.3e-7
  Maxdiff for transpose (checksum): 2.4e-10
@@ -745,6 +745,7 @@ fructose:
  difference: 1.4e-9
  relative difference: 6.1e-11
  trace(KS): 2.5e-10
+ eval: 1.1e-6
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
