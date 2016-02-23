@@ -69,11 +69,7 @@ AC_LANG(Fortran)
 AC_FC_SRCEXT(f90)
 
 AC_FC_WRAPPERS()
-AX_FC_FLUSH()
-AX_FC_RECL_KIND()
-AC_SUBST(RECL_INT_KIND, $ax_fc_recl_kind)
 AX_FC_DEFS()
-AX_FC_F2003()
 AX_FC_OPENMP()
 
 dnl Set if the module name are capitalized or not with the FC compiler. 
@@ -116,72 +112,16 @@ if test "$ax_have_psolver" != "yes" ; then
   AC_MSG_ERROR(["Cannot find PSolver library."])
 fi
 
-dnl Basics for minimal bindings.
-AX_FC_POINTER()
-
 dnl Look for GLib and friends for bindings.
-force_build_dynamic="no"
+AX_FC_POINTER()
+AX_INTROSPECTION()
+AX_DYNAMIC_LIBRARIES($ax_have_introspection)
+
 AC_ARG_ENABLE(bindings, AS_HELP_STRING([--enable-bindings], [Build C bindings (disabled by default).]),
               ac_build_bindings=$enableval, ac_build_bindings="no")
-if test x"$ac_build_bindings" = x"yes" -a $F90_1D_POINTER_SIZE = 0 ; then
+if test x"$ac_build_bindings" = x"yes" -a test $F90_1D_POINTER_SIZE = 0 ; then
   ac_build_bindings="warn"
 fi
-AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
-                     [Build GObject bindings (default is no).]),
-            ac_use_glib=$withval, ac_use_glib="no")
-if test x"$ac_use_glib" = x"yes"; then
-  PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [have_glib=yes], [have_glib=no])
-  PKG_CHECK_MODULES(GDBUS, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
-  dnl Merge GLIB_LIBS and GDBUS_LIBS if GDBUS is available.
-  if test "$have_gdbus" = "yes" ; then
-    GLIB_LIBS=$GDBUS_LIBS
-  fi
-  PKG_CHECK_MODULES([GOBJECT_INTROSPECTION],
-                    [gobject-introspection-1.0 >= 0.9],
-                    [enable_introspection=yes],
-                    [enable_introspection=no])
-  if test "x$enable_introspection" = "xyes" ; then
-    dnl girdir=$($PKG_CONFIG --variable=girdir gobject-introspection-1.0)
-    dnl typelibsdir=$($PKG_CONFIG --variable=typelibdir gobject-introspection-1.0)
-    girdir="$datadir/gir-1.0"
-    typelibsdir="$libdir/girepository-1.0"
-    AC_SUBST(girdir)
-    AC_SUBST(typelibsdir)
-    AC_SUBST([G_IR_SCANNER], [$($PKG_CONFIG --variable=g_ir_scanner gobject-introspection-1.0)])
-    AC_SUBST([G_IR_COMPILER], [$($PKG_CONFIG --variable=g_ir_compiler gobject-introspection-1.0)])
-    dnl Force dynamic library building.
-    force_build_dynamic="yes"
-
-    dnl Add Python support for the PythonGI plug-in.
-    AC_LANG_PUSH(C)
-    AM_CHECK_PYTHON_HEADERS([AC_DEFINE([HAVE_PYTHON], [], [If set, we can call Python.h])],[AC_MSG_WARN(could not find Python headers)])
-    PYTHON_LIBS="`python-config --libs`"
-    AC_SUBST(PYTHON_LIBS)
-    AC_LANG_POP(C)
-  fi
-else
-  have_glib=no
-  have_gdbus=no
-  enable_introspection=no
-fi
-AM_CONDITIONAL([WITH_GOBJECT_INTROSPECTION], [test "x$enable_introspection" = "xyes"])
-if test x"$have_glib" = x"yes" ; then
-  AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
-  AC_SUBST([GLIB_TRUE], [""])
-  AC_SUBST([GLIB_END_TRUE], [""])
-  AC_SUBST([GLIB_FALSE], ["/*"])
-  AC_SUBST([GLIB_END_FALSE], ["*/"])
-else
-  AC_SUBST([GLIB_TRUE], ["/*"])
-  AC_SUBST([GLIB_END_TRUE], ["*/"])
-  AC_SUBST([GLIB_FALSE], [""])
-  AC_SUBST([GLIB_END_FALSE], [""])
-fi
-AM_CONDITIONAL(HAVE_GLIB, test "$have_glib" = "yes")
-if test x"$have_gdbus" = x"yes" ; then
-  AC_DEFINE([HAVE_GDBUS], [], [If set, we can use gdbus])
-fi
-AM_CONDITIONAL(HAVE_GDBUS, test "$have_gdbus" = "yes")
 AM_CONDITIONAL(BUILD_BINDINGS, test "$ac_build_bindings" = "yes")
 if test x"$ac_build_bindings" = x"yes" ; then
   AC_SUBST([BUILD_BINDINGS_START], [""])
@@ -190,7 +130,6 @@ else
   AC_SUBST([BUILD_BINDINGS_START], ["/*"])
   AC_SUBST([BUILD_BINDINGS_END], ["*/"])
 fi
-AX_DYNAMIC_LIBRARIES($force_build_dynamic)
 
 dnl Enable ndebug variable (disabled by default)
 ac_use_debug="no"
@@ -224,139 +163,57 @@ AC_ARG_ENABLE(optimised-convolution, AS_HELP_STRING([--disable-optimised-convolu
 AM_CONDITIONAL(USE_OPTI_CONVOLUT, test "$ac_use_opti_convolut" = "yes")
 AC_MSG_RESULT([$ac_use_opti_convolut])
 
-
-dnl PEXSI
-AC_ARG_WITH(pexsi, AS_HELP_STRING([--with-pexsi],
-            [Give the link-line for PEXSI.]),
-            ac_pexsi_linkline=$withval, ac_pexsi_linkline=)
-ac_use_pexsi="no"
-AM_CONDITIONAL(HAVE_PEXSI, test x"$ac_pexsi_linkline" != "x")
-if test -n "$ac_pexsi_linkline" ; then
-  PEXSI_LINKLINE="$ac_pexsi_linkline"
-  AC_SUBST(PEXSI_LINKLINE, $PEXSI_LINKLINE)
-  ac_use_pexsi="yes"
-fi
-
-
-dnl test for the present of ambertools compiler (experimental)
-AC_PATH_PROG([NAB], [nab])
-AC_SUBST(NAB)
-AC_ARG_WITH(ambertools, AS_HELP_STRING([--with-ambertools],
-            [Give the path of the ambertools libraries (example = /home/<username>/lib/). Do not use the -L before the path(es), just give the plain path.]),
-            ac_ambertools_dir=$withval, ac_ambertools_dir=)
-ac_use_amber="no"
-AM_CONDITIONAL(HAVE_AMBERTOOLS, test x"$ac_ambertools_dir" != "x")
-if test -n "$ac_ambertools_dir" ; then
-  LIB_AMBERTOOLS="-L$ac_ambertools_dir"
-  AC_SUBST(LIB_AMBERTOOLS, $LIB_AMBERTOOLS)
-  if test x"$NAB" = "x" ; then
-      AC_MSG_ERROR(["Path to ambertools library is given by user, but nab compiler was not found on the machine."])
-  fi
-  ac_use_amber="yes"
-fi
-
-
-dnl cp2k
-AC_ARG_WITH(cp2k, AS_HELP_STRING([--with-cp2k],
-            [Give the link-line for cp2k.]),
-            ac_cp2k_linkline=$withval, ac_cp2k_linkline=)
-ac_use_cp2k="no"
-AM_CONDITIONAL(HAVE_CP2K, test x"$ac_cp2k_linkline" != "x")
-if test -n "$ac_cp2k_linkline" ; then
-  CP2K_LINKLINE="$ac_cp2k_linkline"
-  AC_SUBST(CP2K_LINKLINE, $CP2K_LINKLINE)
-  ac_use_cp2k="yes"
-fi
-
+dnl Accelerator support.
 AX_ACC_CUDA()
 AX_ACC_OCL()
 AX_ACC_MIC()
 
-dnl Use ETSF_IO
-AX_ETSF_IO()
-
-dnl Test libraries required for benching.
+dnl Test libraries required for benching / testing.
+AX_PYYAML()
 AC_LANG_PUSH(C++)
 AC_CHECK_LIB(config++, config_init, withconfig=yes, withconfig=no)
 AM_CONDITIONAL(HAVE_LIBCONFIG, test "$withconfig" = "yes")
 AC_LANG_POP(C++)
 
-dnl AM_CONDITIONAL for the different libraries, set default values.
-dnl the BigDFT library.
-ac_build_lib_BigDFT="yes"
-dnl the standalone executable (required linking tests)
-ac_build_bin_cluster="yes"
-
-
-dnl disable different build
 dnl The cluster executable
 AC_ARG_ENABLE(binaries, AS_HELP_STRING([--disable-binaries], [build the binaries (default = yes).]), ac_build_bin_cluster=$enableval, ac_build_bin_cluster="yes")
-if test x"$ac_build_lib_BigDFT" != x"yes" -a x"$ac_build_bin_cluster" == x"yes" ; then
-  ac_build_bin_cluster="disabled"
-fi
-
 AM_CONDITIONAL(BUILD_BINARIES, test "$ac_build_bin_cluster" = "yes")
 AC_MSG_CHECKING([for BigDFT binaries build])
 AC_MSG_RESULT([$ac_build_bin_cluster])
 
 dnl ---------------------------------------
 AM_CONDITIONAL(USE_BLACS, test x"$ax_have_scalapack" = x"yes")
-
 dnl Error on the linking part only if required.
-if test "$ac_build_bin_cluster" = "yes" ; then
-  if [ test $withlinalg = "no" && test $withblas = "no" ] ; then
-    AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
-  fi
-  if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
-    AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation. Linalg: $LINALG_LIBS"])
-  fi
+if test "$ac_build_bin_cluster" = "yes" -a $ax_have_linalg != "yes" ] ; then
+  AC_MSG_ERROR(["No blas/lapack implementation."])
 fi # End of the if library compilation
 
-dnl Archive input file support
-AC_ARG_WITH([archives],
-            AS_HELP_STRING([--with-archives], [add support of archives for output files.]),
-            [ac_use_archive=$withval], [ac_use_archive=$ac_build_lib_BigDFT])
-AC_ARG_WITH([archives-path],
-            AS_HELP_STRING([--with-archives-path], [give a path to find libarchive.]),
-            [ac_path_archive=$withval])
-if test x"$ac_use_archive" == x"yes" ; then
-   if test x"$ac_path_archive" == x"" ; then
-      PKG_CHECK_MODULES([LIB_ARCHIVE],
-                        [libarchive >= 2.4],
-                        [ac_use_archive=yes],
-                        [ac_use_archive=warn])
-   else
-      LDFLAGS_SVG="$LDFLAGS"
-      AC_LANG_PUSH(C)
-      LDFLAGS="-L$ac_path_archive/lib"
-      AC_CHECK_LIB([archive], [archive_read_data_block],
-                   [ac_use_archive=yes], [ac_use_archive=warn])
-      if test x"$ac_use_archive" = x"yes" ; then
-         LIB_ARCHIVE_CFLAGS="-I$ac_path_archive/include"
-         LIB_ARCHIVE_LIBS="-L$ac_path_archive/lib -larchive"
-      fi
-      AC_LANG_POP(C)
-      LDFLAGS="$LDFLAGS_SVG"
-   fi
-   if test x"$ac_use_archive" = x"yes" ; then
-      AC_DEFINE([HAVE_LIB_ARCHIVE], [1], [libarchive is linkable.])
-   else
-      AC_MSG_WARN([libarchive is not available])
-   fi
-fi
-AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_use_archive" = x"yes")
-AC_SUBST(LIB_ARCHIVE_CFLAGS)
-AC_SUBST(LIB_ARCHIVE_LIBS)
-
-dnl C-level YAML support.
-AX_YAML()
-
-dnl Python YAML support.
-AX_PYYAML()
-
-dnl Test the libXC library
+dnl Test libraries
+AX_ETSF_IO()
 AX_LIBXC()
 AX_LIBGAIN()
+AX_ARCHIVE()
+AX_AMBERTOOLS()
+dnl PEXSI
+AC_ARG_WITH(pexsi, AS_HELP_STRING([--with-pexsi],
+            [Give the link-line for PEXSI.]),
+            ac_pexsi_linkline=$withval, ac_pexsi_linkline=)
+ax_have_pexsi="no"
+if test -n "$ac_pexsi_linkline" ; then
+  PEXSI_LINKLINE="$ac_pexsi_linkline"
+  ax_have_pexsi="yes"
+fi
+AM_CONDITIONAL(HAVE_PEXSI, test $ax_have_pexsi = "yes")
+dnl cp2k
+AC_ARG_WITH(cp2k, AS_HELP_STRING([--with-cp2k],
+            [Give the link-line for cp2k.]),
+            ac_cp2k_linkline=$withval, ac_cp2k_linkline=)
+ax_have_cp2k="no"
+if test -n "$ac_cp2k_linkline" ; then
+  CP2K_LINKLINE="$ac_cp2k_linkline"
+  ax_have_cp2k="yes"
+fi
+AM_CONDITIONAL(HAVE_CP2K, test $ax_have_cp2k = "yes")
 
 dnl Test the ABINIT library
 AC_ARG_WITH(libabinit-incs, AS_HELP_STRING([--with-libabinit-incs],
@@ -368,7 +225,6 @@ AC_ARG_WITH(libabinit-incs, AS_HELP_STRING([--with-libabinit-incs],
 
 dnl Test the given implementation of libabinit.
 ac_use_libabinit="no"
-if test "$ac_build_lib_BigDFT" = "yes" ; then
 AC_MSG_CHECKING([for libABINIT modules])
 FCFLAGS_SVG=$FCFLAGS
 if test -n "$ac_libabinit_incs" ; then
@@ -403,7 +259,6 @@ if test "$withlibabinit" = "yes" -a "$withabinitmod" = "yes"; then
 else
   AC_MSG_ERROR([Missing libABINIT, consider using --with-libabinit-[incs,libs].])
 fi
-fi
 
 dnl Test the libPAW library.
 ac_internal_libpaw="yes"
@@ -426,14 +281,16 @@ else
   LIB_ABINIT_LIBS="-lpaw $ac_libabinit_libs"
 fi
 
-dnl Agregate all flags.
-LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
-
 dnl Agregate all the optional libs.
-LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
-AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
-LIBS_SHORT_DEPS="$LIB_PSOLVER_LIBS $LIB_ABINIT_LIBS $LIB_XC_LIBS $LIB_GAIN_LIBS $LIB_FLIB_LIBS $LIBS_EXT_DEPS"
-AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
+LIBS_EXT_DEPS="$CP2K_LINKLINE $PEXSI_LINKLINE $LIB_AMBERTOOLS_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
+AC_SUBST(LIBS_EXT_DEPS)
+LIBS_SHORT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIB_GAIN_LIBS $LIB_PSOLVER_LIBS $LIB_FLIB_LIBS $LIBS_EXT_DEPS"
+AC_SUBST(LIBS_SHORT_DEPS)
+LIB_BIGDFT_LIBS="-lbigdft-1"
+if test $ax_build_dynamic != "yes" ; then
+  LIB_BIGDFT_LIBS="$LIB_BIGDFT_LIBS $LIBS_SHORT_DEPS"
+fi
+AC_SUBST(LIB_BIGDFT_LIBS)
 
 dnl Test for the documentation.
 AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes], [no])
@@ -473,7 +330,6 @@ doc/Makefile
 src/bigdft-tool
 src/Makefile
 src/modules/Makefile
-src/modules/bigdft_cst.h
 src/modules/configure.c
 src/orbitals/Makefile
 src/orbitals/configure.inc
@@ -483,6 +339,7 @@ src/CUDA/Makefile
 src/OpenCL/Makefile
 src/convolutions-c/Makefile
 src/bindings/Makefile
+src/bindings/bigdft_cst.h
 src/geopt/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
@@ -553,22 +410,21 @@ Options:
   With Cuda GPU conv.:       $ax_have_acc_cuda
    | NVidia Cuda Compiler:   $NVCC
    | Cuda flags:             $CUDA_FLAGS
-  With OpenCL support:       $ac_use_ocl
+  With OpenCL support:       $ax_have_acc_ocl
   With Intel MIC support:    $ax_have_acc_mic
-  With AMBERTOOLS compiler:  $ac_use_amber
+  With AMBERTOOLS compiler:  $ax_have_amber
    | nab Compiler:           $NAB
-  With CP2K:                 $ac_use_cp2k
-  With dgemmsy support:      $ac_use_dgemmsy
-  With PEXSI:                $ac_use_pexsi
+  With CP2K:                 $ax_have_cp2k
+  With PEXSI:                $ax_have_pexsi
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE
-  With ETSF_IO:              $ac_use_etsfio
+  With ETSF_IO:              $ax_have_etsf_io
    | include dir.:           $LIBETSFIO_INCLUDE
-  With libarchive:           $ac_use_archive
+  With libarchive:           $ax_have_archive
    | C flags:                $LIB_ARCHIVE_CFLAGS
    | linked libraries:       $LIB_ARCHIVE_LIBS
-  With GLib and co.:         $have_glib
+  With GLib and co.:         $ax_have_glib
    | linked libraries:       $GLIB_LIBS
 
 Installation paths:
@@ -581,15 +437,15 @@ Installation paths:
   Documentation:             $docdir
 "
 
-if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$ac_build_bindings" = x"warn" -o x"$ax_have_scalapack" = x"warn" ; then
+if test x"$ac_use_mpi" = x"warn" -o x"$ax_have_archive" = x"warn" -o x"$ax_have_etsf_io" = x"warn" -o x"$ac_build_bindings" = x"warn" -o x"$ax_have_scalapack" = x"warn" ; then
   echo "Warnings:"
   if test x"$ac_use_mpi" = x"warn" ; then
     echo "  MPI:                       disabled by tests"
   fi
-  if test x"$ac_use_archive" = x"warn" ; then
+  if test x"$ax_have_archive" = x"warn" ; then
     echo "  libarchive:                disabled by tests"
   fi
-  if test x"$ac_use_etsfio" = x"warn" ; then
+  if test x"$ax_have_etsf_io" = x"warn" ; then
     echo "  ETSF_IO:                   disabled by tests"
   fi
   if test x"$ac_build_bindings" = x"warn" ; then

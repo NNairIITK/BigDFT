@@ -58,7 +58,7 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
+bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@
 endif
 
 lib_bigdft = libbigdft-1.a
@@ -92,31 +92,21 @@ endif
 
 
 if HAVE_AMBERTOOLS
-amber_ld= @LIB_AMBERTOOLS@  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack
 ambertools_wrap= wrap.c
 ###for amber supp.:
 wrap.o:     wrap.c
 	$(NAB) -c  -g $<
 else
 ambertools_wrap= wrap_fake.f90
-amber_ld =
 endif
 
-if HAVE_CP2K
-cp2k_ld= @CP2K_LINKLINE@ @LINALG_LIBS@
+##if HAVE_CP2K
 ##cp2k_interfacemod = modules/module_cp2k.f90
 ##cp2k_interfacemodCAP = MODULES/MODULE_CP2k.F90
-else
+##else
 ##cp2k_interfacemod = modules/cp2k_fake.f90 modules/module_cp2k.f90
 ##cp2k_interfacemodCAP = MODULES/CP2K_FAKE.F90 MODULES/MODULE_CP2K_FAKE.F90
-cp2k_ld =
-endif
-
-if HAVE_PEXSI
-pexsi_ld= @PEXSI_LINKLINE@ @LINALG_LIBS@
-else
-pexsi_ld =
-endif
+##endif
 
 if USE_OCL
 OCL_CONV = interface_ocl.f90
@@ -257,7 +247,7 @@ libbigdft-1.a: $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
 	$(RANLIB) $@
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@
 	@chmod a+x $@
 
 libbigdft-1.so.@BIGDFT_MINOR_VERSION@: $(bigdft_dynamic_library)

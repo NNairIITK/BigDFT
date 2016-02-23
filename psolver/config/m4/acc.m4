@@ -161,7 +161,7 @@ AC_DEFUN([AX_ACC_MIC],
   AC_ARG_WITH(intel-mic-libs, AS_HELP_STRING([--with-intel-mic-libs], [Link MIC executable with the following addional libraries (default = empty).]), ac_mic_libs=$withval, ac_mic_libs=no)
   if test x"$ax_have_acc_mic" = "xyes" ; then
     if test x"$ac_mic_libs" != "xno" ; then
-      LDFLAGS_MIC="-offload-option,mic,ld,\"$ac_mic_libs\""
+      LDFLAGS="-offload-option,mic,ld,\"$ac_mic_libs\" $LDFLAGS"
     fi
   fi
   AM_CONDITIONAL(USE_MIC, test "$ax_have_acc_mic" = "yes")

@@ -7,5 +7,5 @@ Name: libbigdft
 Description: Library for DFT calculation over wavelets.
 Requires: 
 Version: @VERSION@
-Libs: -L${libdir} @LIBS_DEPENDENCIES@ @FCLIBS@
+Libs: -L${libdir} @LIB_BIGDFT_LIBS@
 Cflags: -I${includedir}
