@@ -52,21 +52,6 @@ typedef struct _GObject {guint ref_count;} GObject;
 #define BIGDFT_MAJOR_VERSION @BIGDFT_MAJOR_VERSION@
 #define BIGDFT_MINOR_VERSION @BIGDFT_MINOR_VERSION@
 
-#define F90_1D_POINTER_SHIFT @F90_1D_POINTER_SHIFT@
-#define F90_1D_POINTER_SIZE  @F90_1D_POINTER_SIZE@
-
-#define F90_2D_POINTER_SHIFT @F90_2D_POINTER_SHIFT@
-#define F90_2D_POINTER_SIZE  @F90_2D_POINTER_SIZE@
-
-#define F90_3D_POINTER_SHIFT @F90_3D_POINTER_SHIFT@
-#define F90_3D_POINTER_SIZE  @F90_3D_POINTER_SIZE@
-
-#define F90_4D_POINTER_SHIFT @F90_4D_POINTER_SHIFT@
-#define F90_4D_POINTER_SIZE  @F90_4D_POINTER_SIZE@
-
-#define F90_5D_POINTER_SHIFT @F90_5D_POINTER_SHIFT@
-#define F90_5D_POINTER_SIZE  @F90_5D_POINTER_SIZE@
-
 #undef _BIGDFT_BUILD_FULL_BINDINGS_
 @BUILD_BINDINGS_START@
 #define _BIGDFT_BUILD_FULL_BINDINGS_
@@ -79,6 +64,7 @@ typedef struct _GObject {guint ref_count;} GObject;
  typedef struct {f90_ ## T *add; char buf[64];} f90_ ## T ## _pointer
 
 F_DEFINE_TYPE(dictionary);
+F_DEFINE_TYPE(f_enumerator);
 F_DEFINE_TYPE(memory_estimation);
 F_DEFINE_TYPE(atoms_data);
 F_DEFINE_TYPE(atomic_structure);
@@ -93,6 +79,7 @@ F_DEFINE_TYPE(run_image);
 F_DEFINE_TYPE(NEB_data);
 F_DEFINE_TYPE(system_fragment);
 F_DEFINE_TYPE(comms_cubic);
+F_DEFINE_TYPE(orbital_basis);
 /* Advanced types, used for full bindings. */
 F_DEFINE_TYPE(xc_info);
 F_DEFINE_TYPE(communications_arrays);
@@ -116,6 +103,21 @@ F_DEFINE_TYPE(cdft_data);
 /***************************/
 /* Generic pointer arrays. */
 /***************************/
+#define F90_1D_POINTER_SHIFT @F90_1D_POINTER_SHIFT@
+#define F90_1D_POINTER_SIZE  @F90_1D_POINTER_SIZE@
+
+#define F90_2D_POINTER_SHIFT @F90_2D_POINTER_SHIFT@
+#define F90_2D_POINTER_SIZE  @F90_2D_POINTER_SIZE@
+
+#define F90_3D_POINTER_SHIFT @F90_3D_POINTER_SHIFT@
+#define F90_3D_POINTER_SIZE  @F90_3D_POINTER_SIZE@
+
+#define F90_4D_POINTER_SHIFT @F90_4D_POINTER_SHIFT@
+#define F90_4D_POINTER_SIZE  @F90_4D_POINTER_SIZE@
+
+#define F90_5D_POINTER_SHIFT @F90_5D_POINTER_SHIFT@
+#define F90_5D_POINTER_SIZE  @F90_5D_POINTER_SIZE@
+
 typedef struct _f90_pointer_double f90_pointer_double;
 struct _f90_pointer_double
 {
@@ -193,5 +195,75 @@ struct _f90_pointer_int_2D
   void *info[F90_2D_POINTER_SIZE - 1 - F90_2D_POINTER_SHIFT];
 #endif
 };
+
+#define GET_ATTR_UINT(obj,OBJ,name,NAME) {       \
+  f90_pointer_int tmp; \
+  memset(&tmp, 0, sizeof(f90_pointer_int)); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
+  obj->name = (guint*)tmp.data; \
+  }
+#define GET_ATTR_UINT_2D(obj,OBJ,name,NAME) {       \
+  f90_pointer_int tmp; \
+  memset(&tmp, 0, sizeof(f90_pointer_int_2D)); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
+  obj->name = (guint*)tmp.data; \
+  }
+#define GET_ATTR_INT(obj,OBJ,name,NAME) {       \
+  f90_pointer_int tmp; \
+  memset(&tmp, 0, sizeof(f90_pointer_int)); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
+  obj->name = (int*)tmp.data; \
+  }
+#define GET_ATTR_DBL(obj,OBJ,name,NAME) {       \
+  f90_pointer_double tmp; \
+  memset(&tmp, 0, sizeof(f90_pointer_double)); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
+  obj->name = (double*)tmp.data; \
+  }
+#define GET_ATTR_DBL_2D(obj,OBJ,name,NAME) {       \
+  f90_pointer_double_2D tmp; \
+  memset(&tmp, 0, sizeof(f90_pointer_double_2D)); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
+  obj->name = (double*)tmp.data; \
+  }
+#define GET_ATTR_DBL_3D(obj,OBJ,name,NAME) {       \
+  f90_pointer_double_3D tmp; \
+  memset(&tmp, 0, sizeof(f90_pointer_double_3D)); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
+  obj->name = (double*)tmp.data; \
+  }
+#define GET_ATTR_DBL_4D(obj,OBJ,name,NAME) {       \
+  f90_pointer_double_4D tmp; \
+  memset(&tmp, 0, sizeof(f90_pointer_double_4D)); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
+  obj->name = (double*)tmp.data; \
+  }
+
+void FC_FUNC_(f90_pointer_1d_init, F90_POINTER_1D_INIT)(f90_pointer_double *pt, guint *s);
+void FC_FUNC_(f90_pointer_2d_init, F90_POINTER_2D_INIT)(f90_pointer_double_2D *pt, guint *s);
+void FC_FUNC_(f90_pointer_3d_init, F90_POINTER_3D_INIT)(f90_pointer_double_3D *pt, guint *s);
+void FC_FUNC_(f90_pointer_4d_init, F90_POINTER_4D_INIT)(f90_pointer_double_4D *pt, guint *s);
+void FC_FUNC_(f90_pointer_5d_init, F90_POINTER_5D_INIT)(f90_pointer_double_5D *pt, guint *s);
+
+#define F90_1D_POINTER_INIT(pt) {                                       \
+  guint size_ = F90_1D_POINTER_SIZE;                                    \
+  FC_FUNC_(f90_pointer_1d_init, F90_POINTER_1D_INIT)(pt, &size_);       \
+  }
+#define F90_2D_POINTER_INIT(pt) {                                       \
+  guint size_ = F90_2D_POINTER_SIZE;                                    \
+  FC_FUNC_(f90_pointer_2d_init, F90_POINTER_2D_INIT)(pt, &size_);       \
+  }
+#define F90_3D_POINTER_INIT(pt) {                                       \
+  guint size_ = F90_3D_POINTER_SIZE;                                    \
+  FC_FUNC_(f90_pointer_3d_init, F90_POINTER_3D_INIT)(pt, &size_);       \
+  }
+#define F90_4D_POINTER_INIT(pt) {                                       \
+  guint size_ = F90_4D_POINTER_SIZE;                                    \
+  FC_FUNC_(f90_pointer_4d_init, F90_POINTER_4D_INIT)(pt, &size_);       \
+  }
+#define F90_5D_POINTER_INIT(pt) {                                       \
+  guint size_ = F90_5D_POINTER_SIZE;                                    \
+  FC_FUNC_(f90_pointer_5d_init, F90_POINTER_5D_INIT)(pt, &size_);       \
+  }
 
 #endif
