@@ -3940,7 +3940,7 @@ if (determine_ef=='new') then
             exit
         end if
     end do
-    sigma2 = 1.d-1/real(ii,kind=8)
+    sigma2 = min(1.d-1/real(ii,kind=8),2.d-3)
     do
         ef = ef + 1.d-4
         tt = 0.d0
