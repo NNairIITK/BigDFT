@@ -1120,7 +1120,7 @@ module forces_linear
                   end do
                   !$omp end do
                   !$omp master
-                  fxyz_orb(1:3,iat)=fxyz_orb_tmp(1:3)
+                  fxyz_orb(1:3,iat) = fxyz_orb(1:3,iat) + fxyz_orb_tmp(1:3)
                   !$omp end master
                end do
             end do spin_loop2
