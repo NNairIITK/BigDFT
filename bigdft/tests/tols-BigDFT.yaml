@@ -68,6 +68,7 @@ Keys to ignore:
  - main
  - noise
  - penalty
+ - SCF criterion
  #- avg pot difference (actual/min)
  #- number of tasks
  #- IDs
@@ -78,6 +79,7 @@ Patterns to ignore:
  - memory
  - FLAGS
  - input_guess
+
 
 
 Expected Test CPUtime: #
@@ -255,6 +257,7 @@ CH3-:
  Forces: 1.1e-7
  Keys to ignore:
  - b/b0
+ - Molecule was shifted
 
 scalability:
  Energies: 1.e-9
@@ -572,6 +575,9 @@ H2-freq: &freq
  (F) Frequencies (cm-1): 4.9e-3
  (F) Vibrational Energy (cm-1 and Hartree): 2.01e-11
  (F) Total Energy (Hartree): 2.1e-11
+ Keys to ignore:
+   - Molecule was shifted
+
 
 C6H6-freq: *freq
 
@@ -611,9 +617,14 @@ GEOPT-newIG:
   EKS: 1.0e-8
   Energy (Hartree): 1.2e-11
 
+GEOPT-all_sdcg:
+  Keys to ignore:
+    - Molecule was shifted
+
 GEOPT-all_vssd:
   Keys to ignore:
   - WARNINGS
+  - Molecule was shifted
 
 rotatesmall_write:
   Maxdiff for transpose (checksum): 5.9e-11
@@ -786,10 +797,26 @@ fructose:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
 
+GEOPT-all_fire:
+ Keys to ignore:
+   - Molecule was shifted
+
+GEOPT-all_bfgs:
+ Keys to ignore:
+   - Molecule was shifted
+
+GEOPT-all_diis:
+ Keys to ignore:
+   - Molecule was shifted
+
+
 GEOPT-all_lbfgs:
  Epot: 2.01e-11
  Eion: 1.2e-11
  Ekin: 2.1e-11
+ Keys to ignore:
+   - Molecule was shifted
+
 
 geopt_foe:
  D eF: 7.1e-6
@@ -2176,6 +2203,11 @@ Cavity_H2OfrigidPCG:
  Keys to ignore:
    - rmult
    - Electronic charge changed by rho compression
+
+MD-wf-Expl:
+ Keys to ignore:
+   - Molecule was shifted
+
 
 Cavity_H2OfsccsPCG:
  Atomic Forces (Ha/Bohr): 9.4e-10

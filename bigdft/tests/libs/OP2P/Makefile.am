@@ -43,7 +43,9 @@ diis_check_LDADD = -lbigdft-1
 op2p_check.o: $(top_builddir)/src/libbigdft-1.a
 
 op2p_check.out.yaml: op2p_check
-	$(run_parallel)	./op2p_check -o [10,10] -n 100 > $@
+	$(run_parallel) ./op2p_check -o [10,10,10,10] -n 100 > $@
+	$(run_parallel) ./op2p_check -o [100,100] -n 1000 >> $@
+	$(run_parallel) ./op2p_check -o [201,201] -n 2000 >> $@
 
 op2p_check.report.yaml: op2p_check.out.yaml
 	python $(top_builddir)/tests/fldiff_yaml.py -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml \

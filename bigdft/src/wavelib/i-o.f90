@@ -95,19 +95,19 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
      dx=rd(1)
      dy=rd(2)
      dz=rd(3)
-    !  dx=0.0_gp
-    !  dy=0.0_gp
-    !  dz=0.0_gp
-    !  !Calculate average shift
-    !  !Take into account the modulo operation which should be done for non-isolated BC
-    !  do iat=1,at%astruct%nat
-    !     dx=dx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))
-    !     dy=dy+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))
-    !     dz=dz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))
-    !  enddo
-    !  dx=dx/real(at%astruct%nat,gp)
-    !  dy=dy/real(at%astruct%nat,gp)
-    !  dz=dz/real(at%astruct%nat,gp)
+!!$     dx=0.0_gp
+!!$     dy=0.0_gp
+!!$     dz=0.0_gp
+!!$     !Calculate average shift
+!!$     !Take into account the modulo operation which should be done for non-isolated BC
+!!$     do iat=1,at%astruct%nat
+!!$        dx=dx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))
+!!$        dy=dy+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))
+!!$        dz=dz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))
+!!$     enddo
+!!$     dx=dx/real(at%astruct%nat,gp)
+!!$     dy=dy/real(at%astruct%nat,gp)
+!!$     dz=dz/real(at%astruct%nat,gp)
 
      ! transform to new structure
      !if (iproc==0) write(*,*) iproc,' orbital fully transformed'
@@ -245,35 +245,35 @@ END SUBROUTINE reformatonewave
 
 !> Calculates the minimum difference between two coordinates
 !! knowing that there could have been a modulo operation
-! function mindist(periodic,alat,r,r_old)
-!   use module_base
-!   implicit none
-!   logical, intent(in) :: periodic
-!   real(gp), intent(in) :: r,r_old,alat
-!   real(gp) :: mindist
-!
-!   !for periodic BC calculate mindist only if the center of mass can be defined without the modulo
-!   if (periodic) then
-!      if (r_old > 0.5_gp*alat) then
-!         if (r < 0.5_gp*alat) then
-!            !mindist=r+alat-r_old
-!            mindist=0.0_gp
-!         else
-!            mindist=r-r_old
-!         end if
-!      else
-!         if (r > 0.5_gp*alat) then
-!            !mindist=r-alat-r_old
-!            mindist=0.0_gp
-!         else
-!            mindist=r-r_old
-!         end if
-!      end if
-!   else
-!      mindist=r-r_old
-!   end if
-!
-! end function mindist
+function mindist(periodic,alat,r,r_old)
+  use module_base
+  implicit none
+  logical, intent(in) :: periodic
+  real(gp), intent(in) :: r,r_old,alat
+  real(gp) :: mindist
+
+  !for periodic BC calculate mindist only if the center of mass can be defined without the modulo
+  if (periodic) then
+     if (r_old > 0.5_gp*alat) then
+        if (r < 0.5_gp*alat) then
+           !mindist=r+alat-r_old
+           mindist=0.0_gp
+        else
+           mindist=r-r_old
+        end if
+     else
+        if (r > 0.5_gp*alat) then
+           !mindist=r-alat-r_old
+           mindist=0.0_gp
+        else
+           mindist=r-r_old
+        end if
+     end if
+  else
+     mindist=r-r_old
+  end if
+
+end function mindist
 
 
 subroutine ext_buffers_coarse(periodic,nb)

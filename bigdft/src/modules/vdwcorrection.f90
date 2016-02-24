@@ -1123,8 +1123,8 @@ contains
     real(kind=GP) :: tmp6, tmp8
     real(kind=GP) :: tmp6a, tmp8a
     real(kind=GP) :: cnA, cnj, c6Aj
-    real(kind=GP), DIMENSION(3,atoms%astruct%nat)            :: cnij
-    real(kind=GP), DIMENSION(3,atoms%astruct%nat,atoms%astruct%nat)  :: cnijk
+    real(kind=GP), DIMENSION(:,:), allocatable            :: cnij
+    real(kind=GP), DIMENSION(:,:,:), allocatable  :: cnijk
     real(kind=GP), DIMENSION(3)                      :: grad_c6
 
     call f_routine(id='vdwcorrection_calculate_forces')
@@ -1132,6 +1132,8 @@ contains
     vdw_forces = 0.0_GP
 
     if (dispersion /= VDW_NONE) then 
+       cnij = f_malloc((/ 3, atoms%astruct%nat /), "cnij")
+       cnijk = f_malloc((/ 3, atoms%astruct%nat, atoms%astruct%nat /), "cnijk")
 
     if (dispersion < 5 ) then 
 
@@ -1328,6 +1330,8 @@ contains
           enddo
         enddo
     end if
+    call f_free(cnij)
+    call f_free(cnijk)
     end if
 
 

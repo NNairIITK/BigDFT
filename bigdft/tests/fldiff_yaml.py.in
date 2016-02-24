@@ -316,11 +316,13 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=[]):
             #        (keyword,str(scl), str(ref), str(diff), str(tols), str(biggest_tol))
             list_tmp={"Path": [keyword], "val":scl, "ref":ref, "diff": diff, "tols":tols,"bigtol":biggest_tol}
             item=keyword[-1]
-            if type(item) == type([]):
-                item=keyword[-2]
+            it=-1
+            while type(item) == type([]):
+                it -= 1
+                item=keyword[it]
             if "FAILURE" not in remarks:
                 remarks["FAILURE"]={item: list_tmp}
-            elif item not in remarks["FAILURE"]:
+            elif type(item) != type(1) and item not in remarks["FAILURE"]:
                 remarks["FAILURE"].update({item: list_tmp})
             else:
                 dict0=remarks["FAILURE"][item]

@@ -89,7 +89,7 @@ module yaml_output
   !! @param fmt      (optional) format for the value
   interface yaml_map
      !general scalar
-     module procedure yaml_map,yaml_map_dict
+     module procedure yaml_map,yaml_map_dict,yaml_map_enum
      !other scalars
      module procedure yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l
      !vectors
@@ -106,16 +106,16 @@ module yaml_output
      module procedure yaml_comment_c,yaml_comment_str
   end interface
 
- 
+
   !> Fake structure needed to document common arguments of the module
   type, private :: doc
-     !> integer indicating the value of the column where the following 
-     !! data have to be aligned. This is used when the field is opened with 
+     !> integer indicating the value of the column where the following
+     !! data have to be aligned. This is used when the field is opened with
      !! flow=.true. so that the output is forced to start from the columns indicated
      !! by the value of tabbing. Should the cursor be already above this value,
      !! then the field is ignored.
      integer :: tabbing
-     !> unit of the yaml_stream to be used for output. 
+     !> unit of the yaml_stream to be used for output.
      !! its value is specified by the user according to the specification of the @link yaml_output::yaml_set_stream @endlink routine
      integer:: unit
      !> key of the mapping (or sequence). It represents the identifier of the value field which is associated to it
@@ -124,10 +124,10 @@ module yaml_output
      !! When .true., the output is written in compact yaml flow style. See yaml specifications in
      !! http://www.yaml.org/spec/1.2/spec.html#id2759963 . Of course also nested field inside will be written
      !! in compact flow style, until the mapping or sequencing is closed.
-     logical :: flow 
+     logical :: flow
      !> define a anchor of the mapping, which can be used to deepcopy its value in another mapping
      !! see http://www.yaml.org/spec/1.2/spec.html#id2760395.
-     character(len=1) :: label 
+     character(len=1) :: label
      !> define whether the i/o should be advancing (advance='yes') or not (advance='no').
      !! if the mapping (in the case of @link yaml_output::yaml_mapping_open @endlink) or sequencing @link yaml_output::yaml_sequence_open @endlink)
      !!has been opened with the value of flow  = .true.
@@ -135,9 +135,9 @@ module yaml_output
      !! (See @link yaml_output::yaml_newline @endlink for add a line in a output of a flow mapping).
      !! Otherwise, if absent, the output is always advancing.
      !! non-advancing i/o is useful for example when one wants to leave a comment after the end of a mapping.
-     character(len=1) :: advance 
+     character(len=1) :: advance
      !> tag description. Unused and should be probably removed
-     character(len=1) :: tag 
+     character(len=1) :: tag
      !> scalar value of the mapping may be of any scalar type
      !! it is internally converted to character with the usage of @link yaml_output::yaml_toa @endlink function
      character(len=1) :: mapvalue
@@ -149,27 +149,27 @@ module yaml_output
   !! Here follows the routines which are important for the usage of the yaml_output module
   !! which is a part of flib library.@n
   !! By clicking the links below you should be redirected to the documentation of the important routines
-  !! @link yaml_output::yaml_new_document @endlink,  @link yaml_output::yaml_release_document @endlink, 
-  !! @link yaml_output::yaml_map @endlink, 
-  !! @link yaml_output::yaml_mapping_open @endlink,      @link yaml_output::yaml_mapping_close @endlink, 
-  !! @link yaml_output::yaml_sequence @endlink, 
-  !! @link yaml_output::yaml_sequence_open @endlink, @link yaml_output::yaml_sequence_close @endlink, 
-  !! @link yaml_output::yaml_comment @endlink, 
-  !! @link yaml_output::yaml_warning @endlink, 
-  !! @link yaml_output::yaml_scalar @endlink, 
-  !! @link yaml_output::yaml_newline @endlink, 
-  !! @link yaml_strings::yaml_toa @endlink, 
+  !! @link yaml_output::yaml_new_document @endlink,  @link yaml_output::yaml_release_document @endlink,
+  !! @link yaml_output::yaml_map @endlink,
+  !! @link yaml_output::yaml_mapping_open @endlink,      @link yaml_output::yaml_mapping_close @endlink,
+  !! @link yaml_output::yaml_sequence @endlink,
+  !! @link yaml_output::yaml_sequence_open @endlink, @link yaml_output::yaml_sequence_close @endlink,
+  !! @link yaml_output::yaml_comment @endlink,
+  !! @link yaml_output::yaml_warning @endlink,
+  !! @link yaml_output::yaml_scalar @endlink,
+  !! @link yaml_output::yaml_newline @endlink,
+  !! @link yaml_strings::yaml_toa @endlink,
   !! @link yaml_strings::yaml_date_and_time_toa @endlink, @link yaml_strings::yaml_date_toa @endlink, @link yaml_strings::yaml_time_toa @endlink.
   !! @n@n
-  !! There are also @link yaml_output::yaml_set_stream routine @endlink, @link yaml_output::yaml_set_default_stream @endlink, 
-  !!                @link yaml_output::yaml_close_stream @endlink,       @link yaml_output::yaml_swap_stream @endlink, 
-  !!                @link yaml_output::yaml_get_default_stream @endlink, @link yaml_output::yaml_stream_attributes @endlink, 
-  !!                @link yaml_output::yaml_close_all_streams @endlink,  @link yaml_output::yaml_dict_dump @endlink, 
+  !! There are also @link yaml_output::yaml_set_stream routine @endlink, @link yaml_output::yaml_set_default_stream @endlink,
+  !!                @link yaml_output::yaml_close_stream @endlink,       @link yaml_output::yaml_swap_stream @endlink,
+  !!                @link yaml_output::yaml_get_default_stream @endlink, @link yaml_output::yaml_stream_attributes @endlink,
+  !!                @link yaml_output::yaml_close_all_streams @endlink,  @link yaml_output::yaml_dict_dump @endlink,
   !!                @link yaml_output::yaml_dict_dump_all @endlink
-  !! @} 
+  !! @}
 
- 
-  
+
+
   !all the public routines below should be documented
   public :: yaml_new_document,yaml_release_document
   public :: yaml_map,yaml_mapping_open,yaml_mapping_close
@@ -220,7 +220,7 @@ contains
   subroutine assure_initialization()
      implicit none
      if (.not. module_initialized) module_initialized=associated(f_get_error_definitions())
-     
+
      if (.not. module_initialized) then
         stop 'yaml_output module not initialized, f_lib_initialize not called'
         !module_initialized=.true.
@@ -228,7 +228,7 @@ contains
      end if
 
   end subroutine assure_initialization
-  
+
   !> Set new_unit as the new default unit and return the old default unit.
   subroutine yaml_swap_stream(new_unit, old_unit, ierr)
     implicit none
@@ -258,7 +258,7 @@ contains
     call dict_init(stream_files)
     module_initialized=.true.
   end subroutine yaml_output_errors
-  
+
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.
   subroutine yaml_set_default_stream(unit,ierr)
@@ -426,7 +426,7 @@ contains
     !we are here in the first call to set_stream
     !in the case we are asking not to have the set_default
     !this means that the default should become the stdout
-!!$    if (.not. set_default .and. active_streams==0) unt=6          
+!!$    if (.not. set_default .and. active_streams==0) unt=6
     !if there is no active streams setdefault cannot be false.
     !at least open the stdout
     again=.false.
@@ -440,7 +440,7 @@ contains
        stream_units(active_streams)=6
        streams(active_streams)%max_record_length=92 !leave 92 characters
        default_stream=active_streams
-       again= unt /= 6 
+       again= unt /= 6
     end if
 
     !assign the unit to the new stream
@@ -598,7 +598,7 @@ contains
 
   end subroutine yaml_new_document
 
-  !> Flush the content of the document. 
+  !> Flush the content of the document.
   !! @ingroup FLIB_YAML
   subroutine yaml_flush_document(unit)
     implicit none
@@ -670,9 +670,9 @@ contains
             'Unit '//trim(yaml_toa(unt))//' not found',&
             err_id=YAML_STREAM_NOT_FOUND)) return
     end if
-    
+
     !as far as the unit has been found close the stream
-    !check if there is no unit inconsistency 
+    !check if there is no unit inconsistency
     !(this is an internal error therefore istat is ignored)
     if (f_err_raise(stream_units(strm) /= unt,&
          'Unit '//trim(yaml_toa(unt))//' inconsistent',&
@@ -714,7 +714,7 @@ contains
     streams(active_streams)=stream_null()
     stream_units(active_streams)=6
     active_streams=active_streams-1
-    
+
   end subroutine yaml_close_stream
 
   !> Close all the streams of all opened units
@@ -897,7 +897,7 @@ contains
        call buffer_string(towrite,len(towrite),message(lstart:lstart+lend-1),msg_lgt)
 
        !print *,'there',trim(towrite),lstart,lend
-       
+
 
        !Check if possible to hfill
        hmax = max(streams(strm)%max_record_length-ipos-len_trim(message)-3,0)
@@ -1165,7 +1165,7 @@ contains
        tb=padding-(len_trim(seqvalue)+msg_lgt)
        if (tb > 0) call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
     end if
-    
+
     !Beginning of the sequence
     lstart=1
     !Length of the sequence to write (without blank characters)
@@ -1351,6 +1351,46 @@ contains
     end if
   end subroutine yaml_map_dict
 
+  !> Create a yaml map with a scalar value
+  subroutine yaml_map_enum(mapname,mapvalue,label,unit,flow)
+    use f_enums
+    implicit none
+    character(len=*), intent(in) :: mapname             !< @copydoc doc::mapname
+    type(f_enumerator), intent(in) :: mapvalue   !< scalar value of the mapping may be of any scalar type
+    !! it is internally converted to character with the usage of @link yaml_output::yaml_toa @endlink function
+    character(len=*), optional, intent(in) :: label     !< @copydoc doc::label
+    integer, optional, intent(in) :: unit               !< @copydoc doc::unit
+    logical, optional, intent(in) :: flow               !< @copydoc doc::flow
+    !local variables
+    integer :: strm,unt
+    character(len=max_field_length) :: lbl
+    type(f_enumerator), pointer :: iter
+
+    unt=DEFAULT_STREAM_ID
+    if (present(unit)) unt=unit
+    call get_stream(unt,strm)
+
+    lbl(1:len(lbl))=' '
+    if (present(label)) lbl(1:len(lbl))=label
+
+    !fortran norm should guarantee that the flow variable
+    !is passed only if present
+    call yaml_mapping_open(mapname,label=lbl,flow=flow,unit=unt)
+    !then the central indication for the enumerator
+    call yaml_map(trim(str(mapvalue)),toi(mapvalue),unit=unt)
+    iter=>mapvalue%family
+    if (associated(iter)) then
+       call yaml_mapping_open('Attributes',unit=unt)
+       do while(associated(iter))
+          call yaml_map(trim(str(iter)),toi(iter),unit=unt)
+          iter => iter%family
+       end do
+       call yaml_mapping_close(unit=unt)
+    end if
+    call yaml_mapping_close(unit=unt)
+  end subroutine yaml_map_enum
+
+
   subroutine yaml_map_li(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
     integer(kind=8), intent(in) :: mapvalue
@@ -1444,7 +1484,7 @@ contains
     include 'yaml_map-mat-inc.f90'
   end subroutine yaml_map_lm
 
-  
+
   !> Get the stream, initialize if not already present (except if istat present)
   subroutine get_stream(unt,strm,istat)
     implicit none
@@ -1794,7 +1834,7 @@ contains
       !print *, 'there',shift_lgt,msg_lgt,prefix_lgt,indent_lgt,icursor,max_lgt
       !print *,'condition',icursor+msg_lgt+prefix_lgt+indent_lgt+shift_lgt >= max_lgt
       !see if the line enters
-      
+
       if (icursor+msg_lgt+prefix_lgt+indent_lgt+shift_lgt >= max_lgt) then
          !restart again
          change_line=.true.
@@ -2061,14 +2101,14 @@ contains
     type(yaml_stream), intent(inout) :: stream
     stream%indent=max(stream%indent-stream%indent_step,0) !to prevent bugs
   end subroutine close_indent_level
-  
+
   !> Dump a dictionary
   subroutine yaml_dict_dump(dict,unit,flow,verbatim)
     implicit none
     type(dictionary), pointer, intent(in) :: dict !< Dictionary to dump
     logical, intent(in), optional :: flow         !< @copydoc doc::flow
     logical, intent(in), optional :: verbatim     !< if .true. print as comments the calls performed
-    integer, intent(in), optional :: unit         !< unit in which the dump has to be 
+    integer, intent(in), optional :: unit         !< unit in which the dump has to be
     !local variables
     logical :: flowrite,verb,default_flow
     integer :: unt
@@ -2101,7 +2141,7 @@ contains
       logical :: last_level
       !local variables
       type(dictionary), pointer :: dict_tmp
-      
+
       !we should have a sequence of only scalar values
       last_level = dict_len(dict) > 0
       if (last_level) then
@@ -2121,9 +2161,9 @@ contains
       implicit none
       type(dictionary), pointer, intent(in) :: dict
       logical :: switch_flow
-      
+
       switch_flow=default_flow .and. last_level(dict) .and. dict_len(dict) <=5 .and. dict_len(dict) > 1
-      
+
     end function switch_flow
 
 
@@ -2297,7 +2337,7 @@ contains
     type(dictionary), pointer, intent(in) :: dict   !< Dictionary to dump
     logical, intent(in), optional :: flow           !< if .true. inline
     logical, intent(in), optional :: verbatim       !< if .true. print as comments the calls performed
-    integer, intent(in), optional :: unit           !< unit in which the dump has to be 
+    integer, intent(in), optional :: unit           !< unit in which the dump has to be
     !local variables
     logical :: flowrite,verb
     integer :: unt,idoc
@@ -2325,7 +2365,7 @@ contains
 
   end subroutine yaml_dict_dump_all
 
-!!!  !>get the string associated to walltime format 
+!!!  !>get the string associated to walltime format
 !!!  function yaml_walltime_toa(walltime) result(timestamp)
 !!!    implicit none
 !!!    integer(kind=8), intent(in) :: walltime
@@ -2343,7 +2383,7 @@ contains
 !!!    !then take minutes from seconds
 !!!    m=s/sixty; s=s-m*sixty
 !!!    !and hours from minutes
-!!!    h=m/sixty; m=m-h*sixty   
+!!!    h=m/sixty; m=m-h*sixty
 !!!    !days
 !!!    d=h/tf; h=h-d*tf
 !!!    !years
@@ -2357,7 +2397,7 @@ contains
 !!!    !split the treatment in the case of multiple days
 !!!    if (d >0.0_f_double .or. y > 0.0_f_double ) call f_strcpy(&
 !!!         dest=timestamp,src=y+'y'//d+'d'+timestamp)
-!!!!!$    if (h > tf) then      
+!!!!!$    if (h > tf) then
 !!!!!$       !days
 !!!!!$       d=h/tf; h=h-d*tf
 !!!!!$       !years

@@ -5,7 +5,7 @@ bigdft-suite needs only an optimised lapack library and a fortran compiler with 
 
 The main script to use is Installer.py which is a driver for jhbuild.
 
-So untar bigdft-suite: tar xzvf bigdft-suite.tar.gz
+When uncompacting bigdft-suite: tar xzvf bigdft-suite.tar.gz
 A bigdft-suite directory is created.
 
 mkdir build; cd build
