@@ -309,6 +309,8 @@ H2O-CP2K:
 test.splsad.ref.yaml:
  Epsilon: 1.1e-10
  Electric Dipole Moment (Debye): 1.21e-8
+ Keys to ignore:
+   - Molecule was shifted
 
 test.minhop.ref.yaml:
  Energies: &etol1 6.0e-9
@@ -2342,7 +2344,7 @@ H2Omultipoles_1:
   Enl: 7.1e-11
   Epot: 1.1e-9
   EvXC: 2.2e-10
-  Charge analysis (charge / net charge): 9.8e-11
+  Charge analysis (charge / net charge): 1.1e-10
   Pseudo Fermi level for occupations: 2.5e-11
   Omega: 2.5e-11
   Total charge: 2.6e-11
@@ -2350,7 +2352,7 @@ H2Omultipoles_1:
   eF: 1.1e-07
   energy: 2.4e-11
   multiplicator for the confinement: 4.5e-11
-  trace(KS): 2.5e-11
+  trace(KS): 2.56e-11
   Maxdiff for transpose (checksum): 1.5e-11
   difference: 1.3e-11
 
@@ -2370,7 +2372,7 @@ H2Omultipoles_11:
   eF: 1.1e-07
   energy: 2.2e-11
   multiplicator for the confinement: 4.3e-11
-  trace(KS): 2.5e-11
+  trace(KS): 2.52e-11
   Maxdiff for transpose (checksum): 1.5e-11
   Pseudo Fermi level for occupations: 1.8e-11
   difference: 1.3e-11
@@ -2417,22 +2419,22 @@ H2Omultipoles_12:
 #  Maxdiff for transpose (checksum): 1.5e-11
 
 H2Omultipoles_2:
-  EBS: 9.1e-10
-  EBS higher temperature: 9.1e-10
+  EBS: 9.16e-10
+  EBS higher temperature: 9.16e-10
   EH: 1.1e-9
   EXC: 1.7e-10
   Ekin: 3.1e-10
   Enl: 7.1e-11
   Epot: 1.1e-9
   EvXC: 2.6e-10
-  Charge analysis (charge / net charge): 1.0e-10
+  Charge analysis (charge / net charge): 1.11e-10
   Omega: 2.4e-11
-  Total charge: 2.5e-11
+  Total charge: 2.52e-11
   Tr(K): 1.1e-07
   eF: 1.1e-07
   energy: 2.3e-11
-  multiplicator for the confinement: 4.3e-11
-  trace(KS): 2.5e-11
+  multiplicator for the confinement: 4.32e-11
+  trace(KS): 2.56e-11
   Maxdiff for transpose (checksum): 1.5e-11
   difference: 1.3e-11
   Pseudo Fermi level for occupations: 1.8e-11
