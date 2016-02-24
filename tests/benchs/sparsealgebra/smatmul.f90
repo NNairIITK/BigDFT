@@ -87,7 +87,7 @@ program smatmul
   ! Create the corresponding BigDFT sparsity pattern
   !call distribute_columns_on_processes_simple(iproc, nproc, nfvctr, nfvctrp, isfvctr)
   call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat, &
-       nspin=nspin, geocode=geocode, cell_dim, on_which_atom=on_which_atom)
+       init_matmul=.true., nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom)
 
   matA = matrices_null()
 
