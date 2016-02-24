@@ -1028,6 +1028,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,oneoeps,oneoepst)
   call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,oneosqrteps,oneosqrtepst)
   call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,corr,corrt)
+stop
 !-------------------------------------------------------------------
 
   if (bigdft_mpi%iproc==0) then
