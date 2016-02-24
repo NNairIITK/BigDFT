@@ -149,8 +149,8 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	tddft.f90 \
 	output.f90 \
-	$(OCL_CONV) \
-	external.f90
+	external.f90 \
+	$(OCL_CONV)
 
 #objects which can be compiled only with module_base
 low_level = \

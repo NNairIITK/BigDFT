@@ -885,6 +885,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   use f_enums, f_str => str
   use yaml_output
   use dictionaries, only: f_err_throw
+  use box
   implicit none
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
@@ -899,10 +900,13 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   real(gp), dimension(:), allocatable :: radii,radii_nofact
   real(gp), dimension(:,:,:), allocatable :: eps,oneoeps,oneosqrteps,corr
   real(gp), dimension(:,:,:,:), allocatable :: dlogeps
+  real(gp), dimension(:,:,:), allocatable :: epst,oneoepst,oneosqrtepst,corrt
+  real(gp), dimension(:,:,:,:), allocatable :: dlogepst
   real(dp), parameter :: gammaS = 72.d0 ![dyn/cm]
   real(dp), parameter :: alphaS = -22.0d0 ![dyn/cm]
   real(dp), parameter :: betaV = -0.35d0 ![GPa]
   real(dp) :: gammaSau, alphaSau,betaVau
+  type(cell) :: mesh
 
   gammaSau=gammaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
   alphaSau=alphaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
@@ -918,6 +922,11 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   oneoeps=f_malloc(pkernel%ndims,id='oneoeps')
   oneosqrteps=f_malloc(pkernel%ndims,id='oneosqrteps')
   corr=f_malloc(pkernel%ndims,id='corr')
+  epst=f_malloc(pkernel%ndims,id='epst')
+  dlogepst=f_malloc([3,pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3)],id='dlogepst')
+  oneoepst=f_malloc(pkernel%ndims,id='oneoepst')
+  oneosqrtepst=f_malloc(pkernel%ndims,id='oneosqrtepst')
+  corrt=f_malloc(pkernel%ndims,id='corrt')
 
   it=atoms_iter(atoms%astruct)
   !python metod
@@ -1004,9 +1013,22 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !  call epsilon_rigid_cavity(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
 !       epsilon0,delta,eps)
   call epsilon_rigid_cavity_error_multiatoms_bc(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
-       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+       epsilon0,delta,epst,dlogepst,oneoepst,oneosqrtepst,corrt,IntSur,IntVol)
 !  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
 !       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+
+!------New way to calculate cavity vectors--------------------------
+  mesh=cell_new(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids)
+
+  call epsilon_rigid_cavity_soft_PCM(mesh,atoms%astruct%nat,rxyz,radii,pkernel%cavity,&
+       eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+
+  call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,eps,epst)
+  call check_accuracy_4d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,dlogeps,dlogepst)
+  call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,oneoeps,oneoepst)
+  call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,oneosqrteps,oneosqrtepst)
+  call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,corr,corrt)
+!-------------------------------------------------------------------
 
   if (bigdft_mpi%iproc==0) then
      call yaml_map('Surface integral',IntSur)
@@ -1071,8 +1093,122 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   call f_free(oneoeps)
   call f_free(oneosqrteps)
   call f_free(corr)
+  call f_free(epst)
+  call f_free(dlogepst)
+  call f_free(oneoepst)
+  call f_free(oneosqrtepst)
+  call f_free(corrt)
 end subroutine epsilon_cavity
 
+!> Check the difference of two 3 dimensional vectors
+subroutine check_accuracy_3d(n01,n02,n03,i,r1,r2)
+  use yaml_output
+  use dynamic_memory
+  use f_utils
+  use module_base, only: bigdft_mpi
+  implicit none
+  integer, intent(in) :: n01
+  integer, intent(in) :: n02
+  integer, intent(in) :: n03
+  integer, intent(in) :: i
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: r1,r2
+  !automatic array, to be check is stack poses problem
+  real(kind=8), dimension(:,:,:), allocatable :: re
+  integer :: i1,i2,i3,j,i1_max,i2_max,i3_max,jj,unt
+  real(kind=8) :: max_val,fact
+  character(len=20) :: str
+
+  re=f_malloc([n01,n02,n03],id='re')
+
+      max_val = 0.d0
+      i1_max = 1
+      i2_max = 1
+      i3_max = 1
+      do i3=1,n03
+         do i2=1,n02
+            do i1=1,n01
+               re(i1,i2,i3) = r1(i1,i2,i3) - r2(i1,i2,i3)
+               fact=abs(re(i1,i2,i3))
+               if (max_val < fact) then
+                  max_val = fact
+                  i1_max = i1
+                  i2_max = i2
+                  i3_max = i3
+               end if
+            end do
+         end do
+      end do
+  if (bigdft_mpi%iproc==0) then
+      if (max_val == 0.d0) then
+         call yaml_map('Inf. Norm difference with reference',0.d0)
+      else
+         call yaml_mapping_open('Inf. Norm difference with reference')
+         call yaml_map('Value',max_val,fmt='(1pe22.15)')
+         call yaml_map('Point',[i1_max,i2_max,i3_max],fmt='(i4)')
+         call yaml_map('Some values',[re(n01/2,n02/2,n03/2),re(2,n02/2,n03/2),re(10,n02/2,n03/2)],&
+              fmt='(1pe22.15)')
+         call yaml_mapping_close()
+      end if
+  end if
+  call f_free(re)
+
+end subroutine check_accuracy_3d
+
+!> Check the difference of two 4 dimensional vectors
+subroutine check_accuracy_4d(n01,n02,n03,i,r1,r2)
+  use yaml_output
+  use dynamic_memory
+  use f_utils
+  use module_base, only: bigdft_mpi
+  implicit none
+  integer, intent(in) :: n01
+  integer, intent(in) :: n02
+  integer, intent(in) :: n03
+  integer, intent(in) :: i
+  real(kind=8), dimension(3,n01,n02,n03), intent(in) :: r1,r2
+  !automatic array, to be check is stack poses problem
+  real(kind=8), dimension(:,:,:,:), allocatable :: re
+  integer :: i1,i2,i3,j,i1_max,i2_max,i3_max,jj,unt
+  real(kind=8) :: max_val,fact
+  character(len=20) :: str
+  
+  re=f_malloc([3,n01,n02,n03],id='re')
+
+      max_val = 0.d0
+      i1_max = 1
+      i2_max = 1
+      i3_max = 1
+      do i3=1,n03
+         do i2=1,n02
+            do i1=1,n01
+               do j=1,3
+               re(j,i1,i2,i3) = r1(j,i1,i2,i3) - r2(j,i1,i2,i3)
+               fact=abs(re(j,i1,i2,i3))
+               if (max_val < fact) then
+                  max_val = fact
+                  i1_max = i1
+                  i2_max = i2
+                  i3_max = i3
+               end if
+               end do
+            end do
+         end do
+      end do
+  if (bigdft_mpi%iproc==0) then
+      if (max_val == 0.d0) then
+         call yaml_map('Inf. Norm difference with reference',0.d0)
+      else
+         call yaml_mapping_open('Inf. Norm difference with reference')
+         call yaml_map('Value',max_val,fmt='(1pe22.15)')
+         call yaml_map('Point',[i1_max,i2_max,i3_max],fmt='(i4)')
+         call yaml_map('Some values',[re(1,n01/2,n02/2,n03/2),re(1,2,n02/2,n03/2),re(1,10,n02/2,n03/2)],&
+              fmt='(1pe22.15)')
+         call yaml_mapping_close()
+      end if
+  end if
+  call f_free(re)
+
+end subroutine check_accuracy_4d
 
 !> Calculate the inner cavity for a sccs run to avoit discontinuity in epsilon
 !! due to near-zero edens near atoms

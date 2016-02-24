@@ -981,7 +981,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      ! Use this subroutine to write the energies, with some
      ! fake number
      ! to prevent it from writing too much
-    call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+    call write_energies(0,energs,0.d0,0.d0,'',only_energies=.true.)
   end if
 
   !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')

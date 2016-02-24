@@ -11,7 +11,7 @@ program driver
   use sparsematrix, only: transform_sparsity_pattern
   use foe_base, only: foe_data, foe_data_deallocate
   use foe_common, only: init_foe
-  use foe, only: fermi_operator_expansion
+  use foe, only: fermi_operator_expansion_new
   implicit none
 
   ! Variables
@@ -100,7 +100,7 @@ program driver
   label = 'test'
   inv_overlap = matrices_null()
   inv_overlap(1)%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_TASKGROUP, id='inv_overlap(1)%matrix_compr')
-  call fermi_operator_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+  call fermi_operator_expansion_new(bigdft_mpi%iproc, bigdft_mpi%nproc, &
        ebs, order_taylor, max_inversion_error, &
        calculate_minusonehalf, foe_verbosity, &
        label, smat_s, smat_h, smat_l, ham, overlap, inv_overlap, kernel, foe_obj)

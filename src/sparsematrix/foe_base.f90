@@ -17,6 +17,7 @@ module foe_base
     real(kind=8) :: fscale_upperbound           !< upper bound for the error function decay length
     real(kind=8) :: tmprtr                      !< temperature (actually not really... 0.d0 means error function with finite temperature)
     integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
+    real(kind=8) :: evlow_min, evhigh_max
   end type foe_data
 
 
@@ -55,6 +56,8 @@ module foe_base
       foe_obj%evboundsshrink_isatur  = uninitialized(foe_obj%evboundsshrink_isatur)
       foe_obj%evbounds_nsatur        = uninitialized(foe_obj%evbounds_nsatur)
       foe_obj%evboundsshrink_nsatur  = uninitialized(foe_obj%evboundsshrink_nsatur)
+      foe_obj%evlow_min              = uninitialized(foe_obj%evlow_min)
+      foe_obj%evhigh_max             = uninitialized(foe_obj%evhigh_max)
     end function foe_data_null
 
 
@@ -159,6 +162,10 @@ module foe_base
           foe_obj%fscale_upperbound = val
       case ("tmprtr")
           foe_obj%tmprtr = val
+      case ("evlow_min")
+          foe_obj%evlow_min = val
+      case ("evhigh_max")
+          foe_obj%evhigh_max = val
       case default
           stop 'wrong arguments'
       end select
@@ -209,6 +216,10 @@ module foe_base
           val = foe_obj%fscale_upperbound
       case ("tmprtr")
           val = foe_obj%tmprtr
+      case ("evlow_min")
+          val = foe_obj%evlow_min
+      case ("evhigh_max")
+          val = foe_obj%evhigh_max
       case default
           stop 'wrong arguments'
       end select

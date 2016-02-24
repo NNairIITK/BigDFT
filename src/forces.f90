@@ -5,8 +5,46 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
+!> calculate the forces terms for PCM
+subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,np2epm1,fpcm)
+  use module_defs, only: dp,gp
+  use environment, only: cavity_data,rigid_cavity_forces
+  use box
+  use bounds, only: locreg_mesh_origin
+  implicit none
+  type(cell), intent(in) :: mesh
+  type(cavity_data), intent(in) :: cavity
+  integer, intent(in) :: n1,n2,n3p,nat,i3s
+  real(dp), dimension(nat), intent(in) :: radii
+  real(dp), dimension(3,nat), intent(in) :: rxyz
+  real(dp), dimension(n1,n2,n3p), intent(in) :: np2epm1 !<square of potential gradient times epsilon(r)-1
+  real(dp), dimension(3,nat), intent(inout) :: fpcm !<forces
+  !local variables
+  real(dp), parameter :: thr=1.e-10
+  integer :: i,i1,i2,i3
+  real(dp) :: tt
+  real(dp), dimension(3) :: v,origin
+
+  !mesh=cell_new(geocode,[n1,n2,n3],hgrids)
+
+  origin=locreg_mesh_origin(mesh) !this function in bigdft and not in PSolver
+  do i3=1,n3p
+     v(3)=cell_r(mesh,i3+i3s,dim=3)
+     do i2=1,n2
+        v(2)=cell_r(mesh,i2,dim=2)
+        do i1=1,n1
+           tt=np2epm1(i1,i2,i3)
+           if (abs(tt) < thr) cycle
+           v(1)=cell_r(mesh,i1,dim=1)
+           v=v-origin
+           call rigid_cavity_forces(cavity,mesh,v,nat,rxyz,radii,tt,fpcm)
+        end do
+     end do
+  end do
+
+end subroutine soft_PCM_forces
 
 !> Calculate atomic forces
 subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxyz,hx,hy,hz, &
@@ -32,7 +70,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
   type(atoms_data), intent(in) :: atoms
   type(orbital_basis), intent(in) :: ob
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
   real(wp), dimension(nsize_psi), intent(in) :: psi
   real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
@@ -144,12 +182,14 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
      end if
   end if
 
-  ! Add up all the force contributions
+  ! Add up all the force contributions and the density matrix if needed
   if (nproc > 1) then
      call mpiallred(sendbuf=fxyz,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
      if (atoms%astruct%geocode == 'P' .and. calculate_strten) &
           call mpiallred(strtens,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      call mpiallred(charge,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+     if (associated(nlpsp%gamma_mmp)) &
+      call mpiallred(nlpsp%gamma_mmp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
   !!do iat=1,atoms%astruct%nat
@@ -177,6 +217,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
 !!$  if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms%astruct)
 
   !if (iproc == 0) call write_forces(atoms%astruct,fxyz)
+
+  if (iproc==0) call write_atomic_density_matrix(nspin,atoms%astruct,nlpsp)
 
   if (calculate_strten) then
      !volume element for local stress
@@ -623,7 +665,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      !$omp & shared(cprime,nloc,rloc,rlocinvsq,prefactor,nbox) &
      !$omp & private(fxerf,fyerf,fzerf,fxgau,fygau,fzgau) &
      !$omp & private(Txx,Tyy,Tzz,Txy,Txz,Tyz,boxit,xp,x,y,z,r2,arg,tt,rhoel,forceloc,Vel) &
-     !$omp & private(iloc,i3,zp,zsq,j3,yp,ysq,goy,gox,goz,i1,i2,j1,j2,ind,yzsq) 
+     !$omp & private(iloc,i3,zp,zsq,j3,yp,ysq,goy,gox,goz,i1,i2,j1,j2,ind,yzsq)
 
      !Initialization of the forces
      !ion-electron term, error function part
@@ -685,7 +727,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
            !write(*,'(i0,1x,5(1x,1pe24.17))') boxit%ind,pot(boxit%ind),rho(boxit%ind),fxerf,fyerf,fzerf
         end do
 
-     else        
+     else
 
         if (n3p > 0) then
            !$omp do reduction(+:forceleaked)
@@ -693,8 +735,8 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
               zp = mpz(i3-isz)
               z=real(i3,kind=8)*hzh-rz
               zsq=z**2
-              !call ind_positions(perz,i3,n3,j3,goz) 
-              call ind_positions_new(perz,i3,n3i,j3,goz) 
+              !call ind_positions(perz,i3,n3,j3,goz)
+              call ind_positions_new(perz,i3,n3i,j3,goz)
               j3=j3+nbl3+1
               do i2=isy,iey
                  yp = zp*mpy(i2-isy)
@@ -816,6 +858,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
   use public_enums, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
        PSPCODE_PAW
   use orbitalbasis
+  use ao_inguess, only: lmax_ao
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
@@ -833,10 +876,10 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
   !local variables--------------
   character(len=*), parameter :: subname='nonlocal_forces'
   integer :: istart_c,iproj,iat,ityp,i,j,l,m,ndir
-  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f
+  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,ispin
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,strc,Enl,vol
-  real(gp) :: orbfac
+  real(gp) :: orbfac,factor
   integer :: idir,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
@@ -918,7 +961,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
 
         call ncplx_kpt(ikpt,ob%orbs,ncplx)
 
-        nwarnings=0 !not used, simply initialised 
+        nwarnings=0 !not used, simply initialised
         iproj=0 !should be equal to four times nproj at the end
         jorbd=jorb
         do iat=1,at%astruct%nat
@@ -984,7 +1027,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
 
   else
      !associate the orbital basis structure
-     
+
      !calculate all the scalar products for each direction and each orbitals
      do idir=0,ndir
 
@@ -1056,6 +1099,8 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
 
   end if
 
+  if (associated(nlpsp%iagamma)) call f_zero(nlpsp%gamma_mmp)
+
   fxyz_orb = f_malloc((/ 3, at%astruct%nat /),id='fxyz_orb')
 
   !apply the projectors  k-point of the processor
@@ -1077,9 +1122,24 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
            jorb=jorb+1
            do iat=1,at%astruct%nat
               ityp=at%astruct%iatype(iat)
-              do l=1,4
+              loop_l: do l=1,4
                  do i=1,3
                     if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                       !if needed extract the density matrix of the given atom
+                       if (associated(nlpsp%iagamma)) then
+                          if (nlpsp%iagamma(l-1,iat)/=0 .and. i==1) then
+                             !determine here the spin and the factor to be applied
+                             if (ob%orbs%spinsgn(iorb+ob%orbs%isorb) == 1.0_gp) then
+                                ispin=1
+                             else
+                                ispin=2
+                             end if
+                             factor=ob%orbs%occup(iorb+ob%orbs%isorb)*ob%orbs%kwgts(ob%orbs%iokpt(iorb))
+                             call atomic_PSP_density_matrix_update(lmax_ao,l-1,ncplx,scalprod(:,0,1:2*l-1,i,l,iat,jorb),&
+                                  factor,nlpsp%gamma_mmp(1,1,1,ispin,nlpsp%iagamma(l-1,iat)))
+                          end if
+                       end if
+
                        do m=1,2*l-1
                           do icplx=1,ncplx
                              ! scalar product with the derivatives in all the directions
@@ -1112,7 +1172,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
                        end do
                     end if
                  end do
-              end do
+              end do loop_l
               !HGH case, offdiagonal terms
               if (at%npspcode(ityp) == PSPCODE_HGH .or. &
                    at%npspcode(ityp) == PSPCODE_HGH_K .or. &
@@ -1205,6 +1265,42 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
   call f_release_routine()
 
 END SUBROUTINE nonlocal_forces
+
+
+!>calculate the density matrix for a atomic contribution
+!!from the values of scalprod calculated in the code
+subroutine atomic_PSP_density_matrix_update(lmax,l,ncplx,sp,fac,gamma_mmp)
+  use module_defs, only: wp,gp
+  implicit none
+  integer, intent(in) :: ncplx
+  integer, intent(in) :: lmax !< maximum value of the angular momentum considered
+  integer, intent(in) :: l !<angular momentum of the density matrix, form 0 to l_max
+  !> coefficients of the scalar products between projectos and orbitals
+  real(gp), intent(in) :: fac !<rescaling factor
+  real(wp), dimension(2,2*l+1), intent(in) :: sp
+  !>density matrix for this angular momenum and this spin
+  real(wp), dimension(2,2*lmax+1,2*lmax+1), intent(inout) :: gamma_mmp
+  !local variables
+  integer :: m,mp
+
+  if (fac==0.0_gp) return
+
+  do m=1,2*l+1
+     do mp=1,2*l+1
+        if (ncplx==1) then
+           gamma_mmp(1,m,mp)=gamma_mmp(1,m,mp)+&
+                real(fac,wp)*sp(1,mp)*sp(1,m)
+        else
+           gamma_mmp(1,m,mp)=gamma_mmp(1,m,mp)+&
+                real(fac,wp)*(sp(1,mp)*sp(1,m)+sp(2,mp)*sp(2,m))
+           gamma_mmp(2,m,mp)=gamma_mmp(1,m,mp)+&
+                real(fac,wp)*(sp(2,mp)*sp(1,m)-sp(1,mp)*sp(2,m))
+        end if
+     end do
+  end do
+
+end subroutine atomic_PSP_density_matrix_update
+
 
 
 !> Calculates the coefficient of derivative of projectors
@@ -3547,8 +3643,8 @@ END SUBROUTINE calc_coeff_derproj
 !> Eliminate the translational forces before calling this subroutine!!!
 !! Main subroutine: Input is nat (number of atoms), rat0 (atomic positions) and fat (forces on atoms)
 !! The atomic positions will be returned untouched
-!! In fat, the rotational forces will be eliminated with respect to the center of mass. 
-!! All atoms are treated equally (same atomic mass) 
+!! In fat, the rotational forces will be eliminated with respect to the center of mass.
+!! All atoms are treated equally (same atomic mass)
 subroutine elim_torque_reza(nat,rat0,fat)
   use module_base
   implicit none
@@ -3572,7 +3668,7 @@ subroutine elim_torque_reza(nat,rat0,fat)
   amass(1:nat)=1.0_gp
   !project out rotations
   totmass=0.0_gp
-  cmx=0.0_gp 
+  cmx=0.0_gp
   cmy=0.0_gp
   cmz=0.0_gp
   do i=1,3*nat-2,3
@@ -3582,8 +3678,8 @@ subroutine elim_torque_reza(nat,rat0,fat)
      cmz=cmz+amass(iat)*rat(i+2)
      totmass=totmass+amass(iat)
   enddo
-  cmx=cmx/totmass 
-  cmy=cmy/totmass 
+  cmx=cmx/totmass
+  cmy=cmy/totmass
   cmz=cmz/totmass
   do i=1,3*nat-2,3
      rat(i+0)=rat(i+0)-cmx
@@ -3616,10 +3712,10 @@ subroutine elim_torque_reza(nat,rat0,fat)
   if (vrotnrm /= 0.0_gp) vrot(1:3*nat,3)=vrot(1:3*nat,3)/vrotnrm
 
   do i=1,3
-     alpha=0.0_gp  
+     alpha=0.0_gp
      if(abs(evaleria(i)).gt.1.e-10_gp) then
         alpha=dot_product(vrot(:,i),fat(:))
-        fat(:)=fat(:)-alpha*vrot(:,i) 
+        fat(:)=fat(:)-alpha*vrot(:,i)
      endif
   enddo
 
@@ -3730,8 +3826,8 @@ END SUBROUTINE normalizevector
 !!     fmax1=max(fmax1,sqrt(t1+t2+t3))
 !!     fnrm1=fnrm1+t1+t2+t3
 !!  enddo
-!!  
-!!  
+!!
+!!
 !!  sumx=0.0_gp
 !!  sumy=0.0_gp
 !!  sumz=0.0_gp
@@ -3740,7 +3836,7 @@ END SUBROUTINE normalizevector
 !!     sumy=sumy+fxyz(2,iat)
 !!     sumz=sumz+fxyz(3,iat)
 !!  enddo
-!!  if (at%astruct%nat /= 0) then 
+!!  if (at%astruct%nat /= 0) then
 !!     fnoise=sqrt((sumx**2+sumy**2+sumz**2)/real(at%astruct%nat,gp))
 !!     sumx=sumx/real(at%astruct%nat,gp)
 !!     sumy=sumy/real(at%astruct%nat,gp)
@@ -3749,7 +3845,7 @@ END SUBROUTINE normalizevector
 !!     fnoise = 0.0_gp
 !!  end if
 !!
-!!  if (iproc==0) then 
+!!  if (iproc==0) then
 !!     !write( *,'(1x,a,1x,3(1x,1pe9.2))') &
 !!     !  'Subtracting center-mass shift of',sumx,sumy,sumz
 !!!           write(*,'(1x,a)')'the sum of the forces is'
@@ -3765,26 +3861,26 @@ END SUBROUTINE normalizevector
 !!     !     write(*,'(a,1pe16.8)')' average noise along z direction: ',sumz*sqrt(real(at%astruct%nat,gp))
 !!     !     write(*,'(a,1pe16.8)')' total average noise            : ',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%astruct%nat,gp))
 !!!!$
-!!!!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
-!!!!$     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
-!!!!$     write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
+!!!!$     write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
+!!!!$     write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
+!!!!$     write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
 !!  end if
-!!  
+!!
 !!  if (at%astruct%geocode == 'F') then
 !!     do iat=1,at%astruct%nat
 !!        fxyz(1,iat)=fxyz(1,iat)-sumx
 !!        fxyz(2,iat)=fxyz(2,iat)-sumy
 !!        fxyz(3,iat)=fxyz(3,iat)-sumz
 !!     enddo
-!!     
+!!
 !!     call elim_torque_reza(at%astruct%nat,rxyz,fxyz)
-!!     
+!!
 !!  else if (at%astruct%geocode == 'S') then
 !!     do iat=1,at%astruct%nat
 !!        fxyz(2,iat)=fxyz(2,iat)-sumy
 !!     enddo
 !!  end if
-!!  
+!!
 !!  !Clean the forces for blocked atoms
 !!  !Modification by FL: atom possibly frozen in moving blocs.
 !!  !@todo Need a better handling of the given constraints
@@ -3841,7 +3937,7 @@ END SUBROUTINE normalizevector
 !!    end do
 !!  end if if_atoms_in_blocs
 !!  !--- End of "Modification by FL: atom possibly frozen in moving blocs".
-!!  
+!!
 !!  !the noise of the forces is the norm of the translational force
 !!!  fnoise=real(at%astruct%nat,gp)**2*(sumx**2+sumy**2+sumz**2)
 !!
@@ -4028,7 +4124,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   call f_routine(id='local_hamiltonian_stress')
 
   !initialise the work arrays
-  call initialize_work_arrays_locham(1,[lr],orbs%nspinor,.true.,wrk_lh)  
+  call initialize_work_arrays_locham(1,[lr],orbs%nspinor,.true.,wrk_lh)
 
   tens=0.d0
 
@@ -4135,7 +4231,7 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
 !!! Get the neighbor lists
   !!call get_neighbors(rxyz, nat, na, nb, nc)
 
-  ! Transform the atomic positions to internal coordinates 
+  ! Transform the atomic positions to internal coordinates
   !call xyzint(rxyz, nat, na, nb, nc, degree, geo)
   call xyzint(rxyz_shifted, nat, na, nb, nc, degree, geo)
   !!if (bigdft_mpi%iproc==0) call yaml_map('internal orig',geo)
@@ -4201,11 +4297,11 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   !if (bigdft_mpi%iproc==0) then
   !    do iat=1,nat
   !        write(*,'(a,i4,2es16.6)') 'iat, tmp(1,iat)-rxyz(1,iat), tmp(1,iat)-rxyz_tmp(1,iat)', &
-  !            iat, tmp(1,iat)-rxyz(1,iat), tmp(1,iat)-rxyz_tmp(1,iat) 
+  !            iat, tmp(1,iat)-rxyz(1,iat), tmp(1,iat)-rxyz_tmp(1,iat)
   !        write(*,'(a,i4,2es16.6)') 'iat, tmp(2,iat)-rxyz(2,iat), tmp(2,iat)-rxyz_tmp(2,iat)', &
-  !            iat, tmp(2,iat)-rxyz(2,iat), tmp(2,iat)-rxyz_tmp(2,iat) 
+  !            iat, tmp(2,iat)-rxyz(2,iat), tmp(2,iat)-rxyz_tmp(2,iat)
   !        write(*,'(a,i4,2es16.6)') 'iat, tmp(3,iat)-rxyz(3,iat), tmp(3,iat)-rxyz_tmp(3,iat)', &
-  !            iat, tmp(3,iat)-rxyz(3,iat), tmp(3,iat)-rxyz_tmp(3,iat) 
+  !            iat, tmp(3,iat)-rxyz(3,iat), tmp(3,iat)-rxyz_tmp(3,iat)
   !    end do
   !end if
 
@@ -4287,7 +4383,7 @@ subroutine keep_internal_coordinates_constraints(nat, rxyz_int, ixyz_int, ifroze
   nc=ixyz_int(3,:)
 
 
-  ! Transform the atomic positions to internal coordinates 
+  ! Transform the atomic positions to internal coordinates
   call xyzint(rxyz, nat, na, nb, nc, degree, geo)
 
   ! The bond angle must be modified (take 180 degrees minus the angle)
@@ -4333,5 +4429,3 @@ subroutine keep_internal_coordinates_constraints(nat, rxyz_int, ixyz_int, ifroze
   call f_release_routine()
 
 end subroutine keep_internal_coordinates_constraints
-
-

@@ -5,7 +5,7 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Copy old wavefunctions from psi to psi_old
@@ -50,7 +50,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,psi,&
      if (abs(tt-1.d0) > 1.d-8) then
         call yaml_warning('wrong psi_old' // trim(yaml_toa(iorb)) // trim(yaml_toa(tt)))
         !write(*,*)'wrong psi_old',iorb,tt
-        stop 
+        stop
      end if
   enddo
   !deallocation
@@ -68,6 +68,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
   use module_base
   use module_types
   use yaml_output
+  use box
   implicit none
   integer, intent(in) :: iproc,n1_old,n2_old,n3_old,n1,n2,n3
   real(gp), intent(in) :: hx_old,hy_old,hz_old,hx,hy,hz
@@ -81,10 +82,13 @@ subroutine reformatmywaves(iproc,orbs,at,&
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat,perx,pery,perz
   integer :: iat,iorb,j,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3,nvctrcj,n1p1,np,i0jj
-  real(gp) :: tx,ty,tz,displ,mindist
+  real(gp) :: tx,ty,tz,displ
+  type(cell) :: mesh
   real(wp), dimension(:,:,:), allocatable :: psifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
 
+
+  mesh=cell_new(at%astruct%geocode,[n1,n2,n3],[hx,hy,hz])
   !conditions for periodicity in the three directions
   perx=(at%astruct%geocode /= 'F')
   pery=(at%astruct%geocode == 'P')
@@ -99,16 +103,17 @@ subroutine reformatmywaves(iproc,orbs,at,&
 
   psifscf = f_malloc((/ -nb1.to.2*n1+1+nb1, -nb2.to.2*n2+1+nb2, -nb3.to.2*n3+1+nb3 /),id='psifscf')
 
-  tx=0.0_gp 
+  tx=0.0_gp
   ty=0.0_gp
   tz=0.0_gp
-
+displ=0.0_gp
   do iat=1,at%astruct%nat
-     tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
-     ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
-     tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
+    displ=displ+minimum_distance(mesh,rxyz(:,iat),rxyz_old(:,iat))**2
+    !  tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
+    !  ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
+    !  tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
   enddo
-  displ=sqrt(tx+ty+tz)
+  displ=sqrt(displ)!tx+ty+tz)
 !  write(100+iproc,*) 'displacement',dis
 !  write(100+iproc,*) 'rxyz ',rxyz
 !  write(100+iproc,*) 'rxyz_old ',rxyz_old
@@ -129,7 +134,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
         call yaml_map('Reformating wavefunctions',.true.)
         call yaml_mapping_open('Reformatting for')
         !write(*,'(1x,a)') 'The wavefunctions need reformatting because:'
-        if (hx /= hx_old .or. hy /= hy_old .or. hz /= hz_old) then 
+        if (hx /= hx_old .or. hy /= hy_old .or. hz /= hz_old) then
            call yaml_mapping_open('hgrid modified',flow=.true.)
               call yaml_map('hgrid_old', (/ hx_old,hy_old,hz_old /),fmt='(1pe20.12)')
               call yaml_map('hgrid', (/ hx,hy,hz /), fmt='(1pe20.12)')
@@ -141,21 +146,21 @@ subroutine reformatmywaves(iproc,orbs,at,&
         else if (wfd_old%nvctr_f /= wfd%nvctr_f)  then
            call yaml_map('nvctr_f modified', (/ wfd_old%nvctr_f,wfd%nvctr_f /))
            !write(*,"(4x,a,2i8)") 'nvctr_f_old /= nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
-        else if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 )  then  
+        else if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 )  then
            call yaml_map('Cell size has changed ', (/ n1_old,n1  , n2_old,n2 , n3_old,n3 /))
            !write(*,"(4x,a,6i5)") 'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
         else
-           call yaml_map('Molecule was shifted' ,  (/ tx,ty,tz /), fmt='(1pe19.12)')
+           call yaml_map('Molecule was shifted, norm' , displ , fmt='(1pe19.12)')
            !write(*,"(4x,a,3(1pe19.12))") 'molecule was shifted  ' , tx,ty,tz
         endif
         !write(*,"(1x,a)",advance='NO') 'Reformatting...'
         call yaml_mapping_close()
      end if
      !calculate the new grid values
-     
+
 !check
 !        write(100+iproc,'(1x,a)') 'The wavefunctions need reformatting because:'
-!        if (hgrid_old.ne.hgrid) then 
+!        if (hgrid_old.ne.hgrid) then
 !           write(100+iproc,"(4x,a,1pe20.12)") &
 !                '  hgrid_old /= hgrid  ',hgrid_old, hgrid
 !        else if (wfd_old%nvctr_c.ne.wfd%nvctr_c) then
@@ -164,7 +169,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
 !        else if (wfd_old%nvctr_f.ne.wfd%nvctr_f)  then
 !           write(100+iproc,"(4x,a,2i8)") &
 !                'nvctr_f_old /= nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
-!        else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
+!        else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then
 !           write(100+iproc,"(4x,a,6i5)") &
 !                'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
 !        else
@@ -177,7 +182,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
   do iorb=1,orbs%norbp*orbs%nspinor
 
      if (.not. reformat) then
-        !write(100+iproc,*) 'no reformatting' 
+        !write(100+iproc,*) 'no reformatting'
 
         do j=1,wfd_old%nvctr_c
            psi(j,iorb)=psi_old(j, iorb)
@@ -262,7 +267,7 @@ END SUBROUTINE reformatmywaves
 
 !> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !!  have changed
-subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  &
      wfd,psi,orblist)
   use module_base
   use module_types
@@ -298,10 +303,10 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
      !construct the orblist or use the one in argument
      !do nb1 = 1, orbs%norb
      !orblist2(nb1) = nb1
-     !if(present(orblist)) orblist2(nb1) = orblist(nb1) 
+     !if(present(orblist)) orblist2(nb1) = orblist(nb1)
      !end do
 
-     call read_waves_etsf(iproc,filename // ".etsf",orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+     call read_waves_etsf(iproc,filename // ".etsf",orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  &
           wfd,psi)
   else if (iformat == WF_FORMAT_BINARY .or. iformat == WF_FORMAT_PLAIN) then
      !conditions for periodicity in the three directions
@@ -326,7 +331,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
            else
               call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
                    & orbs,iorb,ispinor,iorb_out)
-           end if           
+           end if
            call readonewave(unitwf, (iformat == WF_FORMAT_PLAIN),iorb_out,iproc,n1,n2,n3, &
                 & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
                 psi(1,ispinor,iorb),orbs%eval(orbs%isorb+iorb),psifscf)
@@ -350,7 +355,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
 
 
-  if (iproc == 0) then 
+  if (iproc == 0) then
      call yaml_sequence_open('Reading Waves Time')
      call yaml_sequence(advance='no')
      call yaml_mapping_open(flow=.true.)
@@ -379,7 +384,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   character(len=500) :: filename
   logical :: onefile,allfiles
   integer :: iorb,ispinor,iorb_out
-  
+
   allfiles=.true.
 
   !first try with plain files
@@ -400,7 +405,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   end do loop_plain
   !reduce the result among the other processors
   if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,comm=bigdft_mpi%mpi_comm)
- 
+
   if (allfiles) then
      iformat=WF_FORMAT_PLAIN
      return
@@ -439,7 +444,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
 end subroutine verify_file_presence
 
 
-!> Associate to the absolute value of orbital a filename which depends of the k-point and 
+!> Associate to the absolute value of orbital a filename which depends of the k-point and
 !! of the spin sign
 subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb)
   use module_base
@@ -498,7 +503,7 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   !purge the value from the spin sign
   if (spins==-1.0_gp) iorb_out=iorb_out-orbs%norbu
 
-  !value of the orbital 
+  !value of the orbital
   write(f4,'(a1,i4.4)') "b", iorb_out
 
   !complete the information in the name of the orbital
@@ -515,7 +520,7 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
 end subroutine filename_of_iorb
 
 
-!> Associate to the absolute value of orbital a filename which depends of the k-point and 
+!> Associate to the absolute value of orbital a filename which depends of the k-point and
 !! of the spin sign
 subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out,iiorb)
   use module_base
@@ -527,16 +532,16 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
   integer, intent(in) :: iorb,ispinor
   type(orbitals_data), intent(in) :: orbs
   !>on entry, it suggests the opening unit. On exit, returns the first valid value to which the unit can be associated
-  integer, intent(inout) :: unitfile 
+  integer, intent(inout) :: unitfile
   integer, intent(out) :: iorb_out
   integer, intent(in), optional :: iiorb
   !local variables
   character(len=500) :: filename_out
 
-  if(present(iiorb)) then   
+  if(present(iiorb)) then
      call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb)
      !restore previous behaviour even though the wannier construction can be compromised
-     !call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out) 
+     !call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
   else
      call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
   end if
@@ -585,10 +590,10 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
      do iorb=1,orbs%norbp
         do ispinor=1,orbs%nspinor
            call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
-                & orbs,iorb,ispinor,iorb_out)           
+                & orbs,iorb,ispinor,iorb_out)
            call writeonewave(unitwf,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
-                at%astruct%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),  & 
-                wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1),wfd%keyvloc(wfd%nseg_c+1), & 
+                at%astruct%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),  &
+                wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1),wfd%keyvloc(wfd%nseg_c+1), &
                 psi(1,ispinor,iorb),psi(wfd%nvctr_c+1,ispinor,iorb), &
                 orbs%eval(iorb+orbs%isorb))
            call f_close(unitwf)
@@ -633,7 +638,7 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
 
   character(len = 1024) :: filename_
   integer :: iformat, i
-  
+
   write(filename_, "(A)") " "
   do i = 1, ln, 1
      filename_(i:i) = filename(i)
@@ -680,7 +685,7 @@ subroutine read_wave_descr(lstat, filename, ln, &
   character(len = 1024) :: filename_
   integer :: iformat, i
   character(len = 1024) :: testf
-  
+
   write(filename_, "(A)") " "
   do i = 1, ln, 1
      filename_(i:i) = filename(i)
@@ -759,7 +764,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   !arbitrarily pick the middle one as assuming it'll be near the centre of structure
   !and therefore have large fine grid
   norb_tmp=tmb%orbs%norb/2
-  ilr_tmp=tmb%orbs%inwhichlocreg(norb_tmp) 
+  ilr_tmp=tmb%orbs%inwhichlocreg(norb_tmp)
   iiat_tmp=tmb%orbs%onwhichatom(norb_tmp)
 
   ! Find out which process handles TMB norb_tmp and get the keys from that process
@@ -846,7 +851,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
       call reformat_check(reformat,reformat_reason,tol,at,tmb%lzd%hgrids,tmb%lzd%hgrids,&
            tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_c,&
            tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c,tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c,&
-           n,n_tmp,ns,ns_tmp,frag_trans,centre_old_box,centre_new_box,da)  
+           n,n_tmp,ns,ns_tmp,frag_trans,centre_old_box,centre_new_box,da)
 
       if (.not. reformat) then ! copy psi into psi_tmp
           do j=1,tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c
@@ -865,7 +870,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
               jstart=jstart+7
               jstart_tmp=jstart_tmp+7
           end do
-   
+
       else
           phigold = f_malloc((/ 0.to.n(1), 1.to.2, 0.to.n(2), 1.to.2, 0.to.n(3), 1.to.2 /),id='phigold')
 
@@ -878,7 +883,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
                & frag_trans,psi_tmp(jstart_tmp:))
 
           jstart_tmp=jstart_tmp+tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c+7*tmb%lzd%llr(ilr_tmp)%wfd%nvctr_f
-   
+
           call f_free(phigold)
 
       end if
@@ -1119,7 +1124,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
            ! as above, we don't need to keep track of mapping, we just want the transformation
            map_frag_and_env = f_malloc((/ref_frags_atomic(iat)%nbasis_env,3/),id='map_frag_and_env')
 
-           ! if we are an identical fragment then do full matching 
+           ! if we are an identical fragment then do full matching
            if (ifrag_ref(iat)==ifrag_ref(jat)) then
               call match_environment_atoms(jat-1,at,rxyz,tmb%orbs,ref_frags_atomic(iat),&
                    ref_frags_atomic(iat)%nbasis_env,map_frag_and_env,frag_trans(iat,jat),Werror,.false.)
@@ -1181,7 +1186,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
   !and therefore have large fine grid
   !might be more efficient to reformat each jorb to iorb's lzd, but that involves communicating lots of keys...
   norb_tmp=tmb%orbs%norb/2
-  ilr_tmp=tmb%orbs%inwhichlocreg(norb_tmp) 
+  ilr_tmp=tmb%orbs%inwhichlocreg(norb_tmp)
   iiat_tmp=tmb%orbs%onwhichatom(norb_tmp)
 
   ! Find out which process handles TMB norb_tmp and get the keys from that process
@@ -1264,7 +1269,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
       call reformat_check(reformat,reformat_reason,tol,at,tmb%lzd%hgrids,tmb%lzd%hgrids,&
            tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_c,&
            tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c,tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c,&
-           n,n_tmp,ns,ns_tmp,frag_trans(iiat,iiat),centre_old_box,centre_new_box,da)  
+           n,n_tmp,ns,ns_tmp,frag_trans(iiat,iiat),centre_old_box,centre_new_box,da)
 
       if (.not. reformat) then ! copy psi into psi_tmp
           do j=1,tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c
@@ -1283,7 +1288,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
               jstart=jstart+7
               jstart_tmp=jstart_tmp+7
           end do
-   
+
       else
           phigold = f_malloc((/ 0.to.n(1), 1.to.2, 0.to.n(2), 1.to.2, 0.to.n(3), 1.to.2 /),id='phigold')
 
@@ -1296,7 +1301,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
                & frag_trans(iiat,iiat),psi_tmp(jstart_tmp:))
 
           jstart_tmp=jstart_tmp+ndim_tmp1
-   
+
           call f_free(phigold)
 
       end if
@@ -1372,7 +1377,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
          call reformat_check(reformat,reformat_reason,tol,at,tmb%lzd%hgrids,tmb%lzd%hgrids,&
               tmb%lzd%llr(jlr)%wfd%nvctr_c,tmb%lzd%llr(jlr)%wfd%nvctr_c,&
               tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c,tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c,&
-              n,n_tmp,ns,ns_tmp,frag_trans(iiat,jjat),centre_old_box,centre_new_box,da)  
+              n,n_tmp,ns,ns_tmp,frag_trans(iiat,jjat),centre_old_box,centre_new_box,da)
 
          if (.not. reformat) then ! copy psi into psi_tmp
              jstart_tmp=1
@@ -1392,7 +1397,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
                  jstart=jstart+7
                  jstart_tmp=jstart_tmp+7
              end do
-   
+
          else
              phigold = f_malloc((/ 0.to.n(1), 1.to.2, 0.to.n(2), 1.to.2, 0.to.n(3), 1.to.2 /),id='phigold')
 
@@ -1403,7 +1408,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
              call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(jlr),tmb%lzd%llr(ilr_tmp)%geocode,&
                   & tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,n_tmp,centre_old_box,centre_new_box,da,&
                   & frag_trans(iiat,jjat),psi_tmp_j)
-   
+
              call f_free(phigold)
          end if
 
@@ -1413,7 +1418,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
          !write(*,'(a,5(1x,I4),2(2x,F12.6))')'iproc,iat,jat,iorb,jorb,ovrlp',iproc,iiat,jjat,iiorb,jjorb,overlap(jjorb,iiorb),&
          !      tmb%linmat%ovrlp_%matrix(iiorb,jjorb,1)
       end do
-  end do 
+  end do
 
   call mpiallred(overlap, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
@@ -1449,8 +1454,8 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
 
 
   call f_free(overlap)
-  call f_free(psi_tmp_i)  
-  call f_free(psi_tmp_j) 
+  call f_free(psi_tmp_i)
+  call f_free(psi_tmp_j)
   call f_free_ptr(psi_tmp)
 
   do iat=1,at%astruct%nat
@@ -1486,7 +1491,7 @@ contains
      ref_frags%astruct_frg%inputfile_format = at%astruct%inputfile_format
      ref_frags%astruct_frg%units = at%astruct%units
      ref_frags%astruct_frg%geocode = at%astruct%geocode
-     ! coordinates can just be zero as we only have 1 atom 
+     ! coordinates can just be zero as we only have 1 atom
      ref_frags%astruct_frg%rxyz = f_malloc0_ptr((/3,1/),id=' ref_frags%astruct_frg%rxyz')
 
      ! now deal with atom types - easier to keep this coherent with at%astruct rather than having one type
@@ -1557,7 +1562,7 @@ END SUBROUTINE tmb_overlap_onsite_rotate
 !!  !arbitrarily pick the middle one as assuming it'll be near the centre of structure
 !!  !and therefore have large fine grid
 !!  norb_tmp=tmb%orbs%norb/2
-!!  jlr=tmb%orbs%inwhichlocreg(norb_tmp) 
+!!  jlr=tmb%orbs%inwhichlocreg(norb_tmp)
 !!  iiat_tmp=tmb%orbs%onwhichatom(norb_tmp)
 !!  jjorb=norb_tmp
 !!  jjat=iiat_tmp
@@ -1638,7 +1643,7 @@ END SUBROUTINE tmb_overlap_onsite_rotate
 !!         ! find distances from this atom, sort atoms into neighbour order and take atom and 3 nearest neighbours
 !!         do iat=1,at%astruct%nat
 !!            dist(iat)=-dsqrt(rxyz_ref(1,iat)**2+rxyz_ref(2,iat)**2+rxyz_ref(3,iat)**2)
-!!         end do             
+!!         end do
 !!         call sort_positions(at%astruct%nat,dist,ipiv)
 !!         do iat=1,min(4,at%astruct%nat)
 !!            rxyz4_ref(:,iat)=rxyz_ref(:,ipiv(iat))
@@ -1647,7 +1652,7 @@ END SUBROUTINE tmb_overlap_onsite_rotate
 !!         ! find distances from this atom, sort atoms into neighbour order and take atom and 3 nearest neighbours
 !!         do iat=1,at%astruct%nat
 !!            dist(iat)=-dsqrt(rxyz_new(1,iat)**2+rxyz_new(2,iat)**2+rxyz_new(3,iat)**2)
-!!         end do             
+!!         end do
 !!         call sort_positions(at%astruct%nat,dist,ipiv)
 !!         do iat=1,min(4,at%astruct%nat)
 !!            rxyz4_new(:,iat)=rxyz_new(:,ipiv(iat))
@@ -1667,7 +1672,7 @@ END SUBROUTINE tmb_overlap_onsite_rotate
 !!         call reformat_check(reformat,reformat_reason,tol,at,tmb%lzd%hgrids,tmb%lzd%hgrids,&
 !!              tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_c,&
 !!              tmb%lzd%llr(jlr)%wfd%nvctr_c,tmb%lzd%llr(jlr)%wfd%nvctr_c,&
-!!              n,nj,ns,nsj,frag_trans,centre_old_box,centre_new_box,da)  
+!!              n,nj,ns,nsj,frag_trans,centre_old_box,centre_new_box,da)
 !!
 !!         if (.not. reformat) then ! copy psi into psi_tmp
 !!            do j=1,tmb%lzd%llr(jlr)%wfd%nvctr_c
@@ -1699,7 +1704,7 @@ END SUBROUTINE tmb_overlap_onsite_rotate
 !!                 frag_trans,psi_tmp(jstart:))
 !!
 !!            jstart=jstart+tmb%lzd%llr(jlr)%wfd%nvctr_c+7*tmb%lzd%llr(jlr)%wfd%nvctr_f
-!!   
+!!
 !!            i_all=-product(shape(phigold))*kind(phigold)
 !!            deallocate(phigold,stat=i_stat)
 !!            call memocc(i_stat,i_all,'phigold',subname)
@@ -1856,7 +1861,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
 
   call reformat_check(reformat,reformat_reason,tol,at,hgrids,hgrids_old,&
        nvctr_c_old,nvctr_f_old,llr%wfd%nvctr_c,llr%wfd%nvctr_f,&
-       n_old,n,ns_old,ns,frag_trans,centre_old_box,centre_new_box,da)  
+       n_old,n,ns_old,ns,frag_trans,centre_old_box,centre_new_box,da)
 
   if (.not. reformat) then
      call read_psi_compress(unitwf, useFormattedInput, nvctr_c_old, nvctr_f_old, psi, lstat, error)
@@ -1912,7 +1917,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   !i_all=-product(shape(gpsi))*kind(gpsi)
   !deallocate(gpsi,stat=i_stat)
   !call memocc(i_stat,i_all,'gpsi',subname)
-  !! END DEBUG 
+  !! END DEBUG
 
 END SUBROUTINE readonewave_linear
 
@@ -1966,7 +1971,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   real(gp), dimension(:,:), allocatable :: rxyz_new, rxyz4_ref, rxyz4_new, rxyz_ref
   real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
   real(kind=gp), dimension(:), allocatable :: dist
-  real(gp) :: max_shift, mindist, Werror, dtol
+  real(gp) :: max_shift, Werror, dtol
 
   logical :: skip, binary
   integer :: itmb, jtmb, jat
@@ -2043,7 +2048,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),full_filename, &
                    & tmb%orbs,iorbp,ispinor,iorb_out,iforb)
                    !& ref_frags(ifrag_ref)%fbasis%forbs,iforb,ispinor,iorb_out)
-  
+
               ! read headers, reading lzd info directly into lzd_old, which is otherwise nullified
               call io_read_descr_linear(unitwf, (iformat == WF_FORMAT_PLAIN), iorb_old, eval, &
                    Lzd_old%Llr(ilr)%d%n1,Lzd_old%Llr(ilr)%d%n2,Lzd_old%Llr(ilr)%d%n3, &
@@ -2105,12 +2110,12 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
                  stop
               end if
               close(unitwf)
-              
+
            end do
         end do loop_iorb
      end do loop_iforb
      isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-     isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat        
+     isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
   end do
 
   ! reformat fragments
@@ -2147,7 +2152,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
         end if
 
         if (skip) then
-           isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
+           isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
            isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
            cycle
         end if
@@ -2186,7 +2191,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
         if (Werror > W_tol .and. ((ref_frags(ifrag_ref)%astruct_env%nat/=0 .and. iproc==0) &
              .or. ref_frags(ifrag_ref)%astruct_env%nat==0))then
            call f_increment(itoo_big)
-        end if 
+        end if
 
         ! useful for identifying which fragments are problematic
         if (iproc==0 .and. Werror>W_tol) then
@@ -2196,7 +2201,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            write(*,*) ''
         end if
 
-        isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
+        isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
         isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
      end do
 
@@ -2239,7 +2244,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            end do
         end do
         isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-        isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
+        isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
      end do
 
      deallocate(frag_trans_frag)
@@ -2287,7 +2292,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               ! find distances from this atom
               do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
                    dist(iat)=-dsqrt(rxyz_ref(1,iat)**2+rxyz_ref(2,iat)**2+rxyz_ref(3,iat)**2)
-              end do             
+              end do
 
               ! sort atoms into neighbour order
               call sort_positions(ref_frags(ifrag_ref)%astruct_frg%nat,dist,ipiv)
@@ -2308,7 +2313,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            end do
         end do
         isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-        isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
+        isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
 
         call f_free(ipiv)
         call f_free(dist)
@@ -2360,7 +2365,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   !   ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
   !end do
   !call f_free(gpsi)
-  !! END DEBUG 
+  !! END DEBUG
 
   ! Read the coefficient file for each fragment and assemble total coeffs
   ! coeffs should eventually go into ref_frag array and then point? or be copied to (probably copied as will deallocate frag)
@@ -2379,7 +2384,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
         !assume kernel is in binary if tmbs are...
         binary=(iformat == WF_FORMAT_BINARY)
         call read_dense_matrix(full_filename, binary, tmb%orbs%nspinor, ref_frags(ifrag_ref)%fbasis%forbs%norb, &
-             ref_frags(ifrag_ref)%kernel, ref_frags(ifrag_ref)%astruct_frg%nat) 
+             ref_frags(ifrag_ref)%kernel, ref_frags(ifrag_ref)%astruct_frg%nat)
 
 
         if (ref_frags(ifrag_ref)%nbasis_env/=0) then
@@ -2388,7 +2393,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            !assume kernel is in binary if tmbs are...
            binary=(iformat == WF_FORMAT_BINARY)
            call read_dense_matrix(full_filename, binary, tmb%orbs%nspinor, ref_frags(ifrag_ref)%nbasis_env, &
-                ref_frags(ifrag_ref)%kernel_env, ref_frags(ifrag_ref)%astruct_env%nat) 
+                ref_frags(ifrag_ref)%kernel_env, ref_frags(ifrag_ref)%astruct_env%nat)
         end if
 
         !!if (iproc==0) then
@@ -2402,7 +2407,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
         !!   close(32)
         !!end if
 
-     else 
+     else
         full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)//'_coeff.bin'
         call f_open_file(unitwf,file=trim(full_filename),binary=iformat == WF_FORMAT_BINARY)
         call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
@@ -2527,7 +2532,7 @@ END SUBROUTINE readmywaves_linear_new
       perz=(at%astruct%geocode /= 'F')
 
       !if coordinates wrap around (in periodic), correct before shifting
-      !assume that the fragment itself doesn't, just the environment... 
+      !assume that the fragment itself doesn't, just the environment...
       !think about other periodic cases that might need fixing...
       do iat=1,at%astruct%nat-ref_frag%astruct_frg%nat
          dist(iat) = dist_and_shift(perx,at%astruct%cell_dim(1),frag_trans%rot_center_new(1),rxyz_new_all(1,iat))**2
@@ -2538,7 +2543,7 @@ END SUBROUTINE readmywaves_linear_new
 !!$              at%astruct%cell_dim(:),rxyz_new_all(:,iat)
 
          rxyz_new_all(:,iat) = rxyz_new_all(:,iat)-frag_trans%rot_center_new
-      end do             
+      end do
 
       do iat=1,ref_frag%astruct_frg%nat
          rxyz_frg_new(:,iat)=rxyz_frg_new(:,iat)-frag_trans%rot_center_new
@@ -2596,14 +2601,14 @@ END SUBROUTINE readmywaves_linear_new
 !!$         write(*,'(A,3(I3,2x),2x,2(3(F12.6,1x),2x))') 'ifrag,ifrag_ref,iat,rxyz_ref,rxyz_new',&
 !!$              ifrag,ifrag_ref,iat,rxyz_ref_sorted(:,iat),rxyz_new(:,iat)
 !!$      end do
- 
+
       !ADD CHECKING OF ATOM TYPE TO ABOVE SORTING PROCEDURE, for the moment assuming identical atom types
       !if error is above some threshold and we have some degenerate distances
       !then try to find ordering which gives lowest Wahba error
       !also give preference to zero rotation
       !write(*,'(A)') 'Problem matching environment atoms to new coordinates, attempting to find correct order'
       !write(*,'(A)') 'Checking for ordering giving a more accurate transformation/no rotation'
-        
+
       num_env=ref_frag%astruct_env%nat-ref_frag%astruct_frg%nat
 
       !assume that we have only a small number of identical distances, or this would become expensive...
@@ -2682,7 +2687,7 @@ END SUBROUTINE readmywaves_linear_new
          end do
          call find_frag_trans(ref_frag%astruct_env%nat,rxyz_ref,rxyz_new_trial,frag_trans,Werror)
          !if (Werror > W_tol) call f_increment(itoo_big)
-           
+
          do iat=1,ref_frag%astruct_frg%nat
             frag_env_mapping(iat,3) = frag_env_mapping(iat,2)
          end do
@@ -2691,7 +2696,7 @@ END SUBROUTINE readmywaves_linear_new
                  + permutations(iat-ref_frag%astruct_frg%nat,minperm),2)
          end do
 
-         ! fill in 1st and 2nd columns of env_mapping      
+         ! fill in 1st and 2nd columns of env_mapping
          itmb = 0
          do iat=1,ref_frag%astruct_env%nat
             do iorb=1,orbs%norb
@@ -2851,7 +2856,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
                       !& ref_frags(ifrag_ref)%fbasis%forbs,iforb,ispinor,iorb_out)
 
                  !print *,'before crash',iorbp,trim(full_filename),iiorb,iforb
-  
+
                  call io_read_descr_linear(unitwf,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n_old(1), n_old(2), n_old(3), &
                       ns_old(1), ns_old(2), ns_old(3), hgrids_old, lstat, error, orbs%onwhichatom(iiorb), &
                       locrad(iiorb), locregCenter, confPotOrder, confPotprefac)
@@ -2867,12 +2872,12 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
                     stop
                  end if
                  call f_close(unitwf)
-              
+
               end do
            end do loop_iorb
         end do loop_iforb
         isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-        isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat        
+        isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
      end do
   else
      call yaml_warning('Unknown wavefunction file format from filename.')
@@ -2902,7 +2907,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
         end if
      end do
   end do
-  
+
   ! Allocate the array of localisation regions
   allocate(lzd%Llr(lzd%nlr))
   do ilr=1,lzd%nlr
@@ -2950,7 +2955,7 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
 !!$  call allocate_wfd(lzd_old%glr%wfd)
 !!$
 !!$  do iseg=1,lzd_old%glr%wfd%nseg_c+lzd_old%glr%wfd%nseg_f
-!!$     lzd_old%glr%wfd%keyglob(1,iseg)    = lzd%glr%wfd%keyglob(1,iseg) 
+!!$     lzd_old%glr%wfd%keyglob(1,iseg)    = lzd%glr%wfd%keyglob(1,iseg)
 !!$     lzd_old%glr%wfd%keyglob(2,iseg)    = lzd%glr%wfd%keyglob(2,iseg)
 !!$     lzd_old%glr%wfd%keygloc(1,iseg)    = lzd%glr%wfd%keygloc(1,iseg)
 !!$     lzd_old%glr%wfd%keygloc(2,iseg)    = lzd%glr%wfd%keygloc(2,iseg)
@@ -2976,7 +2981,7 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   lzd_old%hgrids(1)=lzd%hgrids(1)
   lzd_old%hgrids(2)=lzd%hgrids(2)
   lzd_old%hgrids(3)=lzd%hgrids(3)
- 
+
   !!ii=0
   !!do ilr=1,lzd_old%nlr
 
@@ -2991,7 +2996,7 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   !!    call allocate_wfd(lzd_old%llr(ilr)%wfd,subname)
 
   !!    do iseg=1,lzd_old%llr(ilr)%wfd%nseg_c+lzd_old%llr(ilr)%wfd%nseg_f
-  !!       lzd_old%llr(ilr)%wfd%keyglob(1,iseg)    = lzd%llr(ilr)%wfd%keyglob(1,iseg) 
+  !!       lzd_old%llr(ilr)%wfd%keyglob(1,iseg)    = lzd%llr(ilr)%wfd%keyglob(1,iseg)
   !!       lzd_old%llr(ilr)%wfd%keyglob(2,iseg)    = lzd%llr(ilr)%wfd%keyglob(2,iseg)
   !!       lzd_old%llr(ilr)%wfd%keygloc(1,iseg)    = lzd%llr(ilr)%wfd%keygloc(1,iseg)
   !!       lzd_old%llr(ilr)%wfd%keygloc(2,iseg)    = lzd%llr(ilr)%wfd%keygloc(2,iseg)
@@ -3036,7 +3041,7 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
       if (abs(tt-1.d0) > 1.d-3) then
          !write(*,*)'wrong phi_old',iiorb,tt
          call yaml_warning('support function, value:'//trim(yaml_toa(iiorb,fmt='(i6)'))//trim(yaml_toa(tt,fmt='(1es18.9)')))
-         !stop 
+         !stop
       end if
   end do
 !  if (iproc==0) call yaml_mapping_close()
@@ -3144,7 +3149,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   logical, dimension(3) :: per
   character(len=100) :: fragdir
   integer :: ifrag, ifrag_ref, iforb, isforb
-  real(kind=gp), dimension(:,:,:), allocatable :: workarraytmp 
+  real(kind=gp), dimension(:,:,:), allocatable :: workarraytmp
   logical :: gperx, gpery, gperz, lperx, lpery, lperz
   integer :: gnbl1, gnbr1, gnbl2, gnbr2, gnbl3, gnbr3, lnbl1, lnbr1, lnbl2, lnbr2, lnbl3, lnbr3
 
@@ -3193,14 +3198,14 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
       call reformat_check(reformat,reformat_reason,tol,at,lzd_old%hgrids,tmb%lzd%hgrids,&
            lzd_old%llr(ilr_old)%wfd%nvctr_c,lzd_old%llr(ilr_old)%wfd%nvctr_f,&
            tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
-           n_old,n,ns_old,ns,frag_trans(iorb),centre_old_box,centre_new_box,da)  
+           n_old,n,ns_old,ns,frag_trans(iorb),centre_old_box,centre_new_box,da)
       max_shift = max(max_shift,sqrt(da(1)**2+da(2)**2+da(3)**2))
 !reformat=.true. !!!!temporary hack
       ! just copy psi from old to new as reformat not necessary
-      if (.not. reformat) then 
+      if (.not. reformat) then
 
           ! copy from phi_array_old, can use new keys as they should be identical to old keys
-          if (present(phi_array_old)) then 
+          if (present(phi_array_old)) then
              call compress_plain(n(1),n(2),0,n(1),0,n(2),0,n(3), &
                   tmb%lzd%llr(ilr)%wfd%nseg_c,tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%keygloc(1,1), &
                   tmb%lzd%llr(ilr)%wfd%keyvloc(1),tmb%lzd%llr(ilr)%wfd%nseg_f,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
@@ -3211,7 +3216,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
              jstart=jstart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
 
           ! directly copy psi_old to psi, first check psi_old is actually allocated
-          else 
+          else
              if (.not. associated(psi_old)) stop 'psi_old not associated in reformat_supportfunctions'
              do j=1,lzd_old%llr(ilr_old)%wfd%nvctr_c
                 tmb%psi(jstart)=psi_old(jstart_old)
@@ -3229,7 +3234,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
                 jstart=jstart+7
                 jstart_old=jstart_old+7
             end do
-         
+
          end if
       else
           ! Add the derivatives to the basis functions
@@ -3260,7 +3265,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
                   lzd_old%llr(ilr_old)%wfd%keyvloc,lzd_old%llr(ilr_old)%wfd%keygloc,&
                   jstart_old,psi_old(jstart_old),phigold)
           end if
-   
+
           !write(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
           !write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*product(n_old+1),phigold,1)
 
@@ -3365,7 +3370,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
           call f_free(workarraytmp)
 
           !write(*,*) 'iproc,norm psirold ',iproc,dnrm2(product(2*n_old+31),psirold,1),2*n_old+31
-                    
+
           call timing(iproc,'Reformatting ','ON')
           if (psirold_ok) then
              !print*,'using psirold to reformat',iiorb
@@ -3404,7 +3409,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
           call timing(iproc,'Reformatting ','OF')
           jstart=jstart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
 
-          if (present(phi_array_old)) then   
+          if (present(phi_array_old)) then
              nullify(phigold)
           else
              call f_free_ptr(phigold)
@@ -3420,7 +3425,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   end if
   if (iproc==0) call yaml_map('max shift of a locreg center',max_shift,fmt='(es9.2)')
 
-  ! Determine the dumping factor for the confinement. In the limit where the atoms 
+  ! Determine the dumping factor for the confinement. In the limit where the atoms
   ! have not moved, it goes to zero; in the limit where they have moved a lot, it goes to one.
   tt = exp(max_shift*3.465735903d0) - 1.d0 !exponential which is 0 at 0.0 and 1 at 0.2
   tt = min(tt,1.d0) !make sure that the value is not larger than 1.0
@@ -3438,11 +3443,12 @@ END SUBROUTINE reformat_supportfunctions
 
 !> Checks whether reformatting is needed based on various criteria and returns final shift and centres needed for reformat
 subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgrids,nvctr_c_old,nvctr_f_old,&
-       nvctr_c,nvctr_f,n_old,n,ns_old,ns,frag_trans,centre_old_box,centre_new_box,da)  
+       nvctr_c,nvctr_f,n_old,n,ns_old,ns,frag_trans,centre_old_box,centre_new_box,da)
   use module_base
   use module_types
   use module_fragments
   use yaml_output
+  use box
   implicit none
 
   logical, intent(out) :: reformat_needed ! logical telling whether reformat is needed
@@ -3456,12 +3462,16 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   real(gp), dimension(3), intent(out) :: da ! shift to be used in reformat
   type(fragment_transformation), intent(in) :: frag_trans ! includes centres of rotation in global coordinates, shift and angle
 
-  ! local variables 
-  real(gp) :: displ, mindist
+
+  ! local variables
+  real(gp) :: displ!, mindist
   integer, dimension(3) :: nb
   logical, dimension(3) :: per
   !real(gp), dimension(3) :: centre_new
+  type(cell) :: mesh
 
+
+  mesh=cell_new(at%astruct%geocode,n,hgrids)
   !conditions for periodicity in the three directions
   per(1)=(at%astruct%geocode /= 'F')
   per(2)=(at%astruct%geocode == 'P')
@@ -3474,13 +3484,16 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   call ext_buffers_coarse(per(3),nb(3))
 
   ! centre of rotation with respect to start of box
-  centre_old_box(1)=mindist(per(1),at%astruct%cell_dim(1),frag_trans%rot_center(1),hgrids_old(1)*(ns_old(1)-0.5_dp*nb(1)))
-  centre_old_box(2)=mindist(per(2),at%astruct%cell_dim(2),frag_trans%rot_center(2),hgrids_old(2)*(ns_old(2)-0.5_dp*nb(2)))
-  centre_old_box(3)=mindist(per(3),at%astruct%cell_dim(3),frag_trans%rot_center(3),hgrids_old(3)*(ns_old(3)-0.5_dp*nb(3)))
+  centre_old_box=closest_r(mesh,frag_trans%rot_center,center=hgrids_old*(ns_old-0.5_dp*nb))
+  centre_new_box=closest_r(mesh,frag_trans%rot_center_new,center=hgrids*(ns-0.5_dp*nb))
 
-  centre_new_box(1)=mindist(per(1),at%astruct%cell_dim(1),frag_trans%rot_center_new(1),hgrids(1)*(ns(1)-0.5_dp*nb(1)))
-  centre_new_box(2)=mindist(per(2),at%astruct%cell_dim(2),frag_trans%rot_center_new(2),hgrids(2)*(ns(2)-0.5_dp*nb(2)))
-  centre_new_box(3)=mindist(per(3),at%astruct%cell_dim(3),frag_trans%rot_center_new(3),hgrids(3)*(ns(3)-0.5_dp*nb(3)))
+  ! centre_old_box(1)=mindist(per(1),at%astruct%cell_dim(1),frag_trans%rot_center(1),hgrids_old(1)*(ns_old(1)-0.5_dp*nb(1)))
+  ! centre_old_box(2)=mindist(per(2),at%astruct%cell_dim(2),frag_trans%rot_center(2),hgrids_old(2)*(ns_old(2)-0.5_dp*nb(2)))
+  ! centre_old_box(3)=mindist(per(3),at%astruct%cell_dim(3),frag_trans%rot_center(3),hgrids_old(3)*(ns_old(3)-0.5_dp*nb(3)))
+  !
+  ! centre_new_box(1)=mindist(per(1),at%astruct%cell_dim(1),frag_trans%rot_center_new(1),hgrids(1)*(ns(1)-0.5_dp*nb(1)))
+  ! centre_new_box(2)=mindist(per(2),at%astruct%cell_dim(2),frag_trans%rot_center_new(2),hgrids(2)*(ns(2)-0.5_dp*nb(2)))
+  ! centre_new_box(3)=mindist(per(3),at%astruct%cell_dim(3),frag_trans%rot_center_new(3),hgrids(3)*(ns(3)-0.5_dp*nb(3)))
 
   !print*,'rotated nb',trim(yaml_toa(rotate_vector(frag_trans%rot_axis,frag_trans%theta,hgrids*-0.5_dp*nb),fmt='(f12.8)'))
   !print*,'rotated centre old',trim(yaml_toa(rotate_vector(frag_trans%rot_axis,frag_trans%theta,centre_old_box),fmt='(f12.8)'))
@@ -3497,7 +3510,7 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   !write(*,'(a,3(3(f12.8,x),3x))') 'final centre box',centre_old_box,centre_new_box,da
   !write(*,'(a,3(3(f12.8,x),3x))') 'final centre',frag_trans%rot_center,frag_trans%rot_center_new
 
-  displ=sqrt(da(1)**2+da(2)**2+da(3)**2)
+  displ=square(mesh,da)!sqrt(da(1)**2+da(2)**2+da(3)**2)
 
   !reformatting criterion
   if (hgrids(1) == hgrids_old(1) .and. hgrids(2) == hgrids_old(2) .and. hgrids(3) == hgrids_old(3) &
@@ -3508,7 +3521,7 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
       reformat_needed=.false.
   else
       reformat_needed=.true.
-      if (hgrids(1) /= hgrids_old(1) .or. hgrids(2) /= hgrids_old(2) .or. hgrids(3) /= hgrids_old(3)) then 
+      if (hgrids(1) /= hgrids_old(1) .or. hgrids(2) /= hgrids_old(2) .or. hgrids(3) /= hgrids_old(3)) then
          reformat_reason(1) = reformat_reason(1) + 1
       end if
       if (nvctr_c  /= nvctr_c_old) then
@@ -3517,13 +3530,13 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
       if (nvctr_f  /= nvctr_f_old) then
          reformat_reason(3) = reformat_reason(3) + 1
       end if
-      if (n_old(1) /= n(1)  .or. n_old(2) /= n(2) .or. n_old(3) /= n(3) )  then  
+      if (n_old(1) /= n(1)  .or. n_old(2) /= n(2) .or. n_old(3) /= n(3) )  then
          reformat_reason(4) = reformat_reason(4) + 1
       end if
-      if (abs(displ) > tol)  then  
+      if (abs(displ) > tol)  then
          reformat_reason(5) = reformat_reason(5) + 1
       end if
-      if (abs(frag_trans%theta) > tol)  then  
+      if (abs(frag_trans%theta) > tol)  then
          reformat_reason(6) = reformat_reason(6) + 1
       end if
   end if
@@ -3593,7 +3606,7 @@ subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,ps
         jstart=jstart+1
      end do
   end do
-   
+
   ! fine part
   do iseg=1,nseg_f
      j0=keygloc(1,nseg_c + iseg)

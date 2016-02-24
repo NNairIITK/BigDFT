@@ -3,9 +3,7 @@ SHORT_TESTDIRS = MINHOP
 
 LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	NEB \
-	SPLSAD
-
-#MHGPS_LJ_CONNECT
+	SPLSAD MHGPS_LJ_CONNECT
 
 EXTRA_DIST = MH_taskgroups
 
@@ -57,7 +55,7 @@ global.mon.out : test.minhop.out
 	tols=`basename $< .out.ref.yaml` ;\
 	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ; \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
-		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
+		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@
 
 ##if USE_OCL
 ##oclrun_message = oclrun

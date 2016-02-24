@@ -24,7 +24,7 @@ module unitary_tests
   contains
 
 
-    !> perform the communication needed for the potential and verify that the results is as expected
+    !> Perform the communication needed for the potential and verify that the results is as expected
     subroutine check_communication_potential(iproc,denspot,tmb)
       use module_base
       use module_types
@@ -38,8 +38,9 @@ module unitary_tests
       type(DFT_local_fields), intent(inout) :: denspot
       !local variables
       logical :: dosome, abort
-      integer :: i1,i2,i3,ind,n3p,ilr,iorb,ilr_orb,n2i,n1i,ierr,numtot,ishift,ispin
+      integer :: i1,i2,i3,ind,n3p,ilr,iorb,ilr_orb,n2i,n1i,numtot,ishift,ispin
       integer :: i1s, i1e, i2s, i2e, i3s, i3e, ii1, ii2, ii3
+      !integer :: ierr
       real(dp) :: maxdiff,sumdiff,testval
       real(dp),parameter :: tol_calculation_mean=1.d-12
       real(dp),parameter :: tol_calculation_max=1.d-10
@@ -218,9 +219,10 @@ module unitary_tests
       integer,intent(in) :: check_sumrho
     
       ! Local variables
-      integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
-      integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, ind, ikernel, iim
-      integer :: iorbmin, iorbmax, jorb, iall, istat, ispin,ishift
+      integer :: ist, iorb, iiorb, ilr, i, ii, iixyz, nxyz, ipt, i0, ierr, jproc
+      integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, ind, ikernel
+      !integer :: iz, iy, ix, iix, iiy, iiz, iim
+      integer :: iorbmin, iorbmax, jorb, ispin,ishift
       integer :: n2, n3, ii1, ii2, ii3
       real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, hxh, hyh, hzh, factor, ref_value
       real(kind=8) :: diff
@@ -745,7 +747,7 @@ module unitary_tests
           real(kind=8) :: sine_taylor
     
           ! Local variables
-          real(kind=8) :: xxtmp, x, x2, x3, x5, x7, x9, x11, x13, x15
+          real(kind=8) :: x, x2, x3, x5, x7, x9, x11, x13, x15
           real(kind=8),parameter :: pi=3.14159265358979323846d0
           real(kind=8),parameter :: pi2=6.28318530717958647693d0
           real(kind=8),parameter :: inv6=1.66666666666666666667d-1
@@ -858,7 +860,8 @@ module unitary_tests
        real(wp), dimension(:,:), allocatable :: checksum
        real(wp) :: epsilon,tol
        logical :: abort, isoverlap
-       integer :: jjorb, ilr, jlr, ldim, gdim, iispin, jjspin, ist, niorb, njorb, jjjorb, is, ie
+       integer :: jjorb, ilr, jlr, ldim, gdim, jjspin, ist, niorb, njorb, jjjorb, is, ie
+       !integer :: iispin
        real(kind=8),dimension(:),allocatable :: psii, psij, psiig, psijg, mat_compr
        real(kind=8),dimension(:,:),allocatable :: matp
        real(kind=8) :: ddot

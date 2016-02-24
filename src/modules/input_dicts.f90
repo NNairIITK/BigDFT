@@ -5,7 +5,7 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 !> Module reading the old format (before 1.7) for the input
 module input_old_text_format
@@ -103,7 +103,7 @@ contains
     character(len = 100) :: f0
     character(len=max_field_length) :: st
     type(dictionary), pointer :: vals,tmp,tmp0
-    
+
     ! Parse all files.
     call set_inputfile(f0, radical, PERF_VARIABLES)
     nullify(vals)
@@ -121,7 +121,7 @@ contains
        end if
        call set(dict//PERF_VARIABLES, vals)
     end if
-       
+
     call set_inputfile(f0, radical, DFT_VARIABLES)
     nullify(vals)
     call read_dft_from_text_format(mpi_env%iproc,vals, trim(f0))
@@ -160,10 +160,10 @@ contains
     !call set_inputfile(f0, radical, 'lin')
     !call read_lin_and_frag_from_text_format(mpi_env%iproc,dict,trim(radical)) !as it also reads fragment
 
-    call set_inputfile(f0, radical, 'neb')
-    nullify(vals)
-    call read_neb_from_text_format(mpi_env%iproc,vals, trim(f0))
-    if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
+    ! call set_inputfile(f0, radical, 'neb')
+    ! nullify(vals)
+    ! call read_neb_from_text_format(mpi_env%iproc,vals, trim(f0))
+    ! if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
 
     if (mpi_env%iproc==0) then
        call yaml_warning('Input files read in the old format. '//&
@@ -174,7 +174,7 @@ contains
   end subroutine input_from_old_text_format
 
   !> Set and check the input file
-  !! if radical is empty verify if the file input.ext exists. 
+  !! if radical is empty verify if the file input.ext exists.
   !! otherwise search for radical.ext
   !! if the so defined file is not existing, then filename becomes default.ext
   subroutine set_inputfile(filename, radical, ext)
@@ -331,7 +331,7 @@ contains
     real(gp) :: dummy_real
 
     !geometry input parameters
-    call input_set_file(iproc,(iproc == 0),trim(filename),exists,GEOPT_VARIABLES)  
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,GEOPT_VARIABLES)
     !if (exists) in%files = in%files + INPUTS_GEOPT
     !call the variable, its default value, the line ends if there is a comment
     if (.not. exists) then
@@ -412,7 +412,7 @@ contains
 
   END SUBROUTINE read_geopt_from_text_format
 
-  !> Read the input variables needed for MD 
+  !> Read the input variables needed for MD
   !! Every argument should be considered as mandatory
   subroutine read_md_from_text_format(iproc,dict,filename)
     use module_base
@@ -433,7 +433,7 @@ contains
     real(gp) :: dummy_real
 
     !geometry input parameters
-    call input_set_file(iproc,(iproc == 0),trim(filename),exists,MD_VARIABLES)  
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,MD_VARIABLES)
     !call the variable, its default value, the line ends if there is a comment
     if (.not. exists) then
        call input_free(.false.)
@@ -497,7 +497,7 @@ contains
     !call set(dict // RPNRM_CV, dummy_real, fmt = "(E8.1)")
     call input_var(dummy_int,'0',dict // NORBSEMPTY)
     !call set(dict // NORBSEMPTY, dummy_int)
-    call input_var(dummy_real,'0.0',dict // TEL) 
+    call input_var(dummy_real,'0.0',dict // TEL)
     !call set(dict // TEL, dummy_real, fmt = "(E9.2)")
     call input_var(dummy_int,'1',dict // OCCOPT,comment="")
     !call set(dict // OCCOPT, dummy_int)
@@ -525,7 +525,7 @@ contains
     character(len = 4) :: dummy_str
 
     !Self-Interaction Correction input parameters
-    call input_set_file(iproc,(iproc == 0),trim(filename),exists,'SIC Parameters')  
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,'SIC Parameters')
     !if (exists) in%files = in%files + INPUTS_SIC
     if (.not.exists) then
        call input_free(.false.)
@@ -538,7 +538,7 @@ contains
     !call set(dict // SIC_APPROACH, dummy_str)
     call input_var(dummy_real,'0.0',dict // SIC_ALPHA,comment='')
     !call set(dict // SIC_ALPHA, dummy_real, fmt = "(E8.2)")
-    
+
     if (trim(dummy_str) .eqv. 'NK') then
        call input_var(dummy_real,'0.0',dict // SIC_FREF,comment='')
        !call set(dict // SIC_FREF, dummy_real, fmt = "(E8.2)")
@@ -561,7 +561,7 @@ contains
     character(len = 4) :: dummy_str
 
     !TD-DFT parameters
-    call input_set_file(iproc,(iproc == 0),trim(filename),exists,'TD-DFT Parameters')  
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,'TD-DFT Parameters')
     !if (exists) in%files = in%files + INPUTS_TDDFT
     !call the variable, its default value, the line ends if there is a comment
     if (.not. exists) then
@@ -754,7 +754,7 @@ contains
     call set(dict // TOLSYM, dummy_real, fmt = "(E8.1)")
     call input_var("signaling", .false., "Expose calculation results on Network",dummy_bool)
     call set(dict // SIGNALING, dummy_bool)
-    call input_var("signalTimeout", 0, "Time out on startup for signal connection",dummy_int)  
+    call input_var("signalTimeout", 0, "Time out on startup for signal connection",dummy_int)
     call set(dict // SIGNALTIMEOUT, dummy_int)
     call input_var("domain", "", "Domain to add to the hostname to find the IP", dummy_str)
     call set(dict // DOMAIN, dummy_str)
@@ -876,7 +876,7 @@ contains
 
   !> Read the linear input variables
   subroutine read_lin_and_frag_from_text_format(iproc,dict,run_name)
-    use dictionaries, dict_set => set 
+    use dictionaries, dict_set => set
     use module_defs, only: gp
     use module_input
     use public_keys
@@ -984,10 +984,10 @@ contains
     select case(dummy_int)
     case(100)
        call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIRMIN')
-    case(101) 
+    case(101)
        call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIAG')
        call dict_set(dict//LIN_KERNEL//MIXING_METHOD,'DEN')
-    case(102)      
+    case(102)
        call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIAG')
        call dict_set(dict//LIN_KERNEL//MIXING_METHOD,'POT')
     case(103)
@@ -1044,7 +1044,7 @@ contains
   !this variable makes sense only if fragments are specified
   call input_var(dummy_bool,'F')
   if (frag_bool) call dict_set(dict//FRAG_VARIABLES//TRANSFER_INTEGRALS,dummy_bool)
-  
+
   call input_var(dummy_bool,'F') !constrained DFT, obtained via the charges
   call input_var(dummy_int,'0',dict//LIN_GENERAL//EXTRA_STATES,&
        ranges=(/0,10000/),comment=comments)
@@ -1052,7 +1052,7 @@ contains
   ! Now read in the parameters specific for each atom type.
   comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential,'//&
        'localization radius, kernel cutoff, kernel cutoff FOE'
-  read_basis: do !while(itype <= atoms%astruct%ntypes) 
+  read_basis: do !while(itype <= atoms%astruct%ntypes)
   !!   if (exists) then
         call input_var(dummy_char,'C',input_iostat=ios)
         if (ios /= 0) exit read_basis
@@ -1090,64 +1090,64 @@ contains
   END SUBROUTINE read_lin_and_frag_from_text_format
 
 
-  subroutine read_neb_from_text_format(iproc,dict,filename)
-    use module_base
-    use module_input
-    use public_keys
-    use dictionaries
-    implicit none
-    character(len=*), intent(in) :: filename
-    type(dictionary), pointer :: dict
-    integer, intent(in) :: iproc
-
-    INTEGER :: num_of_images
-    CHARACTER (LEN=20) :: minimization_scheme
-    logical :: climbing, optimization, restart, exists
-    integer :: max_iterations
-    real(gp) :: convergence, damp, k_min, k_max, ds, temp_req, tolerance
-    CHARACTER (LEN=80) :: first_config, last_config, job_name, scratch_dir
-
-    NAMELIST /NEB/ scratch_dir,         &
-         climbing,            &
-         optimization,        &
-         minimization_scheme, &
-         damp,                &
-         temp_req,            &
-         k_max, k_min,        &
-         ds,                  &
-         max_iterations,      &
-         tolerance,           &
-         convergence,         &
-         num_of_images,       &
-         restart,             & ! not used
-         job_name,            & ! not used
-         first_config,        & ! not used
-         last_config            ! not used
-
-    inquire(file=trim(filename),exist=exists)
-    if (.not. exists) return
-
-    open(unit = 123, file = trim(filename), action = "read")
-    READ(123 , NML=NEB )
-    close(123)
-
-    if (.not. associated(dict)) call dict_init(dict)
-
-    call set(dict // GEOPT_METHOD, "NEB")
-    call set(dict // NEB_CLIMBING, climbing)
-    call set(dict // EXTREMA_OPT, optimization)
-    call set(dict // NEB_METHOD, minimization_scheme)
-    if (trim(minimization_scheme) == 'damped-verlet') call set(dict // NEB_DAMP, damp)
-    call set(dict // SPRINGS_K // 0, k_min)
-    call set(dict // SPRINGS_K // 1, k_max)
-    if (trim(minimization_scheme) == 'sim-annealing') call set(dict // TEMP, temp_req)
-    call set(dict // BETAX, ds)
-    call set(dict // NCOUNT_CLUSTER_X, max_iterations)
-    call set(dict // FIX_TOL, tolerance)
-    call set(dict // FORCEMAX, convergence)
-    call set(dict // NIMG, num_of_images)
-
-  end subroutine read_neb_from_text_format
+  ! subroutine read_neb_from_text_format(iproc,dict,filename)
+  !   use module_base
+  !   use module_input
+  !   use public_keys
+  !   use dictionaries
+  !   implicit none
+  !   character(len=*), intent(in) :: filename
+  !   type(dictionary), pointer :: dict
+  !   integer, intent(in) :: iproc
+  !
+  !   INTEGER :: num_of_images
+  !   CHARACTER (LEN=20) :: minimization_scheme
+  !   logical :: climbing, optimization, restart, exists
+  !   integer :: max_iterations
+  !   real(gp) :: convergence, damp, k_min, k_max, ds, temp_req, tolerance
+  !   CHARACTER (LEN=80) :: first_config, last_config, job_name, scratch_dir
+  !
+  !   NAMELIST /NEB/ scratch_dir,         &
+  !        climbing,            &
+  !        optimization,        &
+  !        minimization_scheme, &
+  !        damp,                &
+  !        temp_req,            &
+  !        k_max, k_min,        &
+  !        ds,                  &
+  !        max_iterations,      &
+  !        tolerance,           &
+  !        convergence,         &
+  !        num_of_images,       &
+  !        restart,             & ! not used
+  !        job_name,            & ! not used
+  !        first_config,        & ! not used
+  !        last_config            ! not used
+  !
+  !   inquire(file=trim(filename),exist=exists)
+  !   if (.not. exists) return
+  !
+  !   open(unit = 123, file = trim(filename), action = "read")
+  !   READ(123 , NML=NEB )
+  !   close(123)
+  !
+  !   if (.not. associated(dict)) call dict_init(dict)
+  !
+  !   call set(dict // GEOPT_METHOD, "NEB")
+  !   call set(dict // NEB_CLIMBING, climbing)
+  !   call set(dict // EXTREMA_OPT, optimization)
+  !   call set(dict // NEB_METHOD, minimization_scheme)
+  !   if (trim(minimization_scheme) == 'damped-verlet') call set(dict // NEB_DAMP, damp)
+  !   call set(dict // SPRINGS_K // 0, k_min)
+  !   call set(dict // SPRINGS_K // 1, k_max)
+  !   if (trim(minimization_scheme) == 'sim-annealing') call set(dict // TEMP, temp_req)
+  !   call set(dict // BETAX, ds)
+  !   call set(dict // NCOUNT_CLUSTER_X, max_iterations)
+  !   call set(dict // FIX_TOL, tolerance)
+  !   call set(dict // FORCEMAX, convergence)
+  !   call set(dict // NIMG, num_of_images)
+  !
+  ! end subroutine read_neb_from_text_format
 
   !> Read fragment input parameters
   subroutine fragment_input_variables_from_text_format(iproc,dump,filename,shouldexist,dict)
@@ -1173,7 +1173,7 @@ contains
     type(dictionary), pointer :: dict_frag
 
     !Linear input parameters
-    call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters') 
+    call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters')
 
     if (.not. exists .and. shouldexist) then ! we should be doing a fragment calculation, so this is a problem
        call f_err_throw("The file 'input.frag' is missing and fragment calculation was specified",&
@@ -1411,7 +1411,7 @@ contains
     call f_release_routine()
   end subroutine read_input_dict_from_files
 
-  !> set the parameters of the run 
+  !> set the parameters of the run
   subroutine dict_set_run_properties(run,run_id,input_id,posinp_id, &
        & outdir_id,log_to_disk,run_from_files,minimal_file)
     use public_keys, only: POSINP
@@ -1451,7 +1451,7 @@ contains
     if (present(run_from_files)) call set(run // USE_FILES, run_from_files)
 
     if (present(minimal_file)) call set(run // MINIMAL_FILE_KEY, minimal_file)
-    
+
   end subroutine dict_set_run_properties
 
   subroutine get_run_field(run,key,field,fallback_name)
@@ -1467,10 +1467,10 @@ contains
     field = run .get. key
     if (len_trim(field) == 0 .or. trim(field) == LOGFILE) call f_strcpy(src=&
          fallback_name // trim(run_id_toa()),dest=field)
-   
+
   end subroutine get_run_field
 
-  !> get the parameters of the run 
+  !> get the parameters of the run
   subroutine dict_get_run_properties(run,run_id,input_id,posinp_id,naming_id, &
        & outdir_id,log_to_disk,run_from_files, minimal_file)
     use public_keys, only: POSINP
@@ -1488,7 +1488,7 @@ contains
     if (present(input_id)) then
        call get_run_field(run,INPUT_NAME,input_id,'input')
     end if
-    if (present(posinp_id)) then 
+    if (present(posinp_id)) then
        call get_run_field(run,POSINP,posinp_id,'posinp')
     end if
     if (present(naming_id)) then
@@ -1533,7 +1533,7 @@ contains
 
   end function run_id_toa
 
-  !> this routine controls that the keys which are defined in the 
+  !> this routine controls that the keys which are defined in the
   !! input dictionary are all valid.
   !! in case there are some keys which are different, raise an error
   subroutine dict_run_validate(dict)
@@ -1563,18 +1563,19 @@ contains
          .item. LOGFILE,&
          .item. POSINP,&
          .item. MODE_VARIABLES,&
-         .item. PERF_VARIABLES,&  
-         .item. DFT_VARIABLES,&   
-         .item. PSOLVER,&   
-         .item. KPT_VARIABLES,&   
-         .item. GEOPT_VARIABLES,& 
-         .item. MD_VARIABLES,& 
-         .item. MIX_VARIABLES,&   
-         .item. SIC_VARIABLES,&   
-         .item. TDDFT_VARIABLES,& 
-         .item. LIN_GENERAL,&     
-         .item. LIN_BASIS,&       
-         .item. LIN_KERNEL,&      
+         .item. PERF_VARIABLES,&
+         .item. DFT_VARIABLES,&
+         .item. PSOLVER,&
+         .item. KPT_VARIABLES,&
+         .item. OUTPUT_VARIABLES,&
+         .item. GEOPT_VARIABLES,&
+         .item. MD_VARIABLES,&
+         .item. MIX_VARIABLES,&
+         .item. SIC_VARIABLES,&
+         .item. TDDFT_VARIABLES,&
+         .item. LIN_GENERAL,&
+         .item. LIN_BASIS,&
+         .item. LIN_KERNEL,&
          .item. LIN_BASIS_PARAMS,&
          .item. OCCUPATION,&
          .item. IG_OCCUPATION,&
@@ -1700,9 +1701,9 @@ contains
           call yaml_stream_connected(trim(path), unit_log, ierrr)
           if (ierrr /= 0) then
              ! Move possible existing log file.
-             !this section has to be done sequentially for each of the 
+             !this section has to be done sequentially for each of the
              !!taskgroups of BigDFT
-             !we should implement a lock, but for the moment let us do it three times for the processes which 
+             !we should implement a lock, but for the moment let us do it three times for the processes which
              !!did not had problem
              do trials=1,ntrials
                 call ensure_log_file(trim(writing_directory), trim(logfilename), ierr)
@@ -1765,7 +1766,7 @@ contains
     implicit none
     !Arguments
     type(dictionary), pointer :: dict            !< Dictionary of the input files. Should be initialized on entry
-    character(len = *), intent(in) :: fname      !< Name of the file where the dictionary has to be read from 
+    character(len = *), intent(in) :: fname      !< Name of the file where the dictionary has to be read from
     type(mpi_environment), intent(in) :: mpi_env !< Environment of the reading. Used for broadcasting the result
     integer, intent(in), optional :: document_id !< if the file has several yaml_documents, read the document_id. Defaults to zero
     !local variables
@@ -1840,7 +1841,7 @@ contains
   !  iocc=0
   !  do l = 1, lmax
   !     iocc=iocc+1
-  !     ! Get number of shells for this channel 
+  !     ! Get number of shells for this channel
   !     !(to be corrected, the rule is not the same)
   !     nl = int(aocc(iocc))
   !     ! Get number of semi cores for this channel
@@ -1992,7 +1993,7 @@ contains
       implicit none
       real(gp), intent(in) :: qelec
       integer :: ne
-      
+
       ne=nint(qelec)
       !if we have an excess of electrons, add one orbital
       if (qelec - real(ne,gp) > 1.e-12_gp) ne=ne+1
@@ -2001,7 +2002,7 @@ contains
     subroutine count_for_kpt(occ)
       implicit none
       type(dictionary), pointer :: occ
-      
+
       if (nspin == 2) then
          if (.not. has_key(occ, "up") .or. &
               & .not. has_key(occ, "down")) stop "missing up or down"
@@ -2016,7 +2017,7 @@ contains
       implicit none
       type(dictionary), pointer :: occ
       integer, intent(inout) :: n
-      
+
       type(dictionary), pointer :: it
       character(len = max_field_length) :: key
       integer :: iorb
@@ -2083,7 +2084,7 @@ contains
     integer :: ierror, ntu, ntd, nt, i, iorb, lline, lstring
     character(len = 100) :: line, string
     type(dictionary), pointer :: valu, vald
-    
+
     inquire(file = filename, exist = exists)
     if (.not. exists) return
 
