@@ -24,6 +24,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
   use psp_projectors_base, only: PSP_APPLY_SKIP
   use rhopotential, only: full_local_potential
   use public_enums
+  use rhopotential, only: updatePotential
   implicit none
   !Arguments
   logical, intent(in) :: scf  !< If .false. do not calculate the self-consistent potential
@@ -185,53 +186,56 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
         end do
      end if
 
-     if(wfn%orbs%nspinor==4) then
-        !this wrapper can be inserted inside the XC_potential routine
-        call PSolverNC(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
-             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
-             denspot%dpbox%n3d,denspot%xc,&
-             denspot%dpbox%hgrids,&
-             denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,&
-             energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
-     else
-
-        !!           denspot%rhov denspot%rhov+2.e-7   STEFAN Goedecker
-        call XC_potential(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
-             denspot%pkernel%mpi_env%mpi_comm,&
-             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
-             denspot%dpbox%hgrids,&
+!!$     if(wfn%orbs%nspinor==4) then
+!!$        !this wrapper can be inserted inside the XC_potential routine
+!!$        call PSolverNC(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
+!!$             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+!!$             denspot%dpbox%n3d,denspot%xc,&
+!!$             denspot%dpbox%hgrids,&
+!!$             denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,&
+!!$             energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
+!!$     else
+!!$
+!!$        !!           denspot%rhov denspot%rhov+2.e-7   STEFAN Goedecker
+!!$        call XC_potential(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
+!!$             denspot%pkernel%mpi_env%mpi_comm,&
+!!$             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
+!!$             denspot%dpbox%hgrids,&
              denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
-        call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn, iproc, nproc)
+!!$        call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn, iproc, nproc)
+!!$
+!!$        call H_potential('D',denspot%pkernel,&
+!!$             denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
+!!$             quiet=denspot%PSquiet,rho_ion=denspot%rho_ion) !optional argument
+!!$
+!!$        if (denspot%pkernel%method /= 'VAC') then
+!!$           energs%eelec=ehart_ps
+!!$           energs%eh=0.0_gp
+!!$        else
+!!$           energs%eelec=0.0_gp
+!!$           energs%eh=ehart_ps
+!!$        end if
+!!$
+!!$
+!!$        !this is not true, there is also Vext
+!!$        call denspot_set_rhov_status(denspot, HARTREE_POTENTIAL, itwfn, iproc, nproc)
+!!$
+!!$        !sum the two potentials in rhopot array
+!!$        !fill the other part, for spin, polarised
+!!$        if (wfn%orbs%nspin == 2) then
+!!$           call vcopy(denspot%dpbox%ndimpot,denspot%rhov(1),1,&
+!!$                denspot%rhov(1+denspot%dpbox%ndimpot),1)
+!!$        end if
+!!$        !spin up and down together with the XC part
+!!$        call axpy(denspot%dpbox%ndimpot*wfn%orbs%nspin,&
+!!$             1.0_dp,denspot%V_XC(1,1,1,1),1,&
+!!$             denspot%rhov(1),1)
+!!$
+!!$        !here a external potential with spinorial indices can be added
+!!$     end if
 
-        call H_potential('D',denspot%pkernel,&
-             denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
-             quiet=denspot%PSquiet,rho_ion=denspot%rho_ion) !optional argument
-
-        if (denspot%pkernel%method /= 'VAC') then
-           energs%eelec=ehart_ps
-           energs%eh=0.0_gp
-        else
-           energs%eelec=0.0_gp
-           energs%eh=ehart_ps
-        end if
-
-
-        !this is not true, there is also Vext
-        call denspot_set_rhov_status(denspot, HARTREE_POTENTIAL, itwfn, iproc, nproc)
-
-        !sum the two potentials in rhopot array
-        !fill the other part, for spin, polarised
-        if (wfn%orbs%nspin == 2) then
-           call vcopy(denspot%dpbox%ndimpot,denspot%rhov(1),1,&
-                denspot%rhov(1+denspot%dpbox%ndimpot),1)
-        end if
-        !spin up and down together with the XC part
-        call axpy(denspot%dpbox%ndimpot*wfn%orbs%nspin,&
-             1.0_dp,denspot%V_XC(1,1,1,1),1,&
-             denspot%rhov(1),1)
-
-        !here a external potential with spinorial indices can be added
-     end if
+     !here the update can be skippped for the Gross-Pitaevskij model
+     call updatePotential(wfn%orbs%nspinor,denspot,energs)
 
      !here the potential can be mixed
      if (scf_mode .hasattr. 'MIXING') then
@@ -1218,7 +1222,7 @@ subroutine NonLocalHamiltonianApplication_old(iproc,at,npsidim_orbs,orbs,&
                     end if
                     istart_c=1
 
-                    call nl_psp_application()
+                    call nl_psp_application_old()
 
                     !                print *,'iorb,iat,eproj',iorb+orbs%isorb,ispsi,iat,eproj_sum
                     ispsi=ispsi+&
@@ -1279,7 +1283,7 @@ subroutine NonLocalHamiltonianApplication_old(iproc,at,npsidim_orbs,orbs,&
                      end if
                  end do
                  mproj=nl%pspd(iat)%mproj
-                 call nl_psp_application()
+                 call nl_psp_application_old()
 
                  !print *,'iorb,iat,eproj',iorb+orbs%isorb,iat,eproj_sum
               end do loop_atoms_2
@@ -1355,7 +1359,7 @@ contains
 !!$  end function nproj
 
   !>code factorization useful for routine restructuring
-  subroutine nl_psp_application()
+  subroutine nl_psp_application_old()
     implicit none
     !local variables
     integer :: ncplx_p,ncplx_w,n_w,nvctr_p
@@ -1403,7 +1407,7 @@ contains
                nl%proj,psi(ispsi),hpsi(ispsi),eproj_sum)
        end if
     end if
-  end subroutine nl_psp_application
+  end subroutine nl_psp_application_old
 
 END SUBROUTINE NonLocalHamiltonianApplication_old
 

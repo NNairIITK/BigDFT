@@ -451,6 +451,8 @@ contains
     ss%ob => ob
     ss%ispin=0
     ss%ikptp=1
+    ss%ise=0
+    ss%ispsi=1
   end function subspace_iterator
 
   !case of subspace iterators
@@ -464,6 +466,7 @@ contains
     ss%ikpt       =f_none()
     ss%kwgt       =f_none()
     ss%occup_ptr  =f_none()
+    ss%ispsi  =f_none()
     nullify(ss%ob)
   end subroutine nullify_subspace
 
@@ -650,14 +653,14 @@ contains
 
     if (present(orbs)) then
        ob%orbs => orbs
-       ob%td%nspin=orbs%nspin
-       if (present(nspin)) ob%td%nspin=nspin
-       ob%td%ndim_ovrlp = f_malloc_ptr([1.to.ob%td%nspin, 0.to.orbs%nkpts],id='ndim_ovrlp')
-       call dimension_ovrlp(ob%td%nspin,ob%orbs,ob%td%ndim_ovrlp)
+       if (present(comms)) then
+          ob%td%comms => comms
+          ob%td%nspin=orbs%nspin
+          if (present(nspin)) ob%td%nspin=nspin
+          ob%td%ndim_ovrlp = f_malloc_ptr([1.to.ob%td%nspin, 0.to.orbs%nkpts],id='ndim_ovrlp')
+          call dimension_ovrlp(ob%td%nspin,ob%orbs,ob%td%ndim_ovrlp)
+       end if
     end if
-
-    if (present(comms)) ob%td%comms => comms
-
 
     if (.not. present(orbs) .and. (present(Lzd) .or. present(Glr))) &
          call f_err_throw('orbs should be present with lzd or glr',err_name='BIGDFT_RUNTIME_ERROR')
