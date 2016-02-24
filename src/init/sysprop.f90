@@ -895,7 +895,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   real(gp), parameter :: fact=1.2d0 ! Multiplying factor to enlarge the rigid cavity.
   integer :: i
   !integer :: i1,i2,i3,unt,i3s,i23
-  real(gp) :: delta,IntSur,IntVol,noeleene,Cavene,Repene,Disene
+  real(gp) :: IntSur,IntVol,noeleene,Cavene,Repene,Disene
   type(atoms_iterator) :: it
   real(gp), dimension(:), allocatable :: radii,radii_nofact
   real(gp), dimension(:,:,:), allocatable :: eps,oneoeps,oneosqrteps,corr
@@ -942,9 +942,8 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !  radii(3)=1.2d0/Bohr_Ang
 
 !  delta=4.0*maxval(pkernel%hgrids)
-  delta=2.0d0
-!  if(bigdft_mpi%iproc==0) call yaml_map('Delta cavity',delta)
-  delta=delta*0.25d0 ! Divided by 4 because both rigid cavities are 4*delta widespread 
+  !delta=2.0d0
+  !delta=delta*0.25d0 ! Divided by 4 because both rigid cavities are 4*delta widespread 
 
   do i=1,atoms%astruct%nat
 !   write(*,*)atoms%astruct%atomnames(atoms%astruct%iatype(i))
@@ -978,8 +977,8 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
     call f_err_throw('For rigid cavity a radius should be fixed for each atom type')
    end select
    !if (bigdft_mpi%iproc==0) call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
-   radii_nofact(i) = radii(i)/Bohr_Ang +1.05d0*delta
-   radii(i) = fact*radii(i)/Bohr_Ang + 1.22d0*delta
+   radii_nofact(i) = radii(i)/Bohr_Ang +1.05d0*pkernel%cavity%delta
+   radii(i) = fact*radii(i)/Bohr_Ang + 1.22d0*pkernel%cavity%delta
   end do
   if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
 
@@ -1013,7 +1012,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !  call epsilon_rigid_cavity(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
 !       epsilon0,delta,eps)
   call epsilon_rigid_cavity_error_multiatoms_bc(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
-       epsilon0,delta,epst,dlogepst,oneoepst,oneosqrtepst,corrt,IntSur,IntVol)
+       epsilon0,pkernel%cavity%delta,epst,dlogepst,oneoepst,oneosqrtepst,corrt,IntSur,IntVol)
 !  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
 !       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
 
@@ -1028,7 +1027,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,oneoeps,oneoepst)
   call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,oneosqrteps,oneosqrtepst)
   call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,corr,corrt)
-stop
+
 !-------------------------------------------------------------------
 
   if (bigdft_mpi%iproc==0) then

@@ -89,17 +89,17 @@ module rhopotential
        !sum the two potentials in rhopot array
        !fill the other part, for spin, polarised
        if (nspin == 2) then
-          call vcopy(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,denspot%rhov(1),1,&
+          !denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
+          call vcopy(denspot%dpbox%ndimpot,denspot%rhov(1),1,&
                denspot%rhov(1+denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p),1)
        end if
        !spin up and down together with the XC part
-       call axpy(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p*nspin,1.0_dp,denspot%V_XC(1,1,1,1),1,&
+       !denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
+       call axpy(denspot%dpbox%ndimpot*nspin,1.0_dp,denspot%V_XC(1,1,1,1),1,&
             denspot%rhov(1),1)
        
-       if (nullifyVXC) then
-          call f_free_ptr(denspot%V_XC)
-       end if
-    
+       if (nullifyVXC) call f_free_ptr(denspot%V_XC)
+
     end if
     
     call f_release_routine()
