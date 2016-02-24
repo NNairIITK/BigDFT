@@ -201,7 +201,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
 !!$             denspot%pkernel%mpi_env%mpi_comm,&
 !!$             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
 !!$             denspot%dpbox%hgrids,&
-             denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
+!!$             denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
 !!$        call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn, iproc, nproc)
 !!$
 !!$        call H_potential('D',denspot%pkernel,&

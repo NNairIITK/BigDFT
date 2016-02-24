@@ -47,7 +47,7 @@ module environment
   type(f_enumerator), parameter, public :: PS_PCG_ENUM=f_enumerator('PCG',PS_PCG,null())
 
   !>threshold for comparison with zero
-  real(dp), parameter :: thr=1.d-12
+  real(dp), parameter :: thr=1.d-15
 
   !conversion factors in AU
 
@@ -77,7 +77,7 @@ contains
     c%epsilon0= 78.36_gp !<water at ambient condition 
     c%edensmax = 0.005_gp !0.0050d0
     c%edensmin = 0.0001_gp
-    c%delta = 0.0_gp
+    c%delta = 2.0_gp
     c%gammaS = 72._gp*SurfAU ![dyn/cm]   
     c%alphaS = -22.0_gp*SurfAU ![dyn/cm]   end function cavity_default
     c%betaV = -0.35_gp/AU_GPa ![GPa]     
@@ -359,7 +359,7 @@ contains
     real(gp), dimension(3), intent(out) :: dleps
     !local variables
     integer :: iat
-    real(gp) :: ep,dcorrha,rad,eh,d1e,dlogh,d2e,d,d2ha
+    real(gp) :: ep,dcorrha,rad,eh,d1e,dlogh,d2e,d,d2ha,dd
     real(gp), dimension(3) :: dha
 
     ep=1.0_dp
@@ -368,26 +368,36 @@ contains
     loop_at: do iat=1,nat
        rad=radii(iat)
        d=minimum_distance(mesh,v,rxyz(1,iat))
-       eh=epsl(d,rad,cavity%delta)
-       ep=ep*eh
-       d1e=d1eps(d,rad,cavity%delta)
+       if (d.eq.0.d0) then
+        d=1.0d-30
+        eh=epsl(d,rad,cavity%delta)
+        ep=ep*eh
+        d1e=0.0_dp
+        d2e=0.0_dp
+       else
+        eh=epsl(d,rad,cavity%delta)
+        ep=ep*eh
+        d1e=d1eps(d,rad,cavity%delta)
+        d2e=d2eps(d,rad,cavity%delta)
+       end if
        if (ep < thr) then
           ep=0.0_dp
           exit loop_at
        end if
-       if (abs(dlogh) < thr) then
+       if (abs(d1e) < thr) then
           dlogh=0.0_gp
        else
           dlogh=d1e/epsl(d,rad,cavity%delta)
-          d2e=d2eps(d,rad,cavity%delta)
-          dcorrha=dcorrha+(d2e-d1e**2)/eh**2+2.0_gp*d1e/eh/d
+          dcorrha=dcorrha+d2e/eh-(d1e**2)/eh**2+2.0_gp*d1e/eh/d
           dha=dha+dlogh*closest_r(mesh,v,center=rxyz(:,iat))/d
        end if
     end do loop_at
-    ep=(cavity%epsilon0-vacuum_eps)*ep+vacuum_eps
-    dleps=(ep-vacuum_eps)/ep*dha
+    eps=(cavity%epsilon0-vacuum_eps)*ep+vacuum_eps
+    dleps=(eps-vacuum_eps)/eps*dha
     d2ha=square(mesh,dha)
-    corr=0.5_gp*(ep-vacuum_eps)/ep*(0.5_gp*d2ha*(1+ep)/ep+dcorrha)
+    !corr=0.5_gp*(eps-vacuum_eps)/eps*(0.5_gp*d2ha*(1+eps)/eps+dcorrha)
+    dd=(eps-vacuum_eps)*(d2ha+dcorrha)
+    corr=-oneoeightpi*(0.5_gp*(eps-vacuum_eps)**2/eps*d2ha-dd)
   end subroutine rigid_cavity_arrays
 
   subroutine rigid_cavity_forces(cavity,mesh,v,nat,rxyz,radii,npot2epsm1,fxyz)
@@ -452,7 +462,7 @@ contains
     real(kind=8) :: d
 
     d=(r-rc)/delta
-    d2eps=-0.5_gp*d/delta*d1eps(r,rc,delta)
+    d2eps=-2.0_gp*d/delta*d1eps(r,rc,delta)
     
   end function d2eps
 
