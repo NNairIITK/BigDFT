@@ -1,4 +1,4 @@
-       300     2     1   # number of atoms, number of atom types, nspin
+     300     2     1   F -1.0 -1.0 -1.0   # number of atoms, number of atom types, nspin, geocode, celldim
        8       6   O   # nz, nelpsp, name
        1       1   H   # nz, nelpsp, name
     1  1.5838159654347942E+01  5.1585538255808032E+01  4.1459130871234962E+01   # atom no. 1

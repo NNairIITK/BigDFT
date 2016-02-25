@@ -39,6 +39,7 @@ program smatmul
   type(dictionary), pointer :: dict_timing_info
   type(dictionary), pointer :: options
   type(yaml_cl_parse) :: parser !< command line parser
+  real(kind=8),dimension(3) :: cell_dim
 
 
   ! Initialize
@@ -79,14 +80,14 @@ program smatmul
 
   
   ! Read in a file in the sparse BigDFT format
-  call read_sparse_matrix(filename, nspin, geocode, nfvctr, nseg, nvctr, keyv, keyg, &
+  call read_sparse_matrix(filename, nspin, geocode, cell_dim, nfvctr, nseg, nvctr, keyv, keyg, &
        mat_compr, nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
        atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
 
   ! Create the corresponding BigDFT sparsity pattern
   !call distribute_columns_on_processes_simple(iproc, nproc, nfvctr, nfvctrp, isfvctr)
   call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat, &
-       nspin, geocode, on_which_atom)
+       init_matmul=.true., nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom)
 
   matA = matrices_null()
 

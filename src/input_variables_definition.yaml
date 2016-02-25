@@ -2132,13 +2132,15 @@ linear:
    #confinement: -1.0
    rloc_kernel: 9.0
    rloc_kernel_foe: 10.5
-   H:  {nbasis: 1, rloc: 4.5}
-   C:  {nbasis: 4, rloc: 5.0}
-   N:  {nbasis: 4, rloc: 5.0}
-   O:  {nbasis: 4, rloc: 5.0}
-   P:  {nbasis: 4, rloc: 5.5}
-   Cl: {nbasis: 4, rloc: 5.5}
-   K:  {nbasis: 1, rloc: 7.0}
+   H:  {nbasis: 1, rloc: 5.0}
+   C:  {nbasis: 4, rloc: 5.5}
+   N:  {nbasis: 4, rloc: 5.5}
+   O:  {nbasis: 4, rloc: 5.5}
+   P:  {nbasis: 4, rloc: 6.0}
+   S:  {nbasis: 4, rloc: 6.0}
+   Cl: {nbasis: 4, rloc: 6.0}
+   Na: {nbasis: 1, rloc: 7.5}
+   K:  {nbasis: 1, rloc: 8.0}
 md:
   COMMENT: Molecular dynamics input parameters for H2O molecules
   geopt:
