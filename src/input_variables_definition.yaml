@@ -2110,11 +2110,7 @@ mixing:
 linear:
  COMMENT: linear parameters sufficient for PDoS, charge analysis, MD
  dft:
-   gnrm_cv: accurate
-   itermax: 50
-   nrepmax: 10
-   ncong: 5
-   idsx: 6
+   hgrids: 0.50
    disablesym: Yes
    inputpsiid: linear
  perf:
@@ -2137,7 +2133,8 @@ linear:
    max_inversion_error: 5.0e-8
    rpnrm_cv: 1.0e-11
    output_mat: 1
-   output_coeff: 1
+   output_coeff: 0
+   charge_multipoles: 11
  lin_basis:
    nit: 8
    idsx: 8
@@ -2155,15 +2152,16 @@ linear:
    nit: 6
    idsx_coeff: [6, 0]
    idsx: 6
+   rpnrm_cv: 1.0e-8
    alphamix: 0.1
    linear_method: FOE
    eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
+   fscale_foe: 5.0e-2
  lin_basis_params:
-   #ao_confinement: -1.0
-   #confinement: -1.0
-   rloc_kernel: 9.0
-   rloc_kernel_foe: 10.5
+   ao_confinement: -1.0
+   confinement: -1.0
+   rloc_kernel: 10.0
+   rloc_kernel_foe: 12.0
    H:  {nbasis: 1, rloc: 5.0}
    C:  {nbasis: 4, rloc: 5.5}
    N:  {nbasis: 4, rloc: 5.5}
@@ -2173,6 +2171,7 @@ linear:
    Cl: {nbasis: 4, rloc: 6.0}
    Na: {nbasis: 1, rloc: 7.5}
    K:  {nbasis: 1, rloc: 8.0}
+   Sn: {nbasis: 4, rloc: 6.5}
 md:
   COMMENT: Molecular dynamics Input file for H2O molecules
   geopt:

@@ -1380,8 +1380,8 @@ geoptconstrained_BFGS:
  Omega: 1.6e-9
  energy: 2.7e-11
  Maxdiff for transpose (checksum): 1.2e-10
- difference: 3.9e-11
- Total charge: 5.1e-11
+ difference: 4.1e-11
+ Total charge: 6.1e-11
  trace(KS): 5.6e-11
 
 geoptconstrained_SDCG:
@@ -2312,7 +2312,7 @@ H2Omultipoles_11:
   multiplicator for the confinement: 4.4e-11
   trace(KS): 2.5e-11
   Maxdiff for transpose (checksum): 1.5e-11
-  Pseudo Fermi level for occupations: 1.8e-11
+  Pseudo Fermi level for occupations: 2.0e-11
   difference: 1.3e-11
 
 H2Omultipoles_12:
