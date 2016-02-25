@@ -11,10 +11,31 @@
 !> Modules which defines wrappers for the linear alegra.
 module wrapper_linalg
   use time_profiling, only: TIMING_UNINITIALIZED
+  use f_precisions
   implicit none
 
 
-!!$  type, private :: 
+!!$  !> central type to handle the behaviour of the linear
+!!$  !! problem
+!!$  type, private :: f_linalg_data
+!!$     !> all the typical arguments of ev and sv routines
+!!$     integer :: n
+!!$     [etc,etc..]
+!!$  end type f_linalg_data
+!!$
+!!$  !exemple of API, inspired from numpy
+!!$  eig=f_linalg_eig(A=mat,n=n,symmetric=.true.,hermitian=.false.,complex=.true.,work=work,lwork=lwork,eigenvalues=eval)
+!!$
+!!$  eig=f_linalg_solve(A=mat,n=n,symmetric=.true.,hermitian=.false.,complex=.true.,work=work,lwork=lwork,eigenvalues=eval)
+!!$
+!!$  !then retrieve the information, if not specified in the caller
+!!$  call f_get_evals(eig,eval)
+!!$  !or maybe by 
+!!$  call f_memcpy(eig%eval_ptr,eval)
+!!$
+!!$  !all the thinkg which have not been specified are then destroyed by
+!!$  call f_linalg_free(eig)
+
 
   !> Flag for GPU computing, if CUDA libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
@@ -857,5 +878,17 @@ contains
     !call to BLAS routine
     call ZHERK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
   end subroutine herk_double
+
+  !> Determinant of a 3x3 matrix
+  pure function det_3x3(a) result(det)
+    implicit none
+    real(f_double), dimension(3,3), intent(in) :: a
+    real(f_double) :: det
+
+    det = a(1,1)*(a(2,2)*a(3,3) - a(3,2)*a(2,3)) &
+         + a(1,2)*(a(3,1)*a(2,3) - a(2,1)*a(3,3))  &
+         + a(1,3)*(a(2,1)*a(3,2) - a(3,1)*a(2,2))
+  end function det_3x3
+
 
 end module wrapper_linalg

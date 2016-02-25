@@ -49,6 +49,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !! of the energies are calculated only with the input rho.
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p), intent(inout), optional, target :: rho_ion
   !local variables
+  logical, parameter :: tmplog=.false.
   real(dp), parameter :: max_ratioex_PB = 1.0d2
   logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver,poisson_boltzmann,calc_nabla2pot
   integer :: i3start,n1,n23,i3s,i23s,i23sd2,i3sd2,i_PB,i3s_pot_pb
@@ -115,7 +116,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   sum_pi=present(pot_ion) .and. n23 > 0
   sum_ri=present(rho_ion) .and. n23 > 0
   build_c=(kernel%method .hasattr. PS_SCCS_ENUM) .and. kernel%opt%update_cavity
-  calc_nabla2pot=build_c .or. .false.
+  calc_nabla2pot=build_c .or. tmplog
   is_vextra=sum_pi .or. build_c
   plot_cavity=kernel%opt%cavity_info .and. (kernel%method /= PS_VAC_ENUM)
   cudasolver= (kernel%igpu==1 .and. .not. kernel%opt%calculate_strten)
@@ -154,10 +155,12 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !in the case of SC cavity, gather the full density and determine the depsdrho
   !here the if statement for the SC cavity should be put
   !print *,'method',trim(char(kernel%method)),associated(kernel%method%family),trim(char(kernel%method%family))
-
-  if (build_c) then
+  if (calc_nabla2pot) then
      rhopot_full=f_malloc(kernel%ndims,id='rhopot_full')
      nabla2_rhopot=f_malloc(kernel%ndims,id='nabla2_rhopot')
+  end if
+
+  if (build_c) then
      delta_rho=f_malloc(kernel%ndims,id='delta_rho')
      cc_rho=f_malloc(kernel%ndims,id='cc_rho')
      nabla_rho=f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),3],id='nabla_rho')
@@ -175,8 +178,9 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
      call f_free(nabla_rho)
      call f_free(delta_rho)
      call f_free(cc_rho)
-     if (kernel%method == PS_PI_ENUM) call f_free(rhopot_full)
   end if
+
+  if (kernel%method == PS_PI_ENUM .and. calc_nabla2pot) call f_free(rhopot_full)
 
   !add the ionic density to the potential, calculate also the integral
   !between the rho and pot_ion and the extra potential if present
@@ -270,7 +274,6 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
 !!$  call pol_charge(kernel,pot_full,rho,kernel%w%pot)
 !!$  !--------------------------------------
 
-
    call PS_release_lowlevel_workarrays(kernel)
 
   !the external ionic potential is referenced if present
@@ -303,7 +306,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
           rhov(1,1,i3s),kernel%w%zf,rhov(1,1,i3s),ehartreeLOC)
   case('PI')
      !if statement for SC cavity
-     if (build_c) then
+     if (calc_nabla2pot) then
         !in the PI method the potential is allocated as a full array
         call nabla_u_square(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
              kernel%w%pot,nabla2_rhopot,kernel%nord,kernel%hgrids)
@@ -324,7 +327,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
      !only useful for gpu, bring back the x array
      call update_pot_from_device(cudasolver, kernel, kernel%w%pot)
 
-     if (build_c) then
+     if (calc_nabla2pot) then
         call PS_gather(src=kernel%w%pot,dest=rhopot_full,kernel=kernel)
         call nabla_u_square(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
              rhopot_full,nabla2_rhopot,kernel%nord,kernel%hgrids)
@@ -361,9 +364,16 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
           rhov(1,1,i3s),kernel%w%pot(1,i3s_pot_pb+1),rhov(1,1,i3s),ehartreeLOC)
   end if
 
+  if (calc_nabla2pot) then
+     !destroy oneoverepsilon array in the case of the forces for the rigid case
+     if (tmplog) then
+        call nabla2pot_epsm1(n1,n23,kernel%w%eps,nabla2_rhopot(1,1,i3sd2),kernel%w%oneoeps)
+     end if
+     call f_free(nabla2_rhopot)
+  end if
+
 
   if (build_c) then
-     call f_free(nabla2_rhopot)
      call f_free(depsdrho)
      call f_free(dsurfdrho)
   end if

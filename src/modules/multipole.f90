@@ -4931,6 +4931,7 @@ sigma=0.5d0
    call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=phi2,Lzd=Lzd)
    call Qlm_phi(lmax,smat%geocode,hgrids,acell,psi_ob,Qlm,.false.,centers=locregcenter)
    call orbital_basis_release(psi_ob)
+   call f_zero(values)
    do l=0,lmax
       do m=-l,l 
          val = 0.d0

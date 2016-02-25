@@ -1026,7 +1026,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Use this subroutine to write the energies, with some fake number
       ! to prevent it from writing too much
       if (iproc==0) then
-          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+          call write_energies(0,energs,0.d0,0.d0,'',only_energies=.true.)
       end if
       if (iproc==0) then
           call yaml_map('Orthoconstraint',.true.)
@@ -1096,8 +1096,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
           !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       end if
-
-
 
       ! use hpsi_tmp as temporary array for hpsi_noprecond, even if it is allocated with a larger size
       !write(*,*) 'calling calc_energy_and.., correction_co_contra',correction_co_contra
@@ -1425,7 +1423,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       else if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call yaml_map('target function','HYBRID')
       end if
-      call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+      call write_energies(0,energs,0.d0,0.d0,'',only_energies=.true.)
       call yaml_newline()
       call yaml_map('iter',it,fmt='(i5)')
       call yaml_map('fnrm',fnrm%receivebuf(1),fmt='(es9.2)')
@@ -1590,7 +1588,7 @@ subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, exp
   type(DFT_wavefunction),intent(inout) :: tmb
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(kind=8),dimension(tmb%orbs%norbp),intent(in) :: alpha
-  real(kind=wp),dimension(max(tmb%npsidim_orbs,tmb%npsidim_comp)),intent(inout) :: gradient
+  real(kind=wp),dimension(tmb%npsidim_orbs),intent(inout) :: gradient
   logical,intent(in) :: experimental_mode
   
   ! Local variables
@@ -1613,7 +1611,7 @@ subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, exp
       ldiis%mis=mod(ldiis%is,ldiis%isx)+1
       ldiis%is=ldiis%is+1
       if(ldiis%alphaDIIS/=1.d0) then
-          if (tmb%orbs%norbp>0) call dscal(max(tmb%npsidim_orbs,tmb%npsidim_comp), ldiis%alphaDIIS, gradient, 1)
+          if (tmb%orbs%norbp>0) call dscal(tmb%npsidim_orbs, ldiis%alphaDIIS, gradient, 1)
       end if
       call optimizeDIIS(iproc, nproc, max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, nspin, tmb%lzd, gradient, tmb%psi, ldiis, &
            experimental_mode)

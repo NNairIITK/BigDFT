@@ -677,9 +677,7 @@ module orthonormalization
     
       ! The symmetrized Lagrange multiplier matrix has now the wrong sign
       call dscal(lagmat%nvctrp_tg*lagmat%nspin, -1.d0, lagmat_%matrix_compr(1), 1)
-    
-    
-    
+
       overlap_calculated=.false.
       
     

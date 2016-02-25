@@ -1,7 +1,7 @@
 !> @file
 !!    Define routines for Lanczos diagonalization
 !! @author
-!!    Copyright (C) 2009-2013 BigDFT group
+!!    Copyright (C) 2009-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -1752,7 +1752,7 @@ contains
 
     call f_free_ptr(Gabs_coeffs)
 
-    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
+    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot)
 
   END SUBROUTINE xabs_lanczos
 
@@ -1945,7 +1945,7 @@ contains
        enddo
     endif
 
-    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
+    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot)
     nullify(ha%potential)
 
 
@@ -2170,7 +2170,7 @@ contains
        call f_free_ptr(potentialclone)
     endif
 
-    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
+    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot)
     nullify(ha%potential)
 
   END SUBROUTINE xabs_cg

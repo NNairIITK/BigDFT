@@ -1,10 +1,11 @@
 #!/usr/bin/env python
+# -*- coding: us-ascii -*-
 
 # @file
 # This script is used to wrap the @ref memguess executable  but also to perform
 # some useful manipulations of atomic position files.
 # @author
-# Copyright (C) 2012-2015 BigDFT group <br>
+# Copyright (C) 2012-2016 BigDFT group
 # This file is distributed under the terms of the
 # GNU General Public License, see ~/COPYING file
 # or http://www.gnu.org/copyleft/gpl.txt .
@@ -28,6 +29,9 @@ actions = ["memory-estimation", "rotate", "convert-field",
 abs_srcdir = "@abs_srcdir@"
 inputvarfile = abs_srcdir + '/input_variables_definition.yaml'
 abs_top_builddir = "@abs_top_builddir@"
+#Working with PSolver
+#abs_top_srcdir = "@abs_top_srcdir@"
+#inputvarfile = abs_top_srcdir + '/PSolver/src/PS_input_variables_definition.yaml'
 bindir = "@prefix@"
 # Other part of the script needs no processing.
 
@@ -123,16 +127,17 @@ def parse():
     group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[8],
                         "Input file manual: helps in identifying the input variables which are interesting")
     group.add_option("--profile", type="str", default="single-point", metavar="NAME",
-                     help="Write a input file corresponding to profile named NAME")
+                     help="Write an input file corresponding to profile named NAME")
     group.add_option("--find-key", type="str", default=None, metavar="NAME",
                      help="Find the keys which are typographically similar to NAME")
-
-    # wizard
-    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[9],
-                        "BigDFT wizard: help the user in finding the good input file")
     parser.add_option_group(group)
 
-    # conversion from cartesian to internal or vice versa, plus file format conversion
+    # Wizard
+    group = OptionGroup(parser, "bigdft-tool -a %s" % actions[9],
+                        "BigDFT wizard: Browse over all input variables to help the user")
+    parser.add_option_group(group)
+
+    # Conversion from cartesian to internal or vice versa, plus file format conversion
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[10],
                         "conversion from cartesian to internal coordinates")
     #group.add_option("--direction", type="str", metavar="NAME",
@@ -265,118 +270,234 @@ import curses
 MENU = "menu"
 COMMAND = "command"
 EXITMENU = "exitmenu"
+INPUT = "input"
 PROMPT = "prompt"
 
 
 def runmenu(h, n, screen, menu, parent):
     "This function displays the appropriate menu and returns the option selected"
+    optioncount = len(menu['options'])  # how many options in this menu
     # work out what text to display as the last menu option
     if parent is None:
         lastoption = "Exit (press 'Q' key)"
     else:
         lastoption = "Return to %s menu (press 'Q' key)" % parent['title']
+    lastoption = "%d - %s" % (optioncount + 1, lastoption)
+    #Size of the window
+    screenH,screenW = screen.getmaxyx()
 
-    optioncount = len(menu['options'])  # how many options in this menu
+    #Build the title
+    screen.border(0)
+    # Title for this menu
+    if menu['type'] == 'input':
+        screen.addstr(2, 2, 'Toto', curses.A_BOLD)
+    else:
+        screen.addstr(2, 2, menu['title'], curses.A_BOLD)
+    iy = 4
+    if menu.has_key('DESCRIPTION'):
+        for chain in menu['DESCRIPTION'].split('\n'):
+            screen.addstr(iy, 2, chain, curses.A_BOLD)
+            iy += 1
+        iy += 1
+    # Subtitle for this menu
+    screen.addstr(iy, 2, menu['subtitle'], curses.A_BOLD)
+    #Build a pad
+    Wpad = screenW-2
+    Hpad_screen = screenH-6
+    menu_pad = curses.newpad(optioncount+1,max(Wpad,len(lastoption)+4))
+    # Display all the menu items, showing the 'line' item highlighted
+    for index in range(optioncount):
+        menu_pad.addstr(index, 0, "%d - %s" % (index + 1, menu['options'][index]['title']), n)
+    # Now display Exit/Return at bottom of menu
+    menu_pad.addstr(optioncount, 0, lastoption, n)
+    #Important to display menu_pad before the first key-press!!
+    screen.refresh()
 
-    # pos is the zero-based index of the hightlighted menu option. Every time
-    # runmenu is called, position returns to 0, when runmenu ends the position
+    # line is the zero-based index of the hightlighted menu option. Every time
+    # runmenu is called, line returns to 0, when runmenu ends line
     # is returned and tells the program what opt$
-    pos = 0
-    oldpos = None  # used to prevent the screen being redrawn every time
+    line = 0
     # control for while loop, let's you scroll through options until return
-    # key is pressed then returns pos to program
+    # key is pressed then returns line to program
     x = None
-
+    pos = 0
     # Loop until return key is pressed, or esc key
     while x != ord('\n') and x != ord('q') and x != ord('Q'):
-        if pos != oldpos:
-            oldpos = pos
-            screen.border(0)
-            # Title for this menu
-            screen.addstr(2, 2, menu['title'], curses.A_STANDOUT)
-            iy = 4
-            if menu.has_key('strings'):
-                for chain in menu['strings'].split('\n'):
-                    screen.addstr(iy, 2, chain, curses.A_BOLD)
-                    iy += 1
-                iy += 1
-            # Subtitle for this menu
-            screen.addstr(iy, 2, menu['subtitle'], curses.A_BOLD)
-            iy += 1
-
-            # Display all the menu items, showing the 'pos' item highlighted
-            for index in range(optioncount):
-                textstyle = n
-                if pos == index:
-                    textstyle = h
-                screen.addstr(iy, 4, "%d - %s" % (index + 1, menu['options'][index]['title']), textstyle)
-                iy += 1
-            # Now display Exit/Return at bottom of menu
-            textstyle = n
-            if pos == optioncount:
-                textstyle = h
-            screen.addstr(iy, 4, "%d - %s" % (optioncount + 1, lastoption), textstyle)
-            screen.refresh()
-            # finished updating screen
-
+        menu_pad.chgat(line,0,Wpad,h)
+        menu_pad.refresh(pos,0,4,2,screenH-2,Wpad)
         x = screen.getch()  # Gets user input
-
+        menu_pad.chgat(line,0,Wpad,n)
         # What is user input?
         # this line can be used only if optioncount is lower than 8
         if x >= ord('1') and x <= ord(str(min(optioncount + 1, 9))):
             # convert keypress back to a number, then subtract 1 to get index
-            pos = x - ord('0') - 1
-        elif x == 258:  # down arrow
-            if pos < optioncount:
-                pos += 1
-            else:
+            line = x - ord('0') - 1
+        elif x == curses.KEY_DOWN:  # down arrow
+            line += 1
+            if line > optioncount:
+                line = 0
                 pos = 0
-        elif x == 259:  # up arrow
-            if pos > 0:
-                pos += -1
-            else:
-                pos = optioncount
+            if line-pos > Hpad_screen: pos += 1
+        elif x == curses.KEY_UP:  # up arrow
+            line += -1
+            if line < 0:
+                line = optioncount
+                pos = line - Hpad_screen
+            if line-pos < 0: pos -= 1
         elif x == ord('q') or x == ord('Q'):  # esc key
-            pos = optioncount
+            line = optioncount
     # return index of the selected item
-    return pos
-
+    return line
 
 
 def dump_info(h, n, screen, menu, parent):
-    "Dump some information in the screen and come back to previous menu when done"
+    """Dump some information in the screen and come back to previous menu when done.
+    menu must contains 'title', 'subtitle' and 'DESCRIPTION'. """
     pos = 0
     oldpos = None
     x = None
-    strings = menu['strings']
-    infocount = len(strings)
-    lastoption = "Press Enter or 'Q' key to come back to %s menu" % parent[
-        'title']
+    lastoption = "Press Enter or 'Q' key to come back to %s menu" % parent['title']
+    screenH,screenW = screen.getmaxyx()
+    #Build the height of the pad
+    padH = 2*len(menu) + len(menu['DESCRIPTION'].split('\n'))
+    for v in menu.values():
+        padH += len(yaml.dump(v,default_flow_style=False).split('\n')) + 2
+    dump_pad = curses.newpad(padH,screenW-2)
+    m = menu.items()
+    m.sort(menu_cmp, key= lambda s: s[0])
+    # Title for this menu
+    dump_pad.addstr(1, 2, m[0][1], curses.A_STANDOUT)
+    # Subtitle for this menu
+    dump_pad.addstr(3, 2, m[1][1], curses.A_BOLD)
+    # Display all the menu items, showing the 'pos' item highlighted
+    iy = 3
+    for chain in m[2][1].split('\n'):
+        iy += 1
+        dump_pad.addstr(iy, 4, "%s" % chain, n)
+    #Now all the other keys
+    for (k,v) in m[3:]:
+        if k == 'type' or k == 'COMMENT':
+            pass
+        else:
+            iy += 1
+            dump_pad.addstr(iy, 2, k, curses.A_BOLD)
+            if isinstance(v,dict):
+                text = yaml.dump(v,default_flow_style=False)
+            else:
+                text = str(v)
+            for chain in text.split('\n'):
+                iy += 1
+                dump_pad.addstr(iy, 4, "%s" % chain, n)
+            iy += 1
+    # Now display Exit/Return at bottom of menu
+    iy += 1
+    dump_pad.addstr(iy, 2, " %s" % lastoption, h)
+    #Display the information
+    screen.border(0)
+    screen.refresh()
     # Loop until return key is pressed
+    pos = 0
     while x != ord('\n') and x != ord('q') and x != ord('Q'):
-        if pos != oldpos:
-            oldpos = pos
-            screen.border(0)
-            screen.border(0)
-            # Title for this menu
-            screen.addstr(2, 2, menu['title'], curses.A_STANDOUT)
-            # Subtitle for this menu
-            screen.addstr(4, 2, menu['subtitle'], curses.A_BOLD)
-            # Display all the menu items, showing the 'pos' item highlighted
-            iy = 4
-            for index in range(infocount):
-                textstyle = n
-                for chain in strings[index].split('\n'):
-                    iy += 1
-                    screen.addstr(iy, 4, "%s" % chain, textstyle)
-            # Now display Exit/Return at bottom of menu
-            textstyle = h
-            screen.addstr(iy+1, 4, " %s" % lastoption, textstyle)
-            screen.refresh()
-            # finished updating screen
+        dump_pad.refresh(pos,0,1,1,screenH-2,screenW-2)
         x = screen.getch()  # Gets user input
-
+        if x == curses.KEY_DOWN:
+            pos += 1
+            pos = min(pos, iy - (screenH-4))
+        elif x == curses.KEY_UP:
+            pos -= 1
+            pos = max(pos,0)
     # return index of the selected item
+    return 0
+
+
+def input_info(h, n, screen, menu, parent):
+    """Search a key and dump info about it."""
+    pos = 0
+    oldpos = None
+    x = None
+    screenH,screenW = screen.getmaxyx()
+    # Title for this menu
+    screen.addstr(1, 2, 'Search a key', curses.A_STANDOUT)
+    # Subtitle for this menu
+    screen.addstr(3, 2, 'Please type a key:', curses.A_BOLD)
+    #Display the information
+    screen.border(0)
+    screen.refresh()
+    # Loop until return key is pressed
+    key = ''
+    posmin = 1 + len('Please type a key:') + 1
+    blank = ' '*(screenW-posmin)
+    pos = posmin
+    while x != ord('\n'):
+        pos = max(posmin,pos)
+        if x == None:
+            pass
+        elif x >= ord('a') and x <= ord('z'):
+            key += chr(x)
+            pos += 1
+        elif x == curses.KEY_BACKSPACE:
+            key = key[:-1]
+            pos -= 1
+        screen.addstr(3,posmin,key,curses.A_NORMAL)
+        screen.refresh()
+        x = screen.getch()  # Gets user input
+        #Remove the key and generate it (no pb with cursor)
+        screen.addstr(3,posmin,blank,curses.A_NORMAL)
+    #We have a key
+    searchfor = key
+    allkeys = []
+    for f in files:
+        allkeys += params[f].keys()
+    matching_keys = closest_keys(allkeys, searchfor)
+    #print 'matching', searchfor, 'in:', matching_keys
+    #print "keys wich match the most with '%s'" % searchfor
+    foundkeys = []
+    text = '\n'
+    for (i, ratio) in matching_keys:
+        if ratio > 0.6 and i not in foundkeys:
+            for f in find_files(params, i):
+                text += '%s (Field: %s, similarity=%4.2f)\n' % (i,f,ratio) 
+                text += yaml.dump(params[f][i], default_flow_style=False, explicit_start=False)
+                foundkeys.append(i)
+                text += '\n'
+    #curses.endwin()
+    #for chain in text.split('\n'):
+    #    print text
+    #sys.exit(0)
+    #Build the pad
+    padH = 3 + max(len(text.split('\n')),200)
+    dump_pad = curses.newpad(padH,screenW-2)
+    # Title for this menu
+    dump_pad.addstr(1, 2, "Keys which match the most with '%s'" % searchfor, curses.A_STANDOUT)
+    # Display all the menu items, showing the 'pos' item highlighted
+    iy = 1
+    if text == '':
+        iy += 1
+        dump_pad.addstr(iy, 4, "No key found", curses.A_NORMAL)
+    else:   
+        for chain in text.split('\n'):
+            iy += 1
+            if 'Field:' in chain:
+                dump_pad.addstr(iy, 4, "%s" % chain, curses.A_BOLD)
+            else:
+                dump_pad.addstr(iy, 4, "%s" % chain, curses.A_NORMAL)
+    lastoption = "Press Enter or 'Q' key to come back to '%s menu'" % parent['title']
+    dump_pad.addstr(iy+1, 2, " %s" % lastoption, curses.A_STANDOUT)
+    #Display the information
+    screen.border(0)
+    screen.refresh()
+    # Loop until return key is pressed
+    pos = 0
+    x = None
+    while x != ord('\n') and x != ord('q') and x != ord('Q'):
+        dump_pad.refresh(pos,0,1,1,screenH-2,screenW-2)
+        x = screen.getch()  # Gets user input
+        if x == curses.KEY_DOWN:
+            pos += 1
+            pos = min(pos, iy - (screenH-4))
+        elif x == curses.KEY_UP:
+            pos -= 1
+            pos = max(pos,0)
     return 0
 
 
@@ -398,34 +519,49 @@ def processmenu(h, n, screen, menu, parent=None):
             os.system('reset')
             screen.clear()  # clears previous screen
             os.system(menu['options'][getin]['command'])  # run the command
-            # clears previous screen on key press and updates display based on
-            # pos
+            # clears previous screen on key press and updates display based on pos
             screen.clear()
             curses.reset_prog_mode()   # reset to 'current' curses environment
             curses.curs_set(1)         # reset doesn't do this right
             curses.curs_set(0)
         elif whattodo == PROMPT:
-            curses.def_prog_mode()    # save curent curses environment
+            curses.def_prog_mode()    # save current curses environment
             # this is not the good place, as it is specific to the usage
             screen.clear()  # clears previous screen
             dump_info(h, n, screen, menu['options'][getin], menu)
-            # clears previous screen on key press and updates display based on
-            # pos
+            # clears previous screen on key press and updates display based on pos
             screen.clear()
             curses.reset_prog_mode()   # reset to 'current' curses environment
             curses.curs_set(1)         # reset doesn't do this right
             curses.curs_set(0)
         elif whattodo == MENU:
-            # clears previous screen on key press and updates display based on
-            # pos
+            # clears previous screen on key press and updates display based on pos
             screen.clear()
             # display the submenu
             processmenu(h, n, screen, menu['options'][getin], menu)
-            # clears previous screen on key press and updates display based on
-            # pos
+            # clears previous screen on key press and updates display based on pos
             screen.clear()
+        elif whattodo == INPUT:
+            # All pressed key is used
+            curses.def_prog_mode()    # save current curses environment
+            # this is not the good place, as it is specific to the usage
+            screen.clear()  # clears previous screen
+            input_info(h, n, screen, menu['options'][getin], menu)
+            # clears previous screen on key press and updates display based on pos
+            screen.clear()
+            curses.reset_prog_mode()   # reset to 'current' curses environment
+            curses.curs_set(1)         # reset doesn't do this right
+            curses.curs_set(0)
         elif whattodo == EXITMENU:
             exitmenu = True
+
+dico_menu = { 'title': 0, 'subtitle': 1, 'DESCRIPTION': 2, 'default': 3}
+def menu_cmp(key_x,key_y):
+    "Function compare to sort the keys in order to compose the menu"
+    global dico_menu
+    kx = dico_menu.get(key_x,key_x)
+    ky = dico_menu.get(key_y,key_y)
+    return cmp(kx,ky)
 
 
 # Start the main script
@@ -497,7 +633,7 @@ if __name__ == "__main__":
         command = "%s 1 dd%s convert-positions %s %s" % (
             memguess, options.logging, args[0], args[1])
 
-    # input manual
+    # Manual
     if options.action == actions[8]:
         # to parse and document the input variables
         import yaml
@@ -547,6 +683,8 @@ if __name__ == "__main__":
         if options.profile in profs:
             sys.stdout.write(yaml.dump(
                 infiles[options.profile], default_flow_style=False, explicit_start=True))
+     
+    #Wizard
     if options.action == actions[9]:
         # experimental mode to pretty print information with ncurses
         # define the information for printing with ncurses
@@ -560,14 +698,11 @@ options:
   title: Inspect the possible keys of input file
   subtitle: Select the key field
 - type: menu
-  title: Inspect the possible input file setups
+  title: Inspect the possible input file setups ('import key')
   subtitle: Select the input setup
-- type: menu
+- type: input
   title: Search for a key name
   subtitle: Type the key you would like to search for
-  options:
-  - type: input
-    title: search for the key name
 """
         import yaml
         try:
@@ -601,49 +736,44 @@ options:
         # complete the menu with the keys
         dockey = []
         for f in files:
-            dict = {
-                'type': MENU, 'title': f, 'subtitle': 'Field type ' + str(f)}
-            dict['options'] = []
+            dico = { 'type': MENU, 'title': f, 'subtitle': ''}
+            dico['options'] = []
             # keep all keys
             keysf = params[f].keys()
             keysf.sort()
             for k in keysf:
                 if k == 'DESCRIPTION':
                     # Give the description of the given menu
-                    dict['strings'] = params[f][k]
+                    dico['DESCRIPTION'] = params[f][k]
+                    #dico['title'] += ' (%s)' % dico['DESCRIPTION']
                     continue
-                if params[f][k].has_key('DESCRIPTION'):
-                    helpstr = params[f][k]['DESCRIPTION']
-                else:
-                    helpstr = 'No extended description for this key specified yet'
-                if params[f][k].has_key('COMMENT'):
-                    comment = params[f][k]['COMMENT']
-                else:
-                    comment = ''
-                dict['options'].append({'type': PROMPT, 'title': k + '     (' + str(comment) + ')',
-                                        'subtitle': 'Extended description for the input keyword: ' + str(k),
-                                        'strings': [helpstr]})
-            dockey.append(dict)
+                dd = {'type': PROMPT, 
+                      'title': k + '     (' + str(params[f][k]['COMMENT']) + ')',
+                      'subtitle': "Extended description for the input keyword '%s'" % str(k),
+                      'DESCRIPTION': 'No extended description for this key specified yet.\n',
+                      'COMMENT': '' }
+                dd.update(params[f][k])
+                dico['options'].append(dd)
+            dockey.append(dico)
         menu['options'][0]['options'] = dockey
         # now the same for the input file setups
         dockey = []
         for f in profs:
             inputfile = infiles[f]
-            helpstr = []
+            helpstr = ''
             if infiles[f].has_key('DESCRIPTION'):
-                helpstr.append(inputfile.pop('DESCRIPTION'))
+                helpstr += inputfile.pop('DESCRIPTION') 
             if infiles[f].has_key('COMMENT'):
                 comment = inputfile.pop('COMMENT')
             else:
                 comment = ''
-            helpstr.append('Here should follow the File description')
-            helpstr.append(' ')
-            helpstr += yaml.dump(inputfile,
-                                 default_flow_style=False).split('\n')
-            dict = {'type': PROMPT, 'title': f + '     (' + str(comment) + ')',
-                    'subtitle': 'Extended description for the input file: ' + str(f),
-                    'strings': helpstr}
-            dockey.append(dict)
+            helpstr += "List of specific keys associated with the import key '%s'.\n\n" % str(f)
+            helpstr += yaml.dump(inputfile, default_flow_style=False)
+            dico = {'type': PROMPT, 
+                    'title': f + '     (' + str(comment) + ')',
+                    'subtitle': "Extended description for the import key '%s'" % str(f),
+                    'DESCRIPTION': helpstr}
+            dockey.append(dico)
         menu['options'][1]['options'] = dockey
         sys.stdout.write(
             yaml.dump(menu, default_flow_style=False, explicit_start=True))
@@ -667,32 +797,18 @@ options:
         h = curses.color_pair(1)
         # n is the coloring for a non highlighted menu option
         n = curses.A_NORMAL
-
-        processmenu(h, n, screen, menu)
+        #Check if the height of window is enough
+        H,W = screen.getmaxyx()
+        if H > 6:
+            processmenu(h, n, screen, menu)
         # VITAL! This closes out the menu system and returns you to the bash
         # prompt.
         curses.endwin()
+        if H <= 6:
+            sys.stdout.write("ERROR: The window is too thin!\n")
         os.system('clear')
-        # try to see if a key matches a expression
-        if options.find_key is not None:
-            searchfor = options.find_key
-            matching_keys = closest_keys(allkeys, searchfor)
-            print 'matching', searchfor, 'in:', matching_keys
-            print 'keys wich match the most with', searchfor
-            foundkeys = []
-            doc = []
-            for (i, ratio) in matching_keys:
-                if ratio > 0.5 and i not in foundkeys:
-                    for f in find_files(params, i):
-                        dc = {}
-                        dc['Key found'] = i
-                        dc['Similarity'] = ratio
-                        dc['Field'] = f
-                        dc['Description'] = params[f][i]
-                        doc.append(dc)
-                        foundkeys.append(i)
-            sys.stdout.write(
-                yaml.dump(doc, default_flow_style=False, explicit_start=True))
+
+    #Conversion coordinates        
     if options.action == actions[10]:
         print 'calling memguess for coordinate conversion'
         infile_names = options.infile.split(".")

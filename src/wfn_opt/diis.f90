@@ -1,7 +1,7 @@
 !> @file
-!!   Routines for density mixing and wavefunction update
+!!   Routines for density mixing and wavefunction update (DIIS or SD)
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -386,9 +386,12 @@ subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: idsx,npsidim,nkptsp,nspinor !n(m)
-  real(gp), intent(in) :: alphadiis
-  type(diis_objects), intent(inout) :: diis
+  integer, intent(in) :: idsx                !< History of DIIS
+  integer, intent(in) :: npsidim             !< Vector length
+  integer, intent(in) :: nkptsp              !< Number of k points
+  integer, intent(in) :: nspinor             !< Spinor
+  real(gp), intent(in) :: alphadiis          !< Step size for SD
+  type(diis_objects), intent(inout) :: diis  !< Diis_objects allocated
   !local variables
   integer :: ncplx,ngroup
 
@@ -433,7 +436,7 @@ subroutine deallocate_diis_objects(diis)
   use module_base
   use module_types
   implicit none
-  type(diis_objects), intent(inout) :: diis
+  type(diis_objects), intent(inout) :: diis !< diis_objects de-allocated
   !local variables
 
   call f_free_ptr(diis%psidst)
@@ -522,6 +525,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
 END SUBROUTINE mix_rhopot
 
 
+!> Do simply the DIIS or SD scheme for orbitals (psi) depending only on diis%idsx > 0
 subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   use module_base
   use module_types
@@ -630,13 +634,13 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
 END SUBROUTINE psimix
 
 
-!> Perform a diis or sd step
-subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
+!> Decide to switch between a diis or sd step
+subroutine diis_or_sd(iproc,idsx,diis)
   use module_base
   use module_types
   use yaml_output
   implicit none
-  integer, intent(in) :: iproc,idsx,nkptsp
+  integer, intent(in) :: iproc,idsx
   type(diis_objects), intent(inout) :: diis
 
   !here we should add the DIIS/SD switch
@@ -686,7 +690,7 @@ END SUBROUTINE diis_or_sd
 
 
 !> Calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
-!! using  the previous iteration points psidst and the associated error 
+!! using the previous iteration points psidst and the associated error 
 !! vectors (preconditioned gradients) hpsidst
 subroutine diisstp(iproc,nproc,orbs,comms,diis)
   use module_base
@@ -753,7 +757,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
         if (ncplx==1) then
            rds(1,i-ist+1,1,ikpt)=0.0_tp
         else
-           zdres=cmplx(0.0_tp,0.0_tp)
+           zdres=cmplx(0.0_tp,0.0_tp,kind=tp)
         end if
         
         ipsi_spin_sh=0
@@ -979,72 +983,59 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
 
 END SUBROUTINE diisstp
 
-!> compute a dot product of two single precision vectors 
-!! returning a double precision result
-subroutine ds_dot(ndim,x,x0,dx,y,y0,dy,dot_out)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: ndim,x0,dx,y0,dy
-  real(tp), dimension(ndim), intent(in) :: x,y
-  real(wp), intent(out) :: dot_out
-  integer :: jj,ix,iy
-  
-  dot_out=0.0d0
-  ix=x0
-  iy=y0
-  do jj=1,ndim
-    dot_out=dot_out + real(x(ix),wp)*real(y(iy),wp)
-    ix=ix+dx
-    iy=iy+dy
-  end do
-END SUBROUTINE ds_dot
 
-function s2d_dot(ndim,x,dx,y,dy)
-  implicit none
-  integer, intent(in) :: ndim,dx,dy
-  real(kind=4), dimension(ndim), intent(in) :: x,y
-  real(kind=8) :: s2d_dot
-  !local variables
-  integer :: jj,ix,iy
-  real(kind=8) :: dot_out
-
-  !quick return if possible
-  if (ndim <= 0) then
-     s2d_dot=0.0d0
-     return
-  end if
-
-  dot_out=0.0d0
-  ix=1
-  iy=1
-  do jj=1,ndim
-     dot_out=dot_out + real(x(ix),kind=8)*real(y(iy),kind=8)
-     ix=ix+dx
-     iy=iy+dy
-  end do
-
-  s2d_dot=dot_out
-
-end function s2d_dot
+!!> Compute a dot product of two single precision vectors 
+!!! returning a double precision result
+!subroutine ds_dot(ndim,x,x0,dx,y,y0,dy,dot_out)
+!  use module_base
+!  use module_types
+!  implicit none
+!  integer, intent(in) :: ndim,x0,dx,y0,dy
+!  real(tp), dimension(ndim), intent(in) :: x,y
+!  real(wp), intent(out) :: dot_out
+!  integer :: jj,ix,iy
+!  
+!  dot_out=0.0d0
+!  ix=x0
+!  iy=y0
+!  do jj=1,ndim
+!    dot_out=dot_out + real(x(ix),wp)*real(y(iy),wp)
+!    ix=ix+dx
+!    iy=iy+dy
+!  end do
+!END SUBROUTINE ds_dot
 
 
-
-
+!function s2d_dot(ndim,x,dx,y,dy)
+!  implicit none
+!  integer, intent(in) :: ndim,dx,dy
+!  real(kind=4), dimension(ndim), intent(in) :: x,y
+!  real(kind=8) :: s2d_dot
+!  !local variables
+!  integer :: jj,ix,iy
+!  real(kind=8) :: dot_out
+!
+!  !quick return if possible
+!  if (ndim <= 0) then
+!     s2d_dot=0.0d0
+!     return
+!  end if
+!
+!  dot_out=0.0d0
+!  ix=1
+!  iy=1
+!  do jj=1,ndim
+!     dot_out=dot_out + real(x(ix),kind=8)*real(y(iy),kind=8)
+!     ix=ix+dx
+!     iy=iy+dy
+!  end do
+!
+!  s2d_dot=dot_out
+!
+!end function s2d_dot
 
 
 
-
-!!****f* BigDFT/psimix
-!! FUNCTION
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
 !!subroutine psimixVariable(iproc,nproc,orbs,comms,diis,diisArr, hpsit,psit, quiet)
 !!  use module_base
 !!  use module_types

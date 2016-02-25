@@ -601,12 +601,14 @@ subroutine inputs_get_mix(in, iscf, itrpmax, norbsempty, occopt, alphamix, rpnrm
      & gnrm_startmix, Tel, alphadiis)
   use module_defs, only: gp
   use module_types
+  use module_input_keys, only: set_iscf
+  
   implicit none
   type(input_variables), intent(in) :: in
   integer, intent(out) :: iscf, itrpmax, norbsempty, occopt
   real(gp), intent(out) :: alphamix, rpnrm_cv, gnrm_startmix, Tel, alphadiis
   
-  iscf = in%iscf
+  call set_iscf(in%scf,iscf)
   itrpmax = in%itrpmax
   norbsempty = in%norbsempty
   occopt = in%occopt
@@ -1383,6 +1385,7 @@ subroutine optloop_copy_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rp
      &  itrpmax, nrepmax, itermax, itrp, itrep, iter, iscf, infocode)
   use module_defs, only: gp
   use module_types
+  use module_input_keys, only: set_iscf
   implicit none
   type(DFT_optimization_loop), intent(in) :: optloop
   integer, intent(out) :: iscf, itrpmax, nrepmax, itermax, itrp, itrep, iter, infocode
@@ -1400,7 +1403,8 @@ subroutine optloop_copy_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rp
   itrp = optloop%itrp 
   itrep = optloop%itrep 
   iter = optloop%iter 
-  iscf = optloop%iscf 
+
+  call set_iscf(optloop%scf,iscf)
   infocode = optloop%infocode
 END SUBROUTINE optloop_copy_data
 
@@ -1409,6 +1413,7 @@ subroutine optloop_sync_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rp
      &  itrpmax, nrepmax, itermax, itrp, itrep, iter, iscf, infocode)
   use module_defs, only: gp
   use module_types
+  use module_input_keys, only: set_scf_mode
   implicit none
   type(DFT_optimization_loop), intent(inout) :: optloop
   integer, intent(in) :: iscf, itrpmax, nrepmax, itermax, itrp, itrep, iter, infocode
@@ -1426,7 +1431,7 @@ subroutine optloop_sync_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rp
   optloop%itrp = itrp 
   optloop%itrep = itrep 
   optloop%iter = iter 
-  optloop%iscf = iscf 
+  call set_scf_mode(iscf,optloop%scf)
   optloop%infocode = infocode
 END SUBROUTINE optloop_sync_data
 
@@ -1488,6 +1493,7 @@ END SUBROUTINE optloop_emit_iter
 subroutine optloop_bcast(optloop, iproc)
   use module_base
   use module_types
+  use module_input_keys, only: set_iscf,set_scf_mode
   implicit none
   type(DFT_optimization_loop), intent(inout) :: optloop
   integer, intent(in) :: iproc
@@ -1496,7 +1502,8 @@ subroutine optloop_bcast(optloop, iproc)
   real(gp), dimension(3) :: rData
 
   if (iproc == 0) then
-     iData(1) = optloop%iscf
+     call set_iscf(optloop%scf,idata(1))
+     !iData(1) = optloop%iscf
      iData(2) = optloop%itrpmax
      iData(3) = optloop%nrepmax
      iData(4) = optloop%itermax
@@ -1512,7 +1519,7 @@ subroutine optloop_bcast(optloop, iproc)
   call mpibcast(iData,comm=bigdft_mpi%mpi_comm)
   call mpibcast(rData,comm=bigdft_mpi%mpi_comm)
   if (iproc /= 0) then
-     optloop%iscf = iData(1)
+     call set_scf_mode(idata(1),optloop%scf)
      optloop%itrpmax = iData(2)
      optloop%nrepmax = iData(3)
      optloop%itermax = iData(4)
