@@ -201,6 +201,8 @@ module PStypes
      integer :: max_iter_PB !< max conv iterations for PB treatment
      real(dp) :: minres_PB !<convergence criterion for PB residue
      real(dp) :: PB_eta !< mixing scheme for PB
+     real(dp) :: IntVol !< Volume integral needed for the non-electrostatic energy contributions
+     real(dp) :: IntSur !< Surface integral needed for the non-electrostatic energy contributions
      
      integer, dimension(:), pointer :: counts !<array needed to gather the information of the poisson solver
      integer, dimension(:), pointer :: displs !<array needed to gather the information of the poisson solver
@@ -1229,8 +1231,8 @@ contains
                    kernel%w%corr(i1,i23)=corr_term(rh,d2,dd,kernel%cavity)
                    dsurfdrho(i1,i23)=-surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
                    !evaluate surfaces and volume integrals
-                   IntSur=IntSur - de*d/epsm1
-                   IntVol=IntVol + (kernel%cavity%epsilon0-eps(rh,kernel%cavity))/epsm1
+                   IntSur=IntSur - de*d
+                   IntVol=IntVol + (kernel%cavity%epsilon0-eps(rh,kernel%cavity))
                 end if
              end do
              i23=i23+1
@@ -1260,8 +1262,8 @@ contains
                    dsurfdrho(i1,i23)=-surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
 
                    !evaluate surfaces and volume integrals
-                   IntSur=IntSur - de*d/epsm1
-                   IntVol=IntVol + (kernel%cavity%epsilon0-eps(rh,kernel%cavity))/epsm1
+                   IntSur=IntSur - de*d
+                   IntVol=IntVol + (kernel%cavity%epsilon0-eps(rh,kernel%cavity))
                 end if
              end do
              i23=i23+1
@@ -1269,8 +1271,8 @@ contains
        end do
     end select
 
-    IntSur=IntSur*product(kernel%hgrids)
-    IntVol=IntVol*product(kernel%hgrids)
+    IntSur=IntSur*product(kernel%hgrids)/epsm1
+    IntVol=IntVol*product(kernel%hgrids)/epsm1
 
 
   end subroutine build_cavity_from_rho

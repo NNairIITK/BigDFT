@@ -185,10 +185,6 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !add the ionic density to the potential, calculate also the integral
   !between the rho and pot_ion and the extra potential if present
   e_static=0.0_dp
-  if (kernel%opt%only_electrostatic) then
-   IntSur=0.0_gp
-   IntVol=0.0_gp
-  end if
   if (sum_ri) then
      if (sum_pi) then
         call finalize_hartree_results(.true.,cudasolver,kernel,rho_ion,&
@@ -385,12 +381,20 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !gather the full result in the case of datacode = G
   if (kernel%opt%datacode == 'G') call PS_gather(rhov,kernel)
 
+  if (build_c) then
+   kernel%IntSur=IntSur
+   kernel%IntVol=IntVol
+  end if
+  if (kernel%opt%only_electrostatic) then
+   kernel%IntSur=0.0_gp
+   kernel%IntVol=0.0_gp
+  end if
   !evaluating the total ehartree + e_static if needed
   !also cavitation energy can be given
   energies%hartree=ehartreeLOC*0.5_dp*product(kernel%hgrids)
   energies%eVextra=e_static*product(kernel%hgrids)
-  energies%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*IntSur+&
-       kernel%cavity%betaV*IntVol
+  energies%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*kernel%IntSur+&
+       kernel%cavity%betaV*kernel%IntVol
 
   call PS_reduce(energies,kernel)
 

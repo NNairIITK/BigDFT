@@ -891,26 +891,17 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(inout) :: pkernel
   !local variables
-  real(gp), parameter :: epsilon0=78.36d0 ! Constant dielectric permittivity of water.
   real(gp), parameter :: fact=1.2d0 ! Multiplying factor to enlarge the rigid cavity.
   integer :: i
   !integer :: i1,i2,i3,unt,i3s,i23
-  real(gp) :: IntSur,IntVol,noeleene,Cavene,Repene,Disene
+  real(gp) :: IntSur,IntVol,noeleene,Cavene,Repene,Disene,IntSurt,IntVolt,diffSur,diffVol
   type(atoms_iterator) :: it
   real(gp), dimension(:), allocatable :: radii,radii_nofact
   real(gp), dimension(:,:,:), allocatable :: eps,oneoeps,oneosqrteps,corr
   real(gp), dimension(:,:,:,:), allocatable :: dlogeps
   real(gp), dimension(:,:,:), allocatable :: epst,oneoepst,oneosqrtepst,corrt
   real(gp), dimension(:,:,:,:), allocatable :: dlogepst
-  real(dp), parameter :: gammaS = 72.d0 ![dyn/cm]
-  real(dp), parameter :: alphaS = -22.0d0 ![dyn/cm]
-  real(dp), parameter :: betaV = -0.35d0 ![GPa]
-  real(dp) :: gammaSau, alphaSau,betaVau
   type(cell) :: mesh
-
-  gammaSau=gammaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
-  alphaSau=alphaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
-  betaVau=betaV/2.942191219d4 ! in atomic unit
 
   !set the vdW radii for the cavity definition
   !iterate above atoms
@@ -1012,7 +1003,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !  call epsilon_rigid_cavity(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
 !       epsilon0,delta,eps)
   call epsilon_rigid_cavity_error_multiatoms_bc(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
-       epsilon0,pkernel%cavity%delta,epst,dlogepst,oneoepst,oneosqrtepst,corrt,IntSur,IntVol)
+       pkernel%cavity%epsilon0,pkernel%cavity%delta,epst,dlogepst,oneoepst,oneosqrtepst,corrt,IntSurt,IntVolt)
 !  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
 !       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
 
@@ -1030,13 +1021,22 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
 !-------------------------------------------------------------------
 
+  pkernel%IntSur=IntSur
+  pkernel%IntVol=IntVol
+
+  diffSur=IntSurt-pkernel%IntSur
+  diffVol=IntVolt-pkernel%IntVol
   if (bigdft_mpi%iproc==0) then
-     call yaml_map('Surface integral',IntSur)
-     call yaml_map('Volume integral',IntVol)
+     call yaml_map('Old Surface integral',IntSurt)
+     call yaml_map('Old Volume integral',IntVolt)
+     call yaml_map('Surface integral',pkernel%IntSur)
+     call yaml_map('Volume integral',pkernel%IntVol)
+     call yaml_map('Surface integral diff',diffSur)
+     call yaml_map('Volume integral diff',diffVol)
   end if
-  Cavene= gammaSau*IntSur*627.509469d0
-  Repene= alphaSau*IntSur*627.509469d0
-  Disene=  betaVau*IntVol*627.509469d0
+  Cavene= pkernel%cavity%gammaS*pkernel%IntSur*627.509469d0
+  Repene= pkernel%cavity%alphaS*pkernel%IntSur*627.509469d0
+  Disene= pkernel%cavity%betaV*pkernel%IntVol*627.509469d0
   noeleene=Cavene+Repene+Disene
   if (bigdft_mpi%iproc==0) then
      call yaml_map('Cavity energy',Cavene)

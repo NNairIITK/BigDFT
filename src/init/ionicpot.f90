@@ -788,7 +788,7 @@ subroutine epsilon_rigid_cavity_soft_PCM(mesh,nat,rxyz,radii,cavity,&
   real(kind=8), intent(out) :: IntSur,IntVol
   !local variables
   integer :: i1,i2,i3,unt
-  real(dp) :: cc,hh,ep
+  real(dp) :: cc,hh,ep,deps,epsm1
   real(dp), dimension(3) :: v,origin,dleps
   logical, parameter :: dumpeps=.false.
 !  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3
@@ -798,6 +798,9 @@ subroutine epsilon_rigid_cavity_soft_PCM(mesh,nat,rxyz,radii,cavity,&
 !  call ext_buffers(peri(1),nbl1,nbr1)
 !  call ext_buffers(peri(2),nbl2,nbr2)
 !  call ext_buffers(peri(3),nbl3,nbr3)
+  epsm1=(cavity%epsilon0-1.0d0)
+  IntSur=0.d0
+  IntVol=0.d0
 
   hh=mesh%volume_element
   origin=locreg_mesh_origin(mesh)
@@ -810,15 +813,19 @@ subroutine epsilon_rigid_cavity_soft_PCM(mesh,nat,rxyz,radii,cavity,&
         do i1=1,mesh%ndims(1)
            v(1)=cell_r(mesh,i1,dim=1)-origin(1) ! Luigi
 !           v(1)=mesh%hgrids(1)*(i1-1-nbl1)      ! Giuseppe
-           call rigid_cavity_arrays(cavity,mesh,v,nat,rxyz,radii,ep,dleps,cc)
+           call rigid_cavity_arrays(cavity,mesh,v,nat,rxyz,radii,ep,deps,dleps,cc)
            eps(i1,i2,i3)=ep
            oneoeps(i1,i2,i3)=1.d0/ep
            oneosqrteps(i1,i2,i3)=1.d0/sqrt(ep)
            dlogeps(:,i1,i2,i3)=dleps
            corr(i1,i2,i3)=cc
+           IntVol=IntVol+(cavity%epsilon0-ep)
+           IntSur=IntSur+deps
         end do
      end do
   end do
+  IntVol=IntVol*hh/epsm1
+  IntSur=IntSur*hh/epsm1
 
    if (dumpeps) then
     unt=f_get_free_unit(20)
