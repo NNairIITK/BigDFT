@@ -420,40 +420,63 @@ contains
 
     !check if the freeing is possible
     call f_ref_free(atoms%refcnt)
+    write(*,*) 'after refcnt'
 
     ! Deallocate atomic structure
     call deallocate_atomic_structure(atoms%astruct)
 
     ! Deallocations related to pseudos.
     call f_free_ptr(atoms%nzatom)
+    write(*,*) '1'
     call f_free_ptr(atoms%psppar)
+    write(*,*) '2'
     call f_free_ptr(atoms%dogamma)
+    write(*,*) '3'
     call f_free_ptr(atoms%nelpsp)
+    write(*,*) '4'
     call f_free_ptr(atoms%ixcpsp)
+    write(*,*) '5'
     call f_free_ptr(atoms%npspcode)
+    write(*,*) '6'
     call f_free_ptr(atoms%nlcc_ngv)
+    write(*,*) '7'
     call f_free_ptr(atoms%nlcc_ngc)
+    write(*,*) '8'
     call f_free_ptr(atoms%radii_cf)
+    write(*,*) '9'
     call f_free_ptr(atoms%iradii_source)
+    write(*,*) '10'
     call f_free_ptr(atoms%amu)
+    write(*,*) '11'
     if (associated(atoms%aoig)) then
        !no flib calls for derived types for the moment
        deallocate(atoms%aoig)
        nullify(atoms%aoig)
     end if
+    write(*,*) '11.2'
     call f_free_ptr(atoms%nlccpar)
 
     !  Free data for pawpatch
     call f_free_ptr(atoms%paw_l)
+    write(*,*) '12'
     call f_free_ptr(atoms%paw_NofL)
+    write(*,*) '13'
     call f_free_ptr(atoms%paw_nofchannels)
+    write(*,*) '14'
     call f_free_ptr(atoms%paw_nofgaussians)
+    write(*,*) '15'
     call f_free_ptr(atoms%paw_Greal)
+    write(*,*) '16'
     call f_free_ptr(atoms%paw_Gimag)
+    write(*,*) '17'
     call f_free_ptr(atoms%paw_Gcoeffs)
+    write(*,*) '18'
     call f_free_ptr(atoms%paw_H_matrices)
+    write(*,*) '19'
     call f_free_ptr(atoms%paw_S_matrices)
+    write(*,*) '20'
     call f_free_ptr(atoms%paw_Sm1_matrices)
+    write(*,*) '21'
 
     ! Free PAW data.
     if (associated(atoms%pawrad)) then
