@@ -2658,7 +2658,6 @@ module multipole
                        call f_free(kernel_extracted)
                        call f_free(multipole_extracted)
                        if (trim(method)=='loewdin') then
-                           !if (do_ortho==no) then
                                call extract_matrix(smatl, inv_ovrlp(1)%matrix_compr, neighborx(1:,kat), n, nmaxx, projx(1:,kat))
                                iiorb = 0
                                do iorb=1,smats%nfvctr
@@ -2673,6 +2672,16 @@ module multipole
                                end do
                        end if
                       call gemm('n', 'n', n, n, n, 1.d0, qmat_tilde(1,1), n, projx(1,kat), n, 0.d0, kp(1,1), n)
+                      !!!! LUIGI'S NEW IDEA #############################################################
+                      !!!do i=1,n
+                      !!!    kp(i,i) = 0.d0
+                      !!!    do j=1,n
+                      !!!        if (orbs%onwhichatom(j)==kkat .and. orbs%onwhichatom(i)==kkat) then
+                      !!!            kp(i,i) = kp(i,i) - 0.25*qmat_tilde(j,i)**2
+                      !!!        end if
+                      !!!    end do
+                      !!!end do
+                      !!!! END OF LUIGI'S NEW IDEA ######################################################
                       if (do_ortho==no) then
                           overlap_small = f_malloc((/n,n/),id='overlap_small')
                           call extract_matrix(smats, ovrlp%matrix_compr, neighborx(1:,kat), n, nmaxx, overlap_small)

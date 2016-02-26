@@ -999,6 +999,7 @@ module forces_linear
                   !$omp master
                   fxyz_orb_tmp(1:3) = 0.d0
                   !$omp end master
+                  !$omp barrier
                   !$omp do reduction(+:fxyz_orb_tmp,strten_loc,Enl)
                   do iorb=1,supfun_per_atom(iiat)
                      ii = is_supfun_per_atom(iiat) - is_supfun_per_atom(isat_par(iproc)+1) + iorb
@@ -1119,8 +1120,6 @@ module forces_linear
                      end do
                   end do
                   !$omp end do
-                  ! There are sometimes problems... Maybe a barrier helps?
-                  !$omp barrier
                   !$omp master
                   fxyz_orb(1:3,iat) = fxyz_orb(1:3,iat) + fxyz_orb_tmp(1:3)
                   !$omp end master
