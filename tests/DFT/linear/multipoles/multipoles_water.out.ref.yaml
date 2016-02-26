@@ -119,7 +119,6 @@
    check_matrix_compression            : No #     linear scaling perform a check of the matrix compression routines
    FOE_restart                         : 1 #      Restart method to be used for the FOE method
    hamapp_radius_incr                  : 6 #      radius enlargement for the Hamiltonian application (in grid points)
-   nsigma                              : 3 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
     #                                              Gaussian used for the radial part of the 
     #                                              function based on the multipoles.
    debug                               : No #     Debug option

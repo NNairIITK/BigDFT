@@ -206,7 +206,6 @@ module public_keys
   character(len = *), parameter :: GPS_METHOD = "gps_method"
   character(len = *), parameter :: FOE_GAP = "foe_gap"
   character(len = *), parameter :: SUPPORT_FUNCTION_MULTIPOLES = "support_function_multipoles"
-  character(len = *), parameter :: NSIGMA = "nsigma"
   character(len = *), parameter :: PLOT_MPPOT_AXES = "plot_mppot_axes"
   character(len = *), parameter :: PLOT_POT_AXES = "plot_pot_axes"
 

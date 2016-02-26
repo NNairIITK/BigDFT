@@ -1503,7 +1503,7 @@ O2spin_dirmin:
  fnrm2: 1.02e-4
  EH: 2.63e-5
  EXC: 5.6e-6
- Ekin: 1.1e-6
+ Ekin: 3.3e-6
  Enl: 1.9e-7
  Epot: 2.02e-5
  EvXC: 6.0e-6
@@ -1705,7 +1705,7 @@ periodic_silicon:
  Total ionic charge: 6.7e-11
  Pressure: 1.5e-10
  D Tr: 1.0e-9
- trace: 4.8e-10
+ trace: 5.7e-10
  Maxdiff for transpose (checksum): 2.4e-10
 
 periodic_wateredge:
@@ -2047,13 +2047,13 @@ igortho_94:
  difference from reference kernel: 1.1e-8
  EBS: 3.2e-4
  EBS higher temperature: 3.2e-4
- relative difference: 7.9e-9
+ relative difference: 8.0e-9
  trace(KS): 2.6e-8
  D: 1.1e-4
  energy: 2.4e-8
  Omega: 1.1e-8
  Charge analysis (charge / net charge): 2.0e-6
- Pseudo Fermi level for occupations: 1.7e-5
+ Pseudo Fermi level for occupations: 1.8e-5
  net charge: 1.1e-5
  eval: 1.1e-7
  Multipole coefficients: 1.2e-5
@@ -2063,7 +2063,7 @@ igortho_94:
  multiplicator for the confinement: 4.38e-11
  Force Norm (Hartree/Bohr): 4.3e-8
  Maxdiff for transpose (checksum): 1.2e-10
- Q matrix: 1.1e-05
+ Q matrix: 1.1e-04
 
 extendedfrags_nofrags:
  eF: 1.7e-9

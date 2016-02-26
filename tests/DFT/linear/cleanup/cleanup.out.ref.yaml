@@ -91,7 +91,6 @@
    correction_co_contra                : no #     linear scaling correction covariant / contravariant gradient
    check_sumrho                        : 2 #      Enables linear sumrho check
    check_overlap                       : 2 #      Enables linear overlap check
-   nsigma                              : 5 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
     #                                              Gaussian used for the radial part of the 
     #                                              function based on the multipoles.
    debug                               : No #     Debug option

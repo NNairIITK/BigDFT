@@ -173,7 +173,6 @@
    adjust_kernel_iterations            : True #   enable the adaptive ajustment of the number of kernel iterations
    adjust_kernel_threshold             : True #   enable the adaptive ajustment of the kernel convergence threshold according to the 
     #                                              support function convergence
-   nsigma                              : 1 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
     #                                              Gaussian used for the radial part of the 
     #                                              function based on the multipoles.
  lin_general:

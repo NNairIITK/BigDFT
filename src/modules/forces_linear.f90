@@ -1119,6 +1119,8 @@ module forces_linear
                      end do
                   end do
                   !$omp end do
+                  ! There are sometimes problems... Maybe a barrier helps?
+                  !$omp barrier
                   !$omp master
                   fxyz_orb(1:3,iat) = fxyz_orb(1:3,iat) + fxyz_orb_tmp(1:3)
                   !$omp end master

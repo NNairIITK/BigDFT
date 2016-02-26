@@ -93,7 +93,6 @@
    loewdin_charge_analysis             : yes #    linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_overlap                       : 2 #      Enables linear overlap check
    check_sumrho                        : 2 #      Enables linear sumrho check
-   nsigma                              : 3 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
     #                                              Gaussian used for the radial part of the 
     #                                              function based on the multipoles.
    debug                               : No #     Debug option

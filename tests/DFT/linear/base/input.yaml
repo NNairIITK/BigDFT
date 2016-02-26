@@ -19,7 +19,6 @@
    loewdin_charge_analysis: yes
    check_overlap: 2
    check_sumrho: 2
-   nsigma: 3
  lin_general:
    nit: [2, 3]
    rpnrm_cv: 9.9999999999999994E-012
