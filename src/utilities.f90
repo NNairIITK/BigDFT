@@ -242,17 +242,11 @@ program utilities
 
        call timing(bigdft_mpi%mpi_comm,'CALC','PR')
 
-       write(*,*) 'deallocate in main'
        call deallocate_atoms_data(at)
-       write(*,*) 'after at'
        call deallocate_sparse_matrix(smat_s)
-       write(*,*) 'after s'
        call deallocate_sparse_matrix(smat_l)
-       write(*,*) 'after l'
        call deallocate_matrices(ovrlp_mat)
-       write(*,*) 'after over'
        call deallocate_matrices(kernel_mat)
-       write(*,*) 'after kernel'
        !if (method==CHARGE_ANALYSIS_PROJECTOR) then
            call deallocate_sparse_matrix(smat_m)
            call deallocate_matrices(hamiltonian_mat)
