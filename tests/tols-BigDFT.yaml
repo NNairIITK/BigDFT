@@ -756,7 +756,7 @@ fructose:
  Maxdiff for transpose (checksum): 2.4e-10
  ef: 1.1e-7
  difference: 1.4e-9
- relative difference: 6.1e-11
+ relative difference: 6.2e-11
  trace(KS): 2.5e-10
  eval: 1.1e-6
  Keys to ignore:
@@ -1325,7 +1325,7 @@ PBE_densmixlin:
  EH: 1.0e-9
  Total charge: 2.1e-11
  Energy (Hartree): 4.8e-11
- fnrm2: 1.401e-11
+ fnrm2: 1.6e-11
  Maxdiff for transpose (checksum): 2.4e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
@@ -1499,21 +1499,21 @@ O2spin_dirmin:
  Raw forces norm (Ha/Bohr): 1.3e-4
  Electric Dipole Moment (AU): 2.4e-5
  Electric Dipole Moment (Debye): 3.0e-5
- eBS: 1.23e-5
+ eBS: 1.52e-5
  fnrm2: 1.02e-4
- EH: 2.13e-5
+ EH: 2.63e-5
  EXC: 5.6e-6
- Ekin: 9.18e-6
+ Ekin: 1.1e-6
  Enl: 1.9e-7
- Epot: 1.69e-5
+ Epot: 2.02e-5
  EvXC: 6.0e-6
  energydiff: 6.0e-6
- energy: 2.60e-6
+ energy: 3.14e-6
  fnrm: 1.6e-4
- Energy (Hartree): 2.58e-6
+ Energy (Hartree): 3.13e-6
  Omega: 6.1e-6
  D: 1.1e-4
- DIIS weights: 5.21
+ DIIS weights: 5.6
  Max deviation from unity in reorthonormalize_coeff: 1.1e-6
  Mean deviation from unity in reorthonormalize_coeff: 1.1e-7
  delta: 1.1e-10
@@ -1761,7 +1761,7 @@ surface_boronnitride:
  Ekin: 1.0e-9
  Enl: 1.01e-9
  Epot: 1.0e-9
- Omega: 2.6e-10
+ Omega: 2.7e-10
  energy: 5.5e-11
  Energy (Hartree): 5.5e-11
  Total charge: 1.0e-10
@@ -1802,10 +1802,10 @@ multipoles_OH-:
  D Tr(K): 6.8e-8
  D Tr: 6.8e-8
  Tr(K): 2.1e-7
- EBS higher temperature: 6.8e-9
+ EBS higher temperature: 6.9e-9
  EBS: 1.6e-10
  relative difference: 4.6e-9
- difference: 6.8e-9
+ difference: 6.9e-9
  multiplicator for the confinement: 1.7e-9
  Epot: 1.3e-10
  EH: 2.1e-10
@@ -2015,6 +2015,7 @@ igortho_44:
  trace: 8.5e-11
  Maxdiff for transpose (checksum): 4.7e-10
  norm(P): 1.0e-5
+ Q matrix: 1.0e-4
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -2023,9 +2024,9 @@ igortho_94:
  Atomic Forces (Ha/Bohr): 2.6e-5
  net quadropole: 1.1e-5
  net dipole: 2.1e-6
- Energy (Hartree): 2.1e-9
+ Energy (Hartree): 1.4e-8
  Multipole coefficients: 7.1e-10
- Total charge: 2.7e-9
+ Total charge: 2.6e-8
  Clean forces norm (Ha/Bohr): 3.4e-5
  Average noise forces: 2.8e-5
  Raw forces norm (Ha/Bohr): 5.0e-5
@@ -2035,33 +2036,34 @@ igortho_94:
  Enl: 1.4e-8
  Epot: 6.2e-4
  EvXC: 4.4e-5
- total charge correction: 3.3e-8
+ total charge correction: 5.7e-8
  guess for new ef: 1.3e-5
  Tr(K): 3.0e-7
  D Tr(K): 3.0e-7
- eF: 1.3e-5
+ eF: 2.1e-5
  D Tr: 3.0e-7
  D eF: 1.1e-5
- difference: 5.4e-9
+ difference: 3.1e-8
  difference from reference kernel: 1.1e-8
  EBS: 3.2e-4
  EBS higher temperature: 3.2e-4
- relative difference: 1.4e-9
- trace(KS): 2.7e-9
+ relative difference: 7.9e-9
+ trace(KS): 2.6e-8
  D: 1.1e-4
  energy: 2.4e-8
  Omega: 1.1e-8
  Charge analysis (charge / net charge): 2.0e-6
- Pseudo Fermi level for occupations: 1.1e-6
+ Pseudo Fermi level for occupations: 1.7e-5
  net charge: 1.1e-5
  eval: 1.1e-7
  Multipole coefficients: 1.2e-5
- number of corrected points: 116
+ number of corrected points: 134
  delta: 4.1e-11
  radius for normalization: 1.1e-2
  multiplicator for the confinement: 4.38e-11
  Force Norm (Hartree/Bohr): 4.3e-8
- Maxdiff for transpose (checksum): 5.9e-11
+ Maxdiff for transpose (checksum): 1.2e-10
+ Q matrix: 1.1e-05
 
 extendedfrags_nofrags:
  eF: 1.7e-9
@@ -2092,10 +2094,10 @@ extendedfrags_read:
  D Tr: 1.1e-10
  Average noise forces: 1.1e-10
  Pressure: 5.6e-11
- maxval: 1.8e-11
+ maxval: 2.2e-11
  Total charge: 4.1e-11
- Force Norm (Hartree/Bohr): 4.8e-11
- Atomic Forces (Ha/Bohr): 2.0e-11
+ Force Norm (Hartree/Bohr): 5.9e-11
+ Atomic Forces (Ha/Bohr): 2.4e-11
  Epot: 3.1e-10
  Keys to ignore: [WARNINGS]
 
@@ -2115,13 +2117,13 @@ extendedfrags_readrotated:
  EvXC: 1.01e-10
  EH: 1.1e-9
  Total charge: 4.1e-11
- Force Norm (Hartree/Bohr): 4.8e-11
+ Force Norm (Hartree/Bohr): 6.4e-11
  fnrm2: 6.9e-11
  energy: 1.2e-11
- Atomic Forces (Ha/Bohr): 2.0e-11
+ Atomic Forces (Ha/Bohr): 2.3e-11
  Omega: 2.7e-10
  Average noise forces: 1.1e-10
- Clean forces norm (Ha/Bohr): 1.8e-11
+ Clean forces norm (Ha/Bohr): 2.3e-11
  Keys to ignore: [WARNINGS]
 
 
@@ -2144,10 +2146,10 @@ extendedfrags_write:
  Pressure: 6.9e-11
  decay length of error function: 1.1e-6
  Clean forces norm (Ha/Bohr): 1.2e-11
- fnrm2: 5.6e-11
- maxval: 1.7e-11
- Atomic Forces (Ha/Bohr): 1.7e-11
- Force Norm (Hartree/Bohr): 4.7e-11
+ fnrm2: 6.6e-11
+ maxval: 2.1e-11
+ Atomic Forces (Ha/Bohr): 2.1e-11
+ Force Norm (Hartree/Bohr): 5.6e-11
  difference: 1.65e-11
  e: 2.2e-11
  
@@ -2308,23 +2310,23 @@ largesystems_dnawater:
     - atom
 
 H2Omultipoles_1:
-  EBS: 9.3e-10
-  EBS higher temperature: 9.3e-10
+  EBS: 9.5e-10
+  EBS higher temperature: 9.5e-10
   EH: 1.1e-9
-  EXC: 1.7e-10
-  Ekin: 3.1e-10
-  Enl: 7.1e-11
+  EXC: 1.8e-10
+  Ekin: 4.1e-10
+  Enl: 8.1e-11
   Epot: 1.1e-9
   EvXC: 2.2e-10
-  Charge analysis (charge / net charge): 9.8e-11
+  Charge analysis (charge / net charge): 9.9e-11
   Pseudo Fermi level for occupations: 2.5e-11
-  Omega: 2.5e-11
+  Omega: 2.6e-11
   Total charge: 2.6e-11
   Tr(K): 1.1e-07
   eF: 1.1e-07
-  energy: 2.4e-11
+  energy: 2.5e-11
   multiplicator for the confinement: 4.5e-11
-  trace(KS): 2.5e-11
+  trace(KS): 2.6e-11
   Maxdiff for transpose (checksum): 1.5e-11
   difference: 1.3e-11
 
@@ -2346,7 +2348,7 @@ H2Omultipoles_11:
   multiplicator for the confinement: 4.4e-11
   trace(KS): 2.5e-11
   Maxdiff for transpose (checksum): 1.5e-11
-  Pseudo Fermi level for occupations: 2.0e-11
+  Pseudo Fermi level for occupations: 2.1e-11
   difference: 1.3e-11
 
 H2Omultipoles_12:
