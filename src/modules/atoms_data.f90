@@ -1165,7 +1165,7 @@ contains
       use dictionaries
       use module_defs, only: UNINITIALIZED
       use dynamic_memory
-      use f_enums, only: operator(==), f_int => int
+      use f_enums, only: operator(==), f_int => toi
       implicit none
       type(dictionary), pointer :: dict
       character(len = max_field_length), intent(out), optional :: symbol !< Symbol

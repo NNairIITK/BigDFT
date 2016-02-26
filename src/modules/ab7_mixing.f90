@@ -3,25 +3,26 @@ module m_ab7_mixing
   use dynamic_memory!m_profiling !this has been moved. No idea how should be treated 
   use defs_basis
   use module_base, only: bigdft_mpi
+  use public_enums
 
   implicit none
 
   private
 
-  integer, parameter, public :: AB7_MIXING_NONE        = 0
-  integer, parameter, public :: AB7_MIXING_EIG         = 1
-  integer, parameter, public :: AB7_MIXING_SIMPLE      = 2
-  integer, parameter, public :: AB7_MIXING_ANDERSON    = 3
-  integer, parameter, public :: AB7_MIXING_ANDERSON_2  = 4
-  integer, parameter, public :: AB7_MIXING_CG_ENERGY   = 5
-  integer, parameter, public :: AB7_MIXING_CG_ENERGY_2 = 6
-  integer, parameter, public :: AB7_MIXING_PULAY       = 7
-
-  integer, parameter, public :: AB7_MIXING_POTENTIAL  = 0
-  integer, parameter, public :: AB7_MIXING_DENSITY    = 1
-
-  integer, parameter, public :: AB7_MIXING_REAL_SPACE     = 1
-  integer, parameter, public :: AB7_MIXING_FOURRIER_SPACE = 2
+!!$  integer, parameter, public :: AB7_MIXING_NONE        = 0
+!!$  integer, parameter, public :: AB7_MIXING_EIG         = 1
+!!$  integer, parameter, public :: AB7_MIXING_SIMPLE      = 2
+!!$  integer, parameter, public :: AB7_MIXING_ANDERSON    = 3
+!!$  integer, parameter, public :: AB7_MIXING_ANDERSON_2  = 4
+!!$  integer, parameter, public :: AB7_MIXING_CG_ENERGY   = 5
+!!$  integer, parameter, public :: AB7_MIXING_CG_ENERGY_2 = 6
+!!$  integer, parameter, public :: AB7_MIXING_PULAY       = 7
+!!$
+!!$  integer, parameter, public :: AB7_MIXING_POTENTIAL  = 0
+!!$  integer, parameter, public :: AB7_MIXING_DENSITY    = 1
+!!$
+!!$  integer, parameter, public :: AB7_MIXING_REAL_SPACE     = 1
+!!$  integer, parameter, public :: AB7_MIXING_FOURRIER_SPACE = 2
 
   type, public :: ab7_mixing_object
      integer :: iscf
@@ -117,7 +118,7 @@ contains
        return
     end if
     if (space /= AB7_MIXING_REAL_SPACE .and. &
-         & space /= AB7_MIXING_FOURRIER_SPACE) then
+         & space /= AB7_MIXING_FOURIER_SPACE) then
        errid = AB7_ERROR_MIXING_ARG
        write(errmess, '(a,a,a,a)' )ch10,&
             & ' ab7_mixing_set_arrays: ERROR -',ch10,&

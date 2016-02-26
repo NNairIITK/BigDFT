@@ -24,6 +24,8 @@ module f_utils
 
   integer, public, save :: TCAT_INIT_TO_ZERO
 
+  character(len=*), parameter :: NULL_='nonechar'
+
   !preprocessed include file with processor-specific values
   !defines recl_kind
   include 'f_utils.inc' 
@@ -39,6 +41,12 @@ module f_utils
      integer :: ipos
      character(len=1), dimension(:), pointer :: buf
   end type f_dump_buffer
+
+  !>none structure, to be used for nullification
+  !!together with assignment overload
+  type, public :: f_none_object
+     character(len=len(NULL_)) :: none
+  end type f_none_object
 
   type, public :: f_progress_bar
      integer :: nstep !< number of steps for the progress
@@ -89,12 +97,19 @@ module f_utils
      end subroutine nanosec
   end interface
 
+  interface assignment(=)
+     module procedure f_null_i0,f_null_d0,f_null_r0
+     module procedure f_null_d1_ptr
+     module procedure f_null_i1_ptr,f_null_i2_ptr
+  end interface assignment(=)
+
   public :: f_diff,f_file_unit,f_mkdir
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring,f_increment
   public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
   public :: f_progress_bar_new,update_progress_bar,f_tty,f_humantime
+  public :: assignment(=),f_none
 
 contains
  
@@ -107,6 +122,12 @@ contains
 
   end subroutine f_utils_errors
 
+  pure function f_none()
+    implicit none
+    type(f_none_object) :: f_none
+    f_none%none=NULL_
+  end function f_none
+ 
   pure function f_time()
     integer(f_long) :: f_time
     !local variables
@@ -139,7 +160,7 @@ contains
     case(2)
        t='-'
     case(3)
-       t='\'
+       t=achar(92) !the backslash
     end select
   end function ticker
 
@@ -291,8 +312,9 @@ contains
     integer, intent(in) :: sec !< seconds to be waited
     logical, intent(in), optional :: verbose !<for debugging purposes, do not eliminate
     !local variables
-    logical :: verb
-    integer(kind=8) :: t0,t1
+    logical :: verb,run
+    integer(f_long) :: t0,t1
+    real(f_double) :: tel
     integer :: count
 
     verb=.false.
@@ -303,13 +325,16 @@ contains
     t1=t0
     !this loop has to be modified to avoid the compiler to perform too agressive optimisations
     count=0
-    do while(real(t1-t0,kind=8)*1.d-9 < real(sec,kind=8))
+    run=.true.
+    do while(run)
        count=count+1
        t1=f_time()
+       tel=real(t1-t0,f_double)*1.e-9_f_double
+       run= tel < real(sec,f_double)
     end do
     !this output is needed to avoid the compiler to perform too agressive optimizations
     !therefore having a infinie loop
-    if (verb) print *,'Paused for '//trim(yaml_toa(sec))//' seconds, counting:'//&
+    if (verb) print *,'Paused for '//trim(yaml_toa(tel))//' seconds, counting:'//&
          trim(yaml_toa(count))
   end subroutine f_pause
 
@@ -673,6 +698,52 @@ contains
     ios%iunit = 0
     nullify(ios%lstring)
   end subroutine f_iostream_release
+
+  !>nullification information
+  pure subroutine f_null_i0(val,nl)
+    implicit none
+    type(f_none_object), intent(in) :: nl
+    integer, intent(out) :: val
+    if (nl%none==NULL_) val=-123456789
+  end subroutine f_null_i0
+
+  !>nullification information
+  pure subroutine f_null_r0(val,nl)
+    implicit none
+    type(f_none_object), intent(in) :: nl
+    real(f_simple), intent(out) :: val
+    if (nl%none==NULL_) val=-123456789.e0_f_simple
+  end subroutine f_null_r0
+
+  !>nullification information
+  pure subroutine f_null_d0(val,nl)
+    implicit none
+    type(f_none_object), intent(in) :: nl
+    real(f_double), intent(out) :: val
+    if (nl%none==NULL_) val=-123456789.e0_f_double
+  end subroutine f_null_d0
+
+  pure subroutine f_null_d1_ptr(val,nl)
+    implicit none
+    type(f_none_object), intent(in) :: nl
+    real(f_double), dimension(:), intent(out), pointer :: val
+    if (nl%none==NULL_) nullify(val)
+  end subroutine f_null_d1_ptr
+
+  pure subroutine f_null_i1_ptr(val,nl)
+    implicit none
+    type(f_none_object), intent(in) :: nl
+    integer, dimension(:), intent(out), pointer :: val
+    if (nl%none==NULL_) nullify(val)
+  end subroutine f_null_i1_ptr
+
+  pure subroutine f_null_i2_ptr(val,nl)
+    implicit none
+    type(f_none_object), intent(in) :: nl
+    integer, dimension(:,:), intent(out), pointer :: val
+    if (nl%none==NULL_) nullify(val)
+  end subroutine f_null_i2_ptr
+
   
   !>increment a integer, to be used in low-performance routines
   !to improve readability

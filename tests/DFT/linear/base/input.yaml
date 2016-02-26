@@ -19,12 +19,12 @@
    loewdin_charge_analysis: yes
    check_overlap: 2
    check_sumrho: 2
-   nsigma: 3
  lin_general:
    nit: [2, 3]
    rpnrm_cv: 9.9999999999999994E-012
    conf_damping: 0.5
    calc_dipole: Yes
+   calc_quadrupole: Yes
    calc_pulay: old
    charge_multipoles: 1
    support_function_multipoles: yes

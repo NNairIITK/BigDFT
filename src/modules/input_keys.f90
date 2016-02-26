@@ -165,7 +165,7 @@ module module_input_keys
      !> Miscellaneous variables
 !     logical :: gaussian_help !to be used as iterator attribute
      integer :: itrpmax
-     integer :: iscf
+     type(f_enumerator) :: scf !< mode of the optimization loop
      integer :: norbsempty
      integer :: norbsuempty,norbsdempty
      integer :: occopt
@@ -408,10 +408,6 @@ module module_input_keys
      !> Use the FOE method to calculate the HOMO-LUMO gap at the end
      logical :: foe_gap
 
-     !> Number of iterations (for each angular momentum l) to get an optimal sigma for the Gaussian used for the radial
-     !! part of the function based on the multipoles. Warning: The total number of iterations is nsigma**(lmax+1), so only use small values
-     integer :: nsigma
-
      !> Calculate the support function multipoles
      logical :: support_function_multipoles
 
@@ -432,6 +428,7 @@ module module_input_keys
   public :: SIC_data_null
   public :: free_input_variables,print_dft_parameters,wave_format_from_filename
   public :: inputpsiid_get_policy,inputpsiid_set_policy,set_inputpsiid
+  public :: set_scf_mode,set_iscf
   ! Main creation routine
   public :: user_dict_from_files,inputs_from_dict
   public :: input_keys_dump,input_keys_fill_all,print_general_parameters,input_set
@@ -939,6 +936,7 @@ contains
     use module_defs, only: gp, pi_param
     use f_input_file
     use public_keys
+    use module_base, only: bigdft_mpi
     use yaml_strings, only: operator(.eqv.)
     use yaml_output
     use PStypes, only: PS_input_dict
@@ -974,7 +972,8 @@ contains
     !then we can complete the Poisson solver dictionary
     call PS_input_dict(dict // PSOLVER,dict_ps_min)
 
-    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested,verbose=.true.)
+    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested,&
+      verbose=bigdft_mpi%iproc==0)
 
     !create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)
@@ -1260,6 +1259,37 @@ contains
     call input_set(in, key(1:sep - 1), dict)
     call dict_free(dict)
   END SUBROUTINE input_set_bool_array
+
+  subroutine set_scf_mode(iscf,scf_mode)
+    implicit none
+    integer, intent(in) :: iscf
+    type(f_enumerator), intent(out) :: scf_mode
+
+    !insert the method of mixing
+    scf_mode=f_enumerator('METHOD',modulo(iscf,10),null())
+    !set the enumerator methd
+    if (iscf < 10) then
+       call f_enum_attr(scf_mode,POT_MIX_ENUM)
+    else
+       call f_enum_attr(scf_mode,DEN_MIX_ENUM)
+    end if
+    !put the startmix if the mixing has to be done
+    if (iscf >  SCF_KIND_DIRECT_MINIMIZATION) then
+       call f_enum_attr(scf_mode,RSPACE_MIX_ENUM)
+       call f_enum_attr(scf_mode,MIX_ENUM)
+    end if
+  end subroutine set_scf_mode
+
+  subroutine set_iscf(scf_mode,iscf)
+    implicit none
+    type(f_enumerator), intent(in) :: scf_mode
+    integer, intent(out) :: iscf
+
+    iscf = toi(scf_mode)
+    if (scf_mode .hasattr. DEN_MIX_ENUM) iscf=iscf+10
+
+  end subroutine set_iscf
+
 
   !> set the inputpsiid enumerator, based on the
   !! profile input variable
@@ -1795,10 +1825,6 @@ contains
        case (FOE_GAP)
           ! linear scaling: Use the FOE method to calculate the HOMO-LUMO gap at the end
           in%foe_gap = val
-       case (NSIGMA)
-          ! Linear scaling: Number of iterations (for each angular momentum l) to get an optimal sigma for the Gaussian used for the radial
-          ! part of the function based on the multipoles. Warning: The total number of iterations is nsigma**(lmax+1), so only use small values
-          in%nsigma = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -1913,9 +1939,10 @@ contains
        ! the MIX variables ------------------------------------------------------
        select case (trim(dict_key(val)))
        case (ISCF)
-          in%iscf = val
-          !put the startmix if the mixing has to be done
-          if (in%iscf >  SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
+          dummy_int(1)=val
+          !insert the method of mixing
+          call set_scf_mode(dummy_int(1),in%scf)
+          if (in%scf .hasattr. 'MIXING') in%gnrm_startmix=1.e300_gp
        case (ITRPMAX)
           in%itrpmax = val
        case (RPNRM_CV)
@@ -2291,7 +2318,7 @@ contains
     type(input_variables), intent(inout) :: in
 
     !mixing treatement (hard-coded values)
-    in%iscf=0
+    in%scf=f_enumerator('METHOD',AB7_MIXING_NONE,null())
     in%itrpmax=1
     in%alphamix=0.0_gp
     in%rpnrm_cv=1.e-4_gp
@@ -3069,8 +3096,8 @@ contains
     end if
 
     ! Printing for mixing parameters.
-    if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
-       if (in%iscf < 10) then
+    if (in%scf .hasattr. 'MIXING') then
+       if (in%scf .hasattr. AB7_MIXING_POTENTIAL) then
           write(potden, "(A)") "potential"
        else
           write(potden, "(A)") "density"
@@ -3080,7 +3107,7 @@ contains
        call yaml_map('Target',trim(potden))
        call yaml_map('Additional bands', in%norbsempty)
        call yaml_map('Mixing Coefficients', in%alphamix,fmt='(0pe10.2)')
-       call yaml_map('Scheme',modulo(in%iscf, 10))
+       call yaml_map('Scheme',toi(in%scf))
        call yaml_map('Electronic temperature',in%Tel,fmt='(1pe12.2)')
        call yaml_map('DIIS',in%alphadiis,fmt='(0pe12.2)')
        call yaml_map('Maximum iterations',in%itrpmax)
@@ -3103,7 +3130,7 @@ contains
     use module_atoms, only: atoms_data
     use yaml_output
     use module_xc
-    use f_enums, only: f_int => int
+    use f_enums, only: f_int => toi
     use yaml_strings, only: yaml_toa
     implicit none
     type(input_variables), intent(in) :: in

@@ -787,30 +787,63 @@ subroutine epsilon_rigid_cavity_soft_PCM(mesh,nat,rxyz,radii,cavity,&
   !> Surface and volume integral needed for non-electrostatic contributions to the energy.
   real(kind=8), intent(out) :: IntSur,IntVol
   !local variables
-  integer :: i1,i2,i3
+  integer :: i1,i2,i3,unt
   real(dp) :: cc,hh,ep
   real(dp), dimension(3) :: v,origin,dleps
+  logical, parameter :: dumpeps=.false.
+!  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3
+!  logical, dimension(3) :: peri
+
+!  peri=cell_periodic_dims(mesh)
+!  call ext_buffers(peri(1),nbl1,nbr1)
+!  call ext_buffers(peri(2),nbl2,nbr2)
+!  call ext_buffers(peri(3),nbl3,nbr3)
 
   hh=mesh%volume_element
   origin=locreg_mesh_origin(mesh)
   do i3=1,mesh%ndims(3)
-     v(3)=cell_r(mesh,i3,dim=3)-origin(3)
+     v(3)=cell_r(mesh,i3,dim=3)-origin(3) ! Luigi
+!     v(3)=mesh%hgrids(3)*(i3-1-nbl3)      ! Giuseppe
      do i2=1,mesh%ndims(2)
-        v(2)=cell_r(mesh,i2,dim=2)-origin(2)
+        v(2)=cell_r(mesh,i2,dim=2)-origin(2) ! Luigi
+!        v(2)=mesh%hgrids(2)*(i2-1-nbl2)      ! Giuseppe
         do i1=1,mesh%ndims(1)
-           v(1)=cell_r(mesh,i1,dim=1)-origin(1)
-
+           v(1)=cell_r(mesh,i1,dim=1)-origin(1) ! Luigi
+!           v(1)=mesh%hgrids(1)*(i1-1-nbl1)      ! Giuseppe
            call rigid_cavity_arrays(cavity,mesh,v,nat,rxyz,radii,ep,dleps,cc)
            eps(i1,i2,i3)=ep
            oneoeps(i1,i2,i3)=1.d0/ep
            oneosqrteps(i1,i2,i3)=1.d0/sqrt(ep)
            dlogeps(:,i1,i2,i3)=dleps
            corr(i1,i2,i3)=cc
-
         end do
      end do
   end do
-  
+
+   if (dumpeps) then
+    unt=f_get_free_unit(20)
+     call f_open_file(unt,file='epsilon_yz.dat')
+     i1=1
+     !i1=mesh%ndims(1)/2
+     do i2=1,mesh%ndims(2)
+        do i3=1,mesh%ndims(3)
+           write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(mesh%ndims(1)/2,i2,i3)
+        end do
+     end do
+     call f_close(unt)
+
+     unt=f_get_free_unit(22)
+     call f_open_file(unt,file='epsilon_line_y.dat')
+     i1=1
+     i3=1
+     !i1=mesh%ndims(1)/2
+     !i3=mesh%ndims(3)/2
+     do i2=1,mesh%ndims(2)
+        write(unt,'(1x,I8,2(1x,e22.15))')i2,eps(i1,i2,i3),eps(mesh%ndims(1)/2,i2,mesh%ndims(3)/2)
+     end do
+     call f_close(unt)
+    end if
+
 end subroutine epsilon_rigid_cavity_soft_PCM
 
 
@@ -1028,7 +1061,6 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
            oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
            oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
 
-
            !todo: inclusion of the compact formula for the surface term
            do i=1,3
               deps(i)=0.d0
@@ -1042,7 +1074,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
               deps(i) = deps(i)*(epsilon0-1.d0)
            end do
 
-           !here we should implement THe surface term in a different way
+           !here we should implement The surface term in a different way
            d12=0.d0
            do i=1,3
               dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
@@ -1540,6 +1572,7 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
   use f_utils
   use bounds, only: ext_buffers
   use environment, only: epsl,epsle0,d1eps
+  use numerics, only: safe_exp
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: nat !< number of centres defining the cavity
@@ -1619,12 +1652,12 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
               else
                  r=fact1*(-(dmax**2) + d2)
                  t=fact2*(r-dsin(r)) 
-                 ep(iat)=dexp(t)-1.d0
+                 ep(iat)=safe_exp(t)-1.d0
                  dtx=fact3*(1.d0-dcos(r))
                  do i=1,3
-                    dep(i,iat)=dexp(t)*dtx*2.d0*(v(i)-rxyz(i,iat))
+                    dep(i,iat)=safe_exp(t)*dtx*2.d0*(v(i)-rxyz(i,iat))
                  end do
-                 ddep(iat) = dexp(t)*(4.d0*(dtx**2)*d2 + 4.d0*fact1*fact3*dsin(r)*d2 + 6.d0*dtx)
+                 ddep(iat) = safe_exp(t)*(4.d0*(dtx**2)*d2 + 4.d0*fact1*fact3*dsin(r)*d2 + 6.d0*dtx)
               end if
            end do
 

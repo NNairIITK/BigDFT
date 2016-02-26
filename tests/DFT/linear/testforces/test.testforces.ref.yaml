@@ -148,7 +148,6 @@
     #                                              support function convergence
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
    foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
-   nsigma                              : 1 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
     #                                              Gaussian used for the radial part of the 
     #                                              function based on the multipoles.
  lin_general:
@@ -2587,7 +2586,7 @@
      Number of coarse grid points has changed:  6
      Number of fine grid points has changed:  6
      Box size has changed              :  0
-     Molecule was shifted              :  6
+     Molecule was shifted              :  0
      Molecule was rotated              :  0
    Max deviation from unity in reorthonormalize_coeff:  2.21E-03
    Mean deviation from unity in reorthonormalize_coeff:  1.27E-03
@@ -4564,7 +4563,7 @@
      Number of coarse grid points has changed:  6
      Number of fine grid points has changed:  6
      Box size has changed              :  2
-     Molecule was shifted              :  6
+     Molecule was shifted              :  1
      Molecule was rotated              :  0
    Max deviation from unity in reorthonormalize_coeff:  2.21E-03
    Mean deviation from unity in reorthonormalize_coeff:  1.26E-03
@@ -6541,7 +6540,7 @@
      Number of coarse grid points has changed:  6
      Number of fine grid points has changed:  6
      Box size has changed              :  0
-     Molecule was shifted              :  6
+     Molecule was shifted              :  0
      Molecule was rotated              :  0
    Max deviation from unity in reorthonormalize_coeff:  2.21E-03
    Mean deviation from unity in reorthonormalize_coeff:  1.25E-03
@@ -8518,7 +8517,7 @@
      Number of coarse grid points has changed:  6
      Number of fine grid points has changed:  6
      Box size has changed              :  2
-     Molecule was shifted              :  6
+     Molecule was shifted              :  1
      Molecule was rotated              :  0
    Max deviation from unity in reorthonormalize_coeff:  2.21E-03
    Mean deviation from unity in reorthonormalize_coeff:  1.24E-03
