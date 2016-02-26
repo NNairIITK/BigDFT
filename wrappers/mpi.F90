@@ -702,6 +702,19 @@ contains
 #endif
   end subroutine wmpi_init_thread
 
+  function mpihostname()
+    implicit none
+    character(len=MPI_MAX_PROCESSOR_NAME) :: mpihostname
+    !local variables
+    integer :: ierr,namelen
+
+    call MPI_GET_PROCESSOR_NAME(mpihostname,namelen,ierr)
+    if (ierr /= MPI_SUCCESS) then
+       call f_err_throw('An error in calling to MPI_GET_PROCESSOR_NAME occured',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+  end function mpihostname
+
   !>initialization of the mpi library
   subroutine mpiinit(inithread)
     use dictionaries, only: f_err_throw
@@ -996,6 +1009,62 @@ contains
     end if
 
   end function mpisize
+
+  !> Give the number of MPI processes per node (nproc_node) and before iproc (iproc_node)
+  subroutine mpinoderanks(mpi_env,iproc_node,nproc_node)
+    use dynamic_memory
+    implicit none
+    type(mpi_environment), intent(in) :: mpi_env
+    integer, intent(out) :: iproc_node, nproc_node
+    !local variables
+    character(len=*), parameter :: subname='processor_id_per_node'
+    integer :: ierr,namelen,jproc
+    character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+    character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
+
+    call f_routine(id=subname)
+
+    if (mpi_env%nproc == 1) then
+       iproc_node=0
+       nproc_node=1
+    else
+       nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0 .to. mpi_env%nproc-1,id='nodename')
+
+!!$       !initalise nodenames
+!!$       do jproc=0,nproc-1
+!!$          nodename(jproc)=repeat(' ',MPI_MAX_PROCESSOR_NAME)
+!!$       end do
+
+       nodename_local=mpihostname()
+
+       !gather the result between all the processes
+       call MPI_ALLGATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+            nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+            mpi_env%mpi_comm,ierr)
+       if (ierr /=0) call f_err_throw('An error in calling to MPI_ALLGATHER occured',&
+            err_id=ERR_MPI_WRAPPERS)
+
+
+       !found the processors which belong to the same node
+       !before the processor iproc
+       iproc_node=0
+       do jproc=0,mpi_env%iproc-1
+          if (trim(nodename(jproc)) == trim(nodename(mpi_env%iproc))) then
+             iproc_node=iproc_node+1
+          end if
+       end do
+       nproc_node=iproc_node
+       do jproc=mpi_env%iproc,mpi_env%nproc-1
+          if (trim(nodename(jproc)) == trim(nodename(mpi_env%iproc))) then
+             nproc_node=nproc_node+1
+          end if
+       end do
+
+       call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
+    end if
+    call f_release_routine()
+  END SUBROUTINE mpinoderanks
+
 
   !> returns true if the mpi has been initialized
   function mpiinitialized()

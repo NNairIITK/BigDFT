@@ -344,7 +344,7 @@ contains
   end function surf_term
 
   !rigid cavity terms
-  subroutine rigid_cavity_arrays(cavity,mesh,v,nat,rxyz,radii,eps,dleps,corr)
+  subroutine rigid_cavity_arrays(cavity,mesh,v,nat,rxyz,radii,eps,deps,dleps,corr)
     use box
     implicit none
     type(cavity_data), intent(in) :: cavity
@@ -355,7 +355,7 @@ contains
     real(gp), dimension(3), intent(in) :: v
     !> position of all the atoms in the grid coordinates
     real(gp), dimension(3,nat), intent(in) :: rxyz
-    real(gp), intent(out) :: eps,corr
+    real(gp), intent(out) :: eps,deps,corr
     real(gp), dimension(3), intent(out) :: dleps
     !local variables
     integer :: iat
@@ -395,6 +395,7 @@ contains
     eps=(cavity%epsilon0-vacuum_eps)*ep+vacuum_eps
     dleps=(eps-vacuum_eps)/eps*dha
     d2ha=square(mesh,dha)
+    deps=(eps-vacuum_eps)*sqrt(d2ha)
     !corr=0.5_gp*(eps-vacuum_eps)/eps*(0.5_gp*d2ha*(1+eps)/eps+dcorrha)
     dd=(eps-vacuum_eps)*(d2ha+dcorrha)
     corr=-oneoeightpi*(0.5_gp*(eps-vacuum_eps)**2/eps*d2ha-dd)
