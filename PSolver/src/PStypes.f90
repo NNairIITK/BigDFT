@@ -136,6 +136,9 @@ module PStypes
      logical :: use_pb_input_guess
      !> Total integral on the supercell of the final potential on output
      !! clearly meaningful only for Fully periodic BC, ignored in the other cases
+     !> prepare the information in the rigid cavity case which is needed
+     !! to calculate the forces (nabla2pot times epsilon minus one)
+     logical :: final_call
      real(gp) :: potential_integral
   end type PSolver_options
 
@@ -256,6 +259,7 @@ contains
     o%use_input_guess    =.false.
     o%cavity_info        =.false.
     o%only_electrostatic =.true.
+    o%final_call         =.false.
     o%potential_integral =0.0_gp
    end function PSolver_options_null
 
@@ -543,15 +547,16 @@ contains
   !>modifies the options of the poisson solver to switch certain options
   subroutine PS_set_options(kernel,global_data,calculate_strten,verbose,&
        update_cavity,use_input_guess,cavity_info,cavitation_terms,&
-       potential_integral)
+       potential_integral,final_call)
     implicit none
     type(coulomb_operator), intent(inout) :: kernel
     logical, intent(in), optional :: global_data,calculate_strten,verbose
     logical, intent(in), optional :: update_cavity,use_input_guess
     logical, intent(in), optional :: cavity_info,cavitation_terms
+    logical, intent(in), optional :: final_call
     real(gp), intent(in), optional :: potential_integral
 
-    if (present(global_data     )) then
+    if (present(global_data)) then
        if (global_data) then
           kernel%opt%datacode='G'
        else
@@ -571,6 +576,7 @@ contains
     if (present(cavity_info     )) kernel%opt%cavity_info=cavity_info
     if (present(cavitation_terms)) kernel%opt%only_electrostatic=.not. cavitation_terms
     if (present(potential_integral)) kernel%opt%potential_integral =potential_integral
+    if (present(final_call)) kernel%opt%final_call=final_call
 
   end subroutine PS_set_options
 

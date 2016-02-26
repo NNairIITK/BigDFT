@@ -391,12 +391,13 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   end if
   !evaluating the total ehartree + e_static if needed
   !also cavitation energy can be given
+
   energies%hartree=ehartreeLOC*0.5_dp*product(kernel%hgrids)
   energies%eVextra=e_static*product(kernel%hgrids)
   energies%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*kernel%IntSur+&
        kernel%cavity%betaV*kernel%IntVol
 
-  call PS_reduce(energies,kernel)
+   call PS_reduce(energies,kernel)
 
   if (wrtmsg) call yaml_mapping_close()
 

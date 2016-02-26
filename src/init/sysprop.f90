@@ -875,7 +875,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   use ao_inguess, only: atomic_info
   !use yaml_output
   use numerics, only : Bohr_Ang
-  use module_base, only: bigdft_mpi
+  use module_base, only: bigdft_mpi,f_zero
   use f_enums, f_str => str
   use yaml_output
   use dictionaries, only: f_err_throw
@@ -1015,6 +1015,8 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
 !-------------------------------------------------------------------
 
+  if (pkernel%mpi_env%iproc /=0) call f_zero(IntSur)
+  if (pkernel%mpi_env%iproc /=0) call f_zero(IntVol)
   pkernel%IntSur=IntSur
   pkernel%IntVol=IntVol
 
