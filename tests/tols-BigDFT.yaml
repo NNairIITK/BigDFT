@@ -959,7 +959,7 @@ foe:
  D: 1.1e-10
  Energy (Hartree): 1.3e-10
  norm(P): 1.1e-07
- trace: 8.1e-11
+ trace: 8.4e-11
  Maxdiff for overlap calculation: 1.4e-07
  Maxdiff for transpose (checksum): 2.4e-10
 
@@ -1475,7 +1475,7 @@ O2spin_foe:
  D eF: 4.4e-8
  guess for new ef: 4.1e-9
  EBS: 6.7e-8
- EBS higher temperature: 1.1e-7
+ EBS higher temperature: 1.11e-7
  Omega: 2.3e-9
  energy: 1.1e-7
  Raw forces norm (Ha/Bohr): 7.5e-8
@@ -1503,7 +1503,7 @@ O2spin_dirmin:
  fnrm2: 1.02e-4
  EH: 2.63e-5
  EXC: 5.6e-6
- Ekin: 3.3e-6
+ Ekin: 4.41e-6
  Enl: 1.9e-7
  Epot: 2.02e-5
  EvXC: 6.0e-6
@@ -1634,7 +1634,7 @@ FF_LENOSKY-bfgs:
   etot: 1.5e-10
   maxval: 1.0e-10
   fnrm2: 1.01e-10
-  Energy: 2.07e-10
+  Energy: 2.29e-10
   Keys to ignore:
   - WARNINGS
 
@@ -1651,7 +1651,7 @@ FF_LJ-diis:
   - disablesym
 
 FF_LJ-fire:
-  epred: 1.51e-11
+  epred: 1.61e-11
   Keys to ignore:
   - WARNINGS
   - disablesym

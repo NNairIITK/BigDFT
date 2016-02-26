@@ -961,7 +961,7 @@ module forces_linear
       real(kind=8) :: tt, tt1, sp0, spi, spj
       real(gp) :: hij, sp0i, sp0j, strc
     
-      call f_routine(id='calculate_forces')
+      call f_routine(id='calculate_forces_kernel')
     
       !fxyz_orb = f_malloc0((/3,nat_par(iproc)/),id='fxyz_orb')
       !sab = f_malloc0(6,id='sab')
