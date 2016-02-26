@@ -416,18 +416,34 @@ contains
     real(gp), dimension(3,nat), intent(inout) :: fxyz !<forces array
     !local variables
     integer :: iat,i
-    real(gp) :: d,dlogh,rad,tt,hh
+    real(gp) :: d,dlogh,rad,tt,ttV,hh,epsr,eps0m1
+    real(gp), dimension(3) :: f_Vterm,f_Sterm
 
+    eps0m1=cavity%epsilon0-vacuum_eps
     hh=mesh%volume_element
     do iat=1,nat
        d=minimum_distance(mesh,v,rxyz(1,iat))
        rad=radii(iat)
-       dlogh=d1eps(d,rad,cavity%delta)
+       if (d.eq.0.d0) then
+        d=1.0d-30
+        dlogh=0.0_dp
+       else
+        dlogh=d1eps(d,rad,cavity%delta)
+       end if
        if (abs(dlogh) < thr) cycle
        dlogh=dlogh/epsl(d,rad,cavity%delta)
-       tt=tt*dlogh/d*hh
+       tt=-oneoeightpi*npot2epsm1*dlogh/d*hh
        !here the forces can be calculated
-       fxyz(:,iat)=fxyz(:,iat)+tt*closest_r(mesh,v,center=rxyz(:,iat))
+       fxyz(:,iat)=fxyz(:,iat)+tt*closest_r(mesh,v,center=rxyz(:,iat)) ! Should be inverted v and rxyz
+                                                     ! inside closest_r due to the derivative wrt R_i
+       if (.false.) then ! should be -> if (not.kernel%opt%only_electrostatic) then
+        epsr=vacuum_eps ! Actung!!! we need epsr=epsilon(r)
+        ttV=cavity%betaV*(epsr-vacuum_eps)/eps0m1*dlogh/d*hh ! the minus of - derivative of Ene_V cancels
+                                                             ! with the one from \Theta derivative
+        f_Vterm(:)=ttV*closest_r(mesh,v,center=rxyz(:,iat)) ! Should be inverted v and rxyz
+                                                     ! inside closest_r due to the derivative wrt R_i
+        f_Sterm(:)=0.0_dp
+       end if
     end do
   end subroutine rigid_cavity_forces
 

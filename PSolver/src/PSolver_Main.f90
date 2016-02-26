@@ -393,10 +393,18 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !also cavitation energy can be given
   energies%hartree=ehartreeLOC*0.5_dp*product(kernel%hgrids)
   energies%eVextra=e_static*product(kernel%hgrids)
-  energies%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*kernel%IntSur+&
-       kernel%cavity%betaV*kernel%IntVol
+  if (build_c) then
+   energies%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*kernel%IntSur+&
+        kernel%cavity%betaV*kernel%IntVol
 
-  call PS_reduce(energies,kernel)
+   call PS_reduce(energies,kernel)
+  else
+   energies%cavitation=0.0_dp
+
+   call PS_reduce(energies,kernel)
+   energies%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*kernel%IntSur+&
+       kernel%cavity%betaV*kernel%IntVol
+  end if
 
   if (wrtmsg) call yaml_mapping_close()
 
