@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-02-04 11:46:38.949
+ Timestamp of this run                 : 2016-02-22 18:51:55.173
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -2115,40 +2115,40 @@
      convergence criterion             :  1.0E-004
      maximal size of a submatrix       :  22
      Searching alpha for charge neutrality:
-     -  {alpha:  1.0000E-03, net charge: -1.3908E+01, bisection bounds ok:  [  No,  No ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.0000E+01, net charge:  3.0926E-01, bisection bounds ok:  [  Yes,  No ], 
-            kT:  1.0000E-02}
-     -  {alpha:  5.0005E+00, net charge:  2.9965E-01, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  2.5008E+00, net charge:  2.8048E-01, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.2509E+00, net charge:  2.4235E-01, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  6.2594E-01, net charge:  1.6690E-01, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  3.1347E-01, net charge:  1.8902E-02, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.5723E-01, net charge: -2.6745E-01, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  2.3535E-01, net charge: -7.7861E-02, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  2.7441E-01, net charge: -2.2742E-02, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  2.9394E-01, net charge: -5.6535E-04, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  3.0370E-01, net charge:  9.4749E-03, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  2.9882E-01, net charge:  4.5351E-03, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  2.9638E-01, net charge:  2.0054E-03, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  2.9516E-01, net charge:  7.2525E-04, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     -  {alpha:  2.9455E-01, net charge:  8.1260E-05, bisection bounds ok:  [  Yes,  Yes ], 
-            kT:  1.0000E-02}
-     number of states to be occupied (without smearing):  5
-     Pseudo Fermi level for occupations:  0.1550336107204214
+     -  {alpha:  1.0000E-03, charge: -2.3712E+01, net charge: -1.5712E+01, bisection bounds ok: [
+  No,  No], sigma2:  2.0000E-03, eF:  5.2352E-01}
+     -  {alpha:  1.0000E+01, charge: -7.6907E+00, net charge:  3.0926E-01, bisection bounds ok: [
+  Yes,  No], sigma2:  2.0000E-03, eF:  2.2972E-01}
+     -  {alpha:  5.0005E+00, charge: -7.7004E+00, net charge:  2.9965E-01, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.2928E-01}
+     -  {alpha:  2.5008E+00, charge: -7.7195E+00, net charge:  2.8048E-01, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.2840E-01}
+     -  {alpha:  1.2509E+00, charge: -7.7576E+00, net charge:  2.4235E-01, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.2666E-01}
+     -  {alpha:  6.2594E-01, charge: -7.8331E+00, net charge:  1.6690E-01, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.2321E-01}
+     -  {alpha:  3.1347E-01, charge: -7.9811E+00, net charge:  1.8902E-02, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1611E-01}
+     -  {alpha:  1.5723E-01, charge: -8.2674E+00, net charge: -2.6745E-01, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.0109E-01}
+     -  {alpha:  2.3535E-01, charge: -8.0779E+00, net charge: -7.7861E-02, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1119E-01}
+     -  {alpha:  2.7441E-01, charge: -8.0227E+00, net charge: -2.2742E-02, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1393E-01}
+     -  {alpha:  2.9394E-01, charge: -8.0006E+00, net charge: -5.6532E-04, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1507E-01}
+     -  {alpha:  3.0370E-01, charge: -7.9905E+00, net charge:  9.4749E-03, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1555E-01}
+     -  {alpha:  2.9882E-01, charge: -7.9955E+00, net charge:  4.5351E-03, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1531E-01}
+     -  {alpha:  2.9638E-01, charge: -7.9980E+00, net charge:  2.0055E-03, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1519E-01}
+     -  {alpha:  2.9516E-01, charge: -7.9993E+00, net charge:  7.2529E-04, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1513E-01}
+     -  {alpha:  2.9455E-01, charge: -7.9999E+00, net charge:  8.1296E-05, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1510E-01}
+     number of states to be occupied (without smearing):  4
+     Pseudo Fermi level for occupations:  0.2150983760208331
      ordered eigenvalues and occupations:
      -  {eval: -7.1897E-01, atom:  00001, occ:  1.0000} # 00001
      -  {eval: -1.6716E-01, atom:  00001, occ:  1.0000} # 00002
@@ -2156,30 +2156,25 @@
      -  {eval: -1.5890E-01, atom:  00001, occ:  1.0000} # 00004
      -  {eval: -2.9273E-02, atom:  00002, occ:  1.0000} # 00005
      -  {eval: -2.3379E-02, atom:  00003, occ:  1.0000} # 00006
-     -  {eval:  6.7619E-01, atom:  00003, occ:  2.32552E-023} # 00007
-     -  {eval:  6.7818E-01, atom:  00002, occ:  1.90479E-023} # 00008
-     -  {eval:  7.1113E-01, atom:  00002, occ:  7.06412E-025} # 00009
-     -  {eval:  7.1463E-01, atom:  00003, occ:  4.97973E-025} # 00010
-     -  {eval:  1.0330E+00, atom:  00003, occ:  7.38927E-039} # 00011
-     -  {eval:  1.0353E+00, atom:  00002, occ:  5.88271E-039} # 00012
-     -  {eval:  1.1724E+00, atom:  00002, occ:  6.52687E-045} # 00013
-     -  {eval:  1.1748E+00, atom:  00003, occ:  5.13399E-045} # 00014
-     -  {eval:  1.2524E+00, atom:  00002, occ:  2.20220E-048} # 00015
-     -  {eval:  1.2531E+00, atom:  00003, occ:  2.04626E-048} # 00016
-     -  {eval:  1.2714E+00, atom:  00002, occ:  3.27884E-049} # 00017
-     -  {eval:  1.2717E+00, atom:  00003, occ:  3.20278E-049} # 00018
-     -  {eval:  1.4302E+00, atom:  00002, occ:  4.18687E-056} # 00019
-     -  {eval:  1.4341E+00, atom:  00003, occ:  2.81539E-056} # 00020
-     -  {eval:  1.5525E+00, atom:  00002, occ:  2.02827E-061} # 00021
-     -  {eval:  1.5617E+00, atom:  00003, occ:  8.10237E-062} # 00022
-     -  {remaining states:  44, occ: <1.d-100}
+     -  {eval:  6.7619E-01, atom:  00003, occ:  0.0000} # 00007
+     -  {eval:  6.7818E-01, atom:  00002, occ:  0.0000} # 00008
+     -  {eval:  7.1113E-01, atom:  00002, occ:  0.0000} # 00009
+     -  {eval:  7.1463E-01, atom:  00003, occ:  0.0000} # 00010
+     -  {eval:  1.0330E+00, atom:  00003, occ:  0.0000} # 00011
+     -  {eval:  1.0353E+00, atom:  00002, occ:  0.0000} # 00012
+     -  {eval:  1.1724E+00, atom:  00002, occ:  0.0000} # 00013
+     -  {eval:  1.1748E+00, atom:  00003, occ:  0.0000} # 00014
+     -  {eval:  1.2524E+00, atom:  00002, occ:  0.0000} # 00015
+     -  {eval:  1.2531E+00, atom:  00003, occ:  0.0000} # 00016
+     -  {remaining states:  60, occ: <1.d-100}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Projector calculation finished
    Charge analysis (charge / net charge):
-   -  {O:  [ -6.543224227085E+00, -5.432242270854E-01 ]} # 0001
-   -  {H:  [ -7.33561826186E-01,  2.664381738140E-01 ]} # 0002
-   -  {H:  [ -7.231326869784E-01,  2.768673130216E-01 ]} # 0003
-   - total charge                      : -7.99991874E+00
-   - total net charge                  :  8.12597501E-05
+   -  {O:  [ -6.543224227085E+00, -5.432242270855E-01 ]} # 0001
+   -  {H:  [ -7.335618334487E-01,  2.664381665513E-01 ]} # 0002
+   -  {H:  [ -7.231326998865E-01,  2.768673001135E-01 ]} # 0003
+   - total charge                      : -7.99991876E+00
+   - total net charge                  :  8.12395793E-05
+   output file                         : chargeanalysis.gp
  Charge analysis, Loewdin approach:
    Method                              : Loewdin
    calculate S^x:
@@ -2215,6 +2210,7 @@
      - sym                             : H-1 # 0001
        Atom number                     :  2
        r: [ 3.0781512905504016E-002,  0.4146087380552004,  0.5484151426745267]
+       nzion                           :  0
        Delta r                         :  [ -2.301216E-01, -3.511492E-02, -2.450669E-02 ]
        q0                              :  [  1.0E+00 ]
        q1                              :  [ -3.208298E-02, -1.226300E-02, -4.247341E-01 ]
@@ -2224,6 +2220,7 @@
      - sym                             : H-2 # 0002
        Atom number                     :  2
        r: [-0.43808399355372,  0.342684470064972,  0.4941164909516065]
+       nzion                           :  0
        Delta r                         :  [ -6.989871E-01, -1.070392E-01, -7.880535E-02 ]
        q0                              :  [ -4.008915E-01 ]
        q1                              :  [ -1.112813E-01, -8.588719E-02,  1.000000E+00 ]
@@ -2233,6 +2230,7 @@
      - sym                             : H-3 # 0003
        Atom number                     :  2
        r: [ 0.1453215977048536,  0.3072408021428732,  0.5052059053085056]
+       nzion                           :  0
        Delta r                         :  [ -1.155815E-01, -1.424829E-01, -6.771593E-02 ]
        q0                              :  [ -1.055368E-01 ]
        q1                              :  [  1.0E+00, -6.678365E-02, -8.864599E-02 ]
@@ -2242,6 +2240,7 @@
      - sym                             : H-4 # 0004
        Atom number                     :  2
        r: [ 0.1537855536581034,  0.3803574153771123,  0.4496024101817344]
+       nzion                           :  0
        Delta r                         :  [ -1.071175E-01, -6.936624E-02, -1.233194E-01 ]
        q0                              :  [ -8.928039E-02 ]
        q1                              :  [ -6.559634E-02,  1.000000E+00, -7.483272E-02 ]
@@ -2251,6 +2250,7 @@
      - sym                             : H-5 # 0005
        Atom number                     :  2
        r: [ 0.1733901163515501,  0.3309481475698082,  0.4496236940217226]
+       nzion                           :  0
        Delta r                         :  [ -8.751299E-02, -1.187755E-01, -1.232981E-01 ]
        q0                              :  [  6.494519E-02 ]
        q1                              :  [  5.123519E-02,  5.467675E-02,  5.552187E-03 ]
@@ -2260,6 +2260,7 @@
      - sym                             : H-6 # 0006
        Atom number                     :  2
        r: [ 6.0566677690548687E-002,  0.3494527731469592,  0.3982879790440048]
+       nzion                           :  0
        Delta r                         :  [ -2.003364E-01, -1.002709E-01, -1.746339E-01 ]
        q0                              :  [  7.681763E-02 ]
        q1                              :  [  1.26107E-02,  6.966723E-02,  3.102124E-02 ]
@@ -2269,6 +2270,7 @@
      - sym                             : H-7 # 0007
        Atom number                     :  2
        r: [ 6.7843493636953411E-002,  0.2673539514822068,  0.4984183593942149]
+       nzion                           :  0
        Delta r                         :  [ -1.930596E-01, -1.823697E-01, -7.450348E-02 ]
        q0                              :  [  9.770038E-02 ]
        q1                              :  [  7.186692E-02,  1.230943E-02,  3.650918E-02 ]
@@ -2278,6 +2280,7 @@
      - sym                             : H-8 # 0008
        Atom number                     :  2
        r: [-9.6204727631954867E-002,  0.3105984208670893,  0.4263259057329538]
+       nzion                           :  0
        Delta r                         :  [ -3.571078E-01, -1.391252E-01, -1.465959E-01 ]
        q0                              :  [  2.099624E-01 ]
        q1                              :  [ -5.430767E-02,  1.074922E-02,  1.281094E-01 ]
@@ -2287,6 +2290,7 @@
      - sym                             : H-9 # 0009
        Atom number                     :  2
        r: [ 4.9970370490104443E-002,  0.3014044172886354,  0.4737786965948949]
+       nzion                           :  0
        Delta r                         :  [ -2.109327E-01, -1.483192E-01, -9.914314E-02 ]
        q0                              :  [ -1.08375E-01 ]
        q1                              :  [ -3.613406E-02,  5.377983E-02, -4.687245E-02 ]
@@ -2296,6 +2300,7 @@
      - sym                             : O-1 # 0010
        Atom number                     :  1
        r: [ 2.084351864868717,  0.714291156073724,  0.7511019827322798]
+       nzion                           :  0
        Delta r                         :  [  1.87308E-02, -1.332863E-02, -1.393552E-02 ]
        q0                              :  [ -1.0E+00 ]
        q1                              :  [  1.95293E-01,  2.021845E-01, -3.156884E-01 ]
@@ -2305,6 +2310,7 @@
      - sym                             : O-2 # 0011
        Atom number                     :  1
        r: [ 2.185311939382332,  0.6974778346427328,  0.7349475836246544]
+       nzion                           :  0
        Delta r                         :  [  1.196909E-01, -3.014195E-02, -3.008991E-02 ]
        q0                              :  [  1.335277E-01 ]
        q1                              :  [ -8.867017E-02, -6.944403E-02,  1.000000E+00 ]
@@ -2314,6 +2320,7 @@
      - sym                             : O-3 # 0012
        Atom number                     :  1
        r: [ 2.112873782707812,  0.6530203728750035,  0.7432055954122525]
+       nzion                           :  0
        Delta r                         :  [  4.725272E-02, -7.459941E-02, -2.183190E-02 ]
        q0                              :  [ -6.0644E-02 ]
        q1                              :  [  1.0E+00, -1.629008E-01, -6.998237E-02 ]
@@ -2323,6 +2330,7 @@
      - sym                             : O-4 # 0013
        Atom number                     :  1
        r: [ 2.112142170343461,  0.7070943340016225,  0.6877446193394015]
+       nzion                           :  0
        Delta r                         :  [  4.65211E-02, -2.052545E-02, -7.729288E-02 ]
        q0                              :  [ -6.139925E-02 ]
        q1                              :  [ -1.597046E-01,  1.000000E+00, -5.319514E-02 ]
@@ -2332,6 +2340,7 @@
      - sym                             : H-1 # 0014
        Atom number                     :  3
        r: [ 2.239964436693485,  2.214005690249493,  2.192626520816123]
+       nzion                           :  0
        Delta r                         :  [  2.245851E-02,  1.692721E-01,  1.620668E-01 ]
        q0                              :  [  1.0E+00 ]
        q1                              :  [  2.833557E-01,  2.763903E-01, -1.044982E-02 ]
@@ -2341,6 +2350,7 @@
      - sym                             : H-2 # 0015
        Atom number                     :  3
        r: [ 2.436008828319149,  2.143601852547251,  2.120426389703727]
+       nzion                           :  0
        Delta r                         :  [  2.185029E-01,  9.886828E-02,  8.986672E-02 ]
        q0                              :  [  1.243522E-01 ]
        q1                              :  [ -7.931027E-02, -7.100779E-02,  1.000000E+00 ]
@@ -2350,6 +2360,7 @@
      - sym                             : H-3 # 0016
        Atom number                     :  3
        r: [ 2.276964527647156,  2.39962338673859,  2.279187010026451]
+       nzion                           :  0
        Delta r                         :  [  5.94586E-02,  3.548898E-01,  2.486273E-01 ]
        q0                              :  [  2.371025E-01 ]
        q1                              :  [  1.0E+00, -1.776574E-01, -5.659206E-02 ]
@@ -2359,6 +2370,7 @@
      - sym                             : H-4 # 0017
        Atom number                     :  3
        r: [ 2.270209309778283,  2.288119425103318,  2.350911789975314]
+       nzion                           :  0
        Delta r                         :  [  5.270338E-02,  2.433859E-01,  3.203521E-01 ]
        q0                              :  [  2.171295E-01 ]
        q1                              :  [ -1.67985E-01,  1.000000E+00, -4.789779E-02 ]
@@ -2368,6 +2380,7 @@
      - sym                             : H-5 # 0018
        Atom number                     :  3
        r: [ 2.247815670293074,  2.219634210969124,  2.205347967801082]
+       nzion                           :  0
        Delta r                         :  [  3.030974E-02,  1.749006E-01,  1.747883E-01 ]
        q0                              :  [  2.355132E-01 ]
        q1                              :  [ -7.711509E-02, -8.249958E-02,  8.421067E-03 ]
@@ -2377,6 +2390,7 @@
      - sym                             : H-6 # 0019
        Atom number                     :  3
        r: [ 2.430426785734923,  2.185750756401726,  2.157358097294422]
+       nzion                           :  0
        Delta r                         :  [  2.129209E-01,  1.410172E-01,  1.267984E-01 ]
        q0                              :  [  6.268387E-02 ]
        q1                              :  [  1.19248E-02, -4.829376E-02, -6.355536E-02 ]
@@ -2386,6 +2400,7 @@
      - sym                             : H-7 # 0020
        Atom number                     :  3
        r: [ 2.442364670714479,  2.183412524982495,  2.161724007179039]
+       nzion                           :  0
        Delta r                         :  [  2.248587E-01,  1.386790E-01,  1.311643E-01 ]
        q0                              :  [  7.059404E-02 ]
        q1                              :  [ -4.937224E-02,  1.182602E-02, -7.029652E-02 ]
@@ -2395,6 +2410,7 @@
      - sym                             : H-8 # 0021
        Atom number                     :  3
        r: [ 2.400180995514104,  2.190464863003655,  2.284928285328693]
+       nzion                           :  0
        Delta r                         :  [  1.826751E-01,  1.457313E-01,  2.543686E-01 ]
        q0                              :  [ -5.901959E-02 ]
        q1                              :  [  4.753333E-02,  9.391194E-03, -6.274486E-02 ]
@@ -2404,6 +2420,7 @@
      - sym                             : H-9 # 0022
        Atom number                     :  3
        r: [ 2.364682852686666,  2.290251276326508,  2.126746465886127]
+       nzion                           :  0
        Delta r                         :  [  1.471769E-01,  2.455177E-01,  9.618679E-02 ]
        q0                              :  [  2.056221E-02 ]
        q1                              :  [  2.194495E-02, -4.621018E-02,  3.767080E-02 ]
@@ -2430,24 +2447,50 @@
    - q0                                :  [  5.88E-07 ]
    - q1                                :  [  7.16E-07,  7.32E-07,  3.11E-07 ]
    - q2: [ 7.84E-07,  9.31E-07,  3.10E-06,  1.05E-06,  2.85E-06]
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating kernel for orthonormal support functions
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating matrix for orthonormal support functions
  calculate S^x:
    mode                                : sparse
    powers:
      x                                 : 1/2
-   order                               :  20
+   order                               :  1020
+   determine eigenvalue bounds:
+   -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
+ exp accur:  [  6.93E-10 ]}
    error estimation:
-     max / mean error                  :  [  3.33E-16,  3.46E-17 ]
+     max / mean error                  :  [  3.95E-10,  9.18E-11 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Orthonormalizing the support functions
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating matrix for orthonormal support functions
+ calculate S^x:
+   mode                                : sparse
+   powers:
+     x                                 : -1/2
+   order                               :  1020
+   determine eigenvalue bounds:
+   -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
+ exp accur:  [  3.61E-10 ]}
+   error estimation:
+     max / mean error                  :  [  3.47E-10,  6.46E-11 ]
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
+ calculate S^x:
+   mode                                : sparse
+   powers:
+     x                                 : -1
+   order                               :  1020
+   determine eigenvalue bounds:
+   -  {npl:  17, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
+ exp accur:  [  7.57E-10 ]}
+   error estimation:
+     max / mean error                  :  [  4.22E-15,  8.12E-16 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr
-   global monopole                     : -1.114123E-04
+   global monopole                     : -1.114109E-04
    global monopole analytic            : -5.643220E-08
    values:
    - sym                               : O # 0001
      r: [ 2.065621065394574,  0.7276197830051158,  0.7650374978227975]
+     nzion                             :  6
      sigma                             :  [  0.450,  0.450,  0.450 ]
      q0 analytic                       : -3.665463E-01
      q0                                :  [ -3.626928E-01 ]
@@ -2456,6 +2499,7 @@
      type                              : unknown
    - sym                               : H # 0002
      r: [ 0.2609031030233364,  0.4497236554241762,  0.5729218373685834]
+     nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
      q0 analytic                       :  1.761907E-01
      q0                                :  [  1.742834E-01 ]
@@ -2464,11 +2508,12 @@
      type                              : unknown
    - sym                               : H # 0003
      r: [ 2.217505931689284,  2.044733573632779,  2.030559672968256]
+     nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
      q0 analytic                       :  1.903555E-01
      q0                                :  [  1.88298E-01 ]
      q1                                :  [ -1.916771E-01, -1.849969E-01, -1.448108E-04 ]
-     q2: [ 9.207206E-03,  2.804088E-01,  4.462091E-04, -1.545682E-03, -2.145368E-02]
+     q2: [ 9.207206E-03,  2.804088E-01,  4.462092E-04, -1.545682E-03, -2.145368E-02]
      type                              : unknown
  Checking the total multipoles based on the atomic multipoles:
  - Up to multipole l= 0:
@@ -2480,7 +2525,7 @@
        -  [  3.7598E-01,  5.8843E-01,  5.0939E-01 ]
        -  [  5.8843E-01, -1.3554E-01,  8.2441E-01 ]
        -  [  5.0939E-01,  8.2441E-01, -2.4045E-01 ]
-       trace                           : -4.37E-13
+       trace                           : -5.58E-13
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
        P vector                        :  [ -1.3149E+00,  8.0071E-01,  8.2655E-01 ]
@@ -2490,7 +2535,7 @@
        -  [ -5.5429E-01,  2.8759E-01,  3.4322E-01 ]
        -  [  2.8759E-01,  2.6471E-01, -7.2799E-01 ]
        -  [  3.4322E-01, -7.2799E-01,  2.8959E-01 ]
-       trace                           :  3.48E-13
+       trace                           :  3.62E-13
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
        P vector                        :  [ -1.3149E+00,  8.0071E-01,  8.2655E-01 ]
@@ -2500,7 +2545,7 @@
        -  [  1.4007E+00,  1.6748E+00,  1.4212E+00 ]
        -  [  1.6748E+00, -5.4629E-01,  2.5352E+00 ]
        -  [  1.4212E+00,  2.5352E+00, -8.5440E-01 ]
-       trace                           : -2.38E-13
+       trace                           : -1.39E-13
   #========================================================== Atomic multipole analysis done
  Total charge                          :  7.999999558357E+00
   #---------------------------------------------------------------------- Forces Calculation
@@ -2520,8 +2565,8 @@
  - set to 1.d-20 instead of 0.d0
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  23.12
-   Elapsed time (s)                    :  23.54
+   CPU time (s)                        :  29.05
+   Elapsed time (s)                    :  30.46
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.40979793E-02, y: -6.73407878E-03, z: -6.81911233E-03, 
                     total:  1.70470270E-02}
@@ -2535,14 +2580,14 @@
  Energy (Hartree)                      : -1.74604651838715590E+01
  Force Norm (Hartree/Bohr)             :  2.64753914020900948E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  14666
-   Tot. No. of Deallocations           :  14666
+   Tot. No. of Allocations             :  14953
+   Tot. No. of Deallocations           :  14953
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  301.828
      for the array                     : psi_f
      in the routine                    : transpose_localized
-     Memory Peak of process            : 379.924 MB
- Walltime since initialization         : 00:00:23.923131913
- Max No. of dictionaries used          :  9754 #( 909 still in use)
- Number of dictionary folders allocated:  1
+     Memory Peak of process            : 379.448 MB
+ Walltime since initialization         : 00:00:30.861631388
+ Max No. of dictionaries used          :  10649 #( 909 still in use)
+ Number of dictionary folders allocated:  2

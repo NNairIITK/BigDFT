@@ -74,7 +74,8 @@ module sparsematrix_wrappers
               nnonzero_mult, nonzero_mult)
       end if
       call init_sparse_matrix(iproc, nproc, orbs%norbu, nnonzero, nonzero, nnonzero_mult, nonzero_mult, smat, &
-           nspin, astruct%geocode, orbs%norbup, orbs%isorbu, store_index, orbs%onwhichatom)
+           nspin=nspin, geocode=astruct%geocode, cell_dim=astruct%cell_dim, norbup=orbs%norbup, &
+           isorbu=orbs%isorbu, store_index=store_index, on_which_atom=orbs%onwhichatom)
       call f_free_ptr(nonzero)
       call f_free_ptr(nonzero_mult)
       call f_free(cutoff)
@@ -285,7 +286,7 @@ module sparsematrix_wrappers
   
   
     !> Initializes a sparse matrix type compatible with the ditribution of the KS orbitals
-    subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, geocode, nextra, smat, smat_extra)
+    subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, geocode, cell_dim, nextra, smat, smat_extra)
       use module_types
       use module_interfaces, only: orbitals_descriptors
       use public_enums
@@ -297,6 +298,7 @@ module sparsematrix_wrappers
       type(orbitals_data), intent(in) :: orbs
       type(input_variables), intent(in) :: input
       character(len=1),intent(in) :: geocode
+      real(kind=8),dimension(3),intent(in) :: cell_dim
       type(sparse_matrix),dimension(:),pointer,intent(out) :: smat, smat_extra
     
       ! Local variables
@@ -340,7 +342,8 @@ module sparsematrix_wrappers
               end do
           end do
           call init_sparse_matrix(iproc, nproc, norb, norb*norbp, nonzero, norb*norbp, nonzero, smat(ispin), &
-               input%nspin, geocode, norbp, isorb, input%store_index, orbs%onwhichatom, print_info=.false.)
+               nspin=input%nspin, geocode=geocode, cell_dim=cell_dim, norbup=norbp, isorbu=isorb, &
+               store_index=input%store_index, on_which_atom=orbs%onwhichatom, print_info=.false.)
           call f_free(nonzero)
     
     
@@ -371,8 +374,8 @@ module sparsematrix_wrappers
           !!     orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra(ispin), print_info_=.false.)
           call init_sparse_matrix(iproc, nproc, orbs_aux%norb, orbs_aux%norbu*orbs_aux%norbup, nonzero, &
                orbs_aux%norbu*orbs_aux%norbup, nonzero, smat_extra(ispin), &
-               input%nspin, geocode, orbs_aux%norbp, orbs_aux%isorb, input%store_index, &
-               orbs_aux%onwhichatom, print_info=.false.)
+               nspin=input%nspin, geocode=geocode, cell_dim=cell_dim, norbup=orbs_aux%norbp, isorbu=orbs_aux%isorb, &
+               store_index=input%store_index, on_which_atom=orbs_aux%onwhichatom, print_info=.false.)
           call f_free(nonzero)
           call deallocate_orbitals_data(orbs_aux)
     

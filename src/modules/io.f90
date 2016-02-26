@@ -11,7 +11,6 @@ module io
   public :: writemywaves_linear_fragments
   public :: read_coeff_minbasis
   public :: io_read_descr_linear
-  public :: write_sparse_matrix
   public :: write_dense_matrix
   public :: write_linear_matrices
   public :: writeLinearCoefficients
@@ -1743,79 +1742,6 @@ module io
     END SUBROUTINE io_open
 
 
-    !> Write a sparse matrix to disk.
-    !! ATTENTION: This routine must be called by all MPI tasks due to the fact that the matrix 
-    !! in distributed among the matrix taksgroups
-    subroutine write_sparse_matrix(nat, ntypes, iatype, rxyz, nzatom, nelpsp, atomnames, smat, mat, filename)
-      use module_base
-      use module_types
-      use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, &
-                                   assignment(=), sparsematrix_malloc
-      use sparsematrix, only: gather_matrix_from_taskgroups
-      implicit none
-      
-      ! Calling arguments
-      integer,intent(in) :: nat, ntypes
-      integer,dimension(nat),intent(in) :: iatype
-      real(kind=8),dimension(3,nat),intent(in) :: rxyz
-      integer,dimension(ntypes),intent(in) :: nzatom, nelpsp
-      character(len=*),dimension(ntypes),intent(in) :: atomnames
-      type(sparse_matrix),intent(in) :: smat
-      type(matrices),intent(in) :: mat
-      character(len=*),intent(in) :: filename
-
-      ! Local variables
-      integer :: iunit, iseg, icol, irow, jorb, iat, jat, ind, ispin, itype
-      real(kind=8),dimension(:),allocatable :: matrix_compr
-
-      call f_routine(id='write_sparse_matrix')
-
-      matrix_compr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='matrix_compr')
-      call gather_matrix_from_taskgroups(bigdft_mpi%iproc, bigdft_mpi%nproc, &
-           smat, mat%matrix_compr, matrix_compr)
-
-      if (bigdft_mpi%iproc==0) then
-
-          iunit = 99
-          call f_open_file(iunit, file=trim(filename), binary=.false.)
-
-          write(iunit,'(i10,2i6,3x,a,a)') nat, ntypes, smat%nspin, smat%geocode, &
-              '   # number of atoms, number of atom types, nspin, geocode'
-          do itype=1,ntypes
-              write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
-                  '   # nz, nelpsp, name'
-          end do
-          do iat=1,nat
-              write(iunit,'(i5, 3es24.16,a,i0)') iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
-          end do
-          write(iunit,'(3i12,a)') smat%nfvctr, smat%nseg, smat%nvctr, '   # nfvctr, nseg, nvctr'
-          do iseg=1,smat%nseg
-              write(iunit,'(5i12,a)') smat%keyv(iseg), smat%keyg(1,1,iseg), smat%keyg(2,1,iseg), &
-                  smat%keyg(1,2,iseg), smat%keyg(2,2,iseg), '   # keyv, keyg(1,1), keyg(2,1), keyg(1,2), keyg(2,2)'
-          end do
-          ind = 0
-          do ispin=1,smat%nspin
-              do iseg=1,smat%nseg
-                  icol = smat%keyg(1,2,iseg)
-                  iat = smat%on_which_atom(icol)
-                  do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-                      irow = jorb
-                      jat = smat%on_which_atom(irow)
-                      ind = ind + 1
-                      write(iunit,'(es24.16,2i12,a)') matrix_compr(ind), jat, iat, '   # matrix, jat, iat'
-                  end do
-              end do
-          end do
-
-          call f_close(iunit)
-
-          call f_free(matrix_compr)
-
-      end if
-
-      call f_release_routine()
-
-    end subroutine write_sparse_matrix
 
 
     !> Write a dense matrix to disk.
@@ -2040,6 +1966,7 @@ module io
                                    DENSE_FULL, SPARSE_TASKGROUP, assignment(=), &
                                    deallocate_matrices
       use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix_local, matrix_matrix_mult_wrapper
+      use sparsematrix_io, only: write_sparse_matrix
       use matrix_operations, only: overlapPowerGeneral
       implicit none
       integer, intent(in) :: iproc,nproc,imethod_overlap,norder_taylor
@@ -2263,16 +2190,20 @@ module io
 
 
     !> Basically the same as writeLinearCoefficients, but with a slightly different format
-    subroutine write_linear_coefficients(iroot, filename, at, rxyz, nfvctr, ntmb, nspin, coeff, eval)
+    subroutine write_linear_coefficients(iroot, filename, nat, rxyz, iatype, ntypes, nzatom, &
+               nelpsp, atomnames, nfvctr, ntmb, nspin, coeff, eval)
       use module_base
       use module_types
       use yaml_output
       implicit none
       ! Calling arguments
       character(len=*),intent(in) :: filename
-      type(atoms_data),intent(in) :: at
-      real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-      integer,intent(in) :: iroot, nfvctr, ntmb, nspin
+      !type(atoms_data),intent(in) :: at
+      integer,intent(in) :: iroot, nat, ntypes, nfvctr, ntmb, nspin
+      real(gp), dimension(3,nat), intent(in) :: rxyz
+      integer,dimension(nat),intent(in) :: iatype
+      integer,dimension(ntypes),intent(in) :: nzatom, nelpsp
+      character(len=20),dimension(ntypes),intent(in) :: atomnames
       real(wp), dimension(nfvctr,ntmb), intent(in) :: coeff
       real(wp), dimension(ntmb), intent(in) :: eval
       ! Local variables
@@ -2288,14 +2219,19 @@ module io
           call f_open_file(iunit, file=trim(filename), binary=.false.)
     
           ! Write the Header
-          write(iunit,'(i10,2i6,a)') at%astruct%nat, at%astruct%ntypes, nspin, &
+          !write(iunit,'(i10,2i6,a)') at%astruct%nat, at%astruct%ntypes, nspin, &
+          write(iunit,'(i10,2i6,a)') nat, ntypes, nspin, &
               '   # number of atoms, number of atom types, nspin'
-          do itype=1,at%astruct%ntypes
-              write(iunit,'(2i8,3x,a,a)') at%nzatom(itype), at%nelpsp(itype), trim(at%astruct%atomnames(itype)), &
+          !do itype=1,at%astruct%ntypes
+          do itype=1,ntypes
+              !write(iunit,'(2i8,3x,a,a)') at%nzatom(itype), at%nelpsp(itype), trim(at%astruct%atomnames(itype)), &
+              write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
                   '   # nz, nelpsp, name'
           end do
-          do iat=1,at%astruct%nat
-              write(iunit,'(i5, 3es24.16,a,i0)') at%astruct%iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
+          !do iat=1,at%astruct%nat
+          do iat=1,nat
+              !write(iunit,'(i5, 3es24.16,a,i0)') at%astruct%iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
+              write(iunit,'(i5, 3es24.16,a,i0)') iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
           end do
           write(iunit,'(2i12,a)') nfvctr, ntmb, '   # nfvctr, ntmb'
           do i=1,ntmb
@@ -2354,7 +2290,7 @@ module io
       integer :: iunit, itype, iat, i, j, dummy_int, ntypes_, nat_
       logical :: scaled, read_rxyz, read_eval
 
-      call f_routine(id='write_linear_coefficients')
+      call f_routine(id='read_linear_coefficients')
 
       if (present(nat) .and. present(ntypes) .and. present(nzatom) .and.  &
           present(nelpsp) .and. present(atomnames) .and. present(iatype) .and. present(rxyz)) then

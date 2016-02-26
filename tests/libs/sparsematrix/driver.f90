@@ -27,6 +27,7 @@ program driver
   type(atoms_data) :: at
   character(len=1) :: geocode_h, geocode_s
   type(sparse_matrix) :: smat_h, smat_s
+  real(kind=8) :: cell_dim
 
   call f_lib_initialize()
 
@@ -37,21 +38,21 @@ program driver
 
   at = atoms_data_null()
 
-  call read_sparse_matrix('hamiltonian_sparse.bin', nspin_h, geocode_h, nfvctr_h, nseg_h, nvctr_h, keyv_h, keyg_h, &
+  call read_sparse_matrix('hamiltonian_sparse.bin', nspin_h, geocode_h, cell_dim, nfvctr_h, nseg_h, nvctr_h, keyv_h, keyg_h, &
        matrix_compr_h, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
        at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz, on_which_atom=on_which_atom_h)
   at%refcnt=f_ref_new('atoms')
   !call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_h, nfvctrp_h, isfvctr_h)
   call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_h, nvctr_h, nseg_h, keyg_h, smat_h, &
-       nspin_h, geocode_h, on_which_atom_h)
+       nspin=nspin_h, geocode=geocode_h, cell_dim=cell_dim, on_which_atom=on_which_atom_h)
   call f_free_ptr(keyv_h)
   call f_free_ptr(keyg_h)
 
-  call read_sparse_matrix('overlap_sparse.bin', nspin_s, geocode_s, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
+  call read_sparse_matrix('overlap_sparse.bin', nspin_s, geocode_s, cell_dim, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
        matrix_compr_s, on_which_atom=on_which_atom_s)
   !call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
   call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_s, nvctr_s, nseg_s, keyg_s, smat_s, &
-       nspin_s, geocode_s, on_which_atom_s)
+       nspin=nspin_s, geocode=geocode_s, cell_dim=cell_dim, on_which_atom=on_which_atom_s)
   call f_free_ptr(keyv_s)
   call f_free_ptr(keyg_s)
 

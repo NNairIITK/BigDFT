@@ -25,6 +25,7 @@ module multipole_base
     real(dp),dimension(3) :: rxyz
     type(multipole),dimension(:),pointer :: qlm
     real(dp),dimension(0:lmax) :: sigma !<sigmas for the radial Gaussian when constructing the potential from the multipoles
+    integer :: nzion ! core charge of the multipole... integer as also nelpsp is an integer
   end type multipole_set
 
   type,public :: external_potential_descriptors
@@ -71,6 +72,7 @@ module multipole_base
       mps%sym = 'UNINITIALIZED'
       mps%rxyz(1:3) = 0._dp
       mps%sigma(0:lmax) = 0._dp
+      mps%nzion = 0
       !mps%lmax = 0
       nullify(mps%qlm)
     end subroutine nullify_multipole_set
@@ -183,6 +185,12 @@ module multipole_base
               ! Retrieve the symbol (i.e. description) of the multipole center (typically atom type)
               if ('sym' .in. iter) then
                   ep%mpl(impl+1)%sym = iter//'sym'
+              end if
+              ! Retrieve the core charge of the multipole, which always has to be given.
+              if ('nzion' .notin. iter) then
+                  call f_err_throw('No multipole core charge was provided for the multipole center no. '//trim(yaml_toa(impl+1)))
+              else
+                  ep%mpl(impl+1)%nzion = iter//'nzion'
               end if
               ilen = dict_len(iter//'r')
               if (ilen/=3) then

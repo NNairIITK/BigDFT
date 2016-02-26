@@ -45,8 +45,10 @@ module orbitalbasis
      real(gp), dimension(:), pointer :: occup_ptr
      !>metadata
      integer :: ispsi
+     integer :: ispsi_prev
      integer :: ikptp
      integer :: ise !<for occupation numbers
+     integer :: ise_prev
      type(orbital_basis), pointer :: ob
   end type subspace
 
@@ -451,8 +453,8 @@ contains
     ss%ob => ob
     ss%ispin=0
     ss%ikptp=1
-    ss%ise=0
-    ss%ispsi=1
+    ss%ispsi_prev=1
+    ss%ise_prev=0
   end function subspace_iterator
 
   !case of subspace iterators
@@ -466,7 +468,10 @@ contains
     ss%ikpt       =f_none()
     ss%kwgt       =f_none()
     ss%occup_ptr  =f_none()
-    ss%ispsi  =f_none()
+    ss%ispsi      =f_none()
+    ss%ispsi_prev =f_none()
+    ss%ise        =f_none()
+    ss%ise_prev   =f_none()
     nullify(ss%ob)
   end subroutine nullify_subspace
 
@@ -507,7 +512,9 @@ contains
           exit
        end if
 
+       it%ispsi=it%ispsi_prev
        it%ikpt=it%ob%orbs%iskpts+it%ikptp
+
        call orbitals_and_components(bigdft_mpi%iproc,it%ikpt,it%ispin,&
             it%ob%orbs,it%ob%td%comms,&
             nvctrp,it%norb,norbs,ncomp,nspinor)
@@ -516,8 +523,10 @@ contains
        if (it%ispin==1) then
           it%ise=0
        else
-          it%ise=it%norb
+          it%ise=it%ise_prev
        end if
+
+       it%ise_prev=it%norb
 
        it%ncplx=1
        it%nvctr=ncomp*nvctrp
@@ -527,8 +536,7 @@ contains
        ist=(it%ikpt-1)*it%ob%orbs%norb+1+it%ise
        it%occup_ptr=>it%ob%orbs%occup(ist:ist+it%norb-1)
 
-       if (it%ikptp/=1 .or. it%ispin/=1) &
-            it%ispsi=it%ispsi+nvctrp*it%norb*nspinor
+       it%ispsi_prev=it%ispsi_prev+nvctrp*it%norb*nspinor
        exit
     end do
 

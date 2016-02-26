@@ -856,17 +856,11 @@ subroutine system_createKernels(denspot, verb)
   use Poisson_Solver, except_dp => dp, except_gp => gp
   implicit none
   logical, intent(in) :: verb
-  integer(kind=8)  :: iproc_node, nproc_node
   type(DFT_local_fields), intent(inout) :: denspot
-  iproc_node=0
-  nproc_node=0
-  call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
-  call pkernel_set(denspot%pkernel,iproc_node=iproc_node,&
-                     nproc_node=nproc_node,verbose=verb)
+  call pkernel_set(denspot%pkernel,verbose=verb)
     !create the sequential kernel if pkernelseq is not pkernel
   if (denspot%pkernelseq%mpi_env%nproc == 1 .and. denspot%pkernel%mpi_env%nproc /= 1) then
-     call pkernel_set(denspot%pkernelseq,iproc_node=iproc_node,&
-                     nproc_node=nproc_node,verbose=.false.)
+     call pkernel_set(denspot%pkernelseq,verbose=.false.)
   else
      denspot%pkernelseq = denspot%pkernel
   end if
@@ -881,7 +875,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   use ao_inguess, only: atomic_info
   !use yaml_output
   use numerics, only : Bohr_Ang
-  use module_base, only: bigdft_mpi
+  use module_base, only: bigdft_mpi,f_zero
   use f_enums, f_str => str
   use yaml_output
   use dictionaries, only: f_err_throw
@@ -1021,6 +1015,8 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
 !-------------------------------------------------------------------
 
+  if (pkernel%mpi_env%iproc /=0) call f_zero(IntSur)
+  if (pkernel%mpi_env%iproc /=0) call f_zero(IntVol)
   pkernel%IntSur=IntSur
   pkernel%IntVol=IntVol
 
@@ -1053,6 +1049,10 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!$  oneosqrteps=1.d0
 
   !if(bigdft_mpi%iproc==0) call yaml_map('Im here',1)
+
+  !here the pkernel_set_epsilon routine should been modified to accept
+  !already the radii and the atoms
+  
 
   select case(trim(f_str(pkernel%method)))
   case('PCG')
