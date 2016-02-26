@@ -2530,7 +2530,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
                  rxyz4_new(:,iat)=rxyz_new(:,ipiv(iat))
               end do
 
-              call find_frag_trans(min(4,ref_frags(ifrag_ref)%astruct_frg%nat),rxyz4_ref,rxyz4_new,frag_trans_orb(iorbp),Werror(ifrag))
+              call find_frag_trans(min(4,ref_frags(ifrag_ref)%astruct_frg%nat),rxyz4_ref,rxyz4_new,&
+                   frag_trans_orb(iorbp),Werror(ifrag))
               if (Werror(ifrag) > W_tol) call f_increment(itoo_big)
 
 !!$              print *,'transformation of the fragment, iforb',iforb
@@ -2560,21 +2561,21 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   if (itoo_big > 0 .and. iproc==0) call yaml_warning('Found '//itoo_big//' warning of high Wahba cost functions')
 
 
-  !debug - check calculated transformations
-  if (iproc==0) then
-     open(109)
-     do ifrag=1,input_frag%nfrag
-        ! find reference fragment this corresponds to
-        ifrag_ref=input_frag%frag_index(ifrag)
-        num_env=ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat
-        write(109,'((a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6),2x,F6.2,2(2x,I5))') &
-             trim(input_frag%label(ifrag_ref)),ifrag,&
-             frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans_frag(ifrag)%rot_axis,&
-             frag_trans_frag(ifrag)%rot_center,frag_trans_frag(ifrag)%rot_center_new,&
-             Werror(ifrag),num_env,ifrag_ref
-     end do
-     close(109)
-  end if
+  !!!debug - check calculated transformations
+  !!if (iproc==0) then
+  !!   open(109)
+  !!   do ifrag=1,input_frag%nfrag
+  !!      ! find reference fragment this corresponds to
+  !!      ifrag_ref=input_frag%frag_index(ifrag)
+  !!      num_env=ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat
+  !!      write(109,'((a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6),2x,F6.2,2(2x,I5))') &
+  !!           trim(input_frag%label(ifrag_ref)),ifrag,&
+  !!           frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans_frag(ifrag)%rot_axis,&
+  !!           frag_trans_frag(ifrag)%rot_center,frag_trans_frag(ifrag)%rot_center_new,&
+  !!           Werror(ifrag),num_env,ifrag_ref
+  !!   end do
+  !!   close(109)
+  !!end if
 
   call f_free(Werror)
 
