@@ -115,36 +115,13 @@ fi
 
 dnl Look for GLib and friends for bindings.
 AX_INTROSPECTION()
-AX_DYNAMIC_LIBRARIES($ax_have_introspection)
+AX_DYNAMIC_LIBRARIES($ax_have_introspection, [f_lib_initialize], [$LIB_FLIB_LIBS])
 
 dnl Test libraries required for benching / testing.
 AX_PYYAML()
 
-dnl Test libraries
-AX_AMBERTOOLS()
-dnl PEXSI
-AC_ARG_WITH(pexsi, AS_HELP_STRING([--with-pexsi],
-            [Give the link-line for PEXSI.]),
-            ac_pexsi_linkline=$withval, ac_pexsi_linkline=)
-ax_have_pexsi="no"
-if test -n "$ac_pexsi_linkline" ; then
-  PEXSI_LINKLINE="$ac_pexsi_linkline"
-  ax_have_pexsi="yes"
-fi
-AM_CONDITIONAL(HAVE_PEXSI, test $ax_have_pexsi = "yes")
-dnl cp2k
-AC_ARG_WITH(cp2k, AS_HELP_STRING([--with-cp2k],
-            [Give the link-line for cp2k.]),
-            ac_cp2k_linkline=$withval, ac_cp2k_linkline=)
-ax_have_cp2k="no"
-if test -n "$ac_cp2k_linkline" ; then
-  CP2K_LINKLINE="$ac_cp2k_linkline"
-  ax_have_cp2k="yes"
-fi
-AM_CONDITIONAL(HAVE_CP2K, test $ax_have_cp2k = "yes")
-
 dnl Agregate all the optional libs.
-LIBS_EXT_DEPS="$LIB_BIGDFT_LIBS $CP2K_LINKLINE $PEXSI_LINKLINE $LIB_AMBERTOOLS_LIBS $LINALG_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
+LIBS_EXT_DEPS="$LIB_BIGDFT_LIBS $LINALG_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
 AC_SUBST(LIBS_EXT_DEPS)
 LIB_SPRED_LIBS="-lspred-1"
 if test $ax_build_dynamic != "yes" ; then
@@ -192,7 +169,6 @@ Basics:
   Fortran77 flags:           $FFLAGS
   Linker flags:              $LDFLAGS
   Linked libraries:          $LIBS_EXT_DEPS $LIBS
-  Linked dependencies:       $LIBS_SHORT_DEPS
 
 Options:
   With OpenMP:               $ax_fc_openmp_msg
@@ -202,13 +178,6 @@ Options:
    | linked libraries:       $MPI_LIBS
    | MPI_INIT_THREAD avail:  $ac_with_mpinithread
    | MPI2 support:           $ac_with_mpi2
-  With AMBERTOOLS compiler:  $ax_have_amber
-   | nab Compiler:           $NAB
-  With CP2K:                 $ax_have_cp2k
-  With PEXSI:                $ax_have_pexsi
-  With libXC:                $ac_use_libxc
-   | internal built:         $ac_build_libxc
-   | include dir.:           $LIBXC_INCLUDE
   With GLib and co.:         $ax_have_glib
    | linked libraries:       $GLIB_LIBS
 
