@@ -33,6 +33,7 @@ program utilities
    external :: gather_timings
    character(len=*), parameter :: subname='utilities'
    character(len=1) :: geocode
+   character(len=3) :: do_ortho
    character(len=30) :: tatonam, radical, colorname, linestart, lineend, cname, methodc
    character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file, coeff_file, pdos_file
    character(len=128) :: line, cc, output_pdos
@@ -227,8 +228,13 @@ program utilities
        select case(method)
        case (CHARGE_ANALYSIS_MULLIKEN)
            methodc='loewdin'
+           do_ortho='no'
+       case (CHARGE_ANALYSIS_LOEWDIN)
+           methodc='loewdin'
+           do_ortho='yes'
        case (CHARGE_ANALYSIS_PROJECTOR)
            methodc='projector'
+           do_ortho='no'
        case default
            call f_err_throw('wrong method',err_name='BIGDFT_RUNTIME_ERROR')
        end select
@@ -236,7 +242,7 @@ program utilities
        call multipole_analysis_driver(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, 11, &
             at, smat_s, smat_m, smat_l, &
             ovrlp_mat, hamiltonian_mat, kernel_mat, at%astruct%rxyz, &
-            methodc, do_ortho='no', projectormode='simple', &
+            methodc, do_ortho=trim(do_ortho), projectormode='simple', &
             calculate_multipole_matrices=.false., do_check=.false., &
             multipole_matrix_in=(/(/ovrlp_mat/)/))
 

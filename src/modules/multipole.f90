@@ -2488,7 +2488,7 @@ module multipole
                ovrlp, kernel, 'plus', kernel_ortho)
        end if
 
-      if (do_ortho==yes) then
+      if (do_ortho==yes .and. calculate_multipole_matrices) then
           ! Orthogonalize the support functions
           can_use_transposed = .false.
           methTransformOverlap = 1020
@@ -2841,7 +2841,7 @@ module multipole
       call deallocate_matrices(multipole_matrix)
       call f_free(kernel_ortho)
       call f_free(Qmat)
-      if (do_ortho==yes) then
+      if (do_ortho==yes .and. calculate_multipole_matrices) then
           call f_free(phi_ortho)
       end if
       call f_free_ptr(projx)
