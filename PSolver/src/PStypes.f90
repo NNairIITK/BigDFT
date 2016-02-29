@@ -1203,7 +1203,7 @@ contains
     n03=kernel%ndims(3)
     !starting point in third direction
     i3s=kernel%grid%istart+1
-    epsm1=(kernel%cavity%epsilon0-1.0_gp)
+    epsm1=(kernel%cavity%epsilon0-vacuum_eps)
     !now fill the pkernel arrays according the the chosen method
     select case(trim(str(kernel%method)))
     case('PCG')

@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 !> calculate the forces terms for PCM
-subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,np2epm1,fpcm)
+subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,np2,fpcm,depsilon)
   use module_defs, only: dp,gp
   use environment, only: cavity_data,rigid_cavity_forces
   use box
@@ -19,7 +19,7 @@ subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,np2epm1,fpcm
   integer, intent(in) :: n1,n2,n3p,nat,i3s
   real(dp), dimension(nat), intent(in) :: radii
   real(dp), dimension(3,nat), intent(in) :: rxyz
-  real(dp), dimension(n1,n2,n3p), intent(in) :: np2epm1 !<square of potential gradient times epsilon(r)-1
+  real(dp), dimension(n1,n2,n3p), intent(in) :: np2 !<square of potential gradient
   real(dp), dimension(3,nat), intent(inout) :: fpcm !<forces
   !local variables
   real(dp), parameter :: thr=1.e-10
@@ -35,11 +35,12 @@ subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,np2epm1,fpcm
      do i2=1,n2
         v(2)=cell_r(mesh,i2,dim=2)
         do i1=1,n1
-           tt=np2epm1(i1,i2,i3)
+           tt=np2(i1,i2,i3)
+           deps=depsilon(i1,i2,i3)
            if (abs(tt) < thr) cycle
            v(1)=cell_r(mesh,i1,dim=1)
            v=v-origin
-           call rigid_cavity_forces(cavity,mesh,v,nat,rxyz,radii,tt,fpcm)
+           call rigid_cavity_forces(cavity,mesh,v,nat,rxyz,radii,tt,fpcm,deps)
         end do
      end do
   end do
