@@ -1833,7 +1833,9 @@ multipoles_waterQM:
  Epot: 1.1e-10
 
 multipoles_waterQMQM:
+ Epot: 1.1e-10
  Average noise forces: 1.0e-10
+ number of corrected points: 6.0
 
 #multipoles_water:
 # Ekin: 1.1e-10
