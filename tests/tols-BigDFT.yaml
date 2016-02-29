@@ -1829,32 +1829,38 @@ multipoles_OH-:
  Force Norm (Hartree/Bohr): 1.2e-11
  Maxdiff for transpose (checksum): 1.5e-11
 
-multipoles_water:
- Ekin: 1.1e-10
- EXC: 3.1e-11
- Epot: 2.1e-10
- EvXC: 4.1e-11
- eF: 2.2e-7
- guess for new ef: 2.2e-7
- number of corrected points: 17
- multiplicator for the confinement: 3.5e-10
- EH: 2.1e-10
- D eF: 2.7e-7
- EBS higher temperature: 1.5e-10
- EBS: 1.6e-10
- D Tr: 5.8e-10
- Total charge: 2.1e-11
- D Tr(K): 5.9e-10
- number of corrected points: 17.0
- total charge correction: 8.6e-11
- trace(KS): 2.1e-11
- Unitary check of the multipole calculations: 2.1e-2
- number of corrected points: 20
- Tr(K): 1.1e-09
- difference: 8.7-11
- relative difference: 2.4e-11
- Maxdiff for transpose (checksum): 1.5e-11
- Raw forces norm (Ha/Bohr): 1.2e-11
+multipoles_waterQM:
+ Epot: 1.1e-10
+
+multipoles_waterQMQM:
+ Average noise forces: 1.0e-10
+
+#multipoles_water:
+# Ekin: 1.1e-10
+# EXC: 3.1e-11
+# Epot: 2.1e-10
+# EvXC: 4.1e-11
+# eF: 2.2e-7
+# guess for new ef: 2.2e-7
+# number of corrected points: 17
+# multiplicator for the confinement: 3.5e-10
+# EH: 2.1e-10
+# D eF: 2.7e-7
+# EBS higher temperature: 1.5e-10
+# EBS: 1.6e-10
+# D Tr: 5.8e-10
+# Total charge: 2.1e-11
+# D Tr(K): 5.9e-10
+# number of corrected points: 17.0
+# total charge correction: 8.6e-11
+# trace(KS): 2.1e-11
+# Unitary check of the multipole calculations: 2.1e-2
+# number of corrected points: 20
+# Tr(K): 1.1e-09
+# difference: 8.7-11
+# relative difference: 2.4e-11
+# Maxdiff for transpose (checksum): 1.5e-11
+# Raw forces norm (Ha/Bohr): 1.2e-11
 
 multipoles_CH4:
  Atomic Forces (Ha/Bohr): 1.5e-11

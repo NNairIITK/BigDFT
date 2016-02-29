@@ -164,6 +164,11 @@ linearcubic_linear.out.post-out:
 	rm -rf data-cubic
 	mv data-linear data-cubic
 
+multipoles_waterQMQM.out.out: multipoles_waterQM.out.out
+
+multipoles_waterQM.out.post-out:
+	python prepare_QMQM.py
+
 
 # Define the precision for specific directories.
 %.report: %.ref
