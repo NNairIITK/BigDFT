@@ -2362,8 +2362,8 @@ module multipole
       real(kind=8),dimension(:,:),pointer :: projx
       real(kind=8),dimension(:,:),allocatable :: kernel_extracted, multipole_extracted
       real(kind=8) :: q, tt, rloc, max_error, mean_error
-      type(matrices),pointer :: multipole_matrix
-      type(matrices),target :: multipole_matrix_
+      type(matrices) :: multipole_matrix
+      !type(matrices),target :: multipole_matrix_
       type(matrices) :: newovrlp
       type(matrices),dimension(-1:1,0:1) :: lower_multipole_matrices
       type(matrices),dimension(1) :: inv_ovrlp
@@ -2391,7 +2391,7 @@ module multipole
       perz=(smats%geocode /= 'F')
 
       ! Check that the proper optional arguments are present
-      if (trim(do_ortho)==yes) then
+      if (trim(do_ortho)==yes .and. calculate_multipole_matrices) then
           if (.not.present(nphi) .or. &
               .not.present(orbs) .or. &
               .not.present(lzd) .or. &
@@ -2488,7 +2488,7 @@ module multipole
                ovrlp, kernel, 'plus', kernel_ortho)
        end if
 
-      if (do_ortho==yes) then
+      if (do_ortho==yes .and. calculate_multipole_matrices) then
           ! Orthogonalize the support functions
           can_use_transposed = .false.
           methTransformOverlap = 1020
@@ -2583,8 +2583,8 @@ module multipole
       !atomic_monopoles_analytic = f_malloc0_ptr(1.to.at%astruct%nat,id='atomic_monopoles_analytic')
 
 
-      multipole_matrix_ = matrices_null()
-      multipole_matrix => multipole_matrix_
+      multipole_matrix = matrices_null()
+      !multipole_matrix => multipole_matrix_
       multipole_matrix%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_TASKGROUP, id='multipole_matrix%matrix_compr')
 
 
@@ -2618,7 +2618,14 @@ module multipole
                            orbs, collcom, lzd, smats, locregcenter, 'box', multipole_matrix) 
                   end if
               else
-                  multipole_matrix => multipole_matrix_in(m,l)
+                  !multipole_matrix => multipole_matrix_in(m,l)
+                  if (do_ortho==yes)  then
+                      methTransformOverlap = 1020
+                      call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smats, &
+                           ovrlp, multipole_matrix_in(m,l), 'minus', multipole_matrix%matrix_compr)
+                  else
+                      call f_memcpy(src=multipole_matrix_in(m,l)%matrix_compr, dest=multipole_matrix%matrix_compr)
+                  end if
               end if
 
               if (l<=1) then
@@ -2831,10 +2838,10 @@ module multipole
       end if
 
       call f_free_str(len(names),names)
-      call deallocate_matrices(multipole_matrix_)
+      call deallocate_matrices(multipole_matrix)
       call f_free(kernel_ortho)
       call f_free(Qmat)
-      if (do_ortho==yes) then
+      if (do_ortho==yes .and. calculate_multipole_matrices) then
           call f_free(phi_ortho)
       end if
       call f_free_ptr(projx)
