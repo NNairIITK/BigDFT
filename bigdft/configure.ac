@@ -115,11 +115,11 @@ fi
 dnl Look for GLib and friends for bindings.
 AX_FC_POINTER()
 AX_INTROSPECTION()
-AX_DYNAMIC_LIBRARIES($ax_have_introspection)
+AX_DYNAMIC_LIBRARIES($ax_have_introspection, [f_lib_initialize], [$LIB_FLIB_LIBS])
 
 AC_ARG_ENABLE(bindings, AS_HELP_STRING([--enable-bindings], [Build C bindings (disabled by default).]),
               ac_build_bindings=$enableval, ac_build_bindings="no")
-if test x"$ac_build_bindings" = x"yes" -a test $F90_1D_POINTER_SIZE = 0 ; then
+if test x"$ac_build_bindings" = x"yes" -a $F90_1D_POINTER_SIZE = 0 ; then
   ac_build_bindings="warn"
 fi
 AM_CONDITIONAL(BUILD_BINDINGS, test "$ac_build_bindings" = "yes")
@@ -184,7 +184,7 @@ AC_MSG_RESULT([$ac_build_bin_cluster])
 dnl ---------------------------------------
 AM_CONDITIONAL(USE_BLACS, test x"$ax_have_scalapack" = x"yes")
 dnl Error on the linking part only if required.
-if test "$ac_build_bin_cluster" = "yes" -a $ax_have_linalg != "yes" ] ; then
+if test "$ac_build_bin_cluster" = "yes" -a $ax_have_linalg != "yes" ; then
   AC_MSG_ERROR(["No blas/lapack implementation."])
 fi # End of the if library compilation
 

@@ -21,20 +21,46 @@ AC_DEFUN([AX_DYNAMIC_LIBRARIES],
       AC_MSG_WARN(["No available position-independent code flag, dynamic libraries disabled."])
       ax_build_dynamic=no
     else
-      case $CFLAGS   in *"$ax_flag_pic"*) ;; *) CFLAGS="$CFLAGS $ax_flag_pic";; esac
-      case $CXXFLAGS in *"$ax_flag_pic"*) ;; *) CXXFLAGS="$CXXFLAGS $ax_flag_pic";; esac
-      case $FCFLAGS  in *"$ax_flag_pic"*) ;; *) FCFLAGS="$FCFLAGS $ax_flag_pic";; esac
-  
-      eval "set x $ac_configure_args"
-      shift
-      ac_configure_args=
-      for ac_arg ; do
-        case $ac_arg in
-          CFLAGS=* | CXXFLAGS=* | FCFLAGS=*) ;;
-          *) ac_configure_args="$ac_configure_args '$ac_arg'"
-        esac
-      done
-      ac_configure_args="$ac_configure_args 'CFLAGS=$CFLAGS' 'CXXFLAGS=$CXXFLAGS' 'FCFLAGS=$FCFLAGS'"
+      dnl try to link with dependencies to see if its working.
+      dnl dependencies may not have been compiled with PIC.
+      ax_dynamic_deps=yes
+      ax_dyndeps_libs=m4_default([$3], [""])
+      if test -n "$ax_dyndeps_libs" -a -n "$2" ; then
+        AC_MSG_CHECKING([for dynamic linking of dependencies])
+        AC_LANG_PUSH(Fortran)
+        LDFLAGS_SVG=$LDFLAGS
+        LDFLAGS="-shared $LDFLAGS"
+        LIBS_SVG=$LIBS
+        LIBS="$ax_dyndeps_libs $LIBS"
+        AC_LINK_IFELSE([[
+subroutine testlib()
+  call $2
+end subroutine testlib
+        ]], ax_dynamic_deps=yes, ax_dynamic_deps=no)
+        AC_LANG_POP([Fortran])
+        LIBS=$LIBS_SVG
+        LDFLAGS=$LDFLAGS_SVG
+        AC_MSG_RESULT([$ax_dynamic_deps])
+      fi
+
+      if test "$ax_dynamic_deps" = "yes" ; then
+        case $CFLAGS   in *"$ax_flag_pic"*) ;; *) CFLAGS="$CFLAGS $ax_flag_pic";; esac
+        case $CXXFLAGS in *"$ax_flag_pic"*) ;; *) CXXFLAGS="$CXXFLAGS $ax_flag_pic";; esac
+        case $FCFLAGS  in *"$ax_flag_pic"*) ;; *) FCFLAGS="$FCFLAGS $ax_flag_pic";; esac
+    
+        eval "set x $ac_configure_args"
+        shift
+        ac_configure_args=
+        for ac_arg ; do
+          case $ac_arg in
+            CFLAGS=* | CXXFLAGS=* | FCFLAGS=*) ;;
+            *) ac_configure_args="$ac_configure_args '$ac_arg'"
+          esac
+        done
+        ac_configure_args="$ac_configure_args 'CFLAGS=$CFLAGS' 'CXXFLAGS=$CXXFLAGS' 'FCFLAGS=$FCFLAGS'"
+      else
+        ax_build_dynamic="no"
+      fi
     fi
   else
     ax_build_dynamic="no"
