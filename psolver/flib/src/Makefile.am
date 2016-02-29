@@ -58,15 +58,6 @@ flush_object= flush_fake.o
 endif
 endif
 
-if USE_MPI
-mpi_source =
-mpi_include =
-mpi_inc=
-else
-mpi_source = MPIfake.f90
-mpi_include = mpif.h
-mpi_inc = -I$(builddir) 
-endif
 if HAVE_FC_GET_COMMAND_ARGUMENT
 getarg_files =
 else
@@ -81,7 +72,7 @@ libflib_1_a_SOURCES = utils.c utilsadd.c \
 	razero.f90 getadd.f90 time.f90 f_lib_highlev.f90 \
 	yaml_parser.c yaml_parse.f90 \
 	f_input_file.f90 randomData.f90 \
-	$(flush_files) $(mpi_source) $(getarg_files) $(CUDA_PROF)
+	$(flush_files) $(getarg_files) $(CUDA_PROF)
 
 DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
 	deallocate-c-inc.f90 allocate-c-inc.f90 \
@@ -155,10 +146,9 @@ modules = yaml_strings.@MODULE_EXT@ \
 	module_razero.@MODULE_EXT@ $(CUDA_MODS)
 endif
 
-CLEANFILES = $(modules) *.@MODULE_EXT@ $(mpi_include) memstatus.yaml
+CLEANFILES = $(modules) *.@MODULE_EXT@ memstatus.yaml
 
-#AM_FCFLAGS = -I$(srcdir) $(mpi_inc) @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
-AM_FCFLAGS = -I. -I$(srcdir) $(mpi_inc) @MPI_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@
 AM_CFLAGS = @LIB_YAML_CFLAGS@
 
 # Dynamic library building
@@ -194,7 +184,7 @@ yaml_parse.o : dictionaries.o yaml_output.o
 f_malloc.o: dictionaries.o $(F_MALLOC_INCLUDES)
 f_input_file.o: dictionaries.o yaml_output.o dynamic_memory.o f_utils.o
 dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o f_utils.o $(DYN_INCLUDES)
-mem_profiling.o: yaml_output.o $(mpi_include) yaml_parse.o yaml_strings.o
+mem_profiling.o: yaml_output.o yaml_parse.o yaml_strings.o
 f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o $(NVTX_DEP) time.o f_utils.o f_input_file.o
 f_utils.o: dictionaries.o yaml_strings.o f_precisions.o razero.o
 f_refcnts.o: dictionaries.o yaml_output.o f_precisions.o
@@ -203,21 +193,7 @@ getadd.o: yaml_strings.o $(GETADD_INCLUDES) f_malloc.o
 razero.o: randomData.o f_precisions.o
 $(flush_object): yaml_output.o dictionaries.o
 
-time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(NVTX_DEP) $(mpi_include) #this is temporary, mpif.h should only be in wrappers
-
-#Fake mpif.h for serial compilation
-mpif.h:
-	touch mpif.h &&\
-	echo "integer, parameter :: MPI_COMM_NULL=2,MPI_SUCCESS=0,MPI_SUM=1, MPI_COMM_WORLD=1" >> mpif.h &&\
-	echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
-	echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1, MPI_CHARACTER=1, MPI_REAL8=1" >> mpif.h &&\
-	echo "integer, parameter :: MPI_MAX_PROCESSOR_NAME=10, MPI_STATUS_SIZE=1,MPI_LAND=1" >> mpif.h &&\
-	echo "integer, parameter :: MPI_REQUEST_NULL=1,MPI_STATUS_IGNORE=1" >> mpif.h &&\
-	echo "integer, parameter :: mpi_tag_ub=1,mpi_address_kind=8,mpi_info_null=0" >> mpif.h &&\
-	echo "integer, parameter :: mpi_mode_noprecede=0" >> mpif.h &&\
-	echo "real(kind=8), external :: mpi_wtime" >> mpif.h
-
+time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(NVTX_DEP)
 
 # Copy modules in a common include directory.
 all: all-am insmod

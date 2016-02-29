@@ -9,10 +9,10 @@ MPI_INCLUDES = allreduce-inc.f90 allreduce-arr-inc.f90 gather-inc.f90 \
 	allgather-inc.f90 scatter-inc.f90 scatterv-inc.f90 scatterv-decl-inc.f90
 
 if USE_MPI
-#mpi_source =
+mpi_source =
 mpi_include = $(MPI_INCLUDES)
 else
-#mpi_source = MPIfake.f90
+mpi_source = MPIfake.f90
 mpi_include = $(MPI_INCLUDES) mpif.h
 endif
 
@@ -68,7 +68,7 @@ libwrappers_a_SOURCES = $(DGEMMSY_SOURCES) $(CUBLAS_SOURCES) $(OCL_SOURCES) \
 	fft/fft2d.f90 \
 	fft/fft3d.f90 \
 	linalg.f90 \
-	mpi.F90 \
+	mpi.F90 $(mpi_source) \
 	numerics.f90
 
 # Dependencies
