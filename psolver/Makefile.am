@@ -2,6 +2,9 @@ EXTRA_DIST = config/m4
 
 ACLOCAL_AMFLAGS = -I config/m4
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = psolver.pc
+
 SUBDIRS =
 
 # Low level libraries provided by BigDFT team.

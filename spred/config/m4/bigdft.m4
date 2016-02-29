@@ -82,6 +82,7 @@ AC_DEFUN([AX_BIGDFT],
   
     LIBS=$LIBS_SVG
     FCFLAGS=$FCFLAGS_SVG
+    AC_LANG_POP(Fortran)
     
     if test "$ax_have_bigdft" = "yes" -a "$withbigdftmod" = "yes" ; then
       LIB_BIGDFT_CFLAGS=$ax_bigdft_incdir
@@ -97,6 +98,4 @@ AC_DEFUN([AX_BIGDFT],
   
   AC_SUBST(LIB_BIGDFT_CFLAGS)
   AC_SUBST(LIB_BIGDFT_LIBS)
-
-  AC_LANG_POP(Fortran)
 ])
