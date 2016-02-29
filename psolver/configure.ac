@@ -72,6 +72,8 @@ dnl Set if the module name are capitalized or not with the FC compiler.
 AX_FC_MOD()
 AM_CONDITIONAL(CAPITALIZE, test "$ax_fc_mod_capitalize" = "yes")
 AC_SUBST(MODULE_EXT, $ax_fc_mod_ext)
+dnl default installation directories
+AX_FC_MODULEDIR()
 
 dnl Set the FCFLAGS and FFLAGS variable
 if test -z "$FFLAGS" ; then
@@ -184,27 +186,21 @@ else
 AM_CONDITIONAL(HAVE_ETSF_IO, test "$ax_have_etsf_io" = "yes")
 fi
 
-dnl default installation directories
-AC_ARG_WITH(moduledir,
-            AS_HELP_STRING([--with-moduledir],
-                           [installation directory for module files [[INCLUDEDIR]]]),
-              ac_moduledir=$withval, ac_moduledir="no")
-if test x"$ac_moduledir" != x"no" ; then
-  moduledir=$ac_moduledir
-else
-  moduledir=${includedir}
-fi
-AC_SUBST(moduledir)
-
 dnl Agregate all the optional libs.
 LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_FLIB_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
+LIB_BIGDFT_LIBS="-lPSolver-1"
+if test $ax_build_dynamic != "yes" ; then
+  LIB_PSOLVER_LIBS="$LIB_PSOLVER_LIBS $LIBS_EXT_DEPS"
+fi
+AC_SUBST(LIB_PSOLVER_LIBS)
 
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
+psolver.pc
 flib/Makefile
 flib/src/Makefile
 flib/src/f_utils.inc
@@ -233,9 +229,6 @@ Basics:
 Build:
   Library PSolver:           $ac_build_lib_PSolver
   Dynamic library:           $ax_build_dynamic
-  Bindings:                  $ac_build_bindings
-  User documentation:        $ac_have_pdflatex
-  Devel. documentation:      $ac_devel_doc (Doxygen: $ac_have_doxygen)
 
 Options:
   Max. Memory per task (GB): $MEMORY_LIMIT
@@ -270,16 +263,13 @@ Installation paths:
   Documentation:             $docdir
 "
 
-if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$ac_build_bindings" = x"warn" -o x"$withscalapack" = x"warn" ; then
+if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$withscalapack" = x"warn" ; then
   echo "Warnings:"
   if test x"$ac_use_mpi" = x"warn" ; then
     echo "  MPI:                       disabled by tests"
   fi
   if test x"$ac_use_etsfio" = x"warn" ; then
     echo "  ETSF_IO:                   disabled by tests"
-  fi
-  if test x"$ac_build_bindings" = x"warn" ; then
-    echo "  C bindings:                disabled by tests"
   fi
   if test x"$withscalapack" = x"warn" ; then
     echo "  Scalapack binding:         disabled by tests"

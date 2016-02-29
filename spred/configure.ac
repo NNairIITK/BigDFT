@@ -67,6 +67,8 @@ dnl Set if the module name are capitalized or not with the FC compiler.
 AX_FC_MOD()
 AM_CONDITIONAL(CAPITALIZE, test "$ax_fc_mod_capitalize" = "yes")
 AC_SUBST(MODULE_EXT, $ax_fc_mod_ext)
+dnl default installation directories
+AX_FC_MODULEDIR()
 
 dnl Set the FCFLAGS and FFLAGS variable
 if test -z "$FFLAGS" ; then
@@ -128,20 +130,6 @@ if test $ax_build_dynamic != "yes" ; then
   LIB_SPRED_LIBS="$LIB_SPRED_LIBS $LIBS_SHORT_DEPS"
 fi
 AC_SUBST(LIB_SPRED_LIBS)
-
-dnl default installation directories
-AC_ARG_WITH(moduledir,
-            AS_HELP_STRING([--with-moduledir],
-                           [installation directory for module files [[INCLUDEDIR/FC_TYPE]]]),
-              ac_moduledir=$withval, ac_moduledir="no")
-if test x"$ac_moduledir" != x"no" ; then
-  moduledir=$ac_moduledir
-else
-  moduledir=${includedir}
-fi
-AC_SUBST(moduledir)
-docdir="${docdir}"
-AC_SUBST(docdir)
 
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 

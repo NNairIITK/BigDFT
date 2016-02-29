@@ -903,3 +903,25 @@ end program test],
 
   AC_LANG_POP(Fortran)
 ])
+
+# Define a macro to define the module installation directory.
+#
+# Copyright (c) 2016 BigDFT Group (Damien Caliste)
+# All rights reserved.
+#
+# This file is part of the BigDFT software package. For license information,
+# please see the COPYING file in the top-level directory of the BigDFT source
+# distribution.
+AC_DEFUN([AX_FC_MODULEDIR],
+[
+  AC_ARG_WITH(moduledir,
+              AS_HELP_STRING([--with-moduledir],
+                             [installation directory for module files [[INCLUDEDIR]]]),
+                ac_moduledir=$withval, ac_moduledir="no")
+  if test x"$ac_moduledir" != x"no" ; then
+    moduledir=$ac_moduledir
+  else
+    moduledir=${includedir}
+  fi
+  AC_SUBST(moduledir)
+])
