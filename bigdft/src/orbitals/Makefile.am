@@ -110,6 +110,19 @@ $(routines:.f90=.o): defs.o
 
 convolut_common_per.o conv_per_common.o conv_per_optim.o: base.o
 
+MODULE_BASE.@MODULE_EXT@ module_base.@MODULE_EXT@: base.o
+MODULE_DEFS.@MODULE_EXT@ module_defs.@MODULE_EXT@: defs.o
+PUBLIC_KEYS.@MODULE_EXT@ public_keys.@MODULE_EXT@: public_keys.o
+PUBLIC_ENUMS.@MODULE_EXT@ public_enums.@MODULE_EXT@: public_keys.o
+GAUSSIANS.@MODULE_EXT@ gaussians.@MODULE_EXT@: gaussians.o
+AO_INGUESS.@MODULE_EXT@ ao_inguess.@MODULE_EXT@: ao_inguess.o
+BOUNDS.@MODULE_EXT@ bounds.@MODULE_EXT@: bounds.o
+LOCREG_OPERATIONS.@MODULE_EXT@ locreg_operations.@MODULE_EXT@: locreg_operations.o
+MODULE_XC.@MODULE_EXT@ module_xc.@MODULE_EXT@: xc.o
+PSEUDOPOTENTIALS.@MODULE_EXT@ pseudopotentials.@MODULE_EXT@: pseudopotentials.o
+LOCREGS.@MODULE_EXT@ locregs.@MODULE_EXT@: locregs.o
+COMMUNICATIONS_BASE.@MODULE_EXT@ communications_base.@MODULE_EXT@: communications_base.o
+
 # Copy modules in a common include directory.
 all: all-am insmod
 install: install-am insmod
