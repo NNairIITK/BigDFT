@@ -17,6 +17,7 @@ AC_DEFUN([AX_PSOLVER],
   AC_REQUIRE([AC_PROG_FC])
   AC_REQUIRE([AX_FLIB])
   AC_REQUIRE([AX_LINALG])
+  AC_REQUIRE([AX_MPI])
   
   dnl Test the modules for compilation
   AC_MSG_CHECKING([for PSolver modules])
@@ -47,7 +48,7 @@ end program]], withpsolvermod=yes, withpsolvermod=no)
   if test -z "$ax_psolver_libdir" ; then
     ax_psolver_libdir="-lPSolver-1"
   fi
-  LIBS="$ax_psolver_libdir $LINALG_LIBS $LIB_FLIB_LIBS $LIBS"
+  LIBS="$ax_psolver_libdir $LIBS_SVG"
   AC_LINK_IFELSE(
     AC_LANG_PROGRAM([], [[
 use Poisson_solver
@@ -60,6 +61,23 @@ call H_Potential("G", kernel, rhopot, potion, eh, 0._dp, .false.)
 ]]),
     [ax_have_psolver=yes],
     [ax_have_psolver=no])
+  if test $ax_have_psolver != "yes" ; then
+    dnl Static case, need to link with additional libs.
+    ax_psolver_libdir="$ax_psolver_libdir $LINALG_LIBS $LIB_FLIB_LIBS"
+    LIBS="$ax_psolver_libdir $LIBS_SVG"
+    AC_LINK_IFELSE(
+      AC_LANG_PROGRAM([], [[
+use Poisson_solver
+
+type(coulomb_operator) :: kernel
+real(dp), dimension(9) :: rhopot, potion
+real(gp) :: eh
+
+call H_Potential("G", kernel, rhopot, potion, eh, 0._dp, .false.)
+]]),
+      [ax_have_psolver=yes],
+      [ax_have_psolver=no])
+  fi
   AC_MSG_RESULT($ax_have_psolver)
 
   LIBS=$LIBS_SVG

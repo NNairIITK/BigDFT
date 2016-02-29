@@ -15,6 +15,8 @@ module_autogenargs['psolver'] = "FC=mpif90 CFLAGS='-Wall -g -O2' CXXFLAGS='-g -O
 
 module_autogenargs['bigdft'] = "FC=mpif90 CFLAGS='-Wall -g -O2' CXXFLAGS='-g -O2' FCFLAGS='-O2 -g -Wall -fbounds-check' --with-pyyaml-path=%(prefix)s/lib/python2.7/site-packages" % globals()
 
+module_autogenargs['spred'] = "FC=mpif90 CFLAGS='-Wall -g -O2' CXXFLAGS='-g -O2' FCFLAGS='-O2 -g -Wall -fbounds-check' --with-pyyaml-path=%(prefix)s/lib/python2.7/site-packages" % globals()
+
 module_autogenargs['pseudo'] = "FC=mpif90 FCFLAGS='-O2 -g -Wall -fbounds-check'"
 
 module_autogenargs['libABINIT'] = "FC=mpif90 FCFLAGS='-fPIC -g -O2'"

@@ -343,13 +343,6 @@ src/bindings/bigdft_cst.h
 src/geopt/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
-spred/Makefile
-spred/src/spred_baselib/Makefile
-spred/src/Makefile
-spred/src/art/Makefile
-spred/src/mhgps_files/Makefile
-spred/src/global_files/Makefile
-spred/tests/Makefile
 tests/Makefile
 tests/libs/Makefile
 tests/libs/fft/Makefile

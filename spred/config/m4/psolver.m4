@@ -1,0 +1,1 @@
+../../../bigdft/config/m4/psolver.m4

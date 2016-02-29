@@ -17,6 +17,7 @@ aclocal.m4
 autom4te.cache
 psolver/config/*
 bigdft/config/*
+sperd/config/*
 configure
 config.inc
 config.status

@@ -106,6 +106,22 @@
     </dependencies>
   </autotools>
 
+  <autotools id="spred" autogen-sh="autoreconf">
+    <branch repo="local" module="spred-1.8.tar.gz" version="1.8.0" checkoutdir="spred"/>
+    <dependencies>
+      <dep package="flib"/>
+      <dep package="psolver"/>
+      <dep package="bigdft"/>
+      <if condition-set="testing">
+        <dep package="PyYAML"/>
+      </if>
+      <if condition-set="python">
+        <dep package="pygobject"/>
+        <dep package="gobject-introspection"/>
+      </if>
+    </dependencies>
+  </autotools>
+
   <autotools id="pseudo" autogen-sh="autoreconf">
     <!--<branch repo="bigdft" module="pseudo" version="1.7.5"/>-->
     <branch repo="local" module="pseudo-1.7.5.tar.gz" version="1.7.5" checkoutdir="pseudo"/>

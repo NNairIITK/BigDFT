@@ -7,7 +7,7 @@ DISTCLEANFILES = config.inc bigdft.pc
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = bigdft.pc
 
-SUBDIRS = src spred
+SUBDIRS = src
 
 # Tests subdir is included only if binaries are compiled.
 if BUILD_BINARIES

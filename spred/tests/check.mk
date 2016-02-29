@@ -46,49 +46,6 @@ TESTDIRS := ${checkonly_${checkonlyfoo_${CHECK_MODE}_${CHECK_MODE_INTERNAL}}}
 #checkonly_=
 
 
-if USE_MPI
-  mpirun_message = mpirun
-else
-  mpirun_message =
-endif
-if USE_OCL
-oclrun_message = oclrun
-accel_in_message = in_message
-else
-oclrun_message =
-accel_in_message =
-endif
-
-if BUILD_DYNAMIC_LIBS
-LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/src
-endif
-
-AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_srcdir)/PSolver/src -I. @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@  @MPI_INCLUDE@
-
-PSPS = psppar.H \
-       psppar.C \
-       psppar.Li \
-       psppar.Ca \
-       psppar.Mn \
-       psppar.N \
-       psppar.Si \
-       HGH/psppar.H \
-       HGH/psppar.Na \
-       HGH/psppar.Cl \
-       HGH/psppar.O \
-       HGH/psppar.Si \
-       HGH/psppar.Fe \
-       HGH/psppar.Mg \
-       HGH/psppar.Ag \
-       HGH/psppar.N \
-       HGH/psppar.C \
-       HGH-K/psppar.H \
-       HGH-K/psppar.Si \
-       HGH-K/psppar.N \
-       HGH-K/psppar.O \
-       HGH-K/psppar.Ti \
-       extra/psppar.H \
-       Xabs/psppar.Fe
 #$(TESTDIRS) 
 
 ALLDIRS = $(EXTRA_TESTDIRS) $(LONG_TESTDIRS)
@@ -122,38 +79,9 @@ distclean: $(CLEANS)
 failed-check: $(FAILEDCHECKS) report
 
 report:
-	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
 #Binary dependencies
-$(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90 $(abs_top_srcdir)/src/WaCo.f90
-	cd $(abs_top_builddir)/src && $(MAKE) BigDFT2Wannier WaCo;
-
-%.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
-	@name=`basename $@ .memguess.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
-	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 > $@"; \
-	$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 > $@ ; \
-	mv log.yaml log-memguess.yaml ; \
-	name=`basename $@ .out` ; \
-	$(MAKE) -f ../Makefile $$name".post-out"
-%.out.out: $(abs_top_builddir)/src/bigdft
-	@name=`basename $@ .out.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
-	if test -n "$$name"; then name="-n "$$name; fi; \
-	if test -f list_posinp; then \
-	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
-	fi; \
-	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft -l yes $$name > $@" ; \
-	$(run_parallel) $(abs_top_builddir)/src/bigdft -l yes $$name > $@ ; \
-	if test -f list_posinp; then cat `awk '{print $$2}' list_posinp | $(SED) "s/^\(.*\)$$/log-\1.yaml/g"` > log.yaml ; fi ; \
-	name=`basename $@ .out` ; \
-	$(MAKE) -f ../Makefile $$name".post-out"
-%.geopt.mon.out: $(abs_top_builddir)/src/bigdft
-	name=`basename $@ .geopt.mon.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
-	if test -n "$$name" ; then datadir="data-"$$name ; else datadir="data" ; fi ; \
-	$(MAKE) -f ../Makefile $*.out.out && cp $$datadir/geopt.mon $@
-	name=`basename $@ .out` ; \
-	$(MAKE) -f ../Makefile $$name".post-out"
 %.NEB.out: $(abs_top_builddir)/spred/src/NEB NEB_include.sh NEB_driver.sh
 	rm -f neb.it*
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
@@ -183,9 +111,6 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 	$(run_parallel) $(abs_top_builddir)/spred/src/mhgps -l yes > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
-
-$(PSPS):
-	cp $(abs_top_srcdir)/utils/PSPfiles/$@ .
 
 %.clean:
 	@name=`basename $@ .clean` ; dir=$$name-test ; \
@@ -377,20 +302,6 @@ head_message:
 	@echo "                     (with the environment variable DIFF)"
 	@echo "  make X.updateref   update the reference with the output"
 	@echo "                     (prompt the overwrite)"	
-
-mpirun: head_message
-	@echo ""
-	@echo " Use the environment variable run_parallel"
-	@echo "     ex: export run_parallel='mpirun -np 2'  "
-
-oclrun: head_message $(mpirun_message)
-	@echo ""
-	@echo " Use the environment variable run_ocl"
-	@echo "     ex: export run_ocl='on' to use OpenCL acceleration"
-	@echo "     use run_ocl='CPU' or 'ACC' to force use of hardware different than GPU"
-	@echo " and the environment variables ocl_platform and ocl_devices"
-	@echo "     ex: export ocl_platform='NVIDIA'"
-	@echo "     ex: export ocl_devices='K20'"
 
 foot_message: $(mpirun_message) $(oclrun_message) head_message
 	@echo "=============================================================================="

@@ -1,5 +1,6 @@
 # Not To be installed:
 noinst_LIBRARIES = liborbitals.a
+module_DATA = $(modules)
 
 if USE_OPTI_CONVOLUT
 CONV_SOURCES = combined_shrink_optim.f90 \
