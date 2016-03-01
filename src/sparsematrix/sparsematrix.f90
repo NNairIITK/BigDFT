@@ -1846,9 +1846,10 @@ module sparsematrix
 
 
     !> Set to zero all term which couple different atoms
-    subroutine delete_coupling_terms(iproc, nproc, smat, mat_compr)
+    subroutine delete_coupling_terms(iproc, nproc, smmd, smat, mat_compr)
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
+      type(sparse_matrix_metadata),intent(in) :: smmd
       type(sparse_matrix),intent(in) :: smat
       real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(inout) :: mat_compr
 
@@ -1867,8 +1868,8 @@ module sparsematrix
               ii=smat%keyv(iseg)
               ! a segment is always on one line, therefore no double loop
               do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-                 iiat = smat%on_which_atom(i)
-                 jjat = smat%on_which_atom(smat%keyg(1,2,iseg))
+                 iiat = smmd%on_which_atom(i)
+                 jjat = smmd%on_which_atom(smat%keyg(1,2,iseg))
                  if (iiat/=jjat) then
                      fullmat_compr(ii+ishift) = 0.d0
                  end if

@@ -83,9 +83,9 @@ module sparsematrix_base
       integer,dimension(:),pointer :: nranks !< number of task on each taskgroup
       integer :: nccomm !<number of communications required for the compress distributed in the dense parallel format
       integer,dimension(:,:),pointer :: luccomm !<lookup array for the communications required for the compress distributed in the dense parallel format
-      integer,dimension(:),pointer :: on_which_atom !<dimension ntmb, indicates to which atoms a row/column of the matrix belongs
-      character(len=1) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
-      real(kind=8),dimension(3) :: cell_dim !< dimensions of the simulation cell
+      !!integer,dimension(:),pointer :: on_which_atom !<dimension ntmb, indicates to which atoms a row/column of the matrix belongs
+      !!character(len=1) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
+      !!real(kind=8),dimension(3) :: cell_dim !< dimensions of the simulation cell
       logical :: smatmul_initialized !< indicated whether the sparse matmul type has been initialized
   end type sparse_matrix
 
@@ -202,7 +202,7 @@ module sparsematrix_base
       nullify(sparsemat%tgranks)
       nullify(sparsemat%nranks)
       nullify(sparsemat%luccomm)
-      nullify(sparsemat%on_which_atom)
+      !nullify(sparsemat%on_which_atom)
       call nullify_sparse_matrix_matrix_multiplication(sparsemat%smmm) 
     end subroutine nullify_sparse_matrix
 
@@ -242,7 +242,7 @@ module sparsematrix_base
       end if
       sparsemat%nvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nvctr_par')
       sparsemat%isvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isvctr_par')
-      sparsemat%on_which_atom=f_malloc_ptr(norb,id='sparsemat%on_which_atom')
+      !sparsemat%on_which_atom=f_malloc_ptr(norb,id='sparsemat%on_which_atom')
     end subroutine allocate_sparse_matrix_basic
 
 
@@ -359,7 +359,7 @@ module sparsematrix_base
       call f_free_ptr(sparseMat%tgranks)
       call f_free_ptr(sparseMat%nranks)
       call f_free_ptr(sparseMat%luccomm)
-      call f_free_ptr(sparseMat%on_which_atom)
+      !call f_free_ptr(sparseMat%on_which_atom)
     end subroutine deallocate_sparse_matrix
 
 
@@ -467,7 +467,7 @@ module sparsematrix_base
       smat_out%tgranks=f_malloc_ptr(src_ptr=smat_in%tgranks, id='smat_out%tgranks')
       smat_out%nranks=f_malloc_ptr(src_ptr=smat_in%nranks, id='smat_out%nranks')
       smat_out%luccomm=f_malloc_ptr(src_ptr=smat_in%luccomm, id='smat_out%luccomm')
-      smat_out%on_which_atom=f_malloc_ptr(src_ptr=smat_in%on_which_atom, id='smat_out%on_which_atom')
+      !smat_out%on_which_atom=f_malloc_ptr(src_ptr=smat_in%on_which_atom, id='smat_out%on_which_atom')
 
       call copy_sparse_matrix_matrix_multiplication(smat_in%smmm, smat_out%smmm)
       call smat_release_mpi_groups(smat_out%mpi_groups)

@@ -1863,11 +1863,11 @@ module multipole
 
 
     subroutine calculate_multipole_matrix(iproc, nproc, l, m, nphi, phi1, phi2, nphir, hgrids, &
-               orbs, collcom, lzd, smat, locregcenter, ingegration_volume, multipole_matrix)
+               orbs, collcom, lzd, smmd, smat, locregcenter, ingegration_volume, multipole_matrix)
       use module_base
       use module_types, only: orbitals_data, comms_linear, local_zone_descriptors
       use locreg_operations,only: workarr_sumrho, initialize_work_arrays_sumrho, deallocate_work_arrays_sumrho
-      use sparsematrix_base, only: sparse_matrix, matrices
+      use sparsematrix_base, only: sparse_matrix, matrices, sparse_matrix_metadata
       use communications_base, only: TRANSPOSE_FULL
       use transposed_operations, only: calculate_overlap_transposed
       use communications, only: transpose_localized
@@ -1883,6 +1883,7 @@ module multipole
       type(orbitals_data),intent(in) :: orbs
       type(comms_linear),intent(in) :: collcom
       type(local_zone_descriptors),intent(in) :: lzd
+      type(sparse_matrix_metadata),intent(in) :: smmd
       type(sparse_matrix),intent(in) :: smat
       real(kind=8),dimension(3,lzd%nlr),intent(in) :: locregcenter
       type(matrices),intent(inout) :: multipole_matrix
@@ -1924,7 +1925,7 @@ module multipole
 
       call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=phi2,Lzd=Lzd)
 
-      call apply_Slm(l,m,smat%geocode,hgrids,acell,psi_ob,nphi,sphi2,&
+      call apply_Slm(l,m,smmd%geocode,hgrids,acell,psi_ob,nphi,sphi2,&
            integrate_in_sphere,centers=locregcenter)
 
       call orbital_basis_release(psi_ob)
@@ -2387,9 +2388,9 @@ module multipole
 
       call f_routine(id='multipole_analysis_driver')
 
-      perx=(smats%geocode /= 'F')
-      pery=(smats%geocode == 'P')
-      perz=(smats%geocode /= 'F')
+      perx=(smmd%geocode /= 'F')
+      pery=(smmd%geocode == 'P')
+      perz=(smmd%geocode /= 'F')
 
       ! Check that the proper optional arguments are present
       if (trim(do_ortho)==yes .and. calculate_multipole_matrices) then
@@ -2462,7 +2463,7 @@ module multipole
       end if
 
       if (calculate_multipole_matrices) then
-          call unitary_test_multipoles(iproc, nproc, nphi, nphir, orbs, lzd, smats, collcom, hgrids)
+          call unitary_test_multipoles(iproc, nproc, nphi, nphir, orbs, lzd, smmd, smats, collcom, hgrids)
       end if
 
       ! Check the method
@@ -2602,9 +2603,9 @@ module multipole
           end do
       end if
 
-      acell(1)=smats%cell_dim(1)
-      acell(2)=smats%cell_dim(2)
-      acell(3)=smats%cell_dim(3)
+      acell(1)=smmd%cell_dim(1)
+      acell(2)=smmd%cell_dim(2)
+      acell(3)=smmd%cell_dim(3)
 
       do l=0,lmax
           do m=-l,l
@@ -2615,10 +2616,10 @@ module multipole
               if (calculate_multipole_matrices) then
                   if (do_ortho==yes) then
                       call calculate_multipole_matrix(iproc, nproc, l, m, nphi, phi_ortho, phi_ortho, nphir, hgrids, &
-                           orbs, collcom, lzd, smats, locregcenter, 'box', multipole_matrix)
+                           orbs, collcom, lzd, smmd, smats, locregcenter, 'box', multipole_matrix)
                   else if (do_ortho==no) then
                       call calculate_multipole_matrix(iproc, nproc, l, m, nphi, lphi, lphi, nphir, hgrids, &
-                           orbs, collcom, lzd, smats, locregcenter, 'box', multipole_matrix) 
+                           orbs, collcom, lzd, smmd, smats, locregcenter, 'box', multipole_matrix) 
                   end if
               else
                   !multipole_matrix => multipole_matrix_in(m,l)
@@ -3410,7 +3411,7 @@ module multipole
                   if (ortho=='yes') then
                       ! directly add the penalty terms to ham
                       call add_penalty_term(smmd%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
-                           smats%cell_dim, com, alpha, n, ovrlp, ham)
+                           smmd%cell_dim, com, alpha, n, ovrlp, ham)
                    else if (ortho=='no') then
                           ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
                           ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
@@ -3423,7 +3424,7 @@ module multipole
                           ! Calculate the penaly term separately and then calculate S^1/2*penalty*S^1/2
                           tmpmat2d = f_malloc0((/n,n,2/),id='tmppmat2d')
                           call add_penalty_term(smmd%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
-                               smats%cell_dim, com, alpha, n, ovrlp, tmpmat2d(1,1,1))
+                               smmd%cell_dim, com, alpha, n, ovrlp, tmpmat2d(1,1,1))
 
                           ! Calculate S^1/2 * penalty * S^1/2
                           call gemm('n', 'n', n, n, n, 1.d0, tmpmat2d(1,1,1), n, &
@@ -3442,13 +3443,13 @@ module multipole
                           write(*,*) 'call with multipoles'
                           call add_penalty_term_new(smmd%geocode, smmd%nat, smats%nfvctr, &
                                neighbor(1:,kat), rxyz(1:,kkat), smmd%on_which_atom, &
-                               multipoles, smats%cell_dim, com, alpha, n, ham, &
+                               multipoles, smmd%cell_dim, com, alpha, n, ham, &
                                nmax, penalty_matrices(1:n,1:n,kat))
                       else
                           write(*,*) 'call with multipoles_fake'
                           call add_penalty_term_new(smmd%geocode, smmd%nat, smats%nfvctr, &
                                neighbor(1:,kat), rxyz(1:,kkat), smmd%on_which_atom, &
-                               multipoles_fake, smats%cell_dim, com, alpha, n, ham, &
+                               multipoles_fake, smmd%cell_dim, com, alpha, n, ham, &
                                nmax, penalty_matrices(1:n,1:n,kat))
                       end if
                       alpha_calc(kat) = alpha
@@ -4441,11 +4442,12 @@ end if
  end subroutine calculate_projector
 
 
- subroutine unitary_test_multipoles(iproc, nproc, nphi, nphir, orbs, lzd, smat, collcom, hgrids)
+ subroutine unitary_test_multipoles(iproc, nproc, nphi, nphir, orbs, lzd, smmd, smat, collcom, hgrids)
    use module_base
    use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, comms_linear
    use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_TASKGROUP, assignment(=), &
-                                matrices_null, sparsematrix_malloc_ptr, deallocate_matrices
+                                matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
+                                sparse_matrix_metadata
    use locreg_operations,only: workarr_sumrho, initialize_work_arrays_sumrho, deallocate_work_arrays_sumrho
    use sparsematrix_init, only: matrixindex_in_compressed
    use yaml_output
@@ -4456,6 +4458,7 @@ end if
    integer,intent(in) :: iproc, nproc, nphi, nphir
    type(orbitals_data),intent(in) :: orbs
    type(local_zone_descriptors),intent(in) :: lzd
+   type(sparse_matrix_metadata),intent(in) :: smmd
    type(sparse_matrix),intent(in) :: smat
    type(comms_linear),intent(in) :: collcom
    real(kind=8),dimension(3) :: hgrids
@@ -4573,7 +4576,7 @@ sigma=0.5d0
    acell(3)=0.5_gp*hgrids(3)*Lzd%glr%d%n3i
    Qlm=f_malloc([-lmax .to. lmax ,0 .to. lmax,1 .to. orbs%norbp ],id='Qlm')
    call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=phi2,Lzd=Lzd)
-   call Qlm_phi(lmax,smat%geocode,hgrids,acell,psi_ob,Qlm,.false.,centers=locregcenter)
+   call Qlm_phi(lmax,smmd%geocode,hgrids,acell,psi_ob,Qlm,.false.,centers=locregcenter)
    call orbital_basis_release(psi_ob)
    call f_zero(values)
    do l=0,lmax
@@ -4886,7 +4889,7 @@ sigma=0.5d0
   acell(3)=0.5_gp*tmb%lzd%hgrids(3)*tmb%Lzd%glr%d%n3i
   Qlm=f_malloc([-lmax .to. lmax ,0 .to. lmax,1 .to. tmb%orbs%norbp ],id='Qlm')
   call orbital_basis_associate(psi_ob,orbs=tmb%orbs,phis_wvl=phi_ortho,Lzd=tmb%Lzd)
-  call Qlm_phi(lmax,tmb%linmat%s%geocode,tmb%lzd%hgrids,acell,psi_ob,Qlm,.false.,centers=center_locreg)
+  call Qlm_phi(lmax,tmb%linmat%smmd%geocode,tmb%lzd%hgrids,acell,psi_ob,Qlm,.false.,centers=center_locreg)
   call orbital_basis_release(psi_ob)
   do iorb=1,tmb%orbs%norbp
      iiorb = tmb%orbs%isorb + iorb
