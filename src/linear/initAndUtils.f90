@@ -752,7 +752,8 @@ subroutine destroy_DFT_wavefunction(wfn)
   use module_base
   use module_types
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
-  use sparsematrix_base, only: deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
+  use sparsematrix_base, only: deallocate_sparse_matrix, allocate_matrices, deallocate_matrices, &
+                               deallocate_sparse_matrix_metadata
   use foe_base, only: foe_data_deallocate
   implicit none
   
@@ -788,6 +789,7 @@ subroutine destroy_DFT_wavefunction(wfn)
       end do
       deallocate(wfn%linmat%ks_e)
   end if
+  call deallocate_sparse_matrix_metadata(wfn%linmat%smmd)
   call deallocate_sparse_matrix(wfn%linmat%s)
   call deallocate_sparse_matrix(wfn%linmat%m)
   call deallocate_sparse_matrix(wfn%linmat%l)

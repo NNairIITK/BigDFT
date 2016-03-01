@@ -18,11 +18,13 @@ program utilities
    use module_atoms, only: atoms_data, atoms_data_null, deallocate_atoms_data
    use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, assignment(=), &
                                 SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, &
-                                sparsematrix_malloc_ptr, deallocate_sparse_matrix, deallocate_matrices
+                                sparsematrix_malloc_ptr, deallocate_sparse_matrix, deallocate_matrices, &
+                                sparse_matrix_metadata, deallocate_sparse_matrix_metadata
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
    use sparsematrix_io, only: read_sparse_matrix
    use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed2
-   use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft
+   use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft, &
+                                     sparse_matrix_metadata_init_from_file
    use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, &
                                     CHARGE_ANALYSIS_PROJECTOR, &
                                     loewdin_charge_analysis_core
@@ -41,6 +43,7 @@ program utilities
    logical :: solve_eigensystem = .false.
    logical :: calculate_pdos = .false.
    type(atoms_data) :: at
+   type(sparse_matrix_metadata) :: smmd
    integer :: istat, i_arg, ierr, nspin, icount, nthread, method, ntypes
    integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
    integer :: nfvctr_m, nseg_m, nvctr_m, nfvctrp_m, isfvctr_m
@@ -192,14 +195,18 @@ program utilities
            call f_err_throw('Unknown Method for the charge analysis',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
        end select
 
-       at = atoms_data_null()
+       !at = atoms_data_null()
 
+       write(*,*) 'before sparse_matrix_and_matrices_init_from_file_bigdft', overlap_file
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
-            init_matmul=.true., nat=at%astruct%nat, rxyz=at%astruct%rxyz, &
-            iatype=at%astruct%iatype, ntypes=at%astruct%ntypes, &
-            nzatom=at%nzatom, nelpsp=at%nelpsp, atomnames=at%astruct%atomnames)
-       at%refcnt=f_ref_new('atoms')
+            init_matmul=.true.)!, nat=at%astruct%nat, rxyz=at%astruct%rxyz, &
+            !iatype=at%astruct%iatype, ntypes=at%astruct%ntypes, &
+            !nzatom=at%nzatom, nelpsp=at%nelpsp, atomnames=at%astruct%atomnames)
+       write(*,*) 'after sparse_matrix_and_matrices_init_from_file_bigdft'
+       call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.bin', smmd)
+       write(*,*) 'after sparse_matrix_metadata_init_from_file'
+       !at%refcnt=f_ref_new('atoms')
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_l, kernel_mat, &
@@ -225,6 +232,10 @@ program utilities
        !!    call f_err_throw('wrong method',err_name='BIGDFT_RUNTIME_ERROR')
        !!end select
 
+       write(*,*) 'sum(ovrlp_mat%matrix_compr)',sum(ovrlp_mat%matrix_compr)
+       write(*,*) 'sum(hamiltonian_mat%matrix_compr)',sum(hamiltonian_mat%matrix_compr)
+       write(*,*) 'sum(kernel_mat%matrix_compr)',sum(kernel_mat%matrix_compr)
+
        select case(method)
        case (CHARGE_ANALYSIS_MULLIKEN)
            methodc='loewdin'
@@ -240,15 +251,16 @@ program utilities
        end select
 
        call multipole_analysis_driver(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, 11, &
-            at, smat_s, smat_m, smat_l, &
-            ovrlp_mat, hamiltonian_mat, kernel_mat, at%astruct%rxyz, &
+            smmd, smat_s, smat_m, smat_l, &
+            ovrlp_mat, hamiltonian_mat, kernel_mat, smmd%rxyz, &
             methodc, do_ortho=trim(do_ortho), projectormode='simple', &
             calculate_multipole_matrices=.false., do_check=.false., &
             multipole_matrix_in=(/(/ovrlp_mat/)/))
 
        call timing(bigdft_mpi%mpi_comm,'CALC','PR')
 
-       call deallocate_atoms_data(at)
+       call deallocate_sparse_matrix_metadata(smmd)
+       !call deallocate_atoms_data(at)
        call deallocate_sparse_matrix(smat_s)
        call deallocate_sparse_matrix(smat_l)
        call deallocate_matrices(ovrlp_mat)
@@ -269,8 +281,9 @@ program utilities
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
-            init_matmul=.false., nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, &
-            nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
+            init_matmul=.false.)!, nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, &
+            !nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
+       call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.bin', smmd)
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_m, hamiltonian_mat, &
             init_matmul=.false.)
@@ -320,8 +333,9 @@ program utilities
        if (bigdft_mpi%iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
-            init_matmul=.false., iatype=iatype, ntypes=ntypes, atomnames=atomnames, &
-            on_which_atom=on_which_atom)
+            init_matmul=.false.)!, iatype=iatype, ntypes=ntypes, atomnames=atomnames, &
+            !on_which_atom=on_which_atom)
+       call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.bin', smmd)
        if (ntmb/=smat_s%nfvctr) call f_err_throw('ntmb/=smat_s%nfvctr')
        ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_PARALLEL, id='ovrlp_mat%matrix')
        !call uncompress_matrix(bigdft_mpi%iproc, smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)

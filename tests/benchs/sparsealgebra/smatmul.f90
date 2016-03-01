@@ -14,6 +14,7 @@ program smatmul
                           sparsemm_new, sequential_acces_matrix_fast2, &
                           compress_matrix_distributed_wrapper
   use sparsematrix_io, only: read_sparse_matrix
+  use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft
   implicit none
 
   external :: gather_timings
@@ -73,30 +74,34 @@ program smatmul
   call f_timing_reset(filename='time.yaml',master=iproc==0,verbose_mode=.true. .and. nproc>1)
 
   ! Nullify all pointers
-  nullify(keyv)
-  nullify(keyg)
-  nullify(mat_compr)
+  !!nullify(keyv)
+  !!nullify(keyg)
+  !!nullify(mat_compr)
   nullify(on_which_atom)
 
   
   ! Read in a file in the sparse BigDFT format
-  call read_sparse_matrix(filename, nspin, geocode, cell_dim, nfvctr, nseg, nvctr, keyv, keyg, &
-       mat_compr, nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
+  !!call read_sparse_matrix(filename, nspin, geocode, cell_dim, nfvctr, nseg, nvctr, keyv, keyg, &
+  !!     mat_compr, nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
+  !!     atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
+
+  !!! Create the corresponding BigDFT sparsity pattern
+  !!!call distribute_columns_on_processes_simple(iproc, nproc, nfvctr, nfvctrp, isfvctr)
+  !!call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat, &
+  !!     init_matmul=.true., nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom)
+
+  !!matA = matrices_null()
+
+  !!! Assign the values
+  !!matA%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='matA%matrix_compr')
+  !!matA%matrix_compr = mat_compr
+
+  call sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc, smat, matA, &
+       init_matmul=.true., nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
        atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
 
-  ! Create the corresponding BigDFT sparsity pattern
-  !call distribute_columns_on_processes_simple(iproc, nproc, nfvctr, nfvctrp, isfvctr)
-  call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat, &
-       init_matmul=.true., nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom)
-
-  matA = matrices_null()
-
-  ! Assign the values
-  matA%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='matA%matrix_compr')
-  matA%matrix_compr = mat_compr
-
   ! Check the symmetry
-  symmetric = check_symmetry(nfvctr, smat)
+  symmetric = check_symmetry(smat)
   if (.not.symmetric) stop 'ERROR not symmetric'
   
   ! Write the original matrix
@@ -111,9 +116,9 @@ program smatmul
   mat_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='mat_seq')
   vector_in = f_malloc0(smat%smmm%nvctrp,id='vector_in')
   vector_out = f_malloc0(smat%smmm%nvctrp,id='vector_out')
-  call sequential_acces_matrix_fast2(smat, mat_compr, mat_seq)
+  call sequential_acces_matrix_fast2(smat, matA%matrix_compr, mat_seq)
 
-  call vcopy(smat%smmm%nvctrp, mat_compr(smat%smmm%isvctr_mm_par(iproc)+1), 1, vector_in(1), 1)
+  call vcopy(smat%smmm%nvctrp, matA%matrix_compr(smat%smmm%isvctr_mm_par(iproc)+1), 1, vector_in(1), 1)
   do it=1,nit
       call sparsemm_new(smat, mat_seq, vector_in, vector_out)
       call vcopy(smat%smmm%nvctrp, vector_out(1), 1, vector_in(1), 1)
@@ -133,10 +138,10 @@ program smatmul
   ! Deallocations
   call deallocate_sparse_matrix(smat)
   call deallocate_matrices(matA)
-  call f_free_ptr(keyv)
-  call f_free_ptr(keyg)
+  !call f_free_ptr(keyv)
+  !call f_free_ptr(keyg)
   call f_free(mat_seq)
-  call f_free_ptr(mat_compr)
+  !call f_free_ptr(mat_compr)
   call f_free(vector_in)
   call f_free(vector_out)
   call f_free_ptr(on_which_atom)

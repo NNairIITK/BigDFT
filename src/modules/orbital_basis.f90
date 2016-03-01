@@ -883,7 +883,7 @@ contains
     real(gp), intent(in) :: kwgt
     logical :: ok
     !local variables
-    logical, parameter :: debug_flag=.true.!.false.
+    logical, parameter :: debug_flag=.false.
 
     ok=.true.
 

@@ -1427,12 +1427,11 @@ module sparsematrix
 
      !integer :: mp1, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6
 
-   function check_symmetry(norb, smat)
+   function check_symmetry(smat)
      use module_base
      implicit none
    
      ! Calling arguments
-     integer,intent(in) :: norb
      type(sparse_matrix),intent(in) :: smat
      logical :: check_symmetry
    
@@ -1441,7 +1440,7 @@ module sparsematrix
      logical,dimension(:,:),allocatable :: lgrid
      !integer,dimension(2) :: irowcol
    
-     lgrid=f_malloc((/norb,norb/),id='lgrid')
+     lgrid=f_malloc((/smat%nfvctr,smat%nfvctr/),id='lgrid')
      lgrid=.false.
    
      do iseg=1,smat%nseg
@@ -1457,8 +1456,8 @@ module sparsematrix
      end do
    
      check_symmetry=.true.
-     do iorb=1,norb
-         do jorb=1,norb
+     do iorb=1,smat%nfvctr
+         do jorb=1,smat%nfvctr
              if (lgrid(jorb,iorb) .and. .not.lgrid(iorb,jorb)) then
                  check_symmetry=.false.
              end if

@@ -90,6 +90,22 @@ module sparsematrix_base
   end type sparse_matrix
 
 
+  type,public :: sparse_matrix_metadata
+      character(len=1) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
+      real(kind=8),dimension(3) :: cell_dim !< dimensions of the simulation cell
+      integer :: nfvctr !< size of the matrix
+      integer :: nat !< number of atoms
+      integer :: ntypes !< number of atoms types
+      character(len=20) :: units !< units of the atomic positions 
+      integer,dimension(:),pointer :: nzatom !< atomic core charge
+      integer,dimension(:),pointer :: nelpsp !< number of electrons
+      character(len=20),dimension(:),pointer :: atomnames !< name of the atoms
+      integer,dimension(:),pointer :: iatype !< indicates the atoms type
+      real(kind=8),dimension(:,:),pointer :: rxyz !< atomic positions
+      integer,dimension(:),pointer :: on_which_atom !< indicates which element of the matrix belong to which atom
+  end type sparse_matrix_metadata
+
+
   type, public :: sparse_matrix_info_ptr
      character(len=32) :: id !< name of the sparse matrix array
      integer :: iaction !< action for allocation
@@ -138,6 +154,8 @@ module sparsematrix_base
   public :: deallocate_matrices
   public :: matrices_null
   public :: copy_sparse_matrix,copy_matrices
+  public :: sparse_matrix_metadata_null
+  public :: deallocate_sparse_matrix_metadata
 
   !> Public constants
   integer,parameter,public :: SPARSE_TASKGROUP    = 50
@@ -343,6 +361,44 @@ module sparsematrix_base
       call f_free_ptr(sparseMat%luccomm)
       call f_free_ptr(sparseMat%on_which_atom)
     end subroutine deallocate_sparse_matrix
+
+
+    subroutine deallocate_sparse_matrix_metadata(smmd)
+      use module_base 
+      implicit none
+      ! Calling arguments
+      type(sparse_matrix_metadata),intent(inout):: smmd
+      call f_free_ptr(smmd%nzatom)
+      call f_free_ptr(smmd%nelpsp)
+      call f_free_str_ptr(len(smmd%atomnames),smmd%atomnames)
+      call f_free_ptr(smmd%iatype)
+      call f_free_ptr(smmd%rxyz)
+      call f_free_ptr(smmd%on_which_atom)
+    end subroutine deallocate_sparse_matrix_metadata
+
+
+    pure function sparse_matrix_metadata_null() result(smmd)
+      implicit none
+      type(sparse_matrix_metadata) :: smmd
+      call nullify_sparse_matrix_metadata(smmd)
+    end function sparse_matrix_metadata_null
+
+
+    pure subroutine nullify_sparse_matrix_metadata(smmd)
+      implicit none
+      type(sparse_matrix_metadata),intent(out):: smmd
+      smmd%geocode = 'U'
+      smmd%cell_dim = (/0.0,0.0,0.0/)
+      smmd%nat = 0
+      smmd%ntypes = 0
+      nullify(smmd%nzatom)
+      nullify(smmd%nelpsp)
+      nullify(smmd%atomnames)
+      nullify(smmd%iatype)
+      nullify(smmd%rxyz)
+      nullify(smmd%on_which_atom)
+    end subroutine nullify_sparse_matrix_metadata
+
 
     subroutine smat_release_mpi_groups(mpi_groups)
       implicit none

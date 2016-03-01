@@ -33,6 +33,7 @@ module sparsematrix_init
   public :: ccs_to_sparsebigdft_short
   public :: init_matrixindex_in_compressed_fortransposed
   public :: distribute_on_threads
+  public :: sparse_matrix_metadata_init
 
 
 contains
@@ -5215,5 +5216,58 @@ contains
       call f_release_routine()
 
     end subroutine distribute_on_threads
+
+
+    subroutine sparse_matrix_metadata_init(geocode, cell_dim, nfvctr, nat, ntypes, units, &
+               nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom, smmd)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix_metadata, sparse_matrix_metadata_null
+      implicit none
+      ! Calling arguments
+      character(len=1),intent(in) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
+      real(kind=8),dimension(3),intent(in) :: cell_dim !< dimensions of the simulation cell
+      integer,intent(in) :: nfvctr !< size of the matrix
+      integer,intent(in) :: nat !< number of atoms
+      integer,intent(in) :: ntypes !< number of atoms types
+      character(len=20),intent(in) :: units !< units of the atomic positions 
+      integer,dimension(ntypes),intent(in) :: nzatom !< atomic core charge
+      integer,dimension(ntypes),intent(in) :: nelpsp !< number of electrons
+      character(len=20),dimension(ntypes),intent(in) :: atomnames !< name of the atoms
+      integer,dimension(nat),intent(in) :: iatype !< indicates the atoms type
+      real(kind=8),dimension(3,nat),intent(in) :: rxyz !< atomic positions
+      integer,dimension(nfvctr),intent(in) :: on_which_atom !< indicates which element of the matrix belong to which atom
+      type(sparse_matrix_metadata),intent(out) :: smmd
+
+      ! Local variables
+      integer :: itype
+
+      call f_routine(id='sparse_matrix_metadata_init')
+
+      smmd = sparse_matrix_metadata_null()
+
+      smmd%geocode = geocode
+      smmd%cell_dim(1:3) = cell_dim(1:3)
+      smmd%nfvctr = nfvctr
+      smmd%nat = nat
+      smmd%ntypes = ntypes
+      smmd%units = units
+      smmd%nzatom = f_malloc_ptr(ntypes,id='smmd%nzatom')
+      call f_memcpy(src=nzatom, dest=smmd%nzatom)
+      smmd%nelpsp = f_malloc_ptr(ntypes,id='smmd%nelpsp')
+      call f_memcpy(src=nelpsp, dest=smmd%nelpsp)
+      smmd%atomnames = f_malloc_str_ptr(len(atomnames),ntypes)
+      do itype=1,ntypes
+          smmd%atomnames(itype) = atomnames(itype)
+      end do
+      smmd%iatype = f_malloc_ptr(nat,id='smmd%iatype')
+      call f_memcpy(src=iatype, dest=smmd%iatype)
+      smmd%rxyz = f_malloc_ptr((/3,nat/),id='smmd%rxyz')
+      call f_memcpy(src=rxyz,dest=smmd%rxyz)
+      smmd%on_which_atom = f_malloc_ptr(nfvctr,id='smmd%on_which_atom')
+      call f_memcpy(src=on_which_atom,dest=smmd%on_which_atom)
+
+      call f_release_routine()
+
+    end subroutine sparse_matrix_metadata_init
 
 end module sparsematrix_init

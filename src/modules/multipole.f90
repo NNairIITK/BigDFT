@@ -2301,16 +2301,16 @@ module multipole
     end function closest_image
 
 
-    subroutine multipole_analysis_driver(iproc, nproc, lmax, ixc, at, smats, smatm, smatl, &
+    subroutine multipole_analysis_driver(iproc, nproc, lmax, ixc, smmd, smats, smatm, smatl, &
                ovrlp, ham, kernel, rxyz, method, do_ortho, projectormode, &
                calculate_multipole_matrices, do_check, &
                nphi, lphi, nphir, hgrids, orbs, collcom, collcom_sr, &
-               lzd, denspot, orthpar, shift, multipole_matrix_in)
+               lzd, at, denspot, orthpar, shift, multipole_matrix_in)
       use module_base
       use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, orthon_data, DFT_local_fields, comms_linear
       use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
                                    sparsematrix_malloc, matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
-                                   SPARSE_TASKGROUP
+                                   SPARSE_TASKGROUP, sparse_matrix_metadata
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local
       use communications, only: transpose_localized
@@ -2324,14 +2324,14 @@ module multipole
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, lmax, ixc
-      type(atoms_data),intent(in) :: at
+      type(sparse_matrix_metadata),intent(in) :: smmd
       type(sparse_matrix),intent(in) :: smats
       type(sparse_matrix),intent(in) :: smatm
       type(sparse_matrix),intent(in) :: smatl
       type(matrices),intent(in) :: ovrlp
       type(matrices),intent(in) :: ham
       type(matrices),intent(in) :: kernel
-      real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
+      real(kind=8),dimension(3,smmd%nat),intent(in) :: rxyz
       character(len=*),intent(in) :: method
       character(len=*),intent(in) :: do_ortho
       character(len=*),intent(in) :: projectormode
@@ -2342,6 +2342,7 @@ module multipole
       type(orbitals_data),intent(in),optional :: orbs
       type(comms_linear),intent(in),optional :: collcom, collcom_sr
       type(local_zone_descriptors),intent(in),optional :: lzd
+      type(atoms_data),intent(in),optional :: at
       type(DFT_local_fields),intent(inout),optional :: denspot
       type(orthon_data),intent(in),optional :: orthpar
       real(kind=8),dimension(3),intent(in),optional :: shift
@@ -2440,7 +2441,8 @@ module multipole
       if (do_check) then
           if (.not.present(denspot) .or. &
               .not.present(shift) .or. &
-              .not.present(lzd)) then
+              .not.present(lzd) .or. &
+              .not.present(at)) then
               call f_err_throw('calculate_multipole_matrices .true.: not all required optional arguments are present')
           end if
       end if
@@ -2530,13 +2532,13 @@ module multipole
                        orbs, collcom, lphi, smats, rpower_matrix)
               end if
               ! Calculate the projector using the penalty term
-              call projector_for_charge_analysis(at, smats, smatm, smatl, &
+              call projector_for_charge_analysis(smmd, smats, smatm, smatl, &
                    ovrlp, ham, kernel, rxyz, calculate_centers=.false., write_output=.false., ortho=do_ortho, mode=projectormode, &
                    lzd=lzd, orbs=orbs, natpx=natpx, isatx=isatx, nmaxx=nmaxx, nx=nx, projx=projx, neighborx=neighborx, &
                    rpower_matrix=rpower_matrix)
           else
               ! Calculate the projector using the penalty term
-              call projector_for_charge_analysis(at, smats, smatm, smatl, &
+              call projector_for_charge_analysis(smmd, smats, smatm, smatl, &
                    ovrlp, ham, kernel, rxyz, calculate_centers=.false., write_output=.false., ortho=do_ortho, mode=projectormode, &
                    natpx=natpx, isatx=isatx, nmaxx=nmaxx, nx=nx, projx=projx, neighborx=neighborx)
           end if
@@ -2547,7 +2549,7 @@ module multipole
           end if
       else
           ! Just to get the sizes...
-          call projector_for_charge_analysis(at, smats, smatm, smatl, &
+          call projector_for_charge_analysis(smmd, smats, smatm, smatl, &
                ovrlp, ham, kernel, rxyz, calculate_centers=.false., write_output=.false., ortho=do_ortho, mode='simple', &
                natpx=natpx, isatx=isatx, nmaxx=nmaxx, nx=nx, projx=projx, neighborx=neighborx, &
                only_sizes=.true.)
@@ -2577,9 +2579,10 @@ module multipole
           end if
       end if
 
+      !write(*,*) 'before allocate Qmat'
 
       Qmat = sparsematrix_malloc(smatl,iaction=SPARSE_TASKGROUP,id='Qmat')
-      atomic_multipoles = f_malloc0_ptr((/-lmax.to.lmax,0.to.lmax,1.to.at%astruct%nat/),id='atomic_multipoles')
+      atomic_multipoles = f_malloc0_ptr((/-lmax.to.lmax,0.to.lmax,1.to.smmd%nat/),id='atomic_multipoles')
       !atomic_monopoles_analytic = f_malloc0_ptr(1.to.at%astruct%nat,id='atomic_monopoles_analytic')
 
 
@@ -2591,7 +2594,7 @@ module multipole
 
       ! Choose as reference point the midpoint of the simulation cell, in order to avoid
       ! problems with periodic BC (in this way the reference point is always the same and never a periodic image)
-      center(1:3) = 0.5d0*at%astruct%cell_dim(1:3)
+      center(1:3) = 0.5d0*smmd%cell_dim(1:3)
       if (calculate_multipole_matrices) then
           locregcenter = f_malloc((/3,lzd%nlr/),id='locregcenter')
           do ilr=1,lzd%nlr
@@ -2636,6 +2639,7 @@ module multipole
               end if
 
 
+              !write(*,*) 'before f_zero'
               call f_zero(Qmat)
 
               if (trim(method)=='projector' .or. trim(method)=='loewdin') then
@@ -2646,6 +2650,7 @@ module multipole
                       kp = f_malloc((/n,n/),id='kp')
                        kernel_extracted = f_malloc((/n,n/),id='kernel_extracted')
                        multipole_extracted = f_malloc((/n,n/),id='multipole_extracted')
+                       !write(*,*) 'before extract'
                        call extract_matrix(smats, multipole_matrix%matrix_compr, &
                            neighborx(1:,kat), n, nmaxx, multipole_extracted)
                        ! The minus sign is required since the phi*S_lm*phi represent the electronic charge which is a negative quantity
@@ -2656,7 +2661,7 @@ module multipole
                            call extract_matrix(smatl, kernel_ortho, neighborx(1:,kat), n, nmaxx, kernel_extracted)
                        end if
                        if (l>0) then
-                           call correct_multipole_origin(at%astruct%nat, l, m, n, lzd%nlr, natpx, nmaxx, kat, kkat, &
+                           call correct_multipole_origin(smmd%nat, l, m, n, lzd%nlr, natpx, nmaxx, kat, kkat, &
                                 smats, orbs, rxyz, neighborx, perx, pery, perz, acell, &
                                 lower_multipole_matrices, locregcenter, multipole_extracted)
                        end if
@@ -2670,7 +2675,7 @@ module multipole
                                do iorb=1,smats%nfvctr
                                    if (neighborx(iorb,kat)) then
                                        iiorb = iiorb + 1
-                                       if (smats%on_which_atom(iorb)/=kkat) then
+                                       if (smmd%on_which_atom(iorb)/=kkat) then
                                            do jorb=1,n
                                                projx((iiorb-1)*n+jorb,kat) = 0.d0
                                            end do
@@ -2678,6 +2683,7 @@ module multipole
                                    end if
                                end do
                        end if
+                       !write(*,*) 'sum(projx)', sum(projx)
                       call gemm('n', 'n', n, n, n, 1.d0, qmat_tilde(1,1), n, projx(1,kat), n, 0.d0, kp(1,1), n)
                       !!!! LUIGI'S NEW IDEA #############################################################
                       !!!do i=1,n
@@ -2699,9 +2705,11 @@ module multipole
                       tt = 0.d0
                       do i=1,n
                           tt = tt + kp(i,i)
-                          !write(*,*) 'kat, i, owa(i), qmat_tilde(i,i)', kat, i, orbs%onwhichatom(i), qmat_tilde(i,i)
+                          !write(*,*) 'kat, i, owa(i), qmat_tilde(i,i), kp(i,i)', &
+                          !    kat, i, smmd%on_which_atom(i), qmat_tilde(i,i), kp(i,i)
                       end do
                       atomic_multipoles(m,l,kkat) = tt
+                      !write(*,*) 'm, l, kkat, atomic_multipoles(m,l,kkat)', m, l, kkat, atomic_multipoles(m,l,kkat)
                       call f_free(qmat_tilde)
                       call f_free(kp)
                   end do
@@ -2709,6 +2717,7 @@ module multipole
 
           end do
       end do
+
 
       if (calculate_multipole_matrices) then
           call f_free(locregcenter)
@@ -2718,29 +2727,33 @@ module multipole
 
 
       ! The monopole term should be the net charge, i.e. add the positive atomic charges
-      do iat=1,at%astruct%nat
-          itype = at%astruct%iatype(iat)
-          q = real(at%nelpsp(itype),kind=8)
+      do iat=1,smmd%nat
+          itype = smmd%iatype(iat)
+          q = real(smmd%nelpsp(itype),kind=8)
           atomic_multipoles(0,0,iat) = atomic_multipoles(0,0,iat) + q
       end do
 
 
-      names = f_malloc_str(len(names),at%astruct%nat,id='names')
-      do iat=1,at%astruct%nat
-          itype = at%astruct%iatype(iat)
-          names(iat) = at%astruct%atomnames(itype)
+      names = f_malloc_str(len(names),smmd%nat,id='names')
+      do iat=1,smmd%nat
+          itype = smmd%iatype(iat)
+          names(iat) = smmd%atomnames(itype)
       end do
 
 
       ep = external_potential_descriptors_null()
-      ep%nmpl = at%astruct%nat
+      ep%nmpl = smmd%nat
       allocate(ep%mpl(ep%nmpl))
       do impl=1,ep%nmpl
           ep%mpl(impl) = multipole_set_null()
           allocate(ep%mpl(impl)%qlm(0:lmax))
-          ep%mpl(impl)%rxyz = at%astruct%rxyz(1:3,impl)
+          ep%mpl(impl)%rxyz = smmd%rxyz(1:3,impl)
           ep%mpl(impl)%sym = trim(names(impl))
-          call get_psp_info(ep%mpl(impl)%sym, ixc, at, nelpsp, psp_source, rloc)
+          if (present(at)) then
+              call get_psp_info(ep%mpl(impl)%sym, ixc, smmd, nelpsp, psp_source, rloc, at%psppar)
+          else
+              call get_psp_info(ep%mpl(impl)%sym, ixc, smmd, nelpsp, psp_source, rloc)
+          end if
           if (psp_source/=0 .and. iproc==0) then
               call yaml_warning('Taking internal PSP information for multipole '//trim(yaml_toa(impl)))
           end if
@@ -2761,7 +2774,7 @@ module multipole
 
       if (iproc==0) then
           call yaml_comment('Final result of the multipole analysis',hfill='~')
-          call write_multipoles_new(ep, lmax, at%astruct%units)
+          call write_multipoles_new(ep, lmax, smmd%units)
       end if
 
 
@@ -2861,12 +2874,12 @@ module multipole
 
 
 
-    subroutine projector_for_charge_analysis(at, smats, smatm, smatl, &
+    subroutine projector_for_charge_analysis(smmd, smats, smatm, smatl, &
                ovrlp_, ham_, kernel_, rxyz, calculate_centers, write_output, ortho, mode, &
                lzd, nphirdim, psi, orbs, &
                multipoles, &
                natpx, isatx, nmaxx, nx, projx, neighborx, &
-               rpower_matrix, only_sizes)
+               rpower_matrix, only_sizes, psppar)
       use module_base
       use module_types, only: local_zone_descriptors, orbitals_data
       use module_atoms, only: atoms_data
@@ -2874,7 +2887,8 @@ module multipole
                                    sparsematrix_malloc, sparsematrix_malloc0, &
                                    sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, &
                                    SPARSE_TASKGROUP, assignment(=), &
-                                   matrices_null, deallocate_matrices
+                                   matrices_null, deallocate_matrices, &
+                                   sparse_matrix_metadata
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix, trace_sparse
       use matrix_operations, only: overlapPowerGeneral, overlap_plus_minus_one_half_exact
@@ -2884,12 +2898,12 @@ module multipole
       implicit none
 
       ! Calling arguments
-      type(atoms_data),intent(in) :: at
+      type(sparse_matrix_metadata),intent(in) :: smmd
       type(sparse_matrix),intent(in) :: smats, smatl
       type(sparse_matrix),intent(in) :: smatm
       type(matrices),intent(in) :: ovrlp_
       type(matrices),intent(in) :: ham_, kernel_
-      real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
+      real(kind=8),dimension(3,smmd%nat),intent(in) :: rxyz
       logical,intent(in) :: calculate_centers, write_output
       character(len=*),intent(in) :: ortho, mode
       type(local_zone_descriptors),intent(in),optional :: lzd
@@ -2903,6 +2917,7 @@ module multipole
       logical,dimension(:,:),pointer,intent(out),optional :: neighborx
       type(matrices),dimension(24),intent(in),optional :: rpower_matrix
       logical,intent(in),optional :: only_sizes
+      real(kind=8),dimension(0:4,0:6,1:smmd%ntypes),intent(in),optional :: psppar
 
       ! Local variables
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl, lwork
@@ -2951,6 +2966,9 @@ module multipole
           if (.not.present(lzd)) then
               call f_err_throw('lzd not present')
           end if
+          if (.not.present(psppar)) then
+              call f_err_throw('psppar not present')
+          end if
       case default
           call f_err_throw('wrong value of mode')
       end select
@@ -2984,8 +3002,8 @@ module multipole
 
       ! Convergence criterion: one million-th of the total charge
       tt = 0.d0
-      do iat=1,at%astruct%nat
-          tt = tt + real(at%nelpsp(at%astruct%iatype(iat)),kind=8)
+      do iat=1,smmd%nat
+          tt = tt + real(smmd%nelpsp(smmd%iatype(iat)),kind=8)
       end do
       convergence_criterion = max(1.d-6*abs(tt),1.d-4)
 
@@ -3050,9 +3068,9 @@ module multipole
 
 
       ! Parallelization over the number of atoms
-      ii = at%astruct%nat/bigdft_mpi%nproc
+      ii = smmd%nat/bigdft_mpi%nproc
       natp = ii
-      jj = at%astruct%nat - bigdft_mpi%nproc*natp
+      jj = smmd%nat - bigdft_mpi%nproc*natp
       if (bigdft_mpi%iproc<jj) then
           natp = natp + 1
       end if
@@ -3073,7 +3091,7 @@ module multipole
           kkat = kat + isat
           n = 0
           do i=1,smats%nfvctr
-               iat = smats%on_which_atom(i)
+               iat = smmd%on_which_atom(i)
                ! Only do the following for the first TMB per atom
                if (iat==iatold) cycle
                iatold = iat
@@ -3140,7 +3158,7 @@ module multipole
           if (orbs%norb>0) then
               !call supportfunction_centers(at%astruct%nat, rxyz, size(psi), psi, tmb%collcom_sr%ndimpsi_c, &
               !     orbs%norb, orbs%norbp, orbs%isorb, orbs%in_which_locreg, lzd, com(1:,orbs%isorb+1:))
-              call supportfunction_centers(at%astruct%nat, rxyz, size(psi), psi, nphirdim, &
+              call supportfunction_centers(smmd%nat, rxyz, size(psi), psi, nphirdim, &
                    orbs%norb, orbs%norbp, orbs%isorb, orbs%inwhichlocreg, lzd, com(1:,orbs%isorb+1:))
               if (bigdft_mpi%nproc>1) then
                   call mpiallred(com, mpi_sum, comm=bigdft_mpi%mpi_comm)
@@ -3148,27 +3166,27 @@ module multipole
           end if
       else
           do i=1,smats%nfvctr
-              iat = smats%on_which_atom(i)
+              iat = smmd%on_which_atom(i)
               com(1:3,i) = rxyz(1:3,iat)
           end do
       end if
 
 
-      charge_per_atom = f_malloc0(at%astruct%nat,id='charge_per_atom')
+      charge_per_atom = f_malloc0(smmd%nat,id='charge_per_atom')
       locregs_ID = f_malloc(smats%nfvctr,id='locregs_ID')
 
 
       ! Calculate how many states should be included
       q = 0.d0
       tt = 0.d0
-      do iat=1,at%astruct%nat
-          itype = at%astruct%iatype(iat)
+      do iat=1,smmd%nat
+          itype = smmd%iatype(iat)
           if (determine_ef=='old') then
-              q = q + ceiling(0.5d0*real(at%nelpsp(itype),kind=8))
-              tt = tt + real(at%nelpsp(itype),kind=8)
+              q = q + ceiling(0.5d0*real(smmd%nelpsp(itype),kind=8))
+              tt = tt + real(smmd%nelpsp(itype),kind=8)
           else
-              q = q + 0.5d0*real(at%nelpsp(itype),kind=8)
-              tt = tt + real(at%nelpsp(itype),kind=8)
+              q = q + 0.5d0*real(smmd%nelpsp(itype),kind=8)
+              tt = tt + real(smmd%nelpsp(itype),kind=8)
           end if
           !!if (at%nelpsp(itype)<=2) then
           !!    q = q + 1.d0
@@ -3199,7 +3217,7 @@ module multipole
 
       ! Calculate the matrices <phi|r**x|phi>
 
-      ef_atom = f_malloc(at%astruct%nat,id='ef_atom')
+      ef_atom = f_malloc(smmd%nat,id='ef_atom')
 
       alpha_loop: do ialpha=1,10000
 
@@ -3343,8 +3361,8 @@ module multipole
                                             + rxyz(2,kkat)**2*penaltymat(j,i,10) &
                                             - 2.d0*rxyz(2,kkat)**2*rxyz(3,kkat)*penaltymat(j,i,9) &
                                             + rxyz(2,kkat)**2*rxyz(3,kkat)**2*ovrlp(j,i) )
-                              itype = at%astruct%iatype(kkat)
-                              rloc = at%psppar(0,0,itype)
+                              itype = smmd%iatype(kkat)
+                              rloc = psppar(0,0,itype)
                               ilr = locregs_ID(i)
                               !rloc = lzd%llr(ilr)%locrad
                               !write(*,*) 'kkat, itype, at%psppar(0,0,itype), rloc', kkat, itype, at%psppar(0,0,itype), rloc
@@ -3391,7 +3409,7 @@ module multipole
               else if (mode=='simple') then
                   if (ortho=='yes') then
                       ! directly add the penalty terms to ham
-                      call add_penalty_term(at%astruct%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
+                      call add_penalty_term(smmd%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
                            smats%cell_dim, com, alpha, n, ovrlp, ham)
                    else if (ortho=='no') then
                           ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
@@ -3404,7 +3422,7 @@ module multipole
                           call f_free(ovrlp_tmp)
                           ! Calculate the penaly term separately and then calculate S^1/2*penalty*S^1/2
                           tmpmat2d = f_malloc0((/n,n,2/),id='tmppmat2d')
-                          call add_penalty_term(at%astruct%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
+                          call add_penalty_term(smmd%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
                                smats%cell_dim, com, alpha, n, ovrlp, tmpmat2d(1,1,1))
 
                           ! Calculate S^1/2 * penalty * S^1/2
@@ -3422,14 +3440,14 @@ module multipole
                   if (ialpha==1) then
                       if (present(multipoles)) then
                           write(*,*) 'call with multipoles'
-                          call add_penalty_term_new(at%astruct%geocode, at%astruct%nat, smats%nfvctr, &
-                               neighbor(1:,kat), rxyz(1:,kkat), smats%on_which_atom, &
+                          call add_penalty_term_new(smmd%geocode, smmd%nat, smats%nfvctr, &
+                               neighbor(1:,kat), rxyz(1:,kkat), smmd%on_which_atom, &
                                multipoles, smats%cell_dim, com, alpha, n, ham, &
                                nmax, penalty_matrices(1:n,1:n,kat))
                       else
                           write(*,*) 'call with multipoles_fake'
-                          call add_penalty_term_new(at%astruct%geocode, at%astruct%nat, smats%nfvctr, &
-                               neighbor(1:,kat), rxyz(1:,kkat), smats%on_which_atom, &
+                          call add_penalty_term_new(smmd%geocode, smmd%nat, smats%nfvctr, &
+                               neighbor(1:,kat), rxyz(1:,kkat), smmd%on_which_atom, &
                                multipoles_fake, smats%cell_dim, com, alpha, n, ham, &
                                nmax, penalty_matrices(1:n,1:n,kat))
                       end if
@@ -3739,7 +3757,7 @@ end if
           end if
           !charge_net = 0.d0
           charge = 0.d0
-          do iat=1,at%astruct%nat
+          do iat=1,smmd%nat
               !charge_net = charge_net -(charge_per_atom(iat)-real(at%nelpsp(at%astruct%iatype(iat)),kind=8))
               charge = charge - charge_per_atom(iat)
           end do
@@ -3899,7 +3917,8 @@ end if
     
     
       if (write_output .and. bigdft_mpi%iproc==0) then
-          call write_partial_charges(at, charge_per_atom, write_gnuplot=.true.)
+          call f_err_throw('writing the data here is deprecated')
+          !call write_partial_charges(at, charge_per_atom, write_gnuplot=.true.)
       end if
 
       call f_free(ef_atom)
@@ -5925,55 +5944,52 @@ end subroutine calculate_rpowerx_matrices
   end function get_quartic_penalty
 
 
-  subroutine get_psp_info(sym, ixc, at, nelpsp, psp_source, rloc)
+  subroutine get_psp_info(sym, ixc, smmd, nelpsp, psp_source, rloc, psppar)
     use module_base
-    use module_atoms, only: atoms_data
+    use yaml_output
+    use sparsematrix_base, only: sparse_matrix_metadata
     implicit none
 
     ! Calling arguments
     character(len=*),intent(in) :: sym
     integer,intent(in) :: ixc
-    type(atoms_data),intent(in) :: at
+    type(sparse_matrix_metadata),intent(in) :: smmd
     integer,intent(out) :: nelpsp, psp_source
     real(kind=8),intent(out) :: rloc
+    real(kind=8),dimension(0:4,0:6,1:smmd%ntypes),intent(in),optional :: psppar
 
     ! Local variables
     integer :: itype, ixc_tmp, npspcode, nzatom
     logical :: found, exists
-    real(gp),dimension(0:4,0:6) :: psppar
+    real(gp),dimension(0:4,0:6) :: pspparx
 
     found = .false.
-    search_loop: do itype=1,at%astruct%ntypes
-        if (trim(sym)==trim(at%astruct%atomnames(itype))) then
-            if (associated(at%psppar)) then
-                rloc = at%psppar(0,0,itype)
-            else
-                ! Obviously wrong value
-                rloc = -1.d0
+    if (present(psppar)) then
+        search_loop: do itype=1,smmd%ntypes
+            if (trim(sym)==trim(smmd%atomnames(itype))) then
+                rloc = psppar(0,0,itype)
+                nelpsp = smmd%nelpsp(itype)
+                found = .true.
+                psp_source = 0
+                exit search_loop
             end if
-            if (associated(at%nelpsp)) then
-                nelpsp = at%nelpsp(itype)
-            else
-                ! Obviously wrong value
-                nelpsp = 1
-            end if
-            found = .true.
-            psp_source = 0
-            exit search_loop
-        end if
-    end do search_loop
+        end do search_loop
+    end if
     if (.not.found) then
         ixc_tmp = ixc
-        call psp_from_data(trim(sym), nzatom, nelpsp, npspcode, ixc_tmp, psppar, exists)
+        call psp_from_data(trim(sym), nzatom, nelpsp, npspcode, ixc_tmp, pspparx, exists)
         if (exists) then
-            rloc = psppar(0,0)
+            rloc = pspparx(0,0)
             found = .true.
             psp_source = 1
         end if
     end if
     if (.not.found) then
-        call f_err_throw('No PSP available for external multipole type '//trim(sym), &
-             err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+        !call f_err_throw('No PSP available for external multipole type '//trim(sym), &
+        !     err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+        call yaml_warning('No PSP available for external multipole type '//trim(sym))
+        rloc = -1.d0
+        nelpsp = -1
     end if
   end subroutine get_psp_info
 
