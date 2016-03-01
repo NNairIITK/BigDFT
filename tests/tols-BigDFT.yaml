@@ -1503,7 +1503,7 @@ O2spin_dirmin:
  fnrm2: 1.02e-4
  EH: 2.63e-5
  EXC: 5.6e-6
- Ekin: 4.41e-6
+ Ekin: 6.94e-6
  Enl: 1.9e-7
  Epot: 2.02e-5
  EvXC: 6.0e-6
@@ -1831,11 +1831,14 @@ multipoles_OH-:
 
 multipoles_waterQM:
  Epot: 1.1e-10
+ ekin: 1.1e-10
+ Maxdiff for transpose (checksum): 3.0e-11
 
 multipoles_waterQMQM:
  Epot: 1.1e-10
  Average noise forces: 1.0e-10
  number of corrected points: 6.0
+ multiplicator for the confinement: 4.3e-11
 
 #multipoles_water:
 # Ekin: 1.1e-10
@@ -2020,7 +2023,7 @@ igortho_44:
  Unitary check of the multipole calculations: 1.0e-2
  Multipole coefficients: 1.6e-6
  avg pot difference (actual/min): 0.95
- trace: 1.0e-10
+ trace: 1.3e-10
  Maxdiff for transpose (checksum): 4.7e-10
  norm(P): 1.0e-5
  Q matrix: 1.0e-4
@@ -2032,9 +2035,9 @@ igortho_94:
  Atomic Forces (Ha/Bohr): 2.6e-5
  net quadropole: 1.1e-5
  net dipole: 2.1e-6
- Energy (Hartree): 1.41e-8
+ Energy (Hartree): 1.92e-8
  Multipole coefficients: 7.1e-10
- Total charge: 2.8e-8
+ Total charge: 3.5e-8
  Clean forces norm (Ha/Bohr): 3.4e-5
  Average noise forces: 2.8e-5
  Raw forces norm (Ha/Bohr): 5.0e-5
@@ -2048,32 +2051,32 @@ igortho_94:
  guess for new ef: 1.3e-5
  Tr(K): 3.0e-7
  D Tr(K): 3.0e-7
- eF: 2.1e-5
+ eF: 3.1e-5
  D Tr: 3.0e-7
  D eF: 1.1e-5
- difference: 3.3e-8
+ difference: 4.2e-8
  difference from reference kernel: 1.1e-8
  EBS: 3.2e-4
  EBS higher temperature: 3.2e-4
- relative difference: 8.5e-9
- trace(KS): 2.8e-8
+ relative difference: 1.1e-8
+ trace(KS): 3.8e-8
  D: 1.1e-4
  energy: 2.4e-8
  Omega: 1.1e-8
  Charge analysis (charge / net charge): 2.0e-6
- Pseudo Fermi level for occupations: 1.84e-5
+ Pseudo Fermi level for occupations: 2.33e-5
  net charge: 1.1e-5
- eval: 2.01e-5
- Multipole coefficients: 1.2e-5
+ eval: 3.01e-5
+ Multipole coefficients: 1.23e-5
  number of corrected points: 134
- delta: 4.1e-11
+ delta: 5.0e-11
  radius for normalization: 1.1e-2
  multiplicator for the confinement: 4.38e-11
  Force Norm (Hartree/Bohr): 4.3e-8
  Maxdiff for transpose (checksum): 1.2e-10
  Q matrix: 1.1e-04
  P vector: 2.01e-05 
- norm(P): 3.21e-05
+ norm(P): 3.9e-05
 
 extendedfrags_nofrags:
  eF: 1.7e-9
@@ -2320,8 +2323,8 @@ largesystems_dnawater:
     - atom
 
 H2Omultipoles_1:
-  EBS: 9.5e-10
-  EBS higher temperature: 9.5e-10
+  EBS: 9.8e-10
+  EBS higher temperature: 9.8e-10
   EH: 1.1e-9
   EXC: 1.8e-10
   Ekin: 4.1e-10
@@ -2330,12 +2333,12 @@ H2Omultipoles_1:
   EvXC: 2.2e-10
   Charge analysis (charge / net charge): 9.9e-11
   Pseudo Fermi level for occupations: 2.5e-11
-  Omega: 2.6e-11
+  Omega: 2.7e-11
   Total charge: 2.6e-11
   Tr(K): 1.1e-07
   eF: 1.1e-07
   energy: 2.5e-11
-  multiplicator for the confinement: 4.5e-11
+  multiplicator for the confinement: 4.7e-11
   trace(KS): 2.6e-11
   Maxdiff for transpose (checksum): 1.5e-11
   difference: 1.3e-11

@@ -883,7 +883,7 @@ contains
     real(gp), intent(in) :: kwgt
     logical :: ok
     !local variables
-    logical, parameter :: debug_flag=.false.
+    logical, parameter :: debug_flag=.true.!.false.
 
     ok=.true.
 
@@ -1001,7 +1001,7 @@ contains
             err_name='BIGDFT_RUNTIME_ERROR')
     end if
 
-    !this also should aways work
+    !this also should always work
     totreat=.true.
     it=orbital_basis_iterator(ob)
     do while(ket_next_kpt(it))
