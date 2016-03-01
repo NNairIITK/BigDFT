@@ -56,7 +56,7 @@ libspred-1.a: $(libspred_1_a_OBJECTS) tmp-libspred/extract.stamp
 	$(RANLIB) $@
 
 $(spred_dynamic_library): $(libspred_1_a_OBJECTS) tmp-libspred/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(spred_soname_library) -Wl,-rpath=$(DESTDIR)$(dynlibdir) -o $@ $(libspred_1_a_OBJECTS) tmp-libspred/*.o @LIBS_EXT_DEPS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(spred_soname_library) -Wl,-rpath=$(DESTDIR)$(dynlibdir) -o $@ $(libspred_1_a_OBJECTS) tmp-libspred/*.o @LIB_SPRED_DEPS@
 	@chmod a+x $@
 
 $(spred_soname_library): $(spred_dynamic_library)
@@ -75,10 +75,10 @@ install-data-hook:
 #NEB_images_LDADD = $(spred_library) @LIB_FUTILE_LIBS@
 
 splsad_SOURCES = splinedsaddle.f90
-splsad_LDADD = $(spred_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+splsad_LDADD = $(spred_library) @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 NEB_SOURCES = NEB.f90
-NEB_LDADD = $(spred_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+NEB_LDADD = $(spred_library) @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart
@@ -86,7 +86,7 @@ bart_LDADD = $(spred_library) @LINALG_LIBS@
 
 mhgps_SOURCES = mhgps.f90
 mhgps_FCFLAGS = -I. -Ispred_baselib -Imhgps_files @LIB_BIGDFT_CFLAGS@
-mhgps_LDADD = $(spred_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+mhgps_LDADD = $(spred_library) @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 ###mhgps_FCFLAGS = -I. -Ispred_baselib -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 ###mhgps_LDADD = spred_baselib/libspredbasef.a mhgps_files/libmhgps.a $(spred_library) @LINALG_LIBS@
 ###mhgps_LDADD = $(spred_library) mhgps_files/libmhgps.a spred_baselib/libspredbasef.a @LINALG_LIBS@
@@ -94,12 +94,12 @@ mhgps_LDADD = $(spred_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 mhgpstool_SOURCES = mhgpstool.f90
 mhgpstool_FCFLAGS = -I. -Ispred_baselib -Imhgps_files @LIB_BIGDFT_CFLAGS@
 ##mhgpstool_LDADD = spred_baselib/libspredbasef.a $(spred_library) mhgps_files/libmhgps.a @LINALG_LIBS@
-mhgpstool_LDADD = $(spred_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+mhgpstool_LDADD = $(spred_library) @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 global_SOURCES = global.f90
 global_FCFLAGS = -I. -Ispred_baselib -Iglobal_files @LIB_BIGDFT_CFLAGS@
 ###global_LDADD = spred_baselib/libspredbasef.a $(spred_library) @LINALG_LIBS@
-global_LDADD = $(spred_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+global_LDADD = $(spred_library) @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 globaltool_SOURCES = globaltool.f90
 globaltool_FCFLAGS = -I. -Ispred_baselib -Iglobal_files @LIB_BIGDFT_CFLAGS@
