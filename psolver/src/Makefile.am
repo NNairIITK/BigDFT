@@ -149,7 +149,7 @@ NVCC_FLAGS = -arch sm_20 @NVCC_FLAGS@
 
 # Dynamic library building
 $(psolver_dynamic_library): $(libPSolver_1_a_OBJECTS)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) $(LD_RPATH) -o $@ $< @LIB_PSOLVER_DEPS@ $(LIBS)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) $(LD_RPATH) -o $@ $^ @LIB_PSOLVER_DEPS@ $(LIBS)
 	@chmod a+x $@
 
 $(psolver_library_soname): $(psolver_dynamic_library)
