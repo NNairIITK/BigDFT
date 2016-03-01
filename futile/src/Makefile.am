@@ -1,8 +1,6 @@
 # To be installed:
 dynlibdir        = $(libdir)
-noinst_LIBRARIES = $(futile_noinst)
-lib_LIBRARIES    = $(futile_lib)
-module_DATA      = $(modules)
+lib_LIBRARIES    = libfutile-1.a
 dynlib_DATA      = $(futile_dynlib)
 noinst_DATA      = $(futile_linklib)
 
@@ -11,7 +9,6 @@ futile_dynamic_library = libfutile-1.so.@FUTILE_MINOR_VERSION@.0.@FUTILE_MICRO_V
 futile_library_soname  = libfutile-1.so.@FUTILE_MINOR_VERSION@
 
 # We install futile library only if PSolver is deactivated.
-futile_lib    = libfutile-1.a
 if BUILD_DYNAMIC_LIBS
 futile_dynlib = $(futile_dynamic_library)
 futile_linklib = $(futile_library_soname)
@@ -19,7 +16,6 @@ else
 futile_dynlib =
 futile_linklib =
 endif
-futile_noinst =
 
 libfutile_1_a_SOURCES = f_lib_highlev.f90
 
@@ -46,3 +42,11 @@ $(futile_dynamic_library): $(libfutile_1_a_OBJECTS) tmp-libfutile/extract.stamp
 $(futile_library_soname): $(futile_dynamic_library)
 	ln -fs $^ $@
 	ln -fs $@ libfutile-1.so
+
+install-data-hook:
+	if test -n "$(futile_dynlib)" ; then \
+	  cd $(DESTDIR)$(dynlibdir) ; \
+	  chmod a+x $(futile_dynamic_library) ; \
+	  ln -fs $(futile_dynamic_library) $(futile_library_soname) ; \
+	  ln -fs $(futile_library_soname) libfutile-1.so ; \
+	fi

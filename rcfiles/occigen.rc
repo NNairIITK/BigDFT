@@ -8,7 +8,7 @@ modules = ['bigdft',]
 
 module_autogenargs['libyaml']='''FC=mpif90 FCFLAGS="-O2 -openmp" -with-ext-linalg="-mkl=parallel"'''
 
-module_autogenargs['flib']='''FC=mpif90 FCFLAGS="-O2 -openmp" -with-ext-linalg="-mkl=parallel"'''
+module_autogenargs['futile']='''FC=mpif90 FCFLAGS="-O2 -openmp" -with-ext-linalg="-mkl=parallel"'''
 
 module_autogenargs['libxc']='''FC=mpif90 FCFLAGS="-O2 -openmp" -with-ext-linalg="-mkl=parallel"'''
 

@@ -7,7 +7,7 @@ conditions.add("testing")
 modules = ['bigdft',]
 
 # Specific configure arguments for each module
-module_autogenargs['flib'] = "FC=mpif90 CFLAGS='-Wall -g -O2' FCFLAGS='-O2 -g -Wall -fbounds-check'"
+module_autogenargs['futile'] = "FC=mpif90 CFLAGS='-Wall -g -O2' FCFLAGS='-O2 -g -Wall -fbounds-check'"
 
 module_autogenargs['libxc'] = "CC=gcc --enable-shared"
 
