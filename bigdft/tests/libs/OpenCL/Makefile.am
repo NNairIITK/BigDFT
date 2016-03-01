@@ -16,10 +16,13 @@ AM_CFLAGS = -Wall -Werror
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
+else
+bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 conv_check_SOURCES = $(top_srcdir)/src/OpenCL/conv_check.f90 
-conv_check_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
+conv_check_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 conv_check.out.yaml: conv_check
 	echo 76 92 130 2 > fort.1

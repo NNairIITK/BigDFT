@@ -50,25 +50,28 @@ AM_CXXFLAGS = -Wall -Wno-deprecated-declarations
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
+else
+bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 conv_check_SOURCES = conv_check.f90
-conv_check_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
+conv_check_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 conv_check_fft_SOURCES = conv_check_fft.f90
-conv_check_fft_LDADD = @LIB_BIGDFT_LIBS@
+conv_check_fft_LDADD = $(bigdft_library)
 
 stream_check_SOURCES = Stream.c StreamCheck.c
-stream_check_LDADD = @LIB_BIGDFT_LIBS@
+stream_check_LDADD = $(bigdft_library)
 
 bench_conv_SOURCES = bench_conv.c bench_lib.c
-bench_conv_LDADD = @LIB_BIGDFT_LIBS@
+bench_conv_LDADD = $(bigdft_library)
 
 bench_conv_quick_SOURCES = bench_conv_quick.c bench_lib.c
-bench_conv_quick_LDADD = @LIB_BIGDFT_LIBS@
+bench_conv_quick_LDADD = $(bigdft_library)
 
 bench_zgemm_SOURCES = bench_zgemm.c bench_lib.c
-bench_zgemm_LDADD = @LIB_BIGDFT_LIBS@
+bench_zgemm_LDADD = $(bigdft_library)
 
 $(EXTRA_PROGRAMS): lib.stamp
 

@@ -1,6 +1,6 @@
 # To be installed:
 dynlibdir        = $(libdir)
-lib_LIBRARIES    = $(psolver_lib)
+lib_LIBRARIES    = libPSolver-1.a
 module_DATA      = $(modules)
 dynlib_DATA      = $(psolver_dynlib)
 noinst_DATA      = $(psolver_linklib)
@@ -9,13 +9,14 @@ noinst_DATA      = $(psolver_linklib)
 psolver_dynamic_library = libPSolver-1.so.@PSOLVER_MINOR_VERSION@.0.@PSOLVER_MICRO_VERSION@
 psolver_library_soname  = libPSolver-1.so.@PSOLVER_MINOR_VERSION@
 
-psolver_lib    = libPSolver-1.a
 if BUILD_DYNAMIC_LIBS
 psolver_dynlib = $(psolver_dynamic_library)
 psolver_linklib = $(psolver_library_soname)
+psolver_library = $(psolver_library_soname)
 else
 psolver_dynlib =
 psolver_linklib =
+psolver_library = libPSolver-1.a @LIB_PSOLVER_DEPS@
 endif
 
 # C objects
@@ -128,9 +129,9 @@ CONV_CHECK = conv_check_fftw
 endif
 EXTRA_PROGRAMS = $(CONV_CHECK)
 conv_check_fft_SOURCES = conv_check_fft.f90
-conv_check_fft_LDADD = @LIB_PSOLVER_LIBS@
+conv_check_fft_LDADD = $(psolver_library)
 conv_check_fftw_SOURCES = conv_check_fftw.f90 fftw.cpp
-conv_check_fftw_LDADD = @LIB_PSOLVER_LIBS@ -lfftw3 -lfftw3_threads
+conv_check_fftw_LDADD = $(psolver_library) -lfftw3 -lfftw3_threads
 
 AM_FCFLAGS = -I. -I$(srcdir) @LIB_FUTILE_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
 AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
@@ -148,7 +149,7 @@ NVCC_FLAGS = -arch sm_20 @NVCC_FLAGS@
 
 # Dynamic library building
 $(psolver_dynamic_library): $(libPSolver_1_a_OBJECTS)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) $(LD_RPATH) -o $@ $< @LIB_FUTILE_LIBS@ @LIBS_EXT_DEPS@ $(LIBS)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) $(LD_RPATH) -o $@ $< @LIB_PSOLVER_DEPS@ $(LIBS)
 	@chmod a+x $@
 
 $(psolver_library_soname): $(psolver_dynamic_library)

@@ -3,13 +3,12 @@
 # Main targets.
 # ------------
 dynlibdir           = $(libdir)
-bin_PROGRAMS        = $(binaries_sources)
-noinst_PROGRAMS     = $(local_binaries)
-bin_SCRIPTS         = $(scripts_sources)
-lib_LIBRARIES       = $(lib_spred)
-module_DATA         = $(mod_spred)
+bin_PROGRAMS        = splsad NEB global globaltool mhgps mhgpstool
+EXTRA_PROGRAMS      = bart #NEB_images
+bin_SCRIPTS         = NEB_driver.sh
+lib_LIBRARIES       = libspred-1.a
 dynlib_DATA         = $(spred_dynamic_library)
-include_HEADERS = bigdft_spred.h
+include_HEADERS     = bigdft_spred.h
 
 # Sub-directories.
 # ---------------
@@ -18,10 +17,6 @@ SUBDIRS = \
 	art \
 	mhgps_files \
 	global_files 
-
-EXTRA_DIST = \
-	bigdft_spred.h \
-	NEB_driver.sh
 
 # put all subs
 subs_static_library = \
@@ -33,15 +28,13 @@ subs_static_library = \
 if BUILD_DYNAMIC_LIBS
 spred_dynamic_library = libspred-1.so.@SPRED_MINOR_VERSION@.0.@SPRED_MICRO_VERSION@
 spred_soname_library = libspred-1.so.@SPRED_MINOR_VERSION@
+spred_library = $(spred_soname_library)
 AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 spred_dynamic_library =
 spred_soname_library =
+spred_library = libspred-1.a @LIB_SPRED_DEPS@
 endif
-lib_spred = libspred-1.a
-binaries_sources = splsad NEB global globaltool mhgps mhgpstool
-scripts_sources = NEB_driver.sh
-EXTRA_PROGRAMS = bart #NEB_images
 
 
 AM_FCFLAGS = -I. @MPI_INCLUDE@ @LIB_BIGDFT_CFLAGS@
@@ -82,38 +75,38 @@ install-data-hook:
 #NEB_images_LDADD = $(spred_library) @LIB_FUTILE_LIBS@
 
 splsad_SOURCES = splinedsaddle.f90
-splsad_LDADD = @LIB_SPRED_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+splsad_LDADD = $(spred_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 NEB_SOURCES = NEB.f90
-NEB_LDADD = @LIB_SPRED_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+NEB_LDADD = $(spred_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart
-bart_LDADD = @LIB_SPRED_LIBS@ @LINALG_LIBS@
+bart_LDADD = $(spred_library) @LINALG_LIBS@
 
 mhgps_SOURCES = mhgps.f90
 mhgps_FCFLAGS = -I. -Ispred_baselib -Imhgps_files @LIB_BIGDFT_CFLAGS@
-mhgps_LDADD = @LIB_SPRED_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+mhgps_LDADD = $(spred_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 ###mhgps_FCFLAGS = -I. -Ispred_baselib -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-###mhgps_LDADD = spred_baselib/libspredbasef.a mhgps_files/libmhgps.a @LIB_SPRED_LIBS@ @LINALG_LIBS@
-###mhgps_LDADD = @LIB_SPRED_LIBS@ mhgps_files/libmhgps.a spred_baselib/libspredbasef.a @LINALG_LIBS@
+###mhgps_LDADD = spred_baselib/libspredbasef.a mhgps_files/libmhgps.a $(spred_library) @LINALG_LIBS@
+###mhgps_LDADD = $(spred_library) mhgps_files/libmhgps.a spred_baselib/libspredbasef.a @LINALG_LIBS@
 
 mhgpstool_SOURCES = mhgpstool.f90
 mhgpstool_FCFLAGS = -I. -Ispred_baselib -Imhgps_files @LIB_BIGDFT_CFLAGS@
-##mhgpstool_LDADD = spred_baselib/libspredbasef.a @LIB_SPRED_LIBS@ mhgps_files/libmhgps.a @LINALG_LIBS@
-mhgpstool_LDADD = @LIB_SPRED_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+##mhgpstool_LDADD = spred_baselib/libspredbasef.a $(spred_library) mhgps_files/libmhgps.a @LINALG_LIBS@
+mhgpstool_LDADD = $(spred_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 global_SOURCES = global.f90
 global_FCFLAGS = -I. -Ispred_baselib -Iglobal_files @LIB_BIGDFT_CFLAGS@
-###global_LDADD = spred_baselib/libspredbasef.a @LIB_SPRED_LIBS@ @LINALG_LIBS@
-global_LDADD = @LIB_SPRED_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+###global_LDADD = spred_baselib/libspredbasef.a $(spred_library) @LINALG_LIBS@
+global_LDADD = $(spred_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 globaltool_SOURCES = globaltool.f90
 globaltool_FCFLAGS = -I. -Ispred_baselib -Iglobal_files @LIB_BIGDFT_CFLAGS@
-##globaltool_LDADD = spred_baselib/libspredbasef.a  global_files/libglobalf.a @LIB_SPRED_LIBS@  @LINALG_LIBS@
-globaltool_LDADD = @LIB_SPRED_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+##globaltool_LDADD = spred_baselib/libspredbasef.a  global_files/libglobalf.a $(spred_library)  @LINALG_LIBS@
+globaltool_LDADD = $(spred_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
-CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libspred-1.* input_variables_definition-inc.h
+CLEANFILES = *.@MODULE_EXT@ libspred-1.*
 clean-local:
 	rm -rf tmp-libspred
 

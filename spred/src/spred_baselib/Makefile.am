@@ -4,7 +4,7 @@ SPRED_input_variables_fetch.o: SPRED_input_variables_definition-inc.h
 SPRED_input_variables_definition-inc.h: SPRED_input_variables_definition.yaml
 	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
 
-AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIB_FLIB_CFLAGS@
+AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIB_FUTILE_CFLAGS@
 
 EXTRA_DIST = SPRED_input_variables_definition.yaml
 

@@ -6,7 +6,7 @@ dynlibdir           = $(libdir)
 bin_PROGRAMS        = $(binaries_sources)
 noinst_PROGRAMS     = $(local_binaries)
 bin_SCRIPTS         = $(scripts_sources)
-lib_LIBRARIES       = $(lib_bigdft)
+lib_LIBRARIES       = libbigdft-1.a
 module_DATA         = $(mod_bigdft)
 dynlib_DATA         = $(bigdft_dynamic_library)
 
@@ -53,13 +53,14 @@ subs_static_library = \
 if BUILD_DYNAMIC_LIBS
 bigdft_dynamic_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
 bigdft_soname_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@
+bigdft_library = $(bigdft_soname_library)
 AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
+bigdft_library = libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
-lib_bigdft = libbigdft-1.a
 if BUILD_BINARIES
 binaries_sources = bigdft memguess frequencies abscalc utilities
 local_binaries = test_forces
@@ -245,7 +246,7 @@ libbigdft-1.a: $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
 	$(RANLIB) $@
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_soname_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_EXT_DEPS@ @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_soname_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIB_BIGDFT_DEPS@
 	@chmod a+x $@
 
 libbigdft-1.so.@BIGDFT_MINOR_VERSION@: $(bigdft_dynamic_library)
@@ -266,41 +267,41 @@ install-data-hook:
 #abscalc_additional= 
 
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@
+bigdft_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@
 
 #rism_SOURCES = rism.f90 rismlowlevel.f90
-#rism_LDADD = @LIB_BIGDFT_LIBS@
+#rism_LDADD = $(bigdft_library)
 
 #sandbox_SOURCES = sandbox.f90
-#sandbox_LDADD = @LIB_BIGDFT_LIBS@
+#sandbox_LDADD = $(bigdft_library)
 
 #oneatom_SOURCES = oneatom.f90
-#oneatom_LDADD = @LIB_BIGDFT_LIBS@
+#oneatom_LDADD = $(bigdft_library)
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
-BigDFT2Wannier_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
+BigDFT2Wannier_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 WaCo_SOURCES = WaCo.f90
-WaCo_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
+WaCo_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 MDanalysis_SOURCES = distances.f90
-MDanalysis_LDADD = @LIB_BIGDFT_LIBS@
+MDanalysis_LDADD = $(bigdft_library)
 
 abscalc_SOURCES = abscalc.f90 
-abscalc_LDADD = libabscalc.a @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+abscalc_LDADD = libabscalc.a $(bigdft_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@
+test_forces_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@
 
 #to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
 memguess_SOURCES = memguess.f90 MPIfake.f90
-memguess_LDADD = @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+memguess_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 utilities_SOURCES = utilities.f90
-utilities_LDADD = @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+utilities_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+frequencies_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:

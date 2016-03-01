@@ -7,11 +7,14 @@ check_PROGRAMS = check_lib_c check_client_signals
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
+else
+bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 check_lib_c_SOURCES = check_lib_c.c
 check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules @GLIB_CFLAGS@
-check_lib_c_LDADD = @LIB_BIGDFT_LIBS@ @FCLIBS@ @GLIB_LIBS@
+check_lib_c_LDADD = $(bigdft_library) @FCLIBS@ @GLIB_LIBS@
 
 check_client_signals_SOURCES = check_client_signals.c
 check_client_signals_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_srcdir)/src/lib -I$(top_builddir)/src/modules @GLIB_CFLAGS@
@@ -21,10 +24,6 @@ EXTRA_DIST = bindings.out.ref signals.out.ref posinp.ascii test.dft test.lin
 CLEANFILES = malloc.prc bindings.out bindings.report output.ascii default.* forces_test.ascii test.perf signals.out signals.report time.yaml output.C server.log test.ascii
 
 check: bindings.report signals.report
-
-if BUILD_DYNAMIC_LIBS
-LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/src
-endif
 
 #check_lib_c: $(top_builddir)/src/libbigdft.a
 

@@ -105,16 +105,14 @@ AX_LINALG()
 AX_ETSF_IO()
 
 dnl Agregate all the optional libs.
-LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $MPI_LDFLAGS $MPI_LIBS"
-AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
-LIB_PSOLVER_LIBS="-lPSolver-1"
-LIB_PSOLVER_PKG="-lPSolver-1"
+LIB_PSOLVER_DEPS="$LIBCUDA_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIB_PSOLVER_PKG=""
 if test $ax_build_dynamic != "yes" ; then
-  LIB_PSOLVER_LIBS="$LIB_PSOLVER_LIBS $LIBS_EXT_DEPS $LIB_FUTILE_LIBS"
-  LIB_PSOLVER_PKG="$LIB_PSOLVER_PKG $LIBS_EXT_DEPS"
+  LIB_PSOLVER_PKG="$LIB_PSOLVER_DEPS"
 fi
-AC_SUBST(LIB_PSOLVER_LIBS)
 AC_SUBST(LIB_PSOLVER_PKG)
+LIB_PSOLVER_DEPS="$LIB_PSOLVER_DEPS $LIB_FUTILE_LIBS"
+AC_SUBST(LIB_PSOLVER_DEPS)
 
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
@@ -139,7 +137,7 @@ Basics:
   Fortran77 compiler:        $F77
   Fortran77 flags:           $FFLAGS
   Linker flags:              $LDFLAGS
-  Linked libraries:          $LIBS_EXT_DEPS $LIBS
+  Linked libraries:          $LIB_PSOLVER_DEPS $LIBS
 
 Build:
   Dynamic library:           $ax_build_dynamic
@@ -172,12 +170,12 @@ Installation paths:
   Documentation:             $docdir
 "
 
-if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$withscalapack" = x"warn" ; then
+if test x"$ac_use_mpi" = x"warn" -o x"$ax_have_etsf_io" = x"warn" -o x"$withscalapack" = x"warn" ; then
   echo "Warnings:"
   if test x"$ac_use_mpi" = x"warn" ; then
     echo "  MPI:                       disabled by tests"
   fi
-  if test x"$ac_use_etsfio" = x"warn" ; then
+  if test x"$ax_have_etsf_io" = x"warn" ; then
     echo "  ETSF_IO:                   disabled by tests"
   fi
   if test x"$withscalapack" = x"warn" ; then

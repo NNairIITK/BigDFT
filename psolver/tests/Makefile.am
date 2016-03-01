@@ -27,19 +27,22 @@ AM_FCFLAGS = -I. -I$(top_srcdir)/src @LIB_FUTILE_CFLAGS@ @LIBETSFIO_INCLUDE@ @MP
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+psolver_library = $(top_builddir)/src/libPSolver-1.so.@PSOLVER_MINOR_VERSION@
+else
+psolver_library = $(top_builddir)/src/libPSolver-1.a @LIB_PSOLVER_DEPS@
 endif
 
 PS_Check_SOURCES = PS_Check.f90
-PS_Check_LDADD = @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+PS_Check_LDADD = $(psolver_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 PS_Program_SOURCES = PS_Program.f90
-PS_Program_LDADD = @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@
+PS_Program_LDADD = $(psolver_library) @LIB_FUTILE_LIBS@
 
 PS_Exercise_SOURCES = PS_Exercise.f90
-PS_Exercise_LDADD = @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@
+PS_Exercise_LDADD = $(psolver_library) @LIB_FUTILE_LIBS@
 
 Generalized_PSolver_SOURCES = Generalized_PSolver.f90
-Generalized_PSolver_LDADD = @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@
+Generalized_PSolver_LDADD = $(psolver_library) @LIB_FUTILE_LIBS@
 
 
 CLEANFILES = malloc.prc time.prc PS_Check.out.yaml PSolver.report.yaml

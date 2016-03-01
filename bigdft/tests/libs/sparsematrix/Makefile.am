@@ -14,16 +14,19 @@ AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
+else
+bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 driver_SOURCES = driver.f90
-driver_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
+driver_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 driver_ccs_SOURCES = utilities.f90 driver_ccs.f90
-driver_ccs_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
+driver_ccs_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 driver_single_SOURCES = utilities.f90 driver_single.f90
-driver_single_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
+driver_single_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 CLEANFILES = test-ccs.out.yaml test-ccs.report.yaml test-ccs.report
 

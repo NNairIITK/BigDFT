@@ -23,7 +23,7 @@ libbindings_a_SOURCES = bindingsf.f90 bindings_api.h bindings.h input_keys.h \
 	wrapper_atoms.c $(bindings_files)
 nodist_libbindings_a_SOURCES = $(nodist_bindings_files)
 
-AM_FCFLAGS = -I$(top_builddir)/includes
+AM_FCFLAGS = -I$(top_builddir)/includes @LIB_FUTILE_CFLAGS@
 AM_CPPFLAGS = -I. -I../modules -I$(top_srcdir)/src/modules @PYTHON_INCLUDES@
 AM_CFLAGS = @GLIB_CFLAGS@
 

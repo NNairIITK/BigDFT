@@ -14,10 +14,13 @@ AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
+else
+bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 conv_check_SOURCES = $(top_builddir)/src/CUDA/conv_check.f90  $(top_builddir)/src/CUDA/timing.c
-conv_check_LDADD = @LIB_BIGDFT_LIBS@
+conv_check_LDADD = $(bigdft_library)
 
 conv_check.out: conv_check
 	echo 1 64 64 2048 2048 2 > fort.1

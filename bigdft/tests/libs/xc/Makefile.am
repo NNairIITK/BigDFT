@@ -17,10 +17,13 @@ AM_FCFLAGS = @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
+else
+bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 test_xc_SOURCES = test_xc.f90
-test_xc_LDADD = @LIB_BIGDFT_LIBS@
+test_xc_LDADD = $(bigdft_library)
 
 check: xc.report.yaml
 

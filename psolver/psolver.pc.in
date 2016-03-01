@@ -7,5 +7,5 @@ Name: libPSolver
 Description: Library for versatile Poisson Solver.
 Requires: futile
 Version: @VERSION@
-Libs: -L${libdir} @LIB_PSOLVER_PKG@
+Libs: -L${libdir} -lPSolver-1 @LIB_PSOLVER_PKG@
 Cflags: -I${includedir}
