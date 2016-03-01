@@ -14,24 +14,22 @@ AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
-else
-LIBS += @LIBS_SHORT_DEPS@ -lrt
 endif
 
 PS_Check_SOURCES = PS_Check.f90
-PS_Check_LDADD = -lbigdft-1 @LINALG_LIBS@
+PS_Check_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
 
 PS_Integral_SOURCES = PS_Integral.f90 fisf.f90
-PS_Integral_LDADD = -lbigdft-1 @LINALG_LIBS@
+PS_Integral_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
 
 gaussian_SOURCES = gaussian.f90
-gaussian_LDADD = -lbigdft-1 @LINALG_LIBS@
+gaussian_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
 
 gaussian2D_SOURCES = gaussian2D.f90
-gaussian2D_LDADD = -lbigdft-1 @LINALG_LIBS@
+gaussian2D_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
 
 gaussian3D_SOURCES = gaussian3D.f90
-gaussian3D_LDADD = -lbigdft-1 @LINALG_LIBS@
+gaussian3D_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
 
 
 CLEANFILES = PS_Check.out.yaml fldiff.report.yaml malloc.prc time.prc

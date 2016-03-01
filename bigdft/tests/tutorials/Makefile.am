@@ -49,8 +49,6 @@ EXTRA_DIST = Figures \
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
-else
-LIBS += @LIBS_SHORT_DEPS@
 endif
 
 
@@ -59,7 +57,7 @@ dev.check: dev-test/toy_model
 
 dev-test/toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90
 	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90 \
-			$(AM_LDFLAGS) $(LDFLAGS) -lbigdft-1 $(LIBS)
+			$(AM_LDFLAGS) $(LDFLAGS) @LIB_BIGDFT_LIBS@
 
 
 toy_model:

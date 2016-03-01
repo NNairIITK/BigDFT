@@ -5,16 +5,7 @@ ACLOCAL_AMFLAGS = -I config/m4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = psolver.pc
 
-SUBDIRS =
-
-# Low level libraries provided by BigDFT team.
-if BUILD_FLIB
-SUBDIRS += flib
-endif
-
-if BUILD_LIB_PSOLVER
-SUBDIRS += wrappers src
-endif
+SUBDIRS = src
 
 if HAVE_PYYAML
 SUBDIRS += tests

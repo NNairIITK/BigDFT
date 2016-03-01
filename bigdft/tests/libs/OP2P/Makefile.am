@@ -24,21 +24,19 @@ AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
-else
-LIBS += @LIBS_SHORT_DEPS@
 endif
 
 op2p_check_SOURCES = op2p_check.f90
-op2p_check_LDADD = -lbigdft-1
+op2p_check_LDADD = @LIB_BIGDFT_LIBS@
 
 kpts_check_SOURCES = kpts_check.f90
-kpts_check_LDADD = -lbigdft-1
+kpts_check_LDADD = @LIB_BIGDFT_LIBS@
 
 mpi_check_SOURCES = mpi_check.f90
-mpi_check_LDADD = -lbigdft-1
+mpi_check_LDADD = @LIB_BIGDFT_LIBS@
 
 diis_check_SOURCES = diis_check.f90
-diis_check_LDADD = -lbigdft-1
+diis_check_LDADD = @LIB_BIGDFT_LIBS@
 
 op2p_check.o: $(top_builddir)/src/libbigdft-1.a
 

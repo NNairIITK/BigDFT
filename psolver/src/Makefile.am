@@ -128,11 +128,11 @@ CONV_CHECK = conv_check_fftw
 endif
 EXTRA_PROGRAMS = $(CONV_CHECK)
 conv_check_fft_SOURCES = conv_check_fft.f90
-conv_check_fft_LDADD = libPSolver.a $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib-1.a @LIBS_EXT_DEPS@
+conv_check_fft_LDADD = @LIB_PSOLVER_LIBS@
 conv_check_fftw_SOURCES = conv_check_fftw.f90 fftw.cpp
-conv_check_fftw_LDADD = @LIBS_EXT_DEPS@ -lfftw3 -lfftw3_threads
+conv_check_fftw_LDADD = @LIB_PSOLVER_LIBS@ -lfftw3 -lfftw3_threads
 
-AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @LIB_FLIB_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) @LIB_FUTILE_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
 AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
 AM_LDFLAGS = -L$(top_builddir)/src
 
@@ -146,22 +146,9 @@ SUFFIXES = .cu
 NVCC = @NVCC@
 NVCC_FLAGS = -arch sm_20 @NVCC_FLAGS@
 
-tmp-libPSolver/extract.stamp: $(top_builddir)/wrappers/libwrappers.a $(out_static_library)
-	test -e "tmp-libPSolver" || $(INSTALL) -d -m 755 tmp-libPSolver
-	cd tmp-libPSolver ; \
-	rm -f *; \
-	for lib in $^; do \
-	  $(AR) x ../$$lib ; \
-	done ; \
-	touch extract.stamp
-
-libPSolver-1.a: $(libPSolver_1_a_OBJECTS) tmp-libPSolver/extract.stamp
-	$(AR) $(ARFLAGS) $@ $(libPSolver_1_a_OBJECTS) tmp-libPSolver/*.o
-	$(RANLIB) $@
-
 # Dynamic library building
-$(psolver_dynamic_library): $(libPSolver_1_a_OBJECTS) tmp-libPSolver/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) $(LD_RPATH) -o $@ $(libPSolver_1_a_OBJECTS) tmp-libPSolver/*.o @LIBS_EXT_DEPS@ $(LIBS)
+$(psolver_dynamic_library): $(libPSolver_1_a_OBJECTS)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) $(LD_RPATH) -o $@ $< @LIB_FUTILE_LIBS@ @LIBS_EXT_DEPS@ $(LIBS)
 	@chmod a+x $@
 
 $(psolver_library_soname): $(psolver_dynamic_library)
@@ -196,13 +183,3 @@ wofz.o Build_Kernel.o scaling_function.o PSolver_Base_new.o: Poisson_Solver.o
 
 .cpp.o:
 	icc -openmp -lfftw3 -lfftw3_threads -c $< -o $@
-
-# Copy modules in a common include directory.
-all: all-am insmod
-install: install-am insmod
-check: check-am insmod
-insmod: $(modules)
-	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
-	for mod in "$(modules)" ; do \
-	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \
-	done

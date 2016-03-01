@@ -16,7 +16,7 @@ EXTRA_DIST = \
 	write_binary.ref.yaml \
 	read_plain.ref.yaml \
 	read_binary.ref.yaml \
-  check_lib_plain.ref.yaml \
+	check_lib_plain.ref.yaml \
 	check_lib_binary.ref.yaml
 
 PPFILES = psppar.O
@@ -47,19 +47,17 @@ check_PROGRAMS = check_lib $(bindings_bin)
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
-else
-LIBS += @LIBS_SHORT_DEPS@
 endif
 
 AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_builddir)/src/PSolver -I$(top_srcdir)/src/PSolver -I. @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@  @MPI_INCLUDE@
 
 check_lib_SOURCES = check_lib.f90
-check_lib_FCFLAGS = -I$(top_builddir)/src/ -I$(top_builddir)/includes  -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@
-check_lib_LDADD = -lbigdft-1
+check_lib_FCFLAGS = -I$(top_builddir)/src/ -I$(top_builddir)/includes  -I$(top_builddir)/src/modules
+check_lib_LDADD = @LIB_BIGDFT_LIBS@
 
 check_lib_c_SOURCES = check_lib_c.c
 check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules
-check_lib_c_LDADD = -lbigdft-1 @FCLIBS@
+check_lib_c_LDADD = @LIB_BIGDFT_LIBS@ @FCLIBS@
 
 clean-local:
 	rm -rf data-*

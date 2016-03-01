@@ -15,9 +15,9 @@ bader_objects = kind_mod.f90       \
 bader_SOURCES = main.f90 $(bader_objects)
 
 #Use the flib library (use only yaml_output)
-bader_LDADD = @LIB_FLIB_LIBS@
+bader_LDADD = @LIB_FUTILE_LIBS@
 
-AM_FCFLAGS = -I. @LIB_FLIB_CFLAGS@
+AM_FCFLAGS = -I. @LIB_FUTILE_CFLAGS@
 
 CLEANFILES = *.@MODULE_EXT@ 
 

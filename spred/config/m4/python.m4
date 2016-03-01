@@ -1,1 +1,1 @@
-../../../bigdft/config/m4/python.m4
+../../../futile/config/m4/python.m4

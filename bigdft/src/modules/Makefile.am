@@ -1,5 +1,4 @@
 # To be installed:
-overridesdir = $(pyexecdir)/gi/overrides
 noinst_LIBRARIES = libmodules.a
 module_DATA = $(modules)
 
@@ -201,7 +200,7 @@ COMMS_INCLUDES = check_array-inc.f90
 EXTRA_DIST = $(ATOMS_INCLUDES) $(COMMS_INCLUDES)
 CLEANFILES = *.mod
 
-AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ @LIB_FLIB_CFLAGS@
+AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ @LIB_FUTILE_CFLAGS@
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \

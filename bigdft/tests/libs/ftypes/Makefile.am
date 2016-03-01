@@ -7,13 +7,11 @@ check_PROGRAMS = check_lib_c check_client_signals
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
-else
-LIBS += @LIBS_SHORT_DEPS@
 endif
 
 check_lib_c_SOURCES = check_lib_c.c
 check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules @GLIB_CFLAGS@
-check_lib_c_LDADD = -lbigdft-1 @FCLIBS@ @GLIB_LIBS@
+check_lib_c_LDADD = @LIB_BIGDFT_LIBS@ @FCLIBS@ @GLIB_LIBS@
 
 check_client_signals_SOURCES = check_client_signals.c
 check_client_signals_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_srcdir)/src/lib -I$(top_builddir)/src/modules @GLIB_CFLAGS@

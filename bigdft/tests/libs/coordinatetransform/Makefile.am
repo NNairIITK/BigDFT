@@ -15,12 +15,10 @@ AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
-else
-LIBS += @LIBS_SHORT_DEPS@ -lrt
 endif
 
 driver_SOURCES = driver.f90
-driver_LDADD = -lbigdft-1 @LINALG_LIBS@
+driver_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
 
 
 CLEANFILES = *.yaml posinp.* malloc.prc report

@@ -1,7 +1,9 @@
 # To be installed:
+overridesdir = $(pyexecdir)/gi/overrides
 noinst_LIBRARIES = libbindings.a
 include_HEADERS = bigdft.h bigdft_input_keys.h
 nodist_include_HEADERS = bigdft_cst.h
+overrides_DATA = BigDFT.py
 
 EXTRA_DIST = bigdft_cst.h.in
 
@@ -21,7 +23,7 @@ libbindings_a_SOURCES = bindingsf.f90 bindings_api.h bindings.h input_keys.h \
 	wrapper_atoms.c $(bindings_files)
 nodist_libbindings_a_SOURCES = $(nodist_bindings_files)
 
-AM_FCFLAGS = -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes
 AM_CPPFLAGS = -I. -I../modules -I$(top_srcdir)/src/modules @PYTHON_INCLUDES@
 AM_CFLAGS = @GLIB_CFLAGS@
 

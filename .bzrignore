@@ -15,6 +15,7 @@ Makefile
 jhbuildrc
 aclocal.m4
 autom4te.cache
+futile/config/*
 psolver/config/*
 bigdft/config/*
 spred/config/*

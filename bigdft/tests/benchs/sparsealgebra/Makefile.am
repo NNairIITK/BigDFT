@@ -8,12 +8,10 @@ AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
-else
-LIBS += @LIBS_SHORT_DEPS@ -lrt
 endif
 
 smatmul_SOURCES = smatmul.f90
-smatmul_LDADD = -lbigdft-1 @LINALG_LIBS@
+smatmul_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
 
 CLEANFILES = *.dat *.yaml report
 

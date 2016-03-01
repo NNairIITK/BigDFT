@@ -15,12 +15,10 @@ AM_FCFLAGS = @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
-else
-LIBS += @LIBS_SHORT_DEPS@
 endif
 
 check_psp_SOURCES = check_psp.f90
-check_psp_LDADD = -lbigdft-1
+check_psp_LDADD = @LIB_BIGDFT_LIBS@
 
 CLEANFILES = psp.out.yaml psp.report.yaml
 

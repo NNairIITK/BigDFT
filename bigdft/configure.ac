@@ -108,7 +108,9 @@ dnl Search for pkg-config
 PKG_PROG_PKG_CONFIG()
 
 dnl Libraries
-dnl PSolver provide testing for MPI and LINALG already.
+AX_MPI()
+AX_LINALG()
+AX_FLIB()
 AX_PSOLVER()
 if test "$ax_have_psolver" != "yes" ; then
   AC_MSG_ERROR(["Cannot find PSolver library."])
@@ -117,7 +119,7 @@ fi
 dnl Look for GLib and friends for bindings.
 AX_FC_POINTER()
 AX_INTROSPECTION()
-AX_DYNAMIC_LIBRARIES($ax_have_introspection, [f_lib_initialize], [$LIB_FLIB_LIBS])
+AX_DYNAMIC_LIBRARIES($ax_have_introspection, [f_lib_initialize], [$LIB_FUTILE_LIBS])
 
 AC_ARG_ENABLE(bindings, AS_HELP_STRING([--enable-bindings], [Build C bindings (disabled by default).]),
               ac_build_bindings=$enableval, ac_build_bindings="no")
@@ -284,15 +286,16 @@ else
 fi
 
 dnl Agregate all the optional libs.
-LIBS_EXT_DEPS="$CP2K_LINKLINE $PEXSI_LINKLINE $LIB_AMBERTOOLS_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
+LIBS_EXT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIB_GAIN_LIBS $CP2K_LINKLINE $PEXSI_LINKLINE $LIB_AMBERTOOLS_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
 AC_SUBST(LIBS_EXT_DEPS)
-LIBS_SHORT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIB_GAIN_LIBS $LIB_PSOLVER_LIBS $LIB_FLIB_LIBS $LIBS_EXT_DEPS"
-AC_SUBST(LIBS_SHORT_DEPS)
 LIB_BIGDFT_LIBS="-lbigdft-1"
+LIB_BIGDFT_PKG="-lbigdft-1"
 if test $ax_build_dynamic != "yes" ; then
-  LIB_BIGDFT_LIBS="$LIB_BIGDFT_LIBS $LIBS_SHORT_DEPS"
+  LIB_BIGDFT_LIBS="$LIB_BIGDFT_LIBS $LIB_PSOLVER_LIBS $LIB_FUTILE_LIBS $LIBS_EXT_DEPS"
+  LIB_BIGDFT_PKG="$LIB_BIGDFT_PKG $LIBS_EXT_DEPS"
 fi
 AC_SUBST(LIB_BIGDFT_LIBS)
+AC_SUBST(LIB_BIGDFT_PKG)
 
 dnl Test for the documentation.
 AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes], [no])
@@ -374,7 +377,6 @@ Basics:
   Fortran77 flags:           $FFLAGS
   Linker flags:              $LDFLAGS
   Linked libraries:          $LIBS_EXT_DEPS $LIBS
-  Linked dependencies:       $LIBS_SHORT_DEPS
 
 Build:
   Main binaries (bigdft,...):$ac_build_bin_cluster

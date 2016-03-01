@@ -1,1 +1,1 @@
-../../../psolver/config/m4/yaml.m4
+../../../futile/config/m4/yaml.m4

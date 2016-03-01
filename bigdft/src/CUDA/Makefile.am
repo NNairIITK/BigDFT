@@ -43,16 +43,14 @@ SUFFIXES = .cu
 
 CLEANFILES = fort.1 fort.98 *linkinfo
 
-AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@ -I. -I$(srcdir)
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
-else
-LIBS += @LIBS_SHORT_DEPS@
 endif
 
 conv_check_SOURCES = conv_check.f90 timing.c
-conv_check_LDADD = -lbigdft-1
+conv_check_LDADD = @LIB_BIGDFT_LIBS@
 
 #GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
 #GPUham_LDFLAGS =

@@ -53,12 +53,10 @@ subs_static_library = \
 if BUILD_DYNAMIC_LIBS
 bigdft_dynamic_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
 bigdft_soname_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@
-bigdft_library = $(bigdft_soname_library)
 AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@
 endif
 
 lib_bigdft = libbigdft-1.a
@@ -117,7 +115,7 @@ endif
 
 AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ \
-	@LIBETSFIO_INCLUDE@ @MPI_INCLUDE@ @LIB_FLIB_CFLAGS@
+	@LIBETSFIO_INCLUDE@ @MPI_INCLUDE@ @LIB_FUTILE_CFLAGS@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ -I$(srcdir)/modules -Imodules
 #AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ -Wno-deprecated-declarations -Wno-cpp
 AM_CFLAGS = @CUDA_INCLUDE@
@@ -247,7 +245,7 @@ libbigdft-1.a: $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
 	$(RANLIB) $@
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_soname_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_EXT_DEPS@ @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@
 	@chmod a+x $@
 
 libbigdft-1.so.@BIGDFT_MINOR_VERSION@: $(bigdft_dynamic_library)
@@ -258,8 +256,8 @@ install-data-hook:
 	if test -n "$(bigdft_dynamic_library)" ; then \
 	  cd $(DESTDIR)$(dynlibdir) ; \
 	  chmod a+x $(bigdft_dynamic_library) ; \
-	  ln -fs $(bigdft_dynamic_library) $(bigdft_library) ; \
-	  ln -fs $(bigdft_library) libbigdft-1.so ; \
+	  ln -fs $(bigdft_dynamic_library) $(bigdft_soname_library) ; \
+	  ln -fs $(bigdft_soname_library) libbigdft-1.so ; \
 	fi
 
 #obsolete dependency $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft-1.a libdft_common.a
@@ -268,41 +266,41 @@ install-data-hook:
 #abscalc_additional= 
 
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@
+bigdft_LDADD = @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@
 
 #rism_SOURCES = rism.f90 rismlowlevel.f90
-#rism_LDADD = $(bigdft_library)
+#rism_LDADD = @LIB_BIGDFT_LIBS@
 
 #sandbox_SOURCES = sandbox.f90
-#sandbox_LDADD = $(bigdft_library)
+#sandbox_LDADD = @LIB_BIGDFT_LIBS@
 
 #oneatom_SOURCES = oneatom.f90
-#oneatom_LDADD = $(bigdft_library)
+#oneatom_LDADD = @LIB_BIGDFT_LIBS@
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
-BigDFT2Wannier_LDADD = $(bigdft_library) @LINALG_LIBS@
+BigDFT2Wannier_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
 
 WaCo_SOURCES = WaCo.f90
-WaCo_LDADD = $(bigdft_library) @LINALG_LIBS@
+WaCo_LDADD = @LIB_BIGDFT_LIBS@ @LINALG_LIBS@
 
 MDanalysis_SOURCES = distances.f90
-MDanalysis_LDADD = $(bigdft_library)
+MDanalysis_LDADD = @LIB_BIGDFT_LIBS@
 
 abscalc_SOURCES = abscalc.f90 
-abscalc_LDADD = libabscalc.a $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FLIB_LIBS@ @LINALG_LIBS@
+abscalc_LDADD = libabscalc.a @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FLIB_LIBS@
+test_forces_LDADD = @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@
 
 #to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
 memguess_SOURCES = memguess.f90 MPIfake.f90
-memguess_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FLIB_LIBS@ @LINALG_LIBS@
+memguess_LDADD = @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 utilities_SOURCES = utilities.f90
-utilities_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FLIB_LIBS@ @LINALG_LIBS@
+utilities_LDADD = @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FLIB_LIBS@ @LINALG_LIBS@
+frequencies_LDADD = @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:
@@ -336,7 +334,7 @@ restart.o: i-o.o
 # Introspection for Python bindings
 # ---------------------------------
 if WITH_GOBJECT_INTROSPECTION
-BUILT_GIRSOURCES = BigDFT-1.@BIGDFT_MINOR_VERSION@.gir
+BUILT_GIRSOURCES = BigDFT-@BIGDFT_MAJOR_VERSION@.@BIGDFT_MINOR_VERSION@.gir
 
 gir_DATA = $(BUILT_GIRSOURCES)
 typelibs_DATA = $(BUILT_GIRSOURCES:.gir=.typelib)
@@ -351,12 +349,12 @@ additonal_sources = $(srcdir)/bindings/bindings.c \
 
 endif
 
-$(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
+$(gir_DATA): $(G_IR_SCANNER) $(bigdft_soname_library)
 	$(G_IR_SCANNER) -v --warn-all \
 		--namespace BigDFT \
 		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ --identifier-prefix=Bigdft \
 		--symbol-prefix=f90 --identifier-prefix=f90_ \
-		--nsversion "1.@BIGDFT_MINOR_VERSION@" \
+		--nsversion "@BIGDFT_MAJOR_VERSION@.@BIGDFT_MINOR_VERSION@" \
 		--add-include-path=$(girdir) \
 		--include GObject-2.0 \
 		--include GLib-2.0 \

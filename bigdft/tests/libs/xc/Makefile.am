@@ -17,12 +17,10 @@ AM_FCFLAGS = @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
-else
-LIBS += @LIBS_SHORT_DEPS@
 endif
 
 test_xc_SOURCES = test_xc.f90
-test_xc_LDADD = -lbigdft-1
+test_xc_LDADD = @LIB_BIGDFT_LIBS@
 
 check: xc.report.yaml
 

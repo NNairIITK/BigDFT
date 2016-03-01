@@ -103,8 +103,8 @@ AX_LINALG()
 
 dnl Libraries
 AX_FLIB()
-if test "$ax_have_flib" != "yes" ; then
-  AC_MSG_ERROR(["Cannot find Flib library."])
+if test "$ax_have_futile" != "yes" ; then
+  AC_MSG_ERROR(["Cannot find Futile library."])
 fi
 AX_PSOLVER() dnl to be removed when MPI goes to flib.
 if test "$ax_have_psolver" != "yes" ; then
@@ -117,17 +117,17 @@ fi
 
 dnl Look for GLib and friends for bindings.
 AX_INTROSPECTION()
-AX_DYNAMIC_LIBRARIES($ax_have_introspection, [f_lib_initialize], [$LIB_FLIB_LIBS])
+AX_DYNAMIC_LIBRARIES($ax_have_introspection, [f_lib_initialize], [$LIB_FUTILE_LIBS])
 
 dnl Test libraries required for benching / testing.
 AX_PYYAML()
 
 dnl Agregate all the optional libs.
-LIBS_EXT_DEPS="$LIB_BIGDFT_LIBS $LINALG_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
+LIBS_EXT_DEPS="$LIB_BIGDFT_LIBS $LIB_FUTILE_LIBS $LINALG_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
 AC_SUBST(LIBS_EXT_DEPS)
 LIB_SPRED_LIBS="-lspred-1"
 if test $ax_build_dynamic != "yes" ; then
-  LIB_SPRED_LIBS="$LIB_SPRED_LIBS $LIBS_SHORT_DEPS"
+  LIB_SPRED_LIBS="$LIB_SPRED_LIBS $LIBS_EXT_DEPS"
 fi
 AC_SUBST(LIB_SPRED_LIBS)
 

@@ -34,11 +34,6 @@ AC_SUBST(PSOLVER_MINOR_VERSION)
 AC_SUBST(PSOLVER_MICRO_VERSION)
 AC_SUBST(PSOLVER_NANO_VERSION)
 
-AC_SUBST(FLIB_MAJOR_VERSION, [$PSOLVER_MAJOR_VERSION])
-AC_SUBST(FLIB_MINOR_VERSION, [$PSOLVER_MINOR_VERSION])
-AC_SUBST(FLIB_MICRO_VERSION, [$PSOLVER_MICRO_VERSION])
-AC_SUBST(FLIB_NANO_VERSION, [$PSOLVER_NANO_VERSION])
-
 dnl Check for sed and put it in the SED variable
 AC_PROG_SED()
 
@@ -61,11 +56,7 @@ AC_LANG(Fortran)
 AC_FC_SRCEXT(f90)
 
 AC_FC_WRAPPERS()
-AX_FC_FLUSH()
-AX_FC_RECL_KIND()
-AC_SUBST(RECL_INT_KIND, $ax_fc_recl_kind)
 AX_FC_DEFS()
-AX_FC_F2003()
 AX_FC_OPENMP()
 
 dnl Set if the module name are capitalized or not with the FC compiler. 
@@ -100,9 +91,6 @@ fi
 dnl Enable or not MPI.
 AX_MPI()
 
-dnl C-level YAML support.
-AX_YAML()
-
 dnl Python YAML support.
 AX_PYYAML()
 
@@ -111,89 +99,22 @@ AX_DYNAMIC_LIBRARIES()
 
 dnl Test accelerators
 AX_ACC_CUDA()
-AX_ACC_OCL()
-AX_ACC_MIC()
 
-dnl Use external FLib.
-AC_ARG_WITH(internal-flib, AS_HELP_STRING([--with-internal-flib], [Compile internal FLib (default = yes).]), internalflib=$withval, internalflib="yes")
-if test x"$internalflib" != x"yes" ; then
-  AX_FLIB()
-  if test "$ac_use_flib" = "no" ; then
-    AC_MSG_ERROR([FLib is not available, install FLib and provide paths --with-flib-libs --with-flib-incs.])
-  fi
-else
-  LIB_FLIB_CFLAGS='-I$(top_builddir)/includes'
-  AC_SUBST(LIB_FLIB_CFLAGS)
-  LIB_FLIB_LIBS=""
-  AC_SUBST(LIB_FLIB_LIBS)
-fi
-AM_CONDITIONAL(BUILD_FLIB, test "$internalflib" = "yes")
-
-dnl Test the availability of clock_gettime() and rt library.
-dnl This will be added in libs, on top, therefore care should be taken for a linker which require ordering
-AC_LANG_PUSH(C)
-AC_CHECK_HEADERS([time.h])
-AC_CHECK_LIB([rt], [clock_gettime])
-AC_CHECK_FUNCS([clock_gettime])
-AC_CHECK_FUNCS([strndup])
-AC_LANG_POP(C)
-
-dnl The Poisson solver library
-AC_ARG_ENABLE(libpsolver, AS_HELP_STRING([--disable-libpsolver], [build the PSolver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
-
-AM_CONDITIONAL(BUILD_LIB_PSOLVER, test "$ac_build_lib_PSolver" = "yes")
-AC_MSG_CHECKING([for PSolver library build])
-AC_MSG_RESULT([$ac_build_lib_PSolver])
-
-dnl Linalg libraries.
-if test $ac_build_lib_PSolver = "yes" ; then
+AX_FLIB()
 AX_LINALG()
-if test $ax_have_linalg != "yes" ; then
-  AC_MSG_ERROR([Linear algebra libraries are not available.])
-fi
-fi
-
-dnl Use the dgemmsy
-if test $ac_build_lib_PSolver = "yes" ; then
-ax_have_dgemmsy="no"
-DGEMMSY_CPPFLAGS=
-AC_ARG_ENABLE(dgemmsy, AS_HELP_STRING([--enable-dgemmsy], [Use dgemmsy (disabled by default).]),
-                         ax_have_dgemmsy=$enableval, ax_have_dgemmsy="no")
-if test x"$ax_have_dgemmsy" = "xyes" ; then
-  AC_LANG_PUSH(C)
-
-  DGEMMSY_CPPFLAGS="-msse3"
-  CPPFLAGS_SVG=$CPPFLAGS
-  CPPFLAGS="$CPPFLAGS $DGEMMSY_CPPFLAGS"
-  AC_CHECK_HEADER([pmmintrin.h],
-                  [ax_have_dgemmsy="yes"],
-                  [ax_have_dgemmsy="no"])
-  CPPFLAGS=$CPPFLAGS_SVG
-  AC_LANG_POP(C)
-  if test "$ax_have_dgemmsy" = "no"; then
-    DGEMMSY_CPPFLAGS=
-    AC_MSG_WARN(["No SSE header found, dgemmsy disabled."])
-  fi
-fi
-AC_SUBST(DGEMMSY_CPPFLAGS)
-fi
-AM_CONDITIONAL(USE_DGEMMSY, test "$ax_have_dgemmsy" = "yes")
-
-dnl Support for ETSF_IO file format
-if test $ac_build_lib_PSolver = "yes" ; then
 AX_ETSF_IO()
-else
-AM_CONDITIONAL(HAVE_ETSF_IO, test "$ax_have_etsf_io" = "yes")
-fi
 
 dnl Agregate all the optional libs.
-LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_FLIB_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
 LIB_PSOLVER_LIBS="-lPSolver-1"
+LIB_PSOLVER_PKG="-lPSolver-1"
 if test $ax_build_dynamic != "yes" ; then
-  LIB_PSOLVER_LIBS="$LIB_PSOLVER_LIBS $LIBS_EXT_DEPS"
+  LIB_PSOLVER_LIBS="$LIB_PSOLVER_LIBS $LIBS_EXT_DEPS $LIB_FUTILE_LIBS"
+  LIB_PSOLVER_PKG="$LIB_PSOLVER_PKG $LIBS_EXT_DEPS"
 fi
 AC_SUBST(LIB_PSOLVER_LIBS)
+AC_SUBST(LIB_PSOLVER_PKG)
 
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
@@ -201,11 +122,6 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 psolver.pc
-flib/Makefile
-flib/src/Makefile
-flib/src/f_utils.inc
-flib/tests/Makefile
-wrappers/Makefile
 src/configure.inc
 src/Makefile
 tests/Makefile
@@ -224,10 +140,8 @@ Basics:
   Fortran77 flags:           $FFLAGS
   Linker flags:              $LDFLAGS
   Linked libraries:          $LIBS_EXT_DEPS $LIBS
-  Linked dependencies:       $LIBS_SHORT_DEPS
 
 Build:
-  Library PSolver:           $ac_build_lib_PSolver
   Dynamic library:           $ax_build_dynamic
 
 Options:
@@ -247,11 +161,6 @@ Options:
   With dgemmsy support:      $ax_have_dgemmsy
   With ETSF_IO:              $ax_have_etsf_io
    | include dir.:           $LIBETSFIO_INCLUDE
-  With libyaml:              $ax_have_yaml
-   | C flags:                $LIB_YAML_CFLAGS
-   | linked libraries:       $LIB_YAML_LIBS
-  With GLib and co.:         $have_glib
-   | linked libraries:       $GLIB_LIBS
 
 Installation paths:
   Source code location:      ${srcdir}
