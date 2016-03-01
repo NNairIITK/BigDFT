@@ -21,11 +21,12 @@ subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,np2,fpcm,dep
   real(dp), dimension(3,nat), intent(in) :: rxyz
   real(dp), dimension(n1,n2,n3p), intent(in) :: np2 !<square of potential gradient
   real(dp), dimension(3,nat), intent(inout) :: fpcm !<forces
+  real(dp), dimension(3,n1,n2,n3p), intent(in) :: depsilon !<dielectric funtion
   !local variables
   real(dp), parameter :: thr=1.e-10
   integer :: i,i1,i2,i3
   real(dp) :: tt
-  real(dp), dimension(3) :: v,origin
+  real(dp), dimension(3) :: v,origin,deps
 
   !mesh=cell_new(geocode,[n1,n2,n3],hgrids)
 
@@ -36,7 +37,7 @@ subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,np2,fpcm,dep
         v(2)=cell_r(mesh,i2,dim=2)
         do i1=1,n1
            tt=np2(i1,i2,i3)
-           deps=depsilon(i1,i2,i3)
+           deps(:)=depsilon(:,i1,i2,i3)
            if (abs(tt) < thr) cycle
            v(1)=cell_r(mesh,i1,dim=1)
            v=v-origin

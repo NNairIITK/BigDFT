@@ -958,6 +958,12 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
    case('Ti')
     radii(i)=1.80d0 !Pauling's set
     !radii(i)=1.80d0 !Bondi's radii 
+   case('Pb')
+    radii(i)=1.80d0 !Pauling's set
+    !radii(i)=1.75d0 !Bondi's radii 
+   case('I')
+    radii(i)=1.80d0 !Pauling's set
+    !radii(i)=1.80d0 !Bondi's radii 
    case default
     call f_err_throw('For rigid cavity a radius should be fixed for each atom type')
    end select

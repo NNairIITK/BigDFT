@@ -416,8 +416,8 @@ contains
     real(gp), dimension(3,nat), intent(inout) :: fxyz !<forces array
     real(gp), dimension(3), intent(in) :: deps !<gradient of epsilon(r)
     !local variables
-    integer :: iat,i
-    real(gp) :: d,dlogh,rad,tt,ttV,ttS,hh,epsrm1,eps0m1,sqdeps,ep,mm
+    integer :: iat,i,j
+    real(gp) :: d,dlogh,rad,tt,ttV,ttS,hh,epsrm1,eps0m1,sqdeps,ep,mm,epsr
     real(gp), dimension(3) :: f_Vterm,f_Sterm,depsdRi,vr,ddloghdRi,vect
 
     eps0m1=cavity%epsilon0-vacuum_eps
@@ -443,7 +443,7 @@ contains
        !here the forces can be calculated
        fxyz(:,iat)=fxyz(:,iat)+tt*depsdRi(:) ! Electrostatic force
        if (.false.) then ! LuigiHelp should be -> if (not.kernel%opt%only_electrostatic) then
-        ttV=cavity%betaV*/eps0m1*hh ! CAN BE DONE EXTERNAL TO THE LOOP (INTEGRAL)
+        ttV=cavity%betaV/eps0m1*hh ! CAN BE DONE EXTERNAL TO THE LOOP (INTEGRAL)
         f_Vterm(:)=ttV*depsdRi(:) ! Force from the Volume term to the energy
         sqdeps=sqrt(square(mesh,deps))
         ttS=-(cavity%alphaS+cavity%gammaS)/eps0m1/sqdeps*hh ! CAN BE DONE EXTERNAL TO THE LOOP (INTEGRAL), no sqdeps
