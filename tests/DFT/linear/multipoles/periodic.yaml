@@ -48,7 +48,7 @@
    ef_interpol_chargediff: 1.0
    experimental_mode: Yes
    calculate_KS_residue: No
-   loewdin_charge_analysis: Yes
+   loewdin_charge_analysis: no
    check_matrix_compression: No
    FOE_restart: 1
    hamapp_radius_incr: 6
