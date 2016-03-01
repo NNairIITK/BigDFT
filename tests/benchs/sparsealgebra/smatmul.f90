@@ -97,8 +97,8 @@ program smatmul
   !!matA%matrix_compr = mat_compr
 
   call sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc, smat, matA, &
-       init_matmul=.true., nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
-       atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
+       init_matmul=.true.)!, nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
+       !atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
 
   ! Check the symmetry
   symmetric = check_symmetry(smat)
@@ -144,12 +144,12 @@ program smatmul
   !call f_free_ptr(mat_compr)
   call f_free(vector_in)
   call f_free(vector_out)
-  call f_free_ptr(on_which_atom)
-  call f_free_ptr(nzatom)
-  call f_free_ptr(nelpsp)
-  call f_free_ptr(iatype)
-  call f_free_str_ptr(int(len(atomnames),kind=4),atomnames)
-  call f_free_ptr(rxyz)
+  !call f_free_ptr(on_which_atom)
+  !call f_free_ptr(nzatom)
+  !call f_free_ptr(nelpsp)
+  !call f_free_ptr(iatype)
+  !call f_free_str_ptr(int(len(atomnames),kind=4),atomnames)
+  !call f_free_ptr(rxyz)
 
   call timing(bigdft_mpi%mpi_comm,'FINISH','PR')
 
