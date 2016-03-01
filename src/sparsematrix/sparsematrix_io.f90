@@ -58,92 +58,28 @@ module sparsematrix_io
 
       call f_routine(id='read_sparse_matrix')
 
-      write(*,*) 'in read_sparse_matrix'
-
-      !!if (present(nat) .and. present(ntypes) .and. present(nzatom) .and.  &
-      !!    present(nelpsp) .and. present(atomnames) .and. present(iatype) .and. present(rxyz)) then
-      !!    read_rxyz = .true.
-      !!else if (present(nat) .or. present(ntypes) .or. present(nzatom) .or.  &
-      !!    present(nelpsp) .or. present(atomnames) .or. present(iatype) .or. present(rxyz)) then
-      !!    call f_err_throw("not all optional arguments were given", &
-      !!         err_name='BIGDFT_RUNTIME_ERROR')
-      !!else
-      !!    read_rxyz = .false.
-      !!end if
-      !!
-      !!if (present(on_which_atom)) then
-      !!    read_on_which_atom = .true.
-      !!else
-      !!    read_on_which_atom = .false.
-      !!end if
 
       iunit = 99
-      write(*,*) 'before open',trim(filename)
       call f_open_file(iunit, file=trim(filename), binary=.false.)
-      write(*,*) 'after open'
 
-      !!if (read_rxyz) then
-      !!    read(iunit,*) nat, ntypes, nspin, geocode, cell_dim
-      !!    nzatom = f_malloc_ptr(ntypes,id='nzatom')
-      !!    nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
-      !!    atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')
-
-      !!    do itype=1,ntypes
-      !!        read(iunit,*) nzatom(itype), nelpsp(itype), atomnames(itype)
-      !!    end do
-      !!    rxyz = f_malloc_ptr((/3,nat/),id='rxyz')
-      !!    iatype = f_malloc_ptr(nat,id='iatype')
-      !!    do iat=1,nat
-      !!        read(iunit,*) iatype(iat), rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
-      !!    end do
-      !!else
-      !!    read(iunit,*) nat_, ntypes_, nspin, geocode
-      !!    do itype=1,ntypes_
-      !!        read(iunit,*) dummy_int, dummy_int, dummy_char
-      !!    end do
-      !!    do iat=1,nat_
-      !!        read(iunit,*) dummy_int, dummy_double, dummy_double, dummy_double
-      !!    end do
-      !!end if
-      write(*,*) 'before read'
       read(iunit,*) nspin, nfvctr, nseg, nvctr
-      write(*,*) 'after read'
       keyv = f_malloc_ptr(nseg,id='keyv')
       keyg = f_malloc_ptr((/2,2,nseg/),id='keyg')
-      write(*,*) 'before keys'
       do iseg=1,nseg
           read(iunit,*) keyv(iseg), keyg(1,1,iseg), keyg(2,1,iseg), keyg(1,2,iseg), keyg(2,2,iseg)
       end do
-      write(*,*) 'after keys'
       mat_compr = f_malloc_ptr(nvctr*nspin,id='mat_compr')
-      !!if (read_on_which_atom) then
-      !!    nullify(on_which_atom)
-      !!    on_which_atom = f_malloc_ptr(nfvctr,id='on_which_atom')
-      !!    ind = 0
-      !!    do ispin=1,nspin
-      !!        do iseg=1,nseg
-      !!            icol = keyg(1,2,iseg)
-      !!            do jorb=keyg(1,1,iseg),keyg(2,1,iseg)
-      !!                irow = jorb
-      !!                ind = ind + 1
-      !!                read(iunit,*) mat_compr(ind), on_which_atom(irow), on_which_atom(icol)
-      !!            end do
-      !!        end do
-      !!    end do
-      !!else
-          ind = 0
-          do ispin=1,nspin
-              do iseg=1,nseg
-                  icol = keyg(1,2,iseg)
-                  do jorb=keyg(1,1,iseg),keyg(2,1,iseg)
-                      irow = jorb
-                      ind = ind + 1
-                      read(iunit,*) mat_compr(ind)!, dummy_int, dummy_int
-                  end do
+      ind = 0
+      do ispin=1,nspin
+          do iseg=1,nseg
+              icol = keyg(1,2,iseg)
+              do jorb=keyg(1,1,iseg),keyg(2,1,iseg)
+                  irow = jorb
+                  ind = ind + 1
+                  read(iunit,*) mat_compr(ind)
               end do
           end do
-      !!end if
-      write(*,*) 'after mat'
+      end do
 
       call f_close(iunit)
 
@@ -307,9 +243,9 @@ module sparsematrix_io
 
           write(iunit,'(i10,i8,i6,a)') nfvctr, nat, ntypes, &
               '   # matrix dimension, number of atoms, number of atom types'
+          write(iunit,'(a,a)') trim(units), '  # units'
           write(iunit,'(a,3es24.16,a)') geocode, cell_dim, &
               '   # geocode, cell_dim'
-          write(iunit,'(a,a)') trim(units), '  # units'
           do itype=1,ntypes
               write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
                   '   # nz, nelpsp, name'

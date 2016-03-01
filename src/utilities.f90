@@ -181,8 +181,6 @@ program utilities
            call yaml_comment('Charge analysis',hfill='-')
        end if
        
-       !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
-
        ! Determine the method
        select case(trim(method_name))
        case ('loewdin','LOEWDIN')
@@ -195,18 +193,16 @@ program utilities
            call f_err_throw('Unknown Method for the charge analysis',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
        end select
 
-       !at = atoms_data_null()
+       call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.bin', smmd)
+       if (bigdft_mpi%iproc==0) then
+           call yaml_mapping_open('Atomic System Properties')
+           call yaml_map('Types of atoms',smmd%atomnames)
+           call yaml_mapping_close()
+       end if
 
-       write(*,*) 'before sparse_matrix_and_matrices_init_from_file_bigdft', overlap_file
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
-            init_matmul=.true.)!, nat=at%astruct%nat, rxyz=at%astruct%rxyz, &
-            !iatype=at%astruct%iatype, ntypes=at%astruct%ntypes, &
-            !nzatom=at%nzatom, nelpsp=at%nelpsp, atomnames=at%astruct%atomnames)
-       write(*,*) 'after sparse_matrix_and_matrices_init_from_file_bigdft'
-       call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.bin', smmd)
-       write(*,*) 'after sparse_matrix_metadata_init_from_file'
-       !at%refcnt=f_ref_new('atoms')
+            init_matmul=.true.)
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_l, kernel_mat, &
@@ -217,24 +213,6 @@ program utilities
             init_matmul=.true.)
 
        call timing(bigdft_mpi%mpi_comm,'INIT','PR')
-
-       !!select case(method)
-       !!case(CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN)
-       !!    call loewdin_charge_analysis_core(method, bigdft_mpi%iproc, bigdft_mpi%nproc, &
-       !!         smat_s%nfvctr, smat_s%nfvctrp, smat_s%isfvctr, &
-       !!         smat_s%nfvctr_par, smat_s%isfvctr_par, meth_overlap=1020, blocksize=-8, &
-       !!         smats=smat_s, smatl=smat_l, atoms=at, kernel=kernel_mat, ovrlp=ovrlp_mat)
-       !!case(CHARGE_ANALYSIS_PROJECTOR)
-       !!    call projector_for_charge_analysis(at, smat_s, smat_m, smat_l, &
-       !!         ovrlp_mat, hamiltonian_mat, kernel_mat, &
-       !!         at%astruct%rxyz, calculate_centers=.false., write_output=.true., ortho='yes', mode='simple')
-       !!case default
-       !!    call f_err_throw('wrong method',err_name='BIGDFT_RUNTIME_ERROR')
-       !!end select
-
-       write(*,*) 'sum(ovrlp_mat%matrix_compr)',sum(ovrlp_mat%matrix_compr)
-       write(*,*) 'sum(hamiltonian_mat%matrix_compr)',sum(hamiltonian_mat%matrix_compr)
-       write(*,*) 'sum(kernel_mat%matrix_compr)',sum(kernel_mat%matrix_compr)
 
        select case(method)
        case (CHARGE_ANALYSIS_MULLIKEN)
@@ -260,15 +238,12 @@ program utilities
        call timing(bigdft_mpi%mpi_comm,'CALC','PR')
 
        call deallocate_sparse_matrix_metadata(smmd)
-       !call deallocate_atoms_data(at)
        call deallocate_sparse_matrix(smat_s)
        call deallocate_sparse_matrix(smat_l)
        call deallocate_matrices(ovrlp_mat)
        call deallocate_matrices(kernel_mat)
-       !if (method==CHARGE_ANALYSIS_PROJECTOR) then
-           call deallocate_sparse_matrix(smat_m)
-           call deallocate_matrices(hamiltonian_mat)
-       !end if
+       call deallocate_sparse_matrix(smat_m)
+       call deallocate_matrices(hamiltonian_mat)
 
        if (bigdft_mpi%iproc==0) then
            call yaml_comment('done',hfill='-')
