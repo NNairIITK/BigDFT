@@ -1840,7 +1840,7 @@ multipoles_waterQMQM:
  Epot: 1.1e-10
  Average noise forces: 1.0e-10
  number of corrected points: 6.0
- multiplicator for the confinement: 4.3e-11
+ multiplicator for the confinement: 5.0e-11
 
 #multipoles_water:
 # Ekin: 1.1e-10
@@ -2448,21 +2448,21 @@ H2Omultipoles_2:
 #  trace(KS): 1.9e-11
 #  Maxdiff for transpose (checksum): 1.5e-11
 
-matrixtaskgroups_yes:
-  D Tr(K): 1.1e-10
+matrixtaskgroups_no:
+  D Tr(K): 1.100000000000009e-10
   EBS: 1.0e-9
   EBS higher temperature: 1.2e-09
+  Ekin: 1.0e-8
   EH: 1.1e-08
   Epot: 1.0e-8
   EvXC: 1.0e-9
-  Enl: 1.0e-9
   Energy (Hartree): 2.2e-09
-  Ion-Ion interaction energy: 2.3e-10
+  Ion-Ion interaction energy: 2.9e-10
   Omega: 2.2e-09
   Total charge: 2.0e-10
-  difference: 3.3e-11
+  difference: 2.6e-11
   energy: 2.2e-09
-  trace: 2.4e-07
+  trace: 3.0e-07
   trace(KS): 1.9e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.3e-9
@@ -2475,22 +2475,22 @@ matrixtaskgroups_yes:
    - Calculating wavelets expansion of projectors, found warnings
    - found warnings
 
-matrixtaskgroups_no:
-  D Tr(K): 1.100000000000009e-10
+matrixtaskgroups_yes:
+  D Tr(K): 1.1e-10
   EBS: 1.0e-9
   EBS higher temperature: 1.2e-09
-  Ekin: 1.0e-8
   EH: 1.1e-08
   Epot: 1.0e-8
   EvXC: 1.0e-9
+  Enl: 1.0e-9
   Energy (Hartree): 2.2e-09
-  Ion-Ion interaction energy: 2.3e-10
+  Ion-Ion interaction energy: 2.9e-10
   Omega: 2.2e-09
   Total charge: 2.0e-10
-  difference: 2.6e-11
+  difference: 3.3e-11
   energy: 2.2e-09
-  trace: 1.8e-07
-  trace(KS): 1.8e-11
+  trace: 2.4e-07
+  trace(KS): 1.9e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.3e-9
   Clean forces norm (Ha/Bohr): 3.3e-9
