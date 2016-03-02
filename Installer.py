@@ -13,14 +13,14 @@ CLEAN=' clean '
 CLEANONE=' cleanone '
 UNINSTALL=' uninstall '
 LIST=' list '
-BUILD=' build '
-TINDERBOX=' tinderbox -o build '
+BUILD=' build spred '
+TINDERBOX=' tinderbox -o build spred'
 DOT=' dot | dot -Tpng > buildprocedure.png '
 DIST=' distone bigdft-suite '
 RCFILE='buildrc'
 
-CHECKMODULES= ['flib','bigdft']
-MAKEMODULES= ['flib','libABINIT','bigdft']
+CHECKMODULES= ['futile','psolver','bigdft','spred']
+MAKEMODULES= ['futile','psolver','libABINIT','bigdft','spred']
 
 #allowed actions and corresponfing description
 ACTIONS={'build':
