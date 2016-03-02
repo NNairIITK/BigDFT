@@ -2034,9 +2034,8 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      if (denspot%pkernel%method /= 'VAC') then
         call Electrostatic_Solver(denspot%pkernel,denspot%pot_work,PSenergies,rho_ion=denspot%rho_ion)
         !here the ionic forces can be corrected with the value coming from the cavity
-!!$        if (denspot%pkernel%method .hasattr. 'rigid') &
-!!$             call soft_PCM_forces(mesh,kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p,kernel%grid%istart+1,&
-!!$             atoms%astruct%nat,radii,kernel%cavity,rxyz,kernel%epsilon0,kernel%oneoeps,fion)
+        if (denspot%pkernel%method .hasattr. 'rigid') &
+             call ps_soft_PCM_forces(denspot%pkernel,ehart_fake,fxyz)
      else
         call Electrostatic_Solver(denspot%pkernel,denspot%pot_work,PSenergies)
      end if

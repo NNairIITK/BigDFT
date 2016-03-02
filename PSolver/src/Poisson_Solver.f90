@@ -90,7 +90,7 @@ module Poisson_Solver
    !intialization of the timings
    public :: PS_initialize_timing_categories,coulomb_operator,PSolver_energies
    ! Calculate the allocation dimensions
-   public :: PS_dim4allocation, PS_getVersion
+   public :: PS_dim4allocation, PS_getVersion,ps_soft_PCM_forces
    ! Routine that creates the kernel
    public :: pkernel_init, pkernel_set, pkernel_free, pkernel_set_epsilon, pkernel_allocate_cavity
    ! Calculate the poisson solver

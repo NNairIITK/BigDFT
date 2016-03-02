@@ -209,8 +209,8 @@ module PStypes
      integer :: max_iter_PB !< max conv iterations for PB treatment
      real(dp) :: minres_PB !<convergence criterion for PB residue
      real(dp) :: PB_eta !< mixing scheme for PB
-     real(dp) :: IntVol !< Volume integral needed for the non-electrostatic energy contributions
-     real(dp) :: IntSur !< Surface integral needed for the non-electrostatic energy contributions
+     !real(dp) :: IntVol !< Volume integral needed for the non-electrostatic energy contributions
+     !real(dp) :: IntSur !< Surface integral needed for the non-electrostatic energy contributions
      
      integer, dimension(:), pointer :: counts !<array needed to gather the information of the poisson solver
      integer, dimension(:), pointer :: displs !<array needed to gather the information of the poisson solver
@@ -240,6 +240,7 @@ module PStypes
   public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays,build_cavity_from_rho
   public :: ps_allocate_lowlevel_workarrays,PSolver_options_null,PS_input_dict
   public :: release_PS_potential,PS_release_lowlevel_workarrays,PS_set_options,pkernel_init
+  public :: ps_soft_PCM_forces
 
 contains
 
@@ -267,7 +268,6 @@ contains
     o%final_call         =.false.
     o%potential_integral =0.0_gp
    end function PSolver_options_null
-
 
   pure function FFT_metadata_null() result(d)
     implicit none
@@ -1114,7 +1114,7 @@ contains
           if (present(corr)) then
              call f_memcpy(n=n1*n23,src=corr(1,1,i3s),dest=kernel%w%corr)
           else if (present(eps)) then
-!!$        !allocate work arrays
+        !allocate work arrays
              deps=f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),3],id='deps')
              de2 =f_malloc(kernel%ndims,id='de2')
              ddeps=f_malloc(kernel%ndims,id='ddeps')
@@ -1138,9 +1138,8 @@ contains
              call f_free(ddeps)
              call f_free(de2)
           else if (all(prst)) then
-
              mesh=cell_new(kernel%geocode,kernel%ndims,kernel%hgrids)
-             do i3=i3s,kernel%grid%n3p
+             do i3=i3s,kernel%grid%n3p+i3s-1
                 v(3)=cell_r(mesh,i3,dim=3)
                 do i2=1,mesh%ndims(2)
                    v(2)=cell_r(mesh,i2,dim=2)
@@ -1154,7 +1153,6 @@ contains
                    end do
                 end do
              end do
-
           else
              call f_err_throw('For method "PCG" the arrays corr or epsilon should be present')   
           end if
@@ -1178,6 +1176,7 @@ contains
                    kernel%w%oneoeps(i1,i23)=1.d0/sqrt(ep) !here square root is correct
                 end do
              end do
+          else
              call f_err_throw('For method "PCG" the arrays oneosqrteps or epsilon should be present')
           end if
           if (present(eps)) then
@@ -1272,6 +1271,56 @@ contains
 
   end subroutine pkernel_set_epsilon
 
+  !>calculate the extra contribution to the forces and the cavitation terms
+  !!to be given at the end of the calculation
+  subroutine ps_soft_PCM_forces(kernel,cavene,fpcm)
+    use environment
+    use f_utils, only: f_zero
+    implicit none
+    type(coulomb_operator), intent(in) :: kernel
+    real(dp), intent(out) :: cavene
+    real(dp), dimension(3,kernel%w%nat), intent(inout) :: fpcm
+    !local variables
+    real(dp), parameter :: thr=1.e-10
+    integer :: i1,i2,i3,i23
+    real(dp) :: cc,epr,depsr,epsm1,hh,tt,IntSur,IntVol
+    type(cell) :: mesh
+    real(dp), dimension(3) :: v,dleps,deps
+    
+    mesh=cell_new(kernel%geocode,kernel%ndims,kernel%hgrids)
+
+    epsm1=(kernel%cavity%epsilon0-vacuum_eps)
+    call f_zero(IntSur)
+    call f_zero(IntVol)
+    hh=mesh%volume_element
+    do i3=1,kernel%grid%n3p
+       v(3)=cell_r(mesh,i3+kernel%grid%istart+1,dim=3)
+       do i2=1,kernel%ndims(2)
+          v(2)=cell_r(mesh,i2,dim=2)
+          i23=i2+(i3-1)*kernel%ndims(2)
+          do i1=1,kernel%ndims(1)
+             tt=kernel%w%oneoeps(i1,i23) !nablapot2(r)
+             v(1)=cell_r(mesh,i1,dim=1)
+             !this is done to obtain the depsilon
+             call rigid_cavity_arrays(kernel%cavity,mesh,v,kernel%w%nat,&
+                  kernel%w%rxyz,kernel%w%radii,epr,depsr,dleps,cc)
+             IntVol=IntVol+(kernel%cavity%epsilon0-epr)
+             if (abs(epr-vacuum_eps) < thr) cycle
+             deps=dleps*epr
+             call rigid_cavity_forces(kernel%opt%only_electrostatic,kernel%cavity,mesh,v,&
+                  kernel%w%nat,kernel%w%rxyz,kernel%w%radii,epr,tt,fpcm,deps)
+             IntSur=IntSur+depsr
+          end do
+       end do
+    end do
+    IntVol=IntVol*hh/epsm1
+    IntSur=IntSur*hh/epsm1
+    cavene=(kernel%cavity%gammaS+kernel%cavity%alphaS)*IntSur+&
+       kernel%cavity%betaV*IntVol
+
+    
+  end subroutine ps_soft_PCM_forces
+
   subroutine build_cavity_from_rho(rho,nabla2_rho,delta_rho,cc_rho,kernel,&
        depsdrho,dsurfdrho,IntSur,IntVol)
     use environment
@@ -1298,7 +1347,7 @@ contains
     n03=kernel%ndims(3)
     !starting point in third direction
     i3s=kernel%grid%istart+1
-    epsm1=(kernel%cavity%epsilon0-1.0_gp)
+    epsm1=(kernel%cavity%epsilon0-vacuum_eps)
     !now fill the pkernel arrays according the the chosen method
     select case(trim(str(kernel%method)))
     case('PCG')
