@@ -2450,25 +2450,52 @@ H2Omultipoles_2:
 
 matrixtaskgroups_yes:
   D Tr(K): 1.1e-10
-  EBS: 1.0e-10
+  EBS: 1.0e-9
+  EBS higher temperature: 1.2e-09
   EH: 1.1e-08
+  Epot: 1.0e-8
+  EvXC: 1.0e-9
   Energy (Hartree): 2.2e-09
   Ion-Ion interaction energy: 2.3e-10
   Omega: 2.2e-09
   Total charge: 2.0e-10
-  difference: 2.6e-11
+  difference: 3.3e-11
   energy: 2.2e-09
-  trace: 5.2e-08
-  trace(KS): 1.8e-11
+  trace: 1.7e-07
+  trace(KS): 1.9e-11
+  HOMO-LUMO gap (eV): 3.4e-11
+  Raw forces norm (Ha/Bohr): 3.3e-9
+  Clean forces norm (Ha/Bohr): 3.3e-9
+  Force Norm (Hartree/Bohr): 7.9e-11
+  Gross support functions moments: 1.1e-10
+  Total ionic charge: 3.2e-11
+  Maxdiff for transpose (checksum): 3.0e-11 
+  Keys to ignore:
+   - Calculating wavelets expansion of projectors, found warnings
+   - found warnings
+
 matrixtaskgroups_no:
   D Tr(K): 1.100000000000009e-10
-  EBS: 1.0e-10
+  EBS: 1.0e-9
+  EBS higher temperature: 1.2e-09
   EH: 1.1e-08
+  Epot: 1.0e-8
+  EvXC: 1.0e-9
   Energy (Hartree): 2.2e-09
   Ion-Ion interaction energy: 2.3e-10
   Omega: 2.2e-09
   Total charge: 2.0e-10
   difference: 2.6e-11
   energy: 2.2e-09
-  trace: 5.6e-08
+  trace: 1.7e-07
   trace(KS): 1.8e-11
+  HOMO-LUMO gap (eV): 3.4e-11
+  Raw forces norm (Ha/Bohr): 3.3e-9
+  Clean forces norm (Ha/Bohr): 3.3e-9
+  Force Norm (Hartree/Bohr): 7.9e-11
+  Gross support functions moments: 1.1e-10
+  Total ionic charge: 3.2e-11
+  Maxdiff for transpose (checksum): 3.0e-11 
+  Keys to ignore:
+   - Calculating wavelets expansion of projectors, found warnings
+   - found warnings
