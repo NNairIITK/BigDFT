@@ -31,7 +31,8 @@ LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	   O2spin \
 	   expfoegeopt \
 	   igortho \
-       extendedfrags
+       extendedfrags \
+	   matrixtaskgroups
 
 if HAVE_PEXSI
   LONG_TESTDIRS += pexsi

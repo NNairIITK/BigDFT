@@ -741,7 +741,8 @@ module ice
       ovrlp_scaled = matrices_null()
       ovrlp_scaled%matrix_compr = sparsematrix_malloc_ptr(ovrlp_smat, &
           iaction=SPARSE_TASKGROUP, id='ovrlp_scaled%matrix_compr')
-      call f_memcpy(src=ovrlp_mat%matrix_compr,dest=ovrlp_scaled%matrix_compr)
+      !call f_memcpy(src=ovrlp_mat%matrix_compr,dest=ovrlp_scaled%matrix_compr)
+      call vcopy(size(ovrlp_scaled%matrix_compr), ovrlp_mat%matrix_compr(1), 1, ovrlp_scaled%matrix_compr(1), 1)
 
       ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
       nsize_polynomial = inv_ovrlp_smat%smmm%nvctrp_mm

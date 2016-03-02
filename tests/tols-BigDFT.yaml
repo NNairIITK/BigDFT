@@ -757,7 +757,7 @@ fructose:
  Maxdiff for transpose (checksum): 2.4e-10
  ef: 1.1e-7
  difference: 1.4e-9
- relative difference: 6.2e-11
+ relative difference: 6.3e-11
  trace(KS): 2.5e-10
  eval: 1.1e-6
  Keys to ignore:
@@ -1213,7 +1213,7 @@ reformat_read:
  Raw forces norm (Ha/Bohr): 3.7e-9
  e: 5.3e-10
  Positions: 3.5e-09
- Energy (Hartree): 3.6e-11
+ Energy (Hartree): 4.5e-11
  Force Norm (Hartree/Bohr): 1.6e-11
  Total charge: 3.0e-11
  Maxdiff for transpose (checksum): 9.4e-10
@@ -1233,7 +1233,7 @@ reformat_write:
  Energy (Hartree): 3.2e-11
  Atomic Forces (Ha/Bohr): 1.2e-11
  Force Norm (Hartree/Bohr): 1.8e-11
- Maxdiff for transpose (checksum): 7.0e-10
+ Maxdiff for transpose (checksum): 1.2e-9
 
 explicit_locregcenters:
  EvXC: 1.1e-10
@@ -1499,7 +1499,7 @@ O2spin_dirmin:
  Clean forces norm (Ha/Bohr): 1.2e-4
  Raw forces norm (Ha/Bohr): 1.3e-4
  Electric Dipole Moment (AU): 2.4e-5
- Electric Dipole Moment (Debye): 3.0e-5
+ Electric Dipole Moment (Debye): 3.2e-5
  eBS: 1.52e-5
  fnrm2: 1.02e-4
  EH: 2.63e-5
@@ -1652,7 +1652,7 @@ FF_LJ-diis:
   - disablesym
 
 FF_LJ-fire:
-  epred: 1.61e-11
+  epred: 1.7e-11
   Keys to ignore:
   - WARNINGS
   - disablesym
@@ -1793,6 +1793,7 @@ surface_graphene:
  trace: 7.0e-10
  D Tr: 2.1e-11
  Maxdiff for transpose (checksum): 4.7e-10
+ trace(KS): 1.2e-11
  
 dev.ref.yaml:
  Epot: 1.1e-10
@@ -1832,7 +1833,7 @@ multipoles_OH-:
 
 multipoles_waterQM:
  Epot: 1.1e-10
- ekin: 1.1e-10
+ Ekin: 1.1e-10
  Maxdiff for transpose (checksum): 3.0e-11
 
 multipoles_waterQMQM:
@@ -2446,3 +2447,28 @@ H2Omultipoles_2:
 #  multiplicator for the confinement: 4.5e-11
 #  trace(KS): 1.9e-11
 #  Maxdiff for transpose (checksum): 1.5e-11
+
+matrixtaskgroups_yes:
+  D Tr(K): 1.1e-10
+  EBS: 1.0e-10
+  EH: 1.1e-08
+  Energy (Hartree): 2.2e-09
+  Ion-Ion interaction energy: 2.3e-10
+  Omega: 2.2e-09
+  Total charge: 2.0e-10
+  difference: 2.6e-11
+  energy: 2.2e-09
+  trace: 5.2e-08
+  trace(KS): 1.8e-11
+matrixtaskgroups_no:
+  D Tr(K): 1.100000000000009e-10
+  EBS: 1.0e-10
+  EH: 1.1e-08
+  Energy (Hartree): 2.2e-09
+  Ion-Ion interaction energy: 2.3e-10
+  Omega: 2.2e-09
+  Total charge: 2.0e-10
+  difference: 2.6e-11
+  energy: 2.2e-09
+  trace: 5.6e-08
+  trace(KS): 1.8e-11

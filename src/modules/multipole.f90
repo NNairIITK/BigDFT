@@ -434,7 +434,8 @@ module multipole
                           found_non_associated = .true.
                       end if
                   end do
-                  do i3=is3,ie3
+                  i3loop: do i3=is3,ie3
+                      if (maxval(gaussians3(:,i3,impl))<1.d-20) cycle i3loop
                       ii3 = i3 - nl3 -1
                       !z = real(ii3,kind=8)*hz + shift(3)
                       r(3) = huge(r(3))
@@ -442,7 +443,8 @@ module multipole
                           dr = real(ii3+j3*lzd%glr%d%n3i,kind=8)*hz + shift(3) - ep%mpl(impl)%rxyz(3)
                           if (abs(dr)<abs(r(3))) r(3) = dr
                       end do
-                      do i2=is2,ie2
+                      i2loop: do i2=is2,ie2
+                          if (maxval(gaussians2(:,i2,impl))<1.d-20) cycle i2loop
                           ii2 = i2 - nl2 - 1
                           !y = real(ii2,kind=8)*hy + shift(2)
                           r(2) = huge(r(2))
@@ -450,7 +452,8 @@ module multipole
                               dr = real(ii2+j2*lzd%glr%d%n2i,kind=8)*hy + shift(2) - ep%mpl(impl)%rxyz(2)
                               if (abs(dr)<abs(r(2))) r(2) = dr
                           end do
-                          do i1=is1,ie1
+                          i1loop: do i1=is1,ie1
+                              if (maxval(gaussians1(:,i1,impl))<1.d-20) cycle i1loop
                               ii1 = i1 - nl1 - 1
                               !x = real(ii1,kind=8)*hx + shift(1)
                               r(1) = huge(r(1))
@@ -518,9 +521,9 @@ module multipole
                                                    solid_harmonic(0,0.d0,ll,m,r(1),r(2),r(3))*&
                                                    sqrt(4.d0*pi/real(2*ll+1,kind=8))
                               end do
-                          end do
-                      end do
-                  end do
+                          end do i1loop
+                      end do i2loop
+                  end do i3loop
               else norm_if
                   ! Use the method based on the analytic formula
                   do l=0,lmax
@@ -2312,7 +2315,6 @@ module multipole
       use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
                                    sparsematrix_malloc, matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                    SPARSE_TASKGROUP, sparse_matrix_metadata
-      use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local
       use communications, only: transpose_localized
       use orthonormalization, only: orthonormalizelocalized,overlap_matrix
@@ -2891,7 +2893,7 @@ module multipole
                                    matrices_null, deallocate_matrices, &
                                    sparse_matrix_metadata
       use sparsematrix_init, only: matrixindex_in_compressed
-      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix, trace_sparse
+      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local, trace_sparse
       use matrix_operations, only: overlapPowerGeneral, overlap_plus_minus_one_half_exact
       use yaml_output
       use multipole_base, only: lmax
@@ -3059,8 +3061,8 @@ module multipole
                    ovrlp_onehalf_(1)%matrix_compr, tmpmat1, kerneltilde)
           else if (ortho=='no') then
               ovrlp_large = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='ovrlp_large')
-              call transform_sparse_matrix(smats, smatl, 'small_to_large', &
-                   smat_in=ovrlp_%matrix_compr, lmat_out=ovrlp_large)
+              call transform_sparse_matrix_local(smats, smatl, 'small_to_large', &
+                   smatrix_compr_in=ovrlp_%matrix_compr, lmatrix_compr_out=ovrlp_large)
               call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
                    kernel_%matrix_compr, ovrlp_large, kerneltilde)
               call f_free(ovrlp_large)
@@ -3525,6 +3527,7 @@ module multipole
               call f_free(locregs_ID)
               call f_free(ef_atom)
               call f_free(kerneltilde)
+              call f_release_routine()
               return
           end if
     
@@ -4449,7 +4452,6 @@ end if
                                 matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                 sparse_matrix_metadata
    use locreg_operations,only: workarr_sumrho, initialize_work_arrays_sumrho, deallocate_work_arrays_sumrho
-   use sparsematrix_init, only: matrixindex_in_compressed
    use yaml_output
    use bounds, only: geocode_buffers
    use orbitalbasis
@@ -4718,7 +4720,6 @@ sigma=0.5d0
    use bounds, only: geocode_buffers
    use sparsematrix_base, only: matrices, matrices_null, sparsematrix_malloc_ptr, SPARSE_TASKGROUP, assignment(=), &
                                 deallocate_matrices
-   use sparsematrix_init, only: matrixindex_in_compressed
    use orthonormalization, only: orthonormalizelocalized
 
    use communications_base, only: TRANSPOSE_FULL
