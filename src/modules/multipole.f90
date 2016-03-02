@@ -4477,6 +4477,7 @@ end if
    type(orbital_basis) :: psi_ob
    real(gp), dimension(3) :: acell
    real(wp), dimension(:,:,:), allocatable :: Qlm
+   real(kind=8),dimension(:),allocatable :: gg1, gg2, gg3
 
 
    call f_routine(id='unitary_test_multipoles')
@@ -4501,7 +4502,7 @@ end if
    end do
    call geocode_buffers('F', lzd%glr%geocode, nl1, nl2, nl3)
 
-sigma=0.5d0
+  sigma=0.5d0
 
    ist = 0
    do iorb=1,orbs%norbp
@@ -4515,6 +4516,25 @@ sigma=0.5d0
        ! of the integration volume must be on a gridpoint to avoid truncation artifacts.
        locregcenter(1:3,ilr) = get_closest_gridpoint(lzd%llr(ilr)%locregcenter,hgrids)
 
+       gg1 = f_malloc(lzd%llr(ilr)%d%n1i,id='gg1')
+       gg2 = f_malloc(lzd%llr(ilr)%d%n2i,id='gg2')
+       gg3 = f_malloc(lzd%llr(ilr)%d%n3i,id='gg3')
+       do i1=1,lzd%llr(ilr)%d%n1i
+           ii1 = lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
+           x = ii1*0.5d0*lzd%hgrids(1) - locregcenter(1,ilr)
+           gg1(i1) = safe_exp(-0.5d0*x**2/sigma**2)
+       end do
+       do i2=1,lzd%llr(ilr)%d%n2i
+           ii2 = lzd%llr(ilr)%nsi2 + i2 - nl2 - 1
+           y = ii2*0.5d0*lzd%hgrids(2) - locregcenter(2,ilr)
+           gg2(i2) = safe_exp(-0.5d0*y**2/sigma**2)
+       end do
+       do i3=1,lzd%llr(ilr)%d%n3i
+           ii3 = lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
+           z = ii3*0.5d0*lzd%hgrids(3) - locregcenter(3,ilr)
+           gg3(i3) = safe_exp(-0.5d0*z**2/sigma**2)
+       end do
+
        do i3=1,lzd%llr(ilr)%d%n3i
            ii3 = lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
            z = ii3*0.5d0*lzd%hgrids(3) - locregcenter(3,ilr)
@@ -4524,7 +4544,7 @@ sigma=0.5d0
                do i1=1,lzd%llr(ilr)%d%n1i
                    ii1 = lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
                    x = ii1*0.5d0*lzd%hgrids(1) - locregcenter(1,ilr)
-                   r2 = x**2+y**2+z**2
+                   !r2 = x**2+y**2+z**2
                    !if (r2>rmax**2) cycle
                    !r = sqrt(r2)
                    !r = max(0.5d0,r)
@@ -4543,14 +4563,19 @@ sigma=0.5d0
 !!$                           else if (l==2) then
 !!$                               factor = factor*7.d0/(3.d0*rmax**4)
 !!$                           end if
+                           !!phi2r(ist+ind) = phi2r(ist+ind) + &
+                           !!     safe_exp(-0.5d0*r2/sigma**2)*factor*solid_harmonic(0, r, l, m , x, y, z)/sqrt(twopi**3)
                            phi2r(ist+ind) = phi2r(ist+ind) + &
-                                safe_exp(-0.5d0*r2/sigma**2)*factor*solid_harmonic(0, r, l, m , x, y, z)/sqrt(twopi**3)
+                                gg1(i1)*gg2(i2)*gg3(i3)*factor*solid_harmonic(0, r, l, m , x, y, z)/sqrt(twopi**3)
                        end do
                    end do
                    !write(*,*) 'i1, i2, i3, ist+ind, val', i1, i2, i3, ist+ind, phi2r(ist+ind)
                end do
            end do
        end do
+       call f_free(gg1)
+       call f_free(gg2)
+       call f_free(gg3)
        ist = ist + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
     end do
 
@@ -5334,20 +5359,23 @@ sigma=0.5d0
    !$omp private(impl, i1, i2, i3, ii1, ii2, ii3, l, gg) 
    !$omp do
    do impl=1,ep%nmpl
-       do i3=is3,ie3
+       i3loop: do i3=is3,ie3
+           if (maxval(gaussians3(:,i3,impl))<1.d-20) cycle i3loop
            ii3 = i3 - 15
-           do i2=is2,ie2
+           i2loop: do i2=is2,ie2
+               if (maxval(gaussians2(:,i2,impl))<1.d-20) cycle i2loop
                ii2 = i2 - 15
-               do i1=is1,ie1
+               i1loop: do i1=is1,ie1
+                   if (maxval(gaussians1(:,i1,impl))<1.d-20) cycle i1loop
                    ii1 = i1 - 15
                    do l=0,lmax
                        ! Calculate the Gaussian as product of three 1D Gaussians
                        gg = gaussians1(l,i1,impl)*gaussians2(l,i2,impl)*gaussians3(l,i3,impl)
                        norm(l,impl) = norm(l,impl) + gg*hhh
                    end do
-               end do
-           end do
-       end do
+               end do i1loop
+           end do i2loop
+       end do i3loop
    end do
    !$omp end do
    !$omp end parallel
