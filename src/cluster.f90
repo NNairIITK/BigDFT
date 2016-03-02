@@ -1942,7 +1942,8 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   character(len = *), intent(in) :: dir_output
   character(len = *), intent(in) :: gridformat
   real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
-  real(gp), dimension(3, atoms%astruct%nat), intent(in) :: fdisp, fion, fpulay
+  real(gp), dimension(3, atoms%astruct%nat), intent(in) :: fdisp,fpulay
+  real(gp), dimension(3, atoms%astruct%nat), intent(inout) :: fion
   real(dp), dimension(6), intent(in) :: ewaldstr
   real(dp), dimension(6), intent(inout) :: xcstr
   real(gp), intent(out) :: fnoise, pressure
@@ -2035,7 +2036,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
         call Electrostatic_Solver(denspot%pkernel,denspot%pot_work,PSenergies,rho_ion=denspot%rho_ion)
         !here the ionic forces can be corrected with the value coming from the cavity
         if (denspot%pkernel%method .hasattr. 'rigid') &
-             call ps_soft_PCM_forces(denspot%pkernel,ehart_fake,fxyz)
+             call ps_soft_PCM_forces(denspot%pkernel,fion)
      else
         call Electrostatic_Solver(denspot%pkernel,denspot%pot_work,PSenergies)
      end if

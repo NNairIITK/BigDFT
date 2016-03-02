@@ -378,21 +378,21 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !gather the full result in the case of datacode = G
   if (kernel%opt%datacode == 'G') call PS_gather(rhov,kernel)
 
-!!$  if (build_c) then
-!!$   kernel%IntSur=IntSur
-!!$   kernel%IntVol=IntVol
-!!$  end if
-!!$  if (kernel%opt%only_electrostatic) then
-!!$   kernel%IntSur=0.0_gp
-!!$   kernel%IntVol=0.0_gp
-!!$  end if
+  if (build_c) then
+   kernel%IntSur=IntSur
+   kernel%IntVol=IntVol
+  end if
+  if (kernel%opt%only_electrostatic) then
+   kernel%IntSur=0.0_gp
+   kernel%IntVol=0.0_gp
+  end if
   !evaluating the total ehartree + e_static if needed
   !also cavitation energy can be given
 
   energies%hartree=ehartreeLOC*0.5_dp*product(kernel%hgrids)
   energies%eVextra=e_static*product(kernel%hgrids)
-!!$  energies%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*kernel%IntSur+&
-!!$       kernel%cavity%betaV*kernel%IntVol
+  energies%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*kernel%IntSur+&
+       kernel%cavity%betaV*kernel%IntVol
 
    call PS_reduce(energies,kernel)
 

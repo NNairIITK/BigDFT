@@ -81,7 +81,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz,fion,fdisp,fpulay
   real(gp), intent(out) :: pressure
   real(gp), dimension(6), intent(out) :: strten
-  real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: fxyz
   type(DFT_wavefunction),intent(inout) :: tmb
   !Local variables
   integer :: iat,i,j
@@ -531,7 +531,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 
   !Initialization
   locstrten=0.0_gp
-  floc=0.0_gp
+  call f_zero(floc)
 
   charge=0.d0
   if (use_iterator) then
