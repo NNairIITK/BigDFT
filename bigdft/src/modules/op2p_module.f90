@@ -22,8 +22,10 @@ module overlap_point_to_point
    integer, parameter :: SEND_DATA=1,RECV_DATA=2,SEND_RES=3,RECV_RES=4
    integer, parameter :: DATA_=1,RES_=2
    integer, parameter :: AFTER_=1,BEFORE_=2
-   real(wp), parameter :: group_delta=2.0_wp,obj_delta=1.0_wp,elem_delta=1.e-6_wp
 
+   !> Used by the unitary test.
+!!$   real(wp), parameter :: group_delta=2.0_wp,obj_delta=1.0_wp,elem_delta=1.e-6_wp
+   real(wp) :: group_delta,obj_delta
 
    type(f_enumerator), parameter, public :: OP2P_START=f_enumerator('START',0,null())
    type(f_enumerator), parameter, public :: OP2P_CALCULATE=f_enumerator('CALCULATE',1,null())
@@ -79,7 +81,7 @@ module overlap_point_to_point
       type(f_enumerator) :: event !< OP2P event
    end type OP2P_iterator
 
-   !> type to control the communication scheduling
+   !> Type to control the communication scheduling
    type, public :: OP2P_data
       logical :: simulate !<toggle the simulation of the communication
       logical :: verbose !<verbosiry of the communication
@@ -129,7 +131,8 @@ module overlap_point_to_point
 
    contains
 
-     !pure
+
+     !> Pure function
      function OP2P_iter_null() result(it)
        implicit none
        type(OP2P_iterator) :: it
@@ -147,6 +150,7 @@ module overlap_point_to_point
        call nullify_local_data(it%phi_j)
        it%event=OP2P_EXIT
      end function OP2P_iter_null
+
 
      subroutine nullify_local_data(ld)
        implicit none
@@ -609,6 +613,8 @@ module overlap_point_to_point
        call nullify_OP2P_data(OP2P)
      end subroutine free_OP2P_data
 
+
+     !> Create an iterator iter from OP2P object.
      subroutine set_OP2P_iterator(iproc,OP2P,iter,norbp,data,res)
        implicit none
        integer, intent(in) :: norbp,iproc
@@ -648,6 +654,7 @@ module overlap_point_to_point
        iter%iproc=iproc
        iter%initialisation_time=f_time()
      end subroutine set_OP2P_iterator
+
 
      subroutine release_OP2P_iterator(iter)
        implicit none
@@ -898,6 +905,8 @@ module overlap_point_to_point
        end if
      end subroutine prepare_calculation
 
+
+     !> Communication step using OP2P data + an iterator iter over OP2P.
      subroutine OP2P_communication_step(iproc,OP2P,iter)
        implicit none
        integer, intent(in) :: iproc
@@ -971,7 +980,8 @@ module overlap_point_to_point
           OP2P%istep=OP2P%istep+1
           if (OP2P%istep > OP2P%nstep) exit step_loop
        end do step_loop
-!retrieve result from GPU
+
+       !retrieve result from GPU
        if(OP2P%gpudirect == 1) then
          call get_gpu_data(OP2P%ndim*sum(OP2P%nobj_par(iproc,:)),iter%phi_i%res,iter%phi_i%res_GPU)
          call synchronize()
@@ -985,8 +995,10 @@ module overlap_point_to_point
            iter%phi_i%res_GPU=C_NULL_PTR
          end if
        end if
+
        !release iterator
        call release_OP2P_iterator(iter)
+
      end subroutine OP2P_communication_step
 
 
@@ -1010,13 +1022,14 @@ module overlap_point_to_point
      end subroutine OP2P_info
 
 
+     !> Unitary test for the Overlap point-to-point.
      subroutine OP2P_unitary_test(mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
        use yaml_output, only: yaml_map
        implicit none
        !Arguments
        !>flag indicating the symmetricity of the operation. This reflects in the communication scheduling
        logical, intent(inout) :: symmetric
-       integer, intent(in) :: mpi_comm,iproc,nproc,ngroup,ndim
+       integer, intent(in) :: mpi_comm,iproc,nproc,ngroup,ndim !< MPI data
        integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
        !local variables
        integer :: norbp
@@ -1026,23 +1039,27 @@ module overlap_point_to_point
        !first initialize the OP2P data
        call initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,0,symmetric)
 
-       if (.not. OP2P_test(iproc,nproc,OP2P,maxdiff)) &
-            call f_err_throw('OP2P Unitary test not passed, maxdiff='+maxdiff**'(1pe12.5)')
+       if (.not. OP2P_test(iproc,nproc,OP2P,maxdiff)) then
+          if (iproc==0) call f_err_throw('OP2P Unitary test not passed, maxdiff='+maxdiff**'(1pe12.5)')
+       end if
 
        if (iproc==0)  call yaml_map('OP2P unitary test error',maxdiff)
        call free_OP2P_data(OP2P)
      end subroutine OP2P_unitary_test
+
 
      !> Test the coherence of the OP2P scheme within the chosen repartition.
      !! this subroutine might be useful to detect if some problem exists in a particular run.
      function OP2P_test(iproc,nproc,OP2P,maxdiff) result(passed)
        use yaml_output, only: yaml_comment
        implicit none
+       !Arguments
        integer, intent(in) :: iproc,nproc
        real(wp), intent(out) :: maxdiff
        type(OP2P_data), intent(inout) :: OP2P
        logical :: passed
        !local variables
+       real(wp), parameter :: tol_maxdiff=1.e-13_wp
        integer :: norbp,prc
        real(wp) :: etot,tel,trm
        type(OP2P_iterator) :: iter
@@ -1054,6 +1071,10 @@ module overlap_point_to_point
        !allocate and fill the data
        data=f_malloc([OP2P%ndim,norbp],id='data')
        res=f_malloc0([OP2P%ndim,norbp],id='res')
+
+       !To avoid too big numbers during the test.
+       obj_delta = 1.d0/real(sum(OP2P%nobj_par),wp)
+       group_delta = 1.d0/real(OP2P%ngroup*nproc,wp)
 
        call test_data(iproc,OP2P,norbp,data)
 
@@ -1080,7 +1101,8 @@ module overlap_point_to_point
 
        if (nproc > 1) call mpiallred(maxdiff,1,op=MPI_MAX,comm=OP2P%mpi_comm)
 
-       passed=maxdiff < abs(data_val(1,1,1) - data_val(2,1,1)) + 1.d-10
+!!$       passed=maxdiff < abs(data_val(1,1,1) - data_val(2,1,1)) + tol_maxdiff
+       passed=maxdiff < tol_maxdiff
 
        call f_free(data)
        call f_free(res)
@@ -1090,6 +1112,7 @@ module overlap_point_to_point
 
      subroutine test_data(iproc,OP2P,norbp,data)
        implicit none
+       !Arguments
        integer, intent(in) :: norbp,iproc
        type(OP2P_data), intent(in) :: OP2P
        real(wp), dimension(OP2P%ndim,norbp), intent(out) :: data
@@ -1126,18 +1149,23 @@ module overlap_point_to_point
 
              iobj_glob=OP2P%objects_id(GLOBAL_,iproc,igr)+iobj
              iobj_loc=OP2P%objects_id(LOCAL_,iproc,igr)-1+iobj
-!!$             ref=
+
 !!$             print *,'res',nobj,res(1,iobj_loc),res_val(1,iobj_glob,igr,OP2P%ndim,nobj),&
 !!$                  (res(1,iobj_loc)-res_val(1,iobj_glob,igr,OP2P%ndim))/OP2P%ndim
+
              do i=1,OP2P%ndim
                 ref=res_val(i,iobj_glob,igr,OP2P%ndim,mpisize(OP2P%mpi_comm),OP2P%ngroup,OP2P%nobj_par)
-                maxdiff=max(maxdiff,abs(res(i,iobj_loc)-ref))
+!!$                if (abs(res(i,iobj_loc)-ref) > 1.d-10) &
+!!$                   & print *,iproc,i,iobj_loc,res(i,iobj_loc),ref,abs(res(i,iobj_loc)-ref)
+!!$                   maxdiff=max(maxdiff,abs(res(i,iobj_loc)-ref))
+                   maxdiff=max(maxdiff,abs(res(i,iobj_loc)/ref-1.0_wp))
              end do
           end do
        end do
      end subroutine check_result
 
-     !>define test value
+
+     !> Define test value
      pure function data_val(i,iobj,igroup)
        implicit none
        integer, intent(in) :: i,iobj,igroup
@@ -1146,9 +1174,11 @@ module overlap_point_to_point
        data_val=(obj_delta*iobj)*(igroup)*group_delta!*i*elem_delta
      end function data_val
 
-     !>define the application of the operator to have a test result
+
+     !> Define the application of the operator to have a test result
      pure function op_val(ndim,iobj,jobj,igroup)
        implicit none
+       !Arguments
        integer, intent(in) :: iobj,jobj,igroup,ndim
        real(wp) :: op_val
        !local variables
@@ -1156,14 +1186,16 @@ module overlap_point_to_point
 
        els=real(ndim,wp)
        !els=(ndim*0.5_wp)*(ndim+1)*elem_delta**2!
-       op_val=(els*obj_delta**2)*iobj*jobj*(group_delta*(igroup))**2
+       op_val=(els*obj_delta**2)*real(iobj*jobj,wp)*(group_delta*real(igroup,wp))**2
 
      end function op_val
 
-     !>define test result
-     !pure
+
+     !> Define test result
+     !!pure
      function res_val(i,iobj,igroup,ndim,nproc,ngroup,nobj_par)
        implicit none
+       !Arguments
        integer, intent(in) :: i,iobj,igroup,ndim,nproc,ngroup
        integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
        real(wp) :: res_val
@@ -1183,6 +1215,7 @@ module overlap_point_to_point
        end do
 
      end function res_val
+
 
    subroutine simulate_OP2P_calculation(igroup,istep,remote_result,&
         nloc_i,nloc_j,isloc_i,isloc_j,&
@@ -1254,7 +1287,7 @@ module overlap_point_to_point
    end subroutine simulate_OP2P_calculation
 
 
-   !<initialise the data needed to manage communication operations
+   !> Initialise the data needed to manage communication operations
    !objects_attributes(:,1) <= group to which the object belongs
    !objects_attributes(:,2) <= size in number of elements of the object
    !objects_attributes(:,3) <= size in number of elements of the results of the operations associated to the object

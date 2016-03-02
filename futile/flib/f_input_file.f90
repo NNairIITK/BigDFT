@@ -61,7 +61,7 @@ contains
   !> Callback routine for illegal input variables
   subroutine warn_illegal()
     implicit none
-    
+
   end subroutine warn_illegal
 
   !> define the errors of the module
@@ -339,7 +339,7 @@ contains
          call f_zero(val_when)
          !call yaml_map('val',dict_value(iter))
          !call yaml_map('tmp0',tmp0)
-         val_when = tmp0 .get. dict_value(iter) 
+         val_when = tmp0 .get. dict_value(iter)
          set_ = trim(val_master) .eqv. trim(val_when)
       end do
       if (.not. set_) return
@@ -347,7 +347,7 @@ contains
       do while(iterating(iter,on=tmp_not) .and. set_)
          call f_zero(val_when)
          !call yaml_map('valnot',dict_value(iter))
-         val_when = tmp0 .get. dict_value(iter) 
+         val_when = tmp0 .get. dict_value(iter)
          set_ = .not. (trim(val_master) .eqv. trim(val_when))
       end do
     end function set_
@@ -460,7 +460,7 @@ contains
     character(len = *), intent(in) :: file
     !local variables
     type(dictionary), pointer :: dict_tmp,ref,dict_err,dict_it
-    
+
     ref=> inputdef // file
     !parse all the keys of the dictionary
     dict_tmp=>dict_iter(dict//file)
@@ -554,7 +554,7 @@ contains
     if (associated(parent)) then
        attr = parent .get. (trim(dict%data%key)//ATTRS)
        descr = attr .get. COMMENT
-       prof = attr .get. PROF_KEY   
+       prof = attr .get. PROF_KEY
        userDef = attr .get. USER_KEY
     end if
 
@@ -621,7 +621,7 @@ contains
   end subroutine input_variable_dump
 
 
-  !> This routine is used to create a minimal dictionary which can be used at the place 
+  !> This routine is used to create a minimal dictionary which can be used at the place
   !! of the one provided as an indication on the understood variables in inputdef
   subroutine input_file_minimal(inputdef,dict,minimal,nested,as_is)
     use dynamic_memory
@@ -758,7 +758,7 @@ contains
                   !call yaml_map('var_prof',var_prof)
                   !call yaml_map('test',trim(var_prof) /= DEFAULT .and. var_prof /= prof_var)
                   !print *,'key',def_var
-                  profile_found= (defvar == input//def_var) 
+                  profile_found= (defvar == input//def_var)
                   !if it has not been found verify first that the list has not to be compacted
                   !in one sense
                   if (.not. profile_found) then
@@ -857,7 +857,7 @@ contains
           !check if all the values are OK, otherwise exit at first failure
           if (scalar /= probe) then
              call f_zero(scalar)
-             exit 
+             exit
           end if
        end if
        iter => dict_next(iter)
@@ -893,7 +893,7 @@ contains
     else
        call yaml_comment("Input parameters", hfill = "-")
     end if
-    
+
 !!$    iter => dict_iter(dict)
 !!$    do while(associated(iter))
     nullify(iter)
@@ -906,5 +906,5 @@ contains
 
   end subroutine input_file_dump
 
-  
+
 end module f_input_file

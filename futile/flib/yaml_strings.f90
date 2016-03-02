@@ -25,7 +25,7 @@ module yaml_strings
   character(len=*), parameter :: yaml_char_fmt = '(a)'                       !< Default format for strings
 
   !> structure containing the string and its length
-  !! for the moment implement it basically, we might then 
+  !! for the moment implement it basically, we might then
   !! identifty a strategy to allocate the string according to the needs
   type, public :: f_string
      character(len=4*max_value_length) :: msg
@@ -131,9 +131,9 @@ contains
     do i=n+1,len(dest)
        dest(i:i)=' '
     end do
-    
+
   end subroutine f_strcpy
-  
+
   pure subroutine f_strcpy_str(dest,src)
     implicit none
     character(len=*), intent(out) :: dest
@@ -142,7 +142,7 @@ contains
     call f_strcpy(dest=dest,src=src%msg)
 
   end subroutine f_strcpy_str
-  
+
 
   !> Add a buffer to a string and increase its length
   pure subroutine buffer_string(string,string_lgt,buffer,string_pos,back,istat)
@@ -183,10 +183,10 @@ contains
 !          write(*,*)'#String limit: ',string_lgt
           lgt_add=string_lgt-string_pos-1
 !          write(*,*)'#Buffer shortened into: ',buffer(1:lgt_add)
-          !stop 
+          !stop
        end if
     end if
-       
+
     if (lgt_add==0) return
     if (present(back)) then
        if (back) then
@@ -205,7 +205,7 @@ contains
 
 
   !> Add the spaces necessary to align the first occurrence of a given anchor
-  !! into a tabular value. Can be done either by moving rigidly the message or 
+  !! into a tabular value. Can be done either by moving rigidly the message or
   !! by adding spaces between the anchor and the rest of the message
   subroutine align_message(rigid,maxlen,tabval,anchor,message)
     implicit none
@@ -220,13 +220,13 @@ contains
     !cannot align, tabular too far
     if (tabval>maxlen) return
 
-    iscpos=index(message,anchor)      
+    iscpos=index(message,anchor)
     ishift=tabval-iscpos
     if (rigid) then
        call shiftstr(message,ishift)
     else
        message=message(1:iscpos-1)//repeat(' ',ishift)//anchor//&
-            message(iscpos+1:maxlen-ishift)  ! shift right 
+            message(iscpos+1:maxlen-ishift)  ! shift right
     end if
 
   end subroutine align_message
@@ -302,12 +302,12 @@ contains
        write(zr,yaml_dble_fmt) zeta(1)
        write(zi,yaml_dble_fmt) zeta(2)
     end if
-    
+
     zr=yaml_adjust(zr,clean=.not. present(fmt))
     zi=yaml_adjust(zi,clean=.not. present(fmt))
     rpos=len(trim(zr))
     ipos=min(len(trim(zi)),max_value_length-rpos-2)
-    
+
     yaml_ztoa(1:rpos)=zr(1:rpos)
     if (zeta(2) >= 0.d0) then
        yaml_ztoa(rpos+1:rpos+2)='+'
@@ -354,6 +354,7 @@ contains
   end function yaml_zvtoa
 
   !> Convert vector of integer to character
+  !! @warning Truncate if too long
   pure function yaml_ivtoa(vec,fmt) result(vec_toa)
     implicit none
     integer(kind=4), dimension(:), intent(in) :: vec
@@ -531,7 +532,7 @@ contains
 
 
   !>find if a string is an integer
-  !! use the portable mode described in 
+  !! use the portable mode described in
   !! http://flibs.sourceforge.net/fortran_aspects.html#check_integers
   pure function is_atoi(str) result(yes)
     implicit none
@@ -540,16 +541,16 @@ contains
     !local variables
     integer :: ierr,ival
     character(len=20) :: form
-    
+
     !fill the string describing the format to be used for reading
     !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
-    write(form,'(a20)')'(i'//adjustl(trim(yaml_toa(len_trim(str),fmt='(i17)')))//')' 
+    write(form,'(a20)')'(i'//adjustl(trim(yaml_toa(len_trim(str),fmt='(i17)')))//')'
     read(str,trim(form),iostat=ierr)ival
     yes=ierr==0
   end function is_atoi
 
   !>find if a string is a long integer
-  !! use the portable mode described in 
+  !! use the portable mode described in
   !! http://flibs.sourceforge.net/fortran_aspects.html#check_integers
   !! note that this function also gives positive answer if the character fits with ddefault integer type
   !! therefore care should be taken in the usage (use only when long is needed)
@@ -564,14 +565,14 @@ contains
 
     !fill the string describing the format to be used for reading
     !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
-    write(form,'(a20)')'(i'//adjustl(trim(yaml_toa(len_trim(str),fmt='(i17)')))//')' 
+    write(form,'(a20)')'(i'//adjustl(trim(yaml_toa(len_trim(str),fmt='(i17)')))//')'
     read(str,trim(form),iostat=ierr)ival
     yes=ierr==0
   end function is_atoli
 
 
-  !>check if str contains a floating point number. 
-  !!note that in principle this function gives positive answer also 
+  !>check if str contains a floating point number.
+  !!note that in principle this function gives positive answer also
   !!if the number in str is an integer. Therefore is_atoi should be used to check before
   pure function is_atof(str) result(yes)
     implicit none
@@ -609,7 +610,7 @@ contains
        &     .or. (ie-is+1==5 .and. any(str(is:ie) == ['False', 'false', 'FALSE']))
   end function is_atol
 
-  !> Read a real or real/real, real:real 
+  !> Read a real or real/real, real:real
   !! Here the fraction is indicated by the ':' or '/'
   !! The problem is that / is a separator for Fortran
   pure subroutine read_fraction_string(string,var,ierror)
@@ -632,13 +633,13 @@ contains
     !It is not a fraction
     if (pfr == 0) then
        read(tmp(1:psp),*,iostat=ierror) var
-    else 
+    else
        read(tmp(1:pfr-1),*,iostat=ierror) num
        read(tmp(pfr+1:psp),*,iostat=ierror) den
        if (ierror == 0) var=dble(num)/dble(den)
     end if
     !Value by defaut
-    if (ierror /= 0) var = huge(1.d0) 
+    if (ierror /= 0) var = huge(1.d0)
   END SUBROUTINE read_fraction_string
 
   pure function string_inequivalence(a,b) result(notok)
@@ -822,7 +823,7 @@ contains
     type(f_string), intent(in) :: msg
     call f_strcpy(string,msg%msg)
   end subroutine msg_to_string
-  
+
   !function which attach two strings each other
   pure function attach_ci(s,num) result(c)
     implicit none
@@ -863,7 +864,7 @@ contains
     type(f_string) :: c
     call f_strcpy(c%msg,trim(s)//trim(adjustl(yaml_toa(num))))
   end function attach_cd
-  
+
   pure function yaml_itoa_fmt(num,fmt) result(c)
     implicit none
     integer(f_integer), intent(in) :: num
@@ -907,7 +908,7 @@ contains
 
   !> Shifts characters in in the string 'str' n positions (positive values
   !! denote a right shift and negative values denote a left shift). Characters
-  !! that are shifted off the end are lost. Positions opened up by the shift 
+  !! that are shifted off the end are lost. Positions opened up by the shift
   !! are replaced by spaces.
   !! This routine has been downloaded from the website http://gbenthien.net/strings/index.html
   pure subroutine shiftstr(str,n)
@@ -924,9 +925,8 @@ contains
        return
     end if
     if(n<0) str=str(nabs+1:)//repeat(' ',nabs)  ! shift left
-    if(n>0) str=repeat(' ',nabs)//str(:lenstr-nabs)  ! shift right 
+    if(n>0) str=repeat(' ',nabs)//str(:lenstr-nabs)  ! shift right
 
   end subroutine shiftstr
 
 end module yaml_strings
-

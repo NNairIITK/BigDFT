@@ -66,7 +66,7 @@ make_input()
 
     # Create the posinp file
     make_xyz $position_file $n_nodes $restart_file
-    
+
     # Copy the input.yaml
     cp -f -p $datadir/default.yaml ./default.yaml
 
@@ -125,7 +125,7 @@ check_job()
             fi
 	fi
     fi
-    
+
     # Job not finished
     echo "0"
 }

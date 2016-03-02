@@ -39,14 +39,14 @@ TESTDIRS := ${checkonly_${checkonlyfoo_${CHECK_MODE}_${CHECK_MODE_INTERNAL}}}
 
 
 # here one might also reset the values for future use, but automake would complain
-#checkonlyfoo_short= 
-#checkonlyfoo_long= 
+#checkonlyfoo_short=
+#checkonlyfoo_long=
 #checkonly_short=
 #checkonly_long=
 #checkonly_=
 
 
-#$(TESTDIRS) 
+#$(TESTDIRS)
 
 ALLDIRS = $(EXTRA_TESTDIRS) $(LONG_TESTDIRS)
 
@@ -301,8 +301,7 @@ head_message:
 	@echo "  make X.diff:       make the difference between output and the reference"
 	@echo "                     (with the environment variable DIFF)"
 	@echo "  make X.updateref   update the reference with the output"
-	@echo "                     (prompt the overwrite)"	
+	@echo "                     (prompt the overwrite)"
 
 foot_message: $(mpirun_message) $(oclrun_message) head_message
 	@echo "=============================================================================="
-

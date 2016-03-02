@@ -506,7 +506,7 @@
  Analytic core charges for atom species:
    O                                   :  0.4649657
  Total core charge                     :  0.4649657
- Total core charge on the grid (To be compared with analytic one):  0.4649657
+ Total core charge on the grid :  0.4649657
  Communication checks:
    Transpositions                      :  Yes
    Reverse transpositions              :  Yes
@@ -727,7 +727,7 @@
  Analytic core charges for atom species:
    O                                   :  0.4649657
  Total core charge                     :  0.4649657
- Total core charge on the grid (To be compared with analytic one):  0.4649657
+ Total core charge on the grid :  0.4649657
  Communication checks:
    Transpositions                      :  Yes
    Reverse transpositions              :  Yes
@@ -937,7 +937,7 @@
  Analytic core charges for atom species:
    O                                   :  0.4649657
  Total core charge                     :  0.4649657
- Total core charge on the grid (To be compared with analytic one):  0.4649657
+ Total core charge on the grid :  0.4649657
  Communication checks:
    Transpositions                      :  Yes
    Reverse transpositions              :  Yes
@@ -1145,7 +1145,7 @@
  Analytic core charges for atom species:
    O                                   :  0.4649657
  Total core charge                     :  0.4649657
- Total core charge on the grid (To be compared with analytic one):  0.4649657
+ Total core charge on the grid :  0.4649657
  Communication checks:
    Transpositions                      :  Yes
    Reverse transpositions              :  Yes

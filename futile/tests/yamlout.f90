@@ -150,32 +150,39 @@ subroutine test_yaml_output_sequences1()
   integer :: i
   character(len=10), dimension(:), allocatable :: cv
   integer, dimension(:), allocatable :: iv
+  integer, dimension(:,:), allocatable :: ijv
   real(kind=8), dimension(:), allocatable :: dv
-  
+
   allocate(cv(0))
   allocate(iv(0))
+  ! Troubel with a large first dimension
+  allocate(ijv(30,5))
+  do i=1,size(ijv,2)
+    ijv(:,i) = 2*i
+  end do
   !This raises a bug for a vector which is too long
   allocate(dv(11))
   dv=3.d0
 
-   call yaml_map('Vector of characters',cv)
-   call yaml_map('Vector of integers',iv)
-   !call yaml_stream_attributes()
-   call yaml_mapping_open('Is it OK?',flow=.true.)
-   call yaml_map('Maybe',.true.)
-   call yaml_map('Maybe',.false.)
-   call yaml_mapping_close(advance='yes')
-   call yaml_sequence_open('Vector of double',flow=.true.)
-      do i=1,size(dv)
-         call yaml_sequence(trim(yaml_toa(dv(i),fmt='(1pe12.5)')))
-   end do
-   call yaml_sequence_close()
+  call yaml_map('Vector of characters',cv)
+  call yaml_map('Vector of integers',iv)
+  call yaml_map('Matrix of integers',ijv)
+  !call yaml_stream_attributes()
+  call yaml_mapping_open('Is it OK?',flow=.true.)
+  call yaml_map('Maybe',.true.)
+  call yaml_map('Maybe',.false.)
+  call yaml_mapping_close(advance='yes')
+  call yaml_sequence_open('Vector of double',flow=.true.)
+  do i=1,size(dv)
+  end do
+  call yaml_sequence_close()
 
-   call yaml_map('Vector of real(kind=8)',dv,fmt='(f3.0)')
+  call yaml_map('Vector of real(kind=8)',dv,fmt='(f3.0)')
 
-   deallocate(cv)
-   deallocate(iv)
-   deallocate(dv)
+  deallocate(cv)
+  deallocate(iv)
+  deallocate(ijv)
+  deallocate(dv)
 
 end subroutine test_yaml_output_sequences1
 

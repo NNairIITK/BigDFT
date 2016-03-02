@@ -33,7 +33,7 @@ program PS_Integral
   real(dp), dimension(:,:,:), allocatable :: multiple_naive, analytic_integral_result, timings
   !local variables
   character(len=*), parameter :: subname='PS_Integral'
-  integer :: i,i_stat,j,k!,n_iter,_kern
+  integer :: i,j,k!,n_iter,_kern
   !real(dp) :: p0_cell,p0gauss,absci,kern,moment
   character(len=64) :: chain
   !character(len=*) :: chain

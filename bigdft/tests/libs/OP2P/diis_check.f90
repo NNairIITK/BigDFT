@@ -56,7 +56,7 @@ contains
     complex(kind=8), intent(in) :: k
     real(kind=8), intent(in) :: V0,L
     complex(kind=8) :: e_l1
-    e_l1 = k + cmplx(0.d0,1.d0)*k2(k,V0)*tan(0.5d0*L*k2(k,V0))
+    e_l1 = k + cmplx(0.d0,1.d0,kind=8)*k2(k,V0)*tan(0.5d0*L*k2(k,V0))
   end function e_l1
 
   function diff_e_l1(k,V0,L)
@@ -64,8 +64,8 @@ contains
     complex(kind=8), intent(in) :: k
     real(kind=8), intent(in) :: V0,L
     complex(kind=8) :: diff_e_l1
-    diff_e_l1 = 1.d0 + cmplx(0.d0,1.d0)*diff_k2(k,V0)*tan(0.5d0*L*k2(k,V0)) &
-            & + cmplx(0.d0,1.d0)*k2(k,V0)*0.5d0*L*diff_k2(k,V0)/cos(0.5d0*L*k2(k,V0))
+    diff_e_l1 = 1.d0 + cmplx(0.d0,1.d0,kind=8)*diff_k2(k,V0)*tan(0.5d0*L*k2(k,V0)) &
+            & + cmplx(0.d0,1.d0,kind=8)*k2(k,V0)*0.5d0*L*diff_k2(k,V0)/cos(0.5d0*L*k2(k,V0))
   end function diff_e_l1
 
 end program DIIS_test
