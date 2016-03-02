@@ -1,11 +1,13 @@
 !> @file
 !!  Test of the overlap point to point, modern version
 !! @author
-!!    Copyright (C) 2015-2015 BigDFT group
+!!    Copyright (C) 2015-2016 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 program OP2P_check
   use module_base
   use yaml_output
@@ -25,12 +27,16 @@ program OP2P_check
   call f_malloc_set_status(iproc=iproc)
 
   !read command line
-  call OP2P_Check_command_line_options(options)
+  call OP2P_check_command_line_options(options)
 
-  call yaml_dict_dump(options)
+  if (iproc==0) then
+    call yaml_new_document()
+    call yaml_dict_dump(options)
+  end if
+
   nproc=mpisize()
   ngroup=dict_len(options//'objects')
-  if (iproc == 0 .and. ngroup <= 0) call f_err_throw('Error, number of groups must be more than one')
+  if (iproc==0 .and. ngroup <= 0) call f_err_throw('Error, number of groups must be more than one')
 
   nobj=f_malloc(ngroup,id='nobj')
   nobj=options//'objects'
@@ -48,7 +54,7 @@ program OP2P_check
   jproc=norb-norbp*nproc-1
   call f_increment(nobj_p(:jproc))
 
-  if (iproc == 0 .and. sum(nobj_p) /= norb) &
+  if (iproc==0 .and. sum(nobj_p) /= norb) &
        call f_err_throw('Error in orbital repartition; norb is'+norb+' and nobj_p is'+yaml_toa(nobj_p))
 
   !construct the OP2P scheme and test it
@@ -70,10 +76,10 @@ program OP2P_check
      nobj_par(jproc,igroup)=kobj
   end do
 
-  if (iproc == 0 .and. any(sum(nobj_par,dim=1) /= nobj)) &
+  if (iproc==0 .and. any(sum(nobj_par,dim=1) /= nobj)) &
         call f_err_throw('Error in orbital repartition'+yaml_toa(mpirank())+';'+yaml_toa(sum(nobj_par,dim=1)))
 
-  if (iproc == 0) then
+  if (iproc==0) then
      call yaml_map('Orbital repartition per group',nobj)
      call yaml_map('Orbital repartition per mpi',nobj_p)
      call yaml_map('Groups per proc',nobj_par)
