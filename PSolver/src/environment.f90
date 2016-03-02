@@ -401,13 +401,13 @@ contains
     corr=-oneoeightpi*(0.5_gp*(eps-vacuum_eps)**2/eps*d2ha-dd)
   end subroutine rigid_cavity_arrays
 
-  subroutine rigid_cavity_forces(cavity,mesh,v,nat,rxyz,radii,npot2epsm1,fxyz)
+  subroutine rigid_cavity_forces(cavity,mesh,v,nat,rxyz,radii,epsr,npot2epsm1,fxyz)
     use box
     implicit none
     type(cavity_data), intent(in) :: cavity
     type(cell), intent(in) :: mesh
     integer, intent(in) :: nat !< number of centres defining the cavity
-    real(gp), intent(in) :: npot2epsm1
+    real(gp), intent(in) :: npot2epsm1,epsr
     real(gp), dimension(nat), intent(in) :: radii !< radii of each of the atoms
     !>array of the position in the reference frame of rxyz
     real(gp), dimension(3), intent(in) :: v
@@ -416,7 +416,7 @@ contains
     real(gp), dimension(3,nat), intent(inout) :: fxyz !<forces array
     !local variables
     integer :: iat,i
-    real(gp) :: d,dlogh,rad,tt,ttV,hh,epsr,eps0m1
+    real(gp) :: d,dlogh,rad,tt,ttV,hh,eps0m1
     real(gp), dimension(3) :: f_Vterm,f_Sterm
 
     eps0m1=cavity%epsilon0-vacuum_eps
@@ -437,7 +437,7 @@ contains
        fxyz(:,iat)=fxyz(:,iat)+tt*closest_r(mesh,v,center=rxyz(:,iat)) ! Should be inverted v and rxyz
                                                      ! inside closest_r due to the derivative wrt R_i
        if (.false.) then ! should be -> if (not.kernel%opt%only_electrostatic) then
-        epsr=vacuum_eps ! Actung!!! we need epsr=epsilon(r)
+          !!epsr=vacuum_eps ! Actung!!! we need epsr=epsilon(r)
         ttV=cavity%betaV*(epsr-vacuum_eps)/eps0m1*dlogh/d*hh ! the minus of - derivative of Ene_V cancels
                                                              ! with the one from \Theta derivative
         f_Vterm(:)=ttV*closest_r(mesh,v,center=rxyz(:,iat)) ! Should be inverted v and rxyz

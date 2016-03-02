@@ -38,6 +38,7 @@ modules = SPARSEMATRIX_BASE.@MODULE_EXT@ \
 		  FOE_COMMON.@MODULE_EXT@ \
 		  FERMI_LEVEL.@MODULE_EXT@ \
 		  FOE.@MODULE_EXT@ \
+	MODULE_FUNC.@MODULE_EXT@ \
 		  ICE.@MODULE_EXT@ \
 		  MATRIX_OPERATIONS.@MODULE_EXT@ \
 		  PARALLEL_LINALG.@MODULE_EXT@ \
@@ -52,6 +53,7 @@ modules = sparsematrix_base.@MODULE_EXT@ \
 		  foe_common.@MODULE_EXT@ \
 		  fermi_level.@MODULE_EXT@ \
 		  foe.@MODULE_EXT@ \
+	module_func.@MODULE_EXT@ \
 		  ice.@MODULE_EXT@ \
 		  matrix_operations.@MODULE_EXT@ \
 		  parallel_linalg.@MODULE_EXT@ \

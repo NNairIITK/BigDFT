@@ -15,6 +15,7 @@ module PStypes
   use environment, only: cavity_data,cavity_default
   use dynamic_memory
   use f_input_file, only: ATTRS
+  use box
   implicit none
 
   private
@@ -71,6 +72,10 @@ module PStypes
   !!Poisson Equation. Not all of them are allocated, the actual memory usage 
   !!depends on the treatment
   type, public :: PS_workarrays
+     integer :: nat !< dimensions of the atomic based cavity. Zero if unused
+     !>positions of the atoms of the cavity in the simulation box
+     real(dp), dimension(:,:), pointer :: rxyz 
+     real(dp), dimension(:), pointer :: radii !<radii of the cavity per atom
      !> dielectric function epsilon, continuous and differentiable in the whole
      !domain, to be used in the case of Preconditioned Conjugate Gradient method
      real(dp), dimension(:,:), pointer :: eps
@@ -289,6 +294,9 @@ contains
     use f_utils, only: f_zero
     implicit none
     type(PS_workarrays), intent(out) :: w
+    call f_zero(w%nat)
+    nullify(w%radii)
+    nullify(w%rxyz)
     nullify(w%eps)
     nullify(w%dlogeps)
     nullify(w%oneoeps)
@@ -360,11 +368,15 @@ contains
   end function pkernel_null
 
   subroutine free_PS_workarrays(iproc,igpu,keepzf,gpuPCGred,keepGPUmemory,w)
-  use dictionaries, only: f_err_throw
+    use dictionaries, only: f_err_throw
+    use f_utils, only: f_zero
   implicit none
     integer, intent(in) :: keepzf,gpuPCGred,keepGPUmemory,igpu,iproc
     integer :: i_stat
     type(PS_workarrays), intent(inout) :: w
+    call f_zero(w%nat)
+    call f_free_ptr(w%radii)
+    call f_free_ptr(w%rxyz)
     call f_free_ptr(w%eps)
     call f_free_ptr(w%dlogeps)
     call f_free_ptr(w%oneoeps)
@@ -564,7 +576,7 @@ contains
        end if
     end if
     if (present(calculate_strten)) kernel%opt%calculate_strten=calculate_strten
-    if (present(verbose         )) then
+    if (present(verbose)) then
        if (verbose) then
           kernel%opt%verbosity_level=1
        else
@@ -992,11 +1004,13 @@ contains
 
   !> set the epsilon in the pkernel structure as a function of the seteps variable.
   !! This routine has to be called each time the dielectric function has to be set
-  subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
+  subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,nat,rxyz,radii)
     use yaml_strings
     use dynamic_memory
     use FDder
     use dictionaries, only: f_err_throw
+    use numerics, only: pi
+    use environment, only: rigid_cavity_arrays
     implicit none
     !> Poisson Solver kernel
     type(coulomb_operator), intent(inout) :: kernel
@@ -1014,13 +1028,23 @@ contains
     !> correction term of the Generalized Laplacian
     !! if absent, it will be calculated from the array of epsilon
     real(dp), dimension(:,:,:), intent(in), optional :: corr
+    !> number of atoms, can be inserted to define the rigid cavity
+    integer, intent(in), optional :: nat
+    !> if nat is present, also the positions of the atoms have to be defined
+    !! (dimension 3,nat). The rxyz values are defined accordingly to the
+    !! position of the atoms in the grid starting from the point [1,1,1] to ndims(:)
+    real(dp), dimension(*), intent(in), optional :: rxyz
+    !> and the radii aroud each atoms also have to be defined (dimension nat)
+    real(dp), dimension(*), intent(in), optional :: radii
     !local variables
+    logical, dimension(3) :: prst
     integer :: n1,n23,i3s,i23,i3,i2,i1
-    real(kind=8) :: pi
+    real(dp) :: cc,ep,depsr
+    real(dp), dimension(3) :: v,dleps
     real(dp), dimension(:,:,:), allocatable :: de2,ddeps
     real(dp), dimension(:,:,:,:), allocatable :: deps
+    type(cell) :: mesh
 
-    pi=4.0_dp*atan(1.0_dp)
     if (present(corr)) then
        !check the dimensions (for the moment no parallelism)
        if (any(shape(corr) /= kernel%ndims)) &
@@ -1053,6 +1077,22 @@ contains
             trim(yaml_toa(shape(dlogeps))))
     end if
 
+    prst=[present(nat),present(rxyz),present(radii)]
+    if (.not. all(prst) .and. any(prst)) &
+         call f_err_throw('All rxyz, radii and nat have to be present in the '//&
+         'pkernel_set_epsilon routine')
+
+    if (all(prst) .and. .not. (kernel%method .hasattr. 'rigid')) then 
+         call f_err_throw('Where rxyz, radii and nat are present in the '//&
+         'pkernel_set_epsilon routine the cavity has to be set to "rigid"') 
+    else if (all(prst)) then
+       kernel%w%nat=nat
+       kernel%w%rxyz=f_malloc_ptr([3,nat],id='rxyz')
+       if (nat >0) call f_memcpy(n=3*nat,src=rxyz(1),dest=kernel%w%rxyz(1,1))
+       kernel%w%radii=f_malloc_ptr(nat,id='radii')
+       if (nat >0) call f_memcpy(n=nat,src=radii(1),dest=kernel%w%radii(1))
+    end if
+
     !store the arrays needed for the method
     !the stored arrays are of rank two to collapse indices for
     !omp parallelism
@@ -1061,6 +1101,7 @@ contains
     !starting point in third direction
     i3s=kernel%grid%istart+1
     if (kernel%grid%n3p==0) i3s=1
+
     select case(trim(str(kernel%method)))
     case('PCG')
        !check the dimensions of the associated arrays
@@ -1096,6 +1137,24 @@ contains
              call f_free(deps)
              call f_free(ddeps)
              call f_free(de2)
+          else if (all(prst)) then
+
+             mesh=cell_new(kernel%geocode,kernel%ndims,kernel%hgrids)
+             do i3=i3s,kernel%grid%n3p
+                v(3)=cell_r(mesh,i3,dim=3)
+                do i2=1,mesh%ndims(2)
+                   v(2)=cell_r(mesh,i2,dim=2)
+                   i23=i2+(i3-i3s)*mesh%ndims(2)
+                   do i1=1,mesh%ndims(1)
+                      v(1)=cell_r(mesh,i1,dim=1)
+                      call rigid_cavity_arrays(kernel%cavity,mesh,v,&
+                           kernel%w%nat,kernel%w%rxyz,kernel%w%radii,ep,depsr,dleps,cc)
+                      kernel%w%eps(i1,i23)=ep
+                      kernel%w%corr(i1,i23)=cc
+                   end do
+                end do
+             end do
+
           else
              call f_err_throw('For method "PCG" the arrays corr or epsilon should be present')   
           end if
@@ -1112,13 +1171,19 @@ contains
                    i23=i23+1
                 end do
              end do
-          else
+          else if (all(prst)) then
+             do i23=1,n23
+                do i1=1,n1
+                   ep=kernel%w%eps(i1,i23)
+                   kernel%w%oneoeps(i1,i23)=1.d0/sqrt(ep) !here square root is correct
+                end do
+             end do
              call f_err_throw('For method "PCG" the arrays oneosqrteps or epsilon should be present')
           end if
           if (present(eps)) then
              call f_memcpy(n=n1*n23,src=eps(1,1,i3s),&
                   dest=kernel%w%eps)
-          else
+          else if (.not. all(prst)) then
              call f_err_throw('For method "PCG" the arrays eps should be present')
           end if
        else
@@ -1150,6 +1215,23 @@ contains
                 end do
              end do
              call f_free(deps)
+          else if (all(prst)) then
+             mesh=cell_new(kernel%geocode,kernel%ndims,kernel%hgrids)
+             do i3=1,kernel%ndims(3)
+                v(3)=cell_r(mesh,i3,dim=3)
+                do i2=1,mesh%ndims(2)
+                   v(2)=cell_r(mesh,i2,dim=2)
+                   i23=i2+(i3-i3s)*mesh%ndims(2)
+                   do i1=1,mesh%ndims(1)
+                      v(1)=cell_r(mesh,i1,dim=1)
+                      call rigid_cavity_arrays(kernel%cavity,mesh,v,kernel%w%nat,&
+                           kernel%w%rxyz,kernel%w%radii,ep,depsr,dleps,cc)
+                      if (i23 <= n23 .and. i23 >=1) kernel%w%eps(i1,i23)=ep
+                      kernel%w%dlogeps(:,i1,i2,i3)=dleps
+                   end do
+                end do
+             end do
+
           else
              call f_err_throw('For method "PI" the arrays dlogeps or epsilon should be present')
           end if
@@ -1166,13 +1248,20 @@ contains
                    i23=i23+1
                 end do
              end do
+             else if (all(prst)) then
+                do i23=1,n23
+                   do i1=1,n1
+                      ep=kernel%w%eps(i1,i23)
+                      kernel%w%oneoeps(i1,i23)=1.d0/ep
+                   end do
+                end do
           else
              call f_err_throw('For method "PI" the arrays oneoeps or epsilon should be present')
           end if
           if (present(eps)) then
              call f_memcpy(n=n1*n23,src=eps(1,1,i3s),&
                   dest=kernel%w%eps)
-          else
+          else if (.not. all(prst)) then
              call f_err_throw('For method "PCG" the arrays eps should be present')
           end if
        else

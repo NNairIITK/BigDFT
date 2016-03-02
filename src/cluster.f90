@@ -50,6 +50,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use module_input_keys, only: SIC_data_null,print_dft_parameters,inputpsiid_set_policy,set_inputpsiid
   use orbitalbasis
   use io, only: plot_density
+  use PSbox, only: PS_gather
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc
@@ -265,8 +266,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      END SUBROUTINE linearScaling
   end interface
 
-
-
   call f_routine(id=subname)
 
   energs = energy_terms_null()
@@ -297,12 +296,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   ! We save the variables that defined the previous psi if the restart is active
   inputpsi = in%inputPsiId
   if (in%inputPsiId == 'INPUT_PSI_MEMORY_WVL') then
-     !if (in%inputPsiId .hasattr. 'MEMORY') then
-     !if ((in%inputPsiId .hasattr. 'CUBIC') .and. .not. (in%inputPsiId .hasattr. 'GAUSSIAN')) then
      if (associated(KSwfn%psi)) then
         call copy_local_zone_descriptors(KSwfn%Lzd, lzd_old, subname)
         !if the history is bigger than two, create the workspace to store the wavefunction
-!        if (in%wfn_history > 2) then
         if (in%wfn_history > 0) then
 !           if(iproc==0)print *, "NNdbg: KSwfn%Psi copied to Psi(",in%wfn_history+1,")"
            call old_wavefunction_set(KSwfn%oldpsis(in%wfn_history+1),&
@@ -359,9 +355,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   end if
 
   ! Setup all descriptors and allocate what should be.
-!!$  if (inputpsi == INPUT_PSI_LINEAR_AO .or. &
-!!$      inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
-!!$      inputpsi == INPUT_PSI_DISK_LINEAR) then
   if (inputpsi .hasattr. 'LINEAR') then
      locregcenters=f_malloc_ptr((/3,atoms%astruct%nat/),id=' locregcenters')
       if (in%explicit_locregcenters) then
@@ -410,8 +403,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   KSwfn%npsidim_comp = KSwfn%orbs%npsidim_comp
 
   ! We complete here the definition of DFT_wavefunction structures.
-!!$  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
-!!$      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
   if (inputpsi .hasattr. 'LINEAR') then
 
      !!call init_p2p_tags(nproc)
@@ -758,10 +749,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            inputpsi,input_wf_format,norbv,lzd_old,psi_old,rxyz_old,tmb_old,ref_frags,cdft)
    end if
 
-  nvirt=in%nvirt
-  if(in%nvirt > norbv) then
-     nvirt = norbv
-  end if
+  nvirt=max(in%nvirt,norbv)
 
   ! modified by SM
   call deallocate_local_zone_descriptors(lzd_old)
@@ -772,8 +760,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !start the optimization
   energs%eexctX=0.0_gp
   ! Skip the following part in the linear scaling case.
-!!$  skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
-!!$                     .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
   skip_if_linear: if (inputpsi .hasattr. 'CUBIC') then
      call kswfn_optimization_loop(iproc, nproc, optLoop, &
      & in%alphamix, in%idsx, inputpsi, KSwfn, denspot, nlpsp, energs, atoms, GPU, xcstr, &
@@ -890,32 +876,24 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         deallocate(ref_frags)
      end if
 
-     !!call finalize_p2p_tags()
-
-     !temporary allocation of the density
-     !!allocate(denspot%rho_work(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=i_stat)
-     !!call memocc(i_stat,denspot%rho_work,'rho',subname)
-     !!call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
-     !!     denspot%rhov(1),1,denspot%rho_work(1),1)
-
+     denspot%rho_work = f_malloc_ptr(max(denspot%dpbox%ndimrhopot,1),id='denspot%rho_work')
+     !then calculate the contribution coming from the Hartree part
      ! keep only the essential part of the density, without the GGA bufffers
-     denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimrhopot,id='denspot%rho_work')
      ioffset=kswfn%lzd%glr%d%n1i*kswfn%lzd%glr%d%n2i*denspot%dpbox%i3xcsh
      if (denspot%dpbox%ndimrhopot>0) then
-         call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
-         ! add the spin down part if present
-         if (denspot%dpbox%nrhodim==2) then
-             ishift=denspot%dpbox%ndimrhopot/denspot%dpbox%nrhodim !start of the spin down part
-             call axpy(denspot%dpbox%ndimpot, 1.d0, &
-                       denspot%rhov(ioffset+ishift+1), &
-                       1, denspot%rho_work(1),1)
-         end if
+        call f_memcpy(n=denspot%dpbox%ndimpot,src=denspot%rhov(ioffset+1),&
+             dest=denspot%rho_work(1))
+        ! add the spin down part if present
+        if (denspot%dpbox%nrhodim==2) then
+           ishift=denspot%dpbox%ndimrhopot/denspot%dpbox%nrhodim !start of the spin down part
+           call axpy(denspot%dpbox%ndimpot, 1.d0, &
+                denspot%rhov(ioffset+ishift+1), &
+                1, denspot%rho_work(1),1)
+        end if
      end if
 
      if (infocode==2) then
-        !!! Allocate this array since it will be deallcoated in deallocate_before_exiting
-        !!allocate(denspot%V_ext(1,1,1,1),stat=i_stat)
-        !!call memocc(i_stat,denspot%V_ext,'denspot%V_ext',subname)
+        !!! Allocate this array since it will be deallocated in deallocate_before_exiting
         call f_free_ptr(fpulay)
         call destroy_DFT_wavefunction(tmb)
         call f_free_ptr(KSwfn%psi)
@@ -929,13 +907,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      !infocode = 0
   end if skip_if_linear
-
-  ! allocate KSwfn%psi here instead for case of linear?!
-  !if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR .or. &
-  !                   inputpsi == INPUT_PSI_LINEAR_LCAO) then
-  !   allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)),stat=i_stat)
-  !   call memocc(i_stat,KSwfn%psi,'psi',subname)
-  !end if
 
   !last run things has to be done:
   !if it is the last run and the infocode is zero
@@ -978,13 +949,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
   if (in%output_wf /= ENUM_EMPTY .and. DoLastRunThings) then
      !add flag for writing waves in the gaussian basis form
-     !if (in%gaussian_help) then
-     !if (in%gaussian_help .and. in%inputPsiId/=INPUT_PSI_LINEAR_AO .and. in%inputPsiId/=INPUT_PSI_MEMORY_LINEAR) then
      if ((in%inputPsiId .hasattr. 'GAUSSIAN') .and. (in%inputPsiId .hasattr. 'CUBIC')) then
 
         !write the coefficients and the basis on a file
         if (iproc ==0) call yaml_map('Writing wavefunctions in file','wavefunction.gau')
-        !if (iproc ==0) write(*,*)'Writing wavefunctions in wavefunction.gau file'
         call write_gaussian_information(iproc,nproc,KSwfn%orbs,KSwfn%gbd,KSwfn%gaucoeffs,trim(in%dir_output) // 'wavefunctions.gau')
 
         !build dual coefficients
@@ -1004,14 +972,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      end if
   end if
 
-!!$  write(gridformat, "(A)") ""
-!!$  select case (in%output_denspot_format)
-!!$  case (output_denspot_FORMAT_ETSF)
-!!$     write(gridformat, "(A)") ".etsf"
-!!$  case (output_denspot_FORMAT_CUBE)
-!!$     write(gridformat, "(A)") ".cube"
-!!$  end select
-
   call f_zero(gridformat)
   if (in%output_denspot .hasattr. 'ETSF') then
      call f_strcpy(src='.etsf',dest=gridformat)
@@ -1021,29 +981,25 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   !plot the ionic potential, if required by output_denspot
   if (in%output_denspot == 'DENSPOT' .and. DoLastRunThings) then
-     if (any((/in%plot_pot_axes>=0/))) then
-         if (all((/in%plot_pot_axes>=0/))) then
-             if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
-             call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
-                  atoms,rxyz,denspot%pkernel,1,denspot%V_ext,ixyz0=in%plot_pot_axes)
-             if (iproc == 0) call yaml_map('Writing local potential in file','local_potential'//gridformat)
-             call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
-                  atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov,ixyz0=in%plot_pot_axes)
-         else
-             call f_err_throw('The coordinates of the point through which &
-                               &the potential shall be plotted must all be non-zero')
-         end if
+     if (all(in%plot_pot_axes>=0)) then
+        if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
+        call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
+             atoms,rxyz,denspot%pkernel,1,denspot%V_ext,ixyz0=in%plot_pot_axes)
+        if (iproc == 0) call yaml_map('Writing local potential in file','local_potential'//gridformat)
+        call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
+             atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov,ixyz0=in%plot_pot_axes)
+     else if (any(in%plot_pot_axes>=0)) then
+        call f_err_throw('The coordinates of the point through which '//&
+             'the potential shall be plotted must all be non-zero')
      else
-         if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
-         call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
-              atoms,rxyz,denspot%pkernel,1,denspot%V_ext)
-         if (iproc == 0) call yaml_map('Writing local potential in file','local_potential'//gridformat)
-         call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
-              atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov)
+        if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
+        call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
+             atoms,rxyz,denspot%pkernel,1,denspot%V_ext)
+        if (iproc == 0) call yaml_map('Writing local potential in file','local_potential'//gridformat)
+        call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
+             atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov)
      end if
   end if
-
-
 
   call f_free_ptr(denspot%V_ext)
 
@@ -1061,17 +1017,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      !refill projectors for tails, davidson
      refill_proj=((in%rbuf > 0.0_gp) .or. DoDavidson) .and. DoLastRunThings
-
-!!$     if (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
-!!$          & inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
-!!$          & inputpsi /= INPUT_PSI_DISK_LINEAR) then
      if (inputpsi .hasattr. 'CUBIC') then
         fpulay = f_malloc0_ptr((/ 3, atoms%astruct%nat /),id='fpulay')
      end if
 
      if (DoLastRunThings) then
-!!$        if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
-!!$             .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
         if (inputpsi .hasattr. 'CUBIC') then
            calculate_dipole=.true.
            calculate_quadrupole=.false.
@@ -1086,13 +1036,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         calculate_quadrupole = .false.
      end if
 
-     call kswfn_post_treatments(iproc, nproc, KSwfn, tmb, inputpsi .hasattr. 'LINEAR',&
-!!$          & inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR .or. &
-!!$          & inputpsi == INPUT_PSI_MEMORY_LINEAR, &
+     call kswfn_post_treatments(iproc, nproc, KSwfn, tmb, &
+          inputpsi .hasattr. 'LINEAR',&
           fxyz, fnoise, fion, fdisp, fpulay, &
-          & strten, pressure, ewaldstr, xcstr, GPU, denspot, atoms, rxyz, nlpsp, &
-          & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole, calculate_quadrupole, &
-          & in%calculate_strten,in%nspin, in%plot_pot_axes)
+          strten, pressure, ewaldstr, xcstr, GPU, denspot, atoms, rxyz, nlpsp, &
+          output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole, calculate_quadrupole, &
+          in%calculate_strten,in%nspin, in%plot_pot_axes)
 
      call f_free_ptr(fpulay)
   end if
@@ -1206,24 +1155,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
         deallocate(VTwfn%confdatarr)
 
-        !this seems unnecessary
-!!$        ! Write virtual wavefunctions in ETSF format: WORKS ONLY FOR ONE KPOINT
-!!$        if(in%output_wf == ENUM_ETSF .and. abs(in%norbv) > 0) then
-!!$           write(wfformat, "(A)") ""
-!!$           select case (in%output_wf_format)
-!!$           case (WF_FORMAT_ETSF)
-!!$              write(wfformat, "(A)") ".etsf"
-!!$           case (WF_FORMAT_BINARY)
-!!$              write(wfformat, "(A)") ".bin"
-!!$           end select
-!!$
-!!$           call  writemywaves(iproc,trim(in%dir_output) // "virtuals" // trim(wfformat),&
-!!$                in%output_wf_format, &
-!!$                VTwfn%orbs,n1,n2,n3,&
-!!$                KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-!!$                atoms,rxyz,KSwfn%Lzd%Glr%wfd,VTwfn%psi)
-!!$        end if
-
         ! Write virtual wavefunctions in ETSF format
         if (in%output_wf /= ENUM_EMPTY  .and. abs(in%norbv) > 0) then
            call  writemywaves(iproc,trim(in%dir_output) // "virtuals", f_int(in%output_wf), &
@@ -1322,10 +1253,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   !perform here the mulliken charge and density of states
   !localise them on the basis of gatom of a number of atoms
-  !if (in%gaussian_help .and. DoLastRunThings) then
   if ((inputpsi .hasattr. 'GAUSSIAN') .and. DoLastRunThings .and. (inputpsi .hasattr. 'CUBIC')) then
-!!$  &    (.not.inputpsi==INPUT_PSI_LINEAR_AO .and. .not.inputpsi==INPUT_PSI_DISK_LINEAR &
-!!$      .and. .not. inputpsi==INPUT_PSI_MEMORY_LINEAR)) then
      !here one must check if psivirt should have been kept allocated
      if (.not. DoDavidson) then
         VTwfn%orbs%norb=0
@@ -1339,8 +1267,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   end if
   if (((in%exctxpar == 'OP2P' .and. xc_exctXfac(denspot%xc) /= 0.0_gp) &
        .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
-
-     !if (loc(denspot%pkernelseq%kernel) /= loc(denspot%pkernel%kernel)) then !this is not standard
      if (.not. associated(denspot%pkernelseq%kernel,target=denspot%pkernel%kernel) .and. &
           associated(denspot%pkernelseq%kernel)) then
         call pkernel_free(denspot%pkernelseq)
@@ -1348,49 +1274,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
      nullify(denspot%pkernelseq%kernel)
   end if
-  call pkernel_free(denspot%pkernel)
 
   !------------------------------------------------------------------------
   if ((in%rbuf > 0.0_gp) .and. atoms%astruct%geocode == 'F' .and. DoLastRunThings ) then
-     if (in%SIC%alpha /= 0.0_gp) then
-        if (iproc==0) call yaml_warning('Tail correction not admitted with SIC corrections for the moment')
-        !write(*,*)&
-        !     &   'ERROR: Tail correction not admitted with SIC corrections for the moment'
-        stop
-     end if
+     if (in%SIC%alpha /= 0.0_gp) call f_err_throw('Tail correction not admitted with SIC corrections for the moment',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+
      call timing(iproc,'Tail          ','ON')
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential
      !!denspot%pot_work = f_malloc_ptr(n1i*n2i*n3i*in%nspin,id='denspot%pot_work')
      denspot%pot_work = f_malloc_ptr(n1i*n2i*n3i*in%nspin,id='denspot%pot_work')
 
+     call PS_gather(denspot%rhov,denspot%pkernel,dest=denspot%pot_work,&
+          nsrc=in%nspin)
 
-     if (nproc > 1) then
-        call mpiallgather(sendbuf=denspot%rhov,&
-             sendcount=n1i*n2i*denspot%dpbox%n3p,& !denspot%dpbox%ndimpot,&
-             recvbuf=denspot%pot_work,&
-             recvcounts=denspot%dpbox%ngatherarr(:,1),&
-             displs=denspot%dpbox%ngatherarr(:,2),comm=denspot%dpbox%mpi_env%mpi_comm)
-!!$        call MPI_ALLGATHERV(denspot%rhov,n1i*n2i*denspot%dpbox%n3p,&
-!!$             mpidtypd,denspot%pot_work(1),denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2), &
-!!$             mpidtypd,denspot%dpbox%mpi_env%mpi_comm,ierr)
-        !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
-        if(in%nspin==2) then
-           !print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
-           call mpiallgather(sendbuf=denspot%rhov(1+n1i*n2i*denspot%dpbox%n3p),&
-                sendcount=n1i*n2i*denspot%dpbox%n3p,&!denspot%dpbox%ndimpot,&
-                recvbuf=denspot%pot_work(1+n1i*n2i*n3i),&
-                recvcounts=denspot%dpbox%ngatherarr(:,1),&
-                displs=denspot%dpbox%ngatherarr(:,2),comm=denspot%dpbox%mpi_env%mpi_comm)
-!!$           call MPI_ALLGATHERV(denspot%rhov(1+n1i*n2i*denspot%dpbox%n3p),n1i*n2i*denspot%dpbox%n3p,&
-!!$                mpidtypd,denspot%pot_work(1+n1i*n2i*n3i),&
-!!$                denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2), &
-!!$                mpidtypd,denspot%dpbox%mpi_env%mpi_comm,ierr)
-        end if
-     else
-        !call vcopy(n1i*n2i*n3i*in%nspin,denspot%rhov(1),1,denspot%pot_work(1),1)
-        call f_memcpy(n=n1i*n2i*n3i*in%nspin,src=denspot%rhov(1),dest=denspot%pot_work(1))
-     end if
+     call pkernel_free(denspot%pkernel)
+
      call dpbox_free(denspot%dpbox)
      call f_free_ptr(denspot%rhov)
      call f_free_ptr(denspot%V_XC)
@@ -1416,14 +1316,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         call yaml_mapping_close()
         call yaml_map('Total energy with tail correction',energy,fmt='(1pe24.17)')
         call yaml_mapping_close()
-        !write( *,'(1x,a,3(1x,1pe18.11))')&
-        !     &   '  Corrected ekin,epot,eproj',energs%ekin,energs%epot,energs%eproj
-        !write( *,'(1x,a,1x,1pe24.17)')&
-        !     &   'Total energy with tail correction',energy
      endif
 
      call timing(iproc,'Tail          ','OF')
   else
+     call pkernel_free(denspot%pkernel)
      !    No tail calculation
      if (nproc > 1) call mpibarrier(comm=bigdft_mpi%mpi_comm)!,ierr)
      call f_free_ptr(denspot%rhov)
@@ -1438,7 +1335,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !?!
   !?!      if (iproc == 0) then
   !?!         write( *,'(1x,a,1(1x,1pe18.11))')&
-  !?!              '  Entropic correction due to electronic tempertature',orbs%eTS
+  !?!              '  Entropic correction due to electronic temperature',orbs%eTS
   !?!         write( *,'(1x,a,1x,1pe24.17)')&
   !?!              'Free energy (= total energy - T*S)  ',energy
   !?!      endif
@@ -1464,9 +1361,8 @@ contains
 
        if (((in%exctxpar == 'OP2P' .and. xc_exctXfac(denspot%xc) /= 0.0_gp) &
             .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
-!          if (loc(denspot%pkernelseq%kernel) /= loc(denspot%pkernel%kernel)) then !not standard
-             if (.not. associated(denspot%pkernelseq%kernel,target=denspot%pkernel%kernel) .and. &
-                  associated(denspot%pkernelseq%kernel)) then
+          if (.not. associated(denspot%pkernelseq%kernel,target=denspot%pkernel%kernel) .and. &
+               associated(denspot%pkernelseq%kernel)) then
              call pkernel_free(denspot%pkernelseq)
           end if
        else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
@@ -1500,24 +1396,11 @@ contains
     call f_free(denspot0)
 
     ! Free all remaining parts of KSwfn
-!!write(*,*) 'WARNING HERE!!!!!'
-    !if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
-    !                 .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-    !!if (in%inguess_geopt/=1) then
-    !!    call deallocate_convolutions_bounds(KSwfn%Lzd%Glr%bounds)
-    !! end if
     call deallocate_Lzd_except_Glr(KSwfn%Lzd)
 
-!    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
-!    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
-!    call memocc(i_stat,i_all,'Glr%projflg',subname)
     call deallocate_comms(KSwfn%comms)
     call deallocate_orbs(KSwfn%orbs)
-    !if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
-    !    .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
-    if (inputpsi .hasattr. 'CUBIC') then
-       deallocate(KSwfn%confdatarr)
-    end if
+    if (inputpsi .hasattr. 'CUBIC') deallocate(KSwfn%confdatarr)
 
     ! Free projectors.
     call free_DFT_PSP_projectors(nlpsp)
@@ -1536,7 +1419,6 @@ contains
     end if
 
      if (iproc == 0 .and. (in%inputPsiId .hasattr. 'CUBIC') .and. infocode==1) then
-!!$             if (iproc == 0 .and. (in%inputPsiId==1 .or. in%inputPsiId==0) .and. infocode==1) then
         call yaml_warning('Self-consistent cycle did not meet convergence criteria')
      end if
     !release the yaml document
@@ -1579,7 +1461,6 @@ contains
     !$ integer :: omp_get_max_threads
 
     call dict_init(dict_info)
-!bastian: comment out 4 followinf lines for debug purposes (7.12.2014)
     if (DoLastRunThings) then
        call f_malloc_dump_status(dict_summary=dict_tmp)
        call set(dict_info//'Routines timing and number of calls',dict_tmp)
@@ -1592,7 +1473,8 @@ contains
 
     nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.bigdft_mpi%nproc-1,id='nodename')
     if (bigdft_mpi%nproc>1) then
-       call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+       nodename_local=mpihostname()
+       !call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
        !gather the result between all the process
        call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
             nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
@@ -2035,7 +1917,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      & plot_pot_axes)
   use module_base
   use module_types
-  use module_interfaces, only: XC_potential, density_and_hpot
+  use module_interfaces, only: XC_potential,sumrho,communicate_density
   use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
@@ -2045,6 +1927,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use public_enums
   use orbitalbasis
   use io, only: plot_density
+  use module_xc, only: XC_NO_HARTREE
   implicit none
   !Arguments
   type(DFT_wavefunction), intent(in) :: KSwfn
@@ -2069,11 +1952,13 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   !Local variables
   character(len = *), parameter :: subname = "kswfn_post_treatments"
-  integer ::  jproc, nsize_psi, imode, i3xcsh_old
+  integer ::  jproc, nsize_psi, imode, i3xcsh_old,ioffset,ishift
   !integer :: i,ispin
   real(dp), dimension(6) :: hstrten
+  real(dp), dimension(:,:), pointer :: rho_p
   real(gp) :: ehart_fake, exc_fake, evxc_fake
   type(orbital_basis) :: ob
+  type(PSolver_energies) :: PSenergies
 
   call f_routine(id=subname)
   !manipulate scatter array for avoiding the GGA shift
@@ -2104,35 +1989,85 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   end if
 
   if (linear) then
-     if (denspot%dpbox%ndimpot>0) then
-        !!denspot%pot_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%pot_work')
-        denspot%pot_work = f_malloc_ptr(denspot%dpbox%ndimrhopot,id='denspot%pot_work')
-     else
-        !!denspot%pot_work = f_malloc_ptr(1,id='denspot%pot_work')
-        denspot%pot_work = f_malloc_ptr(1,id='denspot%pot_work')
-     end if
-     ! Density already present in denspot%rho_work
-     if (denspot%dpbox%ndimpot>0) then
-         call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
-     end if
+!!$     !then calculate the contribution coming from the Hartree part
+!!$     ! keep only the essential part of the density, without the GGA bufffers
+!!$     ioffset=kswfn%lzd%glr%d%n1i*kswfn%lzd%glr%d%n2i*denspot%dpbox%i3xcsh
+!!$     if (denspot%dpbox%ndimrhopot>0) then
+!!$        call f_memcpy(n=denspot%dpbox%ndimpot,src=denspot%rhov(ioffset+1),&
+!!$             dest=denspot%rho_work(1))
+!!$        ! add the spin down part if present
+!!$        if (denspot%dpbox%nrhodim==2) then
+!!$           ishift=denspot%dpbox%ndimrhopot/denspot%dpbox%nrhodim !start of the spin down part
+!!$           call axpy(denspot%dpbox%ndimpot, 1.d0, &
+!!$                denspot%rhov(ioffset+ishift+1), &
+!!$                1, denspot%rho_work(1),1)
+!!$        end if
+!!$     end if
+
      ! This seems to be necessary to get the correct value of xcstr.
      call XC_potential(atoms%astruct%geocode,'D',iproc,nproc,bigdft_mpi%mpi_comm,&
           KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%xc,&
           denspot%dpbox%hgrids,&
           denspot%rhov,exc_fake,evxc_fake,nspin,denspot%rho_C,denspot%V_XC,xcstr)
-     !call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1,iproc,nproc)
-     call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
-          0.0_dp,.false.,stress_tensor=hstrten)
   else
-     call density_and_hpot(denspot%dpbox,atoms%astruct%sym,KSwfn%orbs,KSwfn%Lzd,&
-          denspot%pkernel,denspot%rhod, GPU, denspot%xc, &
-          KSwfn%psi,denspot%rho_work,denspot%pot_work,denspot%rho_ion,hstrten)
+     denspot%rho_work = f_malloc_ptr(max(denspot%dpbox%ndimrhopot,1),id='denspot%rho_work')
+     nullify(rho_p)
+     call sumrho(denspot%dpbox,KSwfn%orbs,KSwfn%Lzd,GPU,atoms%astruct%sym,denspot%rhod,denspot%xc,&
+          KSwfn%psi,rho_p)
+     call communicate_density(denspot%dpbox,KSwfn%orbs%nspin,denspot%rhod,rho_p,denspot%rho_work,.false.)
+     !Calculate the total density in the case of nspin==2
+     if (KSwfn%orbs%nspin==2) then
+        call axpy(denspot%dpbox%ndimpot,1.0_dp,denspot%rho_work(1+denspot%dpbox%ndimpot),1,denspot%rho_work(1),1)
+     end if
   end if
-
   !xc stress, diagonal for the moment
-  if (atoms%astruct%geocode=='P') then
-     if (atoms%astruct%sym%symObj >= 0) call symm_stress(xcstr,atoms%astruct%sym%symObj)
+  if (atoms%astruct%geocode=='P' .and. atoms%astruct%sym%symObj >= 0) &
+       call symm_stress(xcstr,atoms%astruct%sym%symObj)
+
+  denspot%pot_work = f_malloc_ptr(max(denspot%dpbox%ndimpot,1),id='denspot%pot_work')
+  if (denspot%xc%id(1) /= XC_NO_HARTREE) then
+     !Calculate electrostatic potential
+     call f_memcpy(n=denspot%dpbox%ndimpot,src=denspot%rho_work(1),dest=denspot%pot_work(1))
+     !the ionic denisty is given in the case of the embedded solver
+     call PS_set_options(denspot%pkernel,calculate_strten=.true.,&
+          final_call=denspot%pkernel%method .hasattr. 'rigid')
+     if (denspot%pkernel%method /= 'VAC') then
+        call Electrostatic_Solver(denspot%pkernel,denspot%pot_work,PSenergies,rho_ion=denspot%rho_ion)
+        !here the ionic forces can be corrected with the value coming from the cavity
+!!$        if (denspot%pkernel%method .hasattr. 'rigid') &
+!!$             call soft_PCM_forces(mesh,kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p,kernel%grid%istart+1,&
+!!$             atoms%astruct%nat,radii,kernel%cavity,rxyz,kernel%epsilon0,kernel%oneoeps,fion)
+     else
+        call Electrostatic_Solver(denspot%pkernel,denspot%pot_work,PSenergies)
+     end if
+  else
+     call f_zero(denspot%pot_work)
   end if
+  hstrten=PSenergies%strten
+
+  !In principle symmetrization of the stress tensor is not needed since the density has been 
+  !already symmetrized
+  if (atoms%astruct%sym%symObj >= 0 .and. denspot%pkernel%geocode=='P') &
+       call symm_stress(hstrten,atoms%astruct%sym%symObj)
+
+!!$     if (denspot%dpbox%ndimpot>0) then
+!!$        !!denspot%pot_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%pot_work')
+!!$        denspot%pot_work = f_malloc_ptr(denspot%dpbox%ndimrhopot,id='denspot%pot_work')
+!!$     else
+!!$        denspot%pot_work = f_malloc_ptr(1,id='denspot%pot_work')
+!!$     end if
+!!$     ! Density already present in denspot%rho_work
+!!$     call f_memcpy(n=denspot%dpbox%ndimpot,src=denspot%rho_work(1),&
+!!$          dest=denspot%pot_work(1))
+!!$     !call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1,iproc,nproc)
+!!$     call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
+!!$          0.0_dp,.false.,stress_tensor=hstrten)
+!!$  else
+!!$     call density_and_hpot(denspot%dpbox,atoms%astruct%sym,KSwfn%orbs,KSwfn%Lzd,&
+!!$          denspot%pkernel,denspot%rhod, GPU, denspot%xc, &
+!!$          KSwfn%psi,denspot%rho_work,denspot%pot_work,denspot%rho_ion,hstrten)
+!!$  end if
+
 
   !SM: for a spin polarized calculation, rho_work already contains the full
   !density in the first half of the array. Therefore I think that calc_dipole should be
@@ -2148,21 +2083,20 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   if (output_denspot /= ENUM_EMPTY) then
      if (iproc == 0) call yaml_map('Writing electronic density in file','electronic_density'//gridformat)
 
-     if (any((/plot_pot_axes>=0/))) then
-         if (all((/plot_pot_axes>=0/))) then
-             call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
-                  atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%rho_work, &
-                  ixyz0=plot_pot_axes)
-         else
-             call f_err_throw('The coordinates of the point through which &
-                               &the potential shall be plotted must all be non-zero')
-         end if
+     if (all(plot_pot_axes>=0)) then
+        call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
+             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%rho_work, &
+             ixyz0=plot_pot_axes)
+     else if (any(plot_pot_axes>=0)) then
+        call f_err_throw('The coordinates of the point through which '//&
+             'the potential shall be plotted must all be non-zero',&
+             err_name='BIGDFT_RUNTIME_ERROR')
      else
          call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
               atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%rho_work)
      end if
 !---------------------------------------------------
-! giuseppe fisicaro dilectric cavity
+! giuseppe fisicaro dielectric cavity
      if (denspot%pkernel%method /= 'VAC') then
 !!$        if (iproc == 0) call yaml_map('Writing polarization charge in file','polarization_charge'//gridformat)
 
@@ -2187,28 +2121,20 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   !plot also the electrostatic potential
   if (output_denspot == 'DENSPOT') then
      if (iproc == 0) call yaml_map('Writing Hartree potential in file','hartree_potential'//gridformat)
-     if (any((/plot_pot_axes>=0/))) then
-         if (all((/plot_pot_axes>=0/))) then
-             call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
-                  atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pot_work, &
-                  ixyz0=plot_pot_axes)
-         else
-             call f_err_throw('The coordinates of the point through which &
-                               &the potential shall be plotted must all be non-zero')
-         end if
-      else
-         call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
-              atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pot_work)
-      end if
+     if (all(plot_pot_axes>=0)) then
+        call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
+             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pot_work, &
+             ixyz0=plot_pot_axes)
+     else if (any(plot_pot_axes>=0)) then
+        call f_err_throw('The coordinates of the point through which '//&
+             'the potential shall be plotted must all be non-zero',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+     else 
+        call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
+             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pot_work)
+     end if
   end if
 
-  !     !plot also the electrostatic potential
-  !     if (output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
-  !        if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
-  !        call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
-  !             atoms,rxyz,denspot%dpbox,1,pot)
-  !     end if
-  !
   call timing(iproc,'Forces        ','ON')
 
   ! Calculate the forces. Pass the Pulay forces in the linear scaling case.
@@ -2259,9 +2185,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   !here we might printout the atomic density matrix
 
   call f_free_ptr(denspot%rho_work)
-  !call f_free_ptr(denspot%pot_work)
   call f_free_ptr(denspot%pot_work)
-  !nullify(denspot%rho_work,denspot%pot_work)
   if (linear) then
      ! to eventually be better sorted
 !     call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
