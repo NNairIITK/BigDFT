@@ -31,7 +31,8 @@ LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	   O2spin \
 	   expfoegeopt \
 	   igortho \
-       extendedfrags
+       extendedfrags \
+	   matrixtaskgroups
 
 if HAVE_PEXSI
   LONG_TESTDIRS += pexsi
@@ -163,6 +164,11 @@ linearcubic_cubic.out.out : linearcubic_linear.out.out
 linearcubic_linear.out.post-out:
 	rm -rf data-cubic
 	mv data-linear data-cubic
+
+multipoles_waterQMQM.out.out: multipoles_waterQM.out.out
+
+multipoles_waterQM.out.post-out:
+	python prepare_QMQM.py
 
 
 # Define the precision for specific directories.

@@ -1,0 +1,49 @@
+# This script extracts the atomic monopoles (i.e. atomic charges) from the logfile and creates
+# a gnuplot script to plot these atomic charges. Up to 12 different atomic species are possible,
+# if more are required the coloring scheme has to be adapted.
+mp: [Multipole coefficients,values]
+at: [Atomic System Properties,Types of atoms]
+eval: |
+    lowerbound =  1000000.0
+    upperbound = -1000000.0
+    for iat in range(len(at)):
+        q = []
+        for imp in range(len(mp)):
+            if mp[imp]['sym']==at[iat]:
+                q.append(mp[imp]['q0'][0])
+                lowerbound = min(lowerbound,mp[imp]['q0'][0])
+                upperbound = max(upperbound,mp[imp]['q0'][0])
+        if len(q)>0:
+            print 'f_{:s}(x) = 1/{:6.1f}*( \\'.format(at[iat],len(q))
+            for i in range(len(q)):
+                if i<len(q)-1:
+                    print '  1.0*exp(-(x- {:15.9e})**2/(2*sigma**2)) + \\'.format(q[i])
+                else:
+                    print '  1.0*exp(-(x- {:15.9e})**2/(2*sigma**2)))'.format(q[i])
+    color = ['#a6cee3',
+             '#1f78b4',
+             '#b2df8a',
+             '#33a02c',
+             '#fb9a99',
+             '#e31a1c',
+             '#fdbf6f',
+             '#ff7f00',
+             '#cab2d6',
+             '#6a3d9a',
+             '#ffff99',
+             '#b15928']
+    if (len(at)>12):
+        sys.exit("ERROR: Not enough colors for all atom types")
+    print 'sigma=0.01'
+    print 'set samples 1000'
+    print 'set xrange[{:7.3f}:{:7.3f}]'.format(lowerbound-0.2,upperbound+0.2)
+    print 'set xlabel "net charge"'
+    print 'set ylabel "occurance"'
+    for iat in range(len(at)):
+        if iat<len(at)-1:
+            linestart = 'plot'
+            lineend = ',\\'
+        else:
+            linestart = '    '
+            lineend = ''
+        print '{:s} f_{:s}(x) lc rgb "{:s}" lt 1 lw 2 w l title "{:s}" {:s}'.format(linestart,at[iat],color[iat],at[iat],lineend)

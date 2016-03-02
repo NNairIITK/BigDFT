@@ -698,242 +698,243 @@ program memguess
    end if
 
    if (calculate_pdos) then
-!!$      !if (mpiinitialized()) then
-         iproc=mpirank()
-         nproc=mpisize()
-!!$      else
-!!$       call mpi_initialized(mpi_initd, ierror)
-!!$       if (mpi_initd) then
-!!$           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
-!!$           call mpi_comm_size(mpi_comm_world, nproc, ierror)
-!!$       else
-!!$         iproc = 0
-!!$         nproc = 1
-!!$      end if
-       !coeff = f_malloc((/ntmb,norbks/),id='coeff')
-       !eval = f_malloc(norbks,id='eval')
-       !denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
-       !ham = f_malloc((/ntmb,ntmb/),id='ham')
-       !overlap = f_malloc((/ntmb,ntmb/),id='overlap')
-       !on_which_atom = f_malloc(ntmb,id='on_which_atom')
-       !calc_array = f_malloc(ntmb,id='calc_array')
-       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
-       !call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval, nat)
-       !write(*,*) 'trim(coeff_file)',trim(coeff_file)
-       call read_linear_coefficients(trim(coeff_file), nspin, ntmb, norbks, coeff_ptr, &
-            eval=eval_ptr)
-       call f_close(iunit01)
-       !write(*,*) 'ntmb',ntmb
-       !write(*,*) 'coeff_ptr',coeff_ptr
-
-
-       !call f_open_file(iunit01, file=overlap_file, binary=.false.)
-       !call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
-       call read_sparse_matrix(trim(overlap_file), nspin, geocode, cell_dim, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
-            matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
-            at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
-       !!call read_sparse_matrix(trim(ham_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
-       !!     matrix_compr, on_which_atom=on_which_atom_s)
-       !call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
-       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_s, nvctr_s, nseg_s, keyg_s, smat_s, &
-            nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_s)
-       ovrlp_mat = matrices_null()
-       ovrlp_mat%matrix = sparsematrix_malloc0_ptr(smat_s,iaction=DENSE_FULL,id='smat_s%matrix')
-       call uncompress_matrix(iproc, smat_s, matrix_compr, ovrlp_mat%matrix)
-       call f_free_ptr(matrix_compr)
-       !call f_close(iunit01)
-
-       !call f_open_file(iunit01, file=ham_file, binary=.false.)
-       !call read_linear_matrix_dense(iunit01, ntmb, nat, ham, on_which_atom=on_which_atom)
-       !call read_sparse_matrix(trim(ham_file), nspin, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
-       !     matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
-       !     at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_m)
-       call read_sparse_matrix(trim(ham_file), nspin, geocode, cell_dim, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
-            matrix_compr, on_which_atom=on_which_atom_m)
-       !call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
-       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_m, nvctr_m, nseg_m, keyg_m, smat_m, &
-            nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_m)
-       ham_mat = matrices_null()
-       ham_mat%matrix = sparsematrix_malloc0_ptr(smat_m,iaction=DENSE_FULL,id='smat_m%matrix')
-       call uncompress_matrix(iproc, smat_m, matrix_compr, ham_mat%matrix)
-       call f_free_ptr(matrix_compr)
-       !call f_close(iunit01)
-
-
-       !!!write(*,*) 'trim(kernel_file)',trim(kernel_file)
-       !!call read_sparse_matrix(trim(kernel_file), nspin, nfvctr_l, nseg_l, nvctr_l, keyv_l, keyg_l, &
-       !!     matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
-       !!     at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_l)
-       !!call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_l, nfvctrp_l, isfvctr_l)
-       !!call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_l, nfvctrp_l, isfvctr_l, &
-       !!     on_which_atom_l, nvctr_l, nseg_l, keyg_l, smat_l)
-       !!kernel_mat = matrices_null()
-       !!kernel_mat%matrix = sparsematrix_malloc0_ptr(smat_l,iaction=DENSE_FULL,id='smat_s%matrix')
-       !!call uncompress_matrix(iproc, smat_l, matrix_compr, kernel_mat%matrix)
-       !!call f_free_ptr(matrix_compr)
-
-       !coeff = f_malloc((/ntmb,norbks/),id='coeff')
-       !eval = f_malloc(norbks,id='eval')
-       denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
-       !ham = f_malloc((/ntmb,ntmb/),id='ham')
-       !overlap = f_malloc((/ntmb,ntmb/),id='overlap')
-       !on_which_atom = f_malloc(ntmb,id='on_which_atom')
-
-       !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
-       !write(*,*) 'trim(pdos_file)', trim(pdos_file)
-       call f_open_file(iunit01, file=pdos_file, binary=.false.)
-
-       read(iunit01,*) npdos
-
-       calc_array = f_malloc((/ntmb,npdos/),id='calc_array')
-
-       do ipdos=1,npdos
-           do itmb=1,ntmb
-               calc_array(itmb,ipdos) = .false.
-           end do
-       end do
-       npdos_loop: do ipdos=1,npdos
-           do
-               !read(iunit01,*,iostat=ios) cc, ival
-               read(iunit01,'(a128)',iostat=ios) line
-               if (ios/=0) exit
-               write(*,*) 'line',line
-               read(line,*,iostat=ios) cc, ival
-               if (cc=='#') cycle npdos_loop
-               do itype=1,at%astruct%ntypes
-                   if (trim(at%astruct%atomnames(itype))==trim(cc)) then
-                       iitype = itype
-                       exit
-                   end if
-               end do
-               !write(*,'(a,i7,a,2i7)') 'ipdos, cc, ival, iitype', ipdos, trim(cc), ival, iitype
-               iat_prev = -1
-               do itmb=1,ntmb
-                   iat = on_which_atom_s(itmb)
-                   if (iat/=iat_prev) then
-                       ii = 0
-                   end if
-                   iat_prev = iat
-                   itype = at%astruct%iatype(iat)
-                   ii = ii + 1
-                   if (itype==iitype .and. ii==ival) then
-                       if (calc_array(itmb,ipdos)) stop 'calc_array(itmb)'
-                       calc_array(itmb,ipdos) = .true.
-                   end if
-               end do
-           end do
-
-       end do npdos_loop
-
-       !do ipdos=1,npdos
-       !    do itmb=1,ntmb
-       !        iat = on_which_atom_m(itmb)
-       !        itype = at%astruct%iatype(iat)
-       !        write(*,'(a,4i8,l5)') 'ipdos, itmb, iat, itype, calc_array(itmb,ipdos)', &
-       !            ipdos, itmb, iat, itype, calc_array(itmb,ipdos)
-       !    end do
-       !end do
-
-       call f_close(iunit01)
-
-       !!npt = ceiling((eval_ptr(ntmb)-eval_ptr(1))/interval)
-       pdos = f_malloc0((/npt,npdos/),id='pdos')
-       !!energy_bins = f_malloc((/2,npt/),id='energy_bins')
-       !!! Determine the energy bins
-       !!do ipt=1,npt
-       !!    energy_bins(1,ipt) = eval_ptr(1) + real(ipt-1,kind=8)*interval - eps_roundoff
-       !!    energy_bins(2,ipt) = energy_bins(1,ipt) + interval
-       !!end do
-       output_pdos='PDoS.gp'
-       call yaml_map('output file',trim(output_pdos))
-       iunit02 = 99
-       call f_open_file(iunit02, file=trim(output_pdos), binary=.false.)
-       write(iunit02,'(a)') '# plot the DOS as a sum of Gaussians'
-       write(iunit02,'(a)') 'set samples 1000'
-       write(iunit02,'(a,2(es12.5,a))') 'set xrange[',eval_ptr(1),':',eval_ptr(ntmb),']'
-       write(iunit02,'(a)') 'sigma=0.01'
-       write(backslash,'(a)') '\ '
-       ! Calculate a partial kernel for each KS orbital
-       total_occup = 0.d0
-       do ipdos=1,npdos
-           call yaml_map('PDoS number',ipdos)
-           call yaml_map('start, increment',(/ipdos,npdos/))
-           write(num,fmt='(i2.2)') ipdos
-           write(iunit02,'(a,i0,a)') 'f',ipdos,'(x) = '//trim(backslash)
-           occup_pdos = 0.d0
-           do iorb=1,norbks
-               call yaml_map('orbital being processed',iorb)
-               call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff_ptr(1,iorb), ntmb, &
-                    coeff_ptr(1,iorb), ntmb, 0.d0, denskernel(1,1), ntmb)
-                !write(*,*) 'denskernel',denskernel
-                !write(*,*) 'ovrlp_mat%matrix',ovrlp_mat%matrix
-               energy = 0.d0
-               occup = 0.d0
-               do ispin=1,nspin
-                   !$omp parallel default(none) &
-                   !$omp shared(ispin,ntmb,denskernel,ham_mat,energy) &
-                   !$omp private(itmb,jtmb)
-                   !$omp do reduction(+:energy)
-                   do itmb=1,ntmb
-                       do jtmb=1,ntmb
-                           energy = energy + denskernel(itmb,jtmb)*ham_mat%matrix(jtmb,itmb,ispin)
-                       end do
-                   end do
-                   !$omp end do
-                   !$omp end parallel
-               end do
-               do ispin=1,nspin
-                   !!$omp do reduction(+:occup)
-                   do itmb=1,ntmb!ipdos,ntmb,npdos
-                       if (.not.calc_array(itmb,ipdos)) cycle
-                       do jtmb=1,ntmb!ipdos,ntmb,npdos
-                           if (.not.calc_array(jtmb,ipdos)) cycle
-                           occup = occup + denskernel(itmb,jtmb)*ovrlp_mat%matrix(jtmb,itmb,ispin)
-                       end do
-                   end do
-                   !!$omp end do
-               end do
-               !write(*,*) 'OCCUP',occup, energy, eval_ptr(iorb)
-               !!$omp end parallel
-               !!found_bin = .false.
-               !!do ipt=1,npt
-               !!    if (energy>=energy_bins(1,ipt) .and. energy<energy_bins(2,ipt)) then
-               !!        pdos(ipt,ipdos) = pdos(ipt,ipdos) + occup
-               !!        found_bin = .true.
-               !!        exit
-               !!    end if
-               !!end do
-               !!if (.not.found_bin) then
-               !!    call f_err_throw('could not determine energy bin, energy='//yaml_toa(energy),err_name='BIGDFT_RUNTIME_ERROR')
-               !!end if
-               occup_pdos = occup_pdos + occup
-               if (iorb<norbks) then
-                   write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2)) + '//trim(backslash)
-               else
-                   write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2))'
-               end if
-               !write(*,'(a,i6,3es16.8)')'iorb, eval(iorb), energy, occup', iorb, eval(iorb), energy, occup
-           end do
-           total_occup = total_occup + occup_pdos
-           if (ipdos==1) then
-               write(iunit02,'(a,i0,a)') "plot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
-           else
-               write(iunit02,'(a,i0,a)') "replot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
-           end if
-           call yaml_map('sum of PDoS',occup_pdos)
-           !!output_pdos='PDoS_'//num//'.dat'
-           !!call yaml_map('output file',trim(output_pdos))
-           !!call f_open_file(iunit01, file=trim(output_pdos), binary=.false.)
-           !!write(iunit01,'(a)') '#             energy                pdos'
-           !!do ipt=1,npt
-           !!    write(iunit01,'(2es20.12)') energy_bins(1,ipt), pdos(ipt,ipdos)
-           !!end do
-           !!call f_close(iunit01)
-       end do
-       call f_close(iunit02)
-       call yaml_map('sum of total DoS',total_occup)
-
-       stop
+       call f_err_throw('This functionality is now handled by utilities')
+!!!!!$      !if (mpiinitialized()) then
+!!!         iproc=mpirank()
+!!!         nproc=mpisize()
+!!!!!$      else
+!!!!!$       call mpi_initialized(mpi_initd, ierror)
+!!!!!$       if (mpi_initd) then
+!!!!!$           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+!!!!!$           call mpi_comm_size(mpi_comm_world, nproc, ierror)
+!!!!!$       else
+!!!!!$         iproc = 0
+!!!!!$         nproc = 1
+!!!!!$      end if
+!!!       !coeff = f_malloc((/ntmb,norbks/),id='coeff')
+!!!       !eval = f_malloc(norbks,id='eval')
+!!!       !denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
+!!!       !ham = f_malloc((/ntmb,ntmb/),id='ham')
+!!!       !overlap = f_malloc((/ntmb,ntmb/),id='overlap')
+!!!       !on_which_atom = f_malloc(ntmb,id='on_which_atom')
+!!!       !calc_array = f_malloc(ntmb,id='calc_array')
+!!!       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
+!!!       !call read_coeff_minbasis(iunit01, .true., iproc, norbks, norb_dummy, ntmb, coeff, eval, nat)
+!!!       !write(*,*) 'trim(coeff_file)',trim(coeff_file)
+!!!       call read_linear_coefficients(trim(coeff_file), nspin, ntmb, norbks, coeff_ptr, &
+!!!            eval=eval_ptr)
+!!!       call f_close(iunit01)
+!!!       !write(*,*) 'ntmb',ntmb
+!!!       !write(*,*) 'coeff_ptr',coeff_ptr
+!!!
+!!!
+!!!       !call f_open_file(iunit01, file=overlap_file, binary=.false.)
+!!!       !call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
+!!!       call read_sparse_matrix(trim(overlap_file), nspin, geocode, cell_dim, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
+!!!            matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
+!!!            at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
+!!!       !!call read_sparse_matrix(trim(ham_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
+!!!       !!     matrix_compr, on_which_atom=on_which_atom_s)
+!!!       !call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
+!!!       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_s, nvctr_s, nseg_s, keyg_s, smat_s, &
+!!!            nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_s)
+!!!       ovrlp_mat = matrices_null()
+!!!       ovrlp_mat%matrix = sparsematrix_malloc0_ptr(smat_s,iaction=DENSE_FULL,id='smat_s%matrix')
+!!!       call uncompress_matrix(iproc, smat_s, matrix_compr, ovrlp_mat%matrix)
+!!!       call f_free_ptr(matrix_compr)
+!!!       !call f_close(iunit01)
+!!!
+!!!       !call f_open_file(iunit01, file=ham_file, binary=.false.)
+!!!       !call read_linear_matrix_dense(iunit01, ntmb, nat, ham, on_which_atom=on_which_atom)
+!!!       !call read_sparse_matrix(trim(ham_file), nspin, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
+!!!       !     matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
+!!!       !     at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_m)
+!!!       call read_sparse_matrix(trim(ham_file), nspin, geocode, cell_dim, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
+!!!            matrix_compr, on_which_atom=on_which_atom_m)
+!!!       !call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
+!!!       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_m, nvctr_m, nseg_m, keyg_m, smat_m, &
+!!!            nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_m)
+!!!       ham_mat = matrices_null()
+!!!       ham_mat%matrix = sparsematrix_malloc0_ptr(smat_m,iaction=DENSE_FULL,id='smat_m%matrix')
+!!!       call uncompress_matrix(iproc, smat_m, matrix_compr, ham_mat%matrix)
+!!!       call f_free_ptr(matrix_compr)
+!!!       !call f_close(iunit01)
+!!!
+!!!
+!!!       !!!write(*,*) 'trim(kernel_file)',trim(kernel_file)
+!!!       !!call read_sparse_matrix(trim(kernel_file), nspin, nfvctr_l, nseg_l, nvctr_l, keyv_l, keyg_l, &
+!!!       !!     matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
+!!!       !!     at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_l)
+!!!       !!call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_l, nfvctrp_l, isfvctr_l)
+!!!       !!call bigdft_to_sparsebigdft(iproc, nproc, nfvctr_l, nfvctrp_l, isfvctr_l, &
+!!!       !!     on_which_atom_l, nvctr_l, nseg_l, keyg_l, smat_l)
+!!!       !!kernel_mat = matrices_null()
+!!!       !!kernel_mat%matrix = sparsematrix_malloc0_ptr(smat_l,iaction=DENSE_FULL,id='smat_s%matrix')
+!!!       !!call uncompress_matrix(iproc, smat_l, matrix_compr, kernel_mat%matrix)
+!!!       !!call f_free_ptr(matrix_compr)
+!!!
+!!!       !coeff = f_malloc((/ntmb,norbks/),id='coeff')
+!!!       !eval = f_malloc(norbks,id='eval')
+!!!       denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
+!!!       !ham = f_malloc((/ntmb,ntmb/),id='ham')
+!!!       !overlap = f_malloc((/ntmb,ntmb/),id='overlap')
+!!!       !on_which_atom = f_malloc(ntmb,id='on_which_atom')
+!!!
+!!!       !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
+!!!       !write(*,*) 'trim(pdos_file)', trim(pdos_file)
+!!!       call f_open_file(iunit01, file=pdos_file, binary=.false.)
+!!!
+!!!       read(iunit01,*) npdos
+!!!
+!!!       calc_array = f_malloc((/ntmb,npdos/),id='calc_array')
+!!!
+!!!       do ipdos=1,npdos
+!!!           do itmb=1,ntmb
+!!!               calc_array(itmb,ipdos) = .false.
+!!!           end do
+!!!       end do
+!!!       npdos_loop: do ipdos=1,npdos
+!!!           do
+!!!               !read(iunit01,*,iostat=ios) cc, ival
+!!!               read(iunit01,'(a128)',iostat=ios) line
+!!!               if (ios/=0) exit
+!!!               write(*,*) 'line',line
+!!!               read(line,*,iostat=ios) cc, ival
+!!!               if (cc=='#') cycle npdos_loop
+!!!               do itype=1,at%astruct%ntypes
+!!!                   if (trim(at%astruct%atomnames(itype))==trim(cc)) then
+!!!                       iitype = itype
+!!!                       exit
+!!!                   end if
+!!!               end do
+!!!               !write(*,'(a,i7,a,2i7)') 'ipdos, cc, ival, iitype', ipdos, trim(cc), ival, iitype
+!!!               iat_prev = -1
+!!!               do itmb=1,ntmb
+!!!                   iat = on_which_atom_s(itmb)
+!!!                   if (iat/=iat_prev) then
+!!!                       ii = 0
+!!!                   end if
+!!!                   iat_prev = iat
+!!!                   itype = at%astruct%iatype(iat)
+!!!                   ii = ii + 1
+!!!                   if (itype==iitype .and. ii==ival) then
+!!!                       if (calc_array(itmb,ipdos)) stop 'calc_array(itmb)'
+!!!                       calc_array(itmb,ipdos) = .true.
+!!!                   end if
+!!!               end do
+!!!           end do
+!!!
+!!!       end do npdos_loop
+!!!
+!!!       !do ipdos=1,npdos
+!!!       !    do itmb=1,ntmb
+!!!       !        iat = on_which_atom_m(itmb)
+!!!       !        itype = at%astruct%iatype(iat)
+!!!       !        write(*,'(a,4i8,l5)') 'ipdos, itmb, iat, itype, calc_array(itmb,ipdos)', &
+!!!       !            ipdos, itmb, iat, itype, calc_array(itmb,ipdos)
+!!!       !    end do
+!!!       !end do
+!!!
+!!!       call f_close(iunit01)
+!!!
+!!!       !!npt = ceiling((eval_ptr(ntmb)-eval_ptr(1))/interval)
+!!!       pdos = f_malloc0((/npt,npdos/),id='pdos')
+!!!       !!energy_bins = f_malloc((/2,npt/),id='energy_bins')
+!!!       !!! Determine the energy bins
+!!!       !!do ipt=1,npt
+!!!       !!    energy_bins(1,ipt) = eval_ptr(1) + real(ipt-1,kind=8)*interval - eps_roundoff
+!!!       !!    energy_bins(2,ipt) = energy_bins(1,ipt) + interval
+!!!       !!end do
+!!!       output_pdos='PDoS.gp'
+!!!       call yaml_map('output file',trim(output_pdos))
+!!!       iunit02 = 99
+!!!       call f_open_file(iunit02, file=trim(output_pdos), binary=.false.)
+!!!       write(iunit02,'(a)') '# plot the DOS as a sum of Gaussians'
+!!!       write(iunit02,'(a)') 'set samples 1000'
+!!!       write(iunit02,'(a,2(es12.5,a))') 'set xrange[',eval_ptr(1),':',eval_ptr(ntmb),']'
+!!!       write(iunit02,'(a)') 'sigma=0.01'
+!!!       write(backslash,'(a)') '\ '
+!!!       ! Calculate a partial kernel for each KS orbital
+!!!       total_occup = 0.d0
+!!!       do ipdos=1,npdos
+!!!           call yaml_map('PDoS number',ipdos)
+!!!           call yaml_map('start, increment',(/ipdos,npdos/))
+!!!           write(num,fmt='(i2.2)') ipdos
+!!!           write(iunit02,'(a,i0,a)') 'f',ipdos,'(x) = '//trim(backslash)
+!!!           occup_pdos = 0.d0
+!!!           do iorb=1,norbks
+!!!               call yaml_map('orbital being processed',iorb)
+!!!               call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff_ptr(1,iorb), ntmb, &
+!!!                    coeff_ptr(1,iorb), ntmb, 0.d0, denskernel(1,1), ntmb)
+!!!                !write(*,*) 'denskernel',denskernel
+!!!                !write(*,*) 'ovrlp_mat%matrix',ovrlp_mat%matrix
+!!!               energy = 0.d0
+!!!               occup = 0.d0
+!!!               do ispin=1,nspin
+!!!                   !$omp parallel default(none) &
+!!!                   !$omp shared(ispin,ntmb,denskernel,ham_mat,energy) &
+!!!                   !$omp private(itmb,jtmb)
+!!!                   !$omp do reduction(+:energy)
+!!!                   do itmb=1,ntmb
+!!!                       do jtmb=1,ntmb
+!!!                           energy = energy + denskernel(itmb,jtmb)*ham_mat%matrix(jtmb,itmb,ispin)
+!!!                       end do
+!!!                   end do
+!!!                   !$omp end do
+!!!                   !$omp end parallel
+!!!               end do
+!!!               do ispin=1,nspin
+!!!                   !!$omp do reduction(+:occup)
+!!!                   do itmb=1,ntmb!ipdos,ntmb,npdos
+!!!                       if (.not.calc_array(itmb,ipdos)) cycle
+!!!                       do jtmb=1,ntmb!ipdos,ntmb,npdos
+!!!                           if (.not.calc_array(jtmb,ipdos)) cycle
+!!!                           occup = occup + denskernel(itmb,jtmb)*ovrlp_mat%matrix(jtmb,itmb,ispin)
+!!!                       end do
+!!!                   end do
+!!!                   !!$omp end do
+!!!               end do
+!!!               !write(*,*) 'OCCUP',occup, energy, eval_ptr(iorb)
+!!!               !!$omp end parallel
+!!!               !!found_bin = .false.
+!!!               !!do ipt=1,npt
+!!!               !!    if (energy>=energy_bins(1,ipt) .and. energy<energy_bins(2,ipt)) then
+!!!               !!        pdos(ipt,ipdos) = pdos(ipt,ipdos) + occup
+!!!               !!        found_bin = .true.
+!!!               !!        exit
+!!!               !!    end if
+!!!               !!end do
+!!!               !!if (.not.found_bin) then
+!!!               !!    call f_err_throw('could not determine energy bin, energy='//yaml_toa(energy),err_name='BIGDFT_RUNTIME_ERROR')
+!!!               !!end if
+!!!               occup_pdos = occup_pdos + occup
+!!!               if (iorb<norbks) then
+!!!                   write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2)) + '//trim(backslash)
+!!!               else
+!!!                   write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2))'
+!!!               end if
+!!!               !write(*,'(a,i6,3es16.8)')'iorb, eval(iorb), energy, occup', iorb, eval(iorb), energy, occup
+!!!           end do
+!!!           total_occup = total_occup + occup_pdos
+!!!           if (ipdos==1) then
+!!!               write(iunit02,'(a,i0,a)') "plot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
+!!!           else
+!!!               write(iunit02,'(a,i0,a)') "replot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
+!!!           end if
+!!!           call yaml_map('sum of PDoS',occup_pdos)
+!!!           !!output_pdos='PDoS_'//num//'.dat'
+!!!           !!call yaml_map('output file',trim(output_pdos))
+!!!           !!call f_open_file(iunit01, file=trim(output_pdos), binary=.false.)
+!!!           !!write(iunit01,'(a)') '#             energy                pdos'
+!!!           !!do ipt=1,npt
+!!!           !!    write(iunit01,'(2es20.12)') energy_bins(1,ipt), pdos(ipt,ipdos)
+!!!           !!end do
+!!!           !!call f_close(iunit01)
+!!!       end do
+!!!       call f_close(iunit02)
+!!!       call yaml_map('sum of total DoS',total_occup)
+!!!
+!!!       stop
    end if
 
    if (kernel_analysis) then

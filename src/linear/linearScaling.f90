@@ -2053,9 +2053,9 @@ end if
       call calculate_rpowerx_matrices(iproc, nproc, tmb%npsidim_orbs, tmb%collcom_sr%ndimpsi_c, tmb%lzd, &
            tmb%orbs, tmb%collcom, tmb%psi, tmb%linmat%s, rpower_matrix)
       ! @ END NEW ##############################################################################################
-      call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      call projector_for_charge_analysis(tmb%linmat%smmd, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
-           rxyz, calculate_centers=.false., write_output=.true., ortho='yes', mode='simple', &
+           rxyz, calculate_centers=.false., write_output=.false., ortho='yes', mode='simple', &
            rpower_matrix=rpower_matrix, orbs=tmb%orbs)
       do i=1,24
           call deallocate_matrices(rpower_matrix(i))
@@ -2183,14 +2183,14 @@ end if
           end select
       end if
       !if (input%lin%charge_multipoles==1) then
-          call multipole_analysis_driver(iproc, nproc, lmax, input%ixc, at, &
+          call multipole_analysis_driver(iproc, nproc, lmax, input%ixc, tmb%linmat%smmd, &
                tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
                rxyz, method, do_ortho, projectormode, &
                calculate_multipole_matrices=.true., do_check=.true., &
                nphi=tmb%npsidim_orbs, lphi=tmb%psi, nphir=max(tmb%collcom_sr%ndimpsi_c,1), &
                hgrids=tmb%lzd%hgrids, orbs=tmb%orbs, collcom=tmb%collcom, collcom_sr=tmb%collcom_sr, &
-               lzd=tmb%lzd, denspot=denspot, orthpar=tmb%orthpar, shift=shift)
+               lzd=tmb%lzd, at=at, denspot=denspot, orthpar=tmb%orthpar, shift=shift)
                !tmb%npsidim_orbs, tmb%psi, &
                !max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
                !tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &

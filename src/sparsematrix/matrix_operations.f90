@@ -2482,8 +2482,10 @@ module matrix_operations
     !! on one atom and calculate S^{-1/2} for this subblock. The remaining parts of teh matrix are empty.
     subroutine calculate_S_minus_one_half_onsite(iproc, nproc, norb, onwhichatom, smats, smatl, ovrlp_, inv_ovrlp_)
       use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
+      use sparsematrix_base, only: sparse_matrix, matrices, &
+                                   assignment(=), sparsematrix_malloc0, SPARSE_FULL
       use sparsematrix_init, only: matrixindex_in_compressed
+      use sparsematrix, only: extract_taskgroup
       implicit none
 
       ! Calling arguments
@@ -2495,6 +2497,7 @@ module matrix_operations
       ! Local variables
       integer :: nat, natp, isat, ii, iorb, iiat, n, jorb, jjat, ind, korb
       real(kind=8),dimension(:,:),allocatable :: matrix
+      real(kind=8),dimension(:),allocatable :: matrix_compr_notaskgroup
 
       call f_routine(id='calculate_S_minus_one_half_onsite')
 
@@ -2516,6 +2519,7 @@ module matrix_operations
 
 
       call f_zero(inv_ovrlp_%matrix_compr)
+      matrix_compr_notaskgroup = sparsematrix_malloc0(smatl, iaction=SPARSE_FULL,id='matrix_compr_notaskgroup')
 
       iorb = 1
       do
@@ -2531,15 +2535,16 @@ module matrix_operations
               matrix = f_malloc((/n,n/),id='matrix')
               do jorb=iorb,iorb+n-1
                   do korb=iorb,iorb+n-1
-                      ind = matrixindex_in_compressed(smats, korb, jorb)
+                      ind = matrixindex_in_compressed(smats, korb, jorb) - smats%isvctrp_tg
                       matrix(korb-iorb+1,jorb-iorb+1) = ovrlp_%matrix_compr(ind)
                   end do
               end do
               call  overlap_plus_minus_one_half_exact(1,n,-1,.false.,matrix,smats)
               do jorb=iorb,iorb+n-1
                   do korb=iorb,iorb+n-1
-                      ind = matrixindex_in_compressed(smatl, korb, jorb)
-                      inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                      ind = matrixindex_in_compressed(smatl, korb, jorb)! - smatl%isvctrp_tg
+                      !inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                      matrix_compr_notaskgroup(ind) = matrix(korb-iorb+1,jorb-iorb+1)
                   end do
               end do
               call f_free(matrix)
@@ -2548,7 +2553,11 @@ module matrix_operations
           if (iorb>norb) exit
       end do
 
-      call mpiallred(inv_ovrlp_%matrix_compr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      !call mpiallred(inv_ovrlp_%matrix_compr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(matrix_compr_notaskgroup, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call extract_taskgroup(smatl, matrix_compr_notaskgroup, inv_ovrlp_%matrix_compr)
+
+      call f_free(matrix_compr_notaskgroup)
 
       call f_release_routine()
 

@@ -93,7 +93,7 @@
    check_overlap                       : 1 #      Enables linear overlap check
    experimental_mode                   : Yes #    Activate the experimental mode in linear scaling
    calculate_KS_residue                : No #     Linear scaling calculate Kohn-Sham residue
-   loewdin_charge_analysis             : Yes #    linear scaling perform a Loewdin charge analysis at the end of the calculation
+   loewdin_charge_analysis             : no #    linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_matrix_compression            : No #     linear scaling perform a check of the matrix compression routines
    FOE_restart                         : 1 #      Restart method to be used for the FOE method
    hamapp_radius_incr                  : 6 #      radius enlargement for the Hamiltonian application (in grid points)
@@ -2098,108 +2098,6 @@
         iter low:  3,            delta out:  1.065E-07, 
           energy: -1.74604651838715590E+01,                       D:  0.000E+00,  #FINAL
  }
- Charge analysis, projector approach:
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculate projector for multipole analysis
-   calculate S^x:
-     mode                              : sparse
-     powers:
-       x                               : 1/2
-     order                             :  1020
-     determine eigenvalue bounds:
-     -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
-   exp accur:  [  6.93E-10 ]}
-     error estimation:
-       max / mean error                :  [  3.95E-10,  9.18E-11 ]
-   Calculating projector for charge analysis:
-     convergence criterion             :  1.0E-004
-     maximal size of a submatrix       :  22
-     Searching alpha for charge neutrality:
-     -  {alpha:  1.0000E-03, charge: -2.3712E+01, net charge: -1.5712E+01, bisection bounds ok: [
-  No,  No], sigma2:  2.0000E-03, eF:  5.2352E-01}
-     -  {alpha:  1.0000E+01, charge: -7.6907E+00, net charge:  3.0926E-01, bisection bounds ok: [
-  Yes,  No], sigma2:  2.0000E-03, eF:  2.2972E-01}
-     -  {alpha:  5.0005E+00, charge: -7.7004E+00, net charge:  2.9965E-01, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.2928E-01}
-     -  {alpha:  2.5008E+00, charge: -7.7195E+00, net charge:  2.8048E-01, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.2840E-01}
-     -  {alpha:  1.2509E+00, charge: -7.7576E+00, net charge:  2.4235E-01, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.2666E-01}
-     -  {alpha:  6.2594E-01, charge: -7.8331E+00, net charge:  1.6690E-01, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.2321E-01}
-     -  {alpha:  3.1347E-01, charge: -7.9811E+00, net charge:  1.8902E-02, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1611E-01}
-     -  {alpha:  1.5723E-01, charge: -8.2674E+00, net charge: -2.6745E-01, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.0109E-01}
-     -  {alpha:  2.3535E-01, charge: -8.0779E+00, net charge: -7.7861E-02, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1119E-01}
-     -  {alpha:  2.7441E-01, charge: -8.0227E+00, net charge: -2.2742E-02, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1393E-01}
-     -  {alpha:  2.9394E-01, charge: -8.0006E+00, net charge: -5.6532E-04, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1507E-01}
-     -  {alpha:  3.0370E-01, charge: -7.9905E+00, net charge:  9.4749E-03, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1555E-01}
-     -  {alpha:  2.9882E-01, charge: -7.9955E+00, net charge:  4.5351E-03, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1531E-01}
-     -  {alpha:  2.9638E-01, charge: -7.9980E+00, net charge:  2.0055E-03, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1519E-01}
-     -  {alpha:  2.9516E-01, charge: -7.9993E+00, net charge:  7.2529E-04, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1513E-01}
-     -  {alpha:  2.9455E-01, charge: -7.9999E+00, net charge:  8.1296E-05, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.1510E-01}
-     number of states to be occupied (without smearing):  4
-     Pseudo Fermi level for occupations:  0.2150983760208331
-     ordered eigenvalues and occupations:
-     -  {eval: -7.1897E-01, atom:  00001, occ:  1.0000} # 00001
-     -  {eval: -1.6716E-01, atom:  00001, occ:  1.0000} # 00002
-     -  {eval: -1.6135E-01, atom:  00001, occ:  1.0000} # 00003
-     -  {eval: -1.5890E-01, atom:  00001, occ:  1.0000} # 00004
-     -  {eval: -2.9273E-02, atom:  00002, occ:  1.0000} # 00005
-     -  {eval: -2.3379E-02, atom:  00003, occ:  1.0000} # 00006
-     -  {eval:  6.7619E-01, atom:  00003, occ:  0.0000} # 00007
-     -  {eval:  6.7818E-01, atom:  00002, occ:  0.0000} # 00008
-     -  {eval:  7.1113E-01, atom:  00002, occ:  0.0000} # 00009
-     -  {eval:  7.1463E-01, atom:  00003, occ:  0.0000} # 00010
-     -  {eval:  1.0330E+00, atom:  00003, occ:  0.0000} # 00011
-     -  {eval:  1.0353E+00, atom:  00002, occ:  0.0000} # 00012
-     -  {eval:  1.1724E+00, atom:  00002, occ:  0.0000} # 00013
-     -  {eval:  1.1748E+00, atom:  00003, occ:  0.0000} # 00014
-     -  {eval:  1.2524E+00, atom:  00002, occ:  0.0000} # 00015
-     -  {eval:  1.2531E+00, atom:  00003, occ:  0.0000} # 00016
-     -  {remaining states:  60, occ: <1.d-100}
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Projector calculation finished
-   Charge analysis (charge / net charge):
-   -  {O:  [ -6.543224227085E+00, -5.432242270855E-01 ]} # 0001
-   -  {H:  [ -7.335618334487E-01,  2.664381665513E-01 ]} # 0002
-   -  {H:  [ -7.231326998865E-01,  2.768673001135E-01 ]} # 0003
-   - total charge                      : -7.99991876E+00
-   - total net charge                  :  8.12395793E-05
-   output file                         : chargeanalysis.gp
- Charge analysis, Loewdin approach:
-   Method                              : Loewdin
-   calculate S^x:
-     mode                              : sparse
-     powers:
-       x                               : 1/2
-     order                             :  1020
-     determine eigenvalue bounds:
-     -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
-   exp accur:  [  6.93E-10 ]}
-     error estimation:
-       max / mean error                :  [  3.95E-10,  9.18E-11 ]
-   Charge analysis (charge / net charge):
-   -  {O:  [ -6.362611529471E+00, -3.626115294714E-01 ]} # 0001
-   -  {H:  [ -8.257070701067E-01,  1.742929298933E-01 ]} # 0002
-   -  {H:  [ -8.116814560261E-01,  1.883185439739E-01 ]} # 0003
-   - total charge                      : -8.00000006E+00
-   - total net charge                  : -5.56042472E-08
-   output file                         : chargeanalysis.gp
-   Multipole analysis (based on the Loewdin charges):
-     net dipole                        :  [ -2.85947E-01,  1.99602E-01,  2.04837E-01 ]
-     net quadropole:
-     -  [  3.76579E-01,  5.89003E-01,  5.09979E-01 ]
-     -  [  5.89003E-01, -1.35842E-01,  8.24765E-01 ]
-     -  [  5.09979E-01,  8.24765E-01, -2.40738E-01 ]
-     - trace of quadropole matrix      : -2.49E-14
  Gross support functions moments:
    Orthonormalization                  : on-site
    Multipole coefficients:

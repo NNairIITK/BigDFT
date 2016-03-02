@@ -1967,7 +1967,7 @@ module io
                                    DENSE_FULL, SPARSE_TASKGROUP, assignment(=), &
                                    deallocate_matrices
       use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix_local, matrix_matrix_mult_wrapper
-      use sparsematrix_io, only: write_sparse_matrix
+      use sparsematrix_io, only: write_sparse_matrix, write_sparse_matrix_metadata
       use matrix_operations, only: overlapPowerGeneral
       implicit none
       integer, intent(in) :: iproc,nproc,imethod_overlap,norder_taylor
@@ -1994,6 +1994,14 @@ module io
     
       unitm=99
       binary=(mod(iformat,10) /= WF_FORMAT_PLAIN)
+
+      if (write_sparse) then
+          call write_sparse_matrix_metadata(tmb%linmat%m%nfvctr, at%astruct%nat, at%astruct%ntypes, &
+               at%astruct%units, at%astruct%geocode, at%astruct%cell_dim, at%astruct%iatype, &
+               at%astruct%rxyz, at%nzatom, at%nelpsp, at%astruct%atomnames, &
+               tmb%orbs%onwhichatom, trim(filename//'sparsematrix_metadata.bin'))
+
+      end if
     
       if (write_dense) then
           call write_dense_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
@@ -2002,9 +2010,7 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
-               at%nzatom, at%nelpsp, at%astruct%atomnames, &
-               tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
+          call write_sparse_matrix(tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
       end if
     
     
@@ -2015,9 +2021,7 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
-               at%nzatom, at%nelpsp, at%astruct%atomnames, &
-               tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
+          call write_sparse_matrix(tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
       end if
     
     
@@ -2028,9 +2032,7 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
-               at%nzatom, at%nelpsp, at%astruct%atomnames, &
-               tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
+          call write_sparse_matrix(tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
       end if
     
     
@@ -2117,9 +2119,7 @@ module io
           end if
 
           if (write_sparse) then
-              call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
-                   at%nzatom, at%nelpsp, at%astruct%atomnames, &
-                   tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
+              call write_sparse_matrix(tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
           end if
           call deallocate_matrices(SminusonehalfH(1))
       end if

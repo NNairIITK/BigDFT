@@ -1001,7 +1001,7 @@ contains
             err_name='BIGDFT_RUNTIME_ERROR')
     end if
 
-    !this also should aways work
+    !this also should always work
     totreat=.true.
     it=orbital_basis_iterator(ob)
     do while(ket_next_kpt(it))

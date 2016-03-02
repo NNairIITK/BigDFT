@@ -23,7 +23,7 @@ module module_types
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
   use module_dpbox, only: denspot_distribution,dpbox_null
   use communications_base, only: comms_linear, comms_cubic, p2pComms
-  use sparsematrix_base, only: matrices, sparse_matrix
+  use sparsematrix_base, only: matrices, sparse_matrix, sparse_matrix_metadata
   use foe_base, only: foe_data
   use m_pawcprj, only: pawcprj_type
   use m_paw_an, only: paw_an_type
@@ -191,6 +191,7 @@ module module_types
       type(sparse_matrix) :: l !< medium: sparsity pattern given by kernel cutoff
       type(sparse_matrix),dimension(:),pointer :: ks !< sparsity pattern for the KS orbitals (i.e. dense); spin up and down
       type(sparse_matrix),dimension(:),pointer :: ks_e !< sparsity pattern for the KS orbitals including extra stated (i.e. dense); spin up and down
+      type(sparse_matrix_metadata) :: smmd !< metadata of the sparse matrices
       type(matrices) :: ham_, ovrlp_, kernel_
       type(matrices),dimension(3) :: ovrlppowers_
   end type linear_matrices
