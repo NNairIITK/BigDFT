@@ -835,7 +835,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   energy_diff=.false.
 
   ovrlp_old%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, &
-                           iaction=SPARSE_FULL, id='ovrlp_old%matrix_compr')
+                           iaction=SPARSE_TASKGROUP, id='ovrlp_old%matrix_compr')
 
   ! Allocate all local arrays.
   call allocateLocalArrays()
