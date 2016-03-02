@@ -1,0 +1,147 @@
+#!/bin/bash
+
+init_jobs()
+{
+    echo "log.yaml"
+}
+
+finalise_jobs()
+{
+    return
+}
+
+wait_jobs()
+{
+    return
+}
+
+make_ascii()
+{
+    position_file=$1".ascii"
+    n_nodes=$2
+    restart_file=$3
+
+    rm -f posinp.ascii
+    head -n3 $position_file >> posinp.ascii
+    echo "#keyword: periodic, bohr" >> posinp.ascii
+    tail -n $n_nodes $position_file | sed "s/  */ /g" | cut -d" " -f5 > atoms
+    grep -A $(($n_nodes + 1)) -e "Replica: *$id *$" $restart_file | tail -n $n_nodes | sed "s/  */ /g" | cut -d' ' -f2,3,4 > positions
+    paste -d' ' positions atoms >> posinp.ascii
+    rm -f atoms positions
+}
+
+make_xyz()
+{
+    position_file=$1".xyz"
+    n_nodes=$2
+    restart_file=$3
+
+    rm -f posinp.xyz
+    echo $n_nodes" atomic" > posinp.xyz
+    head -n2 $position_file | tail -n 1 >> posinp.xyz
+    head -n $(($n_nodes + 2)) $position_file | tail -n $n_nodes | sed "s/^ *//g" | cut -d" " -f1 > atoms
+    grep -A $(($n_nodes + 1)) -e "Replica: *$id *$" $restart_file | tail -n $n_nodes | sed "s/  */ /g" | cut -d' ' -f2,3,4 > positions
+    paste -d' ' atoms positions >> posinp.xyz
+    rm -f atoms positions
+}
+
+make_input()
+{
+    # We create a posinp file from the .NEB.restart file.
+    # Set also the input.dat and psp files.
+    # INPUTS:
+    # $1 the job name
+    # $2 the datadir
+    # $3 the replica id
+    # $4 the number of nodes
+    # $5 the first configuration
+    datadir=$2
+    restart_file=$datadir/$1".NEB.restart"
+    position_file=$5
+    n_nodes=$4
+    id=$3
+
+    # Clean the directory
+    rm -f log.yaml input.* default.*
+
+    # Create the posinp file
+    make_xyz $position_file $n_nodes $restart_file
+
+    # Copy the input.yaml
+    cp -f -p $datadir/default.yaml ./default.yaml
+
+    # Copy the pseudo-potential files
+    cp -f -p $datadir/psppar.* .
+}
+
+
+
+run_job()
+{
+    # Create the go.pbs file
+    # INPUTS:
+    # $1 name of the job
+    # $2 the datadir
+    # $3 the replica id
+    if test -z "$run_parallel" ; then
+	(%%abs_top_builddir%%/src/bigdft > log.yaml; echo "#NEB: job done" >> log.yaml)&
+    else
+	eval $run_parallel %%abs_top_builddir%%/src/bigdft > log.yaml
+	echo "#NEB: job done" >> log.yaml
+    fi
+}
+
+check_job()
+{
+    # INPUTS:
+    # $1 name of the job
+    # OUPUTS:
+    #  0: job running
+    # -1: job not start yet
+    #  1: job finished and succeeded
+    #  2: job finished but failed
+
+    if [ ! -f log.yaml ] ; then
+	# Job not started yet.
+	echo "-1"
+	return
+    fi
+
+    if grep -qs "#NEB: job done" log.yaml ; then
+
+	if grep -qs "Atomic Forces (Ha/Bohr)" log.yaml ; then
+	    # Success case
+	    echo "1"
+	    return
+	else
+	    if grep -qs "Input Hamiltonian" log.yaml ; then
+	        # Failure
+		echo "2"
+		return
+	    else
+		# System failure, should restart
+                echo "3"
+                return
+            fi
+	fi
+    fi
+
+    # Job not finished
+    echo "0"
+}
+
+grep_forces()
+{
+    # Grep the forces from the output file
+    # INPUTS:
+    # $1 number of nodes to grep forces from
+    # OUTPUTS:
+    #  the total energy
+    #  the list of forces for each atoms
+    #old version
+    #grep "FINAL" log.yaml | sed 's/  */ /g' | cut -d' ' -f6
+    #grep -A $1 "Final values of the Forces for each atom" log | sed 's/  */ /g' | cut -d' ' -f4,5,6 | tail -n $1
+    #new version based on yaml output
+    grep "#FINAL" log.yaml | tail -n 1 | grep EKS | awk '{print $4}' | sed s/,//g
+    grep  -A $1 'Atomic Forces (Ha/Bohr)'  log.yaml | cut -d"[" -f2 | cut -d"]" -f1 | sed s/,//g | tail -n $1
+}

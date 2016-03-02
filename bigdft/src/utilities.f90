@@ -233,7 +233,7 @@ program utilities
     !> construct the dictionary needed for the timing information
     !! SM: This routine should go to a module
     subroutine build_dict_info(dict_info)
-      !use module_base
+      use wrapper_MPI
       use dynamic_memory
       use dictionaries
       implicit none

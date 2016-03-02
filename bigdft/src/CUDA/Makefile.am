@@ -35,7 +35,7 @@ libCUDA_a_SOURCES = $(sources)
 #INC_CUDA = -I@LIB_CUTIL_PATH@
 EXTRA_PROGRAMS = conv_check
 
-AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ @LIBSGPU_INCLUDE@
+AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/
 
 NVCC = @NVCC@
 NVCC_FLAGS = -arch sm_20 @NVCC_FLAGS@ 
@@ -43,16 +43,17 @@ SUFFIXES = .cu
 
 CLEANFILES = fort.1 fort.98 *linkinfo
 
-AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@ -I. -I$(srcdir)
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 else
-LIBS += @LIBS_SHORT_DEPS@
+bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 conv_check_SOURCES = conv_check.f90 timing.c
-conv_check_LDADD = -lbigdft-1
+conv_check_LDADD = $(bigdft_library)
 
 #GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.F90 $(mpi_source)
 #GPUham_LDFLAGS =

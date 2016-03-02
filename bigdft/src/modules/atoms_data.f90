@@ -1626,12 +1626,15 @@ contains
       pawpatch = .true.
       do ityp=1,atoms%astruct%ntypes
          filename = 'psppar.'//atoms%astruct%atomnames(ityp)
+
+         radii_cf(:) = atoms%radii_cf(ityp,:) !To avoid a copy
          call get_psp(dict//filename,ityp,atoms%astruct%ntypes,&
               atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%npspcode(ityp), &
               atoms%ixcpsp(ityp), atoms%iradii_source(ityp),atoms%psppar(0:,0:,ityp),&
-              atoms%radii_cf(ityp,:),pawpatch,&
+              radii_cf,pawpatch,&
               atoms%pawrad,atoms%pawtab,atoms%epsatm)
-!!$
+         atoms%radii_cf(ityp,:) = radii_cf(:)
+
 !!$         call psp_set_from_dict(dict // filename, l, &
 !!$              & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%npspcode(ityp), &
 !!$              & atoms%ixcpsp(ityp), atoms%iradii_source(ityp), radii_cf, rloc, lcoeff, psppar)

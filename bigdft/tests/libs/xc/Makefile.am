@@ -17,12 +17,13 @@ AM_FCFLAGS = @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 else
-LIBS += @LIBS_SHORT_DEPS@
+bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 test_xc_SOURCES = test_xc.f90
-test_xc_LDADD = -lbigdft-1
+test_xc_LDADD = $(bigdft_library)
 
 check: xc.report.yaml
 
@@ -30,5 +31,5 @@ xc.out.yaml: test_xc
 	-$(run_parallel) ./test_xc > $@
 
 xc.report.yaml: xc.out.yaml
-	python $(top_builddir)/tests/fldiff_yaml.py -r $(srcdir)/xc.ref.yaml -d $^ -o $@ \
+	python $(pythondir)/fldiff_yaml.py -r $(srcdir)/xc.ref.yaml -d $^ -o $@ \
 			-t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=xc

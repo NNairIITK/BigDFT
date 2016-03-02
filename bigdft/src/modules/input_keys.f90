@@ -956,7 +956,6 @@ contains
     use module_defs, only: gp, pi_param
     use f_input_file
     use public_keys
-    use module_base, only: bigdft_mpi
     use yaml_strings, only: operator(.eqv.)
     use yaml_output
     use PStypes, only: PS_input_dict
@@ -992,8 +991,7 @@ contains
     !then we can complete the Poisson solver dictionary
     call PS_input_dict(dict // PSOLVER,dict_ps_min)
 
-    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested,&
-      verbose=bigdft_mpi%iproc==0)
+    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested,verbose=.true.)
 
     !create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)
@@ -1283,7 +1281,7 @@ contains
     implicit none
     integer, intent(in) :: iscf
     type(f_enumerator), intent(out) :: scf_mode
-
+    
     !insert the method of mixing
     scf_mode=f_enumerator('METHOD',modulo(iscf,10),null())
     !set the enumerator methd

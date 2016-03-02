@@ -20,7 +20,7 @@ static char CPPFLAGS[] = "@CPPFLAGS@";
 static char LD[]        = "@LD@";
 static char LDFLAGS[]   = "@LDFLAGS@";
 static char LIBS[]      = "@LIBS@";
-static char LIBS_DEPS[] = "@LIBS_SHORT_DEPS@";
+static char LIBS_DEPS[] = "@LIB_BIGDFT_DEPS@";
 
 #define TRUNCATED "(...)"
 

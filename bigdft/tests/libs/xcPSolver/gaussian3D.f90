@@ -1,11 +1,11 @@
 !> @file
 !!  Use integral form for Poisson solver
 !! @author
-!!    Copyright (c) 2013-2014 BigDFT group
+!!    Copyright (c) 2013-2016 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Program testing new ideas like momentum-preserving gaussian integrals 3D
@@ -23,12 +23,12 @@ program MP_gaussian
   integer, parameter :: npts=50         !< Arrays from -npts to npts
   real(gp), parameter :: hgrid = 0.8_gp !< Step grid
   real(gp), parameter :: sigma = 0.2_gp !< Sigma gaussian
-  integer :: j
-  integer :: imoms,pow,istep,isigma
-  real(gp) :: pgauss,x0,y0,z0,reference,max_fj
-  real(gp), dimension(0:nmoms,2) :: moments
-  real(gp), dimension(3,2,0:nmoms) :: avgmaxmin
-  real(gp), dimension(:,:,:), allocatable :: fj_phi,fj_coll
+  !integer :: j
+  !integer :: imoms,pow,istep,isigma
+  !real(gp) :: pgauss,x0,y0,z0,reference,max_fj
+  !real(gp), dimension(0:nmoms,2) :: moments
+  !real(gp), dimension(3,2,0:nmoms) :: avgmaxmin
+  !real(gp), dimension(:,:,:), allocatable :: fj_phi,fj_coll
   integer :: nat,ntyp,iat,i
   integer(f_long) :: t0,t1
   real(gp) :: diff
@@ -37,7 +37,7 @@ program MP_gaussian
   integer, dimension(:), allocatable :: iatype
   real(gp), dimension(:,:), allocatable :: rxyz,Sab,S2ab,Tab,T2ab
   real(gp), dimension(:,:,:), allocatable :: psppar
-  
+
 
   call f_lib_initialize()
 
@@ -50,23 +50,23 @@ program MP_gaussian
   psppar=f_malloc0([0.to.4,0.to.6,1.to.ntyp],id='psppar')
   !put two atoms far apart
   rxyz=f_malloc0([3,nat],id='rxyz')
-  rxyz(3,2)=3.d0 
+  rxyz(3,2)=3.d0
 
   !retrieve the parameters of the PSP by default
   call dict_init(dict)
-  call psp_dict_fill_all(dict,dict_value( types // 0), 11, 15.d0, 5.d0, 8.d0)!a PSP-rich atom  
+  call psp_dict_fill_all(dict,dict_value( types // 0), 11, 15.d0, 5.d0, 8.d0)!a PSP-rich atom
   call psp_dict_fill_all(dict,dict_value( types // 1), 1, 15.d0, 5.d0, 8.d0)!a PSP-richer atom
 
-!  call update_psp_dict(dict,'C') 
-!  call update_psp_dict(dict,'N') 
+!  call update_psp_dict(dict,'C')
+!  call update_psp_dict(dict,'N')
 
   !print the dictionary
   call yaml_map('PSP dictionary',dict)
-  
+
   !then retrieve the psppar components
   call psp_set_from_dict(dict //("psppar."+dict_value(types//0)), psppar=psppar(1:,:,1))
   call psp_set_from_dict(dict //("psppar."+dict_value(types//1)), psppar=psppar(1:,:,2))
-  
+
   call yaml_map('Psppar for '+dict_value(types//0),psppar(:,:,1))
   call yaml_map('Psppar for '+dict_value(types//1),psppar(:,:,2))
 
@@ -216,7 +216,7 @@ program MP_gaussian
 !!!>  call yaml_map('Results',reshape(avgmaxmin,(/6,nmoms+1/)),fmt='(1pe14.5)')
 !!!>
 !!!>  call finalize_real_space_conversion()
-!!!>  
+!!!>
 !!!>  call f_free(fj_phi)
 !!!>  call f_free(fj_coll)
 !!!>  call f_lib_finalize()
@@ -266,7 +266,7 @@ subroutine evaluate_moments3D(nmoms,npts,hgrid,pgauss,pow,x0,y0,z0,fj_phi,fj_col
 end subroutine evaluate_moments3D
 
 
-!> Calculate the moments of an array with respect to a reference point 
+!> Calculate the moments of an array with respect to a reference point
 subroutine moments_3d(nx,ny,nz,array,x0,y0,z0,h,nmoms,moments)
   use module_base, only: gp
   implicit none

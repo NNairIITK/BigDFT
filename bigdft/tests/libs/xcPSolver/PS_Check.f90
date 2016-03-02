@@ -807,7 +807,7 @@ program PS_Check
   !! if nproc == -1: serial version i.e. special comparison
   subroutine compare(iproc,nproc,mpi_comm,n01,n02,n03,nspden,potential,density,description)
      implicit none
-     include 'mpif.h'
+     !include 'mpif.h'
      character(len=*), intent(in) :: description
      integer, intent(in) :: iproc,nproc,n01,n02,n03,nspden,mpi_comm
      real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,density

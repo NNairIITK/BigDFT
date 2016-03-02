@@ -8,12 +8,13 @@ AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 else
-LIBS += @LIBS_SHORT_DEPS@ -lrt
+bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 smatmul_SOURCES = smatmul.f90
-smatmul_LDADD = -lbigdft-1 @LINALG_LIBS@
+smatmul_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 CLEANFILES = *.dat *.yaml report
 
@@ -27,10 +28,10 @@ test-smatmul.out.yaml: smatmul
 
 
 check: test-smatmul.out.yaml
-	python $(top_builddir)/tests/fldiff_yaml.py \
+	python $(pythondir)/fldiff_yaml.py \
 		-r $(abs_srcdir)/test-smatmul.ref.yaml -d test-smatmul.out.yaml -t $(abs_srcdir)/tols.yaml \
 	        --output fldiff.report.yaml
 
 
 report:
-	python $(top_builddir)/tests/report.py
+	python $(pythondir)/report.py

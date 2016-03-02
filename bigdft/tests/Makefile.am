@@ -2,16 +2,9 @@
 
 EXTRA_DIST = \
 	README \
-	fldiff.py \
 	styles \
 	images \
-	yaml_hl.cfg \
-	yaml_hl.py \
-	parse_log.py \
-	tols-BigDFT.yaml \
-	yaml_hl_remarks.cfg \
-	fldiff_yaml.py.in \
-	report.py.in
+	tols-BigDFT.yaml
 
 SUBDIRS = \
 	  DFT \
@@ -20,6 +13,7 @@ SUBDIRS = \
 	  libs \
 	  benchs
 
+python_PYTHON = parse_log.py
 
 if USE_OCL
 oclrun_message = oclrun
@@ -56,28 +50,10 @@ oclrun: head_message $(mpirun_message)
 
 CLEANFILES =
 
-all: head_message foot_message report.py fldiff_yaml.py
+all: head_message foot_message
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
 
-report.py: report.py.in
-	@sed							\
-		-e s!\@prefix\@!$(prefix)!			\
-		-e s!\@exec_prefix\@!$(exec_prefix)!		\
-		-e s!\@pyexecdir\@!$(pyexecdir)!		\
-		-e s!\@AX_PYYAML_PATH\@!$(AX_PYYAML_PATH)!	\
-		-e s!\@abs_srcdir\@!$(abs_srcdir)!		\
-		< $< > $@
-
-fldiff_yaml.py: fldiff_yaml.py.in
-	@sed							\
-		-e s!\@prefix\@!$(prefix)!			\
-		-e s!\@exec_prefix\@!$(exec_prefix)!		\
-		-e s!\@pyexecdir\@!$(pyexecdir)!		\
-		-e s!\@AX_PYYAML_PATH\@!$(AX_PYYAML_PATH)!	\
-		-e s!\@abs_srcdir\@!$(abs_srcdir)!		\
-		< $< > $@
-
 report:
-	python $(top_builddir)/tests/report.py
+	python $(pythondir)/report.py

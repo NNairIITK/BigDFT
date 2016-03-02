@@ -1,5 +1,5 @@
  dft:
-   hgrids        : 0.43309125   # grid spacing in the three directions (bohr)
+   hgrids        : 0.45   # grid spacing in the three directions (bohr)
    rmult         : [5.00, 9.00] # c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-basec radius
    ixc           : 1            # exchange-correlation parameter (LDA=1,PBE=11)
    inputpsiid    : 2

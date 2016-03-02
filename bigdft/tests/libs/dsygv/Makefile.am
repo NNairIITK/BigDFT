@@ -16,17 +16,18 @@ AM_FCFLAGS = -I$(top_builddir)/src/modules -I$(top_builddir)/src/ @MPI_INCLUDE@ 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 else
-LIBS += @LIBS_SHORT_DEPS@
+bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 test_SOURCES = dsygv_interfaces.f90 dsygv_init_matrices.f90 dsygv_wrappers.f90 dsygv_test.f90
-test_LDADD = -lbigdft-1 @LINALG_LIBS@
+test_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 check: test-dsygv.report
 
 test-dsygv.report: $(srcdir)/test-dsygv.out.ref test-dsygv.out
-	python $(top_srcdir)/tests/fldiff.py $^ | tee $@
+	python $(pythondir)/fldiff.py $^ | tee $@
 
 test-dsygv.out: test
 	cp $(srcdir)/input1.dat $(PWD)/input.dat
