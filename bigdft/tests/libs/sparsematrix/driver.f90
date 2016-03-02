@@ -12,7 +12,7 @@ program driver
   use module_base
   use sparsematrix_init, only: sparsebigdft_to_ccs, read_ccs_format
   use sparsematrix_io, only: read_sparse_matrix, write_ccs_matrix
-  use module_atoms,only: atoms_data, atoms_data_null
+  use module_atoms, only: atoms_data, atoms_data_null
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, &
                                assignment(=), SPARSE_FULL
   use bigdft_run, only: bigdft_init
@@ -21,19 +21,19 @@ program driver
   implicit none
 
   ! Variables
-  character(len=*),parameter :: filename='matrix.dat'
-  integer :: nspin, nfvctr, nvctr, nseg, i, iseg
-  character(len=1) :: geocode
-  integer,dimension(:),pointer :: keyv
-  integer,dimension(:,:,:),pointer :: keyg
-  real(kind=8),dimension(:),pointer :: mat_compr
-  integer,dimension(:),pointer :: row_ind, col_ptr
+  character(len=*), parameter :: filename='matrix.dat'
+  !integer :: nspin, nfvctr, nvctr, nseg, i, iseg
+  !character(len=1) :: geocode
+  !integer, dimension(:), pointer :: keyv
+  !integer, dimension(:,:,:), pointer :: keyg
+  !real(kind=8), dimension(:), pointer :: mat_compr
+  integer, dimension(:), pointer :: row_ind, col_ptr
 
-  integer :: nspin_h, nfvctr_h, nseg_h, nvctr_h, nfvctrp_h, isfvctr_h
-  integer :: nspin_s, nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
-  integer,dimension(:),pointer :: keyv_h, keyv_s, on_which_atom_h, on_which_atom_s
-  integer,dimension(:,:,:),pointer :: keyg_h, keyg_s
-  real(kind=8),dimension(:),pointer :: matrix_compr_h, matrix_compr_s, matrix_compr_sl
+  integer :: nspin_h, nfvctr_h, nseg_h, nvctr_h!, nfvctrp_h, isfvctr_h
+  integer :: nspin_s, nfvctr_s, nseg_s, nvctr_s!, nfvctrp_s, isfvctr_s
+  integer, dimension(:), pointer :: keyv_h, keyv_s, on_which_atom_h, on_which_atom_s
+  integer, dimension(:,:,:), pointer :: keyg_h, keyg_s
+  real(kind=8), dimension(:), pointer :: matrix_compr_h, matrix_compr_s, matrix_compr_sl
   type(atoms_data) :: at
   character(len=1) :: geocode_h, geocode_s
   type(sparse_matrix) :: smat_h, smat_s

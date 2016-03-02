@@ -6,7 +6,7 @@ dynlibdir           = $(libdir)
 bin_PROGRAMS        = $(binaries_sources)
 noinst_PROGRAMS     = $(local_binaries)
 bin_SCRIPTS         = $(scripts_sources)
-lib_LIBRARIES       = $(lib_bigdft)
+lib_LIBRARIES       = libbigdft-1.a
 module_DATA         = $(mod_bigdft)
 dynlib_DATA         = $(bigdft_dynamic_library)
 
@@ -44,12 +44,12 @@ subs_static_library = \
 	xcPSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
 	bindings/libbindings.a
-out_static_library =  \
-	$(top_builddir)/PSolver/src/libPSolver-1.a \
-	$(top_builddir)/wrappers/libwrappers.a
-if BUILD_FLIB
-out_static_library += $(top_builddir)/flib/src/libflib-1.a
-endif
+
+#out_static_library =  \
+#	$(top_builddir)/PSolver/src/libPSolver-1.a \
+#	$(top_builddir)/wrappers/libwrappers.a \
+#	$(top_builddir)/flib/src/libflib-1.a
+
 if BUILD_DYNAMIC_LIBS
 bigdft_dynamic_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
 bigdft_soname_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@
@@ -58,13 +58,9 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
+bigdft_library = libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
-if BUILD_LIB_BIGDFT
-lib_bigdft = libbigdft-1.a
-else
-lib_bigdft =
-endif
+
 if BUILD_BINARIES
 binaries_sources = bigdft memguess frequencies abscalc utilities
 local_binaries = test_forces
@@ -95,31 +91,21 @@ endif
 
 
 if HAVE_AMBERTOOLS
-amber_ld= @LIB_AMBERTOOLS@  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack
 ambertools_wrap= wrap.c
 ###for amber supp.:
 wrap.o:     wrap.c
 	$(NAB) -c  -g $<
 else
 ambertools_wrap= wrap_fake.f90
-amber_ld =
 endif
 
-if HAVE_CP2K
-cp2k_ld= @CP2K_LINKLINE@ @LINALG_LIBS@
+##if HAVE_CP2K
 ##cp2k_interfacemod = modules/module_cp2k.f90
 ##cp2k_interfacemodCAP = MODULES/MODULE_CP2k.F90
-else
+##else
 ##cp2k_interfacemod = modules/cp2k_fake.f90 modules/module_cp2k.f90
 ##cp2k_interfacemodCAP = MODULES/CP2K_FAKE.F90 MODULES/MODULE_CP2K_FAKE.F90
-cp2k_ld =
-endif
-
-if HAVE_PEXSI
-pexsi_ld= @PEXSI_LINKLINE@ @LINALG_LIBS@
-else
-pexsi_ld =
-endif
+##endif
 
 if USE_OCL
 OCL_CONV = interface_ocl.f90
@@ -130,9 +116,8 @@ endif
 
 AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ \
-	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
-	@MPI_INCLUDE@ @LIB_FLIB_CFLAGS@
-AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @LIBSGPU_INCLUDE@ -I$(srcdir)/modules -Imodules
+	@LIBETSFIO_INCLUDE@ @MPI_INCLUDE@ @LIB_FUTILE_CFLAGS@
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ -I$(srcdir)/modules -Imodules
 #AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ -Wno-deprecated-declarations -Wno-cpp
 AM_CFLAGS = @CUDA_INCLUDE@
 
@@ -261,7 +246,7 @@ libbigdft-1.a: $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
 	$(RANLIB) $@
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_soname_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIB_BIGDFT_DEPS@
 	@chmod a+x $@
 
 libbigdft-1.so.@BIGDFT_MINOR_VERSION@: $(bigdft_dynamic_library)
@@ -272,8 +257,8 @@ install-data-hook:
 	if test -n "$(bigdft_dynamic_library)" ; then \
 	  cd $(DESTDIR)$(dynlibdir) ; \
 	  chmod a+x $(bigdft_dynamic_library) ; \
-	  ln -fs $(bigdft_dynamic_library) $(bigdft_library) ; \
-	  ln -fs $(bigdft_library) libbigdft-1.so ; \
+	  ln -fs $(bigdft_dynamic_library) $(bigdft_soname_library) ; \
+	  ln -fs $(bigdft_soname_library) libbigdft-1.so ; \
 	fi
 
 #obsolete dependency $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft-1.a libdft_common.a
@@ -282,7 +267,7 @@ install-data-hook:
 #abscalc_additional= 
 
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@
+bigdft_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@
 
 #rism_SOURCES = rism.f90 rismlowlevel.f90
 #rism_LDADD = $(bigdft_library)
@@ -303,20 +288,20 @@ MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = $(bigdft_library)
 
 abscalc_SOURCES = abscalc.f90 
-abscalc_LDADD = libabscalc.a $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+abscalc_LDADD = libabscalc.a $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@
+test_forces_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@
 
 #to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
-memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/src/MPIfake.f90
-memguess_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+memguess_SOURCES = memguess.f90 MPIfake.f90
+memguess_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 utilities_SOURCES = utilities.f90
-utilities_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+utilities_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+frequencies_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:
@@ -328,7 +313,7 @@ install: install-recursive
 	chmod ug+x bigdft-tool
 
 check:
-	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
 #dependencies
 convolutions_aux.o linear/convolutions_aux.o: linear/filterModule.f90 filterModule.o
@@ -350,7 +335,7 @@ restart.o: i-o.o
 # Introspection for Python bindings
 # ---------------------------------
 if WITH_GOBJECT_INTROSPECTION
-BUILT_GIRSOURCES = BigDFT-1.@BIGDFT_MINOR_VERSION@.gir
+BUILT_GIRSOURCES = BigDFT-@BIGDFT_MAJOR_VERSION@.@BIGDFT_MINOR_VERSION@.gir
 
 gir_DATA = $(BUILT_GIRSOURCES)
 typelibs_DATA = $(BUILT_GIRSOURCES:.gir=.typelib)
@@ -365,12 +350,12 @@ additonal_sources = $(srcdir)/bindings/bindings.c \
 
 endif
 
-$(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
+$(gir_DATA): $(G_IR_SCANNER) $(bigdft_soname_library)
 	$(G_IR_SCANNER) -v --warn-all \
 		--namespace BigDFT \
 		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ --identifier-prefix=Bigdft \
 		--symbol-prefix=f90 --identifier-prefix=f90_ \
-		--nsversion "1.@BIGDFT_MINOR_VERSION@" \
+		--nsversion "@BIGDFT_MAJOR_VERSION@.@BIGDFT_MINOR_VERSION@" \
 		--add-include-path=$(girdir) \
 		--include GObject-2.0 \
 		--include GLib-2.0 \

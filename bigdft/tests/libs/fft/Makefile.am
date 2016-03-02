@@ -40,13 +40,13 @@ fft_cache.dat: fft_cache
 	python $(srcdir)/fft_cache.py
 
 fft_check.report: fft_check.out
-	python $(top_srcdir)/tests/fldiff.py --mode=pseudo --discrepancy=1.e-8 \
+	python $(pythondir)/fldiff.py --mode=pseudo --discrepancy=1.e-8 \
 		fft_check.out $(srcdir)/fft_check.out.ref | tee fft_check.report
 
 fft_cache.report: fft_cache.dat
-	python $(top_srcdir)/tests/fldiff.py --mode=pseudo \
+	python $(pythondir)/fldiff.py --mode=pseudo \
 		fft_cache.out $(srcdir)/fft_cache.out.ref | tee fft_cache.report
 
 report:
-	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 

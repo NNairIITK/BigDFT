@@ -95,19 +95,19 @@ XabsCG.out: $(top_builddir)/src/abscalc $(PPFILES)
 
 
 check: XabsCheb.out  XabsLanc.out Xabsb2B.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft XabsCheb.out \
+	python $(pythondir)/fldiff.py --mode=bigdft XabsCheb.out \
 		$(top_srcdir)/tests/XabsCheb/XabsCheb.out.ref | tee XabsCheb.out.report
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft XabsLanc.out \
+	python $(pythondir)/fldiff.py --mode=bigdft XabsLanc.out \
 		$(top_srcdir)/tests/XabsCheb/XabsLanc.out.ref | tee XabsLanc.out.report
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Xabsb2B.out \
+	python $(pythondir)/fldiff.py --mode=bigdft Xabsb2B.out \
 		$(top_srcdir)/tests/XabsCheb/Xabsb2B.out.ref | tee Xabsb2B.out.report
 
 
 checkCG: XabsCG.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft XabsCG.out \
+	python $(pythondir)/fldiff.py --mode=bigdft XabsCG.out \
 		$(top_srcdir)/tests/XabsCheb/XabsCG.out.ref | tee XabsCG.out.report
 
 
 
-#	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Xabsdel.out \
+#	python $(pythondir)/fldiff.py --mode=bigdft Xabsdel.out \
 #		$(top_srcdir)/tests/XabsCheb/Xabsdel.out.ref | tee Xabsdel.out.report

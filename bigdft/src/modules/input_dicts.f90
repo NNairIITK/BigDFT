@@ -102,7 +102,7 @@ contains
     !local variables
     character(len = 100) :: f0
     character(len=max_field_length) :: st
-    type(dictionary), pointer :: vals,tmp,tmp0
+    type(dictionary), pointer :: vals
 
     ! Parse all files.
     call set_inputfile(f0, radical, PERF_VARIABLES)
@@ -425,7 +425,6 @@ contains
     type(dictionary), pointer :: dict
     !local variables
     character(len=*), parameter :: subname='read_md_from_text_format'
-    integer :: i
     logical :: exists
 
     character(len = 5) :: dummy_str
@@ -1373,7 +1372,6 @@ contains
     type(mpi_environment), intent(in) :: mpi_env !< The environment where the variables have to be updated
     type(dictionary), pointer :: dict            !< Input dictionary, has to be nullified at input
     !local variables
-    integer :: ierr
     logical :: exists_default, exists_user
     character(len = max_field_length) :: fname
 

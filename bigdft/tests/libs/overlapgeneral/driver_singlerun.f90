@@ -18,7 +18,8 @@ program driver_singlerun
   external :: gather_timings
 
   ! Variables
-  integer :: iproc, nproc, ncol, nnonzero, nseg, ncolp, iscol, ierr, nspin, nat, ntypes, lwork, info, ispin, i, j
+  integer :: iproc, nproc, ncol, nnonzero, nseg, ierr, nspin, nat, ntypes, lwork, info, ispin, i, j
+  !integer :: iscol, ncolp
   character(len=*),parameter :: filename1='matrix1.dat', filename2='matrix2.dat'
   integer,dimension(:),pointer :: col_ptr, row_ind, keyv, nzatom, nelpsp, iatype, on_which_atom
   character(len=20),dimension(:),pointer :: atomnames
@@ -52,7 +53,7 @@ program driver_singlerun
   nullify(keyg)
   nullify(val)
 
-  
+
   ! Read in a file in the CCS format
   !call read_ccs_format(filename, ncol, nnonzero, col_ptr, row_ind, val)
 
@@ -95,7 +96,7 @@ program driver_singlerun
   ! Check the symmetry
   symmetric = check_symmetry(ncol, smatB)
   if (.not.symmetric) stop 'ERROR not symmetric'
-  
+
   ! Write the original matrix
   !if (iproc==0) call write_matrix_compressed('Original matrix', smat, matA)
   !if (iproc==0) call write_sparsematrix_CCS('original_css.dat', smatA, matA)
@@ -255,13 +256,13 @@ program driver_singlerun
   call f_lib_finalize()
 
   contains
-   !> construct the dictionary needed for the timing information
+
+   !> Construct the dictionary needed for the timing information
     subroutine build_dict_info(dict_info)
       !use module_base
       use dynamic_memory
       use dictionaries
       implicit none
-      include 'mpif.h'
       type(dictionary), pointer :: dict_info
       !local variables
       integer :: ierr,namelen,nthreads
@@ -318,7 +319,7 @@ subroutine distribute_columns_on_processes(iproc, nproc, ncol, ncolp, iscol)
   else
       ncolp = ncolpx
   end if
-  
+
   ! Determine the first column of each process
   i = 0
   do jproc=0,nproc-1
@@ -330,6 +331,3 @@ subroutine distribute_columns_on_processes(iproc, nproc, ncol, ncolp, iscol)
       end if
   end do
 end subroutine distribute_columns_on_processes
-
-
-

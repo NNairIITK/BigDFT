@@ -15,12 +15,13 @@ AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 else
-LIBS += @LIBS_SHORT_DEPS@ -lrt
+bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 driver_SOURCES = driver.f90
-driver_LDADD = -lbigdft-1 @LINALG_LIBS@
+driver_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 
 CLEANFILES = *.yaml posinp.* malloc.prc report
@@ -29,7 +30,7 @@ CLEANFILES = *.yaml posinp.* malloc.prc report
 #check: test-bigdft-tool.report.yaml
 
 test-coordinatetransform.report.yaml: $(srcdir)/test-coordinatetransform.ref.yaml test-coordinatetransform.out.yaml
-	python $(abs_top_builddir)/tests/fldiff_yaml.py \
+	python $(pythondir)/fldiff_yaml.py \
 		-r $< -d test-coordinatetransform.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-coordinatetransform -o $@ 
 
 test-coordinatetransform.out.yaml: driver
@@ -43,7 +44,7 @@ test-coordinatetransform.out.yaml: driver
 	$(run_parallel) ./driver >> test-coordinatetransform.out.yaml
 
 test-bigdft-tool.report.yaml: $(srcdir)/test-bigdft-tool.ref.yaml test-bigdft-tool.out.yaml
-	python $(abs_top_builddir)/tests/fldiff_yaml.py \
+	python $(pythondir)/fldiff_yaml.py \
 		-r $< -d test-bigdft-tool.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-bigdft-tool -o $@ 
 
 test-bigdft-tool.out.yaml: $(abs_top_builddir)/src/bigdft-tool

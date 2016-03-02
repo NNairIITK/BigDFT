@@ -467,6 +467,7 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
    use etsf_io_low_level
    use etsf_io
    use internal_etsf
+   use box
 
    implicit none
 
@@ -483,8 +484,8 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
    ! Local variables
    character(len = *), parameter :: subname = "read_waves_from_list_etsf"
    integer, pointer :: nvctr_old(:)
-   integer :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old, ncid, iorb
-   integer :: nb1, nb2, nb3, i_all, i_stat, ispinor
+   integer :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old, ncid, iorb, iat
+   integer :: nb1, nb2, nb3, ispinor
    real(gp) :: hx_old, hy_old, hz_old
    real(gp) :: displ
    logical :: perx, pery, perz
@@ -494,6 +495,9 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
    type(orbitals_data) :: orbsd
    type(etsf_io_low_error) :: error
    logical :: lstat
+   type(cell) :: mesh
+
+   mesh=cell_new(at%astruct%geocode,[n1,n2,n3],[hx,hy,hz])
 
    ! We open the ETSF file
    call etsf_io_low_open_read(ncid, filename, lstat, error_data = error)
@@ -506,7 +510,15 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
    orbsd%isorb = isorb
 
    !conditions for periodicity in the three directions
-   call calc_displ(at, rxyz, rxyz_old, displ, perx, pery, perz)
+   perx=(at%astruct%geocode /= 'F')
+   pery=(at%astruct%geocode == 'P')
+   perz=(at%astruct%geocode /= 'F')
+
+   displ=0.0_gp
+   do iat=1,at%astruct%nat
+      displ=displ+minimum_distance(mesh,rxyz(:,iat),rxyz_old(:,iat))**2
+   enddo
+   displ=sqrt(displ)
 
    if (abs(hx_old - hx) < 1e-6 .and. abs(hy_old - hy) < 1e-6 .and. abs(hz_old - hz) < 1e-6 .and. &
       &   nvctr_c_old == wfd%nvctr_c .and. nvctr_f_old == wfd%nvctr_f .and. & 
@@ -581,32 +593,6 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
    ! We close the file.
    call etsf_io_low_close(ncid, lstat, error)
    if (.not. lstat) call etsf_error(error)
-
-   contains
-
-   subroutine calc_displ(at, rxyz, rxyz_old, displ, perx, pery, perz)
-      type(atoms_data), intent(in) :: at
-      real(gp), intent(in) :: rxyz_old(3,at%astruct%nat), rxyz(3, at%astruct%nat)
-      logical, intent(out) :: perx, pery, perz
-      real(gp), intent(out) :: displ
-
-      integer :: iat
-      real(gp) :: tx,ty,tz,mindist
-
-      perx=(at%astruct%geocode /= 'F')
-      pery=(at%astruct%geocode == 'P')
-      perz=(at%astruct%geocode /= 'F')
-
-      tx=0.0_gp 
-      ty=0.0_gp
-      tz=0.0_gp
-      do iat=1,at%astruct%nat
-         tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
-         ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
-         tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
-      enddo
-      displ=sqrt(tx+ty+tz)
-   END SUBROUTINE calc_displ
 END SUBROUTINE read_waves_from_list_etsf
 
 subroutine readwavedescr_etsf(lstat, filename, norbu, norbd, nkpt, nspinor)
@@ -622,7 +608,7 @@ subroutine readwavedescr_etsf(lstat, filename, norbu, norbd, nkpt, nspinor)
    integer, intent(out) :: norbu, norbd, nkpt, nspinor
    logical, intent(out) :: lstat
 
-   integer :: ncid, n1, n2, n3, i_all, i_stat
+   integer :: ncid, n1, n2, n3
    real(gp) :: hx, hy, hz
    type(orbitals_data) :: orbsd
    type(etsf_io_low_error) :: error
@@ -680,7 +666,7 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
    real(wp), dimension(:,:,:,:), pointer :: psiscf
    logical, intent(out) :: lstat
 
-   integer :: ncid, i_all, i_stat, ispinor, nvctr_c, nvctr_f
+   integer :: ncid, ispinor, nvctr_c, nvctr_f
    integer, dimension(:,:), allocatable :: gcoord
    integer, dimension(:), pointer :: nvctr
    real(wp), dimension(:), allocatable :: psi
@@ -815,14 +801,16 @@ subroutine read_one_wave_etsf(iproc,filename,iorbp,isorb,nspinor,n1,n2,n3,&
    real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
    real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor), intent(out) :: psi
    character(len = *), intent(in) :: filename
+   real(wp), dimension(1) :: eval_
 
    if (nspinor == 1) then
       call read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz, & 
-         &   wfd,psi,1,nspinor,(/ iorbp /),isorb,eval)
+           &   wfd,psi,1,nspinor,(/ iorbp /),isorb,eval_)
    else
       call read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz, & 
-         &   wfd,psi,1,nspinor,(/ 2 * iorbp - 1, 2 * iorbp /),isorb,eval)
+         &   wfd,psi,1,nspinor,(/ 2 * iorbp - 1, 2 * iorbp /),isorb,eval_)
    end if
+   eval = eval_(1)
 END SUBROUTINE read_one_wave_etsf
 
 subroutine write_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
@@ -914,7 +902,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
    type(etsf_io_low_error) :: error
    logical :: lstat
    integer :: ncid, ierr, nproc
-   integer :: i_all, i_stat, ncount1,ncount_rate,ncount_max, ncount2, i, iorb
+   integer :: ncount1,ncount_rate,ncount_max, ncount2, i, iorb
    real :: tr0,tr1
    integer, allocatable :: nvctr(:)
    integer, allocatable :: gcoord(:,:)
@@ -1016,7 +1004,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       type(etsf_basisdata) :: basis
       type(etsf_kpoints) :: kpts
       type(etsf_electrons) :: elec
-      integer :: i_all, i_stat, iat, i, ispin, iorb
+      integer :: iat, i, ispin, iorb
       double precision, target :: rprimd(3,3)
       double precision, allocatable, target :: xred(:,:)
       double precision, dimension(:), allocatable, target :: znucl
@@ -1193,7 +1181,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       integer, intent(out) :: nvctr(wfd%nvctr_c)
       integer, intent(out) :: gcoord(3,wfd%nvctr_c)
 
-      integer :: i_stat, i_all, ii, i0, i1, i2, i3, jj, j0, j1, iGrid, i, iseg
+      integer :: ii, i0, i1, i2, i3, jj, j0, j1, iGrid, i, iseg
       integer, allocatable :: coeff_map(:,:,:)
 
       ! Will store the grid index for a given geometric point
@@ -1273,7 +1261,7 @@ subroutine read_pw_waves(filename, iproc, nproc, at, rxyz, Glr, orbs, psig, rhoi
   type(etsf_dims) :: dims
   real(wp) :: ralpha, ialpha, nrm
 
-  real(gp), dimension(3,3) :: identity
+  integer, dimension(3,3) :: identity
   real(wp), dimension(2) :: cplex
   integer, dimension(:), allocatable :: ncomp
   integer, dimension(:,:), allocatable :: gvect, norbs

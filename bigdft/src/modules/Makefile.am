@@ -1,10 +1,6 @@
 # To be installed:
-overridesdir = $(pyexecdir)/gi/overrides
 noinst_LIBRARIES = libmodules.a
 module_DATA = $(modules)
-include_HEADERS = bigdft.h bigdft_input_keys.h
-nodist_include_HEADERS = bigdft_cst.h
-overrides_DATA = BigDFT.py
 
 
 #if USE_MPI
@@ -14,7 +10,6 @@ overrides_DATA = BigDFT.py
 #endif
 
 if HAVE_CP2K
-cp2k_ld= @CP2K_LINKLINE@ @LINALG_LIBS@
 cp2k_interfacemod = module_cp2k.f90
 cp2k_interfacemodCAP = MODULE_CP2k.F90
 cp2k_interfacemodmod = module_cp2k
@@ -24,15 +19,12 @@ cp2k_interfacemod = cp2k_fake.f90 module_cp2k.f90
 cp2k_interfacemodCAP = CP2K_FAKE.F90 MODULE_CP2K.F90
 cp2k_interfacemodmod = cp2k_fake module_cp2k
 cp2k_interfacemodCAPmod = CP2K_FAKE MODULE_CP2K
-cp2k_ld =
 endif
 
 if HAVE_PEXSI
 PEXSI_SRC = pexsi_base.f90 pexsi_interfaces.f90 pexsi.f90
-pexsi_ld= @PEXSI_LINKLINE@ @LINALG_LIBS@
 else
 PEXSI_SRC = pexsi_base.f90 pexsi_interfaces_fake.f90 pexsi.f90
-pexsi_ld= 
 endif
 
 
@@ -84,7 +76,6 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	sort.f90 \
 	forces_linear.f90 \
 	$(PEXSI_SRC) \
-	$(bindings_headers) \
 	configure.c \
 	$(cp2k_interfacemod) \
 	module_dftbp.f90 \
@@ -206,11 +197,10 @@ endif
 ATOMS_INCLUDES = astruct-inc.f90
 COMMS_INCLUDES = check_array-inc.f90
 
-EXTRA_DIST = bigdft_cst.h.in \
-	$(ATOMS_INCLUDES) $(COMMS_INCLUDES) $(overrides_DATA)
+EXTRA_DIST = $(ATOMS_INCLUDES) $(COMMS_INCLUDES)
 CLEANFILES = *.mod
 
-AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ @LIB_FLIB_CFLAGS@
+AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ @LIB_FUTILE_CFLAGS@
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
