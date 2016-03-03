@@ -93,6 +93,7 @@ module orbitalbasis
 
   public :: ob_ket_map,orbital_basis_iterator,ket_next_locreg,ket_next,local_hamiltonian_ket
   public :: orbital_basis_associate,orbital_basis_release,test_iterator,ket_next_kpt
+  public :: ob_subket_ptr
 
 contains
 
@@ -431,6 +432,24 @@ contains
 
   end function ob_ket_map
   !the iterator must go in order of localization regions
+
+  function ob_subket_ptr(it,ispinor) result(k)
+    use f_precisions, only: f_address,f_loc
+    use dynamic_memory
+    implicit none
+    type(ket), intent(in) :: it
+    integer, intent(in) :: ispinor
+    real(wp), dimension(:), pointer :: k
+    !local variables
+    integer :: istart,nvctr
+    
+    nvctr=it%lr%wfd%nvctr_c+7*it%lr%wfd%nvctr_f
+    istart=(ispinor-1)*nvctr
+
+    k => f_subptr(it%phi_wvl,istart+1 .to. istart+nvctr)
+
+  end function ob_subket_ptr
+
 
 
   !> This function gives the number of components

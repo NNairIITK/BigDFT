@@ -632,6 +632,74 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
 
 END SUBROUTINE gaussians_to_wavelets_new
 
+!> routine with lookup array on the Gaussians
+subroutine gaussians_to_wavelets_mask(ob,hgrids,G,wfn_gau,psi,mask)
+  use module_base
+  use module_types
+  use orbitalbasis
+  use yaml_output
+  !use wrapper_MPI, only: mpireduce to be written yet
+  implicit none
+  real(gp), dimension(3), intent(in) :: hgrids
+  type(orbital_basis), intent(in) :: ob
+  type(gaussian_basis), intent(in) :: G
+  real(wp), dimension(G%ncoeff,ob%orbs%nspinor,ob%orbs%norbp), intent(in) :: wfn_gau
+  real(wp), dimension(ob%orbs%npsidim_orbs), intent(inout) :: psi
+  logical, dimension(ob%orbs%norbp), intent(in) :: mask !<mask array, only convert into gaussians the wfn for which the value is .true.
+  !local variables
+  integer :: ispinor,ncplx,ierr
+  real(dp) :: normdev,tt,scpr,totnorm
+  type(ket) :: it
+  real(wp), dimension(:), pointer :: psi_ptr
+
+  !if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
+  !     'Writing wavefunctions in wavelet form...'
+
+  normdev=0.0_dp
+  tt=0.0_dp
+  it=orbital_basis_iterator(ob)
+  do while (ket_next(it))
+     if (.not. mask(it%iorbp)) cycle
+     !evaluate the complexity of the k-point
+     if (all(it%kpoint==0.0_gp)) then
+        ncplx=1
+     else
+        ncplx=2
+     end if
+     totnorm=0.0_dp
+     do ispinor=1,it%nspinor,ncplx
+        psi_ptr=>ob_subket_ptr(it,ispinor)
+        call gaussians_to_wavelets_orb(ncplx,it%lr,&
+             hgrids(1),hgrids(2),hgrids(3),&
+             it%kpoint(1),it%kpoint(2),it%kpoint(3),G,&
+             wfn_gau(1,ispinor,it%iorbp),psi_ptr)
+        call wnrm_wrap(ncplx,it%lr%wfd%nvctr_c,it%lr%wfd%nvctr_f,psi_ptr,scpr)
+        totnorm=totnorm+scpr
+     end do
+     do ispinor=1,it%nspinor
+        psi_ptr=>ob_subket_ptr(it,ispinor)
+        call wscal_wrap(it%lr%wfd%nvctr_c,it%lr%wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),psi_ptr)
+     end do
+     tt=max(tt,abs(1.0_dp-totnorm))
+  end do
+
+  if (bigdft_mpi%iproc ==0  .and. verbose > 1) then
+     call yaml_map('Wavelet conversion succeeded',.true.)
+  end if
+
+  !renormalize the orbitals
+  !calculate the deviation from 1 of the orbital norm
+  if (bigdft_mpi%nproc > 1) then
+     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
+  else
+     normdev=tt
+  end if
+  if (bigdft_mpi%iproc ==0) then
+     call yaml_map('Deviation from normalization',normdev,fmt='(1pe12.2)')
+  end if
+
+END SUBROUTINE gaussians_to_wavelets_mask
+
 
 subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   use module_base

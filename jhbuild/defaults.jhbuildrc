@@ -100,17 +100,19 @@ module_extra_env = {}
 module_makecheck = {}
 module_nopoison = {}
 
-# Specific autogenargs
+# Specific autogenargs by default
 module_autogenargs['PyYAML'] = "build_ext -I%(prefix)s/include -L%(prefix)s/lib --rpath=%(prefix)s/lib " % {"prefix": prefix}
 module_autogenargs['etsf_io'] = "--with-moduledir=%(prefix)s/include " % {"prefix": prefix}
-if basic_configuration() is not None: module_autogenargs['libyaml'] = basic_configuration()
-if basic_configuration() is not None: module_autogenargs['GaIn'] = basic_configuration()
-if basic_configuration() is not None: module_autogenargs['flib'] = basic_configuration()
-if basic_configuration() is not None: module_autogenargs['libxc'] = basic_configuration()
-if basic_configuration() is not None: module_autogenargs['bigdft'] = basic_configuration()
-if basic_configuration() is not None: module_autogenargs['libABINIT'] = basic_configuration() 
-
-
+if basic_configuration() is not None:
+    module_autogenargs['libyaml'  ]= basic_configuration() 
+    module_autogenargs['GaIn'     ]= basic_configuration()
+    module_autogenargs['libxc'    ]= basic_configuration()
+    module_autogenargs['bigdft'   ]= basic_configuration()
+    module_autogenargs['libABINIT']= basic_configuration()
+    module_autogenargs['futile'   ]= basic_configuration()
+    module_autogenargs['psolver'  ]= basic_configuration()
+    module_autogenargs['spred'    ]= basic_configuration()
+    
 # control parts of the build process
 nonetwork     = False  # never touch the network
 alwaysautogen = False  # always call autogen.sh

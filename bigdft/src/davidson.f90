@@ -1445,6 +1445,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    use gaussians, only: gaussian_basis, deallocate_gwf, gaussian_overlap
    use communications_base, only: comms_cubic
    use communications, only: transpose_v
+   use orbitalbasis
    implicit none
    integer, intent(in) :: iproc,nproc,nspin,npsidim
    real(gp), intent(in) :: hx,hy,hz
@@ -1465,6 +1466,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    real(gp), dimension(:,:), allocatable :: ovrlp
    type(gaussian_basis) :: G
    real(wp), dimension(:), pointer :: gbd_occ,psiw
+   type(orbital_basis) :: ob
 
    !initialise some coefficients in the gaussian basis
    !nullify the G%rxyz pointer
@@ -1597,8 +1599,11 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
 
    end if
 
-   call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,gaucoeffs,psivirt)
+   !call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,gaucoeffs,psivirt)
 
+   call orbital_basis_associate(ob,orbs=orbs,Lzd=Lzd,phis_wvl=psivirt)
+   call gaussians_to_wavelets_mask(ob,lzd%hgrids,G,gaucoeffs,psivirt,[(.true.,i=1,orbs%norbp)])
+   call orbital_basis_release(ob)
    !deallocate the gaussian basis descriptors
    call deallocate_gwf(G)
 
