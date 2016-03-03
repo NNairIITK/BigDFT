@@ -146,54 +146,57 @@ module foe_common
       call f_routine(id='get_chebyshev_expansion_coefficients')
 
       ! MPI parallelization... maybe only worth for large n?
-      ii = n/nproc
-      np = ii
-      is = iproc*ii
-      ii = n - nproc*ii
-      if (iproc<ii) then
-          np = np + 1
-      end if
-      is = is + min(iproc,ii)
-      !check
-      ii = np
-      call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-      if (ii/=n) then
-          call f_err_throw('wrong partition of n')
-      end if
+      call chebyshev_coefficients_init_parallelization(iproc, nproc, n, np, is)
+      !!ii = n/nproc
+      !!np = ii
+      !!is = iproc*ii
+      !!ii = n - nproc*ii
+      !!if (iproc<ii) then
+      !!    np = np + 1
+      !!end if
+      !!is = is + min(iproc,ii)
+      !!!check
+      !!ii = np
+      !!call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      !!if (ii/=n) then
+      !!    call f_err_throw('wrong partition of n')
+      !!end if
 
 
-      call f_zero(cc)
-      cf = f_malloc0(n,id='cf')
+      call chebyshev_coefficients_calculate(n, a, b, np, is, func, cc)
+      !!call f_zero(cc)
+      !!cf = f_malloc0(n,id='cf')
     
-      bma=0.5d0*(b-a)
-      bpa=0.5d0*(b+a)
-      fac=2.d0/real(n,kind=8)
-      one_over_n = 1.d0/real(n,kind=8)
-      !$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,is,np,tt,one_over_n) &
-      !$omp private(k,y,arg,j,jj)
-      !$omp do
-      do k=1,n
-          y=cos(pi*(real(k,kind=8)-0.5d0)*(one_over_n))
-          arg=y*bma+bpa
-          cf(k)=func(arg)
-      end do
-      !$omp end do
-      !$omp end parallel
+      !!bma=0.5d0*(b-a)
+      !!bpa=0.5d0*(b+a)
+      !!fac=2.d0/real(n,kind=8)
+      !!one_over_n = 1.d0/real(n,kind=8)
+      !!!$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,is,np,tt,one_over_n) &
+      !!!$omp private(k,y,arg,j,jj)
+      !!!$omp do
+      !!do k=1,n
+      !!    y=cos(pi*(real(k,kind=8)-0.5d0)*(one_over_n))
+      !!    arg=y*bma+bpa
+      !!    cf(k)=func(arg)
+      !!end do
+      !!!$omp end do
+      !!!$omp end parallel
 
-      do j=1,np
-          jj = j + is
-          tt=0.d0
-          !$omp parallel do default(none) shared(n,cf,jj,one_over_n) private(k) reduction(+:tt)
-          do  k=1,n
-              tt=tt+cf(k)*cos((pi*real(jj-1,kind=8))*((real(k,kind=8)-0.5d0)*(one_over_n)))
-          end do
-          !$omp end parallel do
-          cc(jj)=fac*tt
-      end do
+      !!do j=1,np
+      !!    jj = j + is
+      !!    tt=0.d0
+      !!    !$omp parallel do default(none) shared(n,cf,jj,one_over_n) private(k) reduction(+:tt)
+      !!    do  k=1,n
+      !!        tt=tt+cf(k)*cos((pi*real(jj-1,kind=8))*((real(k,kind=8)-0.5d0)*(one_over_n)))
+      !!    end do
+      !!    !$omp end parallel do
+      !!    cc(jj)=fac*tt
+      !!end do
+      !!call f_free(cf)
 
-      call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call chebyshev_coefficients_communicate(n, cc)
+      !!call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
-      call f_free(cf)
       call accuracy_of_chebyshev_expansion(iproc, nproc, n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
     
       call f_release_routine()
@@ -2172,5 +2175,102 @@ module foe_common
     end subroutine get_poynomial_degree
 
 
+    subroutine chebyshev_coefficients_init_parallelization(iproc, nproc, n, np, is)
+      implicit none
+      ! Caling arguments
+      integer,intent(in) :: iproc, nproc, n
+      integer,intent(out) :: np, is
+
+      ! Local variables
+      integer :: ii
+
+      call f_routine(id='chebyshev_coefficients_init_parallelization')
+
+      ii = n/nproc
+      np = ii
+      is = iproc*ii
+      ii = n - nproc*ii
+      if (iproc<ii) then
+          np = np + 1
+      end if
+      is = is + min(iproc,ii)
+      !check
+      ii = np
+      call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      if (ii/=n) then
+          call f_err_throw('wrong partition of n')
+      end if
+
+      call f_release_routine()
+
+    end subroutine chebyshev_coefficients_init_parallelization
+
+
+    subroutine chebyshev_coefficients_calculate(n, a, b, np, is, func, cc)
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: n, np, is
+      real(kind=8),intent(in) :: a, b
+      real(kind=8),external :: func
+      real(kind=8),dimension(n),intent(out) :: cc
+
+      ! Local variables
+      integer :: k, j, ii, jj
+      real(kind=8) :: bma, bpa, y, arg, fac, tt, one_over_n
+      real(kind=8),dimension(:),allocatable :: cf
+
+      call f_routine(id='chebyshev_coefficients_calculate')
+
+      call f_zero(cc)
+      cf = f_malloc0(n,id='cf')
+    
+      bma=0.5d0*(b-a)
+      bpa=0.5d0*(b+a)
+      fac=2.d0/real(n,kind=8)
+      one_over_n = 1.d0/real(n,kind=8)
+      !$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,is,np,tt,one_over_n) &
+      !$omp private(k,y,arg,j,jj)
+      !$omp do
+      do k=1,n
+          y=cos(pi*(real(k,kind=8)-0.5d0)*(one_over_n))
+          arg=y*bma+bpa
+          cf(k)=func(arg)
+      end do
+      !$omp end do
+      !$omp end parallel
+
+      do j=1,np
+          jj = j + is
+          tt=0.d0
+          !$omp parallel do default(none) shared(n,cf,jj,one_over_n) private(k) reduction(+:tt)
+          do  k=1,n
+              tt=tt+cf(k)*cos((pi*real(jj-1,kind=8))*((real(k,kind=8)-0.5d0)*(one_over_n)))
+          end do
+          !$omp end parallel do
+          cc(jj)=fac*tt
+      end do
+      call f_free(cf)
+
+      call f_release_routine()
+
+    end subroutine chebyshev_coefficients_calculate
+
+
+    ! This routine is basically just here to get the profiling...
+    subroutine chebyshev_coefficients_communicate(n, cc)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: n
+      real(kind=8),dimension(n),intent(inout) :: cc
+
+      call f_routine(id='chebyshev_coefficients_communicate')
+
+      call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+      call f_release_routine()
+
+    end subroutine chebyshev_coefficients_communicate
 
 end module foe_common

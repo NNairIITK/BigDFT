@@ -1,7 +1,7 @@
 #Configuration file for occigen (CINES, France) 12/02/2016
 #module load intel intelmpi mkl python
 
-#Add the condition testing to run tests and so needs PyYaml
+#Add the condition testing to run tests and includes PyYaml
 conditions.add("testing")
 
 modules = ['bigdft',]

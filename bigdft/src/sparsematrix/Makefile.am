@@ -38,6 +38,7 @@ modules = SPARSEMATRIX_BASE.@MODULE_EXT@ \
 		  FOE_COMMON.@MODULE_EXT@ \
 		  FERMI_LEVEL.@MODULE_EXT@ \
 		  FOE.@MODULE_EXT@ \
+	MODULE_FUNC.@MODULE_EXT@ \
 		  ICE.@MODULE_EXT@ \
 		  MATRIX_OPERATIONS.@MODULE_EXT@ \
 		  PARALLEL_LINALG.@MODULE_EXT@ \
@@ -52,6 +53,7 @@ modules = sparsematrix_base.@MODULE_EXT@ \
 		  foe_common.@MODULE_EXT@ \
 		  fermi_level.@MODULE_EXT@ \
 		  foe.@MODULE_EXT@ \
+	module_func.@MODULE_EXT@ \
 		  ice.@MODULE_EXT@ \
 		  matrix_operations.@MODULE_EXT@ \
 		  parallel_linalg.@MODULE_EXT@ \
@@ -76,7 +78,7 @@ ice.o: sparsematrix_base.o sparsematrix_init.o sparsematrix.o chebyshev.o foe_ba
 matrix_operations.o: sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
 foe.o: sparsematrix_base.o sparsematrix.o chebyshev.o foe_base.o foe_common.o fermi_level.o matrix_operations.o
 sparsematrix_highlevel.o: sparsematrix_base.o sparsematrix_init.o sparsematrix.o sparsematrix_io.o ice.o foe.o
-sparsematrix_io.o:
+sparsematrix_io.o: sparsematrix_base.o sparsematrix.o
 $(routines:.f90=.o): defs.o
 
 

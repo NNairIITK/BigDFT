@@ -13,14 +13,14 @@ CLEAN=' clean '
 CLEANONE=' cleanone '
 UNINSTALL=' uninstall '
 LIST=' list '
-BUILD=' build '
-TINDERBOX=' tinderbox -o build '
+BUILD=' build spred '
+TINDERBOX=' tinderbox -o build spred'
 DOT=' dot | dot -Tpng > buildprocedure.png '
 DIST=' distone bigdft-suite '
 RCFILE='buildrc'
 
-CHECKMODULES= ['flib','bigdft']
-MAKEMODULES= ['flib','libABINIT','bigdft']
+CHECKMODULES= ['futile','psolver','bigdft','spred']
+MAKEMODULES= ['futile','psolver','libABINIT','bigdft','spred']
 
 #allowed actions and corresponfing description
 ACTIONS={'build':
@@ -84,12 +84,15 @@ class BigDFTInstaller():
 
     def bigdft_time(self):
         import os
-        bigdft=os.path.join(self.builddir,'install','bin','bigdft')
-        if os.path.isfile(bigdft):
-            return os.path.getmtime(bigdft)
+        return self.filename_time(os.path.join(self.builddir,'install','bin','bigdft'))
+
+    def filename_time(self,filename):
+        import os
+        if os.path.isfile(filename):
+            return os.path.getmtime(filename)
         else:
             return None
-
+        
     def get_rcfile(self,rcfile):
         "Determine the rcfile"
         import os
@@ -215,9 +218,17 @@ class BigDFTInstaller():
         self.shellaction('.',MAKEMODULES,'make -j6 && make install')
 
     def dist(self):
+        import os
         "Perform make dist action"
+        disttime0=self.filename_time(os.path.join(self.builddir,'bigdft-suite.tar.gz'))
+        if disttime0 is None: disttime0=0
         self.shellaction('.',self.modulelist,'make dist',hidden=not self.verbose)
         self.get_output(self.jhb+DIST)
+        disttime1=self.filename_time(os.path.join(self.builddir,'bigdft-suite.tar.gz'))
+        if disttime1 is not None and  disttime1 > disttime0:
+            print 'SUCCESS: distribution file "bigdft-suite.tar.gz" generated correctly'
+        else:
+            print 'WARNING: the dist file seems not have been updated or generated correctly'
 
     def build(self):
         "Build the bigdft module with the options provided by the rcfile"
@@ -258,6 +269,8 @@ class BigDFTInstaller():
         if BIGDFT_CFG not in os.environ.keys() or os.path.isfile(RCFILE): return
         print 'The suite has been built without configuration file.'
         rclist=[]
+        rclist.append("""#Add the condition testing to run tests and includes PyYaml""")
+        rclist.append("""conditions.add("testing")""")
         rclist.append("modules = ['bigdft',]")
         sep='"""'
         confline=sep+os.environ[BIGDFT_CFG]+sep

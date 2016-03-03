@@ -188,7 +188,7 @@ end function pkernel_init_old
 !!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
 !!    declaration.
 !! @ingroup PSOLVER
-subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,nproc_node,verbose) !optional arguments
+subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !optional arguments
   use yaml_output
   use dynamic_memory
   use time_profiling, only: f_timing
@@ -213,9 +213,6 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
   real(dp), dimension(:,:,:), intent(in), optional :: corr
   real(dp) :: alpha
   logical, intent(in), optional :: verbose
-  !global number of processes running on the node, for GPU memory estimation
-  integer(kind=8), optional :: iproc_node
-  integer(kind=8), optional :: nproc_node
   !local variables
   logical :: dump,wrtmsg
   character(len=*), parameter :: subname='createKernel'
@@ -225,7 +222,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
   real(kind=8), dimension(:), allocatable :: pkernel2
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc,size3
   integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23,displ,gpuPCGRed
-  integer(kind=8) :: myiproc_node, mynproc_node
+  integer :: myiproc_node, mynproc_node
   integer,dimension(3) :: n
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
   call f_timing(TCAT_PSOLV_KERNEL,'ON')
@@ -601,17 +598,11 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
     n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
     n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
     n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
-    if(.not. present(iproc_node)) then
-        myiproc_node=0
-    else
-        myiproc_node=iproc_node
-    end if
-    if(.not. present(nproc_node)) then
-        mynproc_node=1
-    else
-        mynproc_node=nproc_node
-    end if
-    call cuda_estimate_memory_needs(kernel, n, myiproc_node, mynproc_node)
+    !perform the estimation of the processors
+    call mpinoderanks(kernel%mpi_env,myiproc_node,mynproc_node)
+
+    call cuda_estimate_memory_needs(kernel, n, &
+         int(myiproc_node,kind=8), int(mynproc_node,kind=8)) !LG: why longs?
 
     size2=2*n1*n2*n3
     sizek=(n1/2+1)*n2*n3
@@ -695,8 +686,6 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
       call reset_gpu_data((n1/2+1)*n2*n3,pkernel2,kernel%w%k_GPU)
 
       if (dump) call yaml_map('Kernel Copied on GPU',.true.)
-
-
 
       if (kernel%initCufftPlan == 1) then
         call cuda_3d_psolver_general_plan(n,kernel%plan,switch_alg,kernel%geo)

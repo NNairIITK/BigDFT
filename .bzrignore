@@ -187,3 +187,4 @@ netcdf-*/
 netcdf-fortran-*.tar.*
 netcdf-fortran-*/
 GaIn-*/
+spred/INSTALL
