@@ -12,7 +12,7 @@ module PStypes
   use f_enums
   use wrapper_MPI
   use PSbase
-  use environment, only: cavity_data,cavity_default
+  use psolver_environment, only: cavity_data,cavity_default
   use dynamic_memory
   use f_input_file, only: ATTRS
   use box
@@ -335,7 +335,7 @@ contains
   end subroutine nullify_work_arrays
 
   pure function pkernel_null() result(k)
-    use environment, only : PS_VAC_ENUM
+    use psolver_environment, only : PS_VAC_ENUM
     implicit none
     type(coulomb_operator) :: k
     k%itype_scf=0
@@ -473,7 +473,7 @@ contains
     use numerics
     use wrapper_MPI
     use f_enums
-    use environment
+    use psolver_environment
     use f_input_file, only: input_file_dump
     implicit none
     integer, intent(in) :: iproc      !< Proc Id
@@ -677,7 +677,7 @@ contains
   !> Set the dictionary from the input variables
   subroutine PS_input_fill(k,opt, level, val)
     use PSbase
-    use environment
+    use psolver_environment
     use yaml_output, only: yaml_warning
     use dictionaries
     use numerics
@@ -932,7 +932,7 @@ contains
   !! their allocation depends on the treatment which we are going to
   !! apply
   subroutine PS_allocate_cavity_workarrays(n1,n23,ndims,method,w)
-    use environment, only: PS_SCCS_ENUM
+    use psolver_environment, only: PS_SCCS_ENUM
     use dynamic_memory
     implicit none
     integer, intent(in) :: n1,n23
@@ -963,7 +963,7 @@ contains
   !> create the memory space needed to store the arrays for the 
   !! description of the cavity
   subroutine pkernel_allocate_cavity(kernel,vacuum)
-    use environment, only: PS_SCCS_ENUM,vacuum_eps
+    use psolver_environment, only: PS_SCCS_ENUM,vacuum_eps
     use f_utils, only: f_zero
     implicit none
     type(coulomb_operator), intent(inout) :: kernel
@@ -1330,7 +1330,7 @@ contains
 
   subroutine build_cavity_from_rho(rho,nabla2_rho,delta_rho,cc_rho,kernel,&
        depsdrho,dsurfdrho,IntSur,IntVol)
-    use environment
+    use psolver_environment
     implicit none
     type(coulomb_operator), intent(inout) :: kernel
     real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(in) :: rho,nabla2_rho,delta_rho,cc_rho
