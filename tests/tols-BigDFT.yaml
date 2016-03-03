@@ -1501,10 +1501,9 @@ O2spin_dirmin:
  Electric Dipole Moment (AU): 2.4e-5
  Electric Dipole Moment (Debye): 3.2e-5
  eBS: 1.52e-5
- fnrm2: 1.02e-4
  EH: 2.63e-5
  EXC: 5.6e-6
- Ekin: 6.94e-6
+ Ekin: 7.56e-6
  Enl: 1.9e-7
  Epot: 2.02e-5
  EvXC: 6.0e-6
@@ -2037,9 +2036,9 @@ igortho_94:
  Atomic Forces (Ha/Bohr): 2.6e-5
  net quadropole: 1.1e-5
  net dipole: 2.1e-6
- Energy (Hartree): 1.92e-8
+ Energy (Hartree): 1.96e-8
  Multipole coefficients: 7.1e-10
- Total charge: 3.5e-8
+ Total charge: 3.65e-8
  Clean forces norm (Ha/Bohr): 3.4e-5
  Average noise forces: 2.8e-5
  Raw forces norm (Ha/Bohr): 5.0e-5
@@ -2056,17 +2055,17 @@ igortho_94:
  eF: 3.1e-5
  D Tr: 3.0e-7
  D eF: 1.1e-5
- difference: 4.2e-8
+ difference: 4.4e-8
  difference from reference kernel: 1.1e-8
  EBS: 3.2e-4
  EBS higher temperature: 3.2e-4
- relative difference: 1.1e-8
+ relative difference: 1.2e-8
  trace(KS): 3.8e-8
  D: 1.1e-4
  energy: 2.4e-8
  Omega: 1.1e-8
  Charge analysis (charge / net charge): 2.0e-6
- Pseudo Fermi level for occupations: 2.33e-5
+ Pseudo Fermi level for occupations: 2.45e-5
  net charge: 1.1e-5
  eval: 3.01e-5
  Multipole coefficients: 1.23e-5
@@ -2450,26 +2449,27 @@ H2Omultipoles_2:
 
 matrixtaskgroups_no:
   D Tr(K): 1.100000000000009e-10
-  EBS: 1.0e-9
+  EBS: 1.1e-9
   EBS higher temperature: 1.2e-09
   Ekin: 1.0e-8
   EH: 1.1e-08
   Epot: 1.0e-8
   EvXC: 1.0e-9
+  Enl: 1.0e-9
   Energy (Hartree): 2.2e-09
   Ion-Ion interaction energy: 2.9e-10
   Omega: 2.2e-09
   Total charge: 2.0e-10
-  difference: 2.6e-11
+  difference: 4.7e-11
   energy: 2.2e-09
   trace: 3.0e-07
-  trace(KS): 1.9e-11
+  trace(KS): 2.9e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.3e-9
   Clean forces norm (Ha/Bohr): 3.3e-9
   Force Norm (Hartree/Bohr): 7.9e-11
   Gross support functions moments: 1.1e-9
-  Total ionic charge: 3.2e-11
+  Total ionic charge: 9.6e-11
   Maxdiff for transpose (checksum): 3.0e-11 
   Keys to ignore:
    - Calculating wavelets expansion of projectors, found warnings
@@ -2477,7 +2477,7 @@ matrixtaskgroups_no:
 
 matrixtaskgroups_yes:
   D Tr(K): 1.1e-10
-  EBS: 1.0e-9
+  EBS: 1.1e-9
   EBS higher temperature: 1.2e-09
   EH: 1.1e-08
   Epot: 1.0e-8
@@ -2487,16 +2487,16 @@ matrixtaskgroups_yes:
   Ion-Ion interaction energy: 2.9e-10
   Omega: 2.2e-09
   Total charge: 2.0e-10
-  difference: 3.3e-11
+  difference: 5.3e-11
   energy: 2.2e-09
   trace: 2.4e-07
-  trace(KS): 1.9e-11
+  trace(KS): 3.4e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.3e-9
   Clean forces norm (Ha/Bohr): 3.3e-9
   Force Norm (Hartree/Bohr): 7.9e-11
   Gross support functions moments: 1.1e-9
-  Total ionic charge: 3.2e-11
+  Total ionic charge: 9.6e-11
   Maxdiff for transpose (checksum): 3.0e-11 
   Keys to ignore:
    - Calculating wavelets expansion of projectors, found warnings

@@ -8,79 +8,78 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Selfconsistent potential is saved in rhopot, 
-!! new arrays rho,pot for calculation of forces ground state electronic density
-!! Potential from electronic charge density
-subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,rho_ion,hstrten)
-  use module_base
-  use module_dpbox, only: denspot_distribution
-  use module_types
-  use module_xc
-  use module_interfaces, only: communicate_density, sumrho
-  use Poisson_Solver, except_dp => dp, except_gp => gp
-  implicit none
-  !Arguments
-  type(denspot_distribution), intent(in) :: dpbox
-  type(rho_descriptors),intent(inout) :: rhodsc
-  type(orbitals_data), intent(in) :: orbs
-  type(local_zone_descriptors), intent(in) :: Lzd
-  type(symmetry_data), intent(in) :: symObj
-  type(coulomb_operator), intent(inout) :: pkernel
-  type(xc_info), intent(in) :: xc
-  real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
-  type(GPU_pointers), intent(inout) :: GPU
-  real(gp), dimension(6), intent(out) :: hstrten
-  real(dp), dimension(:), pointer :: rho,vh
-  real(dp), dimension(:,:,:,:), pointer :: rho_ion
-  !local variables
-  character(len=*), parameter :: subname='density_and_hpot'
-  real(gp) :: ehart_fake
-  real(dp), dimension(:,:), pointer :: rho_p
-
-  if (.not. associated(rho)) then
-     if (dpbox%ndimpot>0) then
-        rho = f_malloc_ptr(dpbox%ndimpot*orbs%nspin,id='rho')
-     else
-        rho = f_malloc_ptr(1*orbs%nspin,id='rho')
-     end if
-
-     nullify(rho_p)
-     call sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p)
-     call communicate_density(dpbox,orbs%nspin,rhodsc,rho_p,rho,.false.)
-  end if
-
-  !Calculate the total density in the case of nspin==2
-  if (orbs%nspin==2) then
-     call axpy(dpbox%ndimpot,1.0_dp,rho(1+dpbox%ndimpot),1,rho(1),1)
-  end if
-  if (dpbox%ndimpot>0) then
-     vh = f_malloc_ptr(dpbox%ndimpot,id='vh')
-  else
-     vh = f_malloc_ptr(1,id='vh')
-  end if
-
-  if (xc%id(1) /= XC_NO_HARTREE) then
-     !Calculate electrostatic potential
-     call vcopy(dpbox%ndimpot,rho(1),1,vh(1),1)
-     !the ionic denisty is given in the case of the embedded solver
-     if (pkernel%method /= 'VAC') then
-        call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten,rho_ion=rho_ion) !only sum up rho_ion
-     else
-        call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
-     end if
-  else
-     !Only to_zero vh
-     vh=0.0_dp
-     ehart_fake=0.0_dp
-  end if
-
-  !In principle symmetrization of the stress tensor is not needed since the density has been 
-  !already symmetrized
-  if (symObj%symObj >= 0 .and. pkernel%geocode=='P') &
-       call symm_stress(hstrten,symObj%symObj)
-
-END SUBROUTINE density_and_hpot
-
+!!$!> Selfconsistent potential is saved in rhopot, 
+!!$!! new arrays rho,pot for calculation of forces ground state electronic density
+!!$!! Potential from electronic charge density
+!!$subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,rho_ion,hstrten)
+!!$  use module_base
+!!$  use module_dpbox, only: denspot_distribution
+!!$  use module_types
+!!$  use module_xc
+!!$  use module_interfaces, only: communicate_density, sumrho
+!!$  use Poisson_Solver, except_dp => dp, except_gp => gp
+!!$  implicit none
+!!$  !Arguments
+!!$  type(denspot_distribution), intent(in) :: dpbox
+!!$  type(rho_descriptors),intent(inout) :: rhodsc
+!!$  type(orbitals_data), intent(in) :: orbs
+!!$  type(local_zone_descriptors), intent(in) :: Lzd
+!!$  type(symmetry_data), intent(in) :: symObj
+!!$  type(coulomb_operator), intent(inout) :: pkernel
+!!$  type(xc_info), intent(in) :: xc
+!!$  real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+!!$  type(GPU_pointers), intent(inout) :: GPU
+!!$  real(gp), dimension(6), intent(out) :: hstrten
+!!$  real(dp), dimension(:), pointer :: rho,vh
+!!$  real(dp), dimension(:,:,:,:), pointer :: rho_ion
+!!$  !local variables
+!!$  character(len=*), parameter :: subname='density_and_hpot'
+!!$  real(gp) :: ehart_fake
+!!$  real(dp), dimension(:,:), pointer :: rho_p
+!!$
+!!$  if (.not. associated(rho)) then
+!!$     if (dpbox%ndimpot>0) then
+!!$        rho = f_malloc_ptr(dpbox%ndimpot*orbs%nspin,id='rho')
+!!$     else
+!!$        rho = f_malloc_ptr(1*orbs%nspin,id='rho')
+!!$     end if
+!!$
+!!$     nullify(rho_p)
+!!$     call sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p)
+!!$     call communicate_density(dpbox,orbs%nspin,rhodsc,rho_p,rho,.false.)
+!!$  end if
+!!$
+!!$  !Calculate the total density in the case of nspin==2
+!!$  if (orbs%nspin==2) then
+!!$     call axpy(dpbox%ndimpot,1.0_dp,rho(1+dpbox%ndimpot),1,rho(1),1)
+!!$  end if
+!!$  if (dpbox%ndimpot>0) then
+!!$     vh = f_malloc_ptr(dpbox%ndimpot,id='vh')
+!!$  else
+!!$     vh = f_malloc_ptr(1,id='vh')
+!!$  end if
+!!$
+!!$  if (xc%id(1) /= XC_NO_HARTREE) then
+!!$     !Calculate electrostatic potential
+!!$     call vcopy(dpbox%ndimpot,rho(1),1,vh(1),1)
+!!$     !the ionic denisty is given in the case of the embedded solver
+!!$     if (pkernel%method /= 'VAC') then
+!!$        call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten,rho_ion=rho_ion) !only sum up rho_ion
+!!$     else
+!!$        call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
+!!$     end if
+!!$  else
+!!$     !Only to_zero vh
+!!$     vh=0.0_dp
+!!$     ehart_fake=0.0_dp
+!!$  end if
+!!$
+!!$  !In principle symmetrization of the stress tensor is not needed since the density has been 
+!!$  !already symmetrized
+!!$  if (symObj%symObj >= 0 .and. pkernel%geocode=='P') &
+!!$       call symm_stress(hstrten,symObj%symObj)
+!!$
+!!$END SUBROUTINE density_and_hpot
 
 !> Calculates the charge density by summing the square of all orbitals
 subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)

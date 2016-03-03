@@ -199,7 +199,7 @@ module overlap_point_to_point
       subroutine free_OP2P_pointer(OP2P, ptr)
         implicit none
         type(OP2P_pointer), dimension(:,:), pointer :: ptr
-        type(OP2P_data), intent(out) :: OP2P
+        type(OP2P_data), intent(inout) :: OP2P
         !local variables
         integer :: i,j
         integer, dimension(2) :: lb,ub
@@ -349,8 +349,8 @@ module overlap_point_to_point
     if (OP2P%gpudirect==0 .and. iproc==0) then
          call yaml_warning("insufficient GPU memory : using non gpudirect version ")
     else if ((symmetric .eqv. .false.) .and. iproc==0) then
-         call yaml_warning("insufficient GPU memory : don't store and exchange results'//&
-       ' (double the computation amount)")
+         call yaml_warning("insufficient GPU memory : don't store and exchange results"//&
+              " (double the computation amount)")
     end if
 
      end subroutine  cuda_estimate_memory_needs_gpudirect

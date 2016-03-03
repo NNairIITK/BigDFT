@@ -2516,30 +2516,19 @@ module io
       integer :: ispin
       real(dp), dimension(:,:,:,:), allocatable :: pot_ion
     
-      pot_ion = f_malloc((/kernel%ndims(1),kernel%ndims(2),kernel%ndims(3), nspin /),id='pot_ion')
-      if (nproc > 1) then
-    
-         !here we might add an extra interface
-         call PS_gather(src=rho,dest=pot_ion,kernel=kernel,nsrc=nspin)
-      else
-         call f_memcpy(n=size(pot_ion),src=rho(1),dest=pot_ion(1,1,1,1))
-      end if
+      pot_ion = &
+           f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3), nspin],id='pot_ion')
+
+      call PS_gather(src=rho,dest=pot_ion,kernel=kernel,nsrc=nspin)
     
       if (present(ixyz0)) then
-          if (ixyz0(1)<1 .or. ixyz0(1)>kernel%ndims(1)) then
-              call f_err_throw('The x value of ixyz0('//trim(yaml_toa(ixyz0(1),fmt='(i0)'))//&
-                   &') should be within the size of the box (1 to'//trim(yaml_toa(kernel%ndims(1),fmt='(i0)'))//')')
-          end if
+         if (any(ixyz0 < 1) .or. any(ixyz0 > kernel%ndims)) &
+              call f_err_throw('The values of ixyz0='+yaml_toa(ixyz0)+&
+                   ' should be within the size of the box (1 to'+&
+                   yaml_toa(kernel%ndims)+')',&
+                   err_name='BIGDFT_RUNTIME_ERROR')
           call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
                rxyz,at%astruct%iatype,at%nzatom,at%nelpsp,ixyz0=ixyz0)
-          if (ixyz0(2)<1 .or. ixyz0(2)>kernel%ndims(2)) then
-              call f_err_throw('The y value of ixyz0('//trim(yaml_toa(ixyz0(2)))//&
-                   &') should be within the size of the box (1 to'//trim(yaml_toa(kernel%ndims(2),fmt='(i0)'))//')')
-          end if
-          if (ixyz0(3)<1 .or. ixyz0(3)>kernel%ndims(3)) then
-              call f_err_throw('The z value of ixyz0('//trim(yaml_toa(ixyz0(3),fmt='(i0)'))//&
-                   &') should be within the size of the box (1 to'//trim(yaml_toa(kernel%ndims(3),fmt='(i0)'))//')')
-          end if
       else
           call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
                rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
