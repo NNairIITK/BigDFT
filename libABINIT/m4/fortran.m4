@@ -1,1 +1,1 @@
-../../bigdft/config/m4/fortran.m4
+../../futile/config/m4/fortran.m4
