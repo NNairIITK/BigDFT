@@ -93,7 +93,7 @@
    check_overlap                       : 1 #      Enables linear overlap check
    experimental_mode                   : Yes #    Activate the experimental mode in linear scaling
    calculate_KS_residue                : No #     Linear scaling calculate Kohn-Sham residue
-   loewdin_charge_analysis             : Yes #    linear scaling perform a Loewdin charge analysis at the end of the calculation
+   loewdin_charge_analysis             : no #    linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_matrix_compression            : No #     linear scaling perform a check of the matrix compression routines
    FOE_restart                         : 1 #      Restart method to be used for the FOE method
    hamapp_radius_incr                  : 6 #      radius enlargement for the Hamiltonian application (in grid points)
@@ -148,7 +148,6 @@
     #                                              support function convergence
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
    foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
-   nsigma                              : 1 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
     #                                              Gaussian used for the radial part of the 
     #                                              function based on the multipoles.
  lin_general:
@@ -158,7 +157,7 @@
    taylor_order                        : 1020 #   order of the Taylor approximation; 0 -> exact
    max_inversion_error                 : 5.0e-8 # linear scaling maximal error of the Taylor approximations to calculate the inverse of 
     #                                              the overlap matrix
-   charge_multipoles                   : 1 #      Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
+   charge_multipoles                   : 12 #     Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
     #                                              new approach Projector
    support_function_multipoles         : yes #    Calculate the multipole moments of the support functions
    conf_damping                        : -0.5 #   how the confinement should be decreased, only relevant for hybrid mode; negative -> 
@@ -1960,108 +1959,6 @@
         iter low:  3,            delta out:  1.309E-07, 
           energy: -1.74603498267478123E+01,                       D:  0.000E+00,  #FINAL
  }
- Charge analysis, projector approach:
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculate projector for multipole analysis
-   calculate S^x:
-     mode                              : sparse
-     powers:
-       x                               : 1/2
-     order                             :  1020
-     determine eigenvalue bounds:
-     -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
-   exp accur:  [  6.93E-10 ]}
-     error estimation:
-       max / mean error                :  [  4.25E-10,  1.07E-10 ]
-   Calculating projector for charge analysis:
-     convergence criterion             :  1.0E-004
-     maximal size of a submatrix       :  17
-     Searching alpha for charge neutrality:
-     -  {alpha:  1.0000E-03, charge: -2.3746E+01, net charge: -1.5746E+01, bisection bounds ok: [
-  No,  No], sigma2:  2.0000E-03, eF:  5.2889E-01}
-     -  {alpha:  1.0000E+01, charge: -7.8457E+00, net charge:  1.5434E-01, bisection bounds ok: [
-  Yes,  No], sigma2:  2.0000E-03, eF:  2.5071E-01}
-     -  {alpha:  5.0005E+00, charge: -7.8544E+00, net charge:  1.4557E-01, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.5028E-01}
-     -  {alpha:  2.5008E+00, charge: -7.8719E+00, net charge:  1.2807E-01, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4932E-01}
-     -  {alpha:  1.2509E+00, charge: -7.9068E+00, net charge:  9.3183E-02, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4752E-01}
-     -  {alpha:  6.2594E-01, charge: -7.9761E+00, net charge:  2.3858E-02, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4390E-01}
-     -  {alpha:  3.1347E-01, charge: -8.1132E+00, net charge: -1.1317E-01, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.3645E-01}
-     -  {alpha:  4.6970E-01, charge: -8.0220E+00, net charge: -2.2046E-02, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4141E-01}
-     -  {alpha:  5.4782E-01, charge: -7.9958E+00, net charge:  4.1557E-03, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4284E-01}
-     -  {alpha:  5.0876E-01, charge: -8.0079E+00, net charge: -7.9470E-03, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4223E-01}
-     -  {alpha:  5.2829E-01, charge: -8.0017E+00, net charge: -1.6736E-03, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4250E-01}
-     -  {alpha:  5.3806E-01, charge: -7.9987E+00, net charge:  1.2936E-03, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4268E-01}
-     -  {alpha:  5.3317E-01, charge: -8.0002E+00, net charge: -1.7651E-04, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4259E-01}
-     -  {alpha:  5.3561E-01, charge: -7.9994E+00, net charge:  5.6186E-04, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4263E-01}
-     -  {alpha:  5.3439E-01, charge: -7.9998E+00, net charge:  1.9351E-04, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4261E-01}
-     -  {alpha:  5.3378E-01, charge: -8.0000E+00, net charge:  8.7107E-06, bisection bounds ok: [
-  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4260E-01}
-     number of states to be occupied (without smearing):  4
-     Pseudo Fermi level for occupations:  0.2426004135283269
-     ordered eigenvalues and occupations:
-     -  {eval: -7.1541E-01, atom:  00001, occ:  1.0000} # 00001
-     -  {eval: -2.1897E-01, atom:  00001, occ:  1.0000} # 00002
-     -  {eval: -1.9540E-01, atom:  00001, occ:  1.0000} # 00003
-     -  {eval: -1.5720E-01, atom:  00001, occ:  1.0000} # 00004
-     -  {eval: -2.1411E-03, atom:  00002, occ:  1.0000} # 00005
-     -  {eval:  4.3045E-03, atom:  00003, occ:  1.0000} # 00006
-     -  {eval:  7.6652E-01, atom:  00002, occ:  0.0000} # 00007
-     -  {eval:  7.7270E-01, atom:  00003, occ:  0.0000} # 00008
-     -  {eval:  7.8403E-01, atom:  00002, occ:  0.0000} # 00009
-     -  {eval:  7.8569E-01, atom:  00003, occ:  0.0000} # 00010
-     -  {eval:  9.4227E-01, atom:  00001, occ:  0.0000} # 00011
-     -  {eval:  1.0132E+00, atom:  00001, occ:  0.0000} # 00012
-     -  {eval:  1.0662E+00, atom:  00003, occ:  0.0000} # 00013
-     -  {eval:  1.0668E+00, atom:  00002, occ:  0.0000} # 00014
-     -  {eval:  1.0806E+00, atom:  00001, occ:  0.0000} # 00015
-     -  {eval:  1.1203E+00, atom:  00001, occ:  0.0000} # 00016
-     -  {remaining states:  45, occ: <1.d-100}
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Projector calculation finished
-   Charge analysis (charge / net charge):
-   -  {O:  [ -6.642785869599E+00, -6.427858695992E-01 ]} # 0001
-   -  {H:  [ -6.840363763142E-01,  3.159636236858E-01 ]} # 0002
-   -  {H:  [ -6.731695647343E-01,  3.268304352657E-01 ]} # 0003
-   - total charge                      : -7.99999181E+00
-   - total net charge                  :  8.18935226E-06
-   output file                         : chargeanalysis.gp
- Charge analysis, Loewdin approach:
-   Method                              : Loewdin
-   calculate S^x:
-     mode                              : sparse
-     powers:
-       x                               : 1/2
-     order                             :  1020
-     determine eigenvalue bounds:
-     -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
-   exp accur:  [  6.93E-10 ]}
-     error estimation:
-       max / mean error                :  [  4.25E-10,  1.07E-10 ]
-   Charge analysis (charge / net charge):
-   -  {O:  [ -6.559250443411E+00, -5.592504434105E-01 ]} # 0001
-   -  {H:  [ -7.263510285075E-01,  2.736489714925E-01 ]} # 0002
-   -  {H:  [ -7.143990485773E-01,  2.856009514227E-01 ]} # 0003
-   - total charge                      : -8.00000052E+00
-   - total net charge                  : -5.20495352E-07
-   output file                         : chargeanalysis.gp
-   Multipole analysis (based on the Loewdin charges):
-     net dipole                        :  [ -4.50482E-01,  3.00123E-01,  3.08862E-01 ]
-     net quadropole:
-     -  [  6.27756E-01,  8.94001E-01,  7.69912E-01 ]
-     -  [  8.94001E-01, -2.33880E-01,  1.26557E+00 ]
-     -  [  7.69912E-01,  1.26557E+00, -3.93876E-01 ]
-     - trace of quadropole matrix      :  3.55E-15
  Gross support functions moments:
    Orthonormalization                  : on-site
    Multipole coefficients:
@@ -2239,9 +2136,9 @@
        scaling factor                  :  1.15E+00
        type                            : unknown
   #================================================= Atomic multipole analysis, new approach
- Method                                : loewdin
- Projector mode                        : none
- Orthogonalized support functions      : yes
+ Method                                : projector
+ Projector mode                        : simple
+ Orthogonalized support functions      : no
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Unitary test of the multipole routines
  Unitary check of the multipole calculations:
    Original values:
@@ -2258,105 +2155,124 @@
    - q0                                :  [  3.29E-07 ]
    - q1                                :  [  4.31E-07,  4.30E-07,  1.86E-07 ]
    - q2: [ 4.56E-07,  5.43E-07,  1.84E-06,  6.15E-07,  1.71E-06]
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating matrix for orthonormal support functions
- calculate S^x:
-   mode                                : sparse
-   powers:
-     x                                 : 1/2
-   order                               :  1020
-   determine eigenvalue bounds:
-   -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
- exp accur:  [  6.93E-10 ]}
-   error estimation:
-     max / mean error                  :  [  4.25E-10,  1.07E-10 ]
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Orthonormalizing the support functions
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating matrix for orthonormal support functions
- calculate S^x:
-   mode                                : sparse
-   powers:
-     x                                 : -1/2
-   order                               :  1020
-   determine eigenvalue bounds:
-   -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
- exp accur:  [  3.61E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.09E-10,  7.32E-11 ]
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
- calculate S^x:
-   mode                                : sparse
-   powers:
-     x                                 : -1
-   order                               :  1020
-   determine eigenvalue bounds:
-   -  {npl:  17, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
- exp accur:  [  7.57E-10 ]}
-   error estimation:
-     max / mean error                  :  [  4.0E-15,  9.02E-16 ]
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculate projector for multipole analysis
+ Calculating projector for charge analysis:
+   convergence criterion               :  1.0E-004
+   maximal size of a submatrix         :  17
+   Searching alpha for charge neutrality:
+   -  {alpha:  1.0000E-03, charge: -2.3746E+01, net charge: -1.5746E+01, bisection bounds ok: [
+  No,  No], sigma2:  2.0000E-03, eF:  5.2889E-01}
+   -  {alpha:  1.0000E+01, charge: -7.8457E+00, net charge:  1.5434E-01, bisection bounds ok: [
+  Yes,  No], sigma2:  2.0000E-03, eF:  2.5071E-01}
+   -  {alpha:  5.0005E+00, charge: -7.8544E+00, net charge:  1.4557E-01, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.5028E-01}
+   -  {alpha:  2.5008E+00, charge: -7.8719E+00, net charge:  1.2807E-01, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4932E-01}
+   -  {alpha:  1.2509E+00, charge: -7.9068E+00, net charge:  9.3183E-02, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4752E-01}
+   -  {alpha:  6.2594E-01, charge: -7.9761E+00, net charge:  2.3858E-02, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4390E-01}
+   -  {alpha:  3.1347E-01, charge: -8.1132E+00, net charge: -1.1317E-01, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.3645E-01}
+   -  {alpha:  4.6970E-01, charge: -8.0220E+00, net charge: -2.2046E-02, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4141E-01}
+   -  {alpha:  5.4782E-01, charge: -7.9958E+00, net charge:  4.1557E-03, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4284E-01}
+   -  {alpha:  5.0876E-01, charge: -8.0079E+00, net charge: -7.9470E-03, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4223E-01}
+   -  {alpha:  5.2829E-01, charge: -8.0017E+00, net charge: -1.6736E-03, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4250E-01}
+   -  {alpha:  5.3806E-01, charge: -7.9987E+00, net charge:  1.2936E-03, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4268E-01}
+   -  {alpha:  5.3317E-01, charge: -8.0002E+00, net charge: -1.7651E-04, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4259E-01}
+   -  {alpha:  5.3561E-01, charge: -7.9994E+00, net charge:  5.6186E-04, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4263E-01}
+   -  {alpha:  5.3439E-01, charge: -7.9998E+00, net charge:  1.9351E-04, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4261E-01}
+   -  {alpha:  5.3378E-01, charge: -8.0000E+00, net charge:  8.7100E-06, bisection bounds ok: [
+  Yes,  Yes], sigma2:  2.0000E-03, eF:  2.4260E-01}
+   number of states to be occupied (without smearing):  4
+   Pseudo Fermi level for occupations  :  0.242600413528326
+   ordered eigenvalues and occupations:
+   -  {eval: -7.1541E-01, atom:  00001, occ:  1.0000} # 00001
+   -  {eval: -2.1897E-01, atom:  00001, occ:  1.0000} # 00002
+   -  {eval: -1.9540E-01, atom:  00001, occ:  1.0000} # 00003
+   -  {eval: -1.5720E-01, atom:  00001, occ:  1.0000} # 00004
+   -  {eval: -2.1411E-03, atom:  00002, occ:  1.0000} # 00005
+   -  {eval:  4.3045E-03, atom:  00003, occ:  1.0000} # 00006
+   -  {eval:  7.6652E-01, atom:  00002, occ:  0.0000} # 00007
+   -  {eval:  7.7270E-01, atom:  00003, occ:  0.0000} # 00008
+   -  {eval:  7.8403E-01, atom:  00002, occ:  0.0000} # 00009
+   -  {eval:  7.8569E-01, atom:  00003, occ:  0.0000} # 00010
+   -  {eval:  9.4227E-01, atom:  00001, occ:  0.0000} # 00011
+   -  {eval:  1.0132E+00, atom:  00001, occ:  0.0000} # 00012
+   -  {eval:  1.0662E+00, atom:  00003, occ:  0.0000} # 00013
+   -  {eval:  1.0668E+00, atom:  00002, occ:  0.0000} # 00014
+   -  {eval:  1.0806E+00, atom:  00001, occ:  0.0000} # 00015
+   -  {eval:  1.1203E+00, atom:  00001, occ:  0.0000} # 00016
+   -  {remaining states:  45, occ: <1.d-100}
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Projector calculation finished
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr
-   global monopole                     : -3.951525E-04
-   global monopole analytic            : -5.213274E-07
+   global monopole                     :  8.736893E-06
    values:
    - sym                               : O # 0001
      r: [ 2.065621065394574,  0.7276197830051158,  0.7650374978227975]
      nzion                             :  6
      sigma                             :  [  0.450,  0.450,  0.450 ]
-     q0 analytic                       : -5.621263E-01
-     q0                                :  [ -5.593922E-01 ]
-     q1                                :  [  1.746536E-01,  1.806321E-01, -3.054165E-01 ]
-     q2: [ 5.247673E-01,  1.288053E+00, -3.828333E-01,  4.043427E-01,  5.356783E-01]
+     q0                                :  [ -6.427853E-01 ]
+     q1                                :  [  2.1576E-01,  2.230770E-01, -3.716003E-01 ]
+     q2: [ 5.309470E-01,  1.248083E+00, -3.679683E-01,  4.142221E-01,  5.119345E-01]
      type                              : unknown
    - sym                               : H # 0002
      r: [ 0.2609031030233364,  0.4497236554241762,  0.5729218373685834]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0 analytic                       :  2.749761E-01
-     q0                                :  [  2.735303E-01 ]
-     q1                                :  [  2.095289E-02,  1.041752E-02,  2.322342E-01 ]
-     q2: [ 7.749125E-02,  7.184487E-02, -6.458786E-02,  6.328425E-02,  1.003119E-01]
+     q0                                :  [  3.159636E-01 ]
+     q1                                :  [  2.389808E-02,  1.253973E-02,  2.499737E-01 ]
+     q2: [ 4.348849E-02,  1.437003E-02, -1.873977E-02,  3.875713E-02,  2.761829E-02]
      type                              : unknown
    - sym                               : H # 0003
      r: [ 2.217505931689284,  2.044733573632779,  2.030559672968256]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0 analytic                       :  2.871497E-01
-     q0                                :  [  2.854667E-01 ]
-     q1                                :  [ -1.743275E-01, -1.682528E-01, -8.445064E-04 ]
-     q2: [ 5.621755E-02,  1.243393E-01, -6.758607E-03,  4.940430E-02, -2.174489E-03]
+     q0                                :  [  3.268304E-01 ]
+     q1                                :  [ -1.876597E-01, -1.810858E-01, -3.339045E-03 ]
+     q2: [ 3.175063E-02,  1.447130E-02, -3.137444E-03,  3.029541E-02,  1.375060E-03]
      type                              : unknown
  Checking the total multipoles based on the atomic multipoles:
  - Up to multipole l= 0:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -1.1551E+00,  7.5345E-01,  7.7567E-01 ]
-       norm(P)                         :  1.582308E+00
+       P vector                        :  [ -1.323E+00,  8.7117E-01,  8.9720E-01 ]
+       norm(P)                         :  1.820479E+00
      Quadrupole Moment (AU):
        Q matrix:
-       -  [  6.2537E-01,  8.9175E-01,  7.6763E-01 ]
-       -  [  8.9175E-01, -2.3268E-01,  1.2640E+00 ]
-       -  [  7.6763E-01,  1.2640E+00, -3.9269E-01 ]
-       trace                           : -1.56E-13
+       -  [  7.3786E-01,  1.0199E+00,  8.7655E-01 ]
+       -  [  1.0199E+00, -2.7732E-01,  1.4548E+00 ]
+       -  [  8.7655E-01,  1.4548E+00, -4.6054E-01 ]
+       trace                           : -9.95E-14
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -1.3433E+00,  8.0754E-01,  8.3362E-01 ]
-       norm(P)                         :  1.775239E+00
+       P vector                        :  [ -1.6406E+00,  1.0033E+00,  1.0358E+00 ]
+       norm(P)                         :  2.184292E+00
      Quadrupole Moment (AU):
        Q matrix:
-       -  [ -1.8586E-01,  5.3145E-01,  5.2838E-01 ]
-       -  [  5.3145E-01,  1.1205E-01, -9.5636E-02 ]
-       -  [  5.2838E-01, -9.5636E-02,  7.3807E-02 ]
-       trace                           : -3.16E-13
+       -  [ -1.466E-01,  6.3574E-01,  6.2376E-01 ]
+       -  [  6.3574E-01,  9.9309E-02, -2.4622E-02 ]
+       -  [  6.2376E-01, -2.4622E-02,  4.7290E-02 ]
+       trace                           :  4.26E-14
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -1.3433E+00,  8.0753E-01,  8.3361E-01 ]
-       norm(P)                         :  1.775239E+00
+       P vector                        :  [ -1.6406E+00,  1.0033E+00,  1.0358E+00 ]
+       norm(P)                         :  2.184291E+00
      Quadrupole Moment (AU):
        Q matrix:
-       -  [  1.3661E+00,  1.6720E+00,  1.4239E+00 ]
-       -  [  1.672E+00, -5.3157E-01,  2.4751E+00 ]
-       -  [  1.4239E+00,  2.4751E+00, -8.3455E-01 ]
-       trace                           :  1.31E-13
+       -  [  1.1802E+00,  1.6857E+00,  1.4608E+00 ]
+       -  [  1.6857E+00, -4.4776E-01,  2.1871E+00 ]
+       -  [  1.4608E+00,  2.1871E+00, -7.3240E-01 ]
+       trace                           : -8.88E-14
   #========================================================== Atomic multipole analysis done
  Total charge                          :  8.000000018710E+00
   #---------------------------------------------------------------------- Forces Calculation

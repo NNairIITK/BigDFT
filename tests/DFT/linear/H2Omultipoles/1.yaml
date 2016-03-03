@@ -26,7 +26,7 @@
    kappa_conv: 0.1
    FOE_restart: 1
    hamapp_radius_incr: 6
-   loewdin_charge_analysis: Yes
+   loewdin_charge_analysis: no #Yes
    #debug: Yes
  lin_general:
    hybrid: Yes

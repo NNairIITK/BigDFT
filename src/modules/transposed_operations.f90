@@ -753,6 +753,7 @@ module transposed_operations
       end if
     
       do iorb=1,orbs%norb
+         if (norm(iorb)<=0.d0) write(*,*) 'iorb, norm', iorb, norm(iorb)
          norm(iorb)=1.d0/sqrt(norm(iorb))
       end do
     

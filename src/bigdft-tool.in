@@ -871,8 +871,8 @@ options:
         command = "%s 1 %s dd suggest-cutoff %s" % (memguess, options.name, options.posinp_file)
         print command
     if options.action == actions[21]:
-        print 'calling utilities to perform a Loewdin charge analysis'
+        #print 'calling utilities to perform a Loewdin charge analysis'
         command = "%s %s charge-analysis %s %s %s %s" % (options.mpirun, utilities, options.method, options.overlap_file, options.kernel_file, options.hamiltonian_file)
-        print command
+        #print command
     if command is not None:
         os.system(command)

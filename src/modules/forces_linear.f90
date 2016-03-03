@@ -961,7 +961,7 @@ module forces_linear
       real(kind=8) :: tt, tt1, sp0, spi, spj
       real(gp) :: hij, sp0i, sp0j, strc
     
-      call f_routine(id='calculate_forces')
+      call f_routine(id='calculate_forces_kernel')
     
       !fxyz_orb = f_malloc0((/3,nat_par(iproc)/),id='fxyz_orb')
       !sab = f_malloc0(6,id='sab')
@@ -999,6 +999,7 @@ module forces_linear
                   !$omp master
                   fxyz_orb_tmp(1:3) = 0.d0
                   !$omp end master
+                  !$omp barrier
                   !$omp do reduction(+:fxyz_orb_tmp,strten_loc,Enl)
                   do iorb=1,supfun_per_atom(iiat)
                      ii = is_supfun_per_atom(iiat) - is_supfun_per_atom(isat_par(iproc)+1) + iorb

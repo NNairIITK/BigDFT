@@ -134,14 +134,14 @@ module postprocessing_linear
           call loewdin_charge_analysis_core(CHARGE_ANALYSIS_LOEWDIN, bigdft_mpi%iproc, bigdft_mpi%nproc, &
                tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, tmb%linmat%s%isfvctr, &
                tmb%linmat%s%nfvctr_par, tmb%linmat%s%isfvctr_par, &
-               meth_overlap, blocksize, tmb%linmat%s, tmb%linmat%l, atoms, &
+               meth_overlap, blocksize, tmb%linmat%smmd, tmb%linmat%s, tmb%linmat%l, atoms, &
                tmb%linmat%kernel_, tmb%linmat%ovrlp_, &
                ntheta=ntheta, istheta=istheta, theta=theta)
       else
           call loewdin_charge_analysis_core(CHARGE_ANALYSIS_LOEWDIN, bigdft_mpi%iproc, bigdft_mpi%nproc, &
                tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, tmb%linmat%s%isfvctr, &
                tmb%linmat%s%nfvctr_par, tmb%linmat%s%isfvctr_par, &
-               meth_overlap, blocksize, tmb%linmat%s, tmb%linmat%l, atoms, &
+               meth_overlap, blocksize, tmb%linmat%smmd, tmb%linmat%s, tmb%linmat%l, atoms, &
                tmb%linmat%kernel_, tmb%linmat%ovrlp_)
       end if
     
@@ -154,14 +154,15 @@ module postprocessing_linear
 
 
     subroutine loewdin_charge_analysis_core(method, iproc, nproc, norb, norbp, isorb, &
-            norb_par, isorb_par, meth_overlap, blocksize, smats, smatl, atoms, kernel, ovrlp, &
+               norb_par, isorb_par, meth_overlap, blocksize, smmd, smats, smatl, atoms, kernel, ovrlp, &
                ntheta, istheta, theta)
       use module_base
       use module_types
       use sparsematrix_base, only: sparse_matrix, matrices, &
                                    assignment(=), sparsematrix_malloc0, sparsematrix_malloc_ptr, &
                                    DENSE_FULL, SPARSE_TASKGROUP, SPARSE_FULL, &
-                                   deallocate_matrices, matrices_null, allocate_matrices
+                                   deallocate_matrices, matrices_null, allocate_matrices, &
+                                   sparse_matrix_metadata
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: uncompress_matrix2, matrix_matrix_mult_wrapper, gather_matrix_from_taskgroups, &
                               transform_sparse_matrix
@@ -172,6 +173,7 @@ module postprocessing_linear
       ! Calling arguments
       integer,intent(in) :: method, iproc, nproc, norb, norbp, isorb, meth_overlap, blocksize
       integer,dimension(0:nproc-1),intent(in) :: norb_par, isorb_par
+      type(sparse_matrix_metadata),intent(in) :: smmd
       type(sparse_matrix),intent(in) :: smats, smatl
       type(atoms_data),intent(in) :: atoms
       type(matrices),intent(inout) :: kernel
@@ -358,7 +360,7 @@ module postprocessing_linear
                   ishift = (ispin-1)*smatl%nvctr
                   do iorb=1,norb
                       iiorb = modulo(iorb-1,smatl%nfvctr)+1
-                      iat=smats%on_which_atom(iiorb)
+                      iat=smmd%on_which_atom(iiorb)
                       ind = matrixindex_in_compressed(smatl, iorb, iorb)
                       ind = ind + ishift
                       !if (iproc==0) write(*,*) 'iorb, trace charge', iorb, weight_matrix_compr(ind)

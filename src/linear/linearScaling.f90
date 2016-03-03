@@ -132,7 +132,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements, coeff_all, multipoles_out
   real(kind=8),dimension(:,:,:),pointer :: multipoles
   real(kind=8),dimension(:,:,:,:),allocatable :: test_pot
-  type(external_potential_descriptors) :: ep
+  !type(external_potential_descriptors) :: ep
   type(orbital_basis) :: ob
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot, max_error, mean_error, r2, occ, tot_occ, ef, ef_low, ef_up, q, fac
@@ -2053,9 +2053,9 @@ end if
       call calculate_rpowerx_matrices(iproc, nproc, tmb%npsidim_orbs, tmb%collcom_sr%ndimpsi_c, tmb%lzd, &
            tmb%orbs, tmb%collcom, tmb%psi, tmb%linmat%s, rpower_matrix)
       ! @ END NEW ##############################################################################################
-      call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      call projector_for_charge_analysis(tmb%linmat%smmd, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
-           rxyz, calculate_centers=.false., write_output=.true., ortho='yes', mode='simple', &
+           rxyz, calculate_centers=.false., write_output=.false., ortho='yes', mode='simple', &
            rpower_matrix=rpower_matrix, orbs=tmb%orbs)
       do i=1,24
           call deallocate_matrices(rpower_matrix(i))
@@ -2153,7 +2153,7 @@ end if
       !         tmb%linmat%ovrlp_, tmb%linmat%kernel_, meth_overlap=norder_taylor)
       !    !write(300+iproc,*) tmb%linmat%ovrlp_%matrix_compr
       !    !write(310+iproc,*) tmb%linmat%kernel_%matrix_compr
-      multipoles = f_malloc_ptr((/-lmax.to.lmax,0.to.lmax,1.to.at%astruct%nat/),id='multipoles')
+      !multipoles = f_malloc_ptr((/-lmax.to.lmax,0.to.lmax,1.to.at%astruct%nat/),id='multipoles')
       if (input%lin%charge_multipoles/=0) then
           select case (input%lin%charge_multipoles)
           case (1,11)
@@ -2183,12 +2183,20 @@ end if
           end select
       end if
       !if (input%lin%charge_multipoles==1) then
-          call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
-               max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
-               tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &
-               denspot, tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
-               method=method, projectormode=projectormode, do_ortho=do_ortho, &
-               shift=shift, nsigma=input%nsigma, ixc=input%ixc, ep=ep )
+          call multipole_analysis_driver(iproc, nproc, lmax, input%ixc, tmb%linmat%smmd, &
+               tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+               tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
+               rxyz, method, do_ortho, projectormode, &
+               calculate_multipole_matrices=.true., do_check=.true., &
+               nphi=tmb%npsidim_orbs, lphi=tmb%psi, nphir=max(tmb%collcom_sr%ndimpsi_c,1), &
+               hgrids=tmb%lzd%hgrids, orbs=tmb%orbs, collcom=tmb%collcom, collcom_sr=tmb%collcom_sr, &
+               lzd=tmb%lzd, at=at, denspot=denspot, orthpar=tmb%orthpar, shift=shift)
+               !tmb%npsidim_orbs, tmb%psi, &
+               !max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
+               !tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%collcom_sr, tmb%lzd, &
+               !denspot, tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
+               !method=method, projectormode=projectormode, do_ortho=do_ortho, &
+               !shift=shift, ixc=input%ixc, ep=ep )
       !!else if (input%lin%charge_multipoles==2) then
       !!    call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
       !!         max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
@@ -2228,8 +2236,8 @@ end if
       !end do
       !call f_free(test_pot)
       !!# TEST ######################################################################################################
-      call f_free_ptr(multipoles)
-      call deallocate_external_potential_descriptors(ep)
+      !call f_free_ptr(multipoles)
+      !call deallocate_external_potential_descriptors(ep)
   end if
 
 

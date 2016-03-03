@@ -36,9 +36,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use psp_projectors_base, only: free_dft_psp_projectors
   use sparsematrix_base, only: sparse_matrix_null, matrices_null, allocate_matrices, &
                                SPARSE_TASKGROUP, sparsematrix_malloc_ptr, assignment(=), &
-                               DENSE_PARALLEL, DENSE_MATMUL, SPARSE_FULL
+                               DENSE_PARALLEL, DENSE_MATMUL, SPARSE_FULL, sparse_matrix_metadata_null
   use sparsematrix_init, only: init_matrix_taskgroups, check_local_matrix_extents, &
-                               init_matrixindex_in_compressed_fortransposed
+                               init_matrixindex_in_compressed_fortransposed, &
+                               sparse_matrix_metadata_init
   use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
   use sparsematrix, only: check_matrix_compression
   use communications_base, only: comms_linear_null
@@ -329,6 +330,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      if (associated(tmb%psi)) then
         !this is a tmb_null constructor
         tmb_old%lzd = local_zone_descriptors_null()
+        tmb_old%linmat%smmd = sparse_matrix_metadata_null()
         tmb_old%linmat%s = sparse_matrix_null()
         tmb_old%linmat%m = sparse_matrix_null()
         tmb_old%linmat%l = sparse_matrix_null()
@@ -419,6 +421,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,in, atoms, rxyz, .false.)
 
+     call sparse_matrix_metadata_init(atoms%astruct%geocode, atoms%astruct%cell_dim, tmb%orbs%norb, &
+          atoms%astruct%nat, atoms%astruct%ntypes, atoms%astruct%units, &           
+          atoms%nzatom, atoms%nelpsp, atoms%astruct%atomnames, atoms%astruct%iatype, &
+          atoms%astruct%rxyz, tmb%orbs%onwhichatom, tmb%linmat%smmd)
+
      call init_sparse_matrix_wrapper(iproc, nproc, in%nspin, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
           in%store_index, imode=1, smat=tmb%linmat%m)
 
@@ -451,24 +458,24 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      iirow(2) = 1
      iicol(1) = tmb%linmat%s%nfvctr
      iicol(2) = 1
-     call check_local_matrix_extents(iproc, nproc, atoms%astruct%nat, &
-          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, tmb%collcom, &
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%s, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
      !!write(*,*) 'after s: iirow', iirow
      !!write(*,*) 'after s: iicol', iicol
-     call check_local_matrix_extents(iproc, nproc, atoms%astruct%nat, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%m, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
      !!write(*,*) 'after m: iirow', iirow
      !!write(*,*) 'after m: iicol', iicol
-     call check_local_matrix_extents(iproc, nproc, atoms%astruct%nat, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%l, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
@@ -477,13 +484,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!write(*,*) 'after l: iicol', iicol
 
      call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, tmb%linmat%s, &
-          atoms%astruct%nat, tmb%collcom, tmb%collcom_sr, iirow, iicol)
+          tmb%linmat%smmd, tmb%collcom, tmb%collcom_sr, iirow, iicol)
      !!write(*,*) 'after s'
      call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, tmb%linmat%m, &
-          atoms%astruct%nat,  tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
+          tmb%linmat%smmd, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
      !!write(*,*) 'after m'
      call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, tmb%linmat%l, &
-          atoms%astruct%nat, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
+          tmb%linmat%smmd, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
      !!write(*,*) 'after l'
 
      tmb%linmat%kernel_ = matrices_null()

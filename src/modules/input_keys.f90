@@ -408,10 +408,6 @@ module module_input_keys
      !> Use the FOE method to calculate the HOMO-LUMO gap at the end
      logical :: foe_gap
 
-     !> Number of iterations (for each angular momentum l) to get an optimal sigma for the Gaussian used for the radial
-     !! part of the function based on the multipoles. Warning: The total number of iterations is nsigma**(lmax+1), so only use small values
-     integer :: nsigma
-
      !> Calculate the support function multipoles
      logical :: support_function_multipoles
 
@@ -1829,10 +1825,6 @@ contains
        case (FOE_GAP)
           ! linear scaling: Use the FOE method to calculate the HOMO-LUMO gap at the end
           in%foe_gap = val
-       case (NSIGMA)
-          ! Linear scaling: Number of iterations (for each angular momentum l) to get an optimal sigma for the Gaussian used for the radial
-          ! part of the function based on the multipoles. Warning: The total number of iterations is nsigma**(lmax+1), so only use small values
-          in%nsigma = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
