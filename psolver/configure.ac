@@ -94,13 +94,14 @@ AX_MPI()
 dnl Python YAML support.
 AX_PYYAML()
 
+AX_FLIB()
+
 dnl Produce dynamic excecutables.
-AX_DYNAMIC_LIBRARIES()
+AX_DYNAMIC_LIBRARIES([], [f_lib_initialize], [$LIB_FUTILE_LIBS])
 
 dnl Test accelerators
 AX_ACC_CUDA()
 
-AX_FLIB()
 AX_LINALG()
 AX_ETSF_IO()
 
