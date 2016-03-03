@@ -19,7 +19,7 @@
    check_overlap: 1
    experimental_mode: Yes
    calculate_KS_residue: No
-   loewdin_charge_analysis: Yes
+   loewdin_charge_analysis: no
    check_matrix_compression: No
    FOE_restart: 1
    hamapp_radius_incr: 6
@@ -29,7 +29,7 @@
    rpnrm_cv: 1.0e-11
    taylor_order: 1020
    max_inversion_error: 5.0e-8
-   charge_multipoles: 1
+   charge_multipoles: 12
    support_function_multipoles: yes
  lin_basis:
    nit: 8

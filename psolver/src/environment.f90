@@ -47,7 +47,7 @@ module environment
   type(f_enumerator), parameter, public :: PS_PCG_ENUM=f_enumerator('PCG',PS_PCG,null())
 
   !>threshold for comparison with zero
-  real(dp), parameter :: thr=1.d-12
+  real(dp), parameter :: thr=1.d-15
 
   !conversion factors in AU
 
@@ -77,7 +77,7 @@ contains
     c%epsilon0= 78.36_gp !<water at ambient condition 
     c%edensmax = 0.005_gp !0.0050d0
     c%edensmin = 0.0001_gp
-    c%delta = 0.0_gp
+    c%delta = 2.0_gp
     c%gammaS = 72._gp*SurfAU ![dyn/cm]   
     c%alphaS = -22.0_gp*SurfAU ![dyn/cm]   end function cavity_default
     c%betaV = -0.35_gp/AU_GPa ![GPa]     
@@ -344,7 +344,7 @@ contains
   end function surf_term
 
   !rigid cavity terms
-  subroutine rigid_cavity_arrays(cavity,mesh,v,nat,rxyz,radii,eps,dleps,corr)
+  subroutine rigid_cavity_arrays(cavity,mesh,v,nat,rxyz,radii,eps,deps,dleps,corr)
     use box
     implicit none
     type(cavity_data), intent(in) :: cavity
@@ -355,11 +355,11 @@ contains
     real(gp), dimension(3), intent(in) :: v
     !> position of all the atoms in the grid coordinates
     real(gp), dimension(3,nat), intent(in) :: rxyz
-    real(gp), intent(out) :: eps,corr
+    real(gp), intent(out) :: eps,deps,corr
     real(gp), dimension(3), intent(out) :: dleps
     !local variables
     integer :: iat
-    real(gp) :: ep,dcorrha,rad,eh,d1e,dlogh,d2e,d,d2ha
+    real(gp) :: ep,dcorrha,rad,eh,d1e,dlogh,d2e,d,d2ha,dd
     real(gp), dimension(3) :: dha
 
     ep=1.0_dp
@@ -368,55 +368,97 @@ contains
     loop_at: do iat=1,nat
        rad=radii(iat)
        d=minimum_distance(mesh,v,rxyz(1,iat))
-       eh=epsl(d,rad,cavity%delta)
-       ep=ep*eh
-       d1e=d1eps(d,rad,cavity%delta)
+       if (d.eq.0.d0) then
+        d=1.0d-30
+        eh=epsl(d,rad,cavity%delta)
+        ep=ep*eh
+        d1e=0.0_dp
+        d2e=0.0_dp
+       else
+        eh=epsl(d,rad,cavity%delta)
+        ep=ep*eh
+        d1e=d1eps(d,rad,cavity%delta)
+        d2e=d2eps(d,rad,cavity%delta)
+       end if
        if (ep < thr) then
           ep=0.0_dp
           exit loop_at
        end if
-       if (abs(dlogh) < thr) then
+       if (abs(d1e) < thr) then
           dlogh=0.0_gp
        else
           dlogh=d1e/epsl(d,rad,cavity%delta)
-          d2e=d2eps(d,rad,cavity%delta)
-          dcorrha=dcorrha+(d2e-d1e**2)/eh**2+2.0_gp*d1e/eh/d
+          dcorrha=dcorrha+d2e/eh-(d1e**2)/eh**2+2.0_gp*d1e/eh/d
           dha=dha+dlogh*closest_r(mesh,v,center=rxyz(:,iat))/d
        end if
     end do loop_at
-    ep=(cavity%epsilon0-vacuum_eps)*ep+vacuum_eps
-    dleps=(ep-vacuum_eps)/ep*dha
+    eps=(cavity%epsilon0-vacuum_eps)*ep+vacuum_eps
+    dleps=(eps-vacuum_eps)/eps*dha
     d2ha=square(mesh,dha)
-    corr=0.5_gp*(ep-vacuum_eps)/ep*(0.5_gp*d2ha*(1+ep)/ep+dcorrha)
+    deps=(eps-vacuum_eps)*sqrt(d2ha)
+    !corr=0.5_gp*(eps-vacuum_eps)/eps*(0.5_gp*d2ha*(1+eps)/eps+dcorrha)
+    dd=(eps-vacuum_eps)*(d2ha+dcorrha)
+    corr=-oneoeightpi*(0.5_gp*(eps-vacuum_eps)**2/eps*d2ha-dd)
   end subroutine rigid_cavity_arrays
 
-  subroutine rigid_cavity_forces(cavity,mesh,v,nat,rxyz,radii,npot2epsm1,fxyz)
+  subroutine rigid_cavity_forces(only_electrostatic,cavity,mesh,v,&
+       nat,rxyz,radii,epsr,npot2,fxyz,deps)
     use box
     implicit none
     type(cavity_data), intent(in) :: cavity
     type(cell), intent(in) :: mesh
+    logical, intent(in) :: only_electrostatic
     integer, intent(in) :: nat !< number of centres defining the cavity
-    real(gp), intent(in) :: npot2epsm1
+    real(gp), intent(in) :: npot2,epsr
     real(gp), dimension(nat), intent(in) :: radii !< radii of each of the atoms
     !>array of the position in the reference frame of rxyz
     real(gp), dimension(3), intent(in) :: v
     !> position of all the atoms in the grid coordinates
     real(gp), dimension(3,nat), intent(in) :: rxyz
     real(gp), dimension(3,nat), intent(inout) :: fxyz !<forces array
+    real(gp), dimension(3), intent(in) :: deps !<gradient of epsilon(r)
     !local variables
-    integer :: iat,i
-    real(gp) :: d,dlogh,rad,tt,hh
+    integer :: iat,i,j
+    real(gp) :: d,dlogh,rad,tt,ttV,ttS,hh,epsrm1,eps0m1,sqdeps,ep,mm
+    real(gp), dimension(3) :: f_Vterm,f_Sterm,depsdRi,vr,ddloghdRi,vect
 
+    eps0m1=cavity%epsilon0-vacuum_eps
     hh=mesh%volume_element
     do iat=1,nat
        d=minimum_distance(mesh,v,rxyz(1,iat))
        rad=radii(iat)
-       dlogh=d1eps(d,rad,cavity%delta)
+       if (d.eq.0.d0) then
+        d=1.0d-30
+        dlogh=0.0_dp
+       else
+        dlogh=d1eps(d,rad,cavity%delta)
+       end if
        if (abs(dlogh) < thr) cycle
-       dlogh=dlogh/epsl(d,rad,cavity%delta)
-       tt=tt*dlogh/d*hh
+       ep=epsl(d,rad,cavity%delta)
+       dlogh=dlogh/ep
+       epsrm1=epsr-vacuum_eps 
+       if (abs(epsrm1) < thr) cycle
+       vr(:)=closest_r(mesh,v,center=rxyz(:,iat))
+       depsdRi(:)=-epsrm1*dlogh/d*vr(:)
+       tt=-oneoeightpi*npot2*hh
        !here the forces can be calculated
-       fxyz(:,iat)=fxyz(:,iat)+tt*closest_r(mesh,v,center=rxyz(:,iat))
+       fxyz(:,iat)=fxyz(:,iat)+tt*depsdRi(:) ! Electrostatic force
+       if (.not. only_electrostatic) then 
+        ttV=cavity%betaV/eps0m1*hh ! CAN BE DONE EXTERNAL TO THE LOOP (INTEGRAL)
+        f_Vterm(:)=ttV*depsdRi(:) ! Force from the Volume term to the energy
+        sqdeps=sqrt(square(mesh,deps))
+        ttS=-(cavity%alphaS+cavity%gammaS)/eps0m1/sqdeps*hh ! CAN BE DONE EXTERNAL TO THE LOOP (INTEGRAL), no sqdeps
+        ddloghdRi(:)=((dlogh**2)/d-d2eps(d,rad,cavity%delta)/ep)*vr(:)
+        do i=1,3
+         vect(i)=0.0_dp
+         do j=1,3
+          mm=depsdRi(i)*deps(j)/epsrm1+epsrm1*(ddloghdRi(i)*vr(j)/d)
+          vect(i)=vect(i)+mm*deps(j)
+         end do
+        end do
+        f_Sterm(:)=ttS*(vect(:)-epsrm1*dlogh/d*deps(:)) ! Force from the Surface term to the energy
+        fxyz(:,iat)=fxyz(:,iat)+f_Vterm(:)+f_Sterm(:)
+       end if
     end do
   end subroutine rigid_cavity_forces
 
@@ -452,7 +494,7 @@ contains
     real(kind=8) :: d
 
     d=(r-rc)/delta
-    d2eps=-0.5_gp*d/delta*d1eps(r,rc,delta)
+    d2eps=-2.0_gp*d/delta*d1eps(r,rc,delta)
     
   end function d2eps
 
@@ -529,7 +571,7 @@ contains
                 sp=dsurfdrho(i1,i23)
                 pt=-oneoeightpi*ep*nabla2_pot(i1,i23)+&
                      (cavity%alphaS+cavity%gammaS)*sp+&
-                     cavity%betaV*ep/(1.d0-cavity%epsilon0)
+                     cavity%betaV*ep/(vacuum_eps-cavity%epsilon0)
                 pot(i1,i23)=pt+pot_ion(i1,i23)
              end do
           end do
@@ -542,7 +584,7 @@ contains
                 sp=dsurfdrho(i1,i23)
                 pt=-oneoeightpi*ep*nabla2_pot(i1,i23)+&
                      (cavity%alphaS+cavity%gammaS)*sp+&
-                     cavity%betaV*ep/(1.d0-cavity%epsilon0)
+                     cavity%betaV*ep/(vacuum_eps-cavity%epsilon0)
                 pot(i1,i23)=pt
              end do
           end do

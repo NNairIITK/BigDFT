@@ -33,6 +33,7 @@ module sparsematrix_init
   public :: ccs_to_sparsebigdft_short
   public :: init_matrixindex_in_compressed_fortransposed
   public :: distribute_on_threads
+  public :: sparse_matrix_metadata_init
 
 
 contains
@@ -1155,7 +1156,7 @@ contains
 
     !> Currently assuming square matrices
     subroutine init_sparse_matrix(iproc, nproc, norbu, nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
-               nspin, geocode, norbup, isorbu, store_index, on_which_atom, allocate_full, print_info)
+               init_matmul, nspin, geocode, cell_dim, norbup, isorbu, store_index, on_which_atom, allocate_full, print_info)
       use yaml_output
       implicit none
 
@@ -1164,7 +1165,9 @@ contains
       integer,dimension(2,nnonzero),intent(in) :: nonzero
       integer,dimension(2,nnonzero_mult),intent(in) :: nonzero_mult
       type(sparse_matrix), intent(out) :: sparsemat
+      logical,intent(in),optional :: init_matmul
       character(len=1),intent(in),optional :: geocode
+      real(kind=8),dimension(3),intent(in),optional :: cell_dim
       logical,intent(in),optional :: allocate_full, print_info, store_index
       integer,dimension(norbu),intent(in),optional :: on_which_atom
       integer,intent(in),optional :: nspin, norbup, isorbu
@@ -1173,6 +1176,7 @@ contains
       integer :: jproc, iorb, jorb, iiorb, iseg
       !integer :: jst_line, jst_seg, segn, ind
       integer :: ist, ivctr
+      logical :: init_matmul_
       logical,dimension(:),allocatable :: lut
       integer :: nseg_mult, nvctr_mult, ivctr_mult
       integer,dimension(:),allocatable :: nsegline_mult, istsegline_mult
@@ -1193,9 +1197,11 @@ contains
       allocate_full_=.false.
       print_info_=.true.
       store_index_=.false.
+      init_matmul_ = .true.
       if (present(allocate_full)) allocate_full_=allocate_full
       if (present(print_info)) print_info_=print_info
       if (present(store_index)) store_index_=store_index
+      if (present(init_matmul)) init_matmul_ = init_matmul
 
 
       lut = f_malloc(norbu,id='lut')
@@ -1207,12 +1213,18 @@ contains
       else
           sparsemat%nspin=1
       end if
-      if (present(geocode)) then
-          sparsemat%geocode = geocode
-      else
-          ! Set to 'U' for 'unknown'
-          sparsemat%geocode = 'U'
-      end if
+      !if (present(geocode)) then
+      !    sparsemat%geocode = geocode
+      !else
+      !    ! Set to 'U' for 'unknown'
+      !    sparsemat%geocode = 'U'
+      !end if
+      !if (present(cell_dim)) then
+      !    sparsemat%cell_dim = cell_dim
+      !else
+      !    ! Set to 0, which is obviously fake
+      !    sparsemat%cell_dim = (/0.d0,0.d0,0.d0/)
+      !end if
       sparsemat%nfvctr=norbu
       ! If both norbup and isorbu are present, assign the values to the sparse_matrix structure,
       ! otherwise calculate them on the fly. For a standalone test the latter option should be ok.
@@ -1243,11 +1255,11 @@ contains
 
       call allocate_sparse_matrix_basic(store_index_, norbu, nproc, sparsemat)
 
-      if (present(on_which_atom)) then
-          call vcopy(norbu, on_which_atom(1), 1, sparsemat%on_which_atom(1), 1)
-      else
-          sparsemat%on_which_atom(:) = UNINITIALIZED(1)
-      end if
+      !if (present(on_which_atom)) then
+      !    call vcopy(norbu, on_which_atom(1), 1, sparsemat%on_which_atom(1), 1)
+      !else
+      !    sparsemat%on_which_atom(:) = UNINITIALIZED(1)
+      !end if
 
 
       sparsemat%nseg=0
@@ -1459,8 +1471,13 @@ contains
 
 
       ! Initialize the parameters for the spare matrix matrix multiplication
-      call init_sparse_matrix_matrix_multiplication_new(iproc, nproc, norbu, sparsemat%nfvctrp, sparsemat%isfvctr, nseg_mult, &
-               nsegline_mult, istsegline_mult, keyv_mult, keyg_mult, sparsemat)
+      if (init_matmul_) then
+          sparsemat%smatmul_initialized = .true.
+          call init_sparse_matrix_matrix_multiplication_new(iproc, nproc, norbu, sparsemat%nfvctrp, sparsemat%isfvctr, nseg_mult, &
+                   nsegline_mult, istsegline_mult, keyv_mult, keyg_mult, sparsemat)
+      else
+          sparsemat%smatmul_initialized = .false.
+      end if
 
       if (extra_timing) call cpu_time(tr1)
       if (extra_timing) time5=real(tr1-tr0,kind=8)
@@ -1979,10 +1996,40 @@ contains
       call distribute_on_threads(nout, nthread, ise)
 
       iiarr = f_malloc(0.to.nthread-1,id='iiarr')
+
       ii = 0
       iseg_start = 1
       ithread = 0
-      ivectorindex_work = f_malloc((/1.to.nseq,0.to.nthread-1/),id='ivectorindex_work')
+      !$omp parallel &
+      !$omp default (none) &
+      !$omp shared(ise, ispt, nseg, keyv, keyg, smat, istsegline, iiarr, nthread) &
+      !$omp shared(nseq) &
+      !$omp private(ipt, iipt, iline, icolumn, ind, jthread,jseg,jorb) &
+      !$omp firstprivate(ii, iseg_start, ithread)
+      !$ ithread = omp_get_thread_num()
+      do ipt=ise(1,ithread),ise(2,ithread)
+          iipt = ispt + ipt
+          call get_line_and_column(iipt, nseg, keyv, keyg, iseg_start, iline, icolumn)
+          ! Take the column due to the symmetry of the sparsity pattern
+          do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
+              ! A segment is always on one line, therefore no double loop
+              do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
+                  ind = matrixindex_in_compressed_lowlevel(jorb, iline, smat%nfvctr, nseg, keyv, keyg, istsegline)
+                  if (ind>0) then
+                      ii = ii+1
+                  end if
+              end do
+          end do
+      end do
+      iiarr(ithread) = ii
+      !$omp barrier
+      !$omp end parallel
+      if (sum(iiarr)/=nseq) call f_err_throw('sum(iiarr)/=nseq')
+      ivectorindex_work = f_malloc((/1.to.maxval(iiarr),0.to.nthread-1/),id='ivectorindex_work')
+
+      ii = 0
+      iseg_start = 1
+      ithread = 0
       !$omp parallel &
       !$omp default (none) &
       !$omp shared(ise, ispt, nseg, keyv, keyg, smat, istsegline, iiarr, nthread) &
@@ -2206,11 +2253,45 @@ contains
       !!if (ii/=nout) call f_err_throw('ii/=nout',err_name='BIGDFT_RUNTIME_ERROR')
       call distribute_on_threads(nout, nthread, ise)
 
-      iiarr = f_malloc(0.to.nthread-1,id='iiarr')
+      ! First have to determine the length of indices_extract_sequential_work... a bit wasteful, but otherwise 
+      ! the memory becomes too large
       ii = 0
       iseg_start = 1
       ithread = 0
-      indices_extract_sequential_work = f_malloc((/1.to.nseq,0.to.nthread-1/),id='indices_extract_sequential_work')
+      iiarr = f_malloc(0.to.nthread-1,id='iiarr')
+      !$omp parallel &
+      !$omp default (none) &
+      !$omp shared(ise, ispt, nseg, keyv, keyg, smat, istsegline, iiarr, nthread) &
+      !$omp private(ipt, iipt, iline, icolumn, ind, jj, jthread,jseg,jorb) &
+      !$omp firstprivate(ii, iseg_start, ithread)
+      !$ ithread = omp_get_thread_num()
+      do ipt=ise(1,ithread),ise(2,ithread)
+          iipt = ispt + ipt
+          call get_line_and_column(iipt, nseg, keyv, keyg, iseg_start, iline, icolumn)
+          ! Take the column due to the symmetry of the sparsity pattern
+          do jseg=smat%istsegline(icolumn),smat%istsegline(icolumn)+smat%nsegline(icolumn)-1
+              ! A segment is always on one line, therefore no double loop
+              jj=1
+              do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
+                  ! Calculate the index in the large compressed format
+                  ind = matrixindex_in_compressed_lowlevel(jorb, iline, smat%nfvctr, nseg, keyv, keyg, istsegline)
+                  if (ind>0) then
+                      ii = ii + 1
+                  end if
+                  jj = jj+1
+              end do
+          end do
+      end do
+      iiarr(ithread) = ii
+      !$omp barrier
+      !$omp end parallel
+      if (sum(iiarr)/=nseq) call f_err_throw('sum(iiarr)/=nseq')
+
+      indices_extract_sequential_work = f_malloc((/1.to.maxval(iiarr),0.to.nthread-1/),id='indices_extract_sequential_work')
+    
+      ii = 0
+      iseg_start = 1
+      ithread = 0
       !$omp parallel &
       !$omp default (none) &
       !$omp shared(ise, ispt, nseg, keyv, keyg, smat, istsegline, iiarr, nthread) &
@@ -2319,9 +2400,9 @@ contains
     end subroutine init_matrix_parallelization
 
 
-    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, smat, nat, collcom, collcom_sr, iirow, iicol)
+    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, smat, smmd, collcom, collcom_sr, iirow, iicol)
       use communications_base, only: comms_linear
-      use sparsematrix_base, only: sparse_matrix
+      use sparsematrix_base, only: sparse_matrix_metadata, sparse_matrix
       use yaml_output
       implicit none
 
@@ -2329,7 +2410,7 @@ contains
       integer,intent(in) :: iproc, nproc
       logical,intent(in) :: parallel_layout
       type(sparse_matrix),intent(inout) :: smat
-      integer,intent(in),optional :: nat
+      type(sparse_matrix_metadata),intent(in),optional :: smmd
       type(comms_linear),intent(in),optional :: collcom, collcom_sr
       integer,dimension(2),intent(in),optional :: iirow, iicol
 
@@ -2342,11 +2423,11 @@ contains
       integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
       !logical :: go_on
       integer,dimension(:,:),allocatable :: in_taskgroup
-      integer :: iproc_start, iproc_end, imin, imax
+      integer :: iproc_start, iproc_end, imin, imax, niter
       logical :: found, found_start, found_end
       !integer :: jstart, kkproc, kproc, jend, lproc, llproc
       !integer :: iprocstart_current, iprocend_current, iprocend_prev, iprocstart_next
-      integer :: irow, icol, inc, ist, ind_min1, ind_max1
+      integer :: irow, icol, inc, ist, ind_min1, ind_max1, nloop
       integer,dimension(:),pointer :: isvctr_par, nvctr_par
       logical, parameter :: print_full=.false.
       integer,dimension(:),pointer :: moduloarray
@@ -2362,8 +2443,14 @@ contains
       ! The matrices can be parallelized
       parallel_if: if (parallel_layout) then
 
+          ! Otherwiese this might lead to segfaults etc. due to non-initialized variables
+          if (.not.smat%smatmul_initialized) then
+              call f_err_throw('Matrix taskgroups should only be used when &
+                  &the sparse matrix multiplications have been initialized')
+          end if
+
           ! Check that all arguments are present
-          if (.not.present(nat)) call f_err_throw("Optional argument 'nat' is not present")
+          if (.not.present(smmd)) call f_err_throw("Optional argument 'smmd' is not present")
           if (.not.present(collcom)) call f_err_throw("Optional argument 'collcom' is not present")
           if (.not.present(collcom_sr)) call f_err_throw("Optional argument 'collcom_sr' is not present")
           if (.not.present(iirow)) call f_err_throw("Optional argument 'iirow' is not present")
@@ -2396,7 +2483,7 @@ contains
           call check_ortho_inguess(smat,ind_min,ind_max)
 
           ! Now check the submatrix extraction for the projector charge analysis
-          call check_projector_charge_analysis(iproc, nproc, nat, smat, ind_min, ind_max)
+          call check_projector_charge_analysis(iproc, nproc, smmd, smat, ind_min, ind_max)
 
 
           ind_min1 = ind_min
@@ -3111,11 +3198,18 @@ contains
       !!!    stop
       !!!end if
 
-      do i=1,2
-          if (i==1) then
+      ! Make sure that the sparse matmul stuff is only used if it has been initialized
+      if (smat%smatmul_initialized) then
+          niter = 2
+      else
+          niter = 1
+      end if
+
+      do i=1,niter
+          if (i==2) then
               isvctr_par => smat%smmm%isvctr_mm_par
               nvctr_par => smat%smmm%nvctr_mm_par
-          else if (i==2) then
+          else if (i==1) then
               isvctr_par => smat%isvctr_par
               nvctr_par => smat%nvctr_par
           end if
@@ -3133,10 +3227,10 @@ contains
               ii = ii + 1
           end do
 
-          if (i==1) then
+          if (i==2) then
               smat%smmm%nccomm_smmm = ii
               smat%smmm%luccomm_smmm = f_malloc_ptr((/4,smat%smmm%nccomm_smmm/),id='smat%smmm%luccomm_smmm')
-          else if (i==2) then
+          else if (i==1) then
               smat%nccomm = ii
               smat%luccomm = f_malloc_ptr((/4,smat%nccomm/),id='smatluccomm')
           end if
@@ -3156,12 +3250,12 @@ contains
               iend = min(smat%istartend_local(2),isvctr_par(jproc)+nvctr_par(jproc))
               if (istart>iend) cycle
               ii = ii + 1
-              if (i==1) then
+              if (i==2) then
                   smat%smmm%luccomm_smmm(1,ii) = jproc !get data from this process
                   smat%smmm%luccomm_smmm(2,ii) = istart-isvctr_par(jproc) !starting address on sending process
                   smat%smmm%luccomm_smmm(3,ii) = istart-smat%isvctrp_tg !starting address on receiving process
                   smat%smmm%luccomm_smmm(4,ii) = iend-istart+1 !number of elements
-              else if (i==2) then
+              else if (i==1) then
                   smat%luccomm(1,ii) = jproc !get data from this process
                   smat%luccomm(2,ii) = istart-isvctr_par(jproc) !starting address on sending process
                   smat%luccomm(3,ii) = istart-smat%isvctrp_tg !starting address on receiving process
@@ -3501,15 +3595,16 @@ contains
 
 
 
-    subroutine check_local_matrix_extents(iproc, nproc, nat, collcom, collcom_sr, smat, irow, icol)
+    subroutine check_local_matrix_extents(iproc, nproc, collcom, collcom_sr, smmd, smat, irow, icol)
           use communications_base, only: comms_linear
-          use sparsematrix_base, only: sparse_matrix
+          use sparsematrix_base, only: sparse_matrix_metadata, sparse_matrix
           use yaml_output
           implicit none
 
           ! Caling arguments
-          integer,intent(in) :: iproc, nproc, nat
+          integer,intent(in) :: iproc, nproc
           type(comms_linear),intent(in) :: collcom, collcom_sr
+          type(sparse_matrix_metadata),intent(in) :: smmd
           type(sparse_matrix),intent(in) :: smat
           integer,dimension(2),intent(out) :: irow, icol
 
@@ -3571,7 +3666,7 @@ contains
           if (extra_timing) time4=real(tr1-tr0,kind=8)
 
           ! Now check the submatrix extraction for the projector charge analysis
-          call check_projector_charge_analysis(iproc, nproc, nat, smat, ind_min, ind_max)
+          call check_projector_charge_analysis(iproc, nproc, smmd, smat, ind_min, ind_max)
 
           !!write(*,'(a,3i8)') 'after check_local_matrix_extents: iproc, ind_min, ind_max', iproc, ind_min, ind_max
 
@@ -4033,15 +4128,17 @@ contains
 
     !> Uses the BigDFT sparsity pattern to create a BigDFT sparse_matrix type
     subroutine bigdft_to_sparsebigdft(iproc, nproc, ncol, nvctr, nseg, keyg, smat, &
-               nspin, geocode, on_which_atom)
+               init_matmul, nspin, geocode, cell_dim, on_which_atom)
       use communications_base, only: comms_linear, comms_linear_null
       implicit none
       integer,intent(in) :: iproc, nproc, ncol, nvctr, nseg
       !logical,intent(in) :: store_index
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(out) :: smat
+      logical,intent(in),optional :: init_matmul
       integer,intent(in),optional :: nspin
       character(len=1),intent(in),optional :: geocode
+      real(kind=8),dimension(3),intent(in),optional :: cell_dim
       integer,dimension(ncol),target,intent(in),optional :: on_which_atom
 
       ! Local variables
@@ -4049,7 +4146,9 @@ contains
       !integer :: ncolpx
       integer,dimension(:,:),allocatable :: nonzero
       logical,dimension(:,:),allocatable :: mat
+      logical :: init_matmul_
       character(len=1) :: geocode_
+      real(kind=8),dimension(3) :: cell_dim_
       integer,dimension(:),pointer :: on_which_atom_
       !real(kind=8) :: tt
 
@@ -4109,14 +4208,22 @@ contains
       if (present(nspin)) nspin_ = nspin
       geocode_ = 'U' !unknown
       if (present(geocode)) geocode_ = geocode
+      cell_dim_ = (/0.d0,0.d0,0.d0/)
+      if (present(cell_dim)) cell_dim_ = cell_dim
       if (present(on_which_atom)) then
           on_which_atom_ => on_which_atom
       else
           on_which_atom_ = f_malloc_ptr(ncol,id='on_which_atom_')
           on_which_atom_(:) = uninitialized(1)
       end if
+
+      if (present(init_matmul)) then
+          init_matmul_ = init_matmul
+      else
+          init_matmul_ = .true.
+      end if
       call init_sparse_matrix(iproc, nproc, ncol, nvctr, nonzero, nvctr, nonzero, smat, &
-           nspin=nspin_, geocode=geocode_, on_which_atom=on_which_atom_)
+           init_matmul=init_matmul_, nspin=nspin_, geocode=geocode_, cell_dim=cell_dim_, on_which_atom=on_which_atom_)
 
       if (.not.present(on_which_atom)) then
           call f_free_ptr(on_which_atom_)
@@ -4440,13 +4547,14 @@ contains
 
 
     !> Copied from projector_for_charge_analysis and extract_matrix
-    subroutine check_projector_charge_analysis(iproc, nproc, nat, smat, ind_min, ind_max)
+    subroutine check_projector_charge_analysis(iproc, nproc, smmd, smat, ind_min, ind_max)
       use module_base, only: bigdft_mpi
-      use sparsematrix_base, only: sparse_matrix
+      use sparsematrix_base, only: sparse_matrix_metadata, sparse_matrix
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, nat
+      integer,intent(in) :: iproc, nproc
+      type(sparse_matrix_metadata),intent(in) :: smmd
       type(sparse_matrix),intent(in) :: smat
       integer,intent(inout) :: ind_min, ind_max
 
@@ -4454,9 +4562,9 @@ contains
       logical,dimension(:),allocatable :: neighbor
 
       ! Parallelization over the number of atoms
-      ii = nat/nproc
+      ii = smmd%nat/nproc
       natp = ii
-      jj = nat - nproc*natp
+      jj = smmd%nat - nproc*natp
       if (iproc<jj) then
           natp = natp + 1
       end if
@@ -4470,7 +4578,7 @@ contains
           neighbor(:) = .false.
           kkat = kat + isat
           do i=1,smat%nfvctr
-               iat = smat%on_which_atom(i)
+               iat = smmd%on_which_atom(i)
                ! Only do the following for the first TMB per atom
                if (iat==iatold) cycle
                iatold = iat
@@ -5109,5 +5217,58 @@ contains
       call f_release_routine()
 
     end subroutine distribute_on_threads
+
+
+    subroutine sparse_matrix_metadata_init(geocode, cell_dim, nfvctr, nat, ntypes, units, &
+               nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom, smmd)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix_metadata, sparse_matrix_metadata_null
+      implicit none
+      ! Calling arguments
+      character(len=1),intent(in) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
+      real(kind=8),dimension(3),intent(in) :: cell_dim !< dimensions of the simulation cell
+      integer,intent(in) :: nfvctr !< size of the matrix
+      integer,intent(in) :: nat !< number of atoms
+      integer,intent(in) :: ntypes !< number of atoms types
+      character(len=20),intent(in) :: units !< units of the atomic positions 
+      integer,dimension(ntypes),intent(in) :: nzatom !< atomic core charge
+      integer,dimension(ntypes),intent(in) :: nelpsp !< number of electrons
+      character(len=20),dimension(ntypes),intent(in) :: atomnames !< name of the atoms
+      integer,dimension(nat),intent(in) :: iatype !< indicates the atoms type
+      real(kind=8),dimension(3,nat),intent(in) :: rxyz !< atomic positions
+      integer,dimension(nfvctr),intent(in) :: on_which_atom !< indicates which element of the matrix belong to which atom
+      type(sparse_matrix_metadata),intent(out) :: smmd
+
+      ! Local variables
+      integer :: itype
+
+      call f_routine(id='sparse_matrix_metadata_init')
+
+      smmd = sparse_matrix_metadata_null()
+
+      smmd%geocode = geocode
+      smmd%cell_dim(1:3) = cell_dim(1:3)
+      smmd%nfvctr = nfvctr
+      smmd%nat = nat
+      smmd%ntypes = ntypes
+      smmd%units = units
+      smmd%nzatom = f_malloc_ptr(ntypes,id='smmd%nzatom')
+      call f_memcpy(src=nzatom, dest=smmd%nzatom)
+      smmd%nelpsp = f_malloc_ptr(ntypes,id='smmd%nelpsp')
+      call f_memcpy(src=nelpsp, dest=smmd%nelpsp)
+      smmd%atomnames = f_malloc_str_ptr(len(atomnames),ntypes)
+      do itype=1,ntypes
+          smmd%atomnames(itype) = atomnames(itype)
+      end do
+      smmd%iatype = f_malloc_ptr(nat,id='smmd%iatype')
+      call f_memcpy(src=iatype, dest=smmd%iatype)
+      smmd%rxyz = f_malloc_ptr((/3,nat/),id='smmd%rxyz')
+      call f_memcpy(src=rxyz,dest=smmd%rxyz)
+      smmd%on_which_atom = f_malloc_ptr(nfvctr,id='smmd%on_which_atom')
+      call f_memcpy(src=on_which_atom,dest=smmd%on_which_atom)
+
+      call f_release_routine()
+
+    end subroutine sparse_matrix_metadata_init
 
 end module sparsematrix_init

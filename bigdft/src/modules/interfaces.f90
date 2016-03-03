@@ -108,7 +108,7 @@ module module_interfaces
          END SUBROUTINE IonicEnergyandForces
        end interface
 
-      interface
+!!$      interface
 !     subroutine mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,mp,mpx,mpy,mpz)
 !       use module_base
 !       use gaussians, only: mp_exp
@@ -117,27 +117,27 @@ module module_interfaces
 !       logical, intent(in) :: mp
 !       real(gp), dimension(:), allocatable, intent(out) :: mpx,mpy,mpz
 !     end subroutine mp_calculate
-     subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,rho_ion,hstrten)
-      use module_defs, only: gp,wp,dp
-      use module_dpbox
-      use module_types
-      use module_atoms, only: symmetry_data
-      use module_xc
-      implicit none
-      type(denspot_distribution), intent(in) :: dpbox
-      type(rho_descriptors),intent(inout) :: rhodsc
-      type(orbitals_data), intent(in) :: orbs
-      type(local_zone_descriptors), intent(in) :: Lzd
-      type(symmetry_data), intent(in) :: symObj
-        type(coulomb_operator), intent(inout) :: pkernel
-      type(xc_info), intent(in) :: xc
-      real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
-      type(GPU_pointers), intent(inout) :: GPU
-      real(gp), dimension(6), intent(out) :: hstrten
-      real(dp), dimension(:), pointer :: rho,vh
-        real(dp), dimension(:,:,:,:), pointer :: rho_ion
-        END SUBROUTINE density_and_hpot
-      end interface
+!!$     subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,rho_ion,hstrten)
+!!$      use module_defs, only: gp,wp,dp
+!!$      use module_dpbox
+!!$      use module_types
+!!$      use module_atoms, only: symmetry_data
+!!$      use module_xc
+!!$      implicit none
+!!$      type(denspot_distribution), intent(in) :: dpbox
+!!$      type(rho_descriptors),intent(inout) :: rhodsc
+!!$      type(orbitals_data), intent(in) :: orbs
+!!$      type(local_zone_descriptors), intent(in) :: Lzd
+!!$      type(symmetry_data), intent(in) :: symObj
+!!$        type(coulomb_operator), intent(inout) :: pkernel
+!!$      type(xc_info), intent(in) :: xc
+!!$      real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+!!$      type(GPU_pointers), intent(inout) :: GPU
+!!$      real(gp), dimension(6), intent(out) :: hstrten
+!!$      real(dp), dimension(:), pointer :: rho,vh
+!!$        real(dp), dimension(:,:,:,:), pointer :: rho_ion
+!!$        END SUBROUTINE density_and_hpot
+!!$      end interface
 
       interface
         subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)

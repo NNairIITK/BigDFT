@@ -49,7 +49,6 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !! of the energies are calculated only with the input rho.
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p), intent(inout), optional, target :: rho_ion
   !local variables
-  logical, parameter :: tmplog=.false.
   real(dp), parameter :: max_ratioex_PB = 1.0d2
   logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver,poisson_boltzmann,calc_nabla2pot
   integer :: i3start,n1,n23,i3s,i23s,i23sd2,i3sd2,i_PB,i3s_pot_pb
@@ -116,7 +115,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   sum_pi=present(pot_ion) .and. n23 > 0
   sum_ri=present(rho_ion) .and. n23 > 0
   build_c=(kernel%method .hasattr. PS_SCCS_ENUM) .and. kernel%opt%update_cavity
-  calc_nabla2pot=build_c .or. tmplog
+  calc_nabla2pot=build_c .or. kernel%opt%final_call
   is_vextra=sum_pi .or. build_c
   plot_cavity=kernel%opt%cavity_info .and. (kernel%method /= PS_VAC_ENUM)
   cudasolver= (kernel%igpu==1 .and. .not. kernel%opt%calculate_strten)
@@ -185,10 +184,6 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !add the ionic density to the potential, calculate also the integral
   !between the rho and pot_ion and the extra potential if present
   e_static=0.0_dp
-  if (kernel%opt%only_electrostatic) then
-   IntSur=0.0_gp
-   IntVol=0.0_gp
-  end if
   if (sum_ri) then
      if (sum_pi) then
         call finalize_hartree_results(.true.,cudasolver,kernel,rho_ion,&
@@ -366,9 +361,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
 
   if (calc_nabla2pot) then
      !destroy oneoverepsilon array in the case of the forces for the rigid case
-     if (tmplog) then
-        call nabla2pot_epsm1(n1,n23,kernel%w%eps,nabla2_rhopot(1,1,i3sd2),kernel%w%oneoeps)
-     end if
+     if (kernel%opt%final_call) call nabla2pot_epsm1(n1,n23,kernel%w%eps,nabla2_rhopot(1,1,i3sd2),kernel%w%oneoeps)
      call f_free(nabla2_rhopot)
   end if
 
@@ -385,14 +378,23 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !gather the full result in the case of datacode = G
   if (kernel%opt%datacode == 'G') call PS_gather(rhov,kernel)
 
+  if (build_c) then
+   kernel%IntSur=IntSur
+   kernel%IntVol=IntVol
+  end if
+  if (kernel%opt%only_electrostatic) then
+   kernel%IntSur=0.0_gp
+   kernel%IntVol=0.0_gp
+  end if
   !evaluating the total ehartree + e_static if needed
   !also cavitation energy can be given
+
   energies%hartree=ehartreeLOC*0.5_dp*product(kernel%hgrids)
   energies%eVextra=e_static*product(kernel%hgrids)
-  energies%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*IntSur+&
-       kernel%cavity%betaV*IntVol
+  energies%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*kernel%IntSur+&
+       kernel%cavity%betaV*kernel%IntVol
 
-  call PS_reduce(energies,kernel)
+   call PS_reduce(energies,kernel)
 
   if (wrtmsg) call yaml_mapping_close()
 
@@ -692,7 +694,9 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    call PS_set_options(kernel,global_data=global,&
         calculate_strten=present(stress_tensor),verbose=verb,&
         update_cavity=kernel%method .hasattr. PS_SCCS_ENUM,&
-        potential_integral=offset)
+        potential_integral=offset,&
+        final_call=(kernel%method .hasattr. 'rigid') .and.&
+        present(stress_tensor))
    
    if (sumpion .and. present(rho_ion) .and. kernel%method /= PS_VAC_ENUM) then
       call Electrostatic_Solver(kernel,rhopot,energies,pot_ion,rho_ion)

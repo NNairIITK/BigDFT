@@ -887,6 +887,7 @@ subroutine li1_ptr_free(array)
   implicit none
   integer(f_long), dimension(:), pointer, intent(inout) :: array
   include 'deallocate-profile-inc.f90' 
+  if (.not. associated(array)) return
   include 'deallocate-inc.f90' 
 end subroutine li1_ptr_free
 

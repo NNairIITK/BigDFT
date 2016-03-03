@@ -1,12 +1,12 @@
  Atoms coordinates:
  -  #Atoms 1
-    {Coord.:  [  7.3,  7.3,  7.3 ], Charge core:  1.0, Charge elec.: -0.4072698937150526, 
+    {Coord.:  [  7.3,  7.300337,  7.24325 ], Charge core:  1.0, Charge elec.: -0.4072698937150526, 
  Charge net:  0.5927301062849474}
  -  #Atoms 2
-    {Coord.:  [  7.300337,  8.415319,  7.299663 ], Charge core:  6.0, 
+    {Coord.:  [  7.3,  8.415319,  8.700265 ], Charge core:  6.0, 
  Charge elec.: -7.185420375739572, Charge net: -1.185420375739572}
  -  #Atoms 3
-    {Coord.:  [  7.24325,  8.700265,  10.15675 ], Charge core:  1.0, 
+    {Coord.:  [  7.3,  7.299663,  10.15675 ], Charge core:  1.0, 
  Charge elec.: -0.4073097234046957, Charge net:  0.5926902765953043}
   #Atomic polarization dipole-moments with respect to the corresponding nuclei positions [e.a0]
  Atomic polarization dipole_moments:

@@ -1456,11 +1456,6 @@
    foe_gap:
      COMMENT: Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
      default: False
-   nsigma:
-     COMMENT: Number of iterations (for each angular momentum l) to get an optimal sigma for the Gaussian used for the radial part of the function based on the multipoles.
-     DESCRIPTION: Warning -- The total number of iterations is nsigma**(lmax+1), so only use small values
-     default: 1
-     RANGE: [1,5]
  lin_general:
      hybrid:
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -2104,11 +2099,7 @@ linear:
  DESCRIPTION: |
          Basic parameters to perform a linear calculation.
  dft:
-   gnrm_cv: accurate
-   itermax: 50
-   nrepmax: 10
-   ncong: 5
-   idsx: 6
+   hgrids: 0.50
    disablesym: Yes
    inputpsiid: linear
  perf:
@@ -2131,7 +2122,8 @@ linear:
    max_inversion_error: 5.0e-8
    rpnrm_cv: 1.0e-11
    output_mat: 1
-   output_coeff: 1
+   output_coeff: 0
+   charge_multipoles: 11
  lin_basis:
    nit: 8
    idsx: 8
@@ -2149,22 +2141,26 @@ linear:
    nit: 6
    idsx_coeff: [6, 0]
    idsx: 6
+   rpnrm_cv: 1.0e-8
    alphamix: 0.1
    linear_method: FOE
    eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
+   fscale_foe: 5.0e-2
  lin_basis_params:
-   #ao_confinement: -1.0
-   #confinement: -1.0
-   rloc_kernel: 9.0
-   rloc_kernel_foe: 10.5
-   H:  {nbasis: 1, rloc: 4.5}
-   C:  {nbasis: 4, rloc: 5.0}
-   N:  {nbasis: 4, rloc: 5.0}
-   O:  {nbasis: 4, rloc: 5.0}
-   P:  {nbasis: 4, rloc: 5.5}
-   Cl: {nbasis: 4, rloc: 5.5}
-   K:  {nbasis: 1, rloc: 7.0}
+   ao_confinement: -1.0
+   confinement: -1.0
+   rloc_kernel: 10.0
+   rloc_kernel_foe: 12.0
+   H:  {nbasis: 1, rloc: 5.0}
+   C:  {nbasis: 4, rloc: 5.5}
+   N:  {nbasis: 4, rloc: 5.5}
+   O:  {nbasis: 4, rloc: 5.5}
+   P:  {nbasis: 4, rloc: 6.0}
+   S:  {nbasis: 4, rloc: 6.0}
+   Cl: {nbasis: 4, rloc: 6.0}
+   Na: {nbasis: 1, rloc: 7.5}
+   K:  {nbasis: 1, rloc: 8.0}
+   Sn: {nbasis: 4, rloc: 6.5}
 md:
   COMMENT: Molecular dynamics input parameters for H2O molecules
   geopt:
