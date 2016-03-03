@@ -65,7 +65,7 @@ module Poisson_Solver
    use time_profiling, only: TIMING_UNINITIALIZED, f_timing
    use yaml_output
    use yaml_strings
-   use environment
+   use psolver_environment
    use PStypes
    use PSbox
    !use m_profiling

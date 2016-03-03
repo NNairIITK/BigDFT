@@ -679,7 +679,7 @@ END SUBROUTINE IonicEnergyandForces
 subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps)
   use f_utils
   use bounds, only: ext_buffers
-  use environment, only: epsle0
+  use psolver_environment, only: epsle0
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: nat !< number of centres defining the cavity
@@ -767,7 +767,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
   use yaml_output
   use dynamic_memory
   use bounds, only: ext_buffers
-  use environment, only: epsle0,epsl,d1eps
+  use psolver_environment, only: epsle0,epsl,d1eps
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: natreal !< number of centres defining the cavity
@@ -1080,7 +1080,7 @@ subroutine epsinnersccs_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,na
   use yaml_output
   use dynamic_memory
   use bounds, only: ext_buffers
-  use environment, only: epsl,d1eps,epsle0
+  use psolver_environment, only: epsl,d1eps,epsle0
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: natreal !< number of centres defining the cavity
@@ -1297,7 +1297,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,r
   use f_enums
   use yaml_output
   use bounds, only: ext_buffers
-  use environment, only: epsl,d1eps,epsle0
+  use psolver_environment, only: epsl,d1eps,epsle0
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: nat !< number of centres defining the cavity
@@ -1477,7 +1477,7 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
      eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
   use f_utils
   use bounds, only: ext_buffers
-  use environment, only: epsl,epsle0,d1eps
+  use psolver_environment, only: epsl,epsle0,d1eps
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: nat !< number of centres defining the cavity

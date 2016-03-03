@@ -1148,13 +1148,13 @@
      default: default
      CONDITION:
        MASTER_KEY: method
-       WHEN: [lj, lensic, lensib, amber, morse_bulk, morse_slab, tersoff, bmhtf]
+       WHEN: [lj, tdpot, lensic, lensib, amber, morse_bulk, morse_slab, tersoff, bmhtf, cp2k, dftbp]
    mm_paramfile:
      COMMENT: name of parameter or input file for the selected method or code
      default: none
      CONDITION:
        MASTER_KEY: method
-       WHEN: [lj, lensic, lensib, amber, morse_bulk, morse_slab, tersoff, bmhtf]
+       WHEN: [lj, tdpot, lensic, lensib, amber, morse_bulk, morse_slab, tersoff, bmhtf, cp2k, dftbp]
    sections:
      COMMENT: list of labelling subparts to divide the system into
      default: []
