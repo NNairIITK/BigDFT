@@ -152,7 +152,11 @@ contains
     call nullify_ket(it)
     it%ob => ob
     !number of parallel localization regions
-    it%nlrp = size(ob%dd)
+    if (associated(ob%dd)) then
+       it%nlrp = size(ob%dd)
+    else
+       it%nlrp=0
+    end if
     !minimum value of locreg
     it%ilr_min=minval(ob%orbs%inwhichlocreg(ob%orbs%isorb+1:ob%orbs%isorb+ob%orbs%norbp))
     !zero value
