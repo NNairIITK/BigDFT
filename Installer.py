@@ -13,14 +13,14 @@ CLEAN=' clean '
 CLEANONE=' cleanone '
 UNINSTALL=' uninstall '
 LIST=' list '
-BUILD=' build '
-TINDERBOX=' tinderbox -o build '
+BUILD=' build spred '
+TINDERBOX=' tinderbox -o build spred'
 DOT=' dot | dot -Tpng > buildprocedure.png '
 DIST=' distone bigdft-suite '
 RCFILE='buildrc'
 
-CHECKMODULES= ['flib','bigdft']
-MAKEMODULES= ['flib','libABINIT','bigdft']
+CHECKMODULES= ['futile','psolver','bigdft','spred']
+MAKEMODULES= ['futile','psolver','libABINIT','bigdft','spred']
 
 #allowed actions and corresponfing description
 ACTIONS={'build':
@@ -52,11 +52,13 @@ class BigDFTInstaller():
         bigdftdir=os.path.join(self.srcdir,'bigdft')
         self.branch=os.path.isfile(os.path.join(bigdftdir,'branchfile'))
 
+        #To be done BEFORE any exit instruction in __init__ (get_rcfile)
+        self.time0 = False
+
         if os.path.abspath(self.srcdir) == os.path.abspath(self.builddir):
             print 50*'-'
             print "ERROR: BigDFT Installer works better with a build directory different from the source directory, install from another directory"
             print "SOLUTION: Create a separate directory and invoke this script from it"
-            print 50*'-'
             exit(1)
         #hostname
         self.hostname=os.uname()[1]
@@ -82,9 +84,12 @@ class BigDFTInstaller():
 
     def bigdft_time(self):
         import os
-        bigdft=os.path.join(self.builddir,'install','bin','bigdft')
-        if os.path.isfile(bigdft):
-            return os.path.getmtime(bigdft)
+        return self.filename_time(os.path.join(self.builddir,'install','bin','bigdft'))
+
+    def filename_time(self,filename):
+        import os
+        if os.path.isfile(filename):
+            return os.path.getmtime(filename)
         else:
             return None
 
@@ -213,9 +218,17 @@ class BigDFTInstaller():
         self.shellaction('.',MAKEMODULES,'make -j6 && make install')
 
     def dist(self):
+        import os
         "Perform make dist action"
+        disttime0=self.filename_time(os.path.join(self.builddir,'bigdft-suite.tar.gz'))
+        if disttime0 is None: disttime0=0
         self.shellaction('.',self.modulelist,'make dist',hidden=not self.verbose)
         self.get_output(self.jhb+DIST)
+        disttime1=self.filename_time(os.path.join(self.builddir,'bigdft-suite.tar.gz'))
+        if disttime1 is not None and  disttime1 > disttime0:
+            print 'SUCCESS: distribution file "bigdft-suite.tar.gz" generated correctly'
+        else:
+            print 'WARNING: the dist file seems not have been updated or generated correctly'
 
     def build(self):
         "Build the bigdft module with the options provided by the rcfile"
@@ -256,6 +269,8 @@ class BigDFTInstaller():
         if BIGDFT_CFG not in os.environ.keys() or os.path.isfile(RCFILE): return
         print 'The suite has been built without configuration file.'
         rclist=[]
+        rclist.append("""#Add the condition testing to run tests and includes PyYaml""")
+        rclist.append("""conditions.add("testing")""")
         rclist.append("modules = ['bigdft',]")
         sep='"""'
         confline=sep+os.environ[BIGDFT_CFG]+sep
@@ -276,19 +291,20 @@ class BigDFTInstaller():
         print 50*'-'
         print 'Thank you for using the Installer of BigDFT suite.'
         print 'The action considered was:',self.action
-        if self.action == 'build': self.rcfile_from_env()
-        if (self.time0 is not None and self.bigdft_time() > self.time0) or (self.time0 is None and self.bigdft_time() is not None):
-            print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
-            print 'All the available executables and scripts can be found in the directory'
-            print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
-        elif (self.action == 'build' or self.action == 'make'):
-            print 'WARNING: The Installer seems NOT have created or updated bigdft executable'
-            print '        (maybe everything was already compiled?)'
-            print 'ACTION: check the compiling procedure.'
-            if self.branch:
-                print 'HINT: It appears you are compiling from a branch source tree. Did you perform the action "autogen"?'
-            if not self.verbose and self.action == 'build':
-                print '  HINT: Have a look at the file index.html of the build/ directory to find the reason'
+        if self.time0 != False:
+            if self.action == 'build': self.rcfile_from_env()
+            if (self.time0 is not None and self.bigdft_time() > self.time0) or (self.time0 is None and self.bigdft_time() is not None):
+                print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
+                print 'All the available executables and scripts can be found in the directory'
+                print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
+            elif (self.action == 'build' or self.action == 'make'):
+                print 'WARNING: The Installer seems NOT have created or updated bigdft executable'
+                print '        (maybe everything was already compiled?)'
+                print 'ACTION: check the compiling procedure.'
+                if self.branch:
+                    print 'HINT: It appears you are compiling from a branch source tree. Did you perform the action "autogen"?'
+                if not self.verbose and self.action == 'build':
+                    print '  HINT: Have a look at the file index.html of the build/ directory to find the reason'
 
 #Now follows the available actions, argparse might be called
 import argparse
@@ -315,7 +331,9 @@ parser.add_argument('-d','--verbose',action='store_true',
 subparsers = parser.add_subparsers(title='The following actions are available',
                     dest='action',
                     help='Action to be performed by the Installer.')
-for (k,v) in ACTIONS.items():
+a = ACTIONS.items()
+a.sort() #Sort items alphabetically
+for (k,v) in a:
     subparsers.add_parser(k,help=v)
 
 args = parser.parse_args()

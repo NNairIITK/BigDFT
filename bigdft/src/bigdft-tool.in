@@ -1029,7 +1029,8 @@ options:
         #infile_names = options.infile.split(".")
         #infile_extension = infile_names[len(infile_names)-1]
         #command = "%s 1 %s dd pdos %s %s %s %d %d %d %e %s %s" % (memguess, options.name, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.nbasis, options.norb, options.nat, options.interval, options.pdos_file, options.posinp_file)
-        command = "%s 1 %s dd pdos %s %s %s %s" % (memguess, options.name, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.pdos_file)
+        #command = "%s 1 %s dd pdos %s %s %s %s" % (memguess, options.name, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.pdos_file)
+        command = "%s %s pdos %s %s %s %s" % (options.mpirun, utilities, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.pdos_file)
         print command
     if options.action == "kernel-analysis":
         print 'calling memguess for kernel analysis'
@@ -1041,7 +1042,8 @@ options:
         print command
     if options.action == "solve-eigensystem":
         print 'calling memguess to solve the eigensystem'
-        command = "%s 1 %s dd solve-eigensystem %s %s %d %d %s" % (memguess, options.name, options.hamiltonian_file, options.overlap_file, options.nbasis, options.nat, options.coeff_file)
+        #command = "%s 1 %s dd solve-eigensystem %s %s %d %d %s" % (memguess, options.name, options.hamiltonian_file, options.overlap_file, options.nbasis, options.nat, options.coeff_file)
+        command = "%s %s solve-eigensystem %s %s %s" % (options.mpirun, utilities, options.hamiltonian_file, options.overlap_file, options.coeff_file)
     if options.action == "analyse-coeffs":
         print 'calling memguess to analyse the coeffs'
         command = "%s 1 %s dd analyze-coeffs %s %d %d %d %d" % (memguess, options.name, options.coeff_file, options.nbasis, options.norb, options.nat, options.ncategories)
@@ -1064,9 +1066,9 @@ options:
         command = "%s 1 %s dd suggest-cutoff %s" % (memguess, options.name, options.posinp_file)
         print command
     if options.action == "charge-analysis":
-        print 'calling utilities to perform a Loewdin charge analysis'
+        #print 'calling utilities to perform a Loewdin charge analysis'
         command = "%s %s charge-analysis %s %s %s %s" % (options.mpirun, utilities, options.method, options.overlap_file, options.kernel_file, options.hamiltonian_file)
-        print command
+        #print command
     if options.action == "fit-proj":
         if len(args) < 1:
             parser.print_help()

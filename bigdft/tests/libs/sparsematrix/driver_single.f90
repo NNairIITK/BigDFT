@@ -31,7 +31,7 @@ program driver_single
   type(matrices) :: mat_in
   type(matrices),dimension(1) :: mat_out
   type(matrices),dimension(2) :: mat_check_accur
-  integer :: norder_polynomial, ierr, nthread, blocksize, iproc
+  integer :: norder_polynomial, nthread, iproc
   real(kind=8) :: exp_power
   character(len=200) :: filename_in, filename_out
   type(dictionary), pointer :: dict_timing_info
@@ -158,7 +158,7 @@ program driver_single
   if (bigdft_mpi%iproc==0) then
       call yaml_comment('Do the same calculation using dense LAPACK',hfill='-')
   end if
-  call operation_using_dense_lapack(bigdft_mpi%iproc, bigdft_mpi%nproc, smat_in, mat_in)
+  call operation_using_dense_lapack(smat_in, mat_in)
 
   ! Deallocate all structures
   call deallocate_sparse_matrix(smat_in)
@@ -185,13 +185,13 @@ program driver_single
 
 
   contains
-   !> construct the dictionary needed for the timing information
+
+   !> Construct the dictionary needed for the timing information
     subroutine build_dict_info(dict_info)
       !use module_base
       use dynamic_memory
       use dictionaries
       implicit none
-      include 'mpif.h'
       type(dictionary), pointer :: dict_info
       !local variables
       integer :: ierr,namelen,nthreads
@@ -357,7 +357,7 @@ program driver_single
     end subroutine matrix_power_dense
 
 
-    subroutine operation_using_dense_lapack(iproc, nproc, smat_in, mat_in)
+    subroutine operation_using_dense_lapack(smat_in, mat_in)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix, only: uncompress_matrix
@@ -365,7 +365,6 @@ program driver_single
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
       type(sparse_matrix),intent(in) :: smat_in
       type(matrices),intent(in) :: mat_in
 

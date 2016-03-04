@@ -39,8 +39,8 @@ TESTDIRS := ${checkonly_${checkonlyfoo_${CHECK_MODE}_${CHECK_MODE_INTERNAL}}}
 
 
 # here one might also reset the values for future use, but automake would complain
-#checkonlyfoo_short= 
-#checkonlyfoo_long= 
+#checkonlyfoo_short=
+#checkonlyfoo_long=
 #checkonly_short=
 #checkonly_long=
 #checkonly_=
@@ -90,7 +90,7 @@ PSPS = psppar.H \
        extra/psppar.H \
        Xabs/psppar.Fe \
        C.GGA_PBE-JTH.xml
-#$(TESTDIRS) 
+#$(TESTDIRS)
 
 ALLDIRS = $(EXTRALONG_TESTDIRS) $(EXTRA_TESTDIRS) $(LONG_TESTDIRS)
 
@@ -127,7 +127,7 @@ distclean: $(CLEANS)
 failed-check: $(FAILEDCHECKS) report
 
 report:
-	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
 #Binary dependencies
 $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90 $(abs_top_srcdir)/src/WaCo.f90
@@ -399,7 +399,7 @@ head_message:
 	@echo "  make X.diff:       make the difference between output and the reference"
 	@echo "                     (with the environment variable DIFF)"
 	@echo "  make X.updateref   update the reference with the output"
-	@echo "                     (prompt the overwrite)"	
+	@echo "                     (prompt the overwrite)"
 
 mpirun: head_message
 	@echo ""
@@ -417,4 +417,3 @@ oclrun: head_message $(mpirun_message)
 
 foot_message: $(mpirun_message) $(oclrun_message) head_message
 	@echo "=============================================================================="
-

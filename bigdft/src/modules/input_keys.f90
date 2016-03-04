@@ -413,10 +413,6 @@ module module_input_keys
      !> Use the FOE method to calculate the HOMO-LUMO gap at the end
      logical :: foe_gap
 
-     !> Number of iterations (for each angular momentum l) to get an optimal sigma for the Gaussian used for the radial
-     !! part of the function based on the multipoles. Warning: The total number of iterations is nsigma**(lmax+1), so only use small values
-     integer :: nsigma
-
      !> Calculate the support function multipoles
      logical :: support_function_multipoles
 
@@ -956,7 +952,6 @@ contains
     use module_defs, only: gp, pi_param
     use f_input_file
     use public_keys
-    use module_base, only: bigdft_mpi
     use yaml_strings, only: operator(.eqv.)
     use yaml_output
     use PStypes, only: PS_input_dict
@@ -992,8 +987,7 @@ contains
     !then we can complete the Poisson solver dictionary
     call PS_input_dict(dict // PSOLVER,dict_ps_min)
 
-    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested,&
-      verbose=bigdft_mpi%iproc==0)
+    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested,verbose=.true.)
 
     !create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)
@@ -1283,7 +1277,7 @@ contains
     implicit none
     integer, intent(in) :: iscf
     type(f_enumerator), intent(out) :: scf_mode
-
+    
     !insert the method of mixing
     scf_mode=f_enumerator('METHOD',modulo(iscf,10),null())
     !set the enumerator methd
@@ -1855,10 +1849,6 @@ contains
        case (FOE_GAP)
           ! linear scaling: Use the FOE method to calculate the HOMO-LUMO gap at the end
           in%foe_gap = val
-       case (NSIGMA)
-          ! Linear scaling: Number of iterations (for each angular momentum l) to get an optimal sigma for the Gaussian used for the radial
-          ! part of the function based on the multipoles. Warning: The total number of iterations is nsigma**(lmax+1), so only use small values
-          in%nsigma = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

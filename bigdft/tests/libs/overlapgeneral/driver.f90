@@ -38,10 +38,10 @@ program driver
   type(matrices) :: mat_A
   type(matrices),dimension(1) :: inv_mat_B
   character(len=*),parameter :: filename='inputdata.fake'
-  integer :: nconfig, ierr, iseg, iiorb
+  integer :: ierr!, nconfig, iseg, iiorb
 !!  integer :: lwork
-  integer, dimension(4) :: mpi_info
-  character(len=60) :: run_id
+  !integer, dimension(4) :: mpi_info
+  !character(len=60) :: run_id
   integer,parameter :: ncheck=33
   !!integer,dimension(:,:),allocatable :: keyg_tmp
   integer,parameter :: SPARSE=1
@@ -113,7 +113,7 @@ program driver
   call sparse_matrix_init_fake(iproc,nproc,norb, orbs%norbp, orbs%isorb, nseg, nvctr, smat_B)
 
 
-  symmetric = check_symmetry(norb, smat_A)
+  symmetric = check_symmetry(smat_A)
 
   !!if (iproc==0) then
   !!    do iseg=1,smat_A%nseg
@@ -447,7 +447,7 @@ subroutine orbs_init_fake(iproc, nproc, norb, orbs)
           isorb_par(jproc)=isorb_par(jproc-1)+orbs%norb_par(jproc-1,0)
       end do
     end function isorb_par_init
- 
+
 end subroutine orbs_init_fake
 
 
@@ -467,6 +467,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   ! Local variables
   integer :: nnonzero, nspin, norbu, norbup, isorbu, nat
   character(len=1) :: geocode
+  real(kind=8),dimension(3) :: cell_dim
   integer,dimension(:),allocatable :: nvctr_per_segment, on_which_atom
   integer,dimension(:,:),pointer :: nonzero
   type(comms_linear) :: collcom_dummy
@@ -508,6 +509,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   ! for the moment no spin polarization
   nspin=1
   geocode = 'F'
+  cell_dim = (/0.d0,0.d0,0.d0/)
   norbu=norb
   norbup=norbp
   isorbu=isorb
@@ -515,7 +517,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   on_which_atom = f_malloc0(norbu,id='on_which_atom')
   ! on_which_atoms set to zero is of course not meaningful, but just be ok for this test...
   call init_sparse_matrix(iproc, nproc, norbu, nnonzero, nonzero, nnonzero, nonzero, smat, &
-       nspin, geocode, norbup, isorbu, .false., on_which_atom, allocate_full=.true.)
+       .true., nspin, geocode, cell_dim, norbup, isorbu, .false., on_which_atom, allocate_full=.true.)
   call f_free_ptr(nonzero)
   call f_free(on_which_atom)
 
@@ -532,7 +534,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
 
   !!if (iproc==0) then
   !!    do jorb=1,norb
-  !!        write(*,*) 'jorb, nsegline, istsegline', jorb, smat%nsegline(jorb), smat%istsegline(jorb) 
+  !!        write(*,*) 'jorb, nsegline, istsegline', jorb, smat%nsegline(jorb), smat%istsegline(jorb)
   !!    end do
   !!    do jseg=1,smat%nseg
   !!        write(*,*) 'keyv, keyg', smat%keyv(jseg), smat%keyg(:,jseg)
@@ -651,12 +653,12 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
                   idist_start=abs(idiag-istart)
                   idist_end=abs(idiag-iend)
                   !!if (j==1 .and. idiag<istart) then
-                  !!    ! Diagonal element is before the first segment, 
+                  !!    ! Diagonal element is before the first segment,
                   !!    ! so decrease the first empty region
                   !!    iaction=DECREASE
                   !!end if
                   !!if (j==smat%nsegline(jorb) .and. idiag>iend) then
-                  !!    ! Diagonal element is after the last segment, 
+                  !!    ! Diagonal element is after the last segment,
                   !!    ! so increase the first empty region
                   !!    iaction=INCREASE
                   !!end if
@@ -681,7 +683,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
                   ! Closer to the start, so decrase the first empty region and increase the last one
                   nempty_arr(0)=nempty_arr(0)-1
                   nempty_arr(smat%nsegline(jorb))=nempty_arr(smat%nsegline(jorb))+1
-              else 
+              else
                   ! Closer to the end, so increase the first empty region and decrease the last one
                   nempty_arr(0)=nempty_arr(0)+1
                   nempty_arr(smat%nsegline(jorb))=nempty_arr(smat%nsegline(jorb))-1
@@ -902,4 +904,3 @@ end subroutine sparse_matrix_init_fake
 !!  call f_free(lgrid)
 !!
 !!end function check_symmetry
-

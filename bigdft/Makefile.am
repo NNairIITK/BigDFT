@@ -7,22 +7,7 @@ DISTCLEANFILES = config.inc bigdft.pc
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = bigdft.pc
 
-SUBDIRS =
-
-# Low level libraries provided by BigDFT team.
-if BUILD_FLIB
-SUBDIRS += flib
-endif
-
-#Poisson Solver and wrappers
-if BUILD_LIB_PSOLVER
-SUBDIRS += wrappers PSolver
-endif
-
-# BigDFT itself and structure prediction library at the end
-if BUILD_LIB_BIGDFT
-SUBDIRS += src spred
-endif
+SUBDIRS = src
 
 # Tests subdir is included only if binaries are compiled.
 if BUILD_BINARIES
@@ -36,7 +21,7 @@ SUBDIRS += \
 	utils
 
 check report:
-	python $(top_builddir)/tests/report.py
+	python $(pythondir)/report.py
 
 clean-local:
 	-rm -rf includes

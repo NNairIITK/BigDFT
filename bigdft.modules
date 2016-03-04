@@ -47,7 +47,7 @@
       <patch file="libABINIT.patch" />
     </branch>
     <dependencies>
-      <dep package="flib"/>
+      <dep package="futile"/>
       <dep package="libxc"/>
     </dependencies>
   </autotools>
@@ -57,8 +57,8 @@
             version="1.0"/>
   </autotools>
 
-  <autotools id="flib" autogenargs="--disable-libpsolver" autogen-sh="autoreconf">
-    <branch repo="local" module="bigdft-1.8.tar.gz" version="1.8.0" checkoutdir="bigdft"/>
+  <autotools id="futile" autogen-sh="autoreconf">
+    <branch repo="local" module="futile-1.8.tar.gz" version="1.8.0" checkoutdir="futile"/>
     <dependencies>
       <dep package="libyaml"/>
       <if condition-set="testing">
@@ -71,23 +71,45 @@
     </dependencies>
   </autotools>
 
-  <autotools id="psolver">
-    <branch repo="bigdft" module="psolver"/>
+  <autotools id="psolver" autogen-sh="autoreconf">
+    <branch repo="local" module="psolver-1.8.tar.gz" version="1.8.0" checkoutdir="psolver"/>
     <dependencies>
-      <dep package="flib"/>
+      <dep package="futile"/>
+      <if condition-set="testing">
+        <dep package="PyYAML"/>
+      </if>
+      <if condition-set="python">
+        <dep package="pygobject"/>
+        <dep package="gobject-introspection"/>
+      </if>
     </dependencies>
   </autotools>
 
-  <autotools id="bigdft" autogenargs="--without-internal-flib" autogen-sh="autoreconf">
+  <autotools id="bigdft" autogen-sh="autoreconf">
     <!--<branch repo="bigdft" module="bigdft" version="1.7.5"/>-->
     <branch repo="local" module="bigdft-1.8.tar.gz" version="1.8.0" checkoutdir="bigdft"/>
     <dependencies>
-      <dep package="flib"/>
-      <!--<dep package="psolver"/>-->
-      <dep package="libyaml"/>
+      <dep package="futile"/>
       <dep package="libxc"/>
+      <dep package="psolver"/>
       <dep package="libABINIT"/>
       <dep package="GaIn"/>
+      <if condition-set="testing">
+        <dep package="PyYAML"/>
+      </if>
+      <if condition-set="python">
+        <dep package="pygobject"/>
+        <dep package="gobject-introspection"/>
+      </if>
+    </dependencies>
+  </autotools>
+
+  <autotools id="spred" autogen-sh="autoreconf">
+    <branch repo="local" module="spred-1.8.tar.gz" version="1.8.0" checkoutdir="spred"/>
+    <dependencies>
+      <dep package="futile"/>
+      <dep package="psolver"/>
+      <dep package="bigdft"/>
       <if condition-set="testing">
         <dep package="PyYAML"/>
       </if>

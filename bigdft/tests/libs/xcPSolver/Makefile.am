@@ -14,24 +14,25 @@ AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 else
-LIBS += @LIBS_SHORT_DEPS@ -lrt
+bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 PS_Check_SOURCES = PS_Check.f90
-PS_Check_LDADD = -lbigdft-1 @LINALG_LIBS@
+PS_Check_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 PS_Integral_SOURCES = PS_Integral.f90 fisf.f90
-PS_Integral_LDADD = -lbigdft-1 @LINALG_LIBS@
+PS_Integral_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 gaussian_SOURCES = gaussian.f90
-gaussian_LDADD = -lbigdft-1 @LINALG_LIBS@
+gaussian_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 gaussian2D_SOURCES = gaussian2D.f90
-gaussian2D_LDADD = -lbigdft-1 @LINALG_LIBS@
+gaussian2D_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 gaussian3D_SOURCES = gaussian3D.f90
-gaussian3D_LDADD = -lbigdft-1 @LINALG_LIBS@
+gaussian3D_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 
 CLEANFILES = PS_Check.out.yaml fldiff.report.yaml malloc.prc time.prc
@@ -54,9 +55,9 @@ PS_Check.out.yaml: PS_Check
 	rm -f tmp
 
 PS_Check.out.yaml.report: PS_Check.out.yaml
-	python $(top_builddir)/tests/fldiff_yaml.py \
+	python $(pythondir)/fldiff_yaml.py \
 		-r $(abs_srcdir)/PS_Check.ref.yaml -d PS_Check.out.yaml -t $(abs_srcdir)/tols.yaml \
 	        --output fldiff.report.yaml
 
 report: 
-	python $(top_builddir)/tests/report.py
+	python $(pythondir)/report.py

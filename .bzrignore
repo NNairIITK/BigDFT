@@ -4,6 +4,7 @@ tags
 .svn
 install
 build
+psolver-*.tar.*
 bigdft-*.tar.*
 yaml-*.tar.*
 libxc-*.tar.*
@@ -14,7 +15,10 @@ Makefile
 jhbuildrc
 aclocal.m4
 autom4te.cache
+futile/config/*
+psolver/config/*
 bigdft/config/*
+spred/config/*
 configure
 config.inc
 config.status
@@ -183,3 +187,4 @@ netcdf-*/
 netcdf-fortran-*.tar.*
 netcdf-fortran-*/
 GaIn-*/
+spred/INSTALL

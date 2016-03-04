@@ -49,8 +49,9 @@ EXTRA_DIST = Figures \
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 else
-LIBS += @LIBS_SHORT_DEPS@
+bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 
@@ -59,7 +60,7 @@ dev.check: dev-test/toy_model
 
 dev-test/toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90
 	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90 \
-			$(AM_LDFLAGS) $(LDFLAGS) -lbigdft-1 $(LIBS)
+			$(AM_LDFLAGS) $(LDFLAGS) $(bigdft_library)
 
 
 toy_model:
@@ -79,14 +80,14 @@ dev.post-clean:
         case $* in \
           *) prec="1.1e-10" ;; \
         esac ; \
-	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
+	python $(pythondir)/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 %.report.yaml: %.ref.yaml
 	@name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
 	tols=`basename $< .out.ref.yaml` ;\
 	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ;\
 	echo $$log; \
-	python $(abs_top_builddir)/tests/fldiff_yaml.py \
+	python $(pythondir)/fldiff_yaml.py \
 		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
 
 include $(srcdir)/../check.mk

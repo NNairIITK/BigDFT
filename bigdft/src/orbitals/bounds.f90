@@ -877,7 +877,7 @@ module bounds
       peri=cell_periodic_dims(mesh)
       do i=1,3
          call ext_buffers(peri(i),nbli,nbri)
-         or(i)=cell_r(mesh,nbli,dim=i)
+         or(i)=cell_r(mesh,nbli+1,dim=i)
       end do
  
     end function locreg_mesh_origin

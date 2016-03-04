@@ -45,8 +45,10 @@ module orbitalbasis
      real(gp), dimension(:), pointer :: occup_ptr
      !>metadata
      integer :: ispsi
+     integer :: ispsi_prev
      integer :: ikptp
      integer :: ise !<for occupation numbers
+     integer :: ise_prev
      type(orbital_basis), pointer :: ob
   end type subspace
 
@@ -91,6 +93,7 @@ module orbitalbasis
 
   public :: ob_ket_map,orbital_basis_iterator,ket_next_locreg,ket_next,local_hamiltonian_ket
   public :: orbital_basis_associate,orbital_basis_release,test_iterator,ket_next_kpt
+  public :: ob_subket_ptr
 
 contains
 
@@ -150,7 +153,11 @@ contains
     call nullify_ket(it)
     it%ob => ob
     !number of parallel localization regions
-    it%nlrp = size(ob%dd)
+    if (associated(ob%dd)) then
+       it%nlrp = size(ob%dd)
+    else
+       it%nlrp=0
+    end if
     !minimum value of locreg
     it%ilr_min=minval(ob%orbs%inwhichlocreg(ob%orbs%isorb+1:ob%orbs%isorb+ob%orbs%norbp))
     !zero value
@@ -426,6 +433,24 @@ contains
   end function ob_ket_map
   !the iterator must go in order of localization regions
 
+  function ob_subket_ptr(it,ispinor) result(k)
+    use f_precisions, only: f_address,f_loc
+    use dynamic_memory
+    implicit none
+    type(ket), intent(in) :: it
+    integer, intent(in) :: ispinor
+    real(wp), dimension(:), pointer :: k
+    !local variables
+    integer :: istart,nvctr
+    
+    nvctr=it%lr%wfd%nvctr_c+7*it%lr%wfd%nvctr_f
+    istart=(ispinor-1)*nvctr
+
+    k => f_subptr(it%phi_wvl,istart+1 .to. istart+nvctr)
+
+  end function ob_subket_ptr
+
+
 
   !> This function gives the number of components
   !! if the ket is in non-colinear spin description, this value is four
@@ -451,6 +476,8 @@ contains
     ss%ob => ob
     ss%ispin=0
     ss%ikptp=1
+    ss%ispsi_prev=1
+    ss%ise_prev=0
   end function subspace_iterator
 
   !case of subspace iterators
@@ -464,6 +491,10 @@ contains
     ss%ikpt       =f_none()
     ss%kwgt       =f_none()
     ss%occup_ptr  =f_none()
+    ss%ispsi  =f_none()
+    ss%ispsi_prev =f_none()
+    ss%ise        =f_none()
+    ss%ise_prev   =f_none()
     nullify(ss%ob)
   end subroutine nullify_subspace
 
@@ -504,7 +535,9 @@ contains
           exit
        end if
 
+       it%ispsi=it%ispsi_prev
        it%ikpt=it%ob%orbs%iskpts+it%ikptp
+
        call orbitals_and_components(bigdft_mpi%iproc,it%ikpt,it%ispin,&
             it%ob%orbs,it%ob%td%comms,&
             nvctrp,it%norb,norbs,ncomp,nspinor)
@@ -513,8 +546,10 @@ contains
        if (it%ispin==1) then
           it%ise=0
        else
-          it%ise=it%norb
+          it%ise=it%ise_prev
        end if
+
+       it%ise_prev=it%norb
 
        it%ncplx=1
        it%nvctr=ncomp*nvctrp
@@ -524,8 +559,7 @@ contains
        ist=(it%ikpt-1)*it%ob%orbs%norb+1+it%ise
        it%occup_ptr=>it%ob%orbs%occup(ist:ist+it%norb-1)
 
-       if (it%ikptp/=1 .or. it%ispin/=1) &
-            it%ispsi=it%ispsi+nvctrp*it%norb*nspinor
+       it%ispsi_prev=it%ispsi_prev+nvctrp*it%norb*nspinor
        exit
     end do
 
@@ -650,14 +684,14 @@ contains
 
     if (present(orbs)) then
        ob%orbs => orbs
-       ob%td%nspin=orbs%nspin
-       if (present(nspin)) ob%td%nspin=nspin
-       ob%td%ndim_ovrlp = f_malloc_ptr([1.to.ob%td%nspin, 0.to.orbs%nkpts],id='ndim_ovrlp')
-       call dimension_ovrlp(ob%td%nspin,ob%orbs,ob%td%ndim_ovrlp)
+       if (present(comms)) then
+          ob%td%comms => comms
+          ob%td%nspin=orbs%nspin
+          if (present(nspin)) ob%td%nspin=nspin
+          ob%td%ndim_ovrlp = f_malloc_ptr([1.to.ob%td%nspin, 0.to.orbs%nkpts],id='ndim_ovrlp')
+          call dimension_ovrlp(ob%td%nspin,ob%orbs,ob%td%ndim_ovrlp)
+       end if
     end if
-
-    if (present(comms)) ob%td%comms => comms
-
 
     if (.not. present(orbs) .and. (present(Lzd) .or. present(Glr))) &
          call f_err_throw('orbs should be present with lzd or glr',err_name='BIGDFT_RUNTIME_ERROR')
@@ -990,7 +1024,7 @@ contains
             err_name='BIGDFT_RUNTIME_ERROR')
     end if
 
-    !this also should aways work
+    !this also should always work
     totreat=.true.
     it=orbital_basis_iterator(ob)
     do while(ket_next_kpt(it))

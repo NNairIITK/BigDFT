@@ -5,7 +5,7 @@ includedir=@includedir@
 
 Name: libbigdft
 Description: Library for DFT calculation over wavelets.
-Requires: 
+Requires: psolver futile
 Version: @VERSION@
-Libs: -L${libdir} @LIBS_DEPENDENCIES@ @FCLIBS@
+Libs: -L${libdir} -lbigdft-1 @LIB_BIGDFT_PKG@
 Cflags: -I${includedir}

@@ -7,13 +7,14 @@ check_PROGRAMS = check_lib_c check_client_signals
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 else
-LIBS += @LIBS_SHORT_DEPS@
+bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 check_lib_c_SOURCES = check_lib_c.c
 check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules @GLIB_CFLAGS@
-check_lib_c_LDADD = -lbigdft-1 @FCLIBS@ @GLIB_LIBS@
+check_lib_c_LDADD = $(bigdft_library) @FCLIBS@ @GLIB_LIBS@
 
 check_client_signals_SOURCES = check_client_signals.c
 check_client_signals_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_srcdir)/src/lib -I$(top_builddir)/src/modules @GLIB_CFLAGS@
@@ -24,17 +25,13 @@ CLEANFILES = malloc.prc bindings.out bindings.report output.ascii default.* forc
 
 check: bindings.report signals.report
 
-if BUILD_DYNAMIC_LIBS
-LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/src
-endif
-
 #check_lib_c: $(top_builddir)/src/libbigdft.a
 
 $(EXTRA_DIST):
 	@cp -p $(srcdir)/$@ .
 
 bindings.report: $(srcdir)/bindings.out.ref bindings.out
-	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.5e-9 $^ | tee $@
+	python $(pythondir)/fldiff.py --discrepancy=1.5e-9 $^ | tee $@
 
 bindings.out: check_lib_c posinp.ascii $(srcdir)/test.dft
 	./check_lib_c $(srcdir) > $@
@@ -42,7 +39,7 @@ bindings.out: check_lib_c posinp.ascii $(srcdir)/test.dft
 	cat output.C >> $@
 
 signals.report: $(srcdir)/signals.out.ref signals.out
-	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.5e-9 $^ | tee $@
+	python $(pythondir)/fldiff.py --discrepancy=1.5e-9 $^ | tee $@
 
 signals.out: check_client_signals posinp.ascii $(srcdir)/test.dft
 	@ln -sf $(srcdir)/posinp.ascii test.ascii

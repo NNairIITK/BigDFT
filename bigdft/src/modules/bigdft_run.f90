@@ -927,7 +927,7 @@ contains
     implicit none
     type(run_objects), intent(inout) :: runObj
     logical :: release
-    integer :: claim,i
+    integer :: claim, i
 
     ! Fortran release ownership
     release = .true.

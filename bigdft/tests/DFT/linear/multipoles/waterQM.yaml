@@ -1,0 +1,73 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   hgrids: 0.55
+   rmult: [5.0, 7.0]
+   ixc: PBE (ABINIT)
+   gnrm_cv: accurate
+   nrepmax: accurate
+   ncong: 5
+   inputpsiid: linear
+   disablesym: Yes
+ perf:
+   store_index: No
+   ef_interpol_chargediff: 1.0
+   check_sumrho: 1
+   check_overlap: 1
+   experimental_mode: Yes
+   calculate_KS_residue: No
+   check_matrix_compression: No
+   FOE_restart: 1
+   hamapp_radius_incr: 6
+ lin_general:
+   hybrid: Yes
+   nit: 50
+   rpnrm_cv: 1.0e-7
+   taylor_order: 1020
+   max_inversion_error: 5.0e-8
+   charge_multipoles: 1
+   calc_dipole: yes
+   calc_quadrupole: yes
+ lin_basis:
+   nit: 8
+   idsx: 8
+   gnrm_cv: 2.0e-3
+   gnrm_ig: 1.e-1
+   min_gnrm_for_dynamic: 4.0e-3
+   alpha_diis: 0.5
+   alpha_sd: 0.5
+   nstep_prec: 6
+   fix_basis: 1.0e-12
+   correction_orthoconstraint: 0
+ lin_kernel:
+   nstep: 10
+   nit: 4
+   idsx_coeff: [6, 0]
+   idsx: 4
+   alphamix: 0.2
+   linear_method: FOE
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0E-002
+ lin_basis_params:
+   H:
+     nbasis: 1
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 4.8
+     rloc_kernel: 8.5
+     rloc_kernel_foe: 10.5
+   O:
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 5.3
+     rloc_kernel: 8.5
+     rloc_kernel_foe: 10.5
+ posinp:
+   properties:
+     format: xyz
+     source: water
+   positions:
+   - O: [2.06562106539457391E+00, 7.27619783005115761E-01, 6.76503749782279762E+00]
+   - H: [3.07145313043265089E-01, 2.08503970823405854E-01, 6.73578314472255357E+00]
+   - H: [2.15712775822406000E+00, 1.92204932680980578E+00, 8.15614355059263474E+00]

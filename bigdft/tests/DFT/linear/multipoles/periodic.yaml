@@ -15,6 +15,7 @@
      units: angstroem
      values:
      - sym: H
+       nzion: 1
        r: [8.307111740112305, 8.830997467041016, 6.118411064147949]
        sigma: [0.229, 0.229, 0.229]
        q0:
@@ -23,6 +24,7 @@
        q2: [1.552173E-01, -1.242288E-01, -6.610963E-02, -8.803915E-02, -2.524854E-02]
        type: unknown
      - sym: O
+       nzion: 6
        r: [8.86964225769043, 9.559306144714355, 5.808343887329102]
        sigma: [0.345, 0.345, 0.345]
        q0:
@@ -31,6 +33,7 @@
        q2: [7.755273E-01, 5.693859E-02, 5.288622E-01, -7.871817E-01, -2.752778E-01]
        type: unknown
      - sym: H
+       nzion: 1
        r: [9.107542037963867, 9.321861267089844, 4.897079944610596]
        sigma: [0.229, 0.229, 0.229]
        q0:
@@ -45,7 +48,7 @@
    ef_interpol_chargediff: 1.0
    experimental_mode: Yes
    calculate_KS_residue: No
-   loewdin_charge_analysis: Yes
+   loewdin_charge_analysis: no
    check_matrix_compression: No
    FOE_restart: 1
    hamapp_radius_incr: 6
