@@ -768,7 +768,7 @@ subroutine epsilon_rigid_cavity_soft_PCM(mesh,nat,rxyz,radii,cavity,&
   use yaml_output
   use dynamic_memory
   use bounds, only: ext_buffers
-  use environment, only: cavity_data,rigid_cavity_arrays,vacuum_eps
+  use psolver_environment, only: cavity_data,rigid_cavity_arrays,vacuum_eps
   use box
   use bounds, only: locreg_mesh_origin
   implicit none

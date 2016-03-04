@@ -1010,7 +1010,7 @@ contains
     use FDder
     use dictionaries, only: f_err_throw
     use numerics, only: pi
-    use environment, only: rigid_cavity_arrays,vacuum_eps
+    use psolver_environment, only: rigid_cavity_arrays,vacuum_eps
     use f_utils, only: f_zero
     implicit none
     !> Poisson Solver kernel
@@ -1293,7 +1293,7 @@ contains
   !>calculate the extra contribution to the forces and the cavitation terms
   !!to be given at the end of the calculation
   subroutine ps_soft_PCM_forces(kernel,fpcm)
-    use environment
+    use psolver_environment
     use f_utils, only: f_zero
     implicit none
     type(coulomb_operator), intent(in) :: kernel
