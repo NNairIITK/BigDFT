@@ -350,7 +350,7 @@ module overlap_point_to_point
          call yaml_warning("insufficient GPU memory : using non gpudirect version ")
     else if ((symmetric .eqv. .false.) .and. iproc==0) then
          call yaml_warning("insufficient GPU memory : don't store and exchange results'//&
-       ' (double the computation amount)")
+       &' (double the computation amount)")
     end if
 
      end subroutine  cuda_estimate_memory_needs_gpudirect

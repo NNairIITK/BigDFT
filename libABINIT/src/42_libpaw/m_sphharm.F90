@@ -162,7 +162,7 @@ function ylmc(il,im,kcart)
   if (ABS(im)==0) then
    ylmc = SQRT(three/(four_pi))*costh
   else if (ABS(im)==1) then
-   ylmc = -SQRT(three/(eight*pi))*sinth*CMPLX(cosphi,sinphi)
+   ylmc = -SQRT(three/(eight*pi))*sinth*CMPLX(cosphi,sinphi,kind=dpc)
   else 
    MSG_ERROR("wrong im")
   end if
@@ -171,9 +171,9 @@ function ylmc(il,im,kcart)
   if (ABS(im)==0) then
    ylmc = SQRT(5.d0/(16.d0*pi))*(three*costh**2-one)
   else if (ABS(im)==1) then
-   ylmc = -SQRT(15.d0/(8.d0*pi))*sinth*costh*cmplx(cosphi,sinphi)
+   ylmc = -SQRT(15.d0/(8.d0*pi))*sinth*costh*cmplx(cosphi,sinphi,kind=dpc)
   else if (ABS(im)==2) then
-   ylmc = SQRT(15.d0/(32.d0*pi))*(sinth)**2*CMPLX(costwophi,sintwophi)
+   ylmc = SQRT(15.d0/(32.d0*pi))*(sinth)**2*CMPLX(costwophi,sintwophi,kind=dpc)
   else 
    MSG_ERROR("wrong im")
   end if
@@ -182,11 +182,11 @@ function ylmc(il,im,kcart)
   if (ABS(im)==0) then
    ylmc= SQRT(7.d0/(16.d0*pi))*(5.d0*costh**3 -3.d0*costh)
   else if (ABS(im)==1) then
-   ylmc= -SQRT(21.d0/(64.d0*pi))*sinth*(5.d0*costh**2-one)*CMPLX(cosphi,sinphi)
+   ylmc= -SQRT(21.d0/(64.d0*pi))*sinth*(5.d0*costh**2-one)*CMPLX(cosphi,sinphi,kind=dpc)
   else if (ABS(im)==2) then
-   ylmc= SQRT(105.d0/(32.d0*pi))*sinth**2*costh*CMPLX(costwophi,sintwophi)
+   ylmc= SQRT(105.d0/(32.d0*pi))*sinth**2*costh*CMPLX(costwophi,sintwophi,kind=dpc)
   else if (ABS(im)==3) then
-   ylmc=-SQRT(35.d0/(64.d0*pi))*sinth**3*CMPLX(costhreephi,sinthreephi)
+   ylmc=-SQRT(35.d0/(64.d0*pi))*sinth**3*CMPLX(costhreephi,sinthreephi,kind=dpc)
   else 
    MSG_ERROR("wrong im")
   end if
@@ -328,8 +328,8 @@ subroutine ylmcd(il,im,kcart,dth,dphi)
      dth= -SQRT(three/(four_pi))*sinth
      dphi= czero
    else if (abs(im)==1) then
-     dth= -SQRT(3.d0/(8.d0*pi))*costh*CMPLX(cosphi,sinphi)
-     dphi=-SQRT(3.d0/(8.d0*pi))*sinth*CMPLX(-sinphi,cosphi)
+     dth= -SQRT(3.d0/(8.d0*pi))*costh*CMPLX(cosphi,sinphi,kind=dpc)
+     dphi=-SQRT(3.d0/(8.d0*pi))*sinth*CMPLX(-sinphi,cosphi,kind=dpc)
    end if
 
  case (2)
@@ -337,11 +337,11 @@ subroutine ylmcd(il,im,kcart,dth,dphi)
      dth= -SQRT(5.d0/(16.d0*pi))*6.d0*costh*sinth
      dphi= czero
    else if (ABS(im)==1) then
-     dth=  -SQRT(15.d0/(8.d0*pi))*(costh**2-sinth**2)*CMPLX(cosphi,sinphi)
-     dphi= -SQRT(15.d0/(8.d0*pi))*costh*sinth*(0.d0,1.d0)*CMPLX(cosphi,sinphi)
+     dth=  -SQRT(15.d0/(8.d0*pi))*(costh**2-sinth**2)*CMPLX(cosphi,sinphi,kind=dpc)
+     dphi= -SQRT(15.d0/(8.d0*pi))*costh*sinth*(0.d0,1.d0)*CMPLX(cosphi,sinphi,kind=dpc)
    else if (abs(im)==2) then
-     dth  = SQRT(15.d0/(32.d0*pi))*2.d0*costh*sinth*CMPLX(costwophi,sintwophi)
-     dphi = SQRT(15.d0/(32.d0*pi))*sinth**2*(0.d0,2.d0)*CMPLX(costwophi,sintwophi)
+     dth  = SQRT(15.d0/(32.d0*pi))*2.d0*costh*sinth*CMPLX(costwophi,sintwophi,kind=dpc)
+     dphi = SQRT(15.d0/(32.d0*pi))*sinth**2*(0.d0,2.d0)*CMPLX(costwophi,sintwophi,kind=dpc)
    end if
 
  case (3)
@@ -349,14 +349,14 @@ subroutine ylmcd(il,im,kcart,dth,dphi)
      dth = SQRT(7.d0/(16*pi))*(-15.d0*costh**2*sinth + 3.d0**sinth)
      dphi= czero
    else if (ABS(im)==1) then
-     dth= -SQRT(21.d0/(64.d0*pi))*CMPLX(cosphi,sinphi)*(5.d0*costh**3-costh-10.d0*sinth**2*costh)
-     dphi=-SQRT(21.d0/(64.d0*pi))*sinth*(5.d0*costh**2-1)*(0.d0,1.d0)*CMPLX(cosphi,sinphi)
+     dth= -SQRT(21.d0/(64.d0*pi))*CMPLX(cosphi,sinphi,kind=dpc)*(5.d0*costh**3-costh-10.d0*sinth**2*costh)
+     dphi=-SQRT(21.d0/(64.d0*pi))*sinth*(5.d0*costh**2-1)*(0.d0,1.d0)*CMPLX(cosphi,sinphi,kind=dpc)
    else if (ABS(im)==2) then
-     dth =SQRT(105.d0/(32.d0*pi))*(2.d0*sinth*costh**2-sinth**3)*CMPLX(costwophi,sintwophi)
-     dphi=SQRT(105.d0/(32*pi))*sinth**2*costh*(0.d0,2.d0)*CMPLX(costwophi,sintwophi)
+     dth =SQRT(105.d0/(32.d0*pi))*(2.d0*sinth*costh**2-sinth**3)*CMPLX(costwophi,sintwophi,kind=dpc)
+     dphi=SQRT(105.d0/(32*pi))*sinth**2*costh*(0.d0,2.d0)*CMPLX(costwophi,sintwophi,kind=dpc)
    else if (abs(im)==3) then
-     dth =-SQRT(35.d0/(64.d0*pi))*3.d0*sinth**2*costh*CMPLX(costhreephi,sinthreephi)
-     dphi= SQRT(35.d0/(64.d0*pi))*sinth**3*(0.d0,3.d0)*CMPLX(costhreephi,sinthreephi)
+     dth =-SQRT(35.d0/(64.d0*pi))*3.d0*sinth**2*costh*CMPLX(costhreephi,sinthreephi,kind=dpc)
+     dphi= SQRT(35.d0/(64.d0*pi))*sinth**3*(0.d0,3.d0)*CMPLX(costhreephi,sinthreephi,kind=dpc)
    end if
 
  case default
@@ -503,14 +503,14 @@ subroutine ylm_cmplx(lx,ylm,xx,yy,zz)
      ya=qlm(l1,m1)*plm(l1,m1)
      yr=ya*cosa(m1)
      yi=ya*sina(m1)
-     ylm(nc)=sgn(m1)*cmplx(yr,-yi)
-     ylm(nn)=cmplx(yr,yi)
+     ylm(nc)=sgn(m1)*cmplx(yr,-yi,kind=dpc)
+     ylm(nn)=cmplx(yr,yi,kind=dpc)
    end do
  end do
  do l1=1,lx+1
    nn=(l1-1)**2 + (l1-1) + 1
    ya=qlm(l1,1)*plm(l1,1)
-   ylm(nn)=cmplx(ya,0.d0)
+   ylm(nn)=cmplx(ya,0.d0,kind=dpc)
  end do
 
 end subroutine ylm_cmplx
@@ -811,11 +811,11 @@ subroutine ys(lp,mp,ll,mm,ys_val)
      case (0) ! case for S_l0
        if (mp == mm) ys_val = cmplx(1.0,0.0)
      case (:-1) ! case for S_lm with m < 0
-       if (mp == -mm) ys_val = cmplx(0.0,-mone**mm*sqrthalf)
-       if (mp == mm) ys_val = cmplx(0.0,sqrthalf)
+       if (mp == -mm) ys_val = cmplx(0.0,-mone**mm*sqrthalf,kind=dpc)
+       if (mp == mm) ys_val = cmplx(0.0,sqrthalf,kind=dpc)
      case (1:) ! case for S_lm with m > 0
-       if (mp == mm) ys_val = cmplx(mone**mm*sqrthalf,0.0)
-       if (mp == -mm) ys_val = cmplx(sqrthalf,0.0)
+       if (mp == mm) ys_val = cmplx(mone**mm*sqrthalf,0.0,kind=dpc)
+       if (mp == -mm) ys_val = cmplx(sqrthalf,0.0,kind=dpc)
    end select
  end if
  
@@ -872,13 +872,13 @@ subroutine lxyz(lp,mp,idir,ll,mm,lidir)
  if (lp == ll) then 
    select case (idir)
      case (1) ! Lx
-       if (mp == mm + 1) lidir = cmplx(0.5*sqrt(dble((ll-mm)*(ll+mm+1))),0.0)
-       if (mp == mm - 1) lidir = cmplx(0.5*sqrt(dble((ll+mm)*(ll-mm+1))),0.0)
+       if (mp == mm + 1) lidir = cmplx(0.5*sqrt(dble((ll-mm)*(ll+mm+1))),0.0,kind=dpc)
+       if (mp == mm - 1) lidir = cmplx(0.5*sqrt(dble((ll+mm)*(ll-mm+1))),0.0,kind=dpc)
      case (2) ! Ly
-       if (mp == mm + 1) lidir = cmplx(0.0,-0.5*sqrt(dble((ll-mm)*(ll+mm+1))))
-       if (mp == mm - 1) lidir = cmplx(0.0,+0.5*sqrt(dble((ll+mm)*(ll-mm+1))))
+       if (mp == mm + 1) lidir = cmplx(0.0,-0.5*sqrt(dble((ll-mm)*(ll+mm+1))),kind=dpc)
+       if (mp == mm - 1) lidir = cmplx(0.0,+0.5*sqrt(dble((ll+mm)*(ll-mm+1))),kind=dpc)
      case (3) ! Lz
-       if (mp == mm) lidir = cmplx(mm,0.0)
+       if (mp == mm) lidir = cmplx(mm,0.0,kind=dpc)
    end select
  end if
 

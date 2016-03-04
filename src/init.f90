@@ -3758,7 +3758,7 @@ contains
     real :: simple
 
     if (kind(double) == kind(simple)) then
-       simple=double
+       simple=real(double,kind=kind(simple))
     else if (abs(double) < real(tiny(1.e0),wp)) then
        simple=0.e0
     else if (abs(double) > real(huge(1.e0),wp)) then

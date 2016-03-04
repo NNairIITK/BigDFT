@@ -336,7 +336,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      
      !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nvctrp,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
      call overlap_matrices(norbtot,nvctrp,natsceff,nspin,nspinor,&
-          & ndim_hamovr,norbgrp,hamovr(1,1,ikpt),psi(ispsi),hpsi(ispsi))
+          & ndim_hamovr,norbgrp,hamovr(1,1,ikpt),psi(ispsi:),hpsi(ispsi:))
      
      ispsi=ispsi+nvctrp*norbtot*orbse%nspinor
   end do
@@ -391,7 +391,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
         ikpt=orbse%iskpts+ikptp!orbs%ikptsp(ikptp)
         call solve_eigensystem(norbi_max,&
              ndim_hamovr,sum(norbgrp),natsceff,nspin,nspinor,norbgrp,hamovr(1,1,ikpt),&
-             orbse%eval((ikpt-1)*orbse%norb+1)) !changed from orbs
+             orbse%eval((ikpt-1)*orbse%norb+1:)) !changed from orbs
 
         !assign the value for the orbital
         call vcopy(orbs%norbu,orbse%eval((ikpt-1)*orbse%norb+1),1,orbs%eval((ikpt-1)*orbs%norb+1),1)

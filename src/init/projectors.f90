@@ -567,14 +567,14 @@ character(len = 1), intent(in) :: geocode
      ! Loop on contraction, treat the first gaussian separately for performance reasons.
      if (gaussian_iter_next_gaussian(nl%proj_G, iter, coeff, expo)) &
           & call projector(geocode, iat, idir, iter%l, iter%n, coeff, expo, &
-          & nl%pspd(iat)%gau_cut, nl%proj_G%rxyz(1, iat), lr%ns1, lr%ns2, lr%ns3, lr%d%n1, lr%d%n2, lr%d%n3, &
+          & nl%pspd(iat)%gau_cut, nl%proj_G%rxyz(1:, iat), lr%ns1, lr%ns2, lr%ns3, lr%d%n1, lr%d%n2, lr%d%n3, &
           & hx, hy, hz, kx, ky, kz, ncplx_k, nl%proj_G%ncplx, &
           & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, nl%pspd(iat)%plr%wfd%keyvglob, nl%pspd(iat)%plr%wfd%keyglob, &
-          & nl%wpr,nl%proj(istart_c))
+          & nl%wpr,nl%proj(istart_c:))
      do
         if (.not. gaussian_iter_next_gaussian(nl%proj_G, iter, coeff, expo)) exit
         call projector(geocode, iat, idir, iter%l, iter%n, coeff, expo, &
-             & nl%pspd(iat)%gau_cut, nl%proj_G%rxyz(1, iat), lr%ns1, lr%ns2, lr%ns3, lr%d%n1, lr%d%n2, lr%d%n3, &
+             & nl%pspd(iat)%gau_cut, nl%proj_G%rxyz(1:, iat), lr%ns1, lr%ns2, lr%ns3, lr%d%n1, lr%d%n2, lr%d%n3, &
              & hx, hy, hz, kx, ky, kz, ncplx_k, nl%proj_G%ncplx, &
              & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, nl%pspd(iat)%plr%wfd%keyvglob, nl%pspd(iat)%plr%wfd%keyglob, &
              & nl%wpr, proj_tmp)

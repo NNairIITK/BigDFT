@@ -100,7 +100,7 @@ MODULE m_xmpi
  integer,save,public :: xmpio_bsize_frm   =0
  integer,save,public :: xmpio_mpi_type_frm=0
 
- integer(XMPI_OFFSET_KIND),public,parameter :: xmpio_chunk_bsize = 2000 * (1024.0_dp**2)
+ integer(XMPI_OFFSET_KIND),public,parameter :: xmpio_chunk_bsize = int(2000 * (1024.0_dp**2),kind=XMPI_OFFSET_KIND)
  ! Defines the chunk size (in bytes) used to (read|write) data in a single MPI-IO call.
  ! MPI-IO, indeed, crashes if we try to do the IO of a large array with a single call.
  ! We use a value <= 2  Gb to avoid wraparound errors with standard integers.

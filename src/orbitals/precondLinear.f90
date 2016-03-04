@@ -156,8 +156,8 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, lr%ns1, lr%ns2, lr%ns3, &
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keygloc,lr%wfd%keyvloc,&
              lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
-             lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
+             lr%wfd%keygloc(1:,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f):),&
+             lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f):), &
              scal,cprecr,hx,hy,hz,&
              lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
              lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
@@ -235,7 +235,7 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
   implicit none
   integer, intent(in) :: iproc, nproc, n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f,confPotOrder
-  real(wp), intent(inout) :: cprecr
+  real(wp), intent(in) :: cprecr
   real(gp), intent(in) :: hx, hy, hz
   integer, dimension(nseg_c), intent(in) :: keyv_c
   integer, dimension(nseg_f), intent(in) :: keyv_f
