@@ -104,7 +104,7 @@ module multipole_base
       implicit none
       type(multipole_set),intent(inout) :: mps
       integer :: l
-      do l=0,lmax
+      do l=0,ubound(mps%qlm,1)
           call deallocate_multipole(mps%qlm(l))
       end do
       deallocate(mps%qlm)

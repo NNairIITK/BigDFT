@@ -88,13 +88,13 @@ module Poisson_Solver
    include 'configure.inc'
 
    !intialization of the timings
-   public :: PS_initialize_timing_categories,coulomb_operator
+   public :: PS_initialize_timing_categories,coulomb_operator,PSolver_energies
    ! Calculate the allocation dimensions
-   public :: PS_dim4allocation, PS_getVersion
+   public :: PS_dim4allocation, PS_getVersion,ps_soft_PCM_forces
    ! Routine that creates the kernel
    public :: pkernel_init, pkernel_set, pkernel_free, pkernel_set_epsilon, pkernel_allocate_cavity
    ! Calculate the poisson solver
-   public :: H_potential,Electrostatic_Solver
+   public :: H_potential,Electrostatic_Solver,PS_set_options
    ! Calculate the allocation dimensions
    public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions, W_FFT_dimensions, xc_dimensions
    public :: dp,gp

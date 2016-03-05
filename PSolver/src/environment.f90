@@ -401,13 +401,15 @@ contains
     corr=-oneoeightpi*(0.5_gp*(eps-vacuum_eps)**2/eps*d2ha-dd)
   end subroutine rigid_cavity_arrays
 
-  subroutine rigid_cavity_forces(cavity,mesh,v,nat,rxyz,radii,npot2,fxyz,deps)
+  subroutine rigid_cavity_forces(only_electrostatic,cavity,mesh,v,&
+       nat,rxyz,radii,epsr,npot2,fxyz,deps)
     use box
     implicit none
     type(cavity_data), intent(in) :: cavity
     type(cell), intent(in) :: mesh
+    logical, intent(in) :: only_electrostatic
     integer, intent(in) :: nat !< number of centres defining the cavity
-    real(gp), intent(in) :: npot2 !<square of potential gradient
+    real(gp), intent(in) :: npot2,epsr
     real(gp), dimension(nat), intent(in) :: radii !< radii of each of the atoms
     !>array of the position in the reference frame of rxyz
     real(gp), dimension(3), intent(in) :: v
@@ -417,7 +419,7 @@ contains
     real(gp), dimension(3), intent(in) :: deps !<gradient of epsilon(r)
     !local variables
     integer :: iat,i,j
-    real(gp) :: d,dlogh,rad,tt,ttV,ttS,hh,epsrm1,eps0m1,sqdeps,ep,mm,epsr
+    real(gp) :: d,dlogh,rad,tt,ttV,ttS,hh,epsrm1,eps0m1,sqdeps,ep,mm
     real(gp), dimension(3) :: f_Vterm,f_Sterm,depsdRi,vr,ddloghdRi,vect
 
     eps0m1=cavity%epsilon0-vacuum_eps
@@ -434,15 +436,14 @@ contains
        if (abs(dlogh) < thr) cycle
        ep=epsl(d,rad,cavity%delta)
        dlogh=dlogh/ep
-       epsr=vacuum_eps !!!! Actung!!! LuigiHelp we need epsr=epsilon(r)
        epsrm1=epsr-vacuum_eps 
        if (abs(epsrm1) < thr) cycle
        vr(:)=closest_r(mesh,v,center=rxyz(:,iat))
-       depsdRi(:)=-epsrm1*dlogh/d*vr(:)
+       depsdRi(:)=epsrm1*dlogh/d*vr(:)
        tt=-oneoeightpi*npot2*hh
        !here the forces can be calculated
        fxyz(:,iat)=fxyz(:,iat)+tt*depsdRi(:) ! Electrostatic force
-       if (.false.) then ! LuigiHelp should be -> if (not.kernel%opt%only_electrostatic) then
+       if (.not. only_electrostatic) then 
         ttV=cavity%betaV/eps0m1*hh ! CAN BE DONE EXTERNAL TO THE LOOP (INTEGRAL)
         f_Vterm(:)=ttV*depsdRi(:) ! Force from the Volume term to the energy
         sqdeps=sqrt(square(mesh,deps))
@@ -603,7 +604,8 @@ contains
     
     !$omp parallel do default(shared) private(i123)
     do i123=1,n1*n23
-       np2em1(i123)=(eps(i123)-vacuum_eps)*nabla2_pot(i123)
+       !np2em1(i123)=(eps(i123)-vacuum_eps)*nabla2_pot(i123)
+       np2em1(i123)=nabla2_pot(i123)
     end do
     !$omp end parallel do
 

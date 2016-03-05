@@ -113,7 +113,7 @@ program driver
   call sparse_matrix_init_fake(iproc,nproc,norb, orbs%norbp, orbs%isorb, nseg, nvctr, smat_B)
 
 
-  symmetric = check_symmetry(norb, smat_A)
+  symmetric = check_symmetry(smat_A)
 
   !!if (iproc==0) then
   !!    do iseg=1,smat_A%nseg

@@ -100,7 +100,6 @@
    check_matrix_compression            : No #     linear scaling perform a check of the matrix compression routines
    FOE_restart                         : 1 #      Restart method to be used for the FOE method
    hamapp_radius_incr                  : 6 #      radius enlargement for the Hamiltonian application (in grid points)
-   nsigma                              : 3 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
     #                                              Gaussian used for the radial part of the 
     #                                              function based on the multipoles.
    debug                               : No #     Debug option
@@ -2355,13 +2354,11 @@
  Multipole coefficients:
    units                               : bohr
    global monopole                     : -1.001629E+00
-   global monopole analytic            : -1.000000E+00
    values:
    - sym                               : O # 0001
      r: [ 2.065621065394574,  0.7276197830051158,  0.7650374978227975]
      nzion                             :  6
      sigma                             :  [  0.450,  0.450,  0.450 ]
-     q0 analytic                       : -1.146732E+00
      q0                                :  [ -1.146129E+00 ]
      q1                                :  [  7.172654E-01,  6.892663E-01, -5.087515E-02 ]
      q2: [ 3.562058E-01,  3.645688E-01, -7.831766E-01,  2.279269E-01,  1.291651E+00]
@@ -2370,7 +2367,6 @@
      r: [ 0.2609031030233364,  0.4497236554241762,  0.5729218373685834]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0 analytic                       :  1.467316E-01
      q0                                :  [  1.445002E-01 ]
      q1                                :  [  8.119609E-02,  6.395898E-02,  3.240253E-01 ]
      q2: [-3.725224E-02, -4.807924E-03, -4.339979E-03, -3.592625E-02,  1.073661E-02]

@@ -752,7 +752,8 @@ subroutine destroy_DFT_wavefunction(wfn)
   use module_base
   use module_types
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
-  use sparsematrix_base, only: deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
+  use sparsematrix_base, only: deallocate_sparse_matrix, allocate_matrices, deallocate_matrices, &
+                               deallocate_sparse_matrix_metadata
   use foe_base, only: foe_data_deallocate
   implicit none
   
@@ -788,6 +789,7 @@ subroutine destroy_DFT_wavefunction(wfn)
       end do
       deallocate(wfn%linmat%ks_e)
   end if
+  call deallocate_sparse_matrix_metadata(wfn%linmat%smmd)
   call deallocate_sparse_matrix(wfn%linmat%s)
   call deallocate_sparse_matrix(wfn%linmat%m)
   call deallocate_sparse_matrix(wfn%linmat%l)
@@ -1312,8 +1314,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      ! Update sparse matrices
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%ham_descr%lzd, at%astruct, &
           input%store_index, imode=1, smat=tmb%linmat%m)
-     call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
-          matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
@@ -1321,8 +1321,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
           input%store_index, imode=1, smat=tmb%linmat%s)
-     call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
-          matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
      !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
@@ -1331,12 +1329,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
           input%store_index, imode=2, smat=tmb%linmat%l, smat_ref=tmb%linmat%m)
-     call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
-          matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
-     do i=1,size(tmb%linmat%ovrlppowers_)
-         call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
-              matname='tmb%linmat%ovrlppowers_(i)', mat=tmb%linmat%ovrlppowers_(i))
-     end do
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
@@ -1349,31 +1341,42 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      iirow(2) = 1
      iicol(1) = tmb%linmat%s%nfvctr
      iicol(2) = 1
-     call check_local_matrix_extents(iproc, nproc, at%astruct%nat, &
-          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, tmb%collcom, &
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%s, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
-     call check_local_matrix_extents(iproc, nproc, at%astruct%nat, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%m, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
-     call check_local_matrix_extents(iproc, nproc, at%astruct%nat, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
+          tmb%collcom_sr, tmb%linmat%smmd,  tmb%linmat%l, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
 
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, tmb%linmat%s, &
-          at%astruct%nat, tmb%collcom, tmb%collcom_sr, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, tmb%linmat%m, &
-          at%astruct%nat, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, tmb%linmat%l, &
-          at%astruct%nat, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+          tmb%linmat%s, tmb%linmat%smmd, tmb%collcom, tmb%collcom_sr, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+          tmb%linmat%m, tmb%linmat%smmd, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+          tmb%linmat%l, tmb%linmat%smmd, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
+
+     call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
+          matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
+     call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
+          matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
+     call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
+          matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
+     do i=1,size(tmb%linmat%ovrlppowers_)
+         call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
+              matname='tmb%linmat%ovrlppowers_(i)', mat=tmb%linmat%ovrlppowers_(i))
+     end do
 
 
      nullify(tmb%linmat%ks)

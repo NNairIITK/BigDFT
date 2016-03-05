@@ -1966,7 +1966,7 @@ module io
                                    DENSE_FULL, SPARSE_TASKGROUP, assignment(=), &
                                    deallocate_matrices
       use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix_local, matrix_matrix_mult_wrapper
-      use sparsematrix_io, only: write_sparse_matrix
+      use sparsematrix_io, only: write_sparse_matrix, write_sparse_matrix_metadata
       use matrix_operations, only: overlapPowerGeneral
       implicit none
       integer, intent(in) :: iproc,nproc,imethod_overlap,norder_taylor
@@ -1993,6 +1993,14 @@ module io
     
       unitm=99
       binary=(mod(iformat,10) /= WF_FORMAT_PLAIN)
+
+      if (write_sparse) then
+          call write_sparse_matrix_metadata(tmb%linmat%m%nfvctr, at%astruct%nat, at%astruct%ntypes, &
+               at%astruct%units, at%astruct%geocode, at%astruct%cell_dim, at%astruct%iatype, &
+               at%astruct%rxyz, at%nzatom, at%nelpsp, at%astruct%atomnames, &
+               tmb%orbs%onwhichatom, trim(filename//'sparsematrix_metadata.bin'))
+
+      end if
     
       if (write_dense) then
           call write_dense_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
@@ -2001,9 +2009,7 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
-               at%nzatom, at%nelpsp, at%astruct%atomnames, &
-               tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
+          call write_sparse_matrix(tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
       end if
     
     
@@ -2014,9 +2020,7 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
-               at%nzatom, at%nelpsp, at%astruct%atomnames, &
-               tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
+          call write_sparse_matrix(tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
       end if
     
     
@@ -2027,9 +2031,7 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
-               at%nzatom, at%nelpsp, at%astruct%atomnames, &
-               tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
+          call write_sparse_matrix(tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
       end if
     
     
@@ -2116,9 +2118,7 @@ module io
           end if
 
           if (write_sparse) then
-              call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
-                   at%nzatom, at%nelpsp, at%astruct%atomnames, &
-                   tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
+              call write_sparse_matrix(tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
           end if
           call deallocate_matrices(SminusonehalfH(1))
       end if
@@ -2515,30 +2515,19 @@ module io
       integer :: ispin
       real(dp), dimension(:,:,:,:), allocatable :: pot_ion
     
-      pot_ion = f_malloc((/kernel%ndims(1),kernel%ndims(2),kernel%ndims(3), nspin /),id='pot_ion')
-      if (nproc > 1) then
-    
-         !here we might add an extra interface
-         call PS_gather(src=rho,dest=pot_ion,kernel=kernel,nsrc=nspin)
-      else
-         call f_memcpy(n=size(pot_ion),src=rho(1),dest=pot_ion(1,1,1,1))
-      end if
+      pot_ion = &
+           f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3), nspin],id='pot_ion')
+
+      call PS_gather(src=rho,dest=pot_ion,kernel=kernel,nsrc=nspin)
     
       if (present(ixyz0)) then
-          if (ixyz0(1)<1 .or. ixyz0(1)>kernel%ndims(1)) then
-              call f_err_throw('The x value of ixyz0('//trim(yaml_toa(ixyz0(1),fmt='(i0)'))//&
-                   &') should be within the size of the box (1 to'//trim(yaml_toa(kernel%ndims(1),fmt='(i0)'))//')')
-          end if
+         if (any(ixyz0 < 1) .or. any(ixyz0 > kernel%ndims)) &
+              call f_err_throw('The values of ixyz0='+yaml_toa(ixyz0)+&
+                   ' should be within the size of the box (1 to'+&
+                   yaml_toa(kernel%ndims)+')',&
+                   err_name='BIGDFT_RUNTIME_ERROR')
           call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
                rxyz,at%astruct%iatype,at%nzatom,at%nelpsp,ixyz0=ixyz0)
-          if (ixyz0(2)<1 .or. ixyz0(2)>kernel%ndims(2)) then
-              call f_err_throw('The y value of ixyz0('//trim(yaml_toa(ixyz0(2)))//&
-                   &') should be within the size of the box (1 to'//trim(yaml_toa(kernel%ndims(2),fmt='(i0)'))//')')
-          end if
-          if (ixyz0(3)<1 .or. ixyz0(3)>kernel%ndims(3)) then
-              call f_err_throw('The z value of ixyz0('//trim(yaml_toa(ixyz0(3),fmt='(i0)'))//&
-                   &') should be within the size of the box (1 to'//trim(yaml_toa(kernel%ndims(3),fmt='(i0)'))//')')
-          end if
       else
           call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
                rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)

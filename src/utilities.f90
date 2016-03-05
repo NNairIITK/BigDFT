@@ -18,28 +18,32 @@ program utilities
    use module_atoms, only: atoms_data, atoms_data_null, deallocate_atoms_data
    use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, assignment(=), &
                                 SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, &
-                                sparsematrix_malloc_ptr, deallocate_sparse_matrix, deallocate_matrices
+                                sparsematrix_malloc_ptr, deallocate_sparse_matrix, deallocate_matrices, &
+                                sparse_matrix_metadata, deallocate_sparse_matrix_metadata
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
    use sparsematrix_io, only: read_sparse_matrix
    use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed2
-   use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft
+   use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft, &
+                                     sparse_matrix_metadata_init_from_file
    use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, &
                                     CHARGE_ANALYSIS_PROJECTOR, &
                                     loewdin_charge_analysis_core
-   use multipole, only: projector_for_charge_analysis
+   use multipole, only: projector_for_charge_analysis, multipole_analysis_driver
    use io, only: write_linear_coefficients, read_linear_coefficients
    use bigdft_run, only: bigdft_init
    implicit none
    external :: gather_timings
    character(len=*), parameter :: subname='utilities'
    character(len=1) :: geocode
-   character(len=30) :: tatonam, radical, colorname, linestart, lineend, cname
+   character(len=3) :: do_ortho
+   character(len=30) :: tatonam, radical, colorname, linestart, lineend, cname, methodc
    character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file, coeff_file, pdos_file
    character(len=128) :: line, cc, output_pdos
    logical :: charge_analysis = .false.
    logical :: solve_eigensystem = .false.
    logical :: calculate_pdos = .false.
    type(atoms_data) :: at
+   type(sparse_matrix_metadata) :: smmd
    integer :: istat, i_arg, ierr, nspin, icount, nthread, method, ntypes
    integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
    integer :: nfvctr_m, nseg_m, nvctr_m, nfvctrp_m, isfvctr_m
@@ -177,8 +181,6 @@ program utilities
            call yaml_comment('Charge analysis',hfill='-')
        end if
        
-       !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
-
        ! Determine the method
        select case(trim(method_name))
        case ('loewdin','LOEWDIN')
@@ -191,78 +193,57 @@ program utilities
            call f_err_throw('Unknown Method for the charge analysis',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
        end select
 
-       at = atoms_data_null()
-
-       call read_sparse_matrix(trim(overlap_file), nspin, geocode, cell_dim, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
-            matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
-            at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
-       at%refcnt=f_ref_new('atoms')
-       !call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
-       call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_s, nvctr_s, nseg_s, keyg_s, smat_s, &
-            nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_s)
-       call f_free_ptr(keyv_s)
-       call f_free_ptr(keyg_s)
-       call f_free_ptr(on_which_atom_s)
-       ovrlp_mat = matrices_null()
-       ovrlp_mat%matrix_compr = sparsematrix_malloc_ptr(smat_s, iaction=SPARSE_FULL, id='ovrlp%matrix_compr')
-       call vcopy(smat_s%nvctr*smat_s%nspin, matrix_compr(1), 1, ovrlp_mat%matrix_compr(1), 1)
-       call f_free_ptr(matrix_compr)
-
-       call read_sparse_matrix(trim(kernel_file), nspin, geocode, cell_dim, nfvctr_l, nseg_l, nvctr_l, keyv_l, keyg_l, &
-            matrix_compr, on_which_atom=on_which_atom_l)
-       !call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_l, nfvctrp_l, isfvctr_l)
-       call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_l, nvctr_l, nseg_l, keyg_l, smat_l, &
-            nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_l)
-       call f_free_ptr(keyv_l)
-       call f_free_ptr(keyg_l)
-       call f_free_ptr(on_which_atom_l)
-       kernel_mat = matrices_null()
-       kernel_mat%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='kernel_mat%matrix_compr')
-       call vcopy(smat_l%nvctr*smat_l%nspin, matrix_compr(1), 1, kernel_mat%matrix_compr(1), 1)
-       call f_free_ptr(matrix_compr)
-
-       if (method==CHARGE_ANALYSIS_PROJECTOR) then
-           call read_sparse_matrix(trim(hamiltonian_file), nspin, geocode, cell_dim, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
-                matrix_compr, on_which_atom=on_which_atom_m)
-           !call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
-           call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_m, nvctr_m, nseg_m, keyg_m, smat_m, &
-                nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_m)
-           call f_free_ptr(keyv_m)
-           call f_free_ptr(keyg_m)
-           call f_free_ptr(on_which_atom_m)
-           hamiltonian_mat = matrices_null()
-           hamiltonian_mat%matrix_compr = sparsematrix_malloc_ptr(smat_m, iaction=SPARSE_FULL, id='hamiltonian_mat%matrix_compr')
-           call vcopy(smat_m%nvctr*smat_m%nspin, matrix_compr(1), 1, hamiltonian_mat%matrix_compr(1), 1)
-           call f_free_ptr(matrix_compr)
+       call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.bin', smmd)
+       if (bigdft_mpi%iproc==0) then
+           call yaml_mapping_open('Atomic System Properties')
+           call yaml_map('Types of atoms',smmd%atomnames)
+           call yaml_mapping_close()
        end if
+
+       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
+            init_matmul=.true.)
+
+       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_l, kernel_mat, &
+            init_matmul=.true.)
+
+       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_m, hamiltonian_mat, &
+            init_matmul=.true.)
 
        call timing(bigdft_mpi%mpi_comm,'INIT','PR')
 
        select case(method)
-       case(CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN)
-           call loewdin_charge_analysis_core(method, bigdft_mpi%iproc, bigdft_mpi%nproc, &
-                smat_s%nfvctr, smat_s%nfvctrp, smat_s%isfvctr, &
-                smat_s%nfvctr_par, smat_s%isfvctr_par, meth_overlap=1020, blocksize=-8, &
-                smats=smat_s, smatl=smat_l, atoms=at, kernel=kernel_mat, ovrlp=ovrlp_mat)
-       case(CHARGE_ANALYSIS_PROJECTOR)
-           call projector_for_charge_analysis(at, smat_s, smat_m, smat_l, &
-                ovrlp_mat, hamiltonian_mat, kernel_mat, &
-                at%astruct%rxyz, calculate_centers=.false., write_output=.true., ortho='yes', mode='simple')
+       case (CHARGE_ANALYSIS_MULLIKEN)
+           methodc='loewdin'
+           do_ortho='no'
+       case (CHARGE_ANALYSIS_LOEWDIN)
+           methodc='loewdin'
+           do_ortho='yes'
+       case (CHARGE_ANALYSIS_PROJECTOR)
+           methodc='projector'
+           do_ortho='no'
        case default
            call f_err_throw('wrong method',err_name='BIGDFT_RUNTIME_ERROR')
        end select
 
+       call multipole_analysis_driver(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, 11, &
+            smmd, smat_s, smat_m, smat_l, &
+            ovrlp_mat, hamiltonian_mat, kernel_mat, smmd%rxyz, &
+            methodc, do_ortho=trim(do_ortho), projectormode='simple', &
+            calculate_multipole_matrices=.false., do_check=.false., &
+            multipole_matrix_in=(/(/ovrlp_mat/)/))
+
        call timing(bigdft_mpi%mpi_comm,'CALC','PR')
 
-       call deallocate_atoms_data(at)
+       call deallocate_sparse_matrix_metadata(smmd)
        call deallocate_sparse_matrix(smat_s)
        call deallocate_sparse_matrix(smat_l)
        call deallocate_matrices(ovrlp_mat)
        call deallocate_matrices(kernel_mat)
-       if (method==CHARGE_ANALYSIS_PROJECTOR) then
-           call deallocate_sparse_matrix(smat_m)
-           call deallocate_matrices(hamiltonian_mat)
-       end if
+       call deallocate_sparse_matrix(smat_m)
+       call deallocate_matrices(hamiltonian_mat)
 
        if (bigdft_mpi%iproc==0) then
            call yaml_comment('done',hfill='-')
@@ -275,8 +256,9 @@ program utilities
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
-            init_matmul=.false., nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, &
-            nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
+            init_matmul=.false.)!, nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, &
+            !nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
+       call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.bin', smmd)
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_m, hamiltonian_mat, &
             init_matmul=.false.)
@@ -326,8 +308,9 @@ program utilities
        if (bigdft_mpi%iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
-            init_matmul=.false., iatype=iatype, ntypes=ntypes, atomnames=atomnames, &
-            on_which_atom=on_which_atom)
+            init_matmul=.false.)!, iatype=iatype, ntypes=ntypes, atomnames=atomnames, &
+            !on_which_atom=on_which_atom)
+       call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.bin', smmd)
        if (ntmb/=smat_s%nfvctr) call f_err_throw('ntmb/=smat_s%nfvctr')
        ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_PARALLEL, id='ovrlp_mat%matrix')
        !call uncompress_matrix(bigdft_mpi%iproc, smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)

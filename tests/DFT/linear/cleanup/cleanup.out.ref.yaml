@@ -91,7 +91,6 @@
    correction_co_contra                : no #     linear scaling correction covariant / contravariant gradient
    check_sumrho                        : 2 #      Enables linear sumrho check
    check_overlap                       : 2 #      Enables linear overlap check
-   nsigma                              : 5 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
     #                                              Gaussian used for the radial part of the 
     #                                              function based on the multipoles.
    debug                               : No #     Debug option
@@ -1336,13 +1335,11 @@
  Multipole coefficients:
    units                               : bohr
    global monopole                     : -3.245834E-05
-   global monopole analytic            : -5.279007E-05
    values:
    - sym                               : O # 0001
      r: [ 2.065621065394574,  0.7276197830051158,  0.7650374978227975]
      nzion                             :  6
      sigma                             :  [  0.248,  0.248,  0.248 ]
-     q0 analytic                       : -7.733864E-01
      q0                                :  [ -7.733649E-01 ]
      q1                                :  [  1.300282E-01,  1.745099E-01, -2.214303E-01 ]
      q2: [ 3.023656E-01,  7.833721E-01, -2.013177E-01,  2.722064E-01,  3.434790E-01]
@@ -1351,7 +1348,6 @@
      r: [ 0.2609031030233364,  0.4497236554241762,  0.5729218373685834]
      nzion                             :  1
      sigma                             :  [  0.200,  0.200,  0.200 ]
-     q0 analytic                       :  3.952987E-01
      q0                                :  [  3.952981E-01 ]
      q1                                :  [  3.870916E-02,  2.452344E-02,  2.448366E-01 ]
      q2: [ 1.247806E-01,  1.639007E-02, -2.445366E-01,  8.701755E-02,  4.122434E-01]
@@ -1360,7 +1356,6 @@
      r: [ 2.217505931689284,  2.044733573632779,  2.030559672968256]
      nzion                             :  1
      sigma                             :  [  0.200,  0.200,  0.200 ]
-     q0 analytic                       :  3.780349E-01
      q0                                :  [  3.780344E-01 ]
      q1                                :  [ -2.082313E-01, -2.200926E-01,  1.528648E-02 ]
      q2: [ 8.529103E-02,  4.249723E-01,  7.974051E-02,  8.400699E-02, -2.283325E-01]

@@ -13,7 +13,7 @@
  perf:
    ef_interpol_chargediff: 0.10E-02
    evbounds_nsatur: 100
-   loewdin_charge_analysis: Yes
+   loewdin_charge_analysis: no
    correction_co_contra: no
    check_sumrho: 2
    check_overlap: 2
@@ -23,6 +23,7 @@
    rpnrm_cv: 6.9999999999999997E-007
    taylor_order: 1
    support_function_multipoles: yes
+   charge_multipoles: 2
  lin_basis:
    nit: [5, 0]
    idsx: 0
