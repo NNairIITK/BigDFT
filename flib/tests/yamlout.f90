@@ -145,12 +145,15 @@ end subroutine test_yaml_output2
 subroutine test_yaml_output_sequences1()
   use yaml_output
   use yaml_strings
+  use dynamic_memory
+  use f_precisions
   implicit none
   !local variables
   integer :: i
   character(len=10), dimension(:), allocatable :: cv
   integer, dimension(:), allocatable :: iv
   real(kind=8), dimension(:), allocatable :: dv
+  real(kind=8), dimension(:,:), allocatable :: mat
   
   allocate(cv(0))
   allocate(iv(0))
@@ -176,6 +179,14 @@ subroutine test_yaml_output_sequences1()
    deallocate(cv)
    deallocate(iv)
    deallocate(dv)
+
+   !matrices
+   mat=f_malloc([-3.to.17,1.to.10],id='mat')
+   mat=f_1
+   mat(lbound(mat,1),:)=f_0
+   mat(ubound(mat,1),:)=f_0
+   call yaml_map('Matrix of entries (almost) one',mat)
+   call f_free(mat)
 
 end subroutine test_yaml_output_sequences1
 
