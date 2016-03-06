@@ -8,7 +8,7 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-module environment
+module psolver_environment
   use f_enums, only: f_enumerator
   use PSbase
   use numerics, only: safe_exp,twopi,oneotwopi,oneofourpi,Bohr_Ang,AU_GPa,&
@@ -778,5 +778,5 @@ contains
   end subroutine dlepsdrho_sccs
     
 
-end module environment
+end module psolver_environment
 

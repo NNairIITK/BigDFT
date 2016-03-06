@@ -161,7 +161,8 @@ subroutine abi_pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,nthe
  integer,allocatable :: indl(:,:),klm_diag(:),kmix_tmp(:)
  integer, pointer :: indlmn(:,:)
  real(dp) :: tsec(2)
- real(dp),allocatable :: ff(:),gg(:),hh(:),indklmn_(:,:),intvhatl(:)
+ real(dp),allocatable :: ff(:),gg(:),hh(:),intvhatl(:)
+ integer,allocatable :: indklmn_(:,:)
  real(dp),allocatable :: rad(:),rgl(:,:),vhatijl(:,:),vhatl(:),work(:)
 
 !************************************************************************
@@ -359,7 +360,7 @@ subroutine abi_pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,nthe
      pawtab(itypat)%dltij(ilmn*(ilmn+1)/2)=one
    end do
 
-   lmnmix=zero
+   lmnmix=int(zero)
    LIBPAW_ALLOCATE(kmix_tmp,(lmn2_size))
    do jlmn=1,lmn_size
      jl=indlmn(1,jlmn)

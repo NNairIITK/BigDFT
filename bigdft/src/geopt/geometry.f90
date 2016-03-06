@@ -1122,7 +1122,7 @@ end subroutine f2fslave
  if (info.ne.0) stop "Error in DGETRF"
  LDWORK=-1
  call  DGETRI( n, matinv, n, IPIV, WORK,LDWORK , INFO )
- LDWORK=WORK(1)
+ LDWORK=int(WORK(1))
  deallocate(WORK)
  allocate(WORK(LDWORK))
  call  DGETRI( n, matinv, n, IPIV, WORK,LDWORK , INFO )

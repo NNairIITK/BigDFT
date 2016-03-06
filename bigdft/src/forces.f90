@@ -10,7 +10,7 @@
 !> calculate the forces terms for PCM
 subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,eps,np2,fpcm,depsilon)
   use module_defs, only: dp,gp
-  use environment, only: cavity_data,rigid_cavity_forces
+  use psolver_environment, only: cavity_data,rigid_cavity_forces
   use box
   use bounds, only: locreg_mesh_origin
   implicit none

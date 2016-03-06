@@ -1316,7 +1316,7 @@ end subroutine pawrhoij_copy
      if (use_rhoijp>0) then
        LIBPAW_ALLOCATE(pawrhoij_gathered(jrhoij)%rhoijselect,(lmn2_size))
        pawrhoij_gathered(jrhoij)%rhoijselect(1:nselect)=buf_int_all(indx_int:indx_int+nselect-1)
-       if (nselect < lmn2_size )pawrhoij_gathered(jrhoij)%rhoijselect(nselect+1:lmn2_size)=zero
+       if (nselect < lmn2_size )pawrhoij_gathered(jrhoij)%rhoijselect(nselect+1:lmn2_size)=int(zero)
        indx_int=indx_int+nselect
        LIBPAW_ALLOCATE(pawrhoij_gathered(jrhoij)%rhoijp,(cplex*lmn2_size,nspden))
        do isp=1,nspden
@@ -3775,7 +3775,7 @@ subroutine pawrhoij_isendreceive_getbuffer(pawrhoij,nrhoij_send,atm_indx_recv,bu
    if (use_rhoijp>0) then
      LIBPAW_ALLOCATE(pawrhoij1%rhoijselect,(lmn2_size))
      pawrhoij1%rhoijselect(1:nselect)=buf_int(indx_int:indx_int+nselect-1)
-     if (nselect < lmn2_size )pawrhoij1%rhoijselect(nselect+1:lmn2_size)=zero
+     if (nselect < lmn2_size )pawrhoij1%rhoijselect(nselect+1:lmn2_size)=int(zero)
      indx_int=indx_int+nselect
      LIBPAW_ALLOCATE(pawrhoij1%rhoijp,(cplex*lmn2_size,nspden))
      do isp=1,nspden
