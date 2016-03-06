@@ -69,6 +69,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
   use module_types
   use yaml_output
   use box
+  use bounds, only: ext_buffers_coarse
   implicit none
   integer, intent(in) :: iproc,n1_old,n2_old,n3_old,n1,n2,n3
   real(gp), intent(in) :: hx_old,hy_old,hz_old,hx,hy,hz
@@ -274,6 +275,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   use yaml_output
   use module_interfaces, only: open_filename_of_iorb
   use public_enums
+  use bounds, only: ext_buffers_coarse
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3, iformat
   real(gp), intent(in) :: hx,hy,hz
@@ -469,26 +471,35 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   ikpt=orbs%iokpt(iorb)
   write(f3,'(a1,i3.3)') "k", ikpt !not more than 999 kpts
 
+!!$  !ternary example, interesting syntax
+!!$  realimag = .if. modulo(ispinor,2)==0 .then. 'I' .else. 'R'
+
   !see if the wavefunction is real or imaginary
-  if(modulo(ispinor,2)==0) then
-     realimag='I'
-  else
-     realimag='R'
-  end if
+  realimag=merge('I','R',modulo(ispinor,2)==0)
+
+!!$  if(modulo(ispinor,2)==0) then
+!!$     realimag='I'
+!!$  else
+!!$     realimag='R'
+!!$  end if
   !calculate the spin sector
   spins=orbs%spinsgn(orbs%isorb+iorb)
+!!$  spintype=.if. (orbs%nspinor == 4) .then. merge('A','B',ispinor <=2) &
+!!$       .else. merge('U','D',spins==1.0_gp)
   if(orbs%nspinor == 4) then
-     if (ispinor <=2) then
-        spintype='A'
-     else
-        spintype='B'
-     end if
+     spintype=merge('A','B',ispinor <=2)
+!!$     if (ispinor <=2) then
+!!$        spintype='A'
+!!$     else
+!!$        spintype='B'
+!!$     end if
   else
-     if (spins==1.0_gp) then
-        spintype='U'
-     else
-        spintype='D'
-     end if
+     spintype=merge('U','D',spins==1.0_gp)
+!!$     if (spins==1.0_gp) then
+!!$        spintype='U'
+!!$     else
+!!$        spintype='D'
+!!$     end if
   end if
   !no spin polarization if nspin=1
   if (orbs%nspin==1) spintype='N'
@@ -546,11 +557,6 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
      call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
   end if
   call f_open_file(unitfile,file=filename_out,binary=lbin)
-!!$  if (lbin) then
-!!$     open(unit=unitfile,file=trim(filename_out),status='unknown',form="unformatted")
-!!$  else
-!!$     open(unit=unitfile,file=trim(filename_out),status='unknown')
-!!$  end if
 
 end subroutine open_filename_of_iorb
 
@@ -3449,6 +3455,7 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   use module_fragments
   use yaml_output
   use box
+  use bounds, only: ext_buffers_coarse
   implicit none
 
   logical, intent(out) :: reformat_needed ! logical telling whether reformat is needed

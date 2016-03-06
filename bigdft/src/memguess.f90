@@ -2260,6 +2260,7 @@ subroutine take_proj_from_file(filename, hx, hy, hz, nl, at, rxyz, &
   use dynamic_memory
   use public_enums, only: WF_FORMAT_PLAIN, WF_FORMAT_BINARY, WF_FORMAT_ETSF
   use module_input_keys, only: wave_format_from_filename
+  use bounds, only: ext_buffers_coarse
   implicit none
   real(gp), intent(in) :: hx,hy,hz
   integer, intent(inout) :: ikpt, iat, iproj, icplx
@@ -2335,6 +2336,7 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
    use locreg_operations, only: lpsi_to_global2
    use module_input_keys, only: wave_format_from_filename
    use public_enums
+   use bounds, only: ext_buffers_coarse
    implicit none
    integer, intent(inout) :: iorbp, ispinor
    real(gp), intent(in) :: hx,hy,hz

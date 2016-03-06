@@ -1446,6 +1446,8 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    use communications_base, only: comms_cubic
    use communications, only: transpose_v
    use orbitalbasis
+   use box
+   use bounds
    implicit none
    integer, intent(in) :: iproc,nproc,nspin,npsidim
    real(gp), intent(in) :: hx,hy,hz
@@ -1459,14 +1461,69 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    character(len=*), parameter :: subname='psivirt_from_gaussians'
    logical ::  randinp
    integer :: iorb,icoeff,i_all,i_stat,nwork,info,jorb,ikpt,korb
-   integer :: iseg,i0,i1,i2,i3,jj,ispinor,i,ind_c,ind_f,jcoeff
-   real(wp) :: rfreq,gnrm_fake, psi_fake
-   real(wp), dimension(:,:,:), allocatable :: gaucoeffs
+   integer :: iseg,i0,i1,i2,i3,jj,ispinor,i,ind_c,ind_f,jcoeff,unitwf,iorb_out
+   real(wp) :: rfreq,gnrm_fake, psi_fake,eval
+   logical, dimension(:), allocatable :: mask
+   real(wp), dimension(:,:,:), allocatable :: gaucoeffs,psifscf
    real(gp), dimension(:), allocatable :: work,ev
-   real(gp), dimension(:,:), allocatable :: ovrlp
+   real(gp), dimension(:,:), allocatable :: ovrlp,rxyz_old
    type(gaussian_basis) :: G
-   real(wp), dimension(:), pointer :: gbd_occ,psiw
+   real(wp), dimension(:), pointer :: gbd_occ,psiw,psi_ptr
    type(orbital_basis) :: ob
+   type(ket) :: it
+   logical :: ok,binary,chosen
+   character(len=500) :: filename,filerad
+   type(cell) :: mesh
+     
+!   call f_strcpy(src=dir_output+"wavefunction",dest=filerad)
+
+   rxyz_old=f_malloc([3,at%astruct%nat],id='rxyz_old')
+
+   mesh=cell_new(at%astruct%geocode,&
+        [Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3],Lzd%hgrids)
+
+   psifscf=f_malloc(locreg_mesh_shape(mesh,highres=.true.),id='psifscf')
+
+   call orbital_basis_associate(ob,orbs=orbs,Lzd=Lzd,phis_wvl=psivirt)
+   mask=f_malloc(ob%orbs%norbp,id='mask')
+   chosen=.false.
+   binary=.false.
+   it=orbital_basis_iterator(ob)
+   read_loop: do while(ket_next(it))
+      mask(it%iorbp)=.false.
+      !first check if the file of the virtual wavefunction is present
+      check_file: do ispinor=1,orbs%nspinor
+         call filename_of_iorb(binary,trim(filerad),it%ob%orbs,it%iorbp,ispinor,filename,iorb_out)
+         call f_file_exists(file=filename,exists=ok)
+         if (.not. chosen .and. .not. ok) then
+            binary=.not. binary
+            call filename_of_iorb(binary,trim(filerad),it%ob%orbs,it%iorbp,ispinor,filename,iorb_out)
+            call f_file_exists(file=filename,exists=ok)
+         end if
+         if (.not. ok) then
+            mask(it%iorbp)=.true.
+            cycle read_loop
+         else if (.not. chosen) then
+            chosen=.true.
+         end if
+      end do check_file
+      !if so read it
+      do ispinor=1,orbs%nspinor
+         psi_ptr=>ob_subket_ptr(it,ispinor)
+         unitwf=f_get_free_unit(99)
+         call open_filename_of_iorb(unitwf,binary,trim(filerad), &
+              it%ob%orbs,it%iorbp,ispinor,iorb_out)
+         call readonewave(unitwf,binary,iorb_out,bigdft_mpi%iproc,&
+              it%lr%d%n1,it%lr%d%n2,it%lr%d%n3, &
+              Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+              at,it%lr%wfd,rxyz_old,rxyz,&
+              psi_ptr,eval,psifscf)
+         call f_close(unitwf)
+      end do
+   end do read_loop
+
+   call f_free(rxyz_old)
+   call f_free(psifscf)
 
    !initialise some coefficients in the gaussian basis
    !nullify the G%rxyz pointer
@@ -1601,20 +1658,19 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
 
    !call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,gaucoeffs,psivirt)
 
-   call orbital_basis_associate(ob,orbs=orbs,Lzd=Lzd,phis_wvl=psivirt)
-   call gaussians_to_wavelets_mask(ob,lzd%hgrids,G,gaucoeffs,psivirt,[(.true.,i=1,orbs%norbp)])
+   call gaussians_to_wavelets_mask(ob,lzd%hgrids,G,gaucoeffs,psivirt,mask)
    call orbital_basis_release(ob)
    !deallocate the gaussian basis descriptors
    call deallocate_gwf(G)
 
    !deallocate gaussian array
-  call f_free(gaucoeffs)
+   call f_free(gaucoeffs)
    call f_free_ptr(gbd_occ)
 
    !add random background to the wavefunctions
    if (randinp .and. G%ncoeff >= orbs%norb) then
-      !call to_zero(orbs%npsidim,psivirt)
       do iorb=1,orbs%norbp
+         if (.not. mask(iorb)) cycle
          jorb=iorb+orbs%isorb
          do ispinor=1,orbs%nspinor
             !pseudo-random frequency (from 0 to 10*2pi)
@@ -1653,6 +1709,8 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
       !after having added random background, precondition the wavefunctions with an ncong of 10
       call preconditionall(orbs,Lzd%Glr,hx,hy,hz,10,psivirt,gnrm_fake,gnrm_fake)
    end if
+
+   call f_free(mask)
 
    !transpose v
    if(nproc > 1)then

@@ -9,11 +9,11 @@ module bounds
   public :: wfd_to_logrids
   public :: make_bounds
   public :: make_all_ib
-  public :: ext_buffers
+  public :: ext_buffers,ext_buffers_coarse
   public :: make_bounds_per
   public :: make_all_ib_per
   public :: geocode_buffers
-  public :: locreg_mesh_origin
+  public :: locreg_mesh_origin,locreg_mesh_shape
 
   contains
 
@@ -609,6 +609,18 @@ module bounds
       end if
     END SUBROUTINE ext_buffers
 
+    pure subroutine ext_buffers_coarse(periodic,nb)
+      implicit none
+      logical, intent(in) :: periodic
+      integer, intent(out) :: nb
+      if (periodic) then
+         nb=0
+      else
+         nb=7
+      end if
+    END SUBROUTINE ext_buffers_coarse
+
+
 
     !> Define the bounds of wavefunctions for periodic systems
     subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,cbounds,wfd)
@@ -881,5 +893,29 @@ module bounds
       end do
  
     end function locreg_mesh_origin
+
+    !> return the shapes of the localisation region
+    !!useful to allocate the array psifscf
+    function locreg_mesh_shape(mesh,highres) result(ndims)
+      use box, only: cell
+      implicit none
+      type(cell), intent(in) :: mesh
+      logical, intent(in), optional :: highres
+      integer, dimension(3) :: ndims
+      !local variables
+      logical :: hr
+      integer :: i,nb
+      logical, dimension(3) :: peri
+      hr=.false.
+      if (present(highres)) hr=highres
+      do i=1,3
+         call ext_buffers_coarse(peri(i),nb)
+         if (hr) then
+            ndims(i)=2*(mesh%ndims(i)+1+nb)
+         else
+            ndims(i)=mesh%ndims(i)+1
+         end if
+      end do
+    end function locreg_mesh_shape
 
 end module bounds
