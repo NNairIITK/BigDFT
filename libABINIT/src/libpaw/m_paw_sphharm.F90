@@ -154,7 +154,7 @@ function ylmc(il,im,kcart)
   if (ABS(im)==0) then
    ylmc = SQRT(three/(four_pi))*costh
   else if (ABS(im)==1) then
-   ylmc = -SQRT(three/(eight*pi))*sinth*CMPLX(cosphi,sinphi,kind=dpc)
+   ylmc = -SQRT(three/(8.0_dp*pi))*sinth*CMPLX(cosphi,sinphi,kind=dpc)
   else
    msg='wrong im'
    MSG_ERROR(msg)
