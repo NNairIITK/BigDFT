@@ -1327,7 +1327,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
   call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
 
   !build the matrix of the pseudopotential
-  call build_hgh_hij_matrix(at%npspcode(ityp),at%psppar(0,0,ityp),hij_hgh)
+  call build_hgh_hij_matrix(at%npspcode(ityp),at%psppar(:,:,ityp),hij_hgh)
 
 !!$  allocate(wproj(mbvctr_c+7*mbvctr_f,ncplx+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,wproj,'wproj',subname)
