@@ -308,7 +308,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
   !end debug
 
   if (wfn%paw%usepaw) then
-     call paw_compute_dij(wfn%paw, atoms, denspot, denspot%V_XC(1, 1, 1, 1))
+     call paw_compute_dij(wfn%paw, atoms, denspot, denspot%V_XC)
   end if
 
   !non self-consistent case: rhov should be the total potential

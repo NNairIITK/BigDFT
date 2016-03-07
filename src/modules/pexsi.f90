@@ -150,9 +150,9 @@ module pexsi
           
           ! Split the processors to read matrix
           if( iproc < maxproc ) then
-          	isProcRead = 1
+            isProcRead = 1
           else
-           isProcRead = 0
+            isProcRead = 0
           endif
           
           call mpi_comm_split( bigdft_mpi%mpi_comm, isProcRead, iproc, readComm, ierr )
@@ -317,8 +317,8 @@ module pexsi
           !stop
           
           if( info .ne. 0 ) then
-          	call mpi_finalize( ierr )
-          	call exit(info)
+            call mpi_finalize( ierr )
+            call exit(info)
           endif
           
           
@@ -345,8 +345,8 @@ module pexsi
           !write(*,*) 'after f_ppexsi_dft_driver, iproc', iproc
           
           if( info .ne. 0 ) then
-          	call mpi_finalize( ierr )
-          	call exit(info)
+            call mpi_finalize( ierr )
+            call exit(info)
           endif
           
           

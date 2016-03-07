@@ -119,6 +119,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    trustr=runObj%inputs%trustr
    nbond=1
    ifail=0
+   imode=1
    if(runObj%inputs%biomode)imode=2
 
    if (iproc==0.and.verbosity > 0) then

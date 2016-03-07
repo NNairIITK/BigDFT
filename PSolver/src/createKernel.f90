@@ -744,7 +744,7 @@ if (kernel%igpu == 0) then
        call f_err_throw('Parallel convolution:ERROR:nd3')
   if (mod(kernel%grid%md2,kernel%mpi_env%nproc) /= 0) &
        call f_err_throw('Parallel convolution:ERROR:md2'+&
-	yaml_toa(kernel%mpi_env%nproc)+yaml_toa(kernel%grid%md2))
+    yaml_toa(kernel%mpi_env%nproc)+yaml_toa(kernel%grid%md2))
 end if
   !allocate and set the distributions for the Poisson Solver
   kernel%counts = f_malloc_ptr([0.to.kernel%mpi_env%nproc-1],id='counts')
@@ -852,7 +852,7 @@ implicit none
 !all processes can use the GPU for apply_reductions
  if((kernel%gpuPCGRed)==1) then
    !add a 10% margin, because we use a little bit more
-   PCGRedSize=(7*size3+4*sizeof(alpha))*1.1
+   PCGRedSize=int((7*size3+4*sizeof(alpha))*1.1d0,kind=8)
    !print *,"PCG reductions size : %lu\n", PCGRedSize
  end if
 

@@ -2339,7 +2339,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use m_paw_ij, only: paw_ij_init
   use psp_projectors_base, only: free_DFT_PSP_projectors
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
-  use transposed_operations, only: normalize_transposed
+  use transposed_operations, only: normalize_transposed, calculate_overlap_transposed
   use rhopotential, only: updatepotential, sumrho_for_TMBs, clean_rho
   use public_enums
   use orbitalbasis
@@ -2871,6 +2871,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      norm = f_malloc(tmb%orbs%norb,id='norm')
 
      call normalize_transposed(iproc, nproc, tmb%orbs, in%nspin, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
+
+     ! Also calculate the overlap matrix.. not needed here, but in other parts of the code. Should be improved...
+     call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, &
+          tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
 
      call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
           TRANSPOSE_FULL, tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
@@ -3758,7 +3762,7 @@ contains
     real :: simple
 
     if (kind(double) == kind(simple)) then
-       simple=double
+       simple=real(double,kind=kind(simple))
     else if (abs(double) < real(tiny(1.e0),wp)) then
        simple=0.e0
     else if (abs(double) > real(huge(1.e0),wp)) then
