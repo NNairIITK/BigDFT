@@ -666,6 +666,7 @@ module locregs_init
     subroutine num_segkeys_sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz, &
          locrad, locregCenter, &
          nsegglob, keygglob, keyvglob, nseg, nvctr)
+      use module_base
       implicit none
       logical,intent(in) :: perx, pery, perz 
       integer, intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nsegglob
@@ -680,6 +681,7 @@ module locregs_init
       integer :: ij1, ij2, ij3, jj1, jj2, jj3, ijs1, ijs2, ijs3, ije1, ije2, ije3
       real(kind=8) :: cut, dx,dy, dz
     
+      call f_routine(id='num_segkeys_sphere')
     
       nvctr=0
       nstart=0
@@ -785,6 +787,8 @@ module locregs_init
          write(*,*) 'nend , nstart',nend,nstart
          stop 'nend <> nstart'
       endif
+
+      call f_release_routine()
     
     END SUBROUTINE num_segkeys_sphere
 

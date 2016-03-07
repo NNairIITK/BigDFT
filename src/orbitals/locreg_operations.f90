@@ -445,6 +445,8 @@ module locreg_operations
       character(len=1) :: geo
       logical :: hyb
 
+      call f_routine(id='initialize_work_arrays_sumrho')
+
       ! Determine the maximum array sizes for all locregs 1,..,nlr
       ! If the sizes for a specific locreg are needed, simply call the routine with nlr=1
       ! For the moment the geocode of all locregs must be the same
@@ -540,6 +542,7 @@ module locreg_operations
          call f_zero(w%x_f)
       end if
 
+      call f_release_routine()
 
     END SUBROUTINE initialize_work_arrays_sumrho
 
@@ -615,10 +618,14 @@ module locreg_operations
       !local variables
       character(len=*), parameter :: subname='deallocate_work_arrays_sumrho'
 
+      call f_routine(id='deallocate_work_arrays_sumrho')
+
       call f_free_ptr(w%x_c)
       call f_free_ptr(w%x_f)
       call f_free_ptr(w%w1)
       call f_free_ptr(w%w2)
+
+      call f_release_routine()
 
     END SUBROUTINE deallocate_work_arrays_sumrho
 
