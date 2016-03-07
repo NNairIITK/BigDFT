@@ -506,8 +506,8 @@ subroutine potential_overlap(A,B,pot,n1,n2,n3,hx,hy,hz,ovrlp)
                  do mB=1,2*lB-1
                     jovrlp=jovrlp+1
                     if (jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) then
-                       call locpotovrlp(n1,n2,n3,pot,hx,hy,hz,A%xp(1:,iexpo),A%psiat(1:,iexpo),&
-                            B%xp(1:,jexpo),B%psiat(1:,jexpo),&
+                       call locpotovrlp(n1,n2,n3,pot,hx,hy,hz,A%xp(1,iexpo),A%psiat(1,iexpo),&
+                            B%xp(1,jexpo),B%psiat(1,jexpo),&
                             ngA,ngB,lA,mA,lB,mB,rxa,rya,rza,rxb,ryb,rzb,niw,nrw,iw,rw,&
                             ovrlp(iovrlp,jovrlp))
                     end if

@@ -1139,7 +1139,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
                              end if
                              factor=ob%orbs%occup(iorb+ob%orbs%isorb)*ob%orbs%kwgts(ob%orbs%iokpt(iorb))
                              call atomic_PSP_density_matrix_update(lmax_ao,l-1,ncplx,scalprod(:,0,1:2*l-1,i,l,iat,jorb),&
-                                  factor,nlpsp%gamma_mmp(1:,1:,1:,ispin,nlpsp%iagamma(l-1,iat)))
+                                  factor,nlpsp%gamma_mmp(1,1,1,ispin,nlpsp%iagamma(l-1,iat)))
                           end if
                        end if
 

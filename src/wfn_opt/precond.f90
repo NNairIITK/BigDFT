@@ -758,8 +758,8 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
                 lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keygloc,lr%wfd%keyvloc,&
                 lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keygloc(1:,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f):),&
-                lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f):), &
+                lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
+                lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
                 scal,cprecr,hx,&
                 lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
                 lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&

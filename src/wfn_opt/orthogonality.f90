@@ -461,7 +461,8 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,tr_min,psi,hpsi,scprsum,s
         ncomponents=ncomp*nvctrp
         if (nspinor/=1) ncomplex=2
 
-        call lagrange_multiplier(symm,.not. tr_min,orbs%occup((ikpt-1)*orbs%norb+1+ise:),&
+        !this have to be corrected by the iterators
+        call lagrange_multiplier(symm,.not. tr_min,orbs%occup((ikpt-1)*orbs%norb+1+ise),&
              ncomplex,norb,&
              alag(ndim_ovrlp(ispin,ikpt-1)+1),trace,asymm,mix)
 

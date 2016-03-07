@@ -876,7 +876,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
 
           call psi_to_psig(n,tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
                & tmb%lzd%llr(ilr)%wfd%nseg_c,tmb%lzd%llr(ilr)%wfd%nseg_f,&
-               & tmb%lzd%llr(ilr)%wfd%keyvloc,tmb%lzd%llr(ilr)%wfd%keygloc,jstart,tmb%psi(jstart:),phigold)
+               & tmb%lzd%llr(ilr)%wfd%keyvloc,tmb%lzd%llr(ilr)%wfd%keygloc,jstart,tmb%psi(jstart),phigold)
 
           call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(ilr),tmb%lzd%llr(ilr_tmp)%geocode,&
                & tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,n_tmp,centre_old_box,centre_new_box,da,&
@@ -1294,7 +1294,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
 
           call psi_to_psig(n,tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
                & tmb%lzd%llr(ilr)%wfd%nseg_c,tmb%lzd%llr(ilr)%wfd%nseg_f,&
-               & tmb%lzd%llr(ilr)%wfd%keyvloc,tmb%lzd%llr(ilr)%wfd%keygloc,jstart,tmb%psi(jstart:),phigold)
+               & tmb%lzd%llr(ilr)%wfd%keyvloc,tmb%lzd%llr(ilr)%wfd%keygloc,jstart,tmb%psi(jstart),phigold)
 
           call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(ilr),tmb%lzd%llr(ilr_tmp)%geocode,&
                & tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,n_tmp,centre_old_box,centre_new_box,da,&
@@ -1403,7 +1403,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
 
              call psi_to_psig(n,tmb%lzd%llr(jlr)%wfd%nvctr_c,tmb%lzd%llr(jlr)%wfd%nvctr_f,&
                   & tmb%lzd%llr(jlr)%wfd%nseg_c,tmb%lzd%llr(jlr)%wfd%nseg_f,&
-                  & tmb%lzd%llr(jlr)%wfd%keyvloc,tmb%lzd%llr(jlr)%wfd%keygloc,jstart,tmb%psi(jstart:),phigold)
+                  & tmb%lzd%llr(jlr)%wfd%keyvloc,tmb%lzd%llr(jlr)%wfd%keygloc,jstart,tmb%psi(jstart),phigold)
 
              call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(jlr),tmb%lzd%llr(ilr_tmp)%geocode,&
                   & tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,n_tmp,centre_old_box,centre_new_box,da,&
