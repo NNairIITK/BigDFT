@@ -38,9 +38,9 @@ program driver_single
 
   call mpiinit()
 
-  iproc=mpirank()
+  !iproc=mpirank()
 
-  if (iproc==0) then
+  if (bigdft_mpi%iproc==0) then
       call yaml_new_document()
   end if
   call f_timing_reset(filename='time.yaml',master=bigdft_mpi%iproc==0,verbose_mode=.true. .and. bigdft_mpi%nproc>1)
