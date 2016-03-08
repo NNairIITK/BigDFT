@@ -12,6 +12,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn, &
     calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,&
+    pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
   use module_base
   use module_types
@@ -28,7 +29,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           extract_taskgroup_inplace, uncompress_matrix_distributed2, gather_matrix_from_taskgroups, &
                           extract_taskgroup, uncompress_matrix2, &
-                          write_sparsematrix, delete_coupling_terms
+                          write_sparsematrix, delete_coupling_terms, transform_sparse_matrix
+  use sparsematrix_init, only: sparsebigdft_to_ccs
   use transposed_operations, only: calculate_overlap_transposed
   use parallel_linalg, only: dsygv_parallel
   use matrix_operations, only: deviation_from_unity_parallel
@@ -36,6 +38,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use public_enums
   use locregs_init, only: small_to_large_locreg
   use locreg_operations, only: confpot_data
+  use foe_base, only: foe_data_get_real
+  use pexsi, only: pexsi_driver
   implicit none
 
   ! Calling arguments
@@ -59,6 +63,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(work_mpiaccumulate),intent(inout) :: energs_work
   logical,intent(in) :: remove_coupling_terms
   real(kind=8), intent(in) :: factor
+  integer,intent(in) :: pexsi_npoles
+  real(kind=8),intent(in) :: pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
   integer, intent(in), optional :: nitdmin ! for dmin only
   real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -70,7 +76,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   ! Local variables 
   integer :: iorb, info, ishift, ispin, ii, jorb, i, ishifts, ishiftm
-  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval, tmparr1, tmparr2, tmparr
+  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval, tmparr1, tmparr2, tmparr, ovrlp_large, ham_large
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp, tempmat
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -78,6 +84,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr
   real(kind=8) :: max_deviation, mean_deviation, KSres, max_deviation_p,  mean_deviation_p, maxdiff
+  integer,dimension(:),allocatable :: row_ind, col_ptr
 
   call f_routine(id='get_coeff')
 
@@ -253,7 +260,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call delete_coupling_terms(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr)
   end if
 
-  if (scf_mode/=LINEAR_FOE) then
+  if (scf_mode/=LINEAR_FOE .and. scf_mode/=LINEAR_PEXSI) then
       tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
       !call yaml_map('Ham1com',tmb%linmat%ham_%matrix_compr)
       !call yaml_map('ovrlpcom',tmb%linmat%ovrlp_%matrix_compr)
@@ -435,7 +442,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
      call timing(iproc,'constraineddft','OF') 
   end if
 
-  if (scf_mode/=LINEAR_FOE) then
+  if (scf_mode/=LINEAR_FOE .and. scf_mode/=LINEAR_PEXSI) then
       ! Calculate the band structure energy and update kernel
       if (scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
          !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
@@ -472,7 +479,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !!    end do
       !!end if
 
-  else ! foe
+  else ! foe or pexsi
 
       !same as for directmin/diag
       ! CDFT: add V*w_ab to Hamiltonian here - assuming ham and weight matrix have the same sparsity...
@@ -507,19 +514,55 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       end if
       ! END TEMPORARY #############################################
 
-      if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
 
       !!if (iproc==0) then
       !!    call yaml_map('write overlap matrix',.true.)
       !!    call write_sparsematrix('overlap.dat', tmb%linmat%s, tmb%linmat%ovrlp_)
       !!end if
-      call fermi_operator_expansion(iproc, nproc, tmprtr, &
-           energs%ebs, order_taylor, max_inversion_error, purification_quickreturn, &
-           invert_overlap_matrix, 2, FOE_ACCURATE, &
-           trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))&
-           //'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
-           tmb, tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%kernel_, tmb%foe_obj)
+      if (scf_mode==LINEAR_PEXSI) then
+          if (iproc==0) call yaml_map('method','PEXSI')
+          !call write_pexsi_matrices(nproc, tmb%linmat%m, tmb%linmat%s, tmb%linmat%ham_%matrix_compr, tmb%linmat%ovrlp_%matrix_compr)
+          row_ind = f_malloc(tmb%linmat%l%nvctr,id='row_ind')
+          col_ptr = f_malloc(tmb%linmat%l%nfvctr,id='col_ptr')
+          call sparsebigdft_to_ccs(tmb%linmat%l%nfvctr, tmb%linmat%l%nvctr, tmb%linmat%l%nseg, tmb%linmat%l%keyg, row_ind, col_ptr)
+          ! AT the moment not working for nspin>1
+          ovrlp_large = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='ovrlp_large')
+          ham_large = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='ham_large')
+          !!call transform_sparsity_pattern(tmb%linmat%l%nfvctr, tmb%linmat%s%nvctr, 0, &
+          !!     tmb%linmat%s%nseg, tmb%linmat%s%keyv, tmb%linmat%s%keyg, tmb%linmat%s%smmm%line_and_column_mm, &
+          !!     tmb%linmat%l%nvctr, 0, tmb%linmat%l%smmm%nseg, &
+          !!     tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
+          !!     tmb%linmat%l%smmm%istsegline, 'small_to_large', tmb%linmat%ovrlp_%matrix_compr, ovrlp_large)
+          !!call transform_sparsity_pattern(tmb%linmat%l%nfvctr, tmb%linmat%m%smmm%nvctrp_mm, tmb%linmat%m%smmm%isvctr_mm, &
+          !!     tmb%linmat%m%nseg, tmb%linmat%m%keyv, tmb%linmat%m%keyg, tmb%linmat%m%smmm%line_and_column_mm, &
+          !!     tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, tmb%linmat%l%smmm%nseg, &
+          !!     tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
+          !!     tmb%linmat%l%smmm%istsegline, 'small_to_large', tmb%linmat%ham_%matrix_compr, ham_large)
+          if (tmb%linmat%s%ntaskgroup/=1 .or. tmb%linmat%m%ntaskgroup/=1 .or. tmb%linmat%l%ntaskgroup/=1) then
+              call f_err_throw('PEXSI is not yet tested with matrix taskgroups', err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%l, tmb%linmat%ovrlp_%matrix_compr, ovrlp_large, 'small_to_large')
+          call transform_sparse_matrix(tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_%matrix_compr, ham_large, 'small_to_large')
+          !write(*,*) 'iproc, ham_large', iproc, ham_large
+          call pexsi_driver(iproc, nproc, tmb%linmat%l%nfvctr, tmb%linmat%l%nvctr, row_ind, col_ptr, &
+               ham_large, ovrlp_large, foe_data_get_real(tmb%foe_obj,"charge",1), pexsi_npoles, &
+               pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_temperature, pexsi_tol_charge, &
+               tmb%linmat%kernel_%matrix_compr, energs%ebs)
+
+          call f_free(ovrlp_large)
+          call f_free(ham_large)
+          call f_free(row_ind)
+          call f_free(col_ptr)
+      else if (scf_mode==LINEAR_FOE) then
+          if (iproc==0) call yaml_map('method','FOE')
+          call fermi_operator_expansion(iproc, nproc, tmprtr, &
+               energs%ebs, order_taylor, max_inversion_error, purification_quickreturn, &
+               invert_overlap_matrix, 2, FOE_ACCURATE, &
+               trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))&
+               //'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
+               tmb, tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%kernel_, tmb%foe_obj)
+      end if
 
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
@@ -560,7 +603,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call f_free(hpsit_c)
       call f_free(hpsit_f)
   end if
-  if (iproc==0) call yaml_map('Coefficients available',scf_mode /= LINEAR_FOE)
+  if (iproc==0) call yaml_map('Coefficients available',(scf_mode /= LINEAR_FOE .and. scf_mode /= LINEAR_PEXSI))
 
   if (calculate_ham) then
       if (nproc>1) then
@@ -834,7 +877,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   even=(mod(ncharge,2)==0)
 
   ! Purify the initial kernel (only when necessary and if there is an even number of electrons)
-  if (target_function/=TARGET_FUNCTION_IS_TRACE .and. even .and. scf_mode==LINEAR_FOE) then
+  if (target_function/=TARGET_FUNCTION_IS_TRACE .and. even .and. &
+      (scf_mode==LINEAR_FOE .or. scf_mode==LINEAR_PEXSI)) then
       if (iproc==0) then
           call yaml_sequence(advance='no')
           call yaml_mapping_open(flow=.true.)
@@ -1366,7 +1410,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Only need to reconstruct the kernel if it is actually used.
       if ((target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) &
            .and. .not.complete_reset ) then
-          if(scf_mode/=LINEAR_FOE) then
+          if(scf_mode/=LINEAR_FOE .and. scf_mode/=LINEAR_PEXSI) then
               call reconstruct_kernel(iproc, nproc, order_taylor, tmb%orthpar%blocksize_pdsyev, &
                    tmb%orthpar%blocksize_pdgemm, orbs, tmb, overlap_calculated)
               if (iproc==0) call yaml_map('reconstruct kernel',.true.)
@@ -3558,3 +3602,56 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
   end if
 
 end subroutine calculate_gap_FOE
+
+
+! WARNING: WILL MOST PROBABLY NOT WORK IN PARALLEL!!!!!!!!!!!
+subroutine write_pexsi_matrices(nproc, smat_h, smat_s, matrix_compr_h, matrix_compr_s)
+  use module_base
+  use sparsematrix_init, only: sparsebigdft_to_ccs
+  use io, only:  write_ccs_matrix
+  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, &
+                               assignment(=), SPARSE_FULL
+  use sparsematrix, only: transform_sparsity_pattern
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: nproc
+  type(sparse_matrix),intent(in) :: smat_h, smat_s
+  real(kind=8),dimension(smat_h%smmm%nvctrp),intent(inout) :: matrix_compr_h
+  real(kind=8),dimension(smat_s%smmm%nvctrp),intent(inout) :: matrix_compr_s
+
+  ! Local variables
+  real(kind=8),dimension(:),pointer :: matrix_compr_sl
+  integer,dimension(:),pointer :: row_ind, col_ptr
+
+  call f_routine(id='write_pexsi_matrices')
+
+  stop 'not correct'
+
+  if (nproc/=1) then
+      !call f_err_throw('not yet tested in parallel')
+      call yaml_warning('not yet tested in parallel')
+  end if
+
+  matrix_compr_sl = sparsematrix_malloc_ptr(smat_h, iaction=SPARSE_FULL, id='matrix_compr_sl')
+  call transform_sparsity_pattern(smat_h%nfvctr, smat_s%smmm%nvctrp_mm, smat_s%smmm%isvctr_mm, &
+       smat_s%nseg, smat_s%keyv, smat_s%keyg, smat_s%smmm%line_and_column_mm, &
+       smat_h%smmm%nvctrp, smat_h%smmm%isvctr, smat_h%smmm%nseg, smat_h%smmm%keyv, smat_h%smmm%keyg, &
+       smat_h%smmm%istsegline, 'small_to_large', matrix_compr_s, matrix_compr_sl)
+
+  row_ind = f_malloc_ptr(smat_h%nvctr,id='row_ind')
+  col_ptr = f_malloc_ptr(smat_h%nfvctr,id='col_ptr')
+
+  call sparsebigdft_to_ccs(smat_h%nfvctr, smat_h%nvctr, smat_h%nseg, smat_h%keyg, row_ind, col_ptr)
+
+  call write_ccs_matrix('overlap_sparse_PEXSI.bin', smat_h%nfvctr, smat_h%nvctr, row_ind, col_ptr, matrix_compr_sl)
+  call write_ccs_matrix('hamiltonian_sparse_PEXSI.bin', smat_h%nfvctr, smat_h%nvctr, row_ind, col_ptr, matrix_compr_h)
+
+  call f_free_ptr(matrix_compr_sl)
+  call f_free_ptr(row_ind)
+  call f_free_ptr(col_ptr)
+
+  call f_release_routine()
+
+end subroutine write_pexsi_matrices

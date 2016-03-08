@@ -22,7 +22,8 @@ program utilities
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
    use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, &
                                     CHARGE_ANALYSIS_PROJECTOR, &
-                                    loewdin_charge_analysis_core, projector_for_charge_analysis
+                                    loewdin_charge_analysis_core
+   use multipole, only: projector_for_charge_analysis
    use bigdft_run, only: bigdft_init
    implicit none
    external :: gather_timings
@@ -193,7 +194,7 @@ program utilities
        case(CHARGE_ANALYSIS_PROJECTOR)
            call projector_for_charge_analysis(at, smat_s, smat_m, smat_l, &
                 ovrlp_mat, hamiltonian_mat, kernel_mat, &
-                at%astruct%rxyz, calculate_centers=.false.)
+                at%astruct%rxyz, calculate_centers=.false., write_output=.true.)
        case default
            call f_err_throw('wrong method',err_name='BIGDFT_RUNTIME_ERROR')
        end select

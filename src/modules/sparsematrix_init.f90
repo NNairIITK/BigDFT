@@ -35,6 +35,8 @@ module sparsematrix_init
   public :: redistribute
   !public :: get_transposed_index
   public :: get_modulo_array
+  public :: sparsebigdft_to_ccs
+  public :: ccs_to_sparsebigdft_short
 
 
 contains
@@ -4328,14 +4330,14 @@ contains
       real(kind=8),dimension(:),pointer,intent(out) :: val
 
       ! Local variables
-      integer :: i
+      integer :: i, ii
       logical :: file_exists
       integer,parameter :: iunit=123
 
       inquire(file=filename,exist=file_exists)
       if (file_exists) then
           open(unit=iunit,file=filename)
-          read(iunit,*) ncol, nnonzero
+          read(iunit,*) ncol, ii, nnonzero
           col_ptr = f_malloc_ptr(ncol,id='col_ptr')
           row_ind = f_malloc_ptr(nnonzero,id='row_ind')
           val = f_malloc_ptr(nnonzero,id='val')
@@ -5338,6 +5340,141 @@ contains
       !call f_release_routine()
 
     end subroutine check_ortho_inguess
+
+
+
+    !> Converts the sparse matrix descriptors from BigDFT to those from the CCS format.
+    !! It required that each column has at least one non-zero element.
+    subroutine sparsebigdft_to_ccs(nfvctr, nvctr, nseg, keyg, row_ind, col_ptr)
+      use module_base
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: nfvctr !< number of columns/rows
+      integer,intent(in) :: nvctr !< number of non-zero elements
+      integer,intent(in) :: nseg !< number of segments for the BigDFT sparsity pattern
+      !integer,dimension(nseg),intent(in) :: keyv !< starting index of each segment within the compressed sparse array
+      integer,dimension(2,2,nseg),intent(in) :: keyg !< starting ad ending "coordinates" of each segment within the uncompressed matrix
+                                                     !! 1,1,iseg: starting line index of segment iseg
+                                                     !! 2,1,iseg: ending line index of segment iseg
+                                                     !! 1,2,iseg: starting column index of segment iseg
+                                                     !! 2,2,iseg: ending column index of segment iseg
+      integer,dimension(nvctr),intent(out) :: row_ind !< row index of each non-zero element
+      integer,dimension(nfvctr),intent(out) :: col_ptr !< index of the first element of each column within the compressed sparse array
+      ! Local variables
+      integer :: ii, icol_old, iseg, icol, i
+
+      call f_routine(id='sparsebigdft_to_ccs')
+
+      ii = 1
+      icol_old = 0
+      do iseg=1,nseg
+          icol = keyg(1,2,iseg) !column index
+          if (icol>icol_old) then
+              col_ptr(icol) = ii
+              icol_old = icol
+          end if
+          do i=keyg(1,1,iseg),keyg(2,1,iseg)
+              !i gives the row index
+              row_ind(ii) = i
+              ii = ii + 1
+          end do
+      end do
+
+      call f_release_routine()
+
+    end subroutine sparsebigdft_to_ccs
+
+
+    !> Converts the sparse matrix descriptors from BigDFT to those from the CCS format.
+    !! It required that each column has at least one non-zero element.
+    subroutine ccs_to_sparsebigdft_short(nfvctr, nvctr, row_ind, col_ptr, nseg, keyv, keyg)
+      use module_base
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: nfvctr !< number of columns/rows
+      integer,intent(in) :: nvctr !< number of non-zero elements
+      integer,dimension(nvctr),intent(in) :: row_ind !< row index of each non-zero element
+      integer,dimension(nfvctr),intent(in) :: col_ptr !< index of the first element of each column within the compressed sparse array
+      integer,intent(out) :: nseg !< number of segments for the BigDFT sparsity pattern
+      integer,dimension(:),pointer,intent(out) :: keyv !< starting index of each segment within the compressed sparse array
+      integer,dimension(:,:,:),pointer,intent(out) :: keyg !< starting ad ending "coordinates" of each segment within the uncompressed matrix
+                                                     !! 1,1,iseg: starting line index of segment iseg
+                                                     !! 2,1,iseg: ending line index of segment iseg
+                                                     !! 1,2,iseg: starting column index of segment iseg
+                                                     !! 2,2,iseg: ending column index of segment iseg
+      ! Local variables
+      integer :: icol, is, ie, i, ii, ii_old, ivctr, iseg, n
+
+
+      nseg = 0
+      do icol=1,nfvctr !column index
+          is = col_ptr(icol)
+          if (icol<nfvctr) then
+              ie = col_ptr(icol+1) - 1
+          else
+              ie = nvctr
+          end if
+          ii_old = -1
+          do i=is,ie
+              ii = row_ind(i)
+              if (ii==ii_old+1) then
+                  !in the same segment
+              else
+                  !new segment in the same column
+                  nseg = nseg + 1
+              end if
+              write(*,*) 'icol, i, ii, nseg', icol, i, ii, nseg
+              ii_old = ii
+          end do
+      end do
+
+      keyv = f_malloc_ptr(nseg,id='keyv')
+      keyg = f_malloc_ptr((/2,2,nseg/),id='keyg')
+
+      iseg = 0
+      ivctr = 0
+      do icol=1,nfvctr !column index
+          is = col_ptr(icol)
+          if (icol<nfvctr) then
+              ie = col_ptr(icol+1) - 1
+          else
+              ie = nvctr
+          end if
+          ii_old = -1
+          do i=is,ie
+              ii = row_ind(i)
+              ivctr = ivctr + 1
+              if (ii==ii_old+1) then
+                  !in the same segment
+              else
+                  !new segment in the same column
+                  !! close previous segment in the same column
+                  !if (iseg>=1) then
+                  !    keyg(2,1,iseg) = ii_old
+                  !    keyg(2,2,iseg) = icol
+                  !end if
+                  iseg = iseg + 1
+                  keyv(iseg) =  ivctr
+                  keyg(1,1,iseg) =  ii
+                  keyg(1,2,iseg) =  icol
+              end if
+              ii_old = ii
+          end do
+      end do
+
+      ! Close the segments
+      do iseg=1,nseg
+          if (iseg<nseg) then
+              ii = keyv(iseg+1)
+          else
+              ii = nvctr + 1
+          end if
+          n = ii - keyv(iseg)
+          keyg(2,1,iseg) = keyg(1,1,iseg) + n - 1
+          keyg(2,2,iseg) = keyg(1,2,iseg)
+      end do
+
+    end subroutine ccs_to_sparsebigdft_short
 
 
 end module sparsematrix_init

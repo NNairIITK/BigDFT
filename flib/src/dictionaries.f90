@@ -120,6 +120,10 @@ module dictionaries
       module procedure dict_new,dict_new_elems
    end interface
 
+   interface iterating
+      module procedure iterating_dict!, iterating_list_container
+   end interface iterating
+
    !> Public routines
    public :: operator(//),operator(.index.),assignment(=)
    public :: set,dict_init,dict_free,append,prepend,add
@@ -684,13 +688,13 @@ contains
 
    !>function that can be used as iterator on a do while loop
    !! the example for the usage can be found
-   function iterating(iter,on)
+   function iterating_dict(iter,on) result(iterate)
      implicit none
      type(dictionary), pointer :: iter,on
-     logical :: iterating
+     logical :: iterate
      !local variables
      if (.not. associated(on)) then
-        iterating=.false.
+        iterate=.false.
         return
      end if
      if (.not. associated(iter)) then
@@ -698,9 +702,30 @@ contains
      else
         iter => dict_next(iter)
      end if
-     iterating=associated(iter)
+     iterate=associated(iter)
      if (.not. associated(iter)) iter => dict_iter(on) !to prevent infinite loop
-   end function iterating
+   end function iterating_dict
+
+   function iterating_list_container(iter,on) result(iterate)
+     implicit none
+     type(dictionary), pointer :: iter
+     type(list_container), intent(in) :: on
+     logical :: iterate
+
+     if (.not. associated(on%dict)) then
+        iterate=.false.
+        return
+     end if
+     if (.not. associated(iter)) then
+        iter => dict_iter(on%dict)
+     else
+        iter => dict_next(iter)
+     end if
+     iterate=associated(iter)
+     if (.not. associated(iter)) iter => dict_iter(on%dict) !to prevent infinite loop
+
+   end function iterating_list_container
+
 
    function dicts_are_not_equal(dict1,dict2) result(notequal)
      use yaml_strings, only: is_atoi,is_atof,is_atol

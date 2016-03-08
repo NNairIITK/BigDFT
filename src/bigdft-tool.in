@@ -22,7 +22,7 @@ actions = ["memory-estimation", "rotate", "convert-field",
            "convert-positions", "manual", "wizard", "transform-coordinates",
 		   "pdos", "kernel-analysis", "extract-submatrix", "solve-eigensystem", 
 		   "analyze-coeffs", "peel-matrix", "multiply-matrices", "matrixpower", 
-		   "plot-wavefunction", "suggest-cutoff", "charge-analysis"]
+		   "plot-wavefunction", "suggest-cutoff", "charge-analysis", "dos"]
 
 # Processed lines
 abs_srcdir = "@abs_srcdir@"
@@ -231,6 +231,14 @@ def parse():
 	# Charge analysis method
     group.add_option("--method", type="str", default="loewdin", metavar="METHOD",
              		 help="method for the charge analysis [default: %default]")
+
+    # density of states for the linear scaling version
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[22],
+                        "density of states for the linear scaling version")
+    group.add_option("--sigma", type="float", default=0.01, metavar="NUM",
+             		 help="spread of the peaks [default: %default]")
+    group.add_option("--npts", type="int", default=1400, metavar="NUM",
+                     help="number of points for the discretization [default: %default]")
 
     return parser
 
@@ -755,6 +763,10 @@ options:
     if options.action == actions[21]:
         print 'calling utilities to perform a Loewdin charge analysis'
         command = "%s %s charge-analysis %s %s %s %s" % (options.mpirun, utilities, options.method, options.overlap_file, options.kernel_file, options.hamiltonian_file)
+        print command
+    if options.action == actions[22]:
+        print 'calling memguess for DOS'
+        command = "%s 1 %s dd dos %s %s %s %s %s" % (memguess, options.name, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.sigma, options.npts)
         print command
     if command is not None:
         os.system(command)

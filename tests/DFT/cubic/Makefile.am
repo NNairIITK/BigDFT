@@ -44,7 +44,8 @@ LONG_TESTDIRS += $(SHORT_TESTDIRS) \
 	  Cavity \
 	  ElectField \
 	  ElectronGas \
-	  CH4-D3
+	  CH4-D3 \
+	  counterions
 
 EXTRA_DIST = 
 

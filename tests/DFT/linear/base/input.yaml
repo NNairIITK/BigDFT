@@ -26,7 +26,7 @@
    conf_damping: 0.5
    calc_dipole: Yes
    calc_pulay: old
-   charge_multipoles: yes
+   charge_multipoles: 1
  lin_basis:
    idsx: [5, 0]
    gnrm_cv: 4.0000000000000003E-005

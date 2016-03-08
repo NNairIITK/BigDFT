@@ -308,4 +308,15 @@ CONTAINS
   end subroutine nose_energy
   !
 
+  subroutine write_nhc_restart(unt,nhc)
+    implicit none 
+    !     Function : write Nose Hoover chain thermostat info to the restart file
+    integer :: unt
+    type(NHC_data), intent(inout) :: nhc
+    if(nhc%nhchain)then
+     write(unt,*)nhc%eta_size,nhc%nhnc,nhc%nmultint,nhc%nsuzuki,nhc%nosefrq
+     write(unt,*)nhc%eta(1:nhc%eta_size)
+     write(unt,*)nhc%veta(1:nhc%eta_size)
+   end if 
+  end subroutine write_nhc_restart
 end module Nose_Hoover_Chains

@@ -45,19 +45,19 @@ program memguess
    character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn, coeff_file, ham_file, overlap_file, kernel_file, matrix_file
    character(len=128) :: ntmb_, norbks_, interval_, npdos_, nat_, nsubmatrices_, ncategories_, cutoff_, power_
-   character(len=128) :: output_pdos, amatrix_file, bmatrix_file, cmatrix_file, inmatrix_file, outmatrix_file, wf_file
-   character(len=128) :: posinp_file, pdos_file, cc
+   character(len=128) :: output_pdos, output_dos, amatrix_file, bmatrix_file, cmatrix_file, inmatrix_file, outmatrix_file, wf_file
+   character(len=128) :: posinp_file, pdos_file, dos_file, cc, sigma_, npts_
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
    logical :: calculate_pdos = .false., kernel_analysis = .false., extract_submatrix = .false.
    logical :: solve_eigensystem = .false., analyze_coeffs = .false., peel_matrix = .false.
    logical :: multiply_matrices = .false., matrixpower = .false., plot_wavefunction = .false.
-   logical :: suggest_cutoff = .false., charge_analysis = .false.
+   logical :: suggest_cutoff = .false., charge_analysis = .false., calculate_dos = .false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out,lwork
    integer :: norbgpu,ng, nsubmatrices, ncategories
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: hx,hy,hz,energy,occup,interval,tt,cutoff,power,d,occup_pdos, total_occup
+   real(gp) :: hx,hy,hz,energy,occup,interval,tt,cutoff,power,d,occup_pdos, total_occup, total_fe
    type(memory_estimation) :: mem
    type(run_objects) :: runObj
    type(orbitals_data) :: orbstst
@@ -65,6 +65,7 @@ program memguess
    type(gaussian_basis) :: G !basis for davidson IG
    type(atoms_data) :: at
    type(denspot_distribution) :: dpbox
+   real(gp) :: sigma
    real(gp), dimension(3) :: shift
    real(gp), dimension(:,:), pointer :: fxyz
    real(wp), dimension(:), allocatable :: rhoexpo
@@ -73,7 +74,7 @@ program memguess
    type(system_fragment), dimension(:), pointer :: ref_frags
    character(len=3) :: in_name !lr408
    character(len=128) :: line
-   integer :: i, input_wf_format, nneighbor_min, nneighbor_max, nneighbor, ntypes
+   integer :: i, input_wf_format, nneighbor_min, nneighbor_max, nneighbor, ntypes, npts
    integer,parameter :: nconfig=1
    type(dictionary), pointer :: run
    integer,dimension(:),pointer :: nzatom, nelpsp, iatype
@@ -96,7 +97,7 @@ program memguess
    real(kind=8),dimension(:,:),allocatable :: rxyz, rxyz_int, denskernel, ham, overlap, coeff, pdos, energy_bins, matrix
    real(kind=8),dimension(:,:),pointer :: coeff_ptr
    real(kind=8),dimension(:,:),allocatable :: amatrix, bmatrix, cmatrix, temparr, d1min_list
-   real(kind=8),dimension(:),allocatable :: eval, coeff_cat, work, d2min_list, dtype, rcov
+   real(kind=8),dimension(:),allocatable :: eval, coeff_cat, work, d2min_list, dtype, rcov,fe,eigenv
    real(kind=8),dimension(:),pointer :: eval_ptr
    real(kind=8),dimension(:),pointer :: matrix_compr
    type(matrices) :: ovrlp_mat, ham_mat, kernel_mat
@@ -172,7 +173,7 @@ program memguess
       write(*,'(1x,a)')&
            &   '"analyse-coeffs" <coeff.bin>" ' 
       write(*,'(1x,a)')&
-           & 'analyse the coefficients by assiging them in to ncategories categories'
+           & 'analyse the coefficients by assigning them in to ncategories categories'
       write(*,'(1x,a)')&
            &   '"peel-matrix" <matrix.bin>" ' 
       write(*,'(1x,a)')&
@@ -350,6 +351,23 @@ program memguess
                &   'calculate ', npdos,' PDOS based on the coeffs in the file "', trim(coeff_file),'"'
                !&   'calculate ', npdos,' PDOS based on the coeffs (', ntmb, 'x', norbks, ') in the file "', trim(coeff_file),'"'
             calculate_pdos=.true.
+            exit loop_getargs
+         else if (trim(tatonam)=='dos') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = coeff_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ham_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = overlap_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = sigma_)
+            read(sigma_,fmt=*,iostat=ierror) sigma
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = npts_)
+            read(npts_,fmt=*,iostat=ierror) npts
+            write(*,'(1x,3a)')&
+               &   'calculate total DOS based on the coeffs in the file "', trim(coeff_file),'"'
+            calculate_dos=.true.
             exit loop_getargs
          else if (trim(tatonam)=='kernel-analysis') then
             i_arg = i_arg + 1
@@ -927,6 +945,101 @@ program memguess
        stop
    end if
 
+   if (calculate_dos) then
+
+       iproc=mpirank()
+       nproc=mpisize()
+       
+       iunit01=98
+       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
+       call read_linear_coefficients(trim(coeff_file), nspin, ntmb, norbks, coeff_ptr, &
+            eval=eval_ptr)
+       call f_close(iunit01)
+
+
+       call read_sparse_matrix(trim(overlap_file), nspin, geocode, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
+            matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
+            at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
+       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
+       call bigdft_to_sparsebigdft(iproc, nproc, at%astruct%nat, nspin, geocode, nfvctr_s, nfvctrp_s, isfvctr_s, &
+            on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
+       ovrlp_mat = matrices_null()
+       ovrlp_mat%matrix = sparsematrix_malloc0_ptr(smat_s,iaction=DENSE_FULL,id='smat_s%matrix')
+       call uncompress_matrix(iproc, smat_s, matrix_compr, ovrlp_mat%matrix)
+       call f_free_ptr(matrix_compr)
+
+       call read_sparse_matrix(trim(ham_file), nspin, geocode, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
+            matrix_compr, on_which_atom=on_which_atom_m)
+       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
+       call bigdft_to_sparsebigdft(iproc, nproc, at%astruct%nat, nspin, geocode, nfvctr_m, nfvctrp_m, isfvctr_m, &
+            on_which_atom_m, nvctr_m, nseg_m, keyg_m, smat_m)
+       ham_mat = matrices_null()
+       ham_mat%matrix = sparsematrix_malloc0_ptr(smat_m,iaction=DENSE_FULL,id='smat_m%matrix')
+       call uncompress_matrix(iproc, smat_m, matrix_compr, ham_mat%matrix)
+       call f_free_ptr(matrix_compr)
+
+       denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
+
+       !allocate tables containing the eigenvalues and the occupation of each eigenstate
+       !dos = f_malloc0(npts,id='dos')
+       eigenv = f_malloc0((/norbks/),id='eigenv')
+       fe = f_malloc0((/norbks/),id='fe')
+
+       !define the outpute file
+       output_dos='DoS.dat'
+       call yaml_map('output file',trim(output_dos))
+
+       ! Calculate a partial kernel for each KS orbital
+       total_fe = 0.d0
+       !fe_dos = 0.d0
+       do iorb=1,norbks
+           !call yaml_map('orbital being processed',iorb)
+           call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff_ptr(1,iorb), ntmb, &
+                coeff_ptr(1,iorb), ntmb, 0.d0, denskernel(1,1), ntmb)
+
+           !Compute all eigenvalues
+           eigenv(iorb) = 0.d0
+           do ispin=1,nspin
+               !!$omp parallel default(none) &
+               !!$omp shared(ispin,iorb,ntmb,denskernel,ham_mat,eigenv) &
+               !!$omp private(itmb,jtmb)
+               !!$omp do reduction(+:eigenv)
+               do itmb=1,ntmb
+                   do jtmb=1,ntmb
+                      eigenv(iorb) = eigenv(iorb) + denskernel(itmb,jtmb)*ham_mat%matrix(jtmb,itmb,ispin)
+                   end do
+               end do
+               !!$omp end do
+               !!$omp end parallel
+               !write(*,*) 'eigenv(',iorb,')=',eigenv(iorb)
+           end do
+
+           !Compute all occupations of eigenstates
+           fe(iorb) = 0.d0
+           do ispin=1,nspin
+               !!$omp do reduction(+:fe(iorb))
+               do itmb=1,ntmb!ipdos,ntmb,npdos
+                   do jtmb=1,ntmb!ipdos,ntmb,npdos
+                       fe(iorb) = fe(iorb) + denskernel(itmb,jtmb)*ovrlp_mat%matrix(jtmb,itmb,ispin)
+                   end do
+               end do
+               !!$omp end do
+               !write(*,*) 'fe(',iorb,')=',fe(iorb)
+           end do
+
+           total_fe = total_fe + fe(iorb)
+
+       end do
+
+       call yaml_map('sum of all occupation',total_fe)
+
+       call write_gaussian_peaks(norbks,fe,eigenv,sigma,npts,output_dos)
+       call yaml_map('written output file',trim(output_dos))
+       
+       stop
+
+   end if
+
    if (kernel_analysis) then
 !!$       call mpi_initialized(mpi_initd, ierror)
 !!$       if (mpi_initd) then
@@ -1011,6 +1124,7 @@ program memguess
        call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
        call f_close(iunit01)
        call diagonalizeHamiltonian2(iproc, ntmb, ham, overlap, eval)
+       !write(*,*) '2.d0*sum(eval(1:4))',2.d0*sum(eval(1:4))
        call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
        call writeLinearCoefficients(iunit01, .true., nat, rxyz, &
             ntmb, ntmb, ntmb, ham, eval)
@@ -2317,6 +2431,55 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
    end if
    call f_free(rxyz_file)
 END SUBROUTINE take_psi_from_file
+
+
+!> 
+subroutine write_gaussian_peaks(norb,coeff,energy,sigma,npts,filename)
+
+   use module_base
+
+   implicit none
+   !In/out variables
+   integer, intent(in) :: norb, npts
+   real(gp), dimension(norb), intent(in) :: coeff
+   real(gp), dimension(norb), intent(in) :: energy
+   real(wp), intent(in) :: sigma
+   character(len=*), intent(in) :: filename
+
+   !local variables
+   integer :: ih, iunit, ie
+   real(wp) :: e_grid,emin, emax, he, towrite
+
+
+   !Define the grid of energy
+   !e_grid = f_malloc(npts,id='e_grid') !grid of energy
+   emin=minval(energy,norb)-2*sigma
+   emax=maxval(energy,norb)+2*sigma
+   he=(emax-emin)/(npts-1) !energy gridspace
+
+   !open output file
+   iunit=99
+   call f_open_file(iunit, file=filename, binary=.false.)
+   !loop over the grid points
+   do ih=1, npts
+      !e_grid(ih) = emin + (ih-1)*he
+      e_grid = emin + (ih-1)*he
+      towrite=0.0d0
+      !loop over the energies: add the gaussian contribution of each energy at the current grid-point e_grid.
+      do ie=1, norb
+         towrite = towrite + coeff(ie)*exp( - (e_grid-energy(ie))**2 / (2*sigma**2) )
+      end do
+      !write the computed value at the ih-th grid point
+!      write(iunit,'(2(E15.8E2,1x))') e_grid, towrite
+      write(iunit,'(a)') ' '//trim(yaml_toa(e_grid,fmt='(e15.8e2)'))//trim(yaml_toa(towrite,fmt='(e15.8e2)'))
+
+   end do
+   !close output file
+   call f_close(iunit)
+
+   
+   
+end subroutine write_gaussian_peaks
 
 
 !> Deprecated message for memguess (do not use directly!!)

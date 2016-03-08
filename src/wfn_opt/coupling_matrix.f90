@@ -161,8 +161,8 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   end do
 
   !Allocate partial densities and potentials
-  rho_ias = f_malloc((/ lr%d%n1i, lr%d%n2i, n3p, nmulti /),id='rho_ias')
-  v_ias = f_malloc((/ lr%d%n1i, lr%d%n2i, n3p /),id='v_ias')
+  rho_ias = f_malloc((/ lr%d%n1i, lr%d%n2i, max(n3p,1), nmulti /),id='rho_ias')
+  v_ias = f_malloc((/ lr%d%n1i, lr%d%n2i, max(n3p,1) /),id='v_ias')
 
   !Preliminary comments on the spin :
   !1- In the spin-averaged case (nspin=1), the whole coupling matrix Kbig is made of 4 symmetric sub-matrices of size nmulti*nmulti.
@@ -271,7 +271,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
      !Calculate the Hartree potential corresponding to the partial density
      if (dofH) then
         !Copy the partial density onto the partial potential space to pass it to PSolver
-        call vcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
+        if (n3p > 0) call vcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
         !!$$if (iproc==0) call yaml_comment('vcopy done')
         !Partial potential term for each partial density
 !        if (iproc == 0 .and. verbose > 1) then
