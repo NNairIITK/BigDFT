@@ -2,6 +2,7 @@ module sparsematrix_highlevel
 
   private
 
+  !> Initialization routines
   public :: sparse_matrix_and_matrices_init_from_file_ccs
   public :: sparse_matrix_init_from_file_ccs
   public :: sparse_matrix_init_from_data_ccs
@@ -11,13 +12,16 @@ module sparsematrix_highlevel
   public :: read_sparse_matrix_metadata
   public :: sparse_matrix_init_from_data_bigdft
   public :: matrices_init
+  !> Data manipulation routines
   public :: matrices_set_values
   public :: matrices_get_values
   public :: matrices_get_size
   public :: ccs_data_from_sparse_matrix
   public :: ccs_matrix_write
+  !> Wrapper for complete operations
   public :: matrix_matrix_multiplication
   public :: matrix_chebyshev_expansion
+  public :: matrix_fermi_operator_expansion
 
   contains
 
@@ -469,7 +473,7 @@ module sparsematrix_highlevel
     end subroutine matrix_matrix_multiplication
 
 
-    subroutine matrix_chebyshev_expansion(iproc, nproc, ndeg, ncalc, ex, &
+    subroutine matrix_chebyshev_expansion(iproc, nproc, ncalc, ex, &
                smat_in, smat_out, mat_in, mat_out, npl_auto)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
@@ -477,7 +481,7 @@ module sparsematrix_highlevel
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, ndeg, ncalc
+      integer,intent(in) :: iproc, nproc, ncalc
       type(sparse_matrix),intent(in) ::smat_in, smat_out
       real(kind=8),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: mat_in
@@ -513,10 +517,10 @@ module sparsematrix_highlevel
       if (present(npl_auto)) then
           !!call inverse_chebyshev_expansion(iproc, nproc, ndeg, &
           !!     smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto)
-          call inverse_chebyshev_expansion_new(iproc, nproc, ndeg, &
+          call inverse_chebyshev_expansion_new(iproc, nproc, &
                smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto=npl_auto)
       else
-          call inverse_chebyshev_expansion_new(iproc, nproc, ndeg, &
+          call inverse_chebyshev_expansion_new(iproc, nproc, &
                smat_in, smat_out, ncalc, ex, mat_in, mat_out)
       end if
 
@@ -525,9 +529,9 @@ module sparsematrix_highlevel
     end subroutine matrix_chebyshev_expansion
 
 
-    subroutine matrix_fermi_operator_expansion(iproc, nproc, ndeg, foe_obj, smat_s, smat_h, smat_k, &
+    subroutine matrix_fermi_operator_expansion(iproc, nproc, foe_obj, smat_s, smat_h, smat_k, &
                overlap, ham, overlap_minus_one_half, kernel, ebs, &
-               calculate_minusonehalf, max_inversion_error, foe_verbosity, label)
+               calculate_minusonehalf, foe_verbosity)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
       use foe_base, only: foe_data
@@ -536,7 +540,6 @@ module sparsematrix_highlevel
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
-      integer,intent(inout) :: ndeg
       type(foe_data),intent(inout) :: foe_obj
       type(sparse_matrix),intent(in) ::smat_s, smat_h, smat_k
       type(matrices),intent(in) :: overlap, ham
@@ -544,27 +547,19 @@ module sparsematrix_highlevel
       type(matrices),intent(inout) :: kernel
       real(kind=8),intent(out) :: ebs
       logical,intent(in),optional :: calculate_minusonehalf
-      real(kind=8),intent(in),optional :: max_inversion_error
       integer,intent(in),optional :: foe_verbosity
-      character(len=*),intent(in),optional :: label
 
       ! Local variables
       integer :: i
-      real(kind=8) :: max_inversion_error_
       logical :: calculate_minusonehalf_
       integer :: foe_verbosity_
-      character(len=100) :: label_
 
       call f_routine(id='matrix_fermi_operator_expansion')
 
-      max_inversion_error_ = 1.d-8
-      if (present(max_inversion_error)) max_inversion_error_ = max_inversion_error
       calculate_minusonehalf_ = .true.
       if (present(calculate_minusonehalf)) calculate_minusonehalf_ = calculate_minusonehalf
       foe_verbosity_ = 1
       if (present(foe_verbosity)) foe_verbosity_ = foe_verbosity
-      label_ = '001'
-      if (present(label)) label_ = trim(label)
 
       ! Check the dimensions of the internal arrays
       if (size(overlap%matrix_compr)/=smat_s%nvctrp_tg) then
@@ -588,21 +583,21 @@ module sparsematrix_highlevel
       ! smat_h is not larger than that of smat_k. This is just a minimal
       ! check to ensure that the sparsity pattern of smat_s is contained within the one of smat_h and the one 
       ! of smat_h within smat_k. However this check is not sufficient to make sure that this condition is fulfilled.
-      if (smat_h%nvctr>smat_s%nvctr) then
-          call f_err_throw('The number of non-zero elements of smat_h ('//&
-               trim(yaml_toa(smat_h%nvctr))//') is larger than the one of smat_s ('//&
-               trim(yaml_toa(smat_s%nvctr))//')')
-      end if
-      if (smat_k%nvctr>smat_h%nvctr) then
-          call f_err_throw('The number of non-zero elements of smat_k ('//&
-               trim(yaml_toa(smat_k%nvctr))//') is larger than the one of smat_h ('//&
+      if (smat_s%nvctr>smat_h%nvctr) then
+          call f_err_throw('The number of non-zero elements of smat_s ('//&
+               trim(yaml_toa(smat_s%nvctr))//') is larger than the one of smat_h ('//&
                trim(yaml_toa(smat_h%nvctr))//')')
+      end if
+      if (smat_h%nvctr>smat_k%nvctr) then
+          call f_err_throw('The number of non-zero elements of smat_h ('//&
+               trim(yaml_toa(smat_h%nvctr))//') is larger than the one of smat_k ('//&
+               trim(yaml_toa(smat_k%nvctr))//')')
       end if
 
       call fermi_operator_expansion_new(iproc, nproc, &
-           ebs, ndeg, max_inversion_error_, &
+           ebs, &
            calculate_minusonehalf_, foe_verbosity_, &
-           label_, smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj)
+           smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj)
 
       call f_release_routine()
 

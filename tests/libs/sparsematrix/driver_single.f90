@@ -115,7 +115,7 @@ program driver_single
   call timing(bigdft_mpi%mpi_comm,'INIT','PR')
 
   ! Perform the operation mat_out = mat_in**exp_power
-  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, 1, (/exp_power/), &
+  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, (/exp_power/), &
        smat_in, smat_out, mat_in, mat_out, npl_auto=.true.)
 
   call timing(bigdft_mpi%mpi_comm,'CALC_LINEAR','PR')
@@ -130,7 +130,7 @@ program driver_single
   if (bigdft_mpi%iproc==0) then
       call yaml_comment('Performing Matrix Chebyshev Expansion',hfill='-')
   end if
-  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, 1, (/-exp_power/), &
+  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, (/-exp_power/), &
        smat_in, smat_out, mat_in, mat_check_accur(1), npl_auto=.true.)
   ! Multiply the previously calculated one with this new none. The result should be the identity.
   call matrix_matrix_multiplication(bigdft_mpi%iproc, bigdft_mpi%nproc, smat_out, &

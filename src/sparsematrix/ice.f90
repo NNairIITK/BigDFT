@@ -625,7 +625,7 @@ module ice
     end subroutine get_minmax_eigenvalues
 
 
-    subroutine inverse_chebyshev_expansion_new(iproc, nproc, norder_polynomial, &
+    subroutine inverse_chebyshev_expansion_new(iproc, nproc, &
                ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp, &
                verbosity, npl_auto)
       use module_base
@@ -649,7 +649,7 @@ module ice
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, norder_polynomial, ncalc
+      integer,intent(in) :: iproc, nproc, ncalc
       type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
       real(kind=8),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: ovrlp_mat
@@ -696,7 +696,7 @@ module ice
       character(len=3),parameter :: new='new'
       character(len=3) :: mode=old
 
-      call f_routine(id='inverse_chebyshev_expansion')
+      call f_routine(id='inverse_chebyshev_expansion_new')
 
       if (present(verbosity)) then
           verbosity_ = verbosity

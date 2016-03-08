@@ -34,7 +34,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use transposed_operations, only: calculate_overlap_transposed
   use parallel_linalg, only: dsygv_parallel
   use matrix_operations, only: deviation_from_unity_parallel
-  use foe, only: fermi_operator_expansion_new
+  !use foe, only: fermi_operator_expansion_new
+  use sparsematrix_highlevel, only: matrix_fermi_operator_expansion
   use public_enums
   use locregs_init, only: small_to_large_locreg
   use locreg_operations, only: confpot_data
@@ -558,13 +559,16 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call f_free(col_ptr)
       else if (scf_mode==LINEAR_FOE) then
           if (iproc==0) call yaml_map('method','FOE')
-          call fermi_operator_expansion_new(iproc, nproc, &
-               energs%ebs, order_taylor, max_inversion_error, &
-               invert_overlap_matrix, 2, &
-               trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))&
-               //'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
-               tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
-               tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, tmb%foe_obj)
+          !call fermi_operator_expansion_new(iproc, nproc, &
+          !     energs%ebs, &
+          !     invert_overlap_matrix, 2, &
+          !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
+          !     tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, tmb%foe_obj)
+          call matrix_fermi_operator_expansion(iproc, nproc, tmb%foe_obj, &
+               tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+               tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, &
+               energs%ebs, invert_overlap_matrix, 2)
+
           !!call fermi_operator_expansion(iproc, nproc, &
           !!     energs%ebs, order_taylor, max_inversion_error, &
           !!     invert_overlap_matrix, 2, &
@@ -3045,7 +3049,8 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
   use module_base
   use module_types    
   use foe_base, only: foe_data, foe_data_null, foe_data_get_real, foe_data_set_real, foe_data_deallocate
-  use foe, only:  fermi_operator_expansion_new
+  !use foe, only:  fermi_operator_expansion_new
+  use sparsematrix_highlevel, only: matrix_fermi_operator_expansion
   use sparsematrix_base, only: matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                SPARSE_TASKGROUP, assignment(=)
   use yaml_output
@@ -3118,11 +3123,15 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       end do
       call foe_data_set_real(foe_obj,"fscale",1.d-2)
       norder_taylor = input%lin%order_taylor
-      call fermi_operator_expansion_new(iproc, nproc, &
-           ebs, norder_taylor, input%lin%max_inversion_error, &
-           .true., 2, &
-           'HOMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-           tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
+      !call fermi_operator_expansion_new(iproc, nproc, &
+      !     ebs, &
+      !     .true., 2, &
+      !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
+      call matrix_fermi_operator_expansion(iproc, nproc, foe_obj, &
+           tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+           tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
+           ebs, .true., 2)
       !call fermi_operator_expansion(iproc, nproc, &
       !     ebs, norder_taylor, input%lin%max_inversion_error, &
       !     .true., 2, &
@@ -3145,11 +3154,15 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       end do
       call foe_data_set_real(foe_obj,"fscale",1.d-2)
       norder_taylor = input%lin%order_taylor
-      call fermi_operator_expansion_new(iproc, nproc, &
-           ebs, norder_taylor, input%lin%max_inversion_error, &
-           .true., 2, &
-           'LUMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-           tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
+      !call fermi_operator_expansion_new(iproc, nproc, &
+      !     ebs, &
+      !     .true., 2, &
+      !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
+      call matrix_fermi_operator_expansion(iproc, nproc, foe_obj, &
+           tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+           tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
+           ebs, .true., 2)
       !call fermi_operator_expansion(iproc, nproc, &
       !     ebs, norder_taylor, input%lin%max_inversion_error, &
       !     .true., 2, &
