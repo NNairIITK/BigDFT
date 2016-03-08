@@ -746,16 +746,9 @@
      method                            : FOE
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
-     calculate S^x:
-       mode                            : sparse
-       powers:
-         x                             : -1/2
-       order                           :  1020
-       determine eigenvalue bounds:
-       -  {npl:  16, scale:  1.00E+00, bounds:  [  0.5,  1.5 ], ok:  [  Yes,  Yes ], 
-     exp accur:  [  3.61E-10 ]}
-       error estimation:
-         max / mean error              :  [  6.34E-10,  9.33E-11 ]
+     determine eigenvalue bounds:
+     -  {npl:  16, scale:  1.00E+00, bounds:  [  0.5,  1.5 ], ok:  [  Yes,  Yes ], 
+   exp accur:  [  3.61E-10 ]}
      Kernel calculation:
      -  #--------------------------------------------------------------- ispin: 1, itemp: 1
        decay length of error function  :  1.000E-02

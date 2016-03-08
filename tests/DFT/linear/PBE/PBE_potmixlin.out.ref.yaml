@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.8a.4
- Timestamp of this run                 : 2016-02-02 11:20:40.533
+ Version Number                        : 1.8a.5
+ Timestamp of this run                 : 2016-03-08 11:06:12.716
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -64,7 +64,7 @@
    elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
    nspin                               : 1 #      Spin polarization treatment
    mpol                                : 0 #      Total magnetic moment
-   itermin                             : 0 #      Min. iterations of wfn. opt. steps
+   itermin                             : 0 #      Minimal iterations of wfn. optimzed steps
    nrepmax                             : 1 #      Max. number of re-diag. runs
    dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
    output_wf                           : 0 #      Output of the support functions
@@ -148,8 +148,6 @@
    adjust_kernel_threshold             : True #   enable the adaptive ajustment of the kernel convergence threshold according to the 
     #                                              support function convergence
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
-    #                                              Gaussian used for the radial part of the 
-    #                                              function based on the multipoles.
  lin_general:
    hybrid                              : Yes #    activate the hybrid mode; if activated, only the low accuracy values will be relevant
    nit: [10, 0] #                                 number of iteration with low/high accuracy
@@ -169,6 +167,7 @@
     #                                              support function weights
    kernel_restart_noise                : 0.0d0 #  add random noise to kernel or coefficients when restarting
    frag_num_neighbours                 : 0 #      number of neighbours to output for each fragment
+   frag_neighbour_cutoff               : 12.0d0 # number of neighbours to output for each fragment
    cdft_lag_mult_init                  : 0.05d0 # CDFT initial value for Lagrange multiplier
    cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    calc_dipole                         : No #     calculate dipole
@@ -203,7 +202,7 @@
     #                                              optimization of the density kernel
    rpnrm_cv                            : 1.0E-008 # convergence criterion (change in density/potential) for the kernel optimization
    mixing_method                       : POT #    quantity to be mixed
-   eval_range_foe: [-1.1, 1.3] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
+   eval_range_foe: [-1.1, 1.3] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
    fscale_foe                          : 2.9999999999999999E-002 # decay length of the error function
    nstep: [1, 1] #                                number of steps taken when updating the coefficients via 
@@ -215,12 +214,10 @@
    gnrm_cv_coeff: [1.e-5, 1.e-5] #                convergence criterion on the gradient for direct minimization
    linear_method                       : DIAG #   method to optimize the density kernel
    alpha_sd_coeff                      : 0.2 #    initial step size for SD for direct minimization
-   alpha_fit_coeff                     : No #     update the SD step size by fitting a quadratic polynomial to the energy along the 
-    #                                              direction of the gradient during direct 
-    #                                              mininimization.
+   alpha_fit_coeff                     : No #     Update the SD step size by fitting a quadratic polynomial
    coeff_scaling_factor                : 1.0 #    factor to scale the gradient in direct minimization
    pexsi_npoles                        : 40 #     number of poles used by PEXSI
-   pexsi_mumin                         : -1.0 #   initial guess for the lower bound of the chemical potential used by PEXSI
+   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
    pexsi_mumax                         : 1.0 #    initial guess for the upper bound of the chemical potential used by PEXSI
    pexsi_mu                            : 0.5 #    initial guess for the  chemical potential used by PEXSI
    pexsi_temperature                   : 1.e-3 #  temperature used by PEXSI
@@ -257,30 +254,33 @@
      rloc                              : 3.5
      rloc_kernel                       : 8.0
      rloc_kernel_foe                   : 9.0
-   nbasis                              : 4 #      number of support functions per atom
-   ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential
-   confinement: [8.3e-3, 0.0] #                   prefactor for the confining potential (low/high accuracy)
-   rloc: [7.0, 7.0] #                             localization radius for the support functions
-   rloc_kernel                         : 9.0 #    localization radius for the density kernel
+   nbasis                              : 4 #      Number of support functions per atom
+   ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential
+   confinement: [8.3e-3, 0.0] #                   Prefactor for the confining potential (low/high accuracy)
+   rloc: [7.0, 7.0] #                             Localization radius for the support functions
+   rloc_kernel                         : 9.0 #    Localization radius for the density kernel
    rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
  psolver:
    kernel:
-     screening                         : 0 #      mu screening parameter
+     screening                         : 0 #      Mu screening parameter
      isf_order                         : 16 #     Order of the Interpolating Scaling Function family
-     stress_tensor                     : Yes #    triggers the calculation of the stress tensor
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
    environment:
      cavity                            : none #   Type of the cavity
-     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
-     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     cavitation                        : No #     Triggers the evaluation of the extra cavitation terms
+     input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
      fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
      itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
      minres                            : 1.e-6 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
    setup:
      accel                             : none #   Material Acceleration
      taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
      global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
      verbose                           : Yes #    Verbosity switch
      output                            : none #   Quantities to be plotted after the main solver routine
+ output:
+   atomic_density_matrix               : None #   Dictionary of the atoms for which the atomic density matrix has to be plotted
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -299,7 +299,7 @@
    print_frequency                     : 1 #      Printing frequency for energy.dat and Trajectory.xyz files
    temperature                         : 300.d0 # Initial temperature in Kelvin
    timestep                            : 20.d0 #  Time step for integration (in a.u.)
-   no_translation                      : No #     logical input to set translational correction
+   no_translation                      : No #     Logical input to set translational correction
    thermostat                          : none #   Activates a thermostat for MD
    wavefunction_extrapolation          : 0 #      Activates the wavefunction extrapolation for MD
  mix:
@@ -417,7 +417,7 @@
      Coarse PSP                        : 0.0
      Source                            : Hard-Coded
  posinp:
-    #---------------------------------------------------------------------- Atomic positions
+    #---------------------------------------------- Atomic positions (by default bohr units)
    units                               : angstroem
    positions:
    - N: [0.0, 0.0, 0.0]
@@ -600,7 +600,7 @@
      Coefficients (c1 .. c4)           :  [ -4.17890,  0.72446,  0.00000,  0.00000 ]
    No. of projectors                   :  0
    PSP XC                              : "XC: Perdew, Burke & Ernzerhof"
-  #-------------------------------------------------------------------------- Atom Positions
+  #----------------------------------------------- Atom Positions (specified and grid units)
  Atomic structure:
    Units                               : angstroem
    Positions:
@@ -639,16 +639,17 @@
  Poisson Kernel Initialization:
     #---------------------------------------------------------------------- Input parameters
    kernel:
-     screening                         : 0 #      mu screening parameter
+     screening                         : 0 #      Mu screening parameter
      isf_order                         : 16 #     Order of the Interpolating Scaling Function family
-     stress_tensor                     : Yes #    triggers the calculation of the stress tensor
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
    environment:
      cavity                            : none #   Type of the cavity
-     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
-     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     cavitation                        : No #     Triggers the evaluation of the extra cavitation terms
+     input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
      fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
      itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
      minres                            : 1.e-6 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
    setup:
      accel                             : none #   Material Acceleration
      taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
@@ -2219,13 +2220,9 @@
  calculate HOMO kernel:
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
    S^-1/2                              : recalculate
-   calculate S^x:
-     mode                              : sparse
-     powers:
-       x                               : -1/2
-     order                             :  6
-     error estimation:
-       max / mean error                :  [  1.86E-10,  1.65E-11 ]
+   determine eigenvalue bounds:
+   -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
+ exp accur:  [  3.61E-10 ]}
    Kernel calculation:
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
@@ -2248,24 +2245,20 @@
  eF: -5.956422E-02, Tr(K):  5.3000728E+01, D Tr(K):  7.28E-04, new eF: cubic interpol}
      -  { #---------------------------------------------------------------------- it FOE: 8
  eF: -5.957067E-02, Tr(K):  5.3000000E+01, D Tr(K):  1.07E-07, new eF: cubic interpol}
-     EBS                               : -2.122758334837E+01
-     EBS higher temperature            : -2.122757992690E+01
-     difference                        :  3.421470200493E-06
-     relative difference               :  1.611803917734E-07
+     EBS                               : -2.122758334127E+01
+     EBS higher temperature            : -2.122757991980E+01
+     difference                        :  3.421469699560E-06
+     relative difference               :  1.611803682291E-07
      modify error function decay length: increase
-     trace(KS)                         :  53.00000010800924
+     trace(KS)                         :  53.00000009080154
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  calculate LUMO kernel:
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
    S^-1/2                              : recalculate
-   calculate S^x:
-     mode                              : sparse
-     powers:
-       x                               : -1/2
-     order                             :  6
-     error estimation:
-       max / mean error                :  [  1.86E-10,  1.65E-11 ]
+   determine eigenvalue bounds:
+   -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
+ exp accur:  [  3.61E-10 ]}
    Kernel calculation:
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
@@ -2290,19 +2283,19 @@
  eF:  8.724326E-02, Tr(K):  5.4998081E+01, D Tr(K): -1.92E-03, new eF: cubic interpol}
      -  { #---------------------------------------------------------------------- it FOE: 9
  eF:  8.726027E-02, Tr(K):  5.5000000E+01, D Tr(K): -1.65E-07, new eF: cubic interpol}
-     EBS                               : -2.119989327198E+01
-     EBS higher temperature            : -2.119989818170E+01
-     difference                        : -4.909725614510E-06
-     relative difference               :  2.315919967861E-07
+     EBS                               : -2.119989326491E+01
+     EBS higher temperature            : -2.119989817464E+01
+     difference                        : -4.909725205948E-06
+     relative difference               :  2.315919775914E-07
      modify error function decay length: increase
-     trace(KS)                         :  54.99999983583745
+     trace(KS)                         :  54.99999981835543
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  HOMO-LUMO analysis:
-   HOMO energy                         :  [ -5.957067465050684E-002 ]
-   LUMO energy                         :  [  8.7260273274091638E-002 ]
-   HOMO-LUMO gap (Ha)                  :  [  0.1468309479245985 ]
-   HOMO-LUMO gap (eV)                  :  [  3.995473461232748 ]
+   HOMO energy                         :  [ -5.9570674660311795E-002 ]
+   LUMO energy                         :  [  8.7260273278367925E-002 ]
+   HOMO-LUMO gap (Ha)                  :  [  0.1468309479386797 ]
+   HOMO-LUMO gap (eV)                  :  [  3.995473461615918 ]
  Total charge                          :  5.399998577997E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -2326,8 +2319,8 @@
  - The support function localization radii might be too small, got 40 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  29.12
-   Elapsed time (s)                    :  29.16
+   CPU time (s)                        :  28.90
+   Elapsed time (s)                    :  29.32
  BigDFT infocode                       :  0
  Average noise forces: {x:  3.94327950E-02, y:  4.86227633E-02, z:  1.00782375E-02, 
                     total:  6.34089056E-02}
@@ -2358,14 +2351,14 @@
  Energy (Hartree)                      : -8.64316348455934644E+01
  Force Norm (Hartree/Bohr)             :  2.69173364093602652E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  16396
-   Tot. No. of Deallocations           :  16396
+   Tot. No. of Allocations             :  16205
+   Tot. No. of Deallocations           :  16205
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  222.641
+     Peak Value (MB)                   :  224.344
      for the array                     : psir_noconf
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 281.908 MB
- Walltime since initialization         : 00:00:29.568958748
- Max No. of dictionaries used          :  6448 #( 909 still in use)
+     Memory Peak of process            : 287.948 MB
+ Walltime since initialization         : 00:00:29.724865479
+ Max No. of dictionaries used          :  6926 #( 909 still in use)
  Number of dictionary folders allocated:  1
