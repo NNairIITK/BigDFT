@@ -1,5 +1,3 @@
-vpath %.h ../modules
-
 EXTRA_DIST = README \
 	bart.sh
 
@@ -28,7 +26,7 @@ art_source = \
         bayes.f90 \
         read_parameters.f90
 
-AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIB_FUTILE_CFLAGS@ @LIB_BIGDFT_CFLAGS@
 
 CLEANFILES = *.@MODULE_EXT@
 

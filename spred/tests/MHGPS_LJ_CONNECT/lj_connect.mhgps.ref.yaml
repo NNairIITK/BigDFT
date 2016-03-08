@@ -1,0 +1,972 @@
+---
+ Code logo:
+   "__________________________________ A fast and precise DFT wavelet code
+   |     |     |     |     |     |
+   |     |     |     |     |     |      BBBB         i       gggggg
+   |_____|_____|_____|_____|_____|     B    B               g
+   |     |  :  |  :  |     |     |    B     B        i     g
+   |     |-0+--|-0+--|     |     |    B    B         i     g        g
+   |_____|__:__|__:__|_____|_____|___ BBBBB          i     g         g
+   |  :  |     |     |  :  |     |    B    B         i     g         g
+   |--+0-|     |     |-0+--|     |    B     B     iiii     g         g
+   |__:__|_____|_____|__:__|_____|    B     B        i      g        g
+   |     |  :  |  :  |     |     |    B BBBB        i        g      g
+   |     |-0+--|-0+--|     |     |    B        iiiii          gggggg
+   |_____|__:__|__:__|_____|_____|__BBBBB
+   |     |     |     |  :  |     |                           TTTTTTTTT
+   |     |     |     |--+0-|     |  DDDDDD          FFFFF        T
+   |_____|_____|_____|__:__|_____| D      D        F        TTTT T
+   |     |     |     |  :  |     |D        D      F        T     T
+   |     |     |     |--+0-|     |D         D     FFFF     T     T
+   |_____|_____|_____|__:__|_____|D___      D     F         T    T
+   |     |     |  :  |     |     |D         D     F          TTTTT
+   |     |     |--+0-|     |     | D        D     F         T    T
+   |_____|_____|__:__|_____|_____|          D     F        T     T
+   |     |     |     |     |     |         D               T    T
+   |     |     |     |     |     |   DDDDDD       F         TTTT
+   |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
+ 
+ Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
+ Version Number                        : 1.8a.5
+ Timestamp of this run                 : 2016-02-09 22:48:05.132
+ Root process Hostname                 : maia.cluster.bc2.ch
+ Number of MPI tasks                   :  1
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  1
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments:
+     " 'FC=mpif90' 'FCFLAGS=-O2 -openmp' '-with-ext-linalg=-mkl=parallel' 
+     '-with-ext-blas=-mkl=parallel' 'CC=icc' 'CXX=icpc' 'F77=ifort'"
+   Compilers (CC, FC, CXX)             :  [ icc, mpif90, icpc ]
+   Compiler flags:
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -O2 -openmp
+     CXXFLAGS                          : -g -O2
+  #------------------------------------------------------------------------ Input parameters
+ radical                               : null
+ outdir                                : ./
+ logfile                               : Yes
+ run_from_files                        : Yes
+ mode:
+   method                              : lj #     Run method of BigDFT call
+   mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
+   mm_paramfile                        : none #   name of parameter or input file for the selected method or code
+ psppar.LJ:
+   Pseudopotential type                : HGH
+   Atomic number                       : 12
+   No. of Electrons                    : 2
+   Pseudopotential XC                  : 1
+   Local Pseudo Potential (HGH convention):
+     Rloc                              : 0.6518119999999999
+     Coefficients (c1 .. c4): [-2.864297, 0.0, 0.0, 0.0]
+   NonLocal PSP Parameters:
+   - Channel (l)                       : 0
+     Rloc                              : 0.556478
+     h_ij terms: [2.970957, 1.329941, 0.0, 0.0, 0.0, 0.0]
+   - Channel (l)                       : 1
+     Rloc                              : 0.677569
+     h_ij terms: [1.049881, 0.0, 0.0, 0.0, 0.0, 0.0]
+   PAW patch                           : No
+   Source                              : psppar.LJ
+   Radii of active regions (AU):
+     Coarse                            : 1.688250099201262
+     Fine                              : 0.556478
+     Coarse PSP                        : 1.055156312000789
+     Source                            : Hard-Coded
+ psolver:
+   kernel:
+     screening                         : 0 #      mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
+     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-6 #  Convergence threshold of the loop
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
+ dft:
+   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
+   rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+   ixc                                 : 1 #      Exchange-correlation parameter (LDA=1,PBE=11)
+   qcharge                             : 0 #      Charge of the system. Can be integer or real.
+   elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
+   nspin                               : 1 #      Spin polarization treatment
+   mpol                                : 0 #      Total magnetic moment
+   gnrm_cv                             : 1.e-4 #  convergence criterion gradient
+   itermax                             : 50 #     Max. iterations of wfn. opt. steps
+   itermin                             : 0 #      Min. iterations of wfn. opt. steps
+   nrepmax                             : 1 #      Max. number of re-diag. runs
+   ncong                               : 6 #      No. of CG it. for preconditioning eq.
+   idsx                                : 6 #      Wfn. diis history
+   dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
+   inputpsiid                          : 0 #      Input guess wavefunctions
+   output_wf                           : 0 #      Output of the support functions
+   output_denspot                      : 0 #      Output of the density or the potential
+   rbuf                                : 0. #     Length of the tail (AU)
+   ncongt                              : 30 #     No. of tail CG iterations
+   norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
+   nvirt                               : 0 #      No. of virtual orbs
+   nplot                               : 0 #      No. of plotted orbs
+   gnrm_cv_virt                        : 1.e-4 #  convergence criterion gradient for virtual orbitals
+   itermax_virt                        : 50 #     Max. iterations of wfn. opt. steps for virtual orbitals
+   disablesym                          : No #     Disable the symmetry detection
+   external_potential:
+     values                            : __not_a_value__
+   calculate_strten                    : Yes #    Boolean to activate the calculation of the stress tensor. Might be set to No for 
+    #                                              performance reasons
+   plot_mppot_axes: [-1, -1, -1] #                Plot the potential generated by the multipoles along axes through this 
+    #                                              point. Negative values mean no plot.
+   plot_pot_axes: [-1, -1, -1] #                  Plot the potential along axes through this point. Negative values mean 
+    #                                              no plot.
+ kpt:
+   method                              : manual # K-point sampling method
+   kpt: #                                         Kpt coordinates
+   -  [0., 0., 0.]
+   wkpt: [1.] #                                   Kpt weights
+   bands                               : No #     For doing band structure calculation
+ geopt:
+   method                              : none #   Geometry optimisation method
+   ncount_cluster_x                    : 1 #      Maximum number of force evaluations
+   frac_fluct                          : 1. #     Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
+   forcemax                            : 0. #     Max forces criterion when stop
+   randdis                             : 0. #     Random displacement amplitude
+   betax                               : 4. #     Stepsize for the geometry optimization
+ md:
+   mdsteps                             : 0 #      Number of MD steps
+   print_frequency                     : 1 #      Printing frequency for energy.dat and Trajectory.xyz files
+   temperature                         : 300.d0 # Initial temperature in Kelvin
+   timestep                            : 20.d0 #  Time step for integration (in a.u.)
+   no_translation                      : No #     logical input to set translational correction
+   thermostat                          : none #   Activates a thermostat for MD
+   wavefunction_extrapolation          : 0 #      Activates the wavefunction extrapolation for MD
+ mix:
+   iscf                                : 0 #      Mixing parameters
+   itrpmax                             : 1 #      Maximum number of diagonalisation iterations
+   rpnrm_cv                            : 1.e-4 #  Stop criterion on the residue of potential or density
+   norbsempty                          : 0 #      No. of additional bands
+   tel                                 : 0. #     Electronic temperature
+   occopt                              : 1 #      Smearing method
+   alphamix                            : 0. #     Multiplying factors for the mixing
+   alphadiis                           : 2. #     Multiplying factors for the electronic DIIS
+ sic:
+   sic_approach                        : none #   SIC (self-interaction correction) method
+   sic_alpha                           : 0. #     SIC downscaling parameter
+ tddft:
+   tddft_approach                      : none #   Time-Dependent DFT method
+ perf:
+   debug                               : No #     Debug option
+   profiling_depth                     : -1 #     maximum level of the profiling for the tracking of the routines
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
+   ocl_platform                        : ~ #      Chosen OCL platform
+   ocl_devices                         : ~ #      Chosen OCL devices
+   blas                                : No #     CUBLAS acceleration
+   projrad                             : 15. #    Radius of the projector as a function of the maxrad
+   exctxpar                            : OP2P #   Exact exchange parallelisation scheme
+   ig_diag                             : Yes #    Input guess (T=Direct, F=Iterative) diag. of Ham.
+   ig_norbp                            : 5 #      Input guess Orbitals per process for iterative diag.
+   ig_blocks: [300, 800] #                        Input guess Block sizes for orthonormalisation
+   ig_tol                              : 1.0e-4 # Input guess Tolerance criterion
+   methortho                           : 0 #      Orthogonalisation
+   rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
+   unblock_comms                       : OFF #    Overlap Communications of fields (OFF,DEN,POT)
+   linear                              : OFF #    Linear Input Guess approach
+   tolsym                              : 1.0e-8 # Tolerance for symmetry detection
+   signaling                           : No #     Expose calculation results on Network
+   signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
+   domain                              : ~ #      Domain to add to the hostname to find the IP
+   inguess_geopt                       : 0 #      Input guess to be used during the optimization
+   store_index                         : Yes #    Store indices or recalculate them for linear scaling
+   verbosity                           : 2 #      Verbosity of the output
+   psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
+   multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
+   mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
+    #                                              preserving
+   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
+   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
+   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
+   ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
+   mixing_after_inputguess             : 1 #      Mixing step after linear input guess
+   iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
+   check_sumrho                        : 1 #      Enables linear sumrho check
+   check_overlap                       : 1 #      Enables linear overlap check
+   experimental_mode                   : No #     Activate the experimental mode in linear scaling
+   write_orbitals                      : 0 #      Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
+   explicit_locregcenters              : No #     Linear scaling explicitly specify localization centers
+   calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
+   intermediate_forces                 : No #     Linear scaling calculate intermediate forces
+   kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
+   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
+   evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
+   calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
+   loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
+   coeff_weight_analysis               : No #     linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
+    #                                              calculations
+   check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
+   correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
+   fscale_lowerbound                   : 5.e-3 #  linear scaling lower bound for the error function decay length
+   fscale_upperbound                   : 5.e-2 #  linear scaling upper bound for the error function decay length
+   FOE_restart                         : 0 #      Restart method to be used for the FOE method
+   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
+   enable_matrix_taskgroups            : True #   enable the matrix taskgroups
+   hamapp_radius_incr                  : 8 #      radius enlargement for the Hamiltonian application (in grid points)
+   adjust_kernel_iterations            : True #   enable the adaptive ajustment of the number of kernel iterations
+   adjust_kernel_threshold             : True #   enable the adaptive ajustment of the kernel convergence threshold according to the 
+    #                                              support function convergence
+   wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
+   foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
+   nsigma                              : 1 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
+    #                                              Gaussian used for the radial part of the 
+    #                                              function based on the multipoles.
+ lin_general:
+   hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
+   nit: [100, 100] #                              number of iteration with low/high accuracy
+   rpnrm_cv: [1.e-12, 1.e-12] #                   convergence criterion for low/high accuracy
+   conf_damping                        : -0.5 #   how the confinement should be decreased, only relevant for hybrid mode; negative -> 
+    #                                              automatic
+   taylor_order                        : 0 #      order of the Taylor approximation; 0 -> exact
+   max_inversion_error                 : 1.d0 #   linear scaling maximal error of the Taylor approximations to calculate the inverse of 
+    #                                              the overlap matrix
+   output_wf                           : 0 #      output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
+   output_mat                          : 0 #      output sparse matrices; 0 no output, 1 formatted sparse, 11 formatted dense, 21 
+    #                                              formatted both
+   output_coeff                        : 0 #      output KS coefficients; 0 no output, 1 formatted output
+   output_fragments                    : 0 #      output support functions, kernel and coeffs; 0 fragments and full system, 1 
+    #                                              fragments only, 2 full system only
+   kernel_restart_mode                 : 0 #      method for restarting kernel; 0 kernel, 1 coefficients, 2 random, 3 diagonal, 4 
+    #                                              support function weights
+   kernel_restart_noise                : 0.0d0 #  add random noise to kernel or coefficients when restarting
+   frag_num_neighbours                 : 0 #      number of neighbours to output for each fragment
+   frag_neighbour_cutoff               : 12.0d0 # number of neighbours to output for each fragment
+   cdft_lag_mult_init                  : 0.05d0 # CDFT initial value for Lagrange multiplier
+   cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
+   calc_dipole                         : No #     calculate dipole
+   calc_quadrupole                     : No #     calculate quadrupole
+   calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
+   subspace_diag                       : No #     diagonalization at the end
+   extra_states                        : 0 #      extra states to optimize (dmin only)
+   calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
+    #                                              written to disk)
+   charge_multipoles                   : 0 #      Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
+    #                                              new approach Projector
+   support_function_multipoles         : False #  Calculate the multipole moments of the support functions
+ lin_basis:
+   nit: [4, 5] #                                  maximal number of iterations in the optimization of the 
+    #                                              support functions
+   nit_ig                              : 50 #     maximal number of iterations to optimize the support functions in the extended input 
+    #                                              guess (experimental mode only)
+   idsx: [6, 6] #                                 DIIS history for optimization of the support functions 
+    #                                              (low/high accuracy); 0 -> SD
+   gnrm_cv: [1.e-2, 1.e-4] #                      convergence criterion for the optimization of the support functions 
+    #                                              (low/high accuracy)
+   gnrm_ig                             : 1.e-3 #  convergence criterion for the optimization of the support functions in the extended 
+    #                                              input guess (experimental mode only)
+   deltae_cv                           : 1.e-4 #  total relative energy difference to stop the optimization ('experimental_mode' only)
+   gnrm_dyn                            : 1.e-4 #  dynamic convergence criterion ('experimental_mode' only)
+   min_gnrm_for_dynamic                : 1.e-3 #  minimal gnrm to active the dynamic gnrm criterion
+   alpha_diis                          : 1.0 #    multiplicator for DIIS
+   alpha_sd                            : 1.0 #    initial step size for SD
+   nstep_prec                          : 5 #      number of iterations in the preconditioner
+   fix_basis                           : 1.e-10 # fix the support functions if the density change is below this threshold
+   correction_orthoconstraint          : 1 #      correction for the slight non-orthonormality in the orthoconstraint
+ lin_kernel:
+   nstep: [1, 1] #                                number of steps taken when updating the coefficients via 
+    #                                              direct minimization for each iteration of 
+    #                                              the density kernel loop
+   nit: [5, 5] #                                  number of iterations in the (self-consistent) 
+    #                                              optimization of the density kernel
+   idsx_coeff: [0, 0] #                           DIIS history for direct mininimization
+   idsx: [0, 0] #                                 mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
+   alphamix: [0.5, 0.5] #                         mixing parameter (low/high accuracy)
+   gnrm_cv_coeff: [1.e-5, 1.e-5] #                convergence criterion on the gradient for direct minimization
+   rpnrm_cv: [1.e-10, 1.e-10] #                   convergence criterion (change in density/potential) for the kernel 
+    #                                              optimization
+   linear_method                       : DIAG #   method to optimize the density kernel
+   mixing_method                       : DEN #    quantity to be mixed
+   alpha_sd_coeff                      : 0.2 #    initial step size for SD for direct minimization
+   alpha_fit_coeff                     : No #     update the SD step size by fitting a quadratic polynomial to the energy along the 
+    #                                              direction of the gradient during direct 
+    #                                              mininimization.
+   eval_range_foe: [-0.5, 0.5] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
+    #                                              automatically if chosen unproperly
+   fscale_foe                          : 2.e-2 #  decay length of the error function
+   coeff_scaling_factor                : 1.0 #    factor to scale the gradient in direct minimization
+   pexsi_npoles                        : 40 #     number of poles used by PEXSI
+   pexsi_mumin                         : -1.0 #   initial guess for the lower bound of the chemical potential used by PEXSI
+   pexsi_mumax                         : 1.0 #    initial guess for the upper bound of the chemical potential used by PEXSI
+   pexsi_mu                            : 0.5 #    initial guess for the  chemical potential used by PEXSI
+   pexsi_temperature                   : 1.e-3 #  temperature used by PEXSI
+   pexsi_tol_charge                    : 1.e-3 #  charge tolerance used PEXSI
+ lin_basis_params:
+   nbasis                              : 4 #      number of support functions per atom
+   ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential
+   confinement: [8.3e-3, 0.0] #                   prefactor for the confining potential (low/high accuracy)
+   rloc: [7.0, 7.0] #                             localization radius for the support functions
+   rloc_kernel                         : 9.0 #    localization radius for the density kernel
+   rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
+ posinp:
+    #---------------------------------------------------------------------- Atomic positions
+   positions:
+   - LJ: [3.4152607265244439E-002, -6.2043575914177895E-003, -0.1012893900170126]
+   - LJ: [3.4115373668734635E-002, -4.7482661383264763E-003, 0.9782517225638714]
+   - LJ: [0.311174649951665, -0.894114514621698, 0.4121928777284593]
+   - LJ: [-0.7250485311264271, -0.5503248634282043, 0.4084418532630668]
+   - LJ: [-0.7219106921316751, 0.5424066463067242, 0.4074059025205641]
+   - LJ: [0.3199964940229546, 0.879914527469437, 0.4089870703239497]
+   - LJ: [0.9751801105367442, -1.1936332806112455E-002, 0.3968960048205952]
+   - LJ: [-0.2638615635562028, -0.9273674197173294, -0.5565563358377038]
+   - LJ: [-0.9335396539886132, -8.8465961817158437E-003, -0.5592149884118776]
+   - LJ: [-0.2723743024438318, 0.9126273258918616, -0.5582152998088024]
+   - LJ: [0.8076003581899411, 0.5757992015605142, -0.5597883498938105]
+   - LJ: [0.8239975306208039, -0.5740987140099361, -0.5521494734702085]
+   - LJ: [3.5177927844317156E-002, -8.045858316107336E-003, -1.16974840158725]
+   - LJ: [3.1127997135303967E-002, -4.0350168088562977E-003, 2.085115547518681]
+   - LJ: [0.3212894149662892, -0.9130846290325627, 1.512510760066403]
+   - LJ: [-0.7433154447766799, -0.5622450482575295, 1.508333963292066]
+   - LJ: [-0.7416716607445971, 0.5556747613196118, 1.507577908251047]
+   - LJ: [0.3232151343269324, 0.9033328104708873, 1.510984879050789]
+   - LJ: [0.9857349759760951, -5.9092287291361402E-003, 1.504553158919133]
+   - LJ: [1.277801325928088, -0.9205182232161908, 0.9302618761566763]
+   - LJ: [0.6064040515670981, -1.820366590154019, 0.9375140027608103]
+   - LJ: [-0.4573517698880691, -1.47610821782771, 0.9354623458256389]
+   - LJ: [-1.515521948525966, -1.119390291790776, 0.9297426398154044]
+   - LJ: [-1.519599885988095, -2.234585882333784E-003, 0.9295003117802593]
+   - LJ: [-1.511328907899283, 1.11411251513309, 0.9281358948648935]
+   - LJ: [-0.4501778580694381, 1.466071364568803, 0.9309138568930287]
+   - LJ: [0.6122477896159249, 1.808406800992137, 0.9335749905413812]
+   - LJ: [1.277996600163064, 0.9071584910760565, 0.9334365232775389]
+   - LJ: [1.936184058716248, -4.2404148303358587E-003, 0.919606172606238]
+   - LJ: [1.096890476812541, -1.506873437871287, -1.7836085873349533E-002]
+   - LJ: [1.1979646548665367E-002, -1.851178863349873, -1.1667551754919162E-002]
+   - LJ: [-1.05400888598759, -1.491042382499864, -2.0582854589856262E-002]
+   - LJ: [-1.7234299204149, -0.5667798226903039, -2.1001522254635842E-002]
+   - LJ: [-1.718329149912794, 0.5603657014331028, -2.374364257504236E-002]
+   - LJ: [-1.051274693307293, 1.485956697117147, -2.0427952281825656E-002]
+   - LJ: [1.9647302474685501E-002, 1.833924359306353, -1.8431472944724667E-002]
+   - LJ: [1.104659823345305, 1.498405229059476, -1.7913928280643213E-002]
+   - LJ: [1.775661486048649, 0.6035890240150984, -1.6639794163357955E-002]
+   properties:
+     format                            : xyz
+     source                            : ioput001/pos001.xyz
+   energy (Ha)                         : -172.8777364111725
+  #--------------------------------------------------------------------------------------- |
+ Data Writing directory                : ./
+  #----------------------------------------- Input Atomic System (file: ioput001/pos001.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  1
+   Number of atoms                     :  38
+   Types of atoms                      :  [ LJ ]
+   Boundary Conditions                 : Free #Code: F
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : none
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
+ Material acceleration                 :  No #iproc=0
+  #------------------------------------------------------------------------- Initializing LJ
+  #Using normalized Units for LJ (sigma=1, epsilon=1)
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ (MHGPS) RCOV (LJ)                     :  0.5600000000000001
+ Initializing LENNARD_JONES_RUN_MODE:
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.8777364111725}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.8790926601544}
+    #------------------------------ (MHGPS) Connect ioput001/pos001 and ioput001/pos002 ....
+    #(MHGPS) nsad:0; connect minima with following energies
+    #(MHGPS) -172.8777364111725 and
+    #(MHGPS) -170.8790926601544
+    #------------------------------------------------ (MHGPS) Generating TS input guess ....
+    #(MHGPS) entering grow_freezstring
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.0332282918028}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.1959693676187}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.7809627633343}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.2843987793975}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7088839463305}
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.6521242752667}
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.9760915458151}
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.4272734685001}
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.6143012852363}
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.6030649816553}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.1367455964283}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9169954002094}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8433449841081}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.0916137333446}
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.6985581990261}
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.6872257928614}
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.5394478093962}
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.7776681501496}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.4009994671745}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.2850698356395}
+   (MHGPS) No. Energy evaluations for TS guess:  20.0
+    #------------------------------------------------------ (MHGPS) Start Saddle Search ....
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.5394478093962}
+     (MHGPS) Finite difference spacing for curvature computation:  1.39429873862395E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.5399624579}
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.5399942705496}
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.5400724826417}
+     (MHGPS) minmode overlap           :  0.997715750762834
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.6127390858071}
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.8025500262867}
+ - LENNARD_JONES_RUN_MODE: {Energy: -168.8556024961172}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.0290894021057}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.1200577675896}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.2671583942565}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.3505981115071}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.4425807394237}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.4935890386309}
+     (MHGPS) Finite difference spacing for curvature computation:  1.37044727403728E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.4934562468397}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.4935872075661}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.4937063954919}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.4937974643801}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.4937999416837}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.4937543204379}
+     (MHGPS) minmode overlap           :  0.9638402495873337
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.5487614862342}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.6031736022257}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.6420009054436}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.661775943064}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.689679747066}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7119932907688}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7271316019883}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7411607963098}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7508123215915}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7586802886175}
+    #(MHGPS) tightening
+     (MHGPS) Finite difference spacing for curvature computation:  1.42888013972843E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7584640122907}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7584562245978}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7584481561078}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7584270821089}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7584038772816}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7583910365551}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7583787674794}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7583650086602}
+     (MHGPS) minmode overlap           :  0.9400816800762084
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.76479618542}
+   (MHGPS) convergence at              :  38
+    #.......................................................... (MHGPS) Relax from left side
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7651271271836}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7657344184086}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7673068922641}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7759718382891}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.78187424657}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7909294388}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.798506752704}
+   Iterations when SQNM converged      :  6
+    #......................................................... (MHGPS) Relax from right side
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7645036244021}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.765084880078}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7665430836372}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7742720712541}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7792542476826}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7865803797628}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7921355404842}
+   Iterations when SQNM converged      :  6
+    #(MHGPS) nsad:1; connect minima with following energies
+    #(MHGPS) -172.8777364111725 and
+    #(MHGPS) -169.798506752704
+    #------------------------------------------------ (MHGPS) Generating TS input guess ....
+    #(MHGPS) entering grow_freezstring
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.5934491096656}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7897578082413}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.0766363220813}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8132703511279}
+ - LENNARD_JONES_RUN_MODE: {Energy: -171.5301178141458}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.9456426308489}
+ - LENNARD_JONES_RUN_MODE: {Energy: -171.0273052577046}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.2072136567102}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.6048747198587}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.5996219332316}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.6267809295772}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.1303553429374}
+ - LENNARD_JONES_RUN_MODE: {Energy: -171.5851738607302}
+ - LENNARD_JONES_RUN_MODE: {Energy: -171.0745598092562}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.6422424832101}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.6369621893922}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.2482608096769}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.9882795929881}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8519034559991}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8116315400489}
+   (MHGPS) No. Energy evaluations for TS guess:  20.0
+    #------------------------------------------------------ (MHGPS) Start Saddle Search ....
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8116315400489}
+     (MHGPS) Finite difference spacing for curvature computation:  1.37583751707831E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8115278010573}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8112860597003}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8109017361045}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8104842451369}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8102665316461}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8100140794166}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8097994905353}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.809574082862}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8093885373105}
+     (MHGPS) minmode overlap           :  0.7946816930836993
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8206297042192}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8430350432541}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7990290149939}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.765735329727}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7706603932318}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7738911018787}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7781065887742}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7800002990166}
+    #(MHGPS) tightening
+     (MHGPS) Finite difference spacing for curvature computation:  1.59408520979900E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7800005802011}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.779988798097}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7799774618339}
+     (MHGPS) minmode overlap           :  0.9963822258247873
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.782319258869}
+   (MHGPS) convergence at              :  22
+    #.......................................................... (MHGPS) Relax from left side
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7823709136699}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7828529232744}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7835629908815}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7850554700119}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7858020860195}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7877534014187}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7890583952665}
+   Iterations when SQNM converged      :  6
+    #......................................................... (MHGPS) Relax from right side
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7823053747861}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7827704923673}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7834408524005}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7848390562527}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7855226049708}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7872481921524}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7883456775541}
+   Iterations when SQNM converged      :  6
+    #(MHGPS) nsad:2; connect minima with following energies
+    #(MHGPS) -172.8777364111725 and
+    #(MHGPS) -169.7890583952665
+    #------------------------------------------------ (MHGPS) Generating TS input guess ....
+    #(MHGPS) entering grow_freezstring
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.5733631089854}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7327695793582}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.0245577720067}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7234172135279}
+ - LENNARD_JONES_RUN_MODE: {Energy: -171.449109162784}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8354622463284}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9248069897094}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.0881534865696}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.4902517027444}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.4833048025989}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.6089795829586}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.0814489658459}
+ - LENNARD_JONES_RUN_MODE: {Energy: -171.5069927930556}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9741137756821}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.5288397364588}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.5218461507081}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.1300758064054}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8789859016892}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7628802404603}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.755012356035}
+   (MHGPS) No. Energy evaluations for TS guess:  20.0
+    #------------------------------------------------------ (MHGPS) Start Saddle Search ....
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.755012356035}
+     (MHGPS) Finite difference spacing for curvature computation:  1.36752723183385E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7554231405649}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7551798080983}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7547998008005}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7543730488236}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.754161798896}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7538605609842}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7536238325689}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.753469528784}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7533758728633}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7533038114665}
+     (MHGPS) minmode overlap           :  0.7732906742925217
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7665679520635}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7941859574112}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7755565281381}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7595796847278}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7621756396157}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7657339571433}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7702268220297}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7729170608492}
+    #(MHGPS) tightening
+     (MHGPS) Finite difference spacing for curvature computation:  1.62963968246733E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7728884755984}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7728817988163}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7728742004762}
+     (MHGPS) minmode overlap           :  0.9978191644227553
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7760716895781}
+   (MHGPS) convergence at              :  23
+    #.......................................................... (MHGPS) Relax from left side
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7761238168675}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7767357223175}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7778586121805}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7798923610596}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7810092298085}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7838819434682}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7857492965699}
+   Iterations when SQNM converged      :  6
+    #......................................................... (MHGPS) Relax from right side
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7760613008672}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7766579746819}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7777479167606}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7797035963699}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7807679630934}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7834558534689}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7851436940604}
+   Iterations when SQNM converged      :  6
+    #(MHGPS) nsad:3; connect minima with following energies
+    #(MHGPS) -172.8777364111725 and
+    #(MHGPS) -169.7857492965699
+    #------------------------------------------------ (MHGPS) Generating TS input guess ....
+    #(MHGPS) entering grow_freezstring
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.5733379895294}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7265033913429}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.0237539739308}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7152707601767}
+ - LENNARD_JONES_RUN_MODE: {Energy: -171.4465577557401}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8265170145377}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9200507367504}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.0795928491453}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.4832962064362}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.4762117036346}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.6090441358969}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.0807027553579}
+ - LENNARD_JONES_RUN_MODE: {Energy: -171.5044713492842}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9693912097191}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.5219000292058}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.5147651815683}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.1211938660011}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8693298000844}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7537315057763}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7478870596607}
+   (MHGPS) No. Energy evaluations for TS guess:  20.0
+    #------------------------------------------------------ (MHGPS) Start Saddle Search ....
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7478870596607}
+     (MHGPS) Finite difference spacing for curvature computation:  1.36530112379727E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7483360232339}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.748096544387}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7477192828259}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7472969712394}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7470847267437}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7467900873238}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7465546121682}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7463713700305}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7462864117775}
+     (MHGPS) minmode overlap           :  0.8169727255252407
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7593393772196}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7871256218254}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7722025007338}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7601019612034}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7626131719569}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7657038070171}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7702813053858}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7728611954478}
+    #(MHGPS) tightening
+     (MHGPS) Finite difference spacing for curvature computation:  1.58092690254538E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7728173504586}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7728070387853}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7727956015613}
+     (MHGPS) minmode overlap           :  0.9975152253380644
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7762672073476}
+   (MHGPS) convergence at              :  22
+    #.......................................................... (MHGPS) Relax from left side
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7763463844241}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7770033219208}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7781648943063}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7803795539448}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7816345201534}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7846024647405}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7868458823819}
+   Iterations when SQNM converged      :  6
+    #......................................................... (MHGPS) Relax from right side
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7762266469952}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7768619426823}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7779633844723}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7800388665736}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7811904976271}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7838432296933}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7877826343766}
+   Iterations when SQNM converged      :  6
+    #(MHGPS) nsad:4; connect minima with following energies
+    #(MHGPS) -172.8777364111725 and
+    #(MHGPS) -169.7868458823819
+    #------------------------------------------------ (MHGPS) Generating TS input guess ....
+    #(MHGPS) entering grow_freezstring
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.5761807353231}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7326933618695}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.0311745181826}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.725813195708}
+ - LENNARD_JONES_RUN_MODE: {Energy: -171.4576935770513}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8400038030677}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9337734313412}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.0946581515872}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.4984867280766}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.4913350912312}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.611631469241}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.087623886235}
+ - LENNARD_JONES_RUN_MODE: {Energy: -171.5151805723415}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9829249744779}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.5371551658782}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.5299556542504}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.1363715913562}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8828576464061}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7642837047122}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7542319095551}
+   (MHGPS) No. Energy evaluations for TS guess:  20.0
+    #------------------------------------------------------ (MHGPS) Start Saddle Search ....
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7542319095551}
+     (MHGPS) Finite difference spacing for curvature computation:  1.36621607080809E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7546196152956}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7543797084487}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.753994894233}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7535606499403}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7533464871704}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7530339964798}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7527970085098}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7526554313643}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7525548014978}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7524651896761}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7524165616234}
+     (MHGPS) minmode overlap           :  0.7649410897612717
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7650447516833}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7918059371596}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7683017544956}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7508544530349}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7547733611086}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7590241201336}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7639161866802}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7670797774584}
+    #(MHGPS) tightening
+     (MHGPS) Finite difference spacing for curvature computation:  1.63701108713674E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.767054683213}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7670471183364}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7670392790767}
+     (MHGPS) minmode overlap           :  0.9977561324118428
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7712805987699}
+   (MHGPS) convergence at              :  24
+    #.......................................................... (MHGPS) Relax from left side
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7713286741293}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7721101660235}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7733809031365}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.775911838959}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.777288230105}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7807913623862}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7830359170968}
+   Iterations when SQNM converged      :  6
+    #......................................................... (MHGPS) Relax from right side
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7712763174342}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7720442043274}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7732937131648}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7757703960269}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7771117960853}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7804817838774}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7825916184309}
+   Iterations when SQNM converged      :  6
+    #(MHGPS) nsad:5; connect minima with following energies
+    #(MHGPS) -172.8777364111725 and
+    #(MHGPS) -169.7830359170968
+    #------------------------------------------------ (MHGPS) Generating TS input guess ....
+    #(MHGPS) entering grow_freezstring
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.5727458398718}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7196504300219}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.0215845962418}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7061432107069}
+ - LENNARD_JONES_RUN_MODE: {Energy: -171.442167966042}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8164331454713}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.913434420586}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.0697144163332}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.4749127759426}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.4675025084284}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.6085640013368}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.0786225887647}
+ - LENNARD_JONES_RUN_MODE: {Energy: -171.5001604123307}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9628967098972}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.5136738700432}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.5062103058185}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.1113488325469}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8591115251227}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7443201013702}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.740815942899}
+   (MHGPS) No. Energy evaluations for TS guess:  20.0
+    #------------------------------------------------------ (MHGPS) Start Saddle Search ....
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.740815942899}
+     (MHGPS) Finite difference spacing for curvature computation:  1.36410291461284E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7413079902633}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7410696923741}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7406916335538}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7402583496539}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7400500083835}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7397431601397}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7395115347636}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7393480316665}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7392536753039}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7391743679052}
+     (MHGPS) minmode overlap           :  0.7877336879423118
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7520581653428}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7795891482336}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7629794688245}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7498367206226}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7535651848845}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7580494352776}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7637348717169}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.767094753905}
+    #(MHGPS) tightening
+     (MHGPS) Finite difference spacing for curvature computation:  1.63342482501445E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.767057294401}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7670495850404}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.767040526845}
+     (MHGPS) minmode overlap           :  0.9977751572087469
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7713701408952}
+   (MHGPS) convergence at              :  23
+    #.......................................................... (MHGPS) Relax from left side
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7714235858295}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7722264241374}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7736366703991}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7762855251842}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7776787107231}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7808899709374}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.783110907069}
+   Iterations when SQNM converged      :  6
+    #......................................................... (MHGPS) Relax from right side
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7713589297437}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7721452677706}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7735129621431}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.776077592513}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.777412373621}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7804389483036}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7824789898444}
+   Iterations when SQNM converged      :  6
+    #(MHGPS) nsad:6; connect minima with following energies
+    #(MHGPS) -172.8777364111725 and
+    #(MHGPS) -169.7824789898444
+    #------------------------------------------------ (MHGPS) Generating TS input guess ....
+    #(MHGPS) entering grow_freezstring
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.571097231455}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.715568134451}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.0171050114987}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.6989553075342}
+ - LENNARD_JONES_RUN_MODE: {Energy: -171.4350922571764}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8072087395914}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9044407996889}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.059447316394}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.4648875434087}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.4572314623663}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.6070511307511}
+ - LENNARD_JONES_RUN_MODE: {Energy: -172.0743795801061}
+ - LENNARD_JONES_RUN_MODE: {Energy: -171.4932900753743}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9540278173785}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.5037022465127}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.4959902644108}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.1011415569382}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.8500180323473}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7373293306494}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7368064282477}
+   (MHGPS) No. Energy evaluations for TS guess:  20.0
+    #------------------------------------------------------ (MHGPS) Start Saddle Search ....
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7368064282477}
+     (MHGPS) Finite difference spacing for curvature computation:  1.36254943095059E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7373408624106}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7371017362753}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7367193982771}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7363113874787}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7360920120238}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7359054057539}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7356232397881}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7353881887659}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7353008900949}
+     (MHGPS) minmode overlap           :  0.8205110744051441
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7484534659848}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7761906195803}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7647583184928}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7547672534647}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7579892615}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7618835354774}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7667508888724}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7701041771059}
+    #(MHGPS) tightening
+     (MHGPS) Finite difference spacing for curvature computation:  1.58999251870249E-03
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.770036319293}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7700253738982}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7700157467415}
+     (MHGPS) minmode overlap           :  0.9977861546329346
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7738961183589}
+   (MHGPS) convergence at              :  22
+    #.......................................................... (MHGPS) Relax from left side
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7739948601428}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7746399863934}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7767710511432}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7794364206595}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7812255441427}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7851124442828}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7910577358512}
+   Iterations when SQNM converged      :  6
+    #......................................................... (MHGPS) Relax from right side
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7738366683624}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7744584677984}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7764919807739}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7790069099987}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7806525986561}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.7840613855559}
+ - LENNARD_JONES_RUN_MODE: {Energy: -169.789032600763}
+   Iterations when SQNM converged      :  6
+    #(MHGPS) Connection not established within 7 transition state computations
+ (MHGPS) Total calls to energy and forces:  414
+ (MHGPS) Run finished at               : 2016-02-09 22:48:09.511
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  955
+   Tot. No. of Deallocations           :  955
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  2.447
+     for the array                     : wold
+     in the routine                    : Main_program
+     Memory Peak of process            : 24.644 MB
+ Walltime since initialization         : 00:00:04.563143789
+ Max No. of dictionaries used          :  4730 #( 889 still in use)
+ Number of dictionary folders allocated:  1

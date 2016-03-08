@@ -1,15 +1,27 @@
 #!/bin/bash
 
-uses_except="BigDFT_API xc_f90_types_m libxc_funcs_m xc_f90_lib_m mpi omp_lib \
-             ifcore f90_unix_proc fox_sax ieee_exceptions\
-             netcdf etsf_io etsf_io_low_level"
-includes_except="fexcp.h"
+#These modules/includes do not have to be processed
+uses_except="BigDFT_API xc_f90_types_m libxc_funcs_m xc_f90_lib_m \
+             m_libpaw_libxc_funcs libxc_functionals \
+             mpi omp_lib ifcore f90_unix_proc \
+             fox_sax ieee_exceptions memory_profiling \
+             netcdf etsf_io etsf_io_low_level yaml_output"
+includes_except="fexcp.h config.h"
+
+#Some "use module" statements might be expressed as cpp macros
+n_macros=3
+macros_in=( "USE_DEFS" "USE_MPI_WRAPPERS" "USE_MSG_HANDLING" )
+macros_out=( "m_libpaw_defs" "m_libpaw_mpi" "m_libpaw_tools" )
 
 function adddep
 {
  file=$1
  uses=`grep -e "^ *use " $file | sed "s/^ *use *\([a-zA-Z0-9_]*\).*/\1/g" | sort | uniq`
- includes=`grep -e "^ *include " $file | sed "s/^ *include [\"']*\([a-zA-Z0-9_.]*\)[\"'].*/\1/g" | sort | uniq`
+ for ((i=0 ; ${n_macros} - $i ; i++));do
+  madd=`grep -e "^ *"${macros_in[$i]} ${file} | sed "s/${macros_in[$i]}/${macros_out[$i]}/g"`
+  if test -n "${madd}";then uses=`echo -e ${uses}" \n"${madd}`;fi
+ done
+ includes=`grep -e "^ *#\?include " $file | sed "s/^ *#\?include [\"']*\([a-zA-Z0-9_.]*\)[\"'].*/\1/g" | sort | uniq`
  if test -n "$uses" -o -n "$includes" ; then
 	file=${file##./}
 	if test -n "$uses" ; then
@@ -39,15 +51,18 @@ function adddep
 				fi
 			done
 			if test x"$out" = x"True" ; then
-				if test "$incl" = "mpif.h" ; then
-					incl='$(mpi_include)'
-				else
-					incl=${file%/*}'/'$incl
-					incls=`adddep $incl`
-					if test -n "$incls" ; then
-						echo -n " "$incls
-					fi
-				fi
+                                case "$incl" in
+                                "mpif.h")
+				    incl='$(mpi_include)';;
+			        "libpaw.h")
+				    incl='libpaw.h';;
+				*)
+				    incl=${file%/*}'/'$incl
+				    incls=`adddep $incl`
+				    if test -n "$incls" ; then
+					echo -n " "$incls
+				    fi;;
+                                esac
 				echo -n " "$incl
 			fi
 		done

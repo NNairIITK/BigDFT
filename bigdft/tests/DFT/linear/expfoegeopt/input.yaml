@@ -1,0 +1,92 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   rmult: [3.5, 4.5]
+   gnrm_cv: accurate
+   itermax: 100
+   ncong: 5
+   idsx: 10
+   inputpsiid: linear
+   disablesym: Yes
+ geopt:
+   method: FIRE
+   ncount_cluster_x: 2
+ perf:
+   ef_interpol_det: 0.10E-19
+   mixing_after_inputguess: 2
+   check_sumrho: 1
+   experimental_mode: Yes
+   kappa_conv: 0.7
+   evbounds_nsatur: 100
+   calculate_gap: Yes
+   correction_co_contra: Yes
+   FOE_restart: 1
+ lin_general:
+   hybrid: Yes
+   nit: 20
+   rpnrm_cv: 1.3E-006
+   taylor_order: 1010
+ lin_basis:
+   nit: 6
+   idsx: 3
+   gnrm_cv: [4.0000000000000001E-002, 1.0E-002]
+   deltae_cv: 2.0E-003
+   gnrm_dyn: 2.1000000000000001E-002
+   alpha_diis: 0.5
+   alpha_sd: 0.5
+   fix_basis: 1.0E-013
+   correction_orthoconstraint: 0
+ lin_kernel:
+   nit: 2
+   idsx: 2
+   alphamix: 0.2
+   rpnrm_cv: 1.0E-008
+   linear_method: FOE
+   eval_range_foe: [-1.5, 1.5]
+   fscale_foe: 1.0E-002
+ lin_basis_params:
+   N:
+     ao_confinement: 2.7E-002
+     confinement: 2.7E-002
+     rloc: 4.7
+     rloc_kernel: 8.0
+     rloc_kernel_foe: 15.0
+   C:
+     ao_confinement: 2.7E-002
+     confinement: 2.7E-002
+     rloc: 4.7
+     rloc_kernel: 8.0
+     rloc_kernel_foe: 15.0
+   O:
+     ao_confinement: 2.7E-002
+     confinement: 2.7E-002
+     rloc: 4.7
+     rloc_kernel: 8.0
+     rloc_kernel_foe: 15.0
+   H:
+     nbasis: 1
+     ao_confinement: 4.90000000000000E-002
+     confinement: 4.90000000000000E-002
+     rloc: 4.0
+     rloc_kernel: 8.0
+     rloc_kernel_foe: 15.0
+ posinp:
+   units: angstroem
+   properties:
+     format: xyz
+     source: posinp
+   positions:
+   - C: [0.0, 0.0, 0.0]
+   - C: [1.220000028610229, 0.8199999928474426, -0.4199999868869781]
+   - C: [1.919999957084656, 1.460000038146973, 0.7400000095367432]
+   - O: [1.320000052452087, 2.099999904632568, 1.559999942779541]
+   - O: [3.240000009536744, 1.240000009536743, 0.7799999713897705]
+   - N: [2.140000104904175, 0.0, -1.179999947547913]
+   - H: [-0.4993000030517578, -0.3686000108718872, -0.8715999722480774]
+   - H: [0.3152999877929688, -0.8238999843597412, 0.6055999994277954]
+   - H: [-0.6699000000953675, 0.6184999942779541, 0.5600000023841858]
+   - H: [0.8610000014305115, 1.616500020027161, -1.037700057029724]
+   - H: [3.765700101852417, 1.603600025177002, 1.496299982070923]
+   - H: [2.886300086975098, 0.5688999891281128, -1.525500059127808]
+   - H: [1.656499981880188, -0.4185000061988831, -1.948799967765808]

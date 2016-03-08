@@ -1,18 +1,18 @@
-!> @file 
+!> @file
 !! NEB routines
-!! The IO with the external program is performed using atomic units. 
+!! The IO with the external program is performed using atomic units.
 !! The restart file is in atomic units too.
 !! Both output files ( int and dat files ) are in angstrom and eV.
 !!
-!! PES energies and gradients are obtained calling the NEB_driver.sh and 
+!! PES energies and gradients are obtained calling the NEB_driver.sh and
 !! reading the gen_output_file.
 !!
 !! References :
 !! - G. Henkelman, B.P. Uberuaga, H. Jonsson; J.Chem.Phys., 113, 9901, (2000)
 !! - G. Henkelman and H. Jonsson; J.Chem.Phys., 113, 9978, (2000)
 !! - H. Jonsson, G. Mills, K.W. Jacobsen, "Nudged elastic band method for finding
-!!   minimum energy paths of transitions", in Classical and Quantum Dynamics in 
-!!   Condensed Phase Simulations, edited by B.J.Berne, G.Ciccotti, D.F.Coker 
+!!   minimum energy paths of transitions", in Classical and Quantum Dynamics in
+!!   Condensed Phase Simulations, edited by B.J.Berne, G.Ciccotti, D.F.Coker
 !!   (World Scientific, Singapore, 1998), pag. 385 .
 !!
 !! @author
@@ -47,7 +47,7 @@ MODULE NEB_routines
   use dictionaries
   use wrapper_mpi
   use module_base, only: bigdft_mpi
-  
+
   IMPLICIT NONE
 
   integer, parameter :: PES_INTERNAL_DFT   = 0
@@ -66,6 +66,84 @@ MODULE NEB_routines
   type(mpi_environment), private :: neb_mpi
 
   CONTAINS
+
+    subroutine read_neb_namelist(dict,filename)
+      use module_base
+      use public_keys
+      implicit none
+      character(len=*), intent(in) :: filename
+      type(dictionary), pointer :: dict
+
+      INTEGER :: num_of_images
+      CHARACTER (LEN=20) :: minimization_scheme
+      logical :: climbing, optimization, restart, exists
+      integer :: max_iterations
+      real(gp) :: convergence, damp, k_min, k_max, ds, temp_req, tolerance
+      CHARACTER (LEN=80) :: first_config, last_config, job_name, scratch_dir
+
+      NAMELIST /NEB/ scratch_dir,         &
+           climbing,            &
+           optimization,        &
+           minimization_scheme, &
+           damp,                &
+           temp_req,            &
+           k_max, k_min,        &
+           ds,                  &
+           max_iterations,      &
+           tolerance,           &
+           convergence,         &
+           num_of_images,       &
+           restart,             & ! not used
+           job_name,            & ! not used
+           first_config,        & ! not used
+           last_config            ! not used
+
+      inquire(file=trim(filename),exist=exists)
+      if (.not. exists) return
+
+      open(unit = 123, file = trim(filename), action = "read")
+      READ(123 , NML=NEB )
+      close(123)
+
+      if (.not. associated(dict)) call dict_init(dict)
+
+      call set(dict // GEOPT_METHOD, "NEB")
+      call set(dict // NEB_CLIMBING, climbing)
+      call set(dict // EXTREMA_OPT, optimization)
+      call set(dict // NEB_METHOD, minimization_scheme)
+      if (trim(minimization_scheme) == 'damped-verlet') call set(dict // NEB_DAMP, damp)
+      call set(dict // SPRINGS_K // 0, k_min)
+      call set(dict // SPRINGS_K // 1, k_max)
+      if (trim(minimization_scheme) == 'sim-annealing') call set(dict // TEMP, temp_req)
+      call set(dict // BETAX, ds)
+      call set(dict // NCOUNT_CLUSTER_X, max_iterations)
+      call set(dict // FIX_TOL, tolerance)
+      call set(dict // FORCEMAX, convergence)
+      call set(dict // NIMG, num_of_images)
+
+    end subroutine read_neb_namelist
+
+    subroutine neb_extra_variables(dict,radical)
+      use public_keys, only: GEOPT_VARIABLES
+      use yaml_strings
+      implicit none
+      character(len=*), intent(in) :: radical
+      type(dictionary), pointer :: dict
+      !local variables
+      character(len=128) :: fname
+      type(dictionary), pointer :: vals
+
+      if (radical == '') then
+        call f_strcpy(src='input.neb',dest=fname)
+      else
+        call f_strcpy(src=trim(radical)//'.neb',dest=fname)
+      end if
+
+      nullify(vals)
+      call read_neb_namelist(vals,fname)
+      if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
+
+    end subroutine neb_extra_variables
 
     SUBROUTINE read_input(options)
       use yaml_output
@@ -117,8 +195,10 @@ MODULE NEB_routines
 
 
 !! default values are assigned
-      call dict_init(dict)
+      !call dict_init(dict)
+      dict => dict_new()!'input_minimal_file' .is. trim(run_id))
       call read_input_dict_from_files(trim(run_id), bigdft_mpi, dict)
+      call neb_extra_variables(dict,trim(run_id))
       call input_keys_fill_all(dict, dict_min)
       call neb_set_from_dict(dict, neb_%optimization, neb_%climbing, &
            & neb_%max_iterations, num_of_images, neb_%convergence, tolerance, &
@@ -130,7 +210,7 @@ MODULE NEB_routines
       !call dict_free(dict_min)
 
       allocate( imgs(num_of_images) )
-      
+
       ! Trick here, only super master will read the input files...
       bigdft_mpi_svg = bigdft_mpi
       bigdft_mpi%mpi_comm = MPI_COMM_WORLD
@@ -138,7 +218,7 @@ MODULE NEB_routines
       call mpi_comm_size(MPI_COMM_WORLD, bigdft_mpi%nproc, ierr)
       bigdft_mpi%igroup = 0
       bigdft_mpi%ngroup = num_of_images
-      
+
       external_call = (bigdft_mpi%nproc == 1)
 
       if (len_trim(job_name) == 0) job_name = "neb"
@@ -156,7 +236,7 @@ MODULE NEB_routines
               & run_id    = job_name+i**'(i3)', &
               & input_id  = run_id+i**'(i3)', &
               & posinp_id = posinp1+i**'(i3)', &
-              & run_from_files = .true.)
+              & run_from_files = .true.,minimal_file=job_name+i**'(i3)')
 !!$         call bigdft_set_run_properties(dict_min, &
 !!$              & run_id    = trim(job_name) // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
 !!$              & input_id  = trim(run_id)   // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
@@ -208,8 +288,8 @@ MODULE NEB_routines
 !!$           OPEN( UNIT = unit, FILE = vel_file, STATUS = "OLD", ACTION = "READ" )
 !!$           DO i = 1, neb_%nimages
 !!$              READ(unit,*)
-!!$              DO j = 1, ndim, 3 
-!!$                 READ(unit,fmt2) vel0(j,i),     & 
+!!$              DO j = 1, ndim, 3
+!!$                 READ(unit,fmt2) vel0(j,i),     &
 !!$                      vel0((j+1),i), &
 !!$                      vel0((j+2),i)
 !!$              END DO
@@ -218,7 +298,7 @@ MODULE NEB_routines
 !!$           call set_init_vel(neb_, vel0)
 !!$           deallocate(vel0)
 !!$        END IF
-!!$      
+!!$
 !!$      ELSE
 
       call images_init_path(imgs, tolerance)
@@ -251,7 +331,7 @@ MODULE NEB_routines
 !!$     END IF
     END SUBROUTINE read_input
 
-    
+
     SUBROUTINE search_MEP(options)
       use yaml_output
       use yaml_strings, only: yaml_toa
@@ -264,7 +344,7 @@ MODULE NEB_routines
       INTEGER :: iteration, unt, ierr, i
       real(gp) :: err
       LOGICAL :: stat, restart
-      CHARACTER (LEN=4), PARAMETER :: exit_file = "EXIT"  
+      CHARACTER (LEN=4), PARAMETER :: exit_file = "EXIT"
       character(len = max_field_length) :: filename
 
 !!$      IF ( .NOT. restart) THEN
@@ -409,7 +489,7 @@ MODULE NEB_routines
         N_fin = size(imgs)
 
       ELSE
-         
+
          CALL SYSTEM( "./NEB_driver.sh free_only " // trim(job_name) // &
               & " " // trim(scratch_dir) // " " // trim(posinp1) // "1")
 
@@ -444,7 +524,7 @@ END MODULE NEB_routines
 
 PROGRAM NEB
 
-  USE NEB_routines
+  USE NEB_routines, fake=> dict_free
   use dictionaries
   use bigdft_run
 

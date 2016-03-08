@@ -9,7 +9,8 @@
 
 
 module module_userinput
-    use module_base !bigdft base module
+    !use module_base !bigdft base module
+    use module_defs, only: gp
     implicit none
 
     private
@@ -354,10 +355,12 @@ contains
 
 
 subroutine give_rcov(iproc,astruct,nat,rcov)
-  use module_base, only: gp
-  use module_types
+  use module_defs, only: gp
+  use module_types, only: atomic_structure
   use yaml_output
   use module_mhgps_state
+  use dictionaries, only: f_err_throw
+  use yaml_strings
   implicit none
   !Arguments
   integer, intent(in) :: iproc
@@ -553,7 +556,7 @@ subroutine give_rcov(iproc,astruct,nat,rcov)
              err_name='BIGDFT_RUNTIME_ERROR')
      end select
      if (iproc == 0) then
-        call yaml_map('(MHGPS) RCOV:'//trim(astruct%atomnames(astruct%iatype(iat))),rcov(iat))
+        call yaml_map('(MHGPS) RCOV ('+astruct%atomnames(astruct%iatype(iat))+')',rcov(iat))
      endif
   enddo
 end subroutine give_rcov

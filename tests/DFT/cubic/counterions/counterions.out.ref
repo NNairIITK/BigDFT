@@ -1,4 +1,0 @@
- <BigDFT> log of the run will be written in logfile: ./log.yaml
- in IonicEnergyandForces: at%multipole_preserving, at%mp_isf F          16
- dpbox%n3pi         103
- DEBUG: tt   0.0000000000000000     

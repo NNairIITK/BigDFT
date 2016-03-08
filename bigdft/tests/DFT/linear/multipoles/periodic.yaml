@@ -1,0 +1,113 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   hgrids: 0.55
+   rmult: [4.0, 6.0]
+   ixc: PBE (ABINIT)
+   gnrm_cv: accurate
+   nrepmax: accurate
+   ncong: 5
+   inputpsiid: linear
+   output_denspot: 22
+   disablesym: Yes
+   external_potential:
+     units: angstroem
+     values:
+     - sym: H
+       nzion: 1
+       r: [8.307111740112305, 8.830997467041016, 6.118411064147949]
+       sigma: [0.229, 0.229, 0.229]
+       q0:
+       - 3.200199E-01
+       q1: [1.394251E-01, -2.724806E-02, 9.456267E-02]
+       q2: [1.552173E-01, -1.242288E-01, -6.610963E-02, -8.803915E-02, -2.524854E-02]
+       type: unknown
+     - sym: O
+       nzion: 6
+       r: [8.86964225769043, 9.559306144714355, 5.808343887329102]
+       sigma: [0.345, 0.345, 0.345]
+       q0:
+       - -6.405302E-01
+       q1: [-2.12572E-01, -1.351718E-01, -7.183020E-02]
+       q2: [7.755273E-01, 5.693859E-02, 5.288622E-01, -7.871817E-01, -2.752778E-01]
+       type: unknown
+     - sym: H
+       nzion: 1
+       r: [9.107542037963867, 9.321861267089844, 4.897079944610596]
+       sigma: [0.229, 0.229, 0.229]
+       q0:
+       - 3.201168E-01
+       q1: [6.537216E-02, 1.581030E-01, -2.802534E-02]
+       q2: [-3.373194E-02, 5.947129E-02, 1.937724E-01, -1.098256E-01, 2.054365E-02]
+       type: unknown
+   plot_mppot_axes: [64, 43, 76]
+   plot_pot_axes: [64, 43, 76]
+ perf:
+   store_index: No
+   ef_interpol_chargediff: 1.0
+   experimental_mode: Yes
+   calculate_KS_residue: No
+   loewdin_charge_analysis: no
+   check_matrix_compression: No
+   FOE_restart: 1
+   hamapp_radius_incr: 6
+   wf_extent_analysis: yes
+   foe_gap: yes
+ lin_general:
+   hybrid: Yes
+   nit: 50
+   rpnrm_cv: 1.0e-10
+   taylor_order: 1020
+   max_inversion_error: 5.0e-8
+   output_mat: 1
+   output_coeff: 1
+   calc_dipole: Yes
+   calc_quadrupole: yes
+   charge_multipoles: 2
+   support_function_multipoles: yes
+ lin_basis:
+   nit: 8
+   idsx: 8
+   gnrm_cv: 5.0e-2
+   gnrm_ig: 1.e-1
+   min_gnrm_for_dynamic: 4.0e-3
+   alpha_diis: 0.5
+   alpha_sd: 0.5
+   nstep_prec: 6
+   correction_orthoconstraint: 0
+ lin_kernel:
+   nstep: 10
+   nit: 4
+   idsx_coeff: [6, 0]
+   idsx: 6
+   alphamix: 0.1
+   rpnrm_cv: 1.e-7
+   linear_method: FOE
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0E-002
+ lin_basis_params:
+   H:
+     nbasis: 1
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 4.5
+     rloc_kernel: 10.0
+     rloc_kernel_foe: 12.0
+   O:
+     nbasis: 4
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 5.0
+     rloc_kernel: 10.0
+     rloc_kernel_foe: 12.0
+ posinp:
+   units: angstroem
+   cell: [ 12.0,  13.0,  12.0]
+   positions:
+   - H: [7.287691116333008, 3.888086318969727, 7.829164505004883]
+   - O: [7.287691116333008, 3.888086318969727, 8.800254821777344]
+   - H: [7.287691116333008, 2.94972038269043, 9.050948143005371]
+   properties:
+     format: xyz
+     source: periodic.xyz

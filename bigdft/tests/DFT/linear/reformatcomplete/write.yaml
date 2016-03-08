@@ -1,0 +1,56 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   hgrids: 0.30
+   rmult: [5.0, 7.0]
+   gnrm_cv: accurate
+   itermax: 100
+   nrepmax: 2
+   inputpsiid: linear
+ perf:
+   correction_co_contra: no
+ lin_general:
+   nit: [2, 80]
+   rpnrm_cv: [1.0000000000000001E-009, 1.0E-010]
+   conf_damping: 0.5
+   taylor_order: 8
+   output_wf: 1
+ lin_basis:
+   nit: [4, 2]
+   idsx: 0
+   gnrm_cv: [5.0000000000000004E-006, 9.9999999999999995E-007]
+   fix_basis: 9.9999999999999998E-013
+ lin_kernel:
+   nit: 8
+   alphamix: 1.0
+   linear_method: DIRMIN
+   fscale_foe: 5.0000000000000003E-002
+ lin_basis_params:
+   O:
+     ao_confinement: 1.0E-003
+     confinement: [5.0000000000000001E-004, 0.0]
+     rloc: 8.0
+     rloc_kernel: 8.0
+     rloc_kernel_foe: 20.0
+   H:
+     nbasis: 1
+     ao_confinement: 1.0E-003
+     confinement: [5.0000000000000001E-004, 0.0]
+     rloc: 8.0
+     rloc_kernel: 8.0
+     rloc_kernel_foe: 20.0
+ posinp:
+   units: angstroem
+   positions:
+   - O: [11.64927085393425, 5.71997903065734, 7.475815635644299]
+   - H: [12.05478504708969, 6.123968671734366, 8.260268535197801]
+   - H: [12.39257092897605, 5.350268389608291, 6.971635928157903]
+   properties:
+     format: xyz
+     source: write
+   forces (Ha/Bohr):
+   - O: [-1.6919069286801109E-006, -2.6560415866041586E-007, -7.8907301417701288E-007]
+   - H: [ 1.1667263807609731E-006, -2.361168656675476E-007, -1.89287030997516E-007]
+   - H: [ 5.2518054791858025E-007,  5.0172102432738642E-007,  9.7836004517457162E-007]
+   energy (Ha): -17.18324279353662

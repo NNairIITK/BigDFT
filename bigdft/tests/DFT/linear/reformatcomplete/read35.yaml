@@ -1,0 +1,65 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   hgrids: 0.30
+   rmult: [5.0, 7.0]
+   gnrm_cv: accurate
+   itermax: 100
+   nrepmax: 2
+   inputpsiid: linear_restart
+ perf:
+   correction_co_contra: no
+   coeff_weight_analysis: yes
+ lin_general:
+   nit: [0, 1]
+   rpnrm_cv: [1.0000000000000001E-009, 1.0E-010]
+   conf_damping: 0.5
+   taylor_order: 8
+   kernel_restart_mode: coeff
+ lin_basis:
+   nit: [4, 1]
+   idsx: 0
+   gnrm_cv: [5.0000000000000004E-006, 9.9999999999999995E-007]
+   fix_basis: 9.9999999999999998E-013
+ lin_kernel:
+   nit: [8, 1]
+   alphamix: 1.0
+   linear_method: DIRMIN
+   fscale_foe: 5.0000000000000003E-002
+ lin_basis_params:
+   O:
+     ao_confinement: 1.0E-003
+     confinement: [5.0000000000000001E-004, 0.0]
+     rloc: 8.0
+     rloc_kernel: 8.0
+     rloc_kernel_foe: 20.0
+   H:
+     nbasis: 1
+     ao_confinement: 1.0E-003
+     confinement: [5.0000000000000001E-004, 0.0]
+     rloc: 8.0
+     rloc_kernel: 8.0
+     rloc_kernel_foe: 20.0
+ frag:
+   transfer_integrals: No
+   h2o: [1, ..., 4]
+ posinp:
+   units: angstroem
+   positions:
+   - O: [-0.371650037521, -1.7139500014000001E-002, -0.140136596034]
+   - H: [3.3864155634999997E-002, 0.386850141063, 0.64431630352]
+   - H: [0.371650037521, -0.386850141063, -0.64431630352]
+   - O: [1.628349962479, -1.942515736317, 0.171051997156]
+   - H: [2.033864155635, -2.000252137407, 1.051529418618]
+   - H: [2.371650037521, -1.999747862593, -0.451529418618]
+   - O: [0.171245576496, 2.686553700911, -1.526612604629]
+   - H: [0.860562322131, 2.877815135545, -0.869895595274]
+   - H: [-0.183209692105, 1.81869909063, -1.272510312083]
+   - O: [2.978055508326, 1.151912204816, 1.190811699136]
+   - H: [3.173550869596999, 2.061252079864, 1.469914364719]
+   - H: [2.756902356321, 1.221241289143, 0.247592266274]
+   properties:
+     format: xyz
+     source: read35
+   energy (Ha): -17.18324279353662

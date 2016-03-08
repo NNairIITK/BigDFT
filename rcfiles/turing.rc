@@ -1,0 +1,13 @@
+conditions.add("testing")
+
+#build_policy = "all"
+
+# List of modules to be built by default
+modules = ['bigdft',]
+
+# Specific configure arguments for each module
+module_autogenargs['libxc'] = "CC=gcc"
+
+module_autogenargs['bigdft'] = "FC=mpixlf90_r FCFLAGS='-g -O2 -qsuffix=cpp=F90 -qxlf90=autodealloc -qessl -qsmp=omp -qtune=450 -qnoipa -qnohot -qstrict' CC=gcc --with-ext-linalg=' ' --without-gobject --with-pyyaml-path=%(prefix)s/lib/python2.7/site-packages" % globals()
+
+module_autogenargs['libABINIT'] = "FC=mpixlf90_r"

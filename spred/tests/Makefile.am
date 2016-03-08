@@ -3,7 +3,7 @@ SHORT_TESTDIRS = MINHOP
 
 LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	NEB \
-	SPLSAD
+	SPLSAD MHGPS_LJ_CONNECT
 
 EXTRA_DIST = MH_taskgroups
 
@@ -42,7 +42,7 @@ global.mon.out : test.minhop.out
 	  MINHOP*)          prec="5e-9" ;; \
           *)                prec="1.1e-10" ;; \
         esac ; \
-	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
+	python $(pythondir)/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 %.report.yaml: %.ref.yaml
 	@export PYTHONPATH=${PYTHONPATH} ; \
@@ -54,8 +54,8 @@ global.mon.out : test.minhop.out
 	name=`basename $< .xabs.ref.yaml`  ; fi;\
 	tols=`basename $< .out.ref.yaml` ;\
 	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ; \
-	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
-		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
+	python $(pythondir)/fldiff_yaml.py \
+		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@
 
 ##if USE_OCL
 ##oclrun_message = oclrun

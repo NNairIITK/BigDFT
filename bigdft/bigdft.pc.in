@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libbigdft
+Description: Library for DFT calculation over wavelets.
+Requires: psolver futile
+Version: @VERSION@
+Libs: -L${libdir} -lbigdft-1 @LIB_BIGDFT_PKG@
+Cflags: -I${includedir}
