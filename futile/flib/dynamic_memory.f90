@@ -1160,11 +1160,8 @@ contains
     implicit none
     real(f_double), dimension(:), pointer :: win
     integer :: get_lbnd
-    !local variables
-    integer, dimension(1) :: bn
-    
-    bn=lbound(win)
-    get_lbnd=bn(1)
+
+    get_lbnd=lbound(win,1)
   end function get_lbnd
 
   !> This routine identifies for each of the routines the most time consuming parts and print it in the logfile

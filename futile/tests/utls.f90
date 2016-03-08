@@ -13,6 +13,7 @@ subroutine f_utils_test()
   use f_utils
   use yaml_output
   use f_enums
+  use f_ternary
   implicit none
   !local variables
   type(f_enumerator) :: greetings=f_enumerator('Greetings',10,null()) 
@@ -94,6 +95,15 @@ subroutine f_utils_test()
   call yaml_map('Enumerator f1',f1)
   call yaml_map('Enumerator f2',f2)
   call yaml_map('Enumerator f3',f3)
+
+  call yaml_map('Ternary operator test int (true)',.if. .true. .then. 1 .else. 4)
+  call yaml_map('Ternary operator test int (false)',.if. .false. .then. 1 .else. 4)
+
+  call yaml_map('Ternary operator test dble (true)',.if. .true. .then. 1.0d0 .else. 0.d0)
+  call yaml_map('Ternary operator test dble (false)',.if. .false. .then. 1.0d0 .else. 0.d0)
+
+  call yaml_map('Ternary operator test char (true)',.if. .true. .then. 'T' .else. 'F')
+  call yaml_map('Ternary operator test char (false)',.if. .false. .then. 'T' .else. 'F')
 
 
   !wait one second

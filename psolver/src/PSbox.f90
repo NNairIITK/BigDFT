@@ -150,7 +150,7 @@ contains
     integer, intent(in), optional :: npot
     !local variables
     logical :: wrong_spin
-    integer :: nspin,ispin
+    integer :: nspin_dim, nspin,ispin
     character(len=1) :: geocode
     integer, dimension(3) :: ndims
     real(gp), dimension(3) :: hgrids
@@ -158,12 +158,13 @@ contains
 
     if (kernel%mpi_env%iproc==0) then
        call yaml_map('Reading local potential from file:',filename)
-       call read_field_dimensions(filename,geocode,ndims,nspin)
+       call read_field_dimensions(filename,geocode,ndims,nspin_dim)
        !allocate the potential in full
-       pot_from_disk=f_malloc([ndims(1),ndims(2),ndims(3),nspin],id='pot_from_disk')
+       pot_from_disk=f_malloc([ndims(1),ndims(2),ndims(3),nspin_dim],id='pot_from_disk')
        !> Read a density file using file format depending on the extension.
        call read_field(filename,&
-            geocode,ndims,hgrids,nspin,product(ndims),nspin,pot_from_disk)
+            geocode,ndims,hgrids,nspin,product(ndims),nspin_dim,pot_from_disk)
+       if (nspin/=nspin_dim) call f_err_throw('nspin/=nspin_dim')
     else
        pot_from_disk=f_malloc([1,1,1,1],id='pot_from_disk')
     end if

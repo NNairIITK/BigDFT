@@ -75,7 +75,7 @@ modules = POISSON_SOLVER.@MODULE_EXT@ \
 	BOX.@MODULE_EXT@
 else
 modules = poisson_solver.@MODULE_EXT@ \
-	environment.@MODULE_EXT@ \
+	psolver_environment.@MODULE_EXT@ \
 	pstypes.@MODULE_EXT@ \
 	psbase.@MODULE_EXT@ \
 	psbox.@MODULE_EXT@ \

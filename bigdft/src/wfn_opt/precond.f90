@@ -359,7 +359,6 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
      !write the values per orbitals
      if (iproc ==0) call write_gnrms(orbs%nkpts,orbs%norb,gnrms)
 
-
      call f_free(ncntdsp)
      call f_free(gnrms)
      call f_free(gnrmp)
@@ -368,6 +367,59 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
   call f_release_routine()
 
 END SUBROUTINE preconditionall2
+
+!!$subroutine precondition_orbital(ncong,confdata,ncplx,lr,eval,hpsi,scpr)
+!!$  implicit none
+!!$  !the nrm2 function can be replaced here by ddot
+!!$  scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi,1)
+!!$  if scpr == 0.0_wp return
+!!$
+!!$  call cprecr_from_eval(lr%geocode,eval_zero,eval,cprecr)
+!!$  !cases with no CG iterations, diagonal preconditioning
+!!$  !for Free BC it is incorporated in the standard procedure
+!!$  if (ncong == 0 .and. lr%geocode /= 'F') then
+!!$     select case(lr%geocode)
+!!$     case('F')
+!!$     case('S')
+!!$        call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
+!!$             lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
+!!$             lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyvloc, &
+!!$             cprecr,hx,hy,hz,hpsi)
+!!$     case('P')
+!!$        call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
+!!$             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$             lr%wfd%keygloc,lr%wfd%keyvloc, &
+!!$             cprecr,hx,hy,hz,hpsi)
+!!$     end select
+!!$  else !normal preconditioner
+!!$     !case active only in the linear scaling case
+!!$     if(confdata%prefac > 0.0_gp .or. confdata%potorder > 0)then
+!!$        if (.not.present(linear_precond_convol_workarrays)) then
+!!$           call f_err_throw("linear_precond_convol_workarrays must be present when calling the linear preconditioner", &
+!!$                err_name='BIGDFT_RUNTIME_ERROR')
+!!$        end if
+!!$        if (.not.present(linear_precond_workarrays)) then
+!!$           call f_err_throw("linear_precond_workarrays must be present when calling the linear preconditioner", &
+!!$                err_name='BIGDFT_RUNTIME_ERROR')
+!!$        end if
+!!$        call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,&
+!!$             cprecr,&
+!!$             hgrids(1),hgrids(2),hgrids(3),&
+!!$             kpoint(1),kpoint(2),kpoint(3),&
+!!$             hpsi,&
+!!$             lr%locregCenter,&
+!!$             confdatarr(iorb)%prefac,&
+!!$             confdatarr(iorb)%potorder,&
+!!$             linear_precond_convol_workarrays(iorb),linear_precond_workarrays(iorb))
+!!$     else
+!!$        call precondition_residue(lr,ncplx,ncong,cprecr,&
+!!$             hgrids(1),hgrids(2),hgrids(3),&
+!!$             kpoint(1),kpoint(2),kpoint(3),hpsi)
+!!$     end if
+!!$  end if
+!!$
+!!$end subroutine precondition_orbital
 
 
 ! > This function has been created also for the GPU-ported routines

@@ -14,6 +14,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   use module_base
   use module_types
   use box
+  use bounds, only: ext_buffers_coarse
   implicit none
   integer, intent(in) :: n1_old,n2_old,n3_old,n1,n2,n3  !n(c) iproc
   real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
@@ -274,19 +275,6 @@ function mindist(periodic,alat,r,r_old)
   end if
 
 end function mindist
-
-
-subroutine ext_buffers_coarse(periodic,nb)
-  implicit none
-  logical, intent(in) :: periodic
-  integer, intent(out) :: nb
-  if (periodic) then
-     nb=0
-  else
-     nb=7
-  end if
-END SUBROUTINE ext_buffers_coarse
-
 
 !> Read one wavefunction
 subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
@@ -735,6 +723,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
   use reformatting
   use yaml_output
   use locreg_operations
+  use bounds, only: ext_buffers_coarse
   implicit none
   integer, dimension(3), intent(in) :: n,n_old
   real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
