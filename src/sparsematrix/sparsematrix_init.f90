@@ -4857,7 +4857,7 @@ contains
 
 
     !> Converts the sparse matrix descriptors from BigDFT to those from the CCS format.
-    !! It required that each column has at least one non-zero element.
+    !! It requires that each column has at least one non-zero element.
     subroutine sparsebigdft_to_ccs(nfvctr, nvctr, nseg, keyg, row_ind, col_ptr)
       use module_base
       implicit none
@@ -4898,7 +4898,7 @@ contains
     end subroutine sparsebigdft_to_ccs
 
 
-    !> Converts the sparse matrix descriptors from BigDFT to those from the CCS format.
+    !> Converts the sparse matrix descriptors from the CCS format to the ones from the BigDFT format.
     !! It required that each column has at least one non-zero element.
     subroutine ccs_to_sparsebigdft_short(nfvctr, nvctr, row_ind, col_ptr, nseg, keyv, keyg)
       use module_base

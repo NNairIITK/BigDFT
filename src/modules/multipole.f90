@@ -2900,7 +2900,8 @@ module multipole
                                    matrices_null, deallocate_matrices, &
                                    sparse_matrix_metadata
       use sparsematrix_init, only: matrixindex_in_compressed
-      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local, trace_sparse
+      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local
+      use sparsematrix_highlevel, only: trace_AB
       use matrix_operations, only: overlapPowerGeneral, overlap_plus_minus_one_half_exact
       use yaml_output
       use multipole_base, only: lmax
@@ -3002,9 +3003,10 @@ module multipole
       ispin=1
       isshift=(ispin-1)*smats%nvctrp_tg
       ilshift=(ispin-1)*smatl%nvctrp_tg
-      tr_KS = trace_sparse(bigdft_mpi%iproc, bigdft_mpi%nproc, smats, smatl, &
-             ovrlp_%matrix_compr(isshift+1:), &
-             kernel_%matrix_compr(ilshift+1:), ispin)
+      !tr_KS = trace_sparse(bigdft_mpi%iproc, bigdft_mpi%nproc, smats, smatl, &
+      !       ovrlp_%matrix_compr(isshift+1:), &
+      !       kernel_%matrix_compr(ilshift+1:), ispin)
+      tr_KS = trace_AB(smats, smatl, ovrlp_, kernel_, ispin)
 
 
 

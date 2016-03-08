@@ -1326,10 +1326,10 @@ module foe
                   !@NEW ##########################
                   sumn = trace_sparse(iproc, nproc, smats, smatl, &
                          ovrlp_%matrix_compr(isshift+1:), &
-                         kernel_%matrix_compr(ilshift+1:), ispin)
+                         kernel_%matrix_compr(ilshift+1:))
                   sumn_check = trace_sparse(iproc, nproc, smats, smatl, &
                                ovrlp_%matrix_compr(isshift+1:), &
-                               fermi_check_compr, ispin)
+                               fermi_check_compr)
                   !write(*,*) 'sumn, sumn_check', sumn, sumn_check
                   !@ENDNEW #######################
             
@@ -1435,7 +1435,7 @@ module foe
                   ! Calculate trace(KS).
                   sumn = trace_sparse(iproc, nproc, smats, smatl, &
                          ovrlp_%matrix_compr(isshift+1:), &
-                         kernel_%matrix_compr(ilshift+1:), ispin)
+                         kernel_%matrix_compr(ilshift+1:))
     
     
                   ! Recalculate trace(KH) (needed since the kernel was modified in the above purification). 
