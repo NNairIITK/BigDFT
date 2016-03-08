@@ -1779,14 +1779,14 @@ module sparsematrix
     !< Calculates the trace of the matrix product amat*bmat.
     !< WARNING: It is mandatory that the sparsity pattern of amat be contained
     !< within the sparsity pattern of bmat!
-    function trace_sparse(iproc, nproc, asmat, bsmat, amat, bmat, ispin)
+    function trace_sparse(iproc, nproc, asmat, bsmat, amat, bmat)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: matrixindex_in_compressed
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc,  nproc, ispin
+      integer,intent(in) :: iproc,  nproc
       type(sparse_matrix),intent(in) :: asmat, bsmat
       real(kind=8),dimension(asmat%nvctrp_tg),intent(in) :: amat
       real(kind=8),dimension(bsmat%nvctrp_tg),intent(in) :: bmat

@@ -22,10 +22,12 @@ module sparsematrix_highlevel
   public :: matrix_matrix_multiplication
   public :: matrix_chebyshev_expansion
   public :: matrix_fermi_operator_expansion
+  public :: trace_AB
 
   contains
 
-    subroutine sparse_matrix_and_matrices_init_from_file_ccs(filename, iproc, nproc, smat, mat)
+    subroutine sparse_matrix_and_matrices_init_from_file_ccs(filename, iproc, nproc, smat, mat, &
+               init_matmul)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: read_ccs_format
@@ -36,19 +38,27 @@ module sparsematrix_highlevel
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
       type(matrices),intent(out) :: mat
+      logical,intent(in),optional :: init_matmul
     
       ! Local variables
       integer :: nfvctr, nvctr
       integer,dimension(:),pointer :: col_ptr, row_ind
       real(kind=8),dimension(:),pointer :: val
+      logical :: init_matmul_
     
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
     
       ! Read in the matrix
       call read_ccs_format(filename, nfvctr, nvctr, col_ptr, row_ind, val)
+
+      if (present(init_matmul)) then
+          init_matmul_ = init_matmul
+      else
+          init_matmul_ = .true.
+      end if
     
       ! Generate the sparse_matrix type
-      call sparse_matrix_init_from_data_ccs(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
+      call sparse_matrix_init_from_data_ccs(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat, init_matmul_)
     
       ! Generate the matrices type
       call matrices_init_from_data(smat, val, mat)
@@ -97,7 +107,8 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_init_from_file_ccs
 
 
-    subroutine sparse_matrix_init_from_data_ccs(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
+    subroutine sparse_matrix_init_from_data_ccs(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat, &
+               init_matmul)
       use module_base
       use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: ccs_to_sparsebigdft_short, &
@@ -109,19 +120,28 @@ module sparsematrix_highlevel
       integer,dimension(nvctr),intent(in) :: row_ind
       integer,dimension(nfvctr),intent(in) :: col_ptr
       type(sparse_matrix),intent(out) :: smat
+      logical,intent(in),optional :: init_matmul
     
       ! Local variables
       integer :: nseg
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
+      logical :: init_matmul_
     
       call f_routine(id='sparse_matrix_init_from_data_ccs')
+
+      if (present(init_matmul)) then
+          init_matmul_ = init_matmul
+      else
+          init_matmul_ = .true.
+      end if
     
       ! Convert the sparsity pattern to the BigDFT format
       call ccs_to_sparsebigdft_short(nfvctr, nvctr, row_ind, col_ptr, nseg, keyv, keyg)
     
       ! Create the sparse_matrix structure
-      call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
+      call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat, &
+           init_matmul=init_matmul_)
     
       ! Deallocate the pointers
       call f_free_ptr(keyv)
@@ -606,5 +626,34 @@ module sparsematrix_highlevel
       call f_release_routine()
 
     end subroutine matrix_fermi_operator_expansion
+
+
+    !> Calculates the trace of the spin component ispin of the matrix product amat*bmat.
+    !! WARNING: It is mandatory that the sparsity pattern of amat be contained
+    !! within the sparsity pattern of bmat!
+    function trace_AB(asmat, bsmat, amat, bmat, ispin)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix, matrices
+      use sparsematrix, only: trace_sparse
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: ispin
+      type(sparse_matrix),intent(in) :: asmat, bsmat
+      type(matrices),intent(in) :: amat
+      type(matrices),intent(in) :: bmat
+      real(kind=8) :: trace_AB
+
+      ! Local variables
+      integer :: iashift, ibshift
+
+      iashift=(ispin-1)*asmat%nvctrp_tg
+      ibshift=(ispin-1)*bsmat%nvctrp_tg
+
+      trace_AB = trace_sparse(bigdft_mpi%iproc, bigdft_mpi%nproc, asmat, bsmat, &
+                 amat%matrix_compr(iashift+1:), &
+                 bmat%matrix_compr(ibshift+1:))
+
+    end function trace_AB
 
 end module sparsematrix_highlevel

@@ -37,9 +37,9 @@ subroutine init_foe_wrapper(iproc, nproc, input, orbs_KS, tmprtr, foe_obj)
       end do
   end if
   if (input%nspin/=1 .and. input%nspin /=2) call f_err_throw('Wrong value for nspin')
-  call init_foe(iproc, nproc, input%nspin, charges, tmprtr, input%evbounds_nsatur, input%evboundsshrink_nsatur, &
+  call init_foe(input%nspin, charges, foe_obj, tmprtr, input%evbounds_nsatur, input%evboundsshrink_nsatur, &
        input%lin%evlow, input%lin%evhigh, input%lin%fscale, input%lin%ef_interpol_det, input%lin%ef_interpol_chargediff, &
-       input%fscale_lowerbound, input%fscale_upperbound, foe_obj)
+       input%fscale_lowerbound, input%fscale_upperbound)
 
   call f_release_routine()
 

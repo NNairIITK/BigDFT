@@ -21,10 +21,13 @@ program utilities
                                 sparsematrix_malloc_ptr, deallocate_sparse_matrix, deallocate_matrices, &
                                 sparse_matrix_metadata, deallocate_sparse_matrix_metadata
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
-   use sparsematrix_io, only: read_sparse_matrix
+   use sparsematrix_io, only: read_sparse_matrix, write_sparse_matrix
    use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed2
    use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft, &
-                                     sparse_matrix_metadata_init_from_file
+                                     sparse_matrix_and_matrices_init_from_file_ccs, &
+                                     sparse_matrix_metadata_init_from_file, &
+                                     ccs_data_from_sparse_matrix, &
+                                     ccs_matrix_write
    use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, &
                                     CHARGE_ANALYSIS_PROJECTOR, &
                                     loewdin_charge_analysis_core
@@ -38,27 +41,30 @@ program utilities
    character(len=3) :: do_ortho
    character(len=30) :: tatonam, radical, colorname, linestart, lineend, cname, methodc
    character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file, coeff_file, pdos_file
-   character(len=128) :: line, cc, output_pdos
+   character(len=128) :: line, cc, output_pdos, conversion, infile, outfile
    logical :: charge_analysis = .false.
    logical :: solve_eigensystem = .false.
    logical :: calculate_pdos = .false.
+   logical :: convert_matrix_format = .false.
    type(atoms_data) :: at
    type(sparse_matrix_metadata) :: smmd
    integer :: istat, i_arg, ierr, nspin, icount, nthread, method, ntypes
    integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
    integer :: nfvctr_m, nseg_m, nvctr_m, nfvctrp_m, isfvctr_m
    integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
+   integer :: iconv
    integer,dimension(:),pointer :: on_which_atom
    integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l, on_which_atom_s, on_which_atom_m, on_which_atom_l
    integer,dimension(:),pointer :: iatype, nzatom, nelpsp
+   integer,dimension(:),pointer :: col_ptr, row_ind
    integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
    real(kind=8),dimension(:),pointer :: matrix_compr, eval_ptr
    real(kind=8),dimension(:,:),pointer :: rxyz, coeff_ptr
    real(kind=8),dimension(:),allocatable :: eval, energy_arr, occups
    real(kind=8),dimension(:,:),allocatable :: denskernel, pdos, occup_arr
    logical,dimension(:,:),allocatable :: calc_array
-   type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat
-   type(sparse_matrix) :: smat_s, smat_m, smat_l
+   type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat
+   type(sparse_matrix) :: smat_s, smat_m, smat_l, smat
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
    integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb
@@ -170,6 +176,14 @@ program utilities
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = pdos_file)
             calculate_pdos = .true.
+        else if (trim(tatonam)=='convert-matrix-format') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = conversion)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = infile)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = outfile)
+            convert_matrix_format = .true.
          end if
          i_arg = i_arg + 1
       end do loop_getargs
@@ -537,6 +551,35 @@ program utilities
        call f_free(energy_arr)
        call f_free(occup_arr)
        call f_free(occups)
+   end if
+
+   if (convert_matrix_format) then
+       select case (trim(conversion))
+       case ('bigdft_to_ccs')
+           iconv = 1
+       case ('ccs_to_bigdft')
+           iconv = 2
+       case default
+           call f_err_throw("wrong value for conversion; possible are 'bigdft_to_ccs' and 'ccs_to_bigdft'")
+       end select
+
+       if (iconv==1) then
+           call sparse_matrix_and_matrices_init_from_file_bigdft(trim(infile), bigdft_mpi%iproc, bigdft_mpi%nproc, &
+                smat, mat, init_matmul=.false.)
+           row_ind = f_malloc_ptr(smat%nvctr,id='row_ind')
+           col_ptr = f_malloc_ptr(smat%nfvctr,id='col_ptr')
+           call ccs_data_from_sparse_matrix(smat, row_ind, col_ptr)
+           if (bigdft_mpi%iproc==0) call ccs_matrix_write(trim(outfile), smat, row_ind, col_ptr, mat)
+           call f_free_ptr(row_ind)
+           call f_free_ptr(col_ptr)
+       else if (iconv==2) then
+           call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), bigdft_mpi%iproc, bigdft_mpi%nproc, &
+                smat, mat, init_matmul=.false.)
+           call write_sparse_matrix(smat, mat, trim(outfile))
+       end if
+
+       call deallocate_sparse_matrix(smat)
+       call deallocate_matrices(mat)
    end if
 
    call build_dict_info(dict_timing_info)
