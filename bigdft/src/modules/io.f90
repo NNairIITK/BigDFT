@@ -1437,7 +1437,6 @@ module io
   
       integer :: i, iat, i_stat, nat_
       real(gp) :: rxyz(3)
-  
       lstat = .false.
       write(error, "(A)") "cannot read psi description."
       if (formatted) then
