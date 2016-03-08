@@ -728,7 +728,7 @@ END SUBROUTINE writeonewave
 
 !> Make frag_trans the argument so can eliminate need for interface
 subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,&
-     hgrids,n,centre_old,centre_new,da,frag_trans,psi,psirold)
+     hgrids,n,centre_old,centre_new,da,frag_trans,psi,psirold,tag)
   use module_base
   use module_types
   use module_fragments
@@ -746,6 +746,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
   real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
   real(wp), dimension(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f), intent(out) :: psi
   real(wp), dimension(llr_old%d%n1i,llr_old%d%n2i,llr_old%d%n3i), optional, intent(in) :: psirold
+  integer, optional, intent(in) :: tag ! filename for printing functions, used for debugging only
 
   !local variables
   character(len=*), parameter :: subname='reformatonesupportfunction'
@@ -764,6 +765,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
 !  real(gp), dimension(3,3) :: rmat !< rotation matrix
 !  real(gp) :: sint,cost,onemc,ux,uy,uz
   integer, dimension(3) :: irp
+  integer :: i,j,k
 
   ! isf version
   type(workarr_sumrho) :: w
@@ -799,6 +801,20 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
 
      call f_free(wwold)
   end if
+
+
+  !if (present(tag)) then
+  !   open(tag+10000)
+  !   do i=-nb(1),2*n_old(1)+1+nb(1)
+  !   do j=-nb(2),2*n_old(2)+1+nb(2)
+  !   do k=-nb(3),2*n_old(3)+1+nb(3)
+  !      write(tag+10000,'(3(I6,1x),1x,2(F12.6,1x))') i,j,k,psifscfold(i,j,k),&
+  !           dnrm2((2*n_old(1)+2+2*nb(1))*(2*n_old(2)+2+2*nb(1))*(2*n_old(3)+2+2*nb(1)),psifscfold,1)
+  !   end do
+  !   end do
+  !   end do
+  !   close(tag+10000)
+  !end if
 
   ! transform to new structure
   hgridsh=.5_gp*hgrids
@@ -907,7 +923,8 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
           centre_old,centre_new,irp,&
           hgridsh_old,(/llr_old%d%n1i,llr_old%d%n2i,llr_old%d%n3i/),psirold,&
           hgridsh,(/llr%d%n1i,llr%d%n2i,llr%d%n3i/),psir)
-!!$     write(*,*) 'iproc,norm psirnew ',dnrm2(llr%d%n1i*llr%d%n2i*llr%d%n3i,psir,1),llr%d%n1i,llr%d%n2i,llr%d%n3i
+!!$     write(*,'(A,I4,1x,F12.6,3(1x,I4))') 'iproc,norm psirnew ',bigdft_mpi%iproc,&
+!!$          dnrm2(llr%d%n1i*llr%d%n2i*llr%d%n3i,psir,1),llr%d%n1i,llr%d%n2i,llr%d%n3i
 !!$     print *,'sumpsirnew',sum(psir)*sqrt(product(hgridsh))
 
   end if
@@ -918,7 +935,21 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
 
   call f_free(y_phi)
 
-!  print*, 'norm of psifscf ',dnrm2((2*n(1)+16)*(2*n(2)+16)*(2*n(3)+16),psifscf,1)
+  if (present(tag)) then
+     open(tag+20000)
+     do i=-nb(1),2*n(1)+1+nb(1)
+     do j=-nb(2),2*n(2)+1+nb(2)
+     do k=-nb(3),2*n(3)+1+nb(3)
+        write(tag+20000,'(3(I6,1x),1x,2(F12.6,1x))') i,j,k,psifscf(i,j,k),&
+             dnrm2((2*n(1)+2+2*nb(1))*(2*n(2)+2+2*nb(1))*(2*n(3)+2+2*nb(1)),psifscf,1)
+     end do
+     end do
+     end do
+     close(tag+20000)
+  end if
+
+
+!  print*, 'norm of psifscf ',dnrm2((2*n(1)+2+2*nb(1))*(2*n(2)+2+2*nb(1))*(2*n(3)+2+2*nb(1)),psifscf,1)
   if (.not. present(psirold)) then
      call f_free_ptr(psifscfold)
      psig = f_malloc((/ 0.to.n(1), 1.to.2, 0.to.n(2), 1.to.2, 0.to.n(3), 1.to.2 /),id='psig')
@@ -933,6 +964,21 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
      end if
 
      call f_free_ptr(psifscf)
+
+
+     if (present(tag)) then
+        open(tag)
+        do i=1,n(1)
+        do j=1,n(2)
+        do k=1,n(3)
+           write(tag,'(3(I6,1x),1x,2(F12.6,1x))') i,j,k,psig(i,1,j,1,k,1),&
+                dnrm2(8*(n(1)+1)*(n(2)+1)*(n(3)+1),psig,1)
+        end do
+        end do
+        end do
+        close(tag)
+     end if
+
 
 !!$    print*, 'norm new psig ',dnrm2(8*(n(1)+1)*(n(2)+1)*(n(3)+1),psig,1),n(1),n(2),n(3)
      call compress_plain(n(1),n(2),0,n(1),0,n(2),0,n(3),  &

@@ -520,7 +520,8 @@ module io
             call f_free(rxyz_frag)
 
             ! also output 'environment' kernel
-            if (ref_frags(ifrag_ref)%astruct_env%nat/=ref_frags(ifrag_ref)%astruct_frg%nat) then
+            if (ref_frags(ifrag_ref)%astruct_env%nat/=ref_frags(ifrag_ref)%astruct_frg%nat &
+                 .and. num_neighbours/=0) then
                ! FIX SPIN
                unitm=99
                binary=(iformat /= WF_FORMAT_PLAIN)
@@ -671,7 +672,7 @@ module io
       if (closest_only) then
          tol=0.1d0
       else
-         tol=1.0e-3
+         tol=1.0e-2
       end if
 
       rxyz_frag = f_malloc((/ 3,ref_frag%astruct_frg%nat /),id='rxyz_frag') 
