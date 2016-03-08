@@ -562,21 +562,25 @@ module sparsematrix_highlevel
       if (present(foe_verbosity)) foe_verbosity_ = foe_verbosity
 
       ! Check the dimensions of the internal arrays
-      if (size(overlap%matrix_compr)/=smat_s%nvctrp_tg) then
+      if (size(overlap%matrix_compr)/=smat_s%nvctrp_tg*smat_s%nspin) then
           call f_err_throw('The size of the array overlap%matrix_compr is wrong: '&
-               &//trim(yaml_toa(size(overlap%matrix_compr)))//' instead of '//trim(yaml_toa(smat_s%nvctrp_tg)))
+               &//trim(yaml_toa(size(overlap%matrix_compr)))//' instead of '//&
+               &trim(yaml_toa(smat_s%nvctrp_tg*smat_s%nspin)))
       end if
-      if (size(ham%matrix_compr)/=smat_h%nvctrp_tg) then
+      if (size(ham%matrix_compr)/=smat_h%nvctrp_tg*smat_h%nspin) then
           call f_err_throw('The size of the array mat_out%matrix_compr is wrong: '&
-               &//trim(yaml_toa(size(ham%matrix_compr)))//' instead of '//trim(yaml_toa(smat_h%nvctrp_tg)))
+               &//trim(yaml_toa(size(ham%matrix_compr)))//' instead of '//&
+               &trim(yaml_toa(smat_h%nvctrp_tg*smat_h%nspin)))
       end if
-      if (size(overlap_minus_one_half(1)%matrix_compr)/=smat_k%nvctrp_tg) then
+      if (size(overlap_minus_one_half(1)%matrix_compr)/=smat_k%nvctrp_tg*smat_k%nspin) then
           call f_err_throw('The size of the array mat_out%matrix_compr is wrong: '&
-               &//trim(yaml_toa(size(overlap_minus_one_half(1)%matrix_compr)))//' instead of '//trim(yaml_toa(smat_k%nvctrp_tg)))
+               &//trim(yaml_toa(size(overlap_minus_one_half(1)%matrix_compr)))//' instead of '//&
+               &trim(yaml_toa(smat_k%nvctrp_tg*smat_k%nspin)))
       end if
-      if (size(kernel%matrix_compr)/=smat_k%nvctrp_tg) then
+      if (size(kernel%matrix_compr)/=smat_k%nvctrp_tg*smat_k%nspin) then
           call f_err_throw('The size of the array mat_out%matrix_compr is wrong: '&
-               &//trim(yaml_toa(size(kernel%matrix_compr)))//' instead of '//trim(yaml_toa(smat_k%nvctrp_tg)))
+               &//trim(yaml_toa(size(kernel%matrix_compr)))//' instead of '//&
+               &trim(yaml_toa(smat_k%nvctrp_tg*smat_k%nspin)))
       end if
 
       ! Check that number of non-zero elements of smat_s is not larger than that of smat_h, and that the one of 
