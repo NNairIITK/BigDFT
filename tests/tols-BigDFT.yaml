@@ -521,7 +521,7 @@ restartdisk_charge:
  Epot: 1.1e-10
  EH: 1.1e-10
  Ekin: 1.1e-10
- Maxdiff for overlap calculation: 4.9e-09
+ Maxdiff for overlap calculation: 6.0e-09
  Maxdiff for transpose (checksum): 1.5e-11
  Patterns to ignore:
  - Wavefunction written
@@ -529,7 +529,7 @@ restartdisk_charge:
 restartdisk_read:
  EH: 1.1e-10
  Epot: 1.1e-10
- Maxdiff for overlap calculation: 4.1e-09
+ Maxdiff for overlap calculation: 5.5e-09
  Maxdiff for transpose (checksum): 3.0e-11
 
 H2-freq: &freq
@@ -1837,6 +1837,7 @@ multipoles_waterQM:
 
 multipoles_waterQMQM:
  Epot: 1.1e-10
+ EH: 1.1e-10
  Average noise forces: 1.0e-10
  number of corrected points: 6.0
  multiplicator for the confinement: 5.0e-11
