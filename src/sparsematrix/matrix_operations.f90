@@ -2403,7 +2403,7 @@ module matrix_operations
         !call deallocate_matrices(inv_ovrlp_half_)
       
       
-        call f_release_routine
+        call f_release_routine()
         call timing(iproc,'lovrlp^-1/2par','OF')
       
       end subroutine overlap_power_minus_one_half_parallel
