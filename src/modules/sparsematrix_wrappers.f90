@@ -73,7 +73,8 @@ module sparsematrix_wrappers
          call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_mult, &
               nnonzero_mult, nonzero_mult)
       end if
-      call init_sparse_matrix(iproc, nproc, orbs%norbu, nnonzero, nonzero, nnonzero_mult, nonzero_mult, smat, &
+      call init_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+           orbs%norbu, nnonzero, nonzero, nnonzero_mult, nonzero_mult, smat, &
            nspin=nspin, geocode=astruct%geocode, cell_dim=astruct%cell_dim, norbup=orbs%norbup, &
            isorbu=orbs%isorbu, store_index=store_index, on_which_atom=orbs%onwhichatom)
       call f_free_ptr(nonzero)
@@ -341,7 +342,8 @@ module sparsematrix_wrappers
                   nonzero(2,i)=iiorb
               end do
           end do
-          call init_sparse_matrix(iproc, nproc, norb, norb*norbp, nonzero, norb*norbp, nonzero, smat(ispin), &
+          call init_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+               norb, norb*norbp, nonzero, norb*norbp, nonzero, smat(ispin), &
                nspin=input%nspin, geocode=geocode, cell_dim=cell_dim, norbup=norbp, isorbu=isorb, &
                store_index=input%store_index, on_which_atom=orbs%onwhichatom, print_info=.false.)
           call f_free(nonzero)
@@ -372,7 +374,8 @@ module sparsematrix_wrappers
           !!call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
           !!     norb, norbp, isorb, input%store_index, &
           !!     orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra(ispin), print_info_=.false.)
-          call init_sparse_matrix(iproc, nproc, orbs_aux%norb, orbs_aux%norbu*orbs_aux%norbup, nonzero, &
+          call init_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+               orbs_aux%norb, orbs_aux%norbu*orbs_aux%norbup, nonzero, &
                orbs_aux%norbu*orbs_aux%norbup, nonzero, smat_extra(ispin), &
                nspin=input%nspin, geocode=geocode, cell_dim=cell_dim, norbup=orbs_aux%norbp, isorbu=orbs_aux%isorb, &
                store_index=input%store_index, on_which_atom=orbs_aux%onwhichatom, print_info=.false.)

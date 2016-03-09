@@ -1035,7 +1035,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   iicol(1) = min(icol(1),iicol(1))
   iicol(2) = max(icol(2),iicol(2))
 
-  call init_matrix_taskgroups(iproc, nproc, .false., smat_tmp, &
+  call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, .false., smat_tmp, &
        tmb%linmat%smmd, collcom_tmp, collcom_tmp, iirow, iicol)
 
   mat_tmp = matrices_null()

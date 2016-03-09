@@ -3006,7 +3006,7 @@ module multipole
       !tr_KS = trace_sparse(bigdft_mpi%iproc, bigdft_mpi%nproc, smats, smatl, &
       !       ovrlp_%matrix_compr(isshift+1:), &
       !       kernel_%matrix_compr(ilshift+1:), ispin)
-      tr_KS = trace_AB(smats, smatl, ovrlp_, kernel_, ispin)
+      tr_KS = trace_AB(bigdft_mpi%iproc, bigdft_mpi%nproc, smats, smatl, ovrlp_, kernel_, ispin)
 
 
 

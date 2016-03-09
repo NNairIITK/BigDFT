@@ -1276,7 +1276,7 @@ module forces_linear
          call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               psit_c, hpsit_c, psit_f, hpsit_f, msmat, mmat)
          !tt = trace_sparse(iproc, nproc, msmat, lsmat, mmat%matrix_compr, lmat%matrix_compr, 1)
-         tt = trace_AB(msmat, lsmat, mmat, lmat, 1)
+         tt = trace_AB(iproc, nproc, msmat, lsmat, mmat, lmat, 1)
          !tens(idir) = tens(idir) + -8.0_gp/(hx*hy*hz)/real(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,gp)*tt
          tens(idir) = tens(idir) - 2.0_gp*8.0_gp/(hx*hy*hz)/real(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,gp)*tt
          tens(idir) = tens(idir)/real(nproc,kind=8) !divide by nproc since an allreduce will follow

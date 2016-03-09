@@ -1996,7 +1996,7 @@ module io
       binary=(mod(iformat,10) /= WF_FORMAT_PLAIN)
 
       if (write_sparse) then
-          call write_sparse_matrix_metadata(tmb%linmat%m%nfvctr, at%astruct%nat, at%astruct%ntypes, &
+          call write_sparse_matrix_metadata(iproc, tmb%linmat%m%nfvctr, at%astruct%nat, at%astruct%ntypes, &
                at%astruct%units, at%astruct%geocode, at%astruct%cell_dim, at%astruct%iatype, &
                at%astruct%rxyz, at%nzatom, at%nelpsp, at%astruct%atomnames, &
                tmb%orbs%onwhichatom, trim(filename//'sparsematrix_metadata.bin'))
@@ -2010,7 +2010,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
+          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
       end if
     
     
@@ -2021,7 +2022,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
+          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
       end if
     
     
@@ -2032,7 +2034,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
+          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
       end if
     
     
@@ -2119,7 +2122,8 @@ module io
           end if
 
           if (write_sparse) then
-              call write_sparse_matrix(tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
+              call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+                   tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
           end if
           call deallocate_matrices(SminusonehalfH(1))
       end if

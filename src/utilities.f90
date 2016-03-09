@@ -574,8 +574,9 @@ program utilities
            call f_free_ptr(col_ptr)
        else if (iconv==2) then
            call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), bigdft_mpi%iproc, bigdft_mpi%nproc, &
-                smat, mat, init_matmul=.false.)
-           call write_sparse_matrix(smat, mat, trim(outfile))
+                bigdft_mpi%mpi_comm, smat, mat, init_matmul=.false.)
+           call write_sparse_matrix(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                smat, mat, trim(outfile))
        end if
 
        call deallocate_sparse_matrix(smat)

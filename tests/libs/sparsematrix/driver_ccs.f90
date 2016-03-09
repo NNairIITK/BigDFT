@@ -35,10 +35,12 @@ program driver_css
 
   ! Read from matrix1.dat and create the type containing the sparse matrix descriptors (smat1) as well as
   ! the type which contains the matrix data (overlap). The matrix element are stored in mat1%matrix_compr.
-  call sparse_matrix_and_matrices_init_from_file_ccs('matrix1.dat', bigdft_mpi%iproc, bigdft_mpi%nproc, smat1, mat1)
+  call sparse_matrix_and_matrices_init_from_file_ccs('matrix1.dat', bigdft_mpi%iproc, bigdft_mpi%nproc, &
+       bigdft_mpi%mpi_comm, smat1, mat1)
 
   ! Read from matrix2.dat and creates the type containing the sparse matrix descriptors (smat2).
-  call sparse_matrix_init_from_file_ccs('matrix2.dat', bigdft_mpi%iproc, bigdft_mpi%nproc, smat2)
+  call sparse_matrix_init_from_file_ccs('matrix2.dat', bigdft_mpi%iproc, bigdft_mpi%nproc, &
+       bigdft_mpi%mpi_comm, smat2)
 
   ! Prepares the type containing the matrix data.
   call matrices_init(smat2, mat2(1))
@@ -56,7 +58,8 @@ program driver_css
   ! Create another matrix type, this time directly with the CCS format descriptors.
   ! Get these descriptors from an auxiliary routine using again matrix2.dat
   call get_ccs_data_from_file('matrix2.dat', nfvctr, nvctr, row_ind, col_ptr)
-  call sparse_matrix_init_from_data_ccs(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr, nvctr, row_ind, col_ptr, smat3)
+  call sparse_matrix_init_from_data_ccs(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%nproc, &
+       nfvctr, nvctr, row_ind, col_ptr, smat3)
 
   ! Extract the compressed matrix from the data type. The first routine allocates an array with the correct size,
   ! the second one extracts the result.
