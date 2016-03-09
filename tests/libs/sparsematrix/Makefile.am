@@ -50,13 +50,12 @@ test-foeccs.report.yaml: $(srcdir)/test-foeccs.ref.yaml test-foeccs.out.yaml
 		-r $< -d test-foeccs.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-foeccs -o $@ 
 
 test-ccs.out.yaml: driver_ccs
-	cp -f $(srcdir)/matrix1.dat $(PWD)
-	cp -f $(srcdir)/matrix2.dat $(PWD)
+	cp -f $(srcdir)/matrix1-base.dat $(PWD)/matrix1.dat
+	cp -f $(srcdir)/matrix2-base.dat $(PWD)/matrix2.dat
 	$(run_parallel) ./driver_ccs > test-ccs.out.yaml
 
 test-foeccs.out.yaml: driver_foe_ccs
-	echo 'here'
-	cp -f $(srcdir)/overlap_ccs.dat $(PWD)
-	cp -f $(srcdir)/hamiltonian_ccs.dat $(PWD)
-	cp -f $(srcdir)/density_kernel_ccs.dat $(PWD)
+	cp -f $(srcdir)/overlap_ccs-base.dat $(PWD)/overlap_ccs.dat
+	cp -f $(srcdir)/hamiltonian_ccs-base.dat $(PWD)/hamiltonian_ccs.dat
+	cp -f $(srcdir)/density_kernel_ccs-base.dat $(PWD)/density_kernel_ccs.dat
 	$(run_parallel) ./driver_foe_ccs > test-foeccs.out.yaml
