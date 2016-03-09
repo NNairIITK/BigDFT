@@ -521,7 +521,7 @@ restartdisk_charge:
  Epot: 1.1e-10
  EH: 1.1e-10
  Ekin: 1.1e-10
- Maxdiff for overlap calculation: 4.9e-09
+ Maxdiff for overlap calculation: 6.0e-09
  Maxdiff for transpose (checksum): 1.5e-11
  Patterns to ignore:
  - Wavefunction written
@@ -529,7 +529,7 @@ restartdisk_charge:
 restartdisk_read:
  EH: 1.1e-10
  Epot: 1.1e-10
- Maxdiff for overlap calculation: 4.1e-09
+ Maxdiff for overlap calculation: 5.5e-09
  Maxdiff for transpose (checksum): 3.0e-11
 
 H2-freq: &freq
@@ -1113,7 +1113,7 @@ paracetamol:
  Epot: 1.1e-09
  Omega: 1.1e-9
  energy: 1.5e-10
- Total charge: 7.1e-11
+ Total charge: 1.1e-10
  D Tr(K): 3.3e-6
  D eF: 1.6e-6
  Tr(K): 3.3e-6
@@ -1127,7 +1127,7 @@ paracetamol:
  Energy (Hartree): 1.3e-11
  mean conf prefac: 1.1e-5
  Maxdiff for overlap calculation: 9.7e-08
- trace(KS): 7.1e-11
+ trace(KS): 9.9e-11
 
 reformatcomplete_read35:
  energy: 8.7e-10
@@ -1837,6 +1837,7 @@ multipoles_waterQM:
 
 multipoles_waterQMQM:
  Epot: 1.1e-10
+ EH: 1.1e-10
  Average noise forces: 1.0e-10
  number of corrected points: 6.0
  multiplicator for the confinement: 5.0e-11
@@ -2501,3 +2502,10 @@ matrixtaskgroups_yes:
   Keys to ignore:
    - Calculating wavelets expansion of projectors, found warnings
    - found warnings
+
+test-foeccs:
+  EBS: 1.1e-10
+  difference: 7.9e-11
+  trace(KS): 5.9e-11
+
+
