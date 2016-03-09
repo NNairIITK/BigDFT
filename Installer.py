@@ -13,16 +13,17 @@ CLEAN=' clean '
 CLEANONE=' cleanone '
 UNINSTALL=' uninstall '
 LIST=' list '
-BUILD=' build spred '
-TINDERBOX=' tinderbox -o build spred'
-DOT=' dot | dot -Tpng > buildprocedure.png '
+BUILD=' build '
+TINDERBOX=' tinderbox -o build '
+DOT=' dot '
+DOTCMD=' | dot -Edir=back -Tpng > buildprocedure.png '
 DIST=' distone bigdft-suite '
 RCFILE='buildrc'
 
 CHECKMODULES= ['futile','psolver','bigdft','spred']
 MAKEMODULES= ['futile','psolver','libABINIT','bigdft','spred']
 
-#allowed actions and corresponfing description
+#allowed actions and corresponding description
 ACTIONS={'build':
          'Compile and install the code with the given configuration.',
          'make':
@@ -40,9 +41,10 @@ ACTIONS={'build':
 
 
 class BigDFTInstaller():
-    def __init__(self,action,rcfile,verbose):
+    def __init__(self,action,package,rcfile,verbose):
         import os
         self.action=action
+        self.package=package
         self.verbose=verbose
         #look where we are
         self.srcdir = os.path.dirname(__file__)
@@ -55,7 +57,7 @@ class BigDFTInstaller():
         #To be done BEFORE any exit instruction in __init__ (get_rcfile)
         self.time0 = False
 
-        if os.path.abspath(self.srcdir) == os.path.abspath(self.builddir):
+        if os.path.abspath(self.srcdir) == os.path.abspath(self.builddir) and self.action != ['autogen','dry_run']:
             print 50*'-'
             print "ERROR: BigDFT Installer works better with a build directory different from the source directory, install from another directory"
             print "SOLUTION: Create a separate directory and invoke this script from it"
@@ -76,7 +78,7 @@ class BigDFTInstaller():
         self.print_present_configuration()
 
         #now get the list of modules that has to be treated with the given command
-        self.modulelist=self.get_output(self.jhb + LIST).split('\n')
+        self.modulelist=self.get_output(self.jhb + LIST+self.package).split('\n')
         print " List of modules to be treated:",self.modulelist
 
         #then choose the actions to be taken
@@ -240,9 +242,9 @@ class BigDFTInstaller():
         else:
             co='-C'
         if (self.verbose):
-            os.system(self.jhb+BUILD+co)
+            os.system(self.jhb+BUILD+self.package+co)
         else:
-            os.system(self.jhb+TINDERBOX+co)
+            os.system(self.jhb+TINDERBOX+self.package+co)
 
     def clean(self):
         "Clean files in the build directory"
@@ -257,7 +259,7 @@ class BigDFTInstaller():
 
     def dry_run(self):
         "Do dry build"
-        self.get_output(self.jhb+DOT)
+        self.get_output(self.jhb+DOT+self.package+DOTCMD)
 
     def rcfile_from_env(self):
         "Build the rcfile information from the chosen "+BIGDFT_CFG+" environment variable"
@@ -269,18 +271,30 @@ class BigDFTInstaller():
         if BIGDFT_CFG not in os.environ.keys() or os.path.isfile(RCFILE): return
         print 'The suite has been built without configuration file.'
         rclist=[]
+        rclist.append("""#This is the configuration file for the BigDFT installer""")
+        rclist.append("""#This is a python script which is executed by the build suite """)
+        rclist.append(" ")
         rclist.append("""#Add the condition testing to run tests and includes PyYaml""")
         rclist.append("""conditions.add("testing")""")
-        rclist.append("modules = ['bigdft',]")
+        rclist.append("""#List the module the this rcfile will build""")
+        rclist.append("modules = ['"+self.package+"',]")
         sep='"""'
         confline=sep+os.environ[BIGDFT_CFG]+sep
+        rclist.append("#example of the potentialities of the python syntax in this file")
+        rclist.append("def env_configuration():")
+        rclist.append("    return "+confline)
+        rclist.append("""#here follow the configuration instructions for the modules built""")
+        rclist.append("module_autogenargs.update({")
+        rclist.append("   ")
         for mod in self.modulelist:
-            rclist.append("module_autogenargs['"+mod+"']="+confline)
+            rclist.append("'"+mod+"': env_configuration(),")
+            rclist.append("   ")
+        rclist.append("})")
         #then write the file
         rcfile=open(RCFILE,'w')
         for item in rclist:
             rcfile.write("%s\n" % item)
-            rcfile.write("\n")
+            #rcfile.write("\n")
         rcfile.close()
         print "Your used configuration options have been saved in the file '%s'." % RCFILE
         print "Such file will be used for next builds, you might also save it in the 'rcfiles/'."
@@ -292,7 +306,7 @@ class BigDFTInstaller():
         print 'Thank you for using the Installer of BigDFT suite.'
         print 'The action considered was:',self.action
         if self.time0 != False:
-            if self.action == 'build': self.rcfile_from_env()
+            if self.action in ['build','dry_run']: self.rcfile_from_env()
             if (self.time0 is not None and self.bigdft_time() > self.time0) or (self.time0 is None and self.bigdft_time() is not None):
                 print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
                 print 'All the available executables and scripts can be found in the directory'
@@ -318,8 +332,18 @@ class Installer_Parser(argparse.ArgumentParser):
         self.exit()
 
 parser = Installer_Parser(description='BigDFT suite Installer',
-                                 epilog='For more information, visit www.bigdft.org')
+                            epilog='''
+If you want more help type "%(prog)s help"
+------------------------------------------------
+For more information, visit www.bigdft.org''',
+                            formatter_class=argparse.RawDescriptionHelpFormatter)
 
+parser.add_argument('action',nargs='?',default='help',
+                    help='Action to be performed by the Installer.'
+                    ' (default: %(default)s)',choices=['help']+[a for a in ACTIONS])
+parser.add_argument('package',nargs='?',default='spred',
+                    help='Package to be built by the installer. (default: %(default)s)',
+                    choices=CHECKMODULES)
 parser.add_argument('-f','--file',
                    help='Use an alternative configuration file instead of the default configuration '
                     + 'given by the environment variable %s' % BIGDFT_CFG)
@@ -327,14 +351,30 @@ parser.add_argument('-d','--verbose',action='store_true',
                    help='Verbose output')
 
 
-#Define the possible actions
-subparsers = parser.add_subparsers(title='The following actions are available',
-                    dest='action',
-                    help='Action to be performed by the Installer.')
-a = ACTIONS.items()
-a.sort() #Sort items alphabetically
-for (k,v) in a:
-    subparsers.add_parser(k,help=v)
-
+###Define the possible actions
+##subparsers = parser.add_subparsers(title='The following actions are available',
+##                    dest='action',
+##                    help='Action to be performed by the Installer.')
+##for (k,v) in ACTIONS.items():
+##    subparsers.add_parser(k,help=v)
+##
 args = parser.parse_args()
-BigDFTInstaller(args.action,args.file,args.verbose)
+
+if args.action=='help':
+    print "Quick overview of the BigDFT suite Installer program"
+    print 50*'-'
+    print "USAGE: Installer.py <action> <package>"
+    print 50*'-'+'Available actions'
+    for a in ACTIONS:
+        print a,':'
+        print '     ',ACTIONS[a]
+    print 50*'-'
+    print 'Available packages:',CHECKMODULES
+    print 50*'-'
+    print 10*"QIFI-"+' (Quick Instructions For the Impatient)'
+    print 'Ideally, there are two different policies:'
+    print 'Developer: From a development branch, start by "autogen", then "build"'
+    print '     User: From a tarball, start by "build"'
+    print 'Perform the "dry_run" command to have a graphical overview of the building procedure'
+else:
+    BigDFTInstaller(args.action,args.package,args.file,args.verbose)

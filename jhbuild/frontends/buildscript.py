@@ -307,11 +307,13 @@ class BuildScript:
         pass
     def start_phase(self, module, phase):
         '''Hook to perform actions before starting a particular build phase.'''
+        print 'Starting "',phase,'for module "',module,'"...'
         pass
     def end_phase(self, module, phase, error):
         '''Hook to perform actions after finishing a particular build phase.
         The argument is a string containing the error text if something
         went wrong.'''
+        print '...ending phase',phase,"module",module," stderr:",error
         pass
     def _end_phase_internal(self, module, phase, error):
         if error is None and phase == 'install':
