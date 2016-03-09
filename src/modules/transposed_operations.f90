@@ -698,18 +698,28 @@ module transposed_operations
       
       ! Local variables
       integer:: i0, ipt, ii, iiorb, i, ierr, iorb, i07i, i0i, ispin
+      real(kind=8),dimension(:,:),allocatable :: norm_thread
+      integer :: ithread, nthread
+      !$ integer :: omp_get_thread_num, omp_get_max_threads
+
     
       call timing(iproc,'norm_trans','ON')
     
       call f_zero(norm)
     
+      nthread = 1
+      !$ nthread = omp_get_max_threads()
+      norm_thread = f_malloc0((/1.to.orbs%norb,0.to.nthread-1/),id='norm_thread')
     
       spin_loop: do ispin=1,nspin
     
-          !$omp parallel default(private) &
-          !$omp shared(collcom, norm, psit_c,psit_f,orbs,ispin,nspin)
+          ithread = 0
+          !$omp parallel default(private) firstprivate(ithread) & 
+          !$omp shared(collcom, norm_thread, psit_c,psit_f,orbs,ispin,nspin)
+          !$ ithread = omp_get_thread_num()
           if (collcom%nptsp_c>0) then
-              !$omp do reduction(+:norm)
+              !!!$omp do reduction(+:norm)
+              !$omp do
               do ipt=1,collcom%nptsp_c 
                   ii=collcom%norb_per_gridpoint_c(ipt)
                   i0 = collcom%isptsp_c(ipt) + (ispin-1)*collcom%ndimind_c/nspin
@@ -718,14 +728,16 @@ module transposed_operations
                       iiorb=collcom%indexrecvorbital_c(i0i)
                       !!write(720,'(a,6i8,es13.5)') 'ipt, ispin, i0, i, i0i, iiorb, psit_c(i0i)', &
                       !!    ipt, ispin, i0, i, i0i, iiorb, psit_c(i0i)
-                      norm(iiorb)=norm(iiorb)+psit_c(i0i)**2
+                      !norm(iiorb)=norm(iiorb)+psit_c(i0i)**2
+                      norm_thread(iiorb,ithread)=norm_thread(iiorb,ithread)+psit_c(i0i)**2
                   end do
               end do
               !$omp end do
           end if
     
           if (collcom%nptsp_f>0) then
-              !$omp do reduction(+:norm)
+              !!$omp do reduction(+:norm)
+              !$omp do
               do ipt=1,collcom%nptsp_f 
                   ii=collcom%norb_per_gridpoint_f(ipt) 
                   i0 = collcom%isptsp_f(ipt) + (ispin-1)*collcom%ndimind_f/nspin
@@ -733,20 +745,32 @@ module transposed_operations
                       i0i=i0+i
                       i07i=7*i0i
                       iiorb=collcom%indexrecvorbital_f(i0i)
-                      norm(iiorb)=norm(iiorb)+psit_f(i07i-6)**2
-                      norm(iiorb)=norm(iiorb)+psit_f(i07i-5)**2
-                      norm(iiorb)=norm(iiorb)+psit_f(i07i-4)**2
-                      norm(iiorb)=norm(iiorb)+psit_f(i07i-3)**2
-                      norm(iiorb)=norm(iiorb)+psit_f(i07i-2)**2
-                      norm(iiorb)=norm(iiorb)+psit_f(i07i-1)**2
-                      norm(iiorb)=norm(iiorb)+psit_f(i07i-0)**2
+                      !norm(iiorb)=norm(iiorb)+psit_f(i07i-6)**2
+                      !norm(iiorb)=norm(iiorb)+psit_f(i07i-5)**2
+                      !norm(iiorb)=norm(iiorb)+psit_f(i07i-4)**2
+                      !norm(iiorb)=norm(iiorb)+psit_f(i07i-3)**2
+                      !norm(iiorb)=norm(iiorb)+psit_f(i07i-2)**2
+                      !norm(iiorb)=norm(iiorb)+psit_f(i07i-1)**2
+                      !norm(iiorb)=norm(iiorb)+psit_f(i07i-0)**2
+                      norm_thread(iiorb,ithread)=norm_thread(iiorb,ithread)+psit_f(i07i-6)**2
+                      norm_thread(iiorb,ithread)=norm_thread(iiorb,ithread)+psit_f(i07i-5)**2
+                      norm_thread(iiorb,ithread)=norm_thread(iiorb,ithread)+psit_f(i07i-4)**2
+                      norm_thread(iiorb,ithread)=norm_thread(iiorb,ithread)+psit_f(i07i-3)**2
+                      norm_thread(iiorb,ithread)=norm_thread(iiorb,ithread)+psit_f(i07i-2)**2
+                      norm_thread(iiorb,ithread)=norm_thread(iiorb,ithread)+psit_f(i07i-1)**2
+                      norm_thread(iiorb,ithread)=norm_thread(iiorb,ithread)+psit_f(i07i-0)**2
                   end do
               end do
               !$omp end do
           end if
           !$omp end parallel
-    
+
       end do spin_loop
+
+      do ithread=0,nthread-1
+          call axpy(orbs%norb, 1.d0, norm_thread(1,ithread), 1, norm(1), 1)
+      end do
+      call f_free(norm_thread)
       
       if(nproc>1) then
           call mpiallred(norm, mpi_sum, comm=bigdft_mpi%mpi_comm)
@@ -756,6 +780,7 @@ module transposed_operations
          if (norm(iorb)<=0.d0) write(*,*) 'iorb, norm', iorb, norm(iorb)
          norm(iorb)=1.d0/sqrt(norm(iorb))
       end do
+
     
       spin_loop2: do ispin=1,nspin
     
@@ -796,6 +821,7 @@ module transposed_operations
           !$omp end parallel
     
       end do spin_loop2
+
     
       call timing(iproc,'norm_trans','OF')
     
