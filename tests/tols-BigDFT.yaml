@@ -1113,7 +1113,7 @@ paracetamol:
  Epot: 1.1e-09
  Omega: 1.1e-9
  energy: 1.5e-10
- Total charge: 7.1e-11
+ Total charge: 1.1e-10
  D Tr(K): 3.3e-6
  D eF: 1.6e-6
  Tr(K): 3.3e-6
@@ -1127,7 +1127,7 @@ paracetamol:
  Energy (Hartree): 1.3e-11
  mean conf prefac: 1.1e-5
  Maxdiff for overlap calculation: 9.7e-08
- trace(KS): 7.1e-11
+ trace(KS): 9.9e-11
 
 reformatcomplete_read35:
  energy: 8.7e-10
@@ -2501,3 +2501,10 @@ matrixtaskgroups_yes:
   Keys to ignore:
    - Calculating wavelets expansion of projectors, found warnings
    - found warnings
+
+test-foeccs:
+  EBS: 1.1e-10
+  difference: 7.9e-11
+  trace(KS): 5.9e-11
+
+
