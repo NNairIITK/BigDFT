@@ -1040,7 +1040,7 @@ contains
     !local variables
     logical, dimension(3) :: prst
     integer :: n1,n23,i3s,i23,i3,i2,i1
-    real(dp) :: cc,ep,depsr,epsm1,hh
+    real(dp) :: cc,ep,depsr,epsm1,hh,kk
     real(dp), dimension(3) :: v,dleps
     real(dp), dimension(:,:,:), allocatable :: de2,ddeps
     real(dp), dimension(:,:,:,:), allocatable :: deps
@@ -1152,7 +1152,7 @@ contains
                    do i1=1,mesh%ndims(1)
                       v(1)=cell_r(mesh,i1,dim=1)
                       call rigid_cavity_arrays(kernel%cavity,mesh,v,&
-                           kernel%w%nat,kernel%w%rxyz,kernel%w%radii,ep,depsr,dleps,cc)
+                           kernel%w%nat,kernel%w%rxyz,kernel%w%radii,ep,depsr,dleps,cc,kk)
                       kernel%w%eps(i1,i23)=ep
                       kernel%w%corr(i1,i23)=cc
                       kernel%IntVol=kernel%IntVol+(kernel%cavity%epsilon0-ep)
@@ -1238,7 +1238,7 @@ contains
                    do i1=1,mesh%ndims(1)
                       v(1)=cell_r(mesh,i1,dim=1)
                       call rigid_cavity_arrays(kernel%cavity,mesh,v,kernel%w%nat,&
-                           kernel%w%rxyz,kernel%w%radii,ep,depsr,dleps,cc)
+                           kernel%w%rxyz,kernel%w%radii,ep,depsr,dleps,cc,kk)
                       if (i23 <= n23 .and. i23 >=1) then
                          kernel%w%eps(i1,i23)=ep
                          kernel%IntVol=kernel%IntVol+(kernel%cavity%epsilon0-ep)
@@ -1295,16 +1295,16 @@ contains
   subroutine ps_soft_PCM_forces(kernel,fpcm)
     use environment
     use f_utils, only: f_zero
+    use module_base, only: bigdft_mpi
     implicit none
     type(coulomb_operator), intent(in) :: kernel
     real(dp), dimension(3,kernel%w%nat), intent(inout) :: fpcm
     !local variables
-    real(dp), parameter :: thr=1.e-10
-    integer :: i1,i2,i3,i23
-    real(dp) :: cc,epr,depsr,hh,tt
+    real(dp), parameter :: thr=1.e-15
+    integer :: i1,i2,i3,i23,i3s
+    real(dp) :: cc,epr,depsr,hh,tt,kk!,ee,diff
     type(cell) :: mesh
     real(dp), dimension(3) :: v,dleps,deps
-    
     mesh=cell_new(kernel%geocode,kernel%ndims,kernel%hgrids)
 
     do i3=1,kernel%grid%n3p
@@ -1317,16 +1317,109 @@ contains
              v(1)=cell_r(mesh,i1,dim=1)
              !this is done to obtain the depsilon
              call rigid_cavity_arrays(kernel%cavity,mesh,v,kernel%w%nat,&
-                  kernel%w%rxyz,kernel%w%radii,epr,depsr,dleps,cc)
+                  kernel%w%rxyz,kernel%w%radii,epr,depsr,dleps,cc,kk)
              if (abs(epr-vacuum_eps) < thr) cycle
              deps=dleps*epr
              call rigid_cavity_forces(kernel%opt%only_electrostatic,kernel%cavity,mesh,v,&
-                  kernel%w%nat,kernel%w%rxyz,kernel%w%radii,epr,tt,fpcm,deps)
+                  kernel%w%nat,kernel%w%rxyz,kernel%w%radii,epr,tt,fpcm,deps,kk)
           end do
        end do
     end do
+
+! !starting point in third direction
+!  i3s=kernel%grid%istart+1
+!  i23=1
+!  do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
+!     do i2=1,kernel%ndims(2)
+!        do i1=1,kernel%ndims(1)
+!           epsold(i1,i2,i3)=kernel%w%eps(i1,i23)
+!           pot2(i1,i2,i3)=kernel%w%oneoeps(i1,i23)
+!        end do
+!        i23=i23+1
+!     end do
+!  end do
+!
+!    do i3=1,kernel%ndims(3)
+!       v(3)=cell_r(mesh,i3,dim=2)
+!       do i2=1,kernel%ndims(2)
+!          v(2)=cell_r(mesh,i2,dim=2)
+!          do i1=1,kernel%ndims(1)
+!             tt=pot2(i1,i2,i3)
+!             ee=epsold(i1,i2,i3)
+!             v(1)=cell_r(mesh,i1,dim=1)
+!             !this is done to obtain the depsilon
+!             call rigid_cavity_arrays(kernel%cavity,mesh,v,kernel%w%nat,&
+!                  kernel%w%rxyz,kernel%w%radii,epr,depsr,dleps,cc,kk)
+!             diff=abs(epr-ee)
+!             if (diff > thr) write(25,*)i1,i2,i3,diff
+!             epscurr(i1,i2,i3)=epr
+!             if (abs(epr-vacuum_eps) < thr) cycle
+!             deps=dleps*epr
+!             call rigid_cavity_forces(kernel%opt%only_electrostatic,kernel%cavity,mesh,v,&
+!                  kernel%w%nat,kernel%w%rxyz,kernel%w%radii,epr,tt,fpcm,deps,kk)
+!          end do
+!       end do
+!    end do
+
     
+!  if (bigdft_mpi%iproc==0) then
+!   call check_accuracy_3d(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),1,epsold,epscurr)
+!  end if
   end subroutine ps_soft_PCM_forces
+
+!> Check the difference of two 3 dimensional vectors
+subroutine check_accuracy_3d(n01,n02,n03,i,r1,r2)
+  use yaml_output
+  use dynamic_memory
+  use f_utils
+  use module_base, only: bigdft_mpi
+  implicit none
+  integer, intent(in) :: n01
+  integer, intent(in) :: n02
+  integer, intent(in) :: n03
+  integer, intent(in) :: i
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: r1,r2
+  !automatic array, to be check is stack poses problem
+  real(kind=8), dimension(:,:,:), allocatable :: re
+  integer :: i1,i2,i3,j,i1_max,i2_max,i3_max,jj,unt
+  real(kind=8) :: max_val,fact
+  character(len=20) :: str
+
+  re=f_malloc([n01,n02,n03],id='re')
+
+      max_val = 0.d0
+      i1_max = 1
+      i2_max = 1
+      i3_max = 1
+      do i3=1,n03
+         do i2=1,n02
+            do i1=1,n01
+               re(i1,i2,i3) = r1(i1,i2,i3) - r2(i1,i2,i3)
+               fact=abs(re(i1,i2,i3))
+               if (max_val < fact) then
+                  max_val = fact
+                  i1_max = i1
+                  i2_max = i2
+                  i3_max = i3
+               end if
+            end do
+         end do
+      end do
+  if (bigdft_mpi%iproc==0) then
+      if (max_val == 0.d0) then
+         call yaml_map('Inf. Norm difference with reference',0.d0)
+      else
+         call yaml_mapping_open('Inf. Norm difference with reference')
+         call yaml_map('Value',max_val,fmt='(1pe22.15)')
+         call yaml_map('Point',[i1_max,i2_max,i3_max],fmt='(i4)')
+         call yaml_map('Some values',[re(n01/2,n02/2,n03/2),re(2,n02/2,n03/2),re(10,n02/2,n03/2)],&
+              fmt='(1pe22.15)')
+         call yaml_mapping_close()
+      end if
+  end if
+  call f_free(re)
+
+end subroutine check_accuracy_3d
 
   subroutine build_cavity_from_rho(rho,nabla2_rho,delta_rho,cc_rho,kernel,&
        depsdrho,dsurfdrho,IntSur,IntVol)

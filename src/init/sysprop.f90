@@ -873,7 +873,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   use Poisson_Solver
   use module_atoms
   use ao_inguess, only: atomic_info
-  !use yaml_output
+  use yaml_output
   use numerics, only : Bohr_Ang
   use module_base, only: bigdft_mpi,f_zero
   use f_enums, f_str => str
@@ -888,14 +888,14 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   !local variables
   real(gp), parameter :: fact=1.2d0 ! Multiplying factor to enlarge the rigid cavity.
   integer :: i,iat
-  !integer :: i1,i2,i3,unt,i3s,i23
+  integer :: i1,i2,i3,unt,i3s,i23
   real(gp) :: IntSur,IntVol,noeleene,Cavene,Repene,Disene,IntSurt,IntVolt,diffSur,diffVol
   type(atoms_iterator) :: it
   real(gp), dimension(:), allocatable :: radii,radii_nofact
   real(gp), dimension(:,:), allocatable :: rxyz_shifted
   real(gp), dimension(:,:,:), allocatable :: eps,oneoeps,oneosqrteps,corr
   real(gp), dimension(:,:,:,:), allocatable :: dlogeps
-  real(gp), dimension(:,:,:), allocatable :: epst,oneoepst,oneosqrtepst,corrt
+!!$  real(gp), dimension(:,:,:), allocatable :: epst,oneoepst,oneosqrtepst,corrt
   real(gp), dimension(:,:,:,:), allocatable :: dlogepst
   type(cell) :: mesh
   real(dp), dimension(3) :: origin
@@ -910,11 +910,11 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   oneoeps=f_malloc(pkernel%ndims,id='oneoeps')
   oneosqrteps=f_malloc(pkernel%ndims,id='oneosqrteps')
   corr=f_malloc(pkernel%ndims,id='corr')
-  epst=f_malloc(pkernel%ndims,id='epst')
-  dlogepst=f_malloc([3,pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3)],id='dlogepst')
-  oneoepst=f_malloc(pkernel%ndims,id='oneoepst')
-  oneosqrtepst=f_malloc(pkernel%ndims,id='oneosqrtepst')
-  corrt=f_malloc(pkernel%ndims,id='corrt')
+!!$  epst=f_malloc(pkernel%ndims,id='epst')
+!!$  dlogepst=f_malloc([3,pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3)],id='dlogepst')
+!!$  oneoepst=f_malloc(pkernel%ndims,id='oneoepst')
+!!$  oneosqrtepst=f_malloc(pkernel%ndims,id='oneosqrtepst')
+!!$  corrt=f_malloc(pkernel%ndims,id='corrt')
 
   it=atoms_iter(atoms%astruct)
   !python metod
@@ -1061,6 +1061,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
   !here the pkernel_set_epsilon routine should been modified to accept
   !already the radii and the atoms
+
   mesh=cell_new(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids)
   origin=locreg_mesh_origin(mesh)
   rxyz_shifted=f_malloc([3,atoms%astruct%nat],id='rxyz_shifted')
@@ -1069,6 +1070,52 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   end do
   call pkernel_set_epsilon(pkernel,nat=atoms%astruct%nat,rxyz=rxyz_shifted,radii=radii)
   call f_free(rxyz_shifted)
+
+!!$  select case(trim(f_str(pkernel%method)))
+!!$  case('PCG')
+!!$
+!!$ !starting point in third direction
+!!$  i3s=pkernel%grid%istart+1
+!!$  i23=1
+!!$  do i3=i3s,i3s+pkernel%grid%n3p-1!kernel%ndims(3)
+!!$     do i2=1,pkernel%ndims(2)
+!!$        do i1=1,pkernel%ndims(1)
+!!$           eps(i1,i2,i3)=pkernel%w%eps(i1,i23)
+!!$           oneosqrteps(i1,i2,i3)=pkernel%w%oneoeps(i1,i23)
+!!$           corr(i1,i2,i3)=pkernel%w%corr(i1,i23)
+!!$        end do
+!!$        i23=i23+1
+!!$     end do
+!!$  end do
+!!$  if (bigdft_mpi%iproc==0) then
+!!$  call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,eps,epst)
+!!$  call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,oneosqrteps,oneosqrtepst)
+!!$  call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,corr,corrt)
+!!$  end if
+!!$
+!!$  case('PI') 
+!!$
+!!$ !starting point in third direction
+!!$  i3s=pkernel%grid%istart+1
+!!$  i23=1
+!!$  do i3=i3s,i3s+pkernel%grid%n3p-1!kernel%ndims(3)
+!!$     do i2=1,pkernel%ndims(2)
+!!$        do i1=1,pkernel%ndims(1)
+!!$           eps(i1,i2,i3)=pkernel%w%eps(i1,i23)
+!!$           dlogeps(:,i1,i2,i3)=pkernel%w%dlogeps(:,i1,i2,i3)
+!!$           oneoeps(i1,i2,i3)=pkernel%w%oneoeps(i1,i23)
+!!$        end do
+!!$        i23=i23+1
+!!$     end do
+!!$  end do
+!!$  if (bigdft_mpi%iproc==0) then
+!!$  call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,eps,epst)
+!!$  call check_accuracy_4d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,dlogeps,dlogepst)
+!!$  call check_accuracy_3d(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),i,oneoeps,oneoepst)
+!!$  end if
+!!$
+!!$  end select
+
 !!$  select case(trim(f_str(pkernel%method)))
 !!$  case('PCG')
 !!$   call pkernel_set_epsilon(pkernel,eps=eps,oneosqrteps=oneosqrteps,corr=corr)
@@ -1108,11 +1155,11 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   call f_free(oneoeps)
   call f_free(oneosqrteps)
   call f_free(corr)
-  call f_free(epst)
-  call f_free(dlogepst)
-  call f_free(oneoepst)
-  call f_free(oneosqrtepst)
-  call f_free(corrt)
+!!$  call f_free(epst)
+!!$  call f_free(dlogepst)
+!!$  call f_free(oneoepst)
+!!$  call f_free(oneosqrtepst)
+!!$  call f_free(corrt)
 end subroutine epsilon_cavity
 
 !> Check the difference of two 3 dimensional vectors

@@ -26,7 +26,7 @@ subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,eps,np2,fpcm
   !local variables
   real(dp), parameter :: thr=1.e-10
   integer :: i,i1,i2,i3
-  real(dp) :: tt,epr
+  real(dp) :: tt,epr,kk
   real(dp), dimension(3) :: v,origin,deps
 
   !mesh=cell_new(geocode,[n1,n2,n3],hgrids)
@@ -43,7 +43,7 @@ subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,eps,np2,fpcm
            if (abs(tt) < thr) cycle
            v(1)=cell_r(mesh,i1,dim=1)
            v=v-origin
-           call rigid_cavity_forces(.false.,cavity,mesh,v,nat,rxyz,radii,epr,tt,fpcm,deps)
+           call rigid_cavity_forces(.false.,cavity,mesh,v,nat,rxyz,radii,epr,tt,fpcm,deps,kk)
         end do
      end do
   end do
