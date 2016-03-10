@@ -41,11 +41,12 @@ ACTIONS={'build':
 
 
 class BigDFTInstaller():
-    def __init__(self,action,package,rcfile,verbose):
+    def __init__(self,action,package,rcfile,verbose,quiet):
         import os
-        self.action=action
-        self.package=package
-        self.verbose=verbose
+        self.action=action    #Action to be performed
+        self.package=package  #Package
+        self.verbose=verbose  #verbose option
+        self.quiet=quiet      #Ask a question
         #look where we are
         self.srcdir = os.path.dirname(__file__)
         #look the builddir
@@ -162,7 +163,7 @@ class BigDFTInstaller():
 	    print indent*2 + "Value: '%s'" % os.environ[BIGDFT_CFG]
         else:
             print indent*2 + "Source: Configuration file '%s'" % os.path.abspath(self.rcfile)
-        while True:
+        while not self.quiet:
             ok = raw_input('Do you want to continue (Y/n)? ')
             if ok == 'n' or ok=='N':
                 exit(0)
@@ -175,19 +176,22 @@ class BigDFTInstaller():
         return [val for val in l if val in self.modulelist]
 
     def shellaction(self,path,modules,action,hidden=False):
+        "Perform a shell action, dump also the result if verbose is True."
         import os
         for mod in self.selected(modules):
             directory=os.path.join(path,mod)
             here = os.getcwd()
             if os.path.isdir(directory):
-                self.__dump('Treating directory '+directory)
+                #self.__dump('Treating directory '+directory)
+                print 'Module '+mod+' ['+directory+']: '+action,
                 os.chdir(directory)
                 if hidden:
                     self.get_output(action)
                 else:
                     os.system(action)
                 os.chdir(here)
-                self.__dump('done.')
+                #self.__dump('done.')
+                print '(done)'
             else:
                 print 'Cannot perform action "',action,'" on module "',mod,'" directory not present in the build'
 
@@ -213,11 +217,11 @@ class BigDFTInstaller():
 
     def check(self):
         "Perform the check action"
-        self.shellaction('.',CHECKMODULES,'make check')
+        self.shellaction('.',CHECKMODULES,'make check',hidden=not self.verbose)
 
     def make(self):
         "Perform the simple make action"
-        self.shellaction('.',MAKEMODULES,'make -j6 && make install')
+        self.shellaction('.',MAKEMODULES,'make -j6 && make install',hidden=not self.verbose)
 
     def dist(self):
         import os
@@ -349,6 +353,8 @@ parser.add_argument('-f','--file',
                     + 'given by the environment variable %s' % BIGDFT_CFG)
 parser.add_argument('-d','--verbose',action='store_true',
                    help='Verbose output')
+parser.add_argument('-q','--quiet',action='store_true',
+                   help='Ask no question')
 
 
 ###Define the possible actions
@@ -377,4 +383,4 @@ if args.action=='help':
     print '     User: From a tarball, start by "build"'
     print 'Perform the "dry_run" command to have a graphical overview of the building procedure'
 else:
-    BigDFTInstaller(args.action,args.package,args.file,args.verbose)
+    BigDFTInstaller(args.action,args.package,args.file,args.verbose,args.quiet)

@@ -5,7 +5,7 @@
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
-!!   For the list of contributors, see ~/AUTHORS 
+!!   For the list of contributors, see ~/AUTHORS
 
 
 !> Test the input files and estimates the memory occupation versus the number
@@ -47,8 +47,9 @@ program memguess
    character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn, coeff_file, ham_file, overlap_file, kernel_file, matrix_file
    character(len=128) :: ntmb_, norbks_, interval_, npdos_, nat_, nsubmatrices_, ncategories_, cutoff_, power_
-   character(len=128) :: output_pdos, amatrix_file, bmatrix_file, cmatrix_file, inmatrix_file, outmatrix_file, wf_file
+   character(len=128) :: amatrix_file, bmatrix_file, cmatrix_file, inmatrix_file, outmatrix_file, wf_file
    character(len=128) :: posinp_file, pdos_file, cc, filename_proj
+   !character(len=128) :: output_pdos
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,exportproj=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
    logical :: calculate_pdos = .false., kernel_analysis = .false., extract_submatrix = .false.
@@ -59,7 +60,7 @@ program memguess
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out,lwork
    integer :: norbgpu,ng, nsubmatrices, ncategories, icplx, ikpt, iproj
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: hx,hy,hz,energy,occup,interval,tt,cutoff,power,d,occup_pdos, total_occup
+   real(gp) :: hx,hy,hz,energy,occup,interval,tt,cutoff,power,d,occup_pdos
    type(memory_estimation) :: mem
    type(run_objects) :: runObj
    type(orbitals_data) :: orbstst
@@ -83,7 +84,7 @@ program memguess
    !character(len=60),dimension(nconfig) :: arr_radical,arr_posinp
    !character(len=60) :: run_id, infile, outfile
    !integer, dimension(4) :: mpi_info
-   !real(gp) :: tcpu0,tcpu1,tel
+   !real(gp) :: tcpu0,tcpu1,tel,total_occup
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
    integer :: ierror, iat, itmb, jtmb, iitmb, jjtmb, ntmb, norbks, npdos, iunit01, iunit02, norb_dummy, ipt, npt, ipdos, nat
@@ -92,7 +93,8 @@ program memguess
    integer :: nfvctr_m, nseg_m, nvctr_m, nfvctrp_m, isfvctr_m
    integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l,nspin2
    integer,dimension(:),allocatable :: na, nb, nc, on_which_atom
-   integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l, on_which_atom_s, on_which_atom_m, on_which_atom_l
+   integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l
+   !integer,dimension(:),pointer :: on_which_atom_s, on_which_atom_m, on_which_atom_l
    integer,dimension(:,:),allocatable :: atoms_ref, imin_list
    integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
    real(kind=8),dimension(:,:),allocatable :: rxyz, rxyz_int, denskernel, ham, overlap, coeff, pdos, energy_bins, matrix
@@ -110,7 +112,7 @@ program memguess
    logical :: file_exists, found_bin
    logical,dimension(:,:),allocatable :: calc_array
    real(kind=8),parameter :: eps_roundoff=1.d-5
-   type(sparse_matrix) :: smat_s, smat_m, smat_l
+   !type(sparse_matrix) :: smat_s, smat_m, smat_l
    type(f_enumerator) :: inputpsi
 
    call f_lib_initialize()
@@ -155,45 +157,45 @@ program memguess
       write(*,'(1x,a)')&
          &   '           <ng> is the number of gaussians used for the gatom calculation'
       write(*,'(1x,a)')&
-           &   '"convert-positions" <from.[xyz,ascii,yaml]> <to.[xyz,ascii,yaml]>" ' 
+           &   '"convert-positions" <from.[xyz,ascii,yaml]> <to.[xyz,ascii,yaml]>" '
       write(*,'(1x,a)')&
            & 'converts input positions file "from" to file "to" using the given formats'
       write(*,'(1x,a)')&
-           &   '"pdos" <ntmb> <norb> <coeffs.bin> <npdos>" ' 
+           &   '"pdos" <ntmb> <norb> <coeffs.bin> <npdos>" '
       write(*,'(1x,a)')&
            & 'reads in the expansion coefficients "coeffs.bin" of dimension (nmtb x norb) &
            &and calculate "npdos" partial density of states'
       write(*,'(1x,a)')&
-           &   '"kernel-analysis" <coeffs.bin> <kernel.bin>" ' 
+           &   '"kernel-analysis" <coeffs.bin> <kernel.bin>" '
       write(*,'(1x,a)')&
            & 'calculates a full kernel from the expansion coefficients "coeffs.bin" of dimension (nmtb x norb) &
            &and compare it with the sparse kernel in "kernel.bin"'
       write(*,'(1x,a)')&
-           &   '"solve-eigensystem" <ham.bin> <overlap.bin> <coeffs.bin>" ' 
+           &   '"solve-eigensystem" <ham.bin> <overlap.bin> <coeffs.bin>" '
       write(*,'(1x,a)')&
            & 'solve the eigensystem Hc = lSc and write the coeffs c to disk'
       write(*,'(1x,a)')&
-           &   '"analyse-coeffs" <coeff.bin>" ' 
+           &   '"analyse-coeffs" <coeff.bin>" '
       write(*,'(1x,a)')&
            & 'analyse the coefficients by assigning them in to ncategories categories'
       write(*,'(1x,a)')&
-           &   '"peel-matrix" <matrix.bin>" ' 
+           &   '"peel-matrix" <matrix.bin>" '
       write(*,'(1x,a)')&
            & 'peel a matrix by stripping off elements which are outside of a cutoff'
       write(*,'(1x,a)')&
-           &   '"multiply-matrices" <matrix.bin>" ' 
+           &   '"multiply-matrices" <matrix.bin>" '
       write(*,'(1x,a)')&
            & 'multiply two matrices'
       write(*,'(1x,a)')&
-           &   '"matrixpower" <matrix.bin>" ' 
+           &   '"matrixpower" <matrix.bin>" '
       write(*,'(1x,a)')&
            & 'calculate the power of a matrix'
       write(*,'(1x,a)')&
-           &   '"suggest-cutoff" <posinp.xyz>" ' 
+           &   '"suggest-cutoff" <posinp.xyz>" '
       write(*,'(1x,a)')&
            & 'suggest cutoff radii for the linear scaling version'
       write(*,'(1x,a)')&
-           &   '"charge-analysis"" ' 
+           &   '"charge-analysis"" '
       write(*,'(1x,a)')&
            & 'perform a Loewdin charge analysis'
 
@@ -523,22 +525,22 @@ program memguess
    end if
 
    !!!  open(unit=1,file='input.memguess',status='old')
-   !!!  
+   !!!
    !!!  !line number, to control the input values
    !!!  iline=0
-   !!!  
+   !!!
    !!!  !number of MPI proccessors
    !!!  read(1,*) nproc
    !!!  write(*,*) 'Number of mpi processes is: ',nproc
-   !!!  
+   !!!
    !!!  read(1,*) optimise
    !!!  if (optimise) write(*,*) 'Molecule will be rotated to minimize simulation box size and workarrays in BigDFT'
-   !!!  
+   !!!
    !!!  !    "T"  If the system grid is to be displayed in the "grid.xyz" file
    !!!  read(1,*) output_grid
    !!!  write(*,*)  'output_grid= ',output_grid
-   !!!  
-   !!!  !    "T"   'Perform the test with GPU, if present.'   
+   !!!
+   !!!  !    "T"   'Perform the test with GPU, if present.'
    !!!  read(1,*) GPUtest
    !!!  if (GPUtest) write(*,*) 'Perform the test with GPU'
    !!!!!! END of By Ali
@@ -550,7 +552,7 @@ program memguess
    !call print_logo()
 
    !here we can convert the input file into the new format systematically
-   
+
 
    if (convert) then
       at%astruct%geocode = "P"
@@ -574,7 +576,7 @@ program memguess
 
    if (convertpos) then
       call set_astruct_from_file(trim(fileFrom),0,at%astruct,fcomment,energy,fxyz)
-      
+
       !find the format of the output file
       if (index(fileTo,'.xyz') > 0) then
          irad=index(fileTo,'.xyz')
@@ -588,7 +590,7 @@ program memguess
       else
          irad = len(trim(fileTo)) + 1
       end if
-      
+
       if (associated(fxyz)) then
          call astruct_dump_to_file(at%astruct,fileTo(1:irad-1),&
               trim(fcomment) // ' (converted from '//trim(fileFrom)//")",&
@@ -1347,7 +1349,7 @@ program memguess
    !Time initialization
    !call cpu_time(tcpu0)
    !call system_clock(ncount0,ncount_rate,ncount_max)
-   
+
    ! Run memory estimation on sections, if DFT mode.
    if (associated(runObj%sections) .and. .not. exportwf .and. .not. exportproj) then
       do i = 1, size(runObj%sections)
@@ -1390,7 +1392,7 @@ program memguess
         & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
         & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
         runObj%inputs%nspin,runObj%inputs%itrpmax,f_int(runObj%inputs%scf),mem)
-   
+
    if (runObj%run_mode /= MULTI_RUN_MODE .and. &
         & .not. exportwf .and. .not. exportproj) then
       call print_memory_estimation(mem)
@@ -1538,7 +1540,7 @@ program memguess
       !!$  call memocc(i_stat,rhocoeff,'rhocoeff',subname)
       !!$  allocate(rhoexpo((ng*(ng+1))/2+ndebug),stat=i_stat)
       !!$  call memocc(i_stat,rhoexpo,'rhoexpo',subname)
-      !!$  
+      !!$
       !!$  call plot_gatom_basis('all-elec',1,ng,G,gbd_occ,rhocoeff,rhoexpo)
       !!$
       !!$  if (associated(gbd_occ)) then
@@ -1626,13 +1628,13 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz)
 
       s=urot(1,1)**2+urot(2,1)**2+urot(3,1)**2
       s=1._gp/sqrt(s)
-      urot(:,1)=s*urot(:,1) 
+      urot(:,1)=s*urot(:,1)
 
       s=urot(1,1)*urot(1,2)+urot(2,1)*urot(2,2)+urot(3,1)*urot(3,2)
       urot(:,2)=urot(:,2)-s*urot(:,1)
       s=urot(1,2)**2+urot(2,2)**2+urot(3,2)**2
       s=1._gp/sqrt(s)
-      urot(:,2)=s*urot(:,2) 
+      urot(:,2)=s*urot(:,2)
 
       s=urot(1,1)*urot(1,3)+urot(2,1)*urot(2,3)+urot(3,1)*urot(3,3)
       urot(:,3)=urot(:,3)-s*urot(:,1)
@@ -1640,17 +1642,17 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz)
       urot(:,3)=urot(:,3)-s*urot(:,2)
       s=urot(1,3)**2+urot(2,3)**2+urot(3,3)**2
       s=1._gp/sqrt(s)
-      urot(:,3)=s*urot(:,3) 
+      urot(:,3)=s*urot(:,3)
 
       ! eliminate reflections
       if (urot(1,1) <= 0._gp) urot(:,1)=-urot(:,1)
       if (urot(2,2) <= 0._gp) urot(:,2)=-urot(:,2)
       if (urot(3,3) <= 0._gp) urot(:,3)=-urot(:,3)
 
-      ! apply the rotation to all atomic positions! 
+      ! apply the rotation to all atomic positions!
       do iat=1,atoms%astruct%nat
-         x=rxyz(1,iat) 
-         y=rxyz(2,iat) 
+         x=rxyz(1,iat)
+         y=rxyz(2,iat)
          z=rxyz(3,iat)
 
          txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
@@ -1676,10 +1678,10 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz)
             ! if box longest along y switch y and z
          else if (atoms%astruct%cell_dim(2) == dmax .and. atoms%astruct%cell_dim(1) /= dmax)  then
             do  iat=1,atoms%astruct%nat
-               ty=rxyz(2,iat) 
+               ty=rxyz(2,iat)
                tz=rxyz(3,iat)
 
-               rxyz(2,iat)=tz 
+               rxyz(2,iat)=tz
                rxyz(3,iat)=ty
             enddo
          endif
@@ -1801,23 +1803,23 @@ subroutine calc_vol(geocode,nat,rxyz,vol)
    integer :: iat
    real(gp) :: cxmin,cxmax,cymin,cymax,czmin,czmax
 
-   cxmax=-1.e10_gp 
+   cxmax=-1.e10_gp
    cxmin=1.e10_gp
 
-   cymax=-1.e10_gp 
+   cymax=-1.e10_gp
    cymin=1.e10_gp
 
-   czmax=-1.e10_gp 
+   czmax=-1.e10_gp
    czmin=1.e10_gp
 
    do iat=1,nat
-      cxmax=max(cxmax,rxyz(1,iat)) 
+      cxmax=max(cxmax,rxyz(1,iat))
       cxmin=min(cxmin,rxyz(1,iat))
 
-      cymax=max(cymax,rxyz(2,iat)) 
+      cymax=max(cymax,rxyz(2,iat))
       cymin=min(cymin,rxyz(2,iat))
 
-      czmax=max(czmax,rxyz(3,iat)) 
+      czmax=max(czmax,rxyz(3,iat))
       czmin=min(czmin,rxyz(3,iat))
    enddo
    !print *,cxmax,cxmin,cymax,cymin,czmax,czmin
@@ -1958,7 +1960,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    call local_potential_dimensions(iproc,Lzd,orbs,xc,ngatherarr(0,1))
 
    !allocate the necessary objects on the GPU
-   !set initialisation of GPU part 
+   !set initialisation of GPU part
    !initialise the acceleration strategy if required
    call init_material_acceleration(iproc,matacc,GPU)
 
@@ -2038,7 +2040,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    write(*,'(1x,a)')repeat('-',34)//' CPU-GPU comparison: Local Hamiltonian calculation'
 
    !warm-up
-   !call local_hamiltonian(iproc,orbs,Lzd%Glr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum) 
+   !call local_hamiltonian(iproc,orbs,Lzd%Glr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
 
    !apply the CPU hamiltonian
    !take timings
@@ -2247,7 +2249,7 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
    if (maxdiff <= threshold) then
       write(*,'(a)')''
    else
-      write(*,'(a)')'<<<< WARNING' 
+      write(*,'(a)')'<<<< WARNING'
    end if
 
 END SUBROUTINE compare_data_and_gflops
@@ -2268,7 +2270,7 @@ subroutine take_proj_from_file(filename, hx, hy, hz, nl, at, rxyz, &
   type(DFT_PSP_projectors), intent(inout) :: nl
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  
+
   integer :: iformat, i
   integer :: nb1,nb2,nb3
   logical :: perx,pery,perz
@@ -2319,7 +2321,7 @@ subroutine take_proj_from_file(filename, hx, hy, hz, nl, at, rxyz, &
           & hx,hy,hz,at,nl%pspd(iat)%plr%wfd,rxyz_file,rxyz,nl%proj,eproj,psifscf)
 
      close(99)
-     
+
   else if (iformat == WF_FORMAT_ETSF) then
      stop "No ETSF proj implementation"
   end if
@@ -2327,7 +2329,7 @@ subroutine take_proj_from_file(filename, hx, hy, hz, nl, at, rxyz, &
   call f_free(rxyz_file)
 end subroutine take_proj_from_file
 
-!> Extract the compressed wavefunction from the given file 
+!> Extract the compressed wavefunction from the given file
 subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispinor,ref_frags)
    use module_base
    use module_types
@@ -2362,7 +2364,7 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
    real(gp) :: locrad, confPotprefac !lr408
    real(gp), dimension(3) :: locregCenter !lr408
    character(len=3) :: in_name !lr408
-   type(local_zone_descriptors) :: Lzd 
+   type(local_zone_descriptors) :: Lzd
    integer, dimension(1) :: orblist
    character(len=100) :: filename_start
    real(wp), allocatable, dimension(:) :: lpsi
