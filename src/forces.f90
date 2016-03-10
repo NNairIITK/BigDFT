@@ -10,7 +10,7 @@
 !> calculate the forces terms for PCM
 subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,eps,np2,fpcm,depsilon)
   use module_defs, only: dp,gp
-  use environment, only: cavity_data,rigid_cavity_forces
+  use psolver_environment, only: cavity_data,rigid_cavity_forces
   use box
   use bounds, only: locreg_mesh_origin
   implicit none
@@ -165,6 +165,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
           iproc,nproc,ngatherarr,rho,strtens(1,4))
   end if
 
+
   !add to the forces the ionic and dispersion contribution
   if (.true.) then!.not. experimental_modulebase_var_onlyfion) then !normal case
      if (iproc==0) then
@@ -196,9 +197,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
       call mpiallred(nlpsp%gamma_mmp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
-  !!do iat=1,atoms%astruct%nat
-  !!    write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
-  !!end do
+!!$  do iat=1,atoms%astruct%nat
+!!$      write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+!!$  end do
 
 !!$  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
 !!$  if (atoms%astruct%inputfile_format=='int') then

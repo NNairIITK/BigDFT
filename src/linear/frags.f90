@@ -230,7 +230,7 @@ contains
        ! find reference fragment this corresponds to
        ifrag_ref=input%frag%frag_index(ifrag)
        call f_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
-       nelecfrag=ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag)
+       nelecfrag=int(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))
        do jtmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
           tmb%coeff(jsforb+jtmb,jtmb)=1.0d0
           tmb%orbs%occup(jsforb+jtmb)=real(nelecfrag,dp)/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp) !ref_frags(ifrag_ref)%coeff(jtmb,jtmb) !

@@ -666,6 +666,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
 
+
   !ii = 0
   !do i3=1,denspot%dpbox%ndims(3)
   !    do i2=1,denspot%dpbox%ndims(2)
@@ -1935,6 +1936,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use orbitalbasis
   use io, only: plot_density
   use module_xc, only: XC_NO_HARTREE
+  use PSbox
   implicit none
   !Arguments
   type(DFT_wavefunction), intent(in) :: KSwfn
@@ -1964,6 +1966,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   !integer :: i,ispin
   real(dp), dimension(6) :: hstrten
   real(dp), dimension(:,:), pointer :: rho_p
+  real(dp), dimension(:), allocatable :: fpcm
   real(gp) :: ehart_fake, exc_fake, evxc_fake
   type(orbital_basis) :: ob
   type(PSolver_energies) :: PSenergies
@@ -2042,8 +2045,15 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      if (denspot%pkernel%method /= 'VAC') then
         call Electrostatic_Solver(denspot%pkernel,denspot%pot_work,PSenergies,rho_ion=denspot%rho_ion)
         !here the ionic forces can be corrected with the value coming from the cavity
-        if (denspot%pkernel%method .hasattr. 'rigid') &
-             call ps_soft_PCM_forces(denspot%pkernel,fion)
+        if (denspot%pkernel%method .hasattr. 'rigid') then
+           fpcm=f_malloc0(3*atoms%astruct%nat,id='fpcm')
+           call ps_soft_PCM_forces(denspot%pkernel,fpcm)
+           call PS_reduce(fpcm,denspot%pkernel)
+           !call f_axpy(a=f_1,x=fpcm,y=fion)
+           !fion=fion .plus. fpcm
+           call axpy(3*atoms%astruct%nat,1.0_dp,fpcm(1),1,fion(1,1),1)
+           call f_free(fpcm)
+        end if
      else
         call Electrostatic_Solver(denspot%pkernel,denspot%pot_work,PSenergies)
      end if

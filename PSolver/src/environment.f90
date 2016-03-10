@@ -8,7 +8,7 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-module environment
+module psolver_environment
   use f_enums, only: f_enumerator
   use PSbase
   use numerics, only: safe_exp,twopi,oneotwopi,oneofourpi,Bohr_Ang,AU_GPa,&
@@ -484,18 +484,7 @@ contains
        if (.not. only_electrostatic) then 
         ttV=cavity%betaV/eps0m1*hh ! CAN BE DONE EXTERNAL TO THE LOOP (INTEGRAL)
         f_Vterm(:)=ttV*depsdRi(:) ! Force from the Volume term to the energy
-!        /sqrtdeps=sqrt(square(mesh,deps))
-!        ttS=(cavity%alphaS+cavity%gammaS)/eps0m1/sqrtdeps*hh ! CAN BE DONE EXTERNAL TO THE LOOP (INTEGRAL), no sqrtdeps
-!        ddloghdRi(:)=((dlogh**2)-d2eps(d,rad,cavity%delta)/ep)/d*vr(:)
-!        do i=1,3
-!         vect(i)=0.0_dp
-!         do j=1,3
-!          mm=depsdRi(i)*deps(j)/epsrm1+epsrm1*(ddloghdRi(i)*vr(j)/d)
-!          vect(i)=vect(i)+mm*deps(j)
-!         end do
-!        end do
-!        f_Sterm(:)=ttS*(vect(:)-epsrm1*dlogh/d*deps(:)) ! Force from the Surface term to the energy
-        ttS=(cavity%alphaS+cavity%gammaS)/eps0m1*hh ! CAN BE DONE EXTERNAL TO THE LOOP (INTEGRAL), no sqrtdeps
+        ttS=-(cavity%alphaS+cavity%gammaS)/eps0m1*hh ! CAN BE DONE EXTERNAL TO THE LOOP (INTEGRAL), no sqrtdeps
         f_Sterm(:)=ttS*kk*depsdRi(:)  !Force from the Surface term to the energy
         fxyz(:,iat)=fxyz(:,iat)+f_Vterm(:)+f_Sterm(:)
        end if
@@ -644,7 +633,6 @@ contains
     
     !$omp parallel do default(shared) private(i123)
     do i123=1,n1*n23
-       !np2em1(i123)=(eps(i123)-vacuum_eps)*nabla2_pot(i123)
        np2em1(i123)=nabla2_pot(i123)
     end do
     !$omp end parallel do
@@ -819,5 +807,5 @@ contains
   end subroutine dlepsdrho_sccs
     
 
-end module environment
+end module psolver_environment
 

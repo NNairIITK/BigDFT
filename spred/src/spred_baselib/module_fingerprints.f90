@@ -58,7 +58,7 @@ subroutine init_fingerprint(inputs,nat,geocode,nid,fp)
         nid=inputs%fp_angmom*nat
         fp = f_malloc((/ 1.to.nid/),id='fp')
       case('OMP_FP_METHOD')
-        if(geocode/='P' .or. geocode/='S')then
+        if(geocode/='P' .and. geocode/='S')then
           call f_err_throw('geocode /= P or S but a fingerprint (OMP) for periodic BC is used')
         endif
         nid=inputs%fp_angmom*inputs%fp_natx_sphere*nat
