@@ -1308,7 +1308,7 @@ contains
     mesh=cell_new(kernel%geocode,kernel%ndims,kernel%hgrids)
 
     do i3=1,kernel%grid%n3p
-       v(3)=cell_r(mesh,i3+kernel%grid%istart+1,dim=3)
+       v(3)=cell_r(mesh,i3+kernel%grid%istart,dim=3)
        do i2=1,kernel%ndims(2)
           v(2)=cell_r(mesh,i2,dim=2)
           i23=i2+(i3-1)*kernel%ndims(2)
