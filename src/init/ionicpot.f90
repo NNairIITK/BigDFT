@@ -630,6 +630,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
   end if nocavity_if
 
+  
   ! Add contribution from constant electric field to the forces
   call center_of_charge(at,rxyz,cc)
   do iat=1,at%astruct%nat

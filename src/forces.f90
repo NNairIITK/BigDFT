@@ -165,6 +165,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
           iproc,nproc,ngatherarr,rho,strtens(1,4))
   end if
 
+
   !add to the forces the ionic and dispersion contribution
   if (.true.) then!.not. experimental_modulebase_var_onlyfion) then !normal case
      if (iproc==0) then
@@ -196,9 +197,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
       call mpiallred(nlpsp%gamma_mmp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
-  !!do iat=1,atoms%astruct%nat
-  !!    write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
-  !!end do
+!!$  do iat=1,atoms%astruct%nat
+!!$      write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+!!$  end do
 
 !!$  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
 !!$  if (atoms%astruct%inputfile_format=='int') then
