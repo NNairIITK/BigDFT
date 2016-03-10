@@ -155,7 +155,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
       ! Transform to the larger sparse region in order to be compatible with tmb%ham_descr%collcom.
       ! To this end use ham_.
-      call transform_sparse_matrix_local(tmb%linmat%s, tmb%linmat%m, 'small_to_large', &
+      call transform_sparse_matrix_local(iproc, tmb%linmat%s, tmb%linmat%m, 'small_to_large', &
            smatrix_compr_in=tmb%linmat%ovrlp_%matrix_compr, lmatrix_compr_out=tmb%linmat%ham_%matrix_compr)
 
       !tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
@@ -743,7 +743,8 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   coeff_tmp = f_malloc((/ tmb%orbs%norbp, max(tmb%orbs%norb, 1) /),id='coeff_tmp')
 
   !grad_ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='grad_ovrlp%matrix')
-  call uncompress_matrix2(iproc,nproc,grad_ovrlp,grad_ovrlp_%matrix_compr,grad_ovrlp_%matrix)
+  call uncompress_matrix2(iproc,nproc,bigdft_mpi%mpi_comm, &
+       grad_ovrlp,grad_ovrlp_%matrix_compr,grad_ovrlp_%matrix)
 
   ! can change this so only go up to ksorbs%norb...
   if (tmb%orbs%norbp>0) then

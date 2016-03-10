@@ -152,7 +152,7 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_init_from_data_ccs
 
 
-    subroutine sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc, smat, mat, &
+    subroutine sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc, comm, smat, mat, &
                init_matmul)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
@@ -161,7 +161,7 @@ module sparsematrix_highlevel
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
       type(matrices),intent(out) :: mat
@@ -200,7 +200,7 @@ module sparsematrix_highlevel
       end if
     
       ! Create the sparse_matrix structure
-      call bigdft_to_sparsebigdft(iproc, nproc, bigdft_mpi%mpi_comm, nfvctr, nvctr, nseg, keyg, smat, &
+      call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
            init_matmul=init_matmul_)!, nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_)
     
       ! Generate the matrices type
@@ -217,7 +217,7 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_and_matrices_init_from_file_bigdft
 
 
-    subroutine sparse_matrix_init_from_file_bigdft(filename, iproc, nproc, smat)
+    subroutine sparse_matrix_init_from_file_bigdft(filename, iproc, nproc, comm, smat)
       use module_base
       use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: bigdft_to_sparsebigdft
@@ -225,7 +225,7 @@ module sparsematrix_highlevel
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
     
@@ -244,7 +244,7 @@ module sparsematrix_highlevel
       call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
     
       ! Create the sparse_matrix structure
-      call bigdft_to_sparsebigdft(iproc, nproc, bigdft_mpi%mpi_comm, nfvctr, nvctr, nseg, keyg, smat, &
+      call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
            nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom)
     
       ! Deallocate the pointers
@@ -275,7 +275,7 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_metadata_init_from_file
     
 
-    subroutine sparse_matrix_init_from_data_bigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
+    subroutine sparse_matrix_init_from_data_bigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat)
       use module_base
       use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: ccs_to_sparsebigdft_short, &
@@ -283,14 +283,14 @@ module sparsematrix_highlevel
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, nfvctr, nvctr, nseg
+      integer,intent(in) :: iproc, nproc, comm, nfvctr, nvctr, nseg
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(out) :: smat
     
-      call f_routine(id='sparse_matrix_init_from_data_ccs')
+      call f_routine(id='sparse_matrix_init_from_data_bigdft')
     
       ! Create the sparse_matrix structure
-      call bigdft_to_sparsebigdft(iproc, nproc, bigdft_mpi%mpi_comm, nfvctr, nvctr, nseg, keyg, smat)
+      call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat)
     
       call f_release_routine()
     
@@ -631,14 +631,14 @@ module sparsematrix_highlevel
     !> Calculates the trace of the spin component ispin of the matrix product amat*bmat.
     !! WARNING: It is mandatory that the sparsity pattern of amat be contained
     !! within the sparsity pattern of bmat!
-    function trace_AB(iproc, nproc, asmat, bsmat, amat, bmat, ispin)
+    function trace_AB(iproc, nproc, comm, asmat, bsmat, amat, bmat, ispin)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix, only: trace_sparse
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, ispin
+      integer,intent(in) :: iproc, nproc, comm, ispin
       type(sparse_matrix),intent(in) :: asmat, bsmat
       type(matrices),intent(in) :: amat
       type(matrices),intent(in) :: bmat
@@ -650,7 +650,7 @@ module sparsematrix_highlevel
       iashift=(ispin-1)*asmat%nvctrp_tg
       ibshift=(ispin-1)*bsmat%nvctrp_tg
 
-      trace_AB = trace_sparse(iproc, nproc, asmat, bsmat, &
+      trace_AB = trace_sparse(iproc, nproc, comm, asmat, bsmat, &
                  amat%matrix_compr(iashift+1:), &
                  bmat%matrix_compr(ibshift+1:))
 

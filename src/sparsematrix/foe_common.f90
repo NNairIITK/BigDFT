@@ -121,19 +121,20 @@ module foe_common
   public :: get_chebyshev_polynomials
   public :: find_fermi_level
   public :: get_poynomial_degree
+  public :: calculate_trace_distributed_new
 
 
   contains
 
 
-    subroutine get_chebyshev_expansion_coefficients(iproc, nproc, A, B, N, func, cc, x_max_error,max_error,mean_error)
+    subroutine get_chebyshev_expansion_coefficients(iproc, nproc, comm, A, B, N, func, cc, x_max_error,max_error,mean_error)
       use module_base
       use yaml_output
       implicit none
       
       ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm, n
       real(kind=8),intent(in) :: A, B
-      integer,intent(in) :: iproc, nproc, n
       real(kind=8),external :: func
       real(8),dimension(n),intent(out) :: cc
       real(kind=8),intent(out) :: x_max_error, max_error, mean_error
@@ -197,7 +198,7 @@ module foe_common
       call chebyshev_coefficients_communicate(n, cc)
       !!call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
-      call accuracy_of_chebyshev_expansion(iproc, nproc, n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
+      call accuracy_of_chebyshev_expansion(iproc, nproc, comm, n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
     
       call f_release_routine()
 
@@ -629,7 +630,7 @@ module foe_common
     
     
 
-    subroutine check_eigenvalue_spectrum_new(nproc, smat_l, ispin, isshift, &
+    subroutine check_eigenvalue_spectrum_new(iproc, nproc, comm, smat_l, ispin, isshift, &
                factor_high, factor_low, penalty_ev, anoise, trace_with_overlap, &
                emergency_stop, foe_obj, restart, eval_bounds_ok, &
                verbosity, eval_multiplicator, smat_s, mat)
@@ -640,8 +641,8 @@ module foe_common
       implicit none
     
       ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm, ispin, isshift
       type(sparse_matrix),intent(in) :: smat_l
-      integer,intent(in) :: nproc, ispin, isshift
       real(kind=8),intent(in) :: factor_high, factor_low, anoise
       !real(kind=8),dimension(smat_l%nfvctr,smat_l%smmm%nfvctrp,2),intent(in) :: penalty_ev
       real(kind=8),dimension(smat_l%smmm%nvctrp,2),intent(in) :: penalty_ev
@@ -736,7 +737,7 @@ module foe_common
       allredarr(2)=bound_up
     
       if (nproc > 1) then
-          call mpiallred(allredarr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(allredarr, mpi_sum, comm=comm)
       end if
     
     
@@ -745,7 +746,7 @@ module foe_common
       noise=10.d0*anoise
       noise = 1.d-1
     
-      if (bigdft_mpi%iproc==0 .and. verbosity_>0) then
+      if (iproc==0 .and. verbosity_>0) then
           !call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
           !call yaml_map('pnlty',(/allredarr(1),allredarr(2)/),fmt='(es8.1)')
           call yaml_map('penalty',allredarr(1),fmt='(es8.1)')
@@ -935,14 +936,14 @@ module foe_common
         call sequential_acces_matrix_fast2(smat, &
              inv_ovrlp, inv_ovrlp_compr_seq)
         if (smat%smmm%nvctrp_mm>0) then !to avoid an out of bounds error
-            call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+            call transform_sparsity_pattern(iproc, smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
                  smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
                  smat%smmm%nvctrp, smat%smmm%isvctr, &
                  smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
                  'small_to_large', inv_ovrlp(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), inv_ovrlpp_new)
         end if
-        call sparsemm_new(smat, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
-        call sparsemm_new(smat, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
+        call sparsemm_new(iproc, smat, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
+        call sparsemm_new(iproc, smat, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
         call f_zero(kernel)
         call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_LARGE, &
              inv_ovrlpp_new, kernel)
@@ -1107,11 +1108,11 @@ module foe_common
     end subroutine init_foe
 
 
-    subroutine accuracy_of_chebyshev_expansion(iproc, nproc, npl, coeff, bounds, h, func, x_max_error, max_error, mean_error)
+    subroutine accuracy_of_chebyshev_expansion(iproc, nproc, comm, npl, coeff, bounds, h, func, x_max_error, max_error, mean_error)
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, npl
+      integer,intent(in) :: iproc, nproc, comm, npl
       real(kind=8),dimension(npl),intent(in) :: coeff
       real(kind=8),dimension(2),intent(in) :: bounds
       real(kind=8),intent(in) :: h
@@ -1144,17 +1145,17 @@ module foe_common
       is = is + isx - 1 !shift of the starting index
       !check
       ii = np
-      call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(ii, 1, mpi_sum, comm=comm)
       if (ii/=n) then
           call f_err_throw('wrong partition of n')
       end if
       iimin = 1 + is
-      call mpiallred(iimin, 1, mpi_min, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(iimin, 1, mpi_min, comm=comm)
       if (iimin/=isx) then
           call f_err_throw('wrong starting index')
       end if
       iimax = np + is
-      call mpiallred(iimax, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(iimax, 1, mpi_max, comm=comm)
       if (iimax/=iex) then
           call f_err_throw('wrong ending index')
       end if
@@ -1194,11 +1195,11 @@ module foe_common
       mean_error = mean_error/real(iex-isx+1,kind=8)
 
       ! Communicate the results... for the maximum in an array since also the position is required
-      call mpiallred(mean_error, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(mean_error, 1, mpi_sum, comm=comm)
       max_errors = f_malloc0((/1.to.2,0.to.nproc-1/),id='max_errors')
       max_errors(1,iproc) = max_error
       max_errors(2,iproc) = x_max_error
-      call mpiallred(max_errors, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(max_errors, mpi_sum, comm=comm)
       max_error = 0.d0
       do jproc=0,nproc-1
           if (max_errors(1,jproc)>max_error) then
@@ -1222,7 +1223,7 @@ module foe_common
     !!end function x_power
 
 
-    subroutine get_chebyshev_polynomials(iproc, nproc, itype, foe_verbosity, npl, smatm, smatl, &
+    subroutine get_chebyshev_polynomials(iproc, nproc, comm, itype, foe_verbosity, npl, smatm, smatl, &
                ham_, foe_obj, chebyshev_polynomials, ispin, eval_bounds_ok, &
                hamscal_compr, scale_factor, shift_value, smats, ovrlp_, ovrlp_minus_one_half)
       use module_base
@@ -1243,7 +1244,7 @@ module foe_common
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, itype, ispin
+      integer,intent(in) :: iproc, nproc, comm, itype, ispin
       integer,intent(in) :: foe_verbosity
       integer,intent(in) :: npl
       type(sparse_matrix),intent(in) :: smatm, smatl
@@ -1504,7 +1505,7 @@ module foe_common
                       cc = 0.d0
                       call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
                            muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
-                      call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                      call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,2,1), &
                            x_max_error_fake, max_error_fake, mean_error_fake)
                       do ipl=1,npl
@@ -1575,7 +1576,7 @@ module foe_common
             
                       ! Check the eigenvalue bounds. Only necessary if calculate_SHS is true
                       ! (otherwise this has already been checked in the previous iteration).
-                      call check_eigenvalue_spectrum_new(nproc, smatl, ispin, &
+                      call check_eigenvalue_spectrum_new(iproc, nproc, bigdft_mpi%mpi_comm, smatl, ispin, &
                             0, 1.0d0, 1.0d0, penalty_ev_new, anoise, .false., emergency_stop, &
                             foe_obj, restart, eval_bounds_ok, foe_verbosity)
             
@@ -1642,7 +1643,7 @@ module foe_common
     end subroutine get_chebyshev_polynomials
 
 
-    subroutine find_fermi_level(iproc, nproc, npl, chebyshev_polynomials, &
+    subroutine find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
                foe_verbosity, label, smatl, ispin, foe_obj, kernel_)
       use module_base
       use yaml_output
@@ -1664,7 +1665,7 @@ module foe_common
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, npl, ispin
+      integer,intent(in) :: iproc, nproc, comm, npl, ispin
       type(sparse_matrix),intent(in) :: smatl
       real(kind=8),dimension(smatl%smmm%nvctrp_mm,npl) :: chebyshev_polynomials
       integer,intent(in) :: foe_verbosity
@@ -1852,12 +1853,12 @@ module foe_common
                       !!write(*,*) 'evlow, evhigh, ef, fscale', &
                       !!     foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin), &
                       !!     foe_data_get_real(foe_obj,"ef",ispin), fscale
-                      call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                      call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
                            x_max_error, max_error, mean_error)
                       call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
                            muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
-                      call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                      call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,2,1), &
                            x_max_error_fake, max_error_fake, mean_error_fake)
                       do ipl=1,npl
@@ -1903,7 +1904,7 @@ module foe_common
                       call f_free(cc)
             
                     
-                      call calculate_trace_distributed_new(iproc, nproc, smatl, fermi_small_new, sumn)
+                      call calculate_trace_distributed_new(iproc, nproc, comm, smatl, fermi_small_new, sumn)
                       !write(*,*) 'sumn',sumn
             
         
@@ -1924,7 +1925,7 @@ module foe_common
                           call yaml_map('Tr(K)',sumn,fmt='(es13.7)')
                           call yaml_map('D Tr(K)',sumn-foe_data_get_real(foe_obj,"charge",ispin),fmt='(es9.2)')
                       end if
-                      call determine_fermi_level(f, sumn, ef, info)
+                      call determine_fermi_level(iproc, f, sumn, ef, info)
                       bisection_bounds_ok(1) = fermilevel_get_logical(f,"bisection_bounds_ok(1)")
                       bisection_bounds_ok(2) = fermilevel_get_logical(f,"bisection_bounds_ok(2)")
 
@@ -1965,7 +1966,7 @@ module foe_common
                           diff=0.d0
         
                           if (nproc > 1) then
-                              call mpiallred(diff, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+                              call mpiallred(diff, 1, mpi_sum, comm=comm)
                           end if
         
                           diff=sqrt(diff)
@@ -2001,12 +2002,12 @@ module foe_common
     end subroutine find_fermi_level
 
 
-    subroutine calculate_trace_distributed_new(iproc, nproc, smatl, matrixp, trace)
+    subroutine calculate_trace_distributed_new(iproc, nproc, comm, smatl, matrixp, trace)
       use module_base
       use sparsematrix_base, only: sparse_matrix
       implicit none
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, comm
       type(sparse_matrix),intent(in) :: smatl
       real(kind=8),dimension(smatl%smmm%nvctrp_mm),intent(in) :: matrixp
       real(kind=8),intent(out) :: trace
@@ -2030,7 +2031,7 @@ module foe_common
       !$omp end parallel
 
       if (nproc > 1) then
-          call mpiallred(trace, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(trace, 1, mpi_sum, comm=comm)
       end if
 
       call f_release_routine()
@@ -2038,7 +2039,7 @@ module foe_common
 
 
     ! Determine the polynomial degree which yields the desired precision
-    subroutine get_poynomial_degree(iproc, nproc, ispin, ncalc, fun, foe_obj, &
+    subroutine get_poynomial_degree(iproc, nproc, comm, ispin, ncalc, fun, foe_obj, &
                npl_min, npl_max, npl_stride, max_polynomial_degree, verbosity, npl, cc, &
                max_error, x_max_error, mean_error, anoise, &
                ex, ef, fscale)
@@ -2049,7 +2050,7 @@ module foe_common
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, ispin, ncalc, fun, verbosity
+      integer,intent(in) :: iproc, nproc, comm, ispin, ncalc, fun, verbosity
       integer,intent(in) :: npl_min, npl_max, npl_stride
       type(foe_data),intent(in) :: foe_obj
       real(kind=8),intent(in) :: max_polynomial_degree
@@ -2114,7 +2115,7 @@ module foe_common
               case (FUNCTION_ERRORFUNCTION)
                   call func_set(FUNCTION_ERRORFUNCTION, efx=ef(icalc), fscalex=fscale(icalc))
               end select
-              call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+              call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                    foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,1,icalc), &
                    x_max_error(icalc), max_error(icalc), mean_error(icalc))
               !write(*,*) 'icalc, sum(cc_trial(:,1,icalc))', icalc, sum(cc_trial(:,1,icalc)), ex(icalc)
@@ -2144,7 +2145,7 @@ module foe_common
               do icalc=1,ncalc
                   call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
                        muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
-                  call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
+                  call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                        foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,2,icalc), &
                        x_max_error_penaltyfunction, max_error_penaltyfunction, mean_error_penaltyfunction)
                   do jpl=1,ipl

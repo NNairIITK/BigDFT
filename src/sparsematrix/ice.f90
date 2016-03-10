@@ -776,7 +776,8 @@ module ice
               !!    write(*,*) 'eval_multiplicator, eval_multiplicator_total', &
               !!                eval_multiplicator, eval_multiplicator_total
               !!end if
-              call get_poynomial_degree(iproc, nproc, ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, 5, 100, 1, 1.d-9, &
+              call get_poynomial_degree(iproc, nproc, bigdft_mpi%mpi_comm, &
+                   ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, 5, 100, 1, 1.d-9, &
                    0, npl, cc, max_error, x_max_error, mean_error, anoise, &
                    ex=ex)
               call f_free_ptr(chebyshev_polynomials)

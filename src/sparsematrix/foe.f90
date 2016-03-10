@@ -1029,7 +1029,8 @@ module foe
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: scale_and_shift_matrix, evnoise, &
                             check_eigenvalue_spectrum_new, retransform_ext, get_chebyshev_expansion_coefficients, &
-                            get_chebyshev_polynomials, find_fermi_level, get_poynomial_degree
+                            get_chebyshev_polynomials, find_fermi_level, get_poynomial_degree, &
+                            calculate_trace_distributed_new
       use module_func
       implicit none
     
@@ -1229,7 +1230,7 @@ module foe
                       call yaml_sequence_open('determine eigenvalue bounds')
                   end if
                   bounds_loop: do
-                      call get_poynomial_degree(iproc, nproc, ispin, 1, FUNCTION_ERRORFUNCTION, foe_obj, &
+                      call get_poynomial_degree(iproc, nproc, bigdft_mpi%mpi_comm, ispin, 1, FUNCTION_ERRORFUNCTION, foe_obj, &
                            npl_min, npl_max, npl_stride, 1.d-5, 0, npl, cc, &
                            max_error, x_max_error, mean_error, anoise, &
                            ef=(/foe_data_get_real(foe_obj,"ef",ispin)/), fscale=(/foe_data_get_real(foe_obj,"fscale",ispin)/))
@@ -1274,7 +1275,7 @@ module foe
                   !!if (iproc==0) then
                   !!    call yaml_sequence_open('determine Fermi energy')
                   !!end if
-                  call find_fermi_level(iproc, nproc, npl, chebyshev_polynomials, &
+                  call find_fermi_level(iproc, nproc, bigdft_mpi%mpi_comm, npl, chebyshev_polynomials, &
                        2, 'test', smatl, ispin, foe_obj, kernel_)
                   !!if (iproc==0) then
                   !!    call yaml_sequence_close()
@@ -1321,13 +1322,13 @@ module foe
                   call retransform_ext(iproc, nproc, smatl, &
                        ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), fermi_check_compr)
         
-                  call calculate_trace_distributed_new(fermi_check_new, sumn_check)
+                  call calculate_trace_distributed_new(iproc, nproc, bigdft_mpi%mpi_comm, smatl, fermi_check_new, sumn_check)
     
                   !@NEW ##########################
-                  sumn = trace_sparse(iproc, nproc, smats, smatl, &
+                  sumn = trace_sparse(iproc, nproc, bigdft_mpi%mpi_comm, smats, smatl, &
                          ovrlp_%matrix_compr(isshift+1:), &
                          kernel_%matrix_compr(ilshift+1:))
-                  sumn_check = trace_sparse(iproc, nproc, smats, smatl, &
+                  sumn_check = trace_sparse(iproc, nproc, bigdft_mpi%mpi_comm, smats, smatl, &
                                ovrlp_%matrix_compr(isshift+1:), &
                                fermi_check_compr)
                   !write(*,*) 'sumn, sumn_check', sumn, sumn_check
@@ -1433,7 +1434,7 @@ module foe
 
 
                   ! Calculate trace(KS).
-                  sumn = trace_sparse(iproc, nproc, smats, smatl, &
+                  sumn = trace_sparse(iproc, nproc, bigdft_mpi%mpi_comm, smats, smatl, &
                          ovrlp_%matrix_compr(isshift+1:), &
                          kernel_%matrix_compr(ilshift+1:))
     
@@ -1582,7 +1583,7 @@ module foe
               !! write(*,*) 'sum(matrix_compr) 0', iproc, sum(ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:))
               !!  write(*,*) 'smatl%nvctrp, smatl%smmm%nvctrp_mm', smatl%nvctrp, smatl%smmm%nvctrp_mm
               !!  write(*,*) 'smatl%isvctr, smatl%smmm%isvctr_mm', smatl%isvctr, smatl%smmm%isvctr_mm
-              call transform_sparsity_pattern(smatl%nfvctr, smatl%smmm%nvctrp_mm, smatl%smmm%isvctr_mm, &
+              call transform_sparsity_pattern(iproc, smatl%nfvctr, smatl%smmm%nvctrp_mm, smatl%smmm%isvctr_mm, &
                    smatl%nseg, smatl%keyv, smatl%keyg, smatl%smmm%line_and_column_mm, &
                    smatl%smmm%nvctrp, smatl%smmm%isvctr, &
                    smatl%smmm%nseg, smatl%smmm%keyv, smatl%smmm%keyg, &
@@ -1605,11 +1606,11 @@ module foe
               !!call f_zero(tempp)
               !!call sparsemm(smatl, kernel_compr_seq, inv_ovrlpp, tempp)
               !!write(*,*) 'sum(tempp) 2',iproc, sum(tempp)
-              call sparsemm_new(smatl, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
+              call sparsemm_new(iproc, smatl, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
               !!write(*,*) 'sum(tempp_new) 2',iproc, sum(tempp_new)
               !!inv_ovrlpp=0.d0
               !!call sparsemm(smatl, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
-              call sparsemm_new(smatl, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
+              call sparsemm_new(iproc, smatl, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
                !!write(*,*) 'sum(inv_ovrlpp) 3', iproc, sum(inv_ovrlpp)
                !!write(*,*) 'sum(inv_ovrlpp_new) 3', iproc, sum(inv_ovrlpp_new)
     
@@ -1634,34 +1635,34 @@ module foe
           end subroutine retransform
     
     
-          subroutine calculate_trace_distributed_new(matrixp, trace)
-              real(kind=8),dimension(smatl%smmm%nvctrp_mm),intent(in) :: matrixp
-              real(kind=8),intent(out) :: trace
-              integer :: i, ii
+          !!!!subroutine calculate_trace_distributed_new(matrixp, trace)
+          !!!!    real(kind=8),dimension(smatl%smmm%nvctrp_mm),intent(in) :: matrixp
+          !!!!    real(kind=8),intent(out) :: trace
+          !!!!    integer :: i, ii
     
-              call f_routine(id='calculate_trace_distributed_new')
+          !!!!    call f_routine(id='calculate_trace_distributed_new')
     
-              trace = 0.d0
-              !$omp parallel default(none) &
-              !$omp shared(trace, smatl, matrixp) &
-              !$omp private(i, iline, icolumn)
-              !$omp do reduction(+:trace)
-              do i=1,smatl%smmm%nvctrp_mm
-                  iline = smatl%smmm%line_and_column_mm(1,i)
-                  icolumn = smatl%smmm%line_and_column_mm(2,i)
-                  if (iline==icolumn) then
-                      trace = trace + matrixp(i)
-                  end if
-              end do
-              !$omp end do
-              !$omp end parallel
+          !!!!    trace = 0.d0
+          !!!!    !$omp parallel default(none) &
+          !!!!    !$omp shared(trace, smatl, matrixp) &
+          !!!!    !$omp private(i, iline, icolumn)
+          !!!!    !$omp do reduction(+:trace)
+          !!!!    do i=1,smatl%smmm%nvctrp_mm
+          !!!!        iline = smatl%smmm%line_and_column_mm(1,i)
+          !!!!        icolumn = smatl%smmm%line_and_column_mm(2,i)
+          !!!!        if (iline==icolumn) then
+          !!!!            trace = trace + matrixp(i)
+          !!!!        end if
+          !!!!    end do
+          !!!!    !$omp end do
+          !!!!    !$omp end parallel
     
-              if (nproc > 1) then
-                  call mpiallred(trace, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-              end if
+          !!!!    if (nproc > 1) then
+          !!!!        call mpiallred(trace, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          !!!!    end if
     
-              call f_release_routine()
-          end subroutine calculate_trace_distributed_new
+          !!!!    call f_release_routine()
+          !!!!end subroutine calculate_trace_distributed_new
     
     
     end subroutine fermi_operator_expansion_new

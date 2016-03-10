@@ -166,7 +166,7 @@ module sparsematrix_io
       call f_routine(id='write_sparse_matrix')
 
       matrix_compr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='matrix_compr')
-      call gather_matrix_from_taskgroups(iproc, nproc, &
+      call gather_matrix_from_taskgroups(iproc, nproc, comm, &
            smat, mat%matrix_compr, matrix_compr)
 
       if (iproc==0) then

@@ -82,7 +82,7 @@ program driver_css
 
   ! Calculate trace(KS)
   !tr_KS = trace_sparse(bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, smat_k, mat_s%matrix_compr, mat_k%matrix_compr, 1)
-  tr_KS = trace_AB(bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, smat_k, mat_s, mat_k, 1)
+  tr_KS = trace_AB(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_s, smat_k, mat_s, mat_k, 1)
 
   ! Write the result
   if (bigdft_mpi%iproc==0) call yaml_map('trace(KS)',tr_KS)
@@ -98,7 +98,7 @@ program driver_css
 
   ! Transform the overlap matrix to the sparsity pattern of the kernel
   overlap_large = sparsematrix_malloc_ptr(smat_k, iaction=SPARSE_FULL, id='overlap_large')
-  call transform_sparse_matrix(smat_s, smat_k, 'small_to_large', &
+  call transform_sparse_matrix(bigdft_mpi%iproc, smat_s, smat_k, 'small_to_large', &
        smat_in=overlap, lmat_out=overlap_large)
 
   ! Again calculate trace(KS), this time directly with the array holding the data.

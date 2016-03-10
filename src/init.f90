@@ -1212,7 +1212,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
                    ishift=(ispin-1)*tmb%linmat%s%nvctrp_tg
                    call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
                         tmb%linmat%ovrlp_%matrix_compr(ishift+1:), ovrlp_fullp)
-                   call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
+                   call deviation_from_unity_parallel(iproc, nproc, bigdft_mpi%mpi_comm, &
+                        tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
                         tmb%linmat%s%isfvctr, ovrlp_fullp, &
                         tmb%linmat%s, max_deviation_p, mean_deviation_p)
                    max_deviation = max_deviation + max_deviation_p/real(tmb%linmat%s%nspin,kind=8)
@@ -1450,11 +1451,11 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        call f_free(ovrlpp)
        ! Calculate S^1/2, as it can not be taken from memory
        order_taylor = input%lin%order_taylor
-       call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
+       call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, order_taylor, 1, (/2/), -1, &
             imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
             ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
             check_accur=.true., max_error=max_error, mean_error=mean_error)
-       call check_taylor_order(mean_error, input%lin%max_inversion_error, order_taylor)
+       call check_taylor_order(iproc, mean_error, input%lin%max_inversion_error, order_taylor)
 
        !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
        norder_taylor = input%lin%order_taylor !since it is inout
@@ -2944,7 +2945,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !ADD a check somewhere that diag and kernel only work for FOE
      if (in%lin%fragment_calculation) then
         if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
-           call fragment_kernels_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
+           call fragment_kernels_to_kernel(iproc,nproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
                 in%lin%constrained_dft,in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL,max_nbasis_env,&
                 frag_env_mapping,in%lin%kernel_restart_noise)
         else
@@ -2982,7 +2983,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
            call vcopy(tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctr*tmb%orbs%nspinor,ref_frags(1)%kernel(1,1,1),1,&
                 tmb%linmat%kernel_%matrix(1,1,1),1)
-           call compress_matrix(iproc,tmb%linmat%l,inmat=tmb%linmat%kernel_%matrix,outmat=tmb%linmat%kernel_%matrix_compr)
+           call compress_matrix(iproc,nproc,tmb%linmat%l,inmat=tmb%linmat%kernel_%matrix,outmat=tmb%linmat%kernel_%matrix_compr)
            call f_free_ptr(tmb%linmat%kernel_%matrix)
         else
            call vcopy(tmb%orbs%norb*tmb%linmat%l%nfvctr,ref_frags(1)%coeff(1,1),1,tmb%coeff(1,1),1)
@@ -3007,7 +3008,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
         ! already calculated in fragment_coeffs_to_kernel
         tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-        call uncompress_matrix2(iproc, nproc, tmb%linmat%s, &
+        call uncompress_matrix2(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, &
              tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
 
         ! can't call reconstruct directly as need to use ks_e (which has size of tmb) not ks

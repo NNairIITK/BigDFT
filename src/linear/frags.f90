@@ -360,8 +360,8 @@ contains
        tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, &
                                   iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
        call timing(iproc,'kernel_init','OF')
-       call uncompress_matrix2(iproc, bigdft_mpi%nproc, tmb%linmat%s, &
-            tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
+       call uncompress_matrix2(iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+            tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
        call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, ortho_size, &
             tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, input%lin%order_taylor, &
             tmb%orbs, tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, tmb%coeff, ksorbs)
@@ -665,7 +665,7 @@ end subroutine fragment_coeffs_to_kernel
 
 !think about cdft and charged systems...
 !also still need to activate completely random case, but need to think about purification first as will definitely be necessary
-subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb,ksorbs,&
+subroutine fragment_kernels_to_kernel(iproc,nproc,input,input_frag_charge,ref_frags,tmb,ksorbs,&
   overlap_calculated,cdft,diagonal_kernel,max_nbasis_env,frag_env_mapping,rmax)
   use yaml_output
   use module_base
@@ -684,7 +684,7 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   type(orbitals_data), intent(inout) :: ksorbs
   logical, intent(inout) :: overlap_calculated
   real(kind=gp), dimension(input%frag%nfrag), intent(in) :: input_frag_charge
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc, nproc
   logical, intent(in) :: cdft
   logical, intent(in) :: diagonal_kernel
   integer, intent(in) :: max_nbasis_env
@@ -859,7 +859,7 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   !end if 
 
 
-  call compress_matrix(iproc,tmb%linmat%l,inmat=tmb%linmat%kernel_%matrix,outmat=tmb%linmat%kernel_%matrix_compr)  
+  call compress_matrix(iproc,nproc,tmb%linmat%l,inmat=tmb%linmat%kernel_%matrix,outmat=tmb%linmat%kernel_%matrix_compr)  
   call f_free_ptr(tmb%linmat%kernel_%matrix) 
 
   call f_release_routine()
