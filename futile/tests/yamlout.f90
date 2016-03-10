@@ -177,6 +177,7 @@ subroutine test_yaml_output_sequences1()
   call yaml_mapping_close(advance='yes')
   call yaml_sequence_open('Vector of double',flow=.true.)
   do i=1,size(dv)
+    call yaml_sequence(trim(yaml_toa(dv(i),fmt='(1pe12.5)')))
   end do
   call yaml_sequence_close()
 
