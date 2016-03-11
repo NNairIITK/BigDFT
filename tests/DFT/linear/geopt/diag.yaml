@@ -25,7 +25,6 @@
    rpnrm_cv: [9.9999999999999995E-007, 4.9999999999999998E-008]
    conf_damping: 0.5
    calc_dipole: Yes
-   calc_pulay: old
  lin_basis:
    nit: 3
    idsx: [5, 0]

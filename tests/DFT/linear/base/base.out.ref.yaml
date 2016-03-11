@@ -155,7 +155,6 @@
     #                                              automatic
    calc_dipole                         : Yes #    calculate dipole
    calc_quadrupole                     : Yes #    calculate quadrupole
-   calc_pulay: [Yes, No] #                        calculate Pulay forces (old/new version)
    charge_multipoles                   : 1 #      Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
     #                                              new approach Projector
    support_function_multipoles         : yes #    Calculate the multipole moments of the support functions

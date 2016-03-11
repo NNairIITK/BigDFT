@@ -954,7 +954,7 @@ end if
   ! Diagonalize the matrix for the FOE/direct min case to get the coefficients. Only necessary if
   ! the Pulay forces are to be calculated, or if we are printing eigenvalues for restart
   if ((input%lin%scf_mode==LINEAR_FOE.or.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION)& 
-       .and. (input%lin%pulay_correction.or.mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE&
+       .and. (mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE&
        .or. input%lin%diag_end .or. mod(input%lin%output_coeff_format,10) /= WF_FORMAT_NONE)) then
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -991,26 +991,26 @@ end if
   end if
 
 
-  !! TEST ##########################
-  if (input%lin%new_pulay_correction) then
-      !!if (input%lin%scf_mode==LINEAR_FOE .and. ) then
-      !!    tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
-      !!end if
-      !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
-      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
-           infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
-           .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
-           input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor, &
-           input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
-           input%lin%pexsi_temperature,input%lin%pexsi_tol_charge)
-      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-      !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
-      call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
-      !!if (input%lin%scf_mode==LINEAR_FOE) then
-      !!    call f_free_ptr(tmb%coeff)
-      !!end if
-  end if
-  !! END TEST ######################
+!!  !! TEST ##########################
+!!  if (input%lin%new_pulay_correction) then
+!!      !!if (input%lin%scf_mode==LINEAR_FOE .and. ) then
+!!      !!    tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
+!!      !!end if
+!!      !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+!!      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
+!!           infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
+!!           .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
+!!           input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor, &
+!!           input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
+!!           input%lin%pexsi_temperature,input%lin%pexsi_tol_charge)
+!!      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+!!      !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
+!!      !!!!!call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
+!!      !!if (input%lin%scf_mode==LINEAR_FOE) then
+!!      !!    call f_free_ptr(tmb%coeff)
+!!      !!end if
+!!  end if
+!!  !! END TEST ######################
 
 
   ! only do if explicitly activated, but still check for fragment calculation
@@ -2250,22 +2250,22 @@ end if
   call deallocate_p2pComms_buffer(tmb%comgp)
 
 
-  if (input%lin%pulay_correction .and. .not.input%lin%new_pulay_correction) then
-      !if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
-      if (iproc==0) call yaml_warning('commented correction_locrad')
-      !!! Testing energy corrections due to locrad
-      !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%coeff) 
-      ! Calculate Pulay correction to the forces
-      !!if (input%lin%scf_mode==LINEAR_FOE) then
-      !!    tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
-      !!end if
-      call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpsp, input%SIC, denspot, GPU, tmb, fpulay)
-      !!if (input%lin%scf_mode==LINEAR_FOE) then
-      !!    call f_free_ptr(tmb%coeff)
-      !!end if
-  else if (.not.input%lin%new_pulay_correction) then
+!!  if (input%lin%pulay_correction .and. .not.input%lin%new_pulay_correction) then
+!!      !if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
+!!      if (iproc==0) call yaml_warning('commented correction_locrad')
+!!      !!! Testing energy corrections due to locrad
+!!      !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%coeff) 
+!!      ! Calculate Pulay correction to the forces
+!!      !!if (input%lin%scf_mode==LINEAR_FOE) then
+!!      !!    tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
+!!      !!end if
+!!      call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpsp, input%SIC, denspot, GPU, tmb, fpulay)
+!!      !!if (input%lin%scf_mode==LINEAR_FOE) then
+!!      !!    call f_free_ptr(tmb%coeff)
+!!      !!end if
+!!  else if (.not.input%lin%new_pulay_correction) then
       call f_zero(fpulay)
-  end if
+!!  end if
 
   if(tmb%ham_descr%can_use_transposed) then
       call f_free_ptr(tmb%ham_descr%psit_c)
@@ -2893,68 +2893,68 @@ end if
       real(kind=8) :: dnrm2
       if (input%inputPsiId .hasattr. 'MEMORY') then !==101) then           !should we put 102 also?
 
-          if (input%lin%pulay_correction) then
-             ! Check the input guess by calculation the Pulay forces.
+          !!if (input%lin%pulay_correction) then
+          !!   ! Check the input guess by calculation the Pulay forces.
 
-             call f_zero(tmb%ham_descr%npsidim_orbs,tmb%ham_descr%psi(1))
-             call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-                  tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+          !!   call f_zero(tmb%ham_descr%npsidim_orbs,tmb%ham_descr%psi(1))
+          !!   call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+          !!        tmb%orbs, tmb%psi, tmb%ham_descr%psi)
 
-             ! add get_coeff here
-             ! - need some restructuring/reordering though, or addition of lots of extra initializations?!
+          !!   ! add get_coeff here
+          !!   ! - need some restructuring/reordering though, or addition of lots of extra initializations?!
 
-             ! Calculate Pulay correction to the forces
-             call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpsp, input%SIC, denspot, GPU, tmb, fpulay)
-             fnrm_pulay=dnrm2(3*at%astruct%nat, fpulay, 1)/sqrt(dble(at%astruct%nat))
+          !!   ! Calculate Pulay correction to the forces
+          !!   call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpsp, input%SIC, denspot, GPU, tmb, fpulay)
+          !!   fnrm_pulay=dnrm2(3*at%astruct%nat, fpulay, 1)/sqrt(dble(at%astruct%nat))
 
-             !if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
-             if (iproc==0) call yaml_map('fnrm Pulay',fnrm_pulay)
+          !!   !if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+          !!   if (iproc==0) call yaml_map('fnrm Pulay',fnrm_pulay)
 
-             if (fnrm_pulay>1.d-1) then !1.d-10
-                if (iproc==0) then
-                    call yaml_warning('The pulay force is too large after the restart. &
-                         &Start over again with an AO input guess.')
-                end if
-                !!if (associated(tmb%psit_c)) then
-                !!    call f_free_ptr(tmb%psit_c)
-                !!end if
-                !!if (associated(tmb%psit_f)) then
-                !!    call f_free_ptr(tmb%psit_f)
-                !!end if
-                tmb%can_use_transposed=.false.
-                nit_lowaccuracy=input%lin%nit_lowaccuracy
-                nit_highaccuracy=input%lin%nit_highaccuracy
-                !!input%lin%highaccuracy_conv_crit=1.d-8
-                call inputguessConfinement(iproc, nproc, at, input, &
-                     KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-                     rxyz, nlpsp, GPU, KSwfn%orbs, KSwfn, tmb, denspot, rhopotold, energs)
-                     energs%eexctX=0.0_gp
+          !!   if (fnrm_pulay>1.d-1) then !1.d-10
+          !!      if (iproc==0) then
+          !!          call yaml_warning('The pulay force is too large after the restart. &
+          !!               &Start over again with an AO input guess.')
+          !!      end if
+          !!      !!if (associated(tmb%psit_c)) then
+          !!      !!    call f_free_ptr(tmb%psit_c)
+          !!      !!end if
+          !!      !!if (associated(tmb%psit_f)) then
+          !!      !!    call f_free_ptr(tmb%psit_f)
+          !!      !!end if
+          !!      tmb%can_use_transposed=.false.
+          !!      nit_lowaccuracy=input%lin%nit_lowaccuracy
+          !!      nit_highaccuracy=input%lin%nit_highaccuracy
+          !!      !!input%lin%highaccuracy_conv_crit=1.d-8
+          !!      call inputguessConfinement(iproc, nproc, at, input, &
+          !!           KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+          !!           rxyz, nlpsp, GPU, KSwfn%orbs, KSwfn, tmb, denspot, rhopotold, energs)
+          !!           energs%eexctX=0.0_gp
 
-                !already done in inputguess
-                      ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
-                !call orthonormalizeLocalized(iproc, nproc, 0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, &
-                !     tmb%linmat%denskern, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
-             else if (fnrm_pulay>1.d-2) then ! 1.d2 1.d-2
-                !!if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
-                if (iproc==0) then
-                    call yaml_warning('The pulay forces are rather large, so start with low accuracy.')
-                end if
-                nit_lowaccuracy=input%lin%nit_lowaccuracy
-                nit_highaccuracy=input%lin%nit_highaccuracy
-             else if (fnrm_pulay>1.d-10) then !1d-10
-                if (iproc==0) then
-                    !write(*,'(1x,a)') 'The pulay forces are fairly large, so reoptimising basis with high accuracy only.'
-                    call yaml_warning('The pulay forces are fairly large, so reoptimising basis with high accuracy only.')
-                end if
-                nit_lowaccuracy=0
-                nit_highaccuracy=input%lin%nit_highaccuracy
-             else
-                if (iproc==0) write(*,'(1x,a)') &
-                     'The pulay forces are fairly small, so not reoptimising basis.'
-                    nit_lowaccuracy=0
-                    nit_highaccuracy=0
-             end if
-          else
+          !!      !already done in inputguess
+          !!            ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
+          !!      !call orthonormalizeLocalized(iproc, nproc, 0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, &
+          !!      !     tmb%linmat%denskern, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+          !!   else if (fnrm_pulay>1.d-2) then ! 1.d2 1.d-2
+          !!      !!if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
+          !!      if (iproc==0) then
+          !!          call yaml_warning('The pulay forces are rather large, so start with low accuracy.')
+          !!      end if
+          !!      nit_lowaccuracy=input%lin%nit_lowaccuracy
+          !!      nit_highaccuracy=input%lin%nit_highaccuracy
+          !!   else if (fnrm_pulay>1.d-10) then !1d-10
+          !!      if (iproc==0) then
+          !!          !write(*,'(1x,a)') 'The pulay forces are fairly large, so reoptimising basis with high accuracy only.'
+          !!          call yaml_warning('The pulay forces are fairly large, so reoptimising basis with high accuracy only.')
+          !!      end if
+          !!      nit_lowaccuracy=0
+          !!      nit_highaccuracy=input%lin%nit_highaccuracy
+          !!   else
+          !!      if (iproc==0) write(*,'(1x,a)') &
+          !!           'The pulay forces are fairly small, so not reoptimising basis.'
+          !!          nit_lowaccuracy=0
+          !!          nit_highaccuracy=0
+          !!   end if
+          !!else
               ! Calculation of Pulay forces not possible, so always start with low accuracy
               call f_zero(fpulay)
               if (input%lin%scf_mode==LINEAR_FOE) then
@@ -2968,7 +2968,7 @@ end if
                  end if
               end if
               nit_highaccuracy=input%lin%nit_highaccuracy
-          end if
+          !!end if
           if (input%lin%scf_mode==LINEAR_FOE .and. nit_lowaccuracy==0) then
               stop 'for FOE and restart, nit_lowaccuracy must not be zero!'
           end if

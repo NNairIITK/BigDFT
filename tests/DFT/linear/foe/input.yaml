@@ -24,7 +24,6 @@
    max_inversion_error: 1.e-8
    calc_dipole: Yes
    calc_quadrupole: Yes
-   calc_pulay: old
  lin_basis:
    nit: 3
    idsx: [5, 0]

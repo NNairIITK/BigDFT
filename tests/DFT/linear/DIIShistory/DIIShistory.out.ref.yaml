@@ -155,7 +155,6 @@
    nit: [4, 20] #                                 number of iteration with low/high accuracy
    rpnrm_cv                            : 1.0E-010 # convergence criterion for low/high accuracy
    taylor_order                        : 1 #      order of the Taylor approximation; 0 -> exact
-   calc_pulay: [No, Yes] #                        calculate Pulay forces (old/new version)
    conf_damping                        : -0.5 #   how the confinement should be decreased, only relevant for hybrid mode; negative -> 
     #                                              automatic
    max_inversion_error                 : 1.d0 #   linear scaling maximal error of the Taylor approximations to calculate the inverse of 

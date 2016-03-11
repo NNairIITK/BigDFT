@@ -154,7 +154,6 @@
     #                                              automatic
    output_wf                           : 1 #      output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
    calc_dipole                         : Yes #    calculate dipole
-   calc_pulay: [Yes, No] #                        calculate Pulay forces (old/new version)
    calculate_onsite_overlap            : Yes #    calculate the onsite overlap matrix (has only an effect if the matrices are all 
     #                                              written to disk)
    output_mat                          : 21 #     output sparse matrices; 0 no output, 1 formatted sparse, 11 formatted dense, 21 

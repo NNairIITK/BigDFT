@@ -21,7 +21,6 @@
    nit: [4, 20]
    rpnrm_cv: 1.0E-010
    taylor_order: 1
-   calc_pulay: new
  lin_basis:
    nit: [15, 8]
    idsx: [5, 8]
