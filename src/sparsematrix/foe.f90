@@ -1010,9 +1010,9 @@ module foe
 
 
     subroutine fermi_operator_expansion_new(iproc, nproc, &
-               ebs, order_taylor, max_inversion_error, &
+               ebs, &
                calculate_minusonehalf, foe_verbosity, &
-               label, smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj)
+               smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj)
       use module_base
       use yaml_output
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
@@ -1035,12 +1035,9 @@ module foe
     
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
-      integer,intent(inout) :: order_taylor
-      real(kind=8),intent(in) :: max_inversion_error
       real(kind=8),intent(out) :: ebs
       logical,intent(in) :: calculate_minusonehalf
       integer,intent(in) :: foe_verbosity
-      character(len=*),intent(in) :: label
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
       type(matrices),intent(in) :: ham_, ovrlp_
       type(matrices),dimension(1),intent(inout) :: ovrlp_minus_one_half_
@@ -1329,10 +1326,10 @@ module foe
                   !@NEW ##########################
                   sumn = trace_sparse(iproc, nproc, smats, smatl, &
                          ovrlp_%matrix_compr(isshift+1:), &
-                         kernel_%matrix_compr(ilshift+1:), ispin)
+                         kernel_%matrix_compr(ilshift+1:))
                   sumn_check = trace_sparse(iproc, nproc, smats, smatl, &
                                ovrlp_%matrix_compr(isshift+1:), &
-                               fermi_check_compr, ispin)
+                               fermi_check_compr)
                   !write(*,*) 'sumn, sumn_check', sumn, sumn_check
                   !@ENDNEW #######################
             
@@ -1438,7 +1435,7 @@ module foe
                   ! Calculate trace(KS).
                   sumn = trace_sparse(iproc, nproc, smats, smatl, &
                          ovrlp_%matrix_compr(isshift+1:), &
-                         kernel_%matrix_compr(ilshift+1:), ispin)
+                         kernel_%matrix_compr(ilshift+1:))
     
     
                   ! Recalculate trace(KH) (needed since the kernel was modified in the above purification). 
@@ -1516,9 +1513,11 @@ module foe
           contains
     
             subroutine overlap_minus_onehalf()
-              use sparsematrix_base, only: sparsematrix_malloc, SPARSE_FULL
-              use sparsematrix, only: extract_taskgroup_inplace
-              use matrix_operations, only: overlapPowerGeneral, check_taylor_order
+              !use sparsematrix_base, only: sparsematrix_malloc, SPARSE_FULL
+              !use sparsematrix, only: extract_taskgroup_inplace
+              !use matrix_operations, only: overlapPowerGeneral, check_taylor_order
+              !use sparsematrix_highlevel, only: matrix_chebyshev_expansion
+              use ice, only: inverse_chebyshev_expansion_new
               implicit none
               real(kind=8) :: max_error, mean_error
               integer :: i, j, ii
@@ -1526,17 +1525,27 @@ module foe
     
               call f_routine(id='overlap_minus_onehalf')
     
-              ! Taylor approximation of S^-1/2 up to higher order
-              if (imode==DENSE) then
-                  stop 'overlap_minus_onehalf: DENSE is deprecated'
-              end if
-              if (imode==SPARSE) then
-                  call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
-                       imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                       ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_minus_one_half_, &
-                       check_accur=.true., max_error=max_error, mean_error=mean_error)
-              end if
-              call check_taylor_order(mean_error, max_inversion_error, order_taylor)
+              !!! Taylor approximation of S^-1/2 up to higher order
+              !!if (imode==DENSE) then
+              !!    stop 'overlap_minus_onehalf: DENSE is deprecated'
+              !!end if
+              !!if (imode==SPARSE) then
+              !!    call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
+              !!         imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+              !!         ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_minus_one_half_, &
+              !!         check_accur=.true., max_error=max_error, mean_error=mean_error)
+              !!end if
+              !!call check_taylor_order(mean_error, max_inversion_error, order_taylor)
+
+              !call matrix_chebyshev_expansion(iproc, nproc, 1, (/-0.5d0/), &
+              !     smat_in=smats, smat_out=smatl, mat_in=ovrlp_, mat_out=ovrlp_minus_one_half_, &
+              !     npl_auto=.true.)
+              call inverse_chebyshev_expansion_new(iproc, nproc, &
+                   ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=(/-0.5d0/), &
+                   ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
+                   npl_auto=.true.)
+
+
     
               call f_release_routine()
           end subroutine overlap_minus_onehalf

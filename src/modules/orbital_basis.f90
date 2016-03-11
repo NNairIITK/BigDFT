@@ -660,6 +660,8 @@ contains
     !local variables
     integer :: ilr,iorb
 
+    call f_routine(id='orbital_basis_associate')
+
     !nullification
     call nullify_orbital_basis(ob)
 
@@ -697,6 +699,8 @@ contains
     !before using any iterator whatsoever, let us probe
     !its behaviour
     call probe_iterator(ob)
+
+    call f_release_routine()
 
   end subroutine orbital_basis_associate
 

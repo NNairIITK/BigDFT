@@ -156,7 +156,6 @@
    conf_damping                        : 0.5 #    how the confinement should be decreased, only relevant for hybrid mode; negative -> 
     #                                              automatic
    calc_dipole                         : Yes #    calculate dipole
-   calc_pulay: [Yes, No] #                        calculate Pulay forces (old/new version)
    hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
    taylor_order                        : 0 #      order of the Taylor approximation; 0 -> exact
    max_inversion_error                 : 1.d0 #   linear scaling maximal error of the Taylor approximations to calculate the inverse of 

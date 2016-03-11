@@ -1610,14 +1610,6 @@
          Indicates whether the quadrupole moment should be calculated after the run or not
        COMMENT: calculate quadrupole
        default: No
-# this is now an array!
-     calc_pulay:
-       COMMENT: calculate Pulay forces (old/new version)
-       DESCRIPTION: |
-         Indicates whether the Pulay corrections (old / new) shall be calculated at the end of the run
-       default: [No,No]
-       new: [ No, Yes]
-       old: [ Yes, No]
 # this name might be misleading
      subspace_diag: #called calc_ks, to be renamed
        COMMENT: diagonalization at the end

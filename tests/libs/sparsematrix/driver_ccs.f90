@@ -16,7 +16,6 @@ program driver_css
 
   ! Variables
   integer :: i
-  integer :: norder_polynomial
   type(sparse_matrix) :: smat1, smat2, smat3
   type(matrices) :: mat1
   type(matrices),dimension(2) :: mat2
@@ -45,11 +44,10 @@ program driver_css
   call matrices_init(smat2, mat2(1))
 
   ! Calculate the square root of the matrix described by the pair smat1/mat1 and store the result in
-  ! smat2/mat2. Attention: The sparsity pattern of smat2 must be contained within smat1.
+  ! smat2/mat2. Attention: The sparsity pattern of smat1 must be contained within that of smat2.
   ! It is your responsabilty to assure this, the routine does only some minimal checks.
   ! The final result is contained in mat2(1)%matrix_compr.
-  norder_polynomial = 30
-  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, 1, (/0.5d0/), &
+  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, (/0.5d0/), &
        smat1, smat2, mat1, mat2(1))
 
   ! Write the result in YAML format to the standard output (required for non-regression tests).
@@ -81,8 +79,7 @@ program driver_css
   ! Calculate at the same time the square root and the inverse square of the matrix described  by the pair smat2/mat2
   ! and store the result in smat3/mat3. The final results are thus in mat3(1)%matrix_compr and mat3(2)%matrix_compr.
   ! The same wraning as above applies.
-  norder_polynomial = 40
-  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, 2, (/0.5d0,-0.5d0/), &
+  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, 2, (/0.5d0,-0.5d0/), &
        smat2, smat3, mat2(2), mat3)
 
   ! Write the result in YAML format to the standard output (required for non-regression tests).

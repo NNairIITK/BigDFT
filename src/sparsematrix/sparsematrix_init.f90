@@ -1643,21 +1643,30 @@ contains
     
       ! Local variables
       integer :: ipt, iipt, iline, icolumn, nseq_pt, jseg, jorb, ii, iseg_start
+      integer :: ithread, nthread
+      integer,dimension(:,:),allocatable :: nseq_per_line_thread
+      !$ integer :: omp_get_thread_num, omp_get_max_threads
 
       call f_routine(id='determine_sequential_length_new2')
 
       call f_zero(nseq_per_line)
+
+      nthread = 1
+      !$ nthread = omp_get_max_threads()
+      nseq_per_line_thread = f_malloc0((/1.to.nline,0.to.nthread-1/),id='nseq_per_line_thread')
 
       ! In the following OMP loop, do a reduction of nseq_per_line to avoid the
       ! need of putting a critical statement around its update.
 
       nseq = 0
       iseg_start = 1
+      ithread = 0
       !$omp parallel default(none) &
-      !$omp shared(npt, ispt, nseg, keyv, keyg, smat, nline, istsegline, nseq, nseq_per_line) &
+      !$omp shared(npt, ispt, nseg, keyv, keyg, smat, nline, istsegline, nseq, nseq_per_line_thread) &
       !$omp private(ipt, iipt, iline, icolumn, jseg, jorb, ii) &
-      !$omp firstprivate(iseg_start)
-      !$omp do reduction(+:nseq,nseq_per_line)
+      !$omp firstprivate(iseg_start, ithread)
+      !$ ithread = omp_get_thread_num()
+      !$omp do reduction(+:nseq)
       do ipt=1,npt
           iipt = ispt + ipt
           call get_line_and_column(iipt, nseg, keyv, keyg, iseg_start, iline, icolumn)
@@ -1669,13 +1678,23 @@ contains
                   ii = matrixindex_in_compressed_lowlevel(jorb, iline, nline, nseg, keyv, keyg, istsegline)
                   if (ii>0) then
                       nseq = nseq + 1
-                      nseq_per_line(iline) = nseq_per_line(iline) + 1
+                      !nseq_per_line(iline) = nseq_per_line(iline) + 1
+                      nseq_per_line_thread(iline,ithread) = nseq_per_line_thread(iline,ithread) + 1
                   end if
               end do
           end do
       end do
       !$omp end do
       !$omp end parallel
+
+      do ithread=0,nthread-1
+          !call axpy(nline, 1.d0, nseq_per_line_thread(1,ithread), 1, nseq_per_line(1), 1)
+          do iline=1,nline
+              nseq_per_line(iline) = nseq_per_line(iline) + nseq_per_line_thread(iline,ithread)
+          end do
+      end do
+
+      call f_free(nseq_per_line_thread)
 
       call f_release_routine()
     
@@ -4857,7 +4876,7 @@ contains
 
 
     !> Converts the sparse matrix descriptors from BigDFT to those from the CCS format.
-    !! It required that each column has at least one non-zero element.
+    !! It requires that each column has at least one non-zero element.
     subroutine sparsebigdft_to_ccs(nfvctr, nvctr, nseg, keyg, row_ind, col_ptr)
       use module_base
       implicit none
@@ -4898,7 +4917,7 @@ contains
     end subroutine sparsebigdft_to_ccs
 
 
-    !> Converts the sparse matrix descriptors from BigDFT to those from the CCS format.
+    !> Converts the sparse matrix descriptors from the CCS format to the ones from the BigDFT format.
     !! It required that each column has at least one non-zero element.
     subroutine ccs_to_sparsebigdft_short(nfvctr, nvctr, row_ind, col_ptr, nseg, keyv, keyg)
       use module_base

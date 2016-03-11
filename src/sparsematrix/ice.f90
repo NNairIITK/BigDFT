@@ -625,7 +625,7 @@ module ice
     end subroutine get_minmax_eigenvalues
 
 
-    subroutine inverse_chebyshev_expansion_new(iproc, nproc, norder_polynomial, &
+    subroutine inverse_chebyshev_expansion_new(iproc, nproc, &
                ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp, &
                verbosity, npl_auto)
       use module_base
@@ -649,7 +649,7 @@ module ice
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, norder_polynomial, ncalc
+      integer,intent(in) :: iproc, nproc, ncalc
       type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
       real(kind=8),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: ovrlp_mat
@@ -696,7 +696,7 @@ module ice
       character(len=3),parameter :: new='new'
       character(len=3) :: mode=old
 
-      call f_routine(id='inverse_chebyshev_expansion')
+      call f_routine(id='inverse_chebyshev_expansion_new')
 
       if (present(verbosity)) then
           verbosity_ = verbosity
@@ -860,6 +860,8 @@ module ice
               !write(*,*) 'sum(inv_ovrlp(icalc)%matrix_compr)',sum(inv_ovrlp(icalc)%matrix_compr)
           end do
 
+          call f_free_ptr(cc)
+
       end do spin_loop
 
       call f_free(inv_ovrlp_matrixp_small_new)
@@ -867,7 +869,6 @@ module ice
       call f_free_ptr(chebyshev_polynomials)
       call f_free(hamscal_compr)
       call deallocate_matrices(ovrlp_scaled)
-      call f_free_ptr(cc)
       call f_free(max_error)
       call f_free(x_max_error)
       call f_free(mean_error)

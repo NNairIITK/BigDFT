@@ -876,7 +876,7 @@ module matrix_operations
                             stop 'wrong value of power(icalc)'
                         end select
                     end do
-                    call inverse_chebyshev_expansion_new(iproc, nproc, iorder-1000, &
+                    call inverse_chebyshev_expansion_new(iproc, nproc, &
                          ovrlp_smat, inv_ovrlp_smat, ncalc, rpower, ovrlp_mat, inv_ovrlp_mat, verbosity=verbosity_)
                     call f_free(rpower)
                     !!call vcopy(ovrlp_smat%nvctr, tmpmat(1), 1, ovrlp_mat%matrix_compr(1), 1)
@@ -1746,7 +1746,7 @@ module matrix_operations
                     end do
                  end do
               end if
-              work=f_malloc(1000,id='work')
+              work=f_malloc(100*norb,id='work')
               call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, -1, info)
               lwork = int(work(1))
               call f_free(work)
@@ -2403,7 +2403,7 @@ module matrix_operations
         !call deallocate_matrices(inv_ovrlp_half_)
       
       
-        call f_release_routine
+        call f_release_routine()
         call timing(iproc,'lovrlp^-1/2par','OF')
       
       end subroutine overlap_power_minus_one_half_parallel

@@ -188,6 +188,7 @@ module multipole
 
       call f_routine(id='potential_from_charge_multipoles')
 
+
       ! Conditions for periodicity
       perx=(at%astruct%geocode /= 'F')
       pery=(at%astruct%geocode == 'P')
@@ -756,7 +757,9 @@ module multipole
              end if
 
              ! Add the core contribution
-             call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, density_cores(is1,is2,is3), 1, density(is1,is2,is3), 1)
+             if ((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1)>0) then
+                 call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, density_cores(is1,is2,is3), 1, density(is1,is2,is3), 1)
+             end if
 
 
              call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
@@ -1077,6 +1080,8 @@ module multipole
       real(kind=8),dimension(-ll:ll,0:ll) :: multipoles
       logical :: present_delta_rxyz, present_on_which_atom, present_scaled, present_monopoles_analytic
 
+      call f_routine(id='write_multipoles_new')
+
       present_delta_rxyz = present(delta_rxyz)
       present_on_which_atom = present(on_which_atom)
       present_scaled = present(scaled)
@@ -1139,6 +1144,7 @@ module multipole
           call yaml_mapping_close()
 
 
+      call f_release_routine()
 
 
           contains
@@ -1203,6 +1209,7 @@ module multipole
                   gt = 'unknown'
               end if
             end function guess_type
+
 
     end subroutine write_multipoles_new
 
@@ -1796,7 +1803,7 @@ module multipole
       real(wp),dimension(:),allocatable :: phi2r
       real(wp), dimension(:), pointer :: sphi_ptr
 
-      call f_routine(id='apply_Slm')
+      call f_routine(id='Qlm_phi')
 
       sphere=.false.
       if (present(integrate_in_sphere)) sphere=integrate_in_sphere
@@ -2893,7 +2900,8 @@ module multipole
                                    matrices_null, deallocate_matrices, &
                                    sparse_matrix_metadata
       use sparsematrix_init, only: matrixindex_in_compressed
-      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local, trace_sparse
+      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local
+      use sparsematrix_highlevel, only: trace_AB
       use matrix_operations, only: overlapPowerGeneral, overlap_plus_minus_one_half_exact
       use yaml_output
       use multipole_base, only: lmax
@@ -2995,9 +3003,10 @@ module multipole
       ispin=1
       isshift=(ispin-1)*smats%nvctrp_tg
       ilshift=(ispin-1)*smatl%nvctrp_tg
-      tr_KS = trace_sparse(bigdft_mpi%iproc, bigdft_mpi%nproc, smats, smatl, &
-             ovrlp_%matrix_compr(isshift+1:), &
-             kernel_%matrix_compr(ilshift+1:), ispin)
+      !tr_KS = trace_sparse(bigdft_mpi%iproc, bigdft_mpi%nproc, smats, smatl, &
+      !       ovrlp_%matrix_compr(isshift+1:), &
+      !       kernel_%matrix_compr(ilshift+1:), ispin)
+      tr_KS = trace_AB(smats, smatl, ovrlp_, kernel_, ispin)
 
 
 
