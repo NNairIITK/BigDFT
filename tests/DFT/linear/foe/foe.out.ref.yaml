@@ -158,7 +158,6 @@
     #                                              the overlap matrix
    calc_dipole                         : Yes #    calculate dipole
    calc_quadrupole                     : Yes #    calculate quadrupole
-   calc_pulay: [Yes, No] #                        calculate Pulay forces (old/new version)
    hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
    output_wf                           : 0 #      output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
    output_mat                          : 0 #      output sparse matrices; 0 no output, 1 formatted sparse, 11 formatted dense, 21 

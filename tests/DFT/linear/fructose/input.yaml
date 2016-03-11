@@ -11,7 +11,7 @@
    inputpsiid: linear
    disablesym: Yes
  perf:
-   ef_interpol_chargediff: 0.10E-02
+   #ef_interpol_chargediff: 0.10E-02
    evbounds_nsatur: 100
    loewdin_charge_analysis: no
    correction_co_contra: no

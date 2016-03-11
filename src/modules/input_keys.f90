@@ -110,7 +110,7 @@ module module_input_keys
      integer, dimension(:), pointer :: norbsPerType
      integer :: kernel_mode, mixing_mode
      integer :: scf_mode, nlevel_accuracy
-     logical :: calc_dipole, calc_quadrupole, pulay_correction, iterative_orthogonalization, new_pulay_correction
+     logical :: calc_dipole, calc_quadrupole, iterative_orthogonalization
      logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end, diag_start
      integer :: extra_states, order_taylor, mixing_after_inputguess
      !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
@@ -2029,10 +2029,6 @@ contains
           in%lin%calc_dipole = val
        case (CALC_QUADRUPOLE)
           in%lin%calc_quadrupole = val
-       case (CALC_PULAY)
-          dummy_log(1:2) = val
-          in%lin%pulay_correction = dummy_log(1)
-          in%lin%new_pulay_correction = dummy_log(2)
        case (SUBSPACE_DIAG)
           in%lin%diag_end = val
        case (EXTRA_STATES)
@@ -2657,12 +2653,6 @@ contains
        call f_err_throw('wrong value of in%lin%kernel_mode',&
             err_name='BIGDFT_INPUT_VARIABLES_ERROR')
     end select
-
-    ! It is not possible to use both the old and the new Pulay correction at the same time
-    if (in%lin%pulay_correction .and. in%lin%new_pulay_correction) then
-       call f_err_throw('It is not possible to use both the old and the new Pulay correction at the same time!',&
-            err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-    end if
 
     call f_release_routine()
   END SUBROUTINE input_analyze
