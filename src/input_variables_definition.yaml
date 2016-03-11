@@ -1315,7 +1315,7 @@
    ef_interpol_chargediff:
      COMMENT: FOE max charge difference for interpolation
      RANGE: [0., 1000.]
-     default: 10.
+     default: 1.0
    mixing_after_inputguess:
      COMMENT: Mixing step after linear input guess
      EXCLUSIVE:
