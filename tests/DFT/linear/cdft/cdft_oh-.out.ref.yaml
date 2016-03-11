@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-03-11 10:09:41.761
+ Timestamp of this run                 : 2016-03-11 12:14:21.623
  Root process Hostname                 : coolbreeze
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  Yes
@@ -119,7 +119,7 @@
    pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
    maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
+   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    experimental_mode                   : No #     Activate the experimental mode in linear scaling
@@ -683,7 +683,7 @@
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.36324247279E+00, Epot: -7.09547293634E+00, Enl:  5.85947529111E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  2.33E-01, Omega: -1.535379533436330E+01, D: -7.48E-01, D best: -7.48E-01, 
+ iter:  2, fnrm:  2.33E-01, Omega: -1.535379533436329E+01, D: -7.48E-01, D best: -7.48E-01, 
  Optimization: {algorithm: SD, mean alpha:  1.000E+00, max alpha:  1.100E+00, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, 
@@ -731,7 +731,7 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.28E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.32E-03, 
  Mean deviation from unity in reorthonormalize_coeff:  1.09E-03, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
@@ -757,24 +757,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.28E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.70E-03, 
  Mean deviation from unity in reorthonormalize_coeff:  8.90E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.11E-01, eBS:  2.03149227424975898E+00, D: -4.442E+00, 
+ iter:  1, fnrm:  2.11E-01, eBS:  2.03149227424977630E+00, D: -4.442E+00, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  3.344E-01
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  0.7683386430998524
+     energydiff                        :  0.768338643099856
      Hamiltonian update: {
  Energies: {Ekin:  6.34958733196E+00, Epot: -7.80081684990E+00, Enl:  5.06681463353E-01, 
               EH:  1.81660979120E+01,  EXC: -3.52915249323E+00, EvXC: -4.62070925056E+00}, 
     Total charge:  7.999999518724E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.17E-11, 
- iter:  2, delta:  3.98E-07, energy: -1.62613985481225534E+01, D:  7.683E-01}]
+ iter:  2, delta:  3.98E-07, energy: -1.62613985481225498E+01, D:  7.683E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -785,24 +785,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.28E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.77E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  6.82E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.17E-01, eBS: -2.41027182939734796E+00, D:  1.798E-01, 
+ iter:  1, fnrm:  1.17E-01, eBS: -2.41027182939736662E+00, D:  1.798E-01, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  3.192E-01
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -3.0180965767598877E-003
+     energydiff                        : -3.0180965767705459E-003
      Hamiltonian update: {
  Energies: {Ekin:  6.34958733196E+00, Epot: -7.70308499211E+00, Enl:  5.06681463353E-01, 
               EH:  1.83590997263E+01,  EXC: -3.56094104983E+00, EvXC: -4.66268668154E+00}, 
     Total charge:  7.999999515907E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.17E-11, 
- iter:  3, delta:  1.09E-07, energy: -1.62644166446993133E+01, D: -3.018E-03}]
+ iter:  3, delta:  1.09E-07, energy: -1.62644166446993204E+01, D: -3.018E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -813,24 +813,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.28E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.23E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  5.14E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  9.21E-02, eBS: -2.23047698607629163E+00, D:  4.501E-02, 
+ iter:  1, fnrm:  9.21E-02, eBS: -2.23047698607631295E+00, D:  4.501E-02, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  3.150E-01
        Coefficients available          :  Yes
      alpha                             :  0.121
-     energydiff                        : -3.2727207601048747E-003
+     energydiff                        : -3.2727207600871111E-003
      Hamiltonian update: {
  Energies: {Ekin:  6.34958733196E+00, Epot: -7.67784841900E+00, Enl:  5.06681463353E-01, 
               EH:  1.84100938885E+01,  EXC: -3.56939981452E+00, EvXC: -4.67385824393E+00}, 
     Total charge:  7.999999513443E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.17E-11, 
- iter:  4, delta:  9.32E-08, energy: -1.62676893654594181E+01, D: -3.273E-03}]
+ iter:  4, delta:  9.32E-08, energy: -1.62676893654594075E+01, D: -3.273E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -841,24 +841,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.28E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  8.04E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  3.73E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  7.14E-02, eBS: -2.18546834227563247E+00, D:  3.872E-02, 
+ iter:  1, fnrm:  7.14E-02, eBS: -2.18546834227561826E+00, D:  3.872E-02, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  3.115E-01
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -2.1414613274934879E-003
+     energydiff                        : -2.1414613274970407E-003
      Hamiltonian update: {
  Energies: {Ekin:  6.34958733196E+00, Epot: -7.65669603518E+00, Enl:  5.06681463353E-01, 
               EH:  1.84532598477E+01,  EXC: -3.57658221561E+00, EvXC: -4.68334467109E+00}, 
     Total charge:  7.999999511329E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.17E-11, 
- iter:  5, delta:  7.87E-08, energy: -1.62698308267869116E+01, D: -2.141E-03}]
+ iter:  5, delta:  7.87E-08, energy: -1.62698308267869045E+01, D: -2.141E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -869,12 +869,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.28E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.59E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  2.62E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.44E-02, eBS: -2.14674787047056226E+00, D:  3.262E-02, 
+ iter:  1, fnrm:  5.44E-02, eBS: -2.14674787047056270E+00, D:  3.262E-02, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  3.087E-01
        Coefficients available          :  Yes
@@ -886,15 +886,15 @@
     Total charge:  7.999999509553E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.17E-11, 
- iter:  6, delta:  6.51E-08, energy: -1.62711843988381553E+01, D: -1.354E-03}]
+ iter:  6, delta:  6.51E-08, energy: -1.62711843988381482E+01, D: -1.354E-03}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 7
  summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.17E-11, 
- iter:  7, delta:  6.51E-08, energy: -1.62711843988381553E+01, D: -1.354E-03}]}
+ iter:  7, delta:  6.51E-08, energy: -1.62711843988381482E+01, D: -1.354E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter low:  1, delta out:  6.581E-06, energy: -1.62711843988381553E+01, D: -1.627E+01}
+ iter low:  1, delta out:  6.581E-06, energy: -1.62711843988381482E+01, D: -1.627E+01}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for low accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -906,7 +906,7 @@
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  6.34958733196E+00, Epot: -7.48087716636E+00, Enl:  5.06681463353E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.00E-01, Omega: -1.543400070666248E+01, D:  2.19E-01, D best:  2.19E-01, 
+ iter:  1, fnrm:  3.00E-01, Omega: -1.543400070666246E+01, D:  2.19E-01, D best:  2.19E-01, 
  Optimization: {algorithm: SD, mean alpha:  1.210E+00, max alpha:  1.210E+00, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, 
@@ -930,7 +930,7 @@
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.46264096611E+00, Epot: -1.12711162190E+01, Enl:  7.83308596768E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  3, fnrm:  1.50E-01, Omega: -1.623511727673350E+01, D: -1.61E-01, D best: -1.61E-01, 
+ iter:  3, fnrm:  1.50E-01, Omega: -1.623511727673349E+01, D: -1.61E-01, D best: -1.61E-01, 
  Optimization: {algorithm: SD, mean alpha:  1.065E+00, max alpha:  1.464E+00, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes, 
@@ -971,7 +971,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.09E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.02E-01, eBS: -2.11412404368668350E+00, D: -6.336E-01, 
+ iter:  1, fnrm:  1.02E-01, eBS: -2.11412404368671236E+00, D: -6.336E-01, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  9.483E-02
        Coefficients available          :  Yes
@@ -981,7 +981,7 @@
     Total charge:  7.999999172209E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.58E-12, 
- iter:  1, delta:  8.01E-06, energy: -1.69325252814216363E+01, D: -6.613E-01}]
+ iter:  1, delta:  8.01E-06, energy: -1.69325252814216292E+01, D: -6.613E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -997,19 +997,19 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.29E-03, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.05E-01, eBS: -2.74774131683815304E+00, D:  6.782E+00, 
+ iter:  1, fnrm:  4.05E-01, eBS: -2.74774131683815970E+00, D:  6.782E+00, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  4.394E-01
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  0.8529699543158138
+     energydiff                        :  0.8529699543158102
      Hamiltonian update: {
  Energies: {Ekin:  1.01173057636E+01, Epot: -8.31004752333E+00, Enl:  7.84658474861E-01, 
               EH:  2.48120266164E+01,  EXC: -4.72349448551E+00, EvXC: -6.19861409960E+00}, 
     Total charge:  7.999999197964E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.58E-12, 
- iter:  2, delta:  8.84E-07, energy: -1.60795553271058225E+01, D:  8.530E-01}]
+ iter:  2, delta:  8.84E-07, energy: -1.60795553271058189E+01, D:  8.530E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1025,19 +1025,19 @@
  Mean deviation from unity in reorthonormalize_coeff:  4.23E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.91E-01, eBS:  4.03393723922762248E+00, D: -6.449E-01, 
+ iter:  1, fnrm:  2.91E-01, eBS:  4.03393723922762693E+00, D: -6.449E-01, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  3.968E-01
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -2.2627798891292628E-002
+     energydiff                        : -2.2627798891278417E-002
      Hamiltonian update: {
  Energies: {Ekin:  1.01173057636E+01, Epot: -8.64472039476E+00, Enl:  7.84658474861E-01, 
               EH:  2.41580010805E+01,  EXC: -4.62435852145E+00, EvXC: -6.06768894042E+00}, 
     Total charge:  7.999999207456E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.58E-12, 
- iter:  3, delta:  3.21E-07, energy: -1.61021831259971151E+01, D: -2.263E-02}]
+ iter:  3, delta:  3.21E-07, energy: -1.61021831259970973E+01, D: -2.263E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1053,19 +1053,19 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.65E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.45E-01, eBS:  3.38907309961732128E+00, D: -2.558E-01, 
+ iter:  1, fnrm:  2.45E-01, eBS:  3.38907309961735193E+00, D: -2.558E-01, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  3.795E-01
        Coefficients available          :  Yes
      alpha                             :  0.121
-     energydiff                        : -2.4028086316274511E-002
+     energydiff                        : -2.4028086316281616E-002
      Hamiltonian update: {
  Energies: {Ekin:  1.01173057636E+01, Epot: -8.77084614363E+00, Enl:  7.84658474861E-01, 
               EH:  2.39146918392E+01,  EXC: -4.58842726402E+00, EvXC: -6.02023898871E+00}, 
     Total charge:  7.999999216235E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.58E-12, 
- iter:  4, delta:  2.95E-07, energy: -1.61262112123133896E+01, D: -2.403E-02}]
+ iter:  4, delta:  2.95E-07, energy: -1.61262112123133790E+01, D: -2.403E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1081,19 +1081,19 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.02E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.03E-01, eBS:  3.13325446623274484E+00, D: -2.325E-01, 
+ iter:  1, fnrm:  2.03E-01, eBS:  3.13325446623279769E+00, D: -2.325E-01, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  3.642E-01
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -1.7888691527780054E-002
+     energydiff                        : -1.7888691527783607E-002
      Hamiltonian update: {
  Energies: {Ekin:  1.01173057636E+01, Epot: -8.88845198711E+00, Enl:  7.84658474861E-01, 
               EH:  2.36895178021E+01,  EXC: -4.55560934035E+00, EvXC: -5.97690154413E+00}, 
     Total charge:  7.999999224094E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.58E-12, 
- iter:  5, delta:  2.62E-07, energy: -1.61440999038411697E+01, D: -1.789E-02}]
+ iter:  5, delta:  2.62E-07, energy: -1.61440999038411626E+01, D: -1.789E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1109,12 +1109,12 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.44E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.66E-01, eBS:  2.90071125851355172E+00, D: -2.045E-01, 
+ iter:  1, fnrm:  1.66E-01, eBS:  2.90071125851356371E+00, D: -2.045E-01, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  3.510E-01
        Coefficients available          :  Yes
      alpha                             :  0.14641
-     energydiff                        : -1.2963902037277819E-002
+     energydiff                        : -1.2963902037284925E-002
      Hamiltonian update: {
  Energies: {Ekin:  1.01173057636E+01, Epot: -8.99398574227E+00, Enl:  7.84658474861E-01, 
               EH:  2.34887230643E+01,  EXC: -4.52670821167E+00, EvXC: -5.93873726519E+00}, 
@@ -1157,7 +1157,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.92E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.34E-01, eBS:  2.69621576896723747E+00, D: -1.745E-01, 
+ iter:  1, fnrm:  1.34E-01, eBS:  2.69621576896727033E+00, D: -1.745E-01, 
           alpha:  1.464E-01}
      Kohn-Sham residue                 :  3.400E-01
      Coefficients available            :  Yes
@@ -1167,7 +1167,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.01173057636E+01, Epot: -9.08542575317E+00, Enl:  7.84658474861E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  6.05E-01, Omega: -1.616628855983736E+01, D:  6.88E-02, D best:  6.88E-02, 
+ iter:  1, fnrm:  6.05E-01, Omega: -1.616628855983738E+01, D:  6.88E-02, D best:  6.88E-02, 
  Optimization: {algorithm: SD, mean alpha:  8.785E-01, max alpha:  8.785E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, 
@@ -1179,12 +1179,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.06964276451E+00, Epot: -6.05047751912E+00, Enl:  4.20519628502E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  4.78E-01, Omega: -1.693949846465668E+01, D: -7.73E-01, D best: -7.73E-01, 
+ iter:  2, fnrm:  4.78E-01, Omega: -1.693949846465669E+01, D: -7.73E-01, D best: -7.73E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  7.06964276451E+00, Epot: -6.05047751912E+00, Enl:  4.20519628502E-01}, 
- iter:  2, fnrm:  4.78E-01, Omega: -1.693949846465668E+01, D: -7.73E-01, D best: -7.73E-01}
+ iter:  2, fnrm:  4.78E-01, Omega: -1.693949846465669E+01, D: -7.73E-01, D best: -7.73E-01}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.81E-03,  4.80E-03 ], warnings:  0}
@@ -1203,12 +1203,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  5.44E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.04E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.73E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  1.18E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  7.69E-02, eBS:  2.52169623357951833E+00, D: -7.776E-01, 
+ iter:  1, fnrm:  7.69E-02, eBS:  2.52169623357951167E+00, D: -7.776E-01, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1217,7 +1217,7 @@
     Total charge:  7.999999488324E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.78E-11, 
- iter:  1, delta:  7.37E-06, energy: -1.69439112578312603E+01, D: -7.868E-01}]
+ iter:  1, delta:  7.37E-06, energy: -1.69439112578312674E+01, D: -7.868E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1228,17 +1228,17 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  5.44E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.04E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  7.08E-03, 
  Mean deviation from unity in reorthonormalize_coeff:  2.92E-03, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.82E-01, eBS:  1.74407353558562428E+00, D: -4.298E+00, 
+ iter:  1, fnrm:  3.82E-01, eBS:  1.74407353558561518E+00, D: -4.298E+00, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  4.234E-01
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  0.6680131639848099
+     energydiff                        :  0.668013163984817
      Hamiltonian update: {
  Energies: {Ekin:  7.06964276451E+00, Epot: -8.58829520211E+00, Enl:  4.20519628502E-01, 
               EH:  1.80324897640E+01,  EXC: -3.51416930386E+00, EvXC: -4.60089044253E+00}, 
@@ -1256,24 +1256,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  5.44E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.04E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  8.61E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  2.92E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.42E-01, eBS: -2.55354390446816160E+00, D:  4.181E-01, 
+ iter:  1, fnrm:  2.42E-01, eBS: -2.55354390446816737E+00, D:  4.181E-01, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  3.942E-01
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -1.2695777409284403E-002
+     energydiff                        : -1.2695777409302167E-002
      Hamiltonian update: {
  Energies: {Ekin:  7.06964276451E+00, Epot: -8.33905212841E+00, Enl:  4.20519628502E-01, 
               EH:  1.84863663790E+01,  EXC: -3.58615299354E+00, EvXC: -4.69590839460E+00}, 
     Total charge:  7.999999459029E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.78E-11, 
- iter:  3, delta:  2.47E-07, energy: -1.62885938712557348E+01, D: -1.270E-02}]
+ iter:  3, delta:  2.47E-07, energy: -1.62885938712557525E+01, D: -1.270E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1284,24 +1284,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  5.44E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.04E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  7.37E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  2.36E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.97E-01, eBS: -2.13539732927709602E+00, D:  1.202E-01, 
+ iter:  1, fnrm:  1.97E-01, eBS: -2.13539732927710757E+00, D:  1.202E-01, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  3.847E-01
        Coefficients available          :  Yes
      alpha                             :  0.121
-     energydiff                        : -1.5223099755981906E-002
+     energydiff                        : -1.5223099755971248E-002
      Hamiltonian update: {
  Energies: {Ekin:  7.06964276451E+00, Epot: -8.26321168862E+00, Enl:  4.20519628502E-01, 
               EH:  1.86291477644E+01,  EXC: -3.60922740384E+00, EvXC: -4.72636767504E+00}, 
     Total charge:  7.999999452566E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.78E-11, 
- iter:  4, delta:  2.20E-07, energy: -1.63038169710117167E+01, D: -1.522E-02}]
+ iter:  4, delta:  2.20E-07, energy: -1.63038169710117238E+01, D: -1.522E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1312,17 +1312,17 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  5.44E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.04E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  6.07E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  1.83E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.58E-01, eBS: -2.01522391374894561E+00, D:  1.094E-01, 
+ iter:  1, fnrm:  1.58E-01, eBS: -2.01522391374893850E+00, D:  1.094E-01, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  3.767E-01
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -1.0651886220095719E-002
+     energydiff                        : -1.0651886220088613E-002
      Hamiltonian update: {
  Energies: {Ekin:  7.06964276451E+00, Epot: -8.19688019852E+00, Enl:  4.20519628502E-01, 
               EH:  1.87557869791E+01,  EXC: -3.62987484907E+00, EvXC: -4.75362367376E+00}, 
@@ -1340,24 +1340,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  5.44E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.04E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.82E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  1.38E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.25E-01, eBS: -1.90584513879588702E+00, D:  9.664E-02, 
+ iter:  1, fnrm:  1.25E-01, eBS: -1.90584513879588036E+00, D:  9.664E-02, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  3.702E-01
        Coefficients available          :  Yes
      alpha                             :  0.14641
-     energydiff                        : -7.2068365961754921E-003
+     energydiff                        : -7.2068365961683867E-003
      Hamiltonian update: {
  Energies: {Ekin:  7.06964276451E+00, Epot: -8.14017627379E+00, Enl:  4.20519628502E-01, 
               EH:  1.88653992647E+01,  EXC: -3.64788527949E+00, EvXC: -4.77739869275E+00}, 
     Total charge:  7.999999442087E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.78E-11, 
- iter:  6, delta:  1.62E-07, energy: -1.63216756938279879E+01, D: -7.207E-03}]
+ iter:  6, delta:  1.62E-07, energy: -1.63216756938279808E+01, D: -7.207E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1368,24 +1368,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  5.44E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.04E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.69E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  1.01E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  9.69E-02, eBS: -1.80920427835419262E+00, D:  8.303E-02, 
+ iter:  1, fnrm:  9.69E-02, eBS: -1.80920427835419417E+00, D:  8.303E-02, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  3.650E-01
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -4.7267493992393383E-003
+     energydiff                        : -4.7267493992428911E-003
      Hamiltonian update: {
  Energies: {Ekin:  7.06964276451E+00, Epot: -8.09275651027E+00, Enl:  4.20519628502E-01, 
               EH:  1.89580658204E+01,  EXC: -3.66321327180E+00, EvXC: -4.79763247768E+00}, 
     Total charge:  7.999999438068E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.78E-11, 
- iter:  7, delta:  1.35E-07, energy: -1.63264024432272272E+01, D: -4.727E-03}]
+ iter:  7, delta:  1.35E-07, energy: -1.63264024432272237E+01, D: -4.727E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1396,24 +1396,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  5.44E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.04E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.72E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  7.14E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  7.42E-02, eBS: -1.72617026468678292E+00, D:  6.947E-02, 
+ iter:  1, fnrm:  7.42E-02, eBS: -1.72617026468679802E+00, D:  6.947E-02, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  3.609E-01
        Coefficients available          :  Yes
      alpha                             :  0.1771561000000001
-     energydiff                        : -3.0118156034717458E-003
+     energydiff                        : -3.0118156034610877E-003
      Hamiltonian update: {
  Energies: {Ekin:  7.06964276451E+00, Epot: -8.05394527248E+00, Enl:  4.20519628502E-01, 
               EH:  1.90346250772E+01,  EXC: -3.67594834344E+00, EvXC: -4.81444304184E+00}, 
     Total charge:  7.999999434800E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.78E-11, 
- iter:  8, delta:  1.10E-07, energy: -1.63294142588306990E+01, D: -3.012E-03}]
+ iter:  8, delta:  1.10E-07, energy: -1.63294142588306848E+01, D: -3.012E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 9
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1424,24 +1424,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  5.44E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.04E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.93E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  4.92E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.60E-02, eBS: -1.65669831601168660E+00, D:  5.665E-02, 
+ iter:  1, fnrm:  5.60E-02, eBS: -1.65669831601168216E+00, D:  5.665E-02, 
           alpha:  1.772E-01}
        Kohn-Sham residue               :  3.577E-01
        Coefficients available          :  Yes
      alpha                             :  0.1948717100000001
-     energydiff                        : -1.8664148068907593E-003
+     energydiff                        : -1.8664148069085229E-003
      Hamiltonian update: {
  Energies: {Ekin:  7.06964276451E+00, Epot: -8.02285550292E+00, Enl:  4.20519628502E-01, 
               EH:  1.90964499871E+01,  EXC: -3.68628015181E+00, EvXC: -4.82808071535E+00}, 
     Total charge:  7.999999432204E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.78E-11, 
- iter:  9, delta:  8.73E-08, energy: -1.63312806736375897E+01, D: -1.866E-03}]
+ iter:  9, delta:  8.73E-08, energy: -1.63312806736375933E+01, D: -1.866E-03}]
    -  #-------------------------------------------------------------------- kernel iter: 10
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1452,21 +1452,21 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  5.44E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.04E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.31E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  3.29E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.16E-02, eBS: -1.60004568603949027E+00, D:  4.505E-02, 
+ iter:  1, fnrm:  4.16E-02, eBS: -1.60004568603949204E+00, D:  4.505E-02, 
           alpha:  1.949E-01}
        Kohn-Sham residue               :  3.553E-01
        Coefficients available          :  Yes
      alpha                             :  0.2143588810000001
-     energydiff                        : -1.1236870935888987E-003
+     energydiff                        : -1.123687093585346E-003
      Hamiltonian update: {
  Energies: {Ekin:  7.06964276451E+00, Epot: -7.99848828862E+00, Enl:  4.20519628502E-01, 
               EH:  1.91452451745E+01,  EXC: -3.69446479621E+00, EvXC: -4.83888363386E+00}, 
-    Total charge:  7.999999430189E+00, 
+    Total charge:  7.999999430190E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.78E-11, 
  iter:  10, delta:  6.83E-08, energy: -1.63324043607311786E+01, D: -1.124E-03}]
@@ -1530,7 +1530,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.45E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.50E-02, eBS: -1.55499245984635781E+00, D: -2.683E-01, 
+ iter:  1, fnrm:  3.50E-02, eBS: -1.55499245984636536E+00, D: -2.683E-01, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1539,7 +1539,7 @@
     Total charge:  7.999999379088E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  3.11E-11, 
- iter:  1, delta:  2.97E-06, energy: -1.66362829381046957E+01, D: -3.039E-01}]
+ iter:  1, delta:  2.97E-06, energy: -1.66362829381046922E+01, D: -3.039E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1555,19 +1555,19 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.37E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.30E-01, eBS: -1.82326510313419932E+00, D:  1.885E+00, 
+ iter:  1, fnrm:  1.30E-01, eBS: -1.82326510313417045E+00, D:  1.885E+00, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  1.348E-01
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  0.1038068306395665
+     energydiff                        :  0.1038068306395701
      Hamiltonian update: {
  Energies: {Ekin:  8.06894896697E+00, Epot: -8.37957086592E+00, Enl:  7.29695940938E-01, 
               EH:  2.10778868572E+01,  EXC: -4.05528149018E+00, EvXC: -5.31589726709E+00}, 
     Total charge:  7.999999386868E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  3.11E-11, 
- iter:  2, delta:  2.85E-07, energy: -1.65324761074651292E+01, D:  1.038E-01}]
+ iter:  2, delta:  2.85E-07, energy: -1.65324761074651221E+01, D:  1.038E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1583,19 +1583,19 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.26E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  8.08E-02, eBS:  6.13805368790155126E-02, D: -1.634E-01, 
+ iter:  1, fnrm:  8.08E-02, eBS:  6.13805368790133477E-02, D: -1.634E-01, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  1.290E-01
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -1.4667066547566776E-003
+     energydiff                        : -1.4667066547708885E-003
      Hamiltonian update: {
  Energies: {Ekin:  8.06894896697E+00, Epot: -8.46687247752E+00, Enl:  7.29695940938E-01, 
               EH:  2.09071255272E+01,  EXC: -4.02763522161E+00, EvXC: -5.27937987981E+00}, 
     Total charge:  7.999999389356E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  3.11E-11, 
- iter:  3, delta:  8.90E-08, energy: -1.65339428141198859E+01, D: -1.467E-03}]
+ iter:  3, delta:  8.90E-08, energy: -1.65339428141198930E+01, D: -1.467E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1611,7 +1611,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.61E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  6.57E-02, eBS: -1.01976381046723241E-01, D: -5.349E-02, 
+ iter:  1, fnrm:  6.57E-02, eBS: -1.01976381046707476E-01, D: -5.349E-02, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  1.272E-01
        Coefficients available          :  Yes
@@ -1623,7 +1623,7 @@
     Total charge:  7.999999391597E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  3.11E-11, 
- iter:  4, delta:  7.94E-08, energy: -1.65356311524769950E+01, D: -1.688E-03}]
+ iter:  4, delta:  7.94E-08, energy: -1.65356311524770021E+01, D: -1.688E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1639,19 +1639,19 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.01E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.24E-02, eBS: -1.55467355329227730E-01, D: -4.779E-02, 
+ iter:  1, fnrm:  5.24E-02, eBS: -1.55467355329245105E-01, D: -4.779E-02, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  1.258E-01
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -1.1665324096057361E-003
+     energydiff                        : -1.1665324096021834E-003
      Hamiltonian update: {
  Energies: {Ekin:  8.06894896697E+00, Epot: -8.52016781548E+00, Enl:  7.29695940938E-01, 
               EH:  2.08033634111E+01,  EXC: -4.01100758711E+00, EvXC: -5.25741925431E+00}, 
     Total charge:  7.999999393571E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  3.11E-11, 
- iter:  5, delta:  6.90E-08, energy: -1.65367976848866007E+01, D: -1.167E-03}]
+ iter:  5, delta:  6.90E-08, energy: -1.65367976848866043E+01, D: -1.167E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1667,12 +1667,12 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.49E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.11E-02, eBS: -2.03260376971913070E-01, D: -4.170E-02, 
+ iter:  1, fnrm:  4.11E-02, eBS: -2.03260376971933526E-01, D: -4.170E-02, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  1.248E-01
        Coefficients available          :  Yes
      alpha                             :  0.14641
-     energydiff                        : -7.7587667132661409E-004
+     energydiff                        : -7.7587667132306137E-004
      Hamiltonian update: {
  Energies: {Ekin:  8.06894896697E+00, Epot: -8.54235293704E+00, Enl:  7.29695940938E-01, 
               EH:  2.07602407673E+01,  EXC: -4.00413710783E+00, EvXC: -5.24834572003E+00}, 
@@ -1695,19 +1695,19 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.07E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.16E-02, eBS: -2.44955842367648835E-01, D: -3.547E-02, 
+ iter:  1, fnrm:  3.16E-02, eBS: -2.44955842367645588E-01, D: -3.547E-02, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  1.242E-01
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -4.9822570101909491E-004
+     energydiff                        : -4.9822570101198949E-004
      Hamiltonian update: {
  Energies: {Ekin:  8.06894896697E+00, Epot: -8.56130535544E+00, Enl:  7.29695940938E-01, 
               EH:  2.07233962697E+01,  EXC: -3.99828813335E+00, EvXC: -5.24062153153E+00}, 
     Total charge:  7.999999396688E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  3.11E-11, 
- iter:  7, delta:  4.84E-08, energy: -1.65380717872589464E+01, D: -4.982E-04}]
+ iter:  7, delta:  4.84E-08, energy: -1.65380717872589393E+01, D: -4.982E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1723,19 +1723,19 @@
  Mean deviation from unity in reorthonormalize_coeff:  7.42E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.39E-02, eBS: -2.80423351687574762E-01, D: -2.938E-02, 
+ iter:  1, fnrm:  2.39E-02, eBS: -2.80423351687589417E-01, D: -2.938E-02, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  1.237E-01
        Coefficients available          :  Yes
      alpha                             :  0.1771561000000001
-     energydiff                        : -3.1006457799520604E-004
+     energydiff                        : -3.1006457800941689E-004
      Hamiltonian update: {
  Energies: {Ekin:  8.06894896697E+00, Epot: -8.57703788674E+00, Enl:  7.29695940938E-01, 
               EH:  2.06927760584E+01,  EXC: -3.99344450697E+00, EvXC: -5.23422526288E+00}, 
     Total charge:  7.999999397848E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  3.11E-11, 
- iter:  8, delta:  3.91E-08, energy: -1.65383818518369416E+01, D: -3.101E-04}]
+ iter:  8, delta:  3.91E-08, energy: -1.65383818518369488E+01, D: -3.101E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 9
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1751,12 +1751,12 @@
  Mean deviation from unity in reorthonormalize_coeff:  5.00E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.79E-02, eBS: -3.09800985302072340E-01, D: -2.367E-02, 
+ iter:  1, fnrm:  1.79E-02, eBS: -3.09800985302081389E-01, D: -2.367E-02, 
           alpha:  1.772E-01}
        Kohn-Sham residue               :  1.235E-01
        Coefficients available          :  Yes
      alpha                             :  0.1948717100000001
-     energydiff                        : -1.8758615790659405E-004
+     energydiff                        : -1.8758615789948863E-004
      Hamiltonian update: {
  Energies: {Ekin:  8.06894896697E+00, Epot: -8.58971581892E+00, Enl:  7.29695940938E-01, 
               EH:  2.06680462652E+01,  EXC: -3.98954648658E+00, EvXC: -5.22907793615E+00}, 
@@ -1779,27 +1779,27 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.28E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.31E-02, eBS: -3.33469058357665826E-01, D: -1.853E-02, 
+ iter:  1, fnrm:  1.31E-02, eBS: -3.33469058357683923E-01, D: -1.853E-02, 
           alpha:  1.949E-01}
        Kohn-Sham residue               :  1.233E-01
        Coefficients available          :  Yes
      alpha                             :  0.2143588810000001
-     energydiff                        : -1.1030891272767462E-004
+     energydiff                        : -1.1030891271701648E-004
      Hamiltonian update: {
  Energies: {Ekin:  8.06894896697E+00, Epot: -8.59962760788E+00, Enl:  7.29695940938E-01, 
               EH:  2.06486483999E+01,  EXC: -3.98649985488E+00, EvXC: -5.22505505426E+00}, 
     Total charge:  7.999999399482E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  3.11E-11, 
- iter:  10, delta:  2.39E-08, energy: -1.65386797469075759E+01, D: -1.103E-04}]
+ iter:  10, delta:  2.39E-08, energy: -1.65386797469075653E+01, D: -1.103E-04}]
    -  &final_kernel004  { #------------------------------------------------------- iter: 11
  summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  3.11E-11, 
- iter:  11, delta:  2.39E-08, energy: -1.65386797469075759E+01, D: -1.103E-04}]}
+ iter:  11, delta:  2.39E-08, energy: -1.65386797469075653E+01, D: -1.103E-04}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc004
    -  {iter:  4, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  4, delta out:  2.694E-06, energy: -1.65386797469075759E+01, D: -2.063E-01}
+ iter high:  4, delta out:  2.694E-06, energy: -1.65386797469075653E+01, D: -2.063E-01}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -1847,12 +1847,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  7.69E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.89E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  1.48E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  8.59E-03, eBS: -3.52000982347234204E-01, D: -2.432E-02, 
+ iter:  1, fnrm:  8.59E-03, eBS: -3.52000982347262015E-01, D: -2.432E-02, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1861,7 +1861,7 @@
     Total charge:  7.999999401875E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  9.26E-12, 
- iter:  1, delta:  1.80E-07, energy: -1.65489669282858749E+01, D: -1.029E-02}]
+ iter:  1, delta:  1.80E-07, energy: -1.65489669282858820E+01, D: -1.029E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1872,24 +1872,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  7.69E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  8.89E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  2.52E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.12E-02, eBS: -3.76322180239149762E-01, D: -1.924E-01, 
+ iter:  1, fnrm:  1.12E-02, eBS: -3.76322180239164972E-01, D: -1.924E-01, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  5.924E-02
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  6.8543938557041884E-004
+     energydiff                        :  6.8543938557397155E-004
      Hamiltonian update: {
  Energies: {Ekin:  8.03506786156E+00, Epot: -8.63170188275E+00, Enl:  6.72930452504E-01, 
               EH:  2.04295566893E+01,  EXC: -3.94881290600E+00, EvXC: -5.17534618605E+00}, 
     Total charge:  7.999999401316E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  9.26E-12, 
- iter:  2, delta:  2.46E-08, energy: -1.65482814889003045E+01, D:  6.854E-04}]
+ iter:  2, delta:  2.46E-08, energy: -1.65482814889003080E+01, D:  6.854E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1900,24 +1900,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  7.69E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  6.67E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  1.90E-07, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  6.16E-03, eBS: -5.68672515559063729E-01, D:  1.252E-02, 
+ iter:  1, fnrm:  6.16E-03, eBS: -5.68672515559052405E-01, D:  1.252E-02, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  5.912E-02
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -7.1670101036147571E-006
+     energydiff                        : -7.1670100965093297E-006
      Hamiltonian update: {
  Energies: {Ekin:  8.03506786156E+00, Epot: -8.62466310769E+00, Enl:  6.72930452504E-01, 
               EH:  2.04427599483E+01,  EXC: -3.95093026376E+00, EvXC: -5.17814304660E+00}, 
     Total charge:  7.999999401161E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  9.26E-12, 
- iter:  3, delta:  6.75E-09, energy: -1.65482886559104081E+01, D: -7.167E-06}]
+ iter:  3, delta:  6.75E-09, energy: -1.65482886559104045E+01, D: -7.167E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1928,24 +1928,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  7.69E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.84E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  1.38E-07, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.77E-03, eBS: -5.56155926435351722E-01, D:  3.436E-03, 
+ iter:  1, fnrm:  4.77E-03, eBS: -5.56155926435345060E-01, D:  3.436E-03, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  5.909E-02
        Coefficients available          :  Yes
      alpha                             :  0.121
-     energydiff                        : -8.6479939476191703E-006
+     energydiff                        : -8.6479939547245976E-006
      Hamiltonian update: {
  Energies: {Ekin:  8.03506786156E+00, Epot: -8.62272924825E+00, Enl:  6.72930452504E-01, 
               EH:  2.04463910516E+01,  EXC: -3.95151277874E+00, EvXC: -5.17891250566E+00}, 
     Total charge:  7.999999401029E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  9.26E-12, 
- iter:  4, delta:  5.76E-09, energy: -1.65482973039043557E+01, D: -8.648E-06}]
+ iter:  4, delta:  5.76E-09, energy: -1.65482973039043593E+01, D: -8.648E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1956,24 +1956,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  7.69E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.31E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  9.45E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.59E-03, eBS: -5.52720415212505811E-01, D:  2.934E-03, 
+ iter:  1, fnrm:  3.59E-03, eBS: -5.52720415212479610E-01, D:  2.934E-03, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  5.906E-02
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -5.2833906245552953E-006
+     energydiff                        : -5.2833906174498679E-006
      Hamiltonian update: {
  Energies: {Ekin:  8.03506786156E+00, Epot: -8.62107980183E+00, Enl:  6.72930452504E-01, 
               EH:  2.04494894252E+01,  EXC: -3.95200989669E+00, EvXC: -5.17956916255E+00}, 
     Total charge:  7.999999400920E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  9.26E-12, 
- iter:  5, delta:  4.77E-09, energy: -1.65483025872949803E+01, D: -5.283E-06}]
+ iter:  5, delta:  4.77E-09, energy: -1.65483025872949767E+01, D: -5.283E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1984,17 +1984,17 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  7.69E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.12E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  6.07E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.62E-03, eBS: -5.49786863915263102E-01, D:  2.434E-03, 
+ iter:  1, fnrm:  2.62E-03, eBS: -5.49786863915261215E-01, D:  2.434E-03, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  5.905E-02
        Coefficients available          :  Yes
      alpha                             :  0.14641
-     energydiff                        : -3.0093862442015507E-006
+     energydiff                        : -3.0093862477542643E-006
      Hamiltonian update: {
  Energies: {Ekin:  8.03506786156E+00, Epot: -8.61971260849E+00, Enl:  6.72930452504E-01, 
               EH:  2.04520586681E+01,  EXC: -3.95242215193E+00, EvXC: -5.18011372227E+00}, 
@@ -2012,24 +2012,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  7.69E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.25E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  3.61E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.83E-03, eBS: -5.47352934817083359E-01, D:  1.955E-03, 
+ iter:  1, fnrm:  1.83E-03, eBS: -5.47352934817084358E-01, D:  1.955E-03, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  5.904E-02
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -1.5815664689000641E-006
+     energydiff                        : -1.5815664760054915E-006
      Hamiltonian update: {
  Energies: {Ekin:  8.03506786156E+00, Epot: -8.61861548942E+00, Enl:  6.72930452504E-01, 
               EH:  2.04541212590E+01,  EXC: -3.95275311913E+00, EvXC: -5.18055090617E+00}, 
     Total charge:  7.999999400764E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  9.26E-12, 
- iter:  7, delta:  2.95E-09, energy: -1.65483071782476934E+01, D: -1.582E-06}]
+ iter:  7, delta:  2.95E-09, energy: -1.65483071782477005E+01, D: -1.582E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2040,24 +2040,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  7.69E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  6.78E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  1.97E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.23E-03, eBS: -5.45398142257718210E-01, D:  1.513E-03, 
+ iter:  1, fnrm:  1.23E-03, eBS: -5.45398142257720098E-01, D:  1.513E-03, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  5.903E-02
        Coefficients available          :  Yes
      alpha                             :  0.1771561000000001
-     energydiff                        : -7.5726449821900133E-007
+     energydiff                        : -7.5726449466628765E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.03506786156E+00, Epot: -8.61776690984E+00, Enl:  6.72930452504E-01, 
               EH:  2.04557173244E+01,  EXC: -3.95300921666E+00, EvXC: -5.18088919211E+00}, 
     Total charge:  7.999999400713E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  9.26E-12, 
- iter:  8, delta:  2.18E-09, energy: -1.65483079355121916E+01, D: -7.573E-07}]
+ iter:  8, delta:  2.18E-09, energy: -1.65483079355121951E+01, D: -7.573E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 9
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2068,24 +2068,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  7.69E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.32E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  9.73E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  7.88E-04, eBS: -5.43885022482502922E-01, D:  1.123E-03, 
+ iter:  1, fnrm:  7.88E-04, eBS: -5.43885022482509362E-01, D:  1.123E-03, 
           alpha:  1.772E-01}
        Kohn-Sham residue               :  5.902E-02
        Coefficients available          :  Yes
      alpha                             :  0.1948717100000001
-     energydiff                        : -3.2521784376626783E-007
+     energydiff                        : -3.2521784731898151E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.03506786156E+00, Epot: -8.61713753893E+00, Enl:  6.72930452504E-01, 
               EH:  2.04569017128E+01,  EXC: -3.95319923609E+00, EvXC: -5.18114019306E+00}, 
     Total charge:  7.999999400677E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  9.26E-12, 
- iter:  9, delta:  1.54E-09, energy: -1.65483082607300354E+01, D: -3.252E-07}]
+ iter:  9, delta:  1.54E-09, energy: -1.65483082607300425E+01, D: -3.252E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 10
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2096,17 +2096,17 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  7.69E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.44E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  4.29E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.75E-04, eBS: -5.42761940832532042E-01, D:  7.946E-04, 
+ iter:  1, fnrm:  4.75E-04, eBS: -5.42761940832527268E-01, D:  7.946E-04, 
           alpha:  1.949E-01}
        Kohn-Sham residue               :  5.902E-02
        Coefficients available          :  Yes
      alpha                             :  0.2143588810000001
-     energydiff                        : -1.2284267825179995E-007
+     energydiff                        : -1.228426711463726E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.03506786156E+00, Epot: -8.61669262699E+00, Enl:  6.72930452504E-01, 
               EH:  2.04577395235E+01,  EXC: -3.95333362279E+00, EvXC: -5.18131770665E+00}, 
@@ -2133,7 +2133,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.03506786156E+00, Epot: -8.61639496202E+00, Enl:  6.72930452504E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  9.27E-02, Omega: -1.654830837155436E+01, D: -9.64E-03, D best: -9.64E-03, 
+ iter:  1, fnrm:  9.27E-02, Omega: -1.654830837155437E+01, D: -9.64E-03, D best: -9.64E-03, 
  Optimization: {algorithm: SD, mean alpha:  3.479E-01, max alpha:  3.479E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, 
@@ -2169,12 +2169,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.36E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.63E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  2.59E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.60E-04, eBS: -5.41967379867875465E-01, D: -2.015E-03, 
+ iter:  1, fnrm:  3.60E-04, eBS: -5.41967379867864363E-01, D: -2.015E-03, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -2183,7 +2183,7 @@
     Total charge:  7.999999395794E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.76E-12, 
- iter:  1, delta:  5.95E-08, energy: -1.65508558354061392E+01, D: -2.547E-03}]
+ iter:  1, delta:  5.95E-08, energy: -1.65508558354061428E+01, D: -2.547E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2194,24 +2194,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.36E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  8.68E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  3.64E-07, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.27E-03, eBS: -5.43982680325117429E-01, D: -6.430E-02, 
+ iter:  1, fnrm:  4.27E-03, eBS: -5.43982680325099777E-01, D: -6.430E-02, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  4.035E-02
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  5.6096501008795485E-005
+     energydiff                        :  5.609650102300634E-005
      Hamiltonian update: {
  Energies: {Ekin:  8.04090842849E+00, Epot: -8.64503553795E+00, Enl:  6.57333338452E-01, 
               EH:  2.03905160618E+01,  EXC: -3.94256392869E+00, EvXC: -5.16715236926E+00}, 
     Total charge:  7.999999395541E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.76E-12, 
- iter:  2, delta:  9.60E-09, energy: -1.65507997389051305E+01, D:  5.610E-05}]
+ iter:  2, delta:  9.60E-09, energy: -1.65507997389051198E+01, D:  5.610E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2222,17 +2222,17 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.36E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  6.24E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  3.04E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.47E-03, eBS: -6.08286553624820647E-01, D:  5.377E-03, 
+ iter:  1, fnrm:  2.47E-03, eBS: -6.08286553624818427E-01, D:  5.377E-03, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  4.029E-02
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -1.1158540402789185E-006
+     energydiff                        : -1.1158540509370596E-006
      Hamiltonian update: {
  Energies: {Ekin:  8.04090842849E+00, Epot: -8.64206333628E+00, Enl:  6.57333338452E-01, 
               EH:  2.03961848792E+01,  EXC: -3.94346867187E+00, EvXC: -5.16834732988E+00}, 
@@ -2250,12 +2250,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.36E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.23E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  2.33E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.96E-03, eBS: -6.02909069486578408E-01, D:  1.577E-03, 
+ iter:  1, fnrm:  1.96E-03, eBS: -6.02909069486577298E-01, D:  1.577E-03, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  4.028E-02
        Coefficients available          :  Yes
@@ -2278,24 +2278,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.36E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.25E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  1.72E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.53E-03, eBS: -6.01331823861372960E-01, D:  1.386E-03, 
+ iter:  1, fnrm:  1.53E-03, eBS: -6.01331823861366965E-01, D:  1.386E-03, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  4.026E-02
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -9.8007830828805709E-007
+     energydiff                        : -9.8007830473534341E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.04090842849E+00, Epot: -8.64043350978E+00, Enl:  6.57333338452E-01, 
               EH:  2.03993099233E+01,  EXC: -3.94396639796E+00, EvXC: -5.16900468353E+00}, 
     Total charge:  7.999999395342E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.76E-12, 
- iter:  5, delta:  2.05E-09, energy: -1.65508033193727400E+01, D: -9.801E-07}]
+ iter:  5, delta:  2.05E-09, energy: -1.65508033193727364E+01, D: -9.801E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2306,12 +2306,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.36E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.32E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  1.21E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.17E-03, eBS: -5.99946117641197985E-01, D:  1.190E-03, 
+ iter:  1, fnrm:  1.17E-03, eBS: -5.99946117641215748E-01, D:  1.190E-03, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  4.025E-02
        Coefficients available          :  Yes
@@ -2323,7 +2323,7 @@
     Total charge:  7.999999395294E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.76E-12, 
- iter:  6, delta:  1.70E-09, energy: -1.65508039403108107E+01, D: -6.209E-07}]
+ iter:  6, delta:  1.70E-09, energy: -1.65508039403108071E+01, D: -6.209E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2334,24 +2334,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.36E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.50E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  8.26E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  8.78E-04, eBS: -5.98755767597075939E-01, D:  9.979E-04, 
+ iter:  1, fnrm:  8.78E-04, eBS: -5.98755767597083266E-01, D:  9.979E-04, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  4.024E-02
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -3.7822864129566369E-007
+     energydiff                        : -3.7822865195380473E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.04090842849E+00, Epot: -8.63923577818E+00, Enl:  6.57333338452E-01, 
               EH:  2.04016167610E+01,  EXC: -3.94433313349E+00, EvXC: -5.16948901695E+00}, 
     Total charge:  7.999999395254E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.76E-12, 
- iter:  7, delta:  1.38E-09, energy: -1.65508043185394520E+01, D: -3.782E-07}]
+ iter:  7, delta:  1.38E-09, energy: -1.65508043185394591E+01, D: -3.782E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2362,24 +2362,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.36E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.81E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  5.43E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  6.47E-04, eBS: -5.97757876977842550E-01, D:  8.149E-04, 
+ iter:  1, fnrm:  6.47E-04, eBS: -5.97757876977858094E-01, D:  8.149E-04, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  4.024E-02
        Coefficients available          :  Yes
      alpha                             :  0.1771561000000001
-     energydiff                        : -2.2237202657038324E-007
+     energydiff                        : -2.223720159122422E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.04090842849E+00, Epot: -8.63879193678E+00, Enl:  6.57333338452E-01, 
               EH:  2.04024755351E+01,  EXC: -3.94446938758E+00, EvXC: -5.16966895487E+00}, 
     Total charge:  7.999999395222E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.76E-12, 
- iter:  8, delta:  1.09E-09, energy: -1.65508045409114786E+01, D: -2.224E-07}]
+ iter:  8, delta:  1.09E-09, energy: -1.65508045409114750E+01, D: -2.224E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 9
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2390,24 +2390,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.36E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.25E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  3.46E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.69E-04, eBS: -5.96943009088395815E-01, D:  6.471E-04, 
+ iter:  1, fnrm:  4.69E-04, eBS: -5.96943009088393262E-01, D:  6.471E-04, 
           alpha:  1.772E-01}
        Kohn-Sham residue               :  4.023E-02
        Coefficients available          :  Yes
      alpha                             :  0.1948717100000001
-     energydiff                        : -1.2685863026717925E-007
+     energydiff                        : -1.2685863737260661E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.04090842849E+00, Epot: -8.63844087101E+00, Enl:  6.57333338452E-01, 
               EH:  2.04031573450E+01,  EXC: -3.94457738426E+00, EvXC: -5.16981157089E+00}, 
     Total charge:  7.999999395198E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.76E-12, 
- iter:  9, delta:  8.41E-10, energy: -1.65508046677701088E+01, D: -1.269E-07}]
+ iter:  9, delta:  8.41E-10, energy: -1.65508046677701124E+01, D: -1.269E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 10
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2418,32 +2418,32 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.36E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  8.23E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  2.14E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.36E-04, eBS: -5.96295945315554410E-01, D:  4.990E-04, 
+ iter:  1, fnrm:  3.36E-04, eBS: -5.96295945315584719E-01, D:  4.990E-04, 
           alpha:  1.949E-01}
        Kohn-Sham residue               :  4.023E-02
        Coefficients available          :  Yes
      alpha                             :  0.2143588810000001
-     energydiff                        : -7.0529736717617197E-008
+     energydiff                        : -7.0529740270330876E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.04090842849E+00, Epot: -8.63817140473E+00, Enl:  6.57333338452E-01, 
               EH:  2.04036830002E+01,  EXC: -3.94466048054E+00, EvXC: -5.16992129990E+00}, 
     Total charge:  7.999999395179E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.76E-12, 
- iter:  10, delta:  6.34E-10, energy: -1.65508047382998456E+01, D: -7.053E-08}]
+ iter:  10, delta:  6.34E-10, energy: -1.65508047382998527E+01, D: -7.053E-08}]
    -  &final_kernel006  { #------------------------------------------------------- iter: 11
  summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.76E-12, 
- iter:  11, delta:  6.34E-10, energy: -1.65508047382998456E+01, D: -7.053E-08}]}
+ iter:  11, delta:  6.34E-10, energy: -1.65508047382998527E+01, D: -7.053E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc006
    -  {iter:  6, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  6, delta out:  5.341E-08, energy: -1.65508047382998456E+01, D: -2.496E-03}
+ iter high:  6, delta out:  5.341E-08, energy: -1.65508047382998527E+01, D: -2.496E-03}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -2491,12 +2491,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  8.31E-17 ]}, 
+ max / mean error:  [  3.33E-16,  9.16E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.49E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  3.73E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.32E-04, eBS: -5.95796993450991685E-01, D: -6.128E-04, 
+ iter:  1, fnrm:  4.32E-04, eBS: -5.95796993450969814E-01, D: -6.128E-04, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -2516,24 +2516,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  8.31E-17 ]}, 
+ max / mean error:  [  3.33E-16,  9.16E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.93E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  8.85E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.10E-03, eBS: -5.96409754275855963E-01, D: -3.316E-02, 
+ iter:  1, fnrm:  2.10E-03, eBS: -5.96409754275847082E-01, D: -3.316E-02, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  3.537E-02
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  1.5535617247763867E-005
+     energydiff                        :  1.5535617244211153E-005
      Hamiltonian update: {
  Energies: {Ekin:  8.04841340122E+00, Epot: -8.66180939076E+00, Enl:  6.54210763365E-01, 
               EH:  2.03692993106E+01,  EXC: -3.93959052551E+00, EvXC: -5.16326963653E+00}, 
     Total charge:  7.999999388948E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.76E-12, 
- iter:  2, delta:  4.69E-09, energy: -1.65517752818887836E+01, D:  1.554E-05}]
+ iter:  2, delta:  4.69E-09, energy: -1.65517752818887871E+01, D:  1.554E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2544,24 +2544,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  8.31E-17 ]}, 
+ max / mean error:  [  3.33E-16,  9.16E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.16E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  7.99E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.26E-03, eBS: -6.29569518292350860E-01, D:  2.687E-03, 
+ iter:  1, fnrm:  1.26E-03, eBS: -6.29569518292384167E-01, D:  2.687E-03, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  3.535E-02
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -3.1444575299133248E-007
+     energydiff                        : -3.1444574588590513E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.04841340122E+00, Epot: -8.66033398654E+00, Enl:  6.54210763365E-01, 
               EH:  2.03721315851E+01,  EXC: -3.94004185440E+00, EvXC: -5.16386571728E+00}, 
     Total charge:  7.999999388909E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.76E-12, 
- iter:  3, delta:  1.38E-09, energy: -1.65517755963345365E+01, D: -3.144E-07}]
+ iter:  3, delta:  1.38E-09, energy: -1.65517755963345330E+01, D: -3.144E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2572,24 +2572,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  8.31E-17 ]}, 
+ max / mean error:  [  3.33E-16,  9.16E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.85E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  6.36E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.03E-03, eBS: -6.26882310046866342E-01, D:  8.063E-04, 
+ iter:  1, fnrm:  1.03E-03, eBS: -6.26882310046873892E-01, D:  8.063E-04, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  3.534E-02
        Coefficients available          :  Yes
      alpha                             :  0.121
-     energydiff                        : -4.0979383442163453E-007
+     energydiff                        : -4.0979383086892085E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.04841340122E+00, Epot: -8.65989346425E+00, Enl:  6.54210763365E-01, 
               EH:  2.03729816071E+01,  EXC: -3.94017701233E+00, EvXC: -5.16404421527E+00}, 
     Total charge:  7.999999388874E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.76E-12, 
- iter:  4, delta:  1.22E-09, energy: -1.65517760061283710E+01, D: -4.098E-07}]
+ iter:  4, delta:  1.22E-09, energy: -1.65517760061283639E+01, D: -4.098E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2600,24 +2600,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  8.31E-17 ]}, 
+ max / mean error:  [  3.33E-16,  9.16E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.54E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  4.90E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  8.18E-04, eBS: -6.26076037934981677E-01, D:  7.150E-04, 
+ iter:  1, fnrm:  8.18E-04, eBS: -6.26076037934988672E-01, D:  7.150E-04, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  3.534E-02
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -2.838755683853833E-007
+     energydiff                        : -2.8387556127995595E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.04841340122E+00, Epot: -8.65950373091E+00, Enl:  6.54210763365E-01, 
               EH:  2.03737352718E+01,  EXC: -3.94029673875E+00, EvXC: -5.16420233032E+00}, 
     Total charge:  7.999999388844E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.76E-12, 
- iter:  5, delta:  1.05E-09, energy: -1.65517762900039394E+01, D: -2.839E-07}]
+ iter:  5, delta:  1.05E-09, energy: -1.65517762900039251E+01, D: -2.839E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2628,24 +2628,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  8.31E-17 ]}, 
+ max / mean error:  [  3.33E-16,  9.16E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.23E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  3.66E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  6.43E-04, eBS: -6.25361045767149681E-01, D:  6.210E-04, 
+ iter:  1, fnrm:  6.43E-04, eBS: -6.25361045767134693E-01, D:  6.210E-04, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  3.533E-02
        Coefficients available          :  Yes
      alpha                             :  0.14641
-     energydiff                        : -1.905017121828223E-007
+     energydiff                        : -1.9050171928824966E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.04841340122E+00, Epot: -8.65916616334E+00, Enl:  6.54210763365E-01, 
               EH:  2.03743897175E+01,  EXC: -3.94040059022E+00, EvXC: -5.16433947715E+00}, 
     Total charge:  7.999999388818E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.76E-12, 
- iter:  6, delta:  8.92E-10, energy: -1.65517764805056515E+01, D: -1.905E-07}]
+ iter:  6, delta:  8.92E-10, energy: -1.65517764805056444E+01, D: -1.905E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2656,24 +2656,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  8.31E-17 ]}, 
+ max / mean error:  [  3.33E-16,  9.16E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  9.51E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  2.65E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.97E-04, eBS: -6.24740085869359252E-01, D:  5.273E-04, 
+ iter:  1, fnrm:  4.97E-04, eBS: -6.24740085869341155E-01, D:  5.273E-04, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  3.533E-02
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -1.2400659343825282E-007
+     energydiff                        : -1.2400660409639386E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.04841340122E+00, Epot: -8.65888038665E+00, Enl:  6.54210763365E-01, 
               EH:  2.03749453945E+01,  EXC: -3.94048865527E+00, EvXC: -5.16445577319E+00}, 
     Total charge:  7.999999388796E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.76E-12, 
- iter:  7, delta:  7.39E-10, energy: -1.65517766045122450E+01, D: -1.240E-07}]
+ iter:  7, delta:  7.39E-10, energy: -1.65517766045122485E+01, D: -1.240E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2684,17 +2684,17 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  8.31E-17 ]}, 
+ max / mean error:  [  3.33E-16,  9.16E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  7.05E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.87E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.79E-04, eBS: -6.24212763856040631E-01, D:  4.372E-04, 
+ iter:  1, fnrm:  3.79E-04, eBS: -6.24212763856033304E-01, D:  4.372E-04, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  3.533E-02
        Coefficients available          :  Yes
      alpha                             :  0.1771561000000001
-     energydiff                        : -7.8395988367674363E-008
+     energydiff                        : -7.8395984814960684E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.04841340122E+00, Epot: -8.65864429824E+00, Enl:  6.54210763365E-01, 
               EH:  2.03754060331E+01,  EXC: -3.94056154849E+00, EvXC: -5.16455203069E+00}, 
@@ -2712,12 +2712,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  8.31E-17 ]}, 
+ max / mean error:  [  3.33E-16,  9.16E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.00E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.28E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.85E-04, eBS: -6.23775567923359420E-01, D:  3.534E-04, 
+ iter:  1, fnrm:  2.85E-04, eBS: -6.23775567923374630E-01, D:  3.534E-04, 
           alpha:  1.772E-01}
        Kohn-Sham residue               :  3.533E-02
        Coefficients available          :  Yes
@@ -2740,32 +2740,32 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  8.31E-17 ]}, 
+ max / mean error:  [  3.33E-16,  9.16E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.38E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  8.46E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.11E-04, eBS: -6.23422166556166557E-01, D:  2.782E-04, 
+ iter:  1, fnrm:  2.11E-04, eBS: -6.23422166556163448E-01, D:  2.782E-04, 
           alpha:  1.949E-01}
        Kohn-Sham residue               :  3.532E-02
        Coefficients available          :  Yes
      alpha                             :  0.2143588810000001
-     energydiff                        : -2.8609171920379595E-008
+     energydiff                        : -2.8609175473093273E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.04841340122E+00, Epot: -8.65830532481E+00, Enl:  6.54210763365E-01, 
               EH:  2.03760713644E+01,  EXC: -3.94066655576E+00, EvXC: -5.16469068799E+00}, 
     Total charge:  7.999999388753E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.76E-12, 
- iter:  10, delta:  3.73E-10, energy: -1.65517767596463337E+01, D: -2.861E-08}]
+ iter:  10, delta:  3.73E-10, energy: -1.65517767596463372E+01, D: -2.861E-08}]
    -  &final_kernel007  { #------------------------------------------------------- iter: 11
  summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.76E-12, 
- iter:  11, delta:  3.73E-10, energy: -1.65517767596463337E+01, D: -2.861E-08}]}
+ iter:  11, delta:  3.73E-10, energy: -1.65517767596463372E+01, D: -2.861E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc007
    -  {iter:  7, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  7, delta out:  4.383E-08, energy: -1.65517767596463337E+01, D: -9.720E-04}
+ iter high:  7, delta out:  4.383E-08, energy: -1.65517767596463372E+01, D: -9.720E-04}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -2789,12 +2789,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.05271372508E+00, Epot: -8.66262200855E+00, Enl:  6.54313553129E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  1.60E-02, Omega: -1.655219406215411E+01, D: -4.17E-04, D best: -4.17E-04, 
+ iter:  2, fnrm:  1.60E-02, Omega: -1.655219406215412E+01, D: -4.17E-04, D best: -4.17E-04, 
  exit criterion: net number of iterations}
    -  &final_supfun008  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  8.05271372508E+00, Epot: -8.66262200855E+00, Enl:  6.54313553129E-01}, 
- iter:  2, fnrm:  1.60E-02, Omega: -1.655219406215411E+01, D: -4.17E-04, D best: -4.17E-04}
+ iter:  2, fnrm:  1.60E-02, Omega: -1.655219406215412E+01, D: -4.17E-04, D best: -4.17E-04}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  4.85E-03,  8.53E-03 ], warnings:  0}
@@ -2813,12 +2813,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  4.44E-16,  9.42E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  9.07E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  2.34E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.42E-04, eBS: -6.23143963422795766E-01, D: -2.043E-04, 
+ iter:  1, fnrm:  3.42E-04, eBS: -6.23143963422807867E-01, D: -2.043E-04, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -2827,7 +2827,7 @@
     Total charge:  7.999999383395E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.60E-12, 
- iter:  1, delta:  2.97E-08, energy: -1.65521941484038528E+01, D: -4.174E-04}]
+ iter:  1, delta:  2.97E-08, energy: -1.65521941484038599E+01, D: -4.174E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2838,24 +2838,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  4.44E-16,  9.42E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.03E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  3.86E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.39E-03, eBS: -6.23348225866835692E-01, D: -2.064E-02, 
+ iter:  1, fnrm:  1.39E-03, eBS: -6.23348225866862116E-01, D: -2.064E-02, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  3.451E-02
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  5.6458990016494681E-006
+     energydiff                        :  5.6458990265184639E-006
      Hamiltonian update: {
  Energies: {Ekin:  8.05271372508E+00, Epot: -8.67442896178E+00, Enl:  6.54313553129E-01, 
               EH:  2.03547016295E+01,  EXC: -3.93763555271E+00, EvXC: -5.16071788355E+00}, 
     Total charge:  7.999999383309E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.60E-12, 
- iter:  2, delta:  3.04E-09, energy: -1.65521885025048512E+01, D:  5.646E-06}]
+ iter:  2, delta:  3.04E-09, energy: -1.65521885025048334E+01, D:  5.646E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2866,24 +2866,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  4.44E-16,  9.42E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.20E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  3.77E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  8.68E-04, eBS: -6.43983639821747000E-01, D:  1.767E-03, 
+ iter:  1, fnrm:  8.68E-04, eBS: -6.43983639821738674E-01, D:  1.767E-03, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  3.450E-02
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -1.6015827597470889E-007
+     energydiff                        : -1.6015829729099096E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.05271372508E+00, Epot: -8.67346398242E+00, Enl:  6.54313553129E-01, 
               EH:  2.03565641175E+01,  EXC: -3.93793185932E+00, EvXC: -5.16110920923E+00}, 
     Total charge:  7.999999383282E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.60E-12, 
- iter:  3, delta:  9.18E-10, energy: -1.65521886626631272E+01, D: -1.602E-07}]
+ iter:  3, delta:  9.18E-10, energy: -1.65521886626631307E+01, D: -1.602E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2894,12 +2894,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  4.44E-16,  9.42E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.04E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  3.10E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  7.15E-04, eBS: -6.42216330998779394E-01, D:  5.404E-04, 
+ iter:  1, fnrm:  7.15E-04, eBS: -6.42216330998805596E-01, D:  5.404E-04, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  3.450E-02
        Coefficients available          :  Yes
@@ -2911,7 +2911,7 @@
     Total charge:  7.999999383258E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.60E-12, 
- iter:  4, delta:  8.19E-10, energy: -1.65521888643319102E+01, D: -2.017E-07}]
+ iter:  4, delta:  8.19E-10, energy: -1.65521888643319137E+01, D: -2.017E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2922,24 +2922,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  4.44E-16,  9.42E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  8.78E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  2.48E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.82E-04, eBS: -6.41675965145994787E-01, D:  4.829E-04, 
+ iter:  1, fnrm:  5.82E-04, eBS: -6.41675965145961591E-01, D:  4.829E-04, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  3.450E-02
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -1.4527886449400285E-007
+     energydiff                        : -1.4527885383586181E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.05271372508E+00, Epot: -8.67290899666E+00, Enl:  6.54313553129E-01, 
               EH:  2.03576425957E+01,  EXC: -3.93810293941E+00, EvXC: -5.16133513707E+00}, 
     Total charge:  7.999999383237E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.60E-12, 
- iter:  5, delta:  7.18E-10, energy: -1.65521890096107747E+01, D: -1.453E-07}]
+ iter:  5, delta:  7.18E-10, energy: -1.65521890096107676E+01, D: -1.453E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2950,24 +2950,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  4.44E-16,  9.42E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  7.14E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.93E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.67E-04, eBS: -6.41193047558468066E-01, D:  4.232E-04, 
+ iter:  1, fnrm:  4.67E-04, eBS: -6.41193047558460405E-01, D:  4.232E-04, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  3.450E-02
        Coefficients available          :  Yes
      alpha                             :  0.14641
-     energydiff                        : -1.0176208320444857E-007
+     energydiff                        : -1.0176208675716225E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.05271372508E+00, Epot: -8.67268042706E+00, Enl:  6.54313553129E-01, 
               EH:  2.03580885192E+01,  EXC: -3.93817355765E+00, EvXC: -5.16142839196E+00}, 
     Total charge:  7.999999383219E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.60E-12, 
- iter:  6, delta:  6.18E-10, energy: -1.65521891113728579E+01, D: -1.018E-07}]
+ iter:  6, delta:  6.18E-10, energy: -1.65521891113728543E+01, D: -1.018E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
        Hamiltonian application required:  Yes
@@ -2978,17 +2978,17 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  4.44E-16,  9.42E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.60E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.46E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.69E-04, eBS: -6.40769862463723472E-01, D:  3.631E-04, 
+ iter:  1, fnrm:  3.69E-04, eBS: -6.40769862463725470E-01, D:  3.631E-04, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  3.450E-02
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -6.9279117553833203E-008
+     energydiff                        : -6.9279121106546881E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05271372508E+00, Epot: -8.67248493306E+00, Enl:  6.54313553129E-01, 
               EH:  2.03584710946E+01,  EXC: -3.93823406307E+00, EvXC: -5.16150829011E+00}, 
@@ -3006,24 +3006,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  4.44E-16,  9.42E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.22E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.07E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.88E-04, eBS: -6.40406749087070071E-01, D:  3.047E-04, 
+ iter:  1, fnrm:  2.88E-04, eBS: -6.40406749087071292E-01, D:  3.047E-04, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  3.449E-02
        Coefficients available          :  Yes
      alpha                             :  0.1771561000000001
-     energydiff                        : -4.5777131418844874E-008
+     energydiff                        : -4.5777120760703838E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05271372508E+00, Epot: -8.67232150598E+00, Enl:  6.54313553129E-01, 
               EH:  2.03587920428E+01,  EXC: -3.93828474456E+00, EvXC: -5.16157521349E+00}, 
     Total charge:  7.999999383191E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.60E-12, 
- iter:  8, delta:  4.32E-10, energy: -1.65521892264291068E+01, D: -4.578E-08}]
+ iter:  8, delta:  4.32E-10, energy: -1.65521892264290962E+01, D: -4.578E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 9
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3034,24 +3034,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  4.44E-16,  9.42E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.04E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  7.64E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.21E-04, eBS: -6.40102088513339718E-01, D:  2.496E-04, 
+ iter:  1, fnrm:  2.21E-04, eBS: -6.40102088513321954E-01, D:  2.496E-04, 
           alpha:  1.772E-01}
        Kohn-Sham residue               :  3.449E-02
        Coefficients available          :  Yes
      alpha                             :  0.1948717100000001
-     energydiff                        : -2.9267219758821739E-008
+     energydiff                        : -2.9267226864249096E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05271372508E+00, Epot: -8.67218814330E+00, Enl:  6.54313553129E-01, 
               EH:  2.03590549896E+01,  EXC: -3.93832619528E+00, EvXC: -5.16162994592E+00}, 
     Total charge:  7.999999383181E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.60E-12, 
- iter:  9, delta:  3.52E-10, energy: -1.65521892556963266E+01, D: -2.927E-08}]
+ iter:  9, delta:  3.52E-10, energy: -1.65521892556963230E+01, D: -2.927E-08}]
    -  #-------------------------------------------------------------------- kernel iter: 10
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3062,17 +3062,17 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  4.44E-16,  9.42E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.08E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  5.25E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.66E-04, eBS: -6.39852452669732230E-01, D:  1.995E-04, 
+ iter:  1, fnrm:  1.66E-04, eBS: -6.39852452669685379E-01, D:  1.995E-04, 
           alpha:  1.949E-01}
        Kohn-Sham residue               :  3.449E-02
        Coefficients available          :  Yes
      alpha                             :  0.2143588810000001
-     energydiff                        : -1.8006712565465932E-008
+     energydiff                        : -1.8006716118179611E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05271372508E+00, Epot: -8.67208202606E+00, Enl:  6.54313553129E-01, 
               EH:  2.03592651417E+01,  EXC: -3.93835925984E+00, EvXC: -5.16167360330E+00}, 
@@ -3135,12 +3135,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  7.36E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.15E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.59E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.47E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.71E-04, eBS: -6.39652911416206504E-01, D: -1.945E-05, 
+ iter:  1, fnrm:  2.71E-04, eBS: -6.39652911416214276E-01, D: -1.945E-05, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -3149,7 +3149,7 @@
     Total charge:  7.999999379446E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.98E-13, 
- iter:  1, delta:  1.79E-08, energy: -1.65523641802165180E+01, D: -1.749E-04}]
+ iter:  1, delta:  1.79E-08, energy: -1.65523641802165216E+01, D: -1.749E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3160,12 +3160,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  7.36E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.15E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  6.86E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  2.35E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.09E-03, eBS: -6.39672363073295669E-01, D: -1.441E-02, 
+ iter:  1, fnrm:  1.09E-03, eBS: -6.39672363073269024E-01, D: -1.441E-02, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  3.488E-02
        Coefficients available          :  Yes
@@ -3177,7 +3177,7 @@
     Total charge:  7.999999379379E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.98E-13, 
- iter:  2, delta:  2.34E-09, energy: -1.65523620209918967E+01, D:  2.159E-06}]
+ iter:  2, delta:  2.34E-09, energy: -1.65523620209919002E+01, D:  2.159E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3188,17 +3188,17 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  7.36E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.15E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  8.11E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  2.39E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  6.92E-04, eBS: -6.54083179975647244E-01, D:  1.367E-03, 
+ iter:  1, fnrm:  6.92E-04, eBS: -6.54083179975682327E-01, D:  1.367E-03, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  3.488E-02
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -1.062100807303068E-007
+     energydiff                        : -1.0621007717759312E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.05392924239E+00, Epot: -8.68107536702E+00, Enl:  6.54804930156E-01, 
               EH:  2.03457844434E+01,  EXC: -3.93645678451E+00, EvXC: -5.15918056839E+00}, 
@@ -3216,24 +3216,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  7.36E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.15E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  7.08E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  2.00E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.75E-04, eBS: -6.52715903646526430E-01, D:  4.220E-04, 
+ iter:  1, fnrm:  5.75E-04, eBS: -6.52715903646533202E-01, D:  4.220E-04, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  3.488E-02
        Coefficients available          :  Yes
      alpha                             :  0.121
-     energydiff                        : -1.3086927452832242E-007
+     energydiff                        : -1.3086927097560874E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.05392924239E+00, Epot: -8.68084694237E+00, Enl:  6.54804930156E-01, 
               EH:  2.03462292251E+01,  EXC: -3.93652731993E+00, EvXC: -5.15927371669E+00}, 
     Total charge:  7.999999379339E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.98E-13, 
- iter:  4, delta:  6.44E-10, energy: -1.65523622580712519E+01, D: -1.309E-07}]
+ iter:  4, delta:  6.44E-10, energy: -1.65523622580712484E+01, D: -1.309E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3244,24 +3244,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  7.36E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.15E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.99E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.63E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.72E-04, eBS: -6.52293865669723361E-01, D:  3.786E-04, 
+ iter:  1, fnrm:  4.72E-04, eBS: -6.52293865669731132E-01, D:  3.786E-04, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  3.488E-02
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -9.5993829773988182E-008
+     energydiff                        : -9.5993826221274503E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05392924239E+00, Epot: -8.68064253496E+00, Enl:  6.54804930156E-01, 
               EH:  2.03466282022E+01,  EXC: -3.93659052701E+00, EvXC: -5.15935718544E+00}, 
     Total charge:  7.999999379322E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.98E-13, 
- iter:  5, delta:  5.68E-10, energy: -1.65523623540650817E+01, D: -9.599E-08}]
+ iter:  5, delta:  5.68E-10, energy: -1.65523623540650746E+01, D: -9.599E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3272,24 +3272,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  7.36E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.15E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.91E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.29E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.82E-04, eBS: -6.51915246212207977E-01, D:  3.332E-04, 
+ iter:  1, fnrm:  3.82E-04, eBS: -6.51915246212237731E-01, D:  3.332E-04, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  3.488E-02
        Coefficients available          :  Yes
      alpha                             :  0.14641
-     energydiff                        : -6.8523167584544353E-008
+     energydiff                        : -6.8523171137258032E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05392924239E+00, Epot: -8.68046313725E+00, Enl:  6.54804930156E-01, 
               EH:  2.03469793269E+01,  EXC: -3.93664608818E+00, EvXC: -5.15943055550E+00}, 
     Total charge:  7.999999379308E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.98E-13, 
- iter:  6, delta:  4.93E-10, energy: -1.65523624225882493E+01, D: -6.852E-08}]
+ iter:  6, delta:  4.93E-10, energy: -1.65523624225882457E+01, D: -6.852E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3300,24 +3300,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  7.36E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.15E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.87E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  9.95E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.05E-04, eBS: -6.51581998961421216E-01, D:  2.874E-04, 
+ iter:  1, fnrm:  3.05E-04, eBS: -6.51581998961448416E-01, D:  2.874E-04, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  3.488E-02
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -4.7544695291890093E-008
+     energydiff                        : -4.7544702397317451E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05392924239E+00, Epot: -8.68030893301E+00, Enl:  6.54804930156E-01, 
               EH:  2.03472820843E+01,  EXC: -3.93669393198E+00, EvXC: -5.15949373280E+00}, 
     Total charge:  7.999999379295E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.98E-13, 
- iter:  7, delta:  4.20E-10, energy: -1.65523624701329446E+01, D: -4.754E-08}]
+ iter:  7, delta:  4.20E-10, energy: -1.65523624701329481E+01, D: -4.754E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3328,17 +3328,17 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  7.36E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.15E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.93E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  7.45E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.40E-04, eBS: -6.51294622605586015E-01, D:  2.425E-04, 
+ iter:  1, fnrm:  2.40E-04, eBS: -6.51294622605572138E-01, D:  2.425E-04, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  3.487E-02
        Coefficients available          :  Yes
      alpha                             :  0.1771561000000001
-     energydiff                        : -3.1994979110550048E-008
+     energydiff                        : -3.1994975557836369E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05392924239E+00, Epot: -8.68017928946E+00, Enl:  6.54804930156E-01, 
               EH:  2.03475375164E+01,  EXC: -3.93673423629E+00, EvXC: -5.15954695256E+00}, 
@@ -3356,24 +3356,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  7.36E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.15E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.13E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  5.40E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.85E-04, eBS: -6.51052137936248831E-01, D:  2.000E-04, 
+ iter:  1, fnrm:  1.85E-04, eBS: -6.51052137936242170E-01, D:  2.000E-04, 
           alpha:  1.772E-01}
        Kohn-Sham residue               :  3.487E-02
        Coefficients available          :  Yes
      alpha                             :  0.1948717100000001
-     energydiff                        : -2.0804645117777909E-008
+     energydiff                        : -2.080464156506423E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05392924239E+00, Epot: -8.68007281655E+00, Enl:  6.54804930156E-01, 
               EH:  2.03477481198E+01,  EXC: -3.93676741117E+00, EvXC: -5.15959075673E+00}, 
     Total charge:  7.999999379277E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.98E-13, 
- iter:  9, delta:  2.89E-10, energy: -1.65523625229325688E+01, D: -2.080E-08}]
+ iter:  9, delta:  2.89E-10, energy: -1.65523625229325653E+01, D: -2.080E-08}]
    -  #-------------------------------------------------------------------- kernel iter: 10
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3384,12 +3384,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  3.33E-16,  7.36E-17 ]}, 
+ max / mean error:  [  3.33E-16,  1.15E-16 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.47E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  3.76E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.41E-04, eBS: -6.50852184602587425E-01, D:  1.609E-04, 
+ iter:  1, fnrm:  1.41E-04, eBS: -6.50852184602611517E-01, D:  1.609E-04, 
           alpha:  1.949E-01}
        Kohn-Sham residue               :  3.487E-02
        Coefficients available          :  Yes
@@ -3401,15 +3401,15 @@
     Total charge:  7.999999379270E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.98E-13, 
- iter:  10, delta:  2.33E-10, energy: -1.65523625359320583E+01, D: -1.300E-08}]
+ iter:  10, delta:  2.33E-10, energy: -1.65523625359320548E+01, D: -1.300E-08}]
    -  &final_kernel009  { #------------------------------------------------------- iter: 11
  summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.98E-13, 
- iter:  11, delta:  2.33E-10, energy: -1.65523625359320583E+01, D: -1.300E-08}]}
+ iter:  11, delta:  2.33E-10, energy: -1.65523625359320548E+01, D: -1.300E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc009
    -  {iter:  9, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  9, delta out:  1.810E-08, energy: -1.65523625359320583E+01, D: -1.733E-04}
+ iter high:  9, delta out:  1.810E-08, energy: -1.65523625359320548E+01, D: -1.733E-04}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -3433,12 +3433,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.05358522023E+00, Epot: -8.67990125174E+00, Enl:  6.55211395889E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  4.96E-03, Omega: -1.655243217806822E+01, D: -6.96E-05, D best: -6.96E-05, 
+ iter:  2, fnrm:  4.96E-03, Omega: -1.655243217806821E+01, D: -6.96E-05, D best: -6.96E-05, 
  exit criterion: net number of iterations}
    -  &final_supfun010  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  8.05358522023E+00, Epot: -8.67990125174E+00, Enl:  6.55211395889E-01}, 
- iter:  2, fnrm:  4.96E-03, Omega: -1.655243217806822E+01, D: -6.96E-05, D best: -6.96E-05}
+ iter:  2, fnrm:  4.96E-03, Omega: -1.655243217806821E+01, D: -6.96E-05, D best: -6.96E-05}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.27E-03,  9.54E-03 ], warnings:  0}
@@ -3457,12 +3457,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.02E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.33E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  8.94E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.11E-04, eBS: -6.50691235735411322E-01, D:  5.666E-05, 
+ iter:  1, fnrm:  2.11E-04, eBS: -6.50691235735453510E-01, D:  5.666E-05, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -3482,12 +3482,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.02E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.00E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  1.34E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  8.18E-04, eBS: -6.50634576679389953E-01, D: -9.691E-03, 
+ iter:  1, fnrm:  8.18E-04, eBS: -6.50634576679396615E-01, D: -9.691E-03, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  3.548E-02
        Coefficients available          :  Yes
@@ -3510,12 +3510,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.02E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.75E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.38E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.26E-04, eBS: -6.60325588730579005E-01, D:  1.025E-03, 
+ iter:  1, fnrm:  5.26E-04, eBS: -6.60325588730574120E-01, D:  1.025E-03, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  3.548E-02
        Coefficients available          :  Yes
@@ -3538,12 +3538,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.02E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.16E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.16E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.38E-04, eBS: -6.59300583888298375E-01, D:  3.174E-04, 
+ iter:  1, fnrm:  4.38E-04, eBS: -6.59300583888266845E-01, D:  3.174E-04, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  3.547E-02
        Coefficients available          :  Yes
@@ -3566,24 +3566,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.02E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.53E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  9.52E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.61E-04, eBS: -6.58983136497483191E-01, D:  2.852E-04, 
+ iter:  1, fnrm:  3.61E-04, eBS: -6.58983136497476085E-01, D:  2.852E-04, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  3.547E-02
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -5.6269779946660492E-008
+     energydiff                        : -5.626978705208785E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05358522023E+00, Epot: -8.68447681592E+00, Enl:  6.55211395889E-01, 
               EH:  2.03396138111E+01,  EXC: -3.93561551467E+00, EvXC: -5.15808123685E+00}, 
     Total charge:  7.999999376998E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.96E-13, 
- iter:  5, delta:  4.31E-10, energy: -1.65524316252049388E+01, D: -5.627E-08}]
+ iter:  5, delta:  4.31E-10, energy: -1.65524316252049459E+01, D: -5.627E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3594,17 +3594,17 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.02E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.89E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  7.60E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.93E-04, eBS: -6.58697972247635155E-01, D:  2.514E-04, 
+ iter:  1, fnrm:  2.93E-04, eBS: -6.58697972247612062E-01, D:  2.514E-04, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  3.547E-02
        Coefficients available          :  Yes
      alpha                             :  0.14641
-     energydiff                        : -4.0469270601306562E-008
+     energydiff                        : -4.0469263495879204E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05358522023E+00, Epot: -8.68434167659E+00, Enl:  6.55211395889E-01, 
               EH:  2.03398786509E+01,  EXC: -3.93565741916E+00, EvXC: -5.15813657282E+00}, 
@@ -3622,24 +3622,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.02E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.29E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  5.91E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.35E-04, eBS: -6.58446604382639356E-01, D:  2.171E-04, 
+ iter:  1, fnrm:  2.35E-04, eBS: -6.58446604382633360E-01, D:  2.171E-04, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  3.547E-02
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -2.8305269239581321E-008
+     energydiff                        : -2.8305265686867642E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05358522023E+00, Epot: -8.68422531732E+00, Enl:  6.55211395889E-01, 
               EH:  2.03401073996E+01,  EXC: -3.93569356506E+00, EvXC: -5.15818430308E+00}, 
     Total charge:  7.999999376977E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.96E-13, 
- iter:  7, delta:  3.20E-10, energy: -1.65524316939794787E+01, D: -2.831E-08}]
+ iter:  7, delta:  3.20E-10, energy: -1.65524316939794751E+01, D: -2.831E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3650,24 +3650,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.02E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.74E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  4.46E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.85E-04, eBS: -6.58229468290853270E-01, D:  1.836E-04, 
+ iter:  1, fnrm:  1.85E-04, eBS: -6.58229468290847830E-01, D:  1.836E-04, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  3.547E-02
        Coefficients available          :  Yes
      alpha                             :  0.1771561000000001
-     energydiff                        : -1.9211068291724587E-008
+     energydiff                        : -1.9211078949865623E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05358522023E+00, Epot: -8.68412730262E+00, Enl:  6.55211395889E-01, 
               EH:  2.03403007625E+01,  EXC: -3.93572407375E+00, EvXC: -5.15822458818E+00}, 
     Total charge:  7.999999376970E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.96E-13, 
- iter:  8, delta:  2.69E-10, energy: -1.65524317131905470E+01, D: -1.921E-08}]
+ iter:  8, delta:  2.69E-10, energy: -1.65524317131905541E+01, D: -1.921E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 9
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3678,17 +3678,17 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.02E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.26E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  3.26E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.44E-04, eBS: -6.58045901054738147E-01, D:  1.517E-04, 
+ iter:  1, fnrm:  1.44E-04, eBS: -6.58045901054757243E-01, D:  1.517E-04, 
           alpha:  1.772E-01}
        Kohn-Sham residue               :  3.547E-02
        Coefficients available          :  Yes
      alpha                             :  0.1948717100000001
-     energydiff                        : -1.2608850852302567E-008
+     energydiff                        : -1.2608843746875209E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05358522023E+00, Epot: -8.68404663227E+00, Enl:  6.55211395889E-01, 
               EH:  2.03404605302E+01,  EXC: -3.93574923986E+00, EvXC: -5.15825781756E+00}, 
@@ -3706,32 +3706,32 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  7.02E-17 ]}, 
+ max / mean error:  [  2.22E-16,  8.01E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  8.73E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  2.30E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.10E-04, eBS: -6.57894209206277947E-01, D:  1.224E-04, 
+ iter:  1, fnrm:  1.10E-04, eBS: -6.57894209206266400E-01, D:  1.224E-04, 
           alpha:  1.949E-01}
        Kohn-Sham residue               :  3.547E-02
        Coefficients available          :  Yes
      alpha                             :  0.2143588810000001
-     energydiff                        : -7.9641218064807617E-009
+     energydiff                        : -7.9641253591944405E-009
      Hamiltonian update: {
  Energies: {Ekin:  8.05358522023E+00, Epot: -8.68398183172E+00, Enl:  6.55211395889E-01, 
               EH:  2.03405894155E+01,  EXC: -3.93576950457E+00, EvXC: -5.15828457408E+00}, 
     Total charge:  7.999999376958E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.96E-13, 
- iter:  10, delta:  1.81E-10, energy: -1.65524317337635196E+01, D: -7.964E-09}]
+ iter:  10, delta:  1.81E-10, energy: -1.65524317337635232E+01, D: -7.964E-09}]
    -  &final_kernel010  { #------------------------------------------------------- iter: 11
  summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.96E-13, 
- iter:  11, delta:  1.81E-10, energy: -1.65524317337635196E+01, D: -7.964E-09}]}
+ iter:  11, delta:  1.81E-10, energy: -1.65524317337635232E+01, D: -7.964E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc010
    -  {iter:  10, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  10, delta out:  1.068E-08, energy: -1.65524317337635196E+01, D: -6.920E-05}
+ iter high:  10, delta out:  1.068E-08, energy: -1.65524317337635232E+01, D: -6.920E-05}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -3743,7 +3743,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.05358522023E+00, Epot: -8.68393108202E+00, Enl:  6.55211395889E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  4.94E-03, Omega: -1.655243173326806E+01, D: -6.92E-05, D best: -6.92E-05, 
+ iter:  1, fnrm:  4.94E-03, Omega: -1.655243173326807E+01, D: -6.92E-05, D best: -6.92E-05, 
  Optimization: {algorithm: SD, mean alpha:  5.602E-01, max alpha:  5.602E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, 
@@ -3779,12 +3779,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.44E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.71E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  4.96E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.58E-04, eBS: -6.57771823686460255E-01, D:  6.988E-05, 
+ iter:  1, fnrm:  1.58E-04, eBS: -6.57771823686476576E-01, D:  6.988E-05, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -3793,7 +3793,7 @@
     Total charge:  7.999999375931E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.79E-13, 
- iter:  1, delta:  6.46E-09, energy: -1.65524581533612789E+01, D: -2.642E-05}]
+ iter:  1, delta:  6.46E-09, energy: -1.65524581533612825E+01, D: -2.642E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3804,24 +3804,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.44E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.00E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  6.80E-09, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.83E-04, eBS: -6.57701941520322575E-01, D: -6.210E-03, 
+ iter:  1, fnrm:  5.83E-04, eBS: -6.57701941520292710E-01, D: -6.210E-03, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  3.593E-02
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  2.693859535440879E-007
+     energydiff                        :  2.6938594288594686E-007
      Hamiltonian update: {
  Energies: {Ekin:  8.05266588371E+00, Epot: -8.68671333310E+00, Enl:  6.55513646088E-01, 
               EH:  2.03341800884E+01,  EXC: -3.93482867001E+00, EvXC: -5.15704873146E+00}, 
     Total charge:  7.999999375895E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.79E-13, 
- iter:  2, delta:  1.25E-09, energy: -1.65524578839753254E+01, D:  2.694E-07}]
+ iter:  2, delta:  1.25E-09, energy: -1.65524578839753396E+01, D:  2.694E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3832,17 +3832,17 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.44E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.38E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  7.00E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.74E-04, eBS: -6.63912292933197201E-01, D:  7.292E-04, 
+ iter:  1, fnrm:  3.74E-04, eBS: -6.63912292933249604E-01, D:  7.292E-04, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  3.593E-02
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -3.1584725945776881E-008
+     energydiff                        : -3.1584711734922166E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05266588371E+00, Epot: -8.68631681005E+00, Enl:  6.55513646088E-01, 
               EH:  2.03349484820E+01,  EXC: -3.93495087326E+00, EvXC: -5.15721012129E+00}, 
@@ -3860,24 +3860,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.44E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.08E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  5.88E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.12E-04, eBS: -6.63183117543413081E-01, D:  2.256E-04, 
+ iter:  1, fnrm:  3.12E-04, eBS: -6.63183117543442391E-01, D:  2.256E-04, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  3.593E-02
        Coefficients available          :  Yes
      alpha                             :  0.121
-     energydiff                        : -3.8562227189231635E-008
+     energydiff                        : -3.8562223636517956E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05266588371E+00, Epot: -8.68619488036E+00, Enl:  6.55513646088E-01, 
               EH:  2.03351861689E+01,  EXC: -3.93498857919E+00, EvXC: -5.15725991565E+00}, 
     Total charge:  7.999999375874E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.79E-13, 
- iter:  4, delta:  3.47E-10, energy: -1.65524579541222785E+01, D: -3.856E-08}]
+ iter:  4, delta:  3.47E-10, energy: -1.65524579541222749E+01, D: -3.856E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3888,24 +3888,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.44E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.76E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  4.82E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.57E-04, eBS: -6.62957557646271178E-01, D:  2.025E-04, 
+ iter:  1, fnrm:  2.57E-04, eBS: -6.62957557646261630E-01, D:  2.025E-04, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  3.593E-02
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -2.8493271742036086E-008
+     energydiff                        : -2.8493268189322407E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05266588371E+00, Epot: -8.68608568122E+00, Enl:  6.55513646088E-01, 
               EH:  2.03353995549E+01,  EXC: -3.93502239549E+00, EvXC: -5.15730457242E+00}, 
     Total charge:  7.999999375865E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.79E-13, 
- iter:  5, delta:  3.07E-10, energy: -1.65524579826155502E+01, D: -2.849E-08}]
+ iter:  5, delta:  3.07E-10, energy: -1.65524579826155431E+01, D: -2.849E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3916,12 +3916,12 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.44E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.44E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  3.85E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.09E-04, eBS: -6.62755040641801241E-01, D:  1.784E-04, 
+ iter:  1, fnrm:  2.09E-04, eBS: -6.62755040641827886E-01, D:  1.784E-04, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  3.593E-02
        Coefficients available          :  Yes
@@ -3933,7 +3933,7 @@
     Total charge:  7.999999375857E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.79E-13, 
- iter:  6, delta:  2.67E-10, energy: -1.65524580031345572E+01, D: -2.052E-08}]
+ iter:  6, delta:  2.67E-10, energy: -1.65524580031345501E+01, D: -2.052E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3944,24 +3944,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.44E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.14E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  3.00E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.67E-04, eBS: -6.62576629483681234E-01, D:  1.540E-04, 
+ iter:  1, fnrm:  1.67E-04, eBS: -6.62576629483681678E-01, D:  1.540E-04, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  3.593E-02
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -1.438990793189987E-008
+     energydiff                        : -1.4389911484613549E-008
      Hamiltonian update: {
  Energies: {Ekin:  8.05266588371E+00, Epot: -8.68590721143E+00, Enl:  6.55513646088E-01, 
               EH:  2.03357497712E+01,  EXC: -3.93507779709E+00, EvXC: -5.15737773136E+00}, 
     Total charge:  7.999999375850E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.79E-13, 
- iter:  7, delta:  2.28E-10, energy: -1.65524580175244651E+01, D: -1.439E-08}]
+ iter:  7, delta:  2.28E-10, energy: -1.65524580175244616E+01, D: -1.439E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        Hamiltonian application required:  Yes
@@ -3972,24 +3972,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.44E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  8.66E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  2.27E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.32E-04, eBS: -6.62422616583206114E-01, D:  1.301E-04, 
+ iter:  1, fnrm:  1.32E-04, eBS: -6.62422616583218993E-01, D:  1.301E-04, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  3.593E-02
        Coefficients available          :  Yes
      alpha                             :  0.1771561000000001
-     energydiff                        : -9.8131245351851248E-009
+     energydiff                        : -9.8131138770440884E-009
      Hamiltonian update: {
  Energies: {Ekin:  8.05266588371E+00, Epot: -8.68583773376E+00, Enl:  6.55513646088E-01, 
               EH:  2.03358868196E+01,  EXC: -3.93509942927E+00, EvXC: -5.15740629578E+00}, 
     Total charge:  7.999999375845E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.79E-13, 
- iter:  8, delta:  1.92E-10, energy: -1.65524580273375896E+01, D: -9.813E-09}]
+ iter:  8, delta:  1.92E-10, energy: -1.65524580273375754E+01, D: -9.813E-09}]
    -  #--------------------------------------------------------------------- kernel iter: 9
      Kernel update:
        Hamiltonian application required:  Yes
@@ -4000,24 +4000,24 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.44E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  6.29E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  1.67E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.03E-04, eBS: -6.62292510230564235E-01, D:  1.074E-04, 
+ iter:  1, fnrm:  1.03E-04, eBS: -6.62292510230569675E-01, D:  1.074E-04, 
           alpha:  1.772E-01}
        Kohn-Sham residue               :  3.593E-02
        Coefficients available          :  Yes
      alpha                             :  0.1948717100000001
-     energydiff                        : -6.4906799934760784E-009
+     energydiff                        : -6.4907013097581512E-009
      Hamiltonian update: {
  Energies: {Ekin:  8.05266588371E+00, Epot: -8.68578059815E+00, Enl:  6.55513646088E-01, 
               EH:  2.03359999649E+01,  EXC: -3.93511725877E+00, EvXC: -5.15742983809E+00}, 
     Total charge:  7.999999375840E+00, 
  Poisson Solver: {BC: Free, Box:  [  111,  107,  107 ], MPI tasks:  6}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.79E-13, 
- iter:  9, delta:  1.59E-10, energy: -1.65524580338282696E+01, D: -6.491E-09}]
+ iter:  9, delta:  1.59E-10, energy: -1.65524580338282767E+01, D: -6.491E-09}]
    -  #-------------------------------------------------------------------- kernel iter: 10
      Kernel update:
        Hamiltonian application required:  Yes
@@ -4028,17 +4028,17 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  2.22E-16,  6.66E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.44E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.35E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  1.19E-10, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  7.92E-05, eBS: -6.62185084209282904E-01, D:  8.659E-05, 
+ iter:  1, fnrm:  7.92E-05, eBS: -6.62185084209311769E-01, D:  8.659E-05, 
           alpha:  1.949E-01}
        Kohn-Sham residue               :  3.593E-02
        Coefficients available          :  Yes
      alpha                             :  0.2143588810000001
-     energydiff                        : -4.1497898450870707E-009
+     energydiff                        : -4.1497827396597131E-009
      Hamiltonian update: {
  Energies: {Ekin:  8.05266588371E+00, Epot: -8.68573474448E+00, Enl:  6.55513646088E-01, 
               EH:  2.03360911588E+01,  EXC: -3.93513160295E+00, EvXC: -5.15744877763E+00}, 
@@ -4085,7 +4085,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  3.6E-01,  1.809E-01 ]}
+ -  {Process:  0, Timing:  [  3.56E-01,  1.795E-01 ]}
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -4110,7 +4110,7 @@
      x                                 : -1/2
    order                               :  0
    error estimation:
-     max / mean error                  :  [  8.88E-16,  2.86E-16 ]
+     max / mean error                  :  [  1.78E-15,  5.40E-16 ]
  Total charge                          :  7.999999375819E+00
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -4127,28 +4127,28 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  142.84
-   Elapsed time (s)                    :  72.97
+   CPU time (s)                        :  145.42
+   Elapsed time (s)                    :  74.23
  BigDFT infocode                       :  0
  Average noise forces: {x: -4.50027637E-04, y:  2.15103081E-04, z:  2.15102931E-04, 
                     total:  5.43197460E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.081430207293E-03, fnrm2:  1.649447492199E-04}
- Raw forces norm (Ha/Bohr): {maxval:  9.400089926430E-03, fnrm2:  1.652705318430E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  9.081430207292E-03, fnrm2:  1.649447492198E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  9.400089926431E-03, fnrm2:  1.652705318430E-04}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 9.081430207293E-03, -2.710505431214E-20, -1.355252715607E-20]} # 0001
- -  {H: [-9.081430207293E-03,  1.355252715607E-20,  1.355252715607E-20]} # 0002
+ -  {O: [ 9.081430207292E-03, -1.355252715607E-20,  0.000000000000E+00]} # 0001
+ -  {H: [-9.081430207292E-03,  0.000000000000E+00,  0.000000000000E+00]} # 0002
  Energy (Hartree)                      : -1.65524580379780595E+01
- Force Norm (Hartree/Bohr)             :  1.28430817648983366E-02
+ Force Norm (Hartree/Bohr)             :  1.28430817648975126E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  19844
-   Tot. No. of Deallocations           :  19844
+   Tot. No. of Allocations             :  19880
+   Tot. No. of Deallocations           :  19880
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  108.949
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 149.140 MB
- Walltime since initialization         : 00:01:13.203488719
- Max No. of dictionaries used          :  5577 #( 909 still in use)
+     Memory Peak of process            : 149.288 MB
+ Walltime since initialization         : 00:01:14.424339408
+ Max No. of dictionaries used          :  5784 #( 909 still in use)
  Number of dictionary folders allocated:  1

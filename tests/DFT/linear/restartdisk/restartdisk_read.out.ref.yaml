@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-02-05 11:58:11.833
+ Timestamp of this run                 : 2016-03-11 12:37:58.337
  Root process Hostname                 : coolbreeze
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  Yes
@@ -61,7 +61,7 @@
    elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
    nspin                               : 1 #      Spin polarization treatment
    mpol                                : 0 #      Total magnetic moment
-   itermin                             : 0 #      Min. iterations of wfn. opt. steps
+   itermin                             : 0 #      Minimal iterations of wfn. optimzed steps
    nrepmax                             : 1 #      Max. number of re-diag. runs
    dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
    output_wf                           : 0 #      Output of the support functions
@@ -119,7 +119,7 @@
    pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
    maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
+   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    experimental_mode                   : No #     Activate the experimental mode in linear scaling
    write_orbitals                      : 0 #      Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
@@ -145,8 +145,6 @@
     #                                              support function convergence
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
    foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
-    #                                              Gaussian used for the radial part of the 
-    #                                              function based on the multipoles.
  lin_general:
    nit: [1, 5] #                                  number of iteration with low/high accuracy
    rpnrm_cv: [9.9999999999999995E-008, 9.9999999999999994E-012] # convergence criterion for low/high accuracy
@@ -211,14 +209,12 @@
    linear_method                       : DIAG #   method to optimize the density kernel
    mixing_method                       : DEN #    quantity to be mixed
    alpha_sd_coeff                      : 0.2 #    initial step size for SD for direct minimization
-   alpha_fit_coeff                     : No #     update the SD step size by fitting a quadratic polynomial to the energy along the 
-    #                                              direction of the gradient during direct 
-    #                                              mininimization.
-   eval_range_foe: [-0.5, 0.5] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
+   alpha_fit_coeff                     : No #     Update the SD step size by fitting a quadratic polynomial
+   eval_range_foe: [-0.5, 0.5] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
    coeff_scaling_factor                : 1.0 #    factor to scale the gradient in direct minimization
    pexsi_npoles                        : 40 #     number of poles used by PEXSI
-   pexsi_mumin                         : -1.0 #   initial guess for the lower bound of the chemical potential used by PEXSI
+   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
    pexsi_mumax                         : 1.0 #    initial guess for the upper bound of the chemical potential used by PEXSI
    pexsi_mu                            : 0.5 #    initial guess for the  chemical potential used by PEXSI
    pexsi_temperature                   : 1.e-3 #  temperature used by PEXSI
@@ -237,20 +233,20 @@
      rloc: [6.0, 7.0]
      rloc_kernel                       : 6.0
      rloc_kernel_foe                   : 20.0
-   nbasis                              : 4 #      number of support functions per atom
-   ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential
-   confinement: [8.3e-3, 0.0] #                   prefactor for the confining potential (low/high accuracy)
-   rloc: [7.0, 7.0] #                             localization radius for the support functions
-   rloc_kernel                         : 9.0 #    localization radius for the density kernel
+   nbasis                              : 4 #      Number of support functions per atom
+   ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential
+   confinement: [8.3e-3, 0.0] #                   Prefactor for the confining potential (low/high accuracy)
+   rloc: [7.0, 7.0] #                             Localization radius for the support functions
+   rloc_kernel                         : 9.0 #    Localization radius for the density kernel
    rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
  psolver:
    kernel:
-     screening                         : 0 #      mu screening parameter
+     screening                         : 0 #      Mu screening parameter
      isf_order                         : 16 #     Order of the Interpolating Scaling Function family
-     stress_tensor                     : Yes #    triggers the calculation of the stress tensor
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
    environment:
      cavity                            : none #   Type of the cavity
-     cavitation                        : No #     triggers the evaluation of the extra cavitation terms
+     cavitation                        : No #     Triggers the evaluation of the extra cavitation terms
      input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
      fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
      itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
@@ -262,6 +258,8 @@
      global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
      verbose                           : Yes #    Verbosity switch
      output                            : none #   Quantities to be plotted after the main solver routine
+ output:
+   atomic_density_matrix               : None #   Dictionary of the atoms for which the atomic density matrix has to be plotted
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -280,7 +278,7 @@
    print_frequency                     : 1 #      Printing frequency for energy.dat and Trajectory.xyz files
    temperature                         : 300.d0 # Initial temperature in Kelvin
    timestep                            : 20.d0 #  Time step for integration (in a.u.)
-   no_translation                      : No #     logical input to set translational correction
+   no_translation                      : No #     Logical input to set translational correction
    thermostat                          : none #   Activates a thermostat for MD
    wavefunction_extrapolation          : 0 #      Activates the wavefunction extrapolation for MD
  mix:
@@ -335,7 +333,7 @@
      Coarse PSP                        : 0.0
      Source                            : Hard-Coded
  posinp:
-    #---------------------------------------------------------------------- Atomic positions
+    #---------------------------------------------- Atomic positions (by default bohr units)
    positions:
    - O: [2.065621065394574, 0.7276197830051158, 0.7650374978227975]
    - H: [0.2609031030233364, 0.4497236554241762, 0.5729218373685834]
@@ -430,8 +428,9 @@
      Coefficients (c1 .. c4)           :  [ -4.18024,  0.72507,  0.00000,  0.00000 ]
    No. of projectors                   :  0
    PSP XC                              : "XC: Teter 93"
-  #-------------------------------------------------------------------------- Atom Positions
+  #----------------------------------------------- Atom Positions (specified and grid units)
  Atomic structure:
+   Units                               : bohr
    Positions:
    - O: [ 8.926416548,  7.580391168,  7.338296743] # [  19.84,  16.85,  16.31 ] 0001
    - H: [ 7.121698586,  7.302495041,  7.146181082] # [  15.83,  16.23,  15.88 ] 0002
@@ -451,12 +450,12 @@
  Poisson Kernel Initialization:
     #---------------------------------------------------------------------- Input parameters
    kernel:
-     screening                         : 0 #      mu screening parameter
+     screening                         : 0 #      Mu screening parameter
      isf_order                         : 16 #     Order of the Interpolating Scaling Function family
-     stress_tensor                     : Yes #    triggers the calculation of the stress tensor
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
    environment:
      cavity                            : none #   Type of the cavity
-     cavitation                        : No #     triggers the evaluation of the extra cavitation terms
+     cavitation                        : No #     Triggers the evaluation of the extra cavitation terms
      input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
      fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
      itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
@@ -631,7 +630,7 @@
      Molecule was rotated              :  0
      Wrapping/unwrapping               :  0
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  4.0E-02,  2.030E-02 ]}
+   -  {Process:  0, Timing:  [  4.0E-02,  2.060E-02 ]}
    Total charge                        :  6.999996217830E+00
    Poisson Solver:
      BC                                : Free
@@ -788,7 +787,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.28660749903E+01, Epot: -1.76915769850E+01, Enl:  6.96480055670E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  1.52E-03, Omega: -1.666552248765559E+01, D: -6.16E-06, D best: -6.16E-06, 
+ iter:  2, fnrm:  1.52E-03, Omega: -1.666552248765558E+01, D: -6.16E-06, D best: -6.16E-06, 
  Optimization: {algorithm: SD, mean alpha:  7.667E-01, max alpha:  1.100E+00, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, 
@@ -864,7 +863,7 @@
  {e: -7.956995285360E-01, f:  2.0000},  # 00003
  {e: -7.638068296694E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.17E-12, 
- iter:  2, delta:  4.14E-09, energy: -1.66655242803834760E+01, D:  1.772E-07}]
+ iter:  2, delta:  4.14E-09, energy: -1.66655242803834724E+01, D:  1.772E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -890,7 +889,7 @@
  {e: -7.957327048497E-01, f:  2.0000},  # 00003
  {e: -7.638416903023E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.17E-12, 
- iter:  3, delta:  2.14E-09, energy: -1.66655242754120323E+01, D:  4.971E-09}]
+ iter:  3, delta:  2.14E-09, energy: -1.66655242754120430E+01, D:  4.971E-09}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -916,7 +915,7 @@
  {e: -7.957436721603E-01, f:  2.0000},  # 00003
  {e: -7.638533371459E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.17E-12, 
- iter:  4, delta:  1.06E-09, energy: -1.66655242744106395E+01, D:  1.001E-09}]
+ iter:  4, delta:  1.06E-09, energy: -1.66655242744106218E+01, D:  1.001E-09}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -942,7 +941,7 @@
  {e: -7.957487455894E-01, f:  2.0000},  # 00003
  {e: -7.638588006667E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.17E-12, 
- iter:  5, delta:  5.36E-10, energy: -1.66655242741739826E+01, D:  2.367E-10}]
+ iter:  5, delta:  5.36E-10, energy: -1.66655242741739897E+01, D:  2.366E-10}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -968,10 +967,10 @@
  {e: -7.957512373471E-01, f:  2.0000},  # 00003
  {e: -7.638615173604E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.17E-12, 
- iter:  6, delta:  2.66E-10, energy: -1.66655242741173595E+01, D:  5.662E-11}]
+ iter:  6, delta:  2.66E-10, energy: -1.66655242741173595E+01, D:  5.663E-11}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 7
  summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.17E-12, 
- iter:  7, delta:  2.66E-10, energy: -1.66655242741173595E+01, D:  5.662E-11}]}
+ iter:  7, delta:  2.66E-10, energy: -1.66655242741173595E+01, D:  5.663E-11}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, Omega: ENERGY,  #WARNING: support function optimization not converged
@@ -1000,7 +999,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.28629010729E+01, Epot: -1.76897131427E+01, Enl:  6.96470201850E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  5.60E-04, Omega: -1.666552460725099E+01, D: -3.33E-07, D best: -3.33E-07, 
+ iter:  2, fnrm:  5.60E-04, Omega: -1.666552460725100E+01, D: -3.33E-07, D best: -3.33E-07, 
  Optimization: {algorithm: SD, mean alpha:  4.293E-01, max alpha:  5.060E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, 
@@ -1012,12 +1011,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.28625856351E+01, Epot: -1.76894029604E+01, Enl:  6.96475113315E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  3, fnrm:  4.30E-04, Omega: -1.666552476589184E+01, D: -1.59E-07, D best: -1.59E-07, 
+ iter:  3, fnrm:  4.30E-04, Omega: -1.666552476589185E+01, D: -1.59E-07, D best: -1.59E-07, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  1.28625856351E+01, Epot: -1.76894029604E+01, Enl:  6.96475113315E-01}, 
- iter:  3, fnrm:  4.30E-04, Omega: -1.666552476589184E+01, D: -1.59E-07, D best: -1.59E-07}
+ iter:  3, fnrm:  4.30E-04, Omega: -1.666552476589185E+01, D: -1.59E-07, D best: -1.59E-07}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.38E-04,  2.68E-04 ], warnings:  0}
@@ -1076,7 +1075,7 @@
  {e: -7.957324219249E-01, f:  2.0000},  # 00003
  {e: -7.638445750494E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  4.30E-13, 
- iter:  2, delta:  6.45E-10, energy: -1.66655247658396952E+01, D:  4.910E-10}]
+ iter:  2, delta:  6.45E-10, energy: -1.66655247658396988E+01, D:  4.910E-10}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1102,7 +1101,7 @@
  {e: -7.957269008562E-01, f:  2.0000},  # 00003
  {e: -7.638400265059E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  4.30E-13, 
- iter:  3, delta:  3.32E-10, energy: -1.66655247658404519E+01, D: -7.567E-13}]
+ iter:  3, delta:  3.32E-10, energy: -1.66655247658404484E+01, D: -7.496E-13}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1128,7 +1127,7 @@
  {e: -7.957244452048E-01, f:  2.0000},  # 00003
  {e: -7.638380654331E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  4.30E-13, 
- iter:  4, delta:  1.60E-10, energy: -1.66655247658422283E+01, D: -1.776E-12}]
+ iter:  4, delta:  1.60E-10, energy: -1.66655247658422176E+01, D: -1.769E-12}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1154,7 +1153,7 @@
  {e: -7.957232406928E-01, f:  2.0000},  # 00003
  {e: -7.638371058120E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  4.30E-13, 
- iter:  5, delta:  8.22E-11, energy: -1.66655247658430348E+01, D: -8.065E-13}]
+ iter:  5, delta:  8.22E-11, energy: -1.66655247658430383E+01, D: -8.207E-13}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1180,15 +1179,15 @@
  {e: -7.957226404980E-01, f:  2.0000},  # 00003
  {e: -7.638366262343E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  4.30E-13, 
- iter:  6, delta:  3.99E-11, energy: -1.66655247658431307E+01, D: -9.592E-14}]
+ iter:  6, delta:  3.99E-11, energy: -1.66655247658431236E+01, D: -8.527E-14}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 7
  summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  4.30E-13, 
- iter:  7, delta:  3.99E-11, energy: -1.66655247658431307E+01, D: -9.592E-14}]}
+ iter:  7, delta:  3.99E-11, energy: -1.66655247658431236E+01, D: -8.527E-14}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter high:  3, delta out:  1.320E-09, energy: -1.66655247658431307E+01, D: -4.917E-07}
+ iter high:  3, delta out:  1.320E-09, energy: -1.66655247658431236E+01, D: -4.917E-07}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -1200,7 +1199,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.28625856351E+01, Epot: -1.76892408540E+01, Enl:  6.96475113315E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  4.35E-04, Omega: -1.666552476584317E+01, D: -1.59E-07, D best: -1.59E-07, 
+ iter:  1, fnrm:  4.35E-04, Omega: -1.666552476584316E+01, D: -1.59E-07, D best: -1.59E-07, 
  Optimization: {algorithm: SD, mean alpha:  4.723E-01, max alpha:  4.723E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, 
@@ -1262,7 +1261,7 @@
  {e: -7.957223460660E-01, f:  2.0000},  # 00003
  {e: -7.638365322725E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.68E-13, 
- iter:  1, delta:  7.99E-10, energy: -1.66655249218120538E+01, D: -1.560E-07}]
+ iter:  1, delta:  7.99E-10, energy: -1.66655249218120467E+01, D: -1.560E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1288,7 +1287,7 @@
  {e: -7.957405200907E-01, f:  2.0000},  # 00003
  {e: -7.638556473064E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.68E-13, 
- iter:  2, delta:  3.91E-10, energy: -1.66655249206554927E+01, D:  1.157E-09}]
+ iter:  2, delta:  3.91E-10, energy: -1.66655249206554892E+01, D:  1.157E-09}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1314,7 +1313,7 @@
  {e: -7.957428808581E-01, f:  2.0000},  # 00003
  {e: -7.638581141517E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.68E-13, 
- iter:  3, delta:  2.03E-10, energy: -1.66655249206271527E+01, D:  2.834E-11}]
+ iter:  3, delta:  2.03E-10, energy: -1.66655249206271456E+01, D:  2.834E-11}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1340,7 +1339,7 @@
  {e: -7.957436070701E-01, f:  2.0000},  # 00003
  {e: -7.638588742125E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.68E-13, 
- iter:  4, delta:  9.95E-11, energy: -1.66655249206214293E+01, D:  5.723E-12}]
+ iter:  4, delta:  9.95E-11, energy: -1.66655249206214329E+01, D:  5.713E-12}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1366,7 +1365,7 @@
  {e: -7.957439390101E-01, f:  2.0000},  # 00003
  {e: -7.638592244436E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.68E-13, 
- iter:  5, delta:  5.08E-11, energy: -1.66655249206202143E+01, D:  1.215E-12}]
+ iter:  5, delta:  5.08E-11, energy: -1.66655249206202143E+01, D:  1.219E-12}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1389,18 +1388,18 @@
      Orbitals: [
  {e: -1.404741058966E+00, f:  2.0000},  # 00001
  {e: -9.361178182344E-01, f:  2.0000},  # 00002
- {e: -7.957441019390E-01, f:  2.0000},  # 00003
+ {e: -7.957441019389E-01, f:  2.0000},  # 00003
  {e: -7.638593976069E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.68E-13, 
- iter:  6, delta:  2.49E-11, energy: -1.66655249206201148E+01, D:  9.948E-14}]
+ iter:  6, delta:  2.49E-11, energy: -1.66655249206201077E+01, D:  1.066E-13}]
    -  &final_kernel004  { #-------------------------------------------------------- iter: 7
  summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.68E-13, 
- iter:  7, delta:  2.49E-11, energy: -1.66655249206201148E+01, D:  9.948E-14}]}
+ iter:  7, delta:  2.49E-11, energy: -1.66655249206201077E+01, D:  1.066E-13}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc004
    -  {iter:  4, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter high:  4, delta out:  7.618E-10, energy: -1.66655249206201148E+01, D: -1.548E-07}
+ iter high:  4, delta out:  7.618E-10, energy: -1.66655249206201077E+01, D: -1.548E-07}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -1474,7 +1473,7 @@
  {e: -7.957441849174E-01, f:  2.0000},  # 00003
  {e: -7.638595423640E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.57E-13, 
- iter:  1, delta:  5.26E-10, energy: -1.66655249815013455E+01, D: -6.088E-08}]
+ iter:  1, delta:  5.26E-10, energy: -1.66655249815013526E+01, D: -6.088E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1526,7 +1525,7 @@
  {e: -7.957558511380E-01, f:  2.0000},  # 00003
  {e: -7.638716170407E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.57E-13, 
- iter:  3, delta:  1.35E-10, energy: -1.66655249810861719E+01, D:  8.541E-12}]
+ iter:  3, delta:  1.35E-10, energy: -1.66655249810861648E+01, D:  8.548E-12}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1552,7 +1551,7 @@
  {e: -7.957561802488E-01, f:  2.0000},  # 00003
  {e: -7.638719392629E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.57E-13, 
- iter:  4, delta:  6.66E-11, energy: -1.66655249810846016E+01, D:  1.570E-12}]
+ iter:  4, delta:  6.66E-11, energy: -1.66655249810846016E+01, D:  1.563E-12}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1624,7 +1623,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.28615755646E+01, Epot: -1.76884018586E+01, Enl:  6.96482644720E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  1.56E-04, Omega: -1.666552498108413E+01, D: -2.35E-08, D best: -2.35E-08, 
+ iter:  1, fnrm:  1.56E-04, Omega: -1.666552498108414E+01, D: -2.35E-08, D best: -2.35E-08, 
  Optimization: {algorithm: SD, mean alpha:  5.642E-01, max alpha:  5.642E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, 
@@ -1648,12 +1647,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.28613293607E+01, Epot: -1.76881612608E+01, Enl:  6.96488190315E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  3, fnrm:  8.78E-05, Omega: -1.666552500167488E+01, D: -7.87E-09, D best: -7.87E-09, 
+ iter:  3, fnrm:  8.78E-05, Omega: -1.666552500167487E+01, D: -7.87E-09, D best: -7.87E-09, 
  exit criterion: net number of iterations}
    -  &final_supfun006  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  1.28613293607E+01, Epot: -1.76881612608E+01, Enl:  6.96488190315E-01}, 
- iter:  3, fnrm:  8.78E-05, Omega: -1.666552500167488E+01, D: -7.87E-09, D best: -7.87E-09}
+ iter:  3, fnrm:  8.78E-05, Omega: -1.666552500167487E+01, D: -7.87E-09, D best: -7.87E-09}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.38E-04,  2.68E-04 ], warnings:  0}
@@ -1686,7 +1685,7 @@
  {e: -7.957564296167E-01, f:  2.0000},  # 00003
  {e: -7.638722105441E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  8.78E-14, 
- iter:  1, delta:  3.18E-10, energy: -1.66655250016834486E+01, D: -2.060E-08}]
+ iter:  1, delta:  3.18E-10, energy: -1.66655250016834522E+01, D: -2.060E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1712,7 +1711,7 @@
  {e: -7.957629346910E-01, f:  2.0000},  # 00003
  {e: -7.638789694495E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  8.78E-14, 
- iter:  2, delta:  1.60E-10, energy: -1.66655250015284544E+01, D:  1.550E-10}]
+ iter:  2, delta:  1.60E-10, energy: -1.66655250015284579E+01, D:  1.550E-10}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1735,10 +1734,10 @@
      Orbitals: [
  {e: -1.404756612081E+00, f:  2.0000},  # 00001
  {e: -9.361321800033E-01, f:  2.0000},  # 00002
- {e: -7.957637053565E-01, f:  2.0000},  # 00003
+ {e: -7.957637053564E-01, f:  2.0000},  # 00003
  {e: -7.638797385077E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  8.78E-14, 
- iter:  3, delta:  8.16E-11, energy: -1.66655250015250473E+01, D:  3.407E-12}]
+ iter:  3, delta:  8.16E-11, energy: -1.66655250015250402E+01, D:  3.418E-12}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1764,7 +1763,7 @@
  {e: -7.957639220762E-01, f:  2.0000},  # 00003
  {e: -7.638799499269E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  8.78E-14, 
- iter:  4, delta:  4.06E-11, energy: -1.66655250015242835E+01, D:  7.638E-13}]
+ iter:  4, delta:  4.06E-11, energy: -1.66655250015242871E+01, D:  7.532E-13}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1790,7 +1789,7 @@
  {e: -7.957640181720E-01, f:  2.0000},  # 00003
  {e: -7.638800449833E-01, f:  1.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  8.78E-14, 
- iter:  5, delta:  2.04E-11, energy: -1.66655250015241911E+01, D:  9.237E-14}]
+ iter:  5, delta:  2.04E-11, energy: -1.66655250015241911E+01, D:  9.592E-14}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1841,12 +1840,6 @@
        iter high:  6,            delta out:  3.089E-10, 
           energy: -1.66655250015241734E+01,                       D:  0.000E+00,  #FINAL
  }
-  #WARNING: commented correction_locrad
-  #------------------------------------------------------------------------ Pulay Correction
- Pulay Forces (Ha/Bohr):
- -  {O: [-3.497320422315E-05,  1.352290720362E-05,  1.748546479611E-05]} # 0001
- -  {H: [-2.703313498382E-06, -8.884281527980E-07, -2.650608321507E-07]} # 0002
- -  {H: [-9.887761647648E-08,  2.290265221513E-06,  9.156793771420E-07]} # 0003
  Total charge                          :  6.999996221777E+00
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -1867,32 +1860,31 @@
  - Do not call check_communications in the linear scaling version!
  - support function optimization not converged
  - density optimization not converged
- - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  63.67
-   Elapsed time (s)                    :  33.82
+   CPU time (s)                        :  46.93
+   Elapsed time (s)                    :  23.58
  BigDFT infocode                       :  0
- Average noise forces: {x: -1.70666658E-02, y: -1.04374755E-02, z: -6.43995632E-03, 
-                    total:  2.10163035E-02}
- Clean forces norm (Ha/Bohr): {maxval:  5.504234207876E-02, fnrm2:  5.547921088924E-03}
- Raw forces norm (Ha/Bohr): {maxval:  4.887945015896E-02, fnrm2:  6.133288394085E-03}
+ Average noise forces: {x: -1.70448562E-02, y: -1.04460923E-02, z: -6.45042720E-03, 
+                    total:  2.10060938E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  5.504416514510E-02, fnrm2:  5.550047459570E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  4.890061915161E-02, fnrm2:  6.134923189276E-03}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 1.174377360293E-02, -2.779591964694E-02, -2.733874583803E-02]} # 0001
- -  {H: [-2.560860011988E-02, -1.081277465572E-02, -9.359956201889E-03]} # 0002
- -  {H: [ 1.386482651695E-02,  3.860869430265E-02,  3.669870203992E-02]} # 0003
+ -  {O: [ 1.176572219216E-02, -2.780597986384E-02, -2.734938833442E-02]} # 0001
+ -  {H: [-2.561929801296E-02, -1.080593957478E-02, -9.352903566270E-03]} # 0002
+ -  {H: [ 1.385357582080E-02,  3.861191943862E-02,  3.670229190069E-02]} # 0003
  Energy (Hartree)                      : -1.66655250015241734E+01
- Force Norm (Hartree/Bohr)             :  7.44843680843450817E-02
+ Force Norm (Hartree/Bohr)             :  7.44986406558549863E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  9373
-   Tot. No. of Deallocations           :  9373
+   Tot. No. of Allocations             :  9035
+   Tot. No. of Deallocations           :  9035
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  87.586
      for the array                     : psir
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 129.776 MB
- Walltime since initialization         : 00:00:34.033565493
- Max No. of dictionaries used          :  5591 #( 909 still in use)
+     Memory Peak of process            : 130.524 MB
+ Walltime since initialization         : 00:00:23.782913642
+ Max No. of dictionaries used          :  5636 #( 909 still in use)
  Number of dictionary folders allocated:  1
