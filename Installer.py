@@ -178,12 +178,14 @@ class BigDFTInstaller():
     def shellaction(self,path,modules,action,hidden=False):
         "Perform a shell action, dump also the result if verbose is True."
         import os
+        import sys
         for mod in self.selected(modules):
             directory=os.path.join(path,mod)
             here = os.getcwd()
             if os.path.isdir(directory):
                 #self.__dump('Treating directory '+directory)
-                print 'Module '+mod+' ['+directory+']: '+action,
+                sys.stdout.write('Module '+mod+' ['+directory+']: '+action)
+                sys.stdout.flush()
                 os.chdir(directory)
                 if hidden:
                     self.get_output(action)
@@ -191,9 +193,10 @@ class BigDFTInstaller():
                     os.system(action)
                 os.chdir(here)
                 #self.__dump('done.')
-                print '(done)'
+                sys.stdout.write(' (done)\n')
             else:
-                print 'Cannot perform action "',action,'" on module "',mod,'" directory not present in the build'
+                sys.stdout.write('Cannot perform action "'+action+'" on module "'+mod+'" directory not present in the build.\n')
+            sys.stdout.flush()
 
     def get_output(self,cmd):
         import subprocess
@@ -354,7 +357,7 @@ parser.add_argument('-f','--file',
 parser.add_argument('-d','--verbose',action='store_true',
                    help='Verbose output')
 parser.add_argument('-q','--quiet',action='store_true',
-                   help='Ask no question')
+                   help='try to ask no question')
 
 
 ###Define the possible actions

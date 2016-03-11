@@ -3,11 +3,11 @@
   !!
   !! @author
   !!    G. Fisicaro, L. Genovese (September 2015)
-  !!    Copyright (C) 2002-2015 BigDFT group 
+  !!    Copyright (C) 2002-2016 BigDFT group
   !!    This file is distributed under the terms of the
   !!    GNU General Public License, see ~/COPYING file
   !!    or http://www.gnu.org/copyleft/gpl.txt .
-  !!    For the list of contributors, see ~/AUTHORS 
+  !!    For the list of contributors, see ~/AUTHORS
 module FDder
   use PSbase
   implicit none
@@ -17,13 +17,13 @@ module FDder
   public :: nabla_u,div_u_i,nabla_u_and_square,nonvacuum_projection
 
   contains
-    !>This routine computes 'nord' order accurate first derivatives 
+    !>This routine computes 'nord' order accurate first derivatives
     !! on a equally spaced grid with coefficients from 'Mathematica' program.
-    !! 
+    !!
     !! input:
-    !! ngrid       = number of points in the grid, 
+    !! ngrid       = number of points in the grid,
     !! u(ngrid)    = function values at the grid points
-    !! 
+    !!
     !! output:
     !! du(ngrid)   = first derivative values at the grid points
     subroutine nabla_u_and_square(geocode,n01,n02,n03,u,du,du2,nord,hgrids)
@@ -41,7 +41,7 @@ module FDder
 
       !c..local variables
       integer :: n,m,n_cell
-      integer :: i,j,ib,i1,i2,i3,ii
+      integer :: i,j,i1,i2,i3,ii
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D, c1D_1, c1D_2, c1D_3
       real(kind=8) :: hx,hy,hz,d
       logical :: perx,pery,perz
@@ -86,7 +86,7 @@ module FDder
       c1D_1 = c1D/hx
       c1D_2 = c1D/hy
       c1D_3 = c1D/hz
-!!!default(shared) private(i1,i2,i3,j,ii, d) 
+!!!default(shared) private(i1,i2,i3,j,ii, d)
       !$omp parallel do default(none) &
       !$omp private(i3,i2,i1,d,ii,j) &
       !$omp shared(du2,perx,m,n01,n02,n03,du,c1D_1,u)
@@ -132,7 +132,7 @@ module FDder
       end do
       !$omp end parallel do
 
-      !$omp parallel do default(shared) private(i1,i2,i3,j,ii,d) 
+      !$omp parallel do default(shared) private(i1,i2,i3,j,ii,d)
       do i3=1,n03
          do i2=1,n02
             do i1=1,n01
@@ -173,7 +173,7 @@ module FDder
       end do
       !$omp end parallel do
 
-      !$omp parallel do default(shared) private(i1,i2,i3,j,ii,d) 
+      !$omp parallel do default(shared) private(i1,i2,i3,j,ii,d)
       do i3=1,n03
          do i2=1,n02
             do i1=1,n01
@@ -229,7 +229,7 @@ module FDder
 
       !c..local variables
       integer :: n,m,n_cell
-      integer :: i,j,ib,i1,i2,i3,ii
+      integer :: i,j,i1,i2,i3,ii
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D, c1D_1, c1D_2, c1D_3
       real(kind=8) :: hx,hy,hz,d
       logical :: perx,pery,perz
@@ -274,7 +274,7 @@ module FDder
       c1D_1 = c1D/hx
       c1D_2 = c1D/hy
       c1D_3 = c1D/hz
-!!!default(shared) private(i1,i2,i3,j,ii, d) 
+!!!default(shared) private(i1,i2,i3,j,ii, d)
       !$omp parallel do default(none) &
       !$omp private(i3,i2,i1,d,ii,j) &
       !$omp shared(du2,perx,m,n01,n02,n03,c1D_1,u)
@@ -320,7 +320,7 @@ module FDder
       end do
       !$omp end parallel do
 
-      !$omp parallel do default(shared) private(i1,i2,i3,j,ii,d) 
+      !$omp parallel do default(shared) private(i1,i2,i3,j,ii,d)
       do i3=1,n03
          do i2=1,n02
             do i1=1,n01
@@ -361,7 +361,7 @@ module FDder
       end do
       !$omp end parallel do
 
-      !$omp parallel do default(shared) private(i1,i2,i3,j,ii,d) 
+      !$omp parallel do default(shared) private(i1,i2,i3,j,ii,d)
       do i3=1,n03
          do i2=1,n02
             do i1=1,n01
@@ -403,11 +403,11 @@ module FDder
       !$omp end parallel do
     end subroutine nabla_u_square
 
-    !>this routine computes 'nord' order accurate first derivatives 
+    !>this routine computes 'nord' order accurate first derivatives
     !!on a equally spaced grid with coefficients from 'Matematica' program.
     !!
     !!input:
-    !!ngrid       = number of points in the grid, 
+    !!ngrid       = number of points in the grid,
     !!u(ngrid)    = function values at the grid points
     !!
     !!output:
@@ -426,7 +426,7 @@ module FDder
 
       !c..local variables
       integer :: n,m,n_cell
-      integer :: i,j,ib,i1,i2,i3,ii
+      integer :: i,j,i1,i2,i3,ii
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D, c1D_1, c1D_2, c1D_3
       real(kind=8) :: hx,hy,hz,d1,uxy,uyz,uxz
       real(kind=8), parameter :: zero = 0.d0! 1.0d-11
@@ -544,7 +544,7 @@ module FDder
          end do
          !$omp end parallel do
 
-         !shared) 
+         !shared)
          !$omp parallel do default(none) &
          !$omp private(i1,i2,i3,j,ii,d1,uyz) &
          !$omp shared(n01,n02,n03,pery,m,c1D_2,u,du,cc)
@@ -596,7 +596,7 @@ module FDder
          !$omp end parallel do
 
 
-         !(shared) private(i1,i2,i3,j,ii, d1) 
+         !(shared) private(i1,i2,i3,j,ii, d1)
          !$omp parallel do default(none) &
          !$omp private(i1,i2,i3,j,ii,d1) &
          !$omp shared(n01,n02,n03,perz,m,c1D_3,u,du,cc)
@@ -682,7 +682,7 @@ module FDder
          end do
          !$omp end parallel do
 
-         !default(shared) private(i1,i2,i3,j,ii,d1,uyz) 
+         !default(shared) private(i1,i2,i3,j,ii,d1,uyz)
          !$omp parallel do default(none) &
          !$omp private(i1,i2,i3,j,ii,d1) &
          !$omp shared(c1D_2,u,n01,n02,n03,du,m,pery)
@@ -769,11 +769,11 @@ module FDder
     subroutine nabla_u_epsilon(geocode,n01,n02,n03,u,du,nord,hgrids,eps)
       implicit none
 
-      !c..this routine computes 'nord' order accurate first derivatives 
+      !c..this routine computes 'nord' order accurate first derivatives
       !c..on a equally spaced grid with coefficients from 'Matematica' program.
 
       !c..input:
-      !c..ngrid       = number of points in the grid, 
+      !c..ngrid       = number of points in the grid,
       !c..u(ngrid)    = function values at the grid points
 
       !c..output:
@@ -789,7 +789,7 @@ module FDder
 
       !c..local variables
       integer :: n,m,n_cell,ii
-      integer :: i,j,ib,i1,i2,i3
+      integer :: i,j,i1,i2,i3
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D, c1D_1, c1D_2, c1D_3
       real(kind=8) :: hx,hy,hz, d,e
       logical :: perx,pery,perz
@@ -836,7 +836,7 @@ module FDder
       c1D_1 = c1D/hx
       c1D_2 = c1D/hy
       c1D_3 = c1D/hz
-      !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d,e) 
+      !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d,e)
       do i3=1,n03
          do i2=1,n02
             do i1=1,n01
@@ -878,7 +878,7 @@ module FDder
       end do
       !$omp end parallel do
 
-      !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d,e) 
+      !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d,e)
       do i3=1,n03
          do i2=1,n02
             do i1=1,n01
@@ -917,7 +917,7 @@ module FDder
       end do
       !$omp end parallel do
 
-      !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d,e) 
+      !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d,e)
       do i3=1,n03
          do i2=1,n02
             do i1=1,n01
@@ -961,11 +961,11 @@ module FDder
     subroutine nabla_u(geocode,n01,n02,n03,u,du,nord,hgrids)
       implicit none
 
-      !c..this routine computes 'nord' order accurate first derivatives 
+      !c..this routine computes 'nord' order accurate first derivatives
       !c..on a equally spaced grid with coefficients from 'Matematica' program.
 
       !c..input:
-      !c..ngrid       = number of points in the grid, 
+      !c..ngrid       = number of points in the grid,
       !c..u(ngrid)    = function values at the grid points
 
       !c..output:
@@ -980,7 +980,7 @@ module FDder
 
       !c..local variables
       integer :: n,m,n_cell,ii
-      integer :: i,j,ib,i1,i2,i3
+      integer :: i,j,i1,i2,i3
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D, c1D_1, c1D_2, c1D_3
       real(kind=8) :: hx,hy,hz, d
       logical :: perx,pery,perz
@@ -1027,7 +1027,7 @@ module FDder
       c1D_1 = c1D/hx
       c1D_2 = c1D/hy
       c1D_3 = c1D/hz
-      !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d) 
+      !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d)
       do i3=1,n03
          do i2=1,n02
             do i1=1,n01
@@ -1067,7 +1067,7 @@ module FDder
       end do
       !$omp end parallel do
 
-      !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d) 
+      !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d)
       do i3=1,n03
          do i2=1,n02
             do i1=1,n01
@@ -1106,7 +1106,7 @@ module FDder
       end do
       !$omp end parallel do
 
-      !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d) 
+      !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d)
       do i3=1,n03
          do i2=1,n02
             do i1=1,n01
@@ -1151,11 +1151,11 @@ module FDder
       use numerics, only: oneofourpi
       implicit none
 
-      !c..this routine computes 'nord' order accurate first derivatives 
+      !c..this routine computes 'nord' order accurate first derivatives
       !c..on a equally spaced grid with coefficients from 'Matematica' program.
 
       !c..input:
-      !c..ngrid       = number of points in the grid, 
+      !c..ngrid       = number of points in the grid,
       !c..u(ngrid)    = function values at the grid points
 
       !c..output:
@@ -1175,10 +1175,10 @@ module FDder
 
       !c..local variables
       integer :: n,m,n_cell
-      integer :: i,j,ib,i1,i2,i3,isp,i1_max,i2_max,ii
+      integer :: i,j,i1,i2,i3,ii
       !real(kind=8), parameter :: oneo4pi=0.25d0/pi_param
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D,c1DF
-      real(kind=8) :: hx,hy,hz,max_diff,fact,dx,dy,dz,res,rho
+      real(kind=8) :: hx,hy,hz,dx,dy,dz,res,rho
       real(kind=8) :: rpoints
       logical :: perx,pery,perz
 
@@ -1260,7 +1260,7 @@ module FDder
 !!$  end do
 !!$  !$omp end parallel do
 !!$
-!!$  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dy) 
+!!$  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dy)
 !!$  do i3=1,n03
 !!$     do i2=1,n02
 !!$        do i1=1,n01
@@ -1298,7 +1298,7 @@ module FDder
 !!$  end do
 !!$  !$omp end parallel do
 !!$
-!!$  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dz) 
+!!$  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dz)
 !!$  do i3=1,n03
 !!$     do i2=1,n02
 !!$        do i1=1,n01
@@ -1352,7 +1352,7 @@ module FDder
       !this part should now go inside the open loop
 
 !!$  !$omp parallel do default(shared) private(i1,i2,i3,res,rho) &
-!!$  !$omp reduction(+:rhores2) 
+!!$  !$omp reduction(+:rhores2)
 !!$  do i3=1,n03
 !!$     do i2=1,n02
 !!$        do i1=1,n01
@@ -1395,7 +1395,7 @@ module FDder
       real(dp), dimension(ndims(1),ndims(2),ndims(3)) :: work1
 !      real(dp) :: pi
       integer :: i1,i2,i3
-     !local variables   
+     !local variables
       !first calculate the derivative of the potential
 
       call nabla_u_epsilon(geocode,ndims(1),ndims(2),ndims(3),pot,work,nord,hgrids,eps)
@@ -1417,7 +1417,7 @@ module FDder
       integer, intent(in) :: n1,n23 !< parallelized box dimensions
       real(dp), dimension(n1,n23), intent(in) :: rho !<charge density
       !>inverse of epsilon (might also be inverse of sqrt(eps))
-      real(dp), dimension(n1,n23), intent(in) :: oneoeps 
+      real(dp), dimension(n1,n23), intent(in) :: oneoeps
       real(dp), intent(out) :: norm !< \int of rho where epsilon /=1
       !local variables
       integer :: i1,i23
