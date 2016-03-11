@@ -11,9 +11,29 @@
   # 2) considering the forces over all atoms.
   #------------------------------------------------------------------------------------------- 
  <BigDFT> log of the run will be written in logfile: ./log.yaml
-
+  #WARNING: Error(s) found in input_keys_fill for the field "lin_basis_params" and the key 
+  #"ao_confinement", see details in the above message(s), before the input file printout.
+  #WARNING: Error(s) found in input_keys_fill for the field "lin_basis_params" and the key 
+  #WARNING: Error(s) found in input_keys_fill for the field "lin_basis_params" and the key 
+  #"ao_confinement", see details in the above message(s), before the input file printout.
+  #"ao_confinement", see details in the above message(s), before the input file printout.
+  #WARNING: Error(s) found in input_keys_fill for the field "lin_basis_params" and the key 
+  #"confinement", see details in the above message(s), before the input file printout.
+  #WARNING: Error(s) found in input_keys_fill for the field "lin_basis_params" and the key 
+  #WARNING: Error(s) found in input_keys_fill for the field "lin_basis_params" and the key 
+  #"confinement", see details in the above message(s), before the input file printout.
+  #"confinement", see details in the above message(s), before the input file printout.
+  #WARNING: Error(s) found in input_keys_fill for the field "lin_basis_params" and the key 
+  #"ao_confinement", see details in the above message(s), before the input file printout.
+  #WARNING: Error(s) found in input_keys_fill for the field "lin_basis_params" and the key 
+  #"ao_confinement", see details in the above message(s), before the input file printout.
+  #WARNING: Error(s) found in input_keys_fill for the field "lin_basis_params" and the key 
+  #WARNING: Error(s) found in input_keys_fill for the field "lin_basis_params" and the key 
+  #"confinement", see details in the above message(s), before the input file printout.
+  #"confinement", see details in the above message(s), before the input file printout.
+ 
  Check correctness of forces
- Difference of total energies =   1.8416255362723177E-003
- Integral force*displacement =    1.8419408165331655E-003
- Difference =   -3.1528026084781322E-007
-
+ Difference of total energies =  1.690551396237083E-003
+ Integral force*displacement =   1.837332897445541E-003
+ Difference =  -1.467815012084577E-004
+ 
