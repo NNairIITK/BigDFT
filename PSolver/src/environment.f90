@@ -421,18 +421,22 @@ contains
      if (ep < thr) then
       kk=0.0_dp
      else
-      ff(2,1)=ff(1,2)
-      ff(3,2)=ff(2,3)
-      ff(3,1)=ff(1,3)
-      f1=0.0_dp
-      do i=1,3
-       do j=1,3 
-        hes=dha(i)*dha(j)+ff(i,j)
-        f1=f1+dha(i)*dha(j)*hes
+      if (sqd2ha < thr) then
+       kk=0.0_dp
+      else
+       ff(2,1)=ff(1,2)
+       ff(3,2)=ff(2,3)
+       ff(3,1)=ff(1,3)
+       f1=0.0_dp
+       do i=1,3
+        do j=1,3 
+         hes=dha(i)*dha(j)+ff(i,j)
+         f1=f1+dha(i)*dha(j)*hes
+        end do
        end do
-      end do
-      f2=d2ha+ll
-      kk=(f1/d2ha-f2)/sqd2ha
+       f2=d2ha+ll
+       kk=(f1/d2ha-f2)/sqd2ha
+      end if
      end if
     !end if
 
