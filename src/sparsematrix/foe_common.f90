@@ -147,7 +147,7 @@ module foe_common
       call f_routine(id='get_chebyshev_expansion_coefficients')
 
       ! MPI parallelization... maybe only worth for large n?
-      call chebyshev_coefficients_init_parallelization(iproc, nproc, n, np, is)
+      call chebyshev_coefficients_init_parallelization(iproc, nproc, comm, n, np, is)
       !!ii = n/nproc
       !!np = ii
       !!is = iproc*ii
@@ -195,7 +195,7 @@ module foe_common
       !!end do
       !!call f_free(cf)
 
-      call chebyshev_coefficients_communicate(n, cc)
+      call chebyshev_coefficients_communicate(comm, n, cc)
       !!call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
       call accuracy_of_chebyshev_expansion(iproc, nproc, comm, n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
@@ -1576,7 +1576,7 @@ module foe_common
             
                       ! Check the eigenvalue bounds. Only necessary if calculate_SHS is true
                       ! (otherwise this has already been checked in the previous iteration).
-                      call check_eigenvalue_spectrum_new(iproc, nproc, bigdft_mpi%mpi_comm, smatl, ispin, &
+                      call check_eigenvalue_spectrum_new(iproc, nproc, comm, smatl, ispin, &
                             0, 1.0d0, 1.0d0, penalty_ev_new, anoise, .false., emergency_stop, &
                             foe_obj, restart, eval_bounds_ok, foe_verbosity)
             
@@ -2193,10 +2193,10 @@ module foe_common
     end subroutine get_poynomial_degree
 
 
-    subroutine chebyshev_coefficients_init_parallelization(iproc, nproc, n, np, is)
+    subroutine chebyshev_coefficients_init_parallelization(iproc, nproc, comm, n, np, is)
       implicit none
       ! Caling arguments
-      integer,intent(in) :: iproc, nproc, n
+      integer,intent(in) :: iproc, nproc, comm, n
       integer,intent(out) :: np, is
 
       ! Local variables
@@ -2214,7 +2214,7 @@ module foe_common
       is = is + min(iproc,ii)
       !check
       ii = np
-      call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(ii, 1, mpi_sum, comm=comm)
       if (ii/=n) then
           call f_err_throw('wrong partition of n')
       end if
@@ -2276,16 +2276,16 @@ module foe_common
 
 
     ! This routine is basically just here to get the profiling...
-    subroutine chebyshev_coefficients_communicate(n, cc)
+    subroutine chebyshev_coefficients_communicate(comm, n, cc)
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: n
+      integer,intent(in) :: comm, n
       real(kind=8),dimension(n),intent(inout) :: cc
 
       call f_routine(id='chebyshev_coefficients_communicate')
 
-      call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(cc, mpi_sum, comm=comm)
 
       call f_release_routine()
 

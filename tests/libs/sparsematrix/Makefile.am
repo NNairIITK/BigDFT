@@ -8,7 +8,7 @@ include $(srcdir)/../check.mk
 EXTRA_DIST = test-ccs.ref.yaml \
 	matrix1.dat matrix2.dat \
 	test-foeccs.ref.yaml \
-    overlap_ccs.dat hamiltonian_ccs.dat density_kernel_ccs.dat
+    overlap_ccs-base.dat hamiltonian_ccs-base.dat density_kernel_ccs-base.dat
 
 check_PROGRAMS = driver_ccs driver_foe_ccs driver_single
 

@@ -570,8 +570,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           !     invert_overlap_matrix, 2, &
           !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
           !     tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, tmb%foe_obj)
-          call matrix_fermi_operator_expansion(iproc, nproc, tmb%foe_obj, &
-               tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+          call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, &
                energs%ebs, invert_overlap_matrix, 2)
 
@@ -3146,8 +3146,8 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       !     .true., 2, &
       !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
       !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
-      call matrix_fermi_operator_expansion(iproc, nproc, foe_obj, &
-           tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
+           foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
            ebs, .true., 2)
       !call fermi_operator_expansion(iproc, nproc, &
@@ -3177,8 +3177,8 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       !     .true., 2, &
       !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
       !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
-      call matrix_fermi_operator_expansion(iproc, nproc, foe_obj, &
-           tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
+           foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
            ebs, .true., 2)
       !call fermi_operator_expansion(iproc, nproc, &

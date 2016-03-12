@@ -49,7 +49,8 @@ program driver_css
   ! smat2/mat2. Attention: The sparsity pattern of smat1 must be contained within that of smat2.
   ! It is your responsabilty to assure this, the routine does only some minimal checks.
   ! The final result is contained in mat2(1)%matrix_compr.
-  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, (/0.5d0/), &
+  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+       1, (/0.5d0/), &
        smat1, smat2, mat1, mat2(1))
 
   ! Write the result in YAML format to the standard output (required for non-regression tests).
@@ -82,7 +83,8 @@ program driver_css
   ! Calculate at the same time the square root and the inverse square of the matrix described  by the pair smat2/mat2
   ! and store the result in smat3/mat3. The final results are thus in mat3(1)%matrix_compr and mat3(2)%matrix_compr.
   ! The same wraning as above applies.
-  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, 2, (/0.5d0,-0.5d0/), &
+  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+       2, (/0.5d0,-0.5d0/), &
        smat2, smat3, mat2(2), mat3)
 
   ! Write the result in YAML format to the standard output (required for non-regression tests).

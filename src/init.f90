@@ -1230,69 +1230,6 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      else
          ! Iterative orthonomalization
          call iterative_orthonormalization(iproc, nproc, 2, -1, at, input%nspin, input%lin%norbsPerType, tmb)
-!!         !!if(iproc==0) write(*,*) 'calling generalized orthonormalization'
-!!         if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
-!!         maxorbs_type = f_malloc(at%astruct%ntypes,id='maxorbs_type')
-!!         minorbs_type = f_malloc(at%astruct%ntypes,id='minorbs_type')
-!!         type_covered = f_malloc(at%astruct%ntypes,id='type_covered')
-!!         minorbs_type(1:at%astruct%ntypes)=0
-!!         nl_copy=f_malloc((/0.to.3,1.to.at%astruct%nat/),id='nl_copy')
-!!         do iat=1,at%astruct%nat
-!!            nl_copy(:,iat)=at%aoig(iat)%nl
-!!         end do
-!!
-!!         iortho=0
-!!         ortho_loop: do
-!!             finished=.true.
-!!             type_covered=.false.
-!!             do iat=1,at%astruct%nat
-!!                 itype=at%astruct%iatype(iat)
-!!                 if (type_covered(itype)) cycle
-!!                 type_covered(itype)=.true.
-!!                 !jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
-!!                 !     5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
-!!                 jj=nl_copy(0,iat)+3*nl_copy(1,iat)+5*nl_copy(2,iat)+7*nl_copy(3,iat)
-!!                 maxorbs_type(itype)=jj
-!!                 !should not enter in the conditional below due to the raise of the exception above
-!!                 if (jj<input%lin%norbsPerType(at%astruct%iatype(iat))) then
-!!                     finished=.false.
-!!                     increase_count: do inl=1,4
-!!                        if (nl_copy(inl,iat)==0) then
-!!                           nl_copy(inl,iat)=1
-!!                           call f_err_throw('InputguessLinear: Should not be here',&
-!!                                err_name='BIGDFT_RUNTIME_ERROR')
-!!                           exit increase_count
-!!                        end if
-!!                     end do increase_count
-!!    !!$                 if (ceiling(aocc(1,iat))==0) then
-!!    !!$                     aocc(1,iat)=1.d0
-!!    !!$                 else if (ceiling(aocc(3,iat))==0) then
-!!    !!$                     aocc(3,iat)=1.d0
-!!    !!$                 else if (ceiling(aocc(7,iat))==0) then
-!!    !!$                     aocc(7,iat)=1.d0
-!!    !!$                 else if (ceiling(aocc(13,iat))==0) then
-!!    !!$                     aocc(13,iat)=1.d0
-!!    !!$                 end if
-!!                 end if
-!!             end do
-!!             if (iortho>0) then
-!!                 call gramschmidt_subset(iproc, nproc, -1, tmb%npsidim_orbs, &
-!!                      tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
-!!                      tmb%linmat%l, tmb%collcom, tmb%orthpar, &
-!!                      tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
-!!             end if
-!!             call orthonormalize_subset(iproc, nproc, -1, tmb%npsidim_orbs, &
-!!                  tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
-!!                  tmb%linmat%l, tmb%collcom, tmb%orthpar, &
-!!                  tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
-!!             if (finished) exit ortho_loop
-!!             iortho=iortho+1
-!!             minorbs_type(1:at%astruct%ntypes)=maxorbs_type(1:at%astruct%ntypes)+1
-!!         end do ortho_loop
-!!         call f_free(maxorbs_type)
-!!         call f_free(minorbs_type)
-!!         call f_free(type_covered)
-!!         call f_free(nl_copy)
      end if
    end if
 
