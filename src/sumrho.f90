@@ -398,7 +398,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    type(workarr_sumrho) :: w
    real(wp), dimension(:,:), allocatable :: psir
 
-   call initialize_work_arrays_sumrho(1,[lr],.true.,w)
+   call initialize_work_arrays_sumrho(lr,.true.,w)
 
    !components of wavefunction in real space which must be considered simultaneously
    !and components of the charge density

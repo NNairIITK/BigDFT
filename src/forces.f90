@@ -4127,7 +4127,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   call f_routine(id='local_hamiltonian_stress')
 
   !initialise the work arrays
-  call initialize_work_arrays_locham(1,[lr],orbs%nspinor,.true.,wrk_lh)
+  call initialize_work_arrays_locham(lr,orbs%nspinor,.true.,wrk_lh)
 
   tens=0.d0
 
