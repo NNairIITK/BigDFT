@@ -70,13 +70,15 @@ module unitary_tests
           end do
       end do
 
-    
+     
       !!write(*,'(a,3i12)') 'iproc, denspot%dpbox%ndimpot*denspot%dpbox%nrhodim, size(denspot%rhov)', iproc, denspot%dpbox%ndimpot*denspot%dpbox%nrhodim, size(denspot%rhov)
     
       !calculate the dimensions and communication of the potential element with mpi_get
+      !max(denspot%dpbox%nscatterarr(:,2),1)
+      !denspot%dpbox%nscatterarr(:,2) creates a temporary array, to be avoided
       call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
       call start_onesided_communication(bigdft_mpi%iproc, bigdft_mpi%nproc, &
-           denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), max(denspot%dpbox%nscatterarr(:,2),1), denspot%rhov, &
+           denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), denspot%dpbox%nscatterarr(:,2), denspot%rhov, &
            tmb%ham_descr%comgp%nspin*tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, &
            tmb%ham_descr%comgp, tmb%ham_descr%lzd)
     

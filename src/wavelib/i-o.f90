@@ -481,7 +481,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
 
   psiscf = f_malloc_ptr((/ lr%d%n1i, lr%d%n2i, lr%d%n3i, nspinor  /),id='psiscf')
 
-  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
+  call initialize_work_arrays_sumrho(lr,.true.,w)
 
   ! Magic-filter to isf
   call daub_to_isf(lr, w, psi, psiscf(1,1,1,ispinor))
@@ -991,7 +991,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
      call f_free(psig)
      call f_free(ww)
   else
-     call initialize_work_arrays_sumrho(1,[llr],.true.,w)
+     call initialize_work_arrays_sumrho(llr,.true.,w)
      call f_zero(psi)
 !!$     write(*,*) 'iproc,norm psirnew ',dnrm2(llr%d%n1i*llr%d%n2i*llr%d%n3i,psir,1),llr%d%n1i,llr%d%n2i,llr%d%n3i
      call isf_to_daub(llr,w,psir,psi)

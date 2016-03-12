@@ -1731,7 +1731,7 @@ module multipole
       !iterate over the orbital_basis
       psi_it=orbital_basis_iterator(psi_ob)
       do while(ket_next_locreg(psi_it))
-         call initialize_work_arrays_sumrho(1,[psi_it%lr],.true.,w)
+         call initialize_work_arrays_sumrho(psi_it%lr,.true.,w)
          rmax = min(psi_it%lr%d%n1*0.5d0*hgrids(1),psi_it%lr%d%n2*0.5d0*hgrids(2),&
               psi_it%lr%d%n3*0.5d0*hgrids(3))+1.e-3_gp*maxval(hgrids)
          call geocode_buffers(psi_it%lr%geocode,geocode, nl1, nl2, nl3)
@@ -1824,7 +1824,7 @@ module multipole
       !iterate over the orbital_basis
       psi_it=orbital_basis_iterator(psi_ob)
       do while(ket_next_locreg(psi_it))
-         call initialize_work_arrays_sumrho(1,[psi_it%lr],.true.,w)
+         call initialize_work_arrays_sumrho(psi_it%lr,.true.,w)
          rmax = min(psi_it%lr%d%n1*0.5d0*hgrids(1),psi_it%lr%d%n2*0.5d0*hgrids(2),&
               psi_it%lr%d%n3*0.5d0*hgrids(3))+1.e-3_gp*maxval(hgrids)
          call geocode_buffers(psi_it%lr%geocode,geocode, nl1, nl2, nl3)
@@ -4042,7 +4042,7 @@ end if
       do iorb=1,norbp
           iiorb=isorb+iorb
           ilr=in_which_locreg(iiorb)
-          call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
+          call initialize_work_arrays_sumrho(lzd%Llr(ilr),.true.,w)
           call daub_to_isf(lzd%Llr(ilr), w, phi(ist), psir(istr))
           call deallocate_work_arrays_sumrho(w)
           !write(*,'(a,4i8,es16.6)') 'INITIAL: iproc, iiorb, n, istr, ddot', &
@@ -4599,7 +4599,7 @@ end if
    do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
-      call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.true.,w)
+      call initialize_work_arrays_sumrho(lzd%llr(ilr),.true.,w)
       call isf_to_daub(lzd%llr(ilr), w, phi2r(istr), phi2(ist))
       call deallocate_work_arrays_sumrho(w)
       ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
@@ -4863,10 +4863,10 @@ end if
       iiorb=tmb%orbs%isorb+iorb
       ilr=tmb%orbs%inwhichlocreg(iiorb)
       iat=tmb%orbs%onwhichatom(iiorb)
-      call initialize_work_arrays_sumrho(1,[tmb%lzd%Llr(ilr)],.true.,w)
+      call initialize_work_arrays_sumrho(tmb%lzd%Llr(ilr),.true.,w)
       ! Transform the support function to real space
       call daub_to_isf(tmb%lzd%llr(ilr), w, phi_ortho(ist), phir(istr))
-      call initialize_work_arrays_sumrho(1,[tmb%lzd%llr(ilr)],.false.,w)
+      call initialize_work_arrays_sumrho(tmb%lzd%llr(ilr),.false.,w)
       ! Transform the functions which is constantly one to wavelets
       call isf_to_daub(tmb%lzd%llr(ilr), w, phi1r(istr), phi1(ist))
       call deallocate_work_arrays_sumrho(w)
@@ -5840,10 +5840,10 @@ subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, coll
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
       iat=orbs%onwhichatom(iiorb)
-      call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
+      call initialize_work_arrays_sumrho(lzd%Llr(ilr),.true.,w)
       ! Transform the support function to real space
       call daub_to_isf(lzd%llr(ilr), w, phi(ist), phir(istr))
-      call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.false.,w)
+      call initialize_work_arrays_sumrho(lzd%llr(ilr),.false.,w)
 
       ! NEW: CALCULATE THE WEIGHT CENTER OF THE SUPPORT FUNCTION ############################
       hxh = 0.5d0*lzd%hgrids(1)
