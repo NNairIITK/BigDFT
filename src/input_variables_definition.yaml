@@ -1908,7 +1908,7 @@
        DESCRIPTION: |
                     Indicates the prefactor of the confining potential
                     of this atom type which is used to generate the input guess.
-       RANGE: [0.0,10.0]
+       RANGE: [-1.0,10.0]
        default: 8.3e-3
      confinement:
        COMMENT: Prefactor for the confining potential (low/high accuracy)
@@ -1916,7 +1916,7 @@
                     Indicates the prefactor of the confining potential of this atom type.
                     The first entry is used for the low accuracy part, the second one for the high accuracy part.
                     When the hybrid mode is used, only the first entry is taken into account.
-       RANGE: [0.0,10.0]
+       RANGE: [-1.0,10.0]
        default: [8.3e-3,0.0]
      rloc:
        COMMENT: Localization radius for the support functions
