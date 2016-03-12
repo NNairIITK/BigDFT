@@ -58,7 +58,7 @@ program driver_css
   ! Create another matrix type, this time directly with the CCS format descriptors.
   ! Get these descriptors from an auxiliary routine using again matrix2.dat
   call get_ccs_data_from_file('matrix2.dat', nfvctr, nvctr, row_ind, col_ptr)
-  call sparse_matrix_init_from_data_ccs(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%nproc, &
+  call sparse_matrix_init_from_data_ccs(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
        nfvctr, nvctr, row_ind, col_ptr, smat3)
 
   ! Extract the compressed matrix from the data type. The first routine allocates an array with the correct size,

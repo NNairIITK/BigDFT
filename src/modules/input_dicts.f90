@@ -792,7 +792,7 @@ contains
     !is smaller than this value, switch from cubic to linear interpolation.
     call input_var("ef_interpol_det",1.d-20,"FOE: max ",dummy_real)
     call set(dict // EF_INTERPOL_DET, dummy_real, fmt = "(E9.2)")
-    call input_var("ef_interpol_chargediff",10.d0,"FOE: max ",dummy_real)
+    call input_var("ef_interpol_chargediff",1.d0,"FOE: max ",dummy_real)
     call set(dict // EF_INTERPOL_CHARGEDIFF, dummy_real, fmt = "(E9.2)")
 
     !determines whether a mixing step shall be preformed after the input guess !(linear version)

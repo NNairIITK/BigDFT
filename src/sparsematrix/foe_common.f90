@@ -1060,7 +1060,7 @@ module foe_common
       evhigh_ = 0.5d0
       fscale_ = 2.d-2
       ef_interpol_det_ = 1.d-12
-      ef_interpol_chargediff_ = 10.d0
+      ef_interpol_chargediff_ = 1.d0
       fscale_lowerbound_ = 5.d-3
       fscale_upperbound_ = 5.d-2
       tmprtr_ = 0.d0
