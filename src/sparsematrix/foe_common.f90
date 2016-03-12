@@ -1015,7 +1015,7 @@ module foe_common
     !!##end subroutine cheb_exp
 
 
-    subroutine init_foe(nspin, charge, foe_obj, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
+    subroutine init_foe(iproc, nproc, nspin, charge, foe_obj, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
                evlow, evhigh, fscale, ef_interpol_det, ef_interpol_chargediff, &
                fscale_lowerbound, fscale_upperbound)
       use module_base
@@ -1023,7 +1023,7 @@ module foe_common
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: nspin
+      integer,intent(in) :: iproc, nproc, nspin
       real(kind=8),dimension(nspin),intent(in) :: charge
       type(foe_data),intent(out) :: foe_obj
       integer,intent(in),optional :: evbounds_nsatur
@@ -1051,7 +1051,7 @@ module foe_common
       real(kind=8) :: fscale_upperbound_
       real(kind=8) :: tmprtr_
     
-      call timing(bigdft_mpi%iproc,'init_matrCompr','ON')
+      call timing(iproc,'init_matrCompr','ON')
 
       ! Define the default values... Is there a way to get them from input_variables_definition.yaml?
       evbounds_nsatur_ = 3
@@ -1102,7 +1102,7 @@ module foe_common
           call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,ispin)
       end do
     
-      call timing(bigdft_mpi%iproc,'init_matrCompr','OF')
+      call timing(iproc,'init_matrCompr','OF')
     
     end subroutine init_foe
 
