@@ -824,6 +824,7 @@ module locregs_init
       integer,dimension(:,:),allocatable :: keyv_glob_work
       !$ integer :: omp_get_thread_num
       !integer, allocatable :: keygloc(:,:)
+
     
       call f_routine('segkeys_Sphere')
     
@@ -1299,21 +1300,26 @@ module locregs_init
        Llr(ilr)%d%nfu3 = Life(3)
     
        ! define the wavefunction descriptors inside the localisation region
-       !coarse part
-       call num_segkeys_sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
-            glr%ns1, glr%ns2, glr%ns3, &
-            hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
-            Glr%wfd%nseg_c, Glr%wfd%keygloc(1:,1:), &
-            Glr%wfd%keyvloc(1:), &
-            llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nvctr_c)
+       !!!coarse part
+       !!call num_segkeys_sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!     glr%ns1, glr%ns2, glr%ns3, &
+       !!     hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
+       !!     Glr%wfd%nseg_c, Glr%wfd%keygloc, &
+       !!     Glr%wfd%keyvloc, &
+       !!     llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nvctr_c)
     
-       !fine part
-       call num_segkeys_sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!!fine part
+       !!call num_segkeys_sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!     glr%ns1, glr%ns2, glr%ns3, &
+       !!     hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
+       !!     glr%wfd%nseg_f, Glr%wfd%keygloc(1:,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):), &
+       !!     Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
+       !!     llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
+       call get_num_segkeys(perx, pery, perz, glr%d%n1, glr%d%n2, glr%d%n3, &
             glr%ns1, glr%ns2, glr%ns3, &
             hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
-            glr%wfd%nseg_f, Glr%wfd%keygloc(1:,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):), &
-            Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):), &
-            llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
+            glr%wfd%nseg_c, glr%wfd%nseg_f, glr%wfd%keygloc,  Glr%wfd%keyvloc, &
+            llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
     
        !write(*,'(a,2i8)') 'llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nvctr_f', llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nvctr_f
     
@@ -1366,6 +1372,38 @@ module locregs_init
     
     
     END SUBROUTINE determine_wfdSphere
+
+
+    subroutine get_num_segkeys( perx, pery, perz, n1, n2, n3, ns1, ns2, ns3, hx, hy, hz, locrad, &
+               locregCenter, nseg_c_glob, nseg_f_glob, keyg_glob, keyv_glob, &
+               nseg_c, nvctr_c, nseg_f, nvctr_f)
+      implicit none
+
+      ! Calling arguments
+      logical,intent(in) :: perx, pery, perz
+      integer,intent(in) :: n1, n2, n3, ns1, ns2, ns3, nseg_c_glob, nseg_f_glob
+      real(kind=8),intent(in) :: hx, hy, hz, locrad
+      real(kind=8),dimension(3),intent(in) :: locregCenter
+      integer,dimension(2,nseg_c_glob+nseg_f_glob),intent(in) :: keyg_glob
+      integer,dimension(nseg_c_glob+nseg_f_glob),intent(in) :: keyv_glob
+      integer,intent(out) :: nseg_c, nvctr_c, nseg_f, nvctr_f
+
+       !coarse part
+       call num_segkeys_sphere(perx, pery, perz, n1, n2, n3, &
+            ns1, ns2, ns3, &
+            hx, hy, hz, locrad, locregCenter, &
+            nseg_c_glob, keyg_glob, keyv_glob, &
+            nseg_c, nvctr_c)
+    
+       !fine part
+       call num_segkeys_sphere(perx, pery, perz, n1, n2, n3, &
+            ns1, ns2, ns3, &
+            hx, hy, hz, locrad, locregCenter, &
+            nseg_f_glob, keyg_glob(1,nseg_c_glob+min(1,nseg_f_glob)), &
+            keyv_glob(nseg_c_glob+min(1,nseg_f_glob)), &
+            nseg_f, nvctr_f)
+
+    end subroutine get_num_segkeys
 
 
 
