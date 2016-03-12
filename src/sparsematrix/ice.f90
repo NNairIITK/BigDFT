@@ -776,12 +776,13 @@ module ice
               !!    write(*,*) 'eval_multiplicator, eval_multiplicator_total', &
               !!                eval_multiplicator, eval_multiplicator_total
               !!end if
-              call get_poynomial_degree(iproc, nproc, ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, 5, 100, 1, 1.d-9, &
+              call get_poynomial_degree(iproc, nproc, ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, 5, 200, 1, 1.d-9, &
                    0, npl, cc, max_error, x_max_error, mean_error, anoise, &
                    ex=ex)
               call f_free_ptr(chebyshev_polynomials)
               ! The second isshift is wrong, but is not used
               if (iproc==0 .and. verbosity_>0) then
+                   call yaml_newline()
                    call yaml_sequence(advance='no')
                    call yaml_mapping_open(flow=.true.)
                    call yaml_map('npl',npl)
@@ -790,7 +791,7 @@ module ice
                         (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f6.2)')
                end if
 
-              call get_chebyshev_polynomials(iproc, nproc, 1, 0, npl, ovrlp_smat, inv_ovrlp_smat, &     
+              call get_chebyshev_polynomials(iproc, nproc, 1, verbosity_, npl, ovrlp_smat, inv_ovrlp_smat, &     
                                         ovrlp_scaled, foe_obj, chebyshev_polynomials, ispin, &
                                         eval_bounds_ok, hamscal_compr, scale_factor, shift_value)
               if (iproc==0 .and. verbosity_>0) then
