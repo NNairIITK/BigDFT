@@ -46,13 +46,10 @@
      CFLAGS                            : -O2 -fopenmp
      FCFLAGS                           : -O2 -fopenmp
      CXXFLAGS                          : -g -O2
-  #WARNING: Input files read in the old format. Use the <run_id>.yaml file to switch to new 
-  #format. It is not anymore possible to use the old format in the bigdft executable
   #------------------------------------------------------------------------ Input parameters
  radical                               : null
  logfile                               : Yes
  run_from_files                        : Yes
- input_minimal_file                    : null
  outdir                                : ./
  dft:
    hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
@@ -244,7 +241,7 @@
    extra_states                        : 0 #      extra states to optimize (dmin only)
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
     #                                              written to disk)
-   charge_multipoles                   : no #     Calculate the atom-centered multipole coefficients of the electronic charge
+   charge_multipoles                   : 0 #      Calculate the atom-centered multipole coefficients of the electronic charge
  lin_basis:
    nit: [4, 5] #                                  maximal number of iterations in the optimization of the 
     #                                              support functions
@@ -434,7 +431,3 @@
  Walltime since initialization         : 00:00:00.022488862
  Max No. of dictionaries used          :  4025 #( 880 still in use)
  Number of dictionary folders allocated:  1
-  #-------------------------------- Warnings obtained during the run, check their relevance!
- WARNINGS:
- - Input files read in the old format. Use the <run_id>.yaml file to switch to new format. 
-   It is not anymore possible to use the old format in the bigdft executable
