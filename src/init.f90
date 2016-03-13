@@ -1011,6 +1011,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, infoCoeff, ispin, ishift, it, ii
+      integer, dimension(1) :: power
   logical:: overlap_calculated
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
@@ -1450,7 +1451,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        call f_free(ovrlpp)
        ! Calculate S^1/2, as it can not be taken from memory
        order_taylor = input%lin%order_taylor
-       call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
+       power(1)=2
+       call overlapPowerGeneral(iproc, nproc, order_taylor, 1, power, -1, &
             imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
             ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
             check_accur=.true., max_error=max_error, mean_error=mean_error)

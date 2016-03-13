@@ -1049,7 +1049,7 @@ module foe
       integer :: isegstart, isegend, iismall, iilarge, nsize_polynomial
       integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift, npl_check, npl_boundaries
       integer,parameter :: nplx=50000
-      real(kind=8),dimension(:,:,:),pointer :: cc, cc_check
+      real(kind=8),dimension(:,:,:),allocatable :: cc, cc_check
       real(kind=8),dimension(:,:),pointer :: chebyshev_polynomials
       real(kind=8),dimension(:,:),allocatable :: fermip_check
       real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
@@ -1265,7 +1265,7 @@ module foe
                               call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*1.2d0,ispin)
                           end if
                       end if
-                      call f_free_ptr(cc)
+                      call f_free(cc)
                       call f_free_ptr(chebyshev_polynomials)
                   end do bounds_loop
                   if (iproc==0) then
@@ -1285,7 +1285,7 @@ module foe
                   !write(*,*) 'after find_fermi_level'
 
                   npl_check = nint(real(npl,kind=8)/CHECK_RATIO)
-                  cc_check = f_malloc0_ptr((/npl_check,3,1/),id='cc_check')
+                  cc_check = f_malloc0((/npl_check,1,3/),id='cc_check')
                   !!call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
                   !!call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
                   !!     foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
@@ -1295,20 +1295,20 @@ module foe
                   !!    smatl, chebyshev_polynomials, 1, cc, fermi_small_new)
                   call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale_check)
                   call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, func, cc_check(1:,1:,1:), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, func, cc_check(1,1,1), &
                        x_max_error_check(1), max_error_check(1), mean_error_check(1))
                   if (smatl%nspin==1) then
                       do ipl=1,npl_check
                           cc_check(ipl,1,1)=2.d0*cc_check(ipl,1,1)
-                          cc_check(ipl,2,1)=2.d0*cc_check(ipl,2,1)
-                          cc_check(ipl,3,1)=2.d0*cc_check(ipl,3,1)
+                          cc_check(ipl,1,2)=2.d0*cc_check(ipl,1,2)
+                          cc_check(ipl,1,3)=2.d0*cc_check(ipl,1,3)
                       end do
                   end if
                   call chebyshev_fast(iproc, nproc, nsize_polynomial, npl_check, &
                        smatl%nfvctr, smatl%smmm%nfvctrp, &
                        smatl, chebyshev_polynomials, 1, cc_check, fermi_check_new)
-                  call f_free_ptr(cc)
-                  call f_free_ptr(cc_check)
+                  call f_free(cc)
+                  call f_free(cc_check)
                   call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
                        fermi_check_new, fermi_check_compr)
 
@@ -1522,8 +1522,9 @@ module foe
               !use sparsematrix_highlevel, only: matrix_chebyshev_expansion
               use ice, only: inverse_chebyshev_expansion_new
               implicit none
-              real(kind=8) :: max_error, mean_error
               integer :: i, j, ii
+              real(kind=8) :: max_error, mean_error
+              real(kind=8), dimension(1) :: ex
               real(kind=8),dimension(:),allocatable :: tmparr
     
               call f_routine(id='overlap_minus_onehalf')
@@ -1543,8 +1544,9 @@ module foe
               !call matrix_chebyshev_expansion(iproc, nproc, 1, (/-0.5d0/), &
               !     smat_in=smats, smat_out=smatl, mat_in=ovrlp_, mat_out=ovrlp_minus_one_half_, &
               !     npl_auto=.true.)
+              ex=-0.5d0
               call inverse_chebyshev_expansion_new(iproc, nproc, &
-                   ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=(/-0.5d0/), &
+                   ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
                    ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
                    npl_auto=.true.)
 

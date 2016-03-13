@@ -1986,6 +1986,7 @@ module io
       type(matrices),dimension(1) :: SminusonehalfH
       real(kind=8),dimension(:),pointer :: ham_large, tmp_large
       real(kind=8) :: max_error, mean_error
+      integer, dimension(1) :: power
     
       call f_routine(id='write_linear_matrices')
 
@@ -2106,7 +2107,8 @@ module io
           call transform_sparse_matrix_local(tmb%linmat%m, tmb%linmat%l, 'small_to_large', &
                smatrix_compr_in=tmb%linmat%ham_%matrix_compr, lmatrix_compr_out=ham_large)
           ! calculate S^-1/2
-          call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, (/-2/), -1, &
+          power=-2
+          call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, power, -1, &
                imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=SminusonehalfH(1), &
                check_accur=.true., max_error=max_error, mean_error=mean_error)

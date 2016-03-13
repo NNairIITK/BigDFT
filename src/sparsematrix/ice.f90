@@ -665,7 +665,7 @@ module ice
       real(kind=8),dimension(:,:),pointer :: chebyshev_polynomials
       real(kind=8),dimension(:,:,:),pointer :: inv_ovrlp_matrixp
       real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
-      real(kind=8),dimension(:,:,:),pointer :: cc
+      real(kind=8),dimension(:,:,:),allocatable :: cc
       real(kind=8) :: anoise, scale_factor, shift_value
       real(kind=8) :: evlow_old, evhigh_old, tt
       real(kind=8) :: x_max_error_fake, max_error_fake, mean_error_fake
@@ -812,7 +812,7 @@ module ice
                       eval_multiplicator = 1.d0/2.0d0
                   end if
               end if
-              call f_free_ptr(cc)
+              call f_free(cc)
               !write(*,*) 'eval_bounds_ok',eval_bounds_ok
               !write(*,*) 'evlow, evhigh',foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin)
           end do bounds_loop
@@ -821,7 +821,7 @@ module ice
           end if
           call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
-               inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc(:,1,:), inv_ovrlp_matrixp_small_new)
+               inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc(1,1,1), inv_ovrlp_matrixp_small_new)
           !write(*,*) 'sum(cc(:,1,1))',sum(cc(:,1,1))
           !write(*,*) 'sum(ovrlp_scaled%matrix_compr)',sum(ovrlp_scaled%matrix_compr)
           !write(*,*) 'sum(chebyshev_polynomials)', sum(chebyshev_polynomials)
@@ -861,7 +861,7 @@ module ice
               !write(*,*) 'sum(inv_ovrlp(icalc)%matrix_compr)',sum(inv_ovrlp(icalc)%matrix_compr)
           end do
 
-          call f_free_ptr(cc)
+          call f_free(cc)
 
       end do spin_loop
 
