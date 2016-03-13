@@ -3429,7 +3429,7 @@ module multipole
               else if (mode=='simple') then
                   if (ortho=='yes') then
                       ! directly add the penalty terms to ham
-                      call add_penalty_term(smmd%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
+                      call add_penalty_term(smmd%geocode, smats%nfvctr, neighbor(1,kat), rxyz(1,kkat), &
                            smmd%cell_dim, com, alpha, n, ovrlp, ham)
                    else if (ortho=='no') then
                           ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
@@ -3442,7 +3442,7 @@ module multipole
                           call f_free(ovrlp_tmp)
                           ! Calculate the penaly term separately and then calculate S^1/2*penalty*S^1/2
                           tmpmat2d = f_malloc0((/n,n,2/),id='tmppmat2d')
-                          call add_penalty_term(smmd%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
+                          call add_penalty_term(smmd%geocode, smats%nfvctr, neighbor(1,kat), rxyz(1,kkat), &
                                smmd%cell_dim, com, alpha, n, ovrlp, tmpmat2d(1,1,1))
 
                           ! Calculate S^1/2 * penalty * S^1/2
@@ -3461,13 +3461,13 @@ module multipole
                       if (present(multipoles)) then
                           write(*,*) 'call with multipoles'
                           call add_penalty_term_new(smmd%geocode, smmd%nat, smats%nfvctr, &
-                               neighbor(1:,kat), rxyz(1,kkat), smmd%on_which_atom, &
+                               neighbor(1,kat), rxyz(1,kkat), smmd%on_which_atom, &
                                multipoles, smmd%cell_dim, com, alpha, n, ham, &
                                nmax, penalty_matrices(1,kat))
                       else
                           write(*,*) 'call with multipoles_fake'
                           call add_penalty_term_new(smmd%geocode, smmd%nat, smats%nfvctr, &
-                               neighbor(1:,kat), rxyz(1,kkat), smmd%on_which_atom, &
+                               neighbor(1,kat), rxyz(1,kkat), smmd%on_which_atom, &
                                multipoles_fake, smmd%cell_dim, com, alpha, n, ham, &
                                nmax, penalty_matrices(1,kat))
                       end if
