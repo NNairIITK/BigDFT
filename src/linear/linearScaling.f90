@@ -49,7 +49,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                        support_function_gross_multipoles, potential_from_charge_multipoles, &
                        calculate_rpowerx_matrices
   use transposed_operations, only: calculate_overlap_transposed
-  use matrix_operations, only: overlapPowerGeneral
   use foe_base, only: foe_data_set_real
   use rhopotential, only: full_local_potential
   use transposed_operations, only: calculate_overlap_transposed

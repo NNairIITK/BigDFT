@@ -77,6 +77,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
   integer, dimension(2), intent(in) :: ifrag_charged
   !local variables
   integer :: ifrag,iorb,ifrag_ref,isforb,ierr
+  integer,dimension(1) :: power
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
   real(kind=gp) :: max_error, mean_error
@@ -110,7 +111,8 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
           tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
      ! Maybe not clean here to use twice tmb%linmat%s, but it should not
      ! matter as dense is used
-     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/2/), &
+     power(1)=2
+     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, power, &
           tmb%orthpar%blocksize_pdsyev, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
@@ -213,6 +215,7 @@ subroutine calculate_weight_matrix_lowdin_gradient_fd(weight_matrix,weight_matri
   real(kind=8),dimension(:),pointer :: weight_matrix_tmp
   real(kind=8), dimension(:), allocatable :: calc_grad, fd_grad
   integer :: nfrag_charged, jorb, i, ncount, istart, iiorb, ilr
+  integer,dimension(1) :: power
   real(kind=8) :: ddot, trkw, trkw_new, trkw_old
   real(kind=8), parameter :: h=0.00001d0
   logical, parameter :: forward=.true. !forward or centered diff
@@ -310,13 +313,14 @@ if (.false.) then
 
 
      !S^-1/2 for calc grad
-             call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/-2/), &
+     power(1)=-2
+             call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, power, &
                   tmb%orthpar%blocksize_pdsyev, &
                   imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
                   ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
                   check_accur=.false., max_error=max_error, mean_error=mean_error)       
-
-             call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/2/), &
+     power(1)=2
+             call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, power, &
                   tmb%orthpar%blocksize_pdsyev, &
                   imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
                   ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_half, &
@@ -355,7 +359,8 @@ call daxpy(ncount,inv_ovrlp(1)%matrix(10,9,1)*0.5d0,tmb%psi(istart+ncount),1,cal
              tmb%linmat%ovrlp_%matrix(9,10,1)=ddot(ncount,tmb%psi(istart),1,tmb%psi(istart+ncount),1)
              tmb%linmat%ovrlp_%matrix(10,9,1)=ddot(ncount,tmb%psi(istart),1,tmb%psi(istart+ncount),1)
 
-             call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/2/), &
+             power(1)=2
+             call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, power, &
                   tmb%orthpar%blocksize_pdsyev, &
                   imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
                   ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
@@ -424,6 +429,7 @@ subroutine calculate_weight_matrix_lowdin_gradient(weight_matrix,weight_matrix_,
   !real(kind=8),dimension(:),pointer :: psitlarge_c, psitlarge_f
   real(kind=8),dimension(:,:),pointer :: weight_matrix_tmp
   integer :: nfrag_charged, jorb
+  integer, dimension(1) :: power
 real(kind=8) :: ddot
 
   call f_routine(id='calculate_weight_matrix_lowdin')
@@ -464,7 +470,8 @@ real(kind=8) :: ddot
 !print*,'g',ddot(tmb%orbs%norb*tmb%orbs%norb, tmb%linmat%ovrlp_%matrix(1,1,1), 1, tmb%linmat%ovrlp_%matrix(1,1,1), 1)
      ! Maybe not clean here to use twice tmb%linmat%s, but it should not
      ! matter as dense is used
-     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/-2/), &
+     power(1)=-2
+     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, power, &
           tmb%orthpar%blocksize_pdsyev, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &

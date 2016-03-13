@@ -746,6 +746,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(matrices) :: ovrlp_old
   integer :: iiorb, ilr, i, ist
   real(kind=8) :: max_error, mean_error
+  integer,dimension(1) :: power
   interface
      subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, alpha_mean, alpha_max, &
@@ -1049,7 +1050,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !if (iproc==0) call yaml_sequence_open('kernel update by renormalization')
           if (it==1 .or. energy_increased .or. .not.experimental_mode) then
               ! Calculate S^1/2, as it can not be taken from memory
-              call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
+              power(1)=2
+              call overlapPowerGeneral(iproc, nproc, order_taylor, 1, power, -1, &
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
                    verbosity=0, &
@@ -2185,6 +2187,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   type(matrices) :: KS_ovrlp_
   type(matrices),dimension(1) :: inv_ovrlp_
   integer,dimension(2) :: irowcol
+  integer,dimension(1) :: power
   !integer :: iorb, jorb !DEBUG
   real(kind=8) :: tt, max_error, mean_error!, tt2, tt3, ddot   !DEBUG
   !logical :: dense
@@ -2415,7 +2418,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
              !!        write(2000+iproc,'(a,2i9,es13.5)') 'iorb, jorb, KS_ovrlp_%matrix(jorb,iorb,1)', iorb, jorb, KS_ovrlp_%matrix(jorb,iorb,1)
              !!    end do
              !!end do
-             call overlapPowerGeneral(iproc, nproc, inversion_method, 1, (/-2/), &
+             power(1)=-2
+             call overlapPowerGeneral(iproc, nproc, inversion_method, 1, power, &
                   blocksize_dsyev, imode=2, ovrlp_smat=KS_overlap(ispin), inv_ovrlp_smat=KS_overlap(ispin), &
                   ovrlp_mat=KS_ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
                   check_accur=.false., nspinx=1)
@@ -2862,6 +2866,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   type(matrices) :: inv_ovrlp
   real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
   real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
+  integer,dimension(3) :: power
   !!real(8) :: tr
   !!integer :: ind, iorb
 
@@ -2889,7 +2894,8 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
 
   ! Calculate S^1/2 for the overlap matrix
-  call overlapPowerGeneral(iproc, nproc, order_taylor, 3, (/2,-2,1/), -1, &
+  power=(/2,-2,1/)
+  call overlapPowerGeneral(iproc, nproc, order_taylor, 3, power, -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
        verbosity=0, &
