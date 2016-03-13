@@ -1559,7 +1559,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            cdft%weight_function=f_malloc_ptr(cdft%ndim_dens,id='cdft%weight_function')
            call calculate_weight_function(input,ref_frags,cdft,&
                 KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,denspot%rhov,tmb,at,rxyz,denspot)
-           call calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,denspot)
+           call calculate_weight_matrix_using_density(iproc,nproc,cdft,tmb,at,input,GPU,denspot)
            call f_free_ptr(cdft%weight_function)
         else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
            call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,.false.,input%lin%order_taylor)
@@ -3133,7 +3133,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            cdft%weight_function=f_malloc_ptr(cdft%ndim_dens,id='cdft%weight_function')
            call calculate_weight_function(in,ref_frags,cdft,&
                 KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,denspot%rhov,tmb,atoms,rxyz,denspot)
-           call calculate_weight_matrix_using_density(iproc,cdft,tmb,atoms,in,GPU,denspot)
+           call calculate_weight_matrix_using_density(iproc,nproc,cdft,tmb,atoms,in,GPU,denspot)
            call f_free_ptr(cdft%weight_function)
         else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
            call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,in,ref_frags,overlap_calculated.eqv..false.,in%lin%order_taylor)

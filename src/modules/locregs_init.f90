@@ -1386,6 +1386,7 @@ module locregs_init
     subroutine get_num_segkeys(perx, pery, perz, n1, n2, n3, ns1, ns2, ns3, hx, hy, hz, locrad, &
                locregCenter, nseg_c_glob, nseg_f_glob, keyg_glob, keyv_glob, &
                nseg_c, nvctr_c, nseg_f, nvctr_f)
+      use module_base
       implicit none
 
       ! Calling arguments
@@ -1397,6 +1398,7 @@ module locregs_init
       integer,dimension(nseg_c_glob+nseg_f_glob),intent(in) :: keyv_glob
       integer,intent(out) :: nseg_c, nvctr_c, nseg_f, nvctr_f
 
+      call f_routine(id='get_num_segkeys')
 
        !coarse part
        call num_segkeys_sphere(perx, pery, perz, n1, n2, n3, &
@@ -1412,6 +1414,8 @@ module locregs_init
             nseg_f_glob, keyg_glob(1,nseg_c_glob+min(1,nseg_f_glob)), &
             keyv_glob(nseg_c_glob+min(1,nseg_f_glob)), &
             nseg_f, nvctr_f)
+
+      call f_release_routine()
 
     end subroutine get_num_segkeys
 
@@ -1440,6 +1444,8 @@ module locregs_init
 
       integer, allocatable :: keygloc_tmp(:,:)
 
+      call f_routine(id='get_segkeys')
+
        keygloc_tmp = f_malloc((/2,nseg_c+nseg_f/),id='keygloc_tmp')
 
        !coarse part
@@ -1467,6 +1473,8 @@ module locregs_init
             keygloc_tmp(1,nseg_c+min(1,nseg_f)))  
 
        call f_free(keygloc_tmp)
+
+      call f_release_routine()
 
     end subroutine get_segkeys
 
