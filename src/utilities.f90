@@ -518,7 +518,7 @@ program utilities
                    colorname = 'color'
                end if
                if (ipdos<npdos) then
-                   lineend = ' ,\'
+                   lineend = ' ,\\'
                else
                    lineend = ''
                end if
