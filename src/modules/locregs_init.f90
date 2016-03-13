@@ -1451,7 +1451,7 @@ module locregs_init
             keyv_glob(1), nvctr_c, &
             keygloc(1,1),keygglob(1,1), &
             keyvloc(1), keyvglob(1), &
-            keygloc_tmp(1:,1:))
+            keygloc_tmp(1,1))
     
        !fine part
        call segkeys_Sphere(perx, pery, perz, n1_glob, n2_glob, n3_glob, &
