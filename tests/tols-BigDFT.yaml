@@ -2519,5 +2519,6 @@ test-foeccs:
   EBS: 1.1e-10
   difference: 7.9e-11
   trace(KS): 5.9e-11
+  value: 2.8e-11
 
 

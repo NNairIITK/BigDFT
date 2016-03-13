@@ -42,16 +42,6 @@
      CFLAGS                            : -g -O2
      FCFLAGS                           : -g  -fopenmp
      CXXFLAGS                          : -g -O2
- List of error found while parsing input variables:
- - Id                                  :  26
-   Additional Info                     : ao_confinement = '-1.0' not in range.
- List of error found while parsing input variables:
- - Id                                  :  26
-   Additional Info                     : confinement = '-1.0' not in range.
-  #WARNING: Error(s) found in input_keys_fill for the field "lin_basis_params" and the key 
-  #"ao_confinement", see details in the above message(s), before the input file printout.
-  #WARNING: Error(s) found in input_keys_fill for the field "lin_basis_params" and the key 
-  #"confinement", see details in the above message(s), before the input file printout.
   #------------------------------------------------------------------------ Input parameters
  COMMENT:
    Linear parameters sufficient for PDoS, charge analysis, MD
@@ -3372,10 +3362,6 @@
  Calculate Non Local forces            :  Yes
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Error(s) found in input_keys_fill for the field "lin_basis_params" and the key 
-   "ao_confinement", see details in the above message(s), before the input file printout.
- - Error(s) found in input_keys_fill for the field "lin_basis_params" and the key 
-   "confinement", see details in the above message(s), before the input file printout.
  - Do not call check_communications in the linear scaling version!
  - No orthogonalizing of the support functions
  - No increase of FOE cutoff
