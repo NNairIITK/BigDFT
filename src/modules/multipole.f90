@@ -2373,7 +2373,7 @@ module multipole
       real(kind=8),dimension(:),pointer :: atomic_monopoles_analytic
       real(kind=8),dimension(:,:,:),allocatable :: test_pot
       real(kind=8),dimension(:,:,:,:),allocatable :: lmp_extracted
-      real(kind=8),dimension(:,:),pointer :: projx
+      real(kind=8),dimension(:,:),allocatable :: projx
       real(kind=8),dimension(:,:),allocatable :: kernel_extracted, multipole_extracted
       real(kind=8) :: q, tt, rloc, max_error, mean_error
       type(matrices) :: multipole_matrix
@@ -2685,7 +2685,7 @@ module multipole
                        call f_free(kernel_extracted)
                        call f_free(multipole_extracted)
                        if (trim(method)=='loewdin') then
-                               call extract_matrix(smatl, inv_ovrlp(1)%matrix_compr, neighborx(1,kat), n, nmaxx, projx(1:,kat))
+                               call extract_matrix(smatl, inv_ovrlp(1)%matrix_compr, neighborx(1,kat), n, nmaxx, projx(1,kat))
                                iiorb = 0
                                do iorb=1,smats%nfvctr
                                    if (neighborx(iorb,kat)) then
@@ -2872,7 +2872,7 @@ module multipole
       if (do_ortho==yes .and. calculate_multipole_matrices) then
           call f_free(phi_ortho)
       end if
-      call f_free_ptr(projx)
+      call f_free(projx)
       call f_free_ptr(nx)
       call f_free(neighborx)
       call f_free_ptr(atomic_multipoles)
@@ -2929,7 +2929,7 @@ module multipole
       real(kind=8),dimension(-lmax:lmax,0:lmax,1:smats%nfvctr),intent(in),optional :: multipoles
       integer,intent(out),optional :: natpx, isatx, nmaxx
       integer,dimension(:),pointer,intent(out),optional :: nx
-      real(kind=8),dimension(:,:),pointer,intent(out),optional :: projx
+      real(kind=8),dimension(:,:),allocatable,intent(out),optional :: projx
       logical,dimension(:,:),allocatable,intent(out),optional :: neighborx
       type(matrices),dimension(24),intent(in),optional :: rpower_matrix
       logical,intent(in),optional :: only_sizes
@@ -3524,7 +3524,7 @@ module multipole
 
           if (ialpha==1) then
               if (present(nmaxx)) nmaxx = maxval(n_all)
-              if (present(projx)) projx = f_malloc_ptr((/nmaxx**2,natpx/),id='projx')
+              if (present(projx)) projx = f_malloc((/nmaxx**2,natpx/),id='projx')
           end if
 
           ! This is maybe not very elegant in this way...
