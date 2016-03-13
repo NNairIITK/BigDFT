@@ -3278,8 +3278,8 @@ module multipole
               proj = f_malloc0((/n,n/),id='proj')
               penaltymat = f_malloc0((/n,n,24/),id='penaltymat')
               eval = f_malloc0((/n/),id='eval')
-              call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1:,kat), n_all(kat), nmax, ovrlp, ilup)
-              call extract_matrix(smatm, ham_%matrix_compr, neighbor(1:,kat), n_all(kat), nmax, ham)
+              call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ovrlp, ilup)
+              call extract_matrix(smatm, ham_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ham)
 
 
 
@@ -3317,7 +3317,7 @@ module multipole
                   !alpha = 0.02d0
                   do i=1,24
                       call extract_matrix(smats, rpower_matrix(i)%matrix_compr, &
-                          neighbor(1:,kat), n_all(kat), nmax, penaltymat(:,:,i))
+                          neighbor(1,kat), n_all(kat), nmax, penaltymat(1,1,i))
                   end do
                   !tt = sqrt(rxyz(1,kkat)**2+rxyz(2,kkat)**2+rxyz(3,kkat)**2)
                   tt = rxyz(1,kkat)**2 + rxyz(2,kkat)**2 + rxyz(3,kkat)**2
@@ -3732,7 +3732,7 @@ end if
                   ! Extract ktilde
                   ktilde = f_malloc0((/n,n/),id='ktilde')
                   !if (ortho=='yes') then
-                      call extract_matrix(smatl, kerneltilde, neighbor(1:,kat), n_all(kat), nmax, ktilde)
+                      call extract_matrix(smatl, kerneltilde, neighbor(1,kat), n_all(kat), nmax, ktilde)
                   !else if (ortho=='no') then
                   !    call extract_matrix(smatl, kernel_%matrix_compr, neighbor(1:,kat), n, nmax, ktilde)
                   !end if
@@ -3741,7 +3741,7 @@ end if
                   if (ortho=='no') then
                       call f_memcpy(src=kp,dest=ktilde)
                       ovrlp = f_malloc0((/n,n/),id='ovrlp')
-                      call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1:,kat), n_all(kat), nmax, ovrlp)
+                      call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ovrlp)
                       call gemm('n', 'n', n, n, n, 1.d0, ktilde(1,1), n, ovrlp(1,1), n, 0.d0, kp(1,1), n)
                       call f_free(ovrlp)
                   end if
@@ -6160,7 +6160,7 @@ end subroutine calculate_rpowerx_matrices
             lmp_extracted = f_malloc((/1.to.n,1.to.n,0.to.0,0.to.0/),id='lmp_extracted')
             tmpmat = f_malloc((/n,n/),id='tmpmat')
             call extract_matrix(smats, lower_multipole_matrices(0,0)%matrix_compr, &
-                 neighborx(1:,kat), n, nmaxx, lmp_extracted(1,1,0,0))
+                 neighborx(1,kat), n, nmaxx, lmp_extracted(1,1,0,0))
             select case (m)
             case (-1)
                 ii = 0
@@ -6206,10 +6206,10 @@ end subroutine calculate_rpowerx_matrices
             lmp_extracted = f_malloc((/1.to.n,1.to.n,-1.to.1,0.to.1/),id='lmp_extracted')
             tmpmat = f_malloc((/n,n/),id='tmpmat')
             call extract_matrix(smats, lower_multipole_matrices(0,0)%matrix_compr, &
-                 neighborx(1:,kat), n, nmaxx, lmp_extracted(1,1,0,0))
+                 neighborx(1,kat), n, nmaxx, lmp_extracted(1,1,0,0))
             do i=-1,1
                 call extract_matrix(smats, lower_multipole_matrices(i,1)%matrix_compr, &
-                     neighborx(1:,kat), n, nmaxx, lmp_extracted(1,1,i,1))
+                     neighborx(1,kat), n, nmaxx, lmp_extracted(1,1,i,1))
             end do
             select case (m)
             case (-2)
