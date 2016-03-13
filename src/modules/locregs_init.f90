@@ -454,7 +454,7 @@ module locregs_init
          call mpiallred(rootarr(1), nlr, mpi_min, comm=bigdft_mpi%mpi_comm)
          
          ! Communicate those parts of the locregs that all processes need.
-         call communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
+         call communicate_locreg_descriptors_basics(iproc, nproc, nlr, rootarr, orbs, llr)
     
          !do ilr=1,nlr
          !    write(*,*) 'iproc, nseg_c', iproc, llr(ilr)%wfd%nseg_c
