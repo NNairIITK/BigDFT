@@ -32,6 +32,6 @@ libspredbasef_a_SOURCES = $(libspredbasef_SOURCES)
 
 SPREDbase.o: SPRED_input_variables_fetch.o
 
-SPREDtypes.o: SPREDbase.o SPRED_input_variables_fetch.o
+SPREDtypes.o: SPREDbase.o SPRED_input_variables_fetch.o SPRED_public_keys.o
 
 module_fingerprints.f90: SPREDbase.o SPREDtypes.o
