@@ -644,7 +644,7 @@ module ice
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: scale_and_shift_matrix, &
                             evnoise, check_eigenvalue_spectrum_new, get_chebyshev_expansion_coefficients, &
-                            get_chebyshev_polynomials, get_poynomial_degree
+                            get_chebyshev_polynomials, get_polynomial_degree
       use module_func
       implicit none
     
@@ -776,7 +776,7 @@ module ice
               !!    write(*,*) 'eval_multiplicator, eval_multiplicator_total', &
               !!                eval_multiplicator, eval_multiplicator_total
               !!end if
-              call get_poynomial_degree(iproc, nproc, ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, 5, 200, 1, 1.d-9, &
+              call get_polynomial_degree(iproc, nproc, ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, 5, 200, 1, 1.d-9, &
                    0, npl, cc, max_error, x_max_error, mean_error, anoise, &
                    ex=ex)
               call f_free_ptr(chebyshev_polynomials)

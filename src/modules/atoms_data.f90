@@ -1606,7 +1606,7 @@ contains
       real(gp), dimension(3) :: radii_cf
       real(gp) :: rloc
       real(gp), dimension(4) :: lcoeff
-      real(gp), dimension(4,0:6) :: psppar
+      real(gp), dimension(0:4,0:6) :: psppar
       logical :: pawpatch, l
       integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
       character(len = max_field_length) :: fpaw
@@ -1620,11 +1620,13 @@ contains
       pawpatch = .true.
       do ityp=1,atoms%astruct%ntypes
          filename = 'psppar.'//atoms%astruct%atomnames(ityp)
+         psppar(0:4,0:6) = atoms%psppar(0:4,0:6,ityp)
          call get_psp(dict//filename,ityp,atoms%astruct%ntypes,&
               atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%npspcode(ityp), &
-              atoms%ixcpsp(ityp), atoms%iradii_source(ityp),atoms%psppar(0:,0:,ityp),&
+              atoms%ixcpsp(ityp), atoms%iradii_source(ityp),psppar,&
               atoms%radii_cf(ityp,:),pawpatch,&
               atoms%pawrad,atoms%pawtab,atoms%epsatm)
+         atoms%psppar(0:4,0:6,ityp) = psppar(0:4,0:6)
 !!$
 !!$         call psp_set_from_dict(dict // filename, l, &
 !!$              & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%npspcode(ityp), &

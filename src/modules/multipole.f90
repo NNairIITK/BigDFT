@@ -2379,7 +2379,7 @@ module multipole
       type(matrices),dimension(-1:1,0:1) :: lower_multipole_matrices
       type(matrices),dimension(1) :: inv_ovrlp
       logical :: perx, pery, perz
-      logical,dimension(:,:),pointer :: neighborx
+      logical,dimension(:,:),allocatable :: neighborx
       integer,dimension(:),pointer :: nx
       character(len=20),dimension(:),allocatable :: names
       real(kind=8) :: rr1, rr2, rr3
@@ -2662,13 +2662,13 @@ module multipole
                        multipole_extracted = f_malloc((/n,n/),id='multipole_extracted')
                        !write(*,*) 'before extract'
                        call extract_matrix(smats, multipole_matrix%matrix_compr, &
-                           neighborx(1:,kat), n, nmaxx, multipole_extracted)
+                           neighborx(1,kat), n, nmaxx, multipole_extracted)
                        ! The minus sign is required since the phi*S_lm*phi represent the electronic charge which is a negative quantity
                        call dscal(n**2, -1.d0, multipole_extracted(1,1), 1)
                        if (do_ortho==no) then
-                           call extract_matrix(smatl, kernel%matrix_compr, neighborx(1:,kat), n, nmaxx, kernel_extracted)
+                           call extract_matrix(smatl, kernel%matrix_compr, neighborx(1,kat), n, nmaxx, kernel_extracted)
                        else
-                           call extract_matrix(smatl, kernel_ortho, neighborx(1:,kat), n, nmaxx, kernel_extracted)
+                           call extract_matrix(smatl, kernel_ortho, neighborx(1,kat), n, nmaxx, kernel_extracted)
                        end if
                        if (l>0) then
                            call correct_multipole_origin(smmd%nat, l, m, n, lzd%nlr, natpx, nmaxx, kat, kkat, &
@@ -2680,7 +2680,7 @@ module multipole
                        call f_free(kernel_extracted)
                        call f_free(multipole_extracted)
                        if (trim(method)=='loewdin') then
-                               call extract_matrix(smatl, inv_ovrlp(1)%matrix_compr, neighborx(1:,kat), n, nmaxx, projx(1:,kat))
+                               call extract_matrix(smatl, inv_ovrlp(1)%matrix_compr, neighborx(1,kat), n, nmaxx, projx(1:,kat))
                                iiorb = 0
                                do iorb=1,smats%nfvctr
                                    if (neighborx(iorb,kat)) then
@@ -2707,7 +2707,7 @@ module multipole
                       !!!! END OF LUIGI'S NEW IDEA ######################################################
                       if (do_ortho==no) then
                           overlap_small = f_malloc((/n,n/),id='overlap_small')
-                          call extract_matrix(smats, ovrlp%matrix_compr, neighborx(1:,kat), n, nmaxx, overlap_small)
+                          call extract_matrix(smats, ovrlp%matrix_compr, neighborx(1,kat), n, nmaxx, overlap_small)
                           call f_memcpy(src=kp,dest=qmat_tilde)
                           call gemm('n', 'n', n, n, n, 1.d0, qmat_tilde(1,1), n, overlap_small(1,1), n, 0.d0, kp(1,1), n)
                           call f_free(overlap_small)
@@ -2869,7 +2869,7 @@ module multipole
       end if
       call f_free_ptr(projx)
       call f_free_ptr(nx)
-      call f_free_ptr(neighborx)
+      call f_free(neighborx)
       call f_free_ptr(atomic_multipoles)
       call f_free(multipole_matrix_large)
       call deallocate_external_potential_descriptors(ep)
@@ -2925,7 +2925,7 @@ module multipole
       integer,intent(out),optional :: natpx, isatx, nmaxx
       integer,dimension(:),pointer,intent(out),optional :: nx
       real(kind=8),dimension(:,:),pointer,intent(out),optional :: projx
-      logical,dimension(:,:),pointer,intent(out),optional :: neighborx
+      logical,dimension(:,:),allocatable,intent(out),optional :: neighborx
       type(matrices),dimension(24),intent(in),optional :: rpower_matrix
       logical,intent(in),optional :: only_sizes
       real(kind=8),dimension(0:4,0:6,1:smmd%ntypes),intent(in),optional :: psppar
@@ -2954,7 +2954,8 @@ module multipole
       real(kind=8) :: kT, ttt, tr_KS
       !real(kind=8),parameter :: alpha = 5.d-1
       real(kind=8) :: alpha, alpha_up, alpha_low, convergence_criterion
-      real(kind=8),dimension(:,:,:),allocatable :: multipoles_fake, penalty_matrices
+      real(kind=8),dimension(:,:,:),allocatable :: multipoles_fake
+      real(kind=8),dimension(:,:),allocatable :: penalty_matrices
       real(kind=8),dimension(:),allocatable :: alpha_calc
       !character(len=*),parameter :: mode='old'
       real(kind=8),dimension(3) :: target_charges
@@ -3122,7 +3123,7 @@ module multipole
       end do
 
       if (present(neighborx)) then
-          neighborx = f_malloc_ptr((/smats%nfvctr,natpx/),id='neighborx')
+          neighborx = f_malloc((/smats%nfvctr,natpx/),id='neighborx')
           !call f_memcpy(src=neighbor,dest=neighborx)
           !neighborx = neighbor
           do iat=1,natpx
@@ -3160,7 +3161,7 @@ module multipole
       ilup = f_malloc((/2,nmax,nmax,natp/),id='ilup')
       n_all = f_malloc(natp,id='n_all')
 
-      penalty_matrices = f_malloc((/nmax,nmax,natp/),id='penalty_matrices')
+      penalty_matrices = f_malloc((/nmax**2,natp/),id='penalty_matrices')
       alpha_calc = f_malloc(natp,id='alpha_calc')
 
 
@@ -3453,15 +3454,15 @@ module multipole
                       if (present(multipoles)) then
                           write(*,*) 'call with multipoles'
                           call add_penalty_term_new(smmd%geocode, smmd%nat, smats%nfvctr, &
-                               neighbor(1:,kat), rxyz(1:,kkat), smmd%on_which_atom, &
+                               neighbor(1:,kat), rxyz(1,kkat), smmd%on_which_atom, &
                                multipoles, smmd%cell_dim, com, alpha, n, ham, &
-                               nmax, penalty_matrices(1:n,1:n,kat))
+                               nmax, penalty_matrices(1,kat))
                       else
                           write(*,*) 'call with multipoles_fake'
                           call add_penalty_term_new(smmd%geocode, smmd%nat, smats%nfvctr, &
-                               neighbor(1:,kat), rxyz(1:,kkat), smmd%on_which_atom, &
+                               neighbor(1:,kat), rxyz(1,kkat), smmd%on_which_atom, &
                                multipoles_fake, smmd%cell_dim, com, alpha, n, ham, &
-                               nmax, penalty_matrices(1:n,1:n,kat))
+                               nmax, penalty_matrices(1,kat))
                       end if
                       alpha_calc(kat) = alpha
                   else
@@ -3472,7 +3473,8 @@ module multipole
                       !        write(*,*) 'i, j, penmat', i, j, penalty_matrices(j,i,kat)
                       !    end do
                       !end do
-                      ham(1:n,1:n) = ham(1:n,1:n) + tt*penalty_matrices(1:n,1:n,kat)
+                      !ham(1:n,1:n) = ham(1:n,1:n) + tt*penalty_matrices(1:n,1:n,kat)
+                      call axpy(n**2, tt, penalty_matrices(1,kat), 1, ham(1,1), 1)
                   end if
                   call f_free(multipoles_fake)
               end if
@@ -3720,7 +3722,7 @@ end if
                   n = n_all(kat)
                   proj = f_malloc0((/n,n/),id='proj')
                   call calculate_projector(n, ntot, nmax, kkat, id_all, eval_all, &
-                       coeff_all(1:,1:,kat), occ_all, proj)
+                       coeff_all(1,1,kat), occ_all, proj)
                   if (present(projx)) then
                       call vcopy(n**2, proj(1,1), 1, projx(1,kat), 1)
                   end if

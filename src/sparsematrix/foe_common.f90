@@ -120,7 +120,7 @@ module foe_common
   public :: init_foe
   public :: get_chebyshev_polynomials
   public :: find_fermi_level
-  public :: get_poynomial_degree
+  public :: get_polynomial_degree
 
 
   contains
@@ -197,7 +197,8 @@ module foe_common
       call chebyshev_coefficients_communicate(n, cc)
       !!call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
-      call accuracy_of_chebyshev_expansion(iproc, nproc, n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
+      call accuracy_of_chebyshev_expansion(iproc, nproc, n, cc, A,B, &
+           1.d-3, func, x_max_error, max_error, mean_error)
     
       call f_release_routine()
 
@@ -1107,13 +1108,14 @@ module foe_common
     end subroutine init_foe
 
 
-    subroutine accuracy_of_chebyshev_expansion(iproc, nproc, npl, coeff, bounds, h, func, x_max_error, max_error, mean_error)
+    subroutine accuracy_of_chebyshev_expansion(iproc, nproc, npl, coeff, bound_lower, bound_upper, &
+               h, func, x_max_error, max_error, mean_error)
       implicit none
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, npl
       real(kind=8),dimension(npl),intent(in) :: coeff
-      real(kind=8),dimension(2),intent(in) :: bounds
+      real(kind=8),intent(in) :: bound_lower, bound_upper
       real(kind=8),intent(in) :: h
       real(kind=8),external :: func
       real(kind=8),intent(out) :: x_max_error, max_error, mean_error
@@ -1125,11 +1127,11 @@ module foe_common
 
       call f_routine(id='accuracy_of_chebyshev_expansion')
 
-      sigma = 2.d0/(bounds(2)-bounds(1))
-      tau = (bounds(1)+bounds(2))/2.d0
+      sigma = 2.d0/(bound_upper-bound_lower)
+      tau = (bound_lower+bound_upper)/2.d0
 
-      isx = ceiling(bounds(1)/h)
-      iex = floor(bounds(2)/h)
+      isx = ceiling(bound_lower/h)
+      iex = floor(bound_upper/h)
       n = iex - isx + 1
 
       ! MPI parallelization... maybe only worth for large n?
@@ -2038,7 +2040,7 @@ module foe_common
 
 
     ! Determine the polynomial degree which yields the desired precision
-    subroutine get_poynomial_degree(iproc, nproc, ispin, ncalc, fun, foe_obj, &
+    subroutine get_polynomial_degree(iproc, nproc, ispin, ncalc, fun, foe_obj, &
                npl_min, npl_max, npl_stride, max_polynomial_degree, verbosity, npl, cc, &
                max_error, x_max_error, mean_error, anoise, &
                ex, ef, fscale)
@@ -2065,7 +2067,7 @@ module foe_common
       real(kind=8),dimension(:,:,:),allocatable :: cc_trial
       real(kind=8) :: x_max_error_penaltyfunction, max_error_penaltyfunction, mean_error_penaltyfunction
 
-      call f_routine(id='get_poynomial_degree')
+      call f_routine(id='get_polynomial_degree')
 
       ! Check the arguments
       select case (fun)
@@ -2189,7 +2191,7 @@ module foe_common
 
       call f_release_routine
 
-    end subroutine get_poynomial_degree
+    end subroutine get_polynomial_degree
 
 
     subroutine chebyshev_coefficients_init_parallelization(iproc, nproc, n, np, is)

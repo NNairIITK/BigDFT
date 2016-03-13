@@ -1029,7 +1029,7 @@ module foe
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: scale_and_shift_matrix, evnoise, &
                             check_eigenvalue_spectrum_new, retransform_ext, get_chebyshev_expansion_coefficients, &
-                            get_chebyshev_polynomials, find_fermi_level, get_poynomial_degree
+                            get_chebyshev_polynomials, find_fermi_level, get_polynomial_degree
       use module_func
       implicit none
     
@@ -1091,6 +1091,7 @@ module foe
       integer :: iline, icolumn, icalc, npl_min, npl_max, npl_stride
       real(kind=8),dimension(:),allocatable :: ham_large
       real(kind=8),dimension(2) :: fscale_ispin
+      real(kind=8),dimension(1) :: ef_arr, fscale_arr
       
     
     
@@ -1229,10 +1230,12 @@ module foe
                       call yaml_sequence_open('determine eigenvalue bounds')
                   end if
                   bounds_loop: do
-                      call get_poynomial_degree(iproc, nproc, ispin, 1, FUNCTION_ERRORFUNCTION, foe_obj, &
+                      efarr(1) = foe_data_get_real(foe_obj,"ef",ispin)
+                      fscale_arr(1) = foe_data_get_real(foe_obj,"fscale",ispin)
+                      call get_polynomial_degree(iproc, nproc, ispin, 1, FUNCTION_ERRORFUNCTION, foe_obj, &
                            npl_min, npl_max, npl_stride, 1.d-5, 0, npl, cc, &
                            max_error, x_max_error, mean_error, anoise, &
-                           ef=(/foe_data_get_real(foe_obj,"ef",ispin)/), fscale=(/foe_data_get_real(foe_obj,"fscale",ispin)/))
+                           ef=efarr, fscale=fscale_arr)
                       npl_min = npl !to be used to speed up the search for npl in a following iteration in case the temperature must be lowered
                       if (iproc==0) then
                           call yaml_sequence(advance='no')
