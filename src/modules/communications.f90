@@ -1299,23 +1299,24 @@ module communications
 
 
     !> Locreg communication
-    subroutine communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
+    subroutine communicate_locreg_descriptors_basics(iproc, nproc, nlr, rootarr, orbs, llr)
       use module_base
       use module_types, only: orbitals_data, locreg_descriptors
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nlr
+      integer,intent(in) :: iproc, nproc, nlr
       integer,dimension(nlr),intent(in) :: rootarr
       type(orbitals_data),intent(in) :: orbs
       type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
     
       ! Local variables
-      integer:: ierr, ilr, iilr
+      integer:: ierr, ilr, iilr, jproc
       ! integer:: istat, iall
       character(len=1),dimension(:),allocatable :: worksend_char, workrecv_char
       logical,dimension(:),allocatable :: worksend_log, workrecv_log
       integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
+      integer,dimension(:),allocatable :: norb_par
       real(8),dimension(:,:),allocatable :: worksend_dbl, workrecv_dbl
       character(len=*),parameter :: subname='communicate_locreg_descriptors_basics'
 
@@ -1375,17 +1376,30 @@ module communications
               worksend_dbl(6,iilr)=llr(ilr)%locrad_mult
           end if
       end do
+
+      norb_par = f_malloc(0.to.nproc-1,id='norb_par')
+      do jproc=0,nproc-1
+          norb_par(jproc) = orbs%norb_par(jproc,0)
+      end do
     
-      call mpi_allgatherv(worksend_char, orbs%norbp, mpi_character, workrecv_char, orbs%norb_par(:,0), &
+      call mpi_allgatherv(worksend_char, orbs%norbp, mpi_character, workrecv_char, norb_par, &
            orbs%isorb_par, mpi_character, bigdft_mpi%mpi_comm, ierr)
-      call mpi_allgatherv(worksend_log, orbs%norbp, mpi_logical, workrecv_log, orbs%norb_par(:,0), &
+      call mpi_allgatherv(worksend_log, orbs%norbp, mpi_logical, workrecv_log, norb_par, &
            orbs%isorb_par, mpi_logical, bigdft_mpi%mpi_comm, ierr)
-      call mpi_allgatherv(worksend_int, 27*orbs%norbp, mpi_integer, workrecv_int, 27*orbs%norb_par(:,0), &
+      do jproc=0,nproc-1
+          norb_par(jproc) = 27*orbs%norb_par(jproc,0)
+      end do
+      call mpi_allgatherv(worksend_int, 27*orbs%norbp, mpi_integer, workrecv_int, norb_par, &
            27*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
 !!$      call mpiallgather(sendbuf=worksend_int,sendcount=27*orbs%norbp,recvbuf=workrecv_int,recvcounts=27*orbs%norb_par(:,0), &
 !!$           displs=27*orbs%isorb_par, comm=bigdft_mpi%mpi_comm)
-      call mpi_allgatherv(worksend_dbl, 6*orbs%norbp, mpi_double_precision, workrecv_dbl, 6*orbs%norb_par(:,0), &
+      do jproc=0,nproc-1
+          norb_par(jproc) = 6*orbs%norb_par(jproc,0)
+      end do
+      call mpi_allgatherv(worksend_dbl, 6*orbs%norbp, mpi_double_precision, workrecv_dbl, norb_par, &
            6*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+
+       call f_free(norb_par)
     
       do ilr=1,nlr
           iilr=workrecv_int(1,ilr)
