@@ -38,6 +38,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
   ! Local variables
   integer:: iorb, jorb, iiorb, ierr, it, itlast, ispin
+  integer, dimension(1) :: iproc_arr, ncomp
   real(kind=gp),dimension(:,:),allocatable:: grad, grad_cov_or_coeffp !coeffp, grad_cov
   real(kind=gp),dimension(:),allocatable:: mat_coeff_diag
   real(kind=gp) :: tt, ddot, energy0, pred_e
@@ -167,7 +168,9 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
                tmb%coeff(1,tmb%orbs%isorb+1),1,grad_cov_or_coeffp(1,1),1)
 
                !write(*,*) 'before diis_opt: sum(tmb%coeff)', sum(tmb%coeff)
-           call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%linmat%m%nfvctr*tmb%orbs%norbp/), &
+           iproc_arr(1)=iproc
+           ncomp(1)=tmb%linmat%m%nfvctr*tmb%orbs%norbp
+           call diis_opt(iproc,nproc,1,0,1,iproc_arr,ncomp, &
                 tmb%linmat%m%nfvctr*tmb%orbs%norbp,&
                 grad_cov_or_coeffp,grad,ldiis_coeff) 
                !write(*,*) 'after diis_opt: sum(tmb%coeff)', sum(tmb%coeff)
@@ -175,7 +178,9 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
            if (orbs%norbp>0) call vcopy(tmb%linmat%m%nfvctr*orbs%norbp,tmb%coeff(1,orbs%isorb+1), &
                1,grad_cov_or_coeffp(1,1),1)
 
-           call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%linmat%m%nfvctr*orbs%norbp/),tmb%linmat%m%nfvctr*orbs%norbp, &
+           iproc_arr(1)=iproc
+           ncomp(1)=tmb%linmat%m%nfvctr*orbs%norbp
+           call diis_opt(iproc,nproc,1,0,1,iproc_arr,ncomp,tmb%linmat%m%nfvctr*orbs%norbp, &
                 grad_cov_or_coeffp,grad,ldiis_coeff) 
         end if
      else  !steepest descent with curve fitting for line minimization

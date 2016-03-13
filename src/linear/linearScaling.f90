@@ -2245,6 +2245,9 @@ end if
        integer, intent(in) :: cdft_it
        real(kind=gp), intent(out) :: vgrad
 
+      ! local arguments
+      integer, dimension(1) :: iproc_arr, ncomp
+
        
          ! CDFT: Calculate gradient of V=Tr[Kw]-Nc 
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
@@ -2297,7 +2300,9 @@ end if
             vdiis%mids=mod(vdiis%ids,vdiis%idsx)+1
             vdiis%ids=vdiis%ids+1
             vold=cdft%lag_mult
-            call diis_opt(0,1,1,0,1,(/0/),(/1/),1,&
+            iproc_arr(1)=0
+            ncomp(1)=1
+            call diis_opt(0,1,1,0,1,iproc_arr,ncomp,1,&
                cdft%lag_mult,-vgrad,vdiis) 
             !call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/1/),1,&
             !   cdft%lag_mult,-vgrad,vdiis) 
