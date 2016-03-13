@@ -1950,6 +1950,7 @@ linear_accurate:
   dft:
     hgrids: accurate
     ixc: PBE
+    inputpsiid: linear
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
@@ -1987,6 +1988,7 @@ linear_moderate:
   dft:
     hgrids: accurate
     ixc: PBE
+    inputpsiid: linear
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
@@ -2018,6 +2020,7 @@ linear_fast:
   dft:
     hgrids: accurate
     ixc: PBE
+    inputpsiid: linear
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes

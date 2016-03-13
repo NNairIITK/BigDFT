@@ -465,6 +465,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
 
   integer :: iorb, istat, iall, ifrag
   integer, dimension(2) :: ifrag_charged
+  integer, dimension(1) :: power
   !real(kind=8), dimension(:,:,:), allocatable :: weight_coeff
   real(kind=8), dimension(:,:), allocatable :: weight_coeff_diag
   real(kind=8), dimension(:,:), pointer :: ovrlp_half
@@ -496,7 +497,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
   call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
        tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
-  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, input%lin%order_taylor, 1, (/2/), &
+  power(1)=2
+  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, input%lin%order_taylor, 1, power, &
        tmb%orthpar%blocksize_pdsyev, imode=2, &
        ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
@@ -1155,6 +1157,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   real(gp), dimension(tmb%linmat%m%nfvctr,KSorbs%norbp), intent(out) :: grad_cov, grad  ! could make grad_cov KSorbs%norbp
 
   integer :: iorb, iiorb, info, ierr, ispin
+  integer, dimension(1) :: power
   real(gp),dimension(:,:,:),allocatable :: sk, skh, skhp
   real(gp),dimension(:,:),pointer :: inv_ovrlp
   real(kind=gp), dimension(:,:), allocatable:: grad_full
@@ -1325,7 +1328,8 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   if(tmb%orthpar%blocksize_pdsyev<0) then
      call timing(iproc,'dirmin_dgesv','OF')
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
-     call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/1/), -8, &
+     power(1)=1
+     call overlapPowerGeneral(iproc, nproc, order_taylor, 1, power, -8, &
           imode=2, &
           ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, check_accur=.true., &
@@ -1548,6 +1552,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   real(gp), dimension(tmb%linmat%m%nfvctr,tmb%orbs%norbp), intent(out) :: grad_cov, grad  ! could make grad_cov KSorbs%norbp
 
   integer :: iorb, iiorb, info, ierr, ispin
+  integer, dimension(1) :: power
   real(gp),dimension(:,:,:),allocatable :: sk, skhp, skh
   real(gp),dimension(:,:),pointer ::  inv_ovrlp
   real(kind=gp), dimension(:), allocatable:: occup_tmp
@@ -1686,7 +1691,8 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
      !   call f_free(ipiv)
      !end if
      !!inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
-     call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/1/), -8, &
+     power(1)=1
+     call overlapPowerGeneral(iproc, nproc, order_taylor, 1, power, -8, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, check_accur=.true., &
           max_error=max_error, mean_error=mean_error)

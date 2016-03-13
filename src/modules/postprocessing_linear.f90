@@ -183,6 +183,7 @@ module postprocessing_linear
 
       ! Local variables
       integer :: ierr, iorb, iat, ind, ist, ishift, ispin, iiorb
+      integer, dimension(1) :: power
       type(matrices),dimension(1) :: inv_ovrlp
       real(kind=8),dimension(:,:,:),allocatable :: proj_mat
       real(kind=8),dimension(:,:),allocatable :: weight_matrix, weight_matrixp, proj_ovrlp_half
@@ -302,7 +303,8 @@ module postprocessing_linear
               inv_ovrlp(1) = matrices_null()
               inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
 
-              call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), blocksize, &
+              power(1)=2
+              call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, power, blocksize, &
                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                    ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
                    max_error=max_error, mean_error=mean_error)
