@@ -2192,7 +2192,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   integer :: ierr, ind, iorb, korb, llorb, jorb, ist
   integer :: npts_per_proc, ind_start, ind_end, indc, ispin, norbx, iseg, i
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp, coefftrans
-  real(kind=8), dimension(:,:), pointer :: ovrlp_coeff
+  real(kind=8), dimension(:,:), allocatable :: ovrlp_coeff
   real(kind=8),dimension(:,:),pointer :: ovrlp_matrix, inv_ovrlp_matrix
   character(len=*),parameter:: subname='reorthonormalize_coeff'
   type(matrices) :: KS_ovrlp_
@@ -2240,7 +2240,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
           end if
       end if
 
-      ovrlp_coeff=f_malloc_ptr((/norbx,norbx/), id='ovrlp_coeff')
+      ovrlp_coeff=f_malloc((/norbx,norbx/), id='ovrlp_coeff')
 
       !!if(iproc==0) then
       !!    write(*,'(a)',advance='no') 'coeff renormalization...'
@@ -2384,7 +2384,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
                   basis_overlap, max_error, mean_error)
           end if
       else
-         call deviation_from_unity_parallel(iproc, 1, norbx, norbx, 0, ovrlp_coeff(1:norbx,1:norbx), &
+         call deviation_from_unity_parallel(iproc, 1, norbx, norbx, 0, ovrlp_coeff(1,1), &
               basis_overlap, max_error, mean_error)    
       end if
 
@@ -2406,7 +2406,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
       if (max_error>5.0d0.and.orbs%norb==norb) then
          if (iproc==0) print*,'Error in reorthonormalize_coeff too large, reverting to gram-schmidt orthonormalization'
          ! gram-schmidt as too far from orthonormality to use iterative schemes for S^-1/2
-         call f_free_ptr(ovrlp_coeff)
+         call f_free(ovrlp_coeff)
          call timing(iproc,'renormCoefCom2','ON')
          call gramschmidt_coeff_trans(iproc,nproc,orbs%norbu,orbs%norb,basis_orbs,basis_overlap,basis_overlap_mat,coeff)
          call timing(iproc,'renormCoefCom2','OF')
@@ -2456,7 +2456,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
          call timing(iproc,'renormCoefCom2','ON')
 
-         call f_free_ptr(ovrlp_coeff)
+         call f_free(ovrlp_coeff)
 
          ! Build the new linear combinations
          if (communication_strategy==ALLREDUCE) then
@@ -2552,7 +2552,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
       end if
 
       if (check_accuracy) then
-         ovrlp_coeff=f_malloc_ptr((/norbx,norbx/), id='ovrlp_coeff')
+         ovrlp_coeff=f_malloc((/norbx,norbx/), id='ovrlp_coeff')
          coeff_tmp=f_malloc((/basis_overlap%nfvctrp,max(norbx,1)/), id='coeff_tmp')
          ! Calculate the overlap matrix among the coefficients with respect to basis_overlap.
          if (basis_overlap%nfvctrp>0) then
@@ -2591,7 +2591,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
             end if
          else
             call deviation_from_unity_parallel(iproc, 1, norbx, norbx, 0, &
-                 ovrlp_coeff(1:norbx,1:norbx), basis_overlap, max_error, mean_error)    
+                 ovrlp_coeff(1,1), basis_overlap, max_error, mean_error)    
          end if
 
          if (iproc==0) print*,'Max deviation from unity following reorthonormalize_coeff',max_error
@@ -2603,7 +2603,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
          !   end do
          !end do
 
-         call f_free_ptr(ovrlp_coeff)
+         call f_free(ovrlp_coeff)
       end if
 
       call deallocate_matrices(KS_ovrlp_)

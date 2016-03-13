@@ -1624,8 +1624,9 @@ contains
          call get_psp(dict//filename,ityp,atoms%astruct%ntypes,&
               atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%npspcode(ityp), &
               atoms%ixcpsp(ityp), atoms%iradii_source(ityp),psppar,&
-              atoms%radii_cf(ityp,:),pawpatch,&
+              radii_cf,pawpatch,&
               atoms%pawrad,atoms%pawtab,atoms%epsatm)
+         atoms%radii_cf(ityp,1:3) = radii_cf(1:3)
          atoms%psppar(0:4,0:6,ityp) = psppar(0:4,0:6)
 !!$
 !!$         call psp_set_from_dict(dict // filename, l, &
