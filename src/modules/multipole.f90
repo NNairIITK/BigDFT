@@ -997,6 +997,7 @@ module multipole
       real(kind=8),dimension(:),allocatable :: weight_matrix_compr_tg, proj_ovrlp_half_compr
       real(kind=8) :: max_error, mean_error
       integer :: ioperation
+      integer, dimension(1) :: power
 
       call f_routine(id='matrix_for_orthonormal_basis')
 
@@ -1016,7 +1017,8 @@ module multipole
       inv_ovrlp(1) = matrices_null()
       inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
 
-      call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/ioperation/), -1, &
+      power(1)=ioperation
+      call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, power, -1, &
            imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
            ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
            max_error=max_error, mean_error=mean_error)
@@ -2361,6 +2363,7 @@ module multipole
       ! Local variables
       integer :: methTransformOverlap, iat, ind, ispin, ishift, iorb, jorb, iiorb, l, m, itype, natpx, isatx, nmaxx, kat, n, i, kkat
       integer :: ilr, impl, mm, lcheck, nelpsp, psp_source, j, lwork, ii
+      integer, dimension(1) :: power
       logical :: can_use_transposed, all_norms_ok
       real(kind=8),dimension(:),pointer :: phit_c, phit_f
       real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, multipole_matrix_large, Qmat_tmp,Slmphi
@@ -2575,14 +2578,16 @@ module multipole
               newovrlp = matrices_null()
               newovrlp%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_TASKGROUP, id='newovrlp%matrix_compr')
               call f_memcpy(src=newoverlap, dest=newovrlp%matrix_compr)
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, (/1/), -1, &
+              power=1
+              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, power, -1, &
                     imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                     ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
                     check_accur=.true., max_error=max_error, mean_error=mean_error)
               call deallocate_matrices(newovrlp)
               call f_free(newoverlap)
           else
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, (/1/), -1, &
+              power(1)=1
+              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, power, -1, &
                     imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                     ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
                     check_accur=.true., max_error=max_error, mean_error=mean_error)
@@ -2934,6 +2939,7 @@ module multipole
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl, lwork
       integer :: k, l, iatold, isat, natp, kkat, istot, ntotp, i1, i2, i3, is1, ie1, is2, ie2, is3, ie3, j1, j2, j3, ikT, info
       integer :: ialpha, ilr, isshift, ilshift, ispin
+      integer, dimension(1) :: power
       real(kind=8) :: r2, cutoff2, rr2, tt, ef, q, occ, max_error, mean_error, rr2i, rr2j, ttxi, ttyi, ttzi, ttxj, ttyj, ttzj
       real(kind=8) :: tti, ttj, charge_net, charge_total, rloc, charge, sigma2
       real(kind=8) :: xi, xj, yi, yj, zi, zj, ttx, tty, ttz, xx, yy, zz, x, y, z
@@ -3057,7 +3063,8 @@ module multipole
               ovrlp_onehalf_(1) = matrices_null()
               ovrlp_onehalf_(1)%matrix_compr = &
                   sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='ovrlp_onehalf_(1)%matrix_compr')
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, (/2/), -1, &
+              power=2
+              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, power, -1, &
                     imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                     ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_(1), &
                     check_accur=.true., max_error=max_error, mean_error=mean_error)
