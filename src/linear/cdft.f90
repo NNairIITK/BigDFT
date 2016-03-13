@@ -652,7 +652,7 @@ end subroutine calculate_weight_matrix_lowdin_gradient
 
 !> CDFT: calculates the weight matrix w_ab given w(r)
 !! for the moment putting densities in global box and ignoring parallelization
-subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,denspot)
+subroutine calculate_weight_matrix_using_density(iproc,nproc,cdft,tmb,at,input,GPU,denspot)
   use module_base
   use module_types
   use constrained_dft, only: cdft_data
@@ -667,7 +667,7 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   use locregs_init, only: small_to_large_locreg
   use locreg_operations, only: confpot_data
   implicit none
-  integer,intent(in) :: iproc
+  integer,intent(in) :: iproc, nproc
   type(cdft_data), intent(inout) :: cdft
   type(atoms_data), intent(in) :: at
   type(input_variables),intent(in) :: input
@@ -676,17 +676,24 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   type(GPU_pointers),intent(inout) :: GPU
 
   !integer :: iorb, jorb
+  integer :: jproc
   real(kind=gp),dimension(:),allocatable :: hpsit_c, hpsit_f
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   type(energy_terms) :: energs
   character(len=*),parameter :: subname='calculate_weight_matrix_using_density'
   type(matrices) :: weight_
+  integer,dimension(:),allocatable :: n3p
 
   energs=energy_terms_null()
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+  n3p = f_malloc(0.to.nproc-1,id='n3p')
+  do jproc=0,nproc-1
+      n3p(jproc) = max(denspot%dpbox%nscatterarr(jproc,2),1)
+  end do
   call start_onesided_communication(bigdft_mpi%iproc,bigdft_mpi%nproc,&
-       denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),max(denspot%dpbox%nscatterarr(:,2),1),cdft%weight_function, &
+       denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),n3p,cdft%weight_function, &
        tmb%ham_descr%comgp%nrecvbuf,tmb%ham_descr%comgp%recvbuf,tmb%ham_descr%comgp,tmb%ham_descr%lzd)
+  call f_free(n3p)
 
   allocate(confdatarrtmp(tmb%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
