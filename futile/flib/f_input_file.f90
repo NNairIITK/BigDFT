@@ -155,6 +155,7 @@ contains
     !call f_release_routine()
 
   end subroutine input_file_complete
+  
 
   subroutine input_keys_set(inputdef,userDef, dict, file, key)
     use dictionaries
@@ -447,7 +448,7 @@ contains
   END SUBROUTINE input_keys_fill
 
 
-  !> control if all the keys which are defined in a given field are associated with a true input variable
+  !> Control if all the keys which are defined in a given field are associated with a true input variable
   subroutine input_keys_control(inputdef,dict,file)
     use dictionaries
     use yaml_output, only: yaml_map,yaml_warning
