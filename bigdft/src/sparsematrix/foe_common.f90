@@ -1467,7 +1467,7 @@ module foe_common
                       !!end if
 
 
-                      cc = f_malloc((/npl,3,1/),id='cc')
+                      cc = f_malloc((/npl,1,3/),id='cc')
 
                       !!if (foe_data_get_real(foe_obj,"evlow",ispin)>=0.d0) then
                       !!    call f_err_throw('Lowest eigenvalue must be negative')
@@ -1488,12 +1488,12 @@ module foe_common
                       call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
                            muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
                       call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,2,1), &
+                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,2), &
                            x_max_error_fake, max_error_fake, mean_error_fake)
                       do ipl=1,npl
-                         cc(ipl,3,1) = -cc(ipl,2,1)
+                         cc(ipl,1,3) = -cc(ipl,1,2)
                       end do
-                      call evnoise(npl, cc(1,2,1), foe_data_get_real(foe_obj,"evlow",ispin), &
+                      call evnoise(npl, cc(1,1,2), foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
                       !write(*,*) 'ef', foe_data_get_real(foe_obj,"ef",ispin)
 
@@ -1514,8 +1514,8 @@ module foe_common
                       if (smatl%nspin==1) then
                           do ipl=1,npl
                               cc(ipl,1,1)=2.d0*cc(ipl,1,1)
-                              cc(ipl,2,1)=2.d0*cc(ipl,2,1)
-                              cc(ipl,3,1)=2.d0*cc(ipl,3,1)
+                              cc(ipl,1,2)=2.d0*cc(ipl,1,2)
+                              cc(ipl,1,3)=2.d0*cc(ipl,1,3)
                           end do
                       end if
 
@@ -1826,7 +1826,7 @@ module foe_common
                       end if
 
 
-                      cc = f_malloc((/npl,3,1/),id='cc')
+                      cc = f_malloc((/npl,1,3/),id='cc')
 
                       call timing(iproc, 'FOE_auxiliary ', 'OF')
                       call timing(iproc, 'chebyshev_coef', 'ON')
@@ -1841,12 +1841,12 @@ module foe_common
                       call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
                            muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
                       call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,2,1), &
+                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,2), &
                            x_max_error_fake, max_error_fake, mean_error_fake)
                       do ipl=1,npl
-                         cc(ipl,3,1) = -cc(ipl,2,1)
+                         cc(ipl,1,3) = -cc(ipl,1,2)
                       end do
-                      call evnoise(npl, cc(1,2,1), foe_data_get_real(foe_obj,"evlow",ispin), &
+                      call evnoise(npl, cc(1,1,2), foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
 
 
@@ -1866,8 +1866,8 @@ module foe_common
                       if (smatl%nspin==1) then
                           do ipl=1,npl
                               cc(ipl,1,1)=2.d0*cc(ipl,1,1)
-                              cc(ipl,2,1)=2.d0*cc(ipl,2,1)
-                              cc(ipl,3,1)=2.d0*cc(ipl,3,1)
+                              cc(ipl,1,2)=2.d0*cc(ipl,1,2)
+                              cc(ipl,1,3)=2.d0*cc(ipl,1,3)
                           end do
                       end if
 
@@ -2020,7 +2020,7 @@ module foe_common
     end subroutine calculate_trace_distributed_new
 
 
-    ! Determine the polynomial degree which yields the desired precision
+    !> Determine the polynomial degree which yields the desired precision
     subroutine get_polynomial_degree(iproc, nproc, ispin, ncalc, fun, foe_obj, &
                npl_min, npl_max, npl_stride, max_polynomial_degree, verbosity, npl, cc, &
                max_error, x_max_error, mean_error, anoise, &
@@ -2078,7 +2078,7 @@ module foe_common
           call yaml_sequence_open('Determine polynomial degree')
       end if
 
-      cc_trial = f_malloc0((/npl_max,3,ncalc/),id='cc_trial')
+      cc_trial = f_malloc0((/npl_max,ncalc,3/),id='cc_trial')
 
       found_degree = .false.
       degree_loop: do ipl=npl_min,npl_max,npl_stride
@@ -2098,9 +2098,9 @@ module foe_common
                   call func_set(FUNCTION_ERRORFUNCTION, efx=ef(icalc), fscalex=fscale(icalc))
               end select
               call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
-                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,1,icalc), &
+                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,icalc,1), &
                    x_max_error(icalc), max_error(icalc), mean_error(icalc))
-              !write(*,*) 'icalc, sum(cc_trial(:,1,icalc))', icalc, sum(cc_trial(:,1,icalc)), ex(icalc)
+              !write(*,*) 'icalc, sum(cc_trial(:,icalc,1))', icalc, sum(cc_trial(:,icalc,1)), ex(icalc)
           end do
 
           call timing(iproc, 'chebyshev_coef', 'OF')
@@ -2128,10 +2128,10 @@ module foe_common
                   call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
                        muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
                   call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,2,icalc), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,icalc,2), &
                        x_max_error_penaltyfunction, max_error_penaltyfunction, mean_error_penaltyfunction)
                   do jpl=1,ipl
-                      cc_trial(jpl,3,icalc) = -cc_trial(jpl,2,icalc)
+                      cc_trial(jpl,icalc,3) = -cc_trial(jpl,icalc,2)
                   end do
                   if (max_error_penaltyfunction>1.d-2) then
                       error_ok = .false.
@@ -2156,11 +2156,11 @@ module foe_common
           call yaml_sequence_close()
       end if
 
-      cc = f_malloc_ptr((/npl,3,ncalc/),id='cc')
-      do icalc=1,ncalc
-          do j=1,3
+      cc = f_malloc_ptr((/npl,ncalc,3/),id='cc')
+      do j=1,3
+          do icalc=1,ncalc
               do ipl=1,npl
-                  cc(ipl,j,icalc)=cc_trial(ipl,j,icalc)
+                  cc(ipl,icalc,j)=cc_trial(ipl,icalc,j)
                   !write(*,*) 'icalc, ipl, cc(ipl,1,icalc)', icalc, ipl, cc(ipl,1,icalc)
               end do
           end do

@@ -823,7 +823,7 @@ module ice
 
           call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
-               inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc(:,1,:), inv_ovrlp_matrixp_small_new)
+               inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc(:,:,1), inv_ovrlp_matrixp_small_new)
           !write(*,*) 'sum(cc(:,1,1))',sum(cc(:,1,1))
           !write(*,*) 'sum(ovrlp_scaled%matrix_compr)',sum(ovrlp_scaled%matrix_compr)
           !write(*,*) 'sum(chebyshev_polynomials)', sum(chebyshev_polynomials)
@@ -898,9 +898,6 @@ module ice
     !!      ! Lower bounds too large
 
     !!end subroutine adjust_eval_bounds
-
-
-
 
 
 end module ice
