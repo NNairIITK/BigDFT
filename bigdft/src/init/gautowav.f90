@@ -633,18 +633,18 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
 END SUBROUTINE gaussians_to_wavelets_new
 
 !> routine with lookup array on the Gaussians
-subroutine gaussians_to_wavelets_mask(ob,hgrids,G,wfn_gau,psi,mask)
+subroutine gaussians_to_wavelets_mask(ob,hgrids,G,wfn_gau,mask)
   use module_base
   use module_types
   use orbitalbasis
   use yaml_output
+  use f_ternary !to test
   !use wrapper_MPI, only: mpireduce to be written yet
   implicit none
   real(gp), dimension(3), intent(in) :: hgrids
   type(orbital_basis), intent(in) :: ob
   type(gaussian_basis), intent(in) :: G
   real(wp), dimension(G%ncoeff,ob%orbs%nspinor,ob%orbs%norbp), intent(in) :: wfn_gau
-  real(wp), dimension(ob%orbs%npsidim_orbs), intent(inout) :: psi
   logical, dimension(ob%orbs%norbp), intent(in) :: mask !<mask array, only convert into gaussians the wfn for which the value is .true.
   !local variables
   integer :: ispinor,ncplx,ierr
@@ -661,14 +661,17 @@ subroutine gaussians_to_wavelets_mask(ob,hgrids,G,wfn_gau,psi,mask)
   do while (ket_next(it))
      if (.not. mask(it%iorbp)) cycle
      !evaluate the complexity of the k-point
-     if (all(it%kpoint==0.0_gp)) then
-        ncplx=1
-     else
-        ncplx=2
-     end if
+     !new syntax to test
+     ncplx = .if. all(it%kpoint==0.0_gp) .then. 1 .else. 2
+
+!!$     if (all(it%kpoint==0.0_gp)) then
+!!$        ncplx=1
+!!$     else
+!!$        ncplx=2
+!!$     end if
      totnorm=0.0_dp
      do ispinor=1,it%nspinor,ncplx
-        psi_ptr=>ob_subket_ptr(it,ispinor)
+        psi_ptr=> ob_subket_ptr(it,ispinor,ncplx=ncplx)
         call gaussians_to_wavelets_orb(ncplx,it%lr,&
              hgrids(1),hgrids(2),hgrids(3),&
              it%kpoint(1),it%kpoint(2),it%kpoint(3),G,&

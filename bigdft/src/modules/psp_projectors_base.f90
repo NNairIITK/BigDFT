@@ -20,7 +20,6 @@ module psp_projectors_base
   integer, parameter :: PSP_APPLY_KEYS_PACK=4    !< Use keys and pack arrays. Useful especially when there is no memory to create a lot of packing arrays,
                                                  !! for example when lots of lrs interacts with lots of atoms
 
-
   !> arrays defining how a given projector and a given wavefunction descriptor should interact
   type, public :: nlpsp_to_wfd
      integer :: strategy !< can be MASK,KEYS,MASK_PACK,KEYS_PACK,SKIP
@@ -28,7 +27,6 @@ module psp_projectors_base
      integer :: nmseg_f !< number of segments intersecting in the fine region
      integer, dimension(:,:), pointer :: mask !<mask array of dimesion 3,nmseg_c+nmseg_f for psp application
   end type nlpsp_to_wfd
-
 
   !> Non local pseudopotential descriptors
   type, public :: nonlocal_psp_descriptors
@@ -41,14 +39,12 @@ module psp_projectors_base
      integer :: noverlap !< number of locregs which overlap with the projectors of the given atom
   end type nonlocal_psp_descriptors
 
-
   type,public :: workarrays_projectors
     real(wp),pointer,dimension(:,:,:,:) :: wprojx,wprojy,wprojz
     real(wp),pointer,dimension(:) :: wproj
     real(wp),pointer,dimension(:,:,:) :: work
   end type workarrays_projectors
-
-
+  
   !> describe the information associated to the non-local part of Pseudopotentials
   type, public :: DFT_PSP_projectors
      logical :: on_the_fly             !< strategy for projector creation
@@ -72,7 +68,7 @@ module psp_projectors_base
      !> same quantity after application of the hamiltonian
      real(wp), dimension(:), pointer :: hcproj
      type(workarrays_projectors) :: wpr !< contains the workarrays for the projector creation end type DFT_PSP_projectors
-   end type DFT_PSP_projectors
+  end type DFT_PSP_projectors
 
   public :: free_DFT_PSP_projectors
   public :: DFT_PSP_projectors_null
@@ -82,9 +78,7 @@ module psp_projectors_base
   public :: deallocate_nlpsp_to_wfd
   public :: nullify_nlpsp_to_wfd
 
-
 contains
-
 
   !creators
   pure function nlpsp_to_wfd_null() result(tolr)
