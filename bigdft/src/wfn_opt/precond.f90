@@ -121,6 +121,81 @@ subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
 
 END SUBROUTINE preconditionall
 
+!!$subroutine preconditioner(ob)
+!!$  call f_routine(id='preconditioner')
+!!$
+!!$  ! Precondition all orbitals belonging to iproc
+!!$  !and calculate the norm of the residue
+!!$  ! norm of gradient
+!!$  gnrm=0.0_dp
+!!$  !norm of gradient of unoccupied orbitals
+!!$  gnrm_zero=0.0_dp
+!!$
+!!$  !prepare the arrays for the 
+!!$  if (verbose >= 3) then
+!!$     gnrmp = f_malloc(max(ob%orbs%norbp, 1),id='gnrmp')
+!!$  end if
+!!$
+!!$  it=orbital_basis_iterator(ob)
+!!$  do while(ket_next_kpt(it))
+!!$     evalmax=ob%orbs%eval((it%ikpt-1)*orbs%norb+1)
+!!$     do jorb=2,ob%orbs%norb
+!!$        evalmax=max(ob%orbs%eval((it%ikpt-1)*orbs%norb+jorb),evalmax)
+!!$     enddo
+!!$     eval_zero=evalmax
+!!$     do while(ket_next(it,ikpt=it%ikpt))
+!!$        !overrid the association of the ket with the hpsi array
+!!$        it%phi_wvl=>ob_ket_map(hpsi,it)
+!!$        !real k-point different from Gamma still not implemented
+!!$        ncplx= merge(2,1,any(it%kpoint /= 0.0_gp) .or. it%nspinor==2)
+!!$        gnrm_orb=0.0_wp
+!!$        do inds=1,it%nspinor,ncplx
+!!$           hpsi_ptr=>ob_subket_ptr(it,inds)
+!!$           call precondition_ket(ncong,it%confdata,ncplx,hgrids,it%kpoint,it%lr,&
+!!$                it%ob%orbs%eval(it%iorb),eval_zero,hpsi_ptr,scpr,&
+!!$                lin_prec_conv_work(it%iorbp),lin_prec_work(it%iorbp))
+!!$           if (it%occup == 0.0_gp) then
+!!$              gnrm_zero=gnrm_zero+it%kwgt*scpr**2
+!!$           else
+!!$              gnrm=gnrm+it%kwgt*scpr**2
+!!$           end if
+!!$           gnrm_orb=gnrm_orb+scpr
+!!$        end do
+!!$        if (verbose =>3) gnrmp(it%iorbp)=gnrm_orb
+!!$     end do
+!!$  end do
+!!$
+!!$  !gather the results of the gnrm per orbital in the case of high verbosity
+!!$  if (verbose >= 3) then
+!!$     gnrms = f_malloc0(ob%orbs%norb*ob%orbs%nkpts,id='gnrms')
+!!$     !prepare displacements arrays
+!!$     ncntdsp = f_malloc((/ nproc, 2 /),id='ncntdsp')
+!!$     ncntdsp(1,2)=0
+!!$     ncntdsp(1,1)=ob%orbs%norb_par(0,0)
+!!$     do jproc=1,nproc-1
+!!$        ncntdsp(jproc+1,2)=ncntdsp(jproc,2)+ncntdsp(jproc,1)
+!!$        ncntdsp(jproc+1,1)=ob%orbs%norb_par(jproc,0)
+!!$     end do
+!!$     !root mpi task collects the data
+!!$     if (bigdft_mpi%nproc > 1) then
+!!$        call MPI_GATHERV(gnrmp(1),ob%orbs%norbp,mpidtypw,gnrms(1),ncntdsp(1,1),&
+!!$             ncntdsp(1,2),mpidtypw,0,bigdft_mpi%mpi_comm,ierr)
+!!$     else
+!!$        call f_memcpy(src=gnrmp,dest=gnrms)
+!!$     end if
+!!$
+!!$     !write the values per orbitals
+!!$     if (bigdft_mpi%iproc ==0) call write_gnrms(ob%orbs%nkpts,ob%orbs%norb,gnrms)
+!!$
+!!$     call f_free(ncntdsp)
+!!$     call f_free(gnrms)
+!!$     call f_free(gnrmp)
+!!$  end if
+!!$  
+!!$
+!!$  call f_release_routine()
+!!$
+!!$end subroutine preconditioner
 
 !> Generalized for the Linearscaling code
 subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,confdatarr,gnrm,gnrm_zero,&
@@ -359,7 +434,6 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
      !write the values per orbitals
      if (iproc ==0) call write_gnrms(orbs%nkpts,orbs%norb,gnrms)
 
-
      call f_free(ncntdsp)
      call f_free(gnrms)
      call f_free(gnrmp)
@@ -368,7 +442,6 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
   call f_release_routine()
 
 END SUBROUTINE preconditionall2
-
 
 ! > This function has been created also for the GPU-ported routines
 subroutine cprecr_from_eval(geocode,eval_zero,eval,cprecr)

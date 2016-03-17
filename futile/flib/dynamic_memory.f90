@@ -151,9 +151,13 @@ module dynamic_memory_base
      module procedure f_maxdiff_c1li1,f_maxdiff_c0li1
   end interface f_maxdiff
 
+  interface f_subptr
+     module procedure f_subptr_d0
+  end interface f_subptr
+
   public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr,f_malloc_dump_status
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
-  public :: f_memcpy,f_maxdiff,f_update_database,f_purge_database
+  public :: f_memcpy,f_maxdiff,f_update_database,f_purge_database,f_subptr
   public :: assignment(=),operator(.to.)
 
   !for internal f_lib usage
@@ -1117,6 +1121,48 @@ contains
 
   end subroutine f_malloc_dump_status
 
+  !>points toward a region of a given pointer
+  function f_subptr_d0(ptr,region,lbound) result(win)
+    implicit none
+    real(f_double), dimension(:), pointer :: ptr,win
+    type(array_bounds), intent(in) :: region
+    integer, intent(in), optional :: lbound !<in the case of different bounds for the pointer
+    !local variables
+    integer(f_kind) :: lb,ub
+    
+    nullify(win)
+    lb=1
+    if (present(lbound)) lb=lbound
+    ub=region%nhigh-region%nlow+lb
+    if (ub < lb) return
+
+    !perform the association on the window
+    if (lb==1) then
+       win => ptr(region%nlow:region%nhigh)
+    else
+       call f_map_ptr(lb,ub,ptr(lb:ub),win)
+    end if
+
+    !then perform the check for the subpointer region
+    if (get_lbnd(win) /= lb) call f_err_throw(&
+         'ERROR (f_subptr): expected shape does not match, '//&
+         trim(yaml_toa(get_lbnd(win)))//' vs. '//trim(yaml_toa(lb)),&
+         ERR_MALLOC_INTERNAL)
+
+    if (f_loc(win(lb)) /= f_loc(ptr(region%nlow)) .or. &
+         f_loc(win(ub)) /= f_loc(ptr(region%nhigh))) call f_err_throw(&
+         'ERROR (f_subptr): addresses do not match, the allocating system has performed a copy',&
+         ERR_MALLOC_INTERNAL)
+
+  end function f_subptr_d0
+
+  pure function get_lbnd(win)
+    implicit none
+    real(f_double), dimension(:), pointer :: win
+    integer :: get_lbnd
+
+    get_lbnd=lbound(win,1)
+  end function get_lbnd
 
   !> This routine identifies for each of the routines the most time consuming parts and print it in the logfile
   recursive subroutine postreatment_of_calling_sequence(base_time,&

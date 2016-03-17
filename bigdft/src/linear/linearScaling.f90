@@ -794,13 +794,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   end do outerLoop
 
 
-  call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
+  if (nit_lowaccuracy+nit_highaccuracy>0) then
+      call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
+      call deallocate_work_transpose(wt_philarge)
+      call deallocate_work_transpose(wt_hpsinoprecond)
+      call deallocate_work_transpose(wt_hphi)
+      call deallocate_work_transpose(wt_phi)
+  end if
 
-  ! Moved down for tests
-  call deallocate_work_transpose(wt_philarge)
-  call deallocate_work_transpose(wt_hpsinoprecond)
-  call deallocate_work_transpose(wt_hphi)
-  call deallocate_work_transpose(wt_phi)
 
 
   if (input%wf_extent_analysis) then
@@ -2425,7 +2426,7 @@ end if
   ! END DEBUG
 
 
-  ! check why this is here!
+  ! check why this is here... maybe because rhov contains the potential otherwise?
   !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
   !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)

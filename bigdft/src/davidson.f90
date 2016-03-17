@@ -137,8 +137,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    VTwfn%orbs%eval(1:VTwfn%orbs%norb*VTwfn%orbs%nkpts)=-0.5d0
 
    !prepare the v array starting from a set of gaussians
-   call psivirt_from_gaussians(iproc,nproc,at,VTwfn%orbs,VTwfn%Lzd,VTwfn%comms,rxyz,&
-        VTwfn%Lzd%hgrids(1),VTwfn%Lzd%hgrids(2),VTwfn%Lzd%hgrids(3),in%nspin,&
+   call psivirt_from_gaussians(iproc,nproc,trim(in%dir_output) // "virtuals",&
+        at,VTwfn%orbs,VTwfn%Lzd,VTwfn%comms,rxyz,in%nspin,&
         VTwfn%psi, max(VTwfn%orbs%npsidim_orbs, VTwfn%orbs%npsidim_comp))
 
    !if(iproc==0) call yaml_map('Orthogonality to occupied psi',.true.)
@@ -539,8 +539,9 @@ subroutine davidson(iproc,nproc,in,at,&
    orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
 
    !prepare the v array starting from a set of gaussians
-   call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd,commsv,rxyz,Lzd%hgrids(1),&
-        & Lzd%hgrids(2),Lzd%hgrids(3),in%nspin,v, max(orbsv%npsidim_orbs, orbsv%npsidim_comp))
+   call psivirt_from_gaussians(iproc,nproc,trim(in%dir_output) // "virtuals",&
+        at,orbsv,Lzd,commsv,rxyz,in%nspin,&
+        v, max(orbsv%npsidim_orbs, orbsv%npsidim_comp))
 
    !if(iproc==0) call yaml_mapping_open('Orthogonality to occupied psi',flow=.true.)
    !if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
@@ -1438,16 +1439,20 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
 END SUBROUTINE update_psivirt
 
 
-subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,nspin,psivirt,npsidim)
+subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nspin,psivirt,npsidim)
    use module_base
    use module_types
-   use module_interfaces, only: gaussian_pswf_basis
+   use module_interfaces, only: gaussian_pswf_basis,filename_of_iorb,open_filename_of_iorb
    use gaussians, only: gaussian_basis, deallocate_gwf, gaussian_overlap
    use communications_base, only: comms_cubic
    use communications, only: transpose_v
+   use orbitalbasis
+   use box
+   use bounds
+   use yaml_output !debug
    implicit none
+   character(len=*), intent(in) :: filerad
    integer, intent(in) :: iproc,nproc,nspin,npsidim
-   real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
@@ -1457,14 +1462,68 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    !local variables
    character(len=*), parameter :: subname='psivirt_from_gaussians'
    logical ::  randinp
-   integer :: iorb,icoeff,i_all,i_stat,nwork,info,jorb,ikpt,korb
-   integer :: iseg,i0,i1,i2,i3,jj,ispinor,i,ind_c,ind_f,jcoeff
-   real(wp) :: rfreq,gnrm_fake, psi_fake
-   real(wp), dimension(:,:,:), allocatable :: gaucoeffs
+   integer :: iorb,icoeff,i_all,i_stat,nwork,info,jorb,ikpt,korb,ncplx,inds
+   integer :: iseg,i0,i1,i2,i3,jj,ispinor,i,ind_c,ind_f,jcoeff,unitwf,iorb_out
+   real(wp) :: rfreq,gnrm_fake, psi_fake,eval,evalmax,eval_zero,totnorm,scpr
+   logical, dimension(:), allocatable :: mask
+   real(wp), dimension(:,:,:), allocatable :: gaucoeffs,psifscf
    real(gp), dimension(:), allocatable :: work,ev
-   real(gp), dimension(:,:), allocatable :: ovrlp
+   real(gp), dimension(:,:), allocatable :: ovrlp,rxyz_old
    type(gaussian_basis) :: G
-   real(wp), dimension(:), pointer :: gbd_occ,psiw
+   real(wp), dimension(:), pointer :: gbd_occ,psiw,psi_ptr
+   type(orbital_basis) :: ob
+   type(ket) :: it
+   logical :: ok,binary,chosen,notenough
+   character(len=500) :: filename
+   type(cell) :: mesh
+    
+   rxyz_old=f_malloc([3,at%astruct%nat],id='rxyz_old')
+
+   mesh=cell_new(at%astruct%geocode,&
+        [Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3],Lzd%hgrids)
+
+   psifscf=f_malloc(locreg_mesh_shape(mesh,highres=.true.),id='psifscf')
+
+   call orbital_basis_associate(ob,orbs=orbs,Lzd=Lzd,phis_wvl=psivirt)
+   mask=f_malloc(ob%orbs%norbp,id='mask')
+   chosen=.false.
+   binary=.false.
+   it=orbital_basis_iterator(ob)
+   read_loop: do while(ket_next(it))
+      mask(it%iorbp)=.false.
+      !first check if the file of the virtual wavefunction is present
+      check_file: do ispinor=1,orbs%nspinor
+         call filename_of_iorb(binary,trim(filerad),it%ob%orbs,it%iorbp,ispinor,filename,iorb_out)
+         call f_file_exists(file=filename,exists=ok)
+         if (.not. chosen .and. .not. ok) then
+            binary=.not. binary
+            call filename_of_iorb(binary,trim(filerad),it%ob%orbs,it%iorbp,ispinor,filename,iorb_out)
+            call f_file_exists(file=filename,exists=ok)
+         end if
+         if (.not. ok) then
+            mask(it%iorbp)=.true.
+            cycle read_loop
+         else if (.not. chosen) then
+            chosen=.true.
+         end if
+      end do check_file
+      !if so read it
+      do ispinor=1,orbs%nspinor
+         psi_ptr=>ob_subket_ptr(it,ispinor)
+         unitwf=f_get_free_unit(99)
+         call open_filename_of_iorb(unitwf,binary,trim(filerad), &
+              it%ob%orbs,it%iorbp,ispinor,iorb_out)
+         call readonewave(unitwf,.not. binary,iorb_out,bigdft_mpi%iproc,&
+              it%lr%d%n1,it%lr%d%n2,it%lr%d%n3, &
+              Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+              at,it%lr%wfd,rxyz_old,rxyz,&
+              psi_ptr,eval,psifscf)
+         call f_close(unitwf)
+      end do
+   end do read_loop
+
+   call f_free(rxyz_old)
+   call f_free(psifscf)
 
    !initialise some coefficients in the gaussian basis
    !nullify the G%rxyz pointer
@@ -1472,6 +1531,9 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    !extract the gaussian basis from the pseudowavefunctions
    !use a better basis than the input guess
    call gaussian_pswf_basis(11,.false.,iproc,nspin,at,rxyz,G,gbd_occ)
+
+   !look if we have anoug degrees of freedon to use this basis
+   notenough=G%ncoeff < orbs%norb
 
    gaucoeffs = f_malloc((/ G%ncoeff, orbs%nspinor, orbs%norbp /),id='gaucoeffs')
 
@@ -1506,7 +1568,12 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
             jcoeff=modulo(korb-1,G%ncoeff)+1
             do icoeff=1,G%ncoeff
                if (icoeff==jcoeff) then
-                  gaucoeffs(icoeff,1,iorb)=1.0_gp!cos(real(korb+icoeff,wp))
+                  if (korb < G%ncoeff) then
+                     gaucoeffs(icoeff,1,iorb)=1.0_gp
+                  else
+                     gaucoeffs(icoeff,1,iorb)=cos(real(korb+icoeff,wp))
+                  end if
+                     
                   if (orbs%nspinor == 4) then
                      gaucoeffs(icoeff,3,iorb)=sin(real(korb+icoeff,wp))
                   end if
@@ -1597,57 +1664,86 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
 
    end if
 
-   call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,gaucoeffs,psivirt)
+   !call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,gaucoeffs,psivirt)
 
-   !deallocate the gaussian basis descriptors
-   call deallocate_gwf(G)
+   call gaussians_to_wavelets_mask(ob,lzd%hgrids,G,gaucoeffs,mask)
 
    !deallocate gaussian array
-  call f_free(gaucoeffs)
+   call f_free(gaucoeffs)
    call f_free_ptr(gbd_occ)
-
    !add random background to the wavefunctions
-   if (randinp .and. G%ncoeff >= orbs%norb) then
-      !call to_zero(orbs%npsidim,psivirt)
-      do iorb=1,orbs%norbp
-         jorb=iorb+orbs%isorb
-         do ispinor=1,orbs%nspinor
-            !pseudo-random frequency (from 0 to 10*2pi)
-            rfreq=real(jorb,wp)/real(orbs%norb*orbs%nkpts,wp)*62.8318530717958648_wp
-            do iseg=1,Lzd%Glr%wfd%nseg_c
-               call segments_to_grid(Lzd%Glr%wfd%keyvloc(iseg),Lzd%Glr%wfd%keygloc(1,iseg),Lzd%Glr%d,i0,i1,i2,i3,jj)
-               do i=i0,i1
-                  ind_c=i-i0+jj+((iorb-1)*orbs%nspinor+ispinor-1)*(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)
-                  psivirt(ind_c)=psivirt(ind_c)+0.5_wp*&
-                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
-               end do
+   if (randinp) then ! .and. G%ncoeff >= orbs%norb) then
+      it=orbital_basis_iterator(ob)
+      do while(ket_next_kpt(it))
+         evalmax=ob%orbs%eval((it%ikpt-1)*orbs%norb+1)
+         do jorb=2,ob%orbs%norb
+            evalmax=max(ob%orbs%eval((it%ikpt-1)*orbs%norb+jorb),evalmax)
+         enddo
+         eval_zero=evalmax
+         do while(ket_next(it,ikpt=it%ikpt))
+            if (.not. mask(it%iorbp) .or. it%iorb <= G%ncoeff) cycle
+            ncplx= merge(2,1,any(it%kpoint /= 0.0_gp) .or. it%nspinor==2)
+            !normalize wfn
+            totnorm=0.0_dp
+            do inds=1,it%nspinor,ncplx
+               psi_ptr=>ob_subket_ptr(it,inds,ncplx=ncplx)
+               call randomize(ncplx,it%iorb,it%ob%orbs%norb*it%ob%orbs%nkpts,it%lr,psi_ptr)
+               call precondition_ket(10,it%confdata,ncplx,Lzd%hgrids,it%kpoint,it%lr,&
+                    it%ob%orbs%eval(it%iorb),eval_zero,psi_ptr,gnrm_fake)
+               call wnrm_wrap(ncplx,it%lr%wfd%nvctr_c,it%lr%wfd%nvctr_f,psi_ptr,scpr)
+               totnorm=totnorm+scpr
             end do
-            do iseg=Lzd%Glr%wfd%nseg_c+1,Lzd%Glr%wfd%nseg_c+Lzd%Glr%wfd%nseg_f
-               call segments_to_grid(Lzd%Glr%wfd%keyvloc(iseg),Lzd%Glr%wfd%keygloc(1,iseg),Lzd%Glr%d,i0,i1,i2,i3,jj)
-               do i=i0,i1
-                  ind_f=Lzd%Glr%wfd%nvctr_c+7*(i-i0+jj-1)+&
-                     &   ((iorb-1)*orbs%nspinor+ispinor-1)*(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)
-                  psivirt(ind_f+1)=psivirt(ind_f+1)+0.4_wp*&
-                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
-                  psivirt(ind_f+2)=psivirt(ind_f+2)+0.35_wp*&
-                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
-                  psivirt(ind_f+3)=psivirt(ind_f+3)+0.3_wp*&
-                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
-                  psivirt(ind_f+4)=psivirt(ind_f+4)+0.25_wp*&
-                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
-                  psivirt(ind_f+5)=psivirt(ind_f+5)+0.2_wp*&
-                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
-                  psivirt(ind_f+6)=psivirt(ind_f+6)+0.15_wp*&
-                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
-                  psivirt(ind_f+7)=psivirt(ind_f+7)+0.1_wp*&
-                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
-               end do
+            do inds=1,it%nspinor
+               psi_ptr=>ob_subket_ptr(it,ispinor)
+               call wscal_wrap(it%lr%wfd%nvctr_c,it%lr%wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),psi_ptr)
             end do
          end do
       end do
-      !after having added random background, precondition the wavefunctions with an ncong of 10
-      call preconditionall(orbs,Lzd%Glr,hx,hy,hz,10,psivirt,gnrm_fake,gnrm_fake)
+!!$      do iorb=1,orbs%norbp
+!!$         if (.not. mask(iorb)) cycle
+!!$         jorb=iorb+orbs%isorb
+!!$         do ispinor=1,orbs%nspinor
+!!$            !pseudo-random frequency (from 0 to 10*2pi)
+!!$            rfreq=real(jorb,wp)/real(orbs%norb*orbs%nkpts,wp)*62.8318530717958648_wp
+!!$            do iseg=1,Lzd%Glr%wfd%nseg_c
+!!$               call segments_to_grid(Lzd%Glr%wfd%keyvloc(iseg),Lzd%Glr%wfd%keygloc(1,iseg),Lzd%Glr%d,i0,i1,i2,i3,jj)
+!!$               do i=i0,i1
+!!$                  ind_c=i-i0+jj+((iorb-1)*orbs%nspinor+ispinor-1)*(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)
+!!$                  psivirt(ind_c)=psivirt(ind_c)+0.5_wp*&
+!!$                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
+!!$               end do
+!!$            end do
+!!$            do iseg=Lzd%Glr%wfd%nseg_c+1,Lzd%Glr%wfd%nseg_c+Lzd%Glr%wfd%nseg_f
+!!$               call segments_to_grid(Lzd%Glr%wfd%keyvloc(iseg),Lzd%Glr%wfd%keygloc(1,iseg),Lzd%Glr%d,i0,i1,i2,i3,jj)
+!!$               do i=i0,i1
+!!$                  ind_f=Lzd%Glr%wfd%nvctr_c+7*(i-i0+jj-1)+&
+!!$                     &   ((iorb-1)*orbs%nspinor+ispinor-1)*(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)
+!!$                  psivirt(ind_f+1)=psivirt(ind_f+1)+0.4_wp*&
+!!$                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
+!!$                  psivirt(ind_f+2)=psivirt(ind_f+2)+0.35_wp*&
+!!$                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
+!!$                  psivirt(ind_f+3)=psivirt(ind_f+3)+0.3_wp*&
+!!$                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
+!!$                  psivirt(ind_f+4)=psivirt(ind_f+4)+0.25_wp*&
+!!$                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
+!!$                  psivirt(ind_f+5)=psivirt(ind_f+5)+0.2_wp*&
+!!$                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
+!!$                  psivirt(ind_f+6)=psivirt(ind_f+6)+0.15_wp*&
+!!$                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
+!!$                  psivirt(ind_f+7)=psivirt(ind_f+7)+0.1_wp*&
+!!$                     &   sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
+!!$               end do
+!!$            end do
+!!$         end do
+!!$      end do
+!!$      !after having added random background, precondition the wavefunctions with an ncong of 10
+!!$      call preconditionall(orbs,Lzd%Glr,hx,hy,hz,10,psivirt,gnrm_fake,gnrm_fake)
    end if
+
+   !deallocate the gaussian basis descriptors
+   call deallocate_gwf(G)
+   call f_free(mask)
+   call orbital_basis_release(ob)
 
    !transpose v
    if(nproc > 1)then
@@ -1667,6 +1763,44 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
 
 END SUBROUTINE psivirt_from_gaussians
 
+!>add small pseudo random noise to the initial function
+subroutine randomize(ncplx,jorb,ntot,lr,psi)
+  use module_defs, only: wp
+  use numerics, only: twopi
+  use locregs, only: locreg_descriptors
+  implicit none
+  integer, intent(in) :: jorb,ntot,ncplx
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(inout) :: psi
+  !local variables
+  integer :: iseg,i0,i1,i2,i3,jj,i,ind_c,ind_f,icplx,j
+  real(wp) :: rfreq,noise,scal
+
+  !pseudo-random frequency (from 0 to 10*2pi)
+  rfreq=real(jorb,wp)/real(ntot,wp)*10.0_wp*twopi
+  do icplx=1,ncplx
+     do iseg=1,lr%wfd%nseg_c
+        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_c=i-i0+jj
+           noise= sin(rfreq*(i+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
+           psi(ind_c,icplx)=psi(ind_c,icplx)+0.5_wp*noise  
+        end do
+     end do
+     do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        do i=i0,i1
+           ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
+           noise=sin(rfreq*(i+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
+           do j=1,7
+              scal=0.45_wp-j*0.05_wp
+              psi(ind_f+j,icplx)=psi(ind_f+j,icplx)+scal*noise
+           end do
+        end do
+     end do
+  end do
+
+end subroutine randomize
 
 !> Write eigenvalues and related quantities
 !! @todo: must add the writing directory to the files

@@ -93,6 +93,7 @@ module orbitalbasis
 
   public :: ob_ket_map,orbital_basis_iterator,ket_next_locreg,ket_next,local_hamiltonian_ket
   public :: orbital_basis_associate,orbital_basis_release,test_iterator,ket_next_kpt
+  public :: ob_subket_ptr,precondition_ket
 
 contains
 
@@ -432,6 +433,25 @@ contains
   end function ob_ket_map
   !the iterator must go in order of localization regions
 
+  function ob_subket_ptr(it,ispinor,ncplx) result(k)
+    use f_precisions, only: f_address,f_loc
+    use dynamic_memory
+    implicit none
+    type(ket), intent(in) :: it
+    integer, intent(in) :: ispinor
+    integer, intent(in), optional :: ncplx
+    real(wp), dimension(:), pointer :: k
+    !local variables
+    integer :: istart,nvctr,ncomp
+    
+    ncomp=1
+    if (present(ncplx)) ncomp=ncplx
+    nvctr=it%lr%wfd%nvctr_c+7*it%lr%wfd%nvctr_f
+    istart=(ispinor-1)*nvctr
+
+    k => f_subptr(it%phi_wvl,istart+1 .to. istart+nvctr*ncomp)
+
+  end function ob_subket_ptr
 
   !> This function gives the number of components
   !! if the ket is in non-colinear spin description, this value is four
@@ -643,6 +663,76 @@ contains
          psir(1,1),hpsi,ekin)
 
   end subroutine local_hamiltonian_ket
+
+  subroutine precondition_ket(ncong,confdata,ncplx,hgrids,kpoint,lr,eval,eval_zero,hpsi,scpr,&
+       lin_prec_conv_work,lin_prec_work)
+    use module_base,only: bigdft_mpi,nrm2
+    use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
+    implicit none
+    integer, intent(in) :: ncong,ncplx
+    real(gp), intent(in) :: eval,eval_zero
+    type(confpot_data), intent(in) :: confdata
+    type(locreg_descriptors), intent(in) :: lr
+    real(gp), dimension(3), intent(in) :: hgrids,kpoint
+    real(wp), intent(out) :: scpr
+    real(wp), dimension(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)), intent(in) :: hpsi
+    !> convolution workarrays for the linear case
+    type(workarrays_quartic_convolutions), intent(inout), optional :: lin_prec_conv_work
+    type(workarr_precond) ,intent(inout), optional :: lin_prec_work
+    !local variables
+    real(wp) :: cprecr
+
+    !the nrm2 function can be replaced here by ddot
+    scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1),1)
+    if (scpr == 0.0_wp) return
+
+    call cprecr_from_eval(lr%geocode,eval_zero,eval,cprecr)
+    !cases with no CG iterations, diagonal preconditioning
+    !for Free BC it is incorporated in the standard procedure
+    if (ncong == 0 .and. lr%geocode /= 'F') then
+       select case(lr%geocode)
+       case('F')
+       case('S')
+          call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
+               lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
+               lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyvloc, &
+               cprecr,hgrids(1),hgrids(2),hgrids(3),hpsi)
+       case('P')
+          call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
+               lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+               lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+               lr%wfd%keygloc,lr%wfd%keyvloc, &
+               cprecr,hgrids(1),hgrids(2),hgrids(3),hpsi)
+       end select
+    else !normal preconditioner
+       !case active only in the linear scaling case
+       if(confdata%prefac > 0.0_gp .or. confdata%potorder > 0)then
+          if (.not.present(lin_prec_conv_work)) then
+             call f_err_throw("linear_precond_convol_workarrays must be present when calling the linear preconditioner", &
+                  err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          if (.not.present(lin_prec_work)) then
+             call f_err_throw("linear_precond_workarrays must be present when calling the linear preconditioner", &
+                  err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          call solvePrecondEquation(bigdft_mpi%iproc,bigdft_mpi%nproc,lr,ncplx,ncong,&
+               cprecr,&
+               hgrids(1),hgrids(2),hgrids(3),&
+               kpoint(1),kpoint(2),kpoint(3),&
+               hpsi,&
+               lr%locregCenter,&
+               confdata%prefac,&
+               confdata%potorder,&
+               lin_prec_conv_work,lin_prec_work)
+       else
+          call precondition_residue(lr,ncplx,ncong,cprecr,&
+               hgrids(1),hgrids(2),hgrids(3),&
+               kpoint(1),kpoint(2),kpoint(3),hpsi)
+       end if
+    end if
+
+  end subroutine precondition_ket
+  
 
   subroutine orbital_basis_associate(ob,orbs,Lzd,Glr,comms,confdatarr,&
        nspin,phis_wvl)
