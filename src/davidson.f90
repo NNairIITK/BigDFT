@@ -1445,6 +1445,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    use gaussians, only: gaussian_basis, deallocate_gwf, gaussian_overlap
    use communications_base, only: comms_cubic
    use communications, only: transpose_v
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc,nproc,nspin,npsidim
    real(gp), intent(in) :: hx,hy,hz
@@ -1606,7 +1607,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
   call f_free(gaucoeffs)
    call f_free_ptr(gbd_occ)
 
-   !add random background to the wavefunctions
+   !add pseudo-random background to the wavefunctions
    if (randinp .and. G%ncoeff >= orbs%norb) then
       !call to_zero(orbs%npsidim,psivirt)
       do iorb=1,orbs%norbp
