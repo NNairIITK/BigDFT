@@ -12,21 +12,21 @@ check_PROGRAMS = yaml_test
 python_PYTHON = report.py fldiff.py fldiff_yaml.py yaml_hl.py
 python_DATA = yaml_hl.cfg yaml_hl_remarks.cfg
 
-AM_FCFLAGS = -I../src
-AM_LDFLAGS = -L$(top_builddir)/flib/src
+AM_FCFLAGS = -I../flib
+AM_LDFLAGS = -L$(top_builddir)/flib
 #LIBS += -lflib -lrt @LIB_YAML_LIBS@
 
 if USE_MPI
 mpi_source =
 else
-mpi_source = $(top_srcdir)/flib/src/MPIfake.f90
+mpi_source = $(top_srcdir)/flib/MPIfake.f90
 endif
 
 if BUILD_DYNAMIC_LIBS
-flib_libraries = -lflib-1
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/flib/src
+flib_libraries = -lfutile-1
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
 else
-flib_libraries = $(top_builddir)/flib/src/libflib-1.a
+flib_libraries = $(top_builddir)/src/libfutile-1.a
 LIBS += @LIB_YAML_LIBS@
 endif
 
@@ -35,7 +35,7 @@ yaml_test_LDADD = $(flib_libraries)
 
 CLEANFILES = yaml_test.out.yaml yaml_test.report.yaml fldiff_yaml.py report.py
 
-yaml_test.o: $(top_builddir)/flib/src/libflib-1.a
+yaml_test.o: $(top_builddir)/src/libfutile-1.a
 
 yaml_test.out.yaml: yaml_test
 	./yaml_test > yaml_test.out.yaml
