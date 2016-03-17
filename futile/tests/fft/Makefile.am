@@ -3,7 +3,7 @@
 SHORT_CHECK=
 LONG_CHECK= fft_check.report fft_cache.report
 
-include $(srcdir)/../check.mk
+#include $(srcdir)/../check.mk
 
 OTHERS = fft_check.f90 fft_cache.f90
 
@@ -20,8 +20,7 @@ fft_cache_LDFLAGS =
 fft_cache_LDADD = @LINALG_LIBS@
 
 CLEANFILES = fft_check.out fft_cache.out fft_cache.dat fft_columns.dat fft_perf.dat \
-	fft_cache fft_cache.gnuplot *.report \
-	module_fft_sg.@MODULE_EXT@ MODULE_FFT_SG.@MODULE_EXT@
+	fft_cache fft_cache.gnuplot *.report *.@MODULE_EXT@
 
 fft_cache.o: fft3d.o
 fft_check.o: fft3d.o

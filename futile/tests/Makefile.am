@@ -1,5 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
+SUBDIRS = fft
+
 EXTRA_DIST = \
 	tols.yaml \
 	fldiff_yaml.py.in \
