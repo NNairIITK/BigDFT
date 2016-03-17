@@ -27,6 +27,7 @@ subroutine multi_mode_extract(asub, runObj, section, passivation, buf, last)
 END SUBROUTINE multi_mode_extract
 
 subroutine multi_mode_state(runObj, outs, infocode)
+  use module_defs, only: UNINITIALIZED
   use module_atoms, only: atomic_structure, deallocate_atomic_structure, astruct_dump_to_file
   use bigdft_run
   use dynamic_memory
@@ -47,6 +48,7 @@ subroutine multi_mode_state(runObj, outs, infocode)
 
   ln = size(runObj%sections)
   infocode = 0
+  outs%energy = UNINITIALIZED(outs%energy)
 
   ! Run subparts and accumulate forces.
   do i = 1, ln
@@ -82,8 +84,8 @@ subroutine multi_mode_state(runObj, outs, infocode)
         end if
      end do
 
-     !@todo Hardcode the total energy to the first section only. To be improved.
-     outs%energy = subouts%energy
+     !@todo The global energy is currently the sum of all energy sections. To be improved.
+     outs%energy = outs%energy + subouts%energy
 
      call f_free(coeffs)
      call f_free(map)
