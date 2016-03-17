@@ -36,7 +36,7 @@ end program test_flush
 EOF
   dnl Assume first that it should compile and run.
   ax_fc_flush="no"
-  ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 1>&AC_FD_CC'
+  ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 $LIBS 1>&AC_FD_CC'
   if AC_TRY_EVAL(ac_try); then
     ac_try=""
     ax_fc_flush=`./flushtest.x 2> /dev/null`;
@@ -48,7 +48,7 @@ EOF
   FCFLAGS_SVG="$FCFLAGS"
   if test x"$ax_fc_flush" == x"no" ; then
     FCFLAGS="$FCFLAGS -assume noold_unit_star"
-    ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 1>&AC_FD_CC'
+    ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 $LIBS 1>&AC_FD_CC'
     if AC_TRY_EVAL(ac_try); then
       ac_try=""
       ax_fc_flush=`./flushtest.x 2> /dev/null`;
@@ -62,7 +62,7 @@ EOF
   fi
   dnl Assume third that it should compile to have it.
   if test x"$ax_fc_flush" == x"no" ; then
-    ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 1>&AC_FD_CC'
+    ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 $LIBS 1>&AC_FD_CC'
     if AC_TRY_EVAL(ac_try); then
       ax_fc_flush="yes"
     fi
@@ -73,7 +73,7 @@ EOF
   AM_CONDITIONAL([HAVE_FC_FLUSH], [test x"$ax_fc_flush" == x"yes"])
   dnl then assume that flush is a subroutine
   if test x"$ax_fc_flush" == x"no" ; then
-  ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest_sub.f90 1>&AC_FD_CC'
+  ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest_sub.f90 $LIBS 1>&AC_FD_CC'
   if AC_TRY_EVAL(ac_try); then
     ac_try=""
     ax_fc_flush=`./flushtest.x 2> /dev/null`;
