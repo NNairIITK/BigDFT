@@ -26,7 +26,7 @@ check_PROGRAMS = PS_Check PS_Program PS_Exercise Generalized_PSolver
 AM_FCFLAGS = -I. -I$(top_srcdir)/src @LIB_FUTILE_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src -Wl,-rpath=$(DESTDIR)$(libdir)
 psolver_library = $(top_builddir)/src/libPSolver-1.so.@PSOLVER_MINOR_VERSION@
 else
 psolver_library = $(top_builddir)/src/libPSolver-1.a @LIB_PSOLVER_DEPS@
