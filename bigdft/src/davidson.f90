@@ -1451,6 +1451,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
    use orbitalbasis
    use box
    use bounds
+   use yaml_output !debug
    implicit none
    character(len=*), intent(in) :: filerad
    integer, intent(in) :: iproc,nproc,nspin,npsidim
@@ -1465,7 +1466,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
    logical ::  randinp
    integer :: iorb,icoeff,i_all,i_stat,nwork,info,jorb,ikpt,korb,ncplx,inds
    integer :: iseg,i0,i1,i2,i3,jj,ispinor,i,ind_c,ind_f,jcoeff,unitwf,iorb_out
-   real(wp) :: rfreq,gnrm_fake, psi_fake,eval,evalmax,eval_zero
+   real(wp) :: rfreq,gnrm_fake, psi_fake,eval,evalmax,eval_zero,totnorm,scpr
    logical, dimension(:), allocatable :: mask
    real(wp), dimension(:,:,:), allocatable :: gaucoeffs,psifscf
    real(gp), dimension(:), allocatable :: work,ev
@@ -1474,10 +1475,10 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
    real(wp), dimension(:), pointer :: gbd_occ,psiw,psi_ptr
    type(orbital_basis) :: ob
    type(ket) :: it
-   logical :: ok,binary,chosen
+   logical :: ok,binary,chosen,notenough
    character(len=500) :: filename
    type(cell) :: mesh
-    
+
    rxyz_old=f_malloc([3,at%astruct%nat],id='rxyz_old')
 
    mesh=cell_new(at%astruct%geocode,&
@@ -1533,6 +1534,9 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
    !use a better basis than the input guess
    call gaussian_pswf_basis(11,.false.,iproc,nspin,at,rxyz,G,gbd_occ)
 
+   !look if we have enough degrees of freedom to use this basis
+   notenough=G%ncoeff < orbs%norb
+
    gaucoeffs = f_malloc((/ G%ncoeff, orbs%nspinor, orbs%norbp /),id='gaucoeffs')
 
    !the kinetic overlap is correctly calculated only with Free BC
@@ -1566,7 +1570,12 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
             jcoeff=modulo(korb-1,G%ncoeff)+1
             do icoeff=1,G%ncoeff
                if (icoeff==jcoeff) then
-                  gaucoeffs(icoeff,1,iorb)=1.0_gp!cos(real(korb+icoeff,wp))
+                  if (korb < G%ncoeff) then
+                     gaucoeffs(icoeff,1,iorb)=1.0_gp
+                  else
+                     gaucoeffs(icoeff,1,iorb)=cos(real(korb+icoeff,wp))
+                  end if
+
                   if (orbs%nspinor == 4) then
                      gaucoeffs(icoeff,3,iorb)=sin(real(korb+icoeff,wp))
                   end if
@@ -1659,15 +1668,13 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
 
    !call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,gaucoeffs,psivirt)
 
-   call gaussians_to_wavelets_mask(ob,lzd%hgrids,G,gaucoeffs,psivirt,mask)
-   !deallocate the gaussian basis descriptors
-   call deallocate_gwf(G)
+   call gaussians_to_wavelets_mask(ob,lzd%hgrids,G,gaucoeffs,mask)
 
    !deallocate gaussian array
    call f_free(gaucoeffs)
    call f_free_ptr(gbd_occ)
    !add random background to the wavefunctions
-   if (randinp .and. G%ncoeff >= orbs%norb) then
+   if (randinp) then ! .and. G%ncoeff >= orbs%norb) then
       it=orbital_basis_iterator(ob)
       do while(ket_next_kpt(it))
          evalmax=ob%orbs%eval((it%ikpt-1)*orbs%norb+1)
@@ -1676,13 +1683,21 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
          enddo
          eval_zero=evalmax
          do while(ket_next(it,ikpt=it%ikpt))
-            if (.not. mask(it%iorbp)) cycle
+            if (.not. mask(it%iorbp) .or. it%iorb <= G%ncoeff) cycle
             ncplx= merge(2,1,any(it%kpoint /= 0.0_gp) .or. it%nspinor==2)
+            !normalize wfn
+            totnorm=0.0_dp
             do inds=1,it%nspinor,ncplx
-               psi_ptr=>ob_subket_ptr(it,inds)
+               psi_ptr=>ob_subket_ptr(it,inds,ncplx=ncplx)
                call randomize(ncplx,it%iorb,it%ob%orbs%norb*it%ob%orbs%nkpts,it%lr,psi_ptr)
                call precondition_ket(10,it%confdata,ncplx,Lzd%hgrids,it%kpoint,it%lr,&
                     it%ob%orbs%eval(it%iorb),eval_zero,psi_ptr,gnrm_fake)
+               call wnrm_wrap(ncplx,it%lr%wfd%nvctr_c,it%lr%wfd%nvctr_f,psi_ptr,scpr)
+               totnorm=totnorm+scpr
+            end do
+            do inds=1,it%nspinor
+               psi_ptr=>ob_subket_ptr(it,ispinor)
+               call wscal_wrap(it%lr%wfd%nvctr_c,it%lr%wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),psi_ptr)
             end do
          end do
       end do
@@ -1727,6 +1742,8 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
 !!$      call preconditionall(orbs,Lzd%Glr,hx,hy,hz,10,psivirt,gnrm_fake,gnrm_fake)
    end if
 
+   !deallocate the gaussian basis descriptors
+   call deallocate_gwf(G)
    call f_free(mask)
    call orbital_basis_release(ob)
 
@@ -1768,15 +1785,15 @@ subroutine randomize(ncplx,jorb,ntot,lr,psi)
         call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_c=i-i0+jj
-           noise= sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
-           psi(ind_c,icplx)=psi(ind_c,icplx)+0.5_wp*noise  
+           noise= sin(rfreq*(i+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
+           psi(ind_c,icplx)=psi(ind_c,icplx)+0.5_wp*noise
         end do
      end do
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
         call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
-           noise=sin(rfreq*(i1+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
+           noise=sin(rfreq*(i+real(jorb,wp)))*sin(rfreq*(i2+real(jorb,wp)))*sin(rfreq*(i3+real(jorb,wp)))
            do j=1,7
               scal=0.45_wp-j*0.05_wp
               psi(ind_f+j,icplx)=psi(ind_f+j,icplx)+scal*noise
@@ -1786,13 +1803,6 @@ subroutine randomize(ncplx,jorb,ntot,lr,psi)
   end do
 
 end subroutine randomize
-
-!>randomize and precondition a wavelet function, useful when coming from a preconditioned result
-subroutine smooth_randomized_function
-  implicit none
-
-  
-end subroutine smooth_randomized_function
 
 !> Write eigenvalues and related quantities
 !! @todo: must add the writing directory to the files

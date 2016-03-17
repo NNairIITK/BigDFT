@@ -888,7 +888,8 @@ contains
                 case(4)
                    string(is:is)='f'
                 case default
-                   stop 'l not admitted'
+                   !stop 'l not admitted'
+                   call f_err_throw('Orbitals l not admitted',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
                 end select
                 is=is+1
                 !if (scorb(l,inl)) then
@@ -1215,7 +1216,7 @@ contains
     case(3)
        s='f'
     case default
-       s='x'  
+       s='x'
     end select
   end function ishell_toa
 

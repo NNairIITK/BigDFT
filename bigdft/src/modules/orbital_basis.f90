@@ -433,24 +433,25 @@ contains
   end function ob_ket_map
   !the iterator must go in order of localization regions
 
-  function ob_subket_ptr(it,ispinor) result(k)
+  function ob_subket_ptr(it,ispinor,ncplx) result(k)
     use f_precisions, only: f_address,f_loc
     use dynamic_memory
     implicit none
     type(ket), intent(in) :: it
     integer, intent(in) :: ispinor
+    integer, intent(in), optional :: ncplx
     real(wp), dimension(:), pointer :: k
     !local variables
-    integer :: istart,nvctr
+    integer :: istart,nvctr,ncomp
     
+    ncomp=1
+    if (present(ncplx)) ncomp=ncplx
     nvctr=it%lr%wfd%nvctr_c+7*it%lr%wfd%nvctr_f
     istart=(ispinor-1)*nvctr
 
-    k => f_subptr(it%phi_wvl,istart+1 .to. istart+nvctr)
+    k => f_subptr(it%phi_wvl,istart+1 .to. istart+nvctr*ncomp)
 
   end function ob_subket_ptr
-
-
 
   !> This function gives the number of components
   !! if the ket is in non-colinear spin description, this value is four
