@@ -164,10 +164,9 @@ module sparsematrix_highlevel
       real(kind=8),dimension(3) :: cell_dim
     
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_bigdft')
-    
+
       ! Read in the matrix
       call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
-
 
       if (present(init_matmul)) then
           init_matmul_ = init_matmul

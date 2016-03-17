@@ -1470,7 +1470,7 @@ contains
       !call allocate_sparse_matrix_matrices(sparsemat, allocate_full_)
 
 
-      ! Initialize the parameters for the spare matrix matrix multiplication
+      ! Initialize the parameters for the sparse matrix matrix multiplication
       if (init_matmul_) then
           sparsemat%smatmul_initialized = .true.
           call init_sparse_matrix_matrix_multiplication_new(iproc, nproc, norbu, sparsemat%nfvctrp, sparsemat%isfvctr, nseg_mult, &

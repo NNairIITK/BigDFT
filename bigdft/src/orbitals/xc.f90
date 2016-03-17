@@ -463,7 +463,7 @@ contains
              !temporary nspden==2, to force the code to do as if nspin==2
              nspden_tmp=2
              !define the size of the temporary variables
-             call size_dvxc(ixc,ndvxc_tmp,ngr2_tmp,nd2vxc_tmp,nspden_tmp,nvxcdgr_tmp,order)
+             call abi_size_dvxc(ixc,ndvxc_tmp,ngr2_tmp,nd2vxc_tmp,nspden_tmp,nvxcdgr_tmp,order)
              !allocate the temporary variables
              rho_tmp=f_malloc([npts,nspden_tmp],id='rho_tmp')
              vxc_tmp=f_malloc([npts,nspden_tmp],id='vxc_tmp')
@@ -480,7 +480,7 @@ contains
              !!$$rho_tmp=0.5*rho_tmp
 
              !fill vxc_tmp and dvxci_tmp
-             call drivexc(exc,ixc,npts,nspden_tmp,order,rho_tmp,vxc_tmp,&
+             call abi_drivexc(exc,ixc,npts,nspden_tmp,order,rho_tmp,vxc_tmp,&
                   ndvxc_tmp,ngr2_tmp,nd2vxc_tmp,nvxcdgr_tmp, dvxc=dvxci_tmp)
              !write(*,*) 'avant', 106+((106-1)+(25-1)*213)*213, vxc_tmp(106+((106-1)+(25-1)*213)*213,1),&
              !            vxc_tmp(106+((106-1)+(25-1)*213)*213,2)

@@ -199,9 +199,9 @@ def parse():
     # solve the eigensystem to get the coefficients
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[14],
                         "solve eigensystem")
-    group.add_option("--hamiltonian_file", type="str", default="ham.bin", metavar="MATRIXNAME",
+    group.add_option("--hamiltonian_file", type="str", default="hamiltonian_sparse.bin", metavar="MATRIXNAME",
              		 help="input file with the hamiltonian[default: %default]")
-    group.add_option("--overlap_file", type="str", default="ham.bin", metavar="MATRIXNAME",
+    group.add_option("--overlap_file", type="str", default="overlap_sparse.bin", metavar="MATRIXNAME",
              		 help="input file with the overlap matrix[default: %default]")
 
     # solve the eigensystem to get the coefficients
@@ -1077,7 +1077,7 @@ options:
         #print 'calling utilities to perform a Loewdin charge analysis'
         command = "%s %s charge-analysis %s %s %s %s" % (options.mpirun, utilities, options.method, options.overlap_file, options.kernel_file, options.hamiltonian_file)
         print command
-    if options.action == 'dos'
+    if options.action == 'dos':
         print 'calling memguess for DOS'
         command = "%s 1 %s dd dos %s %s %s %s %s" % (memguess, options.name, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.sigma, options.npts)
         #print command
