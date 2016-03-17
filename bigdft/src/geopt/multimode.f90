@@ -27,7 +27,6 @@ subroutine multi_mode_extract(asub, runObj, section, passivation, buf, last)
 END SUBROUTINE multi_mode_extract
 
 subroutine multi_mode_state(runObj, outs, infocode)
-  use module_defs, only: UNINITIALIZED
   use module_atoms, only: atomic_structure, deallocate_atomic_structure, astruct_dump_to_file
   use bigdft_run
   use dynamic_memory
@@ -48,7 +47,7 @@ subroutine multi_mode_state(runObj, outs, infocode)
 
   ln = size(runObj%sections)
   infocode = 0
-  outs%energy = UNINITIALIZED(outs%energy)
+  outs%energy = 0.
 
   ! Run subparts and accumulate forces.
   do i = 1, ln
