@@ -333,7 +333,7 @@ test.testforces.ref.yaml:
  Epsilon: 1.2e-10
  Maxdiff for overlap calculation: 9.8e-09
  eF: 1.1e-08
- multiplicator for the confinement: 7.2e-10
+ multiplicator for the confinement: 1.3e-9
  EBS: 1.4e-09
  EBS higher temperature: 1.4e-09
  EH: 1.5e-09
@@ -467,8 +467,8 @@ BigDFT2Wannier.b2w.ref.yaml:
 cleanup:
  Ekin: 5.1e-9
  Enl: 8.7e-10
- Atomic Forces (Ha/Bohr): 3.2e-10
- Average noise forces: 3.1e-10
+ Atomic Forces (Ha/Bohr): 3.8e-10
+ Average noise forces: 3.3e-10
  Clean forces norm (Ha/Bohr): 3.7e-9
  Raw forces norm (Ha/Bohr): 3.5e-9
  Epot: 3.9e-9
@@ -820,7 +820,7 @@ geopt_foe:
  Total charge: 1.3e-10
  guess for new ef: 4.7e-07
  trace(KS): 1.4e-10
- Maxdiff for overlap calculation: 4.4e-08
+ Maxdiff for overlap calculation: 4.5e-08
  Maxdiff for transpose (checksum): 1.2e-10
 
 
@@ -1326,6 +1326,7 @@ sparsity:
  Energy (Hartree): 9.6e-10
  Force Norm (Hartree/Bohr): 1.2e-11
  Maxdiff for transpose (checksum): 4.7e-10
+ Average noise forces: 1.1e-10
 
 PBE_densmixlin:
  Ekin: 1.1e-10
@@ -1477,7 +1478,7 @@ O2spin_diag:
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 2.6e-8
  EH: 2.5e-7
- EXC: 2.0e-8
+ EXC: 2.1e-8
  Ekin: 4.8e-9
  Epot: 1.4e-7
  EvXC: 2.7e-8
@@ -1487,20 +1488,19 @@ O2spin_foe:
  eF: 1.1-10
  D eF: 4.4e-8
  guess for new ef: 4.1e-9
- EBS: 8.5e-8
+ EBS: 8.6e-8
  EBS higher temperature: 1.2e-7
  Omega: 2.3e-9
  energy: 1.1e-7
  Raw forces norm (Ha/Bohr): 7.5e-8
- Clean forces norm (Ha/Bohr): 9.8e-8
+ Clean forces norm (Ha/Bohr): 9.9e-8
  Average noise forces: 3.2e-8
  Total charge: 1.1e-7
  decay length of error function: 1.1e-5
  difference: 1.9e-7
  D Tr: 2.1e-7
  relative difference: 5.2e-8
- fnrm2: 7.7e-8
- Energy (Hartree): 8.6e-8
+ Energy (Hartree): 8.7e-8
  Force Norm (Hartree/Bohr): 3.7e-8
  Maxdiff for transpose (checksum): 2.4e-10
  trace(KS): 1.1e-7
@@ -1848,7 +1848,7 @@ multipoles_waterQM:
  EBS: 1.2e-11
  EBS higher temperature: 1.3e-11
  Maxdiff for transpose (checksum): 3.0e-11
- multiplicator for the confinement: 1.8e-11
+ multiplicator for the confinement: 1.9e-11
 
 multipoles_waterQMQM:
  Epot: 1.1e-10
@@ -2022,7 +2022,7 @@ igortho_44:
  EBS higher temperature: 7.2e-04
  relative difference: 9.5e-10
  trace(KS): 1.5e-08
- energy: 9.1e-07
+ energy: 1.1e-06
  Omega: 3.0e-10
  Charge analysis (charge / net charge): 1.6e-6
  Pseudo Fermi level for occupations: 2.8e-6
@@ -2481,7 +2481,7 @@ matrixtaskgroups_no:
   trace: 3.6e-07
   trace(KS): 5.1e-11
   HOMO-LUMO gap (eV): 3.4e-11
-  Raw forces norm (Ha/Bohr): 3.3e-9
+  Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.6e-9
   Force Norm (Hartree/Bohr): 8.9e-11
   Gross support functions moments: 1.1e-9
@@ -2509,7 +2509,7 @@ matrixtaskgroups_yes:
   trace: 3.5e-07
   trace(KS): 3.8e-11
   HOMO-LUMO gap (eV): 3.4e-11
-  Raw forces norm (Ha/Bohr): 3.3e-9
+  Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.6e-9
   Force Norm (Hartree/Bohr): 8.9e-11
   Gross support functions moments: 1.1e-9
@@ -2521,7 +2521,7 @@ matrixtaskgroups_yes:
 
 test-foeccs:
   EBS: 1.1e-10
-  EBS higher temperature: 1.0e-11
+  EBS higher temperature: 1.0e-10
   difference: 7.9e-11
   trace(KS): 5.9e-11
   value: 2.8e-11

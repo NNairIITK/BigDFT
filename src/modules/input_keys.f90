@@ -948,6 +948,8 @@ contains
     character(max_field_length) :: meth!, prof
     real(gp) :: dtmax_, betax_
     logical :: free,dftvar!,user_defined
+    integer :: nat
+    integer, parameter :: natoms_dump = 500
 
     if (f_err_raise(.not. associated(dict),'The input dictionary has to be associated',&
          err_name='BIGDFT_RUNTIME_ERROR')) return
@@ -977,7 +979,12 @@ contains
 
     !create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)
-    as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. POSINP, .item. OCCUPATION)
+    nat = dict_len(dict//POSINP//'positions')
+    if (nat>natoms_dump) then
+        as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. OCCUPATION)
+    else
+        as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. POSINP, .item. OCCUPATION)
+    end if
     call input_file_minimal(parameters,dict,dict_minimal,nested,as_is)
     if (associated(dict_ps_min)) call set(dict_minimal // PSOLVER,dict_ps_min)
     call dict_free(nested,as_is)
