@@ -32,12 +32,15 @@ AC_DEFUN([AX_DYNAMIC_LIBRARIES],
         LDFLAGS="-shared $LDFLAGS"
         LIBS_SVG=$LIBS
         LIBS="$ax_dyndeps_libs $LIBS"
+        FCFLAGS_SVG="$FCFLAGS"
+        FCFLAGS="$ax_flag_pic $FCFLAGS"
         AC_LINK_IFELSE([[
 subroutine testlib()
   call $2
 end subroutine testlib
         ]], ax_dynamic_deps=yes, ax_dynamic_deps=no)
         AC_LANG_POP([Fortran])
+        FCFLAGS=$FCFLAGS_SVG
         LIBS=$LIBS_SVG
         LDFLAGS=$LDFLAGS_SVG
         AC_MSG_RESULT([$ax_dynamic_deps])
@@ -61,6 +64,11 @@ end subroutine testlib
       else
         ax_build_dynamic="no"
       fi
+    fi
+
+    dnl Raise error if asked for dynamic but cannot proceed.
+    if test "$ax_build_dynamic" != "yes" ; then
+      AC_MSG_ERROR(["Dynamic build is not possible."])
     fi
   else
     ax_build_dynamic="no"

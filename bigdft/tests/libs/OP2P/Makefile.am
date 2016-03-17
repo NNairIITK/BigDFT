@@ -23,14 +23,14 @@ CLEANFILES = op2p_check.out.yaml kpts_check.out\
 AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src -Wl,-rpath=$(DESTDIR)$(libdir)
 bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 else
 bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 op2p_check_SOURCES = op2p_check.f90
-op2p_check_LDADD = $(bigdft_library)
+op2p_check_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@
 
 kpts_check_SOURCES = kpts_check.f90
 kpts_check_LDADD = $(bigdft_library)
