@@ -2478,7 +2478,7 @@ matrixtaskgroups_no:
   Total charge: 2.0e-10
   difference: 7.8e-11
   energy: 2.7e-09
-  trace: 3.6e-07
+  trace: 4.1e-07
   trace(KS): 5.1e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
@@ -2506,7 +2506,7 @@ matrixtaskgroups_yes:
   Total charge: 2.0e-10
   difference: 5.9e-11
   energy: 2.7e-09
-  trace: 3.5e-07
+  trace: 3.9e-07
   trace(KS): 3.8e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.6e-9

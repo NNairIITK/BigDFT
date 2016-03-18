@@ -721,7 +721,7 @@ module locregs_init
       !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i1,ii2,ii3,ii1,i,dx,dy,dz,segment) &
       !$omp private(inside, ij1, ij2, ij3, jj1, jj2, jj3)
       segment=.false.
-      !$omp do reduction(+:nstart,nvctr,nend)
+      !$omp do schedule(dynamic,50) reduction(+:nstart,nvctr,nend)
       do iseg=1,nsegglob
           j0=keygglob(1,iseg)
           j1=keygglob(2,iseg)
@@ -734,48 +734,65 @@ module locregs_init
     
           ii2=i2+nl2glob
           ii3=i3+nl3glob
-    
-          !dz=((ii3*hz)-locregCenter(3))**2
-          !dy=((ii2*hy)-locregCenter(2))**2
-          do i=i0,i1
-              ii1=i+nl1glob
-              !dx=((ii1*hx)-locregCenter(1))**2
-              inside=.false.
-              do ij3=ijs3,ije3!-1,1
-                  jj3=ii3+ij3*(n3+1)
-                  dz=((jj3*hz)-locregCenter(3))**2
-                  do ij2=ijs2,ije2!-1,1
-                      jj2=ii2+ij2*(n2+1)
-                      dy=((jj2*hy)-locregCenter(2))**2
-                      do ij1=ijs1,ije1!-1,1
-                          jj1=ii1+ij1*(n1+1)
-                          dx=((jj1*hx)-locregCenter(1))**2
-                          !write(*,'(a,6i7,4es12.4)') 'ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut', ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut
-                          if(dx+dy+dz<=cut) then
-                              !write(*,'(a,6i7,4es12.4)') 'ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut', ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut
-                              inside=.true.
-                          end if
-                      end do
-                  end do
-              end do
-              if(inside) then
-                  nvctr=nvctr+1
-                  if(.not.segment) then
-                      nstart=nstart+1
-                      segment=.true.
-                  end if
-              else
-                  if(segment) then
-                      nend=nend+1
-                      segment=.false.
-                  end if
+
+          ! First just check the z dimension. If inside is false, proceed deirectly,
+          ! otherwise check also the other dimensions.
+          inside=.false.
+          do ij3=ijs3,ije3!-1,1
+              jj3=ii3+ij3*(n3+1)
+              dz=((jj3*hz)-locregCenter(3))**2
+              if(dz<=cut) then
+                  inside=.true.
               end if
           end do
-          if(segment) then
-              ! Always start a new segment if we come to a new line in y direction.
-              nend=nend+1
-              segment=.false.
-          end if
+          check_z_if: if (inside) then
+              ! May be inside the sphere, so check also the other dimensions.
+              ! Since each line in y (and thus also each plane in the z dimensions) starts
+              ! a new segment, the following does not have to be done.
+              inside = .false.
+    
+              !dz=((ii3*hz)-locregCenter(3))**2
+              !dy=((ii2*hy)-locregCenter(2))**2
+              do i=i0,i1
+                  ii1=i+nl1glob
+                  !dx=((ii1*hx)-locregCenter(1))**2
+                  inside=.false.
+                  do ij3=ijs3,ije3!-1,1
+                      jj3=ii3+ij3*(n3+1)
+                      dz=((jj3*hz)-locregCenter(3))**2
+                      do ij2=ijs2,ije2!-1,1
+                          jj2=ii2+ij2*(n2+1)
+                          dy=((jj2*hy)-locregCenter(2))**2
+                          do ij1=ijs1,ije1!-1,1
+                              jj1=ii1+ij1*(n1+1)
+                              dx=((jj1*hx)-locregCenter(1))**2
+                              !write(*,'(a,6i7,4es12.4)') 'ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut', ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut
+                              if(dx+dy+dz<=cut) then
+                                  !write(*,'(a,6i7,4es12.4)') 'ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut', ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut
+                                  inside=.true.
+                              end if
+                          end do
+                      end do
+                  end do
+                  if(inside) then
+                      nvctr=nvctr+1
+                      if(.not.segment) then
+                          nstart=nstart+1
+                          segment=.true.
+                      end if
+                  else
+                      if(segment) then
+                          nend=nend+1
+                          segment=.false.
+                      end if
+                  end if
+              end do
+              if(segment) then
+                  ! Always start a new segment if we come to a new line in y direction.
+                  nend=nend+1
+                  segment=.false.
+              end if
+          end if check_z_if
       end do
       !$omp enddo
       !$omp end parallel
@@ -863,6 +880,53 @@ module locregs_init
           ijs3 = 0
           ije3 = 0
       end if
+
+
+      !!! Count the number of segments which must be checked from the point of view of the z coordinate
+      !!nseg_check = nseg_check + 1
+      !!do iseg=1,nsegglob
+      !!    j0=keygglob(1,iseg)
+      !!    j1=keygglob(2,iseg)
+      !!    ii=j0-1
+      !!    i3=ii/np
+      !!    ii3=i3+nl3glob
+
+      !!    inside=.false.
+      !!    do ij3=ijs3,ije3
+      !!        jj3=ii3+ij3*(n3+1)
+      !!        dz=((jj3*hz)-locregCenter(3))**2
+      !!        if(dz<=cut) then
+      !!            inside=.true.
+      !!        end if
+      !!    end do
+      !!    if (inside) then
+      !!        nseg_check = nseg_check + 1
+      !!    end if
+      !!end do
+      !!iseg_lookup = f_malloc(nseg_check,id='iseg_lookup')
+      !!nseg_check = nseg_check + 1
+      !!do iseg=1,nsegglob
+      !!    j0=keygglob(1,iseg)
+      !!    j1=keygglob(2,iseg)
+      !!    ii=j0-1
+      !!    i3=ii/np
+      !!    ii3=i3+nl3glob
+
+      !!    inside=.false.
+      !!    do ij3=ijs3,ije3
+      !!        jj3=ii3+ij3*(n3+1)
+      !!        dz=((jj3*hz)-locregCenter(3))**2
+      !!        if(dz<=cut) then
+      !!            inside=.true.
+      !!        end if
+      !!    end do
+      !!    if (inside) then
+      !!        iseg_check = iseg_check + 1
+      !!        iseg_lookup(nseg_check) = iseg
+      !!    end if
+      !!end do
+
+
     
       call distribute_on_threads(nsegglob, nthread, ise)
     
@@ -896,7 +960,7 @@ module locregs_init
       ithread = 0
       !$omp parallel &
       !$omp default(none) &
-      !$omp shared(ise, hx, hy, hz, keygglob, np, n1p1, nl1glob, nl2glob, nl3glob, locregCenter) &
+      !$omp shared(ise, hx, hy, hz, keygglob, np, n1p1, nl1glob, nl2glob, nl3glob, locregCenter, nsegglob) &
       !$omp shared(keygloc_work, keyg_glob_work, keyv_glob_work, nstartarr, nl1, nl2, nl3, nu1, nu2, nu3) &
       !$omp shared(ijs3, ije3, ijs2, ije2, ijs1, ije1, n1, n2, n3, cut, n1lp1, nlp, nthread) &
       !$omp shared(keygloc, keyg_glob, keyv_glob, ivctr_tot, jvctr_tot, nstart_tot, nend_tot, keyv_last) &
@@ -907,6 +971,7 @@ module locregs_init
       !jj1, )
       !$ ithread = omp_get_thread_num()
       do iseg=ise(1,ithread),ise(2,ithread)
+      !!omp do schedule(dynamic,50)
       !do iseg=1,nsegglob
           j0=keygglob(1,iseg)
           j1=keygglob(2,iseg)
@@ -918,112 +983,125 @@ module locregs_init
           i1=i0+j1-j0
           ii2=i2+nl2glob
           ii3=i3+nl3glob
-          dz=((ii3*hz)-locregCenter(3))**2
-          dy=((ii2*hy)-locregCenter(2))**2
-          !i2l=ii2-nl2
-          !i3l=ii3-nl3
-          !igridpointa=i3l*nlp+i2l*n1lp1+1
-          igridgloba=ii3*np+ii2*n1p1+1 
-          do i=i0,i1
-              ii1=i+nl1glob
-              dx=((ii1*hx)-locregCenter(1))**2
-              i1l=ii1-nl1
-              !igridpoint=igridpointa+i1l
-              igridglob=igridgloba+ii1 
-              inside=.false.
-              do ij3=ijs3,ije3!-1,1
-                  jj3=ii3+ij3*(n3+1)
-                  dz=((jj3*hz)-locregCenter(3))**2
-                  do ij2=ijs2,ije2!-1,1
-                      jj2=ii2+ij2*(n2+1)
-                      dy=((jj2*hy)-locregCenter(2))**2
-                      do ij1=ijs1,ije1!-1,1
-                          jj1=ii1+ij1*(n1+1)
-                          dx=((jj1*hx)-locregCenter(1))**2
-                          if(dx+dy+dz<=cut) then
-                              if (inside) stop 'twice inside'
-                              inside=.true.
-                              ii1mod=jj1
-                              ii2mod=jj2
-                              ii3mod=jj3
-                              i1l=jj1-nl1
-                              i2l=jj2-nl2
-                              i3l=jj3-nl3
-                              igridpoint=i3l*nlp+i2l*n1lp1+i1l+1
-                              !write(*,'(a,4i8)') 'i1l, i2l, i3l, igridpoint', i1l, i2l, i3l, igridpoint
-                          end if
-                      end do
-                  end do
-              end do
-              !write(*,*) 'ii1, ii2, ii3, inside', ii1, ii2, ii3, inside
-              if(inside) then
-                  ! Check that we are not outside of the locreg region
-                  ivctr=ivctr+1
-                  kvctr=kvctr+1
-                  !write(*,*) 'inside: kvctr, igridpoint', kvctr, igridpoint
-                  if(ii1mod<nl1) then
-                      write(*,'(a,i0,a,i0,a)') 'ERROR: ii1mod=',ii1mod,'<',nl1,'=nl1'
-                      stop
-                  end if
-                  if(ii2mod<nl2) then
-                      write(*,'(a,i0,a,i0,a)') 'ERROR: ii2mod=',ii2mod,'<',nl2,'=nl2'
-                      stop
-                  end if
-                  if(ii3mod<nl3) then
-                      write(*,'(a,i0,a,i0,a)') 'ERROR: ii3mod=',ii3mod,'<',nl3,'=nl3'
-                      stop
-                  end if
-                  if(ii1mod>nu1) then
-                      write(*,'(a,i0,a,i0,a)') 'ERROR: ii1mod=',ii1mod,'>',nu1,'=nu1'
-                      stop
-                  end if
-                  if(ii2mod>nu2) then
-                      write(*,'(a,i0,a,i0,a)') 'ERROR: ii2mod=',ii2mod,'>',nu2,'=nu2'
-                      stop
-                  end if
-                  if(ii3mod>nu3) then
-                      write(*,'(a,i0,a,i0,a)') 'ERROR: ii3mod=',ii3mod,'>',nu3,'=nu3'
-                      stop
-                  end if
-                  nvctr=nvctr+1
-                  if(.not.segment) then
-                      nstart=nstart+1
-                      keygloc_work(1,nstart,ithread)=igridpoint
-                      keyg_glob_work(1,nstart,ithread)=igridglob
-                      keyv_glob_work(nstart,ithread)=nvctr
-                      segment=.true.
-                  end if
-              else
-                  if(segment) then
-                      nend=nend+1
-                      keygloc_work(2,nend,ithread)=igridpoint!-1
-                      keyg_glob_work(2,nend,ithread)=igridglob-1
-                      !write(*,'(a,4i7)') 'outside: kvctr, igridpoint, keygloc(1:2,nend)', kvctr, igridpoint, keygloc(1:2,nend)
-                      segment=.false.
-                      jvctr=jvctr+keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
-                      if (kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1) then
-                          write(*,*) 'kvctr, keygloc(2,nend)-keygloc(1,nend)+1', &
-                               kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
-                          stop 'kvctr/=keygloc(2,nend)-keygloc(1,nend)+1'
-                      end if
-                      kvctr=0
-                  end if
+
+          ! First just check the z dimension. If inside is false, proceed deirectly,
+          ! otherwise check also the other dimensions.
+          inside=.false.
+          do ij3=ijs3,ije3!-1,1
+              jj3=ii3+ij3*(n3+1)
+              dz=((jj3*hz)-locregCenter(3))**2
+              if(dz<=cut) then
+                  inside=.true.
               end if
           end do
-          if(segment) then
-              ! Close the segment
-              nend=nend+1
-              keygloc_work(2,nend,ithread)=igridpoint
-              keyg_glob_work(2,nend,ithread)=igridglob
-              segment=.false.
-              jvctr=jvctr+keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
-              if (kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1) then
-                  write(*,*) 'kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1', &
-                      kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
-                  stop 'kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1'
+          check_z_if: if (inside) then
+              ! May be inside the sphere, so check also the other dimensions.
+              ! Since each line in y (and thus also each plane in the z dimensions) starts
+              ! a new segment, the following does not have to be done.
+              inside = .false.
+
+              igridgloba=ii3*np+ii2*n1p1+1 
+              do i=i0,i1
+                  ii1=i+nl1glob
+                  dx=((ii1*hx)-locregCenter(1))**2
+                  i1l=ii1-nl1
+                  !igridpoint=igridpointa+i1l
+                  igridglob=igridgloba+ii1 
+                  inside=.false.
+                  do ij3=ijs3,ije3!-1,1
+                      jj3=ii3+ij3*(n3+1)
+                      dz=((jj3*hz)-locregCenter(3))**2
+                      do ij2=ijs2,ije2!-1,1
+                          jj2=ii2+ij2*(n2+1)
+                          dy=((jj2*hy)-locregCenter(2))**2
+                          do ij1=ijs1,ije1!-1,1
+                              jj1=ii1+ij1*(n1+1)
+                              dx=((jj1*hx)-locregCenter(1))**2
+                              if(dx+dy+dz<=cut) then
+                                  if (inside) stop 'twice inside'
+                                  inside=.true.
+                                  ii1mod=jj1
+                                  ii2mod=jj2
+                                  ii3mod=jj3
+                                  i1l=jj1-nl1
+                                  i2l=jj2-nl2
+                                  i3l=jj3-nl3
+                                  igridpoint=i3l*nlp+i2l*n1lp1+i1l+1
+                                  !write(*,'(a,4i8)') 'i1l, i2l, i3l, igridpoint', i1l, i2l, i3l, igridpoint
+                              end if
+                          end do
+                      end do
+                  end do
+                  !write(*,*) 'ii1, ii2, ii3, inside', ii1, ii2, ii3, inside
+                  if(inside) then
+                      ! Check that we are not outside of the locreg region
+                      ivctr=ivctr+1
+                      kvctr=kvctr+1
+                      !write(*,*) 'inside: kvctr, igridpoint', kvctr, igridpoint
+                      if(ii1mod<nl1) then
+                          write(*,'(a,i0,a,i0,a)') 'ERROR: ii1mod=',ii1mod,'<',nl1,'=nl1'
+                          stop
+                      end if
+                      if(ii2mod<nl2) then
+                          write(*,'(a,i0,a,i0,a)') 'ERROR: ii2mod=',ii2mod,'<',nl2,'=nl2'
+                          stop
+                      end if
+                      if(ii3mod<nl3) then
+                          write(*,'(a,i0,a,i0,a)') 'ERROR: ii3mod=',ii3mod,'<',nl3,'=nl3'
+                          stop
+                      end if
+                      if(ii1mod>nu1) then
+                          write(*,'(a,i0,a,i0,a)') 'ERROR: ii1mod=',ii1mod,'>',nu1,'=nu1'
+                          stop
+                      end if
+                      if(ii2mod>nu2) then
+                          write(*,'(a,i0,a,i0,a)') 'ERROR: ii2mod=',ii2mod,'>',nu2,'=nu2'
+                          stop
+                      end if
+                      if(ii3mod>nu3) then
+                          write(*,'(a,i0,a,i0,a)') 'ERROR: ii3mod=',ii3mod,'>',nu3,'=nu3'
+                          stop
+                      end if
+                      nvctr=nvctr+1
+                      if(.not.segment) then
+                          nstart=nstart+1
+                          keygloc_work(1,nstart,ithread)=igridpoint
+                          keyg_glob_work(1,nstart,ithread)=igridglob
+                          keyv_glob_work(nstart,ithread)=nvctr
+                          segment=.true.
+                      end if
+                  else
+                      if(segment) then
+                          nend=nend+1
+                          keygloc_work(2,nend,ithread)=igridpoint!-1
+                          keyg_glob_work(2,nend,ithread)=igridglob-1
+                          !write(*,'(a,4i7)') 'outside: kvctr, igridpoint, keygloc(1:2,nend)', kvctr, igridpoint, keygloc(1:2,nend)
+                          segment=.false.
+                          jvctr=jvctr+keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
+                          if (kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1) then
+                              write(*,*) 'kvctr, keygloc(2,nend)-keygloc(1,nend)+1', &
+                                   kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
+                              stop 'kvctr/=keygloc(2,nend)-keygloc(1,nend)+1'
+                          end if
+                          kvctr=0
+                      end if
+                  end if
+              end do
+              if(segment) then
+                  ! Close the segment
+                  nend=nend+1
+                  keygloc_work(2,nend,ithread)=igridpoint
+                  keyg_glob_work(2,nend,ithread)=igridglob
+                  segment=.false.
+                  jvctr=jvctr+keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
+                  if (kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1) then
+                      write(*,*) 'kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1', &
+                          kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
+                      stop 'kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1'
+                  end if
+                  kvctr=0
               end if
-              kvctr=0
-          end if
+          end if check_z_if
       end do
       ! Some checks
       if (nstart/=nend) call f_err_throw('nstart/=nend',err_name='BIGDFT_RUNTIME_ERROR')
