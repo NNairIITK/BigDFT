@@ -145,6 +145,8 @@ flib/f_utils.inc
 wrappers/Makefile
 src/Makefile
 tests/Makefile
+tests/flib/Makefile
+tests/fft/Makefile
 ])
 
 AC_OUTPUT

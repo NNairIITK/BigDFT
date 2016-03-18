@@ -3,8 +3,6 @@
 SHORT_CHECK=
 LONG_CHECK= fft_check.report fft_cache.report
 
-include $(srcdir)/../check.mk
-
 OTHERS = fft_check.f90 fft_cache.f90
 
 EXTRA_DIST = fft_check.out.ref fft_cache.out.ref fft_cache.py
@@ -46,6 +44,8 @@ fft_check.report: fft_check.out
 fft_cache.report: fft_cache.dat
 	python $(pythondir)/fldiff.py --mode=pseudo \
 		fft_cache.out $(srcdir)/fft_cache.out.ref | tee fft_cache.report
+
+check: fft_check.report fft_cache.report report
 
 report:
 	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
