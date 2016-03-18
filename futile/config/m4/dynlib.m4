@@ -13,7 +13,8 @@ AC_DEFUN([AX_DYNAMIC_LIBRARIES],
 [dnl Produce dynamic libraries and executables.
   AC_ARG_ENABLE(dynamic-libraries, AS_HELP_STRING([--enable-dynamic-libraries],
                                                  [Build dynamical libraries (disabled by default).]),
-                ax_build_dynamic=$enableval, ax_build_dynamic=m4_default([$1], ["no"]))
+                [ax_build_dynamic=$enableval; ax_user_input="yes"],
+                [ax_build_dynamic=m4_default([$1], ["no"]); ax_user_input="no"])
   dnl Test for library building tools.
   if test x"$ax_build_dynamic" = x"yes" ; then
     AC_REQUIRE([AX_FLAG_PIC])
@@ -67,7 +68,7 @@ end subroutine testlib
     fi
 
     dnl Raise error if asked for dynamic but cannot proceed.
-    if test "$ax_build_dynamic" != "yes" ; then
+    if test "$ax_user_input" == "yes" -a "$ax_build_dynamic" != "yes" ; then
       AC_MSG_ERROR(["Dynamic build is not possible."])
     fi
   else
