@@ -5529,48 +5529,48 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
   !!call mpi_barrier(mpi_comm_world,ispin)
 
 
-  if (calculate_quadrupole) then
+  quadrupole_if: if (calculate_quadrupole) then
       ! Quadrupole not yet parallelized
 
-      if (at%astruct%geocode /= 'F') then
-         nl3=1
-         nc3=n3i
-      else
-         nl3=15
-         nc3=n3i-31
-      end if
-
-      if (dpbox%mpi_env%nproc > 1) then
-         !allocate full density in pot_ion array
-         ele_rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='ele_rho')
-    
-    !Commented out, it is enough to allocate the rho at 1
-    !!$     ! rho_buf is used instead of rho for avoiding the case n3p=0 in 
-    !!$     ! some procs which makes MPI_ALLGATHERV failed.
-    !!$     if (n3p.eq.0) then
-    !!$       allocate(rho_buf(n1i,n2i,n3p+1,nspin),stat=i_stat)
-    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
-    !!$       rho_buf = 0.0_dp
-    !!$     else
-    !!$       allocate(rho_buf(n1i,n2i,n3p,nspin),stat=i_stat)
-    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
-    !!$       rho_buf = rho
-    !!$     endif  
-    
-    
-         do ispin=1,nspin
-            call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
-                 mpidtypd,ele_rho(1,1,1,ispin),dpbox%ngatherarr(0,1),&
-                 dpbox%ngatherarr(0,2),mpidtypd,dpbox%mpi_env%mpi_comm,ierr)
-            !write(*,*) 'dpbox%ngatherarr(:,1)',dpbox%ngatherarr(:,1)
-            !write(*,*) 'dpbox%ngatherarr(:,2)',dpbox%ngatherarr(:,2)
-            !write(*,*) 'dpbox%nscatterarr(:,2)',dpbox%nscatterarr(:,2)
-            !write(*,*) 'dpbox%nscatterarr(:,3)',dpbox%nscatterarr(:,3)
-         end do
-    
-      else
-         ele_rho => rho
-      end if
+!!##      if (at%astruct%geocode /= 'F') then
+!!##         nl3=1
+!!##         nc3=n3i
+!!##      else
+!!##         nl3=15
+!!##         nc3=n3i-31
+!!##      end if
+!!##
+!!##      if (dpbox%mpi_env%nproc > 1) then
+!!##         !allocate full density in pot_ion array
+!!##         ele_rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='ele_rho')
+!!##    
+!!##    !Commented out, it is enough to allocate the rho at 1
+!!##    !!$     ! rho_buf is used instead of rho for avoiding the case n3p=0 in 
+!!##    !!$     ! some procs which makes MPI_ALLGATHERV failed.
+!!##    !!$     if (n3p.eq.0) then
+!!##    !!$       allocate(rho_buf(n1i,n2i,n3p+1,nspin),stat=i_stat)
+!!##    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
+!!##    !!$       rho_buf = 0.0_dp
+!!##    !!$     else
+!!##    !!$       allocate(rho_buf(n1i,n2i,n3p,nspin),stat=i_stat)
+!!##    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
+!!##    !!$       rho_buf = rho
+!!##    !!$     endif  
+!!##    
+!!##    
+!!##         do ispin=1,nspin
+!!##            call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
+!!##                 mpidtypd,ele_rho(1,1,1,ispin),dpbox%ngatherarr(0,1),&
+!!##                 dpbox%ngatherarr(0,2),mpidtypd,dpbox%mpi_env%mpi_comm,ierr)
+!!##            !write(*,*) 'dpbox%ngatherarr(:,1)',dpbox%ngatherarr(:,1)
+!!##            !write(*,*) 'dpbox%ngatherarr(:,2)',dpbox%ngatherarr(:,2)
+!!##            !write(*,*) 'dpbox%nscatterarr(:,2)',dpbox%nscatterarr(:,2)
+!!##            !write(*,*) 'dpbox%nscatterarr(:,3)',dpbox%nscatterarr(:,3)
+!!##         end do
+!!##    
+!!##      else
+!!##         ele_rho => rho
+!!##      end if
 
       ! charge center
       charge_center_cores(1:3)=0.d0
@@ -5644,12 +5644,14 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
       do ispin=1,nspin
           qtot=0.d0
           do i3=0,nc3 - 1
+             ii3 = i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3) - i3shift !real coordinate, without buffer
               do i2=0,nc2 - 1
                   do i1=0,nc1 - 1
-                      q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+                      !q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+                      q= - rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
                       x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
                       y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
-                      z=at%astruct%cell_dim(3)/real(nc3,dp)*i3
+                      z=at%astruct%cell_dim(3)/real(nnc3,dp)*ii3
                       charge_center_elec(1,ispin) = charge_center_elec(1,ispin) + q*x
                       charge_center_elec(2,ispin) = charge_center_elec(2,ispin) + q*y
                       charge_center_elec(3,ispin) = charge_center_elec(3,ispin) + q*z
@@ -5658,18 +5660,23 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
               end do
           end do
           !!write(*,*) 'qtot',qtot
+          call mpiallred(qtot, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
           charge_center_elec(1:3,ispin)=charge_center_elec(1:3,ispin)/qtot
       end do
+
+      call mpiallred(charge_center_elec, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
       quadropole_el(1:3,1:3)=0._gp
       do ispin=1,nspin
           do i3=0,nc3 - 1
+             ii3 = i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3) - i3shift !real coordinate, without buffer
               do i2=0,nc2 - 1
                   do i1=0,nc1 - 1
-                      q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+                      !q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+                      q= - rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
                       x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
                       y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
-                      z=at%astruct%cell_dim(3)/real(nc3,dp)*i3
+                      z=at%astruct%cell_dim(3)/real(nnc3,dp)*ii3
                       do i=1,3
                           select case (i)
                           case (1)
@@ -5717,6 +5724,7 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
       end do
 
       !!if (.not. is_net_charge) then
+          call mpiallred(quadropole_el, mpi_sum, comm=bigdft_mpi%mpi_comm)
           tmpquadrop=quadropole_cores+quadropole_el
       !!else
       !!    tmpquadrop=quadropole_el
@@ -5726,13 +5734,13 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
           quadrupole = tmpquadrop
       end if
 
-      if (dpbox%mpi_env%nproc > 1) then
-         call f_free_ptr(ele_rho)
-      else
-         nullify(ele_rho)
-      end if
+      !!if (dpbox%mpi_env%nproc > 1) then
+      !!   call f_free_ptr(ele_rho)
+      !!else
+      !!   nullify(ele_rho)
+      !!end if
 
-  end if
+  end if quadrupole_if
 
   !!write(*,*) 'dipole_cores second', dipole_cores
   !!call mpi_barrier(mpi_comm_world,ispin)
