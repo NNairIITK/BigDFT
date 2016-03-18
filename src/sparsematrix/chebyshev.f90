@@ -80,10 +80,10 @@ module chebyshev
           if (kernel%smmm%nvctrp>0) then
               call prepare_matrix(kernel, invovrlp_compr, matrix_new)
               call sequential_acces_matrix_fast2(kernel, ham_compr, mat_seq)
-              call sparsemm_new(kernel, mat_seq, matrix_new(1), vectors_new(1,1))
+              call sparsemm_new(iproc, kernel, mat_seq, matrix_new(1), vectors_new(1,1))
               call f_zero(matrix_new)
               call sequential_acces_matrix_fast2(kernel, invovrlp_compr, mat_seq)
-              call sparsemm_new(kernel, mat_seq, vectors_new(1,1), matrix_new(1))
+              call sparsemm_new(iproc, kernel, mat_seq, vectors_new(1,1), matrix_new(1))
           end if
           call compress_matrix_distributed_wrapper(iproc, nproc, kernel, SPARSE_MATMUL_LARGE, &
                matrix_new, mat_compr)
@@ -131,7 +131,7 @@ module chebyshev
               call axpy(kernel%smmm%nvctrp, 0.5d0*cc(1,3,1), vectors_new(1,4), 1, penalty_ev_new(1,2), 1)
               !write(*,*) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
             
-              call sparsemm_new(kernel, mat_seq, vectors_new(1,3), vectors_new(1,1))
+              call sparsemm_new(iproc, kernel, mat_seq, vectors_new(1,3), vectors_new(1,1))
               call vcopy(kernel%smmm%nvctrp, vectors_new(1,1), 1, vectors_new(1,2), 1)
     
 
@@ -149,7 +149,7 @@ module chebyshev
             
               emergency_stop=.false.
               main_loop: do ipl=3,npl
-                  call sparsemm_new(kernel, mat_seq, vectors_new(1,1), vectors_new(1,2))
+                  call sparsemm_new(iproc, kernel, mat_seq, vectors_new(1,1), vectors_new(1,2))
                   call axbyz_kernel_vectors_new(kernel, 2.d0, vectors_new(1,2), -1.d0, vectors_new(1,4), vectors_new(1,3))
                   call compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, &
                        kernel%nfvctr, kernel%smmm%nfvctrp, kernel, &
@@ -353,7 +353,7 @@ module chebyshev
     
       call f_routine(id='compress_polynomial_vector_new')
     
-      call transform_sparsity_pattern(fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
+      call transform_sparsity_pattern(iproc, fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
            fermi%nseg, fermi%keyv, fermi%keyg, fermi%smmm%line_and_column_mm, &
            fermi%smmm%nvctrp, fermi%smmm%isvctr, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, &
            fermi%smmm%istsegline, 'large_to_small', vector_compressed, vector_compr)

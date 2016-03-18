@@ -37,9 +37,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use sparsematrix_base, only: sparse_matrix_null, matrices_null, allocate_matrices, &
                                SPARSE_TASKGROUP, sparsematrix_malloc_ptr, assignment(=), &
                                DENSE_PARALLEL, DENSE_MATMUL, SPARSE_FULL, sparse_matrix_metadata_null
-  use sparsematrix_init, only: init_matrix_taskgroups, check_local_matrix_extents, &
+  use sparsematrix_init, only: init_matrix_taskgroups, &
                                init_matrixindex_in_compressed_fortransposed, &
-                               sparse_matrix_metadata_init
+                               sparse_matrix_metadata_init, check_local_matrix_extents
+  !use matrix_taskgroups, only: check_local_matrix_extents
   use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
   use sparsematrix, only: check_matrix_compression
   use communications_base, only: comms_linear_null
@@ -523,8 +524,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
          if (iproc==0) call yaml_mapping_open('Checking Compression/Uncompression of small sparse matrices')
          !call check_matrix_compression(iproc,tmb%linmat%ham)
          !call check_matrix_compression(iproc,tmb%linmat%ovrlp)
-         call check_matrix_compression(iproc, tmb%linmat%m, tmb%linmat%ham_)
-         call check_matrix_compression(iproc, tmb%linmat%s, tmb%linmat%ovrlp_)
+         call check_matrix_compression(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+         call check_matrix_compression(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
          if (iproc ==0) call yaml_mapping_close()
      end if
 
@@ -568,7 +569,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      if (in%check_matrix_compression) then
          if (iproc==0) call yaml_mapping_open('Checking Compression/Uncompression of large sparse matrices')
-         call check_matrix_compression(iproc, tmb%linmat%l, tmb%linmat%kernel_)
+         call check_matrix_compression(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
          if (iproc ==0) call yaml_mapping_close()
      end if
 

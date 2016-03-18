@@ -387,7 +387,8 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   homo_coeffs=f_malloc0((/ovrlp%nfvctr,nstates/), id='homo_coeffs')
   !coeffs_tmp=f_malloc((/ovrlp%nfvctr,ovrlp%nfvctr/), id='coeffs_tmp')
   ovrlp_mat%matrix = sparsematrix_malloc_ptr(ovrlp, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
-  call uncompress_matrix2(iproc, nproc, ovrlp, ovrlp_mat%matrix_compr, ovrlp_mat%matrix)
+  call uncompress_matrix2(iproc, nproc, bigdft_mpi%mpi_comm, &
+       ovrlp, ovrlp_mat%matrix_compr, ovrlp_mat%matrix)
 
   istate=1
   ind=1
@@ -411,7 +412,8 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   !call f_free(coeffs_tmp)
 
   ham_mat%matrix = sparsematrix_malloc_ptr(ham, iaction=DENSE_FULL, id='ham_%matrix')
-  call uncompress_matrix2(iproc, nproc, ham, ham_mat%matrix_compr, ham_mat%matrix)
+  call uncompress_matrix2(iproc, nproc, bigdft_mpi%mpi_comm, &
+       ham, ham_mat%matrix_compr, ham_mat%matrix)
   if (separate_site_energies .or. input_frag%nfrag==1) call calc_transfer_integral(iproc,nproc,nstates,&
        orbs,ham,ham_mat,ovrlp,ovrlp_mat,homo_coeffs,homo_coeffs,homo_ham,homo_ovrlp)
 

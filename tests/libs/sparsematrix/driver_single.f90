@@ -89,7 +89,8 @@ program driver_single
       call yaml_comment('Input matrix',hfill='-')
       call yaml_mapping_open('Input matrix structure')
   end if
-  call sparse_matrix_and_matrices_init_from_file_bigdft(filename_in, bigdft_mpi%iproc, bigdft_mpi%nproc, smat_in, mat_in)
+  call sparse_matrix_and_matrices_init_from_file_bigdft(filename_in, &
+       bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_in, mat_in)
   if (bigdft_mpi%iproc==0) then
       call yaml_mapping_close()
   end if
@@ -100,7 +101,8 @@ program driver_single
       call yaml_comment('Output matrix',hfill='-')
       call yaml_mapping_open('Output matrix structure')
   end if
-  call sparse_matrix_init_from_file_bigdft(filename_out, bigdft_mpi%iproc, bigdft_mpi%nproc, smat_out)
+  call sparse_matrix_init_from_file_bigdft(filename_out, &
+       bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_out)
   if (bigdft_mpi%iproc==0) then
       call yaml_mapping_close()
   end if
@@ -115,7 +117,8 @@ program driver_single
   call timing(bigdft_mpi%mpi_comm,'INIT','PR')
 
   ! Perform the operation mat_out = mat_in**exp_power
-  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, (/exp_power/), &
+  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+       1, (/exp_power/), &
        smat_in, smat_out, mat_in, mat_out, npl_auto=.true.)
 
   call timing(bigdft_mpi%mpi_comm,'CALC_LINEAR','PR')
@@ -130,7 +133,8 @@ program driver_single
   if (bigdft_mpi%iproc==0) then
       call yaml_comment('Performing Matrix Chebyshev Expansion',hfill='-')
   end if
-  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, (/-exp_power/), &
+  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+       1, (/-exp_power/), &
        smat_in, smat_out, mat_in, mat_check_accur(1), npl_auto=.true.)
   ! Multiply the previously calculated one with this new none. The result should be the identity.
   call matrix_matrix_multiplication(bigdft_mpi%iproc, bigdft_mpi%nproc, smat_out, &
@@ -370,7 +374,8 @@ program driver_single
       mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
       mat_out_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_out_dense')
       mat_check_accur_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr,2/),id='mat_check_accur_dense')
-      call uncompress_matrix(bigdft_mpi%iproc, smat_in, mat_in%matrix_compr, mat_in_dense)
+      call uncompress_matrix(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+           smat_in, mat_in%matrix_compr, mat_in_dense)
       call timing(bigdft_mpi%mpi_comm,'INIT_CUBIC','PR')
       call matrix_power_dense(bigdft_mpi%iproc, bigdft_mpi%nproc, blocksize, smat_in%nfvctr, &
            mat_in_dense, exp_power, mat_out_dense)

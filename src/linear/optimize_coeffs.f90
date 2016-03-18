@@ -500,10 +500,11 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   weight_coeff_diag=f_malloc((/ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
   !ovrlp_half=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
   tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-  call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
-       tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
+  call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+       tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
   power(1)=2
-  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, input%lin%order_taylor, 1, power, &
+  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+       input%lin%order_taylor, 1, power, &
        tmb%orthpar%blocksize_pdsyev, imode=2, &
        ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
@@ -515,7 +516,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
      call calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,1,ifrag_charged,tmb,input%frag,ref_frags,&
           .false.,.true.,input%lin%order_taylor)
      weight_matrix_%matrix = sparsematrix_malloc_ptr(weight_matrix,iaction=DENSE_FULL,id='weight_matrix%matrix')
-     call uncompress_matrix(iproc,weight_matrix,weight_matrix_%matrix_compr,weight_matrix_%matrix)
+     call uncompress_matrix(iproc,nproc,weight_matrix,weight_matrix_%matrix_compr,weight_matrix_%matrix)
      !call calculate_coeffMatcoeff(nproc,weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff(1,1,ifrag))
      call calculate_coeffMatcoeff_diag(weight_matrix_%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff_diag(1,ifrag))
      call f_free_ptr(weight_matrix_%matrix)
@@ -1334,12 +1335,13 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
      call timing(iproc,'dirmin_dgesv','OF')
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
      power(1)=1
-     call overlapPowerGeneral(iproc, nproc, order_taylor, 1, power, -8, &
+     call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+          order_taylor, 1, power, -8, &
           imode=2, &
           ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, check_accur=.true., &
           max_error=max_error, mean_error=mean_error)
-     call check_taylor_order(mean_error, max_inversion_error, order_taylor)
+     call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
 
      !!!DEBUG checking S^-1 etc.
      !!!test dense version of S^-1
@@ -1697,11 +1699,12 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
      !end if
      !!inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
      power(1)=1
-     call overlapPowerGeneral(iproc, nproc, order_taylor, 1, power, -8, &
+     call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+          order_taylor, 1, power, -8, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, check_accur=.true., &
           max_error=max_error, mean_error=mean_error)
-     call check_taylor_order(mean_error, max_inversion_error, order_taylor)
+     call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
 
      if (tmb%orbs%norbp>0) then
         call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%orbs%norbp, tmb%linmat%l%nfvctr, 1.d0, inv_ovrlp_(1)%matrix(1,1,1), &

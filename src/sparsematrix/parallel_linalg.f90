@@ -341,12 +341,12 @@ module parallel_linalg
     
     
     
-    subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
+    subroutine dsygv_parallel(iproc, nproc, comm, blocksize, nprocMax, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
       use module_base
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, blocksize, nprocMax, comm, itype, n, lda, ldb
+      integer,intent(in) :: iproc, nproc, comm, blocksize, nprocMax, itype, n, lda, ldb
       integer,intent(out) :: info
       character(len=1),intent(in) :: jobz, uplo
       real(kind=8),dimension(lda,n),intent(inout) :: a
@@ -492,14 +492,14 @@ module parallel_linalg
       
       ! Gather the eigenvectors on all processes.
       if (nproc > 1) then
-         call mpiallred(a, mpi_sum, comm=bigdft_mpi%mpi_comm)
+         call mpiallred(a, mpi_sum, comm=comm)
       end if
       
       ! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
       ! diagonalized the matrix and therefore have the eigenvalues.
       if(nproc_scalapack/=nproc) then
-          call mpi_bcast(w(1), n, mpi_double_precision, 0, bigdft_mpi%mpi_comm, ierr)
-          call mpi_bcast(info, 1, mpi_integer, 0, bigdft_mpi%mpi_comm, ierr)
+          call mpi_bcast(w(1), n, mpi_double_precision, 0, comm, ierr)
+          call mpi_bcast(info, 1, mpi_integer, 0, comm, ierr)
       end if
     
      !call blacs_exit(0)

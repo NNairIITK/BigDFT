@@ -1018,7 +1018,8 @@ module multipole
       inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
 
       power(1)=ioperation
-      call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, power, -1, &
+      call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+           meth_overlap, 1, power, -1, &
            imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
            ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
            max_error=max_error, mean_error=mean_error)
@@ -2579,18 +2580,20 @@ module multipole
               newovrlp%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_TASKGROUP, id='newovrlp%matrix_compr')
               call f_memcpy(src=newoverlap, dest=newovrlp%matrix_compr)
               power=1
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, power, -1, &
-                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                    ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
-                    check_accur=.true., max_error=max_error, mean_error=mean_error)
+              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                   1020, 1, power, -1, &
+                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                   ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                   check_accur=.true., max_error=max_error, mean_error=mean_error)
               call deallocate_matrices(newovrlp)
               call f_free(newoverlap)
           else
               power(1)=1
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, power, -1, &
-                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                    ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
-                    check_accur=.true., max_error=max_error, mean_error=mean_error)
+              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                   1020, 1, power, -1, &
+                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                   ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                   check_accur=.true., max_error=max_error, mean_error=mean_error)
           end if
       end if
 
@@ -3013,7 +3016,7 @@ module multipole
       !tr_KS = trace_sparse(bigdft_mpi%iproc, bigdft_mpi%nproc, smats, smatl, &
       !       ovrlp_%matrix_compr(isshift+1:), &
       !       kernel_%matrix_compr(ilshift+1:), ispin)
-      tr_KS = trace_AB(bigdft_mpi%iproc, bigdft_mpi%nproc, smats, smatl, ovrlp_, kernel_, ispin)
+      tr_KS = trace_AB(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smats, smatl, ovrlp_, kernel_, ispin)
 
 
 
@@ -3064,10 +3067,11 @@ module multipole
               ovrlp_onehalf_(1)%matrix_compr = &
                   sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='ovrlp_onehalf_(1)%matrix_compr')
               power=2
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, power, -1, &
-                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                    ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_(1), &
-                    check_accur=.true., max_error=max_error, mean_error=mean_error)
+              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                   1020, 1, power, -1, &
+                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                   ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_(1), &
+                   check_accur=.true., max_error=max_error, mean_error=mean_error)
 
               ! Calculate S^1/2 * K * S^1/2 = Ktilde
               tmpmat1 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=smatl, id='tmpmat1')
@@ -3078,7 +3082,7 @@ module multipole
                    ovrlp_onehalf_(1)%matrix_compr, tmpmat1, kerneltilde)
           else if (ortho=='no') then
               ovrlp_large = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='ovrlp_large')
-              call transform_sparse_matrix_local(smats, smatl, 'small_to_large', &
+              call transform_sparse_matrix_local(bigdft_mpi%iproc, smats, smatl, 'small_to_large', &
                    smatrix_compr_in=ovrlp_%matrix_compr, lmatrix_compr_out=ovrlp_large)
               call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
                    kernel_%matrix_compr, ovrlp_large, kerneltilde)
@@ -3294,12 +3298,14 @@ module multipole
                   ! Calculate ovrlp^1/2 and ovrlp^-1/2. The last argument is wrong, clean this.
                   ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
                   call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-                  call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, smats)
+                  ! Passing 0 as comm... not best practice
+                  call overlap_plus_minus_one_half_exact(0, 1, 0, n, -1, .true., ovrlp_tmp, smats)
                   do i=1,n
                       call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
                   end do
                   call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-                  call overlap_plus_minus_one_half_exact(1, n, -1, .false., ovrlp_tmp, smats)
+                  ! Passing 0 as comm... not best practice
+                  call overlap_plus_minus_one_half_exact(0, 1, 0, n, -1, .false., ovrlp_tmp, smats)
                   do i=1,n
                       call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_minusonehalf(1,i), 1)
                   end do
@@ -3411,7 +3417,8 @@ module multipole
                       ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
                       ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
                       call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-                      call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, smats)
+                      ! Passing 0 as comm... not best practice
+                      call overlap_plus_minus_one_half_exact(0, 1, 0, n, -1, .true., ovrlp_tmp, smats)
                       do i=1,n
                           call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
                       end do
@@ -3435,7 +3442,8 @@ module multipole
                           ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
                           ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
                           call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-                          call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, smats)
+                          ! Passing 0 as comm... not best practice
+                          call overlap_plus_minus_one_half_exact(0, 1, 0, n, -1, .true., ovrlp_tmp, smats)
                           do i=1,n
                               call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
                           end do

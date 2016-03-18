@@ -49,11 +49,11 @@ module sparsematrix
   contains
 
     !> subroutine to compress the matrix to sparse form
-    subroutine compress_matrix(iproc,sparsemat,inmat,outmat)
+    subroutine compress_matrix(iproc,nproc,sparsemat,inmat,outmat)
       implicit none
       
       ! Calling arguments
-      integer, intent(in) :: iproc
+      integer, intent(in) :: iproc, nproc
       type(sparse_matrix),intent(in) :: sparsemat
       real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(in) :: inmat
       real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(out) :: outmat
@@ -85,7 +85,7 @@ module sparsematrix
     
       call timing(iproc,'compressd_mcpy','ON')
     
-      if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
+      if (sparsemat%parallel_compression==0.or.nproc==1) then
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nvctr
              !OpenMP broken on Vesta
@@ -145,11 +145,11 @@ module sparsematrix
     end subroutine compress_matrix
 
 
-    subroutine compress_matrix2(iproc,sparsemat,inmat,outmat)
+    subroutine compress_matrix2(iproc, nproc, sparsemat, inmat, outmat)
       implicit none
       
       ! Calling arguments
-      integer, intent(in) :: iproc
+      integer, intent(in) :: iproc, nproc
       type(sparse_matrix),intent(in) :: sparsemat
       real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),intent(in) :: inmat
       real(kind=8),dimension(sparsemat%nvctrp_tg*sparsemat%nspin),intent(out) :: outmat
@@ -158,18 +158,18 @@ module sparsematrix
       real(kind=8),dimension(:),allocatable :: tmparr
 
       tmparr = sparsematrix_malloc(sparsemat,iaction=SPARSE_FULL,id='tmparr')
-      call compress_matrix(iproc,sparsemat,inmat,tmparr)
+      call compress_matrix(iproc,nproc,sparsemat,inmat,tmparr)
       call extract_taskgroup(sparsemat, tmparr, outmat)
       call f_free(tmparr)
     end subroutine compress_matrix2
 
 
     !> subroutine to uncompress the matrix from sparse form
-    subroutine uncompress_matrix(iproc,sparsemat,inmat,outmat)
+    subroutine uncompress_matrix(iproc,nproc,sparsemat,inmat,outmat)
       implicit none
       
       ! Calling arguments
-      integer, intent(in) :: iproc
+      integer, intent(in) :: iproc, nproc
       type(sparse_matrix), intent(in) :: sparsemat
       real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(in) :: inmat
       real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(inout) :: outmat
@@ -201,7 +201,7 @@ module sparsematrix
     
       call timing(iproc,'compressd_mcpy','ON')
     
-      if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
+      if (sparsemat%parallel_compression==0.or.nproc==1) then
          !call to_zero(sparsemat%nfvctr**2*sparsemat%nspin, outm(1,1,1))
          call f_zero(outm)
          do ispin=1,sparsemat%nspin
@@ -262,11 +262,11 @@ module sparsematrix
     end subroutine uncompress_matrix
 
 
-    subroutine uncompress_matrix2(iproc, nproc, smat, matrix_compr, matrix)
+    subroutine uncompress_matrix2(iproc, nproc, comm, smat, matrix_compr, matrix)
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, comm
       type(sparse_matrix),intent(in) :: smat
       real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: matrix_compr
       real(kind=8),dimension(smat%nfvctr,smat%nfvctr,smat%nspin),intent(out) :: matrix
@@ -275,16 +275,16 @@ module sparsematrix
       real(kind=8),dimension(:),allocatable :: tmparr
 
       tmparr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='tmparr')
-      call gather_matrix_from_taskgroups(iproc, nproc, smat, matrix_compr, tmparr)
-      call uncompress_matrix(iproc, smat, inmat=tmparr, outmat=matrix)
+      call gather_matrix_from_taskgroups(iproc, nproc, comm, smat, matrix_compr, tmparr)
+      call uncompress_matrix(iproc, nproc, smat, inmat=tmparr, outmat=matrix)
       call f_free(tmparr)
     end subroutine uncompress_matrix2
 
 
-    subroutine check_matrix_compression(iproc, sparsemat, mat)
+    subroutine check_matrix_compression(iproc, nproc, sparsemat, mat)
       use yaml_output
       implicit none
-      integer,intent(in) :: iproc
+      integer,intent(in) :: iproc, nproc
       type(sparse_matrix),intent(in) :: sparsemat
       type(matrices),intent(inout) :: mat
       !Local variables
@@ -314,7 +314,7 @@ module sparsematrix
          end do
       end do
       
-      call compress_matrix(iproc, sparsemat, inmat=mat%matrix, outmat=mat%matrix_compr)
+      call compress_matrix(iproc, nproc, sparsemat, inmat=mat%matrix, outmat=mat%matrix_compr)
       !write(*,*) 'mat%matrix',mat%matrix
       !write(*,*) 'mat%matrix_compr',mat%matrix_compr
     
@@ -343,7 +343,7 @@ module sparsematrix
         end if
       end if
     
-      call uncompress_matrix(iproc, sparsemat, inmat=mat%matrix_compr, outmat=mat%matrix)
+      call uncompress_matrix(iproc, nproc, sparsemat, inmat=mat%matrix_compr, outmat=mat%matrix)
     
       maxdiff = 0.d0
       do iseg = 1, sparsemat%nseg
@@ -396,12 +396,13 @@ module sparsematrix
     end subroutine check_matrix_compression
 
 
-    subroutine transform_sparse_matrix(smat, lmat, cmode, &
+    subroutine transform_sparse_matrix(iproc, smat, lmat, cmode, &
                smat_in, lmat_in, smat_out, lmat_out)
       use module_base
       implicit none
     
       ! Calling arguments
+      integer,intent(in) :: iproc
       type(sparse_matrix),intent(in) :: smat, lmat
       character(len=14),intent(in) :: cmode
       real(kind=8),dimension(smat%nspin*smat%nvctr),intent(in),optional :: smat_in
@@ -445,7 +446,7 @@ module sparsematrix
           call f_err_throw('wrong imode')
       end select
     
-      call timing(bigdft_mpi%iproc,'transform_matr','IR')
+      call timing(iproc,'transform_matr','IR')
 
 
       icheck=0
@@ -523,19 +524,20 @@ module sparsematrix
           stop
       end if
 
-      call timing(bigdft_mpi%iproc,'transform_matr','RS')
+      call timing(iproc,'transform_matr','RS')
       call f_release_routine()
     
     end subroutine transform_sparse_matrix
 
 
 
-    subroutine transform_sparse_matrix_local(smat, lmat, cmode, &
+    subroutine transform_sparse_matrix_local(iproc, smat, lmat, cmode, &
                smatrix_compr_in, lmatrix_compr_in, smatrix_compr_out, lmatrix_compr_out)
       use module_base
       implicit none
     
       ! Calling arguments
+      integer,intent(in) :: iproc
       type(sparse_matrix),intent(in) :: smat, lmat
       character(len=14),intent(in) :: cmode
       real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(in),optional :: smatrix_compr_in
@@ -576,7 +578,7 @@ module sparsematrix
               ishift_dst = (ispin-1)*smat%nvctr
               call vcopy(smat%nvctrp_tg, smatrix_compr_in(ishift_src+1), 1, &
                    tmparrs(ishift_dst+smat%isvctrp_tg+1), 1)
-              call transform_sparse_matrix(smat, lmat, cmode, smat_in=tmparrs, lmat_out=tmparrl)
+              call transform_sparse_matrix(iproc, smat, lmat, cmode, smat_in=tmparrs, lmat_out=tmparrl)
               call extract_taskgroup(lmat, tmparrl, lmatrix_compr_out)
           end do
       case (LARGE_TO_SMALL)
@@ -589,7 +591,7 @@ module sparsematrix
               ishift_dst = (ispin-1)*lmat%nvctr
               call vcopy(lmat%nvctrp_tg, lmatrix_compr_in(ishift_src+1), 1, &
                    tmparrl(ishift_dst+lmat%isvctrp_tg+1), 1)
-              call transform_sparse_matrix(smat, lmat, cmode, lmat_in=tmparrl, smat_out=tmparrs)
+              call transform_sparse_matrix(iproc, smat, lmat, cmode, lmat_in=tmparrl, smat_out=tmparrs)
               call extract_taskgroup(smat, tmparrs, smatrix_compr_out)
           end do
       case default
@@ -645,7 +647,7 @@ module sparsematrix
                   err_name='BIGDFT_RUNTIME_ERROR')
          end if
          matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp_mm),id='matrix_local')
-         call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+         call transform_sparsity_pattern(iproc, smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
               smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
               smat%smmm%nvctrp, smat%smmm%isvctr, &
               smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
@@ -1062,12 +1064,13 @@ module sparsematrix
 
 
 
-   subroutine sparsemm_new(smat, a_seq, b, c)
+   subroutine sparsemm_new(iproc, smat, a_seq, b, c)
      use module_base
      use yaml_output
      implicit none
    
      !Calling Arguments
+     integer,intent(in) :: iproc
      type(sparse_matrix),intent(in) :: smat
      real(kind=8), dimension(smat%smmm%nvctrp),intent(in) :: b
      real(kind=8), dimension(smat%smmm%nseq),intent(in) :: a_seq
@@ -1096,7 +1099,7 @@ module sparsematrix
          b_dense = f_malloc((/n_dense,1/),id='b_dense')
          c_dense = f_malloc((/n_dense,1/),id='c_dense')
      end if
-     call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
+     call timing(iproc, 'sparse_matmul ', 'IR')
 
 
      if (matmul_version==MATMUL_NEW) then
@@ -1186,7 +1189,7 @@ module sparsematrix
      end if
 
    
-     call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
+     call timing(iproc, 'sparse_matmul ', 'RS')
      call f_release_routine()
 
         contains
@@ -1223,13 +1226,13 @@ module sparsematrix
    !!end function orb_from_index
 
 
-   subroutine gather_matrix_from_taskgroups(iproc, nproc, smat, mat_tg, mat_global)
+   subroutine gather_matrix_from_taskgroups(iproc, nproc, comm, smat, mat_tg, mat_global)
      use module_base
      use sparsematrix_base, only: sparse_matrix
      implicit none
    
      ! Calling arguments
-     integer,intent(in) :: iproc, nproc
+     integer,intent(in) :: iproc, nproc, comm
      type(sparse_matrix),intent(in) :: smat
      real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: mat_tg !< matrix distributed over the taskgroups
      real(kind=8),dimension(smat%nvctr*smat%nspin),intent(out) :: mat_global !< global matrix gathered together
@@ -1247,7 +1250,7 @@ module sparsematrix
          !call to_zero(nproc, recvdspls(0))
          ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
          recvcounts(iproc) = ncount
-         call mpiallred(recvcounts(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+         call mpiallred(recvcounts(0), nproc, mpi_sum, comm=comm)
          recvdspls(0) = 0
          do jproc=1,nproc-1
              recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
@@ -1256,7 +1259,7 @@ module sparsematrix
              ishift = (ispin-1)*smat%nvctr
              ist_send = smat%smmm%istartend_mm_dj(1) - smat%isvctrp_tg + ishift
              call mpi_get_to_allgatherv_double(mat_tg(ist_send), ncount, &
-                  mat_global(ishift+1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
+                  mat_global(ishift+1), recvcounts, recvdspls, comm)
              !!call mpi_allgatherv(mat_tg(ist_send), ncount, mpi_double_precision, &
              !!                    mat_global(1), recvcounts, recvdspls, mpi_double_precision, &
              !!                    bigdft_mpi%mpi_comm, ierr)
@@ -1272,13 +1275,13 @@ module sparsematrix
    end subroutine gather_matrix_from_taskgroups
 
 
-   subroutine gather_matrix_from_taskgroups_inplace(iproc, nproc, smat, mat)
+   subroutine gather_matrix_from_taskgroups_inplace(iproc, nproc, comm, smat, mat)
      use module_base
      use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), SPARSE_FULL
      implicit none
    
      ! Calling arguments
-     integer,intent(in) :: iproc, nproc
+     integer,intent(in) :: iproc, nproc, comm
      type(sparse_matrix),intent(in) :: smat
      type(matrices),intent(inout) :: mat
    
@@ -1295,7 +1298,7 @@ module sparsematrix
          !call to_zero(nproc, recvdspls(0))
          ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
          recvcounts(iproc) = ncount
-         call mpiallred(recvcounts(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+         call mpiallred(recvcounts(0), nproc, mpi_sum, comm=comm)
          recvdspls(0) = 0
          do jproc=1,nproc-1
              recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
@@ -1304,7 +1307,7 @@ module sparsematrix
              ishift = (ispin-1)*smat%nvctr
              ist_send = smat%smmm%istartend_mm_dj(1) - smat%isvctrp_tg + ishift
              call mpi_get_to_allgatherv_double(mat%matrix_compr(ist_send), ncount, &
-                  mat_global(ishift+1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
+                  mat_global(ishift+1), recvcounts, recvdspls, comm)
              !!call mpi_allgatherv(mat%matrix_compr(ist_send), ncount, mpi_double_precision, &
              !!                    mat_global(1), recvcounts, recvdspls, mpi_double_precision, &
              !!                    bigdft_mpi%mpi_comm, ierr)
@@ -1666,12 +1669,12 @@ module sparsematrix
 
     !> Transform a matrix from a large parsity pattern *_l to a small sparsity pattern *_s or vice versa.
     !! The small pattern must be contained within the large one.
-    subroutine transform_sparsity_pattern(nfvctr, nvctrp_s, isvctr_s, nseg_s, keyv_s, keyg_s, line_and_column_s, &
+    subroutine transform_sparsity_pattern(iproc, nfvctr, nvctrp_s, isvctr_s, nseg_s, keyv_s, keyg_s, line_and_column_s, &
                nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, istsegline_l, direction, matrix_s, matrix_l)
       use sparsematrix_init, only: matrixindex_in_compressed_lowlevel
       implicit none
       ! Calling arguments
-      integer,intent(in) :: nfvctr, nvctrp_s, isvctr_s, nseg_s, nvctrp_l, isvctr_l, nseg_l
+      integer,intent(in) :: iproc, nfvctr, nvctrp_s, isvctr_s, nseg_s, nvctrp_l, isvctr_l, nseg_l
       integer,dimension(2,nvctrp_s),intent(in) :: line_and_column_s
       integer,dimension(nseg_s),intent(in) :: keyv_s
       integer,dimension(2,2,nseg_s),intent(in) :: keyg_s
@@ -1685,7 +1688,7 @@ module sparsematrix
       integer :: i, ii, ind, iline, icolumn
 
       call f_routine(id='transform_sparsity_pattern')
-      call timing(bigdft_mpi%iproc, 'transformspars', 'ON')
+      call timing(iproc, 'transformspars', 'ON')
 
         if (direction=='large_to_small') then
 
@@ -1731,7 +1734,7 @@ module sparsematrix
             stop 'wrong direction'
         end if
 
-      call timing(bigdft_mpi%iproc, 'transformspars', 'OF')
+      call timing(iproc, 'transformspars', 'OF')
       call f_release_routine()
 
     end subroutine transform_sparsity_pattern
@@ -1757,14 +1760,14 @@ module sparsematrix
 
       call sequential_acces_matrix_fast2(smat, a, a_seq)
       if (smat%smmm%nvctrp_mm>0) then !to avoid out of bounds error...
-          call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+          call transform_sparsity_pattern(iproc, smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
                smat%nseg, smat%keyv, smat%keyg, &
                smat%smmm%line_and_column_mm, &
                smat%smmm%nvctrp, smat%smmm%isvctr, &
                smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
                'small_to_large', b(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), b_exp)
       end if
-      call sparsemm_new(smat, a_seq, b_exp, c_exp)
+      call sparsemm_new(iproc, smat, a_seq, b_exp, c_exp)
       call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_LARGE, &
            c_exp, c)
 
@@ -1779,14 +1782,14 @@ module sparsematrix
     !< Calculates the trace of the matrix product amat*bmat.
     !< WARNING: It is mandatory that the sparsity pattern of amat be contained
     !< within the sparsity pattern of bmat!
-    function trace_sparse(iproc, nproc, asmat, bsmat, amat, bmat)
+    function trace_sparse(iproc, nproc, comm, asmat, bsmat, amat, bmat)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: matrixindex_in_compressed
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc,  nproc
+      integer,intent(in) :: iproc,  nproc, comm
       type(sparse_matrix),intent(in) :: asmat, bsmat
       real(kind=8),dimension(asmat%nvctrp_tg),intent(in) :: amat
       real(kind=8),dimension(bsmat%nvctrp_tg),intent(in) :: bmat
@@ -1835,7 +1838,7 @@ module sparsematrix
       !end if
     
       if (nproc > 1) then
-          call mpiallred(sumn, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(sumn, 1, mpi_sum, comm=comm)
       end if
     
       trace_sparse = sumn
@@ -1846,9 +1849,9 @@ module sparsematrix
 
 
     !> Set to zero all term which couple different atoms
-    subroutine delete_coupling_terms(iproc, nproc, smmd, smat, mat_compr)
+    subroutine delete_coupling_terms(iproc, nproc, comm, smmd, smat, mat_compr)
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, comm
       type(sparse_matrix_metadata),intent(in) :: smmd
       type(sparse_matrix),intent(in) :: smat
       real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(inout) :: mat_compr
@@ -1858,7 +1861,8 @@ module sparsematrix
       real(kind=8),dimension(:),allocatable :: fullmat_compr
       
       fullmat_compr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='tmparr')
-      call gather_matrix_from_taskgroups(iproc, nproc, smat, mat_compr, fullmat_compr)
+      call gather_matrix_from_taskgroups(iproc, nproc, comm, &
+           smat, mat_compr, fullmat_compr)
 
       do ispin=1,smat%nspin
           ishift=(ispin-1)*smat%nvctr
