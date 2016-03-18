@@ -271,18 +271,18 @@ module_dftbp.o: types.o
 module_tersoff.o: atoms_data.o
 module_bornmayerhugginstosifumi.o: atoms_data.o
 #module_lenosky_si.o: base.o defs.o
-transposed_operations.o: types.o
+transposed_operations.o: types.o matrix_taskgroups.o
 module_forces.o: types.o 
 unitary_tests.o: types.o interfaces.o communications_init.o communications.o transposed_operations.o rhopotential.o
 io.o: types.o interfaces.o input_keys.o
 postprocessing_linear.o: types.o interfaces.o communications.o transposed_operations.o rhopotential.o sort.o communications_init.o locregs_init.o multipole_base.o multipole.o io.o
-rhopotential.o: types.o interfaces.o xc.o communications.o
+rhopotential.o: types.o interfaces.o xc.o communications.o matrix_taskgroups.o
 multipole.o: multipole_base.o interfaces.o orthonormalization.o io.o orbital_basis.o
 orbital_basis.o:  types.o interfaces.o
 orthonormalization.o: types.o communications.o transposed_operations.o atoms_data.o
 locregs_init.o: types.o communications.o
 forces_linear.o: types.o psp_projectors.o transposed_operations.o
-#matrix_taskgroups.o: communications_base.o sparsematrix_base.o
+matrix_taskgroups.o: 
 #pexsi.o also depends on pexsi_interfaces, but it is not known which one...
 if HAVE_PEXSI
 pexsi_interfaces.o: pexsi_base.o

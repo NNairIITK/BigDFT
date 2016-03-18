@@ -38,9 +38,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
                                SPARSE_TASKGROUP, sparsematrix_malloc_ptr, assignment(=), &
                                DENSE_PARALLEL, DENSE_MATMUL, SPARSE_FULL, sparse_matrix_metadata_null
   use sparsematrix_init, only: init_matrix_taskgroups, &
-                               init_matrixindex_in_compressed_fortransposed, &
-                               sparse_matrix_metadata_init, check_local_matrix_extents
-  !use matrix_taskgroups, only: check_local_matrix_extents
+                               sparse_matrix_metadata_init
+  use matrix_taskgroups, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed
   use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
   use sparsematrix, only: check_matrix_compression
   use communications_base, only: comms_linear_null
@@ -128,6 +127,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   character(len=20) :: comment
 
   integer :: ishift, extra_states, i1, i2, i3, ii
+  integer :: ind_min_s, ind_mas_s, ind_trans_min_s, ind_trans_max_s
+  integer :: ind_min_m, ind_mas_m, ind_trans_min_m, ind_trans_max_m
+  integer :: ind_min_l, ind_mas_l, ind_trans_min_l, ind_trans_max_l
 
   !debug
   !real(kind=8) :: ddot
@@ -463,7 +465,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      iicol(1) = tmb%linmat%s%nfvctr
      iicol(2) = 1
      call check_local_matrix_extents(iproc, nproc, tmb%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%s, irow, icol)
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%s, &
+          ind_min_s, ind_mas_s, ind_trans_min_s, ind_trans_max_s, &
+          irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
@@ -471,7 +475,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!write(*,*) 'after s: iirow', iirow
      !!write(*,*) 'after s: iicol', iicol
      call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%m, irow, icol)
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%m, &
+          ind_min_m, ind_mas_m, ind_trans_min_m, ind_trans_max_m, &
+          irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
@@ -479,7 +485,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!write(*,*) 'after m: iirow', iirow
      !!write(*,*) 'after m: iicol', iicol
      call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%l, irow, icol)
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%l, &
+          ind_min_l, ind_mas_l, ind_trans_min_l, ind_trans_max_l, &
+          irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
@@ -488,13 +496,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!write(*,*) 'after l: iicol', iicol
 
      call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, in%enable_matrix_taskgroups, tmb%linmat%s, &
-          tmb%linmat%smmd, tmb%collcom, tmb%collcom_sr, iirow, iicol)
+          ind_min_s, ind_mas_s, ind_trans_min_s, ind_trans_max_s, &
+          iirow, iicol)
      !!write(*,*) 'after s'
      call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, in%enable_matrix_taskgroups, tmb%linmat%m, &
-          tmb%linmat%smmd, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
+          ind_min_m, ind_mas_m, ind_trans_min_m, ind_trans_max_m, &
+          iirow, iicol)
      !!write(*,*) 'after m'
      call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, in%enable_matrix_taskgroups, tmb%linmat%l, &
-          tmb%linmat%smmd, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
+          ind_min_l, ind_mas_l, ind_trans_min_l, ind_trans_max_l, &
+          iirow, iicol)
      !!write(*,*) 'after l'
 
      tmb%linmat%kernel_ = matrices_null()
