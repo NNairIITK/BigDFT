@@ -332,15 +332,15 @@ test.minhop.ref.yaml:
 test.testforces.ref.yaml:
  Epsilon: 1.2e-10
  Maxdiff for overlap calculation: 9.8e-09
- eF: 1.1e-08
- multiplicator for the confinement: 1.3e-9
- EBS: 1.4e-09
- EBS higher temperature: 1.4e-09
- EH: 1.5e-09
- EXC: 1.9e-10
- Ekin: 2.1e-10
- Epot: 1.1e-09
- EvXC: 2.4e-10
+ eF: 3.0e-07
+ multiplicator for the confinement: 3.1e-9
+ EBS: 2.0e-09
+ EBS higher temperature: 2.0e-09
+ EH: 2.2e-09
+ EXC: 2.7e-10
+ Ekin: 3.1e-10
+ Epot: 1.6e-09
+ EvXC: 3.5e-10
 
 
 
@@ -771,6 +771,7 @@ fructose:
  relative difference: 6.3e-11
  trace(KS): 2.5e-10
  eval: 1.1e-6
+ trace: 1.2e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -972,7 +973,7 @@ foe:
  D: 1.1e-10
  Energy (Hartree): 1.3e-10
  norm(P): 1.1e-07
- trace: 8.5e-11
+ trace: 8.7e-11
  Maxdiff for overlap calculation: 3.2e-07
  Maxdiff for transpose (checksum): 2.4e-10
 
@@ -1849,6 +1850,7 @@ multipoles_waterQM:
  EBS higher temperature: 1.3e-11
  Maxdiff for transpose (checksum): 3.0e-11
  multiplicator for the confinement: 1.9e-11
+ trace: 3.0e-11
 
 multipoles_waterQMQM:
  Epot: 1.1e-10
@@ -1917,6 +1919,7 @@ multipoles_CH4:
  eval: 1.1e-8
  Unitary check of the multipole calculations: 9.1e-2
  avg pot difference (actual/min): 1.0e-04
+ trace: 1.3e-11
 
 multipoles_periodic:
   D eF: 7.91e-8
@@ -2478,7 +2481,7 @@ matrixtaskgroups_no:
   Total charge: 2.0e-10
   difference: 7.8e-11
   energy: 2.7e-09
-  trace: 3.6e-07
+  trace: 5.9e-07
   trace(KS): 5.1e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
@@ -2506,7 +2509,7 @@ matrixtaskgroups_yes:
   Total charge: 2.0e-10
   difference: 5.9e-11
   energy: 2.7e-09
-  trace: 3.5e-07
+  trace: 6.2e-07
   trace(KS): 3.8e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
