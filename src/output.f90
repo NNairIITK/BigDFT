@@ -894,6 +894,7 @@ subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
   use module_types
   use public_enums, only: RADII_SOURCE,PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
        PSPCODE_PAW,PSPCODE_GTH
+  use public_keys, only: COEFF_KEY
   use module_xc
   use vdwcorrection
   use yaml_output
@@ -1003,7 +1004,7 @@ subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
      if (atoms%psppar(0,0,ityp)/=0) then
         call yaml_mapping_open('Local Pseudo Potential (HGH convention)')
           call yaml_map('Rloc',atoms%psppar(0,0,ityp),fmt='(f9.5)')
-          call yaml_map('Coefficients (c1 .. c4)',atoms%psppar(0,1:4,ityp),fmt='(f9.5)')
+          call yaml_map(COEFF_KEY,atoms%psppar(0,1:4,ityp),fmt='(f9.5)')
         call yaml_mapping_close()
      end if
      !nlcc term
