@@ -10,10 +10,17 @@
 
 !> Module defining the basic operations with sparse matrices (creation and destruction)
 module sparsematrix_base
-  use module_base
+  use dynamic_memory
+  use dictionaries
+  use yaml_output
+  use yaml_strings
+  use module_defs
+  use wrapper_MPI
+  use wrapper_linalg
+  use f_utils
   implicit none
 
-  private
+!  private
 
   !> Contains the matrices
   type,public :: matrices
@@ -335,7 +342,6 @@ module sparsematrix_base
 
 
     subroutine deallocate_sparse_matrix(sparsemat)
-      use module_base 
       implicit none
       ! Calling arguments
       type(sparse_matrix),intent(inout):: sparsemat
@@ -365,7 +371,6 @@ module sparsematrix_base
 
 
     subroutine deallocate_sparse_matrix_metadata(smmd)
-      use module_base 
       implicit none
       ! Calling arguments
       type(sparse_matrix_metadata),intent(inout):: smmd

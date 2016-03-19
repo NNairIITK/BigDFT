@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 module parallel_linalg
-  use module_base
+  use sparsematrix_base
   implicit none
 
   private
@@ -27,7 +27,6 @@ module parallel_linalg
     !> @warning
     !! This works only if the matrices have the same sizes for all processes!!
     subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
-      use module_base
       implicit none
     
       ! Calling arguments
@@ -170,7 +169,6 @@ module parallel_linalg
     
     
     subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, w, info)
-      use module_base
       implicit none
       
       ! Calling arguments
@@ -342,7 +340,6 @@ module parallel_linalg
     
     
     subroutine dsygv_parallel(iproc, nproc, comm, blocksize, nprocMax, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
-      use module_base
       implicit none
       
       ! Calling arguments
@@ -514,7 +511,6 @@ module parallel_linalg
     
     
     subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb, info)
-      use module_base
       implicit none
       
       ! Calling arguments
@@ -646,7 +642,6 @@ module parallel_linalg
     
     
     subroutine dpotrf_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
-      use module_base
       implicit none
     
       ! Calling arguments
@@ -760,7 +755,6 @@ module parallel_linalg
     
     
     subroutine dpotri_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
-      use module_base
       implicit none
     
       ! Calling arguments

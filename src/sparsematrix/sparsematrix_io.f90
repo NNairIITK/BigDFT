@@ -1,4 +1,5 @@
 module sparsematrix_io
+  use sparsematrix_base
   implicit none
 
   private
@@ -156,8 +157,6 @@ module sparsematrix_io
     subroutine write_sparse_matrix(iproc, nproc, comm, smat, mat, filename)
       use dynamic_memory
       use f_utils
-      use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, &
-                                   assignment(=), sparsematrix_malloc
       use sparsematrix, only: gather_matrix_from_taskgroups
       implicit none
       

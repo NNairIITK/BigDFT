@@ -10,7 +10,7 @@
 
 !> Determination of the Fermi level for the density matrix
 module fermi_level
-  use module_base
+  use sparsematrix_base
   implicit none
 
   private
@@ -387,7 +387,6 @@ module fermi_level
 
     ! Finds the real root of the equation ax**3 + bx**2 + cx + d which is closest to target_solution
     subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
-      use module_base
       implicit none
     
       ! Calling arguments
@@ -438,7 +437,6 @@ module fermi_level
 
 
     real(kind=8) function determinant(iproc, n, mat)
-        use module_base
         implicit none
     
         ! Calling arguments

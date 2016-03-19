@@ -9,6 +9,7 @@
 
 !> Module Inverse Chebyshev Expansion
 module ice
+  use sparsematrix_base
   implicit none
 
   private
@@ -577,9 +578,6 @@ module ice
 
 
     subroutine get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
-      use yaml_output
       implicit none
 
       ! Calling arguments
@@ -628,12 +626,6 @@ module ice
     subroutine inverse_chebyshev_expansion_new(iproc, nproc, comm, &
                ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp, &
                verbosity, npl_auto)
-      use module_base
-      use yaml_output
-      use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
-                                   sparsematrix_malloc0_ptr, assignment(=), &
-                                   SPARSE_TASKGROUP, SPARSE_MATMUL_SMALL, &
-                                   matrices, sparse_matrix, matrices_null, deallocate_matrices
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed_wrapper, &
                               transform_sparsity_pattern

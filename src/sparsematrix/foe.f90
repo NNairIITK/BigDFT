@@ -1,5 +1,5 @@
 module foe
-  use public_enums
+  use sparsematrix_base
   implicit none
 
   private
@@ -951,8 +951,6 @@ module foe
 
 
     subroutine get_minmax_eigenvalues(iproc, ham_smat, ham_mat, imshift, ovrlp_smat, ovrlp_mat, isshift)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
       use yaml_output
       implicit none
 
@@ -1013,12 +1011,6 @@ module foe
                ebs, &
                calculate_minusonehalf, foe_verbosity, &
                smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj)
-      use module_base
-      use yaml_output
-      use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
-                                   SPARSE_FULL, SPARSE_MATMUL_SMALL, &
-                                   SPARSE_MATMUL_LARGE, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
-                                   matrices, sparse_matrix
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
                               trace_sparse

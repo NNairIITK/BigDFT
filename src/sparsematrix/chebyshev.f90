@@ -9,7 +9,7 @@
 
 
 module chebyshev
-
+  use sparsematrix_base
   implicit none
 
   private
@@ -24,9 +24,6 @@ module chebyshev
     subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
                calculate_SHS, nsize_polynomial, ncalc, fermi_new, penalty_ev_new, chebyshev_polynomials, emergency_stop, &
                invovrlp_compr)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
-                                   SPARSE_MATMUL_LARGE, SPARSEMM_SEQ,sparsematrix_malloc0
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
                               compress_matrix_distributed_wrapper, sparsemm_new
@@ -220,7 +217,6 @@ module chebyshev
     
 
     subroutine prepare_matrix(smat, invovrlp_compr, matrix)
-      use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: matrixindex_in_compressed
       use dynamic_memory
       implicit none
@@ -261,8 +257,6 @@ module chebyshev
 
     ! Performs z = a*x + b*y
     subroutine axbyz_kernel_vectors_new(smat, a, x_compr, b, y_compr, z_compr)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -295,9 +289,6 @@ module chebyshev
     
     subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                norb, norbp, fermi, chebyshev_polynomials, ncalc, cc, kernel_compressed)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=),&
-           SPARSE_FULL,sparsematrix_malloc0
       implicit none
     
       ! Calling arguments
@@ -336,8 +327,6 @@ module chebyshev
 
     subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, norbp, &
                fermi, vector_compr, vector_compressed)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
       use sparsematrix, only: transform_sparsity_pattern
       implicit none
     
@@ -364,7 +353,6 @@ module chebyshev
 
 
     function check_emergency_stop(nvctrp, ncalc, column) result(ces)
-      use module_base
       implicit none
 
       ! Calling arguments

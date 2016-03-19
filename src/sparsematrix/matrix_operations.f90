@@ -1,5 +1,5 @@
 module matrix_operations
-    use module_base
+    use sparsematrix_base
     implicit none
 
     private
@@ -26,12 +26,6 @@ module matrix_operations
                  ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
                  verbosity, max_error, mean_error, nspinx)
            !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
-        use module_base
-        use sparsematrix_base, only: sparse_matrix, matrices, &
-                                sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc0_ptr, &
-                                assignment(=), &
-                                SPARSE_FULL, DENSE_PARALLEL, SPARSE_MATMUL_LARGE, &
-                                DENSE_MATMUL, DENSE_FULL, SPARSEMM_SEQ, SPARSE_TASKGROUP
         use sparsematrix, only: compress_matrix, uncompress_matrix, &
                                 transform_sparse_matrix, transform_sparse_matrix_local, &
                                 compress_matrix_distributed_wrapper, &
@@ -173,7 +167,8 @@ module matrix_operations
       
         if (power(1)/=-2 .and. power(1)/=1 .and. power(1)/=2) stop 'wrong value of power(1)'
       
-        if (nproc/=1 .and. nproc/=bigdft_mpi%nproc) stop 'wrong value of nproc'
+        ! SM: bigdft_mpi%nproc not accessible any more
+        !if (nproc/=1 .and. nproc/=bigdft_mpi%nproc) stop 'wrong value of nproc'
       
         ! Decide whether this routine is called in parallel or in serial.
         ! If parallel, take the default values from orbs, otherwise adjust them.
@@ -1050,8 +1045,6 @@ module matrix_operations
       subroutine check_accur_overlap_minus_one_sparse_new(iproc, nproc, comm, smat, norb, norbp, isorb, nseq, nout, &
                  amat_seq, bmatp, power, &
                  max_error, mean_error, dmat_seq, cmatp)
-        use module_base
-        use sparsematrix_base, only: sparse_matrix
         use sparsematrix, only: sparsemm_new
         implicit none
         integer,intent(in) :: iproc, nproc, comm, norb, norbp, isorb, nseq, nout, power
@@ -1110,8 +1103,6 @@ module matrix_operations
       subroutine overlap_minus_one_half_serial(iproc, nproc, comm, iorder, power, blocksize, &
                  norb, ovrlp_matrix, inv_ovrlp_matrix, check_accur, &
                  smat, max_error, mean_error)
-        use module_base
-        use sparsematrix_base, only: sparse_matrix
         use yaml_output
         implicit none
         
@@ -1291,8 +1282,6 @@ module matrix_operations
 
       subroutine check_accur_overlap_minus_one(iproc,nproc,comm,norb,norbp,isorb,power,ovrlp,inv_ovrlp,&
                  smat,max_error,mean_error)
-        use module_base
-        use sparsematrix_base, only: sparse_matrix
         implicit none
         integer,intent(in) :: iproc, nproc, comm, norb, norbp, isorb, power
         real(kind=8),dimension(norb,norb),intent(in) :: ovrlp, inv_ovrlp
@@ -1352,8 +1341,6 @@ module matrix_operations
 
 
       subroutine deviation_from_unity_parallel_new(iproc, nproc, comm, ovrlp, smat, max_deviation, mean_deviation)
-        use module_base
-        use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
       
@@ -1440,7 +1427,6 @@ module matrix_operations
 
 
       subroutine first_order_taylor_dense(norb,isorb,norbp,power,ovrlpp,inv_ovrlpp)
-      use module_base
         implicit none
         integer,intent(in) :: norb, isorb, norbp, power
         real(kind=8),dimension(norb,norbp),intent(in) :: ovrlpp
@@ -1495,8 +1481,6 @@ module matrix_operations
 
 
       subroutine matrix_minus_identity_sparse(norb, smat, ovrlp_compr, ovrlpminone_compr)
-        use module_base
-        use sparsematrix_base, only: sparse_matrix
         implicit none
 
         ! Calling arguments
@@ -1571,8 +1555,6 @@ module matrix_operations
 
 
       subroutine first_order_taylor_sparse_new(power, smat, ovrlpp, inv_ovrlpp)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
         implicit none
         !!integer,intent(in) :: norb, isorb, norbp, power
         !!real(kind=8),dimension(norb,norbp),intent(in) :: ovrlpp
@@ -1667,7 +1649,6 @@ module matrix_operations
 
 
       subroutine overlap_minus_one_exact_serial(norb,inv_ovrlp)
-        use module_base
         implicit none
         integer,intent(in) :: norb
         real(kind=8),dimension(norb,norb),intent(inout) :: inv_ovrlp
@@ -1702,8 +1683,6 @@ module matrix_operations
 
 
       subroutine overlap_plus_minus_one_half_exact(iproc,nproc,comm,norb,blocksize,plusminus,inv_ovrlp_half,smat)
-        use module_base
-        use sparsematrix_base, only: sparse_matrix
         use parallel_linalg, only: dgemm_parallel, dsyev_parallel
         implicit none
         integer,intent(in) :: iproc,nproc,comm,norb,blocksize
@@ -1717,8 +1696,8 @@ module matrix_operations
         real(kind=8),dimension(:,:),pointer :: inv_ovrlp_halfp
         real(kind=8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
         real(kind=8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
-        real(dp) :: temp, max_error, mean_error
-        real(dp), allocatable, dimension(:) :: temp_vec
+        real(kind=8) :: temp, max_error, mean_error
+        real(kind=8), allocatable, dimension(:) :: temp_vec
         logical, parameter :: symmetric=.true.
         logical, parameter :: check_lapack=.true.
         integer :: korb, jproc
@@ -1961,8 +1940,6 @@ module matrix_operations
 
 
       subroutine deviation_from_unity_parallel(iproc, nproc, comm, norb, norbp, isorb, ovrlp, smat, max_deviation, mean_deviation)
-        use module_base
-        use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
       
@@ -2025,8 +2002,6 @@ module matrix_operations
 
 
       subroutine max_matrix_diff(iproc, norb, mat1, mat2, smat, max_deviation, mean_deviation)
-        use module_base
-        use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
       
@@ -2065,8 +2040,6 @@ module matrix_operations
 
       subroutine max_matrix_diff_parallel(iproc, nproc, comm, norb, norbp, isorb, mat1, mat2, &
                  smat, max_deviation, mean_deviation)
-        use module_base
-        use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
       
@@ -2123,8 +2096,6 @@ module matrix_operations
 
       subroutine max_matrix_diff_parallel_new(iproc, nproc, comm, norb, norbp, isorb, mat1, mat2, &
                  smat, max_deviation, mean_deviation)
-        use module_base
-        use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
       
@@ -2196,9 +2167,6 @@ module matrix_operations
 
       subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, ovrlp, ovrlp_mat, &
                  inv_ovrlp_half, inv_ovrlp_half_)
-        use module_base
-        use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
-                                     allocate_matrices, deallocate_matrices
         use sparsematrix_init, only: matrixindex_in_compressed
         use sparsematrix, only: synchronize_matrix_taskgroups
         implicit none
@@ -2424,7 +2392,6 @@ module matrix_operations
 
 
     subroutine check_taylor_order(iproc, error, max_error, order_taylor)
-      use module_base
       use yaml_output
       implicit none
     
@@ -2496,9 +2463,6 @@ module matrix_operations
     !< Calculate "local versions" of S^{-1/2}, i.e. take only the small subblocks of all support functions
     !! on one atom and calculate S^{-1/2} for this subblock. The remaining parts of teh matrix are empty.
     subroutine calculate_S_minus_one_half_onsite(iproc, nproc, comm, norb, onwhichatom, smats, smatl, ovrlp_, inv_ovrlp_)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices, &
-                                   assignment(=), sparsematrix_malloc0, SPARSE_FULL
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: extract_taskgroup
       implicit none

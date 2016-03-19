@@ -1144,7 +1144,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
   use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
   use sparsematrix_init, only: init_matrix_taskgroups
-  use matrix_taskgroups, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed
+  use matrices, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed
   use foe_base, only: foe_data_deallocate
   use public_enums
   use locregs_init, only: small_to_large_locreg

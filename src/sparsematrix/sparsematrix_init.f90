@@ -11,14 +11,6 @@
 !> Module defining the basic operations with sparse matrices (initialization)
 module sparsematrix_init
   use sparsematrix_base
-  use dynamic_memory
-  use dictionaries
-  use yaml_output
-  use yaml_strings
-  use module_defs
-  use wrapper_MPI
-  use wrapper_linalg
-  use f_utils
   implicit none
 
   private
@@ -42,7 +34,7 @@ module sparsematrix_init
   public :: check_compress_distributed_layout
 
 
-contains
+  contains
 
 
 

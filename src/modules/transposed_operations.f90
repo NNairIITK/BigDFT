@@ -18,7 +18,7 @@ module transposed_operations
       use module_types, only: orbitals_data
       use communications_base, only: comms_linear
       use sparsematrix_base, only: sparse_matrix, matrices
-      use matrix_taskgroups, only: get_modulo_array
+      use matrices, only: get_modulo_array
       use sparsematrix, only: synchronize_matrix_taskgroups
       implicit none
       
@@ -833,7 +833,7 @@ module transposed_operations
       use module_base
       use communications_base, only: comms_linear
       use sparsematrix_base, only: sparse_matrix, matrices
-      use matrix_taskgroups, only: get_modulo_array
+      use matrices, only: get_modulo_array
       implicit none
       
       ! Calling arguments

@@ -498,7 +498,7 @@ module rhopotential
       use module_types
       use yaml_output
       use sparsematrix_base, only: sparse_matrix
-      use matrix_taskgroups, only: get_modulo_array
+      use matrices, only: get_modulo_array
       implicit none
     
       ! Calling arguments

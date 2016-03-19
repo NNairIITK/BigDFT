@@ -10,10 +10,7 @@
 
 !> Module to deal with the sparse matrices
 module sparsematrix
-
-  use module_base
   use sparsematrix_base
-
   implicit none
 
   private
@@ -375,7 +372,6 @@ module sparsematrix
     contains
        !> define a value for the wavefunction which is dependent of the indices
        function test_value_matrix(norb,iorb,jorb)
-          use module_base
           implicit none
           integer, intent(in) :: norb,iorb,jorb
           real(kind=8) :: test_value_matrix
@@ -398,7 +394,6 @@ module sparsematrix
 
     subroutine transform_sparse_matrix(iproc, smat, lmat, cmode, &
                smat_in, lmat_in, smat_out, lmat_out)
-      use module_base
       implicit none
     
       ! Calling arguments
@@ -533,7 +528,6 @@ module sparsematrix
 
     subroutine transform_sparse_matrix_local(iproc, smat, lmat, cmode, &
                smatrix_compr_in, lmatrix_compr_in, smatrix_compr_out, lmatrix_compr_out)
-      use module_base
       implicit none
     
       ! Calling arguments
@@ -609,7 +603,6 @@ module sparsematrix
 
 
    subroutine compress_matrix_distributed_wrapper_1(iproc, nproc, smat, layout, matrixp, matrix_compr)
-     use module_base
      implicit none
 
      ! Calling arguments
@@ -672,7 +665,6 @@ module sparsematrix
 
 
    subroutine compress_matrix_distributed_wrapper_2(iproc, nproc, smat, layout, matrixp, matrix_compr)
-     use module_base
      !!use yaml_output
      implicit none
 
@@ -780,7 +772,6 @@ module sparsematrix
    !! Attention: Even if the output array has size smat%nvctrp_tg, only the
    !! relevant part (indicated by smat%istartend_local) is calculated
    subroutine compress_matrix_distributed_core(iproc, nproc, smat, layout, matrixp, matrix_compr)
-     use module_base
      implicit none
 
      ! Calling arguments
@@ -949,7 +940,6 @@ module sparsematrix
 
 
   subroutine uncompress_matrix_distributed2(iproc, smat, layout, matrix_compr, matrixp)
-    use module_base
     implicit none
 
     ! Calling arguments
@@ -1010,7 +1000,6 @@ module sparsematrix
 
 
    subroutine sequential_acces_matrix_fast(smat, a, a_seq)
-     use module_base
      implicit none
    
      ! Calling arguments
@@ -1036,7 +1025,6 @@ module sparsematrix
    end subroutine sequential_acces_matrix_fast
 
    subroutine sequential_acces_matrix_fast2(smat, a, a_seq)
-     use module_base
      implicit none
    
      ! Calling arguments
@@ -1065,7 +1053,6 @@ module sparsematrix
 
 
    subroutine sparsemm_new(iproc, smat, a_seq, b, c)
-     use module_base
      use yaml_output
      implicit none
    
@@ -1227,8 +1214,6 @@ module sparsematrix
 
 
    subroutine gather_matrix_from_taskgroups(iproc, nproc, comm, smat, mat_tg, mat_global)
-     use module_base
-     use sparsematrix_base, only: sparse_matrix
      implicit none
    
      ! Calling arguments
@@ -1276,8 +1261,6 @@ module sparsematrix
 
 
    subroutine gather_matrix_from_taskgroups_inplace(iproc, nproc, comm, smat, mat)
-     use module_base
-     use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), SPARSE_FULL
      implicit none
    
      ! Calling arguments
@@ -1431,7 +1414,6 @@ module sparsematrix
      !integer :: mp1, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6
 
    function check_symmetry(smat)
-     use module_base
      implicit none
    
      ! Calling arguments
@@ -1783,8 +1765,6 @@ module sparsematrix
     !< WARNING: It is mandatory that the sparsity pattern of amat be contained
     !< within the sparsity pattern of bmat!
     function trace_sparse(iproc, nproc, comm, asmat, bsmat, amat, bmat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: matrixindex_in_compressed
       implicit none
     
@@ -1890,8 +1870,6 @@ module sparsematrix
 
 
     subroutine synchronize_matrix_taskgroups(iproc, nproc, smat, mat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
       implicit none
     
       ! Calling arguments

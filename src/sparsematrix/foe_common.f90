@@ -1,5 +1,6 @@
 module module_func
-  use module_base
+  use sparsematrix_base
+  use module_base, only: safe_exp
   implicit none
 
   private
@@ -96,9 +97,9 @@ end module module_func
 
 
 module foe_common
-  use module_defs, only: uninitialized
-  use module_base
   use foe_base
+  use sparsematrix_base
+  use module_base, only: pi
   implicit none
 
   private
@@ -128,7 +129,6 @@ module foe_common
 
 
     subroutine get_chebyshev_expansion_coefficients(iproc, nproc, comm, A, B, N, func, cc, x_max_error,max_error,mean_error)
-      use module_base
       use yaml_output
       implicit none
       
@@ -635,8 +635,6 @@ module foe_common
                factor_high, factor_low, penalty_ev, anoise, trace_with_overlap, &
                emergency_stop, foe_obj, restart, eval_bounds_ok, &
                verbosity, eval_multiplicator, smat_s, mat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: matrixindex_in_compressed
       use yaml_output
       implicit none
@@ -813,8 +811,6 @@ module foe_common
     subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
                smat1, mat1, i1shift, smat2, mat2, i2shift, &
                matscal_compr, scale_factor, shift_value)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: matrixindex_in_compressed
       implicit none
       ! Calling arguments
@@ -909,9 +905,6 @@ module foe_common
 
 
     subroutine retransform_ext(iproc, nproc, smat, inv_ovrlp, kernel)
-        use module_base
-        use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
-                                     SPARSEMM_SEQ, SPARSE_MATMUL_LARGE
         use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
                                 compress_matrix_distributed_wrapper, &
                                 sparsemm_new, transform_sparsity_pattern
@@ -1020,7 +1013,6 @@ module foe_common
     subroutine init_foe(iproc, nproc, nspin, charge, foe_obj, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
                evlow, evhigh, fscale, ef_interpol_det, ef_interpol_chargediff, &
                fscale_lowerbound, fscale_upperbound)
-      use module_base
       use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
       implicit none
       
@@ -1228,12 +1220,6 @@ module foe_common
     subroutine get_chebyshev_polynomials(iproc, nproc, comm, itype, foe_verbosity, npl, smatm, smatl, &
                ham_, foe_obj, chebyshev_polynomials, ispin, eval_bounds_ok, &
                hamscal_compr, scale_factor, shift_value, smats, ovrlp_, ovrlp_minus_one_half)
-      use module_base
-      use yaml_output
-      use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
-                                   SPARSE_FULL, SPARSE_MATMUL_SMALL, &
-                                   SPARSE_MATMUL_LARGE, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
-                                   matrices, sparse_matrix
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
                               trace_sparse
@@ -1647,12 +1633,6 @@ module foe_common
 
     subroutine find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
                foe_verbosity, label, smatl, ispin, foe_obj, kernel_)
-      use module_base
-      use yaml_output
-      use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
-                                   SPARSE_FULL, SPARSE_MATMUL_SMALL, &
-                                   SPARSE_MATMUL_LARGE, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
-                                   matrices, sparse_matrix
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
                               trace_sparse
@@ -2005,8 +1985,6 @@ module foe_common
 
 
     subroutine calculate_trace_distributed_new(iproc, nproc, comm, smatl, matrixp, trace)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm
@@ -2045,7 +2023,6 @@ module foe_common
                npl_min, npl_max, npl_stride, max_polynomial_degree, verbosity, npl, cc, &
                max_error, x_max_error, mean_error, anoise, &
                ex, ef, fscale)
-      use module_base
       use foe_base, only: foe_data, foe_data_get_real
       use yaml_output
       use module_func

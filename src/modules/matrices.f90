@@ -1,4 +1,4 @@
-module matrix_taskgroups
+module matrices
   implicit none
 
   private
@@ -565,4 +565,4 @@ module matrix_taskgroups
     
     end subroutine init_matrixindex_in_compressed_fortransposed
 
-end module matrix_taskgroups
+end module matrices
