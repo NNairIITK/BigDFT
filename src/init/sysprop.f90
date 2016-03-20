@@ -781,6 +781,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
      subroutine fragment_stuff()
        implicit none
+       integer :: iorbn
+       integer, allocatable, dimension(:) :: inwhichlocreg_tmp, onwhichatom_tmp
+
        frag_allocated=.false.
        if (inputpsi == 'INPUT_PSI_DISK_LINEAR' .or. in%lin%fragment_calculation) then
           allocate(ref_frags(in%frag%nfrag_ref))
@@ -808,6 +811,34 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
           deallocate(ref_frags)
          frag_allocated=.false.
        end if
+
+       ! not sure if this will mess up load balancing but we want the tmbs to stay in input file order
+       ! for reading for disk this is taken care of automatically
+       if (in%lin%fragment_calculation .and. inputpsi /= 'INPUT_PSI_DISK_LINEAR') then
+          inwhichlocreg_tmp = f_malloc(lorbs%norb,id='inwhichlocreg_tmp')
+          onwhichatom_tmp = f_malloc(lorbs%norb,id='onwhichatom_tmp') 
+
+          call vcopy(lorbs%norb,lorbs%inwhichlocreg(1),1,inwhichlocreg_tmp(1),1)
+          call vcopy(lorbs%norb,lorbs%onwhichatom(1),1,onwhichatom_tmp(1),1)
+
+          ! might be a better way of doing this...
+          iorbn=0
+          do iat=1,atoms%astruct%nat
+             do iorb=1,lorbs%norb
+                if (onwhichatom_tmp(iorb)/=iat) cycle
+                iorbn = iorbn+1
+                lorbs%onwhichatom(iorbn) = iat
+                lorbs%inwhichlocreg(iorbn) = inwhichlocreg_tmp(iorb)
+                ! double check - might not always be true in future
+                if (iorbn /= inwhichlocreg_tmp(iorb)) stop 'Error reordering tmbs for fragment calculation'
+             end do
+          end do
+          if (iorbn /= lorbs%norb) stop 'Error reordering tmbs for fragment calculation'
+
+          call f_free(inwhichlocreg_tmp)
+          call f_free(onwhichatom_tmp)
+       end if
+
      end subroutine fragment_stuff
 
 END SUBROUTINE system_initialization

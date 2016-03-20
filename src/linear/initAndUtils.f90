@@ -37,9 +37,9 @@ subroutine init_foe_wrapper(iproc, nproc, input, orbs_KS, tmprtr, foe_obj)
       end do
   end if
   if (input%nspin/=1 .and. input%nspin /=2) call f_err_throw('Wrong value for nspin')
-  call init_foe(iproc, nproc, input%nspin, charges, tmprtr, input%evbounds_nsatur, input%evboundsshrink_nsatur, &
+  call init_foe(iproc, nproc, input%nspin, charges, foe_obj, tmprtr, input%evbounds_nsatur, input%evboundsshrink_nsatur, &
        input%lin%evlow, input%lin%evhigh, input%lin%fscale, input%lin%ef_interpol_det, input%lin%ef_interpol_chargediff, &
-       input%fscale_lowerbound, input%fscale_upperbound, foe_obj)
+       input%fscale_lowerbound, input%fscale_upperbound)
 
   call f_release_routine()
 
@@ -1360,11 +1360,11 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
 
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, input%enable_matrix_taskgroups, &
           tmb%linmat%s, tmb%linmat%smmd, tmb%collcom, tmb%collcom_sr, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, input%enable_matrix_taskgroups, &
           tmb%linmat%m, tmb%linmat%smmd, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, input%enable_matrix_taskgroups, &
           tmb%linmat%l, tmb%linmat%smmd, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
 
      call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
@@ -1381,7 +1381,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      nullify(tmb%linmat%ks)
      nullify(tmb%linmat%ks_e)
-     if (input%lin%scf_mode/=LINEAR_FOE .or. input%lin%pulay_correction .or.  input%lin%new_pulay_correction .or. &
+     if (input%lin%scf_mode/=LINEAR_FOE .or. &
          (mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE) .or. input%lin%diag_end) then
          call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, input, at%astruct%geocode, &
               at%astruct%cell_dim, input%lin%extra_states, tmb%linmat%ks, tmb%linmat%ks_e)

@@ -47,7 +47,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,xc,nspin,lr,orbs,n3parr,
 
   eexctX=0.0_gp
 
-  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
+  call initialize_work_arrays_sumrho(lr,.true.,w)
   
   !save the value of the previous offset of the kernel
   !kerneloff=pkernel(1)
@@ -332,7 +332,7 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
   integer, dimension(:,:), allocatable :: ncommocc
   real(wp), dimension(:), allocatable :: psiwocc
 
-  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
+  call initialize_work_arrays_sumrho(lr,.true.,w)
 
   psiwocc = f_malloc0(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp, n3parr(0)*orbsocc%norb), 1),id='psiwocc')
 
@@ -444,7 +444,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
 
   !call timing(iproc,'Exchangecorr  ','ON')
 
-  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
+  call initialize_work_arrays_sumrho(lr,.true.,w)
   
   !the granularity of the calculation is set by ngran
   !for the moment it is irrelevant but if the poisson solver is modified
@@ -1028,7 +1028,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   !stop
   !open(100+iproc)  
 
-  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
+  call initialize_work_arrays_sumrho(lr,.true.,w)
   psir = f_malloc0((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
 
   !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir(1,1))

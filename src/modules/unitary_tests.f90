@@ -25,7 +25,7 @@ module unitary_tests
 
 
     !> Perform the communication needed for the potential and verify that the results is as expected
-    subroutine check_communication_potential(iproc,denspot,tmb)
+    subroutine check_communication_potential(iproc,nproc,denspot,tmb)
       use module_base
       use module_types
       use yaml_output
@@ -33,18 +33,19 @@ module unitary_tests
       use communications, only: start_onesided_communication
       use rhopotential, only: full_local_potential
       implicit none
-      integer,intent(in) :: iproc
+      integer,intent(in) :: iproc,nproc
       type(DFT_wavefunction), intent(inout) :: tmb
       type(DFT_local_fields), intent(inout) :: denspot
       !local variables
       logical :: dosome, abort, wrong
       integer :: i1,i2,i3,ind,n3p,ilr,iorb,ilr_orb,n2i,n1i,numtot,ishift,ispin
-      integer :: i1s, i1e, i2s, i2e, i3s, i3e, ii1, ii2, ii3, ierr
+      integer :: i1s, i1e, i2s, i2e, i3s, i3e, ii1, ii2, ii3, ierr, jproc
       !integer :: ierr
       real(dp) :: maxdiff,sumdiff,testval
       real(dp),parameter :: tol_calculation_mean=1.d-12
       real(dp),parameter :: tol_calculation_max=1.d-10
       character(len=200), parameter :: subname='check_communication_potential'
+      integer,dimension(:),allocatable :: n3p_withmax
     
       call timing(bigdft_mpi%iproc,'check_pot','ON')
     
@@ -70,15 +71,22 @@ module unitary_tests
           end do
       end do
 
-    
+     
       !!write(*,'(a,3i12)') 'iproc, denspot%dpbox%ndimpot*denspot%dpbox%nrhodim, size(denspot%rhov)', iproc, denspot%dpbox%ndimpot*denspot%dpbox%nrhodim, size(denspot%rhov)
     
       !calculate the dimensions and communication of the potential element with mpi_get
+      !max(denspot%dpbox%nscatterarr(:,2),1)
+      !denspot%dpbox%nscatterarr(:,2) creates a temporary array, to be avoided
       call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+      n3p_withmax = f_malloc(0.to.nproc-1,id='n3p_withmax')
+      do jproc=0,nproc-1
+          n3p_withmax(jproc) = max(denspot%dpbox%nscatterarr(jproc,2),1)
+      end do
       call start_onesided_communication(bigdft_mpi%iproc, bigdft_mpi%nproc, &
-           denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), max(denspot%dpbox%nscatterarr(:,2),1), denspot%rhov, &
+           denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), n3p_withmax, denspot%rhov, &
            tmb%ham_descr%comgp%nspin*tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, &
            tmb%ham_descr%comgp, tmb%ham_descr%lzd)
+      call f_free(n3p_withmax)
     
       !check the fetching of the potential element, destroy the MPI window, results in pot_work
       !!write(*,*) 'kind(2)',kind(2)

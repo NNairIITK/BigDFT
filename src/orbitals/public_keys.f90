@@ -232,7 +232,6 @@ module public_keys
   character(len=*), parameter :: CALC_QUADRUPOLE ='calc_quadrupole'
   character(len=*), parameter :: CDFT_LAG_MULT_INIT='cdft_lag_mult_init'
   character(len=*), parameter :: CDFT_CONV_CRIT  ='cdft_conv_crit'
-  character(len=*), parameter :: CALC_PULAY      ='calc_pulay'
   character(len=*), parameter :: SUBSPACE_DIAG   ='subspace_diag'
   character(len=*), parameter :: ALPHA_DIIS      ='alpha_diis'
   character(len=*), parameter :: ALPHA_SD        ='alpha_sd'
