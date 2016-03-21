@@ -13,6 +13,7 @@ Makefile
 jhbuildrc
 aclocal.m4
 autom4te.cache
+*/INSTALL
 futile/config/*
 psolver/config/*
 bigdft/config/*

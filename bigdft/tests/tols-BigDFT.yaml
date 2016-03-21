@@ -273,7 +273,7 @@ ElecField:
 FeHyb:
  EKS: 6.e-11
  y: 1.51e-11
- Energy (Hartree): 4.9e-11
+ Energy (Hartree): 5.8e-11
 
 
 Li+:
@@ -2117,7 +2117,7 @@ igortho_94:
  Force Norm (Hartree/Bohr): 4.3e-8
  Maxdiff for transpose (checksum): 1.2e-10
  Q matrix: 1.1e-04
- P vector: 2.01e-05 
+ P vector: 2.01e-05
  norm(P): 3.9e-05
 
 extendedfrags_nofrags:
@@ -2511,7 +2511,7 @@ matrixtaskgroups_no:
   Force Norm (Hartree/Bohr): 7.9e-11
   Gross support functions moments: 1.1e-9
   Total ionic charge: 9.6e-11
-  Maxdiff for transpose (checksum): 3.0e-11 
+  Maxdiff for transpose (checksum): 3.0e-11
   Keys to ignore:
    - Calculating wavelets expansion of projectors, found warnings
    - found warnings
@@ -2538,7 +2538,7 @@ matrixtaskgroups_yes:
   Force Norm (Hartree/Bohr): 7.9e-11
   Gross support functions moments: 1.1e-9
   Total ionic charge: 9.6e-11
-  Maxdiff for transpose (checksum): 3.0e-11 
+  Maxdiff for transpose (checksum): 3.0e-11
   Keys to ignore:
    - Calculating wavelets expansion of projectors, found warnings
    - found warnings

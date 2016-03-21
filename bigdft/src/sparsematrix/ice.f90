@@ -297,7 +297,7 @@ module ice
 !!                          if (npl>nplx) stop 'npl>nplx'
 !!                      else
 !!                          stop 'use the new wrapper for this'
-!!                          !!call get_poynomial_degree(iproc, nproc, ispin, ncalc, ex, foe_obj, 5, 100, 1.d-10, &
+!!                          !!call get_polynomial_degree(iproc, nproc, ispin, ncalc, ex, foe_obj, 5, 100, 1.d-10, &
 !!                          !!     npl, cc, anoise)
 !!                      end if
 !!
@@ -644,7 +644,7 @@ module ice
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: scale_and_shift_matrix, &
                             evnoise, check_eigenvalue_spectrum_new, get_chebyshev_expansion_coefficients, &
-                            get_chebyshev_polynomials, get_poynomial_degree
+                            get_chebyshev_polynomials, get_polynomial_degree
       use module_func
       implicit none
 
@@ -777,7 +777,7 @@ module ice
               !!    write(*,*) 'eval_multiplicator, eval_multiplicator_total', &
               !!                eval_multiplicator, eval_multiplicator_total
               !!end if
-              call get_poynomial_degree(iproc, nproc, ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, 5, 100, 1, 1.d-9, &
+              call get_polynomial_degree(iproc, nproc, ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, 5, 100, 1, 1.d-9, &
                    0, npl, cc, max_error, x_max_error, mean_error, anoise, &
                    ex=ex)
               call f_free_ptr(chebyshev_polynomials)
@@ -820,10 +820,10 @@ module ice
           if (iproc==0 .and. verbosity_>0) then
               call yaml_sequence_close()
           end if
-          
+
           call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
-               inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc(:,1,:), inv_ovrlp_matrixp_small_new)
+               inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc(:,:,1), inv_ovrlp_matrixp_small_new)
           !write(*,*) 'sum(cc(:,1,1))',sum(cc(:,1,1))
           !write(*,*) 'sum(ovrlp_scaled%matrix_compr)',sum(ovrlp_scaled%matrix_compr)
           !write(*,*) 'sum(chebyshev_polynomials)', sum(chebyshev_polynomials)
@@ -898,9 +898,6 @@ module ice
     !!      ! Lower bounds too large
 
     !!end subroutine adjust_eval_bounds
-
-
-
 
 
 end module ice

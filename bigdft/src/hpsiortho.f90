@@ -242,7 +242,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
 
         !here a external potential with spinorial indices can be added
      end if
-     
+
      !this part has to be replaced by the updatepotential routine
 !     call updatePotential(wfn%orbs%nspinor,denspot,energs)
 
@@ -296,7 +296,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
      end if
 
      if (wfn%paw%usepaw) then
-        call paw_compute_dij(wfn%paw, atoms, denspot, denspot%V_XC(1, 1, 1, 1), &
+        call paw_compute_dij(wfn%paw, atoms, denspot, denspot%V_XC, &
              & energs%epaw, energs%epawdc, compch_sph)
      end if
   end if

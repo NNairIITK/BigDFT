@@ -2,12 +2,12 @@
 !!    Modulefile for environment computation
 !!
 !! @author
-!!    G. Fisicaro, L. Genovese (September 2015)
-!!    Copyright (C) 2002-2015 BigDFT group 
+!!    G. Fisicaro, L. Genovese (September 2015) <br>
+!!    Copyright (C) 2002-2016 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 module psolver_environment
   use f_enums, only: f_enumerator
   use PSbase
@@ -53,7 +53,7 @@ module psolver_environment
 
   !> dyn/cm into atomic units (5.291772109217d-9/8.238722514d-3)
   real(gp), parameter, public :: SurfAU=Bohr_Ang*1.e-8/dyn_AU
-  
+
   !> define the cavity type
   type, public :: cavity_data
      real(gp) :: epsilon0 !< dielectriv constant of the medium
@@ -62,7 +62,7 @@ module psolver_environment
      real(gp) :: delta !<parameter for the PCM cavity in the case of rigid
      real(dp) :: gammaS !< surface tension of the solvent [dyn/cm]
      real(dp) :: alphaS !< proportionality factor for the repulsion free energy in term of the surface integral [dyn/cm]
-     real(dp) :: betaV !<proportionality factor for the dispersion free energy in term of the volume integral [GPa]     
+     real(dp) :: betaV !<proportionality factor for the dispersion free energy in term of the volume integral [GPa]
   end type cavity_data
 
   public :: cavity_init,eps,epsprime,epssecond,oneoeps,oneosqrteps,logepsprime,corr_term
@@ -74,13 +74,13 @@ contains
   pure function cavity_default() result(c)
     implicit none
     type(cavity_data) :: c
-    c%epsilon0= 78.36_gp !<water at ambient condition 
+    c%epsilon0= 78.36_gp !<water at ambient condition
     c%edensmax = 0.005_gp !0.0050d0
     c%edensmin = 0.0001_gp
     c%delta = 2.0_gp
-    c%gammaS = 72._gp*SurfAU ![dyn/cm]   
+    c%gammaS = 72._gp*SurfAU ![dyn/cm]
     c%alphaS = -22.0_gp*SurfAU ![dyn/cm]   end function cavity_default
-    c%betaV = -0.35_gp/AU_GPa ![GPa]     
+    c%betaV = -0.35_gp/AU_GPa ![GPa]
   end function cavity_default
 
   !>initialize the cavity parameters
@@ -96,7 +96,7 @@ contains
     if (present(edensmin)) c%edensmax=edensmin
     if (present(delta)) c%delta=delta
     if (present(gammaS)) c%gammaS=gammaS*SurfAU
-    if (present(alphaS)) c%alphaS=alphaS*SurfAU  
+    if (present(alphaS)) c%alphaS=alphaS*SurfAU
     if (present(betaV )) c%betaV =betaV/AU_GPa
   end function cavity_init
 
@@ -285,7 +285,8 @@ contains
     type(cavity_data), intent(in) :: cavity
     real(gp) :: corr_term
     !local variables
-    real(gp) :: epspr,fact1,fact2,fact3,r,t,coeff,coeff1,dtx,ep,w,ct
+    real(gp) :: epspr,ep,ct
+    !real(gp) :: fact1,fact2,fact3,r,t,coeff,coeff1,dtx,w
 
     !we are in a inner region
     if (rho > cavity%edensmax) then
@@ -316,7 +317,7 @@ contains
 !!$       corr_term=(0.125d0/pi)*ep*(coeff1*nabla2rho+dtx*deltarho)
     end if
   end function corr_term
-  
+
   !>surface term multiplied by epsilon m1
   function surf_term(rho,nabla2rho,deltarho,ccrho,cavity)
     implicit none
@@ -436,14 +437,14 @@ contains
        if (abs(dlogh) < thr) cycle
        ep=epsl(d,rad,cavity%delta)
        dlogh=dlogh/ep
-       epsrm1=epsr-vacuum_eps 
+       epsrm1=epsr-vacuum_eps
        if (abs(epsrm1) < thr) cycle
        vr(:)=closest_r(mesh,v,center=rxyz(:,iat))
        depsdRi(:)=-epsrm1*dlogh/d*vr(:)
        tt=-oneoeightpi*npot2*hh
        !here the forces can be calculated
        fxyz(:,iat)=fxyz(:,iat)+tt*depsdRi(:) ! Electrostatic force
-       if (.not. only_electrostatic) then 
+       if (.not. only_electrostatic) then
         ttV=cavity%betaV/eps0m1*hh ! CAN BE DONE EXTERNAL TO THE LOOP (INTEGRAL)
         f_Vterm(:)=ttV*depsdRi(:) ! Force from the Volume term to the energy
         sqdeps=sqrt(square(mesh,deps))
@@ -495,7 +496,7 @@ contains
 
     d=(r-rc)/delta
     d2eps=-2.0_gp*d/delta*d1eps(r,rc,delta)
-    
+
   end function d2eps
 
   pure function epsl(r,rc,delta)
@@ -521,12 +522,12 @@ contains
   end function epsle0
 
   !> calculate the Extra potential and add it to the Hartree one
-  !!at the same time evaluate the energy of the extra term given the 
+  !!at the same time evaluate the energy of the extra term given the
   !! electronic charge density, and add if needed the ionic potential
   subroutine add_Vextra(n1,n23,nabla2_pot,depsdrho,dsurfdrho,cavity,&
        only_es,sumpion,pot_ion,pot)
     implicit none
-    !>if .true., the added potential only comes from the 
+    !>if .true., the added potential only comes from the
     !!electrostatic contribution
     logical, intent(in) :: only_es,sumpion
     integer, intent(in) :: n1,n23
@@ -601,7 +602,7 @@ contains
     !local variables
     integer :: i123
 
-    
+
     !$omp parallel do default(shared) private(i123)
     do i123=1,n1*n23
        np2em1(i123)=(eps(i123)-vacuum_eps)*nabla2_pot(i123)
@@ -630,7 +631,7 @@ contains
     real(dp), dimension(n_ions) :: r_ions !< effective ionic radius of ionic species [m]
     real(dp), parameter :: Temp = 300 ! Temperature of the liquid system [K]
     !> packing coefficient p = 1 for perfect packing, p = pi_greek/(3(2)^{1/2}) ≈ 0.74 for close packing,
-    real(dp), parameter :: p = 0.74d0 
+    real(dp), parameter :: p = 0.74d0
     !! p ≈ 0.64 for random close packing, and p = pi_greek/6 ≈ 0.52 for simple cubic packing.
     ! Nedeed constant
     real(dp), parameter :: n_avo = 6.0221412927d23 ! Avogadro's number [1/mol]
@@ -671,7 +672,7 @@ contains
           t = -z_ions(i)*pot/k_bT !*0.01d0
           ions_conc = ions_conc + z_ions(i)*c_ions(i)*t
        end do
-       ions_conc = ions_conc*fact!*1.d3  
+       ions_conc = ions_conc*fact!*1.d3
     else if (PBeq.eq.2) then
        ! Standard Poisson-Boltzmann Equation.
        ions_conc = 0.d0
@@ -680,21 +681,21 @@ contains
           t=safe_exp(t) ! Comment this line for linear Poisson-Boltzmann Equation.
           ions_conc = ions_conc + z_ions(i)*c_ions(i)*t
        end do
-       ions_conc = ions_conc*fact!*1.d3  
-    else if (PBeq.eq.3) then  
+       ions_conc = ions_conc*fact!*1.d3
+    else if (PBeq.eq.3) then
        ! Modified Poisson-Boltzmann Equation.
        ions_conc = 0.d0
        do i=1,n_ions
           y=pot/k_bT ! correct one
           !y=pot/k_bT*0.05d0
-          t = -z_ions(i)*y 
+          t = -z_ions(i)*y
           h=0.d0
           do j=1,n_ions
              h=h+c_ratio(j)*safe_exp((z_ions(i)-z_ions(j))*y)
           end do
           l=safe_exp(z_ions(i)*y)*(1.d0-sumc)+h
           t=1.d0/l
-          ions_conc = ions_conc + z_ions(i)*c_ions(i)*t 
+          ions_conc = ions_conc + z_ions(i)*c_ions(i)*t
        end do
        ions_conc = ions_conc*fact ! correct one
        !ions_conc = ions_conc*fact*5.0d2
@@ -776,7 +777,6 @@ contains
        end do
     end do
   end subroutine dlepsdrho_sccs
-    
+
 
 end module psolver_environment
-

@@ -3,7 +3,7 @@ overridesdir = $(pyexecdir)/gi/overrides
 noinst_LIBRARIES = libbindings.a
 include_HEADERS = bigdft.h bigdft_input_keys.h
 nodist_include_HEADERS = bigdft_cst.h
-overrides_DATA = BigDFT.py
+dist_overrides_DATA = BigDFT.py
 
 EXTRA_DIST = bigdft_cst.h.in
 

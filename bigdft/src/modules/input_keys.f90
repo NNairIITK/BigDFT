@@ -6,6 +6,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 !> Define all static strings to store input variables
 module module_input_keys
   use dictionaries
@@ -23,7 +25,8 @@ module module_input_keys
 
   !public :: input_keys_init, input_keys_finalize
 
-  type(dictionary), pointer :: parameters=>null()
+
+  type(dictionary), pointer :: parameters=>null()         !< Used to check the keys in input files.
   type(dictionary), pointer :: parsed_parameters=>null()
   type(dictionary), pointer :: profiles=>null()
 
@@ -489,6 +492,7 @@ contains
   end subroutine nullifyInputLinparameters
 
 
+  !> Allocate and initialize the variables 'parameters', 'params' and 'parsed_parameters'/
   subroutine input_keys_init()
     use yaml_output
     use dynamic_memory
@@ -532,6 +536,7 @@ contains
   END SUBROUTINE input_keys_init
 
 
+  !> De-allocate the variables 'parameters', 'params' and 'parsed_parameters'/
   subroutine input_keys_finalize()
     use dictionaries
     implicit none
@@ -595,6 +600,7 @@ contains
     !type(external_potential_descriptors) :: ep
     !integer :: impl, l
     type(xc_info) :: xc
+    logical :: free,positions
 
     call f_routine(id='inputs_from_dict')
 
@@ -602,8 +608,15 @@ contains
     !atoms = atoms_data_null()
     call nullify_atoms_data(atoms)
 
+    !Check posinp section
     if (.not. has_key(dict, POSINP)) &
          call f_err_throw("missing posinp",err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+    !Check if atomic positions with free BC
+    free=ASTRUCT_CELL .notin. dict//POSINP
+    positions=ASTRUCT_POSITIONS .notin. dict//POSINP
+    if (free .and. positions) call f_err_throw('No given atoms with free boundary conditions',&
+                & ERR_NAME='BIGDFT_INPUT_VARIABLES_ERROR')
+
     call astruct_set_from_dict(dict // POSINP, atoms%astruct)
     ! Generate the dict of types for later use.
     call astruct_dict_get_types(dict // POSINP, types)
@@ -1277,7 +1290,7 @@ contains
     implicit none
     integer, intent(in) :: iscf
     type(f_enumerator), intent(out) :: scf_mode
-    
+
     !insert the method of mixing
     scf_mode=f_enumerator('METHOD',modulo(iscf,10),null())
     !set the enumerator methd
@@ -3299,7 +3312,7 @@ contains
           at => dict //POSINP
           if (.not. has_key(at, ASTRUCT_PROPERTIES)) then
              call set(at // ASTRUCT_PROPERTIES // FORMAT_KEY, FORMAT_YAML)
-             call set(at // ASTRUCT_PROPERTIES // POSINP_SOURCE, trim(radical)//trim(FORMAT_YAML))
+             call set(at // ASTRUCT_PROPERTIES // POSINP_SOURCE, trim(radical)//'.'//trim(FORMAT_YAML))
           else
              at => at // ASTRUCT_PROPERTIES
              if (FORMAT_KEY .notin. at) &

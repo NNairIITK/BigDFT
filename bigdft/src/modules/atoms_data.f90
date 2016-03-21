@@ -1265,11 +1265,14 @@ contains
       end do
     end subroutine astruct_at_from_dict
 
+
+    !> Get types of the atoms in the dictionary
     subroutine astruct_dict_get_types(dict, types)
       use dictionaries
       implicit none
+      !Arguments
       type(dictionary), pointer :: dict, types
-
+      !Local variables
       type(dictionary), pointer :: atoms, at
       character(len = max_field_length) :: str
       integer :: ityp
@@ -1296,6 +1299,7 @@ contains
          atoms => dict_next(atoms)
       end do
     end subroutine astruct_dict_get_types
+
 
     !> Read old psppar file (check if not already in the dictionary) and merge to dict
     subroutine atoms_file_merge_to_dict(dict)
@@ -1361,84 +1365,85 @@ contains
     end subroutine atoms_file_merge_to_dict
 
 
-   !> Read Atomic positions and merge into dict
-   subroutine astruct_file_merge_to_dict(dict, key, filename, pos_format)
-     use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine, &
+    !> Read Atomic positions and merge into dict
+    subroutine astruct_file_merge_to_dict(dict, key, filename, pos_format)
+      use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine, &
           & BIGDFT_INPUT_FILE_ERROR,f_free_ptr
-     use public_keys, only: POSINP,GOUT_FORCES,GOUT_ENERGY,POSINP_SOURCE
-     use yaml_strings
-     use dictionaries
-     use module_input_dicts, only: dict_get_run_properties
-     implicit none
-     !Arguments
-     type(dictionary), pointer :: dict                      !< Contains (out) all the information
-     character(len = *), intent(in) :: key                  !< Key of the dictionary where it should be have the information
-     character(len = *), intent(in) :: filename             !< Name of the filename where the astruct should be read
-     character(len = *), optional, intent(in) :: pos_format !< Explicit specified format
-     !Local variables
-     type(atomic_structure) :: astruct
-     !type(DFT_global_output) :: outs
-     character(len=max_field_length) :: msg,radical
-     integer :: ierr,iat
-     real(gp) :: energy
-     real(gp), dimension(:,:), pointer :: fxyz
-     type(dictionary), pointer :: dict_tmp,pos
+      use public_keys, only: POSINP,GOUT_FORCES,GOUT_ENERGY,POSINP_SOURCE
+      use yaml_strings
+      use dictionaries
+      use module_input_dicts, only: dict_get_run_properties
+      implicit none
+      !Arguments
+      type(dictionary), pointer :: dict                      !< Contains (out) all the information
+      character(len = *), intent(in) :: key                  !< Key of the dictionary where it should be have the information
+      character(len = *), intent(in) :: filename             !< Name of the filename where the astruct should be read
+      character(len = *), optional, intent(in) :: pos_format !< Explicit specified format
+      !Local variables
+      type(atomic_structure) :: astruct
+      !type(DFT_global_output) :: outs
+      character(len=max_field_length) :: msg,radical
+      integer :: ierr,iat
+      real(gp) :: energy
+      real(gp), dimension(:,:), pointer :: fxyz
+      type(dictionary), pointer :: dict_tmp,pos
 
-     call f_routine(id='astruct_file_merge_to_dict')
+      call f_routine(id='astruct_file_merge_to_dict')
 
-     call nullify_atomic_structure(astruct)
+      call nullify_atomic_structure(astruct)
 
-     !Try to read the atomic coordinates from files (old way)
-     call f_err_open_try()
-     nullify(fxyz)
-     if (present(pos_format)) then
-       call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
-          & energy = energy, fxyz = fxyz, pos_format=pos_format)
-     else
-       call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
+      !Try to read the atomic coordinates from files (old way)
+      call f_err_open_try()
+      nullify(fxyz)
+      if (present(pos_format)) then
+        call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
+             & energy = energy, fxyz = fxyz, pos_format=pos_format)
+      else
+        call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
           & energy = energy, fxyz = fxyz)
       end if
-     !print *,'test2',associated(fxyz)
-     !Check if BIGDFT_INPUT_FILE_ERROR
-     ierr = f_get_last_error(msg)
-     call f_err_close_try()
+      !print *,'test2',associated(fxyz)
+      !Check if BIGDFT_INPUT_FILE_ERROR
+      ierr = f_get_last_error(msg)
+      call f_err_close_try()
 
-     if (ierr == 0) then
-       dict_tmp => dict // key
-       !No errors: we have all information in astruct and put into dict
-       call astruct_merge_to_dict(dict_tmp, astruct, astruct%rxyz)
-       call set(dict_tmp // ASTRUCT_PROPERTIES // POSINP_SOURCE, astruct%source)
+      if (ierr == 0) then
+        dict_tmp => dict // key
+        !No errors: we have all information in astruct and put into dict
+        call astruct_merge_to_dict(dict_tmp, astruct, astruct%rxyz)
+        call set(dict_tmp // ASTRUCT_PROPERTIES // POSINP_SOURCE, astruct%source)
 
-       if (GOUT_FORCES .in. dict_tmp) call dict_remove(dict_tmp, GOUT_FORCES)
-       if (associated(fxyz)) then
+        if (GOUT_FORCES .in. dict_tmp) call dict_remove(dict_tmp, GOUT_FORCES)
+        if (associated(fxyz)) then
           pos => dict_tmp // GOUT_FORCES
           do iat=1,astruct%nat
-             call add(pos, dict_new(astruct%atomnames(astruct%iatype(iat)) .is. fxyz(:,iat)))
+            call add(pos, dict_new(astruct%atomnames(astruct%iatype(iat)) .is. fxyz(:,iat)))
           end do
-       end if
+        end if
 
-       if (GOUT_ENERGY .in. dict_tmp) call dict_remove(dict_tmp, GOUT_ENERGY)
-       if (energy /= UNINITIALIZED(energy)) call set(dict_tmp // GOUT_ENERGY, energy)
-       !call global_output_merge_to_dict(dict // key, outs, astruct)
-       call deallocate_atomic_structure(astruct)
+        if (GOUT_ENERGY .in. dict_tmp) call dict_remove(dict_tmp, GOUT_ENERGY)
+        if (energy /= UNINITIALIZED(energy)) call set(dict_tmp // GOUT_ENERGY, energy)
+        !call global_output_merge_to_dict(dict // key, outs, astruct)
+        call deallocate_atomic_structure(astruct)
 
-     else if (ierr == BIGDFT_INPUT_FILE_ERROR) then
-       !Found no file, raise an error
-       call f_strcpy(src='input',dest=radical)
-       !modify the radical name if it exists
-       call dict_get_run_properties(dict, input_id = radical)
-       msg = "No section 'posinp' for the atomic positions in the file '"//&
-             & trim(radical) // ".yaml'. " // trim(msg)
-       call f_err_throw(err_msg=msg,err_id=ierr)
-     else
-       ! Raise an error
-       call f_err_throw(err_msg=msg,err_id=ierr)
-     end if
+      else if (ierr == BIGDFT_INPUT_FILE_ERROR) then
+        !Found no file, raise an error
+        call f_strcpy(src='input',dest=radical)
+        !modify the radical name if it exists
+        call dict_get_run_properties(dict, input_id = radical)
+        msg = "No section 'posinp' for the atomic positions in the file '"//&
+              & trim(radical) // ".yaml'. " // trim(msg)
+        call f_err_throw(err_msg=msg,err_id=ierr)
+      else
+        ! Raise an error
+        call f_err_throw(err_msg=msg,err_id=ierr)
+      end if
 
-     call f_free_ptr(fxyz)
-     call f_release_routine()
+      call f_free_ptr(fxyz)
+      call f_release_routine()
 
-   end subroutine astruct_file_merge_to_dict
+    end subroutine astruct_file_merge_to_dict
+
 
     !> Allocate the astruct variable from the dictionary of input data
     !! retrieve also other information like the energy and the forces if requested
@@ -1976,6 +1981,7 @@ subroutine allocate_atoms_nat(atoms)
 END SUBROUTINE allocate_atoms_nat
 
 
+!> Allocate the arrays in atoms_data structure.
 subroutine allocate_atoms_ntypes(atoms)
   use module_base
   use module_atoms, only: atoms_data

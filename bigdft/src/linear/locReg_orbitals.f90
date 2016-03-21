@@ -1,7 +1,7 @@
 !> @file
 !! Localization Region to orbitals
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2016 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -17,12 +17,12 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   implicit none
 
   integer,intent(in):: iproc,nproc,nspin,nspinor
-  type(atoms_data),intent(in) :: atoms 
+  type(atoms_data),intent(in) :: atoms
   type(orbitals_data),intent(inout):: orbs
   type(local_zone_descriptors) :: Lzd
   ! Local variables
-  integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsc!,ispin
-  integer :: ind,i_all,noncoll,ilr,ierr!,dimtot,iat,npsidim,Lnorb
+  integer :: jproc,iiOrb,iorb,jorb,jat,orbsc!,ispin
+  integer :: ind,noncoll,ilr!,ierr,dimtot,iat,npsidim,Lnorb
   character(len=*), parameter :: subname='assignToLocreg'
   integer, dimension(:), allocatable :: Localnorb
   !integer, parameter :: lmax=3,noccmax=2,nelecmax=32
@@ -138,18 +138,18 @@ subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspi
   use module_types
   implicit none
 
-  integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb,norbu
-  integer,dimension(nlr),intent(in):: Localnorb
-  real(kind=8),dimension(norb),intent(in):: spinsgn
-  integer,dimension(0:nproc-1),intent(in):: norb_par
-  real(8),dimension(3,nlr),intent(in):: rxyz
-  integer,dimension(:),pointer, intent(out):: inwhichlocreg
+  integer, intent(in) :: nlr,iproc,nproc,nspin,natom,norb,norbu
+  integer, dimension(nlr), intent(in) :: Localnorb
+  real(kind=8), dimension(norb), intent(in) :: spinsgn
+  integer, dimension(0:nproc-1),intent(in) :: norb_par
+  real(8), dimension(3,nlr), intent(in) :: rxyz
+  integer, dimension(:), pointer, intent(out) :: inwhichlocreg
 
   ! Local variables
-  integer:: iat, jproc, iiOrb, iorb, jorb, jat, iiat, i_stat, i_all, ispin, iispin, istart, iend
+  integer:: iat, jproc, iiOrb, iorb, jorb, jat, iiat, ispin, iispin, istart, iend
   character(len=*), parameter :: subname='assignToLocreg'
   logical,dimension(:),allocatable:: covered
-  real(kind=8), parameter :: tol=1.0d-6 
+  real(kind=8), parameter :: tol=1.0d-6
   real(8):: tt, dmin, minvalue, xmin, xmax, ymin, ymax, zmin, zmax
   integer:: iatxmin, iatxmax, iatymin, iatymax, iatzmin, iatzmax, idir
   real(8),dimension(3):: diff
@@ -190,6 +190,7 @@ subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspi
       ymax=-1.d100
       zmax=-1.d100
       !do iat=1,nlr
+
       do iat=istart,iend
           !!!SM: mixing nlr with orbs.. not ideal
           !!if (spinsgn(iat)>0.d0) then
@@ -253,7 +254,9 @@ subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspi
              idir=3
              iiat=iatzmin
          else
-             stop 'ERROR: not possible to determine the maximal extent'
+           !stop 'ERROR: not possible to determine the maximal extent'
+           call f_err_throw('ERROR: not possible to determine the maximal extent',&
+                & err_name='BIGDFT_RUN_TIME')
          end if
       end if
 
@@ -285,7 +288,6 @@ subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspi
           inWhichLocreg(norbu+1)=iiat
       end if
       iiorb=1
-
 
 
       do iorb=1,norb

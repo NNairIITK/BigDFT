@@ -452,11 +452,12 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   use module_base
   use module_types
   implicit none
+  !Arguments
   character(len=*), intent(in) :: filename
   logical, intent(in) :: lbin
   integer, intent(in) :: iorb,ispinor
   type(orbitals_data), intent(in) :: orbs
-  character(len=*) :: filename_out
+  character(len=*), intent(out) :: filename_out
   integer, intent(out) :: iorb_out
   integer, intent(in), optional :: iiorb
   !local variables
@@ -2445,7 +2446,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 END SUBROUTINE readmywaves_linear_new
 
 
-   !> matches neighbouring atoms from environment file to those in full system
+   !> Matches neighbouring atoms from environment file to those in full system
    !! returns atom mapping information and 'best' fragment transformation and corresponding Wahba error
    subroutine match_environment_atoms(isfat,at,rxyz,orbs,ref_frag,max_nbasis_env,frag_env_mapping,frag_trans,Werror,ignore_species)
       use module_base
@@ -2473,7 +2474,7 @@ END SUBROUTINE readmywaves_linear_new
       real(kind=gp), allocatable, dimension(:) :: dist
       real(kind=gp), dimension(:,:), allocatable :: rxyz_new_all, rxyz_frg_new, rxyz_new_trial, rxyz_ref, rxyz_new
 
-      logical :: on_frag, perx, pery, perz, wrong_atom
+      logical :: perx, pery, perz, wrong_atom
 
       character(len=2) :: atom_ref, atom_trial
 
@@ -3638,7 +3639,7 @@ subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,ps
 
 end subroutine psi_to_psig
 
-!> Associate to the absolute value of orbital a filename which depends of the k-point and 
+!> Associate to the absolute value of orbital a filename which depends of the k-point and
 !! of the spin sign
 subroutine filename_of_proj(lbin,filename,ikpt,iat,iproj,icplx,filename_out)
   use module_base
@@ -3760,10 +3761,10 @@ subroutine writemyproj(filename,iformat,orbs,hx,hy,hz,at,rxyz,nl)
                          & hx,hy,hz, at%astruct%nat,rxyz, &
                          & mbseg_c, mbvctr_c, &
                          & nl%pspd(iat)%plr%wfd%keyglob(1,1), &
-                         & nl%pspd(iat)%plr%wfd%keyvglob(1), & 
+                         & nl%pspd(iat)%plr%wfd%keyvglob(1), &
                          & mbseg_f, mbvctr_f, &
                          & nl%pspd(iat)%plr%wfd%keyglob(1,mbseg_c+1), &
-                         & nl%pspd(iat)%plr%wfd%keyvglob(mbseg_c+1), & 
+                         & nl%pspd(iat)%plr%wfd%keyvglob(mbseg_c+1), &
                          & nl%proj(istart), nl%proj(istart + mbvctr_c), &
                          & UNINITIALIZED(1._wp))
 

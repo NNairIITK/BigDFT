@@ -26,70 +26,70 @@ module sparsematrix_highlevel
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: read_ccs_format
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
       type(matrices),intent(out) :: mat
-    
+
       ! Local variables
       integer :: nfvctr, nvctr
       integer,dimension(:),pointer :: col_ptr, row_ind
       real(kind=8),dimension(:),pointer :: val
-    
+
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
-    
+
       ! Read in the matrix
       call read_ccs_format(filename, nfvctr, nvctr, col_ptr, row_ind, val)
-    
+
       ! Generate the sparse_matrix type
       call sparse_matrix_init_from_data_ccs(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
-    
+
       ! Generate the matrices type
       call matrices_init_from_data(smat, val, mat)
-    
+
       ! Deallocate the pointers
       call f_free_ptr(col_ptr)
       call f_free_ptr(row_ind)
       call f_free_ptr(val)
-    
+
       call f_release_routine()
-    
+
     end subroutine sparse_matrix_and_matrices_init_from_file_ccs
-    
-    
+
+
     subroutine sparse_matrix_init_from_file_ccs(filename, iproc, nproc, smat)
       use module_base
       use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: read_ccs_format
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
-    
+
       ! Local variables
       integer :: nfvctr, nvctr
       integer,dimension(:),pointer :: col_ptr, row_ind
       real(kind=8),dimension(:),pointer :: val
-    
+
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
-    
+
       ! Read in the matrix
       call read_ccs_format(filename, nfvctr, nvctr, col_ptr, row_ind, val)
-    
+
       ! Generate the sparse_matrix type
       call sparse_matrix_init_from_data_ccs(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
-    
+
       ! Deallocate the pointers
       call f_free_ptr(col_ptr)
       call f_free_ptr(row_ind)
       call f_free_ptr(val)
-    
+
       call f_release_routine()
-    
+
     end subroutine sparse_matrix_init_from_file_ccs
 
 
@@ -99,32 +99,32 @@ module sparsematrix_highlevel
       use sparsematrix_init, only: ccs_to_sparsebigdft_short, &
                                    bigdft_to_sparsebigdft, init_matrix_taskgroups
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, nfvctr, nvctr
       integer,dimension(nvctr),intent(in) :: row_ind
       integer,dimension(nfvctr),intent(in) :: col_ptr
       type(sparse_matrix),intent(out) :: smat
-    
+
       ! Local variables
       integer :: nseg
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
-    
+
       call f_routine(id='sparse_matrix_init_from_data_ccs')
-    
+
       ! Convert the sparsity pattern to the BigDFT format
       call ccs_to_sparsebigdft_short(nfvctr, nvctr, row_ind, col_ptr, nseg, keyv, keyg)
-    
+
       ! Create the sparse_matrix structure
       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
-    
+
       ! Deallocate the pointers
       call f_free_ptr(keyv)
       call f_free_ptr(keyg)
-    
+
       call f_release_routine()
-    
+
     end subroutine sparse_matrix_init_from_data_ccs
 
 
@@ -135,7 +135,7 @@ module sparsematrix_highlevel
       use sparsematrix_init, only: bigdft_to_sparsebigdft
       use sparsematrix_io, only: read_sparse_matrix
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
       character(len=*),intent(in) :: filename
@@ -148,23 +148,19 @@ module sparsematrix_highlevel
       !!character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
       !!real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
       !!integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
-    
+
       ! Local variables
-      integer :: nspin, nfvctr, nseg, nvctr, i
-      character(len=1) :: geocode
+      integer :: nspin, nfvctr, nseg, nvctr
+!      character(len=1) :: geocode
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
       real(kind=8),dimension(:),pointer :: val
       logical :: init_matmul_
-      integer :: nat_, ntypes_
-      integer,dimension(:),pointer :: nzatom_, nelpsp_, iatype_
-      character(len=20),dimension(:),pointer :: atomnames_
-      real(kind=8),dimension(:,:),pointer :: rxyz_
-      integer,dimension(:),pointer :: on_which_atom_
-      real(kind=8),dimension(3) :: cell_dim
-    
+!      integer,dimension(:),pointer :: on_which_atom_
+!      real(kind=8),dimension(3) :: cell_dim
+
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_bigdft')
-    
+
       ! Read in the matrix
       call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
 
@@ -174,22 +170,22 @@ module sparsematrix_highlevel
       else
           init_matmul_ = .true.
       end if
-    
+
       ! Create the sparse_matrix structure
       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat, &
            init_matmul=init_matmul_)!, nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_)
-    
+
       ! Generate the matrices type
       call matrices_init_from_data(smat, val, mat)
-    
+
       ! Deallocate the pointers
       call f_free_ptr(keyv)
       call f_free_ptr(keyg)
       call f_free_ptr(val)
 
-    
+
       call f_release_routine()
-    
+
     end subroutine sparse_matrix_and_matrices_init_from_file_bigdft
 
 
@@ -199,12 +195,12 @@ module sparsematrix_highlevel
       use sparsematrix_init, only: bigdft_to_sparsebigdft
       use sparsematrix_io, only: read_sparse_matrix
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
-    
+
       ! Local variables
       integer :: nspin, nfvctr, nseg, nvctr
       character(len=1) :: geocode
@@ -213,23 +209,23 @@ module sparsematrix_highlevel
       real(kind=8),dimension(:),pointer :: val
       real(kind=8),dimension(3) :: cell_dim
       integer,dimension(:),pointer :: on_which_atom
-    
+
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
-    
+
       ! Read in the matrix
       call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
-    
+
       ! Create the sparse_matrix structure
       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat, &
            nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom)
-    
+
       ! Deallocate the pointers
       call f_free_ptr(keyv)
       call f_free_ptr(keyg)
       call f_free_ptr(val)
-    
+
       call f_release_routine()
-    
+
     end subroutine sparse_matrix_init_from_file_bigdft
 
 
@@ -238,7 +234,7 @@ module sparsematrix_highlevel
       use sparsematrix_base, only: sparse_matrix_metadata, sparse_matrix_metadata_null
       use sparsematrix_io, only: read_sparse_matrix_metadata
       implicit none
-    
+
       ! Calling arguments
       character(len=*),intent(in) :: filename
       type(sparse_matrix_metadata),intent(out) :: smmd
@@ -249,7 +245,7 @@ module sparsematrix_highlevel
            smmd%atomnames, smmd%iatype, smmd%rxyz, smmd%on_which_atom)
 
     end subroutine sparse_matrix_metadata_init_from_file
-    
+
 
     subroutine sparse_matrix_init_from_data_bigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
       use module_base
@@ -257,76 +253,76 @@ module sparsematrix_highlevel
       use sparsematrix_init, only: ccs_to_sparsebigdft_short, &
                                    bigdft_to_sparsebigdft, init_matrix_taskgroups
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, nfvctr, nvctr, nseg
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(out) :: smat
-    
+
       call f_routine(id='sparse_matrix_init_from_data_ccs')
-    
+
       ! Create the sparse_matrix structure
       call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
-    
+
       call f_release_routine()
-    
+
     end subroutine sparse_matrix_init_from_data_bigdft
-    
-    
+
+
     subroutine matrices_init_from_data(smat, val, mat)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
                                    assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
       implicit none
-    
+
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
       real(kind=8),dimension(smat%nvctr),intent(in) :: val
       type(matrices),intent(out) :: mat
-    
+
       call f_routine(id='matrices_init_from_data')
-    
+
       ! Create the matrices structure
       mat = matrices_null()
       mat%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='mat%matrix_compr')
-    
+
       ! Copy the content
       call f_memcpy(src=val, dest=mat%matrix_compr)
-    
+
       call f_release_routine()
-    
+
     end subroutine matrices_init_from_data
-    
-    
+
+
     subroutine matrices_init(smat, mat)
       use module_base
       use sparsematrix_base,only: sparse_matrix, matrices, &
                                   matrices_null, assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
       implicit none
-    
+
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(out) :: mat
-    
+
       mat = matrices_null()
       mat%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='mat%matrix_compr')
-    
+
     end subroutine matrices_init
-    
-    
+
+
     subroutine matrices_set_values(smat, val, mat)
       use module_base
       use sparsematrix_base,only: sparse_matrix, matrices, &
                                   matrices_null, assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
       implicit none
-    
+
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
       real(kind=8),dimension(:),intent(in) :: val
       type(matrices),intent(inout) :: mat
-    
+
       call f_routine(id='matrices_set_values')
-    
+
       if (size(val)/=smat%nvctr) then
           call f_err_throw('The size of the array used to set the matrix contents is wrong: '&
                &//trim(yaml_toa(size(val)))//' instead of '//trim(yaml_toa(smat%nvctr)))
@@ -336,9 +332,9 @@ module sparsematrix_highlevel
                &//trim(yaml_toa(size(mat%matrix_compr)))//' instead of '//trim(yaml_toa(smat%nvctr)))
       end if
       call f_memcpy(src=val, dest=mat%matrix_compr)
-    
+
       call f_release_routine()
-    
+
     end subroutine matrices_set_values
 
 
@@ -347,14 +343,14 @@ module sparsematrix_highlevel
       use sparsematrix_base,only: sparse_matrix, matrices, &
                                   matrices_null, assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
       implicit none
-    
+
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(in) :: mat
       real(kind=8),dimension(:),intent(inout) :: val
-    
+
       call f_routine(id='matrices_get_values')
-    
+
       if (size(mat%matrix_compr)/=smat%nvctr) then
           call f_err_throw('The size of the matrix array which should be set is wrong: '&
                &//trim(yaml_toa(size(mat%matrix_compr)))//' instead of '//trim(yaml_toa(smat%nvctr)))
@@ -364,9 +360,9 @@ module sparsematrix_highlevel
                &//trim(yaml_toa(size(val)))//' instead of '//trim(yaml_toa(smat%nvctr)))
       end if
       call f_memcpy(src=mat%matrix_compr, dest=val)
-    
+
       call f_release_routine()
-    
+
     end subroutine matrices_get_values
 
 
@@ -374,17 +370,17 @@ module sparsematrix_highlevel
       use module_base
       use sparsematrix_base,only: sparse_matrix
       implicit none
-    
+
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
       integer :: s
-    
+
       call f_routine(id='matrices_get_sizes')
 
       s = smat%nvctr
-    
+
       call f_release_routine()
-    
+
     end function matrices_get_size
 
 
@@ -446,7 +442,7 @@ module sparsematrix_highlevel
       integer,intent(in) :: iproc, nproc
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(inout) :: a
-      type(matrices),intent(inout) :: b, c !b actually also in... 
+      type(matrices),intent(inout) :: b, c !b actually also in...
 
       call f_routine(id='matrix_matrix_multiplication')
 
@@ -549,7 +545,6 @@ module sparsematrix_highlevel
       character(len=*),intent(in),optional :: label
 
       ! Local variables
-      integer :: i
       real(kind=8) :: max_inversion_error_
       logical :: calculate_minusonehalf_
       integer :: foe_verbosity_
@@ -584,9 +579,9 @@ module sparsematrix_highlevel
                &//trim(yaml_toa(size(kernel%matrix_compr)))//' instead of '//trim(yaml_toa(smat_k%nvctrp_tg)))
       end if
 
-      ! Check that number of non-zero elements of smat_s is not larger than that of smat_h, and that the one of 
+      ! Check that number of non-zero elements of smat_s is not larger than that of smat_h, and that the one of
       ! smat_h is not larger than that of smat_k. This is just a minimal
-      ! check to ensure that the sparsity pattern of smat_s is contained within the one of smat_h and the one 
+      ! check to ensure that the sparsity pattern of smat_s is contained within the one of smat_h and the one
       ! of smat_h within smat_k. However this check is not sufficient to make sure that this condition is fulfilled.
       if (smat_h%nvctr>smat_s%nvctr) then
           call f_err_throw('The number of non-zero elements of smat_h ('//&
