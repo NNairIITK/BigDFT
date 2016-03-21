@@ -1,4 +1,15 @@
-EXTRA_DIST = config/m4
+aclocaldir = $(datadir)/aclocal
+dist_aclocal_DATA = config/m4/acc.m4 \
+	config/m4/defs.m4 \
+	config/m4/dynlib.m4 \
+	config/m4/fortran.m4 \
+	config/m4/linalg.m4 \
+	config/m4/mpi.m4 \
+	config/m4/pic.m4 \
+	config/m4/pkg.m4 \
+	config/m4/python.m4 \
+	config/m4/yaml.m4 \
+	config/m4/flib.m4
 
 ACLOCAL_AMFLAGS = -I config/m4
 
