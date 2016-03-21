@@ -62,7 +62,7 @@ contains
     aoig%nao_sc=0
     aoig%nl=0
     aoig%nl_sc=0
-    aoig%aocc=0
+    aoig%aocc=real(0.0,kind=kind(aoig%aocc))
   end function aoig_data_null
 
 

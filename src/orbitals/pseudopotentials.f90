@@ -213,10 +213,10 @@ module pseudopotentials
       if (has_key(dict, LPSP_KEY)) then
          loc => dict // LPSP_KEY
          if (has_key(loc, "Rloc") .and. present(rloc)) rloc = loc // 'Rloc'
-         if (has_key(loc, "Coefficients (c1 .. c4)") .and. present(lcoeff)) lcoeff = loc // 'Coefficients (c1 .. c4)'
+         if (has_key(loc, COEFF_KEY) .and. present(lcoeff)) lcoeff = loc // COEFF_KEY
          ! Validate
          if (present(valid)) valid = valid .and. has_key(loc, "Rloc") .and. &
-              & has_key(loc, "Coefficients (c1 .. c4)")
+              & has_key(loc, COEFF_KEY)
       end if
 
       ! Nonlocal terms
@@ -251,10 +251,10 @@ module pseudopotentials
             npspcode = PSPCODE_HGH_K
          case("HGH-K + NLCC")
             npspcode = PSPCODE_HGH_K_NLCC
-            if (present(valid)) valid = valid .and. &
-                 & has_key(dict, 'Non Linear Core Correction term') .and. &
-                 & has_key(dict // 'Non Linear Core Correction term', "Rcore") .and. &
-                 & has_key(dict // 'Non Linear Core Correction term', "Core charge")
+            if (present(valid) .and. (NLCC_KEY .in. dict)) &
+                 valid = valid .and. &
+                 ("Rcore" .in. dict // NLCC_KEY) .and.  &
+                 ("Core charge" .in. dict // NLCC_KEY)
          case("PAW")
             npspcode = PSPCODE_PAW
          case default
@@ -325,7 +325,7 @@ module pseudopotentials
       end if
       if (.not. exists) call psp_file_merge_to_dict(dict, key, key)
       exists = key .in. dict
-      if (exists) exists = 'Non Linear Core Correction term' .in.  dict // key
+      if (exists) exists = NLCC_KEY .in.  dict // key
       if (.not. exists) call nlcc_file_merge_to_dict(dict, key, 'nlcc.' // trim(type))
     end subroutine update_psp_dict
 
@@ -424,7 +424,7 @@ module pseudopotentials
             do i = 0, 4, 1
                call add(gauss, coeffs(i))
             end do
-            call add(psp // 'Non Linear Core Correction term' // "Valence", gauss)
+            call add(psp // NLCC_KEY // "Valence", gauss)
          end do
       end if
 
@@ -436,7 +436,7 @@ module pseudopotentials
             do i = 0, 4, 1
                call add(gauss, coeffs(i))
             end do
-            call add(psp // 'Non Linear Core Correction term' // "Core", gauss)
+            call add(psp // NLCC_KEY // "Core", gauss)
          end do
       end if
 
@@ -500,6 +500,7 @@ module pseudopotentials
       use yaml_strings
       use dictionaries
       use public_keys
+      use yaml_output
       implicit none
       !Arguments
       type(dictionary), pointer :: dict
@@ -534,16 +535,16 @@ module pseudopotentials
          call dict_init(channel)
          call set(channel // 'Rloc', psppar(0,0))
          do i = 1, 4, 1
-            call add(channel // 'Coefficients (c1 .. c4)', psppar(0,i))
+            call add(channel // COEFF_KEY, psppar(0,i))
          end do
          call set(dict // LPSP_KEY, channel)
       end if
 
       ! nlcc term
       if (npspcode == PSPCODE_HGH_K_NLCC) then
-         call set(dict // 'Non Linear Core Correction term', &
-              & dict_new( 'Rcore' .is. yaml_toa(rcore), &
-              & 'Core charge' .is. yaml_toa(qcore)))
+         call set(dict // NLCC_KEY, &
+              dict_new( 'Rcore' .is. yaml_toa(rcore), &
+              'Core charge' .is. yaml_toa(qcore)))
       end if
 
       ! Nonlocal terms
@@ -555,7 +556,7 @@ module pseudopotentials
             do i = 1, 6, 1
                call add(channel // 'h_ij terms', psppar(l,i))
             end do
-            call add(dict // 'NonLocal PSP Parameters', channel)
+            call add(dict // NLPSP_KEY, channel)
          end if
       end do
 

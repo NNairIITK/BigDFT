@@ -26,7 +26,7 @@ subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,eps,np2,fpcm
   !local variables
   real(dp), parameter :: thr=1.e-10
   integer :: i,i1,i2,i3
-  real(dp) :: tt,epr
+  real(dp) :: tt,epr,kk
   real(dp), dimension(3) :: v,origin,deps
 
   !mesh=cell_new(geocode,[n1,n2,n3],hgrids)
@@ -43,7 +43,7 @@ subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,eps,np2,fpcm
            if (abs(tt) < thr) cycle
            v(1)=cell_r(mesh,i1,dim=1)
            v=v-origin
-           call rigid_cavity_forces(.false.,cavity,mesh,v,nat,rxyz,radii,epr,tt,fpcm,deps)
+           call rigid_cavity_forces(.false.,cavity,mesh,v,nat,rxyz,radii,epr,tt,fpcm,deps,kk)
         end do
      end do
   end do
@@ -165,6 +165,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
           iproc,nproc,ngatherarr,rho,strtens(1,4))
   end if
 
+
   !add to the forces the ionic and dispersion contribution
   if (.true.) then!.not. experimental_modulebase_var_onlyfion) then !normal case
      if (iproc==0) then
@@ -196,9 +197,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
       call mpiallred(nlpsp%gamma_mmp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
-  !!do iat=1,atoms%astruct%nat
-  !!    write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
-  !!end do
+!!$  do iat=1,atoms%astruct%nat
+!!$      write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+!!$  end do
 
 !!$  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
 !!$  if (atoms%astruct%inputfile_format=='int') then

@@ -256,6 +256,7 @@ subroutine lagrange_multiplier(symm,correction,occup,ncplx,norb,lambda,trace,asy
   real(wp), dimension(ncplx,norb,norb), intent(inout) :: lambda
   !local variables
   integer :: iorb,jorb,icplx
+  real(gp), parameter :: tol=1.e-6_gp
   real(wp) :: tt
   real(gp) :: fi,fj,fac
   real(wp), dimension(2) :: lij,lji
@@ -304,10 +305,10 @@ subroutine lagrange_multiplier(symm,correction,occup,ncplx,norb,lambda,trace,asy
            !correct the lagrange multiplier such that
            !the gradient will follow the occupation numbers
            if (correction) then
-              if (fi /=0.0_wp) then
-                 fac=0.5*(1.d0-fj/fi)
+              if (abs(fi) < tol) then
+                 fac=0.5_gp*((fi + fj)/fi)
               else
-                 fac=0.5
+                 fac=0.5_gp
               end if
               lambda(:,iorb,jorb)=fac*lambda(:,iorb,jorb)
            end if
