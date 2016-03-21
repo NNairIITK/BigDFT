@@ -67,9 +67,10 @@ AM_FCFLAGS = -I. -I$(srcdir) @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
 
 
 #dependencies
-parallel_linalg.o:
-foe_base.o:
 sparsematrix_base.o:
+parallel_linalg.o: sparsematrix_base.o
+foe_base.o: sparsematrix_base.o
+fermi_level.o: sparsematrix_base.o
 sparsematrix_init.o: sparsematrix_base.o
 sparsematrix.o: sparsematrix_base.o sparsematrix_init.o
 chebyshev.o: sparsematrix_base.o sparsematrix_init.o sparsematrix.o
