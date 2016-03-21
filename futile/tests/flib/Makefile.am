@@ -9,7 +9,7 @@ EXTRA_DIST = \
 OTHERS = yaml_test.f90
 
 check_PROGRAMS = yaml_test
-python_PYTHON = report.py fldiff.py fldiff_yaml.py yaml_hl.py
+python_PYTHON = fldiff_yaml.py yaml_hl.py
 python_DATA = yaml_hl.cfg yaml_hl_remarks.cfg
 
 AM_FCFLAGS = -I../../flib
