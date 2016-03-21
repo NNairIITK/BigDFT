@@ -6,13 +6,11 @@ EXTRA_DIST = \
 	tols.yaml \
 	fldiff_yaml.py.in \
 	report.py.in \
-	yaml_test.ref.yaml $(OTHERS)
-
-OTHERS = yaml_test.f90
+	yaml_test.ref.yaml
 
 check_PROGRAMS = yaml_test
 python_PYTHON = report.py fldiff.py fldiff_yaml.py yaml_hl.py
-python_DATA = yaml_hl.cfg yaml_hl_remarks.cfg
+dist_python_DATA = yaml_hl.cfg yaml_hl_remarks.cfg
 
 AM_FCFLAGS = -I../flib
 AM_LDFLAGS = -L$(top_builddir)/src
