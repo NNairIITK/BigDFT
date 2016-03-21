@@ -72,6 +72,7 @@ class cmd_dist(Command):
         config.nonet = options.nonet
 
         build = jhbuild.frontends.get_buildscript(config, module_list, module_set=module_set)
+        build.config.build_policy = "all"
         if options.dist_only:
             return build.build(phases=['dist'])
         else:
