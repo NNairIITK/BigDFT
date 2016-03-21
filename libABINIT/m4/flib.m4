@@ -1,1 +1,1 @@
-../../bigdft/config/m4/flib.m4
+../../psolver/config/m4/flib.m4

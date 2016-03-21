@@ -1,5 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
+SUBDIRS = fft
+
 EXTRA_DIST = \
 	tols.yaml \
 	fldiff_yaml.py.in \
@@ -19,7 +21,7 @@ AM_LDFLAGS = -L$(top_builddir)/src
 
 if BUILD_DYNAMIC_LIBS
 flib_libraries = -lfutile-1
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src/
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
 else
 flib_libraries = $(top_builddir)/src/libfutile-1.a
 LIBS += @LIB_YAML_LIBS@

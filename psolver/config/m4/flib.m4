@@ -57,6 +57,7 @@ AC_DEFUN([AX_FLIB],
     call yaml_map("toto", "titi")
   end program]], withflibmod=yes, withflibmod=no)
     AC_MSG_RESULT($withflibmod)
+    FCFLAGS=$FCFLAGS_SVG
   
     dnl Test the library of flib.
     AC_MSG_CHECKING([for flib library])
@@ -83,6 +84,7 @@ AC_DEFUN([AX_FLIB],
         [ax_have_flib=no])
     fi
     AC_MSG_RESULT($ax_have_flib)
+    LIBS=$LIBS_SVG
   
     if test "$ax_have_flib" = "yes" -a "$withflibmod" = "yes" ; then
       LIB_FUTILE_CFLAGS=$ac_flib_incdir
@@ -101,9 +103,5 @@ AC_DEFUN([AX_FLIB],
 
   dnl Try to find libflib-1.a for possible later inclusion.
   
-
-  FCFLAGS=$FCFLAGS_SVG
-  LIBS=$LIBS_SVG
-
   AC_LANG_POP(Fortran)
 ])

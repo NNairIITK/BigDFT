@@ -27,12 +27,18 @@ dnl is set.
 AC_PROG_FC([], [Fortran 90])
 AC_FC_SRCEXT(f90)
 
+AX_FC_DEFS()
+
 dnl Set if the module name are capitalized or not with the FC compiler. 
 AX_FC_MOD()
 AM_CONDITIONAL(CAPITALIZE, test "$ax_fc_mod_capitalize" = "yes")
 AC_SUBST(MODULE_EXT, $ax_fc_mod_ext)
+dnl default installation directories
+AX_FC_MODULEDIR()
 
-AX_FC_DEFS()
+if test -z "$FCFLAGS" ; then
+  AC_SUBST(FCFLAGS, "-O2")
+fi
 
 dnl Look for ranlib and canonicalize it with the $host variable
 AC_CHECK_TOOL(RANLIB, ranlib, :)

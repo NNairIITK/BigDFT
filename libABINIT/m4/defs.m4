@@ -1,1 +1,1 @@
-../../bigdft/config/m4/defs.m4
+../../futile/config/m4/defs.m4

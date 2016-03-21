@@ -20,12 +20,25 @@ AC_DEFUN([AX_YAML],
   
   LDFLAGS_SVG="$LDFLAGS"
   AC_LANG_PUSH(C)
+  AC_CHECK_HEADER([yaml.h],
+                  [ax_have_yaml="yes"],
+                  [ax_have_yaml="no"])
+  if test x"$ax_have_yaml" = x"yes"; then
+     if test x"$ax_yaml_path" != x"/usr" ; then
+        LIB_YAML_CFLAGS="-I$ax_yaml_path/include"
+     else
+        for path in ${C_INCLUDE_PATH//:/ }; do
+           LIB_YAML_CFLAGS="$LIB_YAML_CFLAGS -I$path"
+        done
+     fi     
+  else
+     AC_MSG_ERROR([libyaml is not available, install YAML and provide path --with-yaml-path.])
+  fi
   LDFLAGS="$LDFLAGS -L$ax_yaml_path/lib"
   AC_CHECK_LIB([yaml], [yaml_parser_parse],
                [ax_have_yaml=yes], [ax_have_yaml=no])
   if test x"$ax_have_yaml" = x"yes"; then
      if test x"$ax_yaml_path" != x"/usr" ; then
-        LIB_YAML_CFLAGS="-I$ax_yaml_path/include"
         LIB_YAML_LIBS="-L$ax_yaml_path/lib "
      fi
      LIB_YAML_LIBS=$LIB_YAML_LIBS"-lyaml"
