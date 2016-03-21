@@ -104,6 +104,7 @@ libABINIT/install-sh
 libABINIT/missing
 libABINIT/depcomp
 yaml/
+PyYAML/
 libxc/
 *.aux
 *.log
