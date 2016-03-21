@@ -317,7 +317,7 @@ class AutogenModule(MakeModule, DownloadableModule):
         cmd = '%s %s dist' % (os.environ.get('MAKE', 'make'), makeargs)
         buildscript.execute(cmd, cwd = self.get_builddir(buildscript),
                     extra_env = self.extra_env)
-    do_dist.depends = [PHASE_BUILD]
+    do_dist.depends = [PHASE_INSTALL]
     do_dist.error_phases = [PHASE_FORCE_CHECKOUT, PHASE_CONFIGURE]
 
     def do_setup(self, buildscript):
