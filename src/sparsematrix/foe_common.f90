@@ -1923,7 +1923,7 @@ module foe_common
                           call yaml_map('eF',foe_data_get_real(foe_obj,"ef",ispin),fmt='(es13.6)')
                           !call yaml_map('bisec bounds ok',&
                           !     (/bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                          call yaml_map('Tr(K)',sumn,fmt='(es13.7)')
+                          call yaml_map('Tr(K)',sumn,fmt='(es14.7)')
                           call yaml_map('D Tr(K)',sumn-foe_data_get_real(foe_obj,"charge",ispin),fmt='(es9.2)')
                       end if
                       call determine_fermi_level(f, sumn, ef, info)

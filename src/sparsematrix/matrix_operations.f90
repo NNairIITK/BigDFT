@@ -1714,7 +1714,8 @@ module matrix_operations
         real(dp), allocatable, dimension(:) :: temp_vec
         logical, parameter :: symmetric=.true.
         logical, parameter :: check_lapack=.true.
-        integer :: korb
+        integer :: korb, jproc
+        integer,dimension(:),allocatable :: recvcounts
       
       
         call f_routine(id='overlap_plus_minus_one_half_exact')
@@ -1928,8 +1929,13 @@ module matrix_operations
                 norb, tempArr, norbp, 0.d0, inv_ovrlp_halfp, norb)
            !if (present(orbs).and.bigdft_mpi%nproc>1) then
            if (nproc>1) then
+              recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
+              do jproc=0,nproc-1
+                  recvcounts(jproc) = norb*smat%nfvctr_par(jproc)
+              end do
               call mpi_allgatherv(inv_ovrlp_halfp, norb*norbp, mpi_double_precision, inv_ovrlp_half, &
-                         norb*smat%nfvctr_par(:), norb*smat%isfvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                   recvcounts, norb*smat%isfvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+              call f_free(recvcounts)
            else
               call vcopy(norb*norbp,inv_ovrlp_halfp(1,1),1,inv_ovrlp_half(1,1),1)
            end if

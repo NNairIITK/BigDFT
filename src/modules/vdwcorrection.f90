@@ -1123,212 +1123,217 @@ contains
     real(kind=GP) :: tmp6, tmp8
     real(kind=GP) :: tmp6a, tmp8a
     real(kind=GP) :: cnA, cnj, c6Aj
-    real(kind=GP), DIMENSION(3,atoms%astruct%nat)            :: cnij
-    real(kind=GP), DIMENSION(3,atoms%astruct%nat,atoms%astruct%nat)  :: cnijk
-    real(kind=GP), DIMENSION(3)                      :: grad_c6
+    real(kind=GP), DIMENSION(:,:),allocatable :: cnij
+    real(kind=GP), DIMENSION(:,:,:),allocatable  :: cnijk
+    real(kind=GP), DIMENSION(3) :: grad_c6
 
     call f_routine(id='vdwcorrection_calculate_forces')
 
     vdw_forces = 0.0_GP
 
-    if (dispersion /= VDW_NONE) then 
+    do_if: if (dispersion /= VDW_NONE) then 
 
-    if (dispersion < 5 ) then 
+       cnij = f_malloc((/3,atoms%astruct%nat/),id='cnij')
+       cnijk = f_malloc((/3,atoms%astruct%nat,atoms%astruct%nat/),id='cnijk')
 
-       ! qoh: Loop over all atoms
+       if (dispersion < 5 ) then 
 
-       do atom1=1,atoms%astruct%nat
+          ! qoh: Loop over all atoms
 
-          ! qoh: Loop over all other atoms
+          do atom1=1,atoms%astruct%nat
 
-          do atom2=1,atoms%astruct%nat
+             ! qoh: Loop over all other atoms
 
-             if ( atom2 .ne. atom1) then
+             do atom2=1,atoms%astruct%nat
+
+                if ( atom2 .ne. atom1) then
+
+                   nzatom1 = atoms%nzatom(atoms%astruct%iatype(atom1))
+                   nzatom2 = atoms%nzatom(atoms%astruct%iatype(atom2))
+
+                   ! qoh: Calculate c6 coefficient
+                   c6coeff = vdwcorrection_c6(nzatom1,nzatom2,dispersion)
+
+                   ! qoh: Calculate distance between each pair of atoms
+                   sqdist=(rxyz(1,atom2) - rxyz(1,atom1))**2 &
+                        + (rxyz(2,atom2) - rxyz(2,atom1))**2 &
+                        + (rxyz(3,atom2) - rxyz(3,atom1))**2 
+                   distance = sqrt(sqdist)
+
+                   ! qoh : Get damping function
+                   damping = vdwcorrection_damping(nzatom1,nzatom2,distance,dispersion)
+
+                   dampingdrv = &
+                        vdwcorrection_drvdamping(nzatom1,nzatom2,distance,dispersion)
+
+                   ! qoh: distance**6 = sqdist**3
+                   if (dispersion == 4) then
+                   drvcommon = vdwparams%s6*(c6coeff/sqdist**3)*&
+                        (dampingdrv-6.0_GP*damping/sqdist)
+                   else
+                   drvcommon = (c6coeff/sqdist**3)*&
+                        (dampingdrv-6.0_GP*damping/sqdist)
+                   end if
+
+                   ! cks: this is the *negative* of the derivative of the
+                   ! cks: dispersion energy w.r.t. atomic coordinates
+                   vdw_forces(:,atom1) = vdw_forces(:,atom1) +drvcommon*&
+                        (rxyz(:,atom1) - rxyz(:,atom2))
+
+                end if
+
+             enddo
+          enddo
+       else if (dispersion == 5) then
+
+          call crd_nr_der(atoms%astruct%nat,rxyz,cnij,cnijk,atoms)
+
+          do atom1=1,atoms%astruct%nat
+
+             do atom2=1,atoms%astruct%nat
+
+                if (atom2 .eq. atom1) cycle
 
                 nzatom1 = atoms%nzatom(atoms%astruct%iatype(atom1))
                 nzatom2 = atoms%nzatom(atoms%astruct%iatype(atom2))
 
-                ! qoh: Calculate c6 coefficient
-                c6coeff = vdwcorrection_c6(nzatom1,nzatom2,dispersion)
+                dxAj = rxyz(1,atom1) - rxyz(1,atom2)
+                dyAj = rxyz(2,atom1) - rxyz(2,atom2)
+                dzAj = rxyz(3,atom1) - rxyz(3,atom2)
+                rAj = dxAj**2+dyAj**2+dzAj**2
 
-                ! qoh: Calculate distance between each pair of atoms
-                sqdist=(rxyz(1,atom2) - rxyz(1,atom1))**2 &
-                     + (rxyz(2,atom2) - rxyz(2,atom1))**2 &
-                     + (rxyz(3,atom2) - rxyz(3,atom1))**2 
-                distance = sqrt(sqdist)
+                distance = sqrt(rAj)
 
-                ! qoh : Get damping function
-                damping = vdwcorrection_damping(nzatom1,nzatom2,distance,dispersion)
-
-                dampingdrv = &
-                     vdwcorrection_drvdamping(nzatom1,nzatom2,distance,dispersion)
-
-                ! qoh: distance**6 = sqdist**3
-                if (dispersion == 4) then
-                drvcommon = vdwparams%s6*(c6coeff/sqdist**3)*&
-                     (dampingdrv-6.0_GP*damping/sqdist)
-                else
-                drvcommon = (c6coeff/sqdist**3)*&
-                     (dampingdrv-6.0_GP*damping/sqdist)
-                end if
-
-                ! cks: this is the *negative* of the derivative of the
-                ! cks: dispersion energy w.r.t. atomic coordinates
-                vdw_forces(:,atom1) = vdw_forces(:,atom1) +drvcommon*&
-                     (rxyz(:,atom1) - rxyz(:,atom2))
-
-             end if
-
-          enddo
-       enddo
-    else if (dispersion == 5) then
-
-       call crd_nr_der(atoms%astruct%nat,rxyz,cnij,cnijk,atoms)
-
-       do atom1=1,atoms%astruct%nat
-
-          do atom2=1,atoms%astruct%nat
-
-             if (atom2 .eq. atom1) cycle
-
-             nzatom1 = atoms%nzatom(atoms%astruct%iatype(atom1))
-             nzatom2 = atoms%nzatom(atoms%astruct%iatype(atom2))
-
-             dxAj = rxyz(1,atom1) - rxyz(1,atom2)
-             dyAj = rxyz(2,atom1) - rxyz(2,atom2)
-             dzAj = rxyz(3,atom1) - rxyz(3,atom2)
-             rAj = dxAj**2+dyAj**2+dzAj**2
-
-             distance = sqrt(rAj)
-
-!         Two center derivatives. Grimme uses screening to reduce 
-!         computational work
-!         Screening r^2 distance vs threshold of 20000.0
-             if (rAj.gt.20000.0_GP) cycle
+!            Two center derivatives. Grimme uses screening to reduce 
+!            computational work
+!            Screening r^2 distance vs threshold of 20000.0
+                if (rAj.gt.20000.0_GP) cycle
  
-!         Factors
+!            Factors
  
-             r0aj = vdwparams%r0AB(nzatom1,nzatom2)
-             Qfac = vdwparams%Qatom(nzatom1)*vdwparams%Qatom(nzatom2)
-             fac6 = (distance/(vdwparams%sr6*r0aj))**(-vdwparams%alpha)
-             fac8 = (distance/(vdwparams%sr8*r0aj))**(-(vdwparams%alpha+2.0_GP))
-             fdmp6 =1.0_GP/(1.0_GP+6.0_GP*fac6)
-             fdmp8 =1.0_GP/(1.0_GP+6.0_GP*fac8)
+                r0aj = vdwparams%r0AB(nzatom1,nzatom2)
+                Qfac = vdwparams%Qatom(nzatom1)*vdwparams%Qatom(nzatom2)
+                fac6 = (distance/(vdwparams%sr6*r0aj))**(-vdwparams%alpha)
+                fac8 = (distance/(vdwparams%sr8*r0aj))**(-(vdwparams%alpha+2.0_GP))
+                fdmp6 =1.0_GP/(1.0_GP+6.0_GP*fac6)
+                fdmp8 =1.0_GP/(1.0_GP+6.0_GP*fac8)
  
-!         Coordination dependent C6_AB value
+!            Coordination dependent C6_AB value
  
-             cnA = crd_nr(atom1,atoms%astruct%nat,rxyz,atoms)
-             cnj = crd_nr(atom2,atoms%astruct%nat,rxyz,atoms)
-             c6Aj = c6cn(nzatom1,nzatom2,cnA,cnj)
+                cnA = crd_nr(atom1,atoms%astruct%nat,rxyz,atoms)
+                cnj = crd_nr(atom2,atoms%astruct%nat,rxyz,atoms)
+                c6Aj = c6cn(nzatom1,nzatom2,cnA,cnj)
 !
-!         Get gradient for coordination number dependent C6
+!            Get gradient for coordination number dependent C6
 !
-             call c6_grad(grad_c6,atom1,atom2,atom1,rxyz,atoms%astruct%nat,cnij,cnijk,atoms)
+                call c6_grad(grad_c6,atom1,atom2,atom1,rxyz,atoms%astruct%nat,cnij,cnijk,atoms)
    
-             tmp6 = 6.0_GP*fdmp6*vdwparams%s6*c6Aj/(rAj**4.0_GP)
-             tmp8 = 6.0_GP*fdmp8*vdwparams%s8*c6Aj*Qfac/(rAj**5.0_GP)
+                tmp6 = 6.0_GP*fdmp6*vdwparams%s6*c6Aj/(rAj**4.0_GP)
+                tmp8 = 6.0_GP*fdmp8*vdwparams%s8*c6Aj*Qfac/(rAj**5.0_GP)
 
-!         dx contribution to A
+!            dx contribution to A
 
-             tmp6a = tmp6*dxAj
-             tmp8a = tmp8*dxAj
-             vdw_forces(1,atom1) = vdw_forces(1,atom1) -(&
-               +(1.0_GP-fdmp6*fac6*vdwparams%alpha)*tmp6a&
-               -fdmp6*vdwparams%s6*grad_c6(1)/(rAj**3.0_GP)&
-               +(4.0_GP-3.0_GP*fdmp8*fac8*(vdwparams%alpha+2.0_GP))*tmp8a&
-               -3.0_GP*fdmp8*vdwparams%s8*grad_c6(1)*Qfac/(rAj**4.0_GP))
+                tmp6a = tmp6*dxAj
+                tmp8a = tmp8*dxAj
+                vdw_forces(1,atom1) = vdw_forces(1,atom1) -(&
+                  +(1.0_GP-fdmp6*fac6*vdwparams%alpha)*tmp6a&
+                  -fdmp6*vdwparams%s6*grad_c6(1)/(rAj**3.0_GP)&
+                  +(4.0_GP-3.0_GP*fdmp8*fac8*(vdwparams%alpha+2.0_GP))*tmp8a&
+                  -3.0_GP*fdmp8*vdwparams%s8*grad_c6(1)*Qfac/(rAj**4.0_GP))
 
-!         dy contribution to A
+!            dy contribution to A
 
-             tmp6a = tmp6*dyAj
-             tmp8a = tmp8*dyAj
-             vdw_forces(2,atom1) = vdw_forces(2,atom1) - (&
-               +(1.0_GP-fdmp6*fac6*vdwparams%alpha)*tmp6a&
-               -fdmp6*vdwparams%s6*grad_c6(2)/(rAj**3.0_GP)&
-               +(4.0_GP-3.0_GP*fdmp8*fac8*(vdwparams%alpha+2.0_GP))*tmp8a&
-               -3.0_GP*fdmp8*vdwparams%s8*grad_c6(2)*Qfac/(rAj**4.0_GP))
+                tmp6a = tmp6*dyAj
+                tmp8a = tmp8*dyAj
+                vdw_forces(2,atom1) = vdw_forces(2,atom1) - (&
+                  +(1.0_GP-fdmp6*fac6*vdwparams%alpha)*tmp6a&
+                  -fdmp6*vdwparams%s6*grad_c6(2)/(rAj**3.0_GP)&
+                  +(4.0_GP-3.0_GP*fdmp8*fac8*(vdwparams%alpha+2.0_GP))*tmp8a&
+                  -3.0_GP*fdmp8*vdwparams%s8*grad_c6(2)*Qfac/(rAj**4.0_GP))
  
-!         dz contribution to A
+!            dz contribution to A
  
-             tmp6a = tmp6*dzAj
-             tmp8a = tmp8*dzAj
+                tmp6a = tmp6*dzAj
+                tmp8a = tmp8*dzAj
   
-             vdw_forces(3,atom1) = vdw_forces(3,atom1) -(&
-               +(1.0_GP-fdmp6*fac6*vdwparams%alpha)*tmp6a&
-               -fdmp6*vdwparams%s6*grad_c6(3)/(rAj**3.0_GP)&
-               +(4.0_GP-3.0_GP*fdmp8*fac8*(vdwparams%alpha+2.0_GP))*tmp8a&
-               -3.0_GP*fdmp8*vdwparams%s8*grad_c6(3)*Qfac/(rAj**4.0_GP))
-          enddo
-
-!         Three center derivatives. Grimme uses aggressive screening
-!         to get this N^3 contribution back to N^2
-
-          do atom2=2,atoms%astruct%nat
-             if (atom2 .eq. atom1) cycle
-             rAj = sqrt((rxyz(1,atom1) - rxyz(1,atom2))**2 &
-                    + (rxyz(2,atom1) - rxyz(2,atom2))**2 &
-                    + (rxyz(3,atom1) - rxyz(3,atom2))**2)
-
-             r0aj = vdwparams%r0AB(nzatom1,nzatom2)
-
-!            Screening per Grimme
-
-             if (rAj >= 1600.00_GP*r0aj/vdwparams%r0AB(1,1)) cycle
-
-!            Third center involved
-!
-             do atom3=1,atom2-1
-                 nzatom3 = atoms%nzatom(atoms%astruct%iatype(atom3))
-                 if (atom1.eq.atom3) cycle
-
-                 dxAk = rxyz(1,atom1) - rxyz(1,atom3)
-                 dyAk = rxyz(2,atom1) - rxyz(2,atom3)
-                 dzAk = rxyz(3,atom1) - rxyz(3,atom3)
-                 rAk = dxAk**2+dyAk**2+dzAk**2
-
-                 r0ak = vdwparams%r0AB(nzatom1,nzatom3)
-
-                 dxjk = rxyz(1,atom2) - rxyz(1,atom3)
-                 dyjk = rxyz(2,atom2) - rxyz(2,atom3)
-                 dzjk = rxyz(3,atom2) - rxyz(3,atom3)
-                 rjk = dxjk**2+dyjk**2+dzjk**2
-
-                 r0jk = vdwparams%r0AB(nzatom2,nzatom3)
-!
-!                Screening r^2 distance vs threshold of 1600.0*(radii Ak)
-!
-                 if ((rAk > 1600.0_GP*r0ak/vdwparams%r0AB(1,1)) .OR.&
-                        (rjk > 1600.0_GP*r0jk/vdwparams%r0AB(1,1))) cycle
-!
-!                Get gradient for coordination number dependent C6 for three centers
-!
-                 call c6_grad(grad_c6,atom2,atom3,atom1,rxyz,atoms%astruct%nat,cnij,cnijk,atoms)
-
-                 fac6 = (vdwparams%sr6*r0jk/sqrt(rjk))**(vdwparams%alpha)
-                 fac8 = (vdwparams%sr8*r0jk/sqrt(rjk))**(vdwparams%alpha+2.0_GP)
-                 fdmp6 = 1.0_GP/(1.0_GP+6.0_GP*fac6)
-                 fdmp8 = 1.0_GP/(1.0_GP+6.0_GP*fac8)
- 
-!                dx, dy, and dz contribution to A
- 
-                 Qfac = vdwparams%Qatom(nzatom2)*vdwparams%Qatom(nzatom3)
-
-                 vdw_forces(1,atom1) = vdw_forces(1,atom1)-(&
-                       -fdmp6*vdwparams%s6*grad_c6(1)/(rjk**3.0_GP)&
-                       -3.0_GP*fdmp8*vdwparams%s8*grad_c6(1)*Qfac/(rjk**4.0_GP))
-
-                 vdw_forces(2,atom1) = vdw_forces(2,atom1)-(&
-                       -fdmp6*vdwparams%s6*grad_c6(2)/(rjk**3.0_GP)&
-                       -3.0_GP*fdmp8*vdwparams%s8*grad_c6(2)*Qfac/(rjk**4.0_GP))
-
-                 vdw_forces(3,atom1)=vdw_forces(3,atom1)-(&
-                       -fdmp6*vdwparams%s6*grad_c6(3)/(rjk**3.0_GP)&
-                       -3.0_GP*fdmp8*vdwparams%s8*grad_c6(3)*Qfac/(rjk**4.0_GP))
+                vdw_forces(3,atom1) = vdw_forces(3,atom1) -(&
+                  +(1.0_GP-fdmp6*fac6*vdwparams%alpha)*tmp6a&
+                  -fdmp6*vdwparams%s6*grad_c6(3)/(rAj**3.0_GP)&
+                  +(4.0_GP-3.0_GP*fdmp8*fac8*(vdwparams%alpha+2.0_GP))*tmp8a&
+                  -3.0_GP*fdmp8*vdwparams%s8*grad_c6(3)*Qfac/(rAj**4.0_GP))
              enddo
-          enddo
-        enddo
-    end if
-    end if
+
+!            Three center derivatives. Grimme uses aggressive screening
+!            to get this N^3 contribution back to N^2
+
+             do atom2=2,atoms%astruct%nat
+                if (atom2 .eq. atom1) cycle
+                rAj = sqrt((rxyz(1,atom1) - rxyz(1,atom2))**2 &
+                       + (rxyz(2,atom1) - rxyz(2,atom2))**2 &
+                       + (rxyz(3,atom1) - rxyz(3,atom2))**2)
+
+                r0aj = vdwparams%r0AB(nzatom1,nzatom2)
+
+!               Screening per Grimme
+
+                if (rAj >= 1600.00_GP*r0aj/vdwparams%r0AB(1,1)) cycle
+
+!               Third center involved
+!
+                do atom3=1,atom2-1
+                    nzatom3 = atoms%nzatom(atoms%astruct%iatype(atom3))
+                    if (atom1.eq.atom3) cycle
+
+                    dxAk = rxyz(1,atom1) - rxyz(1,atom3)
+                    dyAk = rxyz(2,atom1) - rxyz(2,atom3)
+                    dzAk = rxyz(3,atom1) - rxyz(3,atom3)
+                    rAk = dxAk**2+dyAk**2+dzAk**2
+
+                    r0ak = vdwparams%r0AB(nzatom1,nzatom3)
+
+                    dxjk = rxyz(1,atom2) - rxyz(1,atom3)
+                    dyjk = rxyz(2,atom2) - rxyz(2,atom3)
+                    dzjk = rxyz(3,atom2) - rxyz(3,atom3)
+                    rjk = dxjk**2+dyjk**2+dzjk**2
+
+                    r0jk = vdwparams%r0AB(nzatom2,nzatom3)
+!
+!                   Screening r^2 distance vs threshold of 1600.0*(radii Ak)
+!
+                    if ((rAk > 1600.0_GP*r0ak/vdwparams%r0AB(1,1)) .OR.&
+                           (rjk > 1600.0_GP*r0jk/vdwparams%r0AB(1,1))) cycle
+!
+!                   Get gradient for coordination number dependent C6 for three centers
+!
+                    call c6_grad(grad_c6,atom2,atom3,atom1,rxyz,atoms%astruct%nat,cnij,cnijk,atoms)
+
+                    fac6 = (vdwparams%sr6*r0jk/sqrt(rjk))**(vdwparams%alpha)
+                    fac8 = (vdwparams%sr8*r0jk/sqrt(rjk))**(vdwparams%alpha+2.0_GP)
+                    fdmp6 = 1.0_GP/(1.0_GP+6.0_GP*fac6)
+                    fdmp8 = 1.0_GP/(1.0_GP+6.0_GP*fac8)
+ 
+!                   dx, dy, and dz contribution to A
+ 
+                    Qfac = vdwparams%Qatom(nzatom2)*vdwparams%Qatom(nzatom3)
+
+                    vdw_forces(1,atom1) = vdw_forces(1,atom1)-(&
+                          -fdmp6*vdwparams%s6*grad_c6(1)/(rjk**3.0_GP)&
+                          -3.0_GP*fdmp8*vdwparams%s8*grad_c6(1)*Qfac/(rjk**4.0_GP))
+
+                    vdw_forces(2,atom1) = vdw_forces(2,atom1)-(&
+                          -fdmp6*vdwparams%s6*grad_c6(2)/(rjk**3.0_GP)&
+                          -3.0_GP*fdmp8*vdwparams%s8*grad_c6(2)*Qfac/(rjk**4.0_GP))
+
+                    vdw_forces(3,atom1)=vdw_forces(3,atom1)-(&
+                          -fdmp6*vdwparams%s6*grad_c6(3)/(rjk**3.0_GP)&
+                          -3.0_GP*fdmp8*vdwparams%s8*grad_c6(3)*Qfac/(rjk**4.0_GP))
+                enddo
+             enddo
+           enddo
+       end if
+       call f_free(cnij)
+       call f_free(cnijk)
+   end if do_if
 
 
 !        write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom vdw'
