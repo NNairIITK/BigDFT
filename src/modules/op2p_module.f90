@@ -307,6 +307,7 @@ module overlap_point_to_point
        integer :: i, igroup, iproc_node, nproc_node
        type(OP2P_data), intent(inout) :: OP2P
        real(dp) alpha
+       logical ltmp
        freeGPUSize=0
        totalGPUSize=0
        gpudirectdataSize=0
@@ -343,7 +344,11 @@ module overlap_point_to_point
          OP2P%gpudirect=0
        end if
     !  end if
-    call mpiallred(OP2P%gpudirect,1,MPI_LAND)
+
+    ! gpudirect is an integer, and some implementations of MPI don't provide MPI_LAND for integers
+    ltmp=OP2P%gpudirect==1
+    call mpiallred(ltmp,1,MPI_LAND)
+    OP2P%gpudirect= merge(1,0,ltmp)
     call mpiallred(symmetric,1,MPI_LAND)
     
     if (OP2P%gpudirect==0 .and. iproc==0) then
