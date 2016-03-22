@@ -305,7 +305,7 @@ subroutine lagrange_multiplier(symm,correction,occup,ncplx,norb,lambda,trace,asy
            !correct the lagrange multiplier such that
            !the gradient will follow the occupation numbers
            if (correction) then
-              if (abs(fi) < tol) then
+              if (abs(fi) > tol) then
                  fac=0.5_gp*((fi + fj)/fi)
               else
                  fac=0.5_gp
