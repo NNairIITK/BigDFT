@@ -287,8 +287,9 @@ subroutine count_saddle_points(nfolder,folders,nsad)
     call yaml_map('TOTAL',sum(nsad))
 end subroutine count_saddle_points
 
-subroutine identMHminMHGPSmin(MHminPath,mdat,mn)
+subroutine identMHminMHGPSmin(MHminPath,spredinputs,mdat,mn)
     use module_base
+    use SPREDtypes
     use yaml_output
     use module_atoms, only: set_astruct_from_file,&
                             deallocate_atomic_structure
@@ -298,6 +299,7 @@ subroutine identMHminMHGPSmin(MHminPath,mdat,mn)
     !parameters
     character(len=*), intent(in) :: MHminPath
     type(mhgpstool_data), intent(inout) :: mdat
+    type(SPRED_inputs), intent(in) :: spredinputs
     integer, intent(in) :: mn(mdat%nmin)
     !local
     integer :: imin
@@ -329,10 +331,11 @@ write(*,*)'ID MH  ---> ID MHGPS '
                  //' /= '//trim(yaml_toa(mdat%nat))//')',&
                  err_name='BIGDFT_RUNTIME_ERROR')
         end if
-        call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
-             mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
-             fp(1))
-        call identical('min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
+        call fingerprint(spredinputs,mdat%nid,mdat%nat,mdat%astruct%cell_dim,mdat%rcov,mdat%astruct%rxyz,fp(1))
+!        call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
+!             mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
+!             fp(1))
+        call identical(spredinputs,'min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
              mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
              k_epot)
         if(lnew)then
@@ -345,14 +348,16 @@ write(*,'(i6.6,1x,a,1x,i6.6)')imin,'-->',mn(mdat%minnumber(kid))
     call deallocate_atomic_structure(mdat%astruct)
 end subroutine
 !=====================================================================
-subroutine read_and_merge_data(folders,nsad,mdat)
+subroutine read_and_merge_data(spredinputs,folders,nsad,mdat)
     use module_base
     use yaml_output
     use module_atoms, only: set_astruct_from_file,&
                             deallocate_atomic_structure
     use module_fingerprints
+    use SPREDtypes
     implicit none
     !parameters
+    type(SPRED_inputs), intent(in) :: spredinputs
     character(len=500), intent(in) :: folders(:)
     integer, intent(in) :: nsad(:)
     type(mhgpstool_data), intent(inout) :: mdat
@@ -399,12 +404,13 @@ write(*,*)trim(fminL)
                      //' /= '//trim(yaml_toa(mdat%nat))//')',&
                      err_name='BIGDFT_RUNTIME_ERROR')
             end if
-            call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
-                 mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
-                 fp(1))
+            call fingerprint(spredinputs,mdat%nid,mdat%nat,mdat%astruct%cell_dim,mdat%rcov,mdat%astruct%rxyz,fp(1))
+!            call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
+!                 mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
+!                 fp(1))
 write(*,*)trim(adjustl(fminL))
 write(*,*)'***'
-            call identical('min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
+            call identical(spredinputs,'min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
                  mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
                  k_epot)
             if(lnew)then
@@ -430,13 +436,14 @@ write(*,*)trim(fminR)
                      //' /= '//trim(yaml_toa(mdat%nat))//')',&
                      err_name='BIGDFT_RUNTIME_ERROR')
             end if
-            call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
-                 mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
-                 fp(1))
+            call fingerprint(spredinputs,mdat%nid,mdat%nat,mdat%astruct%cell_dim,mdat%rcov,mdat%astruct%rxyz,fp(1))
+!            call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
+!                 mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
+!                 fp(1))
 
 write(*,*)trim(adjustl(fminR))
 write(*,*)'***'
-            call identical('min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
+            call identical(spredinputs,'min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
                  mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
                  k_epot)
             if(lnew)then
@@ -462,10 +469,11 @@ write(*,*)trim(fsaddle)
                      //' /= '//trim(yaml_toa(mdat%nat))//')',&
                      err_name='BIGDFT_RUNTIME_ERROR')
             end if
-            call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
-                 mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
-                 fp(1))
-            call identical('sad',mdat,mdat%nsadtot,mdat%nsad,mdat%nid,epot,fp,&
+            call fingerprint(spredinputs,mdat%nid,mdat%nat,mdat%astruct%cell_dim,mdat%rcov,mdat%astruct%rxyz,fp(1))
+!            call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
+!                 mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
+!                 fp(1))
+            call identical(spredinputs,'sad',mdat,mdat%nsadtot,mdat%nsad,mdat%nid,epot,fp,&
                  mdat%en_arr_sad,mdat%fp_arr_sad,en_delta_sad,&
                  fp_delta_sad,lnew,kid,k_epot)
             if(lnew)then
@@ -497,11 +505,13 @@ write(*,*)trim(fsaddle)
 end subroutine read_and_merge_data
 
 
-subroutine write_data(mdat)
+subroutine write_data(spredinputs,mdat)
     use yaml_output
     use module_base
+    use SPREDtypes
     implicit none
     !parameters
+    type(SPRED_inputs), intent(in) :: spredinputs
     type(mhgpstool_data), intent(inout) :: mdat
     !local
     integer :: u, u2, u3, u4, u5
@@ -616,18 +626,20 @@ enddo
     !uncomment following call of identMHminMHGPSmin if
     !identification of MH minima id with minima ID in MHPGS databse
     !is desired
-!    call identMHminMHGPSmin('MH_database',mdat,mn)
+!    call identMHminMHGPSmin('MH_database',spredinputs,mdat,mn)
 
     call f_free(mn)
 end subroutine write_data
 !=====================================================================
-subroutine identical(cf,mdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
+subroutine identical(spredinputs,cf,mdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
                     fp_delta,lnew,kid,k_epot)
     use module_base
     use yaml_output
     use module_fingerprints
+    use SPREDtypes
     implicit none
     !parameters
+    type(SPRED_inputs), intent(in) :: spredinputs
     type(mhgpstool_data), intent(in) :: mdat
     integer, intent(in) :: ndattot
     integer, intent(in) :: ndat
@@ -669,7 +681,7 @@ subroutine identical(cf,mdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
     dmin=huge(1.e0_gp)
     do k=max(1,klow),min(ndat,khigh)
         if (abs(epot-en_arr(k)).le.en_delta) then
-            call fpdistance(nid,fp,fp_arr(1,k),d)
+            call fpdistance(spredinputs,nid,mdat%nat,fp,fp_arr(1,k),d)
             write(*,*)'fpdist '//cf,abs(en_arr(k)-epot),d
             if (d.lt.fp_delta) then
                 lnew=.false.

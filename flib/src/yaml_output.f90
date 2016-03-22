@@ -89,7 +89,7 @@ module yaml_output
   !! @param fmt      (optional) format for the value
   interface yaml_map
      !general scalar
-     module procedure yaml_map,yaml_map_dict
+     module procedure yaml_map,yaml_map_dict,yaml_map_enum
      !other scalars
      module procedure yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l
      !vectors
@@ -1350,6 +1350,47 @@ contains
        call yaml_map(mapname,'<nullified dictionary>',label=lbl,unit=unt)
     end if
   end subroutine yaml_map_dict
+
+  !> Create a yaml map with a scalar value
+  subroutine yaml_map_enum(mapname,mapvalue,label,unit,flow)
+    use f_enums
+    implicit none
+    character(len=*), intent(in) :: mapname             !< @copydoc doc::mapname
+    type(f_enumerator), intent(in) :: mapvalue   !< scalar value of the mapping may be of any scalar type
+    !! it is internally converted to character with the usage of @link yaml_output::yaml_toa @endlink function
+    character(len=*), optional, intent(in) :: label     !< @copydoc doc::label
+    integer, optional, intent(in) :: unit               !< @copydoc doc::unit
+    logical, optional, intent(in) :: flow               !< @copydoc doc::flow
+    !local variables
+    logical :: flw
+    integer :: strm,unt
+    character(len=max_field_length) :: lbl
+    type(f_enumerator), pointer :: iter
+
+    unt=DEFAULT_STREAM_ID
+    if (present(unit)) unt=unit
+    call get_stream(unt,strm)
+
+    lbl(1:len(lbl))=' '
+    if (present(label)) lbl(1:len(lbl))=label
+    
+    !fortran norm should guarantee that the flow variable
+    !is passed only if present
+    call yaml_mapping_open(mapname,label=lbl,flow=flow,unit=unt)
+    !then the central indication for the enumerator
+    call yaml_map(trim(str(mapvalue)),toi(mapvalue),unit=unt)
+    iter=>mapvalue%family
+    if (associated(iter)) then
+       call yaml_mapping_open('Attributes',unit=unt)
+       do while(associated(iter))
+          call yaml_map(trim(str(iter)),toi(iter),unit=unt)
+          iter => iter%family
+       end do
+       call yaml_mapping_close(unit=unt)
+    end if
+    call yaml_mapping_close(unit=unt)
+  end subroutine yaml_map_enum
+
 
   subroutine yaml_map_li(mapname,mapvalue,label,advance,unit,fmt)
     implicit none

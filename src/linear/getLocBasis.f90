@@ -34,7 +34,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use transposed_operations, only: calculate_overlap_transposed
   use parallel_linalg, only: dsygv_parallel
   use matrix_operations, only: deviation_from_unity_parallel
-  use foe, only: fermi_operator_expansion
+  use foe, only: fermi_operator_expansion_new
   use public_enums
   use locregs_init, only: small_to_large_locreg
   use locreg_operations, only: confpot_data
@@ -558,13 +558,20 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call f_free(col_ptr)
       else if (scf_mode==LINEAR_FOE) then
           if (iproc==0) call yaml_map('method','FOE')
-          call fermi_operator_expansion(iproc, nproc, &
+          call fermi_operator_expansion_new(iproc, nproc, &
                energs%ebs, order_taylor, max_inversion_error, &
                invert_overlap_matrix, 2, &
                trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))&
                //'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
                tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
                tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, tmb%foe_obj)
+          !!call fermi_operator_expansion(iproc, nproc, &
+          !!     energs%ebs, order_taylor, max_inversion_error, &
+          !!     invert_overlap_matrix, 2, &
+          !!     trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))&
+          !!     //'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
+          !!     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
+          !!     tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, tmb%foe_obj)
       end if
 
       ! Eigenvalues not available, therefore take -.5d0
@@ -667,7 +674,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use sparsematrix,only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use transposed_operations, only: calculate_overlap_transposed
   use matrix_operations, only: overlapPowerGeneral, check_taylor_order
-  use foe, only: fermi_operator_expansion
   use public_enums
   use locreg_operations
   use locregs_init, only: small_to_large_locreg
@@ -828,7 +834,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   kernel_best=sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='kernel_best')
   energy_diff=.false.
 
-  ovrlp_old%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
+  ovrlp_old%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, &
                            iaction=SPARSE_FULL, id='ovrlp_old%matrix_compr')
 
   ! Allocate all local arrays.
@@ -1020,7 +1026,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Use this subroutine to write the energies, with some fake number
       ! to prevent it from writing too much
       if (iproc==0) then
-          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+          call write_energies(0,energs,0.d0,0.d0,'',only_energies=.true.)
       end if
       if (iproc==0) then
           call yaml_map('Orthoconstraint',.true.)
@@ -1035,18 +1041,19 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end do
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
                tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-          if (iproc==0) call yaml_newline()
-          if (iproc==0) call yaml_sequence_open('kernel update by renormalization')
+          !if (iproc==0) call yaml_newline()
+          !if (iproc==0) call yaml_sequence_open('kernel update by renormalization')
           if (it==1 .or. energy_increased .or. .not.experimental_mode) then
               ! Calculate S^1/2, as it can not be taken from memory
               call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
+                   verbosity=0, &
                    check_accur=.true., max_error=max_error, mean_error=mean_error)
               call check_taylor_order(mean_error, max_inversion_error, order_taylor)
           end if
           call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
-          if (iproc==0) call yaml_sequence_close()
+          !if (iproc==0) call yaml_sequence_close()
       else
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                TRANSPOSE_GATHER, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
@@ -1089,8 +1096,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
           !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       end if
-
-
 
       ! use hpsi_tmp as temporary array for hpsi_noprecond, even if it is allocated with a larger size
       !write(*,*) 'calling calc_energy_and.., correction_co_contra',correction_co_contra
@@ -1418,7 +1423,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       else if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call yaml_map('target function','HYBRID')
       end if
-      call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+      call write_energies(0,energs,0.d0,0.d0,'',only_energies=.true.)
       call yaml_newline()
       call yaml_map('iter',it,fmt='(i5)')
       call yaml_map('fnrm',fnrm%receivebuf(1),fmt='(es9.2)')
@@ -1583,7 +1588,7 @@ subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, exp
   type(DFT_wavefunction),intent(inout) :: tmb
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(kind=8),dimension(tmb%orbs%norbp),intent(in) :: alpha
-  real(kind=wp),dimension(max(tmb%npsidim_orbs,tmb%npsidim_comp)),intent(inout) :: gradient
+  real(kind=wp),dimension(tmb%npsidim_orbs),intent(inout) :: gradient
   logical,intent(in) :: experimental_mode
   
   ! Local variables
@@ -1606,7 +1611,7 @@ subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, exp
       ldiis%mis=mod(ldiis%is,ldiis%isx)+1
       ldiis%is=ldiis%is+1
       if(ldiis%alphaDIIS/=1.d0) then
-          if (tmb%orbs%norbp>0) call dscal(max(tmb%npsidim_orbs,tmb%npsidim_comp), ldiis%alphaDIIS, gradient, 1)
+          if (tmb%orbs%norbp>0) call dscal(tmb%npsidim_orbs, ldiis%alphaDIIS, gradient, 1)
       end if
       call optimizeDIIS(iproc, nproc, max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, nspin, tmb%lzd, gradient, tmb%psi, ldiis, &
            experimental_mode)
@@ -2883,6 +2888,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   call overlapPowerGeneral(iproc, nproc, order_taylor, 3, (/2,-2,1/), -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
+       verbosity=0, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
@@ -3039,7 +3045,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
   use module_base
   use module_types    
   use foe_base, only: foe_data, foe_data_null, foe_data_get_real, foe_data_set_real, foe_data_deallocate
-  use foe, only: fermi_operator_expansion
+  use foe, only:  fermi_operator_expansion_new
   use sparsematrix_base, only: matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                SPARSE_TASKGROUP, assignment(=)
   use yaml_output
@@ -3112,11 +3118,16 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       end do
       call foe_data_set_real(foe_obj,"fscale",1.d-2)
       norder_taylor = input%lin%order_taylor
-      call fermi_operator_expansion(iproc, nproc, &
+      call fermi_operator_expansion_new(iproc, nproc, &
            ebs, norder_taylor, input%lin%max_inversion_error, &
            .true., 2, &
            'HOMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
+      !call fermi_operator_expansion(iproc, nproc, &
+      !     ebs, norder_taylor, input%lin%max_inversion_error, &
+      !     .true., 2, &
+      !     'HOMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
       do ispin=1,input%nspin
           e_homo(ispin) = foe_data_get_real(foe_obj,"ef",ispin)
       end do
@@ -3134,11 +3145,16 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       end do
       call foe_data_set_real(foe_obj,"fscale",1.d-2)
       norder_taylor = input%lin%order_taylor
-      call fermi_operator_expansion(iproc, nproc, &
+      call fermi_operator_expansion_new(iproc, nproc, &
            ebs, norder_taylor, input%lin%max_inversion_error, &
            .true., 2, &
            'LUMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
+      !call fermi_operator_expansion(iproc, nproc, &
+      !     ebs, norder_taylor, input%lin%max_inversion_error, &
+      !     .true., 2, &
+      !     'LUMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
       do ispin=1,input%nspin
           e_lumo(ispin) = foe_data_get_real(foe_obj,"ef",ispin)
       end do

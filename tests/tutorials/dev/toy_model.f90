@@ -288,7 +288,7 @@ program wvl
      end do
   end do
   epot_sum = epot_sum * inputs%hx / 2._gp * inputs%hy / 2._gp * inputs%hz / 2._gp
-  call free_full_potential(dpcom%mpi_env%nproc,0,xc,potential,"main")
+  call free_full_potential(dpcom%mpi_env%nproc,0,xc,potential)
   if (nproc>1) then
       call mpiallred(epot_sum,1,MPI_SUM)
   end if

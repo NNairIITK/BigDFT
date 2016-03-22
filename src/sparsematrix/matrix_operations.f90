@@ -24,7 +24,7 @@ module matrix_operations
       !! power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
       subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, imode, &
                  ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
-                 max_error, mean_error, nspinx)
+                 verbosity, max_error, mean_error, nspinx)
            !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
         use module_base
         use sparsematrix_base, only: sparse_matrix, matrices, &
@@ -41,7 +41,7 @@ module matrix_operations
                                 uncompress_matrix2, transform_sparsity_pattern, &
                                 sparsemm_new, matrix_matrix_mult_wrapper
         use parallel_linalg, only: dpotrf_parallel, dpotri_parallel
-        use ice, only: inverse_chebyshev_expansion
+        use ice, only: inverse_chebyshev_expansion_new
         use yaml_output
         implicit none
         
@@ -53,12 +53,13 @@ module matrix_operations
         type(matrices),intent(in) :: ovrlp_mat
         type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp_mat
         logical,intent(in) :: check_accur
+        integer,intent(in),optional :: verbosity
         real(kind=8),intent(out),optional :: max_error, mean_error
         integer,intent(in),optional :: nspinx !< overwrite the default spin value
         
         ! Local variables
         integer :: iorb, jorb, info, iiorb, isorb, norbp, ii, ii_inv, iii, ierr, i, its, maxits
-        integer :: matrixindex_in_compressed, nmaxvalk, icalc
+        integer :: matrixindex_in_compressed, nmaxvalk, icalc, verbosity_
         real(kind=8), dimension(:,:), pointer :: inv_ovrlpp, ovrlppowerp
         real(kind=8), dimension(:,:), pointer :: inv_ovrlp_half_tmp
         real(kind=8), dimension(:), pointer :: ovrlpminonep_new
@@ -94,7 +95,13 @@ module matrix_operations
       
         call f_routine(id='overlapPowerGeneral')
         call timing(iproc,'lovrlp^-1     ','ON')
-      
+
+        if (present(verbosity)) then
+            verbosity_ = verbosity
+        else
+            verbosity_ = 1
+        end if
+
         ! several calculations at one are at the moment only possible for sparse exact, Taylor or ICE
         if (ncalc>1) then
             if (imode/=SPARSE .or. iorder<0) stop 'non-compliant arguments for ncalc>0'
@@ -123,7 +130,7 @@ module matrix_operations
         end if
 
 
-        if (iproc==0) then
+        if (iproc==0 .and. verbosity_>0) then
             call yaml_newline()
             call yaml_mapping_open('calculate S^x')
             if (imode==SPARSE) then
@@ -440,7 +447,7 @@ module matrix_operations
                     call check_accur_overlap_minus_one(iproc,nproc,ovrlp_smat%nfvctr,&
                          ovrlp_smat%nfvctrp,ovrlp_smat%isfvctr,power(1),&
                          ovrlp_mat%matrix(:,:,ispin),inv_ovrlp_mat(1)%matrix(:,:,ispin),ovrlp_smat,max_error,mean_error)
-                    if (iproc==0) then
+                    if (iproc==0 .and. verbosity_>0) then
                         call yaml_newline()
                         if (nspin==1) then
                             call yaml_map('max / mean error',(/max_error,mean_error/),fmt='(es8.2)')
@@ -869,8 +876,8 @@ module matrix_operations
                             stop 'wrong value of power(icalc)'
                         end select
                     end do
-                    call inverse_chebyshev_expansion(iproc, nproc, iorder-1000, &
-                         ovrlp_smat, inv_ovrlp_smat, ncalc, rpower, ovrlp_mat, inv_ovrlp_mat)
+                    call inverse_chebyshev_expansion_new(iproc, nproc, iorder-1000, &
+                         ovrlp_smat, inv_ovrlp_smat, ncalc, rpower, ovrlp_mat, inv_ovrlp_mat, verbosity=verbosity_)
                     call f_free(rpower)
                     !!call vcopy(ovrlp_smat%nvctr, tmpmat(1), 1, ovrlp_mat%matrix_compr(1), 1)
                     !!call f_free(tmpmat)
@@ -913,7 +920,7 @@ module matrix_operations
                 !!end do
                 !!if (iproc==0) write(*,*) 'END TEST ##########################################'
       
-                if (iproc==0) then
+                if (iproc==0 .and. verbosity_>0) then
                     call yaml_newline()
                     call yaml_sequence_open('error estimation')
                 end if
@@ -1000,7 +1007,7 @@ module matrix_operations
                         else
                             stop 'wrong power(icalc)'
                         end if
-                        if (iproc==0) then
+                        if (iproc==0 .and. verbosity_>0) then
                             call yaml_newline()
                             if (nspin==1) then
                                 call yaml_map('max / mean error',(/max_error,mean_error/),fmt='(es8.2)')
@@ -1014,7 +1021,9 @@ module matrix_operations
                         end if
                     end do
                 end do
-                call yaml_sequence_close()
+                if (iproc==0 .and. verbosity_>0) then
+                    call yaml_sequence_close()
+                end if
                 call f_free(invovrlp_compr_seq)
                 !!call f_free(ovrlp_largep)
                 call f_free(ovrlp_largep_new)
@@ -1025,7 +1034,7 @@ module matrix_operations
             end if
         end if sparse_dense
       
-        if (iproc==0) then
+        if (iproc==0 .and. verbosity_>0) then
             call yaml_mapping_close()
             call yaml_newline()
         end if

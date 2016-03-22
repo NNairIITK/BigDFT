@@ -755,6 +755,65 @@ subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,del
 
 end subroutine epsilon_rigid_cavity
 
+
+!> calculates the value of the dielectric function for a smoothed cavity 
+!! given a set of centres and radii. Based on error function.
+!! Need the epsilon0 as well as the radius of the cavit and its smoothness
+subroutine epsilon_rigid_cavity_soft_PCM(mesh,nat,rxyz,radii,cavity,&
+     eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+  use module_base, only: bigdft_mpi,dp
+  use f_utils
+  use numerics, only : Bohr_Ang,pi
+  use f_enums
+  use yaml_output
+  use dynamic_memory
+  use bounds, only: ext_buffers
+  use environment, only: cavity_data,rigid_cavity_arrays
+  use box
+  use bounds, only: locreg_mesh_origin
+  implicit none
+  type(cell), intent(in) :: mesh
+  type(cavity_data), intent(in) :: cavity
+  integer, intent(in) :: nat !< number of centres defining the cavity
+  real(kind=8), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+  !> position of all the atoms in the grid coordinates
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(mesh%ndims(1),mesh%ndims(2),mesh%ndims(3)), intent(out) :: eps !< dielectric function
+  real(kind=8), dimension(3,mesh%ndims(1),mesh%ndims(2),mesh%ndims(3)), intent(out) :: dlogeps !< dlogeps
+  real(kind=8), dimension(mesh%ndims(1),mesh%ndims(2),mesh%ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
+  !> inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(mesh%ndims(1),mesh%ndims(2),mesh%ndims(3)), intent(out) :: oneosqrteps
+  real(kind=8), dimension(mesh%ndims(1),mesh%ndims(2),mesh%ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
+  !> Surface and volume integral needed for non-electrostatic contributions to the energy.
+  real(kind=8), intent(out) :: IntSur,IntVol
+  !local variables
+  integer :: i1,i2,i3
+  real(dp) :: cc,hh,ep
+  real(dp), dimension(3) :: v,origin,dleps
+
+  hh=mesh%volume_element
+  origin=locreg_mesh_origin(mesh)
+  do i3=1,mesh%ndims(3)
+     v(3)=cell_r(mesh,i3,dim=3)-origin(3)
+     do i2=1,mesh%ndims(2)
+        v(2)=cell_r(mesh,i2,dim=2)-origin(2)
+        do i1=1,mesh%ndims(1)
+           v(1)=cell_r(mesh,i1,dim=1)-origin(1)
+
+           call rigid_cavity_arrays(cavity,mesh,v,nat,rxyz,radii,ep,dleps,cc)
+           eps(i1,i2,i3)=ep
+           oneoeps(i1,i2,i3)=1.d0/ep
+           oneosqrteps(i1,i2,i3)=1.d0/sqrt(ep)
+           dlogeps(:,i1,i2,i3)=dleps
+           corr(i1,i2,i3)=cc
+
+        end do
+     end do
+  end do
+  
+end subroutine epsilon_rigid_cavity_soft_PCM
+
+
 !> calculates the value of the dielectric function for a smoothed cavity 
 !! given a set of centres and radii. Based on error function.
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
@@ -969,6 +1028,8 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
            oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
            oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
 
+
+           !todo: inclusion of the compact formula for the surface term
            do i=1,3
               deps(i)=0.d0
               do jat=0,nat-1
@@ -981,11 +1042,12 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
               deps(i) = deps(i)*(epsilon0-1.d0)
            end do
 
+           !here we should implement THe surface term in a different way
            d12=0.d0
-           do i=1,3
-              dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
-              d12 = d12 + deps(i)**2
-           end do
+!!$           do i=1,3
+!!$              dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
+!!$              d12 = d12 + deps(i)**2
+!!$           end do
 
            IntSur = IntSur + dsqrt(d12)
 
@@ -1478,6 +1540,7 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
   use f_utils
   use bounds, only: ext_buffers
   use environment, only: epsl,epsle0,d1eps
+  use numerics, only: safe_exp
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: nat !< number of centres defining the cavity
@@ -1557,12 +1620,12 @@ subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,rad
               else
                  r=fact1*(-(dmax**2) + d2)
                  t=fact2*(r-dsin(r)) 
-                 ep(iat)=dexp(t)-1.d0
+                 ep(iat)=safe_exp(t)-1.d0
                  dtx=fact3*(1.d0-dcos(r))
                  do i=1,3
-                    dep(i,iat)=dexp(t)*dtx*2.d0*(v(i)-rxyz(i,iat))
+                    dep(i,iat)=safe_exp(t)*dtx*2.d0*(v(i)-rxyz(i,iat))
                  end do
-                 ddep(iat) = dexp(t)*(4.d0*(dtx**2)*d2 + 4.d0*fact1*fact3*dsin(r)*d2 + 6.d0*dtx)
+                 ddep(iat) = safe_exp(t)*(4.d0*(dtx**2)*d2 + 4.d0*fact1*fact3*dsin(r)*d2 + 6.d0*dtx)
               end if
            end do
 

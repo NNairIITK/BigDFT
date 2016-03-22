@@ -119,7 +119,7 @@ module forces_linear
          !$omp shared(n3i, inzee, i3, n2i, hyh, n1i, hxh, rx, ry, rz, rhog, Zion, rloc, hzh, tens) &
          !$omp private(i2, j2, i1, j1, sfr, sfi, rhore, rhoim, g2, fac, setv, potg, potg2) &
          !$omp firstprivate(p)
-         !$omp do reduction(+:tens)
+         !$omp do reduction(-:tens)
          do i2=1,n2i
             j2=i2-(i2/(n2i/2+2))*n2i-1
             p(2)=real(j2,dp)/(n2i*hyh)    
@@ -435,8 +435,6 @@ module forces_linear
     
     
     END SUBROUTINE nonlocal_forces_linear
-    
-    
     
     subroutine determine_dimension_scalprod(calculate_strten, natp, isat, at, lzd, nlpsp, &
                orbs, supfun_per_atom, ndir, nscalprod_send)

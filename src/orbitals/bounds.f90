@@ -13,6 +13,7 @@ module bounds
   public :: make_bounds_per
   public :: make_all_ib_per
   public :: geocode_buffers
+  public :: locreg_mesh_origin
 
   contains
 
@@ -594,7 +595,6 @@ module bounds
       enddo
     END SUBROUTINE squares
 
-
     pure subroutine ext_buffers(periodic,nl,nr)
       implicit none
       logical, intent(in) :: periodic
@@ -861,5 +861,25 @@ module bounds
       end if
     
     end subroutine geocode_buffers
+
+    pure function locreg_mesh_origin(mesh) result(or)
+      use box, only: cell,cell_r,cell_periodic_dims
+      use module_defs, only: gp
+      implicit none
+      type(cell), intent(in) :: mesh
+      real(gp), dimension(3) :: or
+      !local variables
+      logical, dimension(3) :: peri
+      integer :: nbli,nbri,i
+    
+      !buffers associated to the geocode
+      !conditions for periodicity in the three directions
+      peri=cell_periodic_dims(mesh)
+      do i=1,3
+         call ext_buffers(peri(i),nbli,nbri)
+         or(i)=cell_r(mesh,nbli,dim=i)
+      end do
+ 
+    end function locreg_mesh_origin
 
 end module bounds

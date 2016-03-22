@@ -531,6 +531,8 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
        !write(31,*) zeta
        work(iw1:iw1-1+nr*nr)=work(1:nr*nr)
        !LG: this linear system might exhibit some fpe sometimes. See FF-LENOSKY test
+       !call f_zero(nr,work(iw4)) !this line does not help
+       !call f_zero(nrsqtwo,work(iw2)) !this line does not help
        call DSYEV('V','L',nr,work(iw1),nr,work(iw4),work(iw2),nrsqtwo,info)
        if(info/=0) stop 'ERROR: DSYEV in bfgs_reza failed.'
        tt1=work(iw4+0)    ; tt2=work(iw4+1)    ; tt3=work(iw4+2)
