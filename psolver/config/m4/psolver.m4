@@ -83,7 +83,7 @@ AC_DEFUN([AX_PSOLVER],
       [ax_have_psolver=no])
     if test $ax_have_psolver != "yes" ; then
       dnl Static case, need to link with additional libs.
-      ax_psolver_libs="$ax_psolver_libs $LINALG_LIBS $LIB_FLIB_LIBS"
+      ax_psolver_libs="$ax_psolver_libs $LINALG_LIBS $LIB_FUTILE_LIBS"
       LIBS="$ax_psolver_libs $LIBS_SVG"
       AC_LINK_IFELSE(
         AC_LANG_PROGRAM([], [[
