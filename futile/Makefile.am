@@ -17,6 +17,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = futile.pc
 
 SUBDIRS = flib wrappers src
+
 if HAVE_PYYAML
 SUBDIRS += tests
 endif

@@ -1,11 +1,11 @@
-!> @file 
+!> @file
 !!   Initializations
 !! @author
-!!   Copyright (C) 2011-2012 BigDFT group 
+!!   Copyright (C) 2011-2016 BigDFT group
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
-!!   For the list of contributors, see ~/AUTHORS 
+!!   For the list of contributors, see ~/AUTHORS
 
 
 subroutine init_foe_wrapper(iproc, nproc, input, orbs_KS, tmprtr, foe_obj)
@@ -37,9 +37,9 @@ subroutine init_foe_wrapper(iproc, nproc, input, orbs_KS, tmprtr, foe_obj)
       end do
   end if
   if (input%nspin/=1 .and. input%nspin /=2) call f_err_throw('Wrong value for nspin')
-  call init_foe(iproc, nproc, input%nspin, charges, tmprtr, input%evbounds_nsatur, input%evboundsshrink_nsatur, &
+  call init_foe(iproc, nproc, input%nspin, charges, foe_obj, tmprtr, input%evbounds_nsatur, input%evboundsshrink_nsatur, &
        input%lin%evlow, input%lin%evhigh, input%lin%fscale, input%lin%ef_interpol_det, input%lin%ef_interpol_chargediff, &
-       input%fscale_lowerbound, input%fscale_upperbound, foe_obj)
+       input%fscale_lowerbound, input%fscale_upperbound)
 
   call f_release_routine()
 
@@ -91,13 +91,13 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
         ityp = atoms%astruct%iatype(iat)
         call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),rcov=rcov)
         locrad(iat) =  rcov * 10.0_gp ! locrad(iat) = atoms%rloc(ityp,1)
-     end do  
+     end do
      call timing(iproc,'check_IG      ','ON')
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,&
           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
-          Lzd%Glr,linear) 
+          Lzd%Glr,linear)
      call timing(iproc,'check_IG      ','OF')
-     if(nspin >= 4) linear = .false. 
+     if(nspin >= 4) linear = .false.
   end if
 
   ! If we are using cubic code : by choice or because locregs are too big
@@ -119,7 +119,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
         !copy Glr to Llr(1)
         call nullify_locreg_descriptors(Lzd%Llr(1))
         call copy_locreg_descriptors(Lzd%Glr,Lzd%Llr(1))
-     else 
+     else
         Lzd%lintyp = 1
         ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
         call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
@@ -133,7 +133,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
 !        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,calculateBounds)
         call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,&
              Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,&
-             orbs,calculateBounds)  
+             orbs,calculateBounds)
         call f_free(calculateBounds)
         call f_free(locrad)
 
@@ -143,7 +143,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   else
      Lzd%lintyp = 2
   end if
-  
+
 !DEBUG
 !!if(iproc==0)then
 !!print *,'###################################################'
@@ -239,9 +239,9 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
      end do
      call timing(iproc,'check_IG      ','ON')
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,&
-          Glr,linear) 
+          Glr,linear)
      call timing(iproc,'check_IG      ','OF')
-     if(nspin >= 4) linear = .false. 
+     if(nspin >= 4) linear = .false.
   end if
 
   ! If we are using cubic code : by choice or because locregs are too big
@@ -268,7 +268,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
         Lzd%lintyp = 0
         call nullify_locreg_descriptors(Lzd%Llr(1))
         call copy_locreg_descriptors(Glr,Lzd%Llr(1))
-     else 
+     else
         Lzd%lintyp = 1
         ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
         call assignToLocreg(iproc,nproc,orbs%nspinor,nspin_ig,atoms,orbs,Lzd)
@@ -282,7 +282,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
         !        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,Lzd%Llr,calculateBounds)
         call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,&
              hx,hy,hz,Glr,Lzd%Llr,&
-             orbs,calculateBounds)  
+             orbs,calculateBounds)
         call f_free(calculateBounds)
         call f_free(locrad)
 
@@ -294,7 +294,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
         !when the new tmbs are created the projector descriptors can be updated
         call update_nlpsp(nl,Lzd%nlr,Lzd%llr,Lzd%Glr,lr_mask)
         if (iproc == 0) call print_nlpsp(nl)
-       
+
         call f_free(lr_mask)
      end if
   else
@@ -344,9 +344,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
 end subroutine create_LzdLIG
 
 
-
-
-
+!> Initialize the orbitals date for the linear version.
 subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs, &
            norb_par_ref, norbu_par_ref, norbd_par_ref)
   use module_base
@@ -354,7 +352,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   use module_interfaces, only: assignToLocreg2, orbitals_descriptors
   use public_enums
   implicit none
-  
+
   ! Calling arguments
   integer, intent(in) :: iproc, nproc, nspinor
   type(input_variables), intent(in) :: input
@@ -362,7 +360,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   real(kind=8),dimension(3,astruct%nat), intent(in) :: rxyz
   type(orbitals_data), intent(out) :: lorbs
   integer,dimension(0:nproc-1),intent(in),optional :: norb_par_ref, norbu_par_ref, norbd_par_ref
-  
+
   ! Local variables
   integer :: norb, norbu, norbd, ityp, iat, ilr, iorb, nlr, iiat, ispin
   integer, dimension(:), allocatable :: norbsPerLocreg, norbsPerAtom
@@ -389,10 +387,10 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
           with_optional = .false.
   end if
 
-  
+
   call nullify_orbitals_data(lorbs)
 
- 
+
   ! Count the number of basis functions.
   norbsPerAtom = f_malloc(astruct%nat*input%nspin,id='norbsPerAtom')
   norbu=0
@@ -420,7 +418,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
 
   nlr=norb
 
- 
+
   ! Distribute the basis functions among the processors.
   if (with_optional) then
       call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
@@ -433,7 +431,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
 
   locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
 
-  
+
   ! this loop does not take into account the additional TMBs required for spin polarized systems
   ilr=0
   do iat=1,astruct%nat
@@ -450,22 +448,22 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
       locregCenter(:,iorb)=locregCenter(:,iorb-lorbs%norbu)
   end do
 
- 
+
   norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
   norbsPerLocreg=1 !should be norbsPerLocreg
-    
-  call f_free_ptr(lorbs%inWhichLocreg)
+
+  call f_free_ptr(lorbs%inWhichLocreg) !< Freed before allocation in the next routine
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norbu, lorbs%norb_par, astruct%nat, nlr, &
        input%nspin, norbsPerLocreg, lorbs%spinsgn, locregCenter, lorbs%inwhichlocreg)
 
-  call f_free_ptr(lorbs%onwhichatom)
+  call f_free_ptr(lorbs%onwhichatom) !< Freed before allocation in the next routine
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norbu, lorbs%norb_par, astruct%nat, astruct%nat, &
        input%nspin, norbsPerAtom, lorbs%spinsgn, rxyz, lorbs%onwhichatom)
 
-  
+
   lorbs%eval = f_malloc_ptr(lorbs%norb,id='lorbs%eval')
   lorbs%eval=-.5d0
-  
+
   call f_free(norbsPerLocreg)
   call f_free(locregCenter)
   call f_free(norbsPerAtom)
@@ -483,7 +481,7 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   use module_types
   use locregs, only: locreg_null
   implicit none
-  
+
   ! Calling arguments
   integer, intent(in) :: iproc, nproc
   type(input_variables), intent(in) :: input
@@ -491,7 +489,7 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   real(kind=8),dimension(3,astruct%nat), intent(in) :: rxyz
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(inout) :: lzd
-  
+
   ! Local variables
   integer :: iat, ityp, ilr, istat, iorb, iilr
   real(kind=8),dimension(:,:), allocatable :: locregCenter
@@ -503,13 +501,13 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   call f_routine(id='lzd_init_llr')
 
   t1=mpi_wtime()
-  
+
   nullify(lzd%llr)
 
   lzd%nlr=orbs%norb
 
   locregCenter = f_malloc((/ 3, orbs%norbu /),id='locregCenter')
-  
+
   ilr=0
   do iat=1,astruct%nat
       ityp=astruct%iatype(iat)
@@ -539,7 +537,7 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   end do
 
   call f_free(locregCenter)
-  
+
   t2=mpi_wtime()
   !if(iproc==0) write(*,*) 'in lzd_init_llr: time',t2-t1
 
@@ -562,7 +560,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   use locregs, only: locreg_null,copy_locreg_descriptors
   use locregs_init, only: initLocregs
   implicit none
-  
+
   ! Calling arguments
   integer, intent(in) :: iproc, nproc, nlr
   integer, intent(out) :: npsidim_orbs, npsidim_comp
@@ -581,13 +579,13 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   type(comms_linear), intent(inout) :: lbcollcom
   type(comms_linear), intent(inout),optional :: lbcollcom_sr
 
-  
+
   ! Local variables
   integer :: iorb, ilr, npsidim, istat
   real(kind=8),dimension(:,:), allocatable :: locreg_centers
   character(len=*), parameter :: subname='update_locreg'
 
-  call timing(iproc,'updatelocreg1','ON') 
+  call timing(iproc,'updatelocreg1','ON')
 
   call f_routine(id='update_locreg')
 
@@ -615,9 +613,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       lzd%llr(ilr)%locrad_mult=locrad_mult(ilr)
       lzd%llr(ilr)%locregCenter=locregCenter(:,ilr)
   end do
-  call timing(iproc,'updatelocreg1','OF') 
+  call timing(iproc,'updatelocreg1','OF')
   call initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, glr_tmp, 's')!, llborbs)
-  call timing(iproc,'updatelocreg1','ON') 
+  call timing(iproc,'updatelocreg1','ON')
   call nullify_locreg_descriptors(lzd%glr)
   call copy_locreg_descriptors(glr_tmp, lzd%glr)
   lzd%hgrids(1)=hx
@@ -637,7 +635,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
 !  ! don't really want to keep this unless we do so right from the start, but for now keep it to avoid updating refs
 !  orbs%eval=-.5d0
 
-  call timing(iproc,'updatelocreg1','OF') 
+  call timing(iproc,'updatelocreg1','OF')
 
   if (present(lfoe)) then
       locreg_centers = f_malloc((/3,lzd%nlr/),id='locreg_centers')
@@ -756,7 +754,7 @@ subroutine destroy_DFT_wavefunction(wfn)
                                deallocate_sparse_matrix_metadata
   use foe_base, only: foe_data_deallocate
   implicit none
-  
+
   ! Calling arguments
   type(DFT_wavefunction), intent(inout) :: wfn
 
@@ -829,7 +827,7 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
   character(len = *), parameter :: subname = "update_wavefunctions_size"
   integer :: npsidim, ilr, iorb
   integer :: nvctr_tot,jproc
-  integer, allocatable, dimension(:) :: ncntt 
+  integer, allocatable, dimension(:) :: ncntt
   integer, allocatable, dimension(:,:) :: nvctr_par
 
   call f_routine(id='update_wavefunctions_size')
@@ -950,7 +948,7 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
   call f_release_routine()
 end subroutine create_large_tmbs
 
-!>create the masking array to determine which localization regions have to be 
+!>create the masking array to determine which localization regions have to be
 !! calculated
 subroutine update_lrmask_array(nlr,orbs,lr_mask)
   use module_types, only: orbitals_data
@@ -978,7 +976,7 @@ subroutine update_lrmask_array(nlr,orbs,lr_mask)
          ikpt=ikpt+1
       end do loop_kpt
   end if
- 
+
 end subroutine update_lrmask_array
 
 subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, &
@@ -990,7 +988,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   use public_enums
   use locreg_operations, only: confpot_data
   implicit none
-  
+
   ! Calling arguments
   integer, intent(in) :: nlr
   type(orbitals_data), intent(in) :: lorbs
@@ -1150,7 +1148,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use locregs_init, only: small_to_large_locreg
   use module_interfaces, only: deallocate_auxiliary_basis_function, update_locreg
   implicit none
-  
+
   ! Calling argument
   integer, intent(in) :: iproc, nproc
   real(8), intent(in) :: hx, hy, hz
@@ -1206,7 +1204,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call nullify_local_zone_descriptors(lzd_tmp)
      call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
      call deallocate_local_zone_descriptors(tmb%lzd)
-     
+
      call foe_data_deallocate(tmb%foe_obj)
 
      npsidim_orbs_tmp = tmb%npsidim_orbs
@@ -1276,7 +1274,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call vcopy(tmb%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
      call f_free(lphilarge)
-     
+
      call update_ldiis_arrays(tmb, subname, ldiis)
 
      ! Emit that lzd has been changed.
@@ -1299,7 +1297,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
         !call f_free_ptr(tmb%ham_descr%psit_f)
         tmb%ham_descr%can_use_transposed=.false.
      end if
-     
+
      deallocate(tmb%confdatarr)
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp, input, at, rxyz, lowaccur_converged)
@@ -1360,11 +1358,11 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
 
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, input%enable_matrix_taskgroups, &
           tmb%linmat%s, tmb%linmat%smmd, tmb%collcom, tmb%collcom_sr, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, input%enable_matrix_taskgroups, &
           tmb%linmat%m, tmb%linmat%smmd, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, input%enable_matrix_taskgroups, &
           tmb%linmat%l, tmb%linmat%smmd, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
 
      call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
@@ -1381,7 +1379,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      nullify(tmb%linmat%ks)
      nullify(tmb%linmat%ks_e)
-     if (input%lin%scf_mode/=LINEAR_FOE .or. input%lin%pulay_correction .or.  input%lin%new_pulay_correction .or. &
+     if (input%lin%scf_mode/=LINEAR_FOE .or. &
          (mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE) .or. input%lin%diag_end) then
          call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, input, at%astruct%geocode, &
               at%astruct%cell_dim, input%lin%extra_states, tmb%linmat%ks, tmb%linmat%ks_e)
@@ -1408,13 +1406,13 @@ subroutine adjust_DIIS_for_high_accuracy(input, denspot, lowaccur_converged, ldi
   use module_types
   use public_enums
   implicit none
-  
+
   ! Calling arguments
   type(input_variables), intent(in) :: input
   type(DFT_local_fields), intent(inout) :: denspot
   logical, intent(in) :: lowaccur_converged
   integer, intent(inout) :: ldiis_coeff_hist
-  logical, intent(out) :: ldiis_coeff_changed  
+  logical, intent(out) :: ldiis_coeff_changed
 
   if(lowaccur_converged) then
      if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
@@ -1431,7 +1429,7 @@ subroutine adjust_DIIS_for_high_accuracy(input, denspot, lowaccur_converged, ldi
         ldiis_coeff_changed=.false.
      end if
   end if
-  
+
 end subroutine adjust_DIIS_for_high_accuracy
 
 
@@ -1447,12 +1445,12 @@ subroutine check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, lowaccura
   real(8), intent(in) :: lowaccuracy_convcrit
   logical, intent(inout) :: lowaccur_converged
   real(kind=8), intent(in) :: pnrm_out
-  
+
   if(.not.lowaccur_converged .and. &
        (itout>=nit_lowaccuracy+1 .or. pnrm_out<lowaccuracy_convcrit)) then
      lowaccur_converged=.true.
      !cur_it_highaccuracy=0
-  end if 
+  end if
 
 end subroutine check_whether_lowaccuracy_converged
 
@@ -1606,7 +1604,7 @@ subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locra
   use yaml_output
   use locreg_operations, only: confpot_data
   implicit none
-  
+
   ! Calling arguments
   type(orbitals_data), intent(in) :: lorbs
   type(input_variables), intent(in) :: input

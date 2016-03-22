@@ -3,8 +3,7 @@ dist_aclocal_DATA = config/m4/amber.m4 \
 	config/m4/archive.m4 \
 	config/m4/bigdft.m4 \
 	config/m4/gain.m4 \
-	config/m4/introspection.m4 \
-	config/m4/libxc.m4
+	config/m4/introspection.m4
 
 ACLOCAL_AMFLAGS = -I config/m4
 

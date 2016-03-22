@@ -16,15 +16,15 @@ subroutine f_utils_test()
   use f_ternary
   implicit none
   !local variables
-  type(f_enumerator) :: greetings=f_enumerator('Greetings',10,null()) 
-  type(f_enumerator) :: f1=f_enumerator('Ciao',1,null())              
-  type(f_enumerator) :: f2=f_enumerator('Hello',2,null())             
-  type(f_enumerator) :: f3=f_enumerator('Pizza',3,null())             
+  type(f_enumerator) :: greetings=f_enumerator('Greetings',10,null())
+  type(f_enumerator) :: f1=f_enumerator('Ciao',1,null())
+  type(f_enumerator) :: f2=f_enumerator('Hello',2,null())
+  type(f_enumerator) :: f3=f_enumerator('Pizza',3,null())
   integer :: unt,unt2,u
   !  double precision :: t0
   integer(kind=8) :: i0
   integer, parameter :: nstep=10,n_inc=10**7
-  integer :: istep,icount,recl,icur,unit
+  integer :: istep,icount,recl,icur
   integer(f_long) :: t0,t1
   real(f_simple), dimension(3) :: r1
   real(f_double), dimension(3) :: r2
@@ -73,23 +73,23 @@ subroutine f_utils_test()
   call yaml_map('Enum1 int',toi(f1))
   call yaml_map('Enum1 check',f1=='Ciao')
 
-  call yaml_map('Greetings 1a',f1 .hasattr. 'Greetings') 
+  call yaml_map('Greetings 1a',f1 .hasattr. 'Greetings')
   call yaml_map('Greetings 1b',f1 .hasattr. 10)
-  call yaml_map('Greetings 1c',f1 .hasattr. greetings) 
+  call yaml_map('Greetings 1c',f1 .hasattr. greetings)
 
-  call yaml_map('Greetings 2a',f2 .hasattr. 'Greetings') 
+  call yaml_map('Greetings 2a',f2 .hasattr. 'Greetings')
   call yaml_map('Greetings 2b',f2 .hasattr. 10)
-  call yaml_map('Greetings 2c',f2 .hasattr. greetings) 
+  call yaml_map('Greetings 2c',f2 .hasattr. greetings)
 
-  call yaml_map('Greetings 3a',f3 .hasattr. 'Greetings') 
+  call yaml_map('Greetings 3a',f3 .hasattr. 'Greetings')
   call yaml_map('Greetings 3b',f3 .hasattr. 10)
-  call yaml_map('Greetings 3c',f3 .hasattr. greetings) 
+  call yaml_map('Greetings 3c',f3 .hasattr. greetings)
 
   !now update the f3 enum
   call f_enum_update(src=f1,dest=f3)
-  call yaml_map('Greetings 3a-2',f3 .hasattr. 'Greetings') 
+  call yaml_map('Greetings 3a-2',f3 .hasattr. 'Greetings')
   call yaml_map('Greetings 3b-2',f3 .hasattr. 10)
-  call yaml_map('Greetings 3c-2',f3 .hasattr. greetings) 
+  call yaml_map('Greetings 3c-2',f3 .hasattr. greetings)
 
   !then write the enumerators completely
   call yaml_map('Enumerator f1',f1)
@@ -134,18 +134,18 @@ subroutine f_utils_test()
   call yaml_map('Third unit which can be opened',unt2)
 
   call yaml_mapping_open('Bastian test')
-  u=f_get_free_unit()                                                   
+  u=f_get_free_unit()
   call yaml_map('First file',u)
-  open(unit=u,file='test') 
+  open(unit=u,file='test')
   !call f_open_file(u,'test')
   call yaml_map('First file opened',u)
-  unt=f_get_free_unit()                                                 
+  unt=f_get_free_unit()
   call yaml_map('Second file',unt)
   open(unit=unt,file='test2')
   call yaml_map('Second file opened',unt)
-  unt2=f_get_free_unit()                                      
+  unt2=f_get_free_unit()
   call yaml_map('Third file',unt2)
-  open(unit=unt2,file='test3')     
+  open(unit=unt2,file='test3')
   call yaml_map('Third file opened',unt2)
   call f_delete_file('test')
   call f_delete_file('test2')
@@ -200,7 +200,7 @@ subroutine f_utils_test()
   end do
   call yaml_mapping_close()
   call yaml_newline()
-  
+
 
   !create a directory (we should add the test to remove it)
   !call f_mkdir('testdir',path)
@@ -231,7 +231,7 @@ end subroutine f_utils_test
 !!$  end if
 !!$
 !!$!  print *,'res',res,exp(x)
-!!$  
+!!$
 !!$end subroutine expq
 
 subroutine f_inputfile_test()
@@ -240,7 +240,7 @@ subroutine f_inputfile_test()
   use f_input_file
   use f_precisions, only: f_cr
   implicit none
-  
+
   !> input definitions as they can be defined by the developers
   character(len=*), parameter :: inputdef=' '//f_cr//&
        '  dft:'//f_cr//&
@@ -348,7 +348,7 @@ subroutine f_inputfile_test()
        ' geopt:'//f_cr//&
        '    geopt: {method: DIIS} '//f_cr
   character(len=*), parameter :: example2='import: [geopt, simple]'
-  
+
   call yaml_comment('Test of input variables retrieval',hfill=':)')
 
   !first, insert the definitiions of the input file in the dictionary
@@ -397,7 +397,7 @@ subroutine f_inputfile_test()
 
   call yaml_map('User input file 2',input)
   call input_file_complete(inputdefinitions,input,imports=dict_profiles)
-  
+
   call yaml_map('Completed input file 2',input)
   call input_file_dump(input)
   !retrieve input minimal

@@ -21,7 +21,7 @@ module module_tersoff
      logical, save :: only_c
      logical, save :: initialized_tersoff=.false.
 
- 
+
 
 contains
 subroutine init_tersoff(nat,astruct,paramset,paramfile,geocode)
@@ -32,22 +32,22 @@ implicit none
 !parameter
 integer, intent(in) :: nat
 type(atomic_structure), intent(in) :: astruct
-character(len=*), intent(in) :: paramset                           
-character(len=*), intent(in) :: paramfile                          
-character(len=*), intent(in) :: geocode 
+character(len=*), intent(in) :: paramset
+character(len=*), intent(in) :: paramfile
+character(len=*), intent(in) :: geocode
 !internal
 integer:: iat
     call yaml_comment('Initializing Tersoff potential',hfill='-')
     if(nat>natmax)then
-        initialized_tersoff=.false.                                       
-        call f_err_throw('Tersoff potential: Too many atoms '//&      
-             'nat > natmax, natmax: '//yaml_toa(natmax)) 
+        initialized_tersoff=.false.
+        call f_err_throw('Tersoff potential: Too many atoms '//&
+             'nat > natmax, natmax: '//yaml_toa(natmax))
     endif
-    if(trim(geocode)/='P')then                                         
-        initialized_tersoff=.false.                                       
-        call f_err_throw('Tersoff potential only works with periodic '//&      
+    if(trim(geocode)/='P')then
+        initialized_tersoff=.false.
+        call f_err_throw('Tersoff potential only works with periodic '//&
              'boundary conditions. Specified boundary conditions are: '//&
-             trim(adjustl(geocode)))                                   
+             trim(adjustl(geocode)))
     endif
 
     only_c=.true.
@@ -57,7 +57,7 @@ do iat=1,nat
    elseif(trim(astruct%atomnames(astruct%iatype(iat)))=='Si') then
      Kinds_tersoff(iat)=2
      only_c=.false.
-   else 
+   else
      stop "Tersoff only allowed for Silicon and/or Carbon atoms"
    endif
 enddo
@@ -69,7 +69,7 @@ subroutine tersoff(nat,cell,rxyzIN,fxyz,strten,etot)
 use module_base
         implicit none
         integer, intent(in) :: nat
-        integer   :: iat
+!        integer   :: iat
         real(gp)   :: etot
         real(gp)                                   ::rxyzIN(3,nat),fxyz(3,nat), alat(3)
         real(gp),              dimension(1:2,1:2)  :: R1, R2
@@ -77,38 +77,38 @@ use module_base
         real(gp),              dimension(1:2)      :: Pmass
 
         integer                                   :: Nmol, Npmax, NNmax
-        real(gp)                                      :: xbox, ybox, zbox
+!        real(gp)                                      :: xbox, ybox, zbox
 !        integer,allocatable,  dimension(:)   :: Kinds
 !        integer, dimension(nat)   :: Kinds
 
       real(gp),allocatable,  dimension(:):: XYZRrefdf
       real(gp),allocatable,  dimension(:):: UadUrdf
-      real(gp)                                      :: Urtot
+      real(gp) :: Urtot
 
-      integer i,j
-      integer Nptot, NNtot
-    real(gp) :: rxyz(3,nat)
+      integer :: i !,j
+      integer :: Nptot !, NNtot
+      real(gp) :: rxyz(3,nat)
 !      real(gp) pi
-      real(gp) Xi, Yi, Zi
-      real(gp) Xij, Yij, Zij, Rij, Rreij
-      real(gp) R1ij, R2ij
-      real(gp) PL1, PL2
+!      real(gp) Xi, Yi, Zi
+!      real(gp) Xij, Yij, Zij, Rij, Rreij
+!      real(gp) R1ij, R2ij
+!      real(gp) PL1, PL2
 
-      real(gp) Crij, Caij, alrij, alaij
-      real(gp) fij, dfij
-      real(gp) xhalf, yhalf, zhalf
+!      real(gp) Crij, Caij, alrij, alaij
+!      real(gp) fij, dfij
+!      real(gp) xhalf, yhalf, zhalf
       real(gp),              dimension(1:2)      ::Pn, Co_bcd, bcsq, dsq, h
       real(gp)                                   :: Uatot
 
-      real(gp) COSijk, Gi, dGi, fdG, fdGcos
-      real(gp) Co_pa, Co_mb1, Co_mb2
-      real(gp) Co_cdi, Co_hcosi, Co_dhcosi
-      real(gp) Pni, bcsqi, dsqi, hi
+!      real(gp) COSijk, Gi, dGi, fdG, fdGcos
+!      real(gp) Co_pa, Co_mb1, Co_mb2
+!      real(gp) Co_cdi, Co_hcosi, Co_dhcosi
+!      real(gp) Pni, bcsqi, dsqi, hi
 
-      real(gp) Bij, Eij
-      real(gp) djEij
-      real(gp) dXjEij2, dYjEij2, dZjEij2
-      real(gp) Co1_dkEij, Co2_dkEij
+!      real(gp) Bij, Eij
+!      real(gp) djEij
+!      real(gp) dXjEij2, dYjEij2, dZjEij2
+!      real(gp) Co1_dkEij, Co2_dkEij
       real(gp),allocatable,dimension(:)::dkEij
 
       integer, ALLOCATABLE, DIMENSION(:,:) :: lsta
@@ -121,7 +121,7 @@ use module_base
       real(gp):: tmplat(3,3)
       real(gp), ALLOCATABLE, DIMENSION(:,:) :: rel
       integer:: alpha, beta, a
-!        if(.not.allocated(Kinds_tersoff)) stop "Allocate Kinds before calling energyandforces" 
+!        if(.not.allocated(Kinds_tersoff)) stop "Allocate Kinds before calling energyandforces"
 !        pi=dacos(-1.0_gp)
 
         latvec_bohr(1,1)=cell(1)
@@ -166,7 +166,7 @@ use module_base
       Nptot=0
 
       Uatot=0.0_gp
-  
+
       trans=latvec
       call invertmat(trans,transinv,3)
 
@@ -177,7 +177,7 @@ use module_base
       Urtot = 0.5_gp*Urtot
 !force------------
       F=0.0_gp
-      stress=0.0_gp   
+      stress=0.0_gp
 
       DO_If:DO i=1, Nmol
          call subfiat_t(i,Nmol,Npmax,NNmax,Pn,Co_bcd,bcsq,dsq,h,XYZRrefdf,UadUrdf,F,Uatot,dkEij,lsta,lstb,nnbrx,stress,transinv)
@@ -297,7 +297,7 @@ end subroutine
       Pmass(1)=C_mass
       Pmass(2)=Si_mass
       rcut1=R1
-      rcut2=R2 
+      rcut2=R2
 
       RETURN
 
@@ -310,7 +310,7 @@ subroutine subeniat_t(i,Nmol,Npmax,NNmax,X,R,R1,R2,Cr,Ca,alr,ala,XYZRrefdf,UadUr
       integer, intent(in)                       :: Nmol, Npmax, NNmax
 !      integer, intent(in),  dimension(1:Nmol)   :: Kinds
       real(gp)   , intent(in),  dimension(1:3*Nmol) :: R
-      real(gp)   , intent(in),  dimension(1:2,1:2)  :: R1, R2 
+      real(gp)   , intent(in),  dimension(1:2,1:2)  :: R1, R2
       real(gp), intent(in),     dimension(1:2,1:2)  :: Cr, Ca, alr, ala
       real(gp), intent(in),     dimension(1:2,1:2)  :: X
 
@@ -370,7 +370,7 @@ subroutine subeniat_t(i,Nmol,Npmax,NNmax,X,R,R1,R2,Cr,Ca,alr,ala,XYZRrefdf,UadUr
          Nptot=l
 
 !         NNtot=NNtot+1
- 
+
          Nppt3=3*(Nptot-1)
          Nppt6=6*(Nptot-1)
          Rreij=rel(5,l)
@@ -437,7 +437,7 @@ subroutine subfiat_t(i,Nmol,Npmax,NNmax,Pn,Co_bcd,bcsq,dsq,h,XYZRrefdf,UadUrdf,F
       integer Ipt3, Jpt3, Kpt3
       integer Nkpt3
 
-      real(gp) XRreij, YRreij,  ZRreij, Rreij, fij, dfij 
+      real(gp) XRreij, YRreij,  ZRreij, Rreij, fij, dfij
       real(gp) XRreik, YRreik,  ZRreik, Rreik, fik, dfik
 
       real(gp) COSijk, Gi, dGi, fdG, fdGcos
@@ -463,7 +463,7 @@ subroutine subfiat_t(i,Nmol,Npmax,NNmax,Pn,Co_bcd,bcsq,dsq,h,XYZRrefdf,UadUrdf,F
       real(gp):: sil_sjl,si1_sj1,si2_sj2,si3_sj3,tkmsum,tt
       real(gp):: dkEij_rad(1:4*NNmax),XRrejk,YRrejk,ZRrejk,Rrejk,Rij,Rik
       integer:: Nkpt3_per
-         Ipb = lsta(1,i) 
+         Ipb = lsta(1,i)
          Ipe = lsta(2,i)
 
 
@@ -475,7 +475,7 @@ subroutine subfiat_t(i,Nmol,Npmax,NNmax,Pn,Co_bcd,bcsq,dsq,h,XYZRrefdf,UadUrdf,F
          hi  =h(Ki)
          Pni =Pn(Ki)
 
-         Co_cdi=Co_bcd(Ki) 
+         Co_cdi=Co_bcd(Ki)
 
          dFxi=0.0_gp
          dFyi=0.0_gp
@@ -500,7 +500,7 @@ subroutine subfiat_t(i,Nmol,Npmax,NNmax,Pn,Co_bcd,bcsq,dsq,h,XYZRrefdf,UadUrdf,F
          dZjEij2 = 0.0_gp
 
          Nkpt3=-3
-   !Periodic   
+   !Periodic
          Nkpt3_per=-4
          Rij=1.0_gp/Rreij
 
@@ -553,7 +553,7 @@ subroutine subfiat_t(i,Nmol,Npmax,NNmax,Pn,Co_bcd,bcsq,dsq,h,XYZRrefdf,UadUrdf,F
          dkEij_rad(Nkpt3_per+3)=ZRreik
          dkEij_rad(Nkpt3_per+4)=1.0_gp/Rreik
 
-      ELSE 
+      ELSE
          dkEij(Nkpt3+1) = 0.0_gp
          dkEij(Nkpt3+2) = 0.0_gp
          dkEij(Nkpt3+3) = 0.0_gp
@@ -574,20 +574,20 @@ subroutine subfiat_t(i,Nmol,Npmax,NNmax,Pn,Co_bcd,bcsq,dsq,h,XYZRrefdf,UadUrdf,F
       Co_pa  = UadUrdf(IJpt3+2) + UadUrdf(IJpt3+3)*Bij**(-0.5_gp/Pni)
 
 
-      CEij:IF ( Nkpt3 > 0 ) THEN 
+      CEij:IF ( Nkpt3 > 0 ) THEN
 
          Co_mb1 = Ua * 0.5_gp*Eij**(Pni-1.0_gp) / Bij
          Co_mb2 = Co_mb1*Rreij
 
             Nkpt3=-3
-   !Periodic   
-            Nkpt3_per=-4         
+   !Periodic
+            Nkpt3_per=-4
          DO ik=Ipb,Ipe,+1
 
             Nkpt3=Nkpt3+3
    !Periodic
-            Nkpt3_per=Nkpt3_per+4         
-           
+            Nkpt3_per=Nkpt3_per+4
+
             dFxk = Co_mb1 * dkEij(Nkpt3+1)
             dFyk = Co_mb1 * dkEij(Nkpt3+2)
             dFzk = Co_mb1 * dkEij(Nkpt3+3)
@@ -612,15 +612,15 @@ subroutine subfiat_t(i,Nmol,Npmax,NNmax,Pn,Co_bcd,bcsq,dsq,h,XYZRrefdf,UadUrdf,F
                    si3_sj3=transinv(3,1)*dkEij_rad(Nkpt3_per+1)+&
                            transinv(3,2)*dkEij_rad(Nkpt3_per+2)+&
                            transinv(3,3)*dkEij_rad(Nkpt3_per+3)
-                   stress(1,1)=stress(1,1)-dkEij_rad(Nkpt3_per+4)*dFxk*si1_sj1 
-                   stress(1,2)=stress(1,2)-dkEij_rad(Nkpt3_per+4)*dFxk*si2_sj2 
-                   stress(1,3)=stress(1,3)-dkEij_rad(Nkpt3_per+4)*dFxk*si3_sj3 
-                   stress(2,1)=stress(2,1)-dkEij_rad(Nkpt3_per+4)*dFyk*si1_sj1 
-                   stress(2,2)=stress(2,2)-dkEij_rad(Nkpt3_per+4)*dFyk*si2_sj2 
-                   stress(2,3)=stress(2,3)-dkEij_rad(Nkpt3_per+4)*dFyk*si3_sj3 
-                   stress(3,1)=stress(3,1)-dkEij_rad(Nkpt3_per+4)*dFzk*si1_sj1 
-                   stress(3,2)=stress(3,2)-dkEij_rad(Nkpt3_per+4)*dFzk*si2_sj2 
-                   stress(3,3)=stress(3,3)-dkEij_rad(Nkpt3_per+4)*dFzk*si3_sj3 
+                   stress(1,1)=stress(1,1)-dkEij_rad(Nkpt3_per+4)*dFxk*si1_sj1
+                   stress(1,2)=stress(1,2)-dkEij_rad(Nkpt3_per+4)*dFxk*si2_sj2
+                   stress(1,3)=stress(1,3)-dkEij_rad(Nkpt3_per+4)*dFxk*si3_sj3
+                   stress(2,1)=stress(2,1)-dkEij_rad(Nkpt3_per+4)*dFyk*si1_sj1
+                   stress(2,2)=stress(2,2)-dkEij_rad(Nkpt3_per+4)*dFyk*si2_sj2
+                   stress(2,3)=stress(2,3)-dkEij_rad(Nkpt3_per+4)*dFyk*si3_sj3
+                   stress(3,1)=stress(3,1)-dkEij_rad(Nkpt3_per+4)*dFzk*si1_sj1
+                   stress(3,2)=stress(3,2)-dkEij_rad(Nkpt3_per+4)*dFzk*si2_sj2
+                   stress(3,3)=stress(3,3)-dkEij_rad(Nkpt3_per+4)*dFzk*si3_sj3
 
          END DO
 
@@ -628,11 +628,11 @@ subroutine subfiat_t(i,Nmol,Npmax,NNmax,Pn,Co_bcd,bcsq,dsq,h,XYZRrefdf,UadUrdf,F
          dFyj = Co_pa*YRreij + Co_mb2*( YRreij*djEij - dYjEij2 )
          dFzj = Co_pa*ZRreij + Co_mb2*( ZRreij*djEij - dZjEij2 )
 
-      ELSE 
+      ELSE
 
-         dFxj = Co_pa*XRreij 
-         dFyj = Co_pa*YRreij 
-         dFzj = Co_pa*ZRreij 
+         dFxj = Co_pa*XRreij
+         dFyj = Co_pa*YRreij
+         dFzj = Co_pa*ZRreij
 
       END IF CEij
 
@@ -716,12 +716,12 @@ end subroutine
   relinteriat(3,ninter)=zrel*tti
   relinteriat(4,ninter)=tt
   relinteriat(5,ninter)=tti
-  
-!  write(*,*) 'Inside reliatp,jat found',jat,tt 
+
+!  write(*,*) 'Inside reliatp,jat found',jat,tt
  endif
  enddo
-  
- 
+
+
  return
  end subroutine
 
@@ -739,8 +739,8 @@ end subroutine
  real*8, intent(in)     :: cut, rxyz(3,nat), latvec(3,3)
  real*8                 :: rxyzexp(3,nat,3,3,3),relinteriat(5,nmax),transvecall(3,3,3,3)
  integer                :: iat,lstbiat(nmax),infocode,ninter,k,l,m
- 
- call expand(rxyz,rxyzexp,transvecall,latvec,nat) 
+
+ call expand(rxyz,rxyzexp,transvecall,latvec,nat)
  do iat=1,nat
  ninter=0
     lstbiat=0
@@ -751,7 +751,7 @@ end subroutine
     lstb(lsta(1,iat):lsta(1,iat)+nmax-1)=lstbiat(:)
     rel(:,lsta(1,iat):lsta(1,iat)+nmax-1)=relinteriat(:,:)
  enddo
- 
+
 ! do iat=1,nat
 !    k=lsta(1,iat)
 !    l=lsta(2,iat)
@@ -763,7 +763,7 @@ end subroutine
 
 
 !**************************************************************************************
- subroutine findinter(iat,nat,lstbiat,cut,rxyz,rxyzexp,transvecall,latvec,ninter,nmax,relinteriat,infocode) 
+ subroutine findinter(iat,nat,lstbiat,cut,rxyz,rxyzexp,transvecall,latvec,ninter,nmax,relinteriat,infocode)
  !This subroutine will find all neighboring atoms of atom iat including those in periodic
  !images within the range of cut. The cell is described by latvec[v1,v2,v3]. rxyz holds the
  !coordinates of all atoms, nat is the number of atoms. The output ist ninter=the number of
@@ -791,7 +791,7 @@ end subroutine
  logical              :: nec
 
 
- ninter=0 
+ ninter=0
  ppoint0=(/0.0_gp,0.0_gp,0.0_gp/)
  cutplus=cut+cut*0.01_gp
  d2all=cutplus
@@ -827,13 +827,13 @@ end subroutine
   do l=1,3
    do m=1,3
       if (d2all(k,l,m).lt.cut) then
-      
+
       rxyzp(:,:)=rxyzexp(:,:,k,l,m)
 !      write(*,*) 'calling reliatp' ,iat,k,l,m
 !      write(*,*) "ninter1",ninter
       call reliatp(cut,relinteriat,lstbiat,rxyz,rxyzp,nat,iat,ninter,nmax)
 !      write(*,*) "ninter2",ninter
-      endif  
+      endif
    enddo
   enddo
  enddo
@@ -842,7 +842,7 @@ end subroutine
 
 ! return
 
- !If second layer neccesary
+ !If second layer necessary
  !Call subroutine to check here...
  call check_rep(latvec,cut,nec)
  if(nec) then
@@ -851,7 +851,7 @@ end subroutine
 !    write(*,*) "entering layer 2"
     allocate(d2all_2(5,5,5),rxyzexp_2(3,nat,5,5,5),transvecall_2(3,5,5,5))
     call expand_2(rxyz,rxyzexp_2,transvecall_2,latvec,nat)
-! call latvec2dproj(dproj,latvec,rotmat,rxyz,nat) 
+! call latvec2dproj(dproj,latvec,rotmat,rxyz,nat)
 ! open(unit=12,file="secondexp.ascii")
 ! write(12,*) nat
 ! write(12,*) dproj(1),dproj(2),dproj(3)
@@ -892,7 +892,7 @@ end subroutine
     call dist2plane(rxyz(:,iat),nvec(:,3),transvecall_2(:,1,5,1),dist)
     d2all_2(:,5,:)=dist
 
- 
+
 !    !Substract corners
 !    bb=5.0_gp*(1.0_gp-4.0_gp/3.0_gp)
 !    aa=4.0_gp/3.0_gp
@@ -900,7 +900,7 @@ end subroutine
 !    do k=2,5,3
 !       do l=2,5,3
 !          do m=2,5,3
-!          dx2=rxyz(1,iat)-transvecall_2(1,k,l,m) 
+!          dx2=rxyz(1,iat)-transvecall_2(1,k,l,m)
 !          dx2=dx2*dx2
 !          dy2=rxyz(2,iat)-transvecall_2(2,k,l,m)
 !          dy2=dy2*dy2
@@ -912,17 +912,17 @@ end subroutine
 !              l1=int(bb+aa*real(l,8))
 !              m1=int(bb+aa*real(m,8))
 !              d2all_2(k1,l1,m1)=cutplus
-!             endif   
+!             endif
 !          enddo
 !       enddo
-!    enddo 
-   
+!    enddo
+
     do k=1,5
      do l=1,5
       do m=1,5
          if (d2all_2(k,l,m).ge.cut) then
          goto 1010
-         else                        
+         else
          rxyzp(:,:)=rxyzexp_2(:,:,k,l,m)
    !      write(*,*) 'calling reliatp' ,iat,k,l,m
          call reliatp(cut,relinteriat,lstbiat,rxyz,rxyzp,nat,iat,ninter,nmax)
@@ -941,10 +941,10 @@ end subroutine
     else
 
 !    write(*,*) "entering layer 3"
-       !Calculate third layer of periodic images if neccesary 
+       !Calculate third layer of periodic images if necessary
        allocate(d2all_3(7,7,7),rxyzexp_3(3,nat,7,7,7),transvecall_3(3,7,7,7))
        call expand_3(rxyz,rxyzexp_3,transvecall_3,latvec,nat)
-! call latvec2dproj(dproj,latvec,rotmat,rxyz,nat) 
+! call latvec2dproj(dproj,latvec,rotmat,rxyz,nat)
 ! open(unit=12,file="secondexp3.ascii")
 ! write(12,*) nat
 ! write(12,*) dproj(1),dproj(2),dproj(3)
@@ -972,22 +972,22 @@ end subroutine
        !Top
        call dist2plane(rxyz(:,iat),nvec(:,1),transvecall_3(:,1,1,7),dist)
        d2all_3(:,:,7)=dist
-   
+
        !Back
        call dist2plane(rxyz(:,iat),nvec(:,2),transvecall_3(:,2,1,1),dist)
        d2all_3(1,:,:)=dist
        !Front
        call dist2plane(rxyz(:,iat),nvec(:,2),transvecall_3(:,7,1,1),dist)
        d2all_3(7,:,:)=dist
-   
+
        !Left
        call dist2plane(rxyz(:,iat),nvec(:,3),transvecall_3(:,1,2,1),dist)
        d2all_3(:,1,:)=dist
        !Right
        call dist2plane(rxyz(:,iat),nvec(:,3),transvecall_3(:,1,7,1),dist)
        d2all_3(:,7,:)=dist
-   
-    
+
+
 !       !Substract corners
 !       bb=7.0_gp*(1.0_gp-6.0_gp/5.0_gp)
 !       aa=6.0_gp/5.0_gp
@@ -995,7 +995,7 @@ end subroutine
 !       do k=2,7,5
 !          do l=2,7,5
 !             do m=2,7,5
-!             dx2=rxyz(1,iat)-transvecall_3(1,k,l,m) 
+!             dx2=rxyz(1,iat)-transvecall_3(1,k,l,m)
 !             dx2=dx2*dx2
 !             dy2=rxyz(2,iat)-transvecall_3(2,k,l,m)
 !             dy2=dy2*dy2
@@ -1007,17 +1007,17 @@ end subroutine
 !                 l1=int(bb+aa*real(l,8))
 !                 m1=int(bb+aa*real(m,8))
 !                 d2all_3(k1,l1,m1)=cutplus
-!                endif   
+!                endif
 !             enddo
 !          enddo
-!       enddo 
-      
+!       enddo
+
        do k=1,7
         do l=1,7
          do m=1,7
             if (d2all_3(k,l,m).ge.cut) then
             goto 1011
-            else                        
+            else
             rxyzp(:,:)=rxyzexp_3(:,:,k,l,m)
       !      write(*,*) 'calling reliatp' ,iat,k,l,m
             call reliatp(cut,relinteriat,lstbiat,rxyz,rxyzp,nat,iat,ninter,nmax)
@@ -1033,7 +1033,7 @@ end subroutine
        if(nec) then
        return
        else
-          !Calculate fourth layer of periodic images if neccesary 
+          !Calculate fourth layer of periodic images if necessary
           allocate(d2all_4(9,9,9),rxyzexp_4(3,nat,9,9,9),transvecall_4(3,9,9,9))
           call expand_4(rxyz,rxyzexp_4,transvecall_4,latvec,nat)
           d2all_4=cutplus
@@ -1045,14 +1045,14 @@ end subroutine
           !Top
           call dist2plane(rxyz(:,iat),nvec(:,1),transvecall_4(:,1,1,9),dist)
           d2all_4(:,:,9)=dist
-   
+
           !Back
           call dist2plane(rxyz(:,iat),nvec(:,2),transvecall_4(:,2,1,1),dist)
           d2all_4(1,:,:)=dist
           !Front
           call dist2plane(rxyz(:,iat),nvec(:,2),transvecall_4(:,9,1,1),dist)
           d2all_4(9,:,:)=dist
-   
+
           !Left
           call dist2plane(rxyz(:,iat),nvec(:,3),transvecall_4(:,1,2,1),dist)
           d2all_4(:,1,:)=dist
@@ -1085,7 +1085,7 @@ end subroutine
           write(*,*)  "Cell periodicit exceeded the fourth order"
           stop
           endif
-      endif 
+      endif
 
     endif
 
@@ -1123,7 +1123,7 @@ end subroutine
  end subroutine
 
 
- 
+
  subroutine expand_2(rxyz,rxyzout_2,transvecall_2,latvec,nat)
  !This subroutine will expand the periodic images to the second order, thus creating the periodic cells of 5*5*5 images
  !The 3*3*3 centered cells are nulled bc thay are present in the expansion of the first order (first neighboring cells)
@@ -1137,7 +1137,7 @@ end subroutine
  do m=-2,2
     do k=-2,2
        do l=-2,2
-       transvecall_2(:,l+3,k+3,m+3)=real(l,8)*latvec(:,1)+real(k,8)*latvec(:,2)+real(m,8)*latvec(:,3) 
+       transvecall_2(:,l+3,k+3,m+3)=real(l,8)*latvec(:,1)+real(k,8)*latvec(:,2)+real(m,8)*latvec(:,3)
        enddo
     enddo
  enddo
@@ -1224,36 +1224,39 @@ end subroutine
 
  end subroutine
 
- subroutine check_rep(latvec,cut,nec)
- !This subroutine will check if the cell size is sufficentli large to have periodic boundary conditions
- !with for the given cut. If true, it fits. If false, it does not fit--> new layer neccesary 
+
+!> This subroutine will check if the cell size is sufficentli large to have periodic boundary conditions
+!! with for the given cut. If true, it fits. If false, it does not fit--> new layer necessary
+subroutine check_rep(latvec,cut,nec)
  implicit none
- real*8 :: latvec(3,3),cut,nvec(3,3),point(3),point0(3),dist,eps
+ !Arguments
+ real*8, dimension(3,3), intent(in) :: latvec
+ real*8, intent(in) :: cut
+ logical, intent(out) :: nec
+ !Local variables
+ real*8, dimension(3,3) :: nvec
+ real*8 :: point(3),point0(3),dist,eps
  integer:: i
- logical:: nec
 ! eps=1.d-6
  nec=.true.
  call nveclatvec(latvec,nvec)
  point0=(/0.0_gp,0.0_gp,0.0_gp/)
  do i=1,3
- call dist2plane(latvec(:,mod(i+1,3)+1),nvec(:,i),point0,dist)
-! write(*,*) "cut",i,cut, dist
- if (dist.le.cut) nec=.false.
- enddo
- end subroutine
+   call dist2plane(latvec(:,mod(i+1,3)+1),nvec(:,i),point0,dist)
+   ! write(*,*) "cut",i,cut, dist
+   if (dist.le.cut) nec=.false.
+ end do
+end subroutine check_rep
 
 
-
-
+ !> This subroutine will transform back all atoms into the periodic cell
+ !! defined by the 3 lattice vectors in latvec=[v1.v2.v3]
  subroutine backtocell(nat,latvec,rxyz_red)
- !This subroutine will transform back all atoms into the periodic cell
- !defined by the 3 lattice vectors in latvec=[v1.v2.v3]
  use module_base
  implicit none
  integer:: nat,i,iat,j
  real(gp) :: latvec(3,3), rxyz_red(3,nat), rxyz(3,nat), crossp(3),a(3),b(3), nvec(3,3), dist(6),eps,count
  real(gp) :: v(3,3),vol
- logical:: neccesary
 !First check if the volume is positive
  call getvol(latvec,vol)
  if(vol.le.0.0_gp) stop "Negative volume during backtocell"
@@ -1262,24 +1265,31 @@ end subroutine
         rxyz_red(2,iat)=modulo(modulo(rxyz_red(2,iat),1.0_gp),1.0_gp)
         rxyz_red(3,iat)=modulo(modulo(rxyz_red(3,iat),1.0_gp),1.0_gp)
  enddo
- end subroutine
-    subroutine getvol(latvec,vol)
+ end subroutine backtocell
+
+
+subroutine getvol(latvec,vol)
  use module_base
     implicit none
     real(gp):: latvec(3,3),v(3,3),vol
      v=latvec
      vol= v(1,1)*v(2,2)*v(3,3)-v(1,1)*v(2,3)*v(3,2)-v(1,2)*v(2,1)*v(3,3)+&
           v(1,2)*v(2,3)*v(3,1)+v(1,3)*v(2,1)*v(3,2)-v(1,3)*v(2,2)*v(3,1)
-    end subroutine
- subroutine backtocell_cart(nat,latvec,rxyz)
+end subroutine getvol
+
+
+!> This subroutine will transform back all atoms into the periodic cell
+!! defined by the 3 lattice vectors in latvec=[v1.v2.v3]
+subroutine backtocell_cart(nat,latvec,rxyz)
  use module_base
- !This subroutine will transform back all atoms into the periodic cell
- !defined by the 3 lattice vectors in latvec=[v1.v2.v3]
  implicit none
- integer:: nat,i,iat,j
- real(gp) :: latvec(3,3), rxyz(3,nat), crossp(3),a(3),b(3), nvec(3,3), dist(6),eps,count
+ !Arguments
+ integer:: nat
+ real(gp) :: latvec(3,3), rxyz(3,nat)
+ !Local variables
+ integer :: i,iat,j
+ real(gp) :: crossp(3),a(3),b(3), nvec(3,3), dist(6),eps,count
  real(gp) :: v(3,3),vol,rxyz_red(3,nat)
- logical:: neccesary
  call getvol(latvec,vol)
    !First check if the volume is positive
    if(vol.le.0.0_gp) stop "Negative volume during backtocell"
@@ -1290,11 +1300,12 @@ end subroutine
        rxyz_red(3,iat)=modulo(modulo(rxyz_red(3,iat),1.0_gp),1.0_gp)
    enddo
    call rxyz_int2cart(latvec,rxyz_red,rxyz,nat)
-end subroutine
+end subroutine backtocell_cart
 
- subroutine rxyz_cart2int(latvec,rxyzint,rxyzcart,nat)
+
+!> This subrouine will convert the internal coordinates into cartesian coordinates
+subroutine rxyz_cart2int(latvec,rxyzint,rxyzcart,nat)
  use module_base
- !This subrouine will convert the internal coordinates into cartesian coordinates
  implicit none
  real(gp):: rxyzint(3,nat), rxyzcart(3,nat),latvec(3,3),latvecinv(3,3)
  integer:: nat,iat
@@ -1303,6 +1314,8 @@ end subroutine
   rxyzint(:,iat)=matmul(latvecinv,rxyzcart(:,iat))
  enddo
  end subroutine rxyz_cart2int
+
+
  subroutine invertmat(mat,matinv,n)
  use module_base
  implicit none
@@ -1328,7 +1341,7 @@ end subroutine
       matinv(3,2) =-(a(1,1)*a(3,2)-a(1,2)*a(3,1))*div
       matinv(3,3) = (a(1,1)*a(2,2)-a(1,2)*a(2,1))*div
  else
- !General n*n matrix 
+ !General n*n matrix
  matinv=mat
  allocate(WORK(n))
  call  DGETRF( n, n, matinv, n, IPIV, INFO )
@@ -1351,9 +1364,11 @@ end subroutine
   rxyzcart(:,iat)=matmul(latvec,rxyzint(:,iat))
  enddo
  end subroutine rxyz_int2cart
+
+
+ !> Will calculate the normalized normal vector to the 3 planes of the cell
  subroutine nveclatvec(latvec,nvec)
  use module_base
- !Will calculate the normalized normal vector to the 3 planes of the cell
  implicit none
  real(gp), intent(in) :: latvec(3,3)
  real(gp), intent(out):: nvec(3,3)
@@ -1367,21 +1382,26 @@ end subroutine
  nvec(:,i)=crossp(:)/norm
  enddo
  end subroutine
-!**********************************************************************************************
 
- subroutine dist2plane(point,nvec,ppoint,dist)
- !This subroutine will calculate  the distance between a plane and a point in space
- !The point is 'point', the normalized normal vector of the plane is 'nvec', 'ppoint' is an arbitrary point on the plane
- !and the output is the distance 'dist'  
- real(gp), intent(in) :: point(3),nvec(3),ppoint(3)
- real(gp), intent(out):: dist
- integer             :: i
- real(gp)             :: p,nvectmp(3)
- nvectmp(:)=nvec(:)!/sqrt(nvec(1)*nvec(1)+nvec(2)*nvec(2)+nvec(3)*nvec(3))
- p=DOT_PRODUCT(nvectmp,ppoint)
- p=-p
- dist=DOT_PRODUCT(nvectmp,point)+p
- end subroutine
+
+!> This subroutine will calculate  the distance between a plane and a point in space
+!! The point is 'point', the normalized normal vector of the plane is 'nvec', 'ppoint' is an arbitrary point on the plane
+!! and the output is the distance 'dist'
+subroutine dist2plane(point,nvec,ppoint,dist)
+  implicit none
+  !Arguments
+  real(gp), intent(in) :: point(3),nvec(3),ppoint(3)
+  real(gp), intent(out):: dist
+  !Local variables
+  integer             :: i
+  real(gp)             :: p,nvectmp(3)
+  nvectmp(:)=nvec(:)!/sqrt(nvec(1)*nvec(1)+nvec(2)*nvec(2)+nvec(3)*nvec(3))
+  p=DOT_PRODUCT(nvectmp,ppoint)
+  p=-p
+  dist=DOT_PRODUCT(nvectmp,point)+p
+end subroutine dist2plane
+
+
  subroutine cross_product(a,b,crossp)
  !a very simple implementation of the cross product
  implicit none

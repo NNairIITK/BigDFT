@@ -146,7 +146,7 @@ module sparsematrix_io
     !> Write a sparse matrix to disk.
     !! ATTENTION: This routine must be called by all MPI tasks due to the fact that the matrix 
     !! is distributed among the matrix taksgroups
-    subroutine write_sparse_matrix(smat, mat, filename)
+    subroutine write_sparse_matrix(iproc, nproc, comm, smat, mat, filename)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, &
                                    assignment(=), sparsematrix_malloc
@@ -154,6 +154,7 @@ module sparsematrix_io
       implicit none
       
       ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(in) :: mat
       character(len=*),intent(in) :: filename
@@ -165,10 +166,10 @@ module sparsematrix_io
       call f_routine(id='write_sparse_matrix')
 
       matrix_compr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='matrix_compr')
-      call gather_matrix_from_taskgroups(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+      call gather_matrix_from_taskgroups(iproc, nproc, &
            smat, mat%matrix_compr, matrix_compr)
 
-      if (bigdft_mpi%iproc==0) then
+      if (iproc==0) then
 
           iunit = 99
           call f_open_file(iunit, file=trim(filename), binary=.false.)
@@ -213,13 +214,13 @@ module sparsematrix_io
     end subroutine write_sparse_matrix
 
 
-    subroutine write_sparse_matrix_metadata(nfvctr, nat, ntypes, units, geocode, cell_dim, iatype, &
+    subroutine write_sparse_matrix_metadata(iproc, nfvctr, nat, ntypes, units, geocode, cell_dim, iatype, &
                rxyz, nzatom, nelpsp, atomnames, on_which_atom, filename)
       use module_base
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: nfvctr, nat, ntypes
+      integer,intent(in) :: iproc, nfvctr, nat, ntypes
       character(len=*),intent(in) :: units
       character(len=1),intent(in) :: geocode
       real(kind=8),dimension(3),intent(in) :: cell_dim
@@ -236,7 +237,7 @@ module sparsematrix_io
 
       call f_routine(id='write_sparse_matrix_metadata')
 
-      if (bigdft_mpi%iproc==0) then
+      if (iproc==0) then
 
           iunit = 99
           call f_open_file(iunit, file=trim(filename), binary=.false.)

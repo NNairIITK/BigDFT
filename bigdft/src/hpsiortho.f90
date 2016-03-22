@@ -242,7 +242,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
 
         !here a external potential with spinorial indices can be added
      end if
-     
+
      !this part has to be replaced by the updatepotential routine
 !     call updatePotential(wfn%orbs%nspinor,denspot,energs)
 
@@ -296,7 +296,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
      end if
 
      if (wfn%paw%usepaw) then
-        call paw_compute_dij(wfn%paw, atoms, denspot, denspot%V_XC(1, 1, 1, 1), &
+        call paw_compute_dij(wfn%paw, atoms, denspot, denspot%V_XC, &
              & energs%epaw, energs%epawdc, compch_sph)
      end if
   end if
@@ -630,7 +630,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
            !iterate over the orbital_basis
            psi_it=orbital_basis_iterator(psi_ob)
            do while(ket_next_locreg(psi_it))
-              call initialize_work_arrays_sumrho(1,[psi_it%lr],.true.,w)
+              call initialize_work_arrays_sumrho(psi_it%lr,.true.,w)
               do while(ket_next(psi_it,ilr=psi_it%ilr))
                  call daub_to_isf(psi_it%lr,w,psi_it%phi_wvl,psir(1,psi_it%iorbp))
               end do
@@ -807,7 +807,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
         loop_lr: do while(ket_next_locreg(psi_it))
            ! print *,'orbs1',psi_it%iorb,psi_it%ilr,psi_it%nspinor,associated(psi_it%lr)
            psir = f_malloc0([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='psir')
-           call initialize_work_arrays_locham(1,[psi_it%lr],psi_it%nspinor,.true.,wrk_lh)
+           call initialize_work_arrays_locham(psi_it%lr,psi_it%nspinor,.true.,wrk_lh)
            ! wavefunction after application of the self-interaction potential
            if (ipotmethod == 2 .or. ipotmethod == 3) then
               vsicpsir = f_malloc([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='vsicpsir')
@@ -3471,7 +3471,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
 
   !helmholtz-based preconditioning
   ilr=1 !for the moment only cubic version
-  call initialize_work_arrays_sumrho(1,[wfn%Lzd%Llr(ilr)],.true.,w)
+  call initialize_work_arrays_sumrho(wfn%Lzd%Llr(ilr),.true.,w)
   !box elements size
   nbox=wfn%Lzd%Llr(ilr)%d%n1i*wfn%Lzd%Llr(ilr)%d%n2i*wfn%Lzd%Llr(ilr)%d%n3i
 

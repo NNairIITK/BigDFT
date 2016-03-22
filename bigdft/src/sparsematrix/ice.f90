@@ -297,7 +297,7 @@ module ice
 !!                          if (npl>nplx) stop 'npl>nplx'
 !!                      else
 !!                          stop 'use the new wrapper for this'
-!!                          !!call get_poynomial_degree(iproc, nproc, ispin, ncalc, ex, foe_obj, 5, 100, 1.d-10, &
+!!                          !!call get_polynomial_degree(iproc, nproc, ispin, ncalc, ex, foe_obj, 5, 100, 1.d-10, &
 !!                          !!     npl, cc, anoise)
 !!                      end if
 !!
@@ -625,7 +625,7 @@ module ice
     end subroutine get_minmax_eigenvalues
 
 
-    subroutine inverse_chebyshev_expansion_new(iproc, nproc, norder_polynomial, &
+    subroutine inverse_chebyshev_expansion_new(iproc, nproc, &
                ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp, &
                verbosity, npl_auto)
       use module_base
@@ -644,12 +644,12 @@ module ice
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: scale_and_shift_matrix, &
                             evnoise, check_eigenvalue_spectrum_new, get_chebyshev_expansion_coefficients, &
-                            get_chebyshev_polynomials, get_poynomial_degree
+                            get_chebyshev_polynomials, get_polynomial_degree
       use module_func
       implicit none
 
       ! Calling arguments
-      integer, intent(in) :: iproc, nproc, norder_polynomial, ncalc
+      integer,intent(in) :: iproc, nproc, ncalc
       type(sparse_matrix), intent(in) :: ovrlp_smat, inv_ovrlp_smat
       real(kind=8), dimension(ncalc), intent(in) :: ex
       type(matrices), intent(in) :: ovrlp_mat
@@ -665,7 +665,7 @@ module ice
       real(kind=8), dimension(:,:), pointer :: chebyshev_polynomials
       real(kind=8), dimension(:,:,:), pointer :: inv_ovrlp_matrixp
       real(kind=8), dimension(:,:,:), allocatable :: penalty_ev
-      real(kind=8), dimension(:,:,:), pointer :: cc
+      real(kind=8),dimension(:,:,:),allocatable :: cc
       real(kind=8) :: anoise, scale_factor, shift_value
       real(kind=8) :: evlow_old, evhigh_old, tt
       real(kind=8) :: x_max_error_fake, max_error_fake, mean_error_fake
@@ -696,7 +696,7 @@ module ice
       character(len=3), parameter :: new='new'
       character(len=3) :: mode=old
 
-      call f_routine(id='inverse_chebyshev_expansion')
+      call f_routine(id='inverse_chebyshev_expansion_new')
 
       if (present(verbosity)) then
           verbosity_ = verbosity
@@ -777,12 +777,13 @@ module ice
               !!    write(*,*) 'eval_multiplicator, eval_multiplicator_total', &
               !!                eval_multiplicator, eval_multiplicator_total
               !!end if
-              call get_poynomial_degree(iproc, nproc, ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, 5, 100, 1, 1.d-9, &
+              call get_polynomial_degree(iproc, nproc, ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, 5, 200, 1, 1.d-9, &
                    0, npl, cc, max_error, x_max_error, mean_error, anoise, &
                    ex=ex)
               call f_free_ptr(chebyshev_polynomials)
               ! The second isshift is wrong, but is not used
               if (iproc==0 .and. verbosity_>0) then
+                   call yaml_newline()
                    call yaml_sequence(advance='no')
                    call yaml_mapping_open(flow=.true.)
                    call yaml_map('npl',npl)
@@ -791,7 +792,7 @@ module ice
                         (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f6.2)')
                end if
 
-              call get_chebyshev_polynomials(iproc, nproc, 1, 0, npl, ovrlp_smat, inv_ovrlp_smat, &
+              call get_chebyshev_polynomials(iproc, nproc, 1, verbosity_, npl, ovrlp_smat, inv_ovrlp_smat, &     
                                         ovrlp_scaled, foe_obj, chebyshev_polynomials, ispin, &
                                         eval_bounds_ok, hamscal_compr, scale_factor, shift_value)
               if (iproc==0 .and. verbosity_>0) then
@@ -812,7 +813,7 @@ module ice
                       eval_multiplicator = 1.d0/2.0d0
                   end if
               end if
-              call f_free_ptr(cc)
+              call f_free(cc)
               !write(*,*) 'eval_bounds_ok',eval_bounds_ok
               !write(*,*) 'evlow, evhigh',foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin)
           end do bounds_loop
@@ -820,10 +821,10 @@ module ice
           if (iproc==0 .and. verbosity_>0) then
               call yaml_sequence_close()
           end if
-          
+
           call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
-               inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc(:,1,:), inv_ovrlp_matrixp_small_new)
+               inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc(1,1,1), inv_ovrlp_matrixp_small_new)
           !write(*,*) 'sum(cc(:,1,1))',sum(cc(:,1,1))
           !write(*,*) 'sum(ovrlp_scaled%matrix_compr)',sum(ovrlp_scaled%matrix_compr)
           !write(*,*) 'sum(chebyshev_polynomials)', sum(chebyshev_polynomials)
@@ -863,6 +864,8 @@ module ice
               !write(*,*) 'sum(inv_ovrlp(icalc)%matrix_compr)',sum(inv_ovrlp(icalc)%matrix_compr)
           end do
 
+          call f_free(cc)
+
       end do spin_loop
 
       call f_free(inv_ovrlp_matrixp_small_new)
@@ -870,7 +873,6 @@ module ice
       call f_free_ptr(chebyshev_polynomials)
       call f_free(hamscal_compr)
       call deallocate_matrices(ovrlp_scaled)
-      call f_free_ptr(cc)
       call f_free(max_error)
       call f_free(x_max_error)
       call f_free(mean_error)
@@ -898,9 +900,6 @@ module ice
     !!      ! Lower bounds too large
 
     !!end subroutine adjust_eval_bounds
-
-
-
 
 
 end module ice
