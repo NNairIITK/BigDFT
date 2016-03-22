@@ -973,7 +973,7 @@ foe:
  D: 1.1e-10
  Energy (Hartree): 1.3e-10
  norm(P): 1.1e-07
- trace: 8.8e-11
+ trace: 9.1e-11
  Maxdiff for overlap calculation: 3.2e-07
  Maxdiff for transpose (checksum): 2.4e-10
 
@@ -1126,7 +1126,7 @@ paracetamol:
  Epot: 1.1e-09
  Omega: 1.1e-9
  energy: 1.5e-10
- Total charge: 1.1e-10
+ Total charge: 1.4e-10
  D Tr(K): 3.3e-6
  D eF: 1.6e-6
  Tr(K): 3.3e-6
@@ -1140,7 +1140,7 @@ paracetamol:
  Energy (Hartree): 1.3e-11
  mean conf prefac: 1.1e-5
  Maxdiff for overlap calculation: 9.7e-08
- trace(KS): 1.2e-10
+ trace(KS): 1.4e-10
 
 reformatcomplete_read35:
  energy: 8.7e-10
