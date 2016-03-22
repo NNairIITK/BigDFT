@@ -49,6 +49,7 @@
     <dependencies>
       <dep package="futile"/>
       <dep package="libxc"/>
+      <dep package="psolver"/> <!-- this is for the libxc macro -->
     </dependencies>
   </autotools>
 

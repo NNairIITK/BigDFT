@@ -14,11 +14,13 @@ CLEANONE=' cleanone '
 UNINSTALL=' uninstall '
 LIST=' list '
 BUILD=' build '
+BUILDONE=' buildone '
 TINDERBOX=' tinderbox -o build '
 DOT=' dot '
 DOTCMD=' | dot -Edir=back -Tpng > buildprocedure.png '
 DIST=' distone bigdft-suite '
 RCFILE='buildrc'
+SETUP=' setup '
 
 CHECKMODULES= ['futile','psolver','bigdft','spred']
 MAKEMODULES= ['futile','psolver','libABINIT','bigdft','spred']
@@ -30,6 +32,8 @@ ACTIONS={'build':
          'Recompile the bigdft internal branches, skip configuring step.',
          'clean':
          'Clean the branches for a fresh reinstall.',
+         'startover':
+         'Wipe out all the build directories and recompile the important parts',
          'autogen':
          'Perform the autogen in the modules which need that. For developers only.',
          'dist':
@@ -264,6 +268,24 @@ class BigDFTInstaller():
             os.path.walk(mod,self.removefile,"*.MOD")
         #self.get_output(self.jhb+CLEAN)
 
+    def startover(self):
+        "Wipe files in the makemodules directory"
+        import shutil
+        import os
+        for mod in self.selected(MAKEMODULES):
+            self.get_output(self.jhb+UNINSTALL+mod)
+            print 'Wipe directory: ',mod
+            shutil.rmtree(mod, ignore_errors=True)
+        print 'Building again...'
+        startat=' -t '
+        for mod in self.selected(MAKEMODULES):
+            print 'Resetting: ',mod
+            self.get_output(self.jhb+SETUP+mod+startat+mod)
+            print 'Building: ',mod
+            self.get_output(self.jhb+BUILDONE+mod)
+        self.build()
+
+        
     def dry_run(self):
         "Do dry build"
         self.get_output(self.jhb+DOT+self.package+DOTCMD)
