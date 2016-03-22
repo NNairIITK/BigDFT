@@ -726,7 +726,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
                                assignment(=), sparsematrix_malloc_ptr, SPARSE_TASKGROUP
   use sparsematrix_wrappers, only: init_sparse_matrix_wrapper
   use sparsematrix_init, only: init_matrix_taskgroups
-  use matrices, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed
+  use bigdft_matrices, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed
   use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
   !!use bounds, only: ext_buffers
   !!use locreg_operations

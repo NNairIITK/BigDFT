@@ -39,7 +39,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
                                DENSE_PARALLEL, DENSE_MATMUL, SPARSE_FULL, sparse_matrix_metadata_null
   use sparsematrix_init, only: init_matrix_taskgroups, &
                                sparse_matrix_metadata_init
-  use matrices, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed
+  use bigdft_matrices, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed
   use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
   use sparsematrix, only: check_matrix_compression
   use communications_base, only: comms_linear_null
