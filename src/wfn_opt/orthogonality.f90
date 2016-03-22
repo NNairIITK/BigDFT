@@ -74,7 +74,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
      do ispin=1,nspin
         if(usepaw) then
            call getOverlap_paw(iproc,nproc,nspin,norbArr(ispin),orbs,comms,&
-                psi(1),paw%spsi(1),ndim_ovrlp,ovrlp,norbArr,1,ispin,category)
+                psi(1),paw%spsi,ndim_ovrlp,ovrlp,norbArr,1,ispin,category)
 
            call cholesky(iproc,nspin,norbArr(ispin),psi(1),orbs,comms,&
                 ndim_ovrlp,ovrlp(1),norbArr,1,ispin,paw)
@@ -141,7 +141,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
      do ispin=1,nspin
         if(usepaw) then
            call getOverlap_paw(iproc,nproc,nspin,norbArr(ispin),orbs,comms,&
-                psi(1),paw%spsi(1),ndim_ovrlp,ovrlp,norbArr,1,ispin,category)
+                psi(1),paw%spsi,ndim_ovrlp,ovrlp,norbArr,1,ispin,category)
            call loewdin(iproc,norbArr(ispin),1,ispin,orbs,comms,&
                 nspin,psi,ovrlp,ndim_ovrlp,norbArr,paw)
         else
@@ -256,6 +256,7 @@ subroutine lagrange_multiplier(symm,correction,occup,ncplx,norb,lambda,trace,asy
   real(wp), dimension(ncplx,norb,norb), intent(inout) :: lambda
   !local variables
   integer :: iorb,jorb,icplx
+  real(gp), parameter :: tol=1.e-6_gp
   real(wp) :: tt
   real(gp) :: fi,fj,fac
   real(wp), dimension(2) :: lij,lji
@@ -304,10 +305,10 @@ subroutine lagrange_multiplier(symm,correction,occup,ncplx,norb,lambda,trace,asy
            !correct the lagrange multiplier such that
            !the gradient will follow the occupation numbers
            if (correction) then
-              if (fi /=0.0_wp) then
-                 fac=0.5*(1.d0-fj/fi)
+              if (abs(fi) < tol) then
+                 fac=0.5_gp*((fi + fj)/fi)
               else
-                 fac=0.5
+                 fac=0.5_gp
               end if
               lambda(:,iorb,jorb)=fac*lambda(:,iorb,jorb)
            end if
@@ -461,6 +462,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,tr_min,psi,hpsi,scprsum,s
         ncomponents=ncomp*nvctrp
         if (nspinor/=1) ncomplex=2
 
+        !this have to be corrected by the iterators
         call lagrange_multiplier(symm,.not. tr_min,orbs%occup((ikpt-1)*orbs%norb+1+ise),&
              ncomplex,norb,&
              alag(ndim_ovrlp(ispin,ikpt-1)+1),trace,asymm,mix)
@@ -1968,7 +1970,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
            jst=blocksize*(jblock-1)+1
            if(usepaw) then
               call getOverlapDifferentPsi_paw(iproc, nproc, nspin, blocksize,orbs, &
-                   comms, psi(1),paw%spsi(1), ndim_ovrlp, ovrlp, norbArr, ist, jst, ispin, category)
+                   comms, psi(1),paw%spsi, ndim_ovrlp, ovrlp, norbArr, ist, jst, ispin, category)
               call gramschmidt(iproc, blocksize, psi(1), ndim_ovrlp, ovrlp, &
                    orbs, nspin, nspinor, comms, norbArr, ist, jst, ispin,paw)
            else
@@ -1982,7 +1984,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
         ! Orthonormalize the current bunch of vectors.
         if(usepaw) then
            call getOverlap_paw(iproc, nproc, nspin, blocksize, orbs, comms, psi(1), &
-                paw%spsi(1),ndim_ovrlp, ovrlp, norbArr, ist, ispin, category)
+                paw%spsi,ndim_ovrlp, ovrlp, norbArr, ist, ispin, category)
            call cholesky(iproc, nspin,blocksize, psi(1), orbs, &
                 comms, ndim_ovrlp, ovrlp(1), norbArr, ist, ispin,paw)
         else
@@ -2022,7 +2024,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
                 jst=blocksizeSmall*(jblock-1)+1
                 if(usepaw) then
                    call getOverlapDifferentPsi_paw(iproc, nproc, nspin, blocksizeSmall, &
-                        orbs, comms, psi(1), paw%spsi(1),ndim_ovrlp, ovrlp, norbArr, ist, jst, ispin, category)
+                        orbs, comms, psi(1), paw%spsi,ndim_ovrlp, ovrlp, norbArr, ist, jst, ispin, category)
                    call gramschmidt(iproc, blocksizeSmall, psi(1), ndim_ovrlp, &
                         ovrlp, orbs, nspin, nspinor, comms, norbArr, ist, jst, ispin,paw)
                 else
@@ -2036,7 +2038,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
             ! Orthonormalize the current bunch of vectors.
             if(usepaw) then
                call getOverlap_paw(iproc, nproc, nspin, blocksizeSmall, orbs, comms,&
-                    psi(1), paw%spsi(1),ndim_ovrlp, ovrlp, norbArr, ist, ispin, category)
+                    psi(1), paw%spsi,ndim_ovrlp, ovrlp, norbArr, ist, ispin, category)
                call cholesky(iproc, nspin, blocksizeSmall, psi(1), &
                     orbs, comms, ndim_ovrlp, ovrlp(1), norbArr, ist, ispin,paw)
             else

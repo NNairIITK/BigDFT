@@ -8,9 +8,9 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 !> calculate the forces terms for PCM
-subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,np2epm1,fpcm)
+subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,eps,np2,fpcm,depsilon)
   use module_defs, only: dp,gp
-  use environment, only: cavity_data,rigid_cavity_forces
+  use psolver_environment, only: cavity_data,rigid_cavity_forces
   use box
   use bounds, only: locreg_mesh_origin
   implicit none
@@ -19,13 +19,15 @@ subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,np2epm1,fpcm
   integer, intent(in) :: n1,n2,n3p,nat,i3s
   real(dp), dimension(nat), intent(in) :: radii
   real(dp), dimension(3,nat), intent(in) :: rxyz
-  real(dp), dimension(n1,n2,n3p), intent(in) :: np2epm1 !<square of potential gradient times epsilon(r)-1
+  real(dp), dimension(n1,n2,n3p), intent(in) :: eps !<dielectric function epsilon in the space
+  real(dp), dimension(n1,n2,n3p), intent(in) :: np2 !<square of potential gradient
   real(dp), dimension(3,nat), intent(inout) :: fpcm !<forces
+  real(dp), dimension(3,n1,n2,n3p), intent(in) :: depsilon !<dielectric funtion
   !local variables
   real(dp), parameter :: thr=1.e-10
   integer :: i,i1,i2,i3
-  real(dp) :: tt
-  real(dp), dimension(3) :: v,origin
+  real(dp) :: tt,epr,kk
+  real(dp), dimension(3) :: v,origin,deps
 
   !mesh=cell_new(geocode,[n1,n2,n3],hgrids)
 
@@ -35,11 +37,13 @@ subroutine soft_PCM_forces(mesh,n1,n2,n3p,i3s,nat,radii,cavity,rxyz,np2epm1,fpcm
      do i2=1,n2
         v(2)=cell_r(mesh,i2,dim=2)
         do i1=1,n1
-           tt=np2epm1(i1,i2,i3)
+           tt=np2(i1,i2,i3)
+           epr=eps(i1,i2,i3)
+           deps(:)=depsilon(:,i1,i2,i3)
            if (abs(tt) < thr) cycle
            v(1)=cell_r(mesh,i1,dim=1)
            v=v-origin
-           call rigid_cavity_forces(cavity,mesh,v,nat,rxyz,radii,tt,fpcm)
+           call rigid_cavity_forces(.false.,cavity,mesh,v,nat,rxyz,radii,epr,tt,fpcm,deps,kk)
         end do
      end do
   end do
@@ -77,7 +81,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz,fion,fdisp,fpulay
   real(gp), intent(out) :: pressure
   real(gp), dimension(6), intent(out) :: strten
-  real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: fxyz
   type(DFT_wavefunction),intent(inout) :: tmb
   !Local variables
   integer :: iat,i,j
@@ -158,8 +162,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
      end if
 
      call erf_stress(atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,&
-          iproc,nproc,ngatherarr,rho,strtens(1,4)) !should not be reduced for the moment
+          iproc,nproc,ngatherarr,rho,strtens(1,4))
   end if
+
 
   !add to the forces the ionic and dispersion contribution
   if (.true.) then!.not. experimental_modulebase_var_onlyfion) then !normal case
@@ -192,9 +197,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
       call mpiallred(nlpsp%gamma_mmp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
-  !!do iat=1,atoms%astruct%nat
-  !!    write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
-  !!end do
+!!$  do iat=1,atoms%astruct%nat
+!!$      write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+!!$  end do
 
 !!$  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
 !!$  if (atoms%astruct%inputfile_format=='int') then
@@ -265,7 +270,6 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
   if (extra_timing) ttime=real(trt1-trt0,kind=8)
 
   if (extra_timing.and.iproc==0) print*,'forces (loc, nonloc):',time0,time1,time0+time1,ttime
-
 
   call f_release_routine()
 
@@ -528,7 +532,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 
   !Initialization
   locstrten=0.0_gp
-  floc=0.0_gp
+  call f_zero(floc)
 
   charge=0.d0
   if (use_iterator) then
@@ -4124,7 +4128,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   call f_routine(id='local_hamiltonian_stress')
 
   !initialise the work arrays
-  call initialize_work_arrays_locham(1,[lr],orbs%nspinor,.true.,wrk_lh)
+  call initialize_work_arrays_locham(lr,orbs%nspinor,.true.,wrk_lh)
 
   tens=0.d0
 

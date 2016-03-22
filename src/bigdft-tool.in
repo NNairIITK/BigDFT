@@ -21,9 +21,10 @@ from optparse import OptionParser, OptionGroup
 actions = ["memory-estimation", "rotate", "convert-field",
            "export-wf", "export-grid", "atomic-wf", "GPU-test", 
            "convert-positions", "manual", "wizard", "transform-coordinates",
-		   "pdos", "kernel-analysis", "extract-submatrix", "solve-eigensystem", 
-		   "analyze-coeffs", "peel-matrix", "multiply-matrices", "matrixpower", 
-		   "plot-wavefunction", "suggest-cutoff", "charge-analysis"]
+           "pdos", "kernel-analysis", "extract-submatrix", "solve-eigensystem", 
+           "analyze-coeffs", "peel-matrix", "multiply-matrices", "matrixpower", 
+           "plot-wavefunction", "suggest-cutoff", "charge-analysis",
+           "convert-matrix-format"]
 
 # Processed lines
 abs_srcdir = "@abs_srcdir@"
@@ -236,6 +237,17 @@ def parse():
 	# Charge analysis method
     group.add_option("--method", type="str", default="loewdin", metavar="METHOD",
              		 help="method for the charge analysis [default: %default]")
+
+    # convert from the BigDFT to the CCS format or the other way round
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[21],
+                        "Matrix format conversion")
+    # Conversion direction
+    group.add_option("--conversion", type="str", default="none", metavar="CONVERSION",
+             		 help="Conversion direction [default: %default]")
+    #group.add_option("--infile", type="str", default="infile.dat", metavar="MATRIXNAME",
+    #         		 help="input file [default: %default]")
+    #group.add_option("--outfile", type="str", default="ioufile.dat", metavar="MATRIXNAME",
+    #         		 help="ouput file [default: %default]")
 
     return parser
 
@@ -834,7 +846,8 @@ options:
         #infile_names = options.infile.split(".")
         #infile_extension = infile_names[len(infile_names)-1]
         #command = "%s 1 %s dd pdos %s %s %s %d %d %d %e %s %s" % (memguess, options.name, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.nbasis, options.norb, options.nat, options.interval, options.pdos_file, options.posinp_file)
-        command = "%s 1 %s dd pdos %s %s %s %s" % (memguess, options.name, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.pdos_file)
+        #command = "%s 1 %s dd pdos %s %s %s %s" % (memguess, options.name, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.pdos_file)
+        command = "%s %s pdos %s %s %s %s" % (options.mpirun, utilities, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.pdos_file)
         print command
     if options.action == actions[12]:
         print 'calling memguess for kernel analysis'
@@ -846,7 +859,8 @@ options:
         print command
     if options.action == actions[14]:
         print 'calling memguess to solve the eigensystem'
-        command = "%s 1 %s dd solve-eigensystem %s %s %d %d %s" % (memguess, options.name, options.hamiltonian_file, options.overlap_file, options.nbasis, options.nat, options.coeff_file)
+        #command = "%s 1 %s dd solve-eigensystem %s %s %d %d %s" % (memguess, options.name, options.hamiltonian_file, options.overlap_file, options.nbasis, options.nat, options.coeff_file)
+        command = "%s %s solve-eigensystem %s %s %s" % (options.mpirun, utilities, options.hamiltonian_file, options.overlap_file, options.coeff_file)
     if options.action == actions[15]:
         print 'calling memguess to analyse the coeffs'
         command = "%s 1 %s dd analyze-coeffs %s %d %d %d %d" % (memguess, options.name, options.coeff_file, options.nbasis, options.norb, options.nat, options.ncategories)
@@ -869,8 +883,11 @@ options:
         command = "%s 1 %s dd suggest-cutoff %s" % (memguess, options.name, options.posinp_file)
         print command
     if options.action == actions[21]:
-        print 'calling utilities to perform a Loewdin charge analysis'
+        #print 'calling utilities to perform a Loewdin charge analysis'
         command = "%s %s charge-analysis %s %s %s %s" % (options.mpirun, utilities, options.method, options.overlap_file, options.kernel_file, options.hamiltonian_file)
+        #print command
+    if options.action == actions[22]:
         print command
+        command = "%s %s convert-matrix-format %s %s %s" % (options.mpirun, utilities, options.conversion, options.infile, options.outfile)
     if command is not None:
         os.system(command)

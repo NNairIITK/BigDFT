@@ -607,7 +607,7 @@ subroutine pawang_lsylm(pawang)
 !    change into n,m basis
      mat_ls_ylm(:,:,1)=(mat_inp_c(:,:,1)+mat_inp_c(:,:,2))
      mat_ls_ylm(:,:,2)=(mat_inp_c(:,:,3)+mat_inp_c(:,:,4))
-     mat_ls_ylm(:,:,3)=-cmplx(0.d0,1.d0)*(mat_inp_c(:,:,4)-mat_inp_c(:,:,3))
+     mat_ls_ylm(:,:,3)=-cmplx(0.d0,1.d0,kind=dpc)*(mat_inp_c(:,:,4)-mat_inp_c(:,:,3))
      mat_ls_ylm(:,:,4)=(mat_inp_c(:,:,1)-mat_inp_c(:,:,2))
      do ispden=1,4
        write(msg,'(3a)') ch10,"value of LS in the Slm basis for " ,trim(dspinm(ispden+2*(4/4)))

@@ -876,7 +876,7 @@ module matrix_operations
                             stop 'wrong value of power(icalc)'
                         end select
                     end do
-                    call inverse_chebyshev_expansion_new(iproc, nproc, iorder-1000, &
+                    call inverse_chebyshev_expansion_new(iproc, nproc, &
                          ovrlp_smat, inv_ovrlp_smat, ncalc, rpower, ovrlp_mat, inv_ovrlp_mat, verbosity=verbosity_)
                     call f_free(rpower)
                     !!call vcopy(ovrlp_smat%nvctr, tmpmat(1), 1, ovrlp_mat%matrix_compr(1), 1)
@@ -1714,7 +1714,8 @@ module matrix_operations
         real(dp), allocatable, dimension(:) :: temp_vec
         logical, parameter :: symmetric=.true.
         logical, parameter :: check_lapack=.true.
-        integer :: korb
+        integer :: korb, jproc
+        integer,dimension(:),allocatable :: recvcounts
       
       
         call f_routine(id='overlap_plus_minus_one_half_exact')
@@ -1746,7 +1747,7 @@ module matrix_operations
                     end do
                  end do
               end if
-              work=f_malloc(1000,id='work')
+              work=f_malloc(100*norb,id='work')
               call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, -1, info)
               lwork = int(work(1))
               call f_free(work)
@@ -1928,8 +1929,13 @@ module matrix_operations
                 norb, tempArr, norbp, 0.d0, inv_ovrlp_halfp, norb)
            !if (present(orbs).and.bigdft_mpi%nproc>1) then
            if (nproc>1) then
+              recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
+              do jproc=0,nproc-1
+                  recvcounts(jproc) = norb*smat%nfvctr_par(jproc)
+              end do
               call mpi_allgatherv(inv_ovrlp_halfp, norb*norbp, mpi_double_precision, inv_ovrlp_half, &
-                         norb*smat%nfvctr_par(:), norb*smat%isfvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                   recvcounts, norb*smat%isfvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+              call f_free(recvcounts)
            else
               call vcopy(norb*norbp,inv_ovrlp_halfp(1,1),1,inv_ovrlp_half(1,1),1)
            end if
@@ -2403,7 +2409,7 @@ module matrix_operations
         !call deallocate_matrices(inv_ovrlp_half_)
       
       
-        call f_release_routine
+        call f_release_routine()
         call timing(iproc,'lovrlp^-1/2par','OF')
       
       end subroutine overlap_power_minus_one_half_parallel
@@ -2482,8 +2488,10 @@ module matrix_operations
     !! on one atom and calculate S^{-1/2} for this subblock. The remaining parts of teh matrix are empty.
     subroutine calculate_S_minus_one_half_onsite(iproc, nproc, norb, onwhichatom, smats, smatl, ovrlp_, inv_ovrlp_)
       use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
+      use sparsematrix_base, only: sparse_matrix, matrices, &
+                                   assignment(=), sparsematrix_malloc0, SPARSE_FULL
       use sparsematrix_init, only: matrixindex_in_compressed
+      use sparsematrix, only: extract_taskgroup
       implicit none
 
       ! Calling arguments
@@ -2495,6 +2503,7 @@ module matrix_operations
       ! Local variables
       integer :: nat, natp, isat, ii, iorb, iiat, n, jorb, jjat, ind, korb
       real(kind=8),dimension(:,:),allocatable :: matrix
+      real(kind=8),dimension(:),allocatable :: matrix_compr_notaskgroup
 
       call f_routine(id='calculate_S_minus_one_half_onsite')
 
@@ -2516,6 +2525,7 @@ module matrix_operations
 
 
       call f_zero(inv_ovrlp_%matrix_compr)
+      matrix_compr_notaskgroup = sparsematrix_malloc0(smatl, iaction=SPARSE_FULL,id='matrix_compr_notaskgroup')
 
       iorb = 1
       do
@@ -2531,15 +2541,16 @@ module matrix_operations
               matrix = f_malloc((/n,n/),id='matrix')
               do jorb=iorb,iorb+n-1
                   do korb=iorb,iorb+n-1
-                      ind = matrixindex_in_compressed(smats, korb, jorb)
+                      ind = matrixindex_in_compressed(smats, korb, jorb) - smats%isvctrp_tg
                       matrix(korb-iorb+1,jorb-iorb+1) = ovrlp_%matrix_compr(ind)
                   end do
               end do
               call  overlap_plus_minus_one_half_exact(1,n,-1,.false.,matrix,smats)
               do jorb=iorb,iorb+n-1
                   do korb=iorb,iorb+n-1
-                      ind = matrixindex_in_compressed(smatl, korb, jorb)
-                      inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                      ind = matrixindex_in_compressed(smatl, korb, jorb)! - smatl%isvctrp_tg
+                      !inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                      matrix_compr_notaskgroup(ind) = matrix(korb-iorb+1,jorb-iorb+1)
                   end do
               end do
               call f_free(matrix)
@@ -2548,7 +2559,11 @@ module matrix_operations
           if (iorb>norb) exit
       end do
 
-      call mpiallred(inv_ovrlp_%matrix_compr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      !call mpiallred(inv_ovrlp_%matrix_compr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(matrix_compr_notaskgroup, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call extract_taskgroup(smatl, matrix_compr_notaskgroup, inv_ovrlp_%matrix_compr)
+
+      call f_free(matrix_compr_notaskgroup)
 
       call f_release_routine()
 

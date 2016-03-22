@@ -51,26 +51,26 @@ MODULE F90SOCKETS
   END INTERFACE 
 
   INTERFACE
-    SUBROUTINE open_csocket(psockfd, inet, port, host) BIND(C, name="open_socket")
+    SUBROUTINE open_csocket(psockfd, inet, port, host) BIND(C, name="bigdft_open_socket")
       USE ISO_C_BINDING
       INTEGER(KIND=C_INT)                  :: psockfd, inet, port
       CHARACTER(KIND=C_CHAR), DIMENSION(*) :: host
     END SUBROUTINE open_csocket
 
-    SUBROUTINE create_csocket(psockfd, inet, port, host) BIND(C, name="create_socket")
+    SUBROUTINE create_csocket(psockfd, inet, port, host) BIND(C, name="bigdft_create_socket")
       USE ISO_C_BINDING
       INTEGER(KIND=C_INT)                  :: psockfd, inet, port
       CHARACTER(KIND=C_CHAR), DIMENSION(*) :: host
     END SUBROUTINE create_csocket
     
-    SUBROUTINE writebuffer_csocket(psockfd, pdata, plen) BIND(C, name="writebuffer")
+    SUBROUTINE writebuffer_csocket(psockfd, pdata, plen) BIND(C, name="bigdft_writebuffer")
       USE ISO_C_BINDING
       INTEGER(KIND=C_INT)                  :: psockfd
       TYPE(C_PTR), VALUE                   :: pdata
       INTEGER(KIND=C_INT)                  :: plen
     END SUBROUTINE writebuffer_csocket       
 
-    SUBROUTINE readbuffer_csocket(psockfd, pdata, plen) BIND(C, name="readbuffer")
+    SUBROUTINE readbuffer_csocket(psockfd, pdata, plen) BIND(C, name="bigdft_readbuffer")
       USE ISO_C_BINDING
       INTEGER(KIND=C_INT)                  :: psockfd
       TYPE(C_PTR), VALUE                   :: pdata

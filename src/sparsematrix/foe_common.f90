@@ -120,7 +120,7 @@ module foe_common
   public :: init_foe
   public :: get_chebyshev_polynomials
   public :: find_fermi_level
-  public :: get_poynomial_degree
+  public :: get_polynomial_degree
 
 
   contains
@@ -146,55 +146,59 @@ module foe_common
       call f_routine(id='get_chebyshev_expansion_coefficients')
 
       ! MPI parallelization... maybe only worth for large n?
-      ii = n/nproc
-      np = ii
-      is = iproc*ii
-      ii = n - nproc*ii
-      if (iproc<ii) then
-          np = np + 1
-      end if
-      is = is + min(iproc,ii)
-      !check
-      ii = np
-      call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-      if (ii/=n) then
-          call f_err_throw('wrong partition of n')
-      end if
+      call chebyshev_coefficients_init_parallelization(iproc, nproc, n, np, is)
+      !!ii = n/nproc
+      !!np = ii
+      !!is = iproc*ii
+      !!ii = n - nproc*ii
+      !!if (iproc<ii) then
+      !!    np = np + 1
+      !!end if
+      !!is = is + min(iproc,ii)
+      !!!check
+      !!ii = np
+      !!call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      !!if (ii/=n) then
+      !!    call f_err_throw('wrong partition of n')
+      !!end if
 
 
-      call f_zero(cc)
-      cf = f_malloc0(n,id='cf')
+      call chebyshev_coefficients_calculate(n, a, b, np, is, func, cc)
+      !!call f_zero(cc)
+      !!cf = f_malloc0(n,id='cf')
     
-      bma=0.5d0*(b-a)
-      bpa=0.5d0*(b+a)
-      fac=2.d0/real(n,kind=8)
-      one_over_n = 1.d0/real(n,kind=8)
-      !$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,is,np,tt,one_over_n) &
-      !$omp private(k,y,arg,j,jj)
-      !$omp do
-      do k=1,n
-          y=cos(pi*(real(k,kind=8)-0.5d0)*(one_over_n))
-          arg=y*bma+bpa
-          cf(k)=func(arg)
-      end do
-      !$omp end do
-      !$omp end parallel
+      !!bma=0.5d0*(b-a)
+      !!bpa=0.5d0*(b+a)
+      !!fac=2.d0/real(n,kind=8)
+      !!one_over_n = 1.d0/real(n,kind=8)
+      !!!$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,is,np,tt,one_over_n) &
+      !!!$omp private(k,y,arg,j,jj)
+      !!!$omp do
+      !!do k=1,n
+      !!    y=cos(pi*(real(k,kind=8)-0.5d0)*(one_over_n))
+      !!    arg=y*bma+bpa
+      !!    cf(k)=func(arg)
+      !!end do
+      !!!$omp end do
+      !!!$omp end parallel
 
-      do j=1,np
-          jj = j + is
-          tt=0.d0
-          !$omp parallel do default(none) shared(n,cf,jj,one_over_n) private(k) reduction(+:tt)
-          do  k=1,n
-              tt=tt+cf(k)*cos((pi*real(jj-1,kind=8))*((real(k,kind=8)-0.5d0)*(one_over_n)))
-          end do
-          !$omp end parallel do
-          cc(jj)=fac*tt
-      end do
+      !!do j=1,np
+      !!    jj = j + is
+      !!    tt=0.d0
+      !!    !$omp parallel do default(none) shared(n,cf,jj,one_over_n) private(k) reduction(+:tt)
+      !!    do  k=1,n
+      !!        tt=tt+cf(k)*cos((pi*real(jj-1,kind=8))*((real(k,kind=8)-0.5d0)*(one_over_n)))
+      !!    end do
+      !!    !$omp end parallel do
+      !!    cc(jj)=fac*tt
+      !!end do
+      !!call f_free(cf)
 
-      call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call chebyshev_coefficients_communicate(n, cc)
+      !!call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
-      call f_free(cf)
-      call accuracy_of_chebyshev_expansion(iproc, nproc, n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
+      call accuracy_of_chebyshev_expansion(iproc, nproc, n, cc, A,B, &
+           1.d-3, func, x_max_error, max_error, mean_error)
     
       call f_release_routine()
 
@@ -1012,88 +1016,106 @@ module foe_common
     !!##end subroutine cheb_exp
 
 
-    subroutine init_foe(iproc, nproc, nspin, charge, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
+    subroutine init_foe(iproc, nproc, nspin, charge, foe_obj, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
                evlow, evhigh, fscale, ef_interpol_det, ef_interpol_chargediff, &
-               fscale_lowerbound, fscale_upperbound, foe_obj)
+               fscale_lowerbound, fscale_upperbound)
       use module_base
       use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
       implicit none
       
       ! Calling arguments
-      integer, intent(in) :: iproc, nproc, nspin, evbounds_nsatur, evboundsshrink_nsatur
+      integer,intent(in) :: iproc, nproc, nspin
       real(kind=8),dimension(nspin),intent(in) :: charge
-      real(kind=8),intent(in) :: evlow, evhigh, fscale, ef_interpol_det
-      real(kind=8),intent(in) :: ef_interpol_chargediff, fscale_lowerbound, fscale_upperbound
-      real(kind=8),intent(in) :: tmprtr
-      type(foe_data), intent(out) :: foe_obj
+      type(foe_data),intent(out) :: foe_obj
+      integer,intent(in),optional :: evbounds_nsatur
+      integer,intent(in),optional :: evboundsshrink_nsatur
+      real(kind=8),intent(in),optional :: evlow
+      real(kind=8),intent(in),optional :: evhigh
+      real(kind=8),intent(in),optional :: fscale
+      real(kind=8),intent(in),optional :: ef_interpol_det
+      real(kind=8),intent(in),optional :: ef_interpol_chargediff
+      real(kind=8),intent(in),optional :: fscale_lowerbound
+      real(kind=8),intent(in),optional :: fscale_upperbound
+      real(kind=8),intent(in),optional :: tmprtr
       
       ! Local variables
       character(len=*), parameter :: subname='init_foe'
-      integer :: iorb, ispin
-      real(kind=8) :: incr
+      integer :: ispin
+      integer :: evbounds_nsatur_
+      integer :: evboundsshrink_nsatur_
+      real(kind=8) :: evlow_
+      real(kind=8) :: evhigh_
+      real(kind=8) :: fscale_
+      real(kind=8) :: ef_interpol_det_
+      real(kind=8) :: ef_interpol_chargediff_
+      real(kind=8) :: fscale_lowerbound_
+      real(kind=8) :: fscale_upperbound_
+      real(kind=8) :: tmprtr_
     
       call timing(iproc,'init_matrCompr','ON')
+
+      ! Define the default values... Is there a way to get them from input_variables_definition.yaml?
+      evbounds_nsatur_ = 3
+      evboundsshrink_nsatur_ =4
+      evlow_ = -0.5d0
+      evhigh_ = 0.5d0
+      fscale_ = 2.d-2
+      ef_interpol_det_ = 1.d-12
+      ef_interpol_chargediff_ = 1.d0
+      fscale_lowerbound_ = 5.d-3
+      fscale_upperbound_ = 5.d-2
+      tmprtr_ = 0.d0
+
+      if (present(evbounds_nsatur)) evbounds_nsatur_ = evbounds_nsatur
+      if (present(evboundsshrink_nsatur)) evboundsshrink_nsatur_ = evboundsshrink_nsatur
+      if (present(evlow)) evlow_ = evlow
+      if (present(evhigh)) evhigh_ = evhigh
+      if (present(fscale)) fscale_ = fscale
+      if (present(ef_interpol_det)) ef_interpol_det_ = ef_interpol_det
+      if (present(ef_interpol_chargediff)) ef_interpol_chargediff_ = ef_interpol_chargediff
+      if (present(fscale_lowerbound)) fscale_lowerbound_ = fscale_lowerbound
+      if (present(fscale_upperbound)) fscale_upperbound_ = fscale_upperbound
+      if (present(tmprtr)) tmprtr_ = tmprtr
     
       foe_obj = foe_data_null()
     
-      foe_obj%ef = f_malloc0_ptr(nspin,id='(foe_obj%ef)')
-      call foe_data_set_real(foe_obj,"ef",0.d0,1)
-      if (nspin==2) then
-          call foe_data_set_real(foe_obj,"ef",0.d0,2)
-      end if
-      foe_obj%evlow = f_malloc0_ptr(nspin,id='foe_obj%evlow')
-      call foe_data_set_real(foe_obj,"evlow",evlow,1)
-      if (nspin==2) then
-          call foe_data_set_real(foe_obj,"evlow",evlow,2)
-      end if
-      foe_obj%evhigh = f_malloc0_ptr(nspin,id='foe_obj%evhigh')
-      call foe_data_set_real(foe_obj,"evhigh",evhigh,1)
-      if (nspin==2) then
-          call foe_data_set_real(foe_obj,"evhigh",evhigh,2)
-      end if
-      foe_obj%bisection_shift = f_malloc0_ptr(nspin,id='foe_obj%bisection_shift')
-      call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,1)
-      if (nspin==2) then
-          call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,2)
-      end if
-      call foe_data_set_real(foe_obj,"fscale",fscale)
-      call foe_data_set_real(foe_obj,"ef_interpol_det",ef_interpol_det)
-      call foe_data_set_real(foe_obj,"ef_interpol_chargediff",ef_interpol_chargediff)
-      foe_obj%charge = f_malloc0_ptr(nspin,id='foe_obj%charge')
-      call foe_data_set_real(foe_obj,"charge",0.d0,1)
-      !!do iorb=1,orbs_KS%norbu
-      !!    call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)+orbs_KS%occup(iorb),1)
-      !!end do
-      !!if (nspin==2) then
-      !!    call foe_data_set_real(foe_obj,"charge",0.d0,2)
-      !!    do iorb=orbs_KS%norbu+1,orbs_KS%norb
-      !!         call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",2)+orbs_KS%occup(iorb),2)
-      !!    end do
-      !!end if
-      do ispin=1,nspin
-          call foe_data_set_real(foe_obj,"charge",charge(ispin),ispin)
-      end do
+      call foe_data_set_real(foe_obj,"fscale",fscale_)
+      call foe_data_set_real(foe_obj,"ef_interpol_det",ef_interpol_det_)
+      call foe_data_set_real(foe_obj,"ef_interpol_chargediff",ef_interpol_chargediff_)
       call foe_data_set_int(foe_obj,"evbounds_isatur",0)
       call foe_data_set_int(foe_obj,"evboundsshrink_isatur",0)
-      call foe_data_set_int(foe_obj,"evbounds_nsatur",evbounds_nsatur)
-      call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",evboundsshrink_nsatur)
-      call foe_data_set_real(foe_obj,"fscale_lowerbound",fscale_lowerbound)
-      call foe_data_set_real(foe_obj,"fscale_upperbound",fscale_upperbound)
-      call foe_data_set_real(foe_obj,"tmprtr",tmprtr)
+      call foe_data_set_int(foe_obj,"evbounds_nsatur",evbounds_nsatur_)
+      call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",evboundsshrink_nsatur_)
+      call foe_data_set_real(foe_obj,"fscale_lowerbound",fscale_lowerbound_)
+      call foe_data_set_real(foe_obj,"fscale_upperbound",fscale_upperbound_)
+      call foe_data_set_real(foe_obj,"tmprtr",tmprtr_)
+
+      foe_obj%charge = f_malloc0_ptr(nspin,id='foe_obj%charge')
+      foe_obj%ef = f_malloc0_ptr(nspin,id='(foe_obj%ef)')
+      foe_obj%evlow = f_malloc0_ptr(nspin,id='foe_obj%evlow')
+      foe_obj%evhigh = f_malloc0_ptr(nspin,id='foe_obj%evhigh')
+      foe_obj%bisection_shift = f_malloc0_ptr(nspin,id='foe_obj%bisection_shift')
+      do ispin=1,nspin
+          call foe_data_set_real(foe_obj,"charge",charge(ispin),ispin)
+          call foe_data_set_real(foe_obj,"ef",0.d0,ispin)
+          call foe_data_set_real(foe_obj,"evhigh",evhigh_,ispin)
+          call foe_data_set_real(foe_obj,"evlow",evlow_,ispin)
+          call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,ispin)
+      end do
     
       call timing(iproc,'init_matrCompr','OF')
-    
     
     end subroutine init_foe
 
 
-    subroutine accuracy_of_chebyshev_expansion(iproc, nproc, npl, coeff, bounds, h, func, x_max_error, max_error, mean_error)
+    subroutine accuracy_of_chebyshev_expansion(iproc, nproc, npl, coeff, bound_lower, bound_upper, &
+               h, func, x_max_error, max_error, mean_error)
       implicit none
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, npl
       real(kind=8),dimension(npl),intent(in) :: coeff
-      real(kind=8),dimension(2),intent(in) :: bounds
+      real(kind=8),intent(in) :: bound_lower, bound_upper
       real(kind=8),intent(in) :: h
       real(kind=8),external :: func
       real(kind=8),intent(out) :: x_max_error, max_error, mean_error
@@ -1105,11 +1127,11 @@ module foe_common
 
       call f_routine(id='accuracy_of_chebyshev_expansion')
 
-      sigma = 2.d0/(bounds(2)-bounds(1))
-      tau = (bounds(1)+bounds(2))/2.d0
+      sigma = 2.d0/(bound_upper-bound_lower)
+      tau = (bound_lower+bound_upper)/2.d0
 
-      isx = ceiling(bounds(1)/h)
-      iex = floor(bounds(2)/h)
+      isx = ceiling(bound_lower/h)
+      iex = floor(bound_upper/h)
       n = iex - isx + 1
 
       ! MPI parallelization... maybe only worth for large n?
@@ -1823,7 +1845,7 @@ module foe_common
                       end if
             
             
-                      cc = f_malloc((/npl,3,1/),id='cc')
+                      cc = f_malloc((/npl,1,3/),id='cc')
             
                       call timing(iproc, 'FOE_auxiliary ', 'OF')
                       call timing(iproc, 'chebyshev_coef', 'ON')
@@ -1838,12 +1860,12 @@ module foe_common
                       call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
                            muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
                       call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
-                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,2,1), &
+                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,2), &
                            x_max_error_fake, max_error_fake, mean_error_fake)
                       do ipl=1,npl
-                         cc(ipl,3,1) = -cc(ipl,2,1)
+                         cc(ipl,1,3) = -cc(ipl,1,2)
                       end do
-                      call evnoise(npl, cc(1,2,1), foe_data_get_real(foe_obj,"evlow",ispin), &
+                      call evnoise(npl, cc(1,1,2), foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
         
 
@@ -1863,8 +1885,8 @@ module foe_common
                       if (smatl%nspin==1) then
                           do ipl=1,npl
                               cc(ipl,1,1)=2.d0*cc(ipl,1,1)
-                              cc(ipl,2,1)=2.d0*cc(ipl,2,1)
-                              cc(ipl,3,1)=2.d0*cc(ipl,3,1)
+                              cc(ipl,1,2)=2.d0*cc(ipl,1,2)
+                              cc(ipl,1,3)=2.d0*cc(ipl,1,3)
                           end do
                       end if
                     
@@ -1901,7 +1923,7 @@ module foe_common
                           call yaml_map('eF',foe_data_get_real(foe_obj,"ef",ispin),fmt='(es13.6)')
                           !call yaml_map('bisec bounds ok',&
                           !     (/bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                          call yaml_map('Tr(K)',sumn,fmt='(es13.7)')
+                          call yaml_map('Tr(K)',sumn,fmt='(es14.7)')
                           call yaml_map('D Tr(K)',sumn-foe_data_get_real(foe_obj,"charge",ispin),fmt='(es9.2)')
                       end if
                       call determine_fermi_level(f, sumn, ef, info)
@@ -2018,7 +2040,7 @@ module foe_common
 
 
     ! Determine the polynomial degree which yields the desired precision
-    subroutine get_poynomial_degree(iproc, nproc, ispin, ncalc, fun, foe_obj, &
+    subroutine get_polynomial_degree(iproc, nproc, ispin, ncalc, fun, foe_obj, &
                npl_min, npl_max, npl_stride, max_polynomial_degree, verbosity, npl, cc, &
                max_error, x_max_error, mean_error, anoise, &
                ex, ef, fscale)
@@ -2034,7 +2056,7 @@ module foe_common
       type(foe_data),intent(in) :: foe_obj
       real(kind=8),intent(in) :: max_polynomial_degree
       integer,intent(out) :: npl
-      real(kind=8),dimension(:,:,:),pointer,intent(inout) :: cc
+      real(kind=8),dimension(:,:,:),allocatable,intent(inout) :: cc
       real(kind=8),dimension(ncalc),intent(out) :: max_error, x_max_error, mean_error
       real(kind=8),intent(out) :: anoise
       real(kind=8),dimension(ncalc),intent(in),optional :: ex, ef, fscale
@@ -2045,7 +2067,7 @@ module foe_common
       real(kind=8),dimension(:,:,:),allocatable :: cc_trial
       real(kind=8) :: x_max_error_penaltyfunction, max_error_penaltyfunction, mean_error_penaltyfunction
 
-      call f_routine(id='get_poynomial_degree')
+      call f_routine(id='get_polynomial_degree')
 
       ! Check the arguments
       select case (fun)
@@ -2075,7 +2097,7 @@ module foe_common
           call yaml_sequence_open('Determine polynomial degree')
       end if
 
-      cc_trial = f_malloc0((/npl_max,3,ncalc/),id='cc_trial')
+      cc_trial = f_malloc0((/npl_max,ncalc,3/),id='cc_trial')
 
       found_degree = .false.
       degree_loop: do ipl=npl_min,npl_max,npl_stride
@@ -2095,7 +2117,7 @@ module foe_common
                   call func_set(FUNCTION_ERRORFUNCTION, efx=ef(icalc), fscalex=fscale(icalc))
               end select
               call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
-                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,1,icalc), &
+                   foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,icalc,1), &
                    x_max_error(icalc), max_error(icalc), mean_error(icalc))
               !write(*,*) 'icalc, sum(cc_trial(:,1,icalc))', icalc, sum(cc_trial(:,1,icalc)), ex(icalc)
           end do
@@ -2125,10 +2147,10 @@ module foe_common
                   call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
                        muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
                   call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,2,icalc), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,icalc,2), &
                        x_max_error_penaltyfunction, max_error_penaltyfunction, mean_error_penaltyfunction)
                   do jpl=1,ipl
-                      cc_trial(jpl,3,icalc) = -cc_trial(jpl,2,icalc)
+                      cc_trial(jpl,icalc,3) = -cc_trial(jpl,icalc,2)
                   end do
                   if (max_error_penaltyfunction>1.d-2) then
                       error_ok = .false.
@@ -2153,12 +2175,12 @@ module foe_common
           call yaml_sequence_close()
       end if
 
-      cc = f_malloc_ptr((/npl,3,ncalc/),id='cc')
+      cc = f_malloc((/npl,ncalc,3/),id='cc')
       do icalc=1,ncalc
           do j=1,3
               do ipl=1,npl
-                  cc(ipl,j,icalc)=cc_trial(ipl,j,icalc)
-                  !write(*,*) 'icalc, ipl, cc(ipl,1,icalc)', icalc, ipl, cc(ipl,1,icalc)
+                  cc(ipl,icalc,j)=cc_trial(ipl,icalc,j)
+                  !write(*,*) 'icalc, ipl, cc(ipl,icalc,1)', icalc, ipl, cc(ipl,icalc,1)
               end do
           end do
       end do
@@ -2169,8 +2191,105 @@ module foe_common
 
       call f_release_routine
 
-    end subroutine get_poynomial_degree
+    end subroutine get_polynomial_degree
 
 
+    subroutine chebyshev_coefficients_init_parallelization(iproc, nproc, n, np, is)
+      implicit none
+      ! Caling arguments
+      integer,intent(in) :: iproc, nproc, n
+      integer,intent(out) :: np, is
+
+      ! Local variables
+      integer :: ii
+
+      call f_routine(id='chebyshev_coefficients_init_parallelization')
+
+      ii = n/nproc
+      np = ii
+      is = iproc*ii
+      ii = n - nproc*ii
+      if (iproc<ii) then
+          np = np + 1
+      end if
+      is = is + min(iproc,ii)
+      !check
+      ii = np
+      call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      if (ii/=n) then
+          call f_err_throw('wrong partition of n')
+      end if
+
+      call f_release_routine()
+
+    end subroutine chebyshev_coefficients_init_parallelization
+
+
+    subroutine chebyshev_coefficients_calculate(n, a, b, np, is, func, cc)
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: n, np, is
+      real(kind=8),intent(in) :: a, b
+      real(kind=8),external :: func
+      real(kind=8),dimension(n),intent(out) :: cc
+
+      ! Local variables
+      integer :: k, j, ii, jj
+      real(kind=8) :: bma, bpa, y, arg, fac, tt, one_over_n
+      real(kind=8),dimension(:),allocatable :: cf
+
+      call f_routine(id='chebyshev_coefficients_calculate')
+
+      call f_zero(cc)
+      cf = f_malloc0(n,id='cf')
+    
+      bma=0.5d0*(b-a)
+      bpa=0.5d0*(b+a)
+      fac=2.d0/real(n,kind=8)
+      one_over_n = 1.d0/real(n,kind=8)
+      !$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,is,np,tt,one_over_n) &
+      !$omp private(k,y,arg,j,jj)
+      !$omp do
+      do k=1,n
+          y=cos(pi*(real(k,kind=8)-0.5d0)*(one_over_n))
+          arg=y*bma+bpa
+          cf(k)=func(arg)
+      end do
+      !$omp end do
+      !$omp end parallel
+
+      do j=1,np
+          jj = j + is
+          tt=0.d0
+          !$omp parallel do default(none) shared(n,cf,jj,one_over_n) private(k) reduction(+:tt)
+          do  k=1,n
+              tt=tt+cf(k)*cos((pi*real(jj-1,kind=8))*((real(k,kind=8)-0.5d0)*(one_over_n)))
+          end do
+          !$omp end parallel do
+          cc(jj)=fac*tt
+      end do
+      call f_free(cf)
+
+      call f_release_routine()
+
+    end subroutine chebyshev_coefficients_calculate
+
+
+    ! This routine is basically just here to get the profiling...
+    subroutine chebyshev_coefficients_communicate(n, cc)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: n
+      real(kind=8),dimension(n),intent(inout) :: cc
+
+      call f_routine(id='chebyshev_coefficients_communicate')
+
+      call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+      call f_release_routine()
+
+    end subroutine chebyshev_coefficients_communicate
 
 end module foe_common

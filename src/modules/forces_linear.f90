@@ -957,10 +957,11 @@ module forces_linear
       !real(kind=8),dimension(:,:),allocatable :: fxyz_orb
       !real(kind=8),dimension(:),allocatable :: sab, strten_loc
       real(kind=8),dimension(6) :: sab, strten_loc
+      real(gp),dimension(3) :: fxyz_orb_tmp
       real(kind=8) :: tt, tt1, sp0, spi, spj
       real(gp) :: hij, sp0i, sp0j, strc
     
-      call f_routine(id='calculate_forces')
+      call f_routine(id='calculate_forces_kernel')
     
       !fxyz_orb = f_malloc0((/3,nat_par(iproc)/),id='fxyz_orb')
       !sab = f_malloc0(6,id='sab')
@@ -983,7 +984,7 @@ module forces_linear
     
             !$omp parallel default(none) &
             !$omp shared(denskern, ntmp, iproc, isat_par, at, supfun_per_atom, is_supfun_per_atom) &
-            !$omp shared(scalprod_lookup, l_max, i_max, scalprod_new, fxyz_orb, denskern_gathered) &
+            !$omp shared(scalprod_lookup, l_max, i_max, scalprod_new, fxyz_orb, fxyz_orb_tmp, denskern_gathered) &
             !$omp shared(offdiagarr, strten, strten_loc, vol, Enl, nspinor,ncplx,ndir,calculate_strten) &
             !$omp private(ispin, iat, iiat, ityp, iorb, ii, iiorb, jorb, jj, jjorb, ind, sab, ispinor) &
             !$omp private(l, i, m, icplx, sp0, idir, spi, strc, j, hij, sp0i, sp0j, spj, iispin, jjspin, tt, tt1)
@@ -993,7 +994,13 @@ module forces_linear
                do iat=1,ntmp
                   iiat=isat_par(iproc)+iat
                   ityp=at%astruct%iatype(iiat)
-                  !$omp do reduction(+:fxyz_orb,strten_loc,Enl)
+                  ! Do the reduction over this small array with length 3 instead of the large fxyz_orb, otherwise there 
+                  ! is a problem with ifort14 and OpenMP
+                  !$omp master
+                  fxyz_orb_tmp(1:3) = 0.d0
+                  !$omp end master
+                  !$omp barrier
+                  !$omp do reduction(+:fxyz_orb_tmp,strten_loc,Enl)
                   do iorb=1,supfun_per_atom(iiat)
                      ii = is_supfun_per_atom(iiat) - is_supfun_per_atom(isat_par(iproc)+1) + iorb
                      iiorb = scalprod_lookup(ii)
@@ -1029,7 +1036,9 @@ module forces_linear
                                           tt1=tt*sp0
                                           do idir=1,3
                                              spi=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
-                                             fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
+                                             !fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
+                                             !     tt1*spi
+                                             fxyz_orb_tmp(idir)=fxyz_orb_tmp(idir)+&
                                                   tt1*spi
                                           end do
                                           spi=real(scalprod_new(icplx,0,m,i,l,jj),gp)
@@ -1069,7 +1078,9 @@ module forces_linear
                                                 do idir=1,3
                                                    spi=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
                                                    spj=real(scalprod_new(icplx,idir,m,j,l,jj),gp)
-                                                   fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
+                                                   !fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
+                                                   !     tt*(sp0j*spi+spj*sp0i)
+                                                   fxyz_orb_tmp(idir)=fxyz_orb_tmp(idir)+&
                                                         tt*(sp0j*spi+spj*sp0i)
                                                 end do
                                                 spi=real(scalprod_new(icplx,0,m,i,l,jj),gp)
@@ -1109,6 +1120,9 @@ module forces_linear
                      end do
                   end do
                   !$omp end do
+                  !$omp master
+                  fxyz_orb(1:3,iat) = fxyz_orb(1:3,iat) + fxyz_orb_tmp(1:3)
+                  !$omp end master
                end do
             end do spin_loop2
             !$omp end parallel
@@ -1150,7 +1164,8 @@ module forces_linear
       use module_types
       !use module_xc
       use sparsematrix_base, only: sparse_matrix, matrices
-      use sparsematrix, only: trace_sparse
+      !use sparsematrix, only: trace_sparse
+      use sparsematrix_highlevel, only: trace_AB
       use communications_base, only: TRANSPOSE_FULL
       use communications, only: transpose_localized
       use transposed_operations, only: calculate_overlap_transposed
@@ -1207,7 +1222,7 @@ module forces_linear
     
     
          !!psir = f_malloc0((/lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,orbs%nspinor/),id='psir')
-         call initialize_work_arrays_locham(1, [Lzd%Llr(ilr)], orbs%nspinor, .false., w)
+         call initialize_work_arrays_locham(Lzd%Llr(ilr), orbs%nspinor, .false., w)
     
          !!call daub_to_isf_locham(orbs%nspinor, lzd%llr(ilr), wrk_lh, psi(ist), psir)
          call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
@@ -1260,7 +1275,8 @@ module forces_linear
               hpsi(1,idir), hpsit_c, hpsit_f, lzd)
          call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               psit_c, hpsit_c, psit_f, hpsit_f, msmat, mmat)
-         tt = trace_sparse(iproc, nproc, msmat, lsmat, mmat%matrix_compr, lmat%matrix_compr, 1)
+         !tt = trace_sparse(iproc, nproc, msmat, lsmat, mmat%matrix_compr, lmat%matrix_compr, 1)
+         tt = trace_AB(iproc, nproc, msmat, lsmat, mmat, lmat, 1)
          !tens(idir) = tens(idir) + -8.0_gp/(hx*hy*hz)/real(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,gp)*tt
          tens(idir) = tens(idir) - 2.0_gp*8.0_gp/(hx*hy*hz)/real(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,gp)*tt
          tens(idir) = tens(idir)/real(nproc,kind=8) !divide by nproc since an allreduce will follow

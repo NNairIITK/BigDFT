@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-02-04 11:28:20.805
+ Timestamp of this run                 : 2016-02-22 18:28:22.305
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -97,7 +97,7 @@
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
    FOE_restart                         : 1 #      Restart method to be used for the FOE method
    hamapp_radius_incr                  : 6 #      radius enlargement for the Hamiltonian application (in grid points)
-   loewdin_charge_analysis             : Yes #    linear scaling perform a Loewdin charge analysis at the end of the calculation
+   loewdin_charge_analysis             : no #    linear scaling perform a Loewdin charge analysis at the end of the calculation
    debug                               : No #     Debug option
    profiling_depth                     : -1 #     maximum level of the profiling for the tracking of the routines
    fftcache                            : 8192 #   Cache size for the FFT
@@ -148,7 +148,6 @@
     #                                              support function convergence
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
    foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
-   nsigma                              : 1 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
     #                                              Gaussian used for the radial part of the 
     #                                              function based on the multipoles.
  lin_general:
@@ -177,7 +176,6 @@
    cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    calc_dipole                         : No #     calculate dipole
    calc_quadrupole                     : No #     calculate quadrupole
-   calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
    subspace_diag                       : No #     diagonalization at the end
    extra_states                        : 0 #      extra states to optimize (dmin only)
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
@@ -727,16 +725,9 @@
      method                            : FOE
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
-     calculate S^x:
-       mode                            : sparse
-       powers:
-         x                             : -1/2
-       order                           :  1020
-       determine eigenvalue bounds:
-       -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
-     exp accur:  [  3.61E-10 ]}
-       error estimation:
-         max / mean error              :  [  3.7E-10,  1.51E-10 ]
+     determine eigenvalue bounds:
+     -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
+   exp accur:  [  3.61E-10 ]}
      Kernel calculation:
      -  #--------------------------------------------------------------- ispin: 1, itemp: 1
        decay length of error function  :  5.000E-02
@@ -1970,83 +1961,6 @@
         iter low:  4,            delta out:  1.695E-07, 
           energy: -1.74514108901354206E+01,                       D:  0.000E+00,  #FINAL
  }
- Charge analysis, projector approach:
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculate projector for multipole analysis
-   calculate S^x:
-     mode                              : sparse
-     powers:
-       x                               : 1/2
-     order                             :  1020
-     determine eigenvalue bounds:
-     -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
-   exp accur:  [  6.93E-10 ]}
-     error estimation:
-       max / mean error                :  [  3.8E-10,  2.04E-10 ]
-   Calculating projector for charge analysis:
-     convergence criterion             :  1.0E-004
-     maximal size of a submatrix       :  6
-     Searching alpha for charge neutrality:
-     -  {alpha:  1.0000E-03, net charge: -1.4517E+01, bisection bounds ok:  [  No,  No ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.0000E+01, net charge: -8.4213E-03, bisection bounds ok:  [  Yes,  No ], 
-            kT:  1.0000E-02}
-     -  {alpha:  2.0000E+01, net charge: -4.2106E-03, bisection bounds ok:  [  Yes,  No ], 
-            kT:  1.0000E-02}
-     -  {alpha:  4.0000E+01, net charge: -2.1052E-03, bisection bounds ok:  [  Yes,  No ], 
-            kT:  1.0000E-02}
-     -  {alpha:  8.0000E+01, net charge: -1.0525E-03, bisection bounds ok:  [  Yes,  No ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.6000E+02, net charge: -5.2616E-04, bisection bounds ok:  [  Yes,  No ], 
-            kT:  1.0000E-02}
-     -  {alpha:  3.2000E+02, net charge: -2.6299E-04, bisection bounds ok:  [  Yes,  No ], 
-            kT:  1.0000E-02}
-     -  {alpha:  6.4000E+02, net charge: -1.3140E-04, bisection bounds ok:  [  Yes,  No ], 
-            kT:  1.0000E-02}
-     -  {alpha:  1.2800E+03, net charge: -6.5608E-05, bisection bounds ok:  [  Yes,  No ], 
-            kT:  1.0000E-02}
-     number of states to be occupied (without smearing):  5
-     Pseudo Fermi level for occupations:  0.2110267931392338
-     ordered eigenvalues and occupations:
-     -  {eval: -7.2297E-01, atom:  00001, occ:  1.0000} # 00001
-     -  {eval: -2.3638E-01, atom:  00001, occ:  1.0000} # 00002
-     -  {eval: -1.8000E-01, atom:  00001, occ:  1.0000} # 00003
-     -  {eval: -1.2851E-01, atom:  00001, occ:  1.0000} # 00004
-     -  {eval:  2.6705E-02, atom:  00002, occ:  1.0000} # 00005
-     -  {eval:  5.8972E-02, atom:  00003, occ:  1.0000} # 00006
-     -  {remaining states:  12, occ: <1.d-100}
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Projector calculation finished
-   Charge analysis (charge / net charge):
-   -  {O:  [ -6.581454666105E+00, -5.814546661048E-01 ]} # 0001
-   -  {H:  [ -7.113205728374E-01,  2.886794271626E-01 ]} # 0002
-   -  {H:  [ -7.072903693347E-01,  2.927096306653E-01 ]} # 0003
-   - total charge                      : -8.00006561E+00
-   - total net charge                  : -6.56082769E-05
- Charge analysis, Loewdin approach:
-   Method                              : Loewdin
-   calculate S^x:
-     mode                              : sparse
-     powers:
-       x                               : 1/2
-     order                             :  1020
-     determine eigenvalue bounds:
-     -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
-   exp accur:  [  6.93E-10 ]}
-     error estimation:
-       max / mean error                :  [  3.8E-10,  2.04E-10 ]
-   Charge analysis (charge / net charge):
-   -  {O:  [ -6.581421767294E+00, -5.814217672936E-01 ]} # 0001
-   -  {H:  [ -7.113075900943E-01,  2.886924099057E-01 ]} # 0002
-   -  {H:  [ -7.072706407364E-01,  2.927293592636E-01 ]} # 0003
-   - total charge                      : -8.00000000E+00
-   - total net charge                  :  1.87563809E-09
-   output file                         : chargeanalysis.gp
-   Multipole analysis (based on the Loewdin charges):
-     net dipole                        :  [ -3.97587E-01, -2.36697E-01,  4.69713E-01 ]
-     net quadropole:
-     -  [  7.7236E-01,  8.31808E-01,  1.22894E+00 ]
-     -  [  8.31808E-01, -1.35314E+00,  1.69770E-01 ]
-     -  [  1.22894E+00,  1.69770E-01,  5.80781E-01 ]
-     - trace of quadropole matrix      :  2.13E-14
   #================================================= Atomic multipole analysis, new approach
  Method                                : loewdin
  Projector mode                        : none
@@ -2067,35 +1981,44 @@
    - q0                                :  [  1.3E-04 ]
    - q1                                :  [  1.25E-04,  1.78E-04,  4.48E-05 ]
    - q2: [ 2.97E-05,  6.07E-05,  3.62E-04,  6.73E-05,  2.48E-04]
+ calculate S^x:
+   mode                                : sparse
+   powers:
+     x                                 : -1
+   order                               :  1020
+   determine eigenvalue bounds:
+   -  {npl:  17, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
+ exp accur:  [  7.57E-10 ]}
+   error estimation:
+     max / mean error                  :  [  1.76E-10,  8.69E-11 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr
-   global monopole                     :  1.587445E-06
-   global monopole analytic            :  8.881784E-16
+   global monopole                     :  1.586663E-06
    values:
    - sym                               : O # 0001
      r: [ 1.991107840087889,  1.221655223875441,  0.6920672692234883]
+     nzion                             :  6
      sigma                             :  [  0.450,  0.450,  0.450 ]
-     q0 analytic                       : -5.831435E-01
-     q0                                :  [ -5.831419E-01 ]
-     q1                                :  [ -1.336848E-01,  2.783697E-01, -2.081888E-01 ]
-     q2: [ 6.428514E-01, -7.727725E-02,  4.836195E-01,  4.933528E-01,  7.015457E-01]
+     q0                                :  [ -5.831418E-01 ]
+     q1                                :  [ -1.758443E-01,  3.571915E-01, -2.810302E-01 ]
+     q2: [ 7.644896E-01, -9.950235E-02,  5.544130E-01,  5.505867E-01,  8.280240E-01]
      type                              : unknown
    - sym                               : H # 0002
      r: [ 0.233534956652829,  0.513721445220362,  0.5361759933301388]
+     nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0 analytic                       :  2.896749E-01
      q0                                :  [  2.896749E-01 ]
-     q1                                :  [  7.584455E-02, -1.284252E-02,  1.722476E-01 ]
-     q2: [ 7.250871E-02,  2.419659E-02, -7.526833E-02,  5.026400E-02,  8.432856E-02]
+     q1                                :  [  1.11893E-01, -7.270534E-03,  2.610772E-01 ]
+     q2: [ 1.619652E-01,  3.568560E-02, -1.467249E-01,  8.186014E-02,  1.834767E-01]
      type                              : unknown
    - sym                               : H # 0003
      r: [ 2.366235518969471,  1.111238475158637,  2.450408084576114]
+     nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0 analytic                       :  2.934686E-01
      q0                                :  [  2.934686E-01 ]
-     q1                                :  [  2.304884E-02, -2.029469E-01, -1.910681E-02 ]
-     q2: [-1.327588E-02, -9.732397E-04,  1.347272E-01,  8.339271E-02,  2.582350E-03]
+     q1                                :  [  2.915986E-02, -2.873407E-01, -3.509505E-02 ]
+     q2: [-1.273905E-02, -8.422855E-03,  2.455969E-01,  1.390367E-01,  1.238940E-02]
      type                              : unknown
  Checking the total multipoles based on the atomic multipoles:
  - Up to multipole l= 0:
@@ -2107,27 +2030,27 @@
        -  [  7.7556E-01,  8.3479E-01,  1.2323E+00 ]
        -  [  8.3479E-01, -1.3571E+00,  1.7025E-01 ]
        -  [  1.2323E+00,  1.7025E-01,  5.8157E-01 ]
-       trace                           : -1.63E-13
+       trace                           : -2.81E-13
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -1.1542E+00, -6.9202E-01,  1.3559E+00 ]
-       norm(P)                         :  1.910329E+00
+       P vector                        :  [ -1.1542E+00, -6.9203E-01,  1.3559E+00 ]
+       norm(P)                         :  1.910330E+00
      Quadrupole Moment (AU):
        Q matrix:
-       -  [  3.5393E-01,  7.7226E-02,  9.3538E-01 ]
-       -  [  7.7226E-02, -2.3200E-01,  3.7844E-01 ]
-       -  [  9.3538E-01,  3.7844E-01, -1.2192E-01 ]
-       trace                           : -9.59E-14
+       -  [  5.6356E-02, -2.8933E-01,  6.8514E-01 ]
+       -  [ -2.8933E-01,  2.8599E-01,  4.0994E-01 ]
+       -  [  6.8514E-01,  4.0994E-01, -3.4234E-01 ]
+       trace                           :  2.24E-13
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -1.1539E+00, -6.9187E-01,  1.3561E+00 ]
-       norm(P)                         :  1.910280E+00
+       P vector                        :  [ -1.1537E+00, -6.9176E-01,  1.3562E+00 ]
+       norm(P)                         :  1.910243E+00
      Quadrupole Moment (AU):
        Q matrix:
-       -  [  1.1764E+00,  1.2933E+00,  2.0215E+00 ]
-       -  [  1.2933E+00, -2.1408E+00,  2.8481E-01 ]
-       -  [  2.0215E+00,  2.8481E-01,  9.6434E-01 ]
-       trace                           : -4.97E-14
+       -  [  1.1764E+00,  1.2932E+00,  2.0215E+00 ]
+       -  [  1.2932E+00, -2.1408E+00,  2.8481E-01 ]
+       -  [  2.0215E+00,  2.8481E-01,  9.6442E-01 ]
+       trace                           : -4.99E-13
   #========================================================== Atomic multipole analysis done
  calculate S^x:
    mode                                : sparse
@@ -2157,8 +2080,8 @@
  - The support function localization radii might be too small, got 3 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.03
-   Elapsed time (s)                    :  9.05
+   CPU time (s)                        :  10.85
+   Elapsed time (s)                    :  10.87
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.45198153E-02, y:  5.98134787E-03, z: -1.62969681E-02, 
                     total:  2.26316753E-02}
@@ -2172,14 +2095,14 @@
  Energy (Hartree)                      : -1.74514108901354206E+01
  Force Norm (Hartree/Bohr)             :  5.28066563060071367E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  11352
-   Tot. No. of Deallocations           :  11352
+   Tot. No. of Allocations             :  11488
+   Tot. No. of Deallocations           :  11488
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  102.019
      for the array                     : w%w2
      in the routine                    : calculate_rpowerx_matrices
-     Memory Peak of process            : 152.256 MB
- Walltime since initialization         : 00:00:09.425502612
- Max No. of dictionaries used          :  9209 #( 909 still in use)
+     Memory Peak of process            : 147.876 MB
+ Walltime since initialization         : 00:00:11.247715227
+ Max No. of dictionaries used          :  9587 #( 909 still in use)
  Number of dictionary folders allocated:  1

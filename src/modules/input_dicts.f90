@@ -792,7 +792,7 @@ contains
     !is smaller than this value, switch from cubic to linear interpolation.
     call input_var("ef_interpol_det",1.d-20,"FOE: max ",dummy_real)
     call set(dict // EF_INTERPOL_DET, dummy_real, fmt = "(E9.2)")
-    call input_var("ef_interpol_chargediff",10.d0,"FOE: max ",dummy_real)
+    call input_var("ef_interpol_chargediff",1.d0,"FOE: max ",dummy_real)
     call set(dict // EF_INTERPOL_CHARGEDIFF, dummy_real, fmt = "(E9.2)")
 
     !determines whether a mixing step shall be preformed after the input guess !(linear version)
@@ -1026,8 +1026,6 @@ contains
              'calculate dipole ; pulay correction (old and new); diagonalization at the end (dmin, FOE)'
     call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,exclusive=(/0,1,2,3,10,11,12,13/))
     call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_DIPOLE)
-    call input_var(dummy_bool,'T',dict//LIN_GENERAL//CALC_PULAY//0)
-    call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_PULAY//1)
 
 !    in%lin%pulay_correction=dummy_bool
 !    call input_var(in%lin%new_pulay_correction,'F')

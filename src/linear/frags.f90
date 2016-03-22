@@ -115,15 +115,16 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
 
   lincombm=.false.
   lincombp=.false.
-  if (nint(nelecorbs)/=nelecfrag_tot) then
+  !if (nint(nelecorbs)/=nelecfrag_tot) then
+  if (abs(nelecorbs-nelecfrag_tot)>0.01d0) then
      !EXPERIMENTAL
      !use an average (lin. combination) of the LUMOs from each fragment
      !take the easiest case of 1 extra or missing electron, to be generalized/improved
      lincombm=.false.
      lincombp=.false.
-     if (nelecorbs-nelecfrag_tot==1) then
+     if (nelecorbs-nelecfrag_tot==1.0d0) then
         lincombm=.true. 
-     else if (nelecorbs-nelecfrag_tot==-1) then
+     else if (nelecorbs-nelecfrag_tot==-1.0d0) then
         lincombp=.true.
      else
         print*,'User should specify which fragments charges are added to/removed from in charged fragment calculation',&
@@ -230,7 +231,7 @@ contains
        ! find reference fragment this corresponds to
        ifrag_ref=input%frag%frag_index(ifrag)
        call f_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
-       nelecfrag=ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag)
+       nelecfrag=int(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))
        do jtmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
           tmb%coeff(jsforb+jtmb,jtmb)=1.0d0
           tmb%orbs%occup(jsforb+jtmb)=real(nelecfrag,dp)/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp) !ref_frags(ifrag_ref)%coeff(jtmb,jtmb) !

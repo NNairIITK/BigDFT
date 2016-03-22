@@ -74,7 +74,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      Lnscatterarr(:,2) = Lzd%Llr(ilr)%d%n3i 
 
 
-     call initialize_work_arrays_sumrho(1,[Lzd%Llr(ilr)],.true.,w)
+     call initialize_work_arrays_sumrho(Lzd%Llr(ilr),.true.,w)
      rho_p = f_malloc0(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn,id='rho_p')
      psir = f_malloc((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, npsir /),id='psir')
   

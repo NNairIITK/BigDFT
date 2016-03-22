@@ -34,7 +34,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use transposed_operations, only: calculate_overlap_transposed
   use parallel_linalg, only: dsygv_parallel
   use matrix_operations, only: deviation_from_unity_parallel
-  use foe, only: fermi_operator_expansion_new
+  !use foe, only: fermi_operator_expansion_new
+  use sparsematrix_highlevel, only: matrix_fermi_operator_expansion
   use public_enums
   use locregs_init, only: small_to_large_locreg
   use locreg_operations, only: confpot_data
@@ -75,7 +76,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical, optional, intent(in) :: updatekernel
 
   ! Local variables 
-  integer :: iorb, info, ishift, ispin, ii, jorb, i, ishifts, ishiftm
+  integer :: iorb, info, ishift, ispin, ii, jorb, i, ishifts, ishiftm, jproc
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval, tmparr1, tmparr2, tmparr, ovrlp_large, ham_large
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp, tempmat
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
@@ -84,7 +85,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr
   real(kind=8) :: max_deviation, mean_deviation, KSres, max_deviation_p,  mean_deviation_p, maxdiff
-  integer,dimension(:),allocatable :: row_ind, col_ptr
+  integer,dimension(:),allocatable :: row_ind, col_ptr, n3p
 
   call f_routine(id='get_coeff')
 
@@ -95,10 +96,15 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !!call allocate_work_mpiaccumulate(energs_work)
 
       call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+      n3p = f_malloc(0.to.nproc-1,id='n3p')
+      do jproc=0,nproc-1
+          n3p(jproc) = max(denspot%dpbox%nscatterarr(jproc,2),1)
+      end do
       call start_onesided_communication(iproc, nproc, denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
-           max(denspot%dpbox%nscatterarr(:,2),1), denspot%rhov, &
+           n3p, denspot%rhov, &
            tmb%ham_descr%comgp%nrecvbuf*tmb%ham_descr%comgp%nspin, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, &
            tmb%ham_descr%lzd)
+      call f_free(n3p)
   end if
 
   ! Option to only calculate the energy without updating the kernel
@@ -255,9 +261,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   end if
 
   if (remove_coupling_terms) then
-      call delete_coupling_terms(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr)
-      call delete_coupling_terms(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_%matrix_compr)
-      call delete_coupling_terms(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr)
+      call delete_coupling_terms(iproc, nproc, tmb%linmat%smmd, tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr)
+      call delete_coupling_terms(iproc, nproc, tmb%linmat%smmd, tmb%linmat%m, tmb%linmat%ham_%matrix_compr)
+      call delete_coupling_terms(iproc, nproc, tmb%linmat%smmd, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr)
   end if
 
   if (scf_mode/=LINEAR_FOE .and. scf_mode/=LINEAR_PEXSI) then
@@ -558,13 +564,16 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call f_free(col_ptr)
       else if (scf_mode==LINEAR_FOE) then
           if (iproc==0) call yaml_map('method','FOE')
-          call fermi_operator_expansion_new(iproc, nproc, &
-               energs%ebs, order_taylor, max_inversion_error, &
-               invert_overlap_matrix, 2, &
-               trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))&
-               //'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
-               tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
-               tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, tmb%foe_obj)
+          !call fermi_operator_expansion_new(iproc, nproc, &
+          !     energs%ebs, &
+          !     invert_overlap_matrix, 2, &
+          !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
+          !     tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, tmb%foe_obj)
+          call matrix_fermi_operator_expansion(iproc, nproc, tmb%foe_obj, &
+               tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+               tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, &
+               energs%ebs, invert_overlap_matrix, 2)
+
           !!call fermi_operator_expansion(iproc, nproc, &
           !!     energs%ebs, order_taylor, max_inversion_error, &
           !!     invert_overlap_matrix, 2, &
@@ -721,7 +730,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
  
   ! Local variables
-  integer :: iorb, it, it_tot, ncount, ncharge, ii, kappa_satur, nit_exit, ispin
+  integer :: iorb, it, it_tot, ncount, ncharge, ii, kappa_satur, nit_exit, ispin, jproc
   !integer :: jorb, nspin
   !real(kind=8),dimension(:),allocatable :: occup_tmp
   real(kind=8) :: meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
@@ -742,6 +751,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(matrices) :: ovrlp_old
   integer :: iiorb, ilr, i, ist
   real(kind=8) :: max_error, mean_error
+  integer,dimension(1) :: power
+  integer,dimension(:),allocatable :: n3p
   interface
      subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, alpha_mean, alpha_max, &
@@ -835,7 +846,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   energy_diff=.false.
 
   ovrlp_old%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, &
-                           iaction=SPARSE_FULL, id='ovrlp_old%matrix_compr')
+                           iaction=SPARSE_TASKGROUP, id='ovrlp_old%matrix_compr')
 
   ! Allocate all local arrays.
   call allocateLocalArrays()
@@ -857,10 +868,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   it_tot=0
   !ortho=.true.
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+  n3p = f_malloc(0.to.nproc-1,id='n3p')
+  do jproc=0,nproc-1
+      n3p(jproc) = max(denspot%dpbox%nscatterarr(jproc,2),1)
+  end do
   call start_onesided_communication(iproc, nproc, denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
-       max(denspot%dpbox%nscatterarr(:,2),1), denspot%rhov, &
+       n3p, denspot%rhov, &
        tmb%ham_descr%comgp%nrecvbuf*tmb%ham_descr%comgp%nspin, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, &
        tmb%ham_descr%lzd)
+  call f_free(n3p)
 
   delta_energy_prev=1.d100
 
@@ -1045,7 +1061,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !if (iproc==0) call yaml_sequence_open('kernel update by renormalization')
           if (it==1 .or. energy_increased .or. .not.experimental_mode) then
               ! Calculate S^1/2, as it can not be taken from memory
-              call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
+              power(1)=2
+              call overlapPowerGeneral(iproc, nproc, order_taylor, 1, power, -1, &
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
                    verbosity=0, &
@@ -1858,7 +1875,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inWhichLocreg(iiorb)
-      call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
+      call initialize_work_arrays_sumrho(lzd%Llr(ilr),.true.,w)
       call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), psir(istr))
       call deallocate_work_arrays_sumrho(w)
       ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
@@ -2175,12 +2192,13 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   integer :: ierr, ind, iorb, korb, llorb, jorb, ist
   integer :: npts_per_proc, ind_start, ind_end, indc, ispin, norbx, iseg, i
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp, coefftrans
-  real(kind=8), dimension(:,:), pointer :: ovrlp_coeff
+  real(kind=8), dimension(:,:), allocatable :: ovrlp_coeff
   real(kind=8),dimension(:,:),pointer :: ovrlp_matrix, inv_ovrlp_matrix
   character(len=*),parameter:: subname='reorthonormalize_coeff'
   type(matrices) :: KS_ovrlp_
   type(matrices),dimension(1) :: inv_ovrlp_
   integer,dimension(2) :: irowcol
+  integer,dimension(1) :: power
   !integer :: iorb, jorb !DEBUG
   real(kind=8) :: tt, max_error, mean_error!, tt2, tt3, ddot   !DEBUG
   !logical :: dense
@@ -2222,7 +2240,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
           end if
       end if
 
-      ovrlp_coeff=f_malloc_ptr((/norbx,norbx/), id='ovrlp_coeff')
+      ovrlp_coeff=f_malloc((/norbx,norbx/), id='ovrlp_coeff')
 
       !!if(iproc==0) then
       !!    write(*,'(a)',advance='no') 'coeff renormalization...'
@@ -2366,7 +2384,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
                   basis_overlap, max_error, mean_error)
           end if
       else
-         call deviation_from_unity_parallel(iproc, 1, norbx, norbx, 0, ovrlp_coeff(1:norbx,1:norbx), &
+         call deviation_from_unity_parallel(iproc, 1, norbx, norbx, 0, ovrlp_coeff(1,1), &
               basis_overlap, max_error, mean_error)    
       end if
 
@@ -2388,7 +2406,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
       if (max_error>5.0d0.and.orbs%norb==norb) then
          if (iproc==0) print*,'Error in reorthonormalize_coeff too large, reverting to gram-schmidt orthonormalization'
          ! gram-schmidt as too far from orthonormality to use iterative schemes for S^-1/2
-         call f_free_ptr(ovrlp_coeff)
+         call f_free(ovrlp_coeff)
          call timing(iproc,'renormCoefCom2','ON')
          call gramschmidt_coeff_trans(iproc,nproc,orbs%norbu,orbs%norb,basis_orbs,basis_overlap,basis_overlap_mat,coeff)
          call timing(iproc,'renormCoefCom2','OF')
@@ -2411,7 +2429,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
              !!        write(2000+iproc,'(a,2i9,es13.5)') 'iorb, jorb, KS_ovrlp_%matrix(jorb,iorb,1)', iorb, jorb, KS_ovrlp_%matrix(jorb,iorb,1)
              !!    end do
              !!end do
-             call overlapPowerGeneral(iproc, nproc, inversion_method, 1, (/-2/), &
+             power(1)=-2
+             call overlapPowerGeneral(iproc, nproc, inversion_method, 1, power, &
                   blocksize_dsyev, imode=2, ovrlp_smat=KS_overlap(ispin), inv_ovrlp_smat=KS_overlap(ispin), &
                   ovrlp_mat=KS_ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
                   check_accur=.false., nspinx=1)
@@ -2437,7 +2456,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
          call timing(iproc,'renormCoefCom2','ON')
 
-         call f_free_ptr(ovrlp_coeff)
+         call f_free(ovrlp_coeff)
 
          ! Build the new linear combinations
          if (communication_strategy==ALLREDUCE) then
@@ -2533,7 +2552,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
       end if
 
       if (check_accuracy) then
-         ovrlp_coeff=f_malloc_ptr((/norbx,norbx/), id='ovrlp_coeff')
+         ovrlp_coeff=f_malloc((/norbx,norbx/), id='ovrlp_coeff')
          coeff_tmp=f_malloc((/basis_overlap%nfvctrp,max(norbx,1)/), id='coeff_tmp')
          ! Calculate the overlap matrix among the coefficients with respect to basis_overlap.
          if (basis_overlap%nfvctrp>0) then
@@ -2572,7 +2591,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
             end if
          else
             call deviation_from_unity_parallel(iproc, 1, norbx, norbx, 0, &
-                 ovrlp_coeff(1:norbx,1:norbx), basis_overlap, max_error, mean_error)    
+                 ovrlp_coeff(1,1), basis_overlap, max_error, mean_error)    
          end if
 
          if (iproc==0) print*,'Max deviation from unity following reorthonormalize_coeff',max_error
@@ -2584,7 +2603,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
          !   end do
          !end do
 
-         call f_free_ptr(ovrlp_coeff)
+         call f_free(ovrlp_coeff)
       end if
 
       call deallocate_matrices(KS_ovrlp_)
@@ -2858,6 +2877,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   type(matrices) :: inv_ovrlp
   real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
   real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
+  integer,dimension(3) :: power
   !!real(8) :: tr
   !!integer :: ind, iorb
 
@@ -2885,7 +2905,8 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
 
   ! Calculate S^1/2 for the overlap matrix
-  call overlapPowerGeneral(iproc, nproc, order_taylor, 3, (/2,-2,1/), -1, &
+  power=(/2,-2,1/)
+  call overlapPowerGeneral(iproc, nproc, order_taylor, 3, power, -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
        verbosity=0, &
@@ -3045,7 +3066,8 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
   use module_base
   use module_types    
   use foe_base, only: foe_data, foe_data_null, foe_data_get_real, foe_data_set_real, foe_data_deallocate
-  use foe, only:  fermi_operator_expansion_new
+  !use foe, only:  fermi_operator_expansion_new
+  use sparsematrix_highlevel, only: matrix_fermi_operator_expansion
   use sparsematrix_base, only: matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                SPARSE_TASKGROUP, assignment(=)
   use yaml_output
@@ -3118,11 +3140,15 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       end do
       call foe_data_set_real(foe_obj,"fscale",1.d-2)
       norder_taylor = input%lin%order_taylor
-      call fermi_operator_expansion_new(iproc, nproc, &
-           ebs, norder_taylor, input%lin%max_inversion_error, &
-           .true., 2, &
-           'HOMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-           tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
+      !call fermi_operator_expansion_new(iproc, nproc, &
+      !     ebs, &
+      !     .true., 2, &
+      !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
+      call matrix_fermi_operator_expansion(iproc, nproc, foe_obj, &
+           tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+           tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
+           ebs, .true., 2)
       !call fermi_operator_expansion(iproc, nproc, &
       !     ebs, norder_taylor, input%lin%max_inversion_error, &
       !     .true., 2, &
@@ -3145,11 +3171,15 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       end do
       call foe_data_set_real(foe_obj,"fscale",1.d-2)
       norder_taylor = input%lin%order_taylor
-      call fermi_operator_expansion_new(iproc, nproc, &
-           ebs, norder_taylor, input%lin%max_inversion_error, &
-           .true., 2, &
-           'LUMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-           tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
+      !call fermi_operator_expansion_new(iproc, nproc, &
+      !     ebs, &
+      !     .true., 2, &
+      !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
+      call matrix_fermi_operator_expansion(iproc, nproc, foe_obj, &
+           tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+           tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
+           ebs, .true., 2)
       !call fermi_operator_expansion(iproc, nproc, &
       !     ebs, norder_taylor, input%lin%max_inversion_error, &
       !     .true., 2, &

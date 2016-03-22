@@ -1011,6 +1011,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, infoCoeff, ispin, ishift, it, ii
+      integer, dimension(1) :: power
   logical:: overlap_calculated
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
@@ -1450,7 +1451,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        call f_free(ovrlpp)
        ! Calculate S^1/2, as it can not be taken from memory
        order_taylor = input%lin%order_taylor
-       call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
+       power(1)=2
+       call overlapPowerGeneral(iproc, nproc, order_taylor, 1, power, -1, &
             imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
             ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
             check_accur=.true., max_error=max_error, mean_error=mean_error)
@@ -1557,7 +1559,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            cdft%weight_function=f_malloc_ptr(cdft%ndim_dens,id='cdft%weight_function')
            call calculate_weight_function(input,ref_frags,cdft,&
                 KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,denspot%rhov,tmb,at,rxyz,denspot)
-           call calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,denspot)
+           call calculate_weight_matrix_using_density(iproc,nproc,cdft,tmb,at,input,GPU,denspot)
            call f_free_ptr(cdft%weight_function)
         else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
            call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,.false.,input%lin%order_taylor)
@@ -2339,7 +2341,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use m_paw_ij, only: paw_ij_init
   use psp_projectors_base, only: free_DFT_PSP_projectors
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
-  use transposed_operations, only: normalize_transposed
+  use transposed_operations, only: normalize_transposed, calculate_overlap_transposed
   use rhopotential, only: updatepotential, sumrho_for_TMBs, clean_rho
   use public_enums
   use orbitalbasis
@@ -2872,6 +2874,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      call normalize_transposed(iproc, nproc, tmb%orbs, in%nspin, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
 
+     ! Also calculate the overlap matrix.. not needed here, but in other parts of the code. Should be improved...
+     call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, &
+          tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+
      call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
           TRANSPOSE_FULL, tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
 
@@ -3127,7 +3133,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            cdft%weight_function=f_malloc_ptr(cdft%ndim_dens,id='cdft%weight_function')
            call calculate_weight_function(in,ref_frags,cdft,&
                 KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,denspot%rhov,tmb,atoms,rxyz,denspot)
-           call calculate_weight_matrix_using_density(iproc,cdft,tmb,atoms,in,GPU,denspot)
+           call calculate_weight_matrix_using_density(iproc,nproc,cdft,tmb,atoms,in,GPU,denspot)
            call f_free_ptr(cdft%weight_function)
         else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
            call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,in,ref_frags,overlap_calculated.eqv..false.,in%lin%order_taylor)
@@ -3455,16 +3461,16 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
  ! Daubechies to ISF
   npsir=1
-  call initialize_work_arrays_sumrho(1,[Lzd_old%Glr],.true.,w)
+  call initialize_work_arrays_sumrho(Lzd_old%Glr,.true.,w)
   nbox = lzd_old%Glr%d%n1i*Lzd_old%Glr%d%n2i*Lzd_old%Glr%d%n3i
 
-  psir_old = f_malloc((/ nbox, npsir, orbs%norbp /),id='psir_old')
+  psir_old = f_malloc0((/ nbox, npsir, orbs%norbp /),id='psir_old')
   psir = f_malloc0((/ lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, npsir, orbs%norbp /),id='psir')
   shift = f_malloc0((/ lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, 5 /),id='shift')
 
   call f_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1))
   !call to_zero(lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*npsir*orbs%norbp,psir(1,1,1))
-  call f_zero(nbox*npsir*orbs%norbp,psir_old(1,1,1))
+  !call f_zero(nbox*npsir*orbs%norbp,psir_old(1,1,1))
 
   !call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, shift(1,1))
 
@@ -3722,7 +3728,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   !$OMP END PARALLEL DO
   end do
 
-  call initialize_work_arrays_sumrho(1,[Lzd%Glr],.true.,w)
+  call initialize_work_arrays_sumrho(Lzd%Glr,.true.,w)
 
   ist=1
   loop_orbs_back: do iorb=1,orbs%norbp
@@ -3758,7 +3764,7 @@ contains
     real :: simple
 
     if (kind(double) == kind(simple)) then
-       simple=double
+       simple=real(double,kind=kind(simple))
     else if (abs(double) < real(tiny(1.e0),wp)) then
        simple=0.e0
     else if (abs(double) > real(huge(1.e0),wp)) then

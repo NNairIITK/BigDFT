@@ -1144,13 +1144,13 @@
      default: default
      CONDITION:
        MASTER_KEY: method
-       WHEN: [lj, lensic, lensib, amber, morse_bulk, morse_slab, tersoff, bmhtf]
+       WHEN: [lj, tdpot, lensic, lensib, amber, morse_bulk, morse_slab, tersoff, bmhtf, cp2k, dftbp]
    mm_paramfile:
      COMMENT: name of parameter or input file for the selected method or code
      default: none
      CONDITION:
        MASTER_KEY: method
-       WHEN: [lj, lensic, lensib, amber, morse_bulk, morse_slab, tersoff, bmhtf]
+       WHEN: [lj, tdpot, lensic, lensib, amber, morse_bulk, morse_slab, tersoff, bmhtf, cp2k, dftbp]
    sections:
      COMMENT: list of labelling subparts to divide the system into
      default: []
@@ -1315,7 +1315,7 @@
    ef_interpol_chargediff:
      COMMENT: FOE max charge difference for interpolation
      RANGE: [0., 1000.]
-     default: 10.
+     default: 1.0
    mixing_after_inputguess:
      COMMENT: Mixing step after linear input guess
      EXCLUSIVE:
@@ -1430,11 +1430,6 @@
    foe_gap:
      COMMENT: Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
      default: False
-   nsigma:
-     COMMENT: Number of iterations (for each angular momentum l) to get an optimal sigma for the Gaussian used for the radial part of the function based on the multipoles.
-     DESCRIPTION: Warning -- The total number of iterations is nsigma**(lmax+1), so only use small values
-     default: 1
-     RANGE: [1,5]
  lin_general:
      hybrid:
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -1615,14 +1610,6 @@
          Indicates whether the quadrupole moment should be calculated after the run or not
        COMMENT: calculate quadrupole
        default: No
-# this is now an array!
-     calc_pulay:
-       COMMENT: calculate Pulay forces (old/new version)
-       DESCRIPTION: |
-         Indicates whether the Pulay corrections (old / new) shall be calculated at the end of the run
-       default: [No,No]
-       new: [ No, Yes]
-       old: [ Yes, No]
 # this name might be misleading
      subspace_diag: #called calc_ks, to be renamed
        COMMENT: diagonalization at the end
@@ -1921,7 +1908,7 @@
        DESCRIPTION: |
                     Indicates the prefactor of the confining potential
                     of this atom type which is used to generate the input guess.
-       RANGE: [0.0,10.0]
+       RANGE: [-1.0,10.0]
        default: 8.3e-3
      confinement:
        COMMENT: Prefactor for the confining potential (low/high accuracy)
@@ -1929,7 +1916,7 @@
                     Indicates the prefactor of the confining potential of this atom type.
                     The first entry is used for the low accuracy part, the second one for the high accuracy part.
                     When the hybrid mode is used, only the first entry is taken into account.
-       RANGE: [0.0,10.0]
+       RANGE: [-1.0,10.0]
        default: [8.3e-3,0.0]
      rloc:
        COMMENT: Localization radius for the support functions
@@ -1963,6 +1950,7 @@ linear_accurate:
   dft:
     hgrids: accurate
     ixc: PBE
+    inputpsiid: linear
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
@@ -2000,6 +1988,7 @@ linear_moderate:
   dft:
     hgrids: accurate
     ixc: PBE
+    inputpsiid: linear
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
@@ -2031,6 +2020,7 @@ linear_fast:
   dft:
     hgrids: accurate
     ixc: PBE
+    inputpsiid: linear
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
@@ -2078,11 +2068,7 @@ linear:
  DESCRIPTION: |
          Basic parameters to perform a linear calculation.
  dft:
-   gnrm_cv: accurate
-   itermax: 50
-   nrepmax: 10
-   ncong: 5
-   idsx: 6
+   hgrids: 0.50
    disablesym: Yes
    inputpsiid: linear
  perf:
@@ -2105,7 +2091,8 @@ linear:
    max_inversion_error: 5.0e-8
    rpnrm_cv: 1.0e-11
    output_mat: 1
-   output_coeff: 1
+   output_coeff: 0
+   charge_multipoles: 11
  lin_basis:
    nit: 8
    idsx: 8
@@ -2123,22 +2110,26 @@ linear:
    nit: 6
    idsx_coeff: [6, 0]
    idsx: 6
+   rpnrm_cv: 1.0e-8
    alphamix: 0.1
    linear_method: FOE
    eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
+   fscale_foe: 5.0e-2
  lin_basis_params:
-   #ao_confinement: -1.0
-   #confinement: -1.0
-   rloc_kernel: 9.0
-   rloc_kernel_foe: 10.5
-   H:  {nbasis: 1, rloc: 4.5}
-   C:  {nbasis: 4, rloc: 5.0}
-   N:  {nbasis: 4, rloc: 5.0}
-   O:  {nbasis: 4, rloc: 5.0}
-   P:  {nbasis: 4, rloc: 5.5}
-   Cl: {nbasis: 4, rloc: 5.5}
-   K:  {nbasis: 1, rloc: 7.0}
+   ao_confinement: -1.0
+   confinement: -1.0
+   rloc_kernel: 10.0
+   rloc_kernel_foe: 12.0
+   H:  {nbasis: 1, rloc: 5.0}
+   C:  {nbasis: 4, rloc: 5.5}
+   N:  {nbasis: 4, rloc: 5.5}
+   O:  {nbasis: 4, rloc: 5.5}
+   P:  {nbasis: 4, rloc: 6.0}
+   S:  {nbasis: 4, rloc: 6.0}
+   Cl: {nbasis: 4, rloc: 6.0}
+   Na: {nbasis: 1, rloc: 7.5}
+   K:  {nbasis: 1, rloc: 8.0}
+   Sn: {nbasis: 4, rloc: 6.5}
 md:
   COMMENT: Molecular dynamics input parameters for H2O molecules
   geopt:

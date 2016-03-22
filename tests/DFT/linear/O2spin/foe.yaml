@@ -15,7 +15,7 @@
    disablesym: Yes
  perf:
    ef_interpol_det: 1.e-6
-   ef_interpol_chargediff: 1.e-4
+   #ef_interpol_chargediff: 1
    check_matrix_compression: No
    correction_co_contra: Yes
  lin_general:
