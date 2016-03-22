@@ -247,7 +247,7 @@ class BigDFTInstaller():
         if self.branch:
             co=''
         else:
-            co='-C'
+            co=' -C'
         if (self.verbose):
             os.system(self.jhb+BUILD+self.package+co)
         else:

@@ -176,7 +176,7 @@
 
   <metamodule id="bigdft-suite">
     <dependencies>
-      <dep package="bigdft"/>
+      <dep package="spred"/>
       <dep package="PyYAML"/>
     </dependencies>
   </metamodule>
