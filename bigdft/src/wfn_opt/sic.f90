@@ -297,7 +297,7 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hgrids,pkernel,psi,poti,eSIC_DC,pota
 
      !initalize the double-counting SIC corrections
      eSIC_DC=0.0_gp
-     call initialize_work_arrays_sumrho(1,[lr],.true.,w)
+     call initialize_work_arrays_sumrho(lr,.true.,w)
 
      do iorb=1,orbs%norbp
 

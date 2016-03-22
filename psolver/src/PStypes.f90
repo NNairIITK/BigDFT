@@ -1040,7 +1040,7 @@ contains
     !local variables
     logical, dimension(3) :: prst
     integer :: n1,n23,i3s,i23,i3,i2,i1
-    real(dp) :: cc,ep,depsr,epsm1,hh
+    real(dp) :: cc,ep,depsr,epsm1,hh,kk
     real(dp), dimension(3) :: v,dleps
     real(dp), dimension(:,:,:), allocatable :: de2,ddeps
     real(dp), dimension(:,:,:,:), allocatable :: deps
@@ -1152,7 +1152,7 @@ contains
                    do i1=1,mesh%ndims(1)
                       v(1)=cell_r(mesh,i1,dim=1)
                       call rigid_cavity_arrays(kernel%cavity,mesh,v,&
-                           kernel%w%nat,kernel%w%rxyz,kernel%w%radii,ep,depsr,dleps,cc)
+                           kernel%w%nat,kernel%w%rxyz,kernel%w%radii,ep,depsr,dleps,cc,kk)
                       kernel%w%eps(i1,i23)=ep
                       kernel%w%corr(i1,i23)=cc
                       kernel%IntVol=kernel%IntVol+(kernel%cavity%epsilon0-ep)
@@ -1238,7 +1238,7 @@ contains
                    do i1=1,mesh%ndims(1)
                       v(1)=cell_r(mesh,i1,dim=1)
                       call rigid_cavity_arrays(kernel%cavity,mesh,v,kernel%w%nat,&
-                           kernel%w%rxyz,kernel%w%radii,ep,depsr,dleps,cc)
+                           kernel%w%rxyz,kernel%w%radii,ep,depsr,dleps,cc,kk)
                       if (i23 <= n23 .and. i23 >=1) then
                          kernel%w%eps(i1,i23)=ep
                          kernel%IntVol=kernel%IntVol+(kernel%cavity%epsilon0-ep)
@@ -1299,16 +1299,15 @@ contains
     type(coulomb_operator), intent(in) :: kernel
     real(dp), dimension(3,kernel%w%nat), intent(inout) :: fpcm
     !local variables
-    real(dp), parameter :: thr=1.e-10
-    integer :: i1,i2,i3,i23
-    real(dp) :: cc,epr,depsr,hh,tt
+    real(dp), parameter :: thr=1.e-15
+    integer :: i1,i2,i3,i23,i3s
+    real(dp) :: cc,epr,depsr,hh,tt,kk
     type(cell) :: mesh
     real(dp), dimension(3) :: v,dleps,deps
-    
     mesh=cell_new(kernel%geocode,kernel%ndims,kernel%hgrids)
 
     do i3=1,kernel%grid%n3p
-       v(3)=cell_r(mesh,i3+kernel%grid%istart+1,dim=3)
+       v(3)=cell_r(mesh,i3+kernel%grid%istart,dim=3)
        do i2=1,kernel%ndims(2)
           v(2)=cell_r(mesh,i2,dim=2)
           i23=i2+(i3-1)*kernel%ndims(2)
@@ -1317,16 +1316,17 @@ contains
              v(1)=cell_r(mesh,i1,dim=1)
              !this is done to obtain the depsilon
              call rigid_cavity_arrays(kernel%cavity,mesh,v,kernel%w%nat,&
-                  kernel%w%rxyz,kernel%w%radii,epr,depsr,dleps,cc)
+                  kernel%w%rxyz,kernel%w%radii,epr,depsr,dleps,cc,kk)
              if (abs(epr-vacuum_eps) < thr) cycle
              deps=dleps*epr
              call rigid_cavity_forces(kernel%opt%only_electrostatic,kernel%cavity,mesh,v,&
-                  kernel%w%nat,kernel%w%rxyz,kernel%w%radii,epr,tt,fpcm,deps)
+                  kernel%w%nat,kernel%w%rxyz,kernel%w%radii,epr,tt,fpcm,deps,kk)
           end do
        end do
     end do
-    
+
   end subroutine ps_soft_PCM_forces
+
 
   subroutine build_cavity_from_rho(rho,nabla2_rho,delta_rho,cc_rho,kernel,&
        depsdrho,dsurfdrho,IntSur,IntVol)

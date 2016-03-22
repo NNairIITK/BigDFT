@@ -17,7 +17,7 @@
    check_sumrho: 2
  lin_general:
    nit: [2, 30]
-   rpnrm_cv: [1.0000000000000001E-009, 1.0E-010]
+   rpnrm_cv: [1.0E-07, 1.0E-08]
    conf_damping: 0.5
    output_wf: 1
    calculate_onsite_overlap: Yes

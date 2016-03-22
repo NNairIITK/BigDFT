@@ -43,10 +43,12 @@ program driver_css
 
   ! Read from matrix1.dat and create the type containing the sparse matrix descriptors (smat1) as well as
   ! the type which contains the matrix data (overlap). The matrix element are stored in mat1%matrix_compr.
-  call sparse_matrix_and_matrices_init_from_file_ccs('matrix1.dat', bigdft_mpi%iproc, bigdft_mpi%nproc, smat1, mat1)
+  call sparse_matrix_and_matrices_init_from_file_ccs('matrix1.dat', bigdft_mpi%iproc, bigdft_mpi%nproc, &
+       bigdft_mpi%mpi_comm, smat1, mat1)
 
   ! Read from matrix2.dat and creates the type containing the sparse matrix descriptors (smat2).
-  call sparse_matrix_init_from_file_ccs('matrix2.dat', bigdft_mpi%iproc, bigdft_mpi%nproc, smat2)
+  call sparse_matrix_init_from_file_ccs('matrix2.dat', bigdft_mpi%iproc, bigdft_mpi%nproc, &
+       bigdft_mpi%mpi_comm, smat2)
 
   ! Prepares the type containing the matrix data.
   call matrices_init(smat2, mat2(1))
@@ -56,7 +58,7 @@ program driver_css
   ! It is your responsabilty to assure this, the routine does only some minimal checks.
   ! The final result is contained in mat2(1)%matrix_compr.
   norder_polynomial = 30
-  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, 1, (/0.5d0/), &
+  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, (/0.5d0/), &
        smat1, smat2, mat1, mat2(1))
 
   ! Write the result in YAML format to the standard output (required for non-regression tests).
@@ -81,7 +83,7 @@ program driver_css
   ! and store the result in smat3/mat3. The final results are thus in mat3(1)%matrix_compr and mat3(2)%matrix_compr.
   ! The same wraning as above applies.
   norder_polynomial = 40
-  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, norder_polynomial, 2, (/0.5d0,-0.5d0/), &
+  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, 2, (/0.5d0,-0.5d0/), &
        smat2, smat3, mat2(2), mat3)
 
   ! Write the result in YAML format to the standard output (required for non-regression tests).

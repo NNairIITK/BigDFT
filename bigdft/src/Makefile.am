@@ -195,7 +195,6 @@ low_level = \
 	linear/derivativeBasis.f90 \
 	linear/hpsiortho_linear.f90 \
 	linear/optimize_coeffs.f90 \
-	linear/pulay.f90 \
 	linear/transferintegrals.f90 \
 	linear/cdft.f90 \
 	linear/frags.f90\

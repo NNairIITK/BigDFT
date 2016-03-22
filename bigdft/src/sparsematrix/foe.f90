@@ -1010,9 +1010,9 @@ module foe
 
 
     subroutine fermi_operator_expansion_new(iproc, nproc, &
-               ebs, order_taylor, max_inversion_error, &
+               ebs, &
                calculate_minusonehalf, foe_verbosity, &
-               label, smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj)
+               smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj)
       use module_base
       use yaml_output
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
@@ -1035,12 +1035,9 @@ module foe
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
-      integer,intent(inout) :: order_taylor
-      real(kind=8),intent(in) :: max_inversion_error
       real(kind=8),intent(out) :: ebs
       logical,intent(in) :: calculate_minusonehalf
       integer,intent(in) :: foe_verbosity
-      character(len=*),intent(in) :: label
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
       type(matrices),intent(in) :: ham_, ovrlp_
       type(matrices),dimension(1),intent(inout) :: ovrlp_minus_one_half_
@@ -1052,7 +1049,7 @@ module foe
       integer :: isegstart, isegend, iismall, iilarge, nsize_polynomial
       integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift, npl_check, npl_boundaries
       integer,parameter :: nplx=50000
-      real(kind=8),dimension(:,:,:),pointer :: cc, cc_check
+      real(kind=8),dimension(:,:,:),allocatable :: cc, cc_check
       real(kind=8),dimension(:,:),pointer :: chebyshev_polynomials
       real(kind=8),dimension(:,:),allocatable :: fermip_check
       real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
@@ -1094,6 +1091,7 @@ module foe
       integer :: iline, icolumn, icalc, npl_min, npl_max, npl_stride
       real(kind=8),dimension(:),allocatable :: ham_large
       real(kind=8),dimension(2) :: fscale_ispin
+      real(kind=8),dimension(1) :: ef_arr, fscale_arr
 
 
 
@@ -1232,10 +1230,12 @@ module foe
                       call yaml_sequence_open('determine eigenvalue bounds')
                   end if
                   bounds_loop: do
+                      efarr(1) = foe_data_get_real(foe_obj,"ef",ispin)
+                      fscale_arr(1) = foe_data_get_real(foe_obj,"fscale",ispin)
                       call get_polynomial_degree(iproc, nproc, ispin, 1, FUNCTION_ERRORFUNCTION, foe_obj, &
                            npl_min, npl_max, npl_stride, 1.d-5, 0, npl, cc, &
                            max_error, x_max_error, mean_error, anoise, &
-                           ef=(/foe_data_get_real(foe_obj,"ef",ispin)/), fscale=(/foe_data_get_real(foe_obj,"fscale",ispin)/))
+                           ef=efarr, fscale=fscale_arr)
                       npl_min = npl !to be used to speed up the search for npl in a following iteration in case the temperature must be lowered
                       if (iproc==0) then
                           call yaml_sequence(advance='no')
@@ -1265,7 +1265,7 @@ module foe
                               call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*1.2d0,ispin)
                           end if
                       end if
-                      call f_free_ptr(cc)
+                      call f_free(cc)
                       call f_free_ptr(chebyshev_polynomials)
                   end do bounds_loop
                   if (iproc==0) then
@@ -1285,7 +1285,7 @@ module foe
                   !write(*,*) 'after find_fermi_level'
 
                   npl_check = nint(real(npl,kind=8)/CHECK_RATIO)
-                  cc_check = f_malloc0_ptr((/npl_check,1,3/),id='cc_check')
+                  cc_check = f_malloc0((/npl_check,1,3/),id='cc_check')
                   !!call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
                   !!call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
                   !!     foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
@@ -1295,7 +1295,7 @@ module foe
                   !!    smatl, chebyshev_polynomials, 1, cc, fermi_small_new)
                   call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale_check)
                   call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, func, cc_check(1:,1:,1:), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, func, cc_check(1,1,1), &
                        x_max_error_check(1), max_error_check(1), mean_error_check(1))
                   if (smatl%nspin==1) then
                       do ipl=1,npl_check
@@ -1307,8 +1307,8 @@ module foe
                   call chebyshev_fast(iproc, nproc, nsize_polynomial, npl_check, &
                        smatl%nfvctr, smatl%smmm%nfvctrp, &
                        smatl, chebyshev_polynomials, 1, cc_check, fermi_check_new)
-                  call f_free_ptr(cc)
-                  call f_free_ptr(cc_check)
+                  call f_free(cc)
+                  call f_free(cc_check)
                   call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
                        fermi_check_new, fermi_check_compr)
 
@@ -1329,10 +1329,10 @@ module foe
                   !@NEW ##########################
                   sumn = trace_sparse(iproc, nproc, smats, smatl, &
                          ovrlp_%matrix_compr(isshift+1:), &
-                         kernel_%matrix_compr(ilshift+1:), ispin)
+                         kernel_%matrix_compr(ilshift+1:))
                   sumn_check = trace_sparse(iproc, nproc, smats, smatl, &
                                ovrlp_%matrix_compr(isshift+1:), &
-                               fermi_check_compr, ispin)
+                               fermi_check_compr)
                   !write(*,*) 'sumn, sumn_check', sumn, sumn_check
                   !@ENDNEW #######################
 
@@ -1438,7 +1438,7 @@ module foe
                   ! Calculate trace(KS).
                   sumn = trace_sparse(iproc, nproc, smats, smatl, &
                          ovrlp_%matrix_compr(isshift+1:), &
-                         kernel_%matrix_compr(ilshift+1:), ispin)
+                         kernel_%matrix_compr(ilshift+1:))
 
 
                   ! Recalculate trace(KH) (needed since the kernel was modified in the above purification).
@@ -1516,27 +1516,41 @@ module foe
           contains
 
             subroutine overlap_minus_onehalf()
-              use sparsematrix_base, only: sparsematrix_malloc, SPARSE_FULL
-              use sparsematrix, only: extract_taskgroup_inplace
-              use matrix_operations, only: overlapPowerGeneral, check_taylor_order
+              !use sparsematrix_base, only: sparsematrix_malloc, SPARSE_FULL
+              !use sparsematrix, only: extract_taskgroup_inplace
+              !use matrix_operations, only: overlapPowerGeneral, check_taylor_order
+              !use sparsematrix_highlevel, only: matrix_chebyshev_expansion
+              use ice, only: inverse_chebyshev_expansion_new
               implicit none
-              real(kind=8) :: max_error, mean_error
               integer :: i, j, ii
+              real(kind=8) :: max_error, mean_error
+              real(kind=8), dimension(1) :: ex
               real(kind=8),dimension(:),allocatable :: tmparr
 
               call f_routine(id='overlap_minus_onehalf')
 
-              ! Taylor approximation of S^-1/2 up to higher order
-              if (imode==DENSE) then
-                  stop 'overlap_minus_onehalf: DENSE is deprecated'
-              end if
-              if (imode==SPARSE) then
-                  call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
-                       imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                       ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_minus_one_half_, &
-                       check_accur=.true., max_error=max_error, mean_error=mean_error)
-              end if
-              call check_taylor_order(mean_error, max_inversion_error, order_taylor)
+              !!! Taylor approximation of S^-1/2 up to higher order
+              !!if (imode==DENSE) then
+              !!    stop 'overlap_minus_onehalf: DENSE is deprecated'
+              !!end if
+              !!if (imode==SPARSE) then
+              !!    call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
+              !!         imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+              !!         ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_minus_one_half_, &
+              !!         check_accur=.true., max_error=max_error, mean_error=mean_error)
+              !!end if
+              !!call check_taylor_order(mean_error, max_inversion_error, order_taylor)
+
+              !call matrix_chebyshev_expansion(iproc, nproc, 1, (/-0.5d0/), &
+              !     smat_in=smats, smat_out=smatl, mat_in=ovrlp_, mat_out=ovrlp_minus_one_half_, &
+              !     npl_auto=.true.)
+              ex=-0.5d0
+              call inverse_chebyshev_expansion_new(iproc, nproc, &
+                   ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
+                   ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
+                   npl_auto=.true.)
+
+
 
               call f_release_routine()
           end subroutine overlap_minus_onehalf

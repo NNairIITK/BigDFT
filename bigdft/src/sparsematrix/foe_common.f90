@@ -197,7 +197,8 @@ module foe_common
       call chebyshev_coefficients_communicate(n, cc)
       !!call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
-      call accuracy_of_chebyshev_expansion(iproc, nproc, n, cc, (/A,B/), 1.d-3, func, x_max_error, max_error, mean_error)
+      call accuracy_of_chebyshev_expansion(iproc, nproc, n, cc, A,B, &
+           1.d-3, func, x_max_error, max_error, mean_error)
 
       call f_release_routine()
 
@@ -1015,74 +1016,92 @@ module foe_common
     !!##end subroutine cheb_exp
 
 
-    subroutine init_foe(iproc, nproc, nspin, charge, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
+    subroutine init_foe(iproc, nproc, nspin, charge, foe_obj, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
                evlow, evhigh, fscale, ef_interpol_det, ef_interpol_chargediff, &
-               fscale_lowerbound, fscale_upperbound, foe_obj)
+               fscale_lowerbound, fscale_upperbound)
       use module_base
       use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
       implicit none
 
       ! Calling arguments
-      integer, intent(in) :: iproc, nproc, nspin, evbounds_nsatur, evboundsshrink_nsatur
+      integer,intent(in) :: iproc, nproc, nspin
       real(kind=8),dimension(nspin),intent(in) :: charge
-      real(kind=8),intent(in) :: evlow, evhigh, fscale, ef_interpol_det
-      real(kind=8),intent(in) :: ef_interpol_chargediff, fscale_lowerbound, fscale_upperbound
-      real(kind=8),intent(in) :: tmprtr
-      type(foe_data), intent(out) :: foe_obj
+      type(foe_data),intent(out) :: foe_obj
+      integer,intent(in),optional :: evbounds_nsatur
+      integer,intent(in),optional :: evboundsshrink_nsatur
+      real(kind=8),intent(in),optional :: evlow
+      real(kind=8),intent(in),optional :: evhigh
+      real(kind=8),intent(in),optional :: fscale
+      real(kind=8),intent(in),optional :: ef_interpol_det
+      real(kind=8),intent(in),optional :: ef_interpol_chargediff
+      real(kind=8),intent(in),optional :: fscale_lowerbound
+      real(kind=8),intent(in),optional :: fscale_upperbound
+      real(kind=8),intent(in),optional :: tmprtr
 
       ! Local variables
       character(len=*), parameter :: subname='init_foe'
-      integer :: iorb, ispin
-      real(kind=8) :: incr
+      integer :: ispin
+      integer :: evbounds_nsatur_
+      integer :: evboundsshrink_nsatur_
+      real(kind=8) :: evlow_
+      real(kind=8) :: evhigh_
+      real(kind=8) :: fscale_
+      real(kind=8) :: ef_interpol_det_
+      real(kind=8) :: ef_interpol_chargediff_
+      real(kind=8) :: fscale_lowerbound_
+      real(kind=8) :: fscale_upperbound_
+      real(kind=8) :: tmprtr_
 
       call timing(iproc,'init_matrCompr','ON')
 
+      ! Define the default values... Is there a way to get them from input_variables_definition.yaml?
+      evbounds_nsatur_ = 3
+      evboundsshrink_nsatur_ =4
+      evlow_ = -0.5d0
+      evhigh_ = 0.5d0
+      fscale_ = 2.d-2
+      ef_interpol_det_ = 1.d-12
+      ef_interpol_chargediff_ = 1.d0
+      fscale_lowerbound_ = 5.d-3
+      fscale_upperbound_ = 5.d-2
+      tmprtr_ = 0.d0
+
+      if (present(evbounds_nsatur)) evbounds_nsatur_ = evbounds_nsatur
+      if (present(evboundsshrink_nsatur)) evboundsshrink_nsatur_ = evboundsshrink_nsatur
+      if (present(evlow)) evlow_ = evlow
+      if (present(evhigh)) evhigh_ = evhigh
+      if (present(fscale)) fscale_ = fscale
+      if (present(ef_interpol_det)) ef_interpol_det_ = ef_interpol_det
+      if (present(ef_interpol_chargediff)) ef_interpol_chargediff_ = ef_interpol_chargediff
+      if (present(fscale_lowerbound)) fscale_lowerbound_ = fscale_lowerbound
+      if (present(fscale_upperbound)) fscale_upperbound_ = fscale_upperbound
+      if (present(tmprtr)) tmprtr_ = tmprtr
+    
       foe_obj = foe_data_null()
 
-      foe_obj%ef = f_malloc0_ptr(nspin,id='(foe_obj%ef)')
-      call foe_data_set_real(foe_obj,"ef",0.d0,1)
-      if (nspin==2) then
-          call foe_data_set_real(foe_obj,"ef",0.d0,2)
-      end if
-      foe_obj%evlow = f_malloc0_ptr(nspin,id='foe_obj%evlow')
-      call foe_data_set_real(foe_obj,"evlow",evlow,1)
-      if (nspin==2) then
-          call foe_data_set_real(foe_obj,"evlow",evlow,2)
-      end if
-      foe_obj%evhigh = f_malloc0_ptr(nspin,id='foe_obj%evhigh')
-      call foe_data_set_real(foe_obj,"evhigh",evhigh,1)
-      if (nspin==2) then
-          call foe_data_set_real(foe_obj,"evhigh",evhigh,2)
-      end if
-      foe_obj%bisection_shift = f_malloc0_ptr(nspin,id='foe_obj%bisection_shift')
-      call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,1)
-      if (nspin==2) then
-          call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,2)
-      end if
-      call foe_data_set_real(foe_obj,"fscale",fscale)
-      call foe_data_set_real(foe_obj,"ef_interpol_det",ef_interpol_det)
-      call foe_data_set_real(foe_obj,"ef_interpol_chargediff",ef_interpol_chargediff)
-      foe_obj%charge = f_malloc0_ptr(nspin,id='foe_obj%charge')
-      call foe_data_set_real(foe_obj,"charge",0.d0,1)
-      !!do iorb=1,orbs_KS%norbu
-      !!    call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)+orbs_KS%occup(iorb),1)
-      !!end do
-      !!if (nspin==2) then
-      !!    call foe_data_set_real(foe_obj,"charge",0.d0,2)
-      !!    do iorb=orbs_KS%norbu+1,orbs_KS%norb
-      !!         call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",2)+orbs_KS%occup(iorb),2)
-      !!    end do
-      !!end if
-      do ispin=1,nspin
-          call foe_data_set_real(foe_obj,"charge",charge(ispin),ispin)
-      end do
+      call foe_data_set_real(foe_obj,"fscale",fscale_)
+      call foe_data_set_real(foe_obj,"ef_interpol_det",ef_interpol_det_)
+      call foe_data_set_real(foe_obj,"ef_interpol_chargediff",ef_interpol_chargediff_)
       call foe_data_set_int(foe_obj,"evbounds_isatur",0)
       call foe_data_set_int(foe_obj,"evboundsshrink_isatur",0)
-      call foe_data_set_int(foe_obj,"evbounds_nsatur",evbounds_nsatur)
-      call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",evboundsshrink_nsatur)
-      call foe_data_set_real(foe_obj,"fscale_lowerbound",fscale_lowerbound)
-      call foe_data_set_real(foe_obj,"fscale_upperbound",fscale_upperbound)
-      call foe_data_set_real(foe_obj,"tmprtr",tmprtr)
+      call foe_data_set_int(foe_obj,"evbounds_nsatur",evbounds_nsatur_)
+      call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",evboundsshrink_nsatur_)
+      call foe_data_set_real(foe_obj,"fscale_lowerbound",fscale_lowerbound_)
+      call foe_data_set_real(foe_obj,"fscale_upperbound",fscale_upperbound_)
+      call foe_data_set_real(foe_obj,"tmprtr",tmprtr_)
+
+      foe_obj%charge = f_malloc0_ptr(nspin,id='foe_obj%charge')
+      foe_obj%ef = f_malloc0_ptr(nspin,id='(foe_obj%ef)')
+      foe_obj%evlow = f_malloc0_ptr(nspin,id='foe_obj%evlow')
+      foe_obj%evhigh = f_malloc0_ptr(nspin,id='foe_obj%evhigh')
+      foe_obj%bisection_shift = f_malloc0_ptr(nspin,id='foe_obj%bisection_shift')
+      do ispin=1,nspin
+          call foe_data_set_real(foe_obj,"charge",charge(ispin),ispin)
+          call foe_data_set_real(foe_obj,"ef",0.d0,ispin)
+          call foe_data_set_real(foe_obj,"evhigh",evhigh_,ispin)
+          call foe_data_set_real(foe_obj,"evlow",evlow_,ispin)
+          call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,ispin)
+      end do
 
       call timing(iproc,'init_matrCompr','OF')
 
@@ -1090,13 +1109,14 @@ module foe_common
     end subroutine init_foe
 
 
-    subroutine accuracy_of_chebyshev_expansion(iproc, nproc, npl, coeff, bounds, h, func, x_max_error, max_error, mean_error)
+    subroutine accuracy_of_chebyshev_expansion(iproc, nproc, npl, coeff, bound_lower, bound_upper, &
+               h, func, x_max_error, max_error, mean_error)
       implicit none
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, npl
       real(kind=8),dimension(npl),intent(in) :: coeff
-      real(kind=8),dimension(2),intent(in) :: bounds
+      real(kind=8),intent(in) :: bound_lower, bound_upper
       real(kind=8),intent(in) :: h
       real(kind=8),external :: func
       real(kind=8),intent(out) :: x_max_error, max_error, mean_error
@@ -1108,11 +1128,11 @@ module foe_common
 
       call f_routine(id='accuracy_of_chebyshev_expansion')
 
-      sigma = 2.d0/(bounds(2)-bounds(1))
-      tau = (bounds(1)+bounds(2))/2.d0
+      sigma = 2.d0/(bound_upper-bound_lower)
+      tau = (bound_lower+bound_upper)/2.d0
 
-      isx = ceiling(bounds(1)/h)
-      iex = floor(bounds(2)/h)
+      isx = ceiling(bound_lower/h)
+      iex = floor(bound_upper/h)
       n = iex - isx + 1
 
       ! MPI parallelization... maybe only worth for large n?
@@ -1904,7 +1924,7 @@ module foe_common
                           call yaml_map('eF',foe_data_get_real(foe_obj,"ef",ispin),fmt='(es13.6)')
                           !call yaml_map('bisec bounds ok',&
                           !     (/bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                          call yaml_map('Tr(K)',sumn,fmt='(es13.7)')
+                          call yaml_map('Tr(K)',sumn,fmt='(es14.7)')
                           call yaml_map('D Tr(K)',sumn-foe_data_get_real(foe_obj,"charge",ispin),fmt='(es9.2)')
                       end if
                       call determine_fermi_level(f, sumn, ef, info)
@@ -2037,7 +2057,7 @@ module foe_common
       type(foe_data),intent(in) :: foe_obj
       real(kind=8),intent(in) :: max_polynomial_degree
       integer,intent(out) :: npl
-      real(kind=8),dimension(:,:,:),pointer,intent(inout) :: cc
+      real(kind=8),dimension(:,:,:),allocatable,intent(inout) :: cc
       real(kind=8),dimension(ncalc),intent(out) :: max_error, x_max_error, mean_error
       real(kind=8),intent(out) :: anoise
       real(kind=8),dimension(ncalc),intent(in),optional :: ex, ef, fscale
@@ -2156,12 +2176,12 @@ module foe_common
           call yaml_sequence_close()
       end if
 
-      cc = f_malloc_ptr((/npl,ncalc,3/),id='cc')
+      cc = f_malloc((/npl,ncalc,3/),id='cc')
       do j=1,3
           do icalc=1,ncalc
               do ipl=1,npl
                   cc(ipl,icalc,j)=cc_trial(ipl,icalc,j)
-                  !write(*,*) 'icalc, ipl, cc(ipl,1,icalc)', icalc, ipl, cc(ipl,1,icalc)
+                  !write(*,*) 'icalc, ipl, cc(ipl,icalc,1)', icalc, ipl, cc(ipl,icalc,1)
               end do
           end do
       end do

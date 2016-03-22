@@ -103,6 +103,7 @@ END SUBROUTINE daub_to_isf
 !!  - psi must already be initialized (to zero) before entering this routine
 subroutine isf_to_daub(lr,w,psir,psi)
   use module_defs, only: wp
+  use module_base
   use locregs
   use locreg_operations
   implicit none
@@ -113,6 +114,8 @@ subroutine isf_to_daub(lr,w,psir,psi)
   !local variables
   integer :: i,i_f,iseg_f,isegf,ipsif
   real(wp), dimension(0:3) :: scal
+
+  call f_routine(id='isf_to_daub')
 
   do i=0,3
      scal(i)=1.0_wp
@@ -177,6 +180,8 @@ subroutine isf_to_daub(lr,w,psir,psi)
      end if
 
   end select
+
+  call f_release_routine()
 
 END SUBROUTINE isf_to_daub
 
