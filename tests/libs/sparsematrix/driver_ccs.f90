@@ -1,7 +1,6 @@
 program driver_css
   ! The following module are part of the sparsematrix library
   use sparsematrix_base
-  use bigdft_run, only: bigdft_init
   use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_ccs, &
                                     sparse_matrix_init_from_file_ccs, matrices_init, &
                                     matrices_get_values, matrices_set_values, &
