@@ -91,6 +91,7 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	locregs_init.f90 \
 	sort.f90 \
 	forces_linear.f90 \
+	bigdft_matrices.f90 \
 	$(PEXSI_SRC) \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
@@ -141,6 +142,7 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	LOCREGS_INIT.@MODULE_EXT@ \
 	SORT.@MODULE_EXT@ \
 	FORCES_LINEAR.@MODULE_EXT@ \
+	MATRIX_TASKGROUPS.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
 	F90SOCKETS.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
@@ -194,6 +196,7 @@ modules = module_types.@MODULE_EXT@ \
 	orthonormalization.@MODULE_EXT@ \
 	locregs_init.@MODULE_EXT@ \
 	forces_linear.@MODULE_EXT@ \
+	bigdft_matrices.@MODULE_EXT@ \
 	sort.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	f90sockets.@MODULE_EXT@ \
@@ -268,17 +271,18 @@ module_dftbp.o: types.o
 module_tersoff.o: atoms_data.o
 module_bornmayerhugginstosifumi.o: atoms_data.o
 #module_lenosky_si.o: base.o defs.o
-transposed_operations.o: types.o
+transposed_operations.o: types.o bigdft_matrices.o
 module_forces.o: types.o 
 unitary_tests.o: types.o interfaces.o communications_init.o communications.o transposed_operations.o rhopotential.o
 io.o: types.o interfaces.o input_keys.o
 postprocessing_linear.o: types.o interfaces.o communications.o transposed_operations.o rhopotential.o sort.o communications_init.o locregs_init.o multipole_base.o multipole.o io.o
-rhopotential.o: types.o interfaces.o xc.o communications.o
+rhopotential.o: types.o interfaces.o xc.o communications.o bigdft_matrices.o
 multipole.o: multipole_base.o interfaces.o orthonormalization.o io.o orbital_basis.o
 orbital_basis.o:  types.o interfaces.o
 orthonormalization.o: types.o communications.o transposed_operations.o atoms_data.o
 locregs_init.o: types.o communications.o
 forces_linear.o: types.o psp_projectors.o transposed_operations.o
+bigdft_matrices.o: 
 #pexsi.o also depends on pexsi_interfaces, but it is not known which one...
 if HAVE_PEXSI
 pexsi_interfaces.o: pexsi_base.o

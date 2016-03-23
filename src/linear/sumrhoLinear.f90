@@ -273,7 +273,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
 
       call f_free(density_kernel_partial)
 
-      call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
+      call compress_matrix(iproc,nproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
       if (.not.keep_uncompressed) then
           call f_free_ptr(denskern_%matrix)
       end if
@@ -342,7 +342,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       call timing(iproc,'waitAllgatKern','OF')
 
       tmparr = sparsematrix_malloc(denskern,iaction=SPARSE_FULL,id='tmparr')
-      call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=tmparr)
+      call compress_matrix(iproc,nproc,denskern,inmat=denskern_%matrix,outmat=tmparr)
       if (keep_uncompressed) then
           if (nproc > 1) then
               call timing(iproc,'commun_kernel','ON')

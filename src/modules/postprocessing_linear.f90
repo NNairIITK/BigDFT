@@ -304,7 +304,8 @@ module postprocessing_linear
               inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
 
               power(1)=2
-              call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, power, blocksize, &
+              call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+                   meth_overlap, 1, power, blocksize, &
                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                    ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
                    max_error=max_error, mean_error=mean_error)
@@ -325,7 +326,7 @@ module postprocessing_linear
               end do
               call deallocate_matrices(inv_ovrlp(1))
           else if (method==CHARGE_ANALYSIS_MULLIKEN) then
-              call transform_sparse_matrix(smats, smatl, 'small_to_large', &
+              call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
                    smat_in=ovrlp%matrix_compr, lmat_out=proj_ovrlp_half_compr)
               do ispin=1,smatl%nspin
                   ist = (ispin-1)*smatl%nvctrp_tg + 1
@@ -341,7 +342,8 @@ module postprocessing_linear
 
           ! Maybe this can be improved... not really necessary to gather the entire matrix
           weight_matrix_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='weight_matrix_compr')
-          call gather_matrix_from_taskgroups(iproc, nproc, smatl, weight_matrix_compr_tg, weight_matrix_compr)
+          call gather_matrix_from_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, &
+               smatl, weight_matrix_compr_tg, weight_matrix_compr)
 
           if (optionals_present) then
               do ispin=1,smatl%nspin
