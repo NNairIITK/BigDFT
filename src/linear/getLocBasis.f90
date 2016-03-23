@@ -554,9 +554,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           if (tmb%linmat%s%ntaskgroup/=1 .or. tmb%linmat%m%ntaskgroup/=1 .or. tmb%linmat%l%ntaskgroup/=1) then
               call f_err_throw('PEXSI is not yet tested with matrix taskgroups', err_name='BIGDFT_RUNTIME_ERROR')
           end if
-          call transform_sparse_matrix(iproc, tmb%linmat%s, tmb%linmat%l, 'small_to_large', &
+          call transform_sparse_matrix(iproc, tmb%linmat%s, tmb%linmat%l, SPARSE_FULL, 'small_to_large', &
                smat_in=tmb%linmat%ovrlp_%matrix_compr, lmat_out=ovrlp_large)
-          call transform_sparse_matrix(iproc, tmb%linmat%m, tmb%linmat%l, 'small_to_large', &
+          call transform_sparse_matrix(iproc, tmb%linmat%m, tmb%linmat%l, SPARSE_FULL, 'small_to_large', &
                smat_in=tmb%linmat%ham_%matrix_compr, lmat_out=ham_large)
           !write(*,*) 'iproc, ham_large', iproc, ham_large
           call pexsi_driver(iproc, nproc, tmb%linmat%l%nfvctr, tmb%linmat%l%nvctr, row_ind, col_ptr, &

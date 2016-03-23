@@ -100,7 +100,7 @@ program driver_css
 
   ! Transform the overlap matrix to the sparsity pattern of the kernel
   overlap_large = sparsematrix_malloc_ptr(smat_k, iaction=SPARSE_FULL, id='overlap_large')
-  call transform_sparse_matrix(iproc, smat_s, smat_k, 'small_to_large', &
+  call transform_sparse_matrix(iproc, smat_s, smat_k, SPARSE_FULL, 'small_to_large', &
        smat_in=overlap, lmat_out=overlap_large)
 
   ! Again calculate trace(KS), this time directly with the array holding the data.

@@ -1966,7 +1966,7 @@ module io
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, matrices_null, &
                                    DENSE_FULL, SPARSE_TASKGROUP, assignment(=), &
                                    deallocate_matrices
-      use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix_local, matrix_matrix_mult_wrapper
+      use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix, matrix_matrix_mult_wrapper
       use sparsematrix_io, only: write_sparse_matrix, write_sparse_matrix_metadata
       use matrix_operations, only: overlapPowerGeneral
       implicit none
@@ -2104,8 +2104,8 @@ module io
               sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='SminusonehalfH%matrix_compr')
           ham_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='ham_large')
           tmp_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_large')
-          call transform_sparse_matrix_local(iproc, tmb%linmat%m, tmb%linmat%l, 'small_to_large', &
-               smatrix_compr_in=tmb%linmat%ham_%matrix_compr, lmatrix_compr_out=ham_large)
+          call transform_sparse_matrix(iproc, tmb%linmat%m, tmb%linmat%l, SPARSE_TASKGROUP, 'small_to_large', &
+               smat_in=tmb%linmat%ham_%matrix_compr, lmat_out=ham_large)
           ! calculate S^-1/2
           power=-2
           call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &

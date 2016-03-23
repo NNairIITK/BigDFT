@@ -20,7 +20,7 @@ module sparsematrix
   public :: compress_matrix, compress_matrix2
   public :: uncompress_matrix, uncompress_matrix2
   public :: check_matrix_compression
-  public :: transform_sparse_matrix, transform_sparse_matrix_local
+  public :: transform_sparse_matrix!, transform_sparse_matrix_local
   public :: compress_matrix_distributed_wrapper
   public :: uncompress_matrix_distributed2
   public :: sequential_acces_matrix_fast, sequential_acces_matrix_fast2
@@ -392,53 +392,92 @@ module sparsematrix
     end subroutine check_matrix_compression
 
 
-    subroutine transform_sparse_matrix(iproc, smat, lmat, cmode, &
+    subroutine transform_sparse_matrix(iproc, smat, lmat, imode, direction, &
                smat_in, lmat_in, smat_out, lmat_out)
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc
+      integer,intent(in) :: iproc, imode
       type(sparse_matrix),intent(in) :: smat, lmat
-      character(len=14),intent(in) :: cmode
-      real(kind=8),dimension(smat%nspin*smat%nvctr),intent(in),optional :: smat_in
-      real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(in),optional :: lmat_in
-      real(kind=8),dimension(smat%nspin*smat%nvctr),intent(out),optional :: smat_out
-      real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(out),optional :: lmat_out
+      character(len=14),intent(in) :: direction
+      !real(kind=8),dimension(smat%nspin*smat%nvctr),intent(in),optional :: smat_in
+      !real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(in),optional :: lmat_in
+      !real(kind=8),dimension(smat%nspin*smat%nvctr),intent(out),optional :: smat_out
+      !real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(out),optional :: lmat_out
+      real(kind=8),dimension(:),intent(in),optional :: smat_in
+      real(kind=8),dimension(:),intent(in),optional :: lmat_in
+      real(kind=8),dimension(:),intent(out),optional :: smat_out
+      real(kind=8),dimension(:),intent(out),optional :: lmat_out
     
       ! Local variables
       integer(kind=8) :: isstart, isend, ilstart, ilend, iostart, ioend
-      integer :: imode, icheck, isseg, ilseg
-      integer :: ilength, iscostart, ilcostart, i
+      integer :: idir, icheck, isseg, ilseg, isoffset_tg, iloffset_tg, issegstartx, issegendx
+      integer :: ilength, iscostart, ilcostart, nssize, nlsize, i, ilsegstartx
       integer :: ilsegstart, ispin, isshift, ilshift, isoffset, iloffset
       integer,parameter :: SMALL_TO_LARGE=1
       integer,parameter :: LARGE_TO_SMALL=2
     
       call f_routine(id='transform_sparse_matrix')
+
+      ! determine whether the routine should handle a matrix taskgroup or the full matrices
+      if (imode==SPARSE_FULL) then
+          ilsegstartx = 1
+          issegstartx = 1
+          issegendx = smat%nseg
+          isoffset_tg = 0
+          iloffset_tg = 0
+          nssize = smat%nvctr*smat%nspin
+          nlsize = lmat%nvctr*lmat%nspin
+      else if (imode==SPARSE_TASKGROUP) then
+          ilsegstartx = lmat%iseseg_tg(1)
+          issegstartx = smat%iseseg_tg(1)
+          issegendx = smat%iseseg_tg(2)
+          isoffset_tg = smat%isvctrp_tg
+          iloffset_tg = lmat%isvctrp_tg
+          nssize = smat%nvctrp_tg*smat%nspin
+          nlsize = lmat%nvctrp_tg*lmat%nspin
+      else
+          call f_err_throw('wrong imode')
+      end if
     
       ! determine the case:
       ! SMALL_TO_LARGE -> transform from large sparsity pattern to small one
       ! LARGE_TO_SMALL -> transform from small sparsity pattern to large one
-      if (cmode=='small_to_large' .or. cmode=='SMALL_TO_LARGE') then
-          imode=SMALL_TO_LARGE
+      if (direction=='small_to_large' .or. direction=='SMALL_TO_LARGE') then
+          idir=SMALL_TO_LARGE
           if (.not.present(smat_in)) call f_err_throw('smat_in not present')
           if (.not.present(lmat_out)) call f_err_throw('lmat_out not present')
-      else if (cmode=='large_to_small' .or. cmode=='LARGE_TO_SMALL') then
-          imode=LARGE_TO_SMALL
+          if (size(smat_in)/=nssize) then
+              call f_err_throw('the size of smat_in ('//trim(yaml_toa(size(smat_in)))//&
+                   &') is not the correct one ('//trim(yaml_toa(nssize))//')')
+          end if
+          if (size(lmat_out)/=nlsize) then
+              call f_err_throw('the size of lmat_out ('//trim(yaml_toa(size(lmat_out)))//&
+                   &') is not the correct one ('//trim(yaml_toa(nlsize))//')')
+          end if
+      else if (direction=='large_to_small' .or. direction=='LARGE_TO_SMALL') then
+          idir=LARGE_TO_SMALL
           if (.not.present(lmat_in)) call f_err_throw('lmat_in not present')
           if (.not.present(smat_out)) call f_err_throw('smat_out not present')
+          if (size(lmat_in)/=nlsize) then
+              call f_err_throw('the size of lmat_in ('//trim(yaml_toa(size(lmat_in)))//&
+                   &') is not the correct one ('//trim(yaml_toa(nlsize))//')')
+          end if
+          if (size(smat_out)/=nssize) then
+              call f_err_throw('the size of smat_out ('//trim(yaml_toa(size(smat_out)))//&
+                   &') is not the correct one ('//trim(yaml_toa(nssize))//')')
+          end if
       else
-          call f_err_throw('wrong cmode')
+          call f_err_throw('wrong direction')
       end if
     
-      select case (imode)
+      select case (idir)
       case (SMALL_TO_LARGE)
-         !call to_zero(lmat%nvctr*lmat%nspin,lmatrix_compr(1))
          call f_zero(lmat_out)
       case (LARGE_TO_SMALL)
-         !call to_zero(smat%nvctr*lmat%nspin,smatrix_compr(1))
          call f_zero(smat_out)
       case default
-          call f_err_throw('wrong imode')
+          call f_err_throw('wrong idir')
       end select
     
       call timing(iproc,'transform_matr','IR')
@@ -450,13 +489,15 @@ module sparsematrix
           isshift=(ispin-1)*smat%nvctr
           ilshift=(ispin-1)*lmat%nvctr
     
-          ilsegstart=1
-          !$omp parallel default(private) &
-          !$omp shared(smat, lmat, imode, icheck, isshift, ilshift) &
+          ilsegstart = ilsegstartx
+          !$omp parallel default(none) &
+          !$omp shared(smat, lmat, issegstartx, issegendx, idir, icheck, isshift, ilshift, isoffset_tg, iloffset_tg) &
           !$omp shared(smat_in, lmat_in, smat_out, lmat_out) &
+          !$omp private(isseg, isstart, isend, ilstart, ilend, iostart, ioend) &
+          !$omp private(isoffset, iloffset, iscostart, ilcostart, ilength) &
           !$omp firstprivate(ilsegstart)
           !$omp do reduction(+:icheck)
-          sloop: do isseg=1,smat%nseg
+          sloop: do isseg=issegstartx,issegendx
               isstart = int((smat%keyg(1,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(1,1,isseg),kind=8)
               isend = int((smat%keyg(2,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(2,1,isseg),kind=8)
               ! A segment is always on one line, therefore no double loop
@@ -492,17 +533,17 @@ module sparsematrix
                   ilcostart=lmat%keyv(ilseg)+iloffset
     
                   ! copy the elements
-                  select case (imode)
+                  select case (idir)
                   case (SMALL_TO_LARGE) 
                       do i=0,ilength-1
-                          lmat_out(ilcostart+i+ilshift)=smat_in(iscostart+i+isshift)
+                          lmat_out(ilcostart+i+ilshift-iloffset_tg)=smat_in(iscostart+i+isshift-isoffset_tg)
                       end do
                   case (LARGE_TO_SMALL) 
                       do i=0,ilength-1
-                          smat_out(iscostart+i+isshift)=lmat_in(ilcostart+i+ilshift)
+                          smat_out(iscostart+i+isshift-isoffset_tg)=lmat_in(ilcostart+i+ilshift-iloffset_tg)
                       end do
                   case default
-                      stop 'wrong imode'
+                      stop 'wrong idir'
                   end select
                   icheck=icheck+ilength
               end do lloop
@@ -514,7 +555,8 @@ module sparsematrix
     
       ! all elements of the small matrix must have been processed, no matter in
       ! which direction the transformation has been executed
-      if (icheck/=smat%nvctr*smat%nspin) then
+      !if (icheck/=smat%nvctr*smat%nspin) then
+      if (icheck/=nssize) then
           write(*,'(a,2i8)') 'ERROR: icheck/=smat%nvctr*smat%nspin', icheck, smat%nvctr*smat%nspin
           stop
       end if
@@ -526,78 +568,94 @@ module sparsematrix
 
 
 
-    subroutine transform_sparse_matrix_local(iproc, smat, lmat, cmode, &
-               smatrix_compr_in, lmatrix_compr_in, smatrix_compr_out, lmatrix_compr_out)
-      implicit none
-    
-      ! Calling arguments
-      integer,intent(in) :: iproc
-      type(sparse_matrix),intent(in) :: smat, lmat
-      character(len=14),intent(in) :: cmode
-      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(in),optional :: smatrix_compr_in
-      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(in),optional :: lmatrix_compr_in
-      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(out),optional :: smatrix_compr_out
-      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(out),optional :: lmatrix_compr_out
-    
-      ! Local variables
-      real(kind=8),dimension(:),allocatable :: tmparrs, tmparrl
-      integer :: ishift_src, ishift_dst, imode, ispin
-      integer,parameter :: SMALL_TO_LARGE=1
-      integer,parameter :: LARGE_TO_SMALL=2
-    
-      call f_routine(id='transform_sparse_matrix_local')
-
-
-      ! determine the case:
-      ! SMALL_TO_LARGE -> transform from large sparsity pattern to small one
-      ! LARGE_TO_SMALL -> transform from small sparsity pattern to large one
-      if (cmode=='small_to_large' .or. cmode=='SMALL_TO_LARGE') then
-          imode=SMALL_TO_LARGE
-      else if (cmode=='large_to_small' .or. cmode=='LARGE_TO_SMALL') then
-          imode=LARGE_TO_SMALL
-      else
-          stop 'wrong cmode'
-      end if
-
-    
-      select case (imode)
-      case (SMALL_TO_LARGE)
-          ! check the aruments
-          if (.not.present(smatrix_compr_in)) call f_err_throw("'smatrix_compr_in' not present")
-          if (.not.present(lmatrix_compr_out)) call f_err_throw("'lmatrix_compr_out' not present")
-          tmparrs = sparsematrix_malloc0(smat,iaction=SPARSE_FULL,id='tmparrs')
-          tmparrl = sparsematrix_malloc(lmat,iaction=SPARSE_FULL,id='tmparrl')
-          do ispin=1,smat%nspin
-              ishift_src = (ispin-1)*smat%nvctrp_tg
-              ishift_dst = (ispin-1)*smat%nvctr
-              call vcopy(smat%nvctrp_tg, smatrix_compr_in(ishift_src+1), 1, &
-                   tmparrs(ishift_dst+smat%isvctrp_tg+1), 1)
-              call transform_sparse_matrix(iproc, smat, lmat, cmode, smat_in=tmparrs, lmat_out=tmparrl)
-              call extract_taskgroup(lmat, tmparrl, lmatrix_compr_out)
-          end do
-      case (LARGE_TO_SMALL)
-          if (.not.present(lmatrix_compr_in)) call f_err_throw("'lmatrix_compr_in' not present")
-          if (.not.present(smatrix_compr_out)) call f_err_throw("'smatrix_compr_out' not present")
-          tmparrs = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='tmparrs')
-          tmparrl = sparsematrix_malloc0(lmat,iaction=SPARSE_FULL,id='tmparrl')
-          do ispin=1,smat%nspin
-              ishift_src = (ispin-1)*lmat%nvctrp_tg
-              ishift_dst = (ispin-1)*lmat%nvctr
-              call vcopy(lmat%nvctrp_tg, lmatrix_compr_in(ishift_src+1), 1, &
-                   tmparrl(ishift_dst+lmat%isvctrp_tg+1), 1)
-              call transform_sparse_matrix(iproc, smat, lmat, cmode, lmat_in=tmparrl, smat_out=tmparrs)
-              call extract_taskgroup(smat, tmparrs, smatrix_compr_out)
-          end do
-      case default
-          stop 'wrong imode'
-      end select
-
-      call f_free(tmparrs)
-      call f_free(tmparrl)
-
-      call f_release_routine()
-    
-  end subroutine transform_sparse_matrix_local
+!!    subroutine transform_sparse_matrix_local(iproc, smat, lmat, cmode, &
+!!               smatrix_compr_in, lmatrix_compr_in, smatrix_compr_out, lmatrix_compr_out)
+!!      implicit none
+!!    
+!!      ! Calling arguments
+!!      integer,intent(in) :: iproc
+!!      type(sparse_matrix),intent(in) :: smat, lmat
+!!      character(len=14),intent(in) :: cmode
+!!      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(in),optional :: smatrix_compr_in
+!!      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(in),optional :: lmatrix_compr_in
+!!      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(out),optional :: smatrix_compr_out
+!!      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(out),optional :: lmatrix_compr_out
+!!    
+!!      ! Local variables
+!!      real(kind=8),dimension(:),allocatable :: tmparrs, tmparrl
+!!      integer :: ishift_src, ishift_dst, imode, ispin, i
+!!      integer,parameter :: SMALL_TO_LARGE=1
+!!      integer,parameter :: LARGE_TO_SMALL=2
+!!    
+!!      call f_routine(id='transform_sparse_matrix_local')
+!!
+!!
+!!      ! determine the case:
+!!      ! SMALL_TO_LARGE -> transform from large sparsity pattern to small one
+!!      ! LARGE_TO_SMALL -> transform from small sparsity pattern to large one
+!!      if (cmode=='small_to_large' .or. cmode=='SMALL_TO_LARGE') then
+!!          imode=SMALL_TO_LARGE
+!!      else if (cmode=='large_to_small' .or. cmode=='LARGE_TO_SMALL') then
+!!          imode=LARGE_TO_SMALL
+!!      else
+!!          stop 'wrong cmode'
+!!      end if
+!!
+!!    
+!!      select case (imode)
+!!      case (SMALL_TO_LARGE)
+!!          ! check the aruments
+!!          if (.not.present(smatrix_compr_in)) call f_err_throw("'smatrix_compr_in' not present")
+!!          if (.not.present(lmatrix_compr_out)) call f_err_throw("'lmatrix_compr_out' not present")
+!!          tmparrs = sparsematrix_malloc0(smat,iaction=SPARSE_FULL,id='tmparrs')
+!!          tmparrl = sparsematrix_malloc(lmat,iaction=SPARSE_FULL,id='tmparrl')
+!!          call transform_sparse_matrix_test(iproc, smat, lmat, cmode, &
+!!               smat_in=smatrix_compr_in, lmat_out=lmatrix_compr_out)
+!!          do i=1,lmat%nspin*lmat%nvctrp_tg
+!!              write(1000+iproc,*) 'i, val', i, lmatrix_compr_out(i)
+!!          end do
+!!          do ispin=1,smat%nspin
+!!              ishift_src = (ispin-1)*smat%nvctrp_tg
+!!              ishift_dst = (ispin-1)*smat%nvctr
+!!              call vcopy(smat%nvctrp_tg, smatrix_compr_in(ishift_src+1), 1, &
+!!                   tmparrs(ishift_dst+smat%isvctrp_tg+1), 1)
+!!              call transform_sparse_matrix(iproc, smat, lmat, cmode, smat_in=tmparrs, lmat_out=tmparrl)
+!!              call extract_taskgroup(lmat, tmparrl, lmatrix_compr_out)
+!!          end do
+!!          do i=1,lmat%nspin*lmat%nvctrp_tg
+!!              write(1100+iproc,*) 'i, val', i, lmatrix_compr_out(i)
+!!          end do
+!!      case (LARGE_TO_SMALL)
+!!          if (.not.present(lmatrix_compr_in)) call f_err_throw("'lmatrix_compr_in' not present")
+!!          if (.not.present(smatrix_compr_out)) call f_err_throw("'smatrix_compr_out' not present")
+!!          tmparrs = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='tmparrs')
+!!          tmparrl = sparsematrix_malloc0(lmat,iaction=SPARSE_FULL,id='tmparrl')
+!!          call transform_sparse_matrix_test(iproc, smat, lmat, cmode, &
+!!               lmat_in=lmatrix_compr_in, smat_out=smatrix_compr_out)
+!!          do i=1,smat%nspin*smat%nvctrp_tg
+!!              write(2000+iproc,*) 'i, val', i, smatrix_compr_out(i)
+!!          end do
+!!          do ispin=1,smat%nspin
+!!              ishift_src = (ispin-1)*lmat%nvctrp_tg
+!!              ishift_dst = (ispin-1)*lmat%nvctr
+!!              call vcopy(lmat%nvctrp_tg, lmatrix_compr_in(ishift_src+1), 1, &
+!!                   tmparrl(ishift_dst+lmat%isvctrp_tg+1), 1)
+!!              call transform_sparse_matrix(iproc, smat, lmat, cmode, lmat_in=tmparrl, smat_out=tmparrs)
+!!              call extract_taskgroup(smat, tmparrs, smatrix_compr_out)
+!!          end do
+!!          do i=1,smat%nspin*smat%nvctrp_tg
+!!              write(2100+iproc,*) 'i, val', i, smatrix_compr_out(i)
+!!          end do
+!!      case default
+!!          stop 'wrong imode'
+!!      end select
+!!
+!!      call f_free(tmparrs)
+!!      call f_free(tmparrl)
+!!
+!!      call f_release_routine()
+!!    
+!!  end subroutine transform_sparse_matrix_local
 
 
 
@@ -1927,5 +1985,138 @@ module sparsematrix
           call f_release_routine()
       end if
     end subroutine synchronize_matrix_taskgroups
+
+
+    !!!!subroutine transform_sparse_matrix_test(iproc, smat, lmat, cmode, &
+    !!!!           smat_in, lmat_in, smat_out, lmat_out)
+    !!!!  implicit none
+    !!!!
+    !!!!  ! Calling arguments
+    !!!!  integer,intent(in) :: iproc
+    !!!!  type(sparse_matrix),intent(in) :: smat, lmat
+    !!!!  character(len=14),intent(in) :: cmode
+    !!!!  real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(in),optional :: smat_in
+    !!!!  real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(in),optional :: lmat_in
+    !!!!  real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(out),optional :: smat_out
+    !!!!  real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(out),optional :: lmat_out
+    !!!!
+    !!!!  ! Local variables
+    !!!!  integer(kind=8) :: isstart, isend, ilstart, ilend, iostart, ioend
+    !!!!  integer :: imode, icheck, isseg, ilseg
+    !!!!  integer :: ilength, iscostart, ilcostart, i
+    !!!!  integer :: ilsegstart, ispin, isshift, ilshift, isoffset, iloffset
+    !!!!  integer,parameter :: SMALL_TO_LARGE=1
+    !!!!  integer,parameter :: LARGE_TO_SMALL=2
+    !!!!
+    !!!!  call f_routine(id='transform_sparse_matrix')
+    !!!!
+    !!!!  ! determine the case:
+    !!!!  ! SMALL_TO_LARGE -> transform from large sparsity pattern to small one
+    !!!!  ! LARGE_TO_SMALL -> transform from small sparsity pattern to large one
+    !!!!  if (cmode=='small_to_large' .or. cmode=='SMALL_TO_LARGE') then
+    !!!!      imode=SMALL_TO_LARGE
+    !!!!      if (.not.present(smat_in)) call f_err_throw('smat_in not present')
+    !!!!      if (.not.present(lmat_out)) call f_err_throw('lmat_out not present')
+    !!!!  else if (cmode=='large_to_small' .or. cmode=='LARGE_TO_SMALL') then
+    !!!!      imode=LARGE_TO_SMALL
+    !!!!      if (.not.present(lmat_in)) call f_err_throw('lmat_in not present')
+    !!!!      if (.not.present(smat_out)) call f_err_throw('smat_out not present')
+    !!!!  else
+    !!!!      call f_err_throw('wrong cmode')
+    !!!!  end if
+    !!!!
+    !!!!  select case (imode)
+    !!!!  case (SMALL_TO_LARGE)
+    !!!!     !call to_zero(lmat%nvctr*lmat%nspin,lmatrix_compr(1))
+    !!!!     call f_zero(lmat_out)
+    !!!!  case (LARGE_TO_SMALL)
+    !!!!     !call to_zero(smat%nvctr*lmat%nspin,smatrix_compr(1))
+    !!!!     call f_zero(smat_out)
+    !!!!  case default
+    !!!!      call f_err_throw('wrong imode')
+    !!!!  end select
+    !!!!
+    !!!!  call timing(iproc,'transform_matr','IR')
+
+
+    !!!!  icheck=0
+    !!!!  do ispin=1,smat%nspin
+
+    !!!!      isshift=(ispin-1)*smat%nvctr
+    !!!!      ilshift=(ispin-1)*lmat%nvctr
+    !!!!
+    !!!!      ilsegstart=lmat%iseseg_tg(1)
+    !!!!      !$omp parallel default(private) &
+    !!!!      !$omp shared(smat, lmat, imode, icheck, isshift, ilshift) &
+    !!!!      !$omp shared(smat_in, lmat_in, smat_out, lmat_out) &
+    !!!!      !$omp firstprivate(ilsegstart)
+    !!!!      !$omp do reduction(+:icheck)
+    !!!!      sloop: do isseg=smat%iseseg_tg(1),smat%iseseg_tg(2)
+    !!!!          isstart = int((smat%keyg(1,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(1,1,isseg),kind=8)
+    !!!!          isend = int((smat%keyg(2,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(2,1,isseg),kind=8)
+    !!!!          ! A segment is always on one line, therefore no double loop
+    !!!!          lloop: do ilseg=ilsegstart,lmat%iseseg_tg(2)
+    !!!!              ilstart = int((lmat%keyg(1,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) + int(lmat%keyg(1,1,ilseg),kind=8)
+    !!!!              ilend = int((lmat%keyg(2,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) + int(lmat%keyg(2,1,ilseg),kind=8)
+    !!!!
+    !!!!              ! check whether there is an overlap:
+    !!!!              ! if not, increase loop counters
+    !!!!              if (ilstart>isend) then
+    !!!!                  !ilsegstart=ilseg
+    !!!!                  exit lloop
+    !!!!              end if
+    !!!!              if (isstart>ilend) then
+    !!!!                  ilsegstart=ilseg
+    !!!!                  cycle lloop
+    !!!!              end if
+    !!!!              ! if yes, determine start end end of overlapping segment (in uncompressed form)
+    !!!!              iostart=max(isstart,ilstart)
+    !!!!              ioend=min(isend,ilend)
+    !!!!              ilength=int(ioend-iostart+1,kind=4)
+    !!!!
+    !!!!              ! offset with respect to the starting point of the segment
+    !!!!              isoffset = int(iostart - &
+    !!!!                         (int((smat%keyg(1,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) &
+    !!!!                           + int(smat%keyg(1,1,isseg),kind=8)),kind=4)
+    !!!!              iloffset = int(iostart - &
+    !!!!                         (int((lmat%keyg(1,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) &
+    !!!!                           + int(lmat%keyg(1,1,ilseg),kind=8)),kind=4)
+    !!!!
+    !!!!              ! determine start end and of the overlapping segment in compressed form
+    !!!!              iscostart=smat%keyv(isseg)+isoffset
+    !!!!              ilcostart=lmat%keyv(ilseg)+iloffset
+    !!!!
+    !!!!              ! copy the elements
+    !!!!              select case (imode)
+    !!!!              case (SMALL_TO_LARGE) 
+    !!!!                  do i=0,ilength-1
+    !!!!                      lmat_out(ilcostart+i+ilshift-lmat%isvctrp_tg)=smat_in(iscostart+i+isshift-smat%isvctrp_tg)
+    !!!!                  end do
+    !!!!              case (LARGE_TO_SMALL) 
+    !!!!                  do i=0,ilength-1
+    !!!!                      smat_out(iscostart+i+isshift-smat%isvctrp_tg)=lmat_in(ilcostart+i+ilshift-lmat%isvctrp_tg)
+    !!!!                  end do
+    !!!!              case default
+    !!!!                  stop 'wrong imode'
+    !!!!              end select
+    !!!!              icheck=icheck+ilength
+    !!!!          end do lloop
+    !!!!      end do sloop
+    !!!!      !$omp end do 
+    !!!!      !$omp end parallel
+
+    !!!!  end do
+    !!!!
+    !!!!  ! all elements of the small matrix must have been processed, no matter in
+    !!!!  ! which direction the transformation has been executed
+    !!!!  if (icheck/=smat%nvctrp_tg*smat%nspin) then
+    !!!!      write(*,'(a,2i8)') 'ERROR: icheck/=smat%nvctr*smat%nspin', icheck, smat%nvctr*smat%nspin
+    !!!!      stop
+    !!!!  end if
+
+    !!!!  call timing(iproc,'transform_matr','RS')
+    !!!!  call f_release_routine()
+    !!!!
+    !!!!end subroutine transform_sparse_matrix_test
 
 end module sparsematrix
