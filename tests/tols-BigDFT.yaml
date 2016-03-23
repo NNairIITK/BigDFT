@@ -771,7 +771,7 @@ fructose:
  relative difference: 6.3e-11
  trace(KS): 2.5e-10
  eval: 1.1e-6
- trace: 1.2e-11
+ trace: 1.4e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -988,7 +988,7 @@ onlyhigh:
  Average noise forces: 4.1e-10
  maxval: 1.3e-10
  Energy (Hartree): 1.6e-11
- Maxdiff for overlap calculation: 2.4e-08
+ Maxdiff for overlap calculation: 2.6e-08
  Maxdiff for transpose (checksum): 3.0e-11
 
 rotatesmall_read1:
@@ -1846,15 +1846,17 @@ multipoles_OH-:
 multipoles_waterQM:
  Epot: 1.1e-10
  Ekin: 1.1e-10
- EBS: 1.2e-11
- EBS higher temperature: 1.3e-11
+ EBS: 1.3e-11
+ EBS higher temperature: 1.4e-11
  Maxdiff for transpose (checksum): 3.0e-11
  multiplicator for the confinement: 1.9e-11
- trace: 3.0e-11
+ trace: 3.4e-11
 
 multipoles_waterQMQM:
  Epot: 1.1e-10
  EH: 1.1e-10
+ EBS: 1.4e-11
+ EBS higher temperature: 1.4e-11
  Average noise forces: 1.0e-10
  number of corrected points: 6.0
  multiplicator for the confinement: 1.6e-10
