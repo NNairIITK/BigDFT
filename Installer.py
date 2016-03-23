@@ -247,7 +247,7 @@ class BigDFTInstaller():
         if self.branch:
             co=''
         else:
-            co='-C'
+            co=' -C'
         if (self.verbose):
             os.system(self.jhb+BUILD+self.package+co)
         else:
@@ -357,7 +357,7 @@ parser.add_argument('-f','--file',
 parser.add_argument('-d','--verbose',action='store_true',
                    help='Verbose output')
 parser.add_argument('-q','--quiet',action='store_true',
-                   help='try to ask no question')
+                   help='Ask no question about the setup')
 
 
 ###Define the possible actions

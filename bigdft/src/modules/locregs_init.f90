@@ -454,7 +454,7 @@ module locregs_init
          call mpiallred(rootarr(1), nlr, mpi_min, comm=bigdft_mpi%mpi_comm)
          
          ! Communicate those parts of the locregs that all processes need.
-         call communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
+         call communicate_locreg_descriptors_basics(iproc, nproc, nlr, rootarr, orbs, llr)
     
          !do ilr=1,nlr
          !    write(*,*) 'iproc, nseg_c', iproc, llr(ilr)%wfd%nseg_c
@@ -666,6 +666,7 @@ module locregs_init
     subroutine num_segkeys_sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz, &
          locrad, locregCenter, &
          nsegglob, keygglob, keyvglob, nseg, nvctr)
+      use module_base
       implicit none
       logical,intent(in) :: perx, pery, perz 
       integer, intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nsegglob
@@ -680,6 +681,7 @@ module locregs_init
       integer :: ij1, ij2, ij3, jj1, jj2, jj3, ijs1, ijs2, ijs3, ije1, ije2, ije3
       real(kind=8) :: cut, dx,dy, dz
     
+      call f_routine(id='num_segkeys_sphere')
     
       nvctr=0
       nstart=0
@@ -785,6 +787,8 @@ module locregs_init
          write(*,*) 'nend , nstart',nend,nstart
          stop 'nend <> nstart'
       endif
+
+      call f_release_routine()
     
     END SUBROUTINE num_segkeys_sphere
 
@@ -804,7 +808,7 @@ module locregs_init
       integer,dimension(nsegglob),intent(in) :: keyvglob
       integer,dimension(2,nseg),intent(out) :: keyg_loc, keyg_glob
       integer,dimension(nseg),intent(out) :: keyv_loc, keyv_glob
-      integer,dimension(2,nseg),intent(out) :: keygloc !tmp
+      integer,dimension(2,nseg),intent(inout) :: keygloc !tmp
       !local variables
       character(len=*),parameter :: subname = 'segkeys_Sphere'
       integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
@@ -820,6 +824,7 @@ module locregs_init
       integer,dimension(:,:),allocatable :: keyv_glob_work
       !$ integer :: omp_get_thread_num
       !integer, allocatable :: keygloc(:,:)
+
     
       call f_routine('segkeys_Sphere')
     
@@ -1295,21 +1300,26 @@ module locregs_init
        Llr(ilr)%d%nfu3 = Life(3)
     
        ! define the wavefunction descriptors inside the localisation region
-       !coarse part
-       call num_segkeys_sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
-            glr%ns1, glr%ns2, glr%ns3, &
-            hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
-            Glr%wfd%nseg_c, Glr%wfd%keygloc(1:,1:), &
-            Glr%wfd%keyvloc(1:), &
-            llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nvctr_c)
+       !!!coarse part
+       !!call num_segkeys_sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!     glr%ns1, glr%ns2, glr%ns3, &
+       !!     hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
+       !!     Glr%wfd%nseg_c, Glr%wfd%keygloc, &
+       !!     Glr%wfd%keyvloc, &
+       !!     llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nvctr_c)
     
-       !fine part
-       call num_segkeys_sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!!fine part
+       !!call num_segkeys_sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!     glr%ns1, glr%ns2, glr%ns3, &
+       !!     hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
+       !!     glr%wfd%nseg_f, Glr%wfd%keygloc(1:,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):), &
+       !!     Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
+       !!     llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
+       call get_num_segkeys(perx, pery, perz, glr%d%n1, glr%d%n2, glr%d%n3, &
             glr%ns1, glr%ns2, glr%ns3, &
             hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
-            glr%wfd%nseg_f, Glr%wfd%keygloc(1:,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):), &
-            Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):), &
-            llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
+            glr%wfd%nseg_c, glr%wfd%nseg_f, glr%wfd%keygloc,  Glr%wfd%keyvloc, &
+            llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
     
        !write(*,'(a,2i8)') 'llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nvctr_f', llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nvctr_f
     
@@ -1318,50 +1328,155 @@ module locregs_init
     
        !Now, fill the descriptors:
     
-       keygloc_tmp = f_malloc((/ 2, (llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f) /),id='keygloc_tmp')
+       !keygloc_tmp = f_malloc((/ 2, (llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f) /),id='keygloc_tmp')
     
        !!$omp parallel default(private) &
        !!$omp shared(Glr,llr,hx,hy,hz,ilr,keygloc_tmp,perx,pery,perz)  
        !!$omp sections
        !!$omp section
     
-       !coarse part
-       call segkeys_Sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!!!coarse part
+       !!!call segkeys_Sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!!     glr%ns1, glr%ns2, glr%ns3, &
+       !!!     llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
+       !!!     llr(ilr)%ns2, llr(ilr)%ns2+llr(ilr)%d%n2, &
+       !!!     llr(ilr)%ns3, llr(ilr)%ns3+llr(ilr)%d%n3, &
+       !!!     llr(ilr)%wfd%nseg_c, hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
+       !!!     Glr%wfd%nseg_c, Glr%wfd%keygloc(1:,1:), &
+       !!!     Glr%wfd%keyvloc(1:), llr(ilr)%wfd%nvctr_c, &
+       !!!     llr(ilr)%wfd%keygloc(1:,1:),llr(ilr)%wfd%keyglob(1:,1:), &
+       !!!     llr(ilr)%wfd%keyvloc(1:), llr(ilr)%wfd%keyvglob(1:), &
+       !!!     keygloc_tmp(1:,1:))
+    
+       !!!!!$omp section
+       !!!!fine part
+       !!!call segkeys_Sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!!     glr%ns1, glr%ns2, glr%ns3, &
+       !!!     llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
+       !!!     llr(ilr)%ns2, llr(ilr)%ns2+llr(ilr)%d%n2, &
+       !!!     llr(ilr)%ns3, llr(ilr)%ns3+llr(ilr)%d%n3, &
+       !!!     llr(ilr)%wfd%nseg_f, hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
+       !!!     Glr%wfd%nseg_f, Glr%wfd%keygloc(1:,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):),&
+       !!!     Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):), llr(ilr)%wfd%nvctr_f, &
+       !!!     llr(ilr)%wfd%keygloc(1:,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
+       !!!     llr(ilr)%wfd%keyglob(1:,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
+       !!!     llr(ilr)%wfd%keyvloc(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
+       !!!     llr(ilr)%wfd%keyvglob(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
+       !!!     keygloc_tmp(1:,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):))  
+       !!!!!$omp end sections
+       !!!!!$omp end parallel
+       call get_segkeys(perx, pery, perz, glr%d%n1, glr%d%n2, glr%d%n3, &
             glr%ns1, glr%ns2, glr%ns3, &
             llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
             llr(ilr)%ns2, llr(ilr)%ns2+llr(ilr)%d%n2, &
             llr(ilr)%ns3, llr(ilr)%ns3+llr(ilr)%d%n3, &
-            llr(ilr)%wfd%nseg_c, hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
-            Glr%wfd%nseg_c, Glr%wfd%keygloc(1:,1:), &
-            Glr%wfd%keyvloc(1:), llr(ilr)%wfd%nvctr_c, &
-            llr(ilr)%wfd%keygloc(1:,1:),llr(ilr)%wfd%keyglob(1:,1:), &
-            llr(ilr)%wfd%keyvloc(1:), llr(ilr)%wfd%keyvglob(1:), &
-            keygloc_tmp(1:,1:))
+            hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
+            glr%wfd%nseg_c, glr%wfd%nseg_f, glr%wfd%keygloc, glr%wfd%keyvloc, &
+            llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nvctr_f, &
+            llr(ilr)%wfd%keygloc, llr(ilr)%wfd%keyglob, llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%keyvglob)
     
-       !!$omp section
-       !fine part
-       call segkeys_Sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
-            glr%ns1, glr%ns2, glr%ns3, &
-            llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
-            llr(ilr)%ns2, llr(ilr)%ns2+llr(ilr)%d%n2, &
-            llr(ilr)%ns3, llr(ilr)%ns3+llr(ilr)%d%n3, &
-            llr(ilr)%wfd%nseg_f, hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
-            Glr%wfd%nseg_f, Glr%wfd%keygloc(1:,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):),&
-            Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):), llr(ilr)%wfd%nvctr_f, &
-            llr(ilr)%wfd%keygloc(1:,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
-            llr(ilr)%wfd%keyglob(1:,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
-            llr(ilr)%wfd%keyvloc(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
-            llr(ilr)%wfd%keyvglob(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
-            keygloc_tmp(1:,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):))  
-       !!$omp end sections
-       !!$omp end parallel
-    
-       call f_free(keygloc_tmp)
+       !call f_free(keygloc_tmp)
     
        call f_release_routine()
     
     
     END SUBROUTINE determine_wfdSphere
+
+
+    subroutine get_num_segkeys(perx, pery, perz, n1, n2, n3, ns1, ns2, ns3, hx, hy, hz, locrad, &
+               locregCenter, nseg_c_glob, nseg_f_glob, keyg_glob, keyv_glob, &
+               nseg_c, nvctr_c, nseg_f, nvctr_f)
+      use module_base
+      implicit none
+
+      ! Calling arguments
+      logical,intent(in) :: perx, pery, perz
+      integer,intent(in) :: n1, n2, n3, ns1, ns2, ns3, nseg_c_glob, nseg_f_glob
+      real(kind=8),intent(in) :: hx, hy, hz, locrad
+      real(kind=8),dimension(3),intent(in) :: locregCenter
+      integer,dimension(2,nseg_c_glob+nseg_f_glob),intent(in) :: keyg_glob
+      integer,dimension(nseg_c_glob+nseg_f_glob),intent(in) :: keyv_glob
+      integer,intent(out) :: nseg_c, nvctr_c, nseg_f, nvctr_f
+
+      call f_routine(id='get_num_segkeys')
+
+       !coarse part
+       call num_segkeys_sphere(perx, pery, perz, n1, n2, n3, &
+            ns1, ns2, ns3, &
+            hx, hy, hz, locrad, locregCenter, &
+            nseg_c_glob, keyg_glob, keyv_glob, &
+            nseg_c, nvctr_c)
+    
+       !fine part
+       call num_segkeys_sphere(perx, pery, perz, n1, n2, n3, &
+            ns1, ns2, ns3, &
+            hx, hy, hz, locrad, locregCenter, &
+            nseg_f_glob, keyg_glob(1,nseg_c_glob+min(1,nseg_f_glob)), &
+            keyv_glob(nseg_c_glob+min(1,nseg_f_glob)), &
+            nseg_f, nvctr_f)
+
+      call f_release_routine()
+
+    end subroutine get_num_segkeys
+
+
+    subroutine get_segkeys(perx, pery, perz, &
+               n1_glob, n2_glob, n3_glob, nl1_glob, nl2_glob, nl3_glob, &
+               nl1, nu1, nl2, nu2, nl3, nu3, hx, hy, hz, locrad, locregCenter, &
+               nseg_c_glob, nseg_f_glob, keyg_glob, keyv_glob, &
+               nseg_c, nseg_f, nvctr_c, nvctr_f, &
+               keygloc, keygglob, keyvloc, keyvglob)
+      use module_base
+      implicit none
+
+      ! Calling arguments
+      logical,intent(in) :: perx, pery, perz
+      integer,intent(in) :: n1_glob, n2_glob, n3_glob, nl1_glob, nl2_glob, nl3_glob
+      integer,intent(in) :: nl1, nl2, nl3, nu1, nu2, nu3
+      integer,intent(in) :: nseg_c_glob, nseg_c, nseg_f_glob, nseg_f
+      integer,intent(in) :: nvctr_c, nvctr_f
+      real(kind=8),intent(in) :: hx, hy, hz, locrad
+      real(kind=8),dimension(3),intent(in) :: locregCenter
+      integer,dimension(2,nseg_c_glob+nseg_f_glob),intent(in) :: keyg_glob
+      integer,dimension(nseg_c_glob+nseg_f_glob),intent(in) :: keyv_glob
+      integer,dimension(2,nseg_c+nseg_f),intent(out) :: keygloc, keygglob
+      integer,dimension(nseg_c+nseg_f),intent(out) :: keyvloc, keyvglob
+
+      integer, allocatable :: keygloc_tmp(:,:)
+
+      call f_routine(id='get_segkeys')
+
+       keygloc_tmp = f_malloc((/2,nseg_c+nseg_f/),id='keygloc_tmp')
+
+       !coarse part
+       call segkeys_Sphere(perx, pery, perz, n1_glob, n2_glob, n3_glob, &
+            nl1_glob, nl2_glob, nl3_glob, &
+            nl1, nu1, nl2, nu2, nl3, nu3, &
+            nseg_c, hx, hy, hz, locrad, locregCenter, &
+            nseg_c_glob, keyg_glob(1,1), &
+            keyv_glob(1), nvctr_c, &
+            keygloc(1,1),keygglob(1,1), &
+            keyvloc(1), keyvglob(1), &
+            keygloc_tmp(1,1))
+    
+       !fine part
+       call segkeys_Sphere(perx, pery, perz, n1_glob, n2_glob, n3_glob, &
+            nl1_glob, nl2_glob, nl3_glob, &
+            nl1, nu1, nl2, nu2, nl3, nu3, &
+            nseg_f, hx, hy, hz, locrad, locregCenter, &
+            nseg_f_glob, keyg_glob(1,nseg_c_glob+min(1,nseg_f_glob)),&
+            keyv_glob(nseg_c_glob+min(1,nseg_f_glob)), nvctr_f, &
+            keygloc(1,nseg_c+min(1,nseg_f)), &
+            keygglob(1,nseg_c+min(1,nseg_f)), &
+            keyvloc(nseg_c+min(1,nseg_f)), &
+            keyvglob(nseg_c+min(1,nseg_f)), &
+            keygloc_tmp(1,nseg_c+min(1,nseg_f)))  
+
+       call f_free(keygloc_tmp)
+
+      call f_release_routine()
+
+    end subroutine get_segkeys
 
 
 

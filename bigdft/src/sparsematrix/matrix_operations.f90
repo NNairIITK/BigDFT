@@ -876,7 +876,7 @@ module matrix_operations
                             stop 'wrong value of power(icalc)'
                         end select
                     end do
-                    call inverse_chebyshev_expansion_new(iproc, nproc, iorder-1000, &
+                    call inverse_chebyshev_expansion_new(iproc, nproc, &
                          ovrlp_smat, inv_ovrlp_smat, ncalc, rpower, ovrlp_mat, inv_ovrlp_mat, verbosity=verbosity_)
                     call f_free(rpower)
                     !!call vcopy(ovrlp_smat%nvctr, tmpmat(1), 1, ovrlp_mat%matrix_compr(1), 1)
@@ -1714,7 +1714,8 @@ module matrix_operations
         real(dp), allocatable, dimension(:) :: temp_vec
         logical, parameter :: symmetric=.true.
         logical, parameter :: check_lapack=.true.
-        integer :: korb
+        integer :: korb, jproc
+        integer,dimension(:),allocatable :: recvcounts
       
       
         call f_routine(id='overlap_plus_minus_one_half_exact')
@@ -1746,7 +1747,7 @@ module matrix_operations
                     end do
                  end do
               end if
-              work=f_malloc(1000,id='work')
+              work=f_malloc(100*norb,id='work')
               call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, -1, info)
               lwork = int(work(1))
               call f_free(work)
@@ -1928,8 +1929,13 @@ module matrix_operations
                 norb, tempArr, norbp, 0.d0, inv_ovrlp_halfp, norb)
            !if (present(orbs).and.bigdft_mpi%nproc>1) then
            if (nproc>1) then
+              recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
+              do jproc=0,nproc-1
+                  recvcounts(jproc) = norb*smat%nfvctr_par(jproc)
+              end do
               call mpi_allgatherv(inv_ovrlp_halfp, norb*norbp, mpi_double_precision, inv_ovrlp_half, &
-                         norb*smat%nfvctr_par(:), norb*smat%isfvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                   recvcounts, norb*smat%isfvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+              call f_free(recvcounts)
            else
               call vcopy(norb*norbp,inv_ovrlp_halfp(1,1),1,inv_ovrlp_half(1,1),1)
            end if
@@ -2403,7 +2409,7 @@ module matrix_operations
         !call deallocate_matrices(inv_ovrlp_half_)
       
       
-        call f_release_routine
+        call f_release_routine()
         call timing(iproc,'lovrlp^-1/2par','OF')
       
       end subroutine overlap_power_minus_one_half_parallel

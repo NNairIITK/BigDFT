@@ -23,7 +23,6 @@
    conf_damping: 0.5
    calc_dipole: Yes
    calc_quadrupole: Yes
-   calc_pulay: old
    charge_multipoles: 2
  lin_basis:
    nit: 2

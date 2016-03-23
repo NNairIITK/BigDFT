@@ -1673,7 +1673,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
    !deallocate gaussian array
    call f_free(gaucoeffs)
    call f_free_ptr(gbd_occ)
-   !add random background to the wavefunctions
+   !add pseudo-random background to the wavefunctions
    if (randinp) then ! .and. G%ncoeff >= orbs%norb) then
       it=orbital_basis_iterator(ob)
       do while(ket_next_kpt(it))

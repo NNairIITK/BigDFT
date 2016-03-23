@@ -113,7 +113,7 @@ module module_input_keys
      integer, dimension(:), pointer :: norbsPerType
      integer :: kernel_mode, mixing_mode
      integer :: scf_mode, nlevel_accuracy
-     logical :: calc_dipole, calc_quadrupole, pulay_correction, iterative_orthogonalization, new_pulay_correction
+     logical :: calc_dipole, calc_quadrupole, iterative_orthogonalization
      logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end, diag_start
      integer :: extra_states, order_taylor, mixing_after_inputguess
      !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
@@ -976,6 +976,8 @@ contains
     character(max_field_length) :: meth
     real(gp) :: dtmax_, betax_
     logical :: free,dftvar
+    integer :: nat
+    integer, parameter :: natoms_dump = 500
 
     if (f_err_raise(.not. associated(dict),'The input dictionary has to be associated',&
          err_name='BIGDFT_RUNTIME_ERROR')) return
@@ -1004,7 +1006,12 @@ contains
 
     !create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)
-    as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. POSINP, .item. OCCUPATION)
+    nat = dict_len(dict//POSINP//'positions')
+    if (nat>natoms_dump) then
+        as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. OCCUPATION)
+    else
+        as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. POSINP, .item. OCCUPATION)
+    end if
     call input_file_minimal(parameters,dict,dict_minimal,nested,as_is)
     if (associated(dict_ps_min)) call set(dict_minimal // PSOLVER,dict_ps_min)
     call dict_free(nested,as_is)
@@ -2066,10 +2073,6 @@ contains
           in%lin%calc_dipole = val
        case (CALC_QUADRUPOLE)
           in%lin%calc_quadrupole = val
-       case (CALC_PULAY)
-          dummy_log(1:2) = val
-          in%lin%pulay_correction = dummy_log(1)
-          in%lin%new_pulay_correction = dummy_log(2)
        case (SUBSPACE_DIAG)
           in%lin%diag_end = val
        case (EXTRA_STATES)
@@ -2698,12 +2701,6 @@ contains
        call f_err_throw('wrong value of in%lin%kernel_mode',&
             err_name='BIGDFT_INPUT_VARIABLES_ERROR')
     end select
-
-    ! It is not possible to use both the old and the new Pulay correction at the same time
-    if (in%lin%pulay_correction .and. in%lin%new_pulay_correction) then
-       call f_err_throw('It is not possible to use both the old and the new Pulay correction at the same time!',&
-            err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-    end if
 
     call f_release_routine()
   END SUBROUTINE input_analyze

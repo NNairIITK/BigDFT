@@ -29,9 +29,9 @@
    nstep: 6
    nit: [6, 30]
    idsx_coeff: [5, 0]
-   alphamix: 0.1
+   alphamix: 0.3
    gnrm_cv_coeff: [5.0E-003, 1.0E-003]
-   rpnrm_cv: [1.0E-010, 5.0E-010]
+   rpnrm_cv: [5.0E-06, 1.0E-07]
    linear_method: FOE
    fscale_foe: 5.0E-002
  lin_basis_params:

@@ -2443,17 +2443,19 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
          call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,lr%d%n1,lr%d%n2,lr%d%n3, &
               & hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,psi(1,ispinor),eval_fake,psifscf)
       else
-         call readonewave_linear(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,&
-              lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,at,Lzd%llr(1),rxyz_file,rxyz,&
-              locrad,locregCenter,confPotOrder,confPotPrefac,&
-              lpsi(1),eval_fake,psifscf)
+         !call readonewave_linear(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,&
+         !     lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,at,Lzd%llr(1),rxyz_file,rxyz,&
+         !     locrad,locregCenter,confPotOrder,confPotPrefac,&
+         !     lpsi(1),eval_fake,psifscf)
 
-         call f_zero(psi)
+         !call f_zero(psi)
 
-         call Lpsi_to_global2(0,Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f, &
-              lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,1,1,1,lr,Lzd%Llr(1),lpsi,psi)
+         !call Lpsi_to_global2(0,Lzd%llr(1)%wfd%nvctr_c+7*Lzd%llr(1)%wfd%nvctr_f, &
+         !     lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,1,1,1,lr,Lzd%Llr(1),lpsi,psi)
 
-         call f_free(lpsi)
+         !call f_free(lpsi)
+
+         stop 'Error: readonewave_linear not functional, to be fixed'
       end if
 
       ! Update iorbp
