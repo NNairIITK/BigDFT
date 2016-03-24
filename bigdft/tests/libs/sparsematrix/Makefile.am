@@ -8,7 +8,7 @@ include $(srcdir)/../check.mk
 EXTRA_DIST = test-ccs.ref.yaml \
 	matrix1-base.dat matrix2-base.dat \
 	test-foeccs.ref.yaml \
-    overlap_ccs-base.dat hamiltonian_ccs-base.dat density_kernel_ccs-base.dat
+	overlap_ccs-base.dat hamiltonian_ccs-base.dat density_kernel_ccs-base.dat
 
 check_PROGRAMS = driver_ccs driver_foe_ccs driver_single
 EXTRA_PROGRAMS = driver
@@ -30,6 +30,8 @@ driver_foe_ccs_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 driver_single_SOURCES = utilities.f90 driver_single.f90
 driver_single_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+
+driver_SOURCES = driver.f90
 
 CLEANFILES = test-ccs.out.yaml test-ccs.report.yaml test-ccs.report \
              test-foeccs.out.yaml test-foeccs.report.yaml test-foeccs.report
