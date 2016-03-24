@@ -256,7 +256,7 @@ subroutine lagrange_multiplier(symm,correction,occup,ncplx,norb,lambda,trace,asy
   real(wp), dimension(ncplx,norb,norb), intent(inout) :: lambda
   !local variables
   integer :: iorb,jorb,icplx
-  real(gp), parameter :: tol=1.e-6_gp
+  real(gp), parameter :: tol=5.e-1_gp
   real(wp) :: tt
   real(gp) :: fi,fj,fac
   real(wp), dimension(2) :: lij,lji
