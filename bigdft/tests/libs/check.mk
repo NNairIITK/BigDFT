@@ -25,3 +25,7 @@ checkonly_=$(SHORT_CHECK)
 present_checks := ${checkonly_${checkonlyfoo_${CHECK_MODE}_${CHECK_MODE_INTERNAL}}}
 
 check: ${present_checks}
+	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
+
+report:
+	python $(pythondir)/report.py

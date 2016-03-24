@@ -12,7 +12,7 @@ check_PROGRAMS = op2p_check diis_check
 check: op2p_check.report.yaml $(check_PROGRAMS)
 
 report:
-		@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
+		@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
 EXTRA_PROGRAMS = kpts_check mpi_check
 
