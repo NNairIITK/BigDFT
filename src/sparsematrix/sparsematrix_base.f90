@@ -18,6 +18,7 @@ module sparsematrix_base
   use wrapper_MPI
   use wrapper_linalg
   use f_utils
+  use time_profiling, only: f_timing
   implicit none
 
 !  private
@@ -30,6 +31,13 @@ module sparsematrix_base
   integer,save,public :: SPARSEMATRIX_MANIPULATION_ERROR
   integer,save,public :: SPARSEMATRIX_RUNTIME_ERROR
   integer,save,public :: SPARSEMATRIX_INITIALIZATION_ERROR
+
+  ! Timings categories
+  integer,public,save :: TCAT_SMAT_COMPRESSION = TIMING_UNINITIALIZED
+  integer,public,save :: TCAT_SMAT_TRANSFORMATION = TIMING_UNINITIALIZED
+  integer,public,save :: TCAT_SMAT_MULTIPLICATION = TIMING_UNINITIALIZED
+  integer,public,save :: TCAT_SMAT_INITIALIZATION = TIMING_UNINITIALIZED
+  integer,public,save :: TCAT_CME_AUXILIARY = TIMING_UNINITIALIZED
 
   !> Contains the matrices
   type,public :: matrices
@@ -938,5 +946,56 @@ module sparsematrix_base
       ! define the severe operation via MPI_ABORT
       call f_err_severe_override(bigdft_severe_abort)
     end subroutine sparsematrix_init_errors
+
+
+  !> Switch on the timing categories for the sparse matrices
+  subroutine sparsematrix_initialize_timing_categories()
+    use time_profiling, only: f_timing_category_group,f_timing_category
+    !use time_profiling, only: f_timing_category
+    !use wrapper_mpi, only: comm => tgrp_mpi_name, mpi_initialize_timing_categories
+    !use wrapper_linalg, only: linalg_initialize_timing_categories
+    implicit none
+    character(len=*), parameter :: smat_manip = 'sparsematrix manipulation'
+    character(len=*), parameter :: smat_matmul = 'sparsematrix multiplication'
+    character(len=*), parameter :: smat_init = 'sparsematrix initialization'
+    character(len=*), parameter :: cme = 'chebyshev matrix expansion'
+
+    !!call mpi_initialize_timing_categories()
+
+    !!call linalg_initialize_timing_categories()
+    !!!group of Poisson Solver operations, separate category
+
+    ! Group of sparse matrix manipulations
+    call f_timing_category_group(smat_manip, 'sparse matrix operations')
+    call f_timing_category_group(smat_matmul, 'sparse matrix multiplication')
+    call f_timing_category_group(smat_init, 'sparse matrix initialization')
+    call f_timing_category_group(cme, 'chebyshev matrix expansion')
+
+    ! Define the timing categories
+    call f_timing_category('Sparse matrix compression', smat_manip, &
+         '(un)compression of sparse matrices', TCAT_SMAT_COMPRESSION)
+    call f_timing_category('Sparse matrix transformation', smat_manip, &
+         'sparsity pattern transformation of sparse matrices', TCAT_SMAT_TRANSFORMATION)
+    call f_timing_category('Sparse matrix multiplication', smat_matmul, &
+         'sparse matrix matrix multiplication', TCAT_SMAT_MULTIPLICATION)
+    call f_timing_category('sparse matrix initialization', smat_init, &
+         'sparse matrix initialization', TCAT_SMAT_INITIALIZATION)
+    call f_timing_category('CME auxiliary', cme, &
+         'Chebyshev matrix expansion auxiliary', TCAT_CME_AUXILIARY)
+
+  !!!define the timing categories
+  !!call f_timing_category('PSolver Computation',pscpt,&
+  !!     '3D SG_FFT and related operations',&
+  !!     TCAT_PSOLV_COMPUT)
+  !!call f_timing_category('PSolver Kernel Creation',pscpt,&
+  !!     'ISF operations and creation of the kernel',&
+  !!     TCAT_PSOLV_KERNEL)
+  !!call f_timing_category('PSolver Communication',comm,&
+  !!     'MPI_ALLTOALL and MPI_ALLGATHERV',&
+  !!     TCAT_PSOLV_COMMUN)
+
+  end subroutine sparsematrix_initialize_timing_categories
+
+
 
 end module sparsematrix_base

@@ -61,6 +61,10 @@ module sparsematrix
       !integer :: ierr, irow, jcol, jjj
       real(kind=mp),dimension(:,:,:),pointer :: inm
       real(kind=mp),dimension(:),pointer :: outm
+      
+      call f_routine(id='compress_matrix')
+      !call timing(iproc,'compressd_mcpy','ON')
+      call f_timing(TCAT_SMAT_COMPRESSION,'ON')
 
       !if (present(outmat)) then
       !    if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
@@ -80,7 +84,6 @@ module sparsematrix
       !    inm => sparsemat%matrix
       !end if
     
-      call timing(iproc,'compressd_mcpy','ON')
     
       if (sparsemat%parallel_compression==0.or.nproc==1) then
          do ispin=1,sparsemat%nspin
@@ -137,7 +140,9 @@ module sparsematrix
          !!#call f_free_ptr(sparsemat%matrix_comprp)
       end if
     
-      call timing(iproc,'compressd_mcpy','OF')
+      !call timing(iproc,'compressd_mcpy','OF')
+      call f_timing(TCAT_SMAT_COMPRESSION,'OF')
+      call f_release_routine()
     
     end subroutine compress_matrix
 
@@ -196,7 +201,8 @@ module sparsematrix
       !!    inm => sparsemat%matrix_compr
       !!end if
     
-      call timing(iproc,'compressd_mcpy','ON')
+      !call timing(iproc,'compressd_mcpy','ON')
+      call f_timing(TCAT_SMAT_COMPRESSION,'ON')
     
       if (sparsemat%parallel_compression==0.or.nproc==1) then
          !call to_zero(sparsemat%nfvctr**2*sparsemat%nspin, outm(1,1,1))
@@ -254,7 +260,8 @@ module sparsematrix
          !!call f_free_ptr(sparsemat%matrixp)
       end if
     
-      call timing(iproc,'compressd_mcpy','OF')
+      !call timing(iproc,'compressd_mcpy','OF')
+      call f_timing(TCAT_SMAT_COMPRESSION,'OF')
     
     end subroutine uncompress_matrix
 
@@ -441,7 +448,8 @@ module sparsematrix
           call f_err_throw('wrong imode')
       end select
     
-      call timing(iproc,'transform_matr','IR')
+      !call timing(iproc,'transform_matr','IR')
+      call f_timing(TCAT_SMAT_TRANSFORMATION,'IR')
 
 
       icheck=0
@@ -519,7 +527,8 @@ module sparsematrix
           stop
       end if
 
-      call timing(iproc,'transform_matr','RS')
+      !call timing(iproc,'transform_matr','RS')
+      call f_timing(TCAT_SMAT_TRANSFORMATION,'RS')
       call f_release_routine()
     
     end subroutine transform_sparse_matrix
@@ -686,7 +695,8 @@ module sparsematrix
 
      call f_routine(id='compress_matrix_distributed_wrapper_2')
 
-     call timing(iproc,'compressd_mcpy','ON')
+     !call timing(iproc,'compressd_mcpy','ON')
+     call f_timing(TCAT_SMAT_COMPRESSION,'ON')
 
      ! Check the dimensions of the input array and assign some values
      !if (size(matrixp,1)/=smat%nfvctr) stop 'size(matrixp,1)/=smat%nfvctr'
@@ -756,7 +766,8 @@ module sparsematrix
          stop 'compress_matrix_distributed: wrong data_strategy'
      end if
 
-     call timing(iproc,'compressd_mcpy','OF')
+     !call timing(iproc,'compressd_mcpy','OF')
+     call f_timing(TCAT_SMAT_COMPRESSION,'OF')
 
      call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_PARALLEL, matrix_local, matrix_compr)
      call f_free_ptr(matrix_local)
@@ -797,7 +808,8 @@ module sparsematrix
 
      call f_routine(id='compress_matrix_distributed_core')
 
-     call timing(iproc,'compressd_mcpy','ON')
+     !call timing(iproc,'compressd_mcpy','ON')
+     call f_timing(TCAT_SMAT_COMPRESSION,'ON')
 
 
      if (data_strategy==GLOBAL_MATRIX) then
@@ -821,7 +833,8 @@ module sparsematrix
                   err_name='SPARSEMATRIX_MANIPULATION_ERROR')
          end if
 
-             call timing(iproc,'compressd_mcpy','OF')
+             !call timing(iproc,'compressd_mcpy','OF')
+             call f_timing(TCAT_SMAT_COMPRESSION,'OF')
              call timing(iproc,'compressd_comm','ON')
 
              if (nproc>1) then
@@ -875,11 +888,13 @@ module sparsematrix
          !!end if
 
          call timing(iproc,'compressd_comm','OF')
+         call f_timing(TCAT_SMAT_COMPRESSION,'ON')
      else
          stop 'compress_matrix_distributed: wrong data_strategy'
      end if
 
-     call timing(iproc,'compressd_comm','OF')
+     !call timing(iproc,'compressd_comm','OF')
+     call f_timing(TCAT_SMAT_COMPRESSION,'OF')
 
      call f_release_routine()
 
@@ -951,7 +966,8 @@ module sparsematrix
     ! Local variables
     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr
 
-      call timing(iproc,'compressd_mcpy','ON')
+     !call timing(iproc,'compressd_mcpy','ON')
+     call f_timing(TCAT_SMAT_COMPRESSION,'ON')
 
      ! Check the dimensions of the output array and assign some values
      if (size(matrixp,1)/=smat%nfvctr) stop 'size(matrixp,1)/=smat%nfvctr'
@@ -993,7 +1009,8 @@ module sparsematrix
            !$omp end parallel do
        end if
 
-      call timing(iproc,'compressd_mcpy','OF')
+     !call timing(iproc,'compressd_mcpy','OF')
+     call f_timing(TCAT_SMAT_COMPRESSION,'OF')
 
    end subroutine uncompress_matrix_distributed2
 
@@ -1086,7 +1103,8 @@ module sparsematrix
          b_dense = f_malloc((/n_dense,1/),id='b_dense')
          c_dense = f_malloc((/n_dense,1/),id='c_dense')
      end if
-     call timing(iproc, 'sparse_matmul ', 'IR')
+     !call timing(iproc, 'sparse_matmul ', 'IR')
+     call f_timing(TCAT_SMAT_MULTIPLICATION,'IR')
 
 
      if (matmul_version==MATMUL_NEW) then
@@ -1176,7 +1194,8 @@ module sparsematrix
      end if
 
    
-     call timing(iproc, 'sparse_matmul ', 'RS')
+     !call timing(iproc, 'sparse_matmul ', 'RS')
+     call f_timing(TCAT_SMAT_MULTIPLICATION,'RS')
      call f_release_routine()
 
         contains
@@ -1670,7 +1689,8 @@ module sparsematrix
       integer :: i, ii, ind, iline, icolumn
 
       call f_routine(id='transform_sparsity_pattern')
-      call timing(iproc, 'transformspars', 'ON')
+      !call timing(iproc, 'transformspars', 'ON')
+      call f_timing(TCAT_SMAT_TRANSFORMATION,'ON')
 
         if (direction=='large_to_small') then
 
@@ -1716,7 +1736,8 @@ module sparsematrix
             stop 'wrong direction'
         end if
 
-      call timing(iproc, 'transformspars', 'OF')
+      !call timing(iproc, 'transformspars', 'OF')
+      call f_timing(TCAT_SMAT_TRANSFORMATION,'OF')
       call f_release_routine()
 
     end subroutine transform_sparsity_pattern

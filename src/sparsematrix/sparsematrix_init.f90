@@ -794,7 +794,8 @@ module sparsematrix_init
       logical, parameter :: extra_timing=.false.
 
 
-      call timing(iproc,'init_matrCompr','ON')
+      !call timing(iproc,'init_matrCompr','ON')
+      call f_timing(TCAT_SMAT_INITIALIZATION,'ON')
       if (extra_timing) call cpu_time(trt0)
       call f_routine(id='init_sparse_matrix')
       
@@ -1094,7 +1095,8 @@ module sparsematrix_init
       call f_free(lut)
     
       call f_release_routine()
-      call timing(iproc,'init_matrCompr','OF')
+      !call timing(iproc,'init_matrCompr','OF')
+      call f_timing(TCAT_SMAT_INITIALIZATION,'OF')
       if (extra_timing) call cpu_time(trt1)   
       if (extra_timing) ttime=real(trt1-trt0,kind=mp)
 
@@ -2818,7 +2820,8 @@ module sparsematrix_init
 
 
       call f_routine(id='init_matrix_taskgroups')
-      call timing(iproc,'inittaskgroup','ON')
+      !call timing(iproc,'inittaskgroup','ON')
+      call f_timing(TCAT_SMAT_INITIALIZATION,'ON')
 
       ! First determine the minimal and maximal value oft the matrix which is used by each process
       iuse_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iuse_startend')
@@ -3661,7 +3664,8 @@ module sparsematrix_init
       call f_free(iuse_startend)
       call f_free(itaskgroups_startend)
       call f_free(tasks_per_taskgroup)
-      call timing(iproc,'inittaskgroup','OF')
+      !call timing(iproc,'inittaskgroup','OF')
+      call f_timing(TCAT_SMAT_INITIALIZATION,'OF')
       call f_release_routine()
 
 

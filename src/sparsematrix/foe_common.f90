@@ -1298,7 +1298,8 @@ module foe_common
       !if (iproc==0) call yaml_comment('get Chebyshev polynomials',hfill='~')
     
     
-      call timing(iproc, 'FOE_auxiliary ', 'ON')
+      !call timing(iproc, 'FOE_auxiliary ', 'ON')
+      call f_timing(TCAT_CME_AUXILIARY,'ON')
 
       ! Check the arguments
       select case (itype)
@@ -1482,7 +1483,8 @@ module foe_common
                       !!    call f_err_throw('Highest eigenvalue must be positive')
                       !!end if
             
-                      call timing(iproc, 'FOE_auxiliary ', 'OF')
+                      !call timing(iproc, 'FOE_auxiliary ', 'OF')
+                      call f_timing(TCAT_CME_AUXILIARY,'OF')
                       call timing(iproc, 'chebyshev_coef', 'ON')
             
                       !!if (foe_data_get_real(foe_obj,"tmprtr")/=0.d0) call f_err_throw('tmprtr must be zero')
@@ -1514,7 +1516,8 @@ module foe_common
                       !end if
             
                       call timing(iproc, 'chebyshev_coef', 'OF')
-                      call timing(iproc, 'FOE_auxiliary ', 'ON')
+                      !call timing(iproc, 'FOE_auxiliary ', 'ON')
+                      call f_timing(TCAT_CME_AUXILIARY,'ON')
                     
     
                       if (smatl%nspin==1) then
@@ -1526,7 +1529,8 @@ module foe_common
                       end if
                     
                     
-                      call timing(iproc, 'FOE_auxiliary ', 'OF')
+                      !call timing(iproc, 'FOE_auxiliary ', 'OF')
+                      call f_timing(TCAT_CME_AUXILIARY,'OF')
             
                       emergency_stop=.false.
                           ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
@@ -1557,7 +1561,8 @@ module foe_common
                           !!     smatl%smmm%nseg, smatl%smmm%keyv, smatl%smmm%keyg, &
                           !!     smatl%smmm%istsegline, 'large_to_small', fermi_small_new, fermi_new)
             
-                      call timing(iproc, 'FOE_auxiliary ', 'ON')
+                      !call timing(iproc, 'FOE_auxiliary ', 'ON')
+                      call f_timing(TCAT_CME_AUXILIARY,'ON')
             
             
                       restart=.false.
@@ -1623,7 +1628,8 @@ module foe_common
 
       !write(*,*) 'end get_chebyshev_polynomials: ef', foe_data_get_real(foe_obj,"ef",ispin)
     
-      call timing(iproc, 'FOE_auxiliary ', 'OF')
+      !call timing(iproc, 'FOE_auxiliary ', 'OF')
+      call f_timing(TCAT_CME_AUXILIARY,'OF')
     
       call f_release_routine()
     
@@ -1708,7 +1714,8 @@ module foe_common
       !if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='~')
     
     
-      call timing(iproc, 'FOE_auxiliary ', 'ON')
+      !call timing(iproc, 'FOE_auxiliary ', 'ON')
+      call f_timing(TCAT_CME_AUXILIARY,'ON')
     
     
       evbounds_shrinked=.false.
@@ -1828,7 +1835,8 @@ module foe_common
             
                       cc = f_malloc((/npl,1,3/),id='cc')
             
-                      call timing(iproc, 'FOE_auxiliary ', 'OF')
+                      !call timing(iproc, 'FOE_auxiliary ', 'OF')
+                      call f_timing(TCAT_CME_AUXILIARY,'OF')
                       call timing(iproc, 'chebyshev_coef', 'ON')
             
                       call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
@@ -1860,7 +1868,8 @@ module foe_common
                       !end if
             
                       call timing(iproc, 'chebyshev_coef', 'OF')
-                      call timing(iproc, 'FOE_auxiliary ', 'ON')
+                      !call timing(iproc, 'FOE_auxiliary ', 'ON')
+                      call f_timing(TCAT_CME_AUXILIARY,'ON')
                     
     
                       if (smatl%nspin==1) then
@@ -1872,7 +1881,8 @@ module foe_common
                       end if
                     
                     
-                      call timing(iproc, 'FOE_auxiliary ', 'OF')
+                      !call timing(iproc, 'FOE_auxiliary ', 'OF')
+                      call f_timing(TCAT_CME_AUXILIARY,'OF')
             
                           !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                           call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
@@ -1880,7 +1890,8 @@ module foe_common
                               smatl, chebyshev_polynomials, 1, cc, fermi_small_new)
             
             
-                      call timing(iproc, 'FOE_auxiliary ', 'ON')
+                      !call timing(iproc, 'FOE_auxiliary ', 'ON')
+                      call f_timing(TCAT_CME_AUXILIARY,'ON')
             
             
                       call f_free(cc)
@@ -1974,7 +1985,8 @@ module foe_common
     
       call f_free(fermi_small_new)
     
-      call timing(iproc, 'FOE_auxiliary ', 'OF')
+      !call timing(iproc, 'FOE_auxiliary ', 'OF')
+      call f_timing(TCAT_CME_AUXILIARY,'OF')
     
       call f_release_routine()
     
@@ -2084,7 +2096,8 @@ module foe_common
               stop 'ERROR: highest eigenvalue must be positive'
           end if
           
-          call timing(iproc, 'FOE_auxiliary ', 'OF')
+          !call timing(iproc, 'FOE_auxiliary ', 'OF')
+          call f_timing(TCAT_CME_AUXILIARY,'OF')
           call timing(iproc, 'chebyshev_coef', 'ON')
           
           do icalc=1,ncalc
@@ -2101,7 +2114,8 @@ module foe_common
           end do
 
           call timing(iproc, 'chebyshev_coef', 'OF')
-          call timing(iproc, 'FOE_auxiliary ', 'ON')
+          !call timing(iproc, 'FOE_auxiliary ', 'ON')
+          call f_timing(TCAT_CME_AUXILIARY,'ON')
 
           if (iproc==0 .and. verbosity>0) then
               call yaml_mapping_open(flow=.true.)

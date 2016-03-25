@@ -1094,7 +1094,8 @@ module foe
       if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='~')
     
     
-      call timing(iproc, 'FOE_auxiliary ', 'ON')
+      !call timing(iproc, 'FOE_auxiliary ', 'ON')
+      call f_timing(TCAT_CME_AUXILIARY,'ON')
     
     
       evbounds_shrinked=.false.
@@ -1109,14 +1110,16 @@ module foe
 !      fermi_small_new = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='fermi_small_new')
     
     
-      call timing(iproc, 'FOE_auxiliary ', 'OF')
+      !call timing(iproc, 'FOE_auxiliary ', 'OF')
+      call f_timing(TCAT_CME_AUXILIARY,'OF')
       if (calculate_minusonehalf) then
           if (iproc==0) call yaml_map('S^-1/2','recalculate')
           call overlap_minus_onehalf() ! has internal timer
       else
           if (iproc==0) call yaml_map('S^-1/2','from memory')
       end if
-      call timing(iproc, 'FOE_auxiliary ', 'ON')
+      !call timing(iproc, 'FOE_auxiliary ', 'ON')
+      call f_timing(TCAT_CME_AUXILIARY,'ON')
     
     
         
@@ -1502,7 +1505,8 @@ module foe
       call f_free(fermi_new)
 !      call f_free(fermi_small_new)
     
-      call timing(iproc, 'FOE_auxiliary ', 'OF')
+      !call timing(iproc, 'FOE_auxiliary ', 'OF')
+      call f_timing(TCAT_CME_AUXILIARY,'OF')
     
       call f_release_routine()
     
