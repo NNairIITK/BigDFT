@@ -117,22 +117,22 @@ module sparsematrix_init
 !!$        type(sparse_matrix),intent(in) :: sparsemat
 !!$      
 !!$        ! Local variables
-!!$        integer(kind=8) :: ii, istart, iend, norb8
+!!$        integer(kind=mp) :: ii, istart, iend, norb8
 !!$        integer :: iseg
 !!$      
-!!$        norb8 = int(norb,kind=8)
-!!$        ii = int((jcol-1),kind=8)*norb8+int(irow,kind=8)
+!!$        norb8 = int(norb,kind=mp)
+!!$        ii = int((jcol-1),kind=mp)*norb8+int(irow,kind=mp)
 !!$      
 !!$        iseg=sparsemat%istsegline(jcol)
 !!$        do
-!!$            istart = int((sparsemat%keyg(1,2,iseg)-1),kind=8)*norb8 + &
-!!$                     int(sparsemat%keyg(1,1,iseg),kind=8)
+!!$            istart = int((sparsemat%keyg(1,2,iseg)-1),kind=mp)*norb8 + &
+!!$                     int(sparsemat%keyg(1,1,iseg),kind=mp)
 !!$            if (ii<istart) then
 !!$                compressed_index_fn=0
 !!$                return
 !!$            end if
-!!$            iend = int((sparsemat%keyg(2,2,iseg)-1),kind=8)*norb8 + &
-!!$                   int(sparsemat%keyg(2,1,iseg),kind=8)
+!!$            iend = int((sparsemat%keyg(2,2,iseg)-1),kind=mp)*norb8 + &
+!!$                   int(sparsemat%keyg(2,1,iseg),kind=mp)
 !!$            !if (ii>=istart .and. ii<=iend) then
 !!$            if (ii<=iend) then
 !!$                ! The matrix element is in sparsemat segment
@@ -157,22 +157,22 @@ module sparsematrix_init
       type(sparse_matrix),intent(in) :: sparsemat
 
       ! Local variables
-      integer(kind=8) :: ii, istart, iend, norb8
+      integer(kind=mp) :: ii, istart, iend, norb8
       integer :: iseg
 
-      norb8 = int(norb,kind=8)
-      ii = int((jcol-1),kind=8)*norb8+int(irow,kind=8)
+      norb8 = int(norb,kind=mp)
+      ii = int((jcol-1),kind=mp)*norb8+int(irow,kind=mp)
 
       iseg=sparsemat%istsegline(jcol)
       do
-         istart = int((sparsemat%keyg(1,2,iseg)-1),kind=8)*norb8 + &
-              int(sparsemat%keyg(1,1,iseg),kind=8)
+         istart = int((sparsemat%keyg(1,2,iseg)-1),kind=mp)*norb8 + &
+              int(sparsemat%keyg(1,1,iseg),kind=mp)
          if (ii<istart) then
             compressed_index_fn=0
             return
          end if
-         iend = int((sparsemat%keyg(2,2,iseg)-1),kind=8)*norb8 + &
-              int(sparsemat%keyg(2,1,iseg),kind=8)
+         iend = int((sparsemat%keyg(2,2,iseg)-1),kind=mp)*norb8 + &
+              int(sparsemat%keyg(2,1,iseg),kind=mp)
          !if (ii>=istart .and. ii<=iend) then
          if (ii<=iend) then
             ! The matrix element is in sparsemat segment
@@ -202,27 +202,27 @@ module sparsematrix_init
       integer,dimension(norb),intent(in) :: istsegline
 
       ! Local variables
-      integer(kind=8) :: ii, istart, iend, norb8
+      integer(kind=mp) :: ii, istart, iend, norb8
       integer :: iseg
 
-      norb8=int(norb,kind=8)
-      ii = int((jcol-1),kind=8)*norb8+int(irow,kind=8)
+      norb8=int(norb,kind=mp)
+      ii = int((jcol-1),kind=mp)*norb8+int(irow,kind=mp)
 
       !do iseg=1,nseg
       iseg=istsegline(jcol)
       do
-          istart = int((keyg(1,2,iseg)-1),kind=8)*norb8 + &
-                   int(keyg(1,1,iseg),kind=8)
-          !iend = int((keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
-          !       int(keyg(2,1,iseg),kind=8)
+          istart = int((keyg(1,2,iseg)-1),kind=mp)*norb8 + &
+                   int(keyg(1,1,iseg),kind=mp)
+          !iend = int((keyg(2,2,iseg)-1),kind=mp)*int(norb,kind=mp) + &
+          !       int(keyg(2,1,iseg),kind=mp)
           !if (ii>=istart .and. ii<=iend) then
           if (ii<istart) then
               micf=0
               return
           end if
           !if (ii>=istart) then
-             iend = int((keyg(2,2,iseg)-1),kind=8)*norb8 + &
-                    int(keyg(2,1,iseg),kind=8)
+             iend = int((keyg(2,2,iseg)-1),kind=mp)*norb8 + &
+                    int(keyg(2,1,iseg),kind=mp)
              if (ii<=iend) then
                 ! The matrix element is in this segment
                 micf = keyv(iseg) + int(ii-istart,kind=4)
@@ -256,11 +256,11 @@ module sparsematrix_init
       integer,dimension(:),allocatable :: nseq_per_line, norb_par_ideal, isorb_par_ideal, nout_par, nseq_per_pt
       integer,dimension(:,:),allocatable :: istartend_dj, istartend_mm
       integer,dimension(:,:),allocatable :: temparr
-      real(kind=8) :: rseq, rseq_ideal, ratio_before, ratio_after
-      !real(kind=8) :: tt
+      real(kind=mp) :: rseq, rseq_ideal, ratio_before, ratio_after
+      !real(kind=mp) :: tt
       logical :: printable
-      real(kind=8),dimension(2) :: rseq_max, rseq_average
-      real(kind=8),dimension(:),allocatable :: rseq_per_line
+      real(kind=mp),dimension(2) :: rseq_max, rseq_average
+      real(kind=mp),dimension(:),allocatable :: rseq_per_line
 
       call f_routine(id='init_sparse_matrix_matrix_multiplication_new')
 
@@ -281,13 +281,13 @@ module sparsematrix_init
            sparsemat, istsegline, sparsemat%smmm%nseq, nseq_per_line)
       !write(*,'(a,i3,3x,200i10)') 'iproc, nseq_per_line', iproc, nseq_per_line
       if (nproc>1) call mpiallred(nseq_per_line(1), norb, mpi_sum, comm=comm)
-      rseq=real(sparsemat%smmm%nseq,kind=8) !real to prevent integer overflow
+      rseq=real(sparsemat%smmm%nseq,kind=mp) !real to prevent integer overflow
       if (nproc>1) call mpiallred(rseq, 1, mpi_sum, comm=comm)
 
 
       rseq_per_line = f_malloc(norb,id='rseq_per_line')
       do iorb=1,norb
-          rseq_per_line(iorb) = real(nseq_per_line(iorb),kind=8)
+          rseq_per_line(iorb) = real(nseq_per_line(iorb),kind=mp)
       end do
 
 
@@ -295,7 +295,7 @@ module sparsematrix_init
       isorb_par_ideal = f_malloc(0.to.nproc-1,id='norb_par_ideal')
       ! Assign the columns of the matrix to the processes such that the load
       ! balancing is optimal
-      rseq_ideal = rseq/real(nproc,kind=8)
+      rseq_ideal = rseq/real(nproc,kind=mp)
       call redistribute(nproc, norb, rseq_per_line, rseq_ideal, norb_par_ideal)
       isorb_par_ideal(0) = 0
       do jproc=1,nproc-1
@@ -314,8 +314,8 @@ module sparsematrix_init
 
 
       ! Get the load balancing
-      rseq_max(1) = real(sparsemat%smmm%nseq,kind=8)
-      rseq_average(1) = rseq_max(1)/real(nproc,kind=8)
+      rseq_max(1) = real(sparsemat%smmm%nseq,kind=mp)
+      rseq_average(1) = rseq_max(1)/real(nproc,kind=mp)
 
 
       ! Realculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
@@ -328,8 +328,8 @@ module sparsematrix_init
            sparsemat, istsegline, sparsemat%smmm%nseq, nseq_per_line)
 
       ! Get the load balancing
-      rseq_max(2) = real(sparsemat%smmm%nseq,kind=8)
-      rseq_average(2) = rseq_max(2)/real(nproc,kind=8)
+      rseq_max(2) = real(sparsemat%smmm%nseq,kind=mp)
+      rseq_average(2) = rseq_max(2)/real(nproc,kind=mp)
       if (nproc>1) call mpiallred(rseq_max, mpi_max, comm=comm)
       if (nproc>1) call mpiallred(rseq_average, mpi_sum, comm=comm)
       ratio_before = rseq_max(1)/rseq_average(1)
@@ -771,7 +771,7 @@ module sparsematrix_init
       type(sparse_matrix), intent(out) :: sparsemat
       logical,intent(in),optional :: init_matmul
       character(len=1),intent(in),optional :: geocode
-      real(kind=8),dimension(3),intent(in),optional :: cell_dim
+      real(kind=mp),dimension(3),intent(in),optional :: cell_dim
       logical,intent(in),optional :: allocate_full, print_info, store_index
       integer,dimension(norbu),intent(in),optional :: on_which_atom
       integer,intent(in),optional :: nspin, norbup, isorbu
@@ -787,10 +787,10 @@ module sparsematrix_init
       integer,dimension(:,:,:),allocatable :: keyg_mult
       integer,dimension(:),allocatable :: keyv_mult
       logical :: allocate_full_, print_info_, store_index_ !LG: internal variables have the underscore, not the opposite
-      integer(kind=8) :: ntot
+      integer(kind=mp) :: ntot
 
       real(kind=4) :: tr0, tr1, trt0, trt1
-      real(kind=8) :: time0, time1, time2, time3, time4, time5, ttime
+      real(kind=mp) :: time0, time1, time2, time3, time4, time5, ttime
       logical, parameter :: extra_timing=.false.
 
 
@@ -881,7 +881,7 @@ module sparsematrix_init
           call mpiallred(sparsemat%nsegline(1), sparsemat%nfvctr, mpi_sum, comm=comm)
       end if
       if (extra_timing) call cpu_time(tr1)
-      if (extra_timing) time0=real(tr1-tr0,kind=8)
+      if (extra_timing) time0=real(tr1-tr0,kind=mp)
 
       if (extra_timing) call cpu_time(tr0)
 
@@ -894,11 +894,11 @@ module sparsematrix_init
 
     
       if (iproc==0 .and. print_info_) then
-          ntot = int(norbu,kind=8)*int(norbu,kind=8)
+          ntot = int(norbu,kind=mp)*int(norbu,kind=mp)
           call yaml_map('total elements',ntot)
           call yaml_map('non-zero elements',sparsemat%nvctr)
           call yaml_comment('segments: '//sparsemat%nseg)
-          call yaml_map('sparsity in %',1.d2*real(ntot-int(sparsemat%nvctr,kind=8),kind=8)/real(ntot,kind=8),fmt='(f5.2)')
+          call yaml_map('sparsity in %',1.d2*real(ntot-int(sparsemat%nvctr,kind=mp),kind=mp)/real(ntot,kind=mp),fmt='(f5.2)')
       end if
     
       call allocate_sparse_matrix_keys(store_index_, sparsemat)
@@ -934,7 +934,7 @@ module sparsematrix_init
 
 
       if (extra_timing) call cpu_time(tr1)
-      if (extra_timing) time1=real(tr1-tr0,kind=8)
+      if (extra_timing) time1=real(tr1-tr0,kind=mp)
 
       if (extra_timing) call cpu_time(tr0)   
 
@@ -976,7 +976,7 @@ module sparsematrix_init
           sparsemat%store_index=.false.
       end if
       if (extra_timing) call cpu_time(tr1)   
-      if (extra_timing) time2=real(tr1-tr0,kind=8)
+      if (extra_timing) time2=real(tr1-tr0,kind=mp)
 
       if (extra_timing) call cpu_time(tr0)     
 
@@ -987,7 +987,7 @@ module sparsematrix_init
            sparsemat%isfvctr_par, sparsemat%nfvctr_par, sparsemat%istsegline, sparsemat%keyv, &
            sparsemat%isvctr, sparsemat%nvctrp, sparsemat%isvctr_par, sparsemat%nvctr_par)
       if (extra_timing) call cpu_time(tr1)   
-      if (extra_timing) time3=real(tr1-tr0,kind=8)
+      if (extra_timing) time3=real(tr1-tr0,kind=mp)
 
       if (extra_timing) call cpu_time(tr0) 
 
@@ -1066,7 +1066,7 @@ module sparsematrix_init
           keyv_mult(iseg) = keyv_mult(iseg-1) + keyg_mult(2,1,iseg-1) - keyg_mult(1,1,iseg-1) + 1
       end do
       if (extra_timing) call cpu_time(tr1)   
-      if (extra_timing) time4=real(tr1-tr0,kind=8)
+      if (extra_timing) time4=real(tr1-tr0,kind=mp)
 
       if (extra_timing) call cpu_time(tr0) 
 
@@ -1085,7 +1085,7 @@ module sparsematrix_init
       end if
 
       if (extra_timing) call cpu_time(tr1)   
-      if (extra_timing) time5=real(tr1-tr0,kind=8)    
+      if (extra_timing) time5=real(tr1-tr0,kind=mp)    
 
       call f_free(nsegline_mult)
       call f_free(istsegline_mult)
@@ -1096,7 +1096,7 @@ module sparsematrix_init
       call f_release_routine()
       call timing(iproc,'init_matrCompr','OF')
       if (extra_timing) call cpu_time(trt1)   
-      if (extra_timing) ttime=real(trt1-trt0,kind=8)
+      if (extra_timing) ttime=real(trt1-trt0,kind=mp)
 
       if (extra_timing.and.iproc==0) print*,'imctime',time0,time1,time2,time3,time4,time5,&
            time0+time1+time2+time3+time4+time5,ttime
@@ -1111,14 +1111,14 @@ module sparsematrix_init
       logical, dimension(norbu), intent(inout) :: lut
 
       ! Local variables
-      integer(kind=8) :: ist, iend, ind
+      integer(kind=mp) :: ist, iend, ind
       integer :: i, jjorb
 
       lut = .false.
-      ist = int(iiorb-1,kind=8)*int(norbu,kind=8) + int(1,kind=8)
-      iend = int(iiorb,kind=8)*int(norbu,kind=8)
+      ist = int(iiorb-1,kind=mp)*int(norbu,kind=mp) + int(1,kind=mp)
+      iend = int(iiorb,kind=mp)*int(norbu,kind=mp)
       do i=1,nnonzero
-         ind = int(nonzero(2,i)-1,kind=8)*int(norbu,kind=8) + int(nonzero(1,i),kind=8)
+         ind = int(nonzero(2,i)-1,kind=mp)*int(norbu,kind=mp) + int(nonzero(1,i),kind=mp)
          if (ind<ist) cycle
          if (ind>iend) exit
          jjorb=nonzero(1,i)
@@ -2063,7 +2063,7 @@ module sparsematrix_init
       logical,intent(in),optional :: init_matmul
       integer,intent(in),optional :: nspin
       character(len=1),intent(in),optional :: geocode
-      real(kind=8),dimension(3),intent(in),optional :: cell_dim
+      real(kind=mp),dimension(3),intent(in),optional :: cell_dim
       integer,dimension(ncol),target,intent(in),optional :: on_which_atom
 
       ! Local variables
@@ -2073,9 +2073,9 @@ module sparsematrix_init
       logical,dimension(:,:),allocatable :: mat
       logical :: init_matmul_
       character(len=1) :: geocode_
-      real(kind=8),dimension(3) :: cell_dim_
+      real(kind=mp),dimension(3) :: cell_dim_
       integer,dimension(:),pointer :: on_which_atom_
-      !real(kind=8) :: tt
+      !real(kind=mp) :: tt
 
       call f_routine(id='bigdft_to_sparsebigdft')
 
@@ -2108,7 +2108,7 @@ module sparsematrix_init
       call f_free(mat)
 
       !!! Determine the number of columns per process
-      !!tt = real(ncol,kind=8)/real(nproc,kind=8)
+      !!tt = real(ncol,kind=mp)/real(nproc,kind=mp)
       !!ncolpx = floor(tt)
       !!ii = ncol - nproc*ncolpx
       !!if (iproc<ii) then
@@ -2173,7 +2173,7 @@ module sparsematrix_init
       integer,dimension(nnonzero),intent(in) :: row_ind
       integer,dimension(ncol),intent(in) :: col_ptr
       type(sparse_matrix),intent(in) :: smat
-      real(kind=8),dimension(nnonzero),intent(in) :: val
+      real(kind=mp),dimension(nnonzero),intent(in) :: val
       type(matrices),intent(inout) :: mat
 
       ! Local variables
@@ -2218,7 +2218,7 @@ module sparsematrix_init
       character(len=*),intent(in) :: filename
       integer,intent(out) :: ncol, nnonzero
       integer,dimension(:),pointer,intent(out) :: col_ptr, row_ind
-      real(kind=8),dimension(:),pointer,intent(out) :: val
+      real(kind=mp),dimension(:),pointer,intent(out) :: val
 
       ! Local variables
       integer :: i, ii
@@ -2257,10 +2257,10 @@ module sparsematrix_init
     
       ! Local variables
       integer :: ncolpx, ii, i, jproc
-      real(kind=8) :: tt
+      real(kind=mp) :: tt
     
       ! Determine the number of columns per process
-      tt = real(ncol,kind=8)/real(nproc,kind=8)
+      tt = real(ncol,kind=mp)/real(nproc,kind=mp)
       ncolpx = floor(tt)
       ii = ncol - nproc*ncolpx
       if (iproc<ii) then
@@ -2290,13 +2290,13 @@ module sparsematrix_init
     
       ! Calling arguments
       integer,intent(in) :: nproc, norb
-      real(kind=8),dimension(norb),intent(in) :: workload
-      real(kind=8),intent(in) :: workload_ideal
+      real(kind=mp),dimension(norb),intent(in) :: workload
+      real(kind=mp),intent(in) :: workload_ideal
       integer,dimension(0:nproc-1),intent(out) :: norb_par
     
       ! Local variables
-      real(kind=8) :: tcount, jcount, wli, ratio, ratio_old, average
-      real(kind=8),dimension(:),allocatable :: workload_par
+      real(kind=mp) :: tcount, jcount, wli, ratio, ratio_old, average
+      real(kind=mp),dimension(:),allocatable :: workload_par
       integer,dimension(:),allocatable :: norb_par_trial
       integer :: jproc, jjorb, jjorbtot, jorb, ii, imin, imax
     
@@ -2320,12 +2320,12 @@ module sparsematrix_init
               tcount = tcount + workload(jorb)
               jcount = jcount + workload(jorb)
               if(jorb==norb) exit !just to be sure that no out of bound happens
-              if (abs(tcount-wli*real(jproc+1,kind=8)) <= &
-                      abs(tcount+workload(jorb+1)-wli*real(jproc+1,kind=8))) then
-              !!if (abs(tcount-workload_ideal*real(jproc+1,kind=8)) <= &
-              !!        abs(tcount+workload(jorb+1)-workload_ideal*real(jproc+1,kind=8))) then
-              !!if (tcount-workload_ideal*real(jproc+1,kind=8)<0.d0 .and. &
-              !!        tcount+workload(jorb+1)-workload_ideal*real(jproc+1,kind=8)>0.d0) then
+              if (abs(tcount-wli*real(jproc+1,kind=mp)) <= &
+                      abs(tcount+workload(jorb+1)-wli*real(jproc+1,kind=mp))) then
+              !!if (abs(tcount-workload_ideal*real(jproc+1,kind=mp)) <= &
+              !!        abs(tcount+workload(jorb+1)-workload_ideal*real(jproc+1,kind=mp))) then
+              !!if (tcount-workload_ideal*real(jproc+1,kind=mp)<0.d0 .and. &
+              !!        tcount+workload(jorb+1)-workload_ideal*real(jproc+1,kind=mp)>0.d0) then
                   norb_par(jproc) = jjorb
                   workload_par(jproc) = jcount
                   jcount = 0.d0
@@ -2341,7 +2341,7 @@ module sparsematrix_init
           if (sum(norb_par)/=norb) then
               call f_err_throw('wrong first partition of the workload; sum of distributed workload is '&
                    &//trim(yaml_toa(sum(norb_par)))//', but should be '//trim(yaml_toa(norb)),&
-                   err_name='BIGDFT_RUNTIME_ERROR')
+                   err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
           end if
 
           !do jproc=0,nproc-1
@@ -2352,7 +2352,7 @@ module sparsematrix_init
     
           ! Now take away one element from the maximum and add it to the minimum.
           ! Repeat this as long as the ratio max/average decreases 
-          average = sum(workload_par)/real(nproc,kind=8)
+          average = sum(workload_par)/real(nproc,kind=mp)
           ratio_old = maxval(workload_par)/average
           adjust_loop: do
               imin = minloc(workload_par,1) - 1 !subtract 1 because the array starts a 0
@@ -2369,7 +2369,7 @@ module sparsematrix_init
                       workload_par(jproc) = workload_par(jproc) + workload(ii)
                   end do
               end do
-              average = sum(workload_par)/real(nproc,kind=8)
+              average = sum(workload_par)/real(nproc,kind=mp)
               ratio = maxval(workload_par)/average
               !if (bigdft_mpi%iproc==0) write(*,*) 'ratio, ratio_old', ratio, ratio_old
               if (ratio<ratio_old) then
@@ -2390,7 +2390,7 @@ module sparsematrix_init
       if (sum(norb_par)/=norb) then
           call f_err_throw('wrong second partition of the workload; sum of distributed workload is '&
                &//trim(yaml_toa(sum(norb_par)))//', but should be '//trim(yaml_toa(norb)),&
-               err_name='BIGDFT_RUNTIME_ERROR')
+               err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
       end if
     
       call f_release_routine()
@@ -2405,18 +2405,18 @@ module sparsematrix_init
       implicit none
       integer,intent(in) :: nproc !<number of MPI tasks
       integer,intent(in) :: jproc !<currently handled task
-      real(kind=8),intent(in) :: wltot !<total workload assigned so far
-      real(kind=8),intent(in) :: wli !< theoretical ideal workload
-      real(kind=8) :: wl !<new ideal workload
-      real(kind=8) :: wls
+      real(kind=mp),intent(in) :: wltot !<total workload assigned so far
+      real(kind=mp),intent(in) :: wli !< theoretical ideal workload
+      real(kind=mp) :: wl !<new ideal workload
+      real(kind=mp) :: wls
 
       ! Average workload so far
-      wls = wltot/real(jproc,kind=8)
+      wls = wltot/real(jproc,kind=mp)
 
       ! The new ideal workload is a weighted sum of the average workload so far
       ! and the theoretical ideal workload
       wl = (nproc-jproc)*wls + jproc*wli
-      wl = wl/real(nproc,kind=8) 
+      wl = wl/real(nproc,kind=mp) 
 
     end function get_dynamic_ideal_workload
 
@@ -2707,7 +2707,7 @@ module sparsematrix_init
       ii = nout - nthread*ii
       n(0:ii-1) = n(0:ii-1) + 1
       ! Check
-      if (sum(n)/=nout) call f_err_throw('sum(n)/=nout',err_name='BIGDFT_RUNTIME_ERROR')
+      if (sum(n)/=nout) call f_err_throw('sum(n)/=nout',err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
 
       ! Determine the first and last iteration for each thread
       ise = f_malloc_ptr((/1.to.2,0.to.nthread-1/),id='ise')
@@ -2723,11 +2723,11 @@ module sparsematrix_init
           ii = ii + ise(2,jthread) - ise(1,jthread) + 1
           if (jthread>1) then
               if (ise(1,jthread)/=ise(2,jthread-1)+1) then
-                  call f_err_throw('ise(1,jthread)/=ise(2,jthread-1)+1',err_name='BIGDFT_RUNTIME_ERROR')
+                  call f_err_throw('ise(1,jthread)/=ise(2,jthread-1)+1',err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
               end if
           end if
       end do
-      if (ii/=nout) call f_err_throw('ii/=nout',err_name='BIGDFT_RUNTIME_ERROR')
+      if (ii/=nout) call f_err_throw('ii/=nout',err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
 
       call f_free(n)
 
@@ -2741,7 +2741,7 @@ module sparsematrix_init
       implicit none
       ! Calling arguments
       character(len=1),intent(in) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
-      real(kind=8),dimension(3),intent(in) :: cell_dim !< dimensions of the simulation cell
+      real(kind=mp),dimension(3),intent(in) :: cell_dim !< dimensions of the simulation cell
       integer,intent(in) :: nfvctr !< size of the matrix
       integer,intent(in) :: nat !< number of atoms
       integer,intent(in) :: ntypes !< number of atoms types
@@ -2750,7 +2750,7 @@ module sparsematrix_init
       integer,dimension(ntypes),intent(in) :: nelpsp !< number of electrons
       character(len=20),dimension(ntypes),intent(in) :: atomnames !< name of the atoms
       integer,dimension(nat),intent(in) :: iatype !< indicates the atoms type
-      real(kind=8),dimension(3,nat),intent(in) :: rxyz !< atomic positions
+      real(kind=mp),dimension(3,nat),intent(in) :: rxyz !< atomic positions
       integer,dimension(nfvctr),intent(in) :: on_which_atom !< indicates which element of the matrix belong to which atom
       type(sparse_matrix_metadata),intent(out) :: smmd
 

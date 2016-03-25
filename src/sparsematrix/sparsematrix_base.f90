@@ -22,11 +22,20 @@ module sparsematrix_base
 
 !  private
 
+  ! Precision
+  integer,parameter,public :: mp=f_double  !< matrix-type precision
+
+  !> Errorcodes
+  integer,save,public :: SPARSEMATRIX_ALLOCATION_ERROR
+  integer,save,public :: SPARSEMATRIX_MANIPULATION_ERROR
+  integer,save,public :: SPARSEMATRIX_RUNTIME_ERROR
+  integer,save,public :: SPARSEMATRIX_INITIALIZATION_ERROR
+
   !> Contains the matrices
   type,public :: matrices
-      real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
-      real(kind=8),dimension(:,:,:),pointer :: matrix,matrixp
-      real(kind=8) :: power !< power of the matrix; eg.: 0 => original matrix, -1 => inverse, 0.5 => ^1/2, etc.
+      real(kind=mp),dimension(:),pointer :: matrix_compr,matrix_comprp
+      real(kind=mp),dimension(:,:,:),pointer :: matrix,matrixp
+      real(kind=mp) :: power !< power of the matrix; eg.: 0 => original matrix, -1 => inverse, 0.5 => ^1/2, etc.
   end type matrices
 
   !> Contains the parameters needed for the sparse matrix matrix multiplication
@@ -92,14 +101,14 @@ module sparsematrix_base
       integer,dimension(:,:),pointer :: luccomm !<lookup array for the communications required for the compress distributed in the dense parallel format
       !!integer,dimension(:),pointer :: on_which_atom !<dimension ntmb, indicates to which atoms a row/column of the matrix belongs
       !!character(len=1) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
-      !!real(kind=8),dimension(3) :: cell_dim !< dimensions of the simulation cell
+      !!real(kind=mp),dimension(3) :: cell_dim !< dimensions of the simulation cell
       logical :: smatmul_initialized !< indicated whether the sparse matmul type has been initialized
   end type sparse_matrix
 
 
   type,public :: sparse_matrix_metadata
       character(len=1) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
-      real(kind=8),dimension(3) :: cell_dim !< dimensions of the simulation cell
+      real(kind=mp),dimension(3) :: cell_dim !< dimensions of the simulation cell
       integer :: nfvctr !< size of the matrix
       integer :: nat !< number of atoms
       integer :: ntypes !< number of atoms types
@@ -108,7 +117,7 @@ module sparsematrix_base
       integer,dimension(:),pointer :: nelpsp !< number of electrons
       character(len=20),dimension(:),pointer :: atomnames !< name of the atoms
       integer,dimension(:),pointer :: iatype !< indicates the atoms type
-      real(kind=8),dimension(:,:),pointer :: rxyz !< atomic positions
+      real(kind=mp),dimension(:,:),pointer :: rxyz !< atomic positions
       integer,dimension(:),pointer :: on_which_atom !< indicates which element of the matrix belong to which atom
   end type sparse_matrix_metadata
 
@@ -612,7 +621,7 @@ module sparsematrix_base
           smat_ptr = f_malloc_ptr(max(1,smat_info_ptr%smat%smmm%nseq*smat_info_ptr%smat%nspin),id=smat_info_ptr%id)
       case default
           call f_err_throw('The action specified for the 1d matrix allocation is invalid',&
-               err_name='BIGDFT_RUNTIME_ERROR')
+               err_name='SPARSEMATRIX_ALLOCATION_ERROR')
       end select
     end subroutine allocate_smat_d1_ptr
 
@@ -631,7 +640,7 @@ module sparsematrix_base
           smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%smmm%nfvctrp/),id=smat_info_ptr%id)
       case default
          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
-              err_name='BIGDFT_RUNTIME_ERROR')
+              err_name='SPARSEMATRIX_ALLOCATION_ERROR')
       end select
     end subroutine allocate_smat_d2_ptr
     
@@ -653,7 +662,7 @@ module sparsematrix_base
                                   id=smat_info_ptr%id)
       case default
          call f_err_throw('The action specified for the 3d matrix allocation is invalid',&
-              err_name='BIGDFT_RUNTIME_ERROR')
+              err_name='SPARSEMATRIX_ALLOCATION_ERROR')
       end select
     end subroutine allocate_smat_d3_ptr
 
@@ -674,7 +683,7 @@ module sparsematrix_base
           smat = f_malloc(max(1,smat_info%smat%smmm%nseq*smat_info%smat%nspin),id=smat_info%id)
       case default
           call f_err_throw('The action specified for the 1d matrix allocation is invalid',&
-               err_name='BIGDFT_RUNTIME_ERROR')
+               err_name='SPARSEMATRIX_ALLOCATION_ERROR')
       end select
     end subroutine allocate_smat_d1
 
@@ -693,7 +702,7 @@ module sparsematrix_base
           smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%smmm%nfvctrp/),id=smat_info%id)
       case default
          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
-              err_name='BIGDFT_RUNTIME_ERROR')
+              err_name='SPARSEMATRIX_ALLOCATION_ERROR')
       end select
     end subroutine allocate_smat_d2
 
@@ -712,7 +721,7 @@ module sparsematrix_base
           smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%smmm%nfvctrp,smat_info%smat%nspin/),id=smat_info%id)
       case default
          call f_err_throw('The action specified for the 3d matrix allocation is invalid',&
-              err_name='BIGDFT_RUNTIME_ERROR')
+              err_name='SPARSEMATRIX_ALLOCATION_ERROR')
       end select
     end subroutine allocate_smat_d3
 
@@ -733,7 +742,7 @@ module sparsematrix_base
           smat_ptr = f_malloc0_ptr(max(1,smat_info0_ptr%smat%smmm%nseq*smat_info0_ptr%smat%nspin),id=smat_info0_ptr%id)
       case default
           call f_err_throw('The action specified for the 1d matrix allocation is invalid',&
-               err_name='BIGDFT_RUNTIME_ERROR')
+               err_name='SPARSEMATRIX_ALLOCATION_ERROR')
       end select
     end subroutine allocate0_smat_d1_ptr
 
@@ -752,7 +761,7 @@ module sparsematrix_base
           smat_ptr = f_malloc0_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%smmm%nfvctrp/),id=smat_info0_ptr%id)
       case default
          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
-              err_name='BIGDFT_RUNTIME_ERROR')
+              err_name='SPARSEMATRIX_ALLOCATION_ERROR')
       end select
     end subroutine allocate0_smat_d2_ptr
     
@@ -774,7 +783,7 @@ module sparsematrix_base
                                    id=smat_info0_ptr%id)
       case default
          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
-              err_name='BIGDFT_RUNTIME_ERROR')
+              err_name='SPARSEMATRIX_ALLOCATION_ERROR')
       end select
     end subroutine allocate0_smat_d3_ptr
 
@@ -795,7 +804,7 @@ module sparsematrix_base
           smat = f_malloc0(max(1,smat_info0%smat%smmm%nseq*smat_info0%smat%nspin),id=smat_info0%id)
       case default
           call f_err_throw('The action specified for the 1d matrix allocation is invalid',&
-               err_name='BIGDFT_RUNTIME_ERROR')
+               err_name='SPARSEMATRIX_ALLOCATION_ERROR')
       end select
     end subroutine allocate0_smat_d1
 
@@ -814,7 +823,7 @@ module sparsematrix_base
           smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%smmm%nfvctrp/),id=smat_info0%id)
       case default
           call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
-               err_name='BIGDFT_RUNTIME_ERROR')
+               err_name='SPARSEMATRIX_ALLOCATION_ERROR')
       end select
     end subroutine allocate0_smat_d2
 
@@ -833,7 +842,7 @@ module sparsematrix_base
           smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%smmm%nfvctrp,smat_info0%smat%nspin/),id=smat_info0%id)
       case default
           call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
-               err_name='BIGDFT_RUNTIME_ERROR')
+               err_name='SPARSEMATRIX_ALLOCATION_ERROR')
       end select
     end subroutine allocate0_smat_d3
 
@@ -896,4 +905,38 @@ module sparsematrix_base
       smat_info0%iaction=iaction
       smat_info0%smat=>smat
     end function sparsematrix_malloc0
+
+
+
+    !> Define the sparsematrix errors
+    subroutine sparsematrix_init_errors()
+      use dictionaries
+      implicit none
+      external :: bigdft_severe_abort
+
+      call f_err_define('SPARSEMATRIX_ALLOCATION_ERROR',&
+           'a problem occured during the allocation of a sparse matrix',&
+           SPARSEMATRIX_ALLOCATION_ERROR,&
+           err_action='Check the calling arguments of the allocation routine')
+
+      call f_err_define('SPARSEMATRIX_MANIPULATION_ERROR',&
+           'a problem occured during the manipulation ((un)compression,sparsity pattern transformation) of a sparse matrix',&
+           SPARSEMATRIX_MANIPULATION_ERROR,&
+           err_action='Check the calling arguments of the manipulation routine and the array sizes')
+
+      call f_err_define('SPARSEMATRIX_RUNTIME_ERROR',&
+           'a general problem related to sparse matrices occured during runtime',&
+           SPARSEMATRIX_MANIPULATION_ERROR,&
+           err_action='Check the dedicated error message')
+
+      call f_err_define('SPARSEMATRIX_INITIALIZATION_ERROR',&
+           'a problem related to the initialization of a sparse matrix occured',&
+           SPARSEMATRIX_MANIPULATION_ERROR,&
+           err_action='Check the calling arguments and the dedicated error message')
+  
+  
+      ! define the severe operation via MPI_ABORT
+      call f_err_severe_override(bigdft_severe_abort)
+    end subroutine sparsematrix_init_errors
+
 end module sparsematrix_base

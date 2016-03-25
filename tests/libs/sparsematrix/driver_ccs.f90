@@ -41,6 +41,9 @@ program driver_css
   call bigdft_init_errors()
   call bigdft_init_timing_categories()
 
+  !Initialize error handling
+  call sparsematrix_init_errors()
+
   ! Read from matrix1.dat and create the type containing the sparse matrix descriptors (smat1) as well as
   ! the type which contains the matrix data (overlap). The matrix element are stored in mat1%matrix_compr.
   call sparse_matrix_and_matrices_init_from_file_ccs('matrix1.dat', iproc, nproc, &

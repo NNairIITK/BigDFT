@@ -48,40 +48,40 @@ module matrix_operations
         type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp_mat
         logical,intent(in) :: check_accur
         integer,intent(in),optional :: verbosity
-        real(kind=8),intent(out),optional :: max_error, mean_error
+        real(kind=mp),intent(out),optional :: max_error, mean_error
         integer,intent(in),optional :: nspinx !< overwrite the default spin value
         
         ! Local variables
         integer :: iorb, jorb, info, iiorb, isorb, norbp, ii, ii_inv, iii, ierr, i, its, maxits
         integer :: matrixindex_in_compressed, nmaxvalk, icalc, verbosity_
-        real(kind=8), dimension(:,:), pointer :: inv_ovrlpp, ovrlppowerp
-        real(kind=8), dimension(:,:), pointer :: inv_ovrlp_half_tmp
-        real(kind=8), dimension(:), pointer :: ovrlpminonep_new
-        real(kind=8), dimension(:,:,:), pointer :: ovrlpminone, ovrlp_local, inv_ovrlp_local, ovrlppoweroldp, ovrlpminonep
-        real(kind=8) :: factor
+        real(kind=mp), dimension(:,:), pointer :: inv_ovrlpp, ovrlppowerp
+        real(kind=mp), dimension(:,:), pointer :: inv_ovrlp_half_tmp
+        real(kind=mp), dimension(:), pointer :: ovrlpminonep_new
+        real(kind=mp), dimension(:,:,:), pointer :: ovrlpminone, ovrlp_local, inv_ovrlp_local, ovrlppoweroldp, ovrlpminonep
+        real(kind=mp) :: factor
         logical :: ovrlp_allocated, inv_ovrlp_allocated
       
         ! new for sparse taylor
         integer :: nout, nseq, ispin, ishift, ishift2, isshift, ilshift, ilshift2, nspin, iline, icolumn, ist, j, iorder_taylor
         integer,dimension(:,:,:),allocatable :: istindexarr
-        real(kind=8),dimension(:),pointer :: ovrlpminone_sparse
-        real(kind=8),dimension(:),allocatable :: ovrlp_compr_seq, ovrlpminone_sparse_seq, ovrlp_large_compr, tmparr, resmat
-        real(kind=8),dimension(:),allocatable :: invovrlp_compr_seq, ovrlpminoneoldp_new
-        real(kind=8),dimension(:,:),allocatable :: ovrlpminoneoldp, invovrlpp, ovrlp_largep
-        real(kind=8),dimension(:,:,:),allocatable :: invovrlpp_arr
-        real(kind=8),dimension(:,:),allocatable :: invovrlpp_arr_new
-        real(kind=8),dimension(:,:),allocatable :: Amat12p, Amat21p, Amat21
-        real(kind=8),dimension(:,:),pointer :: Amat12, Amat11p, Amat22p
-        real(kind=8),dimension(:),pointer :: Amat12_compr
-        real(kind=8),dimension(:),allocatable :: Amat21_compr, Amat12_seq, Amat21_seq, tmpmat
+        real(kind=mp),dimension(:),pointer :: ovrlpminone_sparse
+        real(kind=mp),dimension(:),allocatable :: ovrlp_compr_seq, ovrlpminone_sparse_seq, ovrlp_large_compr, tmparr, resmat
+        real(kind=mp),dimension(:),allocatable :: invovrlp_compr_seq, ovrlpminoneoldp_new
+        real(kind=mp),dimension(:,:),allocatable :: ovrlpminoneoldp, invovrlpp, ovrlp_largep
+        real(kind=mp),dimension(:,:,:),allocatable :: invovrlpp_arr
+        real(kind=mp),dimension(:,:),allocatable :: invovrlpp_arr_new
+        real(kind=mp),dimension(:,:),allocatable :: Amat12p, Amat21p, Amat21
+        real(kind=mp),dimension(:,:),pointer :: Amat12, Amat11p, Amat22p
+        real(kind=mp),dimension(:),pointer :: Amat12_compr
+        real(kind=mp),dimension(:),allocatable :: Amat21_compr, Amat12_seq, Amat21_seq, tmpmat
         integer,parameter :: SPARSE=1
         integer,parameter :: DENSE=2
-        real(kind=8) :: ex, max_error_p, mean_error_p, tt1, tt2
-        real(kind=8),dimension(:),allocatable :: factor_arr
-        real(kind=8),dimension(:),allocatable :: ovrlp_largep_new, invovrlpp_new
-        real(kind=8),dimension(:),allocatable :: Amat12p_new, Amat21p_new
-        real(kind=8),dimension(:),pointer :: Amat11p_new, Amat22p_new
-        real(kind=8),dimension(:),allocatable :: rpower
+        real(kind=mp) :: ex, max_error_p, mean_error_p, tt1, tt2
+        real(kind=mp),dimension(:),allocatable :: factor_arr
+        real(kind=mp),dimension(:),allocatable :: ovrlp_largep_new, invovrlpp_new
+        real(kind=mp),dimension(:),allocatable :: Amat12p_new, Amat21p_new
+        real(kind=mp),dimension(:),pointer :: Amat11p_new, Amat22p_new
+        real(kind=mp),dimension(:),allocatable :: rpower
       
       
         !!write(*,*) 'iorder',iorder
@@ -1049,14 +1049,14 @@ module matrix_operations
         implicit none
         integer,intent(in) :: iproc, nproc, comm, norb, norbp, isorb, nseq, nout, power
         type(sparse_matrix) :: smat
-        real(kind=8),dimension(nseq),intent(in) :: amat_seq
-        real(kind=8),dimension(smat%smmm%nvctrp),intent(in) :: bmatp
-        real(kind=8),intent(out) :: max_error, mean_error
-        real(kind=8),dimension(nseq),intent(in),optional :: dmat_seq
-        real(kind=8),dimension(smat%smmm%nvctrp),intent(in),optional :: cmatp
+        real(kind=mp),dimension(nseq),intent(in) :: amat_seq
+        real(kind=mp),dimension(smat%smmm%nvctrp),intent(in) :: bmatp
+        real(kind=mp),intent(out) :: max_error, mean_error
+        real(kind=mp),dimension(nseq),intent(in),optional :: dmat_seq
+        real(kind=mp),dimension(smat%smmm%nvctrp),intent(in),optional :: cmatp
       
-        real(kind=8), allocatable, dimension(:,:) :: tmp, tmp2
-        real(kind=8), allocatable, dimension(:) :: tmpp, tmp2p
+        real(kind=mp), allocatable, dimension(:,:) :: tmp, tmp2
+        real(kind=mp), allocatable, dimension(:) :: tmpp, tmp2p
         integer :: ierr, i,j
       
         call f_routine(id='check_accur_overlap_minus_one_sparse_new')
@@ -1108,31 +1108,31 @@ module matrix_operations
         
         ! Calling arguments
         integer,intent(in) :: iproc, nproc, comm, iorder, blocksize, power, norb
-        real(kind=8),dimension(norb,norb),intent(in) :: ovrlp_matrix
-        real(kind=8),dimension(:,:),pointer,intent(inout) :: inv_ovrlp_matrix
+        real(kind=mp),dimension(norb,norb),intent(in) :: ovrlp_matrix
+        real(kind=mp),dimension(:,:),pointer,intent(inout) :: inv_ovrlp_matrix
         type(sparse_matrix),intent(in) :: smat
         logical,intent(in) :: check_accur
-        real(kind=8),intent(out),optional :: max_error, mean_error
+        real(kind=mp),intent(out),optional :: max_error, mean_error
         
         ! Local variables
         integer :: iorb, jorb, info, iiorb, isorb, norbp, ii, ii_inv, iii, ierr, i, its, maxits
         integer :: matrixindex_in_compressed, nmaxvalk
-        real(kind=8), dimension(:,:), pointer :: ovrlpminonep, ovrlpminone, inv_ovrlpp, ovrlppowerp, ovrlppoweroldp
-        real(kind=8), dimension(:,:), pointer :: inv_ovrlp_half_tmp, ovrlp_local, inv_ovrlp_local
-        real(kind=8) :: factor
+        real(kind=mp), dimension(:,:), pointer :: ovrlpminonep, ovrlpminone, inv_ovrlpp, ovrlppowerp, ovrlppoweroldp
+        real(kind=mp), dimension(:,:), pointer :: inv_ovrlp_half_tmp, ovrlp_local, inv_ovrlp_local
+        real(kind=mp) :: factor
         logical :: ovrlp_allocated, inv_ovrlp_allocated
       
         ! new for sparse taylor
         integer :: nout, nseq
         integer,dimension(:,:,:),allocatable :: istindexarr
-        real(kind=8),dimension(:),pointer :: ovrlpminone_sparse
-        real(kind=8),dimension(:),allocatable :: ovrlp_compr_seq, ovrlpminone_sparse_seq, ovrlp_large_compr
-        real(kind=8),dimension(:),allocatable :: invovrlp_compr_seq
-        real(kind=8),dimension(:,:),allocatable :: ovrlpminoneoldp, invovrlpp, ovrlp_largep
-        real(kind=8),dimension(:,:),allocatable :: Amat12p, Amat21p, Amat21
-        real(kind=8),dimension(:,:),pointer :: Amat12, Amat11p, Amat22p
-        real(kind=8),dimension(:),pointer :: Amat12_compr
-        real(kind=8),dimension(:),allocatable :: Amat21_compr, Amat12_seq, Amat21_seq
+        real(kind=mp),dimension(:),pointer :: ovrlpminone_sparse
+        real(kind=mp),dimension(:),allocatable :: ovrlp_compr_seq, ovrlpminone_sparse_seq, ovrlp_large_compr
+        real(kind=mp),dimension(:),allocatable :: invovrlp_compr_seq
+        real(kind=mp),dimension(:,:),allocatable :: ovrlpminoneoldp, invovrlpp, ovrlp_largep
+        real(kind=mp),dimension(:,:),allocatable :: Amat12p, Amat21p, Amat21
+        real(kind=mp),dimension(:,:),pointer :: Amat12, Amat11p, Amat22p
+        real(kind=mp),dimension(:),pointer :: Amat12_compr
+        real(kind=mp),dimension(:),allocatable :: Amat21_compr, Amat12_seq, Amat21_seq
         integer,parameter :: SPARSE=1
         integer,parameter :: DENSE=2
       
@@ -1284,12 +1284,12 @@ module matrix_operations
                  smat,max_error,mean_error)
         implicit none
         integer,intent(in) :: iproc, nproc, comm, norb, norbp, isorb, power
-        real(kind=8),dimension(norb,norb),intent(in) :: ovrlp, inv_ovrlp
+        real(kind=mp),dimension(norb,norb),intent(in) :: ovrlp, inv_ovrlp
         type(sparse_matrix),intent(in) :: smat
-        real(kind=8),intent(out) :: max_error, mean_error
+        real(kind=mp),intent(out) :: max_error, mean_error
       
-        real(kind=8), allocatable, dimension(:,:) :: tmp, tmp2
-        real(kind=8), allocatable, dimension(:,:) :: tmpp, tmp2p
+        real(kind=mp), allocatable, dimension(:,:) :: tmp, tmp2
+        real(kind=mp), allocatable, dimension(:,:) :: tmpp, tmp2p
         integer :: ierr, i,j
       
         call f_routine(id='check_accur_overlap_minus_one')
@@ -1353,7 +1353,7 @@ module matrix_operations
         ! Local variables
         integer:: iorb, iiorb, jorb, ierr, ind, iline, icolumn, i, ii
         real(8):: error, num
-        real(kind=8),dimension(2) :: reducearr
+        real(kind=mp),dimension(2) :: reducearr
       
         call f_routine(id='deviation_from_unity_parallel')
       
@@ -1429,8 +1429,8 @@ module matrix_operations
       subroutine first_order_taylor_dense(norb,isorb,norbp,power,ovrlpp,inv_ovrlpp)
         implicit none
         integer,intent(in) :: norb, isorb, norbp, power
-        real(kind=8),dimension(norb,norbp),intent(in) :: ovrlpp
-        real(kind=8),dimension(norb,norbp),intent(out) :: inv_ovrlpp
+        real(kind=mp),dimension(norb,norbp),intent(in) :: ovrlpp
+        real(kind=mp),dimension(norb,norbp),intent(out) :: inv_ovrlpp
       
         integer :: iorb, jorb, iiorb
       
@@ -1486,8 +1486,8 @@ module matrix_operations
         ! Calling arguments
         integer,intent(in) :: norb
         type(sparse_matrix),intent(in) :: smat
-        real(kind=8),dimension(smat%nvctr),intent(in) :: ovrlp_compr
-        real(kind=8),dimension(smat%nvctr),intent(out) :: ovrlpminone_compr
+        real(kind=mp),dimension(smat%nvctr),intent(in) :: ovrlp_compr
+        real(kind=mp),dimension(smat%nvctr),intent(out) :: ovrlpminone_compr
 
         ! Local variables
         integer :: ii, iseg, jorb, iiorb, jjorb
@@ -1516,15 +1516,15 @@ module matrix_operations
       pure function newfactor(power,order,factor)
         implicit none
         integer, intent(in) :: power, order
-        real(kind=8), intent(in) :: factor
-        real(kind=8) :: newfactor
+        real(kind=mp), intent(in) :: factor
+        real(kind=mp) :: newfactor
       
         if (power==1) then
            newfactor=-factor
         else if (power==2) then
-           newfactor=factor*(1.5d0-real(order,kind=8))/real(order,kind=8)
+           newfactor=factor*(1.5d0-real(order,kind=mp))/real(order,kind=mp)
         else if (power==-2) then
-           newfactor=factor*(0.5d0-real(order,kind=8))/real(order,kind=8)
+           newfactor=factor*(0.5d0-real(order,kind=mp))/real(order,kind=mp)
         end if
       
       end function newfactor
@@ -1533,8 +1533,8 @@ module matrix_operations
       subroutine matrix_minus_identity_dense(norb,isorb,norbp,matinp,matoutp)
         implicit none
         integer,intent(in) :: norb, isorb, norbp
-        real(kind=8),dimension(norb,norbp),intent(in) :: matinp
-        real(kind=8),dimension(norb,norbp),intent(out) :: matoutp
+        real(kind=mp),dimension(norb,norbp),intent(in) :: matinp
+        real(kind=mp),dimension(norb,norbp),intent(out) :: matoutp
       
         integer :: iorb, jorb, iiorb
       
@@ -1557,12 +1557,12 @@ module matrix_operations
       subroutine first_order_taylor_sparse_new(power, smat, ovrlpp, inv_ovrlpp)
         implicit none
         !!integer,intent(in) :: norb, isorb, norbp, power
-        !!real(kind=8),dimension(norb,norbp),intent(in) :: ovrlpp
-        !!real(kind=8),dimension(norb,norbp),intent(out) :: inv_ovrlpp
+        !!real(kind=mp),dimension(norb,norbp),intent(in) :: ovrlpp
+        !!real(kind=mp),dimension(norb,norbp),intent(out) :: inv_ovrlpp
         integer,intent(in) :: power
         type(sparse_matrix),intent(in) :: smat
-        real(kind=8),dimension(smat%smmm%nvctrp),intent(in) :: ovrlpp
-        real(kind=8),dimension(smat%smmm%nvctrp),intent(out) :: inv_ovrlpp
+        real(kind=mp),dimension(smat%smmm%nvctrp),intent(in) :: ovrlpp
+        real(kind=mp),dimension(smat%smmm%nvctrp),intent(out) :: inv_ovrlpp
       
         integer :: i, ii, iline, icolumn
       
@@ -1651,7 +1651,7 @@ module matrix_operations
       subroutine overlap_minus_one_exact_serial(norb,inv_ovrlp)
         implicit none
         integer,intent(in) :: norb
-        real(kind=8),dimension(norb,norb),intent(inout) :: inv_ovrlp
+        real(kind=mp),dimension(norb,norb),intent(inout) :: inv_ovrlp
       
         integer :: info, iorb, jorb
       
@@ -1686,18 +1686,18 @@ module matrix_operations
         use parallel_linalg, only: dgemm_parallel, dsyev_parallel
         implicit none
         integer,intent(in) :: iproc,nproc,comm,norb,blocksize
-        real(kind=8),dimension(norb,norb) :: inv_ovrlp_half
+        real(kind=mp),dimension(norb,norb) :: inv_ovrlp_half
         logical, intent(in) :: plusminus
         type(sparse_matrix),intent(in) :: smat
       
         integer :: info, iorb, jorb, ierr, iiorb, isorb, norbp, lwork, jjorb,ninetynine
-        real(kind=8),dimension(:),allocatable :: eval, work
-        real(kind=8),dimension(:,:),allocatable :: tempArr, orig_ovrlp
-        real(kind=8),dimension(:,:),pointer :: inv_ovrlp_halfp
-        real(kind=8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
-        real(kind=8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
-        real(kind=8) :: temp, max_error, mean_error
-        real(kind=8), allocatable, dimension(:) :: temp_vec
+        real(kind=mp),dimension(:),allocatable :: eval, work
+        real(kind=mp),dimension(:,:),allocatable :: tempArr, orig_ovrlp
+        real(kind=mp),dimension(:,:),pointer :: inv_ovrlp_halfp
+        real(kind=mp),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
+        real(kind=mp),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
+        real(kind=mp) :: temp, max_error, mean_error
+        real(kind=mp), allocatable, dimension(:) :: temp_vec
         logical, parameter :: symmetric=.true.
         logical, parameter :: check_lapack=.true.
         integer :: korb, jproc
@@ -1952,7 +1952,7 @@ module matrix_operations
         ! Local variables
         integer:: iorb, iiorb, jorb, ierr, ind
         real(8):: error, num
-        real(kind=8),dimension(2) :: reducearr
+        real(kind=mp),dimension(2) :: reducearr
       
         call f_routine(id='deviation_from_unity_parallel')
       
@@ -2052,7 +2052,7 @@ module matrix_operations
         ! Local variables
         integer:: iorb, iiorb, jorb, ierr, ind
         real(8):: error, num
-        real(kind=8),dimension(2) :: reducearr
+        real(kind=mp),dimension(2) :: reducearr
       
         call timing(iproc,'dev_from_unity','ON') 
         max_deviation=0.d0
@@ -2108,7 +2108,7 @@ module matrix_operations
         ! Local variables
         integer:: iorb, iiorb, jorb, ierr, ind, iline, icolumn, i, ii
         real(8):: error, num
-        real(kind=8),dimension(2) :: reducearr
+        real(kind=mp),dimension(2) :: reducearr
       
         call timing(iproc,'dev_from_unity','ON') 
         max_deviation=0.d0
@@ -2179,11 +2179,11 @@ module matrix_operations
         type(matrices),intent(inout) :: inv_ovrlp_half_
       
         ! Local variables
-        integer(kind=8) :: ii, iend
+        integer(kind=mp) :: ii, iend
         integer :: i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
         integer :: iiorb, ierr, iseg, ind, ishift_ovrlp, ishift_inv_ovrlp, ispin
-        real(kind=8) :: error
-        real(kind=8),dimension(:,:),pointer :: ovrlp_tmp, ovrlp_tmp_inv_half
+        real(kind=mp) :: error
+        real(kind=mp),dimension(:,:),pointer :: ovrlp_tmp, ovrlp_tmp_inv_half
         logical,dimension(:),allocatable :: in_neighborhood
         character(len=*),parameter :: subname='overlap_power_minus_one_half_parallel'
         !type(matrices) :: inv_ovrlp_half_
@@ -2245,7 +2245,7 @@ module matrix_operations
                ! Count all orbitals that are in the neighborhood
       
                iseg=ovrlp%istsegline(iiorb)
-               iend=int(iiorb,kind=8)*int(ovrlp%nfvctr,kind=8)
+               iend=int(iiorb,kind=mp)*int(ovrlp%nfvctr,kind=mp)
                n=0
                in_neighborhood(:)=.false.
                do 
@@ -2256,8 +2256,8 @@ module matrix_operations
                   end do
                   iseg=iseg+1
                   if (iseg>ovrlp%nseg) exit
-                  ii = int((ovrlp%keyg(1,2,iseg)-1),kind=8)*int(ovrlp%nfvctr,kind=8) + &
-                       int(ovrlp%keyg(1,1,iseg),kind=8)
+                  ii = int((ovrlp%keyg(1,2,iseg)-1),kind=mp)*int(ovrlp%nfvctr,kind=mp) + &
+                       int(ovrlp%keyg(1,1,iseg),kind=mp)
                   if (ii>iend) exit
                end do
                !if (iproc==0) write(*,*) 'iiorb, n', iiorb, n
@@ -2397,7 +2397,7 @@ module matrix_operations
     
       ! Calling arguments
       integer,intent(in) :: iproc
-      real(kind=8),intent(in) :: error, max_error
+      real(kind=mp),intent(in) :: error, max_error
       integer,intent(inout) :: order_taylor
     
       ! Local variables
@@ -2421,18 +2421,18 @@ module matrix_operations
               !    ! always keep a minimum of 20
               !    act=' (decreased)'
               !    if (order_taylor>0) then
-              !        order_taylor = floor(0.9d0*real(order_taylor,kind=8))
+              !        order_taylor = floor(0.9d0*real(order_taylor,kind=mp))
               !    else
-              !        order_taylor = ceiling(0.9d0*real(order_taylor,kind=8))
+              !        order_taylor = ceiling(0.9d0*real(order_taylor,kind=mp))
               !    end if
               !end if
           else if (error>max_error) then
               ! error is too big, increase the order of the Taylor series by 10%
               act=' (increased)'
               if (order_taylor>0) then
-                  order_taylor = ceiling(max(1.1d0*real(order_taylor,kind=8),real(order_taylor+5,kind=8)))
+                  order_taylor = ceiling(max(1.1d0*real(order_taylor,kind=mp),real(order_taylor+5,kind=mp)))
               else
-                  order_taylor = floor(min(1.1d0*real(order_taylor,kind=8),real(order_taylor-5,kind=8)))
+                  order_taylor = floor(min(1.1d0*real(order_taylor,kind=mp),real(order_taylor-5,kind=mp)))
               end if
           else
               ! error is small enough, so do nothing
@@ -2475,8 +2475,8 @@ module matrix_operations
 
       ! Local variables
       integer :: nat, natp, isat, ii, iorb, iiat, n, jorb, jjat, ind, korb
-      real(kind=8),dimension(:,:),allocatable :: matrix
-      real(kind=8),dimension(:),allocatable :: matrix_compr_notaskgroup
+      real(kind=mp),dimension(:,:),allocatable :: matrix
+      real(kind=mp),dimension(:),allocatable :: matrix_compr_notaskgroup
 
       call f_routine(id='calculate_S_minus_one_half_onsite')
 

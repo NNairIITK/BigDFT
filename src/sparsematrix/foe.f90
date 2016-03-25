@@ -36,8 +36,8 @@ module foe
     !!!  ! Calling arguments
     !!!  integer,intent(in) :: iproc, nproc
     !!!  integer,intent(inout) :: order_taylor
-    !!!  real(kind=8),intent(in) :: max_inversion_error
-    !!!  real(kind=8),intent(out) :: ebs
+    !!!  real(kind=mp),intent(in) :: max_inversion_error
+    !!!  real(kind=mp),intent(out) :: ebs
     !!!  logical,intent(in) :: calculate_minusonehalf
     !!!  integer,intent(in) :: foe_verbosity
     !!!  character(len=*),intent(in) :: label
@@ -52,44 +52,44 @@ module foe
     !!!  integer :: isegstart, isegend, iismall, iilarge, nsize_polynomial
     !!!  integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift, npl_check, npl_boundaries
     !!!  integer,parameter :: nplx=50000
-    !!!  real(kind=8),dimension(:,:,:),allocatable :: cc, cc_check
-    !!!  real(kind=8),dimension(:,:),allocatable :: chebyshev_polynomials, fermip_check
-    !!!  real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
-    !!!  real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
-    !!!  real(kind=8) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt
-    !!!  real(kind=8) :: x_max_error_fake, max_error_fake, mean_error_fake
-    !!!  real(kind=8) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check, fscale_new
+    !!!  real(kind=mp),dimension(:,:,:),allocatable :: cc, cc_check
+    !!!  real(kind=mp),dimension(:,:),allocatable :: chebyshev_polynomials, fermip_check
+    !!!  real(kind=mp),dimension(:,:,:),allocatable :: penalty_ev
+    !!!  real(kind=mp) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
+    !!!  real(kind=mp) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt
+    !!!  real(kind=mp) :: x_max_error_fake, max_error_fake, mean_error_fake
+    !!!  real(kind=mp) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check, fscale_new
     !!!  logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
     !!!  logical,dimension(2) :: emergency_stop
-    !!!  real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
-    !!!  real(kind=8),dimension(:),allocatable :: hamscal_compr, fermi_check_compr
-    !!!  real(kind=8),dimension(4,4) :: interpol_matrix
-    !!!  real(kind=8),dimension(4) :: interpol_vector
-    !!!  real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
+    !!!  real(kind=mp),dimension(2) :: efarr, sumnarr, allredarr
+    !!!  real(kind=mp),dimension(:),allocatable :: hamscal_compr, fermi_check_compr
+    !!!  real(kind=mp),dimension(4,4) :: interpol_matrix
+    !!!  real(kind=mp),dimension(4) :: interpol_vector
+    !!!  real(kind=mp),parameter :: charge_tolerance=1.d-6 ! exit criterion
     !!!  logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
-    !!!  real(kind=8) :: temp_multiplicator, ebs_check, ef, ebsp
+    !!!  real(kind=mp) :: temp_multiplicator, ebs_check, ef, ebsp
     !!!  integer :: irow, icol, itemp, iflag,info, ispin, isshift, imshift, ilshift, ilshift2, i, j, itg, ncount, istl, ists
     !!!  logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
-    !!!  real(kind=8),parameter :: FSCALE_LOWER_LIMIT=5.d-3
-    !!!  real(kind=8),parameter :: FSCALE_UPPER_LIMIT=5.d-2
-    !!!  real(kind=8),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
-    !!!  real(kind=8),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
-    !!!  real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
-    !!!  real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0 !2.d0 !1.2d0
-    !!!  real(kind=8),parameter :: CHECK_RATIO=1.25d0
+    !!!  real(kind=mp),parameter :: FSCALE_LOWER_LIMIT=5.d-3
+    !!!  real(kind=mp),parameter :: FSCALE_UPPER_LIMIT=5.d-2
+    !!!  real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
+    !!!  real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
+    !!!  real(kind=mp),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
+    !!!  real(kind=mp),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0 !2.d0 !1.2d0
+    !!!  real(kind=mp),parameter :: CHECK_RATIO=1.25d0
     !!!  integer,parameter :: NPL_MIN=100
     !!!  !!type(matrices) :: inv_ovrlp
     !!!  integer,parameter :: NTEMP_ACCURATE=4
     !!!  integer,parameter :: NTEMP_FAST=1
-    !!!  real(kind=8) :: degree_multiplicator, x_max_error, max_error, x_max_error_check, max_error_check
-    !!!  real(kind=8) :: mean_error, mean_error_check
+    !!!  real(kind=mp) :: degree_multiplicator, x_max_error, max_error, x_max_error_check, max_error_check
+    !!!  real(kind=mp) :: mean_error, mean_error_check
     !!!  integer,parameter :: SPARSE=1
     !!!  integer,parameter :: DENSE=2
     !!!  integer,parameter :: imode=SPARSE
     !!!  type(fermi_aux) :: f
-    !!!  real(kind=8),dimension(2) :: temparr
-    !!!  real(kind=8),dimension(:,:),allocatable :: penalty_ev_new
-    !!!  real(kind=8),dimension(:),allocatable :: fermi_new, fermi_check_new, fermi_small_new
+    !!!  real(kind=mp),dimension(2) :: temparr
+    !!!  real(kind=mp),dimension(:,:),allocatable :: penalty_ev_new
+    !!!  real(kind=mp),dimension(:),allocatable :: fermi_new, fermi_check_new, fermi_small_new
     !!!  integer :: iline, icolumn, icalc
     !!!  
     !!!
@@ -269,8 +269,8 @@ module foe
     !!!                      (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))/fscale)
     !!!                  npl=max(npl,NPL_MIN)
     !!!                  !npl_check = nint(degree_multiplicator*(foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow"))/fscale_check)
-    !!!                  !npl_check = max(npl_check,nint(real(npl,kind=8)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
-    !!!                  npl_check = nint(real(npl,kind=8)/CHECK_RATIO)
+    !!!                  !npl_check = max(npl_check,nint(real(npl,kind=mp)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
+    !!!                  npl_check = nint(real(npl,kind=mp)/CHECK_RATIO)
     !!!                  npl_boundaries = nint(degree_multiplicator* &
     !!!                      (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin)) &
     !!!                          /foe_data_get_real(foe_obj,"fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
@@ -812,9 +812,9 @@ module foe
     !!!          use sparsematrix, only: extract_taskgroup_inplace
     !!!          use matrix_operations, only: overlapPowerGeneral, check_taylor_order
     !!!          implicit none
-    !!!          real(kind=8) :: max_error, mean_error
+    !!!          real(kind=mp) :: max_error, mean_error
     !!!          integer :: i, j, ii
-    !!!          real(kind=8),dimension(:),allocatable :: tmparr
+    !!!          real(kind=mp),dimension(:),allocatable :: tmparr
     !!!
     !!!          call f_routine(id='overlap_minus_onehalf')
     !!!
@@ -840,12 +840,12 @@ module foe
     !!!                                  compress_matrix_distributed_wrapper, &
     !!!                                  sparsemm_new
     !!!          ! Calling arguments
-    !!!          real(kind=8),dimension(smatl%nvctrp_tg),intent(inout) :: matrix_compr
+    !!!          real(kind=mp),dimension(smatl%nvctrp_tg),intent(inout) :: matrix_compr
     !!!
     !!!          ! Local variables
-    !!!          real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
-    !!!          real(kind=8),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
-    !!!          real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
+    !!!          real(kind=mp),dimension(:,:),pointer :: inv_ovrlpp, tempp
+    !!!          real(kind=mp),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
+    !!!          real(kind=mp),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
     !!!          integer,dimension(:,:,:),allocatable :: istindexarr
     !!!          integer :: nout, nseq
     !!!
@@ -918,8 +918,8 @@ module foe
     !!!
     !!!
     !!!      subroutine calculate_trace_distributed_new(matrixp, trace)
-    !!!          real(kind=8),dimension(smatl%smmm%nvctrp_mm),intent(in) :: matrixp
-    !!!          real(kind=8),intent(out) :: trace
+    !!!          real(kind=mp),dimension(smatl%smmm%nvctrp_mm),intent(in) :: matrixp
+    !!!          real(kind=mp),intent(out) :: trace
     !!!          integer :: i, ii
     !!!
     !!!          call f_routine(id='calculate_trace_distributed_new')
@@ -961,8 +961,8 @@ module foe
 
       ! Local variables
       integer :: iseg, ii, i, lwork, info
-      real(kind=8),dimension(:,:,:),allocatable :: tempmat
-      real(kind=8),dimension(:),allocatable :: eval, work
+      real(kind=mp),dimension(:,:,:),allocatable :: tempmat
+      real(kind=mp),dimension(:),allocatable :: eval, work
 
       call f_routine(id='get_minmax_eigenvalues')
 
@@ -1028,7 +1028,7 @@ module foe
     
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm
-      real(kind=8),intent(out) :: ebs
+      real(kind=mp),intent(out) :: ebs
       logical,intent(in) :: calculate_minusonehalf
       integer,intent(in) :: foe_verbosity
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
@@ -1042,49 +1042,49 @@ module foe
       integer :: isegstart, isegend, iismall, iilarge, nsize_polynomial
       integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift, npl_check, npl_boundaries
       integer,parameter :: nplx=50000
-      real(kind=8),dimension(:,:,:),allocatable :: cc, cc_check
-      real(kind=8),dimension(:,:),pointer :: chebyshev_polynomials
-      real(kind=8),dimension(:,:),allocatable :: fermip_check
-      real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
-      real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
-      real(kind=8) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt
-      real(kind=8) :: x_max_error_fake, max_error_fake, mean_error_fake
-      real(kind=8) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check, fscale_new, fscale_newx
+      real(kind=mp),dimension(:,:,:),allocatable :: cc, cc_check
+      real(kind=mp),dimension(:,:),pointer :: chebyshev_polynomials
+      real(kind=mp),dimension(:,:),allocatable :: fermip_check
+      real(kind=mp),dimension(:,:,:),allocatable :: penalty_ev
+      real(kind=mp) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
+      real(kind=mp) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt
+      real(kind=mp) :: x_max_error_fake, max_error_fake, mean_error_fake
+      real(kind=mp) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check, fscale_new, fscale_newx
       logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
       logical,dimension(2) :: emergency_stop
-      real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
-      real(kind=8),dimension(:),allocatable :: hamscal_compr, fermi_check_compr
-      real(kind=8),dimension(4,4) :: interpol_matrix
-      real(kind=8),dimension(4) :: interpol_vector
-      real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
+      real(kind=mp),dimension(2) :: efarr, sumnarr, allredarr
+      real(kind=mp),dimension(:),allocatable :: hamscal_compr, fermi_check_compr
+      real(kind=mp),dimension(4,4) :: interpol_matrix
+      real(kind=mp),dimension(4) :: interpol_vector
+      real(kind=mp),parameter :: charge_tolerance=1.d-6 ! exit criterion
       logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
-      real(kind=8) :: temp_multiplicator, ebs_check, ef, ebsp
+      real(kind=mp) :: temp_multiplicator, ebs_check, ef, ebsp
       integer :: irow, icol, itemp, iflag,info, ispin, isshift, imshift, ilshift, ilshift2, i, j, itg, ncount, istl, ists
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
-      real(kind=8),parameter :: FSCALE_LOWER_LIMIT=5.d-3
-      real(kind=8),parameter :: FSCALE_UPPER_LIMIT=5.d-2
-      real(kind=8),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
-      real(kind=8),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
-      real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
-      real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0 !2.d0 !1.2d0
-      real(kind=8),parameter :: CHECK_RATIO=1.25d0
+      real(kind=mp),parameter :: FSCALE_LOWER_LIMIT=5.d-3
+      real(kind=mp),parameter :: FSCALE_UPPER_LIMIT=5.d-2
+      real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
+      real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
+      real(kind=mp),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
+      real(kind=mp),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0 !2.d0 !1.2d0
+      real(kind=mp),parameter :: CHECK_RATIO=1.25d0
       !integer,parameter :: NPL_MIN=100
       !!type(matrices) :: inv_ovrlp
       integer,parameter :: NTEMP_ACCURATE=4
       integer,parameter :: NTEMP_FAST=1
-      real(kind=8) :: degree_multiplicator
-      real(kind=8),dimension(1) :: x_max_error, max_error, x_max_error_check, max_error_check, mean_error, mean_error_check
+      real(kind=mp) :: degree_multiplicator
+      real(kind=mp),dimension(1) :: x_max_error, max_error, x_max_error_check, max_error_check, mean_error, mean_error_check
       integer,parameter :: SPARSE=1
       integer,parameter :: DENSE=2
       integer,parameter :: imode=SPARSE
       type(fermi_aux) :: f
-      real(kind=8),dimension(2) :: temparr
-      real(kind=8),dimension(:,:),allocatable :: penalty_ev_new
-      real(kind=8),dimension(:),allocatable :: fermi_new, fermi_check_new, fermi_small_new
+      real(kind=mp),dimension(2) :: temparr
+      real(kind=mp),dimension(:,:),allocatable :: penalty_ev_new
+      real(kind=mp),dimension(:),allocatable :: fermi_new, fermi_check_new, fermi_small_new
       integer :: iline, icolumn, icalc, npl_min, npl_max, npl_stride
-      real(kind=8),dimension(:),allocatable :: ham_large
-      real(kind=8),dimension(2) :: fscale_ispin
-      real(kind=8),dimension(1) :: ef_arr, fscale_arr
+      real(kind=mp),dimension(:),allocatable :: ham_large
+      real(kind=mp),dimension(2) :: fscale_ispin
+      real(kind=mp),dimension(1) :: ef_arr, fscale_arr
       
     
     
@@ -1278,7 +1278,7 @@ module foe
                   !!end if
                   !write(*,*) 'after find_fermi_level'
 
-                  npl_check = nint(real(npl,kind=8)/CHECK_RATIO)
+                  npl_check = nint(real(npl,kind=mp)/CHECK_RATIO)
                   cc_check = f_malloc0((/npl_check,1,3/),id='cc_check')
                   !!call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
                   !!call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
@@ -1518,9 +1518,9 @@ module foe
               use ice, only: inverse_chebyshev_expansion_new
               implicit none
               integer :: i, j, ii
-              real(kind=8) :: max_error, mean_error
-              real(kind=8), dimension(1) :: ex
-              real(kind=8),dimension(:),allocatable :: tmparr
+              real(kind=mp) :: max_error, mean_error
+              real(kind=mp), dimension(1) :: ex
+              real(kind=mp),dimension(:),allocatable :: tmparr
     
               call f_routine(id='overlap_minus_onehalf')
     
@@ -1557,12 +1557,12 @@ module foe
                                       compress_matrix_distributed_wrapper, &
                                       sparsemm_new
               ! Calling arguments
-              real(kind=8),dimension(smatl%nvctrp_tg),intent(inout) :: matrix_compr
+              real(kind=mp),dimension(smatl%nvctrp_tg),intent(inout) :: matrix_compr
     
               ! Local variables
-              real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
-              real(kind=8),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
-              real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
+              real(kind=mp),dimension(:,:),pointer :: inv_ovrlpp, tempp
+              real(kind=mp),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
+              real(kind=mp),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
               integer,dimension(:,:,:),allocatable :: istindexarr
               integer :: nout, nseq
     
@@ -1635,8 +1635,8 @@ module foe
     
     
           !!!!subroutine calculate_trace_distributed_new(matrixp, trace)
-          !!!!    real(kind=8),dimension(smatl%smmm%nvctrp_mm),intent(in) :: matrixp
-          !!!!    real(kind=8),intent(out) :: trace
+          !!!!    real(kind=mp),dimension(smatl%smmm%nvctrp_mm),intent(in) :: matrixp
+          !!!!    real(kind=mp),intent(out) :: trace
           !!!!    integer :: i, ii
     
           !!!!    call f_routine(id='calculate_trace_distributed_new')

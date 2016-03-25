@@ -52,15 +52,15 @@ module sparsematrix
       ! Calling arguments
       integer, intent(in) :: iproc, nproc
       type(sparse_matrix),intent(in) :: sparsemat
-      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(in) :: inmat
-      real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(out) :: outmat
+      real(kind=mp),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(in) :: inmat
+      real(kind=mp),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(out) :: outmat
     
       ! Local variables
       integer :: iseg, j, jj, ishift, ispin
       !integer,dimension(2) :: irowcol
       !integer :: ierr, irow, jcol, jjj
-      real(kind=8),dimension(:,:,:),pointer :: inm
-      real(kind=8),dimension(:),pointer :: outm
+      real(kind=mp),dimension(:,:,:),pointer :: inm
+      real(kind=mp),dimension(:),pointer :: outm
 
       !if (present(outmat)) then
       !    if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
@@ -148,11 +148,11 @@ module sparsematrix
       ! Calling arguments
       integer, intent(in) :: iproc, nproc
       type(sparse_matrix),intent(in) :: sparsemat
-      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),intent(in) :: inmat
-      real(kind=8),dimension(sparsemat%nvctrp_tg*sparsemat%nspin),intent(out) :: outmat
+      real(kind=mp),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),intent(in) :: inmat
+      real(kind=mp),dimension(sparsemat%nvctrp_tg*sparsemat%nspin),intent(out) :: outmat
 
       ! Local variables
-      real(kind=8),dimension(:),allocatable :: tmparr
+      real(kind=mp),dimension(:),allocatable :: tmparr
 
       tmparr = sparsematrix_malloc(sparsemat,iaction=SPARSE_FULL,id='tmparr')
       call compress_matrix(iproc,nproc,sparsemat,inmat,tmparr)
@@ -168,15 +168,15 @@ module sparsematrix
       ! Calling arguments
       integer, intent(in) :: iproc, nproc
       type(sparse_matrix), intent(in) :: sparsemat
-      real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(in) :: inmat
-      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(inout) :: outmat
+      real(kind=mp),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(in) :: inmat
+      real(kind=mp),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(inout) :: outmat
       
       ! Local variables
       integer :: iseg, i, ii, ishift, ispin
       !integer, dimension(2) :: irowcol
       !integer ::  jcol, irow, iii, ierr
-      real(kind=8),dimension(:),pointer :: inm
-      real(kind=8),dimension(:,:,:),pointer :: outm
+      real(kind=mp),dimension(:),pointer :: inm
+      real(kind=mp),dimension(:,:,:),pointer :: outm
 
       !!if (present(outmat)) then
       !!    if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
@@ -265,11 +265,11 @@ module sparsematrix
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm
       type(sparse_matrix),intent(in) :: smat
-      real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: matrix_compr
-      real(kind=8),dimension(smat%nfvctr,smat%nfvctr,smat%nspin),intent(out) :: matrix
+      real(kind=mp),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: matrix_compr
+      real(kind=mp),dimension(smat%nfvctr,smat%nfvctr,smat%nspin),intent(out) :: matrix
 
       ! Local variables
-      real(kind=8),dimension(:),allocatable :: tmparr
+      real(kind=mp),dimension(:),allocatable :: tmparr
 
       tmparr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='tmparr')
       call gather_matrix_from_taskgroups(iproc, nproc, comm, smat, matrix_compr, tmparr)
@@ -286,9 +286,9 @@ module sparsematrix
       type(matrices),intent(inout) :: mat
       !Local variables
       character(len=*), parameter :: subname='check_matrix_compression'
-      real(kind=8), parameter :: tol=1.e-10
+      real(kind=mp), parameter :: tol=1.e-10
       integer :: jorb, irow, icol, iseg, ii
-      real(kind=8) :: maxdiff
+      real(kind=mp) :: maxdiff
     
       call f_routine('check_matrix_compression')
 
@@ -374,7 +374,7 @@ module sparsematrix
        function test_value_matrix(norb,iorb,jorb)
           implicit none
           integer, intent(in) :: norb,iorb,jorb
-          real(kind=8) :: test_value_matrix
+          real(kind=mp) :: test_value_matrix
     
           test_value_matrix = norb*(iorb-1)+jorb
           !print *,iorb,jorb,test_value_matrix
@@ -400,13 +400,13 @@ module sparsematrix
       integer,intent(in) :: iproc
       type(sparse_matrix),intent(in) :: smat, lmat
       character(len=14),intent(in) :: cmode
-      real(kind=8),dimension(smat%nspin*smat%nvctr),intent(in),optional :: smat_in
-      real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(in),optional :: lmat_in
-      real(kind=8),dimension(smat%nspin*smat%nvctr),intent(out),optional :: smat_out
-      real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(out),optional :: lmat_out
+      real(kind=mp),dimension(smat%nspin*smat%nvctr),intent(in),optional :: smat_in
+      real(kind=mp),dimension(lmat%nspin*lmat%nvctr),intent(in),optional :: lmat_in
+      real(kind=mp),dimension(smat%nspin*smat%nvctr),intent(out),optional :: smat_out
+      real(kind=mp),dimension(lmat%nspin*lmat%nvctr),intent(out),optional :: lmat_out
     
       ! Local variables
-      integer(kind=8) :: isstart, isend, ilstart, ilend, iostart, ioend
+      integer(kind=mp) :: isstart, isend, ilstart, ilend, iostart, ioend
       integer :: imode, icheck, isseg, ilseg
       integer :: ilength, iscostart, ilcostart, i
       integer :: ilsegstart, ispin, isshift, ilshift, isoffset, iloffset
@@ -457,12 +457,12 @@ module sparsematrix
           !$omp firstprivate(ilsegstart)
           !$omp do reduction(+:icheck)
           sloop: do isseg=1,smat%nseg
-              isstart = int((smat%keyg(1,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(1,1,isseg),kind=8)
-              isend = int((smat%keyg(2,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(2,1,isseg),kind=8)
+              isstart = int((smat%keyg(1,2,isseg)-1),kind=mp)*int(smat%nfvctr,kind=mp) + int(smat%keyg(1,1,isseg),kind=mp)
+              isend = int((smat%keyg(2,2,isseg)-1),kind=mp)*int(smat%nfvctr,kind=mp) + int(smat%keyg(2,1,isseg),kind=mp)
               ! A segment is always on one line, therefore no double loop
               lloop: do ilseg=ilsegstart,lmat%nseg
-                  ilstart = int((lmat%keyg(1,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) + int(lmat%keyg(1,1,ilseg),kind=8)
-                  ilend = int((lmat%keyg(2,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) + int(lmat%keyg(2,1,ilseg),kind=8)
+                  ilstart = int((lmat%keyg(1,2,ilseg)-1),kind=mp)*int(lmat%nfvctr,kind=mp) + int(lmat%keyg(1,1,ilseg),kind=mp)
+                  ilend = int((lmat%keyg(2,2,ilseg)-1),kind=mp)*int(lmat%nfvctr,kind=mp) + int(lmat%keyg(2,1,ilseg),kind=mp)
     
                   ! check whether there is an overlap:
                   ! if not, increase loop counters
@@ -481,11 +481,11 @@ module sparsematrix
     
                   ! offset with respect to the starting point of the segment
                   isoffset = int(iostart - &
-                             (int((smat%keyg(1,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) &
-                               + int(smat%keyg(1,1,isseg),kind=8)),kind=4)
+                             (int((smat%keyg(1,2,isseg)-1),kind=mp)*int(smat%nfvctr,kind=mp) &
+                               + int(smat%keyg(1,1,isseg),kind=mp)),kind=4)
                   iloffset = int(iostart - &
-                             (int((lmat%keyg(1,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) &
-                               + int(lmat%keyg(1,1,ilseg),kind=8)),kind=4)
+                             (int((lmat%keyg(1,2,ilseg)-1),kind=mp)*int(lmat%nfvctr,kind=mp) &
+                               + int(lmat%keyg(1,1,ilseg),kind=mp)),kind=4)
     
                   ! determine start end and of the overlapping segment in compressed form
                   iscostart=smat%keyv(isseg)+isoffset
@@ -534,13 +534,13 @@ module sparsematrix
       integer,intent(in) :: iproc
       type(sparse_matrix),intent(in) :: smat, lmat
       character(len=14),intent(in) :: cmode
-      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(in),optional :: smatrix_compr_in
-      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(in),optional :: lmatrix_compr_in
-      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(out),optional :: smatrix_compr_out
-      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(out),optional :: lmatrix_compr_out
+      real(kind=mp),dimension(smat%nspin*smat%nvctrp_tg),intent(in),optional :: smatrix_compr_in
+      real(kind=mp),dimension(lmat%nspin*lmat%nvctrp_tg),intent(in),optional :: lmatrix_compr_in
+      real(kind=mp),dimension(smat%nspin*smat%nvctrp_tg),intent(out),optional :: smatrix_compr_out
+      real(kind=mp),dimension(lmat%nspin*lmat%nvctrp_tg),intent(out),optional :: lmatrix_compr_out
     
       ! Local variables
-      real(kind=8),dimension(:),allocatable :: tmparrs, tmparrl
+      real(kind=mp),dimension(:),allocatable :: tmparrs, tmparrl
       integer :: ishift_src, ishift_dst, imode, ispin
       integer,parameter :: SMALL_TO_LARGE=1
       integer,parameter :: LARGE_TO_SMALL=2
@@ -608,8 +608,8 @@ module sparsematrix
      ! Calling arguments
      integer,intent(in) :: iproc, nproc, layout
      type(sparse_matrix),intent(in) :: smat
-     real(kind=8),dimension(:),target,intent(inout) :: matrixp
-     real(kind=8),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
+     real(kind=mp),dimension(:),target,intent(inout) :: matrixp
+     real(kind=mp),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
 
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
@@ -617,8 +617,8 @@ module sparsematrix
      integer :: window, sizeof, jproc_send, iorb, jproc, info
      integer,dimension(:),pointer :: isvctr_par, nvctr_par
      integer,dimension(:),allocatable :: request, windows
-     real(kind=8),dimension(:),pointer :: matrix_local
-     real(kind=8),dimension(:),allocatable :: recvbuf
+     real(kind=mp),dimension(:),pointer :: matrix_local
+     real(kind=mp),dimension(:),allocatable :: recvbuf
 
      call f_routine(id='compress_matrix_distributed_wrapper_1')
 
@@ -630,14 +630,14 @@ module sparsematrix
              write(*,*) 'CRASH 1'
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
                   &' instead of '//trim(yaml_toa(smat%smmm%nvctrp_mm,fmt='(i0)')), &
-                  err_name='BIGDFT_RUNTIME_ERROR')
+                  err_name='SPARSEMATRIX_MANIPULATION_ERROR')
          end if
          matrix_local => matrixp
      else if (layout==SPARSE_MATMUL_LARGE) then
          if (size(matrixp)/=smat%smmm%nvctrp) then
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
                   &' instead of '//trim(yaml_toa(smat%smmm%nvctrp,fmt='(i0)')), &
-                  err_name='BIGDFT_RUNTIME_ERROR')
+                  err_name='SPARSEMATRIX_MANIPULATION_ERROR')
          end if
          matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp_mm),id='matrix_local')
          call transform_sparsity_pattern(iproc, smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
@@ -650,7 +650,7 @@ module sparsematrix
              call f_err_throw('layout has the value '//trim(yaml_toa(layout,fmt='(i0)'))//&
                   &'; allowed are '//trim(yaml_toa(SPARSE_MATMUL_SMALL,fmt='(i0)'))//&
                   &' and '//trim(yaml_toa(SPARSE_MATMUL_LARGE,fmt='(i0)')), &
-                  err_name='BIGDFT_RUNTIME_ERROR')
+                  err_name='SPARSEMATRIX_MANIPULATION_ERROR')
      end if
      call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, matrix_local, matrix_compr)
      if (layout==SPARSE_MATMUL_LARGE) then
@@ -671,8 +671,8 @@ module sparsematrix
      ! Calling arguments
      integer,intent(in) :: iproc, nproc, layout
      type(sparse_matrix),intent(in) :: smat
-     real(kind=8),dimension(:,:),intent(in) :: matrixp
-     real(kind=8),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
+     real(kind=mp),dimension(:,:),intent(in) :: matrixp
+     real(kind=mp),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
 
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
@@ -681,8 +681,8 @@ module sparsematrix
      !integer :: window
      integer,dimension(:),pointer :: isvctr_par, nvctr_par
      integer,dimension(:),allocatable :: request, windows
-     real(kind=8),dimension(:),pointer :: matrix_local
-     real(kind=8),dimension(:),allocatable :: recvbuf
+     real(kind=mp),dimension(:),pointer :: matrix_local
+     real(kind=mp),dimension(:),allocatable :: recvbuf
 
      call f_routine(id='compress_matrix_distributed_wrapper_2')
 
@@ -693,7 +693,7 @@ module sparsematrix
      if (size(matrixp,1)/=smat%nfvctr) then
          call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp,1),fmt='(i0)'))//&
               &' instead of '//trim(yaml_toa(smat%nfvctr,fmt='(i0)')), &
-              err_name='BIGDFT_RUNTIME_ERROR')
+              err_name='SPARSEMATRIX_MANIPULATION_ERROR')
      end if
      if (layout==DENSE_PARALLEL) then
          if (size(matrixp,2)/=smat%nfvctrp) stop '(ubound(matrixp,2)/=smat%nfvctrp'
@@ -715,7 +715,7 @@ module sparsematrix
          call f_err_throw('layout has the value '//trim(yaml_toa(layout,fmt='(i0)'))//&
               &'; allowed are '//trim(yaml_toa(DENSE_PARALLEL,fmt='(i0)'))//&
               &' and '//trim(yaml_toa(DENSE_MATMUL,fmt='(i0)')), &
-              err_name='BIGDFT_RUNTIME_ERROR')
+              err_name='SPARSEMATRIX_MANIPULATION_ERROR')
      end if
 
 
@@ -777,19 +777,19 @@ module sparsematrix
      ! Calling arguments
      integer,intent(in) :: iproc, nproc, layout
      type(sparse_matrix),intent(in) :: smat
-     !real(kind=8),dimension(smat%smmm%nvctrp_mm),intent(in) :: matrixp
-     real(kind=8),dimension(:),intent(in) :: matrixp
-     real(kind=8),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
+     !real(kind=mp),dimension(smat%smmm%nvctrp_mm),intent(in) :: matrixp
+     real(kind=mp),dimension(:),intent(in) :: matrixp
+     real(kind=mp),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
 
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
      integer :: ncount, itg, iitg, ist_send, ist_recv, i, iline, icolumn, ind
      integer :: window, sizeof, jproc_send, iorb, jproc, info, nccomm
-     real(kind=8) :: window_fake
+     real(kind=mp) :: window_fake
      integer,dimension(:),pointer :: isvctr_par, nvctr_par
      integer,dimension(:),allocatable :: request, windows
-     real(kind=8),dimension(:),pointer :: matrix_local
-     real(kind=8),dimension(:),allocatable :: recvbuf
+     real(kind=mp),dimension(:),pointer :: matrix_local
+     real(kind=mp),dimension(:),allocatable :: recvbuf
      integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
      integer,parameter :: comm_strategy=GET
      integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
@@ -818,7 +818,7 @@ module sparsematrix
          if (size(matrixp)/=max(1,nvctrp)) then
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
                   &' instead of '//trim(yaml_toa(nvctrp,fmt='(i0)')), &
-                  err_name='BIGDFT_RUNTIME_ERROR')
+                  err_name='SPARSEMATRIX_MANIPULATION_ERROR')
          end if
 
              call timing(iproc,'compressd_mcpy','OF')
@@ -945,8 +945,8 @@ module sparsematrix
     ! Calling arguments
     integer,intent(in) :: iproc, layout
     type(sparse_matrix),intent(in) :: smat
-    real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: matrix_compr
-    real(kind=8),dimension(:,:),intent(out) :: matrixp
+    real(kind=mp),dimension(smat%nvctrp_tg),intent(in) :: matrix_compr
+    real(kind=mp),dimension(:,:),intent(out) :: matrixp
 
     ! Local variables
     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr
@@ -1004,8 +1004,8 @@ module sparsematrix
    
      ! Calling arguments
      type(sparse_matrix),intent(in) :: smat
-     real(kind=8),dimension(smat%nvctr),intent(in) :: a
-     real(kind=8),dimension(smat%smmm%nseq),intent(out) :: a_seq
+     real(kind=mp),dimension(smat%nvctr),intent(in) :: a
+     real(kind=mp),dimension(smat%smmm%nseq),intent(out) :: a_seq
    
      ! Local variables
      integer :: iseq, ii
@@ -1029,8 +1029,8 @@ module sparsematrix
    
      ! Calling arguments
      type(sparse_matrix),intent(in) :: smat
-     real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: a
-     real(kind=8),dimension(smat%smmm%nseq),intent(out) :: a_seq
+     real(kind=mp),dimension(smat%nvctrp_tg),intent(in) :: a
+     real(kind=mp),dimension(smat%smmm%nseq),intent(out) :: a_seq
    
      ! Local variables
      integer :: iseq, ii
@@ -1059,28 +1059,28 @@ module sparsematrix
      !Calling Arguments
      integer,intent(in) :: iproc
      type(sparse_matrix),intent(in) :: smat
-     real(kind=8), dimension(smat%smmm%nvctrp),intent(in) :: b
-     real(kind=8), dimension(smat%smmm%nseq),intent(in) :: a_seq
-     real(kind=8), dimension(smat%smmm%nvctrp), intent(out) :: c
+     real(kind=mp), dimension(smat%smmm%nvctrp),intent(in) :: b
+     real(kind=mp), dimension(smat%smmm%nseq),intent(in) :: a_seq
+     real(kind=mp), dimension(smat%smmm%nvctrp), intent(out) :: c
    
      !Local variables
      !character(len=*), parameter :: subname='sparsemm'
      integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j, iline, icolumn, nblock, iblock, ncount
      integer :: iorb, ii, ilen, iout
-     real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7, ddot
+     real(kind=mp) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7, ddot
      integer :: n_dense
-     real(kind=8),dimension(:,:),allocatable :: a_dense, b_dense, c_dense
-     !real(kind=8),dimension(:),allocatable :: b_dense, c_dense
+     real(kind=mp),dimension(:,:),allocatable :: a_dense, b_dense, c_dense
+     !real(kind=mp),dimension(:),allocatable :: b_dense, c_dense
      integer,parameter :: MATMUL_NEW = 101
      integer,parameter :: MATMUL_OLD = 102
      integer,parameter :: matmul_version = MATMUL_NEW
      logical,parameter :: count_flops = .false.
-     real(kind=8) :: ts, te, op, gflops
-     real(kind=8),parameter :: flop_per_op = 2.d0 !<number of FLOPS per operations
+     real(kind=mp) :: ts, te, op, gflops
+     real(kind=mp),parameter :: flop_per_op = 2.d0 !<number of FLOPS per operations
    
      call f_routine(id='sparsemm')
      if (count_flops) then
-         n_dense = nint(sqrt(real(smat%smmm%nseq,kind=8)))
+         n_dense = nint(sqrt(real(smat%smmm%nseq,kind=mp)))
          !n_dense = smat%nfvctr
          a_dense = f_malloc((/n_dense,n_dense/),id='a_dense')
          b_dense = f_malloc((/n_dense,1/),id='b_dense')
@@ -1125,7 +1125,7 @@ module sparsematrix
                  nblock=smat%smmm%onedimindices_new(4,iout)
                  do iblock=1,nblock
                      ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
-                     op = op + real(ncount,kind=8)
+                     op = op + real(ncount,kind=mp)
                  end do
              end do
              gflops = 1.d-9*op/(te-ts)*flop_per_op
@@ -1139,7 +1139,7 @@ module sparsematrix
              !call dgemm('n', 'n', n_dense, n_dense, n_dense, 1.d0, a_dense, n_dense, &
              !     b_dense, n_dense, 0.d0, c_dense, n_dense)
              te = mpi_wtime()
-             op = real(n_dense,kind=8)*real(n_dense,kind=8)
+             op = real(n_dense,kind=mp)*real(n_dense,kind=mp)
              gflops = 1.d-9*op/(te-ts)*flop_per_op
              call yaml_map('DGEMV: operations',op,fmt='(es9.3)')
              call yaml_map('DGEMV: time',te-ts,fmt='(es9.3)')
@@ -1219,8 +1219,8 @@ module sparsematrix
      ! Calling arguments
      integer,intent(in) :: iproc, nproc, comm
      type(sparse_matrix),intent(in) :: smat
-     real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: mat_tg !< matrix distributed over the taskgroups
-     real(kind=8),dimension(smat%nvctr*smat%nspin),intent(out) :: mat_global !< global matrix gathered together
+     real(kind=mp),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: mat_tg !< matrix distributed over the taskgroups
+     real(kind=mp),dimension(smat%nvctr*smat%nspin),intent(out) :: mat_global !< global matrix gathered together
    
      ! Local variables
      integer,dimension(:),allocatable :: recvcounts, recvdspls
@@ -1271,7 +1271,7 @@ module sparsematrix
      ! Local variables
      integer,dimension(:),allocatable :: recvcounts, recvdspls
      integer :: ncount, ist_send, jproc, ispin, ishift
-     real(kind=8),dimension(:),allocatable :: mat_global
+     real(kind=mp),dimension(:),allocatable :: mat_global
    
       mat_global = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='mat_global')
      if (nproc>1) then
@@ -1332,8 +1332,8 @@ module sparsematrix
    
      ! Calling arguments
      type(sparse_matrix),intent(in) :: smat
-     real(kind=8),dimension(smat%nvctr*smat%nspin),intent(in) :: mat_glob
-     real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(out) :: mat_tg
+     real(kind=mp),dimension(smat%nvctr*smat%nspin),intent(in) :: mat_glob
+     real(kind=mp),dimension(smat%nvctrp_tg*smat%nspin),intent(out) :: mat_tg
 
      ! Local variables
      integer :: i, ispin, ishift_tg, ishift_glob
@@ -1473,7 +1473,7 @@ module sparsematrix
       ! First check that no taskgroups are used. Otherwise this routine does not work
       if (smat%ntaskgroup>1) then
           call f_err_throw('write_sparsematrix has not yet been implememted for matrix taskgroups', &
-               err_name='BIGDFT_RUNTIME_ERROR')
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
       end if
     
       open(unit=iunit,file=filename)
@@ -1534,7 +1534,7 @@ module sparsematrix
       logical :: first_in_column_set
       !integer :: j
       !logical :: column_started
-      real(kind=8),dimension(:),allocatable :: val
+      real(kind=mp),dimension(:),allocatable :: val
       integer,parameter :: iunit=234, iunit2=235
       character(len=10) :: num
       character(len=100) :: frmt
@@ -1664,8 +1664,8 @@ module sparsematrix
       integer,dimension(2,2,nseg_l),intent(in) :: keyg_l
       integer,dimension(nfvctr),intent(in) :: istsegline_l
       character(len=*),intent(in) :: direction
-      real(kind=8),dimension(nvctrp_l),intent(inout) :: matrix_l
-      real(kind=8),dimension(nvctrp_s),intent(inout) :: matrix_s
+      real(kind=mp),dimension(nvctrp_l),intent(inout) :: matrix_l
+      real(kind=mp),dimension(nvctrp_s),intent(inout) :: matrix_s
       ! Local variables
       integer :: i, ii, ind, iline, icolumn
 
@@ -1730,11 +1730,11 @@ module sparsematrix
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
       type(sparse_matrix),intent(in) :: smat
-      real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: a
-      real(kind=8),dimension(smat%nvctrp_tg),intent(inout) :: b, c
+      real(kind=mp),dimension(smat%nvctrp_tg),intent(in) :: a
+      real(kind=mp),dimension(smat%nvctrp_tg),intent(inout) :: b, c
 
       ! Local variables
-      real(kind=8),dimension(:),allocatable :: b_exp, c_exp, a_seq
+      real(kind=mp),dimension(:),allocatable :: b_exp, c_exp, a_seq
 
       b_exp = f_malloc(smat%smmm%nvctrp, id='b_exp')
       c_exp = f_malloc(smat%smmm%nvctrp, id='c_exp')
@@ -1771,13 +1771,13 @@ module sparsematrix
       ! Calling arguments
       integer,intent(in) :: iproc,  nproc, comm
       type(sparse_matrix),intent(in) :: asmat, bsmat
-      real(kind=8),dimension(asmat%nvctrp_tg),intent(in) :: amat
-      real(kind=8),dimension(bsmat%nvctrp_tg),intent(in) :: bmat
+      real(kind=mp),dimension(asmat%nvctrp_tg),intent(in) :: amat
+      real(kind=mp),dimension(bsmat%nvctrp_tg),intent(in) :: bmat
     
       ! Local variables
       integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
       integer :: ierr, iashift, ibshift, iel
-      real(kind=8) :: sumn, trace_sparse
+      real(kind=mp) :: sumn, trace_sparse
     
     
       call f_routine(id='trace_sparse')
@@ -1834,11 +1834,11 @@ module sparsematrix
       integer,intent(in) :: iproc, nproc, comm
       type(sparse_matrix_metadata),intent(in) :: smmd
       type(sparse_matrix),intent(in) :: smat
-      real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(inout) :: mat_compr
+      real(kind=mp),dimension(smat%nvctrp_tg*smat%nspin),intent(inout) :: mat_compr
 
       ! Local variables
       integer :: ispin, ishift, iseg, ii, i, iiat, jjat
-      real(kind=8),dimension(:),allocatable :: fullmat_compr
+      real(kind=mp),dimension(:),allocatable :: fullmat_compr
       
       fullmat_compr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='tmparr')
       call gather_matrix_from_taskgroups(iproc, nproc, comm, &
@@ -1880,7 +1880,7 @@ module sparsematrix
       ! Local variables
       integer :: ncount, itg, iitg, ispin, ishift, ist_send, ist_recv
       integer,dimension(:),allocatable :: request
-      real(kind=8),dimension(:),allocatable :: recvbuf
+      real(kind=mp),dimension(:),allocatable :: recvbuf
     
       if (nproc>1) then
          call f_routine(id='synchronize_matrix_taskgroups')

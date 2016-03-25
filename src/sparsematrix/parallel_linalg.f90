@@ -32,17 +32,17 @@ module parallel_linalg
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, blocksize, comm, m, n, k, lda, ldb, ldc
       character(len=1),intent(in) :: transa, transb
-      real(kind=8),intent(in) :: alpha, beta
-      real(kind=8),dimension(lda,k),intent(in) :: a
-      real(kind=8),dimension(ldb,n),intent(in) :: b
-      real(kind=8),dimension(ldc,n),intent(out) :: c
+      real(kind=mp),intent(in) :: alpha, beta
+      real(kind=mp),dimension(lda,k),intent(in) :: a
+      real(kind=mp),dimension(ldb,n),intent(in) :: b
+      real(kind=mp),dimension(ldc,n),intent(out) :: c
     
       ! Local variables
       integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
       integer :: context, irow, icol, numroc, info
       integer :: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
-      real(kind=8) :: tt1, tt2
-      real(kind=8),dimension(:,:),allocatable :: la, lb, lc
+      real(kind=mp) :: tt1, tt2
+      real(kind=mp),dimension(:,:),allocatable :: la, lb, lc
       integer,dimension(9) :: desc_lc, desc_la, desc_lb
       character(len=*),parameter :: subname='dgemm_parallel'
 
@@ -175,15 +175,15 @@ module parallel_linalg
       integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda
       integer,intent(out) :: info
       character(len=1),intent(in) :: jobz, uplo
-      real(kind=8),dimension(lda,n),intent(inout) :: a
-      real(kind=8),dimension(n),intent(out) :: w
+      real(kind=mp),dimension(lda,n),intent(inout) :: a
+      real(kind=mp),dimension(n),intent(out) :: w
       
       ! Local variables
       integer :: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
       integer :: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, neval_found, neval_computed
-      real(kind=8) :: tt1, tt2
-      real(kind=8),dimension(:,:),allocatable :: la, lz
-      real(kind=8),dimension(:),allocatable :: work, gap
+      real(kind=mp) :: tt1, tt2
+      real(kind=mp),dimension(:,:),allocatable :: la, lz
+      real(kind=mp),dimension(:),allocatable :: work, gap
       integer,dimension(9) :: desc_lz, desc_la
       integer,dimension(:),allocatable :: iwork, ifail, icluster
       character(len=*),parameter :: subname='dsyev_parallel'
@@ -346,16 +346,16 @@ module parallel_linalg
       integer,intent(in) :: iproc, nproc, comm, blocksize, nprocMax, itype, n, lda, ldb
       integer,intent(out) :: info
       character(len=1),intent(in) :: jobz, uplo
-      real(kind=8),dimension(lda,n),intent(inout) :: a
-      real(kind=8),dimension(ldb,n),intent(inout) :: b
-      real(kind=8),dimension(n),intent(out) :: w
+      real(kind=mp),dimension(lda,n),intent(inout) :: a
+      real(kind=mp),dimension(ldb,n),intent(inout) :: b
+      real(kind=mp),dimension(n),intent(out) :: w
       
       ! Local variables
       integer :: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
       integer :: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, nw_found, nw_computed
-      real(kind=8) :: tt1, tt2
-      real(kind=8),dimension(:,:),allocatable :: la, lb, lz
-      real(kind=8),dimension(:),allocatable :: work, gap
+      real(kind=mp) :: tt1, tt2
+      real(kind=mp),dimension(:,:),allocatable :: la, lb, lz
+      real(kind=mp),dimension(:),allocatable :: work, gap
       integer,dimension(9) :: desc_lz, desc_la, desc_lb
       integer,dimension(:),allocatable :: iwork, ifail, icluster
       character(len=*),parameter :: subname='dsygv_parallel'
@@ -647,14 +647,14 @@ module parallel_linalg
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda
       character(len=1),intent(in) :: uplo
-      real(kind=8),dimension(lda,n),intent(inout) :: a
+      real(kind=mp),dimension(lda,n),intent(inout) :: a
     
       ! Local variables
       integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
       integer :: context, irow, icol, numroc, info
       integer :: lnrow_a, lncol_a
-      real(kind=8) :: tt1, tt2
-      real(kind=8),dimension(:,:),allocatable :: la
+      real(kind=mp) :: tt1, tt2
+      real(kind=mp),dimension(:,:),allocatable :: la
       integer,dimension(9) :: desc_la
       character(len=*),parameter :: subname='dpotrf_parallel'
 
@@ -760,14 +760,14 @@ module parallel_linalg
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda
       character(len=1),intent(in) :: uplo
-      real(kind=8),dimension(lda,n),intent(inout) :: a
+      real(kind=mp),dimension(lda,n),intent(inout) :: a
     
       ! Local variables
       integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
       integer :: context, irow, icol, numroc, info
       integer :: lnrow_a, lncol_a
-      real(kind=8) :: tt1, tt2
-      real(kind=8),dimension(:,:),allocatable :: la
+      real(kind=mp) :: tt1, tt2
+      real(kind=mp),dimension(:,:),allocatable :: la
       integer,dimension(9) :: desc_la
       character(len=*),parameter :: subname='dpotri_parallel'
 

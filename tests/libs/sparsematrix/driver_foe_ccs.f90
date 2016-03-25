@@ -41,8 +41,11 @@ program driver_css
 
   ! Initialize the BigDFT error handling and timing.
   ! PROBLEM: THIS IS IN MODULE_TYPES
-  call bigdft_init_errors()
+  !call bigdft_init_errors()
   call bigdft_init_timing_categories()
+
+  ! Initialize error handling
+  call sparsematrix_init_errors()
 
   ! Read from matrix1.dat and create the type containing the sparse matrix descriptors (smat_s) as well as
   ! the type which contains the matrix data (overlap). The matrix element are stored in mat_s%matrix_compr.

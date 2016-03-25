@@ -33,23 +33,23 @@ module chebyshev
       integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, ncalc
       real(8),dimension(npl,3,ncalc),intent(in) :: cc
       type(sparse_matrix), intent(in) :: kernel
-      real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
+      real(kind=mp),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
       logical,intent(in) :: calculate_SHS
-      real(kind=8),dimension(kernel%smmm%nvctrp,ncalc),intent(out) :: fermi_new
-      real(kind=8),dimension(kernel%smmm%nvctrp,2),intent(out) :: penalty_ev_new
-      real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
+      real(kind=mp),dimension(kernel%smmm%nvctrp,ncalc),intent(out) :: fermi_new
+      real(kind=mp),dimension(kernel%smmm%nvctrp,2),intent(out) :: penalty_ev_new
+      real(kind=mp),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
       logical,dimension(2),intent(out) :: emergency_stop
-      real(kind=8),dimension(kernel%nvctrp_tg),intent(in),optional :: invovrlp_compr
+      real(kind=mp),dimension(kernel%nvctrp_tg),intent(in),optional :: invovrlp_compr
       ! Local variables
       character(len=*),parameter :: subname='chebyshev_clean'
       integer :: iorb,iiorb, jorb, ipl, i, iline, icolumn, jj, j
       integer :: isegstart, isegend, iseg, ii, jjorb, icalc
       real(8), dimension(:,:,:), allocatable :: vectors
       real(8), dimension(:,:), allocatable :: vectors_new
-      real(kind=8),dimension(:),allocatable :: mat_seq, mat_compr
-      !!real(kind=8),dimension(:,:),allocatable :: matrix!, fermi_new, penalty_ev_new
-      real(kind=8),dimension(:),allocatable :: matrix_new
-      real(kind=8) :: tt, ddot
+      real(kind=mp),dimension(:),allocatable :: mat_seq, mat_compr
+      !!real(kind=mp),dimension(:,:),allocatable :: matrix!, fermi_new, penalty_ev_new
+      real(kind=mp),dimension(:),allocatable :: matrix_new
+      real(kind=mp) :: tt, ddot
       integer :: jproc
     
       call timing(iproc, 'chebyshev_comp', 'ON')
@@ -223,8 +223,8 @@ module chebyshev
 
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
-      real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: invovrlp_compr
-      real(kind=8),dimension(smat%smmm%nvctrp),intent(inout) :: matrix
+      real(kind=mp),dimension(smat%nvctrp_tg),intent(in) :: invovrlp_compr
+      real(kind=mp),dimension(smat%smmm%nvctrp),intent(inout) :: matrix
 
       ! Local variables
       integer :: i, ii, iline, icolumn, jj
@@ -262,8 +262,8 @@ module chebyshev
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
       real(8),intent(in) :: a, b
-      real(kind=8),dimension(smat%smmm%nvctrp),intent(in) :: x_compr, y_compr
-      real(kind=8),dimension(smat%smmm%nvctrp),intent(out) :: z_compr
+      real(kind=mp),dimension(smat%smmm%nvctrp),intent(in) :: x_compr, y_compr
+      real(kind=mp),dimension(smat%smmm%nvctrp),intent(out) :: z_compr
     
       ! Local variables
       integer :: i, jorb, iorb, ii, iline, icolumn
@@ -294,9 +294,9 @@ module chebyshev
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, nsize_polynomial, npl, norb, norbp, ncalc
       type(sparse_matrix),intent(in) :: fermi
-      real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
-      real(kind=8),dimension(npl,ncalc),intent(in) :: cc
-      real(kind=8),dimension(nsize_polynomial,ncalc),intent(out) :: kernel_compressed
+      real(kind=mp),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
+      real(kind=mp),dimension(npl,ncalc),intent(in) :: cc
+      real(kind=mp),dimension(nsize_polynomial,ncalc),intent(out) :: kernel_compressed
     
       ! Local variables
       integer :: ipl, icalc
@@ -333,12 +333,12 @@ module chebyshev
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp
       type(sparse_matrix),intent(in) :: fermi
-      real(kind=8),dimension(fermi%smmm%nvctrp),intent(inout) :: vector_compr
-      real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
+      real(kind=mp),dimension(fermi%smmm%nvctrp),intent(inout) :: vector_compr
+      real(kind=mp),dimension(nsize_polynomial),intent(out) :: vector_compressed
     
       ! Local variables
       integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iel, i, iline, icolumn
-      real(kind=8),dimension(:,:),allocatable :: vector
+      real(kind=mp),dimension(:,:),allocatable :: vector
     
       call f_routine(id='compress_polynomial_vector_new')
     
@@ -357,12 +357,12 @@ module chebyshev
 
       ! Calling arguments
       integer,intent(in) :: nvctrp, ncalc
-      real(kind=8),dimension(nvctrp),intent(in) :: column
+      real(kind=mp),dimension(nvctrp),intent(in) :: column
       logical :: ces
 
       ! Local variables
       integer :: i
-      real(kind=8) :: tt
+      real(kind=mp) :: tt
 
       call f_routine(id='check_emergency_stop')
 
@@ -375,7 +375,7 @@ module chebyshev
           !!write(*,*) 'sum(column(:,icalc))',sum(column(:,icalc))
           !!tt = dot(nvctrp, column(1,icalc), 1, column(1,icalc), 1)
           !!write(*,*) 'tt',tt
-          !!if (abs(tt)>100000.d0*real(nvctrp,kind=8)) then
+          !!if (abs(tt)>100000.d0*real(nvctrp,kind=mp)) then
           !!    ces = .true.
           !!end if
       end do
