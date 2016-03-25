@@ -326,7 +326,7 @@ module postprocessing_linear
               end do
               call deallocate_matrices(inv_ovrlp(1))
           else if (method==CHARGE_ANALYSIS_MULLIKEN) then
-              call transform_sparse_matrix(iproc, smats, smatl, 'small_to_large', &
+              call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
                    smat_in=ovrlp%matrix_compr, lmat_out=proj_ovrlp_half_compr)
               do ispin=1,smatl%nspin
                   ist = (ispin-1)*smatl%nvctrp_tg + 1

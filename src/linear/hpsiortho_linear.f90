@@ -23,10 +23,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_GATHER
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: matrices, matrices_null, deallocate_matrices, &
-                               sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL, &
-                               sparsematrix_malloc
+                               sparsematrix_malloc_ptr, assignment(=), &
+                               sparsematrix_malloc, SPARSE_TASKGROUP
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: transform_sparse_matrix_local
+  use sparsematrix, only: transform_sparse_matrix
   use constrained_dft, only: cdft_data
   use module_fragments, only: system_fragment,fragmentInputParameters
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
@@ -155,8 +155,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
       ! Transform to the larger sparse region in order to be compatible with tmb%ham_descr%collcom.
       ! To this end use ham_.
-      call transform_sparse_matrix_local(iproc, tmb%linmat%s, tmb%linmat%m, 'small_to_large', &
-           smatrix_compr_in=tmb%linmat%ovrlp_%matrix_compr, lmatrix_compr_out=tmb%linmat%ham_%matrix_compr)
+      call transform_sparse_matrix(iproc, tmb%linmat%s, tmb%linmat%m, SPARSE_TASKGROUP, 'small_to_large', &
+           smat_in=tmb%linmat%ovrlp_%matrix_compr, lmat_out=tmb%linmat%ham_%matrix_compr)
 
       !tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
       !call vcopy(tmb%linmat%m%nvctr, tmb%linmat%ham_%matrix_compr(1), 1, tmparr(1), 1)
@@ -933,7 +933,7 @@ end subroutine hpsitopsi_linear
 subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=), &
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, assignment(=), &
                                sparsematrix_malloc, SPARSE_TASKGROUP
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace
   use communications_base, only: TRANSPOSE_FULL

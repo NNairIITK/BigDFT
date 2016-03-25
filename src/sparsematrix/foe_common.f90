@@ -1,6 +1,6 @@
 module module_func
   use sparsematrix_base
-  use module_base, only: safe_exp
+  !use module_base, only: safe_exp
   implicit none
 
   private
@@ -99,7 +99,7 @@ end module module_func
 module foe_common
   use foe_base
   use sparsematrix_base
-  use module_base, only: pi
+  !use module_base, only: pi
   implicit none
 
   private

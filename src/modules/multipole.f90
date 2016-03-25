@@ -2325,7 +2325,7 @@ module multipole
       use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
                                    sparsematrix_malloc, matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                    SPARSE_TASKGROUP, sparse_matrix_metadata
-      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local
+      use sparsematrix, only: matrix_matrix_mult_wrapper
       use communications, only: transpose_localized
       use orthonormalization, only: orthonormalizelocalized,overlap_matrix
       use module_atoms, only: atoms_data
@@ -2908,7 +2908,7 @@ module multipole
                                    matrices_null, deallocate_matrices, &
                                    sparse_matrix_metadata
       use sparsematrix_init, only: matrixindex_in_compressed
-      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local
+      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
       use sparsematrix_highlevel, only: trace_AB
       use matrix_operations, only: overlapPowerGeneral, overlap_plus_minus_one_half_exact
       use yaml_output
@@ -3082,8 +3082,8 @@ module multipole
                    ovrlp_onehalf_(1)%matrix_compr, tmpmat1, kerneltilde)
           else if (ortho=='no') then
               ovrlp_large = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='ovrlp_large')
-              call transform_sparse_matrix_local(bigdft_mpi%iproc, smats, smatl, 'small_to_large', &
-                   smatrix_compr_in=ovrlp_%matrix_compr, lmatrix_compr_out=ovrlp_large)
+              call transform_sparse_matrix(bigdft_mpi%iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
+                   smat_in=ovrlp_%matrix_compr, lmat_out=ovrlp_large)
               call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
                    kernel_%matrix_compr, ovrlp_large, kerneltilde)
               call f_free(ovrlp_large)

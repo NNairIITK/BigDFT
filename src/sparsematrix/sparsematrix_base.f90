@@ -15,9 +15,11 @@ module sparsematrix_base
   use yaml_output
   use yaml_strings
   use module_defs
+  use time_profiling
   use wrapper_MPI
   use wrapper_linalg
   use f_utils
+  use numerics
   use time_profiling, only: f_timing
   implicit none
 

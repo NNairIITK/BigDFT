@@ -1,4 +1,4 @@
-module matrices
+module bigdft_matrices
   implicit none
 
   private
@@ -565,4 +565,4 @@ module matrices
     
     end subroutine init_matrixindex_in_compressed_fortransposed
 
-end module matrices
+end module bigdft_matrices
