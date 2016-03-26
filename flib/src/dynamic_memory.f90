@@ -22,7 +22,7 @@ module dynamic_memory_base
   private 
 
   logical :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
-  logical, parameter :: bigdebug=.false.      !< Experimental parameter to explore the usage of f_routine as a debugger
+  logical :: bigdebug=.false.      !< Experimental parameter to explore the usage of f_routine as a debugger
   integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
   integer, parameter :: error_string_len=80       !< Length of error string
   integer, parameter :: ndebug=0                  !< Size of debug parameters
@@ -787,7 +787,9 @@ contains
   !> Opens a new instance of the dynamic memory handling
   subroutine f_malloc_initialize()
     implicit none
-    
+    !local variables
+    integer :: istat
+    character(len=1) :: val
     !increase the number of active instances
     ictrl=ictrl+1
     if (f_err_raise(ictrl > max_ctrl,&
@@ -798,7 +800,12 @@ contains
     mems(ictrl)=mem_ctrl_init()
 
     !in the first instance initialize the global memory info
-    if (ictrl==1) call memstate_init(memstate)
+    if (ictrl==1) then
+       call memstate_init(memstate)
+       !check if we are in the bigdebug mode or not
+       call get_environment_variable('FUTILE_DEBUG_MODE', val,status=istat)
+       bigdebug = val == '1' .and. istat == 0
+    end if
 
     !initialize the memprofiling counters
     call set(mems(ictrl)%dict_global//'Timestamp of Profile initialization',&

@@ -877,7 +877,7 @@ subroutine write_atomic_density_matrix(nspin,astruct,nl)
           call f_strcpy(src='Spin down',dest=msg)
         end if
         call yaml_map(trim(msg),&
-            nl%gamma_mmp(1,1:2*l+1,1:2*l+1,ispin,igamma(l)),fmt='(1pg15.5)')
+            nl%gamma_mmp(1,1:2*l+1,1:2*l+1,igamma(l),ispin),fmt='(1pg15.5)')
       end do
       call yaml_mapping_close()
     end do
