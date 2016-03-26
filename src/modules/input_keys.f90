@@ -982,7 +982,10 @@ contains
     as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. OCCUPATION)
 
     nat=0
-    if (ASTRUCT_POSITIONS .in. dict//POSINP) nat = dict_len(dict//POSINP//ASTRUCT_POSITIONS)
+    if (POSINP .in. dict) then
+       if (ASTRUCT_POSITIONS .in. dict//POSINP) &
+            nat = dict_len(dict//POSINP//ASTRUCT_POSITIONS)
+    end if
     if (nat<=natoms_dump) call add(as_is,POSINP)
 
     call input_file_minimal(parameters,dict,dict_minimal,nested,as_is)
