@@ -18,7 +18,7 @@ BUILDONE=' buildone '
 TINDERBOX=' tinderbox -o build '
 DOT=' dot '
 DOTCMD=' | dot -Edir=back -Tpng > buildprocedure.png '
-DIST=' distone bigdft-suite '
+DIST='  dist -distonly bigdft-suite '
 RCFILE='buildrc'
 SETUP=' setup '
 
@@ -98,7 +98,7 @@ class BigDFTInstaller():
         if os.path.isfile(filename):
             return os.path.getmtime(filename)
         else:
-            return None
+            return 0
 
     def get_rcfile(self,rcfile):
         "Determine the rcfile"
@@ -231,14 +231,13 @@ class BigDFTInstaller():
         self.shellaction('.',MAKEMODULES,'make -j6 && make install',hidden=not self.verbose)
 
     def dist(self):
-        import os
         "Perform make dist action"
-        disttime0=self.filename_time(os.path.join(self.builddir,'bigdft-suite.tar.gz'))
-        if disttime0 is None: disttime0=0
-        self.shellaction('.',self.modulelist,'make dist',hidden=not self.verbose)
-        self.get_output(self.jhb+DIST)
-        disttime1=self.filename_time(os.path.join(self.builddir,'bigdft-suite.tar.gz'))
-        if disttime1 is not None and  disttime1 > disttime0:
+        import os
+        tarfile=os.path.join(self.builddir,'bigdft-suite.tar.gz')
+        disttime0=self.filename_time(tarfile)
+        os.system(self.jhb+DIST)
+        disttime1=self.filename_time(tarfile)
+        if not (disttime1 == disttime0):
             print 'SUCCESS: distribution file "bigdft-suite.tar.gz" generated correctly'
         else:
             print 'WARNING: the dist file seems not have been updated or generated correctly'
@@ -270,6 +269,9 @@ class BigDFTInstaller():
 
     def startover(self):
         "Wipe files in the makemodules directory"
+        if not self.branch:
+            print 'The action "startover" is allowed only from a developer branch'
+            exit(1)
         import shutil
         import os
         for mod in self.selected(MAKEMODULES):
@@ -284,7 +286,6 @@ class BigDFTInstaller():
             print 'Building: ',mod
             self.get_output(self.jhb+BUILDONE+mod)
         self.build()
-
         
     def dry_run(self):
         "Do dry build"
@@ -336,7 +337,7 @@ class BigDFTInstaller():
         print 'The action considered was:',self.action
         if self.time0 != False:
             if self.action in ['build','dry_run']: self.rcfile_from_env()
-            if (self.time0 is not None and self.bigdft_time() > self.time0) or (self.time0 is None and self.bigdft_time() is not None):
+            if not (self.time0==self.bigdft_time()):
                 print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
                 print 'All the available executables and scripts can be found in the directory'
                 print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'

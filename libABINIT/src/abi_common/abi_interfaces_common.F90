@@ -22,11 +22,11 @@ module abi_interfaces_common
  implicit none
 
 interface
- subroutine abi_ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
+ subroutine abi_ewald(iproc,nproc,mpi_comm,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
   use abi_defs_basis
   use abi_interfaces_lowlevel
   implicit none
-  integer,intent(in) :: natom,iproc,nproc
+  integer,intent(in) :: natom,iproc,nproc,mpi_comm
   integer,intent(in) :: ntypat
   real(dp),intent(in) :: ucvol
   real(dp),intent(out) :: eew
@@ -40,11 +40,11 @@ interface
 end interface
 
 interface
- subroutine abi_ewald2(iproc,nproc,gmet,natom,ntypat,rmet,rprimd,stress,&
+ subroutine abi_ewald2(iproc,nproc,mpi_comm,gmet,natom,ntypat,rmet,rprimd,stress,&
 &                  typat,ucvol,xred,zion)
   use abi_defs_basis
   implicit none
-  integer,intent(in) :: natom,iproc,nproc
+  integer,intent(in) :: natom,iproc,nproc,mpi_comm
   integer,intent(in) :: ntypat
   real(dp),intent(in) :: ucvol
   integer,intent(in) :: typat(natom)

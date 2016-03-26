@@ -34,7 +34,7 @@
 #include "config.h"
 #endif
 
-subroutine abi_ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
+subroutine abi_ewald(iproc,nproc,mpi_comm,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
  use abi_defs_basis
  use abi_interfaces_lowlevel
  use abi_interfaces_numeric
@@ -45,7 +45,7 @@ subroutine abi_ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,x
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: iproc,nproc,natom,ntypat
+ integer,intent(in) :: iproc,nproc,mpi_comm,natom,ntypat
  real(dp),intent(in) :: ucvol
  real(dp),intent(out) :: eew
 !arrays
@@ -84,7 +84,7 @@ subroutine abi_ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,x
  if (nproc>1) then
      !call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
      iia=0
-     call mpi_allreduce(ii, iia, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+     call mpi_allreduce(ii, iia, 1, mpi_integer, mpi_sum, mpi_comm, ierr)
      ii = iia
  end if
  !if (ii/=natom) call f_err_throw('ii/=natom',err_name='BIGDFT_RUNTIME_ERROR')
@@ -327,7 +327,7 @@ subroutine abi_ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,x
      !call mpiallred(newr, mpi_sum, bigdft_mpi%mpi_comm)
      ii=0
      call mpi_allreduce(newr, ii, 1, &
-          mpi_integer, mpi_sum, mpi_comm_world, ierr)
+          mpi_integer, mpi_sum, mpi_comm, ierr)
      newr=ii
    end if
 
@@ -340,10 +340,10 @@ subroutine abi_ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,x
  if (nproc > 1 .and. natom > 0) then
    !call mpiallred(grewtn, mpi_sum, bigdft_mpi%mpi_comm)
    call mpi_allreduce(grewtn_tmp(1,1,1), grewtn_tmp(1,1,2), 3*natom, &
-        mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+        mpi_double_precision, mpi_sum, mpi_comm, ierr)
    tt=0.0_dp
    call mpi_allreduce(sumr, tt, 1, &
-        mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+        mpi_double_precision, mpi_sum, mpi_comm, ierr)
    sumr=tt
  else
    grewtn_tmp(:,:,2)=grewtn_tmp(:,:,1)
