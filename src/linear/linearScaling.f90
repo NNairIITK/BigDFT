@@ -814,9 +814,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
 
 
   if (input%write_orbitals>0) then
-      call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
-               energs, nlpsp, input, norder_taylor,&
-               energy, energyDiff, energyold)
+      if (write_full_system) then
+         call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+                  energs, nlpsp, input, norder_taylor,&
+                  energy, energyDiff, energyold, ref_frags, .false.)
+      end if
+
+      if (input%lin%fragment_calculation .and. write_fragments) then
+         call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+                  energs, nlpsp, input, norder_taylor,&
+                  energy, energyDiff, energyold, ref_frags, .true.)
+      end if
+
       !call write_orbital_density(iproc, .false., input%lin%plotBasisFunctions, 'KS', &
       !     KSwfn%orbs%npsidim_orbs, KSwfn%psi, KSwfn%orbs, KSwfn%lzd, at)
 
@@ -866,7 +875,8 @@ if (.false.) then
       ishift=(ispin-1)*tmb%linmat%s%nvctrp_tg
       call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
            tmb%linmat%ovrlp_%matrix_compr(ishift+1:), ovrlp_fullp)
-      call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
+      call deviation_from_unity_parallel(iproc, nproc, bigdft_mpi%mpi_comm, &
+           tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
            tmb%linmat%s%isfvctr, ovrlp_fullp, &
            tmb%linmat%s, max_deviation_p, mean_deviation_p)
       max_deviation = max_deviation + max_deviation_p/real(tmb%linmat%s%nspin,kind=8)
@@ -898,7 +908,8 @@ tmb%can_use_transposed=.false.
       ishift=(ispin-1)*tmb%linmat%s%nvctrp_tg
       call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
            tmb%linmat%ovrlp_%matrix_compr(ishift+1:), ovrlp_fullp)
-      call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
+      call deviation_from_unity_parallel(iproc, nproc, bigdft_mpi%mpi_comm, &
+           tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
            tmb%linmat%s%isfvctr, ovrlp_fullp, &
            tmb%linmat%s, max_deviation_p, mean_deviation_p)
       max_deviation = max_deviation + max_deviation_p/real(tmb%linmat%s%nspin,kind=8)
@@ -930,7 +941,8 @@ tmb%can_use_transposed=.false.
       ishift=(ispin-1)*tmb%linmat%s%nvctrp_tg
       call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
            tmb%linmat%ovrlp_%matrix_compr(ishift+1:), ovrlp_fullp)
-      call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
+      call deviation_from_unity_parallel(iproc, nproc, bigdft_mpi%mpi_comm, &
+           tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
            tmb%linmat%s%isfvctr, ovrlp_fullp, &
            tmb%linmat%s, max_deviation_p, mean_deviation_p)
       max_deviation = max_deviation + max_deviation_p/real(tmb%linmat%s%nspin,kind=8)
@@ -1448,7 +1460,7 @@ end if
                        exit
                     end if
                  end do cdft_loop
-                 call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, weight_matrix_)
+                 call gather_matrix_from_taskgroups_inplace(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%m, weight_matrix_)
                  call deallocate_matrices(weight_matrix_)
                  call DIIS_free(vdiis)
               else
@@ -1499,7 +1511,7 @@ end if
                        exit
                     end if
                  end do cdft_loop1
-                 call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, weight_matrix_)
+                 call gather_matrix_from_taskgroups_inplace(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%m, weight_matrix_)
                  call deallocate_matrices(weight_matrix_)
                  call DIIS_free(vdiis)
               else

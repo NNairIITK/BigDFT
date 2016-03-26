@@ -328,7 +328,9 @@ contains
     run=.true.
     do while(run)
        count=count+1
-       t1=f_time()
+       ! call directly nanosec to avoid hanging on BG/Q
+       !t1=f_time()
+       call nanosec(t1)
        tel=real(t1-t0,f_double)*1.e-9_f_double
        run= tel < real(sec,f_double)
     end do

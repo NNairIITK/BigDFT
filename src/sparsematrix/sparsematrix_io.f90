@@ -1,4 +1,5 @@
 module sparsematrix_io
+  use sparsematrix_base
   implicit none
 
   private
@@ -12,7 +13,8 @@ module sparsematrix_io
   contains
 
     subroutine write_ccs_matrix(filename, nfvctr, nvctr, row_ind, col_ptr, mat_compr)
-      use module_base
+      use dynamic_memory
+      use f_utils
       implicit none
       !Calling arguments
       character(len=*),intent(in) :: filename
@@ -23,6 +25,8 @@ module sparsematrix_io
       real(kind=8),dimension(nvctr),intent(in) :: mat_compr
       ! Local variables
       integer :: i, iunit
+
+      call f_routine(id='write_ccs_matrix')
 
       iunit = 99
       call f_open_file(iunit, file=trim(filename), binary=.false.)
@@ -36,11 +40,14 @@ module sparsematrix_io
 
       call f_close(iunit)
 
+      call f_release_routine()
+
     end subroutine write_ccs_matrix
 
 
     subroutine read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr)
-      use module_base
+      use dynamic_memory
+      use f_utils
       implicit none
       
       ! Calling arguments
@@ -90,7 +97,8 @@ module sparsematrix_io
 
     subroutine read_sparse_matrix_metadata(filename, nfvctr, nat, ntypes, units, geocode, cell_dim, &
                nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
-      use module_base
+      use dynamic_memory
+      use f_utils
       implicit none
       
       ! Calling arguments
@@ -147,9 +155,8 @@ module sparsematrix_io
     !! ATTENTION: This routine must be called by all MPI tasks due to the fact that the matrix 
     !! is distributed among the matrix taksgroups
     subroutine write_sparse_matrix(iproc, nproc, comm, smat, mat, filename)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, &
-                                   assignment(=), sparsematrix_malloc
+      use dynamic_memory
+      use f_utils
       use sparsematrix, only: gather_matrix_from_taskgroups
       implicit none
       
@@ -166,7 +173,7 @@ module sparsematrix_io
       call f_routine(id='write_sparse_matrix')
 
       matrix_compr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='matrix_compr')
-      call gather_matrix_from_taskgroups(iproc, nproc, &
+      call gather_matrix_from_taskgroups(iproc, nproc, comm, &
            smat, mat%matrix_compr, matrix_compr)
 
       if (iproc==0) then
@@ -216,7 +223,8 @@ module sparsematrix_io
 
     subroutine write_sparse_matrix_metadata(iproc, nfvctr, nat, ntypes, units, geocode, cell_dim, iatype, &
                rxyz, nzatom, nelpsp, atomnames, on_which_atom, filename)
-      use module_base
+      use dynamic_memory
+      use f_utils
       implicit none
       
       ! Calling arguments
