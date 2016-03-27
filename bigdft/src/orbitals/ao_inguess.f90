@@ -903,6 +903,7 @@ contains
                    string(is:is)=')'
                    is=is+1
                 end if
+                call yaml_newline()
                 call yaml_sequence_open(string(iss:is))
              end if
              do ispin=1,nspin

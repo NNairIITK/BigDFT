@@ -213,15 +213,15 @@ program utilities
        end if
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
-            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_s, ovrlp_mat, &
             init_matmul=.true.)
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
-            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_l, kernel_mat, &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_l, kernel_mat, &
             init_matmul=.true.)
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
-            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_m, hamiltonian_mat, &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_m, hamiltonian_mat, &
             init_matmul=.true.)
 
        call timing(bigdft_mpi%mpi_comm,'INIT','PR')
@@ -267,18 +267,20 @@ program utilities
    if (solve_eigensystem) then
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
-            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_s, ovrlp_mat, &
             init_matmul=.false.)!, nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, &
             !nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
        call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.bin', smmd)
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
-            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_m, hamiltonian_mat, &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_m, hamiltonian_mat, &
             init_matmul=.false.)
 
        ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
-       call uncompress_matrix(bigdft_mpi%iproc, smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)
+       call uncompress_matrix(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+            smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)
        hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='hamiltonian_mat%matrix')
-       call uncompress_matrix(bigdft_mpi%iproc, smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
+       call uncompress_matrix(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+            smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
        eval = f_malloc(smat_s%nfvctr,id='eval')
 
        if (bigdft_mpi%iproc==0) then
@@ -319,7 +321,7 @@ program utilities
 
        if (bigdft_mpi%iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
-            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s, ovrlp_mat, &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_s, ovrlp_mat, &
             init_matmul=.false.)!, iatype=iatype, ntypes=ntypes, atomnames=atomnames, &
             !on_which_atom=on_which_atom)
        call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.bin', smmd)
@@ -331,7 +333,7 @@ program utilities
 
        if (bigdft_mpi%iproc==0) call yaml_comment('Reading from file '//trim(hamiltonian_file),hfill='~')
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
-            bigdft_mpi%iproc, bigdft_mpi%nproc, smat_m, hamiltonian_mat, &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_m, hamiltonian_mat, &
             init_matmul=.false.)
        hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_PARALLEL, id='hamiltonian_mat%matrix')
        !call uncompress_matrix(bigdft_mpi%iproc, smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
@@ -562,7 +564,8 @@ program utilities
        end select
 
        if (iconv==1) then
-           call sparse_matrix_and_matrices_init_from_file_bigdft(trim(infile), bigdft_mpi%iproc, bigdft_mpi%nproc, &
+           call sparse_matrix_and_matrices_init_from_file_bigdft(trim(infile), &
+                bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
                 smat, mat, init_matmul=.false.)
            row_ind = f_malloc_ptr(smat%nvctr,id='row_ind')
            col_ptr = f_malloc_ptr(smat%nfvctr,id='col_ptr')

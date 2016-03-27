@@ -341,15 +341,15 @@ test.minhop.ref.yaml:
 test.testforces.ref.yaml:
  Epsilon: 1.2e-10
  Maxdiff for overlap calculation: 9.8e-09
- eF: 1.1e-08
- multiplicator for the confinement: 1.3e-9
- EBS: 1.4e-09
- EBS higher temperature: 1.4e-09
- EH: 1.5e-09
- EXC: 1.9e-10
- Ekin: 2.1e-10
- Epot: 1.1e-09
- EvXC: 2.4e-10
+ eF: 3.0e-07
+ multiplicator for the confinement: 3.62e-9
+ EBS: 2.0e-09
+ EBS higher temperature: 2.0e-09
+ EH: 2.2e-09
+ EXC: 2.7e-10
+ Ekin: 3.1e-10
+ Epot: 1.6e-09
+ EvXC: 3.5e-10
 
 
 
@@ -812,6 +812,7 @@ fructose:
  relative difference: 6.3e-11
  trace(KS): 2.5e-10
  eval: 1.1e-6
+ trace: 1.4e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1013,7 +1014,7 @@ foe:
  D: 1.1e-10
  Energy (Hartree): 1.3e-10
  norm(P): 1.1e-07
- trace: 8.5e-11
+ trace: 9.1e-11
  Maxdiff for overlap calculation: 3.2e-07
  Maxdiff for transpose (checksum): 2.4e-10
 
@@ -1028,7 +1029,7 @@ onlyhigh:
  Average noise forces: 4.1e-10
  maxval: 1.3e-10
  Energy (Hartree): 1.6e-11
- Maxdiff for overlap calculation: 2.4e-08
+ Maxdiff for overlap calculation: 2.6e-08
  Maxdiff for transpose (checksum): 3.0e-11
 
 rotatesmall_read1:
@@ -1166,7 +1167,7 @@ paracetamol:
  Epot: 1.1e-09
  Omega: 1.1e-9
  energy: 1.5e-10
- Total charge: 1.1e-10
+ Total charge: 1.4e-10
  D Tr(K): 3.3e-6
  D eF: 1.6e-6
  Tr(K): 3.3e-6
@@ -1180,7 +1181,7 @@ paracetamol:
  Energy (Hartree): 1.3e-11
  mean conf prefac: 1.1e-5
  Maxdiff for overlap calculation: 9.7e-08
- trace(KS): 1.2e-10
+ trace(KS): 1.4e-10
 
 reformatcomplete_read35:
  energy: 8.7e-10
@@ -1759,6 +1760,7 @@ periodic_silicon:
  Pressure: 1.5e-10
  D Tr: 1.0e-9
  trace: 5.7e-10
+ EH: 1.01e-10
  Maxdiff for transpose (checksum): 2.4e-10
 
 periodic_wateredge:
@@ -1886,14 +1888,17 @@ multipoles_OH-:
 multipoles_waterQM:
  Epot: 1.1e-10
  Ekin: 1.1e-10
- EBS: 1.2e-11
- EBS higher temperature: 1.3e-11
+ EBS: 1.3e-11
+ EBS higher temperature: 1.4e-11
  Maxdiff for transpose (checksum): 3.0e-11
  multiplicator for the confinement: 1.9e-11
+ trace: 3.4e-11
 
 multipoles_waterQMQM:
  Epot: 1.1e-10
  EH: 1.1e-10
+ EBS: 1.4e-11
+ EBS higher temperature: 1.4e-11
  Average noise forces: 1.0e-10
  number of corrected points: 6.0
  multiplicator for the confinement: 1.6e-10
@@ -1958,6 +1963,7 @@ multipoles_CH4:
  eval: 1.1e-8
  Unitary check of the multipole calculations: 9.1e-2
  avg pot difference (actual/min): 1.0e-04
+ trace: 1.3e-11
 
 multipoles_periodic:
   D eF: 7.91e-8
@@ -2513,13 +2519,13 @@ matrixtaskgroups_no:
   Epot: 1.0e-8
   EvXC: 1.0e-9
   Enl: 1.0e-9
-  Energy (Hartree): 2.7e-09
+  Energy (Hartree): 3.0e-09
   Ion-Ion interaction energy: 2.9e-10
-  Omega: 2.6e-09
+  Omega: 2.8e-09
   Total charge: 2.0e-10
   difference: 7.8e-11
-  energy: 2.7e-09
-  trace: 3.6e-07
+  energy: 3.0e-09
+  trace: 9.1e-07
   trace(KS): 5.1e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
@@ -2541,13 +2547,13 @@ matrixtaskgroups_yes:
   EvXC: 1.0e-9
   Enl: 1.0e-9
   Ekin: 1.0e-08
-  Energy (Hartree): 2.7e-09
+  Energy (Hartree): 3.0e-09
   Ion-Ion interaction energy: 2.9e-10
-  Omega: 2.6e-09
+  Omega: 2.8e-09
   Total charge: 2.0e-10
   difference: 5.9e-11
-  energy: 2.7e-09
-  trace: 3.5e-07
+  energy: 3.0e-09
+  trace: 9.4e-07
   trace(KS): 3.8e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.6e-9

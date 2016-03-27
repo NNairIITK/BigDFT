@@ -31,8 +31,8 @@
      call yaml_sequence_open(mapname,advance=adv,unit=unt)
   end if
   do irow=lbound(mapvalue,2),ubound(mapvalue,2)
-     call yaml_sequence(advance='no')
-     call yaml_sequence_open(flow=.true.)
+     call yaml_sequence(advance='no',unit=unt)
+     call yaml_sequence_open(flow=.true.,unit=unt)
      do icol=lbound(mapvalue,1),ubound(mapvalue,1)
         if (present(fmt)) then
            call yaml_sequence(trim(yaml_toa(mapvalue(icol,irow),fmt=fmt)),&
@@ -42,7 +42,7 @@
                 advance=adv,unit=unt)
         end if
      end do
-     call yaml_sequence_close()
+     call yaml_sequence_close(unit=unt)
 !!$     if (present(fmt)) then
 !!$        call yaml_sequence(trim(yaml_toa(mapvalue(:,irow),fmt=fmt)),&
 !!$             advance=adv,unit=unt)

@@ -732,8 +732,8 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
                                deallocate_matrices, deallocate_sparse_matrix, &
                                assignment(=), sparsematrix_malloc_ptr, SPARSE_TASKGROUP
   use sparsematrix_wrappers, only: init_sparse_matrix_wrapper
-  use sparsematrix_init, only: init_matrix_taskgroups, check_local_matrix_extents, &
-                               init_matrixindex_in_compressed_fortransposed
+  use sparsematrix_init, only: init_matrix_taskgroups
+  use bigdft_matrices, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed
   use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
   !!use bounds, only: ext_buffers
   !!use locreg_operations
@@ -767,6 +767,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   integer,dimension(2) :: irow, icol, iirow, iicol
   logical :: wrap_around
   real(gp) :: ddot
+  integer :: ind_min, ind_mas, ind_trans_min, ind_trans_max
   !!real(kind=gp), dimension(:,:,:), allocatable :: workarraytmp
   !!real(wp), allocatable, dimension(:,:,:) :: psirold
   !!integer, dimension(3) :: nl, nr
@@ -1036,14 +1037,14 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   iicol(1) = smat_tmp%nfvctr
   iicol(2) = 1
   call check_local_matrix_extents(iproc, nproc, &
-       collcom_tmp, collcom_tmp, tmb%linmat%smmd, smat_tmp, irow, icol)
+       collcom_tmp, collcom_tmp, tmb%linmat%smmd, smat_tmp, &
+       ind_min, ind_mas, ind_trans_min, ind_trans_max, irow, icol)
   iirow(1) = min(irow(1),iirow(1))
   iirow(2) = max(irow(2),iirow(2))
   iicol(1) = min(icol(1),iicol(1))
   iicol(2) = max(icol(2),iicol(2))
 
-  call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, .false., smat_tmp, &
-       tmb%linmat%smmd, collcom_tmp, collcom_tmp, iirow, iicol)
+  call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, .false., smat_tmp)
 
   mat_tmp = matrices_null()
   mat_tmp%matrix_compr = sparsematrix_malloc_ptr(smat_tmp, iaction=SPARSE_TASKGROUP,id='mat_tmp%matrix_compr')
@@ -1065,7 +1066,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, collcom_tmp, &
                  psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, smat_tmp, mat_tmp)
   !call uncompress_matrix(iproc, tmb%linmat%s, mat_tmp%matrix_compr, tmb%linmat%ovrlp_%matrix)
-  call uncompress_matrix(iproc, smat_tmp, mat_tmp%matrix_compr, tmb%linmat%ovrlp_%matrix)
+  call uncompress_matrix(iproc, nproc, smat_tmp, mat_tmp%matrix_compr, tmb%linmat%ovrlp_%matrix)
 
   call deallocate_matrices(mat_tmp)
   call deallocate_sparse_matrix(smat_tmp)

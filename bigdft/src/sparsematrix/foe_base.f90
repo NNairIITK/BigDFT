@@ -1,6 +1,5 @@
 module foe_base
-  use module_defs, only: uninitialized
-  use module_base
+  use sparsematrix_base
   implicit none
 
   private

@@ -58,7 +58,8 @@ program driver_css
   ! It is your responsabilty to assure this, the routine does only some minimal checks.
   ! The final result is contained in mat2(1)%matrix_compr.
   norder_polynomial = 30
-  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, (/0.5d0/), &
+  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+       1, (/0.5d0/), &
        smat1, smat2, mat1, mat2(1))
 
   ! Write the result in YAML format to the standard output (required for non-regression tests).
@@ -83,7 +84,8 @@ program driver_css
   ! and store the result in smat3/mat3. The final results are thus in mat3(1)%matrix_compr and mat3(2)%matrix_compr.
   ! The same wraning as above applies.
   norder_polynomial = 40
-  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, 2, (/0.5d0,-0.5d0/), &
+  call matrix_chebyshev_expansion(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+       2, (/0.5d0,-0.5d0/), &
        smat2, smat3, mat2(2), mat3)
 
   ! Write the result in YAML format to the standard output (required for non-regression tests).
