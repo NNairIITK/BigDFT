@@ -246,7 +246,7 @@ CH3-:
  gnrm: 1.1e-5
  EKS: 1.6e-8
  D: 1.e-8
- Positions: 4.01e-7
+ Positions: 4.11e-7
  Average CG stepsize in terms of betax: 3.801e-4
  Atomic Forces (Ha/Bohr): 4.0e-7
  Average noise forces: 6.2e-8
@@ -342,14 +342,14 @@ test.testforces.ref.yaml:
  Epsilon: 1.2e-10
  Maxdiff for overlap calculation: 9.8e-09
  eF: 3.0e-07
- multiplicator for the confinement: 3.62e-9
- EBS: 2.0e-09
- EBS higher temperature: 2.0e-09
- EH: 2.2e-09
- EXC: 2.7e-10
- Ekin: 3.1e-10
- Epot: 1.6e-09
- EvXC: 3.5e-10
+ multiplicator for the confinement: 3.65e-9
+ EBS: 3.12e-09
+ EBS higher temperature: 3.12e-09
+ EH: 3.21e-09
+ EXC: 3.91e-10
+ Ekin: 4.1e-10
+ Epot: 2.31e-09
+ EvXC: 5.21e-10
 
 
 
@@ -812,7 +812,8 @@ fructose:
  relative difference: 6.3e-11
  trace(KS): 2.5e-10
  eval: 1.1e-6
- trace: 1.4e-11
+ trace: 1.8e-11
+ Average noise forces: 1.01e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1014,7 +1015,7 @@ foe:
  D: 1.1e-10
  Energy (Hartree): 1.3e-10
  norm(P): 1.1e-07
- trace: 9.1e-11
+ trace: 1.4e-10
  Maxdiff for overlap calculation: 3.2e-07
  Maxdiff for transpose (checksum): 2.4e-10
 
@@ -1465,9 +1466,9 @@ geoptconstrained_BFGS:
  Omega: 1.6e-9
  energy: 2.7e-11
  Maxdiff for transpose (checksum): 1.2e-10
- difference: 4.1e-11
+ difference: 4.5-11
  Total charge: 6.1e-11
- trace(KS): 5.6e-11
+ trace(KS): 5.8e-11
 
 geoptconstrained_SDCG:
  eF: 8.7e-8
@@ -1518,7 +1519,7 @@ O2spin_diag:
  Maxdiff for transpose (checksum): 5.9e-11
 
 O2spin_foe:
- Atomic Forces (Ha/Bohr): 2.6e-8
+ Atomic Forces (Ha/Bohr): 2.62e-8
  EH: 2.5e-7
  EXC: 2.1e-8
  Ekin: 4.8e-9
@@ -1530,7 +1531,7 @@ O2spin_foe:
  eF: 1.1-10
  D eF: 4.4e-8
  guess for new ef: 4.1e-9
- EBS: 8.6e-8
+ EBS: 8.7e-8
  EBS higher temperature: 1.2e-7
  Omega: 2.3e-9
  energy: 1.1e-7
@@ -1542,10 +1543,11 @@ O2spin_foe:
  difference: 1.9e-7
  D Tr: 2.1e-7
  relative difference: 5.2e-8
- Energy (Hartree): 8.7e-8
- Force Norm (Hartree/Bohr): 3.7e-8
+ Energy (Hartree): 8.8e-8
+ Force Norm (Hartree/Bohr): 3.71e-8
  Maxdiff for transpose (checksum): 2.4e-10
  trace(KS): 1.1e-7
+ fnrm2: 1.01e-7
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 2.44e-5
@@ -1750,10 +1752,10 @@ periodic_silicon:
  Epot: 1.1e-9
  Enl: 1.1e-9
  EXC: 1.1e-10
- Omega: 9.5e-11
+ Omega: 1.1e-10
  EBS higher temperature: 1.31e-10
  D Tr(K): 6.3e-10
- EBS: 1.34e-10
+ EBS: 2.01e-10
  Energy (Hartree): 3.15e-11
  energy: 3.15e-11
  Total ionic charge: 6.7e-11
@@ -1844,7 +1846,7 @@ surface_graphene:
  Energy (Hartree): 2.5e-11
  Total charge: 1.1e-10
  energy: 2.0e-11
- trace: 7.0e-10
+ trace: 9.2e-10
  D Tr: 2.1e-11
  Maxdiff for transpose (checksum): 4.7e-10
  trace(KS): 1.2e-11
@@ -1892,7 +1894,7 @@ multipoles_waterQM:
  EBS higher temperature: 1.4e-11
  Maxdiff for transpose (checksum): 3.0e-11
  multiplicator for the confinement: 1.9e-11
- trace: 3.4e-11
+ trace: 3.6e-11
 
 multipoles_waterQMQM:
  Epot: 1.1e-10
@@ -1901,7 +1903,8 @@ multipoles_waterQMQM:
  EBS higher temperature: 1.4e-11
  Average noise forces: 1.0e-10
  number of corrected points: 6.0
- multiplicator for the confinement: 1.6e-10
+ multiplicator for the confinement: 3.7e-10
+ eF: 1.01e-10
 
 #multipoles_water:
 # Ekin: 1.1e-10
@@ -2260,6 +2263,8 @@ Cavity_H2OfrigidPCG:
 MD-wf-Expl:
  Keys to ignore:
    - Molecule was shifted
+   - Overlapping communication of
+   - No. of OMP Threads
 
 
 Cavity_H2OfsccsPCG:
@@ -2553,7 +2558,7 @@ matrixtaskgroups_yes:
   Total charge: 2.0e-10
   difference: 5.9e-11
   energy: 3.0e-09
-  trace: 9.4e-07
+  trace: 1.02e-07
   trace(KS): 3.8e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.6e-9

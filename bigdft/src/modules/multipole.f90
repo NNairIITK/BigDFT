@@ -188,6 +188,7 @@ module multipole
 
       call f_routine(id='potential_from_charge_multipoles')
 
+      call f_zero(rholeaked)
 
       ! Conditions for periodicity
       perx=(at%astruct%geocode /= 'F')
