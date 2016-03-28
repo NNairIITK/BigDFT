@@ -645,3 +645,20 @@ program utilities
 
 
 end program utilities
+
+!!$!> extract the different wavefunctions to verify if the completeness relation is satisfied
+!!$subroutine completeness_relation
+!!$
+!!$  call wfn_filename(filename_out,radical,binary,ikpt,nspinor,nspin,ispinor,spin,iorb)
+!!$
+!!$  !loop that has to be done for each of the wavefunctions
+!!$  unitwf=99
+!!$  call f_open_file(unit=unitwf,file=filename_out)
+!!$  call readonewave(unitwf,.not. binary,iorb,bigdft_mpi%iproc,&
+!!$       it%lr%d%n1,it%lr%d%n2,it%lr%d%n3, &
+!!$       Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+!!$       at,it%lr%wfd,rxyz_old,rxyz,&
+!!$       psi_ptr,eval,psifscf)
+!!$  call f_close(unitwf)
+!!$
+!!$end subroutine completeness_relation

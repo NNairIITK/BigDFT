@@ -531,6 +531,28 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   !print *,'filename: ',filename_out
 end subroutine filename_of_iorb
 
+subroutine wfn_filename(filename_out,filename,lbin,ikpt,nspinor,nspin,ispinor,spin,iorb)
+  use f_ternary
+  use yaml_strings
+  use module_defs, only: gp
+  implicit none
+  logical, intent(in) :: lbin
+  integer, intent(in) :: ikpt,nspinor,ispinor,nspin,iorb
+  real(gp), intent(in) :: spin
+  character(len=*), intent(in) :: filename
+  character(len=*), intent(out) :: filename_out
+  !local variables
+  character(len=1) :: spintype
+
+  spintype=.if. (nspinor == 4) .then. merge('A','B',ispinor <=2) .else. merge('U','D',spin==1.0_gp)
+  if (nspin==1) spintype='N'  
+
+  call f_strcpy(dest=filename_out,src=&
+       filename+'-k'+ikpt**'(i3.3)'+'-'+spintype+&
+       merge('I','R',modulo(ispinor,2)==0)+&
+       (.if. lbin .then. '.bin.b' .else. '.b')+iorb**'(i4.4)')
+end subroutine wfn_filename
+  
 
 !> Associate to the absolute value of orbital a filename which depends of the k-point and
 !! of the spin sign
