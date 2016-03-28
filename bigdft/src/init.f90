@@ -2337,7 +2337,7 @@ contains
 !!$       if (Lzd%nlr /=1) then
 !!$          call f_err_throw('The cubic localization region has always nlr=1',err_name='BIGDFT_RUNTIME_ERROR')
 !!$       else
-          call update_nlpsp(nlpsp,Lzd%nlr,Lzd%llr,Lzd%Glr,(/(.true.,ii=1,Lzd%nlr)/))
+          call update_nlpsp(nlpsp,Lzd%nlr,Lzd%llr,Lzd%Glr,[(.true.,ii=1,Lzd%nlr)])
           if (iproc == 0) call print_nlpsp(nlpsp)
 !!$       end if
     end if

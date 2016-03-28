@@ -270,7 +270,7 @@ class BigDFTInstaller():
     def startover(self):
         "Wipe files in the makemodules directory"
         if not self.branch:
-            print 'The action "startover" is allowed only from a developer branch'
+            print 'ERROR: The action "startover" is allowed only from a developer branch'
             exit(1)
         import shutil
         import os
