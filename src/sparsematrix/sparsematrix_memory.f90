@@ -3,7 +3,7 @@ module sparsematrix_memory
   use sparsematrix_types
   use dynamic_memory
   use dictionaries
-  use wrapper_MPI, only: release_mpi_environment
+  use wrapper_MPI, only: mpi_environment, release_mpi_environment
   implicit none
 
   private

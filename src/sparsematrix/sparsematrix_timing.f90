@@ -1,8 +1,8 @@
 module sparsematrix_timing
-  use time_profiling
+  use time_profiling, only: TIMING_UNINITIALIZED
   implicit none
 
-  ! This module is public, such that all other modules using this one inherit all modules used in here
+  private
 
   ! Timings categories
   integer,public,save :: TCAT_SMAT_COMPRESSION = TIMING_UNINITIALIZED
@@ -22,6 +22,9 @@ module sparsematrix_timing
   integer,public,save :: TCAT_SMAT_HL_DGESV = TIMING_UNINITIALIZED
   integer,public,save :: TCAT_SMAT_HL_DPOTRF = TIMING_UNINITIALIZED
   integer,public,save :: TCAT_SMAT_HL_DPOTRI = TIMING_UNINITIALIZED
+
+  !> Public routines
+  public :: sparsematrix_initialize_timing_categories
 
   contains
 

@@ -1,5 +1,5 @@
 !> @file
-!!  File defining the structures to deal with the sparse matrices
+!!  Basic file defining the structures to deal with the sparse matrices
 !! @author
 !!    Copyright (C) 2014-2014 BigDFT group
 !!    This file is distributed under the terms of the
@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module defining the basic operations with sparse matrices (creation and destruction)
+!> Module defining the basic structures and routines related to the sparse matrix library
 module sparsematrix_base
   ! f_lib modules
   use dynamic_memory
@@ -20,8 +20,9 @@ module sparsematrix_base
   use wrapper_linalg
   use f_utils
   use numerics
+  use time_profiling
 
-  ! Basic sparsematrix modules
+  ! Very basic sparsematrix modules
   use sparsematrix_errorhandling
   use sparsematrix_timing
   use sparsematrix_types

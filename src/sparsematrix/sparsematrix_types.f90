@@ -3,6 +3,8 @@ module sparsematrix_types
   use wrapper_MPI, only: mpi_environment
   implicit none
 
+  private
+
   ! Basic precision
   integer,parameter,public :: mp=f_double  !< matrix-type precision
 
