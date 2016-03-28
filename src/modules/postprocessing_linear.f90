@@ -533,7 +533,7 @@ module postprocessing_linear
 
     subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
                energs, nlpsp, input, order_taylor, &
-               energy, energyDiff, energyold)
+               energy, energyDiff, energyold, ref_frags, frag_coeffs)
       use module_base
       use module_types
       use module_interfaces, only: get_coeff, write_eigenvalues_data, write_orbital_density
@@ -545,6 +545,7 @@ module postprocessing_linear
       use yaml_output
       use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
       use locregs_init, only: small_to_large_locreg
+      use module_fragments
       implicit none
       
       ! Calling arguments
@@ -560,6 +561,8 @@ module postprocessing_linear
       integer,intent(inout) :: order_taylor
       real(kind=8),intent(out) :: energy, energyDiff
       real(kind=8), intent(inout) :: energyold
+      logical, intent(in) :: frag_coeffs
+      type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
     
       ! Local variables
       type(orbitals_data) :: orbs
@@ -573,7 +576,9 @@ module postprocessing_linear
       real(wp), dimension(:,:,:), pointer :: mom_vec_fake
       type(work_mpiaccumulate) :: energs_work
       integer,dimension(:,:),allocatable :: ioffset_isf
-    
+      integer :: nstates_max, ndimcoeff
+      logical :: overlap_calculated=.false. ! recalculate just to be safe
+      real(kind=8), allocatable, dimension(:) :: coeff_tmp
     
       nullify(mom_vec_fake)
     
@@ -612,18 +617,19 @@ module postprocessing_linear
     
       tmb%can_use_transposed=.false.
       !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
-      call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
-           energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
-           order_taylor,input%lin%max_inversion_error,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
-           input%lin%pexsi_npoles, input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, &
-           input%lin%pexsi_temperature, input%lin%pexsi_tol_charge)
-      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+      if (.not. frag_coeffs) then
+         call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
+              energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
+              order_taylor,input%lin%max_inversion_error,&
+              input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
+              input%lin%pexsi_npoles, input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, &
+              input%lin%pexsi_temperature, input%lin%pexsi_tol_charge)
+         !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
     
-      if (bigdft_mpi%iproc ==0) then
-         call write_eigenvalues_data(0.1d0,KSwfn%orbs,mom_vec_fake)
-      end if
-    
+         if (bigdft_mpi%iproc ==0) then
+            call write_eigenvalues_data(0.1d0,KSwfn%orbs,mom_vec_fake)
+         end if
+      end if    
     
       !call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
       !     max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
@@ -660,11 +666,27 @@ module postprocessing_linear
            KSwfn%lzd, tmb%orbs, tmb%psi, phi_global, to_global=.true.)
       call transpose_v(iproc, nproc, orbs, tmb%lzd%glr%wfd, comms, phi_global(1), phiwork_global(1))
     
+      !apply frag coeffs instead (might still be orthonormalized)
+      !could do this in transfer_integrals to get naming correct and be exactly equivalent, but just want to do easiest way for now
+      !assume not cdft, so can use in%frag%charge instead of modifying it
+      if (frag_coeffs) then
+           !don't overwrite coeffs
+           ndimcoeff=size(tmb%coeff)
+           coeff_tmp=f_malloc(ndimcoeff, id='coeff_tmp')
+           call vcopy(ndimcoeff,tmb%coeff(1,1),1,coeff_tmp(1),1)
+           call fragment_coeffs_to_kernel(iproc,input,input%frag%charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
+                nstates_max,input%lin%constrained_dft,input%lin%kernel_restart_mode,input%lin%kernel_restart_noise)
+      end if
     
       ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
       nvctrp=comms%nvctr_par(iproc,0)*orbs%nspinor
       call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
                  tmb%orbs%norb, 0.d0, phiwork_global, nvctrp)
+
+      if (frag_coeffs) then
+           call vcopy(ndimcoeff,coeff_tmp(1),1,tmb%coeff(1,1),1)
+           call f_free(coeff_tmp)
+      end if
       
       call untranspose_v(iproc, nproc, KSwfn%orbs, tmb%lzd%glr%wfd, KSwfn%comms, phiwork_global(1), phi_global(1))  
     
@@ -703,11 +725,21 @@ module postprocessing_linear
            at, rxyz, KSwfn%Lzd%Glr%wfd, phiwork_global)
     
       if (input%write_orbitals==2) then
-          call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDens', &
-               KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .true.)
+          if (frag_coeffs) then
+             call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDens', &
+                  KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .true.)
+          else
+             call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDensFrag', &
+                  KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .true.)
+          end if
       else if (input%write_orbitals==3) then 
-          call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KS', &
-               KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .false.)
+          if (frag_coeffs) then
+              call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSFrag', &
+                   KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .false.)
+          else
+              call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KS', &
+                   KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .false.)
+          end if
       end if
     
       if (input%wf_extent_analysis) then

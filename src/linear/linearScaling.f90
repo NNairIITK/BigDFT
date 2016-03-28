@@ -814,9 +814,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
 
 
   if (input%write_orbitals>0) then
-      call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
-               energs, nlpsp, input, norder_taylor,&
-               energy, energyDiff, energyold)
+      if (write_full_system) then
+         call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+                  energs, nlpsp, input, norder_taylor,&
+                  energy, energyDiff, energyold, ref_frags, .false.)
+      end if
+
+      if (input%lin%fragment_calculation .and. write_fragments) then
+         call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+                  energs, nlpsp, input, norder_taylor,&
+                  energy, energyDiff, energyold, ref_frags, .true.)
+      end if
+
       !call write_orbital_density(iproc, .false., input%lin%plotBasisFunctions, 'KS', &
       !     KSwfn%orbs%npsidim_orbs, KSwfn%psi, KSwfn%orbs, KSwfn%lzd, at)
 

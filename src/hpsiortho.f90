@@ -880,6 +880,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   use public_enums, only: PSPCODE_PAW
   use module_atoms
   use orbitalbasis
+  use ao_inguess, only: lmax_ao
   implicit none
   integer, intent(in) :: iproc, npsidim_orbs
   type(atoms_data), intent(in) :: at
@@ -914,6 +915,9 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
 
   !initialize the orbital basis object, for psi and hpsi
   call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd)
+
+  !should we calculate the density matrix we have to zero it
+  if (associated(nl%iagamma)) call f_zero(nl%gamma_mmp)
 
   nwarnings=0
   if(paw%usepaw) call f_zero(orbs%npsidim_orbs, paw%spsi(1))
@@ -994,7 +998,7 @@ contains
   subroutine nl_psp_application()
     implicit none
     !local variables
-    integer :: ncplx_p,ncplx_w,n_w,nvctr_p
+    integer :: ncplx_p,ncplx_w,n_w,nvctr_p,ispin
     real(gp), dimension(3,3,4) :: hij
     real(gp) :: eproj
 
@@ -1027,6 +1031,15 @@ contains
             ncplx_p,mproj,nl%pspd(atit%iat)%plr%wfd,nl%proj(istart_c),&
             ncplx_w,n_w,psi_it%lr%wfd,nl%pspd(atit%iat)%tolr(iilr),nl%wpack,nl%scpr,nl%cproj,nl%hcproj,&
             psi_it%phi_wvl,hpsi_ptr,eproj)
+
+       !here the cproj can be extracted to update the density matrix for the atom iat 
+       if (associated(nl%iagamma)) then
+          ispin=merge(1,2,psi_it%spinval==1.0_gp) !to be inserted in ket
+          call cproj_to_gamma(atit%iat,nl%proj_G,mproj,lmax_ao,&
+               max(ncplx_w,ncplx_p),nl%cproj,psi_it%kwgt*psi_it%occup,&
+               nl%iagamma(0,atit%iat),&
+               nl%gamma_mmp(1,1,1,1,ispin))
+       end if
 
        nvctr_p=nl%pspd(atit%iat)%plr%wfd%nvctr_c+7*nl%pspd(atit%iat)%plr%wfd%nvctr_f
        istart_c=istart_c+nvctr_p*ncplx_p*mproj
