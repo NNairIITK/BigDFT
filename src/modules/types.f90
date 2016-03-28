@@ -1134,7 +1134,7 @@ contains
   !! It is of course assumed that f_lib_initialize has already been called
   subroutine bigdft_init_timing_categories()
     use Poisson_Solver, only: PS_initialize_timing_categories
-    use sparsematrix_base, only: sparsematrix_initialize_timing_categories
+    use sparsematrix_base
     implicit none
     !local variables
     integer :: icls,icat

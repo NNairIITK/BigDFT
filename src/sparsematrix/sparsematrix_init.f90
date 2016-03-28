@@ -1292,7 +1292,7 @@ module sparsematrix_init
           !    write(*,'(a,4i8)') 'iseg, keyv, keyg', iseg, keyv(iseg), keyg(1,1,iseg), keyg(2,1,iseg)
           !end do
           call f_err_throw('get_line_and_column failed to determine the indices, iel='//iel, &
-              err_id=BIGDFT_RUNTIME_ERROR)
+              err_id=SPARSEMATRIX_RUNTIME_ERROR)
       end if
       
       iseg_start = ii

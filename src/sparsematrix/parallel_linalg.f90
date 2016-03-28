@@ -617,7 +617,7 @@ module parallel_linalg
       
           ! Gather together the result
           !call to_zero(ldb*nrhs, b(1,1))
-          call vscal(ldb*nrhs,0.0_wp, b(1,1),1)
+          call vscal(ldb*nrhs,0.0_mp, b(1,1),1)
           do i=1,nrhs
               do j=1,n
                   call pdelset2(b(j,i), lb(1,1), j, i, desc_lb, 0.d0)

@@ -58,7 +58,7 @@ end subroutine bigdft_init_old
 subroutine bigdft_mpi_init(ierr)
   use wrapper_mpi, only: wmpi_init_thread,MPI_SUCCESS
   use module_types, only: bigdft_init_errors,bigdft_init_timing_categories
-  use sparsematrix_base, only: sparsematrix_init_errors
+  use sparsematrix_base
   implicit none
   integer, intent(out) :: ierr
 

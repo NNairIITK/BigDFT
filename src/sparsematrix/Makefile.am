@@ -23,6 +23,8 @@ mod_src = sparsematrix_base.f90 \
 		  sparsematrix_highlevel.f90 \
 		  sparsematrix_io.f90 \
 		  parallel_linalg.f90 \
+		  sparsematrix_errorhandling.f90 \
+		  sparsematrix_timing.f90 \
 		  $(BLACS)
 
 libsparsematrix_a_SOURCES = $(mod_src)
@@ -43,7 +45,9 @@ modules = SPARSEMATRIX_BASE.@MODULE_EXT@ \
 		  MATRIX_OPERATIONS.@MODULE_EXT@ \
 		  PARALLEL_LINALG.@MODULE_EXT@ \
 		  SPARSEMATRIX_HIGHLEVEL.@MODULE_EXT@ \
-		  SPARSEMATRIX_IO.@MODULE_EXT@
+		  SPARSEMATRIX_IO.@MODULE_EXT@ \
+		  SPARSEMATRIX_ERRORHANDLING.@MODULE_EXT@ \
+		  SPARSEMATRIX_TIMING.@MODULE_EXT@
 else
 modules = sparsematrix_base.@MODULE_EXT@ \
           sparsematrix_init.@MODULE_EXT@ \
@@ -58,7 +62,9 @@ modules = sparsematrix_base.@MODULE_EXT@ \
 		  matrix_operations.@MODULE_EXT@ \
 		  parallel_linalg.@MODULE_EXT@ \
 		  sparsematrix_highlevel.@MODULE_EXT@ \
-		  sparsematrix_io.@MODULE_EXT@
+		  sparsematrix_io.@MODULE_EXT@ \
+		  sparsematrix_errorhandling.@MODULE_EXT@ \
+		  sparsematrix_timing.@MODULE_EXT@
 endif
 
 CLEANFILES = $(modules)
@@ -67,7 +73,9 @@ AM_FCFLAGS = -I. -I$(srcdir) @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
 
 
 #dependencies
-sparsematrix_base.o:
+sparsematrix_timing.o:
+sparsematrix_errorhandling.o:
+sparsematrix_base.o: sparsematrix_errorhandling.o sparsematrix_timing.o
 parallel_linalg.o: sparsematrix_base.o
 foe_base.o: sparsematrix_base.o
 fermi_level.o: sparsematrix_base.o

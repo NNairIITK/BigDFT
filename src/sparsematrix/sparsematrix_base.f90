@@ -10,48 +10,29 @@
 
 !> Module defining the basic operations with sparse matrices (creation and destruction)
 module sparsematrix_base
+  ! f_lib modules
   use dynamic_memory
   use dictionaries
   use yaml_output
   use yaml_strings
-  use module_defs
-  use time_profiling
+  use module_defs, only: UNINITIALIZED
   use wrapper_MPI
   use wrapper_linalg
   use f_utils
   use numerics
-  use time_profiling, only: f_timing
+
+  ! Basic sparsematrix modules
+  use sparsematrix_errorhandling
+  use sparsematrix_timing
+
   implicit none
 
-!  private
+  ! This module is public, such that all other modules using this one inherit all modules used in here
 
   ! Precision
   integer,parameter,public :: mp=f_double  !< matrix-type precision
 
-  !> Errorcodes
-  integer,save,public :: SPARSEMATRIX_ALLOCATION_ERROR
-  integer,save,public :: SPARSEMATRIX_MANIPULATION_ERROR
-  integer,save,public :: SPARSEMATRIX_RUNTIME_ERROR
-  integer,save,public :: SPARSEMATRIX_INITIALIZATION_ERROR
 
-  ! Timings categories
-  integer,public,save :: TCAT_SMAT_COMPRESSION = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_SMAT_COMPRESSION_COMMUNICATION = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_SMAT_TRANSFORMATION = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_SMAT_MULTIPLICATION = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_SMAT_INITIALIZATION = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_CME_AUXILIARY = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_CME_POLYNOMIALS = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_CME_COEFFICIENTS = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_HL_MATRIX_OPERATIONS = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_HL_MATRIX_COMMUNICATIONS = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_HL_MATRIX_CHECKS = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_HL_DGEMM = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_SMAT_HL_DSYEV = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_SMAT_HL_DSYGV = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_SMAT_HL_DGESV = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_SMAT_HL_DPOTRF = TIMING_UNINITIALIZED
-  integer,public,save :: TCAT_SMAT_HL_DPOTRI = TIMING_UNINITIALIZED
 
   !> Contains the matrices
   type,public :: matrices
@@ -927,129 +908,6 @@ module sparsematrix_base
       smat_info0%iaction=iaction
       smat_info0%smat=>smat
     end function sparsematrix_malloc0
-
-
-
-    !> Define the sparsematrix errors
-    subroutine sparsematrix_init_errors()
-      use dictionaries
-      implicit none
-      external :: bigdft_severe_abort
-
-      call f_err_define('SPARSEMATRIX_ALLOCATION_ERROR',&
-           'a problem occured during the allocation of a sparse matrix',&
-           SPARSEMATRIX_ALLOCATION_ERROR,&
-           err_action='Check the calling arguments of the allocation routine')
-
-      call f_err_define('SPARSEMATRIX_MANIPULATION_ERROR',&
-           'a problem occured during the manipulation ((un)compression,sparsity pattern transformation) of a sparse matrix',&
-           SPARSEMATRIX_MANIPULATION_ERROR,&
-           err_action='Check the calling arguments of the manipulation routine and the array sizes')
-
-      call f_err_define('SPARSEMATRIX_RUNTIME_ERROR',&
-           'a general problem related to sparse matrices occured during runtime',&
-           SPARSEMATRIX_MANIPULATION_ERROR,&
-           err_action='Check the dedicated error message')
-
-      call f_err_define('SPARSEMATRIX_INITIALIZATION_ERROR',&
-           'a problem related to the initialization of a sparse matrix occured',&
-           SPARSEMATRIX_MANIPULATION_ERROR,&
-           err_action='Check the calling arguments and the dedicated error message')
-  
-  
-      ! define the severe operation via MPI_ABORT
-      call f_err_severe_override(bigdft_severe_abort)
-    end subroutine sparsematrix_init_errors
-
-
-  !> Switch on the timing categories for the sparse matrices
-  subroutine sparsematrix_initialize_timing_categories()
-    use time_profiling, only: f_timing_category_group,f_timing_category
-    !use time_profiling, only: f_timing_category
-    !use wrapper_mpi, only: comm => tgrp_mpi_name, mpi_initialize_timing_categories
-    !use wrapper_linalg, only: linalg_initialize_timing_categories
-    implicit none
-    character(len=*), parameter :: smat_manip = 'sparsematrix manipulation'
-    !character(len=*), parameter :: smat_matmul = 'sparsematrix multiplication'
-    character(len=*), parameter :: smat_init = 'sparsematrix initialization'
-    character(len=*), parameter :: smat_comm = 'sparsematrix communications'
-    character(len=*), parameter :: cme = 'chebyshev matrix expansion'
-    character(len=*), parameter :: smat_blaslapack = 'BLAS / LAPACK'
-
-    !!call mpi_initialize_timing_categories()
-
-    !!call linalg_initialize_timing_categories()
-    !!!group of Poisson Solver operations, separate category
-
-    ! Group of sparse matrix manipulations
-    call f_timing_category_group(smat_manip, 'sparse matrix operations')
-    !call f_timing_category_group(smat_matmul, 'sparse matrix multiplication')
-    call f_timing_category_group(smat_init, 'sparse matrix initialization')
-    call f_timing_category_group(smat_comm, 'sparse matrix communications')
-    call f_timing_category_group(cme, 'chebyshev matrix expansion')
-    call f_timing_category_group(smat_blaslapack, 'BLAS/LAPACK')
-
-    ! Define the timing categories
-
-    ! Initialization timing
-    call f_timing_category('sparse matrix initialization', smat_init, &
-         'sparse matrix initialization', TCAT_SMAT_INITIALIZATION)
-
-    ! Low level timings
-    call f_timing_category('Sparse matrix compression', smat_manip, &
-         '(un)compression of sparse matrices', TCAT_SMAT_COMPRESSION)
-    call f_timing_category('Sparse matrix compression communication', smat_comm, &
-         '(un)compression communication of sparse matrices', TCAT_SMAT_COMPRESSION_COMMUNICATION)
-    call f_timing_category('Sparse matrix transformation', smat_manip, &
-         'sparsity pattern transformation of sparse matrices', TCAT_SMAT_TRANSFORMATION)
-
-    call f_timing_category('Sparse matrix multiplication', smat_manip, &
-         'sparse matrix matrix multiplication', TCAT_SMAT_MULTIPLICATION)
-
-    ! Chebyshev Matrix Expansion timing
-    call f_timing_category('CME auxiliary', cme, &
-         'Chebyshev matrix expansion auxiliary', TCAT_CME_AUXILIARY)
-    call f_timing_category('CME polynomials', cme, &
-         'Chebyshev matrix expansion polynomials', TCAT_CME_POLYNOMIALS)
-    call f_timing_category('CME coefficients', cme, &
-         'Chebyshev matrix expansion coefficients', TCAT_CME_COEFFICIENTS)
-
-    ! High level timings
-    call f_timing_category('highlevel matrix operations', smat_manip, &
-         'highlevel matrix operations', TCAT_HL_MATRIX_OPERATIONS)
-    call f_timing_category('highlevel matrix communications', smat_comm, &
-         'highlevel matrix communications', TCAT_HL_MATRIX_COMMUNICATIONS)
-    call f_timing_category('highlevel matrix checks', smat_manip, &
-         'highlevel matrix checks', TCAT_HL_MATRIX_CHECKS)
-
-    ! BLAS / LAPACK timing
-    call f_timing_category('DGEMM', smat_blaslapack, &
-         '(Sca)LAPACK DGEMM', TCAT_HL_DGEMM)
-    call f_timing_category('DSYEV', smat_blaslapack, &
-         '(Sca)LAPACK DSYEV', TCAT_SMAT_HL_DSYEV)
-    call f_timing_category('DSYGV', smat_blaslapack, &
-         '(Sca)LAPACK DSYGV', TCAT_SMAT_HL_DSYGV)
-    call f_timing_category('DGESV', smat_blaslapack, &
-         '(Sca)LAPACK DGESV', TCAT_SMAT_HL_DGESV)
-    call f_timing_category('DPOTRF', smat_blaslapack, &
-         '(Sca)LAPACK DPOTRF', TCAT_SMAT_HL_DPOTRF)
-    call f_timing_category('DPOTRI', smat_blaslapack, &
-         '(Sca)LAPACK DPOTRI', TCAT_SMAT_HL_DPOTRI)
-
-
-  !!!define the timing categories
-  !!call f_timing_category('PSolver Computation',pscpt,&
-  !!     '3D SG_FFT and related operations',&
-  !!     TCAT_PSOLV_COMPUT)
-  !!call f_timing_category('PSolver Kernel Creation',pscpt,&
-  !!     'ISF operations and creation of the kernel',&
-  !!     TCAT_PSOLV_KERNEL)
-  !!call f_timing_category('PSolver Communication',comm,&
-  !!     'MPI_ALLTOALL and MPI_ALLGATHERV',&
-  !!     TCAT_PSOLV_COMMUN)
-
-  end subroutine sparsematrix_initialize_timing_categories
-
 
 
 end module sparsematrix_base
