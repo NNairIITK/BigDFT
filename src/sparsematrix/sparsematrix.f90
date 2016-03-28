@@ -893,7 +893,8 @@ module sparsematrix
 
              !call timing(iproc,'compressd_mcpy','OF')
              call f_timing(TCAT_SMAT_COMPRESSION,'OF')
-             call timing(iproc,'compressd_comm','ON')
+             !call timing(iproc,'compressd_comm','ON')
+             call f_timing(TCAT_SMAT_COMPRESSION_COMMUNICATION,'ON')
 
              if (nproc>1) then
                 call f_zero(matrix_compr)
@@ -945,13 +946,14 @@ module sparsematrix
 
          !!end if
 
-         call timing(iproc,'compressd_comm','OF')
+         !call timing(iproc,'compressd_comm','OF')
+         call f_timing(TCAT_SMAT_COMPRESSION_COMMUNICATION,'OF')
          call f_timing(TCAT_SMAT_COMPRESSION,'ON')
      else
          stop 'compress_matrix_distributed: wrong data_strategy'
      end if
 
-     !call timing(iproc,'compressd_comm','OF')
+     !!!call timing(iproc,'compressd_comm','OF')
      call f_timing(TCAT_SMAT_COMPRESSION,'OF')
 
      call f_release_routine()

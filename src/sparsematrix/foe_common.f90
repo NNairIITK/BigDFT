@@ -837,7 +837,8 @@ module foe_common
 
     
       call f_routine(id='scale_and_shift_matrix')
-      call timing(iproc,'foe_aux_mcpy  ','ON')
+      !call timing(iproc,'foe_aux_mcpy  ','ON')
+      call f_timing(TCAT_CME_AUXILIARY,'ON')
     
       call f_zero(matscal_compr)
     
@@ -894,7 +895,8 @@ module foe_common
           end do
           !$omp end do
           !$omp end parallel
-          call timing(iproc,'foe_aux_mcpy  ','OF')
+          !call timing(iproc,'foe_aux_mcpy  ','OF')
+          call f_timing(TCAT_CME_AUXILIARY,'OF')
       else
           stop 'scale_and_shift_matrix: wrong data strategy'
       end if
@@ -1045,7 +1047,8 @@ module foe_common
       real(kind=mp) :: fscale_upperbound_
       real(kind=mp) :: tmprtr_
     
-      call timing(iproc,'init_matrCompr','ON')
+      !call timing(iproc,'init_matrCompr','ON')
+      call f_timing(TCAT_CME_AUXILIARY,'ON')
 
       ! Define the default values... Is there a way to get them from input_variables_definition.yaml?
       evbounds_nsatur_ = 3
@@ -1096,7 +1099,8 @@ module foe_common
           call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,ispin)
       end do
     
-      call timing(iproc,'init_matrCompr','OF')
+      !call timing(iproc,'init_matrCompr','OF')
+      call f_timing(TCAT_CME_AUXILIARY,'OF')
     
     end subroutine init_foe
 
@@ -1485,7 +1489,8 @@ module foe_common
             
                       !call timing(iproc, 'FOE_auxiliary ', 'OF')
                       call f_timing(TCAT_CME_AUXILIARY,'OF')
-                      call timing(iproc, 'chebyshev_coef', 'ON')
+                      !call timing(iproc, 'chebyshev_coef', 'ON')
+                      call f_timing(TCAT_CME_COEFFICIENTS,'ON')
             
                       !!if (foe_data_get_real(foe_obj,"tmprtr")/=0.d0) call f_err_throw('tmprtr must be zero')
                       !!call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
@@ -1515,7 +1520,8 @@ module foe_common
                       !    call yaml_newline()
                       !end if
             
-                      call timing(iproc, 'chebyshev_coef', 'OF')
+                      !call timing(iproc, 'chebyshev_coef', 'OF')
+                      call f_timing(TCAT_CME_COEFFICIENTS,'OF')
                       !call timing(iproc, 'FOE_auxiliary ', 'ON')
                       call f_timing(TCAT_CME_AUXILIARY,'ON')
                     
@@ -1837,7 +1843,8 @@ module foe_common
             
                       !call timing(iproc, 'FOE_auxiliary ', 'OF')
                       call f_timing(TCAT_CME_AUXILIARY,'OF')
-                      call timing(iproc, 'chebyshev_coef', 'ON')
+                      !call timing(iproc, 'chebyshev_coef', 'ON')
+                      call f_timing(TCAT_CME_COEFFICIENTS,'ON')
             
                       call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
                       !!write(*,*) 'evlow, evhigh, ef, fscale', &
@@ -1867,7 +1874,8 @@ module foe_common
                       !    call yaml_newline()
                       !end if
             
-                      call timing(iproc, 'chebyshev_coef', 'OF')
+                      !call timing(iproc, 'chebyshev_coef', 'OF')
+                      call f_timing(TCAT_CME_COEFFICIENTS,'OF')
                       !call timing(iproc, 'FOE_auxiliary ', 'ON')
                       call f_timing(TCAT_CME_AUXILIARY,'ON')
                     
@@ -2098,7 +2106,8 @@ module foe_common
           
           !call timing(iproc, 'FOE_auxiliary ', 'OF')
           call f_timing(TCAT_CME_AUXILIARY,'OF')
-          call timing(iproc, 'chebyshev_coef', 'ON')
+          !call timing(iproc, 'chebyshev_coef', 'ON')
+          call f_timing(TCAT_CME_COEFFICIENTS,'ON')
           
           do icalc=1,ncalc
               select case (fun)
@@ -2113,7 +2122,8 @@ module foe_common
               !write(*,*) 'icalc, sum(cc_trial(:,1,icalc))', icalc, sum(cc_trial(:,1,icalc)), ex(icalc)
           end do
 
-          call timing(iproc, 'chebyshev_coef', 'OF')
+          !call timing(iproc, 'chebyshev_coef', 'OF')
+          call f_timing(TCAT_CME_COEFFICIENTS,'OF')
           !call timing(iproc, 'FOE_auxiliary ', 'ON')
           call f_timing(TCAT_CME_AUXILIARY,'ON')
 

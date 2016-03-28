@@ -52,7 +52,8 @@ module chebyshev
       real(kind=mp) :: tt, ddot
       integer :: jproc
     
-      call timing(iproc, 'chebyshev_comp', 'ON')
+      !call timing(iproc, 'chebyshev_comp', 'ON')
+      call f_timing(TCAT_CME_POLYNOMIALS,'ON')
       call f_routine(id='chebyshev_clean')
 
       !!do j=1,npl
@@ -210,7 +211,8 @@ module chebyshev
     
       end if
     
-      call timing(iproc, 'chebyshev_comp', 'OF')
+      !call timing(iproc, 'chebyshev_comp', 'OF')
+      call f_timing(TCAT_CME_POLYNOMIALS,'OF')
       call f_release_routine()
     
     end subroutine chebyshev_clean
@@ -302,7 +304,8 @@ module chebyshev
       integer :: ipl, icalc
     
       call f_routine(id='chebyshev_fast')
-      call timing(iproc, 'chebyshev_comp', 'ON')    
+      !call timing(iproc, 'chebyshev_comp', 'ON')    
+      call f_timing(TCAT_CME_POLYNOMIALS,'ON')
     
       if (nsize_polynomial>0) then
           call f_zero(kernel_compressed)
@@ -319,7 +322,8 @@ module chebyshev
     
       end if
     
-      call timing(iproc, 'chebyshev_comp', 'OF')    
+      !call timing(iproc, 'chebyshev_comp', 'OF')    
+      call f_timing(TCAT_CME_POLYNOMIALS,'OF')
       call f_release_routine()
 
     end subroutine chebyshev_fast

@@ -36,10 +36,16 @@ module sparsematrix_base
 
   ! Timings categories
   integer,public,save :: TCAT_SMAT_COMPRESSION = TIMING_UNINITIALIZED
+  integer,public,save :: TCAT_SMAT_COMPRESSION_COMMUNICATION = TIMING_UNINITIALIZED
   integer,public,save :: TCAT_SMAT_TRANSFORMATION = TIMING_UNINITIALIZED
   integer,public,save :: TCAT_SMAT_MULTIPLICATION = TIMING_UNINITIALIZED
   integer,public,save :: TCAT_SMAT_INITIALIZATION = TIMING_UNINITIALIZED
   integer,public,save :: TCAT_CME_AUXILIARY = TIMING_UNINITIALIZED
+  integer,public,save :: TCAT_CME_POLYNOMIALS = TIMING_UNINITIALIZED
+  integer,public,save :: TCAT_CME_COEFFICIENTS = TIMING_UNINITIALIZED
+  integer,public,save :: TCAT_HL_MATRIX_OPERATIONS = TIMING_UNINITIALIZED
+  integer,public,save :: TCAT_HL_MATRIX_COMMUNICATIONS = TIMING_UNINITIALIZED
+  integer,public,save :: TCAT_HL_MATRIX_CHECKS = TIMING_UNINITIALIZED
 
   !> Contains the matrices
   type,public :: matrices
@@ -958,8 +964,9 @@ module sparsematrix_base
     !use wrapper_linalg, only: linalg_initialize_timing_categories
     implicit none
     character(len=*), parameter :: smat_manip = 'sparsematrix manipulation'
-    character(len=*), parameter :: smat_matmul = 'sparsematrix multiplication'
+    !character(len=*), parameter :: smat_matmul = 'sparsematrix multiplication'
     character(len=*), parameter :: smat_init = 'sparsematrix initialization'
+    character(len=*), parameter :: smat_comm = 'sparsematrix communications'
     character(len=*), parameter :: cme = 'chebyshev matrix expansion'
 
     !!call mpi_initialize_timing_categories()
@@ -969,21 +976,34 @@ module sparsematrix_base
 
     ! Group of sparse matrix manipulations
     call f_timing_category_group(smat_manip, 'sparse matrix operations')
-    call f_timing_category_group(smat_matmul, 'sparse matrix multiplication')
+    !call f_timing_category_group(smat_matmul, 'sparse matrix multiplication')
     call f_timing_category_group(smat_init, 'sparse matrix initialization')
+    call f_timing_category_group(smat_comm, 'sparse matrix communications')
     call f_timing_category_group(cme, 'chebyshev matrix expansion')
 
     ! Define the timing categories
     call f_timing_category('Sparse matrix compression', smat_manip, &
          '(un)compression of sparse matrices', TCAT_SMAT_COMPRESSION)
+    call f_timing_category('Sparse matrix compression communication', smat_comm, &
+         '(un)compression communication of sparse matrices', TCAT_SMAT_COMPRESSION_COMMUNICATION)
     call f_timing_category('Sparse matrix transformation', smat_manip, &
          'sparsity pattern transformation of sparse matrices', TCAT_SMAT_TRANSFORMATION)
-    call f_timing_category('Sparse matrix multiplication', smat_matmul, &
+    call f_timing_category('Sparse matrix multiplication', smat_manip, &
          'sparse matrix matrix multiplication', TCAT_SMAT_MULTIPLICATION)
     call f_timing_category('sparse matrix initialization', smat_init, &
          'sparse matrix initialization', TCAT_SMAT_INITIALIZATION)
     call f_timing_category('CME auxiliary', cme, &
          'Chebyshev matrix expansion auxiliary', TCAT_CME_AUXILIARY)
+    call f_timing_category('CME polynomials', cme, &
+         'Chebyshev matrix expansion polynomials', TCAT_CME_POLYNOMIALS)
+    call f_timing_category('CME coefficients', cme, &
+         'Chebyshev matrix expansion coefficients', TCAT_CME_COEFFICIENTS)
+    call f_timing_category('highlevel matrix operations', smat_manip, &
+         'highlevel matrix operations', TCAT_HL_MATRIX_OPERATIONS)
+    call f_timing_category('highlevel matrix communications', smat_comm, &
+         'highlevel matrix communications', TCAT_HL_MATRIX_COMMUNICATIONS)
+    call f_timing_category('highlevel matrix checks', smat_manip, &
+         'highlevel matrix checks', TCAT_HL_MATRIX_CHECKS)
 
   !!!define the timing categories
   !!call f_timing_category('PSolver Computation',pscpt,&
