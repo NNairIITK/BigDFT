@@ -16,6 +16,7 @@ module bigdft_run
   use module_atoms, only: atoms_data
   use f_refcnts, only: f_reference_counter,f_ref_new,f_ref,f_unref,&
        nullify_f_ref,f_ref_free
+  use module_f_bind
   use f_utils
   use f_enums, f_str => str
   use module_input_dicts, only: bigdft_set_run_properties => dict_set_run_properties,&
@@ -43,6 +44,14 @@ module bigdft_run
      type(f_enumerator) :: run_mode !< run_mode for freeing the extra treatments
   end type MM_restart_objects
 
+  type, public :: run_objects_class_type
+     logical :: init = .false.
+     !> Available hooks for object of type run_objects.
+     type(f_bind) :: hook_init, hook_pre, hook_post, hook_destroy
+  end type run_objects_class_type
+  type(run_objects_class_type), target :: my_class !< Global private variable storing the
+                                           !  class properties of ru_objects.
+
   !> Public container to be used with bigdft_state().
   type, public :: run_objects
      type(f_enumerator), pointer :: run_mode
@@ -66,9 +75,6 @@ module bigdft_run
      type(run_objects), dimension(:), pointer :: sections
 
      integer(kind = 8) :: c_obj !< Pointer to a C wrapper
-
-     !> Available hooks for this object.
-     integer(kind=8) :: callback_init, callback_pre, callback_post, callback_destroy
   end type run_objects
 
   !> Used to store results of a DFT calculation.
@@ -82,6 +88,7 @@ module bigdft_run
      integer(kind = 8) :: c_obj                !< Pointer to a C wrapper
   end type state_properties
 
+  public :: run_objects_class
   public :: init_state_properties,deallocate_state_properties
   public :: run_objects_free,copy_state_properties
   public :: nullify_run_objects
@@ -615,6 +622,8 @@ contains
     type(MM_restart_objects), intent(in), target :: mm_rst
     real(gp), intent(inout), optional :: rxyz0 !<fake intent(in)
 
+    call run_objects_class_init()
+
     !associate only meaningful objects
     call associate_restart_objects(runObj, rst, mm_rst)
 
@@ -840,6 +849,23 @@ contains
 
   end subroutine state_properties_set_from_dict
 
+  subroutine run_objects_class_init()
+    if (my_class%init) return
+
+    call f_bind_undefined(my_class%hook_init)
+    call f_bind_undefined(my_class%hook_pre)
+    call f_bind_undefined(my_class%hook_post)
+    call f_bind_undefined(my_class%hook_destroy)
+    my_class%init = .true.
+  end subroutine run_objects_class_init
+
+  function run_objects_class()
+    type(run_objects_class_type), pointer :: run_objects_class
+
+    call run_objects_class_init()
+    run_objects_class => my_class
+  end function run_objects_class
+
   !> Routines to handle the argument objects of bigdft_state().
   pure subroutine nullify_run_objects(runObj)
     use module_types
@@ -856,10 +882,6 @@ contains
     nullify(runObj%py_hooks)
     nullify(runObj%sections)
     runObj%c_obj = 0
-    runObj%callback_init = 0
-    runObj%callback_pre = 0
-    runObj%callback_post = 0
-    runObj%callback_destroy = 0
   END SUBROUTINE nullify_run_objects
 
   !> Release run_objects structure as a whole
@@ -939,8 +961,9 @@ contains
     ! Fortran release ownership
     release = .true.
 
-    if (runObj%callback_destroy /= 0) &
-         & call call_external_c_fromadd_data(runObj%callback_destroy, runObj)
+    call f_bind_prepare(my_class%hook_destroy)
+    call f_bind_add_arg(my_class%hook_destroy, runObj)
+    call f_bind_execute(my_class%hook_destroy)
 
     if (runObj%c_obj /= 0) then
        call run_objects_wrapper_detach(runObj%c_obj, claim)
@@ -980,21 +1003,6 @@ contains
        call run_objects_wrapper_attach(runObj%c_obj, runObj)
     end if
   END SUBROUTINE free_run_objects
-
-  subroutine run_objects_set_hooks(runObj, callback_init, callback_pre, &
-       & callback_post, callback_destroy)
-    implicit none
-    type(run_objects), intent(inout) :: runObj
-    external :: callback_init !< Called when this object is instanciated.
-    external :: callback_pre  !< Called everytime before state properties calculation.
-    external :: callback_post !< Called everytime after state properties calculation.
-    external :: callback_destroy !< Called when this object is destroyed.
-
-    runObj%callback_init = f_loc(callback_init)
-    runObj%callback_pre = f_loc(callback_pre)
-    runObj%callback_post = f_loc(callback_post)
-    runObj%callback_destroy = f_loc(callback_destroy)
-  end subroutine err_set_callback_simple
 
   !> Parse the input dictionary and create all run_objects
   !! in particular this routine identifies the input and the atoms structure
@@ -1155,6 +1163,7 @@ contains
 
     call f_routine(id='run_objects_init')
 
+    call run_objects_class_init()
     call nullify_run_objects(runObj)
 
     if (present(run_dict)) then
@@ -1193,17 +1202,9 @@ contains
           call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
        end if
 
-       if (associated(runObj%py_hooks)) then
-          call bigdft_python_init(bigdft_mpi%iproc, bigdft_mpi%nproc, &
-               & bigdft_mpi%igroup, bigdft_mpi%ngroup)
-          if ("init" .in. runObj%py_hooks) then
-             call bigdft_python_exec_dict(runObj%py_hooks // "init", ierr)
-             if (ierr /= 0) stop ! Should raise a proper error later.
-          end if
-       end if
-
-       if (runObj%callback_init /= 0) &
-            & call call_external_c_fromadd_data(runObj%callback_init, runObj)
+       call f_bind_prepare(my_class%hook_init)
+       call f_bind_add_arg(my_class%hook_init, runObj)
+       call f_bind_execute(my_class%hook_init)
 
     else if (present(source)) then
        call run_objects_associate(runObj,&
@@ -1680,15 +1681,10 @@ contains
         call constraints_internal(runObj%atoms%astruct)
     end if
 
-    ! Run any Python hook post run.
-    if ("pre" .in. runObj%py_hooks) then
-       call run_objects_to_python(runObj, "run", 3)
-       call bigdft_python_exec_dict(runObj%py_hooks // "pre", ierr)
-       if (ierr /= 0) stop
-    end if
-
-    if (runObj%callback_pre /= 0) &
-         & call call_external_c_fromadd_data(runObj%callback_pre, runObj)
+    ! Run any pre hook
+    call f_bind_prepare(my_class%hook_pre)
+    call f_bind_add_arg(my_class%hook_pre, runObj)
+    call f_bind_execute(my_class%hook_pre)
 
     call clean_state_properties(outs) !zero the state first
 
@@ -1787,15 +1783,11 @@ contains
     !broadcast the state properties
     call broadcast_state_properties(outs)
 
-    ! Run any Python hook post run.
-    if ("post" .in. runObj%py_hooks) then
-       call state_properties_to_python(outs, "outs", 4)
-       call bigdft_python_exec_dict(runObj%py_hooks // "post", ierr)
-       if (ierr /= 0) stop
-    end if
-
-    if (runObj%callback_post /= 0) &
-         & call call_external_c_fromadd_data_data(runObj%callback_post, runObj, outs)
+    ! Run any hook post run.
+    call f_bind_prepare(my_class%hook_post)
+    call f_bind_add_arg(my_class%hook_post, runObj)
+    call f_bind_add_arg(my_class%hook_post, outs)
+    call f_bind_execute(my_class%hook_post)
 
     call f_increment(runObj%nstate)
 
