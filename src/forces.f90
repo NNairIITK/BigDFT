@@ -1139,8 +1139,8 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
                                 ispin=2
                              end if
                              factor=ob%orbs%occup(iorb+ob%orbs%isorb)*ob%orbs%kwgts(ob%orbs%iokpt(iorb))
-                             call atomic_PSP_density_matrix_update(lmax_ao,l-1,ncplx,scalprod(:,0,1:2*l-1,i,l,iat,jorb),&
-                                  factor,nlpsp%gamma_mmp(1,1,1,ispin,nlpsp%iagamma(l-1,iat)))
+                             call atomic_PSP_density_matrix_update('N',lmax_ao,l-1,ncplx,scalprod(1:ncplx,0,1:2*l-1,i,l,iat,jorb),&
+                                  factor,nlpsp%gamma_mmp(1,1,1,nlpsp%iagamma(l-1,iat),ispin))
                           end if
                        end if
 
@@ -1270,35 +1270,70 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
 
 END SUBROUTINE nonlocal_forces
 
+!> calculate the density matrix of the system from the scalar product with the projectors
+subroutine cproj_to_gamma(iat,proj_G,mproj,lmax,ncplx,cproj,factor,iagamma,gamma_mmp)
+  use module_defs, only: wp
+  use gaussians
+  implicit none
+  integer, intent(in) :: mproj,iat,ncplx,lmax
+  real(wp), intent(in) :: factor
+  type(gaussian_basis_new), intent(in) :: proj_G
+  integer, dimension(2*lmax+1), intent(in) :: iagamma
+  real(wp), dimension(ncplx,mproj), intent(in) :: cproj
+  real(wp), dimension(2,2*lmax+1,2*lmax+1,*), intent(inout) :: gamma_mmp 
+  !local variables
+  integer :: iproj
+  type(gaussian_basis_iter) :: iter
+
+  call gaussian_iter_start(proj_G, iat, iter)
+
+  ! Loop on shell.
+  iproj=1
+  do while (gaussian_iter_next_shell(proj_G, iter))
+     if (iter%n ==1 .and. iagamma(iter%l-1)/=0) &
+          call atomic_PSP_density_matrix_update('C',lmax,iter%l-1,ncplx,cproj(1,iproj),&
+          factor,gamma_mmp(1,1,1,iagamma(iter%l-1)))
+     iproj = iproj + (2*iter%l-1)*ncplx
+  end do
+
+end subroutine cproj_to_gamma
 
 !>calculate the density matrix for a atomic contribution
 !!from the values of scalprod calculated in the code
-subroutine atomic_PSP_density_matrix_update(lmax,l,ncplx,sp,fac,gamma_mmp)
+subroutine atomic_PSP_density_matrix_update(transp,lmax,l,ncplx,sp,fac,gamma_mmp)
   use module_defs, only: wp,gp
+  use yaml_strings
   implicit none
+  !> scalprod coefficients are <p_i | psi> ('N') or <psi | p_i> ('C'),
+  !! ignored if ncplx=1
+  character(len=1), intent(in) :: transp
   integer, intent(in) :: ncplx
   integer, intent(in) :: lmax !< maximum value of the angular momentum considered
   integer, intent(in) :: l !<angular momentum of the density matrix, form 0 to l_max
   !> coefficients of the scalar products between projectos and orbitals
   real(gp), intent(in) :: fac !<rescaling factor
-  real(wp), dimension(2,2*l+1), intent(in) :: sp
+  real(wp), dimension(ncplx,2*l+1), intent(in) :: sp
   !>density matrix for this angular momenum and this spin
   real(wp), dimension(2,2*lmax+1,2*lmax+1), intent(inout) :: gamma_mmp
   !local variables
-  integer :: m,mp
+  integer :: m,mp,icplx
+  real(wp) :: gamma_im
 
   if (fac==0.0_gp) return
 
   do m=1,2*l+1
      do mp=1,2*l+1
-        if (ncplx==1) then
+        do icplx=1,ncplx
            gamma_mmp(1,m,mp)=gamma_mmp(1,m,mp)+&
-                real(fac,wp)*sp(1,mp)*sp(1,m)
-        else
-           gamma_mmp(1,m,mp)=gamma_mmp(1,m,mp)+&
-                real(fac,wp)*(sp(1,mp)*sp(1,m)+sp(2,mp)*sp(2,m))
-           gamma_mmp(2,m,mp)=gamma_mmp(1,m,mp)+&
-                real(fac,wp)*(sp(2,mp)*sp(1,m)-sp(1,mp)*sp(2,m))
+                real(fac,wp)*sp(icplx,mp)*sp(icplx,m)
+        end do
+        if (ncplx==2) then
+           gamma_im=real(fac,wp)*(sp(2,mp)*sp(1,m)-sp(1,mp)*sp(2,m))
+           if (transp .eqv. 'N') then
+              gamma_mmp(2,m,mp)=gamma_mmp(2,m,mp)+gamma_im
+           else if (transp .eqv. 'C') then
+              gamma_mmp(2,m,mp)=gamma_mmp(2,m,mp)-gamma_im
+           end if
         end if
      end do
   end do

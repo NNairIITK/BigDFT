@@ -1237,7 +1237,7 @@ contains
           if (nspinor/=1) ncomplex=2
 
           increase=subspace_next(ss)
-          if (.not. (verify_subspace(ss,ispin,ikpt,ikptp,nvctrp,&
+          if (.not. (verify_subspace(ss,ispin,ikpt,ikptp,ncomp*nvctrp,&
                ncomplex,norb,ispsi,ise,ob%orbs%kwgts(ikpt))) &
                .and. increase) then
                call f_err_throw('Error for direct subspace iterator, ikpt='+&

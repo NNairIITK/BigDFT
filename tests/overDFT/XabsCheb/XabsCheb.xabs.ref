@@ -12,64 +12,64 @@
  ------------------------------------------------------- Input Wavefunctions Creation
   going to calculate spectra 
   IN ROUTINE  chebychev  
- weigths    1.00000000000000     
+ weigths    1.0000000000000000     
  LB_nproc=            1
  USING PTILDES TO BUILD INITIAL WAVE
   EP_initialize_start    OK 
   done 
-new cheb coeffs     -0.9782199496D-03     0.6330151361D-03
+new cheb coeffs     -0.9782207001D-03     0.6330151902D-03
   done 
-new cheb coeffs     -0.1907834869D-03    -0.2044846773D-03
+new cheb coeffs     -0.1907828052D-03    -0.2044857394D-03
   done 
-new cheb coeffs      0.4411213053D-03    -0.4770151399D-03
+new cheb coeffs      0.4411222161D-03    -0.4770154635D-03
   done 
-new cheb coeffs      0.3483306867D-03    -0.1440774205D-03
+new cheb coeffs      0.3483302882D-03    -0.1440765017D-03
   done 
-new cheb coeffs     -0.3495152252D-04     0.1186076198D-03
+new cheb coeffs     -0.3495251964D-04     0.1186082225D-03
   done 
-new cheb coeffs     -0.8928532081D-04    -0.1869968582D-04
+new cheb coeffs     -0.8928523935D-04    -0.1870041060D-04
   done 
-new cheb coeffs      0.1433004849D-03    -0.2249016204D-03
+new cheb coeffs      0.1433015013D-03    -0.2249024217D-03
   done 
-new cheb coeffs      0.2332506634D-03    -0.1758136291D-03
+new cheb coeffs      0.2332508316D-03    -0.1758130255D-03
   done 
-new cheb coeffs      0.9063020453D-04    -0.2423287964D-04
+new cheb coeffs      0.9062904016D-04    -0.2423161413D-04
   done 
-new cheb coeffs      0.1018901854D-04    -0.5322639088D-04
+new cheb coeffs      0.1018817990D-04    -0.5322637393D-04
   done 
-new cheb coeffs      0.1299592876D-03    -0.2003382174D-03
+new cheb coeffs      0.1299602171D-03    -0.2003398737D-03
   done 
-new cheb coeffs      0.2285158929D-03    -0.1986141526D-03
+new cheb coeffs      0.2285177550D-03    -0.1986155414D-03
   done 
-new cheb coeffs      0.1227347485D-03    -0.3317084970D-04
+new cheb coeffs      0.1227350725D-03    -0.3316984502D-04
   done 
-new cheb coeffs     -0.3248423139D-04     0.5046314778D-04
+new cheb coeffs     -0.3248634122D-04     0.5046568939D-04
   done 
-new cheb coeffs     -0.2032943576D-04    -0.3483766013D-04
+new cheb coeffs     -0.2033150988D-04    -0.3483681893D-04
   done 
-new cheb coeffs      0.8163744411D-04    -0.9136919980D-04
+new cheb coeffs      0.8163815086D-04    -0.9137116667D-04
   done 
-new cheb coeffs      0.5400787091D-04     0.1979306212D-04
+new cheb coeffs      0.5401032705D-04     0.1979104707D-04
   done 
-new cheb coeffs     -0.1041994754D-03     0.1722253186D-03
+new cheb coeffs     -0.1041985876D-03     0.1722257395D-03
   done 
-new cheb coeffs     -0.2064742287D-03     0.2062370233D-03
+new cheb coeffs     -0.2064756112D-03     0.2062387150D-03
   done 
  writing spectra to  cheb_spectra_proc_0_orbp_1
  writing spectra to  cheb_spectra_40
   done 
-new cheb coeffs     -0.1838438451D-03     0.1577791738D-03
+new cheb coeffs     -0.1838451967D-03     0.1577798010D-03
  coefficients from Chebychev 
-   40 1.8347331816675043E+02 5.3215820403493055E-03
+   40 1.8347331816675037E+02 5.3215820403493038E-03
  ... 
--3.4837660134711453E-05
- 8.1637444111096061E-05
--9.1369199797112230E-05
- 5.4007870907539675E-05
- 1.9793062124303035E-05
--1.0419947544621942E-04
- 1.7222531860022414E-04
--2.0647422866005758E-04
- 2.0623702330278566E-04
--1.8384384509193821E-04
- CPU time/ELAPSED time for root process     0         7.49        14.31
+-3.4836818930984986E-05
+ 8.1638150860072678E-05
+-9.1371166672532794E-05
+ 5.4010327048503791E-05
+ 1.9791047073687952E-05
+-1.0419858757263530E-04
+ 1.7222573951776389E-04
+-2.0647561121452129E-04
+ 2.0623871495362850E-04
+-1.8384519667420706E-04
+ CPU time/ELAPSED time for root process     0        17.85        34.73

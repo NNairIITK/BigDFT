@@ -41,7 +41,7 @@ module sparsematrix_highlevel
       ! Local variables
       integer :: nfvctr, nvctr
       integer,dimension(:),pointer :: col_ptr, row_ind
-      real(kind=8),dimension(:),pointer :: val
+      real(kind=mp),dimension(:),pointer :: val
       logical :: init_matmul_
     
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
@@ -83,7 +83,7 @@ module sparsematrix_highlevel
       ! Local variables
       integer :: nfvctr, nvctr
       integer,dimension(:),pointer :: col_ptr, row_ind
-      real(kind=8),dimension(:),pointer :: val
+      real(kind=mp),dimension(:),pointer :: val
     
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
     
@@ -162,7 +162,7 @@ module sparsematrix_highlevel
       !!integer,intent(out),optional :: nat, ntypes
       !!integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
       !!character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
-      !!real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
+      !!real(kind=mp),dimension(:,:),pointer,intent(inout),optional :: rxyz
       !!integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
     
       ! Local variables
@@ -170,14 +170,14 @@ module sparsematrix_highlevel
       character(len=1) :: geocode
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
-      real(kind=8),dimension(:),pointer :: val
+      real(kind=mp),dimension(:),pointer :: val
       logical :: init_matmul_
       integer :: nat_, ntypes_
       integer,dimension(:),pointer :: nzatom_, nelpsp_, iatype_
       character(len=20),dimension(:),pointer :: atomnames_
-      real(kind=8),dimension(:,:),pointer :: rxyz_
+      real(kind=mp),dimension(:,:),pointer :: rxyz_
       integer,dimension(:),pointer :: on_which_atom_
-      real(kind=8),dimension(3) :: cell_dim
+      real(kind=mp),dimension(3) :: cell_dim
     
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_bigdft')
     
@@ -224,8 +224,8 @@ module sparsematrix_highlevel
       character(len=1) :: geocode
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
-      real(kind=8),dimension(:),pointer :: val
-      real(kind=8),dimension(3) :: cell_dim
+      real(kind=mp),dimension(:),pointer :: val
+      real(kind=mp),dimension(3) :: cell_dim
       integer,dimension(:),pointer :: on_which_atom
     
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
@@ -288,7 +288,7 @@ module sparsematrix_highlevel
     
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
-      real(kind=8),dimension(smat%nvctr),intent(in) :: val
+      real(kind=mp),dimension(smat%nvctr),intent(in) :: val
       type(matrices),intent(out) :: mat
     
       call f_routine(id='matrices_init_from_data')
@@ -323,7 +323,7 @@ module sparsematrix_highlevel
     
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
-      real(kind=8),dimension(:),intent(in) :: val
+      real(kind=mp),dimension(:),intent(in) :: val
       type(matrices),intent(inout) :: mat
     
       call f_routine(id='matrices_set_values')
@@ -349,7 +349,7 @@ module sparsematrix_highlevel
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(in) :: mat
-      real(kind=8),dimension(:),intent(inout) :: val
+      real(kind=mp),dimension(:),intent(inout) :: val
     
       call f_routine(id='matrices_get_values')
     
@@ -467,7 +467,7 @@ module sparsematrix_highlevel
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, ncalc
       type(sparse_matrix),intent(in) ::smat_in, smat_out
-      real(kind=8),dimension(ncalc),intent(in) :: ex
+      real(kind=mp),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: mat_in
       type(matrices),dimension(ncalc),intent(inout) :: mat_out
       logical,intent(in),optional :: npl_auto
@@ -527,7 +527,7 @@ module sparsematrix_highlevel
       type(matrices),intent(in) :: overlap, ham
       type(matrices),dimension(1),intent(inout) :: overlap_minus_one_half
       type(matrices),intent(inout) :: kernel
-      real(kind=8),intent(out) :: ebs
+      real(kind=mp),intent(out) :: ebs
       logical,intent(in),optional :: calculate_minusonehalf
       integer,intent(in),optional :: foe_verbosity
 
@@ -602,7 +602,7 @@ module sparsematrix_highlevel
       type(sparse_matrix),intent(in) :: asmat, bsmat
       type(matrices),intent(in) :: amat
       type(matrices),intent(in) :: bmat
-      real(kind=8) :: trace_AB
+      real(kind=mp) :: trace_AB
 
       ! Local variables
       integer :: iashift, ibshift

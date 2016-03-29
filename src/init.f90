@@ -390,15 +390,16 @@ subroutine createProjectorsArrays(lr,rxyz,at,ob,&
         nl%iagamma=f_malloc0_ptr([0.to.lmax_ao,1.to.nl%natoms],id='iagamma')
         igamma=0
         do iat=1,nl%natoms
-          do l=0,lmax_ao
-            if (at%dogamma(l,iat)) then
-              igamma=igamma+1
-              nl%iagamma(l,iat)=igamma
-            end if
-          end do
+           do l=0,lmax_ao
+              if (at%dogamma(l,iat) .and. &
+                   (at%psppar(l+1,1,at%astruct%iatype(iat)) /= 0.0_gp)) then
+                 igamma=igamma+1
+                 nl%iagamma(l,iat)=igamma
+              end if
+           end do
         end do
         !then all the information for the density matrix allocation is available
-        nl%gamma_mmp=f_malloc_ptr([2,2*lmax_ao+1,2*lmax_ao+1,2,igamma],id='gamma_mmp')
+        nl%gamma_mmp=f_malloc_ptr([2,2*lmax_ao+1,2*lmax_ao+1,igamma,2],id='gamma_mmp')
       end if
 
       call f_release_routine()
