@@ -2518,7 +2518,7 @@ matrixtaskgroups_yes:
   Total charge: 2.0e-10
   difference: 5.9e-11
   energy: 3.0e-09
-  trace: 1.02e-07
+  trace: 6.12e-07
   trace(KS): 3.8e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
@@ -2539,8 +2539,7 @@ test-foeccs:
   value: 2.8e-11
 
 lj_connect.mhgps.ref.yaml:
-  (MHGPS) minmode overlap: 5.6e-11
-  Energy: 8.26e-11
+  (MHGPS) minmode overlap: 2.7e-10
+  Energy: 4.47e-10
   Keys to ignore:
   - (MHGPS) Run finished at
-  
