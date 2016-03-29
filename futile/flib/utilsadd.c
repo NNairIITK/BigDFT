@@ -60,17 +60,17 @@ void FC_FUNC_(call_external_c_fromadd, CALL_EXTERNAL_C_FROMADD)(long long int * 
 }
 
 typedef void (*f_subroutine_data)(void *dataadd);
-void FC_FUNC_(call_external_c_fromadd_data, CALL_EXTERNAL_C_FROMADD_DATA)(f_subroutine_data *add, void *dataadd)
+void FC_FUNC_(call_external_c_fromadd_data, CALL_EXTERNAL_C_FROMADD_DATA)(f_subroutine_data *add, void **dataadd)
 {
   if (add && dataadd)
-    (*add)(dataadd);
+    (*add)(*dataadd);
 }
 
 typedef void (*f_subroutine_data_data)(void *dataadd, void *dataadd2);
-void FC_FUNC_(call_external_c_fromadd_data_data, CALL_EXTERNAL_C_FROMADD_DATA_DATA)(f_subroutine_data_data *add, void *dataadd, void *dataadd2)
+void FC_FUNC_(call_external_c_fromadd_data_data, CALL_EXTERNAL_C_FROMADD_DATA_DATA)(f_subroutine_data_data *add, void **dataadd, void **dataadd2)
 {
   if (add && dataadd && dataadd2)
-    (*add)(dataadd, dataadd2);
+    (*add)(*dataadd, *dataadd2);
 }
 
 //Symbol duplications for fortran interfaces
