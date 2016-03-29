@@ -8,10 +8,16 @@ module module_f_bind
   end type f_bind
 
 contains
+  
+  subroutine f_bind_undefined(bind)
+    type(f_bind), intent(inout) :: bind
+    bind%n_args = 0
+    bind%callback = 0
+    bind%args = 0
+  end subroutine f_bind_undefined
 
   subroutine f_bind_prepare(bind)
     type(f_bind), intent(inout) :: bind
-
     bind%args = 0
   end subroutine f_bind_prepare
 
