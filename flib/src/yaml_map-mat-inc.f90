@@ -31,6 +31,7 @@
      call yaml_sequence_open(mapname,advance=adv,unit=unt)
   end if
   do irow=lbound(mapvalue,2),ubound(mapvalue,2)
+     call yaml_newline()
      call yaml_sequence(advance='no',unit=unt)
      call yaml_sequence_open(flow=.true.,unit=unt)
      do icol=lbound(mapvalue,1),ubound(mapvalue,1)
