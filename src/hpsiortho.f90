@@ -143,6 +143,12 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
      !$ call timing(iproc,'UnBlockDen    ','OF')
      !$ end if
 
+     !here we can reduce and output the density matrix if required
+     if (associated(nlpsp%gamma_mmp) .and. nproc > 1) &
+          call mpiallred(nlpsp%gamma_mmp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+
+     if (iproc==0) call write_atomic_density_matrix(wfn%orbs%nspin,atoms%astruct,nlpsp)
+
      ithread=0
      nthread=1
 
