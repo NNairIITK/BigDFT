@@ -403,6 +403,7 @@ contains
   !> Count the number of atomic shells
   subroutine count_atomic_shells(nspin_in,elecorbs,occup,nl)
     use yaml_strings, only: yaml_toa
+    use f_utils, only: f_increment
     implicit none
     integer, intent(in) :: nspin_in
     real(gp), dimension(nelecmax_ao), intent(in) :: elecorbs
@@ -419,7 +420,8 @@ contains
     !calculate nl and the number of occupation numbers per orbital
     iocc=0
     do l=1,lmax_ao+1
-       iocc=iocc+1
+       call f_increment(iocc)
+       !iocc=iocc+1
        nl(l)=nint(elecorbs(iocc))!ceiling(elecorbs(iocc))!
        if (nl(l) > noccmax_ao) then
           call f_err_throw('Error in occupying the shells of l='//&
@@ -434,7 +436,8 @@ contains
           do ispin=1,nspin
              do m=1,2*l-1
                 do icoll=1,noncoll !non-trivial only for nspinor=4
-                   iocc=iocc+1
+                   call f_increment(iocc)
+                   !iocc=iocc+1
                    occup(inl,l)=occup(inl,l)+elecorbs(iocc)
                 end do
              end do
@@ -837,6 +840,7 @@ contains
     real(gp), dimension(nelecmax_ao), intent(in) :: aocc
 
     !local variables
+    logical :: write_string
     character(len=10) :: tmp
     character(len=500) :: string
     integer :: i,m,iocc,icoll,inl,nspin,noncoll,l,ispin,is,nl,ntmp,iss
@@ -867,11 +871,13 @@ contains
     do i=1,noccmax_ao
        iocc=0
        do l=1,lmax_ao+1
-          iocc=iocc+1
+          !iocc=iocc+1
+          call f_increment(iocc)
           nl=nint(aocc(iocc))
           do inl=1,nl
              !write to the string the angular momentum
-             if (inl == i) then
+             write_string= inl == i
+             if (write_string) then
                 iss=is
                 !if (scorb(l,inl)) then
                 if (inl <= nl_sc(l)) then
@@ -897,14 +903,16 @@ contains
                    string(is:is)=')'
                    is=is+1
                 end if
+                call yaml_newline()
                 call yaml_sequence_open(string(iss:is))
              end if
              do ispin=1,nspin
                 do m=1,2*l-1
                    do icoll=1,noncoll !non-trivial only for nspinor=4
-                      iocc=iocc+1
+                      !iocc=iocc+1
+                      call f_increment(iocc)
                       !write to the string the value of the occupation numbers
-                      if (inl == i) then
+                      if (write_string) then
                          call write_fraction_string(l,aocc(iocc),tmp,ntmp)
                          string(is:is+ntmp-1)=tmp(1:ntmp)
                          call yaml_sequence(tmp(1:ntmp))
@@ -913,7 +921,7 @@ contains
                    end do
                 end do
              end do
-             if (inl == i) then
+             if (write_string) then
                 string(is:is+2)=' , '
                 is=is+3
                 call yaml_sequence_close()

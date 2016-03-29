@@ -1141,8 +1141,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
   use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
-  use sparsematrix_init, only: init_matrix_taskgroups, check_local_matrix_extents, &
-                               init_matrixindex_in_compressed_fortransposed
+  use sparsematrix_init, only: init_matrix_taskgroups
+  use bigdft_matrices, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed
   use foe_base, only: foe_data_deallocate
   use public_enums
   use locregs_init, only: small_to_large_locreg
@@ -1170,6 +1170,9 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   type(local_zone_descriptors) :: lzd_tmp
   character(len=*), parameter :: subname='adjust_locregs_and_confinement'
   integer,dimension(2) :: irow, icol, iirow, iicol
+  integer :: ind_min_s, ind_mas_s, ind_trans_min_s, ind_trans_max_s
+  integer :: ind_min_m, ind_mas_m, ind_trans_min_m, ind_trans_max_m
+  integer :: ind_min_l, ind_mas_l, ind_trans_min_l, ind_trans_max_l
 
   call f_routine(id='adjust_locregs_and_confinement')
 
@@ -1340,30 +1343,42 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      iicol(1) = tmb%linmat%s%nfvctr
      iicol(2) = 1
      call check_local_matrix_extents(iproc, nproc, tmb%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%s, irow, icol)
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%s, &
+          ind_min_s, ind_mas_s, ind_trans_min_s, ind_trans_max_s, &
+          irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
      call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%m, irow, icol)
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%m, &
+          ind_min_m, ind_mas_m, ind_trans_min_m, ind_trans_max_m, &
+          irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
      call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd,  tmb%linmat%l, irow, icol)
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%l, &
+          ind_min_l, ind_mas_l, ind_trans_min_l, ind_trans_max_l, &
+          irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
 
-     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, input%enable_matrix_taskgroups, &
-          tmb%linmat%s, tmb%linmat%smmd, tmb%collcom, tmb%collcom_sr, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, input%enable_matrix_taskgroups, &
-          tmb%linmat%m, tmb%linmat%smmd, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, input%enable_matrix_taskgroups, &
-          tmb%linmat%l, tmb%linmat%smmd, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, &
+          input%enable_matrix_taskgroups, tmb%linmat%s, &
+          ind_min_s, ind_mas_s, ind_trans_min_s, ind_trans_max_s, &
+          iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, &
+          input%enable_matrix_taskgroups, tmb%linmat%m, &
+          ind_min_m, ind_mas_m, ind_trans_min_m, ind_trans_max_m, &
+          iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, &
+          input%enable_matrix_taskgroups, tmb%linmat%l, &
+          ind_min_l, ind_mas_l, ind_trans_min_l, ind_trans_max_l, &
+          iirow, iicol)
 
      call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
           matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)

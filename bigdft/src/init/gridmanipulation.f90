@@ -263,11 +263,6 @@ subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
    Glr%hybrid_on=(Glr%hybrid_on.and.(nfu2-nfl2+lupfil < n2+1))
    Glr%hybrid_on=(Glr%hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
 
-  !allocate projflg
-!   allocate(Glr%projflg(atoms%astruct%nat),stat=i_stat)
-!   call memocc(i_stat,Glr%projflg,'Glr%projflg',subname)
-!   Glr%projflg = 1 
-   
    !OCL convolutions not compatible with hybrid boundary conditions
    if (OCLConv) Glr%hybrid_on = .false.
 END SUBROUTINE system_size

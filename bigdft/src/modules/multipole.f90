@@ -188,6 +188,7 @@ module multipole
 
       call f_routine(id='potential_from_charge_multipoles')
 
+      call f_zero(rholeaked)
 
       ! Conditions for periodicity
       perx=(at%astruct%geocode /= 'F')
@@ -1018,7 +1019,8 @@ module multipole
       inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
 
       power(1)=ioperation
-      call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, power, -1, &
+      call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+           meth_overlap, 1, power, -1, &
            imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
            ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
            max_error=max_error, mean_error=mean_error)
@@ -2324,7 +2326,7 @@ module multipole
       use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
                                    sparsematrix_malloc, matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                    SPARSE_TASKGROUP, sparse_matrix_metadata
-      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local
+      use sparsematrix, only: matrix_matrix_mult_wrapper
       use communications, only: transpose_localized
       use orthonormalization, only: orthonormalizelocalized,overlap_matrix
       use module_atoms, only: atoms_data
@@ -2579,18 +2581,20 @@ module multipole
               newovrlp%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_TASKGROUP, id='newovrlp%matrix_compr')
               call f_memcpy(src=newoverlap, dest=newovrlp%matrix_compr)
               power=1
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, power, -1, &
-                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                    ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
-                    check_accur=.true., max_error=max_error, mean_error=mean_error)
+              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                   1020, 1, power, -1, &
+                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                   ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                   check_accur=.true., max_error=max_error, mean_error=mean_error)
               call deallocate_matrices(newovrlp)
               call f_free(newoverlap)
           else
               power(1)=1
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, power, -1, &
-                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                    ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
-                    check_accur=.true., max_error=max_error, mean_error=mean_error)
+              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                   1020, 1, power, -1, &
+                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                   ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                   check_accur=.true., max_error=max_error, mean_error=mean_error)
           end if
       end if
 
@@ -2905,7 +2909,7 @@ module multipole
                                    matrices_null, deallocate_matrices, &
                                    sparse_matrix_metadata
       use sparsematrix_init, only: matrixindex_in_compressed
-      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local
+      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
       use sparsematrix_highlevel, only: trace_AB
       use matrix_operations, only: overlapPowerGeneral, overlap_plus_minus_one_half_exact
       use yaml_output
@@ -3013,7 +3017,7 @@ module multipole
       !tr_KS = trace_sparse(bigdft_mpi%iproc, bigdft_mpi%nproc, smats, smatl, &
       !       ovrlp_%matrix_compr(isshift+1:), &
       !       kernel_%matrix_compr(ilshift+1:), ispin)
-      tr_KS = trace_AB(bigdft_mpi%iproc, bigdft_mpi%nproc, smats, smatl, ovrlp_, kernel_, ispin)
+      tr_KS = trace_AB(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smats, smatl, ovrlp_, kernel_, ispin)
 
 
 
@@ -3064,10 +3068,11 @@ module multipole
               ovrlp_onehalf_(1)%matrix_compr = &
                   sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='ovrlp_onehalf_(1)%matrix_compr')
               power=2
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, power, -1, &
-                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                    ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_(1), &
-                    check_accur=.true., max_error=max_error, mean_error=mean_error)
+              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                   1020, 1, power, -1, &
+                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                   ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_(1), &
+                   check_accur=.true., max_error=max_error, mean_error=mean_error)
 
               ! Calculate S^1/2 * K * S^1/2 = Ktilde
               tmpmat1 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=smatl, id='tmpmat1')
@@ -3078,8 +3083,8 @@ module multipole
                    ovrlp_onehalf_(1)%matrix_compr, tmpmat1, kerneltilde)
           else if (ortho=='no') then
               ovrlp_large = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='ovrlp_large')
-              call transform_sparse_matrix_local(smats, smatl, 'small_to_large', &
-                   smatrix_compr_in=ovrlp_%matrix_compr, lmatrix_compr_out=ovrlp_large)
+              call transform_sparse_matrix(bigdft_mpi%iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
+                   smat_in=ovrlp_%matrix_compr, lmat_out=ovrlp_large)
               call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
                    kernel_%matrix_compr, ovrlp_large, kerneltilde)
               call f_free(ovrlp_large)
@@ -3294,12 +3299,14 @@ module multipole
                   ! Calculate ovrlp^1/2 and ovrlp^-1/2. The last argument is wrong, clean this.
                   ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
                   call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-                  call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, smats)
+                  ! Passing 0 as comm... not best practice
+                  call overlap_plus_minus_one_half_exact(0, 1, 0, n, -1, .true., ovrlp_tmp, smats)
                   do i=1,n
                       call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
                   end do
                   call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-                  call overlap_plus_minus_one_half_exact(1, n, -1, .false., ovrlp_tmp, smats)
+                  ! Passing 0 as comm... not best practice
+                  call overlap_plus_minus_one_half_exact(0, 1, 0, n, -1, .false., ovrlp_tmp, smats)
                   do i=1,n
                       call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_minusonehalf(1,i), 1)
                   end do
@@ -3411,7 +3418,8 @@ module multipole
                       ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
                       ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
                       call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-                      call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, smats)
+                      ! Passing 0 as comm... not best practice
+                      call overlap_plus_minus_one_half_exact(0, 1, 0, n, -1, .true., ovrlp_tmp, smats)
                       do i=1,n
                           call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
                       end do
@@ -3435,7 +3443,8 @@ module multipole
                           ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
                           ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
                           call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-                          call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, smats)
+                          ! Passing 0 as comm... not best practice
+                          call overlap_plus_minus_one_half_exact(0, 1, 0, n, -1, .true., ovrlp_tmp, smats)
                           do i=1,n
                               call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
                           end do
@@ -5529,48 +5538,48 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
   !!call mpi_barrier(mpi_comm_world,ispin)
 
 
-  if (calculate_quadrupole) then
+  quadrupole_if: if (calculate_quadrupole) then
       ! Quadrupole not yet parallelized
 
-      if (at%astruct%geocode /= 'F') then
-         nl3=1
-         nc3=n3i
-      else
-         nl3=15
-         nc3=n3i-31
-      end if
-
-      if (dpbox%mpi_env%nproc > 1) then
-         !allocate full density in pot_ion array
-         ele_rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='ele_rho')
-    
-    !Commented out, it is enough to allocate the rho at 1
-    !!$     ! rho_buf is used instead of rho for avoiding the case n3p=0 in 
-    !!$     ! some procs which makes MPI_ALLGATHERV failed.
-    !!$     if (n3p.eq.0) then
-    !!$       allocate(rho_buf(n1i,n2i,n3p+1,nspin),stat=i_stat)
-    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
-    !!$       rho_buf = 0.0_dp
-    !!$     else
-    !!$       allocate(rho_buf(n1i,n2i,n3p,nspin),stat=i_stat)
-    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
-    !!$       rho_buf = rho
-    !!$     endif  
-    
-    
-         do ispin=1,nspin
-            call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
-                 mpidtypd,ele_rho(1,1,1,ispin),dpbox%ngatherarr(0,1),&
-                 dpbox%ngatherarr(0,2),mpidtypd,dpbox%mpi_env%mpi_comm,ierr)
-            !write(*,*) 'dpbox%ngatherarr(:,1)',dpbox%ngatherarr(:,1)
-            !write(*,*) 'dpbox%ngatherarr(:,2)',dpbox%ngatherarr(:,2)
-            !write(*,*) 'dpbox%nscatterarr(:,2)',dpbox%nscatterarr(:,2)
-            !write(*,*) 'dpbox%nscatterarr(:,3)',dpbox%nscatterarr(:,3)
-         end do
-    
-      else
-         ele_rho => rho
-      end if
+!!##      if (at%astruct%geocode /= 'F') then
+!!##         nl3=1
+!!##         nc3=n3i
+!!##      else
+!!##         nl3=15
+!!##         nc3=n3i-31
+!!##      end if
+!!##
+!!##      if (dpbox%mpi_env%nproc > 1) then
+!!##         !allocate full density in pot_ion array
+!!##         ele_rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='ele_rho')
+!!##    
+!!##    !Commented out, it is enough to allocate the rho at 1
+!!##    !!$     ! rho_buf is used instead of rho for avoiding the case n3p=0 in 
+!!##    !!$     ! some procs which makes MPI_ALLGATHERV failed.
+!!##    !!$     if (n3p.eq.0) then
+!!##    !!$       allocate(rho_buf(n1i,n2i,n3p+1,nspin),stat=i_stat)
+!!##    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
+!!##    !!$       rho_buf = 0.0_dp
+!!##    !!$     else
+!!##    !!$       allocate(rho_buf(n1i,n2i,n3p,nspin),stat=i_stat)
+!!##    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
+!!##    !!$       rho_buf = rho
+!!##    !!$     endif  
+!!##    
+!!##    
+!!##         do ispin=1,nspin
+!!##            call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
+!!##                 mpidtypd,ele_rho(1,1,1,ispin),dpbox%ngatherarr(0,1),&
+!!##                 dpbox%ngatherarr(0,2),mpidtypd,dpbox%mpi_env%mpi_comm,ierr)
+!!##            !write(*,*) 'dpbox%ngatherarr(:,1)',dpbox%ngatherarr(:,1)
+!!##            !write(*,*) 'dpbox%ngatherarr(:,2)',dpbox%ngatherarr(:,2)
+!!##            !write(*,*) 'dpbox%nscatterarr(:,2)',dpbox%nscatterarr(:,2)
+!!##            !write(*,*) 'dpbox%nscatterarr(:,3)',dpbox%nscatterarr(:,3)
+!!##         end do
+!!##    
+!!##      else
+!!##         ele_rho => rho
+!!##      end if
 
       ! charge center
       charge_center_cores(1:3)=0.d0
@@ -5644,12 +5653,14 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
       do ispin=1,nspin
           qtot=0.d0
           do i3=0,nc3 - 1
+             ii3 = i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3) - i3shift !real coordinate, without buffer
               do i2=0,nc2 - 1
                   do i1=0,nc1 - 1
-                      q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+                      !q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+                      q= - rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
                       x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
                       y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
-                      z=at%astruct%cell_dim(3)/real(nc3,dp)*i3
+                      z=at%astruct%cell_dim(3)/real(nnc3,dp)*ii3
                       charge_center_elec(1,ispin) = charge_center_elec(1,ispin) + q*x
                       charge_center_elec(2,ispin) = charge_center_elec(2,ispin) + q*y
                       charge_center_elec(3,ispin) = charge_center_elec(3,ispin) + q*z
@@ -5658,18 +5669,23 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
               end do
           end do
           !!write(*,*) 'qtot',qtot
+          call mpiallred(qtot, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
           charge_center_elec(1:3,ispin)=charge_center_elec(1:3,ispin)/qtot
       end do
+
+      call mpiallred(charge_center_elec, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
       quadropole_el(1:3,1:3)=0._gp
       do ispin=1,nspin
           do i3=0,nc3 - 1
+             ii3 = i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3) - i3shift !real coordinate, without buffer
               do i2=0,nc2 - 1
                   do i1=0,nc1 - 1
-                      q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+                      !q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+                      q= - rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
                       x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
                       y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
-                      z=at%astruct%cell_dim(3)/real(nc3,dp)*i3
+                      z=at%astruct%cell_dim(3)/real(nnc3,dp)*ii3
                       do i=1,3
                           select case (i)
                           case (1)
@@ -5717,6 +5733,7 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
       end do
 
       !!if (.not. is_net_charge) then
+          call mpiallred(quadropole_el, mpi_sum, comm=bigdft_mpi%mpi_comm)
           tmpquadrop=quadropole_cores+quadropole_el
       !!else
       !!    tmpquadrop=quadropole_el
@@ -5726,13 +5743,13 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
           quadrupole = tmpquadrop
       end if
 
-      if (dpbox%mpi_env%nproc > 1) then
-         call f_free_ptr(ele_rho)
-      else
-         nullify(ele_rho)
-      end if
+      !!if (dpbox%mpi_env%nproc > 1) then
+      !!   call f_free_ptr(ele_rho)
+      !!else
+      !!   nullify(ele_rho)
+      !!end if
 
-  end if
+  end if quadrupole_if
 
   !!write(*,*) 'dipole_cores second', dipole_cores
   !!call mpi_barrier(mpi_comm_world,ispin)

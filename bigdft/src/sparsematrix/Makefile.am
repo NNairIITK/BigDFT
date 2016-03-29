@@ -38,7 +38,7 @@ modules = SPARSEMATRIX_BASE.@MODULE_EXT@ \
 		  FOE_COMMON.@MODULE_EXT@ \
 		  FERMI_LEVEL.@MODULE_EXT@ \
 		  FOE.@MODULE_EXT@ \
-	MODULE_FUNC.@MODULE_EXT@ \
+          MODULE_FUNC.@MODULE_EXT@ \
 		  ICE.@MODULE_EXT@ \
 		  MATRIX_OPERATIONS.@MODULE_EXT@ \
 		  PARALLEL_LINALG.@MODULE_EXT@ \
@@ -53,7 +53,7 @@ modules = sparsematrix_base.@MODULE_EXT@ \
 		  foe_common.@MODULE_EXT@ \
 		  fermi_level.@MODULE_EXT@ \
 		  foe.@MODULE_EXT@ \
-	module_func.@MODULE_EXT@ \
+          module_func.@MODULE_EXT@ \
 		  ice.@MODULE_EXT@ \
 		  matrix_operations.@MODULE_EXT@ \
 		  parallel_linalg.@MODULE_EXT@ \
@@ -67,9 +67,10 @@ AM_FCFLAGS = -I. -I$(srcdir) @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
 
 
 #dependencies
-parallel_linalg.o:
-foe_base.o:
 sparsematrix_base.o:
+parallel_linalg.o: sparsematrix_base.o
+foe_base.o: sparsematrix_base.o
+fermi_level.o: sparsematrix_base.o
 sparsematrix_init.o: sparsematrix_base.o
 sparsematrix.o: sparsematrix_base.o sparsematrix_init.o
 chebyshev.o: sparsematrix_base.o sparsematrix_init.o sparsematrix.o

@@ -165,7 +165,6 @@ module psp_projectors
     integer :: nbseg_dim,nkeyg_dim,iat,ilr
     integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
 
-
     call f_routine(id='update_nlpsp')
 
     !find allocating dimensions for work arrays

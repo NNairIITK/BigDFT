@@ -18,6 +18,8 @@ abi_fconv.o: abi_common/abi_fconv.F90 \
 
 abi_interfaces_common.o: abi_common/abi_interfaces_common.F90 \
 	abi_defs_basis.o \
+	abi_ewald.o \
+	abi_ewald2.o \
 	abi_interfaces_lowlevel.o
 	$(PPFCCOMPILE) -c -o abi_interfaces_common.o `test -f 'abi_common/abi_interfaces_common.F90' || echo '$(srcdir)/'`abi_common/abi_interfaces_common.F90
 

@@ -25,6 +25,8 @@ endif
 driver_ccs_SOURCES = utilities.f90 driver_ccs.f90
 driver_ccs_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
+driver_SOURCES = driver.f90
+
 driver_foe_ccs_SOURCES = utilities.f90 driver_foe_ccs.f90
 driver_foe_ccs_LDADD = -lbigdft-1 @LINALG_LIBS@
 

@@ -483,7 +483,7 @@
                 maxd=sqrt(maxd)
                 curvgraddiff_tmp = uinp%saddle_curvforcediff / maxd
                 if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)then
-                    call yaml_map('  (MHGPS) Finite difference spacing '//&
+                    call yaml_map('(MHGPS) Finite difference spacing '//&
                          'for curvature computation',curvgraddiff_tmp,&
                          fmt='(1pe21.14)')
                 endif
@@ -513,7 +513,7 @@
     !            endif
                 overlap=ddot(3*runObj%atoms%astruct%nat,fsw%minmodeold_trans(1,1),1,minmode(1,1),1)
                 if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
-                    call yaml_map('  (MHGPS) minmode overlap',overlap)
+                    call yaml_map('(MHGPS) minmode overlap',overlap)
                 if((.not.optCurvConv).and. (overlap <0.85d0))then
                     minmode=fsw%minmodeold_trans
                 endif
@@ -523,10 +523,10 @@
                 !if(mhgpsst%iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
                 !'(MHGPS) METHOD COUNT  IT  Energy                &
                 !DIFF      FMAX      FNRM      alpha    ndim')
-                if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)write(*,'(a)')&
+                if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2) call yaml_comment(&!write(*,'(a)')&
                 '  #(MHGPS) METHOD COUNT  IT  Energy                '//&
                 'DIFF      FMAX      FNRM      alpha    ndim dspl   '//&
-                '      alpha_strtch'
+                '      alpha_strtch')
             endif
             !END FINDING LOWEST MODE
             
@@ -559,7 +559,7 @@
             !trust radius approach
             if(maxd>uinp%saddle_trustr .or. (curv>=0.0_gp .and. fnrm<uinp%saddle_fnrmtol))then
     !        if(maxd>trustr)then
-                if(mhgpsst%iproc==0)call yaml_map('  (MHGPS) resize step ',maxd)
+                if(mhgpsst%iproc==0)call yaml_map('(MHGPS) resize step ',maxd)
                 scl=0.5_gp*uinp%saddle_trustr/maxd
                 fsw%dd_trans=fsw%dd_trans*scl
                 tt=tt*scl
@@ -615,7 +615,7 @@
         if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
             write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),'//&
                     '1x,i3.3,1x,es12.5,1x,es9.2)')&
-            '   (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,&
+            '#  (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,&
             fnrm, alpha,ndim,displ,alpha_stretch
 
         etot=etotp
@@ -752,7 +752,7 @@ real(gp) :: alpha0int
     real(gp)                   :: ddot
     real(gp)                   :: dnrm2
 
-    if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT minoverlap',minoverlap
+    if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'#  (MHGPS) CUOPT minoverlap',minoverlap
 
     if(.not.uinp%share_rot_history)then
         fsw%alpha_stretch_rot=alpha_stretch0
@@ -801,7 +801,7 @@ real(gp) :: alpha0int
  
     if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
      write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,'//&
-          '2(1x,es9.2),2(1x,es12.5))')'   (MHGPS) CUOPT ',&
+          '2(1x,es9.2),2(1x,es12.5))')'#  (MHGPS) CUOPT ',&
           nint(ener_count),0,curvp,dcurv,fmax,fnrm, fsw%alpha_rot,&
           fsw%ndim_rot,fsw%alpha_stretch_rot,overlap,displr,displp
     itswitch=-2
@@ -870,7 +870,7 @@ real(gp) :: alpha0int
             if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
                 write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2)'//&
                       ',1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
-                      '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,&
+                      '#   (MHGPS) CUOPT ',nint(ener_count),it,curvp,&
                       dcurv,fmax,fnrm, fsw%alpha_rot,fsw%ndim_rot,&
                       fsw%alpha_stretch_rot,overlap,displr,displp
             fsw%alpha_rot=.5_gp*fsw%alpha_rot
@@ -897,7 +897,7 @@ real(gp) :: alpha0int
                 if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
                  write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2)'//&
                       ',1x,i3.3,1x,es9.2,2(1x,es12.5))')&
-                      '   (MHGPS)1 CUOPT ',nint(ener_count),it,curvp,&
+                      '#  (MHGPS)1 CUOPT ',nint(ener_count),it,curvp,&
                       dcurv,fmax,fnrm, fsw%alpha_rot,fsw%ndim_rot,&
                       fsw%alpha_stretch_rot,displr,displp
             endif
@@ -935,7 +935,7 @@ real(gp) :: alpha0int
         if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
             write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,'//&
                  'i3.3,2(1x,es9.2),2(1x,es12.5))')&
-                 '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,&
+                 '#  (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,&
                  fmax,fnrm, fsw%alpha_rot,fsw%ndim_rot,&
                  fsw%alpha_stretch_rot,overlap,displr,displp
 
@@ -1443,8 +1443,8 @@ subroutine mincurvforce(mhgpsst,imode,runObj,outs,diff,rxyz1,fxyz1,&
        if (maxdiff > epsilon(1.0_gp)) then
           if (bigdft_mpi%iproc==0) then
              call yaml_warning('Minimum mode not identical! '//&
-                  '(difference:'//trim(yaml_toa(maxdiff))//&
-                  ' ), however broadcasting from master node.')
+                  '(difference='//trim(yaml_toa(maxdiff))//&
+                  ' ), broadcasting from root')
              call yaml_flush_document()
           end if
        end if

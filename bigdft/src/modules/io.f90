@@ -389,8 +389,8 @@ module io
             ! should eventually extract this from sparse?
             linmat%kernel_%matrix = sparsematrix_malloc_ptr(linmat%l,iaction=DENSE_FULL,id='linmat%kernel_%matrix')
     
-            call uncompress_matrix2(iproc, bigdft_mpi%nproc, linmat%l, &
-                 linmat%kernel_%matrix_compr, linmat%kernel_%matrix)
+            call uncompress_matrix2(iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                 linmat%l, linmat%kernel_%matrix_compr, linmat%kernel_%matrix)
 
             !might be better to move this outside of the routine?
             !if (calc_sks) then
@@ -1775,8 +1775,8 @@ module io
 
 
       mat%matrix = sparsematrix_malloc_ptr(smat, iaction=DENSE_FULL, id='mat%matrix')
-      call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, smat, &
-           mat%matrix_compr, mat%matrix)
+      call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+           smat, mat%matrix_compr, mat%matrix)
 
       if (bigdft_mpi%iproc==0) then
 
@@ -1965,7 +1965,7 @@ module io
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, matrices_null, &
                                    DENSE_FULL, SPARSE_TASKGROUP, assignment(=), &
                                    deallocate_matrices
-      use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix_local, matrix_matrix_mult_wrapper
+      use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix, matrix_matrix_mult_wrapper
       use sparsematrix_io, only: write_sparse_matrix, write_sparse_matrix_metadata
       use matrix_operations, only: overlapPowerGeneral
       implicit none
@@ -2103,11 +2103,12 @@ module io
               sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='SminusonehalfH%matrix_compr')
           ham_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='ham_large')
           tmp_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_large')
-          call transform_sparse_matrix_local(tmb%linmat%m, tmb%linmat%l, 'small_to_large', &
-               smatrix_compr_in=tmb%linmat%ham_%matrix_compr, lmatrix_compr_out=ham_large)
+          call transform_sparse_matrix(iproc, tmb%linmat%m, tmb%linmat%l, SPARSE_TASKGROUP, 'small_to_large', &
+               smat_in=tmb%linmat%ham_%matrix_compr, lmat_out=ham_large)
           ! calculate S^-1/2
           power=-2
-          call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, power, -1, &
+          call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+               norder_taylor, 1, power, -1, &
                imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=SminusonehalfH(1), &
                check_accur=.true., max_error=max_error, mean_error=mean_error)

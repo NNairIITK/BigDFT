@@ -52,7 +52,7 @@ test-bigdft-tool.out.yaml: $(abs_top_builddir)/src/bigdft-tool
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posinp.xyz --outfile=posout.int
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posout.int --outfile=posout.xyz
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posout.xyz --outfile=posout.yaml
-	[ -f  posout.yaml] && cat posout.yaml > test-bigdft-tool.out.yaml
+	test -f  posout.yaml && cat posout.yaml > test-bigdft-tool.out.yaml
 	rm -f posout.*
 	cp -f $(srcdir)/posinp2.xyz $(PWD)/posinp.xyz
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posinp.xyz --outfile=posout.int
