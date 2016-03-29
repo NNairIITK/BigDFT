@@ -66,6 +66,9 @@ module bigdft_run
      type(run_objects), dimension(:), pointer :: sections
 
      integer(kind = 8) :: c_obj !< Pointer to a C wrapper
+
+     !> Available hooks for this object.
+     integer(kind=8) :: callback_init, callback_pre, callback_post, callback_destroy
   end type run_objects
 
   !> Used to store results of a DFT calculation.
@@ -853,6 +856,10 @@ contains
     nullify(runObj%py_hooks)
     nullify(runObj%sections)
     runObj%c_obj = 0
+    runObj%callback_init = 0
+    runObj%callback_pre = 0
+    runObj%callback_post = 0
+    runObj%callback_destroy = 0
   END SUBROUTINE nullify_run_objects
 
   !> Release run_objects structure as a whole
@@ -932,6 +939,9 @@ contains
     ! Fortran release ownership
     release = .true.
 
+    if (runObj%callback_destroy /= 0) &
+         & call call_external_c_fromadd_data(runObj%callback_destroy, runObj)
+
     if (runObj%c_obj /= 0) then
        call run_objects_wrapper_detach(runObj%c_obj, claim)
        ! The C wrapper may claim ownership
@@ -971,6 +981,20 @@ contains
     end if
   END SUBROUTINE free_run_objects
 
+  subroutine run_objects_set_hooks(runObj, callback_init, callback_pre, &
+       & callback_post, callback_destroy)
+    implicit none
+    type(run_objects), intent(inout) :: runObj
+    external :: callback_init !< Called when this object is instanciated.
+    external :: callback_pre  !< Called everytime before state properties calculation.
+    external :: callback_post !< Called everytime after state properties calculation.
+    external :: callback_destroy !< Called when this object is destroyed.
+
+    runObj%callback_init = f_loc(callback_init)
+    runObj%callback_pre = f_loc(callback_pre)
+    runObj%callback_post = f_loc(callback_post)
+    runObj%callback_destroy = f_loc(callback_destroy)
+  end subroutine err_set_callback_simple
 
   !> Parse the input dictionary and create all run_objects
   !! in particular this routine identifies the input and the atoms structure
@@ -1177,6 +1201,9 @@ contains
              if (ierr /= 0) stop ! Should raise a proper error later.
           end if
        end if
+
+       if (runObj%callback_init /= 0) &
+            & call call_external_c_fromadd_data(runObj%callback_init, runObj)
 
     else if (present(source)) then
        call run_objects_associate(runObj,&
@@ -1660,6 +1687,9 @@ contains
        if (ierr /= 0) stop
     end if
 
+    if (runObj%callback_pre /= 0) &
+         & call call_external_c_fromadd_data(runObj%callback_pre, runObj)
+
     call clean_state_properties(outs) !zero the state first
 
     infocode = 0
@@ -1763,6 +1793,10 @@ contains
        call bigdft_python_exec_dict(runObj%py_hooks // "post", ierr)
        if (ierr /= 0) stop
     end if
+
+    if (runObj%callback_post /= 0) &
+         & call call_external_c_fromadd_data_data(runObj%callback_post, runObj, outs)
+
     call f_increment(runObj%nstate)
 
     if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
