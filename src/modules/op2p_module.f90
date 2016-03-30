@@ -317,20 +317,19 @@ module overlap_point_to_point
        call cuda_get_mem_info(freeGPUSize,totalGPUSize)
        call processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
 
-         do i=1,2
-            do igroup=1,OP2P%ngroupp
-                gpudirectdataSize=gpudirectdataSize+OP2P%ndim*maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))*sizeof(alpha)
-            end do
-         end do
+       do i=1,2
+         do igroup=1,OP2P%ngroupp
+           gpudirectdataSize=gpudirectdataSize+OP2P%ndim*maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))*sizeof(alpha)
+          end do
+       end do
 
-         allocate(OP2P%resw(OP2P%ngroupp,3))
-         do i=1,3
-            do igroup=1,OP2P%ngroupp
-               if (symmetric) then
-                   gpudirectresSize=gpudirectresSize+OP2P%ndim*maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))*sizeof(alpha)
-               end if
-            end do
+       do i=1,3
+         do igroup=1,OP2P%ngroupp
+           if (symmetric) then
+             gpudirectresSize=gpudirectresSize+OP2P%ndim*maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))*sizeof(alpha)
+           end if
          end do
+       end do
 
        phimemSize=OP2P%ndim*sum(OP2P%nobj_par(iproc,:))*2*sizeof(alpha)
 
