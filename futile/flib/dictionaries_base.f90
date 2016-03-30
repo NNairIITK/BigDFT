@@ -964,16 +964,3 @@ contains
 
   end subroutine find_residual_dicts
 end module dictionaries_base
-
-
-!> Routines for bindings only (external of module)
-!LG: having a external routine with the same name of
-! a routine module is very dangerous! The linker does not complain and
-! a segfault might arrive due to absence of interface
-subroutine dict_free_binding(dict)
-  use dictionaries_base, mod_dict_free => dict_free
-  implicit none
-  type(dictionary), pointer :: dict
-
-  call mod_dict_free(dict)
-end subroutine dict_free_binding

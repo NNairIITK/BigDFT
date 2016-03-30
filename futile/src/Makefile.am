@@ -21,7 +21,7 @@ libfutile_1_a_SOURCES = f_lib_highlev.f90
 
 AM_FCFLAGS = -I$(top_builddir)/flib @MPI_INCLUDE@
 
-tmp-libfutile/extract.stamp: $(top_builddir)/flib/libflib.a $(top_builddir)/wrappers/libwrappers.a
+tmp-libfutile/extract.stamp: $(top_builddir)/flib/libflib.a $(top_builddir)/c-bindings/libbindings.a $(top_builddir)/wrappers/libwrappers.a
 	test -e "tmp-libfutile" || $(INSTALL) -d -m 755 tmp-libfutile
 	cd tmp-libfutile ; \
 	rm -f *; \

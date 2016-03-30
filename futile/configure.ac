@@ -112,6 +112,21 @@ AC_CHECK_FUNCS([clock_gettime])
 AC_CHECK_FUNCS([strndup])
 AC_LANG_POP(C)
 
+dnl Test Glib availability
+PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 >= 2.22, [ax_have_glib=yes], [ax_have_glib=no])
+if test x"$ax_have_glib" = x"yes" ; then
+  AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
+  AC_SUBST([GLIB_TRUE], [""])
+  AC_SUBST([GLIB_END_TRUE], [""])
+  AC_SUBST([GLIB_FALSE], ["/*"])
+  AC_SUBST([GLIB_END_FALSE], ["*/"])
+else
+  AC_SUBST([GLIB_TRUE], ["/*"])
+  AC_SUBST([GLIB_END_TRUE], ["*/"])
+  AC_SUBST([GLIB_FALSE], [""])
+  AC_SUBST([GLIB_END_FALSE], [""])
+fi
+
 dnl Test accelerators
 AX_ACC_CUDA()
 AX_ACC_OCL()
@@ -143,10 +158,13 @@ futile.pc
 flib/Makefile
 flib/f_utils.inc
 wrappers/Makefile
+c-bindings/Makefile
+c-bindings/futile_cst.h
 src/Makefile
 tests/Makefile
 tests/fft/Makefile
 tests/flib/Makefile
+tests/c-bindings/Makefile
 ])
 
 AC_OUTPUT
