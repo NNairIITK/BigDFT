@@ -47,7 +47,7 @@ module psolver_environment
   type(f_enumerator), parameter, public :: PS_PCG_ENUM=f_enumerator('PCG',PS_PCG,null())
 
   !>threshold for comparison with zero
-  real(dp), parameter :: thr=1.d-15
+  real(dp), parameter :: thr=1.d-12
 
   !conversion factors in AU
 
