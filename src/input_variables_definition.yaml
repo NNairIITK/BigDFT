@@ -1647,6 +1647,9 @@
      support_function_multipoles:
        COMMENT: Calculate the multipole moments of the support functions
        default: False
+     plot_locreg_grids:
+       COMMENT: plot the scaling function and wavelets grid of each localization region
+       default: False
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
