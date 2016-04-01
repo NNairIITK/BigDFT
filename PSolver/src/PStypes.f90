@@ -1299,7 +1299,7 @@ contains
     type(coulomb_operator), intent(in) :: kernel
     real(dp), dimension(3,kernel%w%nat), intent(inout) :: fpcm
     !local variables
-    real(dp), parameter :: thr=1.e-15
+    real(dp), parameter :: thr=1.e-12
     integer :: i1,i2,i3,i23,i3s
     real(dp) :: cc,epr,depsr,hh,tt,kk
     type(cell) :: mesh
