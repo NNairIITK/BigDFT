@@ -334,13 +334,13 @@ test.testforces.ref.yaml:
  Maxdiff for overlap calculation: 9.8e-09
  eF: 3.0e-07
  multiplicator for the confinement: 3.65e-9
- EBS: 3.12e-09
- EBS higher temperature: 3.12e-09
- EH: 3.21e-09
- EXC: 3.91e-10
+ EBS: 3.93e-09
+ EBS higher temperature: 3.93e-09
+ EH: 4.11e-09
+ EXC: 4.91e-10
  Ekin: 4.1e-10
- Epot: 2.31e-09
- EvXC: 5.21e-10
+ Epot: 2.91e-09
+ EvXC: 6.51e-10
 
 
 
@@ -2518,7 +2518,7 @@ matrixtaskgroups_yes:
   Total charge: 2.0e-10
   difference: 5.9e-11
   energy: 3.0e-09
-  trace: 6.12e-07
+  trace: 8.19e-07
   trace(KS): 3.8e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
@@ -2539,7 +2539,7 @@ test-foeccs:
   value: 2.8e-11
 
 lj_connect.mhgps.ref.yaml:
-  (MHGPS) minmode overlap: 2.7e-10
-  Energy: 4.47e-10
+  (MHGPS) minmode overlap: 3.3e-10
+  Energy: 5.4e-10
   Keys to ignore:
   - (MHGPS) Run finished at
