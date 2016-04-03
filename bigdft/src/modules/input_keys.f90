@@ -143,7 +143,7 @@ module module_input_keys
      !!        3: OpenCL accelearation for CPU
      !!        4: OCLACC (OpenCL both ? see input_variables.f90)
      integer :: iacceleration
-     integer :: Psolver_igpu            !< Acceleration of the Poisson solver
+!     integer :: Psolver_igpu            !< Acceleration of the Poisson solver
      character(len=11) :: OCL_platform  !< Name of the OpenCL platform
      character(len=11) :: OCL_devices   !< Name of the OpenCL devices
   end type material_acceleration
@@ -278,6 +278,7 @@ module module_input_keys
      real(gp), dimension(:), pointer :: qmass
      real(gp) :: dtinit, dtmax           !< For FIRE
      character(len=10) :: tddft_approach !< TD-DFT variables from *.tddft
+     character(len=max_field_length) :: dir_perturbation  !< Strings of the directory which contains the perturbation
      type(SIC_data) :: SIC               !< Parameters for the SIC methods
      !variables for SQNM
      integer  :: nhistx
@@ -341,7 +342,7 @@ module module_input_keys
      character(len=3) :: rho_commun
      !> Number of taskgroups for the poisson solver
      !! works only if the number of MPI processes is a multiple of it
-     integer :: PSolver_groupsize
+!     integer :: PSolver_groupsize
      !> Global MPI group size (will be written in the mpi_environment)
      ! integer :: mpi_groupsize
 
@@ -459,7 +460,7 @@ contains
   function material_acceleration_null() result(ma)
     type(material_acceleration) :: ma
     ma%iacceleration=0
-    ma%Psolver_igpu=0
+!    ma%Psolver_igpu=0
     ma%OCL_platform=repeat(' ',len(ma%OCL_platform))
     ma%OCL_platform=repeat(' ',len(ma%OCL_devices))
   end function material_acceleration_null
@@ -1725,8 +1726,8 @@ contains
           do i=ipos,len(in%matacc%OCL_devices)
              in%matacc%OCL_devices(i:i)=achar(0)
           end do
-       case (PSOLVER_ACCEL)
-          in%matacc%PSolver_igpu = val
+!       case (PSOLVER_ACCEL)
+!          in%matacc%PSolver_igpu = val
        case (SIGNALING)
           in%signaling = val ! Signaling parameters
        case (SIGNALTIMEOUT)
@@ -1756,8 +1757,6 @@ contains
           in%orthpar%bsUp  = dummy_int(2)
        case (RHO_COMMUN)
           in%rho_commun = val
-       case (PSOLVER_GROUPSIZE)
-          in%PSolver_groupsize = val
        case (UNBLOCK_COMMS)
           in%unblock_comms = val
        case (LINEAR)
@@ -2026,6 +2025,13 @@ contains
        select case (trim(dict_key(val)))
        case (TDDFT_APPROACH)
           in%tddft_approach = val
+       case (DECOMPOSE_PERTURBATION)
+          in%dir_perturbation = val
+          !add a slash to the directory name if not present
+          dummy_int(1)=len_trim(in%dir_perturbation)
+          if (in%dir_perturbation(dummy_int(1):dummy_int(1))/='/') then
+             in%dir_perturbation(dummy_int(1)+1:dummy_int(1)+1)='/'
+          end if
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2305,6 +2311,7 @@ contains
     !in%output_denspot_format = output_denspot_FORMAT_CUBE
     !call f_zero(in%set_epsilon)
     call f_zero(in%dir_output)
+    call f_zero(in%dir_perturbation)
     call f_zero(in%naming_id)
     nullify(in%gen_kpt)
     nullify(in%gen_wkpt)

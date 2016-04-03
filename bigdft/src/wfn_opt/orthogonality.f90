@@ -223,6 +223,31 @@ subroutine subspace_matrix(symm,psi,hpsi,ncplx,nvctrp,norb,lambda)
 
 end subroutine subspace_matrix
 
+!>calculates the scalar product between two wavefunctions in compressed form
+!! formally this routine calculates <psi1_i|psi2_j>
+subroutine subspace_matrices(psi1,psi2,ncplx,nvctrp,norb1,norb2,lambda)
+  use module_defs, only: wp
+  use wrapper_linalg, only: gemm, c_gemm
+  implicit none
+  integer, intent(in) :: ncplx,nvctrp,norb1,norb2
+  real(wp), dimension(nvctrp*ncplx,norb1), intent(in) :: psi1
+  real(wp), dimension(nvctrp*ncplx,norb2), intent(in) :: psi2
+  real(wp), dimension(ncplx,norb1,norb2), intent(out) :: lambda
+
+  if (nvctrp==0) return
+  if(ncplx==1) then
+     call gemm('T','N',norb1,norb2,nvctrp,1.0_wp,psi1(1,1),&
+          nvctrp,psi2(1,1),nvctrp,0.0_wp,&
+          lambda(1,1,1),norb1)
+  else
+     !this part should be recheck in the case of nspinor == 2
+     call c_gemm('C','N',norb1,norb2,nvctrp,(1.0_wp,0.0_wp),psi1(1,1),&
+          nvctrp,psi2(1,1),nvctrp,(0.0_wp,0.0_wp),&
+          lambda(1,1,1),norb1)
+  end if
+
+end subroutine subspace_matrices
+
 !>perform an update of the orbitals of the subspace
 !! given two initial array and a matrix 
 !! calculates y = y - A*x

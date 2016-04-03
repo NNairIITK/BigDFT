@@ -60,7 +60,7 @@ class BigDFTInstaller():
         self.branch=os.path.isfile(os.path.join(bigdftdir,'branchfile'))
 
         #To be done BEFORE any exit instruction in __init__ (get_rcfile)
-        self.time0 = False
+        self.time0 = None
 
         if os.path.abspath(self.srcdir) == os.path.abspath(self.builddir) and self.action != ['autogen','dry_run']:
             print 50*'-'
@@ -335,7 +335,7 @@ class BigDFTInstaller():
         print 50*'-'
         print 'Thank you for using the Installer of BigDFT suite.'
         print 'The action considered was:',self.action
-        if self.time0 != False:
+        if self.time0 is not None:
             if self.action in ['build','dry_run']: self.rcfile_from_env()
             if not (self.time0==self.bigdft_time()):
                 print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'

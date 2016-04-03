@@ -169,6 +169,21 @@ contains
 
        ! calculate nbasis_env here:
        frag%nbasis_env=0
+       !example with iterators
+!!$       atit=atoms_iter(frag%astruct_env)
+!!$       do while (atoms_iter_next(atit))
+!!$          jtyp= .index. (astruct%atomnames == atit%name) !to be defined
+!!$          if (jtyp > 0) then
+!!$             frag%nbasis_env=&
+!!$                  frag%nbasis_env+input%lin%norbsPerType(jtyp)
+!!$          else
+!!$             call f_err_throw('Error in fragment_init_orbitals, atom type '+&
+!!$                  atit%name+' does not exist in full structure',&
+!!$                  err_name='BIGDFT_INPUT_FILE_ERROR')
+!!$
+!!$          end if
+!!$       end do
+
        do iat=1,frag%astruct_env%nat
           ityp=frag%astruct_env%iatype(iat)
           do jtyp=1,astruct%ntypes

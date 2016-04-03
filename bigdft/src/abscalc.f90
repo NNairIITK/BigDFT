@@ -462,8 +462,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    if (iproc==0 .and. verbose > 0) call print_memory_estimation(mem)
 
    !complete dpbox initialization
-   call dpbox_set(dpcom,KSwfn%Lzd,xc,iproc,nproc,MPI_COMM_WORLD,in%PSolver_groupsize, &
-        in%SIC%approach,atoms%astruct%geocode,nspin,in%matacc%PSolver_igpu)
+   call dpbox_set(dpcom,KSwfn%Lzd,xc,iproc,nproc,MPI_COMM_WORLD,&
+        !in%PSolver_groupsize, &
+        in%SIC%approach,atoms%astruct%geocode,nspin)!
+   !,in%matacc%PSolver_igpu)
 
   call density_descriptors(iproc,nproc,xc,in%nspin,in%crmult,in%frmult,atoms,&
        dpcom,in%rho_commun,rxyz,rhodsc)

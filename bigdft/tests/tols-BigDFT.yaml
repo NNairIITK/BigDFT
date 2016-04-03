@@ -296,7 +296,7 @@ H2-spin:
 
 H-Rydberg_H:
  Gradient Norm: 5.8e-9
- Eigenvalues and eigenstate residue: 5.1e-9
+ Eigenvalues and eigenstate residue: 1.1e-8
  norm(P): 1.1e-10
 
 TiSmear:
