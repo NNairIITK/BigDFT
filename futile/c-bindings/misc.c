@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "futile.h"
 
@@ -23,7 +24,13 @@ gboolean futile_object_get_method(FutileMethod *meth,
 {
   void *callback;
 
-  FC_FUNC_(f_object_get_method, F_OBJECT_GET_METHOD)(obj_id, meth_id, (int*)&meth->n_args, &callback, strlen(obj_id), strlen(meth_id));
+  if (!meth_id || !meth_id[0])
+    return FALSE;
+
+  if (obj_id && obj_id[0])
+    FC_FUNC_(f_object_get_method, F_OBJECT_GET_METHOD)(obj_id, meth_id, (int*)&meth->n_args, &callback, strlen(obj_id), strlen(meth_id));
+  else
+    FC_FUNC_(f_object_get_method, F_OBJECT_GET_METHOD)("class", meth_id, (int*)&meth->n_args, &callback, strlen("class"), strlen(meth_id));
   if (!callback)
     return FALSE;
   
@@ -54,13 +61,23 @@ void futile_object_method_add_arg_str(FutileMethod *meth, char *arg, int ln)
   meth->strlens[meth->n_strs++] = ln;
 }
 void futile_object_method_add_arg_arr(FutileMethod *meth, void *arg,
-                                      FutileNumeric type, size_t size)
+                                      FutileNumeric type, size_t size,
+                                      gboolean transfer)
 {
-  FutileArray arr = {meth->n_arrs, type, size};
+  FutileArray arr = {meth->n_arrs, type, size, (transfer) ? arg : (void*)0};
 
   meth->arrays[meth->n_arrs++] = arr;
   futile_object_method_add_arg(meth, arg);
   futile_object_method_add_arg(meth, &meth->arrays[meth->n_arrs - 1].size);
+}
+
+void futile_object_method_clean(FutileMethod *meth)
+{
+  int i;
+
+  for (i = 0; i < meth->n_arrs; i++)
+    if (meth->arrays[i].data)
+      free(meth->arrays[i].data);
 }
 
 void futile_object_method_execute(FutileMethod *meth)

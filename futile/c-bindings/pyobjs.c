@@ -94,6 +94,22 @@ static PyObject* f_py_method_new(PyTypeObject *type, PyObject *args, PyObject *k
 
 static int f_py_method_init(FPyMethod *self, PyObject *args, PyObject *kwds)
 {
+  const char *meth_id;
+  FutileMethod meth;
+
+  static char *kwlist[] = {"meth_id", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &meth_id))
+    return -1;
+
+  if (!futile_object_get_method(&meth, NULL, meth_id))
+    {
+      PyErr_SetString(PyExc_TypeError, "no method");
+      return -1;
+    }
+
+  self->meth = meth;
+
   return 0;
 }
 
@@ -102,17 +118,18 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
   PyObject *iterator = PyObject_GetIter(args);
   PyObject *item;
 
-  unsigned int i;
+  int i;
   Py_ssize_t size;
   FutileNumeric type;
   void *arr;
 
-  futile_object_method_add_arg(&self->meth, self->self->address);
+  if (self->self && self->self->address)
+    futile_object_method_add_arg(&self->meth, self->self->address);
 
   if (iterator == NULL)
     return NULL;
 
-  for (i = 0; i < self->meth.n_args - 1; i += 1)
+  for (i = 0; i < (int)self->meth.n_args - 1; i += 1)
     {
       item = PyIter_Next(iterator);
       if (item == NULL)
@@ -130,7 +147,7 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
       else if (PyTuple_Check(item))
         {
           arr = f_py_tuple_to_arr(item, &type, &size);
-          futile_object_method_add_arg_arr(&self->meth, arr, type, size);
+          futile_object_method_add_arg_arr(&self->meth, arr, type, size, FUTILE_TRANSFER_OWNERSHIP);
         }
       else if (f_py_object_check(item))
         {
@@ -141,6 +158,7 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
           PyErr_SetString(PyExc_TypeError, "waiting for type futile.FObject");
           Py_DECREF(item);
           Py_DECREF(iterator);
+          futile_object_method_clean(&self->meth);
           return NULL;
         }
       /* futile_object_method_add_arg(&self->meth, PyLong_AsVoidPtr(arg)); */
@@ -151,6 +169,8 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
   Py_DECREF(iterator);
 
   futile_object_method_execute(&self->meth);
+
+  futile_object_method_clean(&self->meth);
 
   Py_RETURN_NONE;
 }
@@ -390,122 +410,33 @@ static int f_py_object_check(PyObject *o)
   return PyObject_IsInstance(o, (PyObject*)&FPyObjectType);
 }
 
-/* static PyObject* f_obj_new(PyObject *self, PyObject *args) */
-/* { */
-/*   const char *obj_id; */
-/*   FutileMethod meth; */
-/*   PyObject *out, *id; */
-
-/*   if (!PyArg_ParseTuple(args, "s", &obj_id)) */
-/*     return NULL; */
-
-/*   if (!futile_object_get_method(&meth, obj_id, "constructor")) */
-/*     return NULL; */
-/*   futile_object_method_execute(&meth); */
-
-/*   out = PyLong_FromVoidPtr(ptr); */
-/*   id = PyUnicode_FromString(obj_id); */
-/*   PyObject_SetAttrString(out, "obj_id", id); */
-/*   Py_DECREF(id); */
-  
-/*   return out; */
-/* } */
-
-static PyObject* f_obj_method_call(PyObject *self, PyObject *args)
-{
-  PyObject *iterator = PyObject_GetIter(args);
-  PyObject *item, *arg;
-
-  char *obj_id;
-  char *meth_id;
-  FutileMethod meth;
-  unsigned int i;
-  gboolean valid;
-
-  if (iterator == NULL)
-    return NULL;
-
-  /* First argument is mandatory and is a string. */
-  item = PyIter_Next(iterator);
-  if (item == NULL)
-    {
-      Py_DECREF(iterator);
-      return NULL;
-    }
-  meth_id = strdup(PyBytes_AsString(item));
-  Py_DECREF(item);
-
-  /* Retrieve object id. */
-  item = PyObject_GetAttrString(self, "obj_id");
-  if (item == NULL)
-    {
-      free(meth_id);
-      Py_DECREF(iterator);
-      return NULL;
-    }
-  obj_id = strdup(PyBytes_AsString(item));
-  Py_DECREF(item);
-
-  /* Look for the call address. */
-  valid = futile_object_get_method(&meth, obj_id, meth_id);
-  free(meth_id);
-  free(obj_id);
-  if (!valid)
-    {
-      Py_DECREF(iterator);
-      return NULL;
-    }
-
-  /* Retrieve object address.*/
-  item = PyObject_GetAttrString(self, "obj_add");
-  if (item == NULL)
-    {
-      Py_DECREF(iterator);
-      return NULL;
-    }
-  futile_object_method_add_arg(&meth, PyLong_AsVoidPtr(item));
-  Py_DECREF(item);
-
-  for (i = 1; i < meth.n_args; i += 1)
-    {
-      item = PyIter_Next(iterator);
-      if (item == NULL)
-        {
-          free(args);
-          Py_DECREF(iterator);
-          return NULL;
-        }
-      /* Retrieve object address.*/
-      arg = PyObject_GetAttrString(item, "obj_add");
-      if (arg == NULL)
-        {
-          free(args);
-          Py_DECREF(iterator);
-          return NULL;
-        }
-      futile_object_method_add_arg(&meth, PyLong_AsVoidPtr(arg));
-      Py_DECREF(arg);
-      /* release reference when done */
-      Py_DECREF(item);
-    }
-
-  Py_DECREF(iterator);
-
-  futile_object_method_execute(&meth);
-
-  Py_RETURN_NONE;
-}
-
 static PyMethodDef FutilePyMethods[] = {
-  {"method_call",  f_obj_method_call, METH_VARARGS,
-   "Execute a method."},
   {NULL, NULL, 0, NULL}        /* Sentinel */
 };
+
+static PyObject* f_py_futile_getattro(PyObject *self, PyObject *attr_name)
+{
+  FutileMethod meth;
+  const char *meth_id;
+
+  if (strcmp(PyModule_GetName(self), "futile"))
+    return PyObject_GenericGetAttr(self, attr_name);
+
+  meth_id = PyString_AsString(attr_name);
+
+  /* Look for a dynamic method as exported by Fortran. */
+  if (futile_object_get_method(&meth, NULL, meth_id))
+    return f_py_method_new_from_meth(&FPyMethodType, &meth, NULL);
+  else
+    return PyObject_GenericGetAttr(self, attr_name);
+}
+
 
 PyMODINIT_FUNC
 initfutile(void)
 {
   PyObject *futile;
+  PyTypeObject *futileType;
 
   if (PyType_Ready(&FPyMethodType) < 0)
     return;
@@ -520,4 +451,7 @@ initfutile(void)
   PyModule_AddObject(futile, "FMethod", (PyObject*)&FPyMethodType);
   Py_INCREF(&FPyObjectType);
   PyModule_AddObject(futile, "FObject", (PyObject*)&FPyObjectType);
+
+  futileType = futile->ob_type;
+  futileType->tp_getattro = (getattrofunc)f_py_futile_getattro;
 }

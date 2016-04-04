@@ -9,6 +9,9 @@ void futile_finalize();
 
 #define FUTILE_F_POINTER_SIZE 64
 
+#define FUTILE_TRANSFER_NONE      0
+#define FUTILE_TRANSFER_OWNERSHIP 1
+
 #define FUTILE_METHOD_ARG_MAX 32
 typedef void (*FutileMethodFortranFunc)();
 
@@ -25,6 +28,7 @@ struct _FutileArray
   int iarg;
   FutileNumeric type;
   size_t size;
+  void *data;
 };
 
 typedef struct _FutileMethod FutileMethod;
@@ -44,7 +48,9 @@ gboolean futile_object_get_method(FutileMethod *meth,
 void futile_object_method_add_arg(FutileMethod *meth, void *arg);
 void futile_object_method_add_arg_str(FutileMethod *meth, char *arg, int ln);
 void futile_object_method_add_arg_arr(FutileMethod *meth, void *arg,
-                                      FutileNumeric type, size_t size);
+                                      FutileNumeric type, size_t size,
+                                      gboolean transfer);
 void futile_object_method_execute(FutileMethod *meth);
+void futile_object_method_clean(FutileMethod *meth);
 
 #endif

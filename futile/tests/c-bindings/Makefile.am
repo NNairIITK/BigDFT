@@ -21,7 +21,7 @@ pyscript_SOURCES = objs.f90
 pyscript_LDADD = $(flib_libraries)
 
 AM_CPPFLAGS = -I$(top_builddir)/c-bindings -I$(top_srcdir)/c-bindings @GLIB_CFLAGS@ @PYTHON_INCLUDES@
-AM_FCFLAGS = -I$(top_builddir)/flib
+AM_FCFLAGS = -I$(top_builddir)/flib -I$(top_builddir)/src
 
 CLEANFILES = *.@MODULE_EXT@
 

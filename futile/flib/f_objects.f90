@@ -44,7 +44,7 @@ contains
     integer, intent(in) :: n_args
 
     call ensure_init()
-    if (.not. (obj_id .in. class_library)) stop
+    if (.not. (obj_id .in. class_library) .and. obj_id /= "class") stop
     
     call set(class_library // obj_id // id // "address", method_add)
     call set(class_library // obj_id // id // "n_args", n_args)
@@ -58,7 +58,8 @@ contains
 
     n_args = 0
     callback = 0
-    if (.not. (obj_id .in. class_library)) return
+
+    if (.not. (obj_id .in. class_library) .and. obj_id /= "class") return
     if (.not. (method_id .in. class_library // obj_id)) return
 
     n_args = class_library // obj_id // method_id // "n_args"

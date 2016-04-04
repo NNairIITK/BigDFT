@@ -69,7 +69,6 @@ end module my_objects
 
 
 program test
-  use module_f_objects, only: f_object_finalize
   use my_objects
   use f_precisions
   
@@ -81,10 +80,14 @@ program test
   call f_object_add_method("my_object", "set_data", my_object_set_data, 2)
   call f_object_add_method("my_object", "serialize", my_object_serialize, 0)
 
+  call f_object_add_method("class", "version", version, 0)
+
   call my_object_nullify(obj)
   call my_object_set_data(obj, "fortran", (/ 1, 2, 3 /), 3)
 
   call f_python_initialize()
+
+  call f_python_execute("futile.version()")
 
   call f_python_add_object("my_object", "obj", obj)
   !call f_python_execute('obj = futile.FObject("my_object", %ld)' % f_loc(obj))
@@ -101,7 +104,14 @@ program test
 
   call my_object_free(obj)
 
-  call f_object_finalize()
-
   call f_lib_finalize()
+
+contains
+
+  subroutine version()
+    use f_lib_package
+    use yaml_output
+    
+    call yaml_map("Futile version", package_version)
+  end subroutine version
 end program test
