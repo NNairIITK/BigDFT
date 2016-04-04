@@ -9,7 +9,7 @@
 
 
 module chebyshev
-
+  use sparsematrix_base
   implicit none
 
   private
@@ -24,9 +24,6 @@ module chebyshev
     subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
                calculate_SHS, nsize_polynomial, ncalc, fermi_new, penalty_ev_new, chebyshev_polynomials, emergency_stop, &
                invovrlp_compr)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
-                                   SPARSE_MATMUL_LARGE, SPARSEMM_SEQ,sparsematrix_malloc0
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
                               compress_matrix_distributed_wrapper, sparsemm_new
@@ -80,10 +77,10 @@ module chebyshev
           if (kernel%smmm%nvctrp>0) then
               call prepare_matrix(kernel, invovrlp_compr, matrix_new)
               call sequential_acces_matrix_fast2(kernel, ham_compr, mat_seq)
-              call sparsemm_new(kernel, mat_seq, matrix_new(1), vectors_new(1,1))
+              call sparsemm_new(iproc, kernel, mat_seq, matrix_new(1), vectors_new(1,1))
               call f_zero(matrix_new)
               call sequential_acces_matrix_fast2(kernel, invovrlp_compr, mat_seq)
-              call sparsemm_new(kernel, mat_seq, vectors_new(1,1), matrix_new(1))
+              call sparsemm_new(iproc, kernel, mat_seq, vectors_new(1,1), matrix_new(1))
           end if
           call compress_matrix_distributed_wrapper(iproc, nproc, kernel, SPARSE_MATMUL_LARGE, &
                matrix_new, mat_compr)
@@ -131,7 +128,7 @@ module chebyshev
               call axpy(kernel%smmm%nvctrp, 0.5d0*cc(1,3,1), vectors_new(1,4), 1, penalty_ev_new(1,2), 1)
               !write(*,*) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
             
-              call sparsemm_new(kernel, mat_seq, vectors_new(1,3), vectors_new(1,1))
+              call sparsemm_new(iproc, kernel, mat_seq, vectors_new(1,3), vectors_new(1,1))
               call vcopy(kernel%smmm%nvctrp, vectors_new(1,1), 1, vectors_new(1,2), 1)
     
 
@@ -149,7 +146,7 @@ module chebyshev
             
               emergency_stop=.false.
               main_loop: do ipl=3,npl
-                  call sparsemm_new(kernel, mat_seq, vectors_new(1,1), vectors_new(1,2))
+                  call sparsemm_new(iproc, kernel, mat_seq, vectors_new(1,1), vectors_new(1,2))
                   call axbyz_kernel_vectors_new(kernel, 2.d0, vectors_new(1,2), -1.d0, vectors_new(1,4), vectors_new(1,3))
                   call compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, &
                        kernel%nfvctr, kernel%smmm%nfvctrp, kernel, &
@@ -220,7 +217,6 @@ module chebyshev
     
 
     subroutine prepare_matrix(smat, invovrlp_compr, matrix)
-      use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: matrixindex_in_compressed
       use dynamic_memory
       implicit none
@@ -261,8 +257,6 @@ module chebyshev
 
     ! Performs z = a*x + b*y
     subroutine axbyz_kernel_vectors_new(smat, a, x_compr, b, y_compr, z_compr)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -295,9 +289,6 @@ module chebyshev
     
     subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                norb, norbp, fermi, chebyshev_polynomials, ncalc, cc, kernel_compressed)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=),&
-           SPARSE_FULL,sparsematrix_malloc0
       implicit none
     
       ! Calling arguments
@@ -336,8 +327,6 @@ module chebyshev
 
     subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, norbp, &
                fermi, vector_compr, vector_compressed)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
       use sparsematrix, only: transform_sparsity_pattern
       implicit none
     
@@ -353,7 +342,7 @@ module chebyshev
     
       call f_routine(id='compress_polynomial_vector_new')
     
-      call transform_sparsity_pattern(fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
+      call transform_sparsity_pattern(iproc, fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
            fermi%nseg, fermi%keyv, fermi%keyg, fermi%smmm%line_and_column_mm, &
            fermi%smmm%nvctrp, fermi%smmm%isvctr, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, &
            fermi%smmm%istsegline, 'large_to_small', vector_compressed, vector_compr)
@@ -364,7 +353,6 @@ module chebyshev
 
 
     function check_emergency_stop(nvctrp, ncalc, column) result(ces)
-      use module_base
       implicit none
 
       ! Calling arguments

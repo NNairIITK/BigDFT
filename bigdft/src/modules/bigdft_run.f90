@@ -122,7 +122,7 @@ module bigdft_run
        integer, intent(out) :: status
      end subroutine bigdft_python_exec_dict
   end interface
-  
+
   !> Keys of a run dict. All private, use get_run_prop() and set_run_prop() to change them.
   character(len = *), parameter :: RADICAL_NAME = "radical"
   character(len = *), parameter :: INPUT_NAME   = "input_file"
@@ -1020,10 +1020,12 @@ contains
     end if
 
     call f_release_routine()
+    
   END SUBROUTINE set_run_objects
 
+
   !> Currently, set_run_objects() is not set recursively.
-  !  This routine, handle a subpar of it for sections.
+  !! This routine, handle a subpar of it for sections.
   subroutine set_section_objects(runObj)
     use module_base, only: bigdft_mpi
     use module_interfaces, only: atoms_new, inputs_new
@@ -1466,16 +1468,16 @@ contains
          err_name='BIGDFT_RUNTIME_ERROR')
   end function bigdft_norb
 
-  !> returns true of the runObject is ready to be parsed
+
+  !> Returns true of the runObject is ready to be parsed
   !! increments also the counter for the following call
   function bigdft_valid_dataset(runObj) result(ok)
     implicit none
     type(run_objects), intent(inout) :: runObj
     logical :: ok
 
-
-
   end function bigdft_valid_dataset
+
 
   !> Fill the array eval with the number of orbitals of the last run
   !! the array eval should have been allocated with the correct size
@@ -1613,7 +1615,7 @@ contains
     call f_routine(id='bigdft_state')
 
     !BS: is new document necessary (high overhead for FF)?
-    !LG: unfortunately it it important to make testing possible. We should probably investigate 
+    !LG: unfortunately it it important to make testing possible. We should probably investigate
     !    the reasons for such high overhead
     !    The new document has been substituted by sequence, not to have multiple documents for FF runs
     !    However this hybrid scheme has to be tested in the case of QM/MM runs
@@ -1645,7 +1647,7 @@ contains
           end if
        end if
     end if
-    
+
     ! Apply the constraints expressed in internal coordinates
     if (runObj%atoms%astruct%inputfile_format=='int') then
         call constraints_internal(runObj%atoms%astruct)

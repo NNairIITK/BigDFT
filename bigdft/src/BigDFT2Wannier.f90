@@ -260,7 +260,7 @@ program BigDFT2Wannier
    ny=lzd%Glr%d%n2i
    nz=lzd%Glr%d%n3i
    n_at=atoms%astruct%nat
-   call initialize_work_arrays_sumrho(1,[lzd%Glr],.true.,w)
+   call initialize_work_arrays_sumrho(lzd%Glr,.true.,w)
 
    ! Allocations for Amnk calculation
    npsidim2=max((lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f)*orbsp%norbp,sum(commsp%ncntt(0:nproc-1)))
@@ -934,19 +934,9 @@ call cpu_time(tcpu1)
 call system_clock(ncount1,ncount_rate,ncount_max)
 telap=dble(ncount1-ncount0)/dble(ncount_rate)
 if (iproc == 0) &
-   &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0 
-
-
-!!$!finalize memory counting
-!!$call memocc(0,0,'count','stop')
-
+   &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,telap,tcpu1-tcpu0 
 
 call bigdft_finalize(ierr)
-
-!!$! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
-!!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-!!$
-!!$call MPI_FINALIZE(ierr)
 call f_lib_finalize()
 contains
 
@@ -2171,7 +2161,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    call split_vectors_for_parallel(0,1,n_virt+n_occ,orbsb)
    call split_vectors_for_parallel(0,1,n_virt,orbsv)
 
-   call initialize_work_arrays_sumrho(1,[Glr],.true.,w)
+   call initialize_work_arrays_sumrho(Glr,.true.,w)
 
    ! Read occupied orbitals
    if(n_occ > 0) then

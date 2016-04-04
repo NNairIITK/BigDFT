@@ -11,6 +11,7 @@
 AC_DEFUN([AX_LINALG],
 [dnl Substitute Lapack and Blas by another specific library
   AC_REQUIRE([AX_MPI])
+  AC_LANG_PUSH(Fortran)
   
   ax_have_linalg="no"
 
@@ -179,6 +180,8 @@ AC_DEFUN([AX_LINALG],
   
   fi #end $withlinalg = no
   AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
+
+  AC_LANG_POP([Fortran])
 ])
 
 AC_DEFUN([AX_DGEMMSY],

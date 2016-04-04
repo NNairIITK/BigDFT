@@ -14,11 +14,13 @@ CLEANONE=' cleanone '
 UNINSTALL=' uninstall '
 LIST=' list '
 BUILD=' build '
+BUILDONE=' buildone '
 TINDERBOX=' tinderbox -o build '
 DOT=' dot '
 DOTCMD=' | dot -Edir=back -Tpng > buildprocedure.png '
-DIST=' distone bigdft-suite '
+DIST='  dist -distonly bigdft-suite '
 RCFILE='buildrc'
+SETUP=' setup '
 
 CHECKMODULES= ['futile','psolver','bigdft','spred']
 MAKEMODULES= ['futile','psolver','libABINIT','bigdft','spred']
@@ -30,6 +32,8 @@ ACTIONS={'build':
          'Recompile the bigdft internal branches, skip configuring step.',
          'clean':
          'Clean the branches for a fresh reinstall.',
+         'startover':
+         'Wipe out all the build directories and recompile the important parts',
          'autogen':
          'Perform the autogen in the modules which need that. For developers only.',
          'dist':
@@ -41,11 +45,12 @@ ACTIONS={'build':
 
 
 class BigDFTInstaller():
-    def __init__(self,action,package,rcfile,verbose):
+    def __init__(self,action,package,rcfile,verbose,quiet):
         import os
-        self.action=action
-        self.package=package
-        self.verbose=verbose
+        self.action=action    #Action to be performed
+        self.package=package  #Package
+        self.verbose=verbose  #verbose option
+        self.quiet=quiet      #Ask a question
         #look where we are
         self.srcdir = os.path.dirname(__file__)
         #look the builddir
@@ -55,7 +60,7 @@ class BigDFTInstaller():
         self.branch=os.path.isfile(os.path.join(bigdftdir,'branchfile'))
 
         #To be done BEFORE any exit instruction in __init__ (get_rcfile)
-        self.time0 = False
+        self.time0 = None
 
         if os.path.abspath(self.srcdir) == os.path.abspath(self.builddir) and self.action != ['autogen','dry_run']:
             print 50*'-'
@@ -93,8 +98,8 @@ class BigDFTInstaller():
         if os.path.isfile(filename):
             return os.path.getmtime(filename)
         else:
-            return None
-        
+            return 0
+
     def get_rcfile(self,rcfile):
         "Determine the rcfile"
         import os
@@ -162,7 +167,7 @@ class BigDFTInstaller():
 	    print indent*2 + "Value: '%s'" % os.environ[BIGDFT_CFG]
         else:
             print indent*2 + "Source: Configuration file '%s'" % os.path.abspath(self.rcfile)
-        while True:
+        while not self.quiet:
             ok = raw_input('Do you want to continue (Y/n)? ')
             if ok == 'n' or ok=='N':
                 exit(0)
@@ -175,21 +180,27 @@ class BigDFTInstaller():
         return [val for val in l if val in self.modulelist]
 
     def shellaction(self,path,modules,action,hidden=False):
+        "Perform a shell action, dump also the result if verbose is True."
         import os
+        import sys
         for mod in self.selected(modules):
             directory=os.path.join(path,mod)
             here = os.getcwd()
             if os.path.isdir(directory):
-                self.__dump('Treating directory '+directory)
+                #self.__dump('Treating directory '+directory)
+                sys.stdout.write('Module '+mod+' ['+directory+']: '+action)
+                sys.stdout.flush()
                 os.chdir(directory)
                 if hidden:
                     self.get_output(action)
                 else:
                     os.system(action)
                 os.chdir(here)
-                self.__dump('done.')
+                #self.__dump('done.')
+                sys.stdout.write(' (done)\n')
             else:
-                print 'Cannot perform action "',action,'" on module "',mod,'" directory not present in the build'
+                sys.stdout.write('Cannot perform action "'+action+'" on module "'+mod+'" directory not present in the build.\n')
+            sys.stdout.flush()
 
     def get_output(self,cmd):
         import subprocess
@@ -213,21 +224,20 @@ class BigDFTInstaller():
 
     def check(self):
         "Perform the check action"
-        self.shellaction('.',CHECKMODULES,'make check')
+        self.shellaction('.',CHECKMODULES,'make check',hidden=not self.verbose)
 
     def make(self):
         "Perform the simple make action"
-        self.shellaction('.',MAKEMODULES,'make -j6 && make install')
+        self.shellaction('.',MAKEMODULES,'make -j6 && make install',hidden=not self.verbose)
 
     def dist(self):
-        import os
         "Perform make dist action"
-        disttime0=self.filename_time(os.path.join(self.builddir,'bigdft-suite.tar.gz'))
-        if disttime0 is None: disttime0=0
-        self.shellaction('.',self.modulelist,'make dist',hidden=not self.verbose)
-        self.get_output(self.jhb+DIST)
-        disttime1=self.filename_time(os.path.join(self.builddir,'bigdft-suite.tar.gz'))
-        if disttime1 is not None and  disttime1 > disttime0:
+        import os
+        tarfile=os.path.join(self.builddir,'bigdft-suite.tar.gz')
+        disttime0=self.filename_time(tarfile)
+        os.system(self.jhb+DIST)
+        disttime1=self.filename_time(tarfile)
+        if not (disttime1 == disttime0):
             print 'SUCCESS: distribution file "bigdft-suite.tar.gz" generated correctly'
         else:
             print 'WARNING: the dist file seems not have been updated or generated correctly'
@@ -240,7 +250,7 @@ class BigDFTInstaller():
         if self.branch:
             co=''
         else:
-            co='-C'
+            co=' -C'
         if (self.verbose):
             os.system(self.jhb+BUILD+self.package+co)
         else:
@@ -257,6 +267,26 @@ class BigDFTInstaller():
             os.path.walk(mod,self.removefile,"*.MOD")
         #self.get_output(self.jhb+CLEAN)
 
+    def startover(self):
+        "Wipe files in the makemodules directory"
+        if not self.branch:
+            print 'ERROR: The action "startover" is allowed only from a developer branch'
+            exit(1)
+        import shutil
+        import os
+        for mod in self.selected(MAKEMODULES):
+            self.get_output(self.jhb+UNINSTALL+mod)
+            print 'Wipe directory: ',mod
+            shutil.rmtree(mod, ignore_errors=True)
+        print 'Building again...'
+        startat=' -t '
+        for mod in self.selected(MAKEMODULES):
+            print 'Resetting: ',mod
+            self.get_output(self.jhb+SETUP+mod+startat+mod)
+            print 'Building: ',mod
+            self.get_output(self.jhb+BUILDONE+mod)
+        self.build()
+        
     def dry_run(self):
         "Do dry build"
         self.get_output(self.jhb+DOT+self.package+DOTCMD)
@@ -305,9 +335,9 @@ class BigDFTInstaller():
         print 50*'-'
         print 'Thank you for using the Installer of BigDFT suite.'
         print 'The action considered was:',self.action
-        if self.time0 != False:
+        if self.time0 is not None:
             if self.action in ['build','dry_run']: self.rcfile_from_env()
-            if (self.time0 is not None and self.bigdft_time() > self.time0) or (self.time0 is None and self.bigdft_time() is not None):
+            if not (self.time0==self.bigdft_time()):
                 print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
                 print 'All the available executables and scripts can be found in the directory'
                 print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
@@ -349,6 +379,8 @@ parser.add_argument('-f','--file',
                     + 'given by the environment variable %s' % BIGDFT_CFG)
 parser.add_argument('-d','--verbose',action='store_true',
                    help='Verbose output')
+parser.add_argument('-q','--quiet',action='store_true',
+                   help='Ask no question about the setup')
 
 
 ###Define the possible actions
@@ -377,4 +409,4 @@ if args.action=='help':
     print '     User: From a tarball, start by "build"'
     print 'Perform the "dry_run" command to have a graphical overview of the building procedure'
 else:
-    BigDFTInstaller(args.action,args.package,args.file,args.verbose)
+    BigDFTInstaller(args.action,args.package,args.file,args.verbose,args.quiet)

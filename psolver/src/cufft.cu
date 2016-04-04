@@ -296,7 +296,6 @@ if(*iproc==0){
     //   cufftGetSize1d(plan, NZ, Transform, (NX/2+1)*NY, &workSize);
     //   printf("cufftGetSize1d worksize 4 = %lu\n",workSize);
 
-
  gpuErrchk(cudaMemGetInfo(freeSize,totalSize));
 
 }

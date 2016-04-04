@@ -169,7 +169,7 @@
  Virtual band                          :  1
  amnk_guess(nb)                        :  4.51392003851798063E-01
  Virtual band                          :  2
- amnk_guess(nb)                        :  2.24696340303118636E-01
+ amnk_guess(nb)                        : 0.2254153266996912 
  Need to reformat wavefunctions        :  No
  Reading Waves Time:
  - 

@@ -20,13 +20,10 @@ LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	   testforces \
 	   fructose \
        hybrid-directmin \
-       experimentalmode \
 	   linearcubic \
 	   experimentalfoe \
 	   sparsity \
 	   explicit_locregcenters \
-	   DIIShistory \
-	   PBE \
 	   geoptconstrained \
 	   O2spin \
 	   expfoegeopt \

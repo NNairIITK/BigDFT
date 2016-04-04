@@ -26,7 +26,7 @@ from jhbuild.commands import Command, register_command
 
 
 class cmd_setup(Command):
-    doc = _('Create tar packages for all modules')
+    doc = _('Run autoreconf for all modules (when necessary)')
 
     name = 'setup'
     usage_args = '[ options ... ] [ modules ... ]'
@@ -55,7 +55,8 @@ class cmd_setup(Command):
                 raise FatalError(_('%s not in module list') % options.startat)
 
         build = jhbuild.frontends.get_buildscript(config, module_list, module_set=module_set)
-        build.config.build_targets.insert(0, 'setup')
-        return build.build(phases=['setup'])
+        build.config.build_targets = ['setup', ]
+        build.config.build_policy = "all"
+        return build.build()
 
 register_command(cmd_setup)

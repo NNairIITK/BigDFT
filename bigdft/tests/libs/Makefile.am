@@ -1,5 +1,4 @@
-SUBDIRS = fft \
-	xcPSolver \
+SUBDIRS = xcPSolver \
 	OP2P \
 	psp \
 	IO-wf \

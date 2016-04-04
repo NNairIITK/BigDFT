@@ -908,7 +908,7 @@ contains
       isoverlap = .false.
       onseg = 0  ! in case they don't overlap
       ! Check whether all segments of both localization regions have been processed.
-      if(iseg>=nseg_i .and. jseg>=nseg_j) return
+      if ((iseg>=nseg_i .and. jseg>=nseg_j) .or. nseg_i==0 .or. nseg_j==0) return
 
       segment_loop: do
 

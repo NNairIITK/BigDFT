@@ -1,60 +1,74 @@
 ## Process this file with automake to produce Makefile.in
 
 EXTRA_DIST = \
-	tols.yaml \
 	fldiff_yaml.py.in \
 	report.py.in \
-	yaml_test.ref.yaml $(OTHERS)
+	README
 
-OTHERS = yaml_test.f90
+SUBDIRS = \
+	  flib \
+	  fft
 
-check_PROGRAMS = yaml_test
-python_PYTHON = report.py fldiff.py fldiff_yaml.py yaml_hl.py
-python_DATA = yaml_hl.cfg yaml_hl_remarks.cfg
+#Installation of some python file (use $pythondir to access into).
+python_PYTHON = fldiff_yaml.py yaml_hl.py report.py fldiff.py
+dist_python_DATA = yaml_hl.cfg yaml_hl_remarks.cfg
 
-AM_FCFLAGS = -I../flib
-AM_LDFLAGS = -L$(top_builddir)/src
-#LIBS += -lflib -lrt @LIB_YAML_LIBS@
-
-
-if BUILD_DYNAMIC_LIBS
-flib_libraries = -lfutile-1
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src/
+if USE_OCL
+oclrun_message = oclrun
 else
-flib_libraries = $(top_builddir)/src/libfutile-1.a
-LIBS += @LIB_YAML_LIBS@
+oclrun_message =
 endif
 
-yaml_test_SOURCES = yaml_test.f90 errs.f90 yamlout.f90 dicts.f90 dynmem.f90 yaml_invoice.f90 utls.f90
-yaml_test_LDADD = $(flib_libraries)
-
-CLEANFILES = yaml_test.out.yaml yaml_test.report.yaml fldiff_yaml.py report.py
-
-yaml_test.o: $(abs_top_builddir)/src/libfutile-1.a
-
-yaml_test.out.yaml: yaml_test
-	./yaml_test > yaml_test.out.yaml
-
-yaml_test.report.yaml: fldiff_yaml.py tols.yaml yaml_test.ref.yaml yaml_test.out.yaml
-	python fldiff_yaml.py --label yaml_test -t $(srcdir)/tols.yaml 	\
-		-r $(srcdir)/yaml_test.ref.yaml -d yaml_test.out.yaml --output $@
-
-check: yaml_test.report.yaml
-
-report.py: report.py.in
-	@sed							\
-		-e s!\@prefix\@!$(prefix)!			\
-		-e s!\@exec_prefix\@!$(exec_prefix)!		\
-		-e s!\@pyexecdir\@!$(pyexecdir)!		\
-		-e s!\@AX_PYYAML_PATH\@!$(AX_PYYAML_PATH)!	\
-		-e s!\@abs_srcdir\@!$(abs_srcdir)!		\
-		< $< > $@
+if USE_MPI
+mpirun_message = mpirun
+else
+mpirun_message =
+endif
 
 fldiff_yaml.py: fldiff_yaml.py.in
-	@sed							\
+	@$(SED)							\
 		-e s!\@prefix\@!$(prefix)!			\
 		-e s!\@exec_prefix\@!$(exec_prefix)!		\
 		-e s!\@pyexecdir\@!$(pyexecdir)!		\
 		-e s!\@AX_PYYAML_PATH\@!$(AX_PYYAML_PATH)!	\
 		-e s!\@abs_srcdir\@!$(abs_srcdir)!		\
 		< $< > $@
+
+report.py: report.py.in
+	@$(SED)							\
+		-e s!\@prefix\@!$(prefix)!			\
+		-e s!\@exec_prefix\@!$(exec_prefix)!		\
+		-e s!\@pyexecdir\@!$(pyexecdir)!		\
+		-e s!\@AX_PYYAML_PATH\@!$(AX_PYYAML_PATH)!	\
+		-e s!\@abs_srcdir\@!$(abs_srcdir)!		\
+		< $< > $@
+
+head_message: all-recursive
+	@echo "========================================================"
+	@echo "To run the tests, type 'make check' (might take a while)"
+
+foot_message: $(mpirun_message) $(oclrun_message) head_message
+	@echo "========================================================"
+
+mpirun: head_message
+	@echo "     Use the environment variable run_parallel"
+	@echo "         ex: export run_parallel='mpirun -np 2'  "
+
+oclrun: head_message $(mpirun_message)
+	@echo "     Use the environment variable run_ocl"
+	@echo "         ex: export run_ocl='on' to use OpenCL acceleration"
+	@echo "     Use run_ocl='CPU' or 'ACC' to force use of hardware"
+	@echo "         different than GPU"
+	@echo "     and the environment variable ocl_platform"
+	@echo "         ex: export ocl_platform='NVIDIA'"
+	@echo "     and the environment variable ocl_devices"
+	@echo "         ex: export ocl_devices='K20'"
+
+CLEANFILES =  report.py fldiff_yaml.py
+
+all: head_message foot_message
+
+check: report
+
+report: report.py
+	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi

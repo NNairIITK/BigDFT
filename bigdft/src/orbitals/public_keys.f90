@@ -153,6 +153,7 @@ module public_keys
 
   character(len = *), parameter :: TDDFT_VARIABLES = "tddft"
   character(len = *), parameter :: TDDFT_APPROACH = "tddft_approach"
+  character(len = *), parameter :: DECOMPOSE_PERTURBATION = 'decompose_perturbation'
 
   character(len = *), parameter :: PERF_VARIABLES = "perf"
   character(len = *), parameter :: DEBUG = "debug"
@@ -170,8 +171,8 @@ module public_keys
   character(len = *), parameter :: IG_TOL = "ig_tol"
   character(len = *), parameter :: METHORTHO = "methortho"
   character(len = *), parameter :: RHO_COMMUN = "rho_commun"
-  character(len = *), parameter :: PSOLVER_GROUPSIZE = "psolver_groupsize"
-  character(len = *), parameter :: PSOLVER_ACCEL = "psolver_accel"
+!!$  character(len = *), parameter :: PSOLVER_GROUPSIZE = "psolver_groupsize"
+!!$  character(len = *), parameter :: PSOLVER_ACCEL = "psolver_accel"
   character(len = *), parameter :: UNBLOCK_COMMS = "unblock_comms"
   character(len = *), parameter :: LINEAR = "linear"
   character(len = *), parameter :: TOLSYM = "tolsym"
@@ -236,7 +237,6 @@ module public_keys
   character(len=*), parameter :: CALC_QUADRUPOLE ='calc_quadrupole'
   character(len=*), parameter :: CDFT_LAG_MULT_INIT='cdft_lag_mult_init'
   character(len=*), parameter :: CDFT_CONV_CRIT  ='cdft_conv_crit'
-  character(len=*), parameter :: CALC_PULAY      ='calc_pulay'
   character(len=*), parameter :: SUBSPACE_DIAG   ='subspace_diag'
   character(len=*), parameter :: ALPHA_DIIS      ='alpha_diis'
   character(len=*), parameter :: ALPHA_SD        ='alpha_sd'
@@ -301,12 +301,14 @@ module public_keys
   character(len=*), parameter :: RADII_KEY = 'Radii of active regions (AU)'
   character(len=*), parameter :: LPSP_KEY = 'Local Pseudo Potential (HGH convention)'
   character(len=*), parameter :: NLPSP_KEY = 'NonLocal PSP Parameters'
+  character(len=*), parameter :: NLCC_KEY = 'Non Linear Core Correction term'
   character(len=*), parameter :: PSPXC_KEY = 'Pseudopotential XC'
   character(len=*), parameter :: PSP_TYPE = 'Pseudopotential type'
   character(len=*), parameter :: COARSE = 'Coarse'
   character(len=*), parameter :: COARSE_PSP = 'Coarse PSP'
   character(len=*), parameter :: FINE = 'Fine'
   character(len=*), parameter :: SOURCE_KEY = 'Source'
+  character(len=*), parameter :: COEFF_KEY = 'Coefficients (c1 .. c4)'
   character(len=*), parameter :: ATOMIC_NUMBER = 'Atomic number'
   character(len=*), parameter :: ELECTRON_NUMBER = 'No. of Electrons'
   character(len=*), parameter :: POSINP_SOURCE = 'source'

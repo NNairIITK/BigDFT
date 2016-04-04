@@ -62,7 +62,7 @@ AX_FC_DEFS()
 AX_FC_F2003()
 AX_FC_OPENMP()
 
-dnl Set if the module name are capitalized or not with the FC compiler. 
+dnl Set if the module name are capitalized or not with the FC compiler.
 AX_FC_MOD()
 AM_CONDITIONAL(CAPITALIZE, test "$ax_fc_mod_capitalize" = "yes")
 AC_SUBST(MODULE_EXT, $ax_fc_mod_ext)
@@ -145,6 +145,8 @@ flib/f_utils.inc
 wrappers/Makefile
 src/Makefile
 tests/Makefile
+tests/fft/Makefile
+tests/flib/Makefile
 ])
 
 AC_OUTPUT

@@ -188,6 +188,8 @@ module multipole
 
       call f_routine(id='potential_from_charge_multipoles')
 
+      call f_zero(rholeaked)
+
       ! Conditions for periodicity
       perx=(at%astruct%geocode /= 'F')
       pery=(at%astruct%geocode == 'P')
@@ -756,7 +758,9 @@ module multipole
              end if
 
              ! Add the core contribution
-             call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, density_cores(is1,is2,is3), 1, density(is1,is2,is3), 1)
+             if ((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1)>0) then
+                 call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, density_cores(is1,is2,is3), 1, density(is1,is2,is3), 1)
+             end if
 
 
              call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
@@ -994,6 +998,7 @@ module multipole
       real(kind=8),dimension(:),allocatable :: weight_matrix_compr_tg, proj_ovrlp_half_compr
       real(kind=8) :: max_error, mean_error
       integer :: ioperation
+      integer, dimension(1) :: power
 
       call f_routine(id='matrix_for_orthonormal_basis')
 
@@ -1013,7 +1018,9 @@ module multipole
       inv_ovrlp(1) = matrices_null()
       inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
 
-      call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/ioperation/), -1, &
+      power(1)=ioperation
+      call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+           meth_overlap, 1, power, -1, &
            imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
            ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
            max_error=max_error, mean_error=mean_error)
@@ -1077,6 +1084,8 @@ module multipole
       real(kind=8),dimension(-ll:ll,0:ll) :: multipoles
       logical :: present_delta_rxyz, present_on_which_atom, present_scaled, present_monopoles_analytic
 
+      call f_routine(id='write_multipoles_new')
+
       present_delta_rxyz = present(delta_rxyz)
       present_on_which_atom = present(on_which_atom)
       present_scaled = present(scaled)
@@ -1139,6 +1148,7 @@ module multipole
           call yaml_mapping_close()
 
 
+      call f_release_routine()
 
 
           contains
@@ -1203,6 +1213,7 @@ module multipole
                   gt = 'unknown'
               end if
             end function guess_type
+
 
     end subroutine write_multipoles_new
 
@@ -1724,7 +1735,7 @@ module multipole
       !iterate over the orbital_basis
       psi_it=orbital_basis_iterator(psi_ob)
       do while(ket_next_locreg(psi_it))
-         call initialize_work_arrays_sumrho(1,[psi_it%lr],.true.,w)
+         call initialize_work_arrays_sumrho(psi_it%lr,.true.,w)
          rmax = min(psi_it%lr%d%n1*0.5d0*hgrids(1),psi_it%lr%d%n2*0.5d0*hgrids(2),&
               psi_it%lr%d%n3*0.5d0*hgrids(3))+1.e-3_gp*maxval(hgrids)
          call geocode_buffers(psi_it%lr%geocode,geocode, nl1, nl2, nl3)
@@ -1796,7 +1807,7 @@ module multipole
       real(wp),dimension(:),allocatable :: phi2r
       real(wp), dimension(:), pointer :: sphi_ptr
 
-      call f_routine(id='apply_Slm')
+      call f_routine(id='Qlm_phi')
 
       sphere=.false.
       if (present(integrate_in_sphere)) sphere=integrate_in_sphere
@@ -1817,7 +1828,7 @@ module multipole
       !iterate over the orbital_basis
       psi_it=orbital_basis_iterator(psi_ob)
       do while(ket_next_locreg(psi_it))
-         call initialize_work_arrays_sumrho(1,[psi_it%lr],.true.,w)
+         call initialize_work_arrays_sumrho(psi_it%lr,.true.,w)
          rmax = min(psi_it%lr%d%n1*0.5d0*hgrids(1),psi_it%lr%d%n2*0.5d0*hgrids(2),&
               psi_it%lr%d%n3*0.5d0*hgrids(3))+1.e-3_gp*maxval(hgrids)
          call geocode_buffers(psi_it%lr%geocode,geocode, nl1, nl2, nl3)
@@ -2315,7 +2326,7 @@ module multipole
       use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
                                    sparsematrix_malloc, matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                    SPARSE_TASKGROUP, sparse_matrix_metadata
-      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local
+      use sparsematrix, only: matrix_matrix_mult_wrapper
       use communications, only: transpose_localized
       use orthonormalization, only: orthonormalizelocalized,overlap_matrix
       use module_atoms, only: atoms_data
@@ -2354,6 +2365,7 @@ module multipole
       ! Local variables
       integer :: methTransformOverlap, iat, ind, ispin, ishift, iorb, jorb, iiorb, l, m, itype, natpx, isatx, nmaxx, kat, n, i, kkat
       integer :: ilr, impl, mm, lcheck, nelpsp, psp_source, j, lwork, ii
+      integer, dimension(1) :: power
       logical :: can_use_transposed, all_norms_ok
       real(kind=8),dimension(:),pointer :: phit_c, phit_f
       real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, multipole_matrix_large, Qmat_tmp,Slmphi
@@ -2363,7 +2375,7 @@ module multipole
       real(kind=8),dimension(:),pointer :: atomic_monopoles_analytic
       real(kind=8),dimension(:,:,:),allocatable :: test_pot
       real(kind=8),dimension(:,:,:,:),allocatable :: lmp_extracted
-      real(kind=8),dimension(:,:),pointer :: projx
+      real(kind=8),dimension(:,:),allocatable :: projx
       real(kind=8),dimension(:,:),allocatable :: kernel_extracted, multipole_extracted
       real(kind=8) :: q, tt, rloc, max_error, mean_error
       type(matrices) :: multipole_matrix
@@ -2372,7 +2384,7 @@ module multipole
       type(matrices),dimension(-1:1,0:1) :: lower_multipole_matrices
       type(matrices),dimension(1) :: inv_ovrlp
       logical :: perx, pery, perz
-      logical,dimension(:,:),pointer :: neighborx
+      logical,dimension(:,:),allocatable :: neighborx
       integer,dimension(:),pointer :: nx
       character(len=20),dimension(:),allocatable :: names
       real(kind=8) :: rr1, rr2, rr3
@@ -2568,17 +2580,21 @@ module multipole
               newovrlp = matrices_null()
               newovrlp%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_TASKGROUP, id='newovrlp%matrix_compr')
               call f_memcpy(src=newoverlap, dest=newovrlp%matrix_compr)
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, (/1/), -1, &
-                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                    ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
-                    check_accur=.true., max_error=max_error, mean_error=mean_error)
+              power=1
+              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                   1020, 1, power, -1, &
+                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                   ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                   check_accur=.true., max_error=max_error, mean_error=mean_error)
               call deallocate_matrices(newovrlp)
               call f_free(newoverlap)
           else
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, (/1/), -1, &
-                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                    ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
-                    check_accur=.true., max_error=max_error, mean_error=mean_error)
+              power(1)=1
+              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                   1020, 1, power, -1, &
+                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                   ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                   check_accur=.true., max_error=max_error, mean_error=mean_error)
           end if
       end if
 
@@ -2655,13 +2671,13 @@ module multipole
                        multipole_extracted = f_malloc((/n,n/),id='multipole_extracted')
                        !write(*,*) 'before extract'
                        call extract_matrix(smats, multipole_matrix%matrix_compr, &
-                           neighborx(1:,kat), n, nmaxx, multipole_extracted)
+                           neighborx(1,kat), n, nmaxx, multipole_extracted)
                        ! The minus sign is required since the phi*S_lm*phi represent the electronic charge which is a negative quantity
                        call dscal(n**2, -1.d0, multipole_extracted(1,1), 1)
                        if (do_ortho==no) then
-                           call extract_matrix(smatl, kernel%matrix_compr, neighborx(1:,kat), n, nmaxx, kernel_extracted)
+                           call extract_matrix(smatl, kernel%matrix_compr, neighborx(1,kat), n, nmaxx, kernel_extracted)
                        else
-                           call extract_matrix(smatl, kernel_ortho, neighborx(1:,kat), n, nmaxx, kernel_extracted)
+                           call extract_matrix(smatl, kernel_ortho, neighborx(1,kat), n, nmaxx, kernel_extracted)
                        end if
                        if (l>0) then
                            call correct_multipole_origin(smmd%nat, l, m, n, lzd%nlr, natpx, nmaxx, kat, kkat, &
@@ -2673,7 +2689,7 @@ module multipole
                        call f_free(kernel_extracted)
                        call f_free(multipole_extracted)
                        if (trim(method)=='loewdin') then
-                               call extract_matrix(smatl, inv_ovrlp(1)%matrix_compr, neighborx(1:,kat), n, nmaxx, projx(1:,kat))
+                               call extract_matrix(smatl, inv_ovrlp(1)%matrix_compr, neighborx(1,kat), n, nmaxx, projx(1,kat))
                                iiorb = 0
                                do iorb=1,smats%nfvctr
                                    if (neighborx(iorb,kat)) then
@@ -2700,7 +2716,7 @@ module multipole
                       !!!! END OF LUIGI'S NEW IDEA ######################################################
                       if (do_ortho==no) then
                           overlap_small = f_malloc((/n,n/),id='overlap_small')
-                          call extract_matrix(smats, ovrlp%matrix_compr, neighborx(1:,kat), n, nmaxx, overlap_small)
+                          call extract_matrix(smats, ovrlp%matrix_compr, neighborx(1,kat), n, nmaxx, overlap_small)
                           call f_memcpy(src=kp,dest=qmat_tilde)
                           call gemm('n', 'n', n, n, n, 1.d0, qmat_tilde(1,1), n, overlap_small(1,1), n, 0.d0, kp(1,1), n)
                           call f_free(overlap_small)
@@ -2860,9 +2876,9 @@ module multipole
       if (do_ortho==yes .and. calculate_multipole_matrices) then
           call f_free(phi_ortho)
       end if
-      call f_free_ptr(projx)
+      call f_free(projx)
       call f_free_ptr(nx)
-      call f_free_ptr(neighborx)
+      call f_free(neighborx)
       call f_free_ptr(atomic_multipoles)
       call f_free(multipole_matrix_large)
       call deallocate_external_potential_descriptors(ep)
@@ -2893,7 +2909,8 @@ module multipole
                                    matrices_null, deallocate_matrices, &
                                    sparse_matrix_metadata
       use sparsematrix_init, only: matrixindex_in_compressed
-      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix_local, trace_sparse
+      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
+      use sparsematrix_highlevel, only: trace_AB
       use matrix_operations, only: overlapPowerGeneral, overlap_plus_minus_one_half_exact
       use yaml_output
       use multipole_base, only: lmax
@@ -2916,8 +2933,8 @@ module multipole
       real(kind=8),dimension(-lmax:lmax,0:lmax,1:smats%nfvctr),intent(in),optional :: multipoles
       integer,intent(out),optional :: natpx, isatx, nmaxx
       integer,dimension(:),pointer,intent(out),optional :: nx
-      real(kind=8),dimension(:,:),pointer,intent(out),optional :: projx
-      logical,dimension(:,:),pointer,intent(out),optional :: neighborx
+      real(kind=8),dimension(:,:),allocatable,intent(out),optional :: projx
+      logical,dimension(:,:),allocatable,intent(out),optional :: neighborx
       type(matrices),dimension(24),intent(in),optional :: rpower_matrix
       logical,intent(in),optional :: only_sizes
       real(kind=8),dimension(0:4,0:6,1:smmd%ntypes),intent(in),optional :: psppar
@@ -2926,6 +2943,7 @@ module multipole
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl, lwork
       integer :: k, l, iatold, isat, natp, kkat, istot, ntotp, i1, i2, i3, is1, ie1, is2, ie2, is3, ie3, j1, j2, j3, ikT, info
       integer :: ialpha, ilr, isshift, ilshift, ispin
+      integer, dimension(1) :: power
       real(kind=8) :: r2, cutoff2, rr2, tt, ef, q, occ, max_error, mean_error, rr2i, rr2j, ttxi, ttyi, ttzi, ttxj, ttyj, ttzj
       real(kind=8) :: tti, ttj, charge_net, charge_total, rloc, charge, sigma2
       real(kind=8) :: xi, xj, yi, yj, zi, zj, ttx, tty, ttz, xx, yy, zz, x, y, z
@@ -2946,7 +2964,8 @@ module multipole
       real(kind=8) :: kT, ttt, tr_KS
       !real(kind=8),parameter :: alpha = 5.d-1
       real(kind=8) :: alpha, alpha_up, alpha_low, convergence_criterion
-      real(kind=8),dimension(:,:,:),allocatable :: multipoles_fake, penalty_matrices
+      real(kind=8),dimension(:,:,:),allocatable :: multipoles_fake
+      real(kind=8),dimension(:,:),allocatable :: penalty_matrices
       real(kind=8),dimension(:),allocatable :: alpha_calc
       !character(len=*),parameter :: mode='old'
       real(kind=8),dimension(3) :: target_charges
@@ -2995,9 +3014,10 @@ module multipole
       ispin=1
       isshift=(ispin-1)*smats%nvctrp_tg
       ilshift=(ispin-1)*smatl%nvctrp_tg
-      tr_KS = trace_sparse(bigdft_mpi%iproc, bigdft_mpi%nproc, smats, smatl, &
-             ovrlp_%matrix_compr(isshift+1:), &
-             kernel_%matrix_compr(ilshift+1:), ispin)
+      !tr_KS = trace_sparse(bigdft_mpi%iproc, bigdft_mpi%nproc, smats, smatl, &
+      !       ovrlp_%matrix_compr(isshift+1:), &
+      !       kernel_%matrix_compr(ilshift+1:), ispin)
+      tr_KS = trace_AB(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smats, smatl, ovrlp_, kernel_, ispin)
 
 
 
@@ -3047,10 +3067,12 @@ module multipole
               ovrlp_onehalf_(1) = matrices_null()
               ovrlp_onehalf_(1)%matrix_compr = &
                   sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='ovrlp_onehalf_(1)%matrix_compr')
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, (/2/), -1, &
-                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                    ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_(1), &
-                    check_accur=.true., max_error=max_error, mean_error=mean_error)
+              power=2
+              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                   1020, 1, power, -1, &
+                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                   ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_(1), &
+                   check_accur=.true., max_error=max_error, mean_error=mean_error)
 
               ! Calculate S^1/2 * K * S^1/2 = Ktilde
               tmpmat1 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=smatl, id='tmpmat1')
@@ -3061,8 +3083,8 @@ module multipole
                    ovrlp_onehalf_(1)%matrix_compr, tmpmat1, kerneltilde)
           else if (ortho=='no') then
               ovrlp_large = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='ovrlp_large')
-              call transform_sparse_matrix_local(smats, smatl, 'small_to_large', &
-                   smatrix_compr_in=ovrlp_%matrix_compr, lmatrix_compr_out=ovrlp_large)
+              call transform_sparse_matrix(bigdft_mpi%iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
+                   smat_in=ovrlp_%matrix_compr, lmat_out=ovrlp_large)
               call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
                    kernel_%matrix_compr, ovrlp_large, kerneltilde)
               call f_free(ovrlp_large)
@@ -3113,7 +3135,7 @@ module multipole
       end do
 
       if (present(neighborx)) then
-          neighborx = f_malloc_ptr((/smats%nfvctr,natpx/),id='neighborx')
+          neighborx = f_malloc((/smats%nfvctr,natpx/),id='neighborx')
           !call f_memcpy(src=neighbor,dest=neighborx)
           !neighborx = neighbor
           do iat=1,natpx
@@ -3151,7 +3173,7 @@ module multipole
       ilup = f_malloc((/2,nmax,nmax,natp/),id='ilup')
       n_all = f_malloc(natp,id='n_all')
 
-      penalty_matrices = f_malloc((/nmax,nmax,natp/),id='penalty_matrices')
+      penalty_matrices = f_malloc((/nmax**2,natp/),id='penalty_matrices')
       alpha_calc = f_malloc(natp,id='alpha_calc')
 
 
@@ -3268,8 +3290,8 @@ module multipole
               proj = f_malloc0((/n,n/),id='proj')
               penaltymat = f_malloc0((/n,n,24/),id='penaltymat')
               eval = f_malloc0((/n/),id='eval')
-              call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1:,kat), n_all(kat), nmax, ovrlp, ilup)
-              call extract_matrix(smatm, ham_%matrix_compr, neighbor(1:,kat), n_all(kat), nmax, ham)
+              call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ovrlp, ilup)
+              call extract_matrix(smatm, ham_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ham)
 
 
 
@@ -3277,12 +3299,14 @@ module multipole
                   ! Calculate ovrlp^1/2 and ovrlp^-1/2. The last argument is wrong, clean this.
                   ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
                   call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-                  call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, smats)
+                  ! Passing 0 as comm... not best practice
+                  call overlap_plus_minus_one_half_exact(0, 1, 0, n, -1, .true., ovrlp_tmp, smats)
                   do i=1,n
                       call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
                   end do
                   call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-                  call overlap_plus_minus_one_half_exact(1, n, -1, .false., ovrlp_tmp, smats)
+                  ! Passing 0 as comm... not best practice
+                  call overlap_plus_minus_one_half_exact(0, 1, 0, n, -1, .false., ovrlp_tmp, smats)
                   do i=1,n
                       call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_minusonehalf(1,i), 1)
                   end do
@@ -3307,7 +3331,7 @@ module multipole
                   !alpha = 0.02d0
                   do i=1,24
                       call extract_matrix(smats, rpower_matrix(i)%matrix_compr, &
-                          neighbor(1:,kat), n_all(kat), nmax, penaltymat(:,:,i))
+                          neighbor(1,kat), n_all(kat), nmax, penaltymat(1,1,i))
                   end do
                   !tt = sqrt(rxyz(1,kkat)**2+rxyz(2,kkat)**2+rxyz(3,kkat)**2)
                   tt = rxyz(1,kkat)**2 + rxyz(2,kkat)**2 + rxyz(3,kkat)**2
@@ -3394,7 +3418,8 @@ module multipole
                       ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
                       ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
                       call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-                      call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, smats)
+                      ! Passing 0 as comm... not best practice
+                      call overlap_plus_minus_one_half_exact(0, 1, 0, n, -1, .true., ovrlp_tmp, smats)
                       do i=1,n
                           call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
                       end do
@@ -3412,20 +3437,21 @@ module multipole
               else if (mode=='simple') then
                   if (ortho=='yes') then
                       ! directly add the penalty terms to ham
-                      call add_penalty_term(smmd%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
+                      call add_penalty_term(smmd%geocode, smats%nfvctr, neighbor(1,kat), rxyz(1,kkat), &
                            smmd%cell_dim, com, alpha, n, ovrlp, ham)
                    else if (ortho=='no') then
                           ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
                           ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
                           call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-                          call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, smats)
+                          ! Passing 0 as comm... not best practice
+                          call overlap_plus_minus_one_half_exact(0, 1, 0, n, -1, .true., ovrlp_tmp, smats)
                           do i=1,n
                               call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
                           end do
                           call f_free(ovrlp_tmp)
                           ! Calculate the penaly term separately and then calculate S^1/2*penalty*S^1/2
                           tmpmat2d = f_malloc0((/n,n,2/),id='tmppmat2d')
-                          call add_penalty_term(smmd%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
+                          call add_penalty_term(smmd%geocode, smats%nfvctr, neighbor(1,kat), rxyz(1,kkat), &
                                smmd%cell_dim, com, alpha, n, ovrlp, tmpmat2d(1,1,1))
 
                           ! Calculate S^1/2 * penalty * S^1/2
@@ -3444,15 +3470,15 @@ module multipole
                       if (present(multipoles)) then
                           write(*,*) 'call with multipoles'
                           call add_penalty_term_new(smmd%geocode, smmd%nat, smats%nfvctr, &
-                               neighbor(1:,kat), rxyz(1:,kkat), smmd%on_which_atom, &
+                               neighbor(1,kat), rxyz(1,kkat), smmd%on_which_atom, &
                                multipoles, smmd%cell_dim, com, alpha, n, ham, &
-                               nmax, penalty_matrices(1:n,1:n,kat))
+                               nmax, penalty_matrices(1,kat))
                       else
                           write(*,*) 'call with multipoles_fake'
                           call add_penalty_term_new(smmd%geocode, smmd%nat, smats%nfvctr, &
-                               neighbor(1:,kat), rxyz(1:,kkat), smmd%on_which_atom, &
+                               neighbor(1,kat), rxyz(1,kkat), smmd%on_which_atom, &
                                multipoles_fake, smmd%cell_dim, com, alpha, n, ham, &
-                               nmax, penalty_matrices(1:n,1:n,kat))
+                               nmax, penalty_matrices(1,kat))
                       end if
                       alpha_calc(kat) = alpha
                   else
@@ -3463,7 +3489,8 @@ module multipole
                       !        write(*,*) 'i, j, penmat', i, j, penalty_matrices(j,i,kat)
                       !    end do
                       !end do
-                      ham(1:n,1:n) = ham(1:n,1:n) + tt*penalty_matrices(1:n,1:n,kat)
+                      !ham(1:n,1:n) = ham(1:n,1:n) + tt*penalty_matrices(1:n,1:n,kat)
+                      call axpy(n**2, tt, penalty_matrices(1,kat), 1, ham(1,1), 1)
                   end if
                   call f_free(multipoles_fake)
               end if
@@ -3506,7 +3533,7 @@ module multipole
 
           if (ialpha==1) then
               if (present(nmaxx)) nmaxx = maxval(n_all)
-              if (present(projx)) projx = f_malloc_ptr((/nmaxx**2,natpx/),id='projx')
+              if (present(projx)) projx = f_malloc((/nmaxx**2,natpx/),id='projx')
           end if
 
           ! This is maybe not very elegant in this way...
@@ -3711,7 +3738,7 @@ end if
                   n = n_all(kat)
                   proj = f_malloc0((/n,n/),id='proj')
                   call calculate_projector(n, ntot, nmax, kkat, id_all, eval_all, &
-                       coeff_all(1:,1:,kat), occ_all, proj)
+                       coeff_all(1,1,kat), occ_all, proj)
                   if (present(projx)) then
                       call vcopy(n**2, proj(1,1), 1, projx(1,kat), 1)
                   end if
@@ -3721,7 +3748,7 @@ end if
                   ! Extract ktilde
                   ktilde = f_malloc0((/n,n/),id='ktilde')
                   !if (ortho=='yes') then
-                      call extract_matrix(smatl, kerneltilde, neighbor(1:,kat), n_all(kat), nmax, ktilde)
+                      call extract_matrix(smatl, kerneltilde, neighbor(1,kat), n_all(kat), nmax, ktilde)
                   !else if (ortho=='no') then
                   !    call extract_matrix(smatl, kernel_%matrix_compr, neighbor(1:,kat), n, nmax, ktilde)
                   !end if
@@ -3730,7 +3757,7 @@ end if
                   if (ortho=='no') then
                       call f_memcpy(src=kp,dest=ktilde)
                       ovrlp = f_malloc0((/n,n/),id='ovrlp')
-                      call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1:,kat), n_all(kat), nmax, ovrlp)
+                      call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ovrlp)
                       call gemm('n', 'n', n, n, n, 1.d0, ktilde(1,1), n, ovrlp(1,1), n, 0.d0, kp(1,1), n)
                       call f_free(ovrlp)
                   end if
@@ -4033,7 +4060,7 @@ end if
       do iorb=1,norbp
           iiorb=isorb+iorb
           ilr=in_which_locreg(iiorb)
-          call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
+          call initialize_work_arrays_sumrho(lzd%Llr(ilr),.true.,w)
           call daub_to_isf(lzd%Llr(ilr), w, phi(ist), psir(istr))
           call deallocate_work_arrays_sumrho(w)
           !write(*,'(a,4i8,es16.6)') 'INITIAL: iproc, iiorb, n, istr, ddot', &
@@ -4590,7 +4617,7 @@ end if
    do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
-      call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.true.,w)
+      call initialize_work_arrays_sumrho(lzd%llr(ilr),.true.,w)
       call isf_to_daub(lzd%llr(ilr), w, phi2r(istr), phi2(ist))
       call deallocate_work_arrays_sumrho(w)
       ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
@@ -4854,10 +4881,10 @@ end if
       iiorb=tmb%orbs%isorb+iorb
       ilr=tmb%orbs%inwhichlocreg(iiorb)
       iat=tmb%orbs%onwhichatom(iiorb)
-      call initialize_work_arrays_sumrho(1,[tmb%lzd%Llr(ilr)],.true.,w)
+      call initialize_work_arrays_sumrho(tmb%lzd%Llr(ilr),.true.,w)
       ! Transform the support function to real space
       call daub_to_isf(tmb%lzd%llr(ilr), w, phi_ortho(ist), phir(istr))
-      call initialize_work_arrays_sumrho(1,[tmb%lzd%llr(ilr)],.false.,w)
+      call initialize_work_arrays_sumrho(tmb%lzd%llr(ilr),.false.,w)
       ! Transform the functions which is constantly one to wavelets
       call isf_to_daub(tmb%lzd%llr(ilr), w, phi1r(istr), phi1(ist))
       call deallocate_work_arrays_sumrho(w)
@@ -5511,48 +5538,48 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
   !!call mpi_barrier(mpi_comm_world,ispin)
 
 
-  if (calculate_quadrupole) then
+  quadrupole_if: if (calculate_quadrupole) then
       ! Quadrupole not yet parallelized
 
-      if (at%astruct%geocode /= 'F') then
-         nl3=1
-         nc3=n3i
-      else
-         nl3=15
-         nc3=n3i-31
-      end if
-
-      if (dpbox%mpi_env%nproc > 1) then
-         !allocate full density in pot_ion array
-         ele_rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='ele_rho')
-    
-    !Commented out, it is enough to allocate the rho at 1
-    !!$     ! rho_buf is used instead of rho for avoiding the case n3p=0 in 
-    !!$     ! some procs which makes MPI_ALLGATHERV failed.
-    !!$     if (n3p.eq.0) then
-    !!$       allocate(rho_buf(n1i,n2i,n3p+1,nspin),stat=i_stat)
-    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
-    !!$       rho_buf = 0.0_dp
-    !!$     else
-    !!$       allocate(rho_buf(n1i,n2i,n3p,nspin),stat=i_stat)
-    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
-    !!$       rho_buf = rho
-    !!$     endif  
-    
-    
-         do ispin=1,nspin
-            call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
-                 mpidtypd,ele_rho(1,1,1,ispin),dpbox%ngatherarr(0,1),&
-                 dpbox%ngatherarr(0,2),mpidtypd,dpbox%mpi_env%mpi_comm,ierr)
-            !write(*,*) 'dpbox%ngatherarr(:,1)',dpbox%ngatherarr(:,1)
-            !write(*,*) 'dpbox%ngatherarr(:,2)',dpbox%ngatherarr(:,2)
-            !write(*,*) 'dpbox%nscatterarr(:,2)',dpbox%nscatterarr(:,2)
-            !write(*,*) 'dpbox%nscatterarr(:,3)',dpbox%nscatterarr(:,3)
-         end do
-    
-      else
-         ele_rho => rho
-      end if
+!!##      if (at%astruct%geocode /= 'F') then
+!!##         nl3=1
+!!##         nc3=n3i
+!!##      else
+!!##         nl3=15
+!!##         nc3=n3i-31
+!!##      end if
+!!##
+!!##      if (dpbox%mpi_env%nproc > 1) then
+!!##         !allocate full density in pot_ion array
+!!##         ele_rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='ele_rho')
+!!##    
+!!##    !Commented out, it is enough to allocate the rho at 1
+!!##    !!$     ! rho_buf is used instead of rho for avoiding the case n3p=0 in 
+!!##    !!$     ! some procs which makes MPI_ALLGATHERV failed.
+!!##    !!$     if (n3p.eq.0) then
+!!##    !!$       allocate(rho_buf(n1i,n2i,n3p+1,nspin),stat=i_stat)
+!!##    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
+!!##    !!$       rho_buf = 0.0_dp
+!!##    !!$     else
+!!##    !!$       allocate(rho_buf(n1i,n2i,n3p,nspin),stat=i_stat)
+!!##    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
+!!##    !!$       rho_buf = rho
+!!##    !!$     endif  
+!!##    
+!!##    
+!!##         do ispin=1,nspin
+!!##            call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
+!!##                 mpidtypd,ele_rho(1,1,1,ispin),dpbox%ngatherarr(0,1),&
+!!##                 dpbox%ngatherarr(0,2),mpidtypd,dpbox%mpi_env%mpi_comm,ierr)
+!!##            !write(*,*) 'dpbox%ngatherarr(:,1)',dpbox%ngatherarr(:,1)
+!!##            !write(*,*) 'dpbox%ngatherarr(:,2)',dpbox%ngatherarr(:,2)
+!!##            !write(*,*) 'dpbox%nscatterarr(:,2)',dpbox%nscatterarr(:,2)
+!!##            !write(*,*) 'dpbox%nscatterarr(:,3)',dpbox%nscatterarr(:,3)
+!!##         end do
+!!##    
+!!##      else
+!!##         ele_rho => rho
+!!##      end if
 
       ! charge center
       charge_center_cores(1:3)=0.d0
@@ -5626,12 +5653,14 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
       do ispin=1,nspin
           qtot=0.d0
           do i3=0,nc3 - 1
+             ii3 = i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3) - i3shift !real coordinate, without buffer
               do i2=0,nc2 - 1
                   do i1=0,nc1 - 1
-                      q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+                      !q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+                      q= - rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
                       x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
                       y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
-                      z=at%astruct%cell_dim(3)/real(nc3,dp)*i3
+                      z=at%astruct%cell_dim(3)/real(nnc3,dp)*ii3
                       charge_center_elec(1,ispin) = charge_center_elec(1,ispin) + q*x
                       charge_center_elec(2,ispin) = charge_center_elec(2,ispin) + q*y
                       charge_center_elec(3,ispin) = charge_center_elec(3,ispin) + q*z
@@ -5640,18 +5669,23 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
               end do
           end do
           !!write(*,*) 'qtot',qtot
+          call mpiallred(qtot, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
           charge_center_elec(1:3,ispin)=charge_center_elec(1:3,ispin)/qtot
       end do
+
+      call mpiallred(charge_center_elec, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
       quadropole_el(1:3,1:3)=0._gp
       do ispin=1,nspin
           do i3=0,nc3 - 1
+             ii3 = i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3) - i3shift !real coordinate, without buffer
               do i2=0,nc2 - 1
                   do i1=0,nc1 - 1
-                      q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+                      !q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+                      q= - rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
                       x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
                       y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
-                      z=at%astruct%cell_dim(3)/real(nc3,dp)*i3
+                      z=at%astruct%cell_dim(3)/real(nnc3,dp)*ii3
                       do i=1,3
                           select case (i)
                           case (1)
@@ -5699,6 +5733,7 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
       end do
 
       !!if (.not. is_net_charge) then
+          call mpiallred(quadropole_el, mpi_sum, comm=bigdft_mpi%mpi_comm)
           tmpquadrop=quadropole_cores+quadropole_el
       !!else
       !!    tmpquadrop=quadropole_el
@@ -5708,13 +5743,13 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
           quadrupole = tmpquadrop
       end if
 
-      if (dpbox%mpi_env%nproc > 1) then
-         call f_free_ptr(ele_rho)
-      else
-         nullify(ele_rho)
-      end if
+      !!if (dpbox%mpi_env%nproc > 1) then
+      !!   call f_free_ptr(ele_rho)
+      !!else
+      !!   nullify(ele_rho)
+      !!end if
 
-  end if
+  end if quadrupole_if
 
   !!write(*,*) 'dipole_cores second', dipole_cores
   !!call mpi_barrier(mpi_comm_world,ispin)
@@ -5831,10 +5866,10 @@ subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, coll
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
       iat=orbs%onwhichatom(iiorb)
-      call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
+      call initialize_work_arrays_sumrho(lzd%Llr(ilr),.true.,w)
       ! Transform the support function to real space
       call daub_to_isf(lzd%llr(ilr), w, phi(ist), phir(istr))
-      call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.false.,w)
+      call initialize_work_arrays_sumrho(lzd%llr(ilr),.false.,w)
 
       ! NEW: CALCULATE THE WEIGHT CENTER OF THE SUPPORT FUNCTION ############################
       hxh = 0.5d0*lzd%hgrids(1)
@@ -6149,7 +6184,7 @@ end subroutine calculate_rpowerx_matrices
             lmp_extracted = f_malloc((/1.to.n,1.to.n,0.to.0,0.to.0/),id='lmp_extracted')
             tmpmat = f_malloc((/n,n/),id='tmpmat')
             call extract_matrix(smats, lower_multipole_matrices(0,0)%matrix_compr, &
-                 neighborx(1:,kat), n, nmaxx, lmp_extracted(1,1,0,0))
+                 neighborx(1,kat), n, nmaxx, lmp_extracted(1,1,0,0))
             select case (m)
             case (-1)
                 ii = 0
@@ -6195,10 +6230,10 @@ end subroutine calculate_rpowerx_matrices
             lmp_extracted = f_malloc((/1.to.n,1.to.n,-1.to.1,0.to.1/),id='lmp_extracted')
             tmpmat = f_malloc((/n,n/),id='tmpmat')
             call extract_matrix(smats, lower_multipole_matrices(0,0)%matrix_compr, &
-                 neighborx(1:,kat), n, nmaxx, lmp_extracted(1,1,0,0))
+                 neighborx(1,kat), n, nmaxx, lmp_extracted(1,1,0,0))
             do i=-1,1
                 call extract_matrix(smats, lower_multipole_matrices(i,1)%matrix_compr, &
-                     neighborx(1:,kat), n, nmaxx, lmp_extracted(1,1,i,1))
+                     neighborx(1,kat), n, nmaxx, lmp_extracted(1,1,i,1))
             end do
             select case (m)
             case (-2)

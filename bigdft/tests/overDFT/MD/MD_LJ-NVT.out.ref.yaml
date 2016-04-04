@@ -25,10 +25,10 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
- 
+
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8
- Timestamp of this run                 : 2016-02-20 23:11:54.052
+ Timestamp of this run                 : 2016-03-31 16:12:04.572
  Root process Hostname                 : athelas
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -37,16 +37,22 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " '--prefix' '/local/binaries/intel-1.8/install' '--without-internal-flib' 
-     'FCFLAGS=-O2 -openmp' 
-     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 -lmkl_rt 
-     -liomp5 -lm' 'CFLAGS=-O2 -openmp' 'LDFLAGS=-L/local/binaries/intel-1.8/install/lib ' 
-     'C_INCLUDE_PATH=/local/binaries/intel-1.8/install/include:/opt/intel/composer_xe_2013.1.
-     117/compiler/include' 'CC=mpicc' 'CXX=mpicxx' 'FC=mpifc' 'F77=mpif77'"
-   Compilers (CC, FC, CXX)             :  [ mpicc, mpifc, mpicxx ]
+     " '--prefix' '/local/binaries/g95-bc-1.8/install' 'FCFLAGS=-O2 -fopenmp -g 
+     -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,denormal' 
+     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/compiler/lib/intel64 
+     -L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 -lmkl_rt -liomp5 -lm' 
+     '--with-blas=no' '--with-lapack=no' 'CFLAGS=-O2 -fopenmp' 
+     'LDFLAGS=-L/local/binaries/g95-bc-1.8/install/lib ' 
+     'C_INCLUDE_PATH=/local/binaries/g95-bc-1.8/install/include:/opt/acml5.3.1/gfortran64_mp/
+     include' 'CC=mpicc.openmpi' 'CXX=mpicxx.openmpi' 'FC=mpif90.openmpi' 
+     'F77=mpif77.openmpi'"
+
+   Compilers (CC, FC, CXX)             :  [ mpicc.openmpi, mpif90.openmpi, mpicxx.openmpi ]
    Compiler flags:
-     CFLAGS                            : -O2 -openmp
-     FCFLAGS                           : -O2 -openmp
+     CFLAGS                            : -O2 -fopenmp
+                                        
+     FCFLAGS:
+       -O2 -fopenmp -g -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,denormal
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : LJ-NVT
@@ -209,7 +215,7 @@
    maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
+   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 1 #      Enables linear sumrho check
@@ -239,9 +245,6 @@
     #                                              support function convergence
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
    foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
-   nsigma                              : 1 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
-    #                                              Gaussian used for the radial part of the 
-    #                                              function based on the multipoles.
  lin_general:
    hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
    nit: [100, 100] #                              number of iteration with low/high accuracy
@@ -266,7 +269,6 @@
    cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    calc_dipole                         : No #     calculate dipole
    calc_quadrupole                     : No #     calculate quadrupole
-   calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
    subspace_diag                       : No #     diagonalization at the end
    extra_states                        : 0 #      extra states to optimize (dmin only)
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
@@ -404,55 +406,57 @@
   #------------------------------------------------------------------------- Initializing LJ
   #Using normalized Units for LJ (sigma=1, epsilon=1)
  Initializing LENNARD_JONES_RUN_MODE:
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
   #master node.
  Energy (Hartree): -1.70999463371587865E+02, 
- Force Norm (Hartree/Bohr):  1.24350522280331846E-02}
+ Force Norm (Hartree/Bohr):  1.24350522280337987E-02}
    Wavefunction Optimization Finished, exit signal:  0
    (MD): {istep:  0, T:  10.000000, Eke:  0.001805, Epe: -170.999463, Ete: -170.997500}
     #*************************************************************************** Starting MD
    Number of degrees of freedom        :  114
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999455888556270E+02, 
- Force Norm (Hartree/Bohr):  7.38760929856914911E-02}
-   (MD): {istep:  1, T:  9.960779, Eke:  0.001798, Epe: -170.999456, Ete: -170.997500}
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999433265567859E+02, 
- Force Norm (Hartree/Bohr):  1.45686697707427287E-01}
-   (MD): {istep:  2, T:  9.837829, Eke:  0.001776, Epe: -170.999433, Ete: -170.997500}
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.70999396208263050E+02, 
- Force Norm (Hartree/Bohr):  2.16370460099458400E-01}
-   (MD): {istep:  3, T:  9.635032, Eke:  0.001739, Epe: -170.999396, Ete: -170.997500}
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.70999345864859947E+02, 
- Force Norm (Hartree/Bohr):  2.84948222199795653E-01}
-   (MD): {istep:  4, T:  9.358715, Eke:  0.001689, Epe: -170.999346, Ete: -170.997500}
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.70999283779577269E+02, 
- Force Norm (Hartree/Bohr):  3.50679698346677837E-01}
-   (MD): {istep:  5, T:  9.017398, Eke:  0.001628, Epe: -170.999284, Ete: -170.997500}
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999211830315062E+02, 
- Force Norm (Hartree/Bohr):  4.12900781705481945E-01}
-   (MD): {istep:  6, T:  8.621445, Eke:  0.001556, Epe: -170.999212, Ete: -170.997499}
  - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.55271E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.70999132153483203E+02, 
- Force Norm (Hartree/Bohr):  4.71008121835153559E-01}
-   (MD): {istep:  7, T:  8.182653, Eke:  0.001477, Epe: -170.999132, Ete: -170.997499}
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.33227E-15 ), broadcasting from 
+ Energy (Hartree): -1.70999455888556270E+02, 
+ Force Norm (Hartree/Bohr):  7.38760929856917964E-02}
+   (MD): {istep:  1, T:  9.960779, Eke:  0.001798, Epe: -170.999456, Ete: -170.997500}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999433265567774E+02, 
+ Force Norm (Hartree/Bohr):  1.45686697707426982E-01}
+   (MD): {istep:  2, T:  9.837829, Eke:  0.001776, Epe: -170.999433, Ete: -170.997500}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999396208263079E+02, 
+ Force Norm (Hartree/Bohr):  2.16370460099459844E-01}
+   (MD): {istep:  3, T:  9.635032, Eke:  0.001739, Epe: -170.999396, Ete: -170.997500}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.70999047059452721E+02, 
- Force Norm (Hartree/Bohr):  5.24461867832138329E-01}
+ Energy (Hartree): -1.70999345864859947E+02, 
+ Force Norm (Hartree/Bohr):  2.84948222199796930E-01}
+   (MD): {istep:  4, T:  9.358715, Eke:  0.001689, Epe: -170.999346, Ete: -170.997500}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70999283779577354E+02, 
+ Force Norm (Hartree/Bohr):  3.50679698346677338E-01}
+   (MD): {istep:  5, T:  9.017398, Eke:  0.001628, Epe: -170.999284, Ete: -170.997500}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70999211830315033E+02, 
+ Force Norm (Hartree/Bohr):  4.12900781705483277E-01}
+   (MD): {istep:  6, T:  8.621445, Eke:  0.001556, Epe: -170.999212, Ete: -170.997499}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999132153483231E+02, 
+ Force Norm (Hartree/Bohr):  4.71008121835155280E-01}
+   (MD): {istep:  7, T:  8.182653, Eke:  0.001477, Epe: -170.999132, Ete: -170.997499}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.66454E-15 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70999047059452778E+02, 
+ Force Norm (Hartree/Bohr):  5.24461867832138551E-01}
    (MD): {istep:  8, T:  7.713782, Eke:  0.001392, Epe: -170.999047, Ete: -170.997499}
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70998958942513468E+02, 
- Force Norm (Hartree/Bohr):  5.72791933155277433E-01}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70998958942513582E+02, 
+ Force Norm (Hartree/Bohr):  5.72791933155276878E-01}
    (MD): {istep:  9, T:  7.228059, Eke:  0.001305, Epe: -170.998959, Ete: -170.997499}
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.22045E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
   #master node.
  Energy (Hartree): -1.70998870189436786E+02, 
- Force Norm (Hartree/Bohr):  6.15604782675834517E-01}
+ Force Norm (Hartree/Bohr):  6.15604782675831408E-01}
    (MD): {istep:  10, T:  6.738675, Eke:  0.001216, Epe: -170.998870, Ete: -170.997499}
  Memory Consumption Report:
    Tot. No. of Allocations             :  94
@@ -462,14 +466,14 @@
      Peak Value (MB)                   :  0.083
      for the array                     : params
      in the routine                    : input_keys_init
-     Memory Peak of process            : 13.364 MB
- Walltime since initialization         : 00:00:00.076385819
- Max No. of dictionaries used          :  4608 #( 929 still in use)
+     Memory Peak of process            : 17.768 MB
+ Walltime since initialization         : 00:00:01.068820903
+ Max No. of dictionaries used          :  4598 #( 929 still in use)
  Number of dictionary folders allocated:  1
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - State properties not identical! (difference: 5.68434E-14 ), broadcasting from master node.
- - State properties not identical! (difference: 2.84217E-14 ), broadcasting from master node.
+ - State properties not identical! (difference: 8.88178E-16 ), broadcasting from master node.
  - State properties not identical! (difference: 3.55271E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 1.33227E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 2.22045E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.84217E-14 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.66454E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 1.77636E-15 ), broadcasting from master node.

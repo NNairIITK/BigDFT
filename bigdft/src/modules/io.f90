@@ -27,9 +27,33 @@ module io
   public :: find_neighbours
   public :: plot_density
 
+  public :: io_files_exists
 
   contains
 
+    function io_files_exists(directory,radical,orbs) result(yes)
+      use module_interfaces, only: verify_file_presence
+      use yaml_strings
+      use module_base, only: bigdft_mpi
+      use f_utils
+      use module_types, only: orbitals_data
+      implicit none
+      character(len=*), intent(in) :: directory,radical
+      type(orbitals_data), intent(in) :: orbs
+      logical :: yes
+      !local variables
+      logical :: onefile
+      integer :: input_wf_format,ipos
+
+      ! Test ETSF file.
+      call f_file_exists(file=directory+radical+".etsf",exists=onefile)
+      if (onefile) then
+         input_wf_format = WF_FORMAT_ETSF
+      else
+         call verify_file_presence(directory+radical,orbs,input_wf_format,bigdft_mpi%nproc)
+      end if
+      yes=input_wf_format /= WF_FORMAT_NONE
+    end function io_files_exists
 
     !> Write all my wavefunctions in files by calling writeonewave
     subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,nfvctr,coeff)
@@ -389,8 +413,8 @@ module io
             ! should eventually extract this from sparse?
             linmat%kernel_%matrix = sparsematrix_malloc_ptr(linmat%l,iaction=DENSE_FULL,id='linmat%kernel_%matrix')
     
-            call uncompress_matrix2(iproc, bigdft_mpi%nproc, linmat%l, &
-                 linmat%kernel_%matrix_compr, linmat%kernel_%matrix)
+            call uncompress_matrix2(iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                 linmat%l, linmat%kernel_%matrix_compr, linmat%kernel_%matrix)
 
             !might be better to move this outside of the routine?
             !if (calc_sks) then
@@ -520,7 +544,8 @@ module io
             call f_free(rxyz_frag)
 
             ! also output 'environment' kernel
-            if (ref_frags(ifrag_ref)%astruct_env%nat/=ref_frags(ifrag_ref)%astruct_frg%nat) then
+            if (ref_frags(ifrag_ref)%astruct_env%nat/=ref_frags(ifrag_ref)%astruct_frg%nat &
+                 .and. num_neighbours/=0) then
                ! FIX SPIN
                unitm=99
                binary=(iformat /= WF_FORMAT_PLAIN)
@@ -671,7 +696,7 @@ module io
       if (closest_only) then
          tol=0.1d0
       else
-         tol=1.0e-3
+         tol=1.0e-2
       end if
 
       rxyz_frag = f_malloc((/ 3,ref_frag%astruct_frg%nat /),id='rxyz_frag') 
@@ -1774,8 +1799,8 @@ module io
 
 
       mat%matrix = sparsematrix_malloc_ptr(smat, iaction=DENSE_FULL, id='mat%matrix')
-      call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, smat, &
-           mat%matrix_compr, mat%matrix)
+      call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+           smat, mat%matrix_compr, mat%matrix)
 
       if (bigdft_mpi%iproc==0) then
 
@@ -1964,7 +1989,7 @@ module io
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, matrices_null, &
                                    DENSE_FULL, SPARSE_TASKGROUP, assignment(=), &
                                    deallocate_matrices
-      use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix_local, matrix_matrix_mult_wrapper
+      use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix, matrix_matrix_mult_wrapper
       use sparsematrix_io, only: write_sparse_matrix, write_sparse_matrix_metadata
       use matrix_operations, only: overlapPowerGeneral
       implicit none
@@ -1984,6 +2009,7 @@ module io
       type(matrices),dimension(1) :: SminusonehalfH
       real(kind=8),dimension(:),pointer :: ham_large, tmp_large
       real(kind=8) :: max_error, mean_error
+      integer, dimension(1) :: power
     
       call f_routine(id='write_linear_matrices')
 
@@ -1994,7 +2020,7 @@ module io
       binary=(mod(iformat,10) /= WF_FORMAT_PLAIN)
 
       if (write_sparse) then
-          call write_sparse_matrix_metadata(tmb%linmat%m%nfvctr, at%astruct%nat, at%astruct%ntypes, &
+          call write_sparse_matrix_metadata(iproc, tmb%linmat%m%nfvctr, at%astruct%nat, at%astruct%ntypes, &
                at%astruct%units, at%astruct%geocode, at%astruct%cell_dim, at%astruct%iatype, &
                at%astruct%rxyz, at%nzatom, at%nelpsp, at%astruct%atomnames, &
                tmb%orbs%onwhichatom, trim(filename//'sparsematrix_metadata.bin'))
@@ -2008,7 +2034,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
+          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
       end if
     
     
@@ -2019,7 +2046,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
+          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
       end if
     
     
@@ -2030,7 +2058,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
+          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
       end if
     
     
@@ -2098,10 +2127,12 @@ module io
               sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='SminusonehalfH%matrix_compr')
           ham_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='ham_large')
           tmp_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_large')
-          call transform_sparse_matrix_local(tmb%linmat%m, tmb%linmat%l, 'small_to_large', &
-               smatrix_compr_in=tmb%linmat%ham_%matrix_compr, lmatrix_compr_out=ham_large)
+          call transform_sparse_matrix(iproc, tmb%linmat%m, tmb%linmat%l, SPARSE_TASKGROUP, 'small_to_large', &
+               smat_in=tmb%linmat%ham_%matrix_compr, lmat_out=ham_large)
           ! calculate S^-1/2
-          call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, (/-2/), -1, &
+          power=-2
+          call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+               norder_taylor, 1, power, -1, &
                imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=SminusonehalfH(1), &
                check_accur=.true., max_error=max_error, mean_error=mean_error)
@@ -2117,7 +2148,8 @@ module io
           end if
 
           if (write_sparse) then
-              call write_sparse_matrix(tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
+              call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+                   tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
           end if
           call deallocate_matrices(SminusonehalfH(1))
       end if

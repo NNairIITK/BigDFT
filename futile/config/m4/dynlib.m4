@@ -13,7 +13,8 @@ AC_DEFUN([AX_DYNAMIC_LIBRARIES],
 [dnl Produce dynamic libraries and executables.
   AC_ARG_ENABLE(dynamic-libraries, AS_HELP_STRING([--enable-dynamic-libraries],
                                                  [Build dynamical libraries (disabled by default).]),
-                ax_build_dynamic=$enableval, ax_build_dynamic=m4_default([$1], ["no"]))
+                [ax_build_dynamic=$enableval; ax_user_input="yes"],
+                [ax_build_dynamic=m4_default([$1], ["no"]); ax_user_input="no"])
   dnl Test for library building tools.
   if test x"$ax_build_dynamic" = x"yes" ; then
     AC_REQUIRE([AX_FLAG_PIC])
@@ -32,12 +33,15 @@ AC_DEFUN([AX_DYNAMIC_LIBRARIES],
         LDFLAGS="-shared $LDFLAGS"
         LIBS_SVG=$LIBS
         LIBS="$ax_dyndeps_libs $LIBS"
+        FCFLAGS_SVG="$FCFLAGS"
+        FCFLAGS="$ax_flag_pic $FCFLAGS"
         AC_LINK_IFELSE([[
 subroutine testlib()
   call $2
 end subroutine testlib
         ]], ax_dynamic_deps=yes, ax_dynamic_deps=no)
         AC_LANG_POP([Fortran])
+        FCFLAGS=$FCFLAGS_SVG
         LIBS=$LIBS_SVG
         LDFLAGS=$LDFLAGS_SVG
         AC_MSG_RESULT([$ax_dynamic_deps])
@@ -61,6 +65,11 @@ end subroutine testlib
       else
         ax_build_dynamic="no"
       fi
+    fi
+
+    dnl Raise error if asked for dynamic but cannot proceed.
+    if test "$ax_user_input" == "yes" -a "$ax_build_dynamic" != "yes" ; then
+      AC_MSG_ERROR(["Dynamic build is not possible."])
     fi
   else
     ax_build_dynamic="no"

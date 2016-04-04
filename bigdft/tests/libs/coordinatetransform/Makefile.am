@@ -14,14 +14,14 @@ check_PROGRAMS = driver
 AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@  @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src -Wl,-rpath=$(DESTDIR)$(libdir)
 bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 else
 bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 driver_SOURCES = driver.f90
-driver_LDADD = $(bigdft_library) @LINALG_LIBS@
+driver_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 
 CLEANFILES = *.yaml posinp.* malloc.prc report
@@ -52,7 +52,7 @@ test-bigdft-tool.out.yaml: $(abs_top_builddir)/src/bigdft-tool
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posinp.xyz --outfile=posout.int
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posout.int --outfile=posout.xyz
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posout.xyz --outfile=posout.yaml
-	cat posout.yaml > test-bigdft-tool.out.yaml
+	test -f  posout.yaml && cat posout.yaml > test-bigdft-tool.out.yaml
 	rm -f posout.*
 	cp -f $(srcdir)/posinp2.xyz $(PWD)/posinp.xyz
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posinp.xyz --outfile=posout.int

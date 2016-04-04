@@ -169,6 +169,21 @@ contains
 
        ! calculate nbasis_env here:
        frag%nbasis_env=0
+       !example with iterators
+!!$       atit=atoms_iter(frag%astruct_env)
+!!$       do while (atoms_iter_next(atit))
+!!$          jtyp= .index. (astruct%atomnames == atit%name) !to be defined
+!!$          if (jtyp > 0) then
+!!$             frag%nbasis_env=&
+!!$                  frag%nbasis_env+input%lin%norbsPerType(jtyp)
+!!$          else
+!!$             call f_err_throw('Error in fragment_init_orbitals, atom type '+&
+!!$                  atit%name+' does not exist in full structure',&
+!!$                  err_name='BIGDFT_INPUT_FILE_ERROR')
+!!$
+!!$          end if
+!!$       end do
+
        do iat=1,frag%astruct_env%nat
           ityp=frag%astruct_env%iatype(iat)
           do jtyp=1,astruct%ntypes
@@ -459,7 +474,7 @@ contains
 
     gpsi=f_malloc0(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
     !call f_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
-    call initialize_work_arrays_sumrho(1,[tmb%lzd%glr],.true.,w)
+    call initialize_work_arrays_sumrho(tmb%lzd%glr,.true.,w)
     psir=f_malloc(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i*frag%fbasis%forbs%norb,id='psir')
 
     do iiorb=1,tmb%orbs%norb

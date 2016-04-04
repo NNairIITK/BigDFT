@@ -36,7 +36,7 @@ end program test_flush
 EOF
   dnl Assume first that it should compile and run.
   ax_fc_flush="no"
-  ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 1>&AC_FD_CC'
+  ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 $LIBS 1>&AC_FD_CC'
   if AC_TRY_EVAL(ac_try); then
     ac_try=""
     ax_fc_flush=`./flushtest.x 2> /dev/null`;
@@ -48,7 +48,7 @@ EOF
   FCFLAGS_SVG="$FCFLAGS"
   if test x"$ax_fc_flush" == x"no" ; then
     FCFLAGS="$FCFLAGS -assume noold_unit_star"
-    ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 1>&AC_FD_CC'
+    ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 $LIBS 1>&AC_FD_CC'
     if AC_TRY_EVAL(ac_try); then
       ac_try=""
       ax_fc_flush=`./flushtest.x 2> /dev/null`;
@@ -62,7 +62,7 @@ EOF
   fi
   dnl Assume third that it should compile to have it.
   if test x"$ax_fc_flush" == x"no" ; then
-    ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 1>&AC_FD_CC'
+    ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 $LIBS 1>&AC_FD_CC'
     if AC_TRY_EVAL(ac_try); then
       ax_fc_flush="yes"
     fi
@@ -72,21 +72,22 @@ EOF
   fi
   AM_CONDITIONAL([HAVE_FC_FLUSH], [test x"$ax_fc_flush" == x"yes"])
   dnl then assume that flush is a subroutine
+  ax_fc_flush_sub="no"
   if test x"$ax_fc_flush" == x"no" ; then
-  ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest_sub.f90 1>&AC_FD_CC'
-  if AC_TRY_EVAL(ac_try); then
-    ac_try=""
-    ax_fc_flush=`./flushtest.x 2> /dev/null`;
-    if test "$?" != 0 ; then
-      ax_fc_flush="no"
+    ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest_sub.f90 $LIBS 1>&AC_FD_CC'
+    if AC_TRY_EVAL(ac_try); then
+      ac_try=""
+      ax_fc_flush=`./flushtest.x 2> /dev/null`;
+      if test "$?" == 0 ; then
+        ax_fc_flush_sub="yes"
+      fi
     fi
   fi
-  fi
   rm -f flushtest*
-  if test x"$ax_fc_flush" == x"yes" ; then
+  if test x"$ax_fc_flush_sub" == x"yes" ; then
     AC_DEFINE([HAVE_FC_FLUSH_SUB], [1], [call flush(6) can be used safely in fortran])
   fi
-  AM_CONDITIONAL([HAVE_FC_FLUSH_SUB], [test x"$ax_fc_flush" == x"yes"])
+  AM_CONDITIONAL([HAVE_FC_FLUSH_SUB], [test x"$ax_fc_flush_sub" == x"yes"])
   AC_LANG_POP(Fortran)
 
   AC_MSG_RESULT([$ax_fc_flush])

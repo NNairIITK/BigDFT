@@ -316,6 +316,16 @@ contains
     real(f_double), dimension(:), pointer, intent(out) :: ptr
     ptr => heap
   end subroutine remap_bounds_d
+  
+  !> the same routine but with shape
+  subroutine remap_bounds_d2(lb,lu,heap,ptr)
+    implicit none
+    integer(f_kind), dimension(2), intent(in) :: lb,lu
+    real(f_double), dimension(lb(1):lu(1),lb(2):lu(2)), intent(in), target :: heap
+    real(f_double), dimension(:,:), pointer, intent(out) :: ptr
+    ptr => heap
+  end subroutine remap_bounds_d2
+
 
   subroutine remap_bounds_r(lb,lu,heap,ptr)
     implicit none

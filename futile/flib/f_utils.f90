@@ -108,7 +108,7 @@ module f_utils
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring,f_increment
   public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
-  public :: f_progress_bar_new,update_progress_bar,f_tty,f_humantime
+  public :: f_progress_bar_new,update_progress_bar,f_tty,f_humantime,f_system
   public :: assignment(=),f_none
 
 contains
@@ -328,7 +328,9 @@ contains
     run=.true.
     do while(run)
        count=count+1
-       t1=f_time()
+       ! call directly nanosec to avoid hanging on BG/Q
+       !t1=f_time()
+       call nanosec(t1)
        tel=real(t1-t0,f_double)*1.e-9_f_double
        run= tel < real(sec,f_double)
     end do
@@ -511,6 +513,21 @@ contains
     f_getpid=pid
 
   end function f_getpid
+
+  !> run the system command "command" and raise an
+  !! error if needed
+  subroutine f_system(command)
+    implicit none
+    character(len=*), intent(in) :: command
+    !local variables
+    integer :: ierr
+
+    call callsystem(trim(command),len_trim(command),ierr)
+
+    if (ierr ==-1) call f_err_throw('Error in system call "'//&
+         trim(command),err_id=INPUT_OUTPUT_ERROR)
+
+  end subroutine f_system
 
   !> rewind a unit
   subroutine f_rewind(unit)

@@ -411,15 +411,16 @@ subroutine createProjectorsArrays(lr,rxyz,at,ob,&
         nl%iagamma=f_malloc0_ptr([0.to.lmax_ao,1.to.nl%natoms],id='iagamma')
         igamma=0
         do iat=1,nl%natoms
-          do l=0,lmax_ao
-            if (at%dogamma(l,iat)) then
-              igamma=igamma+1
-              nl%iagamma(l,iat)=igamma
-            end if
-          end do
+           do l=0,lmax_ao
+              if (at%dogamma(l,iat) .and. &
+                   (at%psppar(l+1,1,at%astruct%iatype(iat)) /= 0.0_gp)) then
+                 igamma=igamma+1
+                 nl%iagamma(l,iat)=igamma
+              end if
+           end do
         end do
         !then all the information for the density matrix allocation is available
-        nl%gamma_mmp=f_malloc_ptr([2,2*lmax_ao+1,2*lmax_ao+1,2,igamma],id='gamma_mmp')
+        nl%gamma_mmp=f_malloc_ptr([2,2*lmax_ao+1,2*lmax_ao+1,igamma,2],id='gamma_mmp')
       end if
 
       call f_release_routine()
@@ -1032,6 +1033,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, ispin, ishift, it !, ii, infoCoeff
+      integer, dimension(1) :: power
   logical:: overlap_calculated
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
@@ -1233,7 +1235,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
                    ishift=(ispin-1)*tmb%linmat%s%nvctrp_tg
                    call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
                         tmb%linmat%ovrlp_%matrix_compr(ishift+1:), ovrlp_fullp)
-                   call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
+                   call deviation_from_unity_parallel(iproc, nproc, bigdft_mpi%mpi_comm, &
+                        tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
                         tmb%linmat%s%isfvctr, ovrlp_fullp, &
                         tmb%linmat%s, max_deviation_p, mean_deviation_p)
                    max_deviation = max_deviation + max_deviation_p/real(tmb%linmat%s%nspin,kind=8)
@@ -1250,69 +1253,6 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      else
          ! Iterative orthonomalization
          call iterative_orthonormalization(iproc, nproc, 2, -1, at, input%nspin, input%lin%norbsPerType, tmb)
-!!         !!if(iproc==0) write(*,*) 'calling generalized orthonormalization'
-!!         if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
-!!         maxorbs_type = f_malloc(at%astruct%ntypes,id='maxorbs_type')
-!!         minorbs_type = f_malloc(at%astruct%ntypes,id='minorbs_type')
-!!         type_covered = f_malloc(at%astruct%ntypes,id='type_covered')
-!!         minorbs_type(1:at%astruct%ntypes)=0
-!!         nl_copy=f_malloc((/0.to.3,1.to.at%astruct%nat/),id='nl_copy')
-!!         do iat=1,at%astruct%nat
-!!            nl_copy(:,iat)=at%aoig(iat)%nl
-!!         end do
-!!
-!!         iortho=0
-!!         ortho_loop: do
-!!             finished=.true.
-!!             type_covered=.false.
-!!             do iat=1,at%astruct%nat
-!!                 itype=at%astruct%iatype(iat)
-!!                 if (type_covered(itype)) cycle
-!!                 type_covered(itype)=.true.
-!!                 !jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
-!!                 !     5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
-!!                 jj=nl_copy(0,iat)+3*nl_copy(1,iat)+5*nl_copy(2,iat)+7*nl_copy(3,iat)
-!!                 maxorbs_type(itype)=jj
-!!                 !should not enter in the conditional below due to the raise of the exception above
-!!                 if (jj<input%lin%norbsPerType(at%astruct%iatype(iat))) then
-!!                     finished=.false.
-!!                     increase_count: do inl=1,4
-!!                        if (nl_copy(inl,iat)==0) then
-!!                           nl_copy(inl,iat)=1
-!!                           call f_err_throw('InputguessLinear: Should not be here',&
-!!                                err_name='BIGDFT_RUNTIME_ERROR')
-!!                           exit increase_count
-!!                        end if
-!!                     end do increase_count
-!!    !!$                 if (ceiling(aocc(1,iat))==0) then
-!!    !!$                     aocc(1,iat)=1.d0
-!!    !!$                 else if (ceiling(aocc(3,iat))==0) then
-!!    !!$                     aocc(3,iat)=1.d0
-!!    !!$                 else if (ceiling(aocc(7,iat))==0) then
-!!    !!$                     aocc(7,iat)=1.d0
-!!    !!$                 else if (ceiling(aocc(13,iat))==0) then
-!!    !!$                     aocc(13,iat)=1.d0
-!!    !!$                 end if
-!!                 end if
-!!             end do
-!!             if (iortho>0) then
-!!                 call gramschmidt_subset(iproc, nproc, -1, tmb%npsidim_orbs, &
-!!                      tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
-!!                      tmb%linmat%l, tmb%collcom, tmb%orthpar, &
-!!                      tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
-!!             end if
-!!             call orthonormalize_subset(iproc, nproc, -1, tmb%npsidim_orbs, &
-!!                  tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
-!!                  tmb%linmat%l, tmb%collcom, tmb%orthpar, &
-!!                  tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
-!!             if (finished) exit ortho_loop
-!!             iortho=iortho+1
-!!             minorbs_type(1:at%astruct%ntypes)=maxorbs_type(1:at%astruct%ntypes)+1
-!!         end do ortho_loop
-!!         call f_free(maxorbs_type)
-!!         call f_free(minorbs_type)
-!!         call f_free(type_covered)
-!!         call f_free(nl_copy)
      end if
    end if
 
@@ -1471,11 +1411,12 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        call f_free(ovrlpp)
        ! Calculate S^1/2, as it can not be taken from memory
        order_taylor = input%lin%order_taylor
-       call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
+       power(1)=2
+       call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, order_taylor, 1, power, -1, &
             imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
             ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
             check_accur=.true., max_error=max_error, mean_error=mean_error)
-       call check_taylor_order(mean_error, input%lin%max_inversion_error, order_taylor)
+       call check_taylor_order(iproc, mean_error, input%lin%max_inversion_error, order_taylor)
 
        !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
        norder_taylor = input%lin%order_taylor !since it is inout
@@ -1578,7 +1519,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            cdft%weight_function=f_malloc_ptr(cdft%ndim_dens,id='cdft%weight_function')
            call calculate_weight_function(input,ref_frags,cdft,&
                 KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,denspot%rhov,tmb,at,rxyz,denspot)
-           call calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,denspot)
+           call calculate_weight_matrix_using_density(iproc,nproc,cdft,tmb,at,input,GPU,denspot)
            call f_free_ptr(cdft%weight_function)
         else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
            call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,.false.,input%lin%order_taylor)
@@ -2396,7 +2337,7 @@ contains
 !!$       if (Lzd%nlr /=1) then
 !!$          call f_err_throw('The cubic localization region has always nlr=1',err_name='BIGDFT_RUNTIME_ERROR')
 !!$       else
-          call update_nlpsp(nlpsp,Lzd%nlr,Lzd%llr,Lzd%Glr,(/(.true.,ii=1,Lzd%nlr)/))
+          call update_nlpsp(nlpsp,Lzd%nlr,Lzd%llr,Lzd%Glr,[(.true.,ii=1,Lzd%nlr)])
           if (iproc == 0) call print_nlpsp(nlpsp)
 !!$       end if
     end if
@@ -3060,7 +3001,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !ADD a check somewhere that diag and kernel only work for FOE
      if (in%lin%fragment_calculation) then
         if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
-           call fragment_kernels_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
+           call fragment_kernels_to_kernel(iproc,nproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
                 in%lin%constrained_dft,in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL,max_nbasis_env,&
                 frag_env_mapping,in%lin%kernel_restart_noise)
         else
@@ -3098,7 +3039,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
            call vcopy(tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctr*tmb%orbs%nspinor,ref_frags(1)%kernel(1,1,1),1,&
                 tmb%linmat%kernel_%matrix(1,1,1),1)
-           call compress_matrix(iproc,tmb%linmat%l,inmat=tmb%linmat%kernel_%matrix,outmat=tmb%linmat%kernel_%matrix_compr)
+           call compress_matrix(iproc,nproc,tmb%linmat%l,inmat=tmb%linmat%kernel_%matrix,outmat=tmb%linmat%kernel_%matrix_compr)
            call f_free_ptr(tmb%linmat%kernel_%matrix)
         else
            call vcopy(tmb%orbs%norb*tmb%linmat%l%nfvctr,ref_frags(1)%coeff(1,1),1,tmb%coeff(1,1),1)
@@ -3123,7 +3064,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
         ! already calculated in fragment_coeffs_to_kernel
         tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-        call uncompress_matrix2(iproc, nproc, tmb%linmat%s, &
+        call uncompress_matrix2(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, &
              tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
 
         ! can't call reconstruct directly as need to use ks_e (which has size of tmb) not ks
@@ -3247,7 +3188,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            cdft%weight_function=f_malloc_ptr(cdft%ndim_dens,id='cdft%weight_function')
            call calculate_weight_function(in,ref_frags,cdft,&
                 KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,denspot%rhov,tmb,atoms,rxyz,denspot)
-           call calculate_weight_matrix_using_density(iproc,cdft,tmb,atoms,in,GPU,denspot)
+           call calculate_weight_matrix_using_density(iproc,nproc,cdft,tmb,atoms,in,GPU,denspot)
            call f_free_ptr(cdft%weight_function)
         else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
            call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,in,ref_frags,overlap_calculated.eqv..false.,in%lin%order_taylor)
@@ -3586,7 +3527,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
  ! Daubechies to ISF
   npsir=1
-  call initialize_work_arrays_sumrho(1,[Lzd_old%Glr],.true.,w)
+  call initialize_work_arrays_sumrho(Lzd_old%Glr,.true.,w)
   nbox = lzd_old%Glr%d%n1i*Lzd_old%Glr%d%n2i*Lzd_old%Glr%d%n3i
 
   psir_old = f_malloc0((/ nbox, npsir, orbs%norbp /),id='psir_old')
@@ -3853,7 +3794,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   !$OMP END PARALLEL DO
   end do
 
-  call initialize_work_arrays_sumrho(1,[Lzd%Glr],.true.,w)
+  call initialize_work_arrays_sumrho(Lzd%Glr,.true.,w)
 
   ist=1
   loop_orbs_back: do iorb=1,orbs%norbp

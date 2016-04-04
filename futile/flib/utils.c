@@ -87,6 +87,7 @@ void FC_FUNC(getlongaddress, GETLONGADDRESS)(void *ptr,long long int *address)
   return;
 }
 
+
 void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,
                              char *out, int *lgOut,
                              int *status)
@@ -139,6 +140,16 @@ void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,
   *status = 0;
   return;
 }
+
+void FC_FUNC(callsystem, CALLSYSTEM)(const char *cmd, int *lgcmd, int *status)
+{
+  char *command;
+
+  command = strndup(cmd, (size_t)*lgcmd);
+  *status = system(command);
+  free(command);
+}
+
 
 void FC_FUNC(delete, DELETE)(const char *f, int *lgF, int *status)
 {

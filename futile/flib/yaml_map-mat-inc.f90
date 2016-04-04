@@ -3,7 +3,7 @@
 !! Body of the yaml_map template for matrices.
 !! yaml: Yet Another Markup Language (ML for Human)
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2016 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -31,13 +31,18 @@
      call yaml_sequence_open(mapname,advance=adv,unit=unt)
   end if
   do irow=lbound(mapvalue,2),ubound(mapvalue,2)
-     call yaml_sequence(advance='no')
-     call yaml_sequence_open(flow=.true.)
+     call yaml_sequence(advance='no',unit=unt)
+     call yaml_sequence_open(flow=.true.,unit=unt)
      do icol=lbound(mapvalue,1),ubound(mapvalue,1)
-        call yaml_sequence(trim(yaml_toa(mapvalue(icol,irow),fmt=fmt)),&
-             advance=adv,unit=unt)
+        if (present(fmt)) then
+           call yaml_sequence(trim(yaml_toa(mapvalue(icol,irow),fmt=fmt)),&
+                advance=adv,unit=unt)
+        else
+           call yaml_sequence(trim(yaml_toa(mapvalue(icol,irow),fmt=fmt)),&
+                advance=adv,unit=unt)
+        end if
      end do
-     call yaml_sequence_close()
+     call yaml_sequence_close(unit=unt)
 !!$     if (present(fmt)) then
 !!$        call yaml_sequence(trim(yaml_toa(mapvalue(:,irow),fmt=fmt)),&
 !!$             advance=adv,unit=unt)

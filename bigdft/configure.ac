@@ -338,7 +338,6 @@ src/tools/Makefile
 src/tools/bader/Makefile
 tests/Makefile
 tests/libs/Makefile
-tests/libs/fft/Makefile
 tests/libs/OP2P/Makefile
 tests/libs/xc/Makefile
 tests/libs/xcPSolver/Makefile

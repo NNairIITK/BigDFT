@@ -6,6 +6,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 !> Define all static strings to store input variables
 module module_input_keys
   use dictionaries
@@ -23,7 +25,8 @@ module module_input_keys
 
   !public :: input_keys_init, input_keys_finalize
 
-  type(dictionary), pointer :: parameters=>null()
+
+  type(dictionary), pointer :: parameters=>null()         !< Used to check the keys in input files.
   type(dictionary), pointer :: parsed_parameters=>null()
   type(dictionary), pointer :: profiles=>null()
 
@@ -110,7 +113,7 @@ module module_input_keys
      integer, dimension(:), pointer :: norbsPerType
      integer :: kernel_mode, mixing_mode
      integer :: scf_mode, nlevel_accuracy
-     logical :: calc_dipole, calc_quadrupole, pulay_correction, iterative_orthogonalization, new_pulay_correction
+     logical :: calc_dipole, calc_quadrupole, iterative_orthogonalization
      logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end, diag_start
      integer :: extra_states, order_taylor, mixing_after_inputguess
      !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
@@ -140,7 +143,7 @@ module module_input_keys
      !!        3: OpenCL accelearation for CPU
      !!        4: OCLACC (OpenCL both ? see input_variables.f90)
      integer :: iacceleration
-     integer :: Psolver_igpu            !< Acceleration of the Poisson solver
+!     integer :: Psolver_igpu            !< Acceleration of the Poisson solver
      character(len=11) :: OCL_platform  !< Name of the OpenCL platform
      character(len=11) :: OCL_devices   !< Name of the OpenCL devices
   end type material_acceleration
@@ -275,6 +278,7 @@ module module_input_keys
      real(gp), dimension(:), pointer :: qmass
      real(gp) :: dtinit, dtmax           !< For FIRE
      character(len=10) :: tddft_approach !< TD-DFT variables from *.tddft
+     character(len=max_field_length) :: dir_perturbation  !< Strings of the directory which contains the perturbation
      type(SIC_data) :: SIC               !< Parameters for the SIC methods
      !variables for SQNM
      integer  :: nhistx
@@ -338,7 +342,7 @@ module module_input_keys
      character(len=3) :: rho_commun
      !> Number of taskgroups for the poisson solver
      !! works only if the number of MPI processes is a multiple of it
-     integer :: PSolver_groupsize
+!     integer :: PSolver_groupsize
      !> Global MPI group size (will be written in the mpi_environment)
      ! integer :: mpi_groupsize
 
@@ -456,7 +460,7 @@ contains
   function material_acceleration_null() result(ma)
     type(material_acceleration) :: ma
     ma%iacceleration=0
-    ma%Psolver_igpu=0
+!    ma%Psolver_igpu=0
     ma%OCL_platform=repeat(' ',len(ma%OCL_platform))
     ma%OCL_platform=repeat(' ',len(ma%OCL_devices))
   end function material_acceleration_null
@@ -489,6 +493,7 @@ contains
   end subroutine nullifyInputLinparameters
 
 
+  !> Allocate and initialize the variables 'parameters', 'params' and 'parsed_parameters'/
   subroutine input_keys_init()
     use yaml_output
     use dynamic_memory
@@ -532,6 +537,7 @@ contains
   END SUBROUTINE input_keys_init
 
 
+  !> De-allocate the variables 'parameters', 'params' and 'parsed_parameters'/
   subroutine input_keys_finalize()
     use dictionaries
     implicit none
@@ -595,6 +601,7 @@ contains
     !type(external_potential_descriptors) :: ep
     !integer :: impl, l
     type(xc_info) :: xc
+    logical :: free,positions
 
     call f_routine(id='inputs_from_dict')
 
@@ -602,8 +609,15 @@ contains
     !atoms = atoms_data_null()
     call nullify_atoms_data(atoms)
 
+    !Check posinp section
     if (.not. has_key(dict, POSINP)) &
          call f_err_throw("missing posinp",err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+    !Check if atomic positions with free BC
+    free=ASTRUCT_CELL .notin. dict//POSINP
+    positions=ASTRUCT_POSITIONS .notin. dict//POSINP
+    if (free .and. positions) call f_err_throw('No given atoms with free boundary conditions',&
+                & ERR_NAME='BIGDFT_INPUT_VARIABLES_ERROR')
+
     call astruct_set_from_dict(dict // POSINP, atoms%astruct)
     ! Generate the dict of types for later use.
     call astruct_dict_get_types(dict // POSINP, types)
@@ -963,6 +977,8 @@ contains
     character(max_field_length) :: meth
     real(gp) :: dtmax_, betax_
     logical :: free,dftvar
+    integer :: nat
+    integer, parameter :: natoms_dump = 500
 
     if (f_err_raise(.not. associated(dict),'The input dictionary has to be associated',&
          err_name='BIGDFT_RUNTIME_ERROR')) return
@@ -991,7 +1007,15 @@ contains
 
     !create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)
-    as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. POSINP, .item. OCCUPATION)
+    as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. OCCUPATION)
+
+    nat=0
+    if (POSINP .in. dict) then
+       if (ASTRUCT_POSITIONS .in. dict//POSINP) &
+            nat = dict_len(dict//POSINP//ASTRUCT_POSITIONS)
+    end if
+    if (nat<=natoms_dump) call add(as_is,POSINP)
+
     call input_file_minimal(parameters,dict,dict_minimal,nested,as_is)
     if (associated(dict_ps_min)) call set(dict_minimal // PSOLVER,dict_ps_min)
     call dict_free(nested,as_is)
@@ -1277,7 +1301,7 @@ contains
     implicit none
     integer, intent(in) :: iscf
     type(f_enumerator), intent(out) :: scf_mode
-    
+
     !insert the method of mixing
     scf_mode=f_enumerator('METHOD',modulo(iscf,10),null())
     !set the enumerator methd
@@ -1702,8 +1726,8 @@ contains
           do i=ipos,len(in%matacc%OCL_devices)
              in%matacc%OCL_devices(i:i)=achar(0)
           end do
-       case (PSOLVER_ACCEL)
-          in%matacc%PSolver_igpu = val
+!       case (PSOLVER_ACCEL)
+!          in%matacc%PSolver_igpu = val
        case (SIGNALING)
           in%signaling = val ! Signaling parameters
        case (SIGNALTIMEOUT)
@@ -1733,8 +1757,6 @@ contains
           in%orthpar%bsUp  = dummy_int(2)
        case (RHO_COMMUN)
           in%rho_commun = val
-       case (PSOLVER_GROUPSIZE)
-          in%PSolver_groupsize = val
        case (UNBLOCK_COMMS)
           in%unblock_comms = val
        case (LINEAR)
@@ -2003,6 +2025,13 @@ contains
        select case (trim(dict_key(val)))
        case (TDDFT_APPROACH)
           in%tddft_approach = val
+       case (DECOMPOSE_PERTURBATION)
+          in%dir_perturbation = val
+          !add a slash to the directory name if not present
+          dummy_int(1)=len_trim(in%dir_perturbation)
+          if (in%dir_perturbation(dummy_int(1):dummy_int(1))/='/') then
+             in%dir_perturbation(dummy_int(1)+1:dummy_int(1)+1)='/'
+          end if
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2053,10 +2082,6 @@ contains
           in%lin%calc_dipole = val
        case (CALC_QUADRUPOLE)
           in%lin%calc_quadrupole = val
-       case (CALC_PULAY)
-          dummy_log(1:2) = val
-          in%lin%pulay_correction = dummy_log(1)
-          in%lin%new_pulay_correction = dummy_log(2)
        case (SUBSPACE_DIAG)
           in%lin%diag_end = val
        case (EXTRA_STATES)
@@ -2286,6 +2311,7 @@ contains
     !in%output_denspot_format = output_denspot_FORMAT_CUBE
     !call f_zero(in%set_epsilon)
     call f_zero(in%dir_output)
+    call f_zero(in%dir_perturbation)
     call f_zero(in%naming_id)
     nullify(in%gen_kpt)
     nullify(in%gen_wkpt)
@@ -2685,12 +2711,6 @@ contains
        call f_err_throw('wrong value of in%lin%kernel_mode',&
             err_name='BIGDFT_INPUT_VARIABLES_ERROR')
     end select
-
-    ! It is not possible to use both the old and the new Pulay correction at the same time
-    if (in%lin%pulay_correction .and. in%lin%new_pulay_correction) then
-       call f_err_throw('It is not possible to use both the old and the new Pulay correction at the same time!',&
-            err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-    end if
 
     call f_release_routine()
   END SUBROUTINE input_analyze
@@ -3299,7 +3319,7 @@ contains
           at => dict //POSINP
           if (.not. has_key(at, ASTRUCT_PROPERTIES)) then
              call set(at // ASTRUCT_PROPERTIES // FORMAT_KEY, FORMAT_YAML)
-             call set(at // ASTRUCT_PROPERTIES // POSINP_SOURCE, trim(radical)//trim(FORMAT_YAML))
+             call set(at // ASTRUCT_PROPERTIES // POSINP_SOURCE, trim(radical)//'.'//trim(FORMAT_YAML))
           else
              at => at // ASTRUCT_PROPERTIES
              if (FORMAT_KEY .notin. at) &

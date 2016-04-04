@@ -1018,7 +1018,7 @@ contains
     integer, intent(out) :: iproc_node, nproc_node
     !local variables
     character(len=*), parameter :: subname='processor_id_per_node'
-    integer :: ierr,namelen,jproc
+    integer :: ierr,jproc
     character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
     character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
 
@@ -2079,7 +2079,7 @@ contains
     integer, intent(in), optional :: p3
     integer :: grp
     !local variables
-    integer :: ierr,i,nlist
+    integer :: i,nlist
     integer, dimension(3) :: list,ipiv,list2
 
     if (present(p3)) then
@@ -2583,7 +2583,7 @@ contains
     integer, intent(in), optional :: type
     !local variables
     logical :: verb,sim
-    integer :: mpi_comm,ierr,mpistatus,mpi_source,mpi_tag,mpi_type,tcat
+    integer :: mpi_comm,ierr,mpi_source,mpi_tag,mpi_type,tcat
 
     mpi_comm=MPI_COMM_WORLD
     if (present(comm)) mpi_comm=comm
@@ -2651,7 +2651,7 @@ contains
     integer, intent(in) :: type
     !local variables
     logical :: verb,sim
-    integer :: mpi_comm,ierr,mpistatus,mpi_source,mpi_tag,mpi_type,tcat
+    integer :: mpi_comm,ierr,mpi_source,mpi_tag,mpi_type,tcat
 
     mpi_comm=MPI_COMM_WORLD
     if (present(comm)) mpi_comm=comm

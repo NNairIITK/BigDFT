@@ -189,7 +189,7 @@ program driver
 
   call allocate_matrices(smat_A, allocate_full=.true., matname='mat_A', mat=mat_A)
   call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1,1), 1)
-  call compress_matrix(iproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
+  call compress_matrix(iproc, nproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
   call allocate_matrices(smat_B, allocate_full=.true., matname='inv_mat_B', mat=inv_mat_B(1))
   ! uncomment for sparse and dense modes to be testing the same matrix
   !call uncompress_matrix(iproc, smat_A)
@@ -214,7 +214,8 @@ program driver
   !!    keyg_tmp(2,iseg)=iiorb
   !!end do
 
-  if (ortho_check) call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norb, 0, ovrlp, smat_A, max_error, mean_error)
+  if (ortho_check) call deviation_from_unity_parallel(iproc, nproc, bigdft_mpi%mpi_comm, &
+                        orbs%norb, orbs%norb, 0, ovrlp, smat_A, max_error, mean_error)
   if (ortho_check.and.iproc==0) call yaml_map('max deviation from unity',max_error)
   if (ortho_check.and.iproc==0) call yaml_map('mean deviation from unity',mean_error)
   if (iproc==0) call yaml_comment('starting the checks',hfill='=')
@@ -251,23 +252,23 @@ program driver
           call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1,1), 1)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
-          call overlapPowerGeneral(iproc, nproc, iorder, 1, (/power/), blocksize, &
+          call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, iorder, 1, (/power/), blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
                check_accur=.true., max_error=max_error, mean_error=mean_error)
           if (timer_on) call cpu_time(tr1)
           if (timer_on) call system_clock(ncount2,ncount_rate,ncount_max)
           if (timer_on) time=real(tr1-tr0,kind=8)
           if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
-          call compress_matrix(iproc, smat_B, inmat=inv_mat_B(1)%matrix, outmat=inv_mat_B(1)%matrix_compr)
+          call compress_matrix(iproc, nproc, smat_B, inmat=inv_mat_B(1)%matrix, outmat=inv_mat_B(1)%matrix_compr)
       else if (imode==SPARSE) then
           call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1,1), 1)
-          call compress_matrix(iproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
+          call compress_matrix(iproc, nproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           tmparr = sparsematrix_malloc(smat_A,iaction=SPARSE_FULL,id='tmparr')
           call vcopy(smat_A%nvctr*smat_A%nspin, mat_A%matrix_compr(1), 1, tmparr(1), 1)
           call extract_taskgroup_inplace(smat_A, mat_A)
-          call overlapPowerGeneral(iproc, nproc, iorder, 1, (/power/), blocksize, &
+          call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, iorder, 1, (/power/), blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
                check_accur=.true., max_error=max_error, mean_error=mean_error)
           call vcopy(smat_A%nvctr*smat_A%nspin, tmparr(1), 1, mat_A%matrix_compr(1), 1)
@@ -516,7 +517,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   nat = norbu !fake nat
   on_which_atom = f_malloc0(norbu,id='on_which_atom')
   ! on_which_atoms set to zero is of course not meaningful, but just be ok for this test...
-  call init_sparse_matrix(iproc, nproc, norbu, nnonzero, nonzero, nnonzero, nonzero, smat, &
+  call init_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, norbu, nnonzero, nonzero, nnonzero, nonzero, smat, &
        .true., nspin, geocode, cell_dim, norbup, isorbu, .false., on_which_atom, allocate_full=.true.)
   call f_free_ptr(nonzero)
   call f_free(on_which_atom)
@@ -526,7 +527,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   collcom_dummy = comms_linear_null()
   ! since no taskgroups are used, the values of iirow and iicol are just set to
   ! the minimum and maximum, respectively.
-  call init_matrix_taskgroups(iproc, nproc, .false., smat)
+  call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, .false., smat)
 
   !!! Initialize the parameters for the spare matrix matrix multiplication
   !!call init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, smat%nseg, &

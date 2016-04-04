@@ -40,7 +40,7 @@
 #include "config.h"
 #endif
 
-subroutine abi_ewald2(iproc,nproc,gmet,natom,ntypat,rmet,rprimd,stress,&
+subroutine abi_ewald2(iproc,nproc,mpi_comm,gmet,natom,ntypat,rmet,rprimd,stress,&
 &  typat,ucvol,xred,zion)
 
  use abi_defs_basis
@@ -52,7 +52,7 @@ subroutine abi_ewald2(iproc,nproc,gmet,natom,ntypat,rmet,rprimd,stress,&
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: iproc,nproc,natom,ntypat
+ integer,intent(in) :: iproc,nproc,mpi_comm,natom,ntypat
  real(dp),intent(in) :: ucvol
 !arrays
  integer,intent(in) :: typat(natom)
@@ -92,7 +92,7 @@ subroutine abi_ewald2(iproc,nproc,gmet,natom,ntypat,rmet,rprimd,stress,&
  if (nproc>1) then
      !call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
      iia=0
-     call mpi_allreduce(ii, iia, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+     call mpi_allreduce(ii, iia, 1, mpi_integer, mpi_sum, mpi_comm, ierr)
      ii = iia
  end if
  !if (ii/=natom) call f_err_throw('ii/=natom',err_name='BIGDFT_RUNTIME_ERROR')
@@ -297,7 +297,7 @@ subroutine abi_ewald2(iproc,nproc,gmet,natom,ntypat,rmet,rprimd,stress,&
      !call mpiallred(newr, mpi_sum, bigdft_mpi%mpi_comm)
      ii = 0
      call mpi_allreduce(newr, ii, 1, &
-          mpi_integer, mpi_sum, mpi_comm_world, ierr)
+          mpi_integer, mpi_sum, mpi_comm, ierr)
      newr=ii
    end if
 
@@ -311,7 +311,7 @@ subroutine abi_ewald2(iproc,nproc,gmet,natom,ntypat,rmet,rprimd,stress,&
    !call mpiallred(stress_tmp, mpi_sum, bigdft_mpi%mpi_comm)
    strr=0.0_dp
    call mpi_allreduce(strr_tmp, strr, 6, &
-        mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+        mpi_double_precision, mpi_sum, mpi_comm, ierr)
  else
    strr=strr_tmp
  end if

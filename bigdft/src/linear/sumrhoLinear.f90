@@ -74,7 +74,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      Lnscatterarr(:,2) = Lzd%Llr(ilr)%d%n3i 
 
 
-     call initialize_work_arrays_sumrho(1,[Lzd%Llr(ilr)],.true.,w)
+     call initialize_work_arrays_sumrho(Lzd%Llr(ilr),.true.,w)
      rho_p = f_malloc0(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn,id='rho_p')
      psir = f_malloc((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, npsir /),id='psir')
   
@@ -273,7 +273,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
 
       call f_free(density_kernel_partial)
 
-      call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
+      call compress_matrix(iproc,nproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
       if (.not.keep_uncompressed) then
           call f_free_ptr(denskern_%matrix)
       end if
@@ -342,7 +342,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       call timing(iproc,'waitAllgatKern','OF')
 
       tmparr = sparsematrix_malloc(denskern,iaction=SPARSE_FULL,id='tmparr')
-      call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=tmparr)
+      call compress_matrix(iproc,nproc,denskern,inmat=denskern_%matrix,outmat=tmparr)
       if (keep_uncompressed) then
           if (nproc > 1) then
               call timing(iproc,'commun_kernel','ON')

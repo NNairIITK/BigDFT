@@ -106,10 +106,10 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      end do
 
      !calculate ewald energy and forces + stress
-     call abi_ewald(iproc,nproc,eion,gmet,fewald,at%astruct%nat,at%astruct%ntypes,rmet,at%astruct%iatype,ucvol,&
+     call abi_ewald(iproc,nproc,bigdft_mpi%mpi_comm,eion,gmet,fewald,at%astruct%nat,at%astruct%ntypes,rmet,at%astruct%iatype,ucvol,&
           xred,real(at%nelpsp,gp))
      ewaldstr=0.0_dp
-     call abi_ewald2(iproc,nproc,gmet,at%astruct%nat,at%astruct%ntypes,rmet,rprimd,ewaldstr,at%astruct%iatype,&
+     call abi_ewald2(iproc,nproc,bigdft_mpi%mpi_comm,gmet,at%astruct%nat,at%astruct%ntypes,rmet,rprimd,ewaldstr,at%astruct%iatype,&
           ucvol,xred,real(at%nelpsp,gp))
 
 ! our sequence of strten elements : 11 22 33 12 13 23
@@ -662,6 +662,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
   end if nocavity_if
 
+  
   ! Add contribution from constant electric field to the forces
   call center_of_charge(at,rxyz,cc)
   do iat=1,at%astruct%nat
@@ -820,7 +821,7 @@ subroutine epsilon_rigid_cavity_soft_PCM(mesh,nat,rxyz,radii,cavity,&
   real(kind=8), intent(out) :: IntSur,IntVol
   !local variables
   integer :: i1,i2,i3,unt
-  real(dp) :: cc,hh,ep,deps,epsm1
+  real(dp) :: cc,hh,ep,deps,epsm1,kk
   real(dp), dimension(3) :: v,origin,dleps
   logical, parameter :: dumpeps=.false.
 !  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3
@@ -845,7 +846,7 @@ subroutine epsilon_rigid_cavity_soft_PCM(mesh,nat,rxyz,radii,cavity,&
         do i1=1,mesh%ndims(1)
            v(1)=cell_r(mesh,i1,dim=1)-origin(1) ! Luigi
 !           v(1)=mesh%hgrids(1)*(i1-1-nbl1)      ! Giuseppe
-           call rigid_cavity_arrays(cavity,mesh,v,nat,rxyz,radii,ep,deps,dleps,cc)
+           call rigid_cavity_arrays(cavity,mesh,v,nat,rxyz,radii,ep,deps,dleps,cc,kk)
            eps(i1,i2,i3)=ep
            oneoeps(i1,i2,i3)=1.d0/ep
            oneosqrteps(i1,i2,i3)=1.d0/sqrt(ep)
