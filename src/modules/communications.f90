@@ -1522,12 +1522,13 @@ module communications
        integer :: ierr, jorb, ilr, jlr, root, max_sim_comms
        !integer :: icomm, ilr_old, jtask, nalloc, nrecv
        integer :: maxrecvdim, maxsenddim, ioffset, window, ist_dest, ist_source
-       integer :: iorb, jjorb, ncount, iiorb, size_of_int, info, jproc, ii, iilr
+       integer :: iorb, jjorb, ncount, iiorb, size_of_int, info, jproc, ii, iilr, ncover
        logical :: isoverlap
        character(len=*), parameter:: subname='communicate_locreg_descriptors_keys'
        !integer,dimension(:),allocatable :: requests
        !integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
        integer,dimension(:),allocatable :: worksend, workrecv, ncomm, nrecvcounts, types, derived_types!, tmparr_int, istarr
+       integer,dimension(:),allocatable :: cover_id
        integer,dimension(:,:),allocatable :: blocklengths
        integer(kind=mpi_address_kind),dimension(:,:),allocatable :: displacements
        logical,dimension(:,:),allocatable :: covered
@@ -1542,6 +1543,7 @@ module communications
        covered = f_malloc((/ 1.to.nlr, iproc.to.iproc /),id='covered')
 
        ! Determine which locregs process iproc should get.
+       ncover = 0
        do ilr=1,nlr
            root=rootarr(ilr)
            covered(ilr,iproc)=.false.
@@ -1567,7 +1569,23 @@ module communications
                    covered(ilr,iproc)=.true.
                end if
            end do
+           if (covered(ilr,iproc)) then
+               ncover = ncover + 1
+           end if
        end do
+
+       cover_id = f_malloc(ncover,id='cover_id')
+       ii = 0
+       do ilr=1,nlr
+           if (covered(ilr,iproc)) then
+               ii = ii + 1
+               cover_id(ii) = ilr
+           end if
+       end do
+       if (ii/=ncover) call f_err_throw('ii/=ncover')
+
+       call f_free(covered)
+
 
        ! Each process makes its data available in a contiguous workarray.
        maxsenddim=0
@@ -1610,12 +1628,14 @@ module communications
 
        ! Allocate the receive buffer
        maxrecvdim=0
-       do ilr=1,nlr
+       !do ilr=1,nlr
+       do ii=1,ncover
+           ilr = cover_id(ii)
            root=rootarr(ilr)
-           if (covered(ilr,iproc)) then
+           !if (covered(ilr,iproc)) then
                ncount=6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
                maxrecvdim=maxrecvdim+ncount
-           end if
+           !end if
        end do
        workrecv = f_malloc(maxrecvdim,id='workrecv')
 
@@ -1624,9 +1644,11 @@ module communications
        nrecvcounts = f_malloc0(0.to.nproc-1,id='nrecvcounts')
        blocklengths = f_malloc0((/1.to.maxval(orbs%norb_par(:,0)),0.to.nproc-1/),id='blocklengths')
        displacements = f_malloc0((/1.to.maxval(orbs%norb_par(:,0)),0.to.nproc-1/),id='displacements')
-       do ilr=1,nlr
+       !do ilr=1,nlr
+       do ii=1,ncover
+           ilr = cover_id(ii)
            root=rootarr(ilr)
-           if (covered(ilr,iproc)) then
+           !if (covered(ilr,iproc)) then
                ncomm(root) = ncomm(root) + 1
                ncount=6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
                ist_source=get_offset(root,ilr)
@@ -1634,7 +1656,7 @@ module communications
                blocklengths(ncomm(root),root) = ncount
                displacements(ncomm(root),root) = int(ist_source*size_of_int,kind=mpi_address_kind)
                nrecvcounts(root) = nrecvcounts(root) + ncount
-           end if
+           !end if
        end do
        !!! The values in displacements must be sorted...
        !!!tmparr_long = f_malloc(maxval(ncomm(:)),id='tmparr')
@@ -1705,44 +1727,29 @@ module communications
        ! Copy the date from the workarrays to the correct locations
        call f_free(worksend)
        ist_dest=0
-       do ilr=1,nlr
-           if (.not.covered(ilr,iproc)) cycle
-           do jproc=0,nproc-1
+       do jproc=0,nproc-1
+           !do ilr=1,nlr
+           !    if (.not.covered(ilr,iproc)) cycle
+           do ii=1,ncover
+               ilr = cover_id(ii)
                do jorb=1,orbs%norb_par(jproc,0)
                    jjorb = orbs%isorb_par(jproc) + jorb
                    jlr = orbs%inwhichlocreg(jjorb)
                    if (ilr==jlr) then
-                       !!write(*,*) 'iproc, jproc, ilr', iproc, jproc, ilr
-                       !do ilr=1,nlr
-                       !if (covered(ilr,iproc)) then
-                           call allocate_wfd(llr(ilr)%wfd)
-                           ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
-                           call vcopy(2*ncount, workrecv(ist_dest+1), 1, llr(ilr)%wfd%keygloc(1,1), 1)
-                           call vcopy(2*ncount, workrecv(ist_dest+2*ncount+1), 1, llr(ilr)%wfd%keyglob(1,1), 1)
-                           call vcopy(ncount, workrecv(ist_dest+4*ncount+1), 1, llr(ilr)%wfd%keyvloc(1), 1)
-                           call vcopy(ncount, workrecv(ist_dest+5*ncount+1), 1, llr(ilr)%wfd%keyvglob(1), 1)
-                           ist_dest=ist_dest+6*ncount
-                       !end if
-                       !do ii=1,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
-                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keygloc(1,ii)
-                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keygloc(2,ii)
-                       !end do
-                       !do ii=1,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
-                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keyglob(1,ii)
-                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keyglob(2,ii)
-                       !end do
-                       !do ii=1,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
-                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keyvloc(ii)
-                       !end do
-                       !do ii=1,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
-                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keyvglob(ii)
-                       !end do
+                       call allocate_wfd(llr(ilr)%wfd)
+                       ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+                       call vcopy(2*ncount, workrecv(ist_dest+1), 1, llr(ilr)%wfd%keygloc(1,1), 1)
+                       call vcopy(2*ncount, workrecv(ist_dest+2*ncount+1), 1, llr(ilr)%wfd%keyglob(1,1), 1)
+                       call vcopy(ncount, workrecv(ist_dest+4*ncount+1), 1, llr(ilr)%wfd%keyvloc(1), 1)
+                       call vcopy(ncount, workrecv(ist_dest+5*ncount+1), 1, llr(ilr)%wfd%keyvglob(1), 1)
+                       ist_dest=ist_dest+6*ncount
                    end if
                end do
            end do
        end do
        call f_free(workrecv)
-       call f_free(covered)
+       !call f_free(covered)
+       call f_free(cover_id)
 
        !@ END NEW VESRION ##########################################
 
