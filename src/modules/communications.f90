@@ -1705,9 +1705,9 @@ module communications
        ! Copy the date from the workarrays to the correct locations
        call f_free(worksend)
        ist_dest=0
-       do jproc=0,nproc-1
-           do ilr=1,nlr
-               if (.not.covered(ilr,iproc)) cycle
+       do ilr=1,nlr
+           if (.not.covered(ilr,iproc)) cycle
+           do jproc=0,nproc-1
                do jorb=1,orbs%norb_par(jproc,0)
                    jjorb = orbs%isorb_par(jproc) + jorb
                    jlr = orbs%inwhichlocreg(jjorb)

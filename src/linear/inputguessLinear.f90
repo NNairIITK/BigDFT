@@ -64,7 +64,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   integer, dimension(:,:), allocatable :: nl_default
   integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
   integer :: jlr,iiorb,ispin,ispinshift
-  integer :: infoCoeff, jproc
+  integer :: infoCoeff, jproc, jjorb
   type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
   character(len=2) :: symbol
@@ -219,37 +219,43 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           end do
       end do
   else
+      call f_zero(mapping)
       do ispin=1,input%nspin
           do iat=1,at%astruct%nat
               do iorb=1,norbsPerAt(iat)
                   iiorb=iiorb+1
                   ! Search the corresponding entry in inwhichlocreg
-                  do jorb=1,tmb%orbs%norb
-                      if(covered(jorb)) cycle
-                      jlr=tmb%orbs%inwhichlocreg(jorb)
+                  do jorb=1,tmb%orbs%norbp
+                      jjorb = tmb%orbs%isorb + jorb
+                      if(covered(jjorb)) cycle
+                      jlr=tmb%orbs%inwhichlocreg(jjorb)
                       if( tmb%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iat) .and. &
                           tmb%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iat) .and. &
                           tmb%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
-                          covered(jorb)=.true.
-                          mapping(iiorb)=jorb
+                          covered(jjorb)=.true.
+                          mapping(iiorb)=jjorb
                           exit
                       end if
                   end do
               end do
           end do
       end do
+      call mpiallred(mapping, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
 
   ! Inverse mapping
-  do iorb=1,tmb%orbs%norb
+  call f_zero(inversemapping)
+  do iorb=1,tmb%orbs%norbp
+      iiorb = tmb%orbs%isorb + iorb
       do jorb=1,tmb%orbs%norb
-          if(mapping(jorb)==iorb) then
-              inversemapping(iorb)=jorb
+          if(mapping(jorb)==iiorb) then
+              inversemapping(iiorb)=jorb
               exit
           end if
       end do
   end do
+  call mpiallred(inversemapping, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
   nvirt=0
 
