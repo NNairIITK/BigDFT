@@ -112,6 +112,20 @@ AC_CHECK_FUNCS([clock_gettime])
 AC_CHECK_FUNCS([strndup])
 AC_LANG_POP(C)
 
+dnl Test Python availability
+AM_PATH_PYTHON([2.3.5], [ax_have_python="yes"], [ax_have_python="no"])
+if test x"$ax_have_python" = x"yes" ; then
+  AC_LANG_PUSH(C)
+  AM_CHECK_PYTHON_HEADERS(,[AC_MSG_WARN(could not find Python headers); ax_have_python="no"])
+  py_prefix=`$PYTHON -c "import sys; print sys.prefix"`
+  PYTHON_INCLUDES="-I${py_prefix}/include/python${PYTHON_VERSION}"
+  AC_SUBST([PYTHON_INCLUDES])
+  AC_LANG_POP(C)
+  PYTHON_LIBS="-lpython$PYTHON_VERSION"
+  AC_SUBST([PYTHON_LIBS])
+fi
+AM_CONDITIONAL([HAVE_PYTHON], [test x"$ax_have_python" = x"yes"])
+
 dnl Test Glib availability
 PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 >= 2.22, [ax_have_glib=yes], [ax_have_glib=no])
 if test x"$ax_have_glib" = x"yes" ; then
@@ -141,7 +155,7 @@ dnl Use the dgemmsy
 AX_DGEMMSY()
 
 dnl Agregate all the optional libs.
-LIBS_EXT_DEPS="$LINALG_LIBS $LIB_YAML_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_EXT_DEPS="$LINALG_LIBS $LIB_YAML_LIBS $MPI_LDFLAGS $MPI_LIBS $GLIB_LIBS $PYTHON_LIBS"
 AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
 LIB_FUTILE_LIBS="-lfutile-1"
 if test $ax_build_dynamic != "yes" ; then

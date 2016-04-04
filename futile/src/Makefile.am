@@ -50,3 +50,7 @@ install-data-hook:
 	  ln -fs $(futile_dynamic_library) $(futile_library_soname) ; \
 	  ln -fs $(futile_library_soname) libfutile-1.so ; \
 	fi
+
+CLEANFILES = libfutile-1.so*
+clean-local:
+	rm -rf tmp-libfutile
