@@ -7,11 +7,7 @@ noinst_LIBRARIES = libbindings.a $(pylib)
 include_HEADERS  = dict.h futile.h futile_cst.h
 pyexec_DATA      = $(pymodule)
 
-if HAVE_PYTHON
-pysource = python.c
-endif
-
-libbindings_a_SOURCES = misc.c futile.h dict.c dict.h dictf.f90 $(pysource)
+libbindings_a_SOURCES = misc.c futile.h dict.c dict.h dictf.f90 python.c
 
 libpyimp_a_SOURCES = pyobjs.c
 
