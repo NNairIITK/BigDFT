@@ -49,7 +49,7 @@ struct _FutileTreeIter
   f90_dictionary_pointer pointer;
 };
 
-FutileTree *futile_tree_new     (FutileTreeIter *root);
+FutileTree *futile_tree_new      (FutileTreeIter *root);
 FutileTree *futile_tree_new_from_yaml(const gchar *buf, FutileTreeIter *root);
 void  futile_tree_unref          (FutileTree *tree);
 
