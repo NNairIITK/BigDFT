@@ -123,6 +123,7 @@ if test x"$ax_have_python" = x"yes" ; then
   AC_LANG_POP(C)
   PYTHON_LIBS="-lpython$PYTHON_VERSION"
   AC_SUBST([PYTHON_LIBS])
+  AC_DEFINE([HAVE_PYTHON], [], [if set, we can call Python.h])
 fi
 AM_CONDITIONAL([HAVE_PYTHON], [test x"$ax_have_python" = x"yes"])
 
@@ -174,6 +175,7 @@ flib/f_utils.inc
 wrappers/Makefile
 c-bindings/Makefile
 c-bindings/futile_cst.h
+src/configure.inc
 src/Makefile
 tests/Makefile
 tests/fft/Makefile
