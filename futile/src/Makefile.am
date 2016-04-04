@@ -3,6 +3,7 @@ dynlibdir        = $(libdir)
 lib_LIBRARIES    = libfutile-1.a
 dynlib_DATA      = $(futile_dynlib)
 noinst_DATA      = $(futile_linklib)
+module_DATA      = $(modules)
 
 # Static or dynamic library
 futile_dynamic_library = libfutile-1.so.@FUTILE_MINOR_VERSION@.0.@FUTILE_MICRO_VERSION@
@@ -19,7 +20,15 @@ endif
 
 libfutile_1_a_SOURCES = f_lib_highlev.f90
 
-AM_FCFLAGS = -I$(top_builddir)/flib @MPI_INCLUDE@
+f_lib_highlev.o: f_lib_highlev.f90 configure.inc
+
+if CAPITALIZE
+modules = F_LIB_PACKAGE.@MODULE_EXT@
+else
+modules = f_lib_package.@MODULE_EXT@
+endif
+
+AM_FCFLAGS = -I. -I$(top_builddir)/flib @MPI_INCLUDE@
 
 tmp-libfutile/extract.stamp: $(top_builddir)/flib/libflib.a $(top_builddir)/c-bindings/libbindings.a $(top_builddir)/wrappers/libwrappers.a
 	test -e "tmp-libfutile" || $(INSTALL) -d -m 755 tmp-libfutile
@@ -51,6 +60,6 @@ install-data-hook:
 	  ln -fs $(futile_library_soname) libfutile-1.so ; \
 	fi
 
-CLEANFILES = libfutile-1.so*
+CLEANFILES = libfutile-1.so* *.@MODULE_EXT@
 clean-local:
 	rm -rf tmp-libfutile
