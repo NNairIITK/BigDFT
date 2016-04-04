@@ -330,7 +330,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   integer, dimension(7) :: after2,now2,before2,after3,now3,before3
   real(gp), dimension(6) :: strten_omp
   !integer :: ncount0,ncount1,ncount_max,ncount_rate
-  integer :: maxIter
+  integer :: maxIter, nthreadx
   integer :: n3pr1,n3pr2,j1start,n1p,n2dimp
   integer :: ithread, nthread
   integer,parameter :: max_memory_zt = 500 !< maximal memory for zt array, in megabytes
@@ -505,8 +505,10 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 
   ! Manually limit the number of threads such the memory requirements remain small
   nthread = max(1,1000000*max_memory_zt/(2*(lzt/n3pr1)*n1p))
-  write(*,*) 'nthread', nthread
-  !!$ nthread = omp_get_max_threads()
+  nthreadx = 1
+  !$ nthreadx = omp_get_max_threads()
+  nthread = min(nthread,nthreadx)
+  !write(*,*) 'nthread', nthread
   zw = f_malloc((/ 1.to.2,1.to.ncache/4,1.to.2,0.to.nthread-1 /),id='zw')
   zt = f_malloc((/ 1.to.2,1.to.lzt/n3pr1,1.to.n1p,0.to.nthread-1 /),id='zt')
 
