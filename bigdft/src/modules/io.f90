@@ -27,9 +27,33 @@ module io
   public :: find_neighbours
   public :: plot_density
 
+  public :: io_files_exists
 
   contains
 
+    function io_files_exists(directory,radical,orbs) result(yes)
+      use module_interfaces, only: verify_file_presence
+      use yaml_strings
+      use module_base, only: bigdft_mpi
+      use f_utils
+      use module_types, only: orbitals_data
+      implicit none
+      character(len=*), intent(in) :: directory,radical
+      type(orbitals_data), intent(in) :: orbs
+      logical :: yes
+      !local variables
+      logical :: onefile
+      integer :: input_wf_format,ipos
+
+      ! Test ETSF file.
+      call f_file_exists(file=directory+radical+".etsf",exists=onefile)
+      if (onefile) then
+         input_wf_format = WF_FORMAT_ETSF
+      else
+         call verify_file_presence(directory+radical,orbs,input_wf_format,bigdft_mpi%nproc)
+      end if
+      yes=input_wf_format /= WF_FORMAT_NONE
+    end function io_files_exists
 
     !> Write all my wavefunctions in files by calling writeonewave
     subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,nfvctr,coeff)

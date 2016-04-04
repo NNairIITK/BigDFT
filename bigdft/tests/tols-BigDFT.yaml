@@ -296,7 +296,7 @@ H2-spin:
 
 H-Rydberg_H:
  Gradient Norm: 5.8e-9
- Eigenvalues and eigenstate residue: 5.1e-9
+ Eigenvalues and eigenstate residue: 1.1e-8
  norm(P): 1.1e-10
 
 TiSmear:
@@ -501,7 +501,7 @@ TDDFT:
   Transition energies (eV): 3.01e-4
 
 BigDFT2Wannier.b2w.ref.yaml:
-  amnk_guess(nb): 1.31e-10
+  amnk_guess(nb): 3.8e-10
 
 cleanup:
  Ekin: 5.1e-9
@@ -1648,6 +1648,8 @@ FF_LENOSKY-vssd:
   fnrm2: 3.32e-7
   maxval: 6.802e-5
   Forces: 8.01e-5
+  Force Norm (Hartree/Bohr): 4.7e-5
+  Energy (Hartree): 3.601e-7
   Keys to ignore:
   - WARNINGS
 
@@ -1655,19 +1657,30 @@ FF_LENOSKY-ab6md:
   Keys to ignore:
   - WARNINGS
 
+FF_LENOSKY-fire:
+  Keys to ignore:
+  - WARNINGS
+
 
 FF_LENOSKY-sdcg:
   etot: 6.1e-11
   maxval: 1.01e-9
+  Energy (Hartree): 1.7e-10
+  FORCES norm(Ha/Bohr): 5.3e-10
+  Force Norm (Hartree/Bohr): 5.3e-10
   Keys to ignore:
   - WARNINGS
 
 FF_LENOSKY-sqnm:
+  Force Norm (Hartree/Bohr): 1.6e-11
+  FORCES norm(Ha/Bohr): 1.6e-11
   Keys to ignore:
   - WARNINGS
 
 FF_LENOSKY-lbfgs:
-  FORCES norm(Ha/Bohr): 9.01e-6
+  Force Norm (Hartree/Bohr): 6.3e-06
+  FORCES norm(Ha/Bohr): 6.01e-6
+  Energy (Hartree): 2.0e-6
   Forces: 1.e-4
   etot: 7.36e-6
   maxval: 1.3e-5
@@ -1697,6 +1710,8 @@ FF_LENOSKY-bfgs:
 
 
 FF_LENOSKY-diis:
+  Energy (Hartree): 2.0e-8
+  Force Norm (Hartree/Bohr): 2.12e-07
   FORCES norm(Ha/Bohr): 1.11e-6
   etot: 1.35e-7
   Keys to ignore:
@@ -1708,18 +1723,22 @@ FF_LJ-diis:
   - disablesym
 
 FF_LJ-fire:
+  Force Norm (Hartree/Bohr): 3.e-11
   epred: 1.7e-11
   Keys to ignore:
   - WARNINGS
   - disablesym
 
 FF_LJ-sdcg:
+  Force Norm (Hartree/Bohr): 3.0e-9
   maxval: 1.1e-9
   Keys to ignore:
   - WARNINGS
   - disablesym
 
 FF_LJ-lbfgs:
+  Force Norm (Hartree/Bohr): 3.6e-07
+  Energy (Hartree): 9.0e-9
   etot: 3.17e-8
   Forces: 1.01e-5
   Energy: 2.21e-8
@@ -1730,6 +1749,8 @@ FF_LJ-lbfgs:
   - disablesym
 
 FF_LJ-sqnm:
+  Force Norm (Hartree/Bohr): 8.3e-8
+  Energy (Hartree): 9.0e-8
   Geometry: 1.01e-8
   fnrm2: 1.1e-6
   maxval: 1.01e-7
@@ -1739,6 +1760,8 @@ FF_LJ-sqnm:
 
 
 FF_LJ-vssd:
+  Force Norm (Hartree/Bohr): 1.1e-07
+  Energy (Hartree): 1.7e-9
   etot: 2.2e-4
   maxval: 3e-4
   last beta: 3.5e-2
@@ -2261,12 +2284,23 @@ Cavity_H2OfrigidPCG:
    - rmult
    - Electronic charge changed by rho compression
 
+MD_LJ-NVT:
+ Keys to ignore:
+   - WARNINGS
+
+MD_LJ-NVE:
+ Keys to ignore:
+   - WARNINGS
+
+
 MD-wf-Expl:
  Keys to ignore:
    - Molecule was shifted
    - Overlapping communication of
    - No. of OMP Threads
 
+QMMM:
+  EKS: 1.2e-11
 
 Cavity_H2OfsccsPCG:
  Atomic Forces (Ha/Bohr): 9.4e-10
@@ -2559,7 +2593,7 @@ matrixtaskgroups_yes:
   Total charge: 2.0e-10
   difference: 5.9e-11
   energy: 3.0e-09
-  trace: 1.02e-07
+  trace: 4.0e-07
   trace(KS): 3.8e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.6e-9

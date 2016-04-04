@@ -384,9 +384,7 @@ contains
        call f_free_ptr(astruct%ixyz_int)
        if (associated(astruct%attributes)) then
           do iat = 1, astruct%nat
-             if (associated(astruct%attributes(iat)%d)) then
-                call dict_free(astruct%attributes(iat)%d)
-             end if
+             call dict_free(astruct%attributes(iat)%d)
           end do
           deallocate(astruct%attributes)
           nullify(astruct%attributes)
@@ -394,11 +392,6 @@ contains
     end if
     if (astruct%ntypes >= 0) then
        call f_free_str_ptr(len(astruct%atomnames),astruct%atomnames)
-!!$       if (associated(astruct%atomnames)) then
-!!$          i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
-!!$          deallocate(astruct%atomnames, stat=i_stat)
-!!$          call memocc(i_stat, i_all, 'astruct%atomnames', subname)
-!!$       end if
     end if
     ! Free additional stuff.
     call deallocate_symmetry_data(astruct%sym)

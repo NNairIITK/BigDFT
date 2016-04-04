@@ -1348,10 +1348,12 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
           & advance = "NO", unit = iunit)
      call yaml_scalar(" " // trim(yaml_toa(rxyz(3, iat) * factor, fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
-     if (associated(astruct%attributes(iat)%d)) then
-        call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
-        call yaml_dict_dump(astruct%attributes(iat)%d, flow = .true., unit = iunit)
-        call yaml_mapping_close(unit = iunit)
+     if (associated(astruct%attributes)) then
+        if (associated(astruct%attributes(iat)%d)) then
+           call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
+           call yaml_dict_dump(astruct%attributes(iat)%d, flow = .true., unit = iunit)
+           call yaml_mapping_close(unit = iunit)
+        end if
      end if
      call yaml_newline(unit = iunit)
   enddo

@@ -87,35 +87,39 @@ end subroutine initialize_rho_descriptors
 
 
 !> Initialize dpbox from the local zone descriptors
-subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,geocode,nspin,igpu)
+subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,&
+     !PS_groupsize,&
+     SICapproach,geocode,nspin)!
+  !,igpu)
   use module_base
   use module_dpbox, only: denspot_distribution,dpbox_null
   use module_types
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,nproc,mpi_comm,PS_groupsize,nspin,igpu
+  integer, intent(in) :: iproc,nproc,mpi_comm,nspin!,igpu,PS_groupsize
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=4), intent(in) :: SICapproach
   type(local_zone_descriptors), intent(in) :: Lzd
   type(xc_info), intent(in) :: xc
   type(denspot_distribution), intent(out) :: dpbox
   !local variables
-  integer :: npsolver_groupsize
+  integer :: npsolver_groupsize,igpu
 
   dpbox=dpbox_null()
 
   call dpbox_set_box(dpbox,Lzd)
 
   !if the taskgroup size is not a divisor of nproc do not create taskgroups
-  if (nproc > 1 .and. PS_groupsize > 0 .and. &
-       PS_groupsize < nproc .and.&
-       mod(nproc,PS_groupsize)==0) then
-     npsolver_groupsize=PS_groupsize
-  else
+!!$  if (nproc > 1 .and. PS_groupsize > 0 .and. &
+!!$       PS_groupsize < nproc .and.&
+!!$       mod(nproc,PS_groupsize)==0) then
+!!$     npsolver_groupsize=PS_groupsize
+!!$  else
      npsolver_groupsize=nproc
-  end if
+!!$  end if
+  !here we should inherit the mpi_env of the kernel
   call mpi_environment_set(dpbox%mpi_env,iproc,nproc,mpi_comm,npsolver_groupsize)
-
+  igpu=0
   call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,igpu,xc,&
                               nspin,geocode,SICapproach,dpbox)
 

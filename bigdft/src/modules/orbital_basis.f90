@@ -27,6 +27,7 @@ module orbitalbasis
      integer :: nkpts !< number of k points
      !> lookup array indicating the dimensions
      !! for the overlap matrices in each quantum numbers
+     type(locreg_descriptors), pointer :: Glr
      integer, dimension(:,:), pointer :: ndim_ovrlp
      type(comms_cubic), pointer :: comms           !< communication objects for the cubic approach (can be checked to be
      type(comms_linear), pointer :: collcom        !< describes collective communication
@@ -43,6 +44,8 @@ module orbitalbasis
      real(gp) :: kwgt !< k-point weight
      !>pointer on the occupation numbers of the subspace
      real(gp), dimension(:), pointer :: occup_ptr
+     real(wp), dimension(:), pointer :: phi_wvl
+     integer :: matrix_size !< size of all the matrices on the subspaces
      !>metadata
      integer :: ispsi
      integer :: ispsi_prev
@@ -50,6 +53,8 @@ module orbitalbasis
      integer :: ise !<for occupation numbers
      integer :: ise_prev
      type(orbital_basis), pointer :: ob
+     !>secondary iterator to zip subspace iterations
+     type(subspace), pointer :: s2
   end type subspace
 
 !  type, public :: support_function_descriptor
@@ -81,19 +86,19 @@ module orbitalbasis
   end type ket
 
   type, public :: orbital_basis
-!!$     integer :: nbasis !< number of basis elements
-!!$     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
-     !> descripto of each support function, of size nbasis
+     !> descriptor of each support function, of size nbasis
      type(direct_descriptor), dimension(:), pointer :: dd
      type(transposed_descriptor) :: td
      type(orbitals_data), pointer :: orbs !<metadata for the application of the hamiltonian
      type(confpot_data), dimension(:), pointer :: confdatarr !< data for the confinement potential
      real(wp), dimension(:), pointer :: phis_wvl !<coefficients in compact form for all the local sf
+     real(wp), dimension(:), pointer :: phis_wvl_t !<coefficients in compact form for all the local sf, transposed form
   end type orbital_basis
 
   public :: ob_ket_map,orbital_basis_iterator,ket_next_locreg,ket_next,local_hamiltonian_ket
-  public :: orbital_basis_associate,orbital_basis_release,test_iterator,ket_next_kpt
+  public :: orbital_basis_associate,orbital_basis_release,test_iterator,ket_next_kpt,ob_transpose,ob_untranspose
   public :: ob_subket_ptr,precondition_ket
+  public :: subspace_next,subspace_iterator_zip,ob_ss_matrix_map,subspace_iterator
 
 contains
 
@@ -118,7 +123,7 @@ contains
     nullify(ob%orbs)
     call nullify_transposed_descriptor(ob%td)
     nullify(ob%confdatarr)
-    nullify(ob%phis_wvl)
+    nullify(ob%phis_wvl,ob%phis_wvl_t)
   end subroutine nullify_orbital_basis
 
   !>this subroutine is not reinitializing each component of the
@@ -417,19 +422,14 @@ contains
 
   function ob_ket_map(ob_ptr,it)
     use f_precisions, only: f_address,f_loc
+    use dynamic_memory, only: f_subptr
     implicit none
     real(wp), dimension(:), target :: ob_ptr !<coming from orbital_basis
     type(ket), intent(in) :: it
     real(wp), dimension(:), pointer :: ob_ket_map
 
-    !might add the calculation of ispsi here
-
-    !here we can add the check of the pertinence of value of ispsi
-    ob_ket_map => ob_ptr(it%ispsi:it%ispsi+it%nphidim-1)
-
-    !also, the f_loc function might be used to determine if the association
-    !corresponds to a shallow or a deep copy
-
+    !ob_ket_map => ob_ptr(it%ispsi:it%ispsi+it%nphidim-1)
+    ob_ket_map => f_subptr(ob_ptr,from=it%ispsi,size=it%nphidim)
   end function ob_ket_map
   !the iterator must go in order of localization regions
 
@@ -468,6 +468,36 @@ contains
     nspinor=1
   end function nspinor
 
+  !>provides a zipped iterator. Verify that 
+  !! zipping is possible. Then each of the iterator can be used 
+  !! identically
+  subroutine subspace_iterator_zip(ob1,ob2,ss1,ss2)
+    implicit none
+    type(orbital_basis), intent(in), target :: ob1,ob2
+    type(subspace), intent(out), target :: ss1,ss2
+
+    !first verify the compatibility
+    if (ob1%orbs%nkpts /= ob2%orbs%nkpts) then
+       call f_err_throw('Inconsistent kpoints',&
+            err_name='BIGDFT_RUNTIME_ERROR')
+       return
+    end if
+    if (ob1%td%nspin /= ob2%td%nspin) then
+       call f_err_throw('Inconsistent nspin',&
+            err_name='BIGDFT_RUNTIME_ERROR')
+       return
+    end if
+
+    ss1=subspace_iterator(ob1)
+    ss2=subspace_iterator(ob2)
+
+    !associate mutually the pointers
+    ss1%s2=>ss2
+    ss2%s2=>ss1
+
+  end subroutine subspace_iterator_zip
+
+
   function subspace_iterator(ob) result(ss)
     implicit none
     type(orbital_basis), intent(in), target :: ob
@@ -479,6 +509,8 @@ contains
     ss%ikptp=1
     ss%ispsi_prev=1
     ss%ise_prev=0
+    ss%matrix_size=&
+         ss%ob%td%ndim_ovrlp(ss%ob%td%nspin,ss%ob%orbs%nkpts)
   end function subspace_iterator
 
   !case of subspace iterators
@@ -492,11 +524,14 @@ contains
     ss%ikpt       =f_none()
     ss%kwgt       =f_none()
     ss%occup_ptr  =f_none()
-    ss%ispsi  =f_none()
+    ss%ispsi      =f_none()
     ss%ispsi_prev =f_none()
     ss%ise        =f_none()
     ss%ise_prev   =f_none()
+    ss%matrix_size=f_none()
     nullify(ss%ob)
+    nullify(ss%phi_wvl)
+    nullify(ss%s2)
   end subroutine nullify_subspace
 
   pure function subspace_is_valid(it) result(ok)
@@ -507,6 +542,28 @@ contains
     ok=associated(it%ob)
   end function subspace_is_valid
 
+  !>map the matrix pointer at the correct point
+  function ob_ss_matrix_map(mat,ss) result(ptr)
+    use dynamic_memory, only: f_subptr
+    implicit none
+    real(wp), dimension(:), target, intent(in) :: mat
+    type(subspace), intent(in) :: ss
+    real(wp), dimension(:), pointer :: ptr
+    !local variables
+    integer :: istart,size
+    
+    istart=ss%ob%td%ndim_ovrlp(ss%ispin,ss%ikpt-1)+1
+    size=ss%norb*ss%norb*ss%ncplx
+
+    !the change of shape might be verified, but the mechanism
+    !of f_subptr implementation should pass to a substructure
+    !but on this case the pointer association should be replaced 
+    !by the assignment
+    ptr=>f_subptr(mat,from=istart,size=size)!,&
+              !shape=[ss%ncplx,ss%norb,ss%norb])
+
+  end function ob_ss_matrix_map
+
   function subspace_next(it) result(ok)
     implicit none
     type(subspace), intent(inout) :: it
@@ -515,11 +572,18 @@ contains
     ok=subspace_is_valid(it)
     if (ok) call increment_subspace(it)
     ok=subspace_is_valid(it)
+    if (ok .and. associated(it%s2)) then
+       call increment_subspace(it%s2)
+       if (.not. subspace_is_valid(it%s2)) &
+            call f_err_throw('Error in zipped subspace iterator',&
+            err_name='BIGDFT_RUNTIME_ERROR')
+    end if
   end function subspace_next
 
-  !pure
+  !pure 
   subroutine increment_subspace(it)
     use module_base, only: bigdft_mpi
+    use dynamic_memory, only: f_subptr
     implicit none
     type(subspace), intent(inout) :: it
     !local variables
@@ -532,6 +596,8 @@ contains
           it%ikptp=it%ikptp+1
           it%ispin=1
        else
+          !we should verify that the iterator ss2 is also at its end
+          if (associated(it%s2)) call nullify_subspace(it%s2)
           call nullify_subspace(it)
           exit
        end if
@@ -561,6 +627,10 @@ contains
        it%occup_ptr=>it%ob%orbs%occup(ist:ist+it%norb-1)
 
        it%ispsi_prev=it%ispsi_prev+nvctrp*it%norb*nspinor
+
+       if (associated(it%ob%phis_wvl_t)) it%phi_wvl=>f_subptr(it%ob%phis_wvl_t,from=it%ispsi,&
+            size=it%nvctr*it%ncplx*it%norb)
+       
        exit
     end do
 
@@ -775,11 +845,13 @@ contains
           ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
           ob%dd(iorb)%lr => Lzd%Llr(ilr)
        end do
+       if (present(comms)) ob%td%Glr => Lzd%Glr
     else if (present(Glr)) then
        allocate(ob%dd(orbs%norbp))
        do iorb=1,orbs%norbp
           ob%dd(iorb)%lr => Glr
        end do
+       if (present(comms)) ob%td%Glr => Glr
     end if
 
     if (present(confdatarr))  ob%confdatarr=>confdatarr
@@ -805,8 +877,66 @@ contains
        nullify(ob%dd)
     end if
     call f_free_ptr(ob%td%ndim_ovrlp)
+    call f_free_ptr(ob%phis_wvl_t)
     call nullify_orbital_basis(ob)
   end subroutine orbital_basis_release
+
+  !ensure that the wavefunction is transposed
+  subroutine ob_transpose(ob)
+    use module_base
+    use communications, only: transpose_v
+    implicit none
+    type(orbital_basis), intent(inout) :: ob
+    !local variables
+    integer :: psisize,wsize
+    real(wp), dimension(:), allocatable :: work
+
+    psisize=max(ob%orbs%npsidim_orbs,ob%orbs%npsidim_comp)
+    wsize=1
+    if (.not. associated(ob%phis_wvl_t)) then
+       if (bigdft_mpi%nproc > 1 ) then
+          ob%phis_wvl_t=f_malloc_ptr(psisize,id='phis_wvl_t')
+          wsize=psisize
+       else
+          ob%phis_wvl_t=>ob%phis_wvl
+       end if
+    end if
+
+    work=f_malloc(wsize,id='work')
+
+    call transpose_v(bigdft_mpi%iproc,bigdft_mpi%nproc,&
+         ob%orbs,ob%td%Glr%wfd,ob%td%comms,&
+         ob%phis_wvl(1),work(1),ob%phis_wvl_t(1)) !optional
+    
+    call f_free(work)
+
+  end subroutine ob_transpose
+
+  !ensure that the wavefunction is transposed
+  subroutine ob_untranspose(ob)
+    use module_base
+    use communications, only: untranspose_v
+    implicit none
+    type(orbital_basis), intent(inout) :: ob
+    !local variables
+    integer :: psisize,wsize
+    real(wp), dimension(:), allocatable :: work
+
+    psisize=max(ob%orbs%npsidim_orbs,ob%orbs%npsidim_comp)
+
+    wsize=1
+    if (bigdft_mpi%nproc> 1) wsize=psisize
+    work=f_malloc(psisize,id='work')
+
+    call untranspose_v(bigdft_mpi%iproc,bigdft_mpi%nproc,&
+         ob%orbs,ob%td%Glr%wfd,ob%td%comms,&
+         ob%phis_wvl_t(1),work(1),ob%phis_wvl(1)) !optional
+
+    call f_free(work)
+
+  end subroutine ob_untranspose
+
+
 
 
 !!>  !here we should prepare the API to iterate on the transposed orbitals

@@ -153,6 +153,7 @@ module public_keys
 
   character(len = *), parameter :: TDDFT_VARIABLES = "tddft"
   character(len = *), parameter :: TDDFT_APPROACH = "tddft_approach"
+  character(len = *), parameter :: DECOMPOSE_PERTURBATION = 'decompose_perturbation'
 
   character(len = *), parameter :: PERF_VARIABLES = "perf"
   character(len = *), parameter :: DEBUG = "debug"
@@ -170,8 +171,8 @@ module public_keys
   character(len = *), parameter :: IG_TOL = "ig_tol"
   character(len = *), parameter :: METHORTHO = "methortho"
   character(len = *), parameter :: RHO_COMMUN = "rho_commun"
-  character(len = *), parameter :: PSOLVER_GROUPSIZE = "psolver_groupsize"
-  character(len = *), parameter :: PSOLVER_ACCEL = "psolver_accel"
+!!$  character(len = *), parameter :: PSOLVER_GROUPSIZE = "psolver_groupsize"
+!!$  character(len = *), parameter :: PSOLVER_ACCEL = "psolver_accel"
   character(len = *), parameter :: UNBLOCK_COMMS = "unblock_comms"
   character(len = *), parameter :: LINEAR = "linear"
   character(len = *), parameter :: TOLSYM = "tolsym"

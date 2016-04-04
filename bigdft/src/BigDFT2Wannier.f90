@@ -934,19 +934,9 @@ call cpu_time(tcpu1)
 call system_clock(ncount1,ncount_rate,ncount_max)
 telap=dble(ncount1-ncount0)/dble(ncount_rate)
 if (iproc == 0) &
-   &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0 
-
-
-!!$!finalize memory counting
-!!$call memocc(0,0,'count','stop')
-
+   &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,telap,tcpu1-tcpu0 
 
 call bigdft_finalize(ierr)
-
-!!$! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
-!!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-!!$
-!!$call MPI_FINALIZE(ierr)
 call f_lib_finalize()
 contains
 

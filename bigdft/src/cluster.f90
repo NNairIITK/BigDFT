@@ -23,7 +23,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
        & XC_potential, communicate_density, copy_old_wavefunctions, &
        denspot_set_history, &
        & gaussian_pswf_basis, local_analysis, &
-       & orbitals_descriptors, sumrho, system_initialization
+       & orbitals_descriptors, sumrho, system_initialization,readmywaves
   use gaussians, only: deallocate_gwf
   use module_fragments
   use constrained_dft
@@ -52,7 +52,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use public_enums
   use module_input_keys, only: SIC_data_null,print_dft_parameters,inputpsiid_set_policy,set_inputpsiid
   use orbitalbasis
-  use io, only: plot_density
+  use io, only: plot_density,io_files_exists
   use PSbox, only: PS_gather
   implicit none
   !Arguments
@@ -98,7 +98,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   type(cdft_data) :: cdft
   real(gp), dimension(3) :: shift
   real(dp), dimension(6) :: ewaldstr,xcstr
-  real(gp), dimension(:,:), allocatable :: thetaphi,band_structure_eval
+  real(gp), dimension(:,:), allocatable :: thetaphi,band_structure_eval,rxyz_tmp
   real(gp), dimension(:,:), pointer :: fdisp,fion,fpulay
   ! Charge density/potential,ionic potential, pkernel
   type(DFT_local_fields) :: denspot
@@ -115,10 +115,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   real(kind=8), dimension(:), pointer :: gbd_occ!,rhocore
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd
-  real(gp), dimension(:), allocatable :: wkptv
+  real(gp), dimension(:), allocatable :: wkptv,psi_perturbed
   type(f_enumerator) :: inputpsi,output_denspot
   type(dictionary), pointer :: dict_timing_info
-  type(orbital_basis) :: ob
+  type(orbital_basis) :: ob,ob_occ,ob_virt,ob_prime
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
 
   ! testing
@@ -1193,6 +1193,35 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
                 atoms,rxyz,KSwfn%Lzd%Glr%wfd,VTwfn%psi)
         end if
 
+        if (trim(in%dir_perturbation)/='none/') then !input variable for the Completeness relation expression
+           if (io_files_exists(in%dir_perturbation,'wavefunction',&
+                Kswfn%orbs)) then
+              rxyz_tmp=f_malloc([3,atoms%astruct%nat],id='rxyz_old')
+              psi_perturbed=f_malloc(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp),id='psi_perturbation')
+              call readmywaves(iproc,trim(in%dir_perturbation)// "wavefunction",input_wf_format,KSwfn%orbs,&
+                   n1,n2,n3,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),atoms,rxyz_tmp,rxyz,  &
+                   KSwfn%Lzd%Glr%wfd,psi_perturbed)
+              call orbital_basis_associate(ob_occ,orbs=KSwfn%orbs,&
+                   Lzd=KSwfn%Lzd,phis_wvl=KSwfn%psi,comms=KSwfn%comms)
+              call orbital_basis_associate(ob_virt,orbs=VTwfn%orbs,&
+                   Lzd=VTwfn%Lzd,phis_wvl=VTwfn%psi,comms=VTwfn%comms)
+              call orbital_basis_associate(ob_prime,orbs=KSwfn%orbs,&
+                   Lzd=KSwfn%Lzd,phis_wvl=psi_perturbed,comms=KSwfn%comms)
+
+              call evaluate_completeness_relation(ob_occ,ob_virt,ob_prime)
+
+              call f_free(rxyz_tmp)
+              call f_free(psi_perturbed)
+              call orbital_basis_release(ob_prime)
+              call orbital_basis_release(ob_virt)
+              call orbital_basis_release(ob_occ)
+           else
+              if (bigdft_mpi%iproc ==0) &
+                   call yaml_warning('Files for perturbation expansion "'&
+                   +in%dir_perturbation+'" do not exist')
+           end if
+        end if
+
         !start the Casida's treatment
         if (in%tddft_approach=='TDA') then
 
@@ -1218,7 +1247,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
            !Allocate second Exc derivative
            if (denspot%dpbox%n3p >0) then
-              denspot%f_XC = f_malloc_ptr((/ n1i , n2i , denspot%dpbox%n3p , in%nspin+1 /),id='denspot%f_XC')
+              !initialize fxc to zero in the case of HF calculation
+              denspot%f_XC = f_malloc0_ptr((/ n1i , n2i , denspot%dpbox%n3p , in%nspin+1 /),id='denspot%f_XC')
            else
               denspot%f_XC = f_malloc_ptr((/ 1 , 1 , 1 , in%nspin+1 /),id='denspot%f_XC')
            end if

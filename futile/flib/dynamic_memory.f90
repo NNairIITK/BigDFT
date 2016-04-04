@@ -1129,25 +1129,45 @@ contains
   end subroutine f_malloc_dump_status
 
   !>points toward a region of a given pointer
-  function f_subptr_d0(ptr,region,lbound) result(win)
+  function f_subptr_d0(ptr,region,from,size,lbound) result(win)
     implicit none
-    real(f_double), dimension(:), pointer :: ptr,win
-    type(array_bounds), intent(in) :: region
+    real(f_double), dimension(:), target :: ptr
+    real(f_double), dimension(:), pointer :: win
+    type(array_bounds), intent(in), optional :: region
+    integer, intent(in), optional :: from
+    integer, intent(in), optional :: size
     integer, intent(in), optional :: lbound !<in the case of different bounds for the pointer
     !local variables
-    integer(f_kind) :: lb,ub
+    integer(f_kind) :: lb,ub,is,ie
     
+    if (present(region) .eqv. present(size)) then
+       call f_err_throw('Error in f_subptr, size of the window unknown or redundant',&
+            ERR_INVALID_MALLOC)
+       return
+    end if
+
     nullify(win)
+    if (present(region)) then
+       is=region%nlow
+       ie=region%nhigh
+    else if (present(from)) then
+       is=from
+       ie=from+size-1
+    else
+       is=1
+       ie=size
+    end if
+
     lb=1
     if (present(lbound)) lb=lbound
-    ub=region%nhigh-region%nlow+lb
+    ub=ie-is+lb
     if (ub < lb) return
 
     !perform the association on the window
     if (lb==1) then
-       win => ptr(region%nlow:region%nhigh)
+       win => ptr(is:ie)
     else
-       call f_map_ptr(lb,ub,ptr(lb:ub),win)
+       call f_map_ptr(lb,ub,ptr(is:ie),win)
     end if
 
     !then perform the check for the subpointer region
@@ -1156,8 +1176,8 @@ contains
          trim(yaml_toa(get_lbnd(win)))//' vs. '//trim(yaml_toa(lb)),&
          ERR_MALLOC_INTERNAL)
 
-    if (f_loc(win(lb)) /= f_loc(ptr(region%nlow)) .or. &
-         f_loc(win(ub)) /= f_loc(ptr(region%nhigh))) call f_err_throw(&
+    if (f_loc(win(lb)) /= f_loc(ptr(is)) .or. &
+         f_loc(win(ub)) /= f_loc(ptr(ie))) call f_err_throw(&
          'ERROR (f_subptr): addresses do not match, the allocating system has performed a copy',&
          ERR_MALLOC_INTERNAL)
 
