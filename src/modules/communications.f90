@@ -1531,7 +1531,7 @@ module communications
        integer,dimension(:),allocatable :: cover_id
        integer,dimension(:,:),allocatable :: blocklengths
        integer(kind=mpi_address_kind),dimension(:,:),allocatable :: displacements
-       logical,dimension(:,:),allocatable :: covered
+       logical,dimension(:),allocatable :: covered
        !integer(kind=mpi_address_kind),dimension(:),allocatable :: tmparr_long
        !integer :: total_sent, total_recv
 
@@ -1540,21 +1540,21 @@ module communications
 
        !@ NEW VESRION #############################################
        ! should be 1D later...
-       covered = f_malloc((/ 1.to.nlr, iproc.to.iproc /),id='covered')
+       covered = f_malloc(nlr,id='covered')
 
        ! Determine which locregs process iproc should get.
        ncover = 0
        do ilr=1,nlr
            root=rootarr(ilr)
-           covered(ilr,iproc)=.false.
+           covered(ilr)=.false.
            do jorb=1,orbs%norbp
                jjorb=orbs%isorb+jorb
                jlr=orbs%inwhichlocreg(jjorb)
                ! don't communicate to ourselves, or if we've already sent this locreg
-               if (iproc == root .or. covered(ilr,iproc)) cycle
+               if (iproc == root .or. covered(ilr)) cycle
                call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
                if (isoverlap) then         
-                   covered(ilr,iproc)=.true.
+                   covered(ilr)=.true.
                end if
            end do
            ! For spin polarized calculations, norbup and norbp are different,
@@ -1563,13 +1563,13 @@ module communications
                jjorb=orbs%isorbu+jorb
                jlr=orbs%inwhichlocreg(jjorb)
                ! don't communicate to ourselves, or if we've already sent this locreg
-               if (iproc == root .or. covered(ilr,iproc)) cycle
+               if (iproc == root .or. covered(ilr)) cycle
                call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
                if (isoverlap) then         
-                   covered(ilr,iproc)=.true.
+                   covered(ilr)=.true.
                end if
            end do
-           if (covered(ilr,iproc)) then
+           if (covered(ilr)) then
                ncover = ncover + 1
            end if
        end do
@@ -1577,7 +1577,7 @@ module communications
        cover_id = f_malloc(ncover,id='cover_id')
        ii = 0
        do ilr=1,nlr
-           if (covered(ilr,iproc)) then
+           if (covered(ilr)) then
                ii = ii + 1
                cover_id(ii) = ilr
            end if
