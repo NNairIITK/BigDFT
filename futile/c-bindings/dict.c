@@ -5,8 +5,6 @@
 #include "dict.h"
 #include "dict-fapi.h"
 
-#define max_field_length 256
-
 /******************************/
 /* FutileTree data structure */
 /******************************/

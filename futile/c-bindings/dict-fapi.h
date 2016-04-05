@@ -12,6 +12,8 @@
 
 #undef hz
 
+#define max_field_length 256
+
 /* bind_dict_append futile/c-bindings/dictf.f90:36 */
 /* Fortran header:
 subroutine bind_dict_append(dict)
