@@ -46,7 +46,7 @@ libflib_a_SOURCES = utils.c utilsadd.c \
 	razero.f90 getadd.f90 time.f90 \
 	yaml_parser.c yaml_parse.f90 \
 	f_input_file.f90 randomData.f90 \
-	f_ternary.f90 f_bind.f90 f_objects.f90 \
+	f_ternary.f90 f_bind.f90 f_objects.f90 python.f90 \
 	$(flush_files) $(getarg_files) $(CUDA_PROF)
 
 DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
@@ -100,6 +100,7 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	F_TERNARY.@MODULE_EXT@ \
 	MODULE_F_BIND.@MODULE_EXT@ \
 	MODULE_F_OBJECTS.@MODULE_EXT@ \
+	F_PYTHON.@MODULE_EXT@ \
 	MODULE_RAZERO.@MODULE_EXT@ $(CUDA_MODS)
 else
 modules = yaml_strings.@MODULE_EXT@ \
@@ -122,6 +123,7 @@ modules = yaml_strings.@MODULE_EXT@ \
 	f_ternary.@MODULE_EXT@ \
 	module_f_bind.@MODULE_EXT@ \
 	module_f_objects.@MODULE_EXT@ \
+	f_python.@MODULE_EXT@ \
 	exception_callbacks.@MODULE_EXT@ \
 	time_profiling.@MODULE_EXT@ \
 	module_razero.@MODULE_EXT@ $(CUDA_MODS)
@@ -159,5 +161,6 @@ f_trees.o: f_refcnts.o dictionaries.o yaml_output.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES) f_malloc.o
 razero.o: randomData.o f_precisions.o
 $(flush_object): yaml_output.o dictionaries.o
+python.o: dictionaries.o
 
 time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(NVTX_DEP)
