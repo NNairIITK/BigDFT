@@ -70,7 +70,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   character(len=2) :: symbol
   real(kind=8) :: rcov,rprb,pnrm
   !real(kind=8) :: ehomo,amu
-  integer :: nsccode,mxpl,mxchg,inl
+  integer :: nsccode,mxpl,mxchg,inl,norbtot
   type(mixrhopotDIISParameters) :: mixdiis
   logical :: finished, can_use_ham, found
   !type(confpot_data), dimension(:), allocatable :: confdatarrtmp
@@ -218,8 +218,13 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   call f_zero(mapping)
   covered=.false.
-  iiorb = iisorb
+  norbtot = 0
+  do iat=1,at%astruct%nat
+      norbtot = norbtot + norbsPerAt(iat)
+  end do
+
   do ispin=1,input%nspin
+      iiorb = iisorb + (ispin-1)*norbtot
       do iat=1,nat_par(iproc)
           iiat = isat + iat
           do iorb=1,norbsPerAt(iiat)
