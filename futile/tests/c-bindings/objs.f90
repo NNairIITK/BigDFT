@@ -43,6 +43,14 @@ contains
     write(obj%label, "(A)") label
   end subroutine my_object_set_data
 
+  subroutine my_object_get_size(obj, ln)
+    type(my_object), intent(in) :: obj
+    integer, intent(out) :: ln
+
+    ln = -1
+    if (associated(obj%data)) ln = size(obj%data)
+  end subroutine my_object_get_size
+
   subroutine my_object_serialize(obj)
     use yaml_output
     use yaml_strings
@@ -73,32 +81,36 @@ program test
   use f_precisions
   
   type(my_object) :: obj
+  integer :: ierr
 
   call f_lib_initialize()
 
   call f_object_new("my_object", my_object_alloc, my_object_dealloc)
   call f_object_add_method("my_object", "set_data", my_object_set_data, 2)
   call f_object_add_method("my_object", "serialize", my_object_serialize, 0)
+  call f_object_add_method("my_object", "get_size", my_object_get_size, 1)
 
   call f_object_add_method("class", "version", version, 0)
 
   call my_object_nullify(obj)
   call my_object_set_data(obj, "fortran", (/ 1, 2, 3 /), 3)
 
-  call f_python_initialize()
+  call f_python_initialize(0, 1, 0, 1)
 
-  call f_python_execute("futile.version()")
+  call f_python_execute('print " nproc: %d" % futile.nproc', ierr)
+  call f_python_execute("futile.version()", ierr)
 
   call f_python_add_object("my_object", "obj", obj)
   !call f_python_execute('obj = futile.FObject("my_object", %ld)' % f_loc(obj))
 
-  call f_python_execute("obj.serialize()")
-  call f_python_execute('obj.set_data("python", (4,5,6,7))')
-  call f_python_execute("obj.serialize()")
+  call f_python_execute("obj.serialize()", ierr)
+  call f_python_execute('obj.set_data("python", (4,5,6,7))', ierr)
+  call f_python_execute("obj.serialize()", ierr)
+  call f_python_execute("print ' get_size: %d' % obj.get_size(0)", ierr)
 
-  call f_python_execute('obj2 = futile.FObject("my_object")')
-  call f_python_execute('obj2.set_data("python new", (42, ))')
-  call f_python_execute("obj2.serialize()")
+  call f_python_execute('obj2 = futile.FObject("my_object")', ierr)
+  call f_python_execute('obj2.set_data("python new", (42, ))', ierr)
+  call f_python_execute("obj2.serialize()", ierr)
 
   call f_python_finalize()
 

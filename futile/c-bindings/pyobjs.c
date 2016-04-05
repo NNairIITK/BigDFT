@@ -116,9 +116,9 @@ static int f_py_method_init(FPyMethod *self, PyObject *args, PyObject *kwds)
 static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwds)
 {
   PyObject *iterator = PyObject_GetIter(args);
-  PyObject *item;
+  PyObject *item, *ret;
 
-  int i;
+  int i, j, n_args;
   Py_ssize_t size;
   FutileNumeric type;
   void *arr;
@@ -129,7 +129,9 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
   if (iterator == NULL)
     return NULL;
 
-  for (i = 0; i < (int)self->meth.n_args - 1; i += 1)
+  n_args = (self->self && self->self->address) ?
+    (int)self->meth.n_args - 1 : (int)self->meth.n_args;
+  for (i = 0; i < n_args; i += 1)
     {
       item = PyIter_Next(iterator);
       if (item == NULL)
@@ -139,7 +141,18 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
           return NULL;
         }
 
-      if (PyString_Check(item))
+      if (PyInt_Check(item))
+        {
+          arr = malloc(sizeof(int));
+          *(int*)arr = (int)PyInt_AS_LONG(item);
+          futile_object_method_add_arg_arr(&self->meth, arr, FUTILE_INTEGER_4,
+                                           1, FUTILE_TRANSFER_OWNERSHIP);
+        }
+      else if (PyFloat_Check(item))
+        {
+          futile_object_method_add_arg(&self->meth, &PyFloat_AS_DOUBLE(item));
+        }
+      else if (PyString_Check(item))
         {
           futile_object_method_add_arg_str(&self->meth, PyString_AsString(item),
                                            strlen(PyString_AsString(item)));
@@ -147,7 +160,8 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
       else if (PyTuple_Check(item))
         {
           arr = f_py_tuple_to_arr(item, &type, &size);
-          futile_object_method_add_arg_arr(&self->meth, arr, type, size, FUTILE_TRANSFER_OWNERSHIP);
+          futile_object_method_add_arg_arr(&self->meth, arr,
+                                           type, size, FUTILE_TRANSFER_OWNERSHIP);
         }
       else if (f_py_object_check(item))
         {
@@ -165,14 +179,40 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
       /* release reference when done */
       Py_DECREF(item);
     }
-
   Py_DECREF(iterator);
 
   futile_object_method_execute(&self->meth);
 
+  /* Convert back values. */
+  ret = PyTuple_New(n_args);
+  j = 0;
+  iterator = PyObject_GetIter(args);
+  for (i = 0; i < n_args; i += 1)
+    {
+      item = PyIter_Next(iterator);
+
+      if (PyInt_Check(item))
+        {
+          arr = futile_object_method_get_arg_arr(&self->meth, i);
+          if (PyInt_AS_LONG(item) != (long)*(int*)arr)
+            PyTuple_SET_ITEM(ret, j++, PyInt_FromLong((long)*(int*)arr));
+        }
+      Py_DECREF(item);
+    }
+  Py_DECREF(iterator);
+
   futile_object_method_clean(&self->meth);
 
-  Py_RETURN_NONE;
+  if (j > 0)
+    {
+      _PyTuple_Resize(&ret, j);
+      return ret;
+    }
+  else
+    {
+      Py_DECREF(ret);
+      Py_RETURN_NONE;
+    }
 }
 
 static PyTypeObject FPyMethodType = {

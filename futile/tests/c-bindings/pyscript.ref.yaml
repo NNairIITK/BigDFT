@@ -1,3 +1,5 @@
+ nproc: 1
+ Futile version                        : 1.8
  fortran:
  -  1
  -  2
@@ -7,6 +9,7 @@
  -  5
  -  6
  -  7
+ get_size: 4
  python new:
  -  42
  Memory Consumption Report:
