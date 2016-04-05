@@ -5,13 +5,15 @@
 #endif
 
 #include <futile.h>
+#include <dict-fapi.h>
 
 static void  INThandler(int sig)
 {
   exit(0);
 }
 
-void FC_FUNC_(f_python_initialize, F_PYTHON_INITIALIZE)()
+void FC_FUNC_(f_python_initialize, F_PYTHON_INITIALIZE)(int *iproc, int *nproc,
+                                                        int *igroup, int *ngroup)
 {
 #ifdef HAVE_PYTHON
   PyObject *m, *sys, *p, *path;
@@ -32,7 +34,13 @@ void FC_FUNC_(f_python_initialize, F_PYTHON_INITIALIZE)()
   if (m == NULL)
     PyErr_Print();
   else
-    PyObject_SetAttrString(PyImport_AddModule("__main__"), "futile", m);
+    {
+      PyObject_SetAttrString(PyImport_AddModule("__main__"), "futile", m);
+      PyModule_AddIntConstant(m, "iproc", (long)*iproc);
+      PyModule_AddIntConstant(m, "nproc", (long)*nproc);
+      PyModule_AddIntConstant(m, "igroup", (long)*igroup);
+      PyModule_AddIntConstant(m, "ngroup", (long)*ngroup);
+    }
 #endif
   signal(SIGINT, INThandler);
 }
@@ -80,15 +88,44 @@ void FC_FUNC_(f_python_add_object, F_PYTHON_ADD_OBJECT)(const char *obj_id, cons
 #endif
 }
 
-void FC_FUNC_(f_python_execute, F_PYTHON_EXECUTE)(const char *script, int ln_script)
+void FC_FUNC_(f_python_execute, F_PYTHON_EXECUTE)(const char *script, int *ierr, int ln_script)
 {
   char *data;
 
   data = f2c(script, ln_script);
 
 #ifdef HAVE_PYTHON
-  PyRun_SimpleString(data);
+  *ierr = PyRun_SimpleString(data);
 #endif
 
   free(data);
+}
+
+void FC_FUNC_(f_python_execute_dict, F_PYTHON_EXECUTE_DICT)(f90_dictionary_pointer *dict, int *ierr)
+{
+  char *buf;
+  int i, j, ln;
+  f90_dictionary_pointer iter;
+  gboolean loop;
+
+  FC_FUNC_(bind_dict_len, BIND_DICT_LEN)(dict, &ln);
+  buf = g_malloc(sizeof(char) * ((max_field_length + 1) * ln + 1));
+
+  i = 0;
+  iter = *dict;
+  FC_FUNC_(bind_dict_iter, BIND_DICT_ITER)(&iter, &loop);
+  while (loop)
+    {
+      FC_FUNC_(bind_dict_value, BIND_DICT_VALUE)(&iter, buf + i, max_field_length);
+      for (j = i + max_field_length - 1; j >= i && buf[j] == ' '; j--);
+      buf[j + 1] = '\n';
+      i = j + 2;
+      
+      FC_FUNC_(bind_dict_next, BIND_DICT_NEXT)(&iter, &loop);
+    }
+  buf[i] = '\0';
+#ifdef HAVE_PYTHON
+  *ierr = PyRun_SimpleString(buf);
+#endif
+  g_free(buf);
 }
