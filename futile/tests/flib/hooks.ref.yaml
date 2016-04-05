@@ -1,5 +1,7 @@
  obj:
    value                               :  42
+ obj changed                           :  Yes
+ new value                             :  83
  obj:
    value                               :  83
  Memory Consumption Report:

@@ -16,6 +16,9 @@ void FC_FUNC_(f_python_initialize, F_PYTHON_INITIALIZE)()
 #ifdef HAVE_PYTHON
   PyObject *m, *sys, *p, *path;
 
+  if (Py_IsInitialized())
+    return;
+
   Py_Initialize();
 
   sys = PyImport_AddModule("sys");
