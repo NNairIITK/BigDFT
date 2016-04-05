@@ -16,7 +16,6 @@ module bigdft_run
   use module_atoms, only: atoms_data
   use f_refcnts, only: f_reference_counter,f_ref_new,f_ref,f_unref,&
        nullify_f_ref,f_ref_free
-  use module_f_bind
   use f_utils
   use f_enums, f_str => str
   use module_input_dicts, only: bigdft_set_run_properties => dict_set_run_properties,&
@@ -43,14 +42,6 @@ module bigdft_run
      real(gp), dimension(:,:), pointer :: rf_extra
      type(f_enumerator) :: run_mode !< run_mode for freeing the extra treatments
   end type MM_restart_objects
-
-  type, public :: run_objects_class_type
-     logical :: init = .false.
-     !> Available hooks for object of type run_objects.
-     type(f_bind) :: hook_init, hook_pre, hook_post, hook_destroy
-  end type run_objects_class_type
-  type(run_objects_class_type), target :: my_class !< Global private variable storing the
-                                           !  class properties of ru_objects.
 
   !> Public container to be used with bigdft_state().
   type, public :: run_objects
@@ -88,7 +79,7 @@ module bigdft_run
      integer(kind = 8) :: c_obj                !< Pointer to a C wrapper
   end type state_properties
 
-  public :: run_objects_class
+  public :: run_objects_type_init
   public :: init_state_properties,deallocate_state_properties
   public :: run_objects_free,copy_state_properties
   public :: nullify_run_objects
@@ -124,15 +115,6 @@ module bigdft_run
 !!$     END SUBROUTINE geopt
 !!$
 !!$  end interface
-  interface
-     subroutine bigdft_python_exec_dict(dict, status)
-       use dictionaries
-       implicit none
-       type(dictionary), pointer :: dict
-       integer, intent(out) :: status
-     end subroutine bigdft_python_exec_dict
-  end interface
-
   !> Keys of a run dict. All private, use get_run_prop() and set_run_prop() to change them.
   character(len = *), parameter :: RADICAL_NAME = "radical"
   character(len = *), parameter :: INPUT_NAME   = "input_file"
@@ -622,8 +604,6 @@ contains
     type(MM_restart_objects), intent(in), target :: mm_rst
     real(gp), intent(inout), optional :: rxyz0 !<fake intent(in)
 
-    call run_objects_class_init()
-
     !associate only meaningful objects
     call associate_restart_objects(runObj, rst, mm_rst)
 
@@ -849,22 +829,18 @@ contains
 
   end subroutine state_properties_set_from_dict
 
-  subroutine run_objects_class_init()
-    if (my_class%init) return
+  subroutine run_objects_type_init()
+    use module_f_objects, only: f_object_new, f_object_add_signal
 
-    call f_bind_undefined(my_class%hook_init)
-    call f_bind_undefined(my_class%hook_pre)
-    call f_bind_undefined(my_class%hook_post)
-    call f_bind_undefined(my_class%hook_destroy)
-    my_class%init = .true.
-  end subroutine run_objects_class_init
+    call f_object_new("run_objects")
+    
+    call f_object_add_method("run_objects", "nat", bigdft_nat_bind, 1)
 
-  function run_objects_class()
-    type(run_objects_class_type), pointer :: run_objects_class
-
-    call run_objects_class_init()
-    run_objects_class => my_class
-  end function run_objects_class
+    call f_object_add_signal("run_objects", "init", 1)
+    call f_object_add_signal("run_objects", "pre", 1)
+    call f_object_add_signal("run_objects", "post", 2)
+    call f_object_add_signal("run_objects", "destroy", 1)
+  end subroutine run_objects_type_init
 
   !> Routines to handle the argument objects of bigdft_state().
   pure subroutine nullify_run_objects(runObj)
@@ -953,6 +929,7 @@ contains
     use module_atoms, only: deallocate_atoms_data
     use yaml_output, only: yaml_sequence_close
     use module_input_keys, only: free_input_variables
+    use module_f_objects, only: f_object_signal_prepare, f_object_has_signal, f_object_signal_emit
     implicit none
     type(run_objects), intent(inout) :: runObj
     logical :: release
@@ -961,9 +938,12 @@ contains
     ! Fortran release ownership
     release = .true.
 
-    call f_bind_prepare(my_class%hook_destroy)
-    call f_bind_add_arg(my_class%hook_destroy, runObj)
-    call f_bind_execute(my_class%hook_destroy)
+    if (.not. f_object_has_signal("run_objects", "destroy")) &
+         & call run_objects_type_init()
+    if (f_object_signal_prepare("run_objects", "destroy")) then
+       call f_object_signal_add_arg("run_objects", "destroy", runObj)
+       call f_object_signal_emit("run_objects", "destroy")
+    end if
 
     if (runObj%c_obj /= 0) then
        call run_objects_wrapper_detach(runObj%c_obj, claim)
@@ -1138,6 +1118,7 @@ contains
     use module_input_keys, only: user_dict_from_files
     use yaml_output
     use dynamic_memory
+    use module_f_objects, only: f_object_signal_prepare, f_object_has_signal, f_object_signal_emit
     implicit none
     !> Object for BigDFT run. Has to be initialized by this routine in order to
     !! call bigdft main routine.
@@ -1163,7 +1144,9 @@ contains
 
     call f_routine(id='run_objects_init')
 
-    call run_objects_class_init()
+    if (.not. f_object_has_signal("run_objects", "init")) &
+         & call run_objects_type_init()
+
     call nullify_run_objects(runObj)
 
     if (present(run_dict)) then
@@ -1202,9 +1185,10 @@ contains
           call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
        end if
 
-       call f_bind_prepare(my_class%hook_init)
-       call f_bind_add_arg(my_class%hook_init, runObj)
-       call f_bind_execute(my_class%hook_init)
+       if (f_object_signal_prepare("run_objects", "init")) then
+          call f_object_signal_add_arg("run_objects", "init", runObj)
+          call f_object_signal_emit("run_objects", "init")
+       end if
 
     else if (present(source)) then
        call run_objects_associate(runObj,&
@@ -1483,6 +1467,13 @@ contains
     end if
 
   end function bigdft_nat
+  !> Temporary binding routine.
+  subroutine bigdft_nat_bind(runObj, nat)
+    type(run_objects), intent(in) :: runObj !> BigDFT run structure
+    integer, intent(out) :: nat
+
+    nat = bigdft_nat(runObj)
+  end subroutine bigdft_nat_bind
 
   !> Get the number of orbitals of the run in rst
   function bigdft_norb(runObj) result(norb)
@@ -1625,6 +1616,7 @@ contains
     use f_enums, enum_int => toi
     use SWpotential
     use wrapper_linalg, only: vscal
+    use module_f_objects, only: f_object_signal_prepare, f_object_has_signal, f_object_signal_emit
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
@@ -1682,9 +1674,12 @@ contains
     end if
 
     ! Run any pre hook
-    call f_bind_prepare(my_class%hook_pre)
-    call f_bind_add_arg(my_class%hook_pre, runObj)
-    call f_bind_execute(my_class%hook_pre)
+    if (.not. f_object_has_signal("run_objects", "pre")) &
+         & call run_objects_type_init()
+    if (f_object_signal_prepare("run_objects", "pre")) then
+       call f_object_signal_add_arg("run_objects", "pre", runObj)
+       call f_object_signal_emit("run_objects", "pre")
+    end if
 
     call clean_state_properties(outs) !zero the state first
 
@@ -1784,10 +1779,11 @@ contains
     call broadcast_state_properties(outs)
 
     ! Run any hook post run.
-    call f_bind_prepare(my_class%hook_post)
-    call f_bind_add_arg(my_class%hook_post, runObj)
-    call f_bind_add_arg(my_class%hook_post, outs)
-    call f_bind_execute(my_class%hook_post)
+    if (f_object_signal_prepare("run_objects", "post")) then
+       call f_object_signal_add_arg("run_objects", "post", runObj)
+       call f_object_signal_add_arg("run_objects", "post", outs)
+       call f_object_signal_emit("run_objects", "post")
+    end if
 
     call f_increment(runObj%nstate)
 

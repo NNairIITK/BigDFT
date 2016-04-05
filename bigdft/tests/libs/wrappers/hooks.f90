@@ -7,31 +7,21 @@ program test_hooks
   implicit none 
   !input variables
   type(run_objects) :: runObj
-  type(run_objects_class_type), pointer :: klass
   !output variables
   type(state_properties) :: outs
   character(len=60) :: posinp_id
-  integer :: ierr
+  integer :: ierr, sid
   type(dictionary), pointer :: run, at
-
-  interface
-     subroutine bigdft_python_exec_dict(dict, status)
-       use dictionaries
-       implicit none
-       type(dictionary), pointer :: dict
-       integer, intent(out) :: status
-     end subroutine bigdft_python_exec_dict
-  end interface
 
   call f_lib_initialize()
 
   call bigdft_init()
 
-  klass => run_objects_class()
-  call f_bind_define(klass%hook_init, runInit, 1)
-  call f_bind_define(klass%hook_pre, runPre, 1)
-  call f_bind_define(klass%hook_post, runPost, 2)
-  call f_bind_define(klass%hook_destroy, runDestroy, 1)
+  call run_objects_type_init()
+  call f_object_signal_connect("run_objects", "init", runInit, 1, sid)
+  call f_object_signal_connect("run_objects", "pre", runPre, 1, sid)
+  call f_object_signal_connect("run_objects", "post", runPre, 2, sid)
+  call f_object_signal_connect("run_objects", "destroy", runDestroy, 1, sid)
 
   call dict_init(at)
   call set(at // "H" // 0, 0.)
@@ -40,8 +30,8 @@ program test_hooks
   call dict_init(run)
   call set(run // "posinp" // "positions" // 0, at)
   call set(run // "posinp" // "properties" // "format", "ascii")
-  call set(run // "py_hooks" // "init0" // 0, 'print "hello"')
-  call set(run // "py_hooks" // "pre0" // 0, 'print run.atoms.nat')
+  call set(run // "py_hooks" // "init" // 0, 'print "init run objects"')
+  call set(run // "py_hooks" // "pre" // 0, 'nat = run.nat(0); print nat')
 
   call run_objects_init(runObj, run)
   call init_state_properties(outs, bigdft_nat(runObj))
@@ -61,29 +51,29 @@ contains
 
   subroutine runInit(obj)
     use yaml_output
+    use f_python
     type(run_objects), intent(in) :: obj
 
     integer :: ierr
 
-    write(*,*) "init"
     if (associated(obj%py_hooks)) then
-       call bigdft_python_init(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+       call f_python_initialize(bigdft_mpi%iproc, bigdft_mpi%nproc, &
             & bigdft_mpi%igroup, bigdft_mpi%ngroup)
-       if ("init0" .in. obj%py_hooks) then
-          call bigdft_python_exec_dict(obj%py_hooks // "init0", ierr)
+       if ("init" .in. obj%py_hooks) then
+          call f_python_execute_dict(obj%py_hooks // "init", ierr)
           if (ierr /= 0) stop ! Should raise a proper error later.
        end if
     end if
   end subroutine runInit
 
   subroutine runPre(obj)
+    use f_python
     type(run_objects), intent(in) :: obj
 
-    write(*,*) "pre"
-    if ("pre0" .in. obj%py_hooks) then
-       call run_objects_to_python(obj, "run", 3)
-       !call bigdft_python_exec_dict(obj%py_hooks // "pre", ierr)
-       !if (ierr /= 0) stop
+    if ("pre" .in. obj%py_hooks) then
+       call f_python_add_object("run_objects", "run", obj)
+       call f_python_execute_dict(obj%py_hooks // "pre", ierr)
+       if (ierr /= 0) stop
     end if
   end subroutine runPre
 
