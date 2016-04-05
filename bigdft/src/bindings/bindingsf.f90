@@ -1983,6 +1983,14 @@ subroutine dict_init_binding(dict)
   call wrapper(dict)
 END SUBROUTINE dict_init_binding
 
+subroutine dict_free_binding(dict)
+  use dictionaries, only: dictionary, wrapper => dict_free
+  implicit none
+  type(dictionary), pointer :: dict
+
+  call wrapper(dict)
+END SUBROUTINE dict_free_binding
+
 
 subroutine err_severe_override(callback)
   use f_precisions, only: f_loc
