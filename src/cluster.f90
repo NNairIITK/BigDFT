@@ -519,13 +519,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!     matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
      tmb%linmat%kernel_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
          iaction=SPARSE_TASKGROUP,id='tmb%linmat%kernel_%matrix_compr')
-     if (tmb%linmat%l%smmm%nfvctrp>tmb%linmat%l%nfvctrp) then
-         tmb%linmat%kernel_%matrixp = sparsematrix_malloc_ptr(tmb%linmat%l, &
-             iaction=DENSE_MATMUL,id='tmb%linmat%kernel_%matrixp')
-     else
-         tmb%linmat%kernel_%matrixp = sparsematrix_malloc_ptr(tmb%linmat%l, &
-             iaction=DENSE_PARALLEL,id='tmb%linmat%kernel_%matrixp')
-     end if
+     ! SM: Probably not used anymore
+     !!if (tmb%linmat%l%smmm%nfvctrp>tmb%linmat%l%nfvctrp) then
+     !!    tmb%linmat%kernel_%matrixp = sparsematrix_malloc_ptr(tmb%linmat%l, &
+     !!        iaction=DENSE_MATMUL,id='tmb%linmat%kernel_%matrixp')
+     !!else
+     !!    tmb%linmat%kernel_%matrixp = sparsematrix_malloc_ptr(tmb%linmat%l, &
+     !!        iaction=DENSE_PARALLEL,id='tmb%linmat%kernel_%matrixp')
+     !!end if
      tmb%linmat%ham_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, &
          iaction=SPARSE_TASKGROUP,id='tmb%linmat%ham_%matrix_compr')
      tmb%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, &

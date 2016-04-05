@@ -351,8 +351,9 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
            norb_par_ref, norbu_par_ref, norbd_par_ref)
   use module_base
   use module_types
-  use module_interfaces, only: assignToLocreg2, orbitals_descriptors
+  use module_interfaces, only: orbitals_descriptors
   use public_enums
+  use locregs_init, only: assign_to_atoms_and_locregs
   implicit none
   
   ! Calling arguments
@@ -431,43 +432,53 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
            input%gen_nkpt, input%gen_kpt, input%gen_wkpt, lorbs,LINEAR_PARTITION_SIMPLE) !simple repartition
    end if
 
-  locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
+  !!locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
 
-  
-  ! this loop does not take into account the additional TMBs required for spin polarized systems
-  ilr=0
-  do iat=1,astruct%nat
-      ityp=astruct%iatype(iat)
-      do iorb=1,input%lin%norbsPerType(ityp)
-          ilr=ilr+1
-          locregCenter(:,ilr)=rxyz(:,iat)
-          ! DEBUGLR write(10,*) iorb,locregCenter(:,ilr)
-      end do
-  end do
+  !!
+  !!! this loop does not take into account the additional TMBs required for spin polarized systems
+  !!ilr=0
+  !!do iat=1,astruct%nat
+  !!    ityp=astruct%iatype(iat)
+  !!    do iorb=1,input%lin%norbsPerType(ityp)
+  !!        ilr=ilr+1
+  !!        locregCenter(:,ilr)=rxyz(:,iat)
+  !!        ! DEBUGLR write(10,*) iorb,locregCenter(:,ilr)
+  !!    end do
+  !!end do
 
-  ! Correction for spin polarized systems. For non polarized systems, norbu=norb and the loop does nothing.
-  do iorb=lorbs%norbu+1,lorbs%norb
-      locregCenter(:,iorb)=locregCenter(:,iorb-lorbs%norbu)
-  end do
+  !!! Correction for spin polarized systems. For non polarized systems, norbu=norb and the loop does nothing.
+  !!do iorb=lorbs%norbu+1,lorbs%norb
+  !!    locregCenter(:,iorb)=locregCenter(:,iorb-lorbs%norbu)
+  !!end do
 
  
-  norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
-  norbsPerLocreg=1 !should be norbsPerLocreg
+  !!norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
+  !!norbsPerLocreg=1 !should be norbsPerLocreg
     
-  call f_free_ptr(lorbs%inWhichLocreg)
-  call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norbu, lorbs%norb_par, astruct%nat, nlr, &
-       input%nspin, norbsPerLocreg, lorbs%spinsgn, locregCenter, lorbs%inwhichlocreg)
+  !!call f_free_ptr(lorbs%inWhichLocreg)
+  !!call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norbu, lorbs%norb_par, astruct%nat, nlr, &
+  !!     input%nspin, norbsPerLocreg, lorbs%spinsgn, locregCenter, lorbs%inwhichlocreg)
 
+  !!call f_free_ptr(lorbs%onwhichatom)
+  !!call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norbu, lorbs%norb_par, astruct%nat, astruct%nat, &
+  !!     input%nspin, norbsPerAtom, lorbs%spinsgn, rxyz, lorbs%onwhichatom)
+
+  !!if (iproc==0) write(*,*) 'OLD: iwl',lorbs%inwhichlocreg
+  !!if (iproc==0) write(*,*) 'OLD: owa',lorbs%onwhichatom
+
+  call f_free_ptr(lorbs%inWhichLocreg)
   call f_free_ptr(lorbs%onwhichatom)
-  call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norbu, lorbs%norb_par, astruct%nat, astruct%nat, &
-       input%nspin, norbsPerAtom, lorbs%spinsgn, rxyz, lorbs%onwhichatom)
+  call assign_to_atoms_and_locregs(iproc, nproc, lorbs%norb, astruct%nat, input%nspin, norbsPerAtom, rxyz, &
+       lorbs%onwhichatom, lorbs%inwhichlocreg)
+  !!if (iproc==0) write(*,*) 'NEW: iwl',lorbs%inwhichlocreg
+  !!if (iproc==0) write(*,*) 'NEW: owa',lorbs%onwhichatom
 
   
   lorbs%eval = f_malloc_ptr(lorbs%norb,id='lorbs%eval')
   lorbs%eval=-.5d0
   
-  call f_free(norbsPerLocreg)
-  call f_free(locregCenter)
+  !!call f_free(norbsPerLocreg)
+  !!call f_free(locregCenter)
   call f_free(norbsPerAtom)
 
   call f_release_routine()

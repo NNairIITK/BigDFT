@@ -23,6 +23,7 @@ module locregs_init
   !public :: determine_wfd_periodicity !is this one deprecated?
   public :: check_linear_inputguess
   public :: small_to_large_locreg
+  public :: assign_to_atoms_and_locregs
 
 
   contains
@@ -2343,6 +2344,178 @@ module locregs_init
       end do
           
     end subroutine check_linear_inputguess
+
+
+    subroutine assign_to_atoms_and_locregs(iproc, nproc, norb, nat, nspin, norb_per_atom, rxyz, &
+               on_which_atom, in_which_locreg)
+      use module_base
+      use sort, only: QsortC
+      implicit none
+    
+      integer,intent(in):: nat,iproc,nproc,nspin,norb
+      integer,dimension(nat),intent(in):: norb_per_atom
+      real(8),dimension(3,nat),intent(in):: rxyz
+      integer,dimension(:),pointer,intent(out):: on_which_atom, in_which_locreg
+    
+      ! Local variables
+      integer:: iat, jproc, iiOrb, iorb, jorb, jat, iiat, i_stat, i_all, ispin, iispin, istart, iend, ilr, jjat
+      integer :: jjorb, norb_check, norb_nospin, isat, ii, iisorb, natp
+      integer,dimension(:),allocatable :: irxyz_ordered, nat_par
+      real(kind=8), parameter :: tol=1.0d-6 
+      real(8):: tt, dmin, minvalue, xmin, xmax, ymin, ymax, zmin, zmax
+      integer:: iatxmin, iatxmax, iatymin, iatymax, iatzmin, iatzmax, idir, nthread, ithread
+      real(8),dimension(3):: diff
+      real(kind=8),dimension(:),allocatable :: rxyz_dir, minvalue_thread
+      integer,dimension(:),allocatable :: iiat_thread
+    
+      call f_routine(id='assign_to_atoms_and_locregs')
+
+      ! Determine in which direction the system has its largest extent
+      xmin=1.d100
+      ymin=1.d100
+      zmin=1.d100
+      xmax=-1.d100
+      ymax=-1.d100
+      zmax=-1.d100
+      do iat=1,nat
+          if(rxyz(1,iat)<xmin) then
+              xmin=rxyz(1,iat)
+              iatxmin=iat
+          end if
+          if(rxyz(1,iat)>xmax) then
+              xmax=rxyz(1,iat)
+              iatxmax=iat
+          end if
+          if(rxyz(2,iat)<ymin) then
+              ymin=rxyz(2,iat)
+              iatymin=iat
+          end if
+          if(rxyz(2,iat)>ymax) then
+              ymax=rxyz(2,iat)
+              iatymax=iat
+          end if
+          if(rxyz(3,iat)<zmin) then
+              zmin=rxyz(3,iat)
+              iatzmin=iat
+          end if
+          if(rxyz(3,iat)>zmax) then
+              zmax=rxyz(3,iat)
+              iatzmax=iat
+          end if
+      end do
+    
+      diff(1)=xmax-xmin
+      diff(2)=ymax-ymin
+      diff(3)=zmax-zmin
+      !First 4 ifs control if directions the same length to disambiguate (was random before)
+      !else, just choose the biggest
+      if(abs(diff(1)-diff(2)) < tol .and. diff(1) > diff(3)) then
+        idir=1
+        iiat=iatxmin
+      else if(abs(diff(1)-diff(3)) < tol .and. diff(1) > diff(2)) then
+        idir=1
+        iiat=iatxmin
+      else if(abs(diff(2)-diff(3)) < tol .and. diff(2) > diff(1)) then
+        idir=2
+        iiat=iatymin
+      else if(abs(diff(1)-diff(3)) < tol .and. abs(diff(2)-diff(3)) < tol) then
+        idir=1
+        iiat=iatxmin
+      else
+         if(maxloc(diff,1)==1) then
+             idir=1
+             iiat=iatxmin
+         else if(maxloc(diff,1)==2) then
+             idir=2
+             iiat=iatymin
+         else if(maxloc(diff,1)==3) then
+             idir=3
+             iiat=iatzmin
+         else
+             call f_err_throw('ERROR: not possible to determine the maximal extent')
+         end if
+      end if
+
+
+      ! Lookup array which orders the atoms with respect to the direction idir
+      rxyz_dir = f_malloc(nat,id='rxyz_dir')
+      irxyz_ordered = f_malloc(nat,id='irxyz_ordered')
+      do ilr=1,nat
+          rxyz_dir(ilr) = rxyz(idir,ilr)
+          irxyz_ordered(ilr) = ilr
+      end do
+      !!do ilr=1,nat
+      !!    if (iproc==0) write(*,*) 'B: rxyz_dir(ilr), irxyz_ordered(ilr)', rxyz_dir(ilr), irxyz_ordered(ilr)
+      !!end do
+      call QsortC(rxyz_dir, irxyz_ordered)
+      !!do ilr=1,nat
+      !!    if (iproc==0) write(*,*) 'A: rxyz_dir(ilr), irxyz_ordered(ilr)', rxyz_dir(ilr), irxyz_ordered(ilr)
+      !!end do
+
+      on_which_atom = f_malloc0_ptr(norb,id='on_which_atom')
+      in_which_locreg = f_malloc0_ptr(norb,id='inWhichLocreg')
+
+      ! Total number of orbitals without spin
+      norb_nospin = 0
+      do jat=1,nat
+          norb_nospin = norb_nospin + norb_per_atom(jat)
+      end do
+
+      ! Parallelization over the atoms
+      nat_par = f_malloc(0.to.nproc-1,id='nat_par')
+      natp = nat/nproc
+      nat_par(:) = natp
+      ii = nat-natp*nproc
+      nat_par(0:ii-1) = nat_par(0:ii-1) + 1
+      isat = sum(nat_par(0:iproc-1))
+      ! check
+      ii = sum(nat_par)
+      if (ii/=nat) call f_err_throw('ii/=nat',err_name='BIGDFT_RUNTIME_ERROR')
+      iisorb = 0
+      iiat = 0
+      do jproc=0,iproc-1
+          do iat=1,nat_par(jproc)
+              iiat = iiat + 1
+              jjat = irxyz_ordered(iiat)
+              iisorb = iisorb + norb_per_atom(jjat)
+          end do
+      end do
+
+      ! Calculate on_which_atom and in_which_locreg...
+      norb_check = 0
+      do ispin=1,nspin
+          iiorb = iisorb + (ispin-1)*norb_nospin
+          do iat=1,nat_par(iproc)
+              iiat = isat + iat
+              jjat = irxyz_ordered(iiat)
+              jjorb = (ispin-1)*norb_nospin
+              do jat=1,jjat-1
+                  jjorb = jjorb + norb_per_atom(jat)
+              end do
+              do iorb=1,norb_per_atom(jjat)
+                  iiorb = iiorb + 1
+                  jjorb = jjorb + 1
+                  on_which_atom(iiorb) = jjat
+                  in_which_locreg(iiorb) = jjorb
+                  norb_check = norb_check + 1
+              end do
+          end do   
+      end do
+      call mpiallred(norb_check, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      if (norb_check/=norb) call f_err_throw('norb_check/=norb',err_name='BIGDFT_RUNTIME_ERROR')
+
+      call mpiallred(on_which_atom, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(in_which_locreg, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+      call f_free(nat_par)
+      call f_free(rxyz_dir)
+      call f_free(irxyz_ordered)
+
+    
+      call f_release_routine()
+    
+    end subroutine assign_to_atoms_and_locregs
+
    
 end module locregs_init
 
