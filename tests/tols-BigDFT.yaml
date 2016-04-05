@@ -1723,6 +1723,7 @@ periodic_silicon:
  D Tr: 1.0e-9
  trace: 5.7e-10
  EH: 1.01e-10
+ Atomic Forces (Ha/Bohr): 1.6e-11
  Maxdiff for transpose (checksum): 2.4e-10
 
 periodic_wateredge:
