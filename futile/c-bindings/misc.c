@@ -8,7 +8,7 @@
 
 void FC_FUNC_(f_lib_initialize, F_LIB_INITIALIZE)(void);
 void FC_FUNC_(f_lib_finalize, F_LIB_FINALIZE)(void);
-void FC_FUNC_(f_object_get_method, F_OBJECT_GET_METHOD)(const char *obj_id, const char *meth_id, int *n_args, void **callback, int ln_obj_id, int ln_meth_id);
+void FC_FUNC_(f_object_get_method, F_OBJECT_GET_METHOD)(const char *obj_id, const char *meth_id, int *n_args, int *isfunc, void **callback, int ln_obj_id, int ln_meth_id);
 
 void futile_initialize()
 {
@@ -28,9 +28,9 @@ gboolean futile_object_get_method(FutileMethod *meth,
     return FALSE;
 
   if (obj_id && obj_id[0])
-    FC_FUNC_(f_object_get_method, F_OBJECT_GET_METHOD)(obj_id, meth_id, (int*)&meth->n_args, &callback, strlen(obj_id), strlen(meth_id));
+    FC_FUNC_(f_object_get_method, F_OBJECT_GET_METHOD)(obj_id, meth_id, (int*)&meth->n_args, &meth->isfunc, &callback, strlen(obj_id), strlen(meth_id));
   else
-    FC_FUNC_(f_object_get_method, F_OBJECT_GET_METHOD)("class", meth_id, (int*)&meth->n_args, &callback, strlen("class"), strlen(meth_id));
+    FC_FUNC_(f_object_get_method, F_OBJECT_GET_METHOD)("class", meth_id, (int*)&meth->n_args, &meth->isfunc, &callback, strlen("class"), strlen(meth_id));
   if (!callback)
     return FALSE;
   
@@ -69,6 +69,16 @@ void futile_object_method_add_arg_arr(FutileMethod *meth, void *arg,
   meth->arrays[meth->n_arrs++] = arr;
   futile_object_method_add_arg(meth, arg);
   futile_object_method_add_arg(meth, &meth->arrays[meth->n_arrs - 1].size);
+}
+
+void* futile_object_method_get_arg_arr(FutileMethod *meth, unsigned int i)
+{
+  unsigned int j;
+
+  for (j = 0; j < meth->n_arrs; j++)
+    if (meth->arrays[j].iarg == i)
+      return meth->arrays[j].data;
+  return NULL;
 }
 
 void futile_object_method_clean(FutileMethod *meth)

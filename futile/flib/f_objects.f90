@@ -12,6 +12,8 @@ module module_f_objects
   public :: f_object_add_signal, f_object_signal_prepare, f_object_signal_add_arg
   public :: f_object_signal_emit, f_object_signal_connect
 
+  public :: f_object_has_signal
+
 contains
 
   subroutine ensure_init()
@@ -40,26 +42,33 @@ contains
          & call f_object_add_method(obj_id, "destructor", destructor_add, 0)
   end subroutine f_object_new
   
-  subroutine f_object_add_method(obj_id, id, method_add, n_args)
+  subroutine f_object_add_method(obj_id, id, method_add, n_args, isfunc)
     use f_precisions
     implicit none
     character(len = *), intent(in) :: obj_id, id
     integer(f_address), intent(in) :: method_add
     integer, intent(in) :: n_args
+    logical, optional, intent(in) :: isfunc
 
     call ensure_init()
     if (.not. (obj_id .in. class_library) .and. obj_id /= "class") stop
     
     call set(class_library // obj_id // "methods" // id // "address", method_add)
     call set(class_library // obj_id // "methods" // id // "n_args", n_args)
+    call set(class_library // obj_id // "methods" // id // "function", .false.)
+    if (present(isfunc)) &
+         & call set(class_library // obj_id // "methods" // id // "function", isfunc)
   end subroutine f_object_add_method
 
-  subroutine f_object_get_method(obj_id, method_id, n_args, callback)
+  subroutine f_object_get_method(obj_id, method_id, n_args, isfunc, callback)
     use f_precisions
+    use yaml_output
     implicit none
     character(len = *), intent(in) :: obj_id, method_id
-    integer, intent(out) :: n_args
+    integer, intent(out) :: n_args, isfunc
     integer(f_address), intent(out) :: callback
+
+    logical :: isfunc_
 
     n_args = 0
     callback = 0
@@ -69,6 +78,9 @@ contains
 
     n_args = class_library // obj_id // "methods" // method_id // "n_args"
     callback = class_library // obj_id // "methods" // method_id // "address"
+    isfunc = 0
+    isfunc_ = class_library // obj_id // "methods" // method_id // "function"
+    if (isfunc_) isfunc = 1
   end subroutine f_object_get_method
 
   subroutine f_object_add_signal(obj_id, id, n_args)
@@ -184,6 +196,17 @@ contains
     call add(class_library // obj_id // "signals" // id // "hooks", hook)
   end subroutine f_object_signal_connect
 
+  function f_object_has_signal(obj_id, id)
+    implicit none
+    character(len = *), intent(in) :: obj_id, id
+    logical :: f_object_has_signal
+
+    call ensure_init()
+
+    f_object_has_signal = (obj_id .in. class_library)
+    if (f_object_has_signal) &
+         & f_object_has_signal = (id .in. class_library // obj_id // "signals")
+  end function f_object_has_signal
 end module module_f_objects
 
 
@@ -208,14 +231,24 @@ subroutine f_object_add_method(obj_id, id, method, n_args)
   call wrapper_add(obj_id, id, f_loc(method), n_args)
 end subroutine f_object_add_method
 
-subroutine f_object_get_method(obj_id, method_id, n_args, callback)
+subroutine f_object_add_function(obj_id, id, method, n_args)
+  use f_precisions
+  use module_f_objects, only: wrapper_add => f_object_add_method
+  character(len = *), intent(in) :: obj_id, id
+  integer, intent(in) :: n_args
+  external :: method
+  
+  call wrapper_add(obj_id, id, f_loc(method), n_args, .true.)
+end subroutine f_object_add_function
+
+subroutine f_object_get_method(obj_id, method_id, n_args, isfunc, callback)
   use f_precisions
   use module_f_objects, only: wrapper_get => f_object_get_method
   character(len = *), intent(in) :: obj_id, method_id
-  integer, intent(out) :: n_args
+  integer, intent(out) :: n_args, isfunc
   integer(f_address), intent(out) :: callback
   
-  call wrapper_get(obj_id, method_id, n_args, callback)
+  call wrapper_get(obj_id, method_id, n_args, isfunc, callback)
 end subroutine f_object_get_method
 
 subroutine f_object_signal_add_arg(obj_id, id, arg)
