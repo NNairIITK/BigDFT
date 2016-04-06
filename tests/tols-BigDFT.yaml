@@ -359,6 +359,7 @@ mixpotential:
  EXC: 1.1e-10
  EvXC: 1.1e-10
  Enl: 2.1e-11
+ EH: 1.0e-10
  Energy (Hartree): 5.9e-11
  Maxdiff for overlap calculation: 1.5e-07
  Maxdiff for transpose (checksum): 1.2e-10
@@ -721,6 +722,7 @@ cdft_ohohfoe:
  Tr(K): 1.1e-08
  guess for new ef: 1.1e-09
  eF: 1.1e-07
+ eBS: 1.1e-9
 
 cdft_ohoh:
  Epsilon: 7.1e-10
@@ -975,9 +977,9 @@ foe:
  D: 1.1e-10
  Energy (Hartree): 1.3e-10
  norm(P): 1.1e-07
- trace: 1.5e-10
+ trace: 4.3e-10
  Maxdiff for overlap calculation: 3.2e-07
- Maxdiff for transpose (checksum): 2.4e-10
+ Maxdiff for transpose (checksum): 4.7e-10
 
 onlyhigh:
  Energies: 2.1e-9
@@ -995,11 +997,11 @@ onlyhigh:
 
 rotatesmall_read1:
  Epsilon: 1.1e-11
- Maxdiff for transpose (checksum): 3.0e-11
+ Maxdiff for transpose (checksum): 8.8e-11
 
 rotatesmall_read2:
  Average noise forces: 1.1e-10 
- Maxdiff for transpose (checksum): 3.0e-11
+ Maxdiff for transpose (checksum): 5.9e-11
 
 linearcubic_cubic:
  Epsilon: 1.1e-10
@@ -1458,9 +1460,9 @@ geoptconstrained_SDCG:
  difference: 2.7e-11
 
 O2spin_diag:
- Atomic Forces (Ha/Bohr): 2.8e-7
+ Atomic Forces (Ha/Bohr): 1.1e-6
  Average noise forces: 9.5e-8
- Clean forces norm (Ha/Bohr): 9.9e-7
+ Clean forces norm (Ha/Bohr): 2.7e-6
  Raw forces norm (Ha/Bohr): 9.9e-7
  Orbitals: 2.7e-7
  EH: 1.9e-6
@@ -1475,8 +1477,9 @@ O2spin_diag:
  multiplicator for the confinement: 1.4e-6
  D: 1.1e-9
  kappa: 1.1e-4
- Force Norm (Hartree/Bohr): 3.7e-8
+ Force Norm (Hartree/Bohr): 1.5e-6
  Maxdiff for transpose (checksum): 5.9e-11
+ delta: 1.1e-10
 
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 2.62e-8
@@ -1536,6 +1539,7 @@ O2spin_dirmin:
  delta out: 1.1e-10
  Force Norm (Hartree/Bohr): 3.45e-5
  Maxdiff for transpose (checksum): 5.9e-11
+ number of corrected points: 24.0
 
 verysparse:
  Total charge: 2.3e-8
@@ -1567,7 +1571,7 @@ verysparse:
  Average noise forces: 1.0e-9
  Energy (Hartree): 4.4e-9
  Ion-Ion interaction energy: 8.1e-11
- Maxdiff for overlap calculation: 7.1e-06
+ Maxdiff for overlap calculation: 1.2e-05
  Maxdiff for transpose (checksum): 4.7e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
@@ -1628,8 +1632,8 @@ FF_LENOSKY-sqnm:
 FF_LENOSKY-lbfgs:
   FORCES norm(Ha/Bohr): 9.01e-6
   Forces: 1.e-4
-  etot: 7.40e-6
-  maxval: 1.3e-5
+  etot: 7.9e-6
+  maxval: 1.41e-5
   Alpha: 0.00101
   Keys to ignore:
   - WARNINGS
@@ -1657,7 +1661,7 @@ FF_LENOSKY-bfgs:
 
 FF_LENOSKY-diis:
   FORCES norm(Ha/Bohr): 1.11e-6
-  etot: 1.35e-7
+  etot: 1.39e-7
   Keys to ignore:
   - WARNINGS
 
@@ -1730,7 +1734,7 @@ periodic_wateredge:
  Epot: 1.1e-9
  Omega: 3.0e-10
  Enl: 2.1e-10
- EH: 1.0e-9
+ EH: 1.1e-9
  EXC: 1.1e-10
  EvXC: 2.1e-10
  Ekin: 1.1e-9
@@ -1742,6 +1746,7 @@ periodic_wateredge:
  Total ionic charge: 2.7e-11
  Pressure: 7.4e-10
  Maxdiff for transpose (checksum): 1.2e-10
+ Force Norm (Hartree/Bohr): 1.3e-11
 
 periodic_water:
  EH: 3.1e-9
@@ -1776,12 +1781,13 @@ periodic_water:
 
 
 surface_boronnitride:
+ EH: 1.0e-9
  Ekin: 1.0e-9
  Enl: 1.01e-9
  Epot: 1.0e-9
  Omega: 2.7e-10
- energy: 5.5e-11
- Energy (Hartree): 5.5e-11
+ energy: 5.8e-11
+ Energy (Hartree): 5.8e-11
  Total charge: 1.0e-10
  Total ionic charge: 4.2e-11
  Clean forces norm (Ha/Bohr): 1.3e-11
@@ -1807,7 +1813,7 @@ surface_graphene:
  Energy (Hartree): 2.5e-11
  Total charge: 1.1e-10
  energy: 2.0e-11
- trace: 9.2e-10
+ trace: 1.4e-9
  D Tr: 2.1e-11
  Maxdiff for transpose (checksum): 4.7e-10
  trace(KS): 1.2e-11
@@ -2023,8 +2029,8 @@ igortho_44:
  Ekin: 1.0e-9
  Total charge: 1.5e-08
  guess for new ef: 2.0e-05
- Tr(K): 4.5e-07
- D Tr(K): 4.5e-07
+ Tr(K): 1.1e-06
+ D Tr(K): 1.0e-06
  eF: 2.0e-05
  D Tr: 4.4e-7
  D eF: 8.4e-6
@@ -2054,7 +2060,7 @@ igortho_44:
  trace: 1.3e-10
  Maxdiff for transpose (checksum): 4.7e-10
  norm(P): 1.0e-5
- Q matrix: 1.0e-4
+ Q matrix: 1.1e-4
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -2484,6 +2490,7 @@ matrixtaskgroups_no:
   EH: 1.1e-08
   Epot: 1.0e-8
   EvXC: 1.0e-9
+  EXC: 1.1e-9
   Enl: 1.0e-9
   Energy (Hartree): 3.0e-09
   Ion-Ion interaction energy: 2.9e-10
@@ -2491,7 +2498,7 @@ matrixtaskgroups_no:
   Total charge: 2.0e-10
   difference: 7.8e-11
   energy: 3.0e-09
-  trace: 1.1e-06
+  trace: 1.50e-06
   trace(KS): 5.1e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
@@ -2500,6 +2507,7 @@ matrixtaskgroups_no:
   Gross support functions moments: 1.1e-9
   Total ionic charge: 9.6e-11
   Maxdiff for transpose (checksum): 3.0e-11 
+  Atomic Forces (Ha/Bohr): 1.2e-11
   Keys to ignore:
    - Calculating wavelets expansion of projectors, found warnings
    - found warnings
@@ -2511,6 +2519,7 @@ matrixtaskgroups_yes:
   EH: 1.1e-08
   Epot: 1.0e-8
   EvXC: 1.0e-9
+  EXC: 1.1e-9
   Enl: 1.0e-9
   Ekin: 1.0e-08
   Energy (Hartree): 3.0e-09
@@ -2519,7 +2528,7 @@ matrixtaskgroups_yes:
   Total charge: 2.0e-10
   difference: 5.9e-11
   energy: 3.0e-09
-  trace: 8.19e-07
+  trace: 1.51e-06
   trace(KS): 3.8e-11
   HOMO-LUMO gap (eV): 3.4e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
@@ -2535,8 +2544,8 @@ matrixtaskgroups_yes:
 test-foeccs:
   EBS: 1.1e-10
   EBS higher temperature: 1.0e-10
-  difference: 7.9e-11
-  trace(KS): 5.9e-11
+  difference: 9.6e-11
+  trace(KS): 7.6e-11
   value: 2.8e-11
 
 lj_connect.mhgps.ref.yaml:
