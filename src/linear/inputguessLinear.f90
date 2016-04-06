@@ -231,27 +231,31 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
               iiorb=iiorb+1
               ! Search the corresponding entry in inwhichlocreg
               do jjorb=1,tmb%orbs%norb
-                  if(covered(jjorb)) cycle
+                  !!if(covered(jjorb)) cycle
                   jlr=tmb%orbs%inwhichlocreg(jjorb)
-                  found = .false.
-                  if (present(locregcenters)) then
-                      if( tmb%lzd%llr(jlr)%locregCenter(1)==locregcenters(1,iiat) .and. &
-                          tmb%lzd%llr(jlr)%locregCenter(2)==locregcenters(2,iiat) .and. &
-                          tmb%lzd%llr(jlr)%locregCenter(3)==locregcenters(3,iiat) ) then
-                          found = .true.
-                      end if
-                  else
-                      if( tmb%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iiat) .and. &
-                          tmb%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iiat) .and. &
-                          tmb%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iiat) ) then
-                          found = .true.
-                      end if
-                  end if
-                  if (found) then
-                      covered(jjorb)=.true.
+                  if (jlr==iiorb) then
                       mapping(iiorb)=jjorb
                       exit
                   end if
+                  !!found = .false.
+                  !!if (present(locregcenters)) then
+                  !!    if( tmb%lzd%llr(jlr)%locregCenter(1)==locregcenters(1,iiat) .and. &
+                  !!        tmb%lzd%llr(jlr)%locregCenter(2)==locregcenters(2,iiat) .and. &
+                  !!        tmb%lzd%llr(jlr)%locregCenter(3)==locregcenters(3,iiat) ) then
+                  !!        found = .true.
+                  !!    end if
+                  !!else
+                  !!    if( tmb%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iiat) .and. &
+                  !!        tmb%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iiat) .and. &
+                  !!        tmb%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iiat) ) then
+                  !!        found = .true.
+                  !!    end if
+                  !!end if
+                  !!if (found) then
+                  !!    covered(jjorb)=.true.
+                  !!    mapping(iiorb)=jjorb
+                  !!    exit
+                  !!end if
               end do
           end do
       end do
