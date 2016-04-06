@@ -725,7 +725,7 @@ cdft_ohohfoe:
 cdft_ohoh:
  Epsilon: 7.1e-10
  D: 1.1e-8
- eBS: 9.8e-10
+ eBS: 1.8e-9
 
 cdft_oh-:
  Epot: 1.1e-10
