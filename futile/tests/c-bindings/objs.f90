@@ -3,6 +3,7 @@ module my_objects
   type my_object
      character(len = 10) :: label
      integer, dimension(:), pointer :: data
+     double precision :: mean
   end type my_object
 
 contains
@@ -28,6 +29,7 @@ contains
     type(my_object), intent(out) :: obj
     write(obj%label, "(A)") ""
     nullify(obj%data)
+    obj%mean = 0.
   end subroutine my_object_nullify
 
   subroutine my_object_set_data(obj, label, data, ln)
@@ -38,10 +40,31 @@ contains
     integer, dimension(ln), intent(in) :: data
 
     if (associated(obj%data)) call f_free_ptr(obj%data)
-    obj%data = f_malloc_ptr(size(data), id = "data")
-    obj%data = data
+    if (ln > 0) then
+       obj%data = f_malloc_ptr(size(data), id = "data")
+       obj%data = data
+       obj%mean = real(sum(obj%data)) / real(ln)
+    else
+       call my_object_nullify(obj)
+    end if
     write(obj%label, "(A)") label
   end subroutine my_object_set_data
+
+  subroutine my_object_get_data_addr(obj, data, ln)
+    use dynamic_memory
+    use f_precisions
+    type(my_object), intent(inout) :: obj
+    integer, intent(out) :: ln
+    integer(f_address), intent(out) :: data
+
+    if (associated(obj%data)) then
+       data = f_loc(obj%data)
+       ln = size(obj%data)
+    else
+       data = int(0, f_address)
+       ln = 0
+    end if
+  end subroutine my_object_get_data_addr
 
   subroutine my_object_get_size(obj, ln)
     type(my_object), intent(in) :: obj
@@ -50,6 +73,13 @@ contains
     ln = -1
     if (associated(obj%data)) ln = size(obj%data)
   end subroutine my_object_get_size
+
+  subroutine my_object_get_mean(obj, mean)
+    type(my_object), intent(in) :: obj
+    double precision, intent(out) :: mean
+
+    mean = obj%mean
+  end subroutine my_object_get_mean
 
   subroutine my_object_serialize(obj)
     use yaml_output
@@ -89,6 +119,7 @@ program test
   call f_object_add_method("my_object", "set_data", my_object_set_data, 2)
   call f_object_add_method("my_object", "serialize", my_object_serialize, 0)
   call f_object_add_method("my_object", "get_size", my_object_get_size, 1)
+  call f_object_add_method("my_object", "get_mean", my_object_get_mean, 1)
 
   call f_object_add_method("class", "version", version, 0)
 
@@ -107,6 +138,11 @@ program test
   call f_python_execute('obj.set_data("python", (4,5,6,7))', ierr)
   call f_python_execute("obj.serialize()", ierr)
   call f_python_execute("print ' get_size: %d' % obj.get_size(0)", ierr)
+  call f_python_execute("print ' get_mean: %g' % obj.get_mean(0.)", ierr)
+
+  call f_python_execute("import numpy", ierr)
+  call f_python_execute('obj.set_data("numpy", numpy.array((123, 456), dtype = numpy.int32))', ierr)
+  call f_python_execute("obj.serialize()", ierr)
 
   call f_python_execute('obj2 = futile.FObject("my_object")', ierr)
   call f_python_execute('obj2.set_data("python new", (42, ))', ierr)

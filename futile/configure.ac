@@ -120,10 +120,22 @@ if test x"$ax_have_python" = x"yes" ; then
   py_prefix=`$PYTHON -c "import sys; print sys.prefix"`
   PYTHON_INCLUDES="-I${py_prefix}/include/python${PYTHON_VERSION}"
   AC_SUBST([PYTHON_INCLUDES])
-  AC_LANG_POP(C)
   PYTHON_LIBS="-lpython$PYTHON_VERSION"
   AC_SUBST([PYTHON_LIBS])
   AC_DEFINE([HAVE_PYTHON], [], [if set, we can call Python.h])
+
+  CPPFLAGS_SVG=$CPPFLAGS
+  CPPFLAGS=$CPPFLAGS" $PYTHON_INCLUDES"
+  AC_CHECK_HEADERS([numpy/ndarrayobject.h], [ax_have_numpy=yes], [ax_have_numpy=no],
+    [#ifdef HAVE_PYTHON
+#include <Python.h>
+#endif
+])
+  CPPFLAGS=$CPPFLAGS_SVG
+  AC_LANG_POP(C)
+  if test x"$ax_have_numpy" = x"yes" ; then
+    AC_DEFINE([HAVE_PYTHON_NUMPY], [], [if set, we can call numpy/ndarrayobject.h])
+  fi
 fi
 AM_CONDITIONAL([HAVE_PYTHON], [test x"$ax_have_python" = x"yes"])
 

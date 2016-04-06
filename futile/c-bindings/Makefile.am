@@ -12,7 +12,7 @@ libbindings_a_SOURCES = misc.c futile.h dict.c dict.h dictf.f90 python.c
 libpyimp_a_SOURCES = pyobjs.c
 
 AM_FCFLAGS = -I$(top_builddir)/flib
-AM_CPPFLAGS = -I. @GLIB_CFLAGS@ @PYTHON_INCLUDES@ -D'PYTHON_EXECDIR="$(pyexecdir)"'
+AM_CPPFLAGS = -I. -I$(top_builddir) @GLIB_CFLAGS@ @PYTHON_INCLUDES@ -D'PYTHON_EXECDIR="$(pyexecdir)"'
 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS

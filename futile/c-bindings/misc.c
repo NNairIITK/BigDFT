@@ -62,9 +62,9 @@ void futile_object_method_add_arg_str(FutileMethod *meth, char *arg, int ln)
 }
 void futile_object_method_add_arg_arr(FutileMethod *meth, void *arg,
                                       FutileNumeric type, size_t size,
-                                      gboolean transfer)
+                                      void *buffer, FutileDestroyFunc freeBuffer)
 {
-  FutileArray arr = {meth->n_arrs, type, size, (transfer) ? arg : (void*)0};
+  FutileArray arr = {meth->n_arrs, type, size, buffer, freeBuffer};
 
   meth->arrays[meth->n_arrs++] = arr;
   futile_object_method_add_arg(meth, arg);
@@ -86,8 +86,8 @@ void futile_object_method_clean(FutileMethod *meth)
   int i;
 
   for (i = 0; i < meth->n_arrs; i++)
-    if (meth->arrays[i].data)
-      free(meth->arrays[i].data);
+    if (meth->arrays[i].freefunc && meth->arrays[i].data)
+      meth->arrays[i].freefunc(meth->arrays[i].data);
 }
 
 void futile_object_method_execute(FutileMethod *meth)

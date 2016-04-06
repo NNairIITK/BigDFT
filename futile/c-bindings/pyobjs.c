@@ -3,6 +3,11 @@
 
 #include <futile.h>
 
+#include "config.h"
+#ifdef HAVE_PYTHON_NUMPY
+#include <numpy/ndarrayobject.h>
+#endif
+
 static void* f_py_tuple_to_arr(PyObject *tuple, FutileNumeric *type, Py_ssize_t *size)
 {
   Py_ssize_t i;
@@ -36,6 +41,52 @@ static void* f_py_tuple_to_arr(PyObject *tuple, FutileNumeric *type, Py_ssize_t 
   else
     return NULL;
 }
+#ifdef HAVE_PYTHON_NUMPY
+static void* f_py_array_to_arr(PyObject *array, FutileNumeric *type, Py_ssize_t *size, PyObject **farr)
+{
+  PyArray_Descr *descr;
+  npy_intp *indices;
+  void *arr;
+
+  *type = FUTILE_INTEGER_4;
+  *size = 0;
+  *farr = PyArray_FromAny(array, NULL, 1, 7, NPY_INOUT_FARRAY, NULL);
+  if (*farr == NULL)
+    return NULL;
+
+  indices = malloc(sizeof(npy_intp) * PyArray_NDIM(*farr));
+  memset(indices, '\0', sizeof(npy_intp) * PyArray_NDIM(*farr));
+  arr = PyArray_GetPtr((PyArrayObject*)*farr, indices);
+  free(indices);
+
+  *size = PyArray_Size(*farr);
+  descr = PyArray_DESCR(*farr);
+  switch (descr->kind)
+    {
+    case 'i':
+      if (descr->elsize != 4)
+        {
+          Py_DECREF(*farr);
+          return NULL;
+        }
+      *type = FUTILE_INTEGER_4;
+      break;
+    case 'f':
+      if (descr->elsize != 8)
+        {
+          Py_DECREF(*farr);
+          return NULL;
+        }
+      *type = FUTILE_REAL_8;
+      break;
+    default:
+      Py_DECREF(*farr);
+      return NULL;
+    }
+
+  return arr;
+}
+#endif
 
 typedef struct {
   PyObject_HEAD
@@ -113,10 +164,20 @@ static int f_py_method_init(FPyMethod *self, PyObject *args, PyObject *kwds)
   return 0;
 }
 
+#ifdef HAVE_PYTHON_NUMPY
+static void pyFree(void *obj)
+{
+  Py_DECREF(obj);
+}
+#endif
+
 static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwds)
 {
   PyObject *iterator = PyObject_GetIter(args);
   PyObject *item, *ret;
+#ifdef HAVE_PYTHON_NUMPY
+  PyObject *farr;
+#endif
 
   int i, j, n_args;
   Py_ssize_t size;
@@ -141,16 +202,20 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
           return NULL;
         }
 
+      /* fprintf(stderr, "%s\n", PyString_AsString(PyObject_Str(PyObject_Type(item)))); */
       if (PyInt_Check(item))
         {
           arr = malloc(sizeof(int));
           *(int*)arr = (int)PyInt_AS_LONG(item);
           futile_object_method_add_arg_arr(&self->meth, arr, FUTILE_INTEGER_4,
-                                           1, FUTILE_TRANSFER_OWNERSHIP);
+                                           1, arr, free);
         }
       else if (PyFloat_Check(item))
         {
-          futile_object_method_add_arg(&self->meth, &PyFloat_AS_DOUBLE(item));
+          arr = malloc(sizeof(double));
+          *(double*)arr = PyFloat_AS_DOUBLE(item);
+          futile_object_method_add_arg_arr(&self->meth, arr, FUTILE_REAL_8,
+                                           1, arr, free);
         }
       else if (PyString_Check(item))
         {
@@ -161,8 +226,16 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
         {
           arr = f_py_tuple_to_arr(item, &type, &size);
           futile_object_method_add_arg_arr(&self->meth, arr,
-                                           type, size, FUTILE_TRANSFER_OWNERSHIP);
+                                           type, size, arr, free);
         }
+#ifdef HAVE_PYTHON_NUMPY
+      else if (PyArray_Check(item))
+        {
+          arr = f_py_array_to_arr(item, &type, &size, &farr);
+          futile_object_method_add_arg_arr(&self->meth, arr,
+                                           type, size, farr, pyFree);
+        }
+#endif
       else if (f_py_object_check(item))
         {
           futile_object_method_add_arg(&self->meth, ((FPyObject*)item)->address);
@@ -175,7 +248,6 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
           futile_object_method_clean(&self->meth);
           return NULL;
         }
-      /* futile_object_method_add_arg(&self->meth, PyLong_AsVoidPtr(arg)); */
       /* release reference when done */
       Py_DECREF(item);
     }
@@ -196,6 +268,12 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
           arr = futile_object_method_get_arg_arr(&self->meth, i);
           if (PyInt_AS_LONG(item) != (long)*(int*)arr)
             PyTuple_SET_ITEM(ret, j++, PyInt_FromLong((long)*(int*)arr));
+        }
+      else if (PyFloat_Check(item))
+        {
+          arr = futile_object_method_get_arg_arr(&self->meth, i);
+          if (PyFloat_AS_DOUBLE(item) != *(double*)arr)
+            PyTuple_SET_ITEM(ret, j++, PyFloat_FromDouble(*(double*)arr));
         }
       Py_DECREF(item);
     }
@@ -486,6 +564,10 @@ initfutile(void)
   futile = Py_InitModule("futile", FutilePyMethods);
   if (futile == NULL)
     return;
+
+#ifdef HAVE_PYTHON_NUMPY
+  import_array();
+#endif
 
   Py_INCREF(&FPyMethodType);
   PyModule_AddObject(futile, "FMethod", (PyObject*)&FPyMethodType);
