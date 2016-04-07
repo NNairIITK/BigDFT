@@ -335,20 +335,23 @@ class BigDFTInstaller():
         print 50*'-'
         print 'Thank you for using the Installer of BigDFT suite.'
         print 'The action considered was:',self.action
-        if self.time0 is not None:
-            if self.action in ['build','dry_run']: self.rcfile_from_env()
-            if not (self.time0==self.bigdft_time()):
-                print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
-                print 'All the available executables and scripts can be found in the directory'
-                print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
-            elif (self.action == 'build' or self.action == 'make'):
-                print 'WARNING: The Installer seems NOT have created or updated bigdft executable'
-                print '        (maybe everything was already compiled?)'
-                print 'ACTION: check the compiling procedure.'
-                if self.branch:
-                    print 'HINT: It appears you are compiling from a branch source tree. Did you perform the action "autogen"?'
-                if not self.verbose and self.action == 'build':
-                    print '  HINT: Have a look at the file index.html of the build/ directory to find the reason'
+        try:
+           if self.time0 is not None:
+               if self.action in ['build','dry_run']: self.rcfile_from_env()
+               if not (self.time0==self.bigdft_time()):
+                   print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
+                   print 'All the available executables and scripts can be found in the directory'
+                   print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
+               elif (self.action == 'build' or self.action == 'make'):
+                   print 'WARNING: The Installer seems NOT have created or updated bigdft executable'
+                   print '        (maybe everything was already compiled?)'
+                   print 'ACTION: check the compiling procedure.'
+                   if self.branch:
+                       print 'HINT: It appears you are compiling from a branch source tree. Did you perform the action "autogen"?'
+                   if not self.verbose and self.action == 'build':
+                      print '  HINT: Have a look at the file index.html of the build/ directory to find the reason'
+        except:
+            print 'Goodbye...'
 
 #Now follows the available actions, argparse might be called
 import argparse
@@ -380,7 +383,10 @@ parser.add_argument('-f','--file',
 parser.add_argument('-d','--verbose',action='store_true',
                    help='Verbose output')
 parser.add_argument('-q','--quiet',action='store_true',
-                   help='Ask no question about the setup')
+                   help='Skip dialog after setup')
+parser.add_argument('-c','--configure-line',nargs='*',
+                   help='Specify the configure line to be passed (set BIGDFT_CONFIGURE_FLAGS variable)')
+
 
 
 ###Define the possible actions
@@ -391,6 +397,15 @@ parser.add_argument('-q','--quiet',action='store_true',
 ##    subparsers.add_parser(k,help=v)
 ##
 args = parser.parse_args()
+
+
+if args.configure_line is not None:
+  cfg=''
+  for i in args.configure_line:
+      cfg+='"'+i+'" '
+  #scratch the BIGDFT_CFG environment variable
+  import os
+  os.environ[BIGDFT_CFG]=cfg
 
 if args.action=='help':
     print "Quick overview of the BigDFT suite Installer program"
@@ -405,7 +420,7 @@ if args.action=='help':
     print 50*'-'
     print 10*"QIFI-"+' (Quick Instructions For the Impatient)'
     print 'Ideally, there are two different policies:'
-    print 'Developer: From a development branch, start by "autogen", then "build"'
+    print 'Developer: From a development branch, start by "startover", then "build"'
     print '     User: From a tarball, start by "build"'
     print 'Perform the "dry_run" command to have a graphical overview of the building procedure'
 else:
