@@ -18,7 +18,6 @@
    taylor_order: 4
    output_wf: 2
    calc_dipole: Yes
-   calc_pulay: old
    extra_states: 2
    calculate_onsite_overlap: Yes
  lin_basis:

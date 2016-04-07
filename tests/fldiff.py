@@ -174,6 +174,7 @@ elif psolver:
             or "original" in line \
             or "Max diff at" in line \
             or "result" in line \
+            or "METHOD COUNT" in line \
             or "for the array" in line
 elif pseudo:
     #Remove lines containing the word time

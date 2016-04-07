@@ -69,7 +69,7 @@ subroutine f_utils_test()
   call f_enum_attr(f2,attr=greetings)
 
   call yaml_map('Enum1 char',str(f1))
-  call yaml_map('Enum1 int',int(f1))
+  call yaml_map('Enum1 int',toi(f1))
   call yaml_map('Enum1 check',f1=='Ciao')
 
   call yaml_map('Greetings 1a',f1 .hasattr. 'Greetings') 
@@ -89,6 +89,11 @@ subroutine f_utils_test()
   call yaml_map('Greetings 3a-2',f3 .hasattr. 'Greetings') 
   call yaml_map('Greetings 3b-2',f3 .hasattr. 10)
   call yaml_map('Greetings 3c-2',f3 .hasattr. greetings) 
+
+  !then write the enumerators completely
+  call yaml_map('Enumerator f1',f1)
+  call yaml_map('Enumerator f2',f2)
+  call yaml_map('Enumerator f3',f3)
 
 
   !wait one second

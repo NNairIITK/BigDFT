@@ -168,7 +168,7 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
                         rho,kernel%w%rho_GPU)
        call synchronize()
         end if
-    end if
+     end if
 
      if (kernel%keepGPUmemory == 0) then
         call cudafree(kernel%w%work1_GPU)
@@ -315,13 +315,13 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !integer :: i_all
   real(kind=8) :: twopion
   !work arrays for transpositions
-  real(kind=8), dimension(:,:,:), allocatable :: zt
+  real(kind=8), dimension(:,:,:,:), allocatable :: zt
   real(kind=8), dimension(:,:,:), allocatable :: zt_t
   !work arrays for MPI
   real(kind=8), dimension(:,:,:,:,:), allocatable :: zmpi1
   real(kind=8), dimension(:,:,:,:), allocatable :: zmpi2
   !cache work array
-  real(kind=8), dimension(:,:,:), allocatable :: zw
+  real(kind=8), dimension(:,:,:,:), allocatable :: zw
   !FFT work arrays
   real(kind=8), dimension(:,:), allocatable :: btrig1,btrig2,btrig3
   real(kind=8), dimension(:,:), allocatable :: ftrig1,ftrig2,ftrig3,cosinarr
@@ -329,9 +329,11 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   integer, dimension(7) :: after2,now2,before2,after3,now3,before3
   real(gp), dimension(6) :: strten_omp
   !integer :: ncount0,ncount1,ncount_max,ncount_rate
-
   integer :: maxIter
   integer :: n3pr1,n3pr2,j1start,n1p,n2dimp
+  integer :: ithread, nthread
+  ! OpenMP variables
+  !$ integer :: omp_get_thread_num, omp_get_max_threads
 
   call f_routine(id='G_PoissonSolver')
 
@@ -499,14 +501,19 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 
   if (n3pr1 > 1) zt_t = f_malloc((/ 2, lzt/n3pr1, n1p /),id='zt_t')
 
-!$omp parallel default(shared)&
-  !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp, zw, zt) &
+  nthread = 1
+  !$ nthread = omp_get_max_threads()
+  zw = f_malloc((/ 1.to.2,1.to.ncache/4,1.to.2,0.to.nthread-1 /),id='zw')
+  zt = f_malloc((/ 1.to.2,1.to.lzt/n3pr1,1.to.n1p,0.to.nthread-1 /),id='zt')
+
+  ithread = 0
+  !$omp parallel default(shared)&
+  !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp)&
   !$omp private(j2,i1,i,j3,j) &
-  !$omp firstprivate(lot, maxIter)
+  !$omp firstprivate(lot, maxIter,ithread)
+  !$ ithread = omp_get_thread_num()
 !  !$omp firstprivate(before3, now3, after3)
   
-  allocate( zw(2, ncache/4, 2), stat=i_stat )
-  allocate( zt(2,lzt/n3pr1, n1p), stat=i_stat )
   !$omp do schedule(static)
   do j2 = 1, maxIter
      !this condition ensures that we manage only the interesting part for the FFT
@@ -517,20 +524,20 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 
             if (halffty) then
               !inserting real data into complex array of half lenght
-              call halfill_upcorn(md1,md3,lot,nfft,n3,zf(1,i1,1,j2),zw(1,1,1))
+              call halfill_upcorn(md1,md3,lot,nfft,n3,zf(1,i1,1,j2),zw(1,1,1,ithread))
             else if (cplx) then
               !zf should have four indices
-              call C_fill_upcorn(md1,md3,lot,nfft,n3,zf(1,i1,1,j2),zw(1,1,1))
+              call C_fill_upcorn(md1,md3,lot,nfft,n3,zf(1,i1,1,j2),zw(1,1,1,ithread))
             else
-              call P_fill_upcorn(md1,md3,lot,nfft,n3,zf(1,i1,1,j2),zw(1,1,1))
+              call P_fill_upcorn(md1,md3,lot,nfft,n3,zf(1,i1,1,j2),zw(1,1,1,ithread))
             end if
            !performing FFT
 
            !input: I1,I3,J2,(Jp2)
            inzee=1
            do i=1,ic3
-              call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee), &
-                zw(1,1,3-inzee),ntrig,btrig3,after3(i),now3(i),before3(i),1)
+              call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee,ithread), &
+                zw(1,1,3-inzee,ithread),ntrig,btrig3,after3(i),now3(i),before3(i),1)
               inzee=3-inzee
            enddo
 
@@ -539,9 +546,9 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
            !input: I1,i3,J2,(Jp2)
            if (halffty) then
               call scramble_unpack(i1,j2,lot,nfft,n1dim,n3,md2,nproc,nd3,&
-                   zw(1,1,inzee),zmpi2,cosinarr)
+                   zw(1,1,inzee,ithread),zmpi2,cosinarr)
            else
-              call scramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw(1,1,inzee),zmpi2)
+              call scramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw(1,1,inzee,ithread),zmpi2)
            end if
            !output: I1,J2,i3,(Jp2)
         end do
@@ -609,10 +616,10 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
              !input: I1,J2,j3,Jp2,(jp3)
              if (nproc > 1) then
                 call G_mpiswitch_upcorn2(j3,nfft,Jp2stb,J2stb,lot,&
-                     n1,n1dim,md2,nd3,n3pr1,n3pr2,zmpi1,zw(1,1,1))
+                     n1,n1dim,md2,nd3,n3pr1,n3pr2,zmpi1,zw(1,1,1,ithread))
              else
                 call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
-                     n1,n1dim,md2,nd3,nproc,zmpi2,zw(1,1,1))
+                     n1,n1dim,md2,nd3,nproc,zmpi2,zw(1,1,1,ithread))
              endif
 
              !output: J2,Jp2,I1,j3,(jp3)
@@ -620,14 +627,14 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
              !input: I2,I1,j3,(jp3)
              inzee=1
              do i=1,ic1-1
-                call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee),&
+                call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee,ithread),zw(1,1,3-inzee,ithread),&
                      ntrig,btrig1,after1(i),now1(i),before1(i),1)
                 inzee=3-inzee
              enddo
 
              !storing the last step into zt array
              i=ic1
-             call fftstp_sg(lot,nfft,n1,lzt/n3pr1,n1,zw(1,1,inzee),zt(1,j,1),&
+             call fftstp_sg(lot,nfft,n1,lzt/n3pr1,n1,zw(1,1,inzee,ithread),zt(1,j,1,ithread),&
                   ntrig,btrig1,after1(i),now1(i),before1(i),1)           
              !output: I2,i1,j3,(jp3)
           end do
@@ -649,7 +656,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
             call f_timing(TCAT_PSOLV_COMPUT,'OF')
             call f_timing(TCAT_PSOLV_COMMUN,'ON')
 
-            call MPI_ALLTOALL(zt,2*(n1p/n3pr1)*(lzt/n3pr1),MPI_double_precision,zt_t,2*(n1p/n3pr1)*(lzt/n3pr1), &
+            call MPI_ALLTOALL(zt(1,1,1,ithread),2*(n1p/n3pr1)*(lzt/n3pr1),MPI_double_precision,zt_t,2*(n1p/n3pr1)*(lzt/n3pr1), &
                             MPI_double_precision,inplane_comm,ierr)
 
             call f_timing(TCAT_PSOLV_COMMUN,'OF')
@@ -661,9 +668,9 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
              !reverse ordering 
              !input: I2,i1,j3,(jp3)
              if (n3pr1 >1) then
-               call G_switch_upcorn2(nfft,n2,n2dim,lot,n1p,lzt,zt_t(1,1,1),zw(1,1,1),n3pr1,j)
+               call G_switch_upcorn2(nfft,n2,n2dim,lot,n1p,lzt,zt_t(1,1,1),zw(1,1,1,ithread),n3pr1,j)
              else
-               call G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt(1,1,j),zw(1,1,1))
+               call G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt(1,1,j,ithread),zw(1,1,1,ithread))
              endif
              !output: i1,I2,j3,(jp3)
              !performing FFT
@@ -671,7 +678,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
              inzee=1
 
              do i=1,ic2
-                call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee),&
+                call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee,ithread),zw(1,1,3-inzee,ithread),&
                      ntrig,btrig2,after2(i),now2(i),before2(i),1)
                 inzee=3-inzee
              enddo
@@ -683,18 +690,18 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
             if (n3pr1>1) j1start=(n1p/n3pr1)*iproc_inplane
 
             if (geocode == 'P') then
-              call P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,j+j1start,pot(1,1,j3),zw(1,1,inzee),&
+              call P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,j+j1start,pot(1,1,j3),zw(1,1,inzee,ithread),&
                    i3,hx,hy,hz,offset,scal,strten_omp)
              else
                 !write(*,*) 'pot(1,1,j3) = ', pot(1,1,j3)
-                call multkernel(nd1,nd2,n1,n2,lot,nfft,j+j1start,pot(1,1,j3),zw(1,1,inzee))
+                call multkernel(nd1,nd2,n1,n2,lot,nfft,j+j1start,pot(1,1,j3),zw(1,1,inzee,ithread))
              end if
             
 !TRANSFORM BACK IN REAL SPACE
              !transform along y axis
              !input: i1,i2,j3,(jp3)
              do i=1,ic2
-                call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee),&
+                call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee,ithread),zw(1,1,3-inzee,ithread),&
                      ntrig,ftrig2,after2(i),now2(i),before2(i),-1)
                !zw(:,:,3-inzee)=zw(:,:,inzee)
                 inzee=3-inzee
@@ -704,10 +711,10 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
              !input: i1,I2,j3,(jp3)
            if (n3pr1 == 1) then
              call G_unswitch_downcorn(nfft,n2,n2dim,lot,n1,lzt, &
-               zw(1,1,inzee),zt(1,1,j))
+               zw(1,1,inzee,ithread),zt(1,1,j,ithread))
            else
              call G_unswitch_downcorn2(nfft,n2,n2dim,lot,n1p,lzt, &
-               zw(1,1,inzee),zt_t(1,1,1),n3pr1,j)
+               zw(1,1,inzee,ithread),zt_t(1,1,1),n3pr1,j)
            endif
              !output: I2,i1,j3,(jp3)
         end do
@@ -719,7 +726,8 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
             call f_timing(TCAT_PSOLV_COMPUT,'OF')
             call f_timing(TCAT_PSOLV_COMMUN,'ON')
 
-            call MPI_ALLTOALL(zt_t,2*(n1p/n3pr1)*(lzt/n3pr1),MPI_double_precision,zt,2*(n1p/n3pr1)*(lzt/n3pr1), &
+            call MPI_ALLTOALL(zt_t,2*(n1p/n3pr1)*(lzt/n3pr1),MPI_double_precision,&
+                 zt(1,1,1,ithread),2*(n1p/n3pr1)*(lzt/n3pr1), &
                             MPI_double_precision,inplane_comm,ierr)
 
             call f_timing(TCAT_PSOLV_COMMUN,'OF')
@@ -733,15 +741,15 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
             !performing FFT
              i=1
              if (n3pr1 > 1) then
-               call fftstp_sg(lzt/n3pr1,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1),&
+               call fftstp_sg(lzt/n3pr1,nfft,n1,lot,n1,zt(1,j,1,ithread),zw(1,1,1,ithread),&
                   ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
              else
-               call fftstp_sg(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1),&
+               call fftstp_sg(lzt,nfft,n1,lot,n1,zt(1,j,1,ithread),zw(1,1,1,ithread),&
                   ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
              endif
              inzee=1
              do i=2,ic1
-                call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee),&
+                call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee,ithread),zw(1,1,3-inzee,ithread),&
                      ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
                 inzee=3-inzee
              enddo
@@ -751,10 +759,10 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
              !input: J2,Jp2,I1,j3,(jp3)
              if (nproc == 1) then
                 call G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,&
-                     n1dim,md2,nd3,nproc,zw(1,1,inzee),zmpi2)
+                     n1dim,md2,nd3,nproc,zw(1,1,inzee,ithread),zmpi2)
              else
                 call G_unmpiswitch_downcorn2(j3,nfft,Jp2stf,J2stf,lot,n1,&
-                     n1dim,md2,nd3,n3pr1,n3pr2,zw(1,1,inzee),zmpi1)  
+                     n1dim,md2,nd3,n3pr1,n3pr2,zw(1,1,inzee,ithread),zmpi1)  
              endif
              ! output: I1,J2,j3,Jp2,(jp3)
           end do
@@ -809,9 +817,9 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
            !input: I1,J2,i3,(Jp2)
            if (halffty) then
               call unscramble_pack(i1,j2,lot,nfft,n1dim,n3,md2,nproc,nd3,zmpi2, &
-                zw(1,1,1),cosinarr)
+                zw(1,1,1,ithread),cosinarr)
            else
-              call unscramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw(1,1,1))
+              call unscramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw(1,1,1,ithread))
            end if
            !output: I1,i3,J2,(Jp2)
 
@@ -819,8 +827,8 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
            !input: I1,i3,J2,(Jp2)           
            inzee=1
            do i=1,ic3
-              call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee), &
-                zw(1,1,3-inzee),ntrig,ftrig3,after3(i),now3(i),before3(i),-1)
+              call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee,ithread), &
+                zw(1,1,3-inzee,ithread),ntrig,ftrig3,after3(i),now3(i),before3(i),-1)
               inzee=3-inzee
            enddo
            !output: I1,I3,J2,(Jp2)
@@ -828,12 +836,12 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
            !rebuild the output array
 
             if (halffty) then
-              call unfill_downcorn(md1,md3,lot,nfft,n3,zw(1,1,inzee),zf(1,i1,1,j2)&
+              call unfill_downcorn(md1,md3,lot,nfft,n3,zw(1,1,inzee,ithread),zf(1,i1,1,j2)&
                    ,scal)!,ehartreetmp)
             else if (cplx) then
-              call C_unfill_downcorn(md1,md3,lot,nfft,n3,zw(1,1,inzee),zf(1,i1,1,j2),scal)
+              call C_unfill_downcorn(md1,md3,lot,nfft,n3,zw(1,1,inzee,ithread),zf(1,i1,1,j2),scal)
             else
-              call P_unfill_downcorn(md1,md3,lot,nfft,n3,zw(1,1,inzee),zf(1,i1,1,j2),scal)
+              call P_unfill_downcorn(md1,md3,lot,nfft,n3,zw(1,1,inzee,ithread),zf(1,i1,1,j2),scal)
             end if
 
            !integrate local pieces together
@@ -843,10 +851,10 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   end do
   !$omp end do
 
-  deallocate(zw, stat=i_stat)
-  deallocate(zt, stat=i_stat)
-
   !$omp end parallel
+
+  call f_free(zw)
+  call f_free(zt)
 
   if (n3pr1 > 1) call f_free(zt_t)
 

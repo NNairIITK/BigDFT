@@ -173,7 +173,8 @@ recursive subroutine connect_recursively(spredinputs,mhgpsst,fsw,uinp,runObj,out
              cobj%minmode(1,1,mhgpsst%nsad),cobj%rotforce(1,1,mhgpsst%nsad))
     endif
 
-    call fingerprint(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,runObj%atoms%astruct%cell_dim,rcov,cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))
+    call fingerprint(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,runObj%atoms%astruct%cell_dim,rcov,&
+         cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))
 !    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
 !         runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),&
 !         rcov,cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))
@@ -244,7 +245,8 @@ recursive subroutine connect_recursively(spredinputs,mhgpsst,fsw,uinp,runObj,out
                   '/sad'//trim(adjustl(mhgpsst%isadc))//'_minFinalL',&
                   comment,cobj%enerleft(mhgpsst%nsad),cobj%leftmin(:,:,mhgpsst%nsad),&
                   cobj%fleft(:,:,mhgpsst%nsad))
-        call fingerprint(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,runObj%atoms%astruct%cell_dim,rcov,cobj%leftmin(1,1,mhgpsst%nsad),cobj%fpleft(1,mhgpsst%nsad))
+        call fingerprint(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,runObj%atoms%astruct%cell_dim,&
+             rcov,cobj%leftmin(1,1,mhgpsst%nsad),cobj%fpleft(1,mhgpsst%nsad))
 !        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
 !             runObj%atoms%astruct%cell_dim,&
 !             bigdft_get_geocode(runObj),rcov,cobj%leftmin(1,1,mhgpsst%nsad),&
@@ -334,10 +336,12 @@ recursive subroutine connect_recursively(spredinputs,mhgpsst,fsw,uinp,runObj,out
              comment,&
              cobj%enerright(mhgpsst%nsad),cobj%rightmin(1,1,mhgpsst%nsad),&
              cobj%fright(1,1,mhgpsst%nsad))
-        call fingerprint(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,runObj%atoms%astruct%cell_dim,rcov,cobj%rightmin(1,1,mhgpsst%nsad),cobj%fpright(1,mhgpsst%nsad))
+        call fingerprint(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,runObj%atoms%astruct%cell_dim,&
+             rcov,cobj%rightmin(1,1,mhgpsst%nsad),cobj%fpright(1,mhgpsst%nsad))
 !        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),rcov,&
 !                        cobj%rightmin(1,1,mhgpsst%nsad),cobj%fpright(1,mhgpsst%nsad))
-        if(.not.equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,'(MHGPS)','MS',uinp%en_delta_sad,uinp%fp_delta_sad,&
+        if(.not.equal(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,mhgpsst%iproc,&
+             '(MHGPS)','MS',uinp%en_delta_sad,uinp%fp_delta_sad,&
            cobj%enersad(mhgpsst%nsad),cobj%enerright(mhgpsst%nsad),&
            cobj%fpsad(1,mhgpsst%nsad),cobj%fpright(1,mhgpsst%nsad)))then
            exit loopR 
@@ -718,7 +722,8 @@ connectloop: do while(cobj%ntodo>=1)
              cobj%minmode(1,1,mhgpsst%nsad),cobj%rotforce(1,1,mhgpsst%nsad))
     endif
 
-    call fingerprint(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,runObj%atoms%astruct%cell_dim,rcov,cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))
+    call fingerprint(spredinputs,mhgpsst%nid,runObj%atoms%astruct%nat,runObj%atoms%astruct%cell_dim,&
+         rcov,cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))
 !    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,&
 !         runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),&
 !         rcov,cobj%saddle(1,1,mhgpsst%nsad),cobj%fpsad(1,mhgpsst%nsad))

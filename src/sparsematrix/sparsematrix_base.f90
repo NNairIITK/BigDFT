@@ -10,10 +10,19 @@
 
 !> Module defining the basic operations with sparse matrices (creation and destruction)
 module sparsematrix_base
-  use module_base
+  use dynamic_memory
+  use dictionaries
+  use yaml_output
+  use yaml_strings
+  use module_defs
+  use time_profiling
+  use wrapper_MPI
+  use wrapper_linalg
+  use f_utils
+  use numerics
   implicit none
 
-  private
+!  private
 
   !> Contains the matrices
   type,public :: matrices
@@ -83,9 +92,27 @@ module sparsematrix_base
       integer,dimension(:),pointer :: nranks !< number of task on each taskgroup
       integer :: nccomm !<number of communications required for the compress distributed in the dense parallel format
       integer,dimension(:,:),pointer :: luccomm !<lookup array for the communications required for the compress distributed in the dense parallel format
-      integer,dimension(:),pointer :: on_which_atom !<dimension ntmb, indicates to which atoms a row/column of the matrix belongs
-      character(len=1) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
+      !!integer,dimension(:),pointer :: on_which_atom !<dimension ntmb, indicates to which atoms a row/column of the matrix belongs
+      !!character(len=1) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
+      !!real(kind=8),dimension(3) :: cell_dim !< dimensions of the simulation cell
+      logical :: smatmul_initialized !< indicated whether the sparse matmul type has been initialized
   end type sparse_matrix
+
+
+  type,public :: sparse_matrix_metadata
+      character(len=1) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
+      real(kind=8),dimension(3) :: cell_dim !< dimensions of the simulation cell
+      integer :: nfvctr !< size of the matrix
+      integer :: nat !< number of atoms
+      integer :: ntypes !< number of atoms types
+      character(len=20) :: units !< units of the atomic positions 
+      integer,dimension(:),pointer :: nzatom !< atomic core charge
+      integer,dimension(:),pointer :: nelpsp !< number of electrons
+      character(len=20),dimension(:),pointer :: atomnames !< name of the atoms
+      integer,dimension(:),pointer :: iatype !< indicates the atoms type
+      real(kind=8),dimension(:,:),pointer :: rxyz !< atomic positions
+      integer,dimension(:),pointer :: on_which_atom !< indicates which element of the matrix belong to which atom
+  end type sparse_matrix_metadata
 
 
   type, public :: sparse_matrix_info_ptr
@@ -136,6 +163,8 @@ module sparsematrix_base
   public :: deallocate_matrices
   public :: matrices_null
   public :: copy_sparse_matrix,copy_matrices
+  public :: sparse_matrix_metadata_null
+  public :: deallocate_sparse_matrix_metadata
 
   !> Public constants
   integer,parameter,public :: SPARSE_TASKGROUP    = 50
@@ -182,7 +211,7 @@ module sparsematrix_base
       nullify(sparsemat%tgranks)
       nullify(sparsemat%nranks)
       nullify(sparsemat%luccomm)
-      nullify(sparsemat%on_which_atom)
+      !nullify(sparsemat%on_which_atom)
       call nullify_sparse_matrix_matrix_multiplication(sparsemat%smmm) 
     end subroutine nullify_sparse_matrix
 
@@ -222,7 +251,7 @@ module sparsematrix_base
       end if
       sparsemat%nvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nvctr_par')
       sparsemat%isvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isvctr_par')
-      sparsemat%on_which_atom=f_malloc_ptr(norb,id='sparsemat%on_which_atom')
+      !sparsemat%on_which_atom=f_malloc_ptr(norb,id='sparsemat%on_which_atom')
     end subroutine allocate_sparse_matrix_basic
 
 
@@ -285,7 +314,8 @@ module sparsematrix_base
       character(len=*),intent(in) :: matname
       type(matrices),intent(out) :: mat
 
-      mat%matrix_compr = sparsematrix_malloc_ptr(sparsemat, iaction=SPARSE_FULL, id=trim(matname)//'%matrix_compr')
+      !mat%matrix_compr = sparsematrix_malloc_ptr(sparsemat, iaction=SPARSE_FULL, id=trim(matname)//'%matrix_compr')
+      mat%matrix_compr = sparsematrix_malloc_ptr(sparsemat, iaction=SPARSE_TASKGROUP, id=trim(matname)//'%matrix_compr')
       mat%matrix_comprp = sparsematrix_malloc_ptr(sparsemat, iaction=SPARSE_PARALLEL, id=trim(matname)//'%matrix_comprp')
       if (allocate_full) mat%matrix = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_FULL, id=trim(matname)//'%matrix')
       ! smmm%nfvctrp is the number of columns per MPI task for an optimized load
@@ -314,7 +344,6 @@ module sparsematrix_base
 
 
     subroutine deallocate_sparse_matrix(sparsemat)
-      use module_base 
       implicit none
       ! Calling arguments
       type(sparse_matrix),intent(inout):: sparsemat
@@ -339,8 +368,45 @@ module sparsematrix_base
       call f_free_ptr(sparseMat%tgranks)
       call f_free_ptr(sparseMat%nranks)
       call f_free_ptr(sparseMat%luccomm)
-      call f_free_ptr(sparseMat%on_which_atom)
+      !call f_free_ptr(sparseMat%on_which_atom)
     end subroutine deallocate_sparse_matrix
+
+
+    subroutine deallocate_sparse_matrix_metadata(smmd)
+      implicit none
+      ! Calling arguments
+      type(sparse_matrix_metadata),intent(inout):: smmd
+      call f_free_ptr(smmd%nzatom)
+      call f_free_ptr(smmd%nelpsp)
+      call f_free_str_ptr(len(smmd%atomnames),smmd%atomnames)
+      call f_free_ptr(smmd%iatype)
+      call f_free_ptr(smmd%rxyz)
+      call f_free_ptr(smmd%on_which_atom)
+    end subroutine deallocate_sparse_matrix_metadata
+
+
+    pure function sparse_matrix_metadata_null() result(smmd)
+      implicit none
+      type(sparse_matrix_metadata) :: smmd
+      call nullify_sparse_matrix_metadata(smmd)
+    end function sparse_matrix_metadata_null
+
+
+    pure subroutine nullify_sparse_matrix_metadata(smmd)
+      implicit none
+      type(sparse_matrix_metadata),intent(out):: smmd
+      smmd%geocode = 'U'
+      smmd%cell_dim = (/0.0,0.0,0.0/)
+      smmd%nat = 0
+      smmd%ntypes = 0
+      nullify(smmd%nzatom)
+      nullify(smmd%nelpsp)
+      nullify(smmd%atomnames)
+      nullify(smmd%iatype)
+      nullify(smmd%rxyz)
+      nullify(smmd%on_which_atom)
+    end subroutine nullify_sparse_matrix_metadata
+
 
     subroutine smat_release_mpi_groups(mpi_groups)
       implicit none
@@ -409,7 +475,7 @@ module sparsematrix_base
       smat_out%tgranks=f_malloc_ptr(src_ptr=smat_in%tgranks, id='smat_out%tgranks')
       smat_out%nranks=f_malloc_ptr(src_ptr=smat_in%nranks, id='smat_out%nranks')
       smat_out%luccomm=f_malloc_ptr(src_ptr=smat_in%luccomm, id='smat_out%luccomm')
-      smat_out%on_which_atom=f_malloc_ptr(src_ptr=smat_in%on_which_atom, id='smat_out%on_which_atom')
+      !smat_out%on_which_atom=f_malloc_ptr(src_ptr=smat_in%on_which_atom, id='smat_out%on_which_atom')
 
       call copy_sparse_matrix_matrix_multiplication(smat_in%smmm, smat_out%smmm)
       call smat_release_mpi_groups(smat_out%mpi_groups)

@@ -23,7 +23,7 @@ module module_types
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
   use module_dpbox, only: denspot_distribution,dpbox_null
   use communications_base, only: comms_linear, comms_cubic, p2pComms
-  use sparsematrix_base, only: matrices, sparse_matrix
+  use sparsematrix_base, only: matrices, sparse_matrix, sparse_matrix_metadata
   use foe_base, only: foe_data
   use m_pawcprj, only: pawcprj_type
   use m_paw_an, only: paw_an_type
@@ -191,6 +191,7 @@ module module_types
       type(sparse_matrix) :: l !< medium: sparsity pattern given by kernel cutoff
       type(sparse_matrix),dimension(:),pointer :: ks !< sparsity pattern for the KS orbitals (i.e. dense); spin up and down
       type(sparse_matrix),dimension(:),pointer :: ks_e !< sparsity pattern for the KS orbitals including extra stated (i.e. dense); spin up and down
+      type(sparse_matrix_metadata) :: smmd !< metadata of the sparse matrices
       type(matrices) :: ham_, ovrlp_, kernel_
       type(matrices),dimension(3) :: ovrlppowers_
   end type linear_matrices
@@ -203,32 +204,44 @@ module module_types
   end type work_mpiaccumulate
 
 
+  !> DIIS parameters for the optimization of the localized support functions
   type, public :: localizedDIISParameters
     integer :: is, isx, mis, DIISHistMax, DIISHistMin
     integer :: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
     real(kind=8), dimension(:), pointer :: phiHist, hphiHist, energy_hist
-    real(kind=8) :: alpha_coeff !step size for optimization of coefficients
+    real(kind=8) :: alpha_coeff !< Step size for optimization of coefficients
     real(kind=8), dimension(:,:,:), pointer :: mat
     real(kind=8) :: trmin, trold, alphaSD, alphaDIIS
     logical :: switchSD, immediateSwitchToSD, resetDIIS
   end type localizedDIISParameters
 
 
+  !> DIIS Parameters for mixing of rhopot (linear version)
   type, public :: mixrhopotDIISParameters
-    integer :: is, isx, mis
-    real(kind=8), dimension(:), pointer :: rhopotHist, rhopotresHist
-    real(kind=8), dimension(:,:), pointer :: mat
+    integer :: is  !< Iteration number
+    integer :: isx !< Length of history
+    integer :: mis !< Current length of history
+    real(kind=8), dimension(:), pointer :: rhopotHist    !< DIIS history of rhopot
+    real(kind=8), dimension(:), pointer :: rhopotresHist !< DIIS history of the residue
+    real(kind=8), dimension(:,:), pointer :: mat         !< DIIS matrix
   end type mixrhopotDIISParameters
 
 
-  !> Contains the arguments needed for the diis procedure
+  !> Contains the arguments needed for the diis procedure (wavefunctions)
   type, public :: diis_objects
-     logical :: switchSD
-     integer :: idiistol,mids,ids,idsx
-     real(gp) :: energy_min,energy_old,energy,alpha,alpha_max
-     real(tp), dimension(:), pointer :: psidst
-     real(tp), dimension(:), pointer :: hpsidst
-     real(tp), dimension(:,:,:,:,:,:), pointer :: ads
+     logical :: switchSD    !< .true. swith to Steepest Descent
+     integer :: idiistol    !< Number of iterations when the energy is increasing
+     integer :: mids        !< Size of the current DIIS history (or matrix) <= idsx
+     integer :: ids         !< Iteration number
+     integer :: idsx        !< History of the diis (also if idiistol > idsx switch to SD)
+     real(gp) :: energy_min !< Minimal energy during the iterated process
+     real(gp) :: energy_old !< Previous value already fulfilled
+     real(gp) :: energy     !< Current value of energy
+     real(gp) :: alpha      !< Mixing coefficient
+     real(gp) :: alpha_max  !< Maximal value of alpha (step size with SD)
+     real(tp), dimension(:), pointer :: psidst        !< History of the given vectors (psi)
+     real(tp), dimension(:), pointer :: hpsidst       !< History of the corresponding hpsi
+     real(tp), dimension(:,:,:,:,:,:), pointer :: ads !< DIIS matrix
   end type diis_objects
 
 
@@ -342,7 +355,7 @@ module module_types
 
   !> Used to control the optimization of wavefunctions
   type, public :: DFT_optimization_loop
-     integer :: iscf !< Kind of optimization scheme.
+     type(f_enumerator) :: scf !< Kind of optimization scheme.
 
      integer :: itrpmax !< specify the maximum number of mixing cycle on potential or density
      integer :: nrepmax !< specify the maximum number of restart after re-diagonalization
@@ -378,7 +391,7 @@ module module_types
  !> Timing categories
  character(len=*), parameter, private :: tgrp_pot='Potential'
  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
- integer, parameter, private :: ncls_max=6,ncat_bigdft=153   ! define timimg categories and classes
+ integer, parameter, private :: ncls_max=6,ncat_bigdft=158   ! define timimg categories and classes
  character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
       'Communications'    ,  &
       'Convolutions  '    ,  &
@@ -445,7 +458,6 @@ module module_types
       'sumrho_TMB    ','Other         ' ,'port to GPU?  ' ,  &
       'TMB_kernel    ','Linear Algebra' ,'dgemm         ' ,  &
       'diagonal_seq  ','Linear Algebra' ,'dsygv         ' ,  &
-      'diagonal_par  ','Linear Algebra' ,'pdsygvx       ' ,  &
       'lovrlp^-1     ','Linear Algebra' ,'exact or appr ' ,  &
       'lagmat_orthoco','Linear Algebra' ,'dgemm seq/par ' ,  &
       'optimize_DIIS ','Other         ' ,'Other         ' ,  &
@@ -547,6 +559,12 @@ module module_types
       'matrix_extents','Other         ' ,'Miscellaneous ' ,  &
       'lin_inputguess','Other         ' ,'Miscellaneous ' ,  &
       'ionic_energy  ','Other         ' ,'Miscellaneous ' ,  &
+      'dgemm_parallel','Linear Algebra' ,'(Sca)LAPACK   ' ,  &
+      'dsyev_parallel','Linear Algebra' ,'(Sca)LAPACK   ' ,  &
+      'dsygv_parallel','Linear Algebra' ,'(Sca)LAPACK   ' ,  &
+      'dgesv_parallel','Linear Algebra' ,'(Sca)LAPACK   ' ,  &
+      'dpotrf_paralle','Linear Algebra' ,'(Sca)LAPACK   ' ,  &
+      'dpotri_paralle','Linear Algebra' ,'(Sca)LAPACK   ' ,  &
       'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat_bigdft/))
  integer, dimension(ncat_bigdft), private, save :: cat_ids !< id of the categories to be converted
 

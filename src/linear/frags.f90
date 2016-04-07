@@ -115,15 +115,16 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
 
   lincombm=.false.
   lincombp=.false.
-  if (nint(nelecorbs)/=nelecfrag_tot) then
+  !if (nint(nelecorbs)/=nelecfrag_tot) then
+  if (abs(nelecorbs-nelecfrag_tot)>0.01d0) then
      !EXPERIMENTAL
      !use an average (lin. combination) of the LUMOs from each fragment
      !take the easiest case of 1 extra or missing electron, to be generalized/improved
      lincombm=.false.
      lincombp=.false.
-     if (nelecorbs-nelecfrag_tot==1) then
+     if (nelecorbs-nelecfrag_tot==1.0d0) then
         lincombm=.true. 
-     else if (nelecorbs-nelecfrag_tot==-1) then
+     else if (nelecorbs-nelecfrag_tot==-1.0d0) then
         lincombp=.true.
      else
         print*,'User should specify which fragments charges are added to/removed from in charged fragment calculation',&
@@ -230,7 +231,7 @@ contains
        ! find reference fragment this corresponds to
        ifrag_ref=input%frag%frag_index(ifrag)
        call f_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
-       nelecfrag=ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag)
+       nelecfrag=int(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))
        do jtmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
           tmb%coeff(jsforb+jtmb,jtmb)=1.0d0
           tmb%orbs%occup(jsforb+jtmb)=real(nelecfrag,dp)/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp) !ref_frags(ifrag_ref)%coeff(jtmb,jtmb) !
@@ -359,8 +360,8 @@ contains
        tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, &
                                   iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
        call timing(iproc,'kernel_init','OF')
-       call uncompress_matrix2(iproc, bigdft_mpi%nproc, tmb%linmat%s, &
-            tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
+       call uncompress_matrix2(iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+            tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
        call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, ortho_size, &
             tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, input%lin%order_taylor, &
             tmb%orbs, tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, tmb%coeff, ksorbs)
@@ -664,7 +665,7 @@ end subroutine fragment_coeffs_to_kernel
 
 !think about cdft and charged systems...
 !also still need to activate completely random case, but need to think about purification first as will definitely be necessary
-subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb,ksorbs,&
+subroutine fragment_kernels_to_kernel(iproc,nproc,input,input_frag_charge,ref_frags,tmb,ksorbs,&
   overlap_calculated,cdft,diagonal_kernel,max_nbasis_env,frag_env_mapping,rmax)
   use yaml_output
   use module_base
@@ -683,7 +684,7 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   type(orbitals_data), intent(inout) :: ksorbs
   logical, intent(inout) :: overlap_calculated
   real(kind=gp), dimension(input%frag%nfrag), intent(in) :: input_frag_charge
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc, nproc
   logical, intent(in) :: cdft
   logical, intent(in) :: diagonal_kernel
   integer, intent(in) :: max_nbasis_env
@@ -858,7 +859,7 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   !end if 
 
 
-  call compress_matrix(iproc,tmb%linmat%l,inmat=tmb%linmat%kernel_%matrix,outmat=tmb%linmat%kernel_%matrix_compr)  
+  call compress_matrix(iproc,nproc,tmb%linmat%l,inmat=tmb%linmat%kernel_%matrix,outmat=tmb%linmat%kernel_%matrix_compr)  
   call f_free_ptr(tmb%linmat%kernel_%matrix) 
 
   call f_release_routine()

@@ -199,7 +199,7 @@ module overlap_point_to_point
       subroutine free_OP2P_pointer(OP2P, ptr)
         implicit none
         type(OP2P_pointer), dimension(:,:), pointer :: ptr
-        type(OP2P_data), intent(out) :: OP2P
+        type(OP2P_data), intent(inout) :: OP2P
         !local variables
         integer :: i,j
         integer, dimension(2) :: lb,ub
@@ -336,16 +336,23 @@ module overlap_point_to_point
        if((nproc_node * (phimemSize+gpudirectdataSize+gpudirectresSize) )< freeGPUSize) then
          OP2P%gpudirect=1
        else if ((nproc_node * (phimemSize+gpudirectdataSize))<freeGPUSize) then
-         if (iproc==0) call yaml_warning("insufficient GPU memory : don't store and exchange results'//&
-        ' (double the computation amount)")
+
          symmetric = .false.
          OP2P%gpudirect=1
        else
-         if (iproc==0) call yaml_warning("insufficient GPU memory : using non gpudirect version ")
          OP2P%gpudirect=0
        end if
     !  end if
-    call mpibarrier()
+    call mpiallred(OP2P%gpudirect,1,MPI_LAND)
+    call mpiallred(symmetric,1,MPI_LAND)
+    
+    if (OP2P%gpudirect==0 .and. iproc==0) then
+         call yaml_warning("insufficient GPU memory : using non gpudirect version ")
+    else if ((symmetric .eqv. .false.) .and. iproc==0) then
+         call yaml_warning("insufficient GPU memory : don't store and exchange results"//&
+              " (double the computation amount)")
+    end if
+
      end subroutine  cuda_estimate_memory_needs_gpudirect
 
      subroutine initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric)

@@ -263,7 +263,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       if (endloop) then 
          if (iproc == 0) then 
             if (verbose > 1) call yaml_map('Minimization iterations required',iter)
-            call write_energies(iter,0,energs,gnrm,0.d0,' ')
+            call write_energies(iter,energs,gnrm,0.d0,' ')
             call yaml_mapping_close()
             call yaml_comment('End of Virtual Wavefunction Optimisation',hfill='-')
             if (VTwfn%diis%energy > VTwfn%diis%energy_min) then
@@ -277,7 +277,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       !evaluate the functional of the wavefucntions and put it into the diis structure
       !the energy values should be printed out here
       call total_energies(energs, iter, iproc)
-      call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,in%iscf,energs,&
+      call calculate_energy_and_gradient(iter,iproc,nproc,GPU,in%ncong,in%scf,energs,&
            VTwfn,gnrm,gnrm_zero)
 
       !control the previous value of idsx_actual
@@ -335,7 +335,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !!!!! end point of the direct minimisation procedure
 
    !deallocate potential
-   call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
+   call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot)
 
    if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,VTwfn%orbs,in%nspin)
@@ -1199,7 +1199,7 @@ subroutine davidson(iproc,nproc,in,at,&
    end do davidson_loop
 
    !deallocate potential
-   call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
+   call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot)
 
    call f_free(ndimovrlp)
    call f_free(hamovr)
@@ -1445,6 +1445,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    use gaussians, only: gaussian_basis, deallocate_gwf, gaussian_overlap
    use communications_base, only: comms_cubic
    use communications, only: transpose_v
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc,nproc,nspin,npsidim
    real(gp), intent(in) :: hx,hy,hz
@@ -1606,7 +1607,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
   call f_free(gaucoeffs)
    call f_free_ptr(gbd_occ)
 
-   !add random background to the wavefunctions
+   !add pseudo-random background to the wavefunctions
    if (randinp .and. G%ncoeff >= orbs%norb) then
       !call to_zero(orbs%npsidim,psivirt)
       do iorb=1,orbs%norbp

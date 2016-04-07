@@ -11,8 +11,66 @@ module orthonormalization
   public :: gramschmidt_coeff_trans
   !!public :: orthonormalize_subset
   !!public :: gramschmidt_subset
+  public :: overlap_matrix
 
   contains
+
+    !> extract the overlap matrix from two compressed functions
+    !this is a quick wrapper to be used whan memory allocation of work arrays is not to be optimized
+    subroutine overlap_matrix(phi1,nphi,lzd,orbs,collcom,smat,matrix,phi2)
+      use module_base
+      use module_types, only: orbitals_data,local_zone_descriptors
+      use sparsematrix_base, only: sparse_matrix,matrices
+      use transposed_operations, only: calculate_overlap_transposed
+      use communications_base, only: TRANSPOSE_FULL,comms_linear
+      use communications, only: transpose_localized
+      implicit none
+      integer, intent(in) :: nphi
+      type(orbitals_data),intent(in) :: orbs
+      type(comms_linear),intent(in) :: collcom
+      type(local_zone_descriptors),intent(in) :: lzd
+      real(wp),dimension(nphi),intent(in) :: phi1
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(inout) :: matrix
+      
+      real(wp), dimension(nphi),intent(in), optional :: phi2
+      !local variables
+      logical :: binary
+      real(wp), dimension(:), pointer :: phi1t_c, phi1t_f, sphi2t_c, sphi2t_f
+
+      binary=present(phi2)
+
+      ! Calculate the scalar products, i.e. the matrix <phi_ab|S_lm|phi_ab>
+      phi1t_c = f_malloc_ptr(collcom%ndimind_c,id='phi1t_c')
+      phi1t_f = f_malloc_ptr(7*collcom%ndimind_f,id='phi1t_f')
+      call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, nphi, orbs, collcom, &
+           TRANSPOSE_FULL, phi1, phi1t_c, phi1t_f, lzd)
+
+      if (binary) then
+         sphi2t_c = f_malloc_ptr(collcom%ndimind_c,id='sphit2_c')
+         sphi2t_f = f_malloc_ptr(7*collcom%ndimind_f,id='sphit2_f')
+         call transpose_localized(bigdft_mpi%iproc,bigdft_mpi%nproc,&
+              nphi, orbs, collcom, &
+              TRANSPOSE_FULL, phi2, sphi2t_c, sphi2t_f, lzd)
+      else
+         sphi2t_c => phi1t_c
+         sphi2t_f => phi1t_f
+      end if
+      call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, orbs, collcom, &
+           phi1t_c, sphi2t_c, phi1t_f, sphi2t_f, smat, matrix)
+
+      call f_free_ptr(phi1t_c)
+      call f_free_ptr(phi1t_f)
+
+      if (binary) then
+         call f_free_ptr(sphi2t_c)
+         call f_free_ptr(sphi2t_f)
+      else
+         nullify(sphi2t_c)
+         nullify(sphi2t_f)
+      end if
+
+    end subroutine overlap_matrix
 
 
     !> Orthonormalized the localized orbitals
@@ -56,6 +114,7 @@ module orthonormalization
       type(matrices) :: ovrlp_
       type(matrices),dimension(1) :: inv_ovrlp_half_
       integer :: ii, i, ispin
+      integer, dimension(1) :: power
     
     
       call f_routine(id='orthonormalizeLocalized')
@@ -90,20 +149,24 @@ module orthonormalization
     
     
       if (methTransformOverlap==-2) then
-          call calculate_S_minus_one_half_onsite(iproc, nproc, orbs%norb, orbs%onwhichatom, &
+          call calculate_S_minus_one_half_onsite(iproc, nproc, bigdft_mpi%mpi_comm, &
+               orbs%norb, orbs%onwhichatom, &
                ovrlp, inv_ovrlp_half, ovrlp_, inv_ovrlp_half_(1))
       else if (methTransformOverlap==-1) then
           !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
           call overlap_power_minus_one_half_parallel(iproc, nproc, 0, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
       else
-          call overlapPowerGeneral(iproc, nproc, methTransformOverlap, 1, (/-2/), &
+          power(1)=-2
+          call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+               methTransformOverlap, 1, power, &
                orthpar%blocksize_pdgemm, &
                imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
                ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
+               verbosity=0, &
                check_accur=.true., mean_error=mean_error, max_error=max_error)!!, &
           !if (iproc==0) call yaml_map('max error',max_error)
           !if (iproc==0) call yaml_map('mean error',mean_error)
-          call check_taylor_order(mean_error, max_inversion_error, methTransformOverlap)
+          call check_taylor_order(iproc, mean_error, max_inversion_error, methTransformOverlap)
           !!ii=0
           !!do ispin=1,inv_ovrlp_half%nspin
           !!    do i=1,inv_ovrlp_half%nvctr
@@ -277,6 +340,7 @@ module orthonormalization
       ! Local variables
       integer :: it, istat, iall, iorb, jorb, iat, jat, ii, itype
       logical :: iout, jout
+      integer, dimension(1) :: power
       integer,dimension(:),allocatable :: icount_norb, jcount_norb
       real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm, tmparr
       !type(sparse_matrix) :: inv_ovrlp_half
@@ -388,7 +452,9 @@ module orthonormalization
           !tmparr = sparsematrix_malloc(ovrlp,iaction=SPARSE_FULL,id='tmparr')
           !call vcopy(ovrlp%nvctr*ovrlp%nspin, ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
           !call extract_taskgroup_inplace(ovrlp, ovrlp_)
-          call overlapPowerGeneral(iproc, nproc, methTransformOverlap, 1, (/-2/), &
+          power(1)=-2
+          call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+               methTransformOverlap, 1, power, &
                orthpar%blocksize_pdsyev, &
                imode=1, check_accur=.true., &
                ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
@@ -486,7 +552,7 @@ module orthonormalization
       use sparsematrix, only: uncompress_matrix, &
                               sequential_acces_matrix_fast2, transform_sparse_matrix, &
                               gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
-                              transform_sparse_matrix_local, uncompress_matrix_distributed2, &
+                              uncompress_matrix_distributed2, &
                               matrix_matrix_mult_wrapper
       use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
       use matrix_operations, only: overlapPowerGeneral, check_taylor_order
@@ -522,12 +588,14 @@ module orthonormalization
       integer,dimension(:),allocatable :: ipiv
       type(matrices),dimension(1) :: inv_ovrlp_
       integer :: ist, ispin
+      integer, dimension(1) :: power
       real(8),dimension(:),allocatable :: inv_ovrlp_seq, lagmat_large, tmpmat, tmparr
       real(8),dimension(:,:),allocatable :: lagmatp, inv_lagmatp
       integer,dimension(2) :: irowcol
       real(kind=8),dimension(:),pointer :: matrix_local
       integer,parameter :: GLOBAL_MATRIX=101, SUBMATRIX=102
       integer,parameter :: data_strategy_main=SUBMATRIX!GLOBAL_MATRIX
+      integer,parameter :: verbosity = 0
       !type(work_transpose) :: wt_
     
       call f_routine(id='orthoconstraintNonorthogonal')
@@ -542,19 +610,22 @@ module orthonormalization
     
       if (calculate_inverse) then
           ! Invert the overlap matrix
-          if (iproc==0) call yaml_map('calculation of S^-1','direct calculation')
+          if (iproc==0 .and. verbosity>0) call yaml_map('calculation of S^-1','direct calculation')
           !!tmparr = sparsematrix_malloc(linmat%s,iaction=SPARSE_FULL,id='tmparr')
           !!call vcopy(linmat%s%nvctr*linmat%s%nspin, linmat%ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
           !!call extract_taskgroup_inplace(linmat%s, linmat%ovrlp_)
-          call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, (/1/), -1, &
+          power(1)=1
+          call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+               norder_taylor, 1, power, -1, &
                imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
                ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=linmat%ovrlppowers_(3), &
+               verbosity=0, &
                check_accur=.true., max_error=max_error, mean_error=mean_error)
           !!call vcopy(linmat%s%nvctr*linmat%s%nspin, tmparr(1), 1, linmat%ovrlp_%matrix_compr(1), 1)
           !!call f_free(tmparr)
-          call check_taylor_order(mean_error, max_inversion_error, norder_taylor)
+          call check_taylor_order(iproc, mean_error, max_inversion_error, norder_taylor)
       else
-          if (iproc==0) call yaml_map('calculation of S^-1','from memory')
+          if (iproc==0 .and. verbosity>0) call yaml_map('calculation of S^-1','from memory')
       end if
     
       ! Gather together the data (has been posted in getLocalizedBasis
@@ -577,8 +648,8 @@ module orthonormalization
       if (correction_orthoconstraint==0) then
           if (data_strategy_main==GLOBAL_MATRIX) then
               stop 'deprecated'
-              call transform_sparse_matrix(linmat%m, linmat%l, 'small_to_large', &
-                   smat_in=lagmat_%matrix_compr, lmat_out=lagmat_large)
+              !!!call transform_sparse_matrix(iproc, linmat%m, linmat%l, SPARSE_TASKGROUP, 'small_to_large', &
+              !!!     smat_in=lagmat_%matrix_compr, lmat_out=lagmat_large)
           end if
           if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
           !!call uncompress_matrix_distributed2(iproc, linmat%l, DENSE_MATMUL, lagmat_large, lagmatp)
@@ -593,8 +664,8 @@ module orthonormalization
           end do
       end if
       if (data_strategy_main==SUBMATRIX) then
-          call transform_sparse_matrix_local(linmat%m, linmat%l, 'large_to_small', &
-               lmatrix_compr_in=lagmat_large, smatrix_compr_out=lagmat_%matrix_compr)
+          call transform_sparse_matrix(iproc, linmat%m, linmat%l, SPARSE_TASKGROUP, 'large_to_small', &
+               lmat_in=lagmat_large, smat_out=lagmat_%matrix_compr)
       end if
       call f_free(lagmat_large)
       call f_free(inv_ovrlp_seq)
@@ -616,9 +687,7 @@ module orthonormalization
     
       ! The symmetrized Lagrange multiplier matrix has now the wrong sign
       call dscal(lagmat%nvctrp_tg*lagmat%nspin, -1.d0, lagmat_%matrix_compr(1), 1)
-    
-    
-    
+
       overlap_calculated=.false.
       
     
@@ -726,8 +795,8 @@ module orthonormalization
               ! Directly use the large sparsity pattern as this one is used later
               ! for the matrix vector multiplication
               tmp_mat_compr = sparsematrix_malloc(linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_mat_compr')
-              call transform_sparse_matrix_local(linmat%m, linmat%l, 'small_to_large', &
-                   smatrix_compr_in=lagmat_%matrix_compr, lmatrix_compr_out=tmp_mat_compr)
+              call transform_sparse_matrix(iproc, linmat%m, linmat%l, SPARSE_TASKGROUP, 'small_to_large', &
+                   smat_in=lagmat_%matrix_compr, lmat_out=tmp_mat_compr)
               do ispin=1,lagmat%nspin
                   ishift=(ispin-1)*linmat%l%nvctrp_tg
                   !$omp parallel default(none) &

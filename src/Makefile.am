@@ -149,8 +149,8 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	tddft.f90 \
 	output.f90 \
-	$(OCL_CONV) \
-	external.f90
+	external.f90 \
+	$(OCL_CONV)
 
 #objects which can be compiled only with module_base
 low_level = \
@@ -208,7 +208,6 @@ low_level = \
 	linear/derivativeBasis.f90 \
 	linear/hpsiortho_linear.f90 \
 	linear/optimize_coeffs.f90 \
-	linear/pulay.f90 \
 	linear/transferintegrals.f90 \
 	linear/cdft.f90 \
 	linear/frags.f90\

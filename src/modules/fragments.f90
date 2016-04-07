@@ -459,7 +459,7 @@ contains
 
     gpsi=f_malloc0(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
     !call f_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
-    call initialize_work_arrays_sumrho(1,[tmb%lzd%glr],.true.,w)
+    call initialize_work_arrays_sumrho(tmb%lzd%glr,.true.,w)
     psir=f_malloc(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i*frag%fbasis%forbs%norb,id='psir')
 
     do iiorb=1,tmb%orbs%norb
@@ -810,7 +810,7 @@ contains
     if (f_err_raise(info/=0,'Problem in DGESVD')) return
     
     !multiply last line of VT_mat by det(U)*det(V)
-    dets=det_33(U_mat)*det_33(VT_mat)
+    dets=det_3x3(U_mat)*det_3x3(VT_mat)
     VT_mat(3,:)=VT_mat(3,:)*dets
 
     !find rotation matrix
@@ -980,18 +980,5 @@ contains
     end if
     
   end function frag_center
-
-  
-  !> Determinant of a 3x3 matrix
-  pure function det_33(a) result(det)
-    implicit none
-    real(gp), dimension(3,3), intent(in) :: a
-    real(gp) :: det
-
-    det = a(1,1)*(a(2,2)*a(3,3) - a(3,2)*a(2,3)) &
-         + a(1,2)*(a(3,1)*a(2,3) - a(2,1)*a(3,3))  &
-         + a(1,3)*(a(2,1)*a(3,2) - a(3,1)*a(2,2))
-  end function det_33
-
 
 end module module_fragments

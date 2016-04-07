@@ -33,7 +33,7 @@
  kernel:
   DESCRIPTION: Parameters of  the Coulomb Kernel
   screening: 
-    COMMENT: mu screening parameter
+    COMMENT: Mu screening parameter
     DESCRIPTION: Activates the exponential (Yukawa-like) screening in the coulomb kernel
     RANGE: [0.0, .inf] #.inf might be implemented in the range detection
     default: 0
@@ -43,7 +43,7 @@
     default: 16
     EXCLUSIVE: [ 2, 4, 6, 8, 14, 16, 20, 24, 30, 40, 50, 60, 100]
   stress_tensor: 
-    COMMENT: triggers the calculation of the stress tensor
+    COMMENT: Triggers the calculation of the stress tensor
     DESCRIPTION: It calculates the derivative of the hartree energy with respect to the deformation. It makes sense only for a vacuum-like calculation
     default: Yes
  environment:
@@ -80,7 +80,7 @@
       WHEN: [rigid]
     PROFILE_FROM: cavity
   cavitation: 
-    COMMENT: triggers the evaluation of the extra cavtitation terms
+    COMMENT: Triggers the evaluation of the extra cavitation terms
     default: No
   gammaS: 
     COMMENT: Cavitation term, surface tension of the solvent [dyn/cm]
@@ -94,7 +94,7 @@
   alphaS: 
     COMMENT: Proportionality of repulsion free energy in term of the surface integral [dyn/cm]
     default: water
-    water: 22.0
+    water: -22.0
     vacuum: 0.0
     CONDITION: 
       MASTER_KEY: cavitation
@@ -103,7 +103,7 @@
   betaV: 
     COMMENT: Proportionality of dispersion free energy in term of volume integral [GPa]
     default: water
-    water: 0.35
+    water: -0.35
     vacuum: 0.0
     CONDITION: 
       MASTER_KEY: cavitation
@@ -129,7 +129,7 @@
     PROFILE_FROM: gps_algorithm
   input_guess: 
     COMMENT: Triggers the input guess procedure of gps_algorithm
-    default: No
+    default: Yes
   fd_order: 
     COMMENT: Order of the Finite-difference derivatives for the GPS solver
     default: 16
@@ -140,6 +140,56 @@
   minres: 
     COMMENT: Convergence threshold of the loop
     default: 1.e-6
+  pb_method:
+    COMMENT: Defines the method for the Poisson Boltzmann Equation
+    default: none
+    EXCLUSIVE: 
+      none: No PBe, only GPe equation
+      linear: Linearized PBe
+      standard: PBe Equation, Gouy-Chapmann method
+      modified: Bikermann-type modified expression
+  pb_minres:
+    COMMENT: Convergence criterion of the PBe loop
+    RANGE: [0.0, .inf ]
+    default: 1.e-10
+    CONDITION:
+      MASTER_KEY: pb_method
+      WHEN_NOT: [none]
+  pb_input_guess:
+    COMMENT: Triggers the input guess procedure of PBe loop
+    default: Yes
+    CONDITION:
+      MASTER_KEY: pb_method
+      WHEN_NOT: [none]
+  pb_eta: 
+    COMMENT: Mixing parameter of the PBe loop
+    RANGE: [0.0, 1.0]
+    default: 1.0
+    CONDITION:
+      MASTER_KEY: pb_method
+      WHEN_NOT: [none]
+  pb_itermax: 
+    COMMENT: Maximum number of iterations of the PBe loop
+    default: 50
+    CONDITION:
+      MASTER_KEY: pb_method
+      WHEN_NOT: [none]
+  pb_t:
+    COMMENT: Temperature in Kelvin of the electrolytic solution
+    RANGE: [0.0, .inf]
+    default: 300.0
+    CONDITION:
+      MASTER_KEY: pb_method
+      WHEN_NOT: [none]
+  pb_ions:
+    COMMENT: List of the ions of the PBe environment
+    default: nacl
+    nacl: #case for monotytic ionic solvent, parameters
+      - {z: 1, c: 100.0, rad: 3.0}
+      - {z: -1, c: 100.0, rad: 3.0}
+    CONDITION:
+      MASTER_KEY: pb_method
+      WHEN_NOT: [none]
  setup:
   DESCRIPTION: Define the computational parameters of the run
   accel: 
@@ -169,6 +219,7 @@
     default: none
 --- #here starts the document of possible profiles, that have to be evoked with the 'import' keyword
 water:
+ COMMENT: Solvation in water
  environment:
   cavity: sccs
   epsilon: water

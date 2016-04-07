@@ -3,9 +3,7 @@ SHORT_TESTDIRS = MINHOP
 
 LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	NEB \
-	SPLSAD
-
-#MHGPS_LJ_CONNECT
+	SPLSAD MHGPS_LJ_CONNECT
 
 EXTRA_DIST = MH_taskgroups
 
@@ -34,7 +32,7 @@ global.mon.out : test.minhop.out
 # Define the precision for specific directories.
 %.report: %.ref
 	@case $< in \
-          *.memguess.ref | *.out.ref | *.splsad.ref | *.minhop.ref  ) mode="--mode=bigdft";; \
+          *.memguess.ref | *.out.ref | *.splsad.ref | *.minhop.ref | *.mhgps.ref ) mode="--mode=bigdft";; \
           *.NEB.ref) mode="--mode=neb";; \
           *) mode="";; \
         esac ; \
@@ -42,6 +40,7 @@ global.mon.out : test.minhop.out
 	  NEB*)             prec="5e-5" ;; \
 	  SPLSAD*)          prec="2e-8" ;; \
 	  MINHOP*)          prec="5e-9" ;; \
+	  lj_connect*)           prec="8e-9" ;; \
           *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
@@ -49,16 +48,19 @@ global.mon.out : test.minhop.out
 %.report.yaml: %.ref.yaml
 	@export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	name2=`basename $< .xabs.ref.yaml` ; \
+	name2=`basename $< .mhgps.ref.yaml` ; \
 	if test "$$name2" = "$<" ; then \
 	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
-	else \
-	name=`basename $< .xabs.ref.yaml`  ; fi;\
+	fi;\
 	tols=`basename $< .out.ref.yaml` ;\
 	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ; \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
-		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
+		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@
 
+
+
+#	else \
+#	name=`basename $< .mhgps.ref.yaml`  
 ##if USE_OCL
 ##oclrun_message = oclrun
 ##else

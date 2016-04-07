@@ -1,11 +1,11 @@
 !> @file
 !!  Routines to reformat wavefunctions
 !! @author
-!!    Copyright (C) 2010-2015 BigDFT group 
+!!    Copyright (C) 2010-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Reformat one wavefunction
@@ -13,6 +13,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
      rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
   use module_base
   use module_types
+  use box
   implicit none
   integer, intent(in) :: n1_old,n2_old,n3_old,n1,n2,n3  !n(c) iproc
   real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
@@ -27,18 +28,22 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   logical :: cif1,cif2,cif3,perx,pery,perz
   integer :: i1,i2,i3,j1,j2,j3,l1,l2,iat,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
   integer :: ind2,ind3,n1nb1,n2nb2,n1o7,n2o7,n3o7,n1nb1o,n2nb2o,n3nb3o
-  real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold,mindist
+  real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold!,mindist
   real(wp) :: zr,yr,xr,ym1,y00,yp1
   real(wp), dimension(-1:1,-1:1) :: xya
   real(wp), dimension(-1:1) :: xa
   real(wp), dimension(:), allocatable :: ww,wwold
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
   real(wp), dimension(:,:,:), allocatable :: psifscfold
+  real(gp), dimension(3) :: rd
+  type(cell) :: mesh
   !real(kind=4) :: t0, t1
   !real(kind=8) :: time
 
   call f_routine(id='reformatonewave')
 
+
+  mesh=cell_new(at%astruct%geocode,[n1,n2,n3],[hx,hy,hz])
   !conditions for periodicity in the three directions
   perx=(at%astruct%geocode /= 'F')
   pery=(at%astruct%geocode == 'P')
@@ -54,15 +59,15 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   wwold = f_malloc((2*n1_old+2+2*nb1)*(2*n2_old+2+2*nb2)*(2*n3_old+2+2*nb3),id='wwold')
 
   if (at%astruct%geocode=='F') then
-     call synthese_grow(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
-  else if (at%astruct%geocode=='S') then     
-     call synthese_slab(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
-  else if (at%astruct%geocode=='P') then     
-     call synthese_per(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
+     call synthese_grow(n1_old,n2_old,n3_old,wwold,psigold,psifscfold)
+  else if (at%astruct%geocode=='S') then
+     call synthese_slab(n1_old,n2_old,n3_old,wwold,psigold,psifscfold)
+  else if (at%astruct%geocode=='P') then
+     call synthese_per(n1_old,n2_old,n3_old,wwold,psigold,psifscfold)
   end if
 
   call f_free(wwold)
-  
+
   !write(*,*) iproc,' displ ',displ
   if (hx == hx_old .and. hy == hy_old .and. hz == hz_old .and. &
        n1_old==n1 .and. n2_old==n2 .and. n3_old==n3 .and. &
@@ -79,24 +84,32 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
 !!$           enddo
 !!$        enddo
 !!$     enddo
-     
+
   else
 
-     dx=0.0_gp
-     dy=0.0_gp 
-     dz=0.0_gp
-     !Calculate average shift
-     !Take into account the modulo operation which should be done for non-isolated BC
-     do iat=1,at%astruct%nat 
-        dx=dx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))
-        dy=dy+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))
-        dz=dz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))
-     enddo
-     dx=dx/real(at%astruct%nat,gp)
-     dy=dy/real(at%astruct%nat,gp)
-     dz=dz/real(at%astruct%nat,gp)
-     
-     ! transform to new structure    
+    rd=0.0_gp
+     do iat=1,at%astruct%nat
+       rd=rd+closest_r(mesh,rxyz(:,iat),center=rxyz_old(:,iat))
+     end do
+     rd=rd/real(at%astruct%nat,gp)
+     dx=rd(1)
+     dy=rd(2)
+     dz=rd(3)
+!!$     dx=0.0_gp
+!!$     dy=0.0_gp
+!!$     dz=0.0_gp
+!!$     !Calculate average shift
+!!$     !Take into account the modulo operation which should be done for non-isolated BC
+!!$     do iat=1,at%astruct%nat
+!!$        dx=dx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))
+!!$        dy=dy+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))
+!!$        dz=dz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))
+!!$     enddo
+!!$     dx=dx/real(at%astruct%nat,gp)
+!!$     dy=dy/real(at%astruct%nat,gp)
+!!$     dz=dz/real(at%astruct%nat,gp)
+
+     ! transform to new structure
      !if (iproc==0) write(*,*) iproc,' orbital fully transformed'
      hxh=.5_gp*hx
      hxh_old=.5_gp*hx_old
@@ -146,12 +159,12 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
            ind2=n1nb1*(i2+nb2)
            do i1=-nb1,2*n1+1+nb1
               x=real(i1,gp)*hxh
-              xold=x-dx 
+              xold=x-dx
 
               j1=nint(xold/hxh_old)
               cif1=(j1 >= -6 .and. j1 <= n1o7) .or. perx
-              
-              if (cif1) then 
+
+              if (cif1) then
                  ind=i1+ind2+ind3
                  do l2=-1,1
                     jj2=modulo(j2+l2+nb2,n2nb2o)-nb2
@@ -159,7 +172,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
                        !the modulo has no effect on free BC thanks to the
                        !if statement above
                        jj1=modulo(j1+l1+nb1,n1nb1o)-nb1
-                       
+
                        ym1=psifscfold(jj1,jj2,jj3a)
                        y00=psifscfold(jj1,jj2,jj3b)
                        yp1=psifscfold(jj1,jj2,jj3c)
@@ -282,6 +295,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   use module_types
   use io, only: io_read_descr, io_error, read_psi_compress
   use yaml_output
+  use box
   implicit none
   logical, intent(in) :: useFormattedInput
   integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3
@@ -299,10 +313,13 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   logical :: perx,pery,perz,lstat
   integer :: iorb_old,n1_old,n2_old,n3_old,iat,iel,nvctr_c_old,nvctr_f_old,i1,i2,i3
   real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
-  real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
+  real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old!,mindist
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
+  type(cell) :: mesh
 
   call f_routine(id=subname)
+
+  mesh=cell_new(at%astruct%geocode,[n1,n2,n3],[hx,hy,hz])
 
   !write(*,*) 'INSIDE readonewave'
   call io_read_descr(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &
@@ -315,18 +332,25 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   pery=(at%astruct%geocode == 'P')
   perz=(at%astruct%geocode /= 'F')
 
-  tx=0.0_gp 
-  ty=0.0_gp
-  tz=0.0_gp
+  ! tx=0.0_gp
+  ! ty=0.0_gp
+  ! tz=0.0_gp
+  ! displ=0.0_gp
+  ! do iat=1,at%astruct%nat
+  !    tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
+  !    ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
+  !    tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
+  ! enddo
+  ! displ=sqrt(tx+ty+tz)
+
+  displ=0.0_gp
   do iat=1,at%astruct%nat
-     tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
-     ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
-     tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
+    displ=displ+minimum_distance(mesh,rxyz(:,iat),rxyz_old(:,iat))**2
   enddo
-  displ=sqrt(tx+ty+tz)
+  displ=sqrt(displ)
 
   if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
-       nvctr_c_old == wfd%nvctr_c .and. nvctr_f_old == wfd%nvctr_f .and. & 
+       nvctr_c_old == wfd%nvctr_c .and. nvctr_f_old == wfd%nvctr_f .and. &
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
 
      if (iproc == 0) call yaml_map('Need to reformat wavefunctions',.false.)
@@ -457,7 +481,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
 
   psiscf = f_malloc_ptr((/ lr%d%n1i, lr%d%n2i, lr%d%n3i, nspinor  /),id='psiscf')
 
-  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
+  call initialize_work_arrays_sumrho(lr,.true.,w)
 
   ! Magic-filter to isf
   call daub_to_isf(lr, w, psi, psiscf(1,1,1,ispinor))
@@ -473,7 +497,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
      hz_old = hz
      nvctr_c_old = lr%wfd%nvctr_c
      nvctr_f_old = lr%wfd%nvctr_f
-     
+
      ispinor = modulo(ispinor, 2) + 1
      call io_open(unitwf, trim(fileRI), formatted)
      if (unitwf < 0) then
@@ -542,7 +566,7 @@ contains
     call deallocate_locreg_descriptors(lr)
     !call deallocate_convolutions_bounds(lr%bounds)
     !call deallocate_wfd(lr%wfd)
-    
+
     call f_release_routine()
   END SUBROUTINE deallocate_local
 
@@ -605,9 +629,9 @@ subroutine readwavedescr(lstat, filename, iorb, ispin, ikpt, ispinor, nspinor, f
 END SUBROUTINE readwavedescr
 
 
-subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
-     nseg_c,nvctr_c,keyg_c,keyv_c,  & 
-     nseg_f,nvctr_f,keyg_f,keyv_f, & 
+subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  &
+     nseg_c,nvctr_c,keyg_c,keyv_c,  &
+     nseg_f,nvctr_f,keyg_f,keyv_f, &
      psi_c,psi_f,eval)
   use module_base
   use yaml_output
@@ -659,7 +683,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
-        tt=psi_c(i-i0+jj) 
+        tt=psi_c(i-i0+jj)
         if (useFormattedOutput) then
            write(unitwf,'(3(i4),1x,e19.12)') i,i2,i3,tt
         else
@@ -703,8 +727,8 @@ END SUBROUTINE writeonewave
 
 
 !> Make frag_trans the argument so can eliminate need for interface
-subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,& 
-     hgrids,n,centre_old,centre_new,da,frag_trans,psi,psirold)
+subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,&
+     hgrids,n,centre_old,centre_new,da,frag_trans,psi,psirold,tag)
   use module_base
   use module_types
   use module_fragments
@@ -722,6 +746,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
   real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
   real(wp), dimension(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f), intent(out) :: psi
   real(wp), dimension(llr_old%d%n1i,llr_old%d%n2i,llr_old%d%n3i), optional, intent(in) :: psirold
+  integer, optional, intent(in) :: tag ! filename for printing functions, used for debugging only
 
   !local variables
   character(len=*), parameter :: subname='reformatonesupportfunction'
@@ -740,6 +765,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
 !  real(gp), dimension(3,3) :: rmat !< rotation matrix
 !  real(gp) :: sint,cost,onemc,ux,uy,uz
   integer, dimension(3) :: irp
+  integer :: i,j,k
 
   ! isf version
   type(workarr_sumrho) :: w
@@ -766,17 +792,31 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
      wwold = f_malloc((2*n_old(1)+2+2*nb(1))*(2*n_old(2)+2+2*nb(2))*(2*n_old(3)+2+2*nb(3)),id='wwold')
 
      if (geocode=='F') then
-        call synthese_grow(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold) 
-     else if (geocode=='S') then     
-        call synthese_slab(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold) 
-     else if (geocode=='P') then     
-        call synthese_per(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold) 
+        call synthese_grow(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold)
+     else if (geocode=='S') then
+        call synthese_slab(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold)
+     else if (geocode=='P') then
+        call synthese_per(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold)
      end if
 
      call f_free(wwold)
   end if
 
-  ! transform to new structure    
+
+  !if (present(tag)) then
+  !   open(tag+10000)
+  !   do i=-nb(1),2*n_old(1)+1+nb(1)
+  !   do j=-nb(2),2*n_old(2)+1+nb(2)
+  !   do k=-nb(3),2*n_old(3)+1+nb(3)
+  !      write(tag+10000,'(3(I6,1x),1x,2(F12.6,1x))') i,j,k,psifscfold(i,j,k),&
+  !           dnrm2((2*n_old(1)+2+2*nb(1))*(2*n_old(2)+2+2*nb(1))*(2*n_old(3)+2+2*nb(1)),psifscfold,1)
+  !   end do
+  !   end do
+  !   end do
+  !   close(tag+10000)
+  !end if
+
+  ! transform to new structure
   hgridsh=.5_gp*hgrids
   hgridsh_old=.5_gp*hgrids_old
 
@@ -788,7 +828,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
   x_phi = f_malloc(0.to.nd,id='x_phi')
   y_phi = f_malloc((/0.to.nd,1.to.2/),id='y_phi')
 
-  call my_scaling_function4b2B(itype,nd,nrange,x_phi,y_phi) 
+  call my_scaling_function4b2B(itype,nd,nrange,x_phi,y_phi)
   if( abs(y_phi(nd/2,1)-1)>1.0e-10 ) then
      stop " wrong scaling function 4b2B: not a centered one "
   endif
@@ -842,7 +882,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
   if (f_err_raise(repeated(abs(irp)),'Determination of the best array failed, irp='//&
           trim(yaml_toa(irp,fmt='(i5)')),err_name='BIGDFT_RUNTIME_ERROR')) return
 
-!!$  !pay attention to what happens if two values are identical  
+!!$  !pay attention to what happens if two values are identical
 !!$  !from where xp should be determined
 !!$  rrow=abs(rmat(:,1))
 !!$  irp(1)=maxloc(rrow,1)
@@ -883,9 +923,10 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
           centre_old,centre_new,irp,&
           hgridsh_old,(/llr_old%d%n1i,llr_old%d%n2i,llr_old%d%n3i/),psirold,&
           hgridsh,(/llr%d%n1i,llr%d%n2i,llr%d%n3i/),psir)
-!!$     write(*,*) 'iproc,norm psirnew ',dnrm2(llr%d%n1i*llr%d%n2i*llr%d%n3i,psir,1),llr%d%n1i,llr%d%n2i,llr%d%n3i
+!!$     write(*,'(A,I4,1x,F12.6,3(1x,I4))') 'iproc,norm psirnew ',bigdft_mpi%iproc,&
+!!$          dnrm2(llr%d%n1i*llr%d%n2i*llr%d%n3i,psir,1),llr%d%n1i,llr%d%n2i,llr%d%n3i
 !!$     print *,'sumpsirnew',sum(psir)*sqrt(product(hgridsh))
-          
+
   end if
   !call yaml_map('Centre old',centre_old,fmt='(1pg18.10)')
   !call yaml_map('Centre new',centre_new,fmt='(1pg18.10)')
@@ -894,7 +935,21 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
 
   call f_free(y_phi)
 
-!  print*, 'norm of psifscf ',dnrm2((2*n(1)+16)*(2*n(2)+16)*(2*n(3)+16),psifscf,1)
+  if (present(tag)) then
+     open(tag+20000)
+     do i=-nb(1),2*n(1)+1+nb(1)
+     do j=-nb(2),2*n(2)+1+nb(2)
+     do k=-nb(3),2*n(3)+1+nb(3)
+        write(tag+20000,'(3(I6,1x),1x,2(F12.6,1x))') i,j,k,psifscf(i,j,k),&
+             dnrm2((2*n(1)+2+2*nb(1))*(2*n(2)+2+2*nb(1))*(2*n(3)+2+2*nb(1)),psifscf,1)
+     end do
+     end do
+     end do
+     close(tag+20000)
+  end if
+
+
+!  print*, 'norm of psifscf ',dnrm2((2*n(1)+2+2*nb(1))*(2*n(2)+2+2*nb(1))*(2*n(3)+2+2*nb(1)),psifscf,1)
   if (.not. present(psirold)) then
      call f_free_ptr(psifscfold)
      psig = f_malloc((/ 0.to.n(1), 1.to.2, 0.to.n(2), 1.to.2, 0.to.n(3), 1.to.2 /),id='psig')
@@ -910,6 +965,21 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
 
      call f_free_ptr(psifscf)
 
+
+     if (present(tag)) then
+        open(tag)
+        do i=1,n(1)
+        do j=1,n(2)
+        do k=1,n(3)
+           write(tag,'(3(I6,1x),1x,2(F12.6,1x))') i,j,k,psig(i,1,j,1,k,1),&
+                dnrm2(8*(n(1)+1)*(n(2)+1)*(n(3)+1),psig,1)
+        end do
+        end do
+        end do
+        close(tag)
+     end if
+
+
 !!$    print*, 'norm new psig ',dnrm2(8*(n(1)+1)*(n(2)+1)*(n(3)+1),psig,1),n(1),n(2),n(3)
      call compress_plain(n(1),n(2),0,n(1),0,n(2),0,n(3),  &
           llr%wfd%nseg_c,llr%wfd%nvctr_c,llr%wfd%keygloc(1,1),llr%wfd%keyvloc(1),   &
@@ -921,7 +991,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
      call f_free(psig)
      call f_free(ww)
   else
-     call initialize_work_arrays_sumrho(1,[llr],.true.,w)
+     call initialize_work_arrays_sumrho(llr,.true.,w)
      call f_zero(psi)
 !!$     write(*,*) 'iproc,norm psirnew ',dnrm2(llr%d%n1i*llr%d%n2i*llr%d%n3i,psir,1),llr%d%n1i,llr%d%n2i,llr%d%n3i
      call isf_to_daub(llr,w,psir,psi)
@@ -949,8 +1019,8 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
     end function det_33
 
 
-    !> Select the best possible rotation sequence by 
-    !! considering the values of the coefficients of the 
+    !> Select the best possible rotation sequence by
+    !! considering the values of the coefficients of the
     !! rotation matrix
     pure function selection(rmat) result(irp)
 
@@ -966,7 +1036,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
       !determine ideal sequence for rotation, for important rows
       ib1=reorder(rmat(:,1),1)
       ib3=reorder(rmat(:,3),3)
-     
+
       !verify if either one or three have multiple choices
       if (equabs(rmat(ib1(1),1),rmat(ib1(2),1)) .and. .not. equabs(rmat(ib3(1),3),rmat(ib3(2),3))) then
          !only ib1 has multiple choices, pick the one which is closest to cyclic permutation (if present)
@@ -1051,7 +1121,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
 !!$      rrow(irp(3))=0.d0
 !!$      irp(2)=maxloc(rrow,1)
 
-!!$      !add to the transformations the sign of the axis of the chosen reference 
+!!$      !add to the transformations the sign of the axis of the chosen reference
 !!$      !coordinate
 !!$      !the second element has the sign which is the ratio of the previous two,
 !!$      !plus a sign which is given by the fact that the order is a cyclic permutation
@@ -1102,9 +1172,9 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
          better = abs(vec1)>abs(vec2)
       else
          !the two values are even. First choose the one which is positive
-         if (sign(vec1,vec2) == vec1) then 
+         if (sign(vec1,vec2) == vec1) then
             !the two objects have same sign and same absolute value
-            if (one==idim .or. two==idim) then 
+            if (one==idim .or. two==idim) then
                !better the one of the dimension
                better = one==idim
             else
@@ -1114,7 +1184,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
             better = sign(1.0_gp,vec1)==1.0_gp
          end if
       end if
-      
+
     end function better
 
     !> order the dimensions in terms of the maximum
@@ -1270,7 +1340,7 @@ subroutine field_rototranslation3D_interpolation(da,newz,centre_old,centre_new,&
   end do
 
   call f_release_routine()
-!stop  
+!stop
 contains
 
   function interpolate(dt,aijk)
@@ -1312,7 +1382,7 @@ contains
     !here the linear system has to be solved to find the coefficients aijk
     !some pragma has to be passed to MKL to ensure a monothread execution
     call dgesv(27,1,bijk,27,ipiv,aijk,27,info)
-    if (info /=0) then 
+    if (info /=0) then
        print *,'error', info, dt
        call f_err_severe()
     end if
@@ -1332,14 +1402,14 @@ contains
 
     !define the coordinates in the reference frame
     !which depends of the transformed variables
-    dt(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) 
+    dt(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1)
     dt(2)=-centre_new(2)+real(j2-1,gp)*hgrids_new(2)
     dt(3)=-centre_new(3)+real(j3-1,gp)*hgrids_new(3)
 
     !define the value of the shift of the variable we are going to transform
     t0_l=coord(newz,cost,sint,onemc,dt(1),dt(2),dt(3))-da
     istart=nint((t0_l+centre_old+hgrids_old)/hgrids_old)
-    
+
     !!doubts about that
     !t0_l=(dt-t0_l)/hgrids_old
     !!identify shift
@@ -1377,7 +1447,7 @@ contains
 !    if (maxval(abs(fijk)) /= 0.0_gp) then
 !       write(17,*)j1,j2,j3,dt,istart,fijk
 !    end if
-    
+
 
   end subroutine shift_and_start
 
@@ -1396,6 +1466,3 @@ contains
   end function coord
 
 end subroutine field_rototranslation3D_interpolation
-
-
-

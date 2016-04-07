@@ -1,3 +1,13 @@
+!> @file
+!! Local Region operations
+!! @author Copyright (C) 2015-2015 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module for the local region operations on orbitals
 module locreg_operations
   use module_base
   use locregs
@@ -77,10 +87,22 @@ module locreg_operations
   public :: allocate_work_arrays,init_local_work_arrays,deallocate_work_arrays
   public :: deallocate_workarrays_quartic_convolutions,zero_local_work_arrays
 
+  ! to avoid creating array temporaries
+  interface initialize_work_arrays_sumrho
+      module procedure initialize_work_arrays_sumrho_nlr 
+      module procedure initialize_work_arrays_sumrho_llr
+  end interface initialize_work_arrays_sumrho
+
+  interface initialize_work_arrays_locham
+      module procedure initialize_work_arrays_locham_nlr 
+      module procedure initialize_work_arrays_locham_llr
+  end interface initialize_work_arrays_locham
+
+
   contains
 
     !> Initialize work arrays for local hamiltonian
-    subroutine initialize_work_arrays_locham(nlr,lr,nspinor,allocate_arrays,w)
+    subroutine initialize_work_arrays_locham_nlr(nlr,lr,nspinor,allocate_arrays,w)
       implicit none
       integer, intent(in) :: nlr, nspinor
       type(locreg_descriptors), dimension(nlr), intent(in) :: lr
@@ -255,7 +277,166 @@ module locreg_operations
          endif
       end select
 
-    END SUBROUTINE initialize_work_arrays_locham
+    END SUBROUTINE initialize_work_arrays_locham_nlr
+
+
+    !> Initialize work arrays for local hamiltonian
+    subroutine initialize_work_arrays_locham_llr(lr,nspinor,allocate_arrays,w)
+      implicit none
+      integer, intent(in) ::  nspinor
+      type(locreg_descriptors), intent(in) :: lr
+      logical,intent(in) :: allocate_arrays
+      type(workarr_locham), intent(out) :: w
+      !local variables
+      character(len=*), parameter :: subname='initialize_work_arrays_locham'
+      integer :: ilr
+      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,nw,nww,nf
+
+      ! Determine the maximum array sizes for all locregs 1,..,nlr
+      ! If the sizes for a specific locreg are needed, simply call the routine with nlr=1
+      ! For the moment the geocode of all locregs must be the same
+      n1=lr%d%n1
+      n2=lr%d%n2
+      n3=lr%d%n3
+      n1i=lr%d%n1i
+      n2i=lr%d%n2i
+      n3i=lr%d%n3i
+      nfl1=lr%d%nfl1
+      nfl2=lr%d%nfl2
+      nfl3=lr%d%nfl3
+      nfu1=lr%d%nfu1
+      nfu2=lr%d%nfu2
+      nfu3=lr%d%nfu3
+
+
+      if (allocate_arrays) then !this might create memory leaks if there is no check performed
+         !if (associated(w%xc)) &
+         !     call f_err_throw('Error in initialize_work_arrays_locham: arrays already allocated',&
+         !     err_name='BIGDFT_RUNTIME_ERROR')
+         nullify(w%w1)
+         nullify(w%w2)
+         nullify(w%x_c)
+         nullify(w%y_c)
+         nullify(w%x_f1)
+         nullify(w%x_f2)
+         nullify(w%x_f3)
+         nullify(w%x_f)
+         nullify(w%y_f)
+      end if
+
+
+      select case(lr%geocode)
+      case('F')
+         !dimensions of work arrays
+         ! shrink convention: nw1>nw2
+         w%nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
+              (n1+1)*(2*n2+31)*(2*n3+31),&
+              2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+              2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+         w%nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+              4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+              (n1+1)*(n2+1)*(2*n3+31),&
+              (2*n1+31)*(n2+1)*(n3+1))
+         w%nyc=(n1+1)*(n2+1)*(n3+1)
+         w%nyf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         w%nxc=(n1+1)*(n2+1)*(n3+1)
+         w%nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         w%nxf1=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         w%nxf2=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         w%nxf3=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+         !allocation of work arrays
+         if (allocate_arrays) then
+            w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
+            w%y_f = f_malloc_ptr((/ w%nyf, nspinor /),id='w%y_f')
+            w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+            w%x_f = f_malloc_ptr((/ w%nxf, nspinor /),id='w%x_f')
+            w%w1 = f_malloc_ptr(w%nw1,id='w%w1')
+            w%w2 = f_malloc_ptr(w%nw2,id='w%w2')
+            w%x_f1 = f_malloc_ptr((/ w%nxf1, nspinor /),id='w%x_f1')
+            w%x_f2 = f_malloc_ptr((/ w%nxf2, nspinor /),id='w%x_f2')
+            w%x_f3 = f_malloc_ptr((/ w%nxf3, nspinor /),id='w%x_f3')
+         end if
+
+         !initialisation of the work arrays
+         call f_zero(w%x_f1)
+         call f_zero(w%x_f2)
+         call f_zero(w%x_f3)
+         call f_zero(w%x_c)
+         call f_zero(w%x_f)
+         call f_zero(w%y_c)
+         call f_zero(w%y_f)
+
+      case('S')
+         w%nw1=0
+         w%nw2=0
+         w%nyc=n1i*n2i*n3i
+         w%nyf=0
+         w%nxc=n1i*n2i*n3i
+         w%nxf=0
+         w%nxf1=0
+         w%nxf2=0
+         w%nxf3=0
+
+         !allocation of work arrays
+         if (allocate_arrays) then
+            w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+            w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
+         end if
+
+      case('P')
+         if (lr%hybrid_on) then
+            ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+            nf=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+            nw=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
+            nw=max(nw,2*(n3+1)*(n1+1)*(n2+1))      ! for the comb_shrink_hyb_c
+            nw=max(nw,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
+
+            nww=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
+            nww=max(nww,4*(n2+1)*(n3+1)*(n1+1))   ! for the comb_shrink_hyb_c   
+            nww=max(nww,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
+
+            w%nw1=nw
+            w%nw2=nww
+            w%nxc=(n1+1)*(n2+1)*(n3+1)
+            w%nyc=(n1+1)*(n2+1)*(n3+1)
+            w%nxf=7*nf
+            w%nyf=7*nf
+            w%nxf1=nf
+            w%nxf2=nf
+            w%nxf3=nf
+
+            w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
+            w%y_f = f_malloc_ptr((/ w%nyf, nspinor /),id='w%y_f')
+            w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+            w%x_f = f_malloc_ptr((/ w%nxf, nspinor /),id='w%x_f')
+            w%w1 = f_malloc_ptr(w%nw1,id='w%w1')
+            w%w2 = f_malloc_ptr(w%nw2,id='w%w2')
+            w%x_f1 = f_malloc_ptr((/ w%nxf1, nspinor /),id='w%x_f1')
+            w%x_f2 = f_malloc_ptr((/ w%nxf2, nspinor /),id='w%x_f2')
+            w%x_f3 = f_malloc_ptr((/ w%nxf3, nspinor /),id='w%x_f3')
+
+         else
+
+            w%nw1=0
+            w%nw2=0
+            w%nyc=n1i*n2i*n3i
+            w%nyf=0
+            w%nxc=n1i*n2i*n3i
+            w%nxf=0
+            w%nxf1=0
+            w%nxf2=0
+            w%nxf3=0
+
+            if (allocate_arrays) then
+               w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+               w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
+            end if
+         endif
+      end select
+
+    END SUBROUTINE initialize_work_arrays_locham_llr
 
 
     subroutine memspace_work_arrays_locham(lr,memwork) !n(c) nspinor (arg:2)
@@ -422,7 +603,7 @@ module locreg_operations
     END SUBROUTINE deallocate_work_arrays_locham
 
 
-    subroutine initialize_work_arrays_sumrho(nlr,lr,allocate_arrays,w)
+    subroutine initialize_work_arrays_sumrho_nlr(nlr,lr,allocate_arrays,w)
       implicit none
       integer, intent(in) :: nlr
       type(locreg_descriptors), dimension(nlr), intent(in) :: lr
@@ -434,6 +615,8 @@ module locreg_operations
       integer :: ilr
       character(len=1) :: geo
       logical :: hyb
+
+      call f_routine(id='initialize_work_arrays_sumrho')
 
       ! Determine the maximum array sizes for all locregs 1,..,nlr
       ! If the sizes for a specific locreg are needed, simply call the routine with nlr=1
@@ -530,8 +713,103 @@ module locreg_operations
          call f_zero(w%x_f)
       end if
 
+      call f_release_routine()
 
-    END SUBROUTINE initialize_work_arrays_sumrho
+    END SUBROUTINE initialize_work_arrays_sumrho_nlr
+
+
+    subroutine initialize_work_arrays_sumrho_llr(lr,allocate_arrays,w)
+      implicit none
+      type(locreg_descriptors), intent(in) :: lr
+      logical, intent(in) :: allocate_arrays
+      type(workarr_sumrho), intent(out) :: w
+      !local variables
+      character(len=*), parameter :: subname='initialize_work_arrays_sumrho'
+      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3!n(c) n1i,n2i,n3i
+      integer :: ilr
+
+      call f_routine(id='initialize_work_arrays_sumrho')
+
+      ! Determine the maximum array sizes for all locregs 1,..,nlr
+      ! If the sizes for a specific locreg are needed, simply call the routine with nlr=1
+      ! For the moment the geocode of all locregs must be the same
+
+      n1=lr%d%n1
+      n2=lr%d%n2
+      n3=lr%d%n3
+      nfl1=lr%d%nfl1
+      nfl2=lr%d%nfl2
+      nfl3=lr%d%nfl3
+      nfu1=lr%d%nfu1
+      nfu2=lr%d%nfu2
+      nfu3=lr%d%nfu3
+
+      if (allocate_arrays) then
+         nullify(w%x_c)
+         nullify(w%x_f)
+         nullify(w%w1)
+         nullify(w%w2)
+      end if
+
+      select case(lr%geocode)
+      case('F')
+         !dimension of the work arrays
+         ! shrink convention: nw1>nw2
+         w%nw1=max((n3+1)*(2*n1+31)*(2*n2+31),& 
+              (n1+1)*(2*n2+31)*(2*n3+31),&
+              2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+              2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+         w%nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+              4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+              (n1+1)*(n2+1)*(2*n3+31),&
+              (2*n1+31)*(n2+1)*(n3+1))
+         w%nxc=(n1+1)*(n2+1)*(n3+1)!(2*n1+2)*(2*n2+2)*(2*n3+2)
+         w%nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+      case('S')
+         !dimension of the work arrays
+         w%nw1=1
+         w%nw2=1
+         w%nxc=(2*n1+2)*(2*n2+31)*(2*n3+2)
+         w%nxf=1
+      case('P')
+         if (lr%hybrid_on) then
+            ! hybrid case:
+            w%nxc=(n1+1)*(n2+1)*(n3+1)
+            w%nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+            w%nw1=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
+            w%nw1=max(w%nw1,2*(n3+1)*(n1+1)*(n2+1))      ! for the comb_shrink_hyb_c
+            w%nw1=max(w%nw1,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
+
+            w%nw2=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
+            w%nw2=max(w%nw2,4*(n2+1)*(n3+1)*(n1+1))   ! for the comb_shrink_hyb_c   
+            w%nw2=max(w%nw2,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
+         else
+            !dimension of the work arrays, fully periodic case
+            w%nw1=1
+            w%nw2=1
+            w%nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
+            w%nxf=1
+         endif
+
+      end select
+      !work arrays
+      if (allocate_arrays) then
+         w%x_c = f_malloc_ptr(w%nxc,id='w%x_c')
+         w%x_f = f_malloc_ptr(w%nxf,id='w%x_f')
+         w%w1 = f_malloc_ptr(w%nw1,id='w%w1')
+         w%w2 = f_malloc_ptr(w%nw2,id='w%w2')
+      end if
+
+
+      if (lr%geocode == 'F') then
+         call f_zero(w%x_c)
+         call f_zero(w%x_f)
+      end if
+
+      call f_release_routine()
+
+    END SUBROUTINE initialize_work_arrays_sumrho_llr
 
 
     subroutine memspace_work_arrays_sumrho(lr,memwork)
@@ -605,10 +883,14 @@ module locreg_operations
       !local variables
       character(len=*), parameter :: subname='deallocate_work_arrays_sumrho'
 
+      call f_routine(id='deallocate_work_arrays_sumrho')
+
       call f_free_ptr(w%x_c)
       call f_free_ptr(w%x_f)
       call f_free_ptr(w%w1)
       call f_free_ptr(w%w2)
+
+      call f_release_routine()
 
     END SUBROUTINE deallocate_work_arrays_sumrho
 
@@ -816,10 +1098,6 @@ module locreg_operations
       ! Calling arguments
       type(workarrays_quartic_convolutions),intent(inout):: work
 
-      ! Local variables
-      integer:: iall, istat
-
-
       call f_free_ptr(work%xx_c)
 
       call f_free_ptr(work%xy_c)
@@ -918,7 +1196,7 @@ module locreg_operations
       type(workarrays_quartic_convolutions),intent(inout):: work
 
       ! Local variables
-      integer:: i, istat
+      integer:: i
       integer,parameter :: lowfil=-14,lupfil=14
 
       work%xx_c = f_malloc0_ptr((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='work%xx_c')
@@ -1029,7 +1307,7 @@ module locreg_operations
       character(len=*),intent(in):: subname
 
       ! Local variables
-      integer:: i, istat
+      integer:: i
       integer,parameter :: lowfil=-14,lupfil=14
 
       call f_routine(id='zero_local_work_arrays')
@@ -1144,7 +1422,6 @@ module locreg_operations
       integer :: nseg        ! total number of segments in Llr
       !integer, allocatable :: keymask(:,:)  ! shift for every segment of Llr (with respect to Glr)
       character(len=*), parameter :: subname='Lpsi_to_global'
-      integer :: i_all
       integer :: start,Gstart,Lindex
       integer :: lfinc,Gfinc,spinshift,ispin,Gindex,isegstart
       integer :: istart
@@ -1326,7 +1603,8 @@ module locreg_operations
      integer,dimension(6) :: ise
     
     ! Local variable
-     integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
+     integer :: ispin,ii1,ii2,ii3  !integer for loops
+     !integer :: i1,i2,i3
      integer :: indSmall, indSpin, indLarge ! indexes for the arrays
      integer :: ist2S,ist3S, ist2L, ist3L, istsa, ists, istl
      integer :: ii1shift, ii2shift, ii3shift, i1glob, i2glob, i3glob
@@ -1429,8 +1707,9 @@ module locreg_operations
       real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
       real(gp) :: weight_normalized
       !local variables
-      integer :: iorb, iiorb, ilr, iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ind 
+      integer :: iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ind 
       integer :: ij3, ij2, ij1, jj3, jj2, jj1, ijs3, ijs2, ijs1, ije3, ije2, ije1
+      !integer :: iorb, iiorb, ilr
       real(kind=8) :: h, x, y, z, d, weight_inside, weight_boundary, points_inside, points_boundary, ratio
       real(kind=8) :: boundary
       logical :: perx, pery, perz, on_boundary

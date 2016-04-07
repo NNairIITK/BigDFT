@@ -633,9 +633,9 @@ subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
                  iexpo=iexpo+1
                  iexpoat_coeffs =iexpoat_coeffs +1
 
-                 G%psiat(iexpo)=CMPLX(at%paw_Gcoeffs(2*iexpoat_coeffs -1) , at%paw_Gcoeffs(2*iexpoat_coeffs ) )   
+                 G%psiat(iexpo)=CMPLX(at%paw_Gcoeffs(2*iexpoat_coeffs -1) , at%paw_Gcoeffs(2*iexpoat_coeffs ) ,kind=gp)   
 
-                 G%expof (iexpo)   =CMPLX(at%paw_Greal(il), at%paw_Gimag( iexpoat_qs+ ig ) )
+                 G%expof (iexpo)   =CMPLX(at%paw_Greal(il), at%paw_Gimag( iexpoat_qs+ ig ) , kind=gp)
               enddo
               
 

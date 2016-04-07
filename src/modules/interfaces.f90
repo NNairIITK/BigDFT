@@ -108,7 +108,7 @@ module module_interfaces
          END SUBROUTINE IonicEnergyandForces
        end interface
 
-      interface
+!!$      interface
 !     subroutine mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,mp,mpx,mpy,mpz)
 !       use module_base
 !       use gaussians, only: mp_exp
@@ -117,27 +117,27 @@ module module_interfaces
 !       logical, intent(in) :: mp
 !       real(gp), dimension(:), allocatable, intent(out) :: mpx,mpy,mpz
 !     end subroutine mp_calculate
-     subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,rho_ion,hstrten)
-      use module_defs, only: gp,wp,dp
-      use module_dpbox
-      use module_types
-      use module_atoms, only: symmetry_data
-      use module_xc
-      implicit none
-      type(denspot_distribution), intent(in) :: dpbox
-      type(rho_descriptors),intent(inout) :: rhodsc
-      type(orbitals_data), intent(in) :: orbs
-      type(local_zone_descriptors), intent(in) :: Lzd
-      type(symmetry_data), intent(in) :: symObj
-        type(coulomb_operator), intent(inout) :: pkernel
-      type(xc_info), intent(in) :: xc
-      real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
-      type(GPU_pointers), intent(inout) :: GPU
-      real(gp), dimension(6), intent(out) :: hstrten
-      real(dp), dimension(:), pointer :: rho,vh
-        real(dp), dimension(:,:,:,:), pointer :: rho_ion
-        END SUBROUTINE density_and_hpot
-      end interface
+!!$     subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,rho_ion,hstrten)
+!!$      use module_defs, only: gp,wp,dp
+!!$      use module_dpbox
+!!$      use module_types
+!!$      use module_atoms, only: symmetry_data
+!!$      use module_xc
+!!$      implicit none
+!!$      type(denspot_distribution), intent(in) :: dpbox
+!!$      type(rho_descriptors),intent(inout) :: rhodsc
+!!$      type(orbitals_data), intent(in) :: orbs
+!!$      type(local_zone_descriptors), intent(in) :: Lzd
+!!$      type(symmetry_data), intent(in) :: symObj
+!!$        type(coulomb_operator), intent(inout) :: pkernel
+!!$      type(xc_info), intent(in) :: xc
+!!$      real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+!!$      type(GPU_pointers), intent(inout) :: GPU
+!!$      real(gp), dimension(6), intent(out) :: hstrten
+!!$      real(dp), dimension(:), pointer :: rho,vh
+!!$        real(dp), dimension(:,:,:,:), pointer :: rho_ion
+!!$        END SUBROUTINE density_and_hpot
+!!$      end interface
 
       interface
         subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
@@ -590,11 +590,10 @@ module module_interfaces
        end interface
 
       interface
-        subroutine free_full_potential(nproc,flag,xc,pot,subname)
+        subroutine free_full_potential(nproc,flag,xc,pot)
          use module_defs, only: gp,dp,wp
          use module_xc
          implicit none
-         character(len=*), intent(in) :: subname
          integer, intent(in) :: nproc,flag
          type(xc_info), intent(in) :: xc
          real(wp), dimension(:), pointer :: pot
@@ -602,13 +601,14 @@ module module_interfaces
       end interface
 
       interface
-        subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,&
+        subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,tr_min,&
             psi,hpsi,scprsum,spsi) !n(c) wfd (arg:5)
         use module_defs, only: gp,dp,wp
         use module_types
         use communications_base, only: comms_cubic
         implicit none
         logical, intent(in) :: symm !< symmetrize the lagrange multiplier after calculation
+        logical, intent(in) :: tr_min !< optimize the trace of the hamiltonian instead of the energy
         integer, intent(in) :: iproc,nproc
         type(orbitals_data), intent(in) :: orbs
         type(comms_cubic), intent(in) :: comms
@@ -921,13 +921,14 @@ module module_interfaces
 
      interface
        subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
-          psi,hpsi,psit,orthpar,passmat,iscf,Tel,occopt,& !mandatory
+          psi,hpsi,psit,orthpar,passmat,mixing,Tel,occopt,& !mandatory
           orbse,commse,etol,norbsc_arr) !optional
        use module_defs, only: gp,dp,wp
        use module_types
        use communications_base, only: comms_cubic
        implicit none
-       integer, intent(in) :: iproc,nproc,natsc,nspin,occopt,iscf
+       logical, intent(in) :: mixing
+       integer, intent(in) :: iproc,nproc,natsc,nspin,occopt
        real(gp), intent(in) :: Tel
        type(local_zone_descriptors) :: Lzd        !< Information about the locregs after LIG
        type(local_zone_descriptors) :: Lzde       !< Information about the locregs for LIG
@@ -1204,10 +1205,12 @@ module module_interfaces
 
         interface
         subroutine denspot_set_history(denspot, iscf, nspin, npulayit)
-          use module_types
+          use module_types, only: DFT_local_fields
+          use f_enums, only: f_enumerator
           implicit none
           type(DFT_local_fields), intent(inout) :: denspot
-          integer, intent(in) :: iscf, nspin
+          type(f_enumerator), intent(in) :: iscf
+          integer, intent(in) ::  nspin
           integer,intent(in),optional :: npulayit
           END SUBROUTINE denspot_set_history
         end interface
@@ -1377,7 +1380,7 @@ module module_interfaces
 
   interface
      subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,&
-          hgrids,n,centre_old,centre_new,da,frag_trans,psi,psirold)
+          hgrids,n,centre_old,centre_new,da,frag_trans,psi,psirold,tag)
        use module_defs, only: gp,dp,wp
        use module_types
        use module_fragments
@@ -1392,6 +1395,7 @@ module module_interfaces
        real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
        real(wp), dimension(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f), intent(out) :: psi
        real(wp), dimension(llr_old%d%n1i,llr_old%d%n2i,llr_old%d%n3i), optional, intent(in) :: psirold
+       integer,optional,intent(in) :: tag
      END SUBROUTINE reformat_one_supportfunction
   end interface
 
@@ -1468,14 +1472,16 @@ module module_interfaces
   end interface
 
   interface
-     subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
+     subroutine write_energies(iter,energs,gnrm,gnrm_zero,comment,scf_mode,only_energies)
        use module_defs, only: gp,dp,wp
-       use module_types
+       use module_types, only: energy_terms
+       use f_enums, only: f_enumerator
        implicit none
-       integer, intent(in) :: iter,iscf
+       integer, intent(in) :: iter
        type(energy_terms), intent(in) :: energs
        real(gp), intent(in) :: gnrm,gnrm_zero
        character(len=*), intent(in) :: comment
+       type(f_enumerator), intent(in), optional :: scf_mode
        logical,intent(in),optional :: only_energies
      END SUBROUTINE write_energies
   end interface

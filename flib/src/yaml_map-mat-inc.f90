@@ -13,7 +13,7 @@
   character(len=*), optional, intent(in) :: label,advance,fmt
   integer, optional, intent(in) :: unit
   !Local variables
-  integer :: strm,unt,irow
+  integer :: strm,unt,irow,icol
   character(len=3) :: adv
   !character(len=tot_max_record_length) :: towrite
 
@@ -30,14 +30,23 @@
   else
      call yaml_sequence_open(mapname,advance=adv,unit=unt)
   end if
-  do irow=lbound(mapvalue,1),ubound(mapvalue,2)
-     if (present(fmt)) then
-        call yaml_sequence(trim(yaml_toa(mapvalue(:,irow),fmt=fmt)),&
+  do irow=lbound(mapvalue,2),ubound(mapvalue,2)
+     call yaml_newline()
+     call yaml_sequence(advance='no',unit=unt)
+     call yaml_sequence_open(flow=.true.,unit=unt)
+     do icol=lbound(mapvalue,1),ubound(mapvalue,1)
+        call yaml_sequence(trim(yaml_toa(mapvalue(icol,irow),fmt=fmt)),&
              advance=adv,unit=unt)
-     else
-        call yaml_sequence(trim(yaml_toa(mapvalue(:,irow))),&
-             advance=adv,unit=unt)
-     end if
+     end do
+     call yaml_sequence_close(unit=unt)
+!!$     if (present(fmt)) then
+!!$        call yaml_sequence(trim(yaml_toa(mapvalue(:,irow),fmt=fmt)),&
+!!$             advance=adv,unit=unt)
+!!$     else
+!!$        call yaml_sequence(trim(yaml_toa(mapvalue(:,irow))),&
+!!$             advance=adv,unit=unt)
+!!$           call yaml_sequence(trim(yaml_toa(mapvalue(icol,irow))))
+!!$     end if
   end do
 
   call yaml_sequence_close(advance=adv,unit=unt)

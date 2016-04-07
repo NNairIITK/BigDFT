@@ -21,7 +21,7 @@ libspredbasef_SOURCES = $(libspredbasef_objects)
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@\
              @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
-EXTRA_DIST = 
+EXTRA_DIST = SPRED_input_variables_definition.yaml
 
 CLEANFILES = *.@MODULE_EXT@ 
 
@@ -32,6 +32,6 @@ libspredbasef_a_SOURCES = $(libspredbasef_SOURCES)
 
 SPREDbase.o: SPRED_input_variables_fetch.o
 
-SPREDtypes.o: SPREDbase.o SPRED_input_variables_fetch.o
+SPREDtypes.o: SPREDbase.o SPRED_input_variables_fetch.o SPRED_public_keys.o
 
 module_fingerprints.f90: SPREDbase.o SPREDtypes.o

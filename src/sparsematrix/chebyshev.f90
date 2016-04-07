@@ -9,7 +9,7 @@
 
 
 module chebyshev
-
+  use sparsematrix_base
   implicit none
 
   private
@@ -22,11 +22,8 @@ module chebyshev
  
     !> Again assuming all matrices have same sparsity, still some tidying to be done
     subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
-               invovrlp_compr, calculate_SHS, nsize_polynomial, ncalc, fermi_new, penalty_ev_new, chebyshev_polynomials, &
-               emergency_stop)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
-                                   SPARSE_MATMUL_LARGE, SPARSEMM_SEQ,sparsematrix_malloc0
+               calculate_SHS, nsize_polynomial, ncalc, fermi_new, penalty_ev_new, chebyshev_polynomials, emergency_stop, &
+               invovrlp_compr)
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
                               compress_matrix_distributed_wrapper, sparsemm_new
@@ -37,12 +34,12 @@ module chebyshev
       real(8),dimension(npl,3,ncalc),intent(in) :: cc
       type(sparse_matrix), intent(in) :: kernel
       real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
-      real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: invovrlp_compr
       logical,intent(in) :: calculate_SHS
       real(kind=8),dimension(kernel%smmm%nvctrp,ncalc),intent(out) :: fermi_new
       real(kind=8),dimension(kernel%smmm%nvctrp,2),intent(out) :: penalty_ev_new
       real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
       logical,dimension(2),intent(out) :: emergency_stop
+      real(kind=8),dimension(kernel%nvctrp_tg),intent(in),optional :: invovrlp_compr
       ! Local variables
       character(len=*),parameter :: subname='chebyshev_clean'
       integer :: iorb,iiorb, jorb, ipl, i, iline, icolumn, jj, j
@@ -65,40 +62,25 @@ module chebyshev
     
       mat_compr = f_malloc(kernel%nvctrp_tg,id='mat_compr')
     
-      if (calculate_SHS) then
-          matrix_new = f_malloc0(kernel%smmm%nvctrp,id='matrix')
-      end if
 
       if (kernel%nfvctrp>0) then
           mat_seq = sparsematrix_malloc(kernel, iaction=SPARSEMM_SEQ, id='mat_seq')
-          if (calculate_SHS) then
-              if (kernel%smmm%nvctrp>0) then
-                  call prepare_matrix(kernel, invovrlp_compr, matrix_new)
-                  !!do i=1,kernel%smmm%nvctrp
-                  !!    ii = kernel%smmm%isvctr + i
-                  !!    iline = kernel%smmm%line_and_column(1,i)
-                  !!    icolumn = kernel%smmm%line_and_column(2,i)
-                  !!    jj=matrixindex_in_compressed(kernel, icolumn, iline)
-                  !!    if (jj>0) then
-                  !!        matrix_new(i) = invovrlp_compr(jj-kernel%isvctrp_tg)
-                  !!    else
-                  !!        matrix_new(i) = 0.d0
-                  !!    end if
-                  !!end do
-              end if
-          end if
           vectors_new = f_malloc0((/kernel%smmm%nvctrp,4/),id='vectors_new')
       end if
         
       
       if (calculate_SHS) then
-      
+          if (.not.present(invovrlp_compr)) then
+              call f_err_throw('invovrlp_compr not present')
+          end if
+          matrix_new = f_malloc0(kernel%smmm%nvctrp,id='matrix')
           if (kernel%smmm%nvctrp>0) then
+              call prepare_matrix(kernel, invovrlp_compr, matrix_new)
               call sequential_acces_matrix_fast2(kernel, ham_compr, mat_seq)
-              call sparsemm_new(kernel, mat_seq, matrix_new(1), vectors_new(1,1))
+              call sparsemm_new(iproc, kernel, mat_seq, matrix_new(1), vectors_new(1,1))
               call f_zero(matrix_new)
               call sequential_acces_matrix_fast2(kernel, invovrlp_compr, mat_seq)
-              call sparsemm_new(kernel, mat_seq, vectors_new(1,1), matrix_new(1))
+              call sparsemm_new(iproc, kernel, mat_seq, vectors_new(1,1), matrix_new(1))
           end if
           call compress_matrix_distributed_wrapper(iproc, nproc, kernel, SPARSE_MATMUL_LARGE, &
                matrix_new, mat_compr)
@@ -146,7 +128,7 @@ module chebyshev
               call axpy(kernel%smmm%nvctrp, 0.5d0*cc(1,3,1), vectors_new(1,4), 1, penalty_ev_new(1,2), 1)
               !write(*,*) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
             
-              call sparsemm_new(kernel, mat_seq, vectors_new(1,3), vectors_new(1,1))
+              call sparsemm_new(iproc, kernel, mat_seq, vectors_new(1,3), vectors_new(1,1))
               call vcopy(kernel%smmm%nvctrp, vectors_new(1,1), 1, vectors_new(1,2), 1)
     
 
@@ -164,7 +146,7 @@ module chebyshev
             
               emergency_stop=.false.
               main_loop: do ipl=3,npl
-                  call sparsemm_new(kernel, mat_seq, vectors_new(1,1), vectors_new(1,2))
+                  call sparsemm_new(iproc, kernel, mat_seq, vectors_new(1,1), vectors_new(1,2))
                   call axbyz_kernel_vectors_new(kernel, 2.d0, vectors_new(1,2), -1.d0, vectors_new(1,4), vectors_new(1,3))
                   call compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, &
                        kernel%nfvctr, kernel%smmm%nfvctrp, kernel, &
@@ -235,7 +217,6 @@ module chebyshev
     
 
     subroutine prepare_matrix(smat, invovrlp_compr, matrix)
-      use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: matrixindex_in_compressed
       use dynamic_memory
       implicit none
@@ -276,8 +257,6 @@ module chebyshev
 
     ! Performs z = a*x + b*y
     subroutine axbyz_kernel_vectors_new(smat, a, x_compr, b, y_compr, z_compr)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -310,9 +289,6 @@ module chebyshev
     
     subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                norb, norbp, fermi, chebyshev_polynomials, ncalc, cc, kernel_compressed)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=),&
-           SPARSE_FULL,sparsematrix_malloc0
       implicit none
     
       ! Calling arguments
@@ -332,8 +308,11 @@ module chebyshev
           call f_zero(kernel_compressed)
     
           do icalc=1,ncalc
+              !write(*,*) 'icalc, ipl, kernel_compressed(1,icalc)', icalc, 0, kernel_compressed(1,icalc)
               call axpy(nsize_polynomial, 0.5d0*cc(1,icalc), chebyshev_polynomials(1,1), 1, kernel_compressed(1,icalc), 1)
+              !write(*,*) 'icalc, ipl, kernel_compressed(1,icalc)', icalc, 1, kernel_compressed(1,icalc), cc(1,icalc)
               do ipl=2,npl
+                  !write(*,*) 'icalc, ipl, kernel_compressed(1,icalc)', icalc, ipl, kernel_compressed(1,icalc), cc(ipl,icalc)
                   call axpy(nsize_polynomial, cc(ipl,icalc), chebyshev_polynomials(1,ipl), 1, kernel_compressed(1,icalc), 1)
               end do
           end do
@@ -348,8 +327,6 @@ module chebyshev
 
     subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, norbp, &
                fermi, vector_compr, vector_compressed)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
       use sparsematrix, only: transform_sparsity_pattern
       implicit none
     
@@ -365,7 +342,7 @@ module chebyshev
     
       call f_routine(id='compress_polynomial_vector_new')
     
-      call transform_sparsity_pattern(fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
+      call transform_sparsity_pattern(iproc, fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
            fermi%nseg, fermi%keyv, fermi%keyg, fermi%smmm%line_and_column_mm, &
            fermi%smmm%nvctrp, fermi%smmm%isvctr, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, &
            fermi%smmm%istsegline, 'large_to_small', vector_compressed, vector_compr)
@@ -376,7 +353,6 @@ module chebyshev
 
 
     function check_emergency_stop(nvctrp, ncalc, column) result(ces)
-      use module_base
       implicit none
 
       ! Calling arguments

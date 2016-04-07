@@ -55,6 +55,9 @@ module public_keys
 
   character(len = *), parameter :: PSOLVER = "psolver"
 
+  character(len = *), parameter :: OUTPUT_VARIABLES = "output"
+  character(len = *), parameter :: ATOMIC_DENSITY_MATRIX = "atomic_density_matrix" 
+
   character(len = *), parameter :: KPT_VARIABLES = "kpt"
   character(len = *), parameter :: KPT_METHOD = "method"
   character(len = *), parameter :: KPTRLEN = "kptrlen"
@@ -203,7 +206,6 @@ module public_keys
   character(len = *), parameter :: GPS_METHOD = "gps_method"
   character(len = *), parameter :: FOE_GAP = "foe_gap"
   character(len = *), parameter :: SUPPORT_FUNCTION_MULTIPOLES = "support_function_multipoles"
-  character(len = *), parameter :: NSIGMA = "nsigma"
   character(len = *), parameter :: PLOT_MPPOT_AXES = "plot_mppot_axes"
   character(len = *), parameter :: PLOT_POT_AXES = "plot_pot_axes"
 
@@ -230,7 +232,6 @@ module public_keys
   character(len=*), parameter :: CALC_QUADRUPOLE ='calc_quadrupole'
   character(len=*), parameter :: CDFT_LAG_MULT_INIT='cdft_lag_mult_init'
   character(len=*), parameter :: CDFT_CONV_CRIT  ='cdft_conv_crit'
-  character(len=*), parameter :: CALC_PULAY      ='calc_pulay'
   character(len=*), parameter :: SUBSPACE_DIAG   ='subspace_diag'
   character(len=*), parameter :: ALPHA_DIIS      ='alpha_diis'
   character(len=*), parameter :: ALPHA_SD        ='alpha_sd'
@@ -248,7 +249,7 @@ module public_keys
   character(len=*), parameter :: NBASIS          ='nbasis'
   character(len=*), parameter :: TRANSFER_INTEGRALS='transfer_integrals'
   character(len=*), parameter :: CONSTRAINED_DFT  ='constrained_dft'
-  character(len=*), parameter :: FIX_BASIS       ='fix_basis' 
+  character(len=*), parameter :: FIX_BASIS       ='fix_basis'
   character(len=*), parameter :: CORRECTION_ORTHOCONSTRAINT='correction_orthoconstraint'
   character(len=*), parameter :: FSCALE_LOWERBOUND="fscale_lowerbound"
   character(len=*), parameter :: FSCALE_UPPERBOUND="fscale_upperbound"
@@ -272,35 +273,37 @@ module public_keys
   character(len=*), parameter :: PEXSI_TOL_CHARGE='pexsi_tol_charge'
 
   !> Parameters to avoid typos in dictionary keys
-  character(len=*), parameter :: ASTRUCT_UNITS = 'units' 
-  character(len=*), parameter :: ASTRUCT_CELL = 'cell' 
-  character(len=*), parameter :: ASTRUCT_POSITIONS = 'positions' 
-  character(len=*), parameter :: ASTRUCT_PROPERTIES = 'properties' 
-  character(len=*), parameter :: ASTRUCT_ATT_FROZEN = 'Frozen' 
-  character(len=*), parameter :: ASTRUCT_ATT_IGSPIN = 'IGSpin' 
-  character(len=*), parameter :: ASTRUCT_ATT_IGCHRG = 'IGChg' 
-  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_1 = 'int_ref_atoms_1' 
-  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_2 = 'int_ref_atoms_2' 
-  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_3 = 'int_ref_atoms_3' 
-  character(len=*), parameter :: ASTRUCT_ATT_MODE = 'mode' 
-  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_1 = 'rxyz_int_atoms_1' 
-  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_2 = 'rxyz_int_atoms_2' 
-  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_3 = 'rxyz_int_atoms_3' 
-  character(len=*), parameter :: ASTRUCT_ATT_ORIG_ID = 'fromNode' 
+  character(len=*), parameter :: ASTRUCT_UNITS = 'units'
+  character(len=*), parameter :: ASTRUCT_CELL = 'cell'
+  character(len=*), parameter :: ASTRUCT_POSITIONS = 'positions'
+  character(len=*), parameter :: ASTRUCT_PROPERTIES = 'properties'
+  character(len=*), parameter :: ASTRUCT_ATT_FROZEN = 'Frozen'
+  character(len=*), parameter :: ASTRUCT_ATT_IGSPIN = 'IGSpin'
+  character(len=*), parameter :: ASTRUCT_ATT_IGCHRG = 'IGChg'
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_1 = 'int_ref_atoms_1'
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_2 = 'int_ref_atoms_2'
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_3 = 'int_ref_atoms_3'
+  character(len=*), parameter :: ASTRUCT_ATT_MODE = 'mode'
+  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_1 = 'rxyz_int_atoms_1'
+  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_2 = 'rxyz_int_atoms_2'
+  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_3 = 'rxyz_int_atoms_3'
+  character(len=*), parameter :: ASTRUCT_ATT_ORIG_ID = 'fromNode'
 
-  character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)' 
-  character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)' 
-  character(len=*), parameter :: FORMAT_KEY = 'format' 
-  character(len=*), parameter :: FORMAT_YAML = 'yaml' 
-  character(len=*), parameter :: RADII_KEY = 'Radii of active regions (AU)' 
-  character(len=*), parameter :: LPSP_KEY = 'Local Pseudo Potential (HGH convention)' 
+  character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)'
+  character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)'
+  character(len=*), parameter :: FORMAT_KEY = 'format'
+  character(len=*), parameter :: FORMAT_YAML = 'yaml'
+  character(len=*), parameter :: RADII_KEY = 'Radii of active regions (AU)'
+  character(len=*), parameter :: LPSP_KEY = 'Local Pseudo Potential (HGH convention)'
   character(len=*), parameter :: NLPSP_KEY = 'NonLocal PSP Parameters'
+  character(len=*), parameter :: NLCC_KEY = 'Non Linear Core Correction term'
   character(len=*), parameter :: PSPXC_KEY = 'Pseudopotential XC'
   character(len=*), parameter :: PSP_TYPE = 'Pseudopotential type'
   character(len=*), parameter :: COARSE = 'Coarse'
   character(len=*), parameter :: COARSE_PSP = 'Coarse PSP'
   character(len=*), parameter :: FINE = 'Fine'
   character(len=*), parameter :: SOURCE_KEY = 'Source'
+  character(len=*), parameter :: COEFF_KEY = 'Coefficients (c1 .. c4)'
   character(len=*), parameter :: ATOMIC_NUMBER = 'Atomic number'
   character(len=*), parameter :: ELECTRON_NUMBER = 'No. of Electrons'
   character(len=*), parameter :: POSINP_SOURCE = 'source'
@@ -311,7 +314,7 @@ end module public_keys
 module public_enums
   use f_enums
   implicit none
-  
+
   private !as we use at least one module, private become compulsory
 
   !> Error codes, to be documented little by little
@@ -360,8 +363,8 @@ module public_enums
   integer, parameter, public :: WF_FORMAT_BINARY = BINARY
   integer, parameter, public :: WF_FORMAT_ETSF   = ETSF
 
-  !> Output grid parameters. 
-  ! with these options we would have 
+  !> Output grid parameters.
+  ! with these options we would have
   ! 0 : none
   ! 1 : density, plain
   ! 2 : denspot, plain
@@ -465,8 +468,36 @@ module public_enums
   integer, parameter, public :: KERNELMODE_PEXSI = 13
   integer, parameter, public :: MIXINGMODE_DENS = 20
   integer, parameter, public :: MIXINGMODE_POT = 21
-  integer,parameter, public :: FOE_ACCURATE = 30
-  integer,parameter, public :: FOE_FAST = 31
+  integer, parameter, public :: FOE_ACCURATE = 30
+  integer, parameter, public :: FOE_FAST = 31
+
+  integer, parameter :: MIXING= 1000
+  integer, parameter :: DIRMIN= 0
+
+  integer, parameter, public :: AB7_MIXING_NONE        = 0
+  integer, parameter, public :: AB7_MIXING_EIG         = 1
+  integer, parameter, public :: AB7_MIXING_SIMPLE      = 2
+  integer, parameter, public :: AB7_MIXING_ANDERSON    = 3
+  integer, parameter, public :: AB7_MIXING_ANDERSON_2  = 4
+  integer, parameter, public :: AB7_MIXING_CG_ENERGY   = 5
+  integer, parameter, public :: AB7_MIXING_CG_ENERGY_2 = 6
+  integer, parameter, public :: AB7_MIXING_PULAY       = 7
+
+  integer, parameter, public :: AB7_MIXING_POTENTIAL  = 0
+  integer, parameter, public :: AB7_MIXING_DENSITY    = 1
+
+  integer, parameter, public :: AB7_MIXING_REAL_SPACE    = 1
+  integer, parameter, public :: AB7_MIXING_FOURIER_SPACE = 2
+
+  type(f_enumerator), public :: MIX_ENUM=f_enumerator('MIXING',MIXING,null())
+
+  type(f_enumerator), public :: POT_MIX_ENUM=f_enumerator('MIXING_ON',AB7_MIXING_POTENTIAL,null())
+  type(f_enumerator), public :: DEN_MIX_ENUM=f_enumerator('MIXING_ON',AB7_MIXING_DENSITY,null())
+
+  type(f_enumerator), public :: RSPACE_MIX_ENUM=f_enumerator('MIXING_SPACE',AB7_MIXING_REAL_SPACE,null())
+  type(f_enumerator), public :: FSPACE_MIX_ENUM=f_enumerator('MIXING_SPACE',AB7_MIXING_FOURIER_SPACE,null())
+
+
 
   !> How to update the density kernel during teh support function optimization
   integer, parameter, public :: UPDATE_BY_PURIFICATION = 0
@@ -512,11 +543,6 @@ module public_enums
   type(f_enumerator), parameter, public :: CP2K_RUN_MODE         =f_enumerator('CP2K_RUN_MODE',-991,null())
   type(f_enumerator), parameter, public :: DFTBP_RUN_MODE         =f_enumerator('DFTBP_RUN_MODE',-990,null())
   type(f_enumerator), parameter, public :: TDPOT_RUN_MODE      =f_enumerator('TDPOT_RUN_MODE',-989,null())
-  
+
   type(f_enumerator), parameter, public :: MULTI_RUN_MODE         =f_enumerator('MULTI_RUN_MODE',-988,null())
 end module public_enums
-
-
-
-
-

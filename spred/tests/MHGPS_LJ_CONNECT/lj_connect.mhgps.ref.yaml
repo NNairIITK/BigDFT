@@ -195,7 +195,7 @@
    maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
+   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 1 #      Enables linear sumrho check
@@ -225,9 +225,6 @@
     #                                              support function convergence
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
    foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
-   nsigma                              : 1 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
-    #                                              Gaussian used for the radial part of the 
-    #                                              function based on the multipoles.
  lin_general:
    hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
    nit: [100, 100] #                              number of iteration with low/high accuracy
@@ -252,7 +249,6 @@
    cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    calc_dipole                         : No #     calculate dipole
    calc_quadrupole                     : No #     calculate quadrupole
-   calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
    subspace_diag                       : No #     diagonalization at the end
    extra_states                        : 0 #      extra states to optimize (dmin only)
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
@@ -450,11 +446,11 @@
    (MHGPS) No. Energy evaluations for TS guess:  20.0
     #------------------------------------------------------ (MHGPS) Start Saddle Search ....
  - LENNARD_JONES_RUN_MODE: {Energy: -168.5394478093962}
-     (MHGPS) Finite difference spacing for curvature computation:  1.39429873862395E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.39429873862395E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -168.5399624579}
  - LENNARD_JONES_RUN_MODE: {Energy: -168.5399942705496}
  - LENNARD_JONES_RUN_MODE: {Energy: -168.5400724826417}
-     (MHGPS) minmode overlap           :  0.997715750762834
+   (MHGPS) minmode overlap           :  0.997715750762834
  - LENNARD_JONES_RUN_MODE: {Energy: -168.6127390858071}
  - LENNARD_JONES_RUN_MODE: {Energy: -168.8025500262867}
  - LENNARD_JONES_RUN_MODE: {Energy: -168.8556024961172}
@@ -464,14 +460,14 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.3505981115071}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.4425807394237}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.4935890386309}
-     (MHGPS) Finite difference spacing for curvature computation:  1.37044727403728E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.37044727403728E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -169.4934562468397}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.4935872075661}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.4937063954919}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.4937974643801}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.4937999416837}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.4937543204379}
-     (MHGPS) minmode overlap           :  0.9638402495873337
+   (MHGPS) minmode overlap           :  0.9638402495873337
  - LENNARD_JONES_RUN_MODE: {Energy: -169.5487614862342}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.6031736022257}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.6420009054436}
@@ -483,7 +479,7 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7508123215915}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7586802886175}
     #(MHGPS) tightening
-     (MHGPS) Finite difference spacing for curvature computation:  1.42888013972843E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.42888013972843E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7584640122907}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7584562245978}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7584481561078}
@@ -492,7 +488,7 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7583910365551}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7583787674794}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7583650086602}
-     (MHGPS) minmode overlap           :  0.9400816800762084
+   (MHGPS) minmode overlap           :  0.9400816800762084
  - LENNARD_JONES_RUN_MODE: {Energy: -169.76479618542}
    (MHGPS) convergence at              :  38
     #.......................................................... (MHGPS) Relax from left side
@@ -541,7 +537,7 @@
    (MHGPS) No. Energy evaluations for TS guess:  20.0
     #------------------------------------------------------ (MHGPS) Start Saddle Search ....
  - LENNARD_JONES_RUN_MODE: {Energy: -169.8116315400489}
-     (MHGPS) Finite difference spacing for curvature computation:  1.37583751707831E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.37583751707831E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -169.8115278010573}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.8112860597003}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.8109017361045}
@@ -551,7 +547,7 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.8097994905353}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.809574082862}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.8093885373105}
-     (MHGPS) minmode overlap           :  0.7946816930836993
+   (MHGPS) minmode overlap           :  0.7946816930836993
  - LENNARD_JONES_RUN_MODE: {Energy: -169.8206297042192}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.8430350432541}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7990290149939}
@@ -561,11 +557,11 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7781065887742}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7800002990166}
     #(MHGPS) tightening
-     (MHGPS) Finite difference spacing for curvature computation:  1.59408520979900E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.59408520979900E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7800005802011}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.779988798097}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7799774618339}
-     (MHGPS) minmode overlap           :  0.9963822258247873
+   (MHGPS) minmode overlap           :  0.9963822258247873
  - LENNARD_JONES_RUN_MODE: {Energy: -169.782319258869}
    (MHGPS) convergence at              :  22
     #.......................................................... (MHGPS) Relax from left side
@@ -614,7 +610,7 @@
    (MHGPS) No. Energy evaluations for TS guess:  20.0
     #------------------------------------------------------ (MHGPS) Start Saddle Search ....
  - LENNARD_JONES_RUN_MODE: {Energy: -169.755012356035}
-     (MHGPS) Finite difference spacing for curvature computation:  1.36752723183385E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.36752723183385E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7554231405649}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7551798080983}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7547998008005}
@@ -625,7 +621,7 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.753469528784}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7533758728633}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7533038114665}
-     (MHGPS) minmode overlap           :  0.7732906742925217
+   (MHGPS) minmode overlap           :  0.7732906742925217
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7665679520635}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7941859574112}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7755565281381}
@@ -635,11 +631,11 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7702268220297}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7729170608492}
     #(MHGPS) tightening
-     (MHGPS) Finite difference spacing for curvature computation:  1.62963968246733E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.62963968246733E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7728884755984}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7728817988163}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7728742004762}
-     (MHGPS) minmode overlap           :  0.9978191644227553
+   (MHGPS) minmode overlap           :  0.9978191644227553
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7760716895781}
    (MHGPS) convergence at              :  23
     #.......................................................... (MHGPS) Relax from left side
@@ -688,7 +684,7 @@
    (MHGPS) No. Energy evaluations for TS guess:  20.0
     #------------------------------------------------------ (MHGPS) Start Saddle Search ....
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7478870596607}
-     (MHGPS) Finite difference spacing for curvature computation:  1.36530112379727E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.36530112379727E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7483360232339}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.748096544387}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7477192828259}
@@ -698,7 +694,7 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7465546121682}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7463713700305}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7462864117775}
-     (MHGPS) minmode overlap           :  0.8169727255252407
+   (MHGPS) minmode overlap           :  0.8169727255252407
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7593393772196}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7871256218254}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7722025007338}
@@ -708,11 +704,11 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7702813053858}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7728611954478}
     #(MHGPS) tightening
-     (MHGPS) Finite difference spacing for curvature computation:  1.58092690254538E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.58092690254538E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7728173504586}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7728070387853}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7727956015613}
-     (MHGPS) minmode overlap           :  0.9975152253380644
+   (MHGPS) minmode overlap           :  0.9975152253380644
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7762672073476}
    (MHGPS) convergence at              :  22
     #.......................................................... (MHGPS) Relax from left side
@@ -761,7 +757,7 @@
    (MHGPS) No. Energy evaluations for TS guess:  20.0
     #------------------------------------------------------ (MHGPS) Start Saddle Search ....
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7542319095551}
-     (MHGPS) Finite difference spacing for curvature computation:  1.36621607080809E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.36621607080809E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7546196152956}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7543797084487}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.753994894233}
@@ -773,7 +769,7 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7525548014978}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7524651896761}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7524165616234}
-     (MHGPS) minmode overlap           :  0.7649410897612717
+   (MHGPS) minmode overlap           :  0.7649410897612717
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7650447516833}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7918059371596}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7683017544956}
@@ -783,11 +779,11 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7639161866802}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7670797774584}
     #(MHGPS) tightening
-     (MHGPS) Finite difference spacing for curvature computation:  1.63701108713674E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.63701108713674E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -169.767054683213}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7670471183364}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7670392790767}
-     (MHGPS) minmode overlap           :  0.9977561324118428
+   (MHGPS) minmode overlap           :  0.9977561324118428
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7712805987699}
    (MHGPS) convergence at              :  24
     #.......................................................... (MHGPS) Relax from left side
@@ -836,7 +832,7 @@
    (MHGPS) No. Energy evaluations for TS guess:  20.0
     #------------------------------------------------------ (MHGPS) Start Saddle Search ....
  - LENNARD_JONES_RUN_MODE: {Energy: -169.740815942899}
-     (MHGPS) Finite difference spacing for curvature computation:  1.36410291461284E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.36410291461284E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7413079902633}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7410696923741}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7406916335538}
@@ -847,7 +843,7 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7393480316665}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7392536753039}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7391743679052}
-     (MHGPS) minmode overlap           :  0.7877336879423118
+   (MHGPS) minmode overlap           :  0.7877336879423118
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7520581653428}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7795891482336}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7629794688245}
@@ -857,11 +853,11 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7637348717169}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.767094753905}
     #(MHGPS) tightening
-     (MHGPS) Finite difference spacing for curvature computation:  1.63342482501445E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.63342482501445E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -169.767057294401}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7670495850404}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.767040526845}
-     (MHGPS) minmode overlap           :  0.9977751572087469
+   (MHGPS) minmode overlap           :  0.9977751572087469
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7713701408952}
    (MHGPS) convergence at              :  23
     #.......................................................... (MHGPS) Relax from left side
@@ -910,7 +906,7 @@
    (MHGPS) No. Energy evaluations for TS guess:  20.0
     #------------------------------------------------------ (MHGPS) Start Saddle Search ....
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7368064282477}
-     (MHGPS) Finite difference spacing for curvature computation:  1.36254943095059E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.36254943095059E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7373408624106}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7371017362753}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7367193982771}
@@ -920,7 +916,7 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7356232397881}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7353881887659}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7353008900949}
-     (MHGPS) minmode overlap           :  0.8205110744051441
+   (MHGPS) minmode overlap           :  0.8205110744051441
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7484534659848}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7761906195803}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7647583184928}
@@ -930,11 +926,11 @@
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7667508888724}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7701041771059}
     #(MHGPS) tightening
-     (MHGPS) Finite difference spacing for curvature computation:  1.58999251870249E-03
+   (MHGPS) Finite difference spacing for curvature computation:  1.58999251870249E-03
  - LENNARD_JONES_RUN_MODE: {Energy: -169.770036319293}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7700253738982}
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7700157467415}
-     (MHGPS) minmode overlap           :  0.9977861546329346
+   (MHGPS) minmode overlap           :  0.9977861546329346
  - LENNARD_JONES_RUN_MODE: {Energy: -169.7738961183589}
    (MHGPS) convergence at              :  22
     #.......................................................... (MHGPS) Relax from left side

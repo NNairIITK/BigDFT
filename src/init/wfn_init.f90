@@ -201,7 +201,7 @@ END SUBROUTINE Gaussian_DiagHam
 
 
 subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
-     psi,hpsi,psit,orthpar,passmat,iscf,Tel,occopt,& !mandatory
+     psi,hpsi,psit,orthpar,passmat,mixing,Tel,occopt,& !mandatory
      orbse,commse,etol,norbsc_arr) !optional
   use module_base
   use module_types
@@ -211,7 +211,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   use communications, only: transpose_v, untranspose_v, toglobal_and_transpose
   use public_enums
   implicit none
-  integer, intent(in) :: iproc,nproc,natsc,nspin,occopt,iscf
+  logical, intent(in) :: mixing
+  integer, intent(in) :: iproc,nproc,natsc,nspin,occopt
   real(gp), intent(in) :: Tel
   type(local_zone_descriptors) :: Lzd        !< Information about the locregs after LIG
   type(local_zone_descriptors) :: Lzde       !< Information about the locregs for LIG
@@ -420,7 +421,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      end do
 
      !here the value of the IG occupation numbers can be calculated
-     if (iscf > SCF_KIND_DIRECT_MINIMIZATION .or. Tel > 0.0_gp) then
+     if (mixing .or. Tel > 0.0_gp) then
 
         if (iproc==0) call yaml_map('Noise added to input eigenvalues to determine occupation numbers',&
              max(Tel,1.0e-3_gp),fmt='(1pe12.5)')

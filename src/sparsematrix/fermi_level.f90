@@ -10,7 +10,7 @@
 
 !> Determination of the Fermi level for the density matrix
 module fermi_level
-  use module_base
+  use sparsematrix_base
   implicit none
 
   private
@@ -20,6 +20,8 @@ module fermi_level
   public :: determine_fermi_level
   public :: fermilevel_get_real
   public :: fermilevel_get_logical
+  !!public :: get_roots_of_cubic_polynomial
+  !!public :: determinant
 
   ! Auxiliary structure that holds the required data
   type,public :: fermi_aux
@@ -93,12 +95,12 @@ module fermi_level
 
 
 
-    subroutine determine_fermi_level(f, sumn, ef, info)
-      use foe_common, only: get_roots_of_cubic_polynomial, determinant
+    subroutine determine_fermi_level(iproc, f, sumn, ef, info)
       use yaml_output
       implicit none
 
       ! Calling arguments
+      integer,intent(in) :: iproc          !< task ID
       type(fermi_aux),intent(inout) :: f   !< type that holds the internal data
       real(kind=8),intent(in) :: sumn      !< charge of the system (which should be equal to the target charge once the correct Fermi level is found),
                                            !    obtained with the current value of ef
@@ -162,6 +164,7 @@ module fermi_level
 
       if (internal_info < 0) then
           call f_release_routine()
+          if (f%verbosity>=1 .and. iproc==0) call yaml_map('new eF','bisec bounds')
           return ! no need to proceed further
       end if
 
@@ -191,7 +194,7 @@ module fermi_level
           if (abs(sumn-f%sumn_old)<1.d-10) then
               interpolation_possible = .false.
           end if
-          if (f%verbosity >= 1 .and. bigdft_mpi%iproc==0) then
+          if (f%verbosity >= 2 .and. iproc==0) then
               call yaml_newline()
               call yaml_mapping_open('interpol check',flow=.true.)
                  call yaml_map('D eF',ef-f%ef_old,fmt='(es13.6)')
@@ -250,7 +253,7 @@ module fermi_level
           ! Solve the linear system f%interpol_matrix*interpol_solution=f%interpol_vector
           if (f%it_solver>=4) then
               ! Calculate the determinant of the matrix used for the interpolation
-              det=determinant(bigdft_mpi%iproc,4,f%interpol_matrix)
+              det=determinant(iproc,4,f%interpol_matrix)
               if (abs(det) > f%ef_interpol_det) then
                   cubicinterpol_possible = .true.
                   do i=1,ii
@@ -268,7 +271,7 @@ module fermi_level
                      !call yaml_map('determinant',determinant(bigdft_mpi%iproc,4,f%interpol_matrix),fmt='(es10.3)')
                   call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
                   if (info/=0) then
-                     if (bigdft_mpi%iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
+                     if (iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
                   end if
         
                   !if (bigdft_mpi%iproc==0) call yaml_map('a x^3+b x^2 + c x + d',interpol_solution,fmt='(es10.3)')
@@ -295,7 +298,7 @@ module fermi_level
           end if
         
           ! Calculate the new Fermi energy.
-          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) then
+          if (f%verbosity>=2 .and. iproc==0) then
               call yaml_newline()
               call yaml_mapping_open('Search new eF',flow=.true.)
           end if
@@ -303,20 +306,20 @@ module fermi_level
               abs(sumn-f%target_charge) < f%ef_interpol_chargediff) then! .and. &
               !.not.interpolation_nonsense) then
               !det=determinant(bigdft_mpi%iproc,4,f%interpol_matrix)
-              if (f%verbosity >= 1 .and. bigdft_mpi%iproc==0) then
+              if (f%verbosity >= 2 .and. iproc==0) then
                   call yaml_map('det',det,fmt='(es10.3)')
                   call yaml_map('limit',f%ef_interpol_det,fmt='(es10.3)')
               end if
               !if(abs(det) > f%ef_interpol_det) then
               if(cubicinterpol_possible .and. .not.interpolation_nonsense) then
                   ef = ef_interpol
-                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','cubic interpolation')
+                  if (f%verbosity>=1 .and. iproc==0) call yaml_map('new eF','cubic interpol')
               else
                   ! linear interpolation
                   m = (f%interpol_vector(4)-f%interpol_vector(3))/(f%interpol_matrix(4,3)-f%interpol_matrix(3,3))
                   b = f%interpol_vector(4)-m*f%interpol_matrix(4,3)
                   ef = -b/m
-                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','linear interpolation')
+                  if (f%verbosity>=1 .and. iproc==0) call yaml_map('new eF','linear interpol')
               end if
           else
               ! Use mean value of bisection and secant method if possible,
@@ -330,13 +333,13 @@ module fermi_level
                   ef = ef + f%efarr(2)-(f%sumnarr(2)-f%target_charge)*(f%efarr(2)-f%efarr(1))/(f%sumnarr(2)-f%sumnarr(1))
                   ! Take the mean value
                   ef = 0.5d0*ef
-                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','bisection / secant method')
+                  if (f%verbosity>=1 .and. iproc==0) call yaml_map('new eF','bisection/secant')
               else
-                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','bisection method')
+                  if (f%verbosity>=1 .and. iproc==0) call yaml_map('new eF','bisection')
               end if
           end if
-          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) then
-              call yaml_map('guess for new ef',ef,fmt='(es15.8)')
+          if (f%verbosity>=2 .and. iproc==0) then
+              !call yaml_map('guess for new ef',ef,fmt='(es15.8)')
               call yaml_mapping_close()
           end if
 
@@ -380,6 +383,96 @@ module fermi_level
             stop 'ERROR: wrong argument'
         end select
     end function fermilevel_get_logical
+
+
+    ! Finds the real root of the equation ax**3 + bx**2 + cx + d which is closest to target_solution
+    subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
+      implicit none
+    
+      ! Calling arguments
+      real(kind=8),intent(in) :: a, b, c, d
+      real(kind=8),intent(in) :: target_solution
+      real(kind=8),intent(out) :: solution
+    
+      ! Local variables
+      complex(kind=8) :: a_c, b_c, c_c, d_c, Q_c, S_c, ttp_c, ttm_c
+      complex(kind=8),dimension(3) :: sol_c
+      double complex :: test
+      real(kind=8) :: ttmin, tt
+      integer :: i
+    
+      a_c=cmplx(a,0.d0,kind=8)
+      b_c=cmplx(b,0.d0,kind=8)
+      c_c=cmplx(c,0.d0,kind=8)
+      d_c=cmplx(d,0.d0,kind=8)
+    
+      Q_c = sqrt( (2*b_c**3-9*a_c*b_c*c_c+27*a_c**2*d_c)**2 - 4*(b_c**2-3*a_c*c_c)**3 )
+      S_c = ( .5d0*(Q_c+2*b_c**3-9*a_c*b_c*c_c+27*a_c**2*d_c) )**(1.d0/3.d0)
+      ttp_c = cmplx(1.d0,sqrt(3.d0),kind=8)
+      ttm_c = cmplx(1.d0,-sqrt(3.d0),kind=8)
+    
+      sol_c(1) = -b_c/(3*a_c) &
+           - S_c/(3*a_c) &
+           - (b_c**2-3*a_c*c_c)/(3*a_c*S_c)
+      sol_c(2) = -b_c/(3*a_c) + (S_c*ttp_c)/(6*a_c) + ttm_c*(b_c**2-3*a_c*c_c)/(6*a_c*S_c)
+      sol_c(3) = -b_c/(3*a_c) + (S_c*ttm_c)/(6*a_c) + ttp_c*(b_c**2-3*a_c*c_c)/(6*a_c*S_c)
+      !!if (iproc==0) then
+      !!    write(*,*) 'sol 1', sol_c(1)
+      !!    write(*,*) 'sol 2', sol_c(2)
+      !!    write(*,*) 'sol 3', sol_c(3)
+      !!end if
+    
+      ! Select the real solution that is closest to target_solution
+      ttmin=1.d100
+      do i=1,3
+          if (abs(aimag(sol_c(i)))>1.d-14) cycle !complex solution
+          tt=abs(real(sol_c(i),kind=8)-target_solution)
+          if (tt<ttmin) then
+              ttmin=tt
+              solution=real(sol_c(i),kind=8)
+          end if
+      end do
+    
+    end subroutine get_roots_of_cubic_polynomial
+
+
+    real(kind=8) function determinant(iproc, n, mat)
+        implicit none
+    
+        ! Calling arguments
+        integer,intent(in) :: iproc, n
+        real(kind=8),dimension(n,n),intent(in) :: mat
+    
+        ! Local variables
+        integer :: i, info
+        integer,dimension(n) :: ipiv
+        real(kind=8),dimension(n,n) :: mat_tmp
+        real(kind=8) :: sgn
+    
+        call vcopy(n**2, mat(1,1), 1, mat_tmp(1,1), 1)
+    
+        call dgetrf(n, n, mat_tmp, n, ipiv, info)
+        if (info/=0) then
+            if (iproc==0) write(*,'(a,i0,a)') 'ERROR in dgetrf, info=',info,'. Set determinant to zero.'
+            determinant=0
+            return
+        end if
+    
+        determinant=1.d0
+        do i=1,n
+            determinant=determinant*mat_tmp(i,i)
+        end do
+    
+        sgn=1.d0
+        do i=1,n
+            if(ipiv(i)/=i) then
+                sgn=-sgn
+            end if
+        end do
+    
+        determinant=sgn*determinant   
+    
+    end function determinant
 
 
 end module fermi_level

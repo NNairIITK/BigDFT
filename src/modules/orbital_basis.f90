@@ -1,7 +1,7 @@
 !> @file
 !! Datatypes and associated methods relative to the localization regions
 !! @author
-!!    Copyright (C) 2007-2014 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -17,17 +17,40 @@ module orbitalbasis
   use communications_base, only: comms_linear, comms_cubic
   use dictionaries, only: f_err_throw
   use locreg_operations, only: confpot_data
+  use f_utils
   implicit none
   private
 
   type, public :: transposed_descriptor
-     integer :: nspin
-     integer :: nup,ndown
-!     type(k_point_iterator) :: kit_p !< iterator on k-points belonging to the processor
+     integer :: nspin !< spin multiplicity
+     integer :: nup,ndown !<orbitals up and down
+     integer :: nkpts !< number of k points
+     !> lookup array indicating the dimensions
+     !! for the overlap matrices in each quantum numbers
+     integer, dimension(:,:), pointer :: ndim_ovrlp
      type(comms_cubic), pointer :: comms           !< communication objects for the cubic approach (can be checked to be
      type(comms_linear), pointer :: collcom        !< describes collective communication
      type(comms_linear), pointer :: collcom_sr     !< describes collective communication for the calculation of th
   end type transposed_descriptor
+
+  !> iterator in the subspace of the wavefunctions
+  type, public :: subspace
+     integer :: ncplx !<  real(1) and complex (2) arrays
+     integer :: nvctr !< number of components
+     integer :: norb !< number of orbitals
+     integer :: ispin !< spin index
+     integer :: ikpt !< k-point id
+     real(gp) :: kwgt !< k-point weight
+     !>pointer on the occupation numbers of the subspace
+     real(gp), dimension(:), pointer :: occup_ptr
+     !>metadata
+     integer :: ispsi
+     integer :: ispsi_prev
+     integer :: ikptp
+     integer :: ise !<for occupation numbers
+     integer :: ise_prev
+     type(orbital_basis), pointer :: ob
+  end type subspace
 
 !  type, public :: support_function_descriptor
   type, public :: direct_descriptor
@@ -52,7 +75,7 @@ module orbitalbasis
      integer :: ispot
      !> original orbital basis
      type(orbital_basis), pointer :: ob => null() !to be checked if it implies explicit save attribute
-     
+
      !> number of localisation regions and current ilr
      integer :: nlrp,ilr,ilr_max,ilr_min,iorbp,ikpt,ikpt_max
   end type ket
@@ -73,12 +96,26 @@ module orbitalbasis
 
 contains
 
+  pure subroutine nullify_transposed_descriptor(td)
+    implicit none
+    type(transposed_descriptor), intent(out) :: td
+
+    td%nspin     =f_none()
+    td%nup       =f_none()
+    td%ndown     =f_none()
+    td%nkpts     =f_none()
+    td%ndim_ovrlp=f_none()
+    nullify(td%comms)
+    nullify(td%collcom)
+    nullify(td%collcom_sr)
+  end subroutine nullify_transposed_descriptor
+
   pure subroutine nullify_orbital_basis(ob)
     implicit none
     type(orbital_basis), intent(out) :: ob
     nullify(ob%dd)
     nullify(ob%orbs)
-    !type(transposed_descriptor) :: td
+    call nullify_transposed_descriptor(ob%td)
     nullify(ob%confdatarr)
     nullify(ob%phis_wvl)
   end subroutine nullify_orbital_basis
@@ -115,7 +152,11 @@ contains
     call nullify_ket(it)
     it%ob => ob
     !number of parallel localization regions
-    it%nlrp = size(ob%dd)
+    if (associated(ob%dd)) then
+       it%nlrp = size(ob%dd)
+    else
+       it%nlrp=0
+    end if
     !minimum value of locreg
     it%ilr_min=minval(ob%orbs%inwhichlocreg(ob%orbs%isorb+1:ob%orbs%isorb+ob%orbs%norbp))
     !zero value
@@ -143,7 +184,7 @@ contains
     !! if the number of k-point is equal to one
     integer, intent(in), optional :: ikpt
     logical :: ok
-    !local variables
+    !local variablesmul
     integer :: ikpt_tmp
 
     ok=ket_is_valid(it)
@@ -232,13 +273,14 @@ contains
 
   end function ket_is_valid
 
+
   function ket_next(it,ilr,ikpt) result(ok)
     implicit none
     type(ket), intent(inout) :: it
     integer, intent(in), optional :: ilr,ikpt
     logical :: ok
     !local variables
-    integer :: ilr_tmp,ikpt_tmp
+    integer :: ikpt_tmp
 
     ok=ket_is_valid(it)
 !print *,'ket next',ok
@@ -252,7 +294,7 @@ contains
     else if (present(ilr)) then
 !print *,'here',ilr,it%ilr,it%ikpt
        ok=dosome(it,ilr,it%ikpt)
-!if the locregs are over but there are more than one kpt then increase 
+!if the locregs are over but there are more than one kpt then increase
        if (.not. ok .and. it%ikpt < it%ikpt_max) then
           !this means that next_locreg has not been called
           !therefore re-increase the locreg index
@@ -288,7 +330,7 @@ contains
        end do find_next_ikpt
 !print *,'there',it%ilr,ikpt_tmp,it%iorbp
        it%ikpt=ikpt_tmp
-       ok= it%ikpt <= it%ikpt_max 
+       ok= it%ikpt <= it%ikpt_max
        !the nullification of the ket here makes sense only for the unspecified case
        if (.not. ok) then
           call nullify_ket(it)
@@ -301,7 +343,8 @@ contains
 
   end function ket_next
 
-  !> find next valid iorb in this lr
+
+  !> Find next valid iorb in this lr
   !! put iorbp to zero if ilr_tmp is not found
   function dosome(it,ilr_tmp,ikpt_tmp)
     implicit none
@@ -319,6 +362,7 @@ contains
     if (.not. dosome) it%iorbp=0
   end function dosome
 
+
   function dosome_lr(it,ikpt) result(ok)
     implicit none
     type(ket), intent(inout) :: it
@@ -333,15 +377,16 @@ contains
        ilr_tmp=ilr_tmp+1
     end do find_next_ilr_k
     it%ilr=ilr_tmp
-    ok= it%ilr <= it%ilr_max 
+    ok= it%ilr <= it%ilr_max
     if (.not. ok) it%iorbp=0
   end function dosome_lr
+
 
   subroutine update_ket(k)
     implicit none
     type(ket), intent(inout) :: k
     !local variables
-    integer :: ikpt,ispsi,iorbq,ilr_orb,nvctr
+    integer :: ikpt,iorbq,nvctr
     !the orbital id
     k%iorb=k%ob%orbs%isorb+k%iorbp
     k%nspin=k%ob%orbs%nspin
@@ -375,33 +420,131 @@ contains
     real(wp), dimension(:), target :: ob_ptr !<coming from orbital_basis
     type(ket), intent(in) :: it
     real(wp), dimension(:), pointer :: ob_ket_map
-    
+
     !might add the calculation of ispsi here
 
     !here we can add the check of the pertinence of value of ispsi
     ob_ket_map => ob_ptr(it%ispsi:it%ispsi+it%nphidim-1)
 
-    !also, the f_loc function might be used to determine if the association 
-    !corresponds to a shallow or a deep copy 
-    
+    !also, the f_loc function might be used to determine if the association
+    !corresponds to a shallow or a deep copy
+
   end function ob_ket_map
   !the iterator must go in order of localization regions
 
 
-  !> this function gives the number of componenets
+  !> This function gives the number of components
   !! if the ket is in non-colinear spin description, this value is four
-  !! otherwise it counts the number of complex componenet of the key
+  !! otherwise it counts the number of complex components of the key
   !! result is one for real functions
   pure function nspinor(spin_enum)
     implicit none
     type(f_enumerator), intent(in) :: spin_enum
     integer :: nspinor
 !!$    if (spin_enum.hasattr. 'NONCOLL') then
-!!$       nspinor=4 
+!!$       nspinor=4
 !!$    else
 !!$    end if
     nspinor=1
   end function nspinor
+
+  function subspace_iterator(ob) result(ss)
+    implicit none
+    type(orbital_basis), intent(in), target :: ob
+    type(subspace) :: ss
+
+    call nullify_subspace(ss)
+    ss%ob => ob
+    ss%ispin=0
+    ss%ikptp=1
+    ss%ispsi_prev=1
+    ss%ise_prev=0
+  end function subspace_iterator
+
+  !case of subspace iterators
+  pure subroutine nullify_subspace(ss)
+    implicit none
+    type(subspace), intent(out) :: ss
+    ss%ncplx      =f_none()
+    ss%nvctr      =f_none()
+    ss%norb       =f_none()
+    ss%ispin      =f_none()
+    ss%ikpt       =f_none()
+    ss%kwgt       =f_none()
+    ss%occup_ptr  =f_none()
+    ss%ispsi      =f_none()
+    ss%ispsi_prev =f_none()
+    ss%ise        =f_none()
+    ss%ise_prev   =f_none()
+    nullify(ss%ob)
+  end subroutine nullify_subspace
+
+  pure function subspace_is_valid(it) result(ok)
+    implicit none
+    type(subspace), intent(in) :: it
+    logical :: ok
+
+    ok=associated(it%ob)
+  end function subspace_is_valid
+
+  function subspace_next(it) result(ok)
+    implicit none
+    type(subspace), intent(inout) :: it
+    logical  :: ok
+
+    ok=subspace_is_valid(it)
+    if (ok) call increment_subspace(it)
+    ok=subspace_is_valid(it)
+  end function subspace_next
+
+  !pure
+  subroutine increment_subspace(it)
+    use module_base, only: bigdft_mpi
+    implicit none
+    type(subspace), intent(inout) :: it
+    !local variables
+    integer :: ncomp,nvctrp,nspinor,ist,norbs
+
+    do
+       if (it%ispin < it%ob%td%nspin) then
+          it%ispin=it%ispin+1
+       else if (it%ikptp < it%ob%orbs%nkptsp) then
+          it%ikptp=it%ikptp+1
+          it%ispin=1
+       else
+          call nullify_subspace(it)
+          exit
+       end if
+
+       it%ispsi=it%ispsi_prev
+       it%ikpt=it%ob%orbs%iskpts+it%ikptp
+
+       call orbitals_and_components(bigdft_mpi%iproc,it%ikpt,it%ispin,&
+            it%ob%orbs,it%ob%td%comms,&
+            nvctrp,it%norb,norbs,ncomp,nspinor)
+       if (nvctrp == 0) cycle
+
+       if (it%ispin==1) then
+          it%ise=0
+       else
+          it%ise=it%ise_prev
+       end if
+
+       it%ise_prev=it%norb
+
+       it%ncplx=1
+       it%nvctr=ncomp*nvctrp
+       if (nspinor/=1) it%ncplx=2
+
+       it%kwgt=it%ob%orbs%kwgts(it%ikpt)
+       ist=(it%ikpt-1)*it%ob%orbs%norb+1+it%ise
+       it%occup_ptr=>it%ob%orbs%occup(ist:ist+it%norb-1)
+
+       it%ispsi_prev=it%ispsi_prev+nvctrp*it%norb*nspinor
+       exit
+    end do
+
+  end subroutine increment_subspace
 
   subroutine local_hamiltonian_ket(psi,hgrids,ipotmethod,xc,pkernel,wrk_lh,psir,vsicpsir,hpsi,pot,eSIC_DCi,alphaSIC,epot,ekin)
     use module_xc, only: xc_info, xc_exctXfac
@@ -459,7 +602,7 @@ contains
             hh,pkernel,psir,vsicpsir,eSICi,eSIC_DCi)
 
        !NonKoopmans' correction scheme
-    else if (ipotmethod == 3) then 
+    else if (ipotmethod == 3) then
        !in this scheme first we have calculated the potential then we apply it
 !!$       call vcopy(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,&
 !!$            psir(1,1),1,vsicpsir(1,1),1)
@@ -500,10 +643,14 @@ contains
          psir(1,1),hpsi,ekin)
 
   end subroutine local_hamiltonian_ket
-  
-  subroutine orbital_basis_associate(ob,orbs,Lzd,Glr,confdatarr,phis_wvl)
+
+  subroutine orbital_basis_associate(ob,orbs,Lzd,Glr,comms,confdatarr,&
+       nspin,phis_wvl)
+    use dynamic_memory
     implicit none
     type(orbital_basis), intent(inout) :: ob
+    integer, intent(in), optional :: nspin
+    type(comms_cubic), intent(in), optional, target :: comms
     type(orbitals_data), intent(in), optional, target :: orbs
     type(local_zone_descriptors), intent(in), optional, target :: Lzd
     type(locreg_descriptors), intent(in), optional, target :: Glr !< in the case where only one Lrr is needed
@@ -513,11 +660,22 @@ contains
     !local variables
     integer :: ilr,iorb
 
+    call f_routine(id='orbital_basis_associate')
+
     !nullification
     call nullify_orbital_basis(ob)
 
-    if (present(orbs)) ob%orbs => orbs
-    
+    if (present(orbs)) then
+       ob%orbs => orbs
+       if (present(comms)) then
+          ob%td%comms => comms
+          ob%td%nspin=orbs%nspin
+          if (present(nspin)) ob%td%nspin=nspin
+          ob%td%ndim_ovrlp = f_malloc_ptr([1.to.ob%td%nspin, 0.to.orbs%nkpts],id='ndim_ovrlp')
+          call dimension_ovrlp(ob%td%nspin,ob%orbs,ob%td%ndim_ovrlp)
+       end if
+    end if
+
     if (.not. present(orbs) .and. (present(Lzd) .or. present(Glr))) &
          call f_err_throw('orbs should be present with lzd or glr',err_name='BIGDFT_RUNTIME_ERROR')
 
@@ -538,13 +696,16 @@ contains
 
     if (present(phis_wvl)) ob%phis_wvl => phis_wvl
 
-    !before using any iterator whatsoever, let us probe 
+    !before using any iterator whatsoever, let us probe
     !its behaviour
     call probe_iterator(ob)
+
+    call f_release_routine()
 
   end subroutine orbital_basis_associate
 
   subroutine orbital_basis_release(ob)
+    use dynamic_memory
     implicit none
     type(orbital_basis), intent(inout) :: ob
 
@@ -553,14 +714,53 @@ contains
        deallocate(ob%dd)
        nullify(ob%dd)
     end if
+    call f_free_ptr(ob%td%ndim_ovrlp)
     call nullify_orbital_basis(ob)
   end subroutine orbital_basis_release
-  
+
+
+!!>  !here we should prepare the API to iterate on the transposed orbitals
+!!>  !the orbitals should be arranged in terms of the quantum number
+!!>  alag = f_malloc0(ob%nmatrix,id='alag')
+!!>  qn=subspace_iterator(ob)
+!!>  do while(subspace_next(qn))
+!!>     psi_ptr=>ob_qn_map(psi,qn)
+!!>     hpsi_ptr=>ob_qn_map(hpsi,qn)
+!!>     lambda_ptr=>ob_qn_matrix_map(alag,qn)
+!!>
+!!>     call subspace_matrix(symm,psi_ptr,hpsi_ptr,&
+!!>          qn%ncmplx,qn%nvctr,qn%norb,lambda_ptr)
+!!>
+!!>  end do
+!!>
+!!>  !allreduce
+!!>  qn=subspace_iterator(ob)
+!!>  do while(subspace_next(qn))
+!!>     psi_ptr=>ob_qn_map(psi,qn)
+!!>     hpsi_ptr=>ob_qn_map(hpsi,qn)
+!!>
+!!>     lambda_ptr=>ob_qn_matrix_map(alag,qn)
+!!>
+!!>     call lagrange_multiplier(symm,qn%occup_ptr,&
+!!>          qn%ncmplx,qn%norb,lambda_ptr,trace)
+!!>
+!!>      if (qn%accumulate) then
+!!>         occ=qn%kwgt*real(3-orbs%nspin,gp)
+!!>         if (nspinor == 4) occ=qn%kwgt
+!!>         scprsum=scprsum+occ*trace
+!!>      end if
+!!>
+!!>      call subspace_update(qn%ncmplx,qn%nvctr,qn%norb,&
+!!>           hpsi_ptr,lambda_ptr,psi_ptr)
+!!>
+!!>
+!!>  end do
+!!>
 
 !!$
 !!$  it=orbital_basis_iter(orb_basis,onatom='Pb')
 !!$  do while(iter_next(it))
-!!$     
+!!$
 !!$  end do
 !!$
 !!$
@@ -572,7 +772,7 @@ contains
 !!$
 !!$  subroutine overlap_matrix(phi,chi)
 !!$ type(orbitals_basis), intent(inout) :: phi,chi
-!!$  
+!!$
 !!$ associated(phi%td%comms,target=chi%td%comms)
 !!$
 !!$  subroutine orthogonalize(orb_basis)
@@ -589,7 +789,7 @@ contains
 !!$       do while(atoms_iter_next(it_glob))
 !!$          if (it_glob%name == it%name) then
 !!$             nelec=nelec+nelpsp(it_glob%ityp)
-!!$             exit 
+!!$             exit
 !!$          end if
 !!$       end do
 !!$    end do
@@ -625,7 +825,7 @@ contains
 !!$  !this loop fills the data of the support functions
 !!$
 !!$  if (cubic) then
-!!$     call find_cubic_trans(cubic_tr) 
+!!$     call find_cubic_trans(cubic_tr)
 !!$  end if
 !!$
 !!$  it=orbital_basis_iterator(orbs_basis)
@@ -640,7 +840,7 @@ contains
 !!$           call find_nn(...,it%locregCenter,rxyz_ref)
 !!$           nat_frag=min(4,astruct%nat)
 !!$        end if
-!!$        call find_frag_trans(nat_frag,rxyz_ref,rxyz_new,frag_trans) 
+!!$        call find_frag_trans(nat_frag,rxyz_ref,rxyz_new,frag_trans)
 !!$     else
 !!$        frag_trans= cubic_tr
 !!$     end if
@@ -683,6 +883,48 @@ contains
   end subroutine test_iterator
 
   !>confirm the iterator coincides with the provided information
+  function verify_subspace(ss,ispin,ikpt,ikptp,nvctr,&
+       ncplx,norb,ispsi,ise,kwgt) result(ok)
+    implicit none
+    type(subspace), intent(in) :: ss
+    integer, intent(in) :: ispin,ikpt,ikptp,nvctr,ncplx,norb,ispsi,ise
+    real(gp), intent(in) :: kwgt
+    logical :: ok
+    !local variables
+    logical, parameter :: debug_flag=.false.
+
+    ok=.true.
+
+    ok=ss%ispin==ispin
+    if (debug_flag) print *,'ispin',ss%ispin,ispin,ok
+    if (.not. ok) return
+    ok=ss%ikpt==ikpt
+    if (debug_flag) print *,'ikpt',ss%ikpt,ikpt,ok
+    if (.not. ok) return
+    ok=ss%ikptp==ikptp
+    if (debug_flag) print *,'ikptp',ss%ikptp,ikptp,ok
+    if (.not. ok) return
+    ok=ss%nvctr==nvctr
+    if (debug_flag) print *,'nvctr',ss%nvctr,nvctr,ok
+    if (.not. ok) return
+    ok=ss%ncplx==ncplx
+    if (debug_flag) print *,'ncplx',ss%ncplx,ncplx,ok
+    if (.not. ok) return
+    ok=ss%norb==norb
+    if (debug_flag) print *,'norb',ss%norb,norb,ok
+    if (.not. ok) return
+    ok=ss%ispsi==ispsi
+    if (debug_flag) print *,'ispsi',ss%ispsi,ispsi,ok
+    if (.not. ok) return
+    ok=ss%ise==ise
+    if (debug_flag) print *,'ise',ss%ise,ise,ok
+    if (.not. ok) return
+    ok=ss%kwgt==kwgt
+    if (debug_flag) print *,'kwgt',ss%kwgt,kwgt,ok
+    if (.not. ok) return
+  end function verify_subspace
+
+  !>confirm the iterator coincides with the provided information
   function verify_iterator(it,iorb,ilr,ikpt,ispsi) result(ok)
     implicit none
     type(ket), intent(in) :: it
@@ -714,18 +956,21 @@ contains
     end if
   end function verify_iterator
 
-  
+
   !> verify that the iterator performs the same operations of the (nested) loops
   subroutine probe_iterator(ob)
     use yaml_strings
     use dynamic_memory
+    use module_base, only: bigdft_mpi
     implicit none
     type(orbital_basis), intent(in) :: ob
     type(ket) :: it
+    type(subspace) :: ss
     !local variables
     !logical, parameter :: debug_flag=.true.
     logical :: doso,increase
     integer :: iorb,ikpt,ilr,isorb,ieorb,ispsi,ispsi_k,nsp,nkptp,ikptp
+    integer :: ispin,ise,nvctrp,norb,norbs,ncomp,nspinor,ncomponents,ncomplex
     logical, dimension(:), allocatable :: totreat
 
     totreat=f_malloc(ob%orbs%norbp,id='totreat')
@@ -764,7 +1009,7 @@ contains
             err_name='BIGDFT_RUNTIME_ERROR')
     end if
 
-    !this also should aways work
+    !this also should always work
     totreat=.true.
     it=orbital_basis_iterator(ob)
     do while(ket_next_kpt(it))
@@ -964,6 +1209,52 @@ contains
                err_name='BIGDFT_RUNTIME_ERROR')
           return
        end if
+    end if
+    call f_free(totreat)
+
+    !When it is possible, perform also the check for the transposed operations
+    if (.not. associated(ob%td%comms)) return
+
+    !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
+
+    totreat=f_malloc(ob%orbs%nkptsp*ob%td%nspin,id='totreat')
+    totreat=.true.
+
+    ss=subspace_iterator(ob)
+    !old format, check the values
+    ispsi=1
+    do ikptp=1,ob%orbs%nkptsp
+       ikpt=ob%orbs%iskpts+ikptp
+       do ispin=1,ob%td%nspin
+          if (ispin==1) ise=0
+          call orbitals_and_components(bigdft_mpi%iproc,ikpt,ispin,ob%orbs,ob%td%comms,&
+               nvctrp,norb,norbs,ncomp,nspinor)
+          totreat(ispin+(ikptp-1)*ob%td%nspin)=.false.
+          if (nvctrp == 0) cycle
+
+          ncomplex=1
+          ncomponents=ncomp*nvctrp
+          if (nspinor/=1) ncomplex=2
+
+          increase=subspace_next(ss)
+          if (.not. (verify_subspace(ss,ispin,ikpt,ikptp,ncomp*nvctrp,&
+               ncomplex,norb,ispsi,ise,ob%orbs%kwgts(ikpt))) &
+               .and. increase) then
+               call f_err_throw('Error for direct subspace iterator, ikpt='+&
+                ikpt+', ispin='+ispin,err_name='BIGDFT_RUNTIME_ERROR')
+               return
+          end if
+
+          ise=norb
+          ispsi=ispsi+nvctrp*norb*nspinor
+       end do
+    end do
+    increase=subspace_next(ss)
+    if (increase .or. any(totreat)) then
+      call f_err_throw('Error for direct subspace iterator,'//&
+      ' still valid at the end of the number of kpt iterations',&
+           err_name='BIGDFT_RUNTIME_ERROR')
+      return
     end if
     call f_free(totreat)
 
