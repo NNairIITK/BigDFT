@@ -795,6 +795,22 @@ contains
 
   end subroutine bigdft_set_rxyz
 
+  subroutine state_properties_get_fxyz_ndarray(outs, arr)
+    use f_python
+    implicit none
+    type(state_properties), intent(in) :: outs
+    type(ndarray), intent(out) :: arr
+
+    arr = toNdArray_ptr(outs%fxyz)
+  end subroutine state_properties_get_fxyz_ndarray
+
+  subroutine state_properties_get_energy(outs, energy)
+    implicit none
+    type(state_properties), intent(in) :: outs
+    real(gp), intent(out) :: energy
+
+    energy = outs%energy
+  end subroutine state_properties_get_energy
 
   subroutine state_properties_set_from_dict(outs, dict)
     use dictionaries
@@ -840,6 +856,11 @@ contains
     call f_object_add_signal("run_objects", "pre", 1)
     call f_object_add_signal("run_objects", "post", 2)
     call f_object_add_signal("run_objects", "destroy", 1)
+
+    call f_object_new("state_properties")
+
+    call f_object_add_method("state_properties", "fxyz", state_properties_get_fxyz_ndarray, 1)
+    call f_object_add_method("state_properties", "energy", state_properties_get_energy, 1)
   end subroutine run_objects_type_init
 
   !> Routines to handle the argument objects of bigdft_state().
@@ -934,6 +955,7 @@ contains
     type(run_objects), intent(inout) :: runObj
     logical :: release
     integer :: claim, i
+
 
     ! Fortran release ownership
     release = .true.
