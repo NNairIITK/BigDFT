@@ -139,7 +139,7 @@ $(modules): $(libflib_a_OBJECTS)
 yaml_strings.o: $(STRINGS_INCLUDES) f_precisions.o
 f_enums.o: yaml_strings.o
 f_bind.o: f_precisions.o
-f_objects.o: f_precisions.o dictionaries.o
+f_objects.o: f_precisions.o dictionaries.o yaml_output.o
 f_ternary.o: f_precisions.o yaml_strings.o
 dictionaries_base.o: yaml_strings.o
 dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
@@ -161,6 +161,6 @@ f_trees.o: f_refcnts.o dictionaries.o yaml_output.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES) f_malloc.o
 razero.o: randomData.o f_precisions.o
 $(flush_object): yaml_output.o dictionaries.o
-fpython.o: dictionaries.o
+fpython.o: dictionaries.o yaml_output.o f_objects.o
 
 time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(NVTX_DEP)
