@@ -1217,22 +1217,91 @@ pure function radii_Bondi(at) result(r)
    ! Never tested and calibrated with the correct prefactor!!!
    select case(trim(at))
    case('H')
-    r=1.00d0 !Bondi's radii 
+    r=1.20d0  
+   case('He')
+    r=1.40d0  
+   case('Li')
+    r=1.82d0  
+   case('Be')
+    r=1.45d0  
+   case('B')
+    r=1.8d0
    case('C')
-    r=1.70d0 !Bondi's radii 
+    r=1.70d0  
    case('N')
-    r=1.55d0 !Bondi's radii 
+    r=1.55d0  
    case('O')
-    r=1.52d0 !Bondi's radii 
+    r=1.52d0 
+   case('F')
+    r=1.47d0  
+   case('Ne')
+    r=1.54d0  
+   case('Na')
+    r=2.27d0  
+   case('Mg')
+    r=1.73d0  
+   case('Al')
+    r=2.30d0
+   case('Si')
+    r=2.10d0  
    case('P')
-    r=1.80d0 !Bondi's radii 
+    r=1.80d0  
+   case('S')
+    r=1.80d0  
    case('Cl')
-    r=1.75d0 !Bondi's radii 
-   case('Ti')
-    r=1.40d0 
+    r=1.75d0  
+   case('Ar')
+    r=1.88d0
+   case('K')
+    r=2.75d0  
+   case('Ni')
+    r=1.63d0  
+   case('Cu')
+    r=1.40d0  
+   case('Zn')
+    r=1.39d0  
+   case('Ga')
+    r=1.87d0
+   case('Ge')
+    r=2.19d0  
+   case('As')
+    r=1.85d0  
+   case('Se')
+    r=1.90d0  
+   case('Br')
+    r=1.85d0  
+   case('Kr')
+    r=2.02d0
+   case('Pd')
+    r=1.63d0
+   case('Ag')
+    r=1.72d0
+   case('Cd')
+    r=1.58d0  
+   case('In')
+    r=1.93d0  
+   case('Sn')
+    r=2.17d0  
+   case('Te')
+    r=2.06d0  
+   case('I')
+    r=1.98d0
+   case('Xe')
+    r=2.16d0  
+   case('Pt')
+    r=1.75d0  
+   case('Au')
+    r=1.66d0  
+   case('Hg')
+    r=1.55d0  
+   case('Tl')
+    r=1.96d0
+   case('Pb')
+    r=2.02d0
+   case('U')
+    r=1.86d0
    case default
-    !call f_err_throw('Bondi setup. For rigid cavity a radius should be fixed
-    !for each atom type')
+    !call f_err_throw('Bondi setup. For rigid cavity a radius should be fixed for each atom type')
    end select
 
 end function radii_Bondi
@@ -1454,7 +1523,6 @@ pure function radii_UFF(at) result(r)
    case('Lw') !(+3)
     r=3.236d0 
    case default
-    r=25.d0
     !call f_err_throw('UFF setup. For rigid cavity a radius should be fixed for each atom type')
    end select
 
