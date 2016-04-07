@@ -299,11 +299,13 @@ module pseudopotentials
       logical :: exists
       character(len=27) :: key
       character(len = max_field_length) :: str
+      type(dictionary), pointer :: tmp
       key = 'psppar.' // trim(type)
       exists=key .in. dict
 
       if (exists) then
-         if (SOURCE_KEY .in. dict // key) then
+         tmp => dict // key 
+         if (SOURCE_KEY .in. tmp) then
             str = dict_value(dict // key // SOURCE_KEY)
          else
             str = dict_value(dict // key)
@@ -315,7 +317,7 @@ module pseudopotentials
             else
                call psp_file_merge_to_dict(dict, key, lstring = dict // key)
             end if
-            if (PSPXC_KEY .notin. dict // key) then
+            if (PSPXC_KEY .notin. tmp) then
                call yaml_warning("Pseudopotential file '" // trim(str) // &
                     "' not found. Fallback to file '" // trim(key) // &
                     "' or hard-coded pseudopotential.")
