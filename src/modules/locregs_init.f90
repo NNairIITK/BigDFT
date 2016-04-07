@@ -2465,10 +2465,10 @@ module locregs_init
       end if
 
 
+      irxyz_ordered = f_malloc(nat,id='irxyz_ordered')
       if (mode==old) then
           ! Lookup array which orders the atoms with respect to the direction idir
           rxyz_dir = f_malloc(nat,id='rxyz_dir')
-          irxyz_ordered = f_malloc(nat,id='irxyz_ordered')
           do ilr=1,nat
               rxyz_dir(ilr) = rxyz(idir,ilr)
               irxyz_ordered(ilr) = ilr
@@ -2480,6 +2480,7 @@ module locregs_init
           !!do ilr=1,nat
           !!    if (iproc==0) write(*,*) 'A: rxyz_dir(ilr), irxyz_ordered(ilr)', rxyz_dir(ilr), irxyz_ordered(ilr)
           !!end do
+          call f_free(rxyz_dir)
       end if
 
 
@@ -2553,7 +2554,7 @@ module locregs_init
                    covered(jmin) = .true.
                    !iatx = jjat !iat_bin(jmin,ibin)
                    irxyz_ordered(iiat_tot) = iat_bin(jmin,ibin) !iatx
-                   write(*,*) 'iiat_tot, irxyz_ordered(iiat_tot)', iiat_tot, irxyz_ordered(iiat_tot)
+                   !write(*,*) 'iiat_tot, irxyz_ordered(iiat_tot)', iiat_tot, irxyz_ordered(iiat_tot)
               end do
               call f_free(covered)
           end do
@@ -2619,7 +2620,6 @@ module locregs_init
       call mpiallred(in_which_locreg, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
       call f_free(nat_par)
-      call f_free(rxyz_dir)
       call f_free(irxyz_ordered)
 
     
