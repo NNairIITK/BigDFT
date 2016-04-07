@@ -2367,6 +2367,14 @@ module locregs_init
       real(8),dimension(3):: diff
       real(kind=8),dimension(:),allocatable :: rxyz_dir, minvalue_thread
       integer,dimension(:),allocatable :: iiat_thread
+      integer :: nbin, ibin, iatx, iiat_tot, i2dir, imin, jmin
+      real(kind=8) :: dist, d, rmin, rmax, tmin
+      integer,dimension(:),allocatable :: nat_per_bin, iat_per_bin
+      integer,dimension(:,:),allocatable :: iat_bin
+      logical,dimension(:),allocatable :: covered
+      real(kind=8),parameter :: binwidth = 6.d0 ! should probably be more or less the same as the locrads... make it variable?
+      character(len=3),parameter :: old='old', new='new'
+      character(len=3),parameter :: mode = old
     
       call f_routine(id='assign_to_atoms_and_locregs')
 
@@ -2412,45 +2420,148 @@ module locregs_init
       if(abs(diff(1)-diff(2)) < tol .and. diff(1) > diff(3)) then
         idir=1
         iiat=iatxmin
+        rmin = xmin
+        rmax = xmax
+        i2dir = 2
       else if(abs(diff(1)-diff(3)) < tol .and. diff(1) > diff(2)) then
         idir=1
         iiat=iatxmin
+        rmin = xmin
+        rmax = xmax
+        i2dir = 3
       else if(abs(diff(2)-diff(3)) < tol .and. diff(2) > diff(1)) then
         idir=2
         iiat=iatymin
+        rmin = ymin
+        rmax = ymax
+        i2dir = 3
       else if(abs(diff(1)-diff(3)) < tol .and. abs(diff(2)-diff(3)) < tol) then
         idir=1
         iiat=iatxmin
+        rmin = xmin
+        rmax = xmax
+        i2dir = 3
       else
          if(maxloc(diff,1)==1) then
              idir=1
              iiat=iatxmin
+             rmin = xmin
+             rmax = xmax
          else if(maxloc(diff,1)==2) then
              idir=2
              iiat=iatymin
+             rmin = ymin
+             rmax = ymax
          else if(maxloc(diff,1)==3) then
              idir=3
              iiat=iatzmin
+             rmin = zmin
+             rmax = zmax
          else
              call f_err_throw('ERROR: not possible to determine the maximal extent')
          end if
+         diff(idir) = -1.d100
+         i2dir = maxloc(diff,1)
       end if
 
 
-      ! Lookup array which orders the atoms with respect to the direction idir
-      rxyz_dir = f_malloc(nat,id='rxyz_dir')
-      irxyz_ordered = f_malloc(nat,id='irxyz_ordered')
-      do ilr=1,nat
-          rxyz_dir(ilr) = rxyz(idir,ilr)
-          irxyz_ordered(ilr) = ilr
-      end do
-      !!do ilr=1,nat
-      !!    if (iproc==0) write(*,*) 'B: rxyz_dir(ilr), irxyz_ordered(ilr)', rxyz_dir(ilr), irxyz_ordered(ilr)
-      !!end do
-      call QsortC(rxyz_dir, irxyz_ordered)
-      !!do ilr=1,nat
-      !!    if (iproc==0) write(*,*) 'A: rxyz_dir(ilr), irxyz_ordered(ilr)', rxyz_dir(ilr), irxyz_ordered(ilr)
-      !!end do
+      if (mode==old) then
+          ! Lookup array which orders the atoms with respect to the direction idir
+          rxyz_dir = f_malloc(nat,id='rxyz_dir')
+          irxyz_ordered = f_malloc(nat,id='irxyz_ordered')
+          do ilr=1,nat
+              rxyz_dir(ilr) = rxyz(idir,ilr)
+              irxyz_ordered(ilr) = ilr
+          end do
+          !!do ilr=1,nat
+          !!    if (iproc==0) write(*,*) 'B: rxyz_dir(ilr), irxyz_ordered(ilr)', rxyz_dir(ilr), irxyz_ordered(ilr)
+          !!end do
+          call QsortC(rxyz_dir, irxyz_ordered)
+          !!do ilr=1,nat
+          !!    if (iproc==0) write(*,*) 'A: rxyz_dir(ilr), irxyz_ordered(ilr)', rxyz_dir(ilr), irxyz_ordered(ilr)
+          !!end do
+      end if
+
+
+      if (mode==new) then
+          ! # NEW ##################################################
+          ! Calculate the number of bins (in the largest direction)
+          nbin = ceiling((rmax-rmin)/binwidth)
+
+          ! Assign the atoms to the bins. First count how many atoms per bin we have...
+          nat_per_bin = f_malloc0(nbin,id='nat_per_bin')
+          do iat=1,nat
+              dist = rxyz(idir,iat)-rmin
+              ibin = ceiling(dist/binwidth)
+              ibin = max(ibin,1) ! to avoid bin 0 for the "minimal" atoms, i.e. the one which defines the minium value
+              if (ibin<1 .or. ibin>nbin) then
+                  call f_err_throw('wrong bin (ibin='//trim(yaml_toa(ibin))//', nbin='//trim(yaml_toa(nbin))//')',&
+                       err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+              nat_per_bin(ibin) = nat_per_bin(ibin) + 1
+          end do
+          ! ... and now assign the atoms to the bins.
+          iat_bin = f_malloc0((/maxval(nat_per_bin),nbin/),id='iat_bin')
+          iat_per_bin = f_malloc0(nbin,id='iat_per_bin')
+          do iat=1,nat
+              dist = rxyz(idir,iat)-rmin
+              ibin = ceiling(dist/binwidth)
+              ibin = max(ibin,1) ! to avoid bin 0 for the "minimal" atoms, i.e. the one which defines the minium value
+              if (ibin<1 .or. ibin>nbin) then
+                  call f_err_throw('wrong bin (ibin='//trim(yaml_toa(ibin))//', nbin='//trim(yaml_toa(nbin))//')',&
+                       err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+              iat_per_bin(ibin) = iat_per_bin(ibin) + 1
+              iat_bin(iat_per_bin(ibin),ibin) = iat
+          end do
+          ! Check
+          do ibin=1,nbin
+              if (iat_per_bin(ibin)/=nat_per_bin(ibin)) then
+                  call f_err_throw('iat_per_bin(ibin)/=nat_per_bin(ibin)',err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+          end do
+          call f_free(iat_per_bin)
+
+          ! Order the atoms by always choosing the closest one within a bin
+          iiat_tot = 0
+          iatx = iiat !starting atoms
+          do ibin=1,nbin
+              covered = f_malloc(nat_per_bin(ibin),id='covered')
+              covered(:) = .false.
+              ! Determine the minimum value in the i2dir direction
+              tmin = huge(1.d0)
+              do iat=1,nat_per_bin(ibin)
+                  jjat = iat_bin(iat,ibin)
+                  if (rxyz(i2dir,jjat)<tmin) then
+                      tmin = rxyz(i2dir,jjat)
+                      imin = jjat
+                  end if
+              end do
+              iatx = imin!jjat
+              do iat=1,nat_per_bin(ibin)
+                  iiat_tot = iiat_tot + 1
+                  dmin = huge(1.d0)
+                  do jat=1,nat_per_bin(ibin)
+                      jjat = iat_bin(jat,ibin)
+                      if (covered(jat)) cycle
+                      d = (rxyz(1,jjat)-rxyz(1,iatx))**2 + (rxyz(2,jjat)-rxyz(2,iatx))**2 + (rxyz(3,jjat)-rxyz(3,iatx))**2
+                      if (d<dmin) then
+                          dmin = d
+                          jmin = jat
+                      end if
+                   end do
+                   covered(jmin) = .true.
+                   !iatx = jjat !iat_bin(jmin,ibin)
+                   irxyz_ordered(iiat_tot) = iat_bin(jmin,ibin) !iatx
+                   write(*,*) 'iiat_tot, irxyz_ordered(iiat_tot)', iiat_tot, irxyz_ordered(iiat_tot)
+              end do
+              call f_free(covered)
+          end do
+
+          call f_free(nat_per_bin)
+          call f_free(iat_bin)
+          ! # NEW ##################################################
+      end if
 
       on_which_atom = f_malloc0_ptr(norb,id='on_which_atom')
       in_which_locreg = f_malloc0_ptr(norb,id='inWhichLocreg')
