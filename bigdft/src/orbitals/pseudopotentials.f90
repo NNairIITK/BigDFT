@@ -17,12 +17,23 @@ module pseudopotentials
   
   private 
 
+  integer, parameter :: SKIP=0
+  integer, parameter :: DIAGONAL=1
+  integer, parameter :: FULL=2
+
   integer, parameter :: NRLOC_MAX=2 !<maximum number of rlocs for the local potential
   integer, parameter :: NCOEFF_MAX=4 !<maximum number of coefficients
   integer, parameter :: LMAX=3 !<=maximum L
   integer, parameter :: IMAX=3 !<number of proncipla quantum numbers for HGH
   integer, parameter :: NG_CORE_MAX=1 !<max no. of gaussians for core charge density case
   integer, parameter :: NG_VAL_MAX=0 !<max no. of gaussians for valence charge density, in the core region
+
+  type, public :: atomic_projector_matrices
+     integer :: strategy
+     integer :: hij_size
+     real(gp), dimension(IMAX,IMAX) :: hij
+     real(gp), dimension(:,:), pointer :: mat !<matrix of nonlocal projectors in the mm' space
+  end type atomic_projector_matrices
 
   type, public :: PSP_data
      integer :: nelpsp
@@ -299,11 +310,13 @@ module pseudopotentials
       logical :: exists
       character(len=27) :: key
       character(len = max_field_length) :: str
+      type(dictionary), pointer :: tmp
       key = 'psppar.' // trim(type)
       exists=key .in. dict
 
       if (exists) then
-         if (SOURCE_KEY .in. dict // key) then
+         tmp => dict // key 
+         if (SOURCE_KEY .in. tmp) then
             str = dict_value(dict // key // SOURCE_KEY)
          else
             str = dict_value(dict // key)
@@ -315,7 +328,7 @@ module pseudopotentials
             else
                call psp_file_merge_to_dict(dict, key, lstring = dict // key)
             end if
-            if (PSPXC_KEY .notin. dict // key) then
+            if (PSPXC_KEY .notin. tmp) then
                call yaml_warning("Pseudopotential file '" // trim(str) // &
                     "' not found. Fallback to file '" // trim(key) // &
                     "' or hard-coded pseudopotential.")
@@ -881,6 +894,7 @@ module pseudopotentials
       implicit none
       integer, intent(in) :: n_p,n_w
       real(gp), dimension(3,3,4), intent(in) :: hij
+!!$      type(atomic_projector_matrices), dimension(4), intent(in) :: prj
       real(gp), dimension(n_w,n_p), intent(in) :: scpr
       real(gp), dimension(n_w,n_p), intent(out) :: hscpr
       !local variables
@@ -920,6 +934,18 @@ module pseudopotentials
 
          !applies the hij matrix
          do l=1,4 !diagonal in l
+!!$            select case(prj(l)%strategy)
+!!$            case (SKIP) 
+!!$               cycle
+!!$            case(FULL)
+!!$            case(DIAGONAL)
+!!$               do i=1,3
+!!$                  do j=1,3
+!!$                     call f_gemv(a=f_eye(2*l-1),alpha=hij(i,j,l),beta=1.0_wp,&
+!!$                          y=dproj(1,i,l),x=cproj(1,j,l))
+!!$                  end do
+!!$               end do
+!!$            end select
             do i=1,3
                do j=1,3
                   do m=1,2*l-1 !diagonal in m

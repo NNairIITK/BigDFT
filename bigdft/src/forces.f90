@@ -1290,9 +1290,9 @@ subroutine cproj_to_gamma(iat,proj_G,mproj,lmax,ncplx,cproj,factor,iagamma,gamma
   ! Loop on shell.
   iproj=1
   do while (gaussian_iter_next_shell(proj_G, iter))
-     if (iter%n ==1 .and. iagamma(iter%l-1)/=0) &
+     if (iter%n ==1 .and. iagamma(iter%l)/=0) &
           call atomic_PSP_density_matrix_update('C',lmax,iter%l-1,ncplx,cproj(1,iproj),&
-          factor,gamma_mmp(1,1,1,iagamma(iter%l-1)))
+          factor,gamma_mmp(1,1,1,iagamma(iter%l)))
      iproj = iproj + (2*iter%l-1)*ncplx
   end do
 

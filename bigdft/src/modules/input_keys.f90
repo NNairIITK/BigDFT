@@ -973,7 +973,7 @@ contains
     implicit none
     type(dictionary), pointer :: dict,dict_minimal
     !local variables
-    type(dictionary), pointer :: as_is,nested,dict_ps_min
+    type(dictionary), pointer :: as_is,nested,dict_ps_min,tmp
     character(max_field_length) :: meth
     real(gp) :: dtmax_, betax_
     logical :: free,dftvar
@@ -1011,7 +1011,8 @@ contains
 
     nat=0
     if (POSINP .in. dict) then
-       if (ASTRUCT_POSITIONS .in. dict//POSINP) &
+     tmp => dict//POSINP
+       if (ASTRUCT_POSITIONS .in. tmp ) &
             nat = dict_len(dict//POSINP//ASTRUCT_POSITIONS)
     end if
     if (nat<=natoms_dump) call add(as_is,POSINP)

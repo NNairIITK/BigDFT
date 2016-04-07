@@ -18,7 +18,7 @@ BUILDONE=' buildone '
 TINDERBOX=' tinderbox -o build '
 DOT=' dot '
 DOTCMD=' | dot -Edir=back -Tpng > buildprocedure.png '
-DIST='  dist -distonly bigdft-suite '
+DIST='  dist --dist-only bigdft-suite '
 RCFILE='buildrc'
 SETUP=' setup '
 
