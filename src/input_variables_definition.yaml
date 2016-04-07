@@ -1951,7 +1951,7 @@ linear_accurate:
   DESCRIPTION: |
           This profile should be chosen if highly accurate energy differences are required.
   dft:
-    hgrids: accurate
+    hgrids: 0.3
     ixc: PBE
     inputpsiid: linear
   perf:
@@ -1983,13 +1983,28 @@ linear_accurate:
     alphamix: 0.1
     rpnrm_cv: [1.e-12,1.e-12]
     linear_method: FOE
+  lin_basis_params:
+    ao_confinement: -1.0
+    confinement: -1.0
+    rloc_kernel: 10.0
+    rloc_kernel_foe: 12.0
+    H:  {nbasis: 1, rloc: 5.0}
+    C:  {nbasis: 4, rloc: 5.5}
+    N:  {nbasis: 4, rloc: 5.5}
+    O:  {nbasis: 4, rloc: 5.5}
+    P:  {nbasis: 4, rloc: 6.0}
+    S:  {nbasis: 4, rloc: 6.0}
+    Cl: {nbasis: 4, rloc: 6.0}
+    Na: {nbasis: 1, rloc: 7.5}
+    K:  {nbasis: 1, rloc: 8.0}
+    Sn: {nbasis: 4, rloc: 6.5}
 linear_moderate:
   COMMENT: Appropriate input parameters for a moderate accuracy linear scaling calculation
   DESCRIPTION: |
           This profile should be chosen if accurate forces are required,
           but there is no need for extremely accurate energies.
   dft:
-    hgrids: accurate
+    hgrids: 0.3
     ixc: PBE
     inputpsiid: linear
   perf:
@@ -2016,12 +2031,27 @@ linear_moderate:
     alphamix: [0.2,0.2]
     rpnrm_cv: [1.e-11,1.e-11]
     linear_method: FOE
+  lin_basis_params:
+    ao_confinement: -1.0
+    confinement: -1.0
+    rloc_kernel: 10.0
+    rloc_kernel_foe: 12.0
+    H:  {nbasis: 1, rloc: 5.0}
+    C:  {nbasis: 4, rloc: 5.5}
+    N:  {nbasis: 4, rloc: 5.5}
+    O:  {nbasis: 4, rloc: 5.5}
+    P:  {nbasis: 4, rloc: 6.0}
+    S:  {nbasis: 4, rloc: 6.0}
+    Cl: {nbasis: 4, rloc: 6.0}
+    Na: {nbasis: 1, rloc: 7.5}
+    K:  {nbasis: 1, rloc: 8.0}
+    Sn: {nbasis: 4, rloc: 6.5}
 linear_fast:
   COMMENT: Appropriate input parameters for a low accuracy linear scaling calculation
   DESCRIPTION: |
           This profile should be chosen if speed is more important than accuracy.
   dft:
-    hgrids: accurate
+    hgrids: 0.3
     ixc: PBE
     inputpsiid: linear
   perf:
@@ -2044,10 +2074,25 @@ linear_fast:
     correction_orthoconstraint: 0
   lin_kernel:
     nit: [10,10]
-    idsx: [6,0]
+    idsx: [6,6]
     alphamix: [0.2,0.2]
     rpnrm_cv: [1.e-10,1.e-10]
     linear_method: FOE
+  lin_basis_params:
+    ao_confinement: -1.0
+    confinement: -1.0
+    rloc_kernel: 10.0
+    rloc_kernel_foe: 12.0
+    H:  {nbasis: 1, rloc: 5.0}
+    C:  {nbasis: 4, rloc: 5.5}
+    N:  {nbasis: 4, rloc: 5.5}
+    O:  {nbasis: 4, rloc: 5.5}
+    P:  {nbasis: 4, rloc: 6.0}
+    S:  {nbasis: 4, rloc: 6.0}
+    Cl: {nbasis: 4, rloc: 6.0}
+    Na: {nbasis: 1, rloc: 7.5}
+    K:  {nbasis: 1, rloc: 8.0}
+    Sn: {nbasis: 4, rloc: 6.5}
 mixing:
   COMMENT: To be used for metallic systems
   DECRIPTION: |
