@@ -1,5 +1,5 @@
 conditions.add("testing")
-conditions.add("python")
+#conditions.add("python")
 
 #build_policy = "all"
 
@@ -9,8 +9,12 @@ modules = ['bigdft',]
 # Specific configure arguments for each module
 module_autogenargs['libxc'] = "FC=mpif90 CC=gcc --enable-shared"
 
+module_autogenargs['futile'] = "FC=mpif90 FCFLAGS='-O2 -g -traceback -fPIC' CFLAGS='-O2 -g -fPIC' --with-pyyaml-path=%(prefix)s/lib/python2.7/site-packages" % globals() + " --with-ext-linalg='%s'" % os.getenv("MKL_LIBS")
+module_autogenargs['psolver'] = "FC=mpif90 FCFLAGS='-O2 -g -traceback' --with-pyyaml-path=%(prefix)s/lib/python2.7/site-packages" % globals() + " --with-ext-linalg='%s'" % os.getenv("MKL_LIBS")
 module_autogenargs['bigdft'] = "FC=mpif90 FCFLAGS='-O2 -g -traceback' --with-pyyaml-path=%(prefix)s/lib/python2.7/site-packages" % globals() + " --with-ext-linalg='%s'" % os.getenv("MKL_LIBS")
 
 module_autogenargs['libABINIT'] = "FC=mpif90 FCFLAGS='-fPIC'"
+
+module_autogenargs['GaIn'] = "FC=mpif90 FCFLAGS='-fPIC'"
 
 module_autogenargs['etsf_io'] += "FCFLAGS='-fPIC'"
