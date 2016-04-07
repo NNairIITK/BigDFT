@@ -193,6 +193,7 @@ static PyObject* f_py_arr_to_array(void *data, int ndims, int shapes[7], int typ
 {
   npy_intp dims[7];
   int type_num;
+  int i;
   
   switch (type)
     {
@@ -206,14 +207,9 @@ static PyObject* f_py_arr_to_array(void *data, int ndims, int shapes[7], int typ
       PyErr_SetString(PyExc_TypeError, "unsupported type");
       return NULL;
     }
-  dims[0] = shapes[0];
-  dims[1] = shapes[1];
-  dims[2] = shapes[2];
-  dims[3] = shapes[3];
-  dims[4] = shapes[4];
-  dims[5] = shapes[5];
-  dims[6] = shapes[6];
-  return PyArray_New(&PyArray_Type, ndims, dims, type_num, NULL, data, 0, NPY_FARRAY, NULL);
+  for (i = 0; i < ndims; i++)
+    dims[i] = shapes[ndims - i - 1];
+  return PyArray_New(&PyArray_Type, ndims, dims, type_num, NULL, data, 0, NPY_CARRAY, NULL);
 }
 #endif
 
