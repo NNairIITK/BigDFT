@@ -14,6 +14,7 @@ void futile_finalize();
 typedef enum _FutileNumeric FutileNumeric;
 enum _FutileNumeric
   {
+    FUTILE_POINTER,
     FUTILE_INTEGER_4,
     FUTILE_REAL_8
   };
@@ -27,12 +28,14 @@ typedef union
 typedef void (*FutileDestroyFunc)(void *data);
 typedef void (*FutileMethodFortranFunc)();
 
-typedef struct _FutileArray FutileArray;
-struct _FutileArray
+typedef struct _FutileArg FutileArg;
+struct _FutileArg
 {
-  int iarg;
   FutileNumeric type;
   size_t size;
+
+  void *arg;
+
   void *data;
   FutileDestroyFunc freefunc;
 };
@@ -42,23 +45,28 @@ struct _FutileMethod
 {
   unsigned int n_args;
   unsigned int n_strs;
-  unsigned int n_arrs;
   int isfunc;
+
   FutileMethodFortranFunc callback;
-  void *args[FUTILE_METHOD_ARG_MAX];
+
+  FutileArg args[FUTILE_METHOD_ARG_MAX];
   int strlens[FUTILE_METHOD_ARG_MAX];
-  FutileArray arrays[FUTILE_METHOD_ARG_MAX];
 };
 
 gboolean futile_object_get_method(FutileMethod *meth,
                                   const char *obj_id, const char *meth_id);
 void futile_object_method_add_arg(FutileMethod *meth, void *arg);
-void futile_object_method_add_arg_str(FutileMethod *meth, char *arg, int ln);
-void futile_object_method_add_arg_arr(FutileMethod *meth, void *arg,
-                                      FutileNumeric type, size_t size,
-                                      void *buffer, FutileDestroyFunc freeBuffer);
+void futile_object_method_add_arg_str(FutileMethod *meth, char *arg);
+void futile_object_method_add_arg_full(FutileMethod *meth, void *arg,
+                                       FutileNumeric type, size_t size,
+                                       void *buffer, FutileDestroyFunc freeBuffer);
 void futile_object_method_execute(FutileMethod *meth);
 void* futile_object_method_get_arg_arr(FutileMethod *meth, unsigned int i);
 void futile_object_method_clean(FutileMethod *meth);
+
+void* futile_object_ndarray_new(void **paddress);
+void futile_object_ndarray_free(void *paddress);
+void* futile_object_ndarray_get(void *ndarray,
+                                int *ndims, int shapes[7], FutileNumeric *type);
 
 #endif

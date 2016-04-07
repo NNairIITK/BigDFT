@@ -10,6 +10,17 @@
  -  6
  -  7
  get_size: 4
+ get_mean: 5.5
+ get_data: [4 5 6 7]
+ modifying data: yes
+ python:
+ -  4
+ -  5
+ -  42
+ -  7
+ numpy:
+ -  123
+ -  456
  python new:
  -  42
  Memory Consumption Report:

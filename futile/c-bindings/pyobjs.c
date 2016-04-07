@@ -8,6 +8,108 @@
 #include <numpy/ndarrayobject.h>
 #endif
 
+typedef enum
+  {
+    F_PY_SCALAR_I4,
+    F_PY_SCALAR_R8,
+    F_PY_ARRAY
+  } FPyTypeFlags;
+
+typedef struct {
+  PyObject_HEAD
+  FPyTypeFlags flags;
+} FPyArgFlags;
+
+static PyMemberDef f_py_argflags_members[] = {
+  {NULL}  /* Sentinel */
+};
+
+static PyMethodDef f_py_argflags_methods[] = {
+  {NULL}  /* Sentinel */
+};
+
+static void f_py_argflags_dealloc(FPyArgFlags *self)
+{
+  self->ob_type->tp_free((PyObject*)self);
+}
+
+static PyObject* f_py_argflags_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+  FPyArgFlags *self;
+
+  self = (FPyArgFlags*)type->tp_alloc(type, 0);
+
+  return (PyObject*)self;
+}
+
+static int f_py_argflags_init(FPyArgFlags *self, PyObject *args, PyObject *kwds)
+{
+  int type;
+
+  static char *kwlist[] = {"type", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "i", kwlist, &type))
+    return -1;
+
+  if (type < F_PY_SCALAR_I4 || type > F_PY_ARRAY)
+    {
+      PyErr_SetString(PyExc_TypeError, "unknown flag");
+      return -1;
+    }
+
+  self->flags = type;
+
+  return 0;
+}
+
+static PyTypeObject FPyArgFlagsType = {
+  PyObject_HEAD_INIT(NULL)
+  0,                         /*ob_size*/
+  "futile.ArgFlags",         /*tp_name*/
+  sizeof(FPyArgFlags),       /*tp_basicsize*/
+  0,                         /*tp_itemsize*/
+  (destructor)f_py_argflags_dealloc, /*tp_dealloc*/
+  0,                         /*tp_print*/
+  0,                         /*tp_getattr*/
+  0,                         /*tp_setattr*/
+  0,                         /*tp_compare*/
+  0,                         /*tp_repr*/
+  0,                         /*tp_as_number*/
+  0,                         /*tp_as_sequence*/
+  0,                         /*tp_as_mapping*/
+  0,                         /*tp_hash */
+  0,                         /*tp_call*/
+  0,                         /*tp_str*/
+  0,                         /*tp_getattro*/
+  0,                         /*tp_setattro*/
+  0,                         /*tp_as_buffer*/
+  Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /*tp_flags*/
+  "argument flags",          /* tp_doc */
+  0,                         /* tp_traverse */
+  0,                         /* tp_clear */
+  0,                         /* tp_richcompare */
+  0,                         /* tp_weaklistoffset */
+  0,                         /* tp_iter */
+  0,                         /* tp_iternext */
+  f_py_argflags_methods,     /* tp_methods */
+  f_py_argflags_members,     /* tp_members */
+  0,                         /* tp_getset */
+  0,                         /* tp_base */
+  0,                         /* tp_dict */
+  0,                         /* tp_descr_get */
+  0,                         /* tp_descr_set */
+  0,                         /* tp_dictoffset */
+  (initproc)f_py_argflags_init,/* tp_init */
+  0,                         /* tp_alloc */
+  f_py_argflags_new,           /* tp_new */
+};
+
+static int f_py_argflags_check(PyObject *obj, FPyTypeFlags type)
+{
+  return (obj->ob_type == &FPyArgFlagsType &&
+          ((FPyArgFlags*)obj)->flags == type);
+}
+
 static void* f_py_tuple_to_arr(PyObject *tuple, FutileNumeric *type, Py_ssize_t *size)
 {
   Py_ssize_t i;
@@ -80,11 +182,38 @@ static void* f_py_array_to_arr(PyObject *array, FutileNumeric *type, Py_ssize_t 
       *type = FUTILE_REAL_8;
       break;
     default:
+      PyErr_SetString(PyExc_TypeError, "unsupported type");
       Py_DECREF(*farr);
       return NULL;
     }
 
   return arr;
+}
+static PyObject* f_py_arr_to_array(void *data, int ndims, int shapes[7], int type)
+{
+  npy_intp dims[7];
+  int type_num;
+  
+  switch (type)
+    {
+    case (FUTILE_INTEGER_4):
+      type_num = NPY_INT32;
+      break;
+    case (FUTILE_REAL_8):
+      type_num = NPY_DOUBLE;
+      break;
+    default:
+      PyErr_SetString(PyExc_TypeError, "unsupported type");
+      return NULL;
+    }
+  dims[0] = shapes[0];
+  dims[1] = shapes[1];
+  dims[2] = shapes[2];
+  dims[3] = shapes[3];
+  dims[4] = shapes[4];
+  dims[5] = shapes[5];
+  dims[6] = shapes[6];
+  return PyArray_New(&PyArray_Type, ndims, dims, type_num, NULL, data, 0, NPY_FARRAY, NULL);
 }
 #endif
 
@@ -179,10 +308,10 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
   PyObject *farr;
 #endif
 
-  int i, j, n_args;
+  int i, j, i_args, ndims, shapes[7];
   Py_ssize_t size;
   FutileNumeric type;
-  void *arr;
+  void *arr, *parr;
 
   if (self->self && self->self->address)
     futile_object_method_add_arg(&self->meth, self->self->address);
@@ -190,9 +319,8 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
   if (iterator == NULL)
     return NULL;
 
-  n_args = (self->self && self->self->address) ?
-    (int)self->meth.n_args - 1 : (int)self->meth.n_args;
-  for (i = 0; i < n_args; i += 1)
+  i_args = (self->self && self->self->address) ? 1 : 0;
+  for (i = i_args; i < self->meth.n_args; i += 1)
     {
       item = PyIter_Next(iterator);
       if (item == NULL)
@@ -203,37 +331,49 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
         }
 
       /* fprintf(stderr, "%s\n", PyString_AsString(PyObject_Str(PyObject_Type(item)))); */
-      if (PyInt_Check(item))
+      if (PyInt_Check(item) || f_py_argflags_check(item, F_PY_SCALAR_I4))
         {
           arr = malloc(sizeof(int));
           *(int*)arr = (int)PyInt_AS_LONG(item);
-          futile_object_method_add_arg_arr(&self->meth, arr, FUTILE_INTEGER_4,
-                                           1, arr, free);
+          futile_object_method_add_arg_full(&self->meth, arr, FUTILE_INTEGER_4,
+                                            1, arr, free);
         }
-      else if (PyFloat_Check(item))
+      else if (PyFloat_Check(item) || f_py_argflags_check(item, F_PY_SCALAR_R8))
         {
           arr = malloc(sizeof(double));
           *(double*)arr = PyFloat_AS_DOUBLE(item);
-          futile_object_method_add_arg_arr(&self->meth, arr, FUTILE_REAL_8,
-                                           1, arr, free);
+          futile_object_method_add_arg_full(&self->meth, arr, FUTILE_REAL_8,
+                                            1, arr, free);
+        }
+      else if (f_py_argflags_check(item, F_PY_ARRAY))
+        {
+          arr = futile_object_ndarray_new(&parr);
+          if (arr == NULL)
+            {
+              Py_DECREF(item);
+              Py_DECREF(iterator);
+              futile_object_method_clean(&self->meth);
+              return NULL;
+            }
+          futile_object_method_add_arg_full(&self->meth, arr, FUTILE_POINTER,
+                                            1, parr, futile_object_ndarray_free);
         }
       else if (PyString_Check(item))
         {
-          futile_object_method_add_arg_str(&self->meth, PyString_AsString(item),
-                                           strlen(PyString_AsString(item)));
+          futile_object_method_add_arg_str(&self->meth, PyString_AsString(item));
         }
       else if (PyTuple_Check(item))
         {
           arr = f_py_tuple_to_arr(item, &type, &size);
-          futile_object_method_add_arg_arr(&self->meth, arr,
-                                           type, size, arr, free);
+          futile_object_method_add_arg_full(&self->meth, arr,
+                                            type, size, arr, free);
         }
 #ifdef HAVE_PYTHON_NUMPY
       else if (PyArray_Check(item))
         {
           arr = f_py_array_to_arr(item, &type, &size, &farr);
-          futile_object_method_add_arg_arr(&self->meth, arr,
-                                           type, size, farr, pyFree);
+          futile_object_method_add_arg_full(&self->meth, arr,
+                                            type, size, farr, pyFree);
         }
 #endif
       else if (f_py_object_check(item))
@@ -256,24 +396,36 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
   futile_object_method_execute(&self->meth);
 
   /* Convert back values. */
-  ret = PyTuple_New(n_args);
+  ret = PyTuple_New(self->meth.n_args);
   j = 0;
   iterator = PyObject_GetIter(args);
-  for (i = 0; i < n_args; i += 1)
+  for (i = i_args; i < self->meth.n_args; i += 1)
     {
       item = PyIter_Next(iterator);
 
-      if (PyInt_Check(item))
+      if (PyInt_Check(item) || f_py_argflags_check(item, F_PY_SCALAR_I4))
         {
           arr = futile_object_method_get_arg_arr(&self->meth, i);
-          if (PyInt_AS_LONG(item) != (long)*(int*)arr)
+          if (PyInt_AS_LONG(item) != (long)*(int*)arr ||
+              f_py_argflags_check(item, F_PY_SCALAR_I4))
             PyTuple_SET_ITEM(ret, j++, PyInt_FromLong((long)*(int*)arr));
         }
-      else if (PyFloat_Check(item))
+      else if (PyFloat_Check(item) || f_py_argflags_check(item, F_PY_SCALAR_R8))
         {
           arr = futile_object_method_get_arg_arr(&self->meth, i);
-          if (PyFloat_AS_DOUBLE(item) != *(double*)arr)
+          if (PyFloat_AS_DOUBLE(item) != *(double*)arr ||
+              f_py_argflags_check(item, F_PY_SCALAR_R8))
             PyTuple_SET_ITEM(ret, j++, PyFloat_FromDouble(*(double*)arr));
+        }
+      else if (f_py_argflags_check(item, F_PY_ARRAY))
+        {
+          parr = futile_object_method_get_arg_arr(&self->meth, i);
+          arr = futile_object_ndarray_get(parr, &ndims, shapes, &type);
+#ifdef HAVE_PYTHON_NUMPY
+          farr = f_py_arr_to_array(arr, ndims, shapes, type);
+          if (farr != NULL)
+            PyTuple_SET_ITEM(ret, j++, farr);
+#endif
         }
       Py_DECREF(item);
     }
@@ -555,10 +707,13 @@ initfutile(void)
 {
   PyObject *futile;
   PyTypeObject *futileType;
+  FPyArgFlags *flag;
 
   if (PyType_Ready(&FPyMethodType) < 0)
     return;
   if (PyType_Ready(&FPyObjectType) < 0)
+    return;
+  if (PyType_Ready(&FPyArgFlagsType) < 0)
     return;
 
   futile = Py_InitModule("futile", FutilePyMethods);
@@ -573,6 +728,18 @@ initfutile(void)
   PyModule_AddObject(futile, "FMethod", (PyObject*)&FPyMethodType);
   Py_INCREF(&FPyObjectType);
   PyModule_AddObject(futile, "FObject", (PyObject*)&FPyObjectType);
+  Py_INCREF(&FPyArgFlagsType);
+  PyModule_AddObject(futile, "ArgFlags", (PyObject*)&FPyArgFlagsType);
+
+  flag = PyObject_New(FPyArgFlags, &FPyArgFlagsType);
+  flag->flags = F_PY_SCALAR_I4;
+  PyModule_AddObject(futile, "SCALAR_I4", (PyObject*)flag);
+  flag = PyObject_New(FPyArgFlags, &FPyArgFlagsType);
+  flag->flags = F_PY_SCALAR_R8;
+  PyModule_AddObject(futile, "SCALAR_R8", (PyObject*)flag);
+  flag = PyObject_New(FPyArgFlags, &FPyArgFlagsType);
+  flag->flags = F_PY_ARRAY;
+  PyModule_AddObject(futile, "ARRAY", (PyObject*)flag);
 
   futileType = futile->ob_type;
   futileType->tp_getattro = (getattrofunc)f_py_futile_getattro;
