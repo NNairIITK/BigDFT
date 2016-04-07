@@ -46,7 +46,7 @@ libflib_a_SOURCES = utils.c utilsadd.c \
 	razero.f90 getadd.f90 time.f90 \
 	yaml_parser.c yaml_parse.f90 \
 	f_input_file.f90 randomData.f90 \
-	f_ternary.f90 f_bind.f90 f_objects.f90 python.f90 \
+	f_ternary.f90 f_bind.f90 f_objects.f90 fpython.f90 \
 	$(flush_files) $(getarg_files) $(CUDA_PROF)
 
 DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
@@ -161,6 +161,6 @@ f_trees.o: f_refcnts.o dictionaries.o yaml_output.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES) f_malloc.o
 razero.o: randomData.o f_precisions.o
 $(flush_object): yaml_output.o dictionaries.o
-python.o: dictionaries.o
+fpython.o: dictionaries.o
 
 time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(NVTX_DEP)
