@@ -1360,6 +1360,8 @@ module sparsematrix
              ishift = (ispin-1)*smat%nvctr
              !ist_send = smat%smmm%istartend_mm_dj(1) - smat%isvctrp_tg + ishift
              ist_send = smat%isvctr + 1 - smat%isvctrp_tg + ishift
+             ! The following condition is necessary for ncount=0, in order to avoid out of bound problems
+             ist_send = min(ist_send,ispin*smat%nvctrp_tg)
              call mpi_get_to_allgatherv_double(mat_tg(ist_send), ncount, &
                   mat_global(ishift+1), recvcounts, recvdspls, comm)
              !!call mpi_allgatherv(mat_tg(ist_send), ncount, mpi_double_precision, &
