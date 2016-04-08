@@ -37,6 +37,7 @@ module sparsematrix
   public :: delete_coupling_terms
   public :: synchronize_matrix_taskgroups
   public :: max_asymmetry_of_matrix
+  public :: symmetrize_matrix
 
 
   interface compress_matrix_distributed_wrapper
@@ -2253,5 +2254,61 @@ module sparsematrix
     !!!!  call f_release_routine()
     !!!!
     !!!!end subroutine transform_sparse_matrix_test
+
+
+
+    subroutine symmetrize_matrix(smat, csign, mat_in, mat_out)
+      use sparsematrix_init, only: matrixindex_in_compressed
+      implicit none
+
+      ! Calling arguments
+      type(sparse_matrix),intent(in) :: smat
+      character(len=*),intent(in) :: csign
+      real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: mat_in
+      real(kind=8),dimension(smat%nvctrp_tg),intent(out) :: mat_out
+
+      ! Local variables
+      integer :: ispin, ishift, iseg, ii, i, ii_trans
+      logical :: minus
+    
+      call f_routine(id='symmetrize_matrix')
+
+      if (csign=='plus') then
+          minus = .false.
+      else if (csign=='minus') then
+          minus = .true.
+      else
+          call f_err_throw("wrong value of 'csign'", err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
+      do ispin=1,smat%nspin
+          ishift=(ispin-1)*smat%nvctrp_tg
+          !$omp parallel default(none) &
+          !$omp shared(smat,mat_in,mat_out,ishift) &
+          !$omp private(iseg,ii,i,ii_trans)
+          !$omp do
+          do iseg=smat%istartendseg_local(1),smat%istartendseg_local(2)
+              ii = smat%keyv(iseg)
+              ! A segment is always on one line, therefore no double loop
+              do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg) !this is too much, but for the moment ok
+                  ii_trans = matrixindex_in_compressed(smat,smat%keyg(1,2,iseg),i)
+                      mat_out(ii+ishift-smat%isvctrp_tg) = &
+                            0.5d0*mat_in(ii+ishift-smat%isvctrp_tg) &
+                          + 0.5d0*mat_in(ii_trans+ishift-smat%isvctrp_tg)
+                  ii=ii+1
+              end do
+          end do
+          !$omp end do
+          !$omp end parallel
+      end do
+
+      if (minus) then
+          ! There should be a scal wrapper...
+          call dscal(smat%nvctrp_tg, -1.d0, mat_out(1), 1)
+      end if
+    
+      call f_release_routine()
+    
+    end subroutine symmetrize_matrix
 
 end module sparsematrix

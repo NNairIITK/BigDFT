@@ -591,7 +591,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
                tmb%foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, &
-               energs%ebs, invert_overlap_matrix, 2)
+               energs%ebs, &
+               calculate_minusonehalf=invert_overlap_matrix, foe_verbosity=2, symmetrize_kernel=.true.)
           !!call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
           !!     tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tt)
           !!if (iproc==0) call yaml_map('max assymetry of K',tt)
@@ -641,7 +642,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call yaml_mapping_open('Asymmetry of the matrices')
       call yaml_map('Overlap',asymm_S,fmt='(es8.2)')
       call yaml_map('Hamiltonian',asymm_H,fmt='(es8.2)')
-      call yaml_map('Kernel',asymm_K,fmt='(es8.2)')
+      call yaml_map('Kernel (possibly symmetrized)',asymm_K,fmt='(es8.2)')
       call yaml_mapping_close()
   end if
 
@@ -3195,7 +3196,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
            foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
-           ebs, .true., 2)
+           ebs, calculate_minusonehalf=.true., foe_verbosity=2, symmetrize_kernel=.true.)
       !call fermi_operator_expansion(iproc, nproc, &
       !     ebs, norder_taylor, input%lin%max_inversion_error, &
       !     .true., 2, &
@@ -3226,7 +3227,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
            foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
-           ebs, .true., 2)
+           ebs, calculate_minusonehalf=.true., foe_verbosity=2, symmetrize_kernel=.true.)
       !call fermi_operator_expansion(iproc, nproc, &
       !     ebs, norder_taylor, input%lin%max_inversion_error, &
       !     .true., 2, &

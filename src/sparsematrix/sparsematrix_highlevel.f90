@@ -515,7 +515,7 @@ module sparsematrix_highlevel
 
     subroutine matrix_fermi_operator_expansion(iproc, nproc, comm, foe_obj, smat_s, smat_h, smat_k, &
                overlap, ham, overlap_minus_one_half, kernel, ebs, &
-               calculate_minusonehalf, foe_verbosity)
+               calculate_minusonehalf, foe_verbosity, symmetrize_kernel)
       use foe_base, only: foe_data
       use foe, only: fermi_operator_expansion_new
       implicit none
@@ -528,12 +528,12 @@ module sparsematrix_highlevel
       type(matrices),dimension(1),intent(inout) :: overlap_minus_one_half
       type(matrices),intent(inout) :: kernel
       real(kind=mp),intent(out) :: ebs
-      logical,intent(in),optional :: calculate_minusonehalf
+      logical,intent(in),optional :: calculate_minusonehalf, symmetrize_kernel
       integer,intent(in),optional :: foe_verbosity
 
       ! Local variables
       integer :: i
-      logical :: calculate_minusonehalf_
+      logical :: calculate_minusonehalf_, symmetrize_kernel_
       integer :: foe_verbosity_
 
       call f_routine(id='matrix_fermi_operator_expansion')
@@ -542,6 +542,8 @@ module sparsematrix_highlevel
       if (present(calculate_minusonehalf)) calculate_minusonehalf_ = calculate_minusonehalf
       foe_verbosity_ = 1
       if (present(foe_verbosity)) foe_verbosity_ = foe_verbosity
+      symmetrize_kernel_ = .false.
+      if (present(symmetrize_kernel)) symmetrize_kernel_ = symmetrize_kernel
 
       ! Check the dimensions of the internal arrays
       if (size(overlap%matrix_compr)/=smat_s%nvctrp_tg*smat_s%nspin) then
@@ -583,7 +585,8 @@ module sparsematrix_highlevel
       call fermi_operator_expansion_new(iproc, nproc, comm, &
            ebs, &
            calculate_minusonehalf_, foe_verbosity_, &
-           smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj)
+           smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj, &
+           .false.)!symmetrize_kernel_)
 
       call f_release_routine()
 

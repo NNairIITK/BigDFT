@@ -1010,10 +1010,11 @@ module foe
     subroutine fermi_operator_expansion_new(iproc, nproc, comm, &
                ebs, &
                calculate_minusonehalf, foe_verbosity, &
-               smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj)
+               smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj, &
+               symmetrize_kernel)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
-                              trace_sparse!, max_asymmetry_of_matrix
+                              trace_sparse, symmetrize_matrix, max_asymmetry_of_matrix
       use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                           foe_data_get_logical
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -1029,7 +1030,7 @@ module foe
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm
       real(kind=mp),intent(out) :: ebs
-      logical,intent(in) :: calculate_minusonehalf
+      logical,intent(in) :: calculate_minusonehalf, symmetrize_kernel
       integer,intent(in) :: foe_verbosity
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
       type(matrices),intent(in) :: ham_, ovrlp_
@@ -1049,11 +1050,11 @@ module foe
       real(kind=mp) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
       real(kind=mp) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt
       real(kind=mp) :: x_max_error_fake, max_error_fake, mean_error_fake
-      real(kind=mp) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check, fscale_new, fscale_newx
+      real(kind=mp) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check, fscale_new, fscale_newx, asymm_K
       logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
       logical,dimension(2) :: emergency_stop
       real(kind=mp),dimension(2) :: efarr, sumnarr, allredarr
-      real(kind=mp),dimension(:),allocatable :: hamscal_compr, fermi_check_compr
+      real(kind=mp),dimension(:),allocatable :: hamscal_compr, fermi_check_compr, kernel_tmp
       real(kind=mp),dimension(4,4) :: interpol_matrix
       real(kind=mp),dimension(4) :: interpol_vector
       real(kind=mp),parameter :: charge_tolerance=1.d-6 ! exit criterion
@@ -1108,6 +1109,7 @@ module foe
       !!penalty_ev = f_malloc((/smatl%nfvctr,smatl%smmm%nfvctrp,2/),id='penalty_ev')
       !!fermip_check = f_malloc((/smatl%nfvctr,smatl%smmm%nfvctrp/),id='fermip_check')
       fermi_check_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='fermi_check_compr')
+      kernel_tmp = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='kernel_tmp')
     
       fermi_check_new = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='fermip_check_new')
       fermi_new = f_malloc((/smatl%smmm%nvctrp/),id='fermi_new')
@@ -1329,6 +1331,16 @@ module foe
         
                   call retransform_ext(iproc, nproc, smatl, &
                        ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), fermi_check_compr)
+
+                  ! Explicitly symmetrize the kernel, use fermi_check_compr as temporary array
+                  call max_asymmetry_of_matrix(iproc, nproc, comm, &
+                       smatl, kernel_%matrix_compr, asymm_K)
+                  if (symmetrize_kernel) then
+                      call f_memcpy(src=kernel_%matrix_compr, dest=kernel_tmp)
+                      call symmetrize_matrix(smatl, 'plus', kernel_tmp, kernel_%matrix_compr)
+                      call f_memcpy(src=fermi_check_compr, dest=kernel_tmp)
+                      call symmetrize_matrix(smatl, 'plus', kernel_tmp, fermi_check_compr)
+                  end if
         
                   call calculate_trace_distributed_new(iproc, nproc, comm, smatl, fermi_check_new, sumn_check)
     
@@ -1378,6 +1390,8 @@ module foe
                   diff=diff/abs(ebsp)
         
                   if (iproc==0) then
+                      call yaml_map('Asymmetry of kernel',asymm_K,fmt='(es8.2)')
+                      call yaml_map('symmetrize_kernel',symmetrize_kernel)
                       call yaml_map('EBS',ebsp,fmt='(es19.12)')
                       call yaml_map('EBS higher temperature',ebs_check,fmt='(es19.12)')
                       call yaml_map('difference',ebs_check-ebsp,fmt='(es19.12)')
@@ -1499,6 +1513,7 @@ module foe
       call foe_data_set_real(foe_obj,"fscale",minval(fscale_ispin))
     
       degree_sufficient=.true.
+
     
       if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='~')
     
@@ -1507,6 +1522,7 @@ module foe
       call f_free(hamscal_compr)
       !!call f_free(fermip_check)
       call f_free(fermi_check_compr)
+      call f_free(kernel_tmp)
     
       !call f_free(penalty_ev_new)
       call f_free(fermi_check_new)
