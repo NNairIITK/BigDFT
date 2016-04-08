@@ -48,7 +48,7 @@ flib_libraries = -lfutile-1
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
 else
 flib_libraries = libfutile-1.a
-LIBS += @LIB_YAML_LIBS@
+LIBS += @LIB_YAML_LIBS@ @GLIB_LIBS@ @PYTHON_LIBS@
 endif
 
 tmp-libfutile/extract.stamp: $(top_builddir)/flib/libflib.a $(top_builddir)/c-bindings/libbindings.a $(top_builddir)/wrappers/libwrappers.a

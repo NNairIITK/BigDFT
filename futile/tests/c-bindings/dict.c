@@ -10,8 +10,6 @@ gboolean test_dict_new()
   FutileTree *dict;
   FutileTreeIter iter;
 
-  g_type_init();
-  
   dict = futile_tree_new(NULL);
   ASSERT(dict != (FutileTree*)0);
   futile_tree_unref(dict);
@@ -402,6 +400,8 @@ gboolean test_dict_by_hand()
 
 int main(int argc, char **argv)
 {
+  g_type_init();
+  
   RUN(test_dict_new());
   RUN(test_dict_add());
   RUN(test_dict_set());

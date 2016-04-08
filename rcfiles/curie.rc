@@ -9,7 +9,7 @@ modules = ['bigdft',]
 # Specific configure arguments for each module
 module_autogenargs['libxc'] = "FC=mpif90 CC=gcc --enable-shared"
 
-module_autogenargs['futile'] = "FC=mpif90 FCFLAGS='-O2 -g -traceback -fPIC' CFLAGS='-O2 -g -fPIC' --with-pyyaml-path=%(prefix)s/lib/python2.7/site-packages" % globals() + " --with-ext-linalg='%s'" % os.getenv("MKL_LIBS")
+module_autogenargs['futile'] = "FC=mpif90 FCFLAGS='-O2 -g -traceback -fPIC' CFLAGS='-O2 -g -fPIC' --enable-dynamic-libraries --with-pyyaml-path=%(prefix)s/lib/python2.7/site-packages" % globals() + " --with-ext-linalg='%s'" % os.getenv("MKL_LIBS")
 module_autogenargs['psolver'] = "FC=mpif90 FCFLAGS='-O2 -g -traceback' --with-pyyaml-path=%(prefix)s/lib/python2.7/site-packages" % globals() + " --with-ext-linalg='%s'" % os.getenv("MKL_LIBS")
 module_autogenargs['bigdft'] = "FC=mpif90 FCFLAGS='-O2 -g -traceback' --with-pyyaml-path=%(prefix)s/lib/python2.7/site-packages" % globals() + " --with-ext-linalg='%s'" % os.getenv("MKL_LIBS")
 

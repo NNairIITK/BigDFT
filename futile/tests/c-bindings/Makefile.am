@@ -11,7 +11,7 @@ flib_libraries = -lfutile-1
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
 else
 flib_libraries = $(top_builddir)/src/libfutile-1.a
-LIBS += @LIB_YAML_LIBS@
+LIBS += @LIB_YAML_LIBS@ @GLIB_LIBS@ @PYTHON_LIBS@
 endif
 
 dict_SOURCES = dict.c
