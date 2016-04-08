@@ -164,7 +164,7 @@ gboolean futile_tree_iter_at_key(const FutileTreeIter *at, const gchar *key,
   FC_FUNC_(bind_dict_move_to_key, BIND_DICT_MOVE_TO_KEY)(&iter.pointer, &exists, key, strlen(key));
   if (leaf)
     *leaf = iter;
-  return (gboolean)exists;
+  return (exists) ? TRUE : FALSE;
 }
 /**
  * futile_tree_move_to_item:
@@ -186,7 +186,7 @@ gboolean futile_tree_iter_at_item(const FutileTreeIter *at, guint id,
   FC_FUNC_(bind_dict_move_to_item, BIND_DICT_MOVE_TO_ITEM)(&iter.pointer, &exists, (int*)&id);
   if (leaf)
     *leaf = iter;
-  return (gboolean)exists;
+  return (exists) ? TRUE : FALSE;
 }
 gboolean futile_tree_iter_first(const FutileTreeIter *at, FutileTreeIter *first)
 {
@@ -197,7 +197,7 @@ gboolean futile_tree_iter_first(const FutileTreeIter *at, FutileTreeIter *first)
   FC_FUNC_(bind_dict_iter, BIND_DICT_ITER)(&iter.pointer, &exists);
   if (first)
     *first = iter;
-  return (gboolean)exists;
+  return (exists) ? TRUE : FALSE;
 }
 /**
  * futile_tree_next:
@@ -213,7 +213,7 @@ gboolean futile_tree_iter_next(FutileTreeIter *iter)
   int exists;
 
   FC_FUNC_(bind_dict_next, BIND_DICT_NEXT)(&iter->pointer, &exists);
-  return (gboolean)exists;
+  return (exists) ? TRUE : FALSE;
 }
 /**
  * futile_tree_insert:
@@ -329,7 +329,7 @@ gboolean futile_tree_iter_pop(FutileTreeIter *iter, const gchar *key)
   FC_FUNC_(bind_dict_pop, BIND_DICT_POP)(&iter->pointer, &exists, key, strlen(key));
   if (reset)
     iter->tree->root = iter->pointer;
-  return (gboolean)exists;
+  return (exists) ? TRUE : FALSE;
 }
 /**
  * futile_tree_value:
