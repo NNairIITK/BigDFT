@@ -661,6 +661,11 @@ module foe_common
     
       call f_routine(id='check_eigenvalue_spectrum_new')
 
+      if (.not.smat_l%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
+
       if (present(verbosity)) then
           verbosity_ = verbosity
       else
@@ -838,6 +843,11 @@ module foe_common
       call f_routine(id='scale_and_shift_matrix')
       !call timing(iproc,'foe_aux_mcpy  ','ON')
       call f_timing(TCAT_CME_AUXILIARY,'ON')
+
+      if (.not.smatl%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
     
       call f_zero(matscal_compr)
     
@@ -922,6 +932,11 @@ module foe_common
         real(kind=mp),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
     
         call f_routine(id='retransform_ext')
+
+        if (.not.smat%smatmul_initialized) then
+            call f_err_throw('sparse matrix multiplication not initialized', &
+                 err_name='SPARSEMATRIX_RUNTIME_ERROR')
+        end if
     
         inv_ovrlpp_new = f_malloc_ptr(smat%smmm%nvctrp, id='inv_ovrlpp_new')
         tempp_new = f_malloc_ptr(smat%smmm%nvctrp, id='tempp_new')
@@ -1303,6 +1318,11 @@ module foe_common
     
       !call timing(iproc, 'FOE_auxiliary ', 'ON')
       call f_timing(TCAT_CME_AUXILIARY,'ON')
+
+      if (.not.smatl%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
 
       ! Check the arguments
       select case (itype)
@@ -1715,6 +1735,10 @@ module foe_common
     
       call f_routine(id='find_fermi_level')
 
+      if (.not.smatl%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
     
       !if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='~')
     
@@ -2013,6 +2037,11 @@ module foe_common
       integer :: i, ii, iline, icolumn
 
       call f_routine(id='calculate_trace_distributed_new')
+
+      if (.not.smatl%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
 
       trace = 0.d0
       !$omp parallel default(none) &

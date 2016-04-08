@@ -65,7 +65,9 @@ module bigdft_matrices
           if (extra_timing) time1=real(tr0-tr1,kind=8)        
 
           ! Now check the matrix matrix multiplications layout
-          call check_matmul_layout(smat%smmm%nseq,smat%smmm%indices_extract_sequential,ind_min,ind_max)
+          if (smat%smatmul_initialized) then
+              call check_matmul_layout(smat%smmm%nseq,smat%smmm%indices_extract_sequential,ind_min,ind_max)
+          end if
           !write(*,'(a,2i8)') 'after check_matmul_layout: ind_min, ind_max', ind_min, ind_max
           if (extra_timing) call cpu_time(tr1)
           if (extra_timing) time2=real(tr1-tr0,kind=8)    

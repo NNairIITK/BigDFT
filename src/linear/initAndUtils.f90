@@ -763,7 +763,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   use module_base
   use module_types
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
-  use sparsematrix_base, only: deallocate_sparse_matrix, allocate_matrices, deallocate_matrices, &
+  use sparsematrix_base, only: deallocate_sparse_matrix, deallocate_matrices, &
                                deallocate_sparse_matrix_metadata
   use foe_base, only: foe_data_deallocate
   implicit none
@@ -1152,7 +1152,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use yaml_output
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
-  use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
+  use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices, &
+                               SPARSE_TASKGROUP, assignment(=), sparsematrix_malloc_ptr
   use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
   use sparsematrix_init, only: init_matrix_taskgroups
   use bigdft_matrices, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed
@@ -1326,15 +1327,19 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
 
      ! Update sparse matrices
+     ! Do not initialize the matrix multiplication to save memory. The multiplications
+     ! are always done with the tmb%linmat%l type.
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%ham_descr%lzd, at%astruct, &
-          input%store_index, imode=1, smat=tmb%linmat%m)
+          input%store_index, init_matmul=.false., imode=1, smat=tmb%linmat%m)
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
 
+     ! Do not initialize the matrix multiplication to save memory. The multiplications
+     ! are always done with the tmb%linmat%l type.
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
-          input%store_index, imode=1, smat=tmb%linmat%s)
+          input%store_index, init_matmul=.false., imode=1, smat=tmb%linmat%s)
      !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
@@ -1342,7 +1347,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
-          input%store_index, imode=2, smat=tmb%linmat%l, smat_ref=tmb%linmat%m)
+          input%store_index, init_matmul=.true., imode=2, smat=tmb%linmat%l, smat_ref=tmb%linmat%m)
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
@@ -1393,15 +1398,24 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           ind_min_l, ind_mas_l, ind_trans_min_l, ind_trans_max_l, &
           iirow, iicol)
 
-     call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
-          matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
-     call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
-          matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
-     call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
-          matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
+     !call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
+     !     matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
+     tmb%linmat%ham_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, &
+                  iaction=SPARSE_TASKGROUP,id='tmb%linmat%ham_%matrix_compr')
+     !call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
+     !     matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
+     tmb%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, &
+          iaction=SPARSE_TASKGROUP,id='tmb%linmat%ovrlp_%matrix_compr')
+     !call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
+     !     matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
+     tmb%linmat%kernel_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
+                    iaction=SPARSE_TASKGROUP,id='tmb%linmat%kernel_%matrix_compr')
      do i=1,size(tmb%linmat%ovrlppowers_)
-         call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
-              matname='tmb%linmat%ovrlppowers_(i)', mat=tmb%linmat%ovrlppowers_(i))
+         !call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
+         !     matname='tmb%linmat%ovrlppowers_(i)', mat=tmb%linmat%ovrlppowers_(i))
+         tmb%linmat%ovrlppowers_(i)%matrix_compr = &
+              sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='tmb%linmat%ovrlppowers_(i)%matrix_comp')
+
      end do
 
 

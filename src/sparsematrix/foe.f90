@@ -1090,6 +1090,10 @@ module foe
     
       call f_routine(id='fermi_operator_expansion_new')
     
+      if (.not.smatl%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
     
       if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='~')
     

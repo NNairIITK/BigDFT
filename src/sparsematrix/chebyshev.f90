@@ -56,6 +56,12 @@ module chebyshev
       call f_timing(TCAT_CME_POLYNOMIALS,'ON')
       call f_routine(id='chebyshev_clean')
 
+      if (.not.kernel%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
+
+
       !!do j=1,npl
       !!    write(*,*) 'in cheby: j, cc(j,2,1), cc(j,3,1)', j, cc(j,2,1), cc(j,3,1)
       !!end do
@@ -233,6 +239,11 @@ module chebyshev
 
       call f_routine(id='prepare_matrix')
 
+      if (.not.smat%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
+
       !$omp parallel &
       !$omp default(none) &
       !$omp shared(smat, matrix, invovrlp_compr) &
@@ -271,6 +282,11 @@ module chebyshev
       integer :: i, jorb, iorb, ii, iline, icolumn
 
       call f_routine(id='axbyz_kernel_vectors_new')
+
+      if (.not.smat%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
     
       !$omp parallel default(shared) private(i)
       !$omp do schedule(static)
@@ -345,6 +361,11 @@ module chebyshev
       real(kind=mp),dimension(:,:),allocatable :: vector
     
       call f_routine(id='compress_polynomial_vector_new')
+
+      if (.not.fermi%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
     
       call transform_sparsity_pattern(iproc, fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
            fermi%nseg, fermi%keyv, fermi%keyg, fermi%smmm%line_and_column_mm, &

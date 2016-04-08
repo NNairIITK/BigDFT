@@ -2181,7 +2181,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
-       allocate_matrices, deallocate_matrices
+       deallocate_matrices
   use yaml_output, only: yaml_newline, yaml_map
   use matrix_operations, only: overlapPowerGeneral, overlap_minus_one_half_serial, deviation_from_unity_parallel
   use orthonormalization, only: gramschmidt_coeff_trans

@@ -260,7 +260,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
      !end if
 
      weight_matrix_ = matrices_null()
-     call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
+     !call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
+     weight_matrix_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, &
+         iaction=SPARSE_TASKGROUP,id='weight_matrix_%matrix_compr')
+
      weight_matrix_%matrix_compr=cdft%weight_matrix_%matrix_compr
 
      !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
@@ -898,6 +901,7 @@ tmb%can_use_transposed=.false.
 
   call deallocate_matrices(tmb%linmat%ovrlp_)
   tmb%linmat%ovrlp_ = matrices_null()
+  ! allocate_matrices takes much memory for large systems...
   call allocate_matrices(tmb%linmat%s, allocate_full=.false., matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, &
        tmb%linmat%s, tmb%linmat%ovrlp_)
@@ -1437,7 +1441,9 @@ end if
               if (input%lin%constrained_dft) then
                  !Allocate weight matrix which is used in the CDFT loop
                  weight_matrix_ = matrices_null()
-                 call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
+                 !call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
+                 weight_matrix_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, &
+                     iaction=SPARSE_FULL,id='weight_matrix_%matrix_compr')
                  weight_matrix_%matrix_compr=cdft%weight_matrix_%matrix_compr
                  call extract_taskgroup_inplace(tmb%linmat%m, weight_matrix_)
                  !PB: This resets the DIIS history, effectively breaking DIIS.
@@ -1472,7 +1478,8 @@ end if
                        exit
                     end if
                  end do cdft_loop
-                 call gather_matrix_from_taskgroups_inplace(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%m, weight_matrix_)
+                 !SM: Why gather and then deallocate? So I commented it....
+                 !call gather_matrix_from_taskgroups_inplace(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%m, weight_matrix_)
                  call deallocate_matrices(weight_matrix_)
                  call DIIS_free(vdiis)
               else
@@ -1488,7 +1495,9 @@ end if
               if (input%lin%constrained_dft) then
                  !Allocate weight matrix which is used in the CDFT loop
                  weight_matrix_ = matrices_null()
-                 call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
+                 !call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
+                 weight_matrix_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, &
+                     iaction=SPARSE_FULL,id='weight_matrix_%matrix_compr')
                  weight_matrix_%matrix_compr=cdft%weight_matrix_%matrix_compr
                  call extract_taskgroup_inplace(tmb%linmat%m, weight_matrix_)
                  !PB: This resets the DIIS history, effectively breaking DIIS.
@@ -1523,7 +1532,8 @@ end if
                        exit
                     end if
                  end do cdft_loop1
-                 call gather_matrix_from_taskgroups_inplace(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%m, weight_matrix_)
+                 !SM: Why gather and then deallocate? So I commented it....
+                 !call gather_matrix_from_taskgroups_inplace(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%m, weight_matrix_)
                  call deallocate_matrices(weight_matrix_)
                  call DIIS_free(vdiis)
               else

@@ -121,9 +121,9 @@ module orthonormalization
 
     
       inv_ovrlp_half_(1) = matrices_null()
-      call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_(1))
-      !inv_ovrlp_half_(1)%matrix_compr = sparsematrix_malloc_ptr(inv_ovrlp_half, &
-      !                                  iaction=SPARSE_TASKGROUP, id='inv_ovrlp_half_(1)%matrix_compr')
+      !call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_(1))
+      inv_ovrlp_half_(1)%matrix_compr = sparsematrix_malloc_ptr(inv_ovrlp_half, &
+          iaction=SPARSE_TASKGROUP, id='inv_ovrlp_half_(1)%matrix_compr')
     
     
     
@@ -137,7 +137,9 @@ module orthonormalization
       end if
     
       ovrlp_ = matrices_null()
-      call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+      !call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+      ovrlp_%matrix_compr = sparsematrix_malloc_ptr(ovrlp, &
+          iaction=SPARSE_TASKGROUP, id='ovrlp_%matrix_compr')
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
       !!ii=0
       !!do ispin=1,ovrlp%nspin
@@ -314,7 +316,8 @@ module orthonormalization
       use communications_base, only: TRANSPOSE_FULL
       use communications, only: transpose_localized, untranspose_localized
       use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices, &
-                                   sparsematrix_malloc, assignment(=), SPARSE_FULL
+                                   sparsematrix_malloc, assignment(=), SPARSE_FULL, SPARSE_TASKGROUP, &
+                                   sparsematrix_malloc_ptr
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
       use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed, &
@@ -373,7 +376,9 @@ module orthonormalization
       !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
     
       inv_ovrlp_half_(1) = matrices_null()
-      call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_(1))
+      !call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_(1))
+      inv_ovrlp_half_(1)%matrix_compr = sparsematrix_malloc_ptr(inv_ovrlp_half, &
+          iaction=SPARSE_TASKGROUP, id='inv_ovrlp_half_(1)%matrix_compr')
     
     
       if(.not.can_use_transposed) then
@@ -393,7 +398,9 @@ module orthonormalization
       end if
     
       ovrlp_ = matrices_null()
-      call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+      !call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+      ovrlp_%matrix_compr = sparsematrix_malloc_ptr(ovrlp, &
+          iaction=SPARSE_TASKGROUP, id='ovrlp%matrix_compr')
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
       ! This can then be deleted if the transition to the new type has been completed.
@@ -602,9 +609,9 @@ module orthonormalization
     
     
     
-      inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
-      inv_lagmatp = sparsematrix_malloc(linmat%l, iaction=DENSE_MATMUL, id='inv_lagmatp')
-      lagmatp = sparsematrix_malloc(linmat%l, iaction=DENSE_MATMUL, id='lagmatp')
+      !inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
+      !inv_lagmatp = sparsematrix_malloc(linmat%l, iaction=DENSE_MATMUL, id='inv_lagmatp')
+      !lagmatp = sparsematrix_malloc(linmat%l, iaction=DENSE_MATMUL, id='lagmatp')
       !!inv_ovrlp_(1) = matrices_null()
       !!inv_ovrlp_(1)%matrix_compr = sparsematrix_malloc_ptr(linmat%l,iaction=SPARSE_FULL,id='inv_ovrlp_(1)%matrix_compr')
     
@@ -668,9 +675,9 @@ module orthonormalization
                lmat_in=lagmat_large, smat_out=lagmat_%matrix_compr)
       end if
       call f_free(lagmat_large)
-      call f_free(inv_ovrlp_seq)
-      call f_free(lagmatp)
-      call f_free(inv_lagmatp)
+      !call f_free(inv_ovrlp_seq)
+      !call f_free(lagmatp)
+      !call f_free(inv_lagmatp)
     
       !!tmparr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='tmparr')
       !!call vcopy(lagmat%nvctr, lagmat_%matrix_compr(1), 1, tmparr(1), 1)
@@ -1009,7 +1016,8 @@ module orthonormalization
       !use module_interfaces, exceptThisOne => gramschmidt_subset
       use communications_base, only: TRANSPOSE_FULL
       use communications, only: transpose_localized, untranspose_localized
-      use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
+      use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices, &
+                                   SPARSE_TASKGROUP, assignment(=), sparsematrix_malloc_ptr
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: gather_matrix_from_taskgroups_inplace
       use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
@@ -1082,7 +1090,9 @@ module orthonormalization
     
     
       ovrlp_ = matrices_null()
-      call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+      !call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+      ovrlp_%matrix_compr = sparsematrix_malloc_ptr(ovrlp, &
+          iaction=SPARSE_TASKGROUP, id='ovrlp%matrix_compr')
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
       ! This can then be deleted if the transition to the new type has been completed.
