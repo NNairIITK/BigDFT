@@ -1013,7 +1013,7 @@ module foe
                smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
-                              trace_sparse, max_asymmetry_of_matrix
+                              trace_sparse!, max_asymmetry_of_matrix
       use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                           foe_data_get_logical
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -1280,9 +1280,9 @@ module foe
                   !!end if
                   call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
                        2, 'test', smatl, ispin, foe_obj, kernel_)
-                  call max_asymmetry_of_matrix(iproc, nproc, comm, &
-                       smatl, kernel_%matrix_compr, tt)
-                  if (iproc==0) call yaml_map('after find_fermi_level, max assymetry of K',tt)
+                  !!!call max_asymmetry_of_matrix(iproc, nproc, comm, &
+                  !!!     smatl, kernel_%matrix_compr, tt)
+                  !!!if (iproc==0) call yaml_map('after find_fermi_level, max assymetry of K',tt)
 
                   !!if (iproc==0) then
                   !!    call yaml_sequence_close()

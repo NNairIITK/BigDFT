@@ -1240,7 +1240,7 @@ module foe_common
                hamscal_compr, scale_factor, shift_value, smats, ovrlp_, ovrlp_minus_one_half)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
-                              trace_sparse, max_asymmetry_of_matrix
+                              trace_sparse!, max_asymmetry_of_matrix
       use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                           foe_data_get_logical
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -1561,12 +1561,12 @@ module foe_common
                           ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                           !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
                           if (with_overlap) then
-                              call max_asymmetry_of_matrix(iproc, nproc, comm, &
-                                   smatl, hamscal_compr, tt)
-                              if (iproc==0) call yaml_map('max assymetry of Hscal',tt)
-                              call max_asymmetry_of_matrix(iproc, nproc, comm, &
-                                   smatl, ovrlp_minus_one_half, tt)
-                              if (iproc==0) call yaml_map('max assymetry of inv',tt)
+                              !!call max_asymmetry_of_matrix(iproc, nproc, comm, &
+                              !!     smatl, hamscal_compr, tt)
+                              !!if (iproc==0) call yaml_map('max assymetry of Hscal',tt)
+                              !!call max_asymmetry_of_matrix(iproc, nproc, comm, &
+                              !!     smatl, ovrlp_minus_one_half, tt)
+                              !!if (iproc==0) call yaml_map('max assymetry of inv',tt)
                               call chebyshev_clean(iproc, nproc, npl, cc, &
                                    smatl, hamscal_compr, &
                                    .true., &

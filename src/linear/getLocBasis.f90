@@ -86,6 +86,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr
   real(kind=8) :: max_deviation, mean_deviation, KSres, max_deviation_p,  mean_deviation_p, maxdiff, tt
+  real(kind=8) :: asymm_S, asymm_H, asymm_K
   integer,dimension(:),allocatable :: row_ind, col_ptr, n3p
 
   call f_routine(id='get_coeff')
@@ -270,6 +271,11 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call delete_coupling_terms(iproc, nproc, bigdft_mpi%mpi_comm, &
            tmb%linmat%smmd, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr)
   end if
+  ! Calculate the asymmetry of S and H
+  call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+       tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, asymm_S)
+  call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+       tmb%linmat%m, tmb%linmat%ham_%matrix_compr, asymm_H)
 
   if (scf_mode/=LINEAR_FOE .and. scf_mode/=LINEAR_PEXSI) then
       tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
@@ -576,19 +582,19 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           !     invert_overlap_matrix, 2, &
           !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
           !     tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, tmb%foe_obj)
-          call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%linmat%m, tmb%linmat%ham_%matrix_compr, tt)
-          if (iproc==0) call yaml_map('max assymetry of H',tt)
-          call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, tt)
-          if (iproc==0) call yaml_map('max assymetry of S',tt)
+          !!call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+          !!     tmb%linmat%m, tmb%linmat%ham_%matrix_compr, tt)
+          !!if (iproc==0) call yaml_map('max assymetry of H',tt)
+          !!call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+          !!     tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, tt)
+          !!if (iproc==0) call yaml_map('max assymetry of S',tt)
           call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
                tmb%foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, &
                energs%ebs, invert_overlap_matrix, 2)
-          call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tt)
-          if (iproc==0) call yaml_map('max assymetry of K',tt)
+          !!call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+          !!     tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tt)
+          !!if (iproc==0) call yaml_map('max assymetry of K',tt)
 
           !!call fermi_operator_expansion(iproc, nproc, &
           !!     energs%ebs, order_taylor, max_inversion_error, &
@@ -628,6 +634,16 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   end if
 
+  call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+       tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, asymm_K)
+
+  if (iproc==0) then
+      call yaml_mapping_open('Asymmetry of the matrices')
+      call yaml_map('Overlap',asymm_S,fmt='(es8.2)')
+      call yaml_map('Hamiltonian',asymm_H,fmt='(es8.2)')
+      call yaml_map('Kernel',asymm_K,fmt='(es8.2)')
+      call yaml_mapping_close()
+  end if
 
   if (calculate_ham) then
       if (calculate_KS_residue) then
