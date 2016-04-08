@@ -96,6 +96,8 @@ void FC_FUNC_(f_python_execute, F_PYTHON_EXECUTE)(const char *script, int *ierr,
 
 #ifdef HAVE_PYTHON
   *ierr = PyRun_SimpleString(data);
+#else
+  *ierr = 1;
 #endif
 
   free(data);
@@ -126,6 +128,8 @@ void FC_FUNC_(f_python_execute_dict, F_PYTHON_EXECUTE_DICT)(f90_dictionary_point
   buf[i] = '\0';
 #ifdef HAVE_PYTHON
   *ierr = PyRun_SimpleString(buf);
+#else
+  *ierr = 1;
 #endif
   g_free(buf);
 }
