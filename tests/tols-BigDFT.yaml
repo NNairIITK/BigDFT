@@ -2500,7 +2500,7 @@ matrixtaskgroups_no:
   energy: 3.0e-09
   trace: 1.50e-06
   trace(KS): 5.1e-11
-  HOMO-LUMO gap (eV): 3.4e-11
+  HOMO-LUMO gap (eV): 4.0e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.6e-9
   Force Norm (Hartree/Bohr): 8.9e-11
@@ -2530,7 +2530,7 @@ matrixtaskgroups_yes:
   energy: 3.0e-09
   trace: 1.51e-06
   trace(KS): 3.8e-11
-  HOMO-LUMO gap (eV): 3.4e-11
+  HOMO-LUMO gap (eV): 4.0e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.9e-9
   Force Norm (Hartree/Bohr): 9.6e-11
