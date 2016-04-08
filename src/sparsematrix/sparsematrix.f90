@@ -36,6 +36,7 @@ module sparsematrix
   public :: trace_sparse
   public :: delete_coupling_terms
   public :: synchronize_matrix_taskgroups
+  public :: max_asymmetry_of_matrix
 
 
   interface compress_matrix_distributed_wrapper
@@ -2073,6 +2074,52 @@ module sparsematrix
           call f_release_routine()
       end if
     end subroutine synchronize_matrix_taskgroups
+
+
+
+    subroutine max_asymmetry_of_matrix(iproc, nproc, comm, sparsemat, mat_tg, error_max)
+      use sparsematrix_init, only: matrixindex_in_compressed
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm
+      type(sparse_matrix),intent(in) :: sparsemat
+      real(kind=mp),dimension(sparsemat%nvctrp_tg),intent(in) :: mat_tg
+      real(kind=mp),intent(out) :: error_max
+
+      ! Local variables
+      real(kind=mp),dimension(:),allocatable :: mat_full
+      integer :: ispin, ishift, iseg, ii, i, ind, ind_trans
+      real(kind=mp) :: val, val_trans, error
+
+
+      ! Gather together the matrix from the taskgroups
+      mat_full = sparsematrix_malloc(sparsemat,iaction=SPARSE_FULL,id='mat_full')
+      call gather_matrix_from_taskgroups(iproc, nproc, comm, sparsemat, mat_tg, mat_full)
+
+      error_max = 0.0_mp
+      do ispin=1,sparsemat%nspin
+          ishift=(ispin-1)*sparsemat%nvctr
+          do iseg=1,sparsemat%nseg
+              ! a segment is always on one line, therefore no double loop
+              do i=sparsemat%keyg(1,1,iseg),sparsemat%keyg(2,1,iseg)
+                 ind = matrixindex_in_compressed(sparsemat, i, sparsemat%keyg(1,2,iseg))
+                 ind_trans = matrixindex_in_compressed(sparsemat, sparsemat%keyg(1,2,iseg), i)
+                 val = mat_full(ind)
+                 val_trans = mat_full(ind_trans)
+                 error = abs(val-val_trans)
+                 if (error>error_max) then
+                     error_max = error
+                 end if
+             end do
+          end do
+      end do
+      !call mpiallred(error_max, 1, mpi_max, comm=comm)
+      !if (iproc==0) call yaml_map('max asymmetry',error_max)
+
+      call f_free(mat_full)
+
+    end subroutine max_asymmetry_of_matrix
 
 
     !!!!subroutine transform_sparse_matrix_test(iproc, smat, lmat, cmode, &
