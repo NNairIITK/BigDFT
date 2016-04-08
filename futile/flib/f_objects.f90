@@ -69,17 +69,23 @@ contains
     integer(f_address), intent(out) :: callback
 
     logical :: isfunc_
+    type(dictionary), pointer :: method
+    character(len = max_field_length) :: obj_key, meth_key
 
     n_args = 0
     callback = 0
+    write(obj_key, "(A)") obj_id(1:min(max_field_length, len(obj_id)))
+    write(meth_key, "(A)") method_id(1:min(max_field_length, len(method_id)))
 
-    if (.not. (obj_id .in. class_library) .and. obj_id /= "class") return
-    if (.not. (method_id .in. class_library // obj_id // "methods")) return
+    call ensure_init()
+    if (.not. (obj_key .in. class_library) .and. trim(obj_key) /= "class") return
+    if (.not. (meth_key .in. class_library // obj_key // "methods")) return
 
-    n_args = class_library // obj_id // "methods" // method_id // "n_args"
-    callback = class_library // obj_id // "methods" // method_id // "address"
+    method => class_library // obj_key // "methods" // meth_key
+    n_args = method // "n_args"
+    callback = method // "address"
     isfunc = 0
-    isfunc_ = class_library // obj_id // "methods" // method_id // "function"
+    isfunc_ = method // "function"
     if (isfunc_) isfunc = 1
   end subroutine f_object_get_method
 
