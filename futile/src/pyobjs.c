@@ -209,7 +209,7 @@ static PyObject* f_py_arr_to_array(void *data, int ndims, int shapes[7], int typ
     }
   for (i = 0; i < ndims; i++)
     dims[i] = shapes[ndims - i - 1];
-  return PyArray_New(&PyArray_Type, ndims, dims, type_num, NULL, data, 0, NPY_CARRAY, NULL);
+  return PyArray_SimpleNewFromData(ndims, dims, type_num, data);
 }
 #endif
 
@@ -330,14 +330,16 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
       if (PyInt_Check(item) || f_py_argflags_check(item, F_PY_SCALAR_I4))
         {
           arr = malloc(sizeof(int));
-          *(int*)arr = (int)PyInt_AS_LONG(item);
+          if (PyInt_Check(item))
+            *(int*)arr = (int)PyInt_AS_LONG(item);
           futile_object_method_add_arg_full(&self->meth, arr, FUTILE_INTEGER_4,
                                             1, arr, free);
         }
       else if (PyFloat_Check(item) || f_py_argflags_check(item, F_PY_SCALAR_R8))
         {
           arr = malloc(sizeof(double));
-          *(double*)arr = PyFloat_AS_DOUBLE(item);
+          if (PyFloat_Check(item))
+            *(double*)arr = PyFloat_AS_DOUBLE(item);
           futile_object_method_add_arg_full(&self->meth, arr, FUTILE_REAL_8,
                                             1, arr, free);
         }
@@ -402,15 +404,15 @@ static PyObject* f_py_method_call(FPyMethod *self, PyObject *args, PyObject *kwd
       if (PyInt_Check(item) || f_py_argflags_check(item, F_PY_SCALAR_I4))
         {
           arr = futile_object_method_get_arg_arr(&self->meth, i);
-          if (PyInt_AS_LONG(item) != (long)*(int*)arr ||
-              f_py_argflags_check(item, F_PY_SCALAR_I4))
+          if (f_py_argflags_check(item, F_PY_SCALAR_I4) ||
+              PyInt_AS_LONG(item) != (long)*(int*)arr)
             PyTuple_SET_ITEM(ret, j++, PyInt_FromLong((long)*(int*)arr));
         }
       else if (PyFloat_Check(item) || f_py_argflags_check(item, F_PY_SCALAR_R8))
         {
           arr = futile_object_method_get_arg_arr(&self->meth, i);
-          if (PyFloat_AS_DOUBLE(item) != *(double*)arr ||
-              f_py_argflags_check(item, F_PY_SCALAR_R8))
+          if (f_py_argflags_check(item, F_PY_SCALAR_R8) ||
+              PyFloat_AS_DOUBLE(item) != *(double*)arr)
             PyTuple_SET_ITEM(ret, j++, PyFloat_FromDouble(*(double*)arr));
         }
       else if (f_py_argflags_check(item, F_PY_ARRAY))
