@@ -143,7 +143,7 @@ class AutogenModule(MakeModule, DownloadableModule):
             cmd = cmd.replace('${exec_prefix}', vars['prefix'])
 
         # To be able to rerun make outside jhbuild.
-        cmd += ' LDFLAGS="%s" C_INCLUDE_PATH="%s"' % (os.environ['LDFLAGS'], os.environ['C_INCLUDE_PATH'])
+        cmd += ' LDFLAGS="%s" C_INCLUDE_PATH="%s" PKG_CONFIG_PATH="%s"' % (os.environ['LDFLAGS'], os.environ['C_INCLUDE_PATH'], os.environ['PKG_CONFIG_PATH'])
 
         self.configure_cmd = cmd
         return cmd
