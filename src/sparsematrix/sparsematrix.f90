@@ -2264,8 +2264,8 @@ module sparsematrix
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
       character(len=*),intent(in) :: csign
-      real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: mat_in
-      real(kind=8),dimension(smat%nvctrp_tg),intent(out) :: mat_out
+      real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: mat_in
+      real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(out) :: mat_out
 
       ! Local variables
       integer :: ispin, ishift, iseg, ii, i, ii_trans
@@ -2304,7 +2304,7 @@ module sparsematrix
 
       if (minus) then
           ! There should be a scal wrapper...
-          call dscal(smat%nvctrp_tg, -1.d0, mat_out(1), 1)
+          call dscal(smat%nvctrp_tg*smat%nspin, -1.d0, mat_out(1), 1)
       end if
     
       call f_release_routine()
