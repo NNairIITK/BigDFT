@@ -1554,6 +1554,10 @@ module communications
 
        ! Determine which locregs process iproc should get.
        ncover = 0
+       !$omp parallel default(none) &
+       !$omp shared(ncover, nlr, rootarr, covered, orbs, glr, llr, iproc) &
+       !$omp private(ilr, root, jorb, jjorb, jlr, isoverlap)
+       !$omp do reduction(+: ncover)
        do ilr=1,nlr
            root=rootarr(ilr)
            covered(ilr)=.false.
@@ -1583,6 +1587,8 @@ module communications
                ncover = ncover + 1
            end if
        end do
+       !$omp end do
+       !$omp end parallel
 
        cover_id = f_malloc(ncover,id='cover_id')
        ii = 0
