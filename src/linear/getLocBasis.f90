@@ -2933,10 +2933,10 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
   !!inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
   !!                         iaction=SPARSE_FULL, id='inv_ovrlp%matrix_compr')
-  inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
-  tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
-  inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-  kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+  !!inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
+  !!tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='tempp'
+  !!inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+  !!kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='kernel_compr_seq')
 
 
 
@@ -2984,10 +2984,10 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
        tmb%linmat%ovrlppowers_(2)%matrix_compr, tmb%linmat%kernel_%matrix_compr)
 
 
-  call f_free_ptr(inv_ovrlpp)
-  call f_free_ptr(tempp)
-  call f_free(inv_ovrlp_compr_seq)
-  call f_free(kernel_compr_seq)
+  !!call f_free_ptr(inv_ovrlpp)
+  !!call f_free_ptr(tempp)
+  !!call f_free(inv_ovrlp_compr_seq)
+  !!call f_free(kernel_compr_seq)
   !!call f_free_ptr(inv_ovrlp%matrix_compr)
 
   call f_release_routine()
