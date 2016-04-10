@@ -1521,8 +1521,8 @@ module communications
        ! Local variables
        integer :: ierr, jorb, ilr, jlr, root, max_sim_comms
        !integer :: icomm, ilr_old, jtask, nalloc, nrecv
-       integer :: maxrecvdim, maxsenddim, ioffset, window, ist_dest, ist_source
-       integer :: iorb, jjorb, ncount, iiorb, size_of_int, info, jproc, ii, iilr, ncover
+       integer :: maxrecvdim, maxsenddim, ioffset, window, ist_dest, ist_source, ithread, nthread, mthread
+       integer :: iorb, jjorb, ncount, iiorb, size_of_int, info, jproc, ii, iilr, ncover, isproc, nprocp
        logical :: isoverlap
        character(len=*), parameter:: subname='communicate_locreg_descriptors_keys'
        !integer,dimension(:),allocatable :: requests
@@ -1532,8 +1532,7 @@ module communications
        integer,dimension(:,:),allocatable :: blocklengths
        integer(kind=mpi_address_kind),dimension(:,:),allocatable :: displacements
        logical,dimension(:),allocatable :: covered, mask
-       !integer(kind=mpi_address_kind),dimension(:),allocatable :: tmparr_long
-       !integer :: total_sent, total_recv
+       !$ integer :: omp_get_thread_num, omp_get_max_threads
 
        call f_routine(id=subname)
 
@@ -1541,8 +1540,8 @@ module communications
        !@ NEW VESRION #############################################
        ! should be 1D later...
        covered = f_malloc(nlr,id='covered')
-       locregs_local = f_malloc(orbs%norbp,id='locregs_local')
-       mask = f_malloc(orbs%norbp,id='mask')
+       locregs_local = f_malloc(maxval(orbs%norb_par(:,0)),id='locregs_local')
+       mask = f_malloc(maxval(orbs%norb_par(:,0)),id='mask')
        ncount_par = f_malloc0(0.to.nproc-1,id='ncount_par')
        iscount_par = f_malloc0(0.to.nproc-1,id='iscount_par')
 
@@ -1614,13 +1613,13 @@ module communications
 
        ! Copy the keys to a contiguous array, ordered by the locreg ID (which
        ! is not necessarily identical to the orbital ID order).
-       mask(:) = .true.
+       mask(1:orbs%norbp) = .true.
        ioffset=0
        !do iilr=1,nlr
            do iorb=1,orbs%norbp
                !iiorb=orbs%isorb+iorb
                !ilr=orbs%inwhichlocreg(iiorb)
-               iiorb = minloc(locregs_local, 1, mask)
+               iiorb = minloc(locregs_local(1:orbs%norbp), 1, mask(1:orbs%norbp))
                ilr=locregs_local(iiorb)
                mask(iiorb) = .false.
                !if (ilr==iilr) then
@@ -1664,21 +1663,34 @@ module communications
        nrecvcounts = f_malloc0(0.to.nproc-1,id='nrecvcounts')
        blocklengths = f_malloc0((/1.to.maxval(orbs%norb_par(:,0)),0.to.nproc-1/),id='blocklengths')
        displacements = f_malloc0((/1.to.maxval(orbs%norb_par(:,0)),0.to.nproc-1/),id='displacements')
-       !do ilr=1,nlr
+
+       nthread = 1
+       ithread = 0
+       !$ nthread = omp_get_max_threads()
+       nprocp = nproc/nthread
+       mthread = nproc-nthread*nprocp
+       !$omp parallel default(none) &
+       !$omp shared(mthread, ncover, cover_id, rootarr, ncomm, llr, blocklengths) &
+       !$omp shared(displacements, nrecvcounts, ncount_par, size_of_int) &
+       !$omp private(isproc, ilr, root, ii, ncount, ist_source) &
+       !$omp firstprivate(ithread, nprocp)
+       !$ ithread = omp_get_thread_num()
+       isproc = ithread*nprocp + min(mthread,ithread)
+       if (ithread<mthread) nprocp = nprocp + 1
        do ii=1,ncover
            ilr = cover_id(ii)
            root=rootarr(ilr)
-           !if (covered(ilr,iproc)) then
+           if (root>=isproc .and. root<isproc+nprocp) then
                ncomm(root) = ncomm(root) + 1
                ncount=6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
                ncount_par(root) = ncount_par(root) + ncount
                ist_source=get_offset(root,ilr)
-               !write(*,'(a,4i8)') 'iproc, ilr, root, ist_source', iproc, ilr, root, ist_source
                blocklengths(ncomm(root),root) = ncount
                displacements(ncomm(root),root) = int(ist_source*size_of_int,kind=mpi_address_kind)
                nrecvcounts(root) = nrecvcounts(root) + ncount
-           !end if
+           end if
        end do
+       !$omp end parallel
 
 
        iscount_par(0) = 0
@@ -1978,19 +1990,40 @@ module communications
        ! Local variables
        integer :: ilr, jorb, jjorb, jlr, ncount
 
-       get_offset=0
-       ilr_loop: do ilr=1,nlr
-           do jorb=1,orbs%norb_par(iiproc,0)
-               jjorb=orbs%isorb_par(iiproc)+jorb
-               jlr=orbs%inwhichlocreg(jjorb)
-               !if (iproc==0) write(*,*) 'ilr, jlr, go', ilr, jlr, get_offset
-               if (jlr==ilr) then
-                   if (jlr==iilr) exit ilr_loop! locreg found
-                   ncount=6*(llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
-                   get_offset=get_offset+ncount
-               end if
-           end do
-       end do ilr_loop
+
+       !! NEW #########################################
+       do iorb=1,orbs%norb_par(iiproc,0)
+           iiorb = orbs%isorb_par(iiproc) + iorb
+           ilr = orbs%inwhichlocreg(iiorb)
+           locregs_local(iorb) = ilr
+       end do
+
+       mask(1:orbs%norb_par(iiproc,0)) = .true.
+       get_offset = 0
+       do iorb=1,orbs%norb_par(iiproc,0)
+           iiorb = minloc(locregs_local(1:orbs%norb_par(iiproc,0)), 1, mask(1:orbs%norb_par(iiproc,0)))
+           ilr=locregs_local(iiorb)
+           mask(iiorb) = .false.
+           if (ilr==iilr) exit !locreg found
+           ncount=6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
+           get_offset=get_offset+ncount
+       end do
+
+       !! OLD #########################################
+       !!get_offset=0
+       !!ilr_loop: do ilr=1,nlr
+       !!    do jorb=1,orbs%norb_par(iiproc,0)
+       !!        jjorb=orbs%isorb_par(iiproc)+jorb
+       !!        jlr=orbs%inwhichlocreg(jjorb)
+       !!        !if (iproc==0) write(*,*) 'ilr, jlr, go', ilr, jlr, get_offset
+       !!        if (jlr==ilr) then
+       !!            if (jlr==iilr) exit ilr_loop! locreg found
+       !!            ncount=6*(llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
+       !!            get_offset=get_offset+ncount
+       !!        end if
+       !!    end do
+       !!end do ilr_loop
+
      end function get_offset
     
     END SUBROUTINE communicate_locreg_descriptors_keys
