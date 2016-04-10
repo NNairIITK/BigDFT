@@ -586,7 +586,7 @@ module sparsematrix_highlevel
            ebs, &
            calculate_minusonehalf_, foe_verbosity_, &
            smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj, &
-           .false.)!symmetrize_kernel_)
+           symmetrize_kernel_)
 
       call f_release_routine()
 
