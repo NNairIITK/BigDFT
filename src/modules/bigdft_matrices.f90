@@ -219,7 +219,9 @@ module bigdft_matrices
       integer,intent(inout) :: ind_min, ind_max
 
       integer :: ii, natp, jj, isat, kat, iatold, kkat, i, iat, j, ind
-      logical,dimension(:),allocatable :: neighbor
+      integer,dimension(:,:),allocatable :: orbs_atom_id
+      integer,dimension(:),allocatable :: neighbor_id
+      integer,parameter :: ntmb_max = 16 !maximal number of TMBs per atom
 
       ! Parallelization over the number of atoms
       ii = smmd%nat/nproc
@@ -230,46 +232,49 @@ module bigdft_matrices
       end if
       isat = (iproc)*ii + min(iproc,jj)
 
+      orbs_atom_id = f_malloc0((/0.to.ntmb_max,1.to.natp/),id='orbs_atom_id')
+      do i=1,smat%nfvctr
+          kkat = smmd%on_which_atom(i)
+          if (kkat>isat .and. kkat<=isat+natp) then
+              kat = kkat - isat
+              orbs_atom_id(0,kat) = orbs_atom_id(0,kat) + 1
+              orbs_atom_id(orbs_atom_id(0,kat),kat) = i
+          end if
+      end do
 
-      neighbor = f_malloc(smat%nfvctr,id='neighbor')
+      neighbor_id = f_malloc(0.to.smat%nfvctr,id='neighbor_id')
       do kat=1,natp
           ! Determine the "neighbors"
           iatold = 0
-          neighbor(:) = .false.
           kkat = kat + isat
-          do i=1,smat%nfvctr
-               iat = smmd%on_which_atom(i)
-               ! Only do the following for the first TMB per atom
-               if (iat==iatold) cycle
-               iatold = iat
-               if (iat==kkat) then
-                   do j=1,smat%nfvctr
-                       ind =  matrixindex_in_compressed(smat, j, i)
-                       if (ind/=0) then
-                          neighbor(j) = .true.
-                       end if
-                   end do
-               end if
+          neighbor_id(0) = 0
+          do ii=1,orbs_atom_id(0,kat)
+              i = orbs_atom_id(ii,kat)
+              do j=1,smat%nfvctr
+                  ind =  matrixindex_in_compressed(smat, j, i)
+                  if (ind/=0) then
+                     neighbor_id(0) = neighbor_id(0) + 1
+                     neighbor_id(neighbor_id(0)) = j
+                  end if
+              end do
           end do
 
           ! Determine the size of the matrix needed
-          do i=1,smat%nfvctr
-              if (neighbor(i)) then
-                  do j=1,smat%nfvctr
-                      if (neighbor(j)) then
-                          ind =  matrixindex_in_compressed(smat, j, i)
-                          if (ind>0) then
-                              ind_min = min(ind_min,ind)
-                              ind_max = max(ind_max,ind)
-                          end if
-                      end if
-                  end do
-              end if
+          do ii=1,neighbor_id(0)
+              i = neighbor_id(ii)
+              do jj=1,neighbor_id(0)
+                  j = neighbor_id(jj)
+                  ind =  matrixindex_in_compressed(smat, j, i)
+                  if (ind>0) then
+                      ind_min = min(ind_min,ind)
+                      ind_max = max(ind_max,ind)
+                  end if
+              end do
           end do
-
       end do
 
-      call f_free(neighbor)
+      call f_free(orbs_atom_id)
+      call f_free(neighbor_id)
 
     end subroutine check_projector_charge_analysis
 
