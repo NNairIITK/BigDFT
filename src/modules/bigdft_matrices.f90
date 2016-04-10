@@ -219,7 +219,7 @@ module bigdft_matrices
       integer,intent(inout) :: ind_min, ind_max
 
       integer :: ii, natp, jj, isat, kat, iatold, kkat, i, iat, j, ind
-      integer,dimension(:,:),allocatable :: orbs_atom_id
+      integer,dimension(:),allocatable :: orbs_atom_id
       integer,dimension(:),allocatable :: neighbor_id
       integer,parameter :: ntmb_max = 16 !maximal number of TMBs per atom
 
@@ -232,13 +232,13 @@ module bigdft_matrices
       end if
       isat = (iproc)*ii + min(iproc,jj)
 
-      orbs_atom_id = f_malloc0((/0.to.ntmb_max,1.to.natp/),id='orbs_atom_id')
+      orbs_atom_id = f_malloc0(natp,id='orbs_atom_id')
       do i=1,smat%nfvctr
           kkat = smmd%on_which_atom(i)
           if (kkat>isat .and. kkat<=isat+natp) then
               kat = kkat - isat
-              orbs_atom_id(0,kat) = orbs_atom_id(0,kat) + 1
-              orbs_atom_id(orbs_atom_id(0,kat),kat) = i
+              orbs_atom_id(kat) = i
+              !!!!exit !onyl have to search for the first TMB on each atom
           end if
       end do
 
@@ -248,8 +248,8 @@ module bigdft_matrices
           iatold = 0
           kkat = kat + isat
           neighbor_id(0) = 0
-          do ii=1,orbs_atom_id(0,kat)
-              i = orbs_atom_id(ii,kat)
+          !do ii=1,orbs_atom_id(0,kat)
+              i = orbs_atom_id(kat)
               do j=1,smat%nfvctr
                   ind =  matrixindex_in_compressed(smat, j, i)
                   if (ind/=0) then
@@ -257,7 +257,7 @@ module bigdft_matrices
                      neighbor_id(neighbor_id(0)) = j
                   end if
               end do
-          end do
+          !end do
 
           ! Determine the size of the matrix needed
           do ii=1,neighbor_id(0)
