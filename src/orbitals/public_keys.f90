@@ -52,6 +52,8 @@ module public_keys
   character(len = *), parameter :: EXTERNAL_POTENTIAL = "external_potential"
   character(len = *), parameter :: CHARGE_MULTIPOLES = "charge_multipoles"
   character(len = *), parameter :: CALCULATE_STRTEN = "calculate_strten"
+  character(len = *), parameter :: OCCUPANCY_CONTROL = "occupancy_control"
+  character(len = *), parameter :: OCCUPANCY_CONTROL_ITERMAX= "itermax_occ_ctrl"
 
   character(len = *), parameter :: PSOLVER = "psolver"
 

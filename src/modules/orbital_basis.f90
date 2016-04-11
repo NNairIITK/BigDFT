@@ -6,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-
-
 !> Datatypes for localization regions descriptors
 module orbitalbasis
   use module_defs, only: gp,wp
@@ -59,6 +57,19 @@ module orbitalbasis
 !!$     integer :: ilr !inwhichlocreg or ilr
   end type direct_descriptor
 
+
+  type, public :: orbital_basis
+!!$     integer :: nbasis !< number of basis elements
+!!$     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+     !> descripto of each support function, of size nbasis
+     type(direct_descriptor), dimension(:), pointer :: dd
+     type(transposed_descriptor) :: td
+     type(orbitals_data), pointer :: orbs !<metadata for the application of the hamiltonian
+     type(confpot_data), dimension(:), pointer :: confdatarr !< data for the confinement potential
+     real(wp), dimension(:), pointer :: phis_wvl !<coefficients in compact form for all the local sf
+  end type orbital_basis
+
+
   type, public :: ket ! support_function
      integer :: nphidim  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: ispsi !< Shift in the global array to store phi_wvl
@@ -66,7 +77,11 @@ module orbitalbasis
      !id
      integer :: iorb
      !> spin
-     integer:: nspin,nspinor
+     integer:: nspin,nspinor,ispin
+     !> complex
+     integer :: ncplx
+     !> number of components
+     integer :: n_ket
      real(gp), dimension(3) :: kpoint
      real(gp) :: kwgt,occup,spinval
      type(confpot_data) :: confdata
@@ -80,16 +95,6 @@ module orbitalbasis
      integer :: nlrp,ilr,ilr_max,ilr_min,iorbp,ikpt,ikpt_max
   end type ket
 
-  type, public :: orbital_basis
-!!$     integer :: nbasis !< number of basis elements
-!!$     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
-     !> descripto of each support function, of size nbasis
-     type(direct_descriptor), dimension(:), pointer :: dd
-     type(transposed_descriptor) :: td
-     type(orbitals_data), pointer :: orbs !<metadata for the application of the hamiltonian
-     type(confpot_data), dimension(:), pointer :: confdatarr !< data for the confinement potential
-     real(wp), dimension(:), pointer :: phis_wvl !<coefficients in compact form for all the local sf
-  end type orbital_basis
 
   public :: ob_ket_map,orbital_basis_iterator,ket_next_locreg,ket_next,local_hamiltonian_ket
   public :: orbital_basis_associate,orbital_basis_release,test_iterator,ket_next_kpt
@@ -119,6 +124,7 @@ contains
     nullify(ob%confdatarr)
     nullify(ob%phis_wvl)
   end subroutine nullify_orbital_basis
+
 
   !>this subroutine is not reinitializing each component of the
   !! iterator as some of them has to be set by the 'next' functions
@@ -395,9 +401,23 @@ contains
     ikpt=k%ob%orbs%iokpt(k%iorbp)
     if (ikpt /= k%ikpt) call f_err_throw('Internal error in update ket',err_name='BIGDFT_RUNTIME_ERROR')
     k%kpoint=k%ob%orbs%kpts(:,ikpt)
+
+    if (k%nspinor > 1) then !which means 2 or 4
+       k%ncplx=2
+       k%n_ket=k%nspinor/2
+    else
+       k%n_ket=1
+       if (all(k%kpoint == 0.0_gp)) then
+          k%ncplx=1
+       else
+          k%ncplx=2
+       end if
+    end if
+
     k%kwgt=k%ob%orbs%kwgts(ikpt)
     k%occup=k%ob%orbs%occup(k%iorb)
     k%spinval=k%ob%orbs%spinsgn(k%iorb)
+    k%ispin=merge(1,2,k%spinval==1.0_gp)
     if (associated(k%ob%confdatarr)) k%confdata=k%ob%confdatarr(k%iorbp)
     !shifts metadata
     k%ispot=k%ob%orbs%ispot(k%iorbp)
@@ -546,6 +566,7 @@ contains
 
   end subroutine increment_subspace
 
+ 
   subroutine local_hamiltonian_ket(psi,hgrids,ipotmethod,xc,pkernel,wrk_lh,psir,vsicpsir,hpsi,pot,eSIC_DCi,alphaSIC,epot,ekin)
     use module_xc, only: xc_info, xc_exctXfac
     use locreg_operations, only: workarr_locham,psir_to_vpsi, isf_to_daub_kinetic

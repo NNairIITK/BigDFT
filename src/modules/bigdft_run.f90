@@ -1366,8 +1366,7 @@ contains
     implicit none
     type(run_objects), intent(inout) :: runObj
     logical :: ok
-
-    
+    ok=.true.
     
   end function bigdft_valid_dataset
 
