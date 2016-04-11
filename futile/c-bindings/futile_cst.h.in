@@ -1,3 +1,6 @@
+#ifndef FUTILE_CST_H
+#define FUTILE_CST_H
+
 /* GLib support. */
 @GLIB_TRUE@
 #include <glib.h>
@@ -39,3 +42,5 @@ typedef struct _GObject {guint ref_count;} GObject;
 #define F_TYPE(T) (T.add)
 #define F_DEFINE_TYPE(T) typedef void f90_ ## T;                        \
  typedef struct {f90_ ## T *add; char buf[64];} f90_ ## T ## _pointer
+
+#endif
