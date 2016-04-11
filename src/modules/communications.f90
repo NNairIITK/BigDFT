@@ -1519,7 +1519,7 @@ module communications
        integer,dimension(orbs%norb),intent(in) :: onwhichmpi
     
        ! Local variables
-       integer :: ierr, jorb, ilr, jlr, root, max_sim_comms
+       integer :: ierr, jorb, ilr, jlr, root, max_sim_comms, norb_max
        !integer :: icomm, ilr_old, jtask, nalloc, nrecv
        integer :: maxrecvdim, maxsenddim, ioffset, window, ist_dest, ist_source, ithread, nthread, mthread
        integer :: iorb, jjorb, ncount, iiorb, size_of_int, info, jproc, ii, iilr, ncover, isproc, nprocp
@@ -1528,27 +1528,33 @@ module communications
        !integer,dimension(:),allocatable :: requests
        !integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
        integer,dimension(:),allocatable :: worksend, workrecv, ncomm, nrecvcounts, types, derived_types!, tmparr_int, istarr
-       integer,dimension(:),allocatable :: cover_id, locregs_local, ncount_par, iscount_par
+       integer,dimension(:),allocatable :: cover_id, ncount_par, iscount_par
+       integer,dimension(:,:),allocatable :: locregs_local
        integer,dimension(:,:),allocatable :: blocklengths
        integer(kind=mpi_address_kind),dimension(:,:),allocatable :: displacements
-       logical,dimension(:),allocatable :: covered, mask
+       logical,dimension(:),allocatable :: covered
+       logical,dimension(:,:),allocatable :: mask
        !$ integer :: omp_get_thread_num, omp_get_max_threads
 
        call f_routine(id=subname)
 
+       ithread = 0
+       !$ nthread = omp_get_max_threads()
 
        !@ NEW VESRION #############################################
        ! should be 1D later...
        covered = f_malloc(nlr,id='covered')
-       locregs_local = f_malloc(maxval(orbs%norb_par(:,0)),id='locregs_local')
-       mask = f_malloc(maxval(orbs%norb_par(:,0)),id='mask')
+       norb_max = maxval(orbs%norb_par(:,0))
+       ! In principle bad practice to allocate with nthread, but as norb_max is usually small, it should be ok.
+       locregs_local = f_malloc((/1.to.norb_max,0.to.nthread/),id='locregs_local')
+       mask = f_malloc((/1.to.norb_max,0.to.nthread/),id='mask')
        ncount_par = f_malloc0(0.to.nproc-1,id='ncount_par')
        iscount_par = f_malloc0(0.to.nproc-1,id='iscount_par')
 
        do iorb=1,orbs%norbp
            iiorb = orbs%isorb + iorb
            ilr = orbs%inwhichlocreg(iiorb)
-           locregs_local(iorb) = ilr
+           locregs_local(iorb,0:nthread) = ilr
        end do
 
        ! Determine which locregs process iproc should get.
@@ -1613,15 +1619,15 @@ module communications
 
        ! Copy the keys to a contiguous array, ordered by the locreg ID (which
        ! is not necessarily identical to the orbital ID order).
-       mask(1:orbs%norbp) = .true.
+       mask(1:orbs%norbp,0) = .true.
        ioffset=0
        !do iilr=1,nlr
            do iorb=1,orbs%norbp
                !iiorb=orbs%isorb+iorb
                !ilr=orbs%inwhichlocreg(iiorb)
-               iiorb = minloc(locregs_local(1:orbs%norbp), 1, mask(1:orbs%norbp))
-               ilr=locregs_local(iiorb)
-               mask(iiorb) = .false.
+               iiorb = minloc(locregs_local(1:orbs%norbp,0), 1, mask(1:orbs%norbp,0))
+               ilr=locregs_local(iiorb,0)
+               mask(iiorb,0) = .false.
                !if (ilr==iilr) then
                    !write(*,*) 'COPY: iproc, ilr', iproc, ilr
                    ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
@@ -1670,7 +1676,7 @@ module communications
        nprocp = nproc/nthread
        mthread = nproc-nthread*nprocp
        !$omp parallel default(none) &
-       !$omp shared(mthread, ncover, cover_id, rootarr, ncomm, llr, blocklengths) &
+       !$omp shared(mthread, ncover, cover_id, rootarr, ncomm, llr, blocklengths, nlr, norb_max, orbs, locregs_local, mask) &
        !$omp shared(displacements, nrecvcounts, ncount_par, size_of_int) &
        !$omp private(isproc, ilr, root, ii, ncount, ist_source) &
        !$omp firstprivate(ithread, nprocp)
@@ -1684,7 +1690,7 @@ module communications
                ncomm(root) = ncomm(root) + 1
                ncount=6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
                ncount_par(root) = ncount_par(root) + ncount
-               ist_source=get_offset(root,ilr)
+               ist_source=get_offset(nlr, llr, orbs, norb_max, root, ilr, locregs_local(:,ithread), mask(:,ithread))
                blocklengths(ncomm(root),root) = ncount
                displacements(ncomm(root),root) = int(ist_source*size_of_int,kind=mpi_address_kind)
                nrecvcounts(root) = nrecvcounts(root) + ncount
@@ -1982,51 +1988,75 @@ module communications
     
      end function itag
 
-     !> Get the offset of the data of locreg iilr
-     function get_offset(iiproc, iilr)
-       implicit none
-       integer,intent(in) :: iiproc, iilr
-       integer :: get_offset
-       ! Local variables
-       integer :: ilr, jorb, jjorb, jlr, ncount
-
-
-       !! NEW #########################################
-       do iorb=1,orbs%norb_par(iiproc,0)
-           iiorb = orbs%isorb_par(iiproc) + iorb
-           ilr = orbs%inwhichlocreg(iiorb)
-           locregs_local(iorb) = ilr
-       end do
-
-       mask(1:orbs%norb_par(iiproc,0)) = .true.
-       get_offset = 0
-       do iorb=1,orbs%norb_par(iiproc,0)
-           iiorb = minloc(locregs_local(1:orbs%norb_par(iiproc,0)), 1, mask(1:orbs%norb_par(iiproc,0)))
-           ilr=locregs_local(iiorb)
-           mask(iiorb) = .false.
-           if (ilr==iilr) exit !locreg found
-           ncount=6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
-           get_offset=get_offset+ncount
-       end do
-
-       !! OLD #########################################
-       !!get_offset=0
-       !!ilr_loop: do ilr=1,nlr
-       !!    do jorb=1,orbs%norb_par(iiproc,0)
-       !!        jjorb=orbs%isorb_par(iiproc)+jorb
-       !!        jlr=orbs%inwhichlocreg(jjorb)
-       !!        !if (iproc==0) write(*,*) 'ilr, jlr, go', ilr, jlr, get_offset
-       !!        if (jlr==ilr) then
-       !!            if (jlr==iilr) exit ilr_loop! locreg found
-       !!            ncount=6*(llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
-       !!            get_offset=get_offset+ncount
-       !!        end if
-       !!    end do
-       !!end do ilr_loop
-
-     end function get_offset
     
     END SUBROUTINE communicate_locreg_descriptors_keys
+
+
+    !> Get the offset of the data of locreg iilr
+    function get_offset(nlr, llr, orbs, norb_max, iiproc, iilr, locregs_local, mask)
+      use module_base
+      use module_types, only: orbitals_data, locreg_descriptors
+      implicit none
+      integer,intent(in) :: nlr, norb_max, iiproc, iilr
+      type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
+      type(orbitals_data),intent(in) :: orbs
+      integer,dimension(norb_max),intent(inout) :: locregs_local
+      logical,dimension(norb_max),intent(inout) :: mask
+      integer :: get_offset
+
+      ! Local variables
+      integer :: ilr, jorb, jjorb, jlr, ncount, iiorb, iorb
+
+      !call f_routine(id='get_offset')
+
+      !!mask = f_malloc(norb_max,id='norb_max')
+      !!locregs_local = f_malloc(norb_max,id='locregs_local')
+
+      !! NEW #########################################
+      do iorb=1,orbs%norb_par(iiproc,0)
+          iiorb = orbs%isorb_par(iiproc) + iorb
+          ilr = orbs%inwhichlocreg(iiorb)
+          locregs_local(iorb) = ilr
+      end do
+
+      !mask(1:orbs%norb_par(iiproc,0)) = .true.
+      mask(:) = .true.
+      !!write(*,*) 'iproc, orbs%norb_par(iiproc,0), locregs_local(1:orbs%norb_par(iiproc,0)), mask(1:orbs%norb_par(iiproc,0))', &
+      !!            bigdft_mpi%iproc, orbs%norb_par(iiproc,0), locregs_local(1:orbs%norb_par(iiproc,0)), &
+      !!            mask(1:orbs%norb_par(iiproc,0))
+      get_offset = 0
+      do iorb=1,orbs%norb_par(iiproc,0)
+          iiorb = minloc(locregs_local(1:orbs%norb_par(iiproc,0)), 1, mask(1:orbs%norb_par(iiproc,0)))
+          !!write(*,*) 'iproc, iiorb, locregs_local(1:orbs%norb_par(iiproc,0)), mask(1:orbs%norb_par(iiproc,0))', &
+          !!            bigdft_mpi%iproc, iiorb, locregs_local(1:orbs%norb_par(iiproc,0)), mask(1:orbs%norb_par(iiproc,0))
+          ilr=locregs_local(iiorb)
+          mask(iiorb) = .false.
+          if (ilr==iilr) exit !locreg found
+          ncount=6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
+          get_offset=get_offset+ncount
+      end do
+
+      !!call f_free(mask)
+      !!call f_free(locregs_local)
+
+      !! OLD #########################################
+      !!get_offset=0
+      !!ilr_loop: do ilr=1,nlr
+      !!    do jorb=1,orbs%norb_par(iiproc,0)
+      !!        jjorb=orbs%isorb_par(iiproc)+jorb
+      !!        jlr=orbs%inwhichlocreg(jjorb)
+      !!        !if (iproc==0) write(*,*) 'ilr, jlr, go', ilr, jlr, get_offset
+      !!        if (jlr==ilr) then
+      !!            if (jlr==iilr) exit ilr_loop! locreg found
+      !!            ncount=6*(llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
+      !!            get_offset=get_offset+ncount
+      !!        end if
+      !!    end do
+      !!end do ilr_loop
+
+      !call f_release_routine()
+
+    end function get_offset
     
     
     !> Transposition of the arrays, variable version (non homogeneous)
