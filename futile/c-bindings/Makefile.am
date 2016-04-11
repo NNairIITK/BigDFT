@@ -1,5 +1,6 @@
 noinst_LIBRARIES = libbindings.a
-include_HEADERS  = dict.h futile.h futile_cst.h
+include_HEADERS  = dict.h futile.h
+nodist_include_HEADERS  = futile_cst.h
 
 libbindings_a_SOURCES = misc.c futile.h dict.c dict.h dict-fapi.h dictf.f90 python.c
 
