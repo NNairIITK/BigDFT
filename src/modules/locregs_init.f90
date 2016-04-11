@@ -2374,7 +2374,7 @@ module locregs_init
       logical,dimension(:),allocatable :: covered
       real(kind=8),parameter :: binwidth = 6.d0 ! should probably be more or less the same as the locrads... make it variable?
       character(len=3),parameter :: old='old', new='new'
-      character(len=3),parameter :: mode = old
+      character(len=3),parameter :: mode = new !old
     
       call f_routine(id='assign_to_atoms_and_locregs')
 
