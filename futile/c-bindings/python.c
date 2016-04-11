@@ -4,6 +4,8 @@
 #include <Python.h>
 #endif
 
+#include <signal.h>
+
 #include <futile.h>
 #include <dict-fapi.h>
 
