@@ -974,7 +974,7 @@ foe:
  D: 1.1e-10
  Energy (Hartree): 1.3e-10
  norm(P): 1.1e-07
- trace: 1.4e-10
+ trace: 1.41e-10
  Maxdiff for overlap calculation: 3.2e-07
  Maxdiff for transpose (checksum): 2.4e-10
 
@@ -2538,8 +2538,8 @@ test-foeccs:
   value: 2.8e-11
 
 lj_connect.mhgps.ref.yaml:
-  (MHGPS) minmode overlap: 1.2e-10
-  Energy: 1.9e-10
+  (MHGPS) minmode overlap: 1.89e-10
+  Energy: 3.14e-10
   Keys to ignore:
   - (MHGPS) Run finished at
   

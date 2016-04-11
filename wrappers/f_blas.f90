@@ -41,7 +41,7 @@ module f_blas
     pure subroutine nullify_f_matrix(mat)
       implicit none
       type(f_matrix), intent(out) :: mat
-      mat%rc=f_ref_null()
+      call nullify_f_ref(mat%rc)
       nullify(mat%dmat)
     end subroutine nullify_f_matrix
     pure function f_matrix_null() result(mat)
