@@ -113,34 +113,14 @@ AC_CHECK_FUNCS([strndup])
 AC_LANG_POP(C)
 
 dnl Test Python availability
-AM_PATH_PYTHON([2.3.5], [ax_have_python="yes"], [ax_have_python="no"])
-if test x"$ax_have_python" = x"yes" ; then
-  AC_LANG_PUSH(C)
-  AM_CHECK_PYTHON_HEADERS(,[AC_MSG_WARN(could not find Python headers); ax_have_python="no"])
-  py_prefix=`$PYTHON -c "import sys; print sys.prefix"`
-  PYTHON_INCLUDES="-I${py_prefix}/include/python${PYTHON_VERSION}"
-  AC_SUBST([PYTHON_INCLUDES])
-  PYTHON_LIBS="-lpython$PYTHON_VERSION"
-  AC_SUBST([PYTHON_LIBS])
-  AC_DEFINE([HAVE_PYTHON], [], [if set, we can call Python.h])
-
-  CPPFLAGS_SVG=$CPPFLAGS
-  CPPFLAGS=$CPPFLAGS" $PYTHON_INCLUDES"
-  AC_CHECK_HEADERS([numpy/ndarrayobject.h], [ax_have_numpy=yes], [ax_have_numpy=no],
-    [#ifdef HAVE_PYTHON
-#include <Python.h>
-#endif
-])
-  CPPFLAGS=$CPPFLAGS_SVG
-  AC_LANG_POP(C)
-  if test x"$ax_have_numpy" = x"yes" ; then
-    AC_DEFINE([HAVE_PYTHON_NUMPY], [], [if set, we can call numpy/ndarrayobject.h])
-  fi
-fi
-AM_CONDITIONAL([HAVE_PYTHON], [test x"$ax_have_python" = x"yes"])
+AX_PYTHON_DEV()
 
 dnl Test Glib availability
-PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 >= 2.22, [ax_have_glib=yes], [ax_have_glib=no])
+AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject], [Compile with GLib (enabled by default).]),
+              ax_have_glib=$withval, ax_have_glib="yes")
+if test x"$ax_have_glib" = x"yes" ; then
+  PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 >= 2.22, [ax_have_glib=yes], [ax_have_glib=no])
+fi
 if test x"$ax_have_glib" = x"yes" ; then
   AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
   AC_SUBST([GLIB_TRUE], [""])
