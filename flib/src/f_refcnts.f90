@@ -17,9 +17,9 @@ module f_refcnts
   type, public :: f_reference_counter
      !> Counter of references. When nullified or zero, 
      !! the associated object is ready to be destroyed
-     integer, pointer :: iref 
+     integer, pointer :: iref =>null()
      !> Information about the associated object
-     type(dictionary), pointer :: info
+     type(dictionary), pointer :: info =>null()
   end type f_reference_counter
 
   integer, save :: ERR_REFERENCE_COUNTERS
@@ -107,7 +107,7 @@ contains
        if (f_ref%iref <= 1 .and. .not. present(count) .or. f_ref%iref==0 .and. present(count)) then
           call dump_ref_cnt(f_ref)
           call f_err_throw('Illegal dereference:'//&
-               ' object is orphan, it should be freed',&
+               ' object is orphan, it should be have been freed',&
                err_id=ERR_REFERENCE_COUNTERS)
        else
           f_ref%iref=f_ref%iref-1

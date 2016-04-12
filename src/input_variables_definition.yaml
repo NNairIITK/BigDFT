@@ -430,6 +430,16 @@
      #  MASTER_KEY: output_denspot
      #  WHEN:
      #  - 22
+   occupancy_control:
+    COMMENT: Dictionary of the atomic matrices to be applied for a given iteration number
+    DESCRIPTION: |
+     The atomic species or the atoms written as Atom No are specified, followed by a dictionary
+     of the shells for which the density matrix can be controlled. The Value of the matrix can be specified either as
+     a trace or as explicit matrix elements.
+    default: None
+   itermax_occ_ctrl:
+     COMMENT: Number of iterations of occupancy control scheme. Should be between itermin and itermax
+     default: 0
 #output parameters, decide what to dump of write to file
  output:
   DESCRIPTION: Output parameters, control the information that will be printed out

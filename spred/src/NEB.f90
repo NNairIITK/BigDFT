@@ -63,7 +63,7 @@ MODULE NEB_routines
   character (len=max_field_length) :: scratch_dir, job_name, posinp1
   character (len=80) :: restart_file, velocity_file
 
-  type(mpi_environment), private :: neb_mpi
+  type(mpi_environment), private, save :: neb_mpi
 
   CONTAINS
 

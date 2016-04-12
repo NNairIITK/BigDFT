@@ -1652,6 +1652,10 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !if (opt%iter == 1) minres_gpe=denspot%pkernel%minres
            !denspot%pkernel%minres=max(min(1.e-4_gp,opt%gnrm**2) ,minres_gpe)!!opt%gnrm_cv**2)
 
+           nlpsp%apply_gamma_target=((opt%scf .hasattr. 'MIXING') .and. opt%itrp <= in%occupancy_control_itermax) .or. &
+                (.not. (opt%scf .hasattr. 'MIXING') .and. opt%iter <= in%occupancy_control_itermax)
+
+
            !Calculates the application of the Hamiltonian on the wavefunction
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%scf,alphamix,&
                 nlpsp,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr)

@@ -1641,7 +1641,7 @@ subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
      fac_arr(5)=0.05161397740925091700623738_gp
      fac_arr(6)=0.05161397740925091700623738_gp
      fac_arr(7)=0.03440931827283394467082492_gp
-  else if (l.eq.4 .and. i.eq.1 .and. m.eq.1) then
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.1) then !+1
      nterm=3
      lx(1)=3 ; ly(1)=0 ; lz(1)=0
      lx(2)=1 ; ly(2)=2 ; lz(2)=0
@@ -1649,7 +1649,7 @@ subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
      fac_arr(1)=0.3162277660168379331998894_gp
      fac_arr(2)=0.3162277660168379331998894_gp
      fac_arr(3)=-1.264911064067351732799557_gp
-  else if (l.eq.4 .and. i.eq.1 .and. m.eq.2) then
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.2) then !-1
      nterm=3
      lx(1)=2 ; ly(1)=1 ; lz(1)=0
      lx(2)=0 ; ly(2)=3 ; lz(2)=0
@@ -1657,7 +1657,7 @@ subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
      fac_arr(1)=0.3162277660168379331998894_gp
      fac_arr(2)=0.3162277660168379331998894_gp
      fac_arr(3)=-1.264911064067351732799557_gp
-  else if (l.eq.4 .and. i.eq.1 .and. m.eq.3) then
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.3) then !0
      nterm=3
      lx(1)=2 ; ly(1)=0 ; lz(1)=1
      lx(2)=0 ; ly(2)=2 ; lz(2)=1
@@ -1665,25 +1665,25 @@ subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
      fac_arr(1)=0.7745966692414833770358531_gp
      fac_arr(2)=0.7745966692414833770358531_gp
      fac_arr(3)=-0.5163977794943222513572354_gp
-  else if (l.eq.4 .and. i.eq.1 .and. m.eq.4) then
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.4) then !+3
      nterm=2
      lx(1)=3 ; ly(1)=0 ; lz(1)=0
      lx(2)=1 ; ly(2)=2 ; lz(2)=0
      fac_arr(1)=0.4082482904638630163662140_gp
      fac_arr(2)=-1.224744871391589049098642_gp
-  else if (l.eq.4 .and. i.eq.1 .and. m.eq.5) then
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.5) then !-3
      nterm=2
      lx(1)=2 ; ly(1)=1 ; lz(1)=0
      lx(2)=0 ; ly(2)=3 ; lz(2)=0
      fac_arr(1)=-1.224744871391589049098642_gp
      fac_arr(2)=0.4082482904638630163662140_gp
-  else if (l.eq.4 .and. i.eq.1 .and. m.eq.6) then
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.6) then !+2
      nterm=2
      lx(1)=2 ; ly(1)=0 ; lz(1)=1
      lx(2)=0 ; ly(2)=2 ; lz(2)=1
      fac_arr(1)=1.000000000000000000000000_gp
      fac_arr(2)=-1.000000000000000000000000_gp
-  else if (l.eq.4 .and. i.eq.1 .and. m.eq.7) then
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.7) then !-2
      nterm=1
      lx(1)=1 ; ly(1)=1 ; lz(1)=1
      fac_arr(1)=2.000000000000000000000000_gp
