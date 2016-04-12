@@ -47,7 +47,7 @@ module ice
 !!      ! Calling arguments
 !!      integer,intent(in) :: iproc, nproc, norder_polynomial, ncalc
 !!      type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
-!!      real(kind=8),dimension(ncalc),intent(in) :: ex
+!!      real(kind=mp),dimension(ncalc),intent(in) :: ex
 !!      type(matrices),intent(in) :: ovrlp_mat
 !!      type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp
 !!      integer,intent(in),optional :: verbosity
@@ -58,44 +58,44 @@ module ice
 !!      integer :: isegstart, isegend, iismall, nsize_polynomial
 !!      integer :: iismall_ovrlp, iismall_ham, npl_boundaries, i, ipl
 !!      integer,parameter :: nplx=50000
-!!      real(kind=8),dimension(:,:),pointer :: chebyshev_polynomials
-!!      real(kind=8),dimension(:,:,:),pointer :: inv_ovrlp_matrixp
-!!      real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
-!!      real(kind=8),dimension(:,:,:),pointer :: cc
-!!      real(kind=8) :: anoise, scale_factor, shift_value
-!!      real(kind=8) :: evlow_old, evhigh_old, tt
-!!      real(kind=8) :: x_max_error_fake, max_error_fake, mean_error_fake
-!!      real(kind=8) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total
+!!      real(kind=mp),dimension(:,:),pointer :: chebyshev_polynomials
+!!      real(kind=mp),dimension(:,:,:),pointer :: inv_ovrlp_matrixp
+!!      real(kind=mp),dimension(:,:,:),allocatable :: penalty_ev
+!!      real(kind=mp),dimension(:,:,:),pointer :: cc
+!!      real(kind=mp) :: anoise, scale_factor, shift_value
+!!      real(kind=mp) :: evlow_old, evhigh_old, tt
+!!      real(kind=mp) :: x_max_error_fake, max_error_fake, mean_error_fake
+!!      real(kind=mp) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total
 !!      logical :: restart, calculate_SHS
 !!      logical,dimension(2) :: emergency_stop
-!!      real(kind=8),dimension(2) :: allredarr
-!!      real(kind=8),dimension(:),allocatable :: hamscal_compr
+!!      real(kind=mp),dimension(2) :: allredarr
+!!      real(kind=mp),dimension(:),allocatable :: hamscal_compr
 !!      logical,dimension(2) :: eval_bounds_ok
 !!      integer,dimension(2) :: irowcol
 !!      integer :: irow, icol, iflag, ispin, isshift, ilshift, ilshift2
 !!      logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit, npl_auto_
 !!      integer,parameter :: NPL_MIN=5
-!!      real(kind=8),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
-!!      real(kind=8) :: degree_multiplicator
+!!      real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
+!!      real(kind=mp) :: degree_multiplicator
 !!      integer,parameter :: SPARSE=1
 !!      integer,parameter :: DENSE=2
 !!      integer,parameter :: imode=SPARSE
 !!      type(foe_data) :: foe_obj
-!!      real(kind=8),dimension(:),allocatable :: eval, work, x_max_error, max_error, mean_error
-!!      real(kind=8),dimension(:,:),allocatable :: tempmat
+!!      real(kind=mp),dimension(:),allocatable :: eval, work, x_max_error, max_error, mean_error
+!!      real(kind=mp),dimension(:,:),allocatable :: tempmat
 !!      integer :: lwork, info, j, icalc, iline, icolumn
-!!      real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_new
-!!      real(kind=8),dimension(:,:),allocatable :: penalty_ev_new
-!!      real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_small_new
+!!      real(kind=mp),dimension(:,:),allocatable :: inv_ovrlp_matrixp_new
+!!      real(kind=mp),dimension(:,:),allocatable :: penalty_ev_new
+!!      real(kind=mp),dimension(:,:),allocatable :: inv_ovrlp_matrixp_small_new
 !!      type(matrices) :: ovrlp_scaled
 !!      character(len=3),parameter :: old='old'
 !!      character(len=3),parameter :: new='new'
 !!      character(len=3) :: mode=old
 !!    
-!!      !!real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
-!!      !!real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
+!!      !!real(kind=mp),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
+!!      !!real(kind=mp),dimension(ovrlp_smat%nfvctr) :: eval
 !!      !!integer,parameter :: lwork=100000
-!!      !!real(kind=8),dimension(lwork) :: work
+!!      !!real(kind=mp),dimension(lwork) :: work
 !!      !!integer :: info
 !!    
 !!      call f_routine(id='inverse_chebyshev_expansion')
@@ -209,7 +209,7 @@ module ice
 !!    
 !!          spin_loop: do ispin=1,ovrlp_smat%nspin
 !!
-!!              degree_multiplicator = real(norder_polynomial,kind=8)/ &
+!!              degree_multiplicator = real(norder_polynomial,kind=mp)/ &
 !!                                     (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
 !!              degree_multiplicator = min(degree_multiplicator,DEGREE_MULTIPLICATOR_MAX)
 !!    
@@ -587,8 +587,8 @@ module ice
 
       ! Local variables
       integer :: iseg, ii, i, lwork, info
-      real(kind=8),dimension(:,:),allocatable :: tempmat
-      real(kind=8),dimension(:),allocatable :: eval, work
+      real(kind=mp),dimension(:,:),allocatable :: tempmat
+      real(kind=mp),dimension(:),allocatable :: eval, work
 
       call f_routine(id='get_minmax_eigenvalues')
 
@@ -643,7 +643,7 @@ module ice
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, ncalc
       type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
-      real(kind=8),dimension(ncalc),intent(in) :: ex
+      real(kind=mp),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: ovrlp_mat
       type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp
       integer,intent(in),optional :: verbosity
@@ -654,35 +654,35 @@ module ice
       integer :: isegstart, isegend, iismall, nsize_polynomial
       integer :: iismall_ovrlp, iismall_ham, npl_boundaries, i, ipl
       integer,parameter :: nplx=50000
-      real(kind=8),dimension(:,:),pointer :: chebyshev_polynomials
-      real(kind=8),dimension(:,:,:),pointer :: inv_ovrlp_matrixp
-      real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
-      real(kind=8),dimension(:,:,:),allocatable :: cc
-      real(kind=8) :: anoise, scale_factor, shift_value
-      real(kind=8) :: evlow_old, evhigh_old, tt
-      real(kind=8) :: x_max_error_fake, max_error_fake, mean_error_fake
-      real(kind=8) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total
+      real(kind=mp),dimension(:,:),pointer :: chebyshev_polynomials
+      real(kind=mp),dimension(:,:,:),pointer :: inv_ovrlp_matrixp
+      real(kind=mp),dimension(:,:,:),allocatable :: penalty_ev
+      real(kind=mp),dimension(:,:,:),allocatable :: cc
+      real(kind=mp) :: anoise, scale_factor, shift_value
+      real(kind=mp) :: evlow_old, evhigh_old, tt
+      real(kind=mp) :: x_max_error_fake, max_error_fake, mean_error_fake
+      real(kind=mp) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total
       logical :: restart, calculate_SHS
       logical,dimension(2) :: emergency_stop
-      real(kind=8),dimension(2) :: allredarr
-      real(kind=8),dimension(:),allocatable :: hamscal_compr
+      real(kind=mp),dimension(2) :: allredarr
+      real(kind=mp),dimension(:),allocatable :: hamscal_compr
       logical,dimension(2) :: eval_bounds_ok
       integer,dimension(2) :: irowcol
       integer :: irow, icol, iflag, ispin, isshift, ilshift, ilshift2, verbosity_
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit, npl_auto_
       integer,parameter :: NPL_MIN=5
-      real(kind=8),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
-      real(kind=8) :: degree_multiplicator
+      real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
+      real(kind=mp) :: degree_multiplicator
       integer,parameter :: SPARSE=1
       integer,parameter :: DENSE=2
       integer,parameter :: imode=SPARSE
       type(foe_data) :: foe_obj
-      real(kind=8),dimension(:),allocatable :: eval, work, x_max_error, max_error, mean_error
-      real(kind=8),dimension(:,:),allocatable :: tempmat
+      real(kind=mp),dimension(:),allocatable :: eval, work, x_max_error, max_error, mean_error
+      real(kind=mp),dimension(:,:),allocatable :: tempmat
       integer :: lwork, info, j, icalc, iline, icolumn
-      real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_new
-      real(kind=8),dimension(:,:),allocatable :: penalty_ev_new
-      real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_small_new
+      real(kind=mp),dimension(:,:),allocatable :: inv_ovrlp_matrixp_new
+      real(kind=mp),dimension(:,:),allocatable :: penalty_ev_new
+      real(kind=mp),dimension(:,:),allocatable :: inv_ovrlp_matrixp_small_new
       type(matrices) :: ovrlp_scaled
       character(len=3),parameter :: old='old'
       character(len=3),parameter :: new='new'

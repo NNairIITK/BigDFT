@@ -129,6 +129,7 @@ module module_input_keys
      real(kind=8) :: pexsi_mumin, pexsi_mumax, pexsi_mu !< minimal, maximal and first chemical potential for PEXSI
      real(kind=8) :: pexsi_temperature, pexsi_tol_charge !< temperature and tolerance on the number of electrons used by PEXSI
      real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
+     logical :: plot_locreg_grids
   end type linearInputParameters
 
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
@@ -2058,6 +2059,8 @@ contains
        case (SUPPORT_FUNCTION_MULTIPOLES)
           ! linear scaling: Calculate the multipole moments of the support functions
           in%support_function_multipoles = val
+       case (PLOT_LOCREG_GRIDS)
+          in%lin%plot_locreg_grids = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

@@ -819,7 +819,7 @@ module IObox
                ia=1
                b=0.0_dp
                ib=2
-               call write_cube_fields(filename(:isuffix),message,geocode,&
+               call write_cube_fields(trim(filename(:isuffix))//trim(suffix),message,geocode,&
                     ndims,ns,hgrids,&
                     1.0_dp,a,rho(1,1,1,ia),1,b,rho(1,1,1,ib),nat,rxyz_,iatype_,nzatom_,nelpsp_,ixyz0_)
                suffix='-down'
@@ -828,7 +828,7 @@ module IObox
                ia=1
                b=1.0_dp
                ib=2
-               call write_cube_fields(filename(:isuffix),message,geocode,&
+               call write_cube_fields(trim(filename(:isuffix))//trim(suffix),message,geocode,&
                     ndims,ns,hgrids,&
                     1.0_dp,a,rho(1,1,1,ia),1,b,rho(1,1,1,ib),nat,rxyz_,iatype_,nzatom_,nelpsp_,ixyz0_)
                suffix='-u-d'
@@ -837,7 +837,7 @@ module IObox
                ia=1
                b=-2.0_dp
                ib=2
-               call write_cube_fields(filename(:isuffix),message,geocode,&
+               call write_cube_fields(trim(filename(:isuffix))//trim(suffix),message,geocode,&
                     ndims,ns,hgrids,&
                     1.0_dp,a,rho(1,1,1,ia),1,b,rho(1,1,1,ib),nat,rxyz_,iatype_,nzatom_,nelpsp_,ixyz0_)
                suffix='-up'
@@ -846,7 +846,7 @@ module IObox
                ia=1
                b=-1.0_dp
                ib=2
-               call write_cube_fields(filename(:isuffix),message,geocode,&
+               call write_cube_fields(trim(filename(:isuffix))//trim(suffix),message,geocode,&
                     ndims,ns,hgrids,&
                     1.0_dp,a,rho(1,1,1,ia),1,b,rho(1,1,1,ib),nat,rxyz_,iatype_,nzatom_,nelpsp_,ixyz0_)
             else

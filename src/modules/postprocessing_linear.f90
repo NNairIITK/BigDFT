@@ -561,8 +561,8 @@ module postprocessing_linear
       integer,intent(inout) :: order_taylor
       real(kind=8),intent(out) :: energy, energyDiff
       real(kind=8), intent(inout) :: energyold
+      type(system_fragment), dimension(:), pointer :: ref_frags
       logical, intent(in) :: frag_coeffs
-      type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
     
       ! Local variables
       type(orbitals_data) :: orbs

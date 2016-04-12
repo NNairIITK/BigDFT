@@ -32,22 +32,23 @@ module parallel_linalg
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, blocksize, comm, m, n, k, lda, ldb, ldc
       character(len=1),intent(in) :: transa, transb
-      real(kind=8),intent(in) :: alpha, beta
-      real(kind=8),dimension(lda,k),intent(in) :: a
-      real(kind=8),dimension(ldb,n),intent(in) :: b
-      real(kind=8),dimension(ldc,n),intent(out) :: c
+      real(kind=mp),intent(in) :: alpha, beta
+      real(kind=mp),dimension(lda,k),intent(in) :: a
+      real(kind=mp),dimension(ldb,n),intent(in) :: b
+      real(kind=mp),dimension(ldc,n),intent(out) :: c
     
       ! Local variables
       integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
       integer :: context, irow, icol, numroc, info
       integer :: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
-      real(kind=8) :: tt1, tt2
-      real(kind=8),dimension(:,:),allocatable :: la, lb, lc
+      real(kind=mp) :: tt1, tt2
+      real(kind=mp),dimension(:,:),allocatable :: la, lb, lc
       integer,dimension(9) :: desc_lc, desc_la, desc_lb
       character(len=*),parameter :: subname='dgemm_parallel'
 
       call f_routine(id='dgemm_parallel')
-      call timing(iproc, 'dgemm_parallel', 'ON')
+      !call timing(iproc, 'dgemm_parallel', 'ON')
+      call f_timing(TCAT_HL_DGEMM,'ON')
 
       blocksize_if: if (blocksize<0) then
           call dgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
@@ -160,7 +161,8 @@ module parallel_linalg
           !call blacs_exit(0)
       end if blocksize_if
 
-      call timing(iproc, 'dgemm_parallel', 'OF')
+      !call timing(iproc, 'dgemm_parallel', 'OF')
+      call f_timing(TCAT_HL_DGEMM,'OF')
       call f_release_routine()
     
     end subroutine dgemm_parallel
@@ -175,21 +177,22 @@ module parallel_linalg
       integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda
       integer,intent(out) :: info
       character(len=1),intent(in) :: jobz, uplo
-      real(kind=8),dimension(lda,n),intent(inout) :: a
-      real(kind=8),dimension(n),intent(out) :: w
+      real(kind=mp),dimension(lda,n),intent(inout) :: a
+      real(kind=mp),dimension(n),intent(out) :: w
       
       ! Local variables
       integer :: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
       integer :: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, neval_found, neval_computed
-      real(kind=8) :: tt1, tt2
-      real(kind=8),dimension(:,:),allocatable :: la, lz
-      real(kind=8),dimension(:),allocatable :: work, gap
+      real(kind=mp) :: tt1, tt2
+      real(kind=mp),dimension(:,:),allocatable :: la, lz
+      real(kind=mp),dimension(:),allocatable :: work, gap
       integer,dimension(9) :: desc_lz, desc_la
       integer,dimension(:),allocatable :: iwork, ifail, icluster
       character(len=*),parameter :: subname='dsyev_parallel'
 
       call f_routine(id='dsyev_parallel')
-      call timing(iproc, 'dsyev_parallel', 'ON')
+      !call timing(iproc, 'dsyev_parallel', 'ON')
+      call f_timing(TCAT_SMAT_HL_DSYEV,'ON')
       
       blocksize_if: if (blocksize<0) then
           lwork = 100*n
@@ -330,7 +333,8 @@ module parallel_linalg
           !call blacs_exit(0)
       end if blocksize_if
 
-      call timing(iproc, 'dsyev_parallel', 'OF')
+      !call timing(iproc, 'dsyev_parallel', 'OF')
+      call f_timing(TCAT_SMAT_HL_DSYEV,'OF')
       call f_release_routine()
     
     end subroutine dsyev_parallel
@@ -346,23 +350,24 @@ module parallel_linalg
       integer,intent(in) :: iproc, nproc, comm, blocksize, nprocMax, itype, n, lda, ldb
       integer,intent(out) :: info
       character(len=1),intent(in) :: jobz, uplo
-      real(kind=8),dimension(lda,n),intent(inout) :: a
-      real(kind=8),dimension(ldb,n),intent(inout) :: b
-      real(kind=8),dimension(n),intent(out) :: w
+      real(kind=mp),dimension(lda,n),intent(inout) :: a
+      real(kind=mp),dimension(ldb,n),intent(inout) :: b
+      real(kind=mp),dimension(n),intent(out) :: w
       
       ! Local variables
       integer :: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
       integer :: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, nw_found, nw_computed
-      real(kind=8) :: tt1, tt2
-      real(kind=8),dimension(:,:),allocatable :: la, lb, lz
-      real(kind=8),dimension(:),allocatable :: work, gap
+      real(kind=mp) :: tt1, tt2
+      real(kind=mp),dimension(:,:),allocatable :: la, lb, lz
+      real(kind=mp),dimension(:),allocatable :: work, gap
       integer,dimension(9) :: desc_lz, desc_la, desc_lb
       integer,dimension(:),allocatable :: iwork, ifail, icluster
       character(len=*),parameter :: subname='dsygv_parallel'
 
       call f_routine(id='dsygv_parallel')
       
-      call timing(iproc,'dsygv_parallel','ON') 
+      !call timing(iproc,'dsygv_parallel','ON') 
+      call f_timing(TCAT_SMAT_HL_DSYGV,'ON')
       
       ! Block size for scalapack
       mbrow=blocksize
@@ -501,7 +506,8 @@ module parallel_linalg
     
      !call blacs_exit(0)
     
-      call timing(iproc,'dsygv_parallel','OF') 
+      !call timing(iproc,'dsygv_parallel','OF') 
+      call f_timing(TCAT_SMAT_HL_DSYGV,'OF')
 
       call f_release_routine()
     
@@ -529,7 +535,8 @@ module parallel_linalg
       character(len=*),parameter:: subname='dgsev_parallel'
       
       call f_routine(id='dgesv_parallel') 
-      call timing(iproc, 'dgesv_parallel', 'ON')
+      !call timing(iproc, 'dgesv_parallel', 'ON')
+      call f_timing(TCAT_SMAT_HL_DGESV,'ON')
       
       ! Block size for scalapack
       mbrow=blocksize
@@ -610,7 +617,7 @@ module parallel_linalg
       
           ! Gather together the result
           !call to_zero(ldb*nrhs, b(1,1))
-          call vscal(ldb*nrhs,0.0_wp, b(1,1),1)
+          call vscal(ldb*nrhs,0.0_mp, b(1,1),1)
           do i=1,nrhs
               do j=1,n
                   call pdelset2(b(j,i), lb(1,1), j, i, desc_lb, 0.d0)
@@ -633,7 +640,8 @@ module parallel_linalg
       
       !call blacs_exit(0)
 
-      call timing(iproc, 'dgesv_parallel', 'OF')
+      !call timing(iproc, 'dgesv_parallel', 'OF')
+      call f_timing(TCAT_SMAT_HL_DGESV,'OF')
       call f_release_routine()
     
     end subroutine dgesv_parallel
@@ -647,19 +655,20 @@ module parallel_linalg
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda
       character(len=1),intent(in) :: uplo
-      real(kind=8),dimension(lda,n),intent(inout) :: a
+      real(kind=mp),dimension(lda,n),intent(inout) :: a
     
       ! Local variables
       integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
       integer :: context, irow, icol, numroc, info
       integer :: lnrow_a, lncol_a
-      real(kind=8) :: tt1, tt2
-      real(kind=8),dimension(:,:),allocatable :: la
+      real(kind=mp) :: tt1, tt2
+      real(kind=mp),dimension(:,:),allocatable :: la
       integer,dimension(9) :: desc_la
       character(len=*),parameter :: subname='dpotrf_parallel'
 
       call f_routine(id='dpotrf_parallel')
-      call timing(iproc, 'dpotrf_paralle', 'ON')
+      !call timing(iproc, 'dpotrf_paralle', 'ON')
+      call f_timing(TCAT_SMAT_HL_DPOTRF,'ON')
     
       ! Block size for scalapack
       mbrow=blocksize
@@ -748,7 +757,8 @@ module parallel_linalg
     
       !call blacs_exit(0)
 
-      call timing(iproc, 'dpotrf_paralle', 'OF')
+      !call timing(iproc, 'dpotrf_paralle', 'OF')
+      call f_timing(TCAT_SMAT_HL_DPOTRF,'OF')
       call f_release_routine()
     
     end subroutine dpotrf_parallel
@@ -760,19 +770,20 @@ module parallel_linalg
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, blocksize, comm, n, lda
       character(len=1),intent(in) :: uplo
-      real(kind=8),dimension(lda,n),intent(inout) :: a
+      real(kind=mp),dimension(lda,n),intent(inout) :: a
     
       ! Local variables
       integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
       integer :: context, irow, icol, numroc, info
       integer :: lnrow_a, lncol_a
-      real(kind=8) :: tt1, tt2
-      real(kind=8),dimension(:,:),allocatable :: la
+      real(kind=mp) :: tt1, tt2
+      real(kind=mp),dimension(:,:),allocatable :: la
       integer,dimension(9) :: desc_la
       character(len=*),parameter :: subname='dpotri_parallel'
 
       call f_routine(id='dpotri_parallel')
-      call timing(iproc, 'dpotri_paralle', 'ON')
+      !call timing(iproc, 'dpotri_paralle', 'ON')
+      call f_timing(TCAT_SMAT_HL_DPOTRI,'ON')
     
       ! Block size for scalapack
       mbrow=blocksize
@@ -860,7 +871,8 @@ module parallel_linalg
     
       !call blacs_exit(0)
 
-      call timing(iproc, 'dpotri_paralle', 'OF')
+      !call timing(iproc, 'dpotri_paralle', 'OF')
+      call f_timing(TCAT_SMAT_HL_DPOTRI,'OF')
       call f_release_routine()
     
     end subroutine dpotri_parallel
