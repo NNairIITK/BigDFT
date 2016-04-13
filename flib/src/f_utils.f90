@@ -263,19 +263,15 @@ contains
     if (sht) then
        !find the first unit which is not zero
        if (y > zr) then
-          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(y)))+'y'//&
-               trim(adjustl(yaml_toa(d)))+'d')
+          call f_strcpy(dest=time,src=(yaml_toa(y)+'y')//(yaml_toa(d)+'d'))
        else if (d > zr) then
-          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(d)))+'d'//&
-               trim(adjustl(yaml_toa(h,fmt)))+'h')
+          call f_strcpy(dest=time,src=(yaml_toa(d)+'d')//(yaml_toa(h,fmt)+'h'))
        else if (h > zr) then
-          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(h,fmt)))+'h'//&
-               trim(adjustl(yaml_toa(m,fmt)))+'m')
+          call f_strcpy(dest=time,src=(yaml_toa(h,fmt)+'h')//(yaml_toa(m,fmt)+'m'))
        else if (m > zr) then
-          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(m,fmt)))+'m'//&
-               trim(adjustl(yaml_toa(s,fmt)))+'s')
+          call f_strcpy(dest=time,src=(yaml_toa(m,fmt)+'m')//(yaml_toa(s,fmt)+'s'))
        else
-          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(real(s,f_double),'(f5.1)')))+'s')
+          call f_strcpy(dest=time,src=yaml_toa(real(s,f_double),'(f5.1)')+'s')
        end if
     else
        !test with new API to deal with strings
@@ -285,8 +281,7 @@ contains
 !!$
        !split the treatment in the case of multiple days
        if (d >0.0_f_double .or. y > 0.0_f_double ) call f_strcpy(&
-            dest=time,src=trim(adjustl(yaml_toa(y)))+'y'//&
-            trim(adjustl(yaml_toa(d)))+'d'+time)
+            dest=time,src=(yaml_toa(y)+'y')//(yaml_toa(d)+'d')+time)
     end if
 
   end function f_humantime

@@ -1133,7 +1133,7 @@ module foe_common
 
       ! Local variables
       integer :: isx, iex, i, ipl, n, iimin, iimax, ii, is, np, jproc
-      real(kind=mp) :: x, xx, val_chebyshev, val_function, xxm1, xxm2, xxx, sigma, tau, error
+      real(kind=mp) :: x, xx, val_chebyshev, val_function, xxm1, xxm2, xxx, sigma, tau, error, val_chebyshev1
       real(kind=mp),dimension(:,:),allocatable :: max_errors
 
       call f_routine(id='accuracy_of_chebyshev_expansion')
@@ -1176,17 +1176,17 @@ module foe_common
       max_error = 0.d0
       mean_error = 0.d0
       !do i=isx,iex
+      val_chebyshev1 = 0.5d0*coeff(1)
       do i=1,np
           ii = i + is
           x = real(ii,kind=mp)*h
-          val_chebyshev = 0.5d0*coeff(1)*1.d0
           xx = sigma*(x-tau)
-          val_chebyshev = val_chebyshev + coeff(2)*xx
+          val_chebyshev = val_chebyshev1 + coeff(2)*xx
           xxm2 = 1.d0
           xxm1 = xx
+          xx=2.d0*xx
           do ipl=3,npl
-              xx = sigma*(x-tau)
-              xxx = 2.d0*xx*xxm1 - xxm2
+              xxx = xx*xxm1 - xxm2
               val_chebyshev = val_chebyshev + coeff(ipl)*xxx
               xxm2 = xxm1
               xxm1 = xxx

@@ -2462,8 +2462,8 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
               rxyz_new(:,iat)=rxyz_new(:,iat)-frag_trans%rot_center_new
            end do
 
-           call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans,error)
-           if (error > W_tol) call f_increment(itoo_big)
+           call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans)
+           if (frag_trans%Werror > W_tol) call f_increment(itoo_big)
            call f_free(rxyz_ref)
            call f_free(rxyz_new)
 

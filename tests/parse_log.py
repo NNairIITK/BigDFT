@@ -429,7 +429,7 @@ class BigDFTiming:
                     self.ids.append("Unknown")
     self.classes=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
             "Other","PS Computation","Potential",
-            "Flib LowLevel","Initialization"]
+            "Flib LowLevel","Initialization","Unknown"]
 
   def bars_data(self,vals=None,title='Time bar chart'):
     """Extract the data for plotting the different categories in bar chart"""
@@ -490,7 +490,19 @@ class BigDFTiming:
     self.values_legend=[]
     for cat in self.classes:
       try:
-        dat=np.array([doc["Classes"][cat][self.iprc] for doc in dict_list])
+        if cat == "Unknown":
+            print "here"
+            data_unk=[]
+            for doc in dict_list:
+                percent_unk=100.0-doc["Classes"]["Total"][0]
+                if self.iprc==0:
+                    data_unk.append(percent_unk)
+                elif self.iprc==1:
+                    time_unk=(doc["Classes"]["Total"][1])*percent_unk/100.0
+                    data_unk.append(time_unk) 
+            dat=np.array(data_unk)
+        else:
+            dat=np.array([doc["Classes"][cat][self.iprc] for doc in dict_list])
         catsdats.append((cat,dat))
         self.values_legend.append(cat)
       except Exception,e:
