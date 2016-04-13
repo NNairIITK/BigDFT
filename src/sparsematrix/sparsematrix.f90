@@ -2090,35 +2090,46 @@ module sparsematrix
 
       ! Local variables
       real(kind=mp),dimension(:),allocatable :: mat_full
-      integer :: ispin, ishift, iseg, ii, i, ind, ind_trans
+      integer :: ispin, ishift, iseg, ii, i, ind, ind_trans, iel
       real(kind=mp) :: val, val_trans, error
 
+      call f_routine(id='max_asymmetry_of_matrix')
 
-      ! Gather together the matrix from the taskgroups
-      mat_full = sparsematrix_malloc(sparsemat,iaction=SPARSE_FULL,id='mat_full')
-      call gather_matrix_from_taskgroups(iproc, nproc, comm, sparsemat, mat_tg, mat_full)
+      !!! Gather together the matrix from the taskgroups
+      !!mat_full = sparsematrix_malloc(sparsemat,iaction=SPARSE_FULL,id='mat_full')
+      !!call gather_matrix_from_taskgroups(iproc, nproc, comm, sparsemat, mat_tg, mat_full)
 
       error_max = 0.0_mp
       do ispin=1,sparsemat%nspin
           ishift=(ispin-1)*sparsemat%nvctr
-          do iseg=1,sparsemat%nseg
-              ! a segment is always on one line, therefore no double loop
+          !do iseg=1,sparsemat%nseg
+          do iseg=sparsemat%isseg,sparsemat%ieseg
+              iel = sparsemat%keyv(iseg) - 1
               do i=sparsemat%keyg(1,1,iseg),sparsemat%keyg(2,1,iseg)
-                 ind = matrixindex_in_compressed(sparsemat, i, sparsemat%keyg(1,2,iseg))
-                 ind_trans = matrixindex_in_compressed(sparsemat, sparsemat%keyg(1,2,iseg), i)
-                 val = mat_full(ind)
-                 val_trans = mat_full(ind_trans)
-                 error = abs(val-val_trans)
-                 if (error>error_max) then
-                     error_max = error
-                 end if
-             end do
+                  iel = iel + 1
+                  if (iel<sparsemat%isvctr+1) cycle
+                  if (iel>sparsemat%isvctr+sparsemat%nvctrp) then
+                      exit
+                  end if
+                  ind = matrixindex_in_compressed(sparsemat, i, sparsemat%keyg(1,2,iseg)) - sparsemat%isvctrp_tg
+                  ind_trans = matrixindex_in_compressed(sparsemat, sparsemat%keyg(1,2,iseg), i) - sparsemat%isvctrp_tg
+                  !val = mat_full(ind)
+                  !val_trans = mat_full(ind_trans)
+                  val = mat_tg(ind)
+                  val_trans = mat_tg(ind_trans)
+                  error = abs(val-val_trans)
+                  if (error>error_max) then
+                      error_max = error
+                  end if
+              end do
           end do
       end do
-      !call mpiallred(error_max, 1, mpi_max, comm=comm)
+      call mpiallred(error_max, 1, mpi_max, comm=comm)
       !if (iproc==0) call yaml_map('max asymmetry',error_max)
 
-      call f_free(mat_full)
+      !!call f_free(mat_full)
+
+      call f_release_routine()
 
     end subroutine max_asymmetry_of_matrix
 

@@ -1418,7 +1418,7 @@ module matrix_operations
         real(8):: error, num
         real(kind=mp),dimension(2) :: reducearr
       
-        call f_routine(id='deviation_from_unity_parallel')
+        call f_routine(id='deviation_from_unity_parallel_new')
 
         if (.not.smat%smatmul_initialized) then
             call f_err_throw('sparse matrix multiplication not initialized', &

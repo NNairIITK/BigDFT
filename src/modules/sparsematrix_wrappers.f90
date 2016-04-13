@@ -193,7 +193,7 @@ module sparsematrix_wrappers
           call f_routine('determine_sparsity_pattern')
           call timing(iproc,'determinespars','ON')
         
-          overlapMatrix = f_malloc((/orbs%norbu,maxval(orbs%norbu_par(:,0))/),id='overlapMatrix')
+          overlapMatrix = f_malloc((/orbs%norbu,orbs%norbup/),id='overlapMatrix')
           noverlapsarr = f_malloc(orbs%norbup,id='noverlapsarr')
         
           overlapMatrix=.false.

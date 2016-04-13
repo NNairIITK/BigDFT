@@ -1601,7 +1601,7 @@ module foe
               !!tempp = sparsematrix_malloc_ptr(smatl, iaction=DENSE_MATMUL, id='tmpp')
               tempp_new = f_malloc_ptr(smatl%smmm%nvctrp, id='tempp_new')
               inv_ovrlp_compr_seq = sparsematrix_malloc(smatl, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-              kernel_compr_seq = sparsematrix_malloc(smatl, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+              kernel_compr_seq = sparsematrix_malloc(smatl, iaction=SPARSEMM_SEQ, id='kernel_compr_seq')
               call sequential_acces_matrix_fast2(smatl, matrix_compr, kernel_compr_seq)
               call sequential_acces_matrix_fast2(smatl, &
                    ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), inv_ovrlp_compr_seq)
