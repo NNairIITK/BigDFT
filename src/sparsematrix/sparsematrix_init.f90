@@ -779,7 +779,7 @@ module sparsematrix_init
       ! Local variables
       integer :: jproc, iorb, jorb, iiorb, iseg
       !integer :: jst_line, jst_seg, segn, ind
-      integer :: ist, ivctr
+      integer :: ist, ivctr, i, iel, iend_seg, ilen_seg, iiseg, ist_seg
       logical :: init_matmul_
       logical,dimension(:),allocatable :: lut
       integer :: nseg_mult, nvctr_mult, ivctr_mult
@@ -894,13 +894,6 @@ module sparsematrix_init
       end do
 
     
-      if (iproc==0 .and. print_info_) then
-          ntot = int(norbu,kind=mp)*int(norbu,kind=mp)
-          call yaml_map('total elements',ntot)
-          call yaml_map('non-zero elements',sparsemat%nvctr)
-          call yaml_comment('segments: '//sparsemat%nseg)
-          call yaml_map('sparsity in %',1.d2*real(ntot-int(sparsemat%nvctr,kind=mp),kind=mp)/real(ntot,kind=mp),fmt='(f5.2)')
-      end if
     
       call allocate_sparse_matrix_keys(store_index_, sparsemat)
     
@@ -987,6 +980,28 @@ module sparsematrix_init
       call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, sparsemat%nseg, sparsemat%nvctr, &
            sparsemat%isfvctr_par, sparsemat%nfvctr_par, sparsemat%istsegline, sparsemat%keyv, &
            sparsemat%isvctr, sparsemat%nvctrp, sparsemat%isvctr_par, sparsemat%nvctr_par)
+      ! Get the segments containing the first and last element
+      do i=1,2
+          if (i==1) then
+              iel = sparsemat%isvctr + 1
+          else if (i==2) then
+              iel = sparsemat%isvctr + sparsemat%nvctrp
+          end if
+          iiseg = sparsemat%nseg !in case iel is the last element
+          do iseg=1,sparsemat%nseg
+              ist_seg = sparsemat%keyv(iseg)
+              ilen_seg = sparsemat%keyg(2,1,iseg) - sparsemat%keyg(1,1,iseg)
+              iend_seg = ist_seg + ilen_seg
+              if (iend_seg<iel) cycle
+              ! If this point is reached, we are in the correct segment
+              iiseg = iseg ; exit
+          end do
+          if (i==1) then
+              sparsemat%isseg = iiseg
+          else if (i==2) then
+              sparsemat%ieseg = iiseg
+          end if
+      end do
       if (extra_timing) call cpu_time(tr1)   
       if (extra_timing) time3=real(tr1-tr0,kind=mp)
 
@@ -1093,6 +1108,16 @@ module sparsematrix_init
       call f_free(keyg_mult)
       call f_free(keyv_mult)
       call f_free(lut)
+
+
+      if (iproc==0 .and. print_info_) then
+          ntot = int(norbu,kind=mp)*int(norbu,kind=mp)
+          call yaml_map('total elements',ntot)
+          call yaml_map('non-zero elements',sparsemat%nvctr)
+          call yaml_comment('segments: '//sparsemat%nseg)
+          call yaml_map('sparsity in %',1.d2*real(ntot-int(sparsemat%nvctr,kind=mp),kind=mp)/real(ntot,kind=mp),fmt='(f5.2)')
+          call yaml_map('sparse matrix multiplication initialized',sparsemat%smatmul_initialized)
+      end if
     
       call f_release_routine()
       !call timing(iproc,'init_matrCompr','OF')
@@ -1404,6 +1429,12 @@ module sparsematrix_init
       !!write(*,*) 'iproc, nout, ispt', bigdft_mpi%iproc, nout, ispt
       call f_routine(id='init_onedimindices_newnew')
 
+
+      if (.not.smat%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
+
       ! Handle index 3 separately to enable OpenMP
     
       !itot = 1
@@ -1522,6 +1553,10 @@ module sparsematrix_init
 
       call f_routine(id='get_arrays_for_sequential_acces_new')
 
+      if (.not.smat%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
 
       ! OpenMP parallelization using a large workarray
       !!nthread = 1
@@ -1950,13 +1985,14 @@ module sparsematrix_init
 
       do jproc=0,nproc-1
          if (jproc==nproc-1) then
-            nvctr_par(jproc)=nvctr-isvctr_par(jproc)
+            nvctr_par(jproc) = nvctr-isvctr_par(jproc)
          else
-            nvctr_par(jproc)=isvctr_par(jproc+1)-isvctr_par(jproc)
+            nvctr_par(jproc) = isvctr_par(jproc+1)-isvctr_par(jproc)
          end if
-         if (iproc==jproc) isvctr=isvctr_par(jproc)
-         if (iproc==jproc) nvctrp=nvctr_par(jproc)
+         if (iproc==jproc) isvctr = isvctr_par(jproc)
+         if (iproc==jproc) nvctrp = nvctr_par(jproc)
       end do
+
 
       call f_release_routine()
 
@@ -2509,15 +2545,26 @@ module sparsematrix_init
       type(sparse_matrix),intent(in) :: smat
       integer, intent(inout) :: ind_min,ind_max
       !local variables
-      integer :: i,nfvctrp,isfvctr,isegstart,isegend,iseg,jorb,ii
+      integer :: i,nfvctrp,isfvctr,isegstart,isegend,iseg,jorb,ii,nn
       
-      !call f_routine(id='check_compress_distributed_layout')
+      call f_routine(id='check_compress_distributed_layout')
 
-      do i=1,2
+
+      if (smat%smatmul_initialized) then
+          nn = 2
+      else
+          nn = 1
+      end if
+
+      do i=1,nn
          if (i==1) then
             nfvctrp = smat%nfvctrp
             isfvctr = smat%isfvctr
          else if (i==2) then
+            if (.not.smat%smatmul_initialized) then
+                call f_err_throw('sparse matrix multiplication not initialized', &
+                     err_name='SPARSEMATRIX_RUNTIME_ERROR')
+            end if
             nfvctrp = smat%smmm%nfvctrp
             isfvctr = smat%smmm%isfvctr
          end if
@@ -2542,7 +2589,7 @@ module sparsematrix_init
          end if
       end do
 
-      !call f_release_routine()
+      call f_release_routine()
 
     end subroutine check_compress_distributed_layout
 
@@ -2830,11 +2877,11 @@ module sparsematrix_init
       ! The matrices can be parallelized
       parallel_if: if (parallel_layout) then
 
-          ! Otherwiese this might lead to segfaults etc. due to non-initialized variables
-          if (.not.smat%smatmul_initialized) then
-              call f_err_throw('Matrix taskgroups should only be used when &
-                  &the sparse matrix multiplications have been initialized')
-          end if
+          !! Otherwiese this might lead to segfaults etc. due to non-initialized variables
+          !if (.not.smat%smatmul_initialized) then
+          !    call f_err_throw('Matrix taskgroups should only be used when &
+          !        &the sparse matrix multiplications have been initialized')
+          !end if
 
           ! Check that all arguments are present
           if (.not.present(iirow)) call f_err_throw("Optional argument 'iirow' is not present")
@@ -3603,6 +3650,10 @@ module sparsematrix_init
 
       do i=1,niter
           if (i==2) then
+              if (.not.smat%smatmul_initialized) then
+                  call f_err_throw('sparse matrix multiplication not initialized', &
+                       err_name='SPARSEMATRIX_RUNTIME_ERROR')
+              end if
               isvctr_par => smat%smmm%isvctr_mm_par
               nvctr_par => smat%smmm%nvctr_mm_par
           else if (i==1) then
@@ -3624,6 +3675,10 @@ module sparsematrix_init
           end do
 
           if (i==2) then
+              if (.not.smat%smatmul_initialized) then
+                  call f_err_throw('sparse matrix multiplication not initialized', &
+                       err_name='SPARSEMATRIX_RUNTIME_ERROR')
+              end if
               smat%smmm%nccomm_smmm = ii
               smat%smmm%luccomm_smmm = f_malloc_ptr((/4,smat%smmm%nccomm_smmm/),id='smat%smmm%luccomm_smmm')
           else if (i==1) then
@@ -3647,6 +3702,10 @@ module sparsematrix_init
               if (istart>iend) cycle
               ii = ii + 1
               if (i==2) then
+                  if (.not.smat%smatmul_initialized) then
+                      call f_err_throw('sparse matrix multiplication not initialized', &
+                           err_name='SPARSEMATRIX_RUNTIME_ERROR')
+                  end if
                   smat%smmm%luccomm_smmm(1,ii) = jproc !get data from this process
                   smat%smmm%luccomm_smmm(2,ii) = istart-isvctr_par(jproc) !starting address on sending process
                   smat%smmm%luccomm_smmm(3,ii) = istart-smat%isvctrp_tg !starting address on receiving process

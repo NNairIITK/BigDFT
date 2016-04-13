@@ -85,7 +85,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
 
   call f_routine(id='calculate_weight_matrix_lowdin')
 
-  call allocate_matrices(tmb%linmat%s, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
 
   if (calculate_overlap_matrix) then
      if(.not.tmb%can_use_transposed) then
@@ -115,7 +115,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc,bigdft_mpi%mpi_comm,&
           meth_overlap, 1, power, &
           tmb%orthpar%blocksize_pdsyev, &
-          imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
+          imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
           check_accur=.false., max_error=max_error, mean_error=mean_error)
           !check_accur=.true., max_error=max_error, mean_error=mean_error)
@@ -449,7 +449,7 @@ real(kind=8) :: ddot
   end if
 
 
-  call allocate_matrices(tmb%linmat%s, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
 
   if (calculate_overlap_matrix) then
      if(.not.tmb%can_use_transposed) then
@@ -481,7 +481,7 @@ real(kind=8) :: ddot
      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm,&
           meth_overlap, 1, power, &
           tmb%orthpar%blocksize_pdsyev, &
-          imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
+          imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
           check_accur=.false., max_error=max_error, mean_error=mean_error)
 !print*,'f',ddot(tmb%orbs%norb*tmb%orbs%norb, inv_ovrlp%matrix(1,1,1), 1, inv_ovrlp%matrix(1,1,1), 1)

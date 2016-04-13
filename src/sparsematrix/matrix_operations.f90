@@ -91,6 +91,11 @@ module matrix_operations
         !call timing(iproc,'lovrlp^-1     ','ON')
         call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
         
+        if (.not.inv_ovrlp_smat%smatmul_initialized) then
+            call f_err_throw('sparse matrix multiplication not initialized', &
+                 err_name='SPARSEMATRIX_RUNTIME_ERROR')
+        end if
+
 
         if (present(verbosity)) then
             verbosity_ = verbosity
@@ -1111,6 +1116,11 @@ module matrix_operations
         integer :: ierr, i,j
       
         call f_routine(id='check_accur_overlap_minus_one_sparse_new')
+
+        if (.not.smat%smatmul_initialized) then
+            call f_err_throw('sparse matrix multiplication not initialized', &
+                 err_name='SPARSEMATRIX_RUNTIME_ERROR')
+        end if
       
         tmpp=f_malloc0((smat%smmm%nvctrp),id='tmpp')
         if (power==1) then
@@ -1409,6 +1419,11 @@ module matrix_operations
         real(kind=mp),dimension(2) :: reducearr
       
         call f_routine(id='deviation_from_unity_parallel')
+
+        if (.not.smat%smatmul_initialized) then
+            call f_err_throw('sparse matrix multiplication not initialized', &
+                 err_name='SPARSEMATRIX_RUNTIME_ERROR')
+        end if
       
         !call timing(iproc,'dev_from_unity','ON') 
         call f_timing(TCAT_HL_MATRIX_CHECKS,'ON')
@@ -1620,6 +1635,13 @@ module matrix_operations
         real(kind=mp),dimension(smat%smmm%nvctrp),intent(out) :: inv_ovrlpp
       
         integer :: i, ii, iline, icolumn
+
+        call f_routine(id='first_order_taylor_sparse_new')
+
+        if (.not.smat%smatmul_initialized) then
+            call f_err_throw('sparse matrix multiplication not initialized', &
+                 err_name='SPARSEMATRIX_RUNTIME_ERROR')
+        end if
       
         if (power==1) then
            !!!$omp parallel do default(private) shared(inv_ovrlpp,ovrlpp,norb,isorb,norbp)
@@ -1699,6 +1721,8 @@ module matrix_operations
         else
            stop 'Error in first_order_taylor_dense'
         end if
+
+        call f_release_routine()
       
       end subroutine first_order_taylor_sparse_new
 
@@ -2170,6 +2194,13 @@ module matrix_operations
         integer:: iorb, iiorb, jorb, ierr, ind, iline, icolumn, i, ii
         real(8):: error, num
         real(kind=mp),dimension(2) :: reducearr
+
+        call f_routine(id='max_matrix_diff_parallel_new')
+
+        if (.not.smat%smatmul_initialized) then
+            call f_err_throw('sparse matrix multiplication not initialized', &
+                 err_name='SPARSEMATRIX_RUNTIME_ERROR')
+        end if
       
         !call timing(iproc,'dev_from_unity','ON') 
         call f_timing(TCAT_HL_MATRIX_CHECKS,'ON')
@@ -2224,6 +2255,8 @@ module matrix_operations
       
         !call timing(iproc,'dev_from_unity','OF') 
         call f_timing(TCAT_HL_MATRIX_CHECKS,'OF')
+
+        call f_release_routine()
       
       end subroutine max_matrix_diff_parallel_new
 

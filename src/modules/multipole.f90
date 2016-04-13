@@ -2326,7 +2326,7 @@ module multipole
       use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
                                    sparsematrix_malloc, matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                    SPARSE_TASKGROUP, sparse_matrix_metadata
-      use sparsematrix, only: matrix_matrix_mult_wrapper
+      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
       use communications, only: transpose_localized
       use orthonormalization, only: orthonormalizelocalized,overlap_matrix
       use module_atoms, only: atoms_data
@@ -2368,8 +2368,8 @@ module multipole
       integer, dimension(1) :: power
       logical :: can_use_transposed, all_norms_ok
       real(kind=8),dimension(:),pointer :: phit_c, phit_f
-      real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, multipole_matrix_large, Qmat_tmp,Slmphi
-      real(kind=8),dimension(:),allocatable :: eval, work, newoverlap
+      real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, Qmat_tmp,Slmphi
+      real(kind=8),dimension(:),allocatable :: eval, work, newoverlap, newmultipole_matrix_large, newoverlap_large
       real(kind=8),dimension(:,:),allocatable :: Qmat_tilde, kp, locregcenter, overlap_small, tmpmat, tempmat
       real(kind=8),dimension(:,:,:),pointer :: atomic_multipoles
       real(kind=8),dimension(:),pointer :: atomic_monopoles_analytic
@@ -2380,7 +2380,7 @@ module multipole
       real(kind=8) :: q, tt, rloc, max_error, mean_error
       type(matrices) :: multipole_matrix
       !type(matrices),target :: multipole_matrix_
-      type(matrices) :: newovrlp
+      type(matrices) :: newovrlp, ovrlp_large, multipole_matrix_large
       type(matrices),dimension(-1:1,0:1) :: lower_multipole_matrices
       type(matrices),dimension(1) :: inv_ovrlp
       logical :: perx, pery, perz
@@ -2496,7 +2496,7 @@ module multipole
 
 
 
-      multipole_matrix_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='multipole_matrix_large')
+      !!multipole_matrix_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='multipole_matrix_large')
       kernel_ortho = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='kernel_ortho')
 
       if (do_ortho==yes) then
@@ -2575,8 +2575,17 @@ module multipole
               ! This one is given by S^-1/2*S*S^-1/2
               newoverlap = sparsematrix_malloc(smats, SPARSE_TASKGROUP, id='newoverlap')
               methTransformOverlap = 1020
-              call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smats, &
-                   ovrlp, ovrlp, 'minus', newoverlap)
+              newoverlap_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='newoverlap_large')
+              ovrlp_large = matrices_null()
+              ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(smatl, SPARSE_TASKGROUP, id='ovrlp_large%matrix_compr')
+              call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
+                   smat_in=ovrlp%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
+              call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smatl, &
+                   ovrlp, ovrlp_large, 'minus', newoverlap_large)
+              call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'large_to_small', &
+                   lmat_in=newoverlap_large, smat_out=newoverlap)
+              call deallocate_matrices(ovrlp_large)
+              call f_free(newoverlap_large)
               newovrlp = matrices_null()
               newovrlp%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_TASKGROUP, id='newovrlp%matrix_compr')
               call f_memcpy(src=newoverlap, dest=newovrlp%matrix_compr)
@@ -2643,8 +2652,20 @@ module multipole
                   !multipole_matrix => multipole_matrix_in(m,l)
                   if (do_ortho==yes)  then
                       methTransformOverlap = 1020
-                      call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smats, &
-                           ovrlp, multipole_matrix_in(m,l), 'minus', multipole_matrix%matrix_compr)
+                      newmultipole_matrix_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='newmultipole_matrix_large')
+                      !multipole_matrix_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='multipole_matrix_large')
+                      multipole_matrix_large = matrices_null()
+                      multipole_matrix_large%matrix_compr = sparsematrix_malloc_ptr(smatl, SPARSE_TASKGROUP, &
+                          id='multipole_matrix_large%matrix_compr')
+                      call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
+                           smat_in=multipole_matrix_in(m,l)%matrix_compr, lmat_out=multipole_matrix_large%matrix_compr)
+                      call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smatl, &
+                           ovrlp, multipole_matrix_large, 'minus', newmultipole_matrix_large)
+                      call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
+                           lmat_in=newmultipole_matrix_large, smat_out=multipole_matrix%matrix_compr)
+                      !call f_free(multipole_matrix_large)
+                      call deallocate_matrices(multipole_matrix_large)
+                      call f_free(newmultipole_matrix_large)
                   else
                       call f_memcpy(src=multipole_matrix_in(m,l)%matrix_compr, dest=multipole_matrix%matrix_compr)
                   end if
@@ -2880,7 +2901,7 @@ module multipole
       call f_free_ptr(nx)
       call f_free(neighborx)
       call f_free_ptr(atomic_multipoles)
-      call f_free(multipole_matrix_large)
+      !!call f_free(multipole_matrix_large)
       call deallocate_external_potential_descriptors(ep)
 
       if (iproc==0) then

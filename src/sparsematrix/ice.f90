@@ -690,6 +690,11 @@ module ice
 
       call f_routine(id='inverse_chebyshev_expansion_new')
 
+      if (.not.inv_ovrlp_smat%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
+
       if (present(verbosity)) then
           verbosity_ = verbosity
       else

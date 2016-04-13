@@ -29,7 +29,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           extract_taskgroup_inplace, uncompress_matrix_distributed2, gather_matrix_from_taskgroups, &
                           extract_taskgroup, uncompress_matrix2, &
-                          write_sparsematrix, delete_coupling_terms, transform_sparse_matrix
+                          write_sparsematrix, delete_coupling_terms, transform_sparse_matrix, &
+                          max_asymmetry_of_matrix
   use sparsematrix_init, only: sparsebigdft_to_ccs
   use transposed_operations, only: calculate_overlap_transposed
   use parallel_linalg, only: dsygv_parallel
@@ -84,7 +85,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical :: update_kernel
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr
-  real(kind=8) :: max_deviation, mean_deviation, KSres, max_deviation_p,  mean_deviation_p, maxdiff
+  real(kind=8) :: max_deviation, mean_deviation, KSres, max_deviation_p,  mean_deviation_p, maxdiff, tt
+  real(kind=8) :: asymm_S, asymm_H, asymm_K
   integer,dimension(:),allocatable :: row_ind, col_ptr, n3p
 
   call f_routine(id='get_coeff')
@@ -269,6 +271,11 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call delete_coupling_terms(iproc, nproc, bigdft_mpi%mpi_comm, &
            tmb%linmat%smmd, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr)
   end if
+  ! Calculate the asymmetry of S and H
+  call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+       tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, asymm_S)
+  call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+       tmb%linmat%m, tmb%linmat%ham_%matrix_compr, asymm_H)
 
   if (scf_mode/=LINEAR_FOE .and. scf_mode/=LINEAR_PEXSI) then
       tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
@@ -575,10 +582,20 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           !     invert_overlap_matrix, 2, &
           !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
           !     tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, tmb%foe_obj)
+          !!call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+          !!     tmb%linmat%m, tmb%linmat%ham_%matrix_compr, tt)
+          !!if (iproc==0) call yaml_map('max assymetry of H',tt)
+          !!call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+          !!     tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, tt)
+          !!if (iproc==0) call yaml_map('max assymetry of S',tt)
           call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
                tmb%foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, &
-               energs%ebs, invert_overlap_matrix, 2)
+               energs%ebs, &
+               calculate_minusonehalf=invert_overlap_matrix, foe_verbosity=2, symmetrize_kernel=.true.)
+          !!call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+          !!     tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tt)
+          !!if (iproc==0) call yaml_map('max assymetry of K',tt)
 
           !!call fermi_operator_expansion(iproc, nproc, &
           !!     energs%ebs, order_taylor, max_inversion_error, &
@@ -618,6 +635,16 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   end if
 
+  call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+       tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, asymm_K)
+
+  if (iproc==0) then
+      call yaml_mapping_open('Asymmetry of the matrices')
+      call yaml_map('Overlap',asymm_S,fmt='(es8.2)')
+      call yaml_map('Hamiltonian',asymm_H,fmt='(es8.2)')
+      call yaml_map('Kernel (possibly symmetrized)',asymm_K,fmt='(es8.2)')
+      call yaml_mapping_close()
+  end if
 
   if (calculate_ham) then
       if (calculate_KS_residue) then
@@ -2181,7 +2208,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
-       allocate_matrices, deallocate_matrices
+       deallocate_matrices
   use yaml_output, only: yaml_newline, yaml_map
   use matrix_operations, only: overlapPowerGeneral, overlap_minus_one_half_serial, deviation_from_unity_parallel
   use orthonormalization, only: gramschmidt_coeff_trans
@@ -2906,10 +2933,10 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
   !!inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
   !!                         iaction=SPARSE_FULL, id='inv_ovrlp%matrix_compr')
-  inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
-  tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
-  inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-  kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+  !!inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
+  !!tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='tempp'
+  !!inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+  !!kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='kernel_compr_seq')
 
 
 
@@ -2957,10 +2984,10 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
        tmb%linmat%ovrlppowers_(2)%matrix_compr, tmb%linmat%kernel_%matrix_compr)
 
 
-  call f_free_ptr(inv_ovrlpp)
-  call f_free_ptr(tempp)
-  call f_free(inv_ovrlp_compr_seq)
-  call f_free(kernel_compr_seq)
+  !!call f_free_ptr(inv_ovrlpp)
+  !!call f_free_ptr(tempp)
+  !!call f_free(inv_ovrlp_compr_seq)
+  !!call f_free(kernel_compr_seq)
   !!call f_free_ptr(inv_ovrlp%matrix_compr)
 
   call f_release_routine()
@@ -3169,7 +3196,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
            foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
-           ebs, .true., 2)
+           ebs, calculate_minusonehalf=.true., foe_verbosity=2, symmetrize_kernel=.true.)
       !call fermi_operator_expansion(iproc, nproc, &
       !     ebs, norder_taylor, input%lin%max_inversion_error, &
       !     .true., 2, &
@@ -3200,7 +3227,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
            foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
-           ebs, .true., 2)
+           ebs, calculate_minusonehalf=.true., foe_verbosity=2, symmetrize_kernel=.true.)
       !call fermi_operator_expansion(iproc, nproc, &
       !     ebs, norder_taylor, input%lin%max_inversion_error, &
       !     .true., 2, &

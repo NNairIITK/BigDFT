@@ -978,7 +978,7 @@ foe:
  Energy (Hartree): 1.3e-10
  norm(P): 1.1e-07
  trace: 4.3e-10
- Maxdiff for overlap calculation: 3.2e-07
+ Maxdiff for overlap calculation: 7.1e-07
  Maxdiff for transpose (checksum): 4.7e-10
 
 onlyhigh:
@@ -1572,7 +1572,7 @@ verysparse:
  Energy (Hartree): 4.4e-9
  Ion-Ion interaction energy: 8.1e-11
  Maxdiff for overlap calculation: 1.2e-05
- Maxdiff for transpose (checksum): 4.7e-10
+ Maxdiff for transpose (checksum): 7.0e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1786,12 +1786,13 @@ surface_boronnitride:
  Ekin: 1.0e-9
  Enl: 1.01e-9
  Epot: 1.0e-9
+ EvXC: 1.1e-09
  Omega: 2.7e-10
  energy: 5.8e-11
  Energy (Hartree): 5.8e-11
  Total charge: 1.0e-10
  Total ionic charge: 4.2e-11
- Clean forces norm (Ha/Bohr): 1.3e-11
+ Clean forces norm (Ha/Bohr): 1.5e-11
  fnrm2: 1.4e-11
  Maxdiff for transpose (checksum): 9.4e-10
  Keys to ignore:
@@ -1935,32 +1936,33 @@ multipoles_CH4:
  Unitary check of the multipole calculations: 9.1e-2
  avg pot difference (actual/min): 1.0e-04
  trace: 1.3e-11
+ Maxdiff for transpose (checksum): 1.5e-11
 
 multipoles_periodic:
   D eF: 7.91e-8
-  EH: 7.0e-10
-  EXC: 8.1e-11
-  EvXC: 1.1e-10
+  EH: 7.1e-10
+  EXC: 9.1e-11
+  EvXC: 1.2e-10
   Epot: 4.1e-10
-  HOMO energy: 4.4e-11
-  HOMO-LUMO gap (Ha): 3.8e-11
+  HOMO energy: 4.6e-11
+  HOMO-LUMO gap (Ha): 3.9e-11
   HOMO-LUMO gap (eV): 1.1e-9
   Pseudo Fermi level for occupations: 1.3e-10
   Tr(K): 3.1e-09
   D Tr(K): 2.8e-9
   eF: 1.14e-07
-  EBS: 6.4e-10
-  EBS higher temperature: 6.4e-10
+  EBS: 6.6e-10
+  EBS higher temperature: 6.6e-10
   guess for new ef: 1.14e-07
   Atomic Forces (Ha/Bohr): 1.7e-10
   Force Norm (Hartree/Bohr): 1.2e-10
   Clean forces norm (Ha/Bohr): 1.1e-10
-  PV (Ha): 1.5e-10
+  PV (Ha): 1.6e-10
   Charge analysis (charge / net charge): 1.9e-10
   D Tr: 1.1e-10
   Total charge: 2.4e-11
   difference: 2.7e-11
-  trace: 3.4e-11
+  trace: 3.6e-11
   trace(KS): 2.5e-11
   e: 4.11-11
   Average noise forces: 1.1e-10
@@ -2059,7 +2061,7 @@ igortho_44:
  Multipole coefficients: 1.6e-6
  avg pot difference (actual/min): 0.95
  trace: 1.3e-10
- Maxdiff for transpose (checksum): 4.7e-10
+ Maxdiff for transpose (checksum): 9.4e-10
  norm(P): 1.0e-5
  Q matrix: 1.1e-4
  Keys to ignore:
@@ -2114,7 +2116,7 @@ igortho_94:
  norm(P): 3.9e-05
 
 extendedfrags_nofrags:
- eF: 1.7e-9
+ eF: 1.1e-8
  guess for new ef: 2.0e-9
  D Tr(K): 1.9e-8
  Tr(K): 2.1e-8
@@ -2126,52 +2128,60 @@ extendedfrags_nofrags:
  Energies: 1.1e-10
  Pressure: 3.4e-11
  Omega: 1.3e-11
+ PV (Ha): 3.7e-11
 
 extendedfrags_read:
- Omega: 2.9e-10
- eF: 1.5e-9
+ Omega: 3.0e-7
+ eF: 6.2e-7
  D Tr(K): 6.0e-9
- Tr(K): 1.1e-8
+ Tr(K): 1.0e-6
  D eF: 1.1e-9
  guess for new ef: 1.5e-9
- EBS: 2.9e-10
- EH: 1.1e-9
- EBS higher temperature: 2.7e-10
+ EBS: 2.9e-7
+ EH: 3.0e-7
+ EBS higher temperature: 2.9e-7
  Energies: 2.1e-10
- EXC: 1.01e-10
+ EXC: 2.8e-8
+ EvXC: 3.6e-8
  D Tr: 1.1e-10
  Average noise forces: 1.1e-10
- Pressure: 5.6e-11
+ Pressure: 6.1e-11
  maxval: 2.2e-11
- Total charge: 5.1e-11
+ Total charge: 5.0e-8
  Force Norm (Hartree/Bohr): 5.9e-11
  Atomic Forces (Ha/Bohr): 2.4e-11
- Epot: 3.1e-10
+ Epot: 2.9e-7
+ difference: 8.6e-11
+ relative difference: 1.9e-11
+ energy: 7.7e-11
  Keys to ignore: [WARNINGS]
 
 extendedfrags_readrotated:
  Ekin: 1.1e-10
  energy: 1.4e-11
- eF: 1.0e-8
+ eF: 1.1e-7
  D eF: 1.1e-8
  guess for new ef: 2.61e-9
  D Tr: 1.1e-9
- EBS higher temperature: 2.9e-10
- EBS: 2.7e-10
+ EBS higher temperature: 2.9e-7
+ EBS: 2.9e-7
  D Tr(K): 6.0e-9
- Pressure: 4.7e-11
- Epot: 3.0e-10
- EXC: 1.01e-10
- EvXC: 1.01e-10
- EH: 1.1e-9
- Total charge: 4.1e-11
+ Pressure: 6.9e-11
+ Epot: 2.9e-7
+ EXC: 2.8e-8
+ EvXC: 3.6e-8
+ EH: 3.0e-7
+ Total charge: 5.0e-8
  Force Norm (Hartree/Bohr): 6.4e-11
  fnrm2: 6.9e-11
- energy: 1.2e-11
+ energy: 5.8e-11
  Atomic Forces (Ha/Bohr): 2.3e-11
- Omega: 2.9e-10
+ Omega: 3.0e-7
  Average noise forces: 1.1e-10
  Clean forces norm (Ha/Bohr): 2.3e-11
+ difference: 1.1e-10
+ relative difference: 1.9e-11
+ trace(KS): 1.4e-11
  Keys to ignore: [WARNINGS]
 
 
@@ -2193,13 +2203,12 @@ extendedfrags_write:
  eF: 7.0e-9
  Pressure: 6.9e-11
  decay length of error function: 1.1e-6
- Clean forces norm (Ha/Bohr): 1.2e-11
+ Clean forces norm (Ha/Bohr): 2.8e-10
  fnrm2: 6.6e-11
- maxval: 2.1e-11
- Atomic Forces (Ha/Bohr): 2.1e-11
- Force Norm (Hartree/Bohr): 5.6e-11
+ Atomic Forces (Ha/Bohr): 7.2e-9
+ Force Norm (Hartree/Bohr): 6.2e-11
  difference: 1.65e-11
- e: 2.2e-11
+ e: 6.5e-11
  
 Cavity_H2OfrigidPCG:
  Atomic Forces (Ha/Bohr): 2.5e-6
@@ -2501,7 +2510,7 @@ matrixtaskgroups_no:
   energy: 3.0e-09
   trace: 1.50e-06
   trace(KS): 5.1e-11
-  HOMO-LUMO gap (eV): 3.4e-11
+  HOMO-LUMO gap (eV): 4.0e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.6e-9
   Force Norm (Hartree/Bohr): 8.9e-11
@@ -2531,7 +2540,7 @@ matrixtaskgroups_yes:
   energy: 3.0e-09
   trace: 1.51e-06
   trace(KS): 4.8e-11
-  HOMO-LUMO gap (eV): 3.4e-11
+  HOMO-LUMO gap (eV): 4.0e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.9e-9
   Force Norm (Hartree/Bohr): 9.6e-11

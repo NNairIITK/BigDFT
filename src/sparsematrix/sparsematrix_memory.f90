@@ -211,8 +211,12 @@ module sparsematrix_memory
       if (allocate_full) mat%matrix = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_FULL, id=trim(matname)//'%matrix')
       ! smmm%nfvctrp is the number of columns per MPI task for an optimized load
       ! balancing during the sparse matrix matrix multiplications.
-      if (sparsemat%smmm%nfvctrp>sparsemat%nfvctrp) then
-          mat%matrixp = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_MATMUL, id=trim(matname)//'%matrixp')
+      if (sparsemat%smatmul_initialized) then
+          if (sparsemat%smmm%nfvctrp>sparsemat%nfvctrp) then
+              mat%matrixp = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_MATMUL, id=trim(matname)//'%matrixp')
+          else
+              mat%matrixp = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_PARALLEL, id=trim(matname)//'%matrixp')
+          end if
       else
           mat%matrixp = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_PARALLEL, id=trim(matname)//'%matrixp')
       end if
@@ -368,7 +372,9 @@ module sparsematrix_memory
       smat_out%luccomm=f_malloc_ptr(src_ptr=smat_in%luccomm, id='smat_out%luccomm')
       !smat_out%on_which_atom=f_malloc_ptr(src_ptr=smat_in%on_which_atom, id='smat_out%on_which_atom')
 
-      call copy_sparse_matrix_matrix_multiplication(smat_in%smmm, smat_out%smmm)
+      if (smat_in%smatmul_initialized) then
+          call copy_sparse_matrix_matrix_multiplication(smat_in%smmm, smat_out%smmm)
+      end if
       call smat_release_mpi_groups(smat_out%mpi_groups)
       if (associated(smat_in%mpi_groups)) then
          is = lbound(smat_in%mpi_groups,1)
@@ -502,6 +508,10 @@ module sparsematrix_memory
       case (SPARSE_PARALLEL)
           smat_ptr = f_malloc_ptr(max(1,smat_info_ptr%smat%nvctrp*smat_info_ptr%smat%nspin),id=smat_info_ptr%id)
       case (SPARSEMM_SEQ)
+      if (.not.smat_info_ptr%smat%smatmul_initialized) then
+              call f_err_throw('sparse matrix multiplication not initialized', &
+                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
+          end if
           smat_ptr = f_malloc_ptr(max(1,smat_info_ptr%smat%smmm%nseq*smat_info_ptr%smat%nspin),id=smat_info_ptr%id)
       case default
           call f_err_throw('The action specified for the 1d matrix allocation is invalid',&
@@ -521,6 +531,10 @@ module sparsematrix_memory
       case (DENSE_PARALLEL)
           smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%nfvctrp/),id=smat_info_ptr%id)
       case (DENSE_MATMUL)
+          if (.not.smat_info_ptr%smat%smatmul_initialized) then
+              call f_err_throw('sparse matrix multiplication not initialized', &
+                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
+          end if
           smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%smmm%nfvctrp/),id=smat_info_ptr%id)
       case default
          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
@@ -542,6 +556,10 @@ module sparsematrix_memory
           smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%nfvctrp,smat_info_ptr%smat%nspin/),&
                                   id=smat_info_ptr%id)
       case (DENSE_MATMUL)
+          if (.not.smat_info_ptr%smat%smatmul_initialized) then
+              call f_err_throw('sparse matrix multiplication not initialized', &
+                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
+          end if
           smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%smmm%nfvctrp,smat_info_ptr%smat%nspin/),&
                                   id=smat_info_ptr%id)
       case default
@@ -564,6 +582,10 @@ module sparsematrix_memory
       case (SPARSE_PARALLEL)
           smat = f_malloc(max(1,smat_info%smat%nvctrp*smat_info%smat%nspin),id=smat_info%id)
       case (SPARSEMM_SEQ)
+          if (.not.smat_info%smat%smatmul_initialized) then
+              call f_err_throw('sparse matrix multiplication not initialized', &
+                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
+          end if
           smat = f_malloc(max(1,smat_info%smat%smmm%nseq*smat_info%smat%nspin),id=smat_info%id)
       case default
           call f_err_throw('The action specified for the 1d matrix allocation is invalid',&
@@ -583,6 +605,10 @@ module sparsematrix_memory
       case (DENSE_PARALLEL)
           smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%nfvctrp/),id=smat_info%id)
       case (DENSE_MATMUL)
+          if (.not.smat_info%smat%smatmul_initialized) then
+              call f_err_throw('sparse matrix multiplication not initialized', &
+                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
+          end if
           smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%smmm%nfvctrp/),id=smat_info%id)
       case default
          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
@@ -602,6 +628,10 @@ module sparsematrix_memory
       case (DENSE_PARALLEL)
           smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%nfvctrp,smat_info%smat%nspin/),id=smat_info%id)
       case (DENSE_MATMUL)
+          if (.not.smat_info%smat%smatmul_initialized) then
+              call f_err_throw('sparse matrix multiplication not initialized', &
+                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
+          end if
           smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%smmm%nfvctrp,smat_info%smat%nspin/),id=smat_info%id)
       case default
          call f_err_throw('The action specified for the 3d matrix allocation is invalid',&
@@ -623,6 +653,10 @@ module sparsematrix_memory
       case (SPARSE_PARALLEL)
           smat_ptr = f_malloc0_ptr(max(1,smat_info0_ptr%smat%nvctrp*smat_info0_ptr%smat%nspin),id=smat_info0_ptr%id)
       case (SPARSEMM_SEQ)
+          if (.not.smat_info0_ptr%smat%smatmul_initialized) then
+              call f_err_throw('sparse matrix multiplication not initialized', &
+                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
+          end if
           smat_ptr = f_malloc0_ptr(max(1,smat_info0_ptr%smat%smmm%nseq*smat_info0_ptr%smat%nspin),id=smat_info0_ptr%id)
       case default
           call f_err_throw('The action specified for the 1d matrix allocation is invalid',&
@@ -642,6 +676,10 @@ module sparsematrix_memory
       case (DENSE_PARALLEL)
           smat_ptr = f_malloc0_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%nfvctrp/),id=smat_info0_ptr%id)
       case (DENSE_MATMUL)
+          if (.not.smat_info0_ptr%smat%smatmul_initialized) then
+              call f_err_throw('sparse matrix multiplication not initialized', &
+                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
+          end if
           smat_ptr = f_malloc0_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%smmm%nfvctrp/),id=smat_info0_ptr%id)
       case default
          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
@@ -663,6 +701,10 @@ module sparsematrix_memory
           smat_ptr = f_malloc0_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%nfvctrp,smat_info0_ptr%smat%nspin/), &
                                    id=smat_info0_ptr%id)
       case (DENSE_MATMUL)
+          if (.not.smat_info0_ptr%smat%smatmul_initialized) then
+              call f_err_throw('sparse matrix multiplication not initialized', &
+                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
+          end if
           smat_ptr = f_malloc0_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%smmm%nfvctrp,smat_info0_ptr%smat%nspin/), &
                                    id=smat_info0_ptr%id)
       case default
@@ -685,6 +727,10 @@ module sparsematrix_memory
       case (SPARSE_PARALLEL)
           smat = f_malloc0(max(1,smat_info0%smat%nvctrp*smat_info0%smat%nspin),id=smat_info0%id)
       case (SPARSEMM_SEQ)
+          if (.not.smat_info0%smat%smatmul_initialized) then
+              call f_err_throw('sparse matrix multiplication not initialized', &
+                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
+          end if
           smat = f_malloc0(max(1,smat_info0%smat%smmm%nseq*smat_info0%smat%nspin),id=smat_info0%id)
       case default
           call f_err_throw('The action specified for the 1d matrix allocation is invalid',&
@@ -704,6 +750,10 @@ module sparsematrix_memory
       case (DENSE_PARALLEL)
           smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%nfvctrp/),id=smat_info0%id)
       case (DENSE_MATMUL)
+          if (.not.smat_info0%smat%smatmul_initialized) then
+              call f_err_throw('sparse matrix multiplication not initialized', &
+                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
+          end if
           smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%smmm%nfvctrp/),id=smat_info0%id)
       case default
           call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
@@ -723,6 +773,10 @@ module sparsematrix_memory
       case (DENSE_PARALLEL)
           smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%nfvctrp,smat_info0%smat%nspin/),id=smat_info0%id)
       case (DENSE_MATMUL)
+          if (.not.smat_info0%smat%smatmul_initialized) then
+              call f_err_throw('sparse matrix multiplication not initialized', &
+                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
+          end if
           smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%smmm%nfvctrp,smat_info0%smat%nspin/),id=smat_info0%id)
       case default
           call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
