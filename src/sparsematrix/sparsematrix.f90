@@ -2079,7 +2079,7 @@ module sparsematrix
 
 
 
-    subroutine max_asymmetry_of_matrix(iproc, nproc, comm, sparsemat, mat_tg, error_max)
+    subroutine max_asymmetry_of_matrix(iproc, nproc, comm, sparsemat, mat_tg, error_max, ispinx)
       use sparsematrix_init, only: matrixindex_in_compressed
       implicit none
 
@@ -2088,6 +2088,7 @@ module sparsematrix
       type(sparse_matrix),intent(in) :: sparsemat
       real(kind=mp),dimension(sparsemat%nvctrp_tg),intent(in) :: mat_tg
       real(kind=mp),intent(out) :: error_max
+      integer,intent(in),optional :: ispinx
 
       ! Local variables
       real(kind=mp),dimension(:),allocatable :: mat_full
@@ -2102,6 +2103,9 @@ module sparsematrix
 
       error_max = 0.0_mp
       do ispin=1,sparsemat%nspin
+          if (present(ispinx)) then
+              if (ispin/=ispinx) cycle
+          end if
           ishift=(ispin-1)*sparsemat%nvctr
           !do iseg=1,sparsemat%nseg
           do iseg=sparsemat%isseg,sparsemat%ieseg
@@ -2269,7 +2273,7 @@ module sparsematrix
 
 
 
-    subroutine symmetrize_matrix(smat, csign, mat_in, mat_out)
+    subroutine symmetrize_matrix(smat, csign, mat_in, mat_out, ispinx)
       use sparsematrix_init, only: matrixindex_in_compressed
       implicit none
 
@@ -2278,6 +2282,7 @@ module sparsematrix
       character(len=*),intent(in) :: csign
       real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: mat_in
       real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(out) :: mat_out
+      integer,intent(in),optional :: ispinx
 
       ! Local variables
       integer :: ispin, ishift, iseg, ii, i, ii_trans
@@ -2294,6 +2299,9 @@ module sparsematrix
       end if
 
       do ispin=1,smat%nspin
+          if (present(ispinx)) then
+              if (ispin/=ispinx) cycle
+          end if
           ishift=(ispin-1)*smat%nvctrp_tg
           !$omp parallel default(none) &
           !$omp shared(smat,mat_in,mat_out,ishift) &
