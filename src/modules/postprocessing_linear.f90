@@ -307,7 +307,7 @@ module postprocessing_linear
               call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
                    meth_overlap, 1, power, blocksize, &
                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                   ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
+                   ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=meth_overlap<1000, &
                    max_error=max_error, mean_error=mean_error)
               !call f_free_ptr(ovrlp%matrix)
 

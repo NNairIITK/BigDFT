@@ -1580,86 +1580,86 @@ module foe
     
     
     
-          subroutine retransform(matrix_compr)
-              use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
-                                      compress_matrix_distributed_wrapper, &
-                                      sparsemm_new
-              ! Calling arguments
-              real(kind=mp),dimension(smatl%nvctrp_tg),intent(inout) :: matrix_compr
+          !!subroutine retransform(matrix_compr)
+          !!    use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
+          !!                            compress_matrix_distributed_wrapper, &
+          !!                            sparsemm_new
+          !!    ! Calling arguments
+          !!    real(kind=mp),dimension(smatl%nvctrp_tg),intent(inout) :: matrix_compr
     
-              ! Local variables
-              real(kind=mp),dimension(:,:),pointer :: inv_ovrlpp, tempp
-              real(kind=mp),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
-              real(kind=mp),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
-              integer,dimension(:,:,:),allocatable :: istindexarr
-              integer :: nout, nseq
+          !!    ! Local variables
+          !!    real(kind=mp),dimension(:,:),pointer :: inv_ovrlpp, tempp
+          !!    real(kind=mp),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
+          !!    real(kind=mp),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
+          !!    integer,dimension(:,:,:),allocatable :: istindexarr
+          !!    integer :: nout, nseq
     
-              call f_routine(id='retransform')
+          !!    call f_routine(id='retransform')
     
-              !!inv_ovrlpp = sparsematrix_malloc_ptr(smatl, iaction=DENSE_MATMUL, id='inv_ovrlpp')
-              inv_ovrlpp_new = f_malloc_ptr(smatl%smmm%nvctrp, id='inv_ovrlpp_new')
-              !!tempp = sparsematrix_malloc_ptr(smatl, iaction=DENSE_MATMUL, id='tmpp')
-              tempp_new = f_malloc_ptr(smatl%smmm%nvctrp, id='tempp_new')
-              inv_ovrlp_compr_seq = sparsematrix_malloc(smatl, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-              kernel_compr_seq = sparsematrix_malloc(smatl, iaction=SPARSEMM_SEQ, id='kernel_compr_seq')
-              call sequential_acces_matrix_fast2(smatl, matrix_compr, kernel_compr_seq)
-              call sequential_acces_matrix_fast2(smatl, &
-                   ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), inv_ovrlp_compr_seq)
-              !!call uncompress_matrix_distributed2(iproc, smatl, DENSE_MATMUL, &
-              !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), inv_ovrlpp)
-              !! write(*,*) 'sum(matrix_compr) 0', iproc, sum(ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:))
-              !!  write(*,*) 'smatl%nvctrp, smatl%smmm%nvctrp_mm', smatl%nvctrp, smatl%smmm%nvctrp_mm
-              !!  write(*,*) 'smatl%isvctr, smatl%smmm%isvctr_mm', smatl%isvctr, smatl%smmm%isvctr_mm
-              call transform_sparsity_pattern(iproc, smatl%nfvctr, smatl%smmm%nvctrp_mm, smatl%smmm%isvctr_mm, &
-                   smatl%nseg, smatl%keyv, smatl%keyg, smatl%smmm%line_and_column_mm, &
-                   smatl%smmm%nvctrp, smatl%smmm%isvctr, &
-                   smatl%smmm%nseg, smatl%smmm%keyv, smatl%smmm%keyg, &
-                   smatl%smmm%istsegline, 'small_to_large', &
-                   ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+smatl%smmm%isvctr_mm-smatl%isvctrp_tg+1:), &
-                   inv_ovrlpp_new)
-              !!  write(*,*) 'sum(matrix_compr) 1', iproc, sum(ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:))
-              !!  write(*,*) 'sum(inv_ovrlpp_new) 1', iproc, sum(inv_ovrlpp_new)
-              !!  write(*,*) 'sum(inv_ovrlpp) 1', iproc, sum(inv_ovrlpp)
-    
-    
-                !!!!          call transform_sparsity_pattern(smatl%nfvctr, smatl%smmm%nvctrp_mm, smatl%smmm%isvctr_mm, &
-                !!!!               smatl%nseg, smatl%keyv, smatl%keyg, &
-                !!!!               smatl%smmm%nvctrp, smatl%smmm%isvctr, &
-                !!!!               smatl%smmm%nseg, smatl%smmm%keyv, smatl%smmm%keyg, &
-                !!!!               fermi_new, fermi_small_new)
+          !!    !!inv_ovrlpp = sparsematrix_malloc_ptr(smatl, iaction=DENSE_MATMUL, id='inv_ovrlpp')
+          !!    inv_ovrlpp_new = f_malloc_ptr(smatl%smmm%nvctrp, id='inv_ovrlpp_new')
+          !!    !!tempp = sparsematrix_malloc_ptr(smatl, iaction=DENSE_MATMUL, id='tmpp')
+          !!    tempp_new = f_malloc_ptr(smatl%smmm%nvctrp, id='tempp_new')
+          !!    inv_ovrlp_compr_seq = sparsematrix_malloc(smatl, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+          !!    kernel_compr_seq = sparsematrix_malloc(smatl, iaction=SPARSEMM_SEQ, id='kernel_compr_seq')
+          !!    call sequential_acces_matrix_fast2(smatl, matrix_compr, kernel_compr_seq)
+          !!    call sequential_acces_matrix_fast2(smatl, &
+          !!         ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), inv_ovrlp_compr_seq)
+          !!    !!call uncompress_matrix_distributed2(iproc, smatl, DENSE_MATMUL, &
+          !!    !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), inv_ovrlpp)
+          !!    !! write(*,*) 'sum(matrix_compr) 0', iproc, sum(ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:))
+          !!    !!  write(*,*) 'smatl%nvctrp, smatl%smmm%nvctrp_mm', smatl%nvctrp, smatl%smmm%nvctrp_mm
+          !!    !!  write(*,*) 'smatl%isvctr, smatl%smmm%isvctr_mm', smatl%isvctr, smatl%smmm%isvctr_mm
+          !!    call transform_sparsity_pattern(iproc, smatl%nfvctr, smatl%smmm%nvctrp_mm, smatl%smmm%isvctr_mm, &
+          !!         smatl%nseg, smatl%keyv, smatl%keyg, smatl%smmm%line_and_column_mm, &
+          !!         smatl%smmm%nvctrp, smatl%smmm%isvctr, &
+          !!         smatl%smmm%nseg, smatl%smmm%keyv, smatl%smmm%keyg, &
+          !!         smatl%smmm%istsegline, 'small_to_large', &
+          !!         ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+smatl%smmm%isvctr_mm-smatl%isvctrp_tg+1:), &
+          !!         inv_ovrlpp_new)
+          !!    !!  write(*,*) 'sum(matrix_compr) 1', iproc, sum(ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:))
+          !!    !!  write(*,*) 'sum(inv_ovrlpp_new) 1', iproc, sum(inv_ovrlpp_new)
+          !!    !!  write(*,*) 'sum(inv_ovrlpp) 1', iproc, sum(inv_ovrlpp)
     
     
+          !!      !!!!          call transform_sparsity_pattern(smatl%nfvctr, smatl%smmm%nvctrp_mm, smatl%smmm%isvctr_mm, &
+          !!      !!!!               smatl%nseg, smatl%keyv, smatl%keyg, &
+          !!      !!!!               smatl%smmm%nvctrp, smatl%smmm%isvctr, &
+          !!      !!!!               smatl%smmm%nseg, smatl%smmm%keyv, smatl%smmm%keyg, &
+          !!      !!!!               fermi_new, fermi_small_new)
     
-              !!call f_zero(tempp)
-              !!call sparsemm(smatl, kernel_compr_seq, inv_ovrlpp, tempp)
-              !!write(*,*) 'sum(tempp) 2',iproc, sum(tempp)
-              call sparsemm_new(iproc, smatl, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
-              !!write(*,*) 'sum(tempp_new) 2',iproc, sum(tempp_new)
-              !!inv_ovrlpp=0.d0
-              !!call sparsemm(smatl, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
-              call sparsemm_new(iproc, smatl, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
-               !!write(*,*) 'sum(inv_ovrlpp) 3', iproc, sum(inv_ovrlpp)
-               !!write(*,*) 'sum(inv_ovrlpp_new) 3', iproc, sum(inv_ovrlpp_new)
     
-              !!call f_zero(matrix_compr)
-              !!call compress_matrix_distributed(iproc, nproc, smatl, DENSE_MATMUL, &
-              !!     inv_ovrlpp, matrix_compr)
-              !!  write(*,*) 'sum(matrix_compr) old', iproc, sum(matrix_compr)
-              call f_zero(matrix_compr)
-              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_LARGE, &
-                   inv_ovrlpp_new, matrix_compr)
-                !!write(*,*) 'sum(matrix_compr) new', iproc, sum(matrix_compr)
     
-              !!call f_free_ptr(inv_ovrlpp)
-              !!call f_free_ptr(tempp)
-              call f_free_ptr(inv_ovrlpp_new)
-              call f_free_ptr(tempp_new)
-              call f_free(inv_ovrlp_compr_seq)
-              call f_free(kernel_compr_seq)
+          !!    !!call f_zero(tempp)
+          !!    !!call sparsemm(smatl, kernel_compr_seq, inv_ovrlpp, tempp)
+          !!    !!write(*,*) 'sum(tempp) 2',iproc, sum(tempp)
+          !!    call sparsemm_new(iproc, smatl, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
+          !!    !!write(*,*) 'sum(tempp_new) 2',iproc, sum(tempp_new)
+          !!    !!inv_ovrlpp=0.d0
+          !!    !!call sparsemm(smatl, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
+          !!    call sparsemm_new(iproc, smatl, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
+          !!     !!write(*,*) 'sum(inv_ovrlpp) 3', iproc, sum(inv_ovrlpp)
+          !!     !!write(*,*) 'sum(inv_ovrlpp_new) 3', iproc, sum(inv_ovrlpp_new)
     
-              call f_release_routine()
+          !!    !!call f_zero(matrix_compr)
+          !!    !!call compress_matrix_distributed(iproc, nproc, smatl, DENSE_MATMUL, &
+          !!    !!     inv_ovrlpp, matrix_compr)
+          !!    !!  write(*,*) 'sum(matrix_compr) old', iproc, sum(matrix_compr)
+          !!    call f_zero(matrix_compr)
+          !!    call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_LARGE, &
+          !!         inv_ovrlpp_new, matrix_compr)
+          !!      !!write(*,*) 'sum(matrix_compr) new', iproc, sum(matrix_compr)
     
-          end subroutine retransform
+          !!    !!call f_free_ptr(inv_ovrlpp)
+          !!    !!call f_free_ptr(tempp)
+          !!    call f_free_ptr(inv_ovrlpp_new)
+          !!    call f_free_ptr(tempp_new)
+          !!    call f_free(inv_ovrlp_compr_seq)
+          !!    call f_free(kernel_compr_seq)
+    
+          !!    call f_release_routine()
+    
+          !!end subroutine retransform
     
     
           !!!!subroutine calculate_trace_distributed_new(matrixp, trace)

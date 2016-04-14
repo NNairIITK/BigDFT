@@ -929,7 +929,7 @@ module foe_common
     
         ! Local variables
         real(kind=mp),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
-        real(kind=mp),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
+        real(kind=mp),dimension(:),allocatable :: mat_compr_seq
     
         call f_routine(id='retransform_ext')
 
@@ -940,11 +940,8 @@ module foe_common
     
         inv_ovrlpp_new = f_malloc_ptr(smat%smmm%nvctrp, id='inv_ovrlpp_new')
         tempp_new = f_malloc_ptr(smat%smmm%nvctrp, id='tempp_new')
-        inv_ovrlp_compr_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-        kernel_compr_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-        call sequential_acces_matrix_fast2(smat, kernel, kernel_compr_seq)
-        call sequential_acces_matrix_fast2(smat, &
-             inv_ovrlp, inv_ovrlp_compr_seq)
+        mat_compr_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='mat_compr_seq')
+        !!kernel_compr_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='kernel_compr_seq')
         if (smat%smmm%nvctrp_mm>0) then !to avoid an out of bounds error
             call transform_sparsity_pattern(iproc, smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
                  smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
@@ -952,15 +949,17 @@ module foe_common
                  smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
                  'small_to_large', inv_ovrlp(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), inv_ovrlpp_new)
         end if
-        call sparsemm_new(iproc, smat, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
-        call sparsemm_new(iproc, smat, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
+        call sequential_acces_matrix_fast2(smat, kernel, mat_compr_seq)
+        call sparsemm_new(iproc, smat, mat_compr_seq, inv_ovrlpp_new, tempp_new)
+        call sequential_acces_matrix_fast2(smat, inv_ovrlp, mat_compr_seq)
+        call sparsemm_new(iproc, smat, mat_compr_seq, tempp_new, inv_ovrlpp_new)
         call f_zero(kernel)
         call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_LARGE, &
              inv_ovrlpp_new, kernel)
         call f_free_ptr(inv_ovrlpp_new)
         call f_free_ptr(tempp_new)
-        call f_free(inv_ovrlp_compr_seq)
-        call f_free(kernel_compr_seq)
+        call f_free(mat_compr_seq)
+        !!call f_free(kernel_compr_seq)
     
         call f_release_routine()
     
