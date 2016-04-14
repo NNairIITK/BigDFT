@@ -708,14 +708,10 @@
  orthonormalization of input guess: generalized, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  7.9E-04, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}], 
- error estimation: [
- max / mean error:  [  4.77E-09,  2.23E-10 ]]}, 
+  Yes], exp accur:  [  3.61E-10 ]}]}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -7.2E-05, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}], 
- error estimation: [
- max / mean error:  [  3.7E-10,  3.29E-11 ]]}, 
+  Yes], exp accur:  [  3.61E-10 ]}]}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 2
  target function: TRACE, Calculating wavelets expansion of projectors, found warnings:  32, 
@@ -730,14 +726,10 @@
  orthonormalization of input guess: generalized, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  1.1E-03, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}], 
- error estimation: [
- max / mean error:  [  9.14E-10,  4.76E-11 ]]}, 
+  Yes], exp accur:  [  3.61E-10 ]}]}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  7.3E-06, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}], 
- error estimation: [
- max / mean error:  [  3.7E-10,  3.63E-11 ]]}, 
+  Yes], exp accur:  [  3.61E-10 ]}]}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 3
  target function: TRACE, Calculating wavelets expansion of projectors, found warnings:  32, 
@@ -2872,8 +2864,6 @@
    determine eigenvalue bounds:
    -  {npl:  17, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -4.4E-03, ok: [ Yes, 
   Yes], exp accur:  [  7.57E-10 ]}
-   error estimation:
-     max / mean error                  :  [  5.25E-07,  2.80E-08 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : angstroem
