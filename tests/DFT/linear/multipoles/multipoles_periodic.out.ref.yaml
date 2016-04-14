@@ -2152,8 +2152,6 @@
    determine eigenvalue bounds:
    -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -3.1E-03, ok: [ Yes, 
   Yes], exp accur:  [  6.93E-10 ]}
-   error estimation:
-     max / mean error                  :  [  4.71E-10,  1.97E-10 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Orthonormalizing the support functions
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculate projector for multipole analysis
@@ -2165,8 +2163,6 @@
    determine eigenvalue bounds:
    -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -3.1E-03, ok: [ Yes, 
   Yes], exp accur:  [  6.93E-10 ]}
-   error estimation:
-     max / mean error                  :  [  4.71E-10,  1.97E-10 ]
  Calculating projector for charge analysis:
    convergence criterion               :  1.0E-004
    maximal size of a submatrix         :  6
@@ -2279,8 +2275,6 @@
    determine eigenvalue bounds:
    -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  3.5E-05, ok: [ Yes, 
   Yes], exp accur:  [  3.61E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.7E-10,  1.25E-10 ]
  Wavefunction coefficients written     :  Yes
  Total charge                          :  7.999998909827E+00
  Writing external potential in file    : external_potential

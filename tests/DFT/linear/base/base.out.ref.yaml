@@ -2225,8 +2225,6 @@
    determine eigenvalue bounds:
    -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -3.5E-14, ok: [ Yes, 
   Yes], exp accur:  [  6.93E-10 ]}
-   error estimation:
-     max / mean error                  :  [  9.56E-14,  2.32E-14 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Orthonormalizing the support functions
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating matrix for orthonormal support functions
@@ -2238,8 +2236,6 @@
    determine eigenvalue bounds:
    -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  6.1E-15, ok: [ Yes, 
   Yes], exp accur:  [  3.61E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.7E-10,  1.03E-10 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
  calculate S^x:
    mode                                : sparse
@@ -2249,8 +2245,6 @@
    determine eigenvalue bounds:
    -  {npl:  17, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -7.2E-11, ok: [ Yes, 
   Yes], exp accur:  [  7.57E-10 ]}
-   error estimation:
-     max / mean error                  :  [  4.0E-15,  1.06E-15 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr

@@ -676,19 +676,13 @@
  orthonormalization of input guess: generalized, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -4.3E-05, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}], 
- error estimation: [
- max / mean error:  [  3.7E-10,  7.39E-11 ]]}, 
+  Yes], exp accur:  [  3.61E-10 ]}]}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -6.4E-05, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}], 
- error estimation: [
- max / mean error:  [  3.7E-10,  7.39E-11 ]]}, 
+  Yes], exp accur:  [  3.61E-10 ]}]}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -1.9E-04, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}], 
- error estimation: [
- max / mean error:  [  3.7E-10,  6.99E-11 ]]}, 
+  Yes], exp accur:  [  3.61E-10 ]}]}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 2
  target function: TRACE, Hamiltonian Applied:  Yes, 
@@ -701,19 +695,13 @@
  orthonormalization of input guess: generalized, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -7.8E-05, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}], 
- error estimation: [
- max / mean error:  [  3.7E-10,  7.69E-11 ]]}, 
+  Yes], exp accur:  [  3.61E-10 ]}]}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  1.5E-05, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}], 
- error estimation: [
- max / mean error:  [  3.7E-10,  7.58E-11 ]]}, 
+  Yes], exp accur:  [  3.61E-10 ]}]}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  6.9E-05, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}], 
- error estimation: [
- max / mean error:  [  3.7E-10,  7.00E-11 ]]}, 
+  Yes], exp accur:  [  3.61E-10 ]}]}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 3
  target function: TRACE, Hamiltonian Applied:  Yes, 
@@ -2515,8 +2503,6 @@
    determine eigenvalue bounds:
    -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -1.1E-02, ok: [ Yes, 
   Yes], exp accur:  [  6.93E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.95E-10,  9.18E-11 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Orthonormalizing the support functions
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating matrix for orthonormal support functions
@@ -2528,8 +2514,6 @@
    determine eigenvalue bounds:
    -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -2.8E-04, ok: [ Yes, 
   Yes], exp accur:  [  3.61E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.47E-10,  6.46E-11 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
  calculate S^x:
    mode                                : sparse
@@ -2539,8 +2523,6 @@
    determine eigenvalue bounds:
    -  {npl:  17, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -7.0E-11, ok: [ Yes, 
   Yes], exp accur:  [  7.57E-10 ]}
-   error estimation:
-     max / mean error                  :  [  4.33E-15,  8.14E-16 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr

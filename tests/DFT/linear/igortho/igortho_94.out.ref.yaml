@@ -677,14 +677,10 @@
  orthonormalization of input guess: generalized, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -6.8E-06, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}], 
- error estimation: [
- max / mean error:  [  3.7E-10,  8.49E-11 ]]}, 
+  Yes], exp accur:  [  3.61E-10 ]}]}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  7.4E-05, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}], 
- error estimation: [
- max / mean error:  [  3.7E-10,  7.08E-11 ]]}, 
+  Yes], exp accur:  [  3.61E-10 ]}]}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 2
  target function: TRACE, Hamiltonian Applied:  Yes, 
@@ -697,14 +693,10 @@
  orthonormalization of input guess: generalized, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -3.7E-05, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}], 
- error estimation: [
- max / mean error:  [  3.7E-10,  8.91E-11 ]]}, 
+  Yes], exp accur:  [  3.61E-10 ]}]}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -1.9E-05, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}], 
- error estimation: [
- max / mean error:  [  3.7E-10,  8.31E-11 ]]}, 
+  Yes], exp accur:  [  3.61E-10 ]}]}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 3
  target function: TRACE, Hamiltonian Applied:  Yes, 

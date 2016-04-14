@@ -2367,8 +2367,6 @@
    determine eigenvalue bounds:
    -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -2.8E-03, ok: [ Yes, 
   Yes], exp accur:  [  6.93E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.01E-10,  4.44E-11 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Orthonormalizing the support functions
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculate projector for multipole analysis
@@ -2380,8 +2378,6 @@
    determine eigenvalue bounds:
    -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -2.8E-03, ok: [ Yes, 
   Yes], exp accur:  [  6.93E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.01E-10,  4.44E-11 ]
  Calculating projector for charge analysis:
    convergence criterion               :  1.0E-004
    maximal size of a submatrix         :  46
