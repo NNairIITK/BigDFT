@@ -1112,7 +1112,7 @@ module foe
       kernel_tmp = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='kernel_tmp')
     
       fermi_check_new = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='fermip_check_new')
-      fermi_new = f_malloc((/smatl%smmm%nvctrp/),id='fermi_new')
+      !!fermi_new = f_malloc((/smatl%smmm%nvctrp/),id='fermi_new')
 !      fermi_small_new = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='fermi_small_new')
     
     
@@ -1247,9 +1247,10 @@ module foe
                                (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/))
                       end if
 
+                      ! Use kernel_%matrix_compr as workarray to save memory
                       call get_chebyshev_polynomials(iproc, nproc, comm, &
                            2, foe_verbosity, npl, smatm, smatl, &
-                           ham_, foe_obj, chebyshev_polynomials, ispin, eval_bounds_ok, hamscal_compr, &
+                           ham_, kernel_%matrix_compr, foe_obj, chebyshev_polynomials, ispin, eval_bounds_ok, hamscal_compr, &
                            scale_factor, shift_value, &
                            smats=smats, ovrlp_=ovrlp_, &
                            ovrlp_minus_one_half=ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:))
@@ -1526,7 +1527,7 @@ module foe
     
       !call f_free(penalty_ev_new)
       call f_free(fermi_check_new)
-      call f_free(fermi_new)
+      !!call f_free(fermi_new)
 !      call f_free(fermi_small_new)
     
       !call timing(iproc, 'FOE_auxiliary ', 'OF')

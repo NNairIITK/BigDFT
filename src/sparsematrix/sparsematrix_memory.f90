@@ -109,7 +109,7 @@ module sparsematrix_memory
     pure subroutine nullify_sparse_matrix_matrix_multiplication(smmm)
       implicit none
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
-      nullify(smmm%ivectorindex)
+      !nullify(smmm%ivectorindex)
       nullify(smmm%ivectorindex_new)
       nullify(smmm%onedimindices)
       nullify(smmm%onedimindices_new)
@@ -163,7 +163,7 @@ module sparsematrix_memory
       implicit none
       integer,intent(in) :: nproc, norb, nseg
       type(sparse_matrix_matrix_multiplication),intent(inout):: smmm
-      smmm%ivectorindex=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex')
+      !smmm%ivectorindex=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex')
       smmm%ivectorindex_new=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex_new')
       smmm%onedimindices=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices')
       smmm%onedimindices_new=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices_new')
@@ -425,7 +425,7 @@ module sparsematrix_memory
       !!converted  call allocate_and_copy(smmm_in%nvctr_mm_par, smmm_out%nvctr_mm_par, id='smmm_out%nvctr_mm_par')
       smmm_out%nvctr_mm_par=f_malloc_ptr(src_ptr=smmm_in%nvctr_mm_par, id='smmm_out%nvctr_mm_par')
       !!converted  call allocate_and_copy(smmm_in%ivectorindex, smmm_out%ivectorindex, id='smmm_out%ivectorindex')
-      smmm_out%ivectorindex=f_malloc_ptr(src_ptr=smmm_in%ivectorindex, id='smmm_out%ivectorindex')
+      !!smmm_out%ivectorindex=f_malloc_ptr(src_ptr=smmm_in%ivectorindex, id='smmm_out%ivectorindex')
       !!converted  call allocate_and_copy(smmm_in%ivectorindex_new, smmm_out%ivectorindex_new, id='smmm_out%ivectorindex_new')
       smmm_out%ivectorindex_new=f_malloc_ptr(src_ptr=smmm_in%ivectorindex_new, id='smmm_out%ivectorindex_new')
       !!converted  call allocate_and_copy(smmm_in%nsegline, smmm_out%nsegline, id='smmm_out%segline')
@@ -475,7 +475,7 @@ module sparsematrix_memory
     subroutine deallocate_sparse_matrix_matrix_multiplication(smmm)
       implicit none
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
-      call f_free_ptr(smmm%ivectorindex)
+      !call f_free_ptr(smmm%ivectorindex)
       call f_free_ptr(smmm%ivectorindex_new)
       call f_free_ptr(smmm%onedimindices)
       call f_free_ptr(smmm%onedimindices_new)

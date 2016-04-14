@@ -1235,7 +1235,7 @@ module foe_common
 
 
     subroutine get_chebyshev_polynomials(iproc, nproc, comm, itype, foe_verbosity, npl, smatm, smatl, &
-               ham_, foe_obj, chebyshev_polynomials, ispin, eval_bounds_ok, &
+               ham_, workarr_compr, foe_obj, chebyshev_polynomials, ispin, eval_bounds_ok, &
                hamscal_compr, scale_factor, shift_value, smats, ovrlp_, ovrlp_minus_one_half)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
@@ -1254,6 +1254,7 @@ module foe_common
       integer,intent(in) :: npl
       type(sparse_matrix),intent(in) :: smatm, smatl
       type(matrices),intent(in) :: ham_
+      real(kind=mp),dimension(smatl%nvctrp_tg),intent(inout) :: workarr_compr
       type(foe_data),intent(inout) :: foe_obj
       real(kind=mp),dimension(:,:),pointer,intent(inout) :: chebyshev_polynomials
       logical,dimension(2),intent(out) :: eval_bounds_ok
@@ -1568,13 +1569,13 @@ module foe_common
                               !!if (iproc==0) call yaml_map('max assymetry of inv',tt)
                               call chebyshev_clean(iproc, nproc, npl, cc, &
                                    smatl, hamscal_compr, &
-                                   .true., &
+                                   .true., workarr_compr, &
                                    nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
                                    emergency_stop, invovrlp_compr=ovrlp_minus_one_half)
                           else
                               call chebyshev_clean(iproc, nproc, npl, cc, &
                                    smatl, hamscal_compr, &
-                                   .false., &
+                                   .false., workarr_compr, &
                                    nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
                                    emergency_stop)
                           end if
