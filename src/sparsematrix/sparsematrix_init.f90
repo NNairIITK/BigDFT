@@ -430,10 +430,16 @@ module sparsematrix_init
       !call get_arrays_for_sequential_acces(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
       !     nsegline, istsegline, keyg, sparsemat, &
       !     sparsemat%smmm%nseq, sparsemat%smmm%ivectorindex)
+
       call get_arrays_for_sequential_acces_new(sparsemat%smmm%nout, ispt, nseg, sparsemat%smmm%nseq, &
            keyv, keyg, sparsemat, istsegline, sparsemat%smmm%ivectorindex_new)
       call determine_consecutive_values(sparsemat%smmm%nout, sparsemat%smmm%nseq, sparsemat%smmm%ivectorindex_new, &
            sparsemat%smmm%onedimindices_new, sparsemat%smmm%nconsecutive_max, sparsemat%smmm%consecutive_lookup)
+      ! The choice for matmul_version can be made in sparsematrix_base
+      if (matmul_version==MATMUL_NEW) then
+          call f_free_ptr(sparsemat%smmm%ivectorindex_new)
+      end if
+
       !call init_sequential_acces_matrix(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), sparsemat%nseg, &
       !     sparsemat%nsegline, sparsemat%istsegline, sparsemat%keyg, sparsemat, sparsemat%smmm%nseq, &
       !     sparsemat%smmm%indices_extract_sequential)

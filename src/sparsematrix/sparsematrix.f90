@@ -1180,9 +1180,9 @@ module sparsematrix
      integer :: n_dense
      real(kind=mp),dimension(:,:),allocatable :: a_dense, b_dense, c_dense
      !real(kind=mp),dimension(:),allocatable :: b_dense, c_dense
-     integer,parameter :: MATMUL_NEW = 101
-     integer,parameter :: MATMUL_OLD = 102
-     integer,parameter :: matmul_version = MATMUL_NEW
+     !!integer,parameter :: MATMUL_NEW = 101
+     !!integer,parameter :: MATMUL_OLD = 102
+     !!integer,parameter :: matmul_version = MATMUL_NEW 
      logical,parameter :: count_flops = .false.
      real(kind=mp) :: ts, te, op, gflops
      real(kind=mp),parameter :: flop_per_op = 2.d0 !<number of FLOPS per operations
@@ -1205,6 +1205,7 @@ module sparsematrix
      call f_timing(TCAT_SMAT_MULTIPLICATION,'IR')
 
 
+     ! The choice for matmul_version can be made in sparsematrix_base
      if (matmul_version==MATMUL_NEW) then
 
          if (count_flops) then

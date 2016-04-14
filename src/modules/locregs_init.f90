@@ -621,40 +621,46 @@ module locregs_init
     
           !dz=((ii3*hz)-locregCenter(3))**2
           !dy=((ii2*hy)-locregCenter(2))**2
-          do i=i0,i1
-              ii1=i+nl1glob
-              do ij3=ijs3,ije3!-1,1
-                  jj3=ii3+ij3*(n3glob+1)
-                  dz=((jj3*hz)-locregCenter(3))**2
+          do ij3=ijs3,ije3!-1,1
+              jj3=ii3+ij3*(n3glob+1)
+              dz=((jj3*hz)-locregCenter(3))**2
+              if(dz<=cut) then
+                  ! From the viewpoint of the z coordinate we are inside the cutoff, check now also the y and x dimensions
                   do ij2=ijs2,ije2!-1,1
                       jj2=ii2+ij2*(n2glob+1)
                       dy=((jj2*hy)-locregCenter(2))**2
-                      do ij1=ijs1,ije1!-1,1
-                          jj1=ii1+ij1*(n1glob+1)
-                          dx=((jj1*hx)-locregCenter(1))**2
-                          if(dx+dy+dz<=cut) then
-                              ixmax=max(jj1,ixmax)
-                              iymax=max(jj2,iymax)
-                              izmax=max(jj3,izmax)
-                              ixmin=min(jj1,ixmin)
-                              iymin=min(jj2,iymin)
-                              izmin=min(jj3,izmin)
-                          end if
-                      end do
+                      if(dy+dz<=cut) then
+                          ! From the viewpoint of the y and z coordinate we are inside the cutoff, check now also the x dimension
+                          do i=i0,i1
+                              ii1=i+nl1glob
+                              do ij1=ijs1,ije1!-1,1
+                                  jj1=ii1+ij1*(n1glob+1)
+                                  dx=((jj1*hx)-locregCenter(1))**2
+                                  if(dx+dy+dz<=cut) then
+                                      ixmax=max(jj1,ixmax)
+                                      iymax=max(jj2,iymax)
+                                      izmax=max(jj3,izmax)
+                                      ixmin=min(jj1,ixmin)
+                                      iymin=min(jj2,iymin)
+                                      izmin=min(jj3,izmin)
+                                  end if
+                              end do
+                          end do
+                      end if
                   end do
-              end do
-              !dx=((ii1*hx)-locregCenter(1))**2
-              !!dx=((ii1*hx)-locregCenter(1))**2
-              !!if(dx+dy+dz<=cut) then
-              !!    ixmax=max(ii1,ixmax)
-              !!    iymax=max(ii2,iymax)
-              !!    izmax=max(ii3,izmax)
-              !!    ixmin=min(ii1,ixmin)
-              !!    !if(ii1<ixmin) iiimin=j0-1 ; isegmin=iseg
-              !!    iymin=min(ii2,iymin)
-              !!    izmin=min(ii3,izmin)
-              !!end if
+              end if
           end do
+          !dx=((ii1*hx)-locregCenter(1))**2
+          !!dx=((ii1*hx)-locregCenter(1))**2
+          !!if(dx+dy+dz<=cut) then
+          !!    ixmax=max(ii1,ixmax)
+          !!    iymax=max(ii2,iymax)
+          !!    izmax=max(ii3,izmax)
+          !!    ixmin=min(ii1,ixmin)
+          !!    !if(ii1<ixmin) iiimin=j0-1 ; isegmin=iseg
+          !!    iymin=min(ii2,iymin)
+          !!    izmin=min(ii3,izmin)
+          !!end if
       end do
       !$omp enddo
       !$omp end parallel
@@ -736,7 +742,7 @@ module locregs_init
           ii2=i2+nl2glob
           ii3=i3+nl3glob
 
-          ! First just check the z dimension. If inside is false, proceed deirectly,
+          ! First just check the z dimension. If inside is false, proceed directly,
           ! otherwise check also the other dimensions.
           inside=.false.
           do ij3=ijs3,ije3!-1,1
@@ -1019,7 +1025,7 @@ module locregs_init
                               jj1=ii1+ij1*(n1+1)
                               dx=((jj1*hx)-locregCenter(1))**2
                               if(dx+dy+dz<=cut) then
-                                  if (inside) stop 'twice inside'
+                                  if (inside) call f_err_throw('twice inside',err_name='BIGDFT_RUNTIME_ERROR')
                                   inside=.true.
                                   ii1mod=jj1
                                   ii2mod=jj2

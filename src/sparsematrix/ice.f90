@@ -744,8 +744,8 @@ module ice
       ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
       nsize_polynomial = inv_ovrlp_smat%smmm%nvctrp_mm
       
-      !!! Fake allocation, will be modified later
-      !!chebyshev_polynomials = f_malloc_ptr((/nsize_polynomial,1/),id='chebyshev_polynomials')
+      ! Fake allocation, will be modified later
+      chebyshev_polynomials = f_malloc_ptr((/nsize_polynomial,1/),id='chebyshev_polynomials')
 
       max_error = f_malloc(ncalc,id='max_error')
       x_max_error = f_malloc(ncalc,id='x_max_error')
@@ -777,7 +777,7 @@ module ice
                    ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, 5, 100, 1, 1.d-9, &
                    0, npl, cc, max_error, x_max_error, mean_error, anoise, &
                    ex=ex)
-              !!call f_free_ptr(chebyshev_polynomials)
+              call f_free_ptr(chebyshev_polynomials)
               ! The second isshift is wrong, but is not used
               if (iproc==0 .and. verbosity_>0) then
                    call yaml_newline()

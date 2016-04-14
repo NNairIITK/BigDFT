@@ -111,7 +111,7 @@ module sparsematrix_memory
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
       !nullify(smmm%ivectorindex)
       nullify(smmm%ivectorindex_new)
-      nullify(smmm%onedimindices)
+      !nullify(smmm%onedimindices)
       nullify(smmm%onedimindices_new)
       nullify(smmm%line_and_column_mm)
       nullify(smmm%line_and_column)
@@ -165,7 +165,7 @@ module sparsematrix_memory
       type(sparse_matrix_matrix_multiplication),intent(inout):: smmm
       !smmm%ivectorindex=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex')
       smmm%ivectorindex_new=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex_new')
-      smmm%onedimindices=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices')
+      !smmm%onedimindices=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices')
       smmm%onedimindices_new=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices_new')
       !smmm%line_and_column_mm=f_malloc_ptr((/2,smmm%nvctrp_mm/),id='smmm%line_and_column_mm')
       smmm%nsegline=f_malloc_ptr(norb,id='smmm%nsegline')
@@ -436,7 +436,7 @@ module sparsematrix_memory
       smmm_out%indices_extract_sequential=f_malloc_ptr(src_ptr=smmm_in%indices_extract_sequential, &
            id='smmm_out%ndices_extract_sequential')
       !!converted  call allocate_and_copy(smmm_in%onedimindices, smmm_out%onedimindices, id='smmm_out%onedimindices')
-      smmm_out%onedimindices=f_malloc_ptr(src_ptr=smmm_in%onedimindices, id='smmm_out%onedimindices')
+      !!smmm_out%onedimindices=f_malloc_ptr(src_ptr=smmm_in%onedimindices, id='smmm_out%onedimindices')
       !!converted  call allocate_and_copy(smmm_in%onedimindices_new, smmm_out%onedimindices_new, id='smmm_out%onedimindices_new')
       smmm_out%onedimindices_new=f_malloc_ptr(src_ptr=smmm_in%onedimindices_new, id='smmm_out%onedimindices_new')
       !!converted  call allocate_and_copy(smmm_in%line_and_column_mm, smmm_out%line_and_column_mm, id='smmm_out%line_and_column_mm')
@@ -477,7 +477,7 @@ module sparsematrix_memory
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
       !call f_free_ptr(smmm%ivectorindex)
       call f_free_ptr(smmm%ivectorindex_new)
-      call f_free_ptr(smmm%onedimindices)
+      !call f_free_ptr(smmm%onedimindices)
       call f_free_ptr(smmm%onedimindices_new)
       call f_free_ptr(smmm%line_and_column_mm)
       call f_free_ptr(smmm%line_and_column)

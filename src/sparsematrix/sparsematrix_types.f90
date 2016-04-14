@@ -28,7 +28,7 @@ module sparsematrix_types
       integer :: ieseg !< segment containing the last entry (i.e. isvctr+nvctrp)
       integer,dimension(:),pointer :: isvctr_mm_par, nvctr_mm_par !<array that contains the values of nvctrp_mm and isvctr_mm of all MPI tasks
       integer,dimension(:),pointer :: ivectorindex_new, nsegline, istsegline, indices_extract_sequential
-      integer,dimension(:,:),pointer :: onedimindices, onedimindices_new, line_and_column_mm, line_and_column
+      integer,dimension(:,:),pointer ::  onedimindices_new, line_and_column_mm, line_and_column
       !!integer,dimension(:,:,:),pointer :: keyg
       integer,dimension(2) :: istartendseg_mm !< starting and ending segments of the matrix subpart which is actually used for the multiplication
                                               !! WARNING: the essential bounds are given by istartend_mm, the segments are used to speed up the code
