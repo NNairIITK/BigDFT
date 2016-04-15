@@ -700,7 +700,6 @@ module sparsematrix
                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
          end if
          if (size(matrixp)/=max(smat%smmm%nvctrp_mm,1)) then
-             write(*,*) 'CRASH 1'
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
                   &' instead of '//trim(yaml_toa(smat%smmm%nvctrp_mm,fmt='(i0)')), &
                   err_name='SPARSEMATRIX_MANIPULATION_ERROR')
