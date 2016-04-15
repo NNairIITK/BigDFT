@@ -2364,7 +2364,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
       loop_fermi: do ii=1,100
    !write(1000+iproc,*) 'iteration',ii,' -------------------------------- '
          factor=1.d0/(sqrt(pi)*wf)
-         if (ii == 100 .and. iproc == 0) print *,'WARNING Fermilevel'
+         if (ii == 100 .and. iproc == 0) call yaml_warning('Fermilevel could not have been adjusted in the available iterations')
          electrons=0.d0
          dlectrons=0.d0
          do ikpt=1,orbs%nkpts

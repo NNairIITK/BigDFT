@@ -326,7 +326,7 @@ module chebyshev
     
       if (nsize_polynomial>0) then
           call f_zero(kernel_compressed)
-    
+   
           do icalc=1,ncalc
               !write(*,*) 'icalc, ipl, kernel_compressed(1,icalc)', icalc, 0, kernel_compressed(1,icalc)
               call axpy(nsize_polynomial, 0.5d0*cc(1,icalc), chebyshev_polynomials(1,1), 1, kernel_compressed(1,icalc), 1)
