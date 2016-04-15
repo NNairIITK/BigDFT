@@ -2305,9 +2305,9 @@ module sparsematrix
     
       call f_routine(id='symmetrize_matrix')
 
-      if (csign=='plus') then
+      if (trim(csign)=='plus') then
           minus = .false.
-      else if (csign=='minus') then
+      else if (trim(csign)=='minus') then
           minus = .true.
       else
           call f_err_throw("wrong value of 'csign'", err_name='BIGDFT_RUNTIME_ERROR')
