@@ -690,6 +690,11 @@ module ice
 
       call f_routine(id='inverse_chebyshev_expansion_new')
 
+      if (.not.inv_ovrlp_smat%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
+
       if (present(verbosity)) then
           verbosity_ = verbosity
       else
@@ -750,7 +755,7 @@ module ice
 
           isshift=(ispin-1)*ovrlp_smat%nvctr
           ilshift=(ispin-1)*inv_ovrlp_smat%nvctr
-          ilshift2=(ispin-1)*inv_ovrlp_smat%nvctr
+          ilshift2=(ispin-1)*inv_ovrlp_smat%nvctrp_tg
 
           eval_multiplicator = 1.d0
           eval_multiplicator_total = 1.d0
@@ -784,9 +789,11 @@ module ice
                         (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f6.2)')
                end if
 
+              ! use inv_ovrlp(1)%matrix_compr as workarray to save memory
               call get_chebyshev_polynomials(iproc, nproc, comm, 1, verbosity_, npl, ovrlp_smat, inv_ovrlp_smat, &     
-                                        ovrlp_scaled, foe_obj, chebyshev_polynomials, ispin, &
-                                        eval_bounds_ok, hamscal_compr, scale_factor, shift_value)
+                   ovrlp_scaled, inv_ovrlp(1)%matrix_compr(ilshift2+1:), &
+                   foe_obj, chebyshev_polynomials, ispin, &
+                   eval_bounds_ok, hamscal_compr, scale_factor, shift_value)
               if (iproc==0 .and. verbosity_>0) then
                   call yaml_map('ok',eval_bounds_ok)
                   call yaml_map('exp accur',max_error,fmt='(es8.2)')

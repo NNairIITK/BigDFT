@@ -22,7 +22,8 @@ module chebyshev
  
     !> Again assuming all matrices have same sparsity, still some tidying to be done
     subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
-               calculate_SHS, nsize_polynomial, ncalc, fermi_new, penalty_ev_new, chebyshev_polynomials, emergency_stop, &
+               calculate_SHS, workarr_compr, nsize_polynomial, ncalc, &
+               fermi_new, penalty_ev_new, chebyshev_polynomials, emergency_stop, &
                invovrlp_compr)
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
@@ -35,6 +36,7 @@ module chebyshev
       type(sparse_matrix), intent(in) :: kernel
       real(kind=mp),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
       logical,intent(in) :: calculate_SHS
+      real(kind=mp),dimension(kernel%nvctrp_tg),intent(inout) :: workarr_compr
       real(kind=mp),dimension(kernel%smmm%nvctrp,ncalc),intent(out) :: fermi_new
       real(kind=mp),dimension(kernel%smmm%nvctrp,2),intent(out) :: penalty_ev_new
       real(kind=mp),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
@@ -44,9 +46,8 @@ module chebyshev
       character(len=*),parameter :: subname='chebyshev_clean'
       integer :: iorb,iiorb, jorb, ipl, i, iline, icolumn, jj, j
       integer :: isegstart, isegend, iseg, ii, jjorb, icalc
-      real(8), dimension(:,:,:), allocatable :: vectors
-      real(8), dimension(:,:), allocatable :: vectors_new
-      real(kind=mp),dimension(:),allocatable :: mat_seq, mat_compr
+      real(kind=mp),dimension(:,:),allocatable :: vectors_new
+      real(kind=mp),dimension(:),allocatable :: mat_seq
       !!real(kind=mp),dimension(:,:),allocatable :: matrix!, fermi_new, penalty_ev_new
       real(kind=mp),dimension(:),allocatable :: matrix_new
       real(kind=mp) :: tt, ddot
@@ -56,12 +57,18 @@ module chebyshev
       call f_timing(TCAT_CME_POLYNOMIALS,'ON')
       call f_routine(id='chebyshev_clean')
 
+      if (.not.kernel%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
+
+
       !!do j=1,npl
       !!    write(*,*) 'in cheby: j, cc(j,2,1), cc(j,3,1)', j, cc(j,2,1), cc(j,3,1)
       !!end do
     
     
-      mat_compr = f_malloc(kernel%nvctrp_tg,id='mat_compr')
+      !mat_compr = f_malloc(kernel%nvctrp_tg,id='mat_compr')
     
 
       if (kernel%nfvctrp>0) then
@@ -84,14 +91,16 @@ module chebyshev
               call sparsemm_new(iproc, kernel, mat_seq, vectors_new(1,1), matrix_new(1))
           end if
           call compress_matrix_distributed_wrapper(iproc, nproc, kernel, SPARSE_MATMUL_LARGE, &
-               matrix_new, mat_compr)
+               matrix_new, workarr_compr)
       else
-          call vcopy(kernel%nvctrp_tg, ham_compr(1), 1, mat_compr(1), 1)
+          call vcopy(kernel%nvctrp_tg, ham_compr(1), 1, workarr_compr(1), 1)
       end if
       
       if (kernel%smmm%nvctrp>0) then
-          call sequential_acces_matrix_fast2(kernel, mat_compr, mat_seq)
+          call sequential_acces_matrix_fast2(kernel, workarr_compr, mat_seq)
       end if
+
+      !call f_free(mat_compr)
       
         
       if (kernel%smmm%nfvctrp>0) then
@@ -204,10 +213,8 @@ module chebyshev
           end if
           if (kernel%smmm%nfvctrp>0) then
               call f_free(mat_seq)
-              !!call f_free(vectors)
               call f_free(vectors_new)
           end if
-          call f_free(mat_compr)
     
       end if
     
@@ -232,6 +239,11 @@ module chebyshev
       integer :: i, ii, iline, icolumn, jj
 
       call f_routine(id='prepare_matrix')
+
+      if (.not.smat%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
 
       !$omp parallel &
       !$omp default(none) &
@@ -271,6 +283,11 @@ module chebyshev
       integer :: i, jorb, iorb, ii, iline, icolumn
 
       call f_routine(id='axbyz_kernel_vectors_new')
+
+      if (.not.smat%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
     
       !$omp parallel default(shared) private(i)
       !$omp do schedule(static)
@@ -345,6 +362,11 @@ module chebyshev
       real(kind=mp),dimension(:,:),allocatable :: vector
     
       call f_routine(id='compress_polynomial_vector_new')
+
+      if (.not.fermi%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
     
       call transform_sparsity_pattern(iproc, fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
            fermi%nseg, fermi%keyv, fermi%keyg, fermi%smmm%line_and_column_mm, &

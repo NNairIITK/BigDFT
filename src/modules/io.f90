@@ -2113,7 +2113,7 @@ module io
                norder_taylor, 1, power, -1, &
                imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=SminusonehalfH(1), &
-               check_accur=.true., max_error=max_error, mean_error=mean_error)
+               check_accur=norder_taylor<1000, max_error=max_error, mean_error=mean_error)
           ! Calculate S^-1/2 * H
           call f_memcpy(src=SminusonehalfH(1)%matrix_compr,dest=tmp_large)
           call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmp_large, ham_large, SminusonehalfH(1)%matrix_compr)

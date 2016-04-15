@@ -83,6 +83,7 @@ module matrix_operations
         real(kind=mp),dimension(:),pointer :: Amat11p_new, Amat22p_new
         real(kind=mp),dimension(:),allocatable :: rpower
       
+        if (present(mean_error)) call f_zero(mean_error)
       
         !!write(*,*) 'iorder',iorder
 
@@ -91,6 +92,11 @@ module matrix_operations
         !call timing(iproc,'lovrlp^-1     ','ON')
         call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
         
+        if (.not.inv_ovrlp_smat%smatmul_initialized) then
+            call f_err_throw('sparse matrix multiplication not initialized', &
+                 err_name='SPARSEMATRIX_RUNTIME_ERROR')
+        end if
+
 
         if (present(verbosity)) then
             verbosity_ = verbosity
@@ -163,8 +169,12 @@ module matrix_operations
         end if
         
         if (check_accur) then
-            if (.not.present(max_error)) stop 'max_error not present'
-            if (.not.present(mean_error)) stop 'mean_error not present'
+            if (.not.present(max_error)) then
+                call f_err_throw('max_error not present',err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+            if (.not.present(mean_error)) then
+                call f_err_throw('mean_error not present',err_name='BIGDFT_RUNTIME_ERROR')
+            end if
         end if
       
         if (power(1)/=-2 .and. power(1)/=1 .and. power(1)/=2) stop 'wrong value of power(1)'
@@ -927,15 +937,11 @@ module matrix_operations
       
             if (check_accur) then
                 ! HERE STARTS LINEAR CHECK ##########################
-                !!invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='invovrlpp')
                 invovrlpp_new = f_malloc(inv_ovrlp_smat%smmm%nvctrp, id='invovrlpp_new')
-                !!if (iorder<1 .or. iorder>=1000) then
-                    ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_TASKGROUP, id='ovrlp_large_compr')
-                    call transform_sparse_matrix(iproc, ovrlp_smat, inv_ovrlp_smat, sparse_TASKGROUP, 'small_to_large', &
-                         smat_in=ovrlp_mat%matrix_compr, lmat_out=ovrlp_large_compr)
-                !!end if
-                invovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_large_compr_seq')
-                !!ovrlp_largep = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='ovrlp_largep')
+                ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_TASKGROUP, id='ovrlp_large_compr')
+                call transform_sparse_matrix(iproc, ovrlp_smat, inv_ovrlp_smat, sparse_TASKGROUP, 'small_to_large', &
+                     smat_in=ovrlp_mat%matrix_compr, lmat_out=ovrlp_large_compr)
+                invovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='invovrlp_compr_seq')
                 ovrlp_largep_new = f_malloc(inv_ovrlp_smat%smmm%nvctrp,id='ovrlp_largep')
 
                 !!if (iproc==0) write(*,*) 'TEST ##############################################'
@@ -1071,9 +1077,7 @@ module matrix_operations
                     call yaml_sequence_close()
                 end if
                 call f_free(invovrlp_compr_seq)
-                !!call f_free(ovrlp_largep)
                 call f_free(ovrlp_largep_new)
-                !!call f_free(invovrlpp)
                 call f_free(invovrlpp_new)
                 call f_free(ovrlp_large_compr)
                 !HERE ENDS LINEAR CHECK #############################
@@ -1111,6 +1115,11 @@ module matrix_operations
         integer :: ierr, i,j
       
         call f_routine(id='check_accur_overlap_minus_one_sparse_new')
+
+        if (.not.smat%smatmul_initialized) then
+            call f_err_throw('sparse matrix multiplication not initialized', &
+                 err_name='SPARSEMATRIX_RUNTIME_ERROR')
+        end if
       
         tmpp=f_malloc0((smat%smmm%nvctrp),id='tmpp')
         if (power==1) then
@@ -1201,8 +1210,12 @@ module matrix_operations
       
         
         if (check_accur) then
-            if (.not.present(max_error)) stop 'max_error not present'
-            if (.not.present(mean_error)) stop 'mean_error not present'
+            if (.not.present(max_error)) then
+                call f_err_throw('max_error not present',err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+            if (.not.present(mean_error)) then
+                call f_err_throw('mean_error not present',err_name='BIGDFT_RUNTIME_ERROR')
+            end if
         end if
       
         if (power/=-2 .and. power/=1 .and. power/=2) stop 'wrong value of power'
@@ -1408,7 +1421,12 @@ module matrix_operations
         real(8):: error, num
         real(kind=mp),dimension(2) :: reducearr
       
-        call f_routine(id='deviation_from_unity_parallel')
+        call f_routine(id='deviation_from_unity_parallel_new')
+
+        if (.not.smat%smatmul_initialized) then
+            call f_err_throw('sparse matrix multiplication not initialized', &
+                 err_name='SPARSEMATRIX_RUNTIME_ERROR')
+        end if
       
         !call timing(iproc,'dev_from_unity','ON') 
         call f_timing(TCAT_HL_MATRIX_CHECKS,'ON')
@@ -1620,6 +1638,13 @@ module matrix_operations
         real(kind=mp),dimension(smat%smmm%nvctrp),intent(out) :: inv_ovrlpp
       
         integer :: i, ii, iline, icolumn
+
+        call f_routine(id='first_order_taylor_sparse_new')
+
+        if (.not.smat%smatmul_initialized) then
+            call f_err_throw('sparse matrix multiplication not initialized', &
+                 err_name='SPARSEMATRIX_RUNTIME_ERROR')
+        end if
       
         if (power==1) then
            !!!$omp parallel do default(private) shared(inv_ovrlpp,ovrlpp,norb,isorb,norbp)
@@ -1699,6 +1724,8 @@ module matrix_operations
         else
            stop 'Error in first_order_taylor_dense'
         end if
+
+        call f_release_routine()
       
       end subroutine first_order_taylor_sparse_new
 
@@ -2170,6 +2197,13 @@ module matrix_operations
         integer:: iorb, iiorb, jorb, ierr, ind, iline, icolumn, i, ii
         real(8):: error, num
         real(kind=mp),dimension(2) :: reducearr
+
+        call f_routine(id='max_matrix_diff_parallel_new')
+
+        if (.not.smat%smatmul_initialized) then
+            call f_err_throw('sparse matrix multiplication not initialized', &
+                 err_name='SPARSEMATRIX_RUNTIME_ERROR')
+        end if
       
         !call timing(iproc,'dev_from_unity','ON') 
         call f_timing(TCAT_HL_MATRIX_CHECKS,'ON')
@@ -2224,6 +2258,8 @@ module matrix_operations
       
         !call timing(iproc,'dev_from_unity','OF') 
         call f_timing(TCAT_HL_MATRIX_CHECKS,'OF')
+
+        call f_release_routine()
       
       end subroutine max_matrix_diff_parallel_new
 
@@ -2480,7 +2516,7 @@ module matrix_operations
     
       if (order_taylor/=0) then
           ! only do this if approximations (Taylor or "negative thing") are actually used
-          if (error<=1.d-1*max_error) then
+          if (10.0_mp*error<=max_error) then !to avoir fpe if max_error is little
               !! error is very small, so decrease the order of the polynomial
               !if (order_taylor>20) then
               !    ! always keep a minimum of 20

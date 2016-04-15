@@ -504,7 +504,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   if (n3pr1 > 1) zt_t = f_malloc((/ 2, lzt/n3pr1, n1p /),id='zt_t')
 
   ! Manually limit the number of threads such the memory requirements remain small
-  nthread = max(1,1000000*max_memory_zt/(2*(lzt/n3pr1)*n1p))
+  nthread = max(1,1000000*max_memory_zt/(8*2*(lzt/n3pr1)*n1p))
   nthreadx = 1
   !$ nthreadx = omp_get_max_threads()
   nthread = min(nthread,nthreadx)

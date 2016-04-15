@@ -1021,8 +1021,9 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
        tmb%linmat%m%nspin, collcom_tmp)
 
   smat_tmp = sparse_matrix_null()
+  ! Do not initialize the matrix multiplication to save memory. 
   call init_sparse_matrix_wrapper(iproc, nproc, tmb%linmat%s%nspin, tmb%orbs, &
-       lzd_tmp, at%astruct, .false., imode=2, smat=smat_tmp)
+       lzd_tmp, at%astruct, .false., init_matmul=.false., imode=2, smat=smat_tmp)
   call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
        collcom_tmp, collcom_tmp, collcom_tmp, smat_tmp)
   iirow(1) = smat_tmp%nfvctr

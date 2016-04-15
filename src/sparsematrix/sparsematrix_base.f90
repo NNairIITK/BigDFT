@@ -32,5 +32,10 @@ module sparsematrix_base
 
   ! This module is public, such that all other modules using this one inherit all modules used in here
 
+  ! Old and new version of the sparse matrix matrix multiplication
+  integer,parameter :: MATMUL_NEW = 101
+  integer,parameter :: MATMUL_OLD = 102
+  integer,parameter :: matmul_version = MATMUL_NEW 
+
 
 end module sparsematrix_base

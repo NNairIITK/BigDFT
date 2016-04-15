@@ -36,6 +36,8 @@ module sparsematrix
   public :: trace_sparse
   public :: delete_coupling_terms
   public :: synchronize_matrix_taskgroups
+  public :: max_asymmetry_of_matrix
+  public :: symmetrize_matrix
 
 
   interface compress_matrix_distributed_wrapper
@@ -693,6 +695,10 @@ module sparsematrix
 
 
      if (layout==SPARSE_MATMUL_SMALL) then
+         if (.not.smat%smatmul_initialized) then
+             call f_err_throw('sparse matrix multiplication not initialized', &
+                  err_name='SPARSEMATRIX_RUNTIME_ERROR')
+         end if
          if (size(matrixp)/=max(smat%smmm%nvctrp_mm,1)) then
              write(*,*) 'CRASH 1'
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
@@ -701,6 +707,10 @@ module sparsematrix
          end if
          matrix_local => matrixp
      else if (layout==SPARSE_MATMUL_LARGE) then
+         if (.not.smat%smatmul_initialized) then
+             call f_err_throw('sparse matrix multiplication not initialized', &
+                  err_name='SPARSEMATRIX_RUNTIME_ERROR')
+         end if
          if (size(matrixp)/=smat%smmm%nvctrp) then
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
                   &' instead of '//trim(yaml_toa(smat%smmm%nvctrp,fmt='(i0)')), &
@@ -772,6 +782,10 @@ module sparsematrix
          isvctr_par => smat%isvctr_par
          nvctr_par => smat%nvctr_par
      else if (layout==DENSE_MATMUL) then
+         if (.not.smat%smatmul_initialized) then
+             call f_err_throw('sparse matrix multiplication not initialized', &
+                  err_name='SPARSEMATRIX_RUNTIME_ERROR')
+         end if
          if (size(matrixp,2)/=smat%smmm%nfvctrp) stop '(ubound(matrixp,2)/=smat%smmm%nfvctrp'
          nfvctrp = smat%smmm%nfvctrp
          isfvctr = smat%smmm%isfvctr
@@ -881,6 +895,10 @@ module sparsematrix
              nccomm = smat%nccomm
          !else if (layout==DENSE_MATMUL) then
          else if (layout==SPARSE_MATMUL_SMALL) then
+             if (.not.smat%smatmul_initialized) then
+                 call f_err_throw('sparse matrix multiplication not initialized', &
+                      err_name='SPARSEMATRIX_RUNTIME_ERROR')
+             end if
              luccomm => smat%smmm%luccomm_smmm
              nvctrp = smat%smmm%nvctrp_mm
              nccomm = smat%smmm%nccomm_smmm
@@ -1036,6 +1054,10 @@ module sparsematrix
          nfvctrp=smat%nfvctrp
          isfvctr=smat%isfvctr
      else if (layout==DENSE_MATMUL) then
+         if (.not.smat%smatmul_initialized) then
+             call f_err_throw('sparse matrix multiplication not initialized', &
+                  err_name='SPARSEMATRIX_RUNTIME_ERROR')
+         end if
          if (size(matrixp,2)/=smat%smmm%nfvctrp) stop '(ubound(matrixp,2)/=smat%smmm%nfvctrp'
          nfvctrp=smat%smmm%nfvctrp
          isfvctr=smat%smmm%isfvctr
@@ -1088,6 +1110,11 @@ module sparsematrix
      integer :: iseq, ii
 
      call f_routine(id='sequential_acces_matrix_fast')
+
+     if (.not.smat%smatmul_initialized) then
+         call f_err_throw('sparse matrix multiplication not initialized', &
+              err_name='SPARSEMATRIX_RUNTIME_ERROR')
+     end if
    
      !$omp parallel do default(none) private(iseq, ii) &
      !$omp shared(smat, a_seq, a)
@@ -1113,6 +1140,11 @@ module sparsematrix
      integer :: iseq, ii
 
      call f_routine(id='sequential_acces_matrix_fast2')
+
+     if (.not.smat%smatmul_initialized) then
+         call f_err_throw('sparse matrix multiplication not initialized', &
+              err_name='SPARSEMATRIX_RUNTIME_ERROR')
+     end if
    
      !$omp parallel do default(none) private(iseq, ii) &
      !$omp shared(smat, a_seq, a)
@@ -1148,14 +1180,20 @@ module sparsematrix
      integer :: n_dense
      real(kind=mp),dimension(:,:),allocatable :: a_dense, b_dense, c_dense
      !real(kind=mp),dimension(:),allocatable :: b_dense, c_dense
-     integer,parameter :: MATMUL_NEW = 101
-     integer,parameter :: MATMUL_OLD = 102
-     integer,parameter :: matmul_version = MATMUL_NEW
+     !!integer,parameter :: MATMUL_NEW = 101
+     !!integer,parameter :: MATMUL_OLD = 102
+     !!integer,parameter :: matmul_version = MATMUL_NEW 
      logical,parameter :: count_flops = .false.
      real(kind=mp) :: ts, te, op, gflops
      real(kind=mp),parameter :: flop_per_op = 2.d0 !<number of FLOPS per operations
    
      call f_routine(id='sparsemm')
+
+     if (.not.smat%smatmul_initialized) then
+         call f_err_throw('sparse matrix multiplication not initialized', &
+              err_name='SPARSEMATRIX_RUNTIME_ERROR')
+     end if
+
      if (count_flops) then
          n_dense = nint(sqrt(real(smat%smmm%nseq,kind=mp)))
          !n_dense = smat%nfvctr
@@ -1167,6 +1205,7 @@ module sparsematrix
      call f_timing(TCAT_SMAT_MULTIPLICATION,'IR')
 
 
+     ! The choice for matmul_version can be made in sparsematrix_base
      if (matmul_version==MATMUL_NEW) then
 
          if (count_flops) then
@@ -1312,7 +1351,8 @@ module sparsematrix
          recvdspls = f_malloc0(0.to.nproc-1,id='recvdspls')
          !call to_zero(nproc, recvcounts(0))
          !call to_zero(nproc, recvdspls(0))
-         ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
+         !ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
+         ncount = smat%nvctrp
          recvcounts(iproc) = ncount
          call mpiallred(recvcounts(0), nproc, mpi_sum, comm=comm)
          recvdspls(0) = 0
@@ -1321,7 +1361,10 @@ module sparsematrix
          end do
          do ispin=1,smat%nspin
              ishift = (ispin-1)*smat%nvctr
-             ist_send = smat%smmm%istartend_mm_dj(1) - smat%isvctrp_tg + ishift
+             !ist_send = smat%smmm%istartend_mm_dj(1) - smat%isvctrp_tg + ishift
+             ist_send = smat%isvctr + 1 - smat%isvctrp_tg + ishift
+             ! The following condition is necessary for ncount=0, in order to avoid out of bound problems
+             ist_send = min(ist_send,ispin*smat%nvctrp_tg)
              call mpi_get_to_allgatherv_double(mat_tg(ist_send), ncount, &
                   mat_global(ishift+1), recvcounts, recvdspls, comm)
              !!call mpi_allgatherv(mat_tg(ist_send), ncount, mpi_double_precision, &
@@ -1351,8 +1394,15 @@ module sparsematrix
      integer,dimension(:),allocatable :: recvcounts, recvdspls
      integer :: ncount, ist_send, jproc, ispin, ishift
      real(kind=mp),dimension(:),allocatable :: mat_global
+
+     call f_routine(id='gather_matrix_from_taskgroups_inplace')
+
+     if (.not.smat%smatmul_initialized) then
+         call f_err_throw('sparse matrix multiplication not initialized', &
+              err_name='SPARSEMATRIX_RUNTIME_ERROR')
+     end if
    
-      mat_global = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='mat_global')
+     mat_global = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='mat_global')
      if (nproc>1) then
          recvcounts = f_malloc0(0.to.nproc-1,id='recvcounts')
          recvdspls = f_malloc0(0.to.nproc-1,id='recvdspls')
@@ -1381,6 +1431,8 @@ module sparsematrix
      end if
      call vcopy(smat%nvctrp*smat%nspin, mat_global(1), 1, mat%matrix_compr(1), 1)
      call f_free(mat_global)
+
+     call f_release_routine()
 
    end subroutine gather_matrix_from_taskgroups_inplace
 
@@ -1817,6 +1869,13 @@ module sparsematrix
       ! Local variables
       real(kind=mp),dimension(:),allocatable :: b_exp, c_exp, a_seq
 
+      call f_routine(id='matrix_matrix_mult_wrapper')
+
+      if (.not.smat%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
+
       b_exp = f_malloc(smat%smmm%nvctrp, id='b_exp')
       c_exp = f_malloc(smat%smmm%nvctrp, id='c_exp')
       a_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='a_seq')
@@ -1838,6 +1897,7 @@ module sparsematrix
       call f_free(c_exp)
       call f_free(a_seq)
 
+      call f_release_routine()
 
     end subroutine matrix_matrix_mult_wrapper
 
@@ -1866,6 +1926,10 @@ module sparsematrix
       iashift = 0!(ispin-1)*asmat%nvctr
       ibshift = 0!(ispin-1)*bsmat%nvctr
     
+      !if (.not.asmat%smatmul_initialized) then
+      !    call f_err_throw('The sparse matrix multiplications must &
+      !         &be initialized to use the routine trace_sparse')
+      !end if
     
       sumn=0.d0
       !if (asmat%smmm%nfvctrp>0) then
@@ -1874,14 +1938,18 @@ module sparsematrix
           !$omp shared(bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
           !$omp do reduction(+:sumn)
           !do iseg=isegstart,isegend
-          do iseg=asmat%smmm%isseg,asmat%smmm%ieseg
+          !do iseg=asmat%smmm%isseg,asmat%smmm%ieseg
+          !do iseg=1,asmat%nseg
+          do iseg=asmat%isseg,asmat%ieseg
               iel = asmat%keyv(iseg) - 1
               ii=iashift+asmat%keyv(iseg)-1
               ! A segment is always on one line, therefore no double loop
               do jorb=asmat%keyg(1,1,iseg),asmat%keyg(2,1,iseg)
                   iel = iel + 1
-                  if (iel<asmat%smmm%isvctr_mm+1) cycle
-                  if (iel>asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm) then
+                  !if (iel<asmat%smmm%isvctr_mm+1) cycle
+                  !if (iel>asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm) then
+                  if (iel<asmat%isvctr+1) cycle
+                  if (iel>asmat%isvctr+asmat%nvctrp) then
                       !write(*,*) 'exit with iel',iel
                       exit
                   end if
@@ -2008,6 +2076,67 @@ module sparsematrix
           call f_release_routine()
       end if
     end subroutine synchronize_matrix_taskgroups
+
+
+
+    subroutine max_asymmetry_of_matrix(iproc, nproc, comm, sparsemat, mat_tg, error_max, ispinx)
+      use sparsematrix_init, only: matrixindex_in_compressed
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm
+      type(sparse_matrix),intent(in) :: sparsemat
+      real(kind=mp),dimension(sparsemat%nvctrp_tg),intent(in) :: mat_tg
+      real(kind=mp),intent(out) :: error_max
+      integer,intent(in),optional :: ispinx
+
+      ! Local variables
+      real(kind=mp),dimension(:),allocatable :: mat_full
+      integer :: ispin, ishift, iseg, ii, i, ind, ind_trans, iel
+      real(kind=mp) :: val, val_trans, error
+
+      call f_routine(id='max_asymmetry_of_matrix')
+
+      !!! Gather together the matrix from the taskgroups
+      !!mat_full = sparsematrix_malloc(sparsemat,iaction=SPARSE_FULL,id='mat_full')
+      !!call gather_matrix_from_taskgroups(iproc, nproc, comm, sparsemat, mat_tg, mat_full)
+
+      error_max = 0.0_mp
+      do ispin=1,sparsemat%nspin
+          if (present(ispinx)) then
+              if (ispin/=ispinx) cycle
+          end if
+          ishift=(ispin-1)*sparsemat%nvctr
+          !do iseg=1,sparsemat%nseg
+          do iseg=sparsemat%isseg,sparsemat%ieseg
+              iel = sparsemat%keyv(iseg) - 1
+              do i=sparsemat%keyg(1,1,iseg),sparsemat%keyg(2,1,iseg)
+                  iel = iel + 1
+                  if (iel<sparsemat%isvctr+1) cycle
+                  if (iel>sparsemat%isvctr+sparsemat%nvctrp) then
+                      exit
+                  end if
+                  ind = matrixindex_in_compressed(sparsemat, i, sparsemat%keyg(1,2,iseg)) - sparsemat%isvctrp_tg
+                  ind_trans = matrixindex_in_compressed(sparsemat, sparsemat%keyg(1,2,iseg), i) - sparsemat%isvctrp_tg
+                  !val = mat_full(ind)
+                  !val_trans = mat_full(ind_trans)
+                  val = mat_tg(ind)
+                  val_trans = mat_tg(ind_trans)
+                  error = abs(val-val_trans)
+                  if (error>error_max) then
+                      error_max = error
+                  end if
+              end do
+          end do
+      end do
+      call mpiallred(error_max, 1, mpi_max, comm=comm)
+      !if (iproc==0) call yaml_map('max asymmetry',error_max)
+
+      !!call f_free(mat_full)
+
+      call f_release_routine()
+
+    end subroutine max_asymmetry_of_matrix
 
 
     !!!!subroutine transform_sparse_matrix_test(iproc, smat, lmat, cmode, &
@@ -2141,5 +2270,65 @@ module sparsematrix
     !!!!  call f_release_routine()
     !!!!
     !!!!end subroutine transform_sparse_matrix_test
+
+
+
+    subroutine symmetrize_matrix(smat, csign, mat_in, mat_out, ispinx)
+      use sparsematrix_init, only: matrixindex_in_compressed
+      implicit none
+
+      ! Calling arguments
+      type(sparse_matrix),intent(in) :: smat
+      character(len=*),intent(in) :: csign
+      real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: mat_in
+      real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(out) :: mat_out
+      integer,intent(in),optional :: ispinx
+
+      ! Local variables
+      integer :: ispin, ishift, iseg, ii, i, ii_trans
+      logical :: minus
+    
+      call f_routine(id='symmetrize_matrix')
+
+      if (csign=='plus') then
+          minus = .false.
+      else if (csign=='minus') then
+          minus = .true.
+      else
+          call f_err_throw("wrong value of 'csign'", err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
+      do ispin=1,smat%nspin
+          if (present(ispinx)) then
+              if (ispin/=ispinx) cycle
+          end if
+          ishift=(ispin-1)*smat%nvctrp_tg
+          !$omp parallel default(none) &
+          !$omp shared(smat,mat_in,mat_out,ishift) &
+          !$omp private(iseg,ii,i,ii_trans)
+          !$omp do
+          do iseg=smat%istartendseg_local(1),smat%istartendseg_local(2)
+              ii = smat%keyv(iseg)
+              ! A segment is always on one line, therefore no double loop
+              do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg) !this is too much, but for the moment ok
+                  ii_trans = matrixindex_in_compressed(smat,smat%keyg(1,2,iseg),i)
+                      mat_out(ii+ishift-smat%isvctrp_tg) = &
+                            0.5d0*mat_in(ii+ishift-smat%isvctrp_tg) &
+                          + 0.5d0*mat_in(ii_trans+ishift-smat%isvctrp_tg)
+                  ii=ii+1
+              end do
+          end do
+          !$omp end do
+          !$omp end parallel
+      end do
+
+      if (minus) then
+          ! There should be a scal wrapper...
+          call dscal(smat%nvctrp_tg*smat%nspin, -1.d0, mat_out(1), 1)
+      end if
+    
+      call f_release_routine()
+    
+    end subroutine symmetrize_matrix
 
 end module sparsematrix

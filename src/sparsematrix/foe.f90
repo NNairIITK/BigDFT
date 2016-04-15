@@ -1010,10 +1010,11 @@ module foe
     subroutine fermi_operator_expansion_new(iproc, nproc, comm, &
                ebs, &
                calculate_minusonehalf, foe_verbosity, &
-               smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj)
+               smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj, &
+               symmetrize_kernel)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
-                              trace_sparse
+                              trace_sparse, symmetrize_matrix, max_asymmetry_of_matrix
       use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                           foe_data_get_logical
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -1029,7 +1030,7 @@ module foe
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm
       real(kind=mp),intent(out) :: ebs
-      logical,intent(in) :: calculate_minusonehalf
+      logical,intent(in) :: calculate_minusonehalf, symmetrize_kernel
       integer,intent(in) :: foe_verbosity
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
       type(matrices),intent(in) :: ham_, ovrlp_
@@ -1049,11 +1050,11 @@ module foe
       real(kind=mp) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
       real(kind=mp) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt
       real(kind=mp) :: x_max_error_fake, max_error_fake, mean_error_fake
-      real(kind=mp) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check, fscale_new, fscale_newx
+      real(kind=mp) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check, fscale_new, fscale_newx, asymm_K
       logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
       logical,dimension(2) :: emergency_stop
       real(kind=mp),dimension(2) :: efarr, sumnarr, allredarr
-      real(kind=mp),dimension(:),allocatable :: hamscal_compr, fermi_check_compr
+      real(kind=mp),dimension(:),allocatable :: hamscal_compr, fermi_check_compr, kernel_tmp
       real(kind=mp),dimension(4,4) :: interpol_matrix
       real(kind=mp),dimension(4) :: interpol_vector
       real(kind=mp),parameter :: charge_tolerance=1.d-6 ! exit criterion
@@ -1090,6 +1091,10 @@ module foe
     
       call f_routine(id='fermi_operator_expansion_new')
     
+      if (.not.smatl%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
     
       if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='~')
     
@@ -1104,9 +1109,10 @@ module foe
       !!penalty_ev = f_malloc((/smatl%nfvctr,smatl%smmm%nfvctrp,2/),id='penalty_ev')
       !!fermip_check = f_malloc((/smatl%nfvctr,smatl%smmm%nfvctrp/),id='fermip_check')
       fermi_check_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='fermi_check_compr')
+      kernel_tmp = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='kernel_tmp')
     
       fermi_check_new = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='fermip_check_new')
-      fermi_new = f_malloc((/smatl%smmm%nvctrp/),id='fermi_new')
+      !!fermi_new = f_malloc((/smatl%smmm%nvctrp/),id='fermi_new')
 !      fermi_small_new = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='fermi_small_new')
     
     
@@ -1241,9 +1247,11 @@ module foe
                                (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/))
                       end if
 
+                      ! Use kernel_%matrix_compr as workarray to save memory
                       call get_chebyshev_polynomials(iproc, nproc, comm, &
                            2, foe_verbosity, npl, smatm, smatl, &
-                           ham_, foe_obj, chebyshev_polynomials, ispin, eval_bounds_ok, hamscal_compr, &
+                           ham_, kernel_%matrix_compr(ilshift+1:), foe_obj, &
+                           chebyshev_polynomials, ispin, eval_bounds_ok, hamscal_compr, &
                            scale_factor, shift_value, &
                            smats=smats, ovrlp_=ovrlp_, &
                            ovrlp_minus_one_half=ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:))
@@ -1276,6 +1284,10 @@ module foe
                   !!end if
                   call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
                        2, 'test', smatl, ispin, foe_obj, kernel_)
+                  !!!call max_asymmetry_of_matrix(iproc, nproc, comm, &
+                  !!!     smatl, kernel_%matrix_compr, tt)
+                  !!!if (iproc==0) call yaml_map('after find_fermi_level, max assymetry of K',tt)
+
                   !!if (iproc==0) then
                   !!    call yaml_sequence_close()
                   !!end if
@@ -1321,6 +1333,16 @@ module foe
         
                   call retransform_ext(iproc, nproc, smatl, &
                        ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), fermi_check_compr)
+
+                  ! Explicitly symmetrize the kernel, use fermi_check_compr as temporary array
+                  call max_asymmetry_of_matrix(iproc, nproc, comm, &
+                       smatl, kernel_%matrix_compr, asymm_K, ispinx=ispin)
+                  if (symmetrize_kernel) then
+                      call f_memcpy(src=kernel_%matrix_compr, dest=kernel_tmp)
+                      call symmetrize_matrix(smatl, 'plus', kernel_tmp, kernel_%matrix_compr, ispinx=ispin)
+                      call f_memcpy(src=fermi_check_compr, dest=kernel_tmp)
+                      call symmetrize_matrix(smatl, 'plus', kernel_tmp, fermi_check_compr, ispinx=ispin)
+                  end if
         
                   call calculate_trace_distributed_new(iproc, nproc, comm, smatl, fermi_check_new, sumn_check)
     
@@ -1370,6 +1392,8 @@ module foe
                   diff=diff/abs(ebsp)
         
                   if (iproc==0) then
+                      call yaml_map('Asymmetry of kernel',asymm_K,fmt='(es8.2)')
+                      call yaml_map('symmetrize_kernel',symmetrize_kernel)
                       call yaml_map('EBS',ebsp,fmt='(es19.12)')
                       call yaml_map('EBS higher temperature',ebs_check,fmt='(es19.12)')
                       call yaml_map('difference',ebs_check-ebsp,fmt='(es19.12)')
@@ -1491,6 +1515,7 @@ module foe
       call foe_data_set_real(foe_obj,"fscale",minval(fscale_ispin))
     
       degree_sufficient=.true.
+
     
       if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='~')
     
@@ -1499,10 +1524,11 @@ module foe
       call f_free(hamscal_compr)
       !!call f_free(fermip_check)
       call f_free(fermi_check_compr)
+      call f_free(kernel_tmp)
     
       !call f_free(penalty_ev_new)
       call f_free(fermi_check_new)
-      call f_free(fermi_new)
+      !!call f_free(fermi_new)
 !      call f_free(fermi_small_new)
     
       !call timing(iproc, 'FOE_auxiliary ', 'OF')
@@ -1556,86 +1582,86 @@ module foe
     
     
     
-          subroutine retransform(matrix_compr)
-              use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
-                                      compress_matrix_distributed_wrapper, &
-                                      sparsemm_new
-              ! Calling arguments
-              real(kind=mp),dimension(smatl%nvctrp_tg),intent(inout) :: matrix_compr
+          !!subroutine retransform(matrix_compr)
+          !!    use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
+          !!                            compress_matrix_distributed_wrapper, &
+          !!                            sparsemm_new
+          !!    ! Calling arguments
+          !!    real(kind=mp),dimension(smatl%nvctrp_tg),intent(inout) :: matrix_compr
     
-              ! Local variables
-              real(kind=mp),dimension(:,:),pointer :: inv_ovrlpp, tempp
-              real(kind=mp),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
-              real(kind=mp),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
-              integer,dimension(:,:,:),allocatable :: istindexarr
-              integer :: nout, nseq
+          !!    ! Local variables
+          !!    real(kind=mp),dimension(:,:),pointer :: inv_ovrlpp, tempp
+          !!    real(kind=mp),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
+          !!    real(kind=mp),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
+          !!    integer,dimension(:,:,:),allocatable :: istindexarr
+          !!    integer :: nout, nseq
     
-              call f_routine(id='retransform')
+          !!    call f_routine(id='retransform')
     
-              !!inv_ovrlpp = sparsematrix_malloc_ptr(smatl, iaction=DENSE_MATMUL, id='inv_ovrlpp')
-              inv_ovrlpp_new = f_malloc_ptr(smatl%smmm%nvctrp, id='inv_ovrlpp_new')
-              !!tempp = sparsematrix_malloc_ptr(smatl, iaction=DENSE_MATMUL, id='tmpp')
-              tempp_new = f_malloc_ptr(smatl%smmm%nvctrp, id='tempp_new')
-              inv_ovrlp_compr_seq = sparsematrix_malloc(smatl, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-              kernel_compr_seq = sparsematrix_malloc(smatl, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-              call sequential_acces_matrix_fast2(smatl, matrix_compr, kernel_compr_seq)
-              call sequential_acces_matrix_fast2(smatl, &
-                   ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), inv_ovrlp_compr_seq)
-              !!call uncompress_matrix_distributed2(iproc, smatl, DENSE_MATMUL, &
-              !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), inv_ovrlpp)
-              !! write(*,*) 'sum(matrix_compr) 0', iproc, sum(ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:))
-              !!  write(*,*) 'smatl%nvctrp, smatl%smmm%nvctrp_mm', smatl%nvctrp, smatl%smmm%nvctrp_mm
-              !!  write(*,*) 'smatl%isvctr, smatl%smmm%isvctr_mm', smatl%isvctr, smatl%smmm%isvctr_mm
-              call transform_sparsity_pattern(iproc, smatl%nfvctr, smatl%smmm%nvctrp_mm, smatl%smmm%isvctr_mm, &
-                   smatl%nseg, smatl%keyv, smatl%keyg, smatl%smmm%line_and_column_mm, &
-                   smatl%smmm%nvctrp, smatl%smmm%isvctr, &
-                   smatl%smmm%nseg, smatl%smmm%keyv, smatl%smmm%keyg, &
-                   smatl%smmm%istsegline, 'small_to_large', &
-                   ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+smatl%smmm%isvctr_mm-smatl%isvctrp_tg+1:), &
-                   inv_ovrlpp_new)
-              !!  write(*,*) 'sum(matrix_compr) 1', iproc, sum(ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:))
-              !!  write(*,*) 'sum(inv_ovrlpp_new) 1', iproc, sum(inv_ovrlpp_new)
-              !!  write(*,*) 'sum(inv_ovrlpp) 1', iproc, sum(inv_ovrlpp)
-    
-    
-                !!!!          call transform_sparsity_pattern(smatl%nfvctr, smatl%smmm%nvctrp_mm, smatl%smmm%isvctr_mm, &
-                !!!!               smatl%nseg, smatl%keyv, smatl%keyg, &
-                !!!!               smatl%smmm%nvctrp, smatl%smmm%isvctr, &
-                !!!!               smatl%smmm%nseg, smatl%smmm%keyv, smatl%smmm%keyg, &
-                !!!!               fermi_new, fermi_small_new)
+          !!    !!inv_ovrlpp = sparsematrix_malloc_ptr(smatl, iaction=DENSE_MATMUL, id='inv_ovrlpp')
+          !!    inv_ovrlpp_new = f_malloc_ptr(smatl%smmm%nvctrp, id='inv_ovrlpp_new')
+          !!    !!tempp = sparsematrix_malloc_ptr(smatl, iaction=DENSE_MATMUL, id='tmpp')
+          !!    tempp_new = f_malloc_ptr(smatl%smmm%nvctrp, id='tempp_new')
+          !!    inv_ovrlp_compr_seq = sparsematrix_malloc(smatl, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+          !!    kernel_compr_seq = sparsematrix_malloc(smatl, iaction=SPARSEMM_SEQ, id='kernel_compr_seq')
+          !!    call sequential_acces_matrix_fast2(smatl, matrix_compr, kernel_compr_seq)
+          !!    call sequential_acces_matrix_fast2(smatl, &
+          !!         ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), inv_ovrlp_compr_seq)
+          !!    !!call uncompress_matrix_distributed2(iproc, smatl, DENSE_MATMUL, &
+          !!    !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), inv_ovrlpp)
+          !!    !! write(*,*) 'sum(matrix_compr) 0', iproc, sum(ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:))
+          !!    !!  write(*,*) 'smatl%nvctrp, smatl%smmm%nvctrp_mm', smatl%nvctrp, smatl%smmm%nvctrp_mm
+          !!    !!  write(*,*) 'smatl%isvctr, smatl%smmm%isvctr_mm', smatl%isvctr, smatl%smmm%isvctr_mm
+          !!    call transform_sparsity_pattern(iproc, smatl%nfvctr, smatl%smmm%nvctrp_mm, smatl%smmm%isvctr_mm, &
+          !!         smatl%nseg, smatl%keyv, smatl%keyg, smatl%smmm%line_and_column_mm, &
+          !!         smatl%smmm%nvctrp, smatl%smmm%isvctr, &
+          !!         smatl%smmm%nseg, smatl%smmm%keyv, smatl%smmm%keyg, &
+          !!         smatl%smmm%istsegline, 'small_to_large', &
+          !!         ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+smatl%smmm%isvctr_mm-smatl%isvctrp_tg+1:), &
+          !!         inv_ovrlpp_new)
+          !!    !!  write(*,*) 'sum(matrix_compr) 1', iproc, sum(ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:))
+          !!    !!  write(*,*) 'sum(inv_ovrlpp_new) 1', iproc, sum(inv_ovrlpp_new)
+          !!    !!  write(*,*) 'sum(inv_ovrlpp) 1', iproc, sum(inv_ovrlpp)
     
     
+          !!      !!!!          call transform_sparsity_pattern(smatl%nfvctr, smatl%smmm%nvctrp_mm, smatl%smmm%isvctr_mm, &
+          !!      !!!!               smatl%nseg, smatl%keyv, smatl%keyg, &
+          !!      !!!!               smatl%smmm%nvctrp, smatl%smmm%isvctr, &
+          !!      !!!!               smatl%smmm%nseg, smatl%smmm%keyv, smatl%smmm%keyg, &
+          !!      !!!!               fermi_new, fermi_small_new)
     
-              !!call f_zero(tempp)
-              !!call sparsemm(smatl, kernel_compr_seq, inv_ovrlpp, tempp)
-              !!write(*,*) 'sum(tempp) 2',iproc, sum(tempp)
-              call sparsemm_new(iproc, smatl, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
-              !!write(*,*) 'sum(tempp_new) 2',iproc, sum(tempp_new)
-              !!inv_ovrlpp=0.d0
-              !!call sparsemm(smatl, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
-              call sparsemm_new(iproc, smatl, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
-               !!write(*,*) 'sum(inv_ovrlpp) 3', iproc, sum(inv_ovrlpp)
-               !!write(*,*) 'sum(inv_ovrlpp_new) 3', iproc, sum(inv_ovrlpp_new)
     
-              !!call f_zero(matrix_compr)
-              !!call compress_matrix_distributed(iproc, nproc, smatl, DENSE_MATMUL, &
-              !!     inv_ovrlpp, matrix_compr)
-              !!  write(*,*) 'sum(matrix_compr) old', iproc, sum(matrix_compr)
-              call f_zero(matrix_compr)
-              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_LARGE, &
-                   inv_ovrlpp_new, matrix_compr)
-                !!write(*,*) 'sum(matrix_compr) new', iproc, sum(matrix_compr)
     
-              !!call f_free_ptr(inv_ovrlpp)
-              !!call f_free_ptr(tempp)
-              call f_free_ptr(inv_ovrlpp_new)
-              call f_free_ptr(tempp_new)
-              call f_free(inv_ovrlp_compr_seq)
-              call f_free(kernel_compr_seq)
+          !!    !!call f_zero(tempp)
+          !!    !!call sparsemm(smatl, kernel_compr_seq, inv_ovrlpp, tempp)
+          !!    !!write(*,*) 'sum(tempp) 2',iproc, sum(tempp)
+          !!    call sparsemm_new(iproc, smatl, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
+          !!    !!write(*,*) 'sum(tempp_new) 2',iproc, sum(tempp_new)
+          !!    !!inv_ovrlpp=0.d0
+          !!    !!call sparsemm(smatl, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
+          !!    call sparsemm_new(iproc, smatl, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
+          !!     !!write(*,*) 'sum(inv_ovrlpp) 3', iproc, sum(inv_ovrlpp)
+          !!     !!write(*,*) 'sum(inv_ovrlpp_new) 3', iproc, sum(inv_ovrlpp_new)
     
-              call f_release_routine()
+          !!    !!call f_zero(matrix_compr)
+          !!    !!call compress_matrix_distributed(iproc, nproc, smatl, DENSE_MATMUL, &
+          !!    !!     inv_ovrlpp, matrix_compr)
+          !!    !!  write(*,*) 'sum(matrix_compr) old', iproc, sum(matrix_compr)
+          !!    call f_zero(matrix_compr)
+          !!    call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_LARGE, &
+          !!         inv_ovrlpp_new, matrix_compr)
+          !!      !!write(*,*) 'sum(matrix_compr) new', iproc, sum(matrix_compr)
     
-          end subroutine retransform
+          !!    !!call f_free_ptr(inv_ovrlpp)
+          !!    !!call f_free_ptr(tempp)
+          !!    call f_free_ptr(inv_ovrlpp_new)
+          !!    call f_free_ptr(tempp_new)
+          !!    call f_free(inv_ovrlp_compr_seq)
+          !!    call f_free(kernel_compr_seq)
+    
+          !!    call f_release_routine()
+    
+          !!end subroutine retransform
     
     
           !!!!subroutine calculate_trace_distributed_new(matrixp, trace)
