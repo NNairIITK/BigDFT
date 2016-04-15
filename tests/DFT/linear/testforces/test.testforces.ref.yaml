@@ -3594,8 +3594,6 @@
    determine eigenvalue bounds:
    -  {npl:  17, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  4.8E-04, ok: [ Yes, 
   Yes], exp accur:  [  7.57E-10 ]}
-   error estimation:
-     max / mean error                  :  [  2.16E-10,  8.73E-11 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr
@@ -3665,8 +3663,6 @@
    determine eigenvalue bounds:
    -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  3.9E-05, ok: [ Yes, 
   Yes], exp accur:  [  3.61E-10 ]}
-   error estimation:
-     max / mean error                  :  [  2.82E-10,  1.22E-10 ]
  Total charge                          :  7.999999676450E+00
   #---------------------------------------------------------------------- Forces Calculation
  Calculate local forces                :  Yes
@@ -5414,8 +5410,6 @@
    determine eigenvalue bounds:
    -  {npl:  17, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  6.6E-09, ok: [ Yes, 
   Yes], exp accur:  [  7.57E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.51E-11,  9.94E-12 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr
@@ -5485,8 +5479,6 @@
    determine eigenvalue bounds:
    -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  1.7E-09, ok: [ Yes, 
   Yes], exp accur:  [  3.61E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.7E-10,  1.51E-10 ]
  Total charge                          :  7.999998640909E+00
   #------------------------------------------------------------------------- Forces Calculation
  Calculate local forces                :  Yes
@@ -7291,8 +7283,6 @@
    determine eigenvalue bounds:
    -  {npl:  17, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -5.9E-09, ok: [ Yes, 
   Yes], exp accur:  [  7.57E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.42E-11,  1.01E-11 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr
@@ -7362,8 +7352,6 @@
    determine eigenvalue bounds:
    -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -1.6E-09, ok: [ Yes, 
   Yes], exp accur:  [  3.61E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.7E-10,  1.51E-10 ]
  Total charge                          :  8.000000142916E+00
   #------------------------------------------------------------------------- Forces Calculation
  Calculate local forces                :  Yes
@@ -9110,8 +9098,6 @@
    determine eigenvalue bounds:
    -  {npl:  17, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -9.9E-09, ok: [ Yes, 
   Yes], exp accur:  [  7.57E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.33E-11,  9.84E-12 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr
@@ -9181,8 +9167,6 @@
    determine eigenvalue bounds:
    -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -2.6E-09, ok: [ Yes, 
   Yes], exp accur:  [  3.61E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.7E-10,  1.51E-10 ]
  Total charge                          :  7.999999110376E+00
   #------------------------------------------------------------------------- Forces Calculation
  Calculate local forces                :  Yes
@@ -11229,8 +11213,6 @@
    determine eigenvalue bounds:
    -  {npl:  17, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -1.4E-08, ok: [ Yes, 
   Yes], exp accur:  [  7.57E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.24E-11,  9.65E-12 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : bohr
@@ -11300,8 +11282,6 @@
    determine eigenvalue bounds:
    -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -3.7E-09, ok: [ Yes, 
   Yes], exp accur:  [  3.61E-10 ]}
-   error estimation:
-     max / mean error                  :  [  3.7E-10,  1.51E-10 ]
  Total charge                          :  7.999998680210E+00
   #------------------------------------------------------------------------- Forces Calculation
  Calculate local forces                :  Yes

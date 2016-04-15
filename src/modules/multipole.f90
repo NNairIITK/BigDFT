@@ -1022,8 +1022,7 @@ module multipole
       call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
            meth_overlap, 1, power, -1, &
            imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-           ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-           max_error=max_error, mean_error=mean_error)
+           ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.false.)
       !call f_free_ptr(ovrlp%matrix)
 
       proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_mat_compr')
@@ -2594,7 +2593,7 @@ module multipole
                    1020, 1, power, -1, &
                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                    ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
-                   check_accur=.true., max_error=max_error, mean_error=mean_error)
+                   check_accur=.false.)
               call deallocate_matrices(newovrlp)
               call f_free(newoverlap)
           else
@@ -2603,7 +2602,7 @@ module multipole
                    1020, 1, power, -1, &
                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                    ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
-                   check_accur=.true., max_error=max_error, mean_error=mean_error)
+                   check_accur=.false.)
           end if
       end if
 
@@ -3093,7 +3092,7 @@ module multipole
                    1020, 1, power, -1, &
                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                    ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_(1), &
-                   check_accur=.true., max_error=max_error, mean_error=mean_error)
+                   check_accur=.false.)
 
               ! Calculate S^1/2 * K * S^1/2 = Ktilde
               tmpmat1 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=smatl, id='tmpmat1')

@@ -193,7 +193,7 @@ module sparsematrix_wrappers
           call f_routine('determine_sparsity_pattern')
           call timing(iproc,'determinespars','ON')
         
-          overlapMatrix = f_malloc((/orbs%norbu,maxval(orbs%norbu_par(:,0))/),id='overlapMatrix')
+          overlapMatrix = f_malloc((/orbs%norbu,orbs%norbup/),id='overlapMatrix')
           noverlapsarr = f_malloc(orbs%norbup,id='noverlapsarr')
         
           overlapMatrix=.false.
@@ -206,7 +206,7 @@ module sparsematrix_wrappers
              !$omp parallel default(none) &
              !$omp private(jorb,jlr,isoverlap,onseg) &
              !$omp shared(orbs,lzd,iorb,ilr,overlapMatrix,ioverlaporb)
-             !$omp do reduction(+:ioverlaporb)
+             !$omp do schedule(guided) reduction(+:ioverlaporb)
              do jorb=1,orbs%norbu
                 jlr=orbs%inWhichLocreg(jorb)
                 call check_overlap_cubic_periodic(lzd%Glr,lzd%llr(ilr),lzd%llr(jlr),isoverlap)
@@ -251,8 +251,11 @@ module sparsematrix_wrappers
           ! Now we know how many overlaps have to be calculated, so determine which orbital overlaps
           ! with which one. This is essentially the same loop as above, but we use the array 'overlapMatrix'
           ! which indicates the overlaps.
-          iiorb=0
-          ilrold=-1
+          !$omp parallel if (orbs%norbu>1000) &
+          !$omp default(none) &
+          !$omp shared(orbs,overlapMatrix,overlaps_op) &
+          !$omp private(iorb,ioverlaporb,iiorb)
+          !$omp do schedule(guided)
           do iorb=1,orbs%norbup
              ioverlaporb=0 ! counts the overlaps for the given orbital.
              iiorb=orbs%isorbu+iorb
@@ -263,6 +266,8 @@ module sparsematrix_wrappers
                 end if
              end do 
           end do
+          !$omp end do
+          !$omp end parallel
     
     
           nnonzero=0
@@ -462,7 +467,7 @@ module sparsematrix_wrappers
          !$omp private(jjorb,ind,overlap,jlr,jwa,jtype,x0,y0,z0,cut,i3,i2,i1,zj,yj,xj,tt) &
          !$omp shared(xi,yi,zi,iiorb,ilr,orbs,nnonzero,lzd,cutoff,astruct) &
          !$omp shared(ijs3,ije3,ijs2,ije2,ijs1,ije1,present_smat_ref,smat_ref) 
-         !$omp do reduction(+:nnonzero)
+         !$omp do schedule(guided) reduction(+:nnonzero)
          do jjorb=1,orbs%norbu
             if (present_smat_ref) then
                 ind = matrixindex_in_compressed(smat_ref,jjorb,iiorb)
@@ -484,17 +489,25 @@ module sparsematrix_wrappers
                 overlap = .false.
                 do i3=ijs3,ije3!-1,1
                     zj=z0+i3*(lzd%glr%d%n3+1)*lzd%hgrids(3)
-                    do i2=ijs2,ije2!-1,1
-                        yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
-                        do i1=ijs1,ije1!-1,1
-                            xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
-                            tt = (xi-xj)**2 + (yi-yj)**2 + (zi-zj)**2
+                    tt = (zi-zj)**2
+                    if (tt<cut) then
+                        ! For the z coordinate an overlap is possible, check the remaining directions
+                        do i2=ijs2,ije2!-1,1
+                            yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
+                            tt = (zi-zj)**2 + (yi-yj)**2
                             if (tt<cut) then
-                                !if (overlap) stop 'determine_sparsity_pattern_distance: problem with overlap'
-                                overlap=.true.
+                                ! For the y and z coordinate an overlap is possible, check the remaining direction
+                                do i1=ijs1,ije1!-1,1
+                                    xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
+                                    tt = (zi-zj)**2 + (yi-yj)**2 + (xi-xj)**2
+                                    if (tt<cut) then
+                                        ! There is an overlap taking into account all three direction
+                                        overlap=.true.
+                                    end if
+                                end do
                             end if
                         end do
-                    end do
+                    end if
                 end do
             end if
             if (overlap) then
@@ -560,17 +573,25 @@ module sparsematrix_wrappers
                 overlap = .false.
                 do i3=ijs3,ije3!-1,1
                     zj=z0+i3*(lzd%glr%d%n3+1)*lzd%hgrids(3)
-                    do i2=ijs2,ije2!-1,1
-                        yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
-                        do i1=ijs1,ije1!-1,1
-                            xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
-                            tt = (xi-xj)**2 + (yi-yj)**2 + (zi-zj)**2
+                    tt = (zi-zj)**2
+                    if (tt<cut) then
+                        ! For the z coordinate an overlap is possible, check the remaining directions
+                        do i2=ijs2,ije2!-1,1
+                            yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
+                            tt = (zi-zj)**2 + (yi-yj)**2
                             if (tt<cut) then
-                                !if (overlap) stop 'determine_sparsity_pattern_distance: problem with overlap'
-                                overlap=.true.
+                                ! For the y and z coordinate an overlap is possible, check the remaining direction
+                                do i1=ijs1,ije1!-1,1
+                                    xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
+                                    tt = (zi-zj)**2 + (yi-yj)**2 + (xi-xj)**2
+                                    if (tt<cut) then
+                                        ! There is an overlap taking into account all three direction
+                                        overlap=.true.
+                                    end if
+                                end do
                             end if
                         end do
-                    end do
+                    end if
                 end do
             end if
             if (overlap) then

@@ -3271,8 +3271,6 @@
    determine eigenvalue bounds:
    -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -2.2E-05, ok: [ Yes, 
   Yes], exp accur:  [  3.61E-10 ]}
-   error estimation:
-     max / mean error                  :  [  1.9E-10,  3.98E-11 ]
  Total charge                          :  3.999999893269E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:

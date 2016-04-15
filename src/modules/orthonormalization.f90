@@ -165,7 +165,7 @@ module orthonormalization
                imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
                ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
                verbosity=0, &
-               check_accur=.true., mean_error=mean_error, max_error=max_error)!!, &
+               check_accur=methTransformOverlap<1000, mean_error=mean_error, max_error=max_error)!!, &
           !if (iproc==0) call yaml_map('max error',max_error)
           !if (iproc==0) call yaml_map('mean error',mean_error)
           call check_taylor_order(iproc, mean_error, max_inversion_error, methTransformOverlap)
@@ -463,7 +463,7 @@ module orthonormalization
           call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
                methTransformOverlap, 1, power, &
                orthpar%blocksize_pdsyev, &
-               imode=1, check_accur=.true., &
+               imode=1, check_accur=methTransformOverlap<1000, &
                ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
                ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
                max_error=max_error, mean_error=mean_error)
@@ -627,7 +627,7 @@ module orthonormalization
                imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
                ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=linmat%ovrlppowers_(3), &
                verbosity=0, &
-               check_accur=.true., max_error=max_error, mean_error=mean_error)
+               check_accur=norder_taylor<1000, max_error=max_error, mean_error=mean_error)
           !!call vcopy(linmat%s%nvctr*linmat%s%nspin, tmparr(1), 1, linmat%ovrlp_%matrix_compr(1), 1)
           !!call f_free(tmparr)
           call check_taylor_order(iproc, mean_error, max_inversion_error, norder_taylor)

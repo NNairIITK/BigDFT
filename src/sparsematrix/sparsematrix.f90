@@ -1180,9 +1180,9 @@ module sparsematrix
      integer :: n_dense
      real(kind=mp),dimension(:,:),allocatable :: a_dense, b_dense, c_dense
      !real(kind=mp),dimension(:),allocatable :: b_dense, c_dense
-     integer,parameter :: MATMUL_NEW = 101
-     integer,parameter :: MATMUL_OLD = 102
-     integer,parameter :: matmul_version = MATMUL_NEW
+     !!integer,parameter :: MATMUL_NEW = 101
+     !!integer,parameter :: MATMUL_OLD = 102
+     !!integer,parameter :: matmul_version = MATMUL_NEW 
      logical,parameter :: count_flops = .false.
      real(kind=mp) :: ts, te, op, gflops
      real(kind=mp),parameter :: flop_per_op = 2.d0 !<number of FLOPS per operations
@@ -1205,6 +1205,7 @@ module sparsematrix
      call f_timing(TCAT_SMAT_MULTIPLICATION,'IR')
 
 
+     ! The choice for matmul_version can be made in sparsematrix_base
      if (matmul_version==MATMUL_NEW) then
 
          if (count_flops) then
@@ -2078,7 +2079,7 @@ module sparsematrix
 
 
 
-    subroutine max_asymmetry_of_matrix(iproc, nproc, comm, sparsemat, mat_tg, error_max)
+    subroutine max_asymmetry_of_matrix(iproc, nproc, comm, sparsemat, mat_tg, error_max, ispinx)
       use sparsematrix_init, only: matrixindex_in_compressed
       implicit none
 
@@ -2087,38 +2088,53 @@ module sparsematrix
       type(sparse_matrix),intent(in) :: sparsemat
       real(kind=mp),dimension(sparsemat%nvctrp_tg),intent(in) :: mat_tg
       real(kind=mp),intent(out) :: error_max
+      integer,intent(in),optional :: ispinx
 
       ! Local variables
       real(kind=mp),dimension(:),allocatable :: mat_full
-      integer :: ispin, ishift, iseg, ii, i, ind, ind_trans
+      integer :: ispin, ishift, iseg, ii, i, ind, ind_trans, iel
       real(kind=mp) :: val, val_trans, error
 
+      call f_routine(id='max_asymmetry_of_matrix')
 
-      ! Gather together the matrix from the taskgroups
-      mat_full = sparsematrix_malloc(sparsemat,iaction=SPARSE_FULL,id='mat_full')
-      call gather_matrix_from_taskgroups(iproc, nproc, comm, sparsemat, mat_tg, mat_full)
+      !!! Gather together the matrix from the taskgroups
+      !!mat_full = sparsematrix_malloc(sparsemat,iaction=SPARSE_FULL,id='mat_full')
+      !!call gather_matrix_from_taskgroups(iproc, nproc, comm, sparsemat, mat_tg, mat_full)
 
       error_max = 0.0_mp
       do ispin=1,sparsemat%nspin
+          if (present(ispinx)) then
+              if (ispin/=ispinx) cycle
+          end if
           ishift=(ispin-1)*sparsemat%nvctr
-          do iseg=1,sparsemat%nseg
-              ! a segment is always on one line, therefore no double loop
+          !do iseg=1,sparsemat%nseg
+          do iseg=sparsemat%isseg,sparsemat%ieseg
+              iel = sparsemat%keyv(iseg) - 1
               do i=sparsemat%keyg(1,1,iseg),sparsemat%keyg(2,1,iseg)
-                 ind = matrixindex_in_compressed(sparsemat, i, sparsemat%keyg(1,2,iseg))
-                 ind_trans = matrixindex_in_compressed(sparsemat, sparsemat%keyg(1,2,iseg), i)
-                 val = mat_full(ind)
-                 val_trans = mat_full(ind_trans)
-                 error = abs(val-val_trans)
-                 if (error>error_max) then
-                     error_max = error
-                 end if
-             end do
+                  iel = iel + 1
+                  if (iel<sparsemat%isvctr+1) cycle
+                  if (iel>sparsemat%isvctr+sparsemat%nvctrp) then
+                      exit
+                  end if
+                  ind = matrixindex_in_compressed(sparsemat, i, sparsemat%keyg(1,2,iseg)) - sparsemat%isvctrp_tg
+                  ind_trans = matrixindex_in_compressed(sparsemat, sparsemat%keyg(1,2,iseg), i) - sparsemat%isvctrp_tg
+                  !val = mat_full(ind)
+                  !val_trans = mat_full(ind_trans)
+                  val = mat_tg(ind)
+                  val_trans = mat_tg(ind_trans)
+                  error = abs(val-val_trans)
+                  if (error>error_max) then
+                      error_max = error
+                  end if
+              end do
           end do
       end do
-      !call mpiallred(error_max, 1, mpi_max, comm=comm)
+      call mpiallred(error_max, 1, mpi_max, comm=comm)
       !if (iproc==0) call yaml_map('max asymmetry',error_max)
 
-      call f_free(mat_full)
+      !!call f_free(mat_full)
+
+      call f_release_routine()
 
     end subroutine max_asymmetry_of_matrix
 
@@ -2257,7 +2273,7 @@ module sparsematrix
 
 
 
-    subroutine symmetrize_matrix(smat, csign, mat_in, mat_out)
+    subroutine symmetrize_matrix(smat, csign, mat_in, mat_out, ispinx)
       use sparsematrix_init, only: matrixindex_in_compressed
       implicit none
 
@@ -2266,6 +2282,7 @@ module sparsematrix
       character(len=*),intent(in) :: csign
       real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: mat_in
       real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(out) :: mat_out
+      integer,intent(in),optional :: ispinx
 
       ! Local variables
       integer :: ispin, ishift, iseg, ii, i, ii_trans
@@ -2282,6 +2299,9 @@ module sparsematrix
       end if
 
       do ispin=1,smat%nspin
+          if (present(ispinx)) then
+              if (ispin/=ispinx) cycle
+          end if
           ishift=(ispin-1)*smat%nvctrp_tg
           !$omp parallel default(none) &
           !$omp shared(smat,mat_in,mat_out,ishift) &

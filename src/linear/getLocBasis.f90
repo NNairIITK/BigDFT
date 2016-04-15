@@ -241,6 +241,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
            tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
            tmb%linmat%s%isfvctr, ovrlp_fullp, &
            tmb%linmat%s, max_deviation_p, mean_deviation_p)
+      !!call deviation_from_unity_parallel_new(iproc, nproc, bigdft_mpi%mpi_comm, &
+      !!     tmb%linmat%ovrlp_%matrix_compr(ishift+1:), tmb%linmat%s, &
+      !!     max_deviation_p, mean_deviation_p)
       max_deviation = max_deviation + max_deviation_p/real(tmb%linmat%s%nspin,kind=8)
       mean_deviation = mean_deviation + mean_deviation_p/real(tmb%linmat%s%nspin,kind=8)
   end do
@@ -1101,7 +1104,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
                    verbosity=0, &
-                   check_accur=.true., max_error=max_error, mean_error=mean_error)
+                   check_accur=order_taylor<1000, max_error=max_error, mean_error=mean_error)
               call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
           end if
           call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
