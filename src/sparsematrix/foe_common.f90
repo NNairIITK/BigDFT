@@ -1686,7 +1686,7 @@ module foe_common
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, npl, ispin
       type(sparse_matrix),intent(in) :: smatl
-      real(kind=mp),dimension(smatl%smmm%nvctrp_mm,npl) :: chebyshev_polynomials
+      real(kind=mp),dimension(smatl%smmm%nvctrp_mm,npl),intent(in) :: chebyshev_polynomials
       integer,intent(in) :: foe_verbosity
       character(len=*),intent(in) :: label
       type(foe_data),intent(inout) :: foe_obj

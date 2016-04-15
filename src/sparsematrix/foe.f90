@@ -1060,7 +1060,7 @@ module foe
       real(kind=mp),parameter :: charge_tolerance=1.d-6 ! exit criterion
       logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
       real(kind=mp) :: temp_multiplicator, ebs_check, ef, ebsp
-      integer :: irow, icol, itemp, iflag,info, ispin, isshift, imshift, ilshift, ilshift2, i, j, itg, ncount, istl, ists
+      integer :: irow, icol, itemp, iflag,info, ispin, isshift, imshift, ilshift, i, j, itg, ncount, istl, ists
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
       real(kind=mp),parameter :: FSCALE_LOWER_LIMIT=5.d-3
       real(kind=mp),parameter :: FSCALE_UPPER_LIMIT=5.d-2
@@ -1181,7 +1181,6 @@ module foe
           isshift=(ispin-1)*smats%nvctrp_tg
           imshift=(ispin-1)*smatm%nvctrp_tg
           ilshift=(ispin-1)*smatl%nvctrp_tg
-          ilshift2=(ispin-1)*smatl%nvctrp_tg
 
           !call get_minmax_eigenvalues(iproc, smatm, ham_, imshift, smats, ovrlp_, isshift)
     
@@ -1254,7 +1253,7 @@ module foe
                            chebyshev_polynomials, ispin, eval_bounds_ok, hamscal_compr, &
                            scale_factor, shift_value, &
                            smats=smats, ovrlp_=ovrlp_, &
-                           ovrlp_minus_one_half=ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:))
+                           ovrlp_minus_one_half=ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:))
                       if (iproc==0) then
                           call yaml_map('ok',eval_bounds_ok)
                           call yaml_mapping_close()
@@ -1321,17 +1320,17 @@ module foe
                   call f_free(cc_check)
 
                   call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
-                       fermi_check_new, fermi_check_compr)
+                       fermi_check_new, fermi_check_compr(ilshift+1:))
                   ! Calculate S^-1/2 * K * S^-1/2^T
                   ! Since S^-1/2 is symmetric, don't use the transpose
                   istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
                   !write(*,*) 'before kernel_%matrix_compr(ilshift+istl)',iproc, kernel_%matrix_compr(ilshift+istl)
                   call retransform_ext(iproc, nproc, smatl, &
-                       ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), kernel_%matrix_compr(ilshift+1:))
+                       ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel_%matrix_compr(ilshift+1:))
                   !write(*,*) 'after kernel_%matrix_compr(ilshift+istl)',iproc, kernel_%matrix_compr(ilshift+istl)
     
                   call retransform_ext(iproc, nproc, smatl, &
-                       ovrlp_minus_one_half_(1)%matrix_compr(ilshift2+1:), fermi_check_compr)
+                       ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:))
                   ! Explicitly symmetrize the kernel, use fermi_check_compr as temporary array
                   call max_asymmetry_of_matrix(iproc, nproc, comm, &
                        smatl, kernel_%matrix_compr, asymm_K, ispinx=ispin)
@@ -1350,7 +1349,7 @@ module foe
                          kernel_%matrix_compr(ilshift+1:))
                   sumn_check = trace_sparse(iproc, nproc, comm, smats, smatl, &
                                ovrlp_%matrix_compr(isshift+1:), &
-                               fermi_check_compr)
+                               fermi_check_compr(ilshift+1:))
                   !write(*,*) 'sumn, sumn_check', sumn, sumn_check
                   !@ENDNEW #######################
             
@@ -1369,9 +1368,9 @@ module foe
                   !!    iproc, ncount, istl, sum(kernel_%matrix_compr(ilshift+istl:)), sum(hamscal_compr(istl:)), ebsp
     
                   ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
-                  istl = smatl%smmm%istartend_mm_dj(1)
-                  ebs_check = ddot(ncount, fermi_check_compr(istl-smatl%isvctrp_tg), 1, &
-                              hamscal_compr(istl-smatl%isvctrp_tg), 1)
+                  istl = smatl%smmm%istartend_mm_dj(1) - smatl%isvctrp_tg
+                  ebs_check = ddot(ncount, fermi_check_compr(ilshift+istl), 1, &
+                              hamscal_compr(istl), 1)
                   !write(*,*) 'ebs_check',ebs_check
     
                   temparr(1) = ebsp

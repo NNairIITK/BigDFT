@@ -1041,6 +1041,8 @@ module sparsematrix_init
 
       ! Initialize the parameters for the spare matrix matrix multiplication
       if (init_matmul_) then
+          sparsemat%smatmul_initialized = .true.
+
           nsegline_mult = f_malloc0(norbu,id='nsegline_mult')
           istsegline_mult = f_malloc(norbu,id='istsegline_mult')
           nseg_mult=0
@@ -1103,7 +1105,6 @@ module sparsematrix_init
           call f_free(istsegline_mult)
           call f_free(keyg_mult)
           call f_free(keyv_mult)
-          sparsemat%smatmul_initialized = .true.
       else
           sparsemat%smatmul_initialized = .false.
       end if
