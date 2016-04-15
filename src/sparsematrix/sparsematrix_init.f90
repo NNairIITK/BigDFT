@@ -1037,71 +1037,73 @@ module sparsematrix_init
       sparsemat%parallel_compression=0
 
 
-      nsegline_mult = f_malloc0(norbu,id='nsegline_mult')
-      istsegline_mult = f_malloc(norbu,id='istsegline_mult')
-      nseg_mult=0
-      nvctr_mult=0
-      do iorb=1,sparsemat%nfvctrp
-          iiorb=sparsemat%isfvctr+iorb
-          call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb, norbu, lut)
-          call nseg_perline(norbu, lut, nseg_mult, nvctr_mult, nsegline_mult(iiorb))
-      end do
-      if (nproc>1) then
-          call mpiallred(nvctr_mult, 1, mpi_sum, comm=comm)
-          call mpiallred(nseg_mult, 1, mpi_sum, comm=comm)
-          call mpiallred(nsegline_mult, mpi_sum, comm=comm)
-      end if
-
-
-
-      ! Initialize istsegline, which gives the first segment of each line
-      istsegline_mult(1)=1
-      do iorb=2,norbu
-          istsegline_mult(iorb) = istsegline_mult(iorb-1) + nsegline_mult(iorb-1)
-      end do
-
-      keyg_mult = f_malloc0((/2,2,nseg_mult/),id='keyg_mult')
-      keyv_mult = f_malloc0((/nseg_mult/),id='keyg_mult')
-
-      ivctr_mult=0
-      do iorb=1,sparsemat%nfvctrp
-         iiorb=sparsemat%isfvctr+iorb
-         call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb, norbu, lut)
-         call keyg_per_line(norbu, nseg_mult, iiorb, istsegline_mult(iiorb), &
-              lut, ivctr_mult, keyg_mult)
-      end do
-      ! check whether the number of elements agrees
-      if (nproc>1) then
-          call mpiallred(ivctr_mult, 1, mpi_sum, comm=comm)
-      end if
-      if (ivctr_mult/=nvctr_mult) then
-          write(*,'(a,2i8)') 'ERROR: ivctr_mult/=nvctr_mult', ivctr_mult, nvctr_mult
-          stop
-      end if
-      if (nproc>1) then
-          call mpiallred(keyg_mult, mpi_sum, comm=comm)
-      end if
-
-      ! start of the segments
-      keyv_mult(1)=1
-      do iseg=2,nseg_mult
-          keyv_mult(iseg) = keyv_mult(iseg-1) + keyg_mult(2,1,iseg-1) - keyg_mult(1,1,iseg-1) + 1
-      end do
-      if (extra_timing) call cpu_time(tr1)   
-      if (extra_timing) time4=real(tr1-tr0,kind=mp)
-
-      if (extra_timing) call cpu_time(tr0) 
-
-      ! Allocate the matrices
-      !call allocate_sparse_matrix_matrices(sparsemat, allocate_full_)
 
 
       ! Initialize the parameters for the spare matrix matrix multiplication
       if (init_matmul_) then
-          sparsemat%smatmul_initialized = .true.
+          nsegline_mult = f_malloc0(norbu,id='nsegline_mult')
+          istsegline_mult = f_malloc(norbu,id='istsegline_mult')
+          nseg_mult=0
+          nvctr_mult=0
+          do iorb=1,sparsemat%nfvctrp
+              iiorb=sparsemat%isfvctr+iorb
+              call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb, norbu, lut)
+              call nseg_perline(norbu, lut, nseg_mult, nvctr_mult, nsegline_mult(iiorb))
+          end do
+          if (nproc>1) then
+              call mpiallred(nvctr_mult, 1, mpi_sum, comm=comm)
+              call mpiallred(nseg_mult, 1, mpi_sum, comm=comm)
+              call mpiallred(nsegline_mult, mpi_sum, comm=comm)
+          end if
+
+
+
+          ! Initialize istsegline, which gives the first segment of each line
+          istsegline_mult(1)=1
+          do iorb=2,norbu
+              istsegline_mult(iorb) = istsegline_mult(iorb-1) + nsegline_mult(iorb-1)
+          end do
+
+          keyg_mult = f_malloc0((/2,2,nseg_mult/),id='keyg_mult')
+          keyv_mult = f_malloc0((/nseg_mult/),id='keyg_mult')
+
+          ivctr_mult=0
+          do iorb=1,sparsemat%nfvctrp
+             iiorb=sparsemat%isfvctr+iorb
+             call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb, norbu, lut)
+             call keyg_per_line(norbu, nseg_mult, iiorb, istsegline_mult(iiorb), &
+                  lut, ivctr_mult, keyg_mult)
+          end do
+          ! check whether the number of elements agrees
+          if (nproc>1) then
+              call mpiallred(ivctr_mult, 1, mpi_sum, comm=comm)
+          end if
+          if (ivctr_mult/=nvctr_mult) then
+              write(*,'(a,2i8)') 'ERROR: ivctr_mult/=nvctr_mult', ivctr_mult, nvctr_mult
+              stop
+          end if
+          if (nproc>1) then
+              call mpiallred(keyg_mult, mpi_sum, comm=comm)
+          end if
+
+          ! start of the segments
+          keyv_mult(1)=1
+          do iseg=2,nseg_mult
+              keyv_mult(iseg) = keyv_mult(iseg-1) + keyg_mult(2,1,iseg-1) - keyg_mult(1,1,iseg-1) + 1
+          end do
+          if (extra_timing) call cpu_time(tr1)   
+          if (extra_timing) time4=real(tr1-tr0,kind=mp)
+
+          if (extra_timing) call cpu_time(tr0) 
+
           call init_sparse_matrix_matrix_multiplication_new(iproc, nproc, comm, &
                norbu, sparsemat%nfvctrp, sparsemat%isfvctr, nseg_mult, &
                nsegline_mult, istsegline_mult, keyv_mult, keyg_mult, sparsemat)
+          call f_free(nsegline_mult)
+          call f_free(istsegline_mult)
+          call f_free(keyg_mult)
+          call f_free(keyv_mult)
+          sparsemat%smatmul_initialized = .true.
       else
           sparsemat%smatmul_initialized = .false.
       end if
@@ -1109,10 +1111,6 @@ module sparsematrix_init
       if (extra_timing) call cpu_time(tr1)   
       if (extra_timing) time5=real(tr1-tr0,kind=mp)    
 
-      call f_free(nsegline_mult)
-      call f_free(istsegline_mult)
-      call f_free(keyg_mult)
-      call f_free(keyv_mult)
       call f_free(lut)
 
 
@@ -2826,7 +2824,7 @@ module sparsematrix_init
       call f_memcpy(src=nzatom, dest=smmd%nzatom)
       smmd%nelpsp = f_malloc_ptr(ntypes,id='smmd%nelpsp')
       call f_memcpy(src=nelpsp, dest=smmd%nelpsp)
-      smmd%atomnames = f_malloc_str_ptr(len(atomnames),ntypes)
+      smmd%atomnames = f_malloc_str_ptr(len(atomnames),ntypes,id='smmd%atomnames')
       do itype=1,ntypes
           smmd%atomnames(itype) = atomnames(itype)
       end do
