@@ -3056,6 +3056,9 @@ contains
          call yaml_map('Yoshida-Suzuki factor for Nose Hoover Chains', in%nsuzuki)
          call yaml_map('Frequency of Nose Hoover Chains', in%nosefrq)
        end if
+       call yaml_map('Restart Positions from md.restart', in%restart_pos)
+       call yaml_map('Restart Velocities from md.restart', in%restart_vel)
+       call yaml_map('Restart Nose Hoover Chains from md.restart', in%restart_nose)
        call yaml_mapping_close()
     end if
 
