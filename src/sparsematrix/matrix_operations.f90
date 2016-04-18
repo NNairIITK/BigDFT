@@ -594,8 +594,8 @@ module matrix_operations
                          inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                          inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                          inv_ovrlp_smat%smmm%istsegline, 'small_to_large', &
-                         Amat12_compr(ishift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), &
-                         Amat12p_new)
+                         matrix_s_in=Amat12_compr(ishift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), &
+                         matrix_l_out=Amat12p_new)
                     !call timing(iproc,'lovrlp^-1     ','ON')
                     call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
       
@@ -788,8 +788,8 @@ module matrix_operations
                                  inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                                  inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                                  inv_ovrlp_smat%smmm%istsegline, 'small_to_large', &
-                                 ovrlpminone_sparse(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), &
-                                 ovrlpminoneoldp_new)
+                                 matrix_s_in=ovrlpminone_sparse(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1:), &
+                                 matrix_l_out=ovrlpminoneoldp_new)
                             !call timing(iproc,'lovrlp^-1     ','ON')
                             call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
       
@@ -822,8 +822,8 @@ module matrix_operations
                                  inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                                  inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                                  inv_ovrlp_smat%smmm%istsegline, 'small_to_large', &
-                                 ovrlp_large_compr(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1), &
-                                 ovrlpminonep_new)
+                                 matrix_s_in=ovrlp_large_compr(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1), &
+                                 matrix_l_out=ovrlpminonep_new)
                             !!write(500+bigdft_mpi%iproc,'(a,2es16.8)') 'large, new', &
                             !!    ovrlp_large_compr(ilshift2+inv_ovrlp_smat%smmm%isvctr_mm+1), ovrlpminonep_new(1)
                             !call timing(iproc,'lovrlp^-1     ','ON')
@@ -986,8 +986,8 @@ module matrix_operations
                                  inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                                  inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                                  inv_ovrlp_smat%smmm%istsegline, 'small_to_large', &
-                                 ovrlp_large_compr(ilshift+inv_ovrlp_smat%smmm%isvctr_mm-inv_ovrlp_smat%isvctrp_tg+1), &
-                                 ovrlp_largep_new)
+                                 matrix_s_in=ovrlp_large_compr(ilshift+inv_ovrlp_smat%smmm%isvctr_mm-inv_ovrlp_smat%isvctrp_tg+1), &
+                                 matrix_l_out=ovrlp_largep_new)
                         end if
       
                         !call timing(iproc,'lovrlp^-1     ','ON')
@@ -1017,8 +1017,8 @@ module matrix_operations
                                      inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                                      inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                                      inv_ovrlp_smat%smmm%istsegline, 'small_to_large', &
-                                     inv_ovrlp_mat(icalc)%matrix_compr(ist:), &
-                                     invovrlpp_new)
+                                     matrix_s_in=inv_ovrlp_mat(icalc)%matrix_compr(ist:), &
+                                     matrix_l_out=invovrlpp_new)
                             end if
                             !call timing(iproc,'lovrlp^-1     ','ON')
                             call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
@@ -1043,8 +1043,8 @@ module matrix_operations
                                      inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
                                      inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
                                      inv_ovrlp_smat%smmm%istsegline, 'small_to_large', &
-                                     inv_ovrlp_mat(icalc)%matrix_compr(ist:), &
-                                     invovrlpp_new)
+                                     matrix_s_in=inv_ovrlp_mat(icalc)%matrix_compr(ist:), &
+                                     matrix_l_out=invovrlpp_new)
                             end if
                             !call timing(iproc,'lovrlp^-1     ','ON')
                             call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
