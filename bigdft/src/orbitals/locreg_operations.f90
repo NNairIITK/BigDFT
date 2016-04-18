@@ -15,6 +15,27 @@ module locreg_operations
 
   private
 
+
+  !> Parameters identifying the different strategy for the application of a projector
+  !! in a localisation region
+  integer, parameter :: STRATEGY_SKIP=0 !< The projector is not applied. This might happend when ilr and iat does not interact
+  integer, parameter :: STRATEGY_MASK=1         !< Use mask arrays. The mask array has to be created before.
+  integer, parameter :: STRATEGY_KEYS=2         !< Use keys. No mask nor packing. Equivalend to traditional application
+  integer, parameter :: STRATEGY_MASK_PACK=3    !< Use masking and creates a pack arrays from them.
+                                              !! Most likely this is the common usage for atoms
+                                              !! with lots of projectors and localization regions "close" to them
+  integer, parameter :: STRATEGY_KEYS_PACK=4    !< Use keys and pack arrays. Useful especially when there is no memory to create a lot of packing arrays,
+                                                 !! for example when lots of lrs interacts with lots of atoms
+
+  !> arrays defining how a given projector and a given wavefunction descriptor should interact
+  type, public :: wfd_to_wfd
+     integer :: strategy !< can be STRATEGY_MASK,STRATEGY_KEYS,STRATEGY_MASK_PACK,STRATEGY_KEYS_PACK,STRATEGY_SKIP
+     integer :: nmseg_c !< number of segments intersecting in the coarse region
+     integer :: nmseg_f !< number of segments intersecting in the fine region
+     integer, dimension(:,:), pointer :: mask !<mask array of dimesion 3,nmseg_c+nmseg_f for psp application
+  end type wfd_to_wfd
+
+
   !> Information for the confining potential to be used in TMB scheme
   !! The potential is supposed to be defined as prefac*(r-rC)**potorder
   type, public :: confpot_data
@@ -25,6 +46,7 @@ module locreg_operations
      real(gp), dimension(3) :: rxyzConf !< Confining potential center in global coordinates
      real(gp) :: damping                !< Damping factor to be used after the restart
   end type confpot_data
+
 
   !> Contains the work arrays needed for expressing wavefunction in real space
   !! with all the BC
@@ -87,6 +109,12 @@ module locreg_operations
   public :: allocate_work_arrays,init_local_work_arrays,deallocate_work_arrays
   public :: deallocate_workarrays_quartic_convolutions,zero_local_work_arrays
 
+  public :: deallocate_wfd_to_wfd
+  public :: nullify_wfd_to_wfd
+  public :: set_wfd_to_wfd
+  public :: wfd_to_wfd_skip,free_tolr_ptr
+  public :: cproj_dot,cproj_pr_p_psi,pr_dot_psi
+
   ! to avoid creating array temporaries
   interface initialize_work_arrays_sumrho
       module procedure initialize_work_arrays_sumrho_nlr 
@@ -100,6 +128,648 @@ module locreg_operations
 
 
   contains
+
+    !creators
+    pure function wfd_to_wfd_null() result(tolr)
+      implicit none
+      type(wfd_to_wfd) :: tolr
+      call nullify_wfd_to_wfd(tolr)
+    end function wfd_to_wfd_null
+    pure subroutine nullify_wfd_to_wfd(tolr)
+      implicit none
+      type(wfd_to_wfd), intent(out) :: tolr
+      tolr%strategy=STRATEGY_SKIP
+      tolr%nmseg_c=0
+      tolr%nmseg_f=0
+      nullify(tolr%mask)
+    end subroutine nullify_wfd_to_wfd
+
+    !destructors
+    subroutine deallocate_wfd_to_wfd(tolr)
+      implicit none
+      type(wfd_to_wfd), intent(inout) :: tolr
+      call f_free_ptr(tolr%mask)
+    end subroutine deallocate_wfd_to_wfd
+
+    subroutine free_tolr_ptr(tolr)
+      implicit none
+      type(wfd_to_wfd), dimension(:), pointer :: tolr
+      !local variables
+      integer :: ilr
+      if (.not. associated(tolr)) return
+      do ilr=lbound(tolr,1),ubound(tolr,1)
+         call deallocate_wfd_to_wfd(tolr(ilr))
+         call nullify_wfd_to_wfd(tolr(ilr))
+      end do
+      deallocate(tolr)
+      nullify(tolr)
+    end subroutine free_tolr_ptr
+
+    pure function wfd_to_wfd_skip(tolr)
+      implicit none
+      type(wfd_to_wfd), intent(in) :: tolr
+      logical :: wfd_to_wfd_skip
+
+      wfd_to_wfd_skip = tolr%strategy == STRATEGY_SKIP
+    end function wfd_to_wfd_skip
+
+    !> initialize the information for matching the localisation region
+    !! of each projector to all the localisation regions of the system
+    subroutine set_wfd_to_wfd(Glr,plr,keyag_lin_cf,nbsegs_cf,noverlap,lut_tolr,tolr,lrs,lr_mask)
+      implicit none
+      type(locreg_descriptors), intent(in) :: Glr !<global simulation domain
+      type(locreg_descriptors), intent(in) :: plr !<locreg of the projector
+      !>work array: needed to build the mask array
+      integer, dimension(plr%wfd%nseg_c+plr%wfd%nseg_f), intent(inout) :: nbsegs_cf
+      !>work array: needed to put the unstrided keygloc of all locregs
+      !! the dimension has to be maxval(lrs(:)%nseg_c+lrs(:)%nseg_f)
+      integer, dimension(*), intent(inout) :: keyag_lin_cf
+      !>structures which have to be filled to prepare projector applications
+      integer,dimension(:),pointer,intent(out) :: lut_tolr !< lookup table
+      integer,intent(out) :: noverlap !< dimension of the arrays lut_tolr and tolr
+      type(wfd_to_wfd), dimension(:), pointer,intent(out) :: tolr 
+      !> mask array which is associated to the localization regions of interest in this processor
+      logical, dimension(:), optional, intent(in) :: lr_mask
+      !> descriptors of all the localization regions of the simulation domain
+      !! susceptible to interact with the projector
+      type(locreg_descriptors), dimension(:), optional, intent(in) :: lrs
+      !local variables
+      logical :: overlap
+      integer :: ilr,nlr, iilr, ioverlap
+
+      call f_routine(id='set_wfd_to_wfd')
+
+      ! Determine the size of tolr and initialize the corresponding lookup table
+      nlr=1
+      overlap=.true.
+      if (present(lrs)) then
+         nlr=size(lrs)
+      end if
+      if (nlr <=0) return
+
+      ! Count how many overlaps exist
+      noverlap=0
+      do ilr=1,nlr
+         !control if the projector overlaps with this locreg
+         if (present(lrs)) then
+            overlap=.true.
+            if (present(lr_mask)) overlap=lr_mask(ilr)
+            if (overlap) call check_overlap(lrs(ilr),plr,Glr,overlap)
+            !if there is overlap, activate the strategy for the application
+            if (overlap) then
+               noverlap=noverlap+1
+            end if
+         else
+            noverlap=noverlap+1
+         end if
+      end do
+      lut_tolr = f_malloc_ptr(noverlap,id='lut_tolr')
+      lut_tolr = STRATEGY_SKIP
+
+      ! Now assign the values
+      ioverlap=0
+      do ilr=1,nlr
+         !control if the projector overlaps with this locreg
+         if (present(lrs)) then
+            overlap=.true.
+            if (present(lr_mask)) overlap=lr_mask(ilr)
+            if (overlap) call check_overlap(lrs(ilr),plr,Glr,overlap)
+            !if there is overlap, activate the strategy for the application
+            if (overlap) then
+               ioverlap=ioverlap+1
+               lut_tolr(ioverlap)=ilr
+            end if
+         else
+            ioverlap=ioverlap+1
+            lut_tolr(ioverlap)=ilr
+         end if
+      end do
+      if (ioverlap/=noverlap) stop 'ioverlap/=noverlap'
+
+      if (present(lrs) .and. present(lr_mask)) then
+         if (f_err_raise(nlr /= size(lr_mask),'The sizes of lr_mask and lrs should coincide',&
+              err_name='BIGDFT_RUNTIME_ERROR')) return
+      end if
+      !allocate the pointer with the good size
+      allocate(tolr(noverlap))
+      !then for any of the localization regions check the strategy
+      !for applying the projectors
+      !ioverlap=0
+      do ilr=1,noverlap
+         iilr=lut_tolr(ilr)
+         !if (iilr==PSP_APPLY_STRATEGY_SKIP) cycle
+         !ioverlap=ioverlap+1
+         !this will set to PSP_APPLY_STRATEGY_SKIP the projector application
+         call nullify_wfd_to_wfd(tolr(ilr))
+         !now control if the projector overlaps with this locreg
+         if (present(lrs)) then
+            overlap=.true.
+            if (present(lr_mask)) overlap=lr_mask(iilr)
+            if (overlap) call check_overlap(lrs(iilr),plr,Glr,overlap)
+            !if there is overlap, activate the strategy for the application
+            if (overlap) then
+               call init_tolr(tolr(ilr),lrs(iilr)%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf)
+            end if
+         else
+            call init_tolr(tolr(ilr),Glr%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf)
+         end if
+         !then the best strategy can be decided according to total number of 
+         !common points
+         !complete stategy, the packing array is created after first projector
+         if (overlap) tolr(ilr)%strategy=STRATEGY_MASK_PACK
+         !masking is used but packing is not created, 
+         !useful when only one projector has to be applied
+         !tolr(ilr)%strategy=PSP_APPLY_STRATEGY_MASK
+         !old scheme, even though mask arrays is created it is never used.
+         !most likely this scheme is useful for debugging purposes
+         !tolr(ilr)%strategy=PSP_APPLY_STRATEGY_KEYS
+      end do
+
+      !!if (ioverlap/=noverlap) stop 'ioverlap/=noverlap'
+
+      call f_release_routine()
+
+    end subroutine set_wfd_to_wfd
+
+    !> initialize the wfd_to_wfd descriptor starting from 
+    !! the descriptors of the localization regions
+    subroutine init_tolr(tolr,wfd_lr,wfd_p,keyag_lin_cf,nbsegs_cf)
+      implicit none
+      !>descriptors of the localization region to mask
+      type(wavefunctions_descriptors), intent(in) :: wfd_lr
+      !>descriptors of the projectors
+      type(wavefunctions_descriptors), intent(in) :: wfd_p
+      !> array of the unstrided keyglob starting points of wfd_w
+      integer, dimension(wfd_lr%nseg_c+wfd_lr%nseg_f), intent(inout) :: keyag_lin_cf
+      !> number of common segments of the wfd_w for each of the segment of wfd_p.
+      integer, dimension(wfd_p%nseg_c+wfd_p%nseg_f), intent(inout) :: nbsegs_cf
+      !> structure for apply the projector to the corresponding locreg
+      type(wfd_to_wfd), intent(inout) :: tolr
+
+      call f_routine(id='init_tolr')
+
+      !calculate the size of the mask array
+      call vcopy(wfd_lr%nseg_c+wfd_lr%nseg_f,&
+           wfd_lr%keyglob(1,1),2,keyag_lin_cf(1),1)
+      call f_zero(nbsegs_cf)
+      call mask_sizes(wfd_lr,wfd_p,keyag_lin_cf,nbsegs_cf,&
+           tolr%nmseg_c,tolr%nmseg_f)
+      !then allocate and fill it
+      tolr%mask=&
+           f_malloc0_ptr((/3,tolr%nmseg_c+tolr%nmseg_f/),&
+           id='mask')
+      !and filled
+      call init_mask(wfd_lr,wfd_p,keyag_lin_cf,nbsegs_cf,&
+           tolr%nmseg_c,tolr%nmseg_f,tolr%mask)
+
+      call f_release_routine()
+
+    end subroutine init_tolr
+
+
+    !>find the size of the mask array for a given couple plr - llr
+    subroutine mask_sizes(wfd_w,wfd_p,keyag_lin_cf,nbsegs_cf,nmseg_c,nmseg_f)
+
+      implicit none
+      type(wavefunctions_descriptors), intent(in) :: wfd_w,wfd_p
+      !> array of the unstrided keyglob starting points of wfd_w, pre-filled
+      integer, dimension(wfd_w%nseg_c+wfd_w%nseg_f), intent(in) :: keyag_lin_cf
+      !> number of common segments of the wfd_w for each of the segment of wfd_p.
+      !! should be initialized to zero at input
+      integer, dimension(wfd_p%nseg_c+wfd_p%nseg_f), intent(inout) :: nbsegs_cf
+      integer, intent(out) :: nmseg_c,nmseg_f
+
+      call count_wblas_segs(wfd_w%nseg_c,wfd_p%nseg_c,keyag_lin_cf(1),&
+           wfd_w%keyglob(1,1),wfd_p%keyglob(1,1),nbsegs_cf(1))
+      !  print *,'no of points',sum(nbsegs_cf),wfd_w%nseg_c,wfd_p%nseg_c
+      call integrate_nseg(wfd_p%nseg_c,nbsegs_cf(1),nmseg_c)
+      !  print *,'no of points',nmseg_c
+
+      if (wfd_w%nseg_f >0 .and. wfd_p%nseg_f > 0 ) then
+         call count_wblas_segs(wfd_w%nseg_f,wfd_p%nseg_f,keyag_lin_cf(wfd_w%nseg_c+1),&
+              wfd_w%keyglob(1,wfd_w%nseg_c+1),wfd_p%keyglob(1,wfd_p%nseg_c+1),&
+              nbsegs_cf(wfd_p%nseg_c+1))
+         call integrate_nseg(wfd_p%nseg_f,nbsegs_cf(wfd_p%nseg_c+1),nmseg_f)
+      else
+         nmseg_f=0
+      end if
+
+    contains
+
+      !> count the total number of segments and define the integral array of displacements
+      pure subroutine integrate_nseg(mseg,msegs,nseg_tot)
+        implicit none
+        integer, intent(in) :: mseg
+        integer, dimension(mseg), intent(inout) :: msegs
+        integer, intent(out) :: nseg_tot
+        !local variables
+        integer :: iseg,jseg
+
+        nseg_tot=0
+        do iseg=1,mseg
+           jseg=msegs(iseg)
+           msegs(iseg)=nseg_tot
+           nseg_tot=nseg_tot+jseg
+        end do
+      end subroutine integrate_nseg
+
+    end subroutine mask_sizes
+
+    !>fill the mask array which has been previoulsly allocated and cleaned
+    subroutine init_mask(wfd_w,wfd_p,keyag_lin_cf,nbsegs_cf,nmseg_c,nmseg_f,mask)
+      implicit none
+      integer, intent(in) :: nmseg_c,nmseg_f
+      type(wavefunctions_descriptors), intent(in) :: wfd_w,wfd_p
+      !> array of the unstrided keyglob starting points of wfd_w, pre-filled
+      integer, dimension(wfd_w%nseg_c+wfd_w%nseg_f), intent(in) :: keyag_lin_cf
+      !> number of common segments of the wfd_w for each of the segment of wfd_p.
+      !! should be created by mask_sizes routine
+      integer, dimension(wfd_p%nseg_c+wfd_p%nseg_f), intent(in) :: nbsegs_cf
+      !>masking array. On output, it indicates for any of the segments 
+      !which are common between the wavefunction and the projector
+      !the starting positions in the packed arrays of projectors and wavefunction
+      !respectively
+      integer, dimension(3,nmseg_c+nmseg_f), intent(inout) :: mask
+
+      call fill_wblas_segs(wfd_w%nseg_c,wfd_p%nseg_c,nmseg_c,&
+           nbsegs_cf(1),keyag_lin_cf(1),wfd_w%keyglob(1,1),wfd_p%keyglob(1,1),&
+           wfd_w%keyvglob(1),wfd_p%keyvglob(1),mask(1,1))
+      if (nmseg_f > 0) then
+         call fill_wblas_segs(wfd_w%nseg_f,wfd_p%nseg_f,nmseg_f,&
+              nbsegs_cf(wfd_p%nseg_c+1),keyag_lin_cf(wfd_w%nseg_c+1),&
+              wfd_w%keyglob(1,wfd_w%nseg_c+1),wfd_p%keyglob(1,wfd_p%nseg_c+1),&
+              wfd_w%keyvglob(wfd_w%nseg_c+1),wfd_p%keyvglob(wfd_p%nseg_c+1),&
+              mask(1,nmseg_c+1))
+      end if
+
+    end subroutine init_mask
+
+    subroutine pr_dot_psi(ncplx_p,n_p,wfd_p,pr,ncplx_w,n_w,wfd_w,psi,tolr,&
+         wpack,scpr,cproj)
+      implicit none
+      integer, intent(in) :: ncplx_p !< number of complex components of the projector
+      integer, intent(in) :: n_p !< number of elements of the projector
+      integer, intent(in) :: ncplx_w !< number of complex components of the wavefunction
+      integer, intent(in) :: n_w !< number of complex components of the wavefunction
+      type(wavefunctions_descriptors), intent(in) :: wfd_p !< descriptors of projectors
+      type(wavefunctions_descriptors), intent(in) :: wfd_w !< descriptors of wavefunction
+      !> interaction between the wavefuntion and the psp projector
+      type(wfd_to_wfd), intent(in) :: tolr
+      !> components of the projectors, real and imaginary parts
+      real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,ncplx_p,n_p), intent(in) :: pr
+      !> components of wavefunctions, real and imaginary parts
+      real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,ncplx_w,n_w), intent(in) :: psi 
+      !> workspaces for the packing array
+      real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w*ncplx_w), intent(out) :: wpack
+      !> array of the scalar product between the projectors and the wavefunctions
+      real(wp), dimension(ncplx_w,n_w,ncplx_p,n_p), intent(out) :: scpr
+      !> array of the coefficients of the hgh projectors
+      real(wp), dimension(max(ncplx_w,ncplx_p),n_w,n_p), intent(out) :: cproj
+      
+      call f_zero(wpack)
+      !here also the strategy can be considered
+      call proj_dot_psi(n_p*ncplx_p,wfd_p,pr,n_w*ncplx_w,wfd_w,psi,&
+           tolr,wpack,scpr)
+      !first create the coefficients for the application of the matrix
+      !pdpsi = < p_i | psi >
+      call full_coefficients('C',ncplx_p,n_p,'N',ncplx_w,n_w,scpr,'N',cproj)
+
+    end subroutine pr_dot_psi
+
+    !>perform the scalar product between two cproj arrays.
+    !useful to calculate the nl projector energy
+    subroutine cproj_dot(ncplx_p,n_p,ncplx_w,n_w,scpr,a,b,eproj)
+      implicit none
+      integer, intent(in) :: ncplx_p !< number of complex components of the projector
+      integer, intent(in) :: n_p !< number of elements of the projector
+      integer, intent(in) :: ncplx_w !< number of complex components of the wavefunction
+      integer, intent(in) :: n_w !< number of complex components of the wavefunction
+      !> array of the scalar product between the projectors and the wavefunctions
+      real(wp), dimension(ncplx_w,n_w,ncplx_p,n_p), intent(in) :: scpr
+      real(wp), dimension(max(ncplx_w,ncplx_p),n_w,n_p), intent(inout) :: a !<cproj, conjugated in output
+      real(wp), dimension(max(ncplx_w,ncplx_p),n_w,n_p), intent(in) :: b !<cproj arrays
+      real(wp), intent(out) :: eproj
+
+      !then create the coefficients for the evaluation of the projector energy
+      !pdpsi= < psi | p_i> = conj(< p_i | psi >)
+      call full_coefficients('N',ncplx_p,n_p,'C',ncplx_w,n_w,scpr,'C',a)
+      
+      !the energy can be calculated here
+      eproj=dot(max(ncplx_p,ncplx_w)*n_w*n_p,a(1,1,1),1,b(1,1,1),1)
+    end subroutine cproj_dot
+
+    !> update of the psi 
+    subroutine cproj_pr_p_psi(cproj,ncplx_p,n_p,wfd_p,pr,ncplx_w,n_w,wfd_w,psi,tolr,&
+         wpack,scpr)
+      implicit none
+      integer, intent(in) :: ncplx_p !< number of complex components of the projector
+      integer, intent(in) :: n_p !< number of elements of the projector
+      integer, intent(in) :: ncplx_w !< number of complex components of the wavefunction
+      integer, intent(in) :: n_w !< number of complex components of the wavefunction
+      type(wavefunctions_descriptors), intent(in) :: wfd_p !< descriptors of projectors
+      type(wavefunctions_descriptors), intent(in) :: wfd_w !< descriptors of wavefunction
+      !> interaction between the wavefuntion and the psp projector
+      type(wfd_to_wfd), intent(in) :: tolr
+      !> array of the coefficients of the hgh projectors
+      real(wp), dimension(max(ncplx_w,ncplx_p),n_w,n_p), intent(in) :: cproj
+      !> components of the projectors, real and imaginary parts
+      real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,ncplx_p,n_p), intent(in) :: pr
+      !> components of wavefunctions, real and imaginary parts
+      real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,ncplx_w,n_w), intent(inout) :: psi 
+      !> workspaces for the packing array
+      real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w*ncplx_w), intent(out) :: wpack
+      !> array of the scalar product between the projectors and the wavefunctions
+      real(wp), dimension(ncplx_w,n_w,ncplx_p,n_p), intent(out) :: scpr
+
+      !then the coefficients have to be transformed for the projectors
+      call reverse_coefficients(ncplx_p,n_p,ncplx_w,n_w,cproj,scpr)
+      
+      call scpr_proj_p_hpsi(n_p*ncplx_p,wfd_p,pr,n_w*ncplx_w,wfd_w,&
+           tolr,wpack,scpr,psi)
+    end subroutine cproj_pr_p_psi
+
+
+    !> Performs the scalar product of a projector with a wavefunction each one writeen in Daubechies basis
+    !! with its own descriptors.
+    !! A masking array is then calculated to avoid the calculation of bitonic search for the scalar product
+    !! If the number of projectors is bigger than 1 the wavefunction is also packed in the number of components
+    !! of the projector to ease its successive application
+    subroutine proj_dot_psi(n_p,wfd_p,proj,n_w,wfd_w,psi,tolr,psi_pack,scpr)
+      implicit none
+      integer, intent(in) :: n_p !< number of projectors (real and imaginary part included)
+      integer, intent(in) :: n_w !< number of wavefunctions (real and imaginary part included)
+!!$      integer, intent(in) :: nmseg_c,nmseg_f !< segments of the masking array
+      type(wavefunctions_descriptors), intent(in) :: wfd_p !< descriptors of projectors
+      type(wavefunctions_descriptors), intent(in) :: wfd_w !< descriptors of wavefunction
+      real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_p), intent(in) :: proj !< components of the projectors
+      real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,n_w), intent(in) :: psi !< components of wavefunction
+      type(wfd_to_wfd), intent(in) :: tolr !< datatype for strategy information
+!!$      integer, dimension(3,nmseg_c+nmseg_f), intent(in) :: tolr%mask !<lookup array in the wfn segments
+!!$      !indicating the points where data have to be taken for dot product
+!!$      ! always produced. Has to be initialized to zero first
+      real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w), intent(inout) :: psi_pack !< packed array of psi in projector form
+      !needed only when n_p is bigger than one 
+      real(wp), dimension(n_w,n_p), intent(out) :: scpr !< array of the scalar product of all the components
+      !local variables
+      logical :: mask,pack!, parameter :: mask=.true.,pack=.true.
+      integer :: is_w,is_sw,is_p,is_sp,iw,ip,is_sm
+      !intensive routines
+      external :: wpdot_keys_pack,wpdot_mask_pack
+
+      if (tolr%strategy==STRATEGY_SKIP) return
+
+      !calculate starting points of the fine regions
+      !they have to be calculated considering that there could be no fine grid points
+      !therefore the array values should not go out of bounds even though their value is actually not used
+      is_w=wfd_w%nvctr_c+min(wfd_w%nvctr_f,1)
+      is_sw=wfd_w%nseg_c+min(wfd_w%nseg_f,1)
+
+      is_p=wfd_p%nvctr_c+min(wfd_p%nvctr_f,1)
+      is_sp=wfd_p%nseg_c+min(wfd_p%nseg_f,1)
+
+      is_sm=tolr%nmseg_c+min(tolr%nmseg_f,1)
+
+      pack=(tolr%strategy==STRATEGY_MASK_PACK) .or. (tolr%strategy==STRATEGY_KEYS_PACK)
+      mask=(tolr%strategy==STRATEGY_MASK_PACK) .or. (tolr%strategy==STRATEGY_MASK)
+
+      if (pack) then
+         if (.not. mask) then
+            do iw=1,n_w
+               call wpdot_keys_pack(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
+                    wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
+                    psi(1,iw),psi(is_w,iw),&
+                    wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
+                    wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
+                    proj(1,1),proj(is_p,1),&
+                    psi_pack(1,iw),psi_pack(is_p,iw),scpr(iw,1))
+            end do
+         else 
+            do iw=1,n_w
+               call wpdot_mask_pack(wfd_w%nvctr_c,wfd_w%nvctr_f,tolr%nmseg_c,tolr%nmseg_f,&
+                    tolr%mask(1,1),tolr%mask(1,is_sm),psi(1,iw),psi(is_w,iw),&
+                    wfd_p%nvctr_c,wfd_p%nvctr_f,proj(1,1),proj(is_p,1),&
+                    psi_pack(1,iw),psi_pack(is_p,iw),scpr(iw,1))
+            end do
+         end if
+
+         !now that the packed array is constructed linear algebra routine can be used to calculate
+         !use multithreaded dgemm or customized ones in the case of no OMP parallelized algebra
+         !scpr(iw,ip) = < psi_iw| p_ip >
+         if (n_p > 1) then
+!!$            call f_gemm(trans_a='T',a=psi_pack,&
+!!$                 shape_b=[wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_p-1],b=proj(1,2),&
+!!$                 c=scpr(1,2),shape_c=[n_w,n_p-1])
+
+            call gemm('T','N',n_w,n_p-1,wfd_p%nvctr_c+7*wfd_p%nvctr_f,1.0_wp,psi_pack(1,1),&
+                 wfd_p%nvctr_c+7*wfd_p%nvctr_f,proj(1,2),wfd_p%nvctr_c+7*wfd_p%nvctr_f,0.0_wp,&
+                 scpr(1,2),n_w)
+         end if
+
+      else
+         do ip=1,n_p
+            do iw=1,n_w
+               call wpdot_keys(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
+                    wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
+                    psi(1,iw),psi(is_w,iw),&
+                    wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
+                    wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
+                    proj(1,ip),proj(is_p,ip),&
+                    scpr(iw,ip))
+            end do
+         end do
+      end if
+    end subroutine proj_dot_psi
+
+
+    !> Performs the update of a set of wavefunctions with a projector each one written in Daubechies basis
+    !! with its own descriptors.
+    !! A masking array is used calculated to avoid the calculation of bitonic search for the scalar product
+    !! If the number of projectors is bigger than 1 the wavefunction is also given by packing in the number of components
+    !! of the projector to ease its successive application
+    subroutine scpr_proj_p_hpsi(n_p,wfd_p,proj,n_w,wfd_w,tolr,hpsi_pack,scpr,hpsi)
+      implicit none
+      integer, intent(in) :: n_p !< number of projectors (real and imaginary part included)
+      integer, intent(in) :: n_w !< number of wavefunctions (real and imaginary part included)
+!!$      integer, intent(in) :: nmseg_c,nmseg_f !< segments of the masking array
+      type(wavefunctions_descriptors), intent(in) :: wfd_p !< descriptors of projectors
+      type(wavefunctions_descriptors), intent(in) :: wfd_w !< descriptors of wavefunction
+      real(wp), dimension(n_w,n_p), intent(in) :: scpr !< array of the scalar product of all the components
+      real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_p), intent(in) :: proj !< components of the projectors
+      type(wfd_to_wfd), intent(in) :: tolr
+!!$      integer, dimension(3,nmseg_c+nmseg_f), intent(in) :: psi_mask !<lookup array in the wfn segments
+      !indicating the points where data have to be taken for dot product
+      ! always produced. Has to be initialized to zero first
+      real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w), intent(inout) :: hpsi_pack !< work array of hpsi in projector form
+      !needed only when n_p is bigger than one 
+
+      real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,n_w), intent(inout) :: hpsi !< wavefunction result
+      !local variables
+      logical :: mask,pack !parameter :: mask=.false.,pack=.true.
+      external :: waxpy_mask_unpack
+      integer :: is_w,is_sw,is_p,is_sp,iw,is_sm
+
+      if (tolr%strategy==STRATEGY_SKIP) return
+
+
+      is_w=wfd_w%nvctr_c+min(wfd_w%nvctr_f,1)
+      is_sw=wfd_w%nseg_c+min(wfd_w%nseg_f,1)
+
+      is_p=wfd_p%nvctr_c+min(wfd_p%nvctr_f,1)
+      is_sp=wfd_p%nseg_c+min(wfd_p%nseg_f,1)
+
+      is_sm=tolr%nmseg_c+min(tolr%nmseg_f,1)
+
+      pack=(tolr%strategy==STRATEGY_MASK_PACK) .or. (tolr%strategy==STRATEGY_KEYS_PACK)
+      mask=(tolr%strategy==STRATEGY_MASK_PACK) .or. (tolr%strategy==STRATEGY_MASK)
+      
+
+      if (pack) then
+         !once the coefficients are determined fill the components of the wavefunction with the last projector
+         !linear algebra up to the second last projector
+         !|psi_iw>=O_iw,jp| p_jp>
+
+         if (n_p > 1) then
+!!$            call f_gemm(a=proj(1,1),shape_a=[wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_p-1],&
+!!$                 b=scpr(1,1),shape_b=[n_w,n_p-1],trans_b='T',c=hpsi_pack)
+            
+            call gemm('N','T',wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w,n_p-1,&
+                 1.0_wp,proj(1,1),wfd_p%nvctr_c+7*wfd_p%nvctr_f,&
+                 scpr(1,1),n_w,0.0_wp,&
+                 hpsi_pack(1,1),wfd_p%nvctr_c+7*wfd_p%nvctr_f)
+         else
+            call f_zero(hpsi_pack)
+         end if
+
+         !then last projector
+         if (mask) then
+            do iw=1,n_w
+               call waxpy_mask_unpack(wfd_w%nvctr_c,wfd_w%nvctr_f,tolr%nmseg_c,tolr%nmseg_f,&
+                    tolr%mask(1,1),tolr%mask(1,is_sm),hpsi_pack(1,iw),hpsi_pack(is_p,iw),&
+                    hpsi(1,iw),hpsi(is_w,iw),&
+                    wfd_p%nvctr_c,wfd_p%nvctr_f,proj(1,n_p),proj(is_p,n_p),&
+                    scpr(iw,n_p))
+            end do
+         else
+            do iw=1,n_w
+               call waxpy_keys_unpack(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
+                    wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
+                    hpsi(1,iw),hpsi(is_w,iw),&
+                    wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
+                    wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),&
+                    wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
+                    proj(1,n_p),proj(is_p,n_p),&
+                    hpsi_pack(1,iw),hpsi_pack(is_p,iw),scpr(iw,n_p))
+            end do
+         end if
+      else
+
+      end if
+
+    end subroutine scpr_proj_p_hpsi
+
+    pure subroutine reverse_coefficients(ncplx_p,n_p,ncplx_w,n_w,pdpsi,scpr)
+      implicit none
+      integer, intent(in) :: ncplx_p,ncplx_w,n_p,n_w
+      real(wp), dimension(max(ncplx_w,ncplx_p),n_w,n_p), intent(in) :: pdpsi
+      real(wp), dimension(ncplx_w,n_w,ncplx_p,n_p), intent(out) :: scpr
+      !local variables
+      logical :: cplx_p,cplx_w,cplx_pw
+      integer :: iw,ip,icplx
+
+      cplx_p=ncplx_p==2
+      cplx_w=ncplx_w==2
+      cplx_pw=cplx_p .and. cplx_w
+
+      if (cplx_pw) then
+         do ip=1,n_p
+            do iw=1,n_w
+               scpr(1,iw,1,ip)=pdpsi(1,iw,ip)
+               scpr(2,iw,1,ip)=pdpsi(2,iw,ip)
+               scpr(1,iw,2,ip)=-pdpsi(2,iw,ip)
+               scpr(2,iw,2,ip)=pdpsi(1,iw,ip)
+            end do
+         end do
+         !copy the values, only one of the two might be 2
+      else if (cplx_p) then
+         do ip=1,n_p
+            do icplx=1,ncplx_p
+               do iw=1,n_w
+                  scpr(1,iw,icplx,ip)=pdpsi(icplx,iw,ip)
+               end do
+            end do
+         end do
+      else if (cplx_w) then
+         do ip=1,n_p
+            do iw=1,n_w
+               do icplx=1,ncplx_w
+                  scpr(icplx,iw,1,ip)=pdpsi(icplx,iw,ip)
+               end do
+            end do
+         end do
+      else !real case
+         do ip=1,n_p
+            do iw=1,n_w
+               scpr(1,iw,1,ip)=pdpsi(1,iw,ip)
+            end do
+         end do
+
+      end if
+    end subroutine reverse_coefficients
+
+    !> Identify the coefficients
+    pure subroutine full_coefficients(trans_p,ncplx_p,n_p,trans_w,ncplx_w,n_w,scpr,trans,pdpsi)
+      implicit none
+      integer, intent(in) :: ncplx_p,ncplx_w,n_p,n_w
+      character(len=1), intent(in) :: trans_p,trans_w,trans
+      real(wp), dimension(ncplx_w,n_w,ncplx_p,n_p), intent(in) :: scpr
+      real(wp), dimension(max(ncplx_w,ncplx_p),n_w,n_p), intent(out) :: pdpsi
+      !local variables
+      logical :: cplx_p,cplx_w,cplx_pw
+      integer :: iw,ip,ieps_p,ieps_w,ieps
+      real(wp) :: prfr,prfi,pifr,pifi
+
+      cplx_p=ncplx_p==2
+      cplx_w=ncplx_w==2
+      cplx_pw=cplx_p .and. cplx_w
+
+      ieps_p=1
+      if (trans_p=='C' .and. cplx_p) ieps_p=-1
+      ieps_w=1
+      if (trans_w=='C' .and. cplx_w) ieps_w=-1
+      ieps=1
+      if (trans=='C' .and. (cplx_p .or. cplx_w)) ieps=-1
+
+
+      !the coefficients have to be transformed to the complex version
+      if ((.not. cplx_p) .and. (.not.  cplx_w)) then
+         !real case, simply copy the values
+         do ip=1,n_p
+            do iw=1,n_w
+               pdpsi(1,iw,ip)=scpr(1,iw,1,ip)
+            end do
+         end do
+      else
+         !complex case, build real and imaginary part when applicable
+         prfi=0.0_wp
+         pifr=0.0_wp
+         pifi=0.0_wp
+         do ip=1,n_p
+            do iw=1,n_w
+               prfr=scpr(1,iw,1,ip)
+               if (cplx_p) pifr=scpr(1,iw,2,ip)
+               if (cplx_w) prfi=scpr(2,iw,1,ip)
+               if (cplx_pw) pifi=scpr(2,iw,2,ip)   
+               !real part
+               pdpsi(1,iw,ip)=prfr-ieps_p*ieps_w*pifi
+               !imaginary part
+               pdpsi(2,iw,ip)=ieps*ieps_w*prfi+ieps*ieps_p*pifr
+            end do
+         end do
+      end if
+
+    end subroutine full_coefficients
+
+
 
     !> Initialize work arrays for local hamiltonian
     subroutine initialize_work_arrays_locham_nlr(nlr,lr,nspinor,allocate_arrays,w)
@@ -1863,269 +2533,6 @@ module locreg_operations
       
     end function boundary_weight
 
-!!$    !> Check the relative weight which the support functions have at the
-!!$    !! boundaries of the localization regions.
-!!$    subroutine get_boundary_weight(iproc, nproc, orbs, lzd, atoms, crmult, nsize_psi, psi, crit)
-!!$      use module_types, only: orbitals_data, local_zone_descriptors
-!!$      use module_atoms, only: atoms_data
-!!$      use yaml_output
-!!$      implicit none
-!!$
-!!$      ! Calling arguments
-!!$      integer,intent(in) :: iproc, nproc
-!!$      type(orbitals_data),intent(in) :: orbs
-!!$      type(local_zone_descriptors),intent(in) :: lzd
-!!$      type(atoms_data),intent(in) :: atoms
-!!$      real(kind=8),intent(in) :: crmult
-!!$      integer,intent(in) :: nsize_psi
-!!$      real(kind=8),dimension(nsize_psi),intent(in) :: psi
-!!$      real(kind=8),intent(in) :: crit
-!!$
-!!$      ! Local variables
-!!$      integer :: iorb, iiorb, ilr, iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ind, iat, iatype
-!!$      integer :: ij3, ij2, ij1, jj3, jj2, jj1, ijs3, ijs2, ijs1, ije3, ije2, ije1, nwarnings
-!!$      real(kind=8) :: h, x, y, z, d, weight_inside, weight_boundary, points_inside, points_boundary, ratio
-!!$      real(kind=8) :: atomrad, rad, boundary, weight_normalized, maxweight, meanweight
-!!$      real(kind=8),dimension(:),allocatable :: maxweight_types, meanweight_types
-!!$      integer,dimension(:),allocatable :: nwarnings_types, nsf_per_type
-!!$      logical :: perx, pery, perz, on_boundary
-!!$
-!!$      call f_routine(id='get_boundary_weight')
-!!$
-!!$      maxweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
-!!$      meanweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
-!!$      nwarnings_types = f_malloc0(atoms%astruct%ntypes,id='nwarnings_types')
-!!$      nsf_per_type = f_malloc0(atoms%astruct%ntypes,id='nsf_per_type')
-!!$
-!!$      if (iproc==0) then
-!!$         call yaml_sequence(advance='no')
-!!$      end if
-!!$
-!!$      ! mean value of the grid spacing
-!!$      h = sqrt(lzd%hgrids(1)**2+lzd%hgrids(2)**2+lzd%hgrids(3)**2)
-!!$
-!!$      ! periodicity in the three directions
-!!$      perx=(lzd%glr%geocode /= 'F')
-!!$      pery=(lzd%glr%geocode == 'P')
-!!$      perz=(lzd%glr%geocode /= 'F')
-!!$
-!!$      ! For perdiodic boundary conditions, one has to check also in the neighboring
-!!$      ! cells (see in the loop below)
-!!$      if (perx) then
-!!$         ijs1 = -1
-!!$         ije1 = 1
-!!$      else
-!!$         ijs1 = 0
-!!$         ije1 = 0
-!!$      end if
-!!$      if (pery) then
-!!$         ijs2 = -1
-!!$         ije2 = 1
-!!$      else
-!!$         ijs2 = 0
-!!$         ije2 = 0
-!!$      end if
-!!$      if (perz) then
-!!$         ijs3 = -1
-!!$         ije3 = 1
-!!$      else
-!!$         ijs3 = 0
-!!$         ije3 = 0
-!!$      end if
-!!$
-!!$      nwarnings = 0
-!!$      maxweight = 0.d0
-!!$      meanweight = 0.d0
-!!$      if (orbs%norbp>0) then
-!!$         ind = 0
-!!$         do iorb=1,orbs%norbp
-!!$            iiorb = orbs%isorb + iorb
-!!$            ilr = orbs%inwhichlocreg(iiorb)
-!!$
-!!$            iat = orbs%onwhichatom(iiorb)
-!!$            iatype = atoms%astruct%iatype(iat)
-!!$            atomrad = atoms%radii_cf(iatype,1)*crmult
-!!$            rad = atoms%radii_cf(atoms%astruct%iatype(iat),1)*crmult
-!!$
-!!$              boundary = min(rad,lzd%llr(ilr)%locrad)
-!!$              !write(*,*) 'rad, locrad, boundary', rad, lzd%llr(ilr)%locrad, boundary
-!!$
-!!$              nsf_per_type(iatype) = nsf_per_type(iatype ) + 1
-!!$
-!!$              weight_boundary = 0.d0
-!!$              weight_inside = 0.d0
-!!$              points_inside = 0.d0
-!!$              points_boundary = 0.d0
-!!$              do iseg=1,lzd%llr(ilr)%wfd%nseg_c
-!!$                 jj=lzd%llr(ilr)%wfd%keyvglob(iseg)
-!!$                 j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
-!!$                 j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
-!!$                 ii=j0-1
-!!$                 i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-!!$                 ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-!!$                 i2=ii/(lzd%glr%d%n1+1)
-!!$                 i0=ii-i2*(lzd%glr%d%n1+1)
-!!$                 i1=i0+j1-j0
-!!$                 do i=i0,i1
-!!$                    ind = ind + 1
-!!$                    on_boundary = .false.
-!!$                    do ij3=ijs3,ije3!-1,1
-!!$                       jj3=i3+ij3*(lzd%glr%d%n3+1)
-!!$                       z = real(jj3,kind=8)*lzd%hgrids(3)
-!!$                       do ij2=ijs2,ije2!-1,1
-!!$                          jj2=i2+ij2*(lzd%glr%d%n2+1)
-!!$                          y = real(jj2,kind=8)*lzd%hgrids(2)
-!!$                          do ij1=ijs1,ije1!-1,1
-!!$                             jj1=i+ij1*(lzd%glr%d%n1+1)
-!!$                             x = real(i,kind=8)*lzd%hgrids(1)
-!!$                             d = sqrt((x-lzd%llr(ilr)%locregcenter(1))**2 + &
-!!$                                  (y-lzd%llr(ilr)%locregcenter(2))**2 + &
-!!$                                  (z-lzd%llr(ilr)%locregcenter(3))**2)
-!!$                             if (abs(d-boundary)<h) then
-!!$                                on_boundary=.true.
-!!$                             end if
-!!$                          end do
-!!$                       end do
-!!$                    end do
-!!$                    if (on_boundary) then
-!!$                       ! This value is on the boundary
-!!$                       !write(*,'(a,2f9.2,3i8,3es16.8)') 'on boundary: boundary, d, i1, i2, i3, x, y, z', &
-!!$                       !    boundary, d, i, i2, i3, x, y, z
-!!$                       weight_boundary = weight_boundary + psi(ind)**2
-!!$                       points_boundary = points_boundary + 1.d0
-!!$                    else
-!!$                       weight_inside = weight_inside + psi(ind)**2
-!!$                       points_inside = points_inside + 1.d0
-!!$                    end if
-!!$                 end do
-!!$              end do
-!!$              ! fine part, to be done only if nseg_f is nonzero
-!!$              do iseg=lzd%llr(ilr)%wfd%nseg_c+1,lzd%llr(ilr)%wfd%nseg_c+lzd%llr(ilr)%wfd%nseg_f
-!!$                 jj=lzd%llr(ilr)%wfd%keyvglob(iseg)
-!!$                 j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
-!!$                 j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
-!!$                 ii=j0-1
-!!$                 i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-!!$                 ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-!!$                 i2=ii/(lzd%glr%d%n1+1)
-!!$                 i0=ii-i2*(lzd%glr%d%n1+1)
-!!$                 i1=i0+j1-j0
-!!$                 do i=i0,i1
-!!$                    ind = ind + 7
-!!$                    on_boundary = .false.
-!!$                    do ij3=ijs3,ije3!-1,1
-!!$                       jj3=i3+ij3*(lzd%glr%d%n3+1)
-!!$                       z = real(jj3,kind=8)*lzd%hgrids(3)
-!!$                       do ij2=ijs2,ije2!-1,1
-!!$                          jj2=i2+ij2*(lzd%glr%d%n2+1)
-!!$                          y = real(jj2,kind=8)*lzd%hgrids(2)
-!!$                          do ij1=ijs1,ije1!-1,1
-!!$                             jj1=i+ij1*(lzd%glr%d%n1+1)
-!!$                             x = real(i,kind=8)*lzd%hgrids(1)
-!!$                             d = sqrt((x-lzd%llr(ilr)%locregcenter(1))**2 + &
-!!$                                  (y-lzd%llr(ilr)%locregcenter(2))**2 + &
-!!$                                  (z-lzd%llr(ilr)%locregcenter(3))**2)
-!!$                             if (abs(d-boundary)<h) then
-!!$                                on_boundary=.true.
-!!$                             end if
-!!$                          end do
-!!$                       end do
-!!$                    end do
-!!$                    if (on_boundary) then
-!!$                       ! This value is on the boundary
-!!$                       !write(*,'(a,f9.2,3i8,3es16.8)') 'on boundary: d, i1, i2, i3, x, y, z', d, i, i2, i3, x, y, z
-!!$                       weight_boundary = weight_boundary + psi(ind-6)**2
-!!$                       weight_boundary = weight_boundary + psi(ind-5)**2
-!!$                       weight_boundary = weight_boundary + psi(ind-4)**2
-!!$                       weight_boundary = weight_boundary + psi(ind-3)**2
-!!$                       weight_boundary = weight_boundary + psi(ind-2)**2
-!!$                       weight_boundary = weight_boundary + psi(ind-1)**2
-!!$                       weight_boundary = weight_boundary + psi(ind-0)**2
-!!$                       points_boundary = points_boundary + 7.d0
-!!$                    else
-!!$                       weight_inside = weight_inside + psi(ind-6)**2
-!!$                       weight_inside = weight_inside + psi(ind-5)**2
-!!$                       weight_inside = weight_inside + psi(ind-4)**2
-!!$                       weight_inside = weight_inside + psi(ind-3)**2
-!!$                       weight_inside = weight_inside + psi(ind-2)**2
-!!$                       weight_inside = weight_inside + psi(ind-1)**2
-!!$                       weight_inside = weight_inside + psi(ind-0)**2
-!!$                       points_inside = points_inside + 7.d0
-!!$                    end if
-!!$                 end do
-!!$              end do
-!!$              ! Ratio of the points on the boundary with resepct to the total number of points
-!!$              ratio = points_boundary/(points_boundary+points_inside)
-!!$              weight_normalized = weight_boundary/ratio
-!!$              meanweight = meanweight + weight_normalized
-!!$              maxweight = max(maxweight,weight_normalized)
-!!$              meanweight_types(iatype) = meanweight_types(iatype) + weight_normalized
-!!$              maxweight_types(iatype) = max(maxweight_types(iatype),weight_normalized)
-!!$              if (weight_normalized>crit) then
-!!$                 nwarnings = nwarnings + 1
-!!$                 nwarnings_types(iatype) = nwarnings_types(iatype) + 1
-!!$              end if
-!!$              !write(*,'(a,i7,2f9.1,4es16.6)') 'iiorb, pi, pb, weight_inside, weight_boundary, ratio, xi', &
-!!$              !    iiorb, points_inside, points_boundary, weight_inside, weight_boundary, &
-!!$              !    points_boundary/(points_boundary+points_inside), &
-!!$              !    weight_boundary/ratio
-!!$           end do
-!!$           if (ind/=nsize_psi) then
-!!$              call f_err_throw('ind/=nsize_psi ('//trim(yaml_toa(ind))//'/='//trim(yaml_toa(nsize_psi))//')', &
-!!$                   err_name='BIGDFT_RUNTIME_ERROR')
-!!$           end if
-!!$        end if
-!!$
-!!$        ! Sum up among all tasks... could use workarrays
-!!$        if (nproc>1) then
-!!$           call mpiallred(nwarnings, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-!!$           call mpiallred(meanweight, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-!!$           call mpiallred(maxweight, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
-!!$           call mpiallred(nwarnings_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
-!!$           call mpiallred(meanweight_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
-!!$           call mpiallred(maxweight_types, mpi_max, comm=bigdft_mpi%mpi_comm)
-!!$           call mpiallred(nsf_per_type, mpi_sum, comm=bigdft_mpi%mpi_comm)
-!!$        end if
-!!$        meanweight = meanweight/real(orbs%norb,kind=8)
-!!$        do iatype=1,atoms%astruct%ntypes
-!!$           meanweight_types(iatype) = meanweight_types(iatype)/real(nsf_per_type(iatype),kind=8)
-!!$        end do
-!!$        if (iproc==0) then
-!!$           call yaml_sequence_open('Check boundary values')
-!!$           call yaml_sequence(advance='no')
-!!$           call yaml_mapping_open(flow=.true.)
-!!$           call yaml_map('type','overall')
-!!$           call yaml_map('mean / max value',(/meanweight,maxweight/),fmt='(2es9.2)')
-!!$           call yaml_map('warnings',nwarnings)
-!!$           call yaml_mapping_close()
-!!$           do iatype=1,atoms%astruct%ntypes
-!!$              call yaml_sequence(advance='no')
-!!$              call yaml_mapping_open(flow=.true.)
-!!$              call yaml_map('type',trim(atoms%astruct%atomnames(iatype)))
-!!$              call yaml_map('mean / max value',(/meanweight_types(iatype),maxweight_types(iatype)/),fmt='(2es9.2)')
-!!$              call yaml_map('warnings',nwarnings_types(iatype))
-!!$              call yaml_mapping_close()
-!!$           end do
-!!$           call yaml_sequence_close()
-!!$        end if
-!!$
-!!$        ! Print the warnings
-!!$        if (nwarnings>0) then
-!!$           if (iproc==0) then
-!!$              call yaml_warning('The support function localization radii might be too small, got'&
-!!$                   &//trim(yaml_toa(nwarnings))//' warnings')
-!!$           end if
-!!$        end if
-!!$
-!!$        call f_free(maxweight_types)
-!!$        call f_free(meanweight_types)
-!!$        call f_free(nwarnings_types)
-!!$        call f_free(nsf_per_type)
-!!$
-!!$        call f_release_routine()
-!!$
-!!$      end subroutine get_boundary_weight
-
     !> Tranform one wavefunction between Global region and localisation region
     subroutine psi_to_locreg2(iproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
     
@@ -2298,7 +2705,6 @@ module locreg_operations
     END SUBROUTINE psi_to_locreg2
 
 
-
     !> Find the shift necessary for the indexes of every segment of Blr
     !!   to make them compatible with the indexes of Alr. These shifts are
     !!   returned in the array keymask(nseg), where nseg should be the number
@@ -2370,7 +2776,6 @@ module locreg_operations
     !$omp end parallel do
     
     END SUBROUTINE shift_locreg_indexes
-
 
     !> Projects a quantity stored with the global indexes (i1,i2,i3) within the localisation region.
     !! @warning: The quantity must not be stored in a compressed form.
@@ -2482,7 +2887,6 @@ module locreg_operations
       c%damping    =UNINITIALIZED(c%damping)
 
     end subroutine nullify_confpot_data
-
 
     !> apply the potential to the psir wavefunction and calculate potential energy
     subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf,econf)

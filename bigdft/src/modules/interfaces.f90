@@ -1062,19 +1062,19 @@ module module_interfaces
          END SUBROUTINE input_check_psi_id
        end interface
 
-       interface
-         subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspin, Localnorb, spinsgn, rxyz, inwhichlocreg)
-         use module_defs, only: gp,dp,wp
-         use module_types
-         implicit none
-         integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb,norbu
-         integer,dimension(nlr),intent(in):: Localnorb
-         real(kind=8),dimension(norb),intent(in):: spinsgn
-         integer,dimension(0:nproc-1),intent(in):: norb_par
-         real(8),dimension(3,nlr),intent(in):: rxyz
-         integer,dimension(:),pointer,intent(out):: inwhichlocreg
-         END SUBROUTINE assignToLocreg2
-       end interface
+       !!interface
+       !!  subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspin, Localnorb, spinsgn, rxyz, inwhichlocreg)
+       !!  use module_defs, only: gp,dp,wp
+       !!  use module_types
+       !!  implicit none
+       !!  integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb,norbu
+       !!  integer,dimension(nlr),intent(in):: Localnorb
+       !!  real(kind=8),dimension(norb),intent(in):: spinsgn
+       !!  integer,dimension(0:nproc-1),intent(in):: norb_par
+       !!  real(8),dimension(3,nlr),intent(in):: rxyz
+       !!  integer,dimension(:),pointer,intent(out):: inwhichlocreg
+       !!  END SUBROUTINE assignToLocreg2
+       !!end interface
 
        interface
          subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&

@@ -1290,13 +1290,95 @@ subroutine cproj_to_gamma(iat,proj_G,mproj,lmax,ncplx,cproj,factor,iagamma,gamma
   ! Loop on shell.
   iproj=1
   do while (gaussian_iter_next_shell(proj_G, iter))
-     if (iter%n ==1 .and. iagamma(iter%l)/=0) &
-          call atomic_PSP_density_matrix_update('C',lmax,iter%l-1,ncplx,cproj(1,iproj),&
-          factor,gamma_mmp(1,1,1,iagamma(iter%l)))
+     if (iter%n ==1 .and. iagamma(iter%l)/=0) then
+        call atomic_PSP_density_matrix_update('C',lmax,iter%l-1,ncplx,cproj(1,iproj),&
+             factor,gamma_mmp(1,1,1,iagamma(iter%l)))
+     end if
      iproj = iproj + (2*iter%l-1)*ncplx
   end do
 
 end subroutine cproj_to_gamma
+
+!>calculate the atomic density difference in case of occupancy control
+subroutine atomic_density_matrix_delta(dump,nspin,astruct,nl,gamma_target)
+  use psp_projectors_base, only: DFT_PSP_projectors
+  use module_atoms
+  use ao_inguess, only: lmax_ao,ishell_toa
+  use yaml_strings
+  use yaml_output
+  use module_base, only: bigdft_mpi,wp
+  use f_blas, only: f_matrix
+  implicit none
+  logical, intent(in) :: dump
+  integer, intent(in) :: nspin
+  type(DFT_PSP_projectors), intent(in) :: nl
+  type(atomic_structure), intent(in) :: astruct
+  type(f_matrix), dimension(0:lmax_ao,2,astruct%nat), intent(in) :: gamma_target
+  !local variables
+  real(wp), parameter :: thr=1.e-1
+  integer :: ispin,l,m,mp
+  real(wp) :: diff,gt,gg
+  real(wp), dimension(2) :: maxdiff
+  integer, dimension(0:lmax_ao) :: igamma
+  character(len=32) :: msg
+  type(atoms_iterator) :: atit
+
+  if (.not. associated(nl%iagamma)) return
+  if (dump) call yaml_sequence_open('Atomic density matrix delta from imposed occupancy')
+  !iterate above atoms
+  atit=atoms_iter(astruct)
+  do while(atoms_iter_next(atit))
+     igamma=nl%iagamma(:,atit%iat)
+     if (all(igamma == 0)) cycle
+     if (dump) then
+        call yaml_newline()
+        call yaml_sequence(advance='no')
+        call yaml_map('Symbol',trim(atit%name),advance='no')
+        call yaml_comment('Atom '//trim(yaml_toa(atit%iat)))
+     end if
+     do l=0,lmax_ao
+        !for the moment no imaginary part printed out
+        if (igamma(l) == 0) cycle
+        maxdiff=0.0_wp
+        do ispin=1,nspin
+           if (.not. associated(gamma_target(l,ispin,atit%iat)%dmat)) then
+!!$              do mp=1,2*l+1
+!!$                 do m=1,2*l+1
+!!$                    nl%gamma_mmp(1,m,mp,igamma(l),ispin)=0.0_wp
+!!$                    nl%gamma_mmp(2,m,mp,igamma(l),ispin)=0.0_wp
+!!$                 end do
+!!$              end do
+              cycle
+!!$           else
+!!$              call yaml_map('target',gamma_target(l,ispin,atit%iat)%dmat)
+           end if
+           !change the density matrix to be
+           !the difference between the target and the calculated result
+           do mp=1,2*l+1
+              do m=1,2*l+1
+                 gt=gamma_target(l,ispin,atit%iat)%dmat(m,mp)
+                 gg=nl%gamma_mmp(1,m,mp,igamma(l),ispin)
+                 diff=gt-gg 
+!!$                 nl%gamma_mmp(1,m,mp,igamma(l),ispin)=gt
+!!$                 if (gt == 0.0_wp) then
+!!$                    nl%gamma_mmp(1,m,mp,igamma(l),ispin)=0.0_wp
+!!$                 else if (abs(gg) > thr) then
+!!$                    nl%gamma_mmp(1,m,mp,igamma(l),ispin)=gt/gg
+!!$                 else
+!!$                    nl%gamma_mmp(1,m,mp,igamma(l),ispin)=gt
+!!$                 end if 
+                 maxdiff(ispin)=max(maxdiff(ispin),abs(diff))
+              end do
+           end do
+        end do
+        if (dump .and. any(maxdiff(1:nspin) /=0.0_wp)) then
+           call yaml_newline()
+           call yaml_map('Channel '//ishell_toa(l),maxdiff(1:nspin),fmt='(1pg12.2)')
+        end if
+     end do
+  end do
+  if (dump) call yaml_sequence_close()
+end subroutine atomic_density_matrix_delta
 
 !>calculate the density matrix for a atomic contribution
 !!from the values of scalprod calculated in the code

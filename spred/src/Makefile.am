@@ -35,6 +35,7 @@ spred_dynamic_library =
 spred_soname_library =
 spred_library = libspred-1.a @LIB_SPRED_DEPS@
 endif
+binaries_sources = splsad NEB global globaltool mhgps mhgpstool lowest_pathway
 
 
 AM_FCFLAGS = -I. @MPI_INCLUDE@ @LIB_BIGDFT_CFLAGS@
@@ -95,6 +96,10 @@ mhgpstool_SOURCES = mhgpstool.f90
 mhgpstool_FCFLAGS = -I. -Ispred_baselib -Imhgps_files @LIB_BIGDFT_CFLAGS@
 ##mhgpstool_LDADD = spred_baselib/libspredbasef.a $(spred_library) mhgps_files/libmhgps.a @LINALG_LIBS@
 mhgpstool_LDADD = $(spred_library) @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+
+lowest_pathway_SOURCES = lowest_pathway.f90
+lowest_pathway_FCFLAGS = 
+lowest_pathway_LDADD =
 
 global_SOURCES = global.f90
 global_FCFLAGS = -I. -Ispred_baselib -Iglobal_files @LIB_BIGDFT_CFLAGS@

@@ -541,27 +541,36 @@ contains
     !@ NEW VERSION #########################################
     ! Shift all the indices into the periodic cell. This can result is starting
     ! indices being larger than ending indices
-    is1 = modulo(ilr%ns1,glr%d%n1+1)
-    ie1 = modulo(ilr%ns1+ilr%d%n1,glr%d%n1+1)
-    is2 = modulo(ilr%ns2,glr%d%n2+1)
-    ie2 = modulo(ilr%ns2+ilr%d%n2,glr%d%n2+1)
+    isoverlap = .false.
     is3 = modulo(ilr%ns3,glr%d%n3+1)
     ie3 = modulo(ilr%ns3+ilr%d%n3,glr%d%n3+1)
-    js1 = modulo(jlr%ns1,glr%d%n1+1)
-    je1 = modulo(jlr%ns1+jlr%d%n1,glr%d%n1+1)
-    js2 = modulo(jlr%ns2,glr%d%n2+1)
-    je2 = modulo(jlr%ns2+jlr%d%n2,glr%d%n2+1)
     js3 = modulo(jlr%ns3,glr%d%n3+1)
     je3 = modulo(jlr%ns3+jlr%d%n3,glr%d%n3+1)
-    overlap1 = check_whether_bounds_overlap(is1, ie1, js1, je1)
-    overlap2 = check_whether_bounds_overlap(is2, ie2, js2, je2)
     overlap3 = check_whether_bounds_overlap(is3, ie3, js3, je3)
-  
-    if (overlap1 .and. overlap2 .and. overlap3) then
-        isoverlap = .true.
-    else
-        isoverlap = .false.
+    if (overlap3) then
+        is2 = modulo(ilr%ns2,glr%d%n2+1)
+        ie2 = modulo(ilr%ns2+ilr%d%n2,glr%d%n2+1)
+        js2 = modulo(jlr%ns2,glr%d%n2+1)
+        je2 = modulo(jlr%ns2+jlr%d%n2,glr%d%n2+1)
+        overlap2 = check_whether_bounds_overlap(is2, ie2, js2, je2)
+        if (overlap2) then
+            is1 = modulo(ilr%ns1,glr%d%n1+1)
+            ie1 = modulo(ilr%ns1+ilr%d%n1,glr%d%n1+1)
+            js1 = modulo(jlr%ns1,glr%d%n1+1)
+            je1 = modulo(jlr%ns1+jlr%d%n1,glr%d%n1+1)
+            overlap1 = check_whether_bounds_overlap(is1, ie1, js1, je1)
+            if (overlap1) then
+                ! If we are here, all three overlaps are true
+                isoverlap = .true.
+            end if
+        end if
     end if
+  
+    !!if (overlap1 .and. overlap2 .and. overlap3) then
+    !!    isoverlap = .true.
+    !!else
+    !!    isoverlap = .false.
+    !!end if
         
     !@ END NEW VERSION #####################################
   

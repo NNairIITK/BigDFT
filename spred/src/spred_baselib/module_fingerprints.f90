@@ -94,6 +94,7 @@ subroutine fingerprint(inputs,nidIn,nat,alat,rcov,rxyz,fp)
     real(gp), intent(out) :: fp(nidIn)
     !internal
     integer :: nid
+    real(gp) :: alat_dmy(3,3)
  
 
 
@@ -109,7 +110,21 @@ subroutine fingerprint(inputs,nidIn,nat,alat,rcov,rxyz,fp)
         if(nidIn/=nid) then
           call f_err_throw('Array fp has wrong size')
         endif
-    !    call fingerprint_periodic(nat, inputs%fp_natx_sphere, iatypes, inputs%fp_angmom, alat, rxyz, rcov, fpall)
+
+        !alat_dmy can be removed as soon as bigdft is able to handle
+        !non-orthorombic cells (more precisely, as soon as the lattice vector
+        !data structure in bigdft is of dimension (3,3))
+        alat_dmy(1,1)=alat(1)
+        alat_dmy(2,1)=0.0_gp
+        alat_dmy(3,1)=0.0_gp
+        alat_dmy(1,2)=0.0_gp
+        alat_dmy(2,2)=alat(2)
+        alat_dmy(3,2)=0.0_gp
+        alat_dmy(1,3)=0.0_gp
+        alat_dmy(2,3)=0.0_gp
+        alat_dmy(3,3)=alat(3)
+
+        call fingerprint_periodic(nat, inputs%fp_natx_sphere, inputs%fp_angmom, alat_dmy, rxyz, rcov, fp)
       case('OMPOLD_FP_METHOD')
         nid=inputs%fp_angmom*nat
         if(nidIn/=nid) then
@@ -127,13 +142,13 @@ subroutine fingerprint(inputs,nidIn,nat,alat,rcov,rxyz,fp)
     end select
 end subroutine fingerprint
 !=====================================================================
-subroutine fingerprint_periodic(nat, natx_sphere, iatypes, lseg, alat, rxyz, rcov, fpall)
+subroutine fingerprint_periodic(nat, natx_sphere, lseg, alat, rxyz, rcov, fpall)
   implicit real*8 (a-h,o-z)
   parameter(nwork=100)
   dimension workalat(nwork) 
   dimension rxyz_sphere(3, natx_sphere),rcov_sphere(natx_sphere)
   dimension fpall(lseg*natx_sphere,nat),fp(lseg*natx_sphere),amplitude(natx_sphere)
-  dimension rxyz(3,nat),rcov(nat),iatypes(nat)
+  dimension rxyz(3,nat),rcov(nat)
   dimension alat(3, 3),alatalat(3,3),eigalat(3)
   allocatable   :: om(:,:) , work(:)
   integer :: nid
@@ -183,11 +198,6 @@ subroutine fingerprint_periodic(nat, natx_sphere, iatypes, lseg, alat, rxyz, rco
                     rxyz_sphere(2,nat_sphere)=yj
                     rxyz_sphere(3,nat_sphere)=zj
                     rcov_sphere(nat_sphere)=rcov(jat)
-                    if (jat.eq.iat .and. ix.eq.0 .and. iy.eq.0 .and. iz.eq.0) then
-                        it=0
-                    else
-                        it=iatypes(jat)
-                    endif
                 endif
              enddo
            enddo

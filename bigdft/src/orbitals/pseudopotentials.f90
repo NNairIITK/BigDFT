@@ -28,12 +28,10 @@ module pseudopotentials
   integer, parameter :: NG_CORE_MAX=1 !<max no. of gaussians for core charge density case
   integer, parameter :: NG_VAL_MAX=0 !<max no. of gaussians for valence charge density, in the core region
 
-  type, public :: atomic_projector_matrices
-     integer :: strategy
-     integer :: hij_size
-     real(gp), dimension(IMAX,IMAX) :: hij
+  type, public :: atomic_proj_coeff
+     real(gp) :: hij !<coefficient
      real(gp), dimension(:,:), pointer :: mat !<matrix of nonlocal projectors in the mm' space
-  end type atomic_projector_matrices
+  end type atomic_proj_coeff
 
   type, public :: PSP_data
      integer :: nelpsp
@@ -50,10 +48,43 @@ module pseudopotentials
      real(gp), dimension(NG_VAL_MAX) :: core_v !< valence charge case
   end type PSP_data
 
-  public :: psp_set_from_dict,get_psp,psp_dict_fill_all
-  public :: apply_hij_coeff,update_psp_dict,psp_from_stream
+  public :: psp_set_from_dict,get_psp,psp_dict_fill_all,f_free_prj_ptr
+  public :: apply_hij_coeff,update_psp_dict,psp_from_stream,nullify_atomic_proj_coeff
 
   contains
+
+    subroutine nullify_atomic_proj_coeff(prj)
+      use f_utils, only: f_zero
+      implicit none
+      type(atomic_proj_coeff), intent(out) :: prj
+      call f_zero(prj%hij)
+      nullify(prj%mat)
+    end subroutine nullify_atomic_proj_coeff
+    subroutine free_atomic_proj_coeff(prj)
+      use dynamic_memory
+      implicit none
+      type(atomic_proj_coeff), intent(inout) :: prj
+      call f_free_ptr(prj%mat)
+      call nullify_atomic_proj_coeff(prj)
+    end subroutine free_atomic_proj_coeff
+
+    subroutine f_free_prj_ptr(prj)
+      implicit none
+      type(atomic_proj_coeff), dimension(:,:,:), pointer :: prj
+      !local variables
+      integer :: i1,i2,i3
+      if (.not. associated(prj)) return
+      do i3=lbound(prj,3),ubound(prj,3)
+         do i2=lbound(prj,2),ubound(prj,2)
+            do i1=lbound(prj,1),ubound(prj,1)
+               call free_atomic_proj_coeff(prj(i1,i2,i3))
+            end do
+         end do
+      end do
+      deallocate(prj)
+      nullify(prj)
+    end subroutine f_free_prj_ptr
+    
 
     !> Fill up the dict with all pseudopotential information
     subroutine psp_dict_fill_all(dict, atomname, run_ixc, projrad, crmult, frmult)
@@ -889,12 +920,14 @@ module pseudopotentials
     !> routine for applying the coefficients needed HGH-type PSP to the scalar product
     !! among wavefunctions and projectors. The coefficients are real therefore 
     !! there is no need to separate scpr in its real and imaginary part before
-    pure subroutine apply_hij_coeff(hij,n_w,n_p,scpr,hscpr)
-      use module_base, only: gp,f_zero
+    !pure 
+    subroutine apply_hij_coeff(prj,n_w,n_p,scpr,hscpr)
+      use module_base, only: gp,wp
+      use f_blas, only: f_eye,f_gemv
       implicit none
       integer, intent(in) :: n_p,n_w
-      real(gp), dimension(3,3,4), intent(in) :: hij
-!!$      type(atomic_projector_matrices), dimension(4), intent(in) :: prj
+!!$      real(gp), dimension(3,3,4), intent(in) :: hij
+      type(atomic_proj_coeff), dimension(3,3,4), intent(in) :: prj
       real(gp), dimension(n_w,n_p), intent(in) :: scpr
       real(gp), dimension(n_w,n_p), intent(out) :: hscpr
       !local variables
@@ -907,7 +940,8 @@ module pseudopotentials
       !define the logical array to identify the point from which the block is finished
       do l=1,4
          do i=1,3
-            cont(i,l)=(hij(i,i,l) /= 0.0_gp)
+            cont(i,l)= prj(i,i,l)%hij /= 0.0_gp
+!!$            cont(i,l)=(hij(i,i,l) /= 0.0_gp)
          end do
       end do
 
@@ -934,24 +968,24 @@ module pseudopotentials
 
          !applies the hij matrix
          do l=1,4 !diagonal in l
-!!$            select case(prj(l)%strategy)
-!!$            case (SKIP) 
-!!$               cycle
-!!$            case(FULL)
-!!$            case(DIAGONAL)
-!!$               do i=1,3
-!!$                  do j=1,3
-!!$                     call f_gemv(a=f_eye(2*l-1),alpha=hij(i,j,l),beta=1.0_wp,&
-!!$                          y=dproj(1,i,l),x=cproj(1,j,l))
-!!$                  end do
-!!$               end do
-!!$            end select
             do i=1,3
+               !the projector have always to act symmetrically
+               !this will be done by pointing on the same matrices
                do j=1,3
-                  do m=1,2*l-1 !diagonal in m
-                     dproj(m,i,l)=dproj(m,i,l)+&
-                          hij(i,j,l)*cproj(m,j,l)
-                  end do
+                  if (prj(i,j,l)%hij == 0.0_gp) cycle
+                  if (associated(prj(i,j,l)%mat)) then
+                     !nondiagonal projector approach
+                     call f_gemv(a=prj(i,j,l)%mat,alpha=prj(i,j,l)%hij,beta=1.0_wp,&
+                          y=dproj(1,i,l),x=cproj(1,j,l))
+                  else
+                     !diagonal case
+                     call f_gemv(a=f_eye(2*l-1),alpha=prj(i,j,l)%hij,beta=1.0_wp,&
+                          y=dproj(1,i,l),x=cproj(1,j,l))
+                  end if
+!!$                  do m=1,2*l-1 !diagonal in m
+!!$                     dproj(m,i,l)=dproj(m,i,l)+&
+!!$                          hij(i,j,l)*cproj(m,j,l)
+!!$                  end do
                end do
             end do
          end do
@@ -972,7 +1006,6 @@ module pseudopotentials
       end do reversed_loop
 
     end subroutine apply_hij_coeff
-
 
 end module pseudopotentials
 

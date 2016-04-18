@@ -58,21 +58,21 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
-  integer, dimension(:), allocatable :: norbsPerAt, mapping, inversemapping, minorbs_type, maxorbs_type
+  integer, dimension(:), allocatable :: norbsPerAt, mapping, inversemapping, minorbs_type, maxorbs_type, nat_par
   logical, dimension(:), allocatable :: covered, type_covered
   !real(kind=8), dimension(:,:), allocatable :: aocc
   integer, dimension(:,:), allocatable :: nl_default
-  integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
+  integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho,iiat,isat,iisorb,natp
   integer :: jlr,iiorb,ispin,ispinshift
-  integer :: infoCoeff, jproc
+  integer :: infoCoeff, jproc, jjorb
   type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
   character(len=2) :: symbol
   real(kind=8) :: rcov,rprb,pnrm
   !real(kind=8) :: ehomo,amu
-  integer :: nsccode,mxpl,mxchg,inl
+  integer :: nsccode,mxpl,mxchg,inl,norbtot
   type(mixrhopotDIISParameters) :: mixdiis
-  logical :: finished, can_use_ham
+  logical :: finished, can_use_ham, found
   !type(confpot_data), dimension(:), allocatable :: confdatarrtmp
   integer :: info_basis_functions, order_taylor, i, ilr, iii, jjj
   real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
@@ -196,60 +196,86 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   ! This array gives a mapping from the 'natural' orbital distribution (i.e. simply counting up the atoms) to
   ! our optimized orbital distribution (determined by in orbs%inwhichlocreg).
-  iiorb=0
+
+  ! Parallelization over the atoms
+  nat_par = f_malloc(0.to.nproc-1,id='nat_par')
+  natp = at%astruct%nat/nproc
+  nat_par(:) = natp
+  ii = at%astruct%nat-natp*nproc
+  nat_par(0:ii-1) = nat_par(0:ii-1) + 1
+  isat = sum(nat_par(0:iproc-1))
+  ! check
+  ii = sum(nat_par)
+  if (ii/=at%astruct%nat) call f_err_throw('ii/=at%astruct%nat',err_name='BIGDFT_RUNTIME_ERROR')
+  iisorb = 0
+  iiat = 0
+  do jproc=0,iproc-1
+      do iat=1,nat_par(jproc)
+          iiat = iiat + 1
+          iisorb = iisorb + norbsPerAt(iiat)
+      end do
+  end do
+
+  call f_zero(mapping)
   covered=.false.
-  if (present(locregcenters)) then
-      do ispin=1,input%nspin
-          do iat=1,at%astruct%nat
-              do iorb=1,norbsPerAt(iat)
-                  iiorb=iiorb+1
-                  ! Search the corresponding entry in inwhichlocreg
-                  do jorb=1,tmb%orbs%norb
-                      if(covered(jorb)) cycle
-                      jlr=tmb%orbs%inwhichlocreg(jorb)
-                      if( tmb%lzd%llr(jlr)%locregCenter(1)==locregcenters(1,iat) .and. &
-                          tmb%lzd%llr(jlr)%locregCenter(2)==locregcenters(2,iat) .and. &
-                          tmb%lzd%llr(jlr)%locregCenter(3)==locregcenters(3,iat) ) then
-                          covered(jorb)=.true.
-                          mapping(iiorb)=jorb
-                          exit
-                      end if
-                  end do
+  norbtot = 0
+  do iat=1,at%astruct%nat
+      norbtot = norbtot + norbsPerAt(iat)
+  end do
+
+  do ispin=1,input%nspin
+      iiorb = iisorb + (ispin-1)*norbtot
+      do iat=1,nat_par(iproc)
+          iiat = isat + iat
+          do iorb=1,norbsPerAt(iiat)
+              iiorb=iiorb+1
+              ! Search the corresponding entry in inwhichlocreg
+              do jjorb=1,tmb%orbs%norb
+                  !!if(covered(jjorb)) cycle
+                  jlr=tmb%orbs%inwhichlocreg(jjorb)
+                  if (jlr==iiorb) then
+                      mapping(iiorb)=jjorb
+                      exit
+                  end if
+                  !!found = .false.
+                  !!if (present(locregcenters)) then
+                  !!    if( tmb%lzd%llr(jlr)%locregCenter(1)==locregcenters(1,iiat) .and. &
+                  !!        tmb%lzd%llr(jlr)%locregCenter(2)==locregcenters(2,iiat) .and. &
+                  !!        tmb%lzd%llr(jlr)%locregCenter(3)==locregcenters(3,iiat) ) then
+                  !!        found = .true.
+                  !!    end if
+                  !!else
+                  !!    if( tmb%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iiat) .and. &
+                  !!        tmb%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iiat) .and. &
+                  !!        tmb%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iiat) ) then
+                  !!        found = .true.
+                  !!    end if
+                  !!end if
+                  !!if (found) then
+                  !!    covered(jjorb)=.true.
+                  !!    mapping(iiorb)=jjorb
+                  !!    exit
+                  !!end if
               end do
           end do
       end do
-  else
-      do ispin=1,input%nspin
-          do iat=1,at%astruct%nat
-              do iorb=1,norbsPerAt(iat)
-                  iiorb=iiorb+1
-                  ! Search the corresponding entry in inwhichlocreg
-                  do jorb=1,tmb%orbs%norb
-                      if(covered(jorb)) cycle
-                      jlr=tmb%orbs%inwhichlocreg(jorb)
-                      if( tmb%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iat) .and. &
-                          tmb%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iat) .and. &
-                          tmb%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
-                          covered(jorb)=.true.
-                          mapping(iiorb)=jorb
-                          exit
-                      end if
-                  end do
-              end do
-          end do
-      end do
-  end if
+  end do
+  call mpiallred(mapping, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  call f_free(nat_par)
 
 
   ! Inverse mapping
-  do iorb=1,tmb%orbs%norb
+  call f_zero(inversemapping)
+  do iorb=1,tmb%orbs%norbp
+      iiorb = tmb%orbs%isorb + iorb
       do jorb=1,tmb%orbs%norb
-          if(mapping(jorb)==iorb) then
-              inversemapping(iorb)=jorb
+          if(mapping(jorb)==iiorb) then
+              inversemapping(iiorb)=jorb
               exit
           end if
       end do
   end do
+  call mpiallred(inversemapping, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
   nvirt=0
 

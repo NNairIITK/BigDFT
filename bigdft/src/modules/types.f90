@@ -1140,6 +1140,7 @@ contains
   !! It is of course assumed that f_lib_initialize has already been called
   subroutine bigdft_init_timing_categories()
     use Poisson_Solver, only: PS_initialize_timing_categories
+    use sparsematrix_base
     implicit none
     !local variables
     integer :: icls,icat
@@ -1176,6 +1177,9 @@ contains
        call f_timing_category(trim(cats(1,icat)),trim(cats(2,icat)),trim(cats(3,icat)),&
             cat_ids(icat))
     end do
+
+    ! Initialize sparse matrix timings
+    call sparsematrix_initialize_timing_categories()
 
   end subroutine bigdft_init_timing_categories
 

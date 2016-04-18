@@ -53,6 +53,8 @@ module public_keys
   character(len = *), parameter :: EXTERNAL_POTENTIAL = "external_potential"
   character(len = *), parameter :: CHARGE_MULTIPOLES = "charge_multipoles"
   character(len = *), parameter :: CALCULATE_STRTEN = "calculate_strten"
+  character(len = *), parameter :: OCCUPANCY_CONTROL = "occupancy_control"
+  character(len = *), parameter :: OCCUPANCY_CONTROL_ITERMAX= "itermax_occ_ctrl"
 
   character(len = *), parameter :: PSOLVER = "psolver"
 
@@ -213,6 +215,7 @@ module public_keys
   character(len = *), parameter :: SUPPORT_FUNCTION_MULTIPOLES = "support_function_multipoles"
   character(len = *), parameter :: PLOT_MPPOT_AXES = "plot_mppot_axes"
   character(len = *), parameter :: PLOT_POT_AXES = "plot_pot_axes"
+  character(len = *), parameter :: PLOT_LOCREG_GRIDS = "plot_locreg_grids"
 
   !keys for linear input variables
   !level keys

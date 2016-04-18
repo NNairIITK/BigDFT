@@ -1050,8 +1050,9 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
        tmb%linmat%m%nspin, collcom_tmp)
 
   smat_tmp = sparse_matrix_null()
+  ! Do not initialize the matrix multiplication to save memory. 
   call init_sparse_matrix_wrapper(iproc, nproc, tmb%linmat%s%nspin, tmb%orbs, &
-       lzd_tmp, at%astruct, .false., imode=2, smat=smat_tmp)
+       lzd_tmp, at%astruct, .false., init_matmul=.false., imode=2, smat=smat_tmp)
   call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
        collcom_tmp, collcom_tmp, collcom_tmp, smat_tmp)
   iirow(1) = smat_tmp%nfvctr
@@ -1139,11 +1140,11 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
   integer, dimension(:), allocatable :: workarray, ifrag_ref
   integer, dimension(:,:), allocatable :: map_frag_and_env, frag_map
 
-  real(kind=gp) :: Werror, tol, ddot
+  real(kind=gp) :: tol, ddot
   real(kind=gp), dimension(3) :: centre_old_box, centre_new_box, da
   real(kind=wp), dimension(:), pointer :: psi_tmp
   real(kind=wp), dimension(:), allocatable :: psi_tmp_i, psi_tmp_j
-  real(kind=gp), dimension(:,:), allocatable :: reformat_error, overlap
+  real(kind=gp), dimension(:,:), allocatable :: overlap
   real(kind=wp), dimension(:,:,:,:,:,:), allocatable :: phigold
 
   type(system_fragment), dimension(:), allocatable :: ref_frags_atomic, ref_frags_atomic_dfrag
@@ -1189,17 +1190,15 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
 
   allocate(frag_trans(at%astruct%nat,at%astruct%nat))
 
-  reformat_error=f_malloc((/at%astruct%nat,at%astruct%nat/),id='reformat_error')
-
   ! pre-fill with identity transformation
   do iat=1,at%astruct%nat
      do jat=1,at%astruct%nat
         frag_trans(iat,jat)=fragment_transformation_identity()
         frag_trans(iat,jat)%rot_center_new=frag_center(1,rxyz(:,jat))
-        reformat_error(iat,jat)=-1.0d0
+        frag_trans(iat,jat)%Werror=-1.0d0
      end do
      ! diagonal terms have zero error
-     reformat_error(iat,iat)=0.0d0
+     frag_trans(iat,jat)%Werror=0.0d0
   end do
 
   ! get all fragment transformations first, then reformat
@@ -1259,18 +1258,16 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
            ! if we are an identical fragment then do full matching
            if (ifrag_ref(iat)==ifrag_ref(jat)) then
               call match_environment_atoms(jat-1,at,rxyz,tmb%orbs,ref_frags_atomic(iat),&
-                   ref_frags_atomic(iat)%nbasis_env,map_frag_and_env,frag_trans(jat,iat),Werror,.false.)
+                   ref_frags_atomic(iat)%nbasis_env,map_frag_and_env,frag_trans(jat,iat),.false.)
            ! otherwise just look at nearest neighbours, i.e. n closest, not n closest of each type
            else
               call match_environment_atoms(jat-1,at,rxyz,tmb%orbs,ref_frags_atomic_dfrag(iat),&
-                   ref_frags_atomic_dfrag(iat)%nbasis_env,map_frag_and_env,frag_trans(jat,iat),Werror,.true.)
+                   ref_frags_atomic_dfrag(iat)%nbasis_env,map_frag_and_env,frag_trans(jat,iat),.true.)
            end if
 
            call f_free(map_frag_and_env)
 
-           reformat_error(jat,iat)=Werror
-
-           !if (Werror > W_tol) call f_increment(itoo_big)
+           !if (frag_trans(jat,iat)%Werror > W_tol) call f_increment(itoo_big)
         end if
 
      end do
@@ -1295,7 +1292,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
                 trim(at%astruct%atomnames(at%astruct%iatype(jat))),jat,&
                 frag_trans(iat,jat)%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans(iat,jat)%rot_axis,&
                 frag_trans(iat,jat)%rot_center,frag_trans(iat,jat)%rot_center_new,&
-                reformat_error(iat,jat),num_env,ifrag_ref(iat),ifrag_ref(jat)
+                frag_trans(iat,jat)%Werror,num_env,ifrag_ref(iat),ifrag_ref(jat)
         end do
      end do
      close(99)
@@ -1610,7 +1607,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
          !!write(*,'(a,5(1x,I3),1x,2(1x,F8.4),1x,2(1x,L2),1x,2(1x,F7.2))')'DEBUGr2:',&
          !!     iproc,iiat,jjat,iiorb,jjorb,ddot(ndim_tmp1, psi_tmp_j(1), 1, psi_tmp_j(1), 1), &
          !!     ddot(ndim_tmp1, psi_tmp_i(1), 1, psi_tmp_j(1), 1), &
-         !!     reformat, wrap_around, reformat_error(iiat,jjat), frag_trans(iiat,jjat)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+         !!     reformat, wrap_around, frag_trans(iiat,jjat)%Werror, frag_trans(iiat,jjat)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
 
          !!!debug
          !!write(*,'(a,5(1x,I4),2(2x,F12.6))')'iproc,iat,jat,iorb,jorb,ovrlp',iproc,iiat,jjat,iiorb,jjorb,overlap(jjorb,iiorb),&
@@ -1662,7 +1659,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
                       iorb,jorb,iorba,jorba,overlap(iorb,jorb),&
                       tmb%linmat%ovrlp_%matrix(iorb,jorb,1),&
                       overlap(iorb,jorb)-tmb%linmat%ovrlp_%matrix(iorb,jorb,1),&
-                      reformat_error(iat,jat),frag_trans(iat,jat)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+                      frag_trans(iat,jat)%Werror,frag_trans(iat,jat)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
 
                  ! same 'number' tmb, no rotation
                  if ((iat==jat .or. frag_trans(iat,jat)%theta==0.0) .and. iorba==jorba) then
@@ -1672,7 +1669,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
                          iorb,jorb,iorba,jorba,overlap(iorb,jorb),&
                          tmb%linmat%ovrlp_%matrix(iorb,jorb,1),&
                          overlap(iorb,jorb)-tmb%linmat%ovrlp_%matrix(iorb,jorb,1),&
-                         reformat_error(iat,jat),frag_trans(iat,jat)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+                         frag_trans(iat,jat)%Werror,frag_trans(iat,jat)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
                  end if
 
                  ! same 'number' tmb
@@ -1683,7 +1680,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
                          iorb,jorb,iorba,jorba,overlap(iorb,jorb),&
                          tmb%linmat%ovrlp_%matrix(iorb,jorb,1),&
                          overlap(iorb,jorb)-tmb%linmat%ovrlp_%matrix(iorb,jorb,1),&
-                         reformat_error(iat,jat),frag_trans(iat,jat)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+                         frag_trans(iat,jat)%Werror,frag_trans(iat,jat)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
                  end if
 
                  ! first tmb of each atom
@@ -1694,7 +1691,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
                          iorb,jorb,iorba,jorba,overlap(iorb,jorb),&
                          tmb%linmat%ovrlp_%matrix(iorb,jorb,1),&
                          overlap(iorb,jorb)-tmb%linmat%ovrlp_%matrix(iorb,jorb,1),&
-                         reformat_error(iat,jat),frag_trans(iat,jat)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+                         frag_trans(iat,jat)%Werror,frag_trans(iat,jat)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
                  end if
 
               end do
@@ -1724,7 +1721,6 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
      call fragment_free(ref_frags_atomic_dfrag(iat))
   end do
   deallocate(ref_frags_atomic_dfrag)
-  call f_free(reformat_error)
   deallocate(frag_trans)
   call f_free(ifrag_ref)
 
@@ -2225,7 +2221,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   integer, dimension(:), allocatable :: ipiv
   real(gp), dimension(:,:), allocatable :: rxyz_new, rxyz4_ref, rxyz4_new, rxyz_ref
   real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
-  real(kind=gp), dimension(:), allocatable :: dist, Werror
+  real(kind=gp), dimension(:), allocatable :: dist
   real(gp) :: max_shift, dtol
 
   logical :: skip, binary
@@ -2277,8 +2273,6 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   end do
 
   !allocate(frag_trans_orb(tmb%orbs%norbp))
-
-  Werror=f_malloc(input_frag%nfrag,id='Werror')
 
   unitwf=99
   isforb=0
@@ -2433,7 +2427,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               rxyz_new(:,iat)=rxyz_new(:,iat)-frag_trans_frag(ifrag)%rot_center_new
            end do
 
-           call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans_frag(ifrag),Werror(ifrag))
+           call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans_frag(ifrag))
 
            call f_free(rxyz_ref)
            call f_free(rxyz_new)
@@ -2441,20 +2435,20 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
         ! take into account environment coordinates
         else
            call match_environment_atoms(isfat,at,rxyz,tmb%orbs,ref_frags(ifrag_ref),&
-                max_nbasis_env,frag_env_mapping(ifrag,:,:),frag_trans_frag(ifrag),Werror(ifrag),.false.)
+                max_nbasis_env,frag_env_mapping(ifrag,:,:),frag_trans_frag(ifrag),.false.)
         end if
 
         ! in environment case we're calculating all transformations on each MPI, so no need to incrememnt on each
-        if (Werror(ifrag) > W_tol .and. ((ref_frags(ifrag_ref)%astruct_env%nat/=0 .and. iproc==0) &
+        if (frag_trans_frag(ifrag)%Werror > W_tol .and. ((ref_frags(ifrag_ref)%astruct_env%nat/=0 .and. iproc==0) &
              .or. ref_frags(ifrag_ref)%astruct_env%nat==0))then
            call f_increment(itoo_big)
         end if
 
         ! useful for identifying which fragments are problematic
-        if (iproc==0 .and. Werror(ifrag)>W_tol) then
+        if (iproc==0 .and. frag_trans_frag(ifrag)%Werror>W_tol) then
            write(*,'(A,1x,I3,1x,I3,1x,3(F12.6,1x),2(F12.6,1x),2(I8,1x))') 'ifrag,ifrag_ref,rot_axis,theta,error',&
                 ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp),&
-                Werror(ifrag),itoo_big,iproc
+                frag_trans_frag(ifrag)%Werror,itoo_big,iproc
            write(*,*) ''
         end if
 
@@ -2561,8 +2555,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               end do
 
               call find_frag_trans(min(4,ref_frags(ifrag_ref)%astruct_frg%nat),rxyz4_ref,rxyz4_new,&
-                   frag_trans_orb(iorbp),Werror(ifrag))
-              if (Werror(ifrag) > W_tol) call f_increment(itoo_big)
+                   frag_trans_orb(iorbp))
+              if (frag_trans_orb(iorbp)%Werror > W_tol) call f_increment(itoo_big)
 
 !!$              print *,'transformation of the fragment, iforb',iforb
 !!$              write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,iorb,rot_axis,theta',&
@@ -2606,8 +2600,6 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   !!   end do
   !!   close(109)
   !!end if
-
-  call f_free(Werror)
 
   call timing(iproc,'tmbrestart','OF')
   call reformat_supportfunctions(iproc,nproc,&
@@ -2718,7 +2710,7 @@ END SUBROUTINE readmywaves_linear_new
 
    !> Matches neighbouring atoms from environment file to those in full system
    !! returns atom mapping information and 'best' fragment transformation and corresponding Wahba error
-   subroutine match_environment_atoms(isfat,at,rxyz,orbs,ref_frag,max_nbasis_env,frag_env_mapping,frag_trans,Werror,ignore_species)
+   subroutine match_environment_atoms(isfat,at,rxyz,orbs,ref_frag,max_nbasis_env,frag_env_mapping,frag_trans,ignore_species)
       use module_base
       use module_types
       use module_fragments
@@ -2732,7 +2724,6 @@ END SUBROUTINE readmywaves_linear_new
       integer, intent(in) :: max_nbasis_env
       integer, dimension(max_nbasis_env,3), intent(out) :: frag_env_mapping
       type(fragment_transformation), intent(out) :: frag_trans
-      real(kind=gp), intent(out) :: Werror
       logical, intent(in) :: ignore_species
 
       !local variables
@@ -2936,31 +2927,31 @@ END SUBROUTINE readmywaves_linear_new
                    + permutations(iat-ref_frag%astruct_frg%nat,i))
          end do
          call find_frag_trans(ref_frag%astruct_env%nat,rxyz_ref,&
-              rxyz_new_trial,frag_trans,Werror)
-         !if (Werror > W_tol) call f_increment(itoo_big)
+              rxyz_new_trial,frag_trans)
+         !if (frag_trans%Werror > W_tol) call f_increment(itoo_big)
 
          !do iat=1,ref_frag%astruct_env%nat
          !   write(*,'(A,3(I3,2x),2x,2(3(F12.6,1x),2x))') 'ifrag,ifrag_ref,iat,rxyz_new,rxyz_ref',&
          !        ifrag,ifrag_ref,iat,rxyz_new_trial(:,iat),rxyz_ref(:,iat)
          !end do
-         !write(*,'(A,I3,2x,3(I3,1x),1x,F12.6)') 'i,perms,error: ',i,permutations(:,i),Werror
+         !write(*,'(A,I3,2x,3(I3,1x),1x,F12.6)') 'i,perms,error: ',i,permutations(:,i),frag_trans%Werror
          !prioritize no rotation, and if not possible 180 degrees
          !could improve logic/efficiency here, i.e. stop checking once below some threshold
-         !if ((Werror < minerror .and. (mintheta/=0 .or. minerror-Werror>1e-6)) &
-         !     .or. (Werror-minerror<1e-6.and.frag_trans%theta==0.0d0) then
+         !if ((frag_trans%Werror < minerror .and. (mintheta/=0 .or. minerror-frag_trans%Werror>1e-6)) &
+         !     .or. (frag_trans%Werror-minerror<1e-6.and.frag_trans%theta==0.0d0) then
 
          err_tol = 1e-3 !1e-6
          rot_tol = 1e-3 !1e-6
          ! less than minerror by more than some tol
          ! or ~same error and zero rotation (wrt tol)
          ! or ~same error, 180 rotation (wrt tol) and not already zero rotation
-         if ( (Werror < minerror - err_tol) &
-              .or. (abs(Werror - minerror) < err_tol .and. abs(frag_trans%theta - 0.0d0) < rot_tol)) then ! &
-!              .or. (abs(Werror - minerror) < err_tol .and. mintheta /= 0.0d0 &
+         if ( (frag_trans%Werror < minerror - err_tol) &
+              .or. (abs(frag_trans%Werror - minerror) < err_tol .and. abs(frag_trans%theta - 0.0d0) < rot_tol)) then ! &
+!              .or. (abs(frag_trans%Werror - minerror) < err_tol .and. mintheta /= 0.0d0 &
 !                   .and. abs(frag_trans%theta - 4.0_gp*atan(1.d0)) < rot_tol) ) then
 
             mintheta = frag_trans%theta
-            minerror = Werror
+            minerror = frag_trans%Werror
             minperm = i
          end if
       end do
@@ -2973,8 +2964,8 @@ END SUBROUTINE readmywaves_linear_new
          do iat=ref_frag%astruct_frg%nat+1,ref_frag%astruct_env%nat
             rxyz_new_trial(:,iat) = rxyz_new(:,ref_frag%astruct_frg%nat + permutations(iat-ref_frag%astruct_frg%nat,minperm))
          end do
-         call find_frag_trans(ref_frag%astruct_env%nat,rxyz_ref,rxyz_new_trial,frag_trans,Werror)
-         !if (Werror > W_tol) call f_increment(itoo_big)
+         call find_frag_trans(ref_frag%astruct_env%nat,rxyz_ref,rxyz_new_trial,frag_trans)
+         !if (frag_trans%Werror > W_tol) call f_increment(itoo_big)
 
          do iat=1,ref_frag%astruct_frg%nat
             frag_env_mapping(iat,3) = frag_env_mapping(iat,2)

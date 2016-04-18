@@ -132,6 +132,7 @@ module module_input_keys
      real(kind=8) :: pexsi_mumin, pexsi_mumax, pexsi_mu !< minimal, maximal and first chemical potential for PEXSI
      real(kind=8) :: pexsi_temperature, pexsi_tol_charge !< temperature and tolerance on the number of electrons used by PEXSI
      real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
+     logical :: plot_locreg_grids
   end type linearInputParameters
 
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
@@ -189,6 +190,7 @@ module module_input_keys
      integer :: itermax_virt     !< Maximal number of SCF iterations
      integer :: itermin     !< Minimum number of SCF iterations !Bastian
      integer :: nrepmax
+     integer :: occupancy_control_itermax !< number of maximal iterations to apply occupancy control
      integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
      integer :: idsx        !< DIIS history
      integer :: ncongt      !< Number of conjugate garident for the tail treatment
@@ -746,8 +748,8 @@ contains
     call atomic_data_set_from_dict(dict,IG_OCCUPATION, atoms, in%nspin)
 
     !fill the requests for the atomic density matrix
-    call atoms_gamma_from_dict(dict//OUTPUT_VARIABLES//ATOMIC_DENSITY_MATRIX,&
-     lmax_ao,atoms%astruct,atoms%dogamma)
+    call atoms_gamma_from_dict(dict//OUTPUT_VARIABLES//ATOMIC_DENSITY_MATRIX,dict//DFT_VARIABLES//OCCUPANCY_CONTROL,&
+     lmax_ao,atoms%astruct,atoms%dogamma,atoms%gamma_targets)
 
     ! Add multipole preserving information
     atoms%multipole_preserving = in%multipole_preserving
@@ -1676,6 +1678,9 @@ contains
            in%plot_mppot_axes = val
        case (PLOT_POT_AXES)
            in%plot_pot_axes = val
+       case (OCCUPANCY_CONTROL)
+       case (OCCUPANCY_CONTROL_ITERMAX)
+          in%occupancy_control_itermax=val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2097,6 +2102,8 @@ contains
        case (SUPPORT_FUNCTION_MULTIPOLES)
           ! linear scaling: Calculate the multipole moments of the support functions
           in%support_function_multipoles = val
+       case (PLOT_LOCREG_GRIDS)
+          in%lin%plot_locreg_grids = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2328,6 +2335,7 @@ contains
     in%gen_norbd = UNINITIALIZED(0)
     call f_zero(in%gnrm_cv_virt)
     call f_zero(in%itermax_virt)
+    call f_zero(in%occupancy_control_itermax)
     nullify(in%gen_occup)
     ! Default abscalc variables
     call abscalc_input_variables_default(in)
@@ -2615,6 +2623,8 @@ contains
   subroutine input_analyze(in,astruct)
     use module_atoms, only: atomic_structure
     use yaml_strings, only: operator(.eqv.)
+    use yaml_output
+    use module_base, only: bigdft_mpi
     implicit none
     type(input_variables), intent(inout) :: in
     type(atomic_structure), intent(in) :: astruct
@@ -2636,38 +2646,14 @@ contains
        end if
        write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
     end if
-    !@todo also the inputguess variable should be checked if BC are nonFree
 
     ! the DFT variables ------------------------------------------------------
     in%SIC%ixc = in%ixc
 
     in%idsx = min(in%idsx, in%itermax)
 
-    !project however the wavefunction on gaussians if asking to write them on disk
-    ! But not if we use linear scaling version (in%inputPsiId >= 100)
-    !in%gaussian_help=(in%inputPsiId >= 10 .and. in%inputPsiId < 100)
-
-!!$    !switch on the gaussian auxiliary treatment
-!!$    !and the zero of the forces
-!!$    if (in%inputPsiId == 10) then
-!!$       in%inputPsiId = 0
-!!$    else if (in%inputPsiId == 13) then !better to insert gaussian_help as a input variable
-!!$       in%inputPsiId = 2
-!!$    end if
-
-!!$    ! Setup out grid parameters.
-!!$    if (in%output_denspot >= 0) then
-!!$       in%output_denspot_format = in%output_denspot / 10
-!!$    else
-!!$       in%output_denspot_format = output_denspot_FORMAT_CUBE
-!!$       in%output_denspot = abs(in%output_denspot)
-!!$    end if
-!!$    in%output_denspot = modulo(in%output_denspot, 10)
-
     !define whether there should be a last_run after geometry optimization
     !also the mulliken charge population should be inserted
-!!$    if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. &
-!!$         in%output_denspot /= output_denspot_NONE .or. in%norbv /= 0) then
     if (in%rbuf > 0.0_gp .or. in%output_wf /= 'NONE' .or. &
          in%output_denspot /= 'NONE' .or. in%norbv /= 0) then
        in%last_run=-1 !last run to be done depending of the external conditions
@@ -2678,6 +2664,12 @@ contains
     if (astruct%geocode == 'F' .or. astruct%nat == 0) then
        !Disable the symmetry
        in%disableSym = .true.
+    end if
+
+    if (in%inguess_geopt == 1 .and. astruct%geocode /= 'F') then
+       if (bigdft_mpi%iproc==0) &
+            call yaml_warning('The input guess strategy "1" for the restart is only allowed for free BC')
+       in%inguess_geopt = 0
     end if
 
     ! the GEOPT variables ----------------------------------------------------

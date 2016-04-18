@@ -221,15 +221,28 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
      !LR: commented hessian as not currently using it
 
-     !$omp parallel default(none) &
-     !$omp private(iat,ityp,rx,ry,rz,fxion,fyion,fzion,jtyp,chgprod,dist,jat) &
-     !$omp shared(at,rxyz,fion,eself,eion)
-     !$omp do reduction(+:eself,eion)
-     do iat=1,at%astruct%nat
-        ityp=at%astruct%iatype(iat)
-        rx=rxyz(1,iat) 
-        ry=rxyz(2,iat)
-        rz=rxyz(3,iat)
+     ! Parallelization over the atoms.
+     ! First distribute evenly...
+     natp = at%astruct%nat/nproc
+     isat = iproc*natp
+     ! ... and now distribute the remaining atoms.
+     ii = at%astruct%nat-nproc*natp
+     if (iproc<ii) natp = natp + 1
+     isat = isat + min(iproc,ii)
+
+
+     !!!$omp parallel default(none) &
+     !!!$omp private(iat,ityp,rx,ry,rz,fxion,fyion,fzion,jtyp,chgprod,dist,jat) &
+     !!!$omp shared(at,rxyz,fion,eself,eion)
+     !!!$omp do reduction(+:eself,eion)
+     call f_zero(fion)
+     !do iat=1,at%astruct%nat
+     do iat=1,natp
+        iiat=iat+isat
+        ityp=at%astruct%iatype(iiat)
+        rx=rxyz(1,iiat) 
+        ry=rxyz(2,iiat)
+        rz=rxyz(3,iiat)
         !initialization of the forces
         fxion=0.0_gp
         fyion=0.0_gp
@@ -243,7 +256,12 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         !hzz=0.0_gp
 
         ! Ion-ion interaction
-        do jat=1,iat-1
+        !$omp parallel if (iiat>1000) &
+        !$omp default(none) &
+        !$omp shared(iiat,rx,ry,rz,rxyz,at,ityp,eion,fxion,fyion,fzion) &
+        !$omp private(jat,dist,jtyp,chgprod)
+        !$omp do schedule(static) reduction(+:eion,fxion,fyion,fzion)
+        do jat=1,iiat-1
            dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
            jtyp=at%astruct%iatype(jat)
            chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
@@ -260,7 +278,14 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            !hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
            !hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
         enddo
-        do jat=iat+1,at%astruct%nat
+        !$omp end do
+        !$omp end parallel
+        !$omp parallel if (at%astruct%nat-iiat>1000) &
+        !$omp default(none) &
+        !$omp shared(iiat,rx,ry,rz,rxyz,at,ityp,eion,fxion,fyion,fzion) &
+        !$omp private(jat,dist,jtyp,chgprod)
+        !$omp do schedule(static) reduction(+:fxion,fyion,fzion)
+        do jat=iiat+1,at%astruct%nat
            dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
            jtyp=at%astruct%iatype(jat)
            chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
@@ -277,17 +302,22 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            !hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
            !hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
         end do
+        !$omp end do
+        !$omp end parallel
 
-        fion(1,iat)=fxion
-        fion(2,iat)=fyion
-        fion(3,iat)=fzion
+        fion(1,iiat)=fxion
+        fion(2,iiat)=fyion
+        fion(3,iiat)=fzion
 
         !if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
         !energy which comes from the self-interaction of the spread charge
        eself=eself+real(at%nelpsp(ityp)**2,gp)*0.5_gp*sqrt(1.d0/pi)/at%psppar(0,0,ityp)
      end do
-     !$omp end do
-     !$omp end parallel
+     !!!$omp end do
+     !!!$omp end parallel
+     call mpiallred(fion, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(eion, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(eself, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
      !if (nproc==1 .and. slowion) print *,'eself',eself
 
