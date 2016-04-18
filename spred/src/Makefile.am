@@ -48,7 +48,7 @@ else
 lib_spred =
 endif
 if BUILD_BINARIES
-binaries_sources = splsad NEB global globaltool mhgps mhgpstool
+binaries_sources = splsad NEB global globaltool mhgps mhgpstool lowest_pathway
 scripts_sources = NEB_driver.sh
 EXTRA_PROGRAMS = bart #NEB_images
 else
@@ -146,6 +146,10 @@ mhgpstool_SOURCES = mhgpstool.f90
 mhgpstool_FCFLAGS = -I. -Ispred_baselib -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 ##mhgpstool_LDADD = spred_baselib/libspredbasef.a $(spred_library) mhgps_files/libmhgps.a @LINALG_LIBS@
 mhgpstool_LDADD = $(spred_library) mhgps_files/libmhgps.a spred_baselib/libspredbasef.a @LINALG_LIBS@
+
+lowest_pathway_SOURCES = lowest_pathway.f90
+lowest_pathway_FCFLAGS = 
+lowest_pathway_LDADD =
 
 global_SOURCES = global.f90
 global_FCFLAGS = -I. -Ispred_baselib -Iglobal_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
