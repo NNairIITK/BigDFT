@@ -1318,9 +1318,9 @@ module foe
                        smatl, chebyshev_polynomials, 1, cc_check, fermi_check_new)
                   call f_free(cc)
                   call f_free(cc_check)
+
                   call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
                        fermi_check_new, fermi_check_compr(ilshift+1:))
-
                   ! Calculate S^-1/2 * K * S^-1/2^T
                   ! Since S^-1/2 is symmetric, don't use the transpose
                   istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
@@ -1329,10 +1329,8 @@ module foe
                        ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel_%matrix_compr(ilshift+1:))
                   !write(*,*) 'after kernel_%matrix_compr(ilshift+istl)',iproc, kernel_%matrix_compr(ilshift+istl)
     
-        
                   call retransform_ext(iproc, nproc, smatl, &
                        ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:))
-
                   ! Explicitly symmetrize the kernel, use fermi_check_compr as temporary array
                   call max_asymmetry_of_matrix(iproc, nproc, comm, &
                        smatl, kernel_%matrix_compr, asymm_K, ispinx=ispin)

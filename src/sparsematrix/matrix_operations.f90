@@ -83,6 +83,7 @@ module matrix_operations
         real(kind=mp),dimension(:),pointer :: Amat11p_new, Amat22p_new
         real(kind=mp),dimension(:),allocatable :: rpower
       
+        if (present(mean_error)) call f_zero(mean_error)
       
         !!write(*,*) 'iorder',iorder
 
@@ -2515,7 +2516,7 @@ module matrix_operations
     
       if (order_taylor/=0) then
           ! only do this if approximations (Taylor or "negative thing") are actually used
-          if (error<=1.d-1*max_error) then
+          if (10.0_mp*error<=max_error) then !to avoir fpe if max_error is little
               !! error is very small, so decrease the order of the polynomial
               !if (order_taylor>20) then
               !    ! always keep a minimum of 20

@@ -2211,6 +2211,7 @@ extendedfrags_write:
  Force Norm (Hartree/Bohr): 6.2e-11
  difference: 1.65e-11
  e: 6.5e-11
+ maxval: 1.11e-9
  
 Cavity_H2OfrigidPCG:
  Atomic Forces (Ha/Bohr): 2.5e-6
@@ -2503,7 +2504,7 @@ matrixtaskgroups_no:
   Epot: 1.0e-8
   EvXC: 1.0e-9
   EXC: 1.1e-9
-  Enl: 1.0e-9
+  Enl: 2.0e-9
   Energy (Hartree): 3.0e-09
   Ion-Ion interaction energy: 2.9e-10
   Omega: 2.8e-09
@@ -2512,7 +2513,7 @@ matrixtaskgroups_no:
   energy: 3.0e-09
   trace: 1.50e-06
   trace(KS): 5.1e-11
-  HOMO-LUMO gap (eV): 4.0e-11
+  HOMO-LUMO gap (eV): 6.13e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.6e-9
   Force Norm (Hartree/Bohr): 8.9e-11
@@ -2542,7 +2543,7 @@ matrixtaskgroups_yes:
   energy: 3.0e-09
   trace: 1.51e-06
   trace(KS): 4.8e-11
-  HOMO-LUMO gap (eV): 4.0e-11
+  HOMO-LUMO gap (eV): 5.1e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.9e-9
   Force Norm (Hartree/Bohr): 9.6e-11
