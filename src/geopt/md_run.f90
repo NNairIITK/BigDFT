@@ -165,7 +165,7 @@ subroutine bomd(run_md,outs,nproc,iproc)
      call cpu_time(tcpu0)
 
      istep=istep+1
-     IF(istep+1.gt.maxsteps)exit MD_loop
+     IF(istep.gt.maxsteps)exit MD_loop
 
      IF(nhc%NHCHAIN)CALL NOSE_EVOLVE(natoms,ndof,T0ions,amass,vxyz,nhc)
 
