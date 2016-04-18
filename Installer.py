@@ -384,7 +384,7 @@ parser.add_argument('-d','--verbose',action='store_true',
                    help='Verbose output')
 parser.add_argument('-q','--quiet',action='store_true',
                    help='Skip dialog after setup')
-parser.add_argument('-c','--configure-line',nargs='*',
+parser.add_argument('-c','--configure-line',nargs=argparse.REMAINDER,
                    help='Specify the configure line to be passed (set BIGDFT_CONFIGURE_FLAGS variable)')
 
 
