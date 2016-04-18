@@ -300,6 +300,9 @@ module module_input_keys
      integer  :: nmultint
      integer  :: nsuzuki
      real(gp) :: nosefrq
+     logical  :: restart_nose
+     logical  :: restart_pos
+     logical  :: restart_vel
 
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
@@ -1940,6 +1943,12 @@ contains
          in%nosefrq = val
        case (WAVEFUNCTION_EXTRAPOLATION)
           in%wfn_history = val
+       case (RESTART_NOSE)
+          in%restart_nose = val
+       case (RESTART_VEL)
+          in%restart_vel = val
+       case (RESTART_POS)
+          in%restart_pos = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
