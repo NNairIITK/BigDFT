@@ -161,6 +161,7 @@ class BigDFTInstaller():
         print indent + 'Build directory:',os.path.abspath(self.builddir)
         print indent + 'Action chosen:',self.action
         print indent + 'Verbose:',self.verbose
+        print indent + 'Jhbuild baseline:',self.jhb
         print indent + 'Configuration options:'
         if self.rcfile=='':
             print indent*2 + "Source: Environment variable '%s'" % BIGDFT_CFG

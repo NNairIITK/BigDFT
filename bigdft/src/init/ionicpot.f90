@@ -43,7 +43,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   logical :: slowion=.false.,use_iterator=.false.
   logical :: perx,pery,perz,gox,goy,goz
   integer ::  nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,n3i,n3pi,i3s
-  integer :: n1i,n2i,i,iat,ii,ityp,jat,jtyp
+  integer :: n1i,n2i,i,iat,ii,ityp,jat,jtyp,natp,isat,iiat
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
   real(gp) :: ucvol,rloc,rlocinv2sq,twopitothreehalf,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff

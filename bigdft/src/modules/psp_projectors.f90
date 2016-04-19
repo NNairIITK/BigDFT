@@ -276,54 +276,54 @@ module psp_projectors
 
   end subroutine hgh_psp_application
  
-  !> Calculate the scalar product with the projectors of a given set of 
-  !! orbitals (or support functions) given in the same localization region
-  subroutine calculate_cproj(ncplx_p,n_p,wfd_p,proj,&
-       ncplx_w,n_w,wfd_w,tolr,psi_pack,scpr,psi,pdpsi,hpdpsi)
-    use pseudopotentials, only: apply_hij_coeff
-    implicit none
-    integer, intent(in) :: ncplx_p !< number of complex components of the projector
-    integer, intent(in) :: n_p !< number of elements of the projector
-    integer, intent(in) :: ncplx_w !< number of complex components of the wavefunction
-    integer, intent(in) :: n_w !< number of complex components of the wavefunction
-    type(wavefunctions_descriptors), intent(in) :: wfd_p !< descriptors of projectors
-    type(wavefunctions_descriptors), intent(in) :: wfd_w !< descriptors of wavefunction
-    !> interaction between the wavefuntion and the psp projector
-    type(nlpsp_to_wfd), intent(in) :: tolr
-    !> components of the projectors, real and imaginary parts
-    real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,ncplx_p,n_p), intent(in) :: proj
-    !> components of wavefunctions, real and imaginary parts
-    real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,ncplx_w,n_w), intent(in) :: psi
-    !> workspaces for the packing array
-    real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w*ncplx_w), intent(inout) :: psi_pack
-    !> array of the scalar product between the projectors and the wavefunctions
-    real(wp), dimension(ncplx_w,n_w,ncplx_p,n_p), intent(inout) :: scpr
-    !> array of the coefficients of the hgh projectors
-    real(wp), dimension(max(ncplx_w,ncplx_p),n_w,n_p), intent(inout) :: pdpsi
-    !> array of the coefficients of the hgh projectors multiplied by HGH matrix
-    real(wp), dimension(max(ncplx_w,ncplx_p),n_w,n_p), intent(inout) :: hpdpsi
+!!$  !> Calculate the scalar product with the projectors of a given set of 
+!!$  !! orbitals (or support functions) given in the same localization region
+!!$  subroutine calculate_cproj(ncplx_p,n_p,wfd_p,proj,&
+!!$       ncplx_w,n_w,wfd_w,tolr,psi_pack,scpr,psi,pdpsi,hpdpsi)
+!!$    use pseudopotentials, only: apply_hij_coeff
+!!$    implicit none
+!!$    integer, intent(in) :: ncplx_p !< number of complex components of the projector
+!!$    integer, intent(in) :: n_p !< number of elements of the projector
+!!$    integer, intent(in) :: ncplx_w !< number of complex components of the wavefunction
+!!$    integer, intent(in) :: n_w !< number of complex components of the wavefunction
+!!$    type(wavefunctions_descriptors), intent(in) :: wfd_p !< descriptors of projectors
+!!$    type(wavefunctions_descriptors), intent(in) :: wfd_w !< descriptors of wavefunction
+!!$    !> interaction between the wavefuntion and the psp projector
+!!$    type(nlpsp_to_wfd), intent(in) :: tolr
+!!$    !> components of the projectors, real and imaginary parts
+!!$    real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,ncplx_p,n_p), intent(in) :: proj
+!!$    !> components of wavefunctions, real and imaginary parts
+!!$    real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,ncplx_w,n_w), intent(in) :: psi
+!!$    !> workspaces for the packing array
+!!$    real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w*ncplx_w), intent(inout) :: psi_pack
+!!$    !> array of the scalar product between the projectors and the wavefunctions
+!!$    real(wp), dimension(ncplx_w,n_w,ncplx_p,n_p), intent(inout) :: scpr
+!!$    !> array of the coefficients of the hgh projectors
+!!$    real(wp), dimension(max(ncplx_w,ncplx_p),n_w,n_p), intent(inout) :: pdpsi
+!!$    !> array of the coefficients of the hgh projectors multiplied by HGH matrix
+!!$    real(wp), dimension(max(ncplx_w,ncplx_p),n_w,n_p), intent(inout) :: hpdpsi
+!!$
+!!$    !put to zero the array
+!!$
+!!$    call f_zero(psi_pack)
+!!$
+!!$    !here also the PSP application strategy can be considered
+!!$    call proj_dot_psi(n_p*ncplx_p,wfd_p,proj,n_w*ncplx_w,wfd_w,psi,&
+!!$         tolr%nmseg_c,tolr%nmseg_f,tolr%mask,psi_pack,scpr)
+!!$
+!!$    !first create the coefficients for the application of the matrix
+!!$    !pdpsi = < p_i | psi >
+!!$    call full_coefficients('C',ncplx_p,n_p,'N',ncplx_w,n_w,scpr,'N',pdpsi)
+!!$
+!!$    !then create the coefficients for the evaluation of the projector energy
+!!$    !pdpsi= < psi | p_i> = conj(< p_i | psi >)
+!!$    call full_coefficients('N',ncplx_p,n_p,'C',ncplx_w,n_w,scpr,'C',pdpsi)
+!!$
+!!$  end subroutine calculate_cproj
 
-    !put to zero the array
 
-    call f_zero(psi_pack)
-
-    !here also the PSP application strategy can be considered
-    call proj_dot_psi(n_p*ncplx_p,wfd_p,proj,n_w*ncplx_w,wfd_w,psi,&
-         tolr%nmseg_c,tolr%nmseg_f,tolr%mask,psi_pack,scpr)
-
-    !first create the coefficients for the application of the matrix
-    !pdpsi = < p_i | psi >
-    call full_coefficients('C',ncplx_p,n_p,'N',ncplx_w,n_w,scpr,'N',pdpsi)
-
-    !then create the coefficients for the evaluation of the projector energy
-    !pdpsi= < psi | p_i> = conj(< p_i | psi >)
-    call full_coefficients('N',ncplx_p,n_p,'C',ncplx_w,n_w,scpr,'C',pdpsi)
-
-  end subroutine calculate_cproj
-
-
-    !call to_zero(max(ncplx_w,ncplx_p)*n_w*n_p,pdpsi(1,1,1))
-    pdpsi=0.0_wp
+!!$    !call to_zero(max(ncplx_w,ncplx_p)*n_w*n_p,pdpsi(1,1,1))
+!!$    pdpsi=0.0_wp
 
   !> find the locreg that is associated to the given projector of atom iat
   !! for a locreg of label ilr. Shoudl the locreg not be found, the result is zero.

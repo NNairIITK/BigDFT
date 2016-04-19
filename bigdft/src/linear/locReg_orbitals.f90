@@ -348,8 +348,8 @@ end subroutine wavefunction_dimension
 !!                          minvalue_thread(ithread)=rxyz(idir,iat)
 !!                      end if
 !!                  end if
-           call f_err_throw('ERROR: not possible to determine the maximal extent',&
-                & err_name='BIGDFT_RUN_TIME')
+!!$           call f_err_throw('ERROR: not possible to determine the maximal extent',&
+!!$                & err_name='BIGDFT_RUN_TIME')
 !!              end do
 !!              !$omp end do
 !!              !$omp end parallel

@@ -72,6 +72,7 @@ module orbitalbasis
      type(orbitals_data), pointer :: orbs !<metadata for the application of the hamiltonian
      type(confpot_data), dimension(:), pointer :: confdatarr !< data for the confinement potential
      real(wp), dimension(:), pointer :: phis_wvl !<coefficients in compact form for all the local sf
+     real(wp), dimension(:), pointer :: phis_wvl_t !<coefficients in compact form for all the local sf, transposed form
   end type orbital_basis
 
 
@@ -99,8 +100,6 @@ module orbitalbasis
      !> number of localisation regions and current ilr
      integer :: nlrp,ilr,ilr_max,ilr_min,iorbp,ikpt,ikpt_max
   end type ket
-
-     real(wp), dimension(:), pointer :: phis_wvl_t !<coefficients in compact form for all the local sf, transposed form
 
   public :: ob_ket_map,orbital_basis_iterator,ket_next_locreg,ket_next,local_hamiltonian_ket
   public :: orbital_basis_associate,orbital_basis_release,test_iterator,ket_next_kpt,ob_transpose,ob_untranspose

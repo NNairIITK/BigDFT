@@ -409,6 +409,7 @@ contains
     use module_base
     use f_blas, only: f_free_matrix_ptr
     use m_pawtab, only: pawtab_free
+    use m_pawrad, only: pawrad_free
     use m_pawang, only: pawang_free
     implicit none
     type(atoms_data), intent(inout) :: atoms
