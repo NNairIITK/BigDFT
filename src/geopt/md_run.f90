@@ -445,7 +445,7 @@ SUBROUTINE restart_md(control,iproc,restart_pos,restart_vel,restart_nose,natoms,
   type(NHC_data), intent(inout) :: nhc
   logical :: restart_pos, restart_vel, restart_nose
   !
-  integer :: iat,ierr
+  integer :: iat,ierr, ios
   integer :: unt
   real (kind=8) :: dum(3)
   !real (kind=8), parameter :: bohr_to_ang=0.529d0
@@ -453,19 +453,27 @@ SUBROUTINE restart_md(control,iproc,restart_pos,restart_vel,restart_nose,natoms,
 
   unt=113
 
-  call f_open_file(unt,file=trim(dir)//'md.restart',status='UNKNOWN',position='REWIND',binary=.false.)
 
   select case (trim(control))
   case ('write')
-    !write coordinates in xyz format for easy editing by the users
-    write(unt,*)natoms
-    write(unt,'(A,I16)')'Step:',istep
-    do iat=1,natoms
-       write(unt,'(A,6e16.8)')alabel(iat),rxyz(1:3,iat),vxyz(1:3,iat)
-    end do
-    call write_nhc_restart(unt,nhc)
+    !only done at iproc==0
+    if(iproc==0)then
+      call f_open_file(unt,file=trim(dir)//'md.restart',status='UNKNOWN',position='REWIND',binary=.false.)
+      call yaml_map('MD Restart file opened for writing',trim(dir)//'md.restart')
+      !write coordinates in xyz format for easy editing by the users
+      write(unt,*)natoms
+      write(unt,'(A,I16)')'Step:',istep
+      do iat=1,natoms
+         write(unt,'(A,6e16.8)')alabel(iat),rxyz(1:3,iat),vxyz(1:3,iat)
+      end do
+      call write_nhc_restart(unt,nhc)
+      call f_close(unt)
+    end if
 !
   case ('read')
+    !done by all the processors
+    call f_open_file(unt,file=trim(dir)//'md.restart',status='UNKNOWN',position='REWIND',binary=.false.)
+    if(iproc==0)call yaml_map('MD Restart file opened for reading',trim(dir)//'md.restart')
     if(restart_pos.and.restart_vel)then
       !read positions and velocities
       read(unt,*)iat
@@ -474,44 +482,52 @@ SUBROUTINE restart_md(control,iproc,restart_pos,restart_vel,restart_nose,natoms,
                        err_name='BIGDFT_RUNTIME_ERROR')
       read(unt,*)dummy_char,istep
       do iat=1,natoms
-         read(unt,*)alabel(iat),rxyz(1:3,iat),vxyz(1:3,iat)
+         read(unt,*,iostat=ios)alabel(iat),rxyz(1:3,iat),vxyz(1:3,iat)
       end do
+      if(ios/=0) call f_err_throw('Error reading pos and vel from md.restart!', &
+                       err_name='BIGDFT_RUNTIME_ERROR')
       if(iproc==0)then
         call yaml_map('Initial positions  restarted from step',istep)
         call yaml_map('Initial velocities restarted from step',istep)
       end if
     else if(restart_pos)then
-      read(unt,*)iat
+      read(unt,*,iostat=ios)iat
       if(iat/=natoms)&
         call f_err_throw('Error reading md.restart! wrong number of atoms', &
                          err_name='BIGDFT_RUNTIME_ERROR')
-      read(unt,*)dummy_char,istep
+      read(unt,*,iostat=ios)dummy_char,istep
       do iat=1,natoms
-        read(unt,*)alabel(iat),rxyz(1:3,iat)
+        read(unt,*,iostat=ios)alabel(iat),rxyz(1:3,iat)
       end do
+      if(ios/=0) call f_err_throw('Error reading pos from md.restart!', &
+                         err_name='BIGDFT_RUNTIME_ERROR')
       if(iproc==0)then
         call yaml_map('Initial positions restarted from step',istep)
       end if
     else if(restart_vel)then
       !read velocities 
-      read(unt,*)iat
+      read(unt,*,iostat=ios)iat
       if(iat/=natoms)&
         call f_err_throw('Error reading md.restart! wrong number of atoms', &
                        err_name='BIGDFT_RUNTIME_ERROR')
-      read(unt,*)dummy_char,istep
+      read(unt,*,iostat=ios)dummy_char,istep
       do iat=1,natoms
-         read(unt,*)alabel(iat),dum(1:3),vxyz(1:3,iat)
+         read(unt,*,iostat=ios)alabel(iat),dum(1:3),vxyz(1:3,iat)
       end do
+      if(ios/=0) call f_err_throw('Error reading vel from md.restart!', &
+                         err_name='BIGDFT_RUNTIME_ERROR')
       if(iproc==0)&
         call yaml_map('Initial velocities restarted from step',istep)
     end if
     if(restart_nose)then
       rewind(unt)
-      read(unt,*)iat
-      read(unt,*)dummy_char,istep 
+      read(unt,*,iostat=ios)iat
+      read(unt,*,iostat=ios)dummy_char,istep 
       do iat=1,natoms 
-        read(unt,*) ! skip atomic positions and velocities from the restart
+        read(unt,*,iostat=ios) ! skip atomic positions and velocities from the restart
       end do
+      if(ios/=0) call f_err_throw('Error skipping data while reading nose info from md.restart!', &
+                       err_name='BIGDFT_RUNTIME_ERROR')
       call read_nhc_restart(unt,nhc,ierr)
       if(ierr==0.and.iproc==0) &
         call yaml_map('Initial Nose Hoover Chains restarted from step',istep)
@@ -520,7 +536,7 @@ SUBROUTINE restart_md(control,iproc,restart_pos,restart_vel,restart_nose,natoms,
          call yaml_warning('Nose Hoover information is not restarted')
       end if
     end if
+    call f_close(unt)
   end select
-  call f_close(unt)
 END SUBROUTINE restart_md
 

@@ -911,7 +911,8 @@ contains
          !in%inputPsiId == 102 .or. &                     !reading of basis functions
          in%write_orbitals>0 .or. &                      !writing the KS orbitals in the linear case
          mod(in%lin%output_mat_format,10)>0 .or. &       !writing the sparse linear matrices
-         mod(in%lin%output_coeff_format,10)>0            !writing the linear KS coefficients
+         mod(in%lin%output_coeff_format,10)>0 .or. &          !writing the linear KS coefficients
+         in%mdsteps>0                                !write the MD restart file always in dir_output
 
     !here you can check whether the etsf format is compiled
 
