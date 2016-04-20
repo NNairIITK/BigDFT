@@ -2164,7 +2164,6 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   end if
   !plot also the electrostatic potential
   if (output_denspot == 'DENSPOT') then
-      write(*,*) 'denspot%pot_work(1)', denspot%pot_work(1)
      if (iproc == 0) call yaml_map('Writing Hartree potential in file','hartree_potential'//gridformat)
      if (all(plot_pot_axes>=0)) then
         call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
