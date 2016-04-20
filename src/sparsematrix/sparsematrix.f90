@@ -2304,6 +2304,7 @@ module sparsematrix
       ! Local variables
       integer :: ispin, ishift, iseg, ii, i, ii_trans
       logical :: minus
+      real(mp) :: half
     
       call f_routine(id='symmetrize_matrix')
 
@@ -2315,13 +2316,16 @@ module sparsematrix
           call f_err_throw("wrong value of 'csign'", err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
+      half=0.5_mp
+      if (minus) half=-half
+
       do ispin=1,smat%nspin
           if (present(ispinx)) then
               if (ispin/=ispinx) cycle
           end if
           ishift=(ispin-1)*smat%nvctrp_tg
           !$omp parallel default(none) &
-          !$omp shared(smat,mat_in,mat_out,ishift) &
+          !$omp shared(smat,mat_in,mat_out,ishift,half) &
           !$omp private(iseg,ii,i,ii_trans)
           !$omp do
           do iseg=smat%istartendseg_local(1),smat%istartendseg_local(2)
@@ -2329,7 +2333,7 @@ module sparsematrix
               ! A segment is always on one line, therefore no double loop
               do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg) !this is too much, but for the moment ok
                   ii_trans = matrixindex_in_compressed(smat,smat%keyg(1,2,iseg),i)
-                      mat_out(ii+ishift-smat%isvctrp_tg) = 0.5d0*(&
+                      mat_out(ii+ishift-smat%isvctrp_tg) = half*(&
                            mat_in(ii+ishift-smat%isvctrp_tg)+&
                            mat_in(ii_trans+ishift-smat%isvctrp_tg))
                   ii=ii+1
@@ -2339,10 +2343,10 @@ module sparsematrix
           !$omp end parallel
       end do
 
-      if (minus) then
-          ! There should be a scal wrapper...
-          call dscal(smat%nvctrp_tg*smat%nspin, -1.d0, mat_out(1), 1)
-      end if
+!!$      if (minus) then
+!!$          ! There should be a scal wrapper...
+!!$          call dscal(smat%nvctrp_tg*smat%nspin, -1.d0, mat_out(1), 1)
+!!$      end if
     
       call f_release_routine()
     
