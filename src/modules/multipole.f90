@@ -6449,8 +6449,38 @@ end subroutine calculate_rpowerx_matrices
     integer :: i1, i2, i3, iat, icheck
     real(kind=8) :: x, y, z, d, dmin, qex
     real(kind=8),parameter :: min_distance = 2.0d0
+    logical,dimension(:,:,:),allocatable :: is_close
 
     call f_routine(id='compare_charge_and_potential')
+
+    ! Determine the grid points which are farther away from the atoms than the minimal distance
+    is_close = f_malloc((/0.to.kernel%ndims(1)-31-1,0.to.kernel%ndims(2)-31-1,is3.to.ie3/),id='is_close')
+    is_close(:,:,:) = .false.
+    do iat=1,nat
+        do i3=max(15,is3),min(ie3,kernel%ndims(3)-16-1)
+            z = (i3-15)*kernel%hgrids(3)
+            d = sqrt( (z-rxyz(3,iat))**2 )
+            if (d<=min_distance) then
+                ! From the viewpoint of the z coordinate, the grid points might be close to atom iat,
+                ! so also check the other directions.
+                do i2=0,kernel%ndims(2)-31-1
+                    y = i2*kernel%hgrids(2)
+                    d = sqrt( (y-rxyz(2,iat))**2 + (z-rxyz(3,iat))**2 )
+                    if (d<=min_distance) then
+                        ! From the viewpoint of the y and z coordinates, the grid points might be close to atom iat,
+                        ! so also check the other directions.
+                        do i1=0,kernel%ndims(1)-31-1
+                            x = i1*kernel%hgrids(1)
+                            d = sqrt( (x-rxyz(1,iat))**2 + (y-rxyz(2,iat))**2 + (z-rxyz(3,iat))**2 )
+                            if (d<=min_distance) then
+                                is_close(i1,i2,i3) = .true.
+                            end if
+                        end do
+                    end if
+                end do
+            end if
+        end do
+    end do
 
     call f_zero(charge_error)
     call f_zero(charge_total)
@@ -6463,12 +6493,13 @@ end subroutine calculate_rpowerx_matrices
             y = i2*kernel%hgrids(2)
             do i1=0,kernel%ndims(1)-31-1
                 x = i1*kernel%hgrids(1)
-                dmin = huge(1.d0)
-                do iat=1,nat
-                    d = sqrt( (x-rxyz(1,iat))**2 + (y-rxyz(2,iat))**2 + (z-rxyz(3,iat))**2 )
-                    dmin = min(d,dmin)
-                end do
-                if (dmin>min_distance) then
+                !!dmin = huge(1.d0)
+                !!do iat=1,nat
+                !!    d = sqrt( (x-rxyz(1,iat))**2 + (y-rxyz(2,iat))**2 + (z-rxyz(3,iat))**2 )
+                !!    dmin = min(d,dmin)
+                !!end do
+                !!if (dmin>min_distance) then
+                if (.not.is_close(i1,i2,i3)) then
                     ! Farther away from the atoms than the minimal distance
                     qex = rho_exact(i1+15,i2+15,i3)
                     do icheck=1,ncheck
@@ -6489,6 +6520,7 @@ end subroutine calculate_rpowerx_matrices
         end do
     end do
 
+    call f_free(is_close)
 
     call mpiallred(charge_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
     call mpiallred(charge_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
