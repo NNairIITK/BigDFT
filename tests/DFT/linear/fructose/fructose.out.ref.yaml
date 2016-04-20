@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-04-11 09:02:12.298
+ Timestamp of this run                 : 2016-04-20 18:09:22.142
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -87,6 +87,9 @@
     #                                              point. Negative values mean no plot.
    plot_pot_axes: [-1, -1, -1] #                  Plot the potential along axes through this point. Negative values mean 
     #                                              no plot.
+   occupancy_control                   : None #   Dictionary of the atomic matrices to be applied for a given iteration number
+   itermax_occ_ctrl                    : 0 #      Number of iterations of occupancy control scheme. Should be between itermin and 
+    #                                              itermax
  perf:
    evbounds_nsatur                     : 100 #    Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
    loewdin_charge_analysis             : no #     linear scaling perform a Loewdin charge analysis at the end of the calculation
@@ -845,7 +848,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.44756370666E+02, Epot: -1.19002859361E+02, Enl:  8.71648169431E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  8.94E-01, Omega: -1.055708867042343E+02, D: -1.06E+02, D best: -1.06E+02, 
+ iter:  1, fnrm:  8.94E-01, Omega: -1.055708867042342E+02, D: -1.06E+02, D best: -1.06E+02, 
  Optimization: {algorithm: SD, mean alpha:  2.000E-01, max alpha:  2.000E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes}
@@ -857,7 +860,7 @@
  Energies: {Ekin:  1.45991795320E+02, Epot: -1.20565286316E+02, Enl:  8.95994873399E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  2.809E-01, 
                           kappa to history:  Yes, 
- iter:  2, fnrm:  6.26E-01, Omega: -1.065452542637564E+02, D: -9.74E-01, D best: -9.74E-01, 
+ iter:  2, fnrm:  6.26E-01, Omega: -1.065452542637563E+02, D: -9.74E-01, D best: -9.74E-01, 
  Optimization: {algorithm: SD, mean alpha:  2.200E-01, max alpha:  2.200E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes}
@@ -869,7 +872,7 @@
  Energies: {Ekin:  1.46842443855E+02, Epot: -1.21902021061E+02, Enl:  9.22359174939E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  3.922E-01, 
                           kappa to history:  Yes, 
- iter:  3, fnrm:  4.36E-01, Omega: -1.073885352572871E+02, D: -8.43E-01, D best: -8.43E-01, 
+ iter:  3, fnrm:  4.36E-01, Omega: -1.073885352572870E+02, D: -8.43E-01, D best: -8.43E-01, 
  Optimization: {algorithm: SD, mean alpha:  2.420E-01, max alpha:  2.420E-01, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes}
@@ -882,7 +885,7 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  4.108E-01, 
                           kappa to history:  Yes,        mean kappa:  3.613E-01, 
                          dynamic conv crit:  2.77E-04, 
- iter:  4, fnrm:  3.28E-01, Omega: -1.079334144058781E+02, D: -5.45E-01, D best: -5.45E-01, 
+ iter:  4, fnrm:  3.28E-01, Omega: -1.079334144058780E+02, D: -5.45E-01, D best: -5.45E-01, 
  Optimization: {algorithm: SD, mean alpha:  2.662E-01, max alpha:  2.662E-01, 
     consecutive successes:  4}, 
  Orthogonalization:  Yes}
@@ -895,12 +898,12 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  4.202E-01, 
                           kappa to history:  Yes,        mean kappa:  4.077E-01, 
                          dynamic conv crit:  2.45E-04, 
- iter:  5, fnrm:  2.65E-01, Omega: -1.083201362023361E+02, D: -3.87E-01, D best: -3.87E-01, 
+ iter:  5, fnrm:  2.65E-01, Omega: -1.083201362023360E+02, D: -3.87E-01, D best: -3.87E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 5
  target function: HYBRID, 
  Energies: {Ekin:  1.48623239079E+02, Epot: -1.24080032628E+02, Enl:  9.67681917829E+00}, 
- iter:  5, fnrm:  2.65E-01, Omega: -1.083201362023361E+02, D: -3.87E-01, D best: -3.87E-01}
+ iter:  5, fnrm:  2.65E-01, Omega: -1.083201362023360E+02, D: -3.87E-01, D best: -3.87E-01}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  9.02E-03,  2.13E-02 ], warnings:  24}
@@ -962,7 +965,7 @@
     Total charge:  7.199878001074E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.86E-07, 
- iter:  1, delta:  2.70E-06, energy: -1.29038506786249059E+02, D: -1.290E+02}]
+ iter:  1, delta:  2.70E-06, energy: -1.29038506786248945E+02, D: -1.290E+02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1019,15 +1022,15 @@
     Total charge:  7.199880228750E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.86E-07, 
- iter:  2, delta:  1.03E-06, energy: -1.28973535240053479E+02, D:  6.497E-02}]
+ iter:  2, delta:  1.03E-06, energy: -1.28973535240053366E+02, D:  6.497E-02}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.86E-07, 
- iter:  3, delta:  1.03E-06, energy: -1.28973535240053479E+02, D:  6.497E-02}]}
+ iter:  3, delta:  1.03E-06, energy: -1.28973535240053366E+02, D:  6.497E-02}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: HYBRID, mean conf prefac:  1.40E-01, damping:  1.00E+00,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  1, delta out:  1.661E-06, energy: -1.28973535240053479E+02, D: -1.290E+02}
+ iter low:  1, delta out:  1.661E-06, energy: -1.28973535240053366E+02, D: -1.290E+02}
    multiplicator for the confinement   :  0.1765704666083955
     #========================================================= support function optimization
  - support function optimization: &it_supfun002
@@ -1039,7 +1042,7 @@
  Energies: {Ekin:  1.48623239079E+02, Epot: -1.38554792948E+02, Enl:  9.67681917829E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, mean kappa:  4.077E-01, 
                          dynamic conv crit:  2.45E-04, 
- iter:  1, fnrm:  5.17E-01, Omega: -1.253042885348293E+02, D: -1.74E+01, D best: -1.74E+01, 
+ iter:  1, fnrm:  5.17E-01, Omega: -1.253042885348292E+02, D: -1.74E+01, D best: -1.74E+01, 
  Optimization: {algorithm: SD, mean alpha:  2.928E-01, max alpha:  2.928E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes}
@@ -1052,7 +1055,7 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  3.647E-01, 
                           kappa to history:  Yes,        mean kappa:  3.985E-01, 
                          dynamic conv crit:  2.51E-04, 
- iter:  2, fnrm:  3.20E-01, Omega: -1.279268864628530E+02, D: -2.62E+00, D best: -2.62E+00, 
+ iter:  2, fnrm:  3.20E-01, Omega: -1.279268864628528E+02, D: -2.62E+00, D best: -2.62E+00, 
  Optimization: {algorithm: SD, mean alpha:  3.221E-01, max alpha:  3.221E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes}
@@ -1065,7 +1068,7 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  3.538E-01, 
                           kappa to history:  Yes,        mean kappa:  3.795E-01, 
                          dynamic conv crit:  2.63E-04, 
- iter:  3, fnrm:  2.29E-01, Omega: -1.288202230366501E+02, D: -8.93E-01, D best: -8.93E-01, 
+ iter:  3, fnrm:  2.29E-01, Omega: -1.288202230366500E+02, D: -8.93E-01, D best: -8.93E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.543E-01, max alpha:  3.543E-01, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes}
@@ -1078,7 +1081,7 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  3.175E-01, 
                           kappa to history:  Yes,        mean kappa:  3.453E-01, 
                          dynamic conv crit:  2.90E-04, 
- iter:  4, fnrm:  1.86E-01, Omega: -1.291444269938709E+02, D: -3.24E-01, D best: -3.24E-01, 
+ iter:  4, fnrm:  1.86E-01, Omega: -1.291444269938708E+02, D: -3.24E-01, D best: -3.24E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.897E-01, max alpha:  3.897E-01, 
     consecutive successes:  4}, 
  Orthogonalization:  Yes}
@@ -1091,12 +1094,12 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  2.511E-01, 
                           kappa to history:  Yes,        mean kappa:  3.075E-01, 
                          dynamic conv crit:  3.25E-04, 
- iter:  5, fnrm:  1.63E-01, Omega: -1.292802255586081E+02, D: -1.36E-01, D best: -1.36E-01, 
+ iter:  5, fnrm:  1.63E-01, Omega: -1.292802255586080E+02, D: -1.36E-01, D best: -1.36E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 5
  target function: HYBRID, 
  Energies: {Ekin:  1.33596228670E+02, Epot: -1.24330408986E+02, Enl:  8.64190028859E+00}, 
- iter:  5, fnrm:  1.63E-01, Omega: -1.292802255586081E+02, D: -1.36E-01, D best: -1.36E-01}
+ iter:  5, fnrm:  1.63E-01, Omega: -1.292802255586080E+02, D: -1.36E-01, D best: -1.36E-01}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  3.09E-02,  3.90E-02 ], warnings:  60}
@@ -1150,7 +1153,7 @@
     Total charge:  7.198722365406E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.14E-07, 
- iter:  1, delta:  5.19E-06, energy: -1.35148279315523610E+02, D: -6.175E+00}]
+ iter:  1, delta:  5.19E-06, energy: -1.35148279315523496E+02, D: -6.175E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1203,15 +1206,15 @@
     Total charge:  7.198742213538E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.14E-07, 
- iter:  2, delta:  2.38E-06, energy: -1.34626942251778814E+02, D:  5.213E-01}]
+ iter:  2, delta:  2.38E-06, energy: -1.34626942251778701E+02, D:  5.213E-01}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  1.14E-07, 
- iter:  3, delta:  2.38E-06, energy: -1.34626942251778814E+02, D:  5.213E-01}]}
+ iter:  3, delta:  2.38E-06, energy: -1.34626942251778701E+02, D:  5.213E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, Omega: HYBRID, mean conf prefac:  2.47E-02, damping:  1.00E+00,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  2, delta out:  3.661E-06, energy: -1.34626942251778814E+02, D: -5.653E+00}
+ iter low:  2, delta out:  3.661E-06, energy: -1.34626942251778701E+02, D: -5.653E+00}
    multiplicator for the confinement   :  6.3032279887520651E-002
     #========================================================= support function optimization
  - support function optimization: &it_supfun003
@@ -1223,7 +1226,7 @@
  Energies: {Ekin:  1.33596228670E+02, Epot: -1.37336879855E+02, Enl:  8.64190028859E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, mean kappa:  3.075E-01, 
                          dynamic conv crit:  3.25E-04, 
- iter:  1, fnrm:  2.22E-01, Omega: -1.341534386864546E+02, D: -5.01E+00, D best: -5.01E+00, 
+ iter:  1, fnrm:  2.22E-01, Omega: -1.341534386864545E+02, D: -5.01E+00, D best: -5.01E+00, 
  Optimization: {algorithm: SD, mean alpha:  4.287E-01, max alpha:  4.287E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes}
@@ -1236,7 +1239,7 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  2.937E-01, 
                           kappa to history:  Yes,        mean kappa:  2.874E-01, 
                          dynamic conv crit:  3.48E-04, 
- iter:  2, fnrm:  1.66E-01, Omega: -1.346032788986030E+02, D: -4.50E-01, D best: -4.50E-01, 
+ iter:  2, fnrm:  1.66E-01, Omega: -1.346032788986029E+02, D: -4.50E-01, D best: -4.50E-01, 
  Optimization: {algorithm: SD, mean alpha:  4.573E-01, max alpha:  4.716E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes}
@@ -1249,7 +1252,7 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  2.011E-01, 
                           kappa to history:  Yes,        mean kappa:  2.486E-01, 
                          dynamic conv crit:  4.02E-04, 
- iter:  3, fnrm:  1.50E-01, Omega: -1.347241802631712E+02, D: -1.21E-01, D best: -1.21E-01, 
+ iter:  3, fnrm:  1.50E-01, Omega: -1.347241802631711E+02, D: -1.21E-01, D best: -1.21E-01, 
  Optimization: {algorithm: SD, mean alpha:  5.030E-01, max alpha:  5.187E-01, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes}
@@ -1262,7 +1265,7 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  1.046E-01, 
                           kappa to history:  Yes,        mean kappa:  1.998E-01, 
                          dynamic conv crit:  5.00E-04, 
- iter:  4, fnrm:  1.42E-01, Omega: -1.347664235411054E+02, D: -4.22E-02, D best: -4.22E-02, 
+ iter:  4, fnrm:  1.42E-01, Omega: -1.347664235411053E+02, D: -4.22E-02, D best: -4.22E-02, 
  Optimization: {algorithm: SD, mean alpha:  5.533E-01, max alpha:  5.706E-01, 
     consecutive successes:  4}, 
  Orthogonalization:  Yes}
@@ -1275,12 +1278,12 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  4.505E-02, 
                           kappa to history:  Yes,        mean kappa:  1.169E-01, 
                          dynamic conv crit:  8.55E-04, 
- iter:  5, fnrm:  1.37E-01, Omega: -1.347820201826466E+02, D: -1.56E-02, D best: -1.56E-02, 
+ iter:  5, fnrm:  1.37E-01, Omega: -1.347820201826465E+02, D: -1.56E-02, D best: -1.56E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 5
  target function: HYBRID, 
  Energies: {Ekin:  1.27992783344E+02, Epot: -1.32377126239E+02, Enl:  8.71172341602E+00}, 
- iter:  5, fnrm:  1.37E-01, Omega: -1.347820201826466E+02, D: -1.56E-02, D best: -1.56E-02}
+ iter:  5, fnrm:  1.37E-01, Omega: -1.347820201826465E+02, D: -1.56E-02, D best: -1.56E-02}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.23E-02,  7.53E-02 ], warnings:  60}
@@ -1347,7 +1350,7 @@
     Total charge:  7.197127839970E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  9.60E-08, 
- iter:  1, delta:  2.65E-06, energy: -1.35272543294687807E+02, D: -6.456E-01}]
+ iter:  1, delta:  2.65E-06, energy: -1.35272543294687694E+02, D: -6.456E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1401,15 +1404,15 @@
     Total charge:  7.197139247153E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  9.60E-08, 
- iter:  2, delta:  1.32E-06, energy: -1.35115964081317429E+02, D:  1.566E-01}]
+ iter:  2, delta:  1.32E-06, energy: -1.35115964081317316E+02, D:  1.566E-01}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  9.60E-08, 
- iter:  3, delta:  1.32E-06, energy: -1.35115964081317429E+02, D:  1.566E-01}]}
+ iter:  3, delta:  1.32E-06, energy: -1.35115964081317316E+02, D:  1.566E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, Omega: HYBRID, mean conf prefac:  1.56E-03, damping:  1.00E+00,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  3, delta out:  1.958E-06, energy: -1.35115964081317429E+02, D: -4.890E-01}
+ iter low:  3, delta out:  1.958E-06, energy: -1.35115964081317316E+02, D: -4.890E-01}
    multiplicator for the confinement   :  2.0295324592318441E-003
     #========================================================= support function optimization
  - support function optimization: &it_supfun004
@@ -1421,7 +1424,7 @@
  Energies: {Ekin:  1.27992783344E+02, Epot: -1.37889259004E+02, Enl:  8.71172341602E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, mean kappa:  1.169E-01, 
                          dynamic conv crit:  8.55E-04, 
- iter:  1, fnrm:  1.45E-01, Omega: -1.350740460699816E+02, D: -3.08E-01, D best: -3.08E-01, 
+ iter:  1, fnrm:  1.45E-01, Omega: -1.350740460699815E+02, D: -3.08E-01, D best: -3.08E-01, 
  Optimization: {algorithm: SD, mean alpha:  6.087E-01, max alpha:  6.087E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes}
@@ -1434,7 +1437,7 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  7.672E-02, 
                           kappa to history:  Yes,        mean kappa:  7.546E-02, 
                          dynamic conv crit:  1.33E-03, 
- iter:  2, fnrm:  1.32E-01, Omega: -1.351038946966593E+02, D: -2.98E-02, D best: -2.98E-02, 
+ iter:  2, fnrm:  1.32E-01, Omega: -1.351038946966592E+02, D: -2.98E-02, D best: -2.98E-02, 
  Optimization: {algorithm: SD, mean alpha:  6.645E-01, max alpha:  6.695E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes}
@@ -1447,7 +1450,7 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  1.107E-02, 
                           kappa to history:  Yes,        mean kappa:  4.428E-02, 
                          dynamic conv crit:  2.26E-03, 
- iter:  3, fnrm:  1.26E-01, Omega: -1.351073533637840E+02, D: -3.46E-03, D best: -3.46E-03, 
+ iter:  3, fnrm:  1.26E-01, Omega: -1.351073533637839E+02, D: -3.46E-03, D best: -3.46E-03, 
  Optimization: {algorithm: SD, mean alpha:  7.309E-01, max alpha:  7.365E-01, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes}
@@ -1462,7 +1465,7 @@
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, kappa to history:  No, mean kappa:  4.428E-02, 
                    dynamic conv crit:  2.26E-03, 
- iter:  4, fnrm:  1.22E-01, Omega: -1.351067379651482E+02, D:  6.15E-04, D best:  6.15E-04}
+ iter:  4, fnrm:  1.22E-01, Omega: -1.351067379651481E+02, D:  6.15E-04, D best:  6.15E-04}
    -  { #-------------------------------------------------------------------------- iter: 3
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  35, 
@@ -1474,7 +1477,7 @@
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, kappa to history:  No, mean kappa:  4.428E-02, 
                    dynamic conv crit:  2.26E-03, 
- iter:  3, fnrm:  1.26E-01, Omega: -1.351013473563311E+02, D: -1.35E+02, D best:  6.01E-03}
+ iter:  3, fnrm:  1.26E-01, Omega: -1.351013473563310E+02, D: -1.35E+02, D best:  6.01E-03}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  35, 
@@ -1486,7 +1489,7 @@
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, kappa to history:  No, mean kappa:  4.428E-02, 
                    dynamic conv crit:  2.26E-03, 
- iter:  2, fnrm:  1.26E-01, Omega: -1.351003621926094E+02, D: -1.35E+02, D best:  6.99E-03}
+ iter:  2, fnrm:  1.26E-01, Omega: -1.351003621926093E+02, D: -1.35E+02, D best:  6.99E-03}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  35, 
@@ -1496,7 +1499,7 @@
  Orthoconstraint:  Yes, 
   #WARNING: target function larger than its minimal value reached so far, D= 6.991E-03
  Preconditioning:  Yes, mean kappa:  4.428E-02, dynamic conv crit:  2.26E-03, 
- iter:  1, fnrm:  1.26E-01, Omega: -1.351003621926094E+02, D: -1.35E+02, D best:  6.99E-03}
+ iter:  1, fnrm:  1.26E-01, Omega: -1.351003621926093E+02, D: -1.35E+02, D best:  6.99E-03}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  35, 
@@ -1506,7 +1509,7 @@
  Orthoconstraint:  Yes, 
   #WARNING: target function larger than its minimal value reached so far, D= 6.991E-03
  Preconditioning:  Yes, mean kappa:  4.428E-02, dynamic conv crit:  2.26E-03, 
- iter:  1, fnrm:  1.26E-01, Omega: -1.351003621926094E+02, D: -1.35E+02, D best:  6.99E-03}
+ iter:  1, fnrm:  1.26E-01, Omega: -1.351003621926093E+02, D: -1.35E+02, D best:  6.99E-03}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  35, 
@@ -1516,7 +1519,7 @@
  Orthoconstraint:  Yes, 
   #WARNING: target function larger than its minimal value reached so far, D= 6.991E-03
  Preconditioning:  Yes, mean kappa:  4.428E-02, dynamic conv crit:  2.26E-03, 
- iter:  1, fnrm:  1.26E-01, Omega: -1.351003621926094E+02, D: -1.35E+02, D best:  6.99E-03}
+ iter:  1, fnrm:  1.26E-01, Omega: -1.351003621926093E+02, D: -1.35E+02, D best:  6.99E-03}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  35, 
@@ -1526,9 +1529,9 @@
  Orthoconstraint:  Yes, 
   #WARNING: target function larger than its minimal value reached so far, D= 6.991E-03
  Preconditioning:  Yes, mean kappa:  4.428E-02, dynamic conv crit:  2.26E-03, 
- iter:  1, fnrm:  1.26E-01, Omega: -1.351003621926094E+02, D: -1.35E+02, D best:  6.99E-03, 
+ iter:  1, fnrm:  1.26E-01, Omega: -1.351003621926093E+02, D: -1.35E+02, D best:  6.99E-03, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter: -1, fnrm:  1.26E-01, Omega: -1.351003621926094E+02, D: -1.35E+02, D best:  6.99E-03, 
+ iter: -1, fnrm:  1.26E-01, Omega: -1.351003621926093E+02, D: -1.35E+02, D best:  6.99E-03, 
  Optimization: {algorithm: SD, mean alpha:  5.306E-01, max alpha:  5.347E-01, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -1541,7 +1544,7 @@
  Energies: {Ekin:  1.28850710726E+02, Epot: -1.38939390527E+02, Enl:  8.89348949392E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, mean kappa:  4.428E-02, 
                          dynamic conv crit:  2.26E-03, 
- iter:  1, fnrm:  1.26E-01, Omega: -1.351003621926094E+02, D:  0.00E+00, D best:  6.99E-03, 
+ iter:  1, fnrm:  1.26E-01, Omega: -1.351003621926093E+02, D:  0.00E+00, D best:  6.99E-03, 
  Optimization: {algorithm: SD, mean alpha:  8.844E-01, max alpha:  8.911E-01, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -1555,7 +1558,7 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa: -4.481E-02, 
                           kappa to history:  Yes,        mean kappa:  1.433E-02, 
                          dynamic conv crit:  6.98E-03, 
- iter:  2, fnrm:  1.26E-01, Omega: -1.350933755918937E+02, D:  6.99E-03, D best:  1.40E-02, 
+ iter:  2, fnrm:  1.26E-01, Omega: -1.350933755918936E+02, D:  6.99E-03, D best:  1.40E-02, 
  Optimization: {algorithm: SD, mean alpha:  8.844E-01, max alpha:  8.911E-01, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -1569,7 +1572,7 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa: -6.719E-02, 
                           kappa to history:  Yes,        mean kappa: -3.364E-02, 
                          dynamic conv crit: -2.97E-03, 
- iter:  3, fnrm:  1.26E-01, Omega: -1.350863935571186E+02, D:  6.98E-03, D best:  2.10E-02, 
+ iter:  3, fnrm:  1.26E-01, Omega: -1.350863935571185E+02, D:  6.98E-03, D best:  2.10E-02, 
  Optimization: {algorithm: SD, mean alpha:  8.844E-01, max alpha:  8.911E-01, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -1583,7 +1586,7 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  7.882E-02, 
                           kappa to history:  Yes,        mean kappa: -1.106E-02, 
                          dynamic conv crit: -9.04E-03, 
- iter:  4, fnrm:  1.26E-01, Omega: -1.350794160837721E+02, D:  6.98E-03, D best:  2.79E-02, 
+ iter:  4, fnrm:  1.26E-01, Omega: -1.350794160837720E+02, D:  6.98E-03, D best:  2.79E-02, 
  Optimization: {algorithm: SD, mean alpha:  8.844E-01, max alpha:  8.911E-01, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -1597,12 +1600,12 @@
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  9.850E-02, 
                           kappa to history:  Yes,        mean kappa:  3.671E-02, 
                          dynamic conv crit:  2.72E-03, 
- iter:  5, fnrm:  1.26E-01, Omega: -1.350724431673469E+02, D:  6.97E-03, D best:  3.49E-02, 
+ iter:  5, fnrm:  1.26E-01, Omega: -1.350724431673468E+02, D:  6.97E-03, D best:  3.49E-02, 
  exit criterion: net number of iterations,    exit criterion: total number of iterations}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 5
  target function: HYBRID, 
  Energies: {Ekin:  1.28850710726E+02, Epot: -1.38939390527E+02, Enl:  8.89348949392E+00}, 
- iter:  5, fnrm:  1.26E-01, Omega: -1.350724431673469E+02, D:  6.97E-03, D best:  3.49E-02}
+ iter:  5, fnrm:  1.26E-01, Omega: -1.350724431673468E+02, D:  6.97E-03, D best:  3.49E-02}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.32E-02,  7.25E-02 ], warnings:  60}
@@ -1665,7 +1668,7 @@
     Total charge:  7.197101544716E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  8.80E-08, 
- iter:  1, delta:  5.67E-07, energy: -1.35130198193574984E+02, D: -1.423E-02}]
+ iter:  1, delta:  5.67E-07, energy: -1.35130198193574870E+02, D: -1.423E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1715,22 +1718,22 @@
     Total charge:  7.197098120964E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  8.80E-08, 
- iter:  2, delta:  2.18E-07, energy: -1.35125780659152610E+02, D:  4.418E-03}]
+ iter:  2, delta:  2.18E-07, energy: -1.35125780659152497E+02, D:  4.418E-03}]
    -  &final_kernel004  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  8.80E-08, 
- iter:  3, delta:  2.18E-07, energy: -1.35125780659152610E+02, D:  4.418E-03}]}
+ iter:  3, delta:  2.18E-07, energy: -1.35125780659152497E+02, D:  4.418E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc004
    -  {iter:  4, Omega: HYBRID, mean conf prefac:  3.16E-06, damping:  1.00E+00,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  4, delta out:  3.781E-07, energy: -1.35125780659152610E+02, D: -9.817E-03}
+ iter low:  4, delta out:  3.781E-07, energy: -1.35125780659152497E+02, D: -9.817E-03}
     #========================================================================= final results
    self consistency summary:
    -  {iter:  4, 
  Energies: {Ekin:  1.28850710726E+02, Epot: -1.38978713255E+02, Enl:  8.89348949392E+00, 
               EH:  5.78909185620E+02,  EXC: -3.62153112110E+01, EvXC: -4.74533962292E+01}, 
         iter low:  4,            delta out:  3.781E-07, 
-          energy: -1.35125780659152610E+02,                       D:  0.000E+00,  #FINAL
+          energy: -1.35125780659152497E+02,                       D:  0.000E+00,  #FINAL
  }
  Gross support functions moments:
    Orthonormalization                  : on-site
@@ -2338,6 +2341,7 @@
        q2: [-2.910699E-01, -2.240950E-01,  1.752214E-01, -7.533351E-02,  2.538546E-01]
        scaling factor                  :  7.15E-01
        type                            : unknown
+ Total charge                          :  7.197098120964E+01
   #================================================= Atomic multipole analysis, new approach
  Method                                : projector
  Projector mode                        : simple
@@ -2687,6 +2691,22 @@
        -  [-7.1784E-01,  5.0031E+00,  5.3870E+00]
        -  [ 2.9914E+00,  5.3870E+00, -9.3641E+00]
        trace                           : -7.50E-12
+     Density and potential check:
+     - density threshold for check is 1.00E-06:
+         rho: {int(q-q_exact)):  7.135E-03, int(q_exact):  7.135E-03, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  3.151E+03, int(V_exact):  4.429E+03, ratio:  7.115E-01}
+     - density threshold for check is 1.00E-05:
+         rho: {int(q-q_exact)):  5.468E-02, int(q_exact):  5.468E-02, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  3.379E+03, int(V_exact):  4.708E+03, ratio:  7.178E-01}
+     - density threshold for check is 1.00E-04:
+         rho: {int(q-q_exact)):  5.903E-01, int(q_exact):  5.903E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  3.607E+03, int(V_exact):  5.034E+03, ratio:  7.166E-01}
+     - density threshold for check is 1.00E-03:
+         rho: {int(q-q_exact)):  9.259E+00, int(q_exact):  9.259E+00, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  3.999E+03, int(V_exact):  5.592E+03, ratio:  7.151E-01}
+     - density threshold for check is 1.00E-02:
+         rho: {int(q-q_exact)):  8.701E+01, int(q_exact):  8.701E+01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  4.797E+03, int(V_exact):  6.399E+03, ratio:  7.497E-01}
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
        P vector                        :  [  1.8944E+00,  4.1397E+00,  5.7114E+00 ]
@@ -2697,6 +2717,22 @@
        -  [-5.4577E+00,  9.0001E+00,  5.8035E+00]
        -  [ 2.7631E+00,  5.8035E+00, -2.1121E+01]
        trace                           :  3.41E-13
+     Density and potential check:
+     - density threshold for check is 1.00E-06:
+         rho: {int(q-q_exact)):  7.135E-03, int(q_exact):  7.135E-03, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  2.735E+03, int(V_exact):  4.429E+03, ratio:  6.175E-01}
+     - density threshold for check is 1.00E-05:
+         rho: {int(q-q_exact)):  5.468E-02, int(q_exact):  5.468E-02, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  2.874E+03, int(V_exact):  4.708E+03, ratio:  6.105E-01}
+     - density threshold for check is 1.00E-04:
+         rho: {int(q-q_exact)):  5.903E-01, int(q_exact):  5.903E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  3.031E+03, int(V_exact):  5.034E+03, ratio:  6.022E-01}
+     - density threshold for check is 1.00E-03:
+         rho: {int(q-q_exact)):  9.259E+00, int(q_exact):  9.259E+00, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  3.337E+03, int(V_exact):  5.592E+03, ratio:  5.968E-01}
+     - density threshold for check is 1.00E-02:
+         rho: {int(q-q_exact)):  8.701E+01, int(q_exact):  8.701E+01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  3.950E+03, int(V_exact):  6.399E+03, ratio:  6.172E-01}
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
        P vector                        :  [  1.8124E+00,  4.0724E+00,  5.6604E+00 ]
@@ -2707,6 +2743,22 @@
        -  [-4.0821E+00,  9.3374E+00,  5.7632E+00]
        -  [ 5.1725E+00,  5.7632E+00, -2.1095E+01]
        trace                           : -3.01E-12
+     Density and potential check:
+     - density threshold for check is 1.00E-06:
+         rho: {int(q-q_exact)):  7.135E-03, int(q_exact):  7.135E-03, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  2.416E+03, int(V_exact):  4.429E+03, ratio:  5.455E-01}
+     - density threshold for check is 1.00E-05:
+         rho: {int(q-q_exact)):  5.468E-02, int(q_exact):  5.468E-02, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  2.505E+03, int(V_exact):  4.708E+03, ratio:  5.322E-01}
+     - density threshold for check is 1.00E-04:
+         rho: {int(q-q_exact)):  5.903E-01, int(q_exact):  5.903E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  2.603E+03, int(V_exact):  5.034E+03, ratio:  5.171E-01}
+     - density threshold for check is 1.00E-03:
+         rho: {int(q-q_exact)):  9.259E+00, int(q_exact):  9.259E+00, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  2.769E+03, int(V_exact):  5.592E+03, ratio:  4.952E-01}
+     - density threshold for check is 1.00E-02:
+         rho: {int(q-q_exact)):  8.701E+01, int(q_exact):  8.701E+01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  3.084E+03, int(V_exact):  6.399E+03, ratio:  4.819E-01}
   #========================================================== Atomic multipole analysis done
  Total charge                          :  7.197098120964E+01
   #---------------------------------------------------------------------- Forces Calculation
@@ -2728,8 +2780,8 @@
  - no improvement of the orbitals, recalculate gradient
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  52.44
-   Elapsed time (s)                    :  52.58
+   CPU time (s)                        :  54.16
+   Elapsed time (s)                    :  54.32
  BigDFT infocode                       :  0
  Average noise forces: {x:  9.18380004E-02, y:  6.07711121E-02, z:  1.47100685E-01, 
                     total:  1.83755157E-01}
@@ -2738,11 +2790,11 @@
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
  -  {C: [-2.541012953693E-02, -2.241626993899E-02, -2.493825014353E-02]} # 0001
- -  {C: [-3.001286792362E-03, -9.219672224300E-04, -9.411233286389E-03]} # 0002
- -  {C: [ 7.036402210737E-04, -8.599545104956E-03, -9.015514227933E-03]} # 0003
+ -  {C: [-3.001286792363E-03, -9.219672224299E-04, -9.411233286389E-03]} # 0002
+ -  {C: [ 7.036402210736E-04, -8.599545104957E-03, -9.015514227933E-03]} # 0003
  -  {C: [ 2.047449831375E-02,  2.798414470564E-02, -5.505299800613E-02]} # 0004
  -  {O: [ 6.196739197463E-02, -1.057871180947E-01,  1.317853558778E-01]} # 0005
- -  {C: [-2.305721840428E-02,  1.730054319574E-02, -5.337728499935E-03]} # 0006
+ -  {C: [-2.305721840428E-02,  1.730054319573E-02, -5.337728499936E-03]} # 0006
  -  {O: [ 3.490183107977E-02,  1.773419987089E-01,  1.937300331301E-01]} # 0007
  -  {O: [ 1.011742306024E-01, -1.796976140215E-02,  1.204933647531E-01]} # 0008
  -  {O: [-3.702929155477E-02,  7.614909729982E-02, -7.066620328330E-03]} # 0009
@@ -2751,27 +2803,27 @@
  -  {O: [ 7.385367550629E-02,  1.651130960173E-02,  1.701351712935E-01]} # 0012
  -  {H: [ 1.619250525589E-02,  6.114283012283E-03, -2.200882483332E-02]} # 0013
  -  {H: [-2.565415681131E-02, -4.348751503739E-02, -2.388243945336E-02]} # 0014
- -  {H: [-3.156892364088E-02, -3.236724014211E-03,  1.656828227718E-03]} # 0015
+ -  {H: [-3.156892364088E-02, -3.236724014211E-03,  1.656828227719E-03]} # 0015
  -  {H: [-2.280129943000E-02,  1.810372697379E-02,  2.028106987342E-03]} # 0016
  -  {H: [-7.757808280866E-03, -2.450066343797E-02, -5.014574760536E-02]} # 0017
  -  {H: [ 9.875532083730E-04, -5.063627215998E-03, -2.072432963302E-02]} # 0018
  -  {H: [-9.921401088140E-03,  1.806627895841E-02, -1.866643348356E-02]} # 0019
  -  {H: [-1.114520080059E-02, -2.225476874888E-02, -3.670355367257E-02]} # 0020
- -  {H: [ 8.669519234012E-04, -2.478044024724E-02, -4.564776951338E-02]} # 0021
+ -  {H: [ 8.669519234010E-04, -2.478044024724E-02, -4.564776951337E-02]} # 0021
  -  {H: [-1.001204925541E-01,  1.265448640996E-02, -7.509400097892E-02]} # 0022
  -  {H: [-5.148526456261E-03,  9.292935944996E-03, -7.740970955867E-02]} # 0023
  -  {H: [-5.741138075155E-02, -8.944259556854E-02, -7.581663689163E-02]} # 0024
- Energy (Hartree)                      : -1.35125780659152610E+02
- Force Norm (Hartree/Bohr)             :  4.89544938273730246E-01
+ Energy (Hartree)                      : -1.35125780659152497E+02
+ Force Norm (Hartree/Bohr)             :  4.89544938273729802E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  27481
-   Tot. No. of Deallocations           :  27481
+   Tot. No. of Allocations             :  27304
+   Tot. No. of Deallocations           :  27304
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  163.181
+     Peak Value (MB)                   :  162.983
      for the array                     : psir_noconf
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 215.124 MB
- Walltime since initialization         : 00:00:52.989126199
- Max No. of dictionaries used          :  9265 #( 1002 still in use)
+     Memory Peak of process            : 215.868 MB
+ Walltime since initialization         : 00:00:54.727307093
+ Max No. of dictionaries used          :  9125 #( 1002 still in use)
  Number of dictionary folders allocated:  1
