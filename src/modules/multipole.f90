@@ -6448,37 +6448,17 @@ end subroutine calculate_rpowerx_matrices
     ! Local variables
     integer :: i1, i2, i3, iat, icheck
     real(kind=8) :: x, y, z, d, dmin, qex
-    real(kind=8),dimension(:,:,:),allocatable :: rhog_exact, potg_exact, rhog_mp, potg_mp
-    !!integer,parameter :: ncheck = 5
-    !!real(kind=8),dimension(ncheck),parameter :: check_threshold = [ 1.d-6 , &
-    !!                                                                1.d-5 , &
-    !!                                                                1.d-4 , &
-    !!                                                                1.d-3 , &
-    !!                                                                1.d-2]
     real(kind=8),parameter :: min_distance = 2.0d0
-    !!real(kind=8),dimension(ncheck) :: charge_error, charge_total, potential_error, potential_total
 
-    ! The exact charge density and potential
-    rhog_exact = f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],id='rhog_exact')
-    potg_exact = f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],id='potg_exact')
-
-    ! The charge density and potential constructed from the multipoles
-    rhog_mp = f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],id='rhog_mp')
-    potg_mp = f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],id='potg_mp')
-
-    ! Gather together the arrays
-    call PS_gather(src=rho_exact, dest=rhog_exact, kernel=kernel)
-    call PS_gather(src=pot_exact, dest=potg_exact, kernel=kernel)
-    call PS_gather(src=rho_mp, dest=rhog_mp, kernel=kernel)
-    call PS_gather(src=pot_mp, dest=potg_mp, kernel=kernel)
+    call f_routine(id='compare_charge_and_potential')
 
     call f_zero(charge_error)
     call f_zero(charge_total)
     call f_zero(potential_error)
     call f_zero(potential_total)
 
-    do i3=0,kernel%ndims(3)-31-1
-        z = i3*kernel%hgrids(3)
+    do i3=max(15,is3),min(ie3,kernel%ndims(3)-16-1)
+        z = (i3-15)*kernel%hgrids(3)
         do i2=0,kernel%ndims(2)-31-1
             y = i2*kernel%hgrids(2)
             do i1=0,kernel%ndims(1)-31-1
@@ -6488,24 +6468,20 @@ end subroutine calculate_rpowerx_matrices
                     d = sqrt( (x-rxyz(1,iat))**2 + (y-rxyz(2,iat))**2 + (z-rxyz(3,iat))**2 )
                     dmin = min(d,dmin)
                 end do
-                !write(200+iproc,*) 'x, y, z, q, v', x, y, z, &
-                !     rhog_exact(i1+15,i2+15,i3+15), potg_exact(i1+15,i2+15,i3+15)
-                !write(300+iproc,*) 'x, y, z, q, v', x, y, z, &
-                !     rhog_mp(i1+15,i2+15,i3+15), potg_mp(i1+15,i2+15,i3+15)
                 if (dmin>min_distance) then
                     ! Farther away from the atoms than the minimal distance
-                    qex = rhog_exact(i1+15,i2+15,i3+15)
+                    qex = rho_exact(i1+15,i2+15,i3)
                     do icheck=1,ncheck
                         if (abs(qex)<check_threshold(icheck)) then
                             ! Charge density smaller than the threshold
                             charge_error(icheck) = charge_error(icheck) + &
-                                abs(qex-rhog_mp(i1+15,i2+15,i3+15))
+                                abs(qex-rho_mp(i1+15,i2+15,i3))
                             charge_total(icheck) = charge_total(icheck) + &
                                 abs(qex)
                             potential_error(icheck) = potential_error(icheck) + &
-                                abs(potg_exact(i1+15,i2+15,i3+15)-potg_mp(i1+15,i2+15,i3+15))
+                                abs(pot_exact(i1+15,i2+15,i3)-pot_mp(i1+15,i2+15,i3))
                             potential_total(icheck) = potential_total(icheck) + &
-                                abs(potg_exact(i1+15,i2+15,i3+15))
+                                abs(pot_exact(i1+15,i2+15,i3))
                         end if
                     end do
                 end if
@@ -6513,18 +6489,13 @@ end subroutine calculate_rpowerx_matrices
         end do
     end do
 
-    !if (iproc==0) then
-    !    do icheck=1,ncheck
-    !        write(*,*) 'icheck, rho_err, rho_tot, ratio, pot_err, pot_tot, ratio', &
-    !            icheck, charge_error(icheck), charge_total(icheck), charge_error(icheck)/charge_total(icheck), &
-    !            potential_error(icheck), potential_total(icheck), potential_error(icheck)/potential_total(icheck)
-    !    end do
-    !end if
 
-    call f_free(rhog_exact)
-    call f_free(potg_exact)
-    call f_free(rhog_mp)
-    call f_free(potg_mp)
+    call mpiallred(charge_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
+    call mpiallred(charge_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
+    call mpiallred(potential_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
+    call mpiallred(potential_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+    call f_release_routine()
 
     end subroutine compare_charge_and_potential
 
