@@ -126,7 +126,6 @@ subroutine bomd(run_md,outs,nproc,iproc)
      call nose_energy(natoms,ndof,T0ions,nhc)
   END IF
 
-
   epe=outs%energy
   DO iat=1,natoms
      fxyz(1:3,iat)=outs%fxyz(1:3,iat)/amass(iat)
@@ -139,13 +138,13 @@ subroutine bomd(run_md,outs,nproc,iproc)
 
   istep=0
 
-
   !MD printout energies
   IF (ionode)THEN 
      CALL write_md_trajectory(istep,natoms,alabel,rxyz,vxyz)
      CALL write_md_energy(istep,Tions,eke,epe,ete)
      call yaml_comment('Starting MD',hfill='*')
      call yaml_map('Number of degrees of freedom',ndof)
+     call yaml_flush_document()
   END IF
   
   !----------------------------------------------------------------------!
@@ -204,7 +203,8 @@ end subroutine bomd
 
 !>Initialize velocities for MD using Box-Muller Sampling
 SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
-  use numerics, only: pi,au_to_k => Ha_K 
+  use numerics, only: pi,au_to_k => Ha_K
+  use dynamic_memory, only: f_release_routine,f_routine
   IMPLICIT NONE
   INTEGER, INTENT(IN):: natoms, ndof, ndim
   REAL(KIND=8), INTENT(IN) :: T0ions, amass(natoms)
@@ -214,17 +214,19 @@ SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
   INTEGER      :: iat, k
   REAL(KIND=4) :: builtin_rand
   INTEGER      :: idum=0
+  
+  call f_routine(id='init_velocities')
 
   !FIXME: a proper ndof has to be determined
   DO iat=1,natoms,2
      DO k=1,ndim
         dum(1)=real(builtin_rand(idum),8)
         dum(2)=real(builtin_rand(idum),8)
-        sigma=DSQRT(T0ions/au_to_k/amass(iat)) !Sqrt(kT/M_i) 
-        vxyz(k,iat)=sigma*DSQRT(-2.D0*DLOG(dum(2)))*DCOS(2.D0*pi*dum(1))
+        sigma=SQRT(T0ions/au_to_k/amass(iat)) !Sqrt(kT/M_i) 
+        vxyz(k,iat)=sigma*SQRT(-2.D0*LOG(dum(2)))*COS(2.D0*pi*dum(1))
         IF(iat+1.LE.natoms)then 
-           sigma=DSQRT(T0ions/au_to_k/amass(iat+1)) 
-           vxyz(k,iat+1)=sigma*DSQRT(-2.D0*DLOG(dum(2)))*DSIN(2.D0*pi*dum(1))
+           sigma=SQRT(T0ions/au_to_k/amass(iat+1)) 
+           vxyz(k,iat+1)=sigma*SQRT(-2.D0*LOG(dum(2)))*SIN(2.D0*pi*dum(1))
         END IF
      END DO
   END DO
@@ -233,6 +235,8 @@ SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
 
   CALL rescale_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
   !
+  call f_release_routine()
+
 END SUBROUTINE init_velocities
 
 
@@ -275,7 +279,7 @@ SUBROUTINE temperature(natoms,ndim,ndof,amass,vxyz,Tinst,eke)
      END DO
   END DO
   eke=0.5d0*mv2
-  Tinst=mv2*au_to_k/DFLOAT(ndof)
+  Tinst=mv2*au_to_k/real(ndof,kind=8)
 END SUBROUTINE temperature
 
 
@@ -371,7 +375,7 @@ SUBROUTINE remove_lin_momentum(natoms,vxyz)
      rlm(2)=rlm(2) + vxyz(2,iat)
      rlm(3)=rlm(3) + vxyz(3,iat)
   END DO
-  rlm(1:3)=rlm(1:3)/dfloat(natoms)
+  rlm(1:3)=rlm(1:3)/real(natoms,kind=8)
   DO iat=1,natoms
      vxyz(1,iat)=vxyz(1,iat) - rlm(1)
      vxyz(2,iat)=vxyz(2,iat) - rlm(2)
