@@ -2929,7 +2929,9 @@ module multipole
                   !call yaml_sequence_open('density threshold for check')
                   do icheck=1,ncheck
                       !call yaml_mapping_open('density threshold for check',check_threshold(icheck))
-                      call yaml_sequence('density threshold for check'//yaml_toa(check_threshold(icheck),fmt='(es9.2)'))
+                      call yaml_sequence(advance='no')
+                      call yaml_mapping_open('density threshold for check is'//&
+                           &trim(yaml_toa(check_threshold(icheck),fmt='(es9.2)')))
                       call yaml_mapping_open('rho',flow=.true.)
                       call yaml_map('int(q-q_exact))',charge_error(icheck),fmt='(es10.3)')
                       call yaml_map('int(q_exact)',charge_total(icheck),fmt='(es10.3)')
@@ -2940,7 +2942,7 @@ module multipole
                       call yaml_map('int(V_exact)',potential_total(icheck),fmt='(es10.3)')
                       call yaml_map('ratio',potential_error(icheck)/potential_total(icheck),fmt='(es10.3)')
                       call yaml_mapping_close()
-                      !call yaml_mapping_close()
+                      call yaml_mapping_close()
                   end do
                   call yaml_sequence_close()
                   !call yaml_mapping_close()
