@@ -2493,7 +2493,7 @@ module locregs_init
       if (mode==new) then
           ! # NEW ##################################################
           ! Calculate the number of bins (in the largest direction)
-          nbin = ceiling((rmax-rmin)/binwidth)
+          nbin = max(1,ceiling((rmax-rmin)/binwidth))
 
           ! Assign the atoms to the bins. First count how many atoms per bin we have...
           nat_per_bin = f_malloc0(nbin,id='nat_per_bin')

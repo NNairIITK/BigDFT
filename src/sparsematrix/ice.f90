@@ -635,7 +635,7 @@ module ice
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: scale_and_shift_matrix, &
-                            evnoise, check_eigenvalue_spectrum_new, get_chebyshev_expansion_coefficients, &
+                            evnoise, get_chebyshev_expansion_coefficients, &
                             get_chebyshev_polynomials, get_polynomial_degree
       use module_func
       implicit none
