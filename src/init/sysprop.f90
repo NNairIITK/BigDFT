@@ -887,11 +887,11 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   type(coulomb_operator), intent(inout) :: pkernel
   !local variables
   real(gp), parameter :: fact_Pau=1.2d0 ! Multiplying factor to enlarge the rigid cavity, Pauling setup.
-  real(gp), parameter :: fact_UFF=1.1d0 ! Multiplying factor to enlarge the rigid cavity, UFF setup.
+  real(gp), parameter :: fact_UFF=1.12d0 ! Multiplying factor to enlarge the rigid cavity, UFF setup.
   integer :: i,iat
   integer :: i1,i2,i3,unt,i3s,i23
   real(gp) :: IntSur,IntVol,noeleene,Cavene,Repene,Disene,IntSurt,IntVolt,diffSur,diffVol
-  real(gp) :: radii_Pau,radii_UFF
+  real(gp) :: radii_Pau,radii_UFF,fact
   type(atoms_iterator) :: it
   real(gp), dimension(:), allocatable :: radii
   real(gp), dimension(:,:), allocatable :: rxyz_shifted
@@ -978,13 +978,14 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!$   !radii_nofact(i) = radii(i)/Bohr_Ang +1.05d0*pkernel%cavity%delta
 !!$   radii(i) = fact_Pau*radii(i)/Bohr_Ang + 1.22d0*pkernel%cavity%delta
 !!$  end do
-
+  fact=pkernel%cavity%fact_rigid
+  if(bigdft_mpi%iproc==0) call yaml_map('fact_rigid',fact)
   do i=1,atoms%astruct%nat
     atname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(i)))
    if (radii_cav.eq.1) then
     radii(i) = fact_Pau*radii_Pau(atname)/Bohr_Ang + 1.22d0*pkernel%cavity%delta
    else if (radii_cav.eq.2) then
-    radii(i) = fact_UFF*radii_UFF(atname)/Bohr_Ang
+    radii(i) = fact*radii_UFF(atname)/Bohr_Ang
    end if
   end do
 

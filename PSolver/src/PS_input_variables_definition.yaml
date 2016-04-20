@@ -82,6 +82,13 @@
   cavitation: 
     COMMENT: Triggers the evaluation of the extra cavitation terms
     default: No
+  fact_rigid: 
+    COMMENT: Multiplying factor for the whole rigid cavity
+    default: 1.12
+    CONDITION:
+      MASTER_KEY: cavity
+      WHEN: [rigid]
+    PROFILE_FROM: cavity
   gammaS: 
     COMMENT: Cavitation term, surface tension of the solvent [dyn/cm]
     default: water
