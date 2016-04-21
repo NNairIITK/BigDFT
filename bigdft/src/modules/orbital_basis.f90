@@ -868,6 +868,7 @@ contains
 
   subroutine orbital_basis_release(ob)
     use dynamic_memory
+    use module_base, only: bigdft_mpi
     implicit none
     type(orbital_basis), intent(inout) :: ob
 
@@ -877,7 +878,7 @@ contains
        nullify(ob%dd)
     end if
     call f_free_ptr(ob%td%ndim_ovrlp)
-    call f_free_ptr(ob%phis_wvl_t)
+    if (bigdft_mpi%nproc >1) call f_free_ptr(ob%phis_wvl_t)
     call nullify_orbital_basis(ob)
   end subroutine orbital_basis_release
 

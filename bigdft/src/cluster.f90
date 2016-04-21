@@ -120,6 +120,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   type(dictionary), pointer :: dict_timing_info
   type(orbital_basis) :: ob,ob_occ,ob_virt,ob_prime
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
+  !Variable for TDHF
+  real(gp) :: exc_fac !Factor in front of the term to subtract when doing TDHF or TDDFT with hybrid functionals
 
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
@@ -1330,12 +1332,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1,iproc,nproc)
 
            !select the active space if needed
+           exc_fac = 0.0
+           if (in%ixc==100) then 
+              !call yaml_comment('HF detected',hfill='-')
+              exc_fac=1.0 !if HF, exc_fac=1.0 
+           end if
 
            call tddft_casida(iproc,nproc,atoms,rxyz,&
                 denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
                 denspot%dpbox%n3p,denspot%dpbox%ngatherarr(0,1),&
                 KSwfn%Lzd%Glr,in%tddft_approach,KSwfn%orbs,VTwfn%orbs,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,&
-                denspot%f_XC,denspot%pkernelseq,KSwfn%psi,VTwfn%psi)
+                denspot%f_XC,denspot%pkernelseq,KSwfn%psi,VTwfn%psi,exc_fac)
 
            call f_free_ptr(denspot%f_XC)
 

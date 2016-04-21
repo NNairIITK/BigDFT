@@ -2216,7 +2216,7 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime)
   do while(subspace_next(ssp))
      mat_ptr=>ob_ss_matrix_map(mat,ssp)
      if (bigdft_mpi%iproc == 0) call yaml_map('Scalar product',&
-          reshape(mat_ptr,[ssp%norb,ssp%norb]),fmt='(1pg15.3)')
+          reshape(mat_ptr,[ssp%norb,ssp%norb]),fmt='(1pg15.11)')
      
      call subspace_update(ssp%ncplx,ssp%nvctr,ssp%norb,&
           ssp%phi_wvl,mat_ptr,sso%phi_wvl)
@@ -2236,7 +2236,7 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime)
   do while(subspace_next(ssp))
      mat_ptr=>ob_ss_matrix_map(mat,ssp)
      if (bigdft_mpi%iproc == 0) call yaml_map('<D psi_i|D psi_j>',&
-          reshape(mat_ptr,[ssp%norb,ssp%norb]),fmt='(1pg15.3)')
+          reshape(mat_ptr,[ssp%norb,ssp%norb]),fmt='(1pg15.11)')
      if (subspace_next(ssv)) then
         call subspace_matrices(ssv%phi_wvl,ssp%phi_wvl,&
              ssp%ncplx,ssp%nvctr,ssv%norb,ssp%norb,svp)
@@ -2246,7 +2246,7 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime)
   call mpiallred(svp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
   if (bigdft_mpi%iproc == 0) call yaml_map('<psiv_i|D psi_j>',&
-       svp,fmt='(1pg15.3)')
+       svp,fmt='(1pg15.11)')
 
   call f_free(svp)
 !!$  call f_free(psi_i)

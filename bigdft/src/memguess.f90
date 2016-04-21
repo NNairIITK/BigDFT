@@ -114,7 +114,7 @@ program memguess
    logical :: file_exists, found_bin
    logical,dimension(:,:),allocatable :: calc_array
    real(kind=8),parameter :: eps_roundoff=1.d-5
-   !type(sparse_matrix) :: smat_s, smat_m, smat_l
+   type(sparse_matrix) :: smat_s, smat_m, smat_l
    type(f_enumerator) :: inputpsi
 
    call f_lib_initialize()
