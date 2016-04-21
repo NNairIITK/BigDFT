@@ -178,9 +178,11 @@ subroutine f_lib_finalize()
   use time_profiling, only: f_timing_finalize,f_clock
   use yaml_strings, only: operator(//)
   use f_utils, only: f_humantime
+  use module_f_objects, only: f_object_finalize
   implicit none
   !local variables
   integer :: ndict,ndict_max,iproc,nlibs,nlibs_max
+  call f_object_finalize()
   call f_malloc_finalize(process_id=iproc)
   !print maximal value of dictionary usage
   if (iproc == 0) then
@@ -214,3 +216,8 @@ subroutine f_lib_finalize_noreport()
   call f_err_finalize()
   call f_timing_finalize()
 end subroutine f_lib_finalize_noreport
+
+!> Some constants about Futile.
+module f_lib_package
+include 'configure.inc'
+end module f_lib_package
