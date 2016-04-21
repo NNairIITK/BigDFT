@@ -3300,7 +3300,8 @@ subroutine write_pexsi_matrices(iproc, nproc, smat_h, smat_s, matrix_compr_h, ma
   call transform_sparsity_pattern(iproc, smat_h%nfvctr, smat_s%smmm%nvctrp_mm, smat_s%smmm%isvctr_mm, &
        smat_s%nseg, smat_s%keyv, smat_s%keyg, smat_s%smmm%line_and_column_mm, &
        smat_h%smmm%nvctrp, smat_h%smmm%isvctr, smat_h%smmm%nseg, smat_h%smmm%keyv, smat_h%smmm%keyg, &
-       smat_h%smmm%istsegline, 'small_to_large', matrix_compr_s, matrix_compr_sl)
+       smat_h%smmm%istsegline, 'small_to_large', &
+       matrix_s_in=matrix_compr_s, matrix_l_out=matrix_compr_sl)
 
   row_ind = f_malloc_ptr(smat_h%nvctr,id='row_ind')
   col_ptr = f_malloc_ptr(smat_h%nfvctr,id='col_ptr')

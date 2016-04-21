@@ -947,7 +947,8 @@ module foe_common
                  smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
                  smat%smmm%nvctrp, smat%smmm%isvctr, &
                  smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
-                 'small_to_large', inv_ovrlp(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), inv_ovrlpp_new)
+                 'small_to_large', &
+                 matrix_s_in=inv_ovrlp(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), matrix_l_out=inv_ovrlpp_new)
         end if
         call sequential_acces_matrix_fast2(smat, kernel, mat_compr_seq)
         call sparsemm_new(iproc, smat, mat_compr_seq, inv_ovrlpp_new, tempp_new)

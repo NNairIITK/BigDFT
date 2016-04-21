@@ -1021,7 +1021,7 @@ module foe
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: scale_and_shift_matrix, evnoise, &
-                            check_eigenvalue_spectrum_new, retransform_ext, get_chebyshev_expansion_coefficients, &
+                            retransform_ext, get_chebyshev_expansion_coefficients, &
                             get_chebyshev_polynomials, find_fermi_level, get_polynomial_degree, &
                             calculate_trace_distributed_new
       use module_func
