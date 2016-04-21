@@ -371,7 +371,8 @@ module chebyshev
       call transform_sparsity_pattern(iproc, fermi%nfvctr, fermi%smmm%nvctrp_mm, fermi%smmm%isvctr_mm, &
            fermi%nseg, fermi%keyv, fermi%keyg, fermi%smmm%line_and_column_mm, &
            fermi%smmm%nvctrp, fermi%smmm%isvctr, fermi%smmm%nseg, fermi%smmm%keyv, fermi%smmm%keyg, &
-           fermi%smmm%istsegline, 'large_to_small', vector_compressed, vector_compr)
+           fermi%smmm%istsegline, 'large_to_small', &
+           matrix_s_out=vector_compressed, matrix_l_in=vector_compr)
     
       call f_release_routine()
     

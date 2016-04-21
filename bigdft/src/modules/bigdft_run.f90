@@ -1572,7 +1572,7 @@ contains
   end function bigdft_get_cell_ptr
 
 
-  !> Do a calculation using runObjs and return outs²
+  !> Do a calculation using runObjs and return outs
   !! returns energies in hartree and
   !! forces in hartree/bohr
   !! (except for LJ)

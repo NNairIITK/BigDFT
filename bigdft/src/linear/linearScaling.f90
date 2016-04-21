@@ -1183,7 +1183,13 @@ end if
               call f_err_throw('wrong value of charge_multipoles')
           end select
       end if
-      !if (input%lin%charge_multipoles==1) then
+          ! Recalculate the chareg density...
+          call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+               tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+               denspot%rhov, rho_negative)
+          if (rho_negative) then
+              call corrections_for_negative_charge(iproc, nproc, at, denspot)
+          end if
           call multipole_analysis_driver(iproc, nproc, lmax, input%ixc, tmb%linmat%smmd, &
                tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &

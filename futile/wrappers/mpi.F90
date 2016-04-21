@@ -1323,7 +1323,7 @@ contains
     use dictionaries, only: f_err_throw
     use dynamic_memory
     implicit none
-    double precision :: sendbuf
+    double precision, intent(in) :: sendbuf
     double precision, intent(inout), optional :: recvbuf
     double precision, dimension(:), allocatable :: copybuf
     include 'allgather-inc.f90'
@@ -1334,7 +1334,7 @@ contains
     use dictionaries, only: f_err_throw
     use dynamic_memory
     implicit none
-    double precision, dimension(:), intent(inout) :: sendbuf
+    double precision, dimension(:), intent(in) :: sendbuf
     double precision, dimension(:), intent(inout), optional :: recvbuf
     double precision, dimension(:), allocatable :: copybuf
     include 'allgather-inc.f90'
@@ -1345,7 +1345,7 @@ contains
     use dictionaries, only: f_err_throw
     use dynamic_memory
     implicit none
-    double precision, dimension(:,:), intent(inout) :: sendbuf
+    double precision, dimension(:,:), intent(in) :: sendbuf
     double precision, dimension(:,:,:), intent(inout), optional :: recvbuf
     double precision, dimension(:), allocatable :: copybuf
     include 'allgather-inc.f90'
@@ -1357,7 +1357,7 @@ contains
     use dictionaries, only: f_err_throw
     use dynamic_memory
     implicit none
-    integer, dimension(:,:), intent(inout) :: sendbuf
+    integer, dimension(:,:), intent(in) :: sendbuf
     integer, dimension(:,:), intent(inout), optional :: recvbuf
     integer, dimension(:), allocatable :: copybuf
     include 'allgather-inc.f90'

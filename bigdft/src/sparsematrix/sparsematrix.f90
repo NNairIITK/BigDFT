@@ -677,7 +677,7 @@ module sparsematrix
      ! Calling arguments
      integer,intent(in) :: iproc, nproc, layout
      type(sparse_matrix),intent(in) :: smat
-     real(kind=mp),dimension(:),target,intent(inout) :: matrixp
+     real(kind=mp),dimension(:),target,intent(in) :: matrixp
      real(kind=mp),dimension(smat%nvctrp_tg),intent(out) :: matrix_compr
 
      ! Local variables
@@ -720,7 +720,7 @@ module sparsematrix
               smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
               smat%smmm%nvctrp, smat%smmm%isvctr, &
               smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
-              'large_to_small', matrix_local, matrixp)
+              'large_to_small', matrix_s_out=matrix_local, matrix_l_in=matrixp)
          !call f_free_ptr(matrix_local)
      else
              call f_err_throw('layout has the value '//trim(yaml_toa(layout,fmt='(i0)'))//&
@@ -1784,7 +1784,8 @@ module sparsematrix
     !> Transform a matrix from a large parsity pattern *_l to a small sparsity pattern *_s or vice versa.
     !! The small pattern must be contained within the large one.
     subroutine transform_sparsity_pattern(iproc, nfvctr, nvctrp_s, isvctr_s, nseg_s, keyv_s, keyg_s, line_and_column_s, &
-               nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, istsegline_l, direction, matrix_s, matrix_l)
+               nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, istsegline_l, direction, &
+               matrix_s_in, matrix_l_in, matrix_s_out, matrix_l_out)
       use sparsematrix_init, only: matrixindex_in_compressed_lowlevel
       implicit none
       ! Calling arguments
@@ -1796,8 +1797,10 @@ module sparsematrix
       integer,dimension(2,2,nseg_l),intent(in) :: keyg_l
       integer,dimension(nfvctr),intent(in) :: istsegline_l
       character(len=*),intent(in) :: direction
-      real(kind=mp),dimension(nvctrp_l),intent(inout) :: matrix_l
-      real(kind=mp),dimension(nvctrp_s),intent(inout) :: matrix_s
+      real(kind=mp),dimension(nvctrp_l),intent(in),optional :: matrix_l_in
+      real(kind=mp),dimension(nvctrp_s),intent(in),optional :: matrix_s_in
+      real(kind=mp),dimension(nvctrp_l),intent(out),optional :: matrix_l_out
+      real(kind=mp),dimension(nvctrp_s),intent(out),optional :: matrix_s_out
       ! Local variables
       integer :: i, ii, ind, iline, icolumn
 
@@ -1807,10 +1810,17 @@ module sparsematrix
 
         if (direction=='large_to_small') then
 
+            if (.not.present(matrix_l_in)) then
+                call f_err_throw("'matrix_l_in' not present",err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+            if (.not.present(matrix_s_out)) then
+                call f_err_throw("'matrix_s_out' not present",err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+
             ! No need for f_zero since every value will be overwritten.
             !$omp parallel default(none) &
             !$omp shared(nvctrp_s, isvctr_s, isvctr_l, line_and_column_s) &
-            !$omp shared(nfvctr, nseg_l, keyv_l, keyg_l, istsegline_l, matrix_s, matrix_l) &
+            !$omp shared(nfvctr, nseg_l, keyv_l, keyg_l, istsegline_l, matrix_s_out, matrix_l_in) &
             !$omp private(i, ii, iline, icolumn, ind)
             !$omp do
             do i=1,nvctrp_s
@@ -1821,16 +1831,22 @@ module sparsematrix
                 ind = matrixindex_in_compressed_lowlevel(icolumn, iline, nfvctr, &
                       nseg_l, keyv_l, keyg_l, istsegline_l)
                 ind = ind - isvctr_l
-                matrix_s(i) = matrix_l(ind)
+                matrix_s_out(i) = matrix_l_in(ind)
             end do
             !$omp end do
             !$omp end parallel
 
         else if (direction=='small_to_large') then
-            call f_zero(matrix_l)
+            if (.not.present(matrix_s_in)) then
+                call f_err_throw("'matrix_s_in' not present",err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+            if (.not.present(matrix_l_out)) then
+                call f_err_throw("'matrix_l_out' not present",err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+            call f_zero(matrix_l_out)
             !$omp parallel default(none) &
             !$omp shared(nvctrp_s, isvctr_s, isvctr_l, line_and_column_s) &
-            !$omp shared(nfvctr, nseg_l, keyv_l, keyg_l, istsegline_l, matrix_s, matrix_l) &
+            !$omp shared(nfvctr, nseg_l, keyv_l, keyg_l, istsegline_l, matrix_s_in, matrix_l_out) &
             !$omp private(i, ii, iline, icolumn, ind)
             !$omp do
             do i=1,nvctrp_s
@@ -1841,7 +1857,7 @@ module sparsematrix
                 ind = matrixindex_in_compressed_lowlevel(icolumn, iline, nfvctr, &
                       nseg_l, keyv_l, keyg_l, istsegline_l)
                 ind = ind - isvctr_l
-                matrix_l(ind) = matrix_s(i)
+                matrix_l_out(ind) = matrix_s_in(i)
             end do
             !$omp end do
             !$omp end parallel
@@ -1888,7 +1904,7 @@ module sparsematrix
                smat%smmm%line_and_column_mm, &
                smat%smmm%nvctrp, smat%smmm%isvctr, &
                smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
-               'small_to_large', b(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), b_exp)
+               'small_to_large', matrix_s_in=b(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), matrix_l_out=b_exp)
       end if
       call sparsemm_new(iproc, smat, a_seq, b_exp, c_exp)
       call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_LARGE, &
@@ -2292,9 +2308,9 @@ module sparsematrix
     
       call f_routine(id='symmetrize_matrix')
 
-      if (csign=='plus') then
+      if (trim(csign)=='plus') then
           minus = .false.
-      else if (csign=='minus') then
+      else if (trim(csign)=='minus') then
           minus = .true.
       else
           call f_err_throw("wrong value of 'csign'", err_name='BIGDFT_RUNTIME_ERROR')
