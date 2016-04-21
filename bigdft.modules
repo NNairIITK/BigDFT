@@ -24,19 +24,19 @@
 
   <autotools id="libxc" check-target="false" autogen-sh="autoreconf">
     <!--<branch repo="libxc" checkoutdir="libxc-2.0.x"/>-->
-    <branch repo="local" module="libxc-2.0.x.tar.gz" version="2.0.x" checkoutdir="libxc">
+    <branch repo="local" module="libxc-2.2.2.tar.gz" version="2.2.2" checkoutdir="libxc">
             <!-- <patch file="libxc-2.0.x.patch" />-->
     </branch>
   </autotools>
 
   <autotools id="libyaml" autogen-sh="autoreconf">
     <!--<branch repo="libyaml" module="yaml-0.1.4.tar.gz" version="0.1.4"/>-->
-    <branch repo="local" module="yaml-0.1.4.tar.gz" version="0.1.4" checkoutdir="yaml"/>
+    <branch repo="local" module="yaml-0.1.6.tar.gz" version="0.1.6" checkoutdir="yaml"/>
   </autotools>
 
   <distutils id="PyYAML">
     <!--<branch repo="libyaml" module="PyYAML-3.10.tar.gz" version="3.10"/>-->
-    <branch repo="local" module="PyYAML-3.10.tar.gz" version="3.10" checkoutdir="PyYAML"/>
+    <branch repo="local" module="PyYAML-3.11.tar.gz" version="3.11" checkoutdir="PyYAML"/>
     <dependencies>
       <dep package="libyaml"/>
     </dependencies>
@@ -49,6 +49,7 @@
     <dependencies>
       <dep package="futile"/>
       <dep package="libxc"/>
+      <dep package="psolver"/> <!-- this is for the libxc macro -->
     </dependencies>
   </autotools>
 
@@ -176,7 +177,7 @@
 
   <metamodule id="bigdft-suite">
     <dependencies>
-      <dep package="bigdft"/>
+      <dep package="spred"/>
       <dep package="PyYAML"/>
     </dependencies>
   </metamodule>

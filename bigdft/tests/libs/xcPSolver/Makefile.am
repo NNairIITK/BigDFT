@@ -13,26 +13,26 @@ check_PROGRAMS = PS_Check PS_Integral gaussian gaussian2D gaussian3D
 AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@  @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src -Wl,-rpath=$(DESTDIR)$(libdir)
 bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 else
 bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 PS_Check_SOURCES = PS_Check.f90
-PS_Check_LDADD = $(bigdft_library) @LINALG_LIBS@
+PS_Check_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 PS_Integral_SOURCES = PS_Integral.f90 fisf.f90
-PS_Integral_LDADD = $(bigdft_library) @LINALG_LIBS@
+PS_Integral_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 gaussian_SOURCES = gaussian.f90
-gaussian_LDADD = $(bigdft_library) @LINALG_LIBS@
+gaussian_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 gaussian2D_SOURCES = gaussian2D.f90
-gaussian2D_LDADD = $(bigdft_library) @LINALG_LIBS@
+gaussian2D_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 gaussian3D_SOURCES = gaussian3D.f90
-gaussian3D_LDADD = $(bigdft_library) @LINALG_LIBS@
+gaussian3D_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 
 CLEANFILES = PS_Check.out.yaml fldiff.report.yaml malloc.prc time.prc

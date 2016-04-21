@@ -46,7 +46,7 @@ check_PROGRAMS = check_lib $(bindings_bin)
 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src -Wl,-rpath=$(DESTDIR)$(libdir)
 bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 else
 bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
@@ -55,8 +55,8 @@ endif
 AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_builddir)/src/PSolver -I$(top_srcdir)/src/PSolver -I. @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@  @MPI_INCLUDE@
 
 check_lib_SOURCES = check_lib.f90
-check_lib_FCFLAGS = -I$(top_builddir)/src/ -I$(top_builddir)/includes  -I$(top_builddir)/src/modules
-check_lib_LDADD = $(bigdft_library)
+check_lib_FCFLAGS = -I$(top_builddir)/src/ -I$(top_builddir)/includes -I$(top_builddir)/src/modules @LIB_FUTILE_CFLAGS@
+check_lib_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@
 
 check_lib_c_SOURCES = check_lib_c.c
 check_lib_c_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules

@@ -223,6 +223,31 @@ subroutine subspace_matrix(symm,psi,hpsi,ncplx,nvctrp,norb,lambda)
 
 end subroutine subspace_matrix
 
+!>calculates the scalar product between two wavefunctions in compressed form
+!! formally this routine calculates <psi1_i|psi2_j>
+subroutine subspace_matrices(psi1,psi2,ncplx,nvctrp,norb1,norb2,lambda)
+  use module_defs, only: wp
+  use wrapper_linalg, only: gemm, c_gemm
+  implicit none
+  integer, intent(in) :: ncplx,nvctrp,norb1,norb2
+  real(wp), dimension(nvctrp*ncplx,norb1), intent(in) :: psi1
+  real(wp), dimension(nvctrp*ncplx,norb2), intent(in) :: psi2
+  real(wp), dimension(ncplx,norb1,norb2), intent(out) :: lambda
+
+  if (nvctrp==0) return
+  if(ncplx==1) then
+     call gemm('T','N',norb1,norb2,nvctrp,1.0_wp,psi1(1,1),&
+          nvctrp,psi2(1,1),nvctrp,0.0_wp,&
+          lambda(1,1,1),norb1)
+  else
+     !this part should be recheck in the case of nspinor == 2
+     call c_gemm('C','N',norb1,norb2,nvctrp,(1.0_wp,0.0_wp),psi1(1,1),&
+          nvctrp,psi2(1,1),nvctrp,(0.0_wp,0.0_wp),&
+          lambda(1,1,1),norb1)
+  end if
+
+end subroutine subspace_matrices
+
 !>perform an update of the orbitals of the subspace
 !! given two initial array and a matrix 
 !! calculates y = y - A*x
@@ -250,6 +275,7 @@ end subroutine subspace_update
 !! not the same
 subroutine lagrange_multiplier(symm,correction,occup,ncplx,norb,lambda,trace,asymm,mix)
   use module_defs, only: wp,gp
+  use module_base, only: bigdft_mpi
   implicit none
   logical, intent(in) :: symm !<symmetrize explicitly
   logical, intent(in) :: correction !< apply the correction to the lagrange multiplier
@@ -259,6 +285,7 @@ subroutine lagrange_multiplier(symm,correction,occup,ncplx,norb,lambda,trace,asy
   real(wp), dimension(ncplx,norb,norb), intent(inout) :: lambda
   !local variables
   integer :: iorb,jorb,icplx
+  real(gp), parameter :: tol=5.e-1_gp
   real(wp) :: tt
   real(gp) :: fi,fj,fac
   real(wp), dimension(2) :: lij,lji
@@ -307,10 +334,10 @@ subroutine lagrange_multiplier(symm,correction,occup,ncplx,norb,lambda,trace,asy
            !correct the lagrange multiplier such that
            !the gradient will follow the occupation numbers
            if (correction) then
-              if (fi /=0.0_wp) then
-                 fac=0.5*(1.d0-fj/fi)
+              if (abs(fi) > tol) then
+                 fac=0.5_gp*((fi - fj)/fi)
               else
-                 fac=0.5
+                 fac=0.5_gp
               end if
               lambda(:,iorb,jorb)=fac*lambda(:,iorb,jorb)
            end if

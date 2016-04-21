@@ -242,7 +242,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
 
         !here a external potential with spinorial indices can be added
      end if
-     
+
      !this part has to be replaced by the updatepotential routine
 !     call updatePotential(wfn%orbs%nspinor,denspot,energs)
 
@@ -296,7 +296,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
      end if
 
      if (wfn%paw%usepaw) then
-        call paw_compute_dij(wfn%paw, atoms, denspot, denspot%V_XC(1, 1, 1, 1), &
+        call paw_compute_dij(wfn%paw, atoms, denspot, denspot%V_XC, &
              & energs%epaw, energs%epawdc, compch_sph)
      end if
   end if
@@ -630,7 +630,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
            !iterate over the orbital_basis
            psi_it=orbital_basis_iterator(psi_ob)
            do while(ket_next_locreg(psi_it))
-              call initialize_work_arrays_sumrho(1,[psi_it%lr],.true.,w)
+              call initialize_work_arrays_sumrho(psi_it%lr,.true.,w)
               do while(ket_next(psi_it,ilr=psi_it%ilr))
                  call daub_to_isf(psi_it%lr,w,psi_it%phi_wvl,psir(1,psi_it%iorbp))
               end do
@@ -807,7 +807,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
         loop_lr: do while(ket_next_locreg(psi_it))
            ! print *,'orbs1',psi_it%iorb,psi_it%ilr,psi_it%nspinor,associated(psi_it%lr)
            psir = f_malloc0([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='psir')
-           call initialize_work_arrays_locham(1,[psi_it%lr],psi_it%nspinor,.true.,wrk_lh)
+           call initialize_work_arrays_locham(psi_it%lr,psi_it%nspinor,.true.,wrk_lh)
            ! wavefunction after application of the self-interaction potential
            if (ipotmethod == 2 .or. ipotmethod == 3) then
               vsicpsir = f_malloc([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='vsicpsir')
@@ -891,6 +891,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   use public_enums, only: PSPCODE_PAW
   use module_atoms
   use orbitalbasis
+  use ao_inguess, only: lmax_ao
   implicit none
   integer, intent(in) :: iproc, npsidim_orbs
   type(atoms_data), intent(in) :: at
@@ -926,6 +927,9 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   !initialize the orbital basis object, for psi and hpsi
   call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd)
 
+  !should we calculate the density matrix we have to zero it
+  if (associated(nl%iagamma)) call f_zero(nl%gamma_mmp)
+
   nwarnings=0
   if(paw%usepaw) call f_zero(orbs%npsidim_orbs, paw%spsi(1))
 
@@ -938,6 +942,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   istart_ck=1
   !iterate over the orbital_basis
   psi_it=orbital_basis_iterator(psi_ob)
+
   loop_kpt: do while(ket_next_kpt(psi_it))
      loop_lr: do while(ket_next_locreg(psi_it,ikpt=psi_it%ikpt))
         if (nl%on_the_fly) then
@@ -1005,7 +1010,7 @@ contains
   subroutine nl_psp_application()
     implicit none
     !local variables
-    integer :: ncplx_p,ncplx_w,n_w,nvctr_p
+    integer :: ncplx_p,ncplx_w,n_w,nvctr_p,ispin
     real(gp), dimension(3,3,4) :: hij
     real(gp) :: eproj
 
@@ -1039,6 +1044,15 @@ contains
             ncplx_w,n_w,psi_it%lr%wfd,nl%pspd(atit%iat)%tolr(iilr),nl%wpack,nl%scpr,nl%cproj,nl%hcproj,&
             psi_it%phi_wvl,hpsi_ptr,eproj)
 
+       !here the cproj can be extracted to update the density matrix for the atom iat 
+       if (associated(nl%iagamma)) then
+          ispin=merge(1,2,psi_it%spinval==1.0_gp) !to be inserted in ket
+          call cproj_to_gamma(atit%iat,nl%proj_G,mproj,lmax_ao,&
+               max(ncplx_w,ncplx_p),nl%cproj,psi_it%kwgt*psi_it%occup,&
+               nl%iagamma(0,atit%iat),&
+               nl%gamma_mmp(1,1,1,1,ispin))
+       end if
+
        nvctr_p=nl%pspd(atit%iat)%plr%wfd%nvctr_c+7*nl%pspd(atit%iat)%plr%wfd%nvctr_f
        istart_c=istart_c+nvctr_p*ncplx_p*mproj
 
@@ -1048,6 +1062,147 @@ contains
   end subroutine nl_psp_application
 
 end subroutine NonLocalHamiltonianApplication
+
+
+!!$subroutine NonLocalHamiltonianApplication_new(iproc,at,npsidim_orbs,orbs,&
+!!$     Lzd,nl,psi,hpsi,eproj_sum,paw)
+!!$  use module_base
+!!$  use module_types
+!!$  use yaml_output
+!!$  !  use module_interfaces
+!!$  use psp_projectors_base, only: PSP_APPLY_SKIP
+!!$  use psp_projectors, only: projector_has_overlap,get_proj_locreg
+!!$  use public_enums, only: PSPCODE_PAW
+!!$  use module_atoms
+!!$  use orbitalbasis
+!!$  implicit none
+!!$  integer, intent(in) :: iproc, npsidim_orbs
+!!$  type(atoms_data), intent(in) :: at
+!!$  type(orbitals_data),  intent(in) :: orbs
+!!$  type(local_zone_descriptors), intent(in) :: Lzd
+!!$  type(DFT_PSP_projectors), intent(inout) :: nl
+!!$  real(wp), dimension(npsidim_orbs), intent(in) :: psi
+!!$  real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
+!!$  type(paw_objects),intent(inout)::paw
+!!$  real(gp), intent(out) :: eproj_sum
+!!$  !local variables
+!!$  character(len=*), parameter :: subname='NonLocalHamiltonianApplication'
+!!$  logical :: overlap
+!!$  integer :: istart_ck,nwarnings
+!!$  integer :: iproj,istart_c,mproj,iilr
+!!$  type(ket) :: psi_it
+!!$  type(orbital_basis) :: psi_ob
+!!$  type(atoms_iterator) :: atit
+!!$  real(wp), dimension(:), pointer :: hpsi_ptr,spsi_ptr
+!!$
+!!$  !integer :: ierr
+!!$  !real(kind=4) :: tr0, tr1, t0, t1
+!!$  !real(kind=8) :: time0, time1, time2, time3, time4, time5, ttime
+!!$  !real(kind=8), dimension(0:4) :: times
+!!$
+!!$  call f_routine(id='NonLocalHamiltonianApplication')
+!!$
+!!$  eproj_sum=0.0_gp
+!!$
+!!$  ! apply all PSP projectors for all orbitals belonging to iproc
+!!$  call timing(iproc,'ApplyProj     ','ON')
+!!$
+!!$  !initialize the orbital basis object, for psi and hpsi
+!!$  call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd)
+!!$
+!!$  nwarnings=0
+!!$  if(paw%usepaw) call f_zero(orbs%npsidim_orbs, paw%spsi(1))
+!!$
+!!$  !here the localisation region should be changed, temporary only for cubic approach
+!!$
+!!$  !apply the projectors following the strategy (On-the-fly calculation or not)
+!!$
+!!$  !apply the projectors  k-point of the processor
+!!$  !iterate over the orbital_basis
+!!$  psi_it=orbital_basis_iterator(psi_ob)
+!!$
+!!$  !iterate over the projectors
+!!$  prit=projector_iterator(nl)
+!!$
+!!$  loop_kpt: do while(ket_next_kpt(psi_it))
+!!$     loop_lr: do while(ket_next_locreg(psi_it,ikpt=psi_it%ikpt))
+!!$        if (nl%on_the_fly) then
+!!$           loop_proj: do while(projector_next(prit,ilr=psi_it%ilr,lr=psi_it%lr))
+!!$              loop_psi_kpt: do while(ket_next(psi_it,ikpt=psi_it%ikpt,ilr=psi_it%ilr))
+!!$                 hpsi_ptr => ob_ket_map(hpsi,psi_it)
+!!$                 if (paw%usepaw) then
+!!$                    spsi_ptr => ob_ket_map(paw%spsi,psi_it)
+!!$                    call apply_atproj_iorb_paw(prit%iat,psi_it%iorbp,prit%istart_c,&
+!!$                         at,psi_it%ob%orbs,psi_it%lr%wfd,nl,&
+!!$                         psi_it%phi_wvl,hpsi_ptr,spsi_ptr,eproj_sum,&
+!!$                         paw)
+!!$                 else
+!!$                    if (psi_it%nspinor > 1) then !which means 2 or 4
+!!$                       ncplx_w=2
+!!$                       n_w=psi_it%nspinor/2
+!!$                    else
+!!$                       ncplx_w=1
+!!$                       n_w=1
+!!$                    end if
+!!$                    call NL_HGH_application(prit%hij,&
+!!$                         prit%ncplx,prit%mproj,prit%lr%wfd,prit%proj,&
+!!$                         ncplx_w,n_w,psi_it%lr%wfd,prit%tolr,prit%nl%wpack,prit%nl%scpr,prit%nl%cproj,prit%nl%hcproj,&
+!!$                         psi_it%phi_wvl,hpsi_ptr,eproj)
+!!$                    eproj_sum=eproj_sum+psi_it%kwgt*psi_it%occup*eproj
+!!$                 end if
+!!$              end do loop_psi_kpt
+!!$           end do loop_proj
+!!$        else
+!!$           loop_psi_kpt2: do while(ket_next(psi_it,ikpt=psi_it%ikpt,ilr=psi_it%ilr))
+!!$              loop_proj_2: do while(projector_next(prit,ilr=psi_it%ilr,lr=psi_it%lr))
+!!$                 hpsi_ptr => ob_ket_map(hpsi,psi_it)
+!!$                 if (paw%usepaw) then
+!!$                    spsi_ptr => ob_ket_map(paw%spsi,psi_it)
+!!$                    call apply_atproj_iorb_paw(prit%iat,psi_it%iorbp,prit%istart_c,&
+!!$                         at,psi_it%ob%orbs,psi_it%lr%wfd,nl,&
+!!$                         psi_it%phi_wvl,hpsi_ptr,spsi_ptr,eproj_sum,&
+!!$                         paw)
+!!$                 else
+!!$                    if (psi_it%nspinor > 1) then !which means 2 or 4
+!!$                       ncplx_w=2
+!!$                       n_w=psi_it%nspinor/2
+!!$                    else
+!!$                       ncplx_w=1
+!!$                       n_w=1
+!!$                    end if
+!!$                    call NL_HGH_application(prit%hij,&
+!!$                         prit%ncplx,prit%mproj,prit%lr%wfd,prit%proj,&
+!!$                         ncplx_w,n_w,psi_it%lr%wfd,prit%tolr,prit%nl%wpack,prit%nl%scpr,prit%nl%cproj,prit%nl%hcproj,&
+!!$                         psi_it%phi_wvl,hpsi_ptr,eproj)
+!!$                    eproj_sum=eproj_sum+psi_it%kwgt*psi_it%occup*eproj
+!!$                 end if
+!!$              end do loop_proj_2
+!!$           end do loop_psi_kpt2
+!!$        end if
+!!$     end do loop_lr
+!!$  end do loop_kpt
+!!$
+!!$  call orbital_basis_release(psi_ob)
+!!$
+!!$  if (.not. nl%on_the_fly .and. Lzd%nlr==1) then !TO BE REMOVED WITH NEW PROJECTOR APPLICATION
+!!$     if (prit%istart_ck-1 /= nl%nprojel .and. orbs%norbp>0) then
+!!$        call f_err_throw('Incorrect once-and-for-all psp application, istart_ck, nprojel= '+&
+!!$             yaml_toa([prit%istart_ck,nl%nprojel]),err_name='BIGDFT_RUNTIME_ERROR')
+!!$     end if
+!!$  end if
+!!$
+!!$  !used on the on-the-fly projector creation
+!!$  if (prit%nwarnings /= 0 .and. iproc == 0) then
+!!$     call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
+!!$     call yaml_newline()
+!!$     call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
+!!$  end if
+!!$
+!!$  call timing(iproc,'ApplyProj     ','OF')
+!!$
+!!$  call f_release_routine()
+!!$
+!!$end subroutine NonLocalHamiltonianApplication_new
 
 
 !> Routine which calculates the application of nonlocal projectors on the wavefunctions
@@ -3329,7 +3484,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
 
   !helmholtz-based preconditioning
   ilr=1 !for the moment only cubic version
-  call initialize_work_arrays_sumrho(1,[wfn%Lzd%Llr(ilr)],.true.,w)
+  call initialize_work_arrays_sumrho(wfn%Lzd%Llr(ilr),.true.,w)
   !box elements size
   nbox=wfn%Lzd%Llr(ilr)%d%n1i*wfn%Lzd%Llr(ilr)%d%n2i*wfn%Lzd%Llr(ilr)%d%n3i
 

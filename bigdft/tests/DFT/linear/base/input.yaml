@@ -25,7 +25,6 @@
    conf_damping: 0.5
    calc_dipole: Yes
    calc_quadrupole: Yes
-   calc_pulay: old
    charge_multipoles: 1
    support_function_multipoles: yes
  lin_basis:

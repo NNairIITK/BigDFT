@@ -25,10 +25,10 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
- 
+
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8
- Timestamp of this run                 : 2016-02-20 23:11:20.834
+ Timestamp of this run                 : 2016-03-31 14:59:24.804
  Root process Hostname                 : athelas
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -37,16 +37,22 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " '--prefix' '/local/binaries/intel-1.8/install' '--without-internal-flib' 
-     'FCFLAGS=-O2 -openmp' 
-     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 -lmkl_rt 
-     -liomp5 -lm' 'CFLAGS=-O2 -openmp' 'LDFLAGS=-L/local/binaries/intel-1.8/install/lib ' 
-     'C_INCLUDE_PATH=/local/binaries/intel-1.8/install/include:/opt/intel/composer_xe_2013.1.
-     117/compiler/include' 'CC=mpicc' 'CXX=mpicxx' 'FC=mpifc' 'F77=mpif77'"
-   Compilers (CC, FC, CXX)             :  [ mpicc, mpifc, mpicxx ]
+     " '--prefix' '/local/binaries/g95-bc-1.8/install' 'FCFLAGS=-O2 -fopenmp -g 
+     -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,denormal' 
+     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/compiler/lib/intel64 
+     -L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 -lmkl_rt -liomp5 -lm' 
+     '--with-blas=no' '--with-lapack=no' 'CFLAGS=-O2 -fopenmp' 
+     'LDFLAGS=-L/local/binaries/g95-bc-1.8/install/lib ' 
+     'C_INCLUDE_PATH=/local/binaries/g95-bc-1.8/install/include:/opt/acml5.3.1/gfortran64_mp/
+     include' 'CC=mpicc.openmpi' 'CXX=mpicxx.openmpi' 'FC=mpif90.openmpi' 
+     'F77=mpif77.openmpi'"
+
+   Compilers (CC, FC, CXX)             :  [ mpicc.openmpi, mpif90.openmpi, mpicxx.openmpi ]
    Compiler flags:
-     CFLAGS                            : -O2 -openmp
-     FCFLAGS                           : -O2 -openmp
+     CFLAGS                            : -O2 -fopenmp
+                                        
+     FCFLAGS:
+       -O2 -fopenmp -g -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,denormal
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : LJ-fire
@@ -205,7 +211,7 @@
    maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
+   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 1 #      Enables linear sumrho check
@@ -235,9 +241,6 @@
     #                                              support function convergence
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
    foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
-   nsigma                              : 1 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
-    #                                              Gaussian used for the radial part of the 
-    #                                              function based on the multipoles.
  lin_general:
    hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
    nit: [100, 100] #                              number of iteration with low/high accuracy
@@ -262,7 +265,6 @@
    cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    calc_dipole                         : No #     calculate dipole
    calc_quadrupole                     : No #     calculate quadrupole
-   calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
    subspace_diag                       : No #     diagonalization at the end
    extra_states                        : 0 #      extra states to optimize (dmin only)
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
@@ -388,16 +390,14 @@
   #------------------------------------------------------------------------- Initializing LJ
   #Using normalized Units for LJ (sigma=1, epsilon=1)
  Initializing LENNARD_JONES_RUN_MODE:
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.70999463371587836E+02, 
- Force Norm (Hartree/Bohr):  1.24350522280338230E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999463371587893E+02, 
+ Force Norm (Hartree/Bohr):  1.24350522280338282E-02}
    Wavefunction Optimization Finished, exit signal:  0
     #------------------------------------------------------ Geometry minimization using FIRE
    Begin of minimization using         : FIRE
    ENTERING FIRE                       :  0
  - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999463641570571E+02, 
- Force Norm (Hartree/Bohr):  1.22309793589903647E-02}
+ Force Norm (Hartree/Bohr):  1.22309793589916328E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  1
@@ -410,10 +410,8 @@
      vnrm                              :  7.32E-04
      nstep                             :  1
      P                                 :  8.85E-06
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.70999464442242868E+02, 
- Force Norm (Hartree/Bohr):  1.22845955768255254E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999464442242868E+02, 
+ Force Norm (Hartree/Bohr):  1.22845955768257336E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  2
@@ -426,49 +424,43 @@
      vnrm                              :  1.46E-03
      nstep                             :  2
      P                                 :  1.79E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.70999465802343281E+02, 
- Force Norm (Hartree/Bohr):  1.27555137577088033E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999465802343309E+02, 
+ Force Norm (Hartree/Bohr):  1.27555137576997098E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  3
      Geometry step                     :  3
      FORCES norm(Ha/Bohr): { maxval:  6.75029E-03, fnrm2:  1.62703E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.70999465802343E+02, -1.36010041273948E-06 ]
+     epred                             :  [ -1.70999465802343E+02, -1.36010044116119E-06 ]
      Alpha                             :  2.50E-1
      dt                                :  6.00E-2
      vnrm                              :  2.21E-03
      nstep                             :  3
      P                                 :  2.78E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.55271E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.70999467815298544E+02, 
- Force Norm (Hartree/Bohr):  1.36381279896094186E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999467815298487E+02, 
+ Force Norm (Hartree/Bohr):  1.36381279895587647E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  4
      Geometry step                     :  4
      FORCES norm(Ha/Bohr): { maxval:  6.96651E-03, fnrm2:  1.85999E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.70999467815299E+02, -2.01295526380818E-06 ]
+     epred                             :  [ -1.70999467815298E+02, -2.01295517854305E-06 ]
      Alpha                             :  2.50E-1
      dt                                :  6.00E-2
      vnrm                              :  2.98E-03
      nstep                             :  4
      P                                 :  3.99E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.33227E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.70999470619176009E+02, 
- Force Norm (Hartree/Bohr):  1.58531821674919998E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999470619176037E+02, 
+ Force Norm (Hartree/Bohr):  1.58531821670018780E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  5
      Geometry step                     :  5
      FORCES norm(Ha/Bohr): { maxval:  7.40914E-03, fnrm2:  2.51323E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.70999470619176E+02, -2.80387746443012E-06 ]
+     epred                             :  [ -1.70999470619176E+02, -2.80387754969524E-06 ]
      Alpha                             :  2.50E-1
      dt                                :  6.00E-2
      vnrm                              :  3.81E-03
@@ -476,38 +468,40 @@
      P                                 :  5.53E-05
  - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.70999474152829919E+02, 
- Force Norm (Hartree/Bohr):  2.74990958164984256E-02}
+ Energy (Hartree): -1.70999474152829862E+02, 
+ Force Norm (Hartree/Bohr):  2.74990958132819915E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  6
      Geometry step                     :  6
      FORCES norm(Ha/Bohr): { maxval:  1.44242E-02, fnrm2:  7.56200E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.7099947415283E+02, -3.53365390992622E-06 ]
+     epred                             :  [ -1.7099947415283E+02, -3.53365382466109E-06 ]
      Alpha                             :  2.50E-1
      dt                                :  6.00E-2
      vnrm                              :  4.64E-03
      nstep                             :  6
      P                                 :  7.64E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 4.44089E-16 ), broadcasting from 
   #master node.
  Energy (Hartree): -1.70999476823217833E+02, 
- Force Norm (Hartree/Bohr):  6.44539724132558028E-02}
+ Force Norm (Hartree/Bohr):  6.44539724084856880E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  7
      Geometry step                     :  7
      FORCES norm(Ha/Bohr): { maxval:  3.93250E-02, fnrm2:  4.15431E-03, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.70999476823218E+02, -2.67038791434970E-06 ]
+     epred                             :  [ -1.70999476823218E+02, -2.67038797119312E-06 ]
      Alpha                             :  2.47E-1
      dt                                :  6.00E-2
      vnrm                              :  5.17E-03
      nstep                             :  7
      P                                 :  1.02E-04
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999478540505407E+02, 
- Force Norm (Hartree/Bohr):  1.00863154044482692E-01}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70999478540505407E+02, 
+ Force Norm (Hartree/Bohr):  1.00863154044184763E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  8
@@ -520,10 +514,8 @@
      vnrm                              :  5.35E-03
      nstep                             :  8
      P                                 :  7.87E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.55431E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.70999483781120404E+02, 
- Force Norm (Hartree/Bohr):  1.06484732064267631E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999483781120404E+02, 
+ Force Norm (Hartree/Bohr):  1.06484732069216576E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  9
@@ -536,38 +528,38 @@
      vnrm                              :  5.58E-03
      nstep                             :  9
      P                                 :  1.82E-05
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999492875769420E+02, 
- Force Norm (Hartree/Bohr):  8.60991228520492230E-02}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70999492875769477E+02, 
+ Force Norm (Hartree/Bohr):  8.60991228579217616E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  10
      Geometry step                     :  10
      FORCES norm(Ha/Bohr): { maxval:  5.26866E-02, fnrm2:  7.41306E-03, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.70999492875769E+02, -9.09464901610590E-06 ]
+     epred                             :  [ -1.70999492875769E+02, -9.09464907294932E-06 ]
      Alpha                             :  2.40E-1
      dt                                :  6.00E-2
      vnrm                              :  5.89E-03
      nstep                             :  10
      P                                 :  2.73E-05
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999502494854454E+02, 
- Force Norm (Hartree/Bohr):  6.66430704007525410E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999502494854426E+02, 
+ Force Norm (Hartree/Bohr):  6.66430704035487348E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  11
      Geometry step                     :  11
      FORCES norm(Ha/Bohr): { maxval:  3.94726E-02, fnrm2:  4.44130E-03, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.70999502494854E+02, -9.61908503427367E-06 ]
+     epred                             :  [ -1.70999502494854E+02, -9.61908494900854E-06 ]
      Alpha                             :  2.38E-1
      dt                                :  6.00E-2
      vnrm                              :  6.27E-03
      nstep                             :  11
      P                                 :  8.90E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.10942E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.70999511950186729E+02, 
- Force Norm (Hartree/Bohr):  6.60790671663570028E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999511950186701E+02, 
+ Force Norm (Hartree/Bohr):  6.60790671657564554E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  12
@@ -580,38 +572,40 @@
      vnrm                              :  6.85E-03
      nstep                             :  12
      P                                 :  1.46E-04
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999521632860592E+02, 
- Force Norm (Hartree/Bohr):  8.47164260455647716E-02}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 4.44089E-16 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70999521632860734E+02, 
+ Force Norm (Hartree/Bohr):  8.47164260432042293E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  13
      Geometry step                     :  13
      FORCES norm(Ha/Bohr): { maxval:  5.05882E-02, fnrm2:  7.17687E-03, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.70999521632861E+02, -9.68267386269872E-06 ]
+     epred                             :  [ -1.70999521632861E+02, -9.68267403322898E-06 ]
      Alpha                             :  2.33E-1
      dt                                :  6.00E-2
      vnrm                              :  7.57E-03
      nstep                             :  13
      P                                 :  1.89E-04
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.88738E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.70999532009030133E+02, 
- Force Norm (Hartree/Bohr):  1.11359576734592097E-01}
+ Energy (Hartree): -1.70999532009030162E+02, 
+ Force Norm (Hartree/Bohr):  1.11359576733117430E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  14
      Geometry step                     :  14
      FORCES norm(Ha/Bohr): { maxval:  6.77873E-02, fnrm2:  1.24010E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.7099953200903E+02, -1.03761695413596E-05 ]
+     epred                             :  [ -1.7099953200903E+02, -1.03761694276727E-05 ]
      Alpha                             :  2.31E-1
      dt                                :  6.00E-2
      vnrm                              :  8.27E-03
      nstep                             :  14
      P                                 :  2.08E-04
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999545236347018E+02, 
- Force Norm (Hartree/Bohr):  1.29273567339593665E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999545236347046E+02, 
+ Force Norm (Hartree/Bohr):  1.29273567340761508E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  15
@@ -624,120 +618,114 @@
      vnrm                              :  8.94E-03
      nstep                             :  15
      P                                 :  1.98E-04
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.70999563381643043E+02, 
- Force Norm (Hartree/Bohr):  1.31746372303081061E-01}
+ Energy (Hartree): -1.70999563381642986E+02, 
+ Force Norm (Hartree/Bohr):  1.31746372306271342E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  16
      Geometry step                     :  16
      FORCES norm(Ha/Bohr): { maxval:  8.01821E-02, fnrm2:  1.73571E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.70999563381643E+02, -1.81452960248407E-05 ]
+     epred                             :  [ -1.70999563381643E+02, -1.81452959395756E-05 ]
      Alpha                             :  2.26E-1
      dt                                :  6.00E-2
      vnrm                              :  9.67E-03
      nstep                             :  16
      P                                 :  2.07E-04
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.70999585954529778E+02, 
- Force Norm (Hartree/Bohr):  1.27008491887946634E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999585954529977E+02, 
+ Force Norm (Hartree/Bohr):  1.27008491890996278E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  17
      Geometry step                     :  17
      FORCES norm(Ha/Bohr): { maxval:  7.64686E-02, fnrm2:  1.61312E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.7099958595453E+02, -2.25728867349062E-05 ]
+     epred                             :  [ -1.7099958595453E+02, -2.25728869907016E-05 ]
      Alpha                             :  2.24E-1
      dt                                :  6.00E-2
      vnrm                              :  1.05E-02
      nstep                             :  17
      P                                 :  2.68E-04
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
   #master node.
  Energy (Hartree): -1.70999611885492641E+02, 
- Force Norm (Hartree/Bohr):  1.27881259642614903E-01}
+ Force Norm (Hartree/Bohr):  1.27881259644002931E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  18
      Geometry step                     :  18
      FORCES norm(Ha/Bohr): { maxval:  7.62404E-02, fnrm2:  1.63536E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.70999611885493E+02, -2.59309628631854E-05 ]
+     epred                             :  [ -1.70999611885493E+02, -2.59309626642334E-05 ]
      Alpha                             :  2.22E-1
      dt                                :  6.00E-2
      vnrm                              :  1.15E-02
      nstep                             :  18
      P                                 :  3.64E-04
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.70999641076235207E+02, 
- Force Norm (Hartree/Bohr):  1.40670788948816267E-01}
+ Energy (Hartree): -1.70999641076235093E+02, 
+ Force Norm (Hartree/Bohr):  1.40670788948662556E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  19
      Geometry step                     :  19
      FORCES norm(Ha/Bohr): { maxval:  8.40510E-02, fnrm2:  1.97883E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.70999641076235E+02, -2.91907425662430E-05 ]
+     epred                             :  [ -1.70999641076235E+02, -2.91907424525562E-05 ]
      Alpha                             :  2.19E-1
      dt                                :  6.00E-2
      vnrm                              :  1.26E-02
      nstep                             :  19
      P                                 :  4.68E-04
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999674576516611E+02, 
- Force Norm (Hartree/Bohr):  1.62556876454712146E-01}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.70999674576516668E+02, 
+ Force Norm (Hartree/Bohr):  1.62556876454330840E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  20
      Geometry step                     :  20
      FORCES norm(Ha/Bohr): { maxval:  9.76988E-02, fnrm2:  2.64247E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.70999674576517E+02, -3.35002814040308E-05 ]
+     epred                             :  [ -1.70999674576517E+02, -3.35002815745611E-05 ]
      Alpha                             :  2.17E-1
      dt                                :  6.00E-2
      vnrm                              :  1.38E-02
      nstep                             :  20
      P                                 :  5.61E-04
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.70999714564732955E+02, 
- Force Norm (Hartree/Bohr):  1.84976679689409257E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999714564732983E+02, 
+ Force Norm (Hartree/Bohr):  1.84976679690316920E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  21
      Geometry step                     :  21
      FORCES norm(Ha/Bohr): { maxval:  1.11764E-01, fnrm2:  3.42164E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.70999714564733E+02, -3.99882163435450E-05 ]
+     epred                             :  [ -1.70999714564733E+02, -3.99882163151233E-05 ]
      Alpha                             :  2.15E-1
      dt                                :  6.00E-2
      vnrm                              :  1.52E-02
      nstep                             :  21
      P                                 :  6.40E-04
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.55271E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.70999764076672420E+02, 
- Force Norm (Hartree/Bohr):  2.01048165465437884E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999764076672392E+02, 
+ Force Norm (Hartree/Bohr):  2.01048165467912904E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  22
      Geometry step                     :  22
      FORCES norm(Ha/Bohr): { maxval:  1.21368E-01, fnrm2:  4.04204E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.70999764076672E+02, -4.95119394656740E-05 ]
+     epred                             :  [ -1.70999764076672E+02, -4.95119394088306E-05 ]
      Alpha                             :  2.13E-1
      dt                                :  6.00E-2
      vnrm                              :  1.66E-02
      nstep                             :  22
      P                                 :  7.30E-04
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.70999824967150914E+02, 
- Force Norm (Hartree/Bohr):  2.11106112004354418E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.70999824967150886E+02, 
+ Force Norm (Hartree/Bohr):  2.11106112007355490E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  23
@@ -750,42 +738,40 @@
      vnrm                              :  1.81E-02
      nstep                             :  23
      P                                 :  8.72E-04
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.66454E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.70999898272803705E+02, 
- Force Norm (Hartree/Bohr):  2.21358338690457485E-01}
+ Energy (Hartree): -1.70999898272803762E+02, 
+ Force Norm (Hartree/Bohr):  2.21358338692870527E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  24
      Geometry step                     :  24
      FORCES norm(Ha/Bohr): { maxval:  1.32478E-01, fnrm2:  4.89995E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.70999898272804E+02, -7.33056527906228E-05 ]
+     epred                             :  [ -1.70999898272804E+02, -7.33056528758880E-05 ]
      Alpha                             :  2.09E-1
      dt                                :  6.00E-2
      vnrm                              :  1.99E-02
      nstep                             :  24
      P                                 :  1.08E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 6.66134E-16 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.70999984848279695E+02, 
- Force Norm (Hartree/Bohr):  2.37885725487618327E-01}
+ Energy (Hartree): -1.70999984848279723E+02, 
+ Force Norm (Hartree/Bohr):  2.37885725489113825E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  25
      Geometry step                     :  25
      FORCES norm(Ha/Bohr): { maxval:  1.42239E-01, fnrm2:  5.65896E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.7099998484828E+02, -8.65754759900028E-05 ]
+     epred                             :  [ -1.7099998484828E+02, -8.65754759615811E-05 ]
      Alpha                             :  2.07E-1
      dt                                :  6.00E-2
      vnrm                              :  2.18E-02
      nstep                             :  25
      P                                 :  1.34E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.71000087321213755E+02, 
- Force Norm (Hartree/Bohr):  2.62256056593057674E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71000087321213783E+02, 
+ Force Norm (Hartree/Bohr):  2.62256056594152687E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  26
@@ -798,56 +784,56 @@
      vnrm                              :  2.40E-02
      nstep                             :  26
      P                                 :  1.64E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.22125E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71000209567235459E+02, 
- Force Norm (Hartree/Bohr):  2.91090289044647010E-01}
+ Energy (Hartree): -1.71000209567235515E+02, 
+ Force Norm (Hartree/Bohr):  2.91090289046356143E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  27
      Geometry step                     :  27
      FORCES norm(Ha/Bohr): { maxval:  1.74569E-01, fnrm2:  8.47336E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71000209567235E+02, -1.22246021703631E-04 ]
+     epred                             :  [ -1.71000209567236E+02, -1.22246021732053E-04 ]
      Alpha                             :  2.02E-1
      dt                                :  6.00E-2
      vnrm                              :  2.64E-02
      nstep                             :  27
      P                                 :  1.96E-03
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71000357792688163E+02, 
- Force Norm (Hartree/Bohr):  3.19696787380329861E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71000357792688078E+02, 
+ Force Norm (Hartree/Bohr):  3.19696787383219216E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  28
      Geometry step                     :  28
      FORCES norm(Ha/Bohr): { maxval:  1.91571E-01, fnrm2:  1.02206E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71000357792688E+02, -1.48225452704764E-04 ]
+     epred                             :  [ -1.71000357792688E+02, -1.48225452562656E-04 ]
      Alpha                             :  2.00E-1
      dt                                :  6.00E-2
      vnrm                              :  2.90E-02
      nstep                             :  28
      P                                 :  2.34E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.66454E-15 ), broadcasting from 
   #master node.
  Energy (Hartree): -1.71000537795785817E+02, 
- Force Norm (Hartree/Bohr):  3.45902316988287994E-01}
+ Force Norm (Hartree/Bohr):  3.45902316991905046E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  29
      Geometry step                     :  29
      FORCES norm(Ha/Bohr): { maxval:  2.07286E-01, fnrm2:  1.19648E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71000537795786E+02, -1.80003097653980E-04 ]
+     epred                             :  [ -1.71000537795786E+02, -1.80003097739245E-04 ]
      Alpha                             :  1.98E-1
      dt                                :  6.00E-2
      vnrm                              :  3.19E-02
      nstep                             :  29
      P                                 :  2.80E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.99840E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
   #master node.
  Energy (Hartree): -1.71000756505376273E+02, 
- Force Norm (Hartree/Bohr):  3.71778862738856963E-01}
+ Force Norm (Hartree/Bohr):  3.71778862742349447E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  30
@@ -860,109 +846,105 @@
      vnrm                              :  3.50E-02
      nstep                             :  30
      P                                 :  3.41E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71001019579640626E+02, 
- Force Norm (Hartree/Bohr):  4.01331942062457647E-01}
+ Energy (Hartree): -1.71001019579640683E+02, 
+ Force Norm (Hartree/Bohr):  4.01331942065407121E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  31
      Geometry step                     :  31
      FORCES norm(Ha/Bohr): { maxval:  2.39574E-01, fnrm2:  1.61067E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71001019579641E+02, -2.63074264353236E-04 ]
+     epred                             :  [ -1.71001019579641E+02, -2.63074264410079E-04 ]
      Alpha                             :  1.94E-1
      dt                                :  6.00E-2
      vnrm                              :  3.86E-02
      nstep                             :  31
      P                                 :  4.17E-03
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71001336593809526E+02, 
- Force Norm (Hartree/Bohr):  4.37534774393637693E-01}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.71001336593809640E+02, 
+ Force Norm (Hartree/Bohr):  4.37534774396323989E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  32
      Geometry step                     :  32
      FORCES norm(Ha/Bohr): { maxval:  2.60490E-01, fnrm2:  1.91437E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.7100133659381E+02, -3.17014168899732E-04 ]
+     epred                             :  [ -1.7100133659381E+02, -3.17014168956575E-04 ]
      Alpha                             :  1.93E-1
      dt                                :  6.00E-2
      vnrm                              :  4.25E-02
      nstep                             :  32
      P                                 :  5.10E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.71001717705249860E+02, 
- Force Norm (Hartree/Bohr):  4.80063669023372219E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71001717705249916E+02, 
+ Force Norm (Hartree/Bohr):  4.80063669026501438E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  33
      Geometry step                     :  33
      FORCES norm(Ha/Bohr): { maxval:  2.86452E-01, fnrm2:  2.30461E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.7100171770525E+02, -3.81111440333370E-04 ]
+     epred                             :  [ -1.7100171770525E+02, -3.81111440276527E-04 ]
      Alpha                             :  1.91E-1
      dt                                :  6.00E-2
      vnrm                              :  4.69E-02
      nstep                             :  33
      P                                 :  6.19E-03
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71002180202590836E+02, 
- Force Norm (Hartree/Bohr):  5.26759086785475006E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71002180202590864E+02, 
+ Force Norm (Hartree/Bohr):  5.26759086789600484E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  34
      Geometry step                     :  34
      FORCES norm(Ha/Bohr): { maxval:  3.13578E-01, fnrm2:  2.77475E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71002180202591E+02, -4.62497340976142E-04 ]
+     epred                             :  [ -1.71002180202591E+02, -4.62497340947721E-04 ]
      Alpha                             :  1.89E-1
      dt                                :  6.00E-2
      vnrm                              :  5.17E-02
      nstep                             :  34
      P                                 :  7.50E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71002740513448089E+02, 
- Force Norm (Hartree/Bohr):  5.75274623415667374E-01}
+ Energy (Hartree): -1.71002740513448146E+02, 
+ Force Norm (Hartree/Bohr):  5.75274623420865217E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  35
      Geometry step                     :  35
      FORCES norm(Ha/Bohr): { maxval:  3.43129E-01, fnrm2:  3.30941E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71002740513448E+02, -5.60310857252944E-04 ]
+     epred                             :  [ -1.71002740513448E+02, -5.60310857281365E-04 ]
      Alpha                             :  1.87E-1
      dt                                :  6.00E-2
      vnrm                              :  5.70E-02
      nstep                             :  35
      P                                 :  9.08E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 4.44089E-16 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.71003423900379573E+02, 
- Force Norm (Hartree/Bohr):  6.25857840187911352E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71003423900379573E+02, 
+ Force Norm (Hartree/Bohr):  6.25857840193635884E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  36
      Geometry step                     :  36
      FORCES norm(Ha/Bohr): { maxval:  3.71766E-01, fnrm2:  3.91698E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.7100342390038E+02, -6.83386931484620E-04 ]
+     epred                             :  [ -1.7100342390038E+02, -6.83386931427776E-04 ]
      Alpha                             :  1.85E-1
      dt                                :  6.00E-2
      vnrm                              :  6.29E-02
      nstep                             :  36
      P                                 :  1.11E-02
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.71004251473587146E+02, 
- Force Norm (Hartree/Bohr):  6.80450036392985846E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71004251473587260E+02, 
+ Force Norm (Hartree/Bohr):  6.80450036398519309E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  37
      Geometry step                     :  37
      FORCES norm(Ha/Bohr): { maxval:  4.04918E-01, fnrm2:  4.63012E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71004251473587E+02, -8.27573207573096E-04 ]
+     epred                             :  [ -1.71004251473587E+02, -8.27573207686783E-04 ]
      Alpha                             :  1.83E-1
      dt                                :  6.00E-2
      vnrm                              :  6.94E-02
@@ -970,146 +952,148 @@
      P                                 :  1.35E-02
  - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71005259119109098E+02, 
- Force Norm (Hartree/Bohr):  7.42113822021809311E-01}
+ Energy (Hartree): -1.71005259119109240E+02, 
+ Force Norm (Hartree/Bohr):  7.42113822027098524E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  38
      Geometry step                     :  38
      FORCES norm(Ha/Bohr): { maxval:  4.39587E-01, fnrm2:  5.50733E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71005259119109E+02, -1.00764552195187E-03 ]
+     epred                             :  [ -1.71005259119109E+02, -1.00764552198029E-03 ]
      Alpha                             :  1.81E-1
      dt                                :  6.00E-2
      vnrm                              :  7.67E-02
      nstep                             :  38
      P                                 :  1.65E-02
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71006477926631021E+02, 
- Force Norm (Hartree/Bohr):  8.11864164482627548E-01}
+ Energy (Hartree): -1.71006477926631106E+02, 
+ Force Norm (Hartree/Bohr):  8.11864164488248830E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  39
      Geometry step                     :  39
      FORCES norm(Ha/Bohr): { maxval:  4.82434E-01, fnrm2:  6.59123E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71006477926631E+02, -1.21880752192283E-03 ]
+     epred                             :  [ -1.71006477926631E+02, -1.21880752186598E-03 ]
      Alpha                             :  1.79E-1
      dt                                :  6.00E-2
      vnrm                              :  8.47E-02
      nstep                             :  39
      P                                 :  2.01E-02
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71007964979144106E+02, 
- Force Norm (Hartree/Bohr):  8.89907088080893915E-01}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.71007964979144333E+02, 
+ Force Norm (Hartree/Bohr):  8.89907088087562248E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  40
      Geometry step                     :  40
      FORCES norm(Ha/Bohr): { maxval:  5.26312E-01, fnrm2:  7.91935E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71007964979144E+02, -1.48705251308456E-03 ]
+     epred                             :  [ -1.71007964979144E+02, -1.48705251322667E-03 ]
      Alpha                             :  1.78E-1
      dt                                :  6.00E-2
      vnrm                              :  9.37E-02
      nstep                             :  40
      P                                 :  2.46E-02
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.44169E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71009767988341082E+02, 
- Force Norm (Hartree/Bohr):  9.74460230789899184E-01}
+ Energy (Hartree): -1.71009767988341139E+02, 
+ Force Norm (Hartree/Bohr):  9.74460230797929983E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  41
      Geometry step                     :  41
      FORCES norm(Ha/Bohr): { maxval:  5.78623E-01, fnrm2:  9.49573E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71009767988341E+02, -1.80300919697629E-03 ]
+     epred                             :  [ -1.71009767988341E+02, -1.80300919680576E-03 ]
      Alpha                             :  1.76E-1
      dt                                :  6.00E-2
      vnrm                              :  1.04E-01
      nstep                             :  41
      P                                 :  2.99E-02
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.22045E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71011974761676470E+02, 
- Force Norm (Hartree/Bohr):  1.06579111398058446E+00}
+ Energy (Hartree): -1.71011974761676555E+02, 
+ Force Norm (Hartree/Bohr):  1.06579111398972159E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  42
      Geometry step                     :  42
      FORCES norm(Ha/Bohr): { maxval:  6.29058E-01, fnrm2:  1.13591E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71011974761676E+02, -2.20677333538788E-03 ]
+     epred                             :  [ -1.71011974761677E+02, -2.20677333541630E-03 ]
      Alpha                             :  1.74E-1
      dt                                :  6.00E-2
      vnrm                              :  1.14E-01
      nstep                             :  42
      P                                 :  3.65E-02
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.52651E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71014651241483278E+02, 
- Force Norm (Hartree/Bohr):  1.16407433235744406E+00}
+ Energy (Hartree): -1.71014651241483449E+02, 
+ Force Norm (Hartree/Bohr):  1.16407433236718516E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  43
      Geometry step                     :  43
      FORCES norm(Ha/Bohr): { maxval:  6.90186E-01, fnrm2:  1.35507E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71014651241483E+02, -2.67647980680863E-03 ]
+     epred                             :  [ -1.71014651241483E+02, -2.67647980689389E-03 ]
      Alpha                             :  1.72E-1
      dt                                :  6.00E-2
      vnrm                              :  1.27E-01
      nstep                             :  43
      P                                 :  4.46E-02
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.55271E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.71017927170296787E+02, 
- Force Norm (Hartree/Bohr):  1.27249504935309177E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71017927170297099E+02, 
+ Force Norm (Hartree/Bohr):  1.27249504936306113E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  44
      Geometry step                     :  44
      FORCES norm(Ha/Bohr): { maxval:  7.49043E-01, fnrm2:  1.61924E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71017927170297E+02, -3.27592881350824E-03 ]
+     epred                             :  [ -1.71017927170297E+02, -3.27592881365035E-03 ]
      Alpha                             :  1.71E-1
      dt                                :  6.00E-2
      vnrm                              :  1.40E-01
      nstep                             :  44
      P                                 :  5.45E-02
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.10942E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71021892898345101E+02, 
- Force Norm (Hartree/Bohr):  1.39174815485500791E+00}
+ Energy (Hartree): -1.71021892898345442E+02, 
+ Force Norm (Hartree/Bohr):  1.39174815486520309E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  45
      Geometry step                     :  45
      FORCES norm(Ha/Bohr): { maxval:  8.24052E-01, fnrm2:  1.93696E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71021892898345E+02, -3.96572804831408E-03 ]
+     epred                             :  [ -1.71021892898345E+02, -3.96572804834250E-03 ]
      Alpha                             :  1.69E-1
      dt                                :  6.00E-2
      vnrm                              :  1.55E-01
      nstep                             :  45
      P                                 :  6.65E-02
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71026744306013711E+02, 
- Force Norm (Hartree/Bohr):  1.52444974883790874E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71026744306014166E+02, 
+ Force Norm (Hartree/Bohr):  1.52444974884889461E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  46
      Geometry step                     :  46
      FORCES norm(Ha/Bohr): { maxval:  8.95394E-01, fnrm2:  2.32395E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71026744306014E+02, -4.85140766861036E-03 ]
+     epred                             :  [ -1.71026744306014E+02, -4.85140766872405E-03 ]
      Alpha                             :  1.67E-1
      dt                                :  6.00E-2
      vnrm                              :  1.71E-01
      nstep                             :  46
      P                                 :  8.11E-02
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71032605085744024E+02, 
- Force Norm (Hartree/Bohr):  1.66849968017132788E+00}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.71032605085744478E+02, 
+ Force Norm (Hartree/Bohr):  1.66849968018381078E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  47
@@ -1124,688 +1108,674 @@
      P                                 :  9.86E-02
  - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71039767157317243E+02, 
- Force Norm (Hartree/Bohr):  1.82592615669565062E+00}
+ Energy (Hartree): -1.71039767157317897E+02, 
+ Force Norm (Hartree/Bohr):  1.82592615670992831E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  48
      Geometry step                     :  48
      FORCES norm(Ha/Bohr): { maxval:  1.07045E+00, fnrm2:  3.33401E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71039767157317E+02, -7.16207157321946E-03 ]
+     epred                             :  [ -1.71039767157318E+02, -7.16207157341842E-03 ]
      Alpha                             :  1.64E-1
      dt                                :  6.00E-2
      vnrm                              :  2.09E-01
      nstep                             :  48
      P                                 :  1.20E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.71048381024982717E+02, 
- Force Norm (Hartree/Bohr):  1.99385824591804828E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71048381024983428E+02, 
+ Force Norm (Hartree/Bohr):  1.99385824593371441E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  49
      Geometry step                     :  49
      FORCES norm(Ha/Bohr): { maxval:  1.17881E+00, fnrm2:  3.97547E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71048381024983E+02, -8.61386766547412E-03 ]
+     epred                             :  [ -1.71048381024983E+02, -8.61386766553096E-03 ]
      Alpha                             :  1.62E-1
      dt                                :  6.00E-2
      vnrm                              :  2.31E-01
      nstep                             :  49
      P                                 :  1.45E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.33067E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.22045E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71058858878549245E+02, 
- Force Norm (Hartree/Bohr):  2.17674771797727873E+00}
+ Energy (Hartree): -1.71058858878550154E+02, 
+ Force Norm (Hartree/Bohr):  2.17674771799376465E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  50
      Geometry step                     :  50
      FORCES norm(Ha/Bohr): { maxval:  1.27404E+00, fnrm2:  4.73823E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71058858878549E+02, -1.04778535665275E-02 ]
+     epred                             :  [ -1.7105885887855E+02, -1.04778535667265E-02 ]
      Alpha                             :  1.61E-1
      dt                                :  6.00E-2
      vnrm                              :  2.55E-01
      nstep                             :  50
      P                                 :  1.75E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71071345027670930E+02, 
- Force Norm (Hartree/Bohr):  2.37079682081833765E+00}
+ Energy (Hartree): -1.71071345027672123E+02, 
+ Force Norm (Hartree/Bohr):  2.37079682083514909E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  51
      Geometry step                     :  51
      FORCES norm(Ha/Bohr): { maxval:  1.40110E+00, fnrm2:  5.62068E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71071345027671E+02, -1.24861491216848E-02 ]
+     epred                             :  [ -1.71071345027672E+02, -1.24861491219690E-02 ]
      Alpha                             :  1.59E-1
      dt                                :  6.00E-2
      vnrm                              :  2.81E-01
      nstep                             :  51
      P                                 :  2.09E-01
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71086382960868434E+02, 
- Force Norm (Hartree/Bohr):  2.58168671248709636E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71086382960869656E+02, 
+ Force Norm (Hartree/Bohr):  2.58168671250422133E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  52
      Geometry step                     :  52
      FORCES norm(Ha/Bohr): { maxval:  1.51075E+00, fnrm2:  6.66511E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71086382960868E+02, -1.50379331975046E-02 ]
+     epred                             :  [ -1.7108638296087E+02, -1.50379331975330E-02 ]
      Alpha                             :  1.57E-1
      dt                                :  6.00E-2
      vnrm                              :  3.09E-01
      nstep                             :  52
      P                                 :  2.48E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71104020440735752E+02, 
- Force Norm (Hartree/Bohr):  2.80014898478281093E+00}
+ Energy (Hartree): -1.71104020440737258E+02, 
+ Force Norm (Hartree/Bohr):  2.80014898480060159E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  53
      Geometry step                     :  53
      FORCES norm(Ha/Bohr): { maxval:  1.65571E+00, fnrm2:  7.84083E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71104020440736E+02, -1.76374798673180E-02 ]
+     epred                             :  [ -1.71104020440737E+02, -1.76374798676022E-02 ]
      Alpha                             :  1.56E-1
      dt                                :  6.00E-2
      vnrm                              :  3.38E-01
      nstep                             :  53
      P                                 :  2.91E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.71124886578537996E+02, 
- Force Norm (Hartree/Bohr):  3.03188456638809978E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71124886578539702E+02, 
+ Force Norm (Hartree/Bohr):  3.03188456640696646E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  54
      Geometry step                     :  54
      FORCES norm(Ha/Bohr): { maxval:  1.77868E+00, fnrm2:  9.19232E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71124886578538E+02, -2.08661378022441E-02 ]
+     epred                             :  [ -1.7112488657854E+02, -2.08661378024431E-02 ]
      Alpha                             :  1.54E-1
      dt                                :  6.00E-2
      vnrm                              :  3.69E-01
      nstep                             :  54
      P                                 :  3.38E-01
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71148717796095184E+02, 
- Force Norm (Hartree/Bohr):  3.25957858872559303E+00}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.71148717796097287E+02, 
+ Force Norm (Hartree/Bohr):  3.25957858874497219E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  55
      Geometry step                     :  55
      FORCES norm(Ha/Bohr): { maxval:  1.93050E+00, fnrm2:  1.06249E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71148717796095E+02, -2.38312175571878E-02 ]
+     epred                             :  [ -1.71148717796097E+02, -2.38312175575857E-02 ]
      Alpha                             :  1.53E-1
      dt                                :  6.00E-2
      vnrm                              :  4.01E-01
      nstep                             :  55
      P                                 :  3.83E-01
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71176073954049230E+02, 
- Force Norm (Hartree/Bohr):  3.49188776545207080E+00}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.71176073954051333E+02, 
+ Force Norm (Hartree/Bohr):  3.49188776547103163E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  56
      Geometry step                     :  56
      FORCES norm(Ha/Bohr): { maxval:  2.06167E+00, fnrm2:  1.21933E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71176073954049E+02, -2.73561579540456E-02 ]
+     epred                             :  [ -1.71176073954051E+02, -2.73561579540456E-02 ]
      Alpha                             :  1.51E-1
      dt                                :  6.00E-2
      vnrm                              :  4.32E-01
      nstep                             :  56
      P                                 :  4.26E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.52651E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 4.44089E-16 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71206080454414121E+02, 
- Force Norm (Hartree/Bohr):  3.70153234849129253E+00}
+ Energy (Hartree): -1.71206080454416423E+02, 
+ Force Norm (Hartree/Bohr):  3.70153234850853297E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  57
      Geometry step                     :  57
      FORCES norm(Ha/Bohr): { maxval:  2.19793E+00, fnrm2:  1.37013E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71206080454414E+02, -3.00065003648911E-02 ]
+     epred                             :  [ -1.71206080454416E+02, -3.00065003650900E-02 ]
      Alpha                             :  1.50E-1
      dt                                :  6.00E-2
      vnrm                              :  4.63E-01
      nstep                             :  57
      P                                 :  4.61E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.88658E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.71239119683937247E+02, 
- Force Norm (Hartree/Bohr):  3.90302552449679396E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71239119683939805E+02, 
+ Force Norm (Hartree/Bohr):  3.90302552451163809E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  58
      Geometry step                     :  58
      FORCES norm(Ha/Bohr): { maxval:  2.32748E+00, fnrm2:  1.52336E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71239119683937E+02, -3.30392295231263E-02 ]
+     epred                             :  [ -1.7123911968394E+02, -3.30392295233821E-02 ]
      Alpha                             :  1.48E-1
      dt                                :  6.00E-2
      vnrm                              :  4.91E-01
      nstep                             :  58
      P                                 :  4.87E-01
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71273719867103324E+02, 
- Force Norm (Hartree/Bohr):  4.05815867248606832E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71273719867105967E+02, 
+ Force Norm (Hartree/Bohr):  4.05815867249791484E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  59
      Geometry step                     :  59
      FORCES norm(Ha/Bohr): { maxval:  2.41554E+00, fnrm2:  1.64687E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71273719867103E+02, -3.46001831660772E-02 ]
+     epred                             :  [ -1.71273719867106E+02, -3.46001831661624E-02 ]
      Alpha                             :  1.47E-1
      dt                                :  6.00E-2
      vnrm                              :  5.16E-01
      nstep                             :  59
      P                                 :  5.01E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.71310451201434262E+02, 
- Force Norm (Hartree/Bohr):  4.18994525627178316E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71310451201436933E+02, 
+ Force Norm (Hartree/Bohr):  4.18994525628074665E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  60
      Geometry step                     :  60
      FORCES norm(Ha/Bohr): { maxval:  2.52090E+00, fnrm2:  1.75556E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71310451201434E+02, -3.67313343309377E-02 ]
+     epred                             :  [ -1.71310451201437E+02, -3.67313343309661E-02 ]
      Alpha                             :  1.45E-1
      dt                                :  6.00E-2
      vnrm                              :  5.38E-01
      nstep                             :  60
      P                                 :  5.08E-01
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71347827264756461E+02, 
- Force Norm (Hartree/Bohr):  4.26360972461924526E+00}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.33227E-15 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.71347827264759303E+02, 
+ Force Norm (Hartree/Bohr):  4.26360972462583021E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  61
      Geometry step                     :  61
      FORCES norm(Ha/Bohr): { maxval:  2.54109E+00, fnrm2:  1.81784E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71347827264756E+02, -3.73760633221991E-02 ]
+     epred                             :  [ -1.71347827264759E+02, -3.73760633223696E-02 ]
      Alpha                             :  1.44E-1
      dt                                :  6.00E-2
      vnrm                              :  5.56E-01
      nstep                             :  61
      P                                 :  5.14E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.71386995611456996E+02, 
- Force Norm (Hartree/Bohr):  4.32052216654511057E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71386995611459895E+02, 
+ Force Norm (Hartree/Bohr):  4.32052216655007459E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  62
      Geometry step                     :  62
      FORCES norm(Ha/Bohr): { maxval:  2.61120E+00, fnrm2:  1.86669E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71386995611457E+02, -3.91683467005350E-02 ]
+     epred                             :  [ -1.7138699561146E+02, -3.91683467005919E-02 ]
      Alpha                             :  1.42E-1
      dt                                :  6.00E-2
      vnrm                              :  5.73E-01
      nstep                             :  62
      P                                 :  5.24E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.55271E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.71426679177330044E+02, 
- Force Norm (Hartree/Bohr):  4.34887494002140773E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71426679177332886E+02, 
+ Force Norm (Hartree/Bohr):  4.34887494002605912E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  63
      Geometry step                     :  63
      FORCES norm(Ha/Bohr): { maxval:  2.59936E+00, fnrm2:  1.89127E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.7142667917733E+02, -3.96835658730481E-02 ]
+     epred                             :  [ -1.71426679177333E+02, -3.96835658729913E-02 ]
      Alpha                             :  1.41E-1
      dt                                :  6.00E-2
      vnrm                              :  5.87E-01
      nstep                             :  63
      P                                 :  5.41E-01
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71468431295086930E+02, 
- Force Norm (Hartree/Bohr):  4.40229222987062307E+00}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.71468431295089943E+02, 
+ Force Norm (Hartree/Bohr):  4.40229222987609070E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  64
      Geometry step                     :  64
      FORCES norm(Ha/Bohr): { maxval:  2.67419E+00, fnrm2:  1.93802E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71468431295087E+02, -4.17521177568858E-02 ]
+     epred                             :  [ -1.7146843129509E+02, -4.17521177570563E-02 ]
      Alpha                             :  1.40E-1
      dt                                :  6.00E-2
      vnrm                              :  6.02E-01
      nstep                             :  64
      P                                 :  5.67E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.71511489603332478E+02, 
- Force Norm (Hartree/Bohr):  4.46096994745521691E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71511489603335662E+02, 
+ Force Norm (Hartree/Bohr):  4.46096994746201858E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  65
      Geometry step                     :  65
      FORCES norm(Ha/Bohr): { maxval:  2.67218E+00, fnrm2:  1.99003E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71511489603332E+02, -4.30583082455485E-02 ]
+     epred                             :  [ -1.71511489603336E+02, -4.30583082457190E-02 ]
      Alpha                             :  1.38E-1
      dt                                :  6.00E-2
      vnrm                              :  6.17E-01
      nstep                             :  65
      P                                 :  6.07E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71558358760364285E+02, 
- Force Norm (Hartree/Bohr):  4.55075292976919155E+00}
+ Energy (Hartree): -1.71558358760367668E+02, 
+ Force Norm (Hartree/Bohr):  4.55075292977692580E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  66
      Geometry step                     :  66
      FORCES norm(Ha/Bohr): { maxval:  2.78335E+00, fnrm2:  2.07094E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71558358760364E+02, -4.68691570318072E-02 ]
+     epred                             :  [ -1.71558358760368E+02, -4.68691570320061E-02 ]
      Alpha                             :  1.37E-1
      dt                                :  6.00E-2
      vnrm                              :  6.36E-01
      nstep                             :  66
      P                                 :  6.68E-01
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71609039411576958E+02, 
- Force Norm (Hartree/Bohr):  4.65027181468026818E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71609039411580682E+02, 
+ Force Norm (Hartree/Bohr):  4.65027181468973527E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  67
      Geometry step                     :  67
      FORCES norm(Ha/Bohr): { maxval:  2.76812E+00, fnrm2:  2.16250E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71609039411577E+02, -5.06806512126730E-02 ]
+     epred                             :  [ -1.71609039411581E+02, -5.06806512130140E-02 ]
      Alpha                             :  1.35E-1
      dt                                :  6.00E-2
      vnrm                              :  6.58E-01
      nstep                             :  67
      P                                 :  7.56E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.33067E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71666689053210462E+02, 
- Force Norm (Hartree/Bohr):  4.77553436523152897E+00}
+ Energy (Hartree): -1.71666689053214782E+02, 
+ Force Norm (Hartree/Bohr):  4.77553436524339325E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  68
      Geometry step                     :  68
      FORCES norm(Ha/Bohr): { maxval:  2.95191E+00, fnrm2:  2.28057E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.7166668905321E+02, -5.76496416335033E-02 ]
+     epred                             :  [ -1.71666689053215E+02, -5.76496416341001E-02 ]
      Alpha                             :  1.34E-1
      dt                                :  6.00E-2
      vnrm                              :  6.87E-01
      nstep                             :  68
      P                                 :  8.71E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.71730915475132178E+02, 
- Force Norm (Hartree/Bohr):  4.94210847718842494E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71730915475136953E+02, 
+ Force Norm (Hartree/Bohr):  4.94210847720368562E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  69
      Geometry step                     :  69
      FORCES norm(Ha/Bohr): { maxval:  2.89672E+00, fnrm2:  2.44244E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71730915475132E+02, -6.42264219217168E-02 ]
+     epred                             :  [ -1.71730915475137E+02, -6.42264219221715E-02 ]
      Alpha                             :  1.33E-1
      dt                                :  6.00E-2
      vnrm                              :  7.23E-01
      nstep                             :  69
      P                                 :  1.00E+00
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.22045E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71804530102446904E+02, 
- Force Norm (Hartree/Bohr):  5.14200440458533681E+00}
+ Energy (Hartree): -1.71804530102452304E+02, 
+ Force Norm (Hartree/Bohr):  5.14200440460283126E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  70
      Geometry step                     :  70
      FORCES norm(Ha/Bohr): { maxval:  3.22687E+00, fnrm2:  2.64402E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71804530102447E+02, -7.36146273147256E-02 ]
+     epred                             :  [ -1.71804530102452E+02, -7.36146273153508E-02 ]
      Alpha                             :  1.31E-1
      dt                                :  6.00E-2
      vnrm                              :  7.64E-01
      nstep                             :  70
      P                                 :  1.14E+00
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.11022E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.71885890448523298E+02, 
- Force Norm (Hartree/Bohr):  5.37042409272266319E+00}
+ Energy (Hartree): -1.71885890448529324E+02, 
+ Force Norm (Hartree/Bohr):  5.37042409273980326E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  71
      Geometry step                     :  71
      FORCES norm(Ha/Bohr): { maxval:  3.10636E+00, fnrm2:  2.88415E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71885890448523E+02, -8.13603460763943E-02 ]
+     epred                             :  [ -1.71885890448529E+02, -8.13603460770196E-02 ]
      Alpha                             :  1.30E-1
      dt                                :  6.00E-2
      vnrm                              :  8.08E-01
      nstep                             :  71
      P                                 :  1.27E+00
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.71976505263743405E+02, 
- Force Norm (Hartree/Bohr):  5.57168184230758801E+00}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.71976505263749971E+02, 
+ Force Norm (Hartree/Bohr):  5.57168184232295260E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  72
      Geometry step                     :  72
      FORCES norm(Ha/Bohr): { maxval:  3.50164E+00, fnrm2:  3.10436E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.71976505263743E+02, -9.06148152201069E-02 ]
+     epred                             :  [ -1.7197650526375E+02, -9.06148152206470E-02 ]
      Alpha                             :  1.29E-1
      dt                                :  6.00E-2
      vnrm                              :  8.54E-01
      nstep                             :  72
      P                                 :  1.36E+00
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.22045E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72071266258396918E+02, 
- Force Norm (Hartree/Bohr):  5.74647233046767170E+00}
+ Energy (Hartree): -1.72071266258403796E+02, 
+ Force Norm (Hartree/Bohr):  5.74647233048271389E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  73
      Geometry step                     :  73
      FORCES norm(Ha/Bohr): { maxval:  3.34565E+00, fnrm2:  3.30219E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72071266258397E+02, -9.47609946535124E-02 ]
+     epred                             :  [ -1.72071266258404E+02, -9.47609946538250E-02 ]
      Alpha                             :  1.27E-1
      dt                                :  6.00E-2
      vnrm                              :  8.96E-01
      nstep                             :  73
      P                                 :  1.39E+00
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.99680E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72170732042305588E+02, 
- Force Norm (Hartree/Bohr):  5.95060724464056978E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72170732042312750E+02, 
+ Force Norm (Hartree/Bohr):  5.95060724465403634E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  74
      Geometry step                     :  74
      FORCES norm(Ha/Bohr): { maxval:  3.55664E+00, fnrm2:  3.54097E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72170732042306E+02, -9.94657839086699E-02 ]
+     epred                             :  [ -1.72170732042313E+02, -9.94657839089541E-02 ]
      Alpha                             :  1.26E-1
      dt                                :  6.00E-2
      vnrm                              :  9.32E-01
      nstep                             :  74
      P                                 :  1.44E+00
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72278959814909058E+02, 
- Force Norm (Hartree/Bohr):  5.96283680158196461E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72278959814917130E+02, 
+ Force Norm (Hartree/Bohr):  5.96283680157729012E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  75
      Geometry step                     :  75
      FORCES norm(Ha/Bohr): { maxval:  3.43743E+00, fnrm2:  3.55554E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72278959814909E+02, -1.08227772603470E-01 ]
+     epred                             :  [ -1.72278959814917E+02, -1.08227772604380E-01 ]
      Alpha                             :  1.25E-1
      dt                                :  6.00E-2
      vnrm                              :  9.71E-01
      nstep                             :  75
      P                                 :  1.63E+00
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.66454E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72399732996782291E+02, 
- Force Norm (Hartree/Bohr):  5.80276723263593297E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72399732996790817E+02, 
+ Force Norm (Hartree/Bohr):  5.80276723263007810E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  76
      Geometry step                     :  76
      FORCES norm(Ha/Bohr): { maxval:  3.38910E+00, fnrm2:  3.36721E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72399732996782E+02, -1.20773181873233E-01 ]
+     epred                             :  [ -1.72399732996791E+02, -1.20773181873687E-01 ]
      Alpha                             :  1.24E-1
      dt                                :  6.00E-2
      vnrm                              :  1.02E+00
      nstep                             :  76
      P                                 :  1.76E+00
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72517174554296616E+02, 
- Force Norm (Hartree/Bohr):  5.83203697477861294E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72517174554304489E+02, 
+ Force Norm (Hartree/Bohr):  5.83203697479968231E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  77
      Geometry step                     :  77
      FORCES norm(Ha/Bohr): { maxval:  3.55761E+00, fnrm2:  3.40127E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72517174554297E+02, -1.17441557514326E-01 ]
+     epred                             :  [ -1.72517174554304E+02, -1.17441557513672E-01 ]
      Alpha                             :  1.22E-1
      dt                                :  6.00E-2
      vnrm                              :  1.05E+00
      nstep                             :  77
      P                                 :  1.64E+00
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72621661546572454E+02, 
- Force Norm (Hartree/Bohr):  6.22015140522987231E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72621661546579048E+02, 
+ Force Norm (Hartree/Bohr):  6.22015140525842192E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  78
      Geometry step                     :  78
      FORCES norm(Ha/Bohr): { maxval:  3.70429E+00, fnrm2:  3.86903E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72621661546572E+02, -1.04486992275838E-01 ]
+     epred                             :  [ -1.72621661546579E+02, -1.04486992274559E-01 ]
      Alpha                             :  1.21E-1
      dt                                :  6.00E-2
      vnrm                              :  1.07E+00
      nstep                             :  78
      P                                 :  1.36E+00
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.10862E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72709347394939584E+02, 
- Force Norm (Hartree/Bohr):  6.35659277748677898E+00}
+ Energy (Hartree): -1.72709347394944842E+02, 
+ Force Norm (Hartree/Bohr):  6.35659277748861573E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  79
      Geometry step                     :  79
      FORCES norm(Ha/Bohr): { maxval:  4.23935E+00, fnrm2:  4.04063E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.7270934739494E+02, -8.76858483671299E-02 ]
+     epred                             :  [ -1.72709347394945E+02, -8.76858483657941E-02 ]
      Alpha                             :  1.20E-1
      dt                                :  6.00E-2
      vnrm                              :  1.06E+00
      nstep                             :  79
      P                                 :  9.50E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72772695642311874E+02, 
- Force Norm (Hartree/Bohr):  6.08888557612996451E+00}
+ Energy (Hartree): -1.72772695642314943E+02, 
+ Force Norm (Hartree/Bohr):  6.08888557609926195E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  80
      Geometry step                     :  80
      FORCES norm(Ha/Bohr): { maxval:  3.77424E+00, fnrm2:  3.70745E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72772695642312E+02, -6.33482473722893E-02 ]
+     epred                             :  [ -1.72772695642315E+02, -6.33482473701008E-02 ]
      Alpha                             :  1.19E-1
      dt                                :  6.00E-2
      vnrm                              :  1.02E+00
      nstep                             :  80
      P                                 :  3.01E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72794856888198808E+02, 
- Force Norm (Hartree/Bohr):  5.62180269337936789E+00}
+ Energy (Hartree): -1.72794856888199035E+02, 
+ Force Norm (Hartree/Bohr):  5.62180269334293925E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  81
      Geometry step                     :  81
      FORCES norm(Ha/Bohr): { maxval:  3.58726E+00, fnrm2:  3.16047E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72794856888199E+02, -2.21612458869345E-02 ]
+     epred                             :  [ -1.72794856888199E+02, -2.21612458840923E-02 ]
      Alpha                             :  1.18E-1
      dt                                :  6.00E-2
      vnrm                              :  9.33E-01
      nstep                             :  81
      P                                 : -4.56E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.11022E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72807014221124348E+02, 
- Force Norm (Hartree/Bohr):  4.05489649724083367E+00}
+ Energy (Hartree): -1.72807014221124376E+02, 
+ Force Norm (Hartree/Bohr):  4.05489649722208068E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  82
      Geometry step                     :  82
      FORCES norm(Ha/Bohr): { maxval:  2.31161E+00, fnrm2:  1.64422E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72807014221124E+02, -1.21573329255398E-02 ]
+     epred                             :  [ -1.72807014221124E+02, -1.21573329253408E-02 ]
      Alpha                             :  2.50E-1
      dt                                :  3.00E-2
      vnrm                              :  1.45E-01
      nstep                             :  1
      P                                 :  5.83E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.60902E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
  Energy (Hartree): -1.72821123067155952E+02, 
- Force Norm (Hartree/Bohr):  2.35983629467169509E+00}
+ Force Norm (Hartree/Bohr):  2.35983629467306555E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  83
      Geometry step                     :  83
      FORCES norm(Ha/Bohr): { maxval:  9.17011E-01, fnrm2:  5.56883E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72821123067156E+02, -1.41088460316041E-02 ]
+     epred                             :  [ -1.72821123067156E+02, -1.41088460315757E-02 ]
      Alpha                             :  2.50E-1
      dt                                :  3.00E-2
      vnrm                              :  2.16E-01
      nstep                             :  2
      P                                 :  1.92E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72827909287368982E+02, 
- Force Norm (Hartree/Bohr):  3.46750950617988885E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72827909287369039E+02, 
+ Force Norm (Hartree/Bohr):  3.46750950615810982E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  84
      Geometry step                     :  84
      FORCES norm(Ha/Bohr): { maxval:  2.08810E+00, fnrm2:  1.20236E+01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72827909287369E+02, -6.78622021302999E-03 ]
+     epred                             :  [ -1.72827909287369E+02, -6.78622021308684E-03 ]
      Alpha                             :  2.50E-1
      dt                                :  3.00E-2
      vnrm                              :  2.25E-01
      nstep                             :  3
      P                                 :  2.78E-01
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72842780593466898E+02, 
- Force Norm (Hartree/Bohr):  2.14507592638016886E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72842780593467012E+02, 
+ Force Norm (Hartree/Bohr):  2.14507592636618449E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  85
      Geometry step                     :  85
      FORCES norm(Ha/Bohr): { maxval:  1.03347E+00, fnrm2:  4.60135E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72842780593467E+02, -1.48713060979162E-02 ]
+     epred                             :  [ -1.72842780593467E+02, -1.48713060979730E-02 ]
      Alpha                             :  2.50E-1
      dt                                :  3.00E-2
      vnrm                              :  2.58E-01
      nstep                             :  4
      P                                 :  4.77E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 7.21645E-16 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72852382795008850E+02, 
- Force Norm (Hartree/Bohr):  2.06785180197974272E+00}
+ Energy (Hartree): -1.72852382795008651E+02, 
+ Force Norm (Hartree/Bohr):  2.06785180197726559E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  86
      Geometry step                     :  86
      FORCES norm(Ha/Bohr): { maxval:  1.19982E+00, fnrm2:  4.27601E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72852382795009E+02, -9.60220154195213E-03 ]
+     epred                             :  [ -1.72852382795009E+02, -9.60220154163949E-03 ]
      Alpha                             :  2.50E-1
      dt                                :  3.00E-2
      vnrm                              :  2.87E-01
      nstep                             :  5
      P                                 :  1.40E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.55271E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.44249E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72860553691804853E+02, 
- Force Norm (Hartree/Bohr):  1.86785822976821647E+00}
+ Energy (Hartree): -1.72860553691804910E+02, 
+ Force Norm (Hartree/Bohr):  1.86785822975335880E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  87
      Geometry step                     :  87
      FORCES norm(Ha/Bohr): { maxval:  1.13575E+00, fnrm2:  3.48889E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72860553691805E+02, -8.17089679600258E-03 ]
+     epred                             :  [ -1.72860553691805E+02, -8.17089679625838E-03 ]
      Alpha                             :  2.50E-1
      dt                                :  3.00E-2
      vnrm                              :  2.74E-01
      nstep                             :  6
      P                                 :  2.80E-01
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72867595914431320E+02, 
- Force Norm (Hartree/Bohr):  1.43144670857504619E+00}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72867595914431263E+02, 
+ Force Norm (Hartree/Bohr):  1.43144670858542900E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  88
      Geometry step                     :  88
      FORCES norm(Ha/Bohr): { maxval:  8.61383E-01, fnrm2:  2.04904E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72867595914431E+02, -7.04222262646681E-03 ]
+     epred                             :  [ -1.72867595914431E+02, -7.04222262635312E-03 ]
      Alpha                             :  2.47E-1
      dt                                :  3.30E-2
      vnrm                              :  2.75E-01
      nstep                             :  7
      P                                 :  6.44E-02
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72872689671228500E+02, 
- Force Norm (Hartree/Bohr):  9.43126821719998509E-01}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.72872689671228585E+02, 
+ Force Norm (Hartree/Bohr):  9.43126821711252172E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  89
      Geometry step                     :  89
      FORCES norm(Ha/Bohr): { maxval:  5.31790E-01, fnrm2:  8.89488E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72872689671228E+02, -5.09375679718005E-03 ]
+     epred                             :  [ -1.72872689671229E+02, -5.09375679732216E-03 ]
      Alpha                             :  2.45E-1
      dt                                :  3.63E-2
      vnrm                              :  2.49E-01
      nstep                             :  8
      P                                 :  1.14E-01
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.33227E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72873168215751150E+02, 
- Force Norm (Hartree/Bohr):  2.04018618437483568E+00}
+ Energy (Hartree): -1.72873168215751207E+02, 
+ Force Norm (Hartree/Bohr):  2.04018618438499422E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  90
      Geometry step                     :  90
      FORCES norm(Ha/Bohr): { maxval:  1.45369E+00, fnrm2:  4.16236E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72873168215751E+02, -4.78544522650282E-04 ]
+     epred                             :  [ -1.72873168215751E+02, -4.78544522621860E-04 ]
      Alpha                             :  2.43E-1
      dt                                :  3.99E-2
      vnrm                              :  2.29E-01
      nstep                             :  9
      P                                 : -5.41E-02
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.11022E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.33147E-15 ), broadcasting from 
   #master node.
  Energy (Hartree): -1.72873933265870960E+02, 
- Force Norm (Hartree/Bohr):  1.72398296251584560E+00}
+ Force Norm (Hartree/Bohr):  1.72398296252454175E+00}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  91
      Geometry step                     :  91
      FORCES norm(Ha/Bohr): { maxval:  1.21823E+00, fnrm2:  2.97212E+00, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72873933265871E+02, -7.65050119809985E-04 ]
+     epred                             :  [ -1.72873933265871E+02, -7.65050119753141E-04 ]
      Alpha                             :  2.50E-1
      dt                                :  2.00E-2
      vnrm                              :  3.76E-02
      nstep                             :  1
      P                                 :  6.48E-02
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.66533E-15 ), broadcasting from 
   #master node.
  Energy (Hartree): -1.72875356428663281E+02, 
- Force Norm (Hartree/Bohr):  9.02347015319299950E-01}
+ Force Norm (Hartree/Bohr):  9.02347015324021617E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  92
@@ -1820,24 +1790,24 @@
      P                                 :  5.62E-02
  - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72875883635951254E+02, 
- Force Norm (Hartree/Bohr):  4.85641513676236591E-01}
+ Energy (Hartree): -1.72875883635951283E+02, 
+ Force Norm (Hartree/Bohr):  4.85641513679352876E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  93
      Geometry step                     :  93
      FORCES norm(Ha/Bohr): { maxval:  2.21933E-01, fnrm2:  2.35848E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72875883635951E+02, -5.27207287973397E-04 ]
+     epred                             :  [ -1.72875883635951E+02, -5.27207288001819E-04 ]
      Alpha                             :  2.50E-1
      dt                                :  2.00E-2
      vnrm                              :  7.08E-02
      nstep                             :  3
      P                                 : -9.53E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.52651E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.55431E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72875895278792569E+02, 
- Force Norm (Hartree/Bohr):  4.76774760617599436E-01}
+ Energy (Hartree): -1.72875895278792598E+02, 
+ Force Norm (Hartree/Bohr):  4.76774760620609639E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  94
@@ -1850,63 +1820,61 @@
      vnrm                              :  4.80E-03
      nstep                             :  1
      P                                 :  2.29E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.55431E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.47105E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72875928541425878E+02, 
- Force Norm (Hartree/Bohr):  4.51915188356936282E-01}
+ Energy (Hartree): -1.72875928541425822E+02, 
+ Force Norm (Hartree/Bohr):  4.51915188359782449E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  95
      Geometry step                     :  95
      FORCES norm(Ha/Bohr): { maxval:  1.86477E-01, fnrm2:  2.04227E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72875928541426E+02, -3.32626333090502E-05 ]
+     epred                             :  [ -1.72875928541426E+02, -3.32626332237851E-05 ]
      Alpha                             :  2.50E-1
      dt                                :  9.98E-3
      vnrm                              :  9.44E-03
      nstep                             :  2
      P                                 :  4.26E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72875978969770443E+02, 
- Force Norm (Hartree/Bohr):  4.16486128935706745E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72875978969770443E+02, 
+ Force Norm (Hartree/Bohr):  4.16486128938422906E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  96
      Geometry step                     :  96
      FORCES norm(Ha/Bohr): { maxval:  1.58626E-01, fnrm2:  1.73461E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.7287597896977E+02, -5.04283445650344E-05 ]
+     epred                             :  [ -1.7287597896977E+02, -5.04283446218778E-05 ]
      Alpha                             :  2.50E-1
      dt                                :  9.98E-3
      vnrm                              :  1.38E-02
      nstep                             :  3
      P                                 :  5.69E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.19269E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72876040876807053E+02, 
- Force Norm (Hartree/Bohr):  3.79262094574753017E-01}
+ Energy (Hartree): -1.72876040876806940E+02, 
+ Force Norm (Hartree/Bohr):  3.79262094577276776E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  97
      Geometry step                     :  97
      FORCES norm(Ha/Bohr): { maxval:  1.55160E-01, fnrm2:  1.43840E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72876040876807E+02, -6.19070366099095E-05 ]
+     epred                             :  [ -1.72876040876807E+02, -6.19070364962226E-05 ]
      Alpha                             :  2.50E-1
      dt                                :  9.98E-3
      vnrm                              :  1.77E-02
      nstep                             :  4
      P                                 :  6.56E-03
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72876109483483845E+02, 
- Force Norm (Hartree/Bohr):  3.49893704307715714E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72876109483483759E+02, 
+ Force Norm (Hartree/Bohr):  3.49893704310057951E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  98
      Geometry step                     :  98
      FORCES norm(Ha/Bohr): { maxval:  1.50582E-01, fnrm2:  1.22426E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72876109483484E+02, -6.86066767912052E-05 ]
+     epred                             :  [ -1.72876109483484E+02, -6.86066768196270E-05 ]
      Alpha                             :  2.50E-1
      dt                                :  9.98E-3
      vnrm                              :  2.11E-02
@@ -1914,150 +1882,140 @@
      P                                 :  7.05E-03
  - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72876182674087886E+02, 
- Force Norm (Hartree/Bohr):  3.33111068890468487E-01}
+ Energy (Hartree): -1.72876182674087715E+02, 
+ Force Norm (Hartree/Bohr):  3.33111068892672335E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  99
      Geometry step                     :  99
      FORCES norm(Ha/Bohr): { maxval:  1.44836E-01, fnrm2:  1.10963E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72876182674088E+02, -7.31906040414287E-05 ]
+     epred                             :  [ -1.72876182674088E+02, -7.31906039561636E-05 ]
      Alpha                             :  2.50E-1
      dt                                :  9.98E-3
      vnrm                              :  2.42E-02
      nstep                             :  6
      P                                 :  7.47E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.22045E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72876269110532292E+02, 
- Force Norm (Hartree/Bohr):  3.23848084652576862E-01}
+ Energy (Hartree): -1.72876269110532206E+02, 
+ Force Norm (Hartree/Bohr):  3.23848084654693169E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  100
      Geometry step                     :  100
      FORCES norm(Ha/Bohr): { maxval:  1.37226E-01, fnrm2:  1.04878E-01, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72876269110532E+02, -8.64364444055354E-05 ]
+     epred                             :  [ -1.72876269110532E+02, -8.64364444908006E-05 ]
      Alpha                             :  2.47E-1
      dt                                :  1.10E-2
      vnrm                              :  2.72E-02
      nstep                             :  7
      P                                 :  8.09E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72876372937673636E+02, 
- Force Norm (Hartree/Bohr):  3.11811721680298970E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72876372937673693E+02, 
+ Force Norm (Hartree/Bohr):  3.11811721682314802E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  101
      Geometry step                     :  101
      FORCES norm(Ha/Bohr): { maxval:  1.27553E-01, fnrm2:  9.72265E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72876372937674E+02, -1.03827141344937E-04 ]
+     epred                             :  [ -1.72876372937674E+02, -1.03827141487045E-04 ]
      Alpha                             :  2.45E-1
      dt                                :  1.21E-2
      vnrm                              :  3.04E-02
      nstep                             :  8
      P                                 :  8.87E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72876496442902294E+02, 
- Force Norm (Hartree/Bohr):  2.87885690915879899E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72876496442902209E+02, 
+ Force Norm (Hartree/Bohr):  2.87885690917763670E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  102
      Geometry step                     :  102
      FORCES norm(Ha/Bohr): { maxval:  1.15814E-01, fnrm2:  8.28782E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72876496442902E+02, -1.23505228657450E-04 ]
+     epred                             :  [ -1.72876496442902E+02, -1.23505228515342E-04 ]
      Alpha                             :  2.43E-1
      dt                                :  1.33E-2
      vnrm                              :  3.39E-02
      nstep                             :  9
      P                                 :  9.47E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72876636533276951E+02, 
- Force Norm (Hartree/Bohr):  2.55909177362431961E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72876636533277008E+02, 
+ Force Norm (Hartree/Bohr):  2.55909177364142926E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  103
      Geometry step                     :  103
      FORCES norm(Ha/Bohr): { maxval:  1.02287E-01, fnrm2:  6.54895E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72876636533277E+02, -1.40090374657120E-04 ]
+     epred                             :  [ -1.72876636533277E+02, -1.40090374799229E-04 ]
      Alpha                             :  2.40E-1
      dt                                :  1.46E-2
      vnrm                              :  3.76E-02
      nstep                             :  10
      P                                 :  9.50E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.52651E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72876786887369178E+02, 
- Force Norm (Hartree/Bohr):  2.30554466557974652E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72876786887369121E+02, 
+ Force Norm (Hartree/Bohr):  2.30554466559619198E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  104
      Geometry step                     :  104
      FORCES norm(Ha/Bohr): { maxval:  8.76487E-02, fnrm2:  5.31554E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72876786887369E+02, -1.50354092227190E-04 ]
+     epred                             :  [ -1.72876786887369E+02, -1.50354092113503E-04 ]
      Alpha                             :  2.38E-1
      dt                                :  1.61E-2
      vnrm                              :  4.13E-02
      nstep                             :  11
      P                                 :  9.07E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72876944857247395E+02, 
- Force Norm (Hartree/Bohr):  2.07774795089376713E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72876944857247565E+02, 
+ Force Norm (Hartree/Bohr):  2.07774795090940767E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  105
      Geometry step                     :  105
      FORCES norm(Ha/Bohr): { maxval:  7.29127E-02, fnrm2:  4.31704E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72876944857247E+02, -1.57969878216591E-04 ]
+     epred                             :  [ -1.72876944857248E+02, -1.57969878443964E-04 ]
      Alpha                             :  2.35E-1
      dt                                :  1.77E-2
      vnrm                              :  4.47E-02
      nstep                             :  12
      P                                 :  8.60E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 6.66134E-16 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72877106928622084E+02, 
- Force Norm (Hartree/Bohr):  1.73782651013705186E-01}
+ Energy (Hartree): -1.72877106928621970E+02, 
+ Force Norm (Hartree/Bohr):  1.73782651015142620E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  106
      Geometry step                     :  106
      FORCES norm(Ha/Bohr): { maxval:  5.90110E-02, fnrm2:  3.02004E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877106928622E+02, -1.62071374688821E-04 ]
+     epred                             :  [ -1.72877106928622E+02, -1.62071374404604E-04 ]
      Alpha                             :  2.33E-1
      dt                                :  1.95E-2
      vnrm                              :  4.76E-02
      nstep                             :  13
      P                                 :  7.78E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72877262190576090E+02, 
- Force Norm (Hartree/Bohr):  1.51580343363699743E-01}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877262190576005E+02, 
+ Force Norm (Hartree/Bohr):  1.51580343365046361E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  107
      Geometry step                     :  107
      FORCES norm(Ha/Bohr): { maxval:  4.73172E-02, fnrm2:  2.29766E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877262190576E+02, -1.55261954006392E-04 ]
+     epred                             :  [ -1.72877262190576E+02, -1.55261954034813E-04 ]
      Alpha                             :  2.31E-1
      dt                                :  2.14E-2
      vnrm                              :  5.03E-02
      nstep                             :  14
      P                                 :  6.54E-03
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877406698545059E+02, 
- Force Norm (Hartree/Bohr):  1.23971218027813287E-01}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.30291E-15 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.72877406698544974E+02, 
+ Force Norm (Hartree/Bohr):  1.23971218029070615E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  108
@@ -2070,54 +2028,56 @@
      vnrm                              :  5.18E-02
      nstep                             :  15
      P                                 :  5.40E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.66454E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.44329E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72877532975502277E+02, 
- Force Norm (Hartree/Bohr):  1.09427737035861949E-01}
+ Energy (Hartree): -1.72877532975502135E+02, 
+ Force Norm (Hartree/Bohr):  1.09427737037108314E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  109
      Geometry step                     :  109
      FORCES norm(Ha/Bohr): { maxval:  3.74744E-02, fnrm2:  1.19744E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877532975502E+02, -1.26276957217897E-04 ]
+     epred                             :  [ -1.72877532975502E+02, -1.26276957161053E-04 ]
      Alpha                             :  2.26E-1
      dt                                :  2.59E-2
      vnrm                              :  5.28E-02
      nstep                             :  16
      P                                 :  4.08E-03
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 6.66134E-16 ), broadcasting from 
   #master node.
  Energy (Hartree): -1.72877635920750663E+02, 
- Force Norm (Hartree/Bohr):  8.68728169067094630E-02}
+ Force Norm (Hartree/Bohr):  8.68728169077516710E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  110
      Geometry step                     :  110
      FORCES norm(Ha/Bohr): { maxval:  2.93744E-02, fnrm2:  7.54689E-03, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877635920751E+02, -1.02945248386277E-04 ]
+     epred                             :  [ -1.72877635920751E+02, -1.02945248528385E-04 ]
      Alpha                             :  2.24E-1
      dt                                :  2.85E-2
      vnrm                              :  5.20E-02
      nstep                             :  17
      P                                 :  2.71E-03
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877702941987195E+02, 
- Force Norm (Hartree/Bohr):  7.48989103120440425E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877702941987309E+02, 
+ Force Norm (Hartree/Bohr):  7.48989103118904015E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  111
      Geometry step                     :  111
      FORCES norm(Ha/Bohr): { maxval:  4.19354E-02, fnrm2:  5.60985E-03, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877702941987E+02, -6.70212365321277E-05 ]
+     epred                             :  [ -1.72877702941987E+02, -6.70212366458145E-05 ]
      Alpha                             :  2.22E-1
      dt                                :  3.13E-2
      vnrm                              :  4.96E-02
      nstep                             :  18
      P                                 :  1.14E-03
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877712034938611E+02, 
- Force Norm (Hartree/Bohr):  1.49249138499386619E-01}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.33227E-15 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.72877712034938725E+02, 
+ Force Norm (Hartree/Bohr):  1.49249138498727119E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  112
@@ -2130,104 +2090,98 @@
      vnrm                              :  4.35E-02
      nstep                             :  19
      P                                 : -8.93E-04
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.77556E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72877715149189385E+02, 
- Force Norm (Hartree/Bohr):  1.31905967198944485E-01}
+ Energy (Hartree): -1.72877715149189441E+02, 
+ Force Norm (Hartree/Bohr):  1.31905967198388402E-01}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  113
      Geometry step                     :  113
      FORCES norm(Ha/Bohr): { maxval:  9.39959E-02, fnrm2:  1.73992E-02, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877715149189E+02, -3.11425077370586E-06 ]
+     epred                             :  [ -1.72877715149189E+02, -3.11425071686244E-06 ]
      Alpha                             :  2.50E-1
      dt                                :  1.72E-2
      vnrm                              :  2.42E-03
      nstep                             :  1
      P                                 :  3.19E-04
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877721773588775E+02, 
- Force Norm (Hartree/Bohr):  8.49567081165056581E-02}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 6.66134E-16 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.72877721773588803E+02, 
+ Force Norm (Hartree/Bohr):  8.49567081161933801E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  114
      Geometry step                     :  114
      FORCES norm(Ha/Bohr): { maxval:  5.83863E-02, fnrm2:  7.21764E-03, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877721773589E+02, -6.62439938992065E-06 ]
+     epred                             :  [ -1.72877721773589E+02, -6.62439936149894E-06 ]
      Alpha                             :  2.50E-1
      dt                                :  1.72E-2
      vnrm                              :  4.28E-03
      nstep                             :  2
      P                                 :  3.62E-04
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.83107E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72877726279245053E+02, 
- Force Norm (Hartree/Bohr):  3.15230190269788491E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877726279244911E+02, 
+ Force Norm (Hartree/Bohr):  3.15230190270239727E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  115
      Geometry step                     :  115
      FORCES norm(Ha/Bohr): { maxval:  1.20129E-02, fnrm2:  9.93701E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877726279245E+02, -4.50565627829747E-06 ]
+     epred                             :  [ -1.72877726279245E+02, -4.50565610776721E-06 ]
      Alpha                             :  2.50E-1
      dt                                :  1.72E-2
      vnrm                              :  5.18E-03
      nstep                             :  3
      P                                 :  1.07E-04
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72877726260865131E+02, 
- Force Norm (Hartree/Bohr):  5.51594241490211551E-02}
+ Energy (Hartree): -1.72877726260865245E+02, 
+ Force Norm (Hartree/Bohr):  5.51594241488534143E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  116
      Geometry step                     :  116
      FORCES norm(Ha/Bohr): { maxval:  3.45256E-02, fnrm2:  3.04256E-03, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877726260865E+02,  1.83799215847102E-08 ]
+     epred                             :  [ -1.72877726260865E+02,  1.83796657893254E-08 ]
      Alpha                             :  2.50E-1
      dt                                :  1.72E-2
      vnrm                              :  4.85E-03
      nstep                             :  4
      P                                 : -1.06E-04
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.22045E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72877726372439497E+02, 
- Force Norm (Hartree/Bohr):  5.38471473679085419E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877726372439724E+02, 
+ Force Norm (Hartree/Bohr):  5.38471473677648374E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  117
      Geometry step                     :  117
      FORCES norm(Ha/Bohr): { maxval:  3.34534E-02, fnrm2:  2.89952E-03, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877726372439E+02, -1.11574365746492E-07 ]
+     epred                             :  [ -1.7287772637244E+02, -1.11574479433330E-07 ]
      Alpha                             :  2.50E-1
      dt                                :  8.62E-3
      vnrm                              :  4.70E-04
      nstep                             :  1
      P                                 :  2.53E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.48492E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72877726686257745E+02, 
- Force Norm (Hartree/Bohr):  5.00427792283408487E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877726686257859E+02, 
+ Force Norm (Hartree/Bohr):  5.00427792282270578E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  118
      Geometry step                     :  118
      FORCES norm(Ha/Bohr): { maxval:  3.03041E-02, fnrm2:  2.50428E-03, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877726686258E+02, -3.13818247832387E-07 ]
+     epred                             :  [ -1.72877726686258E+02, -3.13818134145549E-07 ]
      Alpha                             :  2.50E-1
      dt                                :  8.62E-3
      vnrm                              :  9.17E-04
      nstep                             :  2
      P                                 :  4.59E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72877727144792175E+02, 
- Force Norm (Hartree/Bohr):  4.41747152634975396E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877727144792289E+02, 
+ Force Norm (Hartree/Bohr):  4.41747152633880022E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  119
@@ -2240,153 +2194,157 @@
      vnrm                              :  1.32E-03
      nstep                             :  3
      P                                 :  5.82E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.66454E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.38698E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72877727668814146E+02, 
- Force Norm (Hartree/Bohr):  3.70582545804162486E-02}
+ Energy (Hartree): -1.72877727668814089E+02, 
+ Force Norm (Hartree/Bohr):  3.70582545803273197E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  120
      Geometry step                     :  120
      FORCES norm(Ha/Bohr): { maxval:  1.87736E-02, fnrm2:  1.37331E-03, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877727668814E+02, -5.24021970704780E-07 ]
+     epred                             :  [ -1.72877727668814E+02, -5.24021800174523E-07 ]
      Alpha                             :  2.50E-1
      dt                                :  8.62E-3
      vnrm                              :  1.67E-03
      nstep                             :  4
      P                                 :  6.09E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.55271E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.83107E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72877728179931438E+02, 
- Force Norm (Hartree/Bohr):  3.00814309707828770E-02}
+ Energy (Hartree): -1.72877728179931523E+02, 
+ Force Norm (Hartree/Bohr):  3.00814309707542055E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  121
      Geometry step                     :  121
      FORCES norm(Ha/Bohr): { maxval:  1.13176E-02, fnrm2:  9.04892E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877728179931E+02, -5.11117292489871E-07 ]
+     epred                             :  [ -1.72877728179932E+02, -5.11117434598418E-07 ]
      Alpha                             :  2.50E-1
      dt                                :  8.62E-3
      vnrm                              :  1.94E-03
      nstep                             :  5
      P                                 :  5.55E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72877728627545594E+02, 
- Force Norm (Hartree/Bohr):  2.52701520641135866E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877728627545594E+02, 
+ Force Norm (Hartree/Bohr):  2.52701520641279952E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  122
      Geometry step                     :  122
      FORCES norm(Ha/Bohr): { maxval:  9.71123E-03, fnrm2:  6.38581E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877728627546E+02, -4.47614155518750E-07 ]
+     epred                             :  [ -1.72877728627546E+02, -4.47614070253621E-07 ]
      Alpha                             :  2.50E-1
      dt                                :  8.62E-3
      vnrm                              :  2.14E-03
      nstep                             :  6
      P                                 :  4.65E-05
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877729047086689E+02, 
- Force Norm (Hartree/Bohr):  2.40191180730246201E-02}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-16 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.72877729047086717E+02, 
+ Force Norm (Hartree/Bohr):  2.40191180730438061E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  123
      Geometry step                     :  123
      FORCES norm(Ha/Bohr): { maxval:  9.46697E-03, fnrm2:  5.76918E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877729047087E+02, -4.19541095197928E-07 ]
+     epred                             :  [ -1.72877729047087E+02, -4.19541123619638E-07 ]
      Alpha                             :  2.47E-1
      dt                                :  9.48E-3
      vnrm                              :  2.28E-03
      nstep                             :  7
      P                                 :  3.98E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.55271E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72877729488365787E+02, 
- Force Norm (Hartree/Bohr):  2.51946806253947227E-02}
+ Energy (Hartree): -1.72877729488365731E+02, 
+ Force Norm (Hartree/Bohr):  2.51946806253755956E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  124
      Geometry step                     :  124
      FORCES norm(Ha/Bohr): { maxval:  9.09035E-03, fnrm2:  6.34772E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877729488366E+02, -4.41279098595260E-07 ]
+     epred                             :  [ -1.72877729488366E+02, -4.41279013330131E-07 ]
      Alpha                             :  2.45E-1
      dt                                :  1.04E-2
      vnrm                              :  2.36E-03
      nstep                             :  8
      P                                 :  4.15E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.77636E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
   #master node.
  Energy (Hartree): -1.72877730034097397E+02, 
- Force Norm (Hartree/Bohr):  2.53193007364371607E-02}
+ Force Norm (Hartree/Bohr):  2.53193007363553754E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  125
      Geometry step                     :  125
      FORCES norm(Ha/Bohr): { maxval:  1.07149E-02, fnrm2:  6.41067E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877730034097E+02, -5.45731609236100E-07 ]
+     epred                             :  [ -1.72877730034097E+02, -5.45731666079519E-07 ]
      Alpha                             :  2.43E-1
      dt                                :  1.15E-2
      vnrm                              :  2.45E-03
      nstep                             :  9
      P                                 :  4.94E-05
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877730718388477E+02, 
- Force Norm (Hartree/Bohr):  2.26636204129850097E-02}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.04912E-16 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.72877730718388420E+02, 
+ Force Norm (Hartree/Bohr):  2.26636204129423459E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  126
      Geometry step                     :  126
      FORCES norm(Ha/Bohr): { maxval:  8.71768E-03, fnrm2:  5.13640E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877730718388E+02, -6.84291080688126E-07 ]
+     epred                             :  [ -1.72877730718388E+02, -6.84291023844708E-07 ]
      Alpha                             :  2.40E-1
      dt                                :  1.26E-2
      vnrm                              :  2.63E-03
      nstep                             :  10
      P                                 :  5.52E-05
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877731484545222E+02, 
- Force Norm (Hartree/Bohr):  1.85612519077429754E-02}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.22045E-15 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.72877731484545109E+02, 
+ Force Norm (Hartree/Bohr):  1.85612519076744573E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  127
      Geometry step                     :  127
      FORCES norm(Ha/Bohr): { maxval:  7.11851E-03, fnrm2:  3.44520E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877731484545E+02, -7.66156745157787E-07 ]
+     epred                             :  [ -1.72877731484545E+02, -7.66156688314368E-07 ]
      Alpha                             :  2.38E-1
      dt                                :  1.39E-2
      vnrm                              :  2.88E-03
      nstep                             :  11
      P                                 :  5.30E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.10942E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72877732246062578E+02, 
- Force Norm (Hartree/Bohr):  1.69325042317117862E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877732246062578E+02, 
+ Force Norm (Hartree/Bohr):  1.69325042316160052E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  128
      Geometry step                     :  128
      FORCES norm(Ha/Bohr): { maxval:  6.41138E-03, fnrm2:  2.86710E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877732246063E+02, -7.61517355840624E-07 ]
+     epred                             :  [ -1.72877732246063E+02, -7.61517469527462E-07 ]
      Alpha                             :  2.35E-1
      dt                                :  1.53E-2
      vnrm                              :  3.12E-03
      nstep                             :  12
      P                                 :  4.63E-05
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877733021027581E+02, 
- Force Norm (Hartree/Bohr):  1.62744356545438083E-02}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.60902E-15 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.72877733021027638E+02, 
+ Force Norm (Hartree/Bohr):  1.62744356544218260E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  129
      Geometry step                     :  129
      FORCES norm(Ha/Bohr): { maxval:  5.65614E-03, fnrm2:  2.64857E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877733021028E+02, -7.74965002392491E-07 ]
+     epred                             :  [ -1.72877733021028E+02, -7.74965059235910E-07 ]
      Alpha                             :  2.33E-1
      dt                                :  1.68E-2
      vnrm                              :  3.30E-03
@@ -2395,125 +2353,131 @@
  - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
  Energy (Hartree): -1.72877733833261090E+02, 
- Force Norm (Hartree/Bohr):  1.23683938041659787E-02}
+ Force Norm (Hartree/Bohr):  1.23683938040053815E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  130
      Geometry step                     :  130
      FORCES norm(Ha/Bohr): { maxval:  4.88875E-03, fnrm2:  1.52977E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877733833261E+02, -8.12233508895588E-07 ]
+     epred                             :  [ -1.72877733833261E+02, -8.12233452052169E-07 ]
      Alpha                             :  2.31E-1
      dt                                :  1.85E-2
      vnrm                              :  3.44E-03
      nstep                             :  14
      P                                 :  4.05E-05
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877734555982499E+02, 
- Force Norm (Hartree/Bohr):  1.09660750882634717E-02}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877734555982641E+02, 
+ Force Norm (Hartree/Bohr):  1.09660750880777921E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  131
      Geometry step                     :  131
      FORCES norm(Ha/Bohr): { maxval:  4.23183E-03, fnrm2:  1.20255E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877734555982E+02, -7.22721409829319E-07 ]
+     epred                             :  [ -1.72877734555983E+02, -7.22721551937866E-07 ]
      Alpha                             :  2.28E-1
      dt                                :  2.03E-2
      vnrm                              :  3.61E-03
      nstep                             :  15
      P                                 :  2.99E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.33227E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72877735189230975E+02, 
- Force Norm (Hartree/Bohr):  8.23919189057729408E-03}
+ Energy (Hartree): -1.72877735189231032E+02, 
+ Force Norm (Hartree/Bohr):  8.23919189031678025E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  132
      Geometry step                     :  132
      FORCES norm(Ha/Bohr): { maxval:  2.92455E-03, fnrm2:  6.78843E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877735189231E+02, -6.33248475878645E-07 ]
+     epred                             :  [ -1.72877735189231E+02, -6.33248390613517E-07 ]
      Alpha                             :  2.26E-1
      dt                                :  2.23E-2
      vnrm                              :  3.63E-03
      nstep                             :  16
      P                                 :  2.40E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.10862E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72877735651745297E+02, 
- Force Norm (Hartree/Bohr):  8.59723028766599777E-03}
+ Energy (Hartree): -1.72877735651745411E+02, 
+ Force Norm (Hartree/Bohr):  8.59723028759570504E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  133
      Geometry step                     :  133
      FORCES norm(Ha/Bohr): { maxval:  4.51080E-03, fnrm2:  7.39124E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877735651745E+02, -4.62514321952767E-07 ]
+     epred                             :  [ -1.72877735651745E+02, -4.62514378796186E-07 ]
      Alpha                             :  2.24E-1
      dt                                :  2.46E-2
      vnrm                              :  3.63E-03
      nstep                             :  17
      P                                 :  1.24E-05
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.10862E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.02696E-15 ), broadcasting from 
   #master node.
- Energy (Hartree): -1.72877735971864666E+02, 
- Force Norm (Hartree/Bohr):  5.13218247776987824E-03}
+ Energy (Hartree): -1.72877735971864581E+02, 
+ Force Norm (Hartree/Bohr):  5.13218247774782383E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  134
      Geometry step                     :  134
      FORCES norm(Ha/Bohr): { maxval:  1.77754E-03, fnrm2:  2.63393E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877735971865E+02, -3.20119369234817E-07 ]
+     epred                             :  [ -1.72877735971865E+02, -3.20119170282851E-07 ]
      Alpha                             :  2.22E-1
      dt                                :  2.70E-2
      vnrm                              :  3.33E-03
      nstep                             :  18
      P                                 :  6.43E-06
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736143604125E+02, 
- Force Norm (Hartree/Bohr):  4.32846288127817017E-03}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.66533E-15 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.72877736143604068E+02, 
+ Force Norm (Hartree/Bohr):  4.32846288109676926E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  135
      Geometry step                     :  135
      FORCES norm(Ha/Bohr): { maxval:  1.54660E-03, fnrm2:  1.87356E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877736143604E+02, -1.71739458210141E-07 ]
+     epred                             :  [ -1.72877736143604E+02, -1.71739486631850E-07 ]
      Alpha                             :  2.19E-1
      dt                                :  2.97E-2
      vnrm                              :  3.00E-03
      nstep                             :  19
      P                                 :  2.65E-06
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736209403196E+02, 
- Force Norm (Hartree/Bohr):  6.14256272808971597E-03}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736209403281E+02, 
+ Force Norm (Hartree/Bohr):  6.14256272706472598E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  136
      Geometry step                     :  136
      FORCES norm(Ha/Bohr): { maxval:  3.64171E-03, fnrm2:  3.77311E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877736209403E+02, -6.57990710806189E-08 ]
+     epred                             :  [ -1.72877736209403E+02, -6.57992131891660E-08 ]
      Alpha                             :  2.17E-1
      dt                                :  3.27E-2
      vnrm                              :  2.59E-03
      nstep                             :  20
      P                                 : -5.86E-07
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736214276069E+02, 
- Force Norm (Hartree/Bohr):  5.72354595375870398E-03}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.72877736214276098E+02, 
+ Force Norm (Hartree/Bohr):  5.72354595287952964E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  137
      Geometry step                     :  137
      FORCES norm(Ha/Bohr): { maxval:  3.25964E-03, fnrm2:  3.27590E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877736214276E+02, -4.87287366013334E-09 ]
+     epred                             :  [ -1.72877736214276E+02, -4.87281681671448E-09 ]
      Alpha                             :  2.50E-1
      dt                                :  1.64E-2
      vnrm                              :  9.70E-05
      nstep                             :  1
      P                                 :  5.55E-07
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736226385650E+02, 
- Force Norm (Hartree/Bohr):  4.67454545855734878E-03}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.72877736226385679E+02, 
+ Force Norm (Hartree/Bohr):  4.67454545808280650E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  138
@@ -2526,96 +2490,96 @@
      vnrm                              :  1.81E-04
      nstep                             :  2
      P                                 :  8.36E-07
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736240427140E+02, 
- Force Norm (Hartree/Bohr):  3.69587199931274918E-03}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736240427083E+02, 
+ Force Norm (Hartree/Bohr):  3.69587199921498884E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  139
      Geometry step                     :  139
      FORCES norm(Ha/Bohr): { maxval:  1.15527E-03, fnrm2:  1.36595E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877736240427E+02, -1.40414897487062E-08 ]
+     epred                             :  [ -1.72877736240427E+02, -1.40414044835779E-08 ]
      Alpha                             :  2.50E-1
      dt                                :  1.64E-2
      vnrm                              :  2.45E-04
      nstep                             :  3
      P                                 :  8.11E-07
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736253504565E+02, 
- Force Norm (Hartree/Bohr):  3.57472867322058963E-03}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.72877736253504537E+02, 
+ Force Norm (Hartree/Bohr):  3.57472867307264460E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  140
      Geometry step                     :  140
      FORCES norm(Ha/Bohr): { maxval:  1.07637E-03, fnrm2:  1.27787E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877736253505E+02, -1.30774253648269E-08 ]
+     epred                             :  [ -1.72877736253505E+02, -1.30774537865364E-08 ]
      Alpha                             :  2.50E-1
      dt                                :  1.64E-2
      vnrm                              :  2.90E-04
      nstep                             :  4
      P                                 :  7.57E-07
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.52651E-14 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72877736267696491E+02, 
- Force Norm (Hartree/Bohr):  3.73821751137352193E-03}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736267696434E+02, 
+ Force Norm (Hartree/Bohr):  3.73821751107111929E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  141
      Geometry step                     :  141
      FORCES norm(Ha/Bohr): { maxval:  1.26116E-03, fnrm2:  1.39743E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877736267696E+02, -1.41919258567214E-08 ]
+     epred                             :  [ -1.72877736267696E+02, -1.41918974350119E-08 ]
      Alpha                             :  2.50E-1
      dt                                :  1.64E-2
      vnrm                              :  3.22E-04
      nstep                             :  5
      P                                 :  9.18E-07
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736285029243E+02, 
- Force Norm (Hartree/Bohr):  3.39854123438944854E-03}
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.44249E-15 ), broadcasting from 
+  #master node.
+ Energy (Hartree): -1.72877736285029300E+02, 
+ Force Norm (Hartree/Bohr):  3.39854123407409402E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  142
      Geometry step                     :  142
      FORCES norm(Ha/Bohr): { maxval:  1.08463E-03, fnrm2:  1.15501E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877736285029E+02, -1.73327521224564E-08 ]
+     epred                             :  [ -1.72877736285029E+02, -1.73328658092942E-08 ]
      Alpha                             :  2.50E-1
      dt                                :  1.64E-2
      vnrm                              :  3.59E-04
      nstep                             :  6
      P                                 :  1.11E-06
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.33227E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72877736305407780E+02, 
- Force Norm (Hartree/Bohr):  2.69734806488421347E-03}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736305407723E+02, 
+ Force Norm (Hartree/Bohr):  2.69734806476069466E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  143
      Geometry step                     :  143
      FORCES norm(Ha/Bohr): { maxval:  8.37060E-04, fnrm2:  7.27569E-06, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877736305408E+02, -2.03785361918563E-08 ]
+     epred                             :  [ -1.72877736305408E+02, -2.03784225050185E-08 ]
      Alpha                             :  2.47E-1
      dt                                :  1.80E-2
      vnrm                              :  4.06E-04
      nstep                             :  7
      P                                 :  1.09E-06
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736325658645E+02, 
- Force Norm (Hartree/Bohr):  2.50193428932795432E-03}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736325658702E+02, 
+ Force Norm (Hartree/Bohr):  2.50193428915313106E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  144
      Geometry step                     :  144
      FORCES norm(Ha/Bohr): { maxval:  8.21478E-04, fnrm2:  6.25968E-06, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877736325659E+02, -2.02508658730949E-08 ]
+     epred                             :  [ -1.72877736325659E+02, -2.02509795599326E-08 ]
      Alpha                             :  2.45E-1
      dt                                :  1.98E-2
      vnrm                              :  4.53E-04
      nstep                             :  8
      P                                 :  9.45E-07
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736346543372E+02, 
- Force Norm (Hartree/Bohr):  2.17787761217220870E-03}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736346543429E+02, 
+ Force Norm (Hartree/Bohr):  2.17787761187596737E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  145
@@ -2628,26 +2592,24 @@
      vnrm                              :  4.84E-04
      nstep                             :  9
      P                                 :  9.11E-07
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.99680E-15 ), broadcasting from 
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
   #master node.
  Energy (Hartree): -1.72877736366422198E+02, 
- Force Norm (Hartree/Bohr):  1.53252930696713393E-03}
+ Force Norm (Hartree/Bohr):  1.53252930680528748E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  146
      Geometry step                     :  146
      FORCES norm(Ha/Bohr): { maxval:  4.66377E-04, fnrm2:  2.34865E-06, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877736366422E+02, -1.98788256966509E-08 ]
+     epred                             :  [ -1.72877736366422E+02, -1.98787688532320E-08 ]
      Alpha                             :  2.40E-1
      dt                                :  2.40E-2
      vnrm                              :  5.12E-04
      nstep                             :  10
      P                                 :  6.86E-07
- - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.55431E-15 ), broadcasting from 
-  #master node.
- Energy (Hartree): -1.72877736382304704E+02, 
- Force Norm (Hartree/Bohr):  1.28765489376604040E-03}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736382304704E+02, 
+ Force Norm (Hartree/Bohr):  1.28765489334505857E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  147
@@ -2660,15 +2622,15 @@
      vnrm                              :  5.31E-04
      nstep                             :  11
      P                                 :  4.87E-07
- - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736392591316E+02, 
- Force Norm (Hartree/Bohr):  1.36918114632267806E-03}
+ - LENNARD_JONES_RUN_MODE: {Energy (Hartree): -1.72877736392591345E+02, 
+ Force Norm (Hartree/Bohr):  1.36918114622260967E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  148
      Geometry step                     :  148
      FORCES norm(Ha/Bohr): { maxval:  8.36911E-04, fnrm2:  1.87466E-06, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -1.72877736392591E+02, -1.02866124507273E-08 ]
+     epred                             :  [ -1.72877736392591E+02, -1.02866408724367E-08 ]
      Alpha                             :  2.35E-1
      dt                                :  2.90E-2
      vnrm                              :  5.22E-04
@@ -2684,34 +2646,36 @@
      Peak Value (MB)                   :  0.083
      for the array                     : params
      in the routine                    : input_keys_init
-     Memory Peak of process            : 17.732 MB
- Walltime since initialization         : 00:00:00.347731013
- Max No. of dictionaries used          :  4597 #( 949 still in use)
+     Memory Peak of process            : 22.288 MB
+ Walltime since initialization         : 00:00:01.353232095
+ Max No. of dictionaries used          :  4587 #( 951 still in use)
  Number of dictionary folders allocated:  1
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - State properties not identical! (difference: 2.84217E-14 ), broadcasting from master node.
- - State properties not identical! (difference: 5.68434E-14 ), broadcasting from master node.
- - State properties not identical! (difference: 3.55271E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 1.33227E-15 ), broadcasting from master node.
  - State properties not identical! (difference: 1.77636E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 1.55431E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 2.10942E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 1.88738E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 8.88178E-16 ), broadcasting from master node.
- - State properties not identical! (difference: 2.66454E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 6.66134E-16 ), broadcasting from master node.
- - State properties not identical! (difference: 1.22125E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 1.99840E-15 ), broadcasting from master node.
  - State properties not identical! (difference: 4.44089E-16 ), broadcasting from master node.
- - State properties not identical! (difference: 3.44169E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 8.52651E-14 ), broadcasting from master node.
- - State properties not identical! (difference: 3.33067E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 2.88658E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 3.99680E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 2.60902E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 1.11022E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 2.83107E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.84217E-14 ), broadcasting from master node.
+ - State properties not identical! (difference: 8.88178E-16 ), broadcasting from master node.
+ - State properties not identical! (difference: 5.68434E-14 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.66454E-15 ), broadcasting from master node.
  - State properties not identical! (difference: 2.22045E-15 ), broadcasting from master node.
- - State properties not identical! (difference: 1.48492E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 1.33227E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 1.11022E-15 ), broadcasting from master node.
  - State properties not identical! (difference: 3.10862E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 7.21645E-16 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.44249E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.33147E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 1.66533E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 1.55431E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 1.47105E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.19269E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 3.30291E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 1.44329E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 6.66134E-16 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.77556E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.38698E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.83107E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 3.55271E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 8.04912E-16 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.60902E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 1.02696E-15 ), broadcasting from master node.

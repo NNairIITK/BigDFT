@@ -25,10 +25,10 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
- 
+
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8
- Timestamp of this run                 : 2016-02-20 23:11:13.673
+ Timestamp of this run                 : 2016-03-31 15:07:43.914
  Root process Hostname                 : athelas
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -37,16 +37,22 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " '--prefix' '/local/binaries/intel-1.8/install' '--without-internal-flib' 
-     'FCFLAGS=-O2 -openmp' 
-     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 -lmkl_rt 
-     -liomp5 -lm' 'CFLAGS=-O2 -openmp' 'LDFLAGS=-L/local/binaries/intel-1.8/install/lib ' 
-     'C_INCLUDE_PATH=/local/binaries/intel-1.8/install/include:/opt/intel/composer_xe_2013.1.
-     117/compiler/include' 'CC=mpicc' 'CXX=mpicxx' 'FC=mpifc' 'F77=mpif77'"
-   Compilers (CC, FC, CXX)             :  [ mpicc, mpifc, mpicxx ]
+     " '--prefix' '/local/binaries/g95-bc-1.8/install' 'FCFLAGS=-O2 -fopenmp -g 
+     -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,denormal' 
+     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/compiler/lib/intel64 
+     -L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 -lmkl_rt -liomp5 -lm' 
+     '--with-blas=no' '--with-lapack=no' 'CFLAGS=-O2 -fopenmp' 
+     'LDFLAGS=-L/local/binaries/g95-bc-1.8/install/lib ' 
+     'C_INCLUDE_PATH=/local/binaries/g95-bc-1.8/install/include:/opt/acml5.3.1/gfortran64_mp/
+     include' 'CC=mpicc.openmpi' 'CXX=mpicxx.openmpi' 'FC=mpif90.openmpi' 
+     'F77=mpif77.openmpi'"
+
+   Compilers (CC, FC, CXX)             :  [ mpicc.openmpi, mpif90.openmpi, mpicxx.openmpi ]
    Compiler flags:
-     CFLAGS                            : -O2 -openmp
-     FCFLAGS                           : -O2 -openmp
+     CFLAGS                            : -O2 -fopenmp
+                                        
+     FCFLAGS:
+       -O2 -fopenmp -g -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,denormal
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : LENOSKY-fire
@@ -183,7 +189,7 @@
    maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
+   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 1 #      Enables linear sumrho check
@@ -213,9 +219,6 @@
     #                                              support function convergence
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
    foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
-   nsigma                              : 1 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
-    #                                              Gaussian used for the radial part of the 
-    #                                              function based on the multipoles.
  lin_general:
    hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
    nit: [100, 100] #                              number of iteration with low/high accuracy
@@ -240,7 +243,6 @@
    cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    calc_dipole                         : No #     calculate dipole
    calc_quadrupole                     : No #     calculate quadrupole
-   calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
    subspace_diag                       : No #     diagonalization at the end
    extra_states                        : 0 #      extra states to optimize (dmin only)
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
@@ -422,7 +424,7 @@
      nstep                             :  3
      P                                 :  2.04E-02
  - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.59003249323669804E+00, 
- Force Norm (Hartree/Bohr):  6.20431615851278415E-02}
+ Force Norm (Hartree/Bohr):  6.20431615851278484E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  4
@@ -436,7 +438,7 @@
      nstep                             :  4
      P                                 :  1.92E-02
  - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.60829390963342833E+00, 
- Force Norm (Hartree/Bohr):  5.34568427174338251E-02}
+ Force Norm (Hartree/Bohr):  5.34568427174338320E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  5
@@ -450,7 +452,7 @@
      nstep                             :  5
      P                                 :  1.60E-02
  - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.62346873279273440E+00, 
- Force Norm (Hartree/Bohr):  5.28134433437409193E-02}
+ Force Norm (Hartree/Bohr):  5.28134433437409054E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  6
@@ -464,7 +466,7 @@
      nstep                             :  6
      P                                 :  1.26E-02
  - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.63671089594081565E+00, 
- Force Norm (Hartree/Bohr):  5.39747525580020551E-02}
+ Force Norm (Hartree/Bohr):  5.39747525580020621E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  7
@@ -477,7 +479,9 @@
      vnrm                              :  4.08E-01
      nstep                             :  7
      P                                 :  7.96E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.64640916362439915E+00, 
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.64640916362439915E+00, 
  Force Norm (Hartree/Bohr):  5.15921447359581689E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
@@ -491,8 +495,10 @@
      vnrm                              :  3.82E-01
      nstep                             :  8
      P                                 :  4.08E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.65298037490479688E+00, 
- Force Norm (Hartree/Bohr):  5.21698891487836977E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.65298037490479688E+00, 
+ Force Norm (Hartree/Bohr):  5.21698891487837046E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  9
@@ -505,8 +511,10 @@
      vnrm                              :  3.40E-01
      nstep                             :  9
      P                                 :  1.67E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.65945737015349870E+00, 
- Force Norm (Hartree/Bohr):  4.61726737554490896E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.65945737015349870E+00, 
+ Force Norm (Hartree/Bohr):  4.61726737554490965E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  10
@@ -519,8 +527,10 @@
      vnrm                              :  3.00E-01
      nstep                             :  10
      P                                 :  2.83E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.66478008153910739E+00, 
- Force Norm (Hartree/Bohr):  3.71475239846384836E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.66478008153910739E+00, 
+ Force Norm (Hartree/Bohr):  3.71475239846384767E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  11
@@ -533,7 +543,9 @@
      vnrm                              :  2.72E-01
      nstep                             :  11
      P                                 :  4.55E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.66672961507889417E+00, 
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.66672961507889417E+00, 
  Force Norm (Hartree/Bohr):  3.79666130119452466E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
@@ -547,8 +559,10 @@
      vnrm                              :  2.28E-01
      nstep                             :  12
      P                                 : -6.50E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.66728228262411093E+00, 
- Force Norm (Hartree/Bohr):  3.62534282545862729E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.66728228262411093E+00, 
+ Force Norm (Hartree/Bohr):  3.62534282545862591E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  13
@@ -561,7 +575,9 @@
      vnrm                              :  3.29E-02
      nstep                             :  1
      P                                 :  1.19E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.66874624567560081E+00, 
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.66874624567560081E+00, 
  Force Norm (Hartree/Bohr):  3.15689335587577627E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
@@ -575,8 +591,10 @@
      vnrm                              :  6.28E-02
      nstep                             :  2
      P                                 :  1.97E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.67064303141510351E+00, 
- Force Norm (Hartree/Bohr):  2.53265070518540053E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.67064303141510351E+00, 
+ Force Norm (Hartree/Bohr):  2.53265070518540088E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  15
@@ -589,8 +607,10 @@
      vnrm                              :  8.75E-02
      nstep                             :  3
      P                                 :  2.14E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.67246528156417407E+00, 
- Force Norm (Hartree/Bohr):  1.99729119762110212E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.67246528156417407E+00, 
+ Force Norm (Hartree/Bohr):  1.99729119762110247E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  16
@@ -603,7 +623,9 @@
      vnrm                              :  1.06E-01
      nstep                             :  4
      P                                 :  1.84E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.67399024383002493E+00, 
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.67399024383002493E+00, 
  Force Norm (Hartree/Bohr):  1.77251977219902782E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
@@ -617,8 +639,10 @@
      vnrm                              :  1.17E-01
      nstep                             :  5
      P                                 :  1.49E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.67532687874974995E+00, 
- Force Norm (Hartree/Bohr):  1.64695305969116100E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.67532687874974995E+00, 
+ Force Norm (Hartree/Bohr):  1.64695305969116065E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  18
@@ -631,7 +655,9 @@
      vnrm                              :  1.22E-01
      nstep                             :  6
      P                                 :  1.34E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.67664986115004400E+00, 
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.67664986115004400E+00, 
  Force Norm (Hartree/Bohr):  1.45112011197963305E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
@@ -645,8 +671,10 @@
      vnrm                              :  1.25E-01
      nstep                             :  7
      P                                 :  1.15E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.67788132356702402E+00, 
- Force Norm (Hartree/Bohr):  1.32801788418179436E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.67788132356702402E+00, 
+ Force Norm (Hartree/Bohr):  1.32801788418179609E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  20
@@ -659,8 +687,10 @@
      vnrm                              :  1.26E-01
      nstep                             :  8
      P                                 :  9.61E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.67905423348160676E+00, 
- Force Norm (Hartree/Bohr):  1.19304767224201157E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.67905423348160676E+00, 
+ Force Norm (Hartree/Bohr):  1.19304767224201486E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  21
@@ -673,8 +703,10 @@
      vnrm                              :  1.25E-01
      nstep                             :  9
      P                                 :  8.15E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.68009616368057513E+00, 
- Force Norm (Hartree/Bohr):  1.07088074982899864E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.68009616368057513E+00, 
+ Force Norm (Hartree/Bohr):  1.07088074982899829E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  22
@@ -687,50 +719,58 @@
      vnrm                              :  1.23E-01
      nstep                             :  10
      P                                 :  5.82E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.68093175342506473E+00, 
- Force Norm (Hartree/Bohr):  1.04549550728814267E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.68093175342506518E+00, 
+ Force Norm (Hartree/Bohr):  1.04549550728810538E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  23
      Geometry step                     :  23
      FORCES norm(Ha/Bohr): { maxval:  3.46517E-03, fnrm2:  1.09306E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.68093175342506E+00, -8.35589744489607E-04 ]
+     epred                             :  [ -2.68093175342507E+00, -8.35589744490051E-04 ]
      Alpha                             :  2.38E-1
      dt                                :  1.43E+0
      vnrm                              :  1.17E-01
      nstep                             :  11
      P                                 :  3.88E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.68166085925405051E+00, 
- Force Norm (Hartree/Bohr):  9.87882290496765181E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.68166085925404918E+00, 
+ Force Norm (Hartree/Bohr):  9.87882290496704292E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  24
      Geometry step                     :  24
      FORCES norm(Ha/Bohr): { maxval:  3.86999E-03, fnrm2:  9.75911E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.68166085925405E+00, -7.29105828985777E-04 ]
+     epred                             :  [ -2.68166085925405E+00, -7.29105828984000E-04 ]
      Alpha                             :  2.35E-1
      dt                                :  1.57E+0
      vnrm                              :  1.08E-01
      nstep                             :  12
      P                                 :  3.24E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.68232084691745509E+00, 
- Force Norm (Hartree/Bohr):  8.93015290690558558E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.68232084691745509E+00, 
+ Force Norm (Hartree/Bohr):  8.93015290690503220E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  25
      Geometry step                     :  25
      FORCES norm(Ha/Bohr): { maxval:  3.27364E-03, fnrm2:  7.97476E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.68232084691746E+00, -6.59987663404582E-04 ]
+     epred                             :  [ -2.68232084691746E+00, -6.59987663405914E-04 ]
      Alpha                             :  2.33E-1
      dt                                :  1.73E+0
      vnrm                              :  1.00E-01
      nstep                             :  13
      P                                 :  2.41E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.68292067991070926E+00, 
- Force Norm (Hartree/Bohr):  8.93451939680312696E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.68292067991070926E+00, 
+ Force Norm (Hartree/Bohr):  8.93451939680304889E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  26
@@ -743,64 +783,74 @@
      vnrm                              :  9.30E-02
      nstep                             :  14
      P                                 :  2.37E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.68360091696223169E+00, 
- Force Norm (Hartree/Bohr):  8.21413731709745923E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.68360091696223213E+00, 
+ Force Norm (Hartree/Bohr):  8.21413731709690238E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  27
      Geometry step                     :  27
      FORCES norm(Ha/Bohr): { maxval:  3.31649E-03, fnrm2:  6.74721E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.68360091696223E+00, -6.80237051522425E-04 ]
+     epred                             :  [ -2.68360091696223E+00, -6.80237051522870E-04 ]
      Alpha                             :  2.28E-1
      dt                                :  2.00E+0
      vnrm                              :  8.85E-02
      nstep                             :  15
      P                                 :  3.05E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.68442727053058983E+00, 
- Force Norm (Hartree/Bohr):  8.55342574204439980E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.68442727053058983E+00, 
+ Force Norm (Hartree/Bohr):  8.55342574204403377E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  28
      Geometry step                     :  28
      FORCES norm(Ha/Bohr): { maxval:  3.03317E-03, fnrm2:  7.31611E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.68442727053059E+00, -8.26353568358140E-04 ]
+     epred                             :  [ -2.68442727053059E+00, -8.26353568357696E-04 ]
      Alpha                             :  2.26E-1
      dt                                :  2.00E+0
      vnrm                              :  8.89E-02
      nstep                             :  16
      P                                 :  4.38E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.68557687200122919E+00, 
- Force Norm (Hartree/Bohr):  9.44407557980835033E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.68557687200122963E+00, 
+ Force Norm (Hartree/Bohr):  9.44407557980785073E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  29
      Geometry step                     :  29
      FORCES norm(Ha/Bohr): { maxval:  3.80057E-03, fnrm2:  8.91906E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.68557687200123E+00, -1.14960147063936E-03 ]
+     epred                             :  [ -2.68557687200123E+00, -1.14960147063981E-03 ]
      Alpha                             :  2.24E-1
      dt                                :  2.00E+0
      vnrm                              :  9.51E-02
      nstep                             :  17
      P                                 :  6.57E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.68729038873813897E+00, 
- Force Norm (Hartree/Bohr):  1.17142488641504058E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.68729038873813986E+00, 
+ Force Norm (Hartree/Bohr):  1.17142488641506729E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  30
      Geometry step                     :  30
      FORCES norm(Ha/Bohr): { maxval:  4.79828E-03, fnrm2:  1.37224E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.68729038873814E+00, -1.71351673690978E-03 ]
+     epred                             :  [ -2.68729038873814E+00, -1.71351673691023E-03 ]
      Alpha                             :  2.22E-1
      dt                                :  2.00E+0
      vnrm                              :  1.08E-01
      nstep                             :  18
      P                                 :  1.05E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.68996197294241401E+00, 
- Force Norm (Hartree/Bohr):  1.39644207424999105E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.68996197294241490E+00, 
+ Force Norm (Hartree/Bohr):  1.39644207425007657E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  31
@@ -813,8 +863,10 @@
      vnrm                              :  1.28E-01
      nstep                             :  19
      P                                 :  1.62E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.69323590558920678E+00, 
- Force Norm (Hartree/Bohr):  1.86973018949985505E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.69323590558920767E+00, 
+ Force Norm (Hartree/Bohr):  1.86973018950019748E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  32
@@ -827,50 +879,58 @@
      vnrm                              :  1.49E-01
      nstep                             :  20
      P                                 :  1.59E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.69723496996500955E+00, 
- Force Norm (Hartree/Bohr):  1.75785430755450618E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.69723496996501000E+00, 
+ Force Norm (Hartree/Bohr):  1.75785430755455475E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  33
      Geometry step                     :  33
      FORCES norm(Ha/Bohr): { maxval:  6.76235E-03, fnrm2:  3.09005E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.69723496996501E+00, -3.99906437580277E-03 ]
+     epred                             :  [ -2.69723496996501E+00, -3.99906437580233E-03 ]
      Alpha                             :  2.15E-1
      dt                                :  2.00E+0
      vnrm                              :  1.64E-01
      nstep                             :  21
      P                                 :  2.06E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.70176100868137992E+00, 
- Force Norm (Hartree/Bohr):  1.83382563662729814E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.70176100868138169E+00, 
+ Force Norm (Hartree/Bohr):  1.83382563662751429E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  34
      Geometry step                     :  34
      FORCES norm(Ha/Bohr): { maxval:  7.34583E-03, fnrm2:  3.36292E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.70176100868138E+00, -4.52603871637036E-03 ]
+     epred                             :  [ -2.70176100868138E+00, -4.52603871637169E-03 ]
      Alpha                             :  2.13E-1
      dt                                :  2.00E+0
      vnrm                              :  1.82E-01
      nstep                             :  22
      P                                 :  2.27E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.70679685054805175E+00, 
- Force Norm (Hartree/Bohr):  1.74317260392174884E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.70679685054805219E+00, 
+ Force Norm (Hartree/Bohr):  1.74317260392181546E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  35
      Geometry step                     :  35
      FORCES norm(Ha/Bohr): { maxval:  6.78628E-03, fnrm2:  3.03865E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.70679685054805E+00, -5.03584186667183E-03 ]
+     epred                             :  [ -2.70679685054805E+00, -5.03584186667050E-03 ]
      Alpha                             :  2.11E-1
      dt                                :  2.00E+0
      vnrm                              :  1.99E-01
      nstep                             :  23
      P                                 :  2.39E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71130944632411364E+00, 
- Force Norm (Hartree/Bohr):  1.74577202226106898E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71130944632411408E+00, 
+ Force Norm (Hartree/Bohr):  1.74577202226104435E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  36
@@ -883,22 +943,26 @@
      vnrm                              :  2.10E-01
      nstep                             :  24
      P                                 :  1.77E-03
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71421511791247561E+00, 
- Force Norm (Hartree/Bohr):  1.55490343057971183E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71421511791247561E+00, 
+ Force Norm (Hartree/Bohr):  1.55490343057985234E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  37
      Geometry step                     :  37
      FORCES norm(Ha/Bohr): { maxval:  6.25852E-03, fnrm2:  2.41772E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.71421511791248E+00, -2.90567158836197E-03 ]
+     epred                             :  [ -2.71421511791248E+00, -2.90567158836152E-03 ]
      Alpha                             :  2.07E-1
      dt                                :  2.00E+0
      vnrm                              :  2.05E-01
      nstep                             :  25
      P                                 :  4.55E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71474006183291117E+00, 
- Force Norm (Hartree/Bohr):  2.09633424071819230E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71474006183291117E+00, 
+ Force Norm (Hartree/Bohr):  2.09633424071831512E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  38
@@ -911,8 +975,10 @@
      vnrm                              :  1.76E-01
      nstep                             :  26
      P                                 : -5.10E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71495249359099722E+00, 
- Force Norm (Hartree/Bohr):  1.95830751979621312E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71495249359099722E+00, 
+ Force Norm (Hartree/Bohr):  1.95830751979625753E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  39
@@ -925,8 +991,10 @@
      vnrm                              :  2.03E-02
      nstep                             :  1
      P                                 :  3.97E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71548389741627938E+00, 
- Force Norm (Hartree/Bohr):  1.60308625617542749E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71548389741627938E+00, 
+ Force Norm (Hartree/Bohr):  1.60308625617541119E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  40
@@ -939,78 +1007,90 @@
      vnrm                              :  3.80E-02
      nstep                             :  2
      P                                 :  6.02E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71609934401165187E+00, 
- Force Norm (Hartree/Bohr):  1.19470512537547223E-02}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71609934401165320E+00, 
+ Force Norm (Hartree/Bohr):  1.19470512537545107E-02}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  41
      Geometry step                     :  41
      FORCES norm(Ha/Bohr): { maxval:  5.32438E-03, fnrm2:  1.42732E-04, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.71609934401165E+00, -6.15446595372493E-04 ]
+     epred                             :  [ -2.71609934401165E+00, -6.15446595373825E-04 ]
      Alpha                             :  2.50E-1
      dt                                :  1.00E+0
      vnrm                              :  5.14E-02
      nstep                             :  3
      P                                 :  5.73E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71662337122326747E+00, 
- Force Norm (Hartree/Bohr):  9.19748635327479608E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71662337122326702E+00, 
+ Force Norm (Hartree/Bohr):  9.19748635327493139E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  42
      Geometry step                     :  42
      FORCES norm(Ha/Bohr): { maxval:  4.47373E-03, fnrm2:  8.45938E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.71662337122327E+00, -5.24027211615596E-04 ]
+     epred                             :  [ -2.71662337122327E+00, -5.24027211613820E-04 ]
      Alpha                             :  2.50E-1
      dt                                :  1.00E+0
      vnrm                              :  6.01E-02
      nstep                             :  4
      P                                 :  4.38E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71701859059194861E+00, 
- Force Norm (Hartree/Bohr):  7.38965826533141343E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71701859059194861E+00, 
+ Force Norm (Hartree/Bohr):  7.38965826533084878E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  43
      Geometry step                     :  43
      FORCES norm(Ha/Bohr): { maxval:  4.06681E-03, fnrm2:  5.46070E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.71701859059195E+00, -3.95219368681143E-04 ]
+     epred                             :  [ -2.71701859059195E+00, -3.95219368681587E-04 ]
      Alpha                             :  2.50E-1
      dt                                :  1.00E+0
      vnrm                              :  6.41E-02
      nstep                             :  5
      P                                 :  3.10E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71730345087793834E+00, 
- Force Norm (Hartree/Bohr):  6.10316558260004961E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71730345087793879E+00, 
+ Force Norm (Hartree/Bohr):  6.10316558259945893E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  44
      Geometry step                     :  44
      FORCES norm(Ha/Bohr): { maxval:  3.04819E-03, fnrm2:  3.72486E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.71730345087794E+00, -2.84860285989730E-04 ]
+     epred                             :  [ -2.71730345087794E+00, -2.84860285990174E-04 ]
      Alpha                             :  2.50E-1
      dt                                :  1.00E+0
      vnrm                              :  6.44E-02
      nstep                             :  6
      P                                 :  2.10E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71751785878340391E+00, 
- Force Norm (Hartree/Bohr):  5.14527511439181930E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71751785878340391E+00, 
+ Force Norm (Hartree/Bohr):  5.14527511439140817E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  45
      Geometry step                     :  45
      FORCES norm(Ha/Bohr): { maxval:  2.50170E-03, fnrm2:  2.64739E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.7175178587834E+00, -2.14407905465563E-04 ]
+     epred                             :  [ -2.7175178587834E+00, -2.14407905465119E-04 ]
      Alpha                             :  2.47E-1
      dt                                :  1.10E+0
      vnrm                              :  6.20E-02
      nstep                             :  7
      P                                 :  1.27E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71766252750358328E+00, 
- Force Norm (Hartree/Bohr):  4.83920939999591283E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71766252750358328E+00, 
+ Force Norm (Hartree/Bohr):  4.83920939999591977E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  46
@@ -1023,8 +1103,10 @@
      vnrm                              :  5.72E-02
      nstep                             :  8
      P                                 :  6.10E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71777543149703327E+00, 
- Force Norm (Hartree/Bohr):  5.09319418311762057E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71777543149703327E+00, 
+ Force Norm (Hartree/Bohr):  5.09319418311733173E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  47
@@ -1037,8 +1119,10 @@
      vnrm                              :  5.04E-02
      nstep                             :  9
      P                                 :  4.89E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71787840067171471E+00, 
- Force Norm (Hartree/Bohr):  5.10558936835445003E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71787840067171471E+00, 
+ Force Norm (Hartree/Bohr):  5.10558936835496524E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  48
@@ -1051,8 +1135,10 @@
      vnrm                              :  4.46E-02
      nstep                             :  10
      P                                 :  4.06E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71799671414972588E+00, 
- Force Norm (Hartree/Bohr):  4.95766507393247471E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71799671414972588E+00, 
+ Force Norm (Hartree/Bohr):  4.95766507393257446E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  49
@@ -1065,22 +1151,26 @@
      vnrm                              :  4.04E-02
      nstep                             :  11
      P                                 :  5.95E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71814824728355742E+00, 
- Force Norm (Hartree/Bohr):  4.34639664853994027E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71814824728355786E+00, 
+ Force Norm (Hartree/Bohr):  4.34639664853949791E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  50
      Geometry step                     :  50
      FORCES norm(Ha/Bohr): { maxval:  1.79036E-03, fnrm2:  1.88912E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.71814824728356E+00, -1.51533133831538E-04 ]
+     epred                             :  [ -2.71814824728356E+00, -1.51533133831983E-04 ]
      Alpha                             :  2.35E-1
      dt                                :  1.77E+0
      vnrm                              :  3.89E-02
      nstep                             :  12
      P                                 :  7.23E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71831134169150523E+00, 
- Force Norm (Hartree/Bohr):  3.94246417606346471E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71831134169150568E+00, 
+ Force Norm (Hartree/Bohr):  3.94246417606410569E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  51
@@ -1093,36 +1183,42 @@
      vnrm                              :  3.90E-02
      nstep                             :  13
      P                                 :  6.90E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71846269941540797E+00, 
- Force Norm (Hartree/Bohr):  3.60123547027815924E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71846269941540752E+00, 
+ Force Norm (Hartree/Bohr):  3.60123547027879718E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  52
      Geometry step                     :  52
      FORCES norm(Ha/Bohr): { maxval:  1.30475E-03, fnrm2:  1.29689E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.71846269941541E+00, -1.51357723902734E-04 ]
+     epred                             :  [ -2.71846269941541E+00, -1.51357723901846E-04 ]
      Alpha                             :  2.31E-1
      dt                                :  2.00E+0
      vnrm                              :  3.90E-02
      nstep                             :  14
      P                                 :  5.98E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71860177083598398E+00, 
- Force Norm (Hartree/Bohr):  3.20728479000583150E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71860177083598398E+00, 
+ Force Norm (Hartree/Bohr):  3.20728479000985519E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  53
      Geometry step                     :  53
      FORCES norm(Ha/Bohr): { maxval:  1.39985E-03, fnrm2:  1.02867E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.71860177083598E+00, -1.39071420576009E-04 ]
+     epred                             :  [ -2.71860177083598E+00, -1.39071420576453E-04 ]
      Alpha                             :  2.28E-1
      dt                                :  2.00E+0
      vnrm                              :  3.86E-02
      nstep                             :  15
      P                                 :  5.88E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71873141756353798E+00, 
- Force Norm (Hartree/Bohr):  2.88483378234133305E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71873141756353798E+00, 
+ Force Norm (Hartree/Bohr):  2.88483378234816743E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  54
@@ -1135,106 +1231,122 @@
      vnrm                              :  3.83E-02
      nstep                             :  16
      P                                 :  5.40E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71885571505085233E+00, 
- Force Norm (Hartree/Bohr):  3.57289654329133975E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71885571505085188E+00, 
+ Force Norm (Hartree/Bohr):  3.57289654329891702E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  55
      Geometry step                     :  55
      FORCES norm(Ha/Bohr): { maxval:  1.47310E-03, fnrm2:  1.27656E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.71885571505085E+00, -1.24297487314351E-04 ]
+     epred                             :  [ -2.71885571505085E+00, -1.24297487313907E-04 ]
      Alpha                             :  2.24E-1
      dt                                :  2.00E+0
      vnrm                              :  3.82E-02
      nstep                             :  17
      P                                 :  6.32E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71903717547151524E+00, 
- Force Norm (Hartree/Bohr):  4.17155114814317472E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71903717547151480E+00, 
+ Force Norm (Hartree/Bohr):  4.17155114814089529E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  56
      Geometry step                     :  56
      FORCES norm(Ha/Bohr): { maxval:  2.47719E-03, fnrm2:  1.74018E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.71903717547152E+00, -1.81460420662916E-04 ]
+     epred                             :  [ -2.71903717547151E+00, -1.81460420662916E-04 ]
      Alpha                             :  2.22E-1
      dt                                :  2.00E+0
      vnrm                              :  3.95E-02
      nstep                             :  18
      P                                 :  1.09E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71934544006234269E+00, 
- Force Norm (Hartree/Bohr):  5.01517113399637445E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71934544006234136E+00, 
+ Force Norm (Hartree/Bohr):  5.01517113399305679E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  57
      Geometry step                     :  57
      FORCES norm(Ha/Bohr): { maxval:  3.20244E-03, fnrm2:  2.51519E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.71934544006234E+00, -3.08264590827445E-04 ]
+     epred                             :  [ -2.71934544006234E+00, -3.08264590826557E-04 ]
      Alpha                             :  2.19E-1
      dt                                :  2.00E+0
      vnrm                              :  4.47E-02
      nstep                             :  19
      P                                 :  1.92E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.71983251571202356E+00, 
- Force Norm (Hartree/Bohr):  5.83011927937444364E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.71983251571202134E+00, 
+ Force Norm (Hartree/Bohr):  5.83011927937389287E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  58
      Geometry step                     :  58
      FORCES norm(Ha/Bohr): { maxval:  3.22624E-03, fnrm2:  3.39903E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.71983251571202E+00, -4.87075649680868E-04 ]
+     epred                             :  [ -2.71983251571202E+00, -4.87075649679980E-04 ]
      Alpha                             :  2.17E-1
      dt                                :  2.00E+0
      vnrm                              :  5.36E-02
      nstep                             :  20
      P                                 :  2.92E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72046619560489811E+00, 
- Force Norm (Hartree/Bohr):  5.71513211287090657E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72046619560489678E+00, 
+ Force Norm (Hartree/Bohr):  5.71513211287171582E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  59
      Geometry step                     :  59
      FORCES norm(Ha/Bohr): { maxval:  3.41268E-03, fnrm2:  3.26627E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.7204661956049E+00, -6.33679892874550E-04 ]
+     epred                             :  [ -2.7204661956049E+00, -6.33679892875438E-04 ]
      Alpha                             :  2.15E-1
      dt                                :  2.00E+0
      vnrm                              :  6.35E-02
      nstep                             :  21
      P                                 :  3.15E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72106959559567985E+00, 
- Force Norm (Hartree/Bohr):  5.37872123387477495E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72106959559567807E+00, 
+ Force Norm (Hartree/Bohr):  5.37872123387381045E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  60
      Geometry step                     :  60
      FORCES norm(Ha/Bohr): { maxval:  3.84962E-03, fnrm2:  2.89306E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72106959559568E+00, -6.03399990781739E-04 ]
+     epred                             :  [ -2.72106959559568E+00, -6.03399990781295E-04 ]
      Alpha                             :  2.13E-1
      dt                                :  2.00E+0
      vnrm                              :  7.09E-02
      nstep                             :  22
      P                                 :  2.61E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72156960132610504E+00, 
- Force Norm (Hartree/Bohr):  5.10521178930678065E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72156960132610415E+00, 
+ Force Norm (Hartree/Bohr):  5.10521178930352284E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  61
      Geometry step                     :  61
      FORCES norm(Ha/Bohr): { maxval:  3.31049E-03, fnrm2:  2.60632E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72156960132611E+00, -5.00005730425190E-04 ]
+     epred                             :  [ -2.7215696013261E+00, -5.00005730426079E-04 ]
      Alpha                             :  2.11E-1
      dt                                :  2.00E+0
      vnrm                              :  7.41E-02
      nstep                             :  23
      P                                 :  2.07E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72199831019803451E+00, 
- Force Norm (Hartree/Bohr):  4.38977808331157161E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72199831019803362E+00, 
+ Force Norm (Hartree/Bohr):  4.38977808330738746E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  62
@@ -1247,50 +1359,58 @@
      vnrm                              :  7.42E-02
      nstep                             :  24
      P                                 :  1.77E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72235355145140634E+00, 
- Force Norm (Hartree/Bohr):  4.93158028504197404E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72235355145140590E+00, 
+ Force Norm (Hartree/Bohr):  4.93158028502617852E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  63
      Geometry step                     :  63
      FORCES norm(Ha/Bohr): { maxval:  2.23537E-03, fnrm2:  2.43205E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72235355145141E+00, -3.55241253371830E-04 ]
+     epred                             :  [ -2.72235355145141E+00, -3.55241253372274E-04 ]
      Alpha                             :  2.07E-1
      dt                                :  2.00E+0
      vnrm                              :  7.33E-02
      nstep                             :  25
      P                                 :  1.40E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72269402550244966E+00, 
- Force Norm (Hartree/Bohr):  5.74690208035450855E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72269402550244966E+00, 
+ Force Norm (Hartree/Bohr):  5.74690208034304723E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  64
      Geometry step                     :  64
      FORCES norm(Ha/Bohr): { maxval:  2.68047E-03, fnrm2:  3.30269E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72269402550245E+00, -3.40474051043316E-04 ]
+     epred                             :  [ -2.72269402550245E+00, -3.40474051043760E-04 ]
      Alpha                             :  2.04E-1
      dt                                :  2.00E+0
      vnrm                              :  7.05E-02
      nstep                             :  26
      P                                 :  1.58E-04
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72282748065864277E+00, 
- Force Norm (Hartree/Bohr):  7.87712988294716684E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72282748065864322E+00, 
+ Force Norm (Hartree/Bohr):  7.87712988294195400E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  65
      Geometry step                     :  65
      FORCES norm(Ha/Bohr): { maxval:  4.89648E-03, fnrm2:  6.20492E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72282748065864E+00, -1.33455156193119E-04 ]
+     epred                             :  [ -2.72282748065864E+00, -1.33455156193563E-04 ]
      Alpha                             :  2.02E-1
      dt                                :  2.00E+0
      vnrm                              :  6.47E-02
      nstep                             :  27
      P                                 : -8.86E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72285742765267269E+00, 
- Force Norm (Hartree/Bohr):  7.34052315311565975E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72285742765267313E+00, 
+ Force Norm (Hartree/Bohr):  7.34052315311086497E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  66
@@ -1303,78 +1423,90 @@
      vnrm                              :  7.61E-03
      nstep                             :  1
      P                                 :  5.58E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72293181494742420E+00, 
- Force Norm (Hartree/Bohr):  5.97720949836178742E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72293181494742331E+00, 
+ Force Norm (Hartree/Bohr):  5.97720949835718000E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  67
      Geometry step                     :  67
      FORCES norm(Ha/Bohr): { maxval:  3.78969E-03, fnrm2:  3.57270E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72293181494742E+00, -7.43872947515101E-05 ]
+     epred                             :  [ -2.72293181494742E+00, -7.43872947501778E-05 ]
      Alpha                             :  2.50E-1
      dt                                :  1.00E+0
      vnrm                              :  1.42E-02
      nstep                             :  2
      P                                 :  8.39E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72301706372009900E+00, 
- Force Norm (Hartree/Bohr):  4.51459180174585816E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72301706372009855E+00, 
+ Force Norm (Hartree/Bohr):  4.51459180174396991E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  68
      Geometry step                     :  68
      FORCES norm(Ha/Bohr): { maxval:  2.55132E-03, fnrm2:  2.03815E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.7230170637201E+00, -8.52487726747952E-05 ]
+     epred                             :  [ -2.7230170637201E+00, -8.52487726752393E-05 ]
      Alpha                             :  2.50E-1
      dt                                :  1.00E+0
      vnrm                              :  1.92E-02
      nstep                             :  3
      P                                 :  7.85E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72308883408935598E+00, 
- Force Norm (Hartree/Bohr):  3.67911497675946046E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72308883408935598E+00, 
+ Force Norm (Hartree/Bohr):  3.67911497675873882E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  69
      Geometry step                     :  69
      FORCES norm(Ha/Bohr): { maxval:  1.68274E-03, fnrm2:  1.35359E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72308883408936E+00, -7.17703692569849E-05 ]
+     epred                             :  [ -2.72308883408936E+00, -7.17703692574290E-05 ]
      Alpha                             :  2.50E-1
      dt                                :  1.00E+0
      vnrm                              :  2.23E-02
      nstep                             :  4
      P                                 :  5.95E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72314521397981890E+00, 
- Force Norm (Hartree/Bohr):  3.17583661093862653E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72314521397981846E+00, 
+ Force Norm (Hartree/Bohr):  3.17583661093752325E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  70
      Geometry step                     :  70
      FORCES norm(Ha/Bohr): { maxval:  2.03376E-03, fnrm2:  1.00859E-05, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72314521397982E+00, -5.63798904629209E-05 ]
+     epred                             :  [ -2.72314521397982E+00, -5.63798904624768E-05 ]
      Alpha                             :  2.50E-1
      dt                                :  1.00E+0
      vnrm                              :  2.36E-02
      nstep                             :  5
      P                                 :  4.59E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72319105336582057E+00, 
- Force Norm (Hartree/Bohr):  2.79607560086690904E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72319105336582057E+00, 
+ Force Norm (Hartree/Bohr):  2.79607560086590811E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  71
      Geometry step                     :  71
      FORCES norm(Ha/Bohr): { maxval:  1.92788E-03, fnrm2:  7.81804E-06, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72319105336582E+00, -4.58393860016670E-05 ]
+     epred                             :  [ -2.72319105336582E+00, -4.58393860021111E-05 ]
      Alpha                             :  2.50E-1
      dt                                :  1.00E+0
      vnrm                              :  2.38E-02
      nstep                             :  6
      P                                 :  3.74E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72323359591269520E+00, 
- Force Norm (Hartree/Bohr):  2.48699434330171580E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72323359591269520E+00, 
+ Force Norm (Hartree/Bohr):  2.48699434330169151E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  72
@@ -1387,64 +1519,74 @@
      vnrm                              :  2.36E-02
      nstep                             :  7
      P                                 :  3.18E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72327372367847120E+00, 
- Force Norm (Hartree/Bohr):  2.29091162030614333E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72327372367847165E+00, 
+ Force Norm (Hartree/Bohr):  2.29091162030522219E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  73
      Geometry step                     :  73
      FORCES norm(Ha/Bohr): { maxval:  1.07272E-03, fnrm2:  5.24828E-06, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72327372367847E+00, -4.01277657759991E-05 ]
+     epred                             :  [ -2.72327372367847E+00, -4.01277657764432E-05 ]
      Alpha                             :  2.45E-1
      dt                                :  1.21E+0
      vnrm                              :  2.33E-02
      nstep                             :  8
      P                                 :  2.73E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72331493293145543E+00, 
- Force Norm (Hartree/Bohr):  2.12110873507687960E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72331493293145543E+00, 
+ Force Norm (Hartree/Bohr):  2.12110873507651357E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  74
      Geometry step                     :  74
      FORCES norm(Ha/Bohr): { maxval:  7.21274E-04, fnrm2:  4.49910E-06, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72331493293146E+00, -4.12092529842312E-05 ]
+     epred                             :  [ -2.72331493293146E+00, -4.12092529837871E-05 ]
      Alpha                             :  2.43E-1
      dt                                :  1.33E+0
      vnrm                              :  2.30E-02
      nstep                             :  9
      P                                 :  2.77E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72335664584097348E+00, 
- Force Norm (Hartree/Bohr):  1.63818286825954582E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72335664584097437E+00, 
+ Force Norm (Hartree/Bohr):  1.63818286825904275E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  75
      Geometry step                     :  75
      FORCES norm(Ha/Bohr): { maxval:  5.38210E-04, fnrm2:  2.68364E-06, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72335664584097E+00, -4.17129095180435E-05 ]
+     epred                             :  [ -2.72335664584097E+00, -4.17129095189317E-05 ]
      Alpha                             :  2.40E-1
      dt                                :  1.46E+0
      vnrm                              :  2.29E-02
      nstep                             :  10
      P                                 :  2.28E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72338989677059828E+00, 
- Force Norm (Hartree/Bohr):  1.15251657030611236E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72338989677059828E+00, 
+ Force Norm (Hartree/Bohr):  1.15251657030753267E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  76
      Geometry step                     :  76
      FORCES norm(Ha/Bohr): { maxval:  4.78108E-04, fnrm2:  1.32829E-06, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.7233898967706E+00, -3.32509296248062E-05 ]
+     epred                             :  [ -2.7233898967706E+00, -3.32509296239181E-05 ]
      Alpha                             :  2.38E-1
      dt                                :  1.61E+0
      vnrm                              :  2.26E-02
      nstep                             :  11
      P                                 :  1.18E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72338612476047404E+00, 
- Force Norm (Hartree/Bohr):  2.44994147067561716E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72338612476047404E+00, 
+ Force Norm (Hartree/Bohr):  2.44994147068117738E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  77
@@ -1457,8 +1599,10 @@
      vnrm                              :  2.02E-02
      nstep                             :  12
      P                                 : -1.52E-05
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72338836562877873E+00, 
- Force Norm (Hartree/Bohr):  2.21556668245261957E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72338836562877873E+00, 
+ Force Norm (Hartree/Bohr):  2.21556668245748893E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  78
@@ -1471,8 +1615,10 @@
      vnrm                              :  2.07E-03
      nstep                             :  1
      P                                 :  4.58E-06
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72339347348835803E+00, 
- Force Norm (Hartree/Bohr):  1.60339080431916498E-03}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72339347348835803E+00, 
+ Force Norm (Hartree/Bohr):  1.60339080432175319E-03}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  79
@@ -1485,50 +1631,58 @@
      vnrm                              :  3.74E-03
      nstep                             :  2
      P                                 :  5.92E-06
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72339806142870122E+00, 
- Force Norm (Hartree/Bohr):  9.56211161462656718E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72339806142870167E+00, 
+ Force Norm (Hartree/Bohr):  9.56211161462910855E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  80
      Geometry step                     :  80
      FORCES norm(Ha/Bohr): { maxval:  6.15289E-04, fnrm2:  9.14340E-07, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.7233980614287E+00, -4.58794034319254E-06 ]
+     epred                             :  [ -2.7233980614287E+00, -4.58794034363663E-06 ]
      Alpha                             :  2.50E-1
      dt                                :  8.86E-1
      vnrm                              :  4.77E-03
      nstep                             :  3
      P                                 :  3.68E-06
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340027599835643E+00, 
- Force Norm (Hartree/Bohr):  8.72587604213146935E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340027599835555E+00, 
+ Force Norm (Hartree/Bohr):  8.72587604214499044E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  81
      Geometry step                     :  81
      FORCES norm(Ha/Bohr): { maxval:  4.00978E-04, fnrm2:  7.61409E-07, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72340027599836E+00, -2.21456965521227E-06 ]
+     epred                             :  [ -2.72340027599836E+00, -2.21456965388001E-06 ]
      Alpha                             :  2.50E-1
      dt                                :  8.86E-1
      vnrm                              :  5.05E-03
      nstep                             :  4
      P                                 :  1.03E-06
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340148529019821E+00, 
- Force Norm (Hartree/Bohr):  9.30168696903442387E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340148529019821E+00, 
+ Force Norm (Hartree/Bohr):  9.30168696906698679E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  82
      Geometry step                     :  82
      FORCES norm(Ha/Bohr): { maxval:  5.10629E-04, fnrm2:  8.65214E-07, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.7234014852902E+00, -1.20929184177498E-06 ]
+     epred                             :  [ -2.7234014852902E+00, -1.20929184266316E-06 ]
      Alpha                             :  2.50E-1
      dt                                :  8.86E-1
      vnrm                              :  4.54E-03
      nstep                             :  5
      P                                 :  9.03E-07
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340284181728132E+00, 
- Force Norm (Hartree/Bohr):  7.51790301717840718E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340284181728132E+00, 
+ Force Norm (Hartree/Bohr):  7.51790301721036946E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  83
@@ -1541,8 +1695,10 @@
      vnrm                              :  4.15E-03
      nstep                             :  6
      P                                 :  1.20E-06
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340398312848198E+00, 
- Force Norm (Hartree/Bohr):  4.79635519603045660E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340398312848198E+00, 
+ Force Norm (Hartree/Bohr):  4.79635519604430837E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  84
@@ -1555,78 +1711,90 @@
      vnrm                              :  3.93E-03
      nstep                             :  7
      P                                 :  5.02E-07
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340423961520139E+00, 
- Force Norm (Hartree/Bohr):  5.08395425341094187E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340423961520095E+00, 
+ Force Norm (Hartree/Bohr):  5.08395425342402711E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  85
      Geometry step                     :  85
      FORCES norm(Ha/Bohr): { maxval:  2.68895E-04, fnrm2:  2.58466E-07, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.7234042396152E+00, -2.56486719418803E-07 ]
+     epred                             :  [ -2.7234042396152E+00, -2.56486718974713E-07 ]
      Alpha                             :  2.45E-1
      dt                                :  1.07E+0
      vnrm                              :  3.43E-03
      nstep                             :  8
      P                                 : -3.49E-07
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340427617367498E+00, 
- Force Norm (Hartree/Bohr):  4.93242225797133017E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340427617367498E+00, 
+ Force Norm (Hartree/Bohr):  4.93242225798744033E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  86
      Geometry step                     :  86
      FORCES norm(Ha/Bohr): { maxval:  2.57797E-04, fnrm2:  2.43288E-07, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72340427617367E+00, -3.65584735817492E-08 ]
+     epred                             :  [ -2.72340427617367E+00, -3.65584740258384E-08 ]
      Alpha                             :  2.50E-1
      dt                                :  5.36E-1
      vnrm                              :  2.68E-04
      nstep                             :  1
      P                                 :  1.32E-07
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340437730367890E+00, 
- Force Norm (Hartree/Bohr):  4.49760320391439890E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340437730367801E+00, 
+ Force Norm (Hartree/Bohr):  4.49760320393063754E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  87
      Geometry step                     :  87
      FORCES norm(Ha/Bohr): { maxval:  2.25420E-04, fnrm2:  2.02284E-07, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72340437730368E+00, -1.01130003926642E-07 ]
+     epred                             :  [ -2.72340437730368E+00, -1.01130003038463E-07 ]
      Alpha                             :  2.50E-1
      dt                                :  5.36E-1
      vnrm                              :  5.21E-04
      nstep                             :  2
      P                                 :  2.34E-07
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340452004217681E+00, 
- Force Norm (Hartree/Bohr):  3.84304147358493326E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340452004217726E+00, 
+ Force Norm (Hartree/Bohr):  3.84304147359006533E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  88
      Geometry step                     :  88
      FORCES norm(Ha/Bohr): { maxval:  1.74657E-04, fnrm2:  1.47690E-07, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72340452004218E+00, -1.42738497910244E-07 ]
+     epred                             :  [ -2.72340452004218E+00, -1.42738499242512E-07 ]
      Alpha                             :  2.50E-1
      dt                                :  5.36E-1
      vnrm                              :  7.44E-04
      nstep                             :  3
      P                                 :  2.84E-07
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340467437171885E+00, 
- Force Norm (Hartree/Bohr):  3.08512602674009158E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340467437171885E+00, 
+ Force Norm (Hartree/Bohr):  3.08512602674242749E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  89
      Geometry step                     :  89
      FORCES norm(Ha/Bohr): { maxval:  1.31273E-04, fnrm2:  9.51800E-08, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72340467437172E+00, -1.54329542034759E-07 ]
+     epred                             :  [ -2.72340467437172E+00, -1.54329541590670E-07 ]
      Alpha                             :  2.50E-1
      dt                                :  5.36E-1
      vnrm                              :  9.25E-04
      nstep                             :  4
      P                                 :  2.77E-07
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340481386854538E+00, 
- Force Norm (Hartree/Bohr):  2.42123203596537130E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340481386854538E+00, 
+ Force Norm (Hartree/Bohr):  2.42123203596520732E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  90
@@ -1639,36 +1807,42 @@
      vnrm                              :  1.06E-03
      nstep                             :  5
      P                                 :  2.31E-07
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340492672334422E+00, 
- Force Norm (Hartree/Bohr):  2.04957512591218518E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340492672334378E+00, 
+ Force Norm (Hartree/Bohr):  2.04957512591397980E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  91
      Geometry step                     :  91
      FORCES norm(Ha/Bohr): { maxval:  7.63342E-05, fnrm2:  4.20076E-08, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72340492672334E+00, -1.12854798839379E-07 ]
+     epred                             :  [ -2.72340492672334E+00, -1.12854798395290E-07 ]
      Alpha                             :  2.50E-1
      dt                                :  5.36E-1
      vnrm                              :  1.14E-03
      nstep                             :  6
      P                                 :  1.79E-07
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340502731207446E+00, 
- Force Norm (Hartree/Bohr):  1.92178545111531640E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340502731207446E+00, 
+ Force Norm (Hartree/Bohr):  1.92178545112180725E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  92
      Geometry step                     :  92
      FORCES norm(Ha/Bohr): { maxval:  7.21108E-05, fnrm2:  3.69326E-08, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72340502731207E+00, -1.00588730234108E-07 ]
+     epred                             :  [ -2.72340502731207E+00, -1.00588730678197E-07 ]
      Alpha                             :  2.47E-1
      dt                                :  5.89E-1
      vnrm                              :  1.18E-03
      nstep                             :  7
      P                                 :  1.47E-07
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340512655081390E+00, 
- Force Norm (Hartree/Bohr):  1.76692155825223515E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340512655081390E+00, 
+ Force Norm (Hartree/Bohr):  1.76692155825810366E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  93
@@ -1681,8 +1855,10 @@
      vnrm                              :  1.19E-03
      nstep                             :  8
      P                                 :  1.38E-07
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340522740791346E+00, 
- Force Norm (Hartree/Bohr):  1.45559882736354845E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340522740791346E+00, 
+ Force Norm (Hartree/Bohr):  1.45559882736190371E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  94
@@ -1695,29 +1871,33 @@
      vnrm                              :  1.20E-03
      nstep                             :  9
      P                                 :  1.24E-07
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340531959253340E+00, 
- Force Norm (Hartree/Bohr):  1.24076241702353128E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340531959253429E+00, 
+ Force Norm (Hartree/Bohr):  1.24076241702308514E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  95
      Geometry step                     :  95
      FORCES norm(Ha/Bohr): { maxval:  4.41858E-05, fnrm2:  1.53949E-08, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.72340531959253E+00, -9.21846199375409E-08 ]
+     epred                             :  [ -2.72340531959253E+00, -9.21846208257193E-08 ]
      Alpha                             :  2.40E-1
      dt                                :  7.85E-1
      vnrm                              :  1.21E-03
      nstep                             :  10
      P                                 :  9.64E-08
- - LENOSKY_SI_BULK_RUN_MODE: {Energy (Hartree): -2.72340540348889570E+00, 
- Force Norm (Hartree/Bohr):  1.30378092409218736E-04}
+ - LENOSKY_SI_BULK_RUN_MODE: { #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node
+ Energy (Hartree): -2.72340540348889482E+00, 
+ Force Norm (Hartree/Bohr):  1.30378092409309484E-04}
    Geometry:
      Geometry Method                   : GEOPT_FIRE
      Ncount_BigDFT                     :  96
      Geometry step                     :  96
      FORCES norm(Ha/Bohr): { maxval:  6.35031E-05, fnrm2:  1.69984E-08, 
                               fluct:  0.00000E+00}
-     epred                             :  [ -2.7234054034889E+00, -8.38963623017719E-08 ]
+     epred                             :  [ -2.72340540348889E+00, -8.38963605254150E-08 ]
      Alpha                             :  2.38E-1
      dt                                :  8.63E-1
      vnrm                              :  1.20E-03
@@ -1730,10 +1910,13 @@
    Tot. No. of Deallocations           :  345
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  0.082
+     Peak Value (MB)                   :  0.081
      for the array                     : params
      in the routine                    : input_keys_init
-     Memory Peak of process            : 20.508 MB
- Walltime since initialization         : 00:00:00.204646546
- Max No. of dictionaries used          :  4392 #( 922 still in use)
+     Memory Peak of process            : 22.964 MB
+ Walltime since initialization         : 00:00:01.205716089
+ Max No. of dictionaries used          :  4382 #( 925 still in use)
  Number of dictionary folders allocated:  1
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Input positions not identical! (difference: 3.55271E-15 ), broadcasting from master node

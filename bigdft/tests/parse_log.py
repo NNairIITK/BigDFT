@@ -707,7 +707,7 @@ if args.analyze is not None and args.data:
   if INITIALIZATION in instructions:
       for var in instructions[INITIALIZATION]:
           exec var +" = "+ str(instructions[INITIALIZATION][var])
-  print args.data,argcl
+  print '#',args.data,argcl
   for f in argcl:
     sys.stderr.write("#########processing "+f+"\n")
     datas=get_logs([f])

@@ -94,13 +94,14 @@ AX_MPI()
 dnl Python YAML support.
 AX_PYYAML()
 
+AX_FLIB()
+
 dnl Produce dynamic excecutables.
-AX_DYNAMIC_LIBRARIES()
+AX_DYNAMIC_LIBRARIES([], [f_lib_initialize], [$LIB_FUTILE_LIBS])
 
 dnl Test accelerators
 AX_ACC_CUDA()
 
-AX_FLIB()
 AX_LINALG()
 AX_ETSF_IO()
 
@@ -154,9 +155,6 @@ Options:
   With Cuda support:         $ax_have_acc_cuda
    | NVidia Cuda Compiler:   $NVCC
    | Cuda flags:             $CUDA_FLAGS
-  With OpenCL support:       $ax_have_acc_ocl
-  With Intel MIC support:    $ax_have_acc_mic
-  With dgemmsy support:      $ax_have_dgemmsy
   With ETSF_IO:              $ax_have_etsf_io
    | include dir.:           $LIBETSFIO_INCLUDE
 

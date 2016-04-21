@@ -45,7 +45,7 @@ END SUBROUTINE center_of_charge
 
 !> Calculate the coupling matrix needed for Casida's TDDFT approach
 subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,orbsocc,orbsvirt,i3s,n3p,&
-     hxh,hyh,hzh,chargec,pkernel,dvxcdrho,psirocc,psivirtr)
+     hxh,hyh,hzh,chargec,pkernel,dvxcdrho,psirocc,psivirtr,exc_fac)
   use module_base
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp
@@ -63,18 +63,22 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   real(wp), dimension(lr%d%n1i*lr%d%n2i*n3p*orbsvirt%norb), intent(in) :: psivirtr
   real(wp), dimension(lr%d%n1i,lr%d%n2i,n3p,max((nspin*(nspin+1))/2,2)), intent(in) :: dvxcdrho
   type(coulomb_operator) :: pkernel
+  real(gp), intent(in) :: exc_fac
   !local variables
   character(len=*), parameter :: subname='coupling_matrix_prelim'
   !logical :: tda=.true.
   logical :: dofH=.true.,dofxc=.true.,dodiag=.true.,perx,pery,perz
   integer :: imulti,jmulti,jorba,jorbi,spinindex
-  integer :: i1,i2,i3p,iorbi,iorba,indi,inda,ind2,ind3,ntda,ispin,jspin
+  integer :: i1,i2,i3p,iorbi,iorba,indi,indj,inda,indb,ind2,ind3,ntda,ispin,jspin
   integer :: ik,jk,nmulti,lwork,info,nbl1,nbl2,nbl3,nbr3,nbr2,nbr1,ndipoles
   real(gp) :: ehart,hfac,x,y,z,fsumrule_test
   real(wp), dimension(:), allocatable :: omega,work
   real(wp), dimension(:,:), allocatable :: K,Kbig,Kaux,dipoles,fi
   real(wp), dimension(:,:,:), allocatable :: v_ias
   real(wp), dimension(:,:,:,:), allocatable :: rho_ias
+  real(wp), dimension(:,:,:), allocatable :: rhov_ij
+  real(wp), dimension(:,:,:), allocatable :: rho_ab
+  real(wp) :: K_u_HF
 
   !Preliminary comments :
   !
@@ -96,7 +100,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   ! \rho_q(r) = \psi_a(r) \psi_i(r) is the partial density of the KS transition.
   !
   ! One can reduce without any approximation the size of the problem of eq. 1 by recasting it into:
-  ! \Omega_{q,q'} = {\omega_q}^2 \delta_{q,q'} + 2 sqrt(\omega_q \omega_{q'}) K_{q,q'}                          (eq. 2)
+  ! \Omega_{q,q'} F = {\omega_q}^2 \delta_{q,q'} + 2 sqrt(\omega_q \omega_{q'}) K_{q,q'} F = \omega^2 F         (eq. 2)
   ! This will be called full TDDFT in the following (when the input parameter tddft_approach is set to 'full')
   !
   ! The Tamm-Dancoff Approximation can also be applied, and one needs only to solve:
@@ -163,6 +167,10 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   !Allocate partial densities and potentials
   rho_ias = f_malloc((/ lr%d%n1i, lr%d%n2i, max(n3p,1), nmulti /),id='rho_ias')
   v_ias = f_malloc((/ lr%d%n1i, lr%d%n2i, max(n3p,1) /),id='v_ias')
+  if (exc_fac .ne. 0.0 .and. ispin==jspin) then
+     rhov_ij = f_malloc((/ lr%d%n1i, lr%d%n2i, max(n3p,1) /),id='rhov_ij')
+     rho_ab  = f_malloc((/ lr%d%n1i, lr%d%n2i, max(n3p,1) /),id='rho_ab')
+  end if
 
   !Preliminary comments on the spin :
   !1- In the spin-averaged case (nspin=1), the whole coupling matrix Kbig is made of 4 symmetric sub-matrices of size nmulti*nmulti.
@@ -309,14 +317,54 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
         !Calculation of the Hartree part of the coupling matrix K_H(ik,jk)
         !K_H(ik,jk) = \int V_Hartree(x,y,z) \rho_bj(x,y,z) dx dy dz
+        !Add a self-exchange term in the case of TDHF under TDA.
         if (dofH) then
+
            !Multiplication of the RPA part
            K(ik,jk)=hxh*hyh*hzh*&
                 dot(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,jk),1,v_ias(1,1,1),1)
+
            !In the non spin-pol case, the RPA part is the same for spin off diagonal
            if (nspin ==1) then
               Kaux(ik,jk)=K(ik,jk)
            end if
+
+
+           !Add the self-exchange term (needed when one is doing TDHF with TDA)
+           if (exc_fac .ne. 0.0 .and. ispin==jspin) then
+
+              do i3p=1,n3p !loop over z
+                 ind3=(i3p-1)*lr%d%n1i*lr%d%n2i !z-index
+                 z=real(i3p+i3s-nbl3-1,gp)*hzh-chargec(3) !z (origin at the center of charge)
+
+                 do i2=1,lr%d%n2i !loop over y
+                    ind2=(i2-1)*lr%d%n1i+ind3 !y-index
+                    y=real(i2-nbl2-1,gp)*hyh-chargec(2) !y (origin at the center of charge)
+
+                    do i1=1,lr%d%n1i !loop over x
+                       x=real(i1-nbl1-1,gp)*hxh-chargec(1) !x (origin at the center of charge)
+
+                       indi=i1+ind2+(iorbi-1)*lr%d%n1i*lr%d%n2i*n3p !multiindex giving the right index for the occupied state wavefunction
+                       indj=i1+ind2+(jorbi-1)*lr%d%n1i*lr%d%n2i*n3p !multiindex giving the right index for the other occupied state wavefunction
+                       inda=i1+ind2+(iorba-1)*lr%d%n1i*lr%d%n2i*n3p !multiindex giving the right index for the virtual state wavefunction
+                       indb=i1+ind2+(jorba-1)*lr%d%n1i*lr%d%n2i*n3p !multiindex giving the right index for the other virtual state wavefunction
+                       rhov_ij(i1,i2,i3p)=hfac*psirocc(indj)*psirocc(indi) !partial density, multiplied by the integration factor hfac
+                       rho_ab(i1,i2,i3p)=hfac*psivirtr(inda)*psivirtr(indb) !partial density, multiplied by the integration factor hfac
+
+                    end do !loop over x
+                 end do !loop over y
+              end do !loop over z
+
+              call H_potential('D',pkernel,rhov_ij(1,1,1),rhov_ij,ehart,0.0_dp,.false.,&
+                   quiet='YES')
+
+              K_u_HF=hxh*hyh*hzh*&
+                   dot(lr%d%n1i*lr%d%n2i*n3p,rho_ab(1,1,1),1,rhov_ij(1,1,1),1) !exact-exchange term of the coupling matrix
+
+              K(ik,jk) = K(ik,jk) - exc_fac * K_u_HF
+
+           end if
+
 
         end if
 
@@ -382,6 +430,12 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
   !!$$if (iproc==0) call yaml_comment('Computation of all the different coupling matrix elements done')
 
+  !Deallocations
+  call f_free(rhov_ij)
+  call f_free(rho_ab)
+  call f_free(v_ias)
+  call f_free(rho_ias)
+
   !If more than one processor, then perform the MPI_all_reduce of K (and of Kaux if nspin=1) and of dipoles.
   if (nproc > 1) then
      call mpiallred(K,MPI_SUM,comm=bigdft_mpi%mpi_comm)
@@ -444,7 +498,6 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 !     if (iproc == 0) write(*,*) 'iorba,iorbi,K',iorba,iorbi,K(ik,ik)
 !  end do loop_i3
 
-  call f_free(v_ias)
 
   !Construction of the whole coupling matrix Kbig for nspin=1
   if (nspin == 1) then
@@ -824,7 +877,6 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   call f_free(omega)
   call f_free(work)
   call f_free(fi)
-  call f_free(rho_ias)
   call f_free(K)
   call f_free(dipoles)
   if (nspin ==1 ) then

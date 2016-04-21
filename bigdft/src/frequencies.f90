@@ -184,6 +184,7 @@ program frequencies
       !This file contains the Hessian for post-processing: it is regenerated each time.
       call yaml_set_stream(unit=u_hessian,filename=trim(runObj%inputs%dir_output)//'hessian.yaml',&
              position='rewind',record_length=92,istat=ierr,setdefault=.false.,tabbing=0)
+
       call yaml_map('Step',freq_step,unit=u_hessian)
       call yaml_map('nat',runObj%atoms%astruct%nat,unit=u_hessian)
       call yaml_map('Energy',outs%energy,unit=u_hessian)

@@ -157,7 +157,7 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keygloc,lr%wfd%keyvloc,&
              lr%wfd%nseg_f,lr%wfd%nvctr_f,&
              lr%wfd%keygloc(1,lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)),&
-             lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f):), &
+             lr%wfd%keyvloc(lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)), &
              scal,cprecr,hx,hy,hz,&
              lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
              lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&

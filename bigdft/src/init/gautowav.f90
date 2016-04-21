@@ -5,7 +5,7 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Control the accuracy of the expansion in gaussian
@@ -153,7 +153,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   ndoc = f_malloc((/ nbx, ntypes /),id='ndoc')
   contcoeff = f_malloc((/ ngx, nbx, ntypes /),id='contcoeff')
   expo = f_malloc((/ ngx, nbx, ntypes /),id='expo')
-  
+
   ityp=0
   ipg=0
   store_basis: do
@@ -163,7 +163,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
      read(line,*,iostat=i_stat)tt,string,symbol
      if (i_stat == 0 .and. string=='Atomic' .and. symbol=='kind:') then
         ityp=ityp+1
-        if (ityp > 1) then 
+        if (ityp > 1) then
            ndoc(ishell,ityp-1)=ipg
         end if
         ishell=0
@@ -208,7 +208,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   !copy the parsed values in the gaussian structure
   !count also the total number of shells
   CP2K%nshell = f_malloc_ptr(nat,id='CP2K%nshell')
-  
+
   CP2K%nshltot=0
   do iat=1,nat
      ityp=iatype(iat)
@@ -310,7 +310,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
               jbas=1
               ishell=ishell+1
               if (ishell > nshell(iatype(iat))) then
-                 !if (iproc==0) 
+                 !if (iproc==0)
                  call yaml_warning('Problem in the gaucoeff.dat file, the number of shells of atom' // &
                       & trim(yaml_toa(iat)) // ' is incoherent')
                  !write(*,'(1x,a,i0,a)') 'Problem in the gaucoeff.dat file, the number of shells of atom ',iat ,&
@@ -422,7 +422,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
   real(wp), dimension(:), allocatable :: tpsi
-  
+
   !if(iproc == 0 .and. verbose > 1) then
      !write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
   !end if
@@ -471,13 +471,13 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
            end do loop_calc
            if (maycalc) then
               call crtonewave(geocode,grid%n1,grid%n2,grid%n3,ng,nterm,lx,ly,lz,fac_arr,&
-                   G%xp(1,iexpo),G%psiat(1,iexpo),&
+                   G%xp(:,iexpo),G%psiat(:,iexpo),&
                    rx,ry,rz,hx,hy,hz,&
                    0,grid%n1,0,grid%n2,0,grid%n3,&
-                   grid%nfl1,grid%nfu1,grid%nfl2,grid%nfu2,grid%nfl3,grid%nfu3,  & 
+                   grid%nfl1,grid%nfu1,grid%nfl2,grid%nfu2,grid%nfl3,grid%nfu3,  &
                    wfd%nseg_c,wfd%nvctr_c,wfd%keygloc,wfd%keyvloc,wfd%nseg_f,wfd%nvctr_f,&
-                   wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
-                   wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),&
+                   wfd%keygloc(:,wfd%nseg_c+min(1,wfd%nseg_f)),&
+                   wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f):),&
                    tpsi(1),tpsi(wfd%nvctr_c+min(1,wfd%nvctr_f)))
            end if
            !sum the result inside the orbital wavefunction
@@ -516,7 +516,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
         jorb=iorb-orbs%isorb
         totnorm=0.0_dp
        do ispinor=1,orbs%nspinor !to be verified in case of nspinor=4
-          call wnrm_wrap(1,wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),scpr) 
+          call wnrm_wrap(1,wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),scpr)
            totnorm=totnorm+scpr
 
            !print *,'AAA',iproc,iorb,ispinor,scpr,jorb
@@ -525,7 +525,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
            call wscal_wrap(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),&
                 psi(1,ispinor,jorb))
 
-           !call wnrm_wrap(wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),scpr) 
+           !call wnrm_wrap(wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),scpr)
            !print *,'BBB',iproc,iorb,ispinor,scpr
 
         end do
@@ -569,9 +569,9 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
 
   !if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
   !     'Writing wavefunctions in wavelet form...'
-  
+
   normdev=0.0_dp
-  tt=0.0_dp  
+  tt=0.0_dp
   ind = 1
   ind2 = 1
   do iorb=1,orbs%norbp
@@ -596,7 +596,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
              wfn_gau(1,ispinor,iorb),psi(ind))
 
         !if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
-        call wnrm_wrap(ncplx,Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,psi(ind),scpr) 
+        call wnrm_wrap(ncplx,Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,psi(ind),scpr)
         totnorm=totnorm+scpr
         ind = ind + (Lzd%Llr(ilr)%wfd%nvctr_c + 7*Lzd%Llr(ilr)%wfd%nvctr_f)*ncplx
      end do
@@ -633,18 +633,18 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
 END SUBROUTINE gaussians_to_wavelets_new
 
 !> routine with lookup array on the Gaussians
-subroutine gaussians_to_wavelets_mask(ob,hgrids,G,wfn_gau,psi,mask)
+subroutine gaussians_to_wavelets_mask(ob,hgrids,G,wfn_gau,mask)
   use module_base
   use module_types
   use orbitalbasis
   use yaml_output
+  use f_ternary !to test
   !use wrapper_MPI, only: mpireduce to be written yet
   implicit none
   real(gp), dimension(3), intent(in) :: hgrids
   type(orbital_basis), intent(in) :: ob
   type(gaussian_basis), intent(in) :: G
   real(wp), dimension(G%ncoeff,ob%orbs%nspinor,ob%orbs%norbp), intent(in) :: wfn_gau
-  real(wp), dimension(ob%orbs%npsidim_orbs), intent(inout) :: psi
   logical, dimension(ob%orbs%norbp), intent(in) :: mask !<mask array, only convert into gaussians the wfn for which the value is .true.
   !local variables
   integer :: ispinor,ncplx,ierr
@@ -661,14 +661,17 @@ subroutine gaussians_to_wavelets_mask(ob,hgrids,G,wfn_gau,psi,mask)
   do while (ket_next(it))
      if (.not. mask(it%iorbp)) cycle
      !evaluate the complexity of the k-point
-     if (all(it%kpoint==0.0_gp)) then
-        ncplx=1
-     else
-        ncplx=2
-     end if
+     !new syntax to test
+     ncplx = .if. all(it%kpoint==0.0_gp) .then. 1 .else. 2
+
+!!$     if (all(it%kpoint==0.0_gp)) then
+!!$        ncplx=1
+!!$     else
+!!$        ncplx=2
+!!$     end if
      totnorm=0.0_dp
      do ispinor=1,it%nspinor,ncplx
-        psi_ptr=>ob_subket_ptr(it,ispinor)
+        psi_ptr=> ob_subket_ptr(it,ispinor,ncplx=ncplx)
         call gaussians_to_wavelets_orb(ncplx,it%lr,&
              hgrids(1),hgrids(2),hgrids(3),&
              it%kpoint(1),it%kpoint(2),it%kpoint(3),G,&
@@ -782,8 +785,8 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
                  nterms=0
               end if
               !assign the arrays
-              !make sure that the coefficients returned by 
-              !gauss_to_daub are zero outside [ml:mr] 
+              !make sure that the coefficients returned by
+              !gauss_to_daub are zero outside [ml:mr]
               do ig=1,ng
                  do i=1,nterm
                     !print *,iat,ig,i,fac_arr(i),wfn_gau(icoeff),G%xp(1,iexpo+ig-1)
@@ -791,15 +794,15 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
                     n_gau=lx(i)
                     call gauss_to_daub_k(hx,kx*hx,ncplx,ncplx_g,ncplx,fac_arr(i),rx,gau_a,n_gau,&
                          lr%ns1,lr%d%n1,ml1,mu1,&
-                         wx(1,0,1,iterm),work,nw,perx,gau_cut) 
+                         wx(1,0,1,iterm),work,nw,perx,gau_cut)
                     !write(*,'(a,2i7,f9.2,i7)') 'iat, m, rx, n1', iat, m, rx, lr%d%n1
                     !print *,'x',gau_a,nterm,ncplx,kx,ky,kz,ml1,mu1,lr%d%n1
                     n_gau=ly(i)
                     call gauss_to_daub_k(hy,ky*hy,ncplx,ncplx_g,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
                          lr%ns2,lr%d%n2,ml2,mu2,&
-                         wy(1,0,1,iterm),work,nw,pery,gau_cut) 
+                         wy(1,0,1,iterm),work,nw,pery,gau_cut)
                     !print *,'y',ml2,mu2,lr%d%n2
-                    n_gau=lz(i) 
+                    n_gau=lz(i)
                     call gauss_to_daub_k(hz,kz*hz,ncplx,ncplx_g,ncplx,G%psiat(:,iexpo+ig-1),rz,gau_a,n_gau,&
                          lr%ns3,lr%d%n3,ml3,mu3,&
                          wz(1,0,1,iterm),work,nw,perz,gau_cut)
@@ -894,7 +897,7 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
   iscoeff=1
   iterm=1
   do iat=1,G%nat
-     
+
      rx=G%rxyz(1,iat)
      ry=G%rxyz(2,iat)
      rz=G%rxyz(3,iat)
@@ -910,7 +913,7 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
         l=abs(G%nam(ishell)  )
         !print *,iproc,iat,ishell,G%nam(ishell),G%nshell(iat)
         !multiply the values of the gaussian contraction times the orbital coefficient
-    
+
         do m=1,2*l-1
            call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
            !control whether the basis element may be
@@ -923,29 +926,29 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
                  nterms=0
               end if
               !assign the arrays
-              !make sure that the coefficients returned by 
-              !gauss_to_daub are zero outside [ml:mr] 
+              !make sure that the coefficients returned by
+              !gauss_to_daub are zero outside [ml:mr]
               do ig=1,ng
 
                  gau_a= sqrt( 1.0_gp/REAL(2.0_gp*G%expof(iexpo+ig-1))   )
                  gau_bf = AIMAG ( G%expof(iexpo+ig-1) )
 
                  do i=1,nterm
-                    
+
                     n_gau=lx(i)
 
                     call gauss_c_to_daub_k(hx,kx,ncplx,gau_bf ,ncplxC,fac_arr(i), &
                          rx,gau_a,  n_gau,&
                          lr%d%n1,ml1,mu1,&
-                         wx(1,1,0,1,iterm),work,nw,perx, cutoff) 
+                         wx(1,1,0,1,iterm),work,nw,perx, cutoff)
 
                     n_gau=ly(i)
                     !print *,'y',ml2,mu2,lr%d%n2
                     call gauss_c_to_daub_k(hy,ky,ncplx,gau_bf,ncplxC,wfn_gau(icoeff), &
                          ry,gau_a,n_gau,&
                          lr%d%n2,ml2,mu2,&
-                         wy(1,1,0,1,iterm),work,nw,pery, cutoff) 
-                    n_gau=lz(i) 
+                         wy(1,1,0,1,iterm),work,nw,pery, cutoff)
+                    n_gau=lz(i)
                     !print *,'z',ml3,mu3,lr%d%n3
                     call gauss_c_to_daub_k(hz,kz,ncplx,gau_bf,ncplxC,  1.0_wp,  &
                          rz,gau_a,n_gau,&
@@ -953,7 +956,7 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
                          wz(1,1,0,1,iterm),work,nw,perz, cutoff)
 
                     cossinfacts(1,iterm)= REAL( G%psiat(iexpo+ig-1))
-                    cossinfacts(2,iterm)= AIMAG(G%psiat(iexpo+ig-1)) 
+                    cossinfacts(2,iterm)= AIMAG(G%psiat(iexpo+ig-1))
 
                     iterm=iterm+1
                  end do
@@ -1019,7 +1022,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      ! coarse part
      nvctr=0
      do iseg=1,lr%wfd%nseg_c
-        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(:,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_c=i-i0+jj
            do iterm=1,nterm
@@ -1041,7 +1044,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      ! Other terms: fine projector components
      nvctr=0
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(:,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
            do iterm=1,nterm
@@ -1066,7 +1069,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      if (nvctr /= lr%wfd%nvctr_f) then
         call yaml_warning(' ERROR: nvctr /= nvctr_f ' // trim(yaml_toa(nvctr)) // trim(yaml_toa(lr%wfd%nvctr_f)))
         !write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_f ',nvctr,lr%wfd%nvctr_f
-        stop 
+        stop
      end if
      !!$  end if
   else if (ncplx ==2) then
@@ -1079,7 +1082,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      ! coarse part
      nvctr=0
      do iseg=1,lr%wfd%nseg_c
-        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(:,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_c=i-i0+jj
            do iterm=1,nterm
@@ -1100,7 +1103,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      ! Other terms: fine projector components
      nvctr=0
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(:,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
            do iterm=1,nterm
@@ -1125,17 +1128,17 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      if (nvctr /= lr%wfd%nvctr_f) then
         call yaml_warning(' ERROR: nvctr /= nvctr_f ' // trim(yaml_toa(nvctr)) // trim(yaml_toa(lr%wfd%nvctr_f)))
         !write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_f ',nvctr,lr%wfd%nvctr_f
-        stop 
+        stop
      end if
      !!$  end if
-     
+
      !now the imaginary part
-     
-     !!$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
+
+     !!$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then
      ! Other terms: coarse projector components
      ! coarse part
      do iseg=1,lr%wfd%nseg_c
-        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(:,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_c=lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+i-i0+jj
            do iterm=1,nterm
@@ -1150,7 +1153,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      !!$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
      ! Other terms: fine projector components
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvloc(iseg),lr%wfd%keygloc(:,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+lr%wfd%nvctr_c+7*(i-i0+jj-1)
            do iterm=1,nterm
@@ -1176,7 +1179,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
 
   !!$omp end parallel
 
-contains 
+contains
 
   !> Real part of the complex product
   pure function re_cmplx_prod(a,b,c)
@@ -1228,7 +1231,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
   !local variables
   integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
   !real(wp) :: re_cmplx_prod,im_cmplx_prod
-  !real(wp) :: re_re_cmplx_prod,re_im_cmplx_prod,im_re_cmplx_prod,im_im_cmplx_prod 
+  !real(wp) :: re_re_cmplx_prod,re_im_cmplx_prod,im_re_cmplx_prod,im_im_cmplx_prod
 
   !!$omp parallel default(private) shared(lr%nseg_c,lr%wfd%keyv,lr%wfd%keyg,lr%d) &
   !!$omp shared(psi,wx,wy,wz,lr%wfd%nvctr_c) &
@@ -1236,7 +1239,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
   if (ncplx == 1) then
      nvctr=0
      do iseg=1,lr%wfd%nseg_c
-        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(:,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_c=i-i0+jj
            do iterm=1,nterm
@@ -1257,12 +1260,12 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
      ! Other terms: fine projector components
      nvctr=0
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(:,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
            do iterm=1,nterm
               psi(ind_f+1)=psi(ind_f+1)+re_cmplx_prod(&
-                   wx(1, 1,i,2,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,1,iterm))*cossinfacts(1,iterm)
+                   wx(1,1,i,2,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,1,iterm))*cossinfacts(1,iterm)
               psi(ind_f+2)=psi(ind_f+2)+re_cmplx_prod(&
                    wx(1,1,i,1,iterm),wy(1,1,i2,2,iterm),wz(1,1,i3,1,iterm))*cossinfacts(1,iterm)
               psi(ind_f+3)=psi(ind_f+3)+re_cmplx_prod(&
@@ -1282,17 +1285,17 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
      if (nvctr /= lr%wfd%nvctr_f) then
         call yaml_warning(' ERROR: nvctr >< nvctr_f ' // trim(yaml_toa(nvctr)) // trim(yaml_toa(lr%wfd%nvctr_f)))
         !write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
-        stop 
+        stop
      end if
      !!$  end if
-     
+
      !now the imaginary part
-     
-     !!$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
+
+     !!$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then
      ! Other terms: coarse projector components
      ! coarse part
      do iseg=1,lr%wfd%nseg_c
-        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(:,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_c=i-i0+jj
            do iterm=1,nterm
@@ -1307,7 +1310,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
      !!$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
      ! Other terms: fine projector components
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(:,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
            do iterm=1,nterm
@@ -1332,7 +1335,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
 
      nvctr=0
      do iseg=1,lr%wfd%nseg_c
-        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(:,iseg),lr%d,i0,i1,i2,i3,jj)
 
         do i=i0,i1
            ind_c=i-i0+jj
@@ -1344,7 +1347,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
         end do
 
         do i=i0,i1
-           ind_c= lr%wfd%nvctr_c + 7*lr%wfd%nvctr_f + i-i0+jj 
+           ind_c= lr%wfd%nvctr_c + 7*lr%wfd%nvctr_f + i-i0+jj
            do iterm=1,nterm
               psi(ind_c)=psi(ind_c)+im_re_cmplx_prod(&
                    wx(1,1, i,1,iterm),wy(1,1, i2,1,iterm),wz(1,1, i3,1,iterm))*cossinfacts(1,iterm)
@@ -1365,7 +1368,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
      ! Other terms: fine projector components
      nvctr=0
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(:,iseg),lr%d,i0,i1,i2,i3,jj)
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
            do iterm=1,nterm
@@ -1412,17 +1415,17 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
      if (nvctr /= lr%wfd%nvctr_f) then
         call yaml_warning(' ERROR: nvctr >< nvctr_f ' // trim(yaml_toa(nvctr)) // trim(yaml_toa(lr%wfd%nvctr_f)))
         !write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
-        stop 
+        stop
      end if
      !!$  end if
-     
+
      !now the imaginary part
-     
-     !!$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then 
+
+     !!$  if((ithread == 0 .and. nthread <= 2) .or. ithread == 2) then
      ! Other terms: coarse projector components
      ! coarse part
      do iseg=1,lr%wfd%nseg_c
-        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(:,iseg),lr%d,i0,i1,i2,i3,jj)
 
         do i=i0,i1
            ind_c=i-i0+jj
@@ -1447,7 +1450,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
      !!$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
      ! Other terms: fine projector components
      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
-        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
+        call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(:,iseg),lr%d,i0,i1,i2,i3,jj)
 
         do i=i0,i1
            ind_f=lr%wfd%nvctr_c+7*(i-i0+jj-1)
@@ -1490,12 +1493,12 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
         end do
 
      end do
-     
+
   end if
 
 !!$omp end parallel
 
-contains 
+contains
 
   !> Real part of the complex product
   pure function re_cmplx_prod(a,b,c)
@@ -1581,7 +1584,7 @@ contains
     im_im_cmplx_prod=-im_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
          +im_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
          +im_cmplx_prod(a(1,1),b(1,2),c(1,1)) &
-         +im_cmplx_prod(a(1,1),b(1,1),c(1,2))  
+         +im_cmplx_prod(a(1,1),b(1,1),c(1,2))
   END FUNCTION im_im_cmplx_prod
 
 
@@ -1618,7 +1621,7 @@ END SUBROUTINE segments_to_grid
 !!!  use module_types
 !!!  implicit none
 !!!  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-!!!  integer, intent(in) :: iproc,nproc,norb,norbp,n1i,n2i,n3i 
+!!!  integer, intent(in) :: iproc,nproc,norb,norbp,n1i,n2i,n3i
 !!!  real(gp), intent(in) :: hx,hy,hz
 !!!  type(wavefunctions_descriptors), intent(in) :: wfd
 !!!  type(gaussian_basis), intent(in) :: G
@@ -1667,7 +1670,7 @@ END SUBROUTINE segments_to_grid
            !this kinetic energy is not reliable
 !!eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
 !!!           call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,G%xp(1,iexpo),G%psiat(1,iexpo),&
-!!!                rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+!!!                rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
 !!!                wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,&
 !!!                wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
 !!!                tpsi(1),tpsi(wfd%nvctr_c+1))
@@ -1702,7 +1705,7 @@ END SUBROUTINE segments_to_grid
 !!!  do iorb=1,norb
 !!!     if (myorbital(iorb,norb,iproc,nproc)) then
 !!!        jorb=iorb-iproc*norbp
-!!!        call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,jorb),psi(wfd%nvctr_c+1,jorb),scpr) 
+!!!        call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,jorb),psi(wfd%nvctr_c+1,jorb),scpr)
 !!!        call wscal(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(scpr),wp),psi(1,jorb),psi(wfd%nvctr_c+1,jorb))
 !!!        !print *,'norm of orbital ',iorb,scpr
 !!!        tt=max(tt,abs(1.0_dp-scpr))
@@ -1737,7 +1740,7 @@ END SUBROUTINE segments_to_grid
 !!!
 !!!     do iat=1,nat
 !!!        ityp=iatype(iat)
-!!!        rx=rxyz(1,iat) 
+!!!        rx=rxyz(1,iat)
 !!!        ry=rxyz(2,iat)
 !!!        rz=rxyz(3,iat)
 !!!
@@ -1756,7 +1759,7 @@ END SUBROUTINE segments_to_grid
 !!!        !these nested loops will be used also for the actual ionic forces, to be recalculated
 !!!        do i3=isz,iez
 !!!           z=real(i3,kind=8)*hzh-rz
-!!!           call ind_positions(perz,i3,n3,j3,goz) 
+!!!           call ind_positions(perz,i3,n3,j3,goz)
 !!!           j3=j3+nbl3+1
 !!!           do i2=isy,iey
 !!!              y=real(i2,kind=8)*hyh-ry
@@ -1918,7 +1921,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   ndoc = f_malloc((/ nbx, ntypes /),id='ndoc')
   contcoeff = f_malloc((/ ngx, nbx, ntypes /),id='contcoeff')
   expo = f_malloc((/ ngx, nbx, ntypes /),id='expo')
-  
+
   ityp=0
   ipg=0
   store_basis: do
@@ -1928,7 +1931,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      read(line,*,iostat=i_stat)tt,string,symbol
      if (i_stat == 0 .and. string=='Atomic' .and. symbol=='kind:') then
         ityp=ityp+1
-        if (ityp > 1) then 
+        if (ityp > 1) then
            ndoc(ishell,ityp-1)=ipg
         end if
         ishell=0
@@ -2011,8 +2014,8 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
 !!!  call memocc(i_stat,i_all,'rw','gautowav')
 
 !!!subroutine basis_ovrlp(nat,norb,nbx,ngx,lmax,ntypes,nam,ndoc,contcoeff,expo,cimu)
-!!!  
-!!!  
+!!!
+!!!
 !!!END SUBROUTINE basis_ovrlp
 
   mmax=2*lmax+1
@@ -2056,7 +2059,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
               jbas=1
               ishell=ishell+1
               if (ishell > nshell(iatype(iat))) then
-                 !if (iproc==0) 
+                 !if (iproc==0)
                  call yaml_warning('Problem in the gaucoeff.dat file, the number of shells of atom ' // &
                       & trim(yaml_toa(iat)) // ' is incoherent')
                  !write(*,'(1x,a,i0,a)')&
@@ -2087,7 +2090,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
            read(line,*)nst
            nend=nst+ipar-1
            if (jat/=nat) then
-              !if (iproc==0) 
+              !if (iproc==0)
               call yaml_warning('Problem in the gaucoeff.dat file, only ' // trim(yaml_toa(iat)) // ' atoms processed')
               !write(*,'(1x,a,i0,a)') 'Problem in the gaucoeff.dat file, only ',iat ,' atoms processed'
               stop
@@ -2157,7 +2160,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
 !!!           !this kinetic energy is not reliable
 !!!           eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
            call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiatn,&
-                rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+                rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
                 nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,&
                 keyg(1,nseg_c+1),keyv(nseg_c+1),&
                 tpsi(1),tpsi(nvctr_c+1))
@@ -2189,7 +2192,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   do iorb=1,norb
      if (myorbital(iorb,norb,iproc,nproc)) then
         jorb=iorb-iproc*norbp
-        call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr) 
+        call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr)
         call wscal(nvctr_c,nvctr_f,real(1.0_dp/sqrt(scpr),wp),psi(1,jorb),psi(nvctr_c+1,jorb))
         !print *,'norm of orbital ',iorb,scpr
         tt=max(tt,abs(1.0_dp-scpr))
@@ -2294,8 +2297,8 @@ end function myorbital
 !> Returns an input guess orbital that is a Gaussian centered at a Wannier center
 !! @f$ exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 )) @f$
 !! in the arrays psi_c, psi_f
-subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hx,hy,hz, & 
-     nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,  & 
+subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hx,hy,hz, &
+     nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,  &
      nseg_c,mvctr_c,keyg_c,keyv_c,nseg_f,mvctr_f,keyg_f,keyv_f,psi_c,psi_f)
   use module_base
   implicit none

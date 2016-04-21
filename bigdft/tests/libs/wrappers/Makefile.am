@@ -25,7 +25,7 @@ bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
 
 check_wrappers_SOURCES = check_wrappers.c
-check_wrappers_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules @GLIB_CFLAGS@
+check_wrappers_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/bindings -I$(top_builddir)/src/bindings @GLIB_CFLAGS@
 check_wrappers_LDADD = $(bigdft_library) @FCLIBS@
 
 EXTRA_DIST = wrappers.out.ref.yaml posinp.ref.yaml pywrappers.out.ref.yaml check_wrappers.py.in

@@ -897,7 +897,7 @@ module bounds
     !> return the shapes of the localisation region
     !!useful to allocate the array psifscf
     function locreg_mesh_shape(mesh,highres) result(ndims)
-      use box, only: cell
+      use box, only: cell,cell_periodic_dims
       implicit none
       type(cell), intent(in) :: mesh
       logical, intent(in), optional :: highres
@@ -908,6 +908,7 @@ module bounds
       logical, dimension(3) :: peri
       hr=.false.
       if (present(highres)) hr=highres
+      peri=cell_periodic_dims(mesh)
       do i=1,3
          call ext_buffers_coarse(peri(i),nb)
          if (hr) then

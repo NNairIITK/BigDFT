@@ -47,6 +47,7 @@ subroutine multi_mode_state(runObj, outs, infocode)
 
   ln = size(runObj%sections)
   infocode = 0
+  outs%energy = 0.
 
   ! Run subparts and accumulate forces.
   do i = 1, ln
@@ -82,8 +83,8 @@ subroutine multi_mode_state(runObj, outs, infocode)
         end if
      end do
 
-     !@todo Hardcode the total energy to the first section only. To be improved.
-     outs%energy = subouts%energy
+     !@todo The global energy is currently the sum of all energy sections. To be improved.
+     outs%energy = outs%energy + subouts%energy
 
      call f_free(coeffs)
      call f_free(map)

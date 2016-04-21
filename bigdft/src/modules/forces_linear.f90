@@ -271,7 +271,8 @@ module forces_linear
     
       ! Gather together the entire density kernel
       denskern_gathered = sparsematrix_malloc(denskern,iaction=SPARSE_FULL,id='denskern_gathered')
-      call gather_matrix_from_taskgroups(iproc, nproc, denskern, denskern_mat%matrix_compr, denskern_gathered)
+      call gather_matrix_from_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, &
+           denskern, denskern_mat%matrix_compr, denskern_gathered)
     
       isat = 1
     
@@ -1164,7 +1165,8 @@ module forces_linear
       use module_types
       !use module_xc
       use sparsematrix_base, only: sparse_matrix, matrices
-      use sparsematrix, only: trace_sparse
+      !use sparsematrix, only: trace_sparse
+      use sparsematrix_highlevel, only: trace_AB
       use communications_base, only: TRANSPOSE_FULL
       use communications, only: transpose_localized
       use transposed_operations, only: calculate_overlap_transposed
@@ -1221,7 +1223,7 @@ module forces_linear
     
     
          !!psir = f_malloc0((/lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,orbs%nspinor/),id='psir')
-         call initialize_work_arrays_locham(1, [Lzd%Llr(ilr)], orbs%nspinor, .false., w)
+         call initialize_work_arrays_locham(Lzd%Llr(ilr), orbs%nspinor, .false., w)
     
          !!call daub_to_isf_locham(orbs%nspinor, lzd%llr(ilr), wrk_lh, psi(ist), psir)
          call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
@@ -1274,7 +1276,8 @@ module forces_linear
               hpsi(1,idir), hpsit_c, hpsit_f, lzd)
          call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               psit_c, hpsit_c, psit_f, hpsit_f, msmat, mmat)
-         tt = trace_sparse(iproc, nproc, msmat, lsmat, mmat%matrix_compr, lmat%matrix_compr, 1)
+         !tt = trace_sparse(iproc, nproc, msmat, lsmat, mmat%matrix_compr, lmat%matrix_compr, 1)
+         tt = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, msmat, lsmat, mmat, lmat, 1)
          !tens(idir) = tens(idir) + -8.0_gp/(hx*hy*hz)/real(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,gp)*tt
          tens(idir) = tens(idir) - 2.0_gp*8.0_gp/(hx*hy*hz)/real(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,gp)*tt
          tens(idir) = tens(idir)/real(nproc,kind=8) !divide by nproc since an allreduce will follow

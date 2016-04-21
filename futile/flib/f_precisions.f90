@@ -48,7 +48,7 @@ module f_precisions
   integer(f_address), external :: f_loc
 
   interface assignment(=)
-     module procedure set_d,set_i,set_li
+     module procedure set_d,set_i,set_li,set_c
   end interface assignment(=)
 
   private :: set_d,set_i,set_li
@@ -66,6 +66,17 @@ module f_precisions
          val=1.0_f_double
       end select
     end subroutine set_d
+
+    elemental subroutine set_c(val,par)
+      implicit none
+      character(len=*), intent(out) :: val
+      type(f_parameter), intent(in) :: par
+      select case(par%val)
+      case(c_0)
+         val=repeat(' ',len(val))
+      end select
+    end subroutine set_c
+
 
     elemental subroutine set_i(val,par)
       implicit none

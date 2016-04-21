@@ -1,14 +1,14 @@
 !> @file
-!!    Modulefile for handling the read-write of a given simulation 
+!!    Modulefile for handling the read-write of a given simulation
 !!    box
 !!
 !! @author
 !!    G. Fisicaro, L. Genovese (September 2015)
-!!    Copyright (C) 2002-2015 BigDFT group 
+!!    Copyright (C) 2002-2016 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 module IObox
   use PSbase
   implicit none
@@ -16,7 +16,7 @@ module IObox
   integer, parameter :: UNKNOWN=0
   integer, parameter :: CUBE=1
   integer, parameter :: ETSF=2
-  
+
   private
 
   public :: read_field,read_field_dimensions,dump_field
@@ -68,7 +68,7 @@ module IObox
          nl2=15
          nby = 0
       end if
-     
+
     end subroutine startend_buffers
 
     function get_file_format(filename,isuffix) result(fformat)
@@ -105,7 +105,7 @@ module IObox
          ipos=max(ipos,1)
          if (index(filename(ipos:), ".") == 0) fformat=CUBE
       end if
-         
+
     end function get_file_format
 
     subroutine read_cube_header(filename,geocode,ndims,hgrids,&
@@ -133,7 +133,7 @@ module IObox
       read(unt,*)! 'CUBE file for charge density'
       read(unt,*)! 'Case for '//trim(message)
 
-      read(unt,'(i5,3(f12.6))') nat, dum1, dum2, dum3 
+      read(unt,'(i5,3(f12.6))') nat, dum1, dum2, dum3
       read(unt,'(i5,3(f12.6))') n1t , hxh  , dum1 , dum2
       read(unt,'(i5,3(f12.6))') n2t , dum1 , hyh  , dum2
       read(unt,'(i5,3(f12.6))') n3t , dum1 , dum2 , hzh
@@ -212,7 +212,7 @@ module IObox
       read(unt,*)! 'CUBE file for charge density'
       read(unt,*)! 'Case for '//trim(message)
 
-      read(unt,'(i5,3(f12.6),a)')  nat , dum1, dum2, dum3 
+      read(unt,'(i5,3(f12.6),a)')  nat , dum1, dum2, dum3
       read(unt,'(i5,3(f12.6))') n1t , dum3,   dum1 ,dum2
       read(unt,'(i5,3(f12.6))') n2t ,dum1 , dum3  ,  dum2
       read(unt,'(i5,3(f12.6))') n3t ,dum1 , dum2 , dum3
@@ -247,11 +247,11 @@ module IObox
                   advancestring='no'
                end if
                ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-               read(unt,'(1x,1pe13.6)',advance=advancestring) tt !rho(ind) 
+               read(unt,'(1x,1pe13.6)',advance=advancestring) tt !rho(ind)
                !rho(ind)=tt
                rho(i1+nl1,i2+nl2,i3+nl3)=tt
                !           write(16,*)i1,i2,i3,ind,rho(ind)
-               !read(unt,*)',advance=advancestring) rho(ind) 
+               !read(unt,*)',advance=advancestring) rho(ind)
             end do
          end do
       end do
@@ -401,7 +401,7 @@ module IObox
 
       drr=.false.
       if (present(dry_run)) drr=dry_run
-      
+
       !read the header of the files and verify it is coherent for nspin==2
       if (nspin /= 2) then
          call f_strcpy(src='',dest=suffix)
@@ -606,7 +606,7 @@ module IObox
       do i2=0,nc2 - 1
          later_avg=0.0_dp
          do i3=0,nc3 - 1
-            do i1=0,nc1 -1 
+            do i1=0,nc1 -1
                later_avg=later_avg+&
                     a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
             end do
@@ -625,7 +625,7 @@ module IObox
       do i3=0,nc3 - 1
          later_avg=0.0_dp
          do i2=0,nc2 - 1
-            do i1=0,nc1 -1 
+            do i1=0,nc1 -1
                later_avg=later_avg+&
                     a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
             end do
@@ -698,7 +698,7 @@ module IObox
       character(len=*), parameter :: subname='plot_density'
       character(len=5) :: suffix
       character(len=65) :: message
-      integer :: ierr,ia,ib,isuffix,fformat,nat!n1i,n2i,n3i,nat
+      integer :: ia,ib,isuffix,fformat,nat!ierr,n1i,n2i,n3i
       real(gp), dimension(:,:), pointer :: rxyz_
       integer, dimension(:), pointer :: iatype_
       integer, dimension(:), pointer :: nzatom_
