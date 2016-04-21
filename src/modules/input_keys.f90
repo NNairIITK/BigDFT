@@ -302,6 +302,9 @@ module module_input_keys
      integer  :: nmultint
      integer  :: nsuzuki
      real(gp) :: nosefrq
+     logical  :: restart_nose
+     logical  :: restart_pos
+     logical  :: restart_vel
 
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
@@ -910,7 +913,8 @@ contains
          !in%inputPsiId == 102 .or. &                     !reading of basis functions
          in%write_orbitals>0 .or. &                      !writing the KS orbitals in the linear case
          mod(in%lin%output_mat_format,10)>0 .or. &       !writing the sparse linear matrices
-         mod(in%lin%output_coeff_format,10)>0            !writing the linear KS coefficients
+         mod(in%lin%output_coeff_format,10)>0 .or. &          !writing the linear KS coefficients
+         in%mdsteps>0                                !write the MD restart file always in dir_output
 
     !here you can check whether the etsf format is compiled
 
@@ -1946,6 +1950,12 @@ contains
          in%nosefrq = val
        case (WAVEFUNCTION_EXTRAPOLATION)
           in%wfn_history = val
+       case (RESTART_NOSE)
+          in%restart_nose = val
+       case (RESTART_VEL)
+          in%restart_vel = val
+       case (RESTART_POS)
+          in%restart_pos = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -3040,6 +3050,9 @@ contains
          call yaml_map('Yoshida-Suzuki factor for Nose Hoover Chains', in%nsuzuki)
          call yaml_map('Frequency of Nose Hoover Chains', in%nosefrq)
        end if
+       call yaml_map('Restart Positions from md.restart', in%restart_pos)
+       call yaml_map('Restart Velocities from md.restart', in%restart_vel)
+       call yaml_map('Restart Nose Hoover Chains from md.restart', in%restart_nose)
        call yaml_mapping_close()
     end if
 

@@ -1008,6 +1008,15 @@
      DESCRIPTION: A value greater than 0 activates wfn extrapolation
      EXCLUSIVE: [ 0, 1, 2, 4 ]
      default: 0
+   restart_nose:
+     COMMENT: Restart Nose Hoover Chain information from md.restart
+     default: No
+   restart_pos:
+     COMMENT: Restart nuclear position information from md.restart
+     default: No
+   restart_vel:
+     COMMENT: Restart nuclear velocities information from md.restart
+     default: No
 #
 #Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
  mix:
