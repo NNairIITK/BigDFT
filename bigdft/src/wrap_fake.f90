@@ -14,7 +14,8 @@ stop "Ambertools not present"
 end subroutine
 
 subroutine nab_init()
-stop "Ambertools not present"
+  use dictionaries
+  call f_err_throw("Ambertools not present")
 end subroutine
 !!subroutine nab_init(nat,rxyz,fxyz,fnpdb,nfnpdb,l_sat,atomnamesdmy)
 !!implicit none
