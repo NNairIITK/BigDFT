@@ -1,23 +1,22 @@
 module foe_base
-  use module_defs, only: uninitialized
-  use module_base
+  use sparsematrix_base
   implicit none
 
   private
 
   type,public :: foe_data
-    real(kind=8),dimension(:),pointer :: ef     !< Fermi energy for FOE (up/down spin)
-    real(kind=8),dimension(:),pointer :: evlow, evhigh !< Eigenvalue bounds for FOE (up/down spin)
-    real(kind=8),dimension(:),pointer :: bisection_shift !< Bisection shift to find Fermi energy (FOE) (up/down spin)
-    real(kind=8) :: fscale                      !< Length scale for complementary error function (FOE)
-    real(kind=8) :: ef_interpol_det             !< FOE: max determinant of cubic interpolation matrix
-    real(kind=8) :: ef_interpol_chargediff      !< FOE: max charge difference for interpolation
-    real(kind=8),dimension(:),pointer :: charge !< Total charge of the system (up/down spin)
-    real(kind=8) :: fscale_lowerbound           !< lower bound for the error function decay length
-    real(kind=8) :: fscale_upperbound           !< upper bound for the error function decay length
-    real(kind=8) :: tmprtr                      !< temperature (actually not really... 0.d0 means error function with finite temperature)
+    real(kind=mp),dimension(:),pointer :: ef     !< Fermi energy for FOE (up/down spin)
+    real(kind=mp),dimension(:),pointer :: evlow, evhigh !< Eigenvalue bounds for FOE (up/down spin)
+    real(kind=mp),dimension(:),pointer :: bisection_shift !< Bisection shift to find Fermi energy (FOE) (up/down spin)
+    real(kind=mp) :: fscale                      !< Length scale for complementary error function (FOE)
+    real(kind=mp) :: ef_interpol_det             !< FOE: max determinant of cubic interpolation matrix
+    real(kind=mp) :: ef_interpol_chargediff      !< FOE: max charge difference for interpolation
+    real(kind=mp),dimension(:),pointer :: charge !< Total charge of the system (up/down spin)
+    real(kind=mp) :: fscale_lowerbound           !< lower bound for the error function decay length
+    real(kind=mp) :: fscale_upperbound           !< upper bound for the error function decay length
+    real(kind=mp) :: tmprtr                      !< temperature (actually not really... 0.d0 means error function with finite temperature)
     integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
-    real(kind=8) :: evlow_min, evhigh_max
+    real(kind=mp) :: evlow_min, evhigh_max
   end type foe_data
 
 
@@ -121,7 +120,7 @@ module foe_base
     subroutine foe_data_set_real(foe_obj, fieldname, val, ind)
       type(foe_data) :: foe_obj
       character(len=*),intent(in) :: fieldname
-      real(kind=8),intent(in) :: val
+      real(kind=mp),intent(in) :: val
       integer,intent(in),optional :: ind
 
       select case (fieldname)
@@ -173,7 +172,7 @@ module foe_base
     end subroutine foe_data_set_real
 
 
-    real(kind=8) function foe_data_get_real(foe_obj, fieldname, ind) result(val)
+    real(kind=mp) function foe_data_get_real(foe_obj, fieldname, ind) result(val)
       type(foe_data) :: foe_obj
       character(len=*),intent(in) :: fieldname
       integer,intent(in),optional :: ind

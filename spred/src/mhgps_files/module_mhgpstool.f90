@@ -597,7 +597,7 @@ write(*,'(a,3(1x,i9.9))')'imaxloc',ipair,min(mn(mdat%snghb(isad)%neighb(1,ipair)
                        '.EXT saddlepoints/sad'//ci//'.EXT'
             write(u4,'(a)')'cp '//trim(adjustl(mdat%path_sad(isad)))//&
                        '.EXT saddlepoints/sad'//ci//'.EXT'
-            write(u5,'(a,x,a)')'"'//trim(adjustl(mdat%path_sad(isad)))//'"',ci
+            write(u5,'(a,1x,a)')'"'//trim(adjustl(mdat%path_sad(isad)))//'"',ci
             write(ci,'(i9.9)')imin_well_aligned
             write(u4,'(a)')'cp '//trim(adjustl(mdat%snghb(isad)%neighbPath(1,ipair)))//&                                                             
                        '.EXT minima_well_aligned/min'//ci//'.EXT'

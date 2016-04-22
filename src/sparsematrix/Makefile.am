@@ -23,6 +23,10 @@ mod_src = sparsematrix_base.f90 \
 		  sparsematrix_highlevel.f90 \
 		  sparsematrix_io.f90 \
 		  parallel_linalg.f90 \
+		  sparsematrix_errorhandling.f90 \
+		  sparsematrix_timing.f90 \
+		  sparsematrix_types.f90 \
+		  sparsematrix_memory.f90 \
 		  $(BLACS)
 
 libsparsematrix_a_SOURCES = $(mod_src)
@@ -38,12 +42,16 @@ modules = SPARSEMATRIX_BASE.@MODULE_EXT@ \
 		  FOE_COMMON.@MODULE_EXT@ \
 		  FERMI_LEVEL.@MODULE_EXT@ \
 		  FOE.@MODULE_EXT@ \
-	MODULE_FUNC.@MODULE_EXT@ \
+          MODULE_FUNC.@MODULE_EXT@ \
 		  ICE.@MODULE_EXT@ \
 		  MATRIX_OPERATIONS.@MODULE_EXT@ \
 		  PARALLEL_LINALG.@MODULE_EXT@ \
 		  SPARSEMATRIX_HIGHLEVEL.@MODULE_EXT@ \
-		  SPARSEMATRIX_IO.@MODULE_EXT@
+		  SPARSEMATRIX_IO.@MODULE_EXT@ \
+		  SPARSEMATRIX_ERRORHANDLING.@MODULE_EXT@ \
+		  SPARSEMATRIX_TIMING.@MODULE_EXT@ \
+		  SPARSEMATRIX_TYPES.@MODULE_EXT@ \
+		  SPARSEMATRIX_MEMORY.@MODULE_EXT@
 else
 modules = sparsematrix_base.@MODULE_EXT@ \
           sparsematrix_init.@MODULE_EXT@ \
@@ -53,12 +61,16 @@ modules = sparsematrix_base.@MODULE_EXT@ \
 		  foe_common.@MODULE_EXT@ \
 		  fermi_level.@MODULE_EXT@ \
 		  foe.@MODULE_EXT@ \
-	module_func.@MODULE_EXT@ \
+          module_func.@MODULE_EXT@ \
 		  ice.@MODULE_EXT@ \
 		  matrix_operations.@MODULE_EXT@ \
 		  parallel_linalg.@MODULE_EXT@ \
 		  sparsematrix_highlevel.@MODULE_EXT@ \
-		  sparsematrix_io.@MODULE_EXT@
+		  sparsematrix_io.@MODULE_EXT@ \
+		  sparsematrix_errorhandling.@MODULE_EXT@ \
+		  sparsematrix_timing.@MODULE_EXT@ \
+		  sparsematrix_types.@MODULE_EXT@ \
+		  sparsematrix_memory.@MODULE_EXT@
 endif
 
 CLEANFILES = $(modules)
@@ -67,9 +79,14 @@ AM_FCFLAGS = -I. -I$(srcdir) @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
 
 
 #dependencies
-parallel_linalg.o:
-foe_base.o:
-sparsematrix_base.o:
+sparsematrix_timing.o:
+sparsematrix_errorhandling.o:
+sparsematrix_types.o:
+sparsematrix_memory.o: sparsematrix_errorhandling.o sparsematrix_types.o
+sparsematrix_base.o: sparsematrix_errorhandling.o sparsematrix_timing.o sparsematrix_types.o sparsematrix_memory.o
+parallel_linalg.o: sparsematrix_base.o
+foe_base.o: sparsematrix_base.o
+fermi_level.o: sparsematrix_base.o
 sparsematrix_init.o: sparsematrix_base.o
 sparsematrix.o: sparsematrix_base.o sparsematrix_init.o
 chebyshev.o: sparsematrix_base.o sparsematrix_init.o sparsematrix.o

@@ -9,6 +9,7 @@
 
 !> Module Inverse Chebyshev Expansion
 module ice
+  use sparsematrix_base
   implicit none
 
   private
@@ -46,7 +47,7 @@ module ice
 !!      ! Calling arguments
 !!      integer,intent(in) :: iproc, nproc, norder_polynomial, ncalc
 !!      type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
-!!      real(kind=8),dimension(ncalc),intent(in) :: ex
+!!      real(kind=mp),dimension(ncalc),intent(in) :: ex
 !!      type(matrices),intent(in) :: ovrlp_mat
 !!      type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp
 !!      integer,intent(in),optional :: verbosity
@@ -57,44 +58,44 @@ module ice
 !!      integer :: isegstart, isegend, iismall, nsize_polynomial
 !!      integer :: iismall_ovrlp, iismall_ham, npl_boundaries, i, ipl
 !!      integer,parameter :: nplx=50000
-!!      real(kind=8),dimension(:,:),pointer :: chebyshev_polynomials
-!!      real(kind=8),dimension(:,:,:),pointer :: inv_ovrlp_matrixp
-!!      real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
-!!      real(kind=8),dimension(:,:,:),pointer :: cc
-!!      real(kind=8) :: anoise, scale_factor, shift_value
-!!      real(kind=8) :: evlow_old, evhigh_old, tt
-!!      real(kind=8) :: x_max_error_fake, max_error_fake, mean_error_fake
-!!      real(kind=8) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total
+!!      real(kind=mp),dimension(:,:),pointer :: chebyshev_polynomials
+!!      real(kind=mp),dimension(:,:,:),pointer :: inv_ovrlp_matrixp
+!!      real(kind=mp),dimension(:,:,:),allocatable :: penalty_ev
+!!      real(kind=mp),dimension(:,:,:),pointer :: cc
+!!      real(kind=mp) :: anoise, scale_factor, shift_value
+!!      real(kind=mp) :: evlow_old, evhigh_old, tt
+!!      real(kind=mp) :: x_max_error_fake, max_error_fake, mean_error_fake
+!!      real(kind=mp) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total
 !!      logical :: restart, calculate_SHS
 !!      logical,dimension(2) :: emergency_stop
-!!      real(kind=8),dimension(2) :: allredarr
-!!      real(kind=8),dimension(:),allocatable :: hamscal_compr
+!!      real(kind=mp),dimension(2) :: allredarr
+!!      real(kind=mp),dimension(:),allocatable :: hamscal_compr
 !!      logical,dimension(2) :: eval_bounds_ok
 !!      integer,dimension(2) :: irowcol
 !!      integer :: irow, icol, iflag, ispin, isshift, ilshift, ilshift2
 !!      logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit, npl_auto_
 !!      integer,parameter :: NPL_MIN=5
-!!      real(kind=8),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
-!!      real(kind=8) :: degree_multiplicator
+!!      real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
+!!      real(kind=mp) :: degree_multiplicator
 !!      integer,parameter :: SPARSE=1
 !!      integer,parameter :: DENSE=2
 !!      integer,parameter :: imode=SPARSE
 !!      type(foe_data) :: foe_obj
-!!      real(kind=8),dimension(:),allocatable :: eval, work, x_max_error, max_error, mean_error
-!!      real(kind=8),dimension(:,:),allocatable :: tempmat
+!!      real(kind=mp),dimension(:),allocatable :: eval, work, x_max_error, max_error, mean_error
+!!      real(kind=mp),dimension(:,:),allocatable :: tempmat
 !!      integer :: lwork, info, j, icalc, iline, icolumn
-!!      real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_new
-!!      real(kind=8),dimension(:,:),allocatable :: penalty_ev_new
-!!      real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_small_new
+!!      real(kind=mp),dimension(:,:),allocatable :: inv_ovrlp_matrixp_new
+!!      real(kind=mp),dimension(:,:),allocatable :: penalty_ev_new
+!!      real(kind=mp),dimension(:,:),allocatable :: inv_ovrlp_matrixp_small_new
 !!      type(matrices) :: ovrlp_scaled
 !!      character(len=3),parameter :: old='old'
 !!      character(len=3),parameter :: new='new'
 !!      character(len=3) :: mode=old
 !!    
-!!      !!real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
-!!      !!real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
+!!      !!real(kind=mp),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
+!!      !!real(kind=mp),dimension(ovrlp_smat%nfvctr) :: eval
 !!      !!integer,parameter :: lwork=100000
-!!      !!real(kind=8),dimension(lwork) :: work
+!!      !!real(kind=mp),dimension(lwork) :: work
 !!      !!integer :: info
 !!    
 !!      call f_routine(id='inverse_chebyshev_expansion')
@@ -208,7 +209,7 @@ module ice
 !!    
 !!          spin_loop: do ispin=1,ovrlp_smat%nspin
 !!
-!!              degree_multiplicator = real(norder_polynomial,kind=8)/ &
+!!              degree_multiplicator = real(norder_polynomial,kind=mp)/ &
 !!                                     (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
 !!              degree_multiplicator = min(degree_multiplicator,DEGREE_MULTIPLICATOR_MAX)
 !!    
@@ -577,9 +578,6 @@ module ice
 
 
     subroutine get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
-      use yaml_output
       implicit none
 
       ! Calling arguments
@@ -589,8 +587,8 @@ module ice
 
       ! Local variables
       integer :: iseg, ii, i, lwork, info
-      real(kind=8),dimension(:,:),allocatable :: tempmat
-      real(kind=8),dimension(:),allocatable :: eval, work
+      real(kind=mp),dimension(:,:),allocatable :: tempmat
+      real(kind=mp),dimension(:),allocatable :: eval, work
 
       call f_routine(id='get_minmax_eigenvalues')
 
@@ -625,15 +623,9 @@ module ice
     end subroutine get_minmax_eigenvalues
 
 
-    subroutine inverse_chebyshev_expansion_new(iproc, nproc, &
+    subroutine inverse_chebyshev_expansion_new(iproc, nproc, comm, &
                ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp, &
                verbosity, npl_auto)
-      use module_base
-      use yaml_output
-      use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
-                                   sparsematrix_malloc0_ptr, assignment(=), &
-                                   SPARSE_TASKGROUP, SPARSE_MATMUL_SMALL, &
-                                   matrices, sparse_matrix, matrices_null, deallocate_matrices
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed_wrapper, &
                               transform_sparsity_pattern
@@ -643,15 +635,15 @@ module ice
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: scale_and_shift_matrix, &
-                            evnoise, check_eigenvalue_spectrum_new, get_chebyshev_expansion_coefficients, &
+                            evnoise, get_chebyshev_expansion_coefficients, &
                             get_chebyshev_polynomials, get_polynomial_degree
       use module_func
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, ncalc
+      integer,intent(in) :: iproc, nproc, comm, ncalc
       type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
-      real(kind=8),dimension(ncalc),intent(in) :: ex
+      real(kind=mp),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: ovrlp_mat
       type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp
       integer,intent(in),optional :: verbosity
@@ -662,41 +654,46 @@ module ice
       integer :: isegstart, isegend, iismall, nsize_polynomial
       integer :: iismall_ovrlp, iismall_ham, npl_boundaries, i, ipl
       integer,parameter :: nplx=50000
-      real(kind=8),dimension(:,:),pointer :: chebyshev_polynomials
-      real(kind=8),dimension(:,:,:),pointer :: inv_ovrlp_matrixp
-      real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
-      real(kind=8),dimension(:,:,:),allocatable :: cc
-      real(kind=8) :: anoise, scale_factor, shift_value
-      real(kind=8) :: evlow_old, evhigh_old, tt
-      real(kind=8) :: x_max_error_fake, max_error_fake, mean_error_fake
-      real(kind=8) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total
+      real(kind=mp),dimension(:,:),pointer :: chebyshev_polynomials
+      real(kind=mp),dimension(:,:,:),pointer :: inv_ovrlp_matrixp
+      real(kind=mp),dimension(:,:,:),allocatable :: penalty_ev
+      real(kind=mp),dimension(:,:,:),allocatable :: cc
+      real(kind=mp) :: anoise, scale_factor, shift_value
+      real(kind=mp) :: evlow_old, evhigh_old, tt
+      real(kind=mp) :: x_max_error_fake, max_error_fake, mean_error_fake
+      real(kind=mp) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total
       logical :: restart, calculate_SHS
       logical,dimension(2) :: emergency_stop
-      real(kind=8),dimension(2) :: allredarr
-      real(kind=8),dimension(:),allocatable :: hamscal_compr
+      real(kind=mp),dimension(2) :: allredarr
+      real(kind=mp),dimension(:),allocatable :: hamscal_compr
       logical,dimension(2) :: eval_bounds_ok
       integer,dimension(2) :: irowcol
       integer :: irow, icol, iflag, ispin, isshift, ilshift, ilshift2, verbosity_
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit, npl_auto_
       integer,parameter :: NPL_MIN=5
-      real(kind=8),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
-      real(kind=8) :: degree_multiplicator
+      real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
+      real(kind=mp) :: degree_multiplicator
       integer,parameter :: SPARSE=1
       integer,parameter :: DENSE=2
       integer,parameter :: imode=SPARSE
       type(foe_data) :: foe_obj
-      real(kind=8),dimension(:),allocatable :: eval, work, x_max_error, max_error, mean_error
-      real(kind=8),dimension(:,:),allocatable :: tempmat
+      real(kind=mp),dimension(:),allocatable :: eval, work, x_max_error, max_error, mean_error
+      real(kind=mp),dimension(:,:),allocatable :: tempmat
       integer :: lwork, info, j, icalc, iline, icolumn
-      real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_new
-      real(kind=8),dimension(:,:),allocatable :: penalty_ev_new
-      real(kind=8),dimension(:,:),allocatable :: inv_ovrlp_matrixp_small_new
+      real(kind=mp),dimension(:,:),allocatable :: inv_ovrlp_matrixp_new
+      real(kind=mp),dimension(:,:),allocatable :: penalty_ev_new
+      real(kind=mp),dimension(:,:),allocatable :: inv_ovrlp_matrixp_small_new
       type(matrices) :: ovrlp_scaled
       character(len=3),parameter :: old='old'
       character(len=3),parameter :: new='new'
       character(len=3) :: mode=old
 
       call f_routine(id='inverse_chebyshev_expansion_new')
+
+      if (.not.inv_ovrlp_smat%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
 
       if (present(verbosity)) then
           verbosity_ = verbosity
@@ -758,7 +755,7 @@ module ice
 
           isshift=(ispin-1)*ovrlp_smat%nvctr
           ilshift=(ispin-1)*inv_ovrlp_smat%nvctr
-          ilshift2=(ispin-1)*inv_ovrlp_smat%nvctr
+          ilshift2=(ispin-1)*inv_ovrlp_smat%nvctrp_tg
 
           eval_multiplicator = 1.d0
           eval_multiplicator_total = 1.d0
@@ -776,7 +773,8 @@ module ice
               !!    write(*,*) 'eval_multiplicator, eval_multiplicator_total', &
               !!                eval_multiplicator, eval_multiplicator_total
               !!end if
-              call get_polynomial_degree(iproc, nproc, ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, 5, 200, 1, 1.d-9, &
+              call get_polynomial_degree(iproc, nproc, comm, &
+                   ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, 5, 100, 1, 1.d-9, &
                    0, npl, cc, max_error, x_max_error, mean_error, anoise, &
                    ex=ex)
               call f_free_ptr(chebyshev_polynomials)
@@ -791,9 +789,11 @@ module ice
                         (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f6.2)')
                end if
 
-              call get_chebyshev_polynomials(iproc, nproc, 1, verbosity_, npl, ovrlp_smat, inv_ovrlp_smat, &     
-                                        ovrlp_scaled, foe_obj, chebyshev_polynomials, ispin, &
-                                        eval_bounds_ok, hamscal_compr, scale_factor, shift_value)
+              ! use inv_ovrlp(1)%matrix_compr as workarray to save memory
+              call get_chebyshev_polynomials(iproc, nproc, comm, 1, verbosity_, npl, ovrlp_smat, inv_ovrlp_smat, &     
+                   ovrlp_scaled, inv_ovrlp(1)%matrix_compr(ilshift2+1:), &
+                   foe_obj, chebyshev_polynomials, ispin, &
+                   eval_bounds_ok, hamscal_compr, scale_factor, shift_value)
               if (iproc==0 .and. verbosity_>0) then
                   call yaml_map('ok',eval_bounds_ok)
                   call yaml_map('exp accur',max_error,fmt='(es8.2)')

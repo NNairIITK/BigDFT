@@ -33,7 +33,7 @@ contains
     !> input array. If dest is present, the values are assumed to be distributed
     !!otherwise the values are not modified and are gathered in the dest
     !!array
-    real(dp), dimension(*), intent(inout) :: src
+    real(dp), dimension(*), intent(in) :: src
     type(coulomb_operator), intent(in) :: kernel
     real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),*), intent(out), optional :: dest
     integer, intent(in), optional :: nsrc !< number of copies of the array src (useful for spin-polarized)
