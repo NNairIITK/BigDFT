@@ -6447,7 +6447,7 @@ end subroutine calculate_rpowerx_matrices
 
     ! Local variables
     integer :: i1, i2, i3, iat, icheck
-    real(kind=8) :: x, y, z, d, dmin, qex
+    real(kind=8) :: x, y, z, d, dmin, qex, factor
     real(kind=8),parameter :: min_distance = 2.0d0
     logical,dimension(:,:,:),allocatable :: is_close
 
@@ -6487,6 +6487,8 @@ end subroutine calculate_rpowerx_matrices
     call f_zero(potential_error)
     call f_zero(potential_total)
 
+    factor = kernel%hgrids(1)*kernel%hgrids(2)*kernel%hgrids(3)
+
     do i3=max(15,is3),min(ie3,kernel%ndims(3)-16-1)
         z = (i3-15)*kernel%hgrids(3)
         do i2=0,kernel%ndims(2)-31-1
@@ -6521,6 +6523,11 @@ end subroutine calculate_rpowerx_matrices
     end do
 
     call f_free(is_close)
+
+    !call dscal(ncheck, factor, charge_error(1), 1)
+    !call dscal(ncheck, factor, charge_total(1), 1)
+    !call dscal(ncheck, factor, potential_error(1), 1)
+    !call dscal(ncheck, factor, potential_total(1), 1)
 
     call mpiallred(charge_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
     call mpiallred(charge_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
