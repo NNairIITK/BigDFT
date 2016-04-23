@@ -64,6 +64,7 @@ $1],dnl
 [AC_MSG_RESULT(not found)
 $2])
 CPPFLAGS="$save_CPPFLAGS"
+  LDFLAGS_SVG="$LDFLAGS"
   LDFLAGS="$LDFLAGS -L${py_prefix}/lib"
   if test "$py_prefix" != "$py_exec_prefix"; then
     LDFLAGS="$LDFLAGS -L${py_exec_prefix}/lib"
