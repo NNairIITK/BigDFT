@@ -548,7 +548,7 @@ subroutine wfn_filename(filename_out,filename,lbin,ikpt,nspinor,nspin,ispinor,sp
   if (nspin==1) spintype='N'  
 
   call f_strcpy(dest=filename_out,src=&
-       filename+'-k'+ikpt**'(i3.3)'+'-'+spintype+&
+       filename+'-k'+ikpt**'(i3.3)'+'-'//spintype//&
        merge('I','R',modulo(ispinor,2)==0)+&
        (.if. lbin .then. '.bin.b' .else. '.b')+iorb**'(i4.4)')
 end subroutine wfn_filename
