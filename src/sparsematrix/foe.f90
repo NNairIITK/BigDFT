@@ -1020,7 +1020,7 @@ module foe
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
-      use foe_common, only: scale_and_shift_matrix, evnoise, &
+      use foe_common, only: evnoise, &
                             retransform_ext, get_chebyshev_expansion_coefficients, &
                             get_chebyshev_polynomials, find_fermi_level, get_polynomial_degree, &
                             calculate_trace_distributed_new

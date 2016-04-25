@@ -634,8 +634,7 @@ module ice
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
-      use foe_common, only: scale_and_shift_matrix, &
-                            evnoise, get_chebyshev_expansion_coefficients, &
+      use foe_common, only: evnoise, get_chebyshev_expansion_coefficients, &
                             get_chebyshev_polynomials, get_polynomial_degree
       use module_func
       implicit none

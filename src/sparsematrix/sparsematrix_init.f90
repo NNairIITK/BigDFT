@@ -80,7 +80,8 @@ module sparsematrix_init
           else
               ! there seems to be a mix of the spin matrices
               write(*,*) 'iorb, jorb, nfvctr', iorb, jorb, sparsemat%nfvctr
-              stop 'matrixindex_in_compressed: problem in determining spin'
+              call f_err_throw('matrixindex_in_compressed: problem in determining spin',&
+                   err_name='BIGDFT_RUNTIME_ERROR')
           end if
       else
           ! both indices belong to the first spin matrix
@@ -1596,7 +1597,7 @@ module sparsematrix_init
       !!end do
       !!if (ii/=nout) call f_err_throw('ii/=nout',err_name='BIGDFT_RUNTIME_ERROR')
 
-      call distribute_on_threads(nout, nthread, ise)
+      call distribute_on_threads(1, nout, nthread, ise)
     
       iiarr = f_malloc(0.to.nthread-1,id='iiarr')
 
@@ -1854,7 +1855,7 @@ module sparsematrix_init
       !!    end if
       !!end do
       !!if (ii/=nout) call f_err_throw('ii/=nout',err_name='BIGDFT_RUNTIME_ERROR')
-      call distribute_on_threads(nout, nthread, ise)
+      call distribute_on_threads(1, nout, nthread, ise)
 
       ! First have to determine the length of indices_extract_sequential_work... a bit wasteful, but otherwise 
       ! the memory becomes too large
@@ -2735,22 +2736,25 @@ module sparsematrix_init
 
 
 
-    subroutine distribute_on_threads(nout, nthread, ise)
+    ! Distribute iterations ranging from istart to iend equally to nthread threads
+    subroutine distribute_on_threads(istart, iend, nthread, ise)
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: nout
+      integer,intent(in) :: istart, iend
       integer,intent(out) :: nthread
       integer,dimension(:,:),pointer :: ise
 
       ! Local variables
-      integer :: ii, jthread
+      integer :: nout, ii, jthread
       integer,dimension(:),allocatable :: n
       !$ integer :: omp_get_max_threads
 
       call f_routine(id='distribute_on_threads')
 
-      ! OpenMP parallelization using a large workarray
+      ! Number of iterations
+      nout = iend - istart + 1
+
       nthread = 1
       !$ nthread = omp_get_max_threads()
 
@@ -2765,12 +2769,12 @@ module sparsematrix_init
 
       ! Determine the first and last iteration for each thread
       ise = f_malloc_ptr((/1.to.2,0.to.nthread-1/),id='ise')
-      ise(1,0) = 1
+      ise(1,0) = istart
       do jthread=1,nthread-1
           ise(1,jthread) = ise(1,jthread-1) + n(jthread-1)
           ise(2,jthread-1) = ise(1,jthread) -1
       end do
-      ise(2,nthread-1) = nout
+      ise(2,nthread-1) = iend
       ! Check
       ii = 0
       do jthread=0,nthread-1
