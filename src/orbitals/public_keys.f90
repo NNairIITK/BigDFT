@@ -128,6 +128,9 @@ module public_keys
   character(len = *), parameter :: NOSE_YOSHIDA_FACTOR = "nose_yoshida_factor"
   character(len = *), parameter :: NOSE_FREQUENCY = "nose_frequency"
   character(len = *), parameter :: WAVEFUNCTION_EXTRAPOLATION="wavefunction_extrapolation"
+  character(len = *), parameter :: RESTART_POS="restart_pos"
+  character(len = *), parameter :: RESTART_VEL="restart_vel"
+  character(len = *), parameter :: RESTART_NOSE="restart_nose"
 
   !mode parameter keywords
   character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
