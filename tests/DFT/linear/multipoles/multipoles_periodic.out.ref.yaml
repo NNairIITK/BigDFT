@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-04-11 08:55:28.094
+ Timestamp of this run                 : 2016-04-20 18:02:31.854
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -112,6 +112,9 @@
    itermax_virt                        : 50 #     Max. iterations of wfn. opt. steps for virtual orbitals
    calculate_strten                    : Yes #    Boolean to activate the calculation of the stress tensor. Might be set to No for 
     #                                              performance reasons
+   occupancy_control                   : None #   Dictionary of the atomic matrices to be applied for a given iteration number
+   itermax_occ_ctrl                    : 0 #      Number of iterations of occupancy control scheme. Should be between itermin and 
+    #                                              itermax
  perf:
    store_index                         : No #     Store indices or recalculate them for linear scaling
    ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
@@ -2123,6 +2126,7 @@
        q2: [-3.922842E-03, -1.202282E-01, -9.281752E-01, -1.559753E-02, -4.204912E-02]
        scaling factor                  :  7.61E-01
        type                            : unknown
+ Total charge                          :  7.999998909827E+00
   #================================================= Atomic multipole analysis, new approach
  Method                                : projector
  Projector mode                        : simple
@@ -2246,6 +2250,22 @@
        -  [-2.3337E-01,  8.5249E-01, -1.5563E+00]
        -  [-5.3907E-01, -1.5563E+00,  9.8282E-01]
        trace                           : -5.17E-12
+     Density and potential check:
+     - density threshold for check is 1.00E-06:
+         rho: {int(q-q_exact)):  1.010E-03, int(q_exact):  1.010E-03, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.495E+03, int(V_exact):  1.618E+03, ratio:  9.240E-01}
+     - density threshold for check is 1.00E-05:
+         rho: {int(q-q_exact)):  1.275E-02, int(q_exact):  1.275E-02, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.508E+03, int(V_exact):  1.660E+03, ratio:  9.085E-01}
+     - density threshold for check is 1.00E-04:
+         rho: {int(q-q_exact)):  1.820E-01, int(q_exact):  1.820E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.528E+03, int(V_exact):  1.725E+03, ratio:  8.860E-01}
+     - density threshold for check is 1.00E-03:
+         rho: {int(q-q_exact)):  2.381E+00, int(q_exact):  2.381E+00, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.564E+03, int(V_exact):  1.855E+03, ratio:  8.434E-01}
+     - density threshold for check is 1.00E-02:
+         rho: {int(q-q_exact)):  1.875E+01, int(q_exact):  1.875E+01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.617E+03, int(V_exact):  2.061E+03, ratio:  7.846E-01}
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
        P vector                        :  [ -4.5272E-02, -1.5498E+00, -1.2041E+00 ]
@@ -2256,6 +2276,22 @@
        -  [-2.3496E-01,  2.5670E-01, -1.3693E+00]
        -  [-5.3855E-01, -1.3693E+00,  3.0482E-01]
        trace                           :  6.88E-12
+     Density and potential check:
+     - density threshold for check is 1.00E-06:
+         rho: {int(q-q_exact)):  1.010E-03, int(q_exact):  1.010E-03, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.551E+03, int(V_exact):  1.618E+03, ratio:  9.587E-01}
+     - density threshold for check is 1.00E-05:
+         rho: {int(q-q_exact)):  1.275E-02, int(q_exact):  1.275E-02, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.571E+03, int(V_exact):  1.660E+03, ratio:  9.464E-01}
+     - density threshold for check is 1.00E-04:
+         rho: {int(q-q_exact)):  1.820E-01, int(q_exact):  1.820E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.603E+03, int(V_exact):  1.725E+03, ratio:  9.297E-01}
+     - density threshold for check is 1.00E-03:
+         rho: {int(q-q_exact)):  2.381E+00, int(q_exact):  2.381E+00, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.667E+03, int(V_exact):  1.855E+03, ratio:  8.991E-01}
+     - density threshold for check is 1.00E-02:
+         rho: {int(q-q_exact)):  1.875E+01, int(q_exact):  1.875E+01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.770E+03, int(V_exact):  2.061E+03, ratio:  8.585E-01}
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
        P vector                        :  [ -4.5205E-02, -1.5497E+00, -1.2040E+00 ]
@@ -2266,6 +2302,22 @@
        -  [-2.2959E-01,  1.2984E+00, -2.3990E+00]
        -  [-5.3471E-01, -2.3990E+00,  1.9170E+00]
        trace                           :  5.12E-13
+     Density and potential check:
+     - density threshold for check is 1.00E-06:
+         rho: {int(q-q_exact)):  1.010E-03, int(q_exact):  1.010E-03, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.448E+03, int(V_exact):  1.618E+03, ratio:  8.946E-01}
+     - density threshold for check is 1.00E-05:
+         rho: {int(q-q_exact)):  1.275E-02, int(q_exact):  1.275E-02, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.456E+03, int(V_exact):  1.660E+03, ratio:  8.769E-01}
+     - density threshold for check is 1.00E-04:
+         rho: {int(q-q_exact)):  1.820E-01, int(q_exact):  1.820E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.467E+03, int(V_exact):  1.725E+03, ratio:  8.503E-01}
+     - density threshold for check is 1.00E-03:
+         rho: {int(q-q_exact)):  2.381E+00, int(q_exact):  2.381E+00, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.485E+03, int(V_exact):  1.855E+03, ratio:  8.005E-01}
+     - density threshold for check is 1.00E-02:
+         rho: {int(q-q_exact)):  1.875E+01, int(q_exact):  1.875E+01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.532E+03, int(V_exact):  2.061E+03, ratio:  7.430E-01}
   #========================================================== Atomic multipole analysis done
  calculate S^x:
    mode                                : sparse
@@ -2317,8 +2369,8 @@
  - The support function localization radii might be too small, got 3 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  16.64
-   Elapsed time (s)                    :  16.75
+   CPU time (s)                        :  17.12
+   Elapsed time (s)                    :  17.15
  BigDFT infocode                       :  0
  Average noise forces: {x:  6.65708393E-04, y:  2.50025122E-02, z:  1.04631789E-02, 
                     total:  2.71117484E-02}
@@ -2331,14 +2383,14 @@
  Energy (Hartree)                      : -1.76723155263761065E+01
  Force Norm (Hartree/Bohr)             :  4.03170200385021341E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  10995
-   Tot. No. of Deallocations           :  10995
+   Tot. No. of Allocations             :  10557
+   Tot. No. of Deallocations           :  10557
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  109.746
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 119.476 MB
- Walltime since initialization         : 00:00:18.989628278
- Max No. of dictionaries used          :  11797 #( 1002 still in use)
+     Memory Peak of process            : 121.360 MB
+ Walltime since initialization         : 00:00:17.529119678
+ Max No. of dictionaries used          :  11433 #( 1002 still in use)
  Number of dictionary folders allocated:  2
