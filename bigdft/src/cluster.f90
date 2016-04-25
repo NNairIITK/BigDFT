@@ -23,7 +23,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
        & XC_potential, communicate_density, copy_old_wavefunctions, &
        denspot_set_history, &
        & gaussian_pswf_basis, local_analysis, &
-       & orbitals_descriptors, sumrho, system_initialization,readmywaves
+       & orbitals_descriptors, sumrho, system_initialization,readmywaves,FullHamiltonianApplication
   use gaussians, only: deallocate_gwf
   use module_fragments
   use constrained_dft
@@ -115,10 +115,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   real(kind=8), dimension(:), pointer :: gbd_occ!,rhocore
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd
-  real(gp), dimension(:), allocatable :: wkptv,psi_perturbed
+  real(gp), dimension(:), allocatable :: wkptv,psi_perturbed,hpsi_perturbed
   type(f_enumerator) :: inputpsi,output_denspot
   type(dictionary), pointer :: dict_timing_info
   type(orbital_basis) :: ob,ob_occ,ob_virt,ob_prime
+  type(energy_terms) :: energs_fake
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
 
   ! testing
@@ -1204,10 +1205,22 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            if (io_files_exists(in%dir_perturbation,'wavefunction',&
                 Kswfn%orbs)) then
               rxyz_tmp=f_malloc([3,atoms%astruct%nat],id='rxyz_old')
-              psi_perturbed=f_malloc(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp),id='psi_perturbation')
+              psi_perturbed=f_malloc(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp),id='psi_perturbed')
+              hpsi_perturbed=f_malloc(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp),id='hpsi_perturbed')
               call readmywaves(iproc,trim(in%dir_perturbation)// "wavefunction",input_wf_format,KSwfn%orbs,&
                    n1,n2,n3,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),atoms,rxyz_tmp,rxyz,  &
                    KSwfn%Lzd%Glr%wfd,psi_perturbed)
+
+              !apply the hamiltonian to the perturbed wavefunctions
+              !allocate the potential in the full box
+              call full_local_potential(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,0,&
+                   denspot%dpbox,denspot%xc,denspot%rhov,denspot%pot_work)
+              call FullHamiltonianApplication(iproc,nproc,atoms,KSwfn%orbs,&
+                   KSwfn%Lzd,nlpsp,KSwfn%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,&
+                   psi_perturbed,hpsi_perturbed,&
+                   KSwfn%PAW,energs_fake,in%SIC,GPU,denspot%xc,&
+                   denspot%pkernelseq)
+
               call orbital_basis_associate(ob_occ,orbs=KSwfn%orbs,&
                    Lzd=KSwfn%Lzd,phis_wvl=KSwfn%psi,comms=KSwfn%comms)
               call orbital_basis_associate(ob_virt,orbs=VTwfn%orbs,&
@@ -1215,10 +1228,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
               call orbital_basis_associate(ob_prime,orbs=KSwfn%orbs,&
                    Lzd=KSwfn%Lzd,phis_wvl=psi_perturbed,comms=KSwfn%comms)
 
-              call evaluate_completeness_relation(ob_occ,ob_virt,ob_prime)
+              call evaluate_completeness_relation(ob_occ,ob_virt,ob_prime,hpsi_perturbed)
 
-              call f_free(rxyz_tmp)
+              call f_free(hpsi_perturbed)
               call f_free(psi_perturbed)
+              call f_free(rxyz_tmp)
+              if (nproc > 1) then
+                 call f_free_ptr(denspot%pot_work)
+              else
+                 nullify(denspot%pot_work)
+              end if
               call orbital_basis_release(ob_prime)
               call orbital_basis_release(ob_virt)
               call orbital_basis_release(ob_occ)

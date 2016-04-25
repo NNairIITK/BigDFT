@@ -103,7 +103,7 @@ module orbitalbasis
 
   public :: ob_ket_map,orbital_basis_iterator,ket_next_locreg,ket_next,local_hamiltonian_ket
   public :: orbital_basis_associate,orbital_basis_release,test_iterator,ket_next_kpt,ob_transpose,ob_untranspose
-  public :: ob_subket_ptr,precondition_ket
+  public :: ob_subket_ptr,precondition_ket,ob_ss_psi_map
   public :: subspace_next,subspace_iterator_zip,ob_ss_matrix_map,subspace_iterator
 
 contains
@@ -563,6 +563,17 @@ contains
     ok=associated(it%ob)
   end function subspace_is_valid
 
+  function ob_ss_psi_map(psi,ss) result(psi_ptr)
+    use dynamic_memory, only: f_subptr
+    implicit none
+    real(wp), dimension(:), intent(in), target :: psi
+    type(subspace), intent(in) :: ss
+    real(wp), dimension(:), pointer :: psi_ptr
+
+    psi_ptr=>f_subptr(psi,from=ss%ispsi,&
+       size=ss%nvctr*ss%ncplx*ss%norb)
+  end function ob_ss_psi_map
+
   !>map the matrix pointer at the correct point
   function ob_ss_matrix_map(mat,ss) result(ptr)
     use dynamic_memory, only: f_subptr
@@ -600,6 +611,8 @@ contains
             err_name='BIGDFT_RUNTIME_ERROR')
     end if
   end function subspace_next
+
+
 
   !pure 
   subroutine increment_subspace(it)
@@ -649,8 +662,9 @@ contains
 
        it%ispsi_prev=it%ispsi_prev+nvctrp*it%norb*nspinor
 
-       if (associated(it%ob%phis_wvl_t)) it%phi_wvl=>f_subptr(it%ob%phis_wvl_t,from=it%ispsi,&
-            size=it%nvctr*it%ncplx*it%norb)
+       if (associated(it%ob%phis_wvl_t)) it%phi_wvl=> ob_ss_psi_map(it%ob%phis_wvl_t,it)
+       !it%phi_wvl=>f_subptr(it%ob%phis_wvl_t,from=it%ispsi,&
+       !     size=it%nvctr*it%ncplx*it%norb)
        
        exit
     end do
@@ -889,6 +903,7 @@ contains
   end subroutine orbital_basis_associate
 
   subroutine orbital_basis_release(ob)
+    use module_base, only: bigdft_mpi
     use dynamic_memory
     implicit none
     type(orbital_basis), intent(inout) :: ob
@@ -899,38 +914,57 @@ contains
        nullify(ob%dd)
     end if
     call f_free_ptr(ob%td%ndim_ovrlp)
-    call f_free_ptr(ob%phis_wvl_t)
+    if (bigdft_mpi%nproc>1) call f_free_ptr(ob%phis_wvl_t)
     call nullify_orbital_basis(ob)
   end subroutine orbital_basis_release
 
   !ensure that the wavefunction is transposed
-  subroutine ob_transpose(ob)
+  subroutine ob_transpose(ob,psi)
     use module_base
     use communications, only: transpose_v
     implicit none
     type(orbital_basis), intent(inout) :: ob
+    real(wp), dimension(:), target, optional :: psi
     !local variables
     integer :: psisize,wsize
     real(wp), dimension(:), allocatable :: work
+    real(wp), dimension(:), pointer :: psi_data,psit_data
 
-    psisize=max(ob%orbs%npsidim_orbs,ob%orbs%npsidim_comp)
-    wsize=1
-    if (.not. associated(ob%phis_wvl_t)) then
+    if (present(psi)) then
+       psit_data => psi
+       psi_data => psi
+       wsize=1
        if (bigdft_mpi%nproc > 1 ) then
-          ob%phis_wvl_t=f_malloc_ptr(psisize,id='phis_wvl_t')
-          wsize=psisize
-       else
-          ob%phis_wvl_t=>ob%phis_wvl
+          wsize=max(ob%orbs%npsidim_orbs,ob%orbs%npsidim_comp)
+          psit_data=f_malloc_ptr(wsize,id='psit')
        end if
+    else
+       psisize=max(ob%orbs%npsidim_orbs,ob%orbs%npsidim_comp)
+       wsize=1
+       if (.not. associated(ob%phis_wvl_t)) then
+          if (bigdft_mpi%nproc > 1 ) then
+             ob%phis_wvl_t=f_malloc_ptr(psisize,id='phis_wvl_t')
+             wsize=psisize
+          else
+             ob%phis_wvl_t=>ob%phis_wvl
+          end if
+       end if
+       psi_data=>ob%phis_wvl
+       psit_data => ob%phis_wvl_t
     end if
 
     work=f_malloc(wsize,id='work')
 
     call transpose_v(bigdft_mpi%iproc,bigdft_mpi%nproc,&
          ob%orbs,ob%td%Glr%wfd,ob%td%comms,&
-         ob%phis_wvl(1),work(1),ob%phis_wvl_t(1)) !optional
+         psi_data(1),work(1),psit_data(1)) !optional
     
     call f_free(work)
+
+    if (present(psi) .and. bigdft_mpi%nproc >1) then
+       call f_memcpy(src=psit_data,dest=psi)
+       call f_free_ptr(psit_data)
+    end if
 
   end subroutine ob_transpose
 

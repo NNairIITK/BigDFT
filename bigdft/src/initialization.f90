@@ -289,7 +289,7 @@ subroutine ensure_log_file(writing_directory, logfile, ierr)
 !!$        write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
 !!$        return
 !!$     end if
-     logfile_old=logfile_dir+logfile
+     !logfile_old=logfile_dir+logfile
      call f_strcpy(src=logfile_dir + logfile,dest=logfile_old)
      !change the name of the existing logfile
      lgt=index(logfile_old,'.yaml')

@@ -44,7 +44,7 @@ ACTIONS={'build':
          "Visualize the list of modules that will be compiled with the provided configuration in the 'buildprocedure.png' file."}
 
 #actions which need rcfile to be executed
-NEEDRC=['build','dist','dry_run']
+NEEDRC=['build','dist','dry_run','startover']
 
 class BigDFTInstaller():
     def __init__(self,action,package,rcfile,verbose,quiet):
@@ -304,6 +304,7 @@ class BigDFTInstaller():
         if os.path.isfile(self.rcfile) and not os.path.isfile(RCFILE):
             from shutil import copyfile
             copyfile(self.rcfile,RCFILE)
+            print 'The configuration file used has been copied in the build tree, file "'+RCFILE+'"' 
             return
         if BIGDFT_CFG not in os.environ.keys() or os.path.isfile(RCFILE): return
         print 'The suite has been built from a single configure line.'
