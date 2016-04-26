@@ -733,7 +733,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),intent(in) :: max_inversion_error
   integer,intent(out) :: infoBasisFunctions
   type(atoms_data), intent(in) :: at
-  type(orbitals_data) :: orbs
+  type(orbitals_data), intent(inout) :: orbs
   real(kind=8),dimension(3,at%astruct%nat) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers), intent(inout) :: GPU
@@ -771,7 +771,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   !integer :: jorb, nspin
   !real(kind=8),dimension(:),allocatable :: occup_tmp
   real(kind=8) :: meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
-  real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS
+  real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS,occup_tmp
   real(kind=8),dimension(:),allocatable :: hpsit_c_tmp, hpsit_f_tmp, hpsi_tmp, psidiff, tmparr1, tmparr2
   real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, kernel_compr_tmp, kernel_best, hphi_nococontra
   logical :: energy_increased, overlap_calculated, energy_diff, energy_increased_previous, complete_reset, even
@@ -1130,24 +1130,18 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
           call vcopy(tmb%linmat%l%nvctrp_tg*tmb%linmat%l%nspin, &
                tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
-          !allocate(occup_tmp(tmb%orbs%norb), stat=istat)
-          !call memocc(istat, occup_tmp, 'occup_tmp', subname)
-          !call vcopy(tmb%orbs%norb, tmb%orbs%occup(1), 1, occup_tmp(1), 1)
-          !call f_zero(tmb%orbs%norb,tmb%orbs%occup(1))
-          !call vcopy(orbs%norb, orbs%occup(1), 1, tmb%orbs%occup(1), 1)
-          !! occupy the next few states - don't need to preserve the charge as only using for support function optimization
-          !do iorb=1,tmb%orbs%norb
-          !   if (tmb%orbs%occup(iorb)==1.0_gp) then
-          !      tmb%orbs%occup(iorb)=2.0_gp
-          !   else if (tmb%orbs%occup(iorb)==0.0_gp) then
-          !      do jorb=iorb,min(iorb+extra_states-1,tmb%orbs%norb)
-          !         tmb%orbs%occup(jorb)=2.0_gp
-          !      end do
-          !      exit
-          !   end if
-          !end do
-          call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, &
+          occup_tmp=f_malloc(orbs%norb,id='occup_tmp')
+          ! make a copy of 'correct' occup
+          call vcopy(orbs%norb, orbs%occup(1), 1, occup_tmp(1), 1)
+          ! occupy the extra states - don't need to preserve the charge as only using for support function optimization
+          do iorb=1,orbs%norb
+             orbs%occup(iorb)=2.0_gp
+          end do
+          call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, &
                tmb%linmat%l, tmb%linmat%kernel_)
+          call vcopy(orbs%norb, occup_tmp(1), 1, orbs%occup(1), 1)
+          call f_free(occup_tmp)
+   
           !call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
           !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       end if
