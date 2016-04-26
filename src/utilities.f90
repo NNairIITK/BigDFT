@@ -308,11 +308,11 @@ program utilities
        call deallocate_sparse_matrix(smat_s)
        call deallocate_sparse_matrix(smat_m)
        call deallocate_sparse_matrix_metadata(smmd)
-       call f_free_ptr(rxyz)
-       call f_free_ptr(iatype)
-       call f_free_ptr(nzatom)
-       call f_free_ptr(nelpsp)
-       call f_free_str_ptr(len(atomnames),atomnames)
+       !call f_free_ptr(rxyz)
+       !call f_free_ptr(iatype)
+       !call f_free_ptr(nzatom)
+       !call f_free_ptr(nelpsp)
+       !call f_free_str_ptr(len(atomnames),atomnames)
    end if
 
 
@@ -380,12 +380,12 @@ program utilities
                end do
                iat_prev = -1
                do itmb=1,ntmb
-                   iat = on_which_atom(itmb)
+                   iat = smmd%on_which_atom(itmb)
                    if (iat/=iat_prev) then
                        ii = 0
                    end if
                    iat_prev = iat
-                   itype = iatype(iat)
+                   itype = smmd%iatype(iat)
                    ii = ii + 1
                    if (itype==iitype .and. ii==ival) then
                        if (calc_array(itmb,ipdos)) stop 'calc_array(itmb)'
@@ -547,11 +547,12 @@ program utilities
        call deallocate_matrices(hamiltonian_mat)
        call deallocate_sparse_matrix(smat_s)
        call deallocate_sparse_matrix(smat_m)
-       call f_free_ptr(iatype)
-       call f_free_str_ptr(len(atomnames),atomnames)
+       call deallocate_sparse_matrix_metadata(smmd)
+       !call f_free_ptr(iatype)
+       !call f_free_str_ptr(len(atomnames),atomnames)
        call f_free_str(len(pdos_name),pdos_name)
        call f_free(calc_array)
-       call f_free_ptr(on_which_atom)
+       !call f_free_ptr(on_which_atom)
        call f_free_ptr(coeff_ptr)
        call f_free(energy_arr)
        call f_free(occup_arr)
