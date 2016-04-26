@@ -24,6 +24,7 @@ module locregs_init
   public :: check_linear_inputguess
   public :: small_to_large_locreg
   public :: assign_to_atoms_and_locregs
+  public :: parallelize_over_atoms
 
 
   contains
@@ -839,6 +840,7 @@ module locregs_init
       integer :: i1l, i2l, i3l, ii1, ii2, ii3, loc, n1p1, np, n1lp1, nlp, igridgloba
       !integer :: igridpointa
       integer :: ij1, ij2, ij3, jj1, jj2, jj3, ii1mod, ii2mod, ii3mod, ivctr, jvctr, kvctr, ijs1, ijs2, ijs3, ije1, ije2, ije3
+      integer :: nsegglob_start, nsegglob_end
       real(kind=8) :: cut, dx, dy, dz
       logical :: segment, inside
       integer,dimension(:,:),pointer :: ise
@@ -934,8 +936,46 @@ module locregs_init
       !!end do
 
 
+
+      ! Count how many global segments have an overlap from the viewpoint of the z coordinate
+      nsegglob_start = huge(nsegglob_start)
+      nsegglob_end = 0
+      cut=locrad**2
+      n1p1=n1+1
+      np=n1p1*(n2+1)
+      !$omp parallel if (nsegglob>1000) &
+      !$omp default(none) &
+      !$omp shared(nsegglob, keygglob, np, nl3glob, ijs3, ije3, n3) &
+      !$omp shared(hz, locregCenter, cut, nsegglob_start, nsegglob_end) &
+      !$omp private(iseg, j0, j1, ii, i3, ii3, inside, ij3, jj3, dz)
+      !$omp do reduction(min: nsegglob_start) reduction(max: nsegglob_end)
+      do iseg=1,nsegglob
+          j0=keygglob(1,iseg)
+          j1=keygglob(2,iseg)
+          ii=j0-1
+          i3=ii/np
+          ii3=i3+nl3glob
+
+          inside=.false.
+          do ij3=ijs3,ije3
+              jj3=ii3+ij3*(n3+1)
+              dz=((jj3*hz)-locregCenter(3))**2
+              if(dz<=cut) then
+                  inside=.true.
+              end if
+          end do
+          if (inside) then
+              nsegglob_start = min(nsegglob_start,iseg)
+              nsegglob_end = max(nsegglob_end,iseg)
+          end if
+      end do
+      !$omp end do
+      !$omp end parallel
+
+
+
     
-      call distribute_on_threads(nsegglob, nthread, ise)
+      call distribute_on_threads(nsegglob_start, nsegglob_end, nthread, ise)
     
       keygloc_work = f_malloc((/1.to.2,1.to.nseg,0.to.nthread-1/),id='keygloc_work')
       keyg_glob_work = f_malloc((/1.to.2,1.to.nseg,0.to.nthread-1/),id='keyg_glob_work')
@@ -948,9 +988,9 @@ module locregs_init
       !can add openmp here too as segment always ends at end of y direction? 
       !problem is need nend value - can do a pre-scan to find seg value only as with init_collcom.
       !for now just do omp section
-      cut=locrad**2
-      n1p1=n1+1
-      np=n1p1*(n2+1)
+      !!cut=locrad**2
+      !!n1p1=n1+1
+      !!np=n1p1*(n2+1)
       n1lp1=n1l+1
       nlp=n1lp1*(n2l+1)
       ivctr=0
@@ -991,17 +1031,17 @@ module locregs_init
           ii2=i2+nl2glob
           ii3=i3+nl3glob
 
-          ! First just check the z dimension. If inside is false, proceed deirectly,
-          ! otherwise check also the other dimensions.
-          inside=.false.
-          do ij3=ijs3,ije3!-1,1
-              jj3=ii3+ij3*(n3+1)
-              dz=((jj3*hz)-locregCenter(3))**2
-              if(dz<=cut) then
-                  inside=.true.
-              end if
-          end do
-          check_z_if: if (inside) then
+          !!! First just check the z dimension. If inside is false, proceed directly,
+          !!! otherwise check also the other dimensions.
+          !!inside=.false.
+          !!do ij3=ijs3,ije3!-1,1
+          !!    jj3=ii3+ij3*(n3+1)
+          !!    dz=((jj3*hz)-locregCenter(3))**2
+          !!    if(dz<=cut) then
+          !!        inside=.true.
+          !!    end if
+          !!end do
+          !!check_z_if: if (inside) then
               ! May be inside the sphere, so check also the other dimensions.
               ! Since each line in y (and thus also each plane in the z dimensions) starts
               ! a new segment, the following does not have to be done.
@@ -1108,7 +1148,7 @@ module locregs_init
                   end if
                   kvctr=0
               end if
-          end if check_z_if
+          !!end if check_z_if
       end do
       ! Some checks
       if (nstart/=nend) call f_err_throw('nstart/=nend',err_name='BIGDFT_RUNTIME_ERROR')
@@ -2632,6 +2672,27 @@ module locregs_init
       call f_release_routine()
     
     end subroutine assign_to_atoms_and_locregs
+
+
+    ! Parallelization over the atoms.
+    subroutine parallelize_over_atoms(nat, iproc, nproc, natp, isat)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: nat, iproc, nproc
+      integer,intent(out) :: natp, isat
+
+      ! Local variables
+      integer :: ii
+
+      ! First distribute evenly...
+      natp = nat/nproc
+      isat = iproc*natp
+      ! ... and now distribute the remaining atoms.
+      ii = nat-nproc*natp
+      if (iproc<ii) natp = natp + 1
+      isat = isat + min(iproc,ii)
+
+   end subroutine parallelize_over_atoms
 
    
 end module locregs_init

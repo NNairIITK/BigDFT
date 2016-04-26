@@ -2521,6 +2521,7 @@ matrixtaskgroups_no:
   Total ionic charge: 9.6e-11
   Maxdiff for transpose (checksum): 3.0e-11 
   Atomic Forces (Ha/Bohr): 1.2e-11
+  Multipole coefficients: 1.1e-10
   Keys to ignore:
    - Calculating wavelets expansion of projectors, found warnings
    - found warnings
@@ -2551,6 +2552,7 @@ matrixtaskgroups_yes:
   Total ionic charge: 9.6e-11
   Maxdiff for transpose (checksum): 3.0e-11 
   C: 1.14e-11
+  Multipole coefficients: 1.1e-10
   Keys to ignore:
    - Calculating wavelets expansion of projectors, found warnings
    - found warnings

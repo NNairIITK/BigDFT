@@ -1020,7 +1020,7 @@ module foe
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
-      use foe_common, only: scale_and_shift_matrix, evnoise, &
+      use foe_common, only: evnoise, &
                             retransform_ext, get_chebyshev_expansion_coefficients, &
                             get_chebyshev_polynomials, find_fermi_level, get_polynomial_degree, &
                             calculate_trace_distributed_new
@@ -1082,10 +1082,12 @@ module foe
       real(kind=mp),dimension(2) :: temparr
       real(kind=mp),dimension(:,:),allocatable :: penalty_ev_new
       real(kind=mp),dimension(:),allocatable :: fermi_new, fermi_check_new, fermi_small_new
-      integer :: iline, icolumn, icalc, npl_min, npl_max, npl_stride
+      integer :: iline, icolumn, icalc, npl_min
       real(kind=mp),dimension(:),allocatable :: ham_large
       real(kind=mp),dimension(2) :: fscale_ispin
       real(kind=mp),dimension(1) :: ef_arr, fscale_arr
+      integer,parameter :: NPL_MAX = 10000
+      integer,parameter :: NPL_STRIDE = 10
       
     
     
@@ -1186,10 +1188,8 @@ module foe
     
           degree_sufficient=.true.
 
-          npl_min = 10
-          npl_max = 10000
-          npl_stride = 10
     
+          npl_min = 10
     
           temp_loop: do itemp=1,ntemp
 
@@ -1234,7 +1234,7 @@ module foe
                       efarr(1) = foe_data_get_real(foe_obj,"ef",ispin)
                       fscale_arr(1) = foe_data_get_real(foe_obj,"fscale",ispin)
                       call get_polynomial_degree(iproc, nproc, comm, ispin, 1, FUNCTION_ERRORFUNCTION, foe_obj, &
-                           npl_min, npl_max, npl_stride, 1.d-5, 0, npl, cc, &
+                           npl_min, NPL_MAX, NPL_STRIDE, 1.d-5, 0, npl, cc, &
                            max_error, x_max_error, mean_error, anoise, &
                            ef=efarr, fscale=fscale_arr)
                       npl_min = npl !to be used to speed up the search for npl in a following iteration in case the temperature must be lowered

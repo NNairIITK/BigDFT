@@ -1758,6 +1758,11 @@ module multipole
          do while(ket_next(psi_it,ilr=psi_it%ilr))
             if (sphere) call f_zero(sphi2r)
             call daub_to_isf(psi_it%lr,w,psi_it%phi_wvl,phi2r)
+            !$omp parallel default(none) &
+            !$omp shared(psi_it, hgrids, lrcntr, acell, nl3, nl2, nl1) &
+            !$omp shared(perz, pery, perx, sphere, rmax, sphi2r, phi2r, l, m) &
+            !$omp private(i3, ii3, z, i2, ii2, y, i1, ii1, x, ind, tt)
+            !$omp do
             do i3=1,psi_it%lr%d%n3i
                ii3 = psi_it%lr%nsi3 + i3 - nl3 - 1
                z=ii3*0.5d0*hgrids(3)-lrcntr(3)
@@ -1780,6 +1785,8 @@ module multipole
                   end do
                end do
             end do
+            !$omp end do
+            !$omp end parallel
             sphi_ptr => ob_ket_map(Slmphi,psi_it)
             call isf_to_daub(psi_it%lr, w, sphi2r, sphi_ptr)
          end do
@@ -1817,6 +1824,7 @@ module multipole
       real(wp), dimension(3) :: lrcntr
       real(wp),dimension(:),allocatable :: phi2r
       real(wp), dimension(:), pointer :: sphi_ptr
+      real(wp),dimension(-lmax:lmax,0:lmax) :: Qlm_work
 
       call f_routine(id='Qlm_phi')
 
@@ -1850,6 +1858,12 @@ module multipole
          end if
          do while(ket_next(psi_it,ilr=psi_it%ilr))
             call daub_to_isf(psi_it%lr,w,psi_it%phi_wvl,phi2r)
+            call f_zero(Qlm_work)
+            !$omp parallel default(none) &
+            !$omp shared(psi_it, hgrids, lrcntr, acell, nl3, nl2, nl1) &
+            !$omp shared(perz, pery, perx, sphere, rmax, Qlm_work, phi2r, lmax) &
+            !$omp private(i3, ii3, z, i2, ii2, y, i1, ii1, x, ind, tt, l, m)
+            !$omp do reduction(+: Qlm_work)
             do i3=1,psi_it%lr%d%n3i
                ii3 = psi_it%lr%nsi3 + i3 - nl3 - 1
                z=ii3*0.5d0*hgrids(3)-lrcntr(3)
@@ -1870,12 +1884,15 @@ module multipole
                         do m=-l,l
                            tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
                            tt = tt*sqrt(4.d0*pi/real(2*l+1,gp))
-                           Qlm(m,l,psi_it%iorbp)=Qlm(m,l,psi_it%iorbp)+tt*phi2r(ind)
+                           Qlm_work(m,l)=Qlm_work(m,l)+tt*phi2r(ind)
                         end do
                      end do
                   end do
                end do
             end do
+            !$end do
+            !$omp end parallel
+            Qlm(-lmax:lmax,0:lmax,psi_it%iorbp) = Qlm_work(-lmax:lmax,0:lmax)
          end do
          !deallocations of work arrays
          call deallocate_work_arrays_sumrho(w)
@@ -3269,7 +3286,7 @@ module multipole
       coeff_all = f_malloc((/nmax,nmax,natp/),id='coeff_all')
       ovrlp_onehalf_all = f_malloc((/nmax,nmax,natp/),id='ovrlp_onehalf_all')
       ovrlp_minusonehalf = f_malloc((/nmax,nmax/),id='ovrlp_minusonehalf')
-      ilup = f_malloc((/2,nmax,nmax,natp/),id='ilup')
+      !ilup = f_malloc((/2,nmax,nmax,natp/),id='ilup')
       n_all = f_malloc(natp,id='n_all')
 
       penalty_matrices = f_malloc((/nmax**2,natp/),id='penalty_matrices')
@@ -3389,7 +3406,7 @@ module multipole
               proj = f_malloc0((/n,n/),id='proj')
               penaltymat = f_malloc0((/n,n,24/),id='penaltymat')
               eval = f_malloc0((/n/),id='eval')
-              call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ovrlp, ilup)
+              call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ovrlp)!, ilup)
               call extract_matrix(smatm, ham_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ham)
 
 
@@ -3644,7 +3661,7 @@ module multipole
               call f_free(coeff_all)
               call f_free(ovrlp_onehalf_all)
               call f_free(ovrlp_minusonehalf)
-              call f_free(ilup)
+              !call f_free(ilup)
               call f_free(n_all)
               call f_free(penalty_matrices)
               call f_free(alpha_calc)
@@ -4034,7 +4051,7 @@ end if
       end if
           call f_free(kerneltilde)
       call f_free(coeff_all)
-      call f_free(ilup)
+      !call f_free(ilup)
       call f_free(n_all)
       call f_free(ovrlp_minusonehalf)
       call f_free(penalty_matrices)
@@ -4068,7 +4085,7 @@ end if
 
 
 
-  subroutine extract_matrix(smat, matrix_compr, neighbor, n, nmax, matrix, ilup)
+  subroutine extract_matrix(smat, matrix_compr, neighbor, n, nmax, matrix)!, ilup)
     use module_base
     use sparsematrix_base,only: sparse_matrix, matrices
     use sparsematrix_init, only: matrixindex_in_compressed
@@ -4080,44 +4097,65 @@ end if
     logical,dimension(smat%nfvctr),intent(in) :: neighbor
     integer,intent(in) :: n, nmax
     real(kind=8),dimension(n,n),intent(out) :: matrix
-    integer,dimension(2,nmax,nmax),intent(out),optional :: ilup
+    !integer,dimension(2,nmax,nmax),intent(out),optional :: ilup
 
     ! Local variables
     integer :: icheck, ii, jj, i, j, ind
-    logical :: optional_present
+    !logical :: optional_present
+    integer,dimension(:),allocatable :: lookup
 
     call f_routine(id='extract_matrix')
 
-    optional_present = present(ilup)
+    !optional_present = present(ilup)
 
-    icheck = 0
+    lookup = f_malloc(smat%nfvctr,id='lookup')
     ii = 0
     do i=1,smat%nfvctr
         if (neighbor(i)) then
+            ii = ii + 1
+            lookup(i) = ii
+        end if
+    end do
+
+
+    icheck = 0
+    ii = 0
+    !SM: The function matrixindex_in_compressed is rather expensive, so probably worth to use OpenMP all the time
+    !$omp parallel default(none) &
+    !$omp shared(smat, neighbor, lookup, matrix, matrix_compr, icheck) &
+    !$omp private(i, jj, ii, j, ind)
+    !$omp do schedule(guided) reduction(+: icheck)
+    do i=1,smat%nfvctr
+        if (neighbor(i)) then
             jj = 0
+            ii = lookup(i)
             do j=1,smat%nfvctr
                 if (neighbor(j)) then
                     icheck = icheck + 1
                     jj = jj + 1
-                    if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
+                    !if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
                     ind =  matrixindex_in_compressed(smat, j, i)
                     if (ind>0) then
                         matrix(jj,ii) = matrix_compr(ind-smat%isvctrp_tg)
                     else
                         matrix(jj,ii) = 0.d0
                     end if
-                    if (optional_present) then
-                        ilup(1,jj,ii) = j
-                        ilup(2,jj,ii) = i
-                    end if
+                    !if (optional_present) then
+                    !    ilup(1,jj,ii) = j
+                    !    ilup(2,jj,ii) = i
+                    !end if
                 end if
             end do
         end if
     end do
+    !$omp end do
+    !$omp end parallel
     if (icheck>n**2) then
         call f_err_throw('icheck('//adjustl(trim(yaml_toa(icheck)))//') > n**2('//&
             &adjustl(trim(yaml_toa(n**2)))//')',err_name='BIGDFT_RUNTIME_ERROR')
     end if
+
+    call f_free(lookup)
 
     call f_release_routine()
 
@@ -5483,7 +5521,7 @@ end if
    !$omp shared(ep, is1, ie1, is2, ie2, is3, ie3, norm, hhh) &
    !$omp shared(gaussians1, gaussians2, gaussians3) &
    !$omp private(impl, i1, i2, i3, ii1, ii2, ii3, l, gg) 
-   !$omp do
+   !$omp do schedule(guided)
    do impl=1,ep%nmpl
        i3loop: do i3=is3,ie3
            if (maxval(gaussians3(:,i3,impl))<1.d-20) cycle i3loop
@@ -6447,7 +6485,7 @@ end subroutine calculate_rpowerx_matrices
 
     ! Local variables
     integer :: i1, i2, i3, iat, icheck
-    real(kind=8) :: x, y, z, d, dmin, qex
+    real(kind=8) :: x, y, z, d, dmin, qex, factor
     real(kind=8),parameter :: min_distance = 2.0d0
     logical,dimension(:,:,:),allocatable :: is_close
 
@@ -6487,6 +6525,8 @@ end subroutine calculate_rpowerx_matrices
     call f_zero(potential_error)
     call f_zero(potential_total)
 
+    factor = kernel%hgrids(1)*kernel%hgrids(2)*kernel%hgrids(3)
+
     do i3=max(15,is3),min(ie3,kernel%ndims(3)-16-1)
         z = (i3-15)*kernel%hgrids(3)
         do i2=0,kernel%ndims(2)-31-1
@@ -6521,6 +6561,11 @@ end subroutine calculate_rpowerx_matrices
     end do
 
     call f_free(is_close)
+
+    call dscal(ncheck, factor, charge_error(1), 1)
+    call dscal(ncheck, factor, charge_total(1), 1)
+    call dscal(ncheck, factor, potential_error(1), 1)
+    call dscal(ncheck, factor, potential_total(1), 1)
 
     call mpiallred(charge_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
     call mpiallred(charge_total, mpi_sum, comm=bigdft_mpi%mpi_comm)

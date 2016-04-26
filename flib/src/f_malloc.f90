@@ -145,7 +145,7 @@ module module_f_malloc
      module procedure f_malloc_bounds,f_malloc_bound
      !here also the procedures for the copying of arrays have to be defined
      module procedure f_malloc_i2,f_malloc_d2
-     module procedure f_malloc_d1,f_malloc_i3
+     module procedure f_malloc_d1,f_malloc_i3, f_malloc_l3
      module procedure f_malloc_d3,f_malloc_d4,f_malloc_d5
      module procedure f_malloc_r1,f_malloc_r2,f_malloc_r3,f_malloc_r4
   end interface
@@ -815,6 +815,15 @@ contains
     include 'f_malloc-base-inc.f90'
     include 'f_malloc-inc.f90'
   end function f_malloc_i3
+
+  function f_malloc_l3(src,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    logical, dimension(:,:,:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
+    type(malloc_information_all) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_l3
 
 !!$  function f_malloc_ptr_i2(src,id,routine_id,sizes,lbounds,ubounds,profile) result(m)
 !!$    implicit none
