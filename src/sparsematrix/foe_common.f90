@@ -1226,9 +1226,11 @@ module foe_common
       real(kind=mp),intent(out) :: x_max_error, max_error, mean_error
 
       ! Local variables
-      integer :: isx, iex, i, ipl, n, iimin, iimax, ii, is, np, jproc
+      integer :: isx, iex, i, ipl, n, iimin, iimax, ii, is, np, jproc, ithread, nthread
       real(kind=mp) :: x, xx, val_chebyshev, val_function, xxm1, xxm2, xxx, sigma, tau, error, val_chebyshev1
       real(kind=mp),dimension(:,:),allocatable :: max_errors
+      real(kind=mp),dimension(:),allocatable :: max_error_arr, x_max_error_arr
+      !$ integer :: omp_get_thread_num, omp_get_max_threads
 
       call f_routine(id='accuracy_of_chebyshev_expansion')
 
@@ -1266,11 +1268,23 @@ module foe_common
           call f_err_throw('wrong ending index')
       end if
 
+      nthread = 1
+      !$ nthread = omp_get_max_threads()
+      max_error_arr = f_malloc(0.to.nthread,id='max_error_arr')
+      x_max_error_arr = f_malloc(0.to.nthread,id='x_max_error_arr')
 
-      max_error = 0.d0
+      max_error_arr(:) = 0.d0
       mean_error = 0.d0
-      !do i=isx,iex
       val_chebyshev1 = 0.5d0*coeff(1)
+
+      ithread = 0
+      !$omp parallel if (np>1 .and. np*npl>1000) &
+      !$omp default(none) &
+      !$omp shared(np, is, h, sigma, tau, val_chebyshev1, coeff, npl, mean_error, max_error_arr, x_max_error_arr) &
+      !$omp private(i, ii, x, xx, val_chebyshev, xxm2, xxm1, ipl, xxx, val_function, error) &
+      !$omp firstprivate(ithread)
+      !$ ithread = omp_get_thread_num()
+      !$omp do reduction(+: mean_error)
       do i=1,np
           ii = i + is
           x = real(ii,kind=mp)*h
@@ -1287,9 +1301,9 @@ module foe_common
           end do
           val_function = func(x)
           error = abs(val_chebyshev-val_function)
-          if (error>max_error) then
-              max_error = error
-              x_max_error = x
+          if (error>max_error_arr(ithread)) then
+              max_error_arr(ithread) = error
+              x_max_error_arr(ithread) = x
           end if
           mean_error = mean_error + error
           !if (abs(bounds(1)-0.15d0)<1.d-1 .and. abs(bounds(2)-30.0d0)<1.d-1 .and. npl==100) then
@@ -1297,8 +1311,21 @@ module foe_common
           !end if
           !write(*,*) 'x, val_chebyshev, exp(x-bounds(2))', x, val_chebyshev, exp(x-bounds(2))
       end do
+      !$omp end do
+      !$omp end parallel
       !write(*,*) 'max_error',max_error
       mean_error = mean_error/real(iex-isx+1,kind=mp)
+
+      ! Get the maximum among the OpenMP threads
+      max_error = 0.d0
+      do ithread=0,nthread
+          if (max_error_arr(ithread)>max_error) then
+              max_error = max_error_arr(ithread)
+              x_max_error = x_max_error_arr(ithread)
+          end if
+      end do
+      call f_free(max_error_arr)
+      call f_free(x_max_error_arr)
 
       ! Communicate the results... for the maximum in an array since also the position is required
       call mpiallred(mean_error, 1, mpi_sum, comm=comm)
