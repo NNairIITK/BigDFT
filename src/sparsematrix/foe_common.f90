@@ -692,7 +692,7 @@ module foe_common
           !$omp default(none) &
           !$omp shared(ibound, smat_l, bound_low, bound_up, trace_with_overlap, mat_large, ishift, penalty_ev) &
           !$omp private(i, ii, iline, icolumn, iismall, tt)
-          !$omp do reduction(+:bound_low, bound_up)
+          !$omp do schedule(static) reduction(+:bound_low, bound_up)
           do i=1,smat_l%smmm%nvctrp
               ii = smat_l%smmm%isvctr + i
               iline = smat_l%smmm%line_and_column(1,i)
@@ -927,7 +927,7 @@ module foe_common
           !$omp shared(smatl, mat1_large, mat2_large, with_overlap, matscal_compr, scale_factor, shift_value) &
           !$omp shared(ishift) &
           !$omp private(iseg, j, ii, i, jj, tt1, tt2)
-          !$omp do schedule(dynamic)
+          !$omp do schedule(guided)
           do iseg=smatl%smmm%istartendseg_mm(1),smatl%smmm%istartendseg_mm(2)
               ! A segment is always on one line, therefore no double loop
               j = smatl%keyg(1,2,iseg)

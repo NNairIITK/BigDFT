@@ -1456,6 +1456,11 @@ module matrix_operations
         !!end do
       
       
+        ! SM: The function matrixindex_in_compressed is rather expensive, so I think OpenMP is always worth
+        !$omp parallel default(none) &
+        !$omp shared(smat, ovrlp, max_deviation, mean_deviation, num) &
+        !$omp private(i, ii, iline, icolumn, ind, error)
+        !$omp do schedule(guided) reduction(max: max_deviation) reduction(+: mean_deviation, num)
         do i=1,smat%smmm%nvctrp
             ii = smat%smmm%isvctr + i
             !!call get_line_and_column(ii, smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, iline, icolumn)
@@ -1475,7 +1480,8 @@ module matrix_operations
                 num=num+1.d0
             end if
         end do
-      
+        !$omp end do
+        !$omp end parallel
       
       
         if (nproc>1) then
