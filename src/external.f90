@@ -58,6 +58,7 @@ end subroutine bigdft_init_old
 subroutine bigdft_mpi_init(ierr)
   use wrapper_mpi, only: wmpi_init_thread,MPI_SUCCESS
   use module_types, only: bigdft_init_errors,bigdft_init_timing_categories
+  use sparsematrix_base
   implicit none
   integer, intent(out) :: ierr
 
@@ -65,6 +66,7 @@ subroutine bigdft_mpi_init(ierr)
 
   if (ierr == MPI_SUCCESS) then
      call bigdft_init_errors()
+     call sparsematrix_init_errors()
      call bigdft_init_timing_categories()
   end if
 end subroutine bigdft_mpi_init

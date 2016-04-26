@@ -1045,19 +1045,19 @@ module module_interfaces
          END SUBROUTINE input_check_psi_id
        end interface
 
-       interface
-         subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspin, Localnorb, spinsgn, rxyz, inwhichlocreg)
-         use module_defs, only: gp,dp,wp
-         use module_types
-         implicit none
-         integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb,norbu
-         integer,dimension(nlr),intent(in):: Localnorb
-         real(kind=8),dimension(norb),intent(in):: spinsgn
-         integer,dimension(0:nproc-1),intent(in):: norb_par
-         real(8),dimension(3,nlr),intent(in):: rxyz
-         integer,dimension(:),pointer,intent(out):: inwhichlocreg
-         END SUBROUTINE assignToLocreg2
-       end interface
+       !!interface
+       !!  subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspin, Localnorb, spinsgn, rxyz, inwhichlocreg)
+       !!  use module_defs, only: gp,dp,wp
+       !!  use module_types
+       !!  implicit none
+       !!  integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb,norbu
+       !!  integer,dimension(nlr),intent(in):: Localnorb
+       !!  real(kind=8),dimension(norb),intent(in):: spinsgn
+       !!  integer,dimension(0:nproc-1),intent(in):: norb_par
+       !!  real(8),dimension(3,nlr),intent(in):: rxyz
+       !!  integer,dimension(:),pointer,intent(out):: inwhichlocreg
+       !!  END SUBROUTINE assignToLocreg2
+       !!end interface
 
        interface
          subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
@@ -1380,7 +1380,7 @@ module module_interfaces
 
   interface
      subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,&
-          hgrids,n,centre_old,centre_new,da,frag_trans,psi,psirold)
+          hgrids,n,centre_old,centre_new,da,frag_trans,psi,psirold,tag)
        use module_defs, only: gp,dp,wp
        use module_types
        use module_fragments
@@ -1395,6 +1395,7 @@ module module_interfaces
        real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
        real(wp), dimension(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f), intent(out) :: psi
        real(wp), dimension(llr_old%d%n1i,llr_old%d%n2i,llr_old%d%n3i), optional, intent(in) :: psirold
+       integer,optional,intent(in) :: tag
      END SUBROUTINE reformat_one_supportfunction
   end interface
 

@@ -301,6 +301,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    real(gp), dimension(:), allocatable :: psiatn
    real(gp), dimension(:,:), allocatable :: atmoments,xp
    real(gp), dimension(:,:,:), allocatable :: psiat
+    real(gp), dimension(0:4,0:6) :: psppar
 
    !if (iproc == 0 .and. verbose > 1) then
       !write(*,'(1x,a)')'Calculating AIO wavefunctions: '
@@ -403,17 +404,18 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          !eliminate the nlcc parameters from the IG, since XC is always LDA
          ngv=0
          ngc=0
+         psppar(0:4,0:6) = at%psppar(0:4,0:6,ity)
          if(present(quartic_prefactor)) then
              call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
-                  real(at%nelpsp(ity),gp),nspin_print,at%aoig(iat)%aocc,at%psppar(0:,0:,ity),&
+                  real(at%nelpsp(ity),gp),nspin_print,at%aoig(iat)%aocc,psppar,&
                   at%npspcode(ity),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
-                  ng-1,xp(1,ityx),psiat(1:,1:,ityx),.false.,&
+                  ng-1,xp(1,ityx),psiat(1,1,ityx),.false.,&
                   quartic_prefactor=quartic_prefactor(ity))
         else
              call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
-                  real(at%nelpsp(ity),gp),nspin_print,at%aoig(iat)%aocc,at%psppar(0:,0:,ity),&
+                  real(at%nelpsp(ity),gp),nspin_print,at%aoig(iat)%aocc,psppar,&
                   at%npspcode(ity),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
-                  ng-1,xp(1,ityx),psiat(1:,1:,ityx),.false.)
+                  ng-1,xp(1,ityx),psiat(1,1,ityx),.false.)
          end if
          ntypesx=ntypesx+1
          if (iproc == 0 .and. verbose > 1) then
@@ -1427,7 +1429,11 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
 !!$            call yaml_map('e',ar(i)/beta(i),fmt='(1pe12.5)')
 !!$         end do
 
+
          call DSYGV(1,'V','L',ng+1,hh,ng+1,ss,ng+1,eval,evec,(ng+1)**2,info)
+
+         !call f_linalg_eig(mat=hh,S=ss,symmetric=.true.,eval=eval,jobz='V',work=evec,lwork=size(evec))
+
 !!$         do i=0,ng
 !!$            call yaml_newline()
 !!$            call yaml_map('e',eval(i),fmt='(1pe12.5)')

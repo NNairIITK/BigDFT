@@ -1,7 +1,8 @@
 module sparsematrix_highlevel
-
+  use sparsematrix_base
   private
 
+  !> Initialization routines
   public :: sparse_matrix_and_matrices_init_from_file_ccs
   public :: sparse_matrix_init_from_file_ccs
   public :: sparse_matrix_init_from_data_ccs
@@ -11,40 +12,51 @@ module sparsematrix_highlevel
   public :: read_sparse_matrix_metadata
   public :: sparse_matrix_init_from_data_bigdft
   public :: matrices_init
+  !> Data manipulation routines
   public :: matrices_set_values
   public :: matrices_get_values
   public :: matrices_get_size
   public :: ccs_data_from_sparse_matrix
   public :: ccs_matrix_write
+  !> Wrapper for complete operations
   public :: matrix_matrix_multiplication
   public :: matrix_chebyshev_expansion
+  public :: matrix_fermi_operator_expansion
+  public :: trace_AB
 
   contains
 
-    subroutine sparse_matrix_and_matrices_init_from_file_ccs(filename, iproc, nproc, smat, mat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
+    subroutine sparse_matrix_and_matrices_init_from_file_ccs(filename, iproc, nproc, comm, smat, mat, &
+               init_matmul)
       use sparsematrix_init, only: read_ccs_format
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
       type(matrices),intent(out) :: mat
+      logical,intent(in),optional :: init_matmul
     
       ! Local variables
       integer :: nfvctr, nvctr
       integer,dimension(:),pointer :: col_ptr, row_ind
-      real(kind=8),dimension(:),pointer :: val
+      real(kind=mp),dimension(:),pointer :: val
+      logical :: init_matmul_
     
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
     
       ! Read in the matrix
       call read_ccs_format(filename, nfvctr, nvctr, col_ptr, row_ind, val)
+
+      if (present(init_matmul)) then
+          init_matmul_ = init_matmul
+      else
+          init_matmul_ = .true.
+      end if
     
       ! Generate the sparse_matrix type
-      call sparse_matrix_init_from_data_ccs(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
+      call sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, init_matmul_)
     
       ! Generate the matrices type
       call matrices_init_from_data(smat, val, mat)
@@ -59,21 +71,19 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_and_matrices_init_from_file_ccs
     
     
-    subroutine sparse_matrix_init_from_file_ccs(filename, iproc, nproc, smat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
+    subroutine sparse_matrix_init_from_file_ccs(filename, iproc, nproc, comm, smat)
       use sparsematrix_init, only: read_ccs_format
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
     
       ! Local variables
       integer :: nfvctr, nvctr
       integer,dimension(:),pointer :: col_ptr, row_ind
-      real(kind=8),dimension(:),pointer :: val
+      real(kind=mp),dimension(:),pointer :: val
     
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
     
@@ -81,7 +91,7 @@ module sparsematrix_highlevel
       call read_ccs_format(filename, nfvctr, nvctr, col_ptr, row_ind, val)
     
       ! Generate the sparse_matrix type
-      call sparse_matrix_init_from_data_ccs(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
+      call sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat)
     
       ! Deallocate the pointers
       call f_free_ptr(col_ptr)
@@ -93,31 +103,39 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_init_from_file_ccs
 
 
-    subroutine sparse_matrix_init_from_data_ccs(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, smat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
+    subroutine sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, &
+               init_matmul)
       use sparsematrix_init, only: ccs_to_sparsebigdft_short, &
                                    bigdft_to_sparsebigdft, init_matrix_taskgroups
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, nfvctr, nvctr
+      integer,intent(in) :: iproc, nproc, comm, nfvctr, nvctr
       integer,dimension(nvctr),intent(in) :: row_ind
       integer,dimension(nfvctr),intent(in) :: col_ptr
       type(sparse_matrix),intent(out) :: smat
+      logical,intent(in),optional :: init_matmul
     
       ! Local variables
       integer :: nseg
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
+      logical :: init_matmul_
     
       call f_routine(id='sparse_matrix_init_from_data_ccs')
+
+      if (present(init_matmul)) then
+          init_matmul_ = init_matmul
+      else
+          init_matmul_ = .true.
+      end if
     
       ! Convert the sparsity pattern to the BigDFT format
       call ccs_to_sparsebigdft_short(nfvctr, nvctr, row_ind, col_ptr, nseg, keyv, keyg)
     
       ! Create the sparse_matrix structure
-      call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
+      call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
+           init_matmul=init_matmul_)
     
       ! Deallocate the pointers
       call f_free_ptr(keyv)
@@ -128,16 +146,14 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_init_from_data_ccs
 
 
-    subroutine sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc, smat, mat, &
+    subroutine sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc, comm, smat, mat, &
                init_matmul)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: bigdft_to_sparsebigdft
       use sparsematrix_io, only: read_sparse_matrix
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
       type(matrices),intent(out) :: mat
@@ -146,7 +162,7 @@ module sparsematrix_highlevel
       !!integer,intent(out),optional :: nat, ntypes
       !!integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
       !!character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
-      !!real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
+      !!real(kind=mp),dimension(:,:),pointer,intent(inout),optional :: rxyz
       !!integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
     
       ! Local variables
@@ -154,14 +170,14 @@ module sparsematrix_highlevel
       character(len=1) :: geocode
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
-      real(kind=8),dimension(:),pointer :: val
+      real(kind=mp),dimension(:),pointer :: val
       logical :: init_matmul_
       integer :: nat_, ntypes_
       integer,dimension(:),pointer :: nzatom_, nelpsp_, iatype_
       character(len=20),dimension(:),pointer :: atomnames_
-      real(kind=8),dimension(:,:),pointer :: rxyz_
+      real(kind=mp),dimension(:,:),pointer :: rxyz_
       integer,dimension(:),pointer :: on_which_atom_
-      real(kind=8),dimension(3) :: cell_dim
+      real(kind=mp),dimension(3) :: cell_dim
     
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_bigdft')
     
@@ -176,7 +192,7 @@ module sparsematrix_highlevel
       end if
     
       ! Create the sparse_matrix structure
-      call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat, &
+      call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
            init_matmul=init_matmul_)!, nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_)
     
       ! Generate the matrices type
@@ -193,15 +209,13 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_and_matrices_init_from_file_bigdft
 
 
-    subroutine sparse_matrix_init_from_file_bigdft(filename, iproc, nproc, smat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
+    subroutine sparse_matrix_init_from_file_bigdft(filename, iproc, nproc, comm, smat)
       use sparsematrix_init, only: bigdft_to_sparsebigdft
       use sparsematrix_io, only: read_sparse_matrix
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
     
@@ -210,8 +224,8 @@ module sparsematrix_highlevel
       character(len=1) :: geocode
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
-      real(kind=8),dimension(:),pointer :: val
-      real(kind=8),dimension(3) :: cell_dim
+      real(kind=mp),dimension(:),pointer :: val
+      real(kind=mp),dimension(3) :: cell_dim
       integer,dimension(:),pointer :: on_which_atom
     
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
@@ -220,7 +234,7 @@ module sparsematrix_highlevel
       call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
     
       ! Create the sparse_matrix structure
-      call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat, &
+      call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
            nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom)
     
       ! Deallocate the pointers
@@ -234,8 +248,6 @@ module sparsematrix_highlevel
 
 
     subroutine sparse_matrix_metadata_init_from_file(filename, smmd)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix_metadata, sparse_matrix_metadata_null
       use sparsematrix_io, only: read_sparse_matrix_metadata
       implicit none
     
@@ -251,22 +263,20 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_metadata_init_from_file
     
 
-    subroutine sparse_matrix_init_from_data_bigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
+    subroutine sparse_matrix_init_from_data_bigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat)
       use sparsematrix_init, only: ccs_to_sparsebigdft_short, &
                                    bigdft_to_sparsebigdft, init_matrix_taskgroups
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, nfvctr, nvctr, nseg
+      integer,intent(in) :: iproc, nproc, comm, nfvctr, nvctr, nseg
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(out) :: smat
     
-      call f_routine(id='sparse_matrix_init_from_data_ccs')
+      call f_routine(id='sparse_matrix_init_from_data_bigdft')
     
       ! Create the sparse_matrix structure
-      call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nvctr, nseg, keyg, smat)
+      call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat)
     
       call f_release_routine()
     
@@ -274,14 +284,11 @@ module sparsematrix_highlevel
     
     
     subroutine matrices_init_from_data(smat, val, mat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
-                                   assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
       implicit none
     
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
-      real(kind=8),dimension(smat%nvctr),intent(in) :: val
+      real(kind=mp),dimension(smat%nvctr),intent(in) :: val
       type(matrices),intent(out) :: mat
     
       call f_routine(id='matrices_init_from_data')
@@ -299,9 +306,6 @@ module sparsematrix_highlevel
     
     
     subroutine matrices_init(smat, mat)
-      use module_base
-      use sparsematrix_base,only: sparse_matrix, matrices, &
-                                  matrices_null, assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
       implicit none
     
       ! Calling arguments
@@ -315,14 +319,11 @@ module sparsematrix_highlevel
     
     
     subroutine matrices_set_values(smat, val, mat)
-      use module_base
-      use sparsematrix_base,only: sparse_matrix, matrices, &
-                                  matrices_null, assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
       implicit none
     
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
-      real(kind=8),dimension(:),intent(in) :: val
+      real(kind=mp),dimension(:),intent(in) :: val
       type(matrices),intent(inout) :: mat
     
       call f_routine(id='matrices_set_values')
@@ -343,15 +344,12 @@ module sparsematrix_highlevel
 
 
     subroutine matrices_get_values(smat, mat, val)
-      use module_base
-      use sparsematrix_base,only: sparse_matrix, matrices, &
-                                  matrices_null, assignment(=), sparsematrix_malloc_ptr, SPARSE_FULL
       implicit none
     
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(in) :: mat
-      real(kind=8),dimension(:),intent(inout) :: val
+      real(kind=mp),dimension(:),intent(inout) :: val
     
       call f_routine(id='matrices_get_values')
     
@@ -371,8 +369,6 @@ module sparsematrix_highlevel
 
 
     function matrices_get_size(smat) result(s)
-      use module_base
-      use sparsematrix_base,only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -389,8 +385,6 @@ module sparsematrix_highlevel
 
 
     subroutine ccs_data_from_sparse_matrix(smat, row_ind, col_ptr)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: sparsebigdft_to_ccs
       implicit none
 
@@ -411,8 +405,6 @@ module sparsematrix_highlevel
 
 
     subroutine ccs_matrix_write(filename, smat, row_ind, col_ptr, mat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_io, only: write_ccs_matrix
       implicit none
 
@@ -437,8 +429,6 @@ module sparsematrix_highlevel
 
 
     subroutine matrix_matrix_multiplication(iproc, nproc, smat, a, b, c)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix, only: matrix_matrix_mult_wrapper
       implicit none
 
@@ -469,17 +459,15 @@ module sparsematrix_highlevel
     end subroutine matrix_matrix_multiplication
 
 
-    subroutine matrix_chebyshev_expansion(iproc, nproc, ndeg, ncalc, ex, &
+    subroutine matrix_chebyshev_expansion(iproc, nproc, comm, ncalc, ex, &
                smat_in, smat_out, mat_in, mat_out, npl_auto)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
       use ice, only: inverse_chebyshev_expansion_new
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, ndeg, ncalc
+      integer,intent(in) :: iproc, nproc, comm, ncalc
       type(sparse_matrix),intent(in) ::smat_in, smat_out
-      real(kind=8),dimension(ncalc),intent(in) :: ex
+      real(kind=mp),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: mat_in
       type(matrices),dimension(ncalc),intent(inout) :: mat_out
       logical,intent(in),optional :: npl_auto
@@ -513,10 +501,10 @@ module sparsematrix_highlevel
       if (present(npl_auto)) then
           !!call inverse_chebyshev_expansion(iproc, nproc, ndeg, &
           !!     smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto)
-          call inverse_chebyshev_expansion_new(iproc, nproc, ndeg, &
+          call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
                smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto=npl_auto)
       else
-          call inverse_chebyshev_expansion_new(iproc, nproc, ndeg, &
+          call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
                smat_in, smat_out, ncalc, ex, mat_in, mat_out)
       end if
 
@@ -525,87 +513,110 @@ module sparsematrix_highlevel
     end subroutine matrix_chebyshev_expansion
 
 
-    subroutine matrix_fermi_operator_expansion(iproc, nproc, ndeg, foe_obj, smat_s, smat_h, smat_k, &
+    subroutine matrix_fermi_operator_expansion(iproc, nproc, comm, foe_obj, smat_s, smat_h, smat_k, &
                overlap, ham, overlap_minus_one_half, kernel, ebs, &
-               calculate_minusonehalf, max_inversion_error, foe_verbosity, label)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
+               calculate_minusonehalf, foe_verbosity, symmetrize_kernel)
       use foe_base, only: foe_data
       use foe, only: fermi_operator_expansion_new
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
-      integer,intent(inout) :: ndeg
+      integer,intent(in) :: iproc, nproc, comm
       type(foe_data),intent(inout) :: foe_obj
       type(sparse_matrix),intent(in) ::smat_s, smat_h, smat_k
       type(matrices),intent(in) :: overlap, ham
       type(matrices),dimension(1),intent(inout) :: overlap_minus_one_half
       type(matrices),intent(inout) :: kernel
-      real(kind=8),intent(out) :: ebs
-      logical,intent(in),optional :: calculate_minusonehalf
-      real(kind=8),intent(in),optional :: max_inversion_error
+      real(kind=mp),intent(out) :: ebs
+      logical,intent(in),optional :: calculate_minusonehalf, symmetrize_kernel
       integer,intent(in),optional :: foe_verbosity
-      character(len=*),intent(in),optional :: label
 
       ! Local variables
       integer :: i
-      real(kind=8) :: max_inversion_error_
-      logical :: calculate_minusonehalf_
+      logical :: calculate_minusonehalf_, symmetrize_kernel_
       integer :: foe_verbosity_
-      character(len=100) :: label_
 
       call f_routine(id='matrix_fermi_operator_expansion')
 
-      max_inversion_error_ = 1.d-8
-      if (present(max_inversion_error)) max_inversion_error_ = max_inversion_error
       calculate_minusonehalf_ = .true.
       if (present(calculate_minusonehalf)) calculate_minusonehalf_ = calculate_minusonehalf
       foe_verbosity_ = 1
       if (present(foe_verbosity)) foe_verbosity_ = foe_verbosity
-      label_ = '001'
-      if (present(label)) label_ = trim(label)
+      symmetrize_kernel_ = .false.
+      if (present(symmetrize_kernel)) symmetrize_kernel_ = symmetrize_kernel
 
       ! Check the dimensions of the internal arrays
-      if (size(overlap%matrix_compr)/=smat_s%nvctrp_tg) then
+      if (size(overlap%matrix_compr)/=smat_s%nvctrp_tg*smat_s%nspin) then
           call f_err_throw('The size of the array overlap%matrix_compr is wrong: '&
-               &//trim(yaml_toa(size(overlap%matrix_compr)))//' instead of '//trim(yaml_toa(smat_s%nvctrp_tg)))
+               &//trim(yaml_toa(size(overlap%matrix_compr)))//' instead of '//&
+               &trim(yaml_toa(smat_s%nvctrp_tg*smat_s%nspin)))
       end if
-      if (size(ham%matrix_compr)/=smat_h%nvctrp_tg) then
+      if (size(ham%matrix_compr)/=smat_h%nvctrp_tg*smat_h%nspin) then
           call f_err_throw('The size of the array mat_out%matrix_compr is wrong: '&
-               &//trim(yaml_toa(size(ham%matrix_compr)))//' instead of '//trim(yaml_toa(smat_h%nvctrp_tg)))
+               &//trim(yaml_toa(size(ham%matrix_compr)))//' instead of '//&
+               &trim(yaml_toa(smat_h%nvctrp_tg*smat_h%nspin)))
       end if
-      if (size(overlap_minus_one_half(1)%matrix_compr)/=smat_k%nvctrp_tg) then
+      if (size(overlap_minus_one_half(1)%matrix_compr)/=smat_k%nvctrp_tg*smat_k%nspin) then
           call f_err_throw('The size of the array mat_out%matrix_compr is wrong: '&
-               &//trim(yaml_toa(size(overlap_minus_one_half(1)%matrix_compr)))//' instead of '//trim(yaml_toa(smat_k%nvctrp_tg)))
+               &//trim(yaml_toa(size(overlap_minus_one_half(1)%matrix_compr)))//' instead of '//&
+               &trim(yaml_toa(smat_k%nvctrp_tg*smat_k%nspin)))
       end if
-      if (size(kernel%matrix_compr)/=smat_k%nvctrp_tg) then
+      if (size(kernel%matrix_compr)/=smat_k%nvctrp_tg*smat_k%nspin) then
           call f_err_throw('The size of the array mat_out%matrix_compr is wrong: '&
-               &//trim(yaml_toa(size(kernel%matrix_compr)))//' instead of '//trim(yaml_toa(smat_k%nvctrp_tg)))
+               &//trim(yaml_toa(size(kernel%matrix_compr)))//' instead of '//&
+               &trim(yaml_toa(smat_k%nvctrp_tg*smat_k%nspin)))
       end if
 
       ! Check that number of non-zero elements of smat_s is not larger than that of smat_h, and that the one of 
       ! smat_h is not larger than that of smat_k. This is just a minimal
       ! check to ensure that the sparsity pattern of smat_s is contained within the one of smat_h and the one 
       ! of smat_h within smat_k. However this check is not sufficient to make sure that this condition is fulfilled.
-      if (smat_h%nvctr>smat_s%nvctr) then
-          call f_err_throw('The number of non-zero elements of smat_h ('//&
-               trim(yaml_toa(smat_h%nvctr))//') is larger than the one of smat_s ('//&
-               trim(yaml_toa(smat_s%nvctr))//')')
-      end if
-      if (smat_k%nvctr>smat_h%nvctr) then
-          call f_err_throw('The number of non-zero elements of smat_k ('//&
-               trim(yaml_toa(smat_k%nvctr))//') is larger than the one of smat_h ('//&
+      if (smat_s%nvctr>smat_h%nvctr) then
+          call f_err_throw('The number of non-zero elements of smat_s ('//&
+               trim(yaml_toa(smat_s%nvctr))//') is larger than the one of smat_h ('//&
                trim(yaml_toa(smat_h%nvctr))//')')
       end if
+      if (smat_h%nvctr>smat_k%nvctr) then
+          call f_err_throw('The number of non-zero elements of smat_h ('//&
+               trim(yaml_toa(smat_h%nvctr))//') is larger than the one of smat_k ('//&
+               trim(yaml_toa(smat_k%nvctr))//')')
+      end if
 
-      call fermi_operator_expansion_new(iproc, nproc, &
-           ebs, ndeg, max_inversion_error_, &
+      call fermi_operator_expansion_new(iproc, nproc, comm, &
+           ebs, &
            calculate_minusonehalf_, foe_verbosity_, &
-           label_, smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj)
+           smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj, &
+           symmetrize_kernel_)
 
       call f_release_routine()
 
     end subroutine matrix_fermi_operator_expansion
+
+
+    !> Calculates the trace of the spin component ispin of the matrix product amat*bmat.
+    !! WARNING: It is mandatory that the sparsity pattern of amat be contained
+    !! within the sparsity pattern of bmat!
+    function trace_AB(iproc, nproc, comm, asmat, bsmat, amat, bmat, ispin)
+      use sparsematrix, only: trace_sparse
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm, ispin
+      type(sparse_matrix),intent(in) :: asmat, bsmat
+      type(matrices),intent(in) :: amat
+      type(matrices),intent(in) :: bmat
+      real(kind=mp) :: trace_AB
+
+      ! Local variables
+      integer :: iashift, ibshift
+
+      iashift=(ispin-1)*asmat%nvctrp_tg
+      ibshift=(ispin-1)*bsmat%nvctrp_tg
+
+      trace_AB = trace_sparse(iproc, nproc, comm, asmat, bsmat, &
+                 amat%matrix_compr(iashift+1:), &
+                 bmat%matrix_compr(ibshift+1:))
+
+    end function trace_AB
 
 end module sparsematrix_highlevel

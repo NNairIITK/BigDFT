@@ -52,6 +52,8 @@ module public_keys
   character(len = *), parameter :: EXTERNAL_POTENTIAL = "external_potential"
   character(len = *), parameter :: CHARGE_MULTIPOLES = "charge_multipoles"
   character(len = *), parameter :: CALCULATE_STRTEN = "calculate_strten"
+  character(len = *), parameter :: OCCUPANCY_CONTROL = "occupancy_control"
+  character(len = *), parameter :: OCCUPANCY_CONTROL_ITERMAX= "itermax_occ_ctrl"
 
   character(len = *), parameter :: PSOLVER = "psolver"
 
@@ -126,6 +128,9 @@ module public_keys
   character(len = *), parameter :: NOSE_YOSHIDA_FACTOR = "nose_yoshida_factor"
   character(len = *), parameter :: NOSE_FREQUENCY = "nose_frequency"
   character(len = *), parameter :: WAVEFUNCTION_EXTRAPOLATION="wavefunction_extrapolation"
+  character(len = *), parameter :: RESTART_POS="restart_pos"
+  character(len = *), parameter :: RESTART_VEL="restart_vel"
+  character(len = *), parameter :: RESTART_NOSE="restart_nose"
 
   !mode parameter keywords
   character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
@@ -208,6 +213,7 @@ module public_keys
   character(len = *), parameter :: SUPPORT_FUNCTION_MULTIPOLES = "support_function_multipoles"
   character(len = *), parameter :: PLOT_MPPOT_AXES = "plot_mppot_axes"
   character(len = *), parameter :: PLOT_POT_AXES = "plot_pot_axes"
+  character(len = *), parameter :: PLOT_LOCREG_GRIDS = "plot_locreg_grids"
 
   !keys for linear input variables
   !level keys
@@ -232,7 +238,6 @@ module public_keys
   character(len=*), parameter :: CALC_QUADRUPOLE ='calc_quadrupole'
   character(len=*), parameter :: CDFT_LAG_MULT_INIT='cdft_lag_mult_init'
   character(len=*), parameter :: CDFT_CONV_CRIT  ='cdft_conv_crit'
-  character(len=*), parameter :: CALC_PULAY      ='calc_pulay'
   character(len=*), parameter :: SUBSPACE_DIAG   ='subspace_diag'
   character(len=*), parameter :: ALPHA_DIIS      ='alpha_diis'
   character(len=*), parameter :: ALPHA_SD        ='alpha_sd'
@@ -297,12 +302,14 @@ module public_keys
   character(len=*), parameter :: RADII_KEY = 'Radii of active regions (AU)'
   character(len=*), parameter :: LPSP_KEY = 'Local Pseudo Potential (HGH convention)'
   character(len=*), parameter :: NLPSP_KEY = 'NonLocal PSP Parameters'
+  character(len=*), parameter :: NLCC_KEY = 'Non Linear Core Correction term'
   character(len=*), parameter :: PSPXC_KEY = 'Pseudopotential XC'
   character(len=*), parameter :: PSP_TYPE = 'Pseudopotential type'
   character(len=*), parameter :: COARSE = 'Coarse'
   character(len=*), parameter :: COARSE_PSP = 'Coarse PSP'
   character(len=*), parameter :: FINE = 'Fine'
   character(len=*), parameter :: SOURCE_KEY = 'Source'
+  character(len=*), parameter :: COEFF_KEY = 'Coefficients (c1 .. c4)'
   character(len=*), parameter :: ATOMIC_NUMBER = 'Atomic number'
   character(len=*), parameter :: ELECTRON_NUMBER = 'No. of Electrons'
   character(len=*), parameter :: POSINP_SOURCE = 'source'

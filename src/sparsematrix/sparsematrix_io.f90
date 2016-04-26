@@ -1,4 +1,5 @@
 module sparsematrix_io
+  use sparsematrix_base
   implicit none
 
   private
@@ -12,7 +13,8 @@ module sparsematrix_io
   contains
 
     subroutine write_ccs_matrix(filename, nfvctr, nvctr, row_ind, col_ptr, mat_compr)
-      use module_base
+      use dynamic_memory
+      use f_utils
       implicit none
       !Calling arguments
       character(len=*),intent(in) :: filename
@@ -20,9 +22,11 @@ module sparsematrix_io
       integer,intent(in) :: nvctr !number of non-zero elements
       integer,dimension(nvctr),intent(in) :: row_ind
       integer,dimension(nfvctr),intent(in) :: col_ptr
-      real(kind=8),dimension(nvctr),intent(in) :: mat_compr
+      real(kind=mp),dimension(nvctr),intent(in) :: mat_compr
       ! Local variables
       integer :: i, iunit
+
+      call f_routine(id='write_ccs_matrix')
 
       iunit = 99
       call f_open_file(iunit, file=trim(filename), binary=.false.)
@@ -36,11 +40,14 @@ module sparsematrix_io
 
       call f_close(iunit)
 
+      call f_release_routine()
+
     end subroutine write_ccs_matrix
 
 
     subroutine read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr)
-      use module_base
+      use dynamic_memory
+      use f_utils
       implicit none
       
       ! Calling arguments
@@ -48,11 +55,11 @@ module sparsematrix_io
       integer,intent(out) :: nspin, nfvctr, nseg, nvctr
       integer,dimension(:),pointer,intent(out) :: keyv
       integer,dimension(:,:,:),pointer,intent(out) :: keyg
-      real(kind=8),dimension(:),pointer,intent(out) :: mat_compr
+      real(kind=mp),dimension(:),pointer,intent(out) :: mat_compr
 
       ! Local variables
       integer :: iunit, dummy_int, iseg, icol, irow, jorb, ind, ispin, iat, ntypes_, nat_, itype
-      real(kind=8) :: dummy_double
+      real(kind=mp) :: dummy_double
       character(len=20) :: dummy_char
       logical :: read_rxyz, read_on_which_atom
 
@@ -90,7 +97,8 @@ module sparsematrix_io
 
     subroutine read_sparse_matrix_metadata(filename, nfvctr, nat, ntypes, units, geocode, cell_dim, &
                nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
-      use module_base
+      use dynamic_memory
+      use f_utils
       implicit none
       
       ! Calling arguments
@@ -98,16 +106,16 @@ module sparsematrix_io
       integer,intent(out) :: nfvctr
       character(len=20),intent(out) :: units
       character(len=1),intent(out) :: geocode
-      real(kind=8),dimension(3),intent(out) :: cell_dim
+      real(kind=mp),dimension(3),intent(out) :: cell_dim
       integer,intent(out) :: nat, ntypes
       integer,dimension(:),pointer,intent(inout) :: nzatom, nelpsp, iatype
       character(len=20),dimension(:),pointer,intent(inout) :: atomnames
-      real(kind=8),dimension(:,:),pointer,intent(inout) :: rxyz
+      real(kind=mp),dimension(:,:),pointer,intent(inout) :: rxyz
       integer,dimension(:),pointer,intent(inout) :: on_which_atom
 
       ! Local variables
       integer :: iunit, dummy_int, iseg, icol, irow, jorb, ind, ispin, iat, ntypes_, nat_, itype, i
-      real(kind=8) :: dummy_double
+      real(kind=mp) :: dummy_double
       character(len=20) :: dummy_char
       logical :: read_rxyz, read_on_which_atom
 
@@ -146,29 +154,29 @@ module sparsematrix_io
     !> Write a sparse matrix to disk.
     !! ATTENTION: This routine must be called by all MPI tasks due to the fact that the matrix 
     !! is distributed among the matrix taksgroups
-    subroutine write_sparse_matrix(smat, mat, filename)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, &
-                                   assignment(=), sparsematrix_malloc
+    subroutine write_sparse_matrix(iproc, nproc, comm, smat, mat, filename)
+      use dynamic_memory
+      use f_utils
       use sparsematrix, only: gather_matrix_from_taskgroups
       implicit none
       
       ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(in) :: mat
       character(len=*),intent(in) :: filename
 
       ! Local variables
       integer :: iunit, iseg, icol, irow, jorb, iat, jat, ind, ispin, itype
-      real(kind=8),dimension(:),allocatable :: matrix_compr
+      real(kind=mp),dimension(:),allocatable :: matrix_compr
 
       call f_routine(id='write_sparse_matrix')
 
       matrix_compr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='matrix_compr')
-      call gather_matrix_from_taskgroups(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+      call gather_matrix_from_taskgroups(iproc, nproc, comm, &
            smat, mat%matrix_compr, matrix_compr)
 
-      if (bigdft_mpi%iproc==0) then
+      if (iproc==0) then
 
           iunit = 99
           call f_open_file(iunit, file=trim(filename), binary=.false.)
@@ -213,18 +221,19 @@ module sparsematrix_io
     end subroutine write_sparse_matrix
 
 
-    subroutine write_sparse_matrix_metadata(nfvctr, nat, ntypes, units, geocode, cell_dim, iatype, &
+    subroutine write_sparse_matrix_metadata(iproc, nfvctr, nat, ntypes, units, geocode, cell_dim, iatype, &
                rxyz, nzatom, nelpsp, atomnames, on_which_atom, filename)
-      use module_base
+      use dynamic_memory
+      use f_utils
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: nfvctr, nat, ntypes
+      integer,intent(in) :: iproc, nfvctr, nat, ntypes
       character(len=*),intent(in) :: units
       character(len=1),intent(in) :: geocode
-      real(kind=8),dimension(3),intent(in) :: cell_dim
+      real(kind=mp),dimension(3),intent(in) :: cell_dim
       integer,dimension(nat),intent(in) :: iatype
-      real(kind=8),dimension(3,nat),intent(in) :: rxyz
+      real(kind=mp),dimension(3,nat),intent(in) :: rxyz
       integer,dimension(ntypes),intent(in) :: nzatom, nelpsp
       character(len=*),dimension(ntypes),intent(in) :: atomnames
       integer,dimension(nfvctr),intent(in) :: on_which_atom
@@ -232,11 +241,11 @@ module sparsematrix_io
 
       ! Local variables
       integer :: iunit, iseg, icol, irow, jorb, iat, jat, ind, ispin, itype, i
-      real(kind=8),dimension(:),allocatable :: matrix_compr
+      real(kind=mp),dimension(:),allocatable :: matrix_compr
 
       call f_routine(id='write_sparse_matrix_metadata')
 
-      if (bigdft_mpi%iproc==0) then
+      if (iproc==0) then
 
           iunit = 99
           call f_open_file(iunit, file=trim(filename), binary=.false.)

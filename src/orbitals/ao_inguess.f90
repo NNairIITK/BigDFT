@@ -62,7 +62,7 @@ contains
     aoig%nao_sc=0
     aoig%nl=0
     aoig%nl_sc=0
-    aoig%aocc=0
+    aoig%aocc=real(0.0,kind=kind(aoig%aocc))
   end function aoig_data_null
 
 
@@ -896,6 +896,7 @@ contains
                    string(is:is)=')'
                    is=is+1
                 end if
+                call yaml_newline()
                 call yaml_sequence_open(string(iss:is))
              end if
              do ispin=1,nspin

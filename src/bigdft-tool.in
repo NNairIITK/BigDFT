@@ -21,9 +21,10 @@ from optparse import OptionParser, OptionGroup
 actions = ["memory-estimation", "rotate", "convert-field",
            "export-wf", "export-grid", "atomic-wf", "GPU-test", 
            "convert-positions", "manual", "wizard", "transform-coordinates",
-		   "pdos", "kernel-analysis", "extract-submatrix", "solve-eigensystem", 
-		   "analyze-coeffs", "peel-matrix", "multiply-matrices", "matrixpower", 
-		   "plot-wavefunction", "suggest-cutoff", "charge-analysis"]
+           "pdos", "kernel-analysis", "extract-submatrix", "solve-eigensystem", 
+           "analyze-coeffs", "peel-matrix", "multiply-matrices", "matrixpower", 
+           "plot-wavefunction", "suggest-cutoff", "charge-analysis",
+           "convert-matrix-format"]
 
 # Processed lines
 abs_srcdir = "@abs_srcdir@"
@@ -236,6 +237,17 @@ def parse():
 	# Charge analysis method
     group.add_option("--method", type="str", default="loewdin", metavar="METHOD",
              		 help="method for the charge analysis [default: %default]")
+
+    # convert from the BigDFT to the CCS format or the other way round
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[21],
+                        "Matrix format conversion")
+    # Conversion direction
+    group.add_option("--conversion", type="str", default="none", metavar="CONVERSION",
+             		 help="Conversion direction [default: %default]")
+    #group.add_option("--infile", type="str", default="infile.dat", metavar="MATRIXNAME",
+    #         		 help="input file [default: %default]")
+    #group.add_option("--outfile", type="str", default="ioufile.dat", metavar="MATRIXNAME",
+    #         		 help="ouput file [default: %default]")
 
     return parser
 
@@ -874,5 +886,8 @@ options:
         #print 'calling utilities to perform a Loewdin charge analysis'
         command = "%s %s charge-analysis %s %s %s %s" % (options.mpirun, utilities, options.method, options.overlap_file, options.kernel_file, options.hamiltonian_file)
         #print command
+    if options.action == actions[22]:
+        print command
+        command = "%s %s convert-matrix-format %s %s %s" % (options.mpirun, utilities, options.conversion, options.infile, options.outfile)
     if command is not None:
         os.system(command)

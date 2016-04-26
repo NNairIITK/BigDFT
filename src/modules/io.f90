@@ -26,6 +26,7 @@ module io
   public :: dist_and_shift
   public :: find_neighbours
   public :: plot_density
+  public :: plot_locreg_grids
 
 
   contains
@@ -389,8 +390,8 @@ module io
             ! should eventually extract this from sparse?
             linmat%kernel_%matrix = sparsematrix_malloc_ptr(linmat%l,iaction=DENSE_FULL,id='linmat%kernel_%matrix')
     
-            call uncompress_matrix2(iproc, bigdft_mpi%nproc, linmat%l, &
-                 linmat%kernel_%matrix_compr, linmat%kernel_%matrix)
+            call uncompress_matrix2(iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                 linmat%l, linmat%kernel_%matrix_compr, linmat%kernel_%matrix)
 
             !might be better to move this outside of the routine?
             !if (calc_sks) then
@@ -520,7 +521,8 @@ module io
             call f_free(rxyz_frag)
 
             ! also output 'environment' kernel
-            if (ref_frags(ifrag_ref)%astruct_env%nat/=ref_frags(ifrag_ref)%astruct_frg%nat) then
+            if (ref_frags(ifrag_ref)%astruct_env%nat/=ref_frags(ifrag_ref)%astruct_frg%nat &
+                 .and. num_neighbours/=0) then
                ! FIX SPIN
                unitm=99
                binary=(iformat /= WF_FORMAT_PLAIN)
@@ -671,7 +673,7 @@ module io
       if (closest_only) then
          tol=0.1d0
       else
-         tol=1.0e-3
+         tol=1.0e-2
       end if
 
       rxyz_frag = f_malloc((/ 3,ref_frag%astruct_frg%nat /),id='rxyz_frag') 
@@ -1775,8 +1777,8 @@ module io
 
 
       mat%matrix = sparsematrix_malloc_ptr(smat, iaction=DENSE_FULL, id='mat%matrix')
-      call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, smat, &
-           mat%matrix_compr, mat%matrix)
+      call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+           smat, mat%matrix_compr, mat%matrix)
 
       if (bigdft_mpi%iproc==0) then
 
@@ -1965,7 +1967,7 @@ module io
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, matrices_null, &
                                    DENSE_FULL, SPARSE_TASKGROUP, assignment(=), &
                                    deallocate_matrices
-      use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix_local, matrix_matrix_mult_wrapper
+      use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix, matrix_matrix_mult_wrapper
       use sparsematrix_io, only: write_sparse_matrix, write_sparse_matrix_metadata
       use matrix_operations, only: overlapPowerGeneral
       implicit none
@@ -1985,6 +1987,7 @@ module io
       type(matrices),dimension(1) :: SminusonehalfH
       real(kind=8),dimension(:),pointer :: ham_large, tmp_large
       real(kind=8) :: max_error, mean_error
+      integer, dimension(1) :: power
     
       call f_routine(id='write_linear_matrices')
 
@@ -1995,7 +1998,7 @@ module io
       binary=(mod(iformat,10) /= WF_FORMAT_PLAIN)
 
       if (write_sparse) then
-          call write_sparse_matrix_metadata(tmb%linmat%m%nfvctr, at%astruct%nat, at%astruct%ntypes, &
+          call write_sparse_matrix_metadata(iproc, tmb%linmat%m%nfvctr, at%astruct%nat, at%astruct%ntypes, &
                at%astruct%units, at%astruct%geocode, at%astruct%cell_dim, at%astruct%iatype, &
                at%astruct%rxyz, at%nzatom, at%nelpsp, at%astruct%atomnames, &
                tmb%orbs%onwhichatom, trim(filename//'sparsematrix_metadata.bin'))
@@ -2009,7 +2012,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
+          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
       end if
     
     
@@ -2020,7 +2024,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
+          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
       end if
     
     
@@ -2031,7 +2036,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
+          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
       end if
     
     
@@ -2099,13 +2105,15 @@ module io
               sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='SminusonehalfH%matrix_compr')
           ham_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='ham_large')
           tmp_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_large')
-          call transform_sparse_matrix_local(tmb%linmat%m, tmb%linmat%l, 'small_to_large', &
-               smatrix_compr_in=tmb%linmat%ham_%matrix_compr, lmatrix_compr_out=ham_large)
+          call transform_sparse_matrix(iproc, tmb%linmat%m, tmb%linmat%l, SPARSE_TASKGROUP, 'small_to_large', &
+               smat_in=tmb%linmat%ham_%matrix_compr, lmat_out=ham_large)
           ! calculate S^-1/2
-          call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, (/-2/), -1, &
+          power=-2
+          call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+               norder_taylor, 1, power, -1, &
                imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=SminusonehalfH(1), &
-               check_accur=.true., max_error=max_error, mean_error=mean_error)
+               check_accur=norder_taylor<1000, max_error=max_error, mean_error=mean_error)
           ! Calculate S^-1/2 * H
           call f_memcpy(src=SminusonehalfH(1)%matrix_compr,dest=tmp_large)
           call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmp_large, ham_large, SminusonehalfH(1)%matrix_compr)
@@ -2118,7 +2126,8 @@ module io
           end if
 
           if (write_sparse) then
-              call write_sparse_matrix(tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
+              call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+                   tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
           end if
           call deallocate_matrices(SminusonehalfH(1))
       end if
@@ -2681,6 +2690,115 @@ module io
     !!$  !end if
     
     END SUBROUTINE plot_density
+
+
+    subroutine plot_locreg_grids(iproc, nspinor, nspin, orbitalNumber, llr, glr, atoms, rxyz, hx, hy, hz)
+      use module_base
+      use module_types
+      use locreg_operations, only: lpsi_to_global2
+      implicit none
+      
+      ! Calling arguments
+      integer, intent(in) :: iproc, nspinor, nspin, orbitalNumber
+      type(locreg_descriptors), intent(in) :: llr, glr
+      type(atoms_data), intent(in) ::atoms
+      real(kind=8), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+      real(kind=8), intent(in) :: hx, hy, hz
+      
+      ! Local variables
+      integer :: iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ishift, iat, ldim, gdim, jjj, iunit
+      character(len=10) :: num
+      character(len=20) :: filename
+      real(kind=8), dimension(:), allocatable :: lphi, phi
+    
+      call f_routine(id='plot_locreg_grids')
+    
+      ldim=llr%wfd%nvctr_c+7*llr%wfd%nvctr_f
+      gdim=glr%wfd%nvctr_c+7*glr%wfd%nvctr_f
+      lphi = f_malloc(ldim,id='lphi')
+      phi = f_malloc0(gdim,id='phi')
+      lphi=1.d0
+      !!phi=0.d0
+      !call to_zero(gdim,phi(1))
+      !call Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, glr, llr, lphi, phi)
+      call Lpsi_to_global2(iproc, ldim, gdim, 1, nspinor, nspin, glr, llr, lphi, phi)
+      
+      write(num,'(i6.6)') orbitalNumber
+      filename='grid_'//trim(num)
+      
+      !open(unit=2000+iproc,file=trim(filename)//'.xyz',status='unknown')
+      iunit = 2000+iproc
+      call f_open_file(iunit, file=trim(filename)//'.xyz', binary=.false.)
+    
+      !write(2000+iproc,*) llr%wfd%nvctr_c+llr%wfd%nvctr_f+atoms%astruct%nat,' atomic'
+      write(2000+iproc,*) glr%wfd%nvctr_c+glr%wfd%nvctr_f+llr%wfd%nvctr_c+llr%wfd%nvctr_f+atoms%astruct%nat,' atomic'
+      if (atoms%astruct%geocode=='F') then
+         write(2000+iproc,*)'complete simulation grid with low and high resolution points'
+      else if (atoms%astruct%geocode =='S') then
+         write(2000+iproc,'(a,2x,3(1x,1pe24.17))')'surface',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
+              atoms%astruct%cell_dim(3)
+      else if (atoms%astruct%geocode =='P') then
+         write(2000+iproc,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
+              atoms%astruct%cell_dim(3)
+      end if
+    
+      do iat=1,atoms%astruct%nat
+        write(2000+iproc,'(a6,2x,3(1x,e12.5),3x)') trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
+             rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
+      end do
+    
+      
+      jjj=0
+      do iseg=1,glr%wfd%nseg_c
+         jj=glr%wfd%keyvloc(iseg)
+         j0=glr%wfd%keygloc(1,iseg)
+         j1=glr%wfd%keygloc(2,iseg)
+         ii=j0-1
+         i3=ii/((glr%d%n1+1)*(glr%d%n2+1))
+         ii=ii-i3*(glr%d%n1+1)*(glr%d%n2+1)
+         i2=ii/(glr%d%n1+1)
+         i0=ii-i2*(glr%d%n1+1)
+         i1=i0+j1-j0
+         do i=i0,i1
+             jjj=jjj+1
+             if(phi(jjj)==1.d0) write(2000+iproc,'(a4,2x,3(1x,e10.3))') '  lg ',&
+                  real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+             write(2000+iproc,'(a4,2x,3(1x,e10.3))') '  g ',real(i,kind=8)*hx,&
+                  real(i2,kind=8)*hy,real(i3,kind=8)*hz
+         enddo
+      enddo
+    
+      ishift=glr%wfd%nseg_c  
+      ! fine part
+      do iseg=1,glr%wfd%nseg_f
+         jj=glr%wfd%keyvloc(ishift+iseg)
+         j0=glr%wfd%keygloc(1,ishift+iseg)
+         j1=glr%wfd%keygloc(2,ishift+iseg)
+         ii=j0-1
+         i3=ii/((glr%d%n1+1)*(glr%d%n2+1))
+         ii=ii-i3*(glr%d%n1+1)*(glr%d%n2+1)
+         i2=ii/(glr%d%n1+1)
+         i0=ii-i2*(glr%d%n1+1)
+         i1=i0+j1-j0
+         do i=i0,i1
+            jjj=jjj+1
+            if(phi(jjj)==1.d0) write(2000+iproc,'(a4,2x,3(1x,e10.3))') &
+                '  lG ',real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+            write(2000+iproc,'(a4,2x,3(1x,e10.3))') &
+                '  G ',real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+            jjj=jjj+6
+         enddo
+      enddo
+
+      call f_free(lphi)
+      call f_free(phi)
+      
+      !close(unit=2000+iproc)
+      call f_close(iunit)
+
+      call f_release_routine()
+    
+    end subroutine plot_locreg_grids
 
 
 end module io

@@ -861,6 +861,7 @@ subroutine write_atomic_density_matrix(nspin,astruct,nl)
   do while(atoms_iter_next(atit))
     igamma=nl%iagamma(:,atit%iat)
     if (all(igamma == 0)) cycle
+    call yaml_newline()
     call yaml_sequence(advance='no')
     call yaml_map('Symbol',trim(atit%name),advance='no')
     call yaml_comment('Atom '//trim(yaml_toa(atit%iat)))
@@ -869,6 +870,7 @@ subroutine write_atomic_density_matrix(nspin,astruct,nl)
       if (igamma(l) == 0) cycle
       call yaml_mapping_open('Channel '//ishell_toa(l))
       do ispin=1,nspin
+         call yaml_newline()
         if (nspin==1) then
           call f_strcpy(src='Matrix',dest=msg)
         else if (ispin==1) then
@@ -877,7 +879,7 @@ subroutine write_atomic_density_matrix(nspin,astruct,nl)
           call f_strcpy(src='Spin down',dest=msg)
         end if
         call yaml_map(trim(msg),&
-            nl%gamma_mmp(1,1:2*l+1,1:2*l+1,ispin,igamma(l)),fmt='(1pg15.5)')
+            nl%gamma_mmp(1,1:2*l+1,1:2*l+1,igamma(l),ispin),fmt='(1pg12.2)')
       end do
       call yaml_mapping_close()
     end do
@@ -894,6 +896,7 @@ subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
   use module_types
   use public_enums, only: RADII_SOURCE,PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
        PSPCODE_PAW,PSPCODE_GTH
+  use public_keys, only: COEFF_KEY
   use module_xc
   use vdwcorrection
   use yaml_output
@@ -1003,7 +1006,7 @@ subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
      if (atoms%psppar(0,0,ityp)/=0) then
         call yaml_mapping_open('Local Pseudo Potential (HGH convention)')
           call yaml_map('Rloc',atoms%psppar(0,0,ityp),fmt='(f9.5)')
-          call yaml_map('Coefficients (c1 .. c4)',atoms%psppar(0,1:4,ityp),fmt='(f9.5)')
+          call yaml_map(COEFF_KEY,atoms%psppar(0,1:4,ityp),fmt='(f9.5)')
         call yaml_mapping_close()
      end if
      !nlcc term

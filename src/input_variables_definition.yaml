@@ -430,6 +430,16 @@
      #  MASTER_KEY: output_denspot
      #  WHEN:
      #  - 22
+   occupancy_control:
+    COMMENT: Dictionary of the atomic matrices to be applied for a given iteration number
+    DESCRIPTION: |
+     The atomic species or the atoms written as Atom No are specified, followed by a dictionary
+     of the shells for which the density matrix can be controlled. The Value of the matrix can be specified either as
+     a trace or as explicit matrix elements.
+    default: None
+   itermax_occ_ctrl:
+     COMMENT: Number of iterations of occupancy control scheme. Should be between itermin and itermax
+     default: 0
 #output parameters, decide what to dump of write to file
  output:
   DESCRIPTION: Output parameters, control the information that will be printed out
@@ -998,6 +1008,15 @@
      DESCRIPTION: A value greater than 0 activates wfn extrapolation
      EXCLUSIVE: [ 0, 1, 2, 4 ]
      default: 0
+   restart_nose:
+     COMMENT: Restart Nose Hoover Chain information from md.restart
+     default: No
+   restart_pos:
+     COMMENT: Restart nuclear position information from md.restart
+     default: No
+   restart_vel:
+     COMMENT: Restart nuclear velocities information from md.restart
+     default: No
 #
 #Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
  mix:
@@ -1315,7 +1334,7 @@
    ef_interpol_chargediff:
      COMMENT: FOE max charge difference for interpolation
      RANGE: [0., 1000.]
-     default: 10.
+     default: 1.0
    mixing_after_inputguess:
      COMMENT: Mixing step after linear input guess
      EXCLUSIVE:
@@ -1610,14 +1629,6 @@
          Indicates whether the quadrupole moment should be calculated after the run or not
        COMMENT: calculate quadrupole
        default: No
-# this is now an array!
-     calc_pulay:
-       COMMENT: calculate Pulay forces (old/new version)
-       DESCRIPTION: |
-         Indicates whether the Pulay corrections (old / new) shall be calculated at the end of the run
-       default: [No,No]
-       new: [ No, Yes]
-       old: [ Yes, No]
 # this name might be misleading
      subspace_diag: #called calc_ks, to be renamed
        COMMENT: diagonalization at the end
@@ -1654,6 +1665,9 @@
          #13: same as 3, but with non-orthogonalized support functions
      support_function_multipoles:
        COMMENT: Calculate the multipole moments of the support functions
+       default: False
+     plot_locreg_grids:
+       COMMENT: plot the scaling function and wavelets grid of each localization region
        default: False
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
@@ -1916,7 +1930,7 @@
        DESCRIPTION: |
                     Indicates the prefactor of the confining potential
                     of this atom type which is used to generate the input guess.
-       RANGE: [0.0,10.0]
+       RANGE: [-1.0,10.0]
        default: 8.3e-3
      confinement:
        COMMENT: Prefactor for the confining potential (low/high accuracy)
@@ -1924,7 +1938,7 @@
                     Indicates the prefactor of the confining potential of this atom type.
                     The first entry is used for the low accuracy part, the second one for the high accuracy part.
                     When the hybrid mode is used, only the first entry is taken into account.
-       RANGE: [0.0,10.0]
+       RANGE: [-1.0,10.0]
        default: [8.3e-3,0.0]
      rloc:
        COMMENT: Localization radius for the support functions
@@ -1956,8 +1970,9 @@ linear_accurate:
   DESCRIPTION: |
           This profile should be chosen if highly accurate energy differences are required.
   dft:
-    hgrids: accurate
+    hgrids: 0.3
     ixc: PBE
+    inputpsiid: linear
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
@@ -1987,14 +2002,30 @@ linear_accurate:
     alphamix: 0.1
     rpnrm_cv: [1.e-12,1.e-12]
     linear_method: FOE
+  lin_basis_params:
+    ao_confinement: -1.0
+    confinement: -1.0
+    rloc_kernel: 10.0
+    rloc_kernel_foe: 12.0
+    H:  {nbasis: 1, rloc: 5.0}
+    C:  {nbasis: 4, rloc: 5.5}
+    N:  {nbasis: 4, rloc: 5.5}
+    O:  {nbasis: 4, rloc: 5.5}
+    P:  {nbasis: 4, rloc: 6.0}
+    S:  {nbasis: 4, rloc: 6.0}
+    Cl: {nbasis: 4, rloc: 6.0}
+    Na: {nbasis: 1, rloc: 7.5}
+    K:  {nbasis: 1, rloc: 8.0}
+    Sn: {nbasis: 4, rloc: 6.5}
 linear_moderate:
   COMMENT: Appropriate input parameters for a moderate accuracy linear scaling calculation
   DESCRIPTION: |
           This profile should be chosen if accurate forces are required,
           but there is no need for extremely accurate energies.
   dft:
-    hgrids: accurate
+    hgrids: 0.3
     ixc: PBE
+    inputpsiid: linear
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
@@ -2019,13 +2050,29 @@ linear_moderate:
     alphamix: [0.2,0.2]
     rpnrm_cv: [1.e-11,1.e-11]
     linear_method: FOE
+  lin_basis_params:
+    ao_confinement: -1.0
+    confinement: -1.0
+    rloc_kernel: 10.0
+    rloc_kernel_foe: 12.0
+    H:  {nbasis: 1, rloc: 5.0}
+    C:  {nbasis: 4, rloc: 5.5}
+    N:  {nbasis: 4, rloc: 5.5}
+    O:  {nbasis: 4, rloc: 5.5}
+    P:  {nbasis: 4, rloc: 6.0}
+    S:  {nbasis: 4, rloc: 6.0}
+    Cl: {nbasis: 4, rloc: 6.0}
+    Na: {nbasis: 1, rloc: 7.5}
+    K:  {nbasis: 1, rloc: 8.0}
+    Sn: {nbasis: 4, rloc: 6.5}
 linear_fast:
   COMMENT: Appropriate input parameters for a low accuracy linear scaling calculation
   DESCRIPTION: |
           This profile should be chosen if speed is more important than accuracy.
   dft:
-    hgrids: accurate
+    hgrids: 0.3
     ixc: PBE
+    inputpsiid: linear
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
@@ -2046,10 +2093,25 @@ linear_fast:
     correction_orthoconstraint: 0
   lin_kernel:
     nit: [10,10]
-    idsx: [6,0]
+    idsx: [6,6]
     alphamix: [0.2,0.2]
     rpnrm_cv: [1.e-10,1.e-10]
     linear_method: FOE
+  lin_basis_params:
+    ao_confinement: -1.0
+    confinement: -1.0
+    rloc_kernel: 10.0
+    rloc_kernel_foe: 12.0
+    H:  {nbasis: 1, rloc: 5.0}
+    C:  {nbasis: 4, rloc: 5.5}
+    N:  {nbasis: 4, rloc: 5.5}
+    O:  {nbasis: 4, rloc: 5.5}
+    P:  {nbasis: 4, rloc: 6.0}
+    S:  {nbasis: 4, rloc: 6.0}
+    Cl: {nbasis: 4, rloc: 6.0}
+    Na: {nbasis: 1, rloc: 7.5}
+    K:  {nbasis: 1, rloc: 8.0}
+    Sn: {nbasis: 4, rloc: 6.5}
 mixing:
   COMMENT: To be used for metallic systems
   DECRIPTION: |

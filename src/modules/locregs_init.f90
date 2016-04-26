@@ -23,6 +23,7 @@ module locregs_init
   !public :: determine_wfd_periodicity !is this one deprecated?
   public :: check_linear_inputguess
   public :: small_to_large_locreg
+  public :: assign_to_atoms_and_locregs
 
 
   contains
@@ -454,7 +455,7 @@ module locregs_init
          call mpiallred(rootarr(1), nlr, mpi_min, comm=bigdft_mpi%mpi_comm)
          
          ! Communicate those parts of the locregs that all processes need.
-         call communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
+         call communicate_locreg_descriptors_basics(iproc, nproc, nlr, rootarr, orbs, llr)
     
          !do ilr=1,nlr
          !    write(*,*) 'iproc, nseg_c', iproc, llr(ilr)%wfd%nseg_c
@@ -620,40 +621,46 @@ module locregs_init
     
           !dz=((ii3*hz)-locregCenter(3))**2
           !dy=((ii2*hy)-locregCenter(2))**2
-          do i=i0,i1
-              ii1=i+nl1glob
-              do ij3=ijs3,ije3!-1,1
-                  jj3=ii3+ij3*(n3glob+1)
-                  dz=((jj3*hz)-locregCenter(3))**2
+          do ij3=ijs3,ije3!-1,1
+              jj3=ii3+ij3*(n3glob+1)
+              dz=((jj3*hz)-locregCenter(3))**2
+              if(dz<=cut) then
+                  ! From the viewpoint of the z coordinate we are inside the cutoff, check now also the y and x dimensions
                   do ij2=ijs2,ije2!-1,1
                       jj2=ii2+ij2*(n2glob+1)
                       dy=((jj2*hy)-locregCenter(2))**2
-                      do ij1=ijs1,ije1!-1,1
-                          jj1=ii1+ij1*(n1glob+1)
-                          dx=((jj1*hx)-locregCenter(1))**2
-                          if(dx+dy+dz<=cut) then
-                              ixmax=max(jj1,ixmax)
-                              iymax=max(jj2,iymax)
-                              izmax=max(jj3,izmax)
-                              ixmin=min(jj1,ixmin)
-                              iymin=min(jj2,iymin)
-                              izmin=min(jj3,izmin)
-                          end if
-                      end do
+                      if(dy+dz<=cut) then
+                          ! From the viewpoint of the y and z coordinate we are inside the cutoff, check now also the x dimension
+                          do i=i0,i1
+                              ii1=i+nl1glob
+                              do ij1=ijs1,ije1!-1,1
+                                  jj1=ii1+ij1*(n1glob+1)
+                                  dx=((jj1*hx)-locregCenter(1))**2
+                                  if(dx+dy+dz<=cut) then
+                                      ixmax=max(jj1,ixmax)
+                                      iymax=max(jj2,iymax)
+                                      izmax=max(jj3,izmax)
+                                      ixmin=min(jj1,ixmin)
+                                      iymin=min(jj2,iymin)
+                                      izmin=min(jj3,izmin)
+                                  end if
+                              end do
+                          end do
+                      end if
                   end do
-              end do
-              !dx=((ii1*hx)-locregCenter(1))**2
-              !!dx=((ii1*hx)-locregCenter(1))**2
-              !!if(dx+dy+dz<=cut) then
-              !!    ixmax=max(ii1,ixmax)
-              !!    iymax=max(ii2,iymax)
-              !!    izmax=max(ii3,izmax)
-              !!    ixmin=min(ii1,ixmin)
-              !!    !if(ii1<ixmin) iiimin=j0-1 ; isegmin=iseg
-              !!    iymin=min(ii2,iymin)
-              !!    izmin=min(ii3,izmin)
-              !!end if
+              end if
           end do
+          !dx=((ii1*hx)-locregCenter(1))**2
+          !!dx=((ii1*hx)-locregCenter(1))**2
+          !!if(dx+dy+dz<=cut) then
+          !!    ixmax=max(ii1,ixmax)
+          !!    iymax=max(ii2,iymax)
+          !!    izmax=max(ii3,izmax)
+          !!    ixmin=min(ii1,ixmin)
+          !!    !if(ii1<ixmin) iiimin=j0-1 ; isegmin=iseg
+          !!    iymin=min(ii2,iymin)
+          !!    izmin=min(ii3,izmin)
+          !!end if
       end do
       !$omp enddo
       !$omp end parallel
@@ -666,6 +673,7 @@ module locregs_init
     subroutine num_segkeys_sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz, &
          locrad, locregCenter, &
          nsegglob, keygglob, keyvglob, nseg, nvctr)
+      use module_base
       implicit none
       logical,intent(in) :: perx, pery, perz 
       integer, intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nsegglob
@@ -680,6 +688,7 @@ module locregs_init
       integer :: ij1, ij2, ij3, jj1, jj2, jj3, ijs1, ijs2, ijs3, ije1, ije2, ije3
       real(kind=8) :: cut, dx,dy, dz
     
+      call f_routine(id='num_segkeys_sphere')
     
       nvctr=0
       nstart=0
@@ -719,7 +728,7 @@ module locregs_init
       !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i1,ii2,ii3,ii1,i,dx,dy,dz,segment) &
       !$omp private(inside, ij1, ij2, ij3, jj1, jj2, jj3)
       segment=.false.
-      !$omp do reduction(+:nstart,nvctr,nend)
+      !$omp do schedule(dynamic,50) reduction(+:nstart,nvctr,nend)
       do iseg=1,nsegglob
           j0=keygglob(1,iseg)
           j1=keygglob(2,iseg)
@@ -732,48 +741,65 @@ module locregs_init
     
           ii2=i2+nl2glob
           ii3=i3+nl3glob
-    
-          !dz=((ii3*hz)-locregCenter(3))**2
-          !dy=((ii2*hy)-locregCenter(2))**2
-          do i=i0,i1
-              ii1=i+nl1glob
-              !dx=((ii1*hx)-locregCenter(1))**2
-              inside=.false.
-              do ij3=ijs3,ije3!-1,1
-                  jj3=ii3+ij3*(n3+1)
-                  dz=((jj3*hz)-locregCenter(3))**2
-                  do ij2=ijs2,ije2!-1,1
-                      jj2=ii2+ij2*(n2+1)
-                      dy=((jj2*hy)-locregCenter(2))**2
-                      do ij1=ijs1,ije1!-1,1
-                          jj1=ii1+ij1*(n1+1)
-                          dx=((jj1*hx)-locregCenter(1))**2
-                          !write(*,'(a,6i7,4es12.4)') 'ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut', ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut
-                          if(dx+dy+dz<=cut) then
-                              !write(*,'(a,6i7,4es12.4)') 'ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut', ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut
-                              inside=.true.
-                          end if
-                      end do
-                  end do
-              end do
-              if(inside) then
-                  nvctr=nvctr+1
-                  if(.not.segment) then
-                      nstart=nstart+1
-                      segment=.true.
-                  end if
-              else
-                  if(segment) then
-                      nend=nend+1
-                      segment=.false.
-                  end if
+
+          ! First just check the z dimension. If inside is false, proceed directly,
+          ! otherwise check also the other dimensions.
+          inside=.false.
+          do ij3=ijs3,ije3!-1,1
+              jj3=ii3+ij3*(n3+1)
+              dz=((jj3*hz)-locregCenter(3))**2
+              if(dz<=cut) then
+                  inside=.true.
               end if
           end do
-          if(segment) then
-              ! Always start a new segment if we come to a new line in y direction.
-              nend=nend+1
-              segment=.false.
-          end if
+          check_z_if: if (inside) then
+              ! May be inside the sphere, so check also the other dimensions.
+              ! Since each line in y (and thus also each plane in the z dimensions) starts
+              ! a new segment, the following does not have to be done.
+              inside = .false.
+    
+              !dz=((ii3*hz)-locregCenter(3))**2
+              !dy=((ii2*hy)-locregCenter(2))**2
+              do i=i0,i1
+                  ii1=i+nl1glob
+                  !dx=((ii1*hx)-locregCenter(1))**2
+                  inside=.false.
+                  do ij3=ijs3,ije3!-1,1
+                      jj3=ii3+ij3*(n3+1)
+                      dz=((jj3*hz)-locregCenter(3))**2
+                      do ij2=ijs2,ije2!-1,1
+                          jj2=ii2+ij2*(n2+1)
+                          dy=((jj2*hy)-locregCenter(2))**2
+                          do ij1=ijs1,ije1!-1,1
+                              jj1=ii1+ij1*(n1+1)
+                              dx=((jj1*hx)-locregCenter(1))**2
+                              !write(*,'(a,6i7,4es12.4)') 'ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut', ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut
+                              if(dx+dy+dz<=cut) then
+                                  !write(*,'(a,6i7,4es12.4)') 'ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut', ii1, ii2, ii3, jj1, jj2, jj3, dx, dy, dz, cut
+                                  inside=.true.
+                              end if
+                          end do
+                      end do
+                  end do
+                  if(inside) then
+                      nvctr=nvctr+1
+                      if(.not.segment) then
+                          nstart=nstart+1
+                          segment=.true.
+                      end if
+                  else
+                      if(segment) then
+                          nend=nend+1
+                          segment=.false.
+                      end if
+                  end if
+              end do
+              if(segment) then
+                  ! Always start a new segment if we come to a new line in y direction.
+                  nend=nend+1
+                  segment=.false.
+              end if
+          end if check_z_if
       end do
       !$omp enddo
       !$omp end parallel
@@ -785,6 +811,8 @@ module locregs_init
          write(*,*) 'nend , nstart',nend,nstart
          stop 'nend <> nstart'
       endif
+
+      call f_release_routine()
     
     END SUBROUTINE num_segkeys_sphere
 
@@ -804,7 +832,7 @@ module locregs_init
       integer,dimension(nsegglob),intent(in) :: keyvglob
       integer,dimension(2,nseg),intent(out) :: keyg_loc, keyg_glob
       integer,dimension(nseg),intent(out) :: keyv_loc, keyv_glob
-      integer,dimension(2,nseg),intent(out) :: keygloc !tmp
+      integer,dimension(2,nseg),intent(inout) :: keygloc !tmp
       !local variables
       character(len=*),parameter :: subname = 'segkeys_Sphere'
       integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
@@ -820,6 +848,7 @@ module locregs_init
       integer,dimension(:,:),allocatable :: keyv_glob_work
       !$ integer :: omp_get_thread_num
       !integer, allocatable :: keygloc(:,:)
+
     
       call f_routine('segkeys_Sphere')
     
@@ -858,6 +887,53 @@ module locregs_init
           ijs3 = 0
           ije3 = 0
       end if
+
+
+      !!! Count the number of segments which must be checked from the point of view of the z coordinate
+      !!nseg_check = nseg_check + 1
+      !!do iseg=1,nsegglob
+      !!    j0=keygglob(1,iseg)
+      !!    j1=keygglob(2,iseg)
+      !!    ii=j0-1
+      !!    i3=ii/np
+      !!    ii3=i3+nl3glob
+
+      !!    inside=.false.
+      !!    do ij3=ijs3,ije3
+      !!        jj3=ii3+ij3*(n3+1)
+      !!        dz=((jj3*hz)-locregCenter(3))**2
+      !!        if(dz<=cut) then
+      !!            inside=.true.
+      !!        end if
+      !!    end do
+      !!    if (inside) then
+      !!        nseg_check = nseg_check + 1
+      !!    end if
+      !!end do
+      !!iseg_lookup = f_malloc(nseg_check,id='iseg_lookup')
+      !!nseg_check = nseg_check + 1
+      !!do iseg=1,nsegglob
+      !!    j0=keygglob(1,iseg)
+      !!    j1=keygglob(2,iseg)
+      !!    ii=j0-1
+      !!    i3=ii/np
+      !!    ii3=i3+nl3glob
+
+      !!    inside=.false.
+      !!    do ij3=ijs3,ije3
+      !!        jj3=ii3+ij3*(n3+1)
+      !!        dz=((jj3*hz)-locregCenter(3))**2
+      !!        if(dz<=cut) then
+      !!            inside=.true.
+      !!        end if
+      !!    end do
+      !!    if (inside) then
+      !!        iseg_check = iseg_check + 1
+      !!        iseg_lookup(nseg_check) = iseg
+      !!    end if
+      !!end do
+
+
     
       call distribute_on_threads(nsegglob, nthread, ise)
     
@@ -891,7 +967,7 @@ module locregs_init
       ithread = 0
       !$omp parallel &
       !$omp default(none) &
-      !$omp shared(ise, hx, hy, hz, keygglob, np, n1p1, nl1glob, nl2glob, nl3glob, locregCenter) &
+      !$omp shared(ise, hx, hy, hz, keygglob, np, n1p1, nl1glob, nl2glob, nl3glob, locregCenter, nsegglob) &
       !$omp shared(keygloc_work, keyg_glob_work, keyv_glob_work, nstartarr, nl1, nl2, nl3, nu1, nu2, nu3) &
       !$omp shared(ijs3, ije3, ijs2, ije2, ijs1, ije1, n1, n2, n3, cut, n1lp1, nlp, nthread) &
       !$omp shared(keygloc, keyg_glob, keyv_glob, ivctr_tot, jvctr_tot, nstart_tot, nend_tot, keyv_last) &
@@ -902,6 +978,7 @@ module locregs_init
       !jj1, )
       !$ ithread = omp_get_thread_num()
       do iseg=ise(1,ithread),ise(2,ithread)
+      !!omp do schedule(dynamic,50)
       !do iseg=1,nsegglob
           j0=keygglob(1,iseg)
           j1=keygglob(2,iseg)
@@ -913,112 +990,125 @@ module locregs_init
           i1=i0+j1-j0
           ii2=i2+nl2glob
           ii3=i3+nl3glob
-          dz=((ii3*hz)-locregCenter(3))**2
-          dy=((ii2*hy)-locregCenter(2))**2
-          !i2l=ii2-nl2
-          !i3l=ii3-nl3
-          !igridpointa=i3l*nlp+i2l*n1lp1+1
-          igridgloba=ii3*np+ii2*n1p1+1 
-          do i=i0,i1
-              ii1=i+nl1glob
-              dx=((ii1*hx)-locregCenter(1))**2
-              i1l=ii1-nl1
-              !igridpoint=igridpointa+i1l
-              igridglob=igridgloba+ii1 
-              inside=.false.
-              do ij3=ijs3,ije3!-1,1
-                  jj3=ii3+ij3*(n3+1)
-                  dz=((jj3*hz)-locregCenter(3))**2
-                  do ij2=ijs2,ije2!-1,1
-                      jj2=ii2+ij2*(n2+1)
-                      dy=((jj2*hy)-locregCenter(2))**2
-                      do ij1=ijs1,ije1!-1,1
-                          jj1=ii1+ij1*(n1+1)
-                          dx=((jj1*hx)-locregCenter(1))**2
-                          if(dx+dy+dz<=cut) then
-                              if (inside) stop 'twice inside'
-                              inside=.true.
-                              ii1mod=jj1
-                              ii2mod=jj2
-                              ii3mod=jj3
-                              i1l=jj1-nl1
-                              i2l=jj2-nl2
-                              i3l=jj3-nl3
-                              igridpoint=i3l*nlp+i2l*n1lp1+i1l+1
-                              !write(*,'(a,4i8)') 'i1l, i2l, i3l, igridpoint', i1l, i2l, i3l, igridpoint
-                          end if
-                      end do
-                  end do
-              end do
-              !write(*,*) 'ii1, ii2, ii3, inside', ii1, ii2, ii3, inside
-              if(inside) then
-                  ! Check that we are not outside of the locreg region
-                  ivctr=ivctr+1
-                  kvctr=kvctr+1
-                  !write(*,*) 'inside: kvctr, igridpoint', kvctr, igridpoint
-                  if(ii1mod<nl1) then
-                      write(*,'(a,i0,a,i0,a)') 'ERROR: ii1mod=',ii1mod,'<',nl1,'=nl1'
-                      stop
-                  end if
-                  if(ii2mod<nl2) then
-                      write(*,'(a,i0,a,i0,a)') 'ERROR: ii2mod=',ii2mod,'<',nl2,'=nl2'
-                      stop
-                  end if
-                  if(ii3mod<nl3) then
-                      write(*,'(a,i0,a,i0,a)') 'ERROR: ii3mod=',ii3mod,'<',nl3,'=nl3'
-                      stop
-                  end if
-                  if(ii1mod>nu1) then
-                      write(*,'(a,i0,a,i0,a)') 'ERROR: ii1mod=',ii1mod,'>',nu1,'=nu1'
-                      stop
-                  end if
-                  if(ii2mod>nu2) then
-                      write(*,'(a,i0,a,i0,a)') 'ERROR: ii2mod=',ii2mod,'>',nu2,'=nu2'
-                      stop
-                  end if
-                  if(ii3mod>nu3) then
-                      write(*,'(a,i0,a,i0,a)') 'ERROR: ii3mod=',ii3mod,'>',nu3,'=nu3'
-                      stop
-                  end if
-                  nvctr=nvctr+1
-                  if(.not.segment) then
-                      nstart=nstart+1
-                      keygloc_work(1,nstart,ithread)=igridpoint
-                      keyg_glob_work(1,nstart,ithread)=igridglob
-                      keyv_glob_work(nstart,ithread)=nvctr
-                      segment=.true.
-                  end if
-              else
-                  if(segment) then
-                      nend=nend+1
-                      keygloc_work(2,nend,ithread)=igridpoint!-1
-                      keyg_glob_work(2,nend,ithread)=igridglob-1
-                      !write(*,'(a,4i7)') 'outside: kvctr, igridpoint, keygloc(1:2,nend)', kvctr, igridpoint, keygloc(1:2,nend)
-                      segment=.false.
-                      jvctr=jvctr+keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
-                      if (kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1) then
-                          write(*,*) 'kvctr, keygloc(2,nend)-keygloc(1,nend)+1', &
-                               kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
-                          stop 'kvctr/=keygloc(2,nend)-keygloc(1,nend)+1'
-                      end if
-                      kvctr=0
-                  end if
+
+          ! First just check the z dimension. If inside is false, proceed deirectly,
+          ! otherwise check also the other dimensions.
+          inside=.false.
+          do ij3=ijs3,ije3!-1,1
+              jj3=ii3+ij3*(n3+1)
+              dz=((jj3*hz)-locregCenter(3))**2
+              if(dz<=cut) then
+                  inside=.true.
               end if
           end do
-          if(segment) then
-              ! Close the segment
-              nend=nend+1
-              keygloc_work(2,nend,ithread)=igridpoint
-              keyg_glob_work(2,nend,ithread)=igridglob
-              segment=.false.
-              jvctr=jvctr+keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
-              if (kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1) then
-                  write(*,*) 'kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1', &
-                      kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
-                  stop 'kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1'
+          check_z_if: if (inside) then
+              ! May be inside the sphere, so check also the other dimensions.
+              ! Since each line in y (and thus also each plane in the z dimensions) starts
+              ! a new segment, the following does not have to be done.
+              inside = .false.
+
+              igridgloba=ii3*np+ii2*n1p1+1 
+              do i=i0,i1
+                  ii1=i+nl1glob
+                  dx=((ii1*hx)-locregCenter(1))**2
+                  i1l=ii1-nl1
+                  !igridpoint=igridpointa+i1l
+                  igridglob=igridgloba+ii1 
+                  inside=.false.
+                  do ij3=ijs3,ije3!-1,1
+                      jj3=ii3+ij3*(n3+1)
+                      dz=((jj3*hz)-locregCenter(3))**2
+                      do ij2=ijs2,ije2!-1,1
+                          jj2=ii2+ij2*(n2+1)
+                          dy=((jj2*hy)-locregCenter(2))**2
+                          do ij1=ijs1,ije1!-1,1
+                              jj1=ii1+ij1*(n1+1)
+                              dx=((jj1*hx)-locregCenter(1))**2
+                              if(dx+dy+dz<=cut) then
+                                  if (inside) call f_err_throw('twice inside',err_name='BIGDFT_RUNTIME_ERROR')
+                                  inside=.true.
+                                  ii1mod=jj1
+                                  ii2mod=jj2
+                                  ii3mod=jj3
+                                  i1l=jj1-nl1
+                                  i2l=jj2-nl2
+                                  i3l=jj3-nl3
+                                  igridpoint=i3l*nlp+i2l*n1lp1+i1l+1
+                                  !write(*,'(a,4i8)') 'i1l, i2l, i3l, igridpoint', i1l, i2l, i3l, igridpoint
+                              end if
+                          end do
+                      end do
+                  end do
+                  !write(*,*) 'ii1, ii2, ii3, inside', ii1, ii2, ii3, inside
+                  if(inside) then
+                      ! Check that we are not outside of the locreg region
+                      ivctr=ivctr+1
+                      kvctr=kvctr+1
+                      !write(*,*) 'inside: kvctr, igridpoint', kvctr, igridpoint
+                      if(ii1mod<nl1) then
+                          write(*,'(a,i0,a,i0,a)') 'ERROR: ii1mod=',ii1mod,'<',nl1,'=nl1'
+                          stop
+                      end if
+                      if(ii2mod<nl2) then
+                          write(*,'(a,i0,a,i0,a)') 'ERROR: ii2mod=',ii2mod,'<',nl2,'=nl2'
+                          stop
+                      end if
+                      if(ii3mod<nl3) then
+                          write(*,'(a,i0,a,i0,a)') 'ERROR: ii3mod=',ii3mod,'<',nl3,'=nl3'
+                          stop
+                      end if
+                      if(ii1mod>nu1) then
+                          write(*,'(a,i0,a,i0,a)') 'ERROR: ii1mod=',ii1mod,'>',nu1,'=nu1'
+                          stop
+                      end if
+                      if(ii2mod>nu2) then
+                          write(*,'(a,i0,a,i0,a)') 'ERROR: ii2mod=',ii2mod,'>',nu2,'=nu2'
+                          stop
+                      end if
+                      if(ii3mod>nu3) then
+                          write(*,'(a,i0,a,i0,a)') 'ERROR: ii3mod=',ii3mod,'>',nu3,'=nu3'
+                          stop
+                      end if
+                      nvctr=nvctr+1
+                      if(.not.segment) then
+                          nstart=nstart+1
+                          keygloc_work(1,nstart,ithread)=igridpoint
+                          keyg_glob_work(1,nstart,ithread)=igridglob
+                          keyv_glob_work(nstart,ithread)=nvctr
+                          segment=.true.
+                      end if
+                  else
+                      if(segment) then
+                          nend=nend+1
+                          keygloc_work(2,nend,ithread)=igridpoint!-1
+                          keyg_glob_work(2,nend,ithread)=igridglob-1
+                          !write(*,'(a,4i7)') 'outside: kvctr, igridpoint, keygloc(1:2,nend)', kvctr, igridpoint, keygloc(1:2,nend)
+                          segment=.false.
+                          jvctr=jvctr+keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
+                          if (kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1) then
+                              write(*,*) 'kvctr, keygloc(2,nend)-keygloc(1,nend)+1', &
+                                   kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
+                              stop 'kvctr/=keygloc(2,nend)-keygloc(1,nend)+1'
+                          end if
+                          kvctr=0
+                      end if
+                  end if
+              end do
+              if(segment) then
+                  ! Close the segment
+                  nend=nend+1
+                  keygloc_work(2,nend,ithread)=igridpoint
+                  keyg_glob_work(2,nend,ithread)=igridglob
+                  segment=.false.
+                  jvctr=jvctr+keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
+                  if (kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1) then
+                      write(*,*) 'kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1', &
+                          kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
+                      stop 'kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1'
+                  end if
+                  kvctr=0
               end if
-              kvctr=0
-          end if
+          end if check_z_if
       end do
       ! Some checks
       if (nstart/=nend) call f_err_throw('nstart/=nend',err_name='BIGDFT_RUNTIME_ERROR')
@@ -1295,21 +1385,26 @@ module locregs_init
        Llr(ilr)%d%nfu3 = Life(3)
     
        ! define the wavefunction descriptors inside the localisation region
-       !coarse part
-       call num_segkeys_sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
-            glr%ns1, glr%ns2, glr%ns3, &
-            hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
-            Glr%wfd%nseg_c, Glr%wfd%keygloc(1:,1:), &
-            Glr%wfd%keyvloc(1:), &
-            llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nvctr_c)
+       !!!coarse part
+       !!call num_segkeys_sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!     glr%ns1, glr%ns2, glr%ns3, &
+       !!     hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
+       !!     Glr%wfd%nseg_c, Glr%wfd%keygloc, &
+       !!     Glr%wfd%keyvloc, &
+       !!     llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nvctr_c)
     
-       !fine part
-       call num_segkeys_sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!!fine part
+       !!call num_segkeys_sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!     glr%ns1, glr%ns2, glr%ns3, &
+       !!     hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
+       !!     glr%wfd%nseg_f, Glr%wfd%keygloc(1:,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):), &
+       !!     Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
+       !!     llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
+       call get_num_segkeys(perx, pery, perz, glr%d%n1, glr%d%n2, glr%d%n3, &
             glr%ns1, glr%ns2, glr%ns3, &
             hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
-            glr%wfd%nseg_f, Glr%wfd%keygloc(1:,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):), &
-            Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):), &
-            llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
+            glr%wfd%nseg_c, glr%wfd%nseg_f, glr%wfd%keygloc,  Glr%wfd%keyvloc, &
+            llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
     
        !write(*,'(a,2i8)') 'llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nvctr_f', llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nvctr_f
     
@@ -1318,50 +1413,155 @@ module locregs_init
     
        !Now, fill the descriptors:
     
-       keygloc_tmp = f_malloc((/ 2, (llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f) /),id='keygloc_tmp')
+       !keygloc_tmp = f_malloc((/ 2, (llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f) /),id='keygloc_tmp')
     
        !!$omp parallel default(private) &
        !!$omp shared(Glr,llr,hx,hy,hz,ilr,keygloc_tmp,perx,pery,perz)  
        !!$omp sections
        !!$omp section
     
-       !coarse part
-       call segkeys_Sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!!!coarse part
+       !!!call segkeys_Sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!!     glr%ns1, glr%ns2, glr%ns3, &
+       !!!     llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
+       !!!     llr(ilr)%ns2, llr(ilr)%ns2+llr(ilr)%d%n2, &
+       !!!     llr(ilr)%ns3, llr(ilr)%ns3+llr(ilr)%d%n3, &
+       !!!     llr(ilr)%wfd%nseg_c, hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
+       !!!     Glr%wfd%nseg_c, Glr%wfd%keygloc(1:,1:), &
+       !!!     Glr%wfd%keyvloc(1:), llr(ilr)%wfd%nvctr_c, &
+       !!!     llr(ilr)%wfd%keygloc(1:,1:),llr(ilr)%wfd%keyglob(1:,1:), &
+       !!!     llr(ilr)%wfd%keyvloc(1:), llr(ilr)%wfd%keyvglob(1:), &
+       !!!     keygloc_tmp(1:,1:))
+    
+       !!!!!$omp section
+       !!!!fine part
+       !!!call segkeys_Sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+       !!!     glr%ns1, glr%ns2, glr%ns3, &
+       !!!     llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
+       !!!     llr(ilr)%ns2, llr(ilr)%ns2+llr(ilr)%d%n2, &
+       !!!     llr(ilr)%ns3, llr(ilr)%ns3+llr(ilr)%d%n3, &
+       !!!     llr(ilr)%wfd%nseg_f, hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
+       !!!     Glr%wfd%nseg_f, Glr%wfd%keygloc(1:,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):),&
+       !!!     Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):), llr(ilr)%wfd%nvctr_f, &
+       !!!     llr(ilr)%wfd%keygloc(1:,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
+       !!!     llr(ilr)%wfd%keyglob(1:,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
+       !!!     llr(ilr)%wfd%keyvloc(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
+       !!!     llr(ilr)%wfd%keyvglob(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
+       !!!     keygloc_tmp(1:,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):))  
+       !!!!!$omp end sections
+       !!!!!$omp end parallel
+       call get_segkeys(perx, pery, perz, glr%d%n1, glr%d%n2, glr%d%n3, &
             glr%ns1, glr%ns2, glr%ns3, &
             llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
             llr(ilr)%ns2, llr(ilr)%ns2+llr(ilr)%d%n2, &
             llr(ilr)%ns3, llr(ilr)%ns3+llr(ilr)%d%n3, &
-            llr(ilr)%wfd%nseg_c, hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
-            Glr%wfd%nseg_c, Glr%wfd%keygloc(1:,1:), &
-            Glr%wfd%keyvloc(1:), llr(ilr)%wfd%nvctr_c, &
-            llr(ilr)%wfd%keygloc(1:,1:),llr(ilr)%wfd%keyglob(1:,1:), &
-            llr(ilr)%wfd%keyvloc(1:), llr(ilr)%wfd%keyvglob(1:), &
-            keygloc_tmp(1:,1:))
+            hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
+            glr%wfd%nseg_c, glr%wfd%nseg_f, glr%wfd%keygloc, glr%wfd%keyvloc, &
+            llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_c, llr(ilr)%wfd%nvctr_f, &
+            llr(ilr)%wfd%keygloc, llr(ilr)%wfd%keyglob, llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%keyvglob)
     
-       !!$omp section
-       !fine part
-       call segkeys_Sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
-            glr%ns1, glr%ns2, glr%ns3, &
-            llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
-            llr(ilr)%ns2, llr(ilr)%ns2+llr(ilr)%d%n2, &
-            llr(ilr)%ns3, llr(ilr)%ns3+llr(ilr)%d%n3, &
-            llr(ilr)%wfd%nseg_f, hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
-            Glr%wfd%nseg_f, Glr%wfd%keygloc(1:,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):),&
-            Glr%wfd%keyvloc(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f):), llr(ilr)%wfd%nvctr_f, &
-            llr(ilr)%wfd%keygloc(1:,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
-            llr(ilr)%wfd%keyglob(1:,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
-            llr(ilr)%wfd%keyvloc(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
-            llr(ilr)%wfd%keyvglob(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):), &
-            keygloc_tmp(1:,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f):))  
-       !!$omp end sections
-       !!$omp end parallel
-    
-       call f_free(keygloc_tmp)
+       !call f_free(keygloc_tmp)
     
        call f_release_routine()
     
     
     END SUBROUTINE determine_wfdSphere
+
+
+    subroutine get_num_segkeys(perx, pery, perz, n1, n2, n3, ns1, ns2, ns3, hx, hy, hz, locrad, &
+               locregCenter, nseg_c_glob, nseg_f_glob, keyg_glob, keyv_glob, &
+               nseg_c, nvctr_c, nseg_f, nvctr_f)
+      use module_base
+      implicit none
+
+      ! Calling arguments
+      logical,intent(in) :: perx, pery, perz
+      integer,intent(in) :: n1, n2, n3, ns1, ns2, ns3, nseg_c_glob, nseg_f_glob
+      real(kind=8),intent(in) :: hx, hy, hz, locrad
+      real(kind=8),dimension(3),intent(in) :: locregCenter
+      integer,dimension(2,nseg_c_glob+nseg_f_glob),intent(in) :: keyg_glob
+      integer,dimension(nseg_c_glob+nseg_f_glob),intent(in) :: keyv_glob
+      integer,intent(out) :: nseg_c, nvctr_c, nseg_f, nvctr_f
+
+      call f_routine(id='get_num_segkeys')
+
+       !coarse part
+       call num_segkeys_sphere(perx, pery, perz, n1, n2, n3, &
+            ns1, ns2, ns3, &
+            hx, hy, hz, locrad, locregCenter, &
+            nseg_c_glob, keyg_glob, keyv_glob, &
+            nseg_c, nvctr_c)
+    
+       !fine part
+       call num_segkeys_sphere(perx, pery, perz, n1, n2, n3, &
+            ns1, ns2, ns3, &
+            hx, hy, hz, locrad, locregCenter, &
+            nseg_f_glob, keyg_glob(1,nseg_c_glob+min(1,nseg_f_glob)), &
+            keyv_glob(nseg_c_glob+min(1,nseg_f_glob)), &
+            nseg_f, nvctr_f)
+
+      call f_release_routine()
+
+    end subroutine get_num_segkeys
+
+
+    subroutine get_segkeys(perx, pery, perz, &
+               n1_glob, n2_glob, n3_glob, nl1_glob, nl2_glob, nl3_glob, &
+               nl1, nu1, nl2, nu2, nl3, nu3, hx, hy, hz, locrad, locregCenter, &
+               nseg_c_glob, nseg_f_glob, keyg_glob, keyv_glob, &
+               nseg_c, nseg_f, nvctr_c, nvctr_f, &
+               keygloc, keygglob, keyvloc, keyvglob)
+      use module_base
+      implicit none
+
+      ! Calling arguments
+      logical,intent(in) :: perx, pery, perz
+      integer,intent(in) :: n1_glob, n2_glob, n3_glob, nl1_glob, nl2_glob, nl3_glob
+      integer,intent(in) :: nl1, nl2, nl3, nu1, nu2, nu3
+      integer,intent(in) :: nseg_c_glob, nseg_c, nseg_f_glob, nseg_f
+      integer,intent(in) :: nvctr_c, nvctr_f
+      real(kind=8),intent(in) :: hx, hy, hz, locrad
+      real(kind=8),dimension(3),intent(in) :: locregCenter
+      integer,dimension(2,nseg_c_glob+nseg_f_glob),intent(in) :: keyg_glob
+      integer,dimension(nseg_c_glob+nseg_f_glob),intent(in) :: keyv_glob
+      integer,dimension(2,nseg_c+nseg_f),intent(out) :: keygloc, keygglob
+      integer,dimension(nseg_c+nseg_f),intent(out) :: keyvloc, keyvglob
+
+      integer, allocatable :: keygloc_tmp(:,:)
+
+      call f_routine(id='get_segkeys')
+
+       keygloc_tmp = f_malloc((/2,nseg_c+nseg_f/),id='keygloc_tmp')
+
+       !coarse part
+       call segkeys_Sphere(perx, pery, perz, n1_glob, n2_glob, n3_glob, &
+            nl1_glob, nl2_glob, nl3_glob, &
+            nl1, nu1, nl2, nu2, nl3, nu3, &
+            nseg_c, hx, hy, hz, locrad, locregCenter, &
+            nseg_c_glob, keyg_glob(1,1), &
+            keyv_glob(1), nvctr_c, &
+            keygloc(1,1),keygglob(1,1), &
+            keyvloc(1), keyvglob(1), &
+            keygloc_tmp(1,1))
+    
+       !fine part
+       call segkeys_Sphere(perx, pery, perz, n1_glob, n2_glob, n3_glob, &
+            nl1_glob, nl2_glob, nl3_glob, &
+            nl1, nu1, nl2, nu2, nl3, nu3, &
+            nseg_f, hx, hy, hz, locrad, locregCenter, &
+            nseg_f_glob, keyg_glob(1,nseg_c_glob+min(1,nseg_f_glob)),&
+            keyv_glob(nseg_c_glob+min(1,nseg_f_glob)), nvctr_f, &
+            keygloc(1,nseg_c+min(1,nseg_f)), &
+            keygglob(1,nseg_c+min(1,nseg_f)), &
+            keyvloc(nseg_c+min(1,nseg_f)), &
+            keyvglob(nseg_c+min(1,nseg_f)), &
+            keygloc_tmp(1,nseg_c+min(1,nseg_f)))  
+
+       call f_free(keygloc_tmp)
+
+      call f_release_routine()
+
+    end subroutine get_segkeys
 
 
 
@@ -2150,6 +2350,289 @@ module locregs_init
       end do
           
     end subroutine check_linear_inputguess
+
+
+    subroutine assign_to_atoms_and_locregs(iproc, nproc, norb, nat, nspin, norb_per_atom, rxyz, &
+               on_which_atom, in_which_locreg)
+      use module_base
+      use sort, only: QsortC
+      implicit none
+    
+      integer,intent(in):: nat,iproc,nproc,nspin,norb
+      integer,dimension(nat),intent(in):: norb_per_atom
+      real(8),dimension(3,nat),intent(in):: rxyz
+      integer,dimension(:),pointer,intent(out):: on_which_atom, in_which_locreg
+    
+      ! Local variables
+      integer:: iat, jproc, iiOrb, iorb, jorb, jat, iiat, i_stat, i_all, ispin, iispin, istart, iend, ilr, jjat
+      integer :: jjorb, norb_check, norb_nospin, isat, ii, iisorb, natp
+      integer,dimension(:),allocatable :: irxyz_ordered, nat_par
+      real(kind=8), parameter :: tol=1.0d-6 
+      real(8):: tt, dmin, minvalue, xmin, xmax, ymin, ymax, zmin, zmax
+      integer:: iatxmin, iatxmax, iatymin, iatymax, iatzmin, iatzmax, idir, nthread, ithread
+      real(8),dimension(3):: diff
+      real(kind=8),dimension(:),allocatable :: rxyz_dir, minvalue_thread
+      integer,dimension(:),allocatable :: iiat_thread
+      integer :: nbin, ibin, iatx, iiat_tot, i2dir, imin, jmin
+      real(kind=8) :: dist, d, rmin, rmax, tmin
+      integer,dimension(:),allocatable :: nat_per_bin, iat_per_bin
+      integer,dimension(:,:),allocatable :: iat_bin
+      logical,dimension(:),allocatable :: covered
+      real(kind=8),parameter :: binwidth = 6.d0 ! should probably be more or less the same as the locrads... make it variable?
+      character(len=3),parameter :: old='old', new='new'
+      character(len=3),parameter :: mode = new !old
+    
+      call f_routine(id='assign_to_atoms_and_locregs')
+
+      ! Determine in which direction the system has its largest extent
+      xmin=1.d100
+      ymin=1.d100
+      zmin=1.d100
+      xmax=-1.d100
+      ymax=-1.d100
+      zmax=-1.d100
+      do iat=1,nat
+          if(rxyz(1,iat)<xmin) then
+              xmin=rxyz(1,iat)
+              iatxmin=iat
+          end if
+          if(rxyz(1,iat)>xmax) then
+              xmax=rxyz(1,iat)
+              iatxmax=iat
+          end if
+          if(rxyz(2,iat)<ymin) then
+              ymin=rxyz(2,iat)
+              iatymin=iat
+          end if
+          if(rxyz(2,iat)>ymax) then
+              ymax=rxyz(2,iat)
+              iatymax=iat
+          end if
+          if(rxyz(3,iat)<zmin) then
+              zmin=rxyz(3,iat)
+              iatzmin=iat
+          end if
+          if(rxyz(3,iat)>zmax) then
+              zmax=rxyz(3,iat)
+              iatzmax=iat
+          end if
+      end do
+    
+      diff(1)=xmax-xmin
+      diff(2)=ymax-ymin
+      diff(3)=zmax-zmin
+      !First 4 ifs control if directions the same length to disambiguate (was random before)
+      !else, just choose the biggest
+      if(abs(diff(1)-diff(2)) < tol .and. diff(1) > diff(3)) then
+        idir=1
+        iiat=iatxmin
+        rmin = xmin
+        rmax = xmax
+        i2dir = 2
+      else if(abs(diff(1)-diff(3)) < tol .and. diff(1) > diff(2)) then
+        idir=1
+        iiat=iatxmin
+        rmin = xmin
+        rmax = xmax
+        i2dir = 3
+      else if(abs(diff(2)-diff(3)) < tol .and. diff(2) > diff(1)) then
+        idir=2
+        iiat=iatymin
+        rmin = ymin
+        rmax = ymax
+        i2dir = 3
+      else if(abs(diff(1)-diff(3)) < tol .and. abs(diff(2)-diff(3)) < tol) then
+        idir=1
+        iiat=iatxmin
+        rmin = xmin
+        rmax = xmax
+        i2dir = 3
+      else
+         if(maxloc(diff,1)==1) then
+             idir=1
+             iiat=iatxmin
+             rmin = xmin
+             rmax = xmax
+         else if(maxloc(diff,1)==2) then
+             idir=2
+             iiat=iatymin
+             rmin = ymin
+             rmax = ymax
+         else if(maxloc(diff,1)==3) then
+             idir=3
+             iiat=iatzmin
+             rmin = zmin
+             rmax = zmax
+         else
+             call f_err_throw('ERROR: not possible to determine the maximal extent')
+         end if
+         diff(idir) = -1.d100
+         i2dir = maxloc(diff,1)
+      end if
+
+
+      irxyz_ordered = f_malloc(nat,id='irxyz_ordered')
+      if (mode==old) then
+          ! Lookup array which orders the atoms with respect to the direction idir
+          rxyz_dir = f_malloc(nat,id='rxyz_dir')
+          do ilr=1,nat
+              rxyz_dir(ilr) = rxyz(idir,ilr)
+              irxyz_ordered(ilr) = ilr
+          end do
+          !!do ilr=1,nat
+          !!    if (iproc==0) write(*,*) 'B: rxyz_dir(ilr), irxyz_ordered(ilr)', rxyz_dir(ilr), irxyz_ordered(ilr)
+          !!end do
+          call QsortC(rxyz_dir, irxyz_ordered)
+          !!do ilr=1,nat
+          !!    if (iproc==0) write(*,*) 'A: rxyz_dir(ilr), irxyz_ordered(ilr)', rxyz_dir(ilr), irxyz_ordered(ilr)
+          !!end do
+          call f_free(rxyz_dir)
+      end if
+
+
+      if (mode==new) then
+          ! # NEW ##################################################
+          ! Calculate the number of bins (in the largest direction)
+          nbin = max(1,ceiling((rmax-rmin)/binwidth))
+
+          ! Assign the atoms to the bins. First count how many atoms per bin we have...
+          nat_per_bin = f_malloc0(nbin,id='nat_per_bin')
+          do iat=1,nat
+              dist = rxyz(idir,iat)-rmin
+              ibin = ceiling(dist/binwidth)
+              ibin = max(ibin,1) ! to avoid bin 0 for the "minimal" atoms, i.e. the one which defines the minium value
+              if (ibin<1 .or. ibin>nbin) then
+                  call f_err_throw('wrong bin (ibin='//trim(yaml_toa(ibin))//', nbin='//trim(yaml_toa(nbin))//')',&
+                       err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+              nat_per_bin(ibin) = nat_per_bin(ibin) + 1
+          end do
+          ! ... and now assign the atoms to the bins.
+          iat_bin = f_malloc0((/maxval(nat_per_bin),nbin/),id='iat_bin')
+          iat_per_bin = f_malloc0(nbin,id='iat_per_bin')
+          do iat=1,nat
+              dist = rxyz(idir,iat)-rmin
+              ibin = ceiling(dist/binwidth)
+              ibin = max(ibin,1) ! to avoid bin 0 for the "minimal" atoms, i.e. the one which defines the minium value
+              if (ibin<1 .or. ibin>nbin) then
+                  call f_err_throw('wrong bin (ibin='//trim(yaml_toa(ibin))//', nbin='//trim(yaml_toa(nbin))//')',&
+                       err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+              iat_per_bin(ibin) = iat_per_bin(ibin) + 1
+              iat_bin(iat_per_bin(ibin),ibin) = iat
+          end do
+          ! Check
+          do ibin=1,nbin
+              if (iat_per_bin(ibin)/=nat_per_bin(ibin)) then
+                  call f_err_throw('iat_per_bin(ibin)/=nat_per_bin(ibin)',err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+          end do
+          call f_free(iat_per_bin)
+
+          ! Order the atoms by always choosing the closest one within a bin
+          iiat_tot = 0
+          iatx = iiat !starting atoms
+          do ibin=1,nbin
+              covered = f_malloc(nat_per_bin(ibin),id='covered')
+              covered(:) = .false.
+              ! Determine the minimum value in the i2dir direction
+              tmin = huge(1.d0)
+              do iat=1,nat_per_bin(ibin)
+                  jjat = iat_bin(iat,ibin)
+                  if (rxyz(i2dir,jjat)<tmin) then
+                      tmin = rxyz(i2dir,jjat)
+                      imin = jjat
+                  end if
+              end do
+              iatx = imin!jjat
+              do iat=1,nat_per_bin(ibin)
+                  iiat_tot = iiat_tot + 1
+                  dmin = huge(1.d0)
+                  do jat=1,nat_per_bin(ibin)
+                      jjat = iat_bin(jat,ibin)
+                      if (covered(jat)) cycle
+                      d = (rxyz(1,jjat)-rxyz(1,iatx))**2 + (rxyz(2,jjat)-rxyz(2,iatx))**2 + (rxyz(3,jjat)-rxyz(3,iatx))**2
+                      if (d<dmin) then
+                          dmin = d
+                          jmin = jat
+                      end if
+                   end do
+                   covered(jmin) = .true.
+                   !iatx = jjat !iat_bin(jmin,ibin)
+                   irxyz_ordered(iiat_tot) = iat_bin(jmin,ibin) !iatx
+                   !write(*,*) 'iiat_tot, irxyz_ordered(iiat_tot)', iiat_tot, irxyz_ordered(iiat_tot)
+              end do
+              call f_free(covered)
+          end do
+
+          call f_free(nat_per_bin)
+          call f_free(iat_bin)
+          ! # NEW ##################################################
+      end if
+
+      on_which_atom = f_malloc0_ptr(norb,id='on_which_atom')
+      in_which_locreg = f_malloc0_ptr(norb,id='inWhichLocreg')
+
+      ! Total number of orbitals without spin
+      norb_nospin = 0
+      do jat=1,nat
+          norb_nospin = norb_nospin + norb_per_atom(jat)
+      end do
+
+      ! Parallelization over the atoms
+      nat_par = f_malloc(0.to.nproc-1,id='nat_par')
+      natp = nat/nproc
+      nat_par(:) = natp
+      ii = nat-natp*nproc
+      nat_par(0:ii-1) = nat_par(0:ii-1) + 1
+      isat = sum(nat_par(0:iproc-1))
+      ! check
+      ii = sum(nat_par)
+      if (ii/=nat) call f_err_throw('ii/=nat',err_name='BIGDFT_RUNTIME_ERROR')
+      iisorb = 0
+      iiat = 0
+      do jproc=0,iproc-1
+          do iat=1,nat_par(jproc)
+              iiat = iiat + 1
+              jjat = irxyz_ordered(iiat)
+              iisorb = iisorb + norb_per_atom(jjat)
+          end do
+      end do
+
+      ! Calculate on_which_atom and in_which_locreg...
+      norb_check = 0
+      do ispin=1,nspin
+          iiorb = iisorb + (ispin-1)*norb_nospin
+          do iat=1,nat_par(iproc)
+              iiat = isat + iat
+              jjat = irxyz_ordered(iiat)
+              jjorb = (ispin-1)*norb_nospin
+              do jat=1,jjat-1
+                  jjorb = jjorb + norb_per_atom(jat)
+              end do
+              do iorb=1,norb_per_atom(jjat)
+                  iiorb = iiorb + 1
+                  jjorb = jjorb + 1
+                  on_which_atom(iiorb) = jjat
+                  in_which_locreg(iiorb) = jjorb
+                  norb_check = norb_check + 1
+              end do
+          end do   
+      end do
+      call mpiallred(norb_check, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      if (norb_check/=norb) call f_err_throw('norb_check/=norb',err_name='BIGDFT_RUNTIME_ERROR')
+
+      call mpiallred(on_which_atom, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(in_which_locreg, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+      call f_free(nat_par)
+      call f_free(irxyz_ordered)
+
+    
+      call f_release_routine()
+    
+    end subroutine assign_to_atoms_and_locregs
+
    
 end module locregs_init
 
