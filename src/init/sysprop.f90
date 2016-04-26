@@ -1046,24 +1046,6 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!$
 !!$  diffSur=IntSurt-pkernel%IntSur
 !!$  diffVol=IntVolt-pkernel%IntVol
-!!$  if (bigdft_mpi%iproc==0) then
-!!$     call yaml_map('Old Surface integral',IntSurt)
-!!$     call yaml_map('Old Volume integral',IntVolt)
-!!$     call yaml_map('Surface integral',pkernel%IntSur)
-!!$     call yaml_map('Volume integral',pkernel%IntVol)
-!!$     call yaml_map('Surface integral diff',diffSur)
-!!$     call yaml_map('Volume integral diff',diffVol)
-!!$  end if
-!!$  Cavene= pkernel%cavity%gammaS*pkernel%IntSur*627.509469d0
-!!$  Repene= pkernel%cavity%alphaS*pkernel%IntSur*627.509469d0
-!!$  Disene= pkernel%cavity%betaV*pkernel%IntVol*627.509469d0
-!!$  noeleene=Cavene+Repene+Disene
-!!$  if (bigdft_mpi%iproc==0) then
-!!$     call yaml_map('Cavity energy',Cavene)
-!!$     call yaml_map('Repulsion energy',Repene)
-!!$     call yaml_map('Dispersion energy',Disene)
-!!$     call yaml_map('Total non-electrostatic energy',noeleene)
-!!$  end if
 
   !set the epsilon to the poisson solver kernel
 !  call pkernel_set_epsilon(pkernel,eps=eps)
@@ -1086,6 +1068,27 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   call pkernel_set_epsilon(pkernel,nat=atoms%astruct%nat,rxyz=rxyz_shifted,radii=radii)
   call f_free(rxyz_shifted)
 
+
+!!! To be printed for rigid cavity!
+
+!  if (bigdft_mpi%iproc==0) then
+!     call yaml_map('Surface integral',pkernel%IntSur)
+!     call yaml_map('Volume integral',pkernel%IntVol)
+!  end if
+
+!  Cavene= pkernel%cavity%gammaS*pkernel%IntSur*627.509469d0
+!  Repene= pkernel%cavity%alphaS*pkernel%IntSur*627.509469d0
+!  Disene= pkernel%cavity%betaV*pkernel%IntVol*627.509469d0
+!  noeleene=Cavene+Repene+Disene
+!  if (bigdft_mpi%iproc==0) then
+!     !call yaml_map('Cavitation prefactor gamma',pkernel%cavity%gammaS)
+!     !call yaml_map('Repulsion prefactor alpha',pkernel%cavity%alphaS)
+!     !call yaml_map('Dispersion prefactor beta',pkernel%cavity%betaV)
+!     call yaml_map('Cavity energy [kcal/mol]',Cavene)
+!     call yaml_map('Repulsion energy [kcal/mol]',Repene)
+!     call yaml_map('Dispersion energy [kcal/mol]',Disene)
+!     call yaml_map('Total non-electrostatic energy [kcal/mol]',noeleene)
+!  end if
 !!$  select case(trim(f_str(pkernel%method)))
 !!$  case('PCG')
 !!$
