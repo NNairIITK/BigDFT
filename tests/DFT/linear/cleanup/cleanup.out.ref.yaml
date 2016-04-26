@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-04-20 18:04:27.818
+ Timestamp of this run                 : 2016-04-26 10:51:03.902
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -1200,8 +1200,8 @@
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
    S^-1/2                              : recalculate
    determine eigenvalue bounds:
-   -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  2.9E-15, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  6.3E-15, ok: [
+  Yes,  Yes], exp accur:  [  1.39E-09 ]}
    Kernel calculation:
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
@@ -1210,48 +1210,49 @@
      -  {npl:  310, bounds:  [ -0.6,  0.5 ], penalty:  1.4E+05, ok:  [  No,  Yes ]}
      -  {npl:  350, bounds:  [ -0.72,  0.5 ], penalty:  1.5E+04, ok:  [  No,  Yes ]}
      -  {npl:  380, bounds:  [ -0.864,  0.5 ], penalty:  8.9E+01, ok:  [  No,  Yes ]}
-     -  {npl:  420, bounds:  [ -1.0368,  0.5 ], penalty:  8.9E-02, ok:  [  Yes,  Yes ]}
+     -  {npl:  420, bounds:  [ -1.0368,  0.5 ], penalty:  8.9E-02, ok:  [  No,  Yes ]}
+     -  {npl:  450, bounds:  [ -1.24416,  0.5 ], penalty:  2.1E-05, ok:  [  Yes,  Yes ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
- eF: -1.000000E-01, Tr(K):  8.0000009E+00, D Tr(K):  1.00E+00, new eF: bisec bounds}
+ eF: -1.000000E-01, Tr(K):  8.0000064E+00, D Tr(K):  1.00E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 2
- eF: -2.000000E-01, Tr(K):  8.0000089E+00, D Tr(K):  1.00E+00, new eF: bisec bounds}
+ eF: -2.000000E-01, Tr(K):  7.9999775E+00, D Tr(K):  1.00E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 3
- eF: -3.100000E-01, Tr(K):  6.0000337E+00, D Tr(K): -1.00E+00, new eF: bisec bounds}
+ eF: -3.100000E-01, Tr(K):  5.9999625E+00, D Tr(K): -1.00E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 4
- eF:  1.000000E-01, Tr(K):  1.0000001E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
+ eF:  1.000000E-01, Tr(K):  1.0000000E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 5
- eF: -1.562513E-01, Tr(K):  8.0000008E+00, D Tr(K):  1.00E+00, new eF: bisection/secant}
+ eF: -1.562486E-01, Tr(K):  7.9999712E+00, D Tr(K):  1.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 6
- eF: -2.331263E-01, Tr(K):  8.0000183E+00, D Tr(K):  1.00E+00, new eF: bisection/secant}
+ eF: -2.331230E-01, Tr(K):  8.0000630E+00, D Tr(K):  1.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 7
- eF: -2.715637E-01, Tr(K):  7.3189184E+00, D Tr(K):  3.19E-01, new eF: bisection/secant}
+ eF: -2.715618E-01, Tr(K):  7.3190583E+00, D Tr(K):  3.19E-01, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 8
- eF: -2.858199E-01, Tr(K):  6.1085012E+00, D Tr(K): -8.91E-01, new eF: bisection/secant}
+ eF: -2.858200E-01, Tr(K):  6.1084065E+00, D Tr(K): -8.92E-01, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 9
- eF: -2.770058E-01, Tr(K):  6.7199337E+00, D Tr(K): -2.80E-01, new eF: bisection/secant}
+ eF: -2.770051E-01, Tr(K):  6.7200472E+00, D Tr(K): -2.80E-01, new eF: bisection/secant}
      -  { #--------------------------------------------------------------------- it FOE: 10
- eF: -2.743730E-01, Tr(K):  7.0109771E+00, D Tr(K):  1.10E-02, new eF: cubic interpol}
+ eF: -2.743723E-01, Tr(K):  7.0109768E+00, D Tr(K):  1.10E-02, new eF: cubic interpol}
      -  { #--------------------------------------------------------------------- it FOE: 11
- eF: -2.744709E-01, Tr(K):  6.9999261E+00, D Tr(K): -7.39E-05, new eF: cubic interpol}
+ eF: -2.744703E-01, Tr(K):  6.9999261E+00, D Tr(K): -7.39E-05, new eF: cubic interpol}
      -  { #--------------------------------------------------------------------- it FOE: 12
- eF: -2.744703E-01, Tr(K):  7.0000000E+00, D Tr(K):  2.11E-08, new eF: linear interpol}
-     Asymmetry of kernel               :  2.08E-15
+ eF: -2.744696E-01, Tr(K):  7.0000000E+00, D Tr(K):  2.09E-08, new eF: linear interpol}
+     Asymmetry of kernel               :  2.03E-15
      symmetrize_kernel                 :  Yes
-     EBS                               : -3.928672650623E+00
-     EBS higher temperature            : -3.928656579951E+00
-     difference                        :  1.607067192033E-05
-     relative difference               :  4.090611091709E-06
+     EBS                               : -3.928667131843E+00
+     EBS higher temperature            : -3.928693798927E+00
+     difference                        : -2.666708438470E-05
+     relative difference               :  6.787819759165E-06
      modify error function decay length: increase
-     trace(KS)                         :  7.000000018464798
+     trace(KS)                         :  7.000000020912182
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  calculate LUMO kernel:
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
    S^-1/2                              : recalculate
    determine eigenvalue bounds:
-   -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  2.9E-15, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  6.3E-15, ok: [
+  Yes,  Yes], exp accur:  [  1.39E-09 ]}
    Kernel calculation:
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
@@ -1260,41 +1261,42 @@
      -  {npl:  310, bounds:  [ -0.6,  0.5 ], penalty:  1.4E+05, ok:  [  No,  Yes ]}
      -  {npl:  350, bounds:  [ -0.72,  0.5 ], penalty:  1.5E+04, ok:  [  No,  Yes ]}
      -  {npl:  380, bounds:  [ -0.864,  0.5 ], penalty:  8.9E+01, ok:  [  No,  Yes ]}
-     -  {npl:  420, bounds:  [ -1.0368,  0.5 ], penalty:  8.9E-02, ok:  [  Yes,  Yes ]}
+     -  {npl:  420, bounds:  [ -1.0368,  0.5 ], penalty:  8.9E-02, ok:  [  No,  Yes ]}
+     -  {npl:  450, bounds:  [ -1.24416,  0.5 ], penalty:  2.1E-05, ok:  [  Yes,  Yes ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
- eF: -1.000000E-01, Tr(K):  8.0000009E+00, D Tr(K): -1.00E+00, new eF: bisec bounds}
+ eF: -1.000000E-01, Tr(K):  8.0000064E+00, D Tr(K): -1.00E+00, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 2
- eF:  1.000000E-01, Tr(K):  1.0000001E+01, D Tr(K):  1.00E+00, new eF: bisection/secant}
+ eF:  1.000000E-01, Tr(K):  1.0000000E+01, D Tr(K):  1.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 3
- eF: -3.861114E-08, Tr(K):  8.0000063E+00, D Tr(K): -1.00E+00, new eF: bisection/secant}
+ eF: -1.682522E-07, Tr(K):  8.0000124E+00, D Tr(K): -1.00E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 4
- eF:  4.999989E-02, Tr(K):  9.6627346E+00, D Tr(K):  6.63E-01, new eF: bisection/secant}
+ eF:  4.999976E-02, Tr(K):  9.6627304E+00, D Tr(K):  6.63E-01, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 5
- eF:  2.753536E-02, Tr(K):  8.0265897E+00, D Tr(K): -9.73E-01, new eF: cubic interpol}
+ eF:  2.753523E-02, Tr(K):  8.0265912E+00, D Tr(K): -9.73E-01, new eF: cubic interpol}
      -  { #---------------------------------------------------------------------- it FOE: 6
- eF:  4.164342E-02, Tr(K):  8.8241606E+00, D Tr(K): -1.76E-01, new eF: cubic interpol}
+ eF:  4.164332E-02, Tr(K):  8.8241530E+00, D Tr(K): -1.76E-01, new eF: cubic interpol}
      -  { #---------------------------------------------------------------------- it FOE: 7
- eF:  4.367048E-02, Tr(K):  9.0514014E+00, D Tr(K):  5.14E-02, new eF: cubic interpol}
+ eF:  4.367045E-02, Tr(K):  9.0513939E+00, D Tr(K):  5.14E-02, new eF: cubic interpol}
      -  { #---------------------------------------------------------------------- it FOE: 8
- eF:  4.321032E-02, Tr(K):  8.9995158E+00, D Tr(K): -4.84E-04, new eF: cubic interpol}
+ eF:  4.321035E-02, Tr(K):  8.9995158E+00, D Tr(K): -4.84E-04, new eF: cubic interpol}
      -  { #---------------------------------------------------------------------- it FOE: 9
- eF:  4.321462E-02, Tr(K):  9.0000006E+00, D Tr(K):  5.56E-07, new eF: linear interpol}
-     Asymmetry of kernel               :  1.78E-15
+ eF:  4.321464E-02, Tr(K):  9.0000006E+00, D Tr(K):  5.55E-07, new eF: linear interpol}
+     Asymmetry of kernel               :  1.72E-15
      symmetrize_kernel                 :  Yes
-     EBS                               : -4.159925949238E+00
-     EBS higher temperature            : -4.159925661401E+00
-     difference                        :  2.878364213643E-07
-     relative difference               :  6.919267911898E-08
+     EBS                               : -4.159927177955E+00
+     EBS higher temperature            : -4.159924936106E+00
+     difference                        :  2.241849246687E-06
+     relative difference               :  5.389155027923E-07
      modify error function decay length: increase
-     trace(KS)                         :  9.000000552337708
+     trace(KS)                         :  9.000000555095527
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  HOMO-LUMO analysis:
-   HOMO energy                         :  [ -0.2744702876831177 ]
-   LUMO energy                         :  [  4.3214612874339878E-002 ]
-   HOMO-LUMO gap (Ha)                  :  [  0.3176849005574575 ]
-   HOMO-LUMO gap (eV)                  :  [  8.644646153639936 ]
+   HOMO energy                         :  [ -0.2744696066530193 ]
+   LUMO energy                         :  [  4.3214638929860175E-002 ]
+   HOMO-LUMO gap (Ha)                  :  [  0.3176842455828794 ]
+   HOMO-LUMO gap (eV)                  :  [  8.644628330874495 ]
  Total charge                          :  7.999979543332E+00
   #================================================= Atomic multipole analysis, new approach
  Method                                : projector
@@ -1323,8 +1325,8 @@
      x                                 : 1/2
    order                               :  1020
    determine eigenvalue bounds:
-   -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -1.4E-14, ok: [ Yes, 
-  Yes], exp accur:  [  6.93E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  6.3E-15, ok: [
+  Yes,  Yes], exp accur:  [  4.03E-11 ]}
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Orthonormalizing the support functions
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculate projector for multipole analysis
@@ -1334,8 +1336,8 @@
      x                                 : 1/2
    order                               :  1020
    determine eigenvalue bounds:
-   -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -1.4E-14, ok: [ Yes, 
-  Yes], exp accur:  [  6.93E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  6.3E-15, ok: [
+  Yes,  Yes], exp accur:  [  4.03E-11 ]}
  Calculating projector for charge analysis:
    convergence criterion               :  1.0E-004
    maximal size of a submatrix         :  6
@@ -1418,23 +1420,23 @@
        -  [ 1.0090E+00,  1.2067E+00,  1.0303E+00]
        -  [ 1.2067E+00, -3.9787E-01,  1.6730E+00]
        -  [ 1.0303E+00,  1.6730E+00, -6.1108E-01]
-       trace                           :  1.74E-13
+       trace                           :  1.63E-13
      Density and potential check:
      - density threshold for check is 1.00E-06:
-         rho: {int(q-q_exact)):  2.578E-03, int(q_exact):  2.578E-03, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  6.592E+01, int(V_exact):  7.734E+02, ratio:  8.524E-02}
+         rho: {int(q-q_exact)):  4.029E-05, int(q_exact):  4.029E-05, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.030E+00, int(V_exact):  1.208E+01, ratio:  8.524E-02}
      - density threshold for check is 1.00E-05:
-         rho: {int(q-q_exact)):  2.855E-02, int(q_exact):  2.855E-02, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  7.390E+01, int(V_exact):  8.535E+02, ratio:  8.658E-02}
+         rho: {int(q-q_exact)):  4.460E-04, int(q_exact):  4.460E-04, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.155E+00, int(V_exact):  1.334E+01, ratio:  8.658E-02}
      - density threshold for check is 1.00E-04:
-         rho: {int(q-q_exact)):  6.160E-01, int(q_exact):  6.160E-01, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  9.477E+01, int(V_exact):  1.040E+03, ratio:  9.109E-02}
+         rho: {int(q-q_exact)):  9.625E-03, int(q_exact):  9.625E-03, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.481E+00, int(V_exact):  1.626E+01, ratio:  9.109E-02}
      - density threshold for check is 1.00E-03:
-         rho: {int(q-q_exact)):  7.522E+00, int(q_exact):  7.522E+00, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  1.449E+02, int(V_exact):  1.483E+03, ratio:  9.769E-02}
+         rho: {int(q-q_exact)):  1.175E-01, int(q_exact):  1.175E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  2.264E+00, int(V_exact):  2.317E+01, ratio:  9.769E-02}
      - density threshold for check is 1.00E-02:
-         rho: {int(q-q_exact)):  3.031E+01, int(q_exact):  3.031E+01, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.244E+02, int(V_exact):  1.804E+03, ratio:  1.244E-01}
+         rho: {int(q-q_exact)):  4.736E-01, int(q_exact):  4.736E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  3.506E+00, int(V_exact):  2.819E+01, ratio:  1.244E-01}
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
        P vector                        :  [ -1.5395E+00,  9.2442E-01,  9.4305E-01 ]
@@ -1444,23 +1446,23 @@
        -  [ 9.2817E-02,  6.3046E-01,  6.0983E-01]
        -  [ 6.3046E-01, -1.5859E-02,  5.9057E-02]
        -  [ 6.0983E-01,  5.9057E-02, -7.6959E-02]
-       trace                           : -9.59E-14
+       trace                           : -8.17E-14
      Density and potential check:
      - density threshold for check is 1.00E-06:
-         rho: {int(q-q_exact)):  2.578E-03, int(q_exact):  2.578E-03, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  1.555E+02, int(V_exact):  7.734E+02, ratio:  2.010E-01}
+         rho: {int(q-q_exact)):  4.029E-05, int(q_exact):  4.029E-05, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  2.429E+00, int(V_exact):  1.208E+01, ratio:  2.010E-01}
      - density threshold for check is 1.00E-05:
-         rho: {int(q-q_exact)):  2.855E-02, int(q_exact):  2.855E-02, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  1.753E+02, int(V_exact):  8.535E+02, ratio:  2.054E-01}
+         rho: {int(q-q_exact)):  4.460E-04, int(q_exact):  4.460E-04, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  2.740E+00, int(V_exact):  1.334E+01, ratio:  2.054E-01}
      - density threshold for check is 1.00E-04:
-         rho: {int(q-q_exact)):  6.160E-01, int(q_exact):  6.160E-01, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.276E+02, int(V_exact):  1.040E+03, ratio:  2.188E-01}
+         rho: {int(q-q_exact)):  9.625E-03, int(q_exact):  9.625E-03, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  3.557E+00, int(V_exact):  1.626E+01, ratio:  2.188E-01}
      - density threshold for check is 1.00E-03:
-         rho: {int(q-q_exact)):  7.522E+00, int(q_exact):  7.522E+00, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  3.745E+02, int(V_exact):  1.483E+03, ratio:  2.525E-01}
+         rho: {int(q-q_exact)):  1.175E-01, int(q_exact):  1.175E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  5.851E+00, int(V_exact):  2.317E+01, ratio:  2.525E-01}
      - density threshold for check is 1.00E-02:
-         rho: {int(q-q_exact)):  3.031E+01, int(q_exact):  3.031E+01, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  5.132E+02, int(V_exact):  1.804E+03, ratio:  2.845E-01}
+         rho: {int(q-q_exact)):  4.736E-01, int(q_exact):  4.736E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  8.019E+00, int(V_exact):  2.819E+01, ratio:  2.845E-01}
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
        P vector                        :  [ -1.5387E+00,  9.2512E-01,  9.4200E-01 ]
@@ -1470,23 +1472,23 @@
        -  [ 1.3201E+00,  1.5628E+00,  1.3519E+00]
        -  [ 1.5628E+00, -5.1820E-01,  2.0963E+00]
        -  [ 1.3519E+00,  2.0963E+00, -8.0193E-01]
-       trace                           :  6.04E-14
+       trace                           :  3.20E-14
      Density and potential check:
      - density threshold for check is 1.00E-06:
-         rho: {int(q-q_exact)):  2.578E-03, int(q_exact):  2.578E-03, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  9.380E+00, int(V_exact):  7.734E+02, ratio:  1.213E-02}
+         rho: {int(q-q_exact)):  4.029E-05, int(q_exact):  4.029E-05, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.466E-01, int(V_exact):  1.208E+01, ratio:  1.213E-02}
      - density threshold for check is 1.00E-05:
-         rho: {int(q-q_exact)):  2.855E-02, int(q_exact):  2.855E-02, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  1.115E+01, int(V_exact):  8.535E+02, ratio:  1.306E-02}
+         rho: {int(q-q_exact)):  4.460E-04, int(q_exact):  4.460E-04, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.742E-01, int(V_exact):  1.334E+01, ratio:  1.306E-02}
      - density threshold for check is 1.00E-04:
-         rho: {int(q-q_exact)):  6.160E-01, int(q_exact):  6.160E-01, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  1.662E+01, int(V_exact):  1.040E+03, ratio:  1.598E-02}
+         rho: {int(q-q_exact)):  9.625E-03, int(q_exact):  9.625E-03, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  2.597E-01, int(V_exact):  1.626E+01, ratio:  1.598E-02}
      - density threshold for check is 1.00E-03:
-         rho: {int(q-q_exact)):  7.522E+00, int(q_exact):  7.522E+00, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  5.013E+01, int(V_exact):  1.483E+03, ratio:  3.380E-02}
+         rho: {int(q-q_exact)):  1.175E-01, int(q_exact):  1.175E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  7.833E-01, int(V_exact):  2.317E+01, ratio:  3.380E-02}
      - density threshold for check is 1.00E-02:
-         rho: {int(q-q_exact)):  3.031E+01, int(q_exact):  3.031E+01, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  1.236E+02, int(V_exact):  1.804E+03, ratio:  6.849E-02}
+         rho: {int(q-q_exact)):  4.736E-01, int(q_exact):  4.736E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.931E+00, int(V_exact):  2.819E+01, ratio:  6.849E-02}
   #========================================================== Atomic multipole analysis done
  Total charge                          :  7.999979543332E+00
   #---------------------------------------------------------------------- Forces Calculation
@@ -1513,8 +1515,8 @@
  - oscillation of the energy, increase counter
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  4.54
-   Elapsed time (s)                    :  4.54
+   CPU time (s)                        :  4.59
+   Elapsed time (s)                    :  4.62
  BigDFT infocode                       :  0
  Average noise forces: {x:  2.53379760E-01, y: -4.11011801E-02, z: -5.80520772E-02, 
                     total:  2.63174188E-01}
@@ -1528,14 +1530,14 @@
  Energy (Hartree)                      : -1.69506869031071261E+01
  Force Norm (Hartree/Bohr)             :  4.32120968772670588E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  6265
-   Tot. No. of Deallocations           :  6265
+   Tot. No. of Allocations             :  6270
+   Tot. No. of Deallocations           :  6270
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  74.557
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 81.912 MB
- Walltime since initialization         : 00:00:04.915458807
- Max No. of dictionaries used          :  7683 #( 1002 still in use)
+     Memory Peak of process            : 76.840 MB
+ Walltime since initialization         : 00:00:05.000225978
+ Max No. of dictionaries used          :  7747 #( 1002 still in use)
  Number of dictionary folders allocated:  1
