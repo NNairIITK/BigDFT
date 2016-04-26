@@ -669,7 +669,6 @@ module ice
       integer,dimension(2) :: irowcol
       integer :: irow, icol, iflag, ispin, isshift, ilshift, ilshift2, verbosity_
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit, npl_auto_
-      integer,parameter :: NPL_MIN=5
       real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
       real(kind=mp) :: degree_multiplicator
       integer,parameter :: SPARSE=1
@@ -686,6 +685,9 @@ module ice
       character(len=3),parameter :: old='old'
       character(len=3),parameter :: new='new'
       character(len=3) :: mode=old
+      integer,parameter :: NPL_MIN = 5
+      integer,parameter :: NPL_MAX = 5000
+      integer,parameter :: NPL_STRIDE = 5
 
       call f_routine(id='inverse_chebyshev_expansion_new')
 
@@ -773,7 +775,7 @@ module ice
               !!                eval_multiplicator, eval_multiplicator_total
               !!end if
               call get_polynomial_degree(iproc, nproc, comm, &
-                   ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, 5, 100, 1, 1.d-9, &
+                   ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, NPL_MIN, NPL_MAX, NPL_STRIDE, 1.d-8, &
                    0, npl, cc, max_error, x_max_error, mean_error, anoise, &
                    ex=ex)
               call f_free_ptr(chebyshev_polynomials)
@@ -785,7 +787,7 @@ module ice
                    call yaml_map('npl',npl)
                    call yaml_map('scale',eval_multiplicator_total,fmt='(es9.2)')
                    call yaml_map('bounds', &
-                        (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f6.2)')
+                        (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f7.3)')
                end if
 
               ! use inv_ovrlp(1)%matrix_compr as workarray to save memory

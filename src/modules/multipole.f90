@@ -6524,10 +6524,10 @@ end subroutine calculate_rpowerx_matrices
 
     call f_free(is_close)
 
-    !call dscal(ncheck, factor, charge_error(1), 1)
-    !call dscal(ncheck, factor, charge_total(1), 1)
-    !call dscal(ncheck, factor, potential_error(1), 1)
-    !call dscal(ncheck, factor, potential_total(1), 1)
+    call dscal(ncheck, factor, charge_error(1), 1)
+    call dscal(ncheck, factor, charge_total(1), 1)
+    call dscal(ncheck, factor, potential_error(1), 1)
+    call dscal(ncheck, factor, potential_total(1), 1)
 
     call mpiallred(charge_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
     call mpiallred(charge_total, mpi_sum, comm=bigdft_mpi%mpi_comm)

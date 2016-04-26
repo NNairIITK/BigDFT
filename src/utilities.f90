@@ -296,8 +296,10 @@ program utilities
        call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
        !call writeLinearCoefficients(iunit, .true., nat, rxyz, smat_s%nfvctr, smat_s%nfvctr, &
        !     smat_s%nfvctr, hamiltonian_mat%matrix, eval)
-       call write_linear_coefficients(0, trim(coeff_file), nat, rxyz, iatype, ntypes, nzatom, &
-            nelpsp, atomnames, smat_s%nfvctr, smat_s%nfvctr, smat_s%nspin, hamiltonian_mat%matrix, eval)
+       call write_linear_coefficients(0, trim(coeff_file), smmd%nat, smmd%rxyz, &
+            smmd%iatype, smmd%ntypes, smmd%nzatom, &
+            smmd%nelpsp, smmd%atomnames, smat_s%nfvctr, &
+            smat_s%nfvctr, smat_s%nspin, hamiltonian_mat%matrix, eval)
        call f_close(iunit)
 
        call f_free(eval)
@@ -305,6 +307,7 @@ program utilities
        call deallocate_matrices(hamiltonian_mat)
        call deallocate_sparse_matrix(smat_s)
        call deallocate_sparse_matrix(smat_m)
+       call deallocate_sparse_matrix_metadata(smmd)
        call f_free_ptr(rxyz)
        call f_free_ptr(iatype)
        call f_free_ptr(nzatom)
