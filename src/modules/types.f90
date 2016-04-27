@@ -345,6 +345,7 @@ module module_types
      type(comms_linear) :: collcom_sr                        !< describes collective communication for the calculation of the charge density
      integer(kind = 8) :: c_obj                              !< Storage of the C wrapper object. it has to be initialized to zero
      type(foe_data) :: foe_obj                               !< describes the structure of the matrices for the linear method foe
+     type(foe_data) :: ice_obj                               !< describes the structure of the matrices for the linear method ice
      type(linear_matrices) :: linmat
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme

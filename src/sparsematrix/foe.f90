@@ -1010,7 +1010,7 @@ module foe
     subroutine fermi_operator_expansion_new(iproc, nproc, comm, &
                ebs, &
                calculate_minusonehalf, foe_verbosity, &
-               smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj, &
+               smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj, ice_obj, &
                symmetrize_kernel)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
@@ -1036,7 +1036,7 @@ module foe
       type(matrices),intent(in) :: ham_, ovrlp_
       type(matrices),dimension(1),intent(inout) :: ovrlp_minus_one_half_
       type(matrices),intent(inout) :: kernel_
-      type(foe_data),intent(inout) :: foe_obj
+      type(foe_data),intent(inout) :: foe_obj, ice_obj
     
       ! Local variables
       integer :: npl, jorb, ipl, it, ii, iiorb, jjorb, iseg, iorb
@@ -1243,7 +1243,7 @@ module foe
                           call yaml_mapping_open(flow=.true.)
                           call yaml_map('npl',npl)
                           call yaml_map('bounds', &
-                               (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/))
+                               (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f7.3)')
                       end if
 
                       ! Use kernel_%matrix_compr as workarray to save memory
@@ -1566,11 +1566,16 @@ module foe
               !call matrix_chebyshev_expansion(iproc, nproc, 1, (/-0.5d0/), &
               !     smat_in=smats, smat_out=smatl, mat_in=ovrlp_, mat_out=ovrlp_minus_one_half_, &
               !     npl_auto=.true.)
+              ! Can't use the wrapper, since it is at a higher level in the hierarchy (to be improved)
               ex=-0.5d0
               call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
                    ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
                    ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
-                   npl_auto=.true.)
+                   npl_auto=.true., ice_obj=ice_obj)
+              !!call matrix_chebyshev_expansion(iproc, nproc, comm, ncalc=1, ex=ex, &
+              !!     smat_in=smats, smat_out=smatl, mat_in=ovrlp_, mat_out=ovrlp_minus_one_half_, &
+              !!     npl_auto=.true., ice_obj=ice_obj)
+
 
 
     

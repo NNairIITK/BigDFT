@@ -722,6 +722,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
 
     call scf_kernel(nit_scc, .false., update_phi)
 
+
     ! Write the final results
     if (iproc==0) then
         if (input%lin%constrained_dft) then

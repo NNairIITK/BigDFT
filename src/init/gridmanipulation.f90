@@ -525,6 +525,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3,i1s,i1e,i2s,i2e,i3s,i3e
    integer :: natp, isat, iiat
    real(gp) :: dx,dy2,dz2,rad,dy2pdz2,radsq
+   logical :: parallel
 
    call f_routine(id='fill_logrid')
 
@@ -589,8 +590,16 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
       end if
    end if
 
-   ! MPI parallelization over the atoms
-   call parallelize_over_atoms(nat, bigdft_mpi%iproc, bigdft_mpi%nproc, natp, isat)
+   ! MPI parallelization over the atoms, ony if there are many atoms.
+   ! Maybe 200 is too low, but in this way there is a test for this feature.
+   if (nat>200) then
+       call parallelize_over_atoms(nat, bigdft_mpi%iproc, bigdft_mpi%nproc, natp, isat)
+       parallel = .true.
+   else
+       natp = nat
+       isat = 0
+       parallel = .false.
+   end if
 
    do iat=1,natp
       iiat = iat + isat
@@ -664,7 +673,9 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
       end if
    enddo
 
-   call mpiallred(logrid, mpi_lor, comm=bigdft_mpi%mpi_comm)
+   if (parallel) then
+       call mpiallred(logrid, mpi_lor, comm=bigdft_mpi%mpi_comm)
+   end if
 
    call f_release_routine()
 

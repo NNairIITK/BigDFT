@@ -592,7 +592,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           !!     tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, tt)
           !!if (iproc==0) call yaml_map('max assymetry of S',tt)
           call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+               tmb%foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, &
                energs%ebs, &
                calculate_minusonehalf=invert_overlap_matrix, foe_verbosity=2, symmetrize_kernel=.true.)
@@ -1104,7 +1104,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
                    verbosity=0, &
-                   check_accur=order_taylor<1000, max_error=max_error, mean_error=mean_error)
+                   check_accur=order_taylor<1000, max_error=max_error, mean_error=mean_error, &
+                   ice_obj=tmb%ice_obj)
               call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
           end if
           call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
@@ -2955,7 +2956,8 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
        verbosity=0, &
-       check_accur=.true., max_error=max_error, mean_error=mean_error)
+       check_accur=.true., max_error=max_error, mean_error=mean_error, &
+       ice_obj=tmb%ice_obj)
   call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
 
 
@@ -3191,7 +3193,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
       !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
       call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
-           foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+           foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
            ebs, calculate_minusonehalf=.true., foe_verbosity=2, symmetrize_kernel=.true.)
       !call fermi_operator_expansion(iproc, nproc, &
@@ -3222,7 +3224,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
       !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
       call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
-           foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+           foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
            ebs, calculate_minusonehalf=.true., foe_verbosity=2, symmetrize_kernel=.true.)
       !call fermi_operator_expansion(iproc, nproc, &

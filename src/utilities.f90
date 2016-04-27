@@ -352,6 +352,7 @@ program utilities
        calc_array = f_malloc((/ntmb,npdos/),id='calc_array')
        pdos_name = f_malloc_str(len(pdos_name),npdos,id='pdos_name')
 
+
        do ipdos=1,npdos
            do itmb=1,ntmb
                calc_array(itmb,ipdos) = .false.
@@ -359,6 +360,9 @@ program utilities
        end do
        ipdos = 0
        !npdos_loop: do !ipdos=1,npdos
+       if (bigdft_mpi%iproc==0) then
+           call yaml_sequence_open('Atoms and support functions to be taken into account for each partial density of states')
+       end if
            do 
                !read(iunit01,*,iostat=ios) cc, ival
                read(iunit,'(a128)',iostat=ios) line
@@ -368,12 +372,21 @@ program utilities
                if (cc=='#') then
                    ipdos = ipdos + 1
                    pdos_name(ipdos) = trim(cname)
+                   if (bigdft_mpi%iproc==0) then
+                       if (ipdos>1) then
+                           call yaml_mapping_close()
+                       end if
+                       call yaml_sequence(advance='no')
+                       call yaml_mapping_open(trim(pdos_name(ipdos)))
+                   end if
                    cycle 
                end if
-               write(*,*) 'ipdos, line', ipdos, line
                read(line,*,iostat=ios) cc, ival
-               do itype=1,ntypes
-                   if (trim(atomnames(itype))==trim(cc)) then
+                   if (bigdft_mpi%iproc==0) then
+                       call yaml_map(trim(cc),ival)
+                   end if
+               do itype=1,smmd%ntypes
+                   if (trim(smmd%atomnames(itype))==trim(cc)) then
                        iitype = itype
                        exit
                    end if
@@ -393,9 +406,14 @@ program utilities
                    end if
                end do
            end do
+       if (bigdft_mpi%iproc==0) then
+           call yaml_mapping_close()
+           call yaml_sequence_close()
+       end if
 
        !end do npdos_loop
        call f_close(iunit)
+
 
        energy_arr = f_malloc0(norbks,id='energy_arr')
        occup_arr = f_malloc0((/npdos,norbks/),id='occup_arr')
@@ -403,6 +421,10 @@ program utilities
 
        denskernel = f_malloc((/ntmb,smat_s%nfvctrp/),id='denskernel')
        pdos = f_malloc0((/npt,npdos/),id='pdos')
+       if (bigdft_mpi%iproc==0) then
+           call yaml_comment('PDoS calculation',hfill='~')
+           call yaml_mapping_open('Calculating PDoS')
+       end if
        ! Calculate a partial kernel for each KS orbital
        !do ipdos=1,npdos
            !if (bigdft_mpi%iproc==0) call yaml_map('PDoS number',ipdos)
@@ -485,8 +507,10 @@ program utilities
        !end do
        call mpiallred(occup_arr, mpi_sum, comm=bigdft_mpi%mpi_comm)
        call mpiallred(energy_arr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+       if (bigdft_mpi%iproc==0) call yaml_mapping_close()
 
        if (bigdft_mpi%iproc==0) then
+           call yaml_comment('Calculation complete',hfill='=')
            output_pdos='PDoS.gp'
            call yaml_map('output file',trim(output_pdos))
            iunit = 99
@@ -523,7 +547,7 @@ program utilities
                    colorname = 'color'
                end if
                if (ipdos<npdos) then
-                   lineend = ' ,\\'
+                   lineend = ' ,'//trim(backslash)
                else
                    lineend = ''
                end if

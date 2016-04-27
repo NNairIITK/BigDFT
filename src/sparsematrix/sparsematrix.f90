@@ -1143,7 +1143,7 @@ module sparsematrix
               err_name='SPARSEMATRIX_RUNTIME_ERROR')
      end if
    
-     !$omp parallel do schedule(static) &
+     !$omp parallel do schedule(guided) &
      !$omp default(none) private(iseq, ii) &
      !$omp shared(smat, a_seq, a)
      do iseq=1,smat%smmm%nseq

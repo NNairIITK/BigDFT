@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-04-26 11:10:33.802
+ Timestamp of this run                 : 2016-04-27 13:05:18.838
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -1390,12 +1390,12 @@
      -  #--------------------------------------------------------------- ispin: 1, itemp: 1
        decay length of error function  :  5.000E-02
        determine eigenvalue bounds:
-       -  {npl:  120, bounds:  [ -1.0,  1.0 ], penalty: -2.7E+08, ok:  [  Yes,  No ]}
-       -  {npl:  130, bounds:  [ -1.0,  1.2 ], penalty: -2.6E+08, ok:  [  Yes,  No ]}
-       -  {npl:  140, bounds:  [ -1.0,  1.44 ], penalty: -3.7E+07, ok:  [  Yes,  No ]}
-       -  {npl:  150, bounds:  [ -1.0,  1.728 ], penalty: -2.3E+04, ok:  [  Yes,  No ]}
-       -  {npl:  170, bounds:  [ -1.0,  2.0736 ], penalty: -2.3E-02, ok:  [  Yes,  No ]}
-       -  {npl:  180, bounds:  [ -1.0,  2.48832 ], penalty: -1.4E-09, ok:  [  Yes,  Yes ]}
+       -  {npl:  120, bounds:  [ -1.000,  1.000 ], penalty: -2.7E+08, ok:  [  Yes,  No ]}
+       -  {npl:  130, bounds:  [ -1.000,  1.200 ], penalty: -2.6E+08, ok:  [  Yes,  No ]}
+       -  {npl:  140, bounds:  [ -1.000,  1.440 ], penalty: -3.7E+07, ok:  [  Yes,  No ]}
+       -  {npl:  150, bounds:  [ -1.000,  1.728 ], penalty: -2.3E+04, ok:  [  Yes,  No ]}
+       -  {npl:  170, bounds:  [ -1.000,  2.074 ], penalty: -2.3E-02, ok:  [  Yes,  No ]}
+       -  {npl:  180, bounds:  [ -1.000,  2.488 ], penalty: -1.4E-09, ok:  [  Yes,  Yes ]}
        determine Fermi energy:
        -  { #-------------------------------------------------------------------- it FOE: 1
  eF: -1.000000E-01, Tr(K): -6.2633258E-05, D Tr(K): -7.22E+02, new eF: bisec bounds}
@@ -1447,7 +1447,7 @@
      -  #--------------------------------------------------------------- ispin: 1, itemp: 2
        decay length of error function  :  2.500E-02
        determine eigenvalue bounds:
-       -  {npl:  360, bounds:  [ -1.0,  2.48832 ], penalty: -1.4E-09, ok:  [  Yes,  Yes ]}
+       -  {npl:  360, bounds:  [ -1.000,  2.488 ], penalty: -1.4E-09, ok:  [  Yes,  Yes ]}
        determine Fermi energy:
        -  { #-------------------------------------------------------------------- it FOE: 1
  eF:  1.215622E+00, Tr(K):  6.5363430E+02, D Tr(K): -6.84E+01, new eF: bisec bounds}
@@ -1479,7 +1479,7 @@
      -  #--------------------------------------------------------------- ispin: 1, itemp: 3
        decay length of error function  :  1.250E-02
        determine eigenvalue bounds:
-       -  {npl:  740, bounds:  [ -1.0,  2.48832 ], penalty: -1.4E-09, ok:  [  Yes,  Yes ]}
+       -  {npl:  740, bounds:  [ -1.000,  2.488 ], penalty: -1.4E-09, ok:  [  Yes,  Yes ]}
        determine Fermi energy:
        -  { #-------------------------------------------------------------------- it FOE: 1
  eF:  1.250319E+00, Tr(K):  6.6346529E+02, D Tr(K): -5.85E+01, new eF: bisec bounds}
@@ -1509,7 +1509,7 @@
      -  #--------------------------------------------------------------- ispin: 1, itemp: 4
        decay length of error function  :  6.250E-03
        determine eigenvalue bounds:
-       -  {npl:  1450, bounds:  [ -1.0,  2.48832 ], penalty: -1.4E-09, ok:  [  Yes,  Yes ]}
+       -  {npl:  1450, bounds:  [ -1.000,  2.488 ], penalty: -1.4E-09, ok:  [  Yes,  Yes ]}
        determine Fermi energy:
        -  { #-------------------------------------------------------------------- it FOE: 1
  eF:  1.280127E+00, Tr(K):  7.1750594E+02, D Tr(K): -4.49E+00, new eF: bisec bounds}
@@ -1595,7 +1595,7 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  6.250E-03
          determine eigenvalue bounds:
-         -  {npl:  1260, bounds:  [ -0.9,  2.239488 ], penalty: -1.6E-06, 
+         -  {npl:  1260, bounds:  [ -0.900,  2.239 ], penalty: -1.6E-06, 
               ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
@@ -2390,26 +2390,26 @@
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
    S^-1/2                              : recalculate
    determine eigenvalue bounds:
-   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty: -4.8E-03, ok: [
-  Yes,  Yes], exp accur:  [  1.39E-09 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.450,  1.350 ], penalty:  7.8E-03, ok: [
+  Yes,  Yes], exp accur:  [  1.47E-09 ]}
    Kernel calculation:
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
      determine eigenvalue bounds:
-     -  {npl:  550, bounds:  [ -1.0,  1.0 ], penalty: -5.8E+08, ok:  [  Yes,  No ]}
-     -  {npl:  620, bounds:  [ -1.0,  1.2 ], penalty: -9.0E+07, ok:  [  Yes,  No ]}
-     -  {npl:  680, bounds:  [ -1.0,  1.44 ], penalty: -1.1E+07, ok:  [  Yes,  No ]}
-     -  {npl:  760, bounds:  [ -1.0,  1.728 ], penalty: -1.2E+03, ok:  [  Yes,  No ]}
-     -  {npl:  810, bounds:  [ -1.0,  2.0736 ], penalty: -1.2E-03, ok:  [  Yes,  Yes ]}
+     -  {npl:  550, bounds:  [ -1.000,  1.000 ], penalty: -5.8E+08, ok:  [  Yes,  No ]}
+     -  {npl:  620, bounds:  [ -1.000,  1.200 ], penalty: -9.0E+07, ok:  [  Yes,  No ]}
+     -  {npl:  680, bounds:  [ -1.000,  1.440 ], penalty: -1.1E+07, ok:  [  Yes,  No ]}
+     -  {npl:  760, bounds:  [ -1.000,  1.728 ], penalty: -1.2E+03, ok:  [  Yes,  No ]}
+     -  {npl:  810, bounds:  [ -1.000,  2.074 ], penalty: -1.2E-03, ok:  [  Yes,  Yes ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
- eF: -1.000000E-01, Tr(K): -1.9082441E-05, D Tr(K): -7.21E+02, new eF: bisec bounds}
+ eF: -1.000000E-01, Tr(K): -1.9082438E-05, D Tr(K): -7.21E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 2
- eF:  1.000000E-01, Tr(K): -5.2877628E-05, D Tr(K): -7.21E+02, new eF: bisec bounds}
+ eF:  1.000000E-01, Tr(K): -5.2877621E-05, D Tr(K): -7.21E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 3
- eF:  1.900000E-01, Tr(K):  5.8983736E-05, D Tr(K): -7.21E+02, new eF: bisec bounds}
+ eF:  1.900000E-01, Tr(K):  5.8983728E-05, D Tr(K): -7.21E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 4
- eF:  2.890000E-01, Tr(K): -1.5447425E-04, D Tr(K): -7.21E+02, new eF: bisec bounds}
+ eF:  2.890000E-01, Tr(K): -1.5447423E-04, D Tr(K): -7.21E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 5
  eF:  3.979000E-01, Tr(K):  1.5905258E-03, D Tr(K): -7.21E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 6
@@ -2427,7 +2427,7 @@
      -  { #--------------------------------------------------------------------- it FOE: 12
  eF:  1.534368E+00, Tr(K):  7.9641280E+02, D Tr(K):  7.54E+01, new eF: bisection/secant}
      -  { #--------------------------------------------------------------------- it FOE: 13
- eF:  1.048397E+00, Tr(K):  6.1799163E+02, D Tr(K): -1.03E+02, new eF: bisection/secant}
+ eF:  1.048397E+00, Tr(K):  6.1799162E+02, D Tr(K): -1.03E+02, new eF: bisection/secant}
      -  { #--------------------------------------------------------------------- it FOE: 14
  eF:  1.310173E+00, Tr(K):  7.1921597E+02, D Tr(K): -1.78E+00, new eF: bisection/secant}
      -  { #--------------------------------------------------------------------- it FOE: 15
@@ -2444,38 +2444,42 @@
  eF:  1.325061E+00, Tr(K):  7.2100000E+02, D Tr(K):  9.93E-10, new eF: linear interpol}
      Asymmetry of kernel               :  4.05E-02
      symmetrize_kernel                 :  Yes
-     EBS                               :  5.129131155549E+02
-     EBS higher temperature            :  5.128948057594E+02
-     difference                        : -1.830979548106E-02
-     relative difference               :  3.569765507215E-05
+     EBS                               :  5.129131166226E+02
+     EBS higher temperature            :  5.128948068252E+02
+     difference                        : -1.830979741248E-02
+     relative difference               :  3.569765876344E-05
      modify error function decay length: increase
-     trace(KS)                         :  720.9999992439848
+     trace(KS)                         :  721.0000007259766
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  calculate LUMO kernel:
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
    S^-1/2                              : recalculate
    determine eigenvalue bounds:
-   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty: -4.8E-03, ok: [
-  Yes,  Yes], exp accur:  [  1.39E-09 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.405,  1.215 ], penalty: -8.0E-01, ok: [
+  Yes,  No], exp accur:  [  1.55E-09 ]}
+   -  {npl:  20, scale:  5.00E-01, bounds:  [  0.405,  1.458 ], penalty:  4.9E+01, ok: [
+  No,  Yes], exp accur:  [  3.52E-11 ]}
+   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.338,  1.458 ], penalty:  3.0E-03, ok: [
+  Yes,  Yes], exp accur:  [  4.62E-10 ]}
    Kernel calculation:
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
      determine eigenvalue bounds:
-     -  {npl:  550, bounds:  [ -1.0,  1.0 ], penalty: -5.8E+08, ok:  [  Yes,  No ]}
-     -  {npl:  620, bounds:  [ -1.0,  1.2 ], penalty: -9.0E+07, ok:  [  Yes,  No ]}
-     -  {npl:  680, bounds:  [ -1.0,  1.44 ], penalty: -1.1E+07, ok:  [  Yes,  No ]}
-     -  {npl:  760, bounds:  [ -1.0,  1.728 ], penalty: -1.2E+03, ok:  [  Yes,  No ]}
-     -  {npl:  810, bounds:  [ -1.0,  2.0736 ], penalty: -1.2E-03, ok:  [  Yes,  Yes ]}
+     -  {npl:  550, bounds:  [ -1.000,  1.000 ], penalty: -5.8E+08, ok:  [  Yes,  No ]}
+     -  {npl:  620, bounds:  [ -1.000,  1.200 ], penalty: -9.0E+07, ok:  [  Yes,  No ]}
+     -  {npl:  680, bounds:  [ -1.000,  1.440 ], penalty: -1.1E+07, ok:  [  Yes,  No ]}
+     -  {npl:  760, bounds:  [ -1.000,  1.728 ], penalty: -1.2E+03, ok:  [  Yes,  No ]}
+     -  {npl:  810, bounds:  [ -1.000,  2.074 ], penalty: -1.2E-03, ok:  [  Yes,  Yes ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
- eF: -1.000000E-01, Tr(K): -1.9082441E-05, D Tr(K): -7.23E+02, new eF: bisec bounds}
+ eF: -1.000000E-01, Tr(K): -1.9082440E-05, D Tr(K): -7.23E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 2
- eF:  1.000000E-01, Tr(K): -5.2877628E-05, D Tr(K): -7.23E+02, new eF: bisec bounds}
+ eF:  1.000000E-01, Tr(K): -5.2877625E-05, D Tr(K): -7.23E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 3
- eF:  1.900000E-01, Tr(K):  5.8983736E-05, D Tr(K): -7.23E+02, new eF: bisec bounds}
+ eF:  1.900000E-01, Tr(K):  5.8983733E-05, D Tr(K): -7.23E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 4
- eF:  2.890000E-01, Tr(K): -1.5447425E-04, D Tr(K): -7.23E+02, new eF: bisec bounds}
+ eF:  2.890000E-01, Tr(K): -1.5447424E-04, D Tr(K): -7.23E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 5
  eF:  3.979000E-01, Tr(K):  1.5905258E-03, D Tr(K): -7.23E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 6
@@ -2510,17 +2514,17 @@
  eF:  1.343837E+00, Tr(K):  7.2300000E+02, D Tr(K): -3.56E-08, new eF: linear interpol}
      Asymmetry of kernel               :  4.40E-02
      symmetrize_kernel                 :  Yes
-     EBS                               :  5.155757548555E+02
-     EBS higher temperature            :  5.155111000170E+02
-     difference                        : -6.465483849968E-02
-     relative difference               :  1.254031786615E-04
+     EBS                               :  5.155757553303E+02
+     EBS higher temperature            :  5.155111004901E+02
+     difference                        : -6.465484018725E-02
+     relative difference               :  1.254031818192E-04
      modify error function decay length: decrease
-     trace(KS)                         :  722.9999991728503
+     trace(KS)                         :  722.9999998328672
      need to repeat with sharper decay (new):  Yes
    -  #----------------------------------------------------------------- ispin: 1, itemp: 2
      decay length of error function    :  5.000E-03
      determine eigenvalue bounds:
-     -  {npl:  1460, bounds:  [ -1.0,  2.0736 ], penalty: -1.2E-03, ok:  [  Yes,  Yes ]}
+     -  {npl:  1460, bounds:  [ -1.000,  2.074 ], penalty: -1.2E-03, ok:  [  Yes,  Yes ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
  eF:  1.133744E+00, Tr(K):  6.5802617E+02, D Tr(K): -6.50E+01, new eF: bisec bounds}
@@ -2542,19 +2546,19 @@
  eF:  1.343041E+00, Tr(K):  7.2300000E+02, D Tr(K):  3.10E-09, new eF: linear interpol}
      Asymmetry of kernel               :  4.72E-02
      symmetrize_kernel                 :  Yes
-     EBS                               :  5.155743621136E+02
-     EBS higher temperature            :  5.155645822183E+02
-     difference                        : -9.779895291672E-03
-     relative difference               :  1.896893253493E-05
+     EBS                               :  5.155743625884E+02
+     EBS higher temperature            :  5.155645826924E+02
+     difference                        : -9.779895970610E-03
+     relative difference               :  1.896893383432E-05
      modify error function decay length: increase
-     trace(KS)                         :  722.9999992120634
+     trace(KS)                         :  722.9999998720841
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  HOMO-LUMO analysis:
-   HOMO energy                         :  [  1.325061191052131 ]
-   LUMO energy                         :  [  1.343041467904577 ]
-   HOMO-LUMO gap (Ha)                  :  [  1.7980276852445742E-002 ]
-   HOMO-LUMO gap (eV)                  :  [  0.4892682367375031 ]
+   HOMO energy                         :  [  1.32506119094174 ]
+   LUMO energy                         :  [  1.343041467448812 ]
+   HOMO-LUMO gap (Ha)                  :  [  1.7980276507071569E-002 ]
+   HOMO-LUMO gap (eV)                  :  [  0.4892682273393935 ]
  Gross support functions moments:
    Orthonormalization                  : on-site
    Multipole coefficients:
@@ -12862,8 +12866,8 @@
      x                                 : -1/2
    order                               :  1020
    determine eigenvalue bounds:
-   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty: -4.8E-03, ok: [
-  Yes,  Yes], exp accur:  [  1.39E-09 ]}
+   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.338,  1.458 ], penalty:  3.0E-03, ok: [
+  Yes,  Yes], exp accur:  [  4.62E-10 ]}
  Total charge                          :  7.219978255314E+02
   #---------------------------------------------------------------------- Forces Calculation
  Electric Dipole Moment (AU):
@@ -12891,8 +12895,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  52.91
-   Elapsed time (s)                    :  53.01
+   CPU time (s)                        :  53.26
+   Elapsed time (s)                    :  53.69
  BigDFT infocode                       :  0
  Average noise forces: {x: -7.71869088E-02, y:  8.95461943E-01, z:  5.26712841E-01, 
                     total:  1.04174677E+00}
@@ -13265,14 +13269,14 @@
  Energy (Hartree)                      : -4.09903199565705108E+02
  Force Norm (Hartree/Bohr)             :  1.99267915414512800E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  52632
-   Tot. No. of Deallocations           :  52632
+   Tot. No. of Allocations             :  57196
+   Tot. No. of Deallocations           :  57196
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  536.798
      for the array                     : w%w2
      in the routine                    : initialize_work_arrays_sumrho
-     Memory Peak of process            : 652.108 MB
- Walltime since initialization         : 00:00:54.225248161
- Max No. of dictionaries used          :  16218 #( 1002 still in use)
+     Memory Peak of process            : 637.940 MB
+ Walltime since initialization         : 00:00:54.937349583
+ Max No. of dictionaries used          :  16451 #( 1002 still in use)
  Number of dictionary folders allocated:  2
