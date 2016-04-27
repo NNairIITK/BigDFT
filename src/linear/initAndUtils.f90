@@ -563,13 +563,14 @@ end subroutine lzd_init_llr
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, locregCenter, glr_tmp, &
            useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, astruct, input, &
-           orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
+           orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lice, lbcollcom_sr)
   use module_base
   use module_types
   use communications_base, only: p2pComms, comms_linear_null, p2pComms_null, allocate_p2pComms_buffer
   use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
                                  initialize_communication_potential
   use foe_base, only: foe_data, foe_data_null
+  use foe_common, only: init_foe
   use locregs, only: locreg_null,copy_locreg_descriptors
   use locregs_init, only: initLocregs
   implicit none
@@ -591,11 +592,13 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   type(foe_data), intent(inout),optional :: lfoe
   type(comms_linear), intent(inout) :: lbcollcom
   type(comms_linear), intent(inout),optional :: lbcollcom_sr
+  type(foe_data),intent(inout),optional :: lice
 
   
   ! Local variables
   integer :: iorb, ilr, npsidim, istat
   real(kind=8),dimension(:,:), allocatable :: locreg_centers
+  real(kind=8),dimension(:), allocatable :: charge_fake
   character(len=*), parameter :: subname='update_locreg'
 
   call timing(iproc,'updatelocreg1','ON') 
@@ -655,8 +658,17 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       do ilr=1,lzd%nlr
           locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
       end do
-      call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, lfoe)
       call f_free(locreg_centers)
+      call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, lfoe)
+      ! Do the same for the object which handles the calculation of the inverse.
+      charge_fake = f_malloc0(input%nspin,id='charge_fake')
+      call init_foe(iproc, nproc, input%nspin, charge_fake, lice, 0.d0, &
+           input%evbounds_nsatur, input%evboundsshrink_nsatur, &
+           0.5d0, 1.5d0, input%lin%fscale, input%lin%ef_interpol_det, &
+           input%lin%ef_interpol_chargediff, &
+           input%fscale_lowerbound, input%fscale_upperbound, 1.d0)
+      call f_free(charge_fake)
+
   end if
 
   call init_comms_linear(iproc, nproc, input%imethod_overlap, npsidim_orbs, orbs, lzd, input%nspin, lbcollcom)
@@ -930,7 +942,7 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp(:,1), locrad_tmp(:,2), locrad_tmp(:,3), locregCenter, tmb%lzd%glr, &
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%ham_descr%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
-       tmb%ham_descr%comgp, tmb%ham_descr%collcom)
+       tmb%ham_descr%comgp, tmb%ham_descr%collcom, lice=tmb%ice_obj)
 
   call allocate_auxiliary_basis_function(max(tmb%ham_descr%npsidim_comp,tmb%ham_descr%npsidim_orbs), subname, &
        tmb%ham_descr%psi, tmb%hpsi)
@@ -1269,9 +1281,12 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      !temporary,  moved from update_locreg
      tmb%orbs%eval=-0.5_gp
-     call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, locrad_kernel, locrad_mult, locregCenter, lzd_tmp%glr, .false., &
-          denspot%dpbox%nscatterarr, hx, hy, hz, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%lzd, &
-          tmb%npsidim_orbs, tmb%npsidim_comp, tmb%comgp, tmb%collcom, tmb%foe_obj, tmb%collcom_sr)
+     call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, locrad_kernel, &
+          locrad_mult, locregCenter, lzd_tmp%glr, .false., &
+          denspot%dpbox%nscatterarr, hx, hy, hz, at%astruct, &
+          input, KSwfn%orbs, tmb%orbs, tmb%lzd, &
+          tmb%npsidim_orbs, tmb%npsidim_comp, tmb%comgp, tmb%collcom, &
+          lfoe=tmb%foe_obj, lice=tmb%ice_obj, lbcollcom_sr=tmb%collcom_sr)
 
      call f_free(locregCenter)
      call f_free(locrad_kernel)
