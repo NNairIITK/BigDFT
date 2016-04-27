@@ -129,22 +129,34 @@ module foe_base
       select case (fieldname)
       case ("ef")
           if (.not.present(ind)) then
-              stop 'foe_data_set_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%ef)) then
+              call f_err_throw('ef not associated')
           end if
           foe_obj%ef(ind) = val
       case ("evlow")
           if (.not.present(ind)) then
-              stop 'foe_data_set_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%evlow)) then
+              call f_err_throw('evlow not associated')
           end if
           foe_obj%evlow(ind) = val
       case ("evhigh")
           if (.not.present(ind)) then
-              stop 'foe_data_set_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%evhigh)) then
+              call f_err_throw('evhigh not associated')
           end if
           foe_obj%evhigh(ind) = val
       case ("bisection_shift")
           if (.not.present(ind)) then
-              stop 'foe_data_set_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%bisection_shift)) then
+              call f_err_throw('bisection_shift not associated')
           end if
           foe_obj%bisection_shift(ind) = val
       case ("fscale")
@@ -155,7 +167,10 @@ module foe_base
           foe_obj%ef_interpol_chargediff = val
       case ("charge")
           if (.not.present(ind)) then
-              stop 'foe_data_set_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%charge)) then
+              call f_err_throw('charge not associated')
           end if
           foe_obj%charge(ind) = val
       case ("fscale_lowerbound")
@@ -170,7 +185,10 @@ module foe_base
           foe_obj%evhigh_max = val
       case ("eval_multiplicator")
           if (.not.present(ind)) then
-              stop 'foe_data_set_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%eval_multiplicator)) then
+              call f_err_throw('eval_multiplicator not associated')
           end if
           foe_obj%eval_multiplicator(ind) = val
       case default
@@ -188,22 +206,34 @@ module foe_base
       select case (fieldname)
       case ("ef")
           if (.not.present(ind)) then
-              stop 'foe_data_get_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%ef)) then
+              call f_err_throw('ef not associated')
           end if
           val = foe_obj%ef(ind)
       case ("evlow")
           if (.not.present(ind)) then
-              stop 'foe_data_get_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%evlow)) then
+              call f_err_throw('evlow not associated')
           end if
           val = foe_obj%evlow(ind)
       case ("evhigh")
           if (.not.present(ind)) then
-              stop 'foe_data_get_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%evhigh)) then
+              call f_err_throw('evhigh not associated')
           end if
           val = foe_obj%evhigh(ind)
       case ("bisection_shift")
           if (.not.present(ind)) then
-              stop 'foe_data_get_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%bisection_shift)) then
+              call f_err_throw('bisection_shift not associated')
           end if
           val = foe_obj%bisection_shift(ind)
       case ("fscale")
@@ -214,7 +244,10 @@ module foe_base
           val = foe_obj%ef_interpol_chargediff
       case ("charge")
           if (.not.present(ind)) then
-              stop 'foe_data_get_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%charge)) then
+              call f_err_throw('charge not associated')
           end if
           val = foe_obj%charge(ind)
       case ("fscale_lowerbound")
@@ -229,7 +262,10 @@ module foe_base
           val = foe_obj%evhigh_max
       case ("eval_multiplicator")
           if (.not.present(ind)) then
-              stop 'foe_data_get_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%eval_multiplicator)) then
+              call f_err_throw('eval_multiplicator not associated')
           end if
           val = foe_obj%eval_multiplicator(ind)
       case default
