@@ -157,7 +157,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
 
   call allocate_local_arrays()
 
-
+  ! extra states must be equal to number of empty states
+  ! could overwrite norbsempty, but instead leave it to user
+  if (input%lin%extra_states /= input%norbsempty) then
+      stop 'ERROR: input%lin%extra_states /= input%norbsempty'
+  end if
 
   ! Allocate the communications buffers needed for the communications of the potential and
   ! post the messages. This will send to each process the part of the potential that this process
@@ -205,11 +209,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
      ldiis_coeff%alpha_coeff=input%lin%alphaSD_coeff
 !!$     call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
 !!$     call allocate_DIIS_coeff(tmb, ldiis_coeff)
-     if (input%lin%extra_states==0) then
-        call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
-     else
-        call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*tmb%orbs%norbp,1,ldiis_coeff)
-     end if
+     call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
   end if
 
   tmb%can_use_transposed=.false.
@@ -301,30 +301,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   end if
 
 
-  ! modify tmb%orbs%occup, as we normally use orbs%occup elsewhere
-  if (input%lin%extra_states>0) then
-     call f_zero(tmb%orbs%norb,tmb%orbs%occup(1))
-     call vcopy(KSwfn%orbs%norb, KSwfn%orbs%occup(1), 1, tmb%orbs%occup(1), 1)
-     ! occupy the next few states - don't need to preserve the charge as only using for support function optimization
-     do iorb=1,tmb%orbs%norb
-        if (tmb%orbs%occup(iorb)==1.0_gp) then
-           tmb%orbs%occup(iorb)=2.0_gp
-        else if (tmb%orbs%occup(iorb)==0.0_gp) then
-           do jorb=iorb,min(iorb+input%lin%extra_states-1,tmb%orbs%norb)
-             tmb%orbs%occup(jorb)=2.0_gp
-           end do
-           exit
-        end if
-     end do
+  ! only use tmb%orbs%occup for calculating energy components, otherwise using KSwfn%orbs%occup
+  !SM: This is just to make sure that the value of a open shell calculation is equivalent to a closed shell calculations.
+  ! Maybe one should change this to 2 and 1...
+  if (input%nspin==1) then
+      tmb%orbs%occup=1.0d0
   else
-     ! only use tmb%orbs%occup for calculating energy components, otherwise using KSwfn%orbs%occup
-     !SM: This is just to make sure that the value of a open shell calculation is equivalent to a closed shell calculations.
-     ! Maybe one should change this to 2 and 1...
-     if (input%nspin==1) then
-         tmb%orbs%occup=1.0d0
-     else
-         tmb%orbs%occup=0.5d0
-     end if
+      tmb%orbs%occup=0.5d0
   end if
 
   ! if we want to ignore read in coeffs and diag at start - EXPERIMENTAL
@@ -497,11 +480,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
       if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
          !call initialize_DIIS_coeff(ldiis_coeff_hist, ldiis_coeff)
          call DIIS_free(ldiis_coeff)
-         if (input%lin%extra_states==0) then
-            call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
-         else
-            call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*tmb%orbs%norbp,1,ldiis_coeff)
-         end if
+         call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
 
          ! need to reallocate DIIS matrices to adjust for changing history length
 !!$         if (ldiis_coeff_changed) then
@@ -1459,11 +1438,7 @@ end if
                  !PB: to the unconstrained to get next matrix.
                  if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
                     call DIIS_free(ldiis_coeff)
-                    if (input%lin%extra_states==0) then
-                       call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
-                    else
-                       call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*tmb%orbs%norbp,1,ldiis_coeff)
-                    end if
+                    call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
                  end if
                  ! Set the DIIS for the constrained
                  call DIIS_set(30,valpha,1,1,vdiis)
@@ -1513,11 +1488,7 @@ end if
                  !PB: to the unconstrained to get next matrix.
                  if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then 
                     call DIIS_free(ldiis_coeff)
-                    if (input%lin%extra_states==0) then
-                       call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
-                    else
-                       call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*tmb%orbs%norbp,1,ldiis_coeff)
-                    end if
+                    call DIIS_set(ldiis_coeff_hist,0.1_gp,tmb%orbs%norb*KSwfn%orbs%norbp,1,ldiis_coeff)
                  end if
                  ! Set the DIIS for the constrained
                  call DIIS_set(30,valpha,1,1,vdiis)

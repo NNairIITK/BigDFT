@@ -1,0 +1,18 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ mode:
+   method: lj
+ md:
+     mdsteps: 10
+     timestep: 1.0
+     temperature: 10.0
+     print_frequency: 1
+     thermostat: nose_hoover_chain
+     nose_chain_length: 10
+     nose_yoshida_factor: 7
+     nose_frequency: 1000.0
+     nose_mts_size: 5
+     restart_pos: yes
+     restart_vel: yes
+     restart_nose: yes

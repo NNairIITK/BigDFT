@@ -1091,7 +1091,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   call deallocate_paw_objects(KSwfn%paw)
 
   !if (nvirt > 0 .and. in%inputPsiId == 0) then
-  if (DoDavidson) then
+  if (DoDavidson .and. (inputpsi .hasattr. 'CUBIC')) then
 
      !for a band structure calculation allocate the array in which to put the eigenvalues
      if (associated(in%kptv) .and. in%nkptv > 0) then
