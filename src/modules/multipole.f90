@@ -2348,7 +2348,7 @@ module multipole
                ovrlp, ham, kernel, rxyz, method, do_ortho, projectormode, &
                calculate_multipole_matrices, do_check, &
                nphi, lphi, nphir, hgrids, orbs, collcom, collcom_sr, &
-               lzd, at, denspot, orthpar, shift, multipole_matrix_in)
+               lzd, at, denspot, orthpar, shift, multipole_matrix_in, ice_obj)
       use module_base
       use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, orthon_data, DFT_local_fields, comms_linear
       use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
@@ -2365,6 +2365,7 @@ module multipole
       use matrix_operations, only: overlapPowerGeneral
       !use Poisson_Solver, only: H_potential
       use Poisson_Solver, except_dp => dp, except_gp => gp
+      use foe_base, only: foe_data
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, lmax, ixc
@@ -2391,6 +2392,7 @@ module multipole
       type(orthon_data),intent(in),optional :: orthpar
       real(kind=8),dimension(3),intent(in),optional :: shift
       type(matrices),dimension(-lmax:lmax,0:lmax),intent(in),target,optional :: multipole_matrix_in
+      type(foe_data),intent(inout),optional :: ice_obj
 
       ! Local variables
       integer :: methTransformOverlap, iat, ind, ispin, ishift, iorb, jorb, iiorb, l, m, itype, natpx, isatx, nmaxx, kat, n, i, kkat
@@ -2629,20 +2631,36 @@ module multipole
               newovrlp%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_TASKGROUP, id='newovrlp%matrix_compr')
               call f_memcpy(src=newoverlap, dest=newovrlp%matrix_compr)
               power=1
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
-                   1020, 1, power, -1, &
-                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                   ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
-                   check_accur=.false.)
+              if (present(ice_obj)) then
+                  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                       1020, 1, power, -1, &
+                       imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                       ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                       check_accur=.false., ice_obj=ice_obj)
+              else
+                  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                       1020, 1, power, -1, &
+                       imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                       ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                       check_accur=.false.)
+              end if
               call deallocate_matrices(newovrlp)
               call f_free(newoverlap)
           else
               power(1)=1
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
-                   1020, 1, power, -1, &
-                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                   ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
-                   check_accur=.false.)
+              if (present(ice_obj)) then
+                  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                       1020, 1, power, -1, &
+                       imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                       ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                       check_accur=.false., ice_obj=ice_obj)
+              else
+                  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                       1020, 1, power, -1, &
+                       imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                       ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                       check_accur=.false.)
+              end if
           end if
       end if
 
