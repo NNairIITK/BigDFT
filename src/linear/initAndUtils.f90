@@ -39,7 +39,7 @@ subroutine init_foe_wrapper(iproc, nproc, input, orbs_KS, tmprtr, foe_obj)
   if (input%nspin/=1 .and. input%nspin /=2) call f_err_throw('Wrong value for nspin')
   call init_foe(iproc, nproc, input%nspin, charges, foe_obj, tmprtr, input%evbounds_nsatur, input%evboundsshrink_nsatur, &
        input%lin%evlow, input%lin%evhigh, input%lin%fscale, input%lin%ef_interpol_det, input%lin%ef_interpol_chargediff, &
-       input%fscale_lowerbound, input%fscale_upperbound)
+       input%fscale_lowerbound, input%fscale_upperbound, 1.d0)
 
   call f_release_routine()
 
@@ -817,6 +817,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_local_zone_descriptors(wfn%lzd)
   call deallocate_local_zone_descriptors(wfn%ham_descr%lzd)
   call foe_data_deallocate(wfn%foe_obj)
+  call foe_data_deallocate(wfn%ice_obj)
 
   call f_free_ptr(wfn%coeff)
 
@@ -1223,6 +1224,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call deallocate_local_zone_descriptors(tmb%lzd)
      
      call foe_data_deallocate(tmb%foe_obj)
+     call foe_data_deallocate(tmb%ice_obj)
 
      npsidim_orbs_tmp = tmb%npsidim_orbs
      npsidim_comp_tmp = tmb%npsidim_comp

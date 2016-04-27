@@ -24,7 +24,7 @@ module matrix_operations
       !! power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
       subroutine overlapPowerGeneral(iproc, nproc, comm, iorder, ncalc, power, blocksize, imode, &
                  ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
-                 verbosity, max_error, mean_error, nspinx)
+                 verbosity, max_error, mean_error, nspinx, ice_obj)
            !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
         use sparsematrix, only: compress_matrix, uncompress_matrix, &
                                 transform_sparse_matrix, &
@@ -36,6 +36,7 @@ module matrix_operations
                                 sparsemm_new, matrix_matrix_mult_wrapper
         use parallel_linalg, only: dpotrf_parallel, dpotri_parallel
         use ice, only: inverse_chebyshev_expansion_new
+        use foe_base, only: foe_data
         use yaml_output
         implicit none
         
@@ -50,6 +51,7 @@ module matrix_operations
         integer,intent(in),optional :: verbosity
         real(kind=mp),intent(out),optional :: max_error, mean_error
         integer,intent(in),optional :: nspinx !< overwrite the default spin value
+        type(foe_data),intent(inout),optional :: ice_obj
         
         ! Local variables
         integer :: iorb, jorb, info, iiorb, isorb, norbp, ii, ii_inv, iii, ierr, i, its, maxits
@@ -926,8 +928,15 @@ module matrix_operations
                             stop 'wrong value of power(icalc)'
                         end select
                     end do
-                    call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
-                         ovrlp_smat, inv_ovrlp_smat, ncalc, rpower, ovrlp_mat, inv_ovrlp_mat, verbosity=verbosity_)
+                    if (present(ice_obj)) then
+                        call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+                             ovrlp_smat, inv_ovrlp_smat, ncalc, rpower, ovrlp_mat, &
+                             inv_ovrlp_mat, verbosity=verbosity_, ice_obj=ice_obj)
+                    else
+                        call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+                             ovrlp_smat, inv_ovrlp_smat, ncalc, rpower, ovrlp_mat, &
+                             inv_ovrlp_mat, verbosity=verbosity_)
+                    end if
                     call f_free(rpower)
                     !!call vcopy(ovrlp_smat%nvctr, tmpmat(1), 1, ovrlp_mat%matrix_compr(1), 1)
                     !!call f_free(tmpmat)

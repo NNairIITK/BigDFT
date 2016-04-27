@@ -52,6 +52,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use orbitalbasis
   use io, only: plot_density
   use PSbox, only: PS_gather
+  use foe_common, only: init_foe
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc
@@ -118,6 +119,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   type(dictionary), pointer :: dict_timing_info
   type(orbital_basis) :: ob
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
+  real(kind=8),dimension(:),allocatable :: charge_fake
 
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
@@ -419,6 +421,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!    locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
      !!end do
      call init_foe_wrapper(iproc, nproc, in, KSwfn%orbs, 0.d0, tmb%foe_obj)
+     ! Do the same for the object which handles the calculation of the inverse.
+     charge_fake = f_malloc0(in%nspin,id='charge_fake')
+     call init_foe(iproc, nproc, in%nspin, charge_fake, tmb%ice_obj, 0.d0, in%evbounds_nsatur, in%evboundsshrink_nsatur, &
+            0.5d0, 1.5d0, in%lin%fscale, in%lin%ef_interpol_det, in%lin%ef_interpol_chargediff, &
+            in%fscale_lowerbound, in%fscale_upperbound, 1.d0)
+     call f_free(charge_fake)
+
      !!call f_free(locreg_centers)
      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
 

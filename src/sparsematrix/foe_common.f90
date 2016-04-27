@@ -1122,7 +1122,7 @@ module foe_common
 
     subroutine init_foe(iproc, nproc, nspin, charge, foe_obj, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
                evlow, evhigh, fscale, ef_interpol_det, ef_interpol_chargediff, &
-               fscale_lowerbound, fscale_upperbound)
+               fscale_lowerbound, fscale_upperbound, eval_multiplicator)
       use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
       implicit none
       
@@ -1140,6 +1140,7 @@ module foe_common
       real(kind=mp),intent(in),optional :: fscale_lowerbound
       real(kind=mp),intent(in),optional :: fscale_upperbound
       real(kind=mp),intent(in),optional :: tmprtr
+      real(kind=mp),intent(in),optional :: eval_multiplicator
       
       ! Local variables
       character(len=*), parameter :: subname='init_foe'
@@ -1154,6 +1155,7 @@ module foe_common
       real(kind=mp) :: fscale_lowerbound_
       real(kind=mp) :: fscale_upperbound_
       real(kind=mp) :: tmprtr_
+      real(kind=mp) :: eval_multiplicator_
     
       !call timing(iproc,'init_matrCompr','ON')
       call f_timing(TCAT_CME_AUXILIARY,'ON')
@@ -1161,14 +1163,15 @@ module foe_common
       ! Define the default values... Is there a way to get them from input_variables_definition.yaml?
       evbounds_nsatur_ = 3
       evboundsshrink_nsatur_ =4
-      evlow_ = -0.5d0
-      evhigh_ = 0.5d0
+      evlow_ = -0.5_mp
+      evhigh_ = 0.5_mp
       fscale_ = 2.d-2
       ef_interpol_det_ = 1.d-12
-      ef_interpol_chargediff_ = 1.d0
+      ef_interpol_chargediff_ = 1.0_mp
       fscale_lowerbound_ = 5.d-3
       fscale_upperbound_ = 5.d-2
-      tmprtr_ = 0.d0
+      tmprtr_ = 0.0_mp
+      eval_multiplicator_ = 1.0_mp
 
       if (present(evbounds_nsatur)) evbounds_nsatur_ = evbounds_nsatur
       if (present(evboundsshrink_nsatur)) evboundsshrink_nsatur_ = evboundsshrink_nsatur
@@ -1180,6 +1183,7 @@ module foe_common
       if (present(fscale_lowerbound)) fscale_lowerbound_ = fscale_lowerbound
       if (present(fscale_upperbound)) fscale_upperbound_ = fscale_upperbound
       if (present(tmprtr)) tmprtr_ = tmprtr
+      if (present(eval_multiplicator)) eval_multiplicator_ = eval_multiplicator
     
       foe_obj = foe_data_null()
     
@@ -1199,12 +1203,14 @@ module foe_common
       foe_obj%evlow = f_malloc0_ptr(nspin,id='foe_obj%evlow')
       foe_obj%evhigh = f_malloc0_ptr(nspin,id='foe_obj%evhigh')
       foe_obj%bisection_shift = f_malloc0_ptr(nspin,id='foe_obj%bisection_shift')
+      foe_obj%eval_multiplicator = f_malloc0_ptr(nspin,id='foe_obj%eval_multiplicator')
       do ispin=1,nspin
           call foe_data_set_real(foe_obj,"charge",charge(ispin),ispin)
           call foe_data_set_real(foe_obj,"ef",0.d0,ispin)
           call foe_data_set_real(foe_obj,"evhigh",evhigh_,ispin)
           call foe_data_set_real(foe_obj,"evlow",evlow_,ispin)
           call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,ispin)
+          call foe_data_set_real(foe_obj,"eval_multiplicator",eval_multiplicator_,ispin)
       end do
     
       !call timing(iproc,'init_matrCompr','OF')
@@ -2398,6 +2404,7 @@ module foe_common
       real(kind=mp),dimension(:),allocatable :: cf
 
       call f_routine(id='chebyshev_coefficients_calculate')
+
 
       call f_zero(cc)
       cf = f_malloc0(n,id='cf')

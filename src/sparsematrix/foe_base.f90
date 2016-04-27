@@ -17,6 +17,7 @@ module foe_base
     real(kind=mp) :: tmprtr                      !< temperature (actually not really... 0.d0 means error function with finite temperature)
     integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
     real(kind=mp) :: evlow_min, evhigh_max
+    real(kind=mp),dimension(:),pointer :: eval_multiplicator !< multiplicative factor to scale the eigenvalue spectrum
   end type foe_data
 
 
@@ -57,6 +58,7 @@ module foe_base
       foe_obj%evboundsshrink_nsatur  = uninitialized(foe_obj%evboundsshrink_nsatur)
       foe_obj%evlow_min              = uninitialized(foe_obj%evlow_min)
       foe_obj%evhigh_max             = uninitialized(foe_obj%evhigh_max)
+      nullify(foe_obj%eval_multiplicator)
     end function foe_data_null
 
 
@@ -68,6 +70,7 @@ module foe_base
       call f_free_ptr(foe_obj%evhigh)
       call f_free_ptr(foe_obj%bisection_shift)
       call f_free_ptr(foe_obj%charge)
+      call f_free_ptr(foe_obj%eval_multiplicator)
     end subroutine foe_data_deallocate
 
 
@@ -165,6 +168,11 @@ module foe_base
           foe_obj%evlow_min = val
       case ("evhigh_max")
           foe_obj%evhigh_max = val
+      case ("eval_multiplicator")
+          if (.not.present(ind)) then
+              stop 'foe_data_set_real: ind not present'
+          end if
+          foe_obj%eval_multiplicator(ind) = val
       case default
           stop 'wrong arguments'
       end select
@@ -219,6 +227,11 @@ module foe_base
           val = foe_obj%evlow_min
       case ("evhigh_max")
           val = foe_obj%evhigh_max
+      case ("eval_multiplicator")
+          if (.not.present(ind)) then
+              stop 'foe_data_get_real: ind not present'
+          end if
+          val = foe_obj%eval_multiplicator(ind)
       case default
           stop 'wrong arguments'
       end select
