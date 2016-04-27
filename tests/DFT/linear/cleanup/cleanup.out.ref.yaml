@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-04-26 10:51:03.902
+ Timestamp of this run                 : 2016-04-27 12:46:14.518
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -1206,12 +1206,12 @@
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
      determine eigenvalue bounds:
-     -  {npl:  280, bounds:  [ -0.5,  0.5 ], penalty:  5.8E+05, ok:  [  No,  Yes ]}
-     -  {npl:  310, bounds:  [ -0.6,  0.5 ], penalty:  1.4E+05, ok:  [  No,  Yes ]}
-     -  {npl:  350, bounds:  [ -0.72,  0.5 ], penalty:  1.5E+04, ok:  [  No,  Yes ]}
-     -  {npl:  380, bounds:  [ -0.864,  0.5 ], penalty:  8.9E+01, ok:  [  No,  Yes ]}
-     -  {npl:  420, bounds:  [ -1.0368,  0.5 ], penalty:  8.9E-02, ok:  [  No,  Yes ]}
-     -  {npl:  450, bounds:  [ -1.24416,  0.5 ], penalty:  2.1E-05, ok:  [  Yes,  Yes ]}
+     -  {npl:  280, bounds:  [ -0.500,  0.500 ], penalty:  5.8E+05, ok:  [  No,  Yes ]}
+     -  {npl:  310, bounds:  [ -0.600,  0.500 ], penalty:  1.4E+05, ok:  [  No,  Yes ]}
+     -  {npl:  350, bounds:  [ -0.720,  0.500 ], penalty:  1.5E+04, ok:  [  No,  Yes ]}
+     -  {npl:  380, bounds:  [ -0.864,  0.500 ], penalty:  8.9E+01, ok:  [  No,  Yes ]}
+     -  {npl:  420, bounds:  [ -1.037,  0.500 ], penalty:  8.9E-02, ok:  [  No,  Yes ]}
+     -  {npl:  450, bounds:  [ -1.244,  0.500 ], penalty:  2.1E-05, ok:  [  Yes,  Yes ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
  eF: -1.000000E-01, Tr(K):  8.0000064E+00, D Tr(K):  1.00E+00, new eF: bisec bounds}
@@ -1257,12 +1257,12 @@
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
      determine eigenvalue bounds:
-     -  {npl:  280, bounds:  [ -0.5,  0.5 ], penalty:  5.8E+05, ok:  [  No,  Yes ]}
-     -  {npl:  310, bounds:  [ -0.6,  0.5 ], penalty:  1.4E+05, ok:  [  No,  Yes ]}
-     -  {npl:  350, bounds:  [ -0.72,  0.5 ], penalty:  1.5E+04, ok:  [  No,  Yes ]}
-     -  {npl:  380, bounds:  [ -0.864,  0.5 ], penalty:  8.9E+01, ok:  [  No,  Yes ]}
-     -  {npl:  420, bounds:  [ -1.0368,  0.5 ], penalty:  8.9E-02, ok:  [  No,  Yes ]}
-     -  {npl:  450, bounds:  [ -1.24416,  0.5 ], penalty:  2.1E-05, ok:  [  Yes,  Yes ]}
+     -  {npl:  280, bounds:  [ -0.500,  0.500 ], penalty:  5.8E+05, ok:  [  No,  Yes ]}
+     -  {npl:  310, bounds:  [ -0.600,  0.500 ], penalty:  1.4E+05, ok:  [  No,  Yes ]}
+     -  {npl:  350, bounds:  [ -0.720,  0.500 ], penalty:  1.5E+04, ok:  [  No,  Yes ]}
+     -  {npl:  380, bounds:  [ -0.864,  0.500 ], penalty:  8.9E+01, ok:  [  No,  Yes ]}
+     -  {npl:  420, bounds:  [ -1.037,  0.500 ], penalty:  8.9E-02, ok:  [  No,  Yes ]}
+     -  {npl:  450, bounds:  [ -1.244,  0.500 ], penalty:  2.1E-05, ok:  [  Yes,  Yes ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
  eF: -1.000000E-01, Tr(K):  8.0000064E+00, D Tr(K): -1.00E+00, new eF: bisec bounds}
@@ -1515,8 +1515,8 @@
  - oscillation of the energy, increase counter
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  4.59
-   Elapsed time (s)                    :  4.62
+   CPU time (s)                        :  4.66
+   Elapsed time (s)                    :  4.67
  BigDFT infocode                       :  0
  Average noise forces: {x:  2.53379760E-01, y: -4.11011801E-02, z: -5.80520772E-02, 
                     total:  2.63174188E-01}
@@ -1530,14 +1530,14 @@
  Energy (Hartree)                      : -1.69506869031071261E+01
  Force Norm (Hartree/Bohr)             :  4.32120968772670588E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  6270
-   Tot. No. of Deallocations           :  6270
+   Tot. No. of Allocations             :  6777
+   Tot. No. of Deallocations           :  6777
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  74.557
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 76.840 MB
- Walltime since initialization         : 00:00:05.000225978
- Max No. of dictionaries used          :  7747 #( 1002 still in use)
+     Memory Peak of process            : 78.456 MB
+ Walltime since initialization         : 00:00:05.040153123
+ Max No. of dictionaries used          :  8292 #( 1002 still in use)
  Number of dictionary folders allocated:  1
