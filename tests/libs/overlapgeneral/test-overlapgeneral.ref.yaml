@@ -4,20 +4,22 @@
    number of rows and columns          :  10
    number of segments                  :  18
    number of non-zero elements         :  60
+ sparse matmul load balancing naive / optimized:  [  2.31,  1.26 ]
  total elements                        :  100
  non-zero elements                     :  60
   #segments:  18
  sparsity in %                         :  40.00
- sparse matmul load balancing naive / optimized:  [  2.31,  1.26 ]
+ sparse matrix multiplication initialized:  Yes
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
    -  {number of tasks:  8, start / end:  [  1,  60 ], start / end disjoint:  [  1,  60 ]}
+ sparse matmul load balancing naive / optimized:  [  2.31,  1.26 ]
  total elements                        :  100
  non-zero elements                     :  60
   #segments:  18
  sparsity in %                         :  40.00
- sparse matmul load balancing naive / optimized:  [  2.31,  1.26 ]
+ sparse matrix multiplication initialized:  Yes
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
@@ -2655,12 +2657,12 @@
      x                                 : -1/2
    order                               :  1025
    determine eigenvalue bounds:
-   -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  No ], 
- exp accur:  [  3.61E-10 ]}
-   -  {npl:  18, scale:  5.00E-01, bounds:  [  0.50,  1.80 ], ok:  [  No,  Yes ], 
- exp accur:  [  3.47E-10 ]}
-   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.42,  1.80 ], ok:  [  Yes,  Yes ], 
- exp accur:  [  4.17E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty: -9.4E+00, ok: [
+  Yes,  No], exp accur:  [  1.39E-09 ]}
+   -  {npl:  20, scale:  5.00E-01, bounds:  [  0.500,  1.800 ], penalty:  2.7E+02, ok: [
+  No,  Yes], exp accur:  [  3.17E-11 ]}
+   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.417,  1.800 ], penalty:  2.2E-05, ok: [
+  Yes,  Yes], exp accur:  [  4.17E-10 ]}
    error estimation:
      max / mean error                  :  [  2.35E-02,  5.13E-03 ]
  final result:
@@ -2756,17 +2758,17 @@
      x                                 : 1/2
    order                               :  1025
    determine eigenvalue bounds:
-   -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  No ], 
- exp accur:  [  6.93E-10 ]}
-   -  {npl:  15, scale:  5.00E-01, bounds:  [  0.50,  1.80 ], ok:  [  No,  Yes ], 
- exp accur:  [  4.02E-10 ]}
-   -  {npl:  16, scale:  1.00E+00, bounds:  [  0.42,  1.80 ], ok:  [  Yes,  Yes ], 
- exp accur:  [  8.23E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty: -9.4E+00, ok: [
+  Yes,  No], exp accur:  [  4.03E-11 ]}
+   -  {npl:  15, scale:  5.00E-01, bounds:  [  0.500,  1.800 ], penalty:  1.2E+02, ok: [
+  No,  Yes], exp accur:  [  4.02E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.417,  1.800 ], penalty:  5.6E-03, ok: [
+  Yes,  Yes], exp accur:  [  2.57E-09 ]}
    error estimation:
      max / mean error                  :  [  1.96E-01,  7.41E-02 ]
  final result:
  -  {segment:  1, elements: [
- {coordinates:  [  1,  1 ], value:  1.068463702791777}, 
+ {coordinates:  [  1,  1 ], value:  1.068463703264114}, 
  {coordinates:  [  1,  2 ], value:  0.0}, 
  {coordinates:  [  1,  3 ], value:  0.0}, 
  {coordinates:  [  1,  4 ], value:  0.0}]}
@@ -2776,75 +2778,75 @@
  {coordinates:  [  1,  8 ], value:  0.0}, 
  {coordinates:  [  1,  9 ], value:  0.0}]}
  -  {segment:  3, elements: [
- {coordinates:  [  2,  2 ], value:  0.9974631562224874}, 
- {coordinates:  [  2,  3 ], value:  7.1392694908138765E-002}, 
- {coordinates:  [  2,  4 ], value:  2.7867462921702784E-004}, 
- {coordinates:  [  2,  5 ], value: -2.675682026522793E-003}]}
+ {coordinates:  [  2,  2 ], value:  0.9974631557017308}, 
+ {coordinates:  [  2,  3 ], value:  7.139269528964938E-002}, 
+ {coordinates:  [  2,  4 ], value:  2.7867446642014455E-004}, 
+ {coordinates:  [  2,  5 ], value: -2.6756815684113948E-003}]}
  -  {segment:  4, elements: [
- {coordinates:  [  2,  7 ], value:  1.7499167953924865E-004}, 
- {coordinates:  [  2,  8 ], value: -2.1963017411545053E-003}, 
- {coordinates:  [  2,  9 ], value:  2.0866049397800365E-004}, 
- {coordinates:  [  2,  10 ], value:  7.0538328090691884E-005}]}
+ {coordinates:  [  2,  7 ], value:  1.7499122498963786E-004}, 
+ {coordinates:  [  2,  8 ], value: -2.196301806206002E-003}, 
+ {coordinates:  [  2,  9 ], value:  2.086607052838093E-004}, 
+ {coordinates:  [  2,  10 ], value:  7.0538010212564485E-005}]}
  -  {segment:  5, elements: [
- {coordinates:  [  3,  2 ], value:  7.1898553097408446E-002}, 
- {coordinates:  [  3,  3 ], value:  1.057271508527059}, 
- {coordinates:  [  3,  4 ], value: -3.8060414431925508E-003}, 
- {coordinates:  [  3,  5 ], value:  7.4017569014233689E-002}]}
+ {coordinates:  [  3,  2 ], value:  7.1898552451095318E-002}, 
+ {coordinates:  [  3,  3 ], value:  1.057271508994777}, 
+ {coordinates:  [  3,  4 ], value: -3.8060417910943949E-003}, 
+ {coordinates:  [  3,  5 ], value:  7.4017569156623192E-002}]}
  -  {segment:  6, elements: [
- {coordinates:  [  3,  7 ], value: -2.145825862926587E-003}, 
- {coordinates:  [  3,  8 ], value:  6.0962347458175338E-002}, 
- {coordinates:  [  3,  9 ], value: -2.8824301261618896E-003}, 
- {coordinates:  [  3,  10 ], value: -1.0045965107927767E-003}]}
+ {coordinates:  [  3,  7 ], value: -2.1458262734269911E-003}, 
+ {coordinates:  [  3,  8 ], value:  6.0962347631691463E-002}, 
+ {coordinates:  [  3,  9 ], value: -2.8824302014615433E-003}, 
+ {coordinates:  [  3,  10 ], value: -1.0045969102495938E-003}]}
  -  {segment:  7, elements: [
- {coordinates:  [  4,  3 ], value: -3.5037967521359798E-003}, 
- {coordinates:  [  4,  4 ], value:  1.078422665621027}, 
- {coordinates:  [  4,  5 ], value:  5.9611052152064033E-002}]}
+ {coordinates:  [  4,  3 ], value: -3.5037977517244521E-003}, 
+ {coordinates:  [  4,  4 ], value:  1.078422664997662}, 
+ {coordinates:  [  4,  5 ], value:  5.9611052224003869E-002}]}
  -  {segment:  8, elements: [
- {coordinates:  [  4,  7 ], value:  6.8948482793853821E-002}, 
- {coordinates:  [  4,  8 ], value:  7.218143054849073E-002}, 
- {coordinates:  [  4,  9 ], value: -3.59304428045414E-003}]}
+ {coordinates:  [  4,  7 ], value:  6.8948483329783219E-002}, 
+ {coordinates:  [  4,  8 ], value:  7.2181430477527966E-002}, 
+ {coordinates:  [  4,  9 ], value: -3.5930439648626925E-003}]}
  -  {segment:  9, elements: [
- {coordinates:  [  5,  3 ], value:  7.359677824426368E-002}, 
- {coordinates:  [  5,  4 ], value:  5.9357358162200821E-002}, 
- {coordinates:  [  5,  5 ], value:  0.9999227126804778}]}
+ {coordinates:  [  5,  3 ], value:  7.3596777257766366E-002}, 
+ {coordinates:  [  5,  4 ], value:  5.9357358571337011E-002}, 
+ {coordinates:  [  5,  5 ], value:  0.9999227123572212}]}
  -  {segment:  10, elements: [
- {coordinates:  [  5,  7 ], value:  5.6340715080041855E-002}, 
- {coordinates:  [  5,  8 ], value: -4.2847216530371044E-003}, 
- {coordinates:  [  5,  9 ], value:  2.2942434318890198E-004}]}
+ {coordinates:  [  5,  7 ], value:  5.6340715000333025E-002}, 
+ {coordinates:  [  5,  8 ], value: -4.2847221215717383E-003}, 
+ {coordinates:  [  5,  9 ], value:  2.2942503728466137E-004}]}
  -  {segment:  11, elements: [
  {coordinates:  [  6,  2 ], value:  0.0}, 
  {coordinates:  [  6,  3 ], value:  0.0}, 
  {coordinates:  [  6,  4 ], value:  0.0}]}
  -  {segment:  12, elements: [
- {coordinates:  [  6,  6 ], value:  1.043108815630877}, 
+ {coordinates:  [  6,  6 ], value:  1.043108814825082}, 
  {coordinates:  [  6,  7 ], value:  0.0}, 
  {coordinates:  [  6,  8 ], value:  0.0}]}
  -  {segment:  13, elements: [
- {coordinates:  [  7,  3 ], value: -2.3146170590050827E-003}, 
- {coordinates:  [  7,  4 ], value:  6.8969871564054874E-002}, 
- {coordinates:  [  7,  5 ], value:  5.6155285490522795E-002}]}
+ {coordinates:  [  7,  3 ], value: -2.3146170146836889E-003}, 
+ {coordinates:  [  7,  4 ], value:  6.8969872101150825E-002}, 
+ {coordinates:  [  7,  5 ], value:  5.6155285290984618E-002}]}
  -  {segment:  14, elements: [
- {coordinates:  [  7,  7 ], value:  1.089678547891514}, 
- {coordinates:  [  7,  8 ], value:  3.6938153862689733E-002}, 
- {coordinates:  [  7,  9 ], value:  6.7317385063468222E-003}]}
+ {coordinates:  [  7,  7 ], value:  1.08967854749852}, 
+ {coordinates:  [  7,  8 ], value:  3.6938153956020403E-002}, 
+ {coordinates:  [  7,  9 ], value:  6.7317378238112638E-003}]}
  -  {segment:  15, elements: [
- {coordinates:  [  8,  3 ], value:  5.7018191437215725E-002}, 
- {coordinates:  [  8,  4 ], value:  7.2353273231589826E-002}, 
- {coordinates:  [  8,  5 ], value: -7.8788092024880702E-003}]}
+ {coordinates:  [  8,  3 ], value:  5.7018192888323008E-002}, 
+ {coordinates:  [  8,  4 ], value:  7.2353272878372718E-002}, 
+ {coordinates:  [  8,  5 ], value: -7.8788095593854829E-003}]}
  -  {segment:  16, elements: [
- {coordinates:  [  8,  7 ], value:  3.71009342480218E-002}, 
- {coordinates:  [  8,  8 ], value:  1.010674695574848}, 
- {coordinates:  [  8,  9 ], value:  9.7627045890532477E-002}]}
+ {coordinates:  [  8,  7 ], value:  3.7100934196089404E-002}, 
+ {coordinates:  [  8,  8 ], value:  1.010674695189909}, 
+ {coordinates:  [  8,  9 ], value:  9.7627045711707702E-002}]}
  -  {segment:  17, elements: [
- {coordinates:  [  9,  7 ], value:  6.5255362817516456E-003}, 
- {coordinates:  [  9,  8 ], value:  9.7223833862566278E-002}, 
- {coordinates:  [  9,  9 ], value:  1.018437032659568}]}
+ {coordinates:  [  9,  7 ], value:  6.5255357974993598E-003}, 
+ {coordinates:  [  9,  8 ], value:  9.7223833773836824E-002}, 
+ {coordinates:  [  9,  9 ], value:  1.01843703262622}]}
  -  {segment:  18, elements: [
  {coordinates:  [  10,  8 ], value:  0.0}, 
  {coordinates:  [  10,  9 ], value:  0.0}, 
- {coordinates:  [  10,  10 ], value:  1.094658068260841}]}
+ {coordinates:  [  10,  10 ], value:  1.094658069388419}]}
  Max error of the result               :  0.1957659480323385
- Mean error of the result              :  7.4122877321121897E-002
+ Mean error of the result              :  7.4122877339982587E-002
   #------------------------------------------------------------------------------- check: 33
  check number                          :  33
  imode                                 :  1
@@ -2857,17 +2859,17 @@
      x                                 : 1/2
    order                               :  1025
    determine eigenvalue bounds:
-   -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  No ], 
- exp accur:  [  6.93E-10 ]}
-   -  {npl:  15, scale:  5.00E-01, bounds:  [  0.50,  1.80 ], ok:  [  No,  Yes ], 
- exp accur:  [  4.02E-10 ]}
-   -  {npl:  16, scale:  1.00E+00, bounds:  [  0.42,  1.80 ], ok:  [  Yes,  Yes ], 
- exp accur:  [  8.23E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty: -9.4E+00, ok: [
+  Yes,  No], exp accur:  [  4.03E-11 ]}
+   -  {npl:  15, scale:  5.00E-01, bounds:  [  0.500,  1.800 ], penalty:  1.2E+02, ok: [
+  No,  Yes], exp accur:  [  4.02E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.417,  1.800 ], penalty:  5.6E-03, ok: [
+  Yes,  Yes], exp accur:  [  2.57E-09 ]}
    error estimation:
      max / mean error                  :  [  1.96E-01,  7.41E-02 ]
  final result:
  -  {segment:  1, elements: [
- {coordinates:  [  1,  1 ], value:  1.068463702791777}, 
+ {coordinates:  [  1,  1 ], value:  1.068463703264114}, 
  {coordinates:  [  1,  2 ], value:  0.0}, 
  {coordinates:  [  1,  3 ], value:  0.0}, 
  {coordinates:  [  1,  4 ], value:  0.0}]}
@@ -2877,87 +2879,87 @@
  {coordinates:  [  1,  8 ], value:  0.0}, 
  {coordinates:  [  1,  9 ], value:  0.0}]}
  -  {segment:  3, elements: [
- {coordinates:  [  2,  2 ], value:  0.9974631562224874}, 
- {coordinates:  [  2,  3 ], value:  7.1392694908138765E-002}, 
- {coordinates:  [  2,  4 ], value:  2.7867462921702784E-004}, 
- {coordinates:  [  2,  5 ], value: -2.675682026522793E-003}]}
+ {coordinates:  [  2,  2 ], value:  0.9974631557017308}, 
+ {coordinates:  [  2,  3 ], value:  7.139269528964938E-002}, 
+ {coordinates:  [  2,  4 ], value:  2.7867446642014455E-004}, 
+ {coordinates:  [  2,  5 ], value: -2.6756815684113948E-003}]}
  -  {segment:  4, elements: [
- {coordinates:  [  2,  7 ], value:  1.7499167953924865E-004}, 
- {coordinates:  [  2,  8 ], value: -2.1963017411545053E-003}, 
- {coordinates:  [  2,  9 ], value:  2.0866049397800365E-004}, 
- {coordinates:  [  2,  10 ], value:  7.0538328090691884E-005}]}
+ {coordinates:  [  2,  7 ], value:  1.7499122498963786E-004}, 
+ {coordinates:  [  2,  8 ], value: -2.196301806206002E-003}, 
+ {coordinates:  [  2,  9 ], value:  2.086607052838093E-004}, 
+ {coordinates:  [  2,  10 ], value:  7.0538010212564485E-005}]}
  -  {segment:  5, elements: [
- {coordinates:  [  3,  2 ], value:  7.1898553097408446E-002}, 
- {coordinates:  [  3,  3 ], value:  1.057271508527059}, 
- {coordinates:  [  3,  4 ], value: -3.8060414431925508E-003}, 
- {coordinates:  [  3,  5 ], value:  7.4017569014233689E-002}]}
+ {coordinates:  [  3,  2 ], value:  7.1898552451095318E-002}, 
+ {coordinates:  [  3,  3 ], value:  1.057271508994777}, 
+ {coordinates:  [  3,  4 ], value: -3.8060417910943949E-003}, 
+ {coordinates:  [  3,  5 ], value:  7.4017569156623192E-002}]}
  -  {segment:  6, elements: [
- {coordinates:  [  3,  7 ], value: -2.145825862926587E-003}, 
- {coordinates:  [  3,  8 ], value:  6.0962347458175338E-002}, 
- {coordinates:  [  3,  9 ], value: -2.8824301261618896E-003}, 
- {coordinates:  [  3,  10 ], value: -1.0045965107927767E-003}]}
+ {coordinates:  [  3,  7 ], value: -2.1458262734269911E-003}, 
+ {coordinates:  [  3,  8 ], value:  6.0962347631691463E-002}, 
+ {coordinates:  [  3,  9 ], value: -2.8824302014615433E-003}, 
+ {coordinates:  [  3,  10 ], value: -1.0045969102495938E-003}]}
  -  {segment:  7, elements: [
- {coordinates:  [  4,  3 ], value: -3.5037967521359798E-003}, 
- {coordinates:  [  4,  4 ], value:  1.078422665621027}, 
- {coordinates:  [  4,  5 ], value:  5.9611052152064033E-002}]}
+ {coordinates:  [  4,  3 ], value: -3.5037977517244521E-003}, 
+ {coordinates:  [  4,  4 ], value:  1.078422664997662}, 
+ {coordinates:  [  4,  5 ], value:  5.9611052224003869E-002}]}
  -  {segment:  8, elements: [
- {coordinates:  [  4,  7 ], value:  6.8948482793853821E-002}, 
- {coordinates:  [  4,  8 ], value:  7.218143054849073E-002}, 
- {coordinates:  [  4,  9 ], value: -3.59304428045414E-003}]}
+ {coordinates:  [  4,  7 ], value:  6.8948483329783219E-002}, 
+ {coordinates:  [  4,  8 ], value:  7.2181430477527966E-002}, 
+ {coordinates:  [  4,  9 ], value: -3.5930439648626925E-003}]}
  -  {segment:  9, elements: [
- {coordinates:  [  5,  3 ], value:  7.359677824426368E-002}, 
- {coordinates:  [  5,  4 ], value:  5.9357358162200821E-002}, 
- {coordinates:  [  5,  5 ], value:  0.9999227126804778}]}
+ {coordinates:  [  5,  3 ], value:  7.3596777257766366E-002}, 
+ {coordinates:  [  5,  4 ], value:  5.9357358571337011E-002}, 
+ {coordinates:  [  5,  5 ], value:  0.9999227123572212}]}
  -  {segment:  10, elements: [
- {coordinates:  [  5,  7 ], value:  5.6340715080041855E-002}, 
- {coordinates:  [  5,  8 ], value: -4.2847216530371044E-003}, 
- {coordinates:  [  5,  9 ], value:  2.2942434318890198E-004}]}
+ {coordinates:  [  5,  7 ], value:  5.6340715000333025E-002}, 
+ {coordinates:  [  5,  8 ], value: -4.2847221215717383E-003}, 
+ {coordinates:  [  5,  9 ], value:  2.2942503728466137E-004}]}
  -  {segment:  11, elements: [
  {coordinates:  [  6,  2 ], value:  0.0}, 
  {coordinates:  [  6,  3 ], value:  0.0}, 
  {coordinates:  [  6,  4 ], value:  0.0}]}
  -  {segment:  12, elements: [
- {coordinates:  [  6,  6 ], value:  1.043108815630877}, 
+ {coordinates:  [  6,  6 ], value:  1.043108814825082}, 
  {coordinates:  [  6,  7 ], value:  0.0}, 
  {coordinates:  [  6,  8 ], value:  0.0}]}
  -  {segment:  13, elements: [
- {coordinates:  [  7,  3 ], value: -2.3146170590050827E-003}, 
- {coordinates:  [  7,  4 ], value:  6.8969871564054874E-002}, 
- {coordinates:  [  7,  5 ], value:  5.6155285490522795E-002}]}
+ {coordinates:  [  7,  3 ], value: -2.3146170146836889E-003}, 
+ {coordinates:  [  7,  4 ], value:  6.8969872101150825E-002}, 
+ {coordinates:  [  7,  5 ], value:  5.6155285290984618E-002}]}
  -  {segment:  14, elements: [
- {coordinates:  [  7,  7 ], value:  1.089678547891514}, 
- {coordinates:  [  7,  8 ], value:  3.6938153862689733E-002}, 
- {coordinates:  [  7,  9 ], value:  6.7317385063468222E-003}]}
+ {coordinates:  [  7,  7 ], value:  1.08967854749852}, 
+ {coordinates:  [  7,  8 ], value:  3.6938153956020403E-002}, 
+ {coordinates:  [  7,  9 ], value:  6.7317378238112638E-003}]}
  -  {segment:  15, elements: [
- {coordinates:  [  8,  3 ], value:  5.7018191437215725E-002}, 
- {coordinates:  [  8,  4 ], value:  7.2353273231589826E-002}, 
- {coordinates:  [  8,  5 ], value: -7.8788092024880702E-003}]}
+ {coordinates:  [  8,  3 ], value:  5.7018192888323008E-002}, 
+ {coordinates:  [  8,  4 ], value:  7.2353272878372718E-002}, 
+ {coordinates:  [  8,  5 ], value: -7.8788095593854829E-003}]}
  -  {segment:  16, elements: [
- {coordinates:  [  8,  7 ], value:  3.71009342480218E-002}, 
- {coordinates:  [  8,  8 ], value:  1.010674695574848}, 
- {coordinates:  [  8,  9 ], value:  9.7627045890532477E-002}]}
+ {coordinates:  [  8,  7 ], value:  3.7100934196089404E-002}, 
+ {coordinates:  [  8,  8 ], value:  1.010674695189909}, 
+ {coordinates:  [  8,  9 ], value:  9.7627045711707702E-002}]}
  -  {segment:  17, elements: [
- {coordinates:  [  9,  7 ], value:  6.5255362817516456E-003}, 
- {coordinates:  [  9,  8 ], value:  9.7223833862566278E-002}, 
- {coordinates:  [  9,  9 ], value:  1.018437032659568}]}
+ {coordinates:  [  9,  7 ], value:  6.5255357974993598E-003}, 
+ {coordinates:  [  9,  8 ], value:  9.7223833773836824E-002}, 
+ {coordinates:  [  9,  9 ], value:  1.01843703262622}]}
  -  {segment:  18, elements: [
  {coordinates:  [  10,  8 ], value:  0.0}, 
  {coordinates:  [  10,  9 ], value:  0.0}, 
- {coordinates:  [  10,  10 ], value:  1.094658068260841}]}
+ {coordinates:  [  10,  10 ], value:  1.094658069388419}]}
  Max error of the result               :  0.1957659480323385
- Mean error of the result              :  7.4122877321121897E-002
+ Mean error of the result              :  7.4122877339982587E-002
   #========================================================================= checks finished
  Memory Consumption Report:
-   Tot. No. of Allocations             :  939
-   Tot. No. of Deallocations           :  939
+   Tot. No. of Allocations             :  840
+   Tot. No. of Deallocations           :  840
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  0.017
-     for the array                     : work
-     in the routine                    : overlap_plus_minus_one_half_exac
-     Memory Peak of process            : 20.228 MB
- Walltime since initialization         : 00:00:00.888005616
- Max No. of dictionaries used          :  1282 #( 908 still in use)
+     Peak Value (MB)                   :  0.125
+     for the array                     : cc
+     in the routine                    : get_polynomial_degree
+     Memory Peak of process            : 21.068 MB
+ Walltime since initialization         : 00:00:00.581559497
+ Max No. of dictionaries used          :  1401 #( 1001 still in use)
  Number of dictionary folders allocated:  1
   #//////////////////////////////////////// Program to check the overlapPowergeneral routine
  reading from file                     : inputdata.fake
@@ -2965,21 +2967,23 @@
    number of rows and columns          :  12
    number of segments                  :  12
    number of non-zero elements         :  144
+ sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
  total elements                        :  144
  non-zero elements                     :  144
   #segments:  12
  sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
+ sparse matrix multiplication initialized:  Yes
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
    -  {number of tasks:  8, start / end:  [  1,  144 ], 
   start / end disjoint:  [  1,  144 ]}
+ sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
  total elements                        :  144
  non-zero elements                     :  144
   #segments:  12
  sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
+ sparse matrix multiplication initialized:  Yes
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
@@ -8300,20 +8304,20 @@
      x                                 : -1/2
    order                               :  1025
    determine eigenvalue bounds:
-   -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  No ], 
- exp accur:  [  3.61E-10 ]}
-   -  {npl:  18, scale:  5.00E-01, bounds:  [  0.50,  1.80 ], ok:  [  No,  Yes ], 
- exp accur:  [  3.47E-10 ]}
-   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.42,  1.80 ], ok:  [  Yes,  No ], 
- exp accur:  [  4.17E-10 ]}
-   -  {npl:  22, scale:  5.00E-01, bounds:  [  0.42,  2.16 ], ok:  [  No,  Yes ], 
- exp accur:  [  5.28E-10 ]}
-   -  {npl:  24, scale:  1.00E+00, bounds:  [  0.35,  2.16 ], ok:  [  Yes,  No ], 
- exp accur:  [  8.21E-10 ]}
-   -  {npl:  27, scale:  5.00E-01, bounds:  [  0.35,  2.59 ], ok:  [  No,  Yes ], 
- exp accur:  [  5.79E-10 ]}
-   -  {npl:  30, scale:  1.00E+00, bounds:  [  0.29,  2.59 ], ok:  [  Yes,  Yes ], 
- exp accur:  [  5.55E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty: -2.5E+06, ok: [
+  Yes,  No], exp accur:  [  1.39E-09 ]}
+   -  {npl:  20, scale:  5.00E-01, bounds:  [  0.500,  1.800 ], penalty:  2.2E+04, ok: [
+  No,  Yes], exp accur:  [  3.17E-11 ]}
+   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.417,  1.800 ], penalty: -2.5E+05, ok: [
+  Yes,  No], exp accur:  [  4.17E-10 ]}
+   -  {npl:  20, scale:  5.00E-01, bounds:  [  0.417,  2.160 ], penalty:  1.3E+03, ok: [
+  No,  Yes], exp accur:  [  3.64E-09 ]}
+   -  {npl:  25, scale:  1.00E+00, bounds:  [  0.347,  2.160 ], penalty: -1.1E+01, ok: [
+  Yes,  No], exp accur:  [  3.44E-10 ]}
+   -  {npl:  25, scale:  5.00E-01, bounds:  [  0.347,  2.592 ], penalty:  2.6E+02, ok: [
+  No,  Yes], exp accur:  [  2.78E-09 ]}
+   -  {npl:  30, scale:  1.00E+00, bounds:  [  0.289,  2.592 ], penalty:  9.6E-03, ok: [
+  Yes,  Yes], exp accur:  [  5.55E-10 ]}
    error estimation:
      max / mean error                  :  [  2.4E-10,  7.35E-11 ]
  final result:
@@ -8487,181 +8491,181 @@
      x                                 : 1/2
    order                               :  1025
    determine eigenvalue bounds:
-   -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  No ], 
- exp accur:  [  6.93E-10 ]}
-   -  {npl:  15, scale:  5.00E-01, bounds:  [  0.50,  1.80 ], ok:  [  No,  Yes ], 
- exp accur:  [  4.02E-10 ]}
-   -  {npl:  16, scale:  1.00E+00, bounds:  [  0.42,  1.80 ], ok:  [  Yes,  No ], 
- exp accur:  [  8.23E-10 ]}
-   -  {npl:  18, scale:  5.00E-01, bounds:  [  0.42,  2.16 ], ok:  [  No,  Yes ], 
- exp accur:  [  6.56E-10 ]}
-   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.35,  2.16 ], ok:  [  Yes,  No ], 
- exp accur:  [  5.69E-10 ]}
-   -  {npl:  22, scale:  5.00E-01, bounds:  [  0.35,  2.59 ], ok:  [  No,  Yes ], 
- exp accur:  [  6.24E-10 ]}
-   -  {npl:  24, scale:  1.00E+00, bounds:  [  0.29,  2.59 ], ok:  [  Yes,  Yes ], 
- exp accur:  [  7.06E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty: -2.5E+06, ok: [
+  Yes,  No], exp accur:  [  4.03E-11 ]}
+   -  {npl:  15, scale:  5.00E-01, bounds:  [  0.500,  1.800 ], penalty:  2.6E+03, ok: [
+  No,  Yes], exp accur:  [  4.02E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.417,  1.800 ], penalty: -1.3E+04, ok: [
+  Yes,  No], exp accur:  [  2.57E-09 ]}
+   -  {npl:  20, scale:  5.00E-01, bounds:  [  0.417,  2.160 ], penalty:  1.3E+03, ok: [
+  No,  Yes], exp accur:  [  8.57E-11 ]}
+   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.347,  2.160 ], penalty: -1.0E+01, ok: [
+  Yes,  No], exp accur:  [  5.69E-10 ]}
+   -  {npl:  20, scale:  5.00E-01, bounds:  [  0.347,  2.592 ], penalty:  1.4E+02, ok: [
+  No,  Yes], exp accur:  [  3.32E-09 ]}
+   -  {npl:  25, scale:  1.00E+00, bounds:  [  0.289,  2.592 ], penalty:  9.7E-03, ok: [
+  Yes,  Yes], exp accur:  [  3.32E-10 ]}
    error estimation:
-     max / mean error                  :  [  2.56E-10,  9.59E-11 ]
+     max / mean error                  :  [  1.23E-10,  4.74E-11 ]
  final result:
  -  {segment:  1, elements: [
- {coordinates:  [  1,  1 ], value:  1.05164679533828}, 
- {coordinates:  [  1,  2 ], value:  7.9467491000709628E-002}, 
- {coordinates:  [  1,  3 ], value: -8.1942181917613321E-003}, 
- {coordinates:  [  1,  4 ], value:  4.0471634007861614E-002}, 
- {coordinates:  [  1,  5 ], value:  9.0211870253251072E-002}, 
- {coordinates:  [  1,  6 ], value: -5.9374623643013462E-003}, 
- {coordinates:  [  1,  7 ], value:  2.9450005866403769E-002}, 
- {coordinates:  [  1,  8 ], value:  9.4717017860678487E-002}, 
- {coordinates:  [  1,  9 ], value:  2.9821469452545402E-003}, 
- {coordinates:  [  1,  10 ], value:  1.7167539546485401E-002}, 
- {coordinates:  [  1,  11 ], value:  9.5142625434832331E-002}, 
- {coordinates:  [  1,  12 ], value:  1.630131492575343E-002}]}
+ {coordinates:  [  1,  1 ], value:  1.051646795379129}, 
+ {coordinates:  [  1,  2 ], value:  7.9467491040683874E-002}, 
+ {coordinates:  [  1,  3 ], value: -8.1942181393281771E-003}, 
+ {coordinates:  [  1,  4 ], value:  4.0471633917912211E-002}, 
+ {coordinates:  [  1,  5 ], value:  9.0211870291362323E-002}, 
+ {coordinates:  [  1,  6 ], value: -5.9374623748590536E-003}, 
+ {coordinates:  [  1,  7 ], value:  2.9450005867974683E-002}, 
+ {coordinates:  [  1,  8 ], value:  9.4717017848552021E-002}, 
+ {coordinates:  [  1,  9 ], value:  2.9821469223243425E-003}, 
+ {coordinates:  [  1,  10 ], value:  1.7167539573771689E-002}, 
+ {coordinates:  [  1,  11 ], value:  9.5142625419208801E-002}, 
+ {coordinates:  [  1,  12 ], value:  1.6301314901457916E-002}]}
  -  {segment:  2, elements: [
- {coordinates:  [  2,  1 ], value:  7.9467491000709628E-002}, 
- {coordinates:  [  2,  2 ], value:  0.9811162512389587}, 
- {coordinates:  [  2,  3 ], value:  6.9287595812643488E-002}, 
- {coordinates:  [  2,  4 ], value:  7.403019024570115E-002}, 
- {coordinates:  [  2,  5 ], value: -1.7549337417776218E-002}, 
- {coordinates:  [  2,  6 ], value:  5.7910593008457467E-002}, 
- {coordinates:  [  2,  7 ], value:  8.1836518896284627E-002}, 
- {coordinates:  [  2,  8 ], value: -1.089961427542384E-002}, 
- {coordinates:  [  2,  9 ], value:  4.2784275989558244E-002}, 
- {coordinates:  [  2,  10 ], value:  8.8830433596559386E-002}, 
- {coordinates:  [  2,  11 ], value: -1.613316382966539E-003}, 
- {coordinates:  [  2,  12 ], value:  2.7458978815960926E-002}]}
+ {coordinates:  [  2,  1 ], value:  7.9467491040683874E-002}, 
+ {coordinates:  [  2,  2 ], value:  0.981116251335175}, 
+ {coordinates:  [  2,  3 ], value:  6.9287595826852302E-002}, 
+ {coordinates:  [  2,  4 ], value:  7.4030190254533057E-002}, 
+ {coordinates:  [  2,  5 ], value: -1.7549337468772182E-002}, 
+ {coordinates:  [  2,  6 ], value:  5.7910592966328181E-002}, 
+ {coordinates:  [  2,  7 ], value:  8.1836518887916557E-002}, 
+ {coordinates:  [  2,  8 ], value: -1.0899614305732339E-002}, 
+ {coordinates:  [  2,  9 ], value:  4.2784276009056162E-002}, 
+ {coordinates:  [  2,  10 ], value:  8.8830433532273226E-002}, 
+ {coordinates:  [  2,  11 ], value: -1.6133164197213528E-003}, 
+ {coordinates:  [  2,  12 ], value:  2.7458978896007822E-002}]}
  -  {segment:  3, elements: [
- {coordinates:  [  3,  1 ], value: -8.1942181917613321E-003}, 
- {coordinates:  [  3,  2 ], value:  6.9287595812643488E-002}, 
- {coordinates:  [  3,  3 ], value:  1.04922589039979}, 
- {coordinates:  [  3,  4 ], value: -6.1730352103519627E-003}, 
- {coordinates:  [  3,  5 ], value:  6.8289653258214705E-002}, 
- {coordinates:  [  3,  6 ], value:  6.325334472762513E-002}, 
- {coordinates:  [  3,  7 ], value: -4.9725482054661044E-003}, 
- {coordinates:  [  3,  8 ], value:  5.3088241746308974E-002}, 
- {coordinates:  [  3,  9 ], value:  7.6037117067218538E-002}, 
- {coordinates:  [  3,  10 ], value: -2.0013638324516184E-003}, 
- {coordinates:  [  3,  11 ], value:  3.8930968316931144E-002}, 
- {coordinates:  [  3,  12 ], value:  8.4558860206743192E-002}]}
+ {coordinates:  [  3,  1 ], value: -8.1942181393281771E-003}, 
+ {coordinates:  [  3,  2 ], value:  6.9287595826852302E-002}, 
+ {coordinates:  [  3,  3 ], value:  1.049225890480697}, 
+ {coordinates:  [  3,  4 ], value: -6.1730351682637062E-003}, 
+ {coordinates:  [  3,  5 ], value:  6.8289653223722366E-002}, 
+ {coordinates:  [  3,  6 ], value:  6.325334472829254E-002}, 
+ {coordinates:  [  3,  7 ], value: -4.9725482231682636E-003}, 
+ {coordinates:  [  3,  8 ], value:  5.3088241745144413E-002}, 
+ {coordinates:  [  3,  9 ], value:  7.603711700880568E-002}, 
+ {coordinates:  [  3,  10 ], value: -2.0013638365217086E-003}, 
+ {coordinates:  [  3,  11 ], value:  3.8930968349599956E-002}, 
+ {coordinates:  [  3,  12 ], value:  8.4558860108547171E-002}]}
  -  {segment:  4, elements: [
- {coordinates:  [  4,  1 ], value:  4.0471634007861614E-002}, 
- {coordinates:  [  4,  2 ], value:  7.403019024570115E-002}, 
- {coordinates:  [  4,  3 ], value: -6.1730352103519627E-003}, 
- {coordinates:  [  4,  4 ], value:  1.071024763998996}, 
- {coordinates:  [  4,  5 ], value:  5.9776320563035321E-002}, 
- {coordinates:  [  4,  6 ], value: -9.0747302160929539E-003}, 
- {coordinates:  [  4,  7 ], value:  6.231399768270169E-002}, 
- {coordinates:  [  4,  8 ], value:  7.2633688507726127E-002}, 
- {coordinates:  [  4,  9 ], value: -1.0485681312623747E-002}, 
- {coordinates:  [  4,  10 ], value:  5.1245787863525454E-002}, 
- {coordinates:  [  4,  11 ], value:  8.1908552800089601E-002}, 
- {coordinates:  [  4,  12 ], value: -5.782180615266609E-003}]}
+ {coordinates:  [  4,  1 ], value:  4.0471633917912211E-002}, 
+ {coordinates:  [  4,  2 ], value:  7.4030190254533057E-002}, 
+ {coordinates:  [  4,  3 ], value: -6.1730351682637071E-003}, 
+ {coordinates:  [  4,  4 ], value:  1.071024764099709}, 
+ {coordinates:  [  4,  5 ], value:  5.9776320603146624E-002}, 
+ {coordinates:  [  4,  6 ], value: -9.074730202671015E-003}, 
+ {coordinates:  [  4,  7 ], value:  6.2313997621053559E-002}, 
+ {coordinates:  [  4,  8 ], value:  7.2633688524084389E-002}, 
+ {coordinates:  [  4,  9 ], value: -1.0485681321101739E-002}, 
+ {coordinates:  [  4,  10 ], value:  5.1245787854715348E-002}, 
+ {coordinates:  [  4,  11 ], value:  8.190855276901568E-002}, 
+ {coordinates:  [  4,  12 ], value: -5.7821806113607446E-003}]}
  -  {segment:  5, elements: [
- {coordinates:  [  5,  1 ], value:  9.0211870253251072E-002}, 
- {coordinates:  [  5,  2 ], value: -1.7549337417776218E-002}, 
- {coordinates:  [  5,  3 ], value:  6.8289653258214705E-002}, 
- {coordinates:  [  5,  4 ], value:  5.9776320563035321E-002}, 
- {coordinates:  [  5,  5 ], value:  0.9846360939528288}, 
- {coordinates:  [  5,  6 ], value:  8.6704817754487726E-002}, 
- {coordinates:  [  5,  7 ], value:  5.4940832273338562E-002}, 
- {coordinates:  [  5,  8 ], value: -1.990883876867848E-002}, 
- {coordinates:  [  5,  9 ], value:  7.7153461763533812E-002}, 
- {coordinates:  [  5,  10 ], value:  6.7600749667739504E-002}, 
- {coordinates:  [  5,  11 ], value: -1.9893238985458275E-002}, 
- {coordinates:  [  5,  12 ], value:  6.3171586168466923E-002}]}
+ {coordinates:  [  5,  1 ], value:  9.0211870291362323E-002}, 
+ {coordinates:  [  5,  2 ], value: -1.7549337468772182E-002}, 
+ {coordinates:  [  5,  3 ], value:  6.8289653223722366E-002}, 
+ {coordinates:  [  5,  4 ], value:  5.9776320603146624E-002}, 
+ {coordinates:  [  5,  5 ], value:  0.9846360940547022}, 
+ {coordinates:  [  5,  6 ], value:  8.6704817787930294E-002}, 
+ {coordinates:  [  5,  7 ], value:  5.4940832269851157E-002}, 
+ {coordinates:  [  5,  8 ], value: -1.9908838845250621E-002}, 
+ {coordinates:  [  5,  9 ], value:  7.7153461779276483E-002}, 
+ {coordinates:  [  5,  10 ], value:  6.7600749637748245E-002}, 
+ {coordinates:  [  5,  11 ], value: -1.9893239009778234E-002}, 
+ {coordinates:  [  5,  12 ], value:  6.3171586180075123E-002}]}
  -  {segment:  6, elements: [
- {coordinates:  [  6,  1 ], value: -5.9374623643013462E-003}, 
- {coordinates:  [  6,  2 ], value:  5.7910593008457467E-002}, 
- {coordinates:  [  6,  3 ], value:  6.325334472762513E-002}, 
- {coordinates:  [  6,  4 ], value: -9.0747302160929539E-003}, 
- {coordinates:  [  6,  5 ], value:  8.6704817754487726E-002}, 
- {coordinates:  [  6,  6 ], value:  1.026984428322252}, 
- {coordinates:  [  6,  7 ], value: -6.4099815598976315E-006}, 
- {coordinates:  [  6,  8 ], value:  8.6468233080957899E-002}, 
- {coordinates:  [  6,  9 ], value:  4.2108805348046459E-002}, 
- {coordinates:  [  6,  10 ], value: -5.9534256593345818E-003}, 
- {coordinates:  [  6,  11 ], value:  7.6459605145457535E-002}, 
- {coordinates:  [  6,  12 ], value:  5.7075485478955412E-002}]}
+ {coordinates:  [  6,  1 ], value: -5.9374623748590545E-003}, 
+ {coordinates:  [  6,  2 ], value:  5.7910592966328174E-002}, 
+ {coordinates:  [  6,  3 ], value:  6.3253344728292527E-002}, 
+ {coordinates:  [  6,  4 ], value: -9.074730202671015E-003}, 
+ {coordinates:  [  6,  5 ], value:  8.6704817787930294E-002}, 
+ {coordinates:  [  6,  6 ], value:  1.026984428333531}, 
+ {coordinates:  [  6,  7 ], value: -6.4099245685847242E-006}, 
+ {coordinates:  [  6,  8 ], value:  8.6468233109593229E-002}, 
+ {coordinates:  [  6,  9 ], value:  4.2108805280521022E-002}, 
+ {coordinates:  [  6,  10 ], value: -5.9534256769416885E-003}, 
+ {coordinates:  [  6,  11 ], value:  7.6459605155867374E-002}, 
+ {coordinates:  [  6,  12 ], value:  5.7075485478650101E-002}]}
  -  {segment:  7, elements: [
- {coordinates:  [  7,  1 ], value:  2.9450005866403766E-002}, 
- {coordinates:  [  7,  2 ], value:  8.1836518896284627E-002}, 
- {coordinates:  [  7,  3 ], value: -4.9725482054661062E-003}, 
- {coordinates:  [  7,  4 ], value:  6.231399768270169E-002}, 
- {coordinates:  [  7,  5 ], value:  5.4940832273338569E-002}, 
- {coordinates:  [  7,  6 ], value: -6.409981559897645E-006}, 
- {coordinates:  [  7,  7 ], value:  1.082736768925439}, 
- {coordinates:  [  7,  8 ], value:  3.6565578140594079E-002}, 
- {coordinates:  [  7,  9 ], value:  6.8378646514191709E-004}, 
- {coordinates:  [  7,  10 ], value:  7.8094836970356768E-002}, 
- {coordinates:  [  7,  11 ], value:  4.9580623651711848E-002}, 
- {coordinates:  [  7,  12 ], value: -4.727867933519066E-003}]}
+ {coordinates:  [  7,  1 ], value:  2.945000586797468E-002}, 
+ {coordinates:  [  7,  2 ], value:  8.1836518887916557E-002}, 
+ {coordinates:  [  7,  3 ], value: -4.9725482231682654E-003}, 
+ {coordinates:  [  7,  4 ], value:  6.2313997621053559E-002}, 
+ {coordinates:  [  7,  5 ], value:  5.494083226985115E-002}, 
+ {coordinates:  [  7,  6 ], value: -6.409924568584847E-006}, 
+ {coordinates:  [  7,  7 ], value:  1.082736769012168}, 
+ {coordinates:  [  7,  8 ], value:  3.6565578167248446E-002}, 
+ {coordinates:  [  7,  9 ], value:  6.8378647824479547E-004}, 
+ {coordinates:  [  7,  10 ], value:  7.8094836893577935E-002}, 
+ {coordinates:  [  7,  11 ], value:  4.9580623672892392E-002}, 
+ {coordinates:  [  7,  12 ], value: -4.7278679570557916E-003}]}
  -  {segment:  8, elements: [
- {coordinates:  [  8,  1 ], value:  9.4717017860678487E-002}, 
- {coordinates:  [  8,  2 ], value: -1.0899614275423838E-002}, 
- {coordinates:  [  8,  3 ], value:  5.3088241746308974E-002}, 
- {coordinates:  [  8,  4 ], value:  7.2633688507726127E-002}, 
- {coordinates:  [  8,  5 ], value: -1.990883876867848E-002}, 
- {coordinates:  [  8,  6 ], value:  8.6468233080957899E-002}, 
- {coordinates:  [  8,  7 ], value:  3.6565578140594079E-002}, 
- {coordinates:  [  8,  8 ], value:  0.9980390750060827}, 
- {coordinates:  [  8,  9 ], value:  9.556608535622485E-002}, 
- {coordinates:  [  8,  10 ], value:  3.3317199556411735E-002}, 
- {coordinates:  [  8,  11 ], value: -1.1527027685163036E-002}, 
- {coordinates:  [  8,  12 ], value:  8.9544716524665294E-002}]}
+ {coordinates:  [  8,  1 ], value:  9.4717017848552021E-002}, 
+ {coordinates:  [  8,  2 ], value: -1.0899614305732339E-002}, 
+ {coordinates:  [  8,  3 ], value:  5.3088241745144413E-002}, 
+ {coordinates:  [  8,  4 ], value:  7.2633688524084389E-002}, 
+ {coordinates:  [  8,  5 ], value: -1.9908838845250618E-002}, 
+ {coordinates:  [  8,  6 ], value:  8.6468233109593229E-002}, 
+ {coordinates:  [  8,  7 ], value:  3.6565578167248446E-002}, 
+ {coordinates:  [  8,  8 ], value:  0.9980390751157445}, 
+ {coordinates:  [  8,  9 ], value:  9.5566085373695445E-002}, 
+ {coordinates:  [  8,  10 ], value:  3.3317199593361969E-002}, 
+ {coordinates:  [  8,  11 ], value: -1.1527027763125749E-002}, 
+ {coordinates:  [  8,  12 ], value:  8.9544716513358172E-002}]}
  -  {segment:  9, elements: [
- {coordinates:  [  9,  1 ], value:  2.9821469452545398E-003}, 
- {coordinates:  [  9,  2 ], value:  4.2784275989558244E-002}, 
- {coordinates:  [  9,  3 ], value:  7.6037117067218538E-002}, 
- {coordinates:  [  9,  4 ], value: -1.0485681312623747E-002}, 
- {coordinates:  [  9,  5 ], value:  7.7153461763533812E-002}, 
- {coordinates:  [  9,  6 ], value:  4.2108805348046459E-002}, 
- {coordinates:  [  9,  7 ], value:  6.8378646514191709E-004}, 
- {coordinates:  [  9,  8 ], value:  9.556608535622485E-002}, 
- {coordinates:  [  9,  9 ], value:  1.006141559370257}, 
- {coordinates:  [  9,  10 ], value:  1.5333988041214068E-002}, 
- {coordinates:  [  9,  11 ], value:  9.5754995884167818E-002}, 
- {coordinates:  [  9,  12 ], value:  1.9847539884942866E-002}]}
+ {coordinates:  [  9,  1 ], value:  2.9821469223243425E-003}, 
+ {coordinates:  [  9,  2 ], value:  4.2784276009056162E-002}, 
+ {coordinates:  [  9,  3 ], value:  7.603711700880568E-002}, 
+ {coordinates:  [  9,  4 ], value: -1.0485681321101739E-002}, 
+ {coordinates:  [  9,  5 ], value:  7.7153461779276469E-002}, 
+ {coordinates:  [  9,  6 ], value:  4.2108805280521022E-002}, 
+ {coordinates:  [  9,  7 ], value:  6.8378647824479547E-004}, 
+ {coordinates:  [  9,  8 ], value:  9.5566085373695445E-002}, 
+ {coordinates:  [  9,  9 ], value:  1.006141559448793}, 
+ {coordinates:  [  9,  10 ], value:  1.5333988042984602E-002}, 
+ {coordinates:  [  9,  11 ], value:  9.5754995899715006E-002}, 
+ {coordinates:  [  9,  12 ], value:  1.9847539902932077E-002}]}
  -  {segment:  10, elements: [
- {coordinates:  [  10,  1 ], value:  1.7167539546485401E-002}, 
- {coordinates:  [  10,  2 ], value:  8.8830433596559399E-002}, 
- {coordinates:  [  10,  3 ], value: -2.001363832451618E-003}, 
- {coordinates:  [  10,  4 ], value:  5.1245787863525454E-002}, 
- {coordinates:  [  10,  5 ], value:  6.7600749667739504E-002}, 
- {coordinates:  [  10,  6 ], value: -5.9534256593345792E-003}, 
- {coordinates:  [  10,  7 ], value:  7.8094836970356768E-002}, 
- {coordinates:  [  10,  8 ], value:  3.3317199556411728E-002}, 
- {coordinates:  [  10,  9 ], value:  1.5333988041214068E-002}, 
- {coordinates:  [  10,  10 ], value:  1.083893791279545}, 
- {coordinates:  [  10,  11 ], value:  1.5103970704482833E-002}, 
- {coordinates:  [  10,  12 ], value:  1.890566343743752E-002}]}
+ {coordinates:  [  10,  1 ], value:  1.7167539573771689E-002}, 
+ {coordinates:  [  10,  2 ], value:  8.8830433532273226E-002}, 
+ {coordinates:  [  10,  3 ], value: -2.0013638365217082E-003}, 
+ {coordinates:  [  10,  4 ], value:  5.1245787854715348E-002}, 
+ {coordinates:  [  10,  5 ], value:  6.7600749637748245E-002}, 
+ {coordinates:  [  10,  6 ], value: -5.9534256769416868E-003}, 
+ {coordinates:  [  10,  7 ], value:  7.8094836893577921E-002}, 
+ {coordinates:  [  10,  8 ], value:  3.3317199593361969E-002}, 
+ {coordinates:  [  10,  9 ], value:  1.5333988042984602E-002}, 
+ {coordinates:  [  10,  10 ], value:  1.083893791339377}, 
+ {coordinates:  [  10,  11 ], value:  1.5103970782412946E-002}, 
+ {coordinates:  [  10,  12 ], value:  1.8905663442091509E-002}]}
  -  {segment:  11, elements: [
- {coordinates:  [  11,  1 ], value:  9.5142625434832331E-002}, 
- {coordinates:  [  11,  2 ], value: -1.6133163829665396E-003}, 
- {coordinates:  [  11,  3 ], value:  3.8930968316931137E-002}, 
- {coordinates:  [  11,  4 ], value:  8.1908552800089601E-002}, 
- {coordinates:  [  11,  5 ], value: -1.9893238985458275E-002}, 
- {coordinates:  [  11,  6 ], value:  7.6459605145457535E-002}, 
- {coordinates:  [  11,  7 ], value:  4.9580623651711848E-002}, 
- {coordinates:  [  11,  8 ], value: -1.1527027685163036E-002}, 
- {coordinates:  [  11,  9 ], value:  9.5754995884167832E-002}, 
- {coordinates:  [  11,  10 ], value:  1.5103970704482834E-002}, 
- {coordinates:  [  11,  11 ], value:  1.018214736929424}, 
- {coordinates:  [  11,  12 ], value:  9.3958620733089915E-002}]}
+ {coordinates:  [  11,  1 ], value:  9.5142625419208801E-002}, 
+ {coordinates:  [  11,  2 ], value: -1.6133164197213528E-003}, 
+ {coordinates:  [  11,  3 ], value:  3.8930968349599956E-002}, 
+ {coordinates:  [  11,  4 ], value:  8.190855276901568E-002}, 
+ {coordinates:  [  11,  5 ], value: -1.989323900977823E-002}, 
+ {coordinates:  [  11,  6 ], value:  7.6459605155867374E-002}, 
+ {coordinates:  [  11,  7 ], value:  4.9580623672892392E-002}, 
+ {coordinates:  [  11,  8 ], value: -1.1527027763125749E-002}, 
+ {coordinates:  [  11,  9 ], value:  9.575499589971502E-002}, 
+ {coordinates:  [  11,  10 ], value:  1.5103970782412946E-002}, 
+ {coordinates:  [  11,  11 ], value:  1.018214736989886}, 
+ {coordinates:  [  11,  12 ], value:  9.3958620728772105E-002}]}
  -  {segment:  12, elements: [
- {coordinates:  [  12,  1 ], value:  1.630131492575343E-002}, 
- {coordinates:  [  12,  2 ], value:  2.7458978815960926E-002}, 
- {coordinates:  [  12,  3 ], value:  8.4558860206743192E-002}, 
- {coordinates:  [  12,  4 ], value: -5.7821806152666081E-003}, 
- {coordinates:  [  12,  5 ], value:  6.3171586168466923E-002}, 
- {coordinates:  [  12,  6 ], value:  5.7075485478955412E-002}, 
- {coordinates:  [  12,  7 ], value: -4.7278679335190669E-003}, 
- {coordinates:  [  12,  8 ], value:  8.9544716524665294E-002}, 
- {coordinates:  [  12,  9 ], value:  1.9847539884942866E-002}, 
- {coordinates:  [  12,  10 ], value:  1.890566343743752E-002}, 
- {coordinates:  [  12,  11 ], value:  9.3958620733089915E-002}, 
- {coordinates:  [  12,  12 ], value:  0.9912297065381475}]}
- Max error of the result               :  2.5594393271433091E-010
- Mean error of the result              :  9.5895617549775535E-011
+ {coordinates:  [  12,  1 ], value:  1.6301314901457916E-002}, 
+ {coordinates:  [  12,  2 ], value:  2.7458978896007822E-002}, 
+ {coordinates:  [  12,  3 ], value:  8.4558860108547171E-002}, 
+ {coordinates:  [  12,  4 ], value: -5.7821806113607438E-003}, 
+ {coordinates:  [  12,  5 ], value:  6.3171586180075123E-002}, 
+ {coordinates:  [  12,  6 ], value:  5.7075485478650101E-002}, 
+ {coordinates:  [  12,  7 ], value: -4.7278679570557916E-003}, 
+ {coordinates:  [  12,  8 ], value:  8.9544716513358172E-002}, 
+ {coordinates:  [  12,  9 ], value:  1.9847539902932077E-002}, 
+ {coordinates:  [  12,  10 ], value:  1.8905663442091509E-002}, 
+ {coordinates:  [  12,  11 ], value:  9.3958620728772105E-002}, 
+ {coordinates:  [  12,  12 ], value:  0.9912297066091965}]}
+ Max error of the result               :  1.2323009279668895E-010
+ Mean error of the result              :  4.7399595455146004E-011
   #------------------------------------------------------------------------------- check: 33
  check number                          :  33
  imode                                 :  1
@@ -8674,193 +8678,193 @@
      x                                 : 1/2
    order                               :  1025
    determine eigenvalue bounds:
-   -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  No ], 
- exp accur:  [  6.93E-10 ]}
-   -  {npl:  15, scale:  5.00E-01, bounds:  [  0.50,  1.80 ], ok:  [  No,  Yes ], 
- exp accur:  [  4.02E-10 ]}
-   -  {npl:  16, scale:  1.00E+00, bounds:  [  0.42,  1.80 ], ok:  [  Yes,  No ], 
- exp accur:  [  8.23E-10 ]}
-   -  {npl:  18, scale:  5.00E-01, bounds:  [  0.42,  2.16 ], ok:  [  No,  Yes ], 
- exp accur:  [  6.56E-10 ]}
-   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.35,  2.16 ], ok:  [  Yes,  No ], 
- exp accur:  [  5.69E-10 ]}
-   -  {npl:  22, scale:  5.00E-01, bounds:  [  0.35,  2.59 ], ok:  [  No,  Yes ], 
- exp accur:  [  6.24E-10 ]}
-   -  {npl:  24, scale:  1.00E+00, bounds:  [  0.29,  2.59 ], ok:  [  Yes,  Yes ], 
- exp accur:  [  7.06E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty: -2.5E+06, ok: [
+  Yes,  No], exp accur:  [  4.03E-11 ]}
+   -  {npl:  15, scale:  5.00E-01, bounds:  [  0.500,  1.800 ], penalty:  2.6E+03, ok: [
+  No,  Yes], exp accur:  [  4.02E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.417,  1.800 ], penalty: -1.3E+04, ok: [
+  Yes,  No], exp accur:  [  2.57E-09 ]}
+   -  {npl:  20, scale:  5.00E-01, bounds:  [  0.417,  2.160 ], penalty:  1.3E+03, ok: [
+  No,  Yes], exp accur:  [  8.57E-11 ]}
+   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.347,  2.160 ], penalty: -1.0E+01, ok: [
+  Yes,  No], exp accur:  [  5.69E-10 ]}
+   -  {npl:  20, scale:  5.00E-01, bounds:  [  0.347,  2.592 ], penalty:  1.4E+02, ok: [
+  No,  Yes], exp accur:  [  3.32E-09 ]}
+   -  {npl:  25, scale:  1.00E+00, bounds:  [  0.289,  2.592 ], penalty:  9.7E-03, ok: [
+  Yes,  Yes], exp accur:  [  3.32E-10 ]}
    error estimation:
-     max / mean error                  :  [  2.56E-10,  9.59E-11 ]
+     max / mean error                  :  [  1.23E-10,  4.74E-11 ]
  final result:
  -  {segment:  1, elements: [
- {coordinates:  [  1,  1 ], value:  1.05164679533828}, 
- {coordinates:  [  1,  2 ], value:  7.9467491000709628E-002}, 
- {coordinates:  [  1,  3 ], value: -8.1942181917613321E-003}, 
- {coordinates:  [  1,  4 ], value:  4.0471634007861614E-002}, 
- {coordinates:  [  1,  5 ], value:  9.0211870253251072E-002}, 
- {coordinates:  [  1,  6 ], value: -5.9374623643013462E-003}, 
- {coordinates:  [  1,  7 ], value:  2.9450005866403769E-002}, 
- {coordinates:  [  1,  8 ], value:  9.4717017860678487E-002}, 
- {coordinates:  [  1,  9 ], value:  2.9821469452545402E-003}, 
- {coordinates:  [  1,  10 ], value:  1.7167539546485401E-002}, 
- {coordinates:  [  1,  11 ], value:  9.5142625434832331E-002}, 
- {coordinates:  [  1,  12 ], value:  1.630131492575343E-002}]}
+ {coordinates:  [  1,  1 ], value:  1.051646795379129}, 
+ {coordinates:  [  1,  2 ], value:  7.9467491040683874E-002}, 
+ {coordinates:  [  1,  3 ], value: -8.1942181393281771E-003}, 
+ {coordinates:  [  1,  4 ], value:  4.0471633917912211E-002}, 
+ {coordinates:  [  1,  5 ], value:  9.0211870291362323E-002}, 
+ {coordinates:  [  1,  6 ], value: -5.9374623748590536E-003}, 
+ {coordinates:  [  1,  7 ], value:  2.9450005867974683E-002}, 
+ {coordinates:  [  1,  8 ], value:  9.4717017848552021E-002}, 
+ {coordinates:  [  1,  9 ], value:  2.9821469223243425E-003}, 
+ {coordinates:  [  1,  10 ], value:  1.7167539573771689E-002}, 
+ {coordinates:  [  1,  11 ], value:  9.5142625419208801E-002}, 
+ {coordinates:  [  1,  12 ], value:  1.6301314901457916E-002}]}
  -  {segment:  2, elements: [
- {coordinates:  [  2,  1 ], value:  7.9467491000709628E-002}, 
- {coordinates:  [  2,  2 ], value:  0.9811162512389587}, 
- {coordinates:  [  2,  3 ], value:  6.9287595812643488E-002}, 
- {coordinates:  [  2,  4 ], value:  7.403019024570115E-002}, 
- {coordinates:  [  2,  5 ], value: -1.7549337417776218E-002}, 
- {coordinates:  [  2,  6 ], value:  5.7910593008457467E-002}, 
- {coordinates:  [  2,  7 ], value:  8.1836518896284627E-002}, 
- {coordinates:  [  2,  8 ], value: -1.089961427542384E-002}, 
- {coordinates:  [  2,  9 ], value:  4.2784275989558244E-002}, 
- {coordinates:  [  2,  10 ], value:  8.8830433596559386E-002}, 
- {coordinates:  [  2,  11 ], value: -1.613316382966539E-003}, 
- {coordinates:  [  2,  12 ], value:  2.7458978815960926E-002}]}
+ {coordinates:  [  2,  1 ], value:  7.9467491040683874E-002}, 
+ {coordinates:  [  2,  2 ], value:  0.981116251335175}, 
+ {coordinates:  [  2,  3 ], value:  6.9287595826852302E-002}, 
+ {coordinates:  [  2,  4 ], value:  7.4030190254533057E-002}, 
+ {coordinates:  [  2,  5 ], value: -1.7549337468772182E-002}, 
+ {coordinates:  [  2,  6 ], value:  5.7910592966328181E-002}, 
+ {coordinates:  [  2,  7 ], value:  8.1836518887916557E-002}, 
+ {coordinates:  [  2,  8 ], value: -1.0899614305732339E-002}, 
+ {coordinates:  [  2,  9 ], value:  4.2784276009056162E-002}, 
+ {coordinates:  [  2,  10 ], value:  8.8830433532273226E-002}, 
+ {coordinates:  [  2,  11 ], value: -1.6133164197213528E-003}, 
+ {coordinates:  [  2,  12 ], value:  2.7458978896007822E-002}]}
  -  {segment:  3, elements: [
- {coordinates:  [  3,  1 ], value: -8.1942181917613321E-003}, 
- {coordinates:  [  3,  2 ], value:  6.9287595812643488E-002}, 
- {coordinates:  [  3,  3 ], value:  1.04922589039979}, 
- {coordinates:  [  3,  4 ], value: -6.1730352103519627E-003}, 
- {coordinates:  [  3,  5 ], value:  6.8289653258214705E-002}, 
- {coordinates:  [  3,  6 ], value:  6.325334472762513E-002}, 
- {coordinates:  [  3,  7 ], value: -4.9725482054661044E-003}, 
- {coordinates:  [  3,  8 ], value:  5.3088241746308974E-002}, 
- {coordinates:  [  3,  9 ], value:  7.6037117067218538E-002}, 
- {coordinates:  [  3,  10 ], value: -2.0013638324516184E-003}, 
- {coordinates:  [  3,  11 ], value:  3.8930968316931144E-002}, 
- {coordinates:  [  3,  12 ], value:  8.4558860206743192E-002}]}
+ {coordinates:  [  3,  1 ], value: -8.1942181393281771E-003}, 
+ {coordinates:  [  3,  2 ], value:  6.9287595826852302E-002}, 
+ {coordinates:  [  3,  3 ], value:  1.049225890480697}, 
+ {coordinates:  [  3,  4 ], value: -6.1730351682637062E-003}, 
+ {coordinates:  [  3,  5 ], value:  6.8289653223722366E-002}, 
+ {coordinates:  [  3,  6 ], value:  6.325334472829254E-002}, 
+ {coordinates:  [  3,  7 ], value: -4.9725482231682636E-003}, 
+ {coordinates:  [  3,  8 ], value:  5.3088241745144413E-002}, 
+ {coordinates:  [  3,  9 ], value:  7.603711700880568E-002}, 
+ {coordinates:  [  3,  10 ], value: -2.0013638365217086E-003}, 
+ {coordinates:  [  3,  11 ], value:  3.8930968349599956E-002}, 
+ {coordinates:  [  3,  12 ], value:  8.4558860108547171E-002}]}
  -  {segment:  4, elements: [
- {coordinates:  [  4,  1 ], value:  4.0471634007861614E-002}, 
- {coordinates:  [  4,  2 ], value:  7.403019024570115E-002}, 
- {coordinates:  [  4,  3 ], value: -6.1730352103519627E-003}, 
- {coordinates:  [  4,  4 ], value:  1.071024763998996}, 
- {coordinates:  [  4,  5 ], value:  5.9776320563035321E-002}, 
- {coordinates:  [  4,  6 ], value: -9.0747302160929539E-003}, 
- {coordinates:  [  4,  7 ], value:  6.231399768270169E-002}, 
- {coordinates:  [  4,  8 ], value:  7.2633688507726127E-002}, 
- {coordinates:  [  4,  9 ], value: -1.0485681312623747E-002}, 
- {coordinates:  [  4,  10 ], value:  5.1245787863525454E-002}, 
- {coordinates:  [  4,  11 ], value:  8.1908552800089601E-002}, 
- {coordinates:  [  4,  12 ], value: -5.782180615266609E-003}]}
+ {coordinates:  [  4,  1 ], value:  4.0471633917912211E-002}, 
+ {coordinates:  [  4,  2 ], value:  7.4030190254533057E-002}, 
+ {coordinates:  [  4,  3 ], value: -6.1730351682637071E-003}, 
+ {coordinates:  [  4,  4 ], value:  1.071024764099709}, 
+ {coordinates:  [  4,  5 ], value:  5.9776320603146624E-002}, 
+ {coordinates:  [  4,  6 ], value: -9.074730202671015E-003}, 
+ {coordinates:  [  4,  7 ], value:  6.2313997621053559E-002}, 
+ {coordinates:  [  4,  8 ], value:  7.2633688524084389E-002}, 
+ {coordinates:  [  4,  9 ], value: -1.0485681321101739E-002}, 
+ {coordinates:  [  4,  10 ], value:  5.1245787854715348E-002}, 
+ {coordinates:  [  4,  11 ], value:  8.190855276901568E-002}, 
+ {coordinates:  [  4,  12 ], value: -5.7821806113607446E-003}]}
  -  {segment:  5, elements: [
- {coordinates:  [  5,  1 ], value:  9.0211870253251072E-002}, 
- {coordinates:  [  5,  2 ], value: -1.7549337417776218E-002}, 
- {coordinates:  [  5,  3 ], value:  6.8289653258214705E-002}, 
- {coordinates:  [  5,  4 ], value:  5.9776320563035321E-002}, 
- {coordinates:  [  5,  5 ], value:  0.9846360939528288}, 
- {coordinates:  [  5,  6 ], value:  8.6704817754487726E-002}, 
- {coordinates:  [  5,  7 ], value:  5.4940832273338562E-002}, 
- {coordinates:  [  5,  8 ], value: -1.990883876867848E-002}, 
- {coordinates:  [  5,  9 ], value:  7.7153461763533812E-002}, 
- {coordinates:  [  5,  10 ], value:  6.7600749667739504E-002}, 
- {coordinates:  [  5,  11 ], value: -1.9893238985458275E-002}, 
- {coordinates:  [  5,  12 ], value:  6.3171586168466923E-002}]}
+ {coordinates:  [  5,  1 ], value:  9.0211870291362323E-002}, 
+ {coordinates:  [  5,  2 ], value: -1.7549337468772182E-002}, 
+ {coordinates:  [  5,  3 ], value:  6.8289653223722366E-002}, 
+ {coordinates:  [  5,  4 ], value:  5.9776320603146624E-002}, 
+ {coordinates:  [  5,  5 ], value:  0.9846360940547022}, 
+ {coordinates:  [  5,  6 ], value:  8.6704817787930294E-002}, 
+ {coordinates:  [  5,  7 ], value:  5.4940832269851157E-002}, 
+ {coordinates:  [  5,  8 ], value: -1.9908838845250621E-002}, 
+ {coordinates:  [  5,  9 ], value:  7.7153461779276483E-002}, 
+ {coordinates:  [  5,  10 ], value:  6.7600749637748245E-002}, 
+ {coordinates:  [  5,  11 ], value: -1.9893239009778234E-002}, 
+ {coordinates:  [  5,  12 ], value:  6.3171586180075123E-002}]}
  -  {segment:  6, elements: [
- {coordinates:  [  6,  1 ], value: -5.9374623643013462E-003}, 
- {coordinates:  [  6,  2 ], value:  5.7910593008457467E-002}, 
- {coordinates:  [  6,  3 ], value:  6.325334472762513E-002}, 
- {coordinates:  [  6,  4 ], value: -9.0747302160929539E-003}, 
- {coordinates:  [  6,  5 ], value:  8.6704817754487726E-002}, 
- {coordinates:  [  6,  6 ], value:  1.026984428322252}, 
- {coordinates:  [  6,  7 ], value: -6.4099815598976315E-006}, 
- {coordinates:  [  6,  8 ], value:  8.6468233080957899E-002}, 
- {coordinates:  [  6,  9 ], value:  4.2108805348046459E-002}, 
- {coordinates:  [  6,  10 ], value: -5.9534256593345818E-003}, 
- {coordinates:  [  6,  11 ], value:  7.6459605145457535E-002}, 
- {coordinates:  [  6,  12 ], value:  5.7075485478955412E-002}]}
+ {coordinates:  [  6,  1 ], value: -5.9374623748590545E-003}, 
+ {coordinates:  [  6,  2 ], value:  5.7910592966328174E-002}, 
+ {coordinates:  [  6,  3 ], value:  6.3253344728292527E-002}, 
+ {coordinates:  [  6,  4 ], value: -9.074730202671015E-003}, 
+ {coordinates:  [  6,  5 ], value:  8.6704817787930294E-002}, 
+ {coordinates:  [  6,  6 ], value:  1.026984428333531}, 
+ {coordinates:  [  6,  7 ], value: -6.4099245685847242E-006}, 
+ {coordinates:  [  6,  8 ], value:  8.6468233109593229E-002}, 
+ {coordinates:  [  6,  9 ], value:  4.2108805280521022E-002}, 
+ {coordinates:  [  6,  10 ], value: -5.9534256769416885E-003}, 
+ {coordinates:  [  6,  11 ], value:  7.6459605155867374E-002}, 
+ {coordinates:  [  6,  12 ], value:  5.7075485478650101E-002}]}
  -  {segment:  7, elements: [
- {coordinates:  [  7,  1 ], value:  2.9450005866403766E-002}, 
- {coordinates:  [  7,  2 ], value:  8.1836518896284627E-002}, 
- {coordinates:  [  7,  3 ], value: -4.9725482054661062E-003}, 
- {coordinates:  [  7,  4 ], value:  6.231399768270169E-002}, 
- {coordinates:  [  7,  5 ], value:  5.4940832273338569E-002}, 
- {coordinates:  [  7,  6 ], value: -6.409981559897645E-006}, 
- {coordinates:  [  7,  7 ], value:  1.082736768925439}, 
- {coordinates:  [  7,  8 ], value:  3.6565578140594079E-002}, 
- {coordinates:  [  7,  9 ], value:  6.8378646514191709E-004}, 
- {coordinates:  [  7,  10 ], value:  7.8094836970356768E-002}, 
- {coordinates:  [  7,  11 ], value:  4.9580623651711848E-002}, 
- {coordinates:  [  7,  12 ], value: -4.727867933519066E-003}]}
+ {coordinates:  [  7,  1 ], value:  2.945000586797468E-002}, 
+ {coordinates:  [  7,  2 ], value:  8.1836518887916557E-002}, 
+ {coordinates:  [  7,  3 ], value: -4.9725482231682654E-003}, 
+ {coordinates:  [  7,  4 ], value:  6.2313997621053559E-002}, 
+ {coordinates:  [  7,  5 ], value:  5.494083226985115E-002}, 
+ {coordinates:  [  7,  6 ], value: -6.409924568584847E-006}, 
+ {coordinates:  [  7,  7 ], value:  1.082736769012168}, 
+ {coordinates:  [  7,  8 ], value:  3.6565578167248446E-002}, 
+ {coordinates:  [  7,  9 ], value:  6.8378647824479547E-004}, 
+ {coordinates:  [  7,  10 ], value:  7.8094836893577935E-002}, 
+ {coordinates:  [  7,  11 ], value:  4.9580623672892392E-002}, 
+ {coordinates:  [  7,  12 ], value: -4.7278679570557916E-003}]}
  -  {segment:  8, elements: [
- {coordinates:  [  8,  1 ], value:  9.4717017860678487E-002}, 
- {coordinates:  [  8,  2 ], value: -1.0899614275423838E-002}, 
- {coordinates:  [  8,  3 ], value:  5.3088241746308974E-002}, 
- {coordinates:  [  8,  4 ], value:  7.2633688507726127E-002}, 
- {coordinates:  [  8,  5 ], value: -1.990883876867848E-002}, 
- {coordinates:  [  8,  6 ], value:  8.6468233080957899E-002}, 
- {coordinates:  [  8,  7 ], value:  3.6565578140594079E-002}, 
- {coordinates:  [  8,  8 ], value:  0.9980390750060827}, 
- {coordinates:  [  8,  9 ], value:  9.556608535622485E-002}, 
- {coordinates:  [  8,  10 ], value:  3.3317199556411735E-002}, 
- {coordinates:  [  8,  11 ], value: -1.1527027685163036E-002}, 
- {coordinates:  [  8,  12 ], value:  8.9544716524665294E-002}]}
+ {coordinates:  [  8,  1 ], value:  9.4717017848552021E-002}, 
+ {coordinates:  [  8,  2 ], value: -1.0899614305732339E-002}, 
+ {coordinates:  [  8,  3 ], value:  5.3088241745144413E-002}, 
+ {coordinates:  [  8,  4 ], value:  7.2633688524084389E-002}, 
+ {coordinates:  [  8,  5 ], value: -1.9908838845250618E-002}, 
+ {coordinates:  [  8,  6 ], value:  8.6468233109593229E-002}, 
+ {coordinates:  [  8,  7 ], value:  3.6565578167248446E-002}, 
+ {coordinates:  [  8,  8 ], value:  0.9980390751157445}, 
+ {coordinates:  [  8,  9 ], value:  9.5566085373695445E-002}, 
+ {coordinates:  [  8,  10 ], value:  3.3317199593361969E-002}, 
+ {coordinates:  [  8,  11 ], value: -1.1527027763125749E-002}, 
+ {coordinates:  [  8,  12 ], value:  8.9544716513358172E-002}]}
  -  {segment:  9, elements: [
- {coordinates:  [  9,  1 ], value:  2.9821469452545398E-003}, 
- {coordinates:  [  9,  2 ], value:  4.2784275989558244E-002}, 
- {coordinates:  [  9,  3 ], value:  7.6037117067218538E-002}, 
- {coordinates:  [  9,  4 ], value: -1.0485681312623747E-002}, 
- {coordinates:  [  9,  5 ], value:  7.7153461763533812E-002}, 
- {coordinates:  [  9,  6 ], value:  4.2108805348046459E-002}, 
- {coordinates:  [  9,  7 ], value:  6.8378646514191709E-004}, 
- {coordinates:  [  9,  8 ], value:  9.556608535622485E-002}, 
- {coordinates:  [  9,  9 ], value:  1.006141559370257}, 
- {coordinates:  [  9,  10 ], value:  1.5333988041214068E-002}, 
- {coordinates:  [  9,  11 ], value:  9.5754995884167818E-002}, 
- {coordinates:  [  9,  12 ], value:  1.9847539884942866E-002}]}
+ {coordinates:  [  9,  1 ], value:  2.9821469223243425E-003}, 
+ {coordinates:  [  9,  2 ], value:  4.2784276009056162E-002}, 
+ {coordinates:  [  9,  3 ], value:  7.603711700880568E-002}, 
+ {coordinates:  [  9,  4 ], value: -1.0485681321101739E-002}, 
+ {coordinates:  [  9,  5 ], value:  7.7153461779276469E-002}, 
+ {coordinates:  [  9,  6 ], value:  4.2108805280521022E-002}, 
+ {coordinates:  [  9,  7 ], value:  6.8378647824479547E-004}, 
+ {coordinates:  [  9,  8 ], value:  9.5566085373695445E-002}, 
+ {coordinates:  [  9,  9 ], value:  1.006141559448793}, 
+ {coordinates:  [  9,  10 ], value:  1.5333988042984602E-002}, 
+ {coordinates:  [  9,  11 ], value:  9.5754995899715006E-002}, 
+ {coordinates:  [  9,  12 ], value:  1.9847539902932077E-002}]}
  -  {segment:  10, elements: [
- {coordinates:  [  10,  1 ], value:  1.7167539546485401E-002}, 
- {coordinates:  [  10,  2 ], value:  8.8830433596559399E-002}, 
- {coordinates:  [  10,  3 ], value: -2.001363832451618E-003}, 
- {coordinates:  [  10,  4 ], value:  5.1245787863525454E-002}, 
- {coordinates:  [  10,  5 ], value:  6.7600749667739504E-002}, 
- {coordinates:  [  10,  6 ], value: -5.9534256593345792E-003}, 
- {coordinates:  [  10,  7 ], value:  7.8094836970356768E-002}, 
- {coordinates:  [  10,  8 ], value:  3.3317199556411728E-002}, 
- {coordinates:  [  10,  9 ], value:  1.5333988041214068E-002}, 
- {coordinates:  [  10,  10 ], value:  1.083893791279545}, 
- {coordinates:  [  10,  11 ], value:  1.5103970704482833E-002}, 
- {coordinates:  [  10,  12 ], value:  1.890566343743752E-002}]}
+ {coordinates:  [  10,  1 ], value:  1.7167539573771689E-002}, 
+ {coordinates:  [  10,  2 ], value:  8.8830433532273226E-002}, 
+ {coordinates:  [  10,  3 ], value: -2.0013638365217082E-003}, 
+ {coordinates:  [  10,  4 ], value:  5.1245787854715348E-002}, 
+ {coordinates:  [  10,  5 ], value:  6.7600749637748245E-002}, 
+ {coordinates:  [  10,  6 ], value: -5.9534256769416868E-003}, 
+ {coordinates:  [  10,  7 ], value:  7.8094836893577921E-002}, 
+ {coordinates:  [  10,  8 ], value:  3.3317199593361969E-002}, 
+ {coordinates:  [  10,  9 ], value:  1.5333988042984602E-002}, 
+ {coordinates:  [  10,  10 ], value:  1.083893791339377}, 
+ {coordinates:  [  10,  11 ], value:  1.5103970782412946E-002}, 
+ {coordinates:  [  10,  12 ], value:  1.8905663442091509E-002}]}
  -  {segment:  11, elements: [
- {coordinates:  [  11,  1 ], value:  9.5142625434832331E-002}, 
- {coordinates:  [  11,  2 ], value: -1.6133163829665396E-003}, 
- {coordinates:  [  11,  3 ], value:  3.8930968316931137E-002}, 
- {coordinates:  [  11,  4 ], value:  8.1908552800089601E-002}, 
- {coordinates:  [  11,  5 ], value: -1.9893238985458275E-002}, 
- {coordinates:  [  11,  6 ], value:  7.6459605145457535E-002}, 
- {coordinates:  [  11,  7 ], value:  4.9580623651711848E-002}, 
- {coordinates:  [  11,  8 ], value: -1.1527027685163036E-002}, 
- {coordinates:  [  11,  9 ], value:  9.5754995884167832E-002}, 
- {coordinates:  [  11,  10 ], value:  1.5103970704482834E-002}, 
- {coordinates:  [  11,  11 ], value:  1.018214736929424}, 
- {coordinates:  [  11,  12 ], value:  9.3958620733089915E-002}]}
+ {coordinates:  [  11,  1 ], value:  9.5142625419208801E-002}, 
+ {coordinates:  [  11,  2 ], value: -1.6133164197213528E-003}, 
+ {coordinates:  [  11,  3 ], value:  3.8930968349599956E-002}, 
+ {coordinates:  [  11,  4 ], value:  8.190855276901568E-002}, 
+ {coordinates:  [  11,  5 ], value: -1.989323900977823E-002}, 
+ {coordinates:  [  11,  6 ], value:  7.6459605155867374E-002}, 
+ {coordinates:  [  11,  7 ], value:  4.9580623672892392E-002}, 
+ {coordinates:  [  11,  8 ], value: -1.1527027763125749E-002}, 
+ {coordinates:  [  11,  9 ], value:  9.575499589971502E-002}, 
+ {coordinates:  [  11,  10 ], value:  1.5103970782412946E-002}, 
+ {coordinates:  [  11,  11 ], value:  1.018214736989886}, 
+ {coordinates:  [  11,  12 ], value:  9.3958620728772105E-002}]}
  -  {segment:  12, elements: [
- {coordinates:  [  12,  1 ], value:  1.630131492575343E-002}, 
- {coordinates:  [  12,  2 ], value:  2.7458978815960926E-002}, 
- {coordinates:  [  12,  3 ], value:  8.4558860206743192E-002}, 
- {coordinates:  [  12,  4 ], value: -5.7821806152666081E-003}, 
- {coordinates:  [  12,  5 ], value:  6.3171586168466923E-002}, 
- {coordinates:  [  12,  6 ], value:  5.7075485478955412E-002}, 
- {coordinates:  [  12,  7 ], value: -4.7278679335190669E-003}, 
- {coordinates:  [  12,  8 ], value:  8.9544716524665294E-002}, 
- {coordinates:  [  12,  9 ], value:  1.9847539884942866E-002}, 
- {coordinates:  [  12,  10 ], value:  1.890566343743752E-002}, 
- {coordinates:  [  12,  11 ], value:  9.3958620733089915E-002}, 
- {coordinates:  [  12,  12 ], value:  0.9912297065381475}]}
- Max error of the result               :  2.5594393271433091E-010
- Mean error of the result              :  9.5895617549775535E-011
+ {coordinates:  [  12,  1 ], value:  1.6301314901457916E-002}, 
+ {coordinates:  [  12,  2 ], value:  2.7458978896007822E-002}, 
+ {coordinates:  [  12,  3 ], value:  8.4558860108547171E-002}, 
+ {coordinates:  [  12,  4 ], value: -5.7821806113607438E-003}, 
+ {coordinates:  [  12,  5 ], value:  6.3171586180075123E-002}, 
+ {coordinates:  [  12,  6 ], value:  5.7075485478650101E-002}, 
+ {coordinates:  [  12,  7 ], value: -4.7278679570557916E-003}, 
+ {coordinates:  [  12,  8 ], value:  8.9544716513358172E-002}, 
+ {coordinates:  [  12,  9 ], value:  1.9847539902932077E-002}, 
+ {coordinates:  [  12,  10 ], value:  1.8905663442091509E-002}, 
+ {coordinates:  [  12,  11 ], value:  9.3958620728772105E-002}, 
+ {coordinates:  [  12,  12 ], value:  0.9912297066091965}]}
+ Max error of the result               :  1.2323009279668895E-010
+ Mean error of the result              :  4.7399595455146004E-011
   #========================================================================= checks finished
  Memory Consumption Report:
-   Tot. No. of Allocations             :  1616
-   Tot. No. of Deallocations           :  1616
+   Tot. No. of Allocations             :  1331
+   Tot. No. of Deallocations           :  1331
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  0.025
-     for the array                     : work
-     in the routine                    : overlap_plus_minus_one_half_exac
-     Memory Peak of process            : 20.228 MB
- Walltime since initialization         : 00:00:00.917877957
- Max No. of dictionaries used          :  1291 #( 908 still in use)
+     Peak Value (MB)                   :  0.131
+     for the array                     : cc
+     in the routine                    : get_polynomial_degree
+     Memory Peak of process            : 20.948 MB
+ Walltime since initialization         : 00:00:00.839690144
+ Max No. of dictionaries used          :  1410 #( 1001 still in use)
  Number of dictionary folders allocated:  1
   #//////////////////////////////////////// Program to check the overlapPowergeneral routine
  reading from file                     : inputdata.fake
@@ -8868,20 +8872,22 @@
    number of rows and columns          :  11
    number of segments                  :  11
    number of non-zero elements         :  11
+ sparse matmul load balancing naive / optimized:  [  1.45,  1.45 ]
  total elements                        :  121
  non-zero elements                     :  11
   #segments:  11
  sparsity in %                         :  90.91
- sparse matmul load balancing naive / optimized:  [  1.45,  1.45 ]
+ sparse matrix multiplication initialized:  Yes
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
    -  {number of tasks:  8, start / end:  [  1,  11 ], start / end disjoint:  [  1,  11 ]}
+ sparse matmul load balancing naive / optimized:  [  1.45,  1.45 ]
  total elements                        :  121
  non-zero elements                     :  11
   #segments:  11
  sparsity in %                         :  90.91
- sparse matmul load balancing naive / optimized:  [  1.45,  1.45 ]
+ sparse matrix multiplication initialized:  Yes
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
@@ -10047,35 +10053,35 @@
      x                                 : -1/2
    order                               :  1025
    determine eigenvalue bounds:
-   -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
- exp accur:  [  3.61E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty: -7.6E-04, ok: [
+  Yes,  Yes], exp accur:  [  1.39E-09 ]}
    error estimation:
-     max / mean error                  :  [  3.7E-10,  2.71E-10 ]
+     max / mean error                  :  [  1.38E-09,  8.94E-10 ]
  final result:
  -  {segment:  1, elements: [
- {coordinates:  [  1,  1 ], value:  0.9359232303719437}]}
+ {coordinates:  [  1,  1 ], value:  0.9359232309294989}]}
  -  {segment:  2, elements: [
- {coordinates:  [  2,  2 ], value:  0.9999295108905505}]}
+ {coordinates:  [  2,  2 ], value:  0.9999295110727148}]}
  -  {segment:  3, elements: [
- {coordinates:  [  3,  3 ], value:  0.9399974271830607}]}
+ {coordinates:  [  3,  3 ], value:  0.9399974275908523}]}
  -  {segment:  4, elements: [
- {coordinates:  [  4,  4 ], value:  0.9219259385588662}]}
+ {coordinates:  [  4,  4 ], value:  0.9219259391626026}]}
  -  {segment:  5, elements: [
- {coordinates:  [  5,  5 ], value:  0.9940374675050728}]}
+ {coordinates:  [  5,  5 ], value:  0.9940374674255142}]}
  -  {segment:  6, elements: [
- {coordinates:  [  6,  6 ], value:  0.9586727534969738}]}
+ {coordinates:  [  6,  6 ], value:  0.9586727530276304}]}
  -  {segment:  7, elements: [
- {coordinates:  [  7,  7 ], value:  0.9141185662112549}]}
+ {coordinates:  [  7,  7 ], value:  0.9141185664932466}]}
  -  {segment:  8, elements: [
- {coordinates:  [  8,  8 ], value:  0.9801706333485681}]}
+ {coordinates:  [  8,  8 ], value:  0.9801706327481428}]}
  -  {segment:  9, elements: [
- {coordinates:  [  9,  9 ], value:  0.9774330310335189}]}
+ {coordinates:  [  9,  9 ], value:  0.9774330303733463}]}
  -  {segment:  10, elements: [
- {coordinates:  [  10,  10 ], value:  0.9135272727448671}]}
+ {coordinates:  [  10,  10 ], value:  0.9135272729949969}]}
  -  {segment:  11, elements: [
- {coordinates:  [  11,  11 ], value:  0.9617612779450621}]}
- Max error of the result               :  3.7039049605169794E-010
- Mean error of the result              :  2.7088312594955931E-010
+ {coordinates:  [  11,  11 ], value:  0.961761277372232}]}
+ Max error of the result               :  1.3776002560916822E-009
+ Mean error of the result              :  8.9364663455183924E-010
   #------------------------------------------------------------------------------- check: 32
  check number                          :  32
  imode                                 :  1
@@ -10088,35 +10094,35 @@
      x                                 : 1/2
    order                               :  1025
    determine eigenvalue bounds:
-   -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
- exp accur:  [  6.93E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty: -7.6E-04, ok: [
+  Yes,  Yes], exp accur:  [  4.03E-11 ]}
    error estimation:
-     max / mean error                  :  [  7.09E-10,  5.29E-10 ]
+     max / mean error                  :  [  4.21E-11,  2.74E-11 ]
  final result:
  -  {segment:  1, elements: [
- {coordinates:  [  1,  1 ], value:  1.068463702731676}]}
+ {coordinates:  [  1,  1 ], value:  1.068463702526597}]}
  -  {segment:  2, elements: [
- {coordinates:  [  2,  2 ], value:  1.000070493891916}]}
+ {coordinates:  [  2,  2 ], value:  1.000070493893399}]}
  -  {segment:  3, elements: [
- {coordinates:  [  3,  3 ], value:  1.06383269917415}]}
+ {coordinates:  [  3,  3 ], value:  1.063832699051439}]}
  -  {segment:  4, elements: [
- {coordinates:  [  4,  4 ], value:  1.084685828142337}]}
+ {coordinates:  [  4,  4 ], value:  1.08468582780119}]}
  -  {segment:  5, elements: [
- {coordinates:  [  5,  5 ], value:  1.00599829725184}]}
+ {coordinates:  [  5,  5 ], value:  1.005998297374826}]}
  -  {segment:  6, elements: [
- {coordinates:  [  6,  6 ], value:  1.043108815048012}]}
+ {coordinates:  [  6,  6 ], value:  1.043108815318712}]}
  -  {segment:  7, elements: [
- {coordinates:  [  7,  7 ], value:  1.093949994068335}]}
+ {coordinates:  [  7,  7 ], value:  1.093949993789076}]}
  -  {segment:  8, elements: [
- {coordinates:  [  8,  8 ], value:  1.020230524784824}]}
+ {coordinates:  [  8,  8 ], value:  1.020230525124065}]}
  -  {segment:  9, elements: [
- {coordinates:  [  9,  9 ], value:  1.023087994679241}]}
+ {coordinates:  [  9,  9 ], value:  1.023087995040807}]}
  -  {segment:  10, elements: [
- {coordinates:  [  10,  10 ], value:  1.094658068690762}]}
+ {coordinates:  [  10,  10 ], value:  1.094658068420316}]}
  -  {segment:  11, elements: [
- {coordinates:  [  11,  11 ], value:  1.039759057466088}]}
- Max error of the result               :  7.0898087400905752E-010
- Mean error of the result              :  5.2890611558053722E-010
+ {coordinates:  [  11,  11 ], value:  1.039759057780655}]}
+ Max error of the result               :  4.2135406275178866E-011
+ Mean error of the result              :  2.7395472370837341E-011
   #------------------------------------------------------------------------------- check: 33
  check number                          :  33
  imode                                 :  1
@@ -10129,45 +10135,45 @@
      x                                 : 1/2
    order                               :  1025
    determine eigenvalue bounds:
-   -  {npl:  13, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], ok:  [  Yes,  Yes ], 
- exp accur:  [  6.93E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty: -7.6E-04, ok: [
+  Yes,  Yes], exp accur:  [  4.03E-11 ]}
    error estimation:
-     max / mean error                  :  [  7.09E-10,  5.29E-10 ]
+     max / mean error                  :  [  4.21E-11,  2.74E-11 ]
  final result:
  -  {segment:  1, elements: [
- {coordinates:  [  1,  1 ], value:  1.068463702731676}]}
+ {coordinates:  [  1,  1 ], value:  1.068463702526597}]}
  -  {segment:  2, elements: [
- {coordinates:  [  2,  2 ], value:  1.000070493891916}]}
+ {coordinates:  [  2,  2 ], value:  1.000070493893399}]}
  -  {segment:  3, elements: [
- {coordinates:  [  3,  3 ], value:  1.06383269917415}]}
+ {coordinates:  [  3,  3 ], value:  1.063832699051439}]}
  -  {segment:  4, elements: [
- {coordinates:  [  4,  4 ], value:  1.084685828142337}]}
+ {coordinates:  [  4,  4 ], value:  1.08468582780119}]}
  -  {segment:  5, elements: [
- {coordinates:  [  5,  5 ], value:  1.00599829725184}]}
+ {coordinates:  [  5,  5 ], value:  1.005998297374826}]}
  -  {segment:  6, elements: [
- {coordinates:  [  6,  6 ], value:  1.043108815048012}]}
+ {coordinates:  [  6,  6 ], value:  1.043108815318712}]}
  -  {segment:  7, elements: [
- {coordinates:  [  7,  7 ], value:  1.093949994068335}]}
+ {coordinates:  [  7,  7 ], value:  1.093949993789076}]}
  -  {segment:  8, elements: [
- {coordinates:  [  8,  8 ], value:  1.020230524784824}]}
+ {coordinates:  [  8,  8 ], value:  1.020230525124065}]}
  -  {segment:  9, elements: [
- {coordinates:  [  9,  9 ], value:  1.023087994679241}]}
+ {coordinates:  [  9,  9 ], value:  1.023087995040807}]}
  -  {segment:  10, elements: [
- {coordinates:  [  10,  10 ], value:  1.094658068690762}]}
+ {coordinates:  [  10,  10 ], value:  1.094658068420316}]}
  -  {segment:  11, elements: [
- {coordinates:  [  11,  11 ], value:  1.039759057466088}]}
- Max error of the result               :  7.0898087400905752E-010
- Mean error of the result              :  5.2890611558053722E-010
+ {coordinates:  [  11,  11 ], value:  1.039759057780655}]}
+ Max error of the result               :  4.2135406275178866E-011
+ Mean error of the result              :  2.7395472370837341E-011
   #========================================================================= checks finished
  Memory Consumption Report:
-   Tot. No. of Allocations             :  766
-   Tot. No. of Deallocations           :  766
+   Tot. No. of Allocations             :  711
+   Tot. No. of Deallocations           :  711
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  0.016
-     for the array                     : work
-     in the routine                    : overlap_plus_minus_one_half_exac
-     Memory Peak of process            : 20.120 MB
- Walltime since initialization         : 00:00:00.491753679
- Max No. of dictionaries used          :  1291 #( 908 still in use)
+     Peak Value (MB)                   :  0.120
+     for the array                     : cc
+     in the routine                    : get_polynomial_degree
+     Memory Peak of process            : 20.948 MB
+ Walltime since initialization         : 00:00:00.471089824
+ Max No. of dictionaries used          :  1410 #( 1001 still in use)
  Number of dictionary folders allocated:  1
