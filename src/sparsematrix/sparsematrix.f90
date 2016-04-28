@@ -28,7 +28,6 @@ module sparsematrix
   public :: gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace
   public :: extract_taskgroup_inplace, extract_taskgroup
   public :: write_matrix_compressed
-  public :: check_symmetry
   public :: write_sparsematrix
   public :: write_sparsematrix_CCS
   public :: transform_sparsity_pattern
@@ -1541,46 +1540,6 @@ module sparsematrix
 
 
      !integer :: mp1, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6
-
-   function check_symmetry(smat)
-     implicit none
-   
-     ! Calling arguments
-     type(sparse_matrix),intent(in) :: smat
-     logical :: check_symmetry
-   
-     ! Local variables
-     integer :: i, iseg, ii, jorb, iorb
-     logical,dimension(:,:),allocatable :: lgrid
-     !integer,dimension(2) :: irowcol
-   
-     lgrid=f_malloc((/smat%nfvctr,smat%nfvctr/),id='lgrid')
-     lgrid=.false.
-   
-     do iseg=1,smat%nseg
-         ii=smat%keyv(iseg)
-         ! A segment is always on one line, therefore no double loop
-         do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-             !irowcol=orb_from_index(smat,i)
-             !!iorb=smat%orb_from_index(1,i)
-             !!jorb=smat%orb_from_index(2,i)
-             lgrid(smat%keyg(1,2,iseg),i)=.true.
-             ii=ii+1
-         end do
-     end do
-   
-     check_symmetry=.true.
-     do iorb=1,smat%nfvctr
-         do jorb=1,smat%nfvctr
-             if (lgrid(jorb,iorb) .and. .not.lgrid(iorb,jorb)) then
-                 check_symmetry=.false.
-             end if
-         end do
-     end do
-   
-     call f_free(lgrid)
-   
-   end function check_symmetry
 
 
     !> Write a sparse matrix to a file

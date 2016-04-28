@@ -503,7 +503,7 @@ module sparsematrix_highlevel
       if (present(npl_auto)) then
           if (present(ice_obj)) then
               call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
-                   smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto=npl_auto, ice_obj=ice_obj)
+                   smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto=npl_auto, ice_objx=ice_obj)
           else
               call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
                    smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto=npl_auto)
@@ -511,7 +511,7 @@ module sparsematrix_highlevel
       else
           if (present(ice_obj)) then
               call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
-                   smat_in, smat_out, ncalc, ex, mat_in, mat_out, ice_obj=ice_obj)
+                   smat_in, smat_out, ncalc, ex, mat_in, mat_out, ice_objx=ice_obj)
           else
               call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
                    smat_in, smat_out, ncalc, ex, mat_in, mat_out)

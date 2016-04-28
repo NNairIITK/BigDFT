@@ -32,6 +32,8 @@ module sparsematrix_init
   public :: init_matrix_taskgroups
   public :: check_matmul_layout
   public :: check_compress_distributed_layout
+  public :: sparse_matrix_init_fake
+  public :: check_symmetry 
 
 
   contains
@@ -4059,7 +4061,307 @@ module sparsematrix_init
 
 
 
+    !> Fake initialization of the sparse_matrix type.
+    !! Takes as inout:
+    !! - the number of rows/columns
+    !! - the number of segments
+    !! - the number of non-zero elements
+    !! and produces a symmetric sparsity pattern with these parameters.
+    subroutine sparse_matrix_init_fake(iproc, nproc, nfvctr, nseg, nvctr, smat)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+      use communications_base, only: comms_linear_null
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, nfvctr, nseg, nvctr
+      type(sparse_matrix) :: smat
+    
+      ! Local variables
+      integer,dimension(:),allocatable :: nvctr_per_segment, nsegline, istsegline, keyv
+      integer,dimension(:,:),pointer :: nonzero
+      integer,dimension(:,:,:),allocatable :: keyg
+      logical :: symmetric
+    
+      ! Some checks whether the arguments are reasonable
+      if (nseg > nvctr) then
+          call f_err_throw('sparse matrix would have more segments than elements', &
+               err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      end if
+      if (nseg < nfvctr) then
+          call f_err_throw('sparse matrix would have less segments than lines', &
+               err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      end if
+      if (nvctr > nfvctr**2) then
+          call f_err_throw('sparse matrix would contain more elements than the dense one', &
+               err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      end if
+    
+      ! Nullify the data type
+      smat = sparse_matrix_null()
+    
+      nvctr_per_segment = f_malloc(nseg,id='nvctr_per_segment')
+      call nvctr_per_segment_init_ext(nseg, nvctr, nvctr_per_segment)
+    
+      nsegline = f_malloc(nfvctr,id='nsegline')
+      call nsegline_init_ext(nfvctr, nseg, nsegline)
 
+      istsegline = f_malloc(nfvctr,id='istsegline')
+      call istsegline_init_ext(nfvctr, nsegline, istsegline)
+
+      keyv = f_malloc(nseg,id='keyv')
+      call keyv_init_ext(nseg, nvctr_per_segment, keyv)
+
+      keyg = f_malloc((/2,2,nseg/),id='keyg')
+      call keyg_init_ext(nfvctr, nseg, nfvctr, nvctr, nsegline, istsegline, keyv, nvctr_per_segment, keyg)
+    
+      call bigdft_to_sparsebigdft(iproc, nproc, bigdft_mpi%mpi_comm, nfvctr, nvctr, nseg, keyg, smat)
+    
+      call f_free(nvctr_per_segment)
+      call f_free(nsegline)
+      call f_free(istsegline)
+      call f_free(keyv)
+      call f_free(keyg)
+
+      ! Check the symmetry
+      symmetric = check_symmetry(smat)
+    
+    end subroutine sparse_matrix_init_fake
+
+
+    subroutine nsegline_init_ext(norb, nseg, nsegline)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: norb, nseg
+      integer,dimension(norb),intent(out) :: nsegline
+      ! Local variables
+      real(kind=8) :: tt
+      integer :: ii, jorb
+      ! Distribute segments evenly among the lines
+      tt=real(nseg,kind=8)/real(norb,kind=8)
+      ii=floor(tt)
+      do jorb=1,norb
+          nsegline(jorb)=ii
+      end do
+      ii=nseg-norb*ii
+      do jorb=1,ii
+          nsegline(jorb)=nsegline(jorb)+1
+      end do
+    end subroutine nsegline_init_ext
+
+
+    subroutine istsegline_init_ext(norb, nsegline, istsegline)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: norb
+      integer,dimension(norb),intent(in) :: nsegline
+      integer,dimension(norb),intent(out) :: istsegline
+      ! Local variables
+      integer :: jorb
+      istsegline(1)=1
+      do jorb=2,norb
+          istsegline(jorb)=istsegline(jorb-1)+nsegline(jorb-1)
+      end do
+    end subroutine istsegline_init_ext
+
+
+    subroutine keyv_init_ext(nseg, nvctr_per_segment, keyv)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: nseg
+      integer,dimension(nseg),intent(out) :: nvctr_per_segment
+      integer,dimension(nseg),intent(out) :: keyv
+      ! Local variables
+      integer :: jseg
+      keyv(1)=1
+      do jseg=2,nseg
+          keyv(jseg)=keyv(jseg-1)+nvctr_per_segment(jseg-1)
+      end do
+    end subroutine keyv_init_ext
+
+    subroutine keyg_init_ext(norb, nseg, nfvctr, nvctr, nsegline, istsegline, keyv, nvctr_per_segment, keyg)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: norb, nseg, nfvctr, nvctr
+      integer,dimension(norb),intent(in) :: nsegline, istsegline
+      integer,dimension(nseg),intent(in) :: keyv, nvctr_per_segment
+      integer,dimension(2,2,nseg),intent(out) :: keyg
+      ! Local variables
+      integer :: jorb, nempty, jseg, jjseg, ii, j, ist, itot, istart, iend, idiag
+      integer :: idist_start, idist_end, ilen
+      integer,dimension(:),allocatable :: nempty_arr
+      real(kind=8) :: tt
+      integer,parameter :: DECREASE=1, INCREASE=2
+
+      itot=1
+      do jorb=1,norb
+          ! Number of empty elements
+          nempty=norb
+          do jseg=1,nsegline(jorb)
+              jjseg=istsegline(jorb)+jseg-1
+              nempty=nempty-nvctr_per_segment(jjseg)
+          end do
+          if (nempty<0) then
+              write(*,*) 'ERROR: nemtpy < 0; reduce number of elements'
+              stop
+          end if
+          ! Number of empty elements between the elements
+          allocate(nempty_arr(0:nsegline(jorb)))
+          tt=real(nempty,kind=8)/real(nsegline(jorb)+1,kind=8)
+          ii=floor(tt)
+          do j=0,nsegline(jorb)
+              nempty_arr(j)=ii
+          end do
+          ii=nempty-(nsegline(jorb)+1)*ii
+          do j=0,ii-1
+              nempty_arr(j)=nempty_arr(j)+1
+          end do
+          ! Check that the diagonal element is not in an empty region. If so,
+          ! shift the elements.
+          idiag=(jorb-1)*norb+jorb
+          adjust_empty: do
+              ist=nempty_arr(0)
+              do jseg=1,nsegline(jorb)
+                  jjseg=istsegline(jorb)+jseg-1
+                  istart=itot+ist
+                  iend=istart+nvctr_per_segment(jjseg)-1
+                  if (istart<=idiag .and. idiag<=iend) exit adjust_empty
+                  ! Determine the distance to the start / end of the segment
+                  idist_start=abs(idiag-istart)
+                  idist_end=abs(idiag-iend)
+                  !!if (j==1 .and. idiag<istart) then
+                  !!    ! Diagonal element is before the first segment, 
+                  !!    ! so decrease the first empty region
+                  !!    iaction=DECREASE
+                  !!end if
+                  !!if (j==nsegline(jorb) .and. idiag>iend) then
+                  !!    ! Diagonal element is after the last segment, 
+                  !!    ! so increase the first empty region
+                  !!    iaction=INCREASE
+                  !!end if
+                  ist=ist+nvctr_per_segment(jjseg)
+                  ist=ist+nempty_arr(jseg)
+              end do
+              ! If one arrives here, the diagonal element was in an empty
+              ! region. Determine whether it was close to the start or end of a
+              ! segment.
+              if (istart==iend) then
+                  ! Segment has only length one
+                  if (istart<idiag) then
+                      ! Incrase the first empty region and increase the last one
+                      nempty_arr(0)=nempty_arr(0)+1
+                      nempty_arr(nsegline(jorb))=nempty_arr(nsegline(jorb))-1
+                  else
+                      ! Decrase the first empty region and increase the last one
+                      nempty_arr(0)=nempty_arr(0)-1
+                      nempty_arr(nsegline(jorb))=nempty_arr(nsegline(jorb))+1
+                  end if
+              else if (idist_start<=idist_end) then
+                  ! Closer to the start, so decrase the first empty region and increase the last one
+                  nempty_arr(0)=nempty_arr(0)-1
+                  nempty_arr(nsegline(jorb))=nempty_arr(nsegline(jorb))+1
+              else 
+                  ! Closer to the end, so increase the first empty region and decrease the last one
+                  nempty_arr(0)=nempty_arr(0)+1
+                  nempty_arr(nsegline(jorb))=nempty_arr(nsegline(jorb))-1
+              end if
+          end do adjust_empty
+
+          ! Now fill the keys
+          ist=nempty_arr(0)
+          do jseg=1,nsegline(jorb)
+              jjseg=istsegline(jorb)+jseg-1
+              istart=itot+ist
+              iend=istart+nvctr_per_segment(jjseg)-1
+              keyg(1,1,jjseg)=mod(istart-1,nfvctr)+1
+              keyg(2,1,jjseg)=mod(iend-1,nfvctr)+1
+              keyg(1,2,jjseg)=(istart-1)/nfvctr+1
+              keyg(2,2,jjseg)=(iend-1)/nfvctr+1
+              ist=ist+nvctr_per_segment(jjseg)
+              ist=ist+nempty_arr(jseg)
+          end do
+          itot=itot+ist
+          deallocate(nempty_arr)
+      end do
+
+      ! Check that the total number is correct
+      itot=0
+      do jseg=1,nseg
+          ! A segment is always on one line, therefore no double loop
+          ilen=keyg(2,1,jseg)-keyg(1,1,jseg)+1
+          if (ilen/=nvctr_per_segment(jseg)) stop 'ilen/=nvctr_per_segment(jseg)'
+          if (jseg/=nseg) then
+              if (ilen/=(keyv(jseg+1)-keyv(jseg))) stop 'ilen/=(keyv(jseg+1)-keyv(jseg))'
+          else
+              if (ilen/=(nvctr+1-keyv(jseg))) stop 'ilen/=(nvctr+1-keyv(jseg))'
+          end if
+          itot=itot+ilen
+      end do
+      if (itot/=nvctr) stop 'itot/=nvctr'
+    end subroutine keyg_init_ext
+
+    subroutine nvctr_per_segment_init_ext(nseg, nvctr, nvctr_per_segment)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: nseg, nvctr
+      integer,dimension(nseg),intent(out) :: nvctr_per_segment
+      ! Local variables
+      real(kind=8) :: tt
+      integer :: ii, jseg
+      ! Distribute the elements evenly among the segments
+      tt=real(nvctr,kind=8)/real(nseg,kind=8)
+      ii=floor(tt)
+      do jseg=1,nseg
+          nvctr_per_segment(jseg)=ii
+      end do
+      ii=nvctr-nseg*ii
+      do jseg=1,ii
+          nvctr_per_segment(jseg)=nvctr_per_segment(jseg)+1
+      end do
+      if (sum(nvctr_per_segment)/=nvctr) stop 'sum(nvctr_per_segment)/=nvctr'
+    end subroutine nvctr_per_segment_init_ext
+
+
+    function check_symmetry(smat)
+      implicit none
+    
+      ! Calling arguments
+      type(sparse_matrix),intent(in) :: smat
+      logical :: check_symmetry
+    
+      ! Local variables
+      integer :: i, iseg, ii, jorb, iorb
+      logical,dimension(:,:),allocatable :: lgrid
+      !integer,dimension(2) :: irowcol
+    
+      lgrid=f_malloc((/smat%nfvctr,smat%nfvctr/),id='lgrid')
+      lgrid=.false.
+    
+      do iseg=1,smat%nseg
+          ii=smat%keyv(iseg)
+          ! A segment is always on one line, therefore no double loop
+          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+              !irowcol=orb_from_index(smat,i)
+              !!iorb=smat%orb_from_index(1,i)
+              !!jorb=smat%orb_from_index(2,i)
+              lgrid(smat%keyg(1,2,iseg),i)=.true.
+              ii=ii+1
+          end do
+      end do
+    
+      check_symmetry=.true.
+      do iorb=1,smat%nfvctr
+          do jorb=1,smat%nfvctr
+              if (lgrid(jorb,iorb) .and. .not.lgrid(iorb,jorb)) then
+                  check_symmetry=.false.
+              end if
+          end do
+      end do
+    
+      call f_free(lgrid)
+    
+    end function check_symmetry
 
 
 end module sparsematrix_init

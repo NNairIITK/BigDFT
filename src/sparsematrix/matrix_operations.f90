@@ -931,7 +931,7 @@ module matrix_operations
                     if (present(ice_obj)) then
                         call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
                              ovrlp_smat, inv_ovrlp_smat, ncalc, rpower, ovrlp_mat, &
-                             inv_ovrlp_mat, verbosity=verbosity_, ice_obj=ice_obj)
+                             inv_ovrlp_mat, verbosity=verbosity_, ice_objx=ice_obj)
                     else
                         call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
                              ovrlp_smat, inv_ovrlp_smat, ncalc, rpower, ovrlp_mat, &

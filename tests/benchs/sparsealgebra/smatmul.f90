@@ -8,8 +8,8 @@ program smatmul
                                matrices_null, deallocate_sparse_matrix, deallocate_matrices, &
                                assignment(=), sparsematrix_malloc_ptr, sparsematrix_malloc, SPARSE_FULL, SPARSEMM_SEQ, &
                                SPARSE_MATMUL_SMALL
-  use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
-  use sparsematrix, only: write_matrix_compressed, check_symmetry, &
+  use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple, check_symmetry
+  use sparsematrix, only: write_matrix_compressed, &
                           write_sparsematrix_CCS, write_sparsematrix, &
                           sparsemm_new, sequential_acces_matrix_fast2, &
                           compress_matrix_distributed_wrapper
