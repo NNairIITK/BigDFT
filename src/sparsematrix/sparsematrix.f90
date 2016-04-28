@@ -2305,7 +2305,7 @@ module sparsematrix
       integer,intent(in),optional :: ispinx
 
       ! Local variables
-      integer :: ispin, ishift, iseg, ii, i, ii_trans
+      integer :: ispin, ishift, ishift_tg, iseg, ii, i, ii_trans
       logical :: minus
       real(mp) :: half
     
@@ -2326,9 +2326,10 @@ module sparsematrix
           if (present(ispinx)) then
               if (ispin/=ispinx) cycle
           end if
-          ishift=(ispin-1)*smat%nvctrp_tg
+          ishift = (ispin-1)*smat%nvctrp_tg
+          ishift_tg = ishift-smat%isvctrp_tg
           !$omp parallel default(none) &
-          !$omp shared(smat,mat_in,mat_out,ishift,half) &
+          !$omp shared(smat,mat_in,mat_out,ishift_tg,half) &
           !$omp private(iseg,ii,i,ii_trans)
           !$omp do schedule(guided)
           do iseg=smat%istartendseg_local(1),smat%istartendseg_local(2)
@@ -2336,9 +2337,9 @@ module sparsematrix
               ! A segment is always on one line, therefore no double loop
               do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg) !this is too much, but for the moment ok
                   ii_trans = matrixindex_in_compressed(smat,smat%keyg(1,2,iseg),i)
-                      mat_out(ii+ishift-smat%isvctrp_tg) = half*(&
-                           mat_in(ii+ishift-smat%isvctrp_tg)+&
-                           mat_in(ii_trans+ishift-smat%isvctrp_tg))
+                      mat_out(ii+ishift_tg) = half*(&
+                           mat_in(ii+ishift_tg)+&
+                           mat_in(ii_trans+ishift_tg))
                   ii=ii+1
               end do
           end do
