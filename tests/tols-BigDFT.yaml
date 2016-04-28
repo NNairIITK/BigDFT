@@ -2562,6 +2562,7 @@ test-foeccs:
   EBS higher temperature: 1.1e-10
   difference: 9.6e-11
   trace(KS): 7.6e-11
+  D Tr(K): 1.0e-07
   value: 2.8e-11
 
 lj_connect.mhgps.ref.yaml:
