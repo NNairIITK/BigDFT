@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-04-27 12:37:23.066
+ Timestamp of this run                 : 2016-04-28 07:44:29.594
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -179,7 +179,8 @@
    calc_dipole                         : No #     calculate dipole
    calc_quadrupole                     : No #     calculate quadrupole
    subspace_diag                       : No #     diagonalization at the end
-   extra_states                        : 0 #      extra states to optimize (dmin only)
+   extra_states                        : 0 #      Number of extra states to include in support function and kernel optimization (dmin 
+    #                                              only), must be equal to norbsempty
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
     #                                              written to disk)
    charge_multipoles                   : 0 #      Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
@@ -295,6 +296,9 @@
    no_translation                      : No #     Logical input to set translational correction
    thermostat                          : none #   Activates a thermostat for MD
    wavefunction_extrapolation          : 0 #      Activates the wavefunction extrapolation for MD
+   restart_nose                        : No #     Restart Nose Hoover Chain information from md.restart
+   restart_pos                         : No #     Restart nuclear position information from md.restart
+   restart_vel                         : No #     Restart nuclear velocities information from md.restart
  mix:
    iscf                                : 0 #      Mixing parameters
    itrpmax                             : 1 #      Maximum number of diagonalisation iterations
@@ -643,7 +647,7 @@
      Molecule was rotated              :  0
      Wrapping/unwrapping               :  0
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  3.252E+00,  3.259E+00 ]}
+   -  {Process:  0, Timing:  [  3.26E+00,  3.270E+00 ]}
    Total charge                        :  1.499999893448E+01
    calculate S^x:
      mode                              : dense
@@ -999,12 +1003,12 @@
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        determine eigenvalue bounds:
-       -  {npl:  45, scale:  2.00E+00, bounds:  [  0.151,  3.359 ], penalty: -4.1E+01, ok: [
-  Yes,  No], exp accur:  [  3.45E-09 ]}
-       -  {npl:  50, scale:  1.00E+00, bounds:  [  0.151,  4.031 ], penalty:  1.0E-02, ok: [
-  No,  Yes], exp accur:  [  2.72E-09 ]}
-       -  {npl:  55, scale:  2.00E+00, bounds:  [  0.126,  4.031 ], penalty:  4.4E-08, ok: [
-  Yes,  Yes], exp accur:  [  2.89E-09 ]}
+       -  {npl:  40, scale:  2.00E+00, bounds:  [  0.186,  3.359 ], penalty: -4.1E+01, ok: [
+  Yes,  No], exp accur:  [  3.75E-09 ]}
+       -  {npl:  45, scale:  1.00E+00, bounds:  [  0.186,  4.031 ], penalty:  4.2E-02, ok: [
+  No,  Yes], exp accur:  [  2.34E-09 ]}
+       -  {npl:  50, scale:  2.00E+00, bounds:  [  0.155,  4.031 ], penalty:  1.2E-07, ok: [
+  Yes,  Yes], exp accur:  [  2.03E-09 ]}
        Kernel calculation:
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  1.221E-02
@@ -1028,15 +1032,15 @@
          -  { #------------------------------------------------------------------ it FOE: 7
  eF: -3.676658E-01, Tr(K):  1.4999996E+01, D Tr(K): -3.56E-06, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF: -3.676657E-01, Tr(K):  1.5000000E+01, D Tr(K): -2.07E-12, new eF: linear interpol}
+ eF: -3.676657E-01, Tr(K):  1.5000000E+01, D Tr(K):  9.72E-12, new eF: linear interpol}
          Asymmetry of kernel           :  7.18E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.187746268258E+01
-         EBS higher temperature        : -1.187746356935E+01
-         difference                    : -8.867717706806E-07
-         relative difference           :  7.466003424966E-08
+         EBS                           : -1.187746268395E+01
+         EBS higher temperature        : -1.187746357071E+01
+         difference                    : -8.867671628110E-07
+         relative difference           :  7.465964629042E-08
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999912354
+         trace(KS)                     :  15.00000000125229
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1058,8 +1062,8 @@
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
        S^-1/2                          : recalculate
        determine eigenvalue bounds:
-       -  {npl:  55, scale:  2.00E+00, bounds:  [  0.126,  4.031 ], penalty:  4.4E-08, ok: [
-  Yes,  Yes], exp accur:  [  2.89E-09 ]}
+       -  {npl:  50, scale:  2.00E+00, bounds:  [  0.155,  4.031 ], penalty:  1.2E-07, ok: [
+  Yes,  Yes], exp accur:  [  2.03E-09 ]}
        Kernel calculation:
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  1.526E-02
@@ -1083,26 +1087,26 @@
  eF: -3.699689E-01, Tr(K):  1.4999999E+01, D Tr(K): -6.89E-07, new eF: cubic interpol}
          Asymmetry of kernel           :  7.40E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.195114405064E+01
-         EBS higher temperature        : -1.195113541981E+01
-         difference                    :  8.630823357336E-06
-         relative difference           :  7.221754938915E-07
+         EBS                           : -1.195114404739E+01
+         EBS higher temperature        : -1.195113541657E+01
+         difference                    :  8.630824686051E-06
+         relative difference           :  7.221756052663E-07
          modify error function decay length: increase
-         trace(KS)                     :  14.99999930973292
+         trace(KS)                     :  14.99999931185369
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.17E-15
+         Hamiltonian                   :  1.22E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Coefficients available          :  No
      CDFT: [itc:  5, N:  8.00E+00, Tr(KW):  7.9984E+00, Vc: -5.50E-01, energy:  0.0000E+00]
      Hamiltonian update: {
  Energies: {EH:  5.20998562362E+01, EXC: -7.13694124252E+00, EvXC: -9.35045191465E+00}, 
-  Total charge:  1.499999797954E+01, 
+  Total charge:  1.499999798166E+01, 
  Poisson Solver: {BC: Free, Box:  [  117,  119,  107 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  5.99E-08, 
- iter:  1, delta:  4.33E-06, energy: -3.30893225305532681E+01, D: -3.309E+01, 
+ iter:  1, delta:  4.33E-06, energy: -3.30893225318082713E+01, D: -3.309E+01, 
           Tr(KW):  7.9984E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
@@ -1143,20 +1147,20 @@
          -  { #----------------------------------------------------------------- it FOE: 11
  eF: -2.579948E-01, Tr(K):  1.4999998E+01, D Tr(K): -2.31E-06, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 12
- eF: -2.579948E-01, Tr(K):  1.5000000E+01, D Tr(K):  9.95E-13, new eF: linear interpol}
-         Asymmetry of kernel           :  5.56E-15
+ eF: -2.579948E-01, Tr(K):  1.5000000E+01, D Tr(K):  9.04E-13, new eF: linear interpol}
+         Asymmetry of kernel           :  7.18E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.029765864385E+01
-         EBS higher temperature        : -1.029747592478E+01
-         difference                    :  1.827190710877E-04
-         relative difference           :  1.774374907997E-05
+         EBS                           : -1.029765863542E+01
+         EBS higher temperature        : -1.029747591635E+01
+         difference                    :  1.827190677108E-04
+         relative difference           :  1.774374876657E-05
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999915627
+         trace(KS)                     :  15.00000000123137
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.73E-15
+         Hamiltonian                   :  1.22E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.308E-01
        Coefficients available          :  No
@@ -1203,15 +1207,15 @@
          -  { #----------------------------------------------------------------- it FOE: 11
  eF: -4.338781E-01, Tr(K):  1.5000018E+01, D Tr(K):  1.83E-05, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 12
- eF: -4.338785E-01, Tr(K):  1.5000000E+01, D Tr(K):  1.80E-10, new eF: linear interpol}
+ eF: -4.338785E-01, Tr(K):  1.5000000E+01, D Tr(K):  1.79E-10, new eF: linear interpol}
          Asymmetry of kernel           :  1.24E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.687375199036E+01
-         EBS higher temperature        : -1.690280769248E+01
-         difference                    : -2.905570211848E-02
-         relative difference           :  1.721946733309E-03
+         EBS                           : -1.687375198118E+01
+         EBS higher temperature        : -1.690280768303E+01
+         difference                    : -2.905570185182E-02
+         relative difference           :  1.721946718443E-03
          modify error function decay length: decrease
-         trace(KS)                     :  14.99999999960754
+         trace(KS)                     :  15.00000000162564
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  1.192E-02
@@ -1235,17 +1239,17 @@
  eF: -4.329336E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.81E-07, new eF: cubic interpol}
          Asymmetry of kernel           :  1.36E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.687522014866E+01
-         EBS higher temperature        : -1.687590831742E+01
-         difference                    : -6.881687640892E-04
-         relative difference           :  4.077983919776E-05
+         EBS                           : -1.687522013946E+01
+         EBS higher temperature        : -1.687590830819E+01
+         difference                    : -6.881687303242E-04
+         relative difference           :  4.077983721914E-05
          modify error function decay length: increase
-         trace(KS)                     :  14.99999981825859
+         trace(KS)                     :  14.99999982027887
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.11E-15
+         Hamiltonian                   :  1.22E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.892E-01
        Coefficients available          :  No
@@ -1287,15 +1291,15 @@
          -  { #------------------------------------------------------------------ it FOE: 9
  eF: -3.583434E-01, Tr(K):  1.5000114E+01, D Tr(K):  1.14E-04, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 10
- eF: -3.583449E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.19E-09, new eF: linear interpol}
+ eF: -3.583449E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.20E-09, new eF: linear interpol}
          Asymmetry of kernel           :  6.41E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.159323087857E+01
-         EBS higher temperature        : -1.159323331599E+01
-         difference                    : -2.437418757495E-06
-         relative difference           :  2.102449940853E-07
+         EBS                           : -1.159323087493E+01
+         EBS higher temperature        : -1.159323331235E+01
+         difference                    : -2.437421381174E-06
+         relative difference           :  2.102452204626E-07
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999792554
+         trace(KS)                     :  15.00000000003125
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1336,20 +1340,20 @@
          -  { #------------------------------------------------------------------ it FOE: 6
  eF: -3.647413E-01, Tr(K):  1.4999907E+01, D Tr(K): -9.26E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -3.647398E-01, Tr(K):  1.5000000E+01, D Tr(K):  8.71E-11, new eF: linear interpol}
+ eF: -3.647398E-01, Tr(K):  1.5000000E+01, D Tr(K):  8.73E-11, new eF: linear interpol}
          Asymmetry of kernel           :  6.92E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.178579791136E+01
-         EBS higher temperature        : -1.178578020555E+01
-         difference                    :  1.770580487026E-05
-         relative difference           :  1.502300056681E-06
+         EBS                           : -1.178579790719E+01
+         EBS higher temperature        : -1.178578020138E+01
+         difference                    :  1.770580519533E-05
+         relative difference           :  1.502300084794E-06
          modify error function decay length: increase
-         trace(KS)                     :  14.9999999992106
+         trace(KS)                     :  15.00000000132674
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.22E-15
+         Hamiltonian                   :  1.17E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.562E-01
        Coefficients available          :  No
@@ -1386,15 +1390,15 @@
          -  { #------------------------------------------------------------------ it FOE: 6
  eF: -3.703243E-01, Tr(K):  1.4999984E+01, D Tr(K): -1.65E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -3.703239E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.46E-11, new eF: linear interpol}
+ eF: -3.703239E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.48E-11, new eF: linear interpol}
          Asymmetry of kernel           :  7.43E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.196275560929E+01
-         EBS higher temperature        : -1.196152876462E+01
-         difference                    :  1.226844667523E-03
-         relative difference           :  1.025553566078E-04
+         EBS                           : -1.196275560494E+01
+         EBS higher temperature        : -1.196152876031E+01
+         difference                    :  1.226844635285E-03
+         relative difference           :  1.025553539502E-04
          modify error function decay length: decrease
-         trace(KS)                     :  14.9999999991134
+         trace(KS)                     :  15.00000000123095
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  1.164E-02
@@ -1415,20 +1419,20 @@
          -  { #------------------------------------------------------------------ it FOE: 6
  eF: -3.703285E-01, Tr(K):  1.5000002E+01, D Tr(K):  2.06E-06, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -3.703285E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.79E-12, new eF: linear interpol}
+ eF: -3.703285E-01, Tr(K):  1.5000000E+01, D Tr(K): -4.49E-12, new eF: linear interpol}
          Asymmetry of kernel           :  7.43E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.196276899176E+01
-         EBS higher temperature        : -1.196276870133E+01
-         difference                    :  2.904364500012E-07
-         relative difference           :  2.427836316166E-08
+         EBS                           : -1.196276898742E+01
+         EBS higher temperature        : -1.196276869698E+01
+         difference                    :  2.904347802257E-07
+         relative difference           :  2.427822358947E-08
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999912609
+         trace(KS)                     :  15.00000000124113
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.17E-15
+         Hamiltonian                   :  1.22E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.576E-01
        Coefficients available          :  No
@@ -1436,10 +1440,10 @@
      Hamiltonian update: {
  Energies: {Ekin:  1.64409242746E+01, Epot: -2.19892036829E+01, Enl:  1.41659353262E+00, 
               EH:  5.20998562362E+01,  EXC: -7.13694124252E+00, EvXC: -9.35045191465E+00}, 
-    Total charge:  1.499999866905E+01, 
+    Total charge:  1.499999867117E+01, 
  Poisson Solver: {BC: Free, Box:  [  117,  119,  107 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  5.99E-08, 
- iter:  2, delta:  3.03E-06, energy: -3.30879663366592851E+01, D:  1.356E-03, 
+ iter:  2, delta:  3.03E-06, energy: -3.30879663380411628E+01, D:  1.356E-03, 
           Tr(KW):  8.0009E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
@@ -1490,19 +1494,19 @@
  eF: -1.823406E-01, Tr(K):  1.5002202E+01, D Tr(K):  2.20E-03, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 17
  eF: -1.823690E-01, Tr(K):  1.5000000E+01, D Tr(K): -8.28E-08, new eF: cubic interpol}
-         Asymmetry of kernel           :  8.27E-15
+         Asymmetry of kernel           :  1.86E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -9.169734201165E+00
-         EBS higher temperature        : -9.169722458990E+00
-         difference                    :  1.174217549682E-05
-         relative difference           :  1.280536080896E-06
+         EBS                           : -9.169734187949E+00
+         EBS higher temperature        : -9.169722445775E+00
+         difference                    :  1.174217486977E-05
+         relative difference           :  1.280536014359E-06
          modify error function decay length: increase
-         trace(KS)                     :  14.99999991635582
+         trace(KS)                     :  14.99999991837523
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.67E-15
+         Hamiltonian                   :  1.05E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.228E-01
        Coefficients available          :  No
@@ -1556,15 +1560,15 @@
          -  { #----------------------------------------------------------------- it FOE: 14
  eF: -4.331084E-01, Tr(K):  1.4999981E+01, D Tr(K): -1.87E-05, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 15
- eF: -4.331081E-01, Tr(K):  1.5000000E+01, D Tr(K):  1.34E-10, new eF: cubic interpol}
+ eF: -4.331081E-01, Tr(K):  1.5000000E+01, D Tr(K):  1.33E-10, new eF: cubic interpol}
          Asymmetry of kernel           :  1.35E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.690330013796E+01
-         EBS higher temperature        : -1.691653270975E+01
-         difference                    : -1.323257178894E-02
-         relative difference           :  7.828395449964E-04
+         EBS                           : -1.690330012608E+01
+         EBS higher temperature        : -1.691653269759E+01
+         difference                    : -1.323257151261E-02
+         relative difference           :  7.828395291993E-04
          modify error function decay length: decrease
-         trace(KS)                     :  14.99999999955277
+         trace(KS)                     :  15.00000000157057
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  9.095E-03
@@ -1587,20 +1591,20 @@
          -  { #------------------------------------------------------------------ it FOE: 7
  eF: -4.329359E-01, Tr(K):  1.4999961E+01, D Tr(K): -3.93E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF: -4.329356E-01, Tr(K):  1.5000000E+01, D Tr(K):  6.23E-09, new eF: linear interpol}
+ eF: -4.329356E-01, Tr(K):  1.5000000E+01, D Tr(K):  6.21E-09, new eF: linear interpol}
          Asymmetry of kernel           :  1.38E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.690365230714E+01
-         EBS higher temperature        : -1.690367043005E+01
-         difference                    : -1.812291757730E-05
-         relative difference           :  1.072130285693E-06
+         EBS                           : -1.690365229524E+01
+         EBS higher temperature        : -1.690367041817E+01
+         difference                    : -1.812292639158E-05
+         relative difference           :  1.072130807890E-06
          modify error function decay length: increase
-         trace(KS)                     :  15.00000000564281
+         trace(KS)                     :  15.00000000764616
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.11E-15
+         Hamiltonian                   :  1.22E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.892E-01
        Coefficients available          :  No
@@ -1645,12 +1649,12 @@
  eF: -3.396487E-01, Tr(K):  1.5000000E+01, D Tr(K): -3.35E-07, new eF: linear interpol}
          Asymmetry of kernel           :  5.24E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.108999052490E+01
-         EBS higher temperature        : -1.108999225253E+01
-         difference                    : -1.727627722659E-06
-         relative difference           :  1.557826148525E-07
+         EBS                           : -1.108999052120E+01
+         EBS higher temperature        : -1.108999224882E+01
+         difference                    : -1.727625701164E-06
+         relative difference           :  1.557824326236E-07
          modify error function decay length: increase
-         trace(KS)                     :  14.99999966389218
+         trace(KS)                     :  14.999999666004
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1695,17 +1699,17 @@
  eF: -3.573277E-01, Tr(K):  1.5000001E+01, D Tr(K):  5.47E-07, new eF: cubic interpol}
          Asymmetry of kernel           :  6.33E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.156358708537E+01
-         EBS higher temperature        : -1.156358526161E+01
-         difference                    :  1.823760110042E-06
-         relative difference           :  1.577157759593E-07
+         EBS                           : -1.156358708087E+01
+         EBS higher temperature        : -1.156358525711E+01
+         difference                    :  1.823759145481E-06
+         relative difference           :  1.577156926070E-07
          modify error function decay length: increase
-         trace(KS)                     :  15.00000054653384
+         trace(KS)                     :  15.00000054864723
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.17E-15
+         Hamiltonian                   :  1.22E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.547E-01
        Coefficients available          :  No
@@ -1744,12 +1748,12 @@
  eF: -3.705007E-01, Tr(K):  1.5000001E+01, D Tr(K):  7.96E-07, new eF: cubic interpol}
          Asymmetry of kernel           :  7.45E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.196835476058E+01
-         EBS higher temperature        : -1.196831387874E+01
-         difference                    :  4.088184050843E-05
-         relative difference           :  3.415827933433E-06
+         EBS                           : -1.196835475609E+01
+         EBS higher temperature        : -1.196831387425E+01
+         difference                    :  4.088183757389E-05
+         relative difference           :  3.415827689523E-06
          modify error function decay length: increase
-         trace(KS)                     :  15.00000079532989
+         trace(KS)                     :  15.00000079744933
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1762,10 +1766,10 @@
      Hamiltonian update: {
  Energies: {Ekin:  1.64409242746E+01, Epot: -2.19892036829E+01, Enl:  1.41659353262E+00, 
               EH:  5.20998562362E+01,  EXC: -7.13694124252E+00, EvXC: -9.35045191465E+00}, 
-    Total charge:  1.499999946532E+01, 
+    Total charge:  1.499999946744E+01, 
  Poisson Solver: {BC: Free, Box:  [  117,  119,  107 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  5.99E-08, 
- iter:  3, delta:  2.12E-06, energy: -3.30873109242453509E+01, D:  6.554E-04, 
+ iter:  3, delta:  2.12E-06, energy: -3.30873109256527655E+01, D:  6.554E-04, 
           Tr(KW):  8.0021E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
@@ -1814,14 +1818,14 @@
  eF: -1.321759E-01, Tr(K):  1.5000316E+01, D Tr(K):  3.16E-04, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 16
  eF: -1.321820E-01, Tr(K):  1.5000000E+01, D Tr(K): -2.29E-08, new eF: cubic interpol}
-         Asymmetry of kernel           :  1.57E-14
+         Asymmetry of kernel           :  3.67E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -8.387927259122E+00
-         EBS higher temperature        : -8.384376855757E+00
-         difference                    :  3.550403365226E-03
-         relative difference           :  4.232754118564E-04
+         EBS                           : -8.387927243265E+00
+         EBS higher temperature        : -8.384376839903E+00
+         difference                    :  3.550403362311E-03
+         relative difference           :  4.232754123090E-04
          modify error function decay length: decrease
-         trace(KS)                     :  14.9999999763771
+         trace(KS)                     :  14.99999997833835
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  1.110E-02
@@ -1845,19 +1849,19 @@
  eF: -1.322789E-01, Tr(K):  1.4999921E+01, D Tr(K): -7.94E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -1.322781E-01, Tr(K):  1.5000000E+01, D Tr(K):  2.10E-08, new eF: linear interpol}
-         Asymmetry of kernel           :  1.57E-14
+         Asymmetry of kernel           :  3.68E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -8.388140915757E+00
-         EBS higher temperature        : -8.388142613806E+00
-         difference                    : -1.698049208798E-06
-         relative difference           :  2.024345115148E-07
+         EBS                           : -8.388140899902E+00
+         EBS higher temperature        : -8.388142597953E+00
+         difference                    : -1.698051516286E-06
+         relative difference           :  2.024347869866E-07
          modify error function decay length: increase
-         trace(KS)                     :  15.00000002021222
+         trace(KS)                     :  15.00000002217511
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.18E-15
+         Hamiltonian                   :  2.18E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.237E-01
        Coefficients available          :  No
@@ -1915,12 +1919,12 @@
  eF: -4.329497E-01, Tr(K):  1.5000000E+01, D Tr(K): -8.35E-08, new eF: cubic interpol}
          Asymmetry of kernel           :  1.38E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.691727740900E+01
-         EBS higher temperature        : -1.692014160061E+01
-         difference                    : -2.864191611366E-03
-         relative difference           :  1.693057069480E-04
+         EBS                           : -1.691727739674E+01
+         EBS higher temperature        : -1.692014158823E+01
+         difference                    : -2.864191486854E-03
+         relative difference           :  1.693056997106E-04
          modify error function decay length: decrease
-         trace(KS)                     :  14.9999999159615
+         trace(KS)                     :  14.99999991797967
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  6.939E-03
@@ -1946,17 +1950,17 @@
  eF: -4.329371E-01, Tr(K):  1.5000001E+01, D Tr(K):  5.07E-07, new eF: linear interpol}
          Asymmetry of kernel           :  1.38E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.691731469584E+01
-         EBS higher temperature        : -1.691730818474E+01
-         difference                    :  6.511093911143E-06
-         relative difference           :  3.848775073473E-07
+         EBS                           : -1.691731468359E+01
+         EBS higher temperature        : -1.691730817249E+01
+         difference                    :  6.511102387918E-06
+         relative difference           :  3.848780086969E-07
          modify error function decay length: increase
-         trace(KS)                     :  15.00000050666234
+         trace(KS)                     :  15.00000050870114
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.22E-15
+         Hamiltonian                   :  1.11E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.892E-01
        Coefficients available          :  No
@@ -2002,20 +2006,20 @@
          -  { #----------------------------------------------------------------- it FOE: 11
  eF: -3.133226E-01, Tr(K):  1.4999997E+01, D Tr(K): -2.80E-06, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 12
- eF: -3.133225E-01, Tr(K):  1.5000000E+01, D Tr(K):  8.13E-11, new eF: linear interpol}
-         Asymmetry of kernel           :  4.11E-15
+ eF: -3.133225E-01, Tr(K):  1.5000000E+01, D Tr(K):  7.97E-11, new eF: linear interpol}
+         Asymmetry of kernel           :  4.12E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.050822496035E+01
-         EBS higher temperature        : -1.050822961277E+01
-         difference                    : -4.652414030915E-06
-         relative difference           :  4.427402390479E-07
+         EBS                           : -1.050822495614E+01
+         EBS higher temperature        : -1.050822960856E+01
+         difference                    : -4.652414876460E-06
+         relative difference           :  4.427403196903E-07
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999919081
+         trace(KS)                     :  15.00000000128769
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.17E-15
+         Hamiltonian                   :  1.22E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.486E-01
        Coefficients available          :  No
@@ -2054,15 +2058,15 @@
          -  { #------------------------------------------------------------------ it FOE: 7
  eF: -3.493032E-01, Tr(K):  1.5000049E+01, D Tr(K):  4.94E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF: -3.493037E-01, Tr(K):  1.5000000E+01, D Tr(K):  6.91E-10, new eF: linear interpol}
+ eF: -3.493037E-01, Tr(K):  1.5000000E+01, D Tr(K):  6.96E-10, new eF: linear interpol}
          Asymmetry of kernel           :  5.79E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.133912549823E+01
-         EBS higher temperature        : -1.133912371707E+01
-         difference                    :  1.781154216118E-06
-         relative difference           :  1.570803865251E-07
+         EBS                           : -1.133912549326E+01
+         EBS higher temperature        : -1.133912371210E+01
+         difference                    :  1.781158218250E-06
+         relative difference           :  1.570807395428E-07
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999980717
+         trace(KS)                     :  15.00000000192215
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -2105,20 +2109,20 @@
          -  { #------------------------------------------------------------------ it FOE: 7
  eF: -3.701925E-01, Tr(K):  1.5000075E+01, D Tr(K):  7.52E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF: -3.701934E-01, Tr(K):  1.5000000E+01, D Tr(K): -5.63E-10, new eF: linear interpol}
+ eF: -3.701934E-01, Tr(K):  1.5000000E+01, D Tr(K): -5.64E-10, new eF: linear interpol}
          Asymmetry of kernel           :  7.42E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.195840818433E+01
-         EBS higher temperature        : -1.195840965543E+01
-         difference                    : -1.471104280171E-06
-         relative difference           :  1.230184032435E-07
+         EBS                           : -1.195840817969E+01
+         EBS higher temperature        : -1.195840965079E+01
+         difference                    : -1.471104688733E-06
+         relative difference           :  1.230184374566E-07
          modify error function decay length: increase
-         trace(KS)                     :  14.9999999985647
+         trace(KS)                     :  15.00000000068179
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.22E-15
+         Hamiltonian                   :  1.17E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.576E-01
        Coefficients available          :  No
@@ -2126,10 +2130,10 @@
      Hamiltonian update: {
  Energies: {Ekin:  1.64409242746E+01, Epot: -2.19892036829E+01, Enl:  1.41659353262E+00, 
               EH:  5.20998562362E+01,  EXC: -7.13694124252E+00, EvXC: -9.35045191465E+00}, 
-    Total charge:  1.499999866844E+01, 
+    Total charge:  1.499999867056E+01, 
  Poisson Solver: {BC: Free, Box:  [  117,  119,  107 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  5.99E-08, 
- iter:  4, delta:  1.48E-06, energy: -3.30884773977087505E+01, D: -1.166E-03, 
+ iter:  4, delta:  1.48E-06, energy: -3.30884773991292676E+01, D: -1.166E-03, 
           Tr(KW):  8.0000E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
@@ -2156,7 +2160,7 @@
          -  { #------------------------------------------------------------------ it FOE: 4
  eF: -2.857200E-01, Tr(K):  1.0001140E+01, D Tr(K): -5.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -2.538890E-01, Tr(K):  1.0551634E+01, D Tr(K): -4.45E+00, new eF: bisec bounds}
+ eF: -2.538890E-01, Tr(K):  1.0551633E+01, D Tr(K): -4.45E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 6
  eF: -2.188750E-01, Tr(K):  1.1980078E+01, D Tr(K): -3.02E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 7
@@ -2178,15 +2182,15 @@
          -  { #----------------------------------------------------------------- it FOE: 15
  eF: -9.873218E-02, Tr(K):  1.4999999E+01, D Tr(K): -1.16E-06, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 16
- eF: -9.873216E-02, Tr(K):  1.5000000E+01, D Tr(K): -2.58E-13, new eF: linear interpol}
-         Asymmetry of kernel           :  1.93E-14
+ eF: -9.873216E-02, Tr(K):  1.5000000E+01, D Tr(K): -2.88E-13, new eF: linear interpol}
+         Asymmetry of kernel           :  3.59E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -7.831308764205E+00
-         EBS higher temperature        : -7.829624705824E+00
-         difference                    :  1.684058380984E-03
-         relative difference           :  2.150417550488E-04
+         EBS                           : -7.831308746475E+00
+         EBS higher temperature        : -7.829624688085E+00
+         difference                    :  1.684058390084E-03
+         relative difference           :  2.150417566977E-04
          modify error function decay length: decrease
-         trace(KS)                     :  14.9999999992147
+         trace(KS)                     :  15.00000000113724
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  8.470E-03
@@ -2199,7 +2203,7 @@
          -  { #------------------------------------------------------------------ it FOE: 2
  eF: -5.259446E-02, Tr(K):  1.6000317E+01, D Tr(K):  1.00E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF: -8.753846E-02, Tr(K):  1.5939098E+01, D Tr(K):  9.39E-01, new eF: bisection/secant}
+ eF: -8.753845E-02, Tr(K):  1.5939098E+01, D Tr(K):  9.39E-01, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
  eF: -1.089087E-01, Tr(K):  1.4090360E+01, D Tr(K): -9.10E-01, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
@@ -2207,22 +2211,22 @@
          -  { #------------------------------------------------------------------ it FOE: 6
  eF: -9.898760E-02, Tr(K):  1.4970395E+01, D Tr(K): -2.96E-02, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -9.876512E-02, Tr(K):  1.5000021E+01, D Tr(K):  2.10E-05, new eF: cubic interpol}
+ eF: -9.876511E-02, Tr(K):  1.5000021E+01, D Tr(K):  2.10E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -9.876527E-02, Tr(K):  1.5000000E+01, D Tr(K): -3.04E-09, new eF: linear interpol}
-         Asymmetry of kernel           :  1.94E-14
+         Asymmetry of kernel           :  3.60E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -7.831386735047E+00
-         EBS higher temperature        : -7.831385991324E+00
-         difference                    :  7.437224240903E-07
-         relative difference           :  9.496688763460E-08
+         EBS                           : -7.831386717318E+00
+         EBS higher temperature        : -7.831385973599E+00
+         difference                    :  7.437193145776E-07
+         relative difference           :  9.496649079185E-08
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999617586
+         trace(KS)                     :  14.9999999980994
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.05E-15
+         Hamiltonian                   :  1.15E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.274E-01
        Coefficients available          :  No
@@ -2261,7 +2265,7 @@
          -  { #------------------------------------------------------------------ it FOE: 7
  eF: -4.244810E-01, Tr(K):  1.5742389E+01, D Tr(K):  7.42E-01, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF: -4.906870E-01, Tr(K):  1.3974412E+01, D Tr(K): -1.03E+00, new eF: bisec bounds}
+ eF: -4.906869E-01, Tr(K):  1.3974412E+01, D Tr(K): -1.03E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 9
  eF: -6.139374E-02, Tr(K):  1.8000001E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 10
@@ -2279,20 +2283,20 @@
          -  { #----------------------------------------------------------------- it FOE: 16
  eF: -4.329346E-01, Tr(K):  1.5000011E+01, D Tr(K):  1.06E-05, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 17
- eF: -4.329347E-01, Tr(K):  1.5000000E+01, D Tr(K): -9.44E-12, new eF: linear interpol}
+ eF: -4.329347E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.51E-11, new eF: linear interpol}
          Asymmetry of kernel           :  1.37E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.689299945981E+01
-         EBS higher temperature        : -1.689319991955E+01
-         difference                    : -2.004597374352E-04
-         relative difference           :  1.186643839729E-05
+         EBS                           : -1.689299944718E+01
+         EBS higher temperature        : -1.689319990692E+01
+         difference                    : -2.004597474325E-04
+         relative difference           :  1.186643899796E-05
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999940921
+         trace(KS)                     :  15.00000000142131
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.22E-15
+         Hamiltonian                   :  1.11E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.892E-01
        Coefficients available          :  No
@@ -2316,7 +2320,7 @@
               ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -4.919242E-01, Tr(K):  9.3918076E+00, D Tr(K): -5.61E+00, new eF: bisec bounds}
+ eF: -4.919242E-01, Tr(K):  9.3918075E+00, D Tr(K): -5.61E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
  eF: -3.739452E-01, Tr(K):  1.4000008E+01, D Tr(K): -1.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
@@ -2336,15 +2340,15 @@
          -  { #----------------------------------------------------------------- it FOE: 10
  eF: -2.850735E-01, Tr(K):  1.4999986E+01, D Tr(K): -1.42E-05, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 11
- eF: -2.850733E-01, Tr(K):  1.5000000E+01, D Tr(K):  4.40E-11, new eF: linear interpol}
+ eF: -2.850733E-01, Tr(K):  1.5000000E+01, D Tr(K):  4.23E-11, new eF: linear interpol}
          Asymmetry of kernel           :  3.29E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.000030805745E+01
-         EBS higher temperature        : -1.000030732335E+01
-         difference                    :  7.340980054948E-07
-         relative difference           :  7.340753917554E-08
+         EBS                           : -1.000030805341E+01
+         EBS higher temperature        : -1.000030731931E+01
+         difference                    :  7.340973802172E-07
+         relative difference           :  7.340747667941E-08
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999914768
+         trace(KS)                     :  15.0000000012435
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -2387,20 +2391,20 @@
          -  { #------------------------------------------------------------------ it FOE: 7
  eF: -3.427340E-01, Tr(K):  1.5000121E+01, D Tr(K):  1.21E-04, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF: -3.427358E-01, Tr(K):  1.5000000E+01, D Tr(K):  3.38E-09, new eF: linear interpol}
+ eF: -3.427358E-01, Tr(K):  1.5000000E+01, D Tr(K):  3.39E-09, new eF: linear interpol}
          Asymmetry of kernel           :  5.41E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.116726774934E+01
-         EBS higher temperature        : -1.116726713094E+01
-         difference                    :  6.183983369823E-07
-         relative difference           :  5.537597475614E-08
+         EBS                           : -1.116726774411E+01
+         EBS higher temperature        : -1.116726712571E+01
+         difference                    :  6.183993122022E-07
+         relative difference           :  5.537606211050E-08
          modify error function decay length: increase
-         trace(KS)                     :  15.00000000249826
+         trace(KS)                     :  15.00000000460737
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.17E-15
+         Hamiltonian                   :  1.22E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.522E-01
        Coefficients available          :  No
@@ -2438,20 +2442,20 @@
          -  { #------------------------------------------------------------------ it FOE: 7
  eF: -3.696165E-01, Tr(K):  1.5000015E+01, D Tr(K):  1.46E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF: -3.696168E-01, Tr(K):  1.5000000E+01, D Tr(K): -2.94E-11, new eF: linear interpol}
-         Asymmetry of kernel           :  7.37E-15
+ eF: -3.696168E-01, Tr(K):  1.5000000E+01, D Tr(K): -3.14E-11, new eF: linear interpol}
+         Asymmetry of kernel           :  7.36E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.193980757251E+01
-         EBS higher temperature        : -1.193948838626E+01
-         difference                    :  3.191862505787E-04
-         relative difference           :  2.673294763255E-05
+         EBS                           : -1.193980756816E+01
+         EBS higher temperature        : -1.193948838192E+01
+         difference                    :  3.191862389897E-04
+         relative difference           :  2.673294667167E-05
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999909782
+         trace(KS)                     :  15.00000000121344
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.22E-15
+         Hamiltonian                   :  1.17E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.574E-01
        Coefficients available          :  No
@@ -2459,10 +2463,10 @@
      Hamiltonian update: {
  Energies: {Ekin:  1.64409242746E+01, Epot: -2.19892036829E+01, Enl:  1.41659353262E+00, 
               EH:  5.20998562362E+01,  EXC: -7.13694124252E+00, EvXC: -9.35045191465E+00}, 
-    Total charge:  1.499999866878E+01, 
+    Total charge:  1.499999867090E+01, 
  Poisson Solver: {BC: Free, Box:  [  117,  119,  107 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  5.99E-08, 
- iter:  5, delta:  1.04E-06, energy: -3.30906396776572578E+01, D: -2.162E-03, 
+ iter:  5, delta:  1.04E-06, energy: -3.30906396790422619E+01, D: -2.162E-03, 
           Tr(KW):  7.9960E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
@@ -2501,21 +2505,21 @@
          -  { #----------------------------------------------------------------- it FOE: 10
  eF: -9.550097E-02, Tr(K):  1.3719519E+01, D Tr(K): -1.28E+00, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 11
- eF: -7.752884E-02, Tr(K):  1.4805439E+01, D Tr(K): -1.95E-01, new eF: cubic interpol}
+ eF: -7.752883E-02, Tr(K):  1.4805439E+01, D Tr(K): -1.95E-01, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 12
  eF: -7.393984E-02, Tr(K):  1.5001442E+01, D Tr(K):  1.44E-03, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 13
  eF: -7.396702E-02, Tr(K):  1.5000007E+01, D Tr(K):  7.48E-06, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 14
  eF: -7.396716E-02, Tr(K):  1.5000000E+01, D Tr(K): -2.08E-12, new eF: linear interpol}
-         Asymmetry of kernel           :  1.51E-14
+         Asymmetry of kernel           :  4.39E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -7.428422243759E+00
-         EBS higher temperature        : -7.418713266102E+00
-         difference                    :  9.708977656461E-03
-         relative difference           :  1.307004009447E-03
+         EBS                           : -7.428422225166E+00
+         EBS higher temperature        : -7.418713247555E+00
+         difference                    :  9.708977610760E-03
+         relative difference           :  1.307004006567E-03
          modify error function decay length: decrease
-         trace(KS)                     :  14.99999999924792
+         trace(KS)                     :  15.00000000112283
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  1.292E-02
@@ -2539,14 +2543,14 @@
  eF: -7.574678E-02, Tr(K):  1.5000004E+01, D Tr(K):  4.21E-06, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -7.574683E-02, Tr(K):  1.5000000E+01, D Tr(K): -3.52E-10, new eF: linear interpol}
-         Asymmetry of kernel           :  1.67E-14
+         Asymmetry of kernel           :  4.51E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -7.430802300040E+00
-         EBS higher temperature        : -7.430055072040E+00
-         difference                    :  7.472280002405E-04
-         relative difference           :  1.005581860570E-04
+         EBS                           : -7.430802281484E+00
+         EBS higher temperature        : -7.430055053468E+00
+         difference                    :  7.472280161434E-04
+         relative difference           :  1.005581884483E-04
          modify error function decay length: decrease
-         trace(KS)                     :  14.99999999883478
+         trace(KS)                     :  15.00000000073733
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 3
          decay length of error function:  6.462E-03
@@ -2555,7 +2559,7 @@
               ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -1.198370E-01, Tr(K):  1.2002746E+01, D Tr(K): -3.00E+00, new eF: bisec bounds}
+ eF: -1.198369E-01, Tr(K):  1.2002746E+01, D Tr(K): -3.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
  eF: -3.165670E-02, Tr(K):  1.5999999E+01, D Tr(K):  1.00E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
@@ -2565,24 +2569,24 @@
          -  { #------------------------------------------------------------------ it FOE: 5
  eF: -7.507985E-02, Tr(K):  1.5117762E+01, D Tr(K):  1.18E-01, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF: -7.628557E-02, Tr(K):  1.4907900E+01, D Tr(K): -9.21E-02, new eF: cubic interpol}
+ eF: -7.628556E-02, Tr(K):  1.4907900E+01, D Tr(K): -9.21E-02, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 7
  eF: -7.575555E-02, Tr(K):  1.5000225E+01, D Tr(K):  2.25E-04, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -7.575684E-02, Tr(K):  1.5000000E+01, D Tr(K): -2.64E-07, new eF: linear interpol}
-         Asymmetry of kernel           :  1.67E-14
+         Asymmetry of kernel           :  4.51E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -7.430829958111E+00
-         EBS higher temperature        : -7.430834330697E+00
-         difference                    : -4.372585459933E-06
-         relative difference           :  5.884383688743E-07
+         EBS                           : -7.430829939555E+00
+         EBS higher temperature        : -7.430834312143E+00
+         difference                    : -4.372588430890E-06
+         relative difference           :  5.884387701587E-07
          modify error function decay length: increase
-         trace(KS)                     :  14.99999973493772
+         trace(KS)                     :  14.99999973684044
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  7.77E-16
+         Hamiltonian                   :  1.28E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.313E-01
        Coefficients available          :  No
@@ -2638,20 +2642,20 @@
          -  { #----------------------------------------------------------------- it FOE: 15
  eF: -4.329313E-01, Tr(K):  1.5000094E+01, D Tr(K):  9.44E-05, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 16
- eF: -4.329320E-01, Tr(K):  1.5000000E+01, D Tr(K):  8.42E-10, new eF: linear interpol}
+ eF: -4.329320E-01, Tr(K):  1.5000000E+01, D Tr(K):  8.05E-10, new eF: linear interpol}
          Asymmetry of kernel           :  1.35E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.684748746919E+01
-         EBS higher temperature        : -1.684734745497E+01
-         difference                    :  1.400142168393E-04
-         relative difference           :  8.310688290781E-06
+         EBS                           : -1.684748745727E+01
+         EBS higher temperature        : -1.684734744306E+01
+         difference                    :  1.400142140895E-04
+         relative difference           :  8.310688133443E-06
          modify error function decay length: increase
-         trace(KS)                     :  15.00000000026703
+         trace(KS)                     :  15.00000000224441
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.22E-15
+         Hamiltonian                   :  1.11E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.892E-01
        Coefficients available          :  No
@@ -2697,15 +2701,15 @@
          -  { #----------------------------------------------------------------- it FOE: 11
  eF: -2.619332E-01, Tr(K):  1.4999998E+01, D Tr(K): -2.37E-06, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 12
- eF: -2.619332E-01, Tr(K):  1.5000000E+01, D Tr(K):  4.55E-11, new eF: linear interpol}
-         Asymmetry of kernel           :  3.11E-15
+ eF: -2.619332E-01, Tr(K):  1.5000000E+01, D Tr(K):  3.95E-11, new eF: linear interpol}
+         Asymmetry of kernel           :  3.33E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -9.644471451254E+00
-         EBS higher temperature        : -9.644473109428E+00
-         difference                    : -1.658174573649E-06
-         relative difference           :  1.719300619044E-07
+         EBS                           : -9.644471446680E+00
+         EBS higher temperature        : -9.644473104856E+00
+         difference                    : -1.658176588037E-06
+         relative difference           :  1.719302708505E-07
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999914233
+         trace(KS)                     :  15.00000000123793
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -2755,12 +2759,12 @@
  eF: -3.381137E-01, Tr(K):  1.5000000E+01, D Tr(K):  2.22E-08, new eF: linear interpol}
          Asymmetry of kernel           :  5.16E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.105235835525E+01
-         EBS higher temperature        : -1.105235015446E+01
-         difference                    :  8.200789599400E-06
-         relative difference           :  7.419945441333E-07
+         EBS                           : -1.105235834969E+01
+         EBS higher temperature        : -1.105235014890E+01
+         difference                    :  8.200794976432E-06
+         relative difference           :  7.419950310118E-07
          modify error function decay length: increase
-         trace(KS)                     :  15.00000002130712
+         trace(KS)                     :  15.00000002341097
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -2806,12 +2810,12 @@
  eF: -3.692647E-01, Tr(K):  1.5000000E+01, D Tr(K): -2.22E-08, new eF: cubic interpol}
          Asymmetry of kernel           :  7.33E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.192846819556E+01
-         EBS higher temperature        : -1.192846416747E+01
-         difference                    :  4.028093126607E-06
-         relative difference           :  3.376873761632E-07
+         EBS                           : -1.192846819152E+01
+         EBS higher temperature        : -1.192846416343E+01
+         difference                    :  4.028093071540E-06
+         relative difference           :  3.376873716613E-07
          modify error function decay length: increase
-         trace(KS)                     :  14.99999997692064
+         trace(KS)                     :  14.99999997903702
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -2824,10 +2828,10 @@
      Hamiltonian update: {
  Energies: {Ekin:  1.64409242746E+01, Epot: -2.19892036829E+01, Enl:  1.41659353262E+00, 
               EH:  5.20998562362E+01,  EXC: -7.13694124252E+00, EvXC: -9.35045191465E+00}, 
-    Total charge:  1.499999864649E+01, 
+    Total charge:  1.499999864860E+01, 
  Poisson Solver: {BC: Free, Box:  [  117,  119,  107 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  5.99E-08, 
- iter:  6, delta:  7.29E-07, energy: -3.30919515524090926E+01, D: -1.312E-03, 
+ iter:  6, delta:  7.29E-07, energy: -3.30919515537584559E+01, D: -1.312E-03, 
           Tr(KW):  7.9936E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
@@ -2865,7 +2869,7 @@
          -  { #------------------------------------------------------------------ it FOE: 9
  eF: -1.445165E-01, Tr(K):  1.1999987E+01, D Tr(K): -3.00E+00, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 10
- eF: -6.763832E-02, Tr(K):  1.4391343E+01, D Tr(K): -6.09E-01, new eF: bisection/secant}
+ eF: -6.763831E-02, Tr(K):  1.4391343E+01, D Tr(K): -6.09E-01, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 11
  eF: -4.727967E-02, Tr(K):  1.5640471E+01, D Tr(K):  6.40E-01, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 12
@@ -2874,14 +2878,14 @@
  eF: -5.917635E-02, Tr(K):  1.4999504E+01, D Tr(K): -4.96E-04, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 14
  eF: -5.916893E-02, Tr(K):  1.5000000E+01, D Tr(K):  5.23E-08, new eF: cubic interpol}
-         Asymmetry of kernel           :  1.09E-14
+         Asymmetry of kernel           :  9.39E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -7.151164010263E+00
-         EBS higher temperature        : -7.144243302357E+00
-         difference                    :  6.920707905543E-03
-         relative difference           :  9.677736233725E-04
+         EBS                           : -7.151163991249E+00
+         EBS higher temperature        : -7.144243283354E+00
+         difference                    :  6.920707894743E-03
+         relative difference           :  9.677736244354E-04
          modify error function decay length: decrease
-         trace(KS)                     :  15.00000005152907
+         trace(KS)                     :  15.00000005340037
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  9.861E-03
@@ -2892,13 +2896,13 @@
          -  { #------------------------------------------------------------------ it FOE: 1
  eF: -1.221090E-01, Tr(K):  1.2000002E+01, D Tr(K): -3.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF:  3.771123E-03, Tr(K):  1.6590719E+01, D Tr(K):  1.59E+00, new eF: bisection/secant}
+ eF:  3.771124E-03, Tr(K):  1.6590719E+01, D Tr(K):  1.59E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
  eF: -4.950812E-02, Tr(K):  1.5875659E+01, D Tr(K):  8.76E-01, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
  eF: -7.585999E-02, Tr(K):  1.3852235E+01, D Tr(K): -1.15E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -6.179812E-02, Tr(K):  1.4820626E+01, D Tr(K): -1.79E-01, new eF: cubic interpol}
+ eF: -6.179811E-02, Tr(K):  1.4820626E+01, D Tr(K): -1.79E-01, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 6
  eF: -5.963513E-02, Tr(K):  1.5067036E+01, D Tr(K):  6.70E-02, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 7
@@ -2906,20 +2910,20 @@
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -6.022090E-02, Tr(K):  1.5000001E+01, D Tr(K):  1.43E-06, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 9
- eF: -6.022091E-02, Tr(K):  1.5000000E+01, D Tr(K): -7.64E-14, new eF: linear interpol}
-         Asymmetry of kernel           :  1.14E-14
+ eF: -6.022091E-02, Tr(K):  1.5000000E+01, D Tr(K): -1.65E-13, new eF: linear interpol}
+         Asymmetry of kernel           :  1.07E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -7.152672373410E+00
-         EBS higher temperature        : -7.152361901322E+00
-         difference                    :  3.104720881488E-04
-         relative difference           :  4.340644614214E-05
+         EBS                           : -7.152672354442E+00
+         EBS higher temperature        : -7.152361882337E+00
+         difference                    :  3.104721058058E-04
+         relative difference           :  4.340644872584E-05
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999915968
+         trace(KS)                     :  15.00000000105329
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.22E-15
+         Hamiltonian                   :  1.39E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.346E-01
        Coefficients available          :  No
@@ -2958,7 +2962,7 @@
          -  { #------------------------------------------------------------------ it FOE: 7
  eF: -5.045553E-01, Tr(K):  1.3180755E+01, D Tr(K): -1.82E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF: -9.239473E-03, Tr(K):  1.7999997E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
+ eF: -9.239471E-03, Tr(K):  1.7999997E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 9
  eF: -2.872364E-01, Tr(K):  1.8000019E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 10
@@ -2975,17 +2979,17 @@
  eF: -4.329306E-01, Tr(K):  1.5000000E+01, D Tr(K):  2.58E-07, new eF: cubic interpol}
          Asymmetry of kernel           :  1.34E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.681975800442E+01
-         EBS higher temperature        : -1.682050947160E+01
-         difference                    : -7.514671727407E-04
-         relative difference           :  4.467764474037E-05
+         EBS                           : -1.681975799326E+01
+         EBS higher temperature        : -1.682050946039E+01
+         difference                    : -7.514671366131E-04
+         relative difference           :  4.467764262211E-05
          modify error function decay length: increase
-         trace(KS)                     :  15.00000025711751
+         trace(KS)                     :  15.0000002591338
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.22E-15
+         Hamiltonian                   :  1.11E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.892E-01
        Coefficients available          :  No
@@ -3028,19 +3032,19 @@
  eF: -2.444162E-01, Tr(K):  1.5000672E+01, D Tr(K):  6.72E-04, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 10
  eF: -2.444253E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.49E-07, new eF: linear interpol}
-         Asymmetry of kernel           :  3.50E-15
+         Asymmetry of kernel           :  3.07E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -9.400890586636E+00
-         EBS higher temperature        : -9.400887597144E+00
-         difference                    :  2.989492099204E-06
-         relative difference           :  3.180009459373E-07
+         EBS                           : -9.400890582030E+00
+         EBS higher temperature        : -9.400887592538E+00
+         difference                    :  2.989492315919E-06
+         relative difference           :  3.180009691458E-07
          modify error function decay length: increase
-         trace(KS)                     :  14.99999984962639
+         trace(KS)                     :  14.99999985173336
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.22E-15
+         Hamiltonian                   :  1.17E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.447E-01
        Coefficients available          :  No
@@ -3083,12 +3087,12 @@
  eF: -3.348993E-01, Tr(K):  1.5000000E+01, D Tr(K): -4.26E-09, new eF: cubic interpol}
          Asymmetry of kernel           :  5.00E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.097518083016E+01
-         EBS higher temperature        : -1.097518031459E+01
-         difference                    :  5.155683844293E-07
-         relative difference           :  4.697584417129E-08
+         EBS                           : -1.097518082447E+01
+         EBS higher temperature        : -1.097518030890E+01
+         difference                    :  5.155709548177E-07
+         relative difference           :  4.697607839573E-08
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999484992
+         trace(KS)                     :  14.9999999969539
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -3134,12 +3138,12 @@
  eF: -3.691336E-01, Tr(K):  1.5000000E+01, D Tr(K): -2.72E-10, new eF: cubic interpol}
          Asymmetry of kernel           :  7.31E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.192442641251E+01
-         EBS higher temperature        : -1.192302267938E+01
-         difference                    :  1.403733124711E-03
-         relative difference           :  1.177191318182E-04
+         EBS                           : -1.192442640859E+01
+         EBS higher temperature        : -1.192302267550E+01
+         difference                    :  1.403733092841E-03
+         relative difference           :  1.177191291843E-04
          modify error function decay length: decrease
-         trace(KS)                     :  14.9999999988549
+         trace(KS)                     :  15.00000000097195
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  1.204E-02
@@ -3163,14 +3167,14 @@
  eF: -3.691401E-01, Tr(K):  1.4999905E+01, D Tr(K): -9.46E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -3.691391E-01, Tr(K):  1.5000000E+01, D Tr(K):  4.23E-08, new eF: linear interpol}
-         Asymmetry of kernel           :  7.31E-15
+         Asymmetry of kernel           :  7.32E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.192444654903E+01
-         EBS higher temperature        : -1.192444129916E+01
-         difference                    :  5.249877785829E-06
-         relative difference           :  4.402617567399E-07
+         EBS                           : -1.192444654511E+01
+         EBS higher temperature        : -1.192444129524E+01
+         difference                    :  5.249876696922E-06
+         relative difference           :  4.402616655675E-07
          modify error function decay length: increase
-         trace(KS)                     :  15.00000004143918
+         trace(KS)                     :  15.0000000435526
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -3183,10 +3187,10 @@
      Hamiltonian update: {
  Energies: {Ekin:  1.64409242746E+01, Epot: -2.19892036829E+01, Enl:  1.41659353262E+00, 
               EH:  5.20998562362E+01,  EXC: -7.13694124252E+00, EvXC: -9.35045191465E+00}, 
-    Total charge:  1.499999871096E+01, 
+    Total charge:  1.499999871308E+01, 
  Poisson Solver: {BC: Free, Box:  [  117,  119,  107 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  5.99E-08, 
- iter:  7, delta:  5.11E-07, energy: -3.30924174922090870E+01, D: -4.659E-04, 
+ iter:  7, delta:  5.11E-07, energy: -3.30924174935398341E+01, D: -4.659E-04, 
           Tr(KW):  7.9928E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
@@ -3205,7 +3209,7 @@
               ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -4.110542E-01, Tr(K):  7.6095816E+00, D Tr(K): -7.39E+00, new eF: bisec bounds}
+ eF: -4.110542E-01, Tr(K):  7.6095815E+00, D Tr(K): -7.39E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
  eF: -3.272239E-01, Tr(K):  1.0000002E+01, D Tr(K): -5.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
@@ -3232,14 +3236,14 @@
  eF: -4.919687E-02, Tr(K):  1.5000318E+01, D Tr(K):  3.18E-04, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 14
  eF: -4.920064E-02, Tr(K):  1.5000000E+01, D Tr(K): -5.53E-08, new eF: linear interpol}
-         Asymmetry of kernel           :  9.72E-15
+         Asymmetry of kernel           :  6.66E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -6.961411572760E+00
-         EBS higher temperature        : -6.956569443435E+00
-         difference                    :  4.842129325191E-03
-         relative difference           :  6.955671668859E-04
+         EBS                           : -6.961411553352E+00
+         EBS higher temperature        : -6.956569424008E+00
+         difference                    :  4.842129343558E-03
+         relative difference           :  6.955671714635E-04
          modify error function decay length: decrease
-         trace(KS)                     :  14.99999994392092
+         trace(KS)                     :  14.99999994579504
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  7.523E-03
@@ -3263,19 +3267,19 @@
  eF: -4.977372E-02, Tr(K):  1.4999908E+01, D Tr(K): -9.16E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -4.977311E-02, Tr(K):  1.5000000E+01, D Tr(K):  3.08E-07, new eF: linear interpol}
-         Asymmetry of kernel           :  1.02E-14
+         Asymmetry of kernel           :  7.16E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -6.962311119884E+00
-         EBS higher temperature        : -6.962202269867E+00
-         difference                    :  1.088500169253E-04
-         relative difference           :  1.563417880227E-05
+         EBS                           : -6.962311100518E+00
+         EBS higher temperature        : -6.962202250488E+00
+         difference                    :  1.088500299522E-04
+         relative difference           :  1.563418071682E-05
          modify error function decay length: increase
-         trace(KS)                     :  15.00000030687355
+         trace(KS)                     :  15.00000030876411
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.11E-15
+         Hamiltonian                   :  8.36E-16
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.372E-01
        Coefficients available          :  No
@@ -3308,13 +3312,13 @@
          -  { #------------------------------------------------------------------ it FOE: 4
  eF: -2.597516E-01, Tr(K):  1.8000002E+01, D Tr(K):  3.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -3.245965E-01, Tr(K):  1.7999972E+01, D Tr(K):  3.00E+00, new eF: bisec bounds}
+ eF: -3.245964E-01, Tr(K):  1.7999972E+01, D Tr(K):  3.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 6
  eF: -3.959258E-01, Tr(K):  1.7399922E+01, D Tr(K):  2.40E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 7
  eF: -4.743881E-01, Tr(K):  1.4000127E+01, D Tr(K): -1.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF: -1.054205E-03, Tr(K):  1.8000000E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
+ eF: -1.054204E-03, Tr(K):  1.8000000E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 9
  eF: -2.968935E-01, Tr(K):  1.8000029E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 10
@@ -3324,21 +3328,21 @@
          -  { #----------------------------------------------------------------- it FOE: 12
  eF: -4.267149E-01, Tr(K):  1.5649883E+01, D Tr(K):  6.50E-01, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 13
- eF: -4.341391E-01, Tr(K):  1.4855216E+01, D Tr(K): -1.45E-01, new eF: cubic interpol}
+ eF: -4.341391E-01, Tr(K):  1.4855217E+01, D Tr(K): -1.45E-01, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 14
  eF: -4.327698E-01, Tr(K):  1.5018550E+01, D Tr(K):  1.86E-02, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 15
  eF: -4.329250E-01, Tr(K):  1.4999941E+01, D Tr(K): -5.95E-05, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 16
- eF: -4.329245E-01, Tr(K):  1.5000000E+01, D Tr(K):  3.82E-09, new eF: linear interpol}
+ eF: -4.329245E-01, Tr(K):  1.5000000E+01, D Tr(K):  3.80E-09, new eF: linear interpol}
          Asymmetry of kernel           :  1.34E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.680992027457E+01
-         EBS higher temperature        : -1.680998094958E+01
-         difference                    : -6.067501169937E-05
-         relative difference           :  3.609476470342E-06
+         EBS                           : -1.680992026370E+01
+         EBS higher temperature        : -1.680998093872E+01
+         difference                    : -6.067502202001E-05
+         relative difference           :  3.609477086636E-06
          modify error function decay length: increase
-         trace(KS)                     :  15.00000000324773
+         trace(KS)                     :  15.00000000524004
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -3386,19 +3390,19 @@
  eF: -2.317030E-01, Tr(K):  1.5000942E+01, D Tr(K):  9.42E-04, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 10
  eF: -2.317129E-01, Tr(K):  1.4999999E+01, D Tr(K): -5.80E-07, new eF: linear interpol}
-         Asymmetry of kernel           :  3.29E-15
+         Asymmetry of kernel           :  3.97E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -9.234850581478E+00
-         EBS higher temperature        : -9.234852666016E+00
-         difference                    : -2.084538248681E-06
-         relative difference           :  2.257251733842E-07
+         EBS                           : -9.234850577157E+00
+         EBS higher temperature        : -9.234852661695E+00
+         difference                    : -2.084537564784E-06
+         relative difference           :  2.257250994337E-07
          modify error function decay length: increase
-         trace(KS)                     :  14.99999941913571
+         trace(KS)                     :  14.99999942124701
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.17E-15
+         Hamiltonian                   :  1.22E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.444E-01
        Coefficients available          :  No
@@ -3440,20 +3444,20 @@
          -  { #------------------------------------------------------------------ it FOE: 9
  eF: -3.326947E-01, Tr(K):  1.5000025E+01, D Tr(K):  2.49E-05, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 10
- eF: -3.326950E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.43E-09, new eF: linear interpol}
+ eF: -3.326950E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.42E-09, new eF: linear interpol}
          Asymmetry of kernel           :  4.90E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.092350547712E+01
-         EBS higher temperature        : -1.092350473836E+01
-         difference                    :  7.387569311845E-07
-         relative difference           :  6.763002341438E-08
+         EBS                           : -1.092350547140E+01
+         EBS higher temperature        : -1.092350473264E+01
+         difference                    :  7.387570040152E-07
+         relative difference           :  6.763003011712E-08
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999768437
+         trace(KS)                     :  14.99999999979276
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.22E-15
+         Hamiltonian                   :  1.17E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.508E-01
        Coefficients available          :  No
@@ -3492,19 +3496,19 @@
  eF: -3.691256E-01, Tr(K):  1.5000593E+01, D Tr(K):  5.93E-04, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -3.691353E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.20E-08, new eF: cubic interpol}
-         Asymmetry of kernel           :  7.32E-15
+         Asymmetry of kernel           :  7.31E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.192431631087E+01
-         EBS higher temperature        : -1.192425508683E+01
-         difference                    :  6.122404412778E-05
-         relative difference           :  5.134386117546E-06
+         EBS                           : -1.192431630707E+01
+         EBS higher temperature        : -1.192425508303E+01
+         difference                    :  6.122403999953E-05
+         relative difference           :  5.134385772980E-06
          modify error function decay length: increase
-         trace(KS)                     :  14.99999998711656
+         trace(KS)                     :  14.99999998923024
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.17E-15
+         Hamiltonian                   :  1.22E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.573E-01
        Coefficients available          :  No
@@ -3512,10 +3516,10 @@
      Hamiltonian update: {
  Energies: {Ekin:  1.64409242746E+01, Epot: -2.19892036829E+01, Enl:  1.41659353262E+00, 
               EH:  5.20998562362E+01,  EXC: -7.13694124252E+00, EvXC: -9.35045191465E+00}, 
-    Total charge:  1.499999865664E+01, 
+    Total charge:  1.499999865875E+01, 
  Poisson Solver: {BC: Free, Box:  [  117,  119,  107 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  5.99E-08, 
- iter:  8, delta:  3.58E-07, energy: -3.30924298257280824E+01, D: -1.233E-05, 
+ iter:  8, delta:  3.58E-07, energy: -3.30924298270445760E+01, D: -1.233E-05, 
           Tr(KW):  7.9928E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 9
      Kernel update:
@@ -3534,7 +3538,7 @@
               ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -4.185859E-01, Tr(K):  6.6789811E+00, D Tr(K): -8.32E+00, new eF: bisec bounds}
+ eF: -4.185859E-01, Tr(K):  6.6789810E+00, D Tr(K): -8.32E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
  eF: -3.196847E-01, Tr(K):  9.9988127E+00, D Tr(K): -5.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
@@ -3556,19 +3560,19 @@
          -  { #----------------------------------------------------------------- it FOE: 11
  eF: -2.209972E-02, Tr(K):  1.5779225E+01, D Tr(K):  7.79E-01, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 12
- eF: -3.795642E-02, Tr(K):  1.5064268E+01, D Tr(K):  6.43E-02, new eF: cubic interpol}
+ eF: -3.795641E-02, Tr(K):  1.5064268E+01, D Tr(K):  6.43E-02, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 13
  eF: -3.891030E-02, Tr(K):  1.5000341E+01, D Tr(K):  3.41E-04, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 14
  eF: -3.891530E-02, Tr(K):  1.5000000E+01, D Tr(K): -1.47E-07, new eF: cubic interpol}
-         Asymmetry of kernel           :  2.23E-14
+         Asymmetry of kernel           :  6.63E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -6.828727947284E+00
-         EBS higher temperature        : -6.820872157517E+00
-         difference                    :  7.855789767738E-03
-         relative difference           :  1.150403095332E-03
+         EBS                           : -6.828727927601E+00
+         EBS higher temperature        : -6.820872137969E+00
+         difference                    :  7.855789631463E-03
+         relative difference           :  1.150403078692E-03
          modify error function decay length: decrease
-         trace(KS)                     :  14.99999985256843
+         trace(KS)                     :  14.99999985438724
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  1.148E-02
@@ -3579,7 +3583,7 @@
          -  { #------------------------------------------------------------------ it FOE: 1
  eF: -1.098752E-01, Tr(K):  1.2000011E+01, D Tr(K): -3.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF:  3.204459E-02, Tr(K):  1.7374860E+01, D Tr(K):  2.37E+00, new eF: bisection/secant}
+ eF:  3.204459E-02, Tr(K):  1.7374859E+01, D Tr(K):  2.37E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
  eF: -3.478875E-02, Tr(K):  1.5667963E+01, D Tr(K):  6.68E-01, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
@@ -3592,14 +3596,14 @@
  eF: -4.242526E-02, Tr(K):  1.4999747E+01, D Tr(K): -2.53E-04, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -4.242288E-02, Tr(K):  1.5000000E+01, D Tr(K):  1.20E-07, new eF: linear interpol}
-         Asymmetry of kernel           :  3.05E-14
+         Asymmetry of kernel           :  7.82E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -6.831539852114E+00
-         EBS higher temperature        : -6.828361382986E+00
-         difference                    :  3.178469128057E-03
-         relative difference           :  4.652639371009E-04
+         EBS                           : -6.831539832463E+00
+         EBS higher temperature        : -6.828361363288E+00
+         difference                    :  3.178469174450E-03
+         relative difference           :  4.652639452303E-04
          modify error function decay length: decrease
-         trace(KS)                     :  15.00000011915304
+         trace(KS)                     :  15.00000012103277
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 3
          decay length of error function:  5.740E-03
@@ -3624,20 +3628,20 @@
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -4.268732E-02, Tr(K):  1.5000020E+01, D Tr(K):  1.96E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 9
- eF: -4.268742E-02, Tr(K):  1.5000000E+01, D Tr(K): -1.31E-11, new eF: linear interpol}
-         Asymmetry of kernel           :  3.18E-14
+ eF: -4.268742E-02, Tr(K):  1.5000000E+01, D Tr(K): -1.32E-11, new eF: linear interpol}
+         Asymmetry of kernel           :  8.27E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -6.832002621499E+00
-         EBS higher temperature        : -6.831977588980E+00
-         difference                    :  2.503251883290E-05
-         relative difference           :  3.664008961901E-06
+         EBS                           : -6.832002601880E+00
+         EBS higher temperature        : -6.831977569353E+00
+         difference                    :  2.503252691533E-05
+         relative difference           :  3.664010155447E-06
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999910837
+         trace(KS)                     :  15.000000000998
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  9.44E-16
+         Hamiltonian                   :  8.88E-16
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.392E-01
        Coefficients available          :  No
@@ -3677,7 +3681,7 @@
          -  { #------------------------------------------------------------------ it FOE: 7
  eF: -4.484581E-01, Tr(K):  1.4002202E+01, D Tr(K): -9.98E-01, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF:  3.869357E-03, Tr(K):  1.7999999E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
+ eF:  3.869358E-03, Tr(K):  1.7999999E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 9
  eF: -2.789287E-01, Tr(K):  1.8000014E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 10
@@ -3685,7 +3689,7 @@
          -  { #----------------------------------------------------------------- it FOE: 11
  eF: -4.246358E-01, Tr(K):  1.5897790E+01, D Tr(K):  8.98E-01, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 12
- eF: -4.362328E-01, Tr(K):  1.4514349E+01, D Tr(K): -4.86E-01, new eF: bisection/secant}
+ eF: -4.362328E-01, Tr(K):  1.4514350E+01, D Tr(K): -4.86E-01, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 13
  eF: -4.312980E-01, Tr(K):  1.5251709E+01, D Tr(K):  2.52E-01, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 14
@@ -3696,12 +3700,12 @@
  eF: -4.329262E-01, Tr(K):  1.5000000E+01, D Tr(K): -2.67E-08, new eF: linear interpol}
          Asymmetry of kernel           :  1.34E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.680960329096E+01
-         EBS higher temperature        : -1.680958429358E+01
-         difference                    :  1.899737980438E-05
-         relative difference           :  1.130150395315E-06
+         EBS                           : -1.680960328038E+01
+         EBS higher temperature        : -1.680958428301E+01
+         difference                    :  1.899737147681E-05
+         relative difference           :  1.130149900622E-06
          modify error function decay length: increase
-         trace(KS)                     :  14.99999997277025
+         trace(KS)                     :  14.99999997475922
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -3754,15 +3758,15 @@
          -  { #----------------------------------------------------------------- it FOE: 12
  eF: -2.226127E-01, Tr(K):  1.5000001E+01, D Tr(K):  1.20E-06, new eF: linear interpol}
          -  { #----------------------------------------------------------------- it FOE: 13
- eF: -2.226127E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.88E-13, new eF: linear interpol}
-         Asymmetry of kernel           :  3.45E-15
+ eF: -2.226127E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.81E-13, new eF: linear interpol}
+         Asymmetry of kernel           :  3.50E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -9.120706382176E+00
-         EBS higher temperature        : -9.120706750858E+00
-         difference                    : -3.686816310022E-07
-         relative difference           :  4.042248654366E-08
+         EBS                           : -9.120706377798E+00
+         EBS higher temperature        : -9.120706746480E+00
+         difference                    : -3.686817713344E-07
+         relative difference           :  4.042250194918E-08
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999908212
+         trace(KS)                     :  15.0000000011971
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -3811,20 +3815,20 @@
          -  { #----------------------------------------------------------------- it FOE: 10
  eF: -3.311795E-01, Tr(K):  1.4999995E+01, D Tr(K): -4.55E-06, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 11
- eF: -3.311794E-01, Tr(K):  1.5000000E+01, D Tr(K):  1.27E-11, new eF: linear interpol}
+ eF: -3.311794E-01, Tr(K):  1.5000000E+01, D Tr(K):  1.74E-11, new eF: linear interpol}
          Asymmetry of kernel           :  4.83E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.088855784104E+01
-         EBS higher temperature        : -1.088857591086E+01
-         difference                    : -1.806982761288E-05
-         relative difference           :  1.659524417897E-06
+         EBS                           : -1.088855783524E+01
+         EBS higher temperature        : -1.088857590506E+01
+         difference                    : -1.806982547414E-05
+         relative difference           :  1.659524222360E-06
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999912496
+         trace(KS)                     :  15.00000000123255
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.22E-15
+         Hamiltonian                   :  1.17E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.506E-01
        Coefficients available          :  No
@@ -3865,17 +3869,17 @@
  eF: -3.691766E-01, Tr(K):  1.4999999E+01, D Tr(K): -8.69E-07, new eF: cubic interpol}
          Asymmetry of kernel           :  7.32E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.192565213193E+01
-         EBS higher temperature        : -1.192565713102E+01
-         difference                    : -4.999089242119E-06
-         relative difference           :  4.191879141546E-07
+         EBS                           : -1.192565212835E+01
+         EBS higher temperature        : -1.192565712744E+01
+         difference                    : -4.999092629632E-06
+         relative difference           :  4.191881983332E-07
          modify error function decay length: increase
-         trace(KS)                     :  14.99999912978414
+         trace(KS)                     :  14.99999913189626
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.17E-15
+         Hamiltonian                   :  1.22E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.573E-01
        Coefficients available          :  No
@@ -3883,10 +3887,10 @@
      Hamiltonian update: {
  Energies: {Ekin:  1.64409242746E+01, Epot: -2.19892036829E+01, Enl:  1.41659353262E+00, 
               EH:  5.20998562362E+01,  EXC: -7.13694124252E+00, EvXC: -9.35045191465E+00}, 
-    Total charge:  1.499999779932E+01, 
+    Total charge:  1.499999780143E+01, 
  Poisson Solver: {BC: Free, Box:  [  117,  119,  107 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  5.99E-08, 
- iter:  9, delta:  2.50E-07, energy: -3.30922758141257773E+01, D:  1.540E-04, 
+ iter:  9, delta:  2.50E-07, energy: -3.30922758154207273E+01, D:  1.540E-04, 
           Tr(KW):  7.9931E+00}]
    -  #-------------------------------------------------------------------- kernel iter: 10
      Kernel update:
@@ -3931,14 +3935,14 @@
  eF: -3.547263E-02, Tr(K):  1.5002337E+01, D Tr(K):  2.34E-03, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 13
  eF: -3.549979E-02, Tr(K):  1.5000001E+01, D Tr(K):  7.15E-07, new eF: cubic interpol}
-         Asymmetry of kernel           :  1.36E-14
+         Asymmetry of kernel           :  1.97E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -6.740033421026E+00
-         EBS higher temperature        : -6.733608561505E+00
-         difference                    :  6.424859521061E-03
-         relative difference           :  9.532385256455E-04
+         EBS                           : -6.740033401354E+00
+         EBS higher temperature        : -6.733608541932E+00
+         difference                    :  6.424859421961E-03
+         relative difference           :  9.532385137246E-04
          modify error function decay length: decrease
-         trace(KS)                     :  15.00000071412416
+         trace(KS)                     :  15.00000071595561
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  8.758E-03
@@ -3962,15 +3966,15 @@
  eF: -3.774363E-02, Tr(K):  1.4999973E+01, D Tr(K): -2.70E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -3.774343E-02, Tr(K):  1.5000000E+01, D Tr(K):  1.31E-09, new eF: linear interpol}
-         Asymmetry of kernel           :  1.61E-14
+         Asymmetry of kernel           :  2.54E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -6.742171472649E+00
-         EBS higher temperature        : -6.740370887111E+00
-         difference                    :  1.800585538198E-03
-         relative difference           :  2.670631480528E-04
+         EBS                           : -6.742171453026E+00
+         EBS higher temperature        : -6.740370867414E+00
+         difference                    :  1.800585611741E-03
+         relative difference           :  2.670631597380E-04
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
-         trace(KS)                     :  15.00000000043346
+         trace(KS)                     :  15.00000000231878
          need to repeat with sharper decay (new):  Yes
          limit reached, exit loop      :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -4036,20 +4040,20 @@
          -  { #----------------------------------------------------------------- it FOE: 17
  eF: -4.329254E-01, Tr(K):  1.4999997E+01, D Tr(K): -3.13E-06, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 18
- eF: -4.329254E-01, Tr(K):  1.5000000E+01, D Tr(K): -5.45E-11, new eF: linear interpol}
+ eF: -4.329254E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.13E-10, new eF: linear interpol}
          Asymmetry of kernel           :  1.34E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.681287151139E+01
-         EBS higher temperature        : -1.681296979809E+01
-         difference                    : -9.828670745193E-05
-         relative difference           :  5.845920334630E-06
+         EBS                           : -1.681287150132E+01
+         EBS higher temperature        : -1.681296978804E+01
+         difference                    : -9.828671210599E-05
+         relative difference           :  5.845920614944E-06
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999937606
+         trace(KS)                     :  15.00000000132805
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.11E-15
+         Hamiltonian                   :  1.22E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.892E-01
        Coefficients available          :  No
@@ -4096,14 +4100,14 @@
  eF: -2.132183E-01, Tr(K):  1.5002341E+01, D Tr(K):  2.34E-03, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 12
  eF: -2.132312E-01, Tr(K):  1.4999999E+01, D Tr(K): -5.54E-07, new eF: cubic interpol}
-         Asymmetry of kernel           :  3.62E-15
+         Asymmetry of kernel           :  3.61E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -9.006651494035E+00
-         EBS higher temperature        : -9.006650707234E+00
-         difference                    :  7.868006282052E-07
-         relative difference           :  8.735772986513E-08
+         EBS                           : -9.006651485623E+00
+         EBS higher temperature        : -9.006650698819E+00
+         difference                    :  7.868039659797E-07
+         relative difference           :  8.735810053667E-08
          modify error function decay length: increase
-         trace(KS)                     :  14.99999944554503
+         trace(KS)                     :  14.99999944767195
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -4144,7 +4148,7 @@
          -  { #------------------------------------------------------------------ it FOE: 6
  eF: -3.387597E-01, Tr(K):  1.4099332E+01, D Tr(K): -9.01E-01, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -3.246540E-01, Tr(K):  1.5634656E+01, D Tr(K):  6.35E-01, new eF: bisection/secant}
+ eF: -3.246540E-01, Tr(K):  1.5634657E+01, D Tr(K):  6.35E-01, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -3.310958E-01, Tr(K):  1.4794214E+01, D Tr(K): -2.06E-01, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 9
@@ -4155,12 +4159,12 @@
  eF: -3.296545E-01, Tr(K):  1.5000000E+01, D Tr(K):  1.47E-08, new eF: linear interpol}
          Asymmetry of kernel           :  4.76E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.085383777419E+01
-         EBS higher temperature        : -1.085384234568E+01
-         difference                    : -4.571484367943E-06
-         relative difference           :  4.211859862890E-07
+         EBS                           : -1.085383776710E+01
+         EBS higher temperature        : -1.085384233858E+01
+         difference                    : -4.571485970217E-06
+         relative difference           :  4.211861341871E-07
          modify error function decay length: increase
-         trace(KS)                     :  15.00000001384744
+         trace(KS)                     :  15.0000000159602
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -4208,12 +4212,12 @@
  eF: -3.692577E-01, Tr(K):  1.5000000E+01, D Tr(K):  4.36E-08, new eF: linear interpol}
          Asymmetry of kernel           :  7.33E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.192824954781E+01
-         EBS higher temperature        : -1.192824935868E+01
-         difference                    :  1.891296808054E-07
-         relative difference           :  1.585561067006E-08
+         EBS                           : -1.192824954437E+01
+         EBS higher temperature        : -1.192824935524E+01
+         difference                    :  1.891265757337E-07
+         relative difference           :  1.585535036220E-08
          modify error function decay length: increase
-         trace(KS)                     :  15.00000004268992
+         trace(KS)                     :  15.00000004479671
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -4226,10 +4230,10 @@
      Hamiltonian update: {
  Energies: {Ekin:  1.64409242746E+01, Epot: -2.19892036829E+01, Enl:  1.41659353262E+00, 
               EH:  5.20998562362E+01,  EXC: -7.13694124252E+00, EvXC: -9.35045191465E+00}, 
-    Total charge:  1.499999871225E+01, 
+    Total charge:  1.499999871436E+01, 
  Poisson Solver: {BC: Free, Box:  [  117,  119,  107 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  5.99E-08, 
- iter:  10, delta:  1.75E-07, energy: -3.30919767262381370E+01, D:  2.991E-04, 
+ iter:  10, delta:  1.75E-07, energy: -3.30919767275130638E+01, D:  2.991E-04, 
            Tr(KW):  7.9936E+00}]
    -  #-------------------------------------------------------------------- kernel iter: 11
      Kernel update:
@@ -4260,29 +4264,29 @@
          -  { #------------------------------------------------------------------ it FOE: 6
  eF: -8.063705E-02, Tr(K):  1.2000184E+01, D Tr(K): -3.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -7.173684E-03, Tr(K):  1.5998485E+01, D Tr(K):  9.98E-01, new eF: bisection/secant}
+ eF: -7.173683E-03, Tr(K):  1.5998485E+01, D Tr(K):  9.98E-01, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -1.325139E-01, Tr(K):  1.1999983E+01, D Tr(K): -3.00E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 9
  eF: -5.415838E-02, Tr(K):  1.2528443E+01, D Tr(K): -2.47E+00, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 10
- eF: -2.567965E-02, Tr(K):  1.5687654E+01, D Tr(K):  6.88E-01, new eF: cubic interpol}
+ eF: -2.567965E-02, Tr(K):  1.5687653E+01, D Tr(K):  6.88E-01, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 11
  eF: -3.393685E-02, Tr(K):  1.4963376E+01, D Tr(K): -3.66E-02, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 12
- eF: -3.357162E-02, Tr(K):  1.5004981E+01, D Tr(K):  4.98E-03, new eF: cubic interpol}
+ eF: -3.357161E-02, Tr(K):  1.5004981E+01, D Tr(K):  4.98E-03, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 13
  eF: -3.361565E-02, Tr(K):  1.5000003E+01, D Tr(K):  2.51E-06, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 14
- eF: -3.361567E-02, Tr(K):  1.5000000E+01, D Tr(K): -8.84E-12, new eF: linear interpol}
-         Asymmetry of kernel           :  1.91E-14
+ eF: -3.361567E-02, Tr(K):  1.5000000E+01, D Tr(K): -8.83E-12, new eF: linear interpol}
+         Asymmetry of kernel           :  2.05E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -6.680250992133E+00
-         EBS higher temperature        : -6.675598040355E+00
-         difference                    :  4.652951777155E-03
-         relative difference           :  6.965234962930E-04
+         EBS                           : -6.680250972452E+00
+         EBS higher temperature        : -6.675598020698E+00
+         difference                    :  4.652951754615E-03
+         relative difference           :  6.965234949708E-04
          modify error function decay length: decrease
-         trace(KS)                     :  14.99999999915832
+         trace(KS)                     :  15.00000000101476
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  6.104E-03
@@ -4305,22 +4309,22 @@
          -  { #------------------------------------------------------------------ it FOE: 7
  eF: -3.464628E-02, Tr(K):  1.4981546E+01, D Tr(K): -1.85E-02, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF: -3.454508E-02, Tr(K):  1.5000363E+01, D Tr(K):  3.63E-04, new eF: cubic interpol}
+ eF: -3.454507E-02, Tr(K):  1.5000363E+01, D Tr(K):  3.63E-04, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 9
  eF: -3.454703E-02, Tr(K):  1.5000000E+01, D Tr(K): -2.53E-08, new eF: linear interpol}
-         Asymmetry of kernel           :  2.23E-14
+         Asymmetry of kernel           :  2.33E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -6.681431331908E+00
-         EBS higher temperature        : -6.680995203979E+00
-         difference                    :  4.361279293272E-04
-         relative difference           :  6.527462569950E-05
+         EBS                           : -6.681431312284E+00
+         EBS higher temperature        : -6.680995184313E+00
+         difference                    :  4.361279710610E-04
+         relative difference           :  6.527463213744E-05
          modify error function decay length: No
-         trace(KS)                     :  14.99999997378729
+         trace(KS)                     :  14.99999997567706
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  7.49E-16
+         Hamiltonian                   :  1.17E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.417E-01
        Coefficients available          :  No
@@ -4374,12 +4378,12 @@
  eF: -4.329257E-01, Tr(K):  1.4999999E+01, D Tr(K): -5.76E-07, new eF: cubic interpol}
          Asymmetry of kernel           :  1.34E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.681921581294E+01
-         EBS higher temperature        : -1.681945157072E+01
-         difference                    : -2.357577848464E-04
-         relative difference           :  1.401716866401E-05
+         EBS                           : -1.681921580323E+01
+         EBS higher temperature        : -1.681945156101E+01
+         difference                    : -2.357577756094E-04
+         relative difference           :  1.401716812291E-05
          modify error function decay length: increase
-         trace(KS)                     :  14.99999942352667
+         trace(KS)                     :  14.99999942547071
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -4429,12 +4433,12 @@
  eF: -2.113426E-01, Tr(K):  1.4999999E+01, D Tr(K): -6.48E-07, new eF: linear interpol}
          Asymmetry of kernel           :  3.65E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -8.984099001270E+00
-         EBS higher temperature        : -8.984100014092E+00
-         difference                    : -1.012821794433E-06
-         relative difference           :  1.127349324946E-07
+         EBS                           : -8.984098996239E+00
+         EBS higher temperature        : -8.984100009061E+00
+         difference                    : -1.012822190560E-06
+         relative difference           :  1.127349766498E-07
          modify error function decay length: increase
-         trace(KS)                     :  14.99999935144263
+         trace(KS)                     :  14.99999935356368
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -4486,12 +4490,12 @@
  eF: -3.293864E-01, Tr(K):  1.5000000E+01, D Tr(K): -4.31E-10, new eF: linear interpol}
          Asymmetry of kernel           :  4.75E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.084778442220E+01
-         EBS higher temperature        : -1.084780142489E+01
-         difference                    : -1.700268898652E-05
-         relative difference           :  1.567388171148E-06
+         EBS                           : -1.084778441617E+01
+         EBS higher temperature        : -1.084780141886E+01
+         difference                    : -1.700268690819E-05
+         relative difference           :  1.567387980428E-06
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999868134
+         trace(KS)                     :  15.00000000078358
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -4539,12 +4543,12 @@
  eF: -3.692797E-01, Tr(K):  1.5000000E+01, D Tr(K):  1.63E-09, new eF: linear interpol}
          Asymmetry of kernel           :  7.33E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.192895593142E+01
-         EBS higher temperature        : -1.192895578516E+01
-         difference                    :  1.462614491743E-07
-         relative difference           :  1.226104363325E-08
+         EBS                           : -1.192895592791E+01
+         EBS higher temperature        : -1.192895578165E+01
+         difference                    :  1.462636696203E-07
+         relative difference           :  1.226122977604E-08
          modify error function decay length: increase
-         trace(KS)                     :  15.00000000075729
+         trace(KS)                     :  15.0000000028779
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -4557,10 +4561,10 @@
      Hamiltonian update: {
  Energies: {Ekin:  1.64409242746E+01, Epot: -2.19892036829E+01, Enl:  1.41659353262E+00, 
               EH:  5.20998562362E+01,  EXC: -7.13694124252E+00, EvXC: -9.35045191465E+00}, 
-    Total charge:  1.499999867033E+01, 
+    Total charge:  1.499999867245E+01, 
  Poisson Solver: {BC: Free, Box:  [  117,  119,  107 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  5.99E-08, 
- iter:  11, delta:  1.22E-07, energy: -3.30918970080933192E+01, D:  7.972E-05, 
+ iter:  11, delta:  1.22E-07, energy: -3.30918970093791600E+01, D:  7.972E-05, 
            Tr(KW):  7.9937E+00}]
    -  #-------------------------------------------------------------------- kernel iter: 12
      Kernel update:
@@ -4606,15 +4610,15 @@
          -  { #----------------------------------------------------------------- it FOE: 13
  eF: -3.008080E-02, Tr(K):  1.5000001E+01, D Tr(K):  1.20E-06, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 14
- eF: -3.008081E-02, Tr(K):  1.5000000E+01, D Tr(K): -1.52E-12, new eF: linear interpol}
-         Asymmetry of kernel           :  3.40E-14
+ eF: -3.008081E-02, Tr(K):  1.5000000E+01, D Tr(K): -1.53E-12, new eF: linear interpol}
+         Asymmetry of kernel           :  4.66E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -6.635578251910E+00
-         EBS higher temperature        : -6.630042658994E+00
-         difference                    :  5.535592916337E-03
-         relative difference           :  8.342291668014E-04
+         EBS                           : -6.635578231996E+00
+         EBS higher temperature        : -6.630042639194E+00
+         difference                    :  5.535592801822E-03
+         relative difference           :  8.342291520473E-04
          modify error function decay length: decrease
-         trace(KS)                     :  14.99999999921344
+         trace(KS)                     :  15.00000000104193
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  7.451E-03
@@ -4640,21 +4644,21 @@
  eF: -3.208620E-02, Tr(K):  1.5000002E+01, D Tr(K):  2.39E-06, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 9
  eF: -3.208622E-02, Tr(K):  1.5000000E+01, D Tr(K):  2.42E-10, new eF: linear interpol}
-         Asymmetry of kernel           :  4.45E-14
+         Asymmetry of kernel           :  6.11E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -6.637412106721E+00
-         EBS higher temperature        : -6.635692161259E+00
-         difference                    :  1.719945462234E-03
-         relative difference           :  2.591289247345E-04
+         EBS                           : -6.637412086846E+00
+         EBS higher temperature        : -6.635692141323E+00
+         difference                    :  1.719945523818E-03
+         relative difference           :  2.591289347887E-04
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
-         trace(KS)                     :  14.99999999934928
+         trace(KS)                     :  15.00000000123405
          need to repeat with sharper decay (new):  Yes
          limit reached, exit loop      :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.05E-15
+         Hamiltonian                   :  8.88E-16
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.425E-01
        Coefficients available          :  No
@@ -4698,11 +4702,11 @@
          -  { #------------------------------------------------------------------ it FOE: 9
  eF: -3.760452E-01, Tr(K):  1.8000056E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 10
- eF: -4.163825E-01, Tr(K):  1.5999970E+01, D Tr(K):  1.00E+00, new eF: bisection/secant}
+ eF: -4.163824E-01, Tr(K):  1.5999970E+01, D Tr(K):  1.00E+00, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 11
  eF: -4.284104E-01, Tr(K):  1.5798678E+01, D Tr(K):  7.99E-01, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 12
- eF: -4.340327E-01, Tr(K):  1.4754680E+01, D Tr(K): -2.45E-01, new eF: bisection/secant}
+ eF: -4.340327E-01, Tr(K):  1.4754681E+01, D Tr(K): -2.45E-01, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 13
  eF: -4.319666E-01, Tr(K):  1.5214014E+01, D Tr(K):  2.14E-01, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 14
@@ -4710,15 +4714,15 @@
          -  { #----------------------------------------------------------------- it FOE: 15
  eF: -4.329275E-01, Tr(K):  1.5000032E+01, D Tr(K):  3.21E-05, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 16
- eF: -4.329277E-01, Tr(K):  1.5000000E+01, D Tr(K): -1.57E-10, new eF: linear interpol}
+ eF: -4.329277E-01, Tr(K):  1.5000000E+01, D Tr(K):  9.67E-12, new eF: linear interpol}
          Asymmetry of kernel           :  1.34E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.682094211362E+01
-         EBS higher temperature        : -1.682085157480E+01
-         difference                    :  9.053881659682E-05
-         relative difference           :  5.382505687569E-06
+         EBS                           : -1.682094210384E+01
+         EBS higher temperature        : -1.682085156494E+01
+         difference                    :  9.053889867161E-05
+         relative difference           :  5.382510570020E-06
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999927224
+         trace(KS)                     :  15.0000000014504
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -4765,26 +4769,26 @@
          -  { #------------------------------------------------------------------ it FOE: 9
  eF: -2.062886E-01, Tr(K):  1.4760716E+01, D Tr(K): -2.39E-01, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 10
- eF: -2.031372E-01, Tr(K):  1.5317128E+01, D Tr(K):  3.17E-01, new eF: cubic interpol}
+ eF: -2.031372E-01, Tr(K):  1.5317129E+01, D Tr(K):  3.17E-01, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 11
  eF: -2.049626E-01, Tr(K):  1.4996404E+01, D Tr(K): -3.60E-03, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 12
  eF: -2.049424E-01, Tr(K):  1.5000053E+01, D Tr(K):  5.30E-05, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 13
- eF: -2.049427E-01, Tr(K):  1.5000000E+01, D Tr(K):  6.71E-11, new eF: linear interpol}
+ eF: -2.049427E-01, Tr(K):  1.5000000E+01, D Tr(K):  7.86E-11, new eF: linear interpol}
          Asymmetry of kernel           :  3.76E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -8.908631169163E+00
-         EBS higher temperature        : -8.908631635642E+00
-         difference                    : -4.664798538556E-07
-         relative difference           :  5.236268569187E-08
+         EBS                           : -8.908631159671E+00
+         EBS higher temperature        : -8.908631626147E+00
+         difference                    : -4.664761839024E-07
+         relative difference           :  5.236227379287E-08
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999914231
+         trace(KS)                     :  15.00000000127642
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.22E-15
+         Hamiltonian                   :  1.17E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.439E-01
        Coefficients available          :  No
@@ -4828,15 +4832,15 @@
          -  { #----------------------------------------------------------------- it FOE: 10
  eF: -3.283492E-01, Tr(K):  1.4999992E+01, D Tr(K): -8.11E-06, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 11
- eF: -3.283491E-01, Tr(K):  1.5000000E+01, D Tr(K):  2.90E-10, new eF: linear interpol}
+ eF: -3.283491E-01, Tr(K):  1.5000000E+01, D Tr(K):  2.75E-10, new eF: linear interpol}
          Asymmetry of kernel           :  4.70E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.082447583860E+01
-         EBS higher temperature        : -1.082447497114E+01
-         difference                    :  8.674585796342E-07
-         relative difference           :  8.013862218997E-08
+         EBS                           : -1.082447583106E+01
+         EBS higher temperature        : -1.082447496361E+01
+         difference                    :  8.674501366102E-07
+         relative difference           :  8.013784225203E-08
          modify error function decay length: increase
-         trace(KS)                     :  14.99999999940145
+         trace(KS)                     :  15.00000000148887
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -4884,12 +4888,12 @@
  eF: -3.693626E-01, Tr(K):  1.5000001E+01, D Tr(K):  6.43E-07, new eF: cubic interpol}
          Asymmetry of kernel           :  7.34E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.193162186827E+01
-         EBS higher temperature        : -1.193161923800E+01
-         difference                    :  2.630262880388E-06
-         relative difference           :  2.204447064638E-07
+         EBS                           : -1.193162186493E+01
+         EBS higher temperature        : -1.193161923467E+01
+         difference                    :  2.630258677527E-06
+         relative difference           :  2.204443542799E-07
          modify error function decay length: increase
-         trace(KS)                     :  15.00000064177366
+         trace(KS)                     :  15.00000064389014
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -4902,10 +4906,10 @@
      Hamiltonian update: {
  Energies: {Ekin:  1.64409242746E+01, Epot: -2.19892036829E+01, Enl:  1.41659353262E+00, 
               EH:  5.20998562362E+01,  EXC: -7.13694124252E+00, EvXC: -9.35045191465E+00}, 
-    Total charge:  1.499999931137E+01, 
+    Total charge:  1.499999931349E+01, 
  Poisson Solver: {BC: Free, Box:  [  117,  119,  107 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  5.99E-08, 
- iter:  12, delta:  8.54E-08, energy: -3.30915887350016860E+01, D:  3.083E-04, 
+ iter:  12, delta:  8.54E-08, energy: -3.30915887362643062E+01, D:  3.083E-04, 
            Tr(KW):  7.9943E+00}]
    -  #-------------------------------------------------------------------- kernel iter: 13
      Kernel update:
@@ -4934,9 +4938,9 @@
          -  { #------------------------------------------------------------------ it FOE: 5
  eF: -1.373806E-01, Tr(K):  1.1998284E+01, D Tr(K): -3.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF: -6.754116E-02, Tr(K):  1.2003880E+01, D Tr(K): -3.00E+00, new eF: bisec bounds}
+ eF: -6.754115E-02, Tr(K):  1.2003880E+01, D Tr(K): -3.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF:  9.282246E-03, Tr(K):  1.6000079E+01, D Tr(K):  1.00E+00, new eF: bisection/secant}
+ eF:  9.282247E-03, Tr(K):  1.6000079E+01, D Tr(K):  1.00E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -1.218044E-01, Tr(K):  1.1999997E+01, D Tr(K): -3.00E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 9
@@ -4951,14 +4955,14 @@
  eF: -2.932416E-02, Tr(K):  1.5000214E+01, D Tr(K):  2.14E-04, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 14
  eF: -2.932595E-02, Tr(K):  1.5000000E+01, D Tr(K): -4.17E-08, new eF: linear interpol}
-         Asymmetry of kernel           :  1.17E-14
+         Asymmetry of kernel           :  3.15E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -6.607850630777E+00
-         EBS higher temperature        : -6.603067447369E+00
-         difference                    :  4.783183408218E-03
-         relative difference           :  7.238637305056E-04
+         EBS                           : -6.607850610933E+00
+         EBS higher temperature        : -6.603067427603E+00
+         difference                    :  4.783183329607E-03
+         relative difference           :  7.238637207829E-04
          modify error function decay length: decrease
-         trace(KS)                     :  14.99999995747085
+         trace(KS)                     :  14.99999995931294
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  6.104E-03
@@ -4975,30 +4979,30 @@
          -  { #------------------------------------------------------------------ it FOE: 4
  eF: -5.341598E-02, Tr(K):  1.2012174E+01, D Tr(K): -2.99E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -3.565838E-02, Tr(K):  1.4140367E+01, D Tr(K): -8.60E-01, new eF: cubic interpol}
+ eF: -3.565837E-02, Tr(K):  1.4140367E+01, D Tr(K): -8.60E-01, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF: -3.036859E-02, Tr(K):  1.5051832E+01, D Tr(K):  5.18E-02, new eF: cubic interpol}
+ eF: -3.036858E-02, Tr(K):  1.5051832E+01, D Tr(K):  5.18E-02, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 7
  eF: -3.067788E-02, Tr(K):  1.4993557E+01, D Tr(K): -6.44E-03, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -3.064351E-02, Tr(K):  1.5000049E+01, D Tr(K):  4.94E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 9
  eF: -3.064377E-02, Tr(K):  1.5000000E+01, D Tr(K): -1.02E-09, new eF: linear interpol}
-         Asymmetry of kernel           :  1.41E-14
+         Asymmetry of kernel           :  3.88E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -6.609263701534E+00
-         EBS higher temperature        : -6.608330488664E+00
-         difference                    :  9.332128696560E-04
-         relative difference           :  1.411977054932E-04
+         EBS                           : -6.609263681738E+00
+         EBS higher temperature        : -6.608330468806E+00
+         difference                    :  9.332129320576E-04
+         relative difference           :  1.411977153576E-04
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
-         trace(KS)                     :  14.99999999807454
+         trace(KS)                     :  14.9999999999632
          need to repeat with sharper decay (new):  Yes
          limit reached, exit loop      :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  8.88E-16
+         Hamiltonian                   :  6.66E-16
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.430E-01
        Coefficients available          :  No
@@ -5036,7 +5040,7 @@
          -  { #------------------------------------------------------------------ it FOE: 6
  eF: -4.683512E-01, Tr(K):  1.3999821E+01, D Tr(K): -1.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF:  3.096091E-02, Tr(K):  1.8000001E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
+ eF:  3.096092E-02, Tr(K):  1.8000001E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 8
  eF: -2.811008E-01, Tr(K):  1.8000024E+01, D Tr(K):  3.00E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 9
@@ -5057,17 +5061,17 @@
  eF: -4.329285E-01, Tr(K):  1.5000000E+01, D Tr(K):  4.27E-11, new eF: linear interpol}
          Asymmetry of kernel           :  1.35E-14
          symmetrize_kernel             :  Yes
-         EBS                           : -1.682746321265E+01
-         EBS higher temperature        : -1.682738229044E+01
-         difference                    :  8.092220921441E-05
-         relative difference           :  4.808936926010E-06
+         EBS                           : -1.682746320323E+01
+         EBS higher temperature        : -1.682738228103E+01
+         difference                    :  8.092220035039E-05
+         relative difference           :  4.808936401944E-06
          modify error function decay length: increase
-         trace(KS)                     :  14.9999999994711
+         trace(KS)                     :  15.00000000148306
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.22E-15
+         Hamiltonian                   :  1.11E-15
          Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.892E-01
        Coefficients available          :  No
@@ -5116,12 +5120,12 @@
  eF: -2.051012E-01, Tr(K):  1.5000000E+01, D Tr(K): -5.25E-08, new eF: linear interpol}
          Asymmetry of kernel           :  3.76E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -8.910482565872E+00
-         EBS higher temperature        : -8.910482994965E+00
-         difference                    : -4.290933777185E-07
-         relative difference           :  4.815602011971E-08
+         EBS                           : -8.910482558820E+00
+         EBS higher temperature        : -8.910482987913E+00
+         difference                    : -4.290930455397E-07
+         relative difference           :  4.815598287828E-08
          modify error function decay length: increase
-         trace(KS)                     :  14.99999994659283
+         trace(KS)                     :  14.99999994872047
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -5171,14 +5175,14 @@
  eF: -3.284183E-01, Tr(K):  1.5000132E+01, D Tr(K):  1.32E-04, new eF: cubic interpol}
          -  { #----------------------------------------------------------------- it FOE: 11
  eF: -3.284192E-01, Tr(K):  1.5000000E+01, D Tr(K): -5.53E-08, new eF: linear interpol}
-         Asymmetry of kernel           :  4.71E-15
+         Asymmetry of kernel           :  4.70E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.082604857969E+01
-         EBS higher temperature        : -1.082605477882E+01
-         difference                    : -6.199131188822E-06
-         relative difference           :  5.726125412417E-07
+         EBS                           : -1.082604857298E+01
+         EBS higher temperature        : -1.082605477211E+01
+         difference                    : -6.199133261831E-06
+         relative difference           :  5.726127330799E-07
          modify error function decay length: increase
-         trace(KS)                     :  14.99999994382219
+         trace(KS)                     :  14.99999994591245
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -5226,12 +5230,12 @@
  eF: -3.693609E-01, Tr(K):  1.5000000E+01, D Tr(K):  3.37E-07, new eF: cubic interpol}
          Asymmetry of kernel           :  7.34E-15
          symmetrize_kernel             :  Yes
-         EBS                           : -1.193156545664E+01
-         EBS higher temperature        : -1.193156969083E+01
-         difference                    : -4.234183462515E-06
-         relative difference           :  3.548724161889E-07
+         EBS                           : -1.193156545317E+01
+         EBS higher temperature        : -1.193156968735E+01
+         difference                    : -4.234187281682E-06
+         relative difference           :  3.548727363816E-07
          modify error function decay length: increase
-         trace(KS)                     :  15.00000033624201
+         trace(KS)                     :  15.00000033835984
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -5244,29 +5248,29 @@
      Hamiltonian update: {
  Energies: {Ekin:  1.64409242746E+01, Epot: -2.19892036829E+01, Enl:  1.41659353262E+00, 
               EH:  5.20998562362E+01,  EXC: -7.13694124252E+00, EvXC: -9.35045191465E+00}, 
-    Total charge:  1.499999900584E+01, 
+    Total charge:  1.499999900796E+01, 
  Poisson Solver: {BC: Free, Box:  [  117,  119,  107 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  5.99E-08, 
- iter:  13, delta:  5.98E-08, energy: -3.30915938167413159E+01, D: -5.082E-06, 
+ iter:  13, delta:  5.98E-08, energy: -3.30915938180193123E+01, D: -5.082E-06, 
            Tr(KW):  7.9943E+00}]
    -  &final_kernel001_005  { #--------------------------------------------------- iter: 13
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  0, conv crit:  5.99E-08, 
- iter:  13, delta:  5.98E-08, energy: -3.30915938167413159E+01, D: -5.082E-06, 
+ iter:  13, delta:  5.98E-08, energy: -3.30915938180193123E+01, D: -5.082E-06, 
            Tr(KW):  7.9943E+00}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: FOE, iterations to converge kernel optimization:  13, 
- iter high:  1, delta out:  4.285E-06, energy: -3.30915938167413159E+01, D: -3.309E+01}
+ iter high:  1, delta out:  4.285E-06, energy: -3.30915938180193123E+01, D: -3.309E+01}
     #========================================================================= final results
    self consistency summary:
    -  {iter:  1, 
  Energies: {Ekin:  1.64409242746E+01, Epot: -2.19892036829E+01, Enl:  1.41659353262E+00, 
-              EH:  5.74173067903E+01,  EXC: -7.99223936466E+00, EvXC: -1.04802683868E+01}, 
+              EH:  5.74173068070E+01,  EXC: -7.99223936622E+00, EvXC: -1.04802683889E+01}, 
        iter high:  1,            delta out:  4.285E-06, 
-          energy: -3.30915938167413159E+01,                       D:  0.000E+00,  #FINAL
+          energy: -3.30915938180193123E+01,                       D:  0.000E+00,  #FINAL
  }
- Total charge                          :  1.499999900584E+01
+ Total charge                          :  1.499999900796E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -5282,30 +5286,30 @@
  - support function optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  81.16
-   Elapsed time (s)                    :  81.28
+   CPU time (s)                        :  80.81
+   Elapsed time (s)                    :  81.04
  BigDFT infocode                       :  0
- Average noise forces: {x: -8.20079716E-02, y: -2.41579101E-01, z: -5.11217140E-04, 
-                    total:  2.55119640E-01}
- Clean forces norm (Ha/Bohr): {maxval:  1.068427843661E+00, fnrm2:  2.164745209455E+00}
- Raw forces norm (Ha/Bohr): {maxval:  1.217650836338E+00, fnrm2:  2.253087245365E+00}
+ Average noise forces: {x: -8.20079709E-02, y: -2.41579100E-01, z: -5.11217144E-04, 
+                    total:  2.55119639E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  1.068427842367E+00, fnrm2:  2.164745204931E+00}
+ Raw forces norm (Ha/Bohr): {maxval:  1.217650834502E+00, fnrm2:  2.253087240178E+00}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [-4.475224162711E-01, -9.701864472608E-01,  3.996325909877E-05]} # 0001
- -  {H: [-1.545512758262E-01, -1.099152149274E-01, -3.996325909877E-05]} # 0002
- -  {O: [ 4.400238637749E-01,  8.434060258240E-01,  3.996325909877E-05]} # 0003
- -  {H: [ 1.620498283224E-01,  2.366956363642E-01, -3.996325909877E-05]} # 0004
- Energy (Hartree)                      : -3.30915938167413159E+01
- Force Norm (Hartree/Bohr)             :  1.47130731305690809E+00
+ -  {O: [-4.475224156972E-01, -9.701864461000E-01,  3.996325802920E-05]} # 0001
+ -  {H: [-1.545512760275E-01, -1.099152146358E-01, -3.996325802920E-05]} # 0002
+ -  {O: [ 4.400238636981E-01,  8.434060250786E-01,  3.996325802920E-05]} # 0003
+ -  {H: [ 1.620498280266E-01,  2.366956356573E-01, -3.996325802920E-05]} # 0004
+ Energy (Hartree)                      : -3.30915938180193123E+01
+ Force Norm (Hartree/Bohr)             :  1.47130731151972016E+00
  Memory Consumption Report:
-   Tot. No. of Allocations             :  39822
-   Tot. No. of Deallocations           :  39822
+   Tot. No. of Allocations             :  39806
+   Tot. No. of Deallocations           :  39806
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  123.424
      for the array                     : psir
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 164.116 MB
- Walltime since initialization         : 00:01:21.665632048
+     Memory Peak of process            : 165.988 MB
+ Walltime since initialization         : 00:01:21.423216427
  Max No. of dictionaries used          :  6121 #( 1002 still in use)
  Number of dictionary folders allocated:  1
