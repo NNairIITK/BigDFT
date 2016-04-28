@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-04-27 13:05:18.838
+ Timestamp of this run                 : 2016-04-28 08:14:01.385
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -182,7 +182,8 @@
    cdft_lag_mult_init                  : 0.05d0 # CDFT initial value for Lagrange multiplier
    cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    subspace_diag                       : No #     diagonalization at the end
-   extra_states                        : 0 #      extra states to optimize (dmin only)
+   extra_states                        : 0 #      Number of extra states to include in support function and kernel optimization (dmin 
+    #                                              only), must be equal to norbsempty
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
     #                                              written to disk)
    plot_locreg_grids                   : False #  plot the scaling function and wavelets grid of each localization region
@@ -288,6 +289,9 @@
    no_translation                      : No #     Logical input to set translational correction
    thermostat                          : none #   Activates a thermostat for MD
    wavefunction_extrapolation          : 0 #      Activates the wavefunction extrapolation for MD
+   restart_nose                        : No #     Restart Nose Hoover Chain information from md.restart
+   restart_pos                         : No #     Restart nuclear position information from md.restart
+   restart_vel                         : No #     Restart nuclear velocities information from md.restart
  mix:
    iscf                                : 0 #      Mixing parameters
    itrpmax                             : 1 #      Maximum number of diagonalisation iterations
@@ -2390,8 +2394,24 @@
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
    S^-1/2                              : recalculate
    determine eigenvalue bounds:
-   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.450,  1.350 ], penalty:  7.8E-03, ok: [
-  Yes,  Yes], exp accur:  [  1.47E-09 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.556,  1.350 ], penalty:  9.7E-02, ok: [
+  No,  Yes], exp accur:  [  5.76E-11 ]}
+   -  {npl:  15, scale:  2.00E+00, bounds:  [  0.463,  1.350 ], penalty: -4.2E+08, ok: [
+  Yes,  No], exp accur:  [  9.69E-10 ]}
+   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.463,  1.620 ], penalty:  6.3E-01, ok: [
+  No,  Yes], exp accur:  [  9.46E-09 ]}
+   -  {npl:  20, scale:  2.00E+00, bounds:  [  0.386,  1.620 ], penalty: -2.6E+08, ok: [
+  Yes,  No], exp accur:  [  3.0E-10 ]}
+   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.386,  1.944 ], penalty: -1.0E-02, ok: [
+  Yes,  No], exp accur:  [  2.75E-09 ]}
+   -  {npl:  25, scale:  5.00E-01, bounds:  [  0.386,  2.333 ], penalty:  2.3E+01, ok: [
+  No,  Yes], exp accur:  [  2.3E-10 ]}
+   -  {npl:  25, scale:  1.00E+00, bounds:  [  0.322,  2.333 ], penalty: -2.8E-02, ok: [
+  Yes,  No], exp accur:  [  2.12E-09 ]}
+   -  {npl:  30, scale:  5.00E-01, bounds:  [  0.322,  2.799 ], penalty:  1.8E+00, ok: [
+  No,  Yes], exp accur:  [  3.8E-10 ]}
+   -  {npl:  30, scale:  1.00E+00, bounds:  [  0.268,  2.799 ], penalty:  2.6E-03, ok: [
+  Yes,  Yes], exp accur:  [  3.14E-09 ]}
    Kernel calculation:
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
@@ -2403,13 +2423,13 @@
      -  {npl:  810, bounds:  [ -1.000,  2.074 ], penalty: -1.2E-03, ok:  [  Yes,  Yes ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
- eF: -1.000000E-01, Tr(K): -1.9082438E-05, D Tr(K): -7.21E+02, new eF: bisec bounds}
+ eF: -1.000000E-01, Tr(K): -1.9082436E-05, D Tr(K): -7.21E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 2
- eF:  1.000000E-01, Tr(K): -5.2877621E-05, D Tr(K): -7.21E+02, new eF: bisec bounds}
+ eF:  1.000000E-01, Tr(K): -5.2877617E-05, D Tr(K): -7.21E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 3
- eF:  1.900000E-01, Tr(K):  5.8983728E-05, D Tr(K): -7.21E+02, new eF: bisec bounds}
+ eF:  1.900000E-01, Tr(K):  5.8983724E-05, D Tr(K): -7.21E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 4
- eF:  2.890000E-01, Tr(K): -1.5447423E-04, D Tr(K): -7.21E+02, new eF: bisec bounds}
+ eF:  2.890000E-01, Tr(K): -1.5447422E-04, D Tr(K): -7.21E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 5
  eF:  3.979000E-01, Tr(K):  1.5905258E-03, D Tr(K): -7.21E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 6
@@ -2427,7 +2447,7 @@
      -  { #--------------------------------------------------------------------- it FOE: 12
  eF:  1.534368E+00, Tr(K):  7.9641280E+02, D Tr(K):  7.54E+01, new eF: bisection/secant}
      -  { #--------------------------------------------------------------------- it FOE: 13
- eF:  1.048397E+00, Tr(K):  6.1799162E+02, D Tr(K): -1.03E+02, new eF: bisection/secant}
+ eF:  1.048397E+00, Tr(K):  6.1799163E+02, D Tr(K): -1.03E+02, new eF: bisection/secant}
      -  { #--------------------------------------------------------------------- it FOE: 14
  eF:  1.310173E+00, Tr(K):  7.1921597E+02, D Tr(K): -1.78E+00, new eF: bisection/secant}
      -  { #--------------------------------------------------------------------- it FOE: 15
@@ -2444,24 +2464,20 @@
  eF:  1.325061E+00, Tr(K):  7.2100000E+02, D Tr(K):  9.93E-10, new eF: linear interpol}
      Asymmetry of kernel               :  4.05E-02
      symmetrize_kernel                 :  Yes
-     EBS                               :  5.129131166226E+02
-     EBS higher temperature            :  5.128948068252E+02
-     difference                        : -1.830979741248E-02
-     relative difference               :  3.569765876344E-05
+     EBS                               :  5.129131167141E+02
+     EBS higher temperature            :  5.128948069170E+02
+     difference                        : -1.830979706301E-02
+     relative difference               :  3.569765807572E-05
      modify error function decay length: increase
-     trace(KS)                         :  721.0000007259766
+     trace(KS)                         :  721.0000008184372
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  calculate LUMO kernel:
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
    S^-1/2                              : recalculate
    determine eigenvalue bounds:
-   -  {npl:  15, scale:  1.00E+00, bounds:  [  0.405,  1.215 ], penalty: -8.0E-01, ok: [
-  Yes,  No], exp accur:  [  1.55E-09 ]}
-   -  {npl:  20, scale:  5.00E-01, bounds:  [  0.405,  1.458 ], penalty:  4.9E+01, ok: [
-  No,  Yes], exp accur:  [  3.52E-11 ]}
-   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.338,  1.458 ], penalty:  3.0E-03, ok: [
-  Yes,  Yes], exp accur:  [  4.62E-10 ]}
+   -  {npl:  30, scale:  1.00E+00, bounds:  [  0.268,  2.799 ], penalty:  2.6E-03, ok: [
+  Yes,  Yes], exp accur:  [  3.14E-09 ]}
    Kernel calculation:
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
@@ -2473,13 +2489,13 @@
      -  {npl:  810, bounds:  [ -1.000,  2.074 ], penalty: -1.2E-03, ok:  [  Yes,  Yes ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
- eF: -1.000000E-01, Tr(K): -1.9082440E-05, D Tr(K): -7.23E+02, new eF: bisec bounds}
+ eF: -1.000000E-01, Tr(K): -1.9082436E-05, D Tr(K): -7.23E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 2
- eF:  1.000000E-01, Tr(K): -5.2877625E-05, D Tr(K): -7.23E+02, new eF: bisec bounds}
+ eF:  1.000000E-01, Tr(K): -5.2877617E-05, D Tr(K): -7.23E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 3
- eF:  1.900000E-01, Tr(K):  5.8983733E-05, D Tr(K): -7.23E+02, new eF: bisec bounds}
+ eF:  1.900000E-01, Tr(K):  5.8983724E-05, D Tr(K): -7.23E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 4
- eF:  2.890000E-01, Tr(K): -1.5447424E-04, D Tr(K): -7.23E+02, new eF: bisec bounds}
+ eF:  2.890000E-01, Tr(K): -1.5447422E-04, D Tr(K): -7.23E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 5
  eF:  3.979000E-01, Tr(K):  1.5905258E-03, D Tr(K): -7.23E+02, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 6
@@ -2514,12 +2530,12 @@
  eF:  1.343837E+00, Tr(K):  7.2300000E+02, D Tr(K): -3.56E-08, new eF: linear interpol}
      Asymmetry of kernel               :  4.40E-02
      symmetrize_kernel                 :  Yes
-     EBS                               :  5.155757553303E+02
-     EBS higher temperature            :  5.155111004901E+02
-     difference                        : -6.465484018725E-02
-     relative difference               :  1.254031818192E-04
+     EBS                               :  5.155757560162E+02
+     EBS higher temperature            :  5.155111011744E+02
+     difference                        : -6.465484184116E-02
+     relative difference               :  1.254031848602E-04
      modify error function decay length: decrease
-     trace(KS)                         :  722.9999998328672
+     trace(KS)                         :  723.0000007494784
      need to repeat with sharper decay (new):  Yes
    -  #----------------------------------------------------------------- ispin: 1, itemp: 2
      decay length of error function    :  5.000E-03
@@ -2529,7 +2545,7 @@
      -  { #---------------------------------------------------------------------- it FOE: 1
  eF:  1.133744E+00, Tr(K):  6.5802617E+02, D Tr(K): -6.50E+01, new eF: bisec bounds}
      -  { #---------------------------------------------------------------------- it FOE: 2
- eF:  1.553930E+00, Tr(K):  8.0811410E+02, D Tr(K):  8.51E+01, new eF: bisection/secant}
+ eF:  1.553930E+00, Tr(K):  8.0811411E+02, D Tr(K):  8.51E+01, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 3
  eF:  1.329741E+00, Tr(K):  7.2158775E+02, D Tr(K): -1.41E+00, new eF: bisection/secant}
      -  { #---------------------------------------------------------------------- it FOE: 4
@@ -2546,19 +2562,19 @@
  eF:  1.343041E+00, Tr(K):  7.2300000E+02, D Tr(K):  3.10E-09, new eF: linear interpol}
      Asymmetry of kernel               :  4.72E-02
      symmetrize_kernel                 :  Yes
-     EBS                               :  5.155743625884E+02
-     EBS higher temperature            :  5.155645826924E+02
-     difference                        : -9.779895970610E-03
-     relative difference               :  1.896893383432E-05
+     EBS                               :  5.155743632743E+02
+     EBS higher temperature            :  5.155645833775E+02
+     difference                        : -9.779896780856E-03
+     relative difference               :  1.896893538062E-05
      modify error function decay length: increase
-     trace(KS)                         :  722.9999998720841
+     trace(KS)                         :  723.0000007887014
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  HOMO-LUMO analysis:
-   HOMO energy                         :  [  1.32506119094174 ]
-   LUMO energy                         :  [  1.343041467448812 ]
-   HOMO-LUMO gap (Ha)                  :  [  1.7980276507071569E-002 ]
-   HOMO-LUMO gap (eV)                  :  [  0.4892682273393935 ]
+   HOMO energy                         :  [  1.325061191547044 ]
+   LUMO energy                         :  [  1.343041467597303 ]
+   HOMO-LUMO gap (Ha)                  :  [  1.7980276050258981E-002 ]
+   HOMO-LUMO gap (eV)                  :  [  0.4892682149088903 ]
  Gross support functions moments:
    Orthonormalization                  : on-site
    Multipole coefficients:
@@ -12866,8 +12882,8 @@
      x                                 : -1/2
    order                               :  1020
    determine eigenvalue bounds:
-   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.338,  1.458 ], penalty:  3.0E-03, ok: [
-  Yes,  Yes], exp accur:  [  4.62E-10 ]}
+   -  {npl:  30, scale:  1.00E+00, bounds:  [  0.268,  2.799 ], penalty:  2.6E-03, ok: [
+  Yes,  Yes], exp accur:  [  3.14E-09 ]}
  Total charge                          :  7.219978255314E+02
   #---------------------------------------------------------------------- Forces Calculation
  Electric Dipole Moment (AU):
@@ -12895,8 +12911,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  53.26
-   Elapsed time (s)                    :  53.69
+   CPU time (s)                        :  54.89
+   Elapsed time (s)                    :  55.23
  BigDFT infocode                       :  0
  Average noise forces: {x: -7.71869088E-02, y:  8.95461943E-01, z:  5.26712841E-01, 
                     total:  1.04174677E+00}
@@ -13269,14 +13285,14 @@
  Energy (Hartree)                      : -4.09903199565705108E+02
  Force Norm (Hartree/Bohr)             :  1.99267915414512800E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  57196
-   Tot. No. of Deallocations           :  57196
+   Tot. No. of Allocations             :  57436
+   Tot. No. of Deallocations           :  57436
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  536.798
      for the array                     : w%w2
      in the routine                    : initialize_work_arrays_sumrho
-     Memory Peak of process            : 637.940 MB
- Walltime since initialization         : 00:00:54.937349583
+     Memory Peak of process            : 641.420 MB
+ Walltime since initialization         : 00:00:56.481161607
  Max No. of dictionaries used          :  16451 #( 1002 still in use)
  Number of dictionary folders allocated:  2
