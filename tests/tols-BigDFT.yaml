@@ -1324,6 +1324,7 @@ sparsity:
  Epot: 1.1e-9
  Enl: 1.01e-10
  Ekin: 1.01e-9
+ EH: 1.1e-8
  eF: 1.1e-9
  D eF: 1.1e-9
  EBS higher temperature: 2.1e-10
@@ -1718,6 +1719,7 @@ periodic_silicon:
  Epot: 1.1e-9
  Enl: 1.1e-9
  EXC: 1.1e-10
+ Ekin: 1.1e-9
  Omega: 1.1e-10
  EBS higher temperature: 1.31e-10
  D Tr(K): 6.3e-10
@@ -1734,6 +1736,7 @@ periodic_silicon:
  fnrm2: 1.11e-11
 
 periodic_wateredge:
+ relative difference: 1.7e-11
  Epot: 1.1e-9
  Omega: 3.0e-10
  Enl: 2.1e-10
@@ -1831,22 +1834,22 @@ multipoles_OH-:
  guess for new ef: 2.6e-6
  D Tr(K): 6.8e-8
  D Tr: 6.8e-8
- Tr(K): 3.0e-7
- EBS higher temperature: 7.1e-9
- EBS: 1.6e-10
+ Tr(K): 8.2e-6
+ EBS higher temperature: 1.1e-8
+ EBS: 8.0e-10
  relative difference: 4.6e-9
- difference: 7.1e-9
+ difference: 1.1e-8
  multiplicator for the confinement: 1.7e-9
- Epot: 1.3e-10
- EH: 2.1e-10
+ Epot: 5.1e-10
+ EH: 8.1e-10
  Ekin: 1.1e-10
  Charge analysis (charge / net charge): 6.8e-8
- EXC: 3.1e-11
- EvXC: 4.1e-11
- energy: 3.0e-11
+ EXC: 1.6e-10
+ EvXC: 1.9e-10
+ energy: 1.1e-10
  D eF: 2.7e-7
- Total charge: 4.31e-11
- trace(KS): 4.3e-11
+ Total charge: 9.5e-11
+ trace(KS): 9.6e-11
  difference from reference kernel: 1.1e-8
  Atomic Forces (Ha/Bohr): 3.3e-11
  Clean forces norm (Ha/Bohr): 3.4e-11
@@ -2005,7 +2008,7 @@ igortho_19:
  energy: 5.9e-8
  D Tr(K): 1.1e-6
  D Tr: 2.6e-8
- number of corrected points: 14
+ number of corrected points: 16
  difference: 5.9e-9
  trace(KS): 5.6e-9
  Total charge: 5.9e-9
@@ -2013,7 +2016,7 @@ igortho_19:
  difference from reference kernel: 3.0e-8
  D: 6.0e-8
  Tr(K): 1.0e-7
- total charge correction: 1.5e-11
+ total charge correction: 4.1e-11
  multiplicator for the confinement: 4.3e-11
  radius for normalization: 1.1e-2
  Force Norm (Hartree/Bohr): 4.93e-8
@@ -2137,9 +2140,9 @@ extendedfrags_nofrags:
  Omega: 2.8e-11
  PV (Ha): 3.7e-11
  Total charge: 4.3e-09
- difference: 5.6e-09
+ difference: 5.7e-09
  energy: 2.9e-09
- relative difference: 6.0e-10
+ relative difference: 6.1e-10
  trace(KS): 4.3e-09
 
 extendedfrags_read:
@@ -2527,11 +2530,11 @@ matrixtaskgroups_no:
   Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.6e-9
   Force Norm (Hartree/Bohr): 8.9e-11
-  Gross support functions moments: 1.1e-9
+  #Gross support functions moments: 1.1e-9
   Total ionic charge: 9.6e-11
   Maxdiff for transpose (checksum): 3.0e-11 
   Atomic Forces (Ha/Bohr): 1.2e-11
-  Multipole coefficients: 1.1e-10
+  Multipole coefficients: 1.1e-9
   Keys to ignore:
    - Calculating wavelets expansion of projectors, found warnings
    - found warnings
@@ -2558,11 +2561,11 @@ matrixtaskgroups_yes:
   Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.9e-9
   Force Norm (Hartree/Bohr): 9.6e-11
-  Gross support functions moments: 1.1e-9
+  #Gross support functions moments: 1.1e-9
   Total ionic charge: 9.6e-11
   Maxdiff for transpose (checksum): 3.0e-11 
   C: 1.14e-11
-  Multipole coefficients: 1.1e-10
+  Multipole coefficients: 1.1e-9
   Keys to ignore:
    - Calculating wavelets expansion of projectors, found warnings
    - found warnings
