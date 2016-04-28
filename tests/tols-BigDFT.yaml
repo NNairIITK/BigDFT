@@ -1781,6 +1781,7 @@ periodic_water:
  trace(KS): 1.1e-10
  relative difference: 1.5e-11
  Maxdiff for transpose (checksum): 4.7e-10
+ decay length of error function: 1.1e-05
 
 
 surface_boronnitride:
@@ -1830,7 +1831,7 @@ multipoles_OH-:
  guess for new ef: 2.6e-6
  D Tr(K): 6.8e-8
  D Tr: 6.8e-8
- Tr(K): 2.1e-7
+ Tr(K): 3.0e-7
  EBS higher temperature: 7.1e-9
  EBS: 1.6e-10
  relative difference: 4.6e-9
@@ -2001,7 +2002,7 @@ igortho_19:
  EBS: 2.5e-5
  EBS higher temperature: 2.5e-5
  guess for new ef: 3.9e-5
- energy: 4.1e-8
+ energy: 5.9e-8
  D Tr(K): 1.1e-6
  D Tr: 2.6e-8
  number of corrected points: 14
@@ -2010,7 +2011,7 @@ igortho_19:
  Total charge: 5.9e-9
  relative difference: 1.6e-9
  difference from reference kernel: 3.0e-8
- D: 4.1e-8
+ D: 6.0e-8
  Tr(K): 1.0e-7
  total charge correction: 1.5e-11
  multiplicator for the confinement: 4.3e-11
@@ -2118,19 +2119,28 @@ igortho_94:
  norm(P): 3.9e-05
 
 extendedfrags_nofrags:
- eF: 1.1e-8
+ eF: 9.5e-6
  guess for new ef: 2.0e-9
- D Tr(K): 1.9e-8
+ D Tr(K): 9.0e-8
  Tr(K): 2.1e-8
  D Tr: 1.0e-9
  D eF: 1.1e-8
- EBS higher temperature: 7.8e-11
- EBS: 7.8e-11
- EXC: 1.1e-10
+ D: 3.1e-9
+ EBS higher temperature: 1.1e-8
+ EBS: 1.1e-8
+ EH: 1.2e-8
+ EXC: 1.5e-9
+ EvXC: 1.9e-9
+ Epot: 1.1e-8
  Energies: 1.1e-10
  Pressure: 3.4e-11
- Omega: 1.3e-11
+ Omega: 2.8e-11
  PV (Ha): 3.7e-11
+ Total charge: 4.3e-09
+ difference: 5.6e-09
+ energy: 2.9e-09
+ relative difference: 6.0e-10
+ trace(KS): 4.3e-09
 
 extendedfrags_read:
  Omega: 3.0e-7
@@ -2188,15 +2198,15 @@ extendedfrags_readrotated:
 
 
 extendedfrags_write:
- Epot: 1.5e-9
- EH: 1.5e-9
+ Epot: 1.7e-9
+ EH: 1.7e-9
  Ekin: 1.1e-10
- EXC: 2.01e-10
+ EXC: 3.1e-10
  EvXC: 3.1e-10
  D Tr: 3.1e-8
  D eF: 5.0e-9
- EBS higher temperature: 1.4e-9
- EBS: 1.4e-9
+ EBS higher temperature: 1.6e-9
+ EBS: 1.6e-9
  guess for new ef: 6.0e-9
  Tr(K): 6.1e-8
  Total charge: 6.01e-11
@@ -2497,7 +2507,7 @@ H2Omultipoles_2:
 
 matrixtaskgroups_no:
   D Tr(K): 1.100000000000009e-10
-  EBS: 1.1e-9
+  EBS: 1.2e-9
   EBS higher temperature: 1.2e-09
   Ekin: 1.0e-8
   EH: 1.1e-08
@@ -2508,7 +2518,7 @@ matrixtaskgroups_no:
   Energy (Hartree): 3.0e-09
   Ion-Ion interaction energy: 2.9e-10
   Omega: 2.8e-09
-  Total charge: 2.0e-10
+  Total charge: 2.1e-10
   difference: 8.0e-11
   energy: 3.0e-09
   trace: 1.50e-06
@@ -2539,7 +2549,7 @@ matrixtaskgroups_yes:
   Energy (Hartree): 3.0e-09
   Ion-Ion interaction energy: 2.9e-10
   Omega: 2.8e-09
-  Total charge: 2.0e-10
+  Total charge: 2.1e-10
   difference: 7.1e-11
   energy: 3.0e-09
   trace: 1.51e-06
