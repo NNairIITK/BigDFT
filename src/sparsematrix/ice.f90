@@ -767,7 +767,7 @@ module ice
       if (foe_data_get_int(foe_obj,"evbounds_isatur")>foe_data_get_int(foe_obj,"evbounds_nsatur") .and. &
           foe_data_get_int(foe_obj,"evboundsshrink_isatur")<=foe_data_get_int(foe_obj,"evboundsshrink_nsatur")) then
           do ispin=1,inv_ovrlp_smat%nspin
-              call foe_data_set_real(foe_obj,"evlow",0.9d0*foe_data_get_real(foe_obj,"evlow",ispin),ispin)
+              call foe_data_set_real(foe_obj,"evlow",1.d0/0.9d0*foe_data_get_real(foe_obj,"evlow",ispin),ispin)
               call foe_data_set_real(foe_obj,"evhigh",0.9d0*foe_data_get_real(foe_obj,"evhigh",ispin),ispin)
           end do
           evbounds_shrinked=.true.
