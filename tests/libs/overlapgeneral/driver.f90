@@ -110,8 +110,8 @@ program driver
   call orbs_init_fake(iproc, nproc, norb, orbs)
 
   ! Fake initialization of the sparse_matrix type
-  call sparse_matrix_init_fake(iproc, nproc, norb, nseg, nvctr, smat_A)
-  call sparse_matrix_init_fake(iproc, nproc, norb, nseg, nvctr, smat_B)
+  call sparse_matrix_init_fake(iproc, nproc, bigdft_mpi%mpi_comm, norb, nseg, nvctr, smat_A)
+  call sparse_matrix_init_fake(iproc, nproc, bigdft_mpi%mpi_comm, norb, nseg, nvctr, smat_B)
 
 
   symmetric = check_symmetry(smat_A)

@@ -4061,21 +4061,19 @@ module sparsematrix_init
 
 
 
+    !> WARNING: THE SYMMETRY IS NOT YET WORKING
     !> Fake initialization of the sparse_matrix type.
     !! Takes as inout:
     !! - the number of rows/columns
     !! - the number of segments
     !! - the number of non-zero elements
     !! and produces a symmetric sparsity pattern with these parameters.
-    subroutine sparse_matrix_init_fake(iproc, nproc, nfvctr, nseg, nvctr, smat)
-      use module_base
-      use module_types
+    subroutine sparse_matrix_init_fake(iproc, nproc, comm, nfvctr, nseg, nvctr, smat)
       use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
-      use communications_base, only: comms_linear_null
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, nfvctr, nseg, nvctr
+      integer,intent(in) :: iproc, nproc, comm, nfvctr, nseg, nvctr
       type(sparse_matrix) :: smat
     
       ! Local variables
@@ -4083,6 +4081,8 @@ module sparsematrix_init
       integer,dimension(:,:),pointer :: nonzero
       integer,dimension(:,:,:),allocatable :: keyg
       logical :: symmetric
+
+      call f_routine(id='sparse_matrix_init_fake')
     
       ! Some checks whether the arguments are reasonable
       if (nseg > nvctr) then
@@ -4116,7 +4116,7 @@ module sparsematrix_init
       keyg = f_malloc((/2,2,nseg/),id='keyg')
       call keyg_init_ext(nfvctr, nseg, nfvctr, nvctr, nsegline, istsegline, keyv, nvctr_per_segment, keyg)
     
-      call bigdft_to_sparsebigdft(iproc, nproc, bigdft_mpi%mpi_comm, nfvctr, nvctr, nseg, keyg, smat)
+      call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat)
     
       call f_free(nvctr_per_segment)
       call f_free(nsegline)
@@ -4126,6 +4126,13 @@ module sparsematrix_init
 
       ! Check the symmetry
       symmetric = check_symmetry(smat)
+
+      !!if (.not.symmetric) then
+      !!    call f_err_throw('The sparsity pattern is not symmetric', &
+      !!         err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      !!end if
+
+      call f_release_routine()
     
     end subroutine sparse_matrix_init_fake
 
