@@ -915,7 +915,7 @@ module sparsematrix
                 call f_zero(matrix_compr)
 
                  ! Create a window for all taskgroups to which iproc belongs (max 2)
-                 windows = f_malloc(smat%ntaskgroup)
+                 windows = f_malloc(smat%ntaskgroup,id='windows')
                  do itg=1,smat%ntaskgroupp
                      iitg = smat%taskgroupid(itg)
                      ! Use a fake window if nvctrp is zero

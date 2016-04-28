@@ -64,7 +64,7 @@ program driver_css
   charge(:) = 722.d0
   call init_foe(iproc, nproc, smat_s%nspin, charge, foe_obj)
   ! Initialize the same object for the calculation of the inverse. Charge does not really make sense here...
-  call init_foe(iproc, nproc, smat_s%nspin, charge, ice_obj)
+  call init_foe(iproc, nproc, smat_s%nspin, charge, ice_obj, evlow=0.5_mp, evhigh=1.5_mp)
 
   ! Calculate the density kernel for the system described by the pair smat_s/mat_s and smat_h/mat_h and 
   ! store the result in smat_k/mat_k.
