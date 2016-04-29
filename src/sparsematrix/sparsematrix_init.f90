@@ -1156,7 +1156,7 @@ module sparsematrix_init
       do i=1,nnonzero
          ind = int(nonzero(2,i)-1,kind=mp)*int(norbu,kind=mp) + int(nonzero(1,i),kind=mp)
          if (ind<ist) cycle
-         if (ind>iend) exit
+         if (ind>iend) cycle !exit
          jjorb=nonzero(1,i)
          lut(jjorb)=.true.
       end do
@@ -4418,23 +4418,27 @@ module sparsematrix_init
     end subroutine init_transposed_lookup_local
 
 
-    subroutine generate_random_symmetric_sparsity_pattern(nfvctr, nvctr)
+    subroutine generate_random_symmetric_sparsity_pattern(iproc, nproc, comm, nfvctr, nvctr, smat)
       use random, only: builtin_rand
       implicit none
       ! Calling arguments
-      integer,intent(in) :: nfvctr, nvctr
+      integer,intent(in) :: iproc, nproc, comm, nfvctr, nvctr
+      type(sparse_matrix),intent(out) :: smat
       ! Local variables
       integer :: itotal, idum, ivctr, ii, jj
       real(kind=mp) :: tt
       real(kind=4) :: tt_rand
-      integer,dimension(:),allocatable :: nvctrline
+      integer :: nnonzero, inonzero
+      integer,dimension(:,:),allocatable :: nonzero, nonzero_check
+
+      call f_routine(id='generate_random_symmetric_sparsity_pattern')
 
       ! First count how many non-zero entries there are for each line
-      nvctrline = f_malloc0(nfvctr,id='nvctrline')
+      nnonzero = 0
       idum = 0
       tt_rand = builtin_rand(idum, reset=.true.)
-      ivctr = 0
-      do
+      nonzero_check = f_malloc0((/2,nvctr+1/),id='nonzero_check')
+      search_loop1: do
           tt_rand = builtin_rand(idum)
           tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
           ii = max(nint(tt),1)
@@ -4443,15 +4447,83 @@ module sparsematrix_init
           jj = max(nint(tt),1)
           ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
           ! we thus have a non-zero entry in both the lines ii and jj
-          nvctrline(ii) = nvctrline(ii) + 1
-          nvctrline(jj) = nvctrline(jj) + 1
-          ivctr = ivctr + 2
-          if (ivctr>=nvctr) exit
-      end do
+          do inonzero=1,nnonzero
+              if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
+                  cycle search_loop1
+              end if
+          end do
+          if (ii==jj) then
+              ! Diagonal element
+              nonzero_check(1,nnonzero+1) = ii
+              nonzero_check(2,nnonzero+1) = jj
+              nnonzero = nnonzero + 1
+          else
+              ! Offdiagonal element
+              nonzero_check(1,nnonzero+1) = ii
+              nonzero_check(2,nnonzero+1) = jj
+              nonzero_check(1,nnonzero+2) = jj
+              nonzero_check(2,nnonzero+2) = ii
+              nnonzero = nnonzero + 2
+          end if
+          if (nnonzero>=nvctr) exit
+      end do search_loop1
 
-      do ii=1,nfvctr
-          write(*,*) 'ii, nvctrline(ii)', ii, nvctrline(ii)
-      end do
+
+      ! Now determine the coordinates of the non-zero entries
+      nonzero = f_malloc0((/2,nnonzero/),id='nonzero')
+      idum = 0
+      tt_rand = builtin_rand(idum, reset=.true.)
+      ivctr = 0
+      search_loop2: do
+          tt_rand = builtin_rand(idum)
+          tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
+          ii = max(nint(tt),1)
+          tt_rand = builtin_rand(idum)
+          tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
+          jj = max(nint(tt),1)
+          ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
+          ! we thus have a non-zero entry in both the lines ii and jj
+          do inonzero=1,ivctr
+              if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
+                  cycle search_loop2
+              end if
+          end do
+          if (ii==jj) then
+              ! Diagonal element
+              nonzero_check(1,ivctr+1) = ii
+              nonzero_check(2,ivctr+1) = jj
+              nonzero(1,ivctr+1) = ii
+              nonzero(2,ivctr+1) = jj
+              ivctr = ivctr + 1
+          else
+              ! Offdiagonal element
+              nonzero_check(1,ivctr+1) = ii
+              nonzero_check(2,ivctr+1) = jj
+              nonzero_check(1,ivctr+2) = jj
+              nonzero_check(2,ivctr+2) = ii
+              nonzero(1,ivctr+1) = ii
+              nonzero(2,ivctr+1) = jj
+              nonzero(1,ivctr+2) = jj
+              nonzero(2,ivctr+2) = ii
+              ivctr = ivctr + 2
+          end if
+          if (ivctr>=nvctr) exit
+      end do search_loop2
+
+      if (ivctr/=nnonzero) then
+          call f_err_throw('ivctr/=nnonzero',err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      end if
+
+      !!do ii=1,nfvctr
+      !!    write(*,*) 'ii, nnonzero(ii)', ii, nnonzero(ii)
+      !!end do
+
+      call init_sparse_matrix(iproc, nproc, comm, nfvctr, nvctr, nonzero, nvctr, nonzero, smat)
+
+      call f_free(nonzero)
+      call f_free(nonzero_check)
+
+      call f_release_routine()
 
     end subroutine generate_random_symmetric_sparsity_pattern
 

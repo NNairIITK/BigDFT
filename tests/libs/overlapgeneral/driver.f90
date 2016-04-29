@@ -35,7 +35,7 @@ program driver
 
   logical :: file_exists, symmetric, perform_check, optional_parameters
   type(orbitals_data) :: orbs
-  type(sparse_matrix) :: smat_A, smat_B
+  type(sparse_matrix) :: smat_A, smat_B, smat_test
   type(matrices) :: mat_A
   type(matrices),dimension(1) :: inv_mat_B
   character(len=*),parameter :: filename='inputdata.fake'
@@ -113,7 +113,11 @@ program driver
   call sparse_matrix_init_fake(iproc, nproc, bigdft_mpi%mpi_comm, norb, nseg, nvctr, smat_A)
   call sparse_matrix_init_fake(iproc, nproc, bigdft_mpi%mpi_comm, norb, nseg, nvctr, smat_B)
 
-  call generate_random_symmetric_sparsity_pattern(norb, nvctr)
+  !!call generate_random_symmetric_sparsity_pattern(iproc, nproc, bigdft_mpi%mpi_comm, 4, 10, smat_test)
+  !!do iorb=1,smat_test%nseg
+  !!    write(*,*) 'iseg, keyg', iorb, smat_test%keyg(:,:,iorb)
+  !!end do
+
 
   symmetric = check_symmetry(smat_A)
 
