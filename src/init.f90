@@ -533,6 +533,7 @@ END SUBROUTINE input_wf_empty
 subroutine input_wf_random(psi, orbs)
   use module_base, only: wp,f_zero
   use module_types
+  use random, only: builtin_rand
   implicit none
 
   type(orbitals_data), intent(inout) :: orbs
@@ -540,7 +541,7 @@ subroutine input_wf_random(psi, orbs)
 
   integer :: icoeff,jorb,iorb,nvctr
   integer :: idum=0
-  real(kind=4) :: tt,builtin_rand
+  real(kind=4) :: tt
 
   !if (max(orbs%npsidim_comp,orbs%npsidim_orbs)>1) &
   !     call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1))

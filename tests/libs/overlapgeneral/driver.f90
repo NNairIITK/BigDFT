@@ -16,7 +16,7 @@ program driver
   use module_interfaces
   use sparsematrix_base, only: deallocate_sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices, &
                                SPARSE_FULL, sparsematrix_malloc, assignment(=)
-  use sparsematrix_init, only: sparse_matrix_init_fake, check_symmetry
+  use sparsematrix_init, only: sparse_matrix_init_fake, check_symmetry, generate_random_symmetric_sparsity_pattern
   use sparsematrix, only: compress_matrix, uncompress_matrix, extract_taskgroup_inplace, &
                           write_matrix_compressed
   use matrix_operations, only: overlapPowerGeneral, deviation_from_unity_parallel
@@ -113,6 +113,7 @@ program driver
   call sparse_matrix_init_fake(iproc, nproc, bigdft_mpi%mpi_comm, norb, nseg, nvctr, smat_A)
   call sparse_matrix_init_fake(iproc, nproc, bigdft_mpi%mpi_comm, norb, nseg, nvctr, smat_B)
 
+  call generate_random_symmetric_sparsity_pattern(norb, nvctr)
 
   symmetric = check_symmetry(smat_A)
 

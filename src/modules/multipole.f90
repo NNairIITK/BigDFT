@@ -4956,7 +4956,7 @@ end if
    character(len=*),parameter :: no='none', onsite='on-site'
    character(len=*),parameter :: do_ortho = onsite
    type(orbital_basis) :: psi_ob
-   real(gp), dimension(3) :: acell
+   real(gp), dimension(3) :: acell, center
    real(wp), dimension(:,:,:), allocatable :: Qlm
 
    call f_routine(id='support_function_gross_multipoles')
@@ -5045,6 +5045,11 @@ end if
       ii = istr
       call geocode_buffers(tmb%lzd%Llr(ilr)%geocode, tmb%lzd%glr%geocode, nl1, nl2, nl3)
       weight = 0.d0
+      center(1:3) = 0.0_gp
+      !$omp parallel default(none) &
+      !$omp shared(tmb, ilr, nl1, nl2, nl3, hxh, hyh, hzh, istr, phir, center, weight) &
+      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, ii)
+      !$omp do reduction(+: center, weight)
       do i3=1,tmb%lzd%llr(ilr)%d%n3i
           ii3 = tmb%lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
           z = ii3*hzh
@@ -5054,17 +5059,26 @@ end if
               do i1=1,tmb%lzd%llr(ilr)%d%n1i
                   ii1 = tmb%lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
                   x = ii1*hxh
+                  ii = istr+(i3-1)*tmb%lzd%llr(ilr)%d%n2i*tmb%lzd%llr(ilr)%d%n1i+(i2-1)*tmb%lzd%llr(ilr)%d%n1i+i1-1
+                  !!if (ii /= istr+(i3-1)*tmb%lzd%llr(ilr)%d%n2i*tmb%lzd%llr(ilr)%d%n1i+(i2-1)*tmb%lzd%llr(ilr)%d%n1i+i1-1) &
+                  !!    stop 'wrong index'
                   tt = phir(ii)**2
-                  center_locreg(1,ilr) = center_locreg(1,ilr) + x*tt
-                  center_locreg(2,ilr) = center_locreg(2,ilr) + y*tt
-                  center_locreg(3,ilr) = center_locreg(3,ilr) + z*tt
+                  !!center_locreg(1,ilr) = center_locreg(1,ilr) + x*tt
+                  !!center_locreg(2,ilr) = center_locreg(2,ilr) + y*tt
+                  !!center_locreg(3,ilr) = center_locreg(3,ilr) + z*tt
+                  center(1) = center(1) + x*tt
+                  center(2) = center(2) + y*tt
+                  center(3) = center(3) + z*tt
                   weight = weight + tt
-                  ii = ii + 1
+                  !!ii = ii + 1
               end do
           end do
       end do
+      !$omp end do
+      !$omp end parallel
       !write(*,*) 'iorb, weight, sum(phir)',iorb, weight, sum(phir)
-      center_locreg(1:3,ilr) = center_locreg(1:3,ilr)/weight
+      !center_locreg(1:3,ilr) = center_locreg(1:3,ilr)/weight
+      center_locreg(1:3,ilr) = center(1:3)/weight
       center_orb(1:3,iiorb) = center_locreg(1:3,ilr)
       !write(*,*) 'iorb, ilr, center_locreg(1:3,ilr), lzd%llr(ilr)%locregcenter(1:3)', &
       !            iorb, ilr, center_locreg(1:3,ilr), tmb%lzd%llr(ilr)%locregcenter(1:3)

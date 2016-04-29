@@ -34,6 +34,7 @@ module sparsematrix_init
   public :: check_compress_distributed_layout
   public :: sparse_matrix_init_fake
   public :: check_symmetry 
+  public :: generate_random_symmetric_sparsity_pattern
 
 
   contains
@@ -4218,7 +4219,7 @@ module sparsematrix_init
               stop
           end if
           ! Number of empty elements between the elements
-          allocate(nempty_arr(0:nsegline(jorb)))
+          nempty_arr = f_malloc(0.to.nsegline(jorb),id='nempty_arr')
           tt=real(nempty,kind=8)/real(nsegline(jorb)+1,kind=8)
           ii=floor(tt)
           do j=0,nsegline(jorb)
@@ -4293,7 +4294,7 @@ module sparsematrix_init
               ist=ist+nempty_arr(jseg)
           end do
           itot=itot+ist
-          deallocate(nempty_arr)
+          call f_free(nempty_arr)
       end do
 
       ! Check that the total number is correct
@@ -4416,5 +4417,42 @@ module sparsematrix_init
       
     end subroutine init_transposed_lookup_local
 
+
+    subroutine generate_random_symmetric_sparsity_pattern(nfvctr, nvctr)
+      use random, only: builtin_rand
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: nfvctr, nvctr
+      ! Local variables
+      integer :: itotal, idum, ivctr, ii, jj
+      real(kind=mp) :: tt
+      real(kind=4) :: tt_rand
+      integer,dimension(:),allocatable :: nvctrline
+
+      ! First count how many non-zero entries there are for each line
+      nvctrline = f_malloc0(nfvctr,id='nvctrline')
+      idum = 0
+      tt_rand = builtin_rand(idum, reset=.true.)
+      ivctr = 0
+      do
+          tt_rand = builtin_rand(idum)
+          tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
+          ii = max(nint(tt),1)
+          tt_rand = builtin_rand(idum)
+          tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
+          jj = max(nint(tt),1)
+          ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
+          ! we thus have a non-zero entry in both the lines ii and jj
+          nvctrline(ii) = nvctrline(ii) + 1
+          nvctrline(jj) = nvctrline(jj) + 1
+          ivctr = ivctr + 2
+          if (ivctr>=nvctr) exit
+      end do
+
+      do ii=1,nfvctr
+          write(*,*) 'ii, nvctrline(ii)', ii, nvctrline(ii)
+      end do
+
+    end subroutine generate_random_symmetric_sparsity_pattern
 
 end module sparsematrix_init
