@@ -559,8 +559,8 @@ module IObox
                !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
                write(fileunit0,'(1x,1pe13.6)',advance=advancestring)&
                     a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
-                          write(23,'(1x,e24.17)',advance=advancestring)&
-                               a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
+               !           write(23,'(1x,e24.17)',advance=advancestring)&
+               !                a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
             end do
          end do
       end do
