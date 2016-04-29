@@ -6,9 +6,6 @@ program driver_single
                                     matrices_init, &
                                     matrix_chebyshev_expansion, &
                                     matrix_matrix_multiplication
-  ! The following module should no be used!
-  use module_types, only: bigdft_init_errors, &
-                          bigdft_init_timing_categories
   implicit none
 
   ! External routines
@@ -35,10 +32,9 @@ program driver_single
   iproc=mpirank()
   nproc=mpisize()
 
-  ! Initialize the BigDFT error handling and timing.
-  ! PROBLEM: THIS IS IN MODULE_TYPES
-  call bigdft_init_errors()
-  call bigdft_init_timing_categories()
+  ! Initialize the sparsematrix error handling and timing.
+  call sparsematrix_init_errors()
+  call sparsematrix_initialize_timing_categories()
 
   if (iproc==0) then
       call yaml_new_document()

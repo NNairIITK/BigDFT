@@ -1429,7 +1429,11 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
 !!$            call yaml_map('e',ar(i)/beta(i),fmt='(1pe12.5)')
 !!$         end do
 
+
          call DSYGV(1,'V','L',ng+1,hh,ng+1,ss,ng+1,eval,evec,(ng+1)**2,info)
+
+         !call f_linalg_eig(mat=hh,S=ss,symmetric=.true.,eval=eval,jobz='V',work=evec,lwork=size(evec))
+
 !!$         do i=0,ng
 !!$            call yaml_newline()
 !!$            call yaml_map('e',eval(i),fmt='(1pe12.5)')

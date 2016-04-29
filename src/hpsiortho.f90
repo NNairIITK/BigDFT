@@ -21,7 +21,6 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
   use Poisson_Solver, except_dp => dp, except_gp => gp
   use m_ab7_mixing
   use yaml_output
-  use psp_projectors_base, only: PSP_APPLY_SKIP
   use rhopotential, only: full_local_potential
   use public_enums
   use rhopotential, only: updatePotential
@@ -142,12 +141,6 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
      !$ call f_free_ptr(denspot%rho_psi) !now the pointer can be freed
      !$ call timing(iproc,'UnBlockDen    ','OF')
      !$ end if
-
-     !here we can reduce and output the density matrix if required
-     if (associated(nlpsp%gamma_mmp) .and. nproc > 1) &
-          call mpiallred(nlpsp%gamma_mmp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
-
-     if (iproc==0) call write_atomic_density_matrix(wfn%orbs%nspin,atoms%astruct,nlpsp)
 
      ithread=0
      nthread=1
@@ -380,6 +373,21 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
        & GPU,denspot%xc,wfn%hpsi,&
        energs)!%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
 
+  !here we can reduce and output the density matrix if required
+  if (associated(nlpsp%gamma_mmp) .and. nproc > 1) &
+       call mpiallred(nlpsp%gamma_mmp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+
+  if (iproc==0 .and. verbose > 1) call write_atomic_density_matrix(wfn%orbs%nspin,atoms%astruct,nlpsp)
+
+  !here we might rework the value of gamma in case we would like to apply some extra
+  !term in the following iteration
+  !in case there is any target occupancy then calculate the delta
+  if (nlpsp%apply_gamma_target) then
+     call atomic_density_matrix_delta(iproc==0,wfn%orbs%nspin,atoms%astruct,nlpsp,&
+          atoms%gamma_targets)
+  end if
+
+
 !!$  if (iproc ==0) then
 !!$     !compute the proper hartree energy in the case of a cavity calculation
 !!$     !energs%eh=energs%epot-energs%eh-energs%evxc
@@ -420,7 +428,6 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
   use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication
   use module_xc
   use public_enums, only: PSPCODE_PAW
-  use psp_projectors_base, only: PSP_APPLY_SKIP
   use yaml_output
   use locreg_operations, only: confpot_data
   implicit none
@@ -881,12 +888,12 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   use module_types
   use yaml_output
   !  use module_interfaces
-  use psp_projectors_base, only: PSP_APPLY_SKIP
-  use psp_projectors, only: projector_has_overlap,get_proj_locreg
+  use psp_projectors, only: projector_has_overlap,get_proj_locreg,hgh_psp_application
   use public_enums, only: PSPCODE_PAW
   use module_atoms
   use orbitalbasis
   use ao_inguess, only: lmax_ao
+  use pseudopotentials, only: atomic_proj_coeff,nullify_atomic_proj_coeff,f_free_prj_ptr
   implicit none
   integer, intent(in) :: iproc, npsidim_orbs
   type(atoms_data), intent(in) :: at
@@ -921,9 +928,9 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
 
   !initialize the orbital basis object, for psi and hpsi
   call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd)
-
   !should we calculate the density matrix we have to zero it
   if (associated(nl%iagamma)) call f_zero(nl%gamma_mmp)
+  !here we might rework the value of gamma in case we would like to apply some extra
 
   nwarnings=0
   if(paw%usepaw) call f_zero(orbs%npsidim_orbs, paw%spsi(1))
@@ -1004,9 +1011,11 @@ contains
   subroutine nl_psp_application()
     implicit none
     !local variables
-    integer :: ncplx_p,ncplx_w,n_w,nvctr_p,ispin
-    real(gp), dimension(3,3,4) :: hij
+    integer :: ncplx_p,nvctr_p
+    !real(gp), dimension(3,3,4) :: hij
+    type(atomic_proj_coeff), dimension(:,:,:), pointer :: prj
     real(gp) :: eproj
+    real(wp), dimension(:), pointer :: proj_ptr
 
     hpsi_ptr => ob_ket_map(hpsi,psi_it)
 
@@ -1022,38 +1031,106 @@ contains
        else
           ncplx_p=2
        end if
-       if (psi_it%nspinor > 1) then !which means 2 or 4
-          ncplx_w=2
-          n_w=psi_it%nspinor/2
-       else
-          ncplx_w=1
-          n_w=1
-       end if
+!!$       if (psi_it%nspinor > 1) then !which means 2 or 4
+!!$          ncplx_w=2
+!!$          n_w=psi_it%nspinor/2
+!!$       else
+!!$          ncplx_w=1
+!!$          n_w=1
+!!$       end if
 
        !extract hij parameters
-       call hgh_hij_matrix(at%npspcode(atit%ityp),at%psppar(0,0,atit%ityp),hij)
+!!$       call hgh_hij_matrix(at%npspcode(atit%ityp),at%psppar(0,0,atit%ityp),hij)
 
-       call NL_HGH_application(hij,&
-            ncplx_p,mproj,nl%pspd(atit%iat)%plr%wfd,nl%proj(istart_c),&
-            ncplx_w,n_w,psi_it%lr%wfd,nl%pspd(atit%iat)%tolr(iilr),nl%wpack,nl%scpr,nl%cproj,nl%hcproj,&
+       call allocate_prj_ptr(atit%iat,atit%ityp,psi_it%ispin,at,nl,prj)
+
+       nvctr_p=nl%pspd(atit%iat)%plr%wfd%nvctr_c+7*nl%pspd(atit%iat)%plr%wfd%nvctr_f
+
+!!$       call NL_HGH_application(hij,&
+!!$            ncplx_p,mproj,nl%pspd(atit%iat)%plr%wfd,nl%proj(istart_c),&
+!!$            psi_it%ncplx,psi_it%n_ket,psi_it%lr%wfd,nl%pspd(atit%iat)%tolr(iilr),&
+!!$            nl%wpack,nl%scpr,nl%cproj,nl%hcproj,&
+!!$            psi_it%phi_wvl,hpsi_ptr,eproj)
+
+       proj_ptr => nl%proj(istart_c:istart_c-1+nvctr_p*mproj*ncplx_p)
+
+       call hgh_psp_application(prj,ncplx_p,mproj,nl%pspd(atit%iat)%plr%wfd,&
+            proj_ptr,&
+            psi_it%ncplx,psi_it%n_ket,psi_it%lr%wfd,nl%pspd(atit%iat)%tolr(iilr),&
+            nl%wpack,nl%scpr,nl%cproj,nl%hcproj,&
             psi_it%phi_wvl,hpsi_ptr,eproj)
 
        !here the cproj can be extracted to update the density matrix for the atom iat 
        if (associated(nl%iagamma)) then
-          ispin=merge(1,2,psi_it%spinval==1.0_gp) !to be inserted in ket
           call cproj_to_gamma(atit%iat,nl%proj_G,mproj,lmax_ao,&
-               max(ncplx_w,ncplx_p),nl%cproj,psi_it%kwgt*psi_it%occup,&
+               max(psi_it%ncplx,ncplx_p),nl%cproj,psi_it%kwgt*psi_it%occup,&
                nl%iagamma(0,atit%iat),&
-               nl%gamma_mmp(1,1,1,1,ispin))
+               nl%gamma_mmp(1,1,1,1,psi_it%ispin))
        end if
 
-       nvctr_p=nl%pspd(atit%iat)%plr%wfd%nvctr_c+7*nl%pspd(atit%iat)%plr%wfd%nvctr_f
+       call f_free_prj_ptr(prj)
+
        istart_c=istart_c+nvctr_p*ncplx_p*mproj
 
        eproj_sum=eproj_sum+psi_it%kwgt*psi_it%occup*eproj
     end if
 
   end subroutine nl_psp_application
+
+  subroutine allocate_prj_ptr(iat,ityp,ispin,at,nl,prj)
+    integer, intent(in) :: iat,ispin,ityp
+    type(atoms_data), intent(in) :: at
+    type(DFT_PSP_projectors), intent(inout) :: nl
+    type(atomic_proj_coeff), dimension(:,:,:), pointer :: prj
+    !local variables
+    integer, parameter :: LMAX=3,IMAX=3
+    logical :: occ_ctrl
+    integer :: i,l,j,igamma,m,mp
+    real(gp), dimension(3,3,4) :: hij
+
+    igamma=0
+    occ_ctrl=.false.
+
+    allocate(prj(3,3,4))
+
+    !first extract the hij matrix as usual
+    call hgh_hij_matrix(at%npspcode(ityp),at%psppar(0,0,ityp),hij)
+
+    !then allocate the structure as needed
+    do l=1,LMAX+1
+       !the matrix is used only for i=1 at present
+       if (associated(nl%iagamma)) igamma=nl%iagamma(l-1,iat)
+       !if the matrix is available search for the target
+       if (associated(at%gamma_targets)) &
+            !if the given point need a target then associate the actual potential
+            occ_ctrl= associated(at%gamma_targets(l-1,ispin,iat)%dmat) .and. nl%apply_gamma_target
+       do i=1,IMAX
+          call nullify_atomic_proj_coeff(prj(i,i,l))
+          prj(i,i,l)%hij=hij(i,i,l)
+          if (i==1 .and. occ_ctrl) then
+             !it has to be discussed if the coefficient should change in to one
+             !and we have to add the h11 term in the diagonal
+             prj(i,i,l)%mat=&
+                  f_malloc_ptr(src_ptr=at%gamma_targets(l-1,ispin,iat)%dmat,id='prjmat')
+             do m=1,2*l-1
+                prj(i,i,l)%mat(m,m)=prj(i,i,l)%mat(m,m)+prj(i,i,l)%hij
+             end do
+             prj(i,i,l)%hij=1.0_gp
+          end if
+          do j=i+1,IMAX
+             call nullify_atomic_proj_coeff(prj(i,j,l))
+             call nullify_atomic_proj_coeff(prj(j,i,l))
+             !allocate upper triangular and associate lower triangular
+             prj(i,j,l)%hij=hij(i,j,l)
+
+             prj(j,i,l)%mat => prj(i,j,l)%mat 
+             prj(j,i,l)%hij=hij(j,i,l)
+          end do
+       end do
+    end do
+
+  end subroutine allocate_prj_ptr
+
 
 end subroutine NonLocalHamiltonianApplication
 
@@ -1066,7 +1143,6 @@ subroutine NonLocalHamiltonianApplication_old(iproc,at,npsidim_orbs,orbs,&
   use module_types
   use yaml_output
 !  use module_interfaces
-  use psp_projectors_base, only: PSP_APPLY_SKIP
   use psp_projectors, only: projector_has_overlap
   use public_enums, only: PSPCODE_PAW
   implicit none
@@ -2288,7 +2364,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
       loop_fermi: do ii=1,100
    !write(1000+iproc,*) 'iteration',ii,' -------------------------------- '
          factor=1.d0/(sqrt(pi)*wf)
-         if (ii == 100 .and. iproc == 0) print *,'WARNING Fermilevel'
+         if (ii == 100 .and. iproc == 0) call yaml_warning('Fermilevel could not have been adjusted in the available iterations')
          electrons=0.d0
          dlectrons=0.d0
          do ikpt=1,orbs%nkpts

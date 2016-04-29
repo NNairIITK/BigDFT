@@ -429,9 +429,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           atoms%nzatom, atoms%nelpsp, atoms%astruct%atomnames, atoms%astruct%iatype, &
           atoms%astruct%rxyz, tmb%orbs%onwhichatom, tmb%linmat%smmd)
 
+     ! Do not initialize the matrix multiplication to save memory. The multiplications
+     ! are always done with the tmb%linmat%l type.
      call init_sparse_matrix_wrapper(iproc, nproc, &
           in%nspin, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
-          in%store_index, imode=1, smat=tmb%linmat%m)
+          in%store_index, init_matmul=.false., imode=1, smat=tmb%linmat%m)
 
 
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
@@ -439,9 +441,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
 
+     ! Do not initialize the matrix multiplication to save memory. The multiplications
+     ! are always done with the tmb%linmat%l type.
      call init_sparse_matrix_wrapper(iproc, nproc, &
           in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
-          in%store_index, imode=1, smat=tmb%linmat%s)
+          in%store_index, init_matmul=.false., imode=1, smat=tmb%linmat%s)
 
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
@@ -453,7 +457,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      call init_sparse_matrix_wrapper(iproc, nproc, &
           in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
-          in%store_index, imode=2, smat=tmb%linmat%l, smat_ref=tmb%linmat%m)
+          in%store_index, init_matmul=.true., imode=2, smat=tmb%linmat%l, smat_ref=tmb%linmat%m)
 
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
@@ -519,13 +523,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!     matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
      tmb%linmat%kernel_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
          iaction=SPARSE_TASKGROUP,id='tmb%linmat%kernel_%matrix_compr')
-     if (tmb%linmat%l%smmm%nfvctrp>tmb%linmat%l%nfvctrp) then
-         tmb%linmat%kernel_%matrixp = sparsematrix_malloc_ptr(tmb%linmat%l, &
-             iaction=DENSE_MATMUL,id='tmb%linmat%kernel_%matrixp')
-     else
-         tmb%linmat%kernel_%matrixp = sparsematrix_malloc_ptr(tmb%linmat%l, &
-             iaction=DENSE_PARALLEL,id='tmb%linmat%kernel_%matrixp')
-     end if
+     ! SM: Probably not used anymore
+     !!if (tmb%linmat%l%smmm%nfvctrp>tmb%linmat%l%nfvctrp) then
+     !!    tmb%linmat%kernel_%matrixp = sparsematrix_malloc_ptr(tmb%linmat%l, &
+     !!        iaction=DENSE_MATMUL,id='tmb%linmat%kernel_%matrixp')
+     !!else
+     !!    tmb%linmat%kernel_%matrixp = sparsematrix_malloc_ptr(tmb%linmat%l, &
+     !!        iaction=DENSE_PARALLEL,id='tmb%linmat%kernel_%matrixp')
+     !!end if
      tmb%linmat%ham_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, &
          iaction=SPARSE_TASKGROUP,id='tmb%linmat%ham_%matrix_compr')
      tmb%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, &
@@ -904,6 +909,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !then calculate the contribution coming from the Hartree part
      ! keep only the essential part of the density, without the GGA bufffers
      ioffset=kswfn%lzd%glr%d%n1i*kswfn%lzd%glr%d%n2i*denspot%dpbox%i3xcsh
+     !write(*,*) 'ioffset', ioffset
      if (denspot%dpbox%ndimrhopot>0) then
         call f_memcpy(n=denspot%dpbox%ndimpot,src=denspot%rhov(ioffset+1),&
              dest=denspot%rho_work(1))
@@ -1006,6 +1012,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !plot the ionic potential, if required by output_denspot
   if (in%output_denspot == 'DENSPOT' .and. DoLastRunThings) then
      if (all(in%plot_pot_axes>=0)) then
+        write(*,*) 'denspot%V_ext(1)', denspot%V_ext(1,1,1,1)
         if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
         call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
              atoms,rxyz,denspot%pkernel,1,denspot%V_ext,ixyz0=in%plot_pot_axes)
@@ -1650,6 +1657,10 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            !if (opt%iter == 1) minres_gpe=denspot%pkernel%minres
            !denspot%pkernel%minres=max(min(1.e-4_gp,opt%gnrm**2) ,minres_gpe)!!opt%gnrm_cv**2)
+
+           nlpsp%apply_gamma_target=((opt%scf .hasattr. 'MIXING') .and. opt%itrp <= in%occupancy_control_itermax) .or. &
+                (.not. (opt%scf .hasattr. 'MIXING') .and. opt%iter <= in%occupancy_control_itermax)
+
 
            !Calculates the application of the Hamiltonian on the wavefunction
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%scf,alphamix,&

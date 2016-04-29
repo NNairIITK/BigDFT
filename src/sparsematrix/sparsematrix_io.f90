@@ -22,7 +22,7 @@ module sparsematrix_io
       integer,intent(in) :: nvctr !number of non-zero elements
       integer,dimension(nvctr),intent(in) :: row_ind
       integer,dimension(nfvctr),intent(in) :: col_ptr
-      real(kind=8),dimension(nvctr),intent(in) :: mat_compr
+      real(kind=mp),dimension(nvctr),intent(in) :: mat_compr
       ! Local variables
       integer :: i, iunit
 
@@ -55,11 +55,11 @@ module sparsematrix_io
       integer,intent(out) :: nspin, nfvctr, nseg, nvctr
       integer,dimension(:),pointer,intent(out) :: keyv
       integer,dimension(:,:,:),pointer,intent(out) :: keyg
-      real(kind=8),dimension(:),pointer,intent(out) :: mat_compr
+      real(kind=mp),dimension(:),pointer,intent(out) :: mat_compr
 
       ! Local variables
       integer :: iunit, dummy_int, iseg, icol, irow, jorb, ind, ispin, iat, ntypes_, nat_, itype
-      real(kind=8) :: dummy_double
+      real(kind=mp) :: dummy_double
       character(len=20) :: dummy_char
       logical :: read_rxyz, read_on_which_atom
 
@@ -106,16 +106,16 @@ module sparsematrix_io
       integer,intent(out) :: nfvctr
       character(len=20),intent(out) :: units
       character(len=1),intent(out) :: geocode
-      real(kind=8),dimension(3),intent(out) :: cell_dim
+      real(kind=mp),dimension(3),intent(out) :: cell_dim
       integer,intent(out) :: nat, ntypes
       integer,dimension(:),pointer,intent(inout) :: nzatom, nelpsp, iatype
       character(len=20),dimension(:),pointer,intent(inout) :: atomnames
-      real(kind=8),dimension(:,:),pointer,intent(inout) :: rxyz
+      real(kind=mp),dimension(:,:),pointer,intent(inout) :: rxyz
       integer,dimension(:),pointer,intent(inout) :: on_which_atom
 
       ! Local variables
       integer :: iunit, dummy_int, iseg, icol, irow, jorb, ind, ispin, iat, ntypes_, nat_, itype, i
-      real(kind=8) :: dummy_double
+      real(kind=mp) :: dummy_double
       character(len=20) :: dummy_char
       logical :: read_rxyz, read_on_which_atom
 
@@ -168,7 +168,7 @@ module sparsematrix_io
 
       ! Local variables
       integer :: iunit, iseg, icol, irow, jorb, iat, jat, ind, ispin, itype
-      real(kind=8),dimension(:),allocatable :: matrix_compr
+      real(kind=mp),dimension(:),allocatable :: matrix_compr
 
       call f_routine(id='write_sparse_matrix')
 
@@ -231,9 +231,9 @@ module sparsematrix_io
       integer,intent(in) :: iproc, nfvctr, nat, ntypes
       character(len=*),intent(in) :: units
       character(len=1),intent(in) :: geocode
-      real(kind=8),dimension(3),intent(in) :: cell_dim
+      real(kind=mp),dimension(3),intent(in) :: cell_dim
       integer,dimension(nat),intent(in) :: iatype
-      real(kind=8),dimension(3,nat),intent(in) :: rxyz
+      real(kind=mp),dimension(3,nat),intent(in) :: rxyz
       integer,dimension(ntypes),intent(in) :: nzatom, nelpsp
       character(len=*),dimension(ntypes),intent(in) :: atomnames
       integer,dimension(nfvctr),intent(in) :: on_which_atom
@@ -241,7 +241,7 @@ module sparsematrix_io
 
       ! Local variables
       integer :: iunit, iseg, icol, irow, jorb, iat, jat, ind, ispin, itype, i
-      real(kind=8),dimension(:),allocatable :: matrix_compr
+      real(kind=mp),dimension(:),allocatable :: matrix_compr
 
       call f_routine(id='write_sparse_matrix_metadata')
 

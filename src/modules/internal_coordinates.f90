@@ -218,12 +218,12 @@ module internal_coordinates
          geo(3,i)=geo(3,i)*degree
       end do
     
-      geo(1,1)=0.d0
-      geo(2,1)=0.d0
-      geo(3,1)=0.d0
-      geo(2,2)=0.d0
-      geo(3,2)=0.d0
-      geo(3,3)=0.d0
+      geo(1,min(1,numat))=0.d0
+      geo(2,min(1,numat))=0.d0
+      geo(3,min(1,numat))=0.d0
+      geo(2,min(2,numat))=0.d0
+      geo(3,min(2,numat))=0.d0
+      geo(3,min(3,numat))=0.d0
     
     end subroutine xyzgeo
 
@@ -351,12 +351,12 @@ module internal_coordinates
          !   find any atom to relate to na(i)
          !
       end do
-      na(1)=0
-      nb(1)=0
-      nc(1)=0
-      nb(2)=0
-      nc(2)=0
-      nc(3)=0
+      na(min(1,numat))=0
+      nb(min(1,numat))=0
+      nc(min(1,numat))=0
+      nb(min(2,numat))=0
+      nc(min(2,numat))=0
+      nc(min(3,numat))=0
 
       if (.not.present(atoms_ref)) then
           call f_free_ptr(iref)

@@ -1,1 +1,1 @@
-mhgpsst%mhgps_version = 'bzr-rev. 1814'
+mhgpsst%mhgps_version = 'bzr-rev. 1815'

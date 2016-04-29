@@ -10,9 +10,6 @@ program driver_css
   use sparsematrix, only: write_matrix_compressed
   ! The following module is an auxiliary module for this test
   use utilities, only: get_ccs_data_from_file
-  ! The following module should no be used!
-  use module_types, only: bigdft_init_errors, &
-                          bigdft_init_timing_categories
   implicit none
 
   ! Variables
@@ -35,10 +32,9 @@ program driver_css
   iproc=mpirank()
   nproc=mpisize()
 
-  ! Initialize the BigDFT error handling and timing.
-  ! PROBLEM: THIS IS IN MODULE_TYPES
-  call bigdft_init_errors()
-  call bigdft_init_timing_categories()
+  ! Initialize the sparsematrix error handling and timing.
+  call sparsematrix_init_errors()
+  call sparsematrix_initialize_timing_categories()
 
   ! Read from matrix1.dat and create the type containing the sparse matrix descriptors (smat1) as well as
   ! the type which contains the matrix data (overlap). The matrix element are stored in mat1%matrix_compr.
