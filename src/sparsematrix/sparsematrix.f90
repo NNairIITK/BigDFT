@@ -2287,20 +2287,32 @@ module sparsematrix
           end if
           ishift = (ispin-1)*smat%nvctrp_tg
           ishift_tg = ishift-smat%isvctrp_tg
+          !!!!$omp parallel default(none) &
+          !!!!$omp shared(smat,mat_in,mat_out,ishift_tg,half) &
+          !!!!$omp private(iseg,ii,i,ii_trans)
+          !!!!$omp do schedule(guided)
+          !!!do iseg=smat%istartendseg_local(1),smat%istartendseg_local(2)
+          !!!    ii = smat%keyv(iseg)
+          !!!    ! A segment is always on one line, therefore no double loop
+          !!!    do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg) !this is too much, but for the moment ok
+          !!!        ii_trans = matrixindex_in_compressed(smat,smat%keyg(1,2,iseg),i)
+          !!!            mat_out(ii+ishift_tg) = half*(&
+          !!!                 mat_in(ii+ishift_tg)+&
+          !!!                 mat_in(ii_trans+ishift_tg))
+          !!!        ii=ii+1
+          !!!    end do
+          !!!end do
+          !!!!$omp end do
+          !!!!$omp end parallel
           !$omp parallel default(none) &
           !$omp shared(smat,mat_in,mat_out,ishift_tg,half) &
-          !$omp private(iseg,ii,i,ii_trans)
+          !$omp private(ii,ii_trans)
           !$omp do schedule(guided)
-          do iseg=smat%istartendseg_local(1),smat%istartendseg_local(2)
-              ii = smat%keyv(iseg)
-              ! A segment is always on one line, therefore no double loop
-              do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg) !this is too much, but for the moment ok
-                  ii_trans = matrixindex_in_compressed(smat,smat%keyg(1,2,iseg),i)
-                      mat_out(ii+ishift_tg) = half*(&
-                           mat_in(ii+ishift_tg)+&
-                           mat_in(ii_trans+ishift_tg))
-                  ii=ii+1
-              end do
+          do ii=smat%istartend_local(1),smat%istartend_local(2)
+              ii_trans = smat%transposed_lookup_local(ii)
+              mat_out(ii+ishift_tg) = half*(&
+                   mat_in(ii+ishift_tg)+&
+                   mat_in(ii_trans+ishift_tg))
           end do
           !$omp end do
           !$omp end parallel

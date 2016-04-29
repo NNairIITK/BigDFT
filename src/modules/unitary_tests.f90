@@ -302,6 +302,10 @@ module unitary_tests
           is1 = modulo(1+lzd%llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
           ie1 = is1+lzd%llr(ilr)%d%n1i-1
           i = 0
+          !$omp parallel default(none) &
+          !$omp shared(is3, ie3, is2, ie2, is1, ie1, lzd, psir, ist, iiorb, nxyz) &
+          !$omp private(i3, ii3, n3, i2, ii2, n2, ii1, iixyz, i)
+          !$omp do 
           do i3=is3,ie3
               ii3 = modulo(i3-1,lzd%glr%d%n3i)+1
               n3 = (ii3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
@@ -311,11 +315,15 @@ module unitary_tests
                   do i1=is1,ie1
                       ii1 = modulo(i1-1,lzd%glr%d%n1i)+1
                       iixyz = n3 + n2 + ii1
-                      i = i + 1
+                      !i = i + 1
+                      !if (i /= (i3-is3)*(ie2-is2+1)*(ie1-is1+1) + (i2-is2)*(ie1-is1+1) + (i1-is1+1)) stop 'wrong i'
+                      i = (i3-is3)*(ie2-is2+1)*(ie1-is1+1) + (i2-is2)*(ie1-is1+1) + (i1-is1+1)
                       psir(ist+i)=test_value_sumrho(iiorb,iixyz,nxyz)
                   end do
               end do
           end do
+          !$omp end do
+          !$omp end parallel
           ist = ist + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
       end do
       if(ist/=collcom_sr%ndimpsi_c) then

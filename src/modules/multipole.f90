@@ -4685,6 +4685,7 @@ end if
    call geocode_buffers('F', lzd%glr%geocode, nl1, nl2, nl3)
 
   sigma=0.5d0
+  r=1.d0 !not used...
 
    ist = 0
    do iorb=1,orbs%norbp
@@ -4693,7 +4694,6 @@ end if
        !rmax = min(lzd%llr(ilr)%d%n1i*0.25d0*hgrids(1),lzd%llr(ilr)%d%n2i*0.25d0*hgrids(2),lzd%llr(ilr)%d%n3i*0.25d0*hgrids(3))
        rmax = min(lzd%llr(ilr)%d%n1*0.5d0*hgrids(1),lzd%llr(ilr)%d%n2*0.5d0*hgrids(2),lzd%llr(ilr)%d%n3*0.5d0*hgrids(3))
        factor_normalization = 0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3) !*3.d0/(4.d0*pi*rmax**3)
-       ii = 0
        ! Since the radial function is constant and thus not decaying towards the boundaries of the integration sphere, the center
        ! of the integration volume must be on a gridpoint to avoid truncation artifacts.
        locregcenter(1:3,ilr) = get_closest_gridpoint(lzd%llr(ilr)%locregcenter,hgrids)
@@ -4717,6 +4717,11 @@ end if
            gg3(i3) = safe_exp(-0.5d0*z**2/sigma**2)
        end do
 
+       !$omp parallel default(none) &
+       !$omp shared(lzd, nl1, nl2, nl3, ilr, locregcenter, sigma, phi2r, ist, factor_normalization) &
+       !$omp shared(gg1, gg2, gg3, r) &
+       !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, ind, l, m, factor)
+       !$omp do schedule(static)
        do i3=1,lzd%llr(ilr)%d%n3i
            ii3 = lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
            z = ii3*0.5d0*lzd%hgrids(3) - locregcenter(3,ilr)
@@ -4726,12 +4731,7 @@ end if
                do i1=1,lzd%llr(ilr)%d%n1i
                    ii1 = lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
                    x = ii1*0.5d0*lzd%hgrids(1) - locregcenter(1,ilr)
-                   !r2 = x**2+y**2+z**2
-                   !if (r2>rmax**2) cycle
-                   !r = sqrt(r2)
-                   !r = max(0.5d0,r)
                    ind = (i3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2-1)*lzd%llr(ilr)%d%n1i + i1
-                   ii = ii + 1
                    do l=0,lmax
                        do m=-l,l
                            factor = get_test_factor(l,m)*factor_normalization*sqrt(4.d0*pi*real(2*l+1,kind=8))/sigma**3
@@ -4740,21 +4740,15 @@ end if
                            else if (l==2) then
                               factor = factor/(15.d0*sigma**4)
                            end if
-!!$                           if (l==1) then
-!!$                               factor = factor*5.d0/(3.d0*rmax**2)
-!!$                           else if (l==2) then
-!!$                               factor = factor*7.d0/(3.d0*rmax**4)
-!!$                           end if
-                           !!phi2r(ist+ind) = phi2r(ist+ind) + &
-                           !!     safe_exp(-0.5d0*r2/sigma**2)*factor*solid_harmonic(0, r, l, m , x, y, z)/sqrt(twopi**3)
                            phi2r(ist+ind) = phi2r(ist+ind) + &
                                 gg1(i1)*gg2(i2)*gg3(i3)*factor*solid_harmonic(0, r, l, m , x, y, z)/sqrt(twopi**3)
                        end do
                    end do
-                   !write(*,*) 'i1, i2, i3, ist+ind, val', i1, i2, i3, ist+ind, phi2r(ist+ind)
                end do
            end do
        end do
+       !$omp end do
+       !$omp end parallel
        call f_free(gg1)
        call f_free(gg2)
        call f_free(gg3)
@@ -5530,6 +5524,7 @@ end if
    ! Local variables
    integer :: impl, i1, i2, i3, ii1, ii2, ii3, l
    real(kind=8) :: gg
+   real(kind=8),dimension(0:lmax) :: gg23
 
    call f_routine(id='calculate_norm')
 
@@ -5538,7 +5533,7 @@ end if
    !$omp parallel default(none) &
    !$omp shared(ep, is1, ie1, is2, ie2, is3, ie3, norm, hhh) &
    !$omp shared(gaussians1, gaussians2, gaussians3) &
-   !$omp private(impl, i1, i2, i3, ii1, ii2, ii3, l, gg) 
+   !$omp private(impl, i1, i2, i3, ii1, ii2, ii3, l, gg23, gg) 
    !$omp do schedule(guided)
    do impl=1,ep%nmpl
        i3loop: do i3=is3,ie3
@@ -5547,12 +5542,16 @@ end if
            i2loop: do i2=is2,ie2
                if (maxval(gaussians2(:,i2,impl))<1.d-20) cycle i2loop
                ii2 = i2 - 15
+               do l=0,lmax
+                   gg23(l) = gaussians2(l,i2,impl)*gaussians3(l,i3,impl)
+               end do
                i1loop: do i1=is1,ie1
                    if (maxval(gaussians1(:,i1,impl))<1.d-20) cycle i1loop
                    ii1 = i1 - 15
                    do l=0,lmax
                        ! Calculate the Gaussian as product of three 1D Gaussians
-                       gg = gaussians1(l,i1,impl)*gaussians2(l,i2,impl)*gaussians3(l,i3,impl)
+                       !gg = gaussians1(l,i1,impl)*gaussians2(l,i2,impl)*gaussians3(l,i3,impl)
+                       gg = gaussians1(l,i1,impl)*gg23(l)
                        norm(l,impl) = norm(l,impl) + gg*hhh
                    end do
                end do i1loop

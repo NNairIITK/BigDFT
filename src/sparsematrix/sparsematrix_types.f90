@@ -79,6 +79,7 @@ module sparsematrix_types
       integer :: nccomm !<number of communications required for the compress distributed in the dense parallel format
       integer,dimension(:,:),pointer :: luccomm !<lookup array for the communications required for the compress distributed in the dense parallel format
       logical :: smatmul_initialized !< indicated whether the sparse matmul type has been initialized
+      integer,dimension(:),pointer :: transposed_lookup_local !< lookup arrays for the transposed entries of the sparse matrix which is actually used by a given MPI task
   end type sparse_matrix
 
   type,public :: sparse_matrix_metadata

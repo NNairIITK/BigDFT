@@ -102,6 +102,7 @@ module sparsematrix_memory
       nullify(sparsemat%tgranks)
       nullify(sparsemat%nranks)
       nullify(sparsemat%luccomm)
+      nullify(sparsemat%transposed_lookup_local)
       !nullify(sparsemat%on_which_atom)
       call nullify_sparse_matrix_matrix_multiplication(sparsemat%smmm) 
     end subroutine nullify_sparse_matrix
@@ -263,6 +264,7 @@ module sparsematrix_memory
       call f_free_ptr(sparseMat%tgranks)
       call f_free_ptr(sparseMat%nranks)
       call f_free_ptr(sparseMat%luccomm)
+      call f_free_ptr(sparseMat%transposed_lookup_local)
       !call f_free_ptr(sparseMat%on_which_atom)
     end subroutine deallocate_sparse_matrix
 
@@ -370,6 +372,8 @@ module sparsematrix_memory
       smat_out%tgranks=f_malloc_ptr(src_ptr=smat_in%tgranks, id='smat_out%tgranks')
       smat_out%nranks=f_malloc_ptr(src_ptr=smat_in%nranks, id='smat_out%nranks')
       smat_out%luccomm=f_malloc_ptr(src_ptr=smat_in%luccomm, id='smat_out%luccomm')
+      smat_out%transposed_lookup_local=f_malloc_ptr(src_ptr=smat_in%transposed_lookup_local, &
+           id='smat_out%transposed_lookup_local')
       !smat_out%on_which_atom=f_malloc_ptr(src_ptr=smat_in%on_which_atom, id='smat_out%on_which_atom')
 
       if (smat_in%smatmul_initialized) then

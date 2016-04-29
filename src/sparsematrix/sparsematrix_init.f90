@@ -3048,6 +3048,10 @@ module sparsematrix_init
       if (.not.found_end) stop 'segment corresponding to smat%istartend_local(2) not found!'
 
 
+      ! Initialize the array for the transposition... maybe not the best place here
+      call init_transposed_lookup_local(smat)
+
+
       !!if (iproc==0)  then
       !!    do jproc=0,nproc-1
       !!        call yaml_map('iuse_startend',(/jproc,iuse_startend(1:2,jproc)/))
@@ -4369,6 +4373,48 @@ module sparsematrix_init
       call f_free(lgrid)
     
     end function check_symmetry
+
+
+    subroutine init_transposed_lookup_local(smat)
+      implicit none
+
+      ! Calling arguments
+      type(sparse_matrix),intent(inout) :: smat
+
+      ! Local variables
+      integer :: iseg, ii, i, ii_trans, iicheck
+
+      call f_routine(id='init_transposed_lookup_local')
+
+      smat%transposed_lookup_local = f_malloc_ptr(smat%istartend_local(1).to.smat%istartend_local(2), &
+           id='smat%transposed_lookup_local')
+
+      iicheck = 0
+      !$omp parallel default(none) &
+      !$omp shared(smat, iicheck) &
+      !$omp private(iseg,ii,i,ii_trans)
+      !$omp do schedule(guided) reduction(+: iicheck)
+      do iseg=smat%istartendseg_local(1),smat%istartendseg_local(2)
+          ii = smat%keyv(iseg)
+          ! A segment is always on one line, therefore no double loop
+          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+              ii_trans = matrixindex_in_compressed(smat,smat%keyg(1,2,iseg),i)
+              smat%transposed_lookup_local(ii) = ii_trans
+              ii=ii+1
+              iicheck = iicheck + 1
+          end do
+      end do
+      !$omp end do
+      !$omp end parallel
+
+      if (iicheck /= smat%istartend_local(2)-smat%istartend_local(1)+1) then
+          call f_err_throw('iicheck /= smat%istartend_local(2)-smat%istartend_local(1)+1', &
+               err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      end if
+
+      call f_release_routine()
+      
+    end subroutine init_transposed_lookup_local
 
 
 end module sparsematrix_init
