@@ -2567,3 +2567,7 @@ lj_connect.mhgps.ref.yaml:
   Energy: 5.4e-10
   Keys to ignore:
   - (MHGPS) Run finished at
+
+GEOPT-all_sqnmbiomode:
+  EH: 1.1e-10
+  Epot: 1.1e-10
