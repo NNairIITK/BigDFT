@@ -471,7 +471,6 @@ module IObox
       integer :: nl1,nl2,nl3,nbx,nby,nbz,i1,i2,i3,icount,j,iat,nc1,nc2,nc3
       real(dp) :: later_avg,xx,yy,zz
       real(gp), dimension(3) :: cell_dim
-      real(gp), dimension(6) :: output_buffer
 
       call f_routine(id='write_cube_fields')
 
@@ -551,19 +550,17 @@ module IObox
             icount=0
             do i3=0,nc3 - 1
                icount=icount+1
-               output_buffer(icount) =  a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
                if (icount == 6 .or. i3==nc3 - 1) then
-                  write(fileunit0,'(1x,6(1pe13.6,2x))')  output_buffer(1:icount)
-                  !advancestring='yes'
+                  advancestring='yes'
                   icount=0
                else
-                  !advancestring='no'
+                  advancestring='no'
                end if
                !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-               !write(fileunit0,'(1x,1pe13.6)',advance=advancestring)&
-               !     a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
-               !           write(23,'(1x,e24.17)',advance=advancestring)&
-               !                a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
+               write(fileunit0,'(1x,1pe13.6)',advance=advancestring)&
+                    a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
+                          write(23,'(1x,e24.17)',advance=advancestring)&
+                               a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
             end do
          end do
       end do
