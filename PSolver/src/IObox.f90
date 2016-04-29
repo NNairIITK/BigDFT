@@ -449,6 +449,7 @@ module IObox
     subroutine write_cube_fields(prefix,message,geocode,ndims,ns,hgrids,&
          factor,a,x,nexpo,b,y,nat,rxyz,iatype,nzatom,nelpsp,ixyz0)
       use f_utils
+      use dynamic_memory
       implicit none
       !integer,intent(in) :: fileunit0,fileunitx,fileunity,fileunitz
       character(len=1), intent(in) :: geocode
@@ -470,6 +471,9 @@ module IObox
       integer :: nl1,nl2,nl3,nbx,nby,nbz,i1,i2,i3,icount,j,iat,nc1,nc2,nc3
       real(dp) :: later_avg,xx,yy,zz
       real(gp), dimension(3) :: cell_dim
+      real(gp), dimension(6) :: output_buffer
+
+      call f_routine(id='write_cube_fields')
 
       call startend_buffers(geocode,nl1,nl2,nl3,nbx,nby,nbz)
       call cube_dimensions(geocode,ndims,nc1,nc2,nc3)
@@ -547,15 +551,17 @@ module IObox
             icount=0
             do i3=0,nc3 - 1
                icount=icount+1
+               output_buffer(icount) =  a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
                if (icount == 6 .or. i3==nc3 - 1) then
-                  advancestring='yes'
+                  write(fileunit0,'(1x,6(1pe13.6,2x))')  output_buffer(1:icount)
+                  !advancestring='yes'
                   icount=0
                else
-                  advancestring='no'
+                  !advancestring='no'
                end if
                !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-               write(fileunit0,'(1x,1pe13.6)',advance=advancestring)&
-                    a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
+               !write(fileunit0,'(1x,1pe13.6)',advance=advancestring)&
+               !     a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
                !           write(23,'(1x,e24.17)',advance=advancestring)&
                !                a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
             end do
@@ -671,6 +677,8 @@ module IObox
          call f_close(fileunitz)
       end if
 
+      call f_release_routine()
+
     END SUBROUTINE write_cube_fields
 
     subroutine dump_field(filename,geocode,ndims,hgrids,nspin,rho,&
@@ -709,6 +717,8 @@ module IObox
       integer,parameter :: unitx = 23
       integer,parameter :: unity = 24
       integer,parameter :: unitz = 25
+
+      call f_routine(id='dump_field')
 
       nat=0
       if (present(iatype)) then
@@ -876,6 +886,8 @@ module IObox
             call f_free_ptr(nzatom_)
             call f_free_ptr(nelpsp_)
          end if
+
+         call f_release_routine()
 
        END SUBROUTINE dump_field
 

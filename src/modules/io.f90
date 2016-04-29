@@ -2524,6 +2524,8 @@ module io
       !local variables
       integer :: ispin
       real(dp), dimension(:,:,:,:), allocatable :: pot_ion
+
+      call f_routine(id='plot_density')
     
       pot_ion = &
            f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3), nspin],id='pot_ion')
@@ -2689,6 +2691,8 @@ module io
     !!$  !if (nproc > 1) then
     !!$     call f_free_ptr(pot_ion)
     !!$  !end if
+
+      call f_release_routine()
     
     END SUBROUTINE plot_density
 
