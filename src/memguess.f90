@@ -554,7 +554,8 @@ program memguess
       call read_field_dimensions(trim(fileFrom),at%astruct%geocode,dpbox%mesh%ndims,nspin)
       rhocoeff=f_malloc_ptr([dpbox%mesh%ndims(1),dpbox%mesh%ndims(2),dpbox%mesh%ndims(3),nspin],id='rhocoeff')
       call read_field(trim(fileFrom), at%astruct%geocode,dpbox%mesh%ndims, &
-           dpbox%mesh%hgrids,nspin2,product(dpbox%mesh%ndims),nspin,rhocoeff,at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
+           dpbox%mesh%hgrids,nspin2,product(dpbox%mesh%ndims),&
+           nspin,rhocoeff,at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
       at%astruct%ntypes = size(at%nzatom)
       write(*,*) "Write new density file..."
       dpbox%ngatherarr = f_malloc_ptr((/ 0.to.0, 1.to.2 /),id='dpbox%ngatherarr')
