@@ -564,6 +564,8 @@ subroutine davidson(iproc,nproc,in,at,&
    if(nproc > 1)then
       !reallocate the work array with the good size
       psiw = f_malloc_ptr(max(orbsv%npsidim_orbs, orbsv%npsidim_comp),id='psiw')
+   else
+      psiw = f_malloc_ptr(1,id='psiw')
    end if
 
    call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v(1),psiw(1))
@@ -1235,10 +1237,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
    call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi(1),psiw(1))
 
-   if(nproc > 1) then
-      call f_free_ptr(psiw)
-   end if
-
+   call f_free_ptr(psiw)
    call f_free(hv)
 
    !copy the values in the eval array of the davidson procedure

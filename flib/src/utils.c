@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <setjmp.h>
 #ifdef HAVE_TIME_H
 #include <time.h>
 #endif
@@ -26,6 +27,9 @@
 #ifndef HAVE_STRNDUP
 char* strndup(const char *src, size_t len);
 #endif
+
+static jmp_buf jb_main,jb_child;
+
 
 #ifndef HAVE_CLOCK_GETTIME
 #define CLOCK_REALTIME 0
@@ -56,6 +60,12 @@ void FC_FUNC(nanosec,NANOSEC)(unsigned long long int * t){
   *t += time.tv_nsec;
 }
 
+
+void FC_FUNC(csleep,CSLEEP)(int * secs){
+    unsigned int seconds;
+    seconds = (unsigned int) *secs;
+    sleep(seconds);
+  }
 
 void FC_FUNC(getaddress, GETADDRESS)(void *ptr,char *address, int *lgaddress,
 			     int* status)
@@ -226,4 +236,35 @@ void FC_FUNC(stdoutistty, STDOUTISTTY)(int *itis)
 {
   int fd = STDOUT_FILENO;
   *itis = isatty(fd);
+}
+
+void FC_FUNC(getjmpbufsize, GETJMPBUFSIZE)(int *bufsize)
+{
+  *bufsize = (int) sizeof(jb_main);
+}
+
+
+void FC_FUNC(setandcpyjmpbuf, SETANDCPYJMPBUF)(int *signal,long long int* routine,long long int* arg, int* last_signal)
+{
+  *signal = setjmp(jb_main);
+    //fill the jmpbuf with the correct values
+    //if (!*signal){ //!*signal){
+    //  printf("setjmp first time, signal, %d\n",*signal);
+    //  //memcpy(*jb, jbs, sizeof(jbs));
+    //  //here call lngjmp to see what happens
+    //  //FC_FUNC(longjmpwrap, LONGJMPWRAP)(jb,signal);
+    //}
+    //else 
+    //  printf("restarting, signal %d, %d \n",*signal,*last_signal);   
+    if (*signal != *last_signal)
+      FC_FUNC_(call_external_c_fromadd, CALL_EXTERNAL_C_FROMADD)(routine);
+
+}
+
+void FC_FUNC(longjmpwrap, LONGJMPWRAP)(jmp_buf* jb,int* signal)
+{
+  //memcpy(jbs,*jb, sizeof(jbs));
+
+  //printf("before longjump, signal %d\n",*signal);   
+  longjmp(jb_main,*signal);
 }

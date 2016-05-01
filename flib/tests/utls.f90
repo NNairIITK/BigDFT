@@ -8,11 +8,14 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-subroutine f_utils_test()
+recursive subroutine f_utils_test()
   use f_precisions
   use f_utils
   use yaml_output
   use f_enums
+  use time_profiling
+  use f_jmp
+  use yaml_strings
   implicit none
   !local variables
   type(f_enumerator) :: greetings=f_enumerator('Greetings',10,null()) 
@@ -36,6 +39,7 @@ subroutine f_utils_test()
   integer(f_long), dimension(3) :: il
   logical(f_byte), dimension(3) :: lb
   type(f_progress_bar) :: bar
+  type(f_jmpbuf), save :: jb
   !character(len=256) :: path
   logical, dimension(3) :: l
 
@@ -144,20 +148,33 @@ subroutine f_utils_test()
   call yaml_map('If this value is 7 then all files have been correctly closed',f_get_free_unit())
 
   !test the performance of f_increment function, to realize that it should not be used in intensive loops
-  icount=0
+
   t0=f_time()
+  entry jump_here()
+  icount=0
   do istep=1,n_inc
      icount=icount+1
   end do
+  if (associated(jb%jmp_buf)) &
+       call yaml_map('Traditional increment ('//&
+       trim(yaml_toa(jb%signal))//')',icount)
+  call f_profile_end(entry_point=jump_here,jmpbuf=jb)
   t1=f_time()
   call yaml_map('Count (ns)',[int(icount,f_long),t1-t0])
-  icount=0
+  call yaml_map('Humantime',f_humantime(t1-t0))
   t0=f_time()
+  entry jump_there()
+  icount=0
   do istep=1,n_inc
      call f_increment(icount)
   end do
+  if (associated(jb%jmp_buf)) &
+       call yaml_map('Defined increment('//&
+       trim(yaml_toa(jb%signal))//')',icount)
+  call f_profile_end(entry_point=jump_there,jmpbuf=jb)
   t1=f_time()
   call yaml_map('Count f_increment (ns)',[int(icount,f_long),t1-t0])
+  call yaml_map('Humantime',f_humantime(t1-t0))
   t0=f_time()
   icount=0
   !$omp parallel do default(private) shared(icount)
@@ -177,6 +194,13 @@ subroutine f_utils_test()
   t1=f_time()
   call yaml_map('Count f_increment omp (ns)',[int(icount,f_long),t1-t0])
 
+  !test of setjmp
+  call f_profile(jump_here,'Normal Count',10,jb,dump_results=.true.)
+
+  !test of setjmp
+  call f_profile(jump_there,'Incremented Count',10,jb,dump_results=.true.)
+
+
   !we cannot flush a unit with advance no, we would lose the output
   !test the counter with advance no
   call yaml_stream_attributes(record_length=recl,icursor=icur)
@@ -191,6 +215,7 @@ subroutine f_utils_test()
   call yaml_mapping_close()
   call yaml_newline()
   
+
 
   !create a directory (we should add the test to remove it)
   !call f_mkdir('testdir',path)

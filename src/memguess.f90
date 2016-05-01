@@ -551,16 +551,16 @@ program memguess
    if (convert) then
       at%astruct%geocode = "P"
       write(*,*) "Read density file..."
-      call read_field_dimensions(trim(fileFrom),at%astruct%geocode,dpbox%ndims,nspin)
-      rhocoeff=f_malloc_ptr([dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),nspin],id='rhocoeff')
-      call read_field(trim(fileFrom), at%astruct%geocode,dpbox%ndims, &
-           dpbox%hgrids,nspin2,product(dpbox%ndims),nspin,rhocoeff,at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
+      call read_field_dimensions(trim(fileFrom),at%astruct%geocode,dpbox%mesh%ndims,nspin)
+      rhocoeff=f_malloc_ptr([dpbox%mesh%ndims(1),dpbox%mesh%ndims(2),dpbox%mesh%ndims(3),nspin],id='rhocoeff')
+      call read_field(trim(fileFrom), at%astruct%geocode,dpbox%mesh%ndims, &
+           dpbox%mesh%hgrids,nspin2,product(dpbox%mesh%ndims),nspin,rhocoeff,at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
       at%astruct%ntypes = size(at%nzatom)
       write(*,*) "Write new density file..."
       dpbox%ngatherarr = f_malloc_ptr((/ 0.to.0, 1.to.2 /),id='dpbox%ngatherarr')
 
       !call plot_density(0,1,trim(fileTo),at,at%astruct%rxyz,dpbox,nspin,rhocoeff)
-      call dump_field(trim(fileTo),at%astruct%geocode,dpbox%ndims,dpbox%hgrids,nspin,rhocoeff,&
+      call dump_field(trim(fileTo),at%astruct%geocode,dpbox%mesh%ndims,dpbox%mesh%hgrids,nspin,rhocoeff,&
                       at%astruct%rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
 
       call f_free_ptr(rhocoeff)

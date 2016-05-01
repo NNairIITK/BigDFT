@@ -1059,6 +1059,17 @@ recursive subroutine call_external_f(routine)!,args)
   call routine()
 end subroutine call_external_f
 
+!> Call the external routine with no argument
+!! to be generalized to the case where extra arguments are needed
+recursive subroutine call_external_f1(routine,args)
+  use f_precisions, only: f_address
+  implicit none
+  external :: routine   !< Routine to be called
+  integer(f_address) :: args,args2
+  call routine(args)
+end subroutine call_external_f1
+
+
 !> Function which identifies the address of the scalar object
 !! associated to a unknown quantity
 function f_loc(routine)

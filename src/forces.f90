@@ -290,7 +290,7 @@ subroutine rhocore_forces(iproc,atoms,dpbox,nspin,rxyz,potxc,fxyz)
   type(denspot_distribution), intent(in) :: dpbox
 !!!  real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
-  real(wp), dimension(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3p,nspin), intent(in) :: potxc
+  real(wp), dimension(dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3p,nspin), intent(in) :: potxc
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: fxyz
   !Local variables
@@ -307,12 +307,12 @@ subroutine rhocore_forces(iproc,atoms,dpbox,nspin,rxyz,potxc,fxyz)
 
   call f_routine(id='rhocore_forces')
 
-  hxh = dpbox%hgrids(1)
-  hyh = dpbox%hgrids(2)
-  hzh = dpbox%hgrids(3)
-  n1i=dpbox%ndims(1)
-  n2i=dpbox%ndims(2)
-  n3i=dpbox%ndims(3)
+  hxh = dpbox%mesh%hgrids(1)
+  hyh = dpbox%mesh%hgrids(2)
+  hzh = dpbox%mesh%hgrids(3)
+  n1i=dpbox%mesh%ndims(1)
+  n2i=dpbox%mesh%ndims(2)
+  n3i=dpbox%mesh%ndims(3)
   n3pi = dpbox%n3pi
   n3p = dpbox%n3p
   i3s = dpbox%i3s + dpbox%i3xcsh

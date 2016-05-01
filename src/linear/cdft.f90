@@ -700,7 +700,7 @@ subroutine calculate_weight_matrix_using_density(iproc,nproc,cdft,tmb,at,input,G
       n3p(jproc) = max(denspot%dpbox%nscatterarr(jproc,2),1)
   end do
   call start_onesided_communication(bigdft_mpi%iproc,bigdft_mpi%nproc,&
-       denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),n3p,cdft%weight_function, &
+       denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),n3p,cdft%weight_function, &
        tmb%ham_descr%comgp%nrecvbuf,tmb%ham_descr%comgp%recvbuf,tmb%ham_descr%comgp,tmb%ham_descr%lzd)
   call f_free(n3p)
 

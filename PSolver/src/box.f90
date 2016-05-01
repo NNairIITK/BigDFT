@@ -29,9 +29,317 @@ module box
      real(gp), dimension(3,3) :: habc !<primitive volume elements in the translation vectors direction
   end type cell
 
-  public :: cell_r,cell_periodic_dims,minimum_distance,closest_r,square,cell_new
+  type, public :: box_iterator
+     integer :: i3s !<starting point in the dimension z
+     integer :: i3e !<ending point in the dimension z
+     integer :: i23 !<collapsed index in 23 dimension
+     integer :: ind !<one-dimensional index for arrays
+     !< 3D indices in absolute coordinates in the given box specified by boxat
+     integer, dimension(3)  :: ibox  
+     !> actual index inside the box
+     integer :: i,j,k !better as scalars
+     !> Sub-box to iterate over the points (ex. around atoms)
+     !! start and end points for each direction
+     integer, dimension(2,3) :: nbox 
+     real(dp), dimension(3) :: oxyz !<origin of the coordinate system
+     real(dp), dimension(3) :: rxyz !<coordinates of the grid point
+     logical :: whole !<to assess if we run over the entire box or not (no check over the internal point)
+     !>reference mesh from which it starts
+     type(cell), pointer :: mesh
+  end type box_iterator
+
+!!$  interface box_iter
+!!$     module procedure box_iter_c,box_iter_base
+!!$  end interface box_iter
+
+  public :: cell_r,cell_periodic_dims,distance,closest_r,square,cell_new,box_iter,box_next_point
+  public :: cell_geocode,box_next_x,box_next_y,box_next_z
 
 contains
+
+  !> Nullify the iterator dpbox type
+  pure subroutine nullify_box_iterator(boxit)
+    implicit none
+    type(box_iterator), intent(out) :: boxit
+    boxit%i3s =-1 
+    boxit%i3e =-1
+    boxit%i23 =-1
+    boxit%ind =-1
+    boxit%i=-1
+    boxit%j=-1
+    boxit%k=-1
+    boxit%ibox=0
+    boxit%ibox(1)=-1
+    boxit%nbox=-1 
+    boxit%oxyz=-1
+    boxit%rxyz=-1
+    nullify(boxit%mesh)
+    boxit%whole=.false.
+  end subroutine nullify_box_iterator
+
+!!$  function box_iter_c(mesh,origin) result(boxit)
+!!$    type(cell), intent(in), target :: mesh
+!!$    !> starting point of the box in the z direction
+!!$    integer, intent(in), optional :: i3s
+!!$    !> number of planes of the box to be considered
+!!$    integer, intent(in), optional :: n3p
+!!$    !> Box of start and end points which have to be considered
+!!$    integer, dimension(2,3), intent(in), optional :: nbox
+!!$    !> real coordinates of the origin in the reference frame of the 
+!!$    !box (the first point has the 000 coordinate)
+!!$    real(dp), dimension(3), intent(in), optional :: origin
+!!$    type(box_iterator) :: boxit
+!!$
+!!$  end function box_iter_c
+
+  !>define an iterator over the cell points
+  function box_iter(mesh,nbox,origin,i3s,n3p,centered) result(boxit)
+    implicit none
+    type(cell), intent(in), target :: mesh
+    !>when true the origin is placed at the center of the box, origin is ignored
+    logical, intent(in), optional :: centered
+    !> starting point of the box in the z direction
+    integer, intent(in), optional :: i3s
+    !> number of planes of the box to be considered
+    integer, intent(in), optional :: n3p
+    !> Box of start and end points which have to be considered
+    integer, dimension(2,3), intent(in), optional :: nbox
+    !> real coordinates of the origin in the reference frame of the 
+    !box (the first point has the 000 coordinate)
+    real(dp), dimension(3), intent(in), optional :: origin
+    type(box_iterator) :: boxit
+    
+    call nullify_box_iterator(boxit)
+    
+    !associate the mesh
+    boxit%mesh => mesh
+    
+    if(present(nbox)) then
+       boxit%nbox=nbox
+       boxit%whole=.false.
+    else
+       boxit%whole=.true.
+       boxit%nbox(1,:)=1
+       boxit%nbox(2,:)=mesh%ndims
+    end if
+
+    if (present(origin)) boxit%oxyz=origin
+    if (present(centered)) then
+       if (centered) boxit%oxyz=0.5_dp*real(boxit%mesh%ndims)*boxit%mesh%hgrids
+    end if
+
+    if (present(i3s)) then
+       boxit%i3s=i3s
+    else
+       boxit%i3s=1
+    end if
+
+    if (present(n3p)) then
+       boxit%i3e=boxit%i3s+n3p-1
+    else
+       boxit%i3e=boxit%i3s+mesh%ndims(3)-1
+    end if
+    boxit%whole=boxit%whole .and. (i3s == 1 .and. mesh%ndims(3))
+    call set_starting_point(boxit)
+
+  end function box_iter
+
+  pure subroutine set_starting_point(bit)
+    implicit none
+    type(box_iterator), intent(inout) :: bit
+
+    bit%ibox=bit%nbox(1,:)
+    if (bit%whole) then
+       bit%i=1
+       bit%j=1
+       bit%k=1
+    end if
+    bit%ind=0
+    bit%i23=0
+  end subroutine set_starting_point
+
+  !find the first z value which is available from the starting point
+  function box_next_z(bit) result(ok)
+    implicit none
+    type(box_iterator), intent(inout) :: bit
+    logical :: ok
+
+    ok= bit%ibox(3) <= bit%nbox(2,3)
+    do while(ok)
+       if (bit%whole) then
+          bit%k=bit%ibox(3)
+       else 
+          call internal_point(bit%mesh%bc(3),bit%ibox(3),bit%mesh%ndims(3),&
+               bit%k,bit%i3s,bit%i3e,ok)
+          if (.not. ok) bit%ibox(3)=bit%ibox(3)+1
+       end if
+       if (ok) then
+          bit%ibox(3)=bit%ibox(3)+1
+          exit
+       end if
+       ok = bit%ibox(3) <= bit%nbox(2,3)
+    end do
+    !reset x and y
+    if (ok) then
+       if (ok) call update_boxit_z(bit)
+       bit%ibox(2)=bit%nbox(1,2)
+       bit%ibox(1)=bit%nbox(1,1)
+    end if
+
+    !in the case the z_direction is over, make the iterator ready for new use
+    if (.not. ok) call set_starting_point(bit)
+    
+  end function box_next_z
+
+  !find the first z value which is available from the starting point
+  function box_next_y(bit) result(ok)
+    implicit none
+    type(box_iterator), intent(inout) :: bit
+    logical :: ok
+
+    ok= bit%ibox(2) <= bit%nbox(2,2)
+    do while(ok)
+       if (bit%whole) then
+          bit%j=bit%ibox(2)
+       else 
+          call internal_point(bit%mesh%bc(2),bit%ibox(2),bit%mesh%ndims(2),&
+               bit%j,1,bit%mesh%ndims(2),ok)
+          if (.not. ok) bit%ibox(2)=bit%ibox(2)+1
+       end if
+       if (ok) then
+          bit%ibox(2)=bit%ibox(2)+1
+          exit
+       end if
+       ok = bit%ibox(2) <= bit%nbox(2,2)
+    end do
+    !reset x
+    if (ok) then
+       if (ok) call update_boxit_y(bit)
+       bit%ibox(1)=bit%nbox(1,1)
+    end if
+
+
+  end function box_next_y
+
+  !find the first z value which is available from the starting point
+  function box_next_x(bit) result(ok)
+    implicit none
+    type(box_iterator), intent(inout) :: bit
+    logical :: ok
+
+    ok= bit%ibox(1) <= bit%nbox(2,1)
+    do while(ok)
+       if (bit%whole) then
+          bit%i=bit%ibox(1)
+       else 
+          call internal_point(bit%mesh%bc(1),bit%ibox(1),bit%mesh%ndims(1),&
+               bit%i,1,bit%mesh%ndims(1),ok)
+          if (.not. ok) bit%ibox(1)=bit%ibox(1)+1
+       end if
+       if (ok) then
+          !increment for after
+          bit%ibox(1)=bit%ibox(1)+1
+          exit
+       end if
+       ok = bit%ibox(1) <= bit%nbox(2,1)
+    end do
+    if (ok) call update_boxit_x(bit)
+  end function box_next_x
+
+  pure subroutine update_boxit_x(boxit)
+    implicit none
+    type(box_iterator), intent(inout) :: boxit 
+
+    !one dimensional index
+    boxit%ind = boxit%i+boxit%mesh%ndims(1)*boxit%i23
+
+    !the position associated to the coordinates
+    boxit%rxyz(1)=cell_r(boxit%mesh,boxit%i,1)-boxit%oxyz(1)
+
+  end subroutine update_boxit_x
+
+  pure subroutine update_boxit_y(boxit)
+    implicit none
+    type(box_iterator), intent(inout) :: boxit 
+    !here we have the indices      boxit%ibox as well as boxit%ixyz
+    !we might then calculate the related quantities
+    !two dimensional index, last two elements
+    boxit%i23=(boxit%j-1)+&
+         boxit%mesh%ndims(2)*(boxit%k-boxit%i3s)
+
+    !the position associated to the coordinates
+    boxit%rxyz(2)=cell_r(boxit%mesh,boxit%j,2)-boxit%oxyz(2)
+
+  end subroutine update_boxit_y
+
+  pure subroutine update_boxit_z(boxit)
+    implicit none
+    type(box_iterator), intent(inout) :: boxit 
+
+    !the position associated to the coordinates
+    boxit%rxyz(3)=cell_r(boxit%mesh,boxit%k,3)-boxit%oxyz(3)
+
+  end subroutine update_boxit_z
+  
+
+
+  !this routine should not use ibox as it is now prepared for the next step
+  pure subroutine update_boxit(boxit)
+    implicit none
+    type(box_iterator), intent(inout) :: boxit 
+
+    !here we have the indices      boxit%ibox as well as boxit%ixyz
+    !we might then calculate the related quantities
+    !two dimensional index, last two elements
+    boxit%i23=(boxit%j-1)+&
+         boxit%mesh%ndims(2)*(boxit%k-boxit%i3s)
+    !one dimensional index
+    boxit%ind = boxit%i+boxit%mesh%ndims(1)*boxit%i23
+
+    !the position associated to the coordinates
+    boxit%rxyz(1)=cell_r(boxit%mesh,boxit%i,1)-boxit%oxyz(1)
+    boxit%rxyz(2)=cell_r(boxit%mesh,boxit%j,2)-boxit%oxyz(2)
+    boxit%rxyz(3)=cell_r(boxit%mesh,boxit%k,3)-boxit%oxyz(3)
+  end subroutine update_boxit
+
+  function box_next_point(boxit)
+    implicit none
+    type(box_iterator), intent(inout) :: boxit
+    logical :: box_next_point
+    !local variables
+    logical :: go
+
+    box_next_point=associated(boxit%mesh)
+    if (.not. box_next_point) return
+
+    !simulate loop
+    flattened_loop: do 
+       if (box_next_x(boxit)) exit flattened_loop
+       if (box_next_y(boxit)) cycle flattened_loop !and then redo the check for x
+       if (box_next_z(boxit)) cycle flattened_loop !and then redo the check for x
+       box_next_point =.false.
+       exit flattened_loop !there is nothing more to do
+    end do flattened_loop
+    
+  end function box_next_point
+
+  pure subroutine internal_point(bc,ipoint,npoint,jpoint,ilow,ihigh,go)
+    implicit none
+    integer, intent(in) :: bc
+    integer, intent(in) :: npoint,ilow,ihigh,ipoint
+    logical, intent(out) :: go
+    integer, intent(out) :: jpoint
+
+    if (bc == PERIODIC) then
+       jpoint=modulo(ipoint,npoint)
+    else
+       jpoint=ipoint
+    end if
+    go=jpoint >= ilow
+    if (go) go= jpoint <= ihigh
+
+  end subroutine internal_point
+
 
   pure function cell_new(geocode,ndims,hgrids,angrad) result(mesh)
     use numerics, only: onehalf,pi
@@ -100,6 +408,30 @@ contains
 
   end function cell_periodic_dims
 
+  !>give the associated geocode, 'X' for unknown
+  pure function cell_geocode(mesh)
+    implicit none
+    type(cell), intent(in) :: mesh
+    character(len=1) :: cell_geocode
+    !local variables
+    logical, dimension(3) :: peri
+
+    peri=cell_periodic_dims(mesh)
+    if (all(peri)) then
+       cell_geocode='P'
+    else if (.not. any(peri)) then
+       cell_geocode='F'
+    else if (peri(1) .and. .not. peri(2) .and. peri(3)) then
+       cell_geocode='S'
+    else if (.not. peri(1) .and. .not. peri(2) .and. peri(3)) then
+       cell_geocode='W'
+    else
+       cell_geocode='X'
+    end if
+
+  end function cell_geocode
+
+
   !>gives the value of the coordinate from the grid point
   elemental pure function cell_r(mesh,i,dim) result(t)
     implicit none
@@ -111,7 +443,7 @@ contains
     t=mesh%hgrids(dim)*(i-1)
   end function cell_r
 
-  function minimum_distance(mesh,v1,v2) result(d)
+  function distance(mesh,v1,v2) result(d)
     use dictionaries, only: f_err_throw
     implicit none
     real(gp), dimension(3), intent(in) :: v1,v2
@@ -124,36 +456,35 @@ contains
     if (mesh%orthorhombic) then
        d2=0.0_gp
        do i=1,3
-          d2=d2+min_dist(mesh%bc(i),mesh%hgrids(i)*mesh%ndims(i),&
+          d2=d2+r_wrap(mesh%bc(i),mesh%hgrids(i)*mesh%ndims(i),&
                v1(i),v2(i))**2
        end do
        d=sqrt(d2)
     else
-       call f_err_throw('Minimum distance not yet implemented for nonorthorhombic cells')
+       call f_err_throw('Distance not yet implemented for nonorthorhombic cells')
     end if
 
-  end function minimum_distance
+  end function distance
 
-  !> Calculates the minimum difference between two coordinates
-  pure function min_dist(bc,alat,r,r_old)
-    implicit none
-    integer, intent(in) :: bc
-    real(gp), intent(in) :: r,r_old,alat
-    real(gp) :: min_dist
-
-    !for periodic BC calculate mindist only if the center of mass can be defined without the modulo
-    min_dist=abs(r-r_old)
-    if (bc==PERIODIC) then
-       if (min_dist > 0.5_gp*alat) then
-          if (r < 0.5_gp*alat) then
-             min_dist=abs(r+alat-r_old)
-          else
-             min_dist=abs(r-alat-r_old)
-          end if
-       end if
-    end if
-
-  end function min_dist
+!!$  pure function min_dist(bc,alat,r,r_old)
+!!$    implicit none
+!!$    integer, intent(in) :: bc
+!!$    real(gp), intent(in) :: r,r_old,alat
+!!$    real(gp) :: min_dist
+!!$
+!!$    !for periodic BC calculate mindist only if the center of mass can be defined without the modulo
+!!$    min_dist=abs(r-r_old)
+!!$    if (bc==PERIODIC) then
+!!$       if (min_dist > 0.5_gp*alat) then
+!!$          if (r < 0.5_gp*alat) then
+!!$             min_dist=abs(r+alat-r_old)
+!!$          else
+!!$             min_dist=abs(r-alat-r_old)
+!!$          end if
+!!$       end if
+!!$    end if
+!!$
+!!$  end function min_dist
 
   !> Calculates the minimum difference between two coordinates
   pure function r_wrap(bc,alat,r,c)

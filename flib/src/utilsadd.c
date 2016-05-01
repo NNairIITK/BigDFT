@@ -49,7 +49,7 @@ void FC_FUNC_(call_external_c_fromadd, CALL_EXTERNAL_C_FROMADD)(long long int * 
 
   //  *address=0;
   //callback1= (void*) *add;
-  //  printf("\n test NEW address = %p; \n", (void*) *add);
+  //printf("\n test NEW address = %p; \n", (void*) *add);
   //callback1();
   //*addredss();
   FC_FUNC_(call_external_f,CALL_EXTERNAL_F)(ext);//,ext_data);
@@ -61,7 +61,7 @@ void FC_FUNC_(call_external_c_fromadd, CALL_EXTERNAL_C_FROMADD)(long long int * 
 
 //unused for the moment. Should provide a mechanism to call a fortran function by passing in the stack the address of the 
 //data
-void FC_FUNC_(call_external_c_fromadd_data, CALL_EXTERNAL_C_FROMADD_DATA)(long long int * add,long long int * dataadd)
+void FC_FUNC_(call_external_c_fromadd_data, CALL_EXTERNAL_C_FROMADD_DATA)(long long int * add,long long int * dataadd,long long int * data2)
 {
   void * ext;
   //  long long int *ext_data;
@@ -74,7 +74,7 @@ void FC_FUNC_(call_external_c_fromadd_data, CALL_EXTERNAL_C_FROMADD_DATA)(long l
   //  printf("\n test NEW address = %p; \n", (void*) *add);
   //callback1();
   //*addredss();
-  FC_FUNC_(call_external_f,CALL_EXTERNAL_F)(ext);//,ext_data);
+  FC_FUNC_(call_external_f1,CALL_EXTERNAL_F1)(ext,dataadd);
 
   // printf("\n test NEW address = %lld; \n", *add);
   //  printf("\n test NEW address3 = %p , %lld; \n", (void*)callback,*address);

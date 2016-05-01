@@ -13,6 +13,7 @@ module module_dpbox
 
   use module_base, only: gp,mpi_environment,mpi_environment_null,f_err_throw
   use bounds, only: ext_buffers
+  use box
 
   implicit none
 
@@ -40,9 +41,14 @@ module module_dpbox
      integer :: ndimpot               !< n1i*n2i*n3p = dpbox%ndims(1)dpbox%ndims(2)*dpbox%n3p
      integer :: ndimgrid              !< n1i*n2i*n3i = dpbox%ndims(1)*dpbox%ndims(2)*dpbox%ndims(3)
      integer :: ndimrhopot            !< dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3d*dpbox%nrhodim
-     integer, dimension(3) :: ndims   !< Box containing the grid dimensions in ISF basis in x,y and z direction (n1i,n2i,n3i)
-     real(gp), dimension(3) :: hgrids !< Grid spacings of the box (half of wavelet ones)
-     character(len=1) :: geocode      !< @copydoc poisson_solver::doc::geocode
+     type(cell) :: mesh !<defines the cell of the system
+     !>iterator over the potential degrees of freedom
+     type(box_iterator) :: bitp 
+     !>iterator for the density
+     type(box_iterator) :: bitd 
+!!$     integer, dimension(3) :: ndims   !< Box containing the grid dimensions in ISF basis in x,y and z direction (n1i,n2i,n3i)
+!!$     real(gp), dimension(3) :: hgrids !< Grid spacings of the box (half of wavelet ones)
+!!$     character(len=1) :: geocode      !< @copydoc poisson_solver::doc::geocode
      integer, dimension(:,:), pointer :: nscatterarr !< dim(nproc,4) for each proc (n3d,n3p,i3s+i3xcsh-1,i3xcsh) see @link dpbox_repartition @endlink
      integer, dimension(:,:), pointer :: ngatherarr  !< dim(nproc,3) (dpbox%ndimpot,n1i*n2i*nscatteradd(:,3),n1i*n2i*n3d) see @link dpbox_repartition @endlink
      type(mpi_environment) :: mpi_env !< MPI environment for the psolver i.e. mpi_env%iproc /= bigdft_mpi%iproc
@@ -101,9 +107,9 @@ contains
     dpbox%ndimpot=0
     dpbox%ndimgrid=0
     dpbox%ndimrhopot=0
-    dpbox%ndims=(/0,0,0/)
-    dpbox%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    dpbox%geocode = "F"
+!!$    dpbox%ndims=(/0,0,0/)
+!!$    dpbox%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
+!!$    dpbox%geocode = "F"
     nullify(dpbox%nscatterarr)
     nullify(dpbox%ngatherarr)
     dpbox%mpi_env=mpi_environment_null()
@@ -215,9 +221,9 @@ contains
     !Associate the original objects
     boxit%dpbox_ptr => dpbox
     !Distributed dimension over dpbox%ndims(3) in parallel
-    boxit%n1i = boxit%dpbox_ptr%ndims(1)
-    boxit%n2i = boxit%dpbox_ptr%ndims(2)
-    boxit%n3i = boxit%dpbox_ptr%ndims(3)
+    boxit%n1i = boxit%dpbox_ptr%mesh%ndims(1)
+    boxit%n2i = boxit%dpbox_ptr%mesh%ndims(2)
+    boxit%n3i = boxit%dpbox_ptr%mesh%ndims(3)
     !This is correct for a potential not a density
     !Index of the first z plane between 1:n3_iter
     boxit%i3s = boxit%dpbox_ptr%i3s + boxit%dpbox_ptr%i3xcsh
@@ -241,15 +247,15 @@ contains
       return
     end if
 
-    !Conditions for periodicity in the three directions
-    boxit%perx=(boxit%dpbox_ptr%geocode /= 'F')
-    boxit%pery=(boxit%dpbox_ptr%geocode == 'P')
-    boxit%perz=(boxit%dpbox_ptr%geocode /= 'F')
-
-    !Calculate external buffers for each direction
-    call ext_buffers(boxit%perx,boxit%nbl1,boxit%nbr1)
-    call ext_buffers(boxit%pery,boxit%nbl2,boxit%nbr2)
-    call ext_buffers(boxit%perz,boxit%nbl3,boxit%nbr3)
+!!$    !Conditions for periodicity in the three directions
+!!$    boxit%perx=(boxit%dpbox_ptr%mesh%geocode /= 'F')
+!!$    boxit%pery=(boxit%dpbox_ptr%mesh%geocode == 'P')
+!!$    boxit%perz=(boxit%dpbox_ptr%mesh%geocode /= 'F')
+!!$
+!!$    !Calculate external buffers for each direction
+!!$    call ext_buffers(boxit%perx,boxit%nbl1,boxit%nbr1)
+!!$    call ext_buffers(boxit%pery,boxit%nbl2,boxit%nbr2)
+!!$    call ext_buffers(boxit%perz,boxit%nbl3,boxit%nbr3)
 
     if (present(nbox)) then
       !We iterate in a box around an atom
@@ -259,13 +265,13 @@ contains
       !We iterate over the whole box
       boxit%whole = .true.
       boxit%nbox(1,3) = -boxit%nbl3
-      boxit%nbox(2,3) = dpbox%ndims(3) - boxit%nbl3-1
-      !ndims(2) contains nbr2
+      boxit%nbox(2,3) = dpbox%mesh%ndims(3) - boxit%nbl3-1
+      !mesh%ndims(2) contains nbr2
       boxit%nbox(1,2) = -boxit%nbl2
-      boxit%nbox(2,2) = dpbox%ndims(2) - boxit%nbl2-1
-      !ndims(1) contains nbr1
+      boxit%nbox(2,2) = dpbox%mesh%ndims(2) - boxit%nbl2-1
+      !mesh%ndims(1) contains nbr1
       boxit%nbox(1,1) = -boxit%nbl1
-      boxit%nbox(2,1) = dpbox%ndims(1) - boxit%nbl1-1
+      boxit%nbox(2,1) = dpbox%mesh%ndims(1) - boxit%nbl1-1
     end if
 
     ! ithread and nthread (define here because dpbox_next is pure)
@@ -351,9 +357,9 @@ contains
             boxit%ind = boxit%ix+1 + boxit%nbl1 &
                     & + (boxit%iy+boxit%nbl2)*boxit%n1i &
                     & + (boxit%iz-boxit%i3s)*boxit%n1i*boxit%n2i
-            boxit%x = real(boxit%ibox(1),gp)*boxit%dpbox_ptr%hgrids(1)
-            boxit%y = real(boxit%ibox(2),gp)*boxit%dpbox_ptr%hgrids(2)
-            boxit%z = real(boxit%ibox(3),gp)*boxit%dpbox_ptr%hgrids(3)
+            boxit%x = real(boxit%ibox(1),gp)*boxit%dpbox_ptr%mesh%hgrids(1)
+            boxit%y = real(boxit%ibox(2),gp)*boxit%dpbox_ptr%mesh%hgrids(2)
+            boxit%z = real(boxit%ibox(3),gp)*boxit%dpbox_ptr%mesh%hgrids(3)
             exit loop_ind
           end if
         end if
@@ -381,48 +387,6 @@ contains
     call increment_dpbox_iter(boxit)
     dpbox_iter_next = dpbox_iter_is_valid(boxit)
   end function dpbox_iter_next
-
-
-!!$  !> Calculate the size of the buffers in each direction
-!!$  subroutine ext_buffers(periodic,nl,nr)
-!!$    implicit none
-!!$    logical, intent(in) :: periodic !< Periodic or not
-!!$    integer, intent(out) :: nl,nr   !< Size of left and right buffer
-!!$
-!!$    if (periodic) then
-!!$       nl=0
-!!$       nr=0
-!!$    else
-!!$       nl=14
-!!$       nr=15
-!!$    end if
-!!$  END SUBROUTINE ext_buffers
-
-
-  !> Determine the index in which the potential must be inserted, following the BC
-  !! Determine also whether the index is inside or outside the box for free BC
-  !!!pure subroutine ind_positions(periodic,i,n,j,go)
-  !!!  implicit none
-  !!!  logical, intent(in) :: periodic !< Periodic or not
-  !!!  integer, intent(in) :: i
-  !!!  integer, intent(in) :: n      
-  !!!  logical, intent(out) :: go      !< True if in the box
-  !!!  integer, intent(out) :: j
-  !!!
-  !!!  if (periodic) then
-  !!!     go=.true.
-  !!!     j=modulo(i,2*n+2)
-  !!!  else
-  !!!     j=i
-  !!!     if (i >= -14 .and. i <= 2*n+16) then
-  !!!        go=.true.
-  !!!     else
-  !!!        go=.false.
-  !!!     end if
-  !!!  end if
-  !!!
-  !!!END SUBROUTINE ind_positions
-
   
   !> Test the iterator dpbox_iter
   subroutine check_dpbox_iter(dpbox,idpbox,nbox)
@@ -449,9 +413,9 @@ contains
     !if (nt > 1) return
 
     !Distributed dimension over dpbox%ndims(3) in parallel
-    n1i = dpbox%ndims(1)
-    n2i = dpbox%ndims(2)
-    n3i = dpbox%ndims(3)
+    n1i = dpbox%mesh%ndims(1)
+    n2i = dpbox%mesh%ndims(2)
+    n3i = dpbox%mesh%ndims(3)
     !This is correct for a potential not a density
     !Index of the first z plane between 1:n3_iter
     i3s = dpbox%i3s + dpbox%i3xcsh
@@ -469,14 +433,14 @@ contains
            err_name='BIGDFT_RUNTIME_ERROR')
     end select
 
-    !Conditions for periodicity in the three directions
-    perx=(dpbox%geocode /= 'F')
-    pery=(dpbox%geocode == 'P')
-    perz=(dpbox%geocode /= 'F')
-
-    call ext_buffers(perx,nbl1,nbr1)
-    call ext_buffers(pery,nbl2,nbr2)
-    call ext_buffers(perz,nbl3,nbr3)
+!!$    !Conditions for periodicity in the three directions
+!!$    perx=(dpbox%geocode /= 'F')
+!!$    pery=(dpbox%geocode == 'P')
+!!$    perz=(dpbox%geocode /= 'F')
+!!$
+!!$    call ext_buffers(perx,nbl1,nbr1)
+!!$    call ext_buffers(pery,nbl2,nbr2)
+!!$    call ext_buffers(perz,nbl3,nbr3)
 
     if (present(nbox)) then
       isx=nbox(1,1)
@@ -488,11 +452,11 @@ contains
       boxit = dpbox_iter(dpbox,idpbox,nbox,check=.false.)
     else
       isz = -nbl3
-      iez = dpbox%ndims(3) - nbl3-1
+      iez = dpbox%mesh%ndims(3) - nbl3-1
       isy = -nbl2
-      iey = dpbox%ndims(2) - nbl2-1
+      iey = dpbox%mesh%ndims(2) - nbl2-1
       isx = -nbl1
-      iex = dpbox%ndims(1) - nbl1-1
+      iex = dpbox%mesh%ndims(1) - nbl1-1
       boxit = dpbox_iter(dpbox,idpbox,check=.false.)
     end if
 
