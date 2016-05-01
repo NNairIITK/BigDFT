@@ -5303,13 +5303,11 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
   do ispin=1,nspin
      !the iterator here is on the potential distribution
      do while(box_next_point(dpbox%bitp))
-        !print *,'test',dpbox%bitp%i,dpbox%bitp%j,dpbox%bitp%k,dpbox%bitp%i3s,dpbox%bitp%rxyz
         q= - rho(dpbox%bitp%i,dpbox%bitp%j,dpbox%bitp%k-dpbox%bitp%i3s+1,ispin) *dpbox%mesh%volume_element
         !write(*,*) 'i1, i2, i3, nl1, nl2, nl3, q', i1, i2, i3, nl1, nl2, nl3, q
         qtot=qtot+q
         dipole_el=dipole_el+q*(dpbox%bitp%rxyz-charge_center_cores)
      end do
-        
 !!$     do i3=0,nc3 - 1
 !!$        !ii3 = i3 + dpbox%nscatterarr(dpbox%mpi_env%iproc,3)
 !!$        ii3 = i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3) - i3shift !real coordinate, without buffer
@@ -5502,10 +5500,6 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
   !!write(*,*) 'tmpdip',tmpdip
   if (present(dipole)) dipole(1:3) = tmpdip(1:3)
   if(bigdft_mpi%iproc==0 .and. .not.quiet) then
-     !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
-     !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
-     !write(*,*) 'dipole_cores', dipole_cores
-     !write(*,*) 'dipole_el', dipole_el
      call yaml_mapping_open('Electric Dipole Moment (AU)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')

@@ -139,7 +139,8 @@ contains
     else
        boxit%i3e=boxit%i3s+mesh%ndims(3)-1
     end if
-    boxit%whole=boxit%whole .and. (i3s == 1 .and. mesh%ndims(3))
+    boxit%whole=boxit%whole .and. boxit%i3s == 1 &
+         .and. boxit%i3e==mesh%ndims(3)
     call set_starting_point(boxit)
 
   end function box_iter
@@ -147,12 +148,18 @@ contains
   pure subroutine set_starting_point(bit)
     implicit none
     type(box_iterator), intent(inout) :: bit
+    !local variables
+    logical :: test
 
     bit%ibox=bit%nbox(1,:)
     if (bit%whole) then
        bit%i=1
        bit%j=1
        bit%k=1
+    else
+       bit%i=-1
+       bit%j=-1
+       bit%k=-1
     end if
     bit%ind=0
     bit%i23=0
@@ -164,6 +171,8 @@ contains
     type(box_iterator), intent(inout) :: bit
     logical :: ok
 
+    ok = bit%i3e >= bit%i3s
+    if (.not. ok) return !there is nothing to explore
     ok= bit%ibox(3) <= bit%nbox(2,3)
     do while(ok)
        if (bit%whole) then
@@ -181,7 +190,7 @@ contains
     end do
     !reset x and y
     if (ok) then
-       if (ok) call update_boxit_z(bit)
+       call update_boxit_z(bit)
        bit%ibox(2)=bit%nbox(1,2)
        bit%ibox(1)=bit%nbox(1,1)
     end if
@@ -214,7 +223,7 @@ contains
     end do
     !reset x
     if (ok) then
-       if (ok) call update_boxit_y(bit)
+       call update_boxit_y(bit)
        bit%ibox(1)=bit%nbox(1,1)
     end if
 
@@ -311,6 +320,11 @@ contains
 
     box_next_point=associated(boxit%mesh)
     if (.not. box_next_point) return
+
+    !this put the starting point
+    go=boxit%k==-1
+    if (go) go=box_next_z(boxit)
+    if (go) go=box_next_y(boxit)
 
     !simulate loop
     flattened_loop: do 
