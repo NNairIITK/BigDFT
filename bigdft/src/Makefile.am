@@ -94,7 +94,7 @@ if HAVE_AMBERTOOLS
 ambertools_wrap= wrap.c
 ###for amber supp.:
 wrap.o:     wrap.c
-	$(NAB) -c  -g $<
+	$(NAB) -I$(top_builddir) -c  -g $<
 else
 ambertools_wrap= wrap_fake.f90
 endif

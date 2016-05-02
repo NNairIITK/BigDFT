@@ -116,6 +116,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd
   real(gp), dimension(:), allocatable :: wkptv,psi_perturbed,hpsi_perturbed
+  real(gp), dimension(:), allocatable :: h2psi_perturbed
   type(f_enumerator) :: inputpsi,output_denspot
   type(dictionary), pointer :: dict_timing_info
   type(orbital_basis) :: ob,ob_occ,ob_virt,ob_prime
@@ -1207,6 +1208,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
               rxyz_tmp=f_malloc([3,atoms%astruct%nat],id='rxyz_old')
               psi_perturbed=f_malloc(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp),id='psi_perturbed')
               hpsi_perturbed=f_malloc(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp),id='hpsi_perturbed')
+              h2psi_perturbed=f_malloc(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp),id='hpsi_perturbed')
               call readmywaves(iproc,trim(in%dir_perturbation)// "wavefunction",input_wf_format,KSwfn%orbs,&
                    n1,n2,n3,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),atoms,rxyz_tmp,rxyz,  &
                    KSwfn%Lzd%Glr%wfd,psi_perturbed)
@@ -1220,6 +1222,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
                    psi_perturbed,hpsi_perturbed,&
                    KSwfn%PAW,energs_fake,in%SIC,GPU,denspot%xc,&
                    denspot%pkernelseq)
+              call FullHamiltonianApplication(iproc,nproc,atoms,KSwfn%orbs,&
+                   KSwfn%Lzd,nlpsp,KSwfn%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,&
+                   hpsi_perturbed,h2psi_perturbed,&
+                   KSwfn%PAW,energs_fake,in%SIC,GPU,denspot%xc,&
+                   denspot%pkernelseq)
 
               call orbital_basis_associate(ob_occ,orbs=KSwfn%orbs,&
                    Lzd=KSwfn%Lzd,phis_wvl=KSwfn%psi,comms=KSwfn%comms)
@@ -1228,8 +1235,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
               call orbital_basis_associate(ob_prime,orbs=KSwfn%orbs,&
                    Lzd=KSwfn%Lzd,phis_wvl=psi_perturbed,comms=KSwfn%comms)
 
-              call evaluate_completeness_relation(ob_occ,ob_virt,ob_prime,hpsi_perturbed)
+              call evaluate_completeness_relation(ob_occ,ob_virt,ob_prime,hpsi_perturbed,h2psi_perturbed)
 
+              call f_free(h2psi_perturbed)
               call f_free(hpsi_perturbed)
               call f_free(psi_perturbed)
               call f_free(rxyz_tmp)

@@ -1166,6 +1166,12 @@
        sw: Stillinger-Weber for Si
        multi: Mixed approach where parts of the system are treated with different methods
      default: dft
+   nab_options:
+     COMMENT: String to be passed to nab_init compiler in the case of ambertools compilation
+     default: ntpr=1
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: amber
    mm_paramset:
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
      default: default

@@ -21,13 +21,14 @@ INITIALIZATION = "globals"
 
 PRE_POST = [EVAL, SETUP, INITIALIZATION]
 
-ENERGY = "__ENERGY__"
+ENERGY = "BigDFT.energy"
 FERMI_LEVEL= "__FERMI_LEVEL__"
+NUMBER_OF_ATOMS = 'BigDFT.nat'
 
-BUILTIN={ENERGY: [["Last Iteration", "FKS"],["Last Iteration", "EKS"]],
-         FERMI_LEVEL: [["Ground State Optimization", -1, "Fermi Energy"]]}
-         
 #Builtin pathes to define the search paths
+BUILTIN={ENERGY: [["Last Iteration", "FKS"],["Last Iteration", "EKS"]],
+         FERMI_LEVEL: [["Ground State Optimization", -1, "Fermi Energy"]],
+         NUMBER_OF_ATOMS: [ ['Atomic System Properties','Number of atoms']]}
 
 # print out a python dictionary in yaml syntax
 def dict_dump(dict):

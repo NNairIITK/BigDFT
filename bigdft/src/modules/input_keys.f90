@@ -241,6 +241,7 @@ module module_input_keys
      integer ::  potshortcut
      integer ::  nsteps
      character(len=100) :: extraOrbital
+     character(len=max_field_length) :: nab_options
      character(len=1000) :: xabs_res_prefix
 
      !> Frequencies calculations (finite difference)
@@ -1576,6 +1577,11 @@ contains
           in%mm_paramfile=val
        case(SW_EQFACTOR)
           in%sw_factor=val
+       case(NAB_OPTIONS)
+          in%nab_options=val
+          !add a char(0) at the end of the string
+          ipos=len_trim(in%nab_options)+1
+          in%nab_options(ipos:ipos)=char(0)
        case(SECTIONS)
        case(SECTION_BUFFER)
        case(SECTION_PASSIVATION)
@@ -2339,6 +2345,7 @@ contains
     nullify(in%PS_dict_seq)
     nullify(in%at_gamma)
     call f_zero(in%calculate_strten)
+    call f_zero(in%nab_options)
     in%profiling_depth=-1
     in%gen_norb = UNINITIALIZED(0)
     in%gen_norbu = UNINITIALIZED(0)

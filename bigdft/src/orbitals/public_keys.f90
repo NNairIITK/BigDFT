@@ -140,6 +140,7 @@ module public_keys
   character(len = *), parameter :: SECTIONS = "sections"
   character(len = *), parameter :: SECTION_BUFFER = "section_buffer"
   character(len = *), parameter :: SECTION_PASSIVATION = "section_passivation"
+  character(len = *), parameter :: NAB_OPTIONS = "nab_options"
 
   character(len = *), parameter :: MIX_VARIABLES = "mix"
   character(len = *), parameter :: ISCF = "iscf"
