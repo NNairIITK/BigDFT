@@ -37,6 +37,7 @@ module sparsematrix
   public :: synchronize_matrix_taskgroups
   public :: max_asymmetry_of_matrix
   public :: symmetrize_matrix
+  public :: check_deviation_from_unity_sparse
 
 
   interface compress_matrix_distributed_wrapper
@@ -2326,5 +2327,54 @@ module sparsematrix
       call f_release_routine()
     
     end subroutine symmetrize_matrix
+
+
+    subroutine check_deviation_from_unity_sparse(iproc, smat, mat, max_error, mean_error)
+      use sparsematrix_base, only: sparse_matrix, &
+                                   matrices
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(in) :: mat
+      real(kind=8),intent(out) :: mean_error, max_error
+
+      ! Local variables
+      integer :: iseg, ii, i, irow, icolumn
+      real(kind=8) :: error
+
+      call f_routine(id='check_deviation_from_unity_sparse')
+
+      mean_error = 0.d0
+      max_error = 0.d0
+      do iseg=1,smat%nseg
+          ii=smat%keyv(iseg)
+          ! A segment is always on one line, therefore no double loop
+          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+             irow = i
+             icolumn = smat%keyg(1,2,iseg)
+             if (irow==icolumn) then
+                 error = abs(mat%matrix_compr(ii)-1.d0)
+             else
+                 error = abs(mat%matrix_compr(ii))
+             end if
+             mean_error = mean_error + error
+             max_error = max(max_error,error)
+             ii=ii+1
+         end do
+      end do
+      mean_error = mean_error/real(smat%nvctr,kind=8)
+
+      !if (iproc==0) then
+      !    call yaml_mapping_open('Check the deviation from unity of the operation S^x*S^-x')
+      !    call yaml_map('max_error',max_error,fmt='(es10.3)')
+      !    call yaml_map('mean_error',mean_error/real(smat%nvctr,kind=8),fmt='(es10.3)')
+      !    call yaml_mapping_close()
+      !end if
+
+      call f_release_routine()
+
+    end subroutine check_deviation_from_unity_sparse
 
 end module sparsematrix
