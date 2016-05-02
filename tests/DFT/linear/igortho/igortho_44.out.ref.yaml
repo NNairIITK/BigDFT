@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-04-11 09:11:48.298
+ Timestamp of this run                 : 2016-04-28 08:09:55.010
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -87,6 +87,9 @@
     #                                              point. Negative values mean no plot.
    plot_pot_axes: [-1, -1, -1] #                  Plot the potential along axes through this point. Negative values mean 
     #                                              no plot.
+   occupancy_control                   : None #   Dictionary of the atomic matrices to be applied for a given iteration number
+   itermax_occ_ctrl                    : 0 #      Number of iterations of occupancy control scheme. Should be between itermin and 
+    #                                              itermax
  perf:
    projrad                             : 8.0 #    Radius of the projector as a function of the maxrad
    store_index                         : No #     Store indices or recalculate them for linear scaling
@@ -179,7 +182,8 @@
    calc_dipole                         : No #     calculate dipole
    calc_quadrupole                     : No #     calculate quadrupole
    subspace_diag                       : No #     diagonalization at the end
-   extra_states                        : 0 #      extra states to optimize (dmin only)
+   extra_states                        : 0 #      Number of extra states to include in support function and kernel optimization (dmin 
+    #                                              only), must be equal to norbsempty
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
     #                                              written to disk)
    plot_locreg_grids                   : False #  plot the scaling function and wavelets grid of each localization region
@@ -303,6 +307,9 @@
    no_translation                      : No #     Logical input to set translational correction
    thermostat                          : none #   Activates a thermostat for MD
    wavefunction_extrapolation          : 0 #      Activates the wavefunction extrapolation for MD
+   restart_nose                        : No #     Restart Nose Hoover Chain information from md.restart
+   restart_pos                         : No #     Restart nuclear position information from md.restart
+   restart_vel                         : No #     Restart nuclear velocities information from md.restart
  mix:
    iscf                                : 0 #      Mixing parameters
    itrpmax                             : 1 #      Maximum number of diagonalisation iterations
@@ -702,48 +709,56 @@
  Energies: {Ekin:  7.83204610294E+01, Epot: -6.84032780028E+01, Enl:  6.80152497623E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D:  0.00E+00, 
- iter:  1, fnrm:  1.67E+00, Omega:  3.140511514312702E+02, D:  3.14E+02, D best:  3.14E+02, 
+ iter:  1, fnrm:  1.67E+00, Omega:  3.140511514087713E+02, D:  3.14E+02, D best:  3.14E+02, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  orthonormalization of input guess: generalized, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
- {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  7.9E-04, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}]}, 
+ {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty: -1.3E-02, ok: [ Yes, 
+  No], exp accur:  [  1.39E-09 ]}, 
+ {npl:  20, scale:  5.00E-01, bounds:  [  0.500,  1.800 ], penalty:  3.7E+02, ok: [ No, 
+  Yes], exp accur:  [  3.17E-11 ]}, 
+ {npl:  20, scale:  1.00E+00, bounds:  [  0.417,  1.800 ], penalty:  2.0E-03, ok: [ Yes, 
+  Yes], exp accur:  [  4.17E-10 ]}]}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
- {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -7.2E-05, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}]}, 
+ {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  1.8E-02, ok: [ No, 
+  Yes], exp accur:  [  1.39E-09 ]}, 
+ {npl:  20, scale:  2.00E+00, bounds:  [  0.417,  1.500 ], penalty: -6.4E+07, ok: [ Yes, 
+  No], exp accur:  [  3.41E-11 ]}, 
+ {npl:  20, scale:  1.00E+00, bounds:  [  0.417,  1.800 ], penalty:  3.4E-03, ok: [ Yes, 
+  Yes], exp accur:  [  4.17E-10 ]}]}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 2
  target function: TRACE, Calculating wavelets expansion of projectors, found warnings:  32, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.22007293731E+01, Epot: -7.42847473152E+01, Enl:  8.15287416728E+00}, 
+ Energies: {Ekin:  8.22007293735E+01, Epot: -7.42847473158E+01, Enl:  8.15287416711E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D: -1.14E-01,         kappa:  7.053E-01, 
- iter:  2, fnrm:  9.40E-01, Omega:  2.782578069237617E+02, D: -3.58E+01, D best: -3.58E+01, 
+ iter:  2, fnrm:  9.40E-01, Omega:  2.782578069262003E+02, D: -3.58E+01, D best: -3.58E+01, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  orthonormalization of input guess: generalized, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
- {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  1.1E-03, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}]}, 
+ {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  8.7E-03, ok: [ Yes, 
+  Yes], exp accur:  [  1.39E-09 ]}]}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  1020, determine eigenvalue bounds: [
- {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty:  7.3E-06, ok: [ Yes, 
-  Yes], exp accur:  [  3.61E-10 ]}]}, 
+ {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  9.4E-03, ok: [ Yes, 
+  Yes], exp accur:  [  1.39E-09 ]}]}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 3
  target function: TRACE, Calculating wavelets expansion of projectors, found warnings:  32, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.64347664297E+01, Epot: -7.79115439586E+01, Enl:  9.03126534333E+00}, 
+ Energies: {Ekin:  8.64347664174E+01, Epot: -7.79115439548E+01, Enl:  9.03126534382E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D: -1.69E-01,         kappa:  6.320E-01, 
- iter:  3, fnrm:  5.33E-01, Omega:  2.608880162422231E+02, D: -1.74E+01, D best: -1.74E+01, 
+ iter:  3, fnrm:  5.33E-01, Omega:  2.608880162044620E+02, D: -1.74E+01, D best: -1.74E+01, 
  exit criterion: net number of iterations,    exit criterion: gradient}
      -  &final_supfun000  { #------------------------------------------------------ iter: 3
  target function: TRACE, 
- Energies: {Ekin:  8.64347664297E+01, Epot: -7.79115439586E+01, Enl:  9.03126534333E+00}, 
- iter:  3, fnrm:  5.33E-01, Omega:  2.608880162422231E+02, D: -1.74E+01, D best: -1.74E+01}
+ Energies: {Ekin:  8.64347664174E+01, Epot: -7.79115439548E+01, Enl:  9.03126534382E+00}, 
+ iter:  3, fnrm:  5.33E-01, Omega:  2.608880162044620E+02, D: -1.74E+01, D best: -1.74E+01}
         #Support functions created
    Kernel update:
      Hamiltonian application required  :  Yes
@@ -756,18 +771,18 @@
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
      S^-1/2                            : recalculate
      determine eigenvalue bounds:
-     -  {npl:  16, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -8.2E-05, ok: [
-  Yes,  Yes], exp accur:  [  3.61E-10 ]}
+     -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  9.5E-04, ok: [
+  Yes,  Yes], exp accur:  [  1.39E-09 ]}
      Kernel calculation:
      -  #--------------------------------------------------------------- ispin: 1, itemp: 1
        decay length of error function  :  5.000E-02
        determine eigenvalue bounds:
-       -  {npl:  120, bounds:  [ -1.0,  1.0 ], penalty: -2.1E+08, ok:  [  Yes,  No ]}
-       -  {npl:  130, bounds:  [ -1.0,  1.2 ], penalty: -1.2E+08, ok:  [  Yes,  No ]}
-       -  {npl:  140, bounds:  [ -1.0,  1.44 ], penalty: -3.9E+07, ok:  [  Yes,  No ]}
-       -  {npl:  150, bounds:  [ -1.0,  1.728 ], penalty: -2.9E+06, ok:  [  Yes,  No ]}
-       -  {npl:  170, bounds:  [ -1.0,  2.0736 ], penalty: -6.2E+02, ok:  [  Yes,  No ]}
-       -  {npl:  180, bounds:  [ -1.0,  2.48832 ], penalty: -3.6E-05, ok:  [  Yes,  Yes ]}
+       -  {npl:  120, bounds:  [ -1.000,  1.000 ], penalty: -2.1E+08, ok:  [  Yes,  No ]}
+       -  {npl:  130, bounds:  [ -1.000,  1.200 ], penalty: -1.2E+08, ok:  [  Yes,  No ]}
+       -  {npl:  140, bounds:  [ -1.000,  1.440 ], penalty: -3.9E+07, ok:  [  Yes,  No ]}
+       -  {npl:  150, bounds:  [ -1.000,  1.728 ], penalty: -2.9E+06, ok:  [  Yes,  No ]}
+       -  {npl:  170, bounds:  [ -1.000,  2.074 ], penalty: -6.2E+02, ok:  [  Yes,  No ]}
+       -  {npl:  180, bounds:  [ -1.000,  2.488 ], penalty: -3.6E-05, ok:  [  Yes,  Yes ]}
        determine Fermi energy:
        -  { #-------------------------------------------------------------------- it FOE: 1
  eF: -1.000000E-01, Tr(K):  4.1349153E+01, D Tr(K): -8.65E+00, new eF: bisec bounds}
@@ -787,13 +802,13 @@
  eF:  1.381472E-01, Tr(K):  5.0000000E+01, D Tr(K):  2.66E-08, new eF: linear interpol}
        Asymmetry of kernel             :  9.94E-04
        symmetrize_kernel               :  Yes
-       EBS                             : -1.341203575765E+01
-       EBS higher temperature          : -1.341198416781E+01
-       difference                      :  5.158984097875E-05
-       relative difference             :  3.846533211733E-06
+       EBS                             : -1.341203576298E+01
+       EBS higher temperature          : -1.341198417314E+01
+       difference                      :  5.158984470199E-05
+       relative difference             :  3.846533487809E-06
        modify error function decay length: increase
        fscale reached upper limit; reset to:  5.0000000000000003E-002
-       trace(KS)                       :  50.00000001504222
+       trace(KS)                       :  50.00000003905755
        need to repeat with sharper decay (new):  No
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
      Asymmetry of the matrices:
@@ -803,9 +818,9 @@
      Kohn-Sham residue                 : not calculated
      Coefficients available            :  No
    Hamiltonian update: {
- Energies: {Ekin:  8.64347664297E+01, Epot: -8.47700961642E+01, Enl:  9.03126534333E+00, 
+ Energies: {Ekin:  8.64347664174E+01, Epot: -8.47700961593E+01, Enl:  9.03126534382E+00, 
               EH:  2.63728499146E+02,  EXC: -2.23418763807E+01, EvXC: -2.89511955240E+01}, 
-    Total charge:  4.999996914246E+01, 
+    Total charge:  4.999996916648E+01, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
     #================================================================= Input guess generated
   #------------------------------------------------------------------- Self-Consistent Cycle
@@ -823,10 +838,10 @@
  Calculating wavelets expansion of projectors, found warnings:  32, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.18375415855E+02, Epot: -7.23542146822E+01, Enl:  4.59941112109E+00}, 
+ Energies: {Ekin:  2.18375415835E+02, Epot: -7.23542146684E+01, Enl:  4.59941112143E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D: -0.00E+00, 
- iter:  1, fnrm:  2.94E-01, Omega: -4.536931509696836E+01, D: -4.54E+01, D best: -4.54E+01, 
+ iter:  1, fnrm:  2.94E-01, Omega: -4.536931510120186E+01, D: -4.54E+01, D best: -4.54E+01, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, Normalization:  Yes}
@@ -835,15 +850,15 @@
  Calculating wavelets expansion of projectors, found warnings:  32, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.18089715848E+02, Epot: -7.20247521356E+01, Enl:  4.53402264555E+00}, 
+ Energies: {Ekin:  2.18089715817E+02, Epot: -7.20247521126E+01, Enl:  4.53402264619E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D:  3.80E-02,         kappa:  3.289E-01, kappa to history:  Yes, 
- iter:  2, fnrm:  2.30E-01, Omega: -4.709352168127737E+01, D: -1.72E+00, D best: -1.72E+00, 
+ iter:  2, fnrm:  2.30E-01, Omega: -4.709352168448092E+01, D: -1.72E+00, D best: -1.72E+00, 
  exit criterion: energy difference}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Energies: {Ekin:  2.18089715848E+02, Epot: -7.20247521356E+01, Enl:  4.53402264555E+00}, 
- iter:  2, fnrm:  2.30E-01, Omega: -4.709352168127737E+01, D: -1.72E+00, D best: -1.72E+00}
+ Energies: {Ekin:  2.18089715817E+02, Epot: -7.20247521126E+01, Enl:  4.53402264619E+00}, 
+ iter:  2, fnrm:  2.30E-01, Omega: -4.709352168448092E+01, D: -1.72E+00, D best: -1.72E+00}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.4E-02,  6.71E-02 ], warnings:  54}
@@ -864,7 +879,7 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  190, bounds:  [ -1.0,  2.48832 ], penalty: -1.2E-04, 
+         -  {npl:  190, bounds:  [ -1.000,  2.488 ], penalty: -1.2E-04, 
               ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
@@ -887,13 +902,13 @@
  eF:  1.420956E-01, Tr(K):  5.0000000E+01, D Tr(K):  2.01E-07, new eF: linear interpol}
          Asymmetry of kernel           :  9.72E-04
          symmetrize_kernel             :  Yes
-         EBS                           : -1.463980566972E+01
-         EBS higher temperature        : -1.463975327142E+01
-         difference                    :  5.239829623349E-05
-         relative difference           :  3.579166104771E-06
+         EBS                           : -1.463980566596E+01
+         EBS higher temperature        : -1.463975326767E+01
+         difference                    :  5.239829652481E-05
+         relative difference           :  3.579166125589E-06
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  50.00000020563861
+         trace(KS)                     :  50.00000020436411
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -902,12 +917,12 @@
          Kernel (possibly symmetrized) :  0.00E+00
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  8.64347664297E+01, Epot: -8.47700961642E+01, Enl:  9.03126534333E+00, 
-              EH:  2.64018911984E+02,  EXC: -2.23541999629E+01, EvXC: -2.89679296990E+01}, 
-    Total charge:  4.999996918541E+01, 
+ Energies: {Ekin:  8.64347664174E+01, Epot: -8.47700961593E+01, Enl:  9.03126534382E+00, 
+              EH:  2.64018911989E+02,  EXC: -2.23541999632E+01, EvXC: -2.89679296994E+01}, 
+    Total charge:  4.999996918413E+01, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.30E-11, 
- iter:  1, delta:  5.18E-06, energy: -5.45108657610948057E+01, D: -5.451E+01}]
+ iter:  1, delta:  5.18E-06, energy: -5.45108657623582360E+01, D: -5.451E+01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -922,7 +937,7 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  190, bounds:  [ -1.0,  2.48832 ], penalty: -1.2E-04, 
+         -  {npl:  190, bounds:  [ -1.000,  2.488 ], penalty: -1.2E-04, 
               ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
@@ -935,13 +950,13 @@
  eF:  1.593652E-01, Tr(K):  5.0000001E+01, D Tr(K):  6.60E-07, new eF: bisection/secant}
          Asymmetry of kernel           :  8.30E-04
          symmetrize_kernel             :  Yes
-         EBS                           : -1.438134824183E+01
-         EBS higher temperature        : -1.438132970942E+01
-         difference                    :  1.853241195704E-05
-         relative difference           :  1.288642180511E-06
+         EBS                           : -1.438134823863E+01
+         EBS higher temperature        : -1.438132970622E+01
+         difference                    :  1.853241171546E-05
+         relative difference           :  1.288642163999E-06
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  50.00000066483643
+         trace(KS)                     :  50.00000066356042
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -951,12 +966,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.18089715848E+02, Epot: -1.22634185833E+02, Enl:  4.53402264555E+00, 
-              EH:  2.64235943558E+02,  EXC: -2.23554469586E+01, EvXC: -2.89704688686E+01}, 
-    Total charge:  4.999996968117E+01, 
+ Energies: {Ekin:  2.18089715817E+02, Epot: -1.22634185811E+02, Enl:  4.53402264619E+00, 
+              EH:  2.64235943562E+02,  EXC: -2.23554469588E+01, EvXC: -2.89704688689E+01}, 
+    Total charge:  4.999996967989E+01, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.30E-11, 
- iter:  2, delta:  4.98E-06, energy: -5.44681477332240433E+01, D:  4.272E-02}]
+ iter:  2, delta:  4.98E-06, energy: -5.44681477345434075E+01, D:  4.272E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -971,9 +986,8 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  170, bounds:  [ -0.9,  2.239488 ], penalty: -1.1E+01, 
-              ok:  [  Yes,  No ]}
-         -  {npl:  190, bounds:  [ -0.9,  2.6873856 ], penalty: -5.3E-08, 
+         -  {npl:  170, bounds:  [ -0.900,  2.239 ], penalty: -1.1E+01, ok:  [  Yes,  No ]}
+         -  {npl:  190, bounds:  [ -0.900,  2.687 ], penalty: -5.3E-08, 
               ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
@@ -992,13 +1006,13 @@
  eF:  2.578256E-01, Tr(K):  4.9999999E+01, D Tr(K): -6.55E-07, new eF: bisection/secant}
          Asymmetry of kernel           :  1.37E-03
          symmetrize_kernel             :  Yes
-         EBS                           : -8.158889766609E+00
-         EBS higher temperature        : -8.158902383798E+00
-         difference                    : -1.261718933421E-05
-         relative difference           :  1.546434587932E-06
+         EBS                           : -8.158889775935E+00
+         EBS higher temperature        : -8.158902393124E+00
+         difference                    : -1.261718946921E-05
+         relative difference           :  1.546434602711E-06
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  49.99999935021368
+         trace(KS)                     :  49.99999934892726
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1008,12 +1022,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.18089715848E+02, Epot: -1.15550501102E+02, Enl:  4.53402264555E+00, 
-              EH:  2.70004522707E+02,  EXC: -2.24716720236E+01, EvXC: -2.91438313855E+01}, 
-    Total charge:  4.999996915493E+01, 
+ Energies: {Ekin:  2.18089715817E+02, Epot: -1.15550501102E+02, Enl:  4.53402264619E+00, 
+              EH:  2.70004522700E+02,  EXC: -2.24716720231E+01, EvXC: -2.91438313848E+01}, 
+    Total charge:  4.999996915364E+01, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.30E-11, 
- iter:  3, delta:  6.81E-07, energy: -5.39571309556664573E+01, D:  5.110E-01}]
+ iter:  3, delta:  6.81E-07, energy: -5.39571309576675446E+01, D:  5.110E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1028,7 +1042,7 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  200, bounds:  [ -0.9,  2.6873856 ], penalty:  1.5E-07, 
+         -  {npl:  200, bounds:  [ -0.900,  2.687 ], penalty:  1.5E-07, 
               ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
@@ -1047,13 +1061,13 @@
  eF:  3.011979E-01, Tr(K):  5.0000000E+01, D Tr(K): -5.06E-08, new eF: linear interpol}
          Asymmetry of kernel           :  8.78E-04
          symmetrize_kernel             :  Yes
-         EBS                           : -8.972449806221E+00
-         EBS higher temperature        : -8.972489843926E+00
-         difference                    : -4.003770449401E-05
-         relative difference           :  4.462293504975E-06
+         EBS                           : -8.972449810342E+00
+         EBS higher temperature        : -8.972489848046E+00
+         difference                    : -4.003770456507E-05
+         relative difference           :  4.462293510844E-06
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  49.99999995437518
+         trace(KS)                     :  49.99999995308755
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1063,12 +1077,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.18089715848E+02, Epot: -1.16525012674E+02, Enl:  4.53402264555E+00, 
-              EH:  2.69187491451E+02,  EXC: -2.24482297971E+01, EvXC: -2.91103137600E+01}, 
-    Total charge:  4.999996966679E+01, 
+ Energies: {Ekin:  2.18089715817E+02, Epot: -1.16525012667E+02, Enl:  4.53402264619E+00, 
+              EH:  2.69187491449E+02,  EXC: -2.24482297968E+01, EvXC: -2.91103137596E+01}, 
+    Total charge:  4.999996966550E+01, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.30E-11, 
- iter:  4, delta:  8.34E-07, energy: -5.39637351379584516E+01, D: -6.604E-03}]
+ iter:  4, delta:  8.34E-07, energy: -5.39637351398617682E+01, D: -6.604E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1083,7 +1097,7 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  200, bounds:  [ -0.9,  2.6873856 ], penalty: -5.1E-08, 
+         -  {npl:  200, bounds:  [ -0.900,  2.687 ], penalty: -5.1E-08, 
               ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
@@ -1100,13 +1114,13 @@
  eF:  3.255755E-01, Tr(K):  4.9999999E+01, D Tr(K): -7.08E-07, new eF: cubic interpol}
          Asymmetry of kernel           :  7.77E-04
          symmetrize_kernel             :  Yes
-         EBS                           : -8.262622629732E+00
-         EBS higher temperature        : -8.262555821668E+00
-         difference                    :  6.680806379222E-05
-         relative difference           :  8.085576067800E-06
+         EBS                           : -8.262622632854E+00
+         EBS higher temperature        : -8.262555824790E+00
+         difference                    :  6.680806387749E-05
+         relative difference           :  8.085576075064E-06
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  49.99999929749983
+         trace(KS)                     :  49.99999929621306
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1116,12 +1130,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.18089715848E+02, Epot: -1.15682720971E+02, Enl:  4.53402264555E+00, 
-              EH:  2.69905007583E+02,  EXC: -2.24947090550E+01, EvXC: -2.91716044204E+01}, 
-    Total charge:  4.999996908387E+01, 
+ Energies: {Ekin:  2.18089715817E+02, Epot: -1.15682720959E+02, Enl:  4.53402264619E+00, 
+              EH:  2.69905007581E+02,  EXC: -2.24947090547E+01, EvXC: -2.91716044200E+01}, 
+    Total charge:  4.999996908258E+01, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.30E-11, 
- iter:  5, delta:  7.16E-08, energy: -5.39566126905798455E+01, D:  7.122E-03}]
+ iter:  5, delta:  7.16E-08, energy: -5.39566126925796823E+01, D:  7.122E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1136,8 +1150,8 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  180, bounds:  [ -0.8100000000000001,  2.41864704 ], penalty: -9.7E-03, ok: [
-  Yes,  Yes]}
+         -  {npl:  180, bounds:  [ -0.810,  2.419 ], penalty: -9.7E-03, 
+              ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  2.843788E-01, Tr(K):  4.9999934E+01, D Tr(K): -6.64E-05, new eF: bisec bounds}
@@ -1151,13 +1165,13 @@
  eF:  3.228466E-01, Tr(K):  5.0000000E+01, D Tr(K): -3.36E-07, new eF: cubic interpol}
          Asymmetry of kernel           :  9.13E-04
          symmetrize_kernel             :  Yes
-         EBS                           : -8.145390069986E+00
-         EBS higher temperature        : -8.145389517158E+00
-         difference                    :  5.528277142730E-07
-         relative difference           :  6.787001107658E-08
+         EBS                           : -8.145390109483E+00
+         EBS higher temperature        : -8.145389556653E+00
+         difference                    :  5.528299098501E-07
+         relative difference           :  6.787028029590E-08
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  49.99999966930659
+         trace(KS)                     :  49.99999966801973
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1167,12 +1181,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.18089715848E+02, Epot: -1.15540997223E+02, Enl:  4.53402264555E+00, 
-              EH:  2.70023602477E+02,  EXC: -2.24978838966E+01, EvXC: -2.91761862105E+01}, 
-    Total charge:  4.999996946886E+01, 
+ Energies: {Ekin:  2.18089715817E+02, Epot: -1.15540997256E+02, Enl:  4.53402264619E+00, 
+              EH:  2.70023602439E+02,  EXC: -2.24978838952E+01, EvXC: -2.91761862086E+01}, 
+    Total charge:  4.999996946757E+01, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.30E-11, 
- iter:  6, delta:  5.62E-08, energy: -5.39565680772980159E+01, D:  4.461E-05}]
+ iter:  6, delta:  5.62E-08, energy: -5.39565680792577780E+01, D:  4.461E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1187,10 +1201,9 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  160, bounds:  [ -0.7290000000000001,  2.176782336 ], penalty: -1.5E+02, ok: [
-  Yes,  No]}
-         -  {npl:  180, bounds:  [ -0.7290000000000001,  2.6121388032 ], penalty:  1.3E-04, ok: [
-  Yes,  Yes]}
+         -  {npl:  160, bounds:  [ -0.729,  2.177 ], penalty: -1.5E+02, ok:  [  Yes,  No ]}
+         -  {npl:  180, bounds:  [ -0.729,  2.612 ], penalty:  1.3E-04, 
+              ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  2.894862E-01, Tr(K):  4.9999919E+01, D Tr(K): -8.12E-05, new eF: bisec bounds}
@@ -1212,13 +1225,13 @@
  eF:  3.389114E-01, Tr(K):  5.0000000E+01, D Tr(K): -1.05E-07, new eF: linear interpol}
          Asymmetry of kernel           :  5.93E-04
          symmetrize_kernel             :  Yes
-         EBS                           : -8.184408703638E+00
-         EBS higher temperature        : -8.184350132170E+00
-         difference                    :  5.857146773991E-05
-         relative difference           :  7.156469069522E-06
+         EBS                           : -8.184408707612E+00
+         EBS higher temperature        : -8.184350136144E+00
+         difference                    :  5.857146771859E-05
+         relative difference           :  7.156469063442E-06
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  49.99999989971858
+         trace(KS)                     :  49.99999989843197
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1228,12 +1241,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.18089715848E+02, Epot: -1.15585678407E+02, Enl:  4.53402264555E+00, 
-              EH:  2.69983928359E+02,  EXC: -2.24964437157E+01, EvXC: -2.91741168380E+01}, 
-    Total charge:  4.999996969464E+01, 
+ Energies: {Ekin:  2.18089715817E+02, Epot: -1.15585678395E+02, Enl:  4.53402264619E+00, 
+              EH:  2.69983928357E+02,  EXC: -2.24964437154E+01, EvXC: -2.91741168376E+01}, 
+    Total charge:  4.999996969336E+01, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.30E-11, 
- iter:  7, delta:  9.03E-09, energy: -5.39565417844332842E+01, D:  2.629E-05}]
+ iter:  7, delta:  9.03E-09, energy: -5.39565417864373273E+01, D:  2.629E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1248,8 +1261,8 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  180, bounds:  [ -0.7290000000000001,  2.6121388032 ], penalty:  1.3E-04, ok: [
-  Yes,  Yes]}
+         -  {npl:  180, bounds:  [ -0.729,  2.612 ], penalty:  1.3E-04, 
+              ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  3.117964E-01, Tr(K):  5.0000002E+01, D Tr(K):  1.93E-06, new eF: bisec bounds}
@@ -1261,13 +1274,13 @@
  eF:  3.146935E-01, Tr(K):  5.0000000E+01, D Tr(K):  2.71E-07, new eF: bisection/secant}
          Asymmetry of kernel           :  1.04E-03
          symmetrize_kernel             :  Yes
-         EBS                           : -8.186110141304E+00
-         EBS higher temperature        : -8.186129231062E+00
-         difference                    : -1.908975755782E-05
-         relative difference           :  2.331969302673E-06
+         EBS                           : -8.186110146381E+00
+         EBS higher temperature        : -8.186129236139E+00
+         difference                    : -1.908975789178E-05
+         relative difference           :  2.331969342022E-06
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  50.00000027560268
+         trace(KS)                     :  50.00000027431663
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1277,21 +1290,21 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.18089715848E+02, Epot: -1.15587764684E+02, Enl:  4.53402264555E+00, 
-              EH:  2.69982155427E+02,  EXC: -2.24964700117E+01, EvXC: -2.91741367913E+01}, 
-    Total charge:  4.999997007025E+01, 
+ Energies: {Ekin:  2.18089715817E+02, Epot: -1.15587764674E+02, Enl:  4.53402264619E+00, 
+              EH:  2.69982155424E+02,  EXC: -2.24964700113E+01, EvXC: -2.91741367908E+01}, 
+    Total charge:  4.999997006896E+01, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.30E-11, 
- iter:  8, delta:  8.49E-09, energy: -5.39564766321833531E+01, D:  6.515E-05}]
+ iter:  8, delta:  8.49E-09, energy: -5.39564766341863162E+01, D:  6.515E-05}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  2.30E-11, 
- iter:  9, delta:  8.49E-09, energy: -5.39564766321833531E+01, D:  6.515E-05}]}
+ iter:  9, delta:  8.49E-09, energy: -5.39564766341863162E+01, D:  6.515E-05}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: HYBRID, mean conf prefac:  1.73E-01, damping:  1.00E+00, 
         iterations to converge support functions:  2, kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  1, delta out:  2.774E-06, energy: -5.39564766321833531E+01, D: -5.396E+01}
-   multiplicator for the confinement   :  0.1081540774418418
+ iter low:  1, delta out:  2.774E-06, energy: -5.39564766341863162E+01, D: -5.396E+01}
+   multiplicator for the confinement   :  0.1081540769350618
     #WARNING: No orthogonalizing of the support functions
     #========================================================= support function optimization
  - support function optimization: &it_supfun002
@@ -1300,10 +1313,10 @@
  Calculating wavelets expansion of projectors, found warnings:  32, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.18089715848E+02, Epot: -1.10079635514E+02, Enl:  4.53402264555E+00}, 
+ Energies: {Ekin:  2.18089715817E+02, Epot: -1.10079635557E+02, Enl:  4.53402264619E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D: -0.00E+00, 
- iter:  1, fnrm:  2.33E-01, Omega: -5.309901637642770E+01, D: -7.73E+00, D best: -7.73E+00, 
+ iter:  1, fnrm:  2.33E-01, Omega: -5.309901638216141E+01, D: -7.73E+00, D best: -7.73E+00, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, Normalization:  Yes}
@@ -1312,15 +1325,15 @@
  Calculating wavelets expansion of projectors, found warnings:  32, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.12887034634E+02, Epot: -1.06342204931E+02, Enl:  4.22508436066E+00}, 
+ Energies: {Ekin:  2.12887034596E+02, Epot: -1.06342204969E+02, Enl:  4.22508436075E+00}, 
  Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
            rel D:  2.85E-02,         kappa:  3.327E-01, kappa to history:  Yes, 
- iter:  2, fnrm:  9.98E-02, Omega: -5.461448196363273E+01, D: -1.52E+00, D best: -1.52E+00, 
+ iter:  2, fnrm:  9.98E-02, Omega: -5.461448196680053E+01, D: -1.52E+00, D best: -1.52E+00, 
  exit criterion: energy difference}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Energies: {Ekin:  2.12887034634E+02, Epot: -1.06342204931E+02, Enl:  4.22508436066E+00}, 
- iter:  2, fnrm:  9.98E-02, Omega: -5.461448196363273E+01, D: -1.52E+00, D best: -1.52E+00}
+ Energies: {Ekin:  2.12887034596E+02, Epot: -1.06342204969E+02, Enl:  4.22508436075E+00}, 
+ iter:  2, fnrm:  9.98E-02, Omega: -5.461448196680053E+01, D: -1.52E+00, D best: -1.52E+00}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.58E-02,  6.71E-02 ], warnings:  72}
@@ -1341,8 +1354,8 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  180, bounds:  [ -0.7290000000000001,  2.6121388032 ], penalty:  4.1E-04, ok: [
-  Yes,  Yes]}
+         -  {npl:  180, bounds:  [ -0.729,  2.612 ], penalty:  4.1E-04, 
+              ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  2.829711E-01, Tr(K):  4.9999902E+01, D Tr(K): -9.78E-05, new eF: bisec bounds}
@@ -1360,13 +1373,13 @@
  eF:  3.022983E-01, Tr(K):  4.9999999E+01, D Tr(K): -8.76E-07, new eF: linear interpol}
          Asymmetry of kernel           :  1.09E-03
          symmetrize_kernel             :  Yes
-         EBS                           : -9.975170474820E+00
-         EBS higher temperature        : -9.975202893650E+00
-         difference                    : -3.241883028693E-05
-         relative difference           :  3.249952506452E-06
+         EBS                           : -9.975170491958E+00
+         EBS higher temperature        : -9.975202910788E+00
+         difference                    : -3.241882997429E-05
+         relative difference           :  3.249952469527E-06
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  49.99999913058102
+         trace(KS)                     :  49.99999913009472
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1375,12 +1388,12 @@
          Kernel (possibly symmetrized) :  0.00E+00
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.18089715848E+02, Epot: -1.15587764684E+02, Enl:  4.53402264555E+00, 
-              EH:  2.69984869914E+02,  EXC: -2.24961012062E+01, EvXC: -2.91736660944E+01}, 
-    Total charge:  4.999997159323E+01, 
+ Energies: {Ekin:  2.18089715817E+02, Epot: -1.15587764674E+02, Enl:  4.53402264619E+00, 
+              EH:  2.69984869897E+02,  EXC: -2.24961012051E+01, EvXC: -2.91736660929E+01}, 
+    Total charge:  4.999997159274E+01, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  9.98E-12, 
- iter:  1, delta:  1.98E-06, energy: -5.57483533444855084E+01, D: -1.792E+00}]
+ iter:  1, delta:  1.98E-06, energy: -5.57483533453652456E+01, D: -1.792E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1395,30 +1408,25 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  160, bounds:  [ -0.6561000000000001,  2.35092492288 ], 
-         penalty: -8.2E-02, ok:  [  Yes,  Yes ]}
+         -  {npl:  160, bounds:  [ -0.656,  2.351 ], penalty: -8.2E-02, ok:  [  Yes,  No ]}
+         -  {npl:  180, bounds:  [ -0.656,  2.821 ], penalty:  7.9E-03, 
+              ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF:  2.828749E-01, Tr(K):  4.9999941E+01, D Tr(K): -5.86E-05, new eF: bisec bounds}
+ eF:  2.828749E-01, Tr(K):  4.9999923E+01, D Tr(K): -7.71E-05, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF:  3.220350E-01, Tr(K):  5.0000009E+01, D Tr(K):  8.73E-06, new eF: bisection/secant}
+ eF:  3.220350E-01, Tr(K):  5.0000032E+01, D Tr(K):  3.20E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF:  3.097082E-01, Tr(K):  4.9999987E+01, D Tr(K): -1.31E-05, new eF: bisection/secant}
-         -  { #------------------------------------------------------------------ it FOE: 4
- eF:  3.164853E-01, Tr(K):  4.9999993E+01, D Tr(K): -7.12E-06, new eF: bisection/secant}
-         -  { #------------------------------------------------------------------ it FOE: 5
- eF:  3.191195E-01, Tr(K):  4.9999999E+01, D Tr(K): -1.18E-06, new eF: linear interpol}
-         -  { #------------------------------------------------------------------ it FOE: 6
- eF:  3.196454E-01, Tr(K):  5.0000000E+01, D Tr(K):  3.28E-07, new eF: linear interpol}
-         Asymmetry of kernel           :  5.96E-04
+ eF:  3.064983E-01, Tr(K):  5.0000000E+01, D Tr(K):  3.83E-07, new eF: bisection/secant}
+         Asymmetry of kernel           :  9.81E-04
          symmetrize_kernel             :  Yes
-         EBS                           : -1.000146202872E+01
-         EBS higher temperature        : -1.000141143397E+01
-         difference                    :  5.059474815994E-05
-         relative difference           :  5.058735214378E-06
+         EBS                           : -1.000142836522E+01
+         EBS higher temperature        : -1.000145599688E+01
+         difference                    : -2.763166638431E-05
+         relative difference           :  2.762772013686E-06
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  50.00000033507814
+         trace(KS)                     :  50.00000038948882
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1428,12 +1436,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.12887034634E+02, Epot: -1.12167497356E+02, Enl:  4.22508436066E+00, 
-              EH:  2.69956082498E+02,  EXC: -2.24924507176E+01, EvXC: -2.91689111385E+01}, 
-    Total charge:  4.999997279620E+01, 
+ Energies: {Ekin:  2.12887034596E+02, Epot: -1.12167497346E+02, Enl:  4.22508436075E+00, 
+              EH:  2.69956082493E+02,  EXC: -2.24924507172E+01, EvXC: -2.91689111378E+01}, 
+    Total charge:  4.999997285058E+01, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  9.98E-12, 
- iter:  2, delta:  1.97E-06, energy: -5.57469619497085773E+01, D:  1.391E-03}]
+ iter:  2, delta:  1.97E-06, energy: -5.57469282810191373E+01, D:  1.425E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1448,36 +1456,31 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  150, bounds:  [ -0.5904900000000002,  2.115832430592 ], 
-         penalty: -9.1E+02, ok:  [  Yes,  No ]}
-         -  {npl:  160, bounds:  [ -0.5904900000000002,  2.5389989167104 ], 
-         penalty:  2.2E-01, ok:  [  No,  Yes ]}
-         -  {npl:  180, bounds:  [ -0.7085880000000002,  2.5389989167104 ], 
-         penalty:  1.9E-03, ok:  [  Yes,  Yes ]}
+         -  {npl:  180, bounds:  [ -0.656,  2.821 ], penalty:  1.6E-02, ok:  [  No,  Yes ]}
+         -  {npl:  190, bounds:  [ -0.787,  2.821 ], penalty:  8.2E-05, 
+              ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF:  3.036714E-01, Tr(K):  5.0000022E+01, D Tr(K):  2.23E-05, new eF: bisec bounds}
+ eF:  2.846742E-01, Tr(K):  4.9999974E+01, D Tr(K): -2.61E-05, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF:  2.878116E-01, Tr(K):  4.9999970E+01, D Tr(K): -3.02E-05, new eF: bisec bounds}
+ eF:  3.163938E-01, Tr(K):  5.0000076E+01, D Tr(K):  7.56E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF:  3.353911E-01, Tr(K):  5.0000225E+01, D Tr(K):  2.25E-04, new eF: bisection/secant}
+ eF:  2.966786E-01, Tr(K):  4.9999986E+01, D Tr(K): -1.36E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF:  3.025169E-01, Tr(K):  5.0000018E+01, D Tr(K):  1.78E-05, new eF: bisection/secant}
+ eF:  3.031115E-01, Tr(K):  5.0000002E+01, D Tr(K):  2.06E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF:  2.961171E-01, Tr(K):  4.9999995E+01, D Tr(K): -5.43E-06, new eF: bisection/secant}
+ eF:  3.010803E-01, Tr(K):  4.9999996E+01, D Tr(K): -4.07E-06, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF:  2.984662E-01, Tr(K):  5.0000003E+01, D Tr(K):  2.70E-06, new eF: cubic interpol}
-         -  { #------------------------------------------------------------------ it FOE: 7
- eF:  2.976985E-01, Tr(K):  5.0000000E+01, D Tr(K): -5.15E-09, new eF: linear interpol}
-         Asymmetry of kernel           :  8.28E-04
+ eF:  3.024288E-01, Tr(K):  5.0000000E+01, D Tr(K): -1.37E-07, new eF: linear interpol}
+         Asymmetry of kernel           :  6.92E-04
          symmetrize_kernel             :  Yes
-         EBS                           : -1.071089257430E+01
-         EBS higher temperature        : -1.071086693144E+01
-         difference                    :  2.564286008067E-05
-         relative difference           :  2.394091799799E-06
+         EBS                           : -1.071056917866E+01
+         EBS higher temperature        : -1.071054628350E+01
+         difference                    :  2.289516531562E-05
+         relative difference           :  2.137623587851E-06
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  50.00000000139748
+         trace(KS)                     :  49.99999986942393
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1487,12 +1490,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.12887034634E+02, Epot: -1.13270199782E+02, Enl:  4.22508436066E+00, 
-              EH:  2.69181502698E+02,  EXC: -2.23934504448E+01, EvXC: -2.90399984172E+01}, 
-    Total charge:  4.999997241973E+01, 
+ Energies: {Ekin:  2.12887034596E+02, Epot: -1.13269712076E+02, Enl:  4.22508436075E+00, 
+              EH:  2.69181846388E+02,  EXC: -2.23934900645E+01, EvXC: -2.90400500674E+01}, 
+    Total charge:  4.999997228780E+01, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  9.98E-12, 
- iter:  3, delta:  1.76E-06, energy: -5.57117251431747604E+01, D:  3.524E-02}]
+ iter:  3, delta:  1.76E-06, energy: -5.57117334072936217E+01, D:  3.519E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1507,38 +1510,40 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  170, bounds:  [ -0.7085880000000002,  2.5389989167104 ], 
-         penalty:  2.4E-02, ok:  [  Yes,  Yes ]}
+         -  {npl:  190, bounds:  [ -0.787,  2.821 ], penalty:  2.2E-03, 
+              ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF:  2.835689E-01, Tr(K):  5.0000385E+01, D Tr(K):  3.85E-04, new eF: bisec bounds}
+ eF:  2.896292E-01, Tr(K):  5.0000954E+01, D Tr(K):  9.54E-04, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF:  2.694378E-01, Tr(K):  5.0000224E+01, D Tr(K):  2.24E-04, new eF: bisec bounds}
+ eF:  2.767828E-01, Tr(K):  5.0000586E+01, D Tr(K):  5.86E-04, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF:  2.538936E-01, Tr(K):  5.0000120E+01, D Tr(K):  1.20E-04, new eF: bisec bounds}
+ eF:  2.626516E-01, Tr(K):  5.0000374E+01, D Tr(K):  3.74E-04, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF:  2.367949E-01, Tr(K):  5.0000035E+01, D Tr(K):  3.47E-05, new eF: bisec bounds}
+ eF:  2.471074E-01, Tr(K):  5.0000227E+01, D Tr(K):  2.27E-04, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF:  2.179864E-01, Tr(K):  4.9999962E+01, D Tr(K): -3.77E-05, new eF: bisec bounds}
+ eF:  2.300088E-01, Tr(K):  5.0000095E+01, D Tr(K):  9.53E-05, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF:  3.118311E-01, Tr(K):  5.0000969E+01, D Tr(K):  9.69E-04, new eF: bisection/secant}
+ eF:  2.112003E-01, Tr(K):  4.9999999E+01, D Tr(K): -1.44E-06, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF:  2.432059E-01, Tr(K):  5.0000066E+01, D Tr(K):  6.62E-05, new eF: bisection/secant}
+ eF:  3.153221E-01, Tr(K):  5.0004393E+01, D Tr(K):  4.39E-03, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF:  2.288702E-01, Tr(K):  4.9999998E+01, D Tr(K): -1.87E-06, new eF: bisection/secant}
+ eF:  2.372478E-01, Tr(K):  5.0000149E+01, D Tr(K):  1.49E-04, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 9
- eF:  2.326515E-01, Tr(K):  5.0000015E+01, D Tr(K):  1.49E-05, new eF: cubic interpol}
+ eF:  2.178370E-01, Tr(K):  5.0000024E+01, D Tr(K):  2.37E-05, new eF: bisection/secant}
          -  { #----------------------------------------------------------------- it FOE: 10
- eF:  2.292972E-01, Tr(K):  5.0000000E+01, D Tr(K): -5.88E-08, new eF: linear interpol}
-         Asymmetry of kernel           :  7.73E-04
+ eF:  2.130494E-01, Tr(K):  5.0000005E+01, D Tr(K):  4.50E-06, new eF: cubic interpol}
+         -  { #----------------------------------------------------------------- it FOE: 11
+ eF:  2.119202E-01, Tr(K):  5.0000001E+01, D Tr(K):  7.80E-07, new eF: linear interpol}
+         Asymmetry of kernel           :  6.91E-04
          symmetrize_kernel             :  Yes
-         EBS                           : -1.362491707669E+01
-         EBS higher temperature        : -1.362490813483E+01
-         difference                    :  8.941861494804E-06
-         relative difference           :  6.562874067028E-07
+         EBS                           : -1.450533575414E+01
+         EBS higher temperature        : -1.450531713613E+01
+         difference                    :  1.861800602398E-05
+         relative difference           :  1.283528098870E-06
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  49.99999994740714
+         trace(KS)                     :  50.00000078585357
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1548,12 +1553,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.12887034634E+02, Epot: -1.18105578248E+02, Enl:  4.22508436066E+00, 
-              EH:  2.65988514922E+02,  EXC: -2.17508452857E+01, EvXC: -2.82116645804E+01}, 
-    Total charge:  4.999997224640E+01, 
+ Energies: {Ekin:  2.12887034596E+02, Epot: -1.19545126752E+02, Enl:  4.22508436075E+00, 
+              EH:  2.65045319909E+02,  EXC: -2.15752687125E+01, EvXC: -2.79859512309E+01}, 
+    Total charge:  4.999997304414E+01, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  9.98E-12, 
- iter:  4, delta:  7.43E-07, energy: -5.56184905476170002E+01, D:  9.323E-02}]
+ iter:  4, delta:  4.82E-07, energy: -5.56058509886036347E+01, D:  1.059E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1568,32 +1573,28 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  170, bounds:  [ -0.7085880000000002,  2.5389989167104 ], 
-         penalty:  7.0E-02, ok:  [  Yes,  Yes ]}
+         -  {npl:  190, bounds:  [ -0.787,  2.821 ], penalty:  3.0E-03, 
+              ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF:  2.125520E-01, Tr(K):  5.0000041E+01, D Tr(K):  4.12E-05, new eF: bisec bounds}
+ eF:  1.949252E-01, Tr(K):  4.9999988E+01, D Tr(K): -1.21E-05, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF:  1.957936E-01, Tr(K):  4.9999991E+01, D Tr(K): -8.59E-06, new eF: bisec bounds}
+ eF:  2.284419E-01, Tr(K):  5.0000145E+01, D Tr(K):  1.45E-04, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF:  2.460688E-01, Tr(K):  5.0000293E+01, D Tr(K):  2.93E-04, new eF: bisection/secant}
+ eF:  2.045922E-01, Tr(K):  5.0000004E+01, D Tr(K):  3.72E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF:  2.090784E-01, Tr(K):  5.0000027E+01, D Tr(K):  2.72E-05, new eF: bisection/secant}
+ eF:  2.010403E-01, Tr(K):  4.9999996E+01, D Tr(K): -4.04E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF:  2.007103E-01, Tr(K):  5.0000002E+01, D Tr(K):  2.20E-06, new eF: bisection/secant}
-         -  { #------------------------------------------------------------------ it FOE: 6
- eF:  1.989800E-01, Tr(K):  4.9999998E+01, D Tr(K): -1.82E-06, new eF: cubic interpol}
-         -  { #------------------------------------------------------------------ it FOE: 7
- eF:  1.997827E-01, Tr(K):  5.0000000E+01, D Tr(K):  9.27E-09, new eF: linear interpol}
-         Asymmetry of kernel           :  7.62E-04
+ eF:  2.028532E-01, Tr(K):  5.0000000E+01, D Tr(K): -4.46E-07, new eF: linear interpol}
+         Asymmetry of kernel           :  6.91E-04
          symmetrize_kernel             :  Yes
-         EBS                           : -1.485890783427E+01
-         EBS higher temperature        : -1.485890680922E+01
-         difference                    :  1.025049158443E-06
-         relative difference           :  6.898549811844E-08
+         EBS                           : -1.485746701023E+01
+         EBS higher temperature        : -1.485745679699E+01
+         difference                    :  1.021324631267E-05
+         relative difference           :  6.874150422571E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  50.00000001530813
+         trace(KS)                     :  49.99999956008217
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1603,15 +1604,15 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.12887034634E+02, Epot: -1.20147244409E+02, Enl:  4.22508436066E+00, 
-              EH:  2.64664267864E+02,  EXC: -2.14881150131E+01, EvXC: -2.78743943450E+01}, 
-    Total charge:  4.999997226144E+01,  #WARNING: No increase of FOE cutoff
+ Energies: {Ekin:  2.12887034596E+02, Epot: -1.20145050001E+02, Enl:  4.22508436075E+00, 
+              EH:  2.64665743621E+02,  EXC: -2.14882448163E+01, EvXC: -2.78745642710E+01}, 
+    Total charge:  4.999997180631E+01,  #WARNING: No increase of FOE cutoff
  Need to correct charge density:  Yes,  #WARNING: set to 1.d-20 instead of 0.d0
- number of corrected points:  16, 
- total charge correction:  1.03609E-11, 
+ number of corrected points:  10, 
+ total charge correction:  2.98931E-12, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  9.98E-12, 
- iter:  5, delta:  3.77E-07, energy: -5.56027742100633304E+01, D:  1.572E-02}]
+ iter:  5, delta:  3.77E-07, energy: -5.56027690202576252E+01, D:  3.082E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1626,30 +1627,31 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  150, bounds:  [ -0.6377292000000002,  2.28509902503936 ], 
-         penalty:  2.1E+00, ok:  [  No,  Yes ]}
-         -  {npl:  160, bounds:  [ -0.7652750400000002,  2.28509902503936 ], 
-         penalty: -4.7E-02, ok:  [  Yes,  Yes ]}
+         -  {npl:  170, bounds:  [ -0.709,  2.539 ], penalty:  1.2E-01, ok:  [  No,  Yes ]}
+         -  {npl:  180, bounds:  [ -0.850,  2.539 ], penalty:  4.3E-04, 
+              ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF:  1.848469E-01, Tr(K):  4.9999998E+01, D Tr(K): -2.33E-06, new eF: bisec bounds}
+ eF:  1.895036E-01, Tr(K):  5.0000030E+01, D Tr(K):  3.04E-05, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF:  2.147104E-01, Tr(K):  5.0000174E+01, D Tr(K):  1.74E-04, new eF: bisection/secant}
+ eF:  1.759293E-01, Tr(K):  5.0000009E+01, D Tr(K):  8.98E-06, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF:  1.925103E-01, Tr(K):  5.0000018E+01, D Tr(K):  1.76E-05, new eF: bisection/secant}
+ eF:  1.609976E-01, Tr(K):  4.9999947E+01, D Tr(K): -5.30E-05, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF:  1.872103E-01, Tr(K):  5.0000002E+01, D Tr(K):  2.14E-06, new eF: bisection/secant}
+ eF:  2.166522E-01, Tr(K):  5.0000156E+01, D Tr(K):  1.56E-04, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF:  1.860535E-01, Tr(K):  5.0000000E+01, D Tr(K): -2.07E-07, new eF: linear interpol}
-         Asymmetry of kernel           :  6.60E-04
+ eF:  1.819541E-01, Tr(K):  5.0000024E+01, D Tr(K):  2.42E-05, new eF: bisection/secant}
+         -  { #------------------------------------------------------------------ it FOE: 6
+ eF:  1.734275E-01, Tr(K):  5.0000000E+01, D Tr(K): -2.17E-07, new eF: bisection/secant}
+         Asymmetry of kernel           :  9.42E-04
          symmetrize_kernel             :  Yes
-         EBS                           : -1.557183482912E+01
-         EBS higher temperature        : -1.557183516598E+01
-         difference                    : -3.368606087406E-07
-         relative difference           :  2.163268570706E-08
+         EBS                           : -1.553045076093E+01
+         EBS higher temperature        : -1.553044982716E+01
+         difference                    :  9.337680921817E-07
+         relative difference           :  6.012498327034E-08
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  49.99999979936103
+         trace(KS)                     :  49.99999978851296
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1659,15 +1661,15 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.12887034634E+02, Epot: -1.21294610375E+02, Enl:  4.22508436066E+00, 
-              EH:  2.63906322930E+02,  EXC: -2.13425613864E+01, EvXC: -2.76877592633E+01}, 
-    Total charge:  4.999997200825E+01,  #WARNING: No increase of FOE cutoff
+ Energies: {Ekin:  2.12887034596E+02, Epot: -1.21224143587E+02, Enl:  4.22508436075E+00, 
+              EH:  2.63948808984E+02,  EXC: -2.13465521411E+01, EvXC: -2.76929077840E+01}, 
+    Total charge:  4.999997199854E+01,  #WARNING: No increase of FOE cutoff
  Need to correct charge density:  Yes,  #WARNING: set to 1.d-20 instead of 0.d0
  number of corrected points:  10, 
- total charge correction:  2.71169E-12, 
+ total charge correction:  3.08239E-12, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  9.98E-12, 
- iter:  6, delta:  1.13E-07, energy: -5.55988377261823530E+01, D:  3.936E-03}]
+ iter:  6, delta:  7.78E-08, energy: -5.55987819457059516E+01, D:  3.987E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1682,28 +1684,30 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  170, bounds:  [ -0.7652750400000002,  2.28509902503936 ], 
-         penalty: -4.6E-02, ok:  [  Yes,  Yes ]}
+         -  {npl:  180, bounds:  [ -0.850,  2.539 ], penalty:  4.3E-04, 
+              ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF:  1.740607E-01, Tr(K):  4.9999998E+01, D Tr(K): -2.47E-06, new eF: bisec bounds}
+ eF:  1.622928E-01, Tr(K):  4.9999952E+01, D Tr(K): -4.81E-05, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF:  1.982501E-01, Tr(K):  5.0000040E+01, D Tr(K):  4.04E-05, new eF: bisection/secant}
+ eF:  1.889012E-01, Tr(K):  5.0000031E+01, D Tr(K):  3.11E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF:  1.808033E-01, Tr(K):  5.0000013E+01, D Tr(K):  1.32E-05, new eF: bisection/secant}
+ eF:  1.770219E-01, Tr(K):  5.0000013E+01, D Tr(K):  1.27E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF:  1.762785E-01, Tr(K):  5.0000004E+01, D Tr(K):  3.55E-06, new eF: bisection/secant}
+ eF:  1.718022E-01, Tr(K):  4.9999993E+01, D Tr(K): -6.85E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF:  1.750700E-01, Tr(K):  5.0000000E+01, D Tr(K):  3.70E-07, new eF: linear interpol}
-         Asymmetry of kernel           :  9.01E-04
+ eF:  1.740220E-01, Tr(K):  5.0000002E+01, D Tr(K):  2.17E-06, new eF: linear interpol}
+         -  { #------------------------------------------------------------------ it FOE: 6
+ eF:  1.734879E-01, Tr(K):  5.0000000E+01, D Tr(K):  8.20E-08, new eF: linear interpol}
+         Asymmetry of kernel           :  9.37E-04
          symmetrize_kernel             :  Yes
-         EBS                           : -1.556170261811E+01
-         EBS higher temperature        : -1.556170978751E+01
-         difference                    : -7.169400504381E-06
-         relative difference           :  4.607079752339E-07
+         EBS                           : -1.554112298259E+01
+         EBS higher temperature        : -1.554111665963E+01
+         difference                    :  6.322957624150E-06
+         relative difference           :  4.068533291471E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  50.00000037556745
+         trace(KS)                     :  50.0000000874777
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1713,12 +1717,15 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.12887034634E+02, Epot: -1.21264446346E+02, Enl:  4.22508436066E+00, 
-              EH:  2.63917292237E+02,  EXC: -2.13461672028E+01, EvXC: -2.76922938468E+01}, 
-    Total charge:  4.999997258209E+01, 
+ Energies: {Ekin:  2.12887034596E+02, Epot: -1.21238861799E+02, Enl:  4.22508436075E+00, 
+              EH:  2.63937861810E+02,  EXC: -2.13457140079E+01, EvXC: -2.76918060140E+01}, 
+    Total charge:  4.999997229648E+01,  #WARNING: No increase of FOE cutoff
+ Need to correct charge density:  Yes,  #WARNING: set to 1.d-20 instead of 0.d0
+ number of corrected points:  2, 
+ total charge correction:  2.85144E-19, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  9.98E-12, 
- iter:  7, delta:  6.89E-08, energy: -5.55987460552424864E+01, D:  9.167E-05}]
+ iter:  7, delta:  7.42E-08, energy: -5.55987706303855873E+01, D:  1.132E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1733,32 +1740,28 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  160, bounds:  [ -0.7652750400000002,  2.28509902503936 ], 
-         penalty: -4.7E-02, ok:  [  Yes,  Yes ]}
+         -  {npl:  180, bounds:  [ -0.850,  2.539 ], penalty:  4.5E-04, 
+              ok:  [  Yes,  Yes ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF:  1.651327E-01, Tr(K):  4.9999980E+01, D Tr(K): -2.04E-05, new eF: bisec bounds}
+ eF:  1.626905E-01, Tr(K):  4.9999954E+01, D Tr(K): -4.60E-05, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF:  1.847261E-01, Tr(K):  4.9999997E+01, D Tr(K): -3.35E-06, new eF: bisec bounds}
+ eF:  1.842433E-01, Tr(K):  5.0000030E+01, D Tr(K):  2.99E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF:  1.935432E-01, Tr(K):  5.0000021E+01, D Tr(K):  2.11E-05, new eF: bisection/secant}
+ eF:  1.746066E-01, Tr(K):  5.0000005E+01, D Tr(K):  5.42E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF:  1.792210E-01, Tr(K):  4.9999991E+01, D Tr(K): -9.35E-06, new eF: bisection/secant}
+ eF:  1.709994E-01, Tr(K):  4.9999991E+01, D Tr(K): -9.48E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF:  1.850045E-01, Tr(K):  4.9999997E+01, D Tr(K): -2.90E-06, new eF: bisection/secant}
-         -  { #------------------------------------------------------------------ it FOE: 6
- eF:  1.876568E-01, Tr(K):  5.0000002E+01, D Tr(K):  2.26E-06, new eF: linear interpol}
-         -  { #------------------------------------------------------------------ it FOE: 7
- eF:  1.864974E-01, Tr(K):  5.0000000E+01, D Tr(K): -2.17E-07, new eF: linear interpol}
-         Asymmetry of kernel           :  6.39E-04
+ eF:  1.730488E-01, Tr(K):  4.9999999E+01, D Tr(K): -7.45E-07, new eF: linear interpol}
+         Asymmetry of kernel           :  9.30E-04
          symmetrize_kernel             :  Yes
-         EBS                           : -1.555589883139E+01
-         EBS higher temperature        : -1.555589787361E+01
-         difference                    :  9.577814026329E-07
-         relative difference           :  6.157030288087E-08
+         EBS                           : -1.556691586326E+01
+         EBS higher temperature        : -1.556690929276E+01
+         difference                    :  6.570498499059E-06
+         relative difference           :  4.220809411943E-07
          modify error function decay length: increase
          fscale reached upper limit; reset to:  5.0000000000000003E-002
-         trace(KS)                     :  49.99999978885128
+         trace(KS)                     :  49.99999926009769
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1768,27 +1771,27 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      Hamiltonian update: {
- Energies: {Ekin:  2.12887034634E+02, Epot: -1.21235858665E+02, Enl:  4.22508436066E+00, 
-              EH:  2.63924933855E+02,  EXC: -2.13533844076E+01, EvXC: -2.77014149089E+01}, 
-    Total charge:  4.999997199113E+01, 
+ Energies: {Ekin:  2.12887034596E+02, Epot: -1.21251883138E+02, Enl:  4.22508436075E+00, 
+              EH:  2.63913673891E+02,  EXC: -2.13526225338E+01, EvXC: -2.77004139019E+01}, 
+    Total charge:  4.999997146144E+01, 
  Poisson Solver: {BC: Free, Box:  [  81,  83,  137 ], MPI tasks:  8}}
      summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  9.98E-12, 
- iter:  8, delta:  1.26E-08, energy: -5.55986800290574479E+01, D:  6.603E-05}]
+ iter:  8, delta:  1.09E-08, energy: -5.55986762303026865E+01, D:  9.440E-05}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel method: FOE, mix entity: DENS, mix hist:  4, conv crit:  9.98E-12, 
- iter:  9, delta:  1.26E-08, energy: -5.55986800290574479E+01, D:  6.603E-05}]}
+ iter:  9, delta:  1.09E-08, energy: -5.55986762303026865E+01, D:  9.440E-05}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, Omega: HYBRID, mean conf prefac:  1.88E-02, damping:  1.00E+00, 
         iterations to converge support functions:  2, kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  2, delta out:  1.763E-06, energy: -5.55986800290574479E+01, D: -1.642E+00}
+ iter low:  2, delta out:  1.762E-06, energy: -5.55986762303026865E+01, D: -1.642E+00}
     #========================================================================= final results
    self consistency summary:
    -  {iter:  2, 
- Energies: {Ekin:  2.12887034634E+02, Epot: -1.21235858665E+02, Enl:  4.22508436066E+00, 
-              EH:  2.63919680795E+02,  EXC: -2.13528223706E+01, EvXC: -2.77006891666E+01}, 
-        iter low:  2,            delta out:  1.763E-06, 
-          energy: -5.55986800290574479E+01,                       D:  0.000E+00,  #FINAL
+ Energies: {Ekin:  2.12887034596E+02, Epot: -1.21251883138E+02, Enl:  4.22508436075E+00, 
+              EH:  2.63917237236E+02,  EXC: -2.13531704984E+01, EvXC: -2.77011186740E+01}, 
+        iter low:  2,            delta out:  1.762E-06, 
+          energy: -5.55986762303026865E+01,                       D:  0.000E+00,  #FINAL
  }
  Gross support functions moments:
    Orthonormalization                  : on-site
@@ -1798,17 +1801,17 @@
      values:
      - sym                             : H-1 # 0001
        Atom number                     :  10
-       r: [ 0.8961037877476564, -0.6698510001377662, -4.3658094712699966E-004]
+       r: [ 0.8961037877625546, -0.6698510001357392, -4.365809375835729E-004]
        nzion                           :  0
        Delta r                         :  [  1.610379E-02, -9.850974E-03, -4.365809E-04 ]
        q0                              :  [ -1.0E+00 ]
        q1                              :  [  1.487797E-01,  4.284302E-03, -2.020287E-01 ]
-       q2: [-2.939107E-01,  2.732967E-02, -1.702124E-01, -1.376630E-02,  5.662124E-02]
+       q2: [-2.939107E-01,  2.732967E-02, -1.702124E-01, -1.376630E-02,  5.662123E-02]
        scaling factor                  :  6.60E-01
        type                            : unknown
      - sym                             : H-2 # 0002
        Atom number                     :  10
-       r: [ 1.019114817298047, -0.7013841375324636, -5.9850104963118434E-004]
+       r: [ 1.019114817279754, -0.7013841375432008, -5.985010484495949E-004]
        nzion                           :  0
        Delta r                         :  [  1.391148E-01, -4.138411E-02, -5.985010E-04 ]
        q0                              :  [  4.741273E-01 ]
@@ -1818,7 +1821,7 @@
        type                            : unknown
      - sym                             : H-3 # 0003
        Atom number                     :  10
-       r: [ 0.9175365211830868, -0.7515484564031414,  2.4144164318060505E-003]
+       r: [ 0.9175365211853945, -0.7515484563889628,  2.4144164318511711E-003]
        nzion                           :  0
        Delta r                         :  [  3.753653E-02, -9.154843E-02,  2.414416E-03 ]
        q0                              :  [ -2.850016E-01 ]
@@ -1828,17 +1831,17 @@
        type                            : unknown
      - sym                             : H-4 # 0004
        Atom number                     :  10
-       r: [ 0.9001356653010759, -0.6734719806166966,  4.7029019775589129E-003]
+       r: [ 0.9001356652957103, -0.6734719806130582,  4.7029019760473807E-003]
        nzion                           :  0
        Delta r                         :  [  2.013567E-02, -1.347195E-02,  4.702902E-03 ]
        q0                              :  [  1.177697E-02 ]
-       q1                              :  [  8.294278E-03,  1.000000E+00, -1.258301E-02 ]
+       q1                              :  [  8.294279E-03,  1.000000E+00, -1.258301E-02 ]
        q2: [-2.444372E-02, -3.564400E-02, -2.754537E-02,  7.663231E-02, -1.442383E-03]
        scaling factor                  :  7.69E-01
        type                            : p_z
      - sym                             : C-1 # 0005
        Atom number                     :  1
-       r: [-4.1999009516049393E-003,  5.6316298194089062E-003,  1.8357627345221887E-002]
+       r: [-4.199900931154135E-003,  5.6316299810281658E-003,  1.8357627530350265E-002]
        nzion                           :  0
        Delta r                         :  [ -4.199901E-03,  5.631630E-03,  1.835763E-02 ]
        q0                              :  [ -1.0E+00 ]
@@ -1848,17 +1851,17 @@
        type                            : unknown
      - sym                             : C-2 # 0006
        Atom number                     :  1
-       r: [ 6.4560686760979291E-003,  4.9311759870866119E-002,  2.0306642673869269E-002]
+       r: [ 6.456068624522535E-003,  4.931175966820707E-002,  2.0306642657258869E-002]
        nzion                           :  0
        Delta r                         :  [  6.456069E-03,  4.931176E-02,  2.030664E-02 ]
        q0                              :  [  1.368166E-03 ]
-       q1                              :  [ -7.361724E-06, -1.709386E-03,  1.000000E+00 ]
+       q1                              :  [ -7.361658E-06, -1.709386E-03,  1.000000E+00 ]
        q2: [-9.755444E-01, -1.276241E-02, -2.736561E-03, -2.788024E-01,  8.744855E-03]
        scaling factor                  :  2.51E+00
        type                            : unknown
      - sym                             : C-3 # 0007
        Atom number                     :  1
-       r: [-2.2406356130616058E-004,  1.260622992460189E-002,  1.2086443158447313E-002]
+       r: [-2.2406356736544931E-004,  1.2606229737494324E-002,  1.2086443126681168E-002]
        nzion                           :  0
        Delta r                         :  [ -2.240636E-04,  1.260623E-02,  1.208644E-02 ]
        q0                              :  [ -1.043081E-01 ]
@@ -1868,7 +1871,7 @@
        type                            : unknown
      - sym                             : C-4 # 0008
        Atom number                     :  1
-       r: [ 1.9054645109626517E-003, -2.9570898830707865E-002, -3.3455574683698051E-002]
+       r: [ 1.9054645134024412E-003, -2.9570898743560236E-002, -3.3455574884968711E-002]
        nzion                           :  0
        Delta r                         :  [  1.905465E-03, -2.957090E-02, -3.345557E-02 ]
        q0                              :  [ -2.669585E-01 ]
@@ -1878,7 +1881,7 @@
        type                            : unknown
      - sym                             : H-1 # 0009
        Atom number                     :  11
-       r: [-0.8960151996165321, -0.6713651841849145, -1.7057588284481829E-004]
+       r: [-0.896015199632711, -0.6713651841923194, -1.7057587697447108E-004]
        nzion                           :  0
        Delta r                         :  [ -1.60152E-02, -1.136516E-02, -1.705759E-04 ]
        q0                              :  [ -1.0E+00 ]
@@ -1888,7 +1891,7 @@
        type                            : unknown
      - sym                             : H-2 # 0010
        Atom number                     :  11
-       r: [-1.015934271621327, -0.7014515246556805, -3.9596649937336176E-004]
+       r: [-1.015934271593504, -0.7014515246668773, -3.9596649859221551E-004]
        nzion                           :  0
        Delta r                         :  [ -1.359343E-01, -4.145150E-02, -3.959665E-04 ]
        q0                              :  [ -4.656546E-01 ]
@@ -1898,7 +1901,7 @@
        type                            : unknown
      - sym                             : H-3 # 0011
        Atom number                     :  11
-       r: [-0.9177772051251719, -0.7474710990181613,  2.2926414901676914E-003]
+       r: [-0.9177772051288389, -0.7474710989954616,  2.2926414898039086E-003]
        nzion                           :  0
        Delta r                         :  [ -3.777721E-02, -8.747107E-02,  2.292641E-03 ]
        q0                              :  [ -2.835615E-01 ]
@@ -1908,7 +1911,7 @@
        type                            : unknown
      - sym                             : H-4 # 0012
        Atom number                     :  11
-       r: [-0.8977620355296797, -0.6719155353735532,  3.6783929556705682E-003]
+       r: [-0.897762035520533, -0.6719155353692291,  3.6783929557875992E-003]
        nzion                           :  0
        Delta r                         :  [ -1.776204E-02, -1.191551E-02,  3.678393E-03 ]
        q0                              :  [  7.571998E-03 ]
@@ -1918,7 +1921,7 @@
        type                            : p_z
      - sym                             : H-1 # 0013
        Atom number                     :  9
-       r: [ 1.0969569735930543E-003,  0.6336529658418967, -0.9256819642481542]
+       r: [ 1.0969569743751407E-003,  0.6336529658511473, -0.925681964239374]
        nzion                           :  0
        Delta r                         :  [  1.096957E-03,  1.012300E-02, -1.672198E-02 ]
        q0                              :  [ -1.0E+00 ]
@@ -1928,7 +1931,7 @@
        type                            : unknown
      - sym                             : H-2 # 0014
        Atom number                     :  9
-       r: [ 4.7008619271613085E-004,  0.6373192838395599, -0.9299694864219336]
+       r: [ 4.7008619614057837E-004,  0.6373192838401427, -0.9299694864138147]
        nzion                           :  0
        Delta r                         :  [  4.700862E-04,  1.378931E-02, -2.100950E-02 ]
        q0                              :  [  3.591765E-03 ]
@@ -1938,7 +1941,7 @@
        type                            : p_x
      - sym                             : H-3 # 0015
        Atom number                     :  9
-       r: [-3.369236748745841E-004,  0.7134843878803844, -0.9474058429373198]
+       r: [-3.3692367506869565E-004,  0.7134843878702634, -0.9474058429351958]
        nzion                           :  0
        Delta r                         :  [ -3.369237E-04,  8.995442E-02, -3.844586E-02 ]
        q0                              :  [  2.843367E-01 ]
@@ -1948,7 +1951,7 @@
        type                            : unknown
      - sym                             : H-4 # 0016
        Atom number                     :  9
-       r: [ 2.8707564394279771E-004,  0.6646965016536829, -1.046167710514138]
+       r: [ 2.8707564403303846E-004,  0.6646965016583274, -1.046167710502346]
        nzion                           :  0
        Delta r                         :  [  2.870756E-04,  4.116653E-02, -1.372077E-01 ]
        q0                              :  [ -4.534261E-01 ]
@@ -1958,17 +1961,17 @@
        type                            : unknown
      - sym                             : C-1 # 0017
        Atom number                     :  2
-       r: [-3.8359053004928187E-003,  0.8007362378110091,  1.257996967421977]
+       r: [-3.8359052817293279E-003,  0.8007362375850229,  1.257996967436275]
        nzion                           :  0
        Delta r                         :  [ -3.835905E-03, -2.526374E-02, -2.003023E-03 ]
        q0                              :  [ -6.666392E-01 ]
-       q1                              :  [ -3.701972E-01, -2.744553E-04, -5.826548E-03 ]
-       q2: [-3.100430E-03,  1.262310E-01,  1.000000E+00, -2.533013E-03, -4.381688E-01]
+       q1                              :  [ -3.701972E-01, -2.744554E-04, -5.826548E-03 ]
+       q2: [-3.100431E-03,  1.262310E-01,  1.000000E+00, -2.533013E-03, -4.381688E-01]
        scaling factor                  :  1.93E+00
        type                            : unknown
      - sym                             : C-2 # 0018
        Atom number                     :  2
-       r: [ 5.7404716009261652E-003,  0.7697000939919132,  1.260917933772058]
+       r: [ 5.7404715567006895E-003,  0.7697000942007096,  1.260917933772093]
        nzion                           :  0
        Delta r                         :  [  5.740472E-03, -5.629988E-02,  9.179433E-04 ]
        q0                              :  [ -2.991458E-04 ]
@@ -1978,19 +1981,19 @@
        type                            : unknown
      - sym                             : C-3 # 0019
        Atom number                     :  2
-       r: [-1.1606286963846369E-004,  0.8341031255756186,  1.262546167138819]
+       r: [-1.1606287982626561E-004,  0.8341031258094604,  1.262546167147676]
        nzion                           :  0
-       Delta r                         :  [ -1.160629E-04,  8.103150E-03,  2.546177E-03 ]
+       Delta r                         :  [ -1.160629E-04,  8.103151E-03,  2.546177E-03 ]
        q0                              :  [  3.711277E-01 ]
        q1                              :  [  1.0E+00, -1.940190E-02, -4.247445E-03 ]
-       q2: [ 3.219432E-04,  8.957369E-02,  4.283327E-01, -7.688059E-03, -5.245475E-01]
+       q2: [ 3.219431E-04,  8.957369E-02,  4.283327E-01, -7.688059E-03, -5.245475E-01]
        scaling factor                  :  1.48E+00
        type                            : unknown
      - sym                             : C-4 # 0020
        Atom number                     :  2
-       r: [ 1.2073967868462682E-003,  0.8591169624158722,  1.259957944267927]
+       r: [ 1.2073967879568871E-003,  0.8591169624209558,  1.259957944243831]
        nzion                           :  0
-       Delta r                         :  [  1.207397E-03,  3.311699E-02, -4.204620E-05 ]
+       Delta r                         :  [  1.207397E-03,  3.311699E-02, -4.204622E-05 ]
        q0                              :  [  2.658012E-03 ]
        q1                              :  [ -1.3827E-02,  1.145909E-01,  7.434556E-05 ]
        q2: [-1.773772E-03,  1.000000E+00,  1.768605E-01,  1.050137E-02,  1.625104E-02]
@@ -1998,7 +2001,7 @@
        type                            : d_yz
      - sym                             : H-1 # 0021
        Atom number                     :  12
-       r: [ 0.8961106928162672,  1.497945934955272,  1.260307547327182]
+       r: [ 0.8961106928231339,  1.497945934949956,  1.260307547328846]
        nzion                           :  0
        Delta r                         :  [  1.61107E-02,  1.194599E-02,  3.075569E-04 ]
        q0                              :  [ -1.0E+00 ]
@@ -2008,7 +2011,7 @@
        type                            : unknown
      - sym                             : H-2 # 0022
        Atom number                     :  12
-       r: [ 1.021732092462794,  1.52660209775362,  1.260087001535983]
+       r: [ 1.021732092458549,  1.526602097762237,  1.260087001537238]
        nzion                           :  0
        Delta r                         :  [  1.417321E-01,  4.060216E-02,  8.701107E-05 ]
        q0                              :  [  4.72897E-01 ]
@@ -2018,7 +2021,7 @@
        type                            : unknown
      - sym                             : H-3 # 0023
        Atom number                     :  12
-       r: [ 0.917348525442105,  1.573907921958589,  1.259826315744195]
+       r: [ 0.9173485254441768,  1.573907921950527,  1.259826315744826]
        nzion                           :  0
        Delta r                         :  [  3.734853E-02,  8.790798E-02, -1.736747E-04 ]
        q0                              :  [  2.715146E-01 ]
@@ -2028,7 +2031,7 @@
        type                            : unknown
      - sym                             : H-4 # 0024
        Atom number                     :  12
-       r: [ 0.8981957297774527,  1.497587971116299,  1.261384843561065]
+       r: [ 0.8981957297713482,  1.497587971109783,  1.261384843560573]
        nzion                           :  0
        Delta r                         :  [  1.819573E-02,  1.158803E-02,  1.384853E-03 ]
        q0                              :  [  4.379594E-03 ]
@@ -2038,7 +2041,7 @@
        type                            : p_z
      - sym                             : H-1 # 0025
        Atom number                     :  13
-       r: [-0.8959255200933726,  1.499288628413417,  1.260729431997855]
+       r: [-0.8959255200989322,  1.499288628415689,  1.260729431998354]
        nzion                           :  0
        Delta r                         :  [ -1.592552E-02,  1.328869E-02,  7.294415E-04 ]
        q0                              :  [ -1.0E+00 ]
@@ -2048,7 +2051,7 @@
        type                            : unknown
      - sym                             : H-2 # 0026
        Atom number                     :  13
-       r: [-1.01967650809707,  1.526700371518655,  1.260216254017419]
+       r: [-1.019676508090047,  1.526700371527793,  1.26021625401851]
        nzion                           :  0
        Delta r                         :  [ -1.396765E-01,  4.070043E-02,  2.162636E-04 ]
        q0                              :  [ -4.61634E-01 ]
@@ -2058,7 +2061,7 @@
        type                            : unknown
      - sym                             : H-3 # 0027
        Atom number                     :  13
-       r: [-0.9178525116249332,  1.570823730135373,  1.259752277820605]
+       r: [-0.9178525116282943,  1.570823730119838,  1.259752277821196]
        nzion                           :  0
        Delta r                         :  [ -3.785252E-02,  8.482379E-02, -2.477126E-04 ]
        q0                              :  [  2.667291E-01 ]
@@ -2068,7 +2071,7 @@
        type                            : unknown
      - sym                             : H-4 # 0028
        Atom number                     :  13
-       r: [-0.8957993558325754,  1.496195086721483,  1.260808356511751]
+       r: [-0.8957993558199013,  1.496195086710914,  1.260808356511717]
        nzion                           :  0
        Delta r                         :  [ -1.579936E-02,  1.019514E-02,  8.083660E-04 ]
        q0                              :  [  3.490187E-03 ]
@@ -2078,7 +2081,7 @@
        type                            : p_z
      - sym                             : H-1 # 0029
        Atom number                     :  14
-       r: [ 0.8968500114473857, -0.6708290632112819,  2.520206264781554]
+       r: [ 0.8968500114570678, -0.670829063209776,  2.520206264784806]
        nzion                           :  0
        Delta r                         :  [  1.685002E-02, -1.082904E-02,  2.062839E-04 ]
        q0                              :  [ -1.0E+00 ]
@@ -2088,7 +2091,7 @@
        type                            : unknown
      - sym                             : H-2 # 0030
        Atom number                     :  14
-       r: [ 1.01877018198814, -0.701516115577562,  2.52010353764825]
+       r: [ 1.018770181978785, -0.7015161155869447,  2.520103537648478]
        nzion                           :  0
        Delta r                         :  [  1.387702E-01, -4.151609E-02,  1.035567E-04 ]
        q0                              :  [  4.588882E-01 ]
@@ -2098,7 +2101,7 @@
        type                            : unknown
      - sym                             : H-3 # 0031
        Atom number                     :  14
-       r: [ 0.9165866249178604, -0.7478284802801131,  2.520054047882403]
+       r: [ 0.9165866249188229, -0.7478284802638011,  2.520054047882708]
        nzion                           :  0
        Delta r                         :  [  3.658663E-02, -8.782845E-02,  5.406696E-05 ]
        q0                              :  [ -2.752016E-01 ]
@@ -2108,19 +2111,19 @@
        type                            : unknown
      - sym                             : H-4 # 0032
        Atom number                     :  14
-       r: [ 0.897528623036931, -0.670599640307758,  2.521136493097449]
+       r: [ 0.8975286230275216, -0.6705996402964163,  2.521136493095062]
        nzion                           :  0
        Delta r                         :  [  1.752863E-02, -1.059961E-02,  1.136512E-03 ]
        q0                              :  [  3.345395E-03 ]
-       q1                              :  [  1.497201E-03,  1.000000E+00, -4.682857E-03 ]
+       q1                              :  [  1.497201E-03,  1.000000E+00, -4.682858E-03 ]
        q2: [-7.264133E-03, -2.840881E-02, -3.662244E-03,  5.326032E-02,  4.977915E-03]
        scaling factor                  :  7.75E-01
        type                            : p_z
      - sym                             : C-1 # 0033
        Atom number                     :  3
-       r: [-4.2593226793566242E-003,  2.3000650578302004E-002,  2.520059083887201]
+       r: [-4.2593226643559837E-003,  2.3000650867840783E-002,  2.520059083894274]
        nzion                           :  0
-       Delta r                         :  [ -4.259323E-03,  2.300065E-02,  5.910296E-05 ]
+       Delta r                         :  [ -4.259323E-03,  2.300065E-02,  5.910297E-05 ]
        q0                              :  [ -7.675214E-01 ]
        q1                              :  [  3.880516E-01, -1.238470E-02, -1.133068E-02 ]
        q2: [-2.088285E-03,  1.388163E-02,  1.000000E+00, -1.176486E-03, -5.615788E-01]
@@ -2128,37 +2131,37 @@
        type                            : unknown
      - sym                             : C-2 # 0034
        Atom number                     :  3
-       r: [ 5.623646079309888E-003,  5.9074369507698517E-002,  2.520325784316964]
+       r: [ 5.623646029450007E-003,  5.9074369260019216E-002,  2.520325784318086]
        nzion                           :  0
        Delta r                         :  [  5.623646E-03,  5.907437E-02,  3.258034E-04 ]
-       q0                              :  [ -2.463113E-04 ]
+       q0                              :  [ -2.463114E-04 ]
        q1                              :  [ -2.478121E-03,  9.280986E-04,  8.200330E-01 ]
        q2: [-1.000000E+00,  2.752053E-04, -2.678279E-03, -2.935956E-03,  5.867672E-03]
        scaling factor                  :  2.94E+00
        type                            : unknown
      - sym                             : C-3 # 0035
        Atom number                     :  3
-       r: [-4.9257376815818241E-004,  1.1364188643149841E-003,  2.52022105469351]
+       r: [-4.9257376749265705E-004,  1.1364185506495021E-003,  2.520221054702289]
        nzion                           :  0
        Delta r                         :  [ -4.925738E-04,  1.136419E-03,  2.210738E-04 ]
        q0                              :  [ -3.852831E-01 ]
        q1                              :  [  1.0E+00,  1.275447E-02,  7.321232E-03 ]
-       q2: [ 1.076255E-02,  2.163185E-03, -2.398870E-01,  6.339895E-03,  5.887088E-01]
+       q2: [ 1.076255E-02,  2.163186E-03, -2.398870E-01,  6.339895E-03,  5.887088E-01]
        scaling factor                  :  1.45E+00
        type                            : unknown
      - sym                             : C-4 # 0036
        Atom number                     :  3
-       r: [ 1.2102901041821112E-003, -3.2314362292163959E-002,  2.52254766572155]
+       r: [ 1.2102901057350038E-003, -3.2314362303711014E-002,  2.522547665720203]
        nzion                           :  0
        Delta r                         :  [  1.21029E-03, -3.231436E-02,  2.547685E-03 ]
        q0                              :  [  2.264612E-03 ]
        q1                              :  [ -3.579878E-03,  1.628592E-01,  2.769182E-04 ]
-       q2: [ 8.794831E-04, -1.000000E+00,  1.852990E-02,  1.585773E-02,  6.583509E-03]
+       q2: [ 8.794832E-04, -1.000000E+00,  1.852990E-02,  1.585773E-02,  6.583509E-03]
        scaling factor                  :  3.10E+00
        type                            : d_yz
      - sym                             : H-1 # 0037
        Atom number                     :  15
-       r: [-0.896736103931257, -0.6724523035543736,  2.52056941713314]
+       r: [-0.8967361039394741, -0.6724523035635682,  2.520569417134808]
        nzion                           :  0
        Delta r                         :  [ -1.673611E-02, -1.245228E-02,  5.694362E-04 ]
        q0                              :  [ -1.0E+00 ]
@@ -2168,7 +2171,7 @@
        type                            : unknown
      - sym                             : H-2 # 0038
        Atom number                     :  15
-       r: [-1.016404239038642, -0.701042358239896,  2.520271024149046]
+       r: [-1.016404239022315, -0.7010423582499086,  2.520271024149316]
        nzion                           :  0
        Delta r                         :  [ -1.364042E-01, -4.104233E-02,  2.710432E-04 ]
        q0                              :  [ -4.518133E-01 ]
@@ -2178,7 +2181,7 @@
        type                            : unknown
      - sym                             : H-3 # 0039
        Atom number                     :  15
-       r: [-0.916564936969177, -0.7442545652888484,  2.519925229352912]
+       r: [-0.9165649369737441, -0.7442545652635278,  2.519925229353085]
        nzion                           :  0
        Delta r                         :  [ -3.656494E-02, -8.425454E-02, -7.475157E-05 ]
        q0                              :  [ -2.755476E-01 ]
@@ -2188,37 +2191,37 @@
        type                            : unknown
      - sym                             : H-4 # 0040
        Atom number                     :  15
-       r: [-0.8954208310708337, -0.6694028587180539,  2.520612223810213]
+       r: [-0.8954208310561264, -0.6694028587042373,  2.520612223810055]
        nzion                           :  0
        Delta r                         :  [ -1.542084E-02, -9.402832E-03,  6.122429E-04 ]
        q0                              :  [  2.182243E-03 ]
        q1                              :  [  5.628161E-04,  1.000000E+00,  1.950117E-03 ]
-       q2: [ 5.007949E-03, -1.260648E-02, -1.637947E-04, -2.747623E-02,  4.536295E-03]
+       q2: [ 5.007949E-03, -1.260647E-02, -1.637947E-04, -2.747623E-02,  4.536295E-03]
        scaling factor                  :  7.82E-01
        type                            : p_z
      - sym                             : C-1 # 0041
        Atom number                     :  4
-       r: [-4.0966875218560461E-003,  0.7996799978377646,  3.779269629692487]
+       r: [-4.0966875050454212E-003,  0.7996799975812431,  3.77926962970132]
        nzion                           :  0
        Delta r                         :  [ -4.096688E-03, -2.631998E-02, -7.303417E-04 ]
        q0                              :  [ -7.464584E-01 ]
-       q1                              :  [ -4.10287E-01, -2.328488E-03, -6.310726E-03 ]
+       q1                              :  [ -4.10287E-01, -2.328487E-03, -6.310726E-03 ]
        q2: [-2.384971E-03, -1.450074E-02,  1.000000E+00, -3.431644E-03, -5.316884E-01]
        scaling factor                  :  1.71E+00
        type                            : unknown
      - sym                             : C-2 # 0042
        Atom number                     :  4
-       r: [ 6.0799658190331162E-003,  0.7685679918793866,  3.781105639897651]
+       r: [ 6.0799657755525966E-003,  0.7685679920935551,  3.781105639897712]
        nzion                           :  0
        Delta r                         :  [  6.079966E-03, -5.743198E-02,  1.105669E-03 ]
-       q0                              :  [  1.754028E-04 ]
+       q0                              :  [  1.754027E-04 ]
        q1                              :  [  4.30101E-03,  8.044767E-04,  8.120580E-01 ]
        q2: [ 1.000000E+00, -8.122176E-04, -6.520396E-03, -1.759736E-02,  6.364509E-03]
        scaling factor                  :  2.94E+00
        type                            : unknown
      - sym                             : C-3 # 0043
        Atom number                     :  4
-       r: [-1.6710879866300055E-004,  0.8339814408862453,  3.780948205033055]
+       r: [-1.6710880824402757E-004,  0.8339814411491062,  3.780948205035763]
        nzion                           :  0
        Delta r                         :  [ -1.671088E-04,  7.981466E-03,  9.482336E-04 ]
        q0                              :  [  3.732652E-01 ]
@@ -2228,17 +2231,17 @@
        type                            : unknown
      - sym                             : C-4 # 0044
        Atom number                     :  4
-       r: [ 1.2896087942174247E-003,  0.8598475801235556,  3.782450550631665]
+       r: [ 1.2896087959089683E-003,  0.8598475801356948,  3.782450550632345]
        nzion                           :  0
        Delta r                         :  [  1.289609E-03,  3.384760E-02,  2.450579E-03 ]
        q0                              :  [  5.518838E-04 ]
-       q1                              :  [  5.187118E-03,  1.611617E-01,  4.135424E-04 ]
+       q1                              :  [  5.187117E-03,  1.611617E-01,  4.135424E-04 ]
        q2: [-3.208566E-03,  1.000000E+00,  1.111471E-02,  1.112075E-02,  1.679735E-02]
        scaling factor                  :  3.04E+00
        type                            : d_yz
      - sym                             : H-1 # 0045
        Atom number                     :  16
-       r: [ 0.8959926197902044,  1.497806454597698,  3.780314232134273]
+       r: [ 0.8959926197948029,  1.497806454594885,  3.780314232136301]
        nzion                           :  0
        Delta r                         :  [  1.599262E-02,  1.180651E-02,  3.142607E-04 ]
        q0                              :  [ -1.0E+00 ]
@@ -2248,7 +2251,7 @@
        type                            : unknown
      - sym                             : H-2 # 0046
        Atom number                     :  16
-       r: [ 1.021124072252682,  1.527000706047151,  3.780154399012245]
+       r: [ 1.021124072251184,  1.527000706053799,  3.780154399012532]
        nzion                           :  0
        Delta r                         :  [  1.411241E-01,  4.100076E-02,  1.544276E-04 ]
        q0                              :  [  4.684789E-01 ]
@@ -2258,7 +2261,7 @@
        type                            : unknown
      - sym                             : H-3 # 0047
        Atom number                     :  16
-       r: [ 0.917380111139902,  1.574031335795281,  3.779805416785702]
+       r: [ 0.9173801111405619,  1.574031335785253,  3.779805416785826]
        nzion                           :  0
        Delta r                         :  [  3.738012E-02,  8.803139E-02, -1.945546E-04 ]
        q0                              :  [  2.728343E-01 ]
@@ -2268,7 +2271,7 @@
        type                            : unknown
      - sym                             : H-4 # 0048
        Atom number                     :  16
-       r: [ 0.8981506293031667,  1.497468595769224,  3.781137844709888]
+       r: [ 0.8981506292955601,  1.497468595760994,  3.781137844709918]
        nzion                           :  0
        Delta r                         :  [  1.815063E-02,  1.146865E-02,  1.137873E-03 ]
        q0                              :  [  3.65987E-03 ]
@@ -2278,7 +2281,7 @@
        type                            : p_z
      - sym                             : H-1 # 0049
        Atom number                     :  18
-       r: [ 0.8967777286393541, -0.6707365702523157,  5.040388403106137]
+       r: [ 0.8967777286480332, -0.6707365702510335,  5.040388403108883]
        nzion                           :  0
        Delta r                         :  [  1.677773E-02, -1.073654E-02,  3.884413E-04 ]
        q0                              :  [ -1.0E+00 ]
@@ -2288,7 +2291,7 @@
        type                            : unknown
      - sym                             : H-2 # 0050
        Atom number                     :  18
-       r: [ 1.018709389533978, -0.7015855712561631,  5.040180945523063]
+       r: [ 1.018709389526467, -0.7015855712652332,  5.040180945523415]
        nzion                           :  0
        Delta r                         :  [  1.387094E-01, -4.158555E-02,  1.809837E-04 ]
        q0                              :  [  4.580829E-01 ]
@@ -2298,17 +2301,17 @@
        type                            : unknown
      - sym                             : H-3 # 0051
        Atom number                     :  18
-       r: [ 0.9166456320988701, -0.7474040733155388,  5.040038762336652]
+       r: [ 0.9166456320998448, -0.7474040732985265,  5.04003876233682]
        nzion                           :  0
        Delta r                         :  [  3.664564E-02, -8.740405E-02,  3.880048E-05 ]
        q0                              :  [ -2.753991E-01 ]
        q1                              :  [  1.0E+00, -4.468213E-04,  1.916171E-01 ]
-       q2: [ 1.597833E-01,  1.468176E-02,  3.297063E-03,  9.270707E-03, -2.818494E-01]
+       q2: [ 1.597833E-01,  1.468176E-02,  3.297062E-03,  9.270707E-03, -2.818494E-01]
        scaling factor                  :  6.71E-01
        type                            : unknown
      - sym                             : H-4 # 0052
        Atom number                     :  18
-       r: [ 0.8975348808538917, -0.6705651057243175,  5.04084892459237]
+       r: [ 0.8975348808438656, -0.6705651057128207,  5.040848924591081]
        nzion                           :  0
        Delta r                         :  [  1.753489E-02, -1.056508E-02,  8.489627E-04 ]
        q0                              :  [  3.306144E-03 ]
@@ -2318,47 +2321,47 @@
        type                            : p_z
      - sym                             : C-1 # 0053
        Atom number                     :  5
-       r: [-4.4252697420533458E-003,  2.2888849246120162E-002,  5.039288538656987]
+       r: [-4.4252697266795229E-003,  2.2888849538116592E-002,  5.03928853866121]
        nzion                           :  0
        Delta r                         :  [ -4.42527E-03,  2.288885E-02, -7.114232E-04 ]
        q0                              :  [ -7.747884E-01 ]
        q1                              :  [  3.922681E-01, -8.623497E-03, -1.137650E-02 ]
-       q2: [-3.111951E-03, -3.920520E-03,  1.000000E+00,  2.382090E-03, -5.622549E-01]
+       q2: [-3.111952E-03, -3.920521E-03,  1.000000E+00,  2.382090E-03, -5.622549E-01]
        scaling factor                  :  1.66E+00
        type                            : unknown
      - sym                             : C-2 # 0054
        Atom number                     :  5
-       r: [ 5.6921392726000091E-003,  5.9180344270539531E-002,  5.040810132186971]
+       r: [ 5.6921392221747141E-003,  5.9180344020993376E-002,  5.040810132186729]
        nzion                           :  0
        Delta r                         :  [  5.692139E-03,  5.918034E-02,  8.101703E-04 ]
-       q0                              :  [ -1.622493E-04 ]
+       q0                              :  [ -1.622494E-04 ]
        q1                              :  [ -2.62556E-03,  5.536655E-04,  8.187317E-01 ]
        q2: [-1.000000E+00, -1.933171E-03, -3.023946E-03,  8.976089E-03,  5.352708E-03]
        scaling factor                  :  2.94E+00
        type                            : unknown
      - sym                             : C-3 # 0055
        Atom number                     :  5
-       r: [-4.7548318830201093E-004,  1.2885526525882682E-003,  5.04018211484061]
+       r: [-4.7548318787054748E-004,  1.2885523379545785E-003,  5.040182114843552]
        nzion                           :  0
-       Delta r                         :  [ -4.754832E-04,  1.288553E-03,  1.821530E-04 ]
+       Delta r                         :  [ -4.754832E-04,  1.288552E-03,  1.821530E-04 ]
        q0                              :  [ -3.832249E-01 ]
-       q1                              :  [  1.0E+00,  6.004413E-04,  8.129142E-03 ]
+       q1                              :  [  1.0E+00,  6.004412E-04,  8.129142E-03 ]
        q2: [ 1.466171E-02,  1.586431E-02, -1.911319E-01,  2.659609E-03,  5.794756E-01]
        scaling factor                  :  1.44E+00
        type                            : unknown
      - sym                             : C-4 # 0056
        Atom number                     :  5
-       r: [ 1.2055078463691013E-003, -3.2911802778135435E-002,  5.042488163166581]
+       r: [ 1.2055078480611148E-003, -3.2911802790504055E-002,  5.042488163168716]
        nzion                           :  0
        Delta r                         :  [  1.205508E-03, -3.291180E-02,  2.488201E-03 ]
        q0                              :  [  1.805107E-03 ]
-       q1                              :  [ -8.938209E-04,  1.651846E-01,  2.723680E-04 ]
+       q1                              :  [ -8.938208E-04,  1.651846E-01,  2.723680E-04 ]
        q2: [ 9.427940E-04, -1.000000E+00,  1.401909E-02,  1.555490E-02,  9.453506E-03]
        scaling factor                  :  3.13E+00
        type                            : d_yz
      - sym                             : H-1 # 0057
        Atom number                     :  17
-       r: [-0.8958304940517207,  1.499205492920265,  3.780656650116823]
+       r: [-0.8958304940548142,  1.499205492925106,  3.780656650117448]
        nzion                           :  0
        Delta r                         :  [ -1.58305E-02,  1.320555E-02,  6.566787E-04 ]
        q0                              :  [ -1.0E+00 ]
@@ -2368,7 +2371,7 @@
        type                            : unknown
      - sym                             : H-2 # 0058
        Atom number                     :  17
-       r: [-1.019101083581126,  1.527079436382055,  3.780346925052963]
+       r: [-1.019101083576985,  1.527079436389453,  3.780346925053265]
        nzion                           :  0
        Delta r                         :  [ -1.391011E-01,  4.107949E-02,  3.469537E-04 ]
        q0                              :  [ -4.579546E-01 ]
@@ -2378,7 +2381,7 @@
        type                            : unknown
      - sym                             : H-3 # 0059
        Atom number                     :  17
-       r: [-0.9178694183783679,  1.571019390268774,  3.779760999015132]
+       r: [-0.9178694183803556,  1.57101939025222,  3.779760999015279]
        nzion                           :  0
        Delta r                         :  [ -3.786942E-02,  8.501945E-02, -2.389724E-04 ]
        q0                              :  [  2.682657E-01 ]
@@ -2388,7 +2391,7 @@
        type                            : unknown
      - sym                             : H-4 # 0060
        Atom number                     :  17
-       r: [-0.8957015977062681,  1.496070559886889,  3.78062765973585]
+       r: [-0.8957015976919833,  1.496070559874775,  3.78062765973762]
        nzion                           :  0
        Delta r                         :  [ -1.57016E-02,  1.007062E-02,  6.276883E-04 ]
        q0                              :  [  2.683724E-03 ]
@@ -2398,7 +2401,7 @@
        type                            : p_z
      - sym                             : H-1 # 0061
        Atom number                     :  19
-       r: [-0.8967294500666065, -0.67245374416717,  5.04068191575866]
+       r: [-0.8967294500737196, -0.6724537441763248,  5.040681915759]
        nzion                           :  0
        Delta r                         :  [ -1.672945E-02, -1.245372E-02,  6.819539E-04 ]
        q0                              :  [ -1.0E+00 ]
@@ -2408,7 +2411,7 @@
        type                            : unknown
      - sym                             : H-2 # 0062
        Atom number                     :  19
-       r: [-1.016312642709726, -0.7011099631918022,  5.040369100057038]
+       r: [-1.016312642695369, -0.7011099632016319,  5.040369100057414]
        nzion                           :  0
        Delta r                         :  [ -1.363126E-01, -4.110994E-02,  3.691382E-04 ]
        q0                              :  [ -4.514276E-01 ]
@@ -2418,17 +2421,17 @@
        type                            : unknown
      - sym                             : H-3 # 0063
        Atom number                     :  19
-       r: [-0.916536324429695, -0.7440895984378521,  5.039954963120791]
+       r: [-0.9165363244344072, -0.7440895984122049,  5.039954963120782]
        nzion                           :  0
        Delta r                         :  [ -3.653633E-02, -8.408957E-02, -4.499873E-05 ]
        q0                              :  [ -2.759436E-01 ]
-       q1                              :  [  1.0E+00, -7.053016E-05, -2.143530E-01 ]
+       q1                              :  [  1.0E+00, -7.053015E-05, -2.143530E-01 ]
        q2: [-1.860608E-01,  1.475537E-02,  4.305263E-02, -8.185936E-03, -3.113663E-01]
        scaling factor                  :  6.70E-01
        type                            : unknown
      - sym                             : H-4 # 0064
        Atom number                     :  19
-       r: [-0.895377533850055, -0.669349707098649,  5.040413775422549]
+       r: [-0.8953775338350093, -0.6693497070848502,  5.040413775423809]
        nzion                           :  0
        Delta r                         :  [ -1.537754E-02, -9.349681E-03,  4.138136E-04 ]
        q0                              :  [  1.918182E-03 ]
@@ -2438,7 +2441,7 @@
        type                            : p_z
      - sym                             : H-1 # 0065
        Atom number                     :  22
-       r: [ 0.896928873819136, -0.6707489397306889,  7.560497219835493]
+       r: [ 0.8969288738302986, -0.6707489397258084,  7.560497219837854]
        nzion                           :  0
        Delta r                         :  [  1.692888E-02, -1.074891E-02,  4.972771E-04 ]
        q0                              :  [ -1.0E+00 ]
@@ -2448,7 +2451,7 @@
        type                            : unknown
      - sym                             : H-2 # 0066
        Atom number                     :  22
-       r: [ 1.01930413057052, -0.7013518653174217,  7.560158518965423]
+       r: [ 1.019304130561077, -0.7013518653282077,  7.560158518964983]
        nzion                           :  0
        Delta r                         :  [  1.393041E-01, -4.135184E-02,  1.585762E-04 ]
        q0                              :  [  4.607138E-01 ]
@@ -2458,49 +2461,49 @@
        type                            : unknown
      - sym                             : H-3 # 0067
        Atom number                     :  22
-       r: [ 0.9166633571577097, -0.747393059029095,  7.560031776204108]
+       r: [ 0.9166633571599705, -0.7473930590154556,  7.560031776203719]
        nzion                           :  0
        Delta r                         :  [  3.666336E-02, -8.739303E-02,  3.183342E-05 ]
        q0                              :  [ -2.746116E-01 ]
        q1                              :  [  1.0E+00, -1.146915E-03,  1.899252E-01 ]
-       q2: [ 1.574780E-01,  1.172775E-02,  1.837131E-03,  1.008574E-02, -2.793124E-01]
+       q2: [ 1.574780E-01,  1.172775E-02,  1.837130E-03,  1.008574E-02, -2.793124E-01]
        scaling factor                  :  6.72E-01
        type                            : unknown
      - sym                             : H-4 # 0068
        Atom number                     :  22
-       r: [ 0.8976845237482273, -0.6706950326382022,  7.560407407501091]
+       r: [ 0.8976845237399017, -0.6706950326283937,  7.560407407502682]
        nzion                           :  0
        Delta r                         :  [  1.768453E-02, -1.069501E-02,  4.074647E-04 ]
        q0                              :  [  1.888985E-03 ]
        q1                              :  [  1.163809E-03,  1.000000E+00, -6.607046E-03 ]
-       q2: [-1.242843E-02, -3.064193E-02, -6.146209E-03,  5.455300E-02,  7.108252E-03]
+       q2: [-1.242843E-02, -3.064193E-02, -6.146209E-03,  5.455299E-02,  7.108252E-03]
        scaling factor                  :  7.74E-01
        type                            : p_z
      - sym                             : C-1 # 0069
        Atom number                     :  7
-       r: [-4.1472128763851675E-003,  2.1675209335153541E-002,  7.561075527193171]
+       r: [-4.1472128586265439E-003,  2.1675209598723669E-002,  7.561075527189763]
        nzion                           :  0
        Delta r                         :  [ -4.147213E-03,  2.167521E-02,  1.075584E-03 ]
        q0                              :  [ -7.134493E-01 ]
        q1                              :  [  3.678931E-01, -1.550509E-02, -1.072956E-02 ]
-       q2: [-3.166849E-03,  1.525895E-01,  1.000000E+00,  9.728550E-04, -4.860792E-01]
+       q2: [-3.166849E-03,  1.525895E-01,  1.000000E+00,  9.728548E-04, -4.860792E-01]
        scaling factor                  :  1.82E+00
        type                            : unknown
      - sym                             : C-2 # 0070
        Atom number                     :  7
-       r: [ 5.4391185297052863E-003,  5.8068521344036832E-002,  7.561264220498583]
+       r: [ 5.4391184778774995E-003,  5.8068521101030307E-002,  7.56126422049587]
        nzion                           :  0
-       Delta r                         :  [  5.439119E-03,  5.806852E-02,  1.264278E-03 ]
-       q0                              :  [ -5.038852E-04 ]
-       q1                              :  [ -2.101609E-03, -1.945293E-05,  8.153428E-01 ]
+       Delta r                         :  [  5.439118E-03,  5.806852E-02,  1.264278E-03 ]
+       q0                              :  [ -5.038853E-04 ]
+       q1                              :  [ -2.101609E-03, -1.945294E-05,  8.153428E-01 ]
        q2: [-1.000000E+00, -2.941886E-03, -6.105062E-03,  4.050243E-02,  5.555330E-03]
        scaling factor                  :  2.97E+00
        type                            : unknown
      - sym                             : C-3 # 0071
        Atom number                     :  7
-       r: [-4.5604959221266122E-004,  1.7236146493003343E-003,  7.558022021611127]
+       r: [-4.5604959236823247E-004,  1.7236143661183575E-003,  7.55802202160124]
        nzion                           :  0
-       Delta r                         :  [ -4.560496E-04,  1.723615E-03, -1.977921E-03 ]
+       Delta r                         :  [ -4.560496E-04,  1.723614E-03, -1.977921E-03 ]
        q0                              :  [ -3.81715E-01 ]
        q1                              :  [  1.0E+00, -2.958503E-02,  8.822396E-03 ]
        q2: [ 1.452983E-02, -1.369815E-01, -4.363132E-01,  8.379890E-03,  5.659415E-01]
@@ -2508,7 +2511,7 @@
        type                            : unknown
      - sym                             : C-4 # 0072
        Atom number                     :  7
-       r: [ 1.176461938286368E-003, -3.3056598412771199E-002,  7.56621599865284]
+       r: [ 1.1764619397791E-003, -3.3056598415610025E-002,  7.566215998679088]
        nzion                           :  0
        Delta r                         :  [  1.176462E-03, -3.305660E-02,  6.216056E-03 ]
        q0                              :  [  5.695183E-04 ]
@@ -2518,7 +2521,7 @@
        type                            : d_yz
      - sym                             : H-1 # 0073
        Atom number                     :  23
-       r: [-0.8969645101730735, -0.672459823835987,  7.560625606777603]
+       r: [-0.8969645101825845, -0.6724598238411265,  7.560625606777049]
        nzion                           :  0
        Delta r                         :  [ -1.696451E-02, -1.245980E-02,  6.256640E-04 ]
        q0                              :  [ -1.0E+00 ]
@@ -2528,7 +2531,7 @@
        type                            : unknown
      - sym                             : H-2 # 0074
        Atom number                     :  23
-       r: [-1.016721046425144, -0.7009364140518823,  7.560339217843969]
+       r: [-1.016721046409099, -0.7009364140631102,  7.560339217843763]
        nzion                           :  0
        Delta r                         :  [ -1.367211E-01, -4.093639E-02,  3.392751E-04 ]
        q0                              :  [ -4.52381E-01 ]
@@ -2538,7 +2541,7 @@
        type                            : unknown
      - sym                             : H-3 # 0075
        Atom number                     :  23
-       r: [-0.9166618894306379, -0.7440415158474993,  7.559947258559108]
+       r: [-0.9166618894360913, -0.7440415158253091,  7.559947258558668]
        nzion                           :  0
        Delta r                         :  [ -3.666189E-02, -8.404149E-02, -5.268422E-05 ]
        q0                              :  [ -2.745253E-01 ]
@@ -2548,57 +2551,57 @@
        type                            : unknown
      - sym                             : H-4 # 0076
        Atom number                     :  23
-       r: [-0.895477314096254, -0.6694565643302871,  7.560174998624105]
+       r: [-0.8954773140828265, -0.6694565643178235,  7.560174998628732]
        nzion                           :  0
        Delta r                         :  [ -1.547732E-02, -9.456538E-03,  1.750558E-04 ]
        q0                              :  [  7.37751E-04 ]
        q1                              :  [ -8.855136E-04,  1.000000E+00,  1.794641E-03 ]
-       q2: [ 6.652475E-03, -1.348836E-02,  3.049424E-04, -2.851848E-02,  5.027053E-03]
+       q2: [ 6.652475E-03, -1.348836E-02,  3.049424E-04, -2.851847E-02,  5.027053E-03]
        scaling factor                  :  7.81E-01
        type                            : p_z
      - sym                             : C-1 # 0077
        Atom number                     :  6
-       r: [-4.0142940148749319E-003,  0.7994830665212612,  6.298434428957305]
+       r: [-4.0142939974688119E-003,  0.7994830662706092,  6.298434428966313]
        nzion                           :  0
        Delta r                         :  [ -4.014294E-03, -2.651691E-02, -1.565762E-03 ]
        q0                              :  [ -7.49727E-01 ]
-       q1                              :  [ -4.132228E-01, -8.160102E-04, -6.507721E-03 ]
-       q2: [-2.459566E-03,  1.090187E-02,  1.000000E+00,  1.702250E-04, -5.403677E-01]
+       q1                              :  [ -4.132228E-01, -8.160101E-04, -6.507721E-03 ]
+       q2: [-2.459567E-03,  1.090187E-02,  1.000000E+00,  1.702249E-04, -5.403677E-01]
        scaling factor                  :  1.70E+00
        type                            : unknown
      - sym                             : C-2 # 0078
        Atom number                     :  6
-       r: [ 6.0350865047282803E-003,  0.7688107298965795,  6.301536507889283]
+       r: [ 6.0350864608322771E-003,  0.7688107301089488,  6.301536507888579]
        nzion                           :  0
-       Delta r                         :  [  6.035087E-03, -5.718925E-02,  1.536317E-03 ]
+       Delta r                         :  [  6.035086E-03, -5.718925E-02,  1.536317E-03 ]
        q0                              :  [  1.213798E-04 ]
-       q1                              :  [  4.028455E-03,  1.347157E-04,  8.060130E-01 ]
-       q2: [ 1.000000E+00,  2.627092E-03, -6.260909E-03,  3.225914E-03,  6.677219E-03]
+       q1                              :  [  4.028455E-03,  1.347157E-04,  8.060129E-01 ]
+       q2: [ 1.000000E+00,  2.627092E-03, -6.260909E-03,  3.225914E-03,  6.677220E-03]
        scaling factor                  :  2.95E+00
        type                            : unknown
      - sym                             : C-3 # 0079
        Atom number                     :  6
-       r: [-1.553129958295289E-004,  0.8342701100497919,  6.301146367101049]
+       r: [-1.5531300575365869E-004,  0.8342701103093496,  6.301146367100728]
        nzion                           :  0
        Delta r                         :  [ -1.55313E-04,  8.270135E-03,  1.146176E-03 ]
        q0                              :  [  3.775838E-01 ]
        q1                              :  [  1.0E+00,  2.054505E-02, -3.975558E-03 ]
-       q2: [ 1.112045E-04, -1.133619E-02,  2.194539E-01, -6.495950E-03, -5.622796E-01]
+       q2: [ 1.112044E-04, -1.133619E-02,  2.194539E-01, -6.495950E-03, -5.622796E-01]
        scaling factor                  :  1.48E+00
        type                            : unknown
      - sym                             : C-4 # 0080
        Atom number                     :  6
-       r: [ 1.3112741837134662E-003,  0.8593440860399798,  6.302554283413278]
+       r: [ 1.3112741852879788E-003,  0.8593440860513323,  6.302554283415656]
        nzion                           :  0
        Delta r                         :  [  1.311274E-03,  3.334411E-02,  2.554093E-03 ]
-       q0                              :  [  9.423422E-05 ]
+       q0                              :  [  9.423421E-05 ]
        q1                              :  [  2.287184E-03,  1.608222E-01,  4.363628E-04 ]
        q2: [-2.817109E-03,  1.000000E+00,  1.558660E-02,  1.136343E-02,  2.038700E-02]
        scaling factor                  :  3.01E+00
        type                            : d_yz
      - sym                             : H-1 # 0081
        Atom number                     :  20
-       r: [ 0.8960698374592815,  1.49785209871932,  6.300411626810933]
+       r: [ 0.8960698374643491,  1.497852098716521,  6.300411626813981]
        nzion                           :  0
        Delta r                         :  [  1.606984E-02,  1.185216E-02,  4.114361E-04 ]
        q0                              :  [ -1.0E+00 ]
@@ -2608,7 +2611,7 @@
        type                            : unknown
      - sym                             : H-2 # 0082
        Atom number                     :  20
-       r: [ 1.021302753996593,  1.526917191470204,  6.300202018453366]
+       r: [ 1.021302753994184,  1.526917191477135,  6.300202018453754]
        nzion                           :  0
        Delta r                         :  [  1.413028E-01,  4.091725E-02,  2.018277E-04 ]
        q0                              :  [  4.700083E-01 ]
@@ -2618,17 +2621,17 @@
        type                            : unknown
      - sym                             : H-3 # 0083
        Atom number                     :  20
-       r: [ 0.9173462393280628,  1.57407047330766,  6.29979719162819]
+       r: [ 0.9173462393289427,  1.57407047329737,  6.299797191628213]
        nzion                           :  0
        Delta r                         :  [  3.734624E-02,  8.807053E-02, -2.029991E-04 ]
        q0                              :  [  2.726515E-01 ]
-       q1                              :  [  1.0E+00, -6.778525E-04, -1.834166E-01 ]
+       q1                              :  [  1.0E+00, -6.778526E-04, -1.834166E-01 ]
        q2: [ 1.466177E-01,  5.942511E-03,  1.409114E-02, -8.437116E-03,  2.614230E-01]
        scaling factor                  :  6.72E-01
        type                            : unknown
      - sym                             : H-4 # 0084
        Atom number                     :  20
-       r: [ 0.8982526823890681,  1.497506353714396,  6.30091277467589]
+       r: [ 0.8982526823818864,  1.497506353706345,  6.300912774674909]
        nzion                           :  0
        Delta r                         :  [  1.825269E-02,  1.150641E-02,  9.125839E-04 ]
        q0                              :  [  4.121475E-03 ]
@@ -2638,7 +2641,7 @@
        type                            : p_z
      - sym                             : H-1 # 0085
        Atom number                     :  21
-       r: [-0.8958942579585784,  1.499195772708509,  6.300720111516503]
+       r: [-0.8958942579626378,  1.499195772713298,  6.300720111517419]
        nzion                           :  0
        Delta r                         :  [ -1.589426E-02,  1.319583E-02,  7.199208E-04 ]
        q0                              :  [ -1.0E+00 ]
@@ -2648,7 +2651,7 @@
        type                            : unknown
      - sym                             : H-2 # 0086
        Atom number                     :  21
-       r: [-1.019257806678866,  1.526988311065575,  6.30036784588029]
+       r: [-1.019257806673037,  1.526988311073428,  6.30036784588066]
        nzion                           :  0
        Delta r                         :  [ -1.392578E-01,  4.098837E-02,  3.676551E-04 ]
        q0                              :  [ -4.592574E-01 ]
@@ -2658,7 +2661,7 @@
        type                            : unknown
      - sym                             : H-3 # 0087
        Atom number                     :  21
-       r: [-0.9178596808231836,  1.571074984386384,  6.299756807915097]
+       r: [-0.9178596808252304,  1.571074984369375,  6.299756807915122]
        nzion                           :  0
        Delta r                         :  [ -3.785969E-02,  8.507504E-02, -2.433828E-04 ]
        q0                              :  [  2.679631E-01 ]
@@ -2668,7 +2671,7 @@
        type                            : unknown
      - sym                             : H-4 # 0088
        Atom number                     :  21
-       r: [-0.8957326015503836,  1.49608964981748,  6.300455812978562]
+       r: [-0.8957326015365452,  1.496089649805526,  6.300455812979502]
        nzion                           :  0
        Delta r                         :  [ -1.573261E-02,  1.008971E-02,  4.556222E-04 ]
        q0                              :  [  2.773337E-03 ]
@@ -2678,7 +2681,7 @@
        type                            : p_z
      - sym                             : H-1 # 0089
        Atom number                     :  26
-       r: [ 6.2852269847704309E-004,  0.193056852907642,  9.745111040136425]
+       r: [ 6.2852269964359248E-004,  0.193056852900238,  9.745111040127254]
        nzion                           :  0
        Delta r                         :  [  6.285227E-04, -9.413152E-03,  1.615100E-02 ]
        q0                              :  [ -1.0E+00 ]
@@ -2688,17 +2691,17 @@
        type                            : unknown
      - sym                             : H-2 # 0090
        Atom number                     :  26
-       r: [ 1.1027729037065026E-003,  0.1875474292215312,  9.75090464714518]
+       r: [ 1.1027729048434416E-003,  0.1875474292199158,  9.750904647140874]
        nzion                           :  0
        Delta r                         :  [  1.102773E-03, -1.492258E-02,  2.194461E-02 ]
        q0                              :  [  4.685736E-03 ]
        q1                              :  [  2.737464E-03, -4.092532E-03,  1.000000E+00 ]
-       q2: [-3.504184E-02, -7.076374E-03,  5.567798E-03,  8.294622E-02, -5.459459E-03]
+       q2: [-3.504185E-02, -7.076374E-03,  5.567798E-03,  8.294622E-02, -5.459459E-03]
        scaling factor                  :  7.70E-01
        type                            : p_x
      - sym                             : H-3 # 0091
        Atom number                     :  26
-       r: [-1.2833521362508353E-004,  0.1139932780083695,  9.766505717652745]
+       r: [-1.2833521379334491E-004,  0.1139932780216298,  9.766505717653125]
        nzion                           :  0
        Delta r                         :  [ -1.283352E-04, -8.847673E-02,  3.754568E-02 ]
        q0                              :  [ -2.778431E-01 ]
@@ -2708,7 +2711,7 @@
        type                            : unknown
      - sym                             : H-4 # 0092
        Atom number                     :  26
-       r: [ 6.234677983104272E-005,  0.1609370925373493,  9.868587536104311]
+       r: [ 6.2346780128555115E-005,  0.1609370925324062,  9.868587536099813]
        nzion                           :  0
        Delta r                         :  [  6.234678E-05, -4.153291E-02,  1.396275E-01 ]
        q0                              :  [  4.637179E-01 ]
@@ -2718,7 +2721,7 @@
        type                            : unknown
      - sym                             : C-1 # 0093
        Atom number                     :  8
-       r: [-3.9865614666322775E-003,  0.8183477587004977,  8.797107594129402]
+       r: [-3.9865614483087109E-003,  0.8183477585573778,  8.797107593975188]
        nzion                           :  0
        Delta r                         :  [ -3.986561E-03, -7.652217E-03, -2.289210E-02 ]
        q0                              :  [ -1.0E+00 ]
@@ -2728,7 +2731,7 @@
        type                            : unknown
      - sym                             : C-2 # 0094
        Atom number                     :  8
-       r: [ 6.8944730563585827E-003,  0.7783433283853031,  8.803403119462825]
+       r: [ 6.8944730137875197E-003,  0.7783433285607066,  8.803403119477279]
        nzion                           :  0
        Delta r                         :  [  6.894473E-03, -4.765665E-02, -1.659658E-02 ]
        q0                              :  [  2.037439E-03 ]
@@ -2738,17 +2741,17 @@
        type                            : unknown
      - sym                             : C-3 # 0095
        Atom number                     :  8
-       r: [-1.0588035269031393E-004,  0.8258418424633819,  8.808413149452615]
+       r: [-1.0588036299091675E-004,  0.8258418426065836,  8.808413149488016]
        nzion                           :  0
-       Delta r                         :  [ -1.058804E-04, -1.581327E-04, -1.158655E-02 ]
+       Delta r                         :  [ -1.058804E-04, -1.581326E-04, -1.158655E-02 ]
        q0                              :  [  1.112761E-01 ]
        q1                              :  [  9.108445E-01, -3.237018E-01, -3.724336E-03 ]
-       q2: [-4.731278E-03,  1.000000E+00, -2.864394E-01,  4.359962E-04, -7.640964E-02]
+       q2: [-4.731278E-03,  1.000000E+00, -2.864394E-01,  4.359961E-04, -7.640964E-02]
        scaling factor                  :  2.24E+00
        type                            : unknown
      - sym                             : C-4 # 0096
        Atom number                     :  8
-       r: [ 2.1266772706847355E-003,  0.8533779068528818,  8.862831346907685]
+       r: [ 2.1266772712360497E-003,  0.8533779067891014,  8.862831347072964]
        nzion                           :  0
        Delta r                         :  [  2.126677E-03,  2.737793E-02,  4.283165E-02 ]
        q0                              :  [  2.793867E-01 ]
@@ -2758,7 +2761,7 @@
        type                            : unknown
      - sym                             : H-1 # 0097
        Atom number                     :  24
-       r: [ 0.8953563604629852,  1.496839714397328,  8.821159511421047]
+       r: [ 0.8953563604697607,  1.496839714395728,  8.821159511416546]
        nzion                           :  0
        Delta r                         :  [  1.535637E-02,  1.083977E-02,  1.159817E-03 ]
        q0                              :  [ -1.0E+00 ]
@@ -2768,7 +2771,7 @@
        type                            : unknown
      - sym                             : H-2 # 0098
        Atom number                     :  24
-       r: [ 1.021975820115752,  1.526971155290004,  8.820742874280667]
+       r: [ 1.021975820109226,  1.52697115529806,  8.820742874281041]
        nzion                           :  0
        Delta r                         :  [  1.419758E-01,  4.097121E-02,  7.431795E-04 ]
        q0                              :  [  4.807973E-01 ]
@@ -2778,7 +2781,7 @@
        type                            : unknown
      - sym                             : H-3 # 0099
        Atom number                     :  24
-       r: [ 0.9182874587489936,  1.577895680533522,  8.817478881581122]
+       r: [ 0.9182874587515693,  1.577895680523294,  8.817478881580364]
        nzion                           :  0
        Delta r                         :  [  3.828746E-02,  9.189574E-02, -2.520813E-03 ]
        q0                              :  [  2.855377E-01 ]
@@ -2788,17 +2791,17 @@
        type                            : unknown
      - sym                             : H-4 # 0100
        Atom number                     :  24
-       r: [ 0.9009663487744983,  1.500333593710773,  8.816976241668275]
+       r: [ 0.9009663487710391,  1.50033359370879,  8.816976241667353]
        nzion                           :  0
        Delta r                         :  [  2.096635E-02,  1.433365E-02, -3.023453E-03 ]
        q0                              :  [ -3.204346E-03 ]
-       q1                              :  [  3.767297E-03,  1.000000E+00, -7.040743E-04 ]
+       q1                              :  [  3.767297E-03,  1.000000E+00, -7.040742E-04 ]
        q2: [-6.631432E-03,  5.904824E-02,  1.359670E-02,  9.354076E-02,  1.532648E-02]
        scaling factor                  :  7.62E-01
        type                            : p_z
      - sym                             : H-1 # 0101
        Atom number                     :  25
-       r: [-0.8953336731117455,  1.49819551865781,  8.821478606349253]
+       r: [-0.8953336731195937,  1.498195518661696,  8.821478606342707]
        nzion                           :  0
        Delta r                         :  [ -1.533368E-02,  1.219558E-02,  1.478912E-03 ]
        q0                              :  [ -1.0E+00 ]
@@ -2808,7 +2811,7 @@
        type                            : unknown
      - sym                             : H-2 # 0102
        Atom number                     :  25
-       r: [-1.019310700817719,  1.52741295811911,  8.820822832225318]
+       r: [-1.0193107008054,  1.527412958127753,  8.820822832226179]
        nzion                           :  0
        Delta r                         :  [ -1.393107E-01,  4.141302E-02,  8.231374E-04 ]
        q0                              :  [ -4.679037E-01 ]
@@ -2818,7 +2821,7 @@
        type                            : unknown
      - sym                             : H-3 # 0103
        Atom number                     :  25
-       r: [-0.9190783588704824,  1.573992583870911,  8.81737813533427]
+       r: [-0.9190783588728737,  1.573992583855995,  8.817378135333485]
        nzion                           :  0
        Delta r                         :  [ -3.907836E-02,  8.799264E-02, -2.621559E-03 ]
        q0                              :  [  2.780535E-01 ]
@@ -2828,7 +2831,7 @@
        type                            : unknown
      - sym                             : H-4 # 0104
        Atom number                     :  25
-       r: [-0.898378199033863,  1.498694476384617,  8.817018396435012]
+       r: [-0.8983781990254626,  1.498694476380475,  8.817018396437184]
        nzion                           :  0
        Delta r                         :  [ -1.83782E-02,  1.269453E-02, -2.981298E-03 ]
        q0                              :  [ -2.216056E-03 ]
@@ -2836,6 +2839,7 @@
        q2: [ 5.626209E-03,  3.422605E-02,  1.522181E-02, -5.616330E-02,  9.322072E-03]
        scaling factor                  :  7.75E-01
        type                            : p_z
+ Total charge                          :  4.999997146144E+01
   #================================================= Atomic multipole analysis, new approach
  Method                                : loewdin
  Projector mode                        : none
@@ -2862,262 +2866,310 @@
      x                                 : -1
    order                               :  1020
    determine eigenvalue bounds:
-   -  {npl:  17, scale:  1.00E+00, bounds:  [  0.50,  1.50 ], penalty: -4.4E-03, ok: [ Yes, 
-  Yes], exp accur:  [  7.57E-10 ]}
+   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  5.3E-05, ok: [
+  Yes,  Yes], exp accur:  [  1.46E-11 ]}
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
    units                               : angstroem
-   global monopole                     :  5.639622E-05
+   global monopole                     :  5.692267E-05
    values:
    - sym                               : C # 0001
      r                                 :  [  0.0,  0.0,  0.0 ]
      nzion                             :  4
      sigma                             :  [  0.338,  0.338,  0.338 ]
-     q0                                :  [  2.389594E-02 ]
-     q1                                :  [ -1.009949E-01,  3.541207E-02, -2.017687E-02 ]
-     q2: [-1.492661E-02,  1.143692E-01,  1.915066E-01,  3.624114E-03, -1.251402E-01]
+     q0                                :  [  2.339271E-02 ]
+     q1                                :  [ -1.010131E-01,  3.534479E-02, -2.017383E-02 ]
+     q2: [-1.492745E-02,  1.146799E-01,  1.915589E-01,  3.619747E-03, -1.251815E-01]
      type                              : unknown
    - sym                               : C # 0002
 
      r                                 :  [  0.0,  0.8259999752044678,  1.259999990463257 ]
      nzion                             :  4
      sigma                             :  [  0.338,  0.338,  0.338 ]
-     q0                                :  [  7.455135E-02 ]
-     q1                                :  [  1.915978E-02, -2.756468E-02, -1.907369E-02 ]
-     q2: [ 1.007133E-02,  4.160560E-02,  2.744373E-01, -3.822851E-04, -1.264461E-01]
+     q0                                :  [  7.386798E-02 ]
+     q1                                :  [  1.925659E-02, -2.756427E-02, -1.907002E-02 ]
+     q2: [ 1.007651E-02,  4.154796E-02,  2.746322E-01, -3.832305E-04, -1.265459E-01]
      type                              : unknown
    - sym                               : C # 0003
      r                                 :  [  0.0,  0.0,  2.519999980926514 ]
      nzion                             :  4
      sigma                             :  [  0.338,  0.338,  0.338 ]
-     q0                                :  [  4.365478E-02 ]
-     q1                                :  [ -9.057914E-02, -8.033777E-03, -1.407838E-02 ]
-     q2: [-9.654785E-03,  2.800563E-02,  3.565254E-01,  3.993358E-04, -2.130257E-01]
+     q0                                :  [  4.305942E-02 ]
+     q1                                :  [ -9.061191E-02, -8.018016E-03, -1.407411E-02 ]
+     q2: [-9.659544E-03,  2.785652E-02,  3.565682E-01,  4.010131E-04, -2.130680E-01]
      type                              : unknown
    - sym                               : C # 0004
 
      r                                 :  [  0.0,  0.8259999752044678,  3.779999971389771 ]
      nzion                             :  4
      sigma                             :  [  0.338,  0.338,  0.338 ]
-     q0                                :  [  6.671874E-02 ]
-     q1                                :  [  4.363138E-02, -9.864506E-03, -1.934521E-02 ]
-     q2: [ 9.441589E-03, -2.804518E-02,  3.128553E-01,  2.509376E-03, -1.294739E-01]
+     q0                                :  [  6.690769E-02 ]
+     q1                                :  [  4.355827E-02, -9.900822E-03, -1.933790E-02 ]
+     q2: [ 9.440916E-03, -2.796204E-02,  3.129448E-01,  2.509689E-03, -1.295360E-01]
      type                              : unknown
    - sym                               : C # 0005
      r                                 :  [  0.0,  0.0,  5.039999961853027 ]
      nzion                             :  4
      sigma                             :  [  0.338,  0.338,  0.338 ]
-     q0                                :  [  4.380062E-02 ]
-     q1                                :  [ -8.712295E-02, -1.237876E-02, -1.319692E-02 ]
-     q2: [-7.972210E-03,  1.397383E-02,  3.491142E-01,  1.043754E-03, -2.173460E-01]
+     q0                                :  [  4.388323E-02 ]
+     q1                                :  [ -8.705164E-02, -1.233276E-02, -1.318931E-02 ]
+     q2: [-7.973068E-03,  1.405708E-02,  3.491874E-01,  1.043859E-03, -2.174019E-01]
      type                              : unknown
    - sym                               : C # 0006
 
      r                                 :  [  0.0,  0.8259999752044678,  6.300000190734863 ]
      nzion                             :  4
      sigma                             :  [  0.338,  0.338,  0.338 ]
-     q0                                :  [  6.614355E-02 ]
-     q1                                :  [  4.234278E-02, -1.241777E-02, -1.918052E-02 ]
-     q2: [ 1.031938E-02, -1.225489E-02,  3.185043E-01,  2.797628E-03, -1.264599E-01]
+     q0                                :  [  6.564247E-02 ]
+     q1                                :  [  4.237072E-02, -1.243051E-02, -1.917652E-02 ]
+     q2: [ 1.032379E-02, -1.240569E-02,  3.185611E-01,  2.795299E-03, -1.265058E-01]
      type                              : unknown
    - sym                               : C # 0007
      r                                 :  [  0.0,  0.0,  7.559999942779541 ]
      nzion                             :  4
      sigma                             :  [  0.338,  0.338,  0.338 ]
-     q0                                :  [  4.417592E-02 ]
-     q1                                :  [ -5.877344E-02, -3.709143E-03, -1.334762E-02 ]
-     q2: [-8.875948E-03,  9.961759E-02,  3.352703E-01,  3.110320E-03, -2.179381E-01]
+     q0                                :  [  4.343227E-02 ]
+     q1                                :  [ -5.886627E-02, -3.694613E-03, -1.334395E-02 ]
+     q2: [-8.883422E-03,  9.957452E-02,  3.354621E-01,  3.109763E-03, -2.180414E-01]
      type                              : unknown
    - sym                               : C # 0008
 
      r                                 :  [  0.0,  0.8259999752044678,  8.819999694824219 ]
      nzion                             :  4
      sigma                             :  [  0.338,  0.338,  0.338 ]
-     q0                                :  [  4.328932E-02 ]
-     q1                                :  [  5.194796E-02, -7.744817E-02, -2.485386E-02 ]
-     q2: [ 1.318425E-02,  8.280178E-02,  1.437855E-01,  4.038213E-04, -7.393691E-02]
+     q0                                :  [  4.280787E-02 ]
+     q1                                :  [  5.198487E-02, -7.737177E-02, -2.485154E-02 ]
+     q2: [ 1.318377E-02,  8.311210E-02,  1.438480E-01,  4.101886E-04, -7.397411E-02]
      type                              : unknown
    - sym                               : H # 0009
 
      r                                 :  [  0.0,  0.6235299706459045, -0.9089599847793579 ]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -9.044113E-04 ]
-     q1                                :  [ -1.271192E-01,  2.042410E-01, -2.097063E-03 ]
-     q2: [-3.991698E-03, -1.303583E-01,  1.090056E-01,  6.084727E-03, -2.566345E-02]
+     q0                                :  [ -5.477889E-04 ]
+     q1                                :  [ -1.271319E-01,  2.041616E-01, -2.094711E-03 ]
+     q2: [-3.990084E-03, -1.303119E-01,  1.090239E-01,  6.082467E-03, -2.564505E-02]
      type                              : unknown
    - sym                               : H # 0010
 
      r                                 :  [  0.8799999952316284, -0.6600000262260437,  0.0 ]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -1.570646E-02 ]
-     q1                                :  [  1.540492E-01,  2.307452E-02, -1.929199E-01 ]
-     q2: [-1.350159E-01,  1.505671E-02, -6.883781E-02, -1.770154E-02,  1.871341E-02]
+     q0                                :  [ -1.55123E-02 ]
+     q1                                :  [  1.540164E-01,  2.299186E-02, -1.928972E-01 ]
+     q2: [-1.350433E-01,  1.511046E-02, -6.884784E-02, -1.775544E-02,  1.870834E-02]
      type                              : unknown
    - sym                               : H # 0011
 
      r                                 :  [ -0.8799999952316284, -0.6600000262260437,  0.0 ]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -2.477851E-02 ]
-     q1                                :  [  1.524266E-01,  2.644226E-02,  1.856062E-01 ]
-     q2: [ 1.642465E-01,  1.673832E-02, -8.730725E-02,  1.864674E-02,  3.650244E-02]
+     q0                                :  [ -2.458885E-02 ]
+     q1                                :  [  1.523896E-01,  2.635749E-02,  1.855846E-01 ]
+     q2: [ 1.642835E-01,  1.679391E-02, -8.732180E-02,  1.870203E-02,  3.649622E-02]
      type                              : unknown
    - sym                               : H # 0012
      r: [ 0.8799999952316284,  1.485999941825867,  1.259999990463257]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -1.916135E-02 ]
-     q1                                :  [ -1.759254E-01, -2.536074E-03, -2.015458E-01 ]
-     q2: [ 1.222980E-01, -5.966090E-03, -6.161016E-02, -6.875290E-03,  2.707417E-02]
+     q0                                :  [ -1.89353E-02 ]
+     q1                                :  [ -1.758544E-01, -2.553775E-03, -2.015234E-01 ]
+     q2: [ 1.223339E-01, -5.978507E-03, -6.161764E-02, -6.885669E-03,  2.703739E-02]
      type                              : unknown
    - sym                               : H # 0013
      r: [-0.8799999952316284,  1.485999941825867,  1.259999990463257]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -3.006559E-02 ]
-     q1                                :  [ -1.750185E-01, -1.537039E-03,  1.943748E-01 ]
-     q2: [-1.506738E-01, -7.194539E-03, -8.054450E-02,  7.046242E-03,  4.306823E-02]
+     q0                                :  [ -2.983659E-02 ]
+     q1                                :  [ -1.749436E-01, -1.554658E-03,  1.943537E-01 ]
+     q2: [-1.507143E-01, -7.207352E-03, -8.055417E-02,  7.056401E-03,  4.302895E-02]
      type                              : unknown
    - sym                               : H # 0014
      r: [ 0.8799999952316284, -0.6600000262260437,  2.519999980926514]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -2.723597E-02 ]
-     q1                                :  [  1.684043E-01, -3.039101E-03, -1.888226E-01 ]
-     q2: [-1.462431E-01,  6.644682E-03, -6.332391E-02, -5.800079E-03,  1.840839E-02]
+     q0                                :  [ -2.70868E-02 ]
+     q1                                :  [  1.68356E-01, -3.011943E-03, -1.887902E-01 ]
+     q2: [-1.462884E-01,  6.626207E-03, -6.334909E-02, -5.782499E-03,  1.840061E-02]
      type                              : unknown
    - sym                               : H # 0015
      r: [-0.8799999952316284, -0.6600000262260437,  2.519999980926514]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -3.428093E-02 ]
-     q1                                :  [  1.681577E-01, -2.215433E-03,  1.826881E-01 ]
-     q2: [ 1.691011E-01,  6.627035E-03, -7.829816E-02,  4.280824E-03,  3.330269E-02]
+     q0                                :  [ -3.412736E-02 ]
+     q1                                :  [  1.681058E-01, -2.188015E-03,  1.826563E-01 ]
+     q2: [ 1.691532E-01,  6.607869E-03, -7.832775E-02,  4.262727E-03,  3.329413E-02]
      type                              : unknown
    - sym                               : H # 0016
      r: [ 0.8799999952316284,  1.485999941825867,  3.779999971389771]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -2.090148E-02 ]
-     q1                                :  [ -1.734861E-01, -3.312850E-03, -1.970595E-01 ]
-     q2: [ 1.287615E-01, -6.235276E-03, -5.728155E-02, -6.923428E-03,  2.384239E-02]
+     q0                                :  [ -2.084659E-02 ]
+     q1                                :  [ -1.734553E-01, -3.302179E-03, -1.970662E-01 ]
+     q2: [ 1.287567E-01, -6.228278E-03, -5.727003E-02, -6.919746E-03,  2.381484E-02]
      type                              : unknown
    - sym                               : H # 0017
      r: [-0.8799999952316284,  1.485999941825867,  3.779999971389771]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -3.133369E-02 ]
-     q1                                :  [ -1.731103E-01, -2.444807E-03,  1.903891E-01 ]
-     q2: [-1.566983E-01, -6.393341E-03, -7.570393E-02,  6.694285E-03,  3.975437E-02]
+     q0                                :  [ -3.127203E-02 ]
+     q1                                :  [ -1.730771E-01, -2.434288E-03,  1.903970E-01 ]
+     q2: [-1.566926E-01, -6.386298E-03, -7.569162E-02,  6.690746E-03,  3.972389E-02]
      type                              : unknown
    - sym                               : H # 0018
      r: [ 0.8799999952316284, -0.6600000262260437,  5.039999961853027]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -2.739153E-02 ]
-     q1                                :  [  1.683686E-01, -2.572078E-03, -1.874934E-01 ]
-     q2: [-1.483984E-01,  8.783074E-03, -6.469733E-02, -6.575212E-03,  1.841863E-02]
+     q0                                :  [ -2.732514E-02 ]
+     q1                                :  [  1.683385E-01, -2.580767E-03, -1.874934E-01 ]
+     q2: [-1.483996E-01,  8.788874E-03, -6.469056E-02, -6.576795E-03,  1.839651E-02]
      type                              : unknown
    - sym                               : H # 0019
      r: [-0.8799999952316284, -0.6600000262260437,  5.039999961853027]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -3.37623E-02 ]
-     q1                                :  [  1.68907E-01, -1.734228E-03,  1.820434E-01 ]
-     q2: [ 1.706256E-01,  8.151184E-03, -7.962962E-02,  5.099764E-03,  3.298223E-02]
+     q0                                :  [ -3.368808E-02 ]
+     q1                                :  [  1.688735E-01, -1.743339E-03,  1.820437E-01 ]
+     q2: [ 1.706283E-01,  8.157281E-03, -7.962369E-02,  5.101442E-03,  3.295760E-02]
      type                              : unknown
    - sym                               : H # 0020
      r: [ 0.8799999952316284,  1.485999941825867,  6.300000190734863]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -2.062809E-02 ]
-     q1                                :  [ -1.733964E-01, -2.910075E-03, -1.980167E-01 ]
-     q2: [ 1.269251E-01, -8.245531E-03, -5.598203E-02, -7.244439E-03,  2.361621E-02]
+     q0                                :  [ -2.049015E-02 ]
+     q1                                :  [ -1.733477E-01, -2.935365E-03, -1.979919E-01 ]
+     q2: [ 1.269633E-01, -8.261139E-03, -5.600042E-02, -7.259654E-03,  2.360157E-02]
      type                              : unknown
    - sym                               : H # 0021
      r: [-0.8799999952316284,  1.485999941825867,  6.300000190734863]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -3.116937E-02 ]
-     q1                                :  [ -1.725707E-01, -1.886168E-03,  1.907912E-01 ]
-     q2: [-1.547033E-01, -7.978226E-03, -7.408059E-02,  7.001215E-03,  3.924676E-02]
+     q0                                :  [ -3.102677E-02 ]
+     q1                                :  [ -1.725184E-01, -1.911852E-03,  1.907667E-01 ]
+     q2: [-1.547462E-01, -7.994675E-03, -7.410206E-02,  7.016897E-03,  3.923068E-02]
      type                              : unknown
    - sym                               : H # 0022
      r: [ 0.8799999952316284, -0.6600000262260437,  7.559999942779541]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -2.604454E-02 ]
-     q1                                :  [  1.703147E-01, -3.670260E-03, -1.906722E-01 ]
-     q2: [-1.420337E-01,  7.275748E-03, -6.948510E-02, -5.290958E-03,  2.213892E-02]
+     q0                                :  [ -2.580533E-02 ]
+     q1                                :  [  1.702445E-01, -3.650701E-03, -1.906440E-01 ]
+     q2: [-1.420727E-01,  7.259479E-03, -6.949584E-02, -5.276548E-03,  2.210718E-02]
      type                              : unknown
    - sym                               : H # 0023
      r: [-0.8799999952316284, -0.6600000262260437,  7.559999942779541]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -3.277771E-02 ]
-     q1                                :  [  1.703244E-01, -3.411905E-03,  1.846464E-01 ]
-     q2: [ 1.645532E-01,  5.970055E-03, -8.470188E-02,  3.452408E-03,  3.681493E-02]
+     q0                                :  [ -3.253708E-02 ]
+     q1                                :  [  1.7025E-01, -3.392908E-03,  1.846194E-01 ]
+     q2: [ 1.645996E-01,  5.953888E-03, -8.471651E-02,  3.438393E-03,  3.678131E-02]
      type                              : unknown
    - sym                               : H # 0024
      r: [ 0.8799999952316284,  1.485999941825867,  8.819999694824219]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -1.005082E-02 ]
-     q1                                :  [ -1.606127E-01, -2.965611E-02, -2.008461E-01 ]
-     q2: [ 1.155228E-01, -2.561752E-03, -6.127267E-02,  8.013699E-04,  2.539704E-02]
+     q0                                :  [ -9.861564E-03 ]
+     q1                                :  [ -1.605764E-01, -2.956962E-02, -2.008291E-01 ]
+     q2: [ 1.155452E-01, -2.508696E-03, -6.127868E-02,  8.561268E-04,  2.538485E-02]
      type                              : unknown
    - sym                               : H # 0025
      r: [-0.8799999952316284,  1.485999941825867,  8.819999694824219]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [ -2.234217E-02 ]
-     q1                                :  [ -1.579748E-01, -3.154907E-02,  1.928685E-01 ]
-     q2: [-1.470842E-01, -2.089398E-03, -8.170790E-02, -2.824577E-03,  4.390622E-02]
+     q0                                :  [ -2.215699E-02 ]
+     q1                                :  [ -1.57937E-01, -3.146165E-02,  1.928545E-01 ]
+     q2: [-1.471138E-01, -2.034433E-03, -8.171746E-02, -2.880772E-03,  4.389299E-02]
      type                              : unknown
    - sym                               : H # 0026
 
      r                                 :  [  0.0,  0.2024700045585632,  9.728960037231445 ]
      nzion                             :  1
      sigma                             :  [  0.244,  0.244,  0.244 ]
-     q0                                :  [  2.3611E-03 ]
-     q1                                :  [  1.214796E-01, -2.216173E-01, -2.644842E-03 ]
-     q2: [ 4.615013E-03, -1.334509E-01,  8.581374E-02, -7.116256E-03, -3.597947E-02]
+     q0                                :  [  2.707995E-03 ]
+     q1                                :  [  1.215035E-01, -2.215338E-01, -2.642417E-03 ]
+     q2: [ 4.613646E-03, -1.333975E-01,  8.584206E-02, -7.114298E-03, -3.595531E-02]
      type                              : unknown
  Checking the total multipoles based on the atomic multipoles:
  - Up to multipole l= 0:
      Electric Dipole Moment (Debye):
-       P vector                        :  [  3.1173E-01,  3.7430E-01,  2.6015E-01 ]
-       norm(P)                         :  5.522292E-01
+       P vector                        :  [  3.1166E-01,  3.7447E-01,  2.6005E-01 ]
+       norm(P)                         :  5.522556E-01
      Quadrupole Moment (AU):
        Q matrix:
-       -  [-9.1405E-01,  1.5229E-01,  4.8892E-02]
-       -  [ 1.5229E-01, -1.8170E+00, -1.1717E+00]
-       -  [ 4.8892E-02, -1.1717E+00,  2.7311E+00]
-       trace                           :  5.46E-12
+       -  [-9.4074E-01,  1.5228E-01,  4.8908E-02]
+       -  [ 1.5228E-01, -1.8391E+00, -1.1740E+00]
+       -  [ 4.8908E-02, -1.1740E+00,  2.7798E+00]
+       trace                           :  1.82E-12
+     Density and potential check:
+     - density threshold for check is 1.00E-06:
+         rho: {int(q-q_exact)):  3.219E-04, int(q_exact):  3.219E-04, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  6.915E+00, int(V_exact):  3.602E+00, ratio:  1.920E+00}
+     - density threshold for check is 1.00E-05:
+         rho: {int(q-q_exact)):  3.656E-03, int(q_exact):  3.656E-03, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  9.587E+00, int(V_exact):  5.457E+00, ratio:  1.757E+00}
+     - density threshold for check is 1.00E-04:
+         rho: {int(q-q_exact)):  2.750E-02, int(q_exact):  2.750E-02, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.273E+01, int(V_exact):  7.949E+00, ratio:  1.602E+00}
+     - density threshold for check is 1.00E-03:
+         rho: {int(q-q_exact)):  2.259E-01, int(q_exact):  2.259E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.697E+01, int(V_exact):  1.156E+01, ratio:  1.468E+00}
+     - density threshold for check is 1.00E-02:
+         rho: {int(q-q_exact)):  1.327E+00, int(q_exact):  1.327E+00, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  2.310E+01, int(V_exact):  1.680E+01, ratio:  1.375E+00}
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -2.0759E-01, -2.0934E-01, -2.0078E-01 ]
-       norm(P)                         :  3.566966E-01
+       P vector                        :  [ -2.0754E-01, -2.0909E-01, -2.0073E-01 ]
+       norm(P)                         :  3.564841E-01
      Quadrupole Moment (AU):
        Q matrix:
-       -  [ 1.1307E+00,  5.9391E-02, -5.0234E-02]
-       -  [ 5.9391E-02, -1.5030E-01,  1.0798E+00]
-       -  [-5.0234E-02,  1.0798E+00, -9.8039E-01]
-       trace                           : -1.09E-11
+       -  [ 1.0909E+00,  5.9413E-02, -5.0181E-02]
+       -  [ 5.9413E-02, -1.7819E-01,  1.0790E+00]
+       -  [-5.0181E-02,  1.0790E+00, -9.1274E-01]
+       trace                           : -9.09E-13
+     Density and potential check:
+     - density threshold for check is 1.00E-06:
+         rho: {int(q-q_exact)):  3.219E-04, int(q_exact):  3.219E-04, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  7.187E+00, int(V_exact):  3.602E+00, ratio:  1.995E+00}
+     - density threshold for check is 1.00E-05:
+         rho: {int(q-q_exact)):  3.656E-03, int(q_exact):  3.656E-03, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.181E+01, int(V_exact):  5.457E+00, ratio:  2.165E+00}
+     - density threshold for check is 1.00E-04:
+         rho: {int(q-q_exact)):  2.750E-02, int(q_exact):  2.750E-02, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.844E+01, int(V_exact):  7.949E+00, ratio:  2.320E+00}
+     - density threshold for check is 1.00E-03:
+         rho: {int(q-q_exact)):  2.259E-01, int(q_exact):  2.259E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  2.847E+01, int(V_exact):  1.156E+01, ratio:  2.462E+00}
+     - density threshold for check is 1.00E-02:
+         rho: {int(q-q_exact)):  1.327E+00, int(q_exact):  1.327E+00, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  4.562E+01, int(V_exact):  1.680E+01, ratio:  2.716E+00}
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -1.8394E-01, -1.8401E-01, -1.4951E-01 ]
-       norm(P)                         :  3.000814E-01
+       P vector                        :  [ -1.8389E-01, -1.8376E-01, -1.4946E-01 ]
+       norm(P)                         :  2.998685E-01
      Quadrupole Moment (AU):
        Q matrix:
-       -  [-1.7450E+00,  3.0525E-02, -3.9375E-02]
-       -  [ 3.0525E-02, -2.1693E-01,  1.2891E+00]
-       -  [-3.9375E-02,  1.2891E+00,  1.9619E+00]
-       trace                           : -9.09E-12
+       -  [-1.7867E+00,  3.0554E-02, -3.9322E-02]
+       -  [ 3.0554E-02, -2.4414E-01,  1.2893E+00]
+       -  [-3.9322E-02,  1.2893E+00,  2.0309E+00]
+       trace                           : -1.00E-11
+     Density and potential check:
+     - density threshold for check is 1.00E-06:
+         rho: {int(q-q_exact)):  3.219E-04, int(q_exact):  3.219E-04, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  6.051E+00, int(V_exact):  3.602E+00, ratio:  1.680E+00}
+     - density threshold for check is 1.00E-05:
+         rho: {int(q-q_exact)):  3.656E-03, int(q_exact):  3.656E-03, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  9.724E+00, int(V_exact):  5.457E+00, ratio:  1.782E+00}
+     - density threshold for check is 1.00E-04:
+         rho: {int(q-q_exact)):  2.750E-02, int(q_exact):  2.750E-02, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  1.495E+01, int(V_exact):  7.949E+00, ratio:  1.881E+00}
+     - density threshold for check is 1.00E-03:
+         rho: {int(q-q_exact)):  2.259E-01, int(q_exact):  2.259E-01, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  2.298E+01, int(V_exact):  1.156E+01, ratio:  1.988E+00}
+     - density threshold for check is 1.00E-02:
+         rho: {int(q-q_exact)):  1.327E+00, int(q_exact):  1.327E+00, ratio:  1.000E+00}
+         pot: {int(V-V_exact)):  3.777E+01, int(V_exact):  1.680E+01, ratio:  2.249E+00}
   #========================================================== Atomic multipole analysis done
- Total charge                          :  4.999997199113E+01
+ Total charge                          :  4.999997146144E+01
   #---------------------------------------------------------------------- Forces Calculation
  Calculate local forces                :  Yes
  Calculate Non Local forces            :  Yes
@@ -3133,52 +3185,52 @@
  - set to 1.d-20 instead of 0.d0
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  45.92
-   Elapsed time (s)                    :  46.03
+   CPU time (s)                        :  46.15
+   Elapsed time (s)                    :  46.27
  BigDFT infocode                       :  0
- Average noise forces: {x:  4.14401632E-02, y:  4.89972536E-02, z:  4.05674472E-02, 
-                    total:  7.59192713E-02}
- Clean forces norm (Ha/Bohr): {maxval:  1.183326675236E-01, fnrm2:  1.206530016544E-01}
- Raw forces norm (Ha/Bohr): {maxval:  1.326694515863E-01, fnrm2:  1.265626012857E-01}
+ Average noise forces: {x:  4.14329603E-02, y:  4.89714767E-02, z:  4.05590703E-02, 
+                    total:  7.58942284E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  1.190435231479E-01, fnrm2:  1.215083195193E-01}
+ Raw forces norm (Ha/Bohr): {maxval:  1.333498002508E-01, fnrm2:  1.274125111481E-01}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [ 8.228797692211E-03,  6.558032116407E-02,  9.815359681548E-02]} # 0001
- -  {C: [ 9.307816641338E-03, -9.824714050739E-02,  2.085637726805E-03]} # 0002
- -  {C: [ 5.968613012763E-03,  1.066509620711E-01,  8.580064920300E-03]} # 0003
- -  {C: [ 8.922897539042E-03, -9.245093548199E-02,  6.751804483435E-03]} # 0004
- -  {C: [ 5.662402535715E-03,  1.078563366030E-01,  6.064585113146E-03]} # 0005
- -  {C: [ 8.684760939802E-03, -8.941641634664E-02,  5.606006109202E-03]} # 0006
- -  {C: [ 6.046028820282E-03,  1.099021375651E-01,  1.061705686584E-02]} # 0007
- -  {C: [ 1.066371682637E-02, -3.819200616882E-02, -7.380371421018E-02]} # 0008
- -  {H: [-3.814340659316E-03, -2.416171831282E-02,  4.012963895212E-02]} # 0009
- -  {H: [-3.801529169166E-02,  2.272912244998E-02, -2.892037213816E-03]} # 0010
- -  {H: [ 3.102629426378E-02,  2.110297210148E-02, -3.308158422358E-03]} # 0011
- -  {H: [-3.635054065795E-02, -3.352216774586E-02, -2.400556481051E-03]} # 0012
- -  {H: [ 2.882273727019E-02, -3.279570552346E-02, -2.282838133908E-03]} # 0013
- -  {H: [-3.666723843515E-02,  2.488328716247E-02, -4.481207684730E-03]} # 0014
- -  {H: [ 3.009870430242E-02,  2.341119281079E-02, -4.553098526652E-03]} # 0015
- -  {H: [-3.989756767561E-02, -3.499637716026E-02, -5.275174096458E-03]} # 0016
- -  {H: [ 3.315796426096E-02, -3.416806041575E-02, -5.311725091605E-03]} # 0017
- -  {H: [-3.694278497916E-02,  2.750573510660E-02, -2.420930560192E-03]} # 0018
- -  {H: [ 3.027368972554E-02,  2.603805055077E-02, -2.589686949829E-03]} # 0019
- -  {H: [-3.938881785982E-02, -3.075989291545E-02, -4.981822652378E-03]} # 0020
- -  {H: [ 3.251753448201E-02, -3.013854419084E-02, -5.404717336913E-03]} # 0021
- -  {H: [-3.788792431704E-02,  2.547865305010E-02, -2.129342390336E-03]} # 0022
- -  {H: [ 3.139314627163E-02,  2.414557932842E-02, -2.248316505128E-03]} # 0023
- -  {H: [-4.040296462760E-02, -3.158878642544E-02, -2.955383249432E-03]} # 0024
- -  {H: [ 3.285912605095E-02, -3.106143033662E-02, -3.446747608811E-03]} # 0025
- -  {H: [-4.266759731715E-03,  1.621483156744E-02, -4.750293387255E-02]} # 0026
- Energy (Hartree)                      : -5.55986800290574479E+01
- Force Norm (Hartree/Bohr)             :  3.47351409460770089E-01
+ -  {C: [ 8.226125651894E-03,  6.576171570490E-02,  9.888927144930E-02]} # 0001
+ -  {C: [ 9.310998591386E-03, -9.872636056966E-02,  2.225109644218E-03]} # 0002
+ -  {C: [ 5.972577111994E-03,  1.068395551064E-01,  8.165870878315E-03]} # 0003
+ -  {C: [ 8.923383607769E-03, -9.260794692748E-02,  6.493806451373E-03]} # 0004
+ -  {C: [ 5.664780948571E-03,  1.079750526719E-01,  6.318699184822E-03]} # 0005
+ -  {C: [ 8.688465342380E-03, -8.962156430971E-02,  6.021188453497E-03]} # 0006
+ -  {C: [ 6.049228666321E-03,  1.103817159753E-01,  1.050393911607E-02]} # 0007
+ -  {C: [ 1.066042379096E-02, -3.838417492919E-02, -7.454072134456E-02]} # 0008
+ -  {H: [-3.818638930589E-03, -2.412942182070E-02,  4.031123260099E-02]} # 0009
+ -  {H: [-3.810929352155E-02,  2.286448921082E-02, -2.708707692925E-03]} # 0010
+ -  {H: [ 3.111847435447E-02,  2.124402306213E-02, -3.122935432749E-03]} # 0011
+ -  {H: [-3.645709287941E-02, -3.370524450143E-02, -2.354404630277E-03]} # 0012
+ -  {H: [ 2.892765875923E-02, -3.298426918405E-02, -2.236959469075E-03]} # 0013
+ -  {H: [-3.679325918969E-02,  2.504292008622E-02, -4.568430072940E-03]} # 0014
+ -  {H: [ 3.022523805339E-02,  2.357663548444E-02, -4.640881287839E-03]} # 0015
+ -  {H: [-3.987640575485E-02, -3.504297992428E-02, -5.305943103169E-03]} # 0016
+ -  {H: [ 3.313849172856E-02, -3.421942660040E-02, -5.342730264027E-03]} # 0017
+ -  {H: [-3.694206359434E-02,  2.756534540771E-02, -2.391049584230E-03]} # 0018
+ -  {H: [ 3.027512154460E-02,  2.610287278375E-02, -2.559343464797E-03]} # 0019
+ -  {H: [-3.949404761058E-02, -3.090777572335E-02, -4.895938429375E-03]} # 0020
+ -  {H: [ 3.262289898869E-02, -3.029154136896E-02, -5.317647421628E-03]} # 0021
+ -  {H: [-3.800723892368E-02,  2.567064726174E-02, -2.178001173750E-03]} # 0022
+ -  {H: [ 3.151070817715E-02,  2.434367467566E-02, -2.296086300609E-03]} # 0023
+ -  {H: [-4.048503773776E-02, -3.172066863355E-02, -3.143003510907E-03]} # 0024
+ -  {H: [ 3.293908029027E-02, -3.119808975431E-02, -3.635976388374E-03]} # 0025
+ -  {H: [-4.270577465184E-03,  1.617081681606E-02, -4.769035820735E-02]} # 0026
+ Energy (Hartree)                      : -5.55986762303026865E+01
+ Force Norm (Hartree/Bohr)             :  3.48580434791353921E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  20426
-   Tot. No. of Deallocations           :  20426
+   Tot. No. of Allocations             :  22185
+   Tot. No. of Deallocations           :  22185
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  261.998
+     Peak Value (MB)                   :  261.111
      for the array                     : psir_noconf
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 323.876 MB
- Walltime since initialization         : 00:00:46.477376276
- Max No. of dictionaries used          :  10578 #( 1002 still in use)
+     Memory Peak of process            : 320.920 MB
+ Walltime since initialization         : 00:00:46.710764764
+ Max No. of dictionaries used          :  11222 #( 1002 still in use)
  Number of dictionary folders allocated:  2

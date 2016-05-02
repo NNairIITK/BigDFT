@@ -113,8 +113,8 @@ module foe_common
   !public :: chebev
   public :: pltwght
   public :: pltexp
-  public :: check_eigenvalue_spectrum_new
-  public :: scale_and_shift_matrix
+  !public :: check_eigenvalue_spectrum_new
+  !public :: scale_and_shift_matrix
   public :: retransform_ext
   !!public :: cheb_exp
   public :: init_foe
@@ -635,6 +635,7 @@ module foe_common
                emergency_stop, foe_obj, restart, eval_bounds_ok, &
                verbosity, eval_multiplicator, smat_s, mat)
       use sparsematrix_init, only: matrixindex_in_compressed
+      use sparsematrix, only: transform_sparse_matrix
       use yaml_output
       implicit none
     
@@ -656,6 +657,8 @@ module foe_common
     
       ! Local variables
       integer :: isegstart, isegend, iseg, ii, jorb, irow, icol, iismall, iel, i, iline, icolumn, ibound, verbosity_
+      integer :: ishift
+      real(mp),dimension(:),allocatable :: mat_large
       real(kind=mp) :: bound_low, bound_up, tt, noise
       real(kind=mp),dimension(2) :: allredarr
     
@@ -676,44 +679,76 @@ module foe_common
           if (.not.present(smat_s) .or. .not.present(mat)) then
               call f_err_throw('not all required optional arguments are present')
           end if
+          mat_large = sparsematrix_malloc(smat_l, iaction=sparse_taskgroup, id='mat_large')
+          call transform_sparse_matrix(iproc, smat_s, smat_l, sparse_taskgroup, 'small_to_large', &
+               smat_in=mat%matrix_compr, lmat_out=mat_large)
       end if
     
       bound_low=0.d0
       bound_up=0.d0
+      ishift = (ispin-1)*smat_l%nvctrp_tg
       do ibound=1,2
-          !if (.not.emergency_stop(ibound)) then
-              ! The penalty function must be smaller than the noise.
-    
-              !$omp parallel default(none) &
-              !$omp shared(ibound,bound_low, bound_up, smat_l, smat_s, trace_with_overlap, mat, isshift, penalty_ev) &
-              !$omp private(i, ii, iline, icolumn, iismall, tt)
-              !$omp do reduction(+:bound_low, bound_up)
-              do i=1,smat_l%smmm%nvctrp
-                  ii = smat_l%smmm%isvctr + i
-                  iline = smat_l%smmm%line_and_column(1,i)
-                  icolumn = smat_l%smmm%line_and_column(2,i)
-                  if (trace_with_overlap) then
-                      ! Take the trace of the product matrix times overlap
-                      iismall = matrixindex_in_compressed(smat_s, icolumn, iline)
-                      if (iismall>0) then
-                          tt=mat%matrix_compr(isshift+iismall-smat_s%isvctrp_tg)
-                      else
-                          tt=0.d0
-                      end if
+          !$omp parallel if (smat_l%smmm%nvctrp>1000) &
+          !$omp default(none) &
+          !$omp shared(ibound, smat_l, bound_low, bound_up, trace_with_overlap, mat_large, ishift, penalty_ev) &
+          !$omp private(i, ii, iline, icolumn, iismall, tt)
+          !$omp do schedule(static) reduction(+:bound_low, bound_up)
+          do i=1,smat_l%smmm%nvctrp
+              ii = smat_l%smmm%isvctr + i
+              iline = smat_l%smmm%line_and_column(1,i)
+              icolumn = smat_l%smmm%line_and_column(2,i)
+              if (trace_with_overlap) then
+                  ! Take the trace of the product matrix times overlap
+                  tt = mat_large(ishift+i)
+              else
+                  ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
+                  if (iline==icolumn) then
+                      tt=1.d0
                   else
-                      ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
-                      if (iline==icolumn) then
-                          tt=1.d0
-                      else
-                          tt=0.d0
-                      end if
+                      tt=0.d0
                   end if
-                  ! This should be improved...
-                  if (ibound==1) bound_low = bound_low + penalty_ev(i,1)*tt
-                  if (ibound==2) bound_up = bound_up + penalty_ev(i,2)*tt
-              end do
-              !$omp end do
-              !$omp end parallel
+              end if
+              ! This should be improved...
+              if (ibound==1) bound_low = bound_low + penalty_ev(i,1)*tt
+              if (ibound==2) bound_up = bound_up + penalty_ev(i,2)*tt
+          end do
+          !$omp end do
+          !$omp end parallel
+
+
+          !!!!!!!if (.not.emergency_stop(ibound)) then
+          !!!!!!    ! The penalty function must be smaller than the noise.
+    
+          !!!!!!    !$omp parallel default(none) &
+          !!!!!!    !$omp shared(ibound,bound_low, bound_up, smat_l, smat_s, trace_with_overlap, mat, isshift, penalty_ev) &
+          !!!!!!    !$omp private(i, ii, iline, icolumn, iismall, tt)
+          !!!!!!    !$omp do reduction(+:bound_low, bound_up)
+          !!!!!!    do i=1,smat_l%smmm%nvctrp
+          !!!!!!        ii = smat_l%smmm%isvctr + i
+          !!!!!!        iline = smat_l%smmm%line_and_column(1,i)
+          !!!!!!        icolumn = smat_l%smmm%line_and_column(2,i)
+          !!!!!!        if (trace_with_overlap) then
+          !!!!!!            ! Take the trace of the product matrix times overlap
+          !!!!!!            iismall = matrixindex_in_compressed(smat_s, icolumn, iline)
+          !!!!!!            if (iismall>0) then
+          !!!!!!                tt=mat%matrix_compr(isshift+iismall-smat_s%isvctrp_tg)
+          !!!!!!            else
+          !!!!!!                tt=0.d0
+          !!!!!!            end if
+          !!!!!!        else
+          !!!!!!            ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
+          !!!!!!            if (iline==icolumn) then
+          !!!!!!                tt=1.d0
+          !!!!!!            else
+          !!!!!!                tt=0.d0
+          !!!!!!            end if
+          !!!!!!        end if
+          !!!!!!        ! This should be improved...
+          !!!!!!        if (ibound==1) bound_low = bound_low + penalty_ev(i,1)*tt
+          !!!!!!        if (ibound==2) bound_up = bound_up + penalty_ev(i,2)*tt
+          !!!!!!    end do
+          !!!!!!    !$omp end do
+          !!!!!!    !$omp end parallel
           !else
           !    ! This means that the Chebyshev expansion exploded, so take a very large
           !    ! value for the error function such that eigenvalue bounds will be enlarged
@@ -735,6 +770,10 @@ module foe_common
           !    !!end if
           !end if
       end do
+
+      if (trace_with_overlap) then
+          call f_free(mat_large)
+      end if
     
       allredarr(1)=bound_low
       allredarr(2)=bound_up
@@ -747,7 +786,7 @@ module foe_common
       !allredarr=abs(allredarr) !for some crazy situations this may be negative
       !noise=1000.d0*anoise
       noise=10.d0*anoise
-      noise = 1.d-1
+      noise = 1.d-2
     
       if (iproc==0 .and. verbosity_>0) then
           !call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
@@ -816,6 +855,7 @@ module foe_common
                smat1, mat1, i1shift, smat2, mat2, i2shift, &
                matscal_compr, scale_factor, shift_value)
       use sparsematrix_init, only: matrixindex_in_compressed
+      use sparsematrix, only: transform_sparse_matrix
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, ispin, i1shift
@@ -829,12 +869,13 @@ module foe_common
       real(kind=mp),intent(out) :: scale_factor, shift_value
     
       ! Local variables
-      integer :: iseg, ii, i, ii1, ii2, isegstart, isegend, ierr
-      integer :: itaskgroup, iitaskgroup, j
+      integer :: iseg, ii, i, ii1, ii2, isegstart, isegend, ierr, jj
+      integer :: itaskgroup, iitaskgroup, j, ishift
       integer,dimension(2) :: irowcol
       real(kind=mp) :: tt1, tt2
       logical :: with_overlap
       real(kind=mp),dimension(:),pointer :: matscal_compr_local
+      real(kind=mp),dimension(:),allocatable :: mat1_large, mat2_large
       integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
       integer,parameter :: comm_strategy=GET
       integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
@@ -867,29 +908,36 @@ module foe_common
       if (data_strategy==GLOBAL_MATRIX) then
           stop 'scale_and_shift_matrix: data_strategy=GLOBAL_MATRIX is deprecated'
       else if (data_strategy==SUBMATRIX) then
-          !write(*,*) 'smatl%smmm%istartendseg_mm',smatl%smmm%istartendseg_mm
-          !$omp parallel default(none) private(ii,i,j,ii2,ii1,tt2,tt1,iseg) &
-          !$omp shared(matscal_compr,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap)
-          !$omp do
+
+          ishift = (ispin-1)*smatl%nvctrp_tg
+
+          ! Transform all matrices to the large sparsity pattern.
+          ! Takes some memory, but probably faster than the old way...
+          mat1_large = sparsematrix_malloc(smatl, iaction=sparse_taskgroup, id='mat1_large')
+          call transform_sparse_matrix(iproc, smat1, smatl, sparse_taskgroup, 'small_to_large', &
+               smat_in=mat1%matrix_compr, lmat_out=mat1_large)
+          if (with_overlap) then
+              mat2_large = sparsematrix_malloc(smatl, iaction=sparse_taskgroup, id='mat2_large')
+              call transform_sparse_matrix(iproc, smat2, smatl, sparse_taskgroup, 'small_to_large', &
+                   smat_in=mat2%matrix_compr, lmat_out=mat2_large)
+          end if
+
+          !$omp parallel if (smatl%smmm%istartendseg_mm(2)-smatl%smmm%istartendseg_mm(1)>100) &
+          !$omp default(none) &
+          !$omp shared(smatl, mat1_large, mat2_large, with_overlap, matscal_compr, scale_factor, shift_value) &
+          !$omp shared(ishift) &
+          !$omp private(iseg, j, ii, i, jj, tt1, tt2)
+          !$omp do schedule(guided)
           do iseg=smatl%smmm%istartendseg_mm(1),smatl%smmm%istartendseg_mm(2)
-              !if (smatl%keyv(min(iseg+1,smatl%nseg))<smatl%smmm%istartend_mm(1)) cycle
-              !if (smatl%keyv(iseg)>smatl%smmm%istartend_mm(2)) exit
               ! A segment is always on one line, therefore no double loop
               j = smatl%keyg(1,2,iseg)
-              do i=smatl%keyg(1,1,iseg),smatl%keyg(2,1,iseg) !this is too much, but for the moment ok 
-                  ii1 = matrixindex_in_compressed(smat1, i, j)
-                  if (ii1>0) then
-                      tt1=mat1%matrix_compr(i1shift+ii1-smat1%isvctrp_tg)
-                  else
-                      tt1=0.d0
-                  end if
+              ii=smatl%keyv(iseg)-1
+              do i=smatl%keyg(1,1,iseg),smatl%keyg(2,1,iseg)
+                  ii = ii + 1
+                  jj = ii-smatl%isvctrp_tg
+                  tt1=mat1_large(ishift+jj)
                   if (with_overlap) then
-                      ii2 = matrixindex_in_compressed(smat2, i, j)
-                      if (ii2>0) then
-                          tt2=mat2%matrix_compr(i2shift+ii2-smat2%isvctrp_tg)
-                      else
-                          tt2=0.d0
-                      end if
+                      tt2 = mat2_large(ishift+jj)
                   else
                       if (i==j) then
                           tt2 = 1.d0
@@ -897,14 +945,60 @@ module foe_common
                           tt2 = 0.d0
                       end if
                   end if
-                  ii=matrixindex_in_compressed(smatl, i, j)
-                  !write(*,*) 'i, ii, ii1, tt1, tt2', i, ii, ii1, tt1, tt2, i1shift, smat1%isvctrp_tg, i1shift+ii1-smat1%isvctrp_tg
-                  matscal_compr(ii-smatl%isvctrp_tg)=scale_factor*(tt1-shift_value*tt2)
+                  !!write(200+iproc,*) 'jj, tt1, tt2', jj, tt1, tt2
+                  matscal_compr(jj)=scale_factor*(tt1-shift_value*tt2)
               end do
           end do
           !$omp end do
           !$omp end parallel
-          !call timing(iproc,'foe_aux_mcpy  ','OF')
+
+          call f_free(mat1_large)
+          if (with_overlap) then
+              call f_free(mat2_large)
+          end if
+
+
+          !!!write(*,*) 'smatl%smmm%istartendseg_mm',smatl%smmm%istartendseg_mm
+          !!!$omp parallel default(none) private(ii,i,j,ii2,ii1,tt2,tt1,iseg) &
+          !!!$omp shared(matscal_compr,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap)
+          !!!$omp do
+          !!do iseg=smatl%smmm%istartendseg_mm(1),smatl%smmm%istartendseg_mm(2)
+          !!    !if (smatl%keyv(min(iseg+1,smatl%nseg))<smatl%smmm%istartend_mm(1)) cycle
+          !!    !if (smatl%keyv(iseg)>smatl%smmm%istartend_mm(2)) exit
+          !!    ! A segment is always on one line, therefore no double loop
+          !!    j = smatl%keyg(1,2,iseg)
+          !!    ii=smatl%keyv(iseg)-1
+          !!    do i=smatl%keyg(1,1,iseg),smatl%keyg(2,1,iseg)
+          !!        ii = ii + 1
+          !!        ii1 = matrixindex_in_compressed(smat1, i, j)
+          !!        if (ii1>0) then
+          !!            tt1=mat1%matrix_compr(i1shift+ii1-smat1%isvctrp_tg)
+          !!        else
+          !!            tt1=0.d0
+          !!        end if
+          !!        if (with_overlap) then
+          !!            ii2 = matrixindex_in_compressed(smat2, i, j)
+          !!            if (ii2>0) then
+          !!                tt2=mat2%matrix_compr(i2shift+ii2-smat2%isvctrp_tg)
+          !!            else
+          !!                tt2=0.d0
+          !!            end if
+          !!        else
+          !!            if (i==j) then
+          !!                tt2 = 1.d0
+          !!            else
+          !!                tt2 = 0.d0
+          !!            end if
+          !!        end if
+          !!        !ii=matrixindex_in_compressed(smatl, i, j)
+          !!        !write(*,*) 'i, ii, ii1, tt1, tt2', i, ii, ii1, tt1, tt2, i1shift, smat1%isvctrp_tg, i1shift+ii1-smat1%isvctrp_tg
+          !!        write(300+iproc,*) 'jj, tt1, tt2', ii-smatl%isvctrp_tg, tt1, tt2
+          !!        matscal_compr(ii-smatl%isvctrp_tg)=scale_factor*(tt1-shift_value*tt2)
+          !!    end do
+          !!end do
+          !!!$omp end do
+          !!!$omp end parallel
+          !!!call timing(iproc,'foe_aux_mcpy  ','OF')
           call f_timing(TCAT_CME_AUXILIARY,'OF')
       else
           stop 'scale_and_shift_matrix: wrong data strategy'
@@ -1028,7 +1122,7 @@ module foe_common
 
     subroutine init_foe(iproc, nproc, nspin, charge, foe_obj, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
                evlow, evhigh, fscale, ef_interpol_det, ef_interpol_chargediff, &
-               fscale_lowerbound, fscale_upperbound)
+               fscale_lowerbound, fscale_upperbound, eval_multiplicator)
       use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
       implicit none
       
@@ -1046,6 +1140,7 @@ module foe_common
       real(kind=mp),intent(in),optional :: fscale_lowerbound
       real(kind=mp),intent(in),optional :: fscale_upperbound
       real(kind=mp),intent(in),optional :: tmprtr
+      real(kind=mp),intent(in),optional :: eval_multiplicator
       
       ! Local variables
       character(len=*), parameter :: subname='init_foe'
@@ -1060,6 +1155,7 @@ module foe_common
       real(kind=mp) :: fscale_lowerbound_
       real(kind=mp) :: fscale_upperbound_
       real(kind=mp) :: tmprtr_
+      real(kind=mp) :: eval_multiplicator_
     
       !call timing(iproc,'init_matrCompr','ON')
       call f_timing(TCAT_CME_AUXILIARY,'ON')
@@ -1067,14 +1163,15 @@ module foe_common
       ! Define the default values... Is there a way to get them from input_variables_definition.yaml?
       evbounds_nsatur_ = 3
       evboundsshrink_nsatur_ =4
-      evlow_ = -0.5d0
-      evhigh_ = 0.5d0
+      evlow_ = -0.5_mp
+      evhigh_ = 0.5_mp
       fscale_ = 2.d-2
       ef_interpol_det_ = 1.d-12
-      ef_interpol_chargediff_ = 1.d0
+      ef_interpol_chargediff_ = 1.0_mp
       fscale_lowerbound_ = 5.d-3
       fscale_upperbound_ = 5.d-2
-      tmprtr_ = 0.d0
+      tmprtr_ = 0.0_mp
+      eval_multiplicator_ = 1.0_mp
 
       if (present(evbounds_nsatur)) evbounds_nsatur_ = evbounds_nsatur
       if (present(evboundsshrink_nsatur)) evboundsshrink_nsatur_ = evboundsshrink_nsatur
@@ -1086,6 +1183,7 @@ module foe_common
       if (present(fscale_lowerbound)) fscale_lowerbound_ = fscale_lowerbound
       if (present(fscale_upperbound)) fscale_upperbound_ = fscale_upperbound
       if (present(tmprtr)) tmprtr_ = tmprtr
+      if (present(eval_multiplicator)) eval_multiplicator_ = eval_multiplicator
     
       foe_obj = foe_data_null()
     
@@ -1105,12 +1203,14 @@ module foe_common
       foe_obj%evlow = f_malloc0_ptr(nspin,id='foe_obj%evlow')
       foe_obj%evhigh = f_malloc0_ptr(nspin,id='foe_obj%evhigh')
       foe_obj%bisection_shift = f_malloc0_ptr(nspin,id='foe_obj%bisection_shift')
+      foe_obj%eval_multiplicator = f_malloc0_ptr(nspin,id='foe_obj%eval_multiplicator')
       do ispin=1,nspin
           call foe_data_set_real(foe_obj,"charge",charge(ispin),ispin)
           call foe_data_set_real(foe_obj,"ef",0.d0,ispin)
           call foe_data_set_real(foe_obj,"evhigh",evhigh_,ispin)
           call foe_data_set_real(foe_obj,"evlow",evlow_,ispin)
           call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,ispin)
+          call foe_data_set_real(foe_obj,"eval_multiplicator",eval_multiplicator_,ispin)
       end do
     
       !call timing(iproc,'init_matrCompr','OF')
@@ -1132,9 +1232,11 @@ module foe_common
       real(kind=mp),intent(out) :: x_max_error, max_error, mean_error
 
       ! Local variables
-      integer :: isx, iex, i, ipl, n, iimin, iimax, ii, is, np, jproc
+      integer :: isx, iex, i, ipl, n, iimin, iimax, ii, is, np, jproc, ithread, nthread
       real(kind=mp) :: x, xx, val_chebyshev, val_function, xxm1, xxm2, xxx, sigma, tau, error, val_chebyshev1
       real(kind=mp),dimension(:,:),allocatable :: max_errors
+      real(kind=mp),dimension(:),allocatable :: max_error_arr, x_max_error_arr
+      !$ integer :: omp_get_thread_num, omp_get_max_threads
 
       call f_routine(id='accuracy_of_chebyshev_expansion')
 
@@ -1172,11 +1274,23 @@ module foe_common
           call f_err_throw('wrong ending index')
       end if
 
+      nthread = 1
+      !$ nthread = omp_get_max_threads()
+      max_error_arr = f_malloc(0.to.nthread,id='max_error_arr')
+      x_max_error_arr = f_malloc(0.to.nthread,id='x_max_error_arr')
 
-      max_error = 0.d0
+      max_error_arr(:) = 0.d0
       mean_error = 0.d0
-      !do i=isx,iex
       val_chebyshev1 = 0.5d0*coeff(1)
+
+      ithread = 0
+      !$omp parallel if (np>1 .and. np*npl>1000) &
+      !$omp default(none) &
+      !$omp shared(np, is, h, sigma, tau, val_chebyshev1, coeff, npl, mean_error, max_error_arr, x_max_error_arr) &
+      !$omp private(i, ii, x, xx, val_chebyshev, xxm2, xxm1, ipl, xxx, val_function, error) &
+      !$omp firstprivate(ithread)
+      !$ ithread = omp_get_thread_num()
+      !$omp do reduction(+: mean_error)
       do i=1,np
           ii = i + is
           x = real(ii,kind=mp)*h
@@ -1193,9 +1307,9 @@ module foe_common
           end do
           val_function = func(x)
           error = abs(val_chebyshev-val_function)
-          if (error>max_error) then
-              max_error = error
-              x_max_error = x
+          if (error>max_error_arr(ithread)) then
+              max_error_arr(ithread) = error
+              x_max_error_arr(ithread) = x
           end if
           mean_error = mean_error + error
           !if (abs(bounds(1)-0.15d0)<1.d-1 .and. abs(bounds(2)-30.0d0)<1.d-1 .and. npl==100) then
@@ -1203,8 +1317,21 @@ module foe_common
           !end if
           !write(*,*) 'x, val_chebyshev, exp(x-bounds(2))', x, val_chebyshev, exp(x-bounds(2))
       end do
+      !$omp end do
+      !$omp end parallel
       !write(*,*) 'max_error',max_error
       mean_error = mean_error/real(iex-isx+1,kind=mp)
+
+      ! Get the maximum among the OpenMP threads
+      max_error = 0.d0
+      do ithread=0,nthread
+          if (max_error_arr(ithread)>max_error) then
+              max_error = max_error_arr(ithread)
+              x_max_error = x_max_error_arr(ithread)
+          end if
+      end do
+      call f_free(max_error_arr)
+      call f_free(x_max_error_arr)
 
       ! Communicate the results... for the maximum in an array since also the position is required
       call mpiallred(mean_error, 1, mpi_sum, comm=comm)
@@ -2277,6 +2404,7 @@ module foe_common
       real(kind=mp),dimension(:),allocatable :: cf
 
       call f_routine(id='chebyshev_coefficients_calculate')
+
 
       call f_zero(cc)
       cf = f_malloc0(n,id='cf')

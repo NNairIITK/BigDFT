@@ -1765,6 +1765,11 @@ module multipole
          do while(ket_next(psi_it,ilr=psi_it%ilr))
             if (sphere) call f_zero(sphi2r)
             call daub_to_isf(psi_it%lr,w,psi_it%phi_wvl,phi2r)
+            !$omp parallel default(none) &
+            !$omp shared(psi_it, hgrids, lrcntr, acell, nl3, nl2, nl1) &
+            !$omp shared(perz, pery, perx, sphere, rmax, sphi2r, phi2r, l, m) &
+            !$omp private(i3, ii3, z, i2, ii2, y, i1, ii1, x, ind, tt)
+            !$omp do
             do i3=1,psi_it%lr%d%n3i
                ii3 = psi_it%lr%nsi3 + i3 - nl3 - 1
                z=ii3*0.5d0*hgrids(3)-lrcntr(3)
@@ -1787,6 +1792,8 @@ module multipole
                   end do
                end do
             end do
+            !$omp end do
+            !$omp end parallel
             sphi_ptr => ob_ket_map(Slmphi,psi_it)
             call isf_to_daub(psi_it%lr, w, sphi2r, sphi_ptr)
          end do
@@ -1824,6 +1831,7 @@ module multipole
       real(wp), dimension(3) :: lrcntr
       real(wp),dimension(:),allocatable :: phi2r
       real(wp), dimension(:), pointer :: sphi_ptr
+      real(wp),dimension(-lmax:lmax,0:lmax) :: Qlm_work
 
       call f_routine(id='Qlm_phi')
 
@@ -1857,6 +1865,12 @@ module multipole
          end if
          do while(ket_next(psi_it,ilr=psi_it%ilr))
             call daub_to_isf(psi_it%lr,w,psi_it%phi_wvl,phi2r)
+            call f_zero(Qlm_work)
+            !$omp parallel default(none) &
+            !$omp shared(psi_it, hgrids, lrcntr, acell, nl3, nl2, nl1) &
+            !$omp shared(perz, pery, perx, sphere, rmax, Qlm_work, phi2r, lmax) &
+            !$omp private(i3, ii3, z, i2, ii2, y, i1, ii1, x, ind, tt, l, m)
+            !$omp do reduction(+: Qlm_work)
             do i3=1,psi_it%lr%d%n3i
                ii3 = psi_it%lr%nsi3 + i3 - nl3 - 1
                z=ii3*0.5d0*hgrids(3)-lrcntr(3)
@@ -1877,12 +1891,15 @@ module multipole
                         do m=-l,l
                            tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
                            tt = tt*sqrt(4.d0*pi/real(2*l+1,gp))
-                           Qlm(m,l,psi_it%iorbp)=Qlm(m,l,psi_it%iorbp)+tt*phi2r(ind)
+                           Qlm_work(m,l)=Qlm_work(m,l)+tt*phi2r(ind)
                         end do
                      end do
                   end do
                end do
             end do
+            !$end do
+            !$omp end parallel
+            Qlm(-lmax:lmax,0:lmax,psi_it%iorbp) = Qlm_work(-lmax:lmax,0:lmax)
          end do
          !deallocations of work arrays
          call deallocate_work_arrays_sumrho(w)
@@ -2001,7 +2018,7 @@ module multipole
                ovrlp, ham, kernel, rxyz, method, do_ortho, projectormode, &
                calculate_multipole_matrices, do_check, &
                nphi, lphi, nphir, hgrids, orbs, collcom, collcom_sr, &
-               lzd, at, denspot, orthpar, shift, multipole_matrix_in)
+               lzd, at, denspot, orthpar, shift, multipole_matrix_in, ice_obj)
       use module_base
       use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, orthon_data, DFT_local_fields, comms_linear
       use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
@@ -2018,6 +2035,7 @@ module multipole
       use matrix_operations, only: overlapPowerGeneral
       !use Poisson_Solver, only: H_potential
       use Poisson_Solver, except_dp => dp, except_gp => gp
+      use foe_base, only: foe_data
       use box
       implicit none
       ! Calling arguments
@@ -2045,6 +2063,7 @@ module multipole
       type(orthon_data),intent(in),optional :: orthpar
       real(kind=8),dimension(3),intent(in),optional :: shift
       type(matrices),dimension(-lmax:lmax,0:lmax),intent(in),target,optional :: multipole_matrix_in
+      type(foe_data),intent(inout),optional :: ice_obj
 
       ! Local variables
       integer :: methTransformOverlap, iat, ind, ispin, ishift, iorb, jorb, iiorb, l, m, itype, natpx, isatx, nmaxx, kat, n, i, kkat
@@ -2284,20 +2303,36 @@ module multipole
               newovrlp%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_TASKGROUP, id='newovrlp%matrix_compr')
               call f_memcpy(src=newoverlap, dest=newovrlp%matrix_compr)
               power=1
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
-                   1020, 1, power, -1, &
-                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                   ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
-                   check_accur=.false.)
+              if (present(ice_obj)) then
+                  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                       1020, 1, power, -1, &
+                       imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                       ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                       check_accur=.false., ice_obj=ice_obj)
+              else
+                  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                       1020, 1, power, -1, &
+                       imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                       ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                       check_accur=.false.)
+              end if
               call deallocate_matrices(newovrlp)
               call f_free(newoverlap)
           else
               power(1)=1
-              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
-                   1020, 1, power, -1, &
-                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-                   ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
-                   check_accur=.false.)
+              if (present(ice_obj)) then
+                  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                       1020, 1, power, -1, &
+                       imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                       ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                       check_accur=.false., ice_obj=ice_obj)
+              else
+                  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                       1020, 1, power, -1, &
+                       imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                       ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                       check_accur=.false.)
+              end if
           end if
       end if
 
@@ -2579,8 +2614,9 @@ module multipole
               call f_memcpy(n=(ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), &
                    src=denspot%rhov(ioffset+1), dest=rho_exact(is1,is2,is3))
               call f_memcpy(src=rho_exact, dest=pot_exact)
-              call H_potential('D',denspot%pkernel,pot_exact,denspot%V_ext,tt,0.0_dp,.true.,&
-                   quiet='yes')
+!!$              call H_potential('D',denspot%pkernel,pot_exact,denspot%V_ext,tt,0.0_dp,.true.,&
+!!$                   quiet='yes')
+              call Electrostatic_Solver(denspot%pkernel,pot_exact)
               mesh=cell_new(smmd%geocode,denspot%pkernel%ndims,denspot%pkernel%hgrids)
               call compare_charge_and_potential(mesh,&!iproc, is1, ie1, is2, ie2, is3, ie3, &
                    smmd%nat, &
@@ -2942,7 +2978,7 @@ module multipole
       coeff_all = f_malloc((/nmax,nmax,natp/),id='coeff_all')
       ovrlp_onehalf_all = f_malloc((/nmax,nmax,natp/),id='ovrlp_onehalf_all')
       ovrlp_minusonehalf = f_malloc((/nmax,nmax/),id='ovrlp_minusonehalf')
-      ilup = f_malloc((/2,nmax,nmax,natp/),id='ilup')
+      !ilup = f_malloc((/2,nmax,nmax,natp/),id='ilup')
       n_all = f_malloc(natp,id='n_all')
 
       penalty_matrices = f_malloc((/nmax**2,natp/),id='penalty_matrices')
@@ -3062,7 +3098,7 @@ module multipole
               proj = f_malloc0((/n,n/),id='proj')
               penaltymat = f_malloc0((/n,n,24/),id='penaltymat')
               eval = f_malloc0((/n/),id='eval')
-              call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ovrlp, ilup)
+              call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ovrlp)!, ilup)
               call extract_matrix(smatm, ham_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ham)
 
 
@@ -3317,7 +3353,7 @@ module multipole
               call f_free(coeff_all)
               call f_free(ovrlp_onehalf_all)
               call f_free(ovrlp_minusonehalf)
-              call f_free(ilup)
+              !call f_free(ilup)
               call f_free(n_all)
               call f_free(penalty_matrices)
               call f_free(alpha_calc)
@@ -3707,7 +3743,7 @@ end if
       end if
           call f_free(kerneltilde)
       call f_free(coeff_all)
-      call f_free(ilup)
+      !call f_free(ilup)
       call f_free(n_all)
       call f_free(ovrlp_minusonehalf)
       call f_free(penalty_matrices)
@@ -3741,7 +3777,7 @@ end if
 
 
 
-  subroutine extract_matrix(smat, matrix_compr, neighbor, n, nmax, matrix, ilup)
+  subroutine extract_matrix(smat, matrix_compr, neighbor, n, nmax, matrix)!, ilup)
     use module_base
     use sparsematrix_base,only: sparse_matrix, matrices
     use sparsematrix_init, only: matrixindex_in_compressed
@@ -3753,44 +3789,65 @@ end if
     logical,dimension(smat%nfvctr),intent(in) :: neighbor
     integer,intent(in) :: n, nmax
     real(kind=8),dimension(n,n),intent(out) :: matrix
-    integer,dimension(2,nmax,nmax),intent(out),optional :: ilup
+    !integer,dimension(2,nmax,nmax),intent(out),optional :: ilup
 
     ! Local variables
     integer :: icheck, ii, jj, i, j, ind
-    logical :: optional_present
+    !logical :: optional_present
+    integer,dimension(:),allocatable :: lookup
 
     call f_routine(id='extract_matrix')
 
-    optional_present = present(ilup)
+    !optional_present = present(ilup)
 
-    icheck = 0
+    lookup = f_malloc(smat%nfvctr,id='lookup')
     ii = 0
     do i=1,smat%nfvctr
         if (neighbor(i)) then
+            ii = ii + 1
+            lookup(i) = ii
+        end if
+    end do
+
+
+    icheck = 0
+    ii = 0
+    !SM: The function matrixindex_in_compressed is rather expensive, so probably worth to use OpenMP all the time
+    !$omp parallel default(none) &
+    !$omp shared(smat, neighbor, lookup, matrix, matrix_compr, icheck) &
+    !$omp private(i, jj, ii, j, ind)
+    !$omp do schedule(guided) reduction(+: icheck)
+    do i=1,smat%nfvctr
+        if (neighbor(i)) then
             jj = 0
+            ii = lookup(i)
             do j=1,smat%nfvctr
                 if (neighbor(j)) then
                     icheck = icheck + 1
                     jj = jj + 1
-                    if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
+                    !if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
                     ind =  matrixindex_in_compressed(smat, j, i)
                     if (ind>0) then
                         matrix(jj,ii) = matrix_compr(ind-smat%isvctrp_tg)
                     else
                         matrix(jj,ii) = 0.d0
                     end if
-                    if (optional_present) then
-                        ilup(1,jj,ii) = j
-                        ilup(2,jj,ii) = i
-                    end if
+                    !if (optional_present) then
+                    !    ilup(1,jj,ii) = j
+                    !    ilup(2,jj,ii) = i
+                    !end if
                 end if
             end do
         end if
     end do
+    !$omp end do
+    !$omp end parallel
     if (icheck>n**2) then
         call f_err_throw('icheck('//adjustl(trim(yaml_toa(icheck)))//') > n**2('//&
             &adjustl(trim(yaml_toa(n**2)))//')',err_name='BIGDFT_RUNTIME_ERROR')
     end if
+
+    call f_free(lookup)
 
     call f_release_routine()
 
@@ -5170,7 +5227,7 @@ end if
    !$omp shared(ep, is1, ie1, is2, ie2, is3, ie3, norm, hhh) &
    !$omp shared(gaussians1, gaussians2, gaussians3) &
    !$omp private(impl, i1, i2, i3, ii1, ii2, ii3, l, gg) 
-   !$omp do
+   !$omp do schedule(guided)
    do impl=1,ep%nmpl
        i3loop: do i3=is3,ie3
            if (maxval(gaussians3(:,i3,impl))<1.d-20) cycle i3loop
@@ -6030,59 +6087,66 @@ end subroutine calculate_rpowerx_matrices
     end subroutine correct_multipole_origin
 
 
-    subroutine compare_charge_and_potential(mesh,nat,& !iproc, is1, ie1, is2, ie2, is3, ie3, nat, &
+    subroutine compare_charge_and_potential(boxit,nat,& !iproc, is1, ie1, is2, ie2, is3, ie3, nat, &
                rho_exact, rho_mp, pot_exact, pot_mp, kernel, rxyz, &
                ncheck, check_threshold, charge_error, charge_total, potential_error, potential_total)
     use PStypes, only: coulomb_operator
     use PSbox, only: PS_gather
     use box
-    use bounds, only: locreg_mesh_origin
     implicit none
     ! Calling arguments
     !integer,intent(in) :: iproc, is1, ie1, is2, ie2, is3, ie3
-    type(cell), intent(in) :: mesh
+    type(box_iterator), intent(in) :: boxit
     integer, intent(in) :: nat, ncheck
     type(coulomb_operator),intent(in) :: kernel
-    real(kind=8),dimension(kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p),intent(in) :: rho_exact, rho_mp, pot_exact, pot_mp
+    real(kind=8),dimension(kernel%ndims(1)*kernel%ndims(2)*kernel%grid%n3p),intent(in) :: rho_exact, rho_mp, pot_exact, pot_mp
     real(kind=8),dimension(3,nat),intent(in) :: rxyz
     real(kind=8),dimension(ncheck),intent(in) :: check_threshold
     real(kind=8),dimension(ncheck),intent(out) :: charge_error, charge_total, potential_error, potential_total
 
     ! Local variables
     integer :: i1, i2, i3, iat, icheck
-    real(kind=8) :: x, y, z, d, dmin, qex
-    real(kind=8),dimension(:,:,:),allocatable :: rhog_exact, potg_exact, rhog_mp, potg_mp
-    type(box_iterator) :: boxit
-    !!integer,parameter :: ncheck = 5
-    !!real(kind=8),dimension(ncheck),parameter :: check_threshold = [ 1.d-6 , &
-    !!                                                                1.d-5 , &
-    !!                                                                1.d-4 , &
-    !!                                                                1.d-3 , &
-    !!                                                                1.d-2]
+    real(kind=8) :: x, y, z, d, dmin, qex, factor
     real(kind=8),parameter :: min_distance = 2.0d0
-    !!real(kind=8),dimension(ncheck) :: charge_error, charge_total, potential_error, potential_total
+!!$    logical,dimension(:,:,:),allocatable :: is_close
 
-    ! The exact charge density and potential
-    rhog_exact = f_malloc(kernel%ndims,id='rhog_exact')
-    potg_exact = f_malloc(kernel%ndims,id='potg_exact')
+    call f_routine(id='compare_charge_and_potential')
 
-    ! The charge density and potential constructed from the multipoles
-    rhog_mp = f_malloc(kernel%ndims,id='rhog_mp')
-    potg_mp = f_malloc(kernel%ndims,id='potg_mp')
-
-    ! Gather together the arrays
-    call PS_gather(src=rho_exact, dest=rhog_exact, kernel=kernel)
-    call PS_gather(src=pot_exact, dest=potg_exact, kernel=kernel)
-    call PS_gather(src=rho_mp, dest=rhog_mp, kernel=kernel)
-    call PS_gather(src=pot_mp, dest=potg_mp, kernel=kernel)
+!!$    ! Determine the grid points which are farther away from the atoms than the minimal distance
+!!$    is_close = f_malloc((/0.to.kernel%ndims(1)-31-1,0.to.kernel%ndims(2)-31-1,is3.to.ie3/),id='is_close')
+!!$    is_close(:,:,:) = .false.
+!!$    do iat=1,nat
+!!$        do i3=max(15,is3),min(ie3,kernel%ndims(3)-16-1)
+!!$            z = (i3-15)*kernel%hgrids(3)
+!!$            d = sqrt( (z-rxyz(3,iat))**2 )
+!!$            if (d<=min_distance) then
+!!$                ! From the viewpoint of the z coordinate, the grid points might be close to atom iat,
+!!$                ! so also check the other directions.
+!!$                do i2=0,kernel%ndims(2)-31-1
+!!$                    y = i2*kernel%hgrids(2)
+!!$                    d = sqrt( (y-rxyz(2,iat))**2 + (z-rxyz(3,iat))**2 )
+!!$                    if (d<=min_distance) then
+!!$                        ! From the viewpoint of the y and z coordinates, the grid points might be close to atom iat,
+!!$                        ! so also check the other directions.
+!!$                        do i1=0,kernel%ndims(1)-31-1
+!!$                            x = i1*kernel%hgrids(1)
+!!$                            d = sqrt( (x-rxyz(1,iat))**2 + (y-rxyz(2,iat))**2 + (z-rxyz(3,iat))**2 )
+!!$                            if (d<=min_distance) then
+!!$                                is_close(i1,i2,i3) = .true.
+!!$                            end if
+!!$                        end do
+!!$                    end if
+!!$                end do
+!!$            end if
+!!$        end do
+!!$    end do
 
     call f_zero(charge_error)
     call f_zero(charge_total)
     call f_zero(potential_error)
     call f_zero(potential_total)
 
-    !define the box iterator
-    boxit=box_iter(mesh,origin=locreg_mesh_origin(mesh))
+    !use the box iterator
     do while(box_next_point(boxit))
        dmin = huge(1.d0)
        do iat=1,nat
@@ -6091,18 +6155,19 @@ end subroutine calculate_rpowerx_matrices
        end do
        if (dmin>min_distance) then
           ! Farther away from the atoms than the minimal distance
-          qex = rhog_exact(boxit%i,boxit%j,boxit%k)
+          qex = rho_exact(boxit%ind)
+          vex = pot_exact(boxit%ind)
           do icheck=1,ncheck
              if (abs(qex)<check_threshold(icheck)) then
                 ! Charge density smaller than the threshold
                 charge_error(icheck) = charge_error(icheck) + &
-                     abs(qex-rhog_mp(boxit%i,boxit%j,boxit%k))
+                     abs(qex-rho_mp(boxit%i,boxit%j,boxit%k))
                 charge_total(icheck) = charge_total(icheck) + &
                      abs(qex)
                 potential_error(icheck) = potential_error(icheck) + &
-                     abs(potg_exact(boxit%i,boxit%j,boxit%k)-potg_mp(boxit%i,boxit%j,boxit%k))
+                     abs(-pot_mp(boxit%i,boxit%j,boxit%k))
                 potential_total(icheck) = potential_total(icheck) + &
-                     abs(potg_exact(boxit%i,boxit%j,boxit%k))
+                     abs(pot_exact(boxit%i,boxit%j,boxit%k))
              end if
           end do
        end if
@@ -6144,18 +6209,19 @@ end subroutine calculate_rpowerx_matrices
 !!$        end do
 !!$     end do
 
-    !if (iproc==0) then
-    !    do icheck=1,ncheck
-    !        write(*,*) 'icheck, rho_err, rho_tot, ratio, pot_err, pot_tot, ratio', &
-    !            icheck, charge_error(icheck), charge_total(icheck), charge_error(icheck)/charge_total(icheck), &
-    !            potential_error(icheck), potential_total(icheck), potential_error(icheck)/potential_total(icheck)
-    !    end do
-    !end if
+!!$    call f_free(is_close)
 
-    call f_free(rhog_exact)
-    call f_free(potg_exact)
-    call f_free(rhog_mp)
-    call f_free(potg_mp)
+    call dscal(ncheck, factor, charge_error(1), 1)
+    call dscal(ncheck, factor, charge_total(1), 1)
+    call dscal(ncheck, factor, potential_error(1), 1)
+    call dscal(ncheck, factor, potential_total(1), 1)
+
+    call mpiallred(charge_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
+    call mpiallred(charge_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
+    call mpiallred(potential_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
+    call mpiallred(potential_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+    call f_release_routine()
 
     end subroutine compare_charge_and_potential
 

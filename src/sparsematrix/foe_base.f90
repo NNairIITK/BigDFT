@@ -17,6 +17,7 @@ module foe_base
     real(kind=mp) :: tmprtr                      !< temperature (actually not really... 0.d0 means error function with finite temperature)
     integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
     real(kind=mp) :: evlow_min, evhigh_max
+    real(kind=mp),dimension(:),pointer :: eval_multiplicator !< multiplicative factor to scale the eigenvalue spectrum
   end type foe_data
 
 
@@ -57,6 +58,7 @@ module foe_base
       foe_obj%evboundsshrink_nsatur  = uninitialized(foe_obj%evboundsshrink_nsatur)
       foe_obj%evlow_min              = uninitialized(foe_obj%evlow_min)
       foe_obj%evhigh_max             = uninitialized(foe_obj%evhigh_max)
+      nullify(foe_obj%eval_multiplicator)
     end function foe_data_null
 
 
@@ -68,6 +70,7 @@ module foe_base
       call f_free_ptr(foe_obj%evhigh)
       call f_free_ptr(foe_obj%bisection_shift)
       call f_free_ptr(foe_obj%charge)
+      call f_free_ptr(foe_obj%eval_multiplicator)
     end subroutine foe_data_deallocate
 
 
@@ -126,22 +129,34 @@ module foe_base
       select case (fieldname)
       case ("ef")
           if (.not.present(ind)) then
-              stop 'foe_data_set_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%ef)) then
+              call f_err_throw('ef not associated')
           end if
           foe_obj%ef(ind) = val
       case ("evlow")
           if (.not.present(ind)) then
-              stop 'foe_data_set_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%evlow)) then
+              call f_err_throw('evlow not associated')
           end if
           foe_obj%evlow(ind) = val
       case ("evhigh")
           if (.not.present(ind)) then
-              stop 'foe_data_set_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%evhigh)) then
+              call f_err_throw('evhigh not associated')
           end if
           foe_obj%evhigh(ind) = val
       case ("bisection_shift")
           if (.not.present(ind)) then
-              stop 'foe_data_set_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%bisection_shift)) then
+              call f_err_throw('bisection_shift not associated')
           end if
           foe_obj%bisection_shift(ind) = val
       case ("fscale")
@@ -152,7 +167,10 @@ module foe_base
           foe_obj%ef_interpol_chargediff = val
       case ("charge")
           if (.not.present(ind)) then
-              stop 'foe_data_set_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%charge)) then
+              call f_err_throw('charge not associated')
           end if
           foe_obj%charge(ind) = val
       case ("fscale_lowerbound")
@@ -165,6 +183,14 @@ module foe_base
           foe_obj%evlow_min = val
       case ("evhigh_max")
           foe_obj%evhigh_max = val
+      case ("eval_multiplicator")
+          if (.not.present(ind)) then
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%eval_multiplicator)) then
+              call f_err_throw('eval_multiplicator not associated')
+          end if
+          foe_obj%eval_multiplicator(ind) = val
       case default
           stop 'wrong arguments'
       end select
@@ -180,22 +206,34 @@ module foe_base
       select case (fieldname)
       case ("ef")
           if (.not.present(ind)) then
-              stop 'foe_data_get_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%ef)) then
+              call f_err_throw('ef not associated')
           end if
           val = foe_obj%ef(ind)
       case ("evlow")
           if (.not.present(ind)) then
-              stop 'foe_data_get_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%evlow)) then
+              call f_err_throw('evlow not associated')
           end if
           val = foe_obj%evlow(ind)
       case ("evhigh")
           if (.not.present(ind)) then
-              stop 'foe_data_get_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%evhigh)) then
+              call f_err_throw('evhigh not associated')
           end if
           val = foe_obj%evhigh(ind)
       case ("bisection_shift")
           if (.not.present(ind)) then
-              stop 'foe_data_get_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%bisection_shift)) then
+              call f_err_throw('bisection_shift not associated')
           end if
           val = foe_obj%bisection_shift(ind)
       case ("fscale")
@@ -206,7 +244,10 @@ module foe_base
           val = foe_obj%ef_interpol_chargediff
       case ("charge")
           if (.not.present(ind)) then
-              stop 'foe_data_get_real: ind not present'
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%charge)) then
+              call f_err_throw('charge not associated')
           end if
           val = foe_obj%charge(ind)
       case ("fscale_lowerbound")
@@ -219,6 +260,14 @@ module foe_base
           val = foe_obj%evlow_min
       case ("evhigh_max")
           val = foe_obj%evhigh_max
+      case ("eval_multiplicator")
+          if (.not.present(ind)) then
+              call f_err_throw('ind not present')
+          end if
+          if (.not.associated(foe_obj%eval_multiplicator)) then
+              call f_err_throw('eval_multiplicator not associated')
+          end if
+          val = foe_obj%eval_multiplicator(ind)
       case default
           stop 'wrong arguments'
       end select

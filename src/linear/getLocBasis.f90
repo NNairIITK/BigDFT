@@ -592,7 +592,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           !!     tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, tt)
           !!if (iproc==0) call yaml_map('max assymetry of S',tt)
           call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+               tmb%foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, &
                energs%ebs, &
                calculate_minusonehalf=invert_overlap_matrix, foe_verbosity=2, symmetrize_kernel=.true.)
@@ -733,7 +733,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),intent(in) :: max_inversion_error
   integer,intent(out) :: infoBasisFunctions
   type(atoms_data), intent(in) :: at
-  type(orbitals_data) :: orbs
+  type(orbitals_data), intent(inout) :: orbs
   real(kind=8),dimension(3,at%astruct%nat) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers), intent(inout) :: GPU
@@ -771,7 +771,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   !integer :: jorb, nspin
   !real(kind=8),dimension(:),allocatable :: occup_tmp
   real(kind=8) :: meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
-  real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS
+  real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS,occup_tmp
   real(kind=8),dimension(:),allocatable :: hpsit_c_tmp, hpsit_f_tmp, hpsi_tmp, psidiff, tmparr1, tmparr2
   real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, kernel_compr_tmp, kernel_best, hphi_nococontra
   logical :: energy_increased, overlap_calculated, energy_diff, energy_increased_previous, complete_reset, even
@@ -1104,7 +1104,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
                    verbosity=0, &
-                   check_accur=order_taylor<1000, max_error=max_error, mean_error=mean_error)
+                   check_accur=order_taylor<1000, max_error=max_error, mean_error=mean_error, &
+                   ice_obj=tmb%ice_obj)
               call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
           end if
           call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
@@ -1130,24 +1131,18 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
           call vcopy(tmb%linmat%l%nvctrp_tg*tmb%linmat%l%nspin, &
                tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
-          !allocate(occup_tmp(tmb%orbs%norb), stat=istat)
-          !call memocc(istat, occup_tmp, 'occup_tmp', subname)
-          !call vcopy(tmb%orbs%norb, tmb%orbs%occup(1), 1, occup_tmp(1), 1)
-          !call f_zero(tmb%orbs%norb,tmb%orbs%occup(1))
-          !call vcopy(orbs%norb, orbs%occup(1), 1, tmb%orbs%occup(1), 1)
-          !! occupy the next few states - don't need to preserve the charge as only using for support function optimization
-          !do iorb=1,tmb%orbs%norb
-          !   if (tmb%orbs%occup(iorb)==1.0_gp) then
-          !      tmb%orbs%occup(iorb)=2.0_gp
-          !   else if (tmb%orbs%occup(iorb)==0.0_gp) then
-          !      do jorb=iorb,min(iorb+extra_states-1,tmb%orbs%norb)
-          !         tmb%orbs%occup(jorb)=2.0_gp
-          !      end do
-          !      exit
-          !   end if
-          !end do
-          call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, &
+          occup_tmp=f_malloc(orbs%norb,id='occup_tmp')
+          ! make a copy of 'correct' occup
+          call vcopy(orbs%norb, orbs%occup(1), 1, occup_tmp(1), 1)
+          ! occupy the extra states - don't need to preserve the charge as only using for support function optimization
+          do iorb=1,orbs%norb
+             orbs%occup(iorb)=2.0_gp
+          end do
+          call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, &
                tmb%linmat%l, tmb%linmat%kernel_)
+          call vcopy(orbs%norb, occup_tmp(1), 1, orbs%occup(1), 1)
+          call f_free(occup_tmp)
+   
           !call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
           !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       end if
@@ -2961,7 +2956,8 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
        verbosity=0, &
-       check_accur=.true., max_error=max_error, mean_error=mean_error)
+       check_accur=.true., max_error=max_error, mean_error=mean_error, &
+       ice_obj=tmb%ice_obj)
   call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
 
 
@@ -3197,7 +3193,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
       !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
       call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
-           foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+           foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
            ebs, calculate_minusonehalf=.true., foe_verbosity=2, symmetrize_kernel=.true.)
       !call fermi_operator_expansion(iproc, nproc, &
@@ -3228,7 +3224,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
       !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
       call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
-           foe_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+           foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
            ebs, calculate_minusonehalf=.true., foe_verbosity=2, symmetrize_kernel=.true.)
       !call fermi_operator_expansion(iproc, nproc, &

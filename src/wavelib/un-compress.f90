@@ -225,7 +225,11 @@ subroutine uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
-
+  !$omp parallel default(none) &
+  !$omp shared(mseg_c, keyv_c, keyg_c, psig_c, psi_c, scal, n1, n2) &
+  !$omp shared(mseg_f, keyv_f, keyg_f, psig_f, psi_f) &
+  !$omp private(iseg, jj, j0, j1, ii, i3, i2, i0, i1, i)
+  !$omp do schedule(guided)
   ! coarse part
   do iseg=1,mseg_c
      jj=keyv_c(iseg)
@@ -245,8 +249,10 @@ subroutine uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 !end if
      enddo
   enddo
+  !$omp end do
 
   ! fine part
+  !$omp do schedule(guided)
   do iseg=1,mseg_f
      jj=keyv_f(iseg)
      j0=keyg_f(1,iseg)
@@ -270,6 +276,8 @@ subroutine uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
         psig_f(7,i,i2,i3)=psi_f(7,i-i0+jj)*scal(3)
      enddo
   enddo
+  !$omp end do
+  !$omp end parallel
 
 END SUBROUTINE uncompress_forstandard_short
 
