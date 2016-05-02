@@ -744,7 +744,7 @@ module ice
       end if
 
       !@ TEMPORARY: eigenvalues of  the overlap matrix ###################
-      call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat)
+      !call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat)
 
       ovrlp_scaled = matrices_null()
       ovrlp_scaled%matrix_compr = sparsematrix_malloc_ptr(ovrlp_smat, &

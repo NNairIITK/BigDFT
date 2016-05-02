@@ -64,6 +64,7 @@ program driver_random
   call mpibcast(nfvctr, root=0, comm=mpi_comm_world)
   call mpibcast(nvctr, root=0, comm=mpi_comm_world)
   call mpibcast(condition_number, root=0, comm=mpi_comm_world)
+  call mpibcast(expo, root=0, comm=mpi_comm_world)
 
 
   ! Timing initialization
