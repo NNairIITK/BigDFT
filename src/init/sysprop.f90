@@ -386,7 +386,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !(inputpsi /= INPUT_PSI_LINEAR_AO .and. &
   !                              inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
   !                              inputpsi /= INPUT_PSI_MEMORY_LINEAR)
-  call orbital_basis_associate(ob,orbs=orbs,Lzd=Lzd)
+  call orbital_basis_associate(ob,orbs=orbs,Lzd=Lzd,id='system_initialization')
   call createProjectorsArrays(Lzd%Glr,rxyz,atoms,ob,&
        in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
        Lzd%hgrids(3),dry_run,nlpsp,init_projectors_completely)

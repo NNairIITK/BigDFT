@@ -2220,7 +2220,7 @@ end if
       KSwfn%psi=f_malloc_ptr(1,id='KSwfn%psi')
       fpulay=0.d0
       !this is associated but not used in the routine for linear scaling
-      call orbital_basis_associate(ob,orbs=KSwfn%orbs,Lzd=KSwfn%Lzd)
+      call orbital_basis_associate(ob,orbs=KSwfn%orbs,Lzd=KSwfn%Lzd,id='intermediate_forces')
       call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,at,ob,nlpsp,rxyz,& 
            KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
            denspot%dpbox,&

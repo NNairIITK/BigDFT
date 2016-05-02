@@ -1972,7 +1972,7 @@ module multipole
       ! Transform back to wavelets
       sphi2 = f_malloc0(nphi,id='sphi2')
 
-      call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=phi2,Lzd=Lzd)
+      call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=phi2,Lzd=Lzd,id='calculate_multipole_matrix')
 
       call apply_Slm(l,m,smmd%geocode,hgrids,acell,psi_ob,nphi,sphi2,&
            integrate_in_sphere,centers=locregcenter)
@@ -2601,7 +2601,7 @@ module multipole
               if (.not. all_norms_ok) then
                   call f_err_throw('When checking the previously calculated multipoles, all norms should be ok')
               end if
-              dipole_check=dipole_check/Debye_AU!0.393430307_gp  ! au2debye              
+              dipole_check=dipole_check/Debye_AU  ! au2debye              
 
               !# NEW: compare the density and potential ##########################
               if (smatl%nspin/=1) then
@@ -2616,9 +2616,9 @@ module multipole
               call f_memcpy(src=rho_exact, dest=pot_exact)
 !!$              call H_potential('D',denspot%pkernel,pot_exact,denspot%V_ext,tt,0.0_dp,.true.,&
 !!$                   quiet='yes')
-              call Electrostatic_Solver(denspot%pkernel,pot_exact)
-              mesh=cell_new(smmd%geocode,denspot%pkernel%ndims,denspot%pkernel%hgrids)
-              call compare_charge_and_potential(mesh,&!iproc, is1, ie1, is2, ie2, is3, ie3, &
+              call Electrostatic_Solver(denspot%pkernel,pot_exact,pot_ion=denspot%V_ext)
+              !mesh=cell_new(smmd%geocode,denspot%pkernel%ndims,denspot%pkernel%hgrids)
+              call compare_charge_and_potential(denspot%dpbox%bitp,&!iproc, is1, ie1, is2, ie2, is3, ie3, &
                    smmd%nat, &
                    rho_exact, rho_mp, pot_exact, pot_mp, denspot%pkernel, rxyz, &
                    ncheck, check_threshold, charge_error, charge_total, potential_error, potential_total)
@@ -2634,31 +2634,39 @@ module multipole
                   call yaml_map('Q matrix',quadrupole_check,fmt='(1es13.4)')
                   call yaml_map('trace',quadrupole_check(1,1)+quadrupole_check(2,2)+quadrupole_check(3,3),fmt='(es12.2)')
                   call yaml_mapping_close()
-                  call yaml_sequence_open('Density and potential check')
+                  call yaml_sequence_open('Average relative error of resulting potential')
                   !call yaml_sequence_open('density threshold for check')
                   do icheck=1,ncheck
                       !call yaml_mapping_open('density threshold for check',check_threshold(icheck))
                       call yaml_sequence(advance='no')
-                      call yaml_mapping_open('density threshold for check is'//&
-                           &trim(yaml_toa(check_threshold(icheck),fmt='(es9.2)')))
-                      call yaml_mapping_open('rho',flow=.true.)
-                      call yaml_map('int(q-q_exact))',charge_error(icheck),fmt='(es10.3)')
-                      call yaml_map('int(q_exact)',charge_total(icheck),fmt='(es10.3)')
-                      call yaml_map('ratio',charge_error(icheck)/charge_total(icheck),fmt='(es10.3)')
-                      call yaml_mapping_close()
-                      call yaml_mapping_open('pot',flow=.true.)
-                      call yaml_map('int(V-V_exact))',potential_error(icheck),fmt='(es10.3)')
-                      call yaml_map('int(V_exact)',potential_total(icheck),fmt='(es10.3)')
-                      call yaml_map('ratio',potential_error(icheck)/potential_total(icheck),fmt='(es10.3)')
-                      call yaml_mapping_close()
+                      call yaml_mapping_open(flow=.true.)
+                      call yaml_map('Thr',check_threshold(icheck),fmt='(es9.2)')
+                      call yaml_map('Ext. Volume %',charge_total(icheck)/&
+                           (denspot%dpbox%mesh%volume_element*product(real(denspot%dpbox%mesh%ndims,gp))),&
+                           fmt='(2pf5.1)')
+                      call yaml_map('Ext. int(V)',potential_total(icheck),fmt='(es10.3)')
+                      call yaml_map('Ext. Err %',potential_error(icheck)/potential_total(icheck),fmt='(2pf5.1)')
+                      call yaml_map('Ext. int(rho)',charge_error(icheck),fmt='(es10.3)')
+!!$                      !call yaml_mapping_open('density threshold for check is'//&
+!!$                      !     &trim(yaml_toa(check_threshold(icheck),fmt='(es9.2)')))
+!!$                      call yaml_mapping_open('rho',flow=.true.)
+!!$                      call yaml_map('int(q-q_exact))',charge_error(icheck),fmt='(es10.3)')
+!!$                      call yaml_map('int(q_exact)',charge_total(icheck),fmt='(es10.3)')
+!!$                      call yaml_map('ratio',charge_error(icheck)/charge_total(icheck),fmt='(es10.3)')
+!!$                      call yaml_mapping_close()
+!!$                      call yaml_mapping_open('pot',flow=.true.)
+!!$                      call yaml_map('int(V-V_exact))',potential_error(icheck),fmt='(es10.3)')
+!!$                      call yaml_map('int(V_exact)',potential_total(icheck),fmt='(es10.3)')
+!!$                      call yaml_map('ratio',potential_error(icheck)/potential_total(icheck),fmt='(es10.3)')
+!!$                      call yaml_mapping_close()
                       call yaml_mapping_close()
                   end do
                   call yaml_sequence_close()
                   !call yaml_mapping_close()
                   call yaml_mapping_close()
-                  call deallocate_external_potential_descriptors(ep_check)
-              end if
-          end do
+               end if
+               call deallocate_external_potential_descriptors(ep_check)
+            end do
           if (iproc==0) call yaml_sequence_close()
           call f_free(test_pot)
           call f_free(rho_exact)
@@ -4458,7 +4466,7 @@ end if
    acell(2)=0.5_gp*hgrids(2)*Lzd%glr%d%n2i
    acell(3)=0.5_gp*hgrids(3)*Lzd%glr%d%n3i
    Qlm=f_malloc([-lmax .to. lmax ,0 .to. lmax,1 .to. orbs%norbp ],id='Qlm')
-   call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=phi2,Lzd=Lzd)
+   call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=phi2,Lzd=Lzd,id='unitary_test_multipoles')
    call Qlm_phi(lmax,smmd%geocode,hgrids,acell,psi_ob,Qlm,.false.,centers=locregcenter)
    call orbital_basis_release(psi_ob)
    call f_zero(values)
@@ -4784,7 +4792,8 @@ end if
   acell(2)=0.5_gp*tmb%lzd%hgrids(2)*tmb%Lzd%glr%d%n2i
   acell(3)=0.5_gp*tmb%lzd%hgrids(3)*tmb%Lzd%glr%d%n3i
   Qlm=f_malloc([-lmax .to. lmax ,0 .to. lmax,1 .to. tmb%orbs%norbp ],id='Qlm')
-  call orbital_basis_associate(psi_ob,orbs=tmb%orbs,phis_wvl=phi_ortho,Lzd=tmb%Lzd)
+  call orbital_basis_associate(psi_ob,orbs=tmb%orbs,&
+       phis_wvl=phi_ortho,Lzd=tmb%Lzd,id='support_function_gross_multipoles')
   call Qlm_phi(lmax,tmb%linmat%smmd%geocode,tmb%lzd%hgrids,acell,psi_ob,Qlm,.false.,centers=center_locreg)
   call orbital_basis_release(psi_ob)
   do iorb=1,tmb%orbs%norbp
@@ -6089,24 +6098,24 @@ end subroutine calculate_rpowerx_matrices
 
     subroutine compare_charge_and_potential(boxit,nat,& !iproc, is1, ie1, is2, ie2, is3, ie3, nat, &
                rho_exact, rho_mp, pot_exact, pot_mp, kernel, rxyz, &
-               ncheck, check_threshold, charge_error, charge_total, potential_error, potential_total)
+               ncheck, check_threshold, charge_error, external_volume, potential_error, potential_total)
     use PStypes, only: coulomb_operator
     use PSbox, only: PS_gather
     use box
     implicit none
     ! Calling arguments
     !integer,intent(in) :: iproc, is1, ie1, is2, ie2, is3, ie3
-    type(box_iterator), intent(in) :: boxit
+    type(box_iterator), intent(inout) :: boxit
     integer, intent(in) :: nat, ncheck
     type(coulomb_operator),intent(in) :: kernel
     real(kind=8),dimension(kernel%ndims(1)*kernel%ndims(2)*kernel%grid%n3p),intent(in) :: rho_exact, rho_mp, pot_exact, pot_mp
     real(kind=8),dimension(3,nat),intent(in) :: rxyz
     real(kind=8),dimension(ncheck),intent(in) :: check_threshold
-    real(kind=8),dimension(ncheck),intent(out) :: charge_error, charge_total, potential_error, potential_total
+    real(kind=8),dimension(ncheck),intent(out) :: charge_error, external_volume, potential_error, potential_total
 
     ! Local variables
     integer :: i1, i2, i3, iat, icheck
-    real(kind=8) :: x, y, z, d, dmin, qex, factor
+    real(kind=8) :: qex, factor,vex
     real(kind=8),parameter :: min_distance = 2.0d0
 !!$    logical,dimension(:,:,:),allocatable :: is_close
 
@@ -6142,36 +6151,34 @@ end subroutine calculate_rpowerx_matrices
 !!$    end do
 
     call f_zero(charge_error)
-    call f_zero(charge_total)
+    call f_zero(external_volume)
     call f_zero(potential_error)
     call f_zero(potential_total)
 
     !use the box iterator
-    do while(box_next_point(boxit))
-       dmin = huge(1.d0)
+    factor=boxit%mesh%volume_element
+    box_loop: do while(box_next_point(boxit))
        do iat=1,nat
-          d=distance(mesh,boxit%rxyz,rxyz(:,iat))
-          dmin=min(d,dmin)
+          if (distance(boxit%mesh,boxit%rxyz,rxyz(:,iat)) <= min_distance) cycle box_loop
        end do
-       if (dmin>min_distance) then
-          ! Farther away from the atoms than the minimal distance
-          qex = rho_exact(boxit%ind)
-          vex = pot_exact(boxit%ind)
-          do icheck=1,ncheck
-             if (abs(qex)<check_threshold(icheck)) then
-                ! Charge density smaller than the threshold
-                charge_error(icheck) = charge_error(icheck) + &
-                     abs(qex-rho_mp(boxit%i,boxit%j,boxit%k))
-                charge_total(icheck) = charge_total(icheck) + &
-                     abs(qex)
-                potential_error(icheck) = potential_error(icheck) + &
-                     abs(-pot_mp(boxit%i,boxit%j,boxit%k))
-                potential_total(icheck) = potential_total(icheck) + &
-                     abs(pot_exact(boxit%i,boxit%j,boxit%k))
-             end if
-          end do
-       end if
-    end do
+       ! Farther away from the atoms than the minimal distance
+       qex = rho_exact(boxit%ind)
+       vex = pot_exact(boxit%ind)
+       do icheck=1,ncheck
+          if (abs(qex)<check_threshold(icheck)) then
+             ! Charge density smaller than the threshold
+             !LG: it seems therefore normal than the density is not good as by hypothesis
+             ! we only check that when it is small, thus the mp density will surely be smaller
+             charge_error(icheck) = charge_error(icheck) + &
+                  abs(rho_mp(boxit%ind))*factor !qex-
+             external_volume(icheck) = external_volume(icheck)+ factor
+             potential_error(icheck) = potential_error(icheck) + &
+                  abs(vex-pot_mp(boxit%ind))*factor 
+             potential_total(icheck) = potential_total(icheck) + &
+                  abs(vex)*factor
+          end if
+       end do
+    end do box_loop
        
 !!$    do i3=0,kernel%ndims(3)-31-1
 !!$        z = i3*kernel%hgrids(3)
@@ -6211,15 +6218,17 @@ end subroutine calculate_rpowerx_matrices
 
 !!$    call f_free(is_close)
 
-    call dscal(ncheck, factor, charge_error(1), 1)
-    call dscal(ncheck, factor, charge_total(1), 1)
-    call dscal(ncheck, factor, potential_error(1), 1)
-    call dscal(ncheck, factor, potential_total(1), 1)
+!!$    call dscal(ncheck, factor, charge_error(1), 1)
+!!$    call dscal(ncheck, factor, charge_total(1), 1)
+!!$    call dscal(ncheck, factor, potential_error(1), 1)
+!!$    call dscal(ncheck, factor, potential_total(1), 1)
 
-    call mpiallred(charge_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
-    call mpiallred(charge_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
-    call mpiallred(potential_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
-    call mpiallred(potential_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
+    if (bigdft_mpi%nproc > 1) then
+       call mpiallred(charge_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
+       call mpiallred(external_volume, mpi_sum, comm=bigdft_mpi%mpi_comm)
+       call mpiallred(potential_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
+       call mpiallred(potential_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
+    end if
 
     call f_release_routine()
 

@@ -629,7 +629,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
            !the psi should be transformed in real space, do it within the orbital basis iterators
            psir = f_malloc0([Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, orbs%norbp],id='psir')
            !initialize the orbital basis object, for psi and hpsi
-           call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd)
+           call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd,id='LocalHamiltonianApplication')
            !iterate over the orbital_basis
            psi_it=orbital_basis_iterator(psi_ob)
            do while(ket_next_locreg(psi_it))
@@ -780,11 +780,6 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
      !call timing(iproc,'ApplyLocPotKin','OF')
   else
 
-!!!here we can branch into the new ket-based application of the hamiltonian
-     !initialize the orbital basis object, for psi and hpsi
-     call orbital_basis_associate(psi_ob,orbs=orbs,confdatarr=confdatarr,&
-          phis_wvl=psi,Lzd=Lzd)
-
 
 !!$      !temporary allocation
 !!$      allocate(fake_pot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin),stat=i_stat)
@@ -796,6 +791,11 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
      !print *,'here',ipotmethod,associated(pkernelSIC)
      if (PotOrKin==1) then ! both
         call timing(iproc,'ApplyLocPotKin','ON')
+!!!here we can branch into the new ket-based application of the hamiltonian
+        !initialize the orbital basis object, for psi and hpsi
+        call orbital_basis_associate(psi_ob,orbs=orbs,confdatarr=confdatarr,&
+             phis_wvl=psi,Lzd=Lzd,id='LochamPotKin')
+
         energs%ekin=0.0_gp
         energs%epot=0.0_gp
 
@@ -927,7 +927,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   call timing(iproc,'ApplyProj     ','ON')
 
   !initialize the orbital basis object, for psi and hpsi
-  call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd)
+  call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd,id='nonlocalham')
   !should we calculate the density matrix we have to zero it
   if (associated(nl%iagamma)) call f_zero(nl%gamma_mmp)
   !here we might rework the value of gamma in case we would like to apply some extra
