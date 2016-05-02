@@ -94,6 +94,9 @@ program PS_Check
   if (usegpu) call dict_set(dict_input//'setup'//'accel','CUDA')
   call dict_set(dict_input//'setup'//'taskgroup_size',nproc/2)
 
+  if ('input' .in. options) &
+       call dict_copy(dest=dict_input,src=options//'input')
+
   call dict_free(options)
   n01=nxyz(1)
   n02=nxyz(2)
@@ -1017,6 +1020,13 @@ subroutine PS_Check_options(parser)
        'GPU Acceleration','a',&
        dict_new('Usage' .is. &
        'Boolean, set the GPU acceleration'))
+
+  call yaml_cl_parse_option(parser,'input','None',&
+       'Inputfile of Poisson solver','i',&
+       dict_new('Usage' .is. &
+       'Put the dictionary of PS inputfile to preload some parameters',&
+       'Allowed values' .is. &
+       'yaml Dictionary'))
 
 
 end subroutine PS_Check_options
