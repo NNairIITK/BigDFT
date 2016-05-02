@@ -1,6 +1,8 @@
 ---
 Default tolerances:
  Epsilon: 1.1e-11
+ P vector: 3.e-4
+ norm(P): 3.e-4
  
 Keys to ignore:
  - Code logo

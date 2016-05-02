@@ -345,7 +345,7 @@ contains
     integer, intent(out) :: jpoint
 
     if (bc == PERIODIC) then
-       jpoint=modulo(ipoint,npoint)
+       jpoint=modulo(ipoint-1,npoint)+1
     else
        jpoint=ipoint
     end if
