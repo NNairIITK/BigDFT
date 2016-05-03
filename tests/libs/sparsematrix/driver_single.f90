@@ -6,6 +6,7 @@ program driver_single
                                     matrices_init, &
                                     matrix_chebyshev_expansion, &
                                     matrix_matrix_multiplication
+  use sparsematrix, only: check_deviation_from_unity_sparse
   implicit none
 
   ! External routines
@@ -17,7 +18,7 @@ program driver_single
   type(matrices),dimension(1) :: mat_out
   type(matrices),dimension(2) :: mat_check_accur
   integer :: norder_polynomial, ierr, nthread, blocksize, iproc, nproc
-  real(kind=8) :: exp_power
+  real(mp) :: exp_power, max_error, mean_error
   character(len=200) :: filename_in, filename_out
   type(dictionary), pointer :: dict_timing_info
   !$ integer :: omp_get_max_threads
@@ -140,7 +141,15 @@ program driver_single
   if (iproc==0) then
       call yaml_comment('Check deviation from Unity')
   end if
-  call check_deviation_from_unity(smat_out, mat_check_accur(2))
+  call check_deviation_from_unity_sparse(iproc, smat_out, mat_check_accur(2), &
+       max_error, mean_error)
+  if (iproc==0) then
+      call yaml_mapping_open('Check the deviation from unity of the operation mat^x*mat^-x')
+      call yaml_map('max_error',max_error,fmt='(es10.3)')
+      call yaml_map('mean_error',mean_error,fmt='(es10.3)')
+      call yaml_mapping_close()
+  end if
+
 
   call timing(mpi_comm_world,'CHECK_LINEAR','PR')
 
@@ -217,46 +226,6 @@ program driver_single
     end subroutine build_dict_info
 
 
-    subroutine check_deviation_from_unity(smat, mat)
-      use sparsematrix_base, only: sparse_matrix, &
-                                   matrices
-      implicit none
-
-      ! Calling arguments
-      type(sparse_matrix),intent(in) :: smat
-      type(matrices),intent(in) :: mat
-
-      ! Local variables
-      integer :: iseg, ii, i, irow, icolumn
-      real(kind=8) :: sum_error, max_error, error
-
-      sum_error = 0.d0
-      max_error = 0.d0
-      do iseg=1,smat%nseg
-          ii=smat%keyv(iseg)
-          ! A segment is always on one line, therefore no double loop
-          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-             irow = i
-             icolumn = smat%keyg(1,2,iseg)
-             if (irow==icolumn) then
-                 error = abs(mat%matrix_compr(ii)-1.d0)
-             else
-                 error = abs(mat%matrix_compr(ii))
-             end if
-             sum_error = sum_error + error
-             max_error = max(max_error,error)
-             ii=ii+1
-         end do
-      end do
-
-      if (iproc==0) then
-          call yaml_mapping_open('Check the deviation from unity of the operation S^x*S^-x')
-          call yaml_map('max_error',max_error,fmt='(es10.3)')
-          call yaml_map('sum_error',sum_error/real(smat%nvctr,kind=8),fmt='(es10.3)')
-          call yaml_mapping_close()
-      end if
-
-    end subroutine check_deviation_from_unity
 
 
     subroutine check_deviation_from_unity_dense(n, mat)

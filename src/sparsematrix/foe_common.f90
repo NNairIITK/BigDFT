@@ -774,6 +774,10 @@ module foe_common
       if (trace_with_overlap) then
           call f_free(mat_large)
       end if
+
+      ! Divide the traces by the matrix dimension, to make them size independent
+      bound_low = bound_low/real(smat_l%nfvctr,kind=mp)
+      bound_up = bound_up/real(smat_l%nfvctr,kind=mp)
     
       allredarr(1)=bound_low
       allredarr(2)=bound_up
@@ -786,7 +790,7 @@ module foe_common
       !allredarr=abs(allredarr) !for some crazy situations this may be negative
       !noise=1000.d0*anoise
       noise=10.d0*anoise
-      noise = 1.d-2
+      noise = 1.d-3
     
       if (iproc==0 .and. verbosity_>0) then
           !call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')

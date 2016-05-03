@@ -2164,7 +2164,10 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      end if
 !---------------------------------------------------
 
-     if (associated(denspot%rho_C) .and. denspot%dpbox%n3d>0) then
+     ! SM: the check whether denspot%dpbox%n3d>0 might lead to deadlocks (plot_density contains
+     ! an MPI gather. To avoid out of bounds errors, rho_C is now allocted min max(n3d,1).
+     !if (associated(denspot%rho_C) .and. denspot%dpbox%n3d>0) then
+     if (associated(denspot%rho_C)) then
         if (iproc == 0) call yaml_map('Writing core density in file','core_density'//gridformat)
         call plot_density(iproc,nproc,trim(dir_output)//'core_density' // gridformat,&
              atoms,rxyz,denspot%pkernel,1,denspot%rho_C(1:,1:,i3xcsh_old+1:,1:))

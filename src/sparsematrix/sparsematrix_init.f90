@@ -4433,12 +4433,30 @@ module sparsematrix_init
 
       call f_routine(id='generate_random_symmetric_sparsity_pattern')
 
-      ! First count how many non-zero entries there are for each line
-      nnonzero = 0
+      ! The number of non-zero entries must be at least as large as the matrix dimension.
+      if (nvctr<nfvctr) then
+          call f_err_throw('nvctr<nfvctr', err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      end if
+
+      ! The number of non-zero entries must not be larger than the suare of the matrix dimension.
+      if (nvctr>nfvctr**2) then
+          call f_err_throw('nvctr>nfvctr**2', err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      end if
+
+      ! First count how many non-zero entries there are for each line.
+      ! Since we want to have the diagonal elements within the sparsity pattern,
+      ! we start with nnonzero=nfvctr
+      nonzero_check = f_malloc0((/2,nvctr+1/),id='nonzero_check')
+      nnonzero = nfvctr
+      ! First the diagonal elements
+      do ii=1,nfvctr
+          nonzero_check(1,ii) = ii
+          nonzero_check(2,ii) = ii
+      end do
       idum = 0
       tt_rand = builtin_rand(idum, reset=.true.)
-      nonzero_check = f_malloc0((/2,nvctr+1/),id='nonzero_check')
       search_loop1: do
+          if (nnonzero>=nvctr) exit
           tt_rand = builtin_rand(idum)
           tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
           ii = max(nint(tt),1)
@@ -4465,16 +4483,23 @@ module sparsematrix_init
               nonzero_check(2,nnonzero+2) = ii
               nnonzero = nnonzero + 2
           end if
-          if (nnonzero>=nvctr) exit
       end do search_loop1
 
 
       ! Now determine the coordinates of the non-zero entries
       nonzero = f_malloc0((/2,nnonzero/),id='nonzero')
+      ! First the diagonal elements
+      do ii=1,nfvctr
+          nonzero(1,ii) = ii
+          nonzero(2,ii) = ii
+          nonzero_check(1,ii) = ii
+          nonzero_check(2,ii) = ii
+      end do
       idum = 0
       tt_rand = builtin_rand(idum, reset=.true.)
-      ivctr = 0
+      ivctr = nfvctr
       search_loop2: do
+          if (ivctr>=nvctr) exit
           tt_rand = builtin_rand(idum)
           tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
           ii = max(nint(tt),1)
@@ -4507,11 +4532,12 @@ module sparsematrix_init
               nonzero(2,ivctr+2) = ii
               ivctr = ivctr + 2
           end if
-          if (ivctr>=nvctr) exit
       end do search_loop2
 
       if (ivctr/=nnonzero) then
-          call f_err_throw('ivctr/=nnonzero',err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          call f_err_throw(trim(yaml_toa(ivctr))//'=ivctr /= &
+                           &nnonzero='//trim(yaml_toa(nnonzero)), &
+                           err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
       end if
 
       !!do ii=1,nfvctr
@@ -4519,6 +4545,7 @@ module sparsematrix_init
       !!end do
 
       call init_sparse_matrix(iproc, nproc, comm, nfvctr, nvctr, nonzero, nvctr, nonzero, smat)
+      call init_matrix_taskgroups(iproc, nproc, comm, parallel_layout=.false., smat=smat)
 
       call f_free(nonzero)
       call f_free(nonzero_check)
