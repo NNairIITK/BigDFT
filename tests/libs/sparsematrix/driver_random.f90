@@ -95,6 +95,8 @@ program driver_random
   call matrices_init(smat, mat3(3))
 
   ! Fill the matrix with random entries
+  idum = 0
+  tt_real = builtin_rand(idum, reset=.true.)
   do i=1,smat%nvctr
       tt_real = builtin_rand(idum)
       mat1%matrix_compr(i) = real(tt_real,kind=8)

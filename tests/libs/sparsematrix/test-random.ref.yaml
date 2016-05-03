@@ -1,8 +1,8 @@
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DRIVER FOR THE CHEBYSHEV MATRIX EXPANSION
  Parallel environment:
-   MPI tasks                           :  1
-   OpenMP threads                      :  2
+   MPI tasks                           :  4
+   OpenMP threads                      :  1
  Input parameters:
    Matrix dimension                    :  100
    Number of non-zero entries          :  10000
@@ -17,91 +17,87 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  1, start / end:  [  1,  10000 ], start / end disjoint: [ 1, 
+   -  {number of tasks:  4, start / end:  [  1,  10000 ], start / end disjoint: [ 1, 
   10000]}
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating mat^x
- eval max/min                          :  [  5.341779E-02,  9.717594E-01 ]
  determine eigenvalue bounds:
- -  {npl:  20, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  1.9E+06, ok: [ No, 
+ -  {npl:  20, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  2.4E+06, ok: [ No, 
   Yes], exp accur:  [  1.46E-11 ]}
- -  {npl:  20, scale:  2.00E+00, bounds:  [  0.417,  1.500 ], penalty: -9.2E+05, ok: [ Yes, 
+ -  {npl:  20, scale:  2.00E+00, bounds:  [  0.417,  1.500 ], penalty: -2.0E+06, ok: [ Yes, 
   No], exp accur:  [  3.11E-10 ]}
- -  {npl:  20, scale:  1.00E+00, bounds:  [  0.417,  1.800 ], penalty:  5.6E+05, ok: [ No, 
+ -  {npl:  20, scale:  1.00E+00, bounds:  [  0.417,  1.800 ], penalty:  5.1E+05, ok: [ No, 
   Yes], exp accur:  [  3.65E-09 ]}
- -  {npl:  25, scale:  2.00E+00, bounds:  [  0.347,  1.800 ], penalty:  3.1E+04, ok: [ No, 
+ -  {npl:  25, scale:  2.00E+00, bounds:  [  0.347,  1.800 ], penalty:  2.0E+04, ok: [ No, 
   Yes], exp accur:  [  3.31E-10 ]}
  -  {npl:  25, scale:  4.00E+00, bounds:  [  0.289,  1.800 ], penalty: -4.0E+07, ok: [ Yes, 
   No], exp accur:  [  4.04E-09 ]}
- -  {npl:  30, scale:  2.00E+00, bounds:  [  0.289,  2.160 ], penalty:  5.7E+03, ok: [ No, 
+ -  {npl:  30, scale:  2.00E+00, bounds:  [  0.289,  2.160 ], penalty:  3.6E+03, ok: [ No, 
   Yes], exp accur:  [  6.71E-10 ]}
  -  {npl:  30, scale:  4.00E+00, bounds:  [  0.241,  2.160 ], penalty: -4.3E+07, ok: [ Yes, 
   No], exp accur:  [  7.13E-09 ]}
- -  {npl:  35, scale:  2.00E+00, bounds:  [  0.241,  2.592 ], penalty:  9.7E+02, ok: [ No, 
+ -  {npl:  35, scale:  2.00E+00, bounds:  [  0.241,  2.592 ], penalty:  6.0E+02, ok: [ No, 
   Yes], exp accur:  [  2.15E-09 ]}
  -  {npl:  40, scale:  4.00E+00, bounds:  [  0.201,  2.592 ], penalty: -9.9E+07, ok: [ Yes, 
   No], exp accur:  [  1.12E-09 ]}
- -  {npl:  40, scale:  2.00E+00, bounds:  [  0.201,  3.110 ], penalty:  2.0E+02, ok: [ No, 
+ -  {npl:  40, scale:  2.00E+00, bounds:  [  0.201,  3.110 ], penalty:  1.3E+02, ok: [ No, 
   Yes], exp accur:  [  9.03E-09 ]}
- -  {npl:  45, scale:  4.00E+00, bounds:  [  0.167,  3.110 ], penalty: -7.5E+06, ok: [ Yes, 
+ -  {npl:  45, scale:  4.00E+00, bounds:  [  0.167,  3.110 ], penalty: -8.4E+06, ok: [ Yes, 
   No], exp accur:  [  6.77E-09 ]}
- -  {npl:  50, scale:  2.00E+00, bounds:  [  0.167,  3.732 ], penalty:  5.4E+01, ok: [ No, 
+ -  {npl:  50, scale:  2.00E+00, bounds:  [  0.167,  3.732 ], penalty:  3.3E+01, ok: [ No, 
   Yes], exp accur:  [  5.34E-09 ]}
  -  {npl:  55, scale:  4.00E+00, bounds:  [  0.140,  3.732 ], penalty: -1.8E+03, ok: [ Yes, 
   No], exp accur:  [  6.01E-09 ]}
- -  {npl:  60, scale:  2.00E+00, bounds:  [  0.140,  4.479 ], penalty:  1.8E+01, ok: [ No, 
+ -  {npl:  60, scale:  2.00E+00, bounds:  [  0.140,  4.479 ], penalty:  1.1E+01, ok: [ No, 
   Yes], exp accur:  [  6.86E-09 ]}
- -  {npl:  70, scale:  4.00E+00, bounds:  [  0.116,  4.479 ], penalty:  8.1E-02, ok: [ No, 
+ -  {npl:  70, scale:  4.00E+00, bounds:  [  0.116,  4.479 ], penalty:  4.1E-02, ok: [ No, 
   Yes], exp accur:  [  2.09E-09 ]}
  -  {npl:  75, scale:  8.00E+00, bounds:  [  0.097,  4.479 ], penalty: -3.0E+08, ok: [ Yes, 
   No], exp accur:  [  4.46E-09 ]}
- -  {npl:  80, scale:  4.00E+00, bounds:  [  0.097,  5.375 ], penalty:  3.7E-02, ok: [ No, 
+ -  {npl:  80, scale:  4.00E+00, bounds:  [  0.097,  5.375 ], penalty:  1.9E-02, ok: [ No, 
   Yes], exp accur:  [  8.28E-09 ]}
  -  {npl:  90, scale:  8.00E+00, bounds:  [  0.081,  5.375 ], penalty: -5.1E+07, ok: [ Yes, 
   No], exp accur:  [  5.36E-09 ]}
- -  {npl:  100, scale:  4.00E+00, bounds:  [  0.081,  6.450 ], penalty:  2.0E-02, ok: [ No, 
-  Yes], exp accur:  [  4.0E-09 ]}
- -  {npl:  110, scale:  8.00E+00, bounds:  [  0.067,  6.450 ], penalty: -1.4E+07, ok: [
-  Yes,  No], exp accur:  [  4.26E-09 ]}
- -  {npl:  120, scale:  4.00E+00, bounds:  [  0.067,  7.740 ], penalty:  1.1E-02, ok: [ No, 
-  Yes], exp accur:  [  4.73E-09 ]}
- -  {npl:  130, scale:  8.00E+00, bounds:  [  0.056,  7.740 ], penalty: -9.8E+00, ok: [
-  Yes,  No], exp accur:  [  7.78E-09 ]}
- -  {npl:  145, scale:  4.00E+00, bounds:  [  0.056,  9.288 ], penalty:  7.3E-03, ok: [
-  Yes,  Yes], exp accur:  [  5.32E-09 ]}
+ -  {npl:  100, scale:  4.00E+00, bounds:  [  0.081,  6.450 ], penalty:  9.8E-03, ok: [
+  Yes,  Yes], exp accur:  [  4.0E-09 ]}
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating mat^-x
- eval max/min                          :  [  5.341779E-02,  9.717594E-01 ]
  determine eigenvalue bounds:
- -  {npl:  40, scale:  4.00E+00, bounds:  [  0.056,  9.288 ], penalty:  1.4E-02, ok: [ No, 
-  Yes], exp accur:  [  3.29E-14 ]}
- -  {npl:  40, scale:  8.00E+00, bounds:  [  0.047,  9.288 ], penalty:  4.1E-03, ok: [ Yes, 
-  Yes], exp accur:  [  3.38E-14 ]}
+ -  {npl:  35, scale:  4.00E+00, bounds:  [  0.081,  6.450 ], penalty:  1.0E-02, ok: [ No, 
+  Yes], exp accur:  [  1.29E-14 ]}
+ -  {npl:  35, scale:  8.00E+00, bounds:  [  0.067,  6.450 ], penalty: -3.7E+07, ok: [ Yes, 
+  No], exp accur:  [  1.15E-14 ]}
+ -  {npl:  35, scale:  4.00E+00, bounds:  [  0.067,  7.740 ], penalty:  1.5E-02, ok: [ No, 
+  Yes], exp accur:  [  1.33E-14 ]}
+ -  {npl:  35, scale:  8.00E+00, bounds:  [  0.056,  7.740 ], penalty: -8.4E+00, ok: [ Yes, 
+  No], exp accur:  [  1.47E-14 ]}
+ -  {npl:  40, scale:  4.00E+00, bounds:  [  0.056,  9.288 ], penalty:  7.4E-03, ok: [ Yes, 
+  Yes], exp accur:  [  3.2E-14 ]}
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating mat^x*mat^-x
  Check the deviation from unity of the operation mat^x*mat^-x:
-   max_error                           :  3.119E-10
-   mean_error                          :  2.470E-12
+   max_error                           :  3.475E-10
+   mean_error                          :  2.543E-12
  Memory Consumption Report:
-   Tot. No. of Allocations             :  1878
-   Tot. No. of Deallocations           :  1878
+   Tot. No. of Allocations             :  1601
+   Tot. No. of Deallocations           :  1601
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  24.197
+     Peak Value (MB)                   :  5.627
      for the array                     : vectors_new
      in the routine                    : chebyshev_clean
-     Memory Peak of process            : 44.832 MB
- Walltime since initialization         : 00:00:03.245561986
- Max No. of dictionaries used          :  789 #( 189 still in use)
+     Memory Peak of process            : 24.292 MB
+ Walltime since initialization         : 00:00:03.118272783
+ Max No. of dictionaries used          :  785 #( 189 still in use)
  Number of dictionary folders allocated:  1
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DRIVER FOR THE CHEBYSHEV MATRIX EXPANSION
  Parallel environment:
-   MPI tasks                           :  1
-   OpenMP threads                      :  2
+   MPI tasks                           :  4
+   OpenMP threads                      :  1
  Input parameters:
    Matrix dimension                    :  2000
    Number of non-zero entries          :  100000
    Condition number                    :  100.0
    Exponent for the matrix power calculation: -0.5
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ sparse matmul load balancing naive / optimized:  [  1.01,  1.00 ]
  total elements                        :  4000000
  non-zero elements                     :  100000
   #segments:  97455
@@ -110,10 +106,9 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  1, start / end:  [  1,  100000 ], start / end disjoint: [ 1, 
+   -  {number of tasks:  4, start / end:  [  1,  100000 ], start / end disjoint: [ 1, 
   100000]}
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating mat^x
- eval max/min                          :  [  1.064103E-02,  1.009970E+00 ]
  determine eigenvalue bounds:
  -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  2.0E+07, ok: [ No, 
   Yes], exp accur:  [  1.39E-09 ]}
@@ -157,7 +152,7 @@
   No], exp accur:  [  4.6E-09 ]}
  -  {npl:  105, scale:  4.00E+00, bounds:  [  0.067,  7.740 ], penalty:  8.2E+01, ok: [ No, 
   Yes], exp accur:  [  3.9E-09 ]}
- -  {npl:  110, scale:  8.00E+00, bounds:  [  0.056,  7.740 ], penalty: -1.1E+06, ok: [
+ -  {npl:  110, scale:  8.00E+00, bounds:  [  0.056,  7.740 ], penalty: -1.2E+06, ok: [
   Yes,  No], exp accur:  [  9.7E-09 ]}
  -  {npl:  125, scale:  4.00E+00, bounds:  [  0.056,  9.288 ], penalty:  5.2E+01, ok: [ No, 
   Yes], exp accur:  [  4.73E-09 ]}
@@ -196,7 +191,6 @@
  -  {npl:  595, scale:  3.20E+01, bounds:  [  0.009,  33.279 ], penalty:  7.7E-06, ok: [
   Yes,  Yes], exp accur:  [  9.92E-09 ]}
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating mat^-x
- eval max/min                          :  [  1.064103E-02,  1.009970E+00 ]
  determine eigenvalue bounds:
  -  {npl:  375, scale:  3.20E+01, bounds:  [  0.009,  33.279 ], penalty:  7.7E-06, ok: [
   Yes,  Yes], exp accur:  [  9.87E-09 ]}
@@ -205,14 +199,14 @@
    max_error                           :  7.048E-10
    mean_error                          :  5.422E-13
  Memory Consumption Report:
-   Tot. No. of Allocations             :  6482
-   Tot. No. of Deallocations           :  6482
+   Tot. No. of Allocations             :  6479
+   Tot. No. of Deallocations           :  6479
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  489.518
+     Peak Value (MB)                   :  129.629
      for the array                     : vectors_new
      in the routine                    : chebyshev_clean
-     Memory Peak of process            : 518.788 MB
- Walltime since initialization         : 00:01:05.491701360
- Max No. of dictionaries used          :  789 #( 189 still in use)
+     Memory Peak of process            : 151.212 MB
+ Walltime since initialization         : 00:00:41.428839991
+ Max No. of dictionaries used          :  785 #( 189 still in use)
  Number of dictionary folders allocated:  1
