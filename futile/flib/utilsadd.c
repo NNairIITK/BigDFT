@@ -49,7 +49,7 @@ void FC_FUNC_(call_external_c_fromadd, CALL_EXTERNAL_C_FROMADD)(long long int * 
 
   //  *address=0;
   //callback1= (void*) *add;
-  //  printf("\n test NEW address = %p; \n", (void*) *add);
+  //printf("\n test NEW address = %p; \n", (void*) *add);
   //callback1();
   //*addredss();
   FC_FUNC_(call_external_f,CALL_EXTERNAL_F)(ext);//,ext_data);

@@ -41,7 +41,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   do ig=1,(ngv*(ngv+1))/2
      ilcc=ilcc+1
      !read(79,*)rhovxp(ig),(rhovc(ig,j),j=1,4)
-     chv=chv+charge_from_gaussians(atoms%nlccpar(0,ilcc),atoms%nlccpar(1:,ilcc))
+     chv=chv+charge_from_gaussians(atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc))
   end do
   chv=sqrt(2.0_gp*atan(1.0_gp))*chv
 
@@ -49,7 +49,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   do ig=1,(ngc*(ngc+1))/2
      ilcc=ilcc+1
      !read(79,*)rhocxp(ig),(rhocc(ig,j),j=1,4)
-     chc=chc+charge_from_gaussians(atoms%nlccpar(0,ilcc),atoms%nlccpar(1:,ilcc))
+     chc=chc+charge_from_gaussians(atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc))
      !rhocc(ig,1)*rhocxp(ig)**3+3.0_gp*rhocc(ig,2)*rhocxp(ig)**5+&
      !     15.0_gp*rhocc(ig,3)*rhocxp(ig)**7+105.0_gp*rhocc(ig,4)*rhocxp(ig)**9
   end do
@@ -118,10 +118,10 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                        do ig=1,(ngv*(ngv+1))/2
                           ilcc=ilcc+1
                           rhov=rhov+&
-                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1:,ilcc),0)
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),0)
                           !derivative wrt r2
                           drhov=drhov+&
-                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1:,ilcc),1)
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
 
                           !arg=r2/rhovxp(ig)**2
                           !(rhovc(ig,1)+r2*rhovc(ig,2)+r2**2*rhovc(ig,3)+r2**3*rhovc(ig,4))*&
@@ -133,9 +133,9 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                           ilcc=ilcc+1
                           !arg=r2/rhocxp(ig)**2
                           rhoc=rhoc+&
-                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1:,ilcc),0)
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),0)
                           drhoc=drhoc+&
-                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1:,ilcc),1)
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
                           !(rhocc(ig,1)+r2*rhocc(ig,2)+r2**2*rhocc(ig,3)+r2**3*rhocc(ig,4))*&
                           !     exp(-0.5_gp*arg)
                        end do
@@ -319,49 +319,6 @@ subroutine mkcore_paw_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   call f_free(iperm)
 
 end subroutine mkcore_paw_iat
-
-!> Calculate the core charge described by a sum of spherical harmonics of s-channel with 
-!! principal quantum number increased with a given exponent.
-!! the principal quantum numbers admitted are from 1 to 4
-function charge_from_gaussians(expo,rhoc)
-  use module_base, only:gp
-  implicit none
-  real(gp), intent(in) :: expo
-  real(gp), dimension(4), intent(in) :: rhoc
-  real(gp) :: charge_from_gaussians
-
-  charge_from_gaussians=rhoc(1)*expo**3+3.0_gp*rhoc(2)*expo**5+&
-       15.0_gp*rhoc(3)*expo**7+105.0_gp*rhoc(4)*expo**9
-
-end function charge_from_gaussians
-
-
-!> Calculate the value of the gaussian described by a sum of spherical harmonics of s-channel with 
-!! principal quantum number increased with a given exponent.
-!! the principal quantum numbers admitted are from 1 to 4
-function spherical_gaussian_value(r2,expo,rhoc,ider)
-  use module_base, only: gp,safe_exp
-  implicit none
-  integer, intent(in) :: ider
-  real(gp), intent(in) :: expo,r2
-  real(gp), dimension(4), intent(in) :: rhoc
-  real(gp) :: spherical_gaussian_value
-  !local variables
-  real(gp) :: arg
-  
-  arg=r2/(expo**2)
-!added underflow to evaluation of the density to avoid fpe in ABINIT xc routines
-  spherical_gaussian_value=&
-       (rhoc(1)+r2*rhoc(2)+r2**2*rhoc(3)+r2**3*rhoc(4))*safe_exp(-0.5_gp*arg,underflow=1.d-50)
-  if (ider ==1) then !first derivative with respect to r2
-     spherical_gaussian_value=-0.5_gp*spherical_gaussian_value/(expo**2)+&
-         (rhoc(2)+2.0_gp*r2*rhoc(3)+3.0_gp*r2**2*rhoc(4))*safe_exp(-0.5_gp*arg,underflow=1.d-50)           
-     !other derivatives to be implemented
-  end if
-
-end function spherical_gaussian_value
-
-
 
 !> Given a charge density, calculates the exchange-correlation potential
 !! SYNOPSIS

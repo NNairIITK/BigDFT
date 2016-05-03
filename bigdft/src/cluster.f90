@@ -660,8 +660,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      denspot%rhov=1.d-16
      call XC_potential(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
           denspot%pkernel%mpi_env%mpi_comm,&
-          denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
-          denspot%dpbox%hgrids,&
+          denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),denspot%xc,&
+          denspot%dpbox%mesh%hgrids,&
           denspot%rhov,energs%excrhoc,tel,KSwfn%orbs%nspin,denspot%rho_C,&
           denspot%rhohat,denspot%V_XC,xcstr)
      if (iproc==0) call yaml_map('Value for Exc[rhoc]',energs%excrhoc)
@@ -675,10 +675,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !Calculate effective ionic potential, including counter ions if any.
   call createEffectiveIonicPotential(iproc,(iproc == 0),in,atoms,rxyz,shift,&
        denspot%dpbox,denspot%pkernel,denspot%V_ext,denspot%rho_ion,in%elecfield,denspot%psoffset)
-  call potential_from_charge_multipoles(iproc, nproc, atoms, denspot, in%ep, 1, denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
+  call potential_from_charge_multipoles(iproc, nproc, atoms, denspot, in%ep, 1, denspot%dpbox%mesh%ndims(1), 1,&
+       denspot%dpbox%mesh%ndims(2), &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
-       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, verbosity=1, &
+       denspot%dpbox%mesh%hgrids(1),denspot%dpbox%mesh%hgrids(2),denspot%dpbox%mesh%hgrids(3), shift, verbosity=1, &
        ixc=in%ixc, lzd=tmb%lzd, pot=denspot%V_ext, &
        rxyz=rxyz, ixyz0=in%plot_mppot_axes, write_directory=trim(in%dir_output))
   call interaction_multipoles_ions(bigdft_mpi%iproc, in%ep, atoms, energs%eion, fion)
@@ -687,21 +688,21 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !write(*,*) 'eion after', energs%eion
   !call yaml_map('rxyz',rxyz)
   !call yaml_map('atoms%astruct%rxyz',atoms%astruct%rxyz)
-  !call yaml_map('hgrids',(/denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3)/))
-  !!call potential_from_multipoles(in%ep, 1, denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
+  !call yaml_map('hgrids',(/denspot%dpbox%mesh%hgrids(1),denspot%dpbox%mesh%hgrids(2),denspot%dpbox%mesh%hgrids(3)/))
+  !!call potential_from_multipoles(in%ep, 1, denspot%dpbox%mesh%ndims(1), 1, denspot%dpbox%mesh%ndims(2), &
   !!     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
   !!     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
-  !!     1, denspot%dpbox%ndims(3), &
-  !!     denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, denspot%V_ext)
+  !!     1, denspot%dpbox%mesh%ndims(3), &
+  !!     denspot%dpbox%mesh%hgrids(1),denspot%dpbox%mesh%hgrids(2),denspot%dpbox%mesh%hgrids(3), shift, denspot%V_ext)
   if (denspot%c_obj /= 0) then
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
 
 
   !ii = 0
-  !do i3=1,denspot%dpbox%ndims(3)
-  !    do i2=1,denspot%dpbox%ndims(2)
-  !        do i1=1,denspot%dpbox%ndims(1)
+  !do i3=1,denspot%dpbox%mesh%ndims(3)
+  !    do i2=1,denspot%dpbox%mesh%ndims(2)
+  !        do i1=1,denspot%dpbox%mesh%ndims(1)
   !            ii = ii + 1
   !            write(300,*) 'vals', i1, i2, i3, denspot%V_ext(i1,i2,i3,1)
   !        end do
@@ -863,11 +864,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            !call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
            !     tmb%orbs, tmb%psi, tmb%collcom_sr)
 
-           !call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+           !call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%mesh%hgrids(1), KSwfn%Lzd%mesh%hgrids(2), KSwfn%Lzd%mesh%hgrids(3), &
            !     tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
            !! Must initialize rhopotold (FOR NOW... use the trivial one)
-           !call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
+           !call vcopy(max(denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
            !     denspot%rhov(1), 1, denspot0(1), 1)
            !!!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
            !call updatePotential(in%ixc,in%nspin,denspot,energs%eh,energs%exc,energs%evxc)
@@ -1064,7 +1065,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      if (DoLastRunThings) then
         if (inputpsi .hasattr. 'CUBIC') then
            calculate_dipole=.true.
-           calculate_quadrupole=.false.
+           calculate_quadrupole=.true.
         else
            calculate_dipole = in%lin%calc_dipole
            calculate_quadrupole=in%lin%calc_quadrupole
@@ -1289,7 +1290,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
            call XC_potential(atoms%astruct%geocode,'D',iproc,nproc,bigdft_mpi%mpi_comm,&
                 KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%xc,&
-                denspot%dpbox%hgrids,&
+                denspot%dpbox%mesh%hgrids,&
                 denspot%rhov,energs%exc,energs%evxc,in%nspin,denspot%rho_C,&
                 denspot%rhohat,denspot%V_XC,xcstr,denspot%f_XC)
            call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1,iproc,nproc)
@@ -1297,7 +1298,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            !select the active space if needed
 
            call tddft_casida(iproc,nproc,atoms,rxyz,&
-                denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+                denspot%dpbox%mesh%hgrids(1),denspot%dpbox%mesh%hgrids(2),denspot%dpbox%mesh%hgrids(3),&
                 denspot%dpbox%n3p,denspot%dpbox%ngatherarr(0,1),&
                 KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,&
                 denspot%f_XC,denspot%pkernelseq,KSwfn%psi,VTwfn%psi)
@@ -2090,7 +2091,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   !only in the case of no PSolver tasks
   if (denspot%dpbox%mpi_env%nproc < nproc) then
      denspot%rhod%icomm=0
-     denspot%rhod%nrhotot=denspot%dpbox%ndims(3)
+     denspot%rhod%nrhotot=denspot%dpbox%mesh%ndims(3)
   else
      denspot%rhod%icomm=1
      denspot%rhod%nrhotot=sum(denspot%dpbox%nscatterarr(:,1))
@@ -2115,7 +2116,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      ! This seems to be necessary to get the correct value of xcstr.
      call XC_potential(atoms%astruct%geocode,'D',iproc,nproc,bigdft_mpi%mpi_comm,&
           KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%xc,&
-          denspot%dpbox%hgrids,&
+          denspot%dpbox%mesh%hgrids,&
           denspot%rhov,exc_fake,evxc_fake,nspin,denspot%rho_C,denspot%rhohat,&
           denspot%V_XC,xcstr)
   else

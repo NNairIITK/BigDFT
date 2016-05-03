@@ -18,6 +18,7 @@ program PS_Check
   use dictionaries, dict_set => set
   use time_profiling
   use yaml_strings
+  use box
   implicit none
   !Length of the box
   character(len=*), parameter :: subname='PS_Check'
@@ -43,6 +44,7 @@ program PS_Check
   type(mpi_environment) :: bigdft_mpi
   character(len = *), parameter :: package_version = "PSolver 1.7-dev.25"
   type(dictionary), pointer :: options,dict_input
+  type(cell) :: mesh
   external :: gather_timings
 
   call f_lib_initialize() 
@@ -161,7 +163,9 @@ program PS_Check
 !!$      allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
 !!$      call memocc(i_stat,rhopot,'rhopot',subname)
 
-  call test_functions(geocode,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,&
+  mesh=cell_new(geocode,ndims,hgrids)
+
+  call test_functions_box(mesh,ispden,a_gauss,&
        density,potential,rhopot,pot_ion,offset)
   !calculate the Poisson potential in parallel
   !with the global data distribution (also for xc potential)
@@ -872,82 +876,82 @@ contains
   END SUBROUTINE test_functions
 
 
-  subroutine functions(x,a,b,f,f2,whichone)
-    implicit none
-    integer, intent(in) :: whichone
-    real(kind=8), intent(in) :: x,a,b
-    real(kind=8), intent(out) :: f,f2
-    !local variables
-    real(kind=8) :: r,r2,y,yp,ys,factor,pi,g,h,g1,g2,h1,h2
-    real(kind=8) :: length,frequency,nu,sigma,agauss
-
-    pi = 4.d0*datan(1.d0)
-    select case(whichone)
-    case(1)
-       !constant
-       f=1.d0
-       f2=0.d0
-    case(2)
-       !gaussian of sigma s.t. a=1/(2*sigma^2)
-       r2=a*x**2
-       f=dexp(-r2)
-       f2=(-2.d0*a+4.d0*a*r2)*dexp(-r2)
-    case(3)
-       !gaussian "shrinked" with a=length of the system
-       length=a
-       r=pi*x/length
-       y=dtan(r)
-       yp=pi/length*1.d0/(dcos(r))**2
-       ys=2.d0*pi/length*y*yp
-       factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
-       f2=factor*dexp(-y**2)
-       f=dexp(-y**2)
-    case(4)
-       !cosine with a=length, b=frequency
-       length=a
-       frequency=b
-       r=frequency*pi*x/length
-       f=dcos(r)
-       f2=-(frequency*pi/length)**2*dcos(r)
-    case(5)
-       !exp of a cosine, a=length
-       nu=2.d0
-       r=pi*nu/a*x
-       y=dcos(r)
-       yp=dsin(r)
-       f=dexp(y)
-       factor=(pi*nu/a)**2*(-y+yp**2)
-       f2=factor*f
-    case(6)
-       !gaussian times "shrinked" gaussian, sigma=length/10
-       length=a
-       r=pi*x/length
-       y=dtan(r)
-       yp=pi/length*1.d0/(dcos(r))**2
-       ys=2.d0*pi/length*y*yp
-       factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
-       g=dexp(-y**2)
-       g1=-2.d0*y*yp*g
-       g2=factor*dexp(-y**2)
-
-       sigma=length/10
-       agauss=0.5d0/sigma**2
-       r2=agauss*x**2
-       h=dexp(-r2)
-       h1=-2.d0*agauss*x*h
-       h2=(-2.d0*agauss+4.d0*agauss*r2)*dexp(-r2)
-       f=g*h
-       f2=g2*h+g*h2+2.d0*g1*h1
-    case(7)
-       !sine with a=length, b=frequency
-       length=a
-       frequency=b
-       r=frequency*pi*x/length
-       f=dsin(r)
-       f2=-(frequency*pi/length)**2*dsin(r)
-    end select
-
-  END SUBROUTINE functions
+!!$  subroutine functions(x,a,b,f,f2,whichone)
+!!$    implicit none
+!!$    integer, intent(in) :: whichone
+!!$    real(kind=8), intent(in) :: x,a,b
+!!$    real(kind=8), intent(out) :: f,f2
+!!$    !local variables
+!!$    real(kind=8) :: r,r2,y,yp,ys,factor,pi,g,h,g1,g2,h1,h2
+!!$    real(kind=8) :: length,frequency,nu,sigma,agauss
+!!$
+!!$    pi = 4.d0*datan(1.d0)
+!!$    select case(whichone)
+!!$    case(1)
+!!$       !constant
+!!$       f=1.d0
+!!$       f2=0.d0
+!!$    case(2)
+!!$       !gaussian of sigma s.t. a=1/(2*sigma^2)
+!!$       r2=a*x**2
+!!$       f=dexp(-r2)
+!!$       f2=(-2.d0*a+4.d0*a*r2)*dexp(-r2)
+!!$    case(3)
+!!$       !gaussian "shrinked" with a=length of the system
+!!$       length=a
+!!$       r=pi*x/length
+!!$       y=dtan(r)
+!!$       yp=pi/length*1.d0/(dcos(r))**2
+!!$       ys=2.d0*pi/length*y*yp
+!!$       factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
+!!$       f2=factor*dexp(-y**2)
+!!$       f=dexp(-y**2)
+!!$    case(4)
+!!$       !cosine with a=length, b=frequency
+!!$       length=a
+!!$       frequency=b
+!!$       r=frequency*pi*x/length
+!!$       f=dcos(r)
+!!$       f2=-(frequency*pi/length)**2*dcos(r)
+!!$    case(5)
+!!$       !exp of a cosine, a=length
+!!$       nu=2.d0
+!!$       r=pi*nu/a*x
+!!$       y=dcos(r)
+!!$       yp=dsin(r)
+!!$       f=dexp(y)
+!!$       factor=(pi*nu/a)**2*(-y+yp**2)
+!!$       f2=factor*f
+!!$    case(6)
+!!$       !gaussian times "shrinked" gaussian, sigma=length/10
+!!$       length=a
+!!$       r=pi*x/length
+!!$       y=dtan(r)
+!!$       yp=pi/length*1.d0/(dcos(r))**2
+!!$       ys=2.d0*pi/length*y*yp
+!!$       factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
+!!$       g=dexp(-y**2)
+!!$       g1=-2.d0*y*yp*g
+!!$       g2=factor*dexp(-y**2)
+!!$
+!!$       sigma=length/10
+!!$       agauss=0.5d0/sigma**2
+!!$       r2=agauss*x**2
+!!$       h=dexp(-r2)
+!!$       h1=-2.d0*agauss*x*h
+!!$       h2=(-2.d0*agauss+4.d0*agauss*r2)*dexp(-r2)
+!!$       f=g*h
+!!$       f2=g2*h+g*h2+2.d0*g1*h1
+!!$    case(7)
+!!$       !sine with a=length, b=frequency
+!!$       length=a
+!!$       frequency=b
+!!$       r=frequency*pi*x/length
+!!$       f=dsin(r)
+!!$       f2=-(frequency*pi/length)**2*dsin(r)
+!!$    end select
+!!$
+!!$  END SUBROUTINE functions
 
   !>identify the options from command line
   !! and write the result in options dict
@@ -1021,7 +1025,7 @@ end subroutine PS_Check_options
 
 !> Error function in double precision
 subroutine derf_local(derf_yy,yy)
-  use poisson_solver
+  use PSbase, only: dp
   implicit none
   real(dp),intent(in) :: yy
   real(dp),intent(out) :: derf_yy
@@ -1140,3 +1144,317 @@ subroutine derf_local(derf_yy,yy)
   derf_yy = res
 
 end subroutine derf_local
+
+!> This subroutine builds some analytic functions that can be used for 
+!! testing the poisson solver.
+!! The default choice is already well-tuned for comparison.
+!! WARNING: not all the test functions can be used for all the boundary conditions of
+!! the poisson solver, in order to have a reliable analytic comparison.
+!! The parameters of the functions must be adjusted in order to have a sufficiently localized
+!! function in the isolated direction and an explicitly periodic function in the periodic ones.
+!! Beware of the high-frequency components that may false the results when hgrid is too high.
+recursive subroutine test_functions_box(mesh,nspden,a_gauss,&
+     density,potential,rhopot,pot_ion,offset)
+  use box
+  use f_utils
+  use f_precisions
+  use PSbase
+  use f_jmp
+  use time_profiling
+  use numerics
+  use dynamic_memory
+  implicit none
+  type(cell), intent(in) :: mesh !<definition of the cell
+  integer, intent(in) :: nspden
+  real(kind=8), intent(in) :: a_gauss
+  real(kind=8), intent(out) :: offset
+  real(kind=8), dimension(mesh%ndims(1),mesh%ndims(2),mesh%ndims(3)), intent(out) :: pot_ion,potential
+  real(kind=8), dimension(mesh%ndims(1),mesh%ndims(2),mesh%ndims(3),nspden), intent(out) :: density,rhopot
+  !local variables
+  integer, parameter :: nrep=10
+  logical ::  separable=.true.,old=.false. !save attribute for the profiling
+  integer :: i1,i2,i3,ifx,ify,ifz,i,irep,n01,n02,n03
+  
+  real(kind=8) :: x1,x2,x3,length,denval,a2,derf_tt,factor,r,r2,hx,hy,hz
+  real(kind=8) :: fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,acell
+  integer(f_long) :: t1,t0
+  type(box_iterator) :: bit
+  type(f_jmpbuf), save :: jmpbuf
+
+  !backward compatibility
+  acell=mesh%ndims(1)*mesh%hgrids(1)
+  hx=mesh%hgrids(1)
+  hy=mesh%hgrids(2)
+  hz=mesh%hgrids(3)
+  n01=mesh%ndims(1)
+  n02=mesh%ndims(2)
+  n03=mesh%ndims(3)
+
+  !select the specifications for the loop
+  select case (cell_geocode(mesh))
+  case('P')
+     !parameters for the test functions
+     length=acell
+     a=0.5d0/a_gauss**2
+     !test functions in the three directions
+     ifx=5
+     ify=5
+     ifz=5
+     !parameters of the test functions
+     ax=length
+     ay=length
+     az=length
+     bx=2.d0!real(nu,kind=8)
+     by=2.d0!real(nu,kind=8)
+     bz=2.d0
+     !other factors
+     factor = 1.0_dp
+  case('S')
+     !parameters for the test functions
+     length=acell
+     a=0.5d0/a_gauss**2
+     !test functions in the three directions
+     ifx=5
+     ifz=5
+     !non-periodic dimension
+     ify=6
+     !parameters of the test functions
+     ax=length
+     az=length
+     bx=2.d0!real(nu,kind=8)
+     bz=2.d0!real(nu,kind=8)
+     !non-periodic dimension
+     ay=length
+     by=a
+     factor = oneofourpi
+  case('F')
+     a2 = a_gauss**2
+     !Normalization
+     factor = 1.d0/(a_gauss*a2*pi*sqrt(pi))
+     separable=.false.
+  case default
+     print *,'geometry code not admitted',cell_geocode(mesh)
+     stop
+  end select
+
+
+  t0=f_time()
+  !     do irep=1,nrep 
+  entry test_new()
+  if (separable .and. .not. old) then
+     denval=0.d0 !value for keeping the density positive
+     bit=box_iter(mesh,centered=.true.)
+     !here separability is restored
+     do while(box_next_z(bit))
+        call functions(bit%rxyz(3),az,bz,fz,fz2,ifz)
+        do while(box_next_y(bit))
+           call functions(bit%rxyz(2),ay,by,fy,fy2,ify)
+           do while(box_next_x(bit))
+              call functions(bit%rxyz(1),ax,bx,fx,fx2,ifx)
+              do i=1,nspden
+                 density(bit%i,bit%j,bit%k,i) = factor/real(nspden,kind=8)*(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
+              end do
+              potential(bit%i,bit%j,bit%k) = -factor*fourpi*fx*fy*fz
+              denval=max(denval,-density(bit%i,bit%j,bit%k,1))
+           end do
+        end do
+     end do
+  end if
+  call f_profile_end(test_new,jmpbuf)
+
+  !     end do
+  t1=f_time()
+!!$  print *,f_humantime(t1-t0)
+!!$  print *,'there2',denval
+  t0=f_time()
+  !     do irep=1,nrep 
+  entry test_old()
+
+!print *,'here',separable,old,nrep,associated(jmpbuf%jmp_buf)
+  if (separable .and. old) then
+     denval=0.d0 !value for keeping the density positive
+     do i3=1,n03
+        x3 = hz*real(i3-n03/2-1,kind=8)
+        call functions(x3,az,bz,fz,fz2,ifz)
+        do i2=1,n02
+           x2 = hy*real(i2-n02/2-1,kind=8)
+           call functions(x2,ay,by,fy,fy2,ify)
+           do i1=1,n01
+              x1 = hx*real(i1-n01/2-1,kind=8)
+              call functions(x1,ax,bx,fx,fx2,ifx)
+              print *,'i1,i2,i3',x1,x2,x3
+              do i=1,nspden
+                 density(i1,i2,i3,i) = factor/real(nspden,kind=8)*(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
+              end do
+              potential(i1,i2,i3) = -fourpi*factor*fx*fy*fz
+              denval=max(denval,-density(i1,i2,i3,1))
+           end do
+        end do
+     end do
+  end if
+  call f_profile_end(test_old,jmpbuf)
+  !     end do
+  t1=f_time()
+
+!!$  print *,f_humantime(t1-t0)
+!!$  print *,'there3',denval
+
+  if (.not. separable .and. .not. old) then
+     bit=box_iter(mesh,centered=.true.)
+     do while(box_next_point(bit))
+        r2=square(mesh,bit%rxyz)
+        do i=1,nspden
+           density(bit%i,bit%j,bit%k,i) = &
+                1.d0/real(nspden,kind=8)*max(factor*exp(-r2/a2),1d-24)
+        end do
+        r = sqrt(r2)
+        !Potential from a gaussian
+        if (r == 0.0_dp) then
+           potential(bit%i,bit%j,bit%k) = 2.d0/(sqrt(pi)*a_gauss)
+        else
+           call derf_local(derf_tt,r/a_gauss)
+           potential(bit%i,bit%j,bit%k) = derf_tt/r
+        end if
+     end do
+  end if
+  if (.not. separable .and. old) then
+     !gaussian function
+     do i3=1,n03
+        x3 = hz*real(i3-n03/2,kind=8)
+        do i2=1,n02
+           x2 = hy*real(i2-n02/2,kind=8)
+           do i1=1,n01
+              x1 = hx*real(i1-n01/2,kind=8)
+              r2 = x1*x1+x2*x2+x3*x3
+              do i=1,nspden
+                 density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*max(factor*exp(-r2/a2),1d-24)
+              end do
+              r = sqrt(r2)
+              !Potential from a gaussian
+              if (r == 0.d0) then
+                 potential(i1,i2,i3) = 2.d0/(sqrt(pi)*a_gauss)
+              else
+                 call derf_local(derf_tt,r/a_gauss)
+                 potential(i1,i2,i3) = derf_tt/r
+              end if
+           end do
+        end do
+     end do
+  end if
+  !here we can profile both cases
+  !call f_profile(test_old,'Test separable iterator',&
+  !repeat=nrep,jmpbuf=jmpbuf,dump_results=.true.)
+  !call f_profile(test_new,'Original loop',&
+  !          repeat=nrep,jmpbuf=jmpbuf,dump_results=.true.)
+
+
+  denval=0.d0
+     
+  ! For ixc/=0 the XC potential is added to the solution, and an analytic comparison is no more
+  ! possible. In that case the only possible comparison is between the serial and the parallel case
+  ! To ease the comparison between the serial and the parallel case we add a random pot_ion
+  ! to the potential.
+  call f_memcpy(src=density,dest=rhopot)
+
+  offset=0.d0
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
+           pot_ion(i1,i2,i3)=tt
+           offset=offset+potential(i1,i2,i3)
+           !add the case for offset in the surfaces case 
+           !(for periodic case it is absorbed in offset)
+           if (cell_geocode(mesh) == 'S' .and. denval /= 0.d0) then
+              x2 = hy*real(i2-1,kind=8)-0.5d0*acell+0.5d0*hy
+              potential(i1,i2,i3)=potential(i1,i2,i3)&
+                   -8.d0*datan(1.d0)*denval*real(nspden,kind=8)*(x2**2+0.25d0*acell**2)
+              !this stands for
+              !denval*2pi*Lx*Lz/Ly^2(y^2-Ly^2/4), less accurate in hgrid
+           end if
+        end do
+     end do
+  end do
+  if (denval /= 0.d0) density=rhopot
+  offset=offset*hx*hy*hz
+
+  !print *,'offset',offset
+
+END SUBROUTINE test_functions_box
+
+subroutine functions(x,a,b,f,f2,whichone)
+  implicit none
+  integer, intent(in) :: whichone
+  real(kind=8), intent(in) :: x,a,b
+  real(kind=8), intent(out) :: f,f2
+  !local variables
+  real(kind=8) :: r,r2,y,yp,ys,factor,pi,g,h,g1,g2,h1,h2
+  real(kind=8) :: length,frequency,nu,sigma,agauss
+
+  pi = 4.d0*datan(1.d0)
+  select case(whichone)
+  case(1)
+     !constant
+     f=1.d0
+     f2=0.d0
+  case(2)
+     !gaussian of sigma s.t. a=1/(2*sigma^2)
+     r2=a*x**2
+     f=dexp(-r2)
+     f2=(-2.d0*a+4.d0*a*r2)*dexp(-r2)
+  case(3)
+     !gaussian "shrinked" with a=length of the system
+     length=a
+     r=pi*x/length
+     y=dtan(r)
+     yp=pi/length*1.d0/(dcos(r))**2
+     ys=2.d0*pi/length*y*yp
+     factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
+     f2=factor*dexp(-y**2)
+     f=dexp(-y**2)
+  case(4)
+     !cosine with a=length, b=frequency
+     length=a
+     frequency=b
+     r=frequency*pi*x/length
+     f=dcos(r)
+     f2=-(frequency*pi/length)**2*dcos(r)
+  case(5)
+     !exp of a cosine, a=length
+     nu=2.d0
+     r=pi*nu/a*x
+     y=dcos(r)
+     yp=dsin(r)
+     f=dexp(y)
+     factor=(pi*nu/a)**2*(-y+yp**2)
+     f2=factor*f
+  case(6)
+     !gaussian times "shrinked" gaussian, sigma=length/10
+     length=a
+     r=pi*x/length
+     y=dtan(r)
+     yp=pi/length*1.d0/(dcos(r))**2
+     ys=2.d0*pi/length*y*yp
+     factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
+     g=dexp(-y**2)
+     g1=-2.d0*y*yp*g
+     g2=factor*dexp(-y**2)
+
+     sigma=length/10
+     agauss=0.5d0/sigma**2
+     r2=agauss*x**2
+     h=dexp(-r2)
+     h1=-2.d0*agauss*x*h
+     h2=(-2.d0*agauss+4.d0*agauss*r2)*dexp(-r2)
+     f=g*h
+     f2=g2*h+g*h2+2.d0*g1*h1
+  case(7)
+     !sine with a=length, b=frequency
+     length=a
+     frequency=b
+     r=frequency*pi*x/length
+     f=dsin(r)
+     f2=-(frequency*pi/length)**2*dsin(r)
+  end select
+
+END SUBROUTINE functions

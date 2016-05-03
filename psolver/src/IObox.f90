@@ -19,10 +19,11 @@ module IObox
 
   private
 
+
   public :: read_field,read_field_dimensions,dump_field
 
   contains
-
+    
     pure subroutine cube_dimensions(geocode,ndims,nc1,nc2,nc3)
       implicit none
       character(len=1), intent(in) :: geocode

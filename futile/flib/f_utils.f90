@@ -263,13 +263,13 @@ contains
     if (sht) then
        !find the first unit which is not zero
        if (y > zr) then
-          call f_strcpy(dest=time,src=(yaml_toa(y)+'y')//(yaml_toa(d)+'d'))
+          call f_strcpy(dest=time,src=(yaml_toa(y)+'y')+(yaml_toa(d)+'d'))
        else if (d > zr) then
-          call f_strcpy(dest=time,src=(yaml_toa(d)+'d')//(yaml_toa(h,fmt)+'h'))
+          call f_strcpy(dest=time,src=(yaml_toa(d)+'d')+(yaml_toa(h,fmt)+'h'))
        else if (h > zr) then
-          call f_strcpy(dest=time,src=(yaml_toa(h,fmt)+'h')//(yaml_toa(m,fmt)+'m'))
+          call f_strcpy(dest=time,src=(yaml_toa(h,fmt)+'h')+(yaml_toa(m,fmt)+'m'))
        else if (m > zr) then
-          call f_strcpy(dest=time,src=(yaml_toa(m,fmt)+'m')//(yaml_toa(s,fmt)+'s'))
+          call f_strcpy(dest=time,src=(yaml_toa(m,fmt)+'m')+(yaml_toa(s,fmt)+'s'))
        else
           call f_strcpy(dest=time,src=yaml_toa(real(s,f_double),'(f5.1)')+'s')
        end if
@@ -281,7 +281,7 @@ contains
 !!$
        !split the treatment in the case of multiple days
        if (d >0.0_f_double .or. y > 0.0_f_double ) call f_strcpy(&
-            dest=time,src=(yaml_toa(y)+'y')//(yaml_toa(d)+'d')+time)
+            dest=time,src=(yaml_toa(y)+'y')+(yaml_toa(d)+'d')+time)
     end if
 
   end function f_humantime
@@ -301,38 +301,12 @@ contains
     f_tty=itis==1
   end function f_tty
 
-  !>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
-  subroutine f_pause(sec,verbose)
+  !>call posix sleep function for sec seconds
+  subroutine f_pause(sec)
     implicit none
     integer, intent(in) :: sec !< seconds to be waited
-    logical, intent(in), optional :: verbose !<for debugging purposes, do not eliminate
-    !local variables
-    logical :: verb,run
-    integer(f_long) :: t0,t1
-    real(f_double) :: tel
-    integer :: count
-
-    verb=.false.
-    if (present(verbose)) verb=verbose
-
     if (sec <=0) return
-    t0=f_time()
-    t1=t0
-    !this loop has to be modified to avoid the compiler to perform too agressive optimisations
-    count=0
-    run=.true.
-    do while(run)
-       count=count+1
-       ! call directly nanosec to avoid hanging on BG/Q
-       !t1=f_time()
-       call nanosec(t1)
-       tel=real(t1-t0,f_double)*1.e-9_f_double
-       run= tel < real(sec,f_double)
-    end do
-    !this output is needed to avoid the compiler to perform too agressive optimizations
-    !therefore having a infinie loop
-    if (verb) print *,'Paused for '//trim(yaml_toa(tel))//' seconds, counting:'//&
-         trim(yaml_toa(count))
+    call csleep(sec)
   end subroutine f_pause
 
   !> gives the maximum record length allowed for a given unit

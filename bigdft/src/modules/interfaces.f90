@@ -173,7 +173,7 @@ module module_interfaces
       type(rho_descriptors),intent(in) :: rhodsc
       type(denspot_distribution), intent(in) :: dpbox
       real(dp), dimension(:,:), pointer :: rho_p !< partial density in orbital distribution scheme
-      real(dp), dimension(max(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3d,1),nspin), intent(out) :: rho
+      real(dp), dimension(max(dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3d,1),nspin), intent(out) :: rho
         END SUBROUTINE communicate_density
       end interface
 

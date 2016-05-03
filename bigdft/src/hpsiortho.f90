@@ -157,7 +157,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
      if (scf_mode .hasattr. 'MIXING') then
         if (denspot%mix%kind == AB7_MIXING_DENSITY) then
            call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
-                denspot%rhov,itrp,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                denspot%rhov,itrp,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
                 atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&
                 rpnrm,denspot%dpbox%nscatterarr)
 
@@ -183,22 +183,22 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
      !copy the density contiguously since the GGA is calculated inside the NK routines
      !with the savefield scheme, this can be avoided in the future
      if (wfn%SIC%approach=='NK') then !here the density should be copied somewhere else
-        irhotot_add=denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%i3xcsh+1
-        irho_add=denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d*wfn%orbs%nspin+1
+        irhotot_add=denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%i3xcsh+1
+        irho_add=denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3d*wfn%orbs%nspin+1
         do ispin=1,wfn%orbs%nspin
            call vcopy(denspot%dpbox%ndimpot,&
                 denspot%rhov(irhotot_add),1,denspot%rhov(irho_add),1)
-           irhotot_add=irhotot_add+denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d
-           irho_add=irho_add+denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
+           irhotot_add=irhotot_add+denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3d
+           irho_add=irho_add+denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3p
         end do
      end if
 
      if(wfn%orbs%nspinor==4) then
         !this wrapper can be inserted inside the XC_potential routine
         call PSolverNC(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
-             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+             denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
              denspot%dpbox%n3d,denspot%xc,&
-             denspot%dpbox%hgrids,&
+             denspot%dpbox%mesh%hgrids,&
              denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,&
              energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
      else
@@ -206,8 +206,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
         !!           denspot%rhov denspot%rhov+2.e-7   STEFAN Goedecker
         call XC_potential(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
              denspot%pkernel%mpi_env%mpi_comm,&
-             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
-             denspot%dpbox%hgrids,&
+             denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),denspot%xc,&
+             denspot%dpbox%mesh%hgrids,&
              denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,&
              denspot%rhohat,denspot%V_XC,xcstr)
         call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn, iproc, nproc)
@@ -249,7 +249,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
      if (scf_mode .hasattr. 'MIXING') then
         if (denspot%mix%kind == AB7_MIXING_POTENTIAL) then
            call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
-                denspot%rhov,itrp,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                denspot%rhov,itrp,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
                 atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&!volume should be used
                 rpnrm,denspot%dpbox%nscatterarr)
            if (iproc == 0 .and. itrp > 1) then
@@ -3672,8 +3672,8 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   xred = f_malloc((/ 3, at%astruct%nat /), id = "xred")
 
   nfft = denspot%dpbox%ndimpot
-  nfftot = product(denspot%dpbox%ndims)
-  ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
+  nfftot = product(denspot%dpbox%mesh%ndims)
+  ucvol = product(denspot%dpbox%mesh%ndims) *denspot%dpbox%mesh%volume_element
   xclevel = 1
   if (xc_isgga(denspot%xc)) xclevel = 2
 
@@ -3882,16 +3882,16 @@ subroutine paw_update_rho(paw, denspot, atoms)
 
   call f_timing(TCAT_PAW_RHOIJ, "ON")
 
-  nfft = denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%n3p
-  ngfft(1:3) = denspot%dpbox%ndims
-  ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
+  nfft = denspot%dpbox%mesh%ndims(1) * denspot%dpbox%mesh%ndims(2) * denspot%dpbox%n3p
+  ngfft(1:3) = denspot%dpbox%mesh%ndims
+  ucvol = product(denspot%dpbox%mesh%ndims) *denspot%dpbox%mesh%volume_element
 
   !if (denspot%rhov_is /= ELECTRONIC_DENSITY) stop "rhov must be density here."
   if (bigdft_mpi%iproc == 0) then
      call yaml_newline()
   end if
   if (.not. associated(denspot%rhohat)) then
-     denspot%rhohat = f_malloc_ptr((/ denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
+     denspot%rhohat = f_malloc_ptr((/ denspot%dpbox%mesh%ndims(1), denspot%dpbox%mesh%ndims(2), &
           & denspot%dpbox%n3p , denspot%dpbox%nrhodim /), id='denspot%rhohat')
   end if
 
@@ -3912,7 +3912,7 @@ subroutine paw_update_rho(paw, denspot, atoms)
   end if
 
   if (denspot%dpbox%ndimpot > 0) then
-     offset = denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%i3xcsh
+     offset = denspot%dpbox%mesh%ndims(1) * denspot%dpbox%mesh%ndims(2) * denspot%dpbox%i3xcsh
      call axpy(denspot%dpbox%ndimpot, 1._dp, denspot%rhohat(1,1,1,1), 1, &
           & denspot%rhov(offset + 1), 1)
      if (denspot%dpbox%nrhodim == 2) then

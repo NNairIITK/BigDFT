@@ -1026,7 +1026,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(DFT_local_fields), intent(inout) :: denspot
   type(input_variables),intent(in):: input
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz_old, rxyz
-  real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
+  real(8),dimension(max(denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
   type(energy_terms),intent(inout):: energs
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(GPU_pointers), intent(inout) :: GPU
@@ -1536,12 +1536,12 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
      call timing(iproc,'constraineddft','OF')
 
-      call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
+      call vcopy(max(denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
            denspot%rhov(1), 1, denspot0(1), 1)
       if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
          ! set the initial charge density
          call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
-              denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+              denspot%rhov,1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
       end if
@@ -1549,7 +1549,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
          ! set the initial potential
          call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
-              denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+              denspot%rhov,1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
       end if
@@ -2447,7 +2447,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        type(DFT_local_fields), intent(inout) :: denspot
        type(input_variables),intent(in):: input
        real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz_old, rxyz
-       real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
+       real(8),dimension(max(denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
        type(energy_terms),intent(inout):: energs
        type(DFT_PSP_projectors), intent(inout) :: nlpsp
        type(GPU_pointers), intent(inout) :: GPU
@@ -2746,7 +2746,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
       KSwfn%lzd%hgrids)
       displ=0.0_gp
       do iat=1,atoms%astruct%nat
-         displ=displ+minimum_distance(mesh,rxyz(:,iat),rxyz_old(:,iat))**2
+         displ=displ+distance(mesh,rxyz(:,iat),rxyz_old(:,iat))**2
       enddo
       displ=sqrt(displ)
 
@@ -3211,12 +3211,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !*     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
 
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
-     call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
+     call vcopy(max(denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
           denspot%rhov(1), 1, denspot0(1), 1)
      if (in%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
         ! set the initial charge density
         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
-             denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+             denspot%rhov,1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
              atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&
              pnrm,denspot%dpbox%nscatterarr)
      end if
@@ -3226,7 +3226,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (in%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
         ! set the initial potential
         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
-             denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+             denspot%rhov,1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
              atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&
              pnrm,denspot%dpbox%nscatterarr)
      end if

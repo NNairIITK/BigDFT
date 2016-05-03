@@ -1645,7 +1645,7 @@ end if
               ! use it_scc+1 since we already have the density from the input guess as iteration 1
               !!rho_tmp=denspot%rhov
               call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-alpha_mix,denspot%mix,&
-                   denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                   denspot%rhov,it_scc+1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
                    at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                    pnrm,denspot%dpbox%nscatterarr)
                !!rho_tmp=rho_tmp-denspot%rhov
@@ -1749,7 +1749,7 @@ end if
            ! Mix the potential
            if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
               call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-alpha_mix,denspot%mix,&
-                   denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                   denspot%rhov,it_scc+1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
                    at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                    pnrm,denspot%dpbox%nscatterarr)
                   !write(*,*) 'after mix_rhopot 1.1: pnrm', pnrm
