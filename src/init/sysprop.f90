@@ -917,12 +917,13 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(inout) :: pkernel
   !local variables
-  real(gp), parameter :: fact_Pau=1.2d0 ! Multiplying factor to enlarge the rigid cavity, Pauling setup.
-  real(gp), parameter :: fact_UFF=1.12d0 ! Multiplying factor to enlarge the rigid cavity, UFF setup.
+  real(gp), parameter :: fact_Pau=1.36d0 ! Multiplying factor to enlarge the rigid cavity, Pauling radii.
+  real(gp), parameter :: fact_Bondi=1.32d0 ! Multiplying factor to enlarge the rigid cavity, Bondi radii.
+  real(gp), parameter :: fact_UFF=1.12d0 ! Multiplying factor to enlarge the rigid cavity, UFF radii.
   integer :: i,iat
   integer :: i1,i2,i3,unt,i3s,i23
   real(gp) :: IntSur,IntVol,noeleene,Cavene,Repene,Disene,IntSurt,IntVolt,diffSur,diffVol
-  real(gp) :: radii_Pau,radii_UFF,fact
+  real(gp) :: radii_Pau,radii_Bondi,radii_UFF,fact
   type(atoms_iterator) :: it
   real(gp), dimension(:), allocatable :: radii
   real(gp), dimension(:,:), allocatable :: rxyz_shifted
@@ -932,7 +933,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   real(gp), dimension(:,:,:,:), allocatable :: dlogepst
   type(cell) :: mesh
   real(dp), dimension(3) :: origin
-  integer, parameter :: radii_cav = 2 ! 1 for Pauling, 2 for UFF.
+  integer, parameter :: radii_cav = 3 ! 1 for Pauling, 2 for Bondi, 3 for UFF.
   character(2) :: atname
 
   !set the vdW radii for the cavity definition
@@ -1014,8 +1015,11 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   do i=1,atoms%astruct%nat
     atname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(i)))
    if (radii_cav.eq.1) then
-    radii(i) = fact_Pau*radii_Pau(atname)/Bohr_Ang + 1.22d0*pkernel%cavity%delta
+    !radii(i) = fact_Pau*radii_Pau(atname)/Bohr_Ang + 1.22d0*pkernel%cavity%delta
+    radii(i) = fact*radii_Pau(atname)/Bohr_Ang
    else if (radii_cav.eq.2) then
+    radii(i) = fact*radii_Bondi(atname)/Bohr_Ang
+   else if (radii_cav.eq.3) then
     radii(i) = fact*radii_UFF(atname)/Bohr_Ang
    end if
   end do
@@ -1222,19 +1226,27 @@ pure function radii_Pau(at) result(r)
    ! chemistry and physics (CRC Press, Cleveland, 1981)].
    select case(trim(at))
    case('H')
-    r=1.00d0 !Pauling's set
+    r=1.20d0 !Pauling's set
    case('C')
     r=1.50d0 !Pauling's set
    case('N')
     r=1.50d0 !Pauling's set
    case('O')
     r=1.40d0 !Pauling's set
+   case('F')
+    r=1.35d0 !Pauling's set
    case('P')
-    r=1.80d0 !Pauling's set
+    r=1.90d0 !Pauling's set
    case('Cl')
     r=1.80d0 !Pauling's set
    case('Ti')
     r=1.40d0 
+   case('Br')
+    r=1.95d0 !Pauling's set
+   case('I')
+    r=2.15d0 !Pauling's set
+   case('S')
+    r=1.85d0 !Pauling's set
    case default
     !call f_err_throw('Pauling setup. For rigid cavity a radius should be fixed for each atom type')
    end select
@@ -1364,7 +1376,8 @@ pure function radii_UFF(at) result(r)
    case('C')
     r=3.851d0 
    case('N')
-    r=3.660d0 
+    !r=3.660d0 
+    r=3.100d0 ! Bondi radius 
    case('O')
     r=3.500d0 
    case('F')

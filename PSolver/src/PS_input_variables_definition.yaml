@@ -81,7 +81,7 @@
     PROFILE_FROM: cavity
   cavitation: 
     COMMENT: Triggers the evaluation of the extra cavitation terms
-    default: No
+    default: Yes
   fact_rigid: 
     COMMENT: Multiplying factor for the whole rigid cavity
     default: 1.12
@@ -146,7 +146,7 @@
     default: 50
   minres: 
     COMMENT: Convergence threshold of the loop
-    default: 1.e-6
+    default: 1.e-8
   pb_method:
     COMMENT: Defines the method for the Poisson Boltzmann Equation
     default: none
