@@ -2956,7 +2956,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
        verbosity=0, &
-       check_accur=.true., max_error=max_error, mean_error=mean_error, &
+       check_accur=order_taylor<1000, max_error=max_error, mean_error=mean_error, &
        ice_obj=tmb%ice_obj)
   call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
 
