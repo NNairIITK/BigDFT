@@ -2634,19 +2634,19 @@ module multipole
                   call yaml_map('Q matrix',quadrupole_check,fmt='(1es13.4)')
                   call yaml_map('trace',quadrupole_check(1,1)+quadrupole_check(2,2)+quadrupole_check(3,3),fmt='(es12.2)')
                   call yaml_mapping_close()
-                  call yaml_sequence_open('Average relative error of resulting potential')
+                  call yaml_sequence_open('Average relative error of resulting potential in the Exterior region')
                   !call yaml_sequence_open('density threshold for check')
                   do icheck=1,ncheck
                       !call yaml_mapping_open('density threshold for check',check_threshold(icheck))
                       call yaml_sequence(advance='no')
                       call yaml_mapping_open(flow=.true.)
-                      call yaml_map('Thr',check_threshold(icheck),fmt='(es9.2)')
-                      call yaml_map('Ext. Volume %',charge_total(icheck)/&
+                      call yaml_map('Thr',check_threshold(icheck),fmt='(es9.1)')
+                      call yaml_map('Ext. Vol. %',charge_total(icheck)/&
                            (denspot%dpbox%mesh%volume_element*product(real(denspot%dpbox%mesh%ndims,gp))),&
                            fmt='(2pf5.1)')
-                      call yaml_map('Ext. int(V)',potential_total(icheck),fmt='(es10.3)')
-                      call yaml_map('Ext. Err %',potential_error(icheck)/potential_total(icheck),fmt='(2pf5.1)')
-                      call yaml_map('Ext. int(rho)',charge_error(icheck),fmt='(es10.3)')
+                      call yaml_map('int(V)',potential_total(icheck),fmt='(es10.3)')
+                      call yaml_map('Err %',potential_error(icheck)/potential_total(icheck),fmt='(2pf5.1)')
+                      call yaml_map('int(rho)',charge_error(icheck),fmt='(es10.3)')
 !!$                      !call yaml_mapping_open('density threshold for check is'//&
 !!$                      !     &trim(yaml_toa(check_threshold(icheck),fmt='(es9.2)')))
 !!$                      call yaml_mapping_open('rho',flow=.true.)
@@ -6114,7 +6114,7 @@ end subroutine calculate_rpowerx_matrices
     real(kind=8),dimension(ncheck),intent(out) :: charge_error, external_volume, potential_error, potential_total
 
     ! Local variables
-    integer :: i1, i2, i3, iat, icheck
+    integer :: i1, i2, i3, iat, icheck,icnt,igood
     real(kind=8) :: qex, factor,vex
     real(kind=8),parameter :: min_distance = 2.0d0
 !!$    logical,dimension(:,:,:),allocatable :: is_close
@@ -6157,10 +6157,14 @@ end subroutine calculate_rpowerx_matrices
 
     !use the box iterator
     factor=boxit%mesh%volume_element
+    icnt=0
+    igood=0
     box_loop: do while(box_next_point(boxit))
+       icnt=icnt+1
        do iat=1,nat
           if (distance(boxit%mesh,boxit%rxyz,rxyz(:,iat)) <= min_distance) cycle box_loop
        end do
+       igood=igood+1
        ! Farther away from the atoms than the minimal distance
        qex = rho_exact(boxit%ind)
        vex = pot_exact(boxit%ind)
@@ -6179,7 +6183,7 @@ end subroutine calculate_rpowerx_matrices
           end if
        end do
     end do box_loop
-       
+
 !!$    do i3=0,kernel%ndims(3)-31-1
 !!$        z = i3*kernel%hgrids(3)
 !!$        do i2=0,kernel%ndims(2)-31-1
@@ -6222,13 +6226,16 @@ end subroutine calculate_rpowerx_matrices
 !!$    call dscal(ncheck, factor, charge_total(1), 1)
 !!$    call dscal(ncheck, factor, potential_error(1), 1)
 !!$    call dscal(ncheck, factor, potential_total(1), 1)
-
     if (bigdft_mpi%nproc > 1) then
        call mpiallred(charge_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
        call mpiallred(external_volume, mpi_sum, comm=bigdft_mpi%mpi_comm)
        call mpiallred(potential_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
        call mpiallred(potential_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
+       call mpiallred(icnt,1,op=mpi_sum, comm=bigdft_mpi%mpi_comm)
+       call mpiallred(igood,1,op=mpi_sum, comm=bigdft_mpi%mpi_comm)
     end if
+
+    print *,'iproc',icnt,igood,bigdft_mpi%iproc
 
     call f_release_routine()
 
