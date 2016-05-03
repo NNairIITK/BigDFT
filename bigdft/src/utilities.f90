@@ -294,8 +294,10 @@ program utilities
        call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
        !call writeLinearCoefficients(iunit, .true., nat, rxyz, smat_s%nfvctr, smat_s%nfvctr, &
        !     smat_s%nfvctr, hamiltonian_mat%matrix, eval)
-       call write_linear_coefficients(0, trim(coeff_file), nat, rxyz, iatype, ntypes, nzatom, &
-            nelpsp, atomnames, smat_s%nfvctr, smat_s%nfvctr, smat_s%nspin, hamiltonian_mat%matrix, eval)
+       call write_linear_coefficients(0, trim(coeff_file), smmd%nat, smmd%rxyz, &
+            smmd%iatype, smmd%ntypes, smmd%nzatom, &
+            smmd%nelpsp, smmd%atomnames, smat_s%nfvctr, &
+            smat_s%nfvctr, smat_s%nspin, hamiltonian_mat%matrix, eval)
        call f_close(iunit)
 
        call f_free(eval)
@@ -303,11 +305,12 @@ program utilities
        call deallocate_matrices(hamiltonian_mat)
        call deallocate_sparse_matrix(smat_s)
        call deallocate_sparse_matrix(smat_m)
-       call f_free_ptr(rxyz)
-       call f_free_ptr(iatype)
-       call f_free_ptr(nzatom)
-       call f_free_ptr(nelpsp)
-       call f_free_str_ptr(len(atomnames),atomnames)
+       call deallocate_sparse_matrix_metadata(smmd)
+       !call f_free_ptr(rxyz)
+       !call f_free_ptr(iatype)
+       !call f_free_ptr(nzatom)
+       !call f_free_ptr(nelpsp)
+       !call f_free_str_ptr(len(atomnames),atomnames)
    end if
 
 
@@ -347,6 +350,7 @@ program utilities
        calc_array = f_malloc((/ntmb,npdos/),id='calc_array')
        pdos_name = f_malloc_str(len(pdos_name),npdos,id='pdos_name')
 
+
        do ipdos=1,npdos
            do itmb=1,ntmb
                calc_array(itmb,ipdos) = .false.
@@ -354,6 +358,9 @@ program utilities
        end do
        ipdos = 0
        !npdos_loop: do !ipdos=1,npdos
+       if (bigdft_mpi%iproc==0) then
+           call yaml_sequence_open('Atoms and support functions to be taken into account for each partial density of states')
+       end if
            do 
                !read(iunit01,*,iostat=ios) cc, ival
                read(iunit,'(a128)',iostat=ios) line
@@ -363,24 +370,33 @@ program utilities
                if (cc=='#') then
                    ipdos = ipdos + 1
                    pdos_name(ipdos) = trim(cname)
+                   if (bigdft_mpi%iproc==0) then
+                       if (ipdos>1) then
+                           call yaml_mapping_close()
+                       end if
+                       call yaml_sequence(advance='no')
+                       call yaml_mapping_open(trim(pdos_name(ipdos)))
+                   end if
                    cycle 
                end if
-               write(*,*) 'ipdos, line', ipdos, line
                read(line,*,iostat=ios) cc, ival
-               do itype=1,ntypes
-                   if (trim(atomnames(itype))==trim(cc)) then
+                   if (bigdft_mpi%iproc==0) then
+                       call yaml_map(trim(cc),ival)
+                   end if
+               do itype=1,smmd%ntypes
+                   if (trim(smmd%atomnames(itype))==trim(cc)) then
                        iitype = itype
                        exit
                    end if
                end do
                iat_prev = -1
                do itmb=1,ntmb
-                   iat = on_which_atom(itmb)
+                   iat = smmd%on_which_atom(itmb)
                    if (iat/=iat_prev) then
                        ii = 0
                    end if
                    iat_prev = iat
-                   itype = iatype(iat)
+                   itype = smmd%iatype(iat)
                    ii = ii + 1
                    if (itype==iitype .and. ii==ival) then
                        if (calc_array(itmb,ipdos)) stop 'calc_array(itmb)'
@@ -388,9 +404,14 @@ program utilities
                    end if
                end do
            end do
+       if (bigdft_mpi%iproc==0) then
+           call yaml_mapping_close()
+           call yaml_sequence_close()
+       end if
 
        !end do npdos_loop
        call f_close(iunit)
+
 
        energy_arr = f_malloc0(norbks,id='energy_arr')
        occup_arr = f_malloc0((/npdos,norbks/),id='occup_arr')
@@ -398,6 +419,10 @@ program utilities
 
        denskernel = f_malloc((/ntmb,smat_s%nfvctrp/),id='denskernel')
        pdos = f_malloc0((/npt,npdos/),id='pdos')
+       if (bigdft_mpi%iproc==0) then
+           call yaml_comment('PDoS calculation',hfill='~')
+           call yaml_mapping_open('Calculating PDoS')
+       end if
        ! Calculate a partial kernel for each KS orbital
        !do ipdos=1,npdos
            !if (bigdft_mpi%iproc==0) call yaml_map('PDoS number',ipdos)
@@ -480,8 +505,10 @@ program utilities
        !end do
        call mpiallred(occup_arr, mpi_sum, comm=bigdft_mpi%mpi_comm)
        call mpiallred(energy_arr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+       if (bigdft_mpi%iproc==0) call yaml_mapping_close()
 
        if (bigdft_mpi%iproc==0) then
+           call yaml_comment('Calculation complete',hfill='=')
            output_pdos='PDoS.gp'
            call yaml_map('output file',trim(output_pdos))
            iunit = 99
@@ -518,7 +545,7 @@ program utilities
                    colorname = 'color'
                end if
                if (ipdos<npdos) then
-                   lineend = ' ,\\'
+                   lineend = ' ,'//trim(backslash)
                else
                    lineend = ''
                end if
@@ -542,11 +569,12 @@ program utilities
        call deallocate_matrices(hamiltonian_mat)
        call deallocate_sparse_matrix(smat_s)
        call deallocate_sparse_matrix(smat_m)
-       call f_free_ptr(iatype)
-       call f_free_str_ptr(len(atomnames),atomnames)
+       call deallocate_sparse_matrix_metadata(smmd)
+       !call f_free_ptr(iatype)
+       !call f_free_str_ptr(len(atomnames),atomnames)
        call f_free_str(len(pdos_name),pdos_name)
        call f_free(calc_array)
-       call f_free_ptr(on_which_atom)
+       !call f_free_ptr(on_which_atom)
        call f_free_ptr(coeff_ptr)
        call f_free(energy_arr)
        call f_free(occup_arr)

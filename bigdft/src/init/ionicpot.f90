@@ -26,6 +26,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   use yaml_output
   use public_enums, only: PSPCODE_PAW
   use bounds, only: ext_buffers
+  use locregs_init, only: parallelize_over_atoms
   implicit none
   !Arguments
   type(denspot_distribution), intent(in) :: dpbox
@@ -222,13 +223,14 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      !LR: commented hessian as not currently using it
 
      ! Parallelization over the atoms.
-     ! First distribute evenly...
-     natp = at%astruct%nat/nproc
-     isat = iproc*natp
-     ! ... and now distribute the remaining atoms.
-     ii = at%astruct%nat-nproc*natp
-     if (iproc<ii) natp = natp + 1
-     isat = isat + min(iproc,ii)
+     !!! First distribute evenly...
+     !!natp = at%astruct%nat/nproc
+     !!isat = iproc*natp
+     !!! ... and now distribute the remaining atoms.
+     !!ii = at%astruct%nat-nproc*natp
+     !!if (iproc<ii) natp = natp + 1
+     !!isat = isat + min(iproc,ii)
+     call parallelize_over_atoms(at%astruct%nat, iproc, nproc, natp, isat)
 
 
      !!!$omp parallel default(none) &

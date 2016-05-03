@@ -751,10 +751,6 @@
      default: No
    beta_stretchx:
      COMMENT: Stepsize for steepest descent in stretching mode direction (only if in biomode)
-     CONDITION:
-       MASTER_KEY: biomode
-       WHEN:
-       - Yes
      RANGE: [0., 100.]
      default: 5e-1
    maxrise:
@@ -1671,7 +1667,7 @@
          Indicates whether a diagonalization shall be performed at the end of the run
        default: No
      extra_states:
-       COMMENT: extra states to optimize (dmin only)
+       COMMENT: Number of extra states to include in support function and kernel optimization (dmin only), must be equal to norbsempty
        default: 0
        RANGE: [0, 10000]
      calculate_onsite_overlap:

@@ -264,11 +264,16 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldii
             jjst=jst+(mj-1)*ncount
             !!if (iproc==0) write(*,*) 'jj, rhs(jj)', jj, rhs(jj)
             if (iispin==ispin) then
+                !$omp parallel if (ncount>1000) &
+                !$omp default(none) shared(ncount,phi,ist,jj,rhs,ldiis,jjst) private(k)
+                !$omp do schedule(static)
                 do k=1,ncount
                     phi(ist+k-1) = phi(ist+k-1) + rhs(jj)*(ldiis%phiHist(jjst+k)-ldiis%hphiHist(jjst+k))
                     !!write(3300+ispin,'(a,3i8,4es14.7)') 'iorb, iiorb, k, phi(ist+k-1), rhs(jj), ldiis%phiHist(jjst+k), ldiis%hphiHist(jjst+k)', &
                     !!    iorb, iiorb, k, phi(ist+k-1), rhs(jj), ldiis%phiHist(jjst+k), ldiis%hphiHist(jjst+k)
                 end do
+                !$omp end do
+                !$omp end parallel
             end if
         end do
 

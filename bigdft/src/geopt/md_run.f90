@@ -159,6 +159,9 @@ subroutine bomd(run_md,outs,nproc,iproc)
   
   maxsteps= run_md%inputs%mdsteps+istep 
 
+  !setting inputpsiid=1 (after the first SCF)
+  call bigdft_set_input_policy(INPUT_POLICY_MEMORY, run_md)
+
   !----------------------------------------------------------------------!
   MD_loop: DO !MD loop starts here
 

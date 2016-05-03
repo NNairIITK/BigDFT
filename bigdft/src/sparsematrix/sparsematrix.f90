@@ -28,7 +28,6 @@ module sparsematrix
   public :: gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace
   public :: extract_taskgroup_inplace, extract_taskgroup
   public :: write_matrix_compressed
-  public :: check_symmetry
   public :: write_sparsematrix
   public :: write_sparsematrix_CCS
   public :: transform_sparsity_pattern
@@ -409,10 +408,6 @@ module sparsematrix
       integer,intent(in) :: iproc, imode
       type(sparse_matrix),intent(in) :: smat, lmat
       character(len=14),intent(in) :: direction
-      !real(kind=8),dimension(smat%nspin*smat%nvctr),intent(in),optional :: smat_in
-      !real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(in),optional :: lmat_in
-      !real(kind=8),dimension(smat%nspin*smat%nvctr),intent(out),optional :: smat_out
-      !real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(out),optional :: lmat_out
       real(kind=mp),dimension(:),intent(in),optional :: smat_in
       real(kind=mp),dimension(:),intent(in),optional :: lmat_in
       real(kind=mp),dimension(:),intent(out),optional :: smat_out
@@ -919,7 +914,7 @@ module sparsematrix
                 call f_zero(matrix_compr)
 
                  ! Create a window for all taskgroups to which iproc belongs (max 2)
-                 windows = f_malloc(smat%ntaskgroup)
+                 windows = f_malloc(smat%ntaskgroup,id='windows')
                  do itg=1,smat%ntaskgroupp
                      iitg = smat%taskgroupid(itg)
                      ! Use a fake window if nvctrp is zero
@@ -1147,7 +1142,8 @@ module sparsematrix
               err_name='SPARSEMATRIX_RUNTIME_ERROR')
      end if
    
-     !$omp parallel do default(none) private(iseq, ii) &
+     !$omp parallel do schedule(guided) &
+     !$omp default(none) private(iseq, ii) &
      !$omp shared(smat, a_seq, a)
      do iseq=1,smat%smmm%nseq
          ii=smat%smmm%indices_extract_sequential(iseq)
@@ -1545,46 +1541,6 @@ module sparsematrix
 
      !integer :: mp1, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6
 
-   function check_symmetry(smat)
-     implicit none
-   
-     ! Calling arguments
-     type(sparse_matrix),intent(in) :: smat
-     logical :: check_symmetry
-   
-     ! Local variables
-     integer :: i, iseg, ii, jorb, iorb
-     logical,dimension(:,:),allocatable :: lgrid
-     !integer,dimension(2) :: irowcol
-   
-     lgrid=f_malloc((/smat%nfvctr,smat%nfvctr/),id='lgrid')
-     lgrid=.false.
-   
-     do iseg=1,smat%nseg
-         ii=smat%keyv(iseg)
-         ! A segment is always on one line, therefore no double loop
-         do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-             !irowcol=orb_from_index(smat,i)
-             !!iorb=smat%orb_from_index(1,i)
-             !!jorb=smat%orb_from_index(2,i)
-             lgrid(smat%keyg(1,2,iseg),i)=.true.
-             ii=ii+1
-         end do
-     end do
-   
-     check_symmetry=.true.
-     do iorb=1,smat%nfvctr
-         do jorb=1,smat%nfvctr
-             if (lgrid(jorb,iorb) .and. .not.lgrid(iorb,jorb)) then
-                 check_symmetry=.false.
-             end if
-         end do
-     end do
-   
-     call f_free(lgrid)
-   
-   end function check_symmetry
-
 
     !> Write a sparse matrix to a file
     subroutine write_sparsematrix(filename, smat, mat)
@@ -1822,7 +1778,7 @@ module sparsematrix
             !$omp shared(nvctrp_s, isvctr_s, isvctr_l, line_and_column_s) &
             !$omp shared(nfvctr, nseg_l, keyv_l, keyg_l, istsegline_l, matrix_s_out, matrix_l_in) &
             !$omp private(i, ii, iline, icolumn, ind)
-            !$omp do
+            !$omp do schedule(guided)
             do i=1,nvctrp_s
                 ii = isvctr_s + i
                 !!call get_line_and_column(ii, nseg_s, keyv_s, keyg_s, iline, icolumn)
@@ -1848,7 +1804,7 @@ module sparsematrix
             !$omp shared(nvctrp_s, isvctr_s, isvctr_l, line_and_column_s) &
             !$omp shared(nfvctr, nseg_l, keyv_l, keyg_l, istsegline_l, matrix_s_in, matrix_l_out) &
             !$omp private(i, ii, iline, icolumn, ind)
-            !$omp do
+            !$omp do schedule(guided)
             do i=1,nvctrp_s
                 ii = isvctr_s + i
                 !call get_line_and_column(ii, nseg_s, keyv_s, keyg_s, iline, icolumn)
@@ -2124,7 +2080,11 @@ module sparsematrix
               if (ispin/=ispinx) cycle
           end if
           ishift=(ispin-1)*sparsemat%nvctr
-          !do iseg=1,sparsemat%nseg
+          ! SM: The function matrixindex_in_compressed is rather expensive, so I think OpenMP is always worth
+          !$omp parallel default(none) &
+          !$omp shared(sparsemat, mat_tg, error_max) &
+          !$omp private(iseg, iel, i, ind, ind_trans, val, val_trans, error)
+          !$omp do schedule(guided) reduction(max: error_max)
           do iseg=sparsemat%isseg,sparsemat%ieseg
               iel = sparsemat%keyv(iseg) - 1
               do i=sparsemat%keyg(1,1,iseg),sparsemat%keyg(2,1,iseg)
@@ -2145,6 +2105,8 @@ module sparsematrix
                   end if
               end do
           end do
+          !$omp end do
+          !$omp end parallel
       end do
       call mpiallred(error_max, 1, mpi_max, comm=comm)
       !if (iproc==0) call yaml_map('max asymmetry',error_max)
@@ -2297,12 +2259,12 @@ module sparsematrix
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
       character(len=*),intent(in) :: csign
-      real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: mat_in
-      real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(out) :: mat_out
+      real(mp),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: mat_in
+      real(mp),dimension(smat%nvctrp_tg*smat%nspin),intent(out) :: mat_out
       integer,intent(in),optional :: ispinx
 
       ! Local variables
-      integer :: ispin, ishift, iseg, ii, i, ii_trans
+      integer :: ispin, ishift, ishift_tg, iseg, ii, i, ii_trans
       logical :: minus
       real(mp) :: half
     
@@ -2323,19 +2285,20 @@ module sparsematrix
           if (present(ispinx)) then
               if (ispin/=ispinx) cycle
           end if
-          ishift=(ispin-1)*smat%nvctrp_tg
+          ishift = (ispin-1)*smat%nvctrp_tg
+          ishift_tg = ishift-smat%isvctrp_tg
           !$omp parallel default(none) &
-          !$omp shared(smat,mat_in,mat_out,ishift,half) &
+          !$omp shared(smat,mat_in,mat_out,ishift_tg,half) &
           !$omp private(iseg,ii,i,ii_trans)
-          !$omp do
+          !$omp do schedule(guided)
           do iseg=smat%istartendseg_local(1),smat%istartendseg_local(2)
               ii = smat%keyv(iseg)
               ! A segment is always on one line, therefore no double loop
               do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg) !this is too much, but for the moment ok
                   ii_trans = matrixindex_in_compressed(smat,smat%keyg(1,2,iseg),i)
-                      mat_out(ii+ishift-smat%isvctrp_tg) = half*(&
-                           mat_in(ii+ishift-smat%isvctrp_tg)+&
-                           mat_in(ii_trans+ishift-smat%isvctrp_tg))
+                      mat_out(ii+ishift_tg) = half*(&
+                           mat_in(ii+ishift_tg)+&
+                           mat_in(ii_trans+ishift_tg))
                   ii=ii+1
               end do
           end do

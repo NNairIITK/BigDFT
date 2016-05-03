@@ -299,6 +299,7 @@ interface pad_array
 !  module procedure pad_il1, pad_il2
   module procedure pad_c1
   module procedure pad_l1,pad_l2,pad_l3
+  module procedure pad_ll1
   module procedure pad_r1,pad_r2,pad_r3,pad_r4
   module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5,pad_dp6,pad_dp7
   module procedure pad_z1,pad_z2,pad_z3 
@@ -315,6 +316,7 @@ interface loc_arr
    module procedure la_d1,la_d2,la_d3,la_d4,la_d5,la_d6,la_d7
    module procedure la_l1,la_l2,la_l3
    module procedure la_z1,la_z2,la_z3
+   module procedure la_ll1
    module procedure la_c1
    module procedure la_li1,la_li2,la_li3,la_li4
 end interface
@@ -423,6 +425,18 @@ contains
     call pad_logical(array,init_to_zero,shp(1),shp(1)+ndebug)
 
   end subroutine pad_l1
+
+  subroutine pad_ll1(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer(f_kind), dimension(1), intent(in) :: shp
+    logical(f_byte), dimension(shp(1)+ndebug), intent(out) :: array
+
+    call pad_bytes(array,init_to_zero,shp(1),shp(1)+ndebug)
+
+  end subroutine pad_ll1
+
 
   subroutine pad_l2(array,init_to_zero,shp,ndebug)
     implicit none
@@ -695,6 +709,25 @@ contains
        array(i)=r_nan()
     end do
   end subroutine pad_simple
+
+  subroutine pad_bytes(array,init,ndim_tot,ndim_extra)
+    implicit none
+    logical, intent(in) :: init
+    integer(f_kind), intent(in) :: ndim_tot, ndim_extra
+    logical(f_byte), dimension(ndim_extra), intent(out) :: array
+    !local variables
+    integer(f_kind) :: i
+
+    if (init) then
+       do i=1,ndim_tot
+          array(i)=f_F
+       end do
+    end if
+    do i=ndim_tot+1,ndim_extra
+       array(i)=f_T
+    end do
+  end subroutine pad_bytes
+
 
   subroutine pad_logical(array,init,ndim_tot,ndim_extra)
     implicit none
@@ -983,6 +1016,12 @@ contains
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1,1,1,1,1,1,1))
   end function la_d7
+  function la_ll1(array) result(la)
+    implicit none
+    logical(f_byte), dimension(:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1))
+  end function la_ll1
   function la_l1(array) result(la)
     implicit none
     logical, dimension(:), intent(in) :: array

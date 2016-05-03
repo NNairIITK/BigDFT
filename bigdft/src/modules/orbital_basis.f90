@@ -132,6 +132,22 @@ contains
     nullify(ob%phis_wvl,ob%phis_wvl_t)
   end subroutine nullify_orbital_basis
 
+  !>to determine the size that it is really allocated
+  function sizeof(dd)
+    use f_precisions
+    implicit none
+    type(direct_descriptor), dimension(:), pointer :: dd
+    integer :: sizeof
+    !local variables
+    type(direct_descriptor), dimension(3) :: ddtmp
+    integer(f_address) :: a0,a1
+
+    a1=f_loc(ddtmp(3))
+    a0=f_loc(ddtmp(2))
+    sizeof=int(a1-a0)
+
+  end function sizeof
+    
 
   !>this subroutine is not reinitializing each component of the
   !! iterator as some of them has to be set by the 'next' functions
@@ -841,8 +857,9 @@ contains
   
 
   subroutine orbital_basis_associate(ob,orbs,Lzd,Glr,comms,confdatarr,&
-       nspin,phis_wvl)
+       nspin,phis_wvl,id)
     use dynamic_memory
+    use f_precisions
     implicit none
     type(orbital_basis), intent(inout) :: ob
     integer, intent(in), optional :: nspin
@@ -851,6 +868,7 @@ contains
     type(local_zone_descriptors), intent(in), optional, target :: Lzd
     type(locreg_descriptors), intent(in), optional, target :: Glr !< in the case where only one Lrr is needed
     type(confpot_data), dimension(:), optional, intent(in), target :: confdatarr
+    character(len=*), intent(in), optional :: id !<id of the calling routine
     real(wp), dimension(:), target, optional :: phis_wvl
     !other elements have to be added (comms etc)
     !local variables
@@ -877,6 +895,15 @@ contains
 
     if (present(Lzd)) then
        allocate(ob%dd(orbs%norbp))
+       !the allocation did not crashed therefore update the database
+       if (present(id)) then
+          call f_update_database(int(orbs%norbp,f_long),sizeof(ob%dd),1,&
+               f_loc(ob%dd),'dd',id)
+       else
+          call f_update_database(int(orbs%norbp,f_long),sizeof(ob%dd),1,&
+               f_loc(ob%dd),'dd','orbital_basis_associate')
+       end if
+       
        do iorb=1,orbs%norbp
           ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
           ob%dd(iorb)%lr => Lzd%Llr(ilr)
@@ -905,13 +932,20 @@ contains
   subroutine orbital_basis_release(ob)
     use module_base, only: bigdft_mpi
     use dynamic_memory
+    use f_precisions
     implicit none
     type(orbital_basis), intent(inout) :: ob
+    !local variables
+    integer(f_long) :: isize
+    integer(f_address) :: iadd
 
     !nullification and reference counting (when available)
     if (associated(ob%dd)) then
+       isize=int(size(ob%dd),f_long)
+       iadd=f_loc(ob%dd)
        deallocate(ob%dd)
        nullify(ob%dd)
+       call f_purge_database(isize,sizeof(ob%dd),iadd,'dd','orbital_basis_release')
     end if
     call f_free_ptr(ob%td%ndim_ovrlp)
     if (bigdft_mpi%nproc>1) call f_free_ptr(ob%phis_wvl_t)

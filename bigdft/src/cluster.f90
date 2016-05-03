@@ -54,6 +54,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use orbitalbasis
   use io, only: plot_density,io_files_exists
   use PSbox, only: PS_gather
+  use foe_common, only: init_foe
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc
@@ -122,6 +123,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   type(orbital_basis) :: ob,ob_occ,ob_virt,ob_prime
   type(energy_terms) :: energs_fake
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
+  real(kind=8),dimension(:),allocatable :: charge_fake
 
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
@@ -428,6 +430,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!    locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
      !!end do
      call init_foe_wrapper(iproc, nproc, in, KSwfn%orbs, 0.d0, tmb%foe_obj)
+     ! Do the same for the object which handles the calculation of the inverse.
+     charge_fake = f_malloc0(in%nspin,id='charge_fake')
+     call init_foe(iproc, nproc, in%nspin, charge_fake, tmb%ice_obj, 0.d0, in%evbounds_nsatur, in%evboundsshrink_nsatur, &
+            0.5d0, 1.5d0, in%lin%fscale, in%lin%ef_interpol_det, in%lin%ef_interpol_chargediff, &
+            in%fscale_lowerbound, in%fscale_upperbound, 1.d0)
+     call f_free(charge_fake)
+
      !!call f_free(locreg_centers)
      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
 
@@ -1022,7 +1031,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !plot the ionic potential, if required by output_denspot
   if (in%output_denspot == 'DENSPOT' .and. DoLastRunThings) then
      if (all(in%plot_pot_axes>=0)) then
-        write(*,*) 'denspot%V_ext(1)', denspot%V_ext(1,1,1,1)
         if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
         call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
              atoms,rxyz,denspot%pkernel,1,denspot%V_ext,ixyz0=in%plot_pot_axes)
@@ -1093,7 +1101,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   call deallocate_paw_objects(KSwfn%paw)
 
   !if (nvirt > 0 .and. in%inputPsiId == 0) then
-  if (DoDavidson) then
+  if (DoDavidson .and. (inputpsi .hasattr. 'CUBIC')) then
 
      !for a band structure calculation allocate the array in which to put the eigenvalues
      if (associated(in%kptv) .and. in%nkptv > 0) then

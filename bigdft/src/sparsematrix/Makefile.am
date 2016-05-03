@@ -92,7 +92,7 @@ sparsematrix.o: sparsematrix_base.o sparsematrix_init.o
 chebyshev.o: sparsematrix_base.o sparsematrix_init.o sparsematrix.o
 foe_common.o: sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o chebyshev.o fermi_level.o
 ice.o: sparsematrix_base.o sparsematrix_init.o sparsematrix.o chebyshev.o foe_base.o foe_common.o fermi_level.o
-matrix_operations.o: sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
+matrix_operations.o: sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o foe_base.o
 foe.o: sparsematrix_base.o sparsematrix.o chebyshev.o foe_base.o foe_common.o fermi_level.o matrix_operations.o
 sparsematrix_highlevel.o: sparsematrix_base.o sparsematrix_init.o sparsematrix.o sparsematrix_io.o ice.o foe.o
 sparsematrix_io.o: sparsematrix_base.o sparsematrix.o

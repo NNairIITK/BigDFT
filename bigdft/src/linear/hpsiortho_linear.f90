@@ -210,7 +210,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, &
        tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
-       tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, &
+       tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, tmb%ice_obj, correction_orthoconstraint, &
        tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
        tmb%linmat%m, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
        hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, &
@@ -892,7 +892,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, at, do_iterative_ortho
       else
           call orthonormalizeLocalized(iproc, nproc, order_taylor, max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
                tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
-               tmb%can_use_transposed)
+               tmb%can_use_transposed, ice_obj=tmb%ice_obj)
        end if
       if (iproc == 0) then
           call yaml_map('Orthogonalization',.true.)

@@ -143,7 +143,104 @@ contains
          .and. boxit%i3e==mesh%ndims(3)
     call set_starting_point(boxit)
 
+    call probe_iterator(boxit)
+
   end function box_iter
+
+  !>verify if the iterator can be used as expected
+  subroutine probe_iterator(bit)
+    use f_precisions
+    use yaml_strings
+    use dictionaries
+    use dynamic_memory
+    implicit none
+    type(box_iterator), intent(inout) :: bit
+    !local variables
+    integer(f_long) :: icnt,itgt,iz,iy,ix
+    logical(f_byte), dimension(:), allocatable :: lxyz
+    integer, dimension(:), allocatable :: lx,ly,lz
+
+    !first, count if the iterator covers all the points
+    itgt=int(bit%mesh%ndims(1),f_long)*int(bit%mesh%ndims(2),f_long)*&
+         int(bit%i3e-bit%i3s+1,f_long)
+
+    !allocate array of values corresponding to the expected grid
+    lx=f_malloc(bit%mesh%ndims(1),id='lx')
+    ly=f_malloc(bit%mesh%ndims(2),id='ly')
+    lz=f_malloc(bit%i3e-bit%i3s+1,id='lz')
+
+    lxyz=f_malloc0(itgt,id='lxyz')
+
+    do iz=bit%i3s,bit%i3e
+       lz(iz-bit%i3s+1)=iz
+    end do
+    do iy=1,bit%mesh%ndims(2)
+       ly(iy)=iy
+    end do
+    do ix=1,bit%mesh%ndims(1)
+       lx(ix)=ix
+    end do
+
+    !separable mode
+    iz=0
+    icnt=0
+    do while(box_next_z(bit))
+       iz=iz+1
+       iy=0
+       do while(box_next_y(bit))
+          iy=iy+1
+          ix=0
+          do while(box_next_x(bit))
+             ix=ix+1
+             icnt=icnt+1
+             if (lx(bit%i) /= bit%i) &
+                  call f_err_throw('Error value, ix='+bit%i+&
+                  ', expected='+lx(bit%i))
+             !convert the value of the logical array
+             if (lxyz(bit%ind)) call f_err_throw('Error point ind='+bit%ind+&
+               ', i,j,k='+yaml_toa([bit%i,bit%j,bit%k]))
+             lxyz(bit%ind)=f_T
+          end do
+          if (ix /= bit%mesh%ndims(1)) &
+               call f_err_throw('Error boxit, ix='+ix+&
+               ', itgtx='+bit%mesh%ndims(1))
+          if (ly(bit%j) /= bit%j) &
+               call f_err_throw('Error value, iy='+bit%j+&
+               ', expected='+ly(bit%j))
+       end do
+       if (iy /= bit%mesh%ndims(2)) &
+            call f_err_throw('Error boxit, iy='+iy+&
+            ', itgty='+bit%mesh%ndims(2))
+       if (lz(bit%k-bit%i3s+1) /= bit%k) &
+            call f_err_throw('Error value, iz='+bit%k+&
+            ', expected='+lz(bit%k-bit%i3s+1))
+    end do
+    if (iz /= bit%i3e-bit%i3s+1) call f_err_throw('Error boxit, iz='+iz+&
+         ', itgtz='+(bit%i3e-bit%i3s+1))
+    if (icnt /= itgt) call f_err_throw('Error sep boxit, icnt='+icnt+&
+         ', itgt='+itgt)
+
+    !complete mode
+    icnt=int(0,f_long)
+    do while(box_next_point(bit))
+       icnt=icnt+1
+       !here we might see if there are points from which 
+       !we passed twice
+       !print *,bit%i,bit%j,bit%k
+       if (.not. lxyz(bit%ind)) &
+            call f_err_throw('Error point (2) ind='+bit%ind+&
+            ', i,j,k='+yaml_toa([bit%i,bit%j,bit%k]))
+       lxyz(bit%ind)=f_F
+    end do
+    if (icnt /= itgt) call f_err_throw('Error boxit, icnt='+icnt+&
+         ', itgt='+itgt)
+
+    if (any(lxyz)) call f_err_throw('Error boxit, points not covered')
+
+    call f_free(lxyz)
+    call f_free(lx,ly,lz)
+    
+  end subroutine probe_iterator
 
   pure subroutine set_starting_point(bit)
     implicit none
@@ -152,15 +249,16 @@ contains
     logical :: test
 
     bit%ibox=bit%nbox(1,:)
-    if (bit%whole) then
-       bit%i=1
-       bit%j=1
-       bit%k=1
-    else
-       bit%i=-1
-       bit%j=-1
-       bit%k=-1
-    end if
+!!$    if (bit%whole) then
+!!$       bit%i=1
+!!$       bit%j=1
+!!$       bit%k=1
+!!$    else
+!!$       bit%i=-1
+!!$       bit%j=-1
+!!$       bit%k=-1
+!!$    end if
+    bit%k=-1
     bit%ind=0
     bit%i23=0
   end subroutine set_starting_point
@@ -330,9 +428,9 @@ contains
     flattened_loop: do 
        if (box_next_x(boxit)) exit flattened_loop
        if (box_next_y(boxit)) cycle flattened_loop !and then redo the check for x
-       if (box_next_z(boxit)) cycle flattened_loop !and then redo the check for x
-       box_next_point =.false.
-       exit flattened_loop !there is nothing more to do
+       box_next_point =box_next_z(boxit)
+       if (box_next_point) box_next_point =box_next_y(boxit)
+       if (.not. box_next_point) exit flattened_loop
     end do flattened_loop
     
   end function box_next_point

@@ -69,7 +69,7 @@ module f_utils
   !> Initialize to zero an array (should be called f_memset)
   interface f_zero
      module procedure zero_string
-     module procedure zero_li,zero_i,zero_r,zero_d,zero_l
+     module procedure zero_li,zero_i,zero_r,zero_d,zero_l,zero_ll
      !module procedure put_to_zero_simple, put_to_zero_long
      module procedure put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2
      module procedure put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5
@@ -1023,6 +1023,22 @@ contains
     logical, intent(out) :: val
     val=.false.
   end subroutine zero_l
+
+  pure subroutine zero_ll(val)
+    implicit none
+    logical(f_byte), intent(out) :: val
+    val=f_F
+  end subroutine zero_ll
+
+!!$  subroutine put_to_zero_byte_1(da)
+!!$    implicit none
+!!$    logical(f_byte), dimension(:), intent(out) :: da
+!!$    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+!!$    !call razero(size(da),da(lbound(da,1)))
+!!$    call setzero(int(size(da),f_long)*kind(da),da)
+!!$    call f_timer_resume()
+!!$  end subroutine put_to_zero_byte_1
+
 
   subroutine put_to_zero_simple(n,da)
     implicit none

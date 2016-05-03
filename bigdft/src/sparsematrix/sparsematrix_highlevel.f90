@@ -458,8 +458,9 @@ module sparsematrix_highlevel
 
 
     subroutine matrix_chebyshev_expansion(iproc, nproc, comm, ncalc, ex, &
-               smat_in, smat_out, mat_in, mat_out, npl_auto)
+               smat_in, smat_out, mat_in, mat_out, npl_auto, ice_obj)
       use ice, only: inverse_chebyshev_expansion_new
+      use foe_base, only: foe_data
       implicit none
 
       ! Calling arguments
@@ -469,6 +470,7 @@ module sparsematrix_highlevel
       type(matrices),intent(in) :: mat_in
       type(matrices),dimension(ncalc),intent(inout) :: mat_out
       logical,intent(in),optional :: npl_auto
+      type(foe_data),intent(inout),optional,target :: ice_obj
 
       ! Local variables
       integer :: i
@@ -497,13 +499,21 @@ module sparsematrix_highlevel
       end if
 
       if (present(npl_auto)) then
-          !!call inverse_chebyshev_expansion(iproc, nproc, ndeg, &
-          !!     smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto)
-          call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
-               smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto=npl_auto)
+          if (present(ice_obj)) then
+              call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+                   smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto=npl_auto, ice_objx=ice_obj)
+          else
+              call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+                   smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto=npl_auto)
+          end if
       else
-          call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
-               smat_in, smat_out, ncalc, ex, mat_in, mat_out)
+          if (present(ice_obj)) then
+              call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+                   smat_in, smat_out, ncalc, ex, mat_in, mat_out, ice_objx=ice_obj)
+          else
+              call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+                   smat_in, smat_out, ncalc, ex, mat_in, mat_out)
+          end if
       end if
 
       call f_release_routine()
@@ -511,7 +521,7 @@ module sparsematrix_highlevel
     end subroutine matrix_chebyshev_expansion
 
 
-    subroutine matrix_fermi_operator_expansion(iproc, nproc, comm, foe_obj, smat_s, smat_h, smat_k, &
+    subroutine matrix_fermi_operator_expansion(iproc, nproc, comm, foe_obj, ice_obj, smat_s, smat_h, smat_k, &
                overlap, ham, overlap_minus_one_half, kernel, ebs, &
                calculate_minusonehalf, foe_verbosity, symmetrize_kernel)
       use foe_base, only: foe_data
@@ -520,7 +530,7 @@ module sparsematrix_highlevel
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm
-      type(foe_data),intent(inout) :: foe_obj
+      type(foe_data),intent(inout) :: foe_obj, ice_obj
       type(sparse_matrix),intent(in) ::smat_s, smat_h, smat_k
       type(matrices),intent(in) :: overlap, ham
       type(matrices),dimension(1),intent(inout) :: overlap_minus_one_half
@@ -582,7 +592,7 @@ module sparsematrix_highlevel
       call fermi_operator_expansion_new(iproc, nproc, comm, &
            ebs, &
            calculate_minusonehalf_, foe_verbosity_, &
-           smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj, &
+           smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj, ice_obj, &
            symmetrize_kernel_)
 
       call f_release_routine()

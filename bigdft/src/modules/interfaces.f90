@@ -1095,7 +1095,7 @@ module module_interfaces
        interface
          subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, astruct, input, &
-                  orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
+                  orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lice, lbcollcom_sr)
          use module_defs, only: gp,dp,wp
          use module_types
          use foe_base, only: foe_data
@@ -1117,6 +1117,7 @@ module module_interfaces
          type(foe_data),intent(inout),optional :: lfoe
          type(comms_linear),intent(inout):: lbcollcom
          type(comms_linear),intent(inout),optional :: lbcollcom_sr
+         type(foe_data),intent(inout),optional :: lice
          END SUBROUTINE update_locreg
        end interface
 
