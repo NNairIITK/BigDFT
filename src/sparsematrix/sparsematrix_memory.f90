@@ -167,7 +167,7 @@ module sparsematrix_memory
       !smmm%ivectorindex=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex')
       smmm%ivectorindex_new=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex_new')
       !smmm%onedimindices=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices')
-      smmm%onedimindices_new=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices_new')
+      smmm%onedimindices_new=f_malloc_ptr((/5,smmm%nout/),id='smmm%onedimindices_new')
       !smmm%line_and_column_mm=f_malloc_ptr((/2,smmm%nvctrp_mm/),id='smmm%line_and_column_mm')
       smmm%nsegline=f_malloc_ptr(norb,id='smmm%nsegline')
       smmm%istsegline=f_malloc_ptr(norb,id='smmm%istsegline')
