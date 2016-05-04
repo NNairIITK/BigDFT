@@ -816,6 +816,12 @@ module ice
           end do bounds_loop
           if (iproc==0 .and. verbosity_>0) then
               call yaml_sequence_close()
+              call yaml_mapping_open('summary',flow=.true.)
+              call yaml_map('npl',npl)
+              call yaml_map('bounds', &
+                   (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f6.2)')
+              call yaml_map('exp accur',max_error,fmt='(es8.2)')
+              call yaml_mapping_close()
           end if
           call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &

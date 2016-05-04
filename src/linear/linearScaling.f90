@@ -16,7 +16,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use module_types
   use module_interfaces, only: allocate_precond_arrays, deallocate_precond_arrays, &
        & getLocalizedBasis, get_coeff, loewdin, sumrho, write_eigenvalues_data, &
-       & write_energies, write_orbital_density,inputguessconfinement
+       & write_orbital_density,inputguessconfinement
+  use io, only: write_energies
   use yaml_output
   use module_fragments
   use constrained_dft
@@ -1603,7 +1604,8 @@ end if
 
            ! Calculate the charge density.
            if (iproc==0) then
-               call yaml_mapping_open('Hamiltonian update',flow=.true.)
+               !call yaml_mapping_open('Hamiltonian update',flow=.true.)
+               call yaml_mapping_open('SCF status',flow=.true.)
                ! Use this subroutine to write the energies, with some
                ! fake number
                ! to prevent it from writing too much
@@ -1969,8 +1971,8 @@ end if
       implicit none
 
       if(iproc==0) then
-          call yaml_sequence_open('summary',flow=.true.)
-          call yaml_mapping_open()
+          !call yaml_sequence_open('summary',flow=.true.)
+          call yaml_mapping_open('summary',flow=.true.)
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
               call yaml_map('kernel method','DMIN')
           else if (input%lin%scf_mode==LINEAR_FOE) then
@@ -2001,7 +2003,7 @@ end if
           end if     
 
           call yaml_mapping_close()
-          call yaml_sequence_close()
+          !call yaml_sequence_close()
       end if
 
     end subroutine printSummary

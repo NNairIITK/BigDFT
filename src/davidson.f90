@@ -16,7 +16,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    use module_dpbox, only: denspot_distribution
    use module_types
    use module_interfaces, only: FullHamiltonianApplication, free_full_potential, &
-        & hpsitopsi, last_orthon, orthogonalize, write_eigen_objects, write_energies
+        & hpsitopsi, last_orthon, orthogonalize, write_eigen_objects
+   use io, only:  write_energies
    use module_xc
    use yaml_output
    use communications, only: transpose_v, untranspose_v

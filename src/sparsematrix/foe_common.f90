@@ -2005,6 +2005,15 @@ module foe_common
                       end if
         
                   end do main_loop
+
+                  if (iproc==0) then
+                      call yaml_mapping_open('summary',flow=.true.)
+                      call yaml_map('nit',it)
+                      call yaml_map('eF',foe_data_get_real(foe_obj,"ef",ispin),fmt='(es13.6)')
+                      call yaml_map('Tr(K)',sumn,fmt='(es14.7)')
+                      call yaml_map('D Tr(K)',sumn-foe_data_get_real(foe_obj,"charge",ispin),fmt='(es9.2)')
+                      call yaml_mapping_close()
+                  end if
             
              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
                   fermi_small_new, &

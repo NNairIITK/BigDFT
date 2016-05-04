@@ -1118,12 +1118,14 @@ module foe
     
       !call timing(iproc, 'FOE_auxiliary ', 'OF')
       call f_timing(TCAT_CME_AUXILIARY,'OF')
+      if (iproc==0) call yaml_mapping_open('S^-1/2')
       if (calculate_minusonehalf) then
-          if (iproc==0) call yaml_map('S^-1/2','recalculate')
+          !if (iproc==0) call yaml_map('S^-1/2','recalculate')
           call overlap_minus_onehalf() ! has internal timer
       else
           if (iproc==0) call yaml_map('S^-1/2','from memory')
       end if
+      if (iproc==0) call yaml_mapping_close()
       !call timing(iproc, 'FOE_auxiliary ', 'ON')
       call f_timing(TCAT_CME_AUXILIARY,'ON')
     
@@ -1245,6 +1247,7 @@ module foe
                           call yaml_map('npl',npl)
                           call yaml_map('bounds', &
                                (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/))
+                          call yaml_map('exp accur',max_error,fmt='(es8.2)')
                       end if
 
                       call get_chebyshev_polynomials(iproc, nproc, comm, &

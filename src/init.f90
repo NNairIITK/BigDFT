@@ -1697,7 +1697,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   use module_base
   use module_interfaces, only: FullHamiltonianApplication, LDiagHam, &
        & communicate_density, free_full_potential, inputguess_gaussian_orbitals, &
-       & sumrho, write_energies
+       & sumrho
+  use io, only: write_energies
   use module_types
   use module_xc, only: XC_NO_HARTREE
   use Poisson_Solver, except_dp => dp, except_gp => gp

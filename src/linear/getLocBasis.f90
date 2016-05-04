@@ -245,10 +245,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       mean_deviation = mean_deviation + mean_deviation_p/real(tmb%linmat%s%nspin,kind=8)
   end do
   call f_free(ovrlp_fullp)
-  if (iproc==0) then
-      call yaml_map('max dev from unity',max_deviation,fmt='(es9.2)')
-      call yaml_map('mean dev from unity',mean_deviation,fmt='(es9.2)')
-  end if
+  !if (iproc==0) then
+  !    call yaml_map('max dev from unity',max_deviation,fmt='(es9.2)')
+  !    call yaml_map('mean dev from unity',mean_deviation,fmt='(es9.2)')
+  !end if
 
   ! Post the p2p communications for the density. (must not be done in inputguess)
   if(communicate_phi_for_lsumrho) then
@@ -704,7 +704,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use module_types
   use yaml_output
   use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication, &
-       & calculate_density_kernel, hpsitopsi, write_energies
+       & calculate_density_kernel, hpsitopsi
+  use io, only: write_energies
   use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_POST, TRANSPOSE_GATHER
   use communications, only: transpose_localized, untranspose_localized, start_onesided_communication, &
                             synchronize_onesided_communication
@@ -787,6 +788,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8) :: max_error, mean_error
   integer,dimension(1) :: power
   integer,dimension(:),allocatable :: n3p
+  character(len=6) :: label
   interface
      subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, alpha_mean, alpha_max, &
@@ -970,13 +972,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call yaml_sequence(advance='no')
           call yaml_mapping_open(flow=.true.)
           call yaml_comment('iter:'//yaml_toa(it,fmt='(i6)'),hfill='-')
-          if (target_function==TARGET_FUNCTION_IS_TRACE) then
-              call yaml_map('target function','TRACE')
-          else if (target_function==TARGET_FUNCTION_IS_ENERGY) then
-              call yaml_map('target function','ENERGY')
-          else if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-              call yaml_map('target function','HYBRID')
-          end if
+          !!if (target_function==TARGET_FUNCTION_IS_TRACE) then
+          !!    call yaml_map('target function','TRACE')
+          !!else if (target_function==TARGET_FUNCTION_IS_ENERGY) then
+          !!    call yaml_map('target function','ENERGY')
+          !!else if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+          !!    call yaml_map('target function','HYBRID')
+          !!end if
       end if
 
       ! Synchronize the mpi_get before starting a new communication
@@ -1076,7 +1078,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Use this subroutine to write the energies, with some fake number
       ! to prevent it from writing too much
       if (iproc==0) then
-          call write_energies(0,energs,0.d0,0.d0,'',only_energies=.true.)
+          call write_energies(0,energs,0.d0,0.d0,'',only_energies=.true.,label='Components')
       end if
       if (iproc==0) then
           call yaml_map('Orthoconstraint',.true.)
@@ -1167,10 +1169,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !fnrm_old=fnrm
 
 
+      if (it_tot==1) then
+          energy_first=trH
+      end if
       if (experimental_mode) then
-          if (it_tot==1) then
-              energy_first=trH
-          end if
           if (iproc==0) call yaml_map('rel D',(trH-energy_first)/energy_first,fmt='(es9.2)')
           if ((trH-energy_first)<0.d0 .and. abs((trH-energy_first)/energy_first)>early_stop .and. itout>0) then
               energy_diff=.true.
@@ -1273,7 +1275,19 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call yaml_newline()
               call yaml_map('iter',it,fmt='(i5)')
               call yaml_map('fnrm',fnrm%receivebuf(1),fmt='(es9.2)')
-              call yaml_map('Omega',trH,fmt='(es22.15)')
+              call yaml_mapping_open('Omega')
+              select case (target_function)
+              case (TARGET_FUNCTION_IS_TRACE)
+                  label = 'TRACE'
+              case (TARGET_FUNCTION_IS_ENERGY)
+                  label = 'ENERGY'
+              case (TARGET_FUNCTION_IS_HYBRID)
+                  label = 'HYBRID'
+              case default
+                  call f_err_throw('wrong target function', err_name='BIGDFT_RUNTIME_ERROR')
+              end select
+              call yaml_map(trim(label),trH,fmt='(es22.15)')
+              call yaml_mapping_close()
               call yaml_map('D',ediff,fmt='(es9.2)')
               call yaml_map('D best',ediff_best,fmt='(es9.2)')
           end if
@@ -1315,7 +1329,20 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call yaml_newline()
           call yaml_map('iter',it,fmt='(i5)')
           call yaml_map('fnrm',fnrm%receivebuf(1),fmt='(es9.2)')
-          call yaml_map('Omega',trH,fmt='(es22.15)')
+          !call yaml_map('Omega',trH,fmt='(es22.15)')
+          select case (target_function)
+          case (TARGET_FUNCTION_IS_TRACE)
+              label = 'TRACE'
+          case (TARGET_FUNCTION_IS_ENERGY)
+              label = 'ENERGY'
+          case (TARGET_FUNCTION_IS_HYBRID)
+              label = 'HYBRID'
+          case default
+              call f_err_throw('wrong target function', err_name='BIGDFT_RUNTIME_ERROR')
+          end select
+          call yaml_mapping_open('Omega')
+          call yaml_map(trim(label),trH,fmt='(es22.15)')
+          call yaml_mapping_close()
           call yaml_map('D',ediff,fmt='(es9.2)')
           call yaml_map('D best',ediff_best,fmt='(es9.2)')
       end if
@@ -1468,29 +1495,43 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call yaml_sequence(label='final_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
       call yaml_mapping_open(flow=.true.)
       call yaml_comment('iter:'//yaml_toa(it,fmt='(i6)'),hfill='-')
-      if (target_function==TARGET_FUNCTION_IS_TRACE) then
-          call yaml_map('target function','TRACE')
-      else if (target_function==TARGET_FUNCTION_IS_ENERGY) then
-          call yaml_map('target function','ENERGY')
-      else if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          call yaml_map('target function','HYBRID')
-      end if
-      call write_energies(0,energs,0.d0,0.d0,'',only_energies=.true.)
+      !!if (target_function==TARGET_FUNCTION_IS_TRACE) then
+      !!    call yaml_map('target function','TRACE')
+      !!else if (target_function==TARGET_FUNCTION_IS_ENERGY) then
+      !!    call yaml_map('target function','ENERGY')
+      !!else if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !!    call yaml_map('target function','HYBRID')
+      !!end if
+      call write_energies(0,energs,0.d0,0.d0,'',only_energies=.true.,label='Components')
       call yaml_newline()
-      call yaml_map('iter',it,fmt='(i5)')
+      call yaml_map('nit',it,fmt='(i5)')
       call yaml_map('fnrm',fnrm%receivebuf(1),fmt='(es9.2)')
-      call yaml_map('Omega',trH,fmt='(es22.15)')
-      call yaml_map('D',ediff,fmt='(es9.2)')
-      call yaml_map('D best',ediff_best,fmt='(es9.2)')
+      !call yaml_map('Omega',trH,fmt='(es22.15)')
+      select case (target_function)
+      case (TARGET_FUNCTION_IS_TRACE)
+          label = 'TRACE'
+      case (TARGET_FUNCTION_IS_ENERGY)
+          label = 'ENERGY'
+      case (TARGET_FUNCTION_IS_HYBRID)
+          label = 'HYBRID'
+      case default
+          call f_err_throw('wrong target function', err_name='BIGDFT_RUNTIME_ERROR')
+      end select
+      call yaml_mapping_open('Omega')
+      call yaml_map(trim(label),trH,fmt='(es22.15)')
+      call yaml_mapping_close()
+      !call yaml_map('D',ediff,fmt='(es9.2)')
+      !call yaml_map('D best',ediff_best,fmt='(es9.2)')
+      call yaml_map('D total',trH-energy_first,fmt='(es9.2)')
       call yaml_mapping_close() !iteration
       call yaml_flush_document()
       !call bigdft_utils_flush(unit=6)
   end if
 
 
-  if (iproc==0) then
-      call yaml_comment('Support functions created')
-  end if
+  !!if (iproc==0) then
+  !!    call yaml_comment('Support functions created')
+  !!end if
 
 
   ! Deallocate potential
