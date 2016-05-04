@@ -266,7 +266,7 @@ class BigDFTInstaller():
     def clean(self):
         "Clean files in the build directory"
         import os
-        for mod in self.selected(MAKEMODULES):
+        for mod in self.selected(MAKEMODULES[::-1]): #invert cleaning order for elegance
             self.get_output(self.jhb+UNINSTALL+mod)
             self.get_output(self.jhb+CLEANONE+mod)
             #here we should eliminate residual .mod files
@@ -345,7 +345,7 @@ class BigDFTInstaller():
         print 'The action considered was:',self.action
         try:
            if self.time0 is not None:
-               if not (self.time0==self.bigdft_time()):
+               if not (self.time0==self.bigdft_time()) and self.bigdft_time()!=0:
                    print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
                    print 'All the available executables and scripts can be found in the directory'
                    print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
