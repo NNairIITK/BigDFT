@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-05-03 10:39:18.482
+ Timestamp of this run                 : 2016-05-04 12:01:29.434
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -299,6 +299,7 @@
    forcemax                            : 0. #     Max forces criterion when stop
    randdis                             : 0. #     Random displacement amplitude
    betax                               : 4. #     Stepsize for the geometry optimization
+   beta_stretchx                       : 5e-1 #   Stepsize for steepest descent in stretching mode direction (only if in biomode)
  md:
    mdsteps                             : 0 #      Number of MD steps
    print_frequency                     : 1 #      Printing frequency for energy.dat and Trajectory.xyz files
@@ -3091,82 +3092,67 @@
  Checking the total multipoles based on the atomic multipoles:
  - Up to multipole l= 0:
      Electric Dipole Moment (Debye):
-       P vector                        :  [  3.1173E-01,  3.7430E-01,  2.6015E-01 ]
-       norm(P)                         :  5.522289E-01
+       P vector                        :  [  3.1021E-01,  3.7272E-01,  2.5691E-01 ]
+       norm(P)                         :  5.487710E-01
      Quadrupole Moment (AU):
        Q matrix:
-       -  [-9.1404E-01,  1.5229E-01,  4.8892E-02]
-       -  [ 1.5229E-01, -1.8170E+00, -1.1717E+00]
-       -  [ 4.8892E-02, -1.1717E+00,  2.7310E+00]
-       trace                           :  2.00E-11
-     Density and potential check:
-     - density threshold for check is 1.00E-06:
-         rho: {int(q-q_exact)):  3.219E-04, int(q_exact):  3.219E-04, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  6.919E+00, int(V_exact):  3.611E+00, ratio:  1.916E+00}
-     - density threshold for check is 1.00E-05:
-         rho: {int(q-q_exact)):  3.656E-03, int(q_exact):  3.656E-03, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  9.591E+00, int(V_exact):  5.466E+00, ratio:  1.755E+00}
-     - density threshold for check is 1.00E-04:
-         rho: {int(q-q_exact)):  2.750E-02, int(q_exact):  2.750E-02, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  1.274E+01, int(V_exact):  7.957E+00, ratio:  1.601E+00}
-     - density threshold for check is 1.00E-03:
-         rho: {int(q-q_exact)):  2.259E-01, int(q_exact):  2.259E-01, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  1.698E+01, int(V_exact):  1.157E+01, ratio:  1.468E+00}
-     - density threshold for check is 1.00E-02:
-         rho: {int(q-q_exact)):  1.327E+00, int(q_exact):  1.327E+00, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.310E+01, int(V_exact):  1.679E+01, ratio:  1.376E+00}
+       -  [-9.0839E-01,  1.5121E-01,  4.8151E-02]
+       -  [ 1.5121E-01, -1.8119E+00, -1.1741E+00]
+       -  [ 4.8151E-02, -1.1741E+00,  2.7203E+00]
+       trace                           :  9.09E-13
+     Average relative error of resulting potential in the Exterior region:
+     -  {Thr:  1.0E-12, Ext. Vol. %:  73.5, int(V):  5.780E+00, Err %:  240.9, 
+    int(rho):  0.000E+00}
+     -  {Thr:  1.0E-10, Ext. Vol. %:  78.9, int(V):  6.764E+00, Err %:  237.0, 
+    int(rho):  0.000E+00}
+     -  {Thr:  1.0E-08, Ext. Vol. %:  82.9, int(V):  7.662E+00, Err %:  232.9, 
+    int(rho):  0.000E+00}
+     -  {Thr:  1.0E-06, Ext. Vol. %:  87.3, int(V):  9.125E+00, Err %:  223.2, 
+    int(rho):  0.000E+00}
+     -  {Thr:  1.0E-04, Ext. Vol. %:  93.5, int(V):  1.347E+01, Err %:  194.4, 
+    int(rho):  5.415E-30}
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -2.0759E-01, -2.0934E-01, -2.0078E-01 ]
-       norm(P)                         :  3.566969E-01
+       P vector                        :  [ -2.0315E-01, -2.0472E-01, -1.9136E-01 ]
+       norm(P)                         :  3.461265E-01
      Quadrupole Moment (AU):
        Q matrix:
-       -  [ 1.1307E+00,  5.9391E-02, -5.0234E-02]
-       -  [ 5.9391E-02, -1.5029E-01,  1.0798E+00]
-       -  [-5.0234E-02,  1.0798E+00, -9.8041E-01]
-       trace                           : -2.82E-11
-     Density and potential check:
-     - density threshold for check is 1.00E-06:
-         rho: {int(q-q_exact)):  3.219E-04, int(q_exact):  3.219E-04, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  7.188E+00, int(V_exact):  3.611E+00, ratio:  1.991E+00}
-     - density threshold for check is 1.00E-05:
-         rho: {int(q-q_exact)):  3.656E-03, int(q_exact):  3.656E-03, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  1.182E+01, int(V_exact):  5.466E+00, ratio:  2.162E+00}
-     - density threshold for check is 1.00E-04:
-         rho: {int(q-q_exact)):  2.750E-02, int(q_exact):  2.750E-02, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  1.844E+01, int(V_exact):  7.957E+00, ratio:  2.318E+00}
-     - density threshold for check is 1.00E-03:
-         rho: {int(q-q_exact)):  2.259E-01, int(q_exact):  2.259E-01, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.847E+01, int(V_exact):  1.157E+01, ratio:  2.462E+00}
-     - density threshold for check is 1.00E-02:
-         rho: {int(q-q_exact)):  1.327E+00, int(q_exact):  1.327E+00, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  4.563E+01, int(V_exact):  1.679E+01, ratio:  2.718E+00}
+       -  [ 1.1144E+00,  5.9005E-02, -5.0595E-02]
+       -  [ 5.9005E-02, -1.6620E-01,  1.0840E+00]
+       -  [-5.0595E-02,  1.0840E+00, -9.4816E-01]
+       trace                           :  5.46E-12
+     Average relative error of resulting potential in the Exterior region:
+     -  {Thr:  1.0E-12, Ext. Vol. %:  73.5, int(V):  5.780E+00, Err %:  98.0, 
+    int(rho):  0.000E+00}
+     -  {Thr:  1.0E-10, Ext. Vol. %:  78.9, int(V):  6.764E+00, Err %:  109.5, 
+    int(rho):  0.000E+00}
+     -  {Thr:  1.0E-08, Ext. Vol. %:  82.9, int(V):  7.662E+00, Err %:  120.9, 
+    int(rho):  0.000E+00}
+     -  {Thr:  1.0E-06, Ext. Vol. %:  87.3, int(V):  9.125E+00, Err %:  138.0, 
+    int(rho):  0.000E+00}
+     -  {Thr:  1.0E-04, Ext. Vol. %:  93.5, int(V):  1.347E+01, Err %:  177.0, 
+    int(rho):  6.438E-29}
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -1.8394E-01, -1.8401E-01, -1.4951E-01 ]
-       norm(P)                         :  3.000817E-01
+       P vector                        :  [ -2.038E-01, -2.0466E-01, -1.9161E-01 ]
+       norm(P)                         :  3.466047E-01
      Quadrupole Moment (AU):
        Q matrix:
-       -  [-1.7450E+00,  3.0525E-02, -3.9375E-02]
-       -  [ 3.0525E-02, -2.1692E-01,  1.2891E+00]
-       -  [-3.9375E-02,  1.2891E+00,  1.9619E+00]
-       trace                           : -1.55E-11
-     Density and potential check:
-     - density threshold for check is 1.00E-06:
-         rho: {int(q-q_exact)):  3.219E-04, int(q_exact):  3.219E-04, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  6.052E+00, int(V_exact):  3.611E+00, ratio:  1.676E+00}
-     - density threshold for check is 1.00E-05:
-         rho: {int(q-q_exact)):  3.656E-03, int(q_exact):  3.656E-03, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  9.724E+00, int(V_exact):  5.466E+00, ratio:  1.779E+00}
-     - density threshold for check is 1.00E-04:
-         rho: {int(q-q_exact)):  2.750E-02, int(q_exact):  2.750E-02, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  1.495E+01, int(V_exact):  7.957E+00, ratio:  1.879E+00}
-     - density threshold for check is 1.00E-03:
-         rho: {int(q-q_exact)):  2.259E-01, int(q_exact):  2.259E-01, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.298E+01, int(V_exact):  1.157E+01, ratio:  1.987E+00}
-     - density threshold for check is 1.00E-02:
-         rho: {int(q-q_exact)):  1.327E+00, int(q_exact):  1.327E+00, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  3.777E+01, int(V_exact):  1.679E+01, ratio:  2.250E+00}
+       -  [-1.6720E+00,  3.0138E-02, -3.9738E-02]
+       -  [ 3.0138E-02, -1.4586E-01,  1.2684E+00]
+       -  [-3.9738E-02,  1.2684E+00,  1.8179E+00]
+       trace                           : -3.41E-12
+     Average relative error of resulting potential in the Exterior region:
+     -  {Thr:  1.0E-12, Ext. Vol. %:  73.5, int(V):  5.780E+00, Err %:  98.8, 
+    int(rho):  0.000E+00}
+     -  {Thr:  1.0E-10, Ext. Vol. %:  78.9, int(V):  6.764E+00, Err %:  105.6, 
+    int(rho):  0.000E+00}
+     -  {Thr:  1.0E-08, Ext. Vol. %:  82.9, int(V):  7.662E+00, Err %:  112.4, 
+    int(rho):  0.000E+00}
+     -  {Thr:  1.0E-06, Ext. Vol. %:  87.3, int(V):  9.125E+00, Err %:  123.7, 
+    int(rho):  0.000E+00}
+     -  {Thr:  1.0E-04, Ext. Vol. %:  93.5, int(V):  1.347E+01, Err %:  149.8, 
+    int(rho):  5.210E-28}
   #========================================================== Atomic multipole analysis done
  Total charge                          :  4.999997199499E+01
   #---------------------------------------------------------------------- Forces Calculation
@@ -3184,8 +3170,8 @@
  - set to 1.d-20 instead of 0.d0
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  45.74
-   Elapsed time (s)                    :  46.65
+   CPU time (s)                        :  47.75
+   Elapsed time (s)                    :  48.81
  BigDFT infocode                       :  0
  Average noise forces: {x:  4.14401687E-02, y:  4.89972609E-02, z:  4.05674465E-02, 
                     total:  7.59192787E-02}
@@ -3222,14 +3208,14 @@
  Energy (Hartree)                      : -5.55986800326118953E+01
  Force Norm (Hartree/Bohr)             :  3.47351016868056750E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  21750
-   Tot. No. of Deallocations           :  21750
+   Tot. No. of Allocations             :  21726
+   Tot. No. of Deallocations           :  21726
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  261.209
+     Peak Value (MB)                   :  256.938
      for the array                     : psir_noconf
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 320.672 MB
- Walltime since initialization         : 00:00:47.088939814
- Max No. of dictionaries used          :  11236 #( 1002 still in use)
+     Memory Peak of process            : 317.860 MB
+ Walltime since initialization         : 00:00:49.244209403
+ Max No. of dictionaries used          :  11287 #( 1002 still in use)
  Number of dictionary folders allocated:  2
