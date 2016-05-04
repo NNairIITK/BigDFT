@@ -2919,6 +2919,8 @@ module communications_init
       integer(kind=8),dimension(:,:),allocatable :: istartend
       character(len=*),parameter :: subname='init_comms_linear_sumrho'
       real(kind=8),dimension(:),allocatable :: weights_per_slice, weights_per_zpoint
+
+      call f_routine(id='init_comms_linear_sumrho')
     
       ! Note: all weights are double precision to avoid integer overflow
       call timing(iproc,'init_collco_sr','ON')
@@ -2947,6 +2949,8 @@ module communications_init
       collcom_sr%ndimind_c = sum(collcom_sr%nrecvcounts_c)
 
       call allocate_local_comms_cubic(collcom_sr, only_coarse=.true.)
+      ! For the sumrho operations, this array is not needed (there is no transpose_unswitch_psir)
+      call f_free_ptr(collcom_sr%irecvbuf_c)
     
       call determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, collcom_sr%nptsp_c, lzd, orbs, &
            istartend, weight_tot, weights_per_zpoint, collcom_sr%norb_per_gridpoint_c)
@@ -2963,8 +2967,9 @@ module communications_init
     
       call get_switch_indices_sumrho(iproc, nproc, collcom_sr%nptsp_c, collcom_sr%ndimpsi_c, collcom_sr%ndimind_c, lzd, &
            orbs, nspin, istartend, collcom_sr%norb_per_gridpoint_c, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
-           collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%isendbuf_c, collcom_sr%irecvbuf_c, &
+           collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%isendbuf_c, & !collcom_sr%irecvbuf_c, &
            collcom_sr%iextract_c, collcom_sr%iexpand_c, collcom_sr%indexrecvorbital_c)
+
     
       ! These variables are used in various subroutines to speed up the code
       collcom_sr%isptsp_c(1) = 0
@@ -2985,6 +2990,7 @@ module communications_init
       call f_free(istartend)
     
       call timing(iproc,'init_collco_sr','OF')
+      call f_release_routine()
     
     end subroutine init_comms_linear_sumrho
 
@@ -3505,7 +3511,7 @@ module communications_init
 
     subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd, orbs, nspin, istartend, &
                norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, &
-               isendbuf, irecvbuf, iextract, iexpand, indexrecvorbital)
+               isendbuf, iextract, iexpand, indexrecvorbital)
       use module_base
       use module_types
       implicit none
@@ -3517,7 +3523,7 @@ module communications_init
       integer(kind=8),dimension(2,0:nproc-1),intent(in) :: istartend
       integer,dimension(nptsp),intent(in) :: norb_per_gridpoint
       integer,dimension(0:nproc-1),intent(in) :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
-      integer,dimension(ndimpsi),intent(out) :: isendbuf, irecvbuf
+      integer,dimension(ndimpsi),intent(out) :: isendbuf!, irecvbuf
       integer,dimension(ndimind),intent(out) :: iextract, iexpand, indexrecvorbital
     
       ! Local variables
@@ -3621,8 +3627,8 @@ module communications_init
           indexsendorbital(ind)=indexsendorbital2(i)
       end do
     
-      ! Inverse of isendbuf
-      call get_reverse_indices(ndimpsi, isendbuf, irecvbuf)
+      ! Inverse of isendbuf... not needed
+      !call get_reverse_indices(ndimpsi, isendbuf, irecvbuf)
     
       call f_free(indexsendorbital2)
     
