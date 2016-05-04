@@ -2,6 +2,8 @@ module utilities
   private
 
   public :: get_ccs_data_from_file
+  public :: operation_using_dense_lapack
+  public :: check_deviation_from_unity_dense
 
   contains
     subroutine get_ccs_data_from_file(filename, nfvctr, nvctr, row_ind, col_ptr)
@@ -23,4 +25,8 @@ module utilities
       call f_free_ptr(val)
     
     end subroutine get_ccs_data_from_file
+
+
+
+
 end module utilities
