@@ -2517,7 +2517,7 @@ matrixtaskgroups_no:
   Ekin: 1.0e-8
   EH: 1.1e-08
   Epot: 1.0e-8
-  EvXC: 1.0e-9
+  EvXC: 1.1e-9
   EXC: 1.1e-9
   Enl: 2.0e-9
   Energy (Hartree): 3.0e-09
@@ -2547,7 +2547,7 @@ matrixtaskgroups_yes:
   EBS higher temperature: 1.2e-09
   EH: 1.1e-08
   Epot: 1.0e-8
-  EvXC: 1.0e-9
+  EvXC: 1.1e-9
   EXC: 1.1e-9
   Enl: 1.0e-9
   Ekin: 1.0e-08

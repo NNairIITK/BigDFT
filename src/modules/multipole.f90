@@ -5038,51 +5038,8 @@ end if
       call isf_to_daub(tmb%lzd%llr(ilr), w, phi1r(istr), phi1(ist))
       call deallocate_work_arrays_sumrho(w)
 
-      ! NEW: CALCULATE THE WEIGHT CENTER OF THE SUPPORT FUNCTION ############################
-      hxh = 0.5d0*tmb%lzd%hgrids(1)
-      hyh = 0.5d0*tmb%lzd%hgrids(2)
-      hzh = 0.5d0*tmb%lzd%hgrids(3)
-      ii = istr
-      call geocode_buffers(tmb%lzd%Llr(ilr)%geocode, tmb%lzd%glr%geocode, nl1, nl2, nl3)
-      weight = 0.d0
-      center(1:3) = 0.0_gp
-      !$omp parallel default(none) &
-      !$omp shared(tmb, ilr, nl1, nl2, nl3, hxh, hyh, hzh, istr, phir, center, weight) &
-      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, ii)
-      !$omp do reduction(+: center, weight)
-      do i3=1,tmb%lzd%llr(ilr)%d%n3i
-          ii3 = tmb%lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
-          z = ii3*hzh
-          do i2=1,tmb%lzd%llr(ilr)%d%n2i
-              ii2 = tmb%lzd%llr(ilr)%nsi2 + i2 - nl2 - 1
-              y = ii2*hyh
-              do i1=1,tmb%lzd%llr(ilr)%d%n1i
-                  ii1 = tmb%lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
-                  x = ii1*hxh
-                  ii = istr+(i3-1)*tmb%lzd%llr(ilr)%d%n2i*tmb%lzd%llr(ilr)%d%n1i+(i2-1)*tmb%lzd%llr(ilr)%d%n1i+i1-1
-                  !!if (ii /= istr+(i3-1)*tmb%lzd%llr(ilr)%d%n2i*tmb%lzd%llr(ilr)%d%n1i+(i2-1)*tmb%lzd%llr(ilr)%d%n1i+i1-1) &
-                  !!    stop 'wrong index'
-                  tt = phir(ii)**2
-                  !!center_locreg(1,ilr) = center_locreg(1,ilr) + x*tt
-                  !!center_locreg(2,ilr) = center_locreg(2,ilr) + y*tt
-                  !!center_locreg(3,ilr) = center_locreg(3,ilr) + z*tt
-                  center(1) = center(1) + x*tt
-                  center(2) = center(2) + y*tt
-                  center(3) = center(3) + z*tt
-                  weight = weight + tt
-                  !!ii = ii + 1
-              end do
-          end do
-      end do
-      !$omp end do
-      !$omp end parallel
-      !write(*,*) 'iorb, weight, sum(phir)',iorb, weight, sum(phir)
-      !center_locreg(1:3,ilr) = center_locreg(1:3,ilr)/weight
-      center_locreg(1:3,ilr) = center(1:3)/weight
-      center_orb(1:3,iiorb) = center_locreg(1:3,ilr)
-      !write(*,*) 'iorb, ilr, center_locreg(1:3,ilr), lzd%llr(ilr)%locregcenter(1:3)', &
-      !            iorb, ilr, center_locreg(1:3,ilr), tmb%lzd%llr(ilr)%locregcenter(1:3)
-      ! ######################################################################################
+      call calculate_weight_center(tmb%lzd%llr(ilr), tmb%lzd%glr, tmb%lzd%hgrids, &
+           phir(istr), center_locreg(1:3,ilr), center_orb(1:3,iiorb))
       ist = ist + tmb%lzd%Llr(ilr)%wfd%nvctr_c + 7*tmb%lzd%Llr(ilr)%wfd%nvctr_f
       istr = istr + tmb%lzd%Llr(ilr)%d%n1i*tmb%lzd%Llr(ilr)%d%n2i*tmb%lzd%Llr(ilr)%d%n3i
   end do
@@ -5097,6 +5054,9 @@ end if
       call mpiallred(center_orb, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
+  hxh = 0.5d0*tmb%lzd%hgrids(1)
+  hyh = 0.5d0*tmb%lzd%hgrids(2)
+  hzh = 0.5d0*tmb%lzd%hgrids(3)
   factor = hxh*hyh*hzh
 
   !alternative solution, less memory, less operations, less communications
@@ -5154,7 +5114,7 @@ end if
  
   if (iproc==0) then
       call yaml_sequence_open('Gross support functions moments')
-      call yamL_map('Orthonormalization',do_ortho)
+      call yaml_map('Orthonormalization',do_ortho)
       iatype_tmp = f_malloc(tmb%orbs%norb,id='iatype_tmp')
       delta_centers = f_malloc((/3,tmb%orbs%norb/),id='delta_centers')
       iat_old = -1
@@ -6606,5 +6566,64 @@ end subroutine calculate_rpowerx_matrices
     call f_release_routine()
 
     end subroutine compare_charge_and_potential
+
+
+    subroutine calculate_weight_center(llr, glr, hgrids, phir, center_locreg, center_orb)
+      use module_base
+      use module_types, only: locreg_descriptors
+      use bounds, only: geocode_buffers
+      implicit none
+
+      ! Calling arguments
+      type(locreg_descriptors),intent(in) :: llr, glr
+      real(kind=8),dimension(3),intent(in) :: hgrids
+      real(kind=8),dimension(llr%d%n1i*llr%d%n2i*llr%d%n3i),intent(in) :: phir
+      real(kind=8),dimension(3),intent(out) :: center_locreg
+      real(kind=8),dimension(3),intent(out) :: center_orb
+
+      ! Local variables
+      integer :: nl1, nl2, nl3, i1, i2, i3, ii1, ii2, ii3, ii
+      real(kind=8) :: weight, hxh, hyh, hzh, x, y, z, tt
+      real(kind=8),dimension(3) :: center
+
+      call f_routine(id='calculate_weight_center')
+
+      hxh = 0.5d0*hgrids(1)
+      hyh = 0.5d0*hgrids(2)
+      hzh = 0.5d0*hgrids(3)
+      call geocode_buffers(llr%geocode, glr%geocode, nl1, nl2, nl3)
+      weight = 0.d0
+      center(1:3) = 0.0_gp
+      !$omp parallel default(none) &
+      !$omp shared(llr, nl1, nl2, nl3, hxh, hyh, hzh, phir, center, weight) &
+      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, ii)
+      !$omp do reduction(+: center, weight)
+      do i3=1,llr%d%n3i
+          ii3 = llr%nsi3 + i3 - nl3 - 1
+          z = ii3*hzh
+          do i2=1,llr%d%n2i
+              ii2 = llr%nsi2 + i2 - nl2 - 1
+              y = ii2*hyh
+              do i1=1,llr%d%n1i
+                  ii1 = llr%nsi1 + i1 - nl1 - 1
+                  x = ii1*hxh
+                  ii = (i3-1)*llr%d%n2i*llr%d%n1i+(i2-1)*llr%d%n1i+i1
+                  tt = phir(ii)**2
+                  center(1) = center(1) + x*tt
+                  center(2) = center(2) + y*tt
+                  center(3) = center(3) + z*tt
+                  weight = weight + tt
+                  !!ii = ii + 1
+              end do
+          end do
+      end do
+      !$omp end do
+      !$omp end parallel
+      center_locreg(1:3) = center(1:3)/weight
+      center_orb(1:3) = center_locreg(1:3)
+
+      call f_release_routine()
+
+    end subroutine calculate_weight_center
 
 end module multipole

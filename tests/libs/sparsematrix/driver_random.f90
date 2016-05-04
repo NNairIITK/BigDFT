@@ -35,6 +35,13 @@ program driver_random
   iproc=mpirank()
   nproc=mpisize()
 
+  ! Initialize the sparse matrix errors and timings.
+  call sparsematrix_init_errors
+  call sparsematrix_initialize_timing_categories()
+
+  ! Timing initialization
+  call f_timing_reset(filename='time.yaml', master=(iproc==0), verbose_mode=.false.)
+
   if (iproc==0) then
       call yaml_scalar('',hfill='~')
       call yaml_scalar('DRIVER FOR THE CHEBYSHEV MATRIX EXPANSION',hfill='~')
@@ -67,11 +74,6 @@ program driver_random
   call mpibcast(expo, root=0, comm=mpi_comm_world)
 
 
-  ! Timing initialization
-  call f_timing_reset(filename='time.yaml', master=(iproc==0), verbose_mode=.false.)
-
-  ! Initialize the sparse matrix error
-  call sparsematrix_init_errors
 
   ! Generate a random sparsity pattern
   call generate_random_symmetric_sparsity_pattern(iproc, nproc, mpi_comm_world, &
