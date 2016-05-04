@@ -2104,11 +2104,11 @@ module multipole
       integer :: is1, ie1, is2, ie2, is3, ie3, ioffset, icheck
       real(kind=8),dimension(:,:,:),allocatable :: rho_exact, rho_mp, pot_exact, pot_mp
       integer,parameter :: ncheck = 5
-      real(kind=8),dimension(ncheck),parameter :: check_threshold = [ 1.d-6 , &
-                                                                      1.d-5 , &
-                                                                      1.d-4 , &
-                                                                      1.d-3 , &
-                                                                      1.d-2]
+      real(kind=8),dimension(ncheck),parameter :: check_threshold = [ 1.d-12 , &
+                                                                      1.d-10 , &
+                                                                      1.d-8 , &
+                                                                      1.d-6 , &
+                                                                      1.d-4]
       real(kind=8),dimension(ncheck) :: charge_error, charge_total, potential_error, potential_total
       type(cell) :: mesh
 
@@ -5290,9 +5290,10 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
   real(kind=8),dimension(3,3),intent(out),optional :: quadrupole
   logical,intent(in),optional :: quiet_
 
-  integer :: ierr,n3p,nc1,nc2,nc3, nnc3, ii3, i3shift
+!  integer :: ierr,n3p,nc1,nc2,nc3, nnc3, ii3, i3shift
   real(gp) :: q,qtot, delta_term,x,y,z,ri,rj,tt
-  integer  :: iat,i1,i2,i3, nl1,nl2,nl3, ispin,n1i,n2i,n3i, i, j, is, ie
+  !integer  :: i1,i2,i3, nl1,nl2,nl3, n1i,n2i,n3i,  is, ie
+  integer :: iat,ispin,i, j
   real(gp), dimension(3) :: dipole_el,dipole_cores,tmpdip,charge_center_cores
   real(gp),dimension(3,nspin) :: charge_center_elec
   real(gp), dimension(3,3) :: quadropole_el,quadropole_cores,tmpquadrop
@@ -5308,46 +5309,46 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
       quiet = .false.
   end if
   
-  n1i=dpbox%mesh%ndims(1)
-  n2i=dpbox%mesh%ndims(2)
-  n3i=dpbox%mesh%ndims(3)
-  n3p=dpbox%n3p
-
-
-  if (at%astruct%geocode /= 'F') then
-     nl1=1
-     !nl3=1
-     nc1=n1i
-     !nc3=n3i
-     nc3=n3p
-     nnc3=n3i
-     !is = 1
-     is = dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1
-     ie = dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+dpbox%nscatterarr(dpbox%mpi_env%iproc,2)
-     i3shift = 1
-  else
-     nl1=15
-     !nl3=15
-     !nl3=max(1,15-dpbox%nscatterarr(dpbox%mpi_env%iproc,3))
-     nc1=n1i-31
-     !nc3=n3i-31
-     !nc3=n3p-31
-     is = max(dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1,15)
-     ie = min(dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+dpbox%nscatterarr(dpbox%mpi_env%iproc,2),n3i-17)
-     nnc3=n3i-31
-     i3shift = 15
-     !write(*,*) 'iproc, is, ie, nl3, nc3, n3p', bigdft_mpi%iproc, is, ie, nl3, nc3, n3p
-  end if
-  nc3 = ie - is + 1 !number of z planes to be treated
-  nl3=max(1,i3shift-dpbox%nscatterarr(dpbox%mpi_env%iproc,3)) !offset within rho array
-  !value of the buffer in the y direction
-  if (at%astruct%geocode == 'P') then
-     nl2=1
-     nc2=n2i
-  else
-     nl2=15
-     nc2=n2i-31
-  end if
+!!$  n1i=dpbox%mesh%ndims(1)
+!!$  n2i=dpbox%mesh%ndims(2)
+!!$  n3i=dpbox%mesh%ndims(3)
+!!$  n3p=dpbox%n3p
+!!$
+!!$
+!!$  if (at%astruct%geocode /= 'F') then
+!!$     nl1=1
+!!$     !nl3=1
+!!$     nc1=n1i
+!!$     !nc3=n3i
+!!$     nc3=n3p
+!!$     nnc3=n3i
+!!$     !is = 1
+!!$     is = dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1
+!!$     ie = dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+dpbox%nscatterarr(dpbox%mpi_env%iproc,2)
+!!$     i3shift = 1
+!!$  else
+!!$     nl1=15
+!!$     !nl3=15
+!!$     !nl3=max(1,15-dpbox%nscatterarr(dpbox%mpi_env%iproc,3))
+!!$     nc1=n1i-31
+!!$     !nc3=n3i-31
+!!$     !nc3=n3p-31
+!!$     is = max(dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1,15)
+!!$     ie = min(dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+dpbox%nscatterarr(dpbox%mpi_env%iproc,2),n3i-17)
+!!$     nnc3=n3i-31
+!!$     i3shift = 15
+!!$     !write(*,*) 'iproc, is, ie, nl3, nc3, n3p', bigdft_mpi%iproc, is, ie, nl3, nc3, n3p
+!!$  end if
+!!$  nc3 = ie - is + 1 !number of z planes to be treated
+!!$  nl3=max(1,i3shift-dpbox%nscatterarr(dpbox%mpi_env%iproc,3)) !offset within rho array
+!!$  !value of the buffer in the y direction
+!!$  if (at%astruct%geocode == 'P') then
+!!$     nl2=1
+!!$     nc2=n2i
+!!$  else
+!!$     nl2=15
+!!$     nc2=n2i-31
+!!$  end if
 
   qtot=0.d0
   call f_zero(dipole_cores)!(1:3)=0._gp
@@ -5566,11 +5567,12 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
   !!write(*,*) 'tmpdip',tmpdip
   if (present(dipole)) dipole(1:3) = tmpdip(1:3)
   if(bigdft_mpi%iproc==0 .and. .not.quiet) then
+     call yaml_map('Multipole analysis origin',charge_center_cores,fmt='(1pe14.6)')
      call yaml_mapping_open('Electric Dipole Moment (AU)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
      call yaml_mapping_close()
-     tmpdip=tmpdip/Debye_AU  ! au2debye              
+     tmpdip=tmpdip/Debye_AU  ! au2debye
      call yaml_mapping_open('Electric Dipole Moment (Debye)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
@@ -6234,8 +6236,6 @@ end subroutine calculate_rpowerx_matrices
        call mpiallred(icnt,1,op=mpi_sum, comm=bigdft_mpi%mpi_comm)
        call mpiallred(igood,1,op=mpi_sum, comm=bigdft_mpi%mpi_comm)
     end if
-
-    print *,'iproc',icnt,igood,bigdft_mpi%iproc
 
     call f_release_routine()
 
