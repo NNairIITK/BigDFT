@@ -66,12 +66,12 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
   ! Aliasing
-  hxh = dpbox%hgrids(1)
-  hyh = dpbox%hgrids(2)
-  hzh = dpbox%hgrids(3)
-  n1i = dpbox%ndims(1)
-  n2i = dpbox%ndims(2)
-  n3i = dpbox%ndims(3)
+  hxh = dpbox%mesh%hgrids(1)
+  hyh = dpbox%mesh%hgrids(2)
+  hzh = dpbox%mesh%hgrids(3)
+  n1i = dpbox%mesh%ndims(1)
+  n2i = dpbox%mesh%ndims(2)
+  n3i = dpbox%mesh%ndims(3)
   i3s = dpbox%i3s + dpbox%i3xcsh
   n3pi = dpbox%n3pi
 
@@ -354,7 +354,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
      !if (nproc==1) 
      !print *,'iproc,eself',iproc,eself
-     call f_zero(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi,pot_ion(1))
+     call f_zero(dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3pi,pot_ion(1))
 
      if (dpbox%n3pi >0 ) then
         !then calculate the hartree energy and forces of the charge distributions
@@ -1840,7 +1840,7 @@ subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift,
   if (counterions) then
      if (dpbox%n3pi > 0) then
         !counter_ions = f_malloc(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi,id='counter_ions')
-        ncounter_ions = dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi
+        ncounter_ions = dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3pi
      else
         !counter_ions = f_malloc(1,id='counter_ions')
         ncounter_ions = 1
@@ -1850,7 +1850,7 @@ subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift,
      call CounterIonPotential(iproc,input,shift,dpbox,pkernel,ncounter_ions,counter_ions)
 
      !sum that to the ionic potential
-     call axpy(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi,1.0_dp,counter_ions(1),1,&
+     call axpy(dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3pi,1.0_dp,counter_ions(1),1,&
           &   pot_ion(1),1)
 
      call f_free(counter_ions)
@@ -1877,7 +1877,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   use Poisson_Solver, except_dp => dp, except_gp => gp
   use public_enums, only: PSPCODE_PAW
   use bounds, only: ext_buffers
-
+  use box, only: cell_periodic_dims,cell_geocode
   implicit none
 
   !Arguments
@@ -1912,6 +1912,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   real(gp), dimension(1) :: raux,rr
   real(wp) :: maxdiff
   real(gp) :: ehart
+  logical, dimension(3) :: peri
   real(dp), dimension(2) :: charges_mpi
   real(dp), dimension(:), allocatable :: potion_corr
   real(gp), dimension(:), allocatable  :: mpx,mpy,mpz
@@ -1927,12 +1928,12 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
   ! Aliasing
-  hxh = dpbox%hgrids(1)
-  hyh = dpbox%hgrids(2)
-  hzh = dpbox%hgrids(3)
-  n1i = dpbox%ndims(1)
-  n2i = dpbox%ndims(2)
-  n3i = dpbox%ndims(3)
+  hxh = dpbox%mesh%hgrids(1)
+  hyh = dpbox%mesh%hgrids(2)
+  hzh = dpbox%mesh%hgrids(3)
+  n1i = dpbox%mesh%ndims(1)
+  n2i = dpbox%mesh%ndims(2)
+  n3i = dpbox%mesh%ndims(3)
   i3s = dpbox%i3s+dpbox%i3xcsh
   n3pi = dpbox%n3pi
 
@@ -1945,9 +1946,10 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   
   !conditions for periodicity in the three directions
   if (.not. use_iterator) then
-     perx=(dpbox%geocode /= 'F')
-     pery=(dpbox%geocode == 'P')
-     perz=(dpbox%geocode /= 'F')
+     peri=cell_periodic_dims(dpbox%mesh)
+     perx=peri(1)!(dpbox%geocode /= 'F')
+     pery=peri(2)!(dpbox%geocode == 'P')
+     perz=peri(3)!(dpbox%geocode /= 'F')
 
      call ext_buffers(perx,nbl1,nbr1)
      call ext_buffers(pery,nbl2,nbr2)
@@ -2622,7 +2624,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   !use rhopotential to calculate the potential from a constant electric field along y direction
   if (.not. all(elecfield(1:3) == 0.0_gp)) then
      !constant electric field allowed only for surface and free BC
-     if (dpbox%geocode == 'P') then
+     if (cell_geocode(dpbox%mesh) == 'P') then
         !if (iproc == 0) 
         call f_err_throw('The constant electric field is not allowed for Fully Periodic BC.', &
              err_name='BIGDFT_RUNTIME_ERROR')
@@ -2631,7 +2633,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
         !'The constant electric field is allowed only for Free and Surfaces BC'
         !stop
         !constant electric field allowed for surface BC only normal to the surface
-     elseif (dpbox%geocode == 'S' .and. (elecfield(1) /= 0.0_gp .or. elecfield(3) /= 0.0_gp) ) then
+     elseif (cell_geocode(dpbox%mesh) == 'S' .and. (elecfield(1) /= 0.0_gp .or. elecfield(3) /= 0.0_gp) ) then
         !if (iproc == 0) 
         call f_err_throw('Only normal constant electric field (Ex=Ez=0) is allowed for Surface BC.', &
              err_name='BIGDFT_RUNTIME_ERROR')
@@ -2927,6 +2929,7 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,npot_ion,pot_ion)
   use multipole, only: gaussian_density
   use bounds, only: ext_buffers
   use pseudopotentials, only: psp_dict_fill_all
+  use box, only: cell_periodic_dims
   implicit none
   !Arguments
   integer, intent(in) :: iproc, npot_ion
@@ -2951,6 +2954,7 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,npot_ion,pot_ion)
   real(gp) :: ehart
   type(atoms_data) :: at
   type(dictionary), pointer :: dict
+  logical, dimension(3) :: peri
   real(dp), dimension(2) :: charges_mpi
   real(dp), dimension(:), allocatable :: potion_corr
   real(dp), dimension(:), allocatable  :: mpx,mpy,mpz
@@ -2963,12 +2967,12 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,npot_ion,pot_ion)
 
   n3pi = dpbox%n3pi
   i3s = dpbox%i3s + dpbox%i3xcsh
-  hxh = dpbox%hgrids(1)
-  hyh = dpbox%hgrids(2)
-  hzh = dpbox%hgrids(3)
-  n1i=dpbox%ndims(1)
-  n2i=dpbox%ndims(2)
-  n3i=dpbox%ndims(3)
+  hxh = dpbox%mesh%hgrids(1)
+  hyh = dpbox%mesh%hgrids(2)
+  hzh = dpbox%mesh%hgrids(3)
+  n1i=dpbox%mesh%ndims(1)
+  n2i=dpbox%mesh%ndims(2)
+  n3i=dpbox%mesh%ndims(3)
   
 
   if (iproc.eq.0) then
@@ -3006,14 +3010,15 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,npot_ion,pot_ion)
   ! Ionic energy (can be calculated for all the processors)
 
   !Creates charge density arising from the ionic PSP cores
-  call f_zero(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi,pot_ion(1))
+  call f_zero(dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3pi,pot_ion(1))
 
 
   if (.not. use_iterator) then
+     peri=cell_periodic_dims(dpbox%mesh)
      !conditions for periodicity in the three directions
-     perx=(dpbox%geocode /= 'F')
-     pery=(dpbox%geocode == 'P')
-     perz=(dpbox%geocode /= 'F')
+     perx=peri(1)!(dpbox%geocode /= 'F')
+     pery=peri(2)!(dpbox%geocode == 'P')
+     perz=peri(3)!(dpbox%geocode /= 'F')
 
      !Calculate external buffers for each direction
      call ext_buffers(perx,nbl1,nbr1)
@@ -3233,7 +3238,7 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,npot_ion,pot_ion)
 
      if (check_potion) then
         !if (iproc == 0) write(*,'(1x,a)',advance='no') 'Check the ionic potential...'
-        potion_corr = f_malloc0(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi,id='potion_corr')
+        potion_corr = f_malloc0(dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3pi,id='potion_corr')
 
         !call to_zero(grid%n1i*grid%n2i*n3pi,potion_corr)
 

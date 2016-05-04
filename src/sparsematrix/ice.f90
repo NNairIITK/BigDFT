@@ -712,7 +712,6 @@ module ice
       if (present(ice_objx)) then
           ice_obj => ice_objx
       else
-          allocate(ice_obj)
           !@ JUST FOR THE MOMENT.... ########################
                ice_obj_%ef = f_malloc0_ptr(ovrlp_smat%nspin,id='(ice_obj_%ef)')
                ice_obj_%evlow = f_malloc0_ptr(ovrlp_smat%nspin,id='ice_obj_%evlow')

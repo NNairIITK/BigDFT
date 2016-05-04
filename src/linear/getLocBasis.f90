@@ -102,7 +102,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       do jproc=0,nproc-1
           n3p(jproc) = max(denspot%dpbox%nscatterarr(jproc,2),1)
       end do
-      call start_onesided_communication(iproc, nproc, denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
+      call start_onesided_communication(iproc, nproc, denspot%dpbox%mesh%ndims(1), denspot%dpbox%mesh%ndims(2), &
            n3p, denspot%rhov, &
            tmb%ham_descr%comgp%nrecvbuf*tmb%ham_descr%comgp%nspin, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, &
            tmb%ham_descr%lzd)
@@ -908,7 +908,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   do jproc=0,nproc-1
       n3p(jproc) = max(denspot%dpbox%nscatterarr(jproc,2),1)
   end do
-  call start_onesided_communication(iproc, nproc, denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
+  call start_onesided_communication(iproc, nproc, denspot%dpbox%mesh%ndims(1), denspot%dpbox%mesh%ndims(2), &
        n3p, denspot%rhov, &
        tmb%ham_descr%comgp%nrecvbuf*tmb%ham_descr%comgp%nspin, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, &
        tmb%ham_descr%lzd)

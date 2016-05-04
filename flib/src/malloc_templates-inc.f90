@@ -263,6 +263,25 @@ subroutine f_free_str(length,array)
   include 'deallocate-inc.f90' 
 end subroutine f_free_str
 
+subroutine ll1_all(array,m)
+  use metadata_interfaces, metadata_address => getl1
+  implicit none
+  type(malloc_information_all), intent(in) :: m
+  logical(f_byte), dimension(:), allocatable, intent(inout) :: array
+  include 'allocate-profile-inc.f90' 
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine ll1_all
+
+subroutine ll1_all_free(array)
+  use metadata_interfaces, metadata_address => getl1
+  implicit none
+  logical(f_byte), dimension(:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  include 'deallocate-inc.f90' 
+end subroutine ll1_all_free
+
 
 subroutine l1_all(array,m)
   use metadata_interfaces, metadata_address => getl1

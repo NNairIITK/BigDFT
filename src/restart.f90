@@ -108,7 +108,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
   tz=0.0_gp
 displ=0.0_gp
   do iat=1,at%astruct%nat
-    displ=displ+minimum_distance(mesh,rxyz(:,iat),rxyz_old(:,iat))**2
+    displ=displ+distance(mesh,rxyz(:,iat),rxyz_old(:,iat))**2
     !  tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
     !  ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
     !  tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2

@@ -87,14 +87,12 @@ module locregs
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
 
-
   public :: nullify_locreg_descriptors,locreg_null
   public :: deallocate_locreg_descriptors,deallocate_wfd
   public :: allocate_wfd,copy_locreg_descriptors,copy_grid_dimensions,nullify_wfd
   public :: check_overlap,check_overlap_cubic_periodic,check_overlap_from_descriptors_periodic
   public :: check_whether_bounds_overlap
   public :: get_extent_of_overlap
-
 
   interface check_whether_bounds_overlap
     module procedure check_whether_bounds_overlap_int
@@ -106,9 +104,7 @@ module locregs
     module procedure get_extent_of_overlap_long
   end interface get_extent_of_overlap
 
-
 contains
-  
 
   !constructors
   pure function convolutions_bounds_null() result(bounds)

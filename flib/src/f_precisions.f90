@@ -44,6 +44,10 @@ module f_precisions
   type(f_parameter), parameter :: f_0=f_parameter(c_0)
   type(f_parameter), parameter :: f_1=f_parameter(c_1)
 
+  !bytes representation of true and false
+  logical(f_byte), parameter :: f_T=.true._f_byte
+  logical(f_byte), parameter :: f_F=.false._f_byte
+
   !> function to localize the address of anything
   integer(f_address), external :: f_loc
 

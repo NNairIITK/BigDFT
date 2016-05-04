@@ -149,7 +149,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
      if (scf_mode .hasattr. 'MIXING') then
         if (denspot%mix%kind == AB7_MIXING_DENSITY) then
            call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
-                denspot%rhov,itrp,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                denspot%rhov,itrp,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
                 atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&
                 rpnrm,denspot%dpbox%nscatterarr)
 
@@ -180,17 +180,17 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
         do ispin=1,wfn%orbs%nspin
            call vcopy(denspot%dpbox%ndimpot,&
                 denspot%rhov(irhotot_add),1,denspot%rhov(irho_add),1)
-           irhotot_add=irhotot_add+denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d
-           irho_add=irho_add+denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
+           irhotot_add=irhotot_add+denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3d
+           irho_add=irho_add+denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3p
         end do
      end if
 
      if(wfn%orbs%nspinor==4) then
         !this wrapper can be inserted inside the XC_potential routine
         call PSolverNC(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
-             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+             denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
              denspot%dpbox%n3d,denspot%xc,&
-             denspot%dpbox%hgrids,&
+             denspot%dpbox%mesh%hgrids,&
              denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,&
              energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
      else
@@ -198,8 +198,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
         !!           denspot%rhov denspot%rhov+2.e-7   STEFAN Goedecker
         call XC_potential(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
              denspot%pkernel%mpi_env%mpi_comm,&
-             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
-             denspot%dpbox%hgrids,&
+             denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),denspot%xc,&
+             denspot%dpbox%mesh%hgrids,&
              denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
         call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn, iproc, nproc)
 
@@ -239,7 +239,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
      if (scf_mode .hasattr. 'MIXING') then
         if (denspot%mix%kind == AB7_MIXING_POTENTIAL) then
            call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
-                denspot%rhov,itrp,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                denspot%rhov,itrp,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
                 atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&!volume should be used
                 rpnrm,denspot%dpbox%nscatterarr)
            if (iproc == 0 .and. itrp > 1) then
@@ -629,7 +629,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
            !the psi should be transformed in real space, do it within the orbital basis iterators
            psir = f_malloc0([Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, orbs%norbp],id='psir')
            !initialize the orbital basis object, for psi and hpsi
-           call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd)
+           call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd,id='LocalHamiltonianApplication')
            !iterate over the orbital_basis
            psi_it=orbital_basis_iterator(psi_ob)
            do while(ket_next_locreg(psi_it))
@@ -780,11 +780,6 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
      !call timing(iproc,'ApplyLocPotKin','OF')
   else
 
-!!!here we can branch into the new ket-based application of the hamiltonian
-     !initialize the orbital basis object, for psi and hpsi
-     call orbital_basis_associate(psi_ob,orbs=orbs,confdatarr=confdatarr,&
-          phis_wvl=psi,Lzd=Lzd)
-
 
 !!$      !temporary allocation
 !!$      allocate(fake_pot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin),stat=i_stat)
@@ -796,6 +791,11 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
      !print *,'here',ipotmethod,associated(pkernelSIC)
      if (PotOrKin==1) then ! both
         call timing(iproc,'ApplyLocPotKin','ON')
+!!!here we can branch into the new ket-based application of the hamiltonian
+        !initialize the orbital basis object, for psi and hpsi
+        call orbital_basis_associate(psi_ob,orbs=orbs,confdatarr=confdatarr,&
+             phis_wvl=psi,Lzd=Lzd,id='LochamPotKin')
+
         energs%ekin=0.0_gp
         energs%epot=0.0_gp
 
@@ -938,7 +938,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   call timing(iproc,'ApplyProj     ','ON')
 
   !initialize the orbital basis object, for psi and hpsi
-  call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd)
+  call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd,id='nonlocalham')
   !should we calculate the density matrix we have to zero it
   if (associated(nl%iagamma)) call f_zero(nl%gamma_mmp)
   !here we might rework the value of gamma in case we would like to apply some extra
@@ -3578,7 +3578,7 @@ subroutine paw_compute_dij(paw, at, denspot, vxc)
   type(paw_objects), intent(inout) :: paw
   type(atoms_data), intent(in) :: at
   type(DFT_local_fields), intent(in) :: denspot
-  real(gp), dimension(denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%n3p, &
+  real(gp), dimension(denspot%dpbox%mesh%ndims(1) * denspot%dpbox%mesh%ndims(2) * denspot%dpbox%n3p, &
        & denspot%dpbox%nrhodim), intent(in) :: vxc
 
   integer, parameter :: cplex = 1, pawprtvol = 0, pawspnorb = 0, pawxcdev = 1, enunit = 0, ipert = 0
@@ -3592,9 +3592,9 @@ subroutine paw_compute_dij(paw, at, denspot, vxc)
   call f_zero(gprimd)
   xred = f_malloc((/ 3, at%astruct%nat /), id = "xred")
 
-  nfft = denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%n3p
-  nfftot = product(denspot%dpbox%ndims)
-  ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
+  nfft = denspot%dpbox%mesh%ndims(1) * denspot%dpbox%mesh%ndims(2) * denspot%dpbox%n3p
+  nfftot = product(denspot%dpbox%mesh%ndims)
+  ucvol = product(denspot%dpbox%mesh%ndims) *denspot%dpbox%mesh%volume_element
 
   call pawdij(cplex, enunit, gprimd, ipert, at%astruct%nat, at%astruct%nat, nfft, nfftot, &
        & denspot%dpbox%nrhodim, at%astruct%ntypes, paw%paw_an, paw%paw_ij, at%pawang, &

@@ -132,6 +132,7 @@ module multipole
       use yaml_output
       use io, only: plot_density
       use bounds, only: geocode_buffers
+      use box, only: cell_periodic_dims
       implicit none
       
       ! Calling arguments
@@ -156,6 +157,7 @@ module multipole
       integer :: i1, i2, i3, ii1, ii2, ii3, impl, l, m, ii, mm, nthread, ithread, ll
       real(dp) :: x, y, z, rnrm1, rnrm2, rnrm3, rnrm5, mp, ehart_ps, tt, ttt, gg, hhh, tt0, tt1, tt2
       real(dp),dimension(3) :: r
+      logical, dimension(3) :: peri
       real(kind=8) :: dr
       real(dp),dimension(:,:,:),allocatable :: density, density_cores
       real(dp),dimension(:,:,:,:),allocatable :: density_loc, potential_loc
@@ -305,17 +307,22 @@ module multipole
           !nzatom = f_malloc(ep%nmpl,id='nzatom')
           !nelpsp = f_malloc(ep%nmpl,id='nelpsp')
           rloc = f_malloc(ep%nmpl,id='rloc')
-         perx = (denspot%dpbox%geocode /= 'F')
-         pery = (denspot%dpbox%geocode == 'P')
-         perz = (denspot%dpbox%geocode /= 'F')
+!!$         perx = (denspot%dpbox%geocode /= 'F')
+!!$         pery = (denspot%dpbox%geocode == 'P')
+!!$         perz = (denspot%dpbox%geocode /= 'F')
+         peri=cell_periodic_dims(denspot%dpbox%mesh)
+         perx =peri(1)
+         pery =peri(2)
+         perz =peri(3)
+
          n3pi = denspot%dpbox%n3pi
          i3s = denspot%dpbox%i3s + denspot%dpbox%i3xcsh
-         hxh = denspot%dpbox%hgrids(1)
-         hyh = denspot%dpbox%hgrids(2)
-         hzh = denspot%dpbox%hgrids(3)
-         n1i = denspot%dpbox%ndims(1)
-         n2i = denspot%dpbox%ndims(2)
-         n3i = denspot%dpbox%ndims(3)
+         hxh = denspot%dpbox%mesh%hgrids(1)
+         hyh = denspot%dpbox%mesh%hgrids(2)
+         hzh = denspot%dpbox%mesh%hgrids(3)
+         n1i = denspot%dpbox%mesh%ndims(1)
+         n2i = denspot%dpbox%mesh%ndims(2)
+         n3i = denspot%dpbox%mesh%ndims(3)
          call ext_buffers(perx,nbl1,nbr1)
          call ext_buffers(pery,nbl2,nbr2)
          call ext_buffers(perz,nbl3,nbr3)
@@ -387,12 +394,12 @@ module multipole
           ! Calculate the density only within a sphere of radius rmax
           rmax = f_malloc(ep%nmpl,id='rmax')
           do impl=1,ep%nmpl
-              !rmax(impl) = min(denspot%dpbox%ndims(1)*0.25d0*hx, &
-              !                 denspot%dpbox%ndims(2)*0.25d0*hy, &
-              !                 denspot%dpbox%ndims(3)*0.25d0*hz)
-              rmax(impl) = min((denspot%dpbox%ndims(1)-31)*0.25d0*hx, &
-                               (denspot%dpbox%ndims(2)-31)*0.25d0*hy, &
-                               (denspot%dpbox%ndims(3)-31)*0.25d0*hz)
+              !rmax(impl) = min(denspot%dpbox%mesh%ndims(1)*0.25d0*hx, &
+              !                 denspot%dpbox%mesh%ndims(2)*0.25d0*hy, &
+              !                 denspot%dpbox%mesh%ndims(3)*0.25d0*hz)
+              rmax(impl) = min((denspot%dpbox%mesh%ndims(1)-31)*0.25d0*hx, &
+                               (denspot%dpbox%mesh%ndims(2)-31)*0.25d0*hy, &
+                               (denspot%dpbox%mesh%ndims(3)-31)*0.25d0*hz)
           end do
     
     
@@ -1965,7 +1972,7 @@ module multipole
       ! Transform back to wavelets
       sphi2 = f_malloc0(nphi,id='sphi2')
 
-      call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=phi2,Lzd=Lzd)
+      call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=phi2,Lzd=Lzd,id='calculate_multipole_matrix')
 
       call apply_Slm(l,m,smmd%geocode,hgrids,acell,psi_ob,nphi,sphi2,&
            integrate_in_sphere,centers=locregcenter)
@@ -1976,344 +1983,7 @@ module multipole
 
       call f_free(sphi2)
 
-
-!!!
-!!!!!!!
-!!!      ! Conditions for periodicity
-!!!      perx=(smat%geocode /= 'F')
-!!!      pery=(smat%geocode == 'P')
-!!!      perz=(smat%geocode /= 'F')
-!!!      factor_normalization = sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3))
-!!!            
-!!!
-!!!      !first search the maximum sizes of psir array
-!!!      npsir=1
-!!!      psi_it=orbital_basis_iterator(psi_ob)
-!!!      do while(ket_next_locreg(psi_it))
-!!!         npsir=max(npsir,psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i)
-!!!      end do
-!!!
-!!!      phi2r = f_malloc(npsir,id='phi2r')
-!!!      sphi2r = f_malloc(npsir,id='sphi2r')
-!!!
-!!!      !iterate over the orbital_basis
-!!!      psi_it=orbital_basis_iterator(psi_ob)
-!!!      do while(ket_next_locreg(psi_it))
-!!!         call initialize_work_arrays_sumrho(1,[psi_it%lr],.true.,w)
-!!!         rmax = min(psi_it%lr%d%n1*0.5d0*hgrids(1),psi_it%lr%d%n2*0.5d0*hgrids(2),&
-!!!              psi_it%lr%d%n3*0.5d0*hgrids(3))+1.e-3_gp*maxval(hgrids)
-!!!         call geocode_buffers(psi_it%lr%geocode, lzd%glr%geocode, nl1, nl2, nl3)
-!!!         do while(ket_next(psi_it,ilr=psi_it%ilr))
-!!!            if (integrate_in_sphere) call f_zero(sphi2r)
-!!!            call daub_to_isf(psi_it%lr,w,psi_it%phi_wvl,phi2r)
-!!!
-!!!!!$            norm = 0.d0
-!!!            do i3=1,psi_it%lr%d%n3i
-!!!               ii3 = psi_it%lr%nsi3 + i3 - nl3 - 1
-!!!               z=closest_image(ii3*0.5d0*hgrids(3)-locregcenter(3,psi_it%ilr),lzd%glr%d%n3i*0.5d0*hgrids(3),perz)
-!!!               do i2=1,psi_it%lr%d%n2i
-!!!                  ii2 = psi_it%lr%nsi2 + i2 - nl2 - 1
-!!!                  y=closest_image(ii2*0.5d0*hgrids(2)-locregcenter(2,psi_it%ilr),lzd%glr%d%n2i*0.5d0*hgrids(2),pery)
-!!!                  do i1=1,psi_it%lr%d%n1i
-!!!                     ii1 = psi_it%lr%nsi1 + i1 - nl1 - 1
-!!!                     x=closest_image(ii1*0.5d0*hgrids(1)-locregcenter(1,psi_it%ilr),lzd%glr%d%n1i*0.5d0*hgrids(1),perx)
-!!!                     ind = (i3-1)*psi_it%lr%d%n2i*psi_it%lr%d%n1i + (i2-1)*psi_it%lr%d%n1i + i1
-!!!                     if (integrate_in_sphere) then
-!!!                        if (x**2+y**2+z**2>rmax**2) cycle
-!!!                     end if
-!!!                     tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
-!!!                     tt = tt*sqrt(4.d0*pi/real(2*l+1,gp))
-!!!                     sphi2r(ind) = tt*phi2r(ind)
-!!!                     !normalization of a solid harmonic within a sphere of radius rmax... hopefully correct
-!!!!!$                     norm = norm + (tt*factor_normalization)**2*&
-!!!!!$                          real((2*l+3)*(2*l+1),kind=8)/(4.d0*pi*rmax**(2*l+3)) 
-!!!                  end do
-!!!               end do
-!!!            end do
-!!!            sphi_ptr => ob_ket_map(sphi2,psi_it)
-!!!            call isf_to_daub(psi_it%lr, w, sphi2r, sphi_ptr)
-!!!         end do
-!!!         !deallocations of work arrays
-!!!         call deallocate_work_arrays_sumrho(w)
-!!!      end do
-!!!      call f_free(phi2r)
-!!!      call f_free(sphi2r)
-!!!
-!!!      call orbital_basis_release(psi_ob)
-!!!
-!!!      call overlap_matrix(phi1,nphi,lzd,orbs,collcom,smat,multipole_matrix,sphi2)      
-      
-!!$
-!!$      ! Transform the support functions to real space
-!!$      phi2r = f_malloc0(max(nphir,1),id='phi2r')
-!!$      sphi2r = f_malloc0(max(nphir,1),id='sphi2r')
-!!$      ist=1
-!!$      istr=1
-!!$      do iorb=1,orbs%norbp
-!!$          iiorb=orbs%isorb+iorb
-!!$          ilr=orbs%inwhichlocreg(iiorb)
-!!$          call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.true.,w)
-!!$          call daub_to_isf(lzd%llr(ilr), w, phi2(ist), phi2r(istr))
-!!$          !write(*,*) 'iorb, n, tt', iorb, &
-!!$          !     lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, &
-!!$          !     lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f, &
-!!$          !     ddot(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, phi2r(istr), 1, phi2r(istr), 1), &
-!!$          !     ddot(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, phi2(ist), 1, phi2(ist), 1)
-!!$          call deallocate_work_arrays_sumrho(w)
-!!$          !call deallocate_work_arrays_sumrho(w)
-!!$          ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
-!!$          istr = istr + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-!!$      end do
-!!$      !!do i=1,ist-1
-!!$      !!    write(556,*) i, phi_ortho(i)
-!!$      !!end do
-!!$
-!!$      !do i=1,nphir
-!!$      !    write(700,*) i, phi2r(i)
-!!$      !end do
-!!$      !if(istr/=collcom_sr%ndimpsi_c+1) then
-!!$      !    write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=collcom_sr%ndimpsi_c+1'
-!!$      !    stop
-!!$      !end if
-!!$
-!!$      !write(*,*) 'after daub_to_isf'
-!!$
-!!$      ! Conditions for periodicity
-!!$      perx=(smat%geocode /= 'F')
-!!$      pery=(smat%geocode == 'P')
-!!$      perz=(smat%geocode /= 'F')
-!!$      if (perx) then
-!!$          j1s = -1
-!!$          j1e = 1
-!!$      else
-!!$          j1s = 0
-!!$          j1e = 0
-!!$      end if
-!!$      if (pery) then
-!!$          j2s = -1
-!!$          j2e = 1
-!!$      else
-!!$          j2s = 0
-!!$          j2e = 0
-!!$      end if
-!!$      if (perz) then
-!!$          j3s = -1
-!!$          j3e = 1
-!!$      else
-!!$          j3s = 0
-!!$          j3e = 0
-!!$      end if
-!!$
-!!$
-!!$
-!!$      ! Apply the spherical harmonic
-!!$      ist = 0
-!!$      do iorb=1,orbs%norbp
-!!$          iiorb = orbs%isorb + iorb
-!!$          ilr = orbs%inwhichlocreg(iiorb)
-!!$          !rmax = min(lzd%llr(ilr)%d%n1i*0.25d0*hgrids(1),lzd%llr(ilr)%d%n2i*0.25d0*hgrids(2),lzd%llr(ilr)%d%n3i*0.25d0*hgrids(3))
-!!$          rmax = min(lzd%llr(ilr)%d%n1*0.5d0*hgrids(1),lzd%llr(ilr)%d%n2*0.5d0*hgrids(2),lzd%llr(ilr)%d%n3*0.5d0*hgrids(3))
-!!$          !write(*,*) 'iorb, ilr, rmax', iorb, ilr, rmax
-!!$          !write(*,*) 'zmin, zmax, locregcenter(3)',  (lzd%llr(ilr)%nsi3+1-14-1)*0.5d0*hgrids(3), &
-!!$          !            (lzd%llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-14-1)*0.5d0*hgrids(3), locregcenter(3,ilr)
-!!$          !write(*,*) 'ymin, ymax, locregcenter(2)',  (lzd%llr(ilr)%nsi2+1-14-1)*0.5d0*hgrids(2), &
-!!$          !            (lzd%llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-14-1)*0.5d0*hgrids(2), locregcenter(2,ilr)
-!!$          !write(*,*) 'xmin, xmax, locregcenter(1)',  (lzd%llr(ilr)%nsi1+1-14-1)*0.5d0*hgrids(1), &
-!!$          !            (lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-14-1)*0.5d0*hgrids(1), locregcenter(1,ilr)
-!!$
-!!$          call geocode_buffers(lzd%Llr(ilr)%geocode, lzd%glr%geocode, nl1, nl2, nl3)
-!!$
-!!$          ! Calculate the boundaries:
-!!$          ! - free BC: entire box
-!!$          ! - periodic BC: half of the box size, with periodic wrap around
-!!$          if (.not.perx) then
-!!$              is1 = 1
-!!$              ie1 = lzd%llr(ilr)%d%n1i
-!!$          else
-!!$              nd = (lzd%llr(ilr)%d%n1i + 1)/2 - 1
-!!$              nu = lzd%llr(ilr)%d%n1i - nd -1
-!!$              !write(*,*) 'nu, nd, lzd%llr(ilr)%d%n1i',nu, nd, lzd%llr(ilr)%d%n1i
-!!$              if (nu+nd+1/=lzd%llr(ilr)%d%n1i) call f_err_throw('wrong values of nu and nd')
-!!$              ii1 = nint(locregcenter(1,ilr)/(0.5d0*hgrids(1)))
-!!$              is1 = ii1 - nd + nl1 + 1
-!!$              ie1 = ii1 + nu + nl1 + 1
-!!$              if (ie1-is1+1/=lzd%llr(ilr)%d%n1i) call f_err_throw('wrong values of is1 and ie1')
-!!$          end if
-!!$          if (.not.pery) then
-!!$              is2 = 1
-!!$              ie2 = lzd%llr(ilr)%d%n2i
-!!$          else
-!!$              nd = (lzd%llr(ilr)%d%n2i + 1)/2 - 1
-!!$              nu = lzd%llr(ilr)%d%n2i - nd -1
-!!$              if (nu+nd+1/=lzd%llr(ilr)%d%n2i) call f_err_throw('wrong values of nu and nd')
-!!$              ii2 = nint(locregcenter(2,ilr)/(0.5d0*hgrids(2)))
-!!$              is2 = ii2 - nd + nl2 + 1
-!!$              ie2 = ii2 + nu + nl2 + 1
-!!$              if (ie2-is2+1/=lzd%llr(ilr)%d%n2i) call f_err_throw('wrong values of is2 and ie2')
-!!$          end if
-!!$          if (.not.perz) then
-!!$              is3 = 1
-!!$              ie3 = lzd%llr(ilr)%d%n3i
-!!$          else
-!!$              nd = (lzd%llr(ilr)%d%n3i + 1)/2 - 1
-!!$              nu = lzd%llr(ilr)%d%n3i - nd -1
-!!$              if (nu+nd+1/=lzd%llr(ilr)%d%n3i) call f_err_throw('wrong values of nu and nd')
-!!$              ii3 = nint(locregcenter(3,ilr)/(0.5d0*hgrids(3)))
-!!$              is3 = ii3 - nd + nl3 + 1
-!!$              ie3 = ii3 + nu + nl3 + 1
-!!$              if (ie3-is3+1/=lzd%llr(ilr)%d%n3i) call f_err_throw('wrong values of is3 and ie3')
-!!$          end if
-!!$
-!!$          !!write(*,*) 'perx', perx
-!!$          !!write(*,*) 'pery', pery
-!!$          !!write(*,*) 'perz', perz
-!!$
-!!$          !!write(*,*) 'iorb, is1, ie1, ii1, n1, is2, ie2, ii2, n2, is3, ie3, ii3, n3', &
-!!$          !!    iorb, is1, ie1, ii1, lzd%llr(ilr)%d%n1i, is2, ie2, ii2, lzd%llr(ilr)%d%n2i, is3, ie3, ii3, lzd%llr(ilr)%d%n3i
-!!$
-!!$
-!!$          norm = 0.d0
-!!$          factor_normalization = sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3))
-!!$          !do i3=is3,ie3
-!!$          do i3=1,lzd%llr(ilr)%d%n3i
-!!$              !j3 = i3 - is3 + 1
-!!$              !i3mod = modulo(i3-1,lzd%llr(ilr)%d%n3i) + 1
-!!$              ii3 = lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
-!!$              !z = ii3*0.5d0*hgrids(3) - locregcenter(3,ilr)
-!!$              ! Search the closest locregcenter (might be in a periodically replicated cell)
-!!$              z = huge(z)
-!!$              do j3=j3s,j3e
-!!$                  dr = (ii3+j3*lzd%glr%d%n3i)*0.5d0*hgrids(3) - locregcenter(3,ilr)
-!!$                  if (abs(dr)<abs(z)) z = dr
-!!$              end do
-!!$              !write(*,*) 'is3, ie3, n3, i3, i3mod, ii3, z', is3, ie3, lzd%llr(ilr)%d%n3i, i3, i3mod, ii3, z
-!!$              !write(*,*) 'is3, ie3, n3, i3, ii3, z', is3, ie3, lzd%llr(ilr)%d%n3i, i3, ii3, z
-!!$              !do i2=is2,ie2
-!!$              do i2=1,lzd%llr(ilr)%d%n2i
-!!$                  !j2 = i2 - is2 + 1
-!!$                  !i2mod = modulo(i2-1,lzd%llr(ilr)%d%n2i) + 1
-!!$                  ii2 = lzd%llr(ilr)%nsi2 + i2 - nl2 - 1
-!!$                  !y = ii2*0.5d0*hgrids(2) - locregcenter(2,ilr)
-!!$                  ! Search the closest locregcenter (might be in a periodically replicated cell)
-!!$                  y = huge(y)
-!!$                  do j2=j2s,j2e
-!!$                      dr = (ii2+j2*lzd%glr%d%n2i)*0.5d0*hgrids(2) - locregcenter(2,ilr)
-!!$                      if (abs(dr)<abs(y)) y = dr
-!!$                  end do
-!!$                  !do i1=is1,ie1
-!!$                  do i1=1,lzd%llr(ilr)%d%n1i
-!!$                      !j1 = i1 - is1 + 1
-!!$                      !i1mod = modulo(i1-1,lzd%llr(ilr)%d%n1i) + 1
-!!$                      ii1 = lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
-!!$                      !x = ii1*0.5d0*hgrids(1) - locregcenter(1,ilr)
-!!$                      x = huge(x)
-!!$                      do j1=j1s,j1e
-!!$                          dr = (ii1+j1*lzd%glr%d%n1i)*0.5d0*hgrids(1) - locregcenter(1,ilr)
-!!$                          if (abs(dr)<abs(x)) x = dr
-!!$                      end do
-!!$                      !ind = (i3mod-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2mod-1)*lzd%llr(ilr)%d%n1i + i1mod
-!!$                      !ind = (j3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (j2-1)*lzd%llr(ilr)%d%n1i + j1
-!!$                      ind = (i3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2-1)*lzd%llr(ilr)%d%n1i + i1
-!!$                      !ind = (i3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2-1)*lzd%llr(ilr)%d%n1i + i1
-!!$                      !!if (i1/=i1mod .or. i2/=i2mod .or. i3/=i3mod) then
-!!$                      !!    write(*,*) 'iproc, is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod', &
-!!$                      !!                iproc, is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod
-!!$                      !!end if
-!!$                      !!if (iorb==orbs%norbp) then
-!!$                      !!    write(bigdft_mpi%iproc+20,*) 'is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod', &
-!!$                      !!                                  is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod
-!!$                      !!    write(bigdft_mpi%iproc+30,*) 'ind',ind
-!!$                      !!end if
-!!$                      if (integrate_in_sphere) then
-!!$                          if (x**2+y**2+z**2>rmax**2) cycle
-!!$                      end if
-!!$                      tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
-!!$                      tt = tt*sqrt(4.d0*pi/real(2*l+1,kind=8))
-!!$                      sphi2r(ist+ind) = tt*phi2r(ist+ind)
-!!$                      !!if (iorb==orbs%norbp) then
-!!$                      !!    write(bigdft_mpi%iproc+40,*) 'is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod', &
-!!$                      !!                                  is1, ie1, is2, ie2, is3, ie3, i1, i2, i3, i1mod, i2mod, i3mod
-!!$                      !!    write(bigdft_mpi%iproc+50,*) 'ind, phi2r(ist+ind), sphi2r(ist+ind)',ind, phi2r(ist+ind), sphi2r(ist+ind)
-!!$                      !!end if
-!!$                      !write(*,*) 'iorb, i1, i1, i2, tt, phi2r', iorb, i1, i2, i3, tt, phi2r(ist+ind)
-!!$                      ! For the calculation of the norm, do the integration always only in the sphere
-!!$                      if (x**2+y**2+z**2>rmax**2) cycle
-!!$                      norm = norm + (tt*factor_normalization)**2*&
-!!$                          real((2*l+3)*(2*l+1),kind=8)/(4.d0*pi*rmax**(2*l+3)) !normalization of a solid harmonic within a sphere of radius rmax... hopefully correct
-!!$                      !write(*,*) 'iorb, i1, i2, i3, tt, phi', iorb, i1, i2, i3, tt, phir(ist+ind)
-!!$                  end do
-!!$              end do
-!!$          end do
-!!$          ist = ist + ind
-!!$      end do
-!!$
-!!$
-!!$
-!!$      ! Transform back to wavelets
-!!$      sphi2 = f_malloc0(nphi,id='sphi2')
-!!$      ist=1
-!!$      istr=1
-!!$      do iorb=1,orbs%norbp
-!!$          iiorb=orbs%isorb+iorb
-!!$          ilr=orbs%inwhichlocreg(iiorb)
-!!$          call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.true.,w)
-!!$          call isf_to_daub(lzd%llr(ilr), w, sphi2r(istr), sphi2(ist))
-!!$          !call isf_to_daub(lzd%llr(ilr), w, phi2r(istr), sphi2(ist))
-!!$          call deallocate_work_arrays_sumrho(w)
-!!$          !write(*,*) 'iorb, n, firsts, tt', iorb, &
-!!$          !     lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, &
-!!$          !     phi2r(istr), sphi2r(istr), &
-!!$          !     ddot(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, phi2r(istr), 1, sphi2r(istr), 1), &
-!!$          !     ddot(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, phi2r(istr), 1, phi2r(istr), 1), &
-!!$          !     ddot(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, phi1(ist), 1, sphi2(ist), 1)
-!!$          !do i=1,lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-!!$          !    write(*,*) i, phir(istr+i-1), sphir(istr+i-1)
-!!$          !end do
-!!$          ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
-!!$          istr = istr + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-!!$      end do
-!!$      !if(istr/=collcom_sr%ndimpsi_c+1) then
-!!$      !    write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=collcom_sr%ndimpsi_c+1'
-!!$      !    stop
-!!$      !end if
-
-!!$      !write(*,*) 'after isf_to_daub'
-!!$
-!!$      call f_free(phi2r)
-!!$      call f_free(sphi2r)
-!!$
-!!$
-!!$      ! Calculate the scalar products, i.e. the matrix <phi_ab|S_lm|phi_ab>
-!!$      phi1t_c = f_malloc(collcom%ndimind_c,id='phi1t_c')
-!!$      phi1t_f = f_malloc(7*collcom%ndimind_f,id='phi1t_f')
-!!$      sphi2t_c = f_malloc(collcom%ndimind_c,id='sphit2_c')
-!!$      sphi2t_f = f_malloc(7*collcom%ndimind_f,id='sphit2_f')
-!!$      call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
-!!$           TRANSPOSE_FULL, phi1, phi1t_c, phi1t_f, lzd)
-!!$      call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
-!!$           TRANSPOSE_FULL, sphi2, sphi2t_c, sphi2t_f, lzd)
-!!$      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
-!!$           phi1t_c, sphi2t_c, phi1t_f, sphi2t_f, smat, multipole_matrix)
-!!$      !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
-!!$      !     phi1t_c, phi1t_c, phi1t_f, phi1t_f, smat, multipole_matrix)
-!!$
-!!$      !!do i=1,size(multipole_matrix%matrix_compr)
-!!$      !!    write(*,*) 'i, val', i, multipole_matrix%matrix_compr(i)
-!!$      !!end do
-!!$
-!!$      !write(*,*) 'after overlap'
-!!$
-!!$      call f_free(phi1t_c)
-!!$      call f_free(phi1t_f)
-!!$      call f_free(sphi2t_c)
-!!$      call f_free(sphi2t_f)
-!!$
-!!$      call f_free(sphi2)
-
       call f_release_routine()
-
-      !!call mpi_finalize(ii)
-      !!stop
 
     end subroutine calculate_multipole_matrix
 
@@ -2366,6 +2036,7 @@ module multipole
       !use Poisson_Solver, only: H_potential
       use Poisson_Solver, except_dp => dp, except_gp => gp
       use foe_base, only: foe_data
+      use box
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, lmax, ixc
@@ -2433,12 +2104,13 @@ module multipole
       integer :: is1, ie1, is2, ie2, is3, ie3, ioffset, icheck
       real(kind=8),dimension(:,:,:),allocatable :: rho_exact, rho_mp, pot_exact, pot_mp
       integer,parameter :: ncheck = 5
-      real(kind=8),dimension(ncheck),parameter :: check_threshold = [ 1.d-6 , &
-                                                                      1.d-5 , &
-                                                                      1.d-4 , &
-                                                                      1.d-3 , &
-                                                                      1.d-2]
+      real(kind=8),dimension(ncheck),parameter :: check_threshold = [ 1.d-12 , &
+                                                                      1.d-10 , &
+                                                                      1.d-8 , &
+                                                                      1.d-6 , &
+                                                                      1.d-4]
       real(kind=8),dimension(ncheck) :: charge_error, charge_total, potential_error, potential_total
+      type(cell) :: mesh
 
 
       call f_routine(id='multipole_analysis_driver')
@@ -2882,9 +2554,9 @@ module multipole
           test_pot = f_malloc((/size(denspot%V_ext,1),size(denspot%V_ext,2),size(denspot%V_ext,3)/),id='test_pot')
           if (iproc==0) call yaml_sequence_open('Checking the total multipoles based on the atomic multipoles')
           is1 = 1
-          ie1 = denspot%dpbox%ndims(1)
+          ie1 = denspot%dpbox%mesh%ndims(1)
           is2 = 1
-          ie2 = denspot%dpbox%ndims(2)
+          ie2 = denspot%dpbox%mesh%ndims(2)
           is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
           ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+&
                 denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
@@ -2917,11 +2589,11 @@ module multipole
               call dcopy(size(denspot%V_ext,1)*size(denspot%V_ext,2)*size(denspot%V_ext,3), &
                    denspot%V_ext(1,1,1,1), 1, test_pot(1,1,1), 1)
               call potential_from_charge_multipoles(iproc, nproc, at, denspot, ep_check, 1, &
-                   denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
+                   denspot%dpbox%mesh%ndims(1), 1, denspot%dpbox%mesh%ndims(2), &
                    denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
                    denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+&
                    denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
-                   denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), &
+                   denspot%dpbox%mesh%hgrids(1),denspot%dpbox%mesh%hgrids(2),denspot%dpbox%mesh%hgrids(3), &
                    shift, verbosity=0, ixc=ixc, lzd=lzd, pot=test_pot, &
                    rxyz=rxyz, dipole_total=dipole_check, quadrupole_total=quadrupole_check, &
                    all_norms_ok=all_norms_ok, &
@@ -2929,22 +2601,24 @@ module multipole
               if (.not. all_norms_ok) then
                   call f_err_throw('When checking the previously calculated multipoles, all norms should be ok')
               end if
-              dipole_check=dipole_check/Debye_AU!0.393430307_gp  ! au2debye              
+              dipole_check=dipole_check/Debye_AU  ! au2debye              
 
               !# NEW: compare the density and potential ##########################
               if (smatl%nspin/=1) then
                   call f_err_throw('Multipole analysis check not yet ready for nspin>1')
               end if
               ! Get the exact charge density
-              ioffset = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*&
+              ioffset = denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*&
                         denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,4)
               !write(*,*) 'MP: ioffset', ioffset
               call f_memcpy(n=(ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), &
                    src=denspot%rhov(ioffset+1), dest=rho_exact(is1,is2,is3))
               call f_memcpy(src=rho_exact, dest=pot_exact)
-              call H_potential('D',denspot%pkernel,pot_exact,denspot%V_ext,tt,0.0_dp,.true.,&
-                   quiet='yes')
-              call compare_charge_and_potential(iproc, is1, ie1, is2, ie2, is3, ie3, &
+!!$              call H_potential('D',denspot%pkernel,pot_exact,denspot%V_ext,tt,0.0_dp,.true.,&
+!!$                   quiet='yes')
+              call Electrostatic_Solver(denspot%pkernel,pot_exact,pot_ion=denspot%V_ext)
+              !mesh=cell_new(smmd%geocode,denspot%pkernel%ndims,denspot%pkernel%hgrids)
+              call compare_charge_and_potential(denspot%dpbox%bitp,&!iproc, is1, ie1, is2, ie2, is3, ie3, &
                    smmd%nat, &
                    rho_exact, rho_mp, pot_exact, pot_mp, denspot%pkernel, rxyz, &
                    ncheck, check_threshold, charge_error, charge_total, potential_error, potential_total)
@@ -2960,31 +2634,39 @@ module multipole
                   call yaml_map('Q matrix',quadrupole_check,fmt='(1es13.4)')
                   call yaml_map('trace',quadrupole_check(1,1)+quadrupole_check(2,2)+quadrupole_check(3,3),fmt='(es12.2)')
                   call yaml_mapping_close()
-                  call yaml_sequence_open('Density and potential check')
+                  call yaml_sequence_open('Average relative error of resulting potential in the Exterior region')
                   !call yaml_sequence_open('density threshold for check')
                   do icheck=1,ncheck
                       !call yaml_mapping_open('density threshold for check',check_threshold(icheck))
                       call yaml_sequence(advance='no')
-                      call yaml_mapping_open('density threshold for check is'//&
-                           &trim(yaml_toa(check_threshold(icheck),fmt='(es9.2)')))
-                      call yaml_mapping_open('rho',flow=.true.)
-                      call yaml_map('int(q-q_exact))',charge_error(icheck),fmt='(es10.3)')
-                      call yaml_map('int(q_exact)',charge_total(icheck),fmt='(es10.3)')
-                      call yaml_map('ratio',charge_error(icheck)/charge_total(icheck),fmt='(es10.3)')
-                      call yaml_mapping_close()
-                      call yaml_mapping_open('pot',flow=.true.)
-                      call yaml_map('int(V-V_exact))',potential_error(icheck),fmt='(es10.3)')
-                      call yaml_map('int(V_exact)',potential_total(icheck),fmt='(es10.3)')
-                      call yaml_map('ratio',potential_error(icheck)/potential_total(icheck),fmt='(es10.3)')
-                      call yaml_mapping_close()
+                      call yaml_mapping_open(flow=.true.)
+                      call yaml_map('Thr',check_threshold(icheck),fmt='(es9.1)')
+                      call yaml_map('Ext. Vol. %',charge_total(icheck)/&
+                           (denspot%dpbox%mesh%volume_element*product(real(denspot%dpbox%mesh%ndims,gp))),&
+                           fmt='(2pf5.1)')
+                      call yaml_map('int(V)',potential_total(icheck),fmt='(es10.3)')
+                      call yaml_map('Err %',potential_error(icheck)/potential_total(icheck),fmt='(2pf5.1)')
+                      call yaml_map('int(rho)',charge_error(icheck),fmt='(es10.3)')
+!!$                      !call yaml_mapping_open('density threshold for check is'//&
+!!$                      !     &trim(yaml_toa(check_threshold(icheck),fmt='(es9.2)')))
+!!$                      call yaml_mapping_open('rho',flow=.true.)
+!!$                      call yaml_map('int(q-q_exact))',charge_error(icheck),fmt='(es10.3)')
+!!$                      call yaml_map('int(q_exact)',charge_total(icheck),fmt='(es10.3)')
+!!$                      call yaml_map('ratio',charge_error(icheck)/charge_total(icheck),fmt='(es10.3)')
+!!$                      call yaml_mapping_close()
+!!$                      call yaml_mapping_open('pot',flow=.true.)
+!!$                      call yaml_map('int(V-V_exact))',potential_error(icheck),fmt='(es10.3)')
+!!$                      call yaml_map('int(V_exact)',potential_total(icheck),fmt='(es10.3)')
+!!$                      call yaml_map('ratio',potential_error(icheck)/potential_total(icheck),fmt='(es10.3)')
+!!$                      call yaml_mapping_close()
                       call yaml_mapping_close()
                   end do
                   call yaml_sequence_close()
                   !call yaml_mapping_close()
                   call yaml_mapping_close()
-                  call deallocate_external_potential_descriptors(ep_check)
-              end if
-          end do
+               end if
+               call deallocate_external_potential_descriptors(ep_check)
+            end do
           if (iproc==0) call yaml_sequence_close()
           call f_free(test_pot)
           call f_free(rho_exact)
@@ -4778,7 +4460,7 @@ end if
    acell(2)=0.5_gp*hgrids(2)*Lzd%glr%d%n2i
    acell(3)=0.5_gp*hgrids(3)*Lzd%glr%d%n3i
    Qlm=f_malloc([-lmax .to. lmax ,0 .to. lmax,1 .to. orbs%norbp ],id='Qlm')
-   call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=phi2,Lzd=Lzd)
+   call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=phi2,Lzd=Lzd,id='unitary_test_multipoles')
    call Qlm_phi(lmax,smmd%geocode,hgrids,acell,psi_ob,Qlm,.false.,centers=locregcenter)
    call orbital_basis_release(psi_ob)
    call f_zero(values)
@@ -5042,11 +4724,26 @@ end if
            phir(istr), center_locreg(1:3,ilr), center_orb(1:3,iiorb))
       ist = ist + tmb%lzd%Llr(ilr)%wfd%nvctr_c + 7*tmb%lzd%Llr(ilr)%wfd%nvctr_f
       istr = istr + tmb%lzd%Llr(ilr)%d%n1i*tmb%lzd%Llr(ilr)%d%n2i*tmb%lzd%Llr(ilr)%d%n3i
+
+!!$      mesh=cell_new(tmb%lzd%Llr(ilr)%geocode,&
+!!$           [tmb%lzd%llr(ilr)%d%n1i,tmb%lzd%llr(ilr)%d%n2i,tmb%lzd%llr(ilr)%d%n3i],0.5_gp*tmb%lzd%hgrids)
+!!$      boxit=box_iterator(mesh,origin=0.5d0*hgrids*[tmb%lzd%llr(ilr)%nsi1,tmb%lzd%llr(ilr)%nsi2,tmb%lzd%llr(ilr)%nsi3])
+!!$      weight = 0.d0
+!!$      do while(box_next_point(boxit))
+!!$         tt = phir(boxit%ind+istr)**2
+!!$         center_locreg(1,ilr) = center_locreg(1,ilr) + boxit%rxyz(1)*tt
+!!$         center_locreg(2,ilr) = center_locreg(2,ilr) + boxit%rxyz(2)*tt
+!!$         center_locreg(3,ilr) = center_locreg(3,ilr) + boxit%rxyz(3)*tt
+!!$         weight = weight + tt
+!!$      end do
   end do
 
+
+
   if(istr/=tmb%collcom_sr%ndimpsi_c+1) then
-      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=tmb%collcom_sr%ndimpsi_c+1'
-      stop
+      call f_err_throw('istr/=tmb%collcom_sr%ndimpsi_c+1')
+      !write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=tmb%collcom_sr%ndimpsi_c+1'
+      !stop
   end if
 
   if (nproc>1) then
@@ -5064,7 +4761,8 @@ end if
   acell(2)=0.5_gp*tmb%lzd%hgrids(2)*tmb%Lzd%glr%d%n2i
   acell(3)=0.5_gp*tmb%lzd%hgrids(3)*tmb%Lzd%glr%d%n3i
   Qlm=f_malloc([-lmax .to. lmax ,0 .to. lmax,1 .to. tmb%orbs%norbp ],id='Qlm')
-  call orbital_basis_associate(psi_ob,orbs=tmb%orbs,phis_wvl=phi_ortho,Lzd=tmb%Lzd)
+  call orbital_basis_associate(psi_ob,orbs=tmb%orbs,&
+       phis_wvl=phi_ortho,Lzd=tmb%Lzd,id='support_function_gross_multipoles')
   call Qlm_phi(lmax,tmb%linmat%smmd%geocode,tmb%lzd%hgrids,acell,psi_ob,Qlm,.false.,centers=center_locreg)
   call orbital_basis_release(psi_ob)
   do iorb=1,tmb%orbs%norbp
@@ -5552,21 +5250,24 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
   use module_dpbox, only: denspot_distribution
   use module_types
   use yaml_output
+  use box
+  use numerics
   implicit none
   integer, intent(in) :: nspin
-  type(denspot_distribution), intent(in) :: dpbox
+  type(denspot_distribution), intent(inout) :: dpbox
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(dp), dimension(dpbox%ndims(1),dpbox%ndims(2),max(dpbox%n3p, 1),nspin), target, intent(in) :: rho
+  real(dp), dimension(dpbox%mesh%ndims(1),dpbox%mesh%ndims(2),max(dpbox%n3p, 1),nspin), target, intent(in) :: rho
   !!!!logical :: is_net_charge !< true if the charge density is already the net charge (i.e. including the compensating core charge)
   logical,intent(in) :: calculate_quadrupole
   real(kind=8),dimension(3),intent(out),optional :: dipole
   real(kind=8),dimension(3,3),intent(out),optional :: quadrupole
   logical,intent(in),optional :: quiet_
 
-  integer :: ierr,n3p,nc1,nc2,nc3, nnc3, ii3, i3shift
-  real(gp) :: q,qtot, delta_term,x,y,z,ri,rj
-  integer  :: iat,i1,i2,i3, nl1,nl2,nl3, ispin,n1i,n2i,n3i, i, j, is, ie
+!  integer :: ierr,n3p,nc1,nc2,nc3, nnc3, ii3, i3shift
+  real(gp) :: q,qtot, delta_term,x,y,z,ri,rj,tt
+  !integer  :: i1,i2,i3, nl1,nl2,nl3, n1i,n2i,n3i,  is, ie
+  integer :: iat,ispin,i, j
   real(gp), dimension(3) :: dipole_el,dipole_cores,tmpdip,charge_center_cores
   real(gp),dimension(3,nspin) :: charge_center_elec
   real(gp), dimension(3,3) :: quadropole_el,quadropole_cores,tmpquadrop
@@ -5582,77 +5283,91 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
       quiet = .false.
   end if
   
-  n1i=dpbox%ndims(1)
-  n2i=dpbox%ndims(2)
-  n3i=dpbox%ndims(3)
-  n3p=dpbox%n3p
-
-
-  if (at%astruct%geocode /= 'F') then
-     nl1=1
-     !nl3=1
-     nc1=n1i
-     !nc3=n3i
-     nc3=n3p
-     nnc3=n3i
-     !is = 1
-     is = dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1
-     ie = dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+dpbox%nscatterarr(dpbox%mpi_env%iproc,2)
-     i3shift = 1
-  else
-     nl1=15
-     !nl3=15
-     !nl3=max(1,15-dpbox%nscatterarr(dpbox%mpi_env%iproc,3))
-     nc1=n1i-31
-     !nc3=n3i-31
-     !nc3=n3p-31
-     is = max(dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1,15)
-     ie = min(dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+dpbox%nscatterarr(dpbox%mpi_env%iproc,2),n3i-17)
-     nnc3=n3i-31
-     i3shift = 15
-     !write(*,*) 'iproc, is, ie, nl3, nc3, n3p', bigdft_mpi%iproc, is, ie, nl3, nc3, n3p
-  end if
-  nc3 = ie - is + 1 !number of z planes to be treated
-  nl3=max(1,i3shift-dpbox%nscatterarr(dpbox%mpi_env%iproc,3)) !offset within rho array
-  !value of the buffer in the y direction
-  if (at%astruct%geocode == 'P') then
-     nl2=1
-     nc2=n2i
-  else
-     nl2=15
-     nc2=n2i-31
-  end if
+!!$  n1i=dpbox%mesh%ndims(1)
+!!$  n2i=dpbox%mesh%ndims(2)
+!!$  n3i=dpbox%mesh%ndims(3)
+!!$  n3p=dpbox%n3p
+!!$
+!!$
+!!$  if (at%astruct%geocode /= 'F') then
+!!$     nl1=1
+!!$     !nl3=1
+!!$     nc1=n1i
+!!$     !nc3=n3i
+!!$     nc3=n3p
+!!$     nnc3=n3i
+!!$     !is = 1
+!!$     is = dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1
+!!$     ie = dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+dpbox%nscatterarr(dpbox%mpi_env%iproc,2)
+!!$     i3shift = 1
+!!$  else
+!!$     nl1=15
+!!$     !nl3=15
+!!$     !nl3=max(1,15-dpbox%nscatterarr(dpbox%mpi_env%iproc,3))
+!!$     nc1=n1i-31
+!!$     !nc3=n3i-31
+!!$     !nc3=n3p-31
+!!$     is = max(dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1,15)
+!!$     ie = min(dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+dpbox%nscatterarr(dpbox%mpi_env%iproc,2),n3i-17)
+!!$     nnc3=n3i-31
+!!$     i3shift = 15
+!!$     !write(*,*) 'iproc, is, ie, nl3, nc3, n3p', bigdft_mpi%iproc, is, ie, nl3, nc3, n3p
+!!$  end if
+!!$  nc3 = ie - is + 1 !number of z planes to be treated
+!!$  nl3=max(1,i3shift-dpbox%nscatterarr(dpbox%mpi_env%iproc,3)) !offset within rho array
+!!$  !value of the buffer in the y direction
+!!$  if (at%astruct%geocode == 'P') then
+!!$     nl2=1
+!!$     nc2=n2i
+!!$  else
+!!$     nl2=15
+!!$     nc2=n2i-31
+!!$  end if
 
   qtot=0.d0
-  dipole_cores(1:3)=0._gp
+  call f_zero(dipole_cores)!(1:3)=0._gp
+  call f_zero(charge_center_cores)
   do iat=1,at%astruct%nat
      !write(*,*) 'iat, rxyz(1:3,iat)',iat, rxyz(1:3,iat)
-     dipole_cores(1:3)=dipole_cores(1:3)+at%nelpsp(at%astruct%iatype(iat)) * rxyz(1:3,iat)
+     q=at%nelpsp(at%astruct%iatype(iat))
+     dipole_cores(1:3)=dipole_cores(1:3)+q * rxyz(1:3,iat)
+     qtot=qtot+q
   end do
+  !this defines the origin of the coordinate system
+  if (qtot /=0.0_gp) charge_center_cores=dipole_cores/qtot
+
   !!write(*,*) 'dipole_cores',dipole_cores
   !!write(*,*) 'nc3',nc3
 
-  dipole_el   (1:3)=0._gp
+  !calculate electronic dipole and thus total dipole of the system
+  call f_zero(dipole_el)!   (1:3)=0._gp
   do ispin=1,nspin
-     do i3=0,nc3 - 1
-        !ii3 = i3 + dpbox%nscatterarr(dpbox%mpi_env%iproc,3)
-        ii3 = i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3) - i3shift !real coordinate, without buffer
-        !write(*,*) 'iproc, i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3), ii3', &
-        !            bigdft_mpi%iproc, i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3), ii3
-        do i2=0,nc2 - 1
-           do i1=0,nc1 - 1
-              !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-              !q= ( ele_rho(ind,ispin) ) * hxh*hyh*hzh 
-              !q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
-              q= - rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
-              !write(*,*) 'i1, i2, i3, nl1, nl2, nl3, q', i1, i2, i3, nl1, nl2, nl3, q
-              qtot=qtot+q
-              dipole_el(1)=dipole_el(1)+ q* at%astruct%cell_dim(1)/real(nc1,dp)*i1 
-              dipole_el(2)=dipole_el(2)+ q* at%astruct%cell_dim(2)/real(nc2,dp)*i2
-              dipole_el(3)=dipole_el(3)+ q* at%astruct%cell_dim(3)/real(nnc3,dp)*ii3
-           end do
-        end do
+     !the iterator here is on the potential distribution
+     do while(box_next_point(dpbox%bitp))
+        q= - rho(dpbox%bitp%i,dpbox%bitp%j,dpbox%bitp%k-dpbox%bitp%i3s+1,ispin) *dpbox%mesh%volume_element
+        !write(*,*) 'i1, i2, i3, nl1, nl2, nl3, q', i1, i2, i3, nl1, nl2, nl3, q
+        qtot=qtot+q
+        dipole_el=dipole_el+q*(dpbox%bitp%rxyz-charge_center_cores)
      end do
+!!$     do i3=0,nc3 - 1
+!!$        !ii3 = i3 + dpbox%nscatterarr(dpbox%mpi_env%iproc,3)
+!!$        ii3 = i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3) - i3shift !real coordinate, without buffer
+!!$        !write(*,*) 'iproc, i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3), ii3', &
+!!$        !            bigdft_mpi%iproc, i3+nl3+dpbox%nscatterarr(dpbox%mpienv%iproc,3), ii3
+!!$        do i2=0,nc2 - 1
+!!$           do i1=0,nc1 - 1
+!!$              !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+!!$              !q= ( ele_rho(ind,ispin) ) * hxh*hyh*hzh 
+!!$              !q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+!!$              q= - rho(i1+nl1,i2+nl2,i3+nl3,ispin) *dpbox%mesh%volume_element
+!!$              !write(*,*) 'i1, i2, i3, nl1, nl2, nl3, q', i1, i2, i3, nl1, nl2, nl3, q
+!!$              qtot=qtot+q
+!!$              dipole_el(1)=dipole_el(1)+ q* at%astruct%cell_dim(1)/real(nc1,dp)*i1 
+!!$              dipole_el(2)=dipole_el(2)+ q* at%astruct%cell_dim(2)/real(nc2,dp)*i2
+!!$              dipole_el(3)=dipole_el(3)+ q* at%astruct%cell_dim(3)/real(nnc3,dp)*ii3
+!!$           end do
+!!$        end do
+!!$     end do
   !!write(*,*) 'iproc, dipole_el,sum(rho), qtot',bigdft_mpi%iproc,dipole_el,sum(rho), qtot
   end do
 
@@ -5665,199 +5380,136 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
   !!write(*,*) 'dipole_cores first', dipole_cores
   !!call mpi_barrier(mpi_comm_world,ispin)
 
-
+  !quadrupole should be calculated with the shifted positions!
   quadrupole_if: if (calculate_quadrupole) then
-      ! Quadrupole not yet parallelized
 
-!!##      if (at%astruct%geocode /= 'F') then
-!!##         nl3=1
-!!##         nc3=n3i
-!!##      else
-!!##         nl3=15
-!!##         nc3=n3i-31
-!!##      end if
-!!##
-!!##      if (dpbox%mpi_env%nproc > 1) then
-!!##         !allocate full density in pot_ion array
-!!##         ele_rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='ele_rho')
-!!##    
-!!##    !Commented out, it is enough to allocate the rho at 1
-!!##    !!$     ! rho_buf is used instead of rho for avoiding the case n3p=0 in 
-!!##    !!$     ! some procs which makes MPI_ALLGATHERV failed.
-!!##    !!$     if (n3p.eq.0) then
-!!##    !!$       allocate(rho_buf(n1i,n2i,n3p+1,nspin),stat=i_stat)
-!!##    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
-!!##    !!$       rho_buf = 0.0_dp
-!!##    !!$     else
-!!##    !!$       allocate(rho_buf(n1i,n2i,n3p,nspin),stat=i_stat)
-!!##    !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
-!!##    !!$       rho_buf = rho
-!!##    !!$     endif  
-!!##    
-!!##    
-!!##         do ispin=1,nspin
-!!##            call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
-!!##                 mpidtypd,ele_rho(1,1,1,ispin),dpbox%ngatherarr(0,1),&
-!!##                 dpbox%ngatherarr(0,2),mpidtypd,dpbox%mpi_env%mpi_comm,ierr)
-!!##            !write(*,*) 'dpbox%ngatherarr(:,1)',dpbox%ngatherarr(:,1)
-!!##            !write(*,*) 'dpbox%ngatherarr(:,2)',dpbox%ngatherarr(:,2)
-!!##            !write(*,*) 'dpbox%nscatterarr(:,2)',dpbox%nscatterarr(:,2)
-!!##            !write(*,*) 'dpbox%nscatterarr(:,3)',dpbox%nscatterarr(:,3)
-!!##         end do
-!!##    
-!!##      else
-!!##         ele_rho => rho
-!!##      end if
-
-      ! charge center
-      charge_center_cores(1:3)=0.d0
-      qtot=0.d0
+      call f_zero(quadropole_cores)!(1:3,1:3)=0._gp
       do iat=1,at%astruct%nat
-          q=at%nelpsp(at%astruct%iatype(iat))
-          charge_center_cores(1:3) = charge_center_cores(1:3) + q*at%astruct%rxyz(1:3,iat)
-          qtot=qtot+q
-      end do
-      charge_center_cores=charge_center_cores/qtot
-
-
-      quadropole_cores(1:3,1:3)=0._gp
-      do iat=1,at%astruct%nat
+         q=at%nelpsp(at%astruct%iatype(iat))
+         tmpdip=rxyz(:,iat)-charge_center_cores
+         tt=square(dpbox%mesh,tmpdip)
           do i=1,3
-              select case (i)
-              case (1)
-                  !ri=at%astruct%rxyz(1,iat)-charge_center_cores(1)
-                  ri=at%astruct%rxyz(1,iat)
-              case (2)
-                  !ri=at%astruct%rxyz(2,iat)-charge_center_cores(2)
-                  ri=at%astruct%rxyz(2,iat)
-              case (3)
-                  !ri=at%astruct%rxyz(3,iat)-charge_center_cores(3)
-                  ri=at%astruct%rxyz(3,iat)
-              case default
-                  stop 'wrong value of i'
-              end select
-              do j=1,3
-                  select case (j)
-                  case (1)
-                      !rj=at%astruct%rxyz(1,iat)-charge_center_cores(1)
-                      rj=at%astruct%rxyz(1,iat)
-                  case (2)
-                      !rj=at%astruct%rxyz(2,iat)-charge_center_cores(2)
-                      rj=at%astruct%rxyz(2,iat)
-                  case (3)
-                      !rj=at%astruct%rxyz(3,iat)-charge_center_cores(3)
-                      rj=at%astruct%rxyz(3,iat)
-                  case default
-                      stop 'wrong value of j'
-                  end select
-                  if (i==j) then
-                      !delta_term = (at%astruct%rxyz(1,iat)-charge_center_cores(1))**2 + &
-                      !             (at%astruct%rxyz(2,iat)-charge_center_cores(2))**2 + &
-                      !             (at%astruct%rxyz(3,iat)-charge_center_cores(3))**2
-                      delta_term = at%astruct%rxyz(1,iat)**2 + &
-                                   at%astruct%rxyz(2,iat)**2 + &
-                                   at%astruct%rxyz(3,iat)**2
-                  else
-                      delta_term=0.d0
-                  end if
-                  q=at%nelpsp(at%astruct%iatype(iat))
-                  quadropole_cores(j,i) = quadropole_cores(j,i) + q*(3.d0*rj*ri-delta_term)
-              end do
+             ri=rxyz(i,iat)-charge_center_cores(i)
+             do j=1,3
+                rj=rxyz(j,iat)-charge_center_cores(j)
+                if (i==j) then
+                   delta_term = tt
+                else
+                   delta_term=0.d0
+                end if
+                quadropole_cores(j,i) = quadropole_cores(j,i) + q*(3.d0*rj*ri-delta_term)
+             end do
           end do
-      end do
-
-      !!ele_rho=0.d0
-      !!do iat=1,at%astruct%nat
-      !!    i1=nint((at%astruct%rxyz(1,iat)/at%astruct%cell_dim(1))*real(nc1,dp))+nl1
-      !!    i2=nint((at%astruct%rxyz(2,iat)/at%astruct%cell_dim(2))*real(nc2,dp))+nl2
-      !!    i3=nint((at%astruct%rxyz(3,iat)/at%astruct%cell_dim(3))*real(nc3,dp))+nl3
-      !!    if (bigdft_mpi%iproc==0) write(*,*) 'iat,i1,i2,i3',iat,i1,i2,i3
-      !!    ele_rho(i1,i2,i3,1)=real(at%nelpsp(at%astruct%iatype(iat)))/product(dpbox%hgrids)
-      !!end do
-
+       end do
 
       ! charge center
-      charge_center_elec(1:3,1:nspin)=0.d0
-      do ispin=1,nspin
-          qtot=0.d0
-          do i3=0,nc3 - 1
-             ii3 = i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3) - i3shift !real coordinate, without buffer
-              do i2=0,nc2 - 1
-                  do i1=0,nc1 - 1
-                      !q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
-                      q= - rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
-                      x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
-                      y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
-                      z=at%astruct%cell_dim(3)/real(nnc3,dp)*ii3
-                      charge_center_elec(1,ispin) = charge_center_elec(1,ispin) + q*x
-                      charge_center_elec(2,ispin) = charge_center_elec(2,ispin) + q*y
-                      charge_center_elec(3,ispin) = charge_center_elec(3,ispin) + q*z
-                      qtot=qtot+q
-                  end do
-              end do
-          end do
-          !!write(*,*) 'qtot',qtot
-          call mpiallred(qtot, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          charge_center_elec(1:3,ispin)=charge_center_elec(1:3,ispin)/qtot
-      end do
+!!$      charge_center_elec(1:3,1:nspin)=0.d0
+!!$      do ispin=1,nspin
+!!$         !LG: this is exactly the same calculation as before
+!!$         qtot=0.d0
+!!$         do while(box_next_point(dpbox%bitp))
+!!$            q= - rho(dpbox%bitp%i,dpbox%bitp%j,dpbox%bitp%k-dpbox%bitp%i3s+1,ispin) *dpbox%mesh%volume_element
+!!$            !write(*,*) 'i1, i2, i3, nl1, nl2, nl3, q', i1, i2, i3, nl1, nl2, nl3, q
+!!$            qtot=qtot+q
+!!$            charge_center_elec=charge_center_elec+q*dpbox%bitp%rxyz
+!!$         end do
 
-      call mpiallred(charge_center_elec, mpi_sum, comm=bigdft_mpi%mpi_comm)
+!!$          do i3=0,nc3 - 1
+!!$             ii3 = i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3) - i3shift !real coordinate, without buffer
+!!$              do i2=0,nc2 - 1
+!!$                  do i1=0,nc1 - 1
+!!$                      !q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+!!$                      q= - rho(i1+nl1,i2+nl2,i3+nl3,ispin) * dpbox%mesh%volume_element
+!!$                      x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
+!!$                      y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
+!!$                      z=at%astruct%cell_dim(3)/real(nnc3,dp)*ii3
+!!$                      charge_center_elec(1,ispin) = charge_center_elec(1,ispin) + q*x
+!!$                      charge_center_elec(2,ispin) = charge_center_elec(2,ispin) + q*y
+!!$                      charge_center_elec(3,ispin) = charge_center_elec(3,ispin) + q*z
+!!$                      qtot=qtot+q
+!!$                  end do
+!!$              end do
+!!$      end do
+!!$          !!write(*,*) 'qtot',qtot
+!!$         call mpiallred(qtot, 1, mpi_sum, comm=bigdft_mpi%mpi_comm) !LG: why two spins parallelized that way?
+!!$         charge_center_elec(1:3,ispin)=charge_center_elec(1:3,ispin)/qtot
+!!$      end do
+!!$
+!!$      call mpiallred(charge_center_elec, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
-      quadropole_el(1:3,1:3)=0._gp
+       call f_zero(quadropole_el)
       do ispin=1,nspin
-          do i3=0,nc3 - 1
-             ii3 = i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3) - i3shift !real coordinate, without buffer
-              do i2=0,nc2 - 1
-                  do i1=0,nc1 - 1
-                      !q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
-                      q= - rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
-                      x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
-                      y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
-                      z=at%astruct%cell_dim(3)/real(nnc3,dp)*ii3
-                      do i=1,3
-                          select case (i)
-                          case (1)
-                              !ri=x-charge_center_cores(1)
-                              ri=x+(charge_center_cores(1)-charge_center_elec(1,ispin))
-                          case (2)
-                              !ri=y-charge_center_cores(2)
-                              ri=y+(charge_center_cores(2)-charge_center_elec(2,ispin))
-                          case (3)
-                              !ri=z-charge_center_cores(3)
-                              ri=z+(charge_center_cores(3)-charge_center_elec(3,ispin))
-                          case default
-                              stop 'wrong value of i'
-                          end select
-                          do j=1,3
-                              select case (j)
-                              case (1)
-                                  !rj=x-charge_center_cores(1)
-                                  rj=x+(charge_center_cores(1)-charge_center_elec(1,ispin))
-                              case (2)
-                                  !rj=y-charge_center_cores(2)
-                                  rj=y+(charge_center_cores(2)-charge_center_elec(2,ispin))
-                              case (3)
-                                  !rj=z-charge_center_cores(3)
-                                  rj=z+(charge_center_cores(3)-charge_center_elec(3,ispin))
-                              case default
-                                  stop 'wrong value of j'
-                              end select
-                              if (i==j) then
-                                  !delta_term = (x-charge_center_cores(1))**2 + &
-                                  !             (y-charge_center_cores(2))**2 + &
-                                  !             (z-charge_center_cores(3))**2
-                                  delta_term = (x+(charge_center_cores(1)-charge_center_elec(1,ispin)))**2 + &
-                                               (y+(charge_center_cores(2)-charge_center_elec(2,ispin)))**2 + &
-                                               (z+(charge_center_cores(3)-charge_center_elec(3,ispin)))**2
-                              else
-                                  delta_term=0.d0
-                              end if
-                              quadropole_el(j,i) = quadropole_el(j,i) + q*(3.d0*rj*ri-delta_term)
-                          end do
-                      end do
-                  end do
-              end do
-          end do
+         do while(box_next_point(dpbox%bitp))
+            q= - rho(dpbox%bitp%i,dpbox%bitp%j,dpbox%bitp%k-dpbox%bitp%i3s+1,ispin) *dpbox%mesh%volume_element
+            tmpdip=dpbox%bitp%rxyz-charge_center_cores
+            tt=square(dpbox%mesh,tmpdip)
+            do i=1,3
+               ri=dpbox%bitp%rxyz(i)-charge_center_cores(i)
+               do j=1,3
+                  rj=dpbox%bitp%rxyz(j)-charge_center_cores(j)
+                  if (i==j) then
+                     delta_term = tt
+                  else
+                     delta_term=0.d0
+                  end if
+                  quadropole_el(j,i) = quadropole_el(j,i) + q*(3.d0*rj*ri-delta_term)
+               end do
+            end do
+         end do
+         
+!!$          do i3=0,nc3 - 1
+!!$             ii3 = i3+nl3+dpbox%nscatterarr(dpbox%mpi_env%iproc,3) - i3shift !real coordinate, without buffer
+!!$              do i2=0,nc2 - 1
+!!$                  do i1=0,nc1 - 1
+!!$                      !q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
+!!$                      q= - rho(i1+nl1,i2+nl2,i3+nl3,ispin) * dpbox%mesh%volume_element
+!!$                      x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
+!!$                      y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
+!!$                      z=at%astruct%cell_dim(3)/real(nnc3,dp)*ii3
+!!$                      do i=1,3
+!!$                          select case (i)
+!!$                          case (1)
+!!$                              !ri=x-charge_center_cores(1)
+!!$                              ri=x+(charge_center_cores(1)-charge_center_elec(1,ispin))
+!!$                          case (2)
+!!$                              !ri=y-charge_center_cores(2)
+!!$                              ri=y+(charge_center_cores(2)-charge_center_elec(2,ispin))
+!!$                          case (3)
+!!$                              !ri=z-charge_center_cores(3)
+!!$                              ri=z+(charge_center_cores(3)-charge_center_elec(3,ispin))
+!!$                          case default
+!!$                              stop 'wrong value of i'
+!!$                          end select
+!!$                          do j=1,3
+!!$                              select case (j)
+!!$                              case (1)
+!!$                                  !rj=x-charge_center_cores(1)
+!!$                                  rj=x+(charge_center_cores(1)-charge_center_elec(1,ispin))
+!!$                              case (2)
+!!$                                  !rj=y-charge_center_cores(2)
+!!$                                  rj=y+(charge_center_cores(2)-charge_center_elec(2,ispin))
+!!$                              case (3)
+!!$                                  !rj=z-charge_center_cores(3)
+!!$                                  rj=z+(charge_center_cores(3)-charge_center_elec(3,ispin))
+!!$                              case default
+!!$                                  stop 'wrong value of j'
+!!$                              end select
+!!$                              if (i==j) then
+!!$                                  !delta_term = (x-charge_center_cores(1))**2 + &
+!!$                                  !             (y-charge_center_cores(2))**2 + &
+!!$                                  !             (z-charge_center_cores(3))**2
+!!$                                  delta_term = (x+(charge_center_cores(1)-charge_center_elec(1,ispin)))**2 + &
+!!$                                               (y+(charge_center_cores(2)-charge_center_elec(2,ispin)))**2 + &
+!!$                                               (z+(charge_center_cores(3)-charge_center_elec(3,ispin)))**2
+!!$                              else
+!!$                                  delta_term=0.d0
+!!$                              end if
+!!$                              quadropole_el(j,i) = quadropole_el(j,i) + q*(3.d0*rj*ri-delta_term)
+!!$                          end do
+!!$                      end do
+!!$                  end do
+!!$              end do
+!!$          end do
       end do
 
       !!if (.not. is_net_charge) then
@@ -5879,18 +5531,8 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
 
   end if quadrupole_if
 
-  !!write(*,*) 'dipole_cores second', dipole_cores
-  !!call mpi_barrier(mpi_comm_world,ispin)
-
-  !!write(*,*) 'dipole_cores', dipole_cores
-  !!call mpi_barrier(mpi_comm_world,ispin)
-  !!write(*,*) 'after cores'
-  !!write(*,*) 'dipole_el', dipole_el
-  !!call mpi_barrier(mpi_comm_world,ispin)
-  !!write(*,*) 'after el'
-
   !!if (.not.is_net_charge) then
-      tmpdip=dipole_cores+dipole_el
+      tmpdip=dipole_el !dipole_cores+ !should not be needed as it is now included in the center of charge
   !!else
   !!    tmpdip=dipole_el
   !!end if
@@ -5899,15 +5541,12 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
   !!write(*,*) 'tmpdip',tmpdip
   if (present(dipole)) dipole(1:3) = tmpdip(1:3)
   if(bigdft_mpi%iproc==0 .and. .not.quiet) then
-     !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
-     !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
-     !write(*,*) 'dipole_cores', dipole_cores
-     !write(*,*) 'dipole_el', dipole_el
+     call yaml_map('Multipole analysis origin',charge_center_cores,fmt='(1pe14.6)')
      call yaml_mapping_open('Electric Dipole Moment (AU)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
      call yaml_mapping_close()
-     tmpdip=tmpdip/0.393430307_gp  ! au2debye              
+     tmpdip=tmpdip/Debye_AU  ! au2debye
      call yaml_mapping_open('Electric Dipole Moment (Debye)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
@@ -5915,40 +5554,13 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
 
 
       if (calculate_quadrupole) then
-          !call yaml_sequence_open('core quadropole')
-          !do i=1,3
-          !   call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es15.8)')))
-          !end do
-          !call yaml_sequence_close()
-
-          !call yaml_sequence_open('electronic quadropole')
-          !do i=1,3
-          !   call yaml_sequence(trim(yaml_toa(quadropole_el(i,1:3),fmt='(es15.8)')))
-          !end do
-          !call yaml_sequence_close()
-
-          !!call yaml_sequence_open('Quadrupole Moment (AU)')
-          !!do i=1,3
-          !!   call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
-          !!end do
-          !!call yaml_map('trace',tmpquadrop(1,1)+tmpquadrop(2,2)+tmpquadrop(3,3),fmt='(es12.2)')
-          !!call yaml_sequence_close()
-          !call yaml_sequence_open('Quadrupole Moment (AU)')
           call yaml_mapping_open('Quadrupole Moment (AU)')
             call yaml_map('Q matrix',tmpquadrop,fmt='(1pe13.4)')
-          !do i=1,3
-          !   call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
-          !end do
            call yaml_map('trace',tmpquadrop(1,1)+tmpquadrop(2,2)+tmpquadrop(3,3),fmt='(es12.2)')
-          !call yaml_sequence_close()
           call yaml_mapping_close()
       end if
 
   end if
-
-  !call mpi_barrier(mpi_comm_world,ispin)
-  !write(*,*) 'end calculate_dipole_moment'
-
 
   call f_release_routine()
 
@@ -6460,108 +6072,144 @@ end subroutine calculate_rpowerx_matrices
     end subroutine correct_multipole_origin
 
 
-    subroutine compare_charge_and_potential(iproc, is1, ie1, is2, ie2, is3, ie3, nat, &
+    subroutine compare_charge_and_potential(boxit,nat,& !iproc, is1, ie1, is2, ie2, is3, ie3, nat, &
                rho_exact, rho_mp, pot_exact, pot_mp, kernel, rxyz, &
-               ncheck, check_threshold, charge_error, charge_total, potential_error, potential_total)
+               ncheck, check_threshold, charge_error, external_volume, potential_error, potential_total)
     use PStypes, only: coulomb_operator
     use PSbox, only: PS_gather
+    use box
     implicit none
     ! Calling arguments
-    integer,intent(in) :: iproc, is1, ie1, is2, ie2, is3, ie3, nat, ncheck
-    real(kind=8),dimension(is1:ie1,is2:ie2,is3:ie3),intent(in) :: rho_exact, rho_mp, pot_exact, pot_mp
+    !integer,intent(in) :: iproc, is1, ie1, is2, ie2, is3, ie3
+    type(box_iterator), intent(inout) :: boxit
+    integer, intent(in) :: nat, ncheck
     type(coulomb_operator),intent(in) :: kernel
+    real(kind=8),dimension(kernel%ndims(1)*kernel%ndims(2)*kernel%grid%n3p),intent(in) :: rho_exact, rho_mp, pot_exact, pot_mp
     real(kind=8),dimension(3,nat),intent(in) :: rxyz
     real(kind=8),dimension(ncheck),intent(in) :: check_threshold
-    real(kind=8),dimension(ncheck),intent(out) :: charge_error, charge_total, potential_error, potential_total
+    real(kind=8),dimension(ncheck),intent(out) :: charge_error, external_volume, potential_error, potential_total
 
     ! Local variables
-    integer :: i1, i2, i3, iat, icheck
-    real(kind=8) :: x, y, z, d, dmin, qex, factor
+    integer :: i1, i2, i3, iat, icheck,icnt,igood
+    real(kind=8) :: qex, factor,vex
     real(kind=8),parameter :: min_distance = 2.0d0
-    logical,dimension(:,:,:),allocatable :: is_close
+!!$    logical,dimension(:,:,:),allocatable :: is_close
 
     call f_routine(id='compare_charge_and_potential')
 
-    ! Determine the grid points which are farther away from the atoms than the minimal distance
-    is_close = f_malloc((/0.to.kernel%ndims(1)-31-1,0.to.kernel%ndims(2)-31-1,is3.to.ie3/),id='is_close')
-    is_close(:,:,:) = .false.
-    do iat=1,nat
-        do i3=max(15,is3),min(ie3,kernel%ndims(3)-16-1)
-            z = (i3-15)*kernel%hgrids(3)
-            d = sqrt( (z-rxyz(3,iat))**2 )
-            if (d<=min_distance) then
-                ! From the viewpoint of the z coordinate, the grid points might be close to atom iat,
-                ! so also check the other directions.
-                do i2=0,kernel%ndims(2)-31-1
-                    y = i2*kernel%hgrids(2)
-                    d = sqrt( (y-rxyz(2,iat))**2 + (z-rxyz(3,iat))**2 )
-                    if (d<=min_distance) then
-                        ! From the viewpoint of the y and z coordinates, the grid points might be close to atom iat,
-                        ! so also check the other directions.
-                        do i1=0,kernel%ndims(1)-31-1
-                            x = i1*kernel%hgrids(1)
-                            d = sqrt( (x-rxyz(1,iat))**2 + (y-rxyz(2,iat))**2 + (z-rxyz(3,iat))**2 )
-                            if (d<=min_distance) then
-                                is_close(i1,i2,i3) = .true.
-                            end if
-                        end do
-                    end if
-                end do
-            end if
-        end do
-    end do
+!!$    ! Determine the grid points which are farther away from the atoms than the minimal distance
+!!$    is_close = f_malloc((/0.to.kernel%ndims(1)-31-1,0.to.kernel%ndims(2)-31-1,is3.to.ie3/),id='is_close')
+!!$    is_close(:,:,:) = .false.
+!!$    do iat=1,nat
+!!$        do i3=max(15,is3),min(ie3,kernel%ndims(3)-16-1)
+!!$            z = (i3-15)*kernel%hgrids(3)
+!!$            d = sqrt( (z-rxyz(3,iat))**2 )
+!!$            if (d<=min_distance) then
+!!$                ! From the viewpoint of the z coordinate, the grid points might be close to atom iat,
+!!$                ! so also check the other directions.
+!!$                do i2=0,kernel%ndims(2)-31-1
+!!$                    y = i2*kernel%hgrids(2)
+!!$                    d = sqrt( (y-rxyz(2,iat))**2 + (z-rxyz(3,iat))**2 )
+!!$                    if (d<=min_distance) then
+!!$                        ! From the viewpoint of the y and z coordinates, the grid points might be close to atom iat,
+!!$                        ! so also check the other directions.
+!!$                        do i1=0,kernel%ndims(1)-31-1
+!!$                            x = i1*kernel%hgrids(1)
+!!$                            d = sqrt( (x-rxyz(1,iat))**2 + (y-rxyz(2,iat))**2 + (z-rxyz(3,iat))**2 )
+!!$                            if (d<=min_distance) then
+!!$                                is_close(i1,i2,i3) = .true.
+!!$                            end if
+!!$                        end do
+!!$                    end if
+!!$                end do
+!!$            end if
+!!$        end do
+!!$    end do
 
     call f_zero(charge_error)
-    call f_zero(charge_total)
+    call f_zero(external_volume)
     call f_zero(potential_error)
     call f_zero(potential_total)
 
-    factor = kernel%hgrids(1)*kernel%hgrids(2)*kernel%hgrids(3)
+    !use the box iterator
+    factor=boxit%mesh%volume_element
+    icnt=0
+    igood=0
+    box_loop: do while(box_next_point(boxit))
+       icnt=icnt+1
+       do iat=1,nat
+          if (distance(boxit%mesh,boxit%rxyz,rxyz(:,iat)) <= min_distance) cycle box_loop
+       end do
+       igood=igood+1
+       ! Farther away from the atoms than the minimal distance
+       qex = rho_exact(boxit%ind)
+       vex = pot_exact(boxit%ind)
+       do icheck=1,ncheck
+          if (abs(qex)<check_threshold(icheck)) then
+             ! Charge density smaller than the threshold
+             !LG: it seems therefore normal than the density is not good as by hypothesis
+             ! we only check that when it is small, thus the mp density will surely be smaller
+             charge_error(icheck) = charge_error(icheck) + &
+                  abs(rho_mp(boxit%ind))*factor !qex-
+             external_volume(icheck) = external_volume(icheck)+ factor
+             potential_error(icheck) = potential_error(icheck) + &
+                  abs(vex-pot_mp(boxit%ind))*factor 
+             potential_total(icheck) = potential_total(icheck) + &
+                  abs(vex)*factor
+          end if
+       end do
+    end do box_loop
 
-    do i3=max(15,is3),min(ie3,kernel%ndims(3)-16-1)
-        z = (i3-15)*kernel%hgrids(3)
-        do i2=0,kernel%ndims(2)-31-1
-            y = i2*kernel%hgrids(2)
-            do i1=0,kernel%ndims(1)-31-1
-                x = i1*kernel%hgrids(1)
-                !!dmin = huge(1.d0)
-                !!do iat=1,nat
-                !!    d = sqrt( (x-rxyz(1,iat))**2 + (y-rxyz(2,iat))**2 + (z-rxyz(3,iat))**2 )
-                !!    dmin = min(d,dmin)
-                !!end do
-                !!if (dmin>min_distance) then
-                if (.not.is_close(i1,i2,i3)) then
-                    ! Farther away from the atoms than the minimal distance
-                    qex = rho_exact(i1+15,i2+15,i3)
-                    do icheck=1,ncheck
-                        if (abs(qex)<check_threshold(icheck)) then
-                            ! Charge density smaller than the threshold
-                            charge_error(icheck) = charge_error(icheck) + &
-                                abs(qex-rho_mp(i1+15,i2+15,i3))
-                            charge_total(icheck) = charge_total(icheck) + &
-                                abs(qex)
-                            potential_error(icheck) = potential_error(icheck) + &
-                                abs(pot_exact(i1+15,i2+15,i3)-pot_mp(i1+15,i2+15,i3))
-                            potential_total(icheck) = potential_total(icheck) + &
-                                abs(pot_exact(i1+15,i2+15,i3))
-                        end if
-                    end do
-                end if
-            end do
-        end do
-    end do
+!!$    do i3=0,kernel%ndims(3)-31-1
+!!$        z = i3*kernel%hgrids(3)
+!!$        do i2=0,kernel%ndims(2)-31-1
+!!$            y = i2*kernel%hgrids(2)
+!!$            do i1=0,kernel%ndims(1)-31-1
+!!$                x = i1*kernel%hgrids(1)
+!!$                dmin = huge(1.d0)
+!!$                do iat=1,nat
+!!$                    d = sqrt( (x-rxyz(1,iat))**2 + (y-rxyz(2,iat))**2 + (z-rxyz(3,iat))**2 )
+!!$                    dmin = min(d,dmin)
+!!$                end do
+!!$                !write(200+iproc,*) 'x, y, z, q, v', x, y, z, &
+!!$                !     rhog_exact(i1+15,i2+15,i3+15), potg_exact(i1+15,i2+15,i3+15)
+!!$                !write(300+iproc,*) 'x, y, z, q, v', x, y, z, &
+!!$                !     rhog_mp(i1+15,i2+15,i3+15), potg_mp(i1+15,i2+15,i3+15)
+!!$                if (dmin>min_distance) then
+!!$                    ! Farther away from the atoms than the minimal distance
+!!$                    qex = rhog_exact(i1+15,i2+15,i3+15)
+!!$                    do icheck=1,ncheck
+!!$                        if (abs(qex)<check_threshold(icheck)) then
+!!$                            ! Charge density smaller than the threshold
+!!$                            charge_error(icheck) = charge_error(icheck) + &
+!!$                                abs(qex-rhog_mp(i1+15,i2+15,i3+15))
+!!$                            charge_total(icheck) = charge_total(icheck) + &
+!!$                                abs(qex)
+!!$                            potential_error(icheck) = potential_error(icheck) + &
+!!$                                abs(potg_exact(i1+15,i2+15,i3+15)-potg_mp(i1+15,i2+15,i3+15))
+!!$                            potential_total(icheck) = potential_total(icheck) + &
+!!$                                abs(potg_exact(i1+15,i2+15,i3+15))
+!!$                        end if
+!!$                    end do
+!!$                end if
+!!$            end do
+!!$        end do
+!!$     end do
 
-    call f_free(is_close)
+!!$    call f_free(is_close)
 
-    call dscal(ncheck, factor, charge_error(1), 1)
-    call dscal(ncheck, factor, charge_total(1), 1)
-    call dscal(ncheck, factor, potential_error(1), 1)
-    call dscal(ncheck, factor, potential_total(1), 1)
-
-    call mpiallred(charge_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
-    call mpiallred(charge_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
-    call mpiallred(potential_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
-    call mpiallred(potential_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
+!!$    call dscal(ncheck, factor, charge_error(1), 1)
+!!$    call dscal(ncheck, factor, charge_total(1), 1)
+!!$    call dscal(ncheck, factor, potential_error(1), 1)
+!!$    call dscal(ncheck, factor, potential_total(1), 1)
+    if (bigdft_mpi%nproc > 1) then
+       call mpiallred(charge_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
+       call mpiallred(external_volume, mpi_sum, comm=bigdft_mpi%mpi_comm)
+       call mpiallred(potential_error, mpi_sum, comm=bigdft_mpi%mpi_comm)
+       call mpiallred(potential_total, mpi_sum, comm=bigdft_mpi%mpi_comm)
+       call mpiallred(icnt,1,op=mpi_sum, comm=bigdft_mpi%mpi_comm)
+       call mpiallred(igood,1,op=mpi_sum, comm=bigdft_mpi%mpi_comm)
+    end if
 
     call f_release_routine()
 

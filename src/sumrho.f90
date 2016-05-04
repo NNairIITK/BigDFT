@@ -135,7 +135,7 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
    !here also one might decide to save the value of psir and of its laplacian 
    if (GPU%OCLconv) then
       call local_partial_density_OCL(orbs,rhodsc%nrhotot,Lzd%Glr,&
-           dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),orbs%nspin,psi,rho_p,GPU)
+           dpbox%mesh%hgrids(1),dpbox%mesh%hgrids(2),dpbox%mesh%hgrids(3),orbs%nspin,psi,rho_p,GPU)
    else if(Lzd%linear) then
        if(.not.present(mapping)) then
            if(dpbox%mpi_env%iproc + dpbox%mpi_env%igroup==0) then
@@ -149,11 +149,11 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
                localmapping(iorb)=iorb
            end do
            call local_partial_densityLinear(dpbox%mpi_env%nproc,(rhodsc%icomm==1),dpbox%nscatterarr,rhodsc%nrhotot,&
-                Lzd,dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),xc,orbs%nspin,orbs,localmapping,psi,rho_p)
+                Lzd,dpbox%mesh%hgrids(1),dpbox%mesh%hgrids(2),dpbox%mesh%hgrids(3),xc,orbs%nspin,orbs,localmapping,psi,rho_p)
            call f_free(localmapping)
        else
            call local_partial_densityLinear(dpbox%mpi_env%nproc,(rhodsc%icomm==1),dpbox%nscatterarr,rhodsc%nrhotot,&
-                Lzd,dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),xc,orbs%nspin,orbs,mapping,psi,rho_p)
+                Lzd,dpbox%mesh%hgrids(1),dpbox%mesh%hgrids(2),dpbox%mesh%hgrids(3),xc,orbs%nspin,orbs,mapping,psi,rho_p)
        end if
    else
       !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
@@ -162,7 +162,7 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
 
       !for each of the orbitals treated by the processor build the partial densities
       call local_partial_density(dpbox%mpi_env%nproc,(rhodsc%icomm==1),dpbox%nscatterarr,&
-           rhodsc%nrhotot,Lzd%Glr,dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),orbs%nspin,orbs,psi,rho_p)
+           rhodsc%nrhotot,Lzd%Glr,dpbox%mesh%hgrids(1),dpbox%mesh%hgrids(2),dpbox%mesh%hgrids(3),orbs%nspin,orbs,psi,rho_p)
 
    end if
 
@@ -170,7 +170,7 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
    !probably previous line is not suitable due to the fact that a extra communication would be needed
    if (symObj%symObj >= 0) then
       call symmetrise_density(0,1,Lzd%Glr%geocode,&
-           dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),orbs%nspin,rho_p,symObj)
+           dpbox%mesh%ndims(1),dpbox%mesh%ndims(2),dpbox%mesh%ndims(3),orbs%nspin,rho_p,symObj)
    end if
    call timing(dpbox%mpi_env%iproc,'Rho_comput    ','OF')
 
@@ -189,7 +189,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   type(denspot_distribution), intent(in) :: dpbox
   type(rho_descriptors),intent(in) :: rhodsc
   real(dp), dimension(:,:), pointer :: rho_p !< partial density in orbital distribution scheme
-  real(dp), dimension(max(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3d,1),nspin), intent(out) :: rho
+  real(dp), dimension(max(dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3d,1),nspin), intent(out) :: rho
   !local variables
   character(len=*), parameter :: subname='communicate_density'
   logical :: dump
@@ -227,8 +227,8 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
         if (dump) call yaml_map('Rho Commun','ALLRED (Mix)')
          rhotot_dbl=0.0d0
          do ispin=1,nspin
-           do irho=1, dpbox%ndims(1)*dpbox%ndims(2)*rhodsc%nrhotot
-             rhotot_dbl=rhotot_dbl+rho_p(irho,ispin)*product(dpbox%hgrids)!hxh*hyh*hzh
+           do irho=1, dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*rhodsc%nrhotot
+             rhotot_dbl=rhotot_dbl+rho_p(irho,ispin)*dpbox%mesh%volume_element!hxh*hyh*hzh
            enddo
         enddo
         call mpiallred(rhotot_dbl,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
@@ -248,7 +248,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
 
         i3s=dpbox%nscatterarr(dpbox%mpi_env%iproc,3)-dpbox%nscatterarr(dpbox%mpi_env%iproc,4)
         n3d=dpbox%nscatterarr(dpbox%mpi_env%iproc,1)
-        call uncompress_rho(sprho_comp,dprho_comp,dpbox%ndims,nspin,rhodsc,rho_p,i3s,n3d)
+        call uncompress_rho(sprho_comp,dprho_comp,dpbox%mesh%ndims,nspin,rhodsc,rho_p,i3s,n3d)
 
         !call system_clock(ncount3,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED3',real(ncount3-ncount2)/real(ncount_rate)
@@ -277,11 +277,11 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
         do ispin=1,nspin
            do i3=1,n3d
               j3=i3+i3s
-              j3p=modulo(j3-1,dpbox%ndims(3))+1
-              do i2=1,dpbox%ndims(2)
-                 do i1=1,dpbox%ndims(1)
-                    i=i1+(i2-1)*dpbox%ndims(1)+dpbox%ndims(1)*dpbox%ndims(2)*(i3-1)
-                    j=i1+(i2-1)*dpbox%ndims(1)+dpbox%ndims(1)*dpbox%ndims(2)*(j3p-1)
+              j3p=modulo(j3-1,dpbox%mesh%ndims(3))+1
+              do i2=1,dpbox%mesh%ndims(2)
+                 do i1=1,dpbox%mesh%ndims(1)
+                    i=i1+(i2-1)*dpbox%mesh%ndims(1)+dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*(i3-1)
+                    j=i1+(i2-1)*dpbox%mesh%ndims(1)+dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*(j3p-1)
                     rho(i,ispin)=rho_p(j,ispin)
                  end do
               end do
@@ -290,13 +290,13 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
      end if
   else
      call timing(dpbox%mpi_env%iproc,'Rho_comput    ','ON')
-     call vcopy(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3d*nspin,rho_p(1,1),1,&
+     call vcopy(dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3d*nspin,rho_p(1,1),1,&
           rho(1,1),1)
   end if
   !print *,'okhere',dpbox%iproc_world
   ! Check
   tt=0.d0
-  i3off=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%i3xcsh!Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,4)
+  i3off=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%i3xcsh!Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,4)
 
   !allocation of the magnetic density orientation array
   if (dpbox%mpi_env%nproc > 1) then
@@ -312,7 +312,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   tmred(nspin+1,itmred)=0.0_dp
   do ispin=1,nspin!n
      tmred(ispin,itmred)=0.0_dp
-     do i=1,dpbox%ndims(1)*dpbox%ndims(2)*dpbox%nscatterarr(dpbox%mpi_env%iproc,2)!dpbox%ndimpot!Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2)
+     do i=1,dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%nscatterarr(dpbox%mpi_env%iproc,2)!dpbox%ndimpot!Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2)
         !!        tt=tt+rho(i+i3off,ispin)
         tmred(ispin,itmred)=tmred(ispin,itmred)+rho(i+i3off,ispin)
         !temporary check for debugging purposes
@@ -352,11 +352,11 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
      end if
 
      !yaml output
-     call yaml_map('Total electronic charge',real(charge,gp)*product(dpbox%hgrids),fmt='(f21.12)')
+     call yaml_map('Total electronic charge',real(charge,gp)*dpbox%mesh%volume_element,fmt='(f21.12)')
 
      if (rhodsc%icomm==2 .and. dpbox%mpi_env%nproc*dpbox%mpi_env%ngroup > 1) then
         call yaml_map('Electronic charge changed by rho compression',&
-             abs(rhotot_dbl-real(charge,gp)*product(dpbox%hgrids)),fmt='(1pe21.12)')
+             abs(rhotot_dbl-real(charge,gp)*dpbox%mesh%volume_element),fmt='(1pe21.12)')
      endif
      if(nspin == 4 .and. tt > 0._dp) then
         call yaml_map('Magnetic density orientation',&

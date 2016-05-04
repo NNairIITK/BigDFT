@@ -386,7 +386,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !(inputpsi /= INPUT_PSI_LINEAR_AO .and. &
   !                              inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
   !                              inputpsi /= INPUT_PSI_MEMORY_LINEAR)
-  call orbital_basis_associate(ob,orbs=orbs,Lzd=Lzd)
+  call orbital_basis_associate(ob,orbs=orbs,Lzd=Lzd,id='system_initialization')
   call createProjectorsArrays(Lzd%Glr,rxyz,atoms,ob,&
        in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
        Lzd%hgrids(3),dry_run,nlpsp,init_projectors_completely)
@@ -862,7 +862,7 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
 !!$       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
 !!$       mpi_env=denspot%dpbox%mpi_env,alg=in%GPS_method,cavity=in%set_epsilon)
   denspot%pkernel=pkernel_init(iproc,nproc,in%PS_dict,&
-       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,&
+       geocode,denspot%dpbox%mesh%ndims,denspot%dpbox%mesh%hgrids,&
        mpi_env=denspot%dpbox%mpi_env)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
@@ -874,7 +874,7 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
 !!$          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
 !!$          alg=in%GPS_method,cavity=in%set_epsilon)
      denspot%pkernelseq=pkernel_init(0,1,in%PS_dict_seq,&
-          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids)
+          geocode,denspot%dpbox%mesh%ndims,denspot%dpbox%mesh%hgrids)
   else 
      denspot%pkernelseq = denspot%pkernel
   end if

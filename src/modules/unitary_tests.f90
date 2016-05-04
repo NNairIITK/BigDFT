@@ -52,8 +52,8 @@ module unitary_tests
       !assign constants
       i3s=denspot%dpbox%nscatterarr(bigdft_mpi%iproc,3)+1 !< starting point of the planes in the z direction
       n3p=denspot%dpbox%nscatterarr(bigdft_mpi%iproc,2) !< number of planes for the potential
-      n2i=denspot%dpbox%ndims(2) !< size of the global domain in y direction
-      n1i=denspot%dpbox%ndims(1) !< size of the global domain in x direction
+      n2i=denspot%dpbox%mesh%ndims(2) !< size of the global domain in y direction
+      n1i=denspot%dpbox%mesh%ndims(1) !< size of the global domain in x direction
     
       !fill the values of the rhov array
       ind=0
@@ -83,7 +83,7 @@ module unitary_tests
           n3p_withmax(jproc) = max(denspot%dpbox%nscatterarr(jproc,2),1)
       end do
       call start_onesided_communication(bigdft_mpi%iproc, bigdft_mpi%nproc, &
-           denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), n3p_withmax, denspot%rhov, &
+           denspot%dpbox%mesh%ndims(1), denspot%dpbox%mesh%ndims(2), n3p_withmax, denspot%rhov, &
            tmb%ham_descr%comgp%nspin*tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, &
            tmb%ham_descr%comgp, tmb%ham_descr%lzd)
       call f_free(n3p_withmax)

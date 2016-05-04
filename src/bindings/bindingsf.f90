@@ -1022,8 +1022,8 @@ subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, ni, psoffset)
   real(dp), intent(out) :: psoffset
 
   rhov_is = denspot%rhov_is
-  hgrid = denspot%dpbox%hgrids
-  ni = denspot%dpbox%ndims
+  hgrid = denspot%dpbox%mesh%hgrids
+  ni = denspot%dpbox%mesh%ndims
   psoffset = denspot%psoffset
 END SUBROUTINE localfields_copy_metadata
 
