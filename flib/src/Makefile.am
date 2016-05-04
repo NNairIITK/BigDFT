@@ -79,7 +79,7 @@ libflib_1_a_SOURCES = utils.c utilsadd.c \
 	f_utils.f90 f_refcnts.f90 f_trees.f90 \
 	yaml_output.f90 mem_profiling.f90 dynamic_memory.f90 \
 	razero.f90 getadd.f90 time.f90 f_lib_highlev.f90 \
-	yaml_parser.c yaml_parse.f90 \
+	yaml_parser.c yaml_parse.f90 f_jmp.f90 \
 	f_input_file.f90 randomData.f90 \
 	$(flush_files) $(mpi_source) $(getarg_files) $(CUDA_PROF)
 
@@ -130,6 +130,7 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	F_TREES.@MODULE_EXT@ \
 	F_INPUT_FILE.@MODULE_EXT@ \
 	EXCEPTION_CALLBACKS.@MODULE_EXT@ \
+	F_JMP.@MODULE_EXT \
 	TIME_PROFILING.@MODULE_EXT@ \
 	MODULE_RAZERO.@MODULE_EXT@ $(CUDA_MODS)
 else
@@ -152,6 +153,7 @@ modules = yaml_strings.@MODULE_EXT@ \
 	f_trees.@MODULE_EXT@ \
 	exception_callbacks.@MODULE_EXT@ \
 	time_profiling.@MODULE_EXT@ \
+	f_jmp.@MODULE_EXT@ \
 	module_razero.@MODULE_EXT@ $(CUDA_MODS)
 endif
 
@@ -203,7 +205,9 @@ getadd.o: yaml_strings.o $(GETADD_INCLUDES) f_malloc.o
 razero.o: randomData.o f_precisions.o
 $(flush_object): yaml_output.o dictionaries.o
 
-time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(NVTX_DEP) $(mpi_include) #this is temporary, mpif.h should only be in wrappers
+time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(NVTX_DEP) $(mpi_include) f_jmp.o #this is temporary, mpif.h should only be in wrappers
+
+f_jmp.o: f_precisions.o dynamic_memory.o
 
 #Fake mpif.h for serial compilation
 mpif.h:

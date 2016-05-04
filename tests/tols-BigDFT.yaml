@@ -1,6 +1,8 @@
 ---
 Default tolerances:
  Epsilon: 1.1e-11
+ #P vector: 3.e-4
+ #norm(P): 3.e-4
  
 Keys to ignore:
  - Code logo
@@ -2583,3 +2585,11 @@ lj_connect.mhgps.ref.yaml:
   Energy: 5.4e-10
   Keys to ignore:
   - (MHGPS) Run finished at
+
+GEOPT-all_sqnmbiomode:
+  EH: 1.1e-10
+  Epot: 1.1e-10
+MD_LJ-NVE:
+    T: 0.005
+MD_LJ-NVT:
+    T: 0.005

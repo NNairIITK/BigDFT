@@ -54,7 +54,6 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    real(gp) :: fmax
    real(gp) :: fluct
    real(gp) :: betax !< initial step size (gets not changed)
-   real(gp) :: beta_stretchx
    real(gp) :: beta  !< current step size
    real(gp) :: beta_stretch  !< current step size in bond-stretching directions
    real(gp) :: cosangle
@@ -205,7 +204,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
    call minenergyandforces(iproc,nproc,.false.,imode,runObj,outs,nat,rxyz(1,1,idx(0)),&
        fxyz(1,1,idx(0)),fstretch(1,1,idx(0)),fxyzraw(1,1,idx(0)),&
-       etot,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
+       etot,iconnect,nbond,wold,runObj%inputs%beta_stretchx,beta_stretch,infocode)
    if(imode==2)rxyz(:,:,idx(0))=rxyz(:,:,idx(0))+beta_stretch*fstretch(:,:,idx(0))
 
    call fnrmandforcemax(fxyzraw(1,1,idx(0)),fnrm,fmax,nat)
@@ -298,7 +297,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
       call minenergyandforces(iproc,nproc,.true.,imode,runObj,outs,nat,rxyz(1,1,idx(nhist)),&
                              fxyz(1,1,idx(nhist)),fstretch(1,1,idx(nhist)),fxyzraw(1,1,idx(nhist)),&
-                             etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
+                             etotp,iconnect,nbond,wold,runObj%inputs%beta_stretchx,beta_stretch,infocode)
       detot=etotp-etotold
       ncount_bigdft=ncount_bigdft+1
 

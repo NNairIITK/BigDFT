@@ -166,7 +166,6 @@ module module_types
      type(locreg_descriptors), dimension(:), pointer :: Llr !< Local region descriptors (dimension = nlr)
   end type local_zone_descriptors
 
-
   !!> Fermi Operator Expansion parameters
   !type, public :: foe_data
   !  integer :: nseg

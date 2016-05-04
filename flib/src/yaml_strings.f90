@@ -689,10 +689,8 @@ contains
     implicit none
     character(len=*), intent(in) :: a
     character(len=*), intent(in) :: b
-    character(len=len_trim(a)+len_trim(adjustl(b))) :: c
+    character(len=len_trim(a)+len_trim(b)) :: c
     c=trim(a)//trim(adjustl(b))
-!!$    type(f_string) :: c
-!!$    call f_strcpy(c%msg,trim(a)//trim(adjustl(b)))
   end function combine_strings
 
   !define the strings which combine them, without the need of using trim or adjustl specifications
@@ -700,10 +698,8 @@ contains
     implicit none
     type(f_string), intent(in) :: a
     type(f_string), intent(in) :: b
-    character(len=len_trim(a%msg)+len_trim(adjustl(b%msg))) :: c
+    character(len=len_trim(a%msg)+len_trim(b%msg)) :: c
     c=trim(a%msg)//trim(adjustl(b%msg))
-!!$    type(f_string) :: c
-!!$    call f_strcpy(c%msg,trim(a%msg)//trim(adjustl(b%msg)))
   end function combine_msg
 
   !define the strings which combine them, without the need of using trim or adjustl specifications
@@ -711,10 +707,8 @@ contains
     implicit none
     type(f_string), intent(in) :: a
     character(len=*), intent(in) :: b
-    character(len=len_trim(a%msg)+len_trim(adjustl(b))) :: c
+    character(len=len_trim(a%msg)+len_trim(b)) :: c
     c=trim(a%msg)//trim(adjustl(b))
-!!$    type(f_string) :: c
-!!$    call f_strcpy(c%msg,trim(a%msg)//trim(adjustl(b%msg)))
   end function attach_msg_c
 
   !define the strings which combine them, without the need of using trim or adjustl specifications
@@ -722,17 +716,14 @@ contains
     implicit none
     character(len=*), intent(in) :: a
     type(f_string), intent(in) :: b
-    character(len=len_trim(a)+len_trim(adjustl(b%msg))) :: c
+    character(len=len_trim(a)+len_trim(b%msg)) :: c
     c=trim(a)//trim(adjustl(b%msg))
-!!$    type(f_string) :: c
-!!$    call f_strcpy(c%msg,trim(a%msg)//trim(adjustl(b%msg)))
   end function attach_c_msg
 
   pure function string_and_integer(a,num) result(c)
     implicit none
     integer(f_integer), intent(in) :: num
     character(len=*), intent(in) :: a
-    !character(len=len_trim(adjustl(a))+len_trim(yaml_itoa(num))) :: c
     type(f_string) :: c
     call f_strcpy(c%msg,a//trim(yaml_toa(num)))
   end function string_and_integer
@@ -741,7 +732,6 @@ contains
     implicit none
     integer(f_integer), intent(in) :: a
     character(len=*), intent(in) :: num
-    !character(len=len_trim(adjustl(a))+len_trim(yaml_itoa(num))) :: c
     type(f_string) :: c
     call f_strcpy(c%msg,trim(adjustl(yaml_toa(a)))//trim(num))
   end function integer_and_string
@@ -750,7 +740,6 @@ contains
     implicit none
     integer(f_integer), intent(in) :: a
     type(f_string), intent(in) :: num
-    !character(len=len_trim(adjustl(a))+len_trim(yaml_itoa(num))) :: c
     type(f_string) :: c
     call f_strcpy(c%msg,trim(adjustl(yaml_toa(a)))//trim(num%msg))
   end function integer_and_msg
@@ -759,8 +748,6 @@ contains
     implicit none
     integer(f_long), intent(in) :: num
     character(len=*), intent(in) :: a
-!!$    character(len=len_trim(adjustl(a))+len_trim(yaml_litoa(num))) :: c
-!!$    c=a//trim(yaml_toa(num))
     type(f_string) :: c
     call f_strcpy(c%msg,trim(adjustl(a))//trim(yaml_toa(num)))
   end function string_and_long
@@ -769,8 +756,6 @@ contains
     implicit none
     real(f_double), intent(in) :: num
     character(len=*), intent(in) :: a
-!!$    character(len=len_trim(adjustl(a))+len_trim(yaml_dtoa(num))) :: c
-!!$    c=a//trim(yaml_toa(num))
     type(f_string) :: c
     call f_strcpy(c%msg,trim(adjustl(a))//trim(yaml_toa(num)))
   end function string_and_double
@@ -779,8 +764,6 @@ contains
     implicit none
     real(f_simple), intent(in) :: num
     character(len=*), intent(in) :: a
-!!$    character(len=len_trim(adjustl(a))+len_trim(yaml_dtoa(num))) :: c
-!!$    c=a//trim(yaml_toa(num))
     type(f_string) :: c
     call f_strcpy(c%msg,trim(adjustl(a))//trim(yaml_toa(num)))
   end function string_and_simple
@@ -792,15 +775,13 @@ contains
     character(len=*), intent(in) :: a
     character(len=len_trim(adjustl(a))+len_trim(num%msg)) :: c
     c=trim(adjustl(a))//trim(num%msg)
-!!$    type(f_string) :: c
-!!$    call f_strcpy(c%msg,a//trim(yaml_toa(num)))
   end function string_and_msg
 
   pure function msg_and_msg(a,num) result(c)
     implicit none
     type(f_string), intent(in) :: num
     type(f_string), intent(in) :: a
-    character(len=len_trim(adjustl(a%msg))+len_trim(num%msg)) :: c
+    character(len=len_trim(a%msg)+len_trim(num%msg)) :: c
     c=trim(adjustl(a%msg))//trim(num%msg)
 !!$    type(f_string) :: c
 !!$    call f_strcpy(c%msg,a//trim(yaml_toa(num)))
@@ -810,7 +791,7 @@ contains
     implicit none
     type(f_string), intent(in) :: a
     character(len=*), intent(in) :: num
-    character(len=len_trim(adjustl(a%msg))+len_trim(num)) :: c
+    character(len=len_trim(a%msg)+len_trim(num)) :: c
     c=trim(adjustl(a%msg))//trim(num)
 !!$    type(f_string) :: c
 !!$    call f_strcpy(c%msg,a//trim(yaml_toa(num)))
@@ -828,8 +809,6 @@ contains
     implicit none
     integer(f_integer), intent(in) :: num
     character(len=*), intent(in) :: s
-!!$    character(len=len_trim(s)+len_trim(adjustl(yaml_itoa(num)))) :: c
-!!$    c=trim(s)//trim(adjustl(yaml_toa(num)))
     type(f_string) :: c
     call f_strcpy(c%msg,trim(s)//trim(adjustl(yaml_toa(num))))
   end function attach_ci
@@ -838,8 +817,6 @@ contains
     implicit none
     integer(f_long), intent(in) :: num
     character(len=*), intent(in) :: s
-!!$    character(len=len_trim(s)+len_trim(adjustl(yaml_litoa(num)))) :: c
-!!$    c=trim(s)//trim(adjustl(yaml_toa(num)))
     type(f_string) :: c
     call f_strcpy(c%msg,trim(s)//trim(adjustl(yaml_toa(num))))
   end function attach_cli
@@ -848,8 +825,6 @@ contains
     implicit none
     integer(f_long), intent(in) :: num
     character(len=*), intent(in) :: s
-!!$    character(len=len_trim(s)+len_trim(adjustl(yaml_litoa(num)))) :: c
-!!$    c=trim(s)//trim(adjustl(yaml_toa(num)))
     type(f_string) :: c
     call f_strcpy(c%msg,trim(adjustl(yaml_toa(num)))//trim(adjustl(s)))
   end function attach_lic
@@ -858,8 +833,6 @@ contains
     implicit none
     real(f_double), intent(in) :: num
     character(len=*), intent(in) :: s
-!!$    character(len=len_trim(s)+len_trim(adjustl(yaml_dtoa(num)))) :: c
-!!$    c=trim(s)//trim(adjustl(yaml_toa(num)))
     type(f_string) :: c
     call f_strcpy(c%msg,trim(s)//trim(adjustl(yaml_toa(num))))
   end function attach_cd
@@ -868,8 +841,6 @@ contains
     implicit none
     integer(f_integer), intent(in) :: num
     character(len=*), intent(in) :: fmt
-!!$    character(len=len_trim(adjustl(yaml_itoa(num,fmt)))) :: c
-!!$    c=trim(adjustl(yaml_toa(num,fmt)))
     type(f_string) :: c
     call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
   end function yaml_itoa_fmt
@@ -878,8 +849,6 @@ contains
     implicit none
     integer(f_long), intent(in) :: num
     character(len=*), intent(in) :: fmt
-!!$    character(len=len_trim(adjustl(yaml_litoa(num,fmt)))) :: c
-!!$    c=trim(adjustl(yaml_toa(num,fmt)))
     type(f_string) :: c
     call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
   end function yaml_litoa_fmt
@@ -888,8 +857,6 @@ contains
     implicit none
     real(f_double), intent(in) :: num
     character(len=*), intent(in) :: fmt
-!!$    character(len=len_trim(adjustl(yaml_dtoa(num,fmt)))) :: c
-!!$    c=trim(adjustl(yaml_toa(num,fmt)))
     type(f_string) :: c
     call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
   end function yaml_dtoa_fmt
@@ -898,8 +865,6 @@ contains
     implicit none
     character(len=*), intent(in) :: num
     character(len=*), intent(in) :: fmt
-!!$    character(len=len_trim(adjustl(yaml_ctoa(num,fmt)))) :: c
-!!$    c=trim(adjustl(yaml_toa(num,fmt)))
     type(f_string) :: c
     call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
   end function yaml_ctoa_fmt
