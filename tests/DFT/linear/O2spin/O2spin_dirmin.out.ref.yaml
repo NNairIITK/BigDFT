@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-04-05 16:52:21.404
+ Timestamp of this run                 : 2016-05-04 11:58:24.406
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -38,12 +38,15 @@
  Compilation options:
    Configure arguments:
      " 'FC=/home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort' 'CC=gcc' 'FCFLAGS=-O2 
-     -Wno-error -fopenmp -m64' '--with-ext-linalg='"
+     -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp -m64' 
+     '--with-ext-linalg='"
    Compilers (CC, FC, CXX): [gcc, /home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort, 
                              g++]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -Wno-error -fopenmp -m64
+     FCFLAGS:
+       -O2 -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp 
+       -m64
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : dirmin
@@ -84,6 +87,9 @@
     #                                              point. Negative values mean no plot.
    plot_pot_axes: [-1, -1, -1] #                  Plot the potential along axes through this point. Negative values mean 
     #                                              no plot.
+   occupancy_control                   : None #   Dictionary of the atomic matrices to be applied for a given iteration number
+   itermax_occ_ctrl                    : 0 #      Number of iterations of occupancy control scheme. Should be between itermin and 
+    #                                              itermax
  perf:
    ef_interpol_det                     : 1.e-10 # FOE max determinant of cubic interpolation matrix
    ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
@@ -173,7 +179,8 @@
    cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    calc_quadrupole                     : No #     calculate quadrupole
    subspace_diag                       : No #     diagonalization at the end
-   extra_states                        : 0 #      extra states to optimize (dmin only)
+   extra_states                        : 0 #      Number of extra states to include in support function and kernel optimization (dmin 
+    #                                              only), must be equal to norbsempty
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
     #                                              written to disk)
    charge_multipoles                   : 0 #      Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
@@ -267,6 +274,7 @@
    forcemax                            : 0. #     Max forces criterion when stop
    randdis                             : 0. #     Random displacement amplitude
    betax                               : 4. #     Stepsize for the geometry optimization
+   beta_stretchx                       : 5e-1 #   Stepsize for steepest descent in stretching mode direction (only if in biomode)
  md:
    mdsteps                             : 0 #      Number of MD steps
    print_frequency                     : 1 #      Printing frequency for energy.dat and Trajectory.xyz files
@@ -275,6 +283,9 @@
    no_translation                      : No #     Logical input to set translational correction
    thermostat                          : none #   Activates a thermostat for MD
    wavefunction_extrapolation          : 0 #      Activates the wavefunction extrapolation for MD
+   restart_nose                        : No #     Restart Nose Hoover Chain information from md.restart
+   restart_pos                         : No #     Restart nuclear position information from md.restart
+   restart_vel                         : No #     Restart nuclear velocities information from md.restart
  mix:
    iscf                                : 0 #      Mixing parameters
    itrpmax                             : 1 #      Maximum number of diagonalisation iterations
@@ -509,19 +520,20 @@
  non-zero elements                     :  64
   #segments:  8
  sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ sparse matrix multiplication initialized:  No
  total elements                        :  64
  non-zero elements                     :  64
   #segments:  8
  sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ sparse matrix multiplication initialized:  No
  check of kernel cutoff radius:
  -  {atom type: O, adjustment required:  Yes, new value:  8.38}
+ sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
  total elements                        :  64
  non-zero elements                     :  64
   #segments:  8
  sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ sparse matrix multiplication initialized:  Yes
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
@@ -604,6 +616,10 @@
        max diff of eigenvectors        :  0.00E+00
        max diff of eigenvalues         :  0.00E+00
      communication strategy kernel     : ALLREDUCE
+     Asymmetry of the matrices:
+       Overlap                         :  0.00E+00
+       Hamiltonian                     :  1.22E-15
+       Kernel (possibly symmetrized)   :  0.00E+00
      Kohn-Sham residue                 :  2.510E-01
      Coefficients available            :  Yes
    Total magnetization                 :  4.000000
@@ -814,6 +830,10 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  8, fnrm:  1.77E-05, eBS: -4.13088586495560950E+00, D: -2.170E-09}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  8.05E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  1.708E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -935,6 +955,10 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  7, fnrm:  1.23E-06, eBS: -4.08454858212987393E+00, D: -4.111E-11}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.28E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  1.714E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1071,6 +1095,10 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  8, fnrm:  1.92E-04, eBS: -3.26205918358385327E+00, D: -3.939E-08}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.83E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  1.861E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1192,6 +1220,10 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  7, fnrm:  5.25E-06, eBS: -3.21671136771248456E+00, D: -1.878E-10}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.39E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  1.872E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1401,6 +1433,10 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  8, fnrm:  1.71E-05, eBS: -3.27426103120467937E+00, D: -6.817E-09}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  9.99E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  1.716E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1537,6 +1573,10 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  8, fnrm:  1.95E-05, eBS: -3.30004045845688943E+00, D: -2.030E-10}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.94E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  1.712E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1673,6 +1713,10 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  8, fnrm:  1.35E-05, eBS: -3.77895926154367290E+00, D: -3.243E-10}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.33E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  1.646E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1779,6 +1823,10 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  6, fnrm:  6.86E-06, eBS: -3.77816707161044540E+00, D: -1.079E-10}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.44E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  1.646E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1821,19 +1869,20 @@
    non-zero elements                   :  64
     #segments:  8
    sparsity in %                       :  0.00
-   sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+   sparse matrix multiplication initialized:  No
    total elements                      :  64
    non-zero elements                   :  64
     #segments:  8
    sparsity in %                       :  0.00
-   sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+   sparse matrix multiplication initialized:  No
    check of kernel cutoff radius:
    -  {atom type: O, adjustment required:  No}
+   sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
    total elements                      :  64
    non-zero elements                   :  64
     #segments:  8
    sparsity in %                       :  0.00
-   sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+   sparse matrix multiplication initialized:  Yes
    taskgroup summary:
      number of taskgroups              :  1
      taskgroups overview:
@@ -1965,6 +2014,10 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  7, fnrm:  7.42E-07, eBS: -3.77849104309327632E+00, D: -2.094E-12}
+     Asymmetry of the matrices:
+       Overlap                         :  0.00E+00
+       Hamiltonian                     :  1.26E-15
+       Kernel (possibly symmetrized)   :  0.00E+00
      Kohn-Sham residue                 :  1.644E-01
      Coefficients available            :  Yes
     #========================================================= support function optimization
@@ -2157,6 +2210,10 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  8, fnrm:  1.37E-04, eBS: -4.18050255039203655E+00, D: -2.128E-08, 
           alpha:  2.000E-01}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  9.71E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  2.03935912532E+01, Epot: -2.33737749655E+01, Enl:  1.43940262883E+00, 
@@ -2284,6 +2341,10 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  8, fnrm:  8.35E-05, eBS: -4.41739322667229484E+00, D: -8.101E-09, 
           alpha:  2.000E-01}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  8.88E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  7.763E-02
        Coefficients available          :  Yes
      alpha                             :  0.1
@@ -2414,6 +2475,10 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  8, fnrm:  4.79E-03, eBS: -8.74463494864200896E+00, D: -1.255E-05, 
           alpha:  1.000E-01}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  8.33E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  1.836E-01
        Coefficients available          :  Yes
      alpha                             :  5.0000000000000003E-002
@@ -2544,6 +2609,10 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  8, fnrm:  2.03E-03, eBS: -8.74387274551835247E+00, D: -1.176E-06, 
           alpha:  5.000E-02}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.11E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  1.836E-01
        Coefficients available          :  Yes
      alpha                             :  5.5000000000000007E-002
@@ -2757,6 +2826,10 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  8, fnrm:  2.00E-04, eBS: -9.01785674053790132E+00, D: -4.229E-08, 
           alpha:  2.000E-01}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.32E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  1.76277153236E+01, Epot: -2.38250380589E+01, Enl:  1.30841697501E+00, 
@@ -2884,6 +2957,10 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  8, fnrm:  1.09E-04, eBS: -8.78536613916489273E+00, D: -1.317E-08, 
           alpha:  2.000E-01}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.28E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  5.201E-02
        Coefficients available          :  Yes
      alpha                             :  0.1
@@ -3014,6 +3091,10 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  8, fnrm:  5.99E-03, eBS: -4.32982657464165754E+00, D: -1.934E-05, 
           alpha:  1.000E-01}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  7.29E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  1.651E-01
        Coefficients available          :  Yes
      alpha                             :  5.0000000000000003E-002
@@ -3144,6 +3225,10 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  8, fnrm:  2.18E-03, eBS: -4.33295355554852613E+00, D: -1.348E-06, 
           alpha:  5.000E-02}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.17E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  1.650E-01
        Coefficients available          :  Yes
      alpha                             :  5.5000000000000007E-002
@@ -3357,6 +3442,10 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  8, fnrm:  2.85E-04, eBS: -4.68405358792943538E+00, D: -9.057E-08, 
           alpha:  2.000E-01}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  7.70E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  2.03359740864E+01, Epot: -2.37733297070E+01, Enl:  1.55347477164E+00, 
@@ -3484,6 +3573,10 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  8, fnrm:  7.16E-05, eBS: -4.90228221573782896E+00, D: -5.483E-09, 
           alpha:  2.000E-01}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.62E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  9.318E-02
        Coefficients available          :  Yes
      alpha                             :  0.1
@@ -3614,6 +3707,10 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  8, fnrm:  8.03E-03, eBS: -9.02781425286821104E+00, D: -3.536E-05, 
           alpha:  1.000E-01}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  8.33E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.001E-01
        Coefficients available          :  Yes
      alpha                             :  5.0000000000000003E-002
@@ -3744,6 +3841,10 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  8, fnrm:  3.51E-03, eBS: -9.02303257497060329E+00, D: -3.538E-06, 
           alpha:  5.000E-02}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.11E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  1.999E-01
        Coefficients available          :  Yes
      alpha                             :  5.5000000000000007E-002
@@ -3777,12 +3878,13 @@
    BC                                  : Free
    Box                                 :  [  97,  97,  111 ]
    MPI tasks                           :  8
+ Multipole analysis origin             :  [  5.94E+00,  5.940000E+00,  7.200000E+00 ]
  Electric Dipole Moment (AU):
-   P vector                            :  [ -8.5303E-03, -8.5302E-03, -3.0260E-02 ]
-   norm(P)                             :  3.257586E-02
+   P vector                            :  [ -8.5428E-03, -8.5426E-03, -3.0272E-02 ]
+   norm(P)                             :  3.259401E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -2.1682E-02, -2.1681E-02, -7.6913E-02 ]
-   norm(P)                             :  8.279956E-02
+   P vector                            :  [ -2.1714E-02, -2.1713E-02, -7.6945E-02 ]
+   norm(P)                             :  8.284570E-02
  Calculate local forces                :  Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------- Warnings obtained during the run, check their relevance!
@@ -3796,8 +3898,8 @@
  - divide the band stucture energy by 2.0, check this!
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  18.92
-   Elapsed time (s)                    :  18.98
+   CPU time (s)                        :  25.37
+   Elapsed time (s)                    :  26.26
  BigDFT infocode                       :  0
  Average noise forces: {x: -9.75340062E-04, y: -9.75143644E-04, z:  2.62518661E-03, 
                     total:  2.96543388E-03}
@@ -3810,14 +3912,14 @@
  Energy (Hartree)                      : -3.12657021077715740E+01
  Force Norm (Hartree/Bohr)             :  1.77199598931114766E+00
  Memory Consumption Report:
-   Tot. No. of Allocations             :  18650
-   Tot. No. of Deallocations           :  18650
+   Tot. No. of Allocations             :  18394
+   Tot. No. of Deallocations           :  18394
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  202.334
+     Peak Value (MB)                   :  200.516
      for the array                     : psir
      in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 260.344 MB
- Walltime since initialization         : 00:00:19.365846534
- Max No. of dictionaries used          :  6429 #( 1002 still in use)
+     Memory Peak of process            : 254.828 MB
+ Walltime since initialization         : 00:00:26.652485941
+ Max No. of dictionaries used          :  6906 #( 1002 still in use)
  Number of dictionary folders allocated:  1
