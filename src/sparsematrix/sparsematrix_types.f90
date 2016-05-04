@@ -41,7 +41,7 @@ module sparsematrix_types
       integer :: isvctr !< starting entry of the compressed matrix elements
       integer,dimension(:),pointer :: isvctr_par, nvctr_par !<array that contains the values of nvctrp and isvctr of all MPI tasks
       integer :: nconsecutive_max !< max number of blocks (i.e. consecutive entries) for the sparse matmul
-      integer,dimension(:,:,:),pointer :: consecutive_lookup !< lookup arrays for these blocks
+      integer,dimension(:,:),pointer :: consecutive_lookup !< lookup arrays for these blocks
   end type sparse_matrix_matrix_multiplication
 
   type,public :: sparse_matrix

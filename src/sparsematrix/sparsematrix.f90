@@ -1173,7 +1173,7 @@ module sparsematrix
      !Local variables
      !character(len=*), parameter :: subname='sparsemm'
      integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j, iline, icolumn, nblock, iblock, ncount
-     integer :: iorb, ii, ilen, iout
+     integer :: iorb, ii, ilen, iout, iiblock, isblock
      real(kind=mp) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7, ddot
      integer :: n_dense
      real(kind=mp),dimension(:,:),allocatable :: a_dense, b_dense, c_dense
@@ -1215,15 +1215,18 @@ module sparsematrix
          do iout=1,smat%smmm%nout
              i=smat%smmm%onedimindices_new(1,iout)
              nblock=smat%smmm%onedimindices_new(4,iout)
+             isblock=smat%smmm%onedimindices_new(5,iout)
              tt0=0.d0
 
              do iblock=1,nblock
-                 jorb = smat%smmm%consecutive_lookup(1,iblock,iout)
-                 jjorb = smat%smmm%consecutive_lookup(2,iblock,iout)
-                 ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
+                 iiblock = isblock + iblock
+                 jorb = smat%smmm%consecutive_lookup(1,iiblock)
+                 jjorb = smat%smmm%consecutive_lookup(2,iiblock)
+                 ncount = smat%smmm%consecutive_lookup(3,iiblock)
                  !tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
                  !avoid calling ddot from OpenMP region on BG/Q as too expensive
-                 tt0=tt0+my_dot(ncount,b(jjorb:jjorb+ncount-1),a_seq(jorb:jorb+ncount-1))
+                 !tt0=tt0+my_dot(ncount,b(jjorb:jjorb+ncount-1),a_seq(jorb:jorb+ncount-1))
+                 tt0=tt0+my_dot(ncount,b(jjorb),a_seq(jorb))
              end do
 
              c(i) = tt0
@@ -1238,8 +1241,10 @@ module sparsematrix
              op = 0.d0
              do iout=1,smat%smmm%nout
                  nblock=smat%smmm%onedimindices_new(4,iout)
+                 isblock=smat%smmm%onedimindices_new(5,iout)
                  do iblock=1,nblock
-                     ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
+                     iiblock = isblock + iblock
+                     ncount = smat%smmm%consecutive_lookup(3,iiblock)
                      op = op + real(ncount,kind=mp)
                  end do
              end do

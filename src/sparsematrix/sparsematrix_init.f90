@@ -1430,7 +1430,7 @@ module sparsematrix_init
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(in) :: smat
       integer,dimension(smat%nfvctr),intent(in) :: istsegline
-      integer,dimension(4,nout) :: onedimindices
+      integer,dimension(5,nout) :: onedimindices
     
       ! Local variables
       integer :: itot, ipt, iipt, iline, icolumn, ilen, jseg, ii, jorb, iseg_start
@@ -1696,15 +1696,16 @@ module sparsematrix_init
       ! Calling arguments
       integer,intent(in) :: nout, nseq
       integer,dimension(nseq),intent(in) :: ivectorindex
-      integer,dimension(4,nout),intent(inout) :: onedimindices_new
+      integer,dimension(5,nout),intent(inout) :: onedimindices_new
       integer,intent(out) :: nconsecutive_max
-      integer,dimension(:,:,:),pointer,intent(out) :: consecutive_lookup
+      integer,dimension(:,:),pointer,intent(out) :: consecutive_lookup
 
       ! Local variables
-      integer :: iout, ilen, ii, iend, nconsecutive, jorb, jjorb, jjorb_prev, iconsec
+      integer :: iout, ilen, ii, iend, nconsecutive, jorb, jjorb, jjorb_prev, iconsec, nconsecutive_tot
 
 
       nconsecutive_max = 0
+      nconsecutive_tot = 0
       do iout=1,nout
           ilen=onedimindices_new(2,iout)
           ii=onedimindices_new(3,iout)
@@ -1712,49 +1713,58 @@ module sparsematrix_init
           iend=ii+ilen-1
 
           nconsecutive = 1
+          nconsecutive_tot = nconsecutive_tot + 1
+          onedimindices_new(5,iout) = nconsecutive_tot - 1
           do jorb=ii,iend
              jjorb=ivectorindex(jorb)
              if (jorb>ii) then
                  if (jjorb/=jjorb_prev+1) then
                      nconsecutive = nconsecutive + 1
+                     nconsecutive_tot = nconsecutive_tot + 1
                  end if
              end if
              jjorb_prev = jjorb
           end do
-          nconsecutive_max = max(nconsecutive,nconsecutive_max)
+          !nconsecutive_max = max(nconsecutive,nconsecutive_max)
           onedimindices_new(4,iout) = nconsecutive
       end do
 
-      consecutive_lookup = f_malloc_ptr((/3,nconsecutive_max,nout/),id='consecutive_lookup')
+      consecutive_lookup = f_malloc_ptr((/3,nconsecutive_tot/),id='consecutive_lookup')
 
 
+      nconsecutive = 0
       do iout=1,nout
           ilen=onedimindices_new(2,iout)
           ii=onedimindices_new(3,iout)
 
           iend=ii+ilen-1
 
-          nconsecutive = 1
+          !nconsecutive = 1
           iconsec = 0
-          consecutive_lookup(1,nconsecutive,iout) = ii
-          consecutive_lookup(2,nconsecutive,iout) = ivectorindex(ii)
+          nconsecutive = nconsecutive + 1
+          consecutive_lookup(1,nconsecutive) = ii
+          consecutive_lookup(2,nconsecutive) = ivectorindex(ii)
           do jorb=ii,iend
              jjorb=ivectorindex(jorb)
              if (jorb>ii) then
                  if (jjorb/=jjorb_prev+1) then
-                     consecutive_lookup(3,nconsecutive,iout) = iconsec
+                     consecutive_lookup(3,nconsecutive) = iconsec
                      nconsecutive = nconsecutive + 1
-                     consecutive_lookup(1,nconsecutive,iout) = jorb
-                     consecutive_lookup(2,nconsecutive,iout) = jjorb
+                     consecutive_lookup(1,nconsecutive) = jorb
+                     consecutive_lookup(2,nconsecutive) = jjorb
                      iconsec = 0
                  end if
              end if
              iconsec = iconsec + 1
              jjorb_prev = jjorb
           end do
-          consecutive_lookup(3,nconsecutive,iout) = iconsec
-          if (nconsecutive>nconsecutive_max) stop 'nconsecutive>nconsecutive_max'
+          consecutive_lookup(3,nconsecutive) = iconsec
+          !if (nconsecutive>nconsecutive_max) stop 'nconsecutive>nconsecutive_max'
       end do
+      if (nconsecutive/=nconsecutive_tot) then
+          write(*,*) 'nconsecutive, nconsecutive_tot', nconsecutive, nconsecutive_tot
+          call f_err_throw('consecutive/=nconsecutive_tot')
+      end if
 
 
     end subroutine determine_consecutive_values
