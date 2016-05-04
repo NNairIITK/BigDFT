@@ -1173,7 +1173,7 @@ module sparsematrix
      !Local variables
      !character(len=*), parameter :: subname='sparsemm'
      integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j, iline, icolumn, nblock, iblock, ncount
-     integer :: iorb, ii, ilen, iout, iiblock, isblock
+     integer :: iorb, ii, ilen, iout, iiblock, isblock, is,ie
      real(kind=mp) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7, ddot
      integer :: n_dense
      real(kind=mp),dimension(:,:),allocatable :: a_dense, b_dense, c_dense
@@ -1218,11 +1218,14 @@ module sparsematrix
              isblock=smat%smmm%onedimindices_new(5,iout)
              tt0=0.d0
 
-             do iblock=1,nblock
-                 iiblock = isblock + iblock
-                 jorb = smat%smmm%consecutive_lookup(1,iiblock)
-                 jjorb = smat%smmm%consecutive_lookup(2,iiblock)
-                 ncount = smat%smmm%consecutive_lookup(3,iiblock)
+             is = isblock + 1
+             ie = isblock + nblock
+             !do iblock=1,nblock
+             do iblock=is,ie
+                 !iiblock = isblock + iblock
+                 jorb = smat%smmm%consecutive_lookup(1,iblock)
+                 jjorb = smat%smmm%consecutive_lookup(2,iblock)
+                 ncount = smat%smmm%consecutive_lookup(3,iblock)
                  !tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
                  !avoid calling ddot from OpenMP region on BG/Q as too expensive
                  !tt0=tt0+my_dot(ncount,b(jjorb:jjorb+ncount-1),a_seq(jorb:jorb+ncount-1))

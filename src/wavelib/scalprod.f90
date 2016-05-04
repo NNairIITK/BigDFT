@@ -187,7 +187,7 @@ subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
      psi_c(i)=psi_c(i)*scal(0)           !  1 1 1
   enddo
   !$omp enddo
-  !$omp do
+  !$omp do schedule(static)
   do i=1,mvctr_f
      psi_f(1,i)=psi_f(1,i)*scal(1)       !  2 1 1
      psi_f(2,i)=psi_f(2,i)*scal(1)       !  1 2 1
