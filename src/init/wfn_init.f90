@@ -210,6 +210,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   use communications_base, only: comms_cubic
   use communications, only: transpose_v, untranspose_v, toglobal_and_transpose
   use public_enums
+  use random, only: builtin_rand
   implicit none
   logical, intent(in) :: mixing
   integer, intent(in) :: iproc,nproc,natsc,nspin,occopt
@@ -231,7 +232,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   integer :: ikptp,ikpt,nvctrp,iorb,Gdim!,jproc
   integer :: i,ndim_hamovr,ierr,norbi_max,j,noncoll,ispm,ncplx,idum=0
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
-  real(kind=4) :: tt,builtin_rand
+  real(kind=4) :: tt
   real(gp) :: tolerance
   integer, dimension(:,:), allocatable :: norbgrp
   real(wp), dimension(:,:,:), allocatable :: hamovr

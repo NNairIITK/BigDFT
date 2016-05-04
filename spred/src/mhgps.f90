@@ -36,6 +36,7 @@ program mhgps
     use module_minimizers
     use bigdft_run
     use SPREDtypes
+    use random, only: builtin_rand
     implicit none
     integer                   :: u
     integer                   :: istat
@@ -89,7 +90,6 @@ program mhgps
     real(gp)              :: energy, energy2, ec, displ
     real(gp)              :: fnrm, fmax
     integer :: idum=0
-    real(kind=4) :: builtin_rand
 
     !functions
     real(gp) :: dnrm2

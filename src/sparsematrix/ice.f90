@@ -692,6 +692,7 @@ module ice
       integer,parameter :: NPL_STRIDE = 5
 
       call f_routine(id='inverse_chebyshev_expansion_new')
+      call f_timing(TCAT_CME_AUXILIARY,'ON')
 
       if (.not.inv_ovrlp_smat%smatmul_initialized) then
           call f_err_throw('sparse matrix multiplication not initialized', &
@@ -910,7 +911,7 @@ module ice
           call f_free_ptr(ice_obj_%eval_multiplicator)
       end if
 
-
+      call f_timing(TCAT_CME_AUXILIARY,'OF')
       call f_release_routine()
 
     end subroutine inverse_chebyshev_expansion_new

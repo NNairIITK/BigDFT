@@ -353,7 +353,7 @@ module rhopotential
              do iorb=1,nilr
                 ilr = ilrtable(iorb)
                 iiorb=orbs%isorb+iorb
-                if (orbs%inwhichlocreg(iiorb)/=ilr) stop 'full_local_potential: orbs%inwhichlocreg(iiorb)/=ilr'
+                if (orbs%inwhichlocreg(iiorb)/=ilr) call f_err_throw('full_local_potential: orbs%inwhichlocreg(iiorb)/=ilr')
                 
                 if (orbs%spinsgn(iiorb)>0.d0) then
                     ispin=1

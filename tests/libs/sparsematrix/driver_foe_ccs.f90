@@ -115,7 +115,7 @@ program driver_css
   call foe_data_deallocate(foe_obj)
   call foe_data_deallocate(ice_obj)
 
-  ! Deallocate all the sparse matrix descriptrs types
+  ! Deallocate all the sparse matrix descriptors types
   call deallocate_sparse_matrix(smat_s)
   call deallocate_sparse_matrix(smat_h)
   call deallocate_sparse_matrix(smat_k)

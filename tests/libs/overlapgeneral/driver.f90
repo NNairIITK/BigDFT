@@ -16,7 +16,7 @@ program driver
   use module_interfaces
   use sparsematrix_base, only: deallocate_sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices, &
                                SPARSE_FULL, sparsematrix_malloc, assignment(=)
-  use sparsematrix_init, only: sparse_matrix_init_fake, check_symmetry
+  use sparsematrix_init, only: sparse_matrix_init_fake, check_symmetry, generate_random_symmetric_sparsity_pattern
   use sparsematrix, only: compress_matrix, uncompress_matrix, extract_taskgroup_inplace, &
                           write_matrix_compressed
   use matrix_operations, only: overlapPowerGeneral, deviation_from_unity_parallel
@@ -35,7 +35,7 @@ program driver
 
   logical :: file_exists, symmetric, perform_check, optional_parameters
   type(orbitals_data) :: orbs
-  type(sparse_matrix) :: smat_A, smat_B
+  type(sparse_matrix) :: smat_A, smat_B, smat_test
   type(matrices) :: mat_A
   type(matrices),dimension(1) :: inv_mat_B
   character(len=*),parameter :: filename='inputdata.fake'
@@ -112,6 +112,7 @@ program driver
   ! Fake initialization of the sparse_matrix type
   call sparse_matrix_init_fake(iproc, nproc, bigdft_mpi%mpi_comm, norb, nseg, nvctr, smat_A)
   call sparse_matrix_init_fake(iproc, nproc, bigdft_mpi%mpi_comm, norb, nseg, nvctr, smat_B)
+
 
 
   symmetric = check_symmetry(smat_A)

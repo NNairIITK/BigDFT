@@ -301,10 +301,10 @@ contains
     integer,intent(in) :: nproc
     type(comms_linear),intent(in) :: comm
     type(work_transpose),intent(inout) :: wt
-    wt%psiwork_c = f_malloc_ptr(comm%ndimpsi_c,id='psiwork_c')
-    wt%psiwork_f = f_malloc_ptr(7*comm%ndimpsi_f,id='psiwork_f')
-    wt%psitwork_c = f_malloc_ptr(comm%ndimind_c,id='psitwork_c')
-    wt%psitwork_f = f_malloc_ptr(7*comm%ndimind_f,id='psitwork_f')
+    wt%psiwork_c = f_malloc_ptr(comm%ndimpsi_c,id='wt%psiwork_c')
+    wt%psiwork_f = f_malloc_ptr(7*comm%ndimpsi_f,id='wt%psiwork_f')
+    wt%psitwork_c = f_malloc_ptr(comm%ndimind_c,id='wt%psitwork_c')
+    wt%psitwork_f = f_malloc_ptr(7*comm%ndimind_f,id='wt%psitwork_f')
     wt%psiwork = f_malloc_ptr(max(comm%ndimpsi_c+7*comm%ndimpsi_f,1),id='wt%psiwork')
     wt%psitwork = f_malloc_ptr(max(sum(comm%nrecvcounts_c)+7*sum(comm%nrecvcounts_f),1),id='wt%psitwork')
     wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')

@@ -644,7 +644,7 @@ module foe_common
       type(sparse_matrix),intent(in) :: smat_l
       real(kind=mp),intent(in) :: factor_high, factor_low, anoise
       !real(kind=mp),dimension(smat_l%nfvctr,smat_l%smmm%nfvctrp,2),intent(in) :: penalty_ev
-      real(kind=mp),dimension(smat_l%smmm%nvctrp,2),intent(in) :: penalty_ev
+      real(kind=mp),dimension(smat_l%smmm%nvctrp),intent(in) :: penalty_ev
       logical,intent(in) :: trace_with_overlap
       logical,dimension(2) :: emergency_stop
       type(foe_data),intent(inout) :: foe_obj
@@ -659,8 +659,8 @@ module foe_common
       integer :: isegstart, isegend, iseg, ii, jorb, irow, icol, iismall, iel, i, iline, icolumn, ibound, verbosity_
       integer :: ishift
       real(mp),dimension(:),allocatable :: mat_large
-      real(kind=mp) :: bound_low, bound_up, tt, noise
-      real(kind=mp),dimension(2) :: allredarr
+      real(kind=mp) :: tt, noise, penalty
+      !real(kind=mp),dimension(1) :: allredarr
     
       call f_routine(id='check_eigenvalue_spectrum_new')
 
@@ -684,121 +684,60 @@ module foe_common
                smat_in=mat%matrix_compr, lmat_out=mat_large)
       end if
     
-      bound_low=0.d0
-      bound_up=0.d0
+      penalty=0.d0
       ishift = (ispin-1)*smat_l%nvctrp_tg
-      do ibound=1,2
-          !$omp parallel if (smat_l%smmm%nvctrp>1000) &
-          !$omp default(none) &
-          !$omp shared(ibound, smat_l, bound_low, bound_up, trace_with_overlap, mat_large, ishift, penalty_ev) &
-          !$omp private(i, ii, iline, icolumn, iismall, tt)
-          !$omp do schedule(static) reduction(+:bound_low, bound_up)
-          do i=1,smat_l%smmm%nvctrp
-              ii = smat_l%smmm%isvctr + i
-              iline = smat_l%smmm%line_and_column(1,i)
-              icolumn = smat_l%smmm%line_and_column(2,i)
-              if (trace_with_overlap) then
-                  ! Take the trace of the product matrix times overlap
-                  tt = mat_large(ishift+i)
+      !$omp parallel if (smat_l%smmm%nvctrp>1000) &
+      !$omp default(none) &
+      !$omp shared(smat_l, penalty, trace_with_overlap, mat_large, ishift, penalty_ev) &
+      !$omp private(i, ii, iline, icolumn, iismall, tt)
+      !$omp do schedule(static) reduction(+:penalty)
+      do i=1,smat_l%smmm%nvctrp
+          ii = smat_l%smmm%isvctr + i
+          iline = smat_l%smmm%line_and_column(1,i)
+          icolumn = smat_l%smmm%line_and_column(2,i)
+          if (trace_with_overlap) then
+              ! Take the trace of the product matrix times overlap
+              tt = mat_large(ishift+i)
+          else
+              ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
+              if (iline==icolumn) then
+                  tt=1.d0
               else
-                  ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
-                  if (iline==icolumn) then
-                      tt=1.d0
-                  else
-                      tt=0.d0
-                  end if
+                  tt=0.d0
               end if
-              ! This should be improved...
-              if (ibound==1) bound_low = bound_low + penalty_ev(i,1)*tt
-              if (ibound==2) bound_up = bound_up + penalty_ev(i,2)*tt
-          end do
-          !$omp end do
-          !$omp end parallel
-
-
-          !!!!!!!if (.not.emergency_stop(ibound)) then
-          !!!!!!    ! The penalty function must be smaller than the noise.
-    
-          !!!!!!    !$omp parallel default(none) &
-          !!!!!!    !$omp shared(ibound,bound_low, bound_up, smat_l, smat_s, trace_with_overlap, mat, isshift, penalty_ev) &
-          !!!!!!    !$omp private(i, ii, iline, icolumn, iismall, tt)
-          !!!!!!    !$omp do reduction(+:bound_low, bound_up)
-          !!!!!!    do i=1,smat_l%smmm%nvctrp
-          !!!!!!        ii = smat_l%smmm%isvctr + i
-          !!!!!!        iline = smat_l%smmm%line_and_column(1,i)
-          !!!!!!        icolumn = smat_l%smmm%line_and_column(2,i)
-          !!!!!!        if (trace_with_overlap) then
-          !!!!!!            ! Take the trace of the product matrix times overlap
-          !!!!!!            iismall = matrixindex_in_compressed(smat_s, icolumn, iline)
-          !!!!!!            if (iismall>0) then
-          !!!!!!                tt=mat%matrix_compr(isshift+iismall-smat_s%isvctrp_tg)
-          !!!!!!            else
-          !!!!!!                tt=0.d0
-          !!!!!!            end if
-          !!!!!!        else
-          !!!!!!            ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
-          !!!!!!            if (iline==icolumn) then
-          !!!!!!                tt=1.d0
-          !!!!!!            else
-          !!!!!!                tt=0.d0
-          !!!!!!            end if
-          !!!!!!        end if
-          !!!!!!        ! This should be improved...
-          !!!!!!        if (ibound==1) bound_low = bound_low + penalty_ev(i,1)*tt
-          !!!!!!        if (ibound==2) bound_up = bound_up + penalty_ev(i,2)*tt
-          !!!!!!    end do
-          !!!!!!    !$omp end do
-          !!!!!!    !$omp end parallel
-          !else
-          !    ! This means that the Chebyshev expansion exploded, so take a very large
-          !    ! value for the error function such that eigenvalue bounds will be enlarged
-          !    if (ibound==1) bound_low = 1.d10
-          !    if (ibound==2) bound_up = 1.d10
-          !    !!if (emergency_stop(1)) then
-          !    !!    ! Need to enlarge boundary
-          !    !!    bound_low = 1.d10
-          !    !!else
-          !    !!    ! No need to enlarge boundary
-          !    !!    bound_low = 0.d0
-          !    !!end if
-          !    !!if (emergency_stop(2)) then
-          !    !!    ! Need to enlarge boundary
-          !    !!    bound_up = 1.d10
-          !    !!else
-          !    !!    ! No need to enlarge boundary
-          !    !!    bound_up = 0.d0
-          !    !!end if
-          !end if
+          end if
+          penalty = penalty + penalty_ev(i)*tt
       end do
+      !$omp end do
+      !$omp end parallel
 
       if (trace_with_overlap) then
           call f_free(mat_large)
       end if
+
+      ! Divide the traces by the matrix dimension, to make them size independent
+      penalty = penalty/real(smat_l%nfvctr,kind=mp)
     
-      allredarr(1)=bound_low
-      allredarr(2)=bound_up
-    
-      if (nproc > 1) then
-          call mpiallred(allredarr, mpi_sum, comm=comm)
-      end if
+      !!if (nproc > 1) then
+      !!    call mpiallred(penalty, mpi_sum, comm=comm)
+      !!end if
+      call penalty_communicate(nproc, comm, penalty)
     
     
-      !allredarr=abs(allredarr) !for some crazy situations this may be negative
-      !noise=1000.d0*anoise
-      noise=10.d0*anoise
-      noise = 1.d-2
+      !noise=10.d0*anoise
+      noise = 1.d-3
     
       if (iproc==0 .and. verbosity_>0) then
           !call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
           !call yaml_map('pnlty',(/allredarr(1),allredarr(2)/),fmt='(es8.1)')
-          call yaml_map('penalty',allredarr(1),fmt='(es8.1)')
+          call yaml_map('penalty',penalty,fmt='(es8.1)')
       end if
 
       eval_bounds_ok(1) = .true.
       eval_bounds_ok(2) = .true.
-      if (any((/abs(allredarr(1))>noise,abs(allredarr(2))>noise/))) then
-          if (all((/abs(allredarr(1))>noise,abs(allredarr(2))>noise/))) then
-              if (allredarr(1)>0.d0 .and. allredarr(2)<0.d0) then
+      if (any((/abs(penalty)>noise/))) then
+          if (all((/abs(penalty)>noise/))) then
+              if (penalty>0.d0) then
                   ! lower bound too large
                   eval_bounds_ok(1)=.false.
                   call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*factor_low,ispin)
@@ -807,7 +746,7 @@ module foe_common
                       !eval_multiplicator = eval_multiplicator*2.0d0
                       eval_multiplicator = 2.0d0
                   end if
-              else if (allredarr(1)<0.d0 .and. allredarr(2)>0.d0) then
+              else if (penalty<0.d0) then
                   ! upper bound too small
                   eval_bounds_ok(2)=.false.
                   call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*factor_high,ispin)
@@ -824,28 +763,6 @@ module foe_common
           end if
       end if
 
-      !!write(*,*) 'allredarr, anoise', allredarr, anoise
-      !if (allredarr(1)>noise) then
-      !    eval_bounds_ok(1)=.false.
-      !    call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*factor_low,ispin)
-      !    restart=.true.
-      !    !!if (bigdft_mpi%iproc==0) then
-      !    !!    call yaml_map('adjust lower bound',.true.)
-      !    !!end if
-      !else
-      !    eval_bounds_ok(1)=.true.
-      !end if
-      !if (allredarr(2)>noise) then
-      !    eval_bounds_ok(2)=.false.
-      !    call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*factor_high,ispin)
-      !    restart=.true.
-      !    !!if (bigdft_mpi%iproc==0) then
-      !    !!    call yaml_map('adjust upper bound',.true.)
-      !    !!end if
-      !else
-      !    eval_bounds_ok(2)=.true.
-      !end if
-    
       call f_release_routine()
     
     end subroutine check_eigenvalue_spectrum_new
@@ -1433,7 +1350,7 @@ module foe_common
       integer,parameter :: imode=SPARSE
       type(fermi_aux) :: f
       real(kind=mp),dimension(2) :: temparr
-      real(kind=mp),dimension(:,:),allocatable :: penalty_ev_new
+      real(kind=mp),dimension(:),allocatable :: penalty_ev_new
       real(kind=mp),dimension(:),allocatable :: fermi_new, fermi_check_new, fermi_small_new
       integer :: iline, icolumn, icalc
       
@@ -1472,7 +1389,7 @@ module foe_common
     
     
     
-      penalty_ev_new = f_malloc((/smatl%smmm%nvctrp,2/),id='penalty_ev_new')
+      penalty_ev_new = f_malloc((/smatl%smmm%nvctrp/),id='penalty_ev_new')
       fermi_new = f_malloc((/smatl%smmm%nvctrp/),id='fermi_new')
     
     
@@ -1625,7 +1542,7 @@ module foe_common
                       !!end if
             
             
-                      cc = f_malloc((/npl,3,1/),id='cc')
+                      cc = f_malloc((/npl,2,1/),id='cc')
             
                       !!if (foe_data_get_real(foe_obj,"evlow",ispin)>=0.d0) then
                       !!    call f_err_throw('Lowest eigenvalue must be negative')
@@ -1650,9 +1567,9 @@ module foe_common
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,2,1), &
                            x_max_error_fake, max_error_fake, mean_error_fake)
-                      do ipl=1,npl
-                         cc(ipl,3,1) = -cc(ipl,2,1)
-                      end do
+                      !!do ipl=1,npl
+                      !!   cc(ipl,3,1) = -cc(ipl,2,1)
+                      !!end do
                       call evnoise(npl, cc(1,2,1), foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
                       !write(*,*) 'ef', foe_data_get_real(foe_obj,"ef",ispin)
@@ -1677,7 +1594,7 @@ module foe_common
                           do ipl=1,npl
                               cc(ipl,1,1)=2.d0*cc(ipl,1,1)
                               cc(ipl,2,1)=2.d0*cc(ipl,2,1)
-                              cc(ipl,3,1)=2.d0*cc(ipl,3,1)
+                              !!cc(ipl,3,1)=2.d0*cc(ipl,3,1)
                           end do
                       end if
                     
@@ -2456,5 +2373,24 @@ module foe_common
       call f_release_routine()
 
     end subroutine chebyshev_coefficients_communicate
+
+
+    ! This routine is basically just here to get the profiling...
+    subroutine penalty_communicate(nproc, comm, penalty)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: nproc, comm
+      real(mp),intent(inout) :: penalty
+
+      call f_routine(id='penalty_communicate')
+
+      if (nproc > 1) then
+          call mpiallred(penalty, 1, mpi_sum, comm=comm)
+      end if
+
+      call f_release_routine()
+
+    end subroutine penalty_communicate
 
 end module foe_common

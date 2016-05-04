@@ -1438,7 +1438,7 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
   if (at%donlcc) then
      !allocate pointer rhocore
      chg_at=f_malloc0(at%astruct%ntypes,id='chg_at')
-     rhocore = f_malloc0_ptr((/ d%n1i , d%n2i , n3d , 10 /),id='rhocore')
+     rhocore = f_malloc0_ptr((/ d%n1i , d%n2i , max(n3d,1) , 10 /),id='rhocore')
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
