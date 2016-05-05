@@ -747,18 +747,10 @@ module ice
       !@ TEMPORARY: eigenvalues of  the overlap matrix ###################
       !call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat)
 
-      ovrlp_scaled = matrices_null()
-      ovrlp_scaled%matrix_compr = sparsematrix_malloc_ptr(ovrlp_smat, &
-          iaction=SPARSE_TASKGROUP, id='ovrlp_scaled%matrix_compr')
-      call f_memcpy(src=ovrlp_mat%matrix_compr,dest=ovrlp_scaled%matrix_compr)
-      !call vcopy(size(ovrlp_scaled%matrix_compr), ovrlp_mat%matrix_compr(1), 1, ovrlp_scaled%matrix_compr(1), 1)
 
       ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
       nsize_polynomial = inv_ovrlp_smat%smmm%nvctrp_mm
       
-      ! Fake allocation, will be modified later
-      chebyshev_polynomials = f_malloc_ptr((/nsize_polynomial,1/),id='chebyshev_polynomials')
-
       max_error = f_malloc(ncalc,id='max_error')
       x_max_error = f_malloc(ncalc,id='x_max_error')
       mean_error = f_malloc(ncalc,id='mean_error')
@@ -797,105 +789,15 @@ module ice
                ex=ex, scaling_factor_low=2.0_mp, scaling_factor_up=0.5_mp, &
                eval_multiplicator=eval_multiplicator, eval_multiplicator_total=eval_multiplicator_total, cc=cc)
 
-          !!if (iproc==0 .and. verbosity_>0) then
-          !!    call yaml_sequence_open('determine eigenvalue bounds')
-          !!end if
-          !!bounds_loop: do
-          !!    call dscal(size(ovrlp_scaled%matrix_compr), eval_multiplicator, ovrlp_scaled%matrix_compr(1), 1)
-          !!    eval_multiplicator_total = eval_multiplicator_total*eval_multiplicator
-          !!    !!call scale_and_shift_matrix(iproc, nproc, ispin, ice_obj, inv_ovrlp_smat, &
-          !!    !!     ovrlp_smat, ovrlp_scaled, isshift, &
-          !!    !!     matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
-          !!    !!if (iproc==0) then
-          !!    !!    write(*,*) 'eval_multiplicator, eval_multiplicator_total', &
-          !!    !!                eval_multiplicator, eval_multiplicator_total
-          !!    !!end if
-          !!    call get_polynomial_degree(iproc, nproc, comm, &
-          !!         ispin, ncalc, FUNCTION_POLYNOMIAL, ice_obj, NPL_MIN, NPL_MAX, NPL_STRIDE, 1.d-8, &
-          !!         0, npl, cc, max_error, x_max_error, mean_error, anoise, &
-          !!         ex=ex)
-          !!    call f_free_ptr(chebyshev_polynomials)
-          !!    ! The second isshift is wrong, but is not used
-          !!    if (iproc==0 .and. verbosity_>0) then
-          !!         call yaml_newline()
-          !!         call yaml_sequence(advance='no')
-          !!         call yaml_mapping_open(flow=.true.)
-          !!         call yaml_map('npl',npl)
-          !!         call yaml_map('scale',eval_multiplicator_total,fmt='(es9.2)')
-          !!         call yaml_map('bounds', &
-          !!              (/foe_data_get_real(ice_obj,"evlow",ispin),foe_data_get_real(ice_obj,"evhigh",ispin)/),fmt='(f7.3)')
-          !!     end if
-
-          !!    ! use inv_ovrlp(1)%matrix_compr as workarray to save memory
-          !!    call get_chebyshev_polynomials(iproc, nproc, comm, 1, verbosity_, npl, ovrlp_smat, inv_ovrlp_smat, &     
-          !!         ovrlp_scaled, inv_ovrlp(1)%matrix_compr(ilshift2+1:), &
-          !!         ice_obj, chebyshev_polynomials, ispin, &
-          !!         eval_bounds_ok, hamscal_compr, scale_factor, shift_value)
-          !!    if (iproc==0 .and. verbosity_>0) then
-          !!        call yaml_map('ok',eval_bounds_ok)
-          !!        call yaml_map('exp accur',max_error,fmt='(es8.2)')
-          !!        call yaml_mapping_close()
-          !!    end if
-          !!    if (all(eval_bounds_ok)) then
-          !!        exit bounds_loop
-          !!    else
-          !!        if (.not.eval_bounds_ok(1)) then
-          !!            ! lower bound too large
-          !!            call foe_data_set_real(ice_obj,"evlow",foe_data_get_real(ice_obj,"evlow",ispin)/1.2d0,ispin)
-          !!            eval_multiplicator = 2.0d0
-          !!        else if (.not.eval_bounds_ok(2)) then
-          !!            ! upper bound too small
-          !!            call foe_data_set_real(ice_obj,"evhigh",foe_data_get_real(ice_obj,"evhigh",ispin)*1.2d0,ispin)
-          !!            eval_multiplicator = 1.d0/2.0d0
-          !!        end if
-          !!    end if
-          !!    call f_free_ptr(cc)
-          !!    !write(*,*) 'eval_bounds_ok',eval_bounds_ok
-          !!    !write(*,*) 'evlow, evhigh',foe_data_get_real(ice_obj,"evlow",ispin), foe_data_get_real(ice_obj,"evhigh",ispin)
-          !!end do bounds_loop
-          !!if (iproc==0 .and. verbosity_>0) then
-          !!    call yaml_sequence_close()
-          !!end if
           call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
                inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc, inv_ovrlp_matrixp_small_new)
-          !write(*,*) 'sum(cc(:,1,1))',sum(cc(:,1,1))
-          !write(*,*) 'sum(ovrlp_scaled%matrix_compr)',sum(ovrlp_scaled%matrix_compr)
-          !write(*,*) 'sum(chebyshev_polynomials)', sum(chebyshev_polynomials)
-          !write(*,*) 'sum(inv_ovrlp_matrixp_new)',sum(inv_ovrlp_matrixp_new)
-          !do i=1,size(inv_ovrlp_matrixp_new)
-          !    write(200,*) 'i, inv_ovrlp_matrixp_new(i)', i, inv_ovrlp_matrixp_new(i,1)
-          !end do
-          !!!! TEST ##################################################
-          !!!call foe_data_set_real(ice_obj,"ef",1.d0,ispin)
-          !!!call foe_data_set_real(ice_obj,"charge",10.d0,ispin)
-          !!!!call find_fermi_level(iproc, nproc, npl, chebyshev_polynomials, &
-          !!!!     2, 'test', inv_ovrlp_smat, ice_obj, inv_ovrlp(1))
-          !!!! END TEST ##############################################
-          !!if (inv_ovrlp_smat%smmm%nvctrp>0) then
-          !!    do icalc=1,ncalc
-          !!        call transform_sparsity_pattern(inv_ovrlp_smat%nfvctr, &
-          !!             inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
-          !!             inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
-          !!             inv_ovrlp_smat%smmm%line_and_column_mm, &
-          !!             inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
-          !!             inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
-          !!             inv_ovrlp_smat%smmm%istsegline, 'large_to_small', &
-          !!             inv_ovrlp_matrixp_small_new(1,icalc), inv_ovrlp_matrixp_new(1,icalc))
-          !!    end do
-          !!end if
-          !write(*,*) 'size(inv_ovrlp_matrixp_small_new), sum(inv_ovrlp_matrixp_small_new), ncalc', &
-          !     size(inv_ovrlp_matrixp_small_new), sum(inv_ovrlp_matrixp_small_new), ncalc
           do icalc=1,ncalc
               call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, &
                    SPARSE_MATMUL_SMALL, inv_ovrlp_matrixp_small_new(:,icalc), &
                    inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
-              !write(*,*) 'sum(inv_ovrlp(icalc)%matrix_compr)',sum(inv_ovrlp(icalc)%matrix_compr)
               call dscal(inv_ovrlp_smat%nvctrp_tg, 1.d0/eval_multiplicator_total**ex(icalc), &
                    inv_ovrlp(icalc)%matrix_compr(ilshift2+1), 1)
-              !write(*,*) 'icalc, sum(inv_ovrlp(icalc)%matrix_compr)', &
-              !    icalc, sum(inv_ovrlp(icalc)%matrix_compr), sum(inv_ovrlp_matrixp_new(:,icalc)), sum(cc(:,:,icalc))
-              !write(*,*) 'sum(inv_ovrlp(icalc)%matrix_compr)',sum(inv_ovrlp(icalc)%matrix_compr)
           end do
 
           call f_free_ptr(cc)
@@ -908,7 +810,6 @@ module ice
       call f_free(inv_ovrlp_matrixp_new)
       call f_free_ptr(chebyshev_polynomials)
       call f_free(hamscal_compr)
-      !!call deallocate_matrices(ovrlp_scaled)
       call f_free(max_error)
       call f_free(x_max_error)
       call f_free(mean_error)

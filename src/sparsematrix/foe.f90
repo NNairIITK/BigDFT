@@ -241,80 +241,11 @@ module foe
                        smats=smats, ovrlp_=ovrlp_, ovrlp_minus_one_half_=ovrlp_minus_one_half_(1), &
                        efarr=efarr, fscale_arr=fscale_arr)
 
-                  !!if (iproc==0) then
-                  !!    call yaml_sequence_open('determine eigenvalue bounds')
-                  !!end if
-                  !!bounds_loop: do
-                  !!    efarr(1) = foe_data_get_real(foe_obj,"ef",ispin)
-                  !!    fscale_arr(1) = foe_data_get_real(foe_obj,"fscale",ispin)
-                  !!    call get_polynomial_degree(iproc, nproc, comm, ispin, 1, FUNCTION_ERRORFUNCTION, foe_obj, &
-                  !!         npl_min, NPL_MAX, NPL_STRIDE, 1.d-5, 0, npl, cc, &
-                  !!         max_error, x_max_error, mean_error, anoise, &
-                  !!         ef=efarr, fscale=fscale_arr)
-                  !!    npl_min = npl !to be used to speed up the search for npl in a following iteration in case the temperature must be lowered
-                  !!    if (iproc==0) then
-                  !!        call yaml_sequence(advance='no')
-                  !!        call yaml_mapping_open(flow=.true.)
-                  !!        call yaml_map('npl',npl)
-                  !!        call yaml_map('bounds', &
-                  !!             (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f7.3)')
-                  !!    end if
-
-                  !!    ! Use kernel_%matrix_compr as workarray to save memory
-                  !!    call get_chebyshev_polynomials(iproc, nproc, comm, &
-                  !!         2, foe_verbosity, npl, smatm, smatl, &
-                  !!         ham_, kernel_%matrix_compr(ilshift+1:), foe_obj, &
-                  !!         chebyshev_polynomials, ispin, eval_bounds_ok, hamscal_compr, &
-                  !!         scale_factor, shift_value, &
-                  !!         smats=smats, ovrlp_=ovrlp_, &
-                  !!         ovrlp_minus_one_half=ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:))
-                  !!    if (iproc==0) then
-                  !!        call yaml_map('ok',eval_bounds_ok)
-                  !!        call yaml_mapping_close()
-                  !!    end if
-                  !!    if (all(eval_bounds_ok)) then
-                  !!        exit bounds_loop
-                  !!    else
-                  !!        if (.not.eval_bounds_ok(1)) then
-                  !!            ! lower bound too large
-                  !!            call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*1.2d0,ispin)
-                  !!        else if (.not.eval_bounds_ok(2)) then
-                  !!            ! upper bound too small
-                  !!            call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*1.2d0,ispin)
-                  !!        end if
-                  !!    end if
-                  !!    call f_free_ptr(cc)
-                  !!    call f_free_ptr(chebyshev_polynomials)
-                  !!end do bounds_loop
-                  !!if (iproc==0) then
-                  !!    call yaml_sequence_close()
-                  !!end if
-
-                  !write(*,*) 'after bounds_loop'
-
-                  !!if (iproc==0) then
-                  !!    call yaml_sequence_open('determine Fermi energy')
-                  !!end if
                   call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
                        2, 'test', smatl, ispin, foe_obj, kernel_)
-                  !!!call max_asymmetry_of_matrix(iproc, nproc, comm, &
-                  !!!     smatl, kernel_%matrix_compr, tt)
-                  !!!if (iproc==0) call yaml_map('after find_fermi_level, max assymetry of K',tt)
-
-                  !!if (iproc==0) then
-                  !!    call yaml_sequence_close()
-                  !!end if
-                  !write(*,*) 'after find_fermi_level'
 
                   npl_check = nint(real(npl,kind=mp)/CHECK_RATIO)
                   cc_check = f_malloc0((/npl_check,1,3/),id='cc_check')
-                  !!call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
-                  !!call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
-                  !!     foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
-                  !!     x_max_error, max_error, mean_error)
-                  !!call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-                  !!     smatl%nfvctr, smatl%smmm%nfvctrp, &
-                  !!    smatl, chebyshev_polynomials, 1, cc, fermi_small_new)
                   call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale_check)
                   call get_chebyshev_expansion_coefficients(iproc, nproc, comm, &
                        foe_data_get_real(foe_obj,"evlow",ispin), &
