@@ -84,7 +84,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   character(len=20) :: atomname
   type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
   type(workarr_precond),dimension(:),pointer :: precond_workarrays
-  type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+  type(work_transpose) :: wt_philarge, wt_hphi, wt_phi
   type(work_mpiaccumulate) :: fnrm_work, energs_work
   type(aoig_data),dimension(:),allocatable :: aoig_default
 
@@ -897,11 +897,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
      call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
      wt_philarge = work_transpose_null()
-     wt_hpsinoprecond = work_transpose_null()
      wt_hphi = work_transpose_null()
      wt_phi = work_transpose_null()
      call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
-     call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
      call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
      call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
      fnrm_work = work_mpiaccumulate_null()
@@ -918,11 +916,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, &
           input%correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
-          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)
+          wt_philarge, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)
      call deallocate_work_mpiaccumulate(fnrm_work)
      call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
      call deallocate_work_transpose(wt_philarge)
-     call deallocate_work_transpose(wt_hpsinoprecond)
      call deallocate_work_transpose(wt_hphi)
      call deallocate_work_transpose(wt_phi)
      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)

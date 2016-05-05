@@ -25,22 +25,28 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
- 
+
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-04-26 11:52:22.946
- Root process Hostname                 : coolbreeze
- Number of MPI tasks                   :  6
+ Timestamp of this run                 : 2016-05-04 11:40:23.790
+ Root process Hostname                 : phys-comp-03
+ Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  2
- MPI tasks of root process node        :  6
+ Maximal OpenMP threads per MPI task   :  1
+ MPI tasks of root process node        :  8
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
-   Configure arguments                 : " 'FC=mpif90 -f90=ifort' 'FCFLAGS=-fopenmp'"
-   Compilers (CC, FC, CXX)             :  [ gcc, mpif90 -f90=ifort, g++ ]
+   Configure arguments:
+     " 'FC=/home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort' 'CC=gcc' 'FCFLAGS=-O2 
+     -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp -m64' 
+     '--with-ext-linalg='"
+   Compilers (CC, FC, CXX): [gcc, /home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort, 
+                             g++]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -fopenmp
+     FCFLAGS:
+       -O2 -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp 
+       -m64
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : null
@@ -290,6 +296,7 @@
    forcemax                            : 0. #     Max forces criterion when stop
    randdis                             : 0. #     Random displacement amplitude
    betax                               : 4. #     Stepsize for the geometry optimization
+   beta_stretchx                       : 5e-1 #   Stepsize for steepest descent in stretching mode direction (only if in biomode)
  md:
    mdsteps                             : 0 #      Number of MD steps
    print_frequency                     : 1 #      Printing frequency for energy.dat and Trajectory.xyz files
@@ -501,21 +508,20 @@
      global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
      verbose                           : Yes #    Verbosity switch
      output                            : none #   Quantities to be plotted after the main solver routine
-   MPI tasks                           :  6
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  8
+   OpenMP threads per MPI task         :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  2.06
-     Kernel (MB)                       :  2.04
+     Density (MB)                      :  1.53
+     Kernel (MB)                       :  1.60
      Full Grid Arrays (MB)             :  11.13
      Load Balancing of calculations:
        Density:
-         MPI tasks 0-4                 : 100%
-         MPI task5                     : 93%
+         MPI tasks 0-7                 : 100%
        Kernel:
-         MPI tasks 0- 4                : 100%
-         MPI task 5                    :  94%
+         MPI tasks 0- 6                : 100%
+         MPI task 7                    :  77%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -528,19 +534,19 @@
  Total Number of Electrons             :  16
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 3                     :  2
-   MPI tasks  4- 5                     :  1
+   MPI tasks  0- 1                     :  2
+   MPI tasks  2- 7                     :  1
  Total Number of Orbitals              :  10
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-8:  2.0000, Orbitals No. 9-10:  0.0000}
  preconditioning load balancing before :  1.07E+00
  preconditioning load balancing after  :  1.07E+00
- task with max load                    :  [  3 ]
+ task with max load                    :  [  4 ]
  Total No. Support Functions           :  24
  Support Function Repartition:
-   Minimum                             :  4
-   Maximum                             :  4
-   Average                             :  4.0
+   Minimum                             :  3
+   Maximum                             :  3
+   Average                             :  3.0
  Wavefunctions memory occupation for root MPI process:  0 MB 924 KB 368 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -559,20 +565,20 @@
    Full Uncompressed (ISF) grid        : 11.130
    Workspaces storage size             : 0.1023
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 40.74
-   Density Construction                : 58.828
-   Poisson Solver                      : 48.119
-   Hamiltonian application             : 59.834
-   Orbitals Orthonormalization         : 59.834
- Estimated Memory Peak (MB)            :  59
+   Kernel calculation                  : 30.659
+   Density Construction                : 56.727
+   Poisson Solver                      : 41.216
+   Hamiltonian application             : 57.733
+   Orbitals Orthonormalization         : 57.733
+ Estimated Memory Peak (MB)            :  57
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  16
    Total number of components          :  68804
    Percent of zero components          :  0
    Size of workspaces                  :  68868
-   Maximum size of masking arrays for a projector:  8496
-   Cumulative size of masking arrays   :  26241
+   Maximum size of masking arrays for a projector:  6372
+   Cumulative size of masking arrays   :  19869
  total elements                        :  576
  non-zero elements                     :  576
   #segments:  24
@@ -595,17 +601,17 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  6, start / end:  [  1,  554 ], 
+   -  {number of tasks:  8, start / end:  [  1,  554 ], 
   start / end disjoint:  [  1,  554 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  6, start / end:  [  1,  576 ], 
+   -  {number of tasks:  8, start / end:  [  1,  576 ], 
   start / end disjoint:  [  1,  576 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  6, start / end:  [  1,  576 ], 
+   -  {number of tasks:  8, start / end:  [  1,  576 ], 
   start / end disjoint:  [  1,  576 ]}
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -614,8 +620,8 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
- sparse matmul load balancing naive / optimized:  [  1.20,  1.20 ]
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ sparse matmul load balancing naive / optimized:  [  1.60,  1.60 ]
+ sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
  Checking Compression/Uncompression of large sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -630,14 +636,14 @@
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  10700,  846 ]
-   Tolerances for this check: [ 2.21935002963150052E-06,  5.32907051820075139E-15]
-   Maxdiff for transpose (checksum)    :  2.32830643653869629E-10
+   Number of coarse and fine DoF (MasterMPI task):  [  9332,  700 ]
+   Tolerances for this check: [ 2.23626669652402877E-06,  5.32907051820075139E-15]
+   Maxdiff for transpose (checksum)    :  1.74622982740402222E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  10252,  758 ]
-   Tolerances for this check: [ 4.14490005534035033E-06,  5.32907051820075139E-15]
-   Maxdiff for transpose (checksum)    :  3.49245965480804443E-10
+   Number of coarse and fine DoF (MasterMPI task):  [  8802,  594 ]
+   Tolerances for this check: [ 4.18253338917614227E-06,  5.32907051820075139E-15]
+   Maxdiff for transpose (checksum)    :  2.32830643653869629E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Ion-Ion interaction energy            :  2.45197857686734E+01
   #---------------------------------------------------------------- Ionic Potential Creation
@@ -645,7 +651,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  8
  Interaction energy ions multipoles    :  0.0
  Interaction energy multipoles multipoles:  0.0
   #------------------------------------------------------------ Input Wavefunctions Creation
@@ -656,9 +662,9 @@
    -  {atom type: H, value:  2.00E-02, origin: file}
    Total No. of Atomic Input Orbitals  :  24
    Inputguess Orbitals Repartition:
-     Minimum                           :  4
-     Maximum                           :  4
-     Average                           :  4.0
+     Minimum                           :  3
+     Maximum                           :  3
+     Average                           :  3.0
    Atomic Input Orbital Generation:
    -  {Atom Type: Be, Electronic configuration: {
  s: [ 2.00], 
@@ -671,7 +677,7 @@
    Poisson Solver:
      BC                                : Free
      Box                               :  [  97,  97,  155 ]
-     MPI tasks                         :  6
+     MPI tasks                         :  8
    orthonormalization of input guess   : standard
    Kernel update:
      Hamiltonian application required  :  Yes
@@ -692,21 +698,21 @@
      Coefficients available            :  Yes
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
- {e: -2.949928846125E-01, f:  2.0000},  # 00001
- {e: -2.663590877851E-01, f:  2.0000},  # 00002
- {e: -2.310502056764E-01, f:  2.0000},  # 00003
- {e: -1.761610641192E-01, f:  2.0000},  # 00004
- {e: -1.756087905672E-01, f:  2.0000},  # 00005
- {e: -1.739961251952E-01, f:  2.0000},  # 00006
- {e: -1.702441567871E-01, f:  2.0000},  # 00007
- {e: -1.617862632336E-01, f:  2.0000},  # 00008
- {e:  2.228689459707E-01, f:  0.0000},  # 00009
- {e:  2.557316832931E-01, f:  0.0000}] # 00010
+ {e: -2.949928846127E-01, f:  2.0000},  # 00001
+ {e: -2.663590877854E-01, f:  2.0000},  # 00002
+ {e: -2.310502056766E-01, f:  2.0000},  # 00003
+ {e: -1.761610641193E-01, f:  2.0000},  # 00004
+ {e: -1.756087905674E-01, f:  2.0000},  # 00005
+ {e: -1.739961251954E-01, f:  2.0000},  # 00006
+ {e: -1.702441567873E-01, f:  2.0000},  # 00007
+ {e: -1.617862632337E-01, f:  2.0000},  # 00008
+ {e:  2.228689459690E-01, f:  0.0000},  # 00009
+ {e:  2.557316832915E-01, f:  0.0000}] # 00010
    Hamiltonian update: {
- Energies: {Ekin:  1.28094242458E+01, Epot: -1.39474958641E+01, Enl:  2.96533283121E+00, 
+ Energies: {Ekin:  1.28094242458E+01, Epot: -1.39474958641E+01, Enl:  2.96533283120E+00, 
               EH:  3.14219198849E+01,  EXC: -5.16111669809E+00, EvXC: -6.73664036486E+00}, 
     Total charge:  1.599999973991E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
     #================================================================= Input guess generated
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
@@ -719,9 +725,9 @@
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.53793505818E+01, Epot: -1.81632752970E+01, Enl:  2.20533983526E+00}, 
+ Energies: {Ekin:  2.53793505817E+01, Epot: -1.81632752970E+01, Enl:  2.20533983525E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  5.34E-01, Omega:  1.388910895826622E+01, D:  1.39E+01, D best:  1.39E+01, 
+ iter:  1, fnrm:  5.34E-01, Omega:  1.388910895830497E+01, D:  1.39E+01, D best:  1.39E+01, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  Yes, 
@@ -731,9 +737,9 @@
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.61045908280E+01, Epot: -2.03052578104E+01, Enl:  2.63681754891E+00}, 
+ Energies: {Ekin:  2.61045908280E+01, Epot: -2.03052578103E+01, Enl:  2.63681754891E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  2.77E-01, Omega:  1.191857985131974E+01, D: -1.97E+00, D best: -1.97E+00, 
+ iter:  2, fnrm:  2.77E-01, Omega:  1.191857985133344E+01, D: -1.97E+00, D best: -1.97E+00, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  Yes, 
@@ -743,14 +749,14 @@
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 3
  target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.62569457923E+01, Epot: -2.06160201685E+01, Enl:  2.68430428319E+00}, 
+ Energies: {Ekin:  2.62569457923E+01, Epot: -2.06160201685E+01, Enl:  2.68430428318E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  3, fnrm:  8.40E-02, Omega:  1.169673853229504E+01, D: -2.22E-01, D best: -2.22E-01, 
+ iter:  3, fnrm:  8.40E-02, Omega:  1.169673853230441E+01, D: -2.22E-01, D best: -2.22E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 3
  target function: TRACE, 
- Energies: {Ekin:  2.62569457923E+01, Epot: -2.06160201685E+01, Enl:  2.68430428319E+00}, 
- iter:  3, fnrm:  8.40E-02, Omega:  1.169673853229504E+01, D: -2.22E-01, D best: -2.22E-01}
+ Energies: {Ekin:  2.62569457923E+01, Epot: -2.06160201685E+01, Enl:  2.68430428318E+00}, 
+ iter:  3, fnrm:  8.40E-02, Omega:  1.169673853230441E+01, D: -2.22E-01, D best: -2.22E-01}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.48E-05,  2.27E-04 ], warnings:  0}
@@ -785,7 +791,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.24E-03, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  2, fnrm:  7.50E-02, eBS: -3.22200518746743469E+00, D: -1.949E-02}
+ iter:  2, fnrm:  7.50E-02, eBS: -3.22200518746668862E+00, D: -1.949E-02}
        -  { #------------------------------------------------------------------ it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -795,7 +801,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.06E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  1.78E-02, eBS: -3.24149471160508629E+00, D: -1.041E-03}
+ iter:  3, fnrm:  1.78E-02, eBS: -3.24149471160422697E+00, D: -1.041E-03}
        -  { #------------------------------------------------------------------ it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -805,7 +811,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.46E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  4, fnrm:  7.92E-03, eBS: -3.24253588721272168E+00, D: -1.501E-04}
+ iter:  4, fnrm:  7.92E-03, eBS: -3.24253588721186103E+00, D: -1.501E-04}
        -  { #------------------------------------------------------------------ it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -815,7 +821,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.66E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  5, fnrm:  3.51E-03, eBS: -3.24268598625598647E+00, D: -1.375E-05}
+ iter:  5, fnrm:  3.51E-03, eBS: -3.24268598625512539E+00, D: -1.375E-05}
        -  { #------------------------------------------------------------------ it coeff: 6
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -825,7 +831,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  5.17E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  6, fnrm:  2.20E-03, eBS: -3.24269973914251031E+00, D: -9.374E-07}
+ iter:  6, fnrm:  2.20E-03, eBS: -3.24269973914164922E+00, D: -9.374E-07}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  5.40E-08
@@ -833,12 +839,12 @@
        Kohn-Sham residue               :  2.623E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  2.62569457923E+01, Epot: -2.46562159434E+01, Enl:  2.68430428319E+00, 
+ Energies: {Ekin:  2.62569457923E+01, Epot: -2.46562159433E+01, Enl:  2.68430428318E+00, 
               EH:  3.11521200430E+01,  EXC: -5.48349887672E+00, EvXC: -7.16211186933E+00}, 
     Total charge:  1.599999979897E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
- iter:  1, delta:  1.51E-06, energy: -8.19642195827748310E+00, D: -8.196E+00}]
+ iter:  1, delta:  1.51E-06, energy: -8.19642195827552555E+00, D: -8.196E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -855,7 +861,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.15E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  9.15E-02, eBS: -3.24270067651398408E+00, D: -4.290E-02}
+ iter:  1, fnrm:  9.15E-02, eBS: -3.24270067651312255E+00, D: -4.290E-02}
        -  { #------------------------------------------------------------------ it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -865,7 +871,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  5.46E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  2, fnrm:  9.16E-02, eBS: -3.28560005106178066E+00, D: -2.863E-04}
+ iter:  2, fnrm:  9.16E-02, eBS: -3.28560005106345843E+00, D: -2.863E-04}
        -  { #------------------------------------------------------------------ it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -875,7 +881,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  7.79E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  9.12E-02, eBS: -3.28588636900298026E+00, D:  7.901E-04}
+ iter:  3, fnrm:  9.12E-02, eBS: -3.28588636900462783E+00, D:  7.901E-04}
        -  { #------------------------------------------------------------------ it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -885,7 +891,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  7.02E-03, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  4, fnrm:  9.21E-02, eBS: -3.28509628095522155E+00, D: -3.969E-02}
+ iter:  4, fnrm:  9.21E-02, eBS: -3.28509628095691131E+00, D: -3.969E-02}
        -  { #------------------------------------------------------------------ it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -895,7 +901,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  6.58E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  5, fnrm:  2.09E-02, eBS: -3.32478583059414445E+00, D: -4.361E-04}
+ iter:  5, fnrm:  2.09E-02, eBS: -3.32478583059546295E+00, D: -4.361E-04}
        -  { #------------------------------------------------------------------ it coeff: 6
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -905,7 +911,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  4.64E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  6, fnrm:  1.43E-02, eBS: -3.32522192473735689E+00, D: -1.062E-04}
+ iter:  6, fnrm:  1.43E-02, eBS: -3.32522192473866518E+00, D: -1.062E-04}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  5.40E-08
@@ -913,12 +919,12 @@
        Kohn-Sham residue               :  2.556E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  2.62569457923E+01, Epot: -2.43638244104E+01, Enl:  2.68430428319E+00, 
+ Energies: {Ekin:  2.62569457923E+01, Epot: -2.43638244104E+01, Enl:  2.68430428318E+00, 
               EH:  3.09947227546E+01,  EXC: -5.28576721553E+00, EvXC: -6.90113079499E+00}, 
     Total charge:  1.599999977351E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
- iter:  2, delta:  8.18E-07, energy: -8.18490156682385361E+00, D:  1.152E-02}]
+ iter:  2, delta:  8.18E-07, energy: -8.18490156682235792E+00, D:  1.152E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -935,7 +941,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.03E-03, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  8.05E-02, eBS: -3.32532816038672774E+00, D: -2.561E-01}
+ iter:  1, fnrm:  8.05E-02, eBS: -3.32532816038803869E+00, D: -2.561E-01}
        -  { #------------------------------------------------------------------ it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -945,7 +951,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.37E-03, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  2, fnrm:  5.65E-02, eBS: -3.58142407550779662E+00, D: -6.669E-03}
+ iter:  2, fnrm:  5.65E-02, eBS: -3.58142407550660380E+00, D: -6.669E-03}
        -  { #------------------------------------------------------------------ it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -955,7 +961,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.24E-03, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  4.17E-02, eBS: -3.58809356482804187E+00, D: -5.873E-03}
+ iter:  3, fnrm:  4.17E-02, eBS: -3.58809356482755692E+00, D: -5.873E-03}
        -  { #------------------------------------------------------------------ it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -965,7 +971,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.88E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  4, fnrm:  1.97E-02, eBS: -3.59396702164976345E+00, D: -1.605E-03}
+ iter:  4, fnrm:  1.97E-02, eBS: -3.59396702164952986E+00, D: -1.605E-03}
        -  { #------------------------------------------------------------------ it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -975,7 +981,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.74E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  5, fnrm:  1.76E-03, eBS: -3.59557178387789023E+00, D: -5.314E-07}
+ iter:  5, fnrm:  1.76E-03, eBS: -3.59557178387784582E+00, D: -5.314E-07}
        -  { #------------------------------------------------------------------ it coeff: 6
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -985,7 +991,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  6.44E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  6, fnrm:  1.36E-03, eBS: -3.59557231531054988E+00, D: -1.044E-06}
+ iter:  6, fnrm:  1.36E-03, eBS: -3.59557231531050547E+00, D: -1.044E-06}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  5.40E-08
@@ -993,12 +999,12 @@
        Kohn-Sham residue               :  2.619E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  2.62569457923E+01, Epot: -2.51038493052E+01, Enl:  2.68430428319E+00, 
+ Energies: {Ekin:  2.62569457923E+01, Epot: -2.51038493052E+01, Enl:  2.68430428318E+00, 
               EH:  3.07377259618E+01,  EXC: -5.34251254197E+00, EvXC: -6.97610550939E+00}, 
     Total charge:  1.599999979541E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
- iter:  3, delta:  7.31E-07, energy: -8.17992058508186659E+00, D:  4.981E-03}]
+ iter:  3, delta:  7.31E-07, energy: -8.17992058508037800E+00, D:  4.981E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1015,7 +1021,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  7.58E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  7.65E-02, eBS: -3.59557335936745304E+00, D:  2.447E-01}
+ iter:  1, fnrm:  7.65E-02, eBS: -3.59557335936741040E+00, D:  2.447E-01}
        -  { #------------------------------------------------------------------ it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1025,7 +1031,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.08E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  2, fnrm:  7.70E-02, eBS: -3.35084770701205459E+00, D: -1.801E-03}
+ iter:  2, fnrm:  7.70E-02, eBS: -3.35084770701257728E+00, D: -1.801E-03}
        -  { #------------------------------------------------------------------ it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1035,7 +1041,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.22E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  7.44E-02, eBS: -3.35264917327900180E+00, D: -2.369E-04}
+ iter:  3, fnrm:  7.44E-02, eBS: -3.35264917327927359E+00, D: -2.369E-04}
        -  { #------------------------------------------------------------------ it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1045,7 +1051,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.88E-03, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  4, fnrm:  7.41E-02, eBS: -3.35288607297150776E+00, D: -2.509E-02}
+ iter:  4, fnrm:  7.41E-02, eBS: -3.35288607297178487E+00, D: -2.509E-02}
        -  { #------------------------------------------------------------------ it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1055,7 +1061,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.69E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  5, fnrm:  5.74E-03, eBS: -3.37797119975492999E+00, D: -4.715E-05}
+ iter:  5, fnrm:  5.74E-03, eBS: -3.37797119975531812E+00, D: -4.715E-05}
        -  { #------------------------------------------------------------------ it coeff: 6
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1065,7 +1071,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  5.12E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  6, fnrm:  3.94E-03, eBS: -3.37801835011231910E+00, D:  1.568E-06}
+ iter:  6, fnrm:  3.94E-03, eBS: -3.37801835011270679E+00, D:  1.568E-06}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  5.40E-08
@@ -1073,20 +1079,20 @@
        Kohn-Sham residue               :  2.565E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  2.62569457923E+01, Epot: -2.44932771432E+01, Enl:  2.68430428319E+00, 
+ Energies: {Ekin:  2.62569457923E+01, Epot: -2.44932771431E+01, Enl:  2.68430428318E+00, 
               EH:  3.09387894410E+01,  EXC: -5.29314329864E+00, EvXC: -6.91087937508E+00}, 
     Total charge:  1.599999977619E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
- iter:  4, delta:  6.75E-07, energy: -8.17928437808377140E+00, D:  6.362E-04}]
+ iter:  4, delta:  6.75E-07, energy: -8.17928437808255993E+00, D:  6.362E-04}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
- iter:  5, delta:  6.75E-07, energy: -8.17928437808377140E+00, D:  6.362E-04}]}
+ iter:  5, delta:  6.75E-07, energy: -8.17928437808255993E+00, D:  6.362E-04}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter low:  1, delta out:  1.048E-06, energy: -8.17928437808377140E+00, D: -8.179E+00}
+ iter low:  1, delta out:  1.048E-06, energy: -8.17928437808255993E+00, D: -8.179E+00}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -1106,8 +1112,8 @@
      Total number of components        :  68804
      Percent of zero components        :  0
      Size of workspaces                :  68868
-     Maximum size of masking arrays for a projector:  8508
-     Cumulative size of masking arrays :  28035
+     Maximum size of masking arrays for a projector:  6381
+     Cumulative size of masking arrays :  21210
    check of kernel cutoff radius:
    -  {atom type: H, adjustment required:  Yes, new value:  10.60}
    -  {atom type: Be, adjustment required:  Yes, new value:  10.60}
@@ -1133,20 +1139,20 @@
    taskgroup summary:
      number of taskgroups              :  1
      taskgroups overview:
-     -  {number of tasks:  6, start / end:  [  1,  574 ], 
+     -  {number of tasks:  8, start / end:  [  1,  574 ], 
     start / end disjoint:  [  1,  574 ]}
    taskgroup summary:
      number of taskgroups              :  1
      taskgroups overview:
-     -  {number of tasks:  6, start / end:  [  1,  576 ], 
+     -  {number of tasks:  8, start / end:  [  1,  576 ], 
     start / end disjoint:  [  1,  576 ]}
    taskgroup summary:
      number of taskgroups              :  1
      taskgroups overview:
-     -  {number of tasks:  6, start / end:  [  1,  576 ], 
+     -  {number of tasks:  8, start / end:  [  1,  576 ], 
     start / end disjoint:  [  1,  576 ]}
-   sparse matmul load balancing naive / optimized:  [  1.20,  1.20 ]
-   sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+   sparse matmul load balancing naive / optimized:  [  1.60,  1.60 ]
+   sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
    Kernel update:
      Hamiltonian application required  :  Yes
      calculate overlap matrix          :  Yes
@@ -1163,7 +1169,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.93E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  6.94E-02, eBS: -3.37801678222987256E+00, D: -1.578E-01}
+ iter:  1, fnrm:  6.94E-02, eBS: -3.37801678223025936E+00, D: -1.578E-01}
      -  { #-------------------------------------------------------------------- it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1173,7 +1179,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  5.34E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  2, fnrm:  6.26E-02, eBS: -3.53577574607260159E+00, D: -3.509E-03}
+ iter:  2, fnrm:  6.26E-02, eBS: -3.53577574607237377E+00, D: -3.509E-03}
      -  { #-------------------------------------------------------------------- it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1183,7 +1189,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  7.38E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  5.61E-02, eBS: -3.53928515484444972E+00, D: -2.164E-03}
+ iter:  3, fnrm:  5.61E-02, eBS: -3.53928515484341943E+00, D: -2.164E-03}
      -  { #-------------------------------------------------------------------- it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1193,7 +1199,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.86E-03, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  4, fnrm:  5.17E-02, eBS: -3.54144934097633213E+00, D: -1.184E-02}
+ iter:  4, fnrm:  5.17E-02, eBS: -3.54144934097474184E+00, D: -1.184E-02}
      -  { #-------------------------------------------------------------------- it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1203,7 +1209,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.31E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  5, fnrm:  1.96E-03, eBS: -3.55328635024701356E+00, D: -1.495E-05}
+ iter:  5, fnrm:  1.96E-03, eBS: -3.55328635024706685E+00, D: -1.495E-05}
      -  { #-------------------------------------------------------------------- it coeff: 6
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1213,7 +1219,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.61E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  6, fnrm:  1.10E-03, eBS: -3.55330130207412775E+00, D: -1.781E-06}
+ iter:  6, fnrm:  1.10E-03, eBS: -3.55330130207418682E+00, D: -1.781E-06}
      Asymmetry of the matrices:
        Overlap                         :  0.00E+00
        Hamiltonian                     :  1.38E-10
@@ -1224,9 +1230,9 @@
  - support function optimization: &it_supfun002
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.62569457923E+01, Epot: -2.50071597056E+01, Enl:  2.68430428319E+00}, 
+ Energies: {Ekin:  2.62569457923E+01, Epot: -2.50071597056E+01, Enl:  2.68430428318E+00}, 
  Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
- iter:  1, fnrm:  3.54E-01, Omega: -7.565633977622113E+00, D: -1.95E+01, D best: -1.95E+01, 
+ iter:  1, fnrm:  3.54E-01, Omega: -7.565633977622841E+00, D: -1.95E+01, D best: -1.95E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.000E+00, max alpha:  1.000E+00, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, 
@@ -1236,9 +1242,9 @@
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.41001899081E+01, Epot: -2.32805629332E+01, Enl:  2.33840160642E+00}, 
+ Energies: {Ekin:  2.41001899081E+01, Epot: -2.32805629331E+01, Enl:  2.33840160642E+00}, 
  Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
- iter:  2, fnrm:  1.82E-01, Omega: -9.028533175168114E+00, D: -1.46E+00, D best: -1.46E+00, 
+ iter:  2, fnrm:  1.82E-01, Omega: -9.028533175167244E+00, D: -1.46E+00, D best: -1.46E+00, 
  Optimization: {algorithm: SD, mean alpha:  6.000E-01, max alpha:  6.000E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, 
@@ -1250,12 +1256,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.31920029510E+01, Enl:  2.40978038583E+00}, 
  Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
- iter:  3, fnrm:  7.53E-02, Omega: -9.194938965134568E+00, D: -1.66E-01, D best: -1.66E-01, 
+ iter:  3, fnrm:  7.53E-02, Omega: -9.194938965133634E+00, D: -1.66E-01, D best: -1.66E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.31920029510E+01, Enl:  2.40978038583E+00}, 
- iter:  3, fnrm:  7.53E-02, Omega: -9.194938965134568E+00, D: -1.66E-01, D best: -1.66E-01}
+ iter:  3, fnrm:  7.53E-02, Omega: -9.194938965133634E+00, D: -1.66E-01, D best: -1.66E-01}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  4.82E-03,  9.68E-03 ], warnings:  0}
@@ -1280,7 +1286,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  4.07E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  3.48E-02, eBS: -3.55330308344515622E+00, D: -8.962E-01}
+ iter:  1, fnrm:  3.48E-02, eBS: -3.55330308344521661E+00, D: -8.962E-01}
        -  { #------------------------------------------------------------------ it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1290,7 +1296,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.43E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  2, fnrm:  8.49E-03, eBS: -4.44952723305702946E+00, D: -8.428E-05}
+ iter:  2, fnrm:  8.49E-03, eBS: -4.44952723305702413E+00, D: -8.428E-05}
        -  { #------------------------------------------------------------------ it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1300,7 +1306,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.44E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  4.89E-03, eBS: -4.44961151160347690E+00, D: -3.599E-05}
+ iter:  3, fnrm:  4.89E-03, eBS: -4.44961151160346802E+00, D: -3.599E-05}
        -  { #------------------------------------------------------------------ it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1310,7 +1316,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.60E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  4, fnrm:  2.34E-03, eBS: -4.44964749714110219E+00, D: -3.628E-06}
+ iter:  4, fnrm:  2.34E-03, eBS: -4.44964749714109420E+00, D: -3.628E-06}
        -  { #------------------------------------------------------------------ it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1320,7 +1326,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.31E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  5, fnrm:  1.19E-03, eBS: -4.44965112472276658E+00, D: -2.226E-06}
+ iter:  5, fnrm:  1.19E-03, eBS: -4.44965112472275948E+00, D: -2.226E-06}
        -  { #------------------------------------------------------------------ it coeff: 6
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1330,19 +1336,19 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.36E-07, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  6, fnrm:  3.39E-04, eBS: -4.44965335087255198E+00, D: -1.019E-07}
+ iter:  6, fnrm:  3.39E-04, eBS: -4.44965335087254488E+00, D: -1.019E-07}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  1.85E-08
          Kernel (possibly symmetrized) :  0.00E+00
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  2.62569457923E+01, Epot: -2.50071597056E+01, Enl:  2.68430428319E+00, 
+ Energies: {Ekin:  2.62569457923E+01, Epot: -2.50071597056E+01, Enl:  2.68430428318E+00, 
               EH:  3.07746232649E+01,  EXC: -5.33561195194E+00, EvXC: -6.96698656839E+00}, 
     Total charge:  1.599999983291E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
- iter:  1, delta:  1.92E-06, energy: -9.07311633257297245E+00, D: -8.938E-01}]
+ iter:  1, delta:  1.92E-06, energy: -9.07311633257177519E+00, D: -8.938E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1359,7 +1365,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  5.72E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  8.31E-02, eBS: -4.44965345280471958E+00, D: -9.126E-01}
+ iter:  1, fnrm:  8.31E-02, eBS: -4.44965345280471247E+00, D: -9.126E-01}
        -  { #------------------------------------------------------------------ it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1369,7 +1375,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.35E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  2, fnrm:  8.32E-02, eBS: -5.36228881587286921E+00, D:  1.466E-05}
+ iter:  2, fnrm:  8.32E-02, eBS: -5.36228881587319073E+00, D:  1.466E-05}
        -  { #------------------------------------------------------------------ it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1379,7 +1385,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  8.90E-07, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  8.32E-02, eBS: -5.36227415832035259E+00, D: -1.396E-05}
+ iter:  3, fnrm:  8.32E-02, eBS: -5.36227415832068388E+00, D: -1.396E-05}
        -  { #------------------------------------------------------------------ it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1389,7 +1395,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  8.60E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  4, fnrm:  8.32E-02, eBS: -5.36228812058188531E+00, D: -2.796E-02}
+ iter:  4, fnrm:  8.32E-02, eBS: -5.36228812058221926E+00, D: -2.796E-02}
        -  { #------------------------------------------------------------------ it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1399,7 +1405,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  5.00E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  5, fnrm:  2.29E-02, eBS: -5.39025310685613768E+00, D: -6.322E-04}
+ iter:  5, fnrm:  2.29E-02, eBS: -5.39025310685641657E+00, D: -6.322E-04}
        -  { #------------------------------------------------------------------ it coeff: 6
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1409,7 +1415,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.79E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  6, fnrm:  4.52E-03, eBS: -5.39088530329792270E+00, D: -2.298E-05}
+ iter:  6, fnrm:  4.52E-03, eBS: -5.39088530329828863E+00, D: -2.298E-05}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  1.85E-08
@@ -1420,9 +1426,9 @@
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.42668790859E+01, Enl:  2.40978038583E+00, 
               EH:  2.96278256286E+01,  EXC: -4.77397033473E+00, EvXC: -6.22890865228E+00}, 
     Total charge:  1.599999981511E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
- iter:  2, delta:  5.66E-07, energy: -9.04400982637490358E+00, D:  2.911E-02}]
+ iter:  2, delta:  5.66E-07, energy: -9.04400982637384843E+00, D:  2.911E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1439,7 +1445,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.87E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  4.67E-02, eBS: -5.39090828402940403E+00, D: -1.882E-01}
+ iter:  1, fnrm:  4.67E-02, eBS: -5.39090828402982858E+00, D: -1.882E-01}
        -  { #------------------------------------------------------------------ it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1449,7 +1455,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.02E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  2, fnrm:  3.51E-02, eBS: -5.57912154025734353E+00, D: -4.587E-04}
+ iter:  2, fnrm:  3.51E-02, eBS: -5.57912154026092288E+00, D: -4.587E-04}
        -  { #------------------------------------------------------------------ it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1459,7 +1465,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  4.15E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  3.37E-02, eBS: -5.57958021167720375E+00, D: -3.670E-03}
+ iter:  3, fnrm:  3.37E-02, eBS: -5.57958021167481633E+00, D: -3.670E-03}
        -  { #------------------------------------------------------------------ it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1469,7 +1475,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.73E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  4, fnrm:  1.53E-02, eBS: -5.58325017805296131E+00, D: -9.592E-04}
+ iter:  4, fnrm:  1.53E-02, eBS: -5.58325017805642521E+00, D: -9.592E-04}
        -  { #------------------------------------------------------------------ it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1479,7 +1485,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.99E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  5, fnrm:  5.48E-04, eBS: -5.58420942060983005E+00, D: -6.270E-07}
+ iter:  5, fnrm:  5.48E-04, eBS: -5.58420942061342540E+00, D: -6.270E-07}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  1.85E-08
@@ -1490,9 +1496,9 @@
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.47310378207E+01, Enl:  2.40978038583E+00, 
               EH:  2.94376518774E+01,  EXC: -4.80573152218E+00, EvXC: -6.27086713355E+00}, 
     Total charge:  1.599999982477E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
- iter:  3, delta:  3.19E-07, energy: -9.03694054489444909E+00, D:  7.069E-03}]
+ iter:  3, delta:  3.19E-07, energy: -9.03694054489350052E+00, D:  7.069E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1509,7 +1515,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.63E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  2.76E-02, eBS: -5.58421004756828943E+00, D:  9.612E-02}
+ iter:  1, fnrm:  2.76E-02, eBS: -5.58421004757188477E+00, D:  9.612E-02}
        -  { #------------------------------------------------------------------ it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1519,7 +1525,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.23E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  2, fnrm:  2.59E-02, eBS: -5.48808967445256535E+00, D: -5.879E-04}
+ iter:  2, fnrm:  2.59E-02, eBS: -5.48808967445186369E+00, D: -5.879E-04}
        -  { #------------------------------------------------------------------ it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1529,7 +1535,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  7.78E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  2.28E-02, eBS: -5.48867753948228199E+00, D: -2.814E-04}
+ iter:  3, fnrm:  2.28E-02, eBS: -5.48867753948199510E+00, D: -2.814E-04}
        -  { #------------------------------------------------------------------ it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1539,7 +1545,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.60E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  4, fnrm:  2.12E-02, eBS: -5.48895895994396543E+00, D: -1.760E-03}
+ iter:  4, fnrm:  2.12E-02, eBS: -5.48895895994384730E+00, D: -1.760E-03}
        -  { #------------------------------------------------------------------ it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1549,7 +1555,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  4.31E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  5, fnrm:  5.18E-04, eBS: -5.49071847465812191E+00, D: -9.627E-07}
+ iter:  5, fnrm:  5.18E-04, eBS: -5.49071847465658180E+00, D: -9.627E-07}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  1.85E-08
@@ -1560,9 +1566,9 @@
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.45027062650E+01, Enl:  2.40978038583E+00, 
               EH:  2.95229902998E+01,  EXC: -4.78684504699E+00, EvXC: -6.24592601644E+00}, 
     Total charge:  1.599999981954E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
- iter:  4, delta:  1.83E-07, energy: -9.03484299895028187E+00, D:  2.098E-03}]
+ iter:  4, delta:  1.83E-07, energy: -9.03484299894933329E+00, D:  2.098E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1579,7 +1585,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  5.30E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  1.64E-02, eBS: -5.49071943731841117E+00, D: -4.415E-02}
+ iter:  1, fnrm:  1.64E-02, eBS: -5.49071943731687284E+00, D: -4.415E-02}
        -  { #------------------------------------------------------------------ it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1589,7 +1595,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  6.03E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  2, fnrm:  1.47E-02, eBS: -5.53487116857335426E+00, D: -2.721E-04}
+ iter:  2, fnrm:  1.47E-02, eBS: -5.53487116857476114E+00, D: -2.721E-04}
        -  { #------------------------------------------------------------------ it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1599,7 +1605,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  4.17E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  1.21E-02, eBS: -5.53514330145574007E+00, D: -2.345E-04}
+ iter:  3, fnrm:  1.21E-02, eBS: -5.53514330145724287E+00, D: -2.345E-04}
        -  { #------------------------------------------------------------------ it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1609,7 +1615,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  4.09E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  4, fnrm:  9.25E-03, eBS: -5.53537777853216184E+00, D: -3.293E-04}
+ iter:  4, fnrm:  9.25E-03, eBS: -5.53537777853345148E+00, D: -3.293E-04}
        -  { #------------------------------------------------------------------ it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1619,7 +1625,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  6.26E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  5, fnrm:  1.24E-04, eBS: -5.53570707712680310E+00, D: -4.119E-08}
+ iter:  5, fnrm:  1.24E-04, eBS: -5.53570707712810872E+00, D: -4.119E-08}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  1.85E-08
@@ -1630,9 +1636,9 @@
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.46190065718E+01, Enl:  2.40978038583E+00, 
               EH:  2.94803671537E+01,  EXC: -4.79649605260E+00, EvXC: -6.25867233355E+00}, 
     Total charge:  1.599999982238E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
- iter:  5, delta:  1.06E-07, energy: -9.03411222243078527E+00, D:  7.308E-04}]
+ iter:  5, delta:  1.06E-07, energy: -9.03411222242978695E+00, D:  7.308E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1649,7 +1655,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.68E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  9.97E-03, eBS: -5.53570711831543072E+00, D:  2.103E-02}
+ iter:  1, fnrm:  9.97E-03, eBS: -5.53570711831673812E+00, D:  2.103E-02}
        -  { #------------------------------------------------------------------ it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1659,7 +1665,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  8.41E-07, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  2, fnrm:  9.66E-03, eBS: -5.51468114466953363E+00, D: -4.873E-05}
+ iter:  2, fnrm:  9.66E-03, eBS: -5.51468114466862325E+00, D: -4.873E-05}
        -  { #------------------------------------------------------------------ it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1669,7 +1675,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  8.41E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  8.97E-03, eBS: -5.51472987894071842E+00, D: -5.909E-05}
+ iter:  3, fnrm:  8.97E-03, eBS: -5.51472987893972721E+00, D: -5.909E-05}
        -  { #------------------------------------------------------------------ it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1679,7 +1685,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.14E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  4, fnrm:  8.04E-03, eBS: -5.51478897221189257E+00, D: -2.414E-04}
+ iter:  4, fnrm:  8.04E-03, eBS: -5.51478897221098485E+00, D: -2.414E-04}
        -  { #------------------------------------------------------------------ it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1689,7 +1695,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.17E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  5, fnrm:  7.21E-05, eBS: -5.51503035233352712E+00, D: -1.864E-08}
+ iter:  5, fnrm:  7.21E-05, eBS: -5.51503035233266381E+00, D: -1.864E-08}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  1.85E-08
@@ -1700,17 +1706,17 @@
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.45625230376E+01, Enl:  2.40978038583E+00, 
               EH:  2.94990281248E+01,  EXC: -4.79096643669E+00, EvXC: -6.25137119333E+00}, 
     Total charge:  1.599999982084E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
- iter:  6, delta:  6.31E-08, energy: -9.03386797042267631E+00, D:  2.443E-04}]
+ iter:  6, delta:  6.31E-08, energy: -9.03386797042168510E+00, D:  2.443E-04}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 7
  summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
- iter:  7, delta:  6.31E-08, energy: -9.03386797042267631E+00, D:  2.443E-04}]}
+ iter:  7, delta:  6.31E-08, energy: -9.03386797042168510E+00, D:  2.443E-04}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  2, delta out:  1.700E-06, energy: -9.03386797042267631E+00, D: -8.546E-01}
+ iter high:  2, delta out:  1.700E-06, energy: -9.03386797042168510E+00, D: -8.546E-01}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -1722,7 +1728,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.45897044481E+01, Enl:  2.40978038583E+00}, 
  Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
- iter:  1, fnrm:  8.43E-02, Omega: -9.316177538615776E+00, D: -2.88E-01, D best: -2.88E-01, 
+ iter:  1, fnrm:  8.43E-02, Omega: -9.316177538614728E+00, D: -2.88E-01, D best: -2.88E-01, 
  Optimization: {algorithm: SD, mean alpha:  4.100E-01, max alpha:  4.100E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, 
@@ -1732,9 +1738,9 @@
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.37927900447E+01, Epot: -2.45540580411E+01, Enl:  2.39553646055E+00}, 
+ Energies: {Ekin:  2.37927900447E+01, Epot: -2.45540580411E+01, Enl:  2.39553646054E+00}, 
  Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
- iter:  2, fnrm:  6.01E-02, Omega: -9.357239372451204E+00, D: -4.11E-02, D best: -4.11E-02, 
+ iter:  2, fnrm:  6.01E-02, Omega: -9.357239372450113E+00, D: -4.11E-02, D best: -4.11E-02, 
  Optimization: {algorithm: SD, mean alpha:  4.510E-01, max alpha:  4.510E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, 
@@ -1746,12 +1752,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  2.37366588310E+01, Epot: -2.45134923614E+01, Enl:  2.39038037056E+00}, 
  Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
- iter:  3, fnrm:  4.83E-02, Omega: -9.381612659355739E+00, D: -2.44E-02, D best: -2.44E-02, 
+ iter:  3, fnrm:  4.83E-02, Omega: -9.381612659354605E+00, D: -2.44E-02, D best: -2.44E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  2.37366588310E+01, Epot: -2.45134923614E+01, Enl:  2.39038037056E+00}, 
- iter:  3, fnrm:  4.83E-02, Omega: -9.381612659355739E+00, D: -2.44E-02, D best: -2.44E-02}
+ iter:  3, fnrm:  4.83E-02, Omega: -9.381612659354605E+00, D: -2.44E-02, D best: -2.44E-02}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.87E-03,  1.33E-02 ], warnings:  4}
@@ -1777,7 +1783,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.56E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  4.34E-03, eBS: -5.51503037097541338E+00, D: -1.949E-02}
+ iter:  1, fnrm:  4.34E-03, eBS: -5.51503037097454829E+00, D: -1.949E-02}
        -  { #------------------------------------------------------------------ it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1787,7 +1793,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.31E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  2, fnrm:  1.99E-03, eBS: -5.53452413186481440E+00, D: -8.650E-06}
+ iter:  2, fnrm:  1.99E-03, eBS: -5.53452413186534287E+00, D: -8.650E-06}
        -  { #------------------------------------------------------------------ it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1797,7 +1803,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.62E-07, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  7.76E-04, eBS: -5.53453278229088497E+00, D: -5.025E-07}
+ iter:  3, fnrm:  7.76E-04, eBS: -5.53453278229141343E+00, D: -5.025E-07}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  2.10E-08
@@ -1805,11 +1811,11 @@
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.45625230376E+01, Enl:  2.40978038583E+00, 
-              EH:  2.94909297009E+01,  EXC: -4.79390194308E+00, EvXC: -6.25524684435E+00}, 
+              EH:  2.94909297008E+01,  EXC: -4.79390194308E+00, EvXC: -6.25524684435E+00}, 
     Total charge:  1.599999982031E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
- iter:  1, delta:  1.42E-07, energy: -9.04433231565819540E+00, D: -1.046E-02}]
+ iter:  1, delta:  1.42E-07, energy: -9.04433231565701234E+00, D: -1.046E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1826,7 +1832,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.60E-07, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  2.05E-03, eBS: -5.53453328474843786E+00, D:  9.717E-02}
+ iter:  1, fnrm:  2.05E-03, eBS: -5.53453328474896544E+00, D:  9.717E-02}
        -  { #------------------------------------------------------------------ it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1836,7 +1842,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  6.81E-07, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  2, fnrm:  2.01E-03, eBS: -5.43736453056206326E+00, D: -1.105E-05}
+ iter:  2, fnrm:  2.01E-03, eBS: -5.43736453056162894E+00, D: -1.105E-05}
        -  { #------------------------------------------------------------------ it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
@@ -1846,7 +1852,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  4.30E-07, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  7.92E-04, eBS: -5.43737558546627664E+00, D: -1.620E-06}
+ iter:  3, fnrm:  7.92E-04, eBS: -5.43737558546584321E+00, D: -1.620E-06}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  2.10E-08
@@ -1857,9 +1863,9 @@
  Energies: {Ekin:  2.37366588310E+01, Epot: -2.43682766446E+01, Enl:  2.39038037056E+00, 
               EH:  2.95981402732E+01,  EXC: -4.82668202687E+00, EvXC: -6.29843166660E+00}, 
     Total charge:  1.599999982014E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
- iter:  2, delta:  8.91E-09, energy: -9.04398207060693693E+00, D:  3.502E-04}]
+ iter:  2, delta:  8.91E-09, energy: -9.04398207060594572E+00, D:  3.502E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1876,7 +1882,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.95E-07, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  9.42E-04, eBS: -5.43737720581388828E+00, D: -3.660E-03}
+ iter:  1, fnrm:  9.42E-04, eBS: -5.43737720581345663E+00, D: -3.660E-03}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  2.10E-08
@@ -1887,9 +1893,9 @@
  Energies: {Ekin:  2.37366588310E+01, Epot: -2.43755290158E+01, Enl:  2.39038037056E+00, 
               EH:  2.95945350196E+01,  EXC: -4.82685717804E+00, EvXC: -6.29866435291E+00}, 
     Total charge:  1.599999982018E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
- iter:  3, delta:  1.76E-09, energy: -9.04397916430117732E+00, D:  2.906E-06}]
+ iter:  3, delta:  1.76E-09, energy: -9.04397916430010795E+00, D:  2.906E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1906,7 +1912,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  6.98E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  4.58E-04, eBS: -5.44103708828114740E+00, D:  7.170E-04}
+ iter:  1, fnrm:  4.58E-04, eBS: -5.44103708828130905E+00, D:  7.170E-04}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  2.10E-08
@@ -1917,9 +1923,9 @@
  Energies: {Ekin:  2.37366588310E+01, Epot: -2.43740911870E+01, Enl:  2.39038037056E+00, 
               EH:  2.95952300844E+01,  EXC: -4.82678809673E+00, EvXC: -6.29857292944E+00}, 
     Total charge:  1.599999982021E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
- iter:  4, delta:  1.52E-09, energy: -9.04397960267453982E+00, D: -4.384E-07}]
+ iter:  4, delta:  1.52E-09, energy: -9.04397960267350598E+00, D: -4.384E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1936,7 +1942,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  3.41E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  6.99E-05, eBS: -5.44032011963024686E+00, D:  5.971E-04}
+ iter:  1, fnrm:  6.99E-05, eBS: -5.44032011963035877E+00, D:  5.971E-04}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  2.10E-08
@@ -1947,9 +1953,9 @@
  Energies: {Ekin:  2.37366588310E+01, Epot: -2.43728986747E+01, Enl:  2.39038037056E+00, 
               EH:  2.95958091410E+01,  EXC: -4.82673279050E+00, EvXC: -6.29849974052E+00}, 
     Total charge:  1.599999982021E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
- iter:  5, delta:  3.38E-10, energy: -9.04397947934965174E+00, D:  1.233E-07}]
+ iter:  5, delta:  3.38E-10, energy: -9.04397947934851132E+00, D:  1.233E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1966,7 +1972,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.16E-08, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  4.28E-05, eBS: -5.43972305702227921E+00, D:  1.425E-04}
+ iter:  1, fnrm:  4.28E-05, eBS: -5.43972305702220282E+00, D:  1.425E-04}
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
          Hamiltonian                   :  2.10E-08
@@ -1977,17 +1983,17 @@
  Energies: {Ekin:  2.37366588310E+01, Epot: -2.43726178064E+01, Enl:  2.39038037056E+00, 
               EH:  2.95959473156E+01,  EXC: -4.82671927703E+00, EvXC: -6.29848185866E+00}, 
     Total charge:  1.599999982021E+01, 
- Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  6}}
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
- iter:  6, delta:  1.31E-10, energy: -9.04397947632102017E+00, D:  3.029E-09}]
+ iter:  6, delta:  1.31E-10, energy: -9.04397947632020660E+00, D:  3.028E-09}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 7
  summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
- iter:  7, delta:  1.31E-10, energy: -9.04397947632102017E+00, D:  3.029E-09}]}
+ iter:  7, delta:  1.31E-10, energy: -9.04397947632020660E+00, D:  3.028E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  3, delta out:  1.423E-07, energy: -9.04397947632102017E+00, D: -1.011E-02}
+ iter high:  3, delta out:  1.423E-07, energy: -9.04397947632020660E+00, D: -1.011E-02}
    Kernel update:
      Hamiltonian application required  :  Yes
      max dev from unity                :  1.07E-02
@@ -2016,48 +2022,48 @@
  {e: -2.551381160819E-01, f:  1.0000},  # 00008
  {e: -1.021673757585E-01, f:  1.0000},  # 00009
  {e: -5.504869677056E-02, f:  1.0000},  # 00010
- {e:  1.446817696794E-01, f:  1.0000},  # 00011
- {e:  1.666400756655E-01, f:  1.0000},  # 00012
- {e:  2.172981392588E-01, f:  1.0000},  # 00013
- {e:  2.238646387020E-01, f:  1.0000},  # 00014
- {e:  2.290809417473E-01, f:  1.0000},  # 00015
- {e:  2.678924502730E-01, f:  1.0000},  # 00016
- {e:  2.825922724947E-01, f:  1.0000},  # 00017
- {e:  3.395274795243E-01, f:  1.0000},  # 00018
- {e:  3.787058707108E-01, f:  1.0000},  # 00019
- {e:  3.932414428349E-01, f:  1.0000},  # 00020
- {e:  4.214802442662E-01, f:  1.0000},  # 00021
- {e:  4.519053336504E-01, f:  1.0000},  # 00022
- {e:  5.088998363461E-01, f:  1.0000},  # 00023
- {e:  6.089465839741E-01, f:  1.0000}] # 00024
+ {e:  1.446817696790E-01, f:  1.0000},  # 00011
+ {e:  1.666400756652E-01, f:  1.0000},  # 00012
+ {e:  2.172981392585E-01, f:  1.0000},  # 00013
+ {e:  2.238646387017E-01, f:  1.0000},  # 00014
+ {e:  2.290809417470E-01, f:  1.0000},  # 00015
+ {e:  2.678924502728E-01, f:  1.0000},  # 00016
+ {e:  2.825922724944E-01, f:  1.0000},  # 00017
+ {e:  3.395274795241E-01, f:  1.0000},  # 00018
+ {e:  3.787058707104E-01, f:  1.0000},  # 00019
+ {e:  3.932414428345E-01, f:  1.0000},  # 00020
+ {e:  4.214802442658E-01, f:  1.0000},  # 00021
+ {e:  4.519053336501E-01, f:  1.0000},  # 00022
+ {e:  5.088998363457E-01, f:  1.0000},  # 00023
+ {e:  6.089465839739E-01, f:  1.0000}] # 00024
     #========================================================================= final results
    self consistency summary:
    -  {iter:  3, 
  Energies: {Ekin:  2.37366588310E+01, Epot: -2.43727398486E+01, Enl:  2.39038037056E+00, 
               EH:  2.95958859610E+01,  EXC: -4.82672345128E+00, EvXC: -6.29848738760E+00}, 
        iter high:  3,            delta out:  1.423E-07, 
-          energy: -9.04397947632102017E+00,                       D:  0.000E+00,  #FINAL
+          energy: -9.04397947632020660E+00,                       D:  0.000E+00,  #FINAL
  }
  Write wavefunctions to file           : ./data/minBasis.*
  Wavefunction written No.              :  2
  Wavefunction written No.              :  3
- Wavefunction written No.              :  4
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  8.841E-01,  6.337E-01 ]}
+ -  {Process:  0, Timing:  [  1.6E-02,  1.800E-02 ]}
  Total charge                          :  1.599999982199E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  8
+ Multipole analysis origin             :  [  7.448593E+00,  7.419301E+00,  1.403951E+01 ]
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.0182E-01,  1.3688E-02,  6.0720E-02 ]
-   norm(P)                             :  1.193394E-01
+   P vector                            :  [ -1.0184E-01,  1.3668E-02,  6.0690E-02 ]
+   norm(P)                             :  1.193411E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -2.588E-01,  3.4793E-02,  1.5433E-01 ]
-   norm(P)                             :  3.033306E-01
+   P vector                            :  [ -2.5886E-01,  3.4741E-02,  1.5426E-01 ]
+   norm(P)                             :  3.033348E-01
  Calculate local forces                :  Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------- Warnings obtained during the run, check their relevance!
@@ -2068,38 +2074,38 @@
  - The support function localization radii might be too small, got 4 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  34.61
-   Elapsed time (s)                    :  18.44
+   CPU time (s)                        :  23.30
+   Elapsed time (s)                    :  23.33
  BigDFT infocode                       :  0
- Average noise forces: {x: -2.04080119E-03, y:  4.19740371E-03, z:  1.84488303E-04, 
+ Average noise forces: {x: -2.04080119E-03, y:  4.19740371E-03, z:  1.84488304E-04, 
                     total:  4.67087822E-03}
- Clean forces norm (Ha/Bohr): {maxval:  3.650575161906E-02, fnrm2:  2.592636394924E-03}
- Raw forces norm (Ha/Bohr): {maxval:  3.699026614685E-02, fnrm2:  2.620541420815E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  3.650575161899E-02, fnrm2:  2.592636394912E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  3.699026614682E-02, fnrm2:  2.620541420802E-03}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Be: [ 8.337829582256E-03, -2.181850328158E-03, -2.627555874033E-02]} # 0001
- -  {Be: [ 4.045273579280E-04,  1.543706804694E-03, -7.220453554365E-03]} # 0002
- -  {Be: [-4.177976891102E-05, -2.688266503859E-04,  1.141351582711E-02]} # 0003
- -  {Be: [-6.861149150803E-05, -2.624590553736E-04, -2.947897266267E-03]} # 0004
- -  {H: [-6.417728793761E-03, -3.870516058151E-03, -8.200188665417E-04]} # 0005
- -  {H: [-7.907601751438E-03,  1.453780327105E-03,  3.560935633473E-02]} # 0006
- -  {H: [-9.599088203204E-04,  1.476275569529E-03, -1.103273645876E-03]} # 0007
- -  {H: [ 2.131130695614E-03, -2.421278087736E-03, -1.734580674560E-03]} # 0008
- -  {H: [ 5.471178285783E-03,  4.391838972254E-03,  1.797983423562E-03]} # 0009
- -  {H: [ 5.029588658785E-03,  3.381783660883E-03, -3.126385098174E-03]} # 0010
- -  {H: [-6.152808280191E-03, -3.185389724056E-03,  2.873028565981E-03]} # 0011
- -  {H: [ 1.741843257638E-04, -5.706543060483E-05, -8.465716305275E-03]} # 0012
- Energy (Hartree)                      : -9.04397947632102017E+00
- Force Norm (Hartree/Bohr)             :  5.09179378502677069E-02
+ -  {Be: [ 8.337829582254E-03, -2.181850328160E-03, -2.627555874009E-02]} # 0001
+ -  {Be: [ 4.045273579318E-04,  1.543706804686E-03, -7.220453554310E-03]} # 0002
+ -  {Be: [-4.177976890770E-05, -2.688266503849E-04,  1.141351582730E-02]} # 0003
+ -  {Be: [-6.861149150518E-05, -2.624590553757E-04, -2.947897266467E-03]} # 0004
+ -  {H: [-6.417728793738E-03, -3.870516058132E-03, -8.200188666235E-04]} # 0005
+ -  {H: [-7.907601751431E-03,  1.453780327101E-03,  3.560935633466E-02]} # 0006
+ -  {H: [-9.599088203376E-04,  1.476275569553E-03, -1.103273645848E-03]} # 0007
+ -  {H: [ 2.131130695609E-03, -2.421278087733E-03, -1.734580674520E-03]} # 0008
+ -  {H: [ 5.471178285805E-03,  4.391838972280E-03,  1.797983423523E-03]} # 0009
+ -  {H: [ 5.029588658768E-03,  3.381783660857E-03, -3.126385098247E-03]} # 0010
+ -  {H: [-6.152808280216E-03, -3.185389724081E-03,  2.873028565942E-03]} # 0011
+ -  {H: [ 1.741843257678E-04, -5.706543061108E-05, -8.465716305320E-03]} # 0012
+ Energy (Hartree)                      : -9.04397947632020660E+00
+ Force Norm (Hartree/Bohr)             :  5.09179378501536523E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  11120
-   Tot. No. of Deallocations           :  11120
+   Tot. No. of Allocations             :  10366
+   Tot. No. of Deallocations           :  10366
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  267.051
+     Peak Value (MB)                   :  209.025
      for the array                     : psirtwork
      in the routine                    : communicate_basis_for_density_co
-     Memory Peak of process            : 329.892 MB
- Walltime since initialization         : 00:00:18.584513835
- Max No. of dictionaries used          :  6488 #( 1002 still in use)
+     Memory Peak of process            : 264.276 MB
+ Walltime since initialization         : 00:00:23.717599027
+ Max No. of dictionaries used          :  6958 #( 1002 still in use)
  Number of dictionary folders allocated:  1

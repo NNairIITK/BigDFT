@@ -450,46 +450,6 @@ subroutine icopy(n,dx,incx,dy,incy)
 end subroutine icopy
 
 
-
-
-!> Random Number generator from Numerical Recipes
-!! To be used for reproducibility of the results
-function builtin_rand(idum)
-  use randomData, only : ntab, iy, iv, start
-
-  implicit none
-
-  integer, intent(inout) :: idum
-  real(kind=4) :: builtin_rand
-  !local variables
-  integer, parameter :: ia=16807,im=2147483647,iq=127773,ir=2836,ndiv=1+(im-1)/ntab
-  real(kind=4), parameter :: am=1.e0/im,eps=1.2e-7,rnmx=1.-eps
-  integer :: j,k
-
-  if (start) then
-     iv(:) = 0
-     start = .false.
-  end if
-  if (idum <= 0.or. iy == 0) then
-     idum=max(-idum,1)
-     do j=ntab+8,1,-1
-        k=idum/iq
-        idum=ia*(idum-k*iq)-ir*k
-        if (idum < 0) idum=idum+im
-        if (j <= ntab) iv(j)=idum
-     end do
-     iy=iv(1)
-  endif
-  k=idum/iq
-  idum=ia*(idum-k*iq)-ir*k
-  if (idum <= 0) idum=idum+im
-  j=1+iy/ndiv
-  iy=iv(j)
-  iv(j)=idum
-  builtin_rand=min(am*iy,rnmx)
-END FUNCTION builtin_rand
-
-
 subroutine diff_i(n,a,b,diff)
   implicit none
   integer, intent(in) :: n

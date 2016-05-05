@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SHORT_CHECK = test-ccs.report.yaml test-foeccs.report.yaml
+SHORT_CHECK = test-ccs.report.yaml test-foeccs.report.yaml test-random.report.yaml
 LONG_CHECK = $(SHORT_CHECK)
 
 include $(srcdir)/../check.mk
@@ -8,9 +8,10 @@ include $(srcdir)/../check.mk
 EXTRA_DIST = test-ccs.ref.yaml \
 	matrix1-base.dat matrix2-base.dat \
 	test-foeccs.ref.yaml \
-    overlap_ccs-base.dat hamiltonian_ccs-base.dat density_kernel_ccs-base.dat
+    overlap_ccs-base.dat hamiltonian_ccs-base.dat density_kernel_ccs-base.dat \
+	data1_base.dat data2_base.dat
 
-check_PROGRAMS = driver_ccs driver_foe_ccs driver_single
+check_PROGRAMS = driver_ccs driver_foe_ccs driver_single driver_random
 
 if BUILD_LIBYAML
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
@@ -34,8 +35,12 @@ driver_foe_ccs_LDADD = -lbigdft-1 @LINALG_LIBS@
 driver_single_SOURCES = utilities.f90 driver_single.f90
 driver_single_LDADD = -lbigdft-1 @LINALG_LIBS@
 
+driver_random_SOURCES = utilities.f90 driver_random.f90
+driver_random_LDADD = -lbigdft-1 @LINALG_LIBS@
+
 CLEANFILES = test-ccs.out.yaml test-ccs.report.yaml test-ccs.report \
-             test-foeccs.out.yaml test-foeccs.report.yaml test-foeccs.report
+             test-foeccs.out.yaml test-foeccs.report.yaml test-foeccs.report \
+			 test-random.out.yaml test-random.report.yaml test-random.report
 
 test-ccs.report.yaml: $(srcdir)/test-ccs.ref.yaml test-ccs.out.yaml
 	@export PYTHONPATH=${PYTHONPATH} ; \
@@ -49,6 +54,12 @@ test-foeccs.report.yaml: $(srcdir)/test-foeccs.ref.yaml test-foeccs.out.yaml
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
 		-r $< -d test-foeccs.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-foeccs -o $@ 
 
+test-random.report.yaml: $(srcdir)/test-random.ref.yaml test-random.out.yaml
+	@export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
+		-r $< -d test-random.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-random -o $@ 
+
 test-ccs.out.yaml: driver_ccs
 	cp -f $(srcdir)/matrix1-base.dat $(PWD)/matrix1.dat
 	cp -f $(srcdir)/matrix2-base.dat $(PWD)/matrix2.dat
@@ -59,3 +70,9 @@ test-foeccs.out.yaml: driver_foe_ccs
 	cp -f $(srcdir)/hamiltonian_ccs-base.dat $(PWD)/hamiltonian_ccs.dat
 	cp -f $(srcdir)/density_kernel_ccs-base.dat $(PWD)/density_kernel_ccs.dat
 	$(run_parallel) ./driver_foe_ccs > test-foeccs.out.yaml
+
+test-random.out.yaml: driver_random
+	cp -f $(srcdir)/data1_base.dat $(PWD)/data1.dat
+	cp -f $(srcdir)/data2_base.dat $(PWD)/data2.dat
+	$(run_parallel) ./driver_random < data1.dat > test-random.out.yaml
+	$(run_parallel) ./driver_random < data2.dat >> test-random.out.yaml

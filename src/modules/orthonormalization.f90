@@ -560,7 +560,7 @@ module orthonormalization
                correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
                hpsit_c, hpsit_f, &
                can_use_transposed, overlap_calculated, experimental_mode, calculate_inverse, norder_taylor, max_inversion_error, &
-               npsidim_orbs_small, lzd_small, hpsi_noprecond, wt_philarge, wt_hphi, wt_hpsinoprecond)
+               npsidim_orbs_small, lzd_small, hpsi_noprecond, wt_philarge, wt_hphi)
       use module_base
       use module_types
       use yaml_output
@@ -603,7 +603,7 @@ module orthonormalization
       real(kind=8),intent(in) :: max_inversion_error
       real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
       type(work_transpose),intent(inout) :: wt_philarge
-      type(work_transpose),intent(out) :: wt_hphi, wt_hpsinoprecond
+      type(work_transpose),intent(out) :: wt_hphi
     
       ! Local variables
       real(kind=8) :: max_error, mean_error
@@ -732,8 +732,11 @@ module orthonormalization
       ! Start the untranspose process (will be gathered together in
       ! getLocalizedBasis)
       ! Pass hphi_nococontra even if it is not used
+      !!call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
+      !!     TRANSPOSE_POST, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra, lzd, wt_hpsinoprecond)
+      ! Use wt_philarge as workarrays
       call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
-           TRANSPOSE_POST, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra, lzd, wt_hpsinoprecond)
+           TRANSPOSE_POST, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra, lzd, wt_philarge)
       !!call large_to_small_locreg(iproc, npsidim_orbs_small, npsidim_orbs, lzd_small, lzd, &
       !!     orbs, hphi_nococontra, hpsi_noprecond)
       ! END @NEW

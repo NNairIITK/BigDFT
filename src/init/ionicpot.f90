@@ -93,12 +93,17 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
 
      !calculate reduced coordinates
+     !$omp parallel if (at%astruct%nat>1000) &
+     !$omp default(none) shared(at, xred, gprimd, rxyz) private(iat, ii)
+     !$omp do schedule(static)
      do iat=1,at%astruct%nat
         do ii=1,3
            xred(ii,iat)= gprimd(1,ii)*rxyz(1,iat)+gprimd(2,ii)*rxyz(2,iat)+&
                 gprimd(3,ii)*rxyz(3,iat)
         end do
      end do
+     !$omp end do
+     !$omp end parallel
 
      !calculate ewald energy and forces + stress
      call ewald(iproc,nproc,eion,gmet,fewald,at%astruct%nat,at%astruct%ntypes,rmet,at%astruct%iatype,ucvol,&
@@ -111,6 +116,9 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 ! abinit output                   : 11 22 33 23 13 12
 
      !make forces dimensional
+     !$omp parallel if (at%astruct%nat>1000) &
+     !$omp default(none) shared(at, fion, gprimd, fewald) private(iat, ii)
+     !$omp do schedule(static)
      do iat=1,at%astruct%nat
         do ii=1,3
            fion(ii,iat)= - (gprimd(ii,1)*fewald(1,iat)+&
@@ -119,6 +127,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         end do
         !if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
      end do
+     !$omp end do
+     !$omp end parallel
 
      call f_free(xred)
      call f_free(fewald)
@@ -129,6 +139,10 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      shortlength=0.0_gp
      charge=0.0_gp
      twopitothreehalf=2.0_gp*pi*sqrt(2.0_gp*pi)
+     !$omp parallel if (at%astruct%nat>1000) &
+     !$omp default(none) shared(at, psoffset, shortlength, charge) &
+     !$omp private(iat, ityp, rloc, atint)
+     !$omp do reduction(+: psoffset, shortlength, charge)
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
         rloc=at%psppar(0,0,ityp)
@@ -138,6 +152,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         shortlength=shortlength+real(at%nelpsp(ityp),gp)*rloc**2
         charge=charge+real(at%nelpsp(ityp),gp)
      end do
+     !$omp end do
+     !$omp end parallel
      psoffset=twopitothreehalf*psoffset
      shortlength=shortlength*2.0_gp*pi
 

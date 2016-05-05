@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-04-05 16:44:12.344
+ Timestamp of this run                 : 2016-05-04 11:47:11.122
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -38,12 +38,15 @@
  Compilation options:
    Configure arguments:
      " 'FC=/home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort' 'CC=gcc' 'FCFLAGS=-O2 
-     -Wno-error -fopenmp -m64' '--with-ext-linalg='"
+     -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp -m64' 
+     '--with-ext-linalg='"
    Compilers (CC, FC, CXX): [gcc, /home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort, 
                              g++]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -Wno-error -fopenmp -m64
+     FCFLAGS:
+       -O2 -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp 
+       -m64
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : charge
@@ -84,6 +87,9 @@
     #                                              point. Negative values mean no plot.
    plot_pot_axes: [-1, -1, -1] #                  Plot the potential along axes through this point. Negative values mean 
     #                                              no plot.
+   occupancy_control                   : None #   Dictionary of the atomic matrices to be applied for a given iteration number
+   itermax_occ_ctrl                    : 0 #      Number of iterations of occupancy control scheme. Should be between itermin and 
+    #                                              itermax
  perf:
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    mixing_after_inputguess             : 2 #      Mixing step after linear input guess
@@ -175,7 +181,8 @@
    cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    calc_quadrupole                     : No #     calculate quadrupole
    subspace_diag                       : No #     diagonalization at the end
-   extra_states                        : 0 #      extra states to optimize (dmin only)
+   extra_states                        : 0 #      Number of extra states to include in support function and kernel optimization (dmin 
+    #                                              only), must be equal to norbsempty
    charge_multipoles                   : 0 #      Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
     #                                              new approach Projector
    support_function_multipoles         : False #  Calculate the multipole moments of the support functions
@@ -277,6 +284,7 @@
    forcemax                            : 0. #     Max forces criterion when stop
    randdis                             : 0. #     Random displacement amplitude
    betax                               : 4. #     Stepsize for the geometry optimization
+   beta_stretchx                       : 5e-1 #   Stepsize for steepest descent in stretching mode direction (only if in biomode)
  md:
    mdsteps                             : 0 #      Number of MD steps
    print_frequency                     : 1 #      Printing frequency for energy.dat and Trajectory.xyz files
@@ -285,6 +293,9 @@
    no_translation                      : No #     Logical input to set translational correction
    thermostat                          : none #   Activates a thermostat for MD
    wavefunction_extrapolation          : 0 #      Activates the wavefunction extrapolation for MD
+   restart_nose                        : No #     Restart Nose Hoover Chain information from md.restart
+   restart_pos                         : No #     Restart nuclear position information from md.restart
+   restart_vel                         : No #     Restart nuclear velocities information from md.restart
  mix:
    iscf                                : 0 #      Mixing parameters
    itrpmax                             : 1 #      Maximum number of diagonalisation iterations
@@ -548,20 +559,21 @@
  non-zero elements                     :  36
   #segments:  6
  sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
+ sparse matrix multiplication initialized:  No
  total elements                        :  36
  non-zero elements                     :  36
   #segments:  6
  sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
+ sparse matrix multiplication initialized:  No
  check of kernel cutoff radius:
  -  {atom type: H, adjustment required:  Yes, new value:  9.60}
  -  {atom type: O, adjustment required:  Yes, new value:  9.60}
+ sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
  total elements                        :  36
  non-zero elements                     :  36
   #segments:  6
  sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
+ sparse matrix multiplication initialized:  Yes
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
@@ -657,6 +669,10 @@
        max diff of eigenvectors        :  0.00E+00
        max diff of eigenvalues         :  0.00E+00
      communication strategy kernel     : ALLREDUCE
+     Asymmetry of the matrices:
+       Overlap                         :  0.00E+00
+       Hamiltonian                     :  6.73E-16
+       Kernel (possibly symmetrized)   :  0.00E+00
      Kohn-Sham residue                 :  2.610E-01
      Coefficients available            :  Yes
     #Eigenvalues and New Occupation Numbers
@@ -709,6 +725,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.33E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  3.287E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -735,6 +755,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  5.55E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  3.022E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -761,6 +785,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  7.89E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  3.074E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -787,6 +815,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  5.55E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  3.103E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -838,20 +870,21 @@
    non-zero elements                   :  36
     #segments:  6
    sparsity in %                       :  0.00
-   sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
+   sparse matrix multiplication initialized:  No
    total elements                      :  36
    non-zero elements                   :  36
     #segments:  6
    sparsity in %                       :  0.00
-   sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
+   sparse matrix multiplication initialized:  No
    check of kernel cutoff radius:
    -  {atom type: H, adjustment required:  No}
    -  {atom type: O, adjustment required:  No}
+   sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
    total elements                      :  36
    non-zero elements                   :  36
     #segments:  6
    sparsity in %                       :  0.00
-   sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
+   sparse matrix multiplication initialized:  Yes
    taskgroup summary:
      number of taskgroups              :  1
      taskgroups overview:
@@ -880,6 +913,10 @@
        max diff of eigenvectors        :  0.00E+00
        max diff of eigenvalues         :  0.00E+00
      communication strategy kernel     : ALLREDUCE
+     Asymmetry of the matrices:
+       Overlap                         :  0.00E+00
+       Hamiltonian                     :  1.11E-15
+       Kernel (possibly symmetrized)   :  0.00E+00
      Kohn-Sham residue                 :  3.118E-01
      Coefficients available            :  Yes
     #========================================================= support function optimization
@@ -937,6 +974,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.11E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  1.33940650719E+01, Epot: -1.78624559684E+01, Enl:  7.19851589590E-01, 
@@ -962,6 +1003,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.03E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.128E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -988,6 +1033,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  7.22E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.164E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1014,6 +1063,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  8.33E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.181E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1040,6 +1093,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.67E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.189E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1066,6 +1123,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  6.11E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.194E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1149,6 +1210,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.44E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  1.28483186486E+01, Epot: -1.76733144988E+01, Enl:  6.87791653934E-01, 
@@ -1174,6 +1239,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  2.03E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.045E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1200,6 +1269,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  2.08E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.043E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1226,6 +1299,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  7.22E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.042E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1252,6 +1329,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  6.94E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.042E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1278,6 +1359,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  9.44E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.042E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1361,6 +1446,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.55E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  1.29122010903E+01, Epot: -1.77298824789E+01, Enl:  6.96884269198E-01, 
@@ -1386,6 +1475,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  8.33E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.038E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1412,6 +1505,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.28E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.038E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1438,6 +1535,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.03E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.038E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1464,6 +1565,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  7.77E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.038E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1490,6 +1595,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  7.49E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.038E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1573,6 +1682,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  7.77E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  1.29063262073E+01, Epot: -1.77237453750E+01, Enl:  6.95017351744E-01, 
@@ -1598,6 +1711,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  2.64E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.039E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1624,6 +1741,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  8.60E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.040E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1650,6 +1771,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  3.89E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.040E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1676,6 +1801,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.36E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.040E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1702,6 +1831,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  6.66E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.040E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1785,6 +1918,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.50E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  1.28917460230E+01, Epot: -1.77129644170E+01, Enl:  6.94835617946E-01, 
@@ -1810,6 +1947,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  4.61E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.041E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1836,6 +1977,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  7.22E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.041E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1862,6 +2007,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.33E-15
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.041E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1888,6 +2037,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  9.99E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.041E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1914,6 +2067,10 @@
          max diff of eigenvectors      :  0.00E+00
          max diff of eigenvalues       :  0.00E+00
        communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  9.71E-16
+         Kernel (possibly symmetrized) :  0.00E+00
        Kohn-Sham residue               :  2.041E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1957,7 +2114,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  4.4E-02,  4.300E-02 ]}
+ -  {Process:  0, Timing:  [  4.4E-02,  4.200E-02 ]}
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -1971,7 +2128,7 @@
  non-zero elements                     :  36
   #segments:  6
  sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
+ sparse matrix multiplication initialized:  No
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
@@ -1989,12 +2146,13 @@
    BC                                  : Free
    Box                                 :  [  103,  103,  101 ]
    MPI tasks                           :  8
+ Multipole analysis origin             :  [  8.719812E+00,  7.710293E+00,  7.472473E+00 ]
  Electric Dipole Moment (AU):
-   P vector                            :  [  8.1338E+00,  8.0771E+00,  7.8518E+00 ]
-   norm(P)                             :  1.389419E+01
+   P vector                            :  [ -5.8604E-01,  3.6673E-01,  3.7931E-01 ]
+   norm(P)                             :  7.885520E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [  2.0674E+01,  2.0530E+01,  1.9957E+01 ]
-   norm(P)                             :  3.531551E+01
+   P vector                            :  [ -1.4896E+00,  9.3214E-01,  9.6412E-01 ]
+   norm(P)                             :  2.004299E+00
  Calculate local forces                :  Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------- Warnings obtained during the run, check their relevance!
@@ -2005,8 +2163,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.27
-   Elapsed time (s)                    :  9.29
+   CPU time (s)                        :  12.46
+   Elapsed time (s)                    :  12.48
  BigDFT infocode                       :  0
  Average noise forces: {x: -1.54166492E-02, y: -1.11661954E-02, z: -7.48959799E-03, 
                     total:  2.04560766E-02}
@@ -2020,14 +2178,14 @@
  Energy (Hartree)                      : -1.66655103121585029E+01
  Force Norm (Hartree/Bohr)             :  7.60550939366020917E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  9608
-   Tot. No. of Deallocations           :  9608
+   Tot. No. of Allocations             :  9338
+   Tot. No. of Deallocations           :  9338
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  90.481
+     Peak Value (MB)                   :  90.479
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 124.704 MB
- Walltime since initialization         : 00:00:09.669355433
- Max No. of dictionaries used          :  6652 #( 1002 still in use)
+     Memory Peak of process            : 127.048 MB
+ Walltime since initialization         : 00:00:12.865277523
+ Max No. of dictionaries used          :  7068 #( 1002 still in use)
  Number of dictionary folders allocated:  1

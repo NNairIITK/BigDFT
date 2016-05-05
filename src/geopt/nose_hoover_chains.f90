@@ -80,6 +80,7 @@ CONTAINS
   !!
   subroutine nose_init(natoms,ndof,dt,T0ions,amass,vxyz,nhc)
     use numerics, only: au_to_k=>Ha_K, pi, cubroot => onethird
+    use random, only: builtin_rand
     implicit none 
     integer :: NATOMS,NDOF
     REAL (KIND=8)   :: dt, T0ions, amass(natoms),vxyz(3,natoms) 
@@ -94,7 +95,6 @@ CONTAINS
     !
     !
     REAL (KIND=8), PARAMETER  ::  cmi_to_au = 7.26D-7 
-    REAL(KIND=4) :: builtin_rand
     INTEGER      :: idum=0
 
 

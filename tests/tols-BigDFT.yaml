@@ -1465,11 +1465,11 @@ geoptconstrained_SDCG:
  difference: 2.7e-11
 
 O2spin_diag:
- Atomic Forces (Ha/Bohr): 1.1e-6
+ Atomic Forces (Ha/Bohr): 1.2e-6
  Average noise forces: 9.5e-8
- Clean forces norm (Ha/Bohr): 2.7e-6
+ Clean forces norm (Ha/Bohr): 2.97e-6
  Raw forces norm (Ha/Bohr): 2.51e-6
- Orbitals: 2.7e-7
+ Orbitals: 2.8e-7
  EH: 1.9e-6
  EXC: 3.5e-7
  Ekin: 2.3e-6
@@ -1482,7 +1482,7 @@ O2spin_diag:
  multiplicator for the confinement: 1.4e-6
  D: 1.1e-9
  kappa: 1.1e-4
- Force Norm (Hartree/Bohr): 1.5e-6
+ Force Norm (Hartree/Bohr): 1.7e-6
  Maxdiff for transpose (checksum): 5.9e-11
  delta: 1.1e-10
 
@@ -1494,7 +1494,7 @@ O2spin_foe:
  Epot: 1.4e-7
  EvXC: 2.7e-8
  Enl: 2.6e-9
- Tr(K): 6.0e-6
+ Tr(K): 6.9e-6
  D Tr(K): 1.01e-4
  eF: 1.1-10
  D eF: 4.4e-8
@@ -1731,7 +1731,7 @@ periodic_silicon:
  Total ionic charge: 6.7e-11
  Pressure: 1.5e-10
  D Tr: 1.0e-9
- trace: 5.7e-10
+ trace: 5.8e-10
  EH: 1.01e-10
  Atomic Forces (Ha/Bohr): 1.6e-11
  Maxdiff for transpose (checksum): 2.4e-10
@@ -1784,7 +1784,7 @@ periodic_water:
  Force Norm (Hartree/Bohr): 2.0e-11
  fnrm2: 2.6e-11
  trace(KS): 1.1e-10
- relative difference: 1.5e-11
+ relative difference: 1.6e-11
  Maxdiff for transpose (checksum): 4.7e-10
  decay length of error function: 1.1e-05
 
@@ -1855,19 +1855,19 @@ multipoles_OH-:
  difference from reference kernel: 1.1e-8
  Atomic Forces (Ha/Bohr): 3.3e-11
  Clean forces norm (Ha/Bohr): 3.4e-11
- Raw forces norm (Ha/Bohr): 5.1e-11
+ Raw forces norm (Ha/Bohr): 6.1e-11
  Average noise forces: 1.01e-9
  decay length of error function: 1.1e-5
  number of corrected points: 92
  total charge correction: 5.2e-8
  Unitary check of the multipole calculations: 6.1e-2
- Force Norm (Hartree/Bohr): 1.2e-11
+ Force Norm (Hartree/Bohr): 1.6e-11
  Maxdiff for transpose (checksum): 1.5e-11
 
 multipoles_waterQM:
  Epot: 1.1e-10
  Ekin: 1.1e-10
- EBS: 1.3e-11
+ EBS: 1.4e-11
  EBS higher temperature: 1.4e-11
  Maxdiff for transpose (checksum): 3.0e-11
  multiplicator for the confinement: 1.9e-11
@@ -1996,9 +1996,9 @@ igortho_19:
  net charge: 1.0e-7
  Average noise forces: 7.8e-7
  eF: 3.7e-5
- EXC: 2.8e-6
+ EXC: 3.9e-6
  Epot: 5.8e-5
- EvXC: 3.4e-6
+ EvXC: 5.1e-6
  EH: 2.5e-5
  Ekin: 1.8e-7
  Enl: 1.6e-8
@@ -2096,14 +2096,14 @@ igortho_94:
  guess for new ef: 1.3e-5
  Tr(K): 3.0e-7
  D Tr(K): 3.0e-7
- eF: 3.1e-5
+ eF: 3.3e-5
  D Tr: 3.0e-7
  D eF: 1.1e-5
- difference: 5.7e-8
+ difference: 8.1e-8
  difference from reference kernel: 1.1e-8
  EBS: 3.2e-4
  EBS higher temperature: 3.2e-4
- relative difference: 1.5e-8
+ relative difference: 2.2e-8
  trace(KS): 4.8e-8
  D: 1.1e-4
  energy: 2.6e-8
@@ -2117,7 +2117,7 @@ igortho_94:
  delta: 6.1e-11
  radius for normalization: 1.1e-2
  multiplicator for the confinement: 4.38e-11
- Force Norm (Hartree/Bohr): 4.3e-8
+ Force Norm (Hartree/Bohr): 8.3e-7
  Maxdiff for transpose (checksum): 1.2e-10
  Q matrix: 1.1e-04
  P vector: 2.01e-05 
@@ -2140,7 +2140,7 @@ extendedfrags_nofrags:
  Energies: 1.1e-10
  Pressure: 3.4e-11
  Omega: 2.8e-11
- PV (Ha): 3.7e-11
+ PV (Ha): 3.9e-11
  Total charge: 4.3e-09
  difference: 5.7e-09
  energy: 2.9e-09
@@ -2171,6 +2171,7 @@ extendedfrags_read:
  difference: 8.6e-11
  relative difference: 1.9e-11
  energy: 7.7e-11
+ PV (Ha): 7.6e-11
  Keys to ignore: [WARNINGS]
 
 extendedfrags_readrotated:
@@ -2199,15 +2200,16 @@ extendedfrags_readrotated:
  difference: 1.1e-10
  relative difference: 1.9e-11
  trace(KS): 1.4e-11
+ PV (Ha): 7.6e-11
  Keys to ignore: [WARNINGS]
 
 
 extendedfrags_write:
- Epot: 1.7e-9
- EH: 1.7e-9
+ Epot: 6.1e-9
+ EH: 6.0e-9
  Ekin: 1.1e-10
- EXC: 3.1e-10
- EvXC: 3.1e-10
+ EXC: 2.2e-9
+ EvXC: 1.5e-9
  D Tr: 3.1e-8
  D eF: 5.0e-9
  EBS higher temperature: 1.6e-9
@@ -2225,8 +2227,8 @@ extendedfrags_write:
  Atomic Forces (Ha/Bohr): 7.2e-9
  Force Norm (Hartree/Bohr): 6.2e-11
  difference: 1.65e-11
- e: 6.5e-11
- maxval: 1.11e-9
+ e: 2.5e-10
+ maxval: 3.0e-9
  
 Cavity_H2OfrigidPCG:
  Atomic Forces (Ha/Bohr): 2.5e-6
@@ -2517,7 +2519,7 @@ matrixtaskgroups_no:
   Ekin: 1.0e-8
   EH: 1.1e-08
   Epot: 1.0e-8
-  EvXC: 1.0e-9
+  EvXC: 1.1e-9
   EXC: 1.1e-9
   Enl: 2.0e-9
   Energy (Hartree): 3.0e-09
@@ -2547,7 +2549,7 @@ matrixtaskgroups_yes:
   EBS higher temperature: 1.2e-09
   EH: 1.1e-08
   Epot: 1.0e-8
-  EvXC: 1.0e-9
+  EvXC: 1.1e-9
   EXC: 1.1e-9
   Enl: 1.0e-9
   Ekin: 1.0e-08
@@ -2579,6 +2581,10 @@ test-foeccs:
   trace(KS): 7.6e-11
   D Tr(K): 1.0e-07
   value: 2.8e-11
+
+test-random:
+  Keys to ignore:
+  - Parallel environment
 
 lj_connect.mhgps.ref.yaml:
   (MHGPS) minmode overlap: 3.3e-10
