@@ -122,6 +122,7 @@ module foe_common
   public :: find_fermi_level
   public :: get_polynomial_degree
   public :: calculate_trace_distributed_new
+  public :: get_bounds_and_polynomials
 
 
   contains
@@ -2133,7 +2134,7 @@ module foe_common
       type(foe_data),intent(in) :: foe_obj
       real(kind=mp),intent(in) :: max_polynomial_degree
       integer,intent(out) :: npl
-      real(kind=mp),dimension(:,:,:),allocatable,intent(inout) :: cc
+      real(kind=mp),dimension(:,:,:),pointer,intent(inout) :: cc
       real(kind=mp),dimension(ncalc),intent(out) :: max_error, x_max_error, mean_error
       real(kind=mp),intent(out) :: anoise
       real(kind=mp),dimension(ncalc),intent(in),optional :: ex, ef, fscale
@@ -2256,7 +2257,7 @@ module foe_common
           call yaml_sequence_close()
       end if
 
-      cc = f_malloc((/npl,ncalc,3/),id='cc')
+      cc = f_malloc_ptr((/npl,ncalc,3/),id='cc')
       do icalc=1,ncalc
           do j=1,3
               do ipl=1,npl
@@ -2392,5 +2393,189 @@ module foe_common
       call f_release_routine()
 
     end subroutine penalty_communicate
+
+
+
+    subroutine get_bounds_and_polynomials(iproc, nproc, comm, itype, ispin, npl_max, npl_stride, ncalc, func_name, &
+               do_scaling, bounds_factor_low, bounds_factor_up, foe_verbosity, &
+               smatm, smatl, ham_, foe_obj, npl_min, workarr_compr, chebyshev_polynomials, &
+               npl, scale_factor, shift_value, hamscal_compr, &
+               smats, ovrlp_, ovrlp_minus_one_half_, efarr, fscale_arr, ex, &
+               scaling_factor_low, scaling_factor_up, eval_multiplicator, eval_multiplicator_total, cc)
+      use module_func
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm, itype, ispin, npl_max, npl_stride, ncalc, func_name, foe_verbosity
+      type(sparse_matrix),intent(in) :: smatm, smatl
+      type(matrices),intent(in) :: ham_
+      logical,intent(in) :: do_scaling
+      real(mp),intent(in),optional :: bounds_factor_low, bounds_factor_up
+      type(foe_data),intent(inout) :: foe_obj
+      integer,intent(inout) :: npl_min
+      real(kind=mp),dimension(smatl%nvctrp_tg),intent(inout) :: workarr_compr
+      real(mp),dimension(:,:),pointer,intent(inout) :: chebyshev_polynomials
+      integer,intent(out) :: npl
+      real(mp),intent(out) :: scale_factor, shift_value
+      real(kind=mp),dimension(smatl%nvctrp_tg),intent(out) :: hamscal_compr
+      type(sparse_matrix),intent(in),optional :: smats
+      type(matrices),intent(in),optional :: ovrlp_, ovrlp_minus_one_half_
+      real(kind=mp),dimension(ncalc),intent(in),optional :: efarr
+      real(kind=mp),dimension(ncalc),intent(in),optional :: fscale_arr
+      real(kind=mp),dimension(ncalc),intent(in),optional :: ex
+      real(mp),intent(in),optional :: scaling_factor_low, scaling_factor_up
+      real(mp),intent(inout),optional :: eval_multiplicator, eval_multiplicator_total
+      real(kind=mp),dimension(:,:,:),pointer,optional :: cc
+
+      ! Local variables
+      integer :: ilshift
+      real(mp),dimension(:),allocatable :: max_error, x_max_error, mean_error
+      real(mp) :: anoise
+      real(kind=mp),dimension(:,:,:),pointer :: cc_
+      logical,dimension(2) :: eval_bounds_ok
+      type(matrices) :: ham_scaled
+
+      call f_routine(id='get_bounds_and_polynomials')
+
+      ! Check the arguments
+      select case (itype)
+      case (1) !standard eigenvalue problem, i.e. the overlap matrix is the identity and is not required
+      case (2) !generalized eigenvalue problem, i.e. the overlap matrix must be provided
+          if (.not.present(smats)) call f_err_throw('smats not present')
+          if (.not.present(ovrlp_)) call f_err_throw('ovrlp_ not present')
+          if (.not.present(ovrlp_minus_one_half_)) call f_err_throw('ovrlp_minus_one_half_ not present')
+      case default
+          call f_err_throw('wrong value for itype')
+      end select
+
+      select case (func_name)
+      case (FUNCTION_ERRORFUNCTION) 
+          if (.not.present(efarr)) call f_err_throw('efarr not present')
+          if (.not.present(fscale_arr)) call f_err_throw('fscale_arr not present')
+      case (FUNCTION_POLYNOMIAL) !generalized eigenvalue problem, i.e. the overlap matrix must be provided
+          if (.not.present(ex)) call f_err_throw('ex not present')
+      case default
+          call f_err_throw('wrong value for func_name')
+      end select
+
+      if (do_scaling) then
+          if (.not.present(scaling_factor_low)) call f_err_throw('scaling_factor_low not present')
+          if (.not.present(scaling_factor_up)) call f_err_throw('scaling_factor_up not present')
+          if (.not.present(eval_multiplicator)) call f_err_throw('eval_multiplicator not present')
+          if (.not.present(eval_multiplicator_total)) call f_err_throw('eval_multiplicator_total not present')
+      end if
+
+      ilshift = (ispin-1)*smatl%nvctrp_tg
+      max_error = f_malloc(ncalc,id='max_error')
+      x_max_error = f_malloc(ncalc,id='x_max_error')
+      mean_error = f_malloc(ncalc,id='mean_error')
+
+      ham_scaled = matrices_null()
+      if (do_scaling) then
+          ham_scaled%matrix_compr = sparsematrix_malloc_ptr(smatm, &
+              iaction=SPARSE_TASKGROUP, id='ham_scaled%matrix_compr')
+          call f_memcpy(src=ham_%matrix_compr,dest=ham_scaled%matrix_compr)
+      else
+          ham_scaled%matrix_compr => ham_%matrix_compr
+      end if
+
+
+      if (iproc==0 .and. foe_verbosity>0) then
+          call yaml_sequence_open('determine eigenvalue bounds')
+      end if
+      bounds_loop: do
+          !efarr(1) = foe_data_get_real(foe_obj,"ef",ispin)
+          !fscale_arr(1) = foe_data_get_real(foe_obj,"fscale",ispin)
+          if (do_scaling) then
+              call dscal(size(ham_scaled%matrix_compr), eval_multiplicator, ham_scaled%matrix_compr(1), 1)
+              eval_multiplicator_total = eval_multiplicator_total*eval_multiplicator
+          end if
+
+          if (func_name==FUNCTION_ERRORFUNCTION) then
+              call get_polynomial_degree(iproc, nproc, comm, ispin, ncalc, FUNCTION_ERRORFUNCTION, foe_obj, &
+                   npl_min, npl_max, npl_stride, 1.d-5, 0, npl, cc_, &
+                   max_error, x_max_error, mean_error, anoise, &
+                   ef=efarr, fscale=fscale_arr)
+          else if (func_name==FUNCTION_POLYNOMIAL) then
+              call get_polynomial_degree(iproc, nproc, comm, ispin, ncalc, FUNCTION_POLYNOMIAL, foe_obj, &
+                   npl_min, npl_max, npl_stride, 1.d-8, 0, npl, cc_, &
+                   max_error, x_max_error, mean_error, anoise, &
+                   ex=ex)
+          end if
+          npl_min = npl !to be used to speed up the search for npl in a following iteration in case the temperature must be lowered
+          if (iproc==0 .and. foe_verbosity>0) then
+              call yaml_newline()
+              call yaml_sequence(advance='no')
+              call yaml_mapping_open(flow=.true.)
+              call yaml_map('npl',npl)
+              if (do_scaling) call yaml_map('scale',eval_multiplicator_total,fmt='(es9.2)')
+              call yaml_map('bounds', &
+                   (/foe_data_get_real(foe_obj,"evlow",ispin),foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f7.3)')
+          end if
+
+          if (itype==2) then
+              call get_chebyshev_polynomials(iproc, nproc, comm, &
+                   itype, foe_verbosity, npl, smatm, smatl, &
+                   ham_scaled, workarr_compr, foe_obj, &
+                   chebyshev_polynomials, ispin, eval_bounds_ok, hamscal_compr, &
+                   scale_factor, shift_value, &
+                   smats=smats, ovrlp_=ovrlp_, &
+                   ovrlp_minus_one_half=ovrlp_minus_one_half_%matrix_compr(ilshift+1:))
+          else if (itype==1) then
+              call get_chebyshev_polynomials(iproc, nproc, comm, &
+                   itype, foe_verbosity, npl, smatm, smatl, &
+                   ham_scaled, workarr_compr, foe_obj, &
+                   chebyshev_polynomials, ispin, eval_bounds_ok, hamscal_compr, &
+                   scale_factor, shift_value)
+          end if
+          if (iproc==0 .and. foe_verbosity>0) then
+              call yaml_map('ok',eval_bounds_ok)
+              call yaml_map('exp accur',max_error,fmt='(es8.2)')
+              call yaml_mapping_close()
+          end if
+          if (all(eval_bounds_ok)) then
+              exit bounds_loop
+          else
+              if (.not.eval_bounds_ok(1)) then
+                  ! lower bound not ok
+                  !!call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*1.2d0,ispin)
+                  !!eval_multiplicator = 2.0d0
+                  call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*bounds_factor_low,ispin)
+                  if (do_scaling) then
+                      eval_multiplicator = scaling_factor_low
+                  end if
+              else if (.not.eval_bounds_ok(2)) then
+                  ! upper bound not ok
+                  !!call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*1.2d0,ispin)
+                  !!eval_multiplicator = 1.d0/2.0d0
+                  call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*bounds_factor_up,ispin)
+                  if (do_scaling) then
+                      eval_multiplicator = scaling_factor_up
+                  end if
+              end if
+          end if
+          call f_free_ptr(cc_)
+          call f_free_ptr(chebyshev_polynomials)
+      end do bounds_loop
+      if (iproc==0 .and. foe_verbosity>0) then
+          call yaml_sequence_close()
+      end if
+
+      if (do_scaling) then
+          call deallocate_matrices(ham_scaled)
+      end if
+      if (present(cc)) then
+          !f_malloc((/npl,ncalc,3/),id='cc')
+           cc = f_malloc_ptr((/npl,ncalc,3/), id='cc')
+           call f_memcpy(src=cc_, dest=cc)
+      end if
+      call f_free_ptr(cc_)
+      call f_free(max_error)
+      call f_free(x_max_error)
+      call f_free(mean_error)
+
+      call f_release_routine()
+
+    end subroutine get_bounds_and_polynomials
 
 end module foe_common
