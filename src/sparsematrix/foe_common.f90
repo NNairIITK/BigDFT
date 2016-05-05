@@ -1865,11 +1865,11 @@ module foe_common
                   sumnarr(2)=1.d100
                   call init_fermi_level(foe_data_get_real(foe_obj,"charge",ispin), foe_data_get_real(foe_obj,"ef",ispin), f, &
                        foe_data_get_real(foe_obj,"bisection_shift",ispin), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
-                       foe_data_get_real(foe_obj,"ef_interpol_det"), verbosity=1) !foe_verbosity)
+                       foe_data_get_real(foe_obj,"ef_interpol_det"), verbosity=foe_verbosity)
                   call foe_data_set_real(foe_obj,"ef",efarr(1),ispin)
             
             
-                  if (iproc==0) then
+                  if (iproc==0 .and. foe_verbosity>0) then
                       !if (foe_verbosity>=1) then
                       !    call yaml_sequence_open('FOE to determine density kernel',&
                       !         label='it_foe'//trim(label)//'-'//&
@@ -1891,7 +1891,7 @@ module foe_common
                       
                       it=it+1
             
-                      if (iproc==0) then
+                      if (iproc==0 .and. foe_verbosity>0) then
                           call yaml_newline()
                           call yaml_sequence(advance='no')
                           call yaml_mapping_open(flow=.true.)
@@ -1992,7 +1992,7 @@ module foe_common
                           end if
                       end if
 
-                      if (iproc==0) then
+                      if (iproc==0 .and. foe_verbosity>0) then
                           !call yaml_newline()
                           !call yaml_map('iter',it)
                           call yaml_map('eF',foe_data_get_real(foe_obj,"ef",ispin),fmt='(es13.6)')
@@ -2010,7 +2010,7 @@ module foe_common
                       ! If the charge difference is smaller than the threshold, there is no need to cycle even though we
                       ! are in principle still looking for the bisection bounds.
                       if (info<0 .and. abs(charge_diff)>=charge_tolerance) then
-                          if (iproc==0) then
+                          if (iproc==0 .and. foe_verbosity>0) then
                               !if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
                               !     (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
                               call yaml_mapping_close()
@@ -2033,12 +2033,12 @@ module foe_common
         
             
             
-                      if (iproc==0) then
+                      if (iproc==0 .and. foe_verbosity>0) then
                           call yaml_mapping_close()
                       end if
             
                       if (abs(charge_diff)<charge_tolerance) then
-                          if (iproc==0) call yaml_sequence_close()
+                          if (iproc==0 .and. foe_verbosity>0) call yaml_sequence_close()
                           diff=0.d0
         
                           if (nproc > 1) then

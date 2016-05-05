@@ -6,6 +6,7 @@ module foe
 
   !> Public routines
   public :: fermi_operator_expansion_new
+  public :: get_selected_eigenvalues
 
   contains
 
@@ -242,7 +243,7 @@ module foe
                        efarr=efarr, fscale_arr=fscale_arr)
 
                   call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
-                       2, 'test', smatl, ispin, foe_obj, kernel_)
+                       foe_verbosity, 'test', smatl, ispin, foe_obj, kernel_)
 
                   npl_check = nint(real(npl,kind=mp)/CHECK_RATIO)
                   cc_check = f_malloc0((/npl_check,1,3/),id='cc_check')
@@ -474,10 +475,6 @@ module foe
           contains
     
             subroutine overlap_minus_onehalf()
-              !use sparsematrix_base, only: sparsematrix_malloc, SPARSE_FULL
-              !use sparsematrix, only: extract_taskgroup_inplace
-              !use matrix_operations, only: overlapPowerGeneral, check_taylor_order
-              !use sparsematrix_highlevel, only: matrix_chebyshev_expansion
               use ice, only: inverse_chebyshev_expansion_new
               implicit none
               integer :: i, j, ii
@@ -487,32 +484,12 @@ module foe
     
               call f_routine(id='overlap_minus_onehalf')
     
-              !!! Taylor approximation of S^-1/2 up to higher order
-              !!if (imode==DENSE) then
-              !!    stop 'overlap_minus_onehalf: DENSE is deprecated'
-              !!end if
-              !!if (imode==SPARSE) then
-              !!    call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
-              !!         imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-              !!         ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_minus_one_half_, &
-              !!         check_accur=.true., max_error=max_error, mean_error=mean_error)
-              !!end if
-              !!call check_taylor_order(mean_error, max_inversion_error, order_taylor)
-
-              !call matrix_chebyshev_expansion(iproc, nproc, 1, (/-0.5d0/), &
-              !     smat_in=smats, smat_out=smatl, mat_in=ovrlp_, mat_out=ovrlp_minus_one_half_, &
-              !     npl_auto=.true.)
               ! Can't use the wrapper, since it is at a higher level in the hierarchy (to be improved)
               ex=-0.5d0
               call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
                    ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
                    ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
                    npl_auto=.true., ice_objx=ice_obj)
-              !!call matrix_chebyshev_expansion(iproc, nproc, comm, ncalc=1, ex=ex, &
-              !!     smat_in=smats, smat_out=smatl, mat_in=ovrlp_, mat_out=ovrlp_minus_one_half_, &
-              !!     npl_auto=.true., ice_obj=ice_obj)
-
-
 
     
               call f_release_routine()
@@ -579,6 +556,176 @@ module foe
       call f_release_routine()
     
     end subroutine get_minmax_eigenvalues
+
+
+
+    subroutine get_selected_eigenvalues(iproc, nproc, comm, calculate_minusonehalf, foe_verbosity, &
+               iev_min, iev_max, &
+               smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, eval)
+      use sparsematrix_init, only: matrixindex_in_compressed
+      use sparsematrix, only: symmetrize_matrix
+      use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
+                          foe_data_get_logical, foe_data_null, foe_data_deallocate
+      use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level
+      use foe_common, only: retransform_ext, find_fermi_level, get_bounds_and_polynomials, init_foe
+      use module_func
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm, iev_min, iev_max
+      logical,intent(in) :: calculate_minusonehalf
+      integer,intent(in) :: foe_verbosity
+      type(sparse_matrix),intent(in) :: smats, smatm, smatl
+      type(matrices),intent(in) :: ham_, ovrlp_
+      type(matrices),dimension(1),intent(inout) :: ovrlp_minus_one_half_
+      real(mp),dimension(iev_min:iev_max),intent(out) :: eval
+
+      ! Local variables
+      integer :: iev, i, ispin, ilshift, npl, npl_min, ind
+      real(mp) :: dq, q, scale_factor, shift_value, factor
+      real(mp),dimension(:),allocatable :: charges
+      type(matrices) :: kernel
+      real(mp),dimension(1),parameter :: EF = 0.0_mp
+      real(mp),dimension(1),parameter :: FSCALE = 2.e-2_mp
+      type(foe_data) :: foe_obj
+      type(fermi_aux) :: f
+      integer,parameter :: NPL_MAX = 10000
+      integer,parameter :: NPL_STRIDE = 100
+      real(mp),dimension(:,:),pointer :: chebyshev_polynomials
+      real(mp),dimension(:),allocatable :: hamscal_compr
+      type(f_progress_bar) :: bar
+
+      call f_routine(id='get_selected_eigenvalues')
+
+      kernel = matrices_null()
+      kernel%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
+
+      ! the occupation numbers...
+      if (smatl%nspin==1) then
+          factor = sqrt(0.5_mp)
+      else
+          factor = 1.0_mp
+      end if
+
+      ilshift = 0
+      foe_obj = foe_data_null()
+      charges = f_malloc(smatl%nspin,id='charges')
+      do ispin=1,smatl%nspin
+          charges(ispin) = real(iev_min,kind=mp)/real(smatl%nspin,kind=mp)
+      end do
+      call init_foe(iproc, nproc, smatl%nspin, charges, foe_obj, 0.0_mp, fscale=1.e-3_mp)
+      call f_free(charges)
+
+      hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
+
+      !if (iproc==0) call yaml_map('S^-1/2','recalculate')
+      call overlap_minus_onehalf() ! has internal timer
+
+      ! Use kernel_%matrix_compr as workarray to save memory
+      npl_min = 10
+      ispin = 1 !hack
+      call get_bounds_and_polynomials(iproc, nproc, comm, 2, ispin, NPL_MAX, NPL_STRIDE, &
+           1, FUNCTION_ERRORFUNCTION, .false., 2.2_mp, 2.2_mp, 0, &
+           smatm, smatl, ham_, foe_obj, npl_min, kernel%matrix_compr(ilshift+1:), &
+           chebyshev_polynomials, npl, scale_factor, shift_value, hamscal_compr, &
+           smats=smats, ovrlp_=ovrlp_, ovrlp_minus_one_half_=ovrlp_minus_one_half_(1), &
+           efarr=EF, fscale_arr=FSCALE)
+
+     ! To determine the HOMO/LUMO, subtract/add one electrom for closed shell
+      ! systems of one half electron for open shell systems.
+      if (smatl%nspin==1) then
+          dq = 1.d0
+      else if (smatl%nspin==2) then
+          dq = 0.5d0
+      end if
+
+
+
+      if (iproc==0) bar=f_progress_bar_new(nstep=iev_max-iev_min+1)
+      do iev=iev_min,iev_max
+          ! Calculate the 'lower' kernel
+          do ispin=1,smatl%nspin
+              q = real(iev*2,kind=mp)/real(smatl%nspin,kind=mp)-dq
+              call foe_data_set_real(foe_obj,"charge",q,ispin)
+          end do
+          ispin = 1 !hack
+          !!call init_fermi_level(foe_data_get_real(foe_obj,"charge",ispin), foe_data_get_real(foe_obj,"ef",ispin), f, &
+          !!     foe_data_get_real(foe_obj,"bisection_shift",ispin), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
+          !!     foe_data_get_real(foe_obj,"ef_interpol_det"), 0) !foe_verbosity)
+          call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
+               0, 'test', smatl, ispin, foe_obj, kernel)
+          eval(iev) = foe_data_get_real(foe_obj,"ef",ispin)
+          !call retransform_ext(iproc, nproc, smatl, &
+          !     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel(1)%matrix_compr(ilshift+1:))
+      
+          !!! Calculate the 'lower' kernel
+          !!do ispin=1,smatl%nspin
+          !!    q = real(iev*2,kind=mp)/real(smatl%nspin,kind=mp)-2.0_mp*dq
+          !!    call foe_data_set_real(foe_obj,"charge",q,ispin)
+          !!end do
+          !!ispin = 1 !hack
+          !!call init_fermi_level(foe_data_get_real(foe_obj,"charge",ispin), foe_data_get_real(foe_obj,"ef",ispin), f, &
+          !!     foe_data_get_real(foe_obj,"bisection_shift",ispin), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
+          !!     foe_data_get_real(foe_obj,"ef_interpol_det"), foe_verbosity)
+          !!call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
+          !!     2, 'test', smatl, ispin, foe_obj, kernel(1))
+          !!call retransform_ext(iproc, nproc, smatl, &
+          !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel(1)%matrix_compr(ilshift+1:))
+
+          !!! Calculate the 'upper' kernel
+          !!do ispin=1,smatl%nspin
+          !!    q = real(iev*2,kind=mp)/real(smatl%nspin,kind=mp)+0.0_mp*dq
+          !!    call foe_data_set_real(foe_obj,"charge",q,ispin)
+          !!end do
+          !!ispin = 1 !hack
+          !!call init_fermi_level(foe_data_get_real(foe_obj,"charge",ispin), foe_data_get_real(foe_obj,"ef",ispin), f, &
+          !!     foe_data_get_real(foe_obj,"bisection_shift",ispin), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
+          !!     foe_data_get_real(foe_obj,"ef_interpol_det"), foe_verbosity)
+          !!call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
+          !!     2, 'test', smatl, ispin, foe_obj, kernel(2))
+          !!call retransform_ext(iproc, nproc, smatl, &
+          !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel(2)%matrix_compr(ilshift+1:))
+
+          !!! Calculate the square root of the difference, which is the eigenvector
+          !!do i=1,smatl%nfvctr
+          !!     ind = matrixindex_in_compressed(smatl, i, i)
+          !!     write(*,*) 'i, evec', i, factor*sqrt(kernel(2)%matrix_compr(ind) - kernel(1)%matrix_compr(ind))
+          !!end do
+
+          if (iproc==0) call dump_progress_bar(bar,step=iev-iev_min+1)
+
+       end do
+
+       call f_free_ptr(chebyshev_polynomials)
+       call deallocate_matrices(kernel)
+       call f_free(hamscal_compr)
+       call foe_data_deallocate(foe_obj)
+       
+      call f_release_routine()
+
+       contains
+            subroutine overlap_minus_onehalf()
+              use ice, only: inverse_chebyshev_expansion_new
+              implicit none
+              integer :: i, j, ii
+              real(kind=mp) :: max_error, mean_error
+              real(kind=mp), dimension(1) :: ex
+              real(kind=mp),dimension(:),allocatable :: tmparr
+    
+              call f_routine(id='overlap_minus_onehalf')
+    
+              ! Can't use the wrapper, since it is at a higher level in the hierarchy (to be improved)
+              ex=-0.5d0
+              call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+                   ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
+                   ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
+                   verbosity=0)
+
+    
+              call f_release_routine()
+          end subroutine overlap_minus_onehalf
+
+    end subroutine get_selected_eigenvalues
 
 
 end module foe
