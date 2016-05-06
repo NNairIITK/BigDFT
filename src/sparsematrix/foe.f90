@@ -27,7 +27,7 @@ module foe
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: evnoise, &
                             retransform_ext, get_chebyshev_expansion_coefficients, &
-                            get_chebyshev_polynomials, find_fermi_level, get_polynomial_degree, &
+                            find_fermi_level, get_polynomial_degree, &
                             calculate_trace_distributed_new, get_bounds_and_polynomials
       use module_func
       implicit none
@@ -128,7 +128,8 @@ module foe
       call f_timing(TCAT_CME_AUXILIARY,'OF')
       if (calculate_minusonehalf) then
           if (iproc==0) call yaml_map('S^-1/2','recalculate')
-          call overlap_minus_onehalf() ! has internal timer
+          !!call overlap_minus_onehalf() ! has internal timer
+          call overlap_minus_onehalf(iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_) !has internal timer
       else
           if (iproc==0) call yaml_map('S^-1/2','from memory')
       end if
@@ -472,28 +473,28 @@ module foe
     
     
     
-          contains
+        !!!  contains
     
-            subroutine overlap_minus_onehalf()
-              use ice, only: inverse_chebyshev_expansion_new
-              implicit none
-              integer :: i, j, ii
-              real(kind=mp) :: max_error, mean_error
-              real(kind=mp), dimension(1) :: ex
-              real(kind=mp),dimension(:),allocatable :: tmparr
+        !!!    subroutine overlap_minus_onehalf()
+        !!!      use ice, only: inverse_chebyshev_expansion_new
+        !!!      implicit none
+        !!!      integer :: i, j, ii
+        !!!      real(kind=mp) :: max_error, mean_error
+        !!!      real(kind=mp), dimension(1) :: ex
+        !!!      real(kind=mp),dimension(:),allocatable :: tmparr
     
-              call f_routine(id='overlap_minus_onehalf')
+        !!!      call f_routine(id='overlap_minus_onehalf')
     
-              ! Can't use the wrapper, since it is at a higher level in the hierarchy (to be improved)
-              ex=-0.5d0
-              call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
-                   ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
-                   ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
-                   npl_auto=.true., ice_objx=ice_obj)
+        !!!      ! Can't use the wrapper, since it is at a higher level in the hierarchy (to be improved)
+        !!!      ex=-0.5d0
+        !!!      call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+        !!!           ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
+        !!!           ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
+        !!!           npl_auto=.true., ice_objx=ice_obj)
 
     
-              call f_release_routine()
-          end subroutine overlap_minus_onehalf
+        !!!      call f_release_routine()
+        !!!  end subroutine overlap_minus_onehalf
     
     
     
@@ -619,7 +620,8 @@ module foe
       hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
 
       !if (iproc==0) call yaml_map('S^-1/2','recalculate')
-      call overlap_minus_onehalf() ! has internal timer
+      !!call overlap_minus_onehalf() ! has internal timer
+      call overlap_minus_onehalf(iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_) !has internal timer
 
       ! Use kernel_%matrix_compr as workarray to save memory
       npl_min = 10
@@ -703,29 +705,53 @@ module foe
        
       call f_release_routine()
 
-       contains
-            subroutine overlap_minus_onehalf()
-              use ice, only: inverse_chebyshev_expansion_new
-              implicit none
-              integer :: i, j, ii
-              real(kind=mp) :: max_error, mean_error
-              real(kind=mp), dimension(1) :: ex
-              real(kind=mp),dimension(:),allocatable :: tmparr
+     !!  contains
+     !!       subroutine overlap_minus_onehalf()
+     !!         use ice, only: inverse_chebyshev_expansion_new
+     !!         implicit none
+     !!         integer :: i, j, ii
+     !!         real(kind=mp) :: max_error, mean_error
+     !!         real(kind=mp), dimension(1) :: ex
+     !!         real(kind=mp),dimension(:),allocatable :: tmparr
     
-              call f_routine(id='overlap_minus_onehalf')
+     !!         call f_routine(id='overlap_minus_onehalf')
     
-              ! Can't use the wrapper, since it is at a higher level in the hierarchy (to be improved)
-              ex=-0.5d0
-              call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
-                   ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
-                   ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
-                   verbosity=0)
+     !!         ! Can't use the wrapper, since it is at a higher level in the hierarchy (to be improved)
+     !!         ex=-0.5d0
+     !!         call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+     !!              ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
+     !!              ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
+     !!              verbosity=0)
 
     
-              call f_release_routine()
-          end subroutine overlap_minus_onehalf
+     !!         call f_release_routine()
+     !!     end subroutine overlap_minus_onehalf
 
     end subroutine get_selected_eigenvalues
+
+
+    subroutine overlap_minus_onehalf(iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_)
+      use ice, only: inverse_chebyshev_expansion_new
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm
+      type(sparse_matrix),intent(in) :: smats, smatl
+      type(matrices),intent(in) :: ovrlp_
+      type(matrices),dimension(1),intent(out) :: ovrlp_minus_one_half_
+      ! Local variables
+      real(mp),dimension(1) :: ex
+    
+      call f_routine(id='overlap_minus_onehalf')
+    
+      ! Can't use the wrapper, since it is at a higher level in the hierarchy (to be improved)
+      ex=-0.5d0
+      call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+           ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
+           ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
+           verbosity=0)
+    
+      call f_release_routine()
+    end subroutine overlap_minus_onehalf
 
 
 end module foe

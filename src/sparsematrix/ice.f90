@@ -635,7 +635,7 @@ module ice
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: evnoise, get_chebyshev_expansion_coefficients, &
-                            get_chebyshev_polynomials, get_polynomial_degree, &
+                            get_polynomial_degree, &
                             get_bounds_and_polynomials
       use module_func
       implicit none
@@ -645,7 +645,7 @@ module ice
       type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
       real(kind=mp),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: ovrlp_mat
-      type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp
+      type(matrices),dimension(ncalc),intent(out) :: inv_ovrlp
       integer,intent(in),optional :: verbosity
       logical,intent(in),optional :: npl_auto
       type(foe_data),intent(inout),target,optional :: ice_objx
@@ -801,6 +801,7 @@ module ice
           end do
 
           call f_free_ptr(cc)
+          call f_free_ptr(chebyshev_polynomials)
 
           call foe_data_set_real(ice_obj,"eval_multiplicator",eval_multiplicator_total,ispin)
 
@@ -808,7 +809,6 @@ module ice
 
       call f_free(inv_ovrlp_matrixp_small_new)
       call f_free(inv_ovrlp_matrixp_new)
-      call f_free_ptr(chebyshev_polynomials)
       call f_free(hamscal_compr)
       call f_free(max_error)
       call f_free(x_max_error)

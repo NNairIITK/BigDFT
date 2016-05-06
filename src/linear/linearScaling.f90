@@ -57,7 +57,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use orthonormalization, only : orthonormalizeLocalized
   use multipole_base, only: lmax, external_potential_descriptors, deallocate_external_potential_descriptors
   use orbitalbasis
-  use foe, only: get_selected_eigenvalues
+  use sparsematrix_highlevel, only: get_selected_eigenvalues_from_FOE
   implicit none
 
   ! Calling arguments
@@ -993,10 +993,15 @@ end if
       ieval_min = max(1,input%lin%calculate_FOE_eigenvalues(1))
       ieval_max = min(tmb%orbs%norb,input%lin%calculate_FOE_eigenvalues(2))
       evals = f_malloc(ieval_min.to.ieval_max,id='evals')
-      call get_selected_eigenvalues(iproc, nproc, bigdft_mpi%mpi_comm, .true., 2, &
-           ieval_min, ieval_max, &
-           tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-           tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), evals)
+      !!call get_selected_eigenvalues(iproc, nproc, bigdft_mpi%mpi_comm, .true., 2, &
+      !!     ieval_min, ieval_max, &
+      !!     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      !!     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), evals)
+      call get_selected_eigenvalues_from_FOE(iproc, nproc, bigdft_mpi%mpi_comm, &
+           ieval_min, ieval_max, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+           tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), evals, &
+           calculate_minusonehalf=.true., foe_verbosity=2)
+
       if (iproc==0) then
           call yaml_sequence_open('values')
           do ieval=ieval_min,ieval_max

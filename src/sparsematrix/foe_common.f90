@@ -118,7 +118,7 @@ module foe_common
   public :: retransform_ext
   !!public :: cheb_exp
   public :: init_foe
-  public :: get_chebyshev_polynomials
+  !public :: get_chebyshev_polynomials
   public :: find_fermi_level
   public :: get_polynomial_degree
   public :: calculate_trace_distributed_new
