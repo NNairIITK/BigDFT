@@ -1321,7 +1321,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       nit_exit=min(nit_basis+ldiis%icountDIISFailureTot,nit_basis+6)
 
       ! Normal case
-      if (.not.energy_increased .or. ldiis%isx/=0) then
+      if (.not.energy_increased .or. ldiis%isx/=0 .or. allow_increase) then
           if (nproc>1) then
               call mpi_fenceandfree(fnrm%window)
           end if
