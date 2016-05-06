@@ -2441,7 +2441,8 @@ module sparsematrix
       integer,intent(in) :: iproc, nproc
       real(mp),intent(in) :: exp_power
       type(sparse_matrix),intent(in) :: smat
-      type(matrices),intent(in) :: mat_in, mat_out
+      type(matrices),intent(in) :: mat_in
+      type(matrices),intent(out) :: mat_out
 
       ! Local variables
       integer :: blocksize
