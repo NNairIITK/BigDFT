@@ -166,6 +166,7 @@
    output_coeff                        : 1 #      output KS coefficients; 0 no output, 1 formatted output
    charge_multipoles                   : 11 #     Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
     #                                              new approach Projector
+   calculate_FOE_eigenvalues: [1, 6] #            First and last eigenvalue to be calculated using the FOE procedure
    conf_damping                        : -0.5 #   how the confinement should be decreased, only relevant for hybrid mode; negative -> 
     #                                              automatic
    output_wf                           : 0 #      output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
@@ -2118,6 +2119,20 @@
  {e: -2.363600101706E-01, f:  1.0000},  # 00004
  {e:  3.252777633609E-01, f:  1.0000},  # 00005
  {e:  4.025644609639E-01, f:  1.0000}] # 00006
+   Calculating eigenvalues using FOE:
+ #(11:04:52.550) 16% / [===>                     ] ( 1/6,  9.5 it/s), ETA  0.0s
+ #(11:04:52.638) 33% - [=======>                 ] ( 2/6,  10. it/s), ETA  0.0s
+ #(11:04:52.712) 50% \ [===========>             ] ( 3/6,  11. it/s), ETA  0.0s
+ #(11:04:52.774) 66% | [===============>         ] ( 4/6,  12. it/s), ETA  0.0s
+ #(11:04:52.880) 83% / [===================>     ] ( 5/6,  11. it/s), ETA  0.0s
+ #(11:04:52.949)100% - [========================>] ( 6/6,  12. it/s), Tot  0.0s
+     values:
+     -  {ID:  000001, eval: -9.02586E-01}
+     -  {ID:  000002, eval: -4.57490E-01}
+     -  {ID:  000003, eval: -3.13919E-01}
+     -  {ID:  000004, eval: -2.36957E-01}
+     -  {ID:  000005, eval:  3.24790E-01}
+     -  {ID:  000006, eval:  4.02195E-01}
     #========================================================================= final results
    self consistency summary:
    -  {iter:  4, 

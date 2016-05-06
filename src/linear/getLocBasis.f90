@@ -42,7 +42,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use locreg_operations, only: confpot_data
   use foe_base, only: foe_data_get_real
   use pexsi, only: pexsi_driver
-  use foe, only: get_selected_eigenvalues
   implicit none
 
   ! Calling arguments
@@ -614,7 +613,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
                tmb%foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, &
                energs%ebs, &
-               calculate_minusonehalf=invert_overlap_matrix, foe_verbosity=2, symmetrize_kernel=.true.)
+               calculate_minusonehalf=invert_overlap_matrix, foe_verbosity=1, symmetrize_kernel=.true.)
           !!call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
           !!     tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tt)
           !!if (iproc==0) call yaml_map('max assymetry of K',tt)

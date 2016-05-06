@@ -57,6 +57,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use orthonormalization, only : orthonormalizeLocalized
   use multipole_base, only: lmax, external_potential_descriptors, deallocate_external_potential_descriptors
   use orbitalbasis
+  use foe, only: get_selected_eigenvalues
   implicit none
 
   ! Calling arguments
@@ -117,7 +118,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   type(matrices) :: weight_matrix_
   real(kind=8) :: sign_of_energy_change
-  integer :: nit_energyoscillation
+  integer :: nit_energyoscillation, ieval_min, ieval_max
   integer(kind=8) :: nsize
   type(work_mpiaccumulate) :: fnrm_work, energs_work
   integer :: ilr, iiorb, iiat
@@ -128,7 +129,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   real(kind=8),dimension(:,:),allocatable :: tempmat, all_evals, ham_small, projector_small, ovrlp_small, theta, coeffs
   real(kind=8),dimension(:,:),pointer :: com
   real(kind=8),dimension(:,:),allocatable :: tmat, coeff, ovrlp_full
-  real(kind=8),dimension(:),allocatable :: projector_compr
+  real(kind=8),dimension(:),allocatable :: projector_compr, evals
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements, coeff_all, multipoles_out
   real(kind=8),dimension(:,:,:),pointer :: multipoles
   real(kind=8),dimension(:,:,:,:),allocatable :: test_pot
@@ -979,6 +980,38 @@ end if
   end if
 
 
+  ! Calculate selected eigenvalues
+  if (input%lin%calculate_FOE_eigenvalues(2)>input%lin%calculate_FOE_eigenvalues(1)) then
+      if (iproc==0) then
+          call yaml_mapping_open('Calculating eigenvalues using FOE')
+          if (input%lin%calculate_FOE_eigenvalues(1)<1 .or. input%lin%calculate_FOE_eigenvalues(2)>tmb%orbs%norb) then
+              if (iproc==0) then
+                  call yaml_warning('The required eigenvalues are outside of the possible range, automatic ajustment')
+              end if
+          end if
+      end if
+      ieval_min = max(1,input%lin%calculate_FOE_eigenvalues(1))
+      ieval_max = min(tmb%orbs%norb,input%lin%calculate_FOE_eigenvalues(2))
+      evals = f_malloc(ieval_min.to.ieval_max,id='evals')
+      call get_selected_eigenvalues(iproc, nproc, bigdft_mpi%mpi_comm, .true., 2, &
+           ieval_min, ieval_max, &
+           tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+           tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), evals)
+      if (iproc==0) then
+          call yaml_sequence_open('values')
+          do ieval=ieval_min,ieval_max
+              call yaml_sequence(advance='no')
+              call yaml_mapping_open(flow=.true.)
+              call yaml_map('ID',ieval,fmt='(i6.6)')
+              call yaml_map('eval',evals(ieval),fmt='(es12.5)')
+              call yaml_mapping_close()
+          end do
+          call yaml_sequence_close()
+          !!call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
+          call yaml_mapping_close()
+      end if
+      call f_free(evals)
+  end if
 
 
   ! only do if explicitly activated, but still check for fragment calculation
