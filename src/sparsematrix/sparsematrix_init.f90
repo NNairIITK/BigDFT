@@ -4435,11 +4435,12 @@ module sparsematrix_init
       integer,intent(in) :: iproc, nproc, comm, nfvctr, nvctr
       type(sparse_matrix),intent(out) :: smat
       ! Local variables
-      integer :: itotal, idum, ivctr, ii, jj
+      integer :: itotal, idum, ivctr, ii, jj, it
       real(kind=mp) :: tt
       real(kind=4) :: tt_rand
       integer :: nnonzero, inonzero
       integer,dimension(:,:),allocatable :: nonzero, nonzero_check
+      type(f_progress_bar) :: bar
 
       call f_routine(id='generate_random_symmetric_sparsity_pattern')
 
@@ -4453,112 +4454,156 @@ module sparsematrix_init
           call f_err_throw('nvctr>nfvctr**2', err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
       end if
 
-      ! First count how many non-zero entries there are for each line.
-      ! Since we want to have the diagonal elements within the sparsity pattern,
-      ! we start with nnonzero=nfvctr
-      nonzero_check = f_malloc0((/2,nvctr+1/),id='nonzero_check')
-      nnonzero = nfvctr
-      ! First the diagonal elements
-      do ii=1,nfvctr
-          nonzero_check(1,ii) = ii
-          nonzero_check(2,ii) = ii
-      end do
-      idum = 0
-      tt_rand = builtin_rand(idum, reset=.true.)
-      search_loop1: do
-          if (nnonzero>=nvctr) exit
-          tt_rand = builtin_rand(idum)
-          tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
-          ii = max(nint(tt),1)
-          tt_rand = builtin_rand(idum)
-          tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
-          jj = max(nint(tt),1)
-          ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
-          ! we thus have a non-zero entry in both the lines ii and jj
-          do inonzero=1,nnonzero
-              if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
-                  cycle search_loop1
-              end if
+      ! Determine the sparisty pattern only on root and then broadcast, just to be sure
+      ! that all process have the same pattern.
+
+      root_if1: if (iproc==0) then
+
+          ! First count how many non-zero entries there are for each line.
+          ! Since we want to have the diagonal elements within the sparsity pattern,
+          ! we start with nnonzero=nfvctr
+          call yaml_mapping_open('Count nonzero entries')
+          bar=f_progress_bar_new(nstep=nvctr)
+          nonzero_check = f_malloc0((/2,nvctr+1/),id='nonzero_check')
+          nnonzero = nfvctr
+          ! First the diagonal elements
+          do ii=1,nfvctr
+              nonzero_check(1,ii) = ii
+              nonzero_check(2,ii) = ii
           end do
-          if (ii==jj) then
-              ! Diagonal element
-              nonzero_check(1,nnonzero+1) = ii
-              nonzero_check(2,nnonzero+1) = jj
-              nnonzero = nnonzero + 1
-          else
-              ! Offdiagonal element
-              nonzero_check(1,nnonzero+1) = ii
-              nonzero_check(2,nnonzero+1) = jj
-              nonzero_check(1,nnonzero+2) = jj
-              nonzero_check(2,nnonzero+2) = ii
-              nnonzero = nnonzero + 2
-          end if
-      end do search_loop1
+          idum = 0
+          tt_rand = builtin_rand(idum, reset=.true.)
+          it = 0
+          search_loop1: do
+              it = it + 1
+              if (it==100) then
+                  call dump_progress_bar(bar,step=nnonzero)
+                  it = 0
+              end if
+              if (nnonzero>=nvctr) then
+                  call dump_progress_bar(bar,step=nnonzero)
+                  exit search_loop1
+              end if
+              tt_rand = builtin_rand(idum)
+              tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
+              ii = max(nint(tt),1)
+              tt_rand = builtin_rand(idum)
+              tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
+              jj = max(nint(tt),1)
+              ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
+              ! we thus have a non-zero entry in both the lines ii and jj
+              do inonzero=1,nnonzero
+                  if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
+                      cycle search_loop1
+                  end if
+              end do
+              if (ii==jj) then
+                  ! Diagonal element
+                  nonzero_check(1,nnonzero+1) = ii
+                  nonzero_check(2,nnonzero+1) = jj
+                  nnonzero = nnonzero + 1
+              else
+                  ! Offdiagonal element
+                  nonzero_check(1,nnonzero+1) = ii
+                  nonzero_check(2,nnonzero+1) = jj
+                  nonzero_check(1,nnonzero+2) = jj
+                  nonzero_check(2,nnonzero+2) = ii
+                  nnonzero = nnonzero + 2
+              end if
+          end do search_loop1
 
+          call yaml_newline()
+          call yaml_mapping_close()
+    
+      end if root_if1
 
-      ! Now determine the coordinates of the non-zero entries
+      call mpibcast(nnonzero, 1, root=0, comm=comm)
       nonzero = f_malloc0((/2,nnonzero/),id='nonzero')
-      ! First the diagonal elements
-      do ii=1,nfvctr
-          nonzero(1,ii) = ii
-          nonzero(2,ii) = ii
-          nonzero_check(1,ii) = ii
-          nonzero_check(2,ii) = ii
-      end do
-      idum = 0
-      tt_rand = builtin_rand(idum, reset=.true.)
-      ivctr = nfvctr
-      search_loop2: do
-          if (ivctr>=nvctr) exit
-          tt_rand = builtin_rand(idum)
-          tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
-          ii = max(nint(tt),1)
-          tt_rand = builtin_rand(idum)
-          tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
-          jj = max(nint(tt),1)
-          ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
-          ! we thus have a non-zero entry in both the lines ii and jj
-          do inonzero=1,ivctr
-              if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
-                  cycle search_loop2
-              end if
-          end do
-          if (ii==jj) then
-              ! Diagonal element
-              nonzero_check(1,ivctr+1) = ii
-              nonzero_check(2,ivctr+1) = jj
-              nonzero(1,ivctr+1) = ii
-              nonzero(2,ivctr+1) = jj
-              ivctr = ivctr + 1
-          else
-              ! Offdiagonal element
-              nonzero_check(1,ivctr+1) = ii
-              nonzero_check(2,ivctr+1) = jj
-              nonzero_check(1,ivctr+2) = jj
-              nonzero_check(2,ivctr+2) = ii
-              nonzero(1,ivctr+1) = ii
-              nonzero(2,ivctr+1) = jj
-              nonzero(1,ivctr+2) = jj
-              nonzero(2,ivctr+2) = ii
-              ivctr = ivctr + 2
-          end if
-      end do search_loop2
 
-      if (ivctr/=nnonzero) then
-          call f_err_throw(trim(yaml_toa(ivctr))//'=ivctr /= &
-                           &nnonzero='//trim(yaml_toa(nnonzero)), &
-                           err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
-      end if
+      root_if2: if (iproc==0) then
+
+          call yaml_mapping_open('Determine nonzero entries')
+          bar=f_progress_bar_new(nstep=nvctr)
+    
+          ! Now determine the coordinates of the non-zero entries
+          ! First the diagonal elements
+          do ii=1,nfvctr
+              nonzero(1,ii) = ii
+              nonzero(2,ii) = ii
+              nonzero_check(1,ii) = ii
+              nonzero_check(2,ii) = ii
+          end do
+          idum = 0
+          tt_rand = builtin_rand(idum, reset=.true.)
+          ivctr = nfvctr
+          it = 0
+          search_loop2: do
+              it = it + 1
+              if (it==100) then
+                  call dump_progress_bar(bar,step=ivctr)
+                  it = 0
+              end if
+              if (ivctr>=nvctr) then
+                  call dump_progress_bar(bar,step=ivctr)
+                  exit search_loop2
+              end if
+              tt_rand = builtin_rand(idum)
+              tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
+              ii = max(nint(tt),1)
+              tt_rand = builtin_rand(idum)
+              tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
+              jj = max(nint(tt),1)
+              ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
+              ! we thus have a non-zero entry in both the lines ii and jj
+              do inonzero=1,ivctr
+                  if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
+                      cycle search_loop2
+                  end if
+              end do
+              if (ii==jj) then
+                  ! Diagonal element
+                  nonzero_check(1,ivctr+1) = ii
+                  nonzero_check(2,ivctr+1) = jj
+                  nonzero(1,ivctr+1) = ii
+                  nonzero(2,ivctr+1) = jj
+                  ivctr = ivctr + 1
+              else
+                  ! Offdiagonal element
+                  nonzero_check(1,ivctr+1) = ii
+                  nonzero_check(2,ivctr+1) = jj
+                  nonzero_check(1,ivctr+2) = jj
+                  nonzero_check(2,ivctr+2) = ii
+                  nonzero(1,ivctr+1) = ii
+                  nonzero(2,ivctr+1) = jj
+                  nonzero(1,ivctr+2) = jj
+                  nonzero(2,ivctr+2) = ii
+                  ivctr = ivctr + 2
+              end if
+          end do search_loop2
+
+          call yaml_newline()
+          call yaml_mapping_close()
+    
+          if (ivctr/=nnonzero) then
+              call f_err_throw(trim(yaml_toa(ivctr))//'=ivctr /= &
+                               &nnonzero='//trim(yaml_toa(nnonzero)), &
+                               err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+
+          call f_free(nonzero_check)
+
+      end if root_if2
+
+      call mpibcast(nonzero(:,:), root=0, comm=comm)
 
       !!do ii=1,nfvctr
       !!    write(*,*) 'ii, nnonzero(ii)', ii, nnonzero(ii)
       !!end do
 
-      call init_sparse_matrix(iproc, nproc, comm, nfvctr, nvctr, nonzero, nvctr, nonzero, smat)
+      call init_sparse_matrix(iproc, nproc, comm, nfvctr, nnonzero, nonzero, nnonzero, nonzero, smat)
       call init_matrix_taskgroups(iproc, nproc, comm, parallel_layout=.false., smat=smat)
 
       call f_free(nonzero)
-      call f_free(nonzero_check)
 
       call f_release_routine()
 

@@ -3,7 +3,8 @@ program driver_random
   use sparsematrix_types, only: sparse_matrix
   use sparsematrix_init, only: generate_random_symmetric_sparsity_pattern, &
                                matrixindex_in_compressed
-  use sparsematrix, only: symmetrize_matrix, check_deviation_from_unity_sparse
+  use sparsematrix, only: symmetrize_matrix, check_deviation_from_unity_sparse, &
+                          matrix_power_dense_lapack
   use sparsematrix_highlevel, only: matrix_chebyshev_expansion, matrices_init, &
                                     matrix_matrix_multiplication
   use random, only: builtin_rand
@@ -161,8 +162,30 @@ program driver_random
       call yaml_mapping_close()
   end if
 
+  call timing(mpi_comm_world,'CHECK_LINEAR','PR')
 
-  call timing(mpi_comm_world,'CHECK','PR')
+  ! Do the operation using exact LAPACK and the dense matrices
+  if (iproc==0) then
+      call yaml_comment('Do the same calculation using dense LAPACK',hfill='~')
+  end if
+  !call operation_using_dense_lapack(iproc, nproc, smat_in, mat_in)
+  call matrix_power_dense_lapack(iproc, nproc, expo, smat, mat2, mat3(3))
+  max_error = 0.0_mp
+  mean_error = 0.0_mp
+  do i=1,smat%nvctr
+      tt = abs(mat3(1)%matrix_compr(i)-mat3(3)%matrix_compr(i))
+      mean_error = mean_error + tt
+      max_error = max(max_error,tt)
+  end do
+  mean_error = mean_error/real(smat%nvctr,kind=8)
+  if (iproc==0) then
+      call yaml_mapping_open('Check the deviation from the exact result using BLAS (only within the sparsity pattern)')
+      call yaml_map('max_error',max_error,fmt='(es10.3)')
+      call yaml_map('mean_error',mean_error,fmt='(es10.3)')
+      call yaml_mapping_close()
+  end if
+
+  call timing(mpi_comm_world,'CHECK_CUBIC','PR')
 
   ! Deallocate the sparse matrix descriptors type
   call deallocate_sparse_matrix(smat)

@@ -38,6 +38,8 @@ module sparsematrix
   public :: max_asymmetry_of_matrix
   public :: symmetrize_matrix
   public :: check_deviation_from_unity_sparse
+  public :: operation_using_dense_lapack
+  public :: matrix_power_dense_lapack
 
 
   interface compress_matrix_distributed_wrapper
@@ -2384,5 +2386,173 @@ module sparsematrix
       call f_release_routine()
 
     end subroutine check_deviation_from_unity_sparse
+
+
+
+    subroutine operation_using_dense_lapack(iproc, nproc, exp_power, smat_in, mat_in)
+      use parallel_linalg, only: dgemm_parallel
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      real(mp),intent(in) :: exp_power
+      type(sparse_matrix),intent(in) :: smat_in
+      type(matrices),intent(in) :: mat_in
+
+      ! Local variables
+      integer :: blocksize
+      real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
+      real(kind=8),dimension(:,:,:),allocatable :: mat_check_accur_dense
+
+      call f_routine(id='operation_using_dense_lapack')
+
+      blocksize = -100
+      mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
+      mat_out_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_out_dense')
+      mat_check_accur_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr,2/),id='mat_check_accur_dense')
+      call uncompress_matrix(iproc, nproc, &
+           smat_in, mat_in%matrix_compr, mat_in_dense)
+      call timing(mpi_comm_world,'INIT_CUBIC','PR')
+      call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
+           mat_in_dense, exp_power, mat_out_dense)
+      call timing(mpi_comm_world,'CALC_CUBIC','PR')
+      call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
+           mat_in_dense, -exp_power, mat_check_accur_dense)
+      call dgemm_parallel(iproc, nproc, blocksize, mpi_comm_world, 'n', 'n', &
+           smat_in%nfvctr, smat_in%nfvctr, smat_in%nfvctr, &
+           1.d0, mat_out_dense(1,1), smat_in%nfvctr, &
+           mat_check_accur_dense(1,1,1), smat_in%nfvctr, 0.d0, mat_check_accur_dense(1,1,2), smat_in%nfvctr)
+      call check_deviation_from_unity_dense(iproc, smat_in%nfvctr, mat_check_accur_dense(1,1,2))
+      call timing(mpi_comm_world,'CHECK_CUBIC','PR')
+      call f_free(mat_check_accur_dense)
+      call f_free(mat_in_dense)
+      call f_free(mat_out_dense)
+
+      call f_release_routine()
+
+    end subroutine operation_using_dense_lapack
+
+
+
+    subroutine matrix_power_dense_lapack(iproc, nproc, exp_power, smat, mat_in, mat_out)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      real(mp),intent(in) :: exp_power
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(in) :: mat_in
+      type(matrices),intent(out) :: mat_out
+
+      ! Local variables
+      integer :: blocksize
+      real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
+      real(kind=8),dimension(:,:,:),allocatable :: mat_check_accur_dense
+
+      call f_routine(id='operation_using_dense_lapack')
+
+      blocksize = -100
+      mat_in_dense = f_malloc((/smat%nfvctr,smat%nfvctr/),id='mat_in_dense')
+      mat_out_dense = f_malloc((/smat%nfvctr,smat%nfvctr/),id='mat_out_dense')
+      !mat_check_accur_dense = f_malloc((/smat%nfvctr,smat%nfvctr,2/),id='mat_check_accur_dense')
+      call uncompress_matrix(iproc, nproc, &
+           smat, mat_in%matrix_compr, mat_in_dense)
+      call matrix_power_dense(iproc, nproc, blocksize, smat%nfvctr, &
+           mat_in_dense, exp_power, mat_out_dense)
+      call compress_matrix(iproc, nproc, smat, mat_out_dense, mat_out%matrix_compr)
+      call f_free(mat_in_dense)
+      call f_free(mat_out_dense)
+
+      call f_release_routine()
+
+    end subroutine matrix_power_dense_lapack
+
+
+
+    !> Calculate matrix**power, using the dense matrix and exact LAPACK operations
+    subroutine matrix_power_dense(iproc, nproc, blocksize, n, mat_in, ex, mat_out)
+      !use module_base
+      use parallel_linalg, only: dgemm_parallel, dsyev_parallel
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, blocksize, n
+      real(kind=8),dimension(n,n),intent(in) :: mat_in
+      real(kind=8),intent(in) :: ex
+      real(kind=8),dimension(n,n),intent(out) :: mat_out
+
+      ! Local variables
+      integer :: i, j, info
+      real(kind=8) :: tt
+      real(kind=8),dimension(:,:,:),allocatable :: mat_tmp
+      real(kind=8),dimension(:),allocatable :: eval
+
+      call f_routine(id='matrix_power_dense')
+
+
+      ! Diagonalize the matrix
+      mat_tmp = f_malloc((/n,n,2/),id='mat_tmp')
+      eval = f_malloc(n,id='mat_tmp')
+      call f_memcpy(src=mat_in, dest=mat_tmp)
+      call dsyev_parallel(iproc, nproc, blocksize, mpi_comm_world, 'v', 'l', n, mat_tmp, n, eval, info)
+      if (info /= 0) then
+          call f_err_throw('wrong infocode, value ='//trim(yaml_toa(info)))
+      end if
+
+      ! Multiply a diagonal matrix containing the eigenvalues to the power ex with the diagonalized matrix
+      do i=1,n
+          tt = eval(i)**ex
+          do j=1,n
+              mat_tmp(j,i,2) = mat_tmp(j,i,1)*tt
+          end do
+      end do
+
+      ! Apply the diagonalized overlap matrix to the matrix constructed above
+      call dgemm_parallel(iproc, nproc, blocksize, mpi_comm_world, 'n', 't', n, n, n, 1.d0, mat_tmp(1,1,1), n, &
+           mat_tmp(1,1,2), n, 0.d0, mat_out, n)
+
+      call f_free(mat_tmp)
+      call f_free(eval)
+
+      call f_release_routine()
+
+
+    end subroutine matrix_power_dense
+
+
+    subroutine check_deviation_from_unity_dense(iproc, n, mat)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, n
+      real(kind=8),dimension(n,n),intent(in) :: mat
+
+      ! Local variables
+      integer :: i, j
+      real(kind=8) :: sum_error, max_error, error
+
+      sum_error = 0.d0
+      max_error = 0.d0
+      do i=1,n
+          do j=1,n
+              if (j==i) then
+                  error = abs(mat(j,i)-1.d0)
+              else
+                  error = abs(mat(j,i))
+              end if
+              sum_error = sum_error + error
+              max_error = max(max_error,error)
+          end do
+      end do
+
+
+      if (iproc==0) then
+          call yaml_mapping_open('Check the deviation from unity of the operation S^x*S^-x')
+          call yaml_map('max_error',max_error,fmt='(es10.3)')
+          call yaml_map('sum_error',sum_error/real(n**2,kind=8),fmt='(es10.3)')
+          call yaml_mapping_close()
+      end if
+
+    end subroutine check_deviation_from_unity_dense
 
 end module sparsematrix

@@ -340,7 +340,7 @@ test.testforces.ref.yaml:
  EBS higher temperature: 3.93e-09
  EH: 4.11e-09
  EXC: 4.91e-10
- Ekin: 4.1e-10
+ Ekin: 5.1e-10
  Epot: 2.91e-09
  EvXC: 6.51e-10
 
@@ -493,11 +493,11 @@ cleanup:
  EBS: 1.6e-9
  HOMO energy: 1.9e-10
  LUMO energy: 1.6e-10
- HOMO-LUMO gap (eV): 4.5e-9
+ HOMO-LUMO gap (eV): 4.6e-9
  HOMO-LUMO gap (Ha): 1.7e-10
  D eF: 1.1e-8
  Pseudo Fermi level for occupations: 4.1e-10
- Force Norm (Hartree/Bohr): 4.1e-10
+ Force Norm (Hartree/Bohr): 4.4e-10
  Maxdiff for overlap calculation: 1.7e-9
  Maxdiff for transpose (checksum): 1.5e-11    
  e: 6.3e-10
@@ -1262,7 +1262,7 @@ explicit_locregcenters:
  EKS: 1.1e-9
  EH: 1.1e-9
  Energy (Hartree): 3.3e-10
- trace: 8.1e-11
+ trace: 2.1e-10
 
 intermediateforces:
  Atomic Forces (Ha/Bohr): 4.9e-7
@@ -1873,16 +1873,19 @@ multipoles_waterQM:
  Maxdiff for transpose (checksum): 3.0e-11
  multiplicator for the confinement: 1.9e-11
  trace: 3.8e-11
+ difference: 1.7e-11
+ eF: 1.1e-8
 
 multipoles_waterQMQM:
  Epot: 1.1e-10
  EH: 1.1e-10
  EBS: 1.4e-11
  EBS higher temperature: 1.4e-11
+ Ekin: 1.1e-10
  Average noise forces: 1.0e-10
  number of corrected points: 6.0
  multiplicator for the confinement: 3.7e-10
- eF: 1.01e-10
+ eF: 1.0e-8
 
 #multipoles_water:
 # Ekin: 1.1e-10
@@ -1957,11 +1960,11 @@ multipoles_periodic:
   HOMO-LUMO gap (Ha): 4.1e-11
   HOMO-LUMO gap (eV): 1.2e-9
   Pseudo Fermi level for occupations: 1.3e-10
-  Tr(K): 3.1e-09
+  Tr(K): 1.1e-07
   D Tr(K): 2.8e-9
   eF: 1.14e-07
   EBS: 6.9e-10
-  EBS higher temperature: 6.9e-10
+  EBS higher temperature: 9.7e-10
   guess for new ef: 1.14e-07
   Atomic Forces (Ha/Bohr): 1.7e-10
   Force Norm (Hartree/Bohr): 1.2e-10
@@ -1970,12 +1973,13 @@ multipoles_periodic:
   Charge analysis (charge / net charge): 1.9e-10
   D Tr: 1.1e-10
   Total charge: 2.4e-11
-  difference: 2.7e-11
+  difference: 9.7e-10
   trace: 3.7e-11
   trace(KS): 2.5e-11
   e: 4.11-11
   Average noise forces: 1.1e-10
   Maxdiff for transpose (checksum): 1.5e-11
+  relative difference: 3.7e-10
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
@@ -2141,7 +2145,7 @@ extendedfrags_nofrags:
  Energies: 1.1e-10
  Pressure: 3.4e-11
  Omega: 2.8e-11
- PV (Ha): 3.9e-11
+ PV (Ha): 4.0e-11
  Total charge: 4.3e-09
  difference: 5.7e-09
  energy: 2.9e-09
@@ -2571,6 +2575,7 @@ matrixtaskgroups_yes:
   Maxdiff for transpose (checksum): 3.0e-11 
   C: 1.14e-11
   Multipole coefficients: 1.1e-9
+  Atomic Forces (Ha/Bohr): 1.3e-11
   Keys to ignore:
    - Calculating wavelets expansion of projectors, found warnings
    - found warnings

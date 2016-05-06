@@ -457,11 +457,11 @@
    Box                                 :  [  177,  177,  205 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -2.6688E-04, -7.2647E-01, -2.0878E-04 ]
-   norm(P)                             :  7.264700E-01
+   P vector                            :  [ -2.6702E-04, -7.2647E-01, -2.0892E-04 ]
+   norm(P)                             :  7.264702E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -6.7835E-04, -1.8465E+00, -5.3065E-04 ]
-   norm(P)                             :  1.846502E+00
+   P vector                            :  [ -6.7869E-04, -1.8465E+00, -5.3102E-04 ]
+   norm(P)                             :  1.846503E+00
  Writing electronic density in file    : electronic_density
  Average noise forces: {x:  4.81443553E-06, y: -1.75643358E-04, z:  3.14601140E-06, 
                     total:  1.75737490E-04}
