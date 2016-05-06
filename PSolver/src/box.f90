@@ -258,7 +258,7 @@ contains
 !!$       bit%j=-1
 !!$       bit%k=-1
 !!$    end if
-    bit%k=-1
+    bit%k=bit%nbox(1,3)-1
     bit%ind=0
     bit%i23=0
   end subroutine set_starting_point
@@ -420,7 +420,7 @@ contains
     if (.not. box_next_point) return
 
     !this put the starting point
-    go=boxit%k==-1
+    go=boxit%k==boxit%nbox(1,3)-1
     if (go) go=box_next_z(boxit)
     if (go) go=box_next_y(boxit)
 

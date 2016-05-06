@@ -1262,6 +1262,7 @@ explicit_locregcenters:
  EKS: 1.1e-9
  EH: 1.1e-9
  Energy (Hartree): 3.3e-10
+ trace: 8.1e-11
 
 intermediateforces:
  Atomic Forces (Ha/Bohr): 4.9e-7
