@@ -129,7 +129,8 @@ module foe
       if (calculate_minusonehalf) then
           if (iproc==0) call yaml_map('S^-1/2','recalculate')
           !!call overlap_minus_onehalf() ! has internal timer
-          call overlap_minus_onehalf(iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_) !has internal timer
+          call overlap_minus_onehalf(iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_, &
+               ice_obj=ice_obj) !has internal timer
       else
           if (iproc==0) call yaml_map('S^-1/2','from memory')
       end if
@@ -621,7 +622,8 @@ module foe
 
       !if (iproc==0) call yaml_map('S^-1/2','recalculate')
       !!call overlap_minus_onehalf() ! has internal timer
-      call overlap_minus_onehalf(iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_) !has internal timer
+      call overlap_minus_onehalf(iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_, &
+          verbosity=0) !has internal timer
 
       ! Use kernel_%matrix_compr as workarray to save memory
       npl_min = 10
@@ -730,7 +732,9 @@ module foe
     end subroutine get_selected_eigenvalues
 
 
-    subroutine overlap_minus_onehalf(iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_)
+    subroutine overlap_minus_onehalf(iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_, &
+               verbosity, ice_obj)
+      use foe_base, only: foe_data
       use ice, only: inverse_chebyshev_expansion_new
       implicit none
       ! Calling arguments
@@ -738,17 +742,30 @@ module foe
       type(sparse_matrix),intent(in) :: smats, smatl
       type(matrices),intent(in) :: ovrlp_
       type(matrices),dimension(1),intent(out) :: ovrlp_minus_one_half_
+      integer,intent(in),optional :: verbosity
+      type(foe_data),intent(inout),optional :: ice_obj
       ! Local variables
+      integer :: verbosity_
       real(mp),dimension(1) :: ex
     
       call f_routine(id='overlap_minus_onehalf')
+
+      verbosity_ = 1
+      if (present(verbosity)) verbosity_ = verbosity
     
       ! Can't use the wrapper, since it is at a higher level in the hierarchy (to be improved)
       ex=-0.5d0
-      call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
-           ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
-           ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
-           verbosity=0)
+      if (present(ice_obj)) then
+          call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+               ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
+               ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
+               verbosity=verbosity_, ice_objx=ice_obj)
+      else
+          call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+               ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
+               ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
+               verbosity=verbosity_)
+      end if
     
       call f_release_routine()
     end subroutine overlap_minus_onehalf
