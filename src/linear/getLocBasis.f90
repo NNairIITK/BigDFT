@@ -77,8 +77,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical, optional, intent(in) :: updatekernel
 
   ! Local variables 
-  integer :: iorb, info, ishift, ispin, ii, jorb, i, ishifts, ishiftm, jproc
-  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval, tmparr1, tmparr2, tmparr, ovrlp_large, ham_large
+  integer :: iorb, info, ishift, ispin, ii, jorb, i, ishifts, ishiftm, jproc, j
+  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval, tmparr1, tmparr2, tmparr, ovrlp_large, ham_large, eval2
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp, tempmat
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -361,6 +361,23 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
                    matrixElements(1,1,1), tmb%linmat%m%nfvctr, matrixElements(1,1,2), tmb%linmat%m%nfvctr, &
                    eval, info)
           end if
+          !tmb%linmat%ham_%matrix_compr = tmb%linmat%ham_%matrix_compr*10.d0
+          !!do i=1,tmb%orbs%norb
+          !!    write(*,*) 'i, eval(i)', i, eval(i)
+          !!    do j=1,tmb%orbs%norb
+          !!        write(*,*) 'j,i,val',j,i,matrixElements(j,i,1)
+          !!    end do
+          !!end do
+          !eval2 = f_malloc(tmb%linmat%l%nfvctr,id='eval2')
+          !call get_selected_eigenvalues(iproc, nproc, bigdft_mpi%mpi_comm, .true., 2, &
+          !     1, tmb%orbs%norb, &
+          !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+          !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), eval2)
+          !do i=1,tmb%orbs%norb
+          !    write(*,*) 'i, evals', i, eval(i), eval2(i)
+          !end do
+          !call f_free(eval2)
+          !tmb%linmat%ham_%matrix_compr = tmb%linmat%ham_%matrix_compr/10.d0
 
           ! Broadcast the results (eigenvectors and eigenvalues) from task 0 to
           ! all other tasks (in this way avoiding that different MPI tasks have different values)
@@ -591,11 +608,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           !!call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
           !!     tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, tt)
           !!if (iproc==0) call yaml_map('max assymetry of S',tt)
+
           call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
                tmb%foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, &
                energs%ebs, &
-               calculate_minusonehalf=invert_overlap_matrix, foe_verbosity=2, symmetrize_kernel=.true.)
+               calculate_minusonehalf=invert_overlap_matrix, foe_verbosity=1, symmetrize_kernel=.true.)
           !!call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
           !!     tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tt)
           !!if (iproc==0) call yaml_map('max assymetry of K',tt)
@@ -3194,7 +3212,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
            foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
-           ebs, calculate_minusonehalf=.true., foe_verbosity=2, symmetrize_kernel=.true.)
+           ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true.)
       !call fermi_operator_expansion(iproc, nproc, &
       !     ebs, norder_taylor, input%lin%max_inversion_error, &
       !     .true., 2, &
@@ -3225,7 +3243,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
            foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
-           ebs, calculate_minusonehalf=.true., foe_verbosity=2, symmetrize_kernel=.true.)
+           ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true.)
       !call fermi_operator_expansion(iproc, nproc, &
       !     ebs, norder_taylor, input%lin%max_inversion_error, &
       !     .true., 2, &

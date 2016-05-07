@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-05-03 10:18:47.722
+ Timestamp of this run                 : 2016-05-06 11:45:18.010
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -187,6 +187,7 @@
     #                                              new approach Projector
    support_function_multipoles         : False #  Calculate the multipole moments of the support functions
    plot_locreg_grids                   : False #  plot the scaling function and wavelets grid of each localization region
+   calculate_FOE_eigenvalues: [0, -1] #           First and last eigenvalue to be calculated using the FOE procedure
  lin_basis:
    nit                                 : 8 #      maximal number of iterations in the optimization of the support functions
    idsx                                : 8 #      DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
@@ -320,6 +321,7 @@
    forcemax                            : 0. #     Max forces criterion when stop
    randdis                             : 0. #     Random displacement amplitude
    betax                               : 4. #     Stepsize for the geometry optimization
+   beta_stretchx                       : 5e-1 #   Stepsize for steepest descent in stretching mode direction (only if in biomode)
  md:
    mdsteps                             : 0 #      Number of MD steps
    print_frequency                     : 1 #      Printing frequency for energy.dat and Trajectory.xyz files
@@ -1933,12 +1935,13 @@
    BC                                  : Periodic
    Box                                 :  [  180,  180,  180 ]
    MPI tasks                           :  8
+ Multipole analysis origin             :  [  1.058755E+01,  1.144390E+01,  1.230136E+01 ]
  Electric Dipole Moment (AU):
    P vector                            :  [ -3.2443E+01, -2.8439E+01, -2.1949E+01 ]
-   norm(P)                             :  4.840532E+01
+   norm(P)                             :  4.840567E+01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -8.2462E+01, -7.2284E+01, -5.5789E+01 ]
-   norm(P)                             :  1.230340E+02
+   P vector                            :  [ -8.2463E+01, -7.2284E+01, -5.5790E+01 ]
+   norm(P)                             :  1.230349E+02
  Calculate local forces                :  Yes
  Calculate NLCC forces                 :  Yes
  Calculate Non Local forces            :  Yes
@@ -1962,8 +1965,8 @@
  - The support function localization radii might be too small, got 90 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  42.12
-   Elapsed time (s)                    :  42.19
+   CPU time (s)                        :  42.11
+   Elapsed time (s)                    :  42.18
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.20161637E-01, y:  1.14531083E-01, z:  1.19357931E-01, 
                     total:  2.04456606E-01}
@@ -2018,14 +2021,14 @@
  Energy (Hartree)                      : -2.60217959766125659E+02
  Force Norm (Hartree/Bohr)             :  3.09908192350922151E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  12610
-   Tot. No. of Deallocations           :  12610
+   Tot. No. of Allocations             :  12585
+   Tot. No. of Deallocations           :  12585
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  501.483
+     Peak Value (MB)                   :  491.903
      for the array                     : f_i
      in the routine                    : vxcpostprocessing
-     Memory Peak of process            : 552.316 MB
- Walltime since initialization         : 00:00:42.615304806
- Max No. of dictionaries used          :  8661 #( 1002 still in use)
+     Memory Peak of process            : 539.068 MB
+ Walltime since initialization         : 00:00:42.599897685
+ Max No. of dictionaries used          :  8724 #( 1002 still in use)
  Number of dictionary folders allocated:  1

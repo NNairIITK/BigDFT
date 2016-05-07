@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-05-03 10:22:11.486
+ Timestamp of this run                 : 2016-05-06 11:48:38.878
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -212,6 +212,7 @@
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
     #                                              written to disk)
    plot_locreg_grids                   : False #  plot the scaling function and wavelets grid of each localization region
+   calculate_FOE_eigenvalues: [0, -1] #           First and last eigenvalue to be calculated using the FOE procedure
  lin_basis:
    nit                                 : 8 #      maximal number of iterations in the optimization of the support functions
    idsx                                : 8 #      DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
@@ -345,6 +346,7 @@
    forcemax                            : 0. #     Max forces criterion when stop
    randdis                             : 0. #     Random displacement amplitude
    betax                               : 4. #     Stepsize for the geometry optimization
+   beta_stretchx                       : 5e-1 #   Stepsize for steepest descent in stretching mode direction (only if in biomode)
  md:
    mdsteps                             : 0 #      Number of MD steps
    print_frequency                     : 1 #      Printing frequency for energy.dat and Trajectory.xyz files
@@ -757,7 +759,8 @@
      -  #--------------------------------------------------------------- ispin: 1, itemp: 1
        decay length of error function  :  5.000E-02
        determine eigenvalue bounds:
-       -  {npl:  120, bounds:  [ -1.000,  1.000 ], penalty:  2.4E-05, ok:  [  Yes,  Yes ]}
+       -  {npl:  120, bounds:  [ -1.000,  1.000 ], penalty:  2.4E-05, ok:  [  Yes,  Yes ], 
+     exp accur:  [  2.17E-06 ]}
        determine Fermi energy:
        -  { #-------------------------------------------------------------------- it FOE: 1
  eF: -1.000000E-01, Tr(K):  6.9739451E+00, D Tr(K): -1.03E+00, new eF: bisec bounds}
@@ -848,7 +851,7 @@
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
          -  {npl:  120, bounds:  [ -1.000,  1.000 ], penalty:  2.5E-05, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  3.06E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  8.596915E-02, Tr(K):  7.9999881E+00, D Tr(K): -1.19E-05, new eF: bisec bounds}
@@ -900,7 +903,7 @@
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
          -  {npl:  120, bounds:  [ -1.000,  1.000 ], penalty:  2.0E-05, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  3.02E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  7.917798E-02, Tr(K):  7.9999406E+00, D Tr(K): -5.94E-05, new eF: bisec bounds}
@@ -943,7 +946,7 @@
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
          -  {npl:  120, bounds:  [ -1.000,  1.000 ], penalty:  7.1E-06, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  2.03E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  1.286576E-01, Tr(K):  7.9950838E+00, D Tr(K): -4.92E-03, new eF: bisec bounds}
@@ -964,7 +967,7 @@
          decay length of error function:  2.500E-02
          determine eigenvalue bounds:
          -  {npl:  220, bounds:  [ -1.000,  1.000 ], penalty:  7.1E-06, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  5.86E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  2.923999E-01, Tr(K):  7.9999946E+00, D Tr(K): -5.44E-06, new eF: bisec bounds}
@@ -1009,9 +1012,10 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  3.125E-02
          determine eigenvalue bounds:
-         -  {npl:  160, bounds:  [ -0.900,  0.900 ], penalty:  1.2E-03, ok:  [  No,  Yes ]}
+         -  {npl:  160, bounds:  [ -0.900,  0.900 ], penalty:  1.2E-03, ok:  [  No,  Yes ], 
+       exp accur:  [  4.76E-06 ]}
          -  {npl:  170, bounds:  [ -1.080,  0.900 ], penalty:  8.3E-07, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  4.13E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  2.670334E-01, Tr(K):  8.0000025E+00, D Tr(K):  2.48E-06, new eF: bisec bounds}
@@ -1107,7 +1111,7 @@
          decay length of error function:  3.906E-02
          determine eigenvalue bounds:
          -  {npl:  140, bounds:  [ -1.080,  0.900 ], penalty:  1.6E-06, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  7.34E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  1.818174E-01, Tr(K):  8.0000111E+00, D Tr(K):  1.11E-05, new eF: bisec bounds}
@@ -1134,7 +1138,7 @@
          decay length of error function:  1.953E-02
          determine eigenvalue bounds:
          -  {npl:  250, bounds:  [ -1.080,  0.900 ], penalty:  1.6E-06, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  9.18E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  3.226908E-01, Tr(K):  7.9999818E+00, D Tr(K): -1.82E-05, new eF: bisec bounds}
@@ -1185,7 +1189,7 @@
          decay length of error function:  2.441E-02
          determine eigenvalue bounds:
          -  {npl:  190, bounds:  [ -0.972,  0.810 ], penalty:  2.3E-04, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  4.2E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  2.936270E-01, Tr(K):  7.9999945E+00, D Tr(K): -5.47E-06, new eF: bisec bounds}
@@ -1238,9 +1242,10 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  3.052E-02
          determine eigenvalue bounds:
-         -  {npl:  130, bounds:  [ -0.875,  0.729 ], penalty:  2.7E-01, ok:  [  No,  Yes ]}
+         -  {npl:  130, bounds:  [ -0.875,  0.729 ], penalty:  2.7E-01, ok:  [  No,  Yes ], 
+       exp accur:  [  7.01E-06 ]}
          -  {npl:  140, bounds:  [ -1.050,  0.729 ], penalty:  2.4E-04, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  3.76E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  3.062926E-01, Tr(K):  8.0000436E+00, D Tr(K):  4.36E-05, new eF: bisec bounds}
@@ -1298,7 +1303,7 @@
          decay length of error function:  3.815E-02
          determine eigenvalue bounds:
          -  {npl:  120, bounds:  [ -1.050,  0.729 ], penalty:  3.6E-04, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  7.61E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  2.106494E-01, Tr(K):  7.9999944E+00, D Tr(K): -5.63E-06, new eF: bisec bounds}
@@ -1391,7 +1396,7 @@
          decay length of error function:  4.768E-02
          determine eigenvalue bounds:
          -  {npl:  100, bounds:  [ -1.050,  0.729 ], penalty:  3.7E-04, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  6.66E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  1.772967E-01, Tr(K):  7.9999913E+00, D Tr(K): -8.68E-06, new eF: bisec bounds}
@@ -1440,8 +1445,10 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  90, bounds:  [ -0.945,  0.656 ], penalty:  2.7E-02, ok:  [  No,  Yes ]}
-         -  {npl:  90, bounds:  [ -1.134,  0.656 ], penalty: -1.2E-05, ok:  [  Yes,  Yes ]}
+         -  {npl:  90, bounds:  [ -0.945,  0.656 ], penalty:  2.7E-02, ok:  [  No,  Yes ], 
+       exp accur:  [  1.98E-06 ]}
+         -  {npl:  90, bounds:  [ -1.134,  0.656 ], penalty: -1.2E-05, ok:  [  Yes,  Yes ], 
+       exp accur:  [  8.12E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  1.579300E-01, Tr(K):  7.9999790E+00, D Tr(K): -2.10E-05, new eF: bisec bounds}
@@ -1494,7 +1501,7 @@
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
          -  {npl:  100, bounds:  [ -1.134,  0.656 ], penalty:  6.0E-06, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  1.03E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  1.503115E-01, Tr(K):  7.9999993E+00, D Tr(K): -6.74E-07, new eF: bisec bounds}
@@ -1535,7 +1542,7 @@
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
          -  {npl:  100, bounds:  [ -1.134,  0.656 ], penalty:  5.5E-06, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  8.06E-07 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  1.778490E-01, Tr(K):  8.0000009E+00, D Tr(K):  8.58E-07, new eF: bisec bounds}
@@ -1616,8 +1623,10 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  90, bounds:  [ -1.020,  0.590 ], penalty:  1.9E-03, ok:  [  No,  Yes ]}
-         -  {npl:  90, bounds:  [ -1.224,  0.590 ], penalty: -2.4E-04, ok:  [  Yes,  Yes ]}
+         -  {npl:  90, bounds:  [ -1.020,  0.590 ], penalty:  1.9E-03, ok:  [  No,  Yes ], 
+       exp accur:  [  2.09E-06 ]}
+         -  {npl:  90, bounds:  [ -1.224,  0.590 ], penalty: -2.4E-04, ok:  [  Yes,  Yes ], 
+       exp accur:  [  9.91E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  1.305345E-01, Tr(K):  7.9999941E+00, D Tr(K): -5.86E-06, new eF: bisec bounds}
@@ -1664,7 +1673,8 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  90, bounds:  [ -1.224,  0.590 ], penalty: -2.3E-04, ok:  [  Yes,  Yes ]}
+         -  {npl:  90, bounds:  [ -1.224,  0.590 ], penalty: -2.3E-04, ok:  [  Yes,  Yes ], 
+       exp accur:  [  9.91E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  1.360877E-01, Tr(K):  7.9999854E+00, D Tr(K): -1.46E-05, new eF: bisec bounds}
@@ -1716,7 +1726,8 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  90, bounds:  [ -1.224,  0.590 ], penalty: -1.8E-04, ok:  [  Yes,  Yes ]}
+         -  {npl:  90, bounds:  [ -1.224,  0.590 ], penalty: -1.8E-04, ok:  [  Yes,  Yes ], 
+       exp accur:  [  9.67E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  1.374499E-01, Tr(K):  7.9999786E+00, D Tr(K): -2.14E-05, new eF: bisec bounds}
@@ -1764,8 +1775,10 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  80, bounds:  [ -1.102,  0.531 ], penalty: -1.7E-03, ok:  [  Yes,  No ]}
-         -  {npl:  90, bounds:  [ -1.102,  0.638 ], penalty:  9.8E-05, ok:  [  Yes,  Yes ]}
+         -  {npl:  80, bounds:  [ -1.102,  0.531 ], penalty: -1.7E-03, ok:  [  Yes,  No ], 
+       exp accur:  [  6.32E-06 ]}
+         -  {npl:  90, bounds:  [ -1.102,  0.638 ], penalty:  9.8E-05, ok:  [  Yes,  Yes ], 
+       exp accur:  [  8.22E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  1.379167E-01, Tr(K):  7.9999992E+00, D Tr(K): -7.78E-07, new eF: bisec bounds}
@@ -1837,7 +1850,8 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  90, bounds:  [ -1.102,  0.638 ], penalty:  9.8E-05, ok:  [  Yes,  Yes ]}
+         -  {npl:  90, bounds:  [ -1.102,  0.638 ], penalty:  9.8E-05, ok:  [  Yes,  Yes ], 
+       exp accur:  [  8.66E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  1.524049E-01, Tr(K):  8.0000193E+00, D Tr(K):  1.93E-05, new eF: bisec bounds}
@@ -1908,7 +1922,7 @@
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
          -  {npl:  100, bounds:  [ -1.102,  0.638 ], penalty:  9.8E-05, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  1.45E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  1.246206E-01, Tr(K):  7.9999998E+00, D Tr(K): -2.39E-07, new eF: bisec bounds}
@@ -1961,8 +1975,10 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  80, bounds:  [ -0.992,  0.574 ], penalty:  9.9E-03, ok:  [  No,  Yes ]}
-         -  {npl:  90, bounds:  [ -1.190,  0.574 ], penalty: -3.3E-04, ok:  [  Yes,  Yes ]}
+         -  {npl:  80, bounds:  [ -0.992,  0.574 ], penalty:  9.9E-03, ok:  [  No,  Yes ], 
+       exp accur:  [  6.84E-06 ]}
+         -  {npl:  90, bounds:  [ -1.190,  0.574 ], penalty: -3.3E-04, ok:  [  Yes,  Yes ], 
+       exp accur:  [  5.99E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  1.400844E-01, Tr(K):  8.0000010E+00, D Tr(K):  9.88E-07, new eF: bisec bounds}
@@ -2061,8 +2077,10 @@
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
      determine eigenvalue bounds:
-     -  {npl:  550, bounds:  [ -1.000,  1.000 ], penalty:  7.3E-03, ok:  [  No,  Yes ]}
-     -  {npl:  620, bounds:  [ -1.200,  1.000 ], penalty:  2.5E-06, ok:  [  Yes,  Yes ]}
+     -  {npl:  550, bounds:  [ -1.000,  1.000 ], penalty:  7.3E-03, ok:  [  No,  Yes ], 
+   exp accur:  [  9.88E-06 ]}
+     -  {npl:  620, bounds:  [ -1.200,  1.000 ], penalty:  2.5E-06, ok:  [  Yes,  Yes ], 
+   exp accur:  [  6.82E-06 ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
  eF: -1.000000E-01, Tr(K):  7.9999990E+00, D Tr(K):  1.00E+00, new eF: bisec bounds}
@@ -2108,8 +2126,10 @@
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
      determine eigenvalue bounds:
-     -  {npl:  550, bounds:  [ -1.000,  1.000 ], penalty:  7.3E-03, ok:  [  No,  Yes ]}
-     -  {npl:  620, bounds:  [ -1.200,  1.000 ], penalty:  2.5E-06, ok:  [  Yes,  Yes ]}
+     -  {npl:  550, bounds:  [ -1.000,  1.000 ], penalty:  7.3E-03, ok:  [  No,  Yes ], 
+   exp accur:  [  9.88E-06 ]}
+     -  {npl:  620, bounds:  [ -1.200,  1.000 ], penalty:  2.5E-06, ok:  [  Yes,  Yes ], 
+   exp accur:  [  6.82E-06 ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
  eF: -1.000000E-01, Tr(K):  7.9999990E+00, D Tr(K): -1.00E+00, new eF: bisec bounds}
@@ -2338,82 +2358,67 @@
  Checking the total multipoles based on the atomic multipoles:
  - Up to multipole l= 0:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -2.7748E-02, -1.4415E+00, -1.1134E+00 ]
-       norm(P)                         :  1.821612E+00
+       P vector                        :  [  8.607E-08, -1.4271E+00, -1.0802E+00 ]
+       norm(P)                         :  1.789851E+00
      Quadrupole Moment (AU):
        Q matrix:
-       -  [-1.8354E+00, -2.3338E-01, -5.3908E-01]
-       -  [-2.3338E-01,  8.5251E-01, -1.5563E+00]
-       -  [-5.3908E-01, -1.5563E+00,  9.8286E-01]
-       trace                           : -1.41E-11
-     Density and potential check:
-     - density threshold for check is 1.00E-06:
-         rho: {int(q-q_exact)):  1.883E-05, int(q_exact):  1.883E-05, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.789E+01, int(V_exact):  3.018E+01, ratio:  9.240E-01}
-     - density threshold for check is 1.00E-05:
-         rho: {int(q-q_exact)):  2.377E-04, int(q_exact):  2.377E-04, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.813E+01, int(V_exact):  3.096E+01, ratio:  9.085E-01}
-     - density threshold for check is 1.00E-04:
-         rho: {int(q-q_exact)):  3.395E-03, int(q_exact):  3.395E-03, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.850E+01, int(V_exact):  3.217E+01, ratio:  8.860E-01}
-     - density threshold for check is 1.00E-03:
-         rho: {int(q-q_exact)):  4.440E-02, int(q_exact):  4.440E-02, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.917E+01, int(V_exact):  3.459E+01, ratio:  8.434E-01}
-     - density threshold for check is 1.00E-02:
-         rho: {int(q-q_exact)):  3.497E-01, int(q_exact):  3.497E-01, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  3.017E+01, int(V_exact):  3.845E+01, ratio:  7.846E-01}
+       -  [-1.7277E+00, -6.7336E-08, -5.2144E-08]
+       -  [-6.7336E-08,  5.1167E-01, -1.3669E+00]
+       -  [-5.2144E-08, -1.3669E+00,  1.2160E+00]
+       trace                           : -1.33E-14
+     Average relative error of resulting potential in the Exterior region:
+     -  {Thr:  1.0E-12, Ext. Vol. %:  88.5, int(V):  6.546E+01, Err %:  101.2, 
+    int(rho):  2.408E-37}
+     -  {Thr:  1.0E-10, Ext. Vol. %:  91.1, int(V):  6.777E+01, Err %:  99.5, 
+    int(rho):  7.833E-31}
+     -  {Thr:  1.0E-08, Ext. Vol. %:  93.6, int(V):  7.061E+01, Err %:  97.1, 
+    int(rho):  8.058E-28}
+     -  {Thr:  1.0E-06, Ext. Vol. %:  95.1, int(V):  7.279E+01, Err %:  95.1, 
+    int(rho):  4.154E-26}
+     -  {Thr:  1.0E-04, Ext. Vol. %:  97.2, int(V):  7.711E+01, Err %:  91.1, 
+    int(rho):  3.470E-18}
  - Up to multipole l= 1:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -4.5272E-02, -1.5498E+00, -1.2041E+00 ]
-       norm(P)                         :  1.963097E+00
+       P vector                        :  [ -1.7559E-02, -1.5355E+00, -1.1710E+00 ]
+       norm(P)                         :  1.931088E+00
      Quadrupole Moment (AU):
        Q matrix:
-       -  [-5.6157E-01, -2.3496E-01, -5.3855E-01]
-       -  [-2.3496E-01,  2.5672E-01, -1.3693E+00]
-       -  [-5.3855E-01, -1.3693E+00,  3.0485E-01]
-       trace                           :  8.19E-12
-     Density and potential check:
-     - density threshold for check is 1.00E-06:
-         rho: {int(q-q_exact)):  1.883E-05, int(q_exact):  1.883E-05, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.893E+01, int(V_exact):  3.018E+01, ratio:  9.587E-01}
-     - density threshold for check is 1.00E-05:
-         rho: {int(q-q_exact)):  2.377E-04, int(q_exact):  2.377E-04, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.930E+01, int(V_exact):  3.096E+01, ratio:  9.464E-01}
-     - density threshold for check is 1.00E-04:
-         rho: {int(q-q_exact)):  3.395E-03, int(q_exact):  3.395E-03, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.990E+01, int(V_exact):  3.217E+01, ratio:  9.297E-01}
-     - density threshold for check is 1.00E-03:
-         rho: {int(q-q_exact)):  4.440E-02, int(q_exact):  4.440E-02, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  3.110E+01, int(V_exact):  3.459E+01, ratio:  8.991E-01}
-     - density threshold for check is 1.00E-02:
-         rho: {int(q-q_exact)):  3.497E-01, int(q_exact):  3.497E-01, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  3.300E+01, int(V_exact):  3.845E+01, ratio:  8.585E-01}
+       -  [-4.4383E-01, -3.4437E-03, -1.3470E-03]
+       -  [-3.4437E-03, -9.2224E-02, -1.1951E+00]
+       -  [-1.3470E-03, -1.1951E+00,  5.3605E-01]
+       trace                           : -7.99E-15
+     Average relative error of resulting potential in the Exterior region:
+     -  {Thr:  1.0E-12, Ext. Vol. %:  88.5, int(V):  6.546E+01, Err %:  101.6, 
+    int(rho):  5.245E-37}
+     -  {Thr:  1.0E-10, Ext. Vol. %:  91.1, int(V):  6.777E+01, Err %:  100.1, 
+    int(rho):  1.557E-30}
+     -  {Thr:  1.0E-08, Ext. Vol. %:  93.6, int(V):  7.061E+01, Err %:  98.0, 
+    int(rho):  1.487E-27}
+     -  {Thr:  1.0E-06, Ext. Vol. %:  95.1, int(V):  7.279E+01, Err %:  96.4, 
+    int(rho):  6.211E-26}
+     -  {Thr:  1.0E-04, Ext. Vol. %:  97.2, int(V):  7.711E+01, Err %:  93.0, 
+    int(rho):  5.298E-18}
  - Up to multipole l= 2:
      Electric Dipole Moment (Debye):
-       P vector                        :  [ -4.5206E-02, -1.5498E+00, -1.2040E+00 ]
-       norm(P)                         :  1.963041E+00
+       P vector                        :  [ -1.7561E-02, -1.5355E+00, -1.1710E+00 ]
+       norm(P)                         :  1.931111E+00
      Quadrupole Moment (AU):
        Q matrix:
-       -  [-3.2154E+00, -2.2959E-01, -5.3472E-01]
-       -  [-2.2959E-01,  1.2984E+00, -2.3990E+00]
-       -  [-5.3472E-01, -2.3990E+00,  1.9170E+00]
-       trace                           : -1.40E-11
-     Density and potential check:
-     - density threshold for check is 1.00E-06:
-         rho: {int(q-q_exact)):  1.883E-05, int(q_exact):  1.883E-05, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.700E+01, int(V_exact):  3.018E+01, ratio:  8.946E-01}
-     - density threshold for check is 1.00E-05:
-         rho: {int(q-q_exact)):  2.377E-04, int(q_exact):  2.377E-04, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.715E+01, int(V_exact):  3.096E+01, ratio:  8.769E-01}
-     - density threshold for check is 1.00E-04:
-         rho: {int(q-q_exact)):  3.395E-03, int(q_exact):  3.395E-03, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.735E+01, int(V_exact):  3.217E+01, ratio:  8.503E-01}
-     - density threshold for check is 1.00E-03:
-         rho: {int(q-q_exact)):  4.440E-02, int(q_exact):  4.440E-02, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.769E+01, int(V_exact):  3.459E+01, ratio:  8.005E-01}
-     - density threshold for check is 1.00E-02:
-         rho: {int(q-q_exact)):  3.497E-01, int(q_exact):  3.497E-01, ratio:  1.000E+00}
-         pot: {int(V-V_exact)):  2.856E+01, int(V_exact):  3.845E+01, ratio:  7.430E-01}
+       -  [-3.0978E+00,  1.3542E-03,  1.1616E-03]
+       -  [ 1.3542E-03,  9.5014E-01, -2.2255E+00]
+       -  [ 1.1616E-03, -2.2255E+00,  2.1477E+00]
+       trace                           :  7.11E-15
+     Average relative error of resulting potential in the Exterior region:
+     -  {Thr:  1.0E-12, Ext. Vol. %:  88.5, int(V):  6.546E+01, Err %:  97.7, 
+    int(rho):  4.685E-37}
+     -  {Thr:  1.0E-10, Ext. Vol. %:  91.1, int(V):  6.777E+01, Err %:  95.9, 
+    int(rho):  7.353E-30}
+     -  {Thr:  1.0E-08, Ext. Vol. %:  93.6, int(V):  7.061E+01, Err %:  93.4, 
+    int(rho):  5.271E-27}
+     -  {Thr:  1.0E-06, Ext. Vol. %:  95.1, int(V):  7.279E+01, Err %:  91.3, 
+    int(rho):  3.322E-25}
+     -  {Thr:  1.0E-04, Ext. Vol. %:  97.2, int(V):  7.711E+01, Err %:  87.1, 
+    int(rho):  3.490E-17}
   #========================================================== Atomic multipole analysis done
  calculate S^x:
    mode                                : sparse
@@ -2428,18 +2433,19 @@
  Writing external potential in file    : external_potential
  Writing local potential in file       : local_potential
   #---------------------------------------------------------------------- Forces Calculation
+ Multipole analysis origin             :  [  1.377174E+01,  7.125761E+00,  1.645990E+01 ]
  Electric Dipole Moment (AU):
-   P vector                            :  [ -6.9428E-03, -6.0297E-01, -4.5991E-01 ]
-   norm(P)                             :  7.583744E-01
+   P vector                            :  [ -6.9578E-03, -6.0297E-01, -4.5993E-01 ]
+   norm(P)                             :  7.583915E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.7647E-02, -1.5326E+00, -1.1690E+00 ]
-   norm(P)                             :  1.927595E+00
+   P vector                            :  [ -1.7685E-02, -1.5326E+00, -1.1690E+00 ]
+   norm(P)                             :  1.927639E+00
  Quadrupole Moment (AU):
    Q matrix:
-   -  [-3.1772E+00,  3.1667E-03,  3.0520E-03]
-   -  [ 3.1667E-03,  1.0183E+00, -2.1210E+00]
-   -  [ 3.0520E-03, -2.1210E+00,  2.1589E+00]
-   trace                               : -2.21E-11
+   -  [-3.1054E+00,  1.2725E-03,  1.1106E-03]
+   -  [ 1.2725E-03,  9.5426E-01, -2.2253E+00]
+   -  [ 1.1106E-03, -2.2253E+00,  2.1511E+00]
+   trace                               : -1.79E-13
  Writing electronic density in file    : electronic_density
  Writing core density in file          : core_density
  Writing Hartree potential in file     : hartree_potential
@@ -2466,8 +2472,8 @@
  - oscillation of the energy, increase counter
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  18.01
-   Elapsed time (s)                    :  18.04
+   CPU time (s)                        :  17.62
+   Elapsed time (s)                    :  18.43
  BigDFT infocode                       :  0
  Average noise forces: {x:  6.65747911E-04, y:  2.50087440E-02, z:  1.04681697E-02, 
                     total:  2.71194224E-02}
@@ -2480,14 +2486,14 @@
  Energy (Hartree)                      : -1.76723142872874170E+01
  Force Norm (Hartree/Bohr)             :  4.03260815265659781E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  12609
-   Tot. No. of Deallocations           :  12609
+   Tot. No. of Allocations             :  12620
+   Tot. No. of Deallocations           :  12620
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  109.746
+     Peak Value (MB)                   :  108.852
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 115.124 MB
- Walltime since initialization         : 00:00:18.425332036
- Max No. of dictionaries used          :  12371 #( 1002 still in use)
+     Memory Peak of process            : 119.164 MB
+ Walltime since initialization         : 00:00:18.812976447
+ Max No. of dictionaries used          :  12641 #( 1002 still in use)
  Number of dictionary folders allocated:  2

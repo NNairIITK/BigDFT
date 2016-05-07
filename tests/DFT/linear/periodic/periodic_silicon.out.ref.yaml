@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-05-03 10:17:57.790
+ Timestamp of this run                 : 2016-05-06 11:44:28.534
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -187,6 +187,7 @@
     #                                              new approach Projector
    support_function_multipoles         : False #  Calculate the multipole moments of the support functions
    plot_locreg_grids                   : False #  plot the scaling function and wavelets grid of each localization region
+   calculate_FOE_eigenvalues: [0, -1] #           First and last eigenvalue to be calculated using the FOE procedure
  lin_basis:
    nit                                 : 8 #      maximal number of iterations in the optimization of the support functions
    idsx                                : 8 #      DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
@@ -274,6 +275,7 @@
    forcemax                            : 0. #     Max forces criterion when stop
    randdis                             : 0. #     Random displacement amplitude
    betax                               : 4. #     Stepsize for the geometry optimization
+   beta_stretchx                       : 5e-1 #   Stepsize for steepest descent in stretching mode direction (only if in biomode)
  md:
    mdsteps                             : 0 #      Number of MD steps
    print_frequency                     : 1 #      Printing frequency for energy.dat and Trajectory.xyz files
@@ -768,8 +770,10 @@
      -  #--------------------------------------------------------------- ispin: 1, itemp: 1
        decay length of error function  :  1.000E-02
        determine eigenvalue bounds:
-       -  {npl:  550, bounds:  [ -1.000,  1.000 ], penalty: -9.2E-02, ok:  [  Yes,  No ]}
-       -  {npl:  620, bounds:  [ -1.000,  1.200 ], penalty: -3.1E-05, ok:  [  Yes,  Yes ]}
+       -  {npl:  550, bounds:  [ -1.000,  1.000 ], penalty: -9.2E-02, ok:  [  Yes,  No ], 
+     exp accur:  [  9.88E-06 ]}
+       -  {npl:  620, bounds:  [ -1.000,  1.200 ], penalty: -3.1E-05, ok:  [  Yes,  Yes ], 
+     exp accur:  [  6.82E-06 ]}
        determine Fermi energy:
        -  { #-------------------------------------------------------------------- it FOE: 1
  eF: -1.000000E-01, Tr(K): -2.2088028E-05, D Tr(K): -2.20E+02, new eF: bisec bounds}
@@ -811,7 +815,8 @@
      -  #--------------------------------------------------------------- ispin: 1, itemp: 2
        decay length of error function  :  5.000E-03
        determine eigenvalue bounds:
-       -  {npl:  1040, bounds:  [ -1.000,  1.200 ], penalty: -3.1E-05, ok:  [  Yes,  Yes ]}
+       -  {npl:  1040, bounds:  [ -1.000,  1.200 ], penalty: -3.1E-05, ok:  [  Yes,  Yes ], 
+     exp accur:  [  8.78E-06 ]}
        determine Fermi energy:
        -  { #-------------------------------------------------------------------- it FOE: 1
  eF:  5.828252E-01, Tr(K):  1.0999998E+02, D Tr(K): -1.10E+02, new eF: bisec bounds}
@@ -906,7 +911,7 @@
          decay length of error function:  5.000E-03
          determine eigenvalue bounds:
          -  {npl:  1040, bounds:  [ -1.000,  1.200 ], penalty: -7.9E-05, 
-              ok:  [  Yes,  Yes ]}
+              ok:  [  Yes,  Yes ], exp accur:  [  7.75E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
  eF:  6.094876E-01, Tr(K):  1.5216402E+02, D Tr(K): -6.78E+01, new eF: bisec bounds}
@@ -972,18 +977,19 @@
    BC                                  : Periodic
    Box                                 :  [  72,  72,  72 ]
    MPI tasks                           :  8
+ Multipole analysis origin             :  [  9.328049E+00,  9.607890E+00,  9.887732E+00 ]
  Electric Dipole Moment (AU):
    P vector                            :  [ -1.3404E+02, -1.1054E+02, -8.4781E+01 ]
-   norm(P)                             :  1.933182E+02
+   norm(P)                             :  1.933183E+02
  Electric Dipole Moment (Debye):
    P vector                            :  [ -3.4069E+02, -2.8096E+02, -2.1549E+02 ]
-   norm(P)                             :  4.913658E+02
+   norm(P)                             :  4.913660E+02
  Quadrupole Moment (AU):
    Q matrix:
-   -  [-8.0904E+01,  2.8203E+02,  3.9836E+02]
-   -  [ 2.8203E+02,  1.7219E+01,  4.4301E+02]
-   -  [ 3.9836E+02,  4.4301E+02,  6.3686E+01]
-   trace                               :  5.73E-11
+   -  [-1.5602E+02,  7.9996E+01,  2.4339E+02]
+   -  [ 7.9996E+01,  2.0478E+01,  3.1521E+02]
+   -  [ 2.4339E+02,  3.1521E+02,  1.3554E+02]
+   trace                               :  1.39E-11
  Calculate local forces                :  Yes
  Calculate Non Local forces            :  Yes
  Stress Tensor calculated              :  Yes
@@ -1004,8 +1010,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  49.21
-   Elapsed time (s)                    :  49.30
+   CPU time (s)                        :  48.73
+   Elapsed time (s)                    :  48.84
  BigDFT infocode                       :  0
  Average noise forces: {x: -2.16078060E-03, y:  8.21538590E-03, z:  8.13859027E-03, 
                     total:  1.17642760E-02}
@@ -1070,14 +1076,14 @@
  Energy (Hartree)                      : -1.51772515633561682E+02
  Force Norm (Hartree/Bohr)             :  1.10700654685886302E+00
  Memory Consumption Report:
-   Tot. No. of Allocations             :  19506
-   Tot. No. of Deallocations           :  19506
+   Tot. No. of Allocations             :  19508
+   Tot. No. of Deallocations           :  19508
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  311.877
-     for the array                     : tmp2p
-     in the routine                    : check_accur_overlap_minus_one_sp
-     Memory Peak of process            : 362.100 MB
- Walltime since initialization         : 00:00:49.865446311
- Max No. of dictionaries used          :  11492 #( 1002 still in use)
+     Peak Value (MB)                   :  283.162
+     for the array                     : vectors_new
+     in the routine                    : chebyshev_clean
+     Memory Peak of process            : 341.304 MB
+ Walltime since initialization         : 00:00:49.415608195
+ Max No. of dictionaries used          :  11619 #( 1002 still in use)
  Number of dictionary folders allocated:  2

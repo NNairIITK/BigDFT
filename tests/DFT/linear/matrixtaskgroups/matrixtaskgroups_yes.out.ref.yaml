@@ -168,6 +168,7 @@
    charge_multipoles                   : 11 #     Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
     #                                              new approach Projector
    support_function_multipoles         : yes #    Calculate the multipole moments of the support functions
+   calculate_FOE_eigenvalues: [350, 370] #        First and last eigenvalue to be calculated using the FOE procedure
    conf_damping                        : -0.5 #   how the confinement should be decreased, only relevant for hybrid mode; negative -> 
     #                                              automatic
    output_wf                           : 0 #      output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
@@ -2393,6 +2394,50 @@
  {eval: -5.000000000000E-01, sigma:  7.4736E-01},  # 721
  {eval: -5.000000000000E-01, sigma:  7.6076E-01},  # 722
  ]
+   Calculating eigenvalues using FOE:
+ #(11:21:43.619)  4% / [>                        ] ( 1/21,  3.5 it/s), ETA  5.0s
+ #(11:21:44.061)  9% - [=>                       ] ( 2/21,  2.8 it/s), ETA  6.0s
+ #(11:21:44.701) 14% \ [==>                      ] ( 3/21,  2.2 it/s), ETA  8.0s
+ #(11:21:44.988) 19% | [===>                     ] ( 4/21,  2.4 it/s), ETA  7.0s
+ #(11:21:45.266) 23% / [====>                    ] ( 5/21,  2.6 it/s), ETA  6.0s
+ #(11:21:45.513) 28% - [======>                  ] ( 6/21,  2.8 it/s), ETA  5.0s
+ #(11:21:45.744) 33% \ [=======>                 ] ( 7/21,  2.9 it/s), ETA  4.0s
+ #(11:21:45.929) 38% | [========>                ] ( 8/21,  3.1 it/s), ETA  4.0s
+ #(11:21:46.136) 42% / [=========>               ] ( 9/21,  3.2 it/s), ETA  3.0s
+ #(11:21:46.367) 47% - [==========>              ] ( 10/21,  3.3 it/s), ETA  3.0s
+ #(11:21:46.553) 52% \ [============>            ] ( 11/21,  3.4 it/s), ETA  2.0s
+ #(11:21:46.860) 57% | [=============>           ] ( 12/21,  3.4 it/s), ETA  2.0s
+ #(11:21:47.051) 61% / [==============>          ] ( 13/21,  3.5 it/s), ETA  2.0s
+ #(11:21:47.482) 66% - [===============>         ] ( 14/21,  3.4 it/s), ETA  2.0s
+ #(11:21:47.704) 71% \ [================>        ] ( 15/21,  3.4 it/s), ETA  1.0s
+ #(11:21:48.098) 76% | [==================>      ] ( 16/21,  3.4 it/s), ETA  1.0s
+ #(11:21:48.281) 80% / [===================>     ] ( 17/21,  3.4 it/s), ETA  1.0s
+ #(11:21:48.463) 85% - [====================>    ] ( 18/21,  3.5 it/s), ETA  0.0s
+ #(11:21:48.669) 90% \ [=====================>   ] ( 19/21,  3.6 it/s), ETA  0.0s
+ #(11:21:48.967) 95% | [======================>  ] ( 20/21,  3.6 it/s), ETA  0.0s
+ #(11:21:49.133)100% / [========================>] ( 21/21,  3.6 it/s), Tot  5.0s
+     values:
+     -  {ID:  000350, eval:  1.17943E+00}
+     -  {ID:  000351, eval:  1.17991E+00}
+     -  {ID:  000352, eval:  1.18044E+00}
+     -  {ID:  000353, eval:  1.18104E+00}
+     -  {ID:  000354, eval:  1.18176E+00}
+     -  {ID:  000355, eval:  1.18266E+00}
+     -  {ID:  000356, eval:  1.18390E+00}
+     -  {ID:  000357, eval:  1.18559E+00}
+     -  {ID:  000358, eval:  1.18748E+00}
+     -  {ID:  000359, eval:  1.18941E+00}
+     -  {ID:  000360, eval:  1.21316E+00}
+     -  {ID:  000361, eval:  1.32195E+00}
+     -  {ID:  000362, eval:  1.34198E+00}
+     -  {ID:  000363, eval:  1.48861E+00}
+     -  {ID:  000364, eval:  1.49016E+00}
+     -  {ID:  000365, eval:  1.49158E+00}
+     -  {ID:  000366, eval:  1.49294E+00}
+     -  {ID:  000367, eval:  1.49415E+00}
+     -  {ID:  000368, eval:  1.49514E+00}
+     -  {ID:  000369, eval:  1.49592E+00}
+     -  {ID:  000370, eval:  1.49657E+00}
     #========================================================================= final results
    self consistency summary:
    -  {iter:  1, 

@@ -1574,6 +1574,7 @@ module communications
        call f_routine(id=subname)
 
        ithread = 0
+       nthread = 1
        !$ nthread = omp_get_max_threads()
 
        !@ NEW VESRION #############################################

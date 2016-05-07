@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-05-03 10:20:23.394
+ Timestamp of this run                 : 2016-05-06 11:46:52.190
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -187,6 +187,7 @@
     #                                              new approach Projector
    support_function_multipoles         : False #  Calculate the multipole moments of the support functions
    plot_locreg_grids                   : False #  plot the scaling function and wavelets grid of each localization region
+   calculate_FOE_eigenvalues: [0, -1] #           First and last eigenvalue to be calculated using the FOE procedure
  lin_basis:
    nit                                 : 8 #      maximal number of iterations in the optimization of the support functions
    idsx                                : 8 #      DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
@@ -302,6 +303,7 @@
    forcemax                            : 0. #     Max forces criterion when stop
    randdis                             : 0. #     Random displacement amplitude
    betax                               : 4. #     Stepsize for the geometry optimization
+   beta_stretchx                       : 5e-1 #   Stepsize for steepest descent in stretching mode direction (only if in biomode)
  md:
    mdsteps                             : 0 #      Number of MD steps
    print_frequency                     : 1 #      Printing frequency for energy.dat and Trajectory.xyz files
@@ -1944,12 +1946,13 @@
    BC                                  : Surface
    Box                                 :  [  96,  63,  96 ]
    MPI tasks                           :  8
+ Multipole analysis origin             :  [  1.676851E+01,  5.536220E+00,  1.633463E+01 ]
  Electric Dipole Moment (AU):
-   P vector                            :  [  5.7375E+01, -3.5042E+00,  1.2539E+02 ]
-   norm(P)                             :  1.379401E+02
+   P vector                            :  [  5.7354E+01, -3.5111E+00,  1.2537E+02 ]
+   norm(P)                             :  1.379131E+02
  Electric Dipole Moment (Debye):
-   P vector                            :  [  1.4583E+02, -8.9069E+00,  3.1872E+02 ]
-   norm(P)                             :  3.506087E+02
+   P vector                            :  [  1.4578E+02, -8.9244E+00,  3.1866E+02 ]
+   norm(P)                             :  3.505402E+02
  Calculate local forces                :  Yes
  Calculate NLCC forces                 :  Yes
  Calculate Non Local forces            :  Yes
@@ -1964,8 +1967,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  42.01
-   Elapsed time (s)                    :  42.07
+   CPU time (s)                        :  41.32
+   Elapsed time (s)                    :  41.39
  BigDFT infocode                       :  0
  Average noise forces: {x:  5.32669317E-01, y:  8.01494359E-01, z:  1.53620719E-02, 
                     total:  9.62478988E-01}
@@ -2086,14 +2089,14 @@
  Energy (Hartree)                      : -6.89846037210061468E+02
  Force Norm (Hartree/Bohr)             :  2.14912172334177098E+00
  Memory Consumption Report:
-   Tot. No. of Allocations             :  32278
-   Tot. No. of Deallocations           :  32278
+   Tot. No. of Allocations             :  32250
+   Tot. No. of Deallocations           :  32250
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  459.551
-     for the array                     : tmp2p
-     in the routine                    : check_accur_overlap_minus_one_sp
-     Memory Peak of process            : 508.584 MB
- Walltime since initialization         : 00:00:42.883831202
- Max No. of dictionaries used          :  14371 #( 1002 still in use)
+     Peak Value (MB)                   :  410.680
+     for the array                     : vectors_new
+     in the routine                    : chebyshev_clean
+     Memory Peak of process            : 463.672 MB
+ Walltime since initialization         : 00:00:42.204408578
+ Max No. of dictionaries used          :  14389 #( 1002 still in use)
  Number of dictionary folders allocated:  2
