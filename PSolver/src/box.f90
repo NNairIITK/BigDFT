@@ -423,7 +423,8 @@ contains
     go=boxit%k==boxit%nbox(1,3)-1
     if (go) go=box_next_z(boxit)
     if (go) go=box_next_y(boxit)
-
+    box_next_point=go
+    if (.not. box_next_point) return
     !simulate loop
     flattened_loop: do 
        if (box_next_x(boxit)) exit flattened_loop
