@@ -420,10 +420,14 @@ contains
     if (.not. box_next_point) return
 
     !this put the starting point
-    go=boxit%k==boxit%nbox(1,3)-1
-    if (go) go=box_next_z(boxit)
-    if (go) go=box_next_y(boxit)
-
+    if (boxit%k==boxit%nbox(1,3)-1) then
+       go=box_next_z(boxit)
+       if (go) go=box_next_y(boxit)
+       !if this one fails then there are no slices available
+       if (.not. go) then
+          box_next_point=.false.
+       end if
+    end if
     !simulate loop
     flattened_loop: do 
        if (box_next_x(boxit)) exit flattened_loop
