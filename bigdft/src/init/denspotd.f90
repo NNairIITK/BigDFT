@@ -131,8 +131,8 @@ i3sd=i3sp-dpbox%nscatterarr(dpbox%mpi_env%iproc,4)
 n3p=dpbox%nscatterarr(dpbox%mpi_env%iproc,2)
 n3d=dpbox%nscatterarr(dpbox%mpi_env%iproc,1)
 
-  dpbox%bitd=box_iter(dpbox%mesh,&
-       origin=locreg_mesh_origin(dpbox%mesh),i3s=i3sd,n3p=n3d)
+!!$  dpbox%bitd=box_iter(dpbox%mesh,&
+!!$       origin=locreg_mesh_origin(dpbox%mesh),i3s=i3sd,n3p=n3d)
   dpbox%bitp=box_iter(dpbox%mesh,&
        origin=locreg_mesh_origin(dpbox%mesh),i3s=i3sp,n3p=n3p)
 

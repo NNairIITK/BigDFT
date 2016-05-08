@@ -554,6 +554,7 @@ END SUBROUTINE input_wf_empty
 subroutine input_wf_random(psi, orbs)
   use module_base, only: wp,f_zero
   use module_types
+  use random, only: builtin_rand
   implicit none
 
   type(orbitals_data), intent(inout) :: orbs
@@ -561,7 +562,7 @@ subroutine input_wf_random(psi, orbs)
 
   integer :: icoeff,jorb,iorb,nvctr
   integer :: idum=0
-  real(kind=4) :: tt,builtin_rand
+  real(kind=4) :: tt
 
   !if (max(orbs%npsidim_comp,orbs%npsidim_orbs)>1) &
   !     call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1))
@@ -1030,7 +1031,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(energy_terms),intent(inout):: energs
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(GPU_pointers), intent(inout) :: GPU
-  type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+  type(system_fragment), dimension(:), pointer :: ref_frags
   type(cdft_data), intent(inout) :: cdft
 
   ! Local variables
@@ -2451,7 +2452,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        type(energy_terms),intent(inout):: energs
        type(DFT_PSP_projectors), intent(inout) :: nlpsp
        type(GPU_pointers), intent(inout) :: GPU
-       type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+       type(system_fragment), dimension(:), pointer :: ref_frags
        type(cdft_data), intent(inout) :: cdft
      end subroutine input_memory_linear
   end interface

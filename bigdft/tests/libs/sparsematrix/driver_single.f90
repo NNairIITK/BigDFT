@@ -16,6 +16,7 @@ program driver_single
                                     matrices_init, &
                                     matrix_chebyshev_expansion, &
                                     matrix_matrix_multiplication
+  use sparsematrix, only: check_deviation_from_unity_sparse, operation_using_dense_lapack
   implicit none
 
   ! External routines
@@ -27,7 +28,7 @@ program driver_single
   type(matrices),dimension(1) :: mat_out
   type(matrices),dimension(2) :: mat_check_accur
   integer :: norder_polynomial, ierr, nthread, blocksize, iproc, nproc
-  real(kind=8) :: exp_power
+  real(mp) :: exp_power, max_error, mean_error
   character(len=200) :: filename_in, filename_out
   type(dictionary), pointer :: dict_timing_info
   !$ integer :: omp_get_max_threads
@@ -150,7 +151,15 @@ program driver_single
   if (iproc==0) then
       call yaml_comment('Check deviation from Unity')
   end if
-  call check_deviation_from_unity(smat_out, mat_check_accur(2))
+  call check_deviation_from_unity_sparse(iproc, smat_out, mat_check_accur(2), &
+       max_error, mean_error)
+  if (iproc==0) then
+      call yaml_mapping_open('Check the deviation from unity of the operation mat^x*mat^-x')
+      call yaml_map('max_error',max_error,fmt='(es10.3)')
+      call yaml_map('mean_error',mean_error,fmt='(es10.3)')
+      call yaml_mapping_close()
+  end if
+
 
   call timing(mpi_comm_world,'CHECK_LINEAR','PR')
 
@@ -158,7 +167,7 @@ program driver_single
   if (iproc==0) then
       call yaml_comment('Do the same calculation using dense LAPACK',hfill='-')
   end if
-  call operation_using_dense_lapack(iproc, nproc, smat_in, mat_in)
+  call operation_using_dense_lapack(iproc, nproc, exp_power, smat_in, mat_in)
 
   ! Deallocate all structures
   call deallocate_sparse_matrix(smat_in)
@@ -227,178 +236,7 @@ program driver_single
     end subroutine build_dict_info
 
 
-    subroutine check_deviation_from_unity(smat, mat)
-      use sparsematrix_base, only: sparse_matrix, &
-                                   matrices
-      implicit none
-
-      ! Calling arguments
-      type(sparse_matrix),intent(in) :: smat
-      type(matrices),intent(in) :: mat
-
-      ! Local variables
-      integer :: iseg, ii, i, irow, icolumn
-      real(kind=8) :: sum_error, max_error, error
-
-      sum_error = 0.d0
-      max_error = 0.d0
-      do iseg=1,smat%nseg
-          ii=smat%keyv(iseg)
-          ! A segment is always on one line, therefore no double loop
-          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-             irow = i
-             icolumn = smat%keyg(1,2,iseg)
-             if (irow==icolumn) then
-                 error = abs(mat%matrix_compr(ii)-1.d0)
-             else
-                 error = abs(mat%matrix_compr(ii))
-             end if
-             sum_error = sum_error + error
-             max_error = max(max_error,error)
-             ii=ii+1
-         end do
-      end do
-
-      if (iproc==0) then
-          call yaml_mapping_open('Check the deviation from unity of the operation S^x*S^-x')
-          call yaml_map('max_error',max_error,fmt='(es10.3)')
-          call yaml_map('sum_error',sum_error/real(smat%nvctr,kind=8),fmt='(es10.3)')
-          call yaml_mapping_close()
-      end if
-
-    end subroutine check_deviation_from_unity
 
 
-    subroutine check_deviation_from_unity_dense(n, mat)
-      implicit none
-
-      ! Calling arguments
-      integer,intent(in) :: n
-      real(kind=8),dimension(n,n),intent(in) :: mat
-
-      ! Local variables
-      integer :: i, j
-      real(kind=8) :: sum_error, max_error, error
-
-      sum_error = 0.d0
-      max_error = 0.d0
-      do i=1,n
-          do j=1,n
-              if (j==i) then
-                  error = abs(mat(j,i)-1.d0)
-              else
-                  error = abs(mat(j,i))
-              end if
-              sum_error = sum_error + error
-              max_error = max(max_error,error)
-          end do
-      end do
-
-
-      if (iproc==0) then
-          call yaml_mapping_open('Check the deviation from unity of the operation S^x*S^-x')
-          call yaml_map('max_error',max_error,fmt='(es10.3)')
-          call yaml_map('sum_error',sum_error/real(n**2,kind=8),fmt='(es10.3)')
-          call yaml_mapping_close()
-      end if
-
-    end subroutine check_deviation_from_unity_dense
-
-
-
-    !> Calculate matrix**power, using the dense matrix and exact LAPACK operations
-    subroutine matrix_power_dense(iproc, nproc, blocksize, n, mat_in, ex, mat_out)
-      !use module_base
-      use parallel_linalg, only: dgemm_parallel, dsyev_parallel
-      implicit none
-
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc, blocksize, n
-      real(kind=8),dimension(n,n),intent(in) :: mat_in
-      real(kind=8),intent(in) :: ex
-      real(kind=8),dimension(n,n),intent(out) :: mat_out
-
-      ! Local variables
-      integer :: i, j, info
-      real(kind=8) :: tt
-      real(kind=8),dimension(:,:,:),allocatable :: mat_tmp
-      real(kind=8),dimension(:),allocatable :: eval
-
-      call f_routine(id='matrix_power_dense')
-
-
-      ! Diagonalize the matrix
-      mat_tmp = f_malloc((/n,n,2/),id='mat_tmp')
-      eval = f_malloc(n,id='mat_tmp')
-      call f_memcpy(src=mat_in, dest=mat_tmp)
-      call dsyev_parallel(iproc, nproc, blocksize, mpi_comm_world, 'v', 'l', n, mat_tmp, n, eval, info)
-      if (info /= 0) then
-          call f_err_throw('wrong infocode, value ='//trim(yaml_toa(info)))
-      end if
-
-      ! Multiply a diagonal matrix containing the eigenvalues to the power ex with the diagonalized matrix
-      do i=1,n
-          tt = eval(i)**ex
-          do j=1,n
-              mat_tmp(j,i,2) = mat_tmp(j,i,1)*tt
-          end do
-      end do
-
-      ! Apply the diagonalized overlap matrix to the matrix constructed above
-      call dgemm_parallel(iproc, nproc, blocksize, mpi_comm_world, 'n', 't', n, n, n, 1.d0, mat_tmp(1,1,1), n, &
-           mat_tmp(1,1,2), n, 0.d0, mat_out, n)
-
-      call f_free(mat_tmp)
-      call f_free(eval)
-
-      call f_release_routine()
-
-
-    end subroutine matrix_power_dense
-
-
-    subroutine operation_using_dense_lapack(smat_in, mat_in)
-      !use module_base
-      use sparsematrix_base, only: sparse_matrix, matrices
-      use sparsematrix, only: uncompress_matrix
-      use parallel_linalg, only: dgemm_parallel
-      implicit none
-
-      ! Calling arguments
-      type(sparse_matrix),intent(in) :: smat_in
-      type(matrices),intent(in) :: mat_in
-
-      ! Local variables
-      integer :: blocksize
-      real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
-      real(kind=8),dimension(:,:,:),allocatable :: mat_check_accur_dense
-
-      call f_routine(id='operation_using_dense_lapack')
-
-      blocksize = -100
-      mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
-      mat_out_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_out_dense')
-      mat_check_accur_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr,2/),id='mat_check_accur_dense')
-      call uncompress_matrix(iproc, nproc, &
-           smat_in, mat_in%matrix_compr, mat_in_dense)
-      call timing(mpi_comm_world,'INIT_CUBIC','PR')
-      call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
-           mat_in_dense, exp_power, mat_out_dense)
-      call timing(mpi_comm_world,'CALC_CUBIC','PR')
-      call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
-           mat_in_dense, -exp_power, mat_check_accur_dense)
-      call dgemm_parallel(iproc, nproc, blocksize, mpi_comm_world, 'n', 'n', &
-           smat_in%nfvctr, smat_in%nfvctr, smat_in%nfvctr, &
-           1.d0, mat_out_dense(1,1), smat_in%nfvctr, &
-           mat_check_accur_dense(1,1,1), smat_in%nfvctr, 0.d0, mat_check_accur_dense(1,1,2), smat_in%nfvctr)
-      call check_deviation_from_unity_dense(smat_in%nfvctr, mat_check_accur_dense(1,1,2))
-      call timing(mpi_comm_world,'CHECK_CUBIC','PR')
-      call f_free(mat_check_accur_dense)
-      call f_free(mat_in_dense)
-      call f_free(mat_out_dense)
-
-      call f_release_routine()
-
-    end subroutine operation_using_dense_lapack
 
 end program driver_single

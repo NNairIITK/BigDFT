@@ -1395,11 +1395,11 @@
    Box                                 :  [  36,  113,  36 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [  5.265E-02,  3.7550E-01,  2.0660E-02 ]
-   norm(P)                             :  3.797352E-01
+   P vector                            :  [  5.2648E-02,  3.7549E-01,  2.0658E-02 ]
+   norm(P)                             :  3.797298E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [  1.3382E-01,  9.5442E-01,  5.2512E-02 ]
-   norm(P)                             :  9.651905E-01
+   P vector                            :  [  1.3382E-01,  9.5441E-01,  5.2508E-02 ]
+   norm(P)                             :  9.651769E-01
  Writing electronic density in file    : electronic_density
  Writing Hartree potential in file     : hartree_potential
  Calculate local forces: Yes

@@ -810,7 +810,7 @@ module module_interfaces
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, &
           correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
-          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
+          wt_philarge, wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
           cdft, input_frag, ref_frags)
         use module_defs, only: gp,dp,wp
         use module_types
@@ -852,7 +852,7 @@ module module_interfaces
         logical,intent(in) :: correction_co_contra
         type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
         type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
-        type(work_transpose),intent(inout) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+        type(work_transpose),intent(inout) :: wt_philarge, wt_hphi, wt_phi
         type(work_mpiaccumulate),intent(inout) :: fnrm, energs_work
         logical, intent(in) :: frag_calc
         !these must all be present together
@@ -1194,7 +1194,7 @@ module module_interfaces
           !real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
           character(len=*), intent(in) :: dir_output, filename
           type(fragmentInputParameters), intent(in) :: input_frag
-          type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
+          type(system_fragment), dimension(:), pointer :: ref_frags
           logical, intent(in) :: frag_calc, kernel_restart
           integer, intent(in) :: max_nbasis_env
           integer, dimension(input_frag%nfrag,max_nbasis_env,3), intent(inout) :: frag_env_mapping
@@ -1391,7 +1391,7 @@ module module_interfaces
        logical, intent(in) :: add_derivatives
        character(len=*), intent(in) :: input_dir
        type(fragmentInputParameters), intent(in) :: input_frag
-       type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
+       type(system_fragment), dimension(:), pointer :: ref_frags
        real(gp),intent(out) :: max_shift
      END SUBROUTINE reformat_supportfunctions
   end interface

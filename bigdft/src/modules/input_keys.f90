@@ -133,6 +133,7 @@ module module_input_keys
      real(kind=8) :: pexsi_temperature, pexsi_tol_charge !< temperature and tolerance on the number of electrons used by PEXSI
      real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
      logical :: plot_locreg_grids
+     integer,dimension(2) :: calculate_FOE_eigenvalues !< First and last eigenvalue to be calculated using the FOE procedure
   end type linearInputParameters
 
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
@@ -2120,9 +2121,12 @@ contains
           in%support_function_multipoles = val
        case (PLOT_LOCREG_GRIDS)
           in%lin%plot_locreg_grids = val
+       case (CALCULATE_FOE_EIGENVALUES)
+          in%lin%calculate_FOE_eigenvalues(1:2) = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+               write(*,*) 'CALCULATE_FOE_EIGENVALUES'
        end select
     case (LIN_BASIS)
        select case (trim(dict_key(val)))

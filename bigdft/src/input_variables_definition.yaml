@@ -1700,6 +1700,9 @@
      plot_locreg_grids:
        COMMENT: plot the scaling function and wavelets grid of each localization region
        default: False
+     calculate_FOE_eigenvalues:
+       COMMENT: First and last eigenvalue to be calculated using the FOE procedure
+       default: [0,-1]
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:

@@ -548,7 +548,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX,op2p_flag, symmetric
   integer :: n3p,ispot,ipotmethod,ngroup,prc,isorb,jproc,ndim,norbp
-  integer :: igpu,i_stat
+  integer :: igpu,i_stat,nsize,nspinor
   real(gp) :: evsic_tmp, ekin, epot,sfac
   real(f_double) :: tel,trm
   type(coulomb_operator) :: pkernelSIC
@@ -816,10 +816,20 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
 
         !iterate over the orbital_basis
         psi_it=orbital_basis_iterator(psi_ob)
+        ! Get the maximal size of the work array psir
+        nsize = 0
+        nspinor = 0
+        loop_lr_size: do while(ket_next_locreg(psi_it))
+           nsize = max(nsize,psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i)
+           nspinor = max(nspinor,psi_it%nspinor)
+        end do loop_lr_size
+        psir = f_malloc([nsize,nspinor],id='psir')
+        psi_it=orbital_basis_iterator(psi_ob)
         ! print *,'orbs0',psi_it%iorb,psi_it%ilr
         loop_lr: do while(ket_next_locreg(psi_it))
            ! print *,'orbs1',psi_it%iorb,psi_it%ilr,psi_it%nspinor,associated(psi_it%lr)
-           psir = f_malloc0([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='psir')
+           !psir = f_malloc0([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='psir')
+           call f_zero(psir)
            call initialize_work_arrays_locham(psi_it%lr,psi_it%nspinor,.true.,wrk_lh)
            ! wavefunction after application of the self-interaction potential
            if (ipotmethod == 2 .or. ipotmethod == 3) then
@@ -838,12 +848,13 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
               !  print *,'orbs2',psi_it%iorbp,psi_it%iorb,psi_it%ikpt,psi_it%kwgt,psi_it%occup,epot,ekin,psi_it%ispsi,psi_it%nspinor
            end do loop_psi_lr
            !deallocations of work arrays
-           call f_free(psir)
+           !call f_free(psir)
            if (ipotmethod == 2 .or. ipotmethod ==3) then
               call f_free(vsicpsir)
            end if
            call deallocate_work_arrays_locham(wrk_lh)
         end do loop_lr
+        call f_free(psir)
         !call mpibarrier()
         !stop
         call orbital_basis_release(psi_ob)

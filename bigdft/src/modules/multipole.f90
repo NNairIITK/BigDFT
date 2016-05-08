@@ -2104,11 +2104,11 @@ module multipole
       integer :: is1, ie1, is2, ie2, is3, ie3, ioffset, icheck
       real(kind=8),dimension(:,:,:),allocatable :: rho_exact, rho_mp, pot_exact, pot_mp
       integer,parameter :: ncheck = 5
-      real(kind=8),dimension(ncheck),parameter :: check_threshold = [ 1.d-6 , &
-                                                                      1.d-5 , &
-                                                                      1.d-4 , &
-                                                                      1.d-3 , &
-                                                                      1.d-2]
+      real(kind=8),dimension(ncheck),parameter :: check_threshold = [ 1.d-12 , &
+                                                                      1.d-10 , &
+                                                                      1.d-8 , &
+                                                                      1.d-6 , &
+                                                                      1.d-4]
       real(kind=8),dimension(ncheck) :: charge_error, charge_total, potential_error, potential_total
       type(cell) :: mesh
 
@@ -4367,6 +4367,7 @@ end if
    call geocode_buffers('F', lzd%glr%geocode, nl1, nl2, nl3)
 
   sigma=0.5d0
+  r=1.d0 !not used...
 
    ist = 0
    do iorb=1,orbs%norbp
@@ -4375,7 +4376,6 @@ end if
        !rmax = min(lzd%llr(ilr)%d%n1i*0.25d0*hgrids(1),lzd%llr(ilr)%d%n2i*0.25d0*hgrids(2),lzd%llr(ilr)%d%n3i*0.25d0*hgrids(3))
        rmax = min(lzd%llr(ilr)%d%n1*0.5d0*hgrids(1),lzd%llr(ilr)%d%n2*0.5d0*hgrids(2),lzd%llr(ilr)%d%n3*0.5d0*hgrids(3))
        factor_normalization = 0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3) !*3.d0/(4.d0*pi*rmax**3)
-       ii = 0
        ! Since the radial function is constant and thus not decaying towards the boundaries of the integration sphere, the center
        ! of the integration volume must be on a gridpoint to avoid truncation artifacts.
        locregcenter(1:3,ilr) = get_closest_gridpoint(lzd%llr(ilr)%locregcenter,hgrids)
@@ -4399,6 +4399,11 @@ end if
            gg3(i3) = safe_exp(-0.5d0*z**2/sigma**2)
        end do
 
+       !$omp parallel default(none) &
+       !$omp shared(lzd, nl1, nl2, nl3, ilr, locregcenter, sigma, phi2r, ist, factor_normalization) &
+       !$omp shared(gg1, gg2, gg3, r) &
+       !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, ind, l, m, factor)
+       !$omp do schedule(static)
        do i3=1,lzd%llr(ilr)%d%n3i
            ii3 = lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
            z = ii3*0.5d0*lzd%hgrids(3) - locregcenter(3,ilr)
@@ -4408,12 +4413,7 @@ end if
                do i1=1,lzd%llr(ilr)%d%n1i
                    ii1 = lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
                    x = ii1*0.5d0*lzd%hgrids(1) - locregcenter(1,ilr)
-                   !r2 = x**2+y**2+z**2
-                   !if (r2>rmax**2) cycle
-                   !r = sqrt(r2)
-                   !r = max(0.5d0,r)
                    ind = (i3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2-1)*lzd%llr(ilr)%d%n1i + i1
-                   ii = ii + 1
                    do l=0,lmax
                        do m=-l,l
                            factor = get_test_factor(l,m)*factor_normalization*sqrt(4.d0*pi*real(2*l+1,kind=8))/sigma**3
@@ -4422,21 +4422,15 @@ end if
                            else if (l==2) then
                               factor = factor/(15.d0*sigma**4)
                            end if
-!!$                           if (l==1) then
-!!$                               factor = factor*5.d0/(3.d0*rmax**2)
-!!$                           else if (l==2) then
-!!$                               factor = factor*7.d0/(3.d0*rmax**4)
-!!$                           end if
-                           !!phi2r(ist+ind) = phi2r(ist+ind) + &
-                           !!     safe_exp(-0.5d0*r2/sigma**2)*factor*solid_harmonic(0, r, l, m , x, y, z)/sqrt(twopi**3)
                            phi2r(ist+ind) = phi2r(ist+ind) + &
                                 gg1(i1)*gg2(i2)*gg3(i3)*factor*solid_harmonic(0, r, l, m , x, y, z)/sqrt(twopi**3)
                        end do
                    end do
-                   !write(*,*) 'i1, i2, i3, ist+ind, val', i1, i2, i3, ist+ind, phi2r(ist+ind)
                end do
            end do
        end do
+       !$omp end do
+       !$omp end parallel
        call f_free(gg1)
        call f_free(gg2)
        call f_free(gg3)
@@ -4644,7 +4638,7 @@ end if
    character(len=*),parameter :: no='none', onsite='on-site'
    character(len=*),parameter :: do_ortho = onsite
    type(orbital_basis) :: psi_ob
-   real(gp), dimension(3) :: acell
+   real(gp), dimension(3) :: acell, center
    real(wp), dimension(:,:,:), allocatable :: Qlm
 
    call f_routine(id='support_function_gross_multipoles')
@@ -4726,8 +4720,10 @@ end if
       call isf_to_daub(tmb%lzd%llr(ilr), w, phi1r(istr), phi1(ist))
       call deallocate_work_arrays_sumrho(w)
 
-      ! NEW: CALCULATE THE WEIGHT CENTER OF THE SUPPORT FUNCTION ############################
-      ii = istr
+      call calculate_weight_center(tmb%lzd%llr(ilr), tmb%lzd%glr, tmb%lzd%hgrids, &
+           phir(istr), center_locreg(1:3,ilr), center_orb(1:3,iiorb))
+      ist = ist + tmb%lzd%Llr(ilr)%wfd%nvctr_c + 7*tmb%lzd%Llr(ilr)%wfd%nvctr_f
+      istr = istr + tmb%lzd%Llr(ilr)%d%n1i*tmb%lzd%Llr(ilr)%d%n2i*tmb%lzd%Llr(ilr)%d%n3i
 
 !!$      mesh=cell_new(tmb%lzd%Llr(ilr)%geocode,&
 !!$           [tmb%lzd%llr(ilr)%d%n1i,tmb%lzd%llr(ilr)%d%n2i,tmb%lzd%llr(ilr)%d%n3i],0.5_gp*tmb%lzd%hgrids)
@@ -4740,44 +4736,14 @@ end if
 !!$         center_locreg(3,ilr) = center_locreg(3,ilr) + boxit%rxyz(3)*tt
 !!$         weight = weight + tt
 !!$      end do
-
-      hxh = 0.5d0*tmb%lzd%hgrids(1)
-      hyh = 0.5d0*tmb%lzd%hgrids(2)
-      hzh = 0.5d0*tmb%lzd%hgrids(3)
-
-      call geocode_buffers(tmb%lzd%Llr(ilr)%geocode, tmb%lzd%glr%geocode, nl1, nl2, nl3)
-      weight = 0.d0
-      do i3=1,tmb%lzd%llr(ilr)%d%n3i
-          ii3 = tmb%lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
-          z = ii3*hzh
-          do i2=1,tmb%lzd%llr(ilr)%d%n2i
-              ii2 = tmb%lzd%llr(ilr)%nsi2 + i2 - nl2 - 1
-              y = ii2*hyh
-              do i1=1,tmb%lzd%llr(ilr)%d%n1i
-                  ii1 = tmb%lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
-                  x = ii1*hxh
-                  tt = phir(ii)**2
-                  center_locreg(1,ilr) = center_locreg(1,ilr) + x*tt
-                  center_locreg(2,ilr) = center_locreg(2,ilr) + y*tt
-                  center_locreg(3,ilr) = center_locreg(3,ilr) + z*tt
-                  weight = weight + tt
-                  ii = ii + 1
-              end do
-          end do
-      end do
-      !write(*,*) 'iorb, weight, sum(phir)',iorb, weight, sum(phir)
-      center_locreg(1:3,ilr) = center_locreg(1:3,ilr)/weight
-      center_orb(1:3,iiorb) = center_locreg(1:3,ilr)
-      !write(*,*) 'iorb, ilr, center_locreg(1:3,ilr), lzd%llr(ilr)%locregcenter(1:3)', &
-      !            iorb, ilr, center_locreg(1:3,ilr), tmb%lzd%llr(ilr)%locregcenter(1:3)
-      ! ######################################################################################
-      ist = ist + tmb%lzd%Llr(ilr)%wfd%nvctr_c + 7*tmb%lzd%Llr(ilr)%wfd%nvctr_f
-      istr = istr + tmb%lzd%Llr(ilr)%d%n1i*tmb%lzd%Llr(ilr)%d%n2i*tmb%lzd%Llr(ilr)%d%n3i
   end do
 
+
+
   if(istr/=tmb%collcom_sr%ndimpsi_c+1) then
-      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=tmb%collcom_sr%ndimpsi_c+1'
-      stop
+      call f_err_throw('istr/=tmb%collcom_sr%ndimpsi_c+1')
+      !write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=tmb%collcom_sr%ndimpsi_c+1'
+      !stop
   end if
 
   if (nproc>1) then
@@ -4785,6 +4751,9 @@ end if
       call mpiallred(center_orb, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
+  hxh = 0.5d0*tmb%lzd%hgrids(1)
+  hyh = 0.5d0*tmb%lzd%hgrids(2)
+  hzh = 0.5d0*tmb%lzd%hgrids(3)
   factor = hxh*hyh*hzh
 
   !alternative solution, less memory, less operations, less communications
@@ -4843,7 +4812,7 @@ end if
  
   if (iproc==0) then
       call yaml_sequence_open('Gross support functions moments')
-      call yamL_map('Orthonormalization',do_ortho)
+      call yaml_map('Orthonormalization',do_ortho)
       iatype_tmp = f_malloc(tmb%orbs%norb,id='iatype_tmp')
       delta_centers = f_malloc((/3,tmb%orbs%norb/),id='delta_centers')
       iat_old = -1
@@ -5227,6 +5196,7 @@ end if
    ! Local variables
    integer :: impl, i1, i2, i3, ii1, ii2, ii3, l
    real(kind=8) :: gg
+   real(kind=8),dimension(0:lmax) :: gg23
 
    call f_routine(id='calculate_norm')
 
@@ -5235,7 +5205,7 @@ end if
    !$omp parallel default(none) &
    !$omp shared(ep, is1, ie1, is2, ie2, is3, ie3, norm, hhh) &
    !$omp shared(gaussians1, gaussians2, gaussians3) &
-   !$omp private(impl, i1, i2, i3, ii1, ii2, ii3, l, gg) 
+   !$omp private(impl, i1, i2, i3, ii1, ii2, ii3, l, gg23, gg) 
    !$omp do schedule(guided)
    do impl=1,ep%nmpl
        i3loop: do i3=is3,ie3
@@ -5244,12 +5214,16 @@ end if
            i2loop: do i2=is2,ie2
                if (maxval(gaussians2(:,i2,impl))<1.d-20) cycle i2loop
                ii2 = i2 - 15
+               do l=0,lmax
+                   gg23(l) = gaussians2(l,i2,impl)*gaussians3(l,i3,impl)
+               end do
                i1loop: do i1=is1,ie1
                    if (maxval(gaussians1(:,i1,impl))<1.d-20) cycle i1loop
                    ii1 = i1 - 15
                    do l=0,lmax
                        ! Calculate the Gaussian as product of three 1D Gaussians
-                       gg = gaussians1(l,i1,impl)*gaussians2(l,i2,impl)*gaussians3(l,i3,impl)
+                       !gg = gaussians1(l,i1,impl)*gaussians2(l,i2,impl)*gaussians3(l,i3,impl)
+                       gg = gaussians1(l,i1,impl)*gg23(l)
                        norm(l,impl) = norm(l,impl) + gg*hhh
                    end do
                end do i1loop
@@ -5290,9 +5264,10 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
   real(kind=8),dimension(3,3),intent(out),optional :: quadrupole
   logical,intent(in),optional :: quiet_
 
-  integer :: ierr,n3p,nc1,nc2,nc3, nnc3, ii3, i3shift
+!  integer :: ierr,n3p,nc1,nc2,nc3, nnc3, ii3, i3shift
   real(gp) :: q,qtot, delta_term,x,y,z,ri,rj,tt
-  integer  :: iat,i1,i2,i3, nl1,nl2,nl3, ispin,n1i,n2i,n3i, i, j, is, ie
+  !integer  :: i1,i2,i3, nl1,nl2,nl3, n1i,n2i,n3i,  is, ie
+  integer :: iat,ispin,i, j
   real(gp), dimension(3) :: dipole_el,dipole_cores,tmpdip,charge_center_cores
   real(gp),dimension(3,nspin) :: charge_center_elec
   real(gp), dimension(3,3) :: quadropole_el,quadropole_cores,tmpquadrop
@@ -5308,46 +5283,46 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
       quiet = .false.
   end if
   
-  n1i=dpbox%mesh%ndims(1)
-  n2i=dpbox%mesh%ndims(2)
-  n3i=dpbox%mesh%ndims(3)
-  n3p=dpbox%n3p
-
-
-  if (at%astruct%geocode /= 'F') then
-     nl1=1
-     !nl3=1
-     nc1=n1i
-     !nc3=n3i
-     nc3=n3p
-     nnc3=n3i
-     !is = 1
-     is = dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1
-     ie = dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+dpbox%nscatterarr(dpbox%mpi_env%iproc,2)
-     i3shift = 1
-  else
-     nl1=15
-     !nl3=15
-     !nl3=max(1,15-dpbox%nscatterarr(dpbox%mpi_env%iproc,3))
-     nc1=n1i-31
-     !nc3=n3i-31
-     !nc3=n3p-31
-     is = max(dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1,15)
-     ie = min(dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+dpbox%nscatterarr(dpbox%mpi_env%iproc,2),n3i-17)
-     nnc3=n3i-31
-     i3shift = 15
-     !write(*,*) 'iproc, is, ie, nl3, nc3, n3p', bigdft_mpi%iproc, is, ie, nl3, nc3, n3p
-  end if
-  nc3 = ie - is + 1 !number of z planes to be treated
-  nl3=max(1,i3shift-dpbox%nscatterarr(dpbox%mpi_env%iproc,3)) !offset within rho array
-  !value of the buffer in the y direction
-  if (at%astruct%geocode == 'P') then
-     nl2=1
-     nc2=n2i
-  else
-     nl2=15
-     nc2=n2i-31
-  end if
+!!$  n1i=dpbox%mesh%ndims(1)
+!!$  n2i=dpbox%mesh%ndims(2)
+!!$  n3i=dpbox%mesh%ndims(3)
+!!$  n3p=dpbox%n3p
+!!$
+!!$
+!!$  if (at%astruct%geocode /= 'F') then
+!!$     nl1=1
+!!$     !nl3=1
+!!$     nc1=n1i
+!!$     !nc3=n3i
+!!$     nc3=n3p
+!!$     nnc3=n3i
+!!$     !is = 1
+!!$     is = dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1
+!!$     ie = dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+dpbox%nscatterarr(dpbox%mpi_env%iproc,2)
+!!$     i3shift = 1
+!!$  else
+!!$     nl1=15
+!!$     !nl3=15
+!!$     !nl3=max(1,15-dpbox%nscatterarr(dpbox%mpi_env%iproc,3))
+!!$     nc1=n1i-31
+!!$     !nc3=n3i-31
+!!$     !nc3=n3p-31
+!!$     is = max(dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1,15)
+!!$     ie = min(dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+dpbox%nscatterarr(dpbox%mpi_env%iproc,2),n3i-17)
+!!$     nnc3=n3i-31
+!!$     i3shift = 15
+!!$     !write(*,*) 'iproc, is, ie, nl3, nc3, n3p', bigdft_mpi%iproc, is, ie, nl3, nc3, n3p
+!!$  end if
+!!$  nc3 = ie - is + 1 !number of z planes to be treated
+!!$  nl3=max(1,i3shift-dpbox%nscatterarr(dpbox%mpi_env%iproc,3)) !offset within rho array
+!!$  !value of the buffer in the y direction
+!!$  if (at%astruct%geocode == 'P') then
+!!$     nl2=1
+!!$     nc2=n2i
+!!$  else
+!!$     nl2=15
+!!$     nc2=n2i-31
+!!$  end if
 
   qtot=0.d0
   call f_zero(dipole_cores)!(1:3)=0._gp
@@ -5566,11 +5541,12 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
   !!write(*,*) 'tmpdip',tmpdip
   if (present(dipole)) dipole(1:3) = tmpdip(1:3)
   if(bigdft_mpi%iproc==0 .and. .not.quiet) then
+     call yaml_map('Multipole analysis origin',charge_center_cores,fmt='(1pe14.6)')
      call yaml_mapping_open('Electric Dipole Moment (AU)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
      call yaml_mapping_close()
-     tmpdip=tmpdip/Debye_AU  ! au2debye              
+     tmpdip=tmpdip/Debye_AU  ! au2debye
      call yaml_mapping_open('Electric Dipole Moment (Debye)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
@@ -6235,10 +6211,67 @@ end subroutine calculate_rpowerx_matrices
        call mpiallred(igood,1,op=mpi_sum, comm=bigdft_mpi%mpi_comm)
     end if
 
-    print *,'iproc',icnt,igood,bigdft_mpi%iproc
-
     call f_release_routine()
 
     end subroutine compare_charge_and_potential
+
+
+    subroutine calculate_weight_center(llr, glr, hgrids, phir, center_locreg, center_orb)
+      use module_base
+      use module_types, only: locreg_descriptors
+      use bounds, only: geocode_buffers
+      implicit none
+
+      ! Calling arguments
+      type(locreg_descriptors),intent(in) :: llr, glr
+      real(kind=8),dimension(3),intent(in) :: hgrids
+      real(kind=8),dimension(llr%d%n1i*llr%d%n2i*llr%d%n3i),intent(in) :: phir
+      real(kind=8),dimension(3),intent(out) :: center_locreg
+      real(kind=8),dimension(3),intent(out) :: center_orb
+
+      ! Local variables
+      integer :: nl1, nl2, nl3, i1, i2, i3, ii1, ii2, ii3, ii
+      real(kind=8) :: weight, hxh, hyh, hzh, x, y, z, tt
+      real(kind=8),dimension(3) :: center
+
+      call f_routine(id='calculate_weight_center')
+
+      hxh = 0.5d0*hgrids(1)
+      hyh = 0.5d0*hgrids(2)
+      hzh = 0.5d0*hgrids(3)
+      call geocode_buffers(llr%geocode, glr%geocode, nl1, nl2, nl3)
+      weight = 0.d0
+      center(1:3) = 0.0_gp
+      !$omp parallel default(none) &
+      !$omp shared(llr, nl1, nl2, nl3, hxh, hyh, hzh, phir, center, weight) &
+      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, ii)
+      !$omp do reduction(+: center, weight)
+      do i3=1,llr%d%n3i
+          ii3 = llr%nsi3 + i3 - nl3 - 1
+          z = ii3*hzh
+          do i2=1,llr%d%n2i
+              ii2 = llr%nsi2 + i2 - nl2 - 1
+              y = ii2*hyh
+              do i1=1,llr%d%n1i
+                  ii1 = llr%nsi1 + i1 - nl1 - 1
+                  x = ii1*hxh
+                  ii = (i3-1)*llr%d%n2i*llr%d%n1i+(i2-1)*llr%d%n1i+i1
+                  tt = phir(ii)**2
+                  center(1) = center(1) + x*tt
+                  center(2) = center(2) + y*tt
+                  center(3) = center(3) + z*tt
+                  weight = weight + tt
+                  !!ii = ii + 1
+              end do
+          end do
+      end do
+      !$omp end do
+      !$omp end parallel
+      center_locreg(1:3) = center(1:3)/weight
+      center_orb(1:3) = center_locreg(1:3)
+
+      call f_release_routine()
+
+    end subroutine calculate_weight_center
 
 end module multipole

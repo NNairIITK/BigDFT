@@ -75,7 +75,7 @@ program driver_css
   call matrix_fermi_operator_expansion(iproc, nproc, mpi_comm_world, &
        foe_obj, ice_obj, smat_s, smat_h, smat_k, &
        mat_s, mat_h, mat_ovrlpminusonehalf, mat_k, energy, &
-       calculate_minusonehalf=.true., foe_verbosity=0, symmetrize_kernel=.true.)
+       calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true.)
 
   ! Write the result in YAML format to the standard output (required for non-regression tests).
   if (iproc==0) call write_matrix_compressed('Result of FOE', smat_k, mat_k)
@@ -115,7 +115,7 @@ program driver_css
   call foe_data_deallocate(foe_obj)
   call foe_data_deallocate(ice_obj)
 
-  ! Deallocate all the sparse matrix descriptrs types
+  ! Deallocate all the sparse matrix descriptors types
   call deallocate_sparse_matrix(smat_s)
   call deallocate_sparse_matrix(smat_h)
   call deallocate_sparse_matrix(smat_k)

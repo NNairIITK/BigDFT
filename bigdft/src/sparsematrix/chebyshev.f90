@@ -32,13 +32,13 @@ module chebyshev
     
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, ncalc
-      real(8),dimension(npl,3,ncalc),intent(in) :: cc
+      real(8),dimension(npl,2,ncalc),intent(in) :: cc
       type(sparse_matrix), intent(in) :: kernel
       real(kind=mp),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
       logical,intent(in) :: calculate_SHS
       real(kind=mp),dimension(kernel%nvctrp_tg),intent(inout) :: workarr_compr
       real(kind=mp),dimension(kernel%smmm%nvctrp,ncalc),intent(out) :: fermi_new
-      real(kind=mp),dimension(kernel%smmm%nvctrp,2),intent(out) :: penalty_ev_new
+      real(kind=mp),dimension(kernel%smmm%nvctrp),intent(out) :: penalty_ev_new
       real(kind=mp),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
       logical,dimension(2),intent(out) :: emergency_stop
       real(kind=mp),dimension(kernel%nvctrp_tg),intent(in),optional :: invovrlp_compr
@@ -134,8 +134,8 @@ module chebyshev
               end do
               !write(* *) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
               !write(*,*) 'cc(1,2,1), cc(1,3,1)', cc(1,2,1), cc(1,3,1)
-              call axpy(kernel%smmm%nvctrp, 0.5d0*cc(1,2,1), vectors_new(1,4), 1, penalty_ev_new(1,1), 1)
-              call axpy(kernel%smmm%nvctrp, 0.5d0*cc(1,3,1), vectors_new(1,4), 1, penalty_ev_new(1,2), 1)
+              call axpy(kernel%smmm%nvctrp, 0.5d0*cc(1,2,1), vectors_new(1,4), 1, penalty_ev_new(1), 1)
+              !call axpy(kernel%smmm%nvctrp, 0.5d0*cc(1,3,1), vectors_new(1,4), 1, penalty_ev_new(1,2), 1)
               !write(*,*) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
             
               call sparsemm_new(iproc, kernel, mat_seq, vectors_new(1,3), vectors_new(1,1))
@@ -149,8 +149,8 @@ module chebyshev
                   call axpy(kernel%smmm%nvctrp, cc(2,1,icalc), vectors_new(1,2), 1, fermi_new(1,icalc), 1)
               end do
               !write(*,*) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
-              call axpy(kernel%smmm%nvctrp, cc(2,2,1), vectors_new(1,2), 1, penalty_ev_new(1,1), 1)
-              call axpy(kernel%smmm%nvctrp, cc(2,3,1), vectors_new(1,2), 1, penalty_ev_new(1,2), 1)
+              call axpy(kernel%smmm%nvctrp, cc(2,2,1), vectors_new(1,2), 1, penalty_ev_new(1), 1)
+              !call axpy(kernel%smmm%nvctrp, cc(2,3,1), vectors_new(1,2), 1, penalty_ev_new(1,2), 1)
             
               !write(*,*) ' before loop: sum(penalty_ev_new)', sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2))
             
@@ -164,8 +164,8 @@ module chebyshev
                   do icalc=1,ncalc
                       call axpy(kernel%smmm%nvctrp, cc(ipl,1,icalc), vectors_new(1,3), 1, fermi_new(1,icalc), 1)
                   end do
-                  call axpy(kernel%smmm%nvctrp, cc(ipl,2,1), vectors_new(1,3), 1, penalty_ev_new(1,1), 1)
-                  call axpy(kernel%smmm%nvctrp, cc(ipl,3,1), vectors_new(1,3), 1, penalty_ev_new(1,2), 1)
+                  call axpy(kernel%smmm%nvctrp, cc(ipl,2,1), vectors_new(1,3), 1, penalty_ev_new(1), 1)
+                  !call axpy(kernel%smmm%nvctrp, cc(ipl,3,1), vectors_new(1,3), 1, penalty_ev_new(1,2), 1)
 
                   !write(*,*) 'in loop: sum(penalty_ev_new)', &
                   !    ipl, sum(penalty_ev_new(:,1)), sum(penalty_ev_new(:,2)), &

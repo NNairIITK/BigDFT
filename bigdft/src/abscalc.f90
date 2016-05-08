@@ -114,6 +114,8 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    !integer :: ierr
    real(gp) :: hx_old, hy_old, hz_old
 
+   call f_routine(id='call_abscalc')
+
    !put a barrier for all the processes
    call mpibarrier()
 
@@ -144,6 +146,8 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
 
    !put a barrier for all the processes
    call mpibarrier()!MPI_COMM_WORLD,ierr)
+
+   call f_release_routine()
 
 END SUBROUTINE call_abscalc
 
@@ -324,6 +328,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         integer, intent(in) ::potshortcut
       END SUBROUTINE extract_potential_for_spectra
    end interface
+
+   call f_routine(id='abscalc')
 
    energs= energy_terms_null()
    if (in%potshortcut==0) then
@@ -1120,6 +1126,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call deallocate_before_exiting
 !   call deallocate_local_zone_descriptors(lzd)
+
+   call f_release_routine()
 
    contains
 

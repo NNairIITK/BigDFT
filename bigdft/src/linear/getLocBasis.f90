@@ -77,8 +77,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical, optional, intent(in) :: updatekernel
 
   ! Local variables 
-  integer :: iorb, info, ishift, ispin, ii, jorb, i, ishifts, ishiftm, jproc
-  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval, tmparr1, tmparr2, tmparr, ovrlp_large, ham_large
+  integer :: iorb, info, ishift, ispin, ii, jorb, i, ishifts, ishiftm, jproc, j
+  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval, tmparr1, tmparr2, tmparr, ovrlp_large, ham_large, eval2
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp, tempmat
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -361,6 +361,23 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
                    matrixElements(1,1,1), tmb%linmat%m%nfvctr, matrixElements(1,1,2), tmb%linmat%m%nfvctr, &
                    eval, info)
           end if
+          !tmb%linmat%ham_%matrix_compr = tmb%linmat%ham_%matrix_compr*10.d0
+          !!do i=1,tmb%orbs%norb
+          !!    write(*,*) 'i, eval(i)', i, eval(i)
+          !!    do j=1,tmb%orbs%norb
+          !!        write(*,*) 'j,i,val',j,i,matrixElements(j,i,1)
+          !!    end do
+          !!end do
+          !eval2 = f_malloc(tmb%linmat%l%nfvctr,id='eval2')
+          !call get_selected_eigenvalues(iproc, nproc, bigdft_mpi%mpi_comm, .true., 2, &
+          !     1, tmb%orbs%norb, &
+          !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+          !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), eval2)
+          !do i=1,tmb%orbs%norb
+          !    write(*,*) 'i, evals', i, eval(i), eval2(i)
+          !end do
+          !call f_free(eval2)
+          !tmb%linmat%ham_%matrix_compr = tmb%linmat%ham_%matrix_compr/10.d0
 
           ! Broadcast the results (eigenvectors and eigenvalues) from task 0 to
           ! all other tasks (in this way avoiding that different MPI tasks have different values)
@@ -591,11 +608,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           !!call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
           !!     tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, tt)
           !!if (iproc==0) call yaml_map('max assymetry of S',tt)
+
           call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
                tmb%foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, &
                energs%ebs, &
-               calculate_minusonehalf=invert_overlap_matrix, foe_verbosity=2, symmetrize_kernel=.true.)
+               calculate_minusonehalf=invert_overlap_matrix, foe_verbosity=1, symmetrize_kernel=.true.)
           !!call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
           !!     tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tt)
           !!if (iproc==0) call yaml_map('max assymetry of K',tt)
@@ -695,7 +713,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, &
     correction_co_contra, &
     precond_convol_workarrays, precond_workarrays, &
-    wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
+    wt_philarge,  wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
     cdft, input_frag, ref_frags)
   !
   ! Purpose:
@@ -758,7 +776,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(in) :: correction_co_contra
   type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
   type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
-  type(work_transpose),intent(inout) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+  type(work_transpose),intent(inout) :: wt_philarge, wt_hphi, wt_phi
   type(work_mpiaccumulate),intent(inout) :: fnrm, energs_work
   logical, intent(in) :: frag_calc
   !these must all be present together
@@ -797,7 +815,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
           hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
           norder_taylor, max_inversion_error, precond_convol_workarrays, precond_workarrays,&
-          wt_hphi, wt_philarge, wt_hpsinoprecond, &
+          wt_hphi, wt_philarge, &
           cdft, input_frag, ref_frags)
        use module_defs, only: gp,dp,wp
        use module_types
@@ -832,7 +850,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
        type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
        type(work_transpose),intent(inout) :: wt_hphi
        type(work_transpose),intent(inout) :: wt_philarge
-       type(work_transpose),intent(out) :: wt_hpsinoprecond
        type(cdft_data),intent(inout),optional :: cdft
        type(fragmentInputParameters), optional, intent(in) :: input_frag
        type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
@@ -1159,7 +1176,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
            max_inversion_error=max_inversion_error, &
            precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays, &
-           wt_hphi=wt_hphi, wt_philarge=wt_philarge, wt_hpsinoprecond=wt_hpsinoprecond,&
+           wt_hphi=wt_hphi, wt_philarge=wt_philarge, &
            cdft=cdft, input_frag=input_frag, ref_frags=ref_frags)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       !fnrm_old=fnrm
@@ -1290,7 +1307,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               !call bigdft_utils_flush(unit=6)
               ! This is to avoid memory leaks
               call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-                   TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_hpsinoprecond)
+                   TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_philarge)
 
               ! for fragment calculations tmbs may be far from orthonormality so allow an increase in energy for a few iterations
               if (frag_calc .and. itout<4) then
@@ -1394,7 +1411,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           ! Give hpsit_c and hpsit_f, this should not matter if GATHER is specified.
           ! To be modified later
           call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-               TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_hpsinoprecond)
+               TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_philarge)
 
           exit iterLoop
       end if
@@ -1419,7 +1436,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! To be modified later
       hphi_nococontra = f_malloc(tmb%ham_descr%npsidim_orbs,id='hphi_nococontra')
       call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-           TRANSPOSE_GATHER, hpsit_c, hpsit_f, hphi_nococontra, tmb%ham_descr%lzd, wt_hpsinoprecond)
+           TRANSPOSE_GATHER, hpsit_c, hpsit_f, hphi_nococontra, tmb%ham_descr%lzd, wt_philarge)
       call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, hphi_nococontra, hpsi_tmp)
       call f_free(hphi_nococontra)
@@ -2956,7 +2973,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
        verbosity=0, &
-       check_accur=.true., max_error=max_error, mean_error=mean_error, &
+       check_accur=order_taylor<1000, max_error=max_error, mean_error=mean_error, &
        ice_obj=tmb%ice_obj)
   call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
 
@@ -3195,7 +3212,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
            foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
-           ebs, calculate_minusonehalf=.true., foe_verbosity=2, symmetrize_kernel=.true.)
+           ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true.)
       !call fermi_operator_expansion(iproc, nproc, &
       !     ebs, norder_taylor, input%lin%max_inversion_error, &
       !     .true., 2, &
@@ -3226,7 +3243,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
            foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
-           ebs, calculate_minusonehalf=.true., foe_verbosity=2, symmetrize_kernel=.true.)
+           ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true.)
       !call fermi_operator_expansion(iproc, nproc, &
       !     ebs, norder_taylor, input%lin%max_inversion_error, &
       !     .true., 2, &

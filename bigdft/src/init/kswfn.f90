@@ -117,6 +117,7 @@ END SUBROUTINE kswfn_mpi_copy
 
 subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc, nspin, imethod_overlap)
   use module_dpbox, only: denspot_distribution
+  use module_base
   use module_types
   !use module_interfaces, except_this_one => kswfn_init_comm
   use communications_base, only: comms_linear_null
@@ -126,6 +127,8 @@ subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc, nspin, imethod_overlap)
   integer, intent(in) :: iproc, nproc, nspin, imethod_overlap
   type(DFT_wavefunction), intent(inout) :: wfn
   type(denspot_distribution), intent(in) :: dpbox
+
+  call f_routine(id='kswfn_init_comm')
 
   ! Nullify all pointers
   nullify(wfn%psi)
@@ -147,6 +150,8 @@ subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc, nspin, imethod_overlap)
 
   call init_comms_linear(iproc, nproc, imethod_overlap, wfn%npsidim_orbs, wfn%orbs, wfn%lzd, nspin, wfn%collcom)
   call init_comms_linear_sumrho(iproc, nproc, wfn%lzd, wfn%orbs, nspin, dpbox%nscatterarr, wfn%collcom_sr)
+
+  call f_release_routine()
 
 END SUBROUTINE kswfn_init_comm
 

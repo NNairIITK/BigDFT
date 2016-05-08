@@ -1456,7 +1456,7 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
 
   !allocate pointer rhocore
      chg_at=f_malloc0(at%astruct%ntypes,id='chg_at')
-  rhocore = f_malloc0_ptr((/ dpbox%mesh%ndims(1) , dpbox%mesh%ndims(2) , dpbox%n3d , 10 /), id = 'rhocore')
+  rhocore = f_malloc0_ptr((/ dpbox%mesh%ndims(1) , dpbox%mesh%ndims(2) ,max(dpbox%n3d,1) , 10 /), id = 'rhocore')
   !perform the loop on any of the atoms which have this feature
   do ityp = 1, at%astruct%ntypes
      if (at%npspcode(ityp) == PSPCODE_PAW) then

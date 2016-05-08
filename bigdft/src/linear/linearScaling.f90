@@ -57,7 +57,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use orthonormalization, only : orthonormalizeLocalized
   use multipole_base, only: lmax, external_potential_descriptors, deallocate_external_potential_descriptors
   use orbitalbasis
-
+  use sparsematrix_highlevel, only: get_selected_eigenvalues_from_FOE
   implicit none
 
   ! Calling arguments
@@ -107,7 +107,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   logical :: keep_value
   type(workarrays_quartic_convolutions), dimension(:), pointer :: precond_convol_workarrays
   type(workarr_precond), dimension(:), pointer :: precond_workarrays
-  type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+  type(work_transpose) :: wt_philarge, wt_hphi, wt_phi
   integer, dimension(:,:), allocatable :: ioffset_isf
   integer :: is1, is2, is3, ie1, ie2, ie3, i1, i2, i3, ii, jj, info, ist
   real(kind=8), dimension(:), pointer :: hpsit_c, hpsit_f
@@ -121,7 +121,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   type(matrices) :: weight_matrix_
   real(kind=8) :: sign_of_energy_change
-  integer :: nit_energyoscillation
+  integer :: nit_energyoscillation, ieval_min, ieval_max
   integer(kind=8) :: nsize
   type(work_mpiaccumulate) :: fnrm_work, energs_work
   integer :: ilr, iiorb, iiat
@@ -132,7 +132,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   real(kind=8), dimension(:,:), allocatable :: ham_small, coeffs
   real(kind=8), dimension(:,:), pointer :: com
   real(kind=8), dimension(:,:), allocatable :: coeff
-  real(kind=8), dimension(:,:,:), allocatable :: matrixElements, coeff_all
+  real(kind=8),dimension(:),allocatable :: projector_compr, evals
+  real(kind=8), dimension(:,:,:), allocatable :: matrixElements, coeff_all,multipoles_out
   real(kind=8), dimension(:,:,:), pointer :: multipoles
 !!$  real(kind=8), dimension(:), allocatable :: projector_compr
   !type(external_potential_descriptors) :: ep
@@ -374,11 +375,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
           if (itout==1) then
               call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
               wt_philarge = work_transpose_null()
-              wt_hpsinoprecond = work_transpose_null()
               wt_hphi = work_transpose_null()
               wt_phi = work_transpose_null()
               call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
-              call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
               call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
               call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
           end if
@@ -394,11 +393,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                nitdmin=input%lin%nItdmin_highaccuracy
           call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
           wt_philarge = work_transpose_null()
-          wt_hpsinoprecond = work_transpose_null()
           wt_hphi = work_transpose_null()
           wt_phi = work_transpose_null()
           call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
-          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
           call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
           call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
       end if
@@ -431,17 +428,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
 
           call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
           call deallocate_work_transpose(wt_philarge)
-          call deallocate_work_transpose(wt_hpsinoprecond)
           call deallocate_work_transpose(wt_hphi)
           call deallocate_work_transpose(wt_phi)
 
           call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
           wt_philarge = work_transpose_null()
-          wt_hpsinoprecond = work_transpose_null()
           wt_hphi = work_transpose_null()
           wt_phi = work_transpose_null()
           call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
-          call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
           call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
           call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
 
@@ -613,7 +607,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                   can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
                   input%correction_co_contra, &
                   precond_convol_workarrays, precond_workarrays, &
-                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation, &
+                  wt_philarge, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation, &
                   cdft, input%frag, ref_frags)
            else
               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
@@ -625,7 +619,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                   input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
                   can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
                   input%correction_co_contra, precond_convol_workarrays, precond_workarrays, &
-                  wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)
+                  wt_philarge, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)
               !if (iproc==0) call yaml_scalar('call boundary analysis')
               call get_boundary_weight(iproc, nproc, tmb%orbs, tmb%lzd, at, &
                    input%crmult, tmb%npsidim_orbs, tmb%psi, 1.d-2)
@@ -780,7 +774,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   if (nit_lowaccuracy+nit_highaccuracy>0) then
       call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
       call deallocate_work_transpose(wt_philarge)
-      call deallocate_work_transpose(wt_hpsinoprecond)
       call deallocate_work_transpose(wt_hphi)
       call deallocate_work_transpose(wt_phi)
   end if
@@ -994,6 +987,43 @@ end if
   end if
 
 
+  ! Calculate selected eigenvalues
+  if (input%lin%calculate_FOE_eigenvalues(2)>input%lin%calculate_FOE_eigenvalues(1)) then
+      if (iproc==0) then
+          call yaml_mapping_open('Calculating eigenvalues using FOE')
+          if (input%lin%calculate_FOE_eigenvalues(1)<1 .or. input%lin%calculate_FOE_eigenvalues(2)>tmb%orbs%norb) then
+              if (iproc==0) then
+                  call yaml_warning('The required eigenvalues are outside of the possible range, automatic ajustment')
+              end if
+          end if
+      end if
+      ieval_min = max(1,input%lin%calculate_FOE_eigenvalues(1))
+      ieval_max = min(tmb%orbs%norb,input%lin%calculate_FOE_eigenvalues(2))
+      evals = f_malloc(ieval_min.to.ieval_max,id='evals')
+      !!call get_selected_eigenvalues(iproc, nproc, bigdft_mpi%mpi_comm, .true., 2, &
+      !!     ieval_min, ieval_max, &
+      !!     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      !!     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), evals)
+      call get_selected_eigenvalues_from_FOE(iproc, nproc, bigdft_mpi%mpi_comm, &
+           ieval_min, ieval_max, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+           tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), evals, &
+           calculate_minusonehalf=.true., foe_verbosity=2)
+
+      if (iproc==0) then
+          call yaml_sequence_open('values')
+          do ieval=ieval_min,ieval_max
+              call yaml_sequence(advance='no')
+              call yaml_mapping_open(flow=.true.)
+              call yaml_map('ID',ieval,fmt='(i6.6)')
+              call yaml_map('eval',evals(ieval),fmt='(es12.5)')
+              call yaml_mapping_close()
+          end do
+          call yaml_sequence_close()
+          !!call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
+          call yaml_mapping_close()
+      end if
+      call f_free(evals)
+  end if
 
 
   ! only do if explicitly activated, but still check for fragment calculation

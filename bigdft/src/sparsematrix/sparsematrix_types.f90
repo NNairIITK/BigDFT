@@ -41,7 +41,7 @@ module sparsematrix_types
       integer :: isvctr !< starting entry of the compressed matrix elements
       integer,dimension(:),pointer :: isvctr_par, nvctr_par !<array that contains the values of nvctrp and isvctr of all MPI tasks
       integer :: nconsecutive_max !< max number of blocks (i.e. consecutive entries) for the sparse matmul
-      integer,dimension(:,:,:),pointer :: consecutive_lookup !< lookup arrays for these blocks
+      integer,dimension(:,:),pointer :: consecutive_lookup !< lookup arrays for these blocks
   end type sparse_matrix_matrix_multiplication
 
   type,public :: sparse_matrix
@@ -79,6 +79,7 @@ module sparsematrix_types
       integer :: nccomm !<number of communications required for the compress distributed in the dense parallel format
       integer,dimension(:,:),pointer :: luccomm !<lookup array for the communications required for the compress distributed in the dense parallel format
       logical :: smatmul_initialized !< indicated whether the sparse matmul type has been initialized
+      integer,dimension(:),pointer :: transposed_lookup_local !< lookup arrays for the transposed entries of the sparse matrix which is actually used by a given MPI task
   end type sparse_matrix
 
   type,public :: sparse_matrix_metadata
