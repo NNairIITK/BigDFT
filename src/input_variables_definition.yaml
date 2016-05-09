@@ -1668,6 +1668,10 @@
      calculate_FOE_eigenvalues:
        COMMENT: First and last eigenvalue to be calculated using the FOE procedure
        default: [0,-1]
+     precision_FOE_eigenvalues:
+       COMMENT: decay length of the error function used to extract the eigenvalues (i.e. something like the resolution)
+       default: 5.e-3
+       RANGE: [0.0,1.e-1]
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:

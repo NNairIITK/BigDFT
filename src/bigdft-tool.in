@@ -182,6 +182,8 @@ def parse():
     # solve the eigensystem to get the coefficients
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[14],
                         "solve eigensystem")
+    group.add_option("--metadata_file", type="str", default="sparsematrix_metadata.bin", metavar="METADATANAME",
+             		 help="input file with the sparse matrix metadata[default: %default]")
     group.add_option("--hamiltonian_file", type="str", default="ham.bin", metavar="MATRIXNAME",
              		 help="input file with the hamiltonian[default: %default]")
     group.add_option("--overlap_file", type="str", default="ham.bin", metavar="MATRIXNAME",
@@ -250,6 +252,7 @@ def parse():
     #         		 help="ouput file [default: %default]")
     group.add_option("--iev_min", type="int", default=1, metavar="NUM",)
     group.add_option("--iev_max", type="int", default=1000000, metavar="NUM",)
+    group.add_option("--fscale", type="float", default=1.e-2, metavar="NUM",)
 
     return parser
 
@@ -892,7 +895,7 @@ options:
         print command
         command = "%s %s convert-matrix-format %s %s %s" % (options.mpirun, utilities, options.conversion, options.infile, options.outfile)
     if options.action == actions[23]:
-        command = "%s %s calculate-selected-eigenvalues %s %s %s %i %i" % (options.mpirun, utilities, options.overlap_file, options.hamiltonian_file, options.kernel_file, options.iev_min, options.iev_max)
+        command = "%s %s calculate-selected-eigenvalues %s %s %s %s %i %i %f" % (options.mpirun, utilities, options.metadata_file, options.overlap_file, options.hamiltonian_file, options.kernel_file, options.iev_min, options.iev_max, options.fscale)
         print command
     if command is not None:
         os.system(command)

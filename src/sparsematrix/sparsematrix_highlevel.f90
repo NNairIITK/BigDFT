@@ -606,7 +606,7 @@ module sparsematrix_highlevel
 
     subroutine get_selected_eigenvalues_from_FOE(iproc, nproc, comm, iev_min, iev_max, &
                smat_s, smat_h, smat_k, overlap, ham, overlap_minus_one_half, evals, &
-               calculate_minusonehalf, foe_verbosity)
+               fscale, calculate_minusonehalf, foe_verbosity)
       use foe_base, only: foe_data
       use foe, only: get_selected_eigenvalues
       implicit none
@@ -617,12 +617,14 @@ module sparsematrix_highlevel
       type(matrices),intent(in) :: overlap, ham
       type(matrices),dimension(1),intent(inout) :: overlap_minus_one_half
       real(kind=mp),dimension(iev_min:iev_max),intent(out) :: evals
+      real(mp),intent(in),optional :: fscale
       logical,intent(in),optional :: calculate_minusonehalf
       integer,intent(in),optional :: foe_verbosity
 
       ! Local variables
       logical :: calculate_minusonehalf_, symmetrize_kernel_
       integer :: foe_verbosity_
+      real(mp) :: fscale_
 
       call f_routine(id='matrix_fermi_operator_expansion')
 
@@ -631,6 +633,8 @@ module sparsematrix_highlevel
       foe_verbosity_ = 1
       if (present(foe_verbosity)) foe_verbosity_ = foe_verbosity
       symmetrize_kernel_ = .false.
+      fscale_ = 5.e-3_mp
+      if (present(fscale)) fscale_ = fscale
 
       ! Check the dimensions of the internal arrays
       if (size(overlap%matrix_compr)/=smat_s%nvctrp_tg*smat_s%nspin) then
@@ -673,7 +677,7 @@ module sparsematrix_highlevel
 
 
       call get_selected_eigenvalues(iproc, nproc, comm, calculate_minusonehalf_, foe_verbosity_, &
-           iev_min, iev_max, &
+           iev_min, iev_max, fscale, &
            smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, evals)
 
 
