@@ -35,6 +35,7 @@ module sparsematrix_init
   public :: sparse_matrix_init_fake
   public :: check_symmetry 
   public :: generate_random_symmetric_sparsity_pattern
+  public :: distribute_on_tasks
 
 
   contains
@@ -4608,5 +4609,26 @@ module sparsematrix_init
       call f_release_routine()
 
     end subroutine generate_random_symmetric_sparsity_pattern
+
+
+    ! Parallelization a number n over nproc nasks
+    subroutine distribute_on_tasks(n, iproc, nproc, np, is)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: n, iproc, nproc
+      integer,intent(out) :: np, is
+
+      ! Local variables
+      integer :: ii
+
+      ! First distribute evenly...
+      np = n/nproc
+      is = iproc*np
+      ! ... and now distribute the remaining atoms.
+      ii = n-nproc*np
+      if (iproc<ii) np = np + 1
+      is = is + min(iproc,ii)
+
+   end subroutine distribute_on_tasks
 
 end module sparsematrix_init

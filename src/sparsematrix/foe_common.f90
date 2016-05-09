@@ -130,6 +130,7 @@ module foe_common
 
     subroutine get_chebyshev_expansion_coefficients(iproc, nproc, comm, A, B, N, func, cc, x_max_error,max_error,mean_error)
       use yaml_output
+      use sparsematrix_init, only: distribute_on_tasks
       implicit none
       
       ! Calling arguments
@@ -147,56 +148,13 @@ module foe_common
       call f_routine(id='get_chebyshev_expansion_coefficients')
 
       ! MPI parallelization... maybe only worth for large n?
-      call chebyshev_coefficients_init_parallelization(iproc, nproc, comm, n, np, is)
-      !!ii = n/nproc
-      !!np = ii
-      !!is = iproc*ii
-      !!ii = n - nproc*ii
-      !!if (iproc<ii) then
-      !!    np = np + 1
-      !!end if
-      !!is = is + min(iproc,ii)
-      !!!check
-      !!ii = np
-      !!call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-      !!if (ii/=n) then
-      !!    call f_err_throw('wrong partition of n')
-      !!end if
-
+      !call chebyshev_coefficients_init_parallelization(iproc, nproc, comm, n, np, is)
+      ! Initialize the parallelization.
+      call distribute_on_tasks(n, iproc, nproc, np, is)
 
       call chebyshev_coefficients_calculate(n, a, b, np, is, func, cc)
-      !!call f_zero(cc)
-      !!cf = f_malloc0(n,id='cf')
-    
-      !!bma=0.5d0*(b-a)
-      !!bpa=0.5d0*(b+a)
-      !!fac=2.d0/real(n,kind=mp)
-      !!one_over_n = 1.d0/real(n,kind=mp)
-      !!!$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,is,np,tt,one_over_n) &
-      !!!$omp private(k,y,arg,j,jj)
-      !!!$omp do
-      !!do k=1,n
-      !!    y=cos(pi*(real(k,kind=mp)-0.5d0)*(one_over_n))
-      !!    arg=y*bma+bpa
-      !!    cf(k)=func(arg)
-      !!end do
-      !!!$omp end do
-      !!!$omp end parallel
-
-      !!do j=1,np
-      !!    jj = j + is
-      !!    tt=0.d0
-      !!    !$omp parallel do default(none) shared(n,cf,jj,one_over_n) private(k) reduction(+:tt)
-      !!    do  k=1,n
-      !!        tt=tt+cf(k)*cos((pi*real(jj-1,kind=mp))*((real(k,kind=mp)-0.5d0)*(one_over_n)))
-      !!    end do
-      !!    !$omp end parallel do
-      !!    cc(jj)=fac*tt
-      !!end do
-      !!call f_free(cf)
 
       call chebyshev_coefficients_communicate(comm, n, cc)
-      !!call mpiallred(cc, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
       call accuracy_of_chebyshev_expansion(iproc, nproc, comm, n, cc, A,B, &
            1.d-3, func, x_max_error, max_error, mean_error)
@@ -1139,6 +1097,7 @@ module foe_common
 
     subroutine accuracy_of_chebyshev_expansion(iproc, nproc, comm, npl, coeff, bound_lower, bound_upper, &
                h, func, x_max_error, max_error, mean_error)
+      use sparsematrix_init, only: distribute_on_tasks
       implicit none
 
       ! Calling arguments
@@ -1166,14 +1125,16 @@ module foe_common
       n = iex - isx + 1
 
       ! MPI parallelization... maybe only worth for large n?
-      ii = n/nproc
-      np = ii
-      is = iproc*ii
-      ii = n - nproc*ii
-      if (iproc<ii) then
-          np = np + 1
-      end if
-      is = is + min(iproc,ii)
+      !!ii = n/nproc
+      !!np = ii
+      !!is = iproc*ii
+      !!ii = n - nproc*ii
+      !!if (iproc<ii) then
+      !!    np = np + 1
+      !!end if
+      !!is = is + min(iproc,ii)
+      call distribute_on_tasks(n, iproc, nproc, np, is)
+
       is = is + isx - 1 !shift of the starting index
       !check
       ii = np

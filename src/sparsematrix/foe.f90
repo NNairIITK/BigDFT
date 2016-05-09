@@ -599,6 +599,7 @@ module foe
 
       call f_routine(id='get_selected_eigenvalues')
 
+
       kernel = matrices_null()
       kernel%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
 

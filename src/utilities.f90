@@ -27,7 +27,9 @@ program utilities
                                      sparse_matrix_and_matrices_init_from_file_ccs, &
                                      sparse_matrix_metadata_init_from_file, &
                                      ccs_data_from_sparse_matrix, &
-                                     ccs_matrix_write
+                                     ccs_matrix_write, &
+                                     matrices_init, &
+                                     get_selected_eigenvalues_from_FOE
    use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, &
                                     CHARGE_ANALYSIS_PROJECTOR, &
                                     loewdin_charge_analysis_core
@@ -41,18 +43,19 @@ program utilities
    character(len=3) :: do_ortho
    character(len=30) :: tatonam, radical, colorname, linestart, lineend, cname, methodc
    character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file, coeff_file, pdos_file
-   character(len=128) :: line, cc, output_pdos, conversion, infile, outfile
+   character(len=128) :: line, cc, output_pdos, conversion, infile, outfile, iev_min_, iev_max_
    logical :: charge_analysis = .false.
    logical :: solve_eigensystem = .false.
    logical :: calculate_pdos = .false.
    logical :: convert_matrix_format = .false.
+   logical :: calculate_selected_eigenvalues = .false.
    type(atoms_data) :: at
    type(sparse_matrix_metadata) :: smmd
    integer :: istat, i_arg, ierr, nspin, icount, nthread, method, ntypes
    integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
    integer :: nfvctr_m, nseg_m, nvctr_m, nfvctrp_m, isfvctr_m
    integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
-   integer :: iconv
+   integer :: iconv, iev, iev_min, iev_max
    integer,dimension(:),pointer :: on_which_atom
    integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l, on_which_atom_s, on_which_atom_m, on_which_atom_l
    integer,dimension(:),pointer :: iatype, nzatom, nelpsp
@@ -64,6 +67,7 @@ program utilities
    real(kind=8),dimension(:,:),allocatable :: denskernel, pdos, occup_arr
    logical,dimension(:,:),allocatable :: calc_array
    type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat
+   type(matrices),dimension(1) :: ovrlp_minus_one_half
    type(sparse_matrix) :: smat_s, smat_m, smat_l, smat
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
@@ -184,6 +188,20 @@ program utilities
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = outfile)
             convert_matrix_format = .true.
+        else if (trim(tatonam)=='calculate-selected-eigenvalues') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = overlap_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = hamiltonian_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = kernel_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = iev_min_)
+            read(iev_min_,fmt=*,iostat=ierr) iev_min
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = iev_max_)
+            read(iev_max_,fmt=*,iostat=ierr) iev_max
+            calculate_selected_eigenvalues = .true.
          end if
          i_arg = i_arg + 1
       end do loop_getargs
@@ -612,6 +630,60 @@ program utilities
 
        call deallocate_sparse_matrix(smat)
        call deallocate_matrices(mat)
+   end if
+
+
+   if (calculate_selected_eigenvalues) then
+       call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.bin', smmd)
+       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_s, ovrlp_mat, &
+            init_matmul=.false.)
+       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_m, hamiltonian_mat, &
+            init_matmul=.false.)
+       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_l, kernel_mat, &
+            init_matmul=.true.)
+       call matrices_init(smat_l, ovrlp_minus_one_half(1))
+
+       if (iev_min<1 .or. iev_max>smat_s%nfvctr) then
+              if (bigdft_mpi%iproc==0) then
+                  call yaml_warning('The required eigenvalues are outside of the possible range, automatic ajustment')
+              end if
+          end if
+       iev_min = max(1,iev_min)
+       iev_max = min(iev_max,smat_s%nfvctr)
+       eval = f_malloc(iev_min.to.iev_max,id='eval')
+       if (bigdft_mpi%iproc==0) then
+           call yaml_mapping_open('Calculating eigenvalues using FOE')
+       end if
+       call get_selected_eigenvalues_from_FOE(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+            iev_min, iev_max, smat_s, smat_m, smat_l, ovrlp_mat, hamiltonian_mat, &
+            ovrlp_minus_one_half, eval)
+       if (bigdft_mpi%iproc==0) then
+           call yaml_sequence_open('values')
+           do iev=iev_min,iev_max
+               call yaml_sequence(advance='no')
+               call yaml_mapping_open(flow=.true.)
+               call yaml_map('ID',iev,fmt='(i6.6)')
+               call yaml_map('eval',eval(iev),fmt='(es12.5)')
+               call yaml_mapping_close()
+           end do
+           call yaml_sequence_close()
+           call yaml_mapping_close()
+       end if
+
+
+       call deallocate_sparse_matrix(smat_s)
+       call deallocate_sparse_matrix(smat_m)
+       call deallocate_sparse_matrix(smat_l)
+       call deallocate_matrices(ovrlp_mat)
+       call deallocate_matrices(hamiltonian_mat)
+       call deallocate_matrices(kernel_mat)
+       call deallocate_matrices(ovrlp_minus_one_half(1))
+       call deallocate_sparse_matrix_metadata(smmd)
+       call f_free(eval)
+
    end if
 
    call build_dict_info(dict_timing_info)

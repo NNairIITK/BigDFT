@@ -664,6 +664,14 @@ module sparsematrix_highlevel
                trim(yaml_toa(smat_k%nvctr))//')')
       end if
 
+      ! Check whether the eigenvalues to be calculated are within the possible range
+      if (iev_min<1 .or. iev_max>smat_s%nfvctr) then
+          if (iproc==0) then
+              call f_err_throw('The required eigenvalues are outside of the possible range')
+          end if
+      end if
+
+
       call get_selected_eigenvalues(iproc, nproc, comm, calculate_minusonehalf_, foe_verbosity_, &
            iev_min, iev_max, &
            smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, evals)
