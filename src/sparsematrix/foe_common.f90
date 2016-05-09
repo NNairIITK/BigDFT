@@ -1382,7 +1382,7 @@ module foe_common
       degree_multiplicator = DEGREE_MULTIPLICATOR_ACCURATE
       temp_multiplicator = TEMP_MULTIPLICATOR_ACCURATE
     
-      fscale_new=1.d100
+      !!fscale_new=1.d100
 
 
     
@@ -1392,12 +1392,12 @@ module foe_common
 
     
     
-          fscale_new = temp_multiplicator*foe_data_get_real(foe_obj,"fscale")
+          !!fscale_new = temp_multiplicator*foe_data_get_real(foe_obj,"fscale")
     
     
-              fscale = fscale_new
-              fscale = max(fscale,FSCALE_LOWER_LIMIT)
-              fscale = min(fscale,FSCALE_UPPER_LIMIT)
+              !fscale = fscale_new
+              !fscale = max(fscale,FSCALE_LOWER_LIMIT)
+              !fscale = min(fscale,FSCALE_UPPER_LIMIT)
         
               evlow_old=1.d100
               evhigh_old=-1.d100

@@ -600,7 +600,6 @@ module foe
 
       call f_routine(id='get_selected_eigenvalues')
 
-      write(*,*) 'fscale',fscale
 
       kernel = matrices_null()
       kernel%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
@@ -618,7 +617,7 @@ module foe
       do ispin=1,smatl%nspin
           charges(ispin) = real(iev_min,kind=mp)/real(smatl%nspin,kind=mp)
       end do
-      call init_foe(iproc, nproc, smatl%nspin, charges, foe_obj, 0.0_mp, fscale=fscale)
+      call init_foe(iproc, nproc, smatl%nspin, charges, foe_obj, 0.0_mp, fscale=1.e-3_mp)!fscale)
       call f_free(charges)
 
       hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
