@@ -651,7 +651,9 @@ program utilities
             init_matmul=.true.)
        call matrices_init(smat_l, ovrlp_minus_one_half(1))
 
+       call timing(mpi_comm_world,'INIT','PR')
        if (iev_min<1 .or. iev_min>smat_s%nfvctr .or. iev_max>smat_s%nfvctr .or. iev_max<1) then
+
               if (bigdft_mpi%iproc==0) then
                   call yaml_warning('The required eigenvalues are outside of the possible range, automatic ajustment')
               end if
@@ -667,6 +669,9 @@ program utilities
        call get_selected_eigenvalues_from_FOE(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
             iev_min, iev_max, smat_s, smat_m, smat_l, ovrlp_mat, hamiltonian_mat, &
             ovrlp_minus_one_half, eval, fscale)
+
+       call timing(mpi_comm_world,'CALC','PR')
+
        if (bigdft_mpi%iproc==0) then
            call yaml_sequence_open('values')
            do iev=iev_min,iev_max
@@ -690,6 +695,8 @@ program utilities
        call deallocate_matrices(ovrlp_minus_one_half(1))
        call deallocate_sparse_matrix_metadata(smmd)
        call f_free(eval)
+
+       call timing(mpi_comm_world,'LAST','PR')
 
    end if
 
