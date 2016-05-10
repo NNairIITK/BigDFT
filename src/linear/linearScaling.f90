@@ -48,7 +48,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use public_enums
   use multipole, only: multipole_analysis_driver, projector_for_charge_analysis, &
                        support_function_gross_multipoles, potential_from_charge_multipoles, &
-                       calculate_rpowerx_matrices
+                       calculate_rpowerx_matrices, multipole_analysis_driver_new
   use transposed_operations, only: calculate_overlap_transposed
   use foe_base, only: foe_data_set_real
   use rhopotential, only: full_local_potential
@@ -1191,14 +1191,22 @@ end if
               call f_err_throw('wrong value of charge_multipoles')
           end select
       end if
-          ! Recalculate the chareg density...
+          ! Recalculate the charge density...
           call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
                denspot%rhov, rho_negative)
           if (rho_negative) then
               call corrections_for_negative_charge(iproc, nproc, at, denspot)
           end if
-          call multipole_analysis_driver(iproc, nproc, lmax, input%ixc, tmb%linmat%smmd, &
+          !!call multipole_analysis_driver(iproc, nproc, lmax, input%ixc, tmb%linmat%smmd, &
+          !!     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+          !!     tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
+          !!     rxyz, method, do_ortho, projectormode, &
+          !!     calculate_multipole_matrices=.true., do_check=.true., &
+          !!     nphi=tmb%npsidim_orbs, lphi=tmb%psi, nphir=max(tmb%collcom_sr%ndimpsi_c,1), &
+          !!     hgrids=tmb%lzd%hgrids, orbs=tmb%orbs, collcom=tmb%collcom, collcom_sr=tmb%collcom_sr, &
+          !!     lzd=tmb%lzd, at=at, denspot=denspot, orthpar=tmb%orthpar, shift=shift)
+          call multipole_analysis_driver_new(iproc, nproc, lmax, input%ixc, tmb%linmat%smmd, &
                tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
                rxyz, method, do_ortho, projectormode, &
