@@ -617,7 +617,7 @@ module foe
       do ispin=1,smatl%nspin
           charges(ispin) = real(iev_min,kind=mp)/real(smatl%nspin,kind=mp)
       end do
-      call init_foe(iproc, nproc, smatl%nspin, charges, foe_obj, 0.0_mp, fscale=1.e-3_mp)!fscale)
+      call init_foe(iproc, nproc, smatl%nspin, charges, foe_obj, 0.0_mp, fscale=fscale)
       call f_free(charges)
 
       hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
@@ -635,7 +635,7 @@ module foe
            smatm, smatl, ham_, foe_obj, npl_min, kernel%matrix_compr(ilshift+1:), &
            chebyshev_polynomials, npl, scale_factor, shift_value, hamscal_compr, &
            smats=smats, ovrlp_=ovrlp_, ovrlp_minus_one_half_=ovrlp_minus_one_half_(1), &
-           efarr=EF, fscale_arr=(/2.e-2_mp/))
+           efarr=EF, fscale_arr=(/fscale/))
 
      ! To determine the HOMO/LUMO, subtract/add one electrom for closed shell
       ! systems of one half electron for open shell systems.

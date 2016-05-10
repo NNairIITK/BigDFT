@@ -994,9 +994,9 @@ end if
           end if
       end if
       ieval_min = max(1,input%lin%calculate_FOE_eigenvalues(1))
-      ieval_min = min(tmb%orbs%norb,input%lin%calculate_FOE_eigenvalues(1))
+      ieval_min = min(tmb%orbs%norb,ieval_min)
       ieval_max = min(tmb%orbs%norb,input%lin%calculate_FOE_eigenvalues(2))
-      ieval_max = max(1,input%lin%calculate_FOE_eigenvalues(2))
+      ieval_max = max(1,ieval_max)
       evals = f_malloc(ieval_min.to.ieval_max,id='evals')
       !!call get_selected_eigenvalues(iproc, nproc, bigdft_mpi%mpi_comm, .true., 2, &
       !!     ieval_min, ieval_max, &

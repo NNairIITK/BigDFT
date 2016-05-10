@@ -1801,17 +1801,10 @@ module foe_common
               fscale = fscale_new
               fscale = max(fscale,FSCALE_LOWER_LIMIT)
               fscale = min(fscale,FSCALE_UPPER_LIMIT)
-              fscale_check = CHECK_RATIO*fscale
         
               evlow_old=1.d100
               evhigh_old=-1.d100
               
-              !if (iproc==0) then
-              !    call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
-              !    call yaml_map('decay length multiplicator',temp_multiplicator,fmt='(es10.3)')
-              !    call yaml_map('polynomial degree multiplicator',degree_multiplicator,fmt='(es10.3)')
-              !end if
-        
             
                   ! Don't let this value become too small.
                   call foe_data_set_real(foe_obj, &
@@ -1883,9 +1876,6 @@ module foe_common
                       call f_timing(TCAT_CME_COEFFICIENTS,'ON')
             
                       call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
-                      !!write(*,*) 'evlow, evhigh, ef, fscale', &
-                      !!     foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin), &
-                      !!     foe_data_get_real(foe_obj,"ef",ispin), fscale
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
                            x_max_error, max_error, mean_error)
@@ -2020,7 +2010,6 @@ module foe_common
       !end do spin_loop
     
     
-      !call foe_data_set_real(foe_obj,"fscale",fscale_new)
     
       degree_sufficient=.true.
     
