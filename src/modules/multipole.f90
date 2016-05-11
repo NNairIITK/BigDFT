@@ -2901,6 +2901,9 @@ module multipole
       if (trim(method)/='projector' .and. trim(method)/='loewdin') then
           call f_err_throw('wrong method',err_name='BIGDFT_RUNTIME_ERROR')
       end if
+      if (trim(method)=='projector') then
+          call f_err_throw('projector method is deprecated',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
       if (trim(do_ortho)/='no' .and. trim(do_ortho)/='yes') then
           call f_err_throw('wrong do_ortho',err_name='BIGDFT_RUNTIME_ERROR')
       end if
@@ -3078,8 +3081,8 @@ module multipole
                       call gemm('n', 'n', n, n, n, 1.d0, kernel_extracted(1,1), n, &
                            projx(1,kat), n, 0.d0, qmat_tilde(1,1), n)
                       call gemm('n', 'n', n, n, n, 1.d0, qmat_tilde(1,1), n, multipole_extracted(1,1), n, 0.d0, kp(1,1), n)
-                       call f_free(kernel_extracted)
-                       call f_free(multipole_extracted)
+                      call f_free(kernel_extracted)
+                      call f_free(multipole_extracted)
                       tt = 0.d0
                       do i=1,n
                           tt = tt + kp(i,i)
