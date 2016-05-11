@@ -55,7 +55,7 @@ module sparsematrix_types
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
       logical :: store_index
       type(sparse_matrix_matrix_multiplication) :: smmm
-      integer :: ntaskgroup !< total number of MPI taskgroups to which this task belongs
+      integer :: ntaskgroup !< total number of MPI taskgroups
       integer :: ntaskgroupp !< number of MPI taskgroups to which this task belongs
       !> (1:2,1,:) gives the start and end of the taskgroups (in terms of total matrix indices), 
       !! (1:2,2,:) gives the start and end of the disjoint submatrix handled by the taskgroup
