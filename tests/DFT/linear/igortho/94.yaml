@@ -29,8 +29,10 @@
    rpnrm_cv: 1.0e-11
    taylor_order: 1020
    max_inversion_error: 5.0e-8
-   charge_multipoles: 12
+   charge_multipoles: 11
    support_function_multipoles: yes
+   calc_dipole: yes
+   calc_quadrupole: yes
  lin_basis:
    nit: 8
    nit_ig: 3
