@@ -647,7 +647,11 @@ module foe
 
 
 
-      if (iproc==0) bar=f_progress_bar_new(nstep=iev_max-iev_min+1)
+      if (iproc==0) then
+          call yaml_map('decay length of error function',fscale,fmt='(es8.2)')
+          call yaml_map('degree of polynomial',npl)
+          bar=f_progress_bar_new(nstep=iev_max-iev_min+1)
+      end if
       do iev=iev_min,iev_max
           ! Calculate the 'lower' kernel
           do ispin=1,smatl%nspin

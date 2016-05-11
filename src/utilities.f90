@@ -150,6 +150,8 @@ program utilities
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = method_name)
             i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = metadata_file)
+            i_arg = i_arg + 1
             call get_command_argument(i_arg, value = overlap_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = kernel_file)
@@ -161,6 +163,8 @@ program utilities
             exit loop_getargs
          else if (trim(tatonam)=='solve-eigensystem') then
             i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = metadata_file)
+            i_arg = i_arg + 1
             call get_command_argument(i_arg, value = hamiltonian_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = overlap_file)
@@ -171,6 +175,8 @@ program utilities
             solve_eigensystem = .true.
             exit loop_getargs
          else if (trim(tatonam)=='pdos') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = metadata_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = coeff_file)
             i_arg = i_arg + 1
