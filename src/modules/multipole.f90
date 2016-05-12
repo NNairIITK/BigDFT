@@ -1164,7 +1164,7 @@ module multipole
           end do
           call yaml_sequence_close()
           call yaml_mapping_close()
-
+          call yaml_flush_document()
 
       call f_release_routine()
 
