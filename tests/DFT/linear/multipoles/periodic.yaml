@@ -64,7 +64,7 @@
    output_coeff: 1
    calc_dipole: Yes
    calc_quadrupole: yes
-   charge_multipoles: 2
+   charge_multipoles: 11
    support_function_multipoles: yes
  lin_basis:
    nit: 8
