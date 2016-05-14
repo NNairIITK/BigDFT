@@ -505,7 +505,7 @@ END SUBROUTINE export_grids
 subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
       &   ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)
    use module_base
-   use locregs_init, only: parallelize_over_atoms
+   use sparsematrix_init, only: distribute_on_tasks
    implicit none
    !Arguments
    character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -588,7 +588,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    ! MPI parallelization over the atoms, ony if there are many atoms.
    ! Maybe 200 is too low, but in this way there is a test for this feature.
    if (nat>200) then
-       call parallelize_over_atoms(nat, bigdft_mpi%iproc, bigdft_mpi%nproc, natp, isat)
+       call distribute_on_tasks(nat, bigdft_mpi%iproc, bigdft_mpi%nproc, natp, isat)
        parallel = .true.
    else
        natp = nat

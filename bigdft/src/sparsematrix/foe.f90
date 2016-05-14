@@ -562,7 +562,7 @@ module foe
 
 
     subroutine get_selected_eigenvalues(iproc, nproc, comm, calculate_minusonehalf, foe_verbosity, &
-               iev_min, iev_max, &
+               iev_min, iev_max, fscale, &
                smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, eval)
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: symmetrize_matrix
@@ -575,6 +575,7 @@ module foe
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, iev_min, iev_max
+      real(mp),intent(in) :: fscale
       logical,intent(in) :: calculate_minusonehalf
       integer,intent(in) :: foe_verbosity
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
@@ -588,7 +589,7 @@ module foe
       real(mp),dimension(:),allocatable :: charges
       type(matrices) :: kernel
       real(mp),dimension(1),parameter :: EF = 0.0_mp
-      real(mp),dimension(1),parameter :: FSCALE = 2.e-2_mp
+      !real(mp),dimension(1),parameter :: FSCALE = 2.e-2_mp
       type(foe_data) :: foe_obj
       type(fermi_aux) :: f
       integer,parameter :: NPL_MAX = 10000
@@ -598,6 +599,7 @@ module foe
       type(f_progress_bar) :: bar
 
       call f_routine(id='get_selected_eigenvalues')
+
 
       kernel = matrices_null()
       kernel%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
@@ -615,7 +617,7 @@ module foe
       do ispin=1,smatl%nspin
           charges(ispin) = real(iev_min,kind=mp)/real(smatl%nspin,kind=mp)
       end do
-      call init_foe(iproc, nproc, smatl%nspin, charges, foe_obj, 0.0_mp, fscale=1.e-3_mp)
+      call init_foe(iproc, nproc, smatl%nspin, charges, foe_obj, 0.0_mp, fscale=fscale)
       call f_free(charges)
 
       hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
@@ -633,7 +635,7 @@ module foe
            smatm, smatl, ham_, foe_obj, npl_min, kernel%matrix_compr(ilshift+1:), &
            chebyshev_polynomials, npl, scale_factor, shift_value, hamscal_compr, &
            smats=smats, ovrlp_=ovrlp_, ovrlp_minus_one_half_=ovrlp_minus_one_half_(1), &
-           efarr=EF, fscale_arr=FSCALE)
+           efarr=EF, fscale_arr=(/fscale/))
 
      ! To determine the HOMO/LUMO, subtract/add one electrom for closed shell
       ! systems of one half electron for open shell systems.
@@ -645,7 +647,11 @@ module foe
 
 
 
-      if (iproc==0) bar=f_progress_bar_new(nstep=iev_max-iev_min+1)
+      if (iproc==0) then
+          call yaml_map('decay length of error function',fscale,fmt='(es8.2)')
+          call yaml_map('degree of polynomial',npl)
+          bar=f_progress_bar_new(nstep=iev_max-iev_min+1)
+      end if
       do iev=iev_min,iev_max
           ! Calculate the 'lower' kernel
           do ispin=1,smatl%nspin

@@ -167,6 +167,21 @@ multipoles_waterQMQM.out.out: multipoles_waterQM.out.out
 multipoles_waterQM.out.post-out:
 	python prepare_QMQM.py
 
+#matrixtaskgroups_yes.out.post-out: 
+#	$(abs_top_builddir)/src/bigdft-tool --action=calculate-selected-eigenvalues \
+#		                                --mpirun='$(run_parallel)' \
+#										--metadata_file=data-yes/sparsematrix_metadata.bin \
+#										--overlap_file=data-yes/overlap_sparse.bin \
+#										--hamiltonian_file=data-yes/hamiltonian_sparse.bin \
+#										--kernel_file=data-yes/density_kernel_sparse.bin \
+#										--iev_min=1 \
+#										--iev_max=100 \
+#										> test-evals.out.yaml
+#	@export PYTHONPATH=${PYTHONPATH} ; \
+#	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+#	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
+#	-r $< -d test-evals.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-evals -o $@ 
+
 
 # Define the precision for specific directories.
 %.report: %.ref

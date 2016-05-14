@@ -15,6 +15,7 @@ module multipole
   public :: support_function_gross_multipoles
   public :: calculate_dipole_moment
   public :: calculate_rpowerx_matrices
+  public :: multipole_analysis_driver_new
 
   contains
 
@@ -1030,9 +1031,9 @@ module multipole
           call f_err_throw('wrong value of operation')
       end select
 
-      if (iproc==0) then
-          call yaml_comment('Calculating matrix for orthonormal support functions',hfill='~')
-      end if
+      !!if (iproc==0) then
+      !!    call yaml_comment('Calculating matrix for orthonormal support functions',hfill='~')
+      !!end if
 
       inv_ovrlp(1) = matrices_null()
       inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
@@ -1041,7 +1042,7 @@ module multipole
       call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
            meth_overlap, 1, power, -1, &
            imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-           ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.false.)
+           ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.false., verbosity=0)
       !call f_free_ptr(ovrlp%matrix)
 
       proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_mat_compr')
@@ -1064,9 +1065,9 @@ module multipole
 
       !call f_free(weight_matrix_compr_tg)
 
-      if (iproc==0) then
-          call yaml_comment('Kernel calculated',hfill='~')
-      end if
+      !!if (iproc==0) then
+      !!    call yaml_comment('Kernel calculated',hfill='~')
+      !!end if
 
       call f_release_routine()
 
@@ -1164,7 +1165,7 @@ module multipole
           end do
           call yaml_sequence_close()
           call yaml_mapping_close()
-
+          call yaml_flush_document()
 
       call f_release_routine()
 
@@ -2434,6 +2435,11 @@ module multipole
                                 smats, orbs, rxyz, neighborx, perx, pery, perz, acell, &
                                 lower_multipole_matrices, locregcenter, multipole_extracted)
                        end if
+                       !!do i=1,n
+                       !!    do j=1,n
+                       !!        write(*,*) 'i, j, multipole_extracted(j,i)', i, j, multipole_extracted(j,i)
+                       !!    end do
+                       !!end do
                        call gemm('n', 'n', n, n, n, 1.d0, kernel_extracted(1,1), n, &
                             multipole_extracted(1,1), n, 0.d0, qmat_tilde(1,1), n)
                        call f_free(kernel_extracted)
@@ -2452,6 +2458,9 @@ module multipole
                                    end if
                                end do
                        end if
+                       !!do i=1,n**2
+                       !!    write(*,*) 'i, j, projx(i,kat)', i, j, projx(i,kat)
+                       !!end do
                        !write(*,*) 'sum(projx)', sum(projx)
                       call gemm('n', 'n', n, n, n, 1.d0, qmat_tilde(1,1), n, projx(1,kat), n, 0.d0, kp(1,1), n)
                       !!!! LUIGI'S NEW IDEA #############################################################
@@ -2706,6 +2715,606 @@ module multipole
       call f_release_routine()
 
   end subroutine multipole_analysis_driver
+
+
+
+    subroutine multipole_analysis_driver_new(iproc, nproc, lmax, ixc, smmd, smats, smatm, smatl, &
+               ovrlp, ham, kernel, rxyz, method, do_ortho, projectormode, &
+               calculate_multipole_matrices, do_check, &
+               nphi, lphi, nphir, hgrids, orbs, collcom, collcom_sr, &
+               lzd, at, denspot, orthpar, shift, multipole_matrix_in, ice_obj)
+      use module_base
+      use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, orthon_data, DFT_local_fields, comms_linear
+      use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
+                                   sparsematrix_malloc, matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
+                                   SPARSE_TASKGROUP, sparse_matrix_metadata
+      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
+      use communications, only: transpose_localized
+      use orthonormalization, only: orthonormalizelocalized,overlap_matrix
+      use module_atoms, only: atoms_data
+      use yaml_output
+      use multipole_base, only: external_potential_descriptors_null, multipole_set_null, multipole_null, &
+           deallocate_external_potential_descriptors
+      use orbitalbasis
+      use matrix_operations, only: overlapPowerGeneral
+      !use Poisson_Solver, only: H_potential
+      use Poisson_Solver, except_dp => dp, except_gp => gp
+      use foe_base, only: foe_data
+      use box
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, lmax, ixc
+      type(sparse_matrix_metadata),intent(in) :: smmd
+      type(sparse_matrix),intent(in) :: smats
+      type(sparse_matrix),intent(in) :: smatm
+      type(sparse_matrix),intent(in) :: smatl
+      type(matrices),intent(in) :: ovrlp
+      type(matrices),intent(in) :: ham
+      type(matrices),intent(in) :: kernel
+      real(kind=8),dimension(3,smmd%nat),intent(in) :: rxyz
+      character(len=*),intent(in) :: method
+      character(len=*),intent(in) :: do_ortho
+      character(len=*),intent(in) :: projectormode
+      logical,intent(in) :: calculate_multipole_matrices, do_check
+      integer,intent(in),optional :: nphi, nphir
+      real(kind=8),dimension(:),intent(in),optional :: lphi
+      real(kind=8),dimension(3),intent(in),optional :: hgrids
+      type(orbitals_data),intent(in),optional :: orbs
+      type(comms_linear),intent(in),optional :: collcom, collcom_sr
+      type(local_zone_descriptors),intent(in),optional :: lzd
+      type(atoms_data),intent(in),optional :: at
+      type(DFT_local_fields),intent(inout),optional :: denspot
+      type(orthon_data),intent(in),optional :: orthpar
+      real(kind=8),dimension(3),intent(in),optional :: shift
+      type(matrices),dimension(-lmax:lmax,0:lmax),intent(in),target,optional :: multipole_matrix_in
+      type(foe_data),intent(inout),optional :: ice_obj
+
+      ! Local variables
+      integer :: methTransformOverlap, iat, ind, ispin, ishift, iorb, jorb, iiorb, l, m, itype, natpx, isatx, nmaxx, kat, n, i, kkat
+      integer :: ilr, impl, mm, lcheck, nelpsp, psp_source, j, lwork, ii
+      integer, dimension(1) :: power
+      logical :: can_use_transposed, all_norms_ok
+      real(kind=8),dimension(:),pointer :: phit_c, phit_f
+      real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, Qmat_tmp,Slmphi
+      real(kind=8),dimension(:),allocatable :: eval, work, newoverlap, newmultipole_matrix_large, newoverlap_large
+      real(kind=8),dimension(:,:),allocatable :: Qmat_tilde, kp, locregcenter, overlap_small, tmpmat, tempmat
+      real(kind=8),dimension(:,:,:),pointer :: atomic_multipoles
+      real(kind=8),dimension(:),pointer :: atomic_monopoles_analytic
+      real(kind=8),dimension(:,:,:),allocatable :: test_pot
+      real(kind=8),dimension(:,:,:,:),allocatable :: lmp_extracted
+      real(kind=8),dimension(:,:),allocatable :: projx
+      real(kind=8),dimension(:,:),allocatable :: kernel_extracted, multipole_extracted
+      real(kind=8) :: q, tt, rloc, max_error, mean_error
+      type(matrices) :: multipole_matrix
+      !type(matrices),target :: multipole_matrix_
+      type(matrices) :: newovrlp, ovrlp_large, multipole_matrix_large
+      type(matrices),dimension(-1:1,0:1) :: lower_multipole_matrices
+      type(matrices),dimension(1) :: inv_ovrlp
+      logical :: perx, pery, perz
+      logical,dimension(:,:),allocatable :: neighborx
+      integer,dimension(:),pointer :: nx
+      character(len=20),dimension(:),allocatable :: names
+      real(kind=8) :: rr1, rr2, rr3
+      real(kind=8),dimension(3) :: dipole_check
+      real(kind=8),dimension(3,3) :: quadrupole_check
+      type(external_potential_descriptors) :: ep_check
+      type(matrices),dimension(24) :: rpower_matrix
+      type(orbital_basis) :: psi_ob
+      real(gp), dimension(3) :: acell, center
+      character(len=*),parameter :: no='no', yes='yes'
+      type(external_potential_descriptors) :: ep
+      !character(len=*),parameter :: projectormode='verynew'!'old'
+      !character(len=*),parameter :: do_ortho = no!yes
+      integer :: is1, ie1, is2, ie2, is3, ie3, ioffset, icheck
+      real(kind=8),dimension(:,:,:),allocatable :: rho_exact, rho_mp, pot_exact, pot_mp
+      integer,parameter :: ncheck = 5
+      real(kind=8),dimension(ncheck),parameter :: check_threshold = [ 1.d-12 , &
+                                                                      1.d-10 , &
+                                                                      1.d-8 , &
+                                                                      1.d-6 , &
+                                                                      1.d-4]
+      real(kind=8),dimension(ncheck) :: charge_error, charge_total, potential_error, potential_total
+      type(cell) :: mesh
+
+
+      call f_routine(id='multipole_analysis_driver')
+
+      perx=(smmd%geocode /= 'F')
+      pery=(smmd%geocode == 'P')
+      perz=(smmd%geocode /= 'F')
+
+      ! Check that the proper optional arguments are present
+      if (trim(do_ortho)==yes .and. calculate_multipole_matrices) then
+          if (.not.present(nphi) .or. &
+              .not.present(orbs) .or. &
+              .not.present(lzd) .or. &
+              .not.present(collcom) .or. &
+              .not.present(lphi) .or. &
+              .not.present(orthpar)) then
+              call f_err_throw('do_ortho: not all required optional arguments are present')
+          end if
+      end if
+      if (trim(projectormode)=='full') then
+          if (.not.present(orbs) .or. &
+              .not.present(lzd) .or. &
+              .not.present(nphi) .or. &
+              .not.present(lphi) .or. &
+              .not.present(collcom) .or. &
+              .not.present(collcom_sr)) then
+              call f_err_throw('projectormode==full: not all required optional arguments are present')
+          end if
+      end if
+      if (lmax>0) then
+          if (.not.present(orbs) .or. &
+              .not.present(lzd)) then
+              call f_err_throw('lmax>0: not all required optional arguments are present')
+          end if
+          if (.not.calculate_multipole_matrices) then
+              call f_err_throw('The multipole matrices must be calculated in-situ for lmax>0')
+          end if
+      end if
+
+      if (calculate_multipole_matrices) then
+          if (.not.present(orbs) .or. &
+              .not.present(lzd) .or. &
+              .not.present(nphi) .or. &
+              .not.present(nphir) .or. &
+              .not.present(lphi) .or. &
+              .not.present(hgrids) .or. &
+              .not.present(collcom)) then
+              call f_err_throw('calculate_multipole_matrices .true.: not all required optional arguments are present')
+          end if
+      else
+          if (.not.present(multipole_matrix_in)) then
+              call f_err_throw('multipole_matrix_in .false.: not all required optional arguments are present')
+          end if
+      end if
+
+      if (do_check) then
+          if (.not.present(denspot) .or. &
+              .not.present(shift) .or. &
+              .not.present(lzd) .or. &
+              .not.present(at)) then
+              call f_err_throw('calculate_multipole_matrices .true.: not all required optional arguments are present')
+          end if
+      end if
+
+      if (present(lphi) .and. present(nphi)) then
+          if (size(lphi)<nphi) then
+              call f_err_throw('wrong size of lphi')
+          end if
+      end if
+
+
+      if (iproc==0) then
+          call yaml_comment('Atomic multipole analysis, new approach',hfill='=')
+          call yaml_map('Method',trim(method))
+          call yaml_map('Projector mode',trim(projectormode))
+          call yaml_map('Orthogonalized support functions',trim(do_ortho))
+      end if
+
+      if (calculate_multipole_matrices) then
+          call unitary_test_multipoles(iproc, nproc, nphi, nphir, orbs, lzd, smmd, smats, collcom, hgrids)
+      end if
+
+      ! Check the method
+      if (trim(method)/='projector' .and. trim(method)/='loewdin') then
+          call f_err_throw('wrong method',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      if (trim(method)=='projector') then
+          call f_err_throw('projector method is deprecated',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      if (trim(do_ortho)/='no' .and. trim(do_ortho)/='yes') then
+          call f_err_throw('wrong do_ortho',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      select case (trim(projectormode))
+      case ('none','simple','full')
+          ! everything ok
+      case default
+          call f_err_throw('wrong projectormode',err_name='BIGDFT_RUNTIME_ERROR')
+      end select
+
+
+
+      !!multipole_matrix_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='multipole_matrix_large')
+      kernel_ortho = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='kernel_ortho')
+
+      ! Calculate the "effective" kernel. For Mulliken, this is K*S, whereas for
+      ! Loewdin it is S^-1/2*K*S^-1/2.
+      if (do_ortho==yes) then
+          methTransformOverlap = 1020
+          call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smatl, &
+               ovrlp, kernel, 'plus', kernel_ortho)
+       else if (do_ortho==no) then
+           ovrlp_large = matrices_null()
+           ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(smatl, SPARSE_TASKGROUP, id='ovrlp_large%matrix_compr')
+           call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
+                smat_in=ovrlp%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
+           ! Should use the highlevel wrapper...
+           call matrix_matrix_mult_wrapper(iproc, nproc, smatl, kernel%matrix_compr, ovrlp_large%matrix_compr, kernel_ortho)
+           call deallocate_matrices(ovrlp_large)
+       end if
+
+          ! Just to get the sizes...
+          call projector_for_charge_analysis(smmd, smats, smatm, smatl, &
+               ovrlp, ham, kernel, rxyz, calculate_centers=.false., write_output=.false., ortho=do_ortho, mode='simple', &
+               natpx=natpx, isatx=isatx, nmaxx=nmaxx, nx=nx, projx=projx, neighborx=neighborx, &
+               only_sizes=.true.)
+
+          ! Calculate the matrix for the projector matrix, which is S^-1 for Mulliken and Id for Loewdin.
+          ! However, to be consistent (error cancellation of the inverse etc), we calculate for Loewdin the matrix as [S^-1/2*S*S^-1/2]^-1
+          inv_ovrlp(1) = matrices_null()
+          inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, SPARSE_TASKGROUP, id='inv_ovrlp%matrix_compr')
+          newovrlp = matrices_null()
+          newovrlp%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_TASKGROUP, id='newovrlp%matrix_compr')
+          if (do_ortho==yes) then
+              methTransformOverlap = 1020
+              newoverlap_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='newoverlap_large')
+              ovrlp_large = matrices_null()
+              ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(smatl, SPARSE_TASKGROUP, id='ovrlp_large%matrix_compr')
+              call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
+                   smat_in=ovrlp%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
+              call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smatl, &
+                   ovrlp, ovrlp_large, 'minus', newoverlap_large)
+              call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'large_to_small', &
+                   lmat_in=newoverlap_large, smat_out=newovrlp%matrix_compr)
+              call deallocate_matrices(ovrlp_large)
+              call f_free(newoverlap_large)
+          else
+              call f_memcpy(src=ovrlp%matrix_compr, dest=newovrlp%matrix_compr)
+          end if
+          power=1
+          if (present(ice_obj)) then
+              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                   1020, 1, power, -1, &
+                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                   ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                   check_accur=.false., ice_obj=ice_obj)
+          else
+              call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                   1020, 1, power, -1, &
+                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                   ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
+                   check_accur=.false.)
+          end if
+          call deallocate_matrices(newovrlp)
+
+      Qmat = sparsematrix_malloc(smatl,iaction=SPARSE_TASKGROUP,id='Qmat')
+      atomic_multipoles = f_malloc0_ptr((/-lmax.to.lmax,0.to.lmax,1.to.smmd%nat/),id='atomic_multipoles')
+
+
+      multipole_matrix = matrices_null()
+      multipole_matrix%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_TASKGROUP, id='multipole_matrix%matrix_compr')
+
+
+      ! Choose as reference point the midpoint of the simulation cell, in order to avoid
+      ! problems with periodic BC (in this way the reference point is always the same and never a periodic image)
+      center(1:3) = 0.5d0*smmd%cell_dim(1:3)
+      if (calculate_multipole_matrices) then
+          locregcenter = f_malloc((/3,lzd%nlr/),id='locregcenter')
+          do ilr=1,lzd%nlr
+              locregcenter(1:3,ilr) = lzd%llr(ilr)%locregcenter(1:3) !+ (/1.d0,2.d0,3.d0/)
+          end do
+      end if
+
+      acell(1)=smmd%cell_dim(1)
+      acell(2)=smmd%cell_dim(2)
+      acell(3)=smmd%cell_dim(3)
+
+      do l=0,lmax
+          do m=-l,l
+
+              call f_zero(multipole_matrix%matrix_compr)
+
+              ! Calculate the multipole matrix
+              if (calculate_multipole_matrices) then
+                      call calculate_multipole_matrix(iproc, nproc, l, m, nphi, lphi, lphi, nphir, hgrids, &
+                           orbs, collcom, lzd, smmd, smats, locregcenter, 'box', multipole_matrix) 
+              else
+                      call f_memcpy(src=multipole_matrix_in(m,l)%matrix_compr, dest=multipole_matrix%matrix_compr)
+              end if
+
+              if (do_ortho==yes) then
+                  ! Calculate S^-1/2*P*S^-1/2, where P is the multipole matrix
+                  methTransformOverlap = 1020
+                  newoverlap_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='newoverlap_large')
+                  ovrlp_large = matrices_null()
+                  ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(smatl, SPARSE_TASKGROUP, id='ovrlp_large%matrix_compr')
+                  call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
+                       smat_in=multipole_matrix%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
+                  call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smatl, &
+                       ovrlp, ovrlp_large, 'minus', newoverlap_large)
+                  call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'large_to_small', &
+                       lmat_in=newoverlap_large, smat_out=multipole_matrix%matrix_compr)
+                  call deallocate_matrices(ovrlp_large)
+                  call f_free(newoverlap_large)
+              end if
+
+              if (l<=1) then
+                  lower_multipole_matrices(m,l) = matrices_null()
+                  lower_multipole_matrices(m,l)%matrix_compr = &
+                      sparsematrix_malloc_ptr(smats, SPARSE_TASKGROUP, id='lower_multipole_matrix%matrix_compr')
+                  call f_memcpy(src=multipole_matrix%matrix_compr,dest=lower_multipole_matrices(m,l)%matrix_compr)
+              end if
+
+
+
+                  do kat=1,natpx
+                      kkat = kat + isatx
+                      n = nx(kat)
+                      qmat_tilde = f_malloc((/n,n/),id='qmat_tilde')
+                      kp = f_malloc((/n,n/),id='kp')
+                       kernel_extracted = f_malloc((/n,n/),id='kernel_extracted')
+                       multipole_extracted = f_malloc((/n,n/),id='multipole_extracted')
+                       call extract_matrix(smats, multipole_matrix%matrix_compr, &
+                           neighborx(1,kat), n, nmaxx, multipole_extracted)
+                       ! The minus sign is required since the phi*S_lm*phi represent the electronic charge which is a negative quantity
+                       call dscal(n**2, -1.d0, multipole_extracted(1,1), 1)
+                           call extract_matrix(smatl, kernel_ortho, neighborx(1,kat), n, nmaxx, kernel_extracted)
+                       if (l>0) then
+                           call correct_multipole_origin(smmd%nat, l, m, n, lzd%nlr, natpx, nmaxx, kat, kkat, &
+                                smats, orbs, rxyz, neighborx, perx, pery, perz, acell, &
+                                lower_multipole_matrices, locregcenter, multipole_extracted)
+                       end if
+                       !do i=1,n
+                       !    do j=1,n
+                       !        write(*,*) 'i, j, multipole_extracted(j,i)', i, j, multipole_extracted(j,i)
+                       !    end do
+                       !end do
+                       if (trim(method)=='loewdin') then
+                               call extract_matrix(smatl, inv_ovrlp(1)%matrix_compr, neighborx(1,kat), n, nmaxx, projx(1,kat))
+                               iiorb = 0
+                               do iorb=1,smats%nfvctr
+                                   if (neighborx(iorb,kat)) then
+                                       iiorb = iiorb + 1
+                                       if (smmd%on_which_atom(iorb)/=kkat) then
+                                           do jorb=1,n
+                                               projx((iiorb-1)*n+jorb,kat) = 0.d0
+                                           end do
+                                       end if
+                                   end if
+                               end do
+                       end if
+                       !do i=1,n**2
+                       !    write(*,*) 'i, j, projx(i,kat)', i, j, projx(i,kat)
+                       !end do
+                      call gemm('n', 'n', n, n, n, 1.d0, kernel_extracted(1,1), n, &
+                           projx(1,kat), n, 0.d0, qmat_tilde(1,1), n)
+                      call gemm('n', 'n', n, n, n, 1.d0, qmat_tilde(1,1), n, multipole_extracted(1,1), n, 0.d0, kp(1,1), n)
+                      call f_free(kernel_extracted)
+                      call f_free(multipole_extracted)
+                      tt = 0.d0
+                      do i=1,n
+                          tt = tt + kp(i,i)
+                      end do
+                      atomic_multipoles(m,l,kkat) = tt
+                      call f_free(qmat_tilde)
+                      call f_free(kp)
+                  end do
+
+          end do
+      end do
+
+
+      if (calculate_multipole_matrices) then
+          call f_free(locregcenter)
+      end if
+
+      call mpiallred(atomic_multipoles, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+
+      ! The monopole term should be the net charge, i.e. add the positive atomic charges
+      do iat=1,smmd%nat
+          itype = smmd%iatype(iat)
+          q = real(smmd%nelpsp(itype),kind=8)
+          atomic_multipoles(0,0,iat) = atomic_multipoles(0,0,iat) + q
+      end do
+
+
+      names = f_malloc_str(len(names),smmd%nat,id='names')
+      do iat=1,smmd%nat
+          itype = smmd%iatype(iat)
+          names(iat) = smmd%atomnames(itype)
+      end do
+
+
+      ep = external_potential_descriptors_null()
+      ep%nmpl = smmd%nat
+      allocate(ep%mpl(ep%nmpl))
+      do impl=1,ep%nmpl
+          ep%mpl(impl) = multipole_set_null()
+          allocate(ep%mpl(impl)%qlm(0:lmax))
+          ep%mpl(impl)%rxyz = smmd%rxyz(1:3,impl)
+          ep%mpl(impl)%sym = trim(names(impl))
+          if (present(at)) then
+              call get_psp_info(ep%mpl(impl)%sym, ixc, smmd, nelpsp, psp_source, rloc, at%psppar)
+          else
+              call get_psp_info(ep%mpl(impl)%sym, ixc, smmd, nelpsp, psp_source, rloc)
+          end if
+          if (psp_source/=0 .and. iproc==0) then
+              call yaml_warning('Taking internal PSP information for multipole '//trim(yaml_toa(impl)))
+          end if
+          ep%mpl(impl)%nzion = nelpsp
+          ep%mpl(impl)%sigma(0:lmax) = rloc
+          do l=0,lmax
+              ep%mpl(impl)%qlm(l) = multipole_null()
+              !if (l>=3) cycle
+              ep%mpl(impl)%qlm(l)%q = f_malloc0_ptr(2*l+1,id='q')
+              mm = 0
+              !if (l>0) cycle
+              do m=-l,l
+                  mm = mm + 1
+                  ep%mpl(impl)%qlm(l)%q(mm) = atomic_multipoles(m,l,impl)
+              end do
+          end do
+      end do
+
+      if (iproc==0) then
+          call yaml_comment('Final result of the multipole analysis',hfill='~')
+          call write_multipoles_new(ep, lmax, smmd%units)
+      end if
+
+
+      if (do_check) then
+          ! Calculate the total dipole moment resulting from the previously calculated multipoles.
+          ! This is done by calling the following routine (which actually calculates the potential, but also
+          ! has the option to calculate the dipole on the fly).
+          test_pot = f_malloc((/size(denspot%V_ext,1),size(denspot%V_ext,2),size(denspot%V_ext,3)/),id='test_pot')
+          if (iproc==0) call yaml_sequence_open('Checking the total multipoles based on the atomic multipoles')
+          is1 = 1
+          ie1 = denspot%dpbox%mesh%ndims(1)
+          is2 = 1
+          ie2 = denspot%dpbox%mesh%ndims(2)
+          is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
+          ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+&
+                denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
+          rho_exact = f_malloc((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='rho_exact')
+          rho_mp = f_malloc((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='rho_mp')
+          pot_exact = f_malloc((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='pot_exact')
+          pot_mp = f_malloc((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='pot_mp')
+          do lcheck=0,lmax
+              ep_check = external_potential_descriptors_null()
+              ep_check%nmpl = ep%nmpl
+              allocate(ep_check%mpl(ep_check%nmpl))
+              do impl=1,ep_check%nmpl
+                  ep_check%mpl(impl) = multipole_set_null()
+                  allocate(ep_check%mpl(impl)%qlm(0:lmax))
+                  ep_check%mpl(impl)%rxyz = ep%mpl(impl)%rxyz
+                  ep_check%mpl(impl)%sym = ep%mpl(impl)%sym
+                  ep_check%mpl(impl)%nzion = ep%mpl(impl)%nzion
+                  do l=0,lmax
+                      ep_check%mpl(impl)%sigma(l) = ep%mpl(impl)%sigma(l)
+                      ep_check%mpl(impl)%qlm(l) = multipole_null()
+                      if (l>lcheck) cycle
+                      ep_check%mpl(impl)%qlm(l)%q = f_malloc0_ptr(2*l+1,id='q')
+                      mm = 0
+                      do m=-l,l
+                          mm = mm + 1
+                          ep_check%mpl(impl)%qlm(l)%q(mm) = ep%mpl(impl)%qlm(l)%q(mm)
+                      end do
+                  end do
+              end do
+              call dcopy(size(denspot%V_ext,1)*size(denspot%V_ext,2)*size(denspot%V_ext,3), &
+                   denspot%V_ext(1,1,1,1), 1, test_pot(1,1,1), 1)
+              call potential_from_charge_multipoles(iproc, nproc, at, denspot, ep_check, 1, &
+                   denspot%dpbox%mesh%ndims(1), 1, denspot%dpbox%mesh%ndims(2), &
+                   denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
+                   denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+&
+                   denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
+                   denspot%dpbox%mesh%hgrids(1),denspot%dpbox%mesh%hgrids(2),denspot%dpbox%mesh%hgrids(3), &
+                   shift, verbosity=0, ixc=ixc, lzd=lzd, pot=test_pot, &
+                   rxyz=rxyz, dipole_total=dipole_check, quadrupole_total=quadrupole_check, &
+                   all_norms_ok=all_norms_ok, &
+                   rho_mp=rho_mp, pot_mp=pot_mp)
+              if (.not. all_norms_ok) then
+                  call f_err_throw('When checking the previously calculated multipoles, all norms should be ok')
+              end if
+              dipole_check=dipole_check/Debye_AU  ! au2debye              
+
+              !# NEW: compare the density and potential ##########################
+              if (smatl%nspin/=1) then
+                  call f_err_throw('Multipole analysis check not yet ready for nspin>1')
+              end if
+              ! Get the exact charge density
+              ioffset = denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*&
+                        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,4)
+              !write(*,*) 'MP: ioffset', ioffset
+              call f_memcpy(n=(ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), &
+                   src=denspot%rhov(ioffset+1), dest=rho_exact(is1,is2,is3))
+              call f_memcpy(src=rho_exact, dest=pot_exact)
+!!$              call H_potential('D',denspot%pkernel,pot_exact,denspot%V_ext,tt,0.0_dp,.true.,&
+!!$                   quiet='yes')
+              call Electrostatic_Solver(denspot%pkernel,pot_exact,pot_ion=denspot%V_ext)
+              !mesh=cell_new(smmd%geocode,denspot%pkernel%ndims,denspot%pkernel%hgrids)
+              call compare_charge_and_potential(denspot%dpbox%bitp,&!iproc, is1, ie1, is2, ie2, is3, ie3, &
+                   smmd%nat, &
+                   rho_exact, rho_mp, pot_exact, pot_mp, denspot%pkernel, rxyz, &
+                   ncheck, check_threshold, charge_error, charge_total, potential_error, potential_total)
+              !# NEW: compare the density and potential ##########################
+              if (iproc==0) then
+                  call yaml_sequence(advance='no')
+                  call yaml_mapping_open('Up to multipole l='//trim(yaml_toa(lcheck)))
+                  call yaml_mapping_open('Electric Dipole Moment (Debye)')
+                  call yaml_map('P vector',dipole_check(1:3),fmt='(1es13.4)')
+                  call yaml_map('norm(P)',sqrt(sum(dipole_check**2)),fmt='(1es14.6)')
+                  call yaml_mapping_close()
+                  call yaml_mapping_open('Quadrupole Moment (AU)')
+                  call yaml_map('Q matrix',quadrupole_check,fmt='(1es13.4)')
+                  call yaml_map('trace',quadrupole_check(1,1)+quadrupole_check(2,2)+quadrupole_check(3,3),fmt='(es12.2)')
+                  call yaml_mapping_close()
+                  call yaml_sequence_open('Average relative error of resulting potential in the Exterior region')
+                  !call yaml_sequence_open('density threshold for check')
+                  do icheck=1,ncheck
+                      !call yaml_mapping_open('density threshold for check',check_threshold(icheck))
+                      call yaml_sequence(advance='no')
+                      call yaml_mapping_open(flow=.true.)
+                      call yaml_map('Thr',check_threshold(icheck),fmt='(es9.1)')
+                      call yaml_map('Ext. Vol. %',charge_total(icheck)/&
+                           (denspot%dpbox%mesh%volume_element*product(real(denspot%dpbox%mesh%ndims,gp))),&
+                           fmt='(2pf5.1)')
+                      call yaml_map('int(V)',potential_total(icheck),fmt='(es10.3)')
+                      call yaml_map('Err %',potential_error(icheck)/potential_total(icheck),fmt='(2pf5.1)')
+                      call yaml_map('int(rho)',charge_error(icheck),fmt='(es10.3)')
+!!$                      !call yaml_mapping_open('density threshold for check is'//&
+!!$                      !     &trim(yaml_toa(check_threshold(icheck),fmt='(es9.2)')))
+!!$                      call yaml_mapping_open('rho',flow=.true.)
+!!$                      call yaml_map('int(q-q_exact))',charge_error(icheck),fmt='(es10.3)')
+!!$                      call yaml_map('int(q_exact)',charge_total(icheck),fmt='(es10.3)')
+!!$                      call yaml_map('ratio',charge_error(icheck)/charge_total(icheck),fmt='(es10.3)')
+!!$                      call yaml_mapping_close()
+!!$                      call yaml_mapping_open('pot',flow=.true.)
+!!$                      call yaml_map('int(V-V_exact))',potential_error(icheck),fmt='(es10.3)')
+!!$                      call yaml_map('int(V_exact)',potential_total(icheck),fmt='(es10.3)')
+!!$                      call yaml_map('ratio',potential_error(icheck)/potential_total(icheck),fmt='(es10.3)')
+!!$                      call yaml_mapping_close()
+                      call yaml_mapping_close()
+                  end do
+                  call yaml_sequence_close()
+                  !call yaml_mapping_close()
+                  call yaml_mapping_close()
+               end if
+               call deallocate_external_potential_descriptors(ep_check)
+            end do
+          if (iproc==0) call yaml_sequence_close()
+          call f_free(test_pot)
+          call f_free(rho_exact)
+          call f_free(rho_mp)
+          call f_free(pot_exact)
+          call f_free(pot_mp)
+      end if
+
+      do l=0,min(1,lmax)
+          do m=-l,l
+              call deallocate_matrices(lower_multipole_matrices(m,l))
+          end do
+      end do
+
+      if (trim(method)=='loewdin') then
+          call deallocate_matrices(inv_ovrlp(1))
+      end if
+
+      call f_free_str(len(names),names)
+      call deallocate_matrices(multipole_matrix)
+      call f_free(kernel_ortho)
+      call f_free(Qmat)
+      !if (do_ortho==yes .and. calculate_multipole_matrices) then
+      !    call f_free(phi_ortho)
+      !end if
+      call f_free(projx)
+      call f_free_ptr(nx)
+      call f_free(neighborx)
+      call f_free_ptr(atomic_multipoles)
+      !!call f_free(multipole_matrix_large)
+      call deallocate_external_potential_descriptors(ep)
+
+      if (iproc==0) then
+          call yaml_comment('Atomic multipole analysis done',hfill='=')
+      end if
+
+      call f_release_routine()
+
+  end subroutine multipole_analysis_driver_new
+
 
 
 
@@ -6070,6 +6679,288 @@ end subroutine calculate_rpowerx_matrices
       call f_release_routine()
 
     end subroutine correct_multipole_origin
+
+
+    subroutine correct_multipole_origin_new(nat, l, m, n, nlr, natpx, nmaxx, kat, kkat, &
+               smats, orbs, rxyz, neighborx, perx, pery, perz, acell, &
+               lower_multipole_matrices, locregcenter, multipole_matrix)
+      use sparsematrix_base, only: sparse_matrix, matrices
+      use module_types, only: orbitals_data
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: nat, l, m, n, nlr, natpx, nmaxx, kat, kkat
+      real(kind=8),dimension(3,nat),intent(in) :: rxyz
+      type(sparse_matrix),intent(in) :: smats
+      type(orbitals_data),intent(in) :: orbs
+      logical,dimension(smats%nfvctr,natpx),intent(in) :: neighborx
+      logical,intent(in) :: perx, pery, perz
+      real(kind=8),dimension(3),intent(in) :: acell
+      type(matrices),dimension(-1:1,0:1),intent(in):: lower_multipole_matrices
+      real(kind=8),dimension(3,nlr),intent(in) :: locregcenter
+      type(matrices),intent(inout) :: multipole_matrix
+
+      ! Local variables
+      integer :: ii, ilr, i, j, iseg
+      real(kind=8) :: rr1, rr2, rr3
+      real(kind=8),dimension(:,:,:,:),allocatable :: lmp_extracted
+      real(kind=8),dimension(:,:),allocatable :: tmpmat
+
+      call f_routine(id='correct_multipole_origin')
+
+        if (l==1) then
+            !!lmp_extracted = f_malloc((/1.to.n,1.to.n,0.to.0,0.to.0/),id='lmp_extracted')
+            !!tmpmat = f_malloc((/n,n/),id='tmpmat')
+            !!call extract_matrix(smats, lower_multipole_matrices(0,0)%matrix_compr, &
+            !!     neighborx(1,kat), n, nmaxx, lmp_extracted(1,1,0,0))
+            select case (m)
+            case (-1)
+                !!ii = 0
+                !!do i=1,smats%nfvctr
+                !!    if (neighborx(i,kat)) then
+                !!        ii = ii + 1
+                !!        ilr = orbs%inwhichlocreg(i)
+                !!        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                !!        do j=1,n
+                !!            tmpmat(j,ii) = rr2*lmp_extracted(j,ii,0,0)
+                !!        end do
+                !!    end if
+                !!end do
+                ii = 0
+                do iseg=1,smats%nseg
+                    ilr = orbs%inwhichlocreg(smats%keyg(1,2,iseg))
+                    rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                    do i=smats%keyg(1,1,iseg),smats%keyg(2,1,iseg)
+                        ii = ii + 1
+                        multipole_matrix%matrix_compr(ii) = multipole_matrix%matrix_compr(ii) &
+                            + rr2*lower_multipole_matrices(0,0)%matrix_compr(ii)
+                    end do
+                end do
+            case (0)
+                !!ii = 0
+                !!do i=1,smats%nfvctr
+                !!    if (neighborx(i,kat)) then
+                !!        ii = ii + 1
+                !!        ilr = orbs%inwhichlocreg(i)
+                !!        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                !!        do j=1,n
+                !!            tmpmat(j,ii) = rr3*lmp_extracted(j,ii,0,0)
+                !!        end do
+                !!    end if
+                !!end do
+                ii = 0
+                do iseg=1,smats%nseg
+                    ilr = orbs%inwhichlocreg(smats%keyg(1,2,iseg))
+                    rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                    do i=smats%keyg(1,1,iseg),smats%keyg(2,1,iseg)
+                        ii = ii + 1
+                        multipole_matrix%matrix_compr(ii) = multipole_matrix%matrix_compr(ii) &
+                            + rr3*lower_multipole_matrices(0,0)%matrix_compr(ii)
+                    end do
+                end do
+            case (1)
+                !!ii = 0
+                !!do i=1,smats%nfvctr
+                !!    if (neighborx(i,kat)) then
+                !!        ii = ii + 1
+                !!        ilr = orbs%inwhichlocreg(i)
+                !!        rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                !!        do j=1,n
+                !!            tmpmat(j,ii) = rr1*lmp_extracted(j,ii,0,0)
+                !!        end do
+                !!    end if
+                !!end do
+                ii = 0
+                do iseg=1,smats%nseg
+                    ilr = orbs%inwhichlocreg(smats%keyg(1,2,iseg))
+                    rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                    do i=smats%keyg(1,1,iseg),smats%keyg(2,1,iseg)
+                        ii = ii + 1
+                        multipole_matrix%matrix_compr(ii) = multipole_matrix%matrix_compr(ii) &
+                            + rr1*lower_multipole_matrices(0,0)%matrix_compr(ii)
+                    end do
+                end do
+            end select
+            !!call axpy(n**2, 1.d0, tmpmat(1,1), 1, multipole_extracted(1,1), 1)
+            !!call f_free(lmp_extracted)
+            !!call f_free(tmpmat)
+        else if (l==2) then
+            !!lmp_extracted = f_malloc((/1.to.n,1.to.n,-1.to.1,0.to.1/),id='lmp_extracted')
+            !!tmpmat = f_malloc((/n,n/),id='tmpmat')
+            !!call extract_matrix(smats, lower_multipole_matrices(0,0)%matrix_compr, &
+            !!     neighborx(1,kat), n, nmaxx, lmp_extracted(1,1,0,0))
+            !!do i=-1,1
+            !!    call extract_matrix(smats, lower_multipole_matrices(i,1)%matrix_compr, &
+            !!         neighborx(1,kat), n, nmaxx, lmp_extracted(1,1,i,1))
+            !!end do
+            select case (m)
+            case (-2)
+                !!ii = 0
+                !!do i=1,smats%nfvctr
+                !!    if (neighborx(i,kat)) then
+                !!        ii = ii + 1
+                !!        ilr = orbs%inwhichlocreg(i)
+                !!        rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                !!        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                !!        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                !!        do j=1,n
+                !!            tmpmat(j,ii) = -sqrt(3.d0)*rr1*lmp_extracted(j,ii,-1,1) &
+                !!                           -sqrt(3.d0)*rr2*lmp_extracted(j,ii,1,1) &
+                !!                           +sqrt(3.d0)*rr1*rr2*lmp_extracted(j,ii,0,0)
+                !!        end do
+                !!    end if
+                !!end do
+                ii = 0
+                do iseg=1,smats%nseg
+                    ilr = orbs%inwhichlocreg(smats%keyg(1,2,iseg))
+                    rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                    rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                    rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                    do i=smats%keyg(1,1,iseg),smats%keyg(2,1,iseg)
+                        ii = ii + 1
+                        multipole_matrix%matrix_compr(ii) = multipole_matrix%matrix_compr(ii) &
+                            -sqrt(3.d0)*rr1*lower_multipole_matrices(-1,1)%matrix_compr(ii) &
+                            -sqrt(3.d0)*rr2*lower_multipole_matrices(1,1)%matrix_compr(ii) &
+                            +sqrt(3.d0)*rr1*rr2*lower_multipole_matrices(0,0)%matrix_compr(ii)
+                    end do
+                end do
+            case (-1)
+                !!ii = 0
+                !!do i=1,smats%nfvctr
+                !!    if (neighborx(i,kat)) then
+                !!        ii = ii + 1
+                !!        ilr = orbs%inwhichlocreg(i)
+                !!        rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                !!        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                !!        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                !!        do j=1,n
+                !!            tmpmat(j,ii) = -sqrt(3.d0)*rr2*lmp_extracted(j,ii,0,1) &
+                !!                           -sqrt(3.d0)*rr3*lmp_extracted(j,ii,-1,1) &
+                !!                           +sqrt(3.d0)*rr2*rr3*lmp_extracted(j,ii,0,0)
+                !!        end do
+                !!    end if
+                !!end do
+                ii = 0
+                do iseg=1,smats%nseg
+                    ilr = orbs%inwhichlocreg(smats%keyg(1,2,iseg))
+                    rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                    rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                    rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                    do i=smats%keyg(1,1,iseg),smats%keyg(2,1,iseg)
+                        ii = ii + 1
+                        multipole_matrix%matrix_compr(ii) = multipole_matrix%matrix_compr(ii) &
+                            -sqrt(3.d0)*rr2*lower_multipole_matrices(0,1)%matrix_compr(ii) &
+                            -sqrt(3.d0)*rr3*lower_multipole_matrices(-1,1)%matrix_compr(ii) &
+                            +sqrt(3.d0)*rr2*rr3*lower_multipole_matrices(0,0)%matrix_compr(ii)
+                    end do
+                end do
+            case (0)
+                !!ii = 0
+                !!do i=1,smats%nfvctr
+                !!    if (neighborx(i,kat)) then
+                !!        ii = ii + 1
+                !!        ilr = orbs%inwhichlocreg(i)
+                !!        rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                !!        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                !!        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                !!        do j=1,n
+                !!            tmpmat(j,ii) =  rr1*lmp_extracted(j,ii,1,1) &
+                !!                           +rr2*lmp_extracted(j,ii,-1,1) &
+                !!                           -2.d0*rr3*lmp_extracted(j,ii,0,1) &
+                !!                           +0.5d0*(-rr1**2-rr2**2+&
+                !!                             2.d0*rr3**2)&
+                !!                             *lmp_extracted(j,ii,0,0)
+                !!        end do
+                !!    end if
+                !!end do
+                ii = 0
+                do iseg=1,smats%nseg
+                    ilr = orbs%inwhichlocreg(smats%keyg(1,2,iseg))
+                    rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                    rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                    rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                    do i=smats%keyg(1,1,iseg),smats%keyg(2,1,iseg)
+                        ii = ii + 1
+                        multipole_matrix%matrix_compr(ii) = multipole_matrix%matrix_compr(ii) &
+                             +rr1*lower_multipole_matrices(1,1)%matrix_compr(ii) &
+                             +rr2*lower_multipole_matrices(-1,1)%matrix_compr(ii) &
+                             -2.d0*rr3*lower_multipole_matrices(0,1)%matrix_compr(ii) &
+                             +0.5d0*(-rr1**2-rr2**2+&
+                               2.d0*rr3**2)&
+                               *lower_multipole_matrices(0,0)%matrix_compr(ii)
+                    end do
+                end do
+            case (1)
+                !!ii = 0
+                !!do i=1,smats%nfvctr
+                !!    if (neighborx(i,kat)) then
+                !!        ii = ii + 1
+                !!        ilr = orbs%inwhichlocreg(i)
+                !!        rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                !!        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                !!        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                !!        do j=1,n
+                !!            tmpmat(j,ii) = -sqrt(3.d0)*rr1*lmp_extracted(j,ii,0,1) &
+                !!                           -sqrt(3.d0)*rr3*lmp_extracted(j,ii,1,1) &
+                !!                           +sqrt(3.d0)*rr1*rr3&
+                !!                             *lmp_extracted(j,ii,0,0)
+                !!        end do
+                !!    end if
+                !!end do
+                ii = 0
+                do iseg=1,smats%nseg
+                    ilr = orbs%inwhichlocreg(smats%keyg(1,2,iseg))
+                    rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                    rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                    rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                    do i=smats%keyg(1,1,iseg),smats%keyg(2,1,iseg)
+                        ii = ii + 1
+                        multipole_matrix%matrix_compr(ii) = multipole_matrix%matrix_compr(ii) &
+                            -sqrt(3.d0)*rr1*lower_multipole_matrices(0,1)%matrix_compr(ii) &
+                            -sqrt(3.d0)*rr3*lower_multipole_matrices(1,1)%matrix_compr(ii) &
+                            +sqrt(3.d0)*rr1*rr3*lower_multipole_matrices(0,0)%matrix_compr(ii)
+                    end do
+                end do
+            case (2)
+                !!ii = 0
+                !!do i=1,smats%nfvctr
+                !!    if (neighborx(i,kat)) then
+                !!        ii = ii + 1
+                !!        ilr = orbs%inwhichlocreg(i)
+                !!        rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                !!        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                !!        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                !!        do j=1,n
+                !!            tmpmat(j,ii) = -sqrt(3.d0)*(rr1)*lmp_extracted(j,ii,1,1) &
+                !!                           +sqrt(3.d0)*(rr2)*lmp_extracted(j,ii,-1,1) &
+                !!                           +sqrt(0.75d0)*(rr1**2-rr2**2)&
+                !!                             *lmp_extracted(j,ii,0,0)
+                !!        end do
+                !!    end if
+                !!end do
+                ii = 0
+                do iseg=1,smats%nseg
+                    ilr = orbs%inwhichlocreg(smats%keyg(1,2,iseg))
+                    rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                    rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                    rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                    do i=smats%keyg(1,1,iseg),smats%keyg(2,1,iseg)
+                        ii = ii + 1
+                        multipole_matrix%matrix_compr(ii) = multipole_matrix%matrix_compr(ii) &
+                            -sqrt(3.d0)*rr1*lower_multipole_matrices(1,1)%matrix_compr(ii) &
+                            +sqrt(3.d0)*rr2*lower_multipole_matrices(-1,1)%matrix_compr(ii) &
+                            +sqrt(0.75d0)*(rr1**2-rr2**2)*lower_multipole_matrices(0,0)%matrix_compr(ii)
+                    end do
+                end do
+            end select
+            !!call axpy(n**2, -1.d0, tmpmat(1,1), 1, multipole_extracted(1,1), 1)
+            !!call f_free(lmp_extracted)
+            !!call f_free(tmpmat)
+        end if
+
+      call f_release_routine()
+
+    end subroutine correct_multipole_origin_new
 
 
     subroutine compare_charge_and_potential(boxit,nat,& !iproc, is1, ie1, is2, ie2, is3, ie3, nat, &

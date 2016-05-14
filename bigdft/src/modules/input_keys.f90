@@ -134,6 +134,7 @@ module module_input_keys
      real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
      logical :: plot_locreg_grids
      integer,dimension(2) :: calculate_FOE_eigenvalues !< First and last eigenvalue to be calculated using the FOE procedure
+     real(kind=8) :: precision_FOE_eigenvalues !< decay length of the error function used to extract the eigenvalues (i.e. something like the resolution)
   end type linearInputParameters
 
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
@@ -2123,6 +2124,8 @@ contains
           in%lin%plot_locreg_grids = val
        case (CALCULATE_FOE_EIGENVALUES)
           in%lin%calculate_FOE_eigenvalues(1:2) = val
+       case (PRECISION_FOE_EIGENVALUES)
+          in%lin%precision_FOE_eigenvalues = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

@@ -35,6 +35,7 @@ module sparsematrix_init
   public :: sparse_matrix_init_fake
   public :: check_symmetry 
   public :: generate_random_symmetric_sparsity_pattern
+  public :: distribute_on_tasks
 
 
   contains
@@ -645,6 +646,8 @@ module sparsematrix_init
       integer :: jorb
       logical :: segment_started, newline, overlap
 
+      call f_routine(id='nseg_perline')
+
       ! Always start a new segment for each line
       segment_started=.false.
       nsegline=0
@@ -668,6 +671,8 @@ module sparsematrix_init
           end if
       end do
 
+      call f_release_routine()
+
     end subroutine nseg_perline
 
 
@@ -683,6 +688,8 @@ module sparsematrix_init
       ! Local variables
       integer :: iseg, jorb, ijorb
       logical :: segment_started, overlap
+
+      call f_routine(id='keyg_per_line')
 
       ! Always start a new segment for each line
       segment_started=.false.
@@ -718,6 +725,9 @@ module sparsematrix_init
           keyg(2,1,iseg)=norb
           keyg(2,2,iseg)=iline
       end if
+
+      call f_release_routine()
+
     end subroutine keyg_per_line
 
 
@@ -1150,6 +1160,8 @@ module sparsematrix_init
       integer(kind=mp) :: ist, iend, ind
       integer :: i, jjorb
 
+      call f_routine(id='create_lookup_table')
+
       lut = .false.
       ist = int(iiorb-1,kind=mp)*int(norbu,kind=mp) + int(1,kind=mp)
       iend = int(iiorb,kind=mp)*int(norbu,kind=mp)
@@ -1160,6 +1172,9 @@ module sparsematrix_init
          jjorb=nonzero(1,i)
          lut(jjorb)=.true.
       end do
+
+      call f_release_routine()
+
     end subroutine create_lookup_table
 
     subroutine determine_sequential_length(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, &
@@ -4608,5 +4623,26 @@ module sparsematrix_init
       call f_release_routine()
 
     end subroutine generate_random_symmetric_sparsity_pattern
+
+
+    ! Parallelization a number n over nproc nasks
+    subroutine distribute_on_tasks(n, iproc, nproc, np, is)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: n, iproc, nproc
+      integer,intent(out) :: np, is
+
+      ! Local variables
+      integer :: ii
+
+      ! First distribute evenly...
+      np = n/nproc
+      is = iproc*np
+      ! ... and now distribute the remaining atoms.
+      ii = n-nproc*np
+      if (iproc<ii) np = np + 1
+      is = is + min(iproc,ii)
+
+   end subroutine distribute_on_tasks
 
 end module sparsematrix_init
