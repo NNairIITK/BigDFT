@@ -26,7 +26,7 @@ FERMI_LEVEL= "__FERMI_LEVEL__"
 NUMBER_OF_ATOMS = 'BigDFT.nat'
 
 #Builtin pathes to define the search paths
-BUILTIN={ENERGY: [["Last Iteration", "FKS"],["Last Iteration", "EKS"]],
+BUILTIN={ENERGY: [["Last Iteration", "FKS"],["Last Iteration", "EKS"], ["Energy (Hartree)"]],
          FERMI_LEVEL: [["Ground State Optimization", -1, "Fermi Energy"]],
          NUMBER_OF_ATOMS: [ ['Atomic System Properties','Number of atoms']]}
 
