@@ -46,9 +46,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
   use locregs_init, only: small_to_large_locreg
   use public_enums
-  use multipole, only: multipole_analysis_driver, projector_for_charge_analysis, &
+  use multipole, only: multipole_analysis_driver_new, projector_for_charge_analysis, &
                        support_function_gross_multipoles, potential_from_charge_multipoles, &
-                       calculate_rpowerx_matrices, multipole_analysis_driver_new
+                       calculate_rpowerx_matrices
   use transposed_operations, only: calculate_overlap_transposed
   use foe_base, only: foe_data_set_real
   use rhopotential, only: full_local_potential
