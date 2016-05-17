@@ -2238,10 +2238,14 @@ module communications_init
 
       !@ENDNEW ######################################
     
-      if(icheck_c/=nptsp_c) stop 'icheck_c/=nptsp_c'
+      if(icheck_c/=nptsp_c) then
+          call f_err_throw(trim(yaml_toa(icheck_c))//'=icheck_c /= nptsp_c='//trim(yaml_toa(nptsp_c)), &
+               err_name='BIGDFT_RUNTIME_ERROR')
+      end if
       if(iiorb_c/=nint(weightp_c)) then
-          write(*,*) 'iiorb_c, nint(weightp_c)', iiorb_c, nint(weightp_c)
-          stop 'iiorb_c/=weightp_c'
+          write(*,*) 'iiorb_c, nint(weightp_c), weightp_c', iiorb_c, nint(weightp_c), weightp_c
+          call f_err_throw(trim(yaml_toa(iiorb_c))//'=iiorb_c /= weightp_c='//trim(yaml_toa(weightp_c)), &
+               err_name='BIGDFT_RUNTIME_ERROR')
       end if
     
     
