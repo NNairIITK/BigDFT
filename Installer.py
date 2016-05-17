@@ -265,15 +265,17 @@ class BigDFTInstaller():
 
     def clean(self):
         "Clean files in the build directory"
-        import os
+        import os,shutil
         for mod in self.selected(MAKEMODULES[::-1]): #invert cleaning order for elegance
             self.get_output(self.jhb+UNINSTALL+mod)
             self.get_output(self.jhb+CLEANONE+mod)
             #here we should eliminate residual .mod files
             os.path.walk(mod,self.removefile,"*.mod")
             os.path.walk(mod,self.removefile,"*.MOD")
-        #self.get_output(self.jhb+CLEAN)
-
+            if not self.branch: #this is necessary as we come from a tarfile
+                print 'Wipe directory: ',mod
+                shutil.rmtree(mod, ignore_errors=True)
+        
     def startover(self):
         "Wipe files in the makemodules directory"
         if not self.branch:
