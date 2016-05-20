@@ -2728,6 +2728,7 @@ module multipole
       use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
                                    sparsematrix_malloc, matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                    SPARSE_TASKGROUP, sparse_matrix_metadata
+      use sparsematrix_init, only: distribute_on_tasks
       use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
       use communications, only: transpose_localized
       use orthonormalization, only: orthonormalizelocalized,overlap_matrix
@@ -2770,7 +2771,7 @@ module multipole
       type(foe_data),intent(inout),optional :: ice_obj
 
       ! Local variables
-      integer :: methTransformOverlap, iat, ind, ispin, ishift, iorb, jorb, iiorb, l, m, itype, natpx, isatx, nmaxx, kat, n, i, kkat
+      integer :: methTransformOverlap, iat, ind, ispin, ishift, iorb, jorb, iiorb, l, m, itype, natpx, isatx, kat, n, i, kkat
       integer :: ilr, impl, mm, lcheck, nelpsp, psp_source, j, lwork, ii
       integer, dimension(1) :: power
       logical :: can_use_transposed, all_norms_ok
@@ -2792,7 +2793,7 @@ module multipole
       type(matrices),dimension(1) :: inv_ovrlp
       logical :: perx, pery, perz
       logical,dimension(:,:),allocatable :: neighborx
-      integer,dimension(:),pointer :: nx
+      integer,dimension(:),allocatable :: nx
       character(len=20),dimension(:),allocatable :: names
       real(kind=8) :: rr1, rr2, rr3
       real(kind=8),dimension(3) :: dipole_check
@@ -2805,7 +2806,7 @@ module multipole
       type(external_potential_descriptors) :: ep
       !character(len=*),parameter :: projectormode='verynew'!'old'
       !character(len=*),parameter :: do_ortho = no!yes
-      integer :: is1, ie1, is2, ie2, is3, ie3, ioffset, icheck
+      integer :: is1, ie1, is2, ie2, is3, ie3, ioffset, icheck, nmax
       real(kind=8),dimension(:,:,:),allocatable :: rho_exact, rho_mp, pot_exact, pot_mp
       integer,parameter :: ncheck = 5
       real(kind=8),dimension(ncheck),parameter :: check_threshold = [ 1.d-12 , &
@@ -2935,11 +2936,18 @@ module multipole
            call deallocate_matrices(ovrlp_large)
        end if
 
+       ! Parallelization over the atoms
+       call distribute_on_tasks(smmd%nat, bigdft_mpi%iproc, bigdft_mpi%nproc, natpx, isatx)
+
           ! Just to get the sizes...
-          call projector_for_charge_analysis(smmd, smats, smatm, smatl, &
-               ovrlp, ham, kernel, rxyz, calculate_centers=.false., write_output=.false., ortho=do_ortho, mode='simple', &
-               natpx=natpx, isatx=isatx, nmaxx=nmaxx, nx=nx, projx=projx, neighborx=neighborx, &
-               only_sizes=.true.)
+          !!call projector_for_charge_analysis(smmd, smats, smatm, smatl, &
+          !!     ovrlp, ham, kernel, rxyz, calculate_centers=.false., write_output=.false., ortho=do_ortho, mode='simple', &
+          !!     natpx=natpx, isatx=isatx, nx=nx, projx=projx, neighborx=neighborx, &
+          !!     only_sizes=.true.)
+          neighborx = f_malloc((/smats%nfvctr,natpx/),id='neighborx')
+          nx = f_malloc(natpx,id='nx')
+          call determine_submatrix_sizes(natpx, isatx, smmd, smats, neighborx, nx, nmax)
+          projx = f_malloc((/nmax**2,natpx/),id='projx')
 
           ! Calculate the matrix for the projector matrix, which is S^-1 for Mulliken and Id for Loewdin.
           ! However, to be consistent (error cancellation of the inverse etc), we calculate for Loewdin the matrix as [S^-1/2*S*S^-1/2]^-1
@@ -3047,12 +3055,12 @@ module multipole
                        kernel_extracted = f_malloc((/n,n/),id='kernel_extracted')
                        multipole_extracted = f_malloc((/n,n/),id='multipole_extracted')
                        call extract_matrix(smats, multipole_matrix%matrix_compr, &
-                           neighborx(1,kat), n, nmaxx, multipole_extracted)
+                           neighborx(1,kat), n, multipole_extracted)
                        ! The minus sign is required since the phi*S_lm*phi represent the electronic charge which is a negative quantity
                        call dscal(n**2, -1.d0, multipole_extracted(1,1), 1)
-                           call extract_matrix(smatl, kernel_ortho, neighborx(1,kat), n, nmaxx, kernel_extracted)
+                       call extract_matrix(smatl, kernel_ortho, neighborx(1,kat), n, kernel_extracted)
                        if (l>0) then
-                           call correct_multipole_origin(smmd%nat, l, m, n, lzd%nlr, natpx, nmaxx, kat, kkat, &
+                           call correct_multipole_origin(smmd%nat, l, m, n, lzd%nlr, natpx, kat, kkat, &
                                 smats, orbs, rxyz, neighborx, perx, pery, perz, acell, &
                                 lower_multipole_matrices, locregcenter, multipole_extracted)
                        end if
@@ -3062,7 +3070,7 @@ module multipole
                        !    end do
                        !end do
                        if (trim(method)=='loewdin') then
-                               call extract_matrix(smatl, inv_ovrlp(1)%matrix_compr, neighborx(1,kat), n, nmaxx, projx(1,kat))
+                               call extract_matrix(smatl, inv_ovrlp(1)%matrix_compr, neighborx(1,kat), n, projx(1,kat))
                                iiorb = 0
                                do iorb=1,smats%nfvctr
                                    if (neighborx(iorb,kat)) then
@@ -3301,7 +3309,7 @@ module multipole
       !    call f_free(phi_ortho)
       !end if
       call f_free(projx)
-      call f_free_ptr(nx)
+      call f_free(nx)
       call f_free(neighborx)
       call f_free_ptr(atomic_multipoles)
       !!call f_free(multipole_matrix_large)
@@ -3715,8 +3723,8 @@ module multipole
               proj = f_malloc0((/n,n/),id='proj')
               penaltymat = f_malloc0((/n,n,24/),id='penaltymat')
               eval = f_malloc0((/n/),id='eval')
-              call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ovrlp)!, ilup)
-              call extract_matrix(smatm, ham_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ham)
+              call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1,kat), n_all(kat), ovrlp)!, ilup)
+              call extract_matrix(smatm, ham_%matrix_compr, neighbor(1,kat), n_all(kat), ham)
 
 
 
@@ -3756,7 +3764,7 @@ module multipole
                   !alpha = 0.02d0
                   do i=1,24
                       call extract_matrix(smats, rpower_matrix(i)%matrix_compr, &
-                          neighbor(1,kat), n_all(kat), nmax, penaltymat(1,1,i))
+                          neighbor(1,kat), n_all(kat), penaltymat(1,1,i))
                   end do
                   !tt = sqrt(rxyz(1,kkat)**2+rxyz(2,kkat)**2+rxyz(3,kkat)**2)
                   tt = rxyz(1,kkat)**2 + rxyz(2,kkat)**2 + rxyz(3,kkat)**2
@@ -4173,7 +4181,7 @@ end if
                   ! Extract ktilde
                   ktilde = f_malloc0((/n,n/),id='ktilde')
                   !if (ortho=='yes') then
-                      call extract_matrix(smatl, kerneltilde, neighbor(1,kat), n_all(kat), nmax, ktilde)
+                      call extract_matrix(smatl, kerneltilde, neighbor(1,kat), n_all(kat), ktilde)
                   !else if (ortho=='no') then
                   !    call extract_matrix(smatl, kernel_%matrix_compr, neighbor(1:,kat), n, nmax, ktilde)
                   !end if
@@ -4182,7 +4190,7 @@ end if
                   if (ortho=='no') then
                       call f_memcpy(src=kp,dest=ktilde)
                       ovrlp = f_malloc0((/n,n/),id='ovrlp')
-                      call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1,kat), n_all(kat), nmax, ovrlp)
+                      call extract_matrix(smats, ovrlp_%matrix_compr, neighbor(1,kat), n_all(kat), ovrlp)
                       call gemm('n', 'n', n, n, n, 1.d0, ktilde(1,1), n, ovrlp(1,1), n, 0.d0, kp(1,1), n)
                       call f_free(ovrlp)
                   end if
@@ -4394,7 +4402,7 @@ end if
 
 
 
-  subroutine extract_matrix(smat, matrix_compr, neighbor, n, nmax, matrix)!, ilup)
+  subroutine extract_matrix(smat, matrix_compr, neighbor, n, matrix)
     use module_base
     use sparsematrix_base,only: sparse_matrix, matrices
     use sparsematrix_init, only: matrixindex_in_compressed
@@ -4404,9 +4412,8 @@ end if
     type(sparse_matrix),intent(in) :: smat
     real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: matrix_compr
     logical,dimension(smat%nfvctr),intent(in) :: neighbor
-    integer,intent(in) :: n, nmax
+    integer,intent(in) :: n
     real(kind=8),dimension(n,n),intent(out) :: matrix
-    !integer,dimension(2,nmax,nmax),intent(out),optional :: ilup
 
     ! Local variables
     integer :: icheck, ii, jj, i, j, ind
@@ -6502,7 +6509,7 @@ end subroutine calculate_rpowerx_matrices
     end subroutine get_minmax_eigenvalues
 
 
-    subroutine correct_multipole_origin(nat, l, m, n, nlr, natpx, nmaxx, kat, kkat, &
+    subroutine correct_multipole_origin(nat, l, m, n, nlr, natpx, kat, kkat, &
                smats, orbs, rxyz, neighborx, perx, pery, perz, acell, &
                lower_multipole_matrices, locregcenter, multipole_extracted)
       use sparsematrix_base, only: sparse_matrix, matrices
@@ -6510,7 +6517,7 @@ end subroutine calculate_rpowerx_matrices
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: nat, l, m, n, nlr, natpx, nmaxx, kat, kkat
+      integer,intent(in) :: nat, l, m, n, nlr, natpx, kat, kkat
       real(kind=8),dimension(3,nat),intent(in) :: rxyz
       type(sparse_matrix),intent(in) :: smats
       type(orbitals_data),intent(in) :: orbs
@@ -6533,7 +6540,7 @@ end subroutine calculate_rpowerx_matrices
             lmp_extracted = f_malloc((/1.to.n,1.to.n,0.to.0,0.to.0/),id='lmp_extracted')
             tmpmat = f_malloc((/n,n/),id='tmpmat')
             call extract_matrix(smats, lower_multipole_matrices(0,0)%matrix_compr, &
-                 neighborx(1,kat), n, nmaxx, lmp_extracted(1,1,0,0))
+                 neighborx(1,kat), n, lmp_extracted(1,1,0,0))
             select case (m)
             case (-1)
                 ii = 0
@@ -6579,10 +6586,10 @@ end subroutine calculate_rpowerx_matrices
             lmp_extracted = f_malloc((/1.to.n,1.to.n,-1.to.1,0.to.1/),id='lmp_extracted')
             tmpmat = f_malloc((/n,n/),id='tmpmat')
             call extract_matrix(smats, lower_multipole_matrices(0,0)%matrix_compr, &
-                 neighborx(1,kat), n, nmaxx, lmp_extracted(1,1,0,0))
+                 neighborx(1,kat), n, lmp_extracted(1,1,0,0))
             do i=-1,1
                 call extract_matrix(smats, lower_multipole_matrices(i,1)%matrix_compr, &
-                     neighborx(1,kat), n, nmaxx, lmp_extracted(1,1,i,1))
+                     neighborx(1,kat), n, lmp_extracted(1,1,i,1))
             end do
             select case (m)
             case (-2)
@@ -7310,5 +7317,51 @@ end subroutine calculate_rpowerx_matrices
     call f_release_routine()
 
     end subroutine estimate_system_volume_from_density
+
+
+    subroutine determine_submatrix_sizes(natp, isat, smmd, smat, neighbor, nx, nmax)
+      use sparsematrix_base, only: sparse_matrix_metadata, sparse_matrix
+      use sparsematrix_init, only: matrixindex_in_compressed
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: natp, isat
+      type(sparse_matrix_metadata),intent(in) :: smmd
+      type(sparse_matrix),intent(in) :: smat
+      logical,dimension(smat%nfvctr,natp),intent(out) :: neighbor
+      integer,dimension(:),intent(out) :: nx
+      integer,intent(out) :: nmax
+
+      ! Local variables
+      integer :: kat, kkat, n, i, j, iat, iatold, inds
+
+      neighbor(:,:) = .false.
+      !ntot = 0
+      nmax = 0
+      do kat=1,natp
+          iatold = 0
+          kkat = kat + isat
+          n = 0
+          do i=1,smat%nfvctr
+               iat = smmd%on_which_atom(i)
+               ! Only do the following for the first TMB per atom
+               if (iat==iatold) cycle
+               iatold = iat
+               if (iat==kkat) then
+                   do j=1,smat%nfvctr
+                       inds =  matrixindex_in_compressed(smat, j, i)
+                       if (inds/=0) then
+                          neighbor(j,kat) = .true.
+                          n = n + 1
+                       end if
+                   end do
+               end if
+          end do
+          nx(kat) = n
+          !ntot = ntot + n
+          nmax = max(nmax, n)
+      end do
+
+    end subroutine determine_submatrix_sizes
 
 end module multipole
