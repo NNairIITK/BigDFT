@@ -644,8 +644,9 @@ module unitary_tests
                               do j=i+1,weight(i1,i2,i3)
                                   jj=orbital_id(j,i1,i2,i3)+(ispin-1)*orbs%norbu
                                   !ikernel=matrixindex_in_compressed_auxilliary(jj,ii)
-                                  ikernel=matrixindex_in_compressed(denskern,jj,ii)-denskern%isvctrp_tg
+                                  ikernel=matrixindex_in_compressed(denskern,jj,ii)
                                   if (ikernel==0) cycle
+                                  ikernel=ikernel-denskern%isvctrp_tg
                                   ttj=test_value_sumrho(jj,iixyz,nxyz)
                                   tt=tt+2.d0*denskern_%matrix_compr(ikernel)*tti*ttj
                                   !!if (mod(ind-1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1))+1==865737) then

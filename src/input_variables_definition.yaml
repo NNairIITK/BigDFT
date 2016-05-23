@@ -1644,20 +1644,20 @@
          Calculate the multipole expansion coefficients of the atomic charge which can then be used to establish a QM/MM coupling.
          Possible values are:
          * 0 => no calculation
-                    * 1 => new approach using Loewdin and orthogonalized support functions
-                    * 2 => new approach using simple projector and orthogonalized support functions
+                    * 1 => Loewdin approach, however without explicit orthogonalization
+                    #* 2 => new approach using simple projector and orthogonalized support functions
                     #* 3 => new approach using full projector and orthogonalized support functions
-                    * 11 => same a 1, but with non-orthogonalized support functions
-                    * 12 => same as 2, but with non-orthogonalized support functions
+                    * 11 => Mulliken approach
+                    #* 12 => same as 2, but with non-orthogonalized support functions
                     #* 13 => same as 3, but with non-orthogonalized support functions
        default: 0
        EXCLUSIVE:
          0: no calculation
-         1: new approach using Loewdin and orthogonalized support functions
-         2: new approach using simple projector and orthogonalized support functions
+         1: Loewdin approach, however without explicit orthogonalization
+         #2: new approach using simple projector and orthogonalized support functions
          #3: new approach using full projector and orthogonalized support functions
-         11: same a 1, but with non-orthogonalized support functions
-         12: same as 2, but with non-orthogonalized support functions
+         11: Mulliken approach
+         #12: same as 2, but with non-orthogonalized support functions
          #13: same as 3, but with non-orthogonalized support functions
      support_function_multipoles:
        COMMENT: Calculate the multipole moments of the support functions
@@ -1668,6 +1668,10 @@
      calculate_FOE_eigenvalues:
        COMMENT: First and last eigenvalue to be calculated using the FOE procedure
        default: [0,-1]
+     precision_FOE_eigenvalues:
+       COMMENT: decay length of the error function used to extract the eigenvalues (i.e. something like the resolution)
+       default: 5.e-3
+       RANGE: [0.0,1.e-1]
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:

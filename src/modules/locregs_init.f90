@@ -24,7 +24,6 @@ module locregs_init
   public :: check_linear_inputguess
   public :: small_to_large_locreg
   public :: assign_to_atoms_and_locregs
-  public :: parallelize_over_atoms
 
 
   contains
@@ -2672,27 +2671,6 @@ module locregs_init
       call f_release_routine()
     
     end subroutine assign_to_atoms_and_locregs
-
-
-    ! Parallelization over the atoms.
-    subroutine parallelize_over_atoms(nat, iproc, nproc, natp, isat)
-      implicit none
-      ! Calling arguments
-      integer,intent(in) :: nat, iproc, nproc
-      integer,intent(out) :: natp, isat
-
-      ! Local variables
-      integer :: ii
-
-      ! First distribute evenly...
-      natp = nat/nproc
-      isat = iproc*natp
-      ! ... and now distribute the remaining atoms.
-      ii = nat-nproc*natp
-      if (iproc<ii) natp = natp + 1
-      isat = isat + min(iproc,ii)
-
-   end subroutine parallelize_over_atoms
 
    
 end module locregs_init

@@ -21,7 +21,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   use vdwcorrection
   use yaml_output
   use bounds, only: ext_buffers
-  use locregs_init, only: parallelize_over_atoms
+  use sparsematrix_init, only: distribute_on_tasks
   implicit none
   !Arguments
   type(denspot_distribution), intent(in) :: dpbox
@@ -214,7 +214,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      !!ii = at%astruct%nat-nproc*natp
      !!if (iproc<ii) natp = natp + 1
      !!isat = isat + min(iproc,ii)
-     call parallelize_over_atoms(at%astruct%nat, iproc, nproc, natp, isat)
+     call distribute_on_tasks(at%astruct%nat, iproc, nproc, natp, isat)
 
 
      !!!$omp parallel default(none) &
