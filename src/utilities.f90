@@ -33,7 +33,7 @@ program utilities
    use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, &
                                     CHARGE_ANALYSIS_PROJECTOR, &
                                     loewdin_charge_analysis_core
-   use multipole, only: projector_for_charge_analysis, multipole_analysis_driver_new
+   use multipole, only: multipole_analysis_driver_new
    use io, only: write_linear_coefficients, read_linear_coefficients
    use bigdft_run, only: bigdft_init
    implicit none
