@@ -2237,7 +2237,7 @@ module multipole
 
       neighborx = f_malloc((/smats%nfvctr,natpx/),id='neighborx')
       nx = f_malloc(natpx,id='nx')
-      call determine_submatrix_sizes(natpx, isatx, smmd, smats, neighborx, nx, nmax)
+      call determine_submatrix_sizes(natpx, isatx, smmd, smatl, neighborx, nx, nmax)
       projx = f_malloc((/nmax**2,natpx/),id='projx')
 
       ! Calculate the matrix for the projector matrix, which is S^-1 for Mulliken and Id for Loewdin.
