@@ -353,7 +353,7 @@ module sparsematrix_wrappers
           end do
           call init_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
                norb, norb*norbp, nonzero, norb*norbp, nonzero, smat(ispin), &
-               init_matmul=.false., nspin=input%nspin, geocode=geocode, cell_dim=cell_dim, norbup=norbp, isorbu=isorb, &
+               nspin=input%nspin, geocode=geocode, cell_dim=cell_dim, norbup=norbp, isorbu=isorb, &
                store_index=input%store_index, on_which_atom=orbs%onwhichatom, print_info=.false.)
           call f_free(nonzero)
     
