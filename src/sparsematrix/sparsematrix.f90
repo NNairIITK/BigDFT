@@ -2015,8 +2015,9 @@ module sparsematrix
       integer,dimension(:),allocatable :: request
       real(kind=mp),dimension(:),allocatable :: recvbuf
     
+      call f_routine(id='synchronize_matrix_taskgroups')
+       
       if (nproc>1) then
-         call f_routine(id='synchronize_matrix_taskgroups')
           request = f_malloc(smat%ntaskgroupp,id='request')
           ncount = 0
           do itg=1,smat%ntaskgroupp
@@ -2057,8 +2058,10 @@ module sparsematrix
           end do
           call f_free(request)
           call f_free(recvbuf)
-          call f_release_routine()
       end if
+
+      call f_release_routine()
+
     end subroutine synchronize_matrix_taskgroups
 
 
