@@ -700,7 +700,6 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      !      write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
         call yaml_map('Ion-Ion interaction energy',eion,fmt='(1pe22.14)')
      else 
-     !      write(*,'(1x,a,1pe22.14)') 'ion-ion and ion-electric field interaction energy',eion
         call yaml_map('Ion-electric field interaction energy',eion,fmt='(1pe22.14)')
      endif
   end if
@@ -708,8 +707,6 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   ! Add empiric correction for Van der Waals forces and energy.
   call vdwcorrection_calculate_energy(edisp,rxyz,at,dispersion)
   if (iproc == 0 .and. edisp /= 0.0_gp) then
-!!$     write(*,'(1x,a, e12.5,1x,a)') &
-!!$          'Dispersion Correction Energy: ', dispersion_energy, 'Hartree'
      call yaml_map('Dispersion Correction Energy (Ha)',edisp,fmt='(1pe22.14)')
   end if
 
