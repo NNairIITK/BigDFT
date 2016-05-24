@@ -2016,9 +2016,9 @@ module multipole
      
     subroutine multipole_analysis_driver_new(iproc, nproc, lmax, ixc, smmd, smats, smatm, smatl, &
                ovrlp, ham, kernel, rxyz, method, do_ortho, projectormode, &
-               calculate_multipole_matrices, do_check, &
+               calculate_multipole_matrices, do_check, write_multipole_matrices, &
                nphi, lphi, nphir, hgrids, orbs, collcom, collcom_sr, &
-               lzd, at, denspot, orthpar, shift, multipole_matrix_in, ice_obj)
+               lzd, at, denspot, orthpar, shift, multipole_matrix_in, ice_obj, filename)
       use module_base
       use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, orthon_data, DFT_local_fields, comms_linear
       use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
@@ -2026,6 +2026,7 @@ module multipole
                                    SPARSE_TASKGROUP, sparse_matrix_metadata
       use sparsematrix_init, only: distribute_on_tasks
       use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
+      use sparsematrix_io, only: write_sparse_matrix
       use communications, only: transpose_localized
       use orthonormalization, only: orthonormalizelocalized,overlap_matrix
       use module_atoms, only: atoms_data
@@ -2052,7 +2053,7 @@ module multipole
       character(len=*),intent(in) :: method
       character(len=*),intent(in) :: do_ortho
       character(len=*),intent(in) :: projectormode
-      logical,intent(in) :: calculate_multipole_matrices, do_check
+      logical,intent(in) :: calculate_multipole_matrices, do_check, write_multipole_matrices
       integer,intent(in),optional :: nphi, nphir
       real(kind=8),dimension(:),intent(in),optional :: lphi
       real(kind=8),dimension(3),intent(in),optional :: hgrids
@@ -2065,6 +2066,7 @@ module multipole
       real(kind=8),dimension(3),intent(in),optional :: shift
       type(matrices),dimension(-lmax:lmax,0:lmax),intent(in),target,optional :: multipole_matrix_in
       type(foe_data),intent(inout),optional :: ice_obj
+      character(len=*),intent(in),optional :: filename
 
       ! Local variables
       integer :: methTransformOverlap, iat, ind, ispin, ishift, iorb, jorb, iiorb, l, m, itype, natpx, isatx, kat, n, i, kkat
@@ -2112,6 +2114,8 @@ module multipole
                                                                       1.d-4]
       real(kind=8),dimension(ncheck) :: charge_error, charge_total, potential_error, potential_total
       type(cell) :: mesh
+      character(len=2) :: lname, mname
+      character(len=14) :: matname
 
 
       call f_routine(id='multipole_analysis_driver')
@@ -2141,15 +2145,15 @@ module multipole
               call f_err_throw('projectormode==full: not all required optional arguments are present')
           end if
       end if
-      if (lmax>0) then
-          if (.not.present(orbs) .or. &
-              .not.present(lzd)) then
-              call f_err_throw('lmax>0: not all required optional arguments are present')
-          end if
-          if (.not.calculate_multipole_matrices) then
-              call f_err_throw('The multipole matrices must be calculated in-situ for lmax>0')
-          end if
-      end if
+      !!if (lmax>0) then
+      !!    if (.not.present(orbs) .or. &
+      !!        .not.present(lzd)) then
+      !!        call f_err_throw('lmax>0: not all required optional arguments are present')
+      !!    end if
+      !!    if (.not.calculate_multipole_matrices) then
+      !!        call f_err_throw('The multipole matrices must be calculated in-situ for lmax>0')
+      !!    end if
+      !!end if
 
       if (calculate_multipole_matrices) then
           if (.not.present(orbs) .or. &
@@ -2210,6 +2214,12 @@ module multipole
       case default
           call f_err_throw('wrong projectormode',err_name='BIGDFT_RUNTIME_ERROR')
       end select
+
+      if (write_multipole_matrices) then
+          if (.not.present(filename)) then
+              call f_err_throw('filename not present',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+      end if
 
 
 
@@ -2289,11 +2299,18 @@ module multipole
       ! Choose as reference point the midpoint of the simulation cell, in order to avoid
       ! problems with periodic BC (in this way the reference point is always the same and never a periodic image)
       center(1:3) = 0.5d0*smmd%cell_dim(1:3)
+      !!!!SM: This is not really well done...
       if (calculate_multipole_matrices) then
           locregcenter = f_malloc((/3,lzd%nlr/),id='locregcenter')
           do ilr=1,lzd%nlr
               locregcenter(1:3,ilr) = lzd%llr(ilr)%locregcenter(1:3) !+ (/1.d0,2.d0,3.d0/)
           end do
+      !!!else
+      !!!  locregcenter = f_malloc((/3,smmd%nfvctr/),id='locregcenter')
+      !!!  do i=1,smmd%nfvctr
+      !!!      iat = smmd%on_which_atom(i)
+      !!!      locregcenter(1:3,i) = smmd%rxyz(1:3,iat)
+      !!!  end do
       end if
 
       acell(1)=smmd%cell_dim(1)
@@ -2307,10 +2324,18 @@ module multipole
 
               ! Calculate the multipole matrix
               if (calculate_multipole_matrices) then
-                      call calculate_multipole_matrix(iproc, nproc, l, m, nphi, lphi, lphi, nphir, hgrids, &
-                           orbs, collcom, lzd, smmd, smats, locregcenter, 'box', multipole_matrix) 
+                  call calculate_multipole_matrix(iproc, nproc, l, m, nphi, lphi, lphi, nphir, hgrids, &
+                       orbs, collcom, lzd, smmd, smats, locregcenter, 'box', multipole_matrix) 
+                  if (write_multipole_matrices) then
+                      write(lname,'(i0)') l
+                      write(mname,'(i0)') m
+                      matname = 'mpmat_'//trim(lname)//'_'//trim(mname)//'.bin'
+                      call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+                           smats, multipole_matrix, &
+                           filename=trim(filename//matname))
+                  end if
               else
-                      call f_memcpy(src=multipole_matrix_in(m,l)%matrix_compr, dest=multipole_matrix%matrix_compr)
+                  call f_memcpy(src=multipole_matrix_in(m,l)%matrix_compr, dest=multipole_matrix%matrix_compr)
               end if
 
               if (do_ortho==yes) then
@@ -2351,9 +2376,9 @@ module multipole
                   call dscal(n**2, -1.d0, multipole_extracted(1,1), 1)
                   call extract_matrix(smatl, kernel_ortho, neighborx(1,kat), n, kernel_extracted)
                   if (l>0) then
-                      call correct_multipole_origin(smmd%nat, l, m, n, lzd%nlr, natpx, kat, kkat, &
-                           smats, orbs, rxyz, neighborx, perx, pery, perz, acell, &
-                           lower_multipole_matrices, locregcenter, multipole_extracted)
+                      call correct_multipole_origin(smmd%nat, l, m, n, smmd%nfvctr, natpx, kat, kkat, &
+                           smmd, smats, smmd%rxyz, neighborx, perx, pery, perz, acell, &
+                           lower_multipole_matrices, multipole_extracted)
                   end if
                   !do i=1,n
                   !    do j=1,n
@@ -4724,9 +4749,9 @@ end subroutine calculate_rpowerx_matrices
 
 
     subroutine correct_multipole_origin(nat, l, m, n, nlr, natpx, kat, kkat, &
-               smats, orbs, rxyz, neighborx, perx, pery, perz, acell, &
-               lower_multipole_matrices, locregcenter, multipole_extracted)
-      use sparsematrix_base, only: sparse_matrix, matrices
+               smmd, smats, rxyz, neighborx, perx, pery, perz, acell, &
+               lower_multipole_matrices, multipole_extracted)
+      use sparsematrix_base, only: sparse_matrix_metadata, sparse_matrix, matrices
       use module_types, only: orbitals_data
       implicit none
 
@@ -4734,16 +4759,15 @@ end subroutine calculate_rpowerx_matrices
       integer,intent(in) :: nat, l, m, n, nlr, natpx, kat, kkat
       real(kind=8),dimension(3,nat),intent(in) :: rxyz
       type(sparse_matrix),intent(in) :: smats
-      type(orbitals_data),intent(in) :: orbs
+      type(sparse_matrix_metadata),intent(in) :: smmd
       logical,dimension(smats%nfvctr,natpx),intent(in) :: neighborx
       logical,intent(in) :: perx, pery, perz
       real(kind=8),dimension(3),intent(in) :: acell
       type(matrices),dimension(-1:1,0:1),intent(in):: lower_multipole_matrices
-      real(kind=8),dimension(3,nlr),intent(in) :: locregcenter
       real(kind=8),dimension(n,n),intent(inout) :: multipole_extracted
 
       ! Local variables
-      integer :: ii, ilr, i, j
+      integer :: ii, ilr, i, j, iat
       real(kind=8) :: rr1, rr2, rr3
       real(kind=8),dimension(:,:,:,:),allocatable :: lmp_extracted
       real(kind=8),dimension(:,:),allocatable :: tmpmat
@@ -4761,8 +4785,8 @@ end subroutine calculate_rpowerx_matrices
                 do i=1,smats%nfvctr
                     if (neighborx(i,kat)) then
                         ii = ii + 1
-                        ilr = orbs%inwhichlocreg(i)
-                        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
+                        iat = smmd%on_which_atom(i)
+                        rr2 = closest_image(rxyz(2,kkat)-smmd%rxyz(2,iat),acell(2),pery)
                         do j=1,n
                             tmpmat(j,ii) = rr2*lmp_extracted(j,ii,0,0)
                         end do
@@ -4773,8 +4797,8 @@ end subroutine calculate_rpowerx_matrices
                 do i=1,smats%nfvctr
                     if (neighborx(i,kat)) then
                         ii = ii + 1
-                        ilr = orbs%inwhichlocreg(i)
-                        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                        iat = smmd%on_which_atom(i)
+                        rr3 = closest_image(rxyz(3,kkat)-smmd%rxyz(3,iat),acell(3),perz)
                         do j=1,n
                             tmpmat(j,ii) = rr3*lmp_extracted(j,ii,0,0)
                         end do
@@ -4785,8 +4809,8 @@ end subroutine calculate_rpowerx_matrices
                 do i=1,smats%nfvctr
                     if (neighborx(i,kat)) then
                         ii = ii + 1
-                        ilr = orbs%inwhichlocreg(i)
-                        rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
+                        iat = smmd%on_which_atom(i)
+                        rr1 = closest_image(rxyz(1,kkat)-smmd%rxyz(1,iat),acell(1),perx)
                         do j=1,n
                             tmpmat(j,ii) = rr1*lmp_extracted(j,ii,0,0)
                         end do
@@ -4811,10 +4835,10 @@ end subroutine calculate_rpowerx_matrices
                 do i=1,smats%nfvctr
                     if (neighborx(i,kat)) then
                         ii = ii + 1
-                        ilr = orbs%inwhichlocreg(i)
-                        rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
-                        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
-                        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                        iat = smmd%on_which_atom(i)
+                        rr1 = closest_image(rxyz(1,kkat)-smmd%rxyz(1,iat),acell(1),perx)
+                        rr2 = closest_image(rxyz(2,kkat)-smmd%rxyz(2,iat),acell(2),pery)
+                        rr3 = closest_image(rxyz(3,kkat)-smmd%rxyz(3,iat),acell(3),perz)
                         do j=1,n
                             tmpmat(j,ii) = -sqrt(3.d0)*rr1*lmp_extracted(j,ii,-1,1) &
                                            -sqrt(3.d0)*rr2*lmp_extracted(j,ii,1,1) &
@@ -4827,10 +4851,10 @@ end subroutine calculate_rpowerx_matrices
                 do i=1,smats%nfvctr
                     if (neighborx(i,kat)) then
                         ii = ii + 1
-                        ilr = orbs%inwhichlocreg(i)
-                        rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
-                        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
-                        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                        iat = smmd%on_which_atom(i)
+                        rr1 = closest_image(rxyz(1,kkat)-smmd%rxyz(1,iat),acell(1),perx)
+                        rr2 = closest_image(rxyz(2,kkat)-smmd%rxyz(2,iat),acell(2),pery)
+                        rr3 = closest_image(rxyz(3,kkat)-smmd%rxyz(3,iat),acell(3),perz)
                         do j=1,n
                             tmpmat(j,ii) = -sqrt(3.d0)*rr2*lmp_extracted(j,ii,0,1) &
                                            -sqrt(3.d0)*rr3*lmp_extracted(j,ii,-1,1) &
@@ -4843,10 +4867,10 @@ end subroutine calculate_rpowerx_matrices
                 do i=1,smats%nfvctr
                     if (neighborx(i,kat)) then
                         ii = ii + 1
-                        ilr = orbs%inwhichlocreg(i)
-                        rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
-                        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
-                        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                        iat = smmd%on_which_atom(i)
+                        rr1 = closest_image(rxyz(1,kkat)-smmd%rxyz(1,iat),acell(1),perx)
+                        rr2 = closest_image(rxyz(2,kkat)-smmd%rxyz(2,iat),acell(2),pery)
+                        rr3 = closest_image(rxyz(3,kkat)-smmd%rxyz(3,iat),acell(3),perz)
                         do j=1,n
                             tmpmat(j,ii) =  rr1*lmp_extracted(j,ii,1,1) &
                                            +rr2*lmp_extracted(j,ii,-1,1) &
@@ -4862,10 +4886,10 @@ end subroutine calculate_rpowerx_matrices
                 do i=1,smats%nfvctr
                     if (neighborx(i,kat)) then
                         ii = ii + 1
-                        ilr = orbs%inwhichlocreg(i)
-                        rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
-                        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
-                        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                        iat = smmd%on_which_atom(i)
+                        rr1 = closest_image(rxyz(1,kkat)-smmd%rxyz(1,iat),acell(1),perx)
+                        rr2 = closest_image(rxyz(2,kkat)-smmd%rxyz(2,iat),acell(2),pery)
+                        rr3 = closest_image(rxyz(3,kkat)-smmd%rxyz(3,iat),acell(3),perz)
                         do j=1,n
                             tmpmat(j,ii) = -sqrt(3.d0)*rr1*lmp_extracted(j,ii,0,1) &
                                            -sqrt(3.d0)*rr3*lmp_extracted(j,ii,1,1) &
@@ -4879,10 +4903,10 @@ end subroutine calculate_rpowerx_matrices
                 do i=1,smats%nfvctr
                     if (neighborx(i,kat)) then
                         ii = ii + 1
-                        ilr = orbs%inwhichlocreg(i)
-                        rr1 = closest_image(rxyz(1,kkat)-locregcenter(1,ilr),acell(1),perx)
-                        rr2 = closest_image(rxyz(2,kkat)-locregcenter(2,ilr),acell(2),pery)
-                        rr3 = closest_image(rxyz(3,kkat)-locregcenter(3,ilr),acell(3),perz)
+                        iat = smmd%on_which_atom(i)
+                        rr1 = closest_image(rxyz(1,kkat)-smmd%rxyz(1,iat),acell(1),perx)
+                        rr2 = closest_image(rxyz(2,kkat)-smmd%rxyz(2,iat),acell(2),pery)
+                        rr3 = closest_image(rxyz(3,kkat)-smmd%rxyz(3,iat),acell(3),perz)
                         do j=1,n
                             tmpmat(j,ii) = -sqrt(3.d0)*(rr1)*lmp_extracted(j,ii,1,1) &
                                            +sqrt(3.d0)*(rr2)*lmp_extracted(j,ii,-1,1) &

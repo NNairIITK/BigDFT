@@ -167,6 +167,27 @@ multipoles_waterQMQM.out.out: multipoles_waterQM.out.out
 multipoles_waterQM.out.post-out:
 	python prepare_QMQM.py
 
+multipoles_periodic.out.post-out:
+	$(abs_top_builddir)/src/bigdft-tool \
+	  --action=multipole-analysis \
+	  --method=mulliken \
+	  --matrix_basis=realspace \
+	  --mpirun='/home/stephan/Software/openmpi-1.8.4_gnu/bin/mpirun -np 2' \
+	  --metadata_file=data-periodic/sparsematrix_metadata.bin \
+	  --kernel_file=data-periodic/density_kernel_sparse.bin \
+	  --hamiltonian_file=data-periodic/hamiltonian_sparse.bin \
+	  --overlap_file=data-periodic/overlap_sparse.bin \
+	  --multipole_matrix_0_0=data-periodic/mpmat_0_0.bin \
+	  --multipole_matrix_1_0=data-periodic/mpmat_1_-1.bin \
+	  --multipole_matrix_1_1=data-periodic/mpmat_1_0.bin \
+	  --multipole_matrix_1_2=data-periodic/mpmat_1_1.bin \
+	  --multipole_matrix_2_0=data-periodic/mpmat_2_-2.bin \
+	  --multipole_matrix_2_1=data-periodic/mpmat_2_-1.bin \
+	  --multipole_matrix_2_2=data-periodic/mpmat_2_0.bin \
+	  --multipole_matrix_2_3=data-periodic/mpmat_2_1.bin \
+	  --multipole_matrix_2_4=data-periodic/mpmat_2_2.bin \
+	  > test-multipoles_periodic.out.yaml
+
 #matrixtaskgroups_yes.out.post-out: 
 #	$(abs_top_builddir)/src/bigdft-tool --action=calculate-selected-eigenvalues \
 #		                                --mpirun='$(run_parallel)' \

@@ -9,6 +9,7 @@ module sparsematrix_highlevel
   public :: sparse_matrix_and_matrices_init_from_file_bigdft
   public :: sparse_matrix_init_from_file_bigdft
   public :: sparse_matrix_metadata_init_from_file
+  public :: matrices_init_from_file_bigdft
   public :: read_sparse_matrix_metadata
   public :: sparse_matrix_init_from_data_bigdft
   public :: matrices_init
@@ -244,6 +245,73 @@ module sparsematrix_highlevel
       call f_release_routine()
 
     end subroutine sparse_matrix_init_from_file_bigdft
+
+
+    subroutine matrices_init_from_file_bigdft(filename, iproc, nproc, comm, smat, mat)
+      use sparsematrix_io, only: read_sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm
+      character(len=*),intent(in) :: filename
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(out) :: mat
+    
+      ! Local variables
+      integer :: nspin, nfvctr, nseg, nvctr, iseg
+      integer,dimension(:),pointer :: keyv
+      integer,dimension(:,:,:),pointer :: keyg
+      real(kind=mp),dimension(:),pointer :: val
+    
+      call f_routine(id='matrices_init_from_file_bigdft')
+    
+      ! Read in the matrix
+      call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
+
+      ! Check that it is consistent with the provided sparse matrix type
+      if (nspin/=smat%nspin) then
+          call f_err_throw('nspin/=smat%nspin')
+      end if
+      if (nfvctr/=smat%nfvctr) then
+          call f_err_throw('nfvctr/=smat%nfvctr')
+      end if
+      if (nseg/=smat%nseg) then
+          call f_err_throw('nseg/=smat%nseg')
+      end if
+      if (nvctr/=smat%nvctr) then
+          call f_err_throw('nvctr/=smat%nvctr')
+      end if
+      do iseg=1,nseg
+          if (keyv(iseg)/=smat%keyv(iseg)) then
+              call f_err_throw('keyv(iseg)/=smat%keyv(iseg)')
+          end if
+          if (keyg(1,1,iseg)/=smat%keyg(1,1,iseg)) then
+              call f_err_throw('keyg(1,1,iseg)/=smat%keyg(1,1,iseg)')
+          end if
+          if (keyg(2,1,iseg)/=smat%keyg(2,1,iseg)) then
+              call f_err_throw('keyg(2,1,iseg)/=smat%keyg(2,1,iseg)')
+          end if
+          if (keyg(1,2,iseg)/=smat%keyg(1,2,iseg)) then
+              call f_err_throw('keyg(1,2,iseg)/=smat%keyg(1,2,iseg)')
+          end if
+          if (keyg(2,2,iseg)/=smat%keyg(2,2,iseg)) then
+              call f_err_throw('keyg(2,2,iseg)/=smat%keyg(2,2,iseg)')
+          end if
+      end do
+
+    
+      ! Generate the matrices type
+      call matrices_init_from_data(smat, val, mat)
+    
+      ! Deallocate the pointers
+      call f_free_ptr(keyv)
+      call f_free_ptr(keyg)
+      call f_free_ptr(val)
+
+    
+      call f_release_routine()
+    
+    end subroutine matrices_init_from_file_bigdft
 
 
     subroutine sparse_matrix_metadata_init_from_file(filename, smmd)
