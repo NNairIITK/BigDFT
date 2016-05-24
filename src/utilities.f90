@@ -26,14 +26,14 @@ program utilities
    use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft, &
                                      sparse_matrix_and_matrices_init_from_file_ccs, &
                                      sparse_matrix_metadata_init_from_file, &
+                                     matrices_init_from_file_bigdft, &
                                      ccs_data_from_sparse_matrix, &
                                      ccs_matrix_write, &
                                      matrices_init, &
                                      get_selected_eigenvalues_from_FOE
-   use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, &
-                                    CHARGE_ANALYSIS_PROJECTOR, &
-                                    loewdin_charge_analysis_core
+   use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN
    use multipole, only: multipole_analysis_driver_new
+   use multipole_base, only: lmax
    use io, only: write_linear_coefficients, read_linear_coefficients
    use bigdft_run, only: bigdft_init
    implicit none
@@ -43,8 +43,9 @@ program utilities
    character(len=3) :: do_ortho
    character(len=30) :: tatonam, radical, colorname, linestart, lineend, cname, methodc
    character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file, coeff_file, pdos_file, metadata_file
-   character(len=128) :: line, cc, output_pdos, conversion, infile, outfile, iev_min_, iev_max_, fscale_
-   logical :: charge_analysis = .false.
+   character(len=128) :: line, cc, output_pdos, conversion, infile, outfile, iev_min_, iev_max_, fscale_, matrix_basis
+   character(len=128),dimension(-lmax:lmax,0:lmax) :: multipoles_files
+   logical :: multipole_analysis = .false.
    logical :: solve_eigensystem = .false.
    logical :: calculate_pdos = .false.
    logical :: convert_matrix_format = .false.
@@ -55,19 +56,22 @@ program utilities
    integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
    integer :: nfvctr_m, nseg_m, nvctr_m, nfvctrp_m, isfvctr_m
    integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
-   integer :: iconv, iev, iev_min, iev_max
+   integer :: iconv, iev, iev_min, iev_max, l, ll, m
    integer,dimension(:),pointer :: on_which_atom
    integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l, on_which_atom_s, on_which_atom_m, on_which_atom_l
    integer,dimension(:),pointer :: iatype, nzatom, nelpsp
    integer,dimension(:),pointer :: col_ptr, row_ind
    integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
+   logical,dimension(-lmax:lmax) :: file_present
    real(kind=8),dimension(:),pointer :: matrix_compr, eval_ptr
    real(kind=8),dimension(:,:),pointer :: rxyz, coeff_ptr
    real(kind=8),dimension(:),allocatable :: eval, energy_arr, occups
    real(kind=8),dimension(:,:),allocatable :: denskernel, pdos, occup_arr
    logical,dimension(:,:),allocatable :: calc_array
+   logical :: file_exists
    type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat
    type(matrices),dimension(1) :: ovrlp_minus_one_half
+   type(matrices),dimension(-lmax:lmax,0:lmax) :: multipoles_matrices
    type(sparse_matrix) :: smat_s, smat_m, smat_l, smat
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
@@ -134,7 +138,7 @@ program utilities
       write(*,'(1x,a)')&
          &   '[option] can be the following: '
       write(*,'(1x,a)')&
-           &   '"charge-analysis"" ' 
+           &   '"multipoles-analysis"" ' 
       write(*,'(1x,a)')&
            & 'perform a charge analysis (Loewdin or Mulliken)'
 
@@ -146,9 +150,11 @@ program utilities
          !call getarg(i_arg,tatonam)
          if(trim(tatonam)=='' .or. istat > 0) then
             exit loop_getargs
-         else if (trim(tatonam)=='charge-analysis') then
+         else if (trim(tatonam)=='multipole-analysis') then
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = method_name)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = matrix_basis)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = metadata_file)
             i_arg = i_arg + 1
@@ -157,9 +163,15 @@ program utilities
             call get_command_argument(i_arg, value = kernel_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = hamiltonian_file)
+            do l=0,lmax
+                do m=-l,l
+                    i_arg = i_arg + 1
+                    call get_command_argument(i_arg, value = multipoles_files(m,l))
+                end do
+            end do
             !write(*,'(1x,2a)')&
             !   &   'perform a Loewdin charge analysis'
-            charge_analysis = .true.
+            multipole_analysis = .true.
             exit loop_getargs
          else if (trim(tatonam)=='solve-eigensystem') then
             i_arg = i_arg + 1
@@ -219,9 +231,9 @@ program utilities
    end if
 
 
-   if (charge_analysis) then
+   if (multipole_analysis) then
        if (bigdft_mpi%iproc==0) then
-           call yaml_comment('Charge analysis',hfill='-')
+           call yaml_comment('Multipole analysis',hfill='-')
        end if
        
        ! Determine the method
@@ -230,10 +242,10 @@ program utilities
            method = CHARGE_ANALYSIS_LOEWDIN
        case ('mulliken','MULLIKEN')
            method = CHARGE_ANALYSIS_MULLIKEN
-       case ('projector','PROJECTOR')
-           method = CHARGE_ANALYSIS_PROJECTOR
+       !!case ('projector','PROJECTOR')
+       !!    method = CHARGE_ANALYSIS_PROJECTOR
        case default
-           call f_err_throw('Unknown Method for the charge analysis',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+           call f_err_throw('Unknown Method for the multipole analysis',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
        end select
 
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
@@ -255,6 +267,28 @@ program utilities
             bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_m, hamiltonian_mat, &
             init_matmul=.true.)
 
+       ! Check which multipole matrices are present
+       do l=0,lmax
+           file_present(:) = .false.
+           do m=-l,l
+               inquire(file=trim(multipoles_files(m,l)), exist=file_exists)
+               if (file_exists) then
+                   file_present(m) = .true.
+                   call matrices_init_from_file_bigdft(trim(multipoles_files(m,l)), &
+                        bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_s, multipoles_matrices(m,l))
+               else
+                   multipoles_matrices(m,l) = matrices_null()
+               end if
+           end do
+           if (any(file_present(-l:l))) then
+               if (.not.all(file_present(-l:l))) then
+                   call f_err_throw('for a given shell all matrices must be present', &
+                        err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+               end if
+               ll = l
+           end if
+       end do
+
        call timing(bigdft_mpi%mpi_comm,'INIT','PR')
 
        select case(method)
@@ -264,25 +298,35 @@ program utilities
        case (CHARGE_ANALYSIS_LOEWDIN)
            methodc='loewdin'
            do_ortho='yes'
-       case (CHARGE_ANALYSIS_PROJECTOR)
-           methodc='projector'
-           do_ortho='no'
+       !!case (CHARGE_ANALYSIS_PROJECTOR)
+       !!    methodc='projector'
+       !!    do_ortho='no'
        case default
            call f_err_throw('wrong method',err_name='BIGDFT_RUNTIME_ERROR')
        end select
 
-       !!call multipole_analysis_driver(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, 11, &
-       !!     smmd, smat_s, smat_m, smat_l, &
-       !!     ovrlp_mat, hamiltonian_mat, kernel_mat, smmd%rxyz, &
-       !!     methodc, do_ortho=trim(do_ortho), projectormode='simple', &
-       !!     calculate_multipole_matrices=.false., do_check=.false., &
-       !!     multipole_matrix_in=(/(/ovrlp_mat/)/))
-       call multipole_analysis_driver_new(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, 11, &
-            smmd, smat_s, smat_m, smat_l, &
-            ovrlp_mat, hamiltonian_mat, kernel_mat, smmd%rxyz, &
-            methodc, do_ortho=trim(do_ortho), projectormode='simple', &
-            calculate_multipole_matrices=.false., do_check=.false., &
-            multipole_matrix_in=(/(/ovrlp_mat/)/))
+       ! Determine whether the multipoles matrices to be used are calculated analytically or on the grid.
+       ! For the analytic case, only the overlap matrix is possible.
+       select case(trim(matrix_basis))
+       case ('wavelet','WAVELET')
+           call multipole_analysis_driver_new(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, 11, &
+                smmd, smat_s, smat_m, smat_l, &
+                ovrlp_mat, hamiltonian_mat, kernel_mat, smmd%rxyz, &
+                methodc, do_ortho=trim(do_ortho), projectormode='simple', &
+                calculate_multipole_matrices=.false., do_check=.false., &
+                write_multipole_matrices=.false., &
+                multipole_matrix_in=(/(/ovrlp_mat/)/))
+       case ('realspace','REALSPACE')
+           call multipole_analysis_driver_new(bigdft_mpi%iproc, bigdft_mpi%nproc, ll, 11, &
+                smmd, smat_s, smat_m, smat_l, &
+                ovrlp_mat, hamiltonian_mat, kernel_mat, smmd%rxyz, &
+                methodc, do_ortho=trim(do_ortho), projectormode='simple', &
+                calculate_multipole_matrices=.false., do_check=.false., &
+                write_multipole_matrices=.false., &
+                multipole_matrix_in=multipoles_matrices)
+       case default
+           call f_err_throw('wrong value for matrix_basis',err_name='BIGDFT_RUNTIME_ERROR')
+       end select
 
        call timing(bigdft_mpi%mpi_comm,'CALC','PR')
 
@@ -293,6 +337,11 @@ program utilities
        call deallocate_matrices(kernel_mat)
        call deallocate_sparse_matrix(smat_m)
        call deallocate_matrices(hamiltonian_mat)
+       do l=0,lmax
+           do m=-l,l
+               call deallocate_matrices(multipoles_matrices(m,l))
+           end do
+       end do
 
        if (bigdft_mpi%iproc==0) then
            call yaml_comment('done',hfill='-')

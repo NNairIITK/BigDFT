@@ -1211,9 +1211,11 @@ end if
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
                rxyz, method, do_ortho, projectormode, &
                calculate_multipole_matrices=.true., do_check=.true., &
+               write_multipole_matrices=mod(input%lin%output_mat_format,10)/=WF_FORMAT_NONE, &
                nphi=tmb%npsidim_orbs, lphi=tmb%psi, nphir=max(tmb%collcom_sr%ndimpsi_c,1), &
                hgrids=tmb%lzd%hgrids, orbs=tmb%orbs, collcom=tmb%collcom, collcom_sr=tmb%collcom_sr, &
-               lzd=tmb%lzd, at=at, denspot=denspot, orthpar=tmb%orthpar, shift=shift)
+               lzd=tmb%lzd, at=at, denspot=denspot, orthpar=tmb%orthpar, shift=shift, &
+               filename=trim(input%dir_output))
   end if
 
 

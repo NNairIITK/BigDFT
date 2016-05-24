@@ -23,7 +23,7 @@ actions = ["memory-estimation", "rotate", "convert-field",
            "convert-positions", "manual", "wizard", "transform-coordinates",
            "pdos", "kernel-analysis", "extract-submatrix", "solve-eigensystem", 
            "analyze-coeffs", "peel-matrix", "multiply-matrices", "matrixpower", 
-           "plot-wavefunction", "suggest-cutoff", "charge-analysis",
+           "plot-wavefunction", "suggest-cutoff", "multipole-analysis",
            "convert-matrix-format", "calculate-selected-eigenvalues"]
 
 # Processed lines
@@ -232,13 +232,37 @@ def parse():
 
     # suggest cutoff radii for the linear scaling version
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[21],
-                        "Loewdin charge analysis")
-	# MPI...
+                        "Multipole analysis")
+    # MPI...
     group.add_option("--mpirun", type="str", default="mpirun -n 1", metavar="MPI",
              		 help="MPI wrapper to run in parallel [default: %default]")
-	# Charge analysis method
+    # Charge analysis method
     group.add_option("--method", type="str", default="loewdin", metavar="METHOD",
-             		 help="method for the charge analysis [default: %default]")
+             		 help="method for the multipole analysis [default: %default]")
+    # Whether the matrices to be used for the multipole analysis are calculated in the wavelet basis
+    # (only possible for the overlap matrix) or in real space.
+    group.add_option("--matrix_basis", type="str", default="realspace", metavar="MATRIX_BASIS",
+             		 help="matrix basis for the multipole analysis [default: %default]")
+    # The name of the multipole matrices
+    group.add_option("--multipole_matrix_0_0", type="str", default="mpmat_0_0.bin", metavar="MULTIPOLE_MATRIX_0_0",
+             		 help="multipole matrix 0 0 [default: %default]")
+    group.add_option("--multipole_matrix_1_0", type="str", default="mpmat_1_-1.bin", metavar="MULTIPOLE_MATRIX_1_-1",
+             		 help="multipole matrix 1 -1 [default: %default]")
+    group.add_option("--multipole_matrix_1_1", type="str", default="mpmat_1_0.bin", metavar="MULTIPOLE_MATRIX_1_0",
+             		 help="multipole matrix 1 0 [default: %default]")
+    group.add_option("--multipole_matrix_1_2", type="str", default="mpmat_1_1.bin", metavar="MULTIPOLE_MATRIX_1_1",
+             		 help="multipole matrix 1 1 [default: %default]")
+    group.add_option("--multipole_matrix_2_0", type="str", default="mpmat_2_-2.bin", metavar="MULTIPOLE_MATRIX_2_-2",
+             		 help="multipole matrix 2 -2 [default: %default]")
+    group.add_option("--multipole_matrix_2_1", type="str", default="mpmat_2_-1.bin", metavar="MULTIPOLE_MATRIX_2_-1",
+             		 help="multipole matrix 2 -1 [default: %default]")
+    group.add_option("--multipole_matrix_2_2", type="str", default="mpmat_2_0.bin", metavar="MULTIPOLE_MATRIX_2_0",
+             		 help="multipole matrix 2 0 [default: %default]")
+    group.add_option("--multipole_matrix_2_3", type="str", default="mpmat_2_1.bin", metavar="MULTIPOLE_MATRIX_2_1",
+             		 help="multipole matrix 2 1 [default: %default]")
+    group.add_option("--multipole_matrix_2_4", type="str", default="mpmat_2_2.bin", metavar="MULTIPOLE_MATRIX_2_2",
+             		 help="multipole matrix 2 2 [default: %default]")
+
 
     # convert from the BigDFT to the CCS format or the other way round
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[21],
@@ -888,8 +912,8 @@ options:
         command = "%s 1 %s dd suggest-cutoff %s" % (memguess, options.name, options.posinp_file)
         print command
     if options.action == actions[21]:
-        #print 'calling utilities to perform a Loewdin charge analysis'
-        command = "%s %s charge-analysis %s %s %s %s %s" % (options.mpirun, utilities, options.method, options.metadata_file, options.overlap_file, options.kernel_file, options.hamiltonian_file)
+        #print 'calling utilities to perform a Loewdin multipole analysis'
+        command = "%s %s multipole-analysis %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s" % (options.mpirun, utilities, options.method, options.matrix_basis, options.metadata_file, options.overlap_file, options.kernel_file, options.hamiltonian_file, options.multipole_matrix_0_0, options.multipole_matrix_1_0, options.multipole_matrix_1_1, options.multipole_matrix_1_2, options.multipole_matrix_2_0, options.multipole_matrix_2_1, options.multipole_matrix_2_2, options.multipole_matrix_2_3, options.multipole_matrix_2_4)
         #print command
     if options.action == actions[22]:
         print command
