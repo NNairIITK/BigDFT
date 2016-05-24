@@ -71,7 +71,7 @@ program utilities
    logical :: file_exists
    type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat
    type(matrices),dimension(1) :: ovrlp_minus_one_half
-   type(matrices),dimension(-lmax:lmax,0:lmax) :: multipoles_matrices
+   type(matrices),dimension(:,:),allocatable :: multipoles_matrices
    type(sparse_matrix) :: smat_s, smat_m, smat_l, smat
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
@@ -274,19 +274,23 @@ program utilities
                inquire(file=trim(multipoles_files(m,l)), exist=file_exists)
                if (file_exists) then
                    file_present(m) = .true.
-                   call matrices_init_from_file_bigdft(trim(multipoles_files(m,l)), &
-                        bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_s, multipoles_matrices(m,l))
-               else
-                   multipoles_matrices(m,l) = matrices_null()
                end if
            end do
            if (any(file_present(-l:l))) then
                if (.not.all(file_present(-l:l))) then
                    call f_err_throw('for a given shell all matrices must be present', &
-                        err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+                        err_name='BIGDFT_RUNTIME_ERROR')
                end if
                ll = l
            end if
+       end do
+
+       allocate(multipoles_matrices(-ll:ll,0:ll))
+       do l=0,ll
+           do m=-l,l
+               call matrices_init_from_file_bigdft(trim(multipoles_files(m,l)), &
+                    bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_s, multipoles_matrices(m,l))
+           end do
        end do
 
        call timing(bigdft_mpi%mpi_comm,'INIT','PR')
@@ -337,11 +341,12 @@ program utilities
        call deallocate_matrices(kernel_mat)
        call deallocate_sparse_matrix(smat_m)
        call deallocate_matrices(hamiltonian_mat)
-       do l=0,lmax
+       do l=0,ll
            do m=-l,l
                call deallocate_matrices(multipoles_matrices(m,l))
            end do
        end do
+       deallocate(multipoles_matrices)
 
        if (bigdft_mpi%iproc==0) then
            call yaml_comment('done',hfill='-')

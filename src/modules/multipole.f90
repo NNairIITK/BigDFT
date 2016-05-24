@@ -2318,6 +2318,7 @@ module multipole
       acell(3)=smmd%cell_dim(3)
 
       do l=0,lmax
+          write(*,*) 'l, lmax',l, lmax
           do m=-l,l
 
               call f_zero(multipole_matrix%matrix_compr)
