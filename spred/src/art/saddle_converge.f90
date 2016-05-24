@@ -23,6 +23,7 @@ subroutine saddle_converge( ret, saddle_energy )
    use lanczos_defs
    use bigdft_forces
    use diis_defs
+   use module_base
    implicit none
 
    !Arguments

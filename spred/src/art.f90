@@ -244,34 +244,3 @@ program art90
   call f_lib_finalize()
 
 END PROGRAM art90
-
-
-!> ART end_art
-subroutine end_art( )
-
-  use defs
-
-  implicit none
-
-  integer      :: ierror, ierr
-  real(kind=8) :: t2  ! cputime
-
-  call finalise_potential( )
-
-  if ( iproc == 0 ) then 
-
-    open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
-        & action = 'write', position = 'append', iostat = ierror )
-    write(FLOG,*) '********************** '
-    write(FLOG,*)    '  A bientot !'
-    write(FLOG,*) '********************** '
-    call CPU_TIME( t2)
-    write(FLOG,"(' CPU_TIME: ', f12.4, ' seg')") t2-t1
-    call timestamp('End') 
-    close(FLOG)
-  end if 
-
-  if (nproc > 1) call MPI_FINALIZE(ierr)
-  stop
-
-END SUBROUTINE end_art
