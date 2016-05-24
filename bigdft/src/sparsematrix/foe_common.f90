@@ -684,7 +684,7 @@ module foe_common
 
 
       !noise=10.d0*anoise
-      noise = 1.d-3
+      noise = 1.d-5
 
       if (iproc==0 .and. verbosity_>0) then
           !call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')

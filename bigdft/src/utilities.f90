@@ -33,7 +33,7 @@ program utilities
    use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, &
                                     CHARGE_ANALYSIS_PROJECTOR, &
                                     loewdin_charge_analysis_core
-   use multipole, only: projector_for_charge_analysis, multipole_analysis_driver
+   use multipole, only: multipole_analysis_driver_new
    use io, only: write_linear_coefficients, read_linear_coefficients
    use bigdft_run, only: bigdft_init
    implicit none
@@ -269,7 +269,13 @@ program utilities
            call f_err_throw('wrong method',err_name='BIGDFT_RUNTIME_ERROR')
        end select
 
-       call multipole_analysis_driver(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, 11, &
+       !!call multipole_analysis_driver(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, 11, &
+       !!     smmd, smat_s, smat_m, smat_l, &
+       !!     ovrlp_mat, hamiltonian_mat, kernel_mat, smmd%rxyz, &
+       !!     methodc, do_ortho=trim(do_ortho), projectormode='simple', &
+       !!     calculate_multipole_matrices=.false., do_check=.false., &
+       !!     multipole_matrix_in=(/(/ovrlp_mat/)/))
+       call multipole_analysis_driver_new(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, 11, &
             smmd, smat_s, smat_m, smat_l, &
             ovrlp_mat, hamiltonian_mat, kernel_mat, smmd%rxyz, &
             methodc, do_ortho=trim(do_ortho), projectormode='simple', &

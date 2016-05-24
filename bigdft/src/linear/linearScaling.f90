@@ -46,9 +46,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
   use locregs_init, only: small_to_large_locreg
   use public_enums
-  use multipole, only: multipole_analysis_driver, projector_for_charge_analysis, &
+  use multipole, only: multipole_analysis_driver_new, &
                        support_function_gross_multipoles, potential_from_charge_multipoles, &
-                       calculate_rpowerx_matrices, multipole_analysis_driver_new
+                       calculate_rpowerx_matrices
   use transposed_operations, only: calculate_overlap_transposed
   use foe_base, only: foe_data_set_real
   use rhopotential, only: full_local_potential
@@ -1063,35 +1063,35 @@ end if
 
 
   if (input%loewdin_charge_analysis) then
-      if (iproc==0) then
-          call yaml_mapping_open('Charge analysis, projector approach')
-      end if
+    !!!  if (iproc==0) then
+    !!!      call yaml_mapping_open('Charge analysis, projector approach')
+    !!!  end if
+    !!!
+    !!!
+    !!!
+    !!!  ! @ NEW ##################################################################################################
+    !!!  ! Calculate the matrices <phi|r**x|phi>
+    !!!  do i=1,24
+    !!!      rpower_matrix(i) = matrices_null()
+    !!!      rpower_matrix(i)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, SPARSE_FULL, id='rpower_matrix(i)%matrix_compr')
+    !!!  end do
+    !!!  call calculate_rpowerx_matrices(iproc, nproc, tmb%npsidim_orbs, tmb%collcom_sr%ndimpsi_c, tmb%lzd, &
+    !!!       tmb%orbs, tmb%collcom, tmb%psi, tmb%linmat%s, rpower_matrix)
+    !!!  ! @ END NEW ##############################################################################################
+    !!!  call projector_for_charge_analysis(tmb%linmat%smmd, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+    !!!       tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
+    !!!       rxyz, calculate_centers=.false., write_output=.false., ortho='yes', mode='simple', &
+    !!!       rpower_matrix=rpower_matrix, orbs=tmb%orbs)
+    !!!  do i=1,24
+    !!!      call deallocate_matrices(rpower_matrix(i))
+    !!!  end do
+    !!!  !call f_free(multipoles)
+    !!!  !call f_free(multipoles_out)
 
-
-
-      ! @ NEW ##################################################################################################
-      ! Calculate the matrices <phi|r**x|phi>
-      do i=1,24
-          rpower_matrix(i) = matrices_null()
-          rpower_matrix(i)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, SPARSE_FULL, id='rpower_matrix(i)%matrix_compr')
-      end do
-      call calculate_rpowerx_matrices(iproc, nproc, tmb%npsidim_orbs, tmb%collcom_sr%ndimpsi_c, tmb%lzd, &
-           tmb%orbs, tmb%collcom, tmb%psi, tmb%linmat%s, rpower_matrix)
-      ! @ END NEW ##############################################################################################
-      call projector_for_charge_analysis(tmb%linmat%smmd, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-           tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
-           rxyz, calculate_centers=.false., write_output=.false., ortho='yes', mode='simple', &
-           rpower_matrix=rpower_matrix, orbs=tmb%orbs)
-      do i=1,24
-          call deallocate_matrices(rpower_matrix(i))
-      end do
-      !call f_free(multipoles)
-      !call f_free(multipoles_out)
-
-      !call f_free_ptr(com)
-      if (iproc==0) then
-          call yaml_mapping_close()
-      end if
+    !!!  !call f_free_ptr(com)
+    !!!  if (iproc==0) then
+    !!!      call yaml_mapping_close()
+    !!!  end if
 
       !call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &
       !     calculate_ovrlp_half=.true., meth_overlap=0)
