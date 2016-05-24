@@ -2899,7 +2899,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !! debug
         !tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, DENSE_FULL, id='tmb%linmat%kernel__%matrix')
         !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%kernel_)
-        !call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
+        !call uncompress_matrix2(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
         !if (iproc==0) then
         !   open(30)
         !   do itmb=1,tmb%orbs%norb
