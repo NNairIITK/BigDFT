@@ -68,7 +68,7 @@ program utilities
    real(kind=8),dimension(:),allocatable :: eval, energy_arr, occups
    real(kind=8),dimension(:,:),allocatable :: denskernel, pdos, occup_arr
    logical,dimension(:,:),allocatable :: calc_array
-   logical :: file_exists
+   logical :: file_exists, found
    type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat
    type(matrices),dimension(1) :: ovrlp_minus_one_half
    type(matrices),dimension(:,:),allocatable :: multipoles_matrices
@@ -469,15 +469,21 @@ program utilities
                    cycle 
                end if
                read(line,*,iostat=ios) cc, ival
-                   if (bigdft_mpi%iproc==0) then
-                       call yaml_map(trim(cc),ival)
-                   end if
+               if (bigdft_mpi%iproc==0) then
+                   call yaml_map(trim(cc),ival)
+               end if
+               found = .false.
                do itype=1,smmd%ntypes
                    if (trim(smmd%atomnames(itype))==trim(cc)) then
                        iitype = itype
+                       found = .true.
                        exit
                    end if
                end do
+               if (.not.found) then
+                   call f_err_throw('Atom type'//trim(cc)//' is unknown', &
+                        err_name='BIGDFT_RUNTIME_ERROR')
+               end if
                iat_prev = -1
                do itmb=1,ntmb
                    iat = smmd%on_which_atom(itmb)
@@ -488,7 +494,10 @@ program utilities
                    itype = smmd%iatype(iat)
                    ii = ii + 1
                    if (itype==iitype .and. ii==ival) then
-                       if (calc_array(itmb,ipdos)) stop 'calc_array(itmb)'
+                       if (calc_array(itmb,ipdos)) then
+                           call f_err_throw('calc_array(itmb) must not be true here', &
+                                err_name='BIGDFT_RUNTIME_ERROR')
+                       end if
                        calc_array(itmb,ipdos) = .true.
                    end if
                end do
