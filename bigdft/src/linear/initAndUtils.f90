@@ -465,6 +465,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   !!if (iproc==0) write(*,*) 'OLD: owa',lorbs%onwhichatom
 
   call f_free_ptr(lorbs%inWhichLocreg)
+  call f_free_ptr(lorbs%onwhichatom)
   call assign_to_atoms_and_locregs(iproc, nproc, lorbs%norb, astruct%nat, input%nspin, norbsPerAtom, rxyz, &
        lorbs%onwhichatom, lorbs%inwhichlocreg)
   !!if (iproc==0) write(*,*) 'NEW: iwl',lorbs%inwhichlocreg
