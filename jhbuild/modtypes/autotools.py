@@ -324,6 +324,7 @@ class AutogenModule(MakeModule, DownloadableModule):
     def do_setup(self, buildscript):
         buildscript.set_action(_('Regenerating build system for'), self)
         srcdir = self.get_srcdir(buildscript)
+        if self.skip_autogen: return
         # autoreconf doesn't honour ACLOCAL_FLAGS, therefore we pass
         # a crafted ACLOCAL variable.  (GNOME bug 590064)
         extra_env = {}

@@ -47,6 +47,7 @@ ACTIONS={'build':
 NEEDRC=['build','dist','dry_run','startover']
 
 class BigDFTInstaller():
+    m4_re=['^AX_','CHECK_PYTHON']
     def __init__(self,action,package,rcfile,verbose,quiet):
         import os
         self.action=action    #Action to be performed
@@ -64,7 +65,7 @@ class BigDFTInstaller():
         #To be done BEFORE any exit instruction in __init__ (get_rcfile)
         self.time0 = None
 
-        if os.path.abspath(self.srcdir) == os.path.abspath(self.builddir) and self.action != ['autogen','dry_run']:
+        if os.path.abspath(self.srcdir) == os.path.abspath(self.builddir) and self.action not in ['autogen','dry_run']:
             print 50*'-'
             print "ERROR: BigDFT Installer works better with a build directory different from the source directory, install from another directory"
             print "SOLUTION: Create a separate directory and invoke this script from it"
@@ -128,7 +129,7 @@ class BigDFTInstaller():
         print "Search in the configuration directory '%s'" % rcdir
         if len(rcs)==1:
             self.rcfile=os.path.join(rcdir,rcs[0])
-        elif len(rcs) > 0:
+        elif len(rcs) > 0 and (self.action in NEEDRC or not self.quiet):
             print "No valid configuration file specified, found various that matches the hostname '%s'" % self.hostname
             print 'In the directory "'+rcdir+'"'
             print 'Choose among the following options'
@@ -216,19 +217,101 @@ class BigDFTInstaller():
         return out.rstrip('\n')
 
     def removefile(self,pattern,dirname,names):
-        "Return the files given by the pattern"
+        "Delete the files matching the pattern"
         import os,fnmatch
         for name in names:
             if fnmatch.fnmatch(name,pattern):
                 self.__dump('removing',os.path.join(dirname,name))
                 os.remove(os.path.join(dirname,name))
 
+    def get_ac_argument(self,tgt,acmacro):
+        "Retrieve the list of ac arguments for the macro acmacro from file tgt"
+        import os
+        m4args=set()
+        if os.path.isfile(tgt):
+            for dd in self.get_output('grep '+acmacro+' '+tgt+' | grep -v dnl').split('\n'):
+                if len(dd) == 0: continue
+                m4=dd.split('[')[1]
+                m4args.add(m4.split(']')[0])
+        return list(m4args)
+                
+    def get_m4_macros(self,tgt,previous_macros=[]):
+        "Identify the name of the proprietary m4 macros used in configure.ac"
+        import os
+        macros=set()
+        if os.path.isfile(tgt):
+            for regexp in self.m4_re:
+                for m4 in self.get_output('grep '+regexp+' '+tgt+' | grep -v dnl').split('\n'):
+                    if len(m4)>0:
+                        m4t=m4.split('(')[0]
+                        if m4t not in previous_macros: macros.add(m4t)
+            required=self.get_ac_argument(tgt,'AC_REQUIRE')
+            for m in required:
+                found=m in previous_macros
+                if found: continue
+                for regexp in self.m4_re:
+                    found=regexp in m
+                    if found: break
+                if found: macros.add(m)
+        return list(macros)
+
+    def get_m4_files(self,macros):
+        "Find the files needed for the definition of the proprietary macros"
+        import os
+        files=set()
+        #localize then the associated file in the m4 repository
+        tgt=os.path.join(self.srcdir,'m4')+os.sep
+        for m in macros:
+            ffs=self.get_output('grep -R '+m+' '+tgt+'| grep AC_DEFUN | grep -v dnl').split(':')[0]
+            if ffs!='': files.add(ffs)
+        #now for each of the files get all the macros which are required but not explicitly called
+        files=list(files)
+        newm4=set()
+        for f in files:
+            tgt=os.path.join(self.srcdir,f)
+            newm=self.get_m4_macros(tgt,previous_macros=macros)
+            for m4 in newm:
+                newm4.add(m4)
+        newm4 = list(newm4)
+        #print "new macros which have to be added",newm4
+        if len(newm4) > 0: files=self.get_m4_files(macros+newm4)
+        return list(files)
+
+    def get_m4_dir(self,mod):
+        "Return the configure macro dir(s)"
+        import os
+        tgt=os.path.join(self.srcdir,mod,'configure.ac')
+        return self.get_ac_argument(tgt,'AC_CONFIG_MACRO_DIR')
+    
+    def copyfiles(self,filelist,dest):
+        import os,shutil
+        if not os.path.isdir(dest): return
+        for f in filelist:
+            test=os.path.join(dest,os.path.basename(f))
+            if os.path.isfile(test):
+                if len(self.get_output('diff -q '+f+' '+test)) == 0: continue
+            try:
+                shutil.copy(f,dest)
+            except:
+                os.chmod(dest, 777) #?? still can raise exception
+                shutil.copy(f,dest)
+            print 'Copied file '+f+' in directory '+dest
+
     def autogen(self):
         "Perform the autogen action"
         import os
+        #first copy the macros in the config.m4 directories of proprietary packages
+        for mod in self.selected(MAKEMODULES):
+            macros=self.get_m4_macros(os.path.join(self.srcdir,mod,'configure.ac'))
+            #print 'macros',mod,macros
+            files=self.get_m4_files(macros)
+            #print 'related files',files
+            #now copy the files, overwriting the previously existing ones
+            for d in self.get_m4_dir(mod):
+                self.copyfiles(files,os.path.join(self.srcdir,mod,d))
         os.system(self.jhb+SETUP+self.package)
-        #self.shellaction(self.srcdir,self.modulelist,'autoreconf -fi')
-
+        #self.shellaction(self.srcdir,self.modulelist,'autoreconf -fi')    
+        
     def check(self):
         "Perform the check action"
         self.shellaction('.',CHECKMODULES,'make check',hidden=not self.verbose)
