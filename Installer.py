@@ -15,7 +15,7 @@ UNINSTALL=' uninstall '
 LIST=' list '
 BUILD=' build '
 BUILDONE=' buildone '
-TINDERBOX=' tinderbox -o build '
+TINDERBOX=' tinderbox -o buildlogs '
 DOT=' dot '
 DOTCMD=' | dot -Edir=back -Tpng > buildprocedure.png '
 DIST='  dist --dist-only bigdft-suite '
@@ -47,13 +47,12 @@ ACTIONS={'build':
 NEEDRC=['build','dist','dry_run','startover']
 
 class BigDFTInstaller():
-    m4_re=['^AX_','CHECK_PYTHON']
-    def __init__(self,action,package,rcfile,verbose,quiet):
+    m4_re=['^AX_','CHECK_PYTHON'] #regular expressions to identify proprietary macros
+    def __init__(self,action,package,rcfile,verbose,quiet,yes):
         import os
         self.action=action    #Action to be performed
         self.package=package  #Package
-        self.verbose=verbose  #verbose option
-        self.quiet=quiet      #Ask a question
+        self.yes=yes      #Ask a question
         #look where we are
         self.srcdir = os.path.dirname(__file__)
         #look the builddir
@@ -61,7 +60,8 @@ class BigDFTInstaller():
         #look if we are building from a branch
         bigdftdir=os.path.join(self.srcdir,'bigdft')
         self.branch=os.path.isfile(os.path.join(bigdftdir,'branchfile'))
-
+        self.verbose=verbose or action=='check'  #verbose option
+        if not self.verbose and not quiet: self.verbose=self.branch
         #To be done BEFORE any exit instruction in __init__ (get_rcfile)
         self.time0 = None
 
@@ -125,11 +125,11 @@ class BigDFTInstaller():
         for file in os.listdir(rcdir):
             testname=os.path.basename(file)
             base=os.path.splitext(testname)[0]
-            if base in self.hostname or self.hostname in base: rcs.append(file)
+            if base in self.hostname or self.hostname in base or base.split('-')[0] in self.hostname: rcs.append(file)
         print "Search in the configuration directory '%s'" % rcdir
         if len(rcs)==1:
             self.rcfile=os.path.join(rcdir,rcs[0])
-        elif len(rcs) > 0 and (self.action in NEEDRC or not self.quiet):
+        elif len(rcs) > 0 and (self.action in NEEDRC or not self.yes):
             print "No valid configuration file specified, found various that matches the hostname '%s'" % self.hostname
             print 'In the directory "'+rcdir+'"'
             print 'Choose among the following options'
@@ -173,7 +173,7 @@ class BigDFTInstaller():
         elif self.rcfile!='':
             print indent + 'Configuration options:'
             print indent*2 + "Source: Configuration file '%s'" % os.path.abspath(self.rcfile)
-        while not self.quiet:
+        while not self.yes:
             ok = raw_input('Do you want to continue (Y/n)? ')
             if ok == 'n' or ok=='N':
                 exit(0)
@@ -442,7 +442,7 @@ class BigDFTInstaller():
                    if self.branch:
                        print 'HINT: It appears you are compiling from a branch source tree. Did you perform the action "autogen"?'
                    if not self.verbose and self.action == 'build':
-                      print '  HINT: Have a look at the file index.html of the build/ directory to find the reason'
+                      print '  HINT: Have a look at the file index.html of the buildlogs/ directory to find the reason'
         except:
             print 'Goodbye...'
 
@@ -473,10 +473,15 @@ parser.add_argument('package',nargs='?',default='spred',
 parser.add_argument('-f','--file',
                    help='Use an alternative configuration file instead of the default configuration '
                     + 'given by the environment variable %s' % BIGDFT_CFG)
-parser.add_argument('-d','--verbose',action='store_true',
-                   help='Verbose output')
-parser.add_argument('-q','--quiet',action='store_true',
-                   help='Skip dialog after setup')
+
+group = parser.add_mutually_exclusive_group()
+group.add_argument("-v", "--verbose", action="store_true",help='Verbose output, default from a development branch')
+group.add_argument("-q", "--quiet", action="store_true",help='Verbosity disabled output, default from a development branch')
+
+parser.add_argument('-d','--debug',action='store_true',
+                   help='Verbose output, default from a development brach')
+parser.add_argument('-y','--yes',action='store_true',
+                   help='Answer yes to dialog questions')
 parser.add_argument('-c','--configure-line',nargs=argparse.REMAINDER,
                    help='Specify the configure line to be passed (set BIGDFT_CONFIGURE_FLAGS variable)')
 
@@ -500,6 +505,9 @@ if args.configure_line is not None:
   import os
   os.environ[BIGDFT_CFG]=cfg
 
+print args.verbose,args.quiet
+exit(1)
+
 if args.action=='help':
     print "Quick overview of the BigDFT suite Installer program"
     print 50*'-'
@@ -517,4 +525,4 @@ if args.action=='help':
     print '     User: From a tarball, start by "build"'
     print 'Perform the "dry_run" command to have a graphical overview of the building procedure'
 else:
-    BigDFTInstaller(args.action,args.package,args.file,args.verbose,args.quiet)
+    BigDFTInstaller(args.action,args.package,args.file,args.verbose,args.quiet,args.yes)

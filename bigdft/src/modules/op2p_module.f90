@@ -1051,7 +1051,6 @@ module overlap_point_to_point
        call free_OP2P_data(OP2P)
      end subroutine OP2P_unitary_test
 
-
      !> Test the coherence of the OP2P scheme within the chosen repartition.
      !! this subroutine might be useful to detect if some problem exists in a particular run.
      function OP2P_test(iproc,nproc,OP2P,maxdiff) result(passed)
@@ -1113,7 +1112,6 @@ module overlap_point_to_point
 
      end function OP2P_test
 
-
      subroutine test_data(iproc,OP2P,norbp,data)
        implicit none
        !Arguments
@@ -1133,7 +1131,6 @@ module overlap_point_to_point
           end do
        end do
      end subroutine test_data
-
 
      subroutine check_result(iproc,OP2P,norbp,res,maxdiff)
        implicit none
@@ -1190,7 +1187,7 @@ module overlap_point_to_point
 
        els=real(ndim,wp)
        !els=(ndim*0.5_wp)*(ndim+1)*elem_delta**2!
-       op_val=(els*obj_delta**2)*real(iobj*jobj,wp)*(group_delta*real(igroup,wp))**2
+       op_val=(els*obj_delta**2)*real(iobj,wp)*real(jobj,wp)*(group_delta*real(igroup,wp))**2
 
      end function op_val
 

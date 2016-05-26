@@ -3,7 +3,7 @@ noinst_LIBRARIES = libflib.a
 module_DATA      = $(modules)
 
 if USE_CUDA_GPU
-CUDA_PROF = nvtx_fake.f90#nvtx.f90
+CUDA_PROF = nvtx_fake.f90 #nvtx.f90
 CUDA_MODS = 
 NVTX_DEP = nvtx.o
 else
