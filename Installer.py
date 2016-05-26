@@ -505,9 +505,6 @@ if args.configure_line is not None:
   import os
   os.environ[BIGDFT_CFG]=cfg
 
-print args.verbose,args.quiet
-exit(1)
-
 if args.action=='help':
     print "Quick overview of the BigDFT suite Installer program"
     print 50*'-'

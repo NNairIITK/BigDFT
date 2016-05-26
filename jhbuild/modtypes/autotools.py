@@ -157,9 +157,9 @@ class AutogenModule(MakeModule, DownloadableModule):
                           self.PHASE_INSTALL]:
             return False
 
-        # skip if manually instructed to do so
-        if self.skip_autogen is True:
-            return True
+#        # skip if manually instructed to do so
+#        if self.skip_autogen is True:
+#            return True
         
         if self.skip_autogen == 'never':
             return False
