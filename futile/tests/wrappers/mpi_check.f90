@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Program to test the OP2P (overlap point to point)
+!> Program to test the mpi behaviour
 program mpi_check
   use BigDFT_API
   implicit none

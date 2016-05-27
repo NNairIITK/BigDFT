@@ -172,6 +172,7 @@ src/Makefile
 tests/Makefile
 tests/fft/Makefile
 tests/flib/Makefile
+tests/wrappers/Makefile
 tests/c-bindings/Makefile
 ])
 

@@ -6,9 +6,11 @@ if USE_CUDA_GPU
 CUDA_PROF = nvtx_fake.f90 #nvtx.f90
 CUDA_MODS = 
 NVTX_DEP = nvtx.o
+CUDA_SOURCES = cudall.cu
 else
 CUDA_PROF = nvtx_fake.f90
 NVTX_DEP = nvtx_fake.o
+CUDA_SOURCES = cudall_fake.f90
 # Module files.
 if CAPITALIZE
 CUDA_MODS = NVTX.@MODULE_EXT@
@@ -16,7 +18,6 @@ else
 CUDA_MODS = nvtx.@MODULE_EXT@
 endif
 endif
-
 
 # Source code.
 if HAVE_FC_FLUSH_SUB
@@ -47,7 +48,7 @@ libflib_a_SOURCES = utils.c utilsadd.c \
 	yaml_parser.c yaml_parse.f90 f_jmp.f90 \
 	f_input_file.f90 randomData.f90 \
 	f_ternary.f90 f_bind.f90 f_objects.f90 fpython.f90 \
-	$(flush_files) $(getarg_files) $(CUDA_PROF)
+	$(flush_files) $(getarg_files) $(CUDA_PROF) $(CUDA_SOURCES)
 
 DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
 	deallocate-c-inc.f90 allocate-c-inc.f90 \
@@ -62,7 +63,8 @@ F_MALLOC_INCLUDES = f_malloc-inc.f90 f_malloc-extra-inc.f90 \
 	f_malloc-bound-inc.f90 \
 	f_malloc-bounds-inc.f90 f_malloci-simple-inc.f90 f_mallocli-simple-inc.f90 \
 	f_malloc-ptr-inc.f90 f_malloc-check-inc.f90 \
-	f_malloc-null-ptr-inc.f90 f_malloc-total-inc.f90
+	f_malloc-null-ptr-inc.f90 f_malloc-total-inc.f90 \
+	f_malloc-buf-inc.f90 f_malloc-buf-base-inc.f90
 
 YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90 \
 	yaml_map-mat-inc.f90 yaml_open-inc.f90
@@ -135,8 +137,17 @@ endif
 
 CLEANFILES = *.@MODULE_EXT@ memstatus.yaml
 
+SUFFIXES = .cu
+
 AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@
 AM_CFLAGS = @LIB_YAML_CFLAGS@
+AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
+
+NVCC = @NVCC@
+NVCC_FLAGS = @NVCC_FLAGS@
+.cu.o:
+	$(NVCC) $(NVCC_FLAGS) $(AM_CPPFLAGS) -c $< -o $@
+
 
 # Dependencies
 $(modules): $(libflib_a_OBJECTS)

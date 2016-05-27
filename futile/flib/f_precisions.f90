@@ -55,9 +55,58 @@ module f_precisions
      module procedure set_d,set_i,set_li,set_c
   end interface assignment(=)
 
-  private :: set_d,set_i,set_li
+  interface f_sizeof
+     module procedure sizeof_r,sizeof_d,sizeof_i,sizeof_l,sizeof_li
+  end interface f_sizeof
+
+  private :: set_d,set_i,set_li,sizeof_r,sizeof_d,sizeof_i,sizeof_l,sizeof_li
   
   contains
+
+    function sizeof_r(av) result(k)
+      implicit none
+      real(f_simple), intent(in) :: av
+      real(f_simple), dimension(2) :: a
+      integer :: k
+      a(1)=av
+      k=int(f_loc(a(2))-f_loc(a(1)))
+    end function sizeof_r
+
+    function sizeof_d(av) result(k)
+      implicit none
+      real(f_double), intent(in) :: av
+      real(f_double), dimension(2) :: a
+      integer :: k
+      a(1)=av
+      k=int(f_loc(a(2))-f_loc(a(1)))
+    end function sizeof_d
+
+    function sizeof_i(av) result(k)
+      implicit none
+      integer(f_integer), intent(in) :: av
+      integer(f_integer), dimension(2) :: a
+      integer :: k
+      a(1)=av
+      k=int(f_loc(a(2))-f_loc(a(1)))
+    end function sizeof_i
+
+    function sizeof_li(av) result(k)
+      implicit none
+      integer(f_long), intent(in) :: av
+      integer(f_long), dimension(2) :: a
+      integer :: k
+      a(1)=av
+      k=int(f_loc(a(2))-f_loc(a(1)))
+    end function sizeof_li
+    
+    function sizeof_l(av) result(k)
+      implicit none
+      logical, intent(in) :: av
+      logical, dimension(2) :: a
+      integer :: k
+      a(1)=av
+      k=int(f_loc(a(2))-f_loc(a(1)))
+    end function sizeof_l
 
     elemental subroutine set_d(val,par)
       implicit none

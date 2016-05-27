@@ -77,7 +77,7 @@ AC_DEFUN([AX_ACC_CUDA],
     AC_MSG_CHECKING([for NVCC flags])
     if test -z "$NVCC_FLAGS" ; then
       AC_REQUIRE([AX_FLAG_PIC])
-      NVCC_FLAGS="-O3 --compiler-options '-fno-strict-aliasing $ax_flag_pic'"
+      NVCC_FLAGS="-arch sm_20 -O3 --compiler-options '-fno-strict-aliasing $ax_flag_pic'"
     fi
     AC_SUBST(NVCC_FLAGS)
     AC_MSG_RESULT([$NVCC_FLAGS])
