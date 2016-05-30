@@ -5,16 +5,17 @@ module_DATA      = $(modules)
 if USE_CUDA_GPU
 CUDA_PROF = nvtx_fake.f90 #nvtx.f90
 CUDA_MODS = 
-NVTX_DEP = nvtx.o
+NVTX_DEP = nvtx_fake.o #nvtx.o
 else
 CUDA_PROF = nvtx_fake.f90
 NVTX_DEP = nvtx_fake.o
+endif
+
 # Module files.
 if CAPITALIZE
 CUDA_MODS = NVTX.@MODULE_EXT@
 else
 CUDA_MODS = nvtx.@MODULE_EXT@
-endif
 endif
 
 
