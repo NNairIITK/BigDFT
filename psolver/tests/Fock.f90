@@ -65,7 +65,10 @@ program Fock_Operator_Program
   usegpu = options // 'accel'
 
   call dict_init(dict_input)
-  if (usegpu) call dict_set(dict_input//'setup'//'accel','CUDA')
+  if (usegpu) then 
+    call dict_set(dict_input//'setup'//'accel','CUDA')
+    call dict_set(dict_input//'setup'//'use_gpu_direct',.true.)
+  end if
   !lower the verbosity for the kernel initialization
   call dict_set(dict_input //'setup'//'verbose', .false.)
   if ('input' .in. options) &
