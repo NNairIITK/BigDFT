@@ -179,7 +179,6 @@ end subroutine exctx_post_computation
 
 subroutine exctx_accum_eexctX(orb1, orb2, phi1, phi2, pkernel, norb, occup, factor, remote_result, istep, ehart, eexctX)
   use PSbase, wp=>dp
-  use module_defs, only: wp
   use f_precisions, only: f_address
   use overlap_point_to_point
   use dictionaries, only: f_err_throw
