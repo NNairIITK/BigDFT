@@ -18,7 +18,7 @@ program Fock_Operator_Program
   use PSbox
   implicit none
   !Order of interpolating scaling function
-  real(kind=8), parameter :: a_gauss = 1.0d-2, a2 = a_gauss**2
+  real(kind=8), parameter :: a_gauss = 1.0, a2 = a_gauss**2
   real(kind=8), parameter :: acell = 10.d0
   logical :: symmetric,usegpu
   character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
@@ -66,6 +66,8 @@ program Fock_Operator_Program
 
   call dict_init(dict_input)
   if (usegpu) call dict_set(dict_input//'setup'//'accel','CUDA')
+  !lower the verbosity for the kernel initialization
+  call dict_set(dict_input //'setup'//'verbose', .false.)
   if ('input' .in. options) &
        call dict_copy(dest=dict_input,src=options//'input')
 
@@ -88,7 +90,7 @@ program Fock_Operator_Program
   hgrids=acell/nxyz
   pkernel=pkernel_init(0,1,dict_input,geocode,nxyz,hgrids)
   call dict_free(dict_input)
-  call pkernel_set(pkernel,verbose=.true.)
+  call pkernel_set(pkernel,verbose=iproc==0)
 
   !fill the psir functions, first find the test functions
   density = f_malloc(nxyz,id='density')
@@ -109,8 +111,6 @@ program Fock_Operator_Program
      call f_memcpy(n=product(nxyz),src=density(1,1,1),&
           dest=psir(1,1,1,iorb))
   end do
-
-  print *,'sums',pkernel%hgrids,norbp(norb,nproc,iproc),sum(psir)*product(hgrids),sum(density)*product(hgrids)
 
   call f_free(density)
   call f_free(potential)
@@ -154,7 +154,7 @@ program Fock_Operator_Program
   symmetric=.true.
   call f_zero(dpsir)
   if (iproc==0) call yaml_map('Orbital repartition',nobj_par)
-  call OP2P_unitary_test(pkernel%mpi_env%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+  call OP2P_unitary_test(mpiworld(),iproc,nproc,ngroup,ndim,nobj_par,symmetric)
   !this part should go inside the kernel initialization
   if(pkernel%igpu==1 .and. pkernel%initCufftPlan==0) then
      igpu=0
@@ -162,7 +162,7 @@ program Fock_Operator_Program
   else
      igpu=pkernel%igpu
   end if
-  call initialize_OP2P_data(OP2P,pkernel%mpi_env%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric)
+  call initialize_OP2P_data(OP2P,mpiworld(),iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric)
 
   !this part is also inaesthetic
   if(igpu==1 .and. OP2P%gpudirect==1) pkernel%stay_on_gpu=1
@@ -199,7 +199,7 @@ program Fock_Operator_Program
      pkernel%stay_on_gpu=0
   end if
   call free_OP2P_data(OP2P)
-  call PS_reduce(eexctX,pkernel,MPI_SUM)
+  if (nproc > 1) call mpiallred(eexctX,1,op=MPI_SUM)
   if (iproc == 0) call yaml_map('Exact Exchange Energy',eexctX,fmt='(1pe18.11)')
   call f_free(nobj_par)
   call f_free(rp_ij)
@@ -207,7 +207,7 @@ program Fock_Operator_Program
   call f_free(psir)
   call f_free(occup,spinsgn)
 
-  call f_timing_stop(mpi_comm=pkernel%mpi_env%mpi_comm,nproc=pkernel%mpi_env%nproc,gather_routine=gather_timings)
+  call f_timing_stop(mpi_comm=mpiworld(),nproc=nproc,gather_routine=gather_timings)
 
   call pkernel_free(pkernel)
   call f_release_routine()

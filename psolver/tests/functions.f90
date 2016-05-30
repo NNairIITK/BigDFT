@@ -226,7 +226,7 @@ recursive subroutine test_functions_box(mesh,nspden,a_gauss,&
   real(kind=8), dimension(mesh%ndims(1),mesh%ndims(2),mesh%ndims(3),nspden), intent(out) :: density,rhopot
   !local variables
   integer, parameter :: nrep=10
-  logical ::  separable=.true.,old=.true. !save attribute for the profiling
+  logical ::  separable=.true.,old=.false. !save attribute for the profiling
   integer :: i1,i2,i3,ifx,ify,ifz,i,irep,n01,n02,n03
   
   real(kind=8) :: x1,x2,x3,length,denval,a2,derf_tt,factor,r,r2,hx,hy,hz
@@ -381,7 +381,7 @@ recursive subroutine test_functions_box(mesh,nspden,a_gauss,&
               x1 = hx*real(i1-n01/2,kind=8)
               r2 = x1*x1+x2*x2+x3*x3
               do i=1,nspden
-                 density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*max(factor*exp(-r2/a2),1d-24)
+                 density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*max(factor*safe_exp(-r2/a2),1d-24)
               end do
               r = sqrt(r2)
               !Potential from a gaussian
@@ -395,6 +395,7 @@ recursive subroutine test_functions_box(mesh,nspden,a_gauss,&
         end do
      end do
   end if
+
   !here we can profile both cases
   !call f_profile(test_old,'Test separable iterator',&
   !repeat=nrep,jmpbuf=jmpbuf,dump_results=.true.)

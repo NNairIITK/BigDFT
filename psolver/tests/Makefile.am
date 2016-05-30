@@ -32,7 +32,7 @@ else
 psolver_library = $(top_builddir)/src/libPSolver-1.a @LIB_PSOLVER_DEPS@
 endif
 
-PS_Check_SOURCES = PS_Check.f90
+PS_Check_SOURCES = PS_Check.f90 functions.f90
 PS_Check_LDADD = $(psolver_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 PS_Program_SOURCES = PS_Program.f90

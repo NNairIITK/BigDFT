@@ -68,9 +68,10 @@ subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,re
 !!$                nint(real(ncalls,gp)/real(ncalltot,gp)*100.0_gp),fmt='(i3)')) //'%')
 !!$        end if
 
+        !call Electrostatic_Solver(
         call H_potential('D',pkernel,rp_ij,rp_ij,ehart,0.0_dp,.false.,&
              quiet='YES')
-        print *,'ext',ehart
+        !print *,'ext',ehart
 
         call exctx_accum_eexctX(iorb, jorb, phi_i, phi_j, pkernel, norb,occup,factor,remote_result,istep, ehart, eexctX)
 
