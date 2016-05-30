@@ -160,8 +160,9 @@ program Fock_Operator_Program
      igpu=0
      if (iproc==0) call yaml_warning("not enough memory to allocate cuFFT plans on the GPU - no GPUDirect either")
   else
-     igpu=pkernel%igpu
+     igpu=.if. pkernel%use_gpu_direct .then. pkernel%igpu .else. 0
   end if
+  
   call initialize_OP2P_data(OP2P,mpiworld(),iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric)
 
   !this part is also inaesthetic

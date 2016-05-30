@@ -235,4 +235,5 @@ module futile
   use time_profiling
   use f_input_file
   use f_enums
+  use f_ternary
 end module futile
