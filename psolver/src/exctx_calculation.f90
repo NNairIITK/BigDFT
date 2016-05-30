@@ -9,7 +9,7 @@
 subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,remote_result,&
      nloc_i,nloc_j,isloc_i,isloc_j,&
      phi_i,phi_j,eexctX,rp_ij)
-  use module_defs, only: wp
+  use PSbase, wp=>dp
   use overlap_point_to_point
   use Poisson_Solver
   implicit none
@@ -91,7 +91,7 @@ subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,re
 end subroutine internal_calculation_exctx
 
 subroutine exctx_pre_computation(iorb, jorb, rp_ij, phi1, phi2, pkernel)
-  use module_defs, only: wp
+  use PSbase, wp=>dp
   use f_precisions, only: f_address
   use overlap_point_to_point
   use dictionaries, only: f_err_throw
@@ -131,7 +131,7 @@ end subroutine exctx_pre_computation
 
 
 subroutine exctx_post_computation(orb1, orb2, rp_ij, phi1, phi2, pkernel, norb, occup, factor)
-  use module_defs, only: wp
+  use PSbase, wp=>dp
   use f_precisions, only: f_address
   use overlap_point_to_point
   use dictionaries, only: f_err_throw
