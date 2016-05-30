@@ -199,6 +199,7 @@ subroutine f_lib_finalize()
   call f_timing_finalize()
   !debug, once again
   call dictionary_check_leak()
+
 end subroutine f_lib_finalize
 
 
@@ -233,4 +234,5 @@ module futile
   use f_refcnts
   use time_profiling
   use f_input_file
+  use f_enums
 end module futile

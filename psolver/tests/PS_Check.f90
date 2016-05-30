@@ -67,24 +67,16 @@ program PS_Check
   if (iproc ==0) then
      call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')
      call yaml_new_document()
-
-     call yaml_map('Reference Paper','The Journal of Chemical Physics 137, 134108 (2012)')
-     call yaml_map('Version Number', "PSolver " // trim(PS_getVersion()))
-     call yaml_map('Timestamp of this run',yaml_date_and_time_toa())
-     call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
-     if (ierr ==0) call yaml_map('Root process Hostname',trim(nodename_local))
+     call PSolver_logo()
   end if
 
   !initialize memory counting and timings
-  !call memocc(0,iproc,'count','start')
-  !call timing(nproc,'time.yaml','IN')
   call f_timing_reset(filename='time.yaml',master=iproc==0)
 
 
   !Start global timing
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
-
 
   nxyz=options//'ndim'
   geocode=options//'geocode'
@@ -1015,7 +1007,8 @@ subroutine PS_Check_options(parser)
        'Set the embedding method used. A non present value implies vacuum treatment.',&
        'Allowed values' .is. &
        dict_new("PI" .is. 'Polarization iteration Method',&
-               "PCG" .is. 'Preconditioned Conjugate Gradient')))
+       "PCG" .is. 'Preconditioned Conjugate Gradient')))
+  
   call yaml_cl_parse_option(parser,'accel','No',&
        'GPU Acceleration','a',&
        dict_new('Usage' .is. &

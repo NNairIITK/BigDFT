@@ -192,6 +192,8 @@ module overlap_point_to_point
         OP2P%ngroupp=-1
         OP2P%ndim=0
         OP2P%mpi_comm=mpicomm_null() !<handle of the communicator
+        OP2P%gpudirect=0
+        OP2P%ncouples=0
         !then nullifications
         nullify(OP2P%requests_data)
         nullify(OP2P%requests_res)
@@ -1093,7 +1095,7 @@ module overlap_point_to_point
        type(OP2P_data), intent(inout) :: OP2P
        logical :: passed
        !local variables
-       real(wp), parameter :: tol_maxdiff=1.e-13_wp
+       real(wp), parameter :: tol_maxdiff=1.e-10_wp
        integer :: norbp,prc
        real(wp) :: etot,tel,trm
        type(OP2P_iterator) :: iter
