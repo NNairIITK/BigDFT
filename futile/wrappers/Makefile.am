@@ -70,6 +70,7 @@ libwrappers_a_SOURCES = $(DGEMMSY_SOURCES) $(CUBLAS_SOURCES) $(OCL_SOURCES) \
 	linalg.f90 \
 	mpi.F90 $(mpi_source) \
 	f_blas.f90 \
+	op2p_module.f90 \
 	numerics.f90
 
 # Dependencies
@@ -79,6 +80,7 @@ interface_dgemmsy_fake.o: linalg.o
 f_blas.o: linalg.o
 interface_dgemmsy_fake.o: linalg.o
 mpi.o: $(mpi_include)
+op2p_module.o: mpi.o linalg.o
 
 AM_FCFLAGS = -I. -I$(top_builddir)/flib/ @MPI_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
@@ -92,12 +94,14 @@ modules = MODULE_FFT_SG.@MODULE_EXT@ \
 	WRAPPER_LINALG.@MODULE_EXT@ \
 	WRAPPER_MPI.@MODULE_EXT@ \
 	F_BLAS.@MODULE_EXT@ \
+	OVERLAP_POINT_TO_POINT.@MODULE_EXT@ \
 	NUMERICS.@MODULE_EXT@
 else
 modules = module_fft_sg.@MODULE_EXT@ \
 	wrapper_linalg.@MODULE_EXT@ \
 	wrapper_mpi.@MODULE_EXT@ \
 	f_blas.@MODULE_EXT@ \
+	overlap_point_to_point.@MODULE_EXT@ \
 	numerics.@MODULE_EXT@
 endif
 CLEANFILES = $(modules) mpif.h

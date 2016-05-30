@@ -117,11 +117,6 @@ inline void __cublasAssert(cublasStatus_t code, const char *file, const int line
    }
 }
 
-// synchronize blocks
-extern "C" void FC_FUNC(synchronize, SYNCHRONIZE)() {
-   cudaStreamSynchronize(stream1);
-}
-
 
 // create stream for kernel
 extern "C" void FC_FUNC(cudacreatestream, CUDACREATESTREAM) (int* ierr) {
@@ -142,47 +137,8 @@ extern "C" void FC_FUNC(cudadestroycublashandle, CUDADESTROYCUBLASHANDLE) () {
 }
 
 
-// allocate device memory
-extern "C" void FC_FUNC(cudamalloc, CUDAMALLOC) (int *size, Real **d_data,int *ierr) {
-
-  *ierr = cudaMalloc((void**)d_data, sizeof(Real)*(*size));
-  //errors should be treated in the fortran part
-}
-
-// allocate device memory
-extern "C" void FC_FUNC(cudamemset, CUDAMEMSET) (Real **d_data, int* value, int* size,int *ierr) {
-
-  *ierr = cudaMemsetAsync((void*)*d_data, *value, sizeof(Real)*(*size),stream1);
-}
-
-extern "C" void FC_FUNC(cudafree, CUDAFREE) (Real **d_data) {
-  cudaFree(*d_data);
-}
-
 extern "C" void FC_FUNC(cufftdestroy, CUFFTDESTROY) (cufftHandle *plan) {
   cufftDestroy(*plan);
-}
-
-// set device memory
-extern "C" void FC_FUNC_(reset_gpu_data, RESET_GPU_DATA)(int *size, Real* h_data, Real **d_data){
-  cudaMemcpyAsync(*d_data, h_data, sizeof(Real)*(*size),
-         cudaMemcpyHostToDevice,stream1);
-  gpuErrchk( cudaPeekAtLastError() );
-}
-
-// copy data on the card
-extern "C" void FC_FUNC_(copy_gpu_data, COPY_GPU_DATA)(int *size, Real** dest_data, Real **send_data){
-  cudaMemcpyAsync(*dest_data, *send_data, sizeof(Real)*(*size),
-         cudaMemcpyDeviceToDevice,stream1);
-  gpuErrchk( cudaPeekAtLastError() );
-}
-
-
-// read device memory
-extern "C" void FC_FUNC_(get_gpu_data, GET_GPU_DATA)(int *size, Real *h_data, Real **d_data) {
-  cudaMemcpyAsync(h_data, *d_data, sizeof(Real)*(*size),
-         cudaMemcpyDeviceToHost,stream1);
-  gpuErrchk( cudaPeekAtLastError() );
 }
 
 // set device memory
@@ -298,12 +254,6 @@ if(*iproc==0){
  gpuErrchk(cudaMemGetInfo(freeSize,totalSize));
 
 }
-
-extern "C" void FC_FUNC_(cuda_get_mem_info, CUDA_GET_MEM_INFO)(size_t* freeSize, size_t* totalSize){
- gpuErrchk(cudaMemGetInfo(freeSize,totalSize));
-}
-
-
 
 // transpose
 __global__ void transpose(Complex *idata, Complex *odata,

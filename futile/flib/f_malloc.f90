@@ -87,6 +87,22 @@ module module_f_malloc
      type(f_workspace), pointer :: w !<workspace structure if the array is a work array
   end type malloc_information_ptr
 
+  !> Structure needed to allocate a f_buffer object
+  type, public :: malloc_information_buf
+     logical :: pin                          !< flag to control the pinning of the address
+     logical :: profile                      !< activate profiling for this allocation
+     logical :: put_to_zero                  !< initialize to zero after allocation
+     integer :: rank                         !< rank of the pointer
+     integer(f_kind), dimension(max_rank) :: shape   !< shape of the structure
+     integer(f_kind), dimension(max_rank) :: lbounds !< lower bounds
+     integer(f_kind), dimension(max_rank) :: ubounds !< upper bounds
+     integer(f_address) :: srcdata_add          !< physical address of source data
+     character(len=f_malloc_namelen) :: array_id      !< label the array
+     character(len=f_malloc_namelen) :: routine_id    !< label the routine
+     !all the componenets which are added from this line have to be initialized separately
+  end type malloc_information_buf
+
+
   !> Structure needed to allocate a pointer of string of implicit length (for non-2003 complilers)
   type, public :: malloc_information_str_ptr
      logical :: ptr                          !< just to make the structures different, to see if needed
@@ -116,6 +132,7 @@ module module_f_malloc
   interface nullify_malloc_information
      module procedure nullify_malloc_information_all
      module procedure nullify_malloc_information_ptr
+     module procedure nullify_malloc_information_buf
      module procedure nullify_malloc_information_str_all
      module procedure nullify_malloc_information_str_ptr
   end interface
@@ -211,7 +228,7 @@ module module_f_malloc
   !> Public routines
   public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,operator(.to.)
   public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
-  public :: f_map_ptr
+  public :: f_map_ptr,f_malloc_buf,f_malloc0_buf
 
 
 contains
@@ -290,6 +307,12 @@ contains
     m%ptr=.true.
     nullify(m%w)
   end subroutine nullify_malloc_information_ptr
+
+  pure subroutine nullify_malloc_information_buf(m)
+    implicit none
+    type(malloc_information_buf), intent(out) :: m
+    include 'f_malloc-null-inc.f90'
+  end subroutine nullify_malloc_information_buf
 
   pure subroutine nullify_malloc_information_str_all(m)
     implicit none
@@ -939,6 +962,25 @@ contains
     include 'f_malloc-ptr-inc.f90'
     include 'f_malloc-ptr-inc.f90'
   end function f_malloc_ptr_d5_sp
+
+  function f_malloc_buf(sizes,id,routine_id,profile,src) result(m)
+    implicit none
+    !the integer array src is here added to avoid problems in resolving the ambiguity
+    integer, dimension(:), intent(in), optional :: src
+    include 'f_malloc-buf-base-inc.f90'
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-buf-inc.f90'
+  end function f_malloc_buf
+  !> Define the allocation information for  arrays of different rank
+  function f_malloc0_buf(sizes,id,routine_id,profile) result(m)
+    implicit none
+    include 'f_malloc-buf-base-inc.f90'
+    include 'f_malloc-base-inc.f90'
+    m%rank=1
+    m%shape(1:m%rank)=int(sizes,f_kind)
+    m%ubounds(1:m%rank)=int(m%lbounds(1:m%rank),f_kind)+m%shape(1:m%rank)-1
+    m%put_to_zero=.true.
+  end function f_malloc0_buf
 
 
 !!$  function f_malloc_ptr_d1(id,src,routine_id,sizes,lbounds,ubounds,profile) result(m)

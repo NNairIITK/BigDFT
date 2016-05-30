@@ -162,7 +162,6 @@ low_level = \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
 	wfn_opt/exctX.f90 \
-	wfn_opt/exctX_op2p.f90 \
 	wfn_opt/sic.f90 \
 	wfn_opt/precond_per_optim.f90 \
 	wfn_opt/precond_hyb.f90 \
@@ -199,7 +198,7 @@ low_level = \
 	linear/cdft.f90 \
 	linear/frags.f90\
 	$(ambertools_wrap)
-##	$(cp2k_interfacemod)
+##	$(cp2k_interfacemod) 	wfn_opt/exctX_op2p.f90 \
 
 # C objects
 c_level = posfiles.c \
