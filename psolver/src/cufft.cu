@@ -45,8 +45,10 @@ static const char *_cublasGetErrorString(cublasStatus_t error)
             return "CUBLAS_STATUS_INTERNAL_ERROR";
         case CUBLAS_STATUS_NOT_SUPPORTED:
             return "CUBLAS_STATUS_NOT_SUPPORTED";
+#if CUDA_VERSION >= 6500
         case CUBLAS_STATUS_LICENSE_ERROR:
             return "CUBLAS_STATUS_LICENSE_ERROR";
+#endif
     }
     return "<unknown>";
 }
