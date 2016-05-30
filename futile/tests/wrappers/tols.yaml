@@ -7,3 +7,5 @@ Keys to ignore:
  - Memory* 
  - Orbital repartition*
  - Walltime since initialization
+ - Max No. of dictionaries used
+
