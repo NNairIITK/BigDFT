@@ -80,8 +80,8 @@ static const char *_cufftGetErrorString(cufftResult error)
 }
 
 
-cudaStream_t stream1=NULL;
-cublasHandle_t handle1=NULL;
+extern cudaStream_t stream1;
+extern cublasHandle_t handle1;
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
@@ -1576,11 +1576,3 @@ extern "C" void FC_FUNC_(gpu_accumulate_eexctx,GPU_ACCUMULATE_EEXCTX)(Real** eha
  // gpuErrchk( cudaPeekAtLastError() );
 }
 
-
-// set device memory
-extern "C" void FC_FUNC_(poisson_cublas_daxpy, POISSON_CUBLAS_DAXPY)(int *size, const double* alpha, Real** d_x,int* facx, Real ** d_y, int* facy,int* offset_y){
-
-  cublasSetStream(handle1, stream1);
-  cublasErrchk(cublasDaxpy(handle1,*size,alpha,*d_x,*facx,*d_y+*offset_y,*facy));
-//  gpuErrchk( cudaPeekAtLastError() );
-}

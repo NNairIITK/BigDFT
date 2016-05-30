@@ -19,6 +19,8 @@ AC_DEFUN([AX_ACC_CUDA],
     dnl Optional Cuda installation dir.
     AC_ARG_WITH(cuda-path, AS_HELP_STRING([--with-cuda-path], [give the path to the NVidia Cuda tools (default is /usr/local/cuda).]),
                            [ax_acc_cuda_path=$withval], [ax_acc_cuda_path="/usr/local/cuda"])
+    AC_ARG_WITH(cuda-libs, AS_HELP_STRING([--with-cuda-libs], [give the link flags for nvidia libraries]),
+                           [ax_acc_cuda_libs=$withval], [ax_acc_cuda_libs="-lcudart -lcublas -lcufft"])
     if test x"$ax_acc_cuda_path" = x"no" ; then
       ax_acc_cuda_path="/usr"
     fi
@@ -26,6 +28,8 @@ AC_DEFUN([AX_ACC_CUDA],
     AC_SUBST(CUDA_PATH)
     AC_MSG_CHECKING([looking for CUDA in])
     AC_MSG_RESULT([$ax_acc_cuda_path])
+    AC_MSG_CHECKING([Linking flags for CUDA])
+    AC_MSG_RESULT([$ax_acc_cuda_libs])
 
     dnl look for the cublas header
     AC_LANG_PUSH(C)
@@ -81,7 +85,7 @@ AC_DEFUN([AX_ACC_CUDA],
     fi
     AC_SUBST(NVCC_FLAGS)
     AC_MSG_RESULT([$NVCC_FLAGS])
-    LIBCUDA_LIBS="-lcudart -lcublas -lcufft"
+    LIBCUDA_LIBS="$ax_acc_cuda_libs"
     LDFLAGS="$LDFLAGS -L$ac_cuda_lib_path"
   fi
 

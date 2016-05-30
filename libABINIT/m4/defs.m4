@@ -45,7 +45,13 @@ EOF
   rm -f defstest*
 
   AC_SUBST([FCDEFS], [$ax_fc_defs])
-
+  if test -n "$myFCLINK"; then
+     echo "ciao"
+  else
+     myFCLINK='$(FCLD) $(AM_FCFLAGS) $(FCFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $(@)'
+     echo "byebye"
+  fi
+  AC_SUBST(FCLINK, $myFCLINK)
   AC_LANG_POP(Fortran)
 
   AC_MSG_RESULT([$ax_fc_defs"-D"])
