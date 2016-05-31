@@ -21,7 +21,7 @@ EXERCISE = Exercise/plot.gnuplot \
 
 EXTRA_DIST = PS_Check.ref.yaml tols.yaml $(OTHERS)
 
-check_PROGRAMS = PS_Check PS_Program PS_Exercise Generalized_PSolver
+check_PROGRAMS = PS_Check PS_Program PS_Exercise Generalized_PSolver Fock
 
 AM_FCFLAGS = -I. -I$(top_srcdir)/src @LIB_FUTILE_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
@@ -32,7 +32,7 @@ else
 psolver_library = $(top_builddir)/src/libPSolver-1.a @LIB_PSOLVER_DEPS@
 endif
 
-PS_Check_SOURCES = PS_Check.f90
+PS_Check_SOURCES = PS_Check.f90 functions.f90
 PS_Check_LDADD = $(psolver_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 PS_Program_SOURCES = PS_Program.f90
@@ -43,6 +43,9 @@ PS_Exercise_LDADD = $(psolver_library) @LIB_FUTILE_LIBS@
 
 Generalized_PSolver_SOURCES = Generalized_PSolver.f90
 Generalized_PSolver_LDADD = $(psolver_library) @LIB_FUTILE_LIBS@
+
+Fock_SOURCES = Fock.f90 functions.f90
+Fock_LDADD = $(psolver_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 
 CLEANFILES = malloc.prc time.prc PS_Check.out.yaml PSolver.report.yaml

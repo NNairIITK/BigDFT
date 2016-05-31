@@ -9,9 +9,9 @@
 
 
 program OP2P_check
-  use module_base
-  use yaml_output
+  use futile
   use overlap_point_to_point
+  use wrapper_MPI
   implicit none
   logical :: symmetric
   integer :: iproc,jproc,nproc,norbp,ngroup,igroup,ndim,norb,iobj,jobj,kobj
@@ -101,8 +101,6 @@ program OP2P_check
     !> Identify the options from command line
     !! and write the result in options dict
     subroutine OP2P_check_command_line_options(options)
-      use yaml_parse
-      use dictionaries
       implicit none
       !> dictionary of the options of the run
       !! on entry, it contains the options for initializing
@@ -131,8 +129,7 @@ end program OP2P_check
 
 !> Check the options
 subroutine OP2P_check_options(parser)
-  use yaml_parse
-  use dictionaries, only: dict_new,operator(.is.)
+  use futile
   implicit none
   type(yaml_cl_parse), intent(inout) :: parser
 

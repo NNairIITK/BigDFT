@@ -57,6 +57,7 @@ libPSolver_1_a_SOURCES = Build_Kernel.f90 \
 	PSbox.f90 \
 	PSbase.f90 \
 	box.f90 \
+	exctx_calculation.f90 \
 	$(fdder_file) \
 	IObox.f90 \
 	$(c_level) \
@@ -145,7 +146,7 @@ endif
 SUFFIXES = .cu
 
 NVCC = @NVCC@
-NVCC_FLAGS = -arch sm_20 @NVCC_FLAGS@
+NVCC_FLAGS = @NVCC_FLAGS@
 
 # Dynamic library building
 $(psolver_dynamic_library): $(libPSolver_1_a_OBJECTS)
@@ -177,7 +178,7 @@ conv_check_fft.o: cufft.o
 conv_check_fftw.o: fftw.o
 IOetsf.o: PSbase.o
 IOetsf_fake.o: PSbase.o
-wofz.o Build_Kernel.o scaling_function.o PSolver_Base_new.o: Poisson_Solver.o
+exctx_calculation.o wofz.o Build_Kernel.o scaling_function.o PSolver_Base_new.o: Poisson_Solver.o
 
 .cu.o:
 	$(NVCC) $(NVCC_FLAGS) $(AM_CPPFLAGS) -c $< -o $@

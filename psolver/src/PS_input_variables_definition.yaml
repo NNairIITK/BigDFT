@@ -204,6 +204,12 @@
     CONDITION: 
       MASTER_KEY: accel
       WHEN: CUDA
+  use_gpu_direct: 
+    COMMENT: Force (or not) the usage of GPUdirect communication, if available
+    default: Yes
+    CONDITION: 
+      MASTER_KEY: accel
+      WHEN: CUDA
   taskgroup_size: 
     COMMENT: Size of the taskgroups of the Poisson Solver
     default: 0

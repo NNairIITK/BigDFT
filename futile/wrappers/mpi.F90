@@ -708,13 +708,19 @@ contains
     implicit none
     character(len=MPI_MAX_PROCESSOR_NAME) :: mpihostname
     !local variables
-    integer :: ierr,namelen
+    integer :: ierr,namelen,ipos
 
     call MPI_GET_PROCESSOR_NAME(mpihostname,namelen,ierr)
     if (ierr /= MPI_SUCCESS) then
        call f_err_throw('An error in calling to MPI_GET_PROCESSOR_NAME occured',&
             err_id=ERR_MPI_WRAPPERS)
     end if
+
+    !clean the hostname such as to include only the last word
+    !this solves a problem in ibm machines
+    ipos=index(mpihostname,' ',back=.true.)
+    if (ipos > 0) mpihostname=mpihostname(ipos+1:)
+
   end function mpihostname
 
   !>initialization of the mpi library
@@ -1019,10 +1025,10 @@ contains
   end function mpisize
 
   !> Give the number of MPI processes per node (nproc_node) and before iproc (iproc_node)
-  subroutine mpinoderanks(mpi_env,iproc_node,nproc_node)
+  subroutine mpinoderanks(iproc,nproc,mpi_comm,iproc_node,nproc_node)
     use dynamic_memory
     implicit none
-    type(mpi_environment), intent(in) :: mpi_env
+    integer, intent(in) :: iproc,nproc,mpi_comm
     integer, intent(out) :: iproc_node, nproc_node
     !local variables
     character(len=*), parameter :: subname='processor_id_per_node'
@@ -1032,23 +1038,18 @@ contains
 
     call f_routine(id=subname)
 
-    if (mpi_env%nproc == 1) then
+    if (nproc == 1) then
        iproc_node=0
        nproc_node=1
     else
-       nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0 .to. mpi_env%nproc-1,id='nodename')
-
-!!$       !initalise nodenames
-!!$       do jproc=0,nproc-1
-!!$          nodename(jproc)=repeat(' ',MPI_MAX_PROCESSOR_NAME)
-!!$       end do
+       nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0 .to. nproc-1,id='nodename')
 
        nodename_local=mpihostname()
 
        !gather the result between all the processes
        call MPI_ALLGATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
             nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
-            mpi_env%mpi_comm,ierr)
+            mpi_comm,ierr)
        if (ierr /=0) call f_err_throw('An error in calling to MPI_ALLGATHER occured',&
             err_id=ERR_MPI_WRAPPERS)
 
@@ -1056,14 +1057,14 @@ contains
        !found the processors which belong to the same node
        !before the processor iproc
        iproc_node=0
-       do jproc=0,mpi_env%iproc-1
-          if (trim(nodename(jproc)) == trim(nodename(mpi_env%iproc))) then
+       do jproc=0,iproc-1
+          if (trim(nodename(jproc)) == trim(nodename(iproc))) then
              iproc_node=iproc_node+1
           end if
        end do
        nproc_node=iproc_node
-       do jproc=mpi_env%iproc,mpi_env%nproc-1
-          if (trim(nodename(jproc)) == trim(nodename(mpi_env%iproc))) then
+       do jproc=iproc,nproc-1
+          if (trim(nodename(jproc)) == trim(nodename(iproc))) then
              nproc_node=nproc_node+1
           end if
        end do
@@ -2580,12 +2581,14 @@ contains
     ! Synchronize the communication
     call f_timer_interrupt(tcat)
 
-    if(present(offset) .and. offset/=0)then
-      tmpint = TRANSFER(buf, tmpint)
-      call mpi_type_size(type, tmpsize, ierr)
-      tmpint = tmpint + offset*tmpsize
-      tmpaddr= TRANSFER(tmpint, tmpaddr)
-      call c_f_pointer(tmpaddr, a)
+    if(present(offset)) then
+       if (offset/=0)then
+          tmpint = TRANSFER(buf, tmpint)
+          call mpi_type_size(type, tmpsize, ierr)
+          tmpint = tmpint + offset*tmpsize
+          tmpaddr= TRANSFER(tmpint, tmpaddr)
+          call c_f_pointer(tmpaddr, a)
+       end if
     else
       call c_f_pointer(buf, a)
     end if

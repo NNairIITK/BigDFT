@@ -14,7 +14,7 @@ dnl his must be called before AM_INIT_AUTOMAKE
 AC_CONFIG_AUX_DIR(config)
 dnl Use a config.h file to store macro definitions, required for CUDA.
 AC_CONFIG_HEADERS(config.h)
-dnl AC_CONFIG_MACRO_DIR([config/m4])
+AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
 AM_INIT_AUTOMAKE([-Wno-portability])
