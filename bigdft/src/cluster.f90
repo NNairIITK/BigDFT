@@ -40,7 +40,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
                                SPARSE_TASKGROUP, sparsematrix_malloc_ptr, assignment(=), &
                                DENSE_PARALLEL, DENSE_MATMUL, SPARSE_FULL, sparse_matrix_metadata_null
   use sparsematrix_init, only: init_matrix_taskgroups, &
-                               sparse_matrix_metadata_init
+                               sparse_matrix_metadata_init, write_sparsematrix_info
   use bigdft_matrices, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed
   use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
   use sparsematrix, only: check_matrix_compression
@@ -407,7 +407,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   call MemoryEstimator(nproc,in%idsx,KSwfn%Lzd%Glr,&
        KSwfn%orbs%norb,KSwfn%orbs%nspinor,KSwfn%orbs%nkpts,&
        nlpsp%nprojel,in%nspin,in%itrpmax,f_int(in%scf),mem)
-  if (iproc==0 .and. verbose > 0) call print_memory_estimation(mem)
+  if (.not.(inputpsi .hasattr. 'LINEAR') .and. iproc==0 .and. verbose > 0) then
+      call print_memory_estimation(mem)
+  end if
 
   if (in%lin%fragment_calculation .and. inputpsi == 'INPUT_PSI_DISK_LINEAR') then
      call output_fragment_rotations(iproc,atoms%astruct%nat,rxyz,1,trim(in%dir_output),in%frag,ref_frags)
@@ -442,6 +444,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,in, atoms, rxyz, .false.)
 
+
      call sparse_matrix_metadata_init(atoms%astruct%geocode, atoms%astruct%cell_dim, tmb%orbs%norb, &
           atoms%astruct%nat, atoms%astruct%ntypes, atoms%astruct%units, &           
           atoms%nzatom, atoms%nelpsp, atoms%astruct%atomnames, atoms%astruct%iatype, &
@@ -450,35 +453,24 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      ! Do not initialize the matrix multiplication to save memory. The multiplications
      ! are always done with the tmb%linmat%l type.
      call init_sparse_matrix_wrapper(iproc, nproc, &
-          in%nspin, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
-          in%store_index, init_matmul=.false., imode=1, smat=tmb%linmat%m)
-
-
-     !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-     !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
+          in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
+          in%store_index, init_matmul=.false., imode=1, smat=tmb%linmat%s)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
      ! Do not initialize the matrix multiplication to save memory. The multiplications
      ! are always done with the tmb%linmat%l type.
      call init_sparse_matrix_wrapper(iproc, nproc, &
-          in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
-          in%store_index, init_matmul=.false., imode=1, smat=tmb%linmat%s)
-
-     !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-     !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
+          in%nspin, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
+          in%store_index, init_matmul=.false., imode=1, smat=tmb%linmat%m)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
 
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, atoms, in%hamapp_radius_incr, tmb%lzd)
-
      call init_sparse_matrix_wrapper(iproc, nproc, &
           in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
           in%store_index, init_matmul=.true., imode=2, smat=tmb%linmat%l, smat_ref=tmb%linmat%m)
-
-     !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-     !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
@@ -529,6 +521,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           ind_min_l, ind_mas_l, ind_trans_min_l, ind_trans_max_l, &
           iirow, iicol)
      !!write(*,*) 'after l'
+
+
+     if (iproc==0) then
+         call yaml_mapping_open('Matrices')
+         call write_sparsematrix_info(tmb%linmat%s, 'Overlap matrix')
+         call write_sparsematrix_info(tmb%linmat%m, 'Hamiltonian matrix')
+         call write_sparsematrix_info(tmb%linmat%l, 'Density kernel matrix')
+     end if
 
      tmb%linmat%kernel_ = matrices_null()
      tmb%linmat%ham_ = matrices_null()
@@ -601,10 +601,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      end if
 
 
+     if (iproc==0) then
+         call yaml_mapping_open('Unitary tests')
+     end if
      if (in%check_matrix_compression) then
-         if (iproc==0) call yaml_mapping_open('Checking Compression/Uncompression of large sparse matrices')
+         if (iproc==0) then
+             call yaml_mapping_open('Checking Compression/Uncompression of large sparse matrices')
+         end if
          call check_matrix_compression(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-         if (iproc ==0) call yaml_mapping_close()
+         if (iproc ==0) then
+             call yaml_mapping_close()
+         end if
      end if
 
      if (in%check_sumrho>0) then
@@ -613,17 +620,26 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
               denspot, tmb%linmat%l, tmb%linmat%kernel_, in%check_sumrho)
      end if
 
-     if (iproc==0) call yaml_mapping_open('Checking Communications of Minimal Basis')
+     if (iproc==0) then
+         call yaml_mapping_open('Checking Communications of Minimal Basis')
+     end if
      call check_communications_locreg(iproc,nproc,tmb%orbs,in%nspin,tmb%lzd, &
           tmb%collcom,tmb%linmat%s,tmb%linmat%ovrlp_, &
           tmb%npsidim_orbs,tmb%npsidim_comp,in%check_overlap)
-     if (iproc==0) call yaml_mapping_close()
+     if (iproc==0) then
+         call yaml_mapping_close()
+     end if
 
-     if (iproc==0) call yaml_mapping_open('Checking Communications of Enlarged Minimal Basis')
+     if (iproc==0) then
+         call yaml_mapping_open('Checking Communications of Enlarged Minimal Basis')
+     end if
      call check_communications_locreg(iproc,nproc,tmb%orbs,in%nspin,tmb%ham_descr%lzd, &
           tmb%ham_descr%collcom,tmb%linmat%m,tmb%linmat%ham_, &
           tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp,in%check_overlap)
-     if (iproc ==0) call yaml_mapping_close()
+     if (iproc ==0) then
+         call yaml_mapping_close()
+         call yaml_mapping_close()
+     end if
 
      if (in%lin%scf_mode/=LINEAR_FOE .or. &
          (mod(in%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE) .or. in%lin%diag_end .or. in%write_orbitals>0 &

@@ -36,6 +36,7 @@ module sparsematrix_init
   public :: check_symmetry 
   public :: generate_random_symmetric_sparsity_pattern
   public :: distribute_on_tasks
+  public :: write_sparsematrix_info
 
 
   contains
@@ -339,9 +340,9 @@ module sparsematrix_init
       if (nproc>1) call mpiallred(rseq_average, mpi_sum, comm=comm)
       ratio_before = rseq_max(1)/rseq_average(1)
       ratio_after = rseq_max(2)/rseq_average(2)
-      if (iproc==0) then
-          call yaml_map('sparse matmul load balancing naive / optimized',(/ratio_before,ratio_after/),fmt='(f4.2)')
-      end if
+      !!if (iproc==0) then
+      !!    call yaml_map('sparse matmul load balancing naive / optimized',(/ratio_before,ratio_after/),fmt='(f4.2)')
+      !!end if
 
 
       call f_free(nseq_per_line)
@@ -807,7 +808,7 @@ module sparsematrix_init
       integer,dimension(:,:,:),allocatable :: keyg_mult
       integer,dimension(:),allocatable :: keyv_mult
       logical :: allocate_full_, print_info_, store_index_ !LG: internal variables have the underscore, not the opposite
-      integer(kind=mp) :: ntot
+      integer(kind=8) :: ntot
 
       real(kind=4) :: tr0, tr1, trt0, trt1
       real(kind=mp) :: time0, time1, time2, time3, time4, time5, ttime
@@ -1129,14 +1130,14 @@ module sparsematrix_init
       call f_free(lut)
 
 
-      if (iproc==0 .and. print_info_) then
-          ntot = int(norbu,kind=mp)*int(norbu,kind=mp)
-          call yaml_map('total elements',ntot)
-          call yaml_map('non-zero elements',sparsemat%nvctr)
-          call yaml_comment('segments: '//sparsemat%nseg)
-          call yaml_map('sparsity in %',1.d2*real(ntot-int(sparsemat%nvctr,kind=mp),kind=mp)/real(ntot,kind=mp),fmt='(f5.2)')
-          call yaml_map('sparse matrix multiplication initialized',sparsemat%smatmul_initialized)
-      end if
+      !!if (iproc==0 .and. print_info_) then
+      !!    ntot = int(sparsemat%nfvctr,kind=8)*int(sparsemat%nfvctr,kind=8)
+      !!    call yaml_map('total elements',ntot)
+      !!    call yaml_map('non-zero elements',sparsemat%nvctr)
+      !!    call yaml_comment('segments: '//sparsemat%nseg)
+      !!    call yaml_map('sparsity in %',1.d2*real(ntot-int(sparsemat%nvctr,kind=mp),kind=mp)/real(ntot,kind=mp),fmt='(f5.2)')
+      !!    call yaml_map('sparse matrix multiplication initialized',sparsemat%smatmul_initialized)
+      !!end if
     
       call f_release_routine()
       !call timing(iproc,'init_matrCompr','OF')
@@ -3636,33 +3637,33 @@ module sparsematrix_init
       !end do
 
       ! Print a summary
-      if (iproc==0) then
-          call yaml_mapping_open('taskgroup summary')
-          call yaml_map('number of taskgroups',smat%ntaskgroup)
-          call yaml_sequence_open('taskgroups overview')
-          do itaskgroups=1,smat%ntaskgroup
-              call yaml_sequence(advance='no')
-              call yaml_mapping_open(flow=.true.)
-              call yaml_map('number of tasks',tasks_per_taskgroup(itaskgroups))
-              !call yaml_map('IDs',smat%tgranks(0:tasks_per_taskgroup(itaskgroups)-1,itaskgroups))
-              if (print_full) then
-                  call yaml_mapping_open('IDs')
-                  do itg=0,tasks_per_taskgroup(itaskgroups)-1
-                      call yaml_mapping_open(yaml_toa(smat%tgranks(itg,itaskgroups),fmt='(i0)'))
-                      call yaml_map('s',iuse_startend(1,smat%tgranks(itg,itaskgroups)))
-                      call yaml_map('e',iuse_startend(2,smat%tgranks(itg,itaskgroups)))
-                      call yaml_mapping_close()
-                  end do
-                  call yaml_mapping_close()
-                  call yaml_newline()
-              end if
-              call yaml_map('start / end',smat%taskgroup_startend(1:2,1,itaskgroups))
-              call yaml_map('start / end disjoint',smat%taskgroup_startend(1:2,2,itaskgroups))
-              call yaml_mapping_close()
-          end do
-          call yaml_sequence_close()
-          call yaml_mapping_close()
-      end if
+      !!if (iproc==0) then
+      !!    call yaml_mapping_open('taskgroup summary')
+      !!    call yaml_map('number of taskgroups',smat%ntaskgroup)
+      !!    call yaml_sequence_open('taskgroups overview')
+      !!    do itaskgroups=1,smat%ntaskgroup
+      !!        call yaml_sequence(advance='no')
+      !!        call yaml_mapping_open(flow=.true.)
+      !!        call yaml_map('number of tasks',tasks_per_taskgroup(itaskgroups))
+      !!        !call yaml_map('IDs',smat%tgranks(0:tasks_per_taskgroup(itaskgroups)-1,itaskgroups))
+      !!        if (print_full) then
+      !!            call yaml_mapping_open('IDs')
+      !!            do itg=0,tasks_per_taskgroup(itaskgroups)-1
+      !!                call yaml_mapping_open(yaml_toa(smat%tgranks(itg,itaskgroups),fmt='(i0)'))
+      !!                call yaml_map('s',iuse_startend(1,smat%tgranks(itg,itaskgroups)))
+      !!                call yaml_map('e',iuse_startend(2,smat%tgranks(itg,itaskgroups)))
+      !!                call yaml_mapping_close()
+      !!            end do
+      !!            call yaml_mapping_close()
+      !!            call yaml_newline()
+      !!        end if
+      !!        call yaml_map('start / end',smat%taskgroup_startend(1:2,1,itaskgroups))
+      !!        call yaml_map('start / end disjoint',smat%taskgroup_startend(1:2,2,itaskgroups))
+      !!        call yaml_mapping_close()
+      !!    end do
+      !!    call yaml_sequence_close()
+      !!    call yaml_mapping_close()
+      !!end if
 
 
       ! Initialize a "local compress" from the matrix matrix multiplication layout
@@ -4644,5 +4645,39 @@ module sparsematrix_init
       is = is + min(iproc,ii)
 
    end subroutine distribute_on_tasks
+   
+
+   subroutine write_sparsematrix_info(smat, matrixname)
+     implicit none
+     ! Calling arguments
+     type(sparse_matrix),intent(in) :: smat
+     character(len=*),intent(in) :: matrixname
+     ! Local variables
+     integer :: itaskgroups, itg
+     integer(kind=8) :: ntot
+
+     call yaml_mapping_open(trim(matrixname))
+     ntot = int(smat%nfvctr,kind=8)*int(smat%nfvctr,kind=8)
+     call yaml_map('total elements',ntot)
+     call yaml_map('segments',smat%nseg)
+     call yaml_map('non-zero elements',smat%nvctr)
+     call yaml_map('sparsity in %',1.d2*real(ntot-int(smat%nvctr,kind=mp),kind=mp)/real(ntot,kind=mp),fmt='(f5.2)')
+     call yaml_map('sparse matrix multiplication initialized',smat%smatmul_initialized)
+     call yaml_mapping_open('taskgroup summary')
+     call yaml_map('number of taskgroups',smat%ntaskgroup)
+     call yaml_sequence_open('taskgroups overview')
+     do itaskgroups=1,smat%ntaskgroup
+         call yaml_sequence(advance='no')
+         call yaml_mapping_open(flow=.true.)
+         call yaml_map('number of tasks',smat%nranks(itaskgroups))
+         call yaml_map('start / end',smat%taskgroup_startend(1:2,1,itaskgroups))
+         call yaml_map('start / end disjoint',smat%taskgroup_startend(1:2,2,itaskgroups))
+         call yaml_mapping_close()
+     end do
+     call yaml_sequence_close()
+     call yaml_mapping_close()
+     call yaml_mapping_close()
+
+   end subroutine write_sparsematrix_info
 
 end module sparsematrix_init
