@@ -671,7 +671,6 @@ module overlap_point_to_point
        iter%initialisation_time=f_time()
      end subroutine set_OP2P_iterator
 
-
      subroutine release_OP2P_iterator(iter)
        implicit none
        type(OP2P_iterator), intent(inout) :: iter
@@ -680,6 +679,15 @@ module overlap_point_to_point
        !here release the iterator
        iter=OP2P_iter_null()
      end subroutine release_OP2P_iterator
+
+     !>get the original processor of the data we are treating
+     pure function get_provenance(iproc,OP2P)
+       implicit none
+       integer, intent(in) :: iproc
+       type(OP2P_data), intent(in) :: OP2P
+       integer :: get_provenance
+       get_provenance=iproc !scheme of general pattern
+     end function get_provenance
 
      subroutine P2P_data(iproc,OP2P,phi)!,psiw)
        use wrapper_MPI
@@ -691,16 +699,19 @@ module overlap_point_to_point
        type(local_data), intent(inout) :: phi
        !local variables
        integer :: igroup,dest,source,count,igr,iobj_local,jshift
-       integer :: norbp!,norbp_max
+       integer :: norbp,original_source!,norbp_max
 
        norbp=phi%nobj
        !sending receiving data
        do igroup=1,OP2P%ngroupp
           igr=OP2P%group_id(igroup)
           dest=OP2P%ranks(SEND_DATA,igroup,OP2P%istep)
+          !in the NN case the dest is always the next one
+
           if (dest /= mpirank_null()) then
-             count=OP2P%nobj_par(iproc,igr)*OP2P%ndim
-             iobj_local=OP2P%objects_id(LOCAL_,iproc,igr)
+             original_source=get_provenance(iproc,OP2P)
+             count=OP2P%nobj_par(original_source,igr)*OP2P%ndim
+             iobj_local=OP2P%objects_id(LOCAL_,original_source,igr)
              OP2P%ndata_comms=OP2P%ndata_comms+1
              jshift=phi%displ(iobj_local)
              !send the fixed array to the processor which comes in the list
@@ -809,15 +820,15 @@ module overlap_point_to_point
                   dest=OP2P%resw(igroup,OP2P%isend_res)%ptr)!dpsiw(1,1,igroup,OP2P%isend_res))
                call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr(1,1),&!dpsiw(1,1,igroup,OP2P%isend_res),&
                   count,dest=dest,&
-                  tag=iproc+nproc+2*nproc*OP2P%istep,comm=OP2P%mpi_comm,&
+                  tag=iproc+nproc,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose)
               else
                call copy_gpu_data(OP2P%ndim* maxval(OP2P%nobj_par(:,OP2P%group_id(igroup))),&
                     OP2P%resw(igroup,OP2P%isend_res)%ptr_gpu,OP2P%resw(igroup,3)%ptr_gpu)
-          call synchronize()
+               call synchronize()
                call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr_gpu,&!dpsiw(1,1,igroup,OP2P%isend_res),&
                   count,dest=dest,&
-                  tag=iproc+nproc+2*nproc*OP2P%istep,comm=OP2P%mpi_comm,&
+                  tag=iproc+nproc,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose,&
                   type=MPI_DOUBLE_PRECISION)
               end if
@@ -833,12 +844,12 @@ module overlap_point_to_point
              count=OP2P%ndim*OP2P%nobj_par(iproc,igr)
              if(OP2P%gpudirect/=1)then
                call mpirecv(OP2P%resw(igroup,OP2P%irecv_res)%ptr(1,1),count,&!dpsiw(1,1,igroup,OP2P%irecv_res),count,&
-                  source=source,tag=source+nproc+2*nproc*OP2P%istep,&
+                  source=source,tag=source+nproc,&
                   comm=OP2P%mpi_comm,&
                   request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose)
              else
                call mpirecv(OP2P%resw(igroup,OP2P%irecv_res)%ptr_gpu,count,&!dpsiw(1,1,igroup,OP2P%irecv_res),count,&
-                  source=source,tag=source+nproc+2*nproc*OP2P%istep,&
+                  source=source,tag=source+nproc,&
                   comm=OP2P%mpi_comm,&
                   request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose,&
                   type=MPI_DOUBLE_PRECISION)
@@ -934,9 +945,6 @@ module overlap_point_to_point
        integer, intent(in) :: iproc
        type(OP2P_data), intent(inout) :: OP2P
        type(OP2P_iterator), intent(inout) :: iter
-!!$       real(wp), dimension(OP2P%ndim,norbp), intent(in) :: psir
-!!$       real(wp), dimension(OP2P%ndim,norbp), intent(inout) :: dpsir
-!!$       type(local_data), intent(inout) :: phi_i,phi_j
        !local variables
        integer :: igroup,igr,i_stat,norbp
 
@@ -952,7 +960,6 @@ module overlap_point_to_point
              do igroup=1,OP2P%ngroupp
                 if (OP2P%istep /= 0 .and. OP2P%ranks(SEND_RES,igroup,OP2P%istep) /= mpirank_null()) then
                    !put to zero the sending element
-                   !call f_zero(OP2P%ndim*norbp_max,OP2P%resw(1,1,igroup,3))
                    if(OP2P%gpudirect/=1)then
                      call f_zero(OP2P%resw(igroup,3)%ptr)
                    else

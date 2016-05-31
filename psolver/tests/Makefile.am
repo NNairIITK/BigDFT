@@ -23,7 +23,7 @@ EXTRA_DIST = PS_Check.ref.yaml tols.yaml $(OTHERS)
 
 check_PROGRAMS = PS_Check PS_Program PS_Exercise Generalized_PSolver Fock
 
-AM_FCFLAGS = -I. -I$(top_srcdir)/src @LIB_FUTILE_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
+AM_FCFLAGS = -I. -I$(top_srcdir)/src -I$(top_builddir)/src @LIB_FUTILE_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src -Wl,-rpath=$(DESTDIR)$(libdir)
