@@ -436,7 +436,7 @@ module overlap_point_to_point
           end if
        end do
 
-       !find the processor whih has the maximum number of groups
+       !find the processor which has the maximum number of groups
        icountmax=0
        do jproc=0,nproc-1
           icount=count(OP2P%nobj_par(jproc,:) > 0)
@@ -577,14 +577,7 @@ module overlap_point_to_point
              end if
           end do
        end do
-!!$
-!!$
-!!$       OP2P%dataw= f_malloc0_ptr([OP2P%ndim, maxval(OP2P%nobj_par), OP2P%ngroupp,2],id='dataw')
-!!$       if (symmetric) then
-!!$          OP2P%resw = f_malloc0_ptr([OP2P%ndim, maxval(OP2P%nobj_par), OP2P%ngroupp,3],id='resw')
-!!$       else
-!!$          OP2P%resw = f_malloc0_ptr([1,1,1,1],id='resw') !just to avoid boundary problems
-!!$       end if
+
        !test array for data sending
        OP2P%ndatas = f_malloc0_ptr([1.to.2, 0.to.nproc-1, 1.to.OP2P%ngroup],id='ndatas')
 
@@ -672,7 +665,6 @@ module overlap_point_to_point
 
        end if
 
-
        !example of the usage of the loop
        iter%event=OP2P_START
        iter%iproc=iproc
@@ -688,7 +680,6 @@ module overlap_point_to_point
        !here release the iterator
        iter=OP2P_iter_null()
      end subroutine release_OP2P_iterator
-
 
      subroutine P2P_data(iproc,OP2P,phi)!,psiw)
        use wrapper_MPI
