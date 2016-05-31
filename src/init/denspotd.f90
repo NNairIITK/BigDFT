@@ -91,6 +91,8 @@ subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,
   use module_dpbox, only: denspot_distribution,dpbox_null
   use module_types
   use module_xc
+  use box
+  use bounds, only: locreg_mesh_origin
   implicit none
   integer, intent(in) :: iproc,nproc,mpi_comm,PS_groupsize,nspin,igpu
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -99,7 +101,7 @@ subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,
   type(xc_info), intent(in) :: xc
   type(denspot_distribution), intent(out) :: dpbox
   !local variables
-  integer :: npsolver_groupsize
+  integer :: npsolver_groupsize,i3sd,n3p,n3d,i3sp
 
   dpbox=dpbox_null()
 
@@ -118,6 +120,17 @@ subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,
   call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,igpu,xc,&
                               nspin,geocode,SICapproach,dpbox)
 
+  !set the iterators for the density and the potential
+i3sp=dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1
+i3sd=i3sp-dpbox%nscatterarr(dpbox%mpi_env%iproc,4)
+n3p=dpbox%nscatterarr(dpbox%mpi_env%iproc,2)
+n3d=dpbox%nscatterarr(dpbox%mpi_env%iproc,1)
+
+!!$  dpbox%bitd=box_iter(dpbox%mesh,&
+!!$       origin=locreg_mesh_origin(dpbox%mesh),i3s=i3sd,n3p=n3d)
+  dpbox%bitp=box_iter(dpbox%mesh,&
+       origin=locreg_mesh_origin(dpbox%mesh),i3s=i3sp,n3p=n3p)
+
 end subroutine dpbox_set
 
 
@@ -126,19 +139,24 @@ subroutine dpbox_set_box(dpbox,Lzd)
   use module_base
   use module_dpbox, only: denspot_distribution
   use module_types
+  use box
   implicit none
   type(local_zone_descriptors), intent(in) :: Lzd
   type(denspot_distribution), intent(inout) :: dpbox
- 
-  !The grid for the potential is twice finer
-  dpbox%hgrids(1)=0.5_gp*Lzd%hgrids(1)
-  dpbox%hgrids(2)=0.5_gp*Lzd%hgrids(2)
-  dpbox%hgrids(3)=0.5_gp*Lzd%hgrids(3)
-  !Same dimension
-  dpbox%ndims(1)=Lzd%Glr%d%n1i
-  dpbox%ndims(2)=Lzd%Glr%d%n2i
-  dpbox%ndims(3)=Lzd%Glr%d%n3i
-  dpbox%geocode=Lzd%Glr%geocode
+  !local variables
+  integer, dimension(3) :: ndims
+
+!!$  !The grid for the potential is twice finer
+!!$  dpbox%hgrids(1)=0.5_gp*Lzd%hgrids(1)
+!!$  dpbox%hgrids(2)=0.5_gp*Lzd%hgrids(2)
+!!$  dpbox%hgrids(3)=0.5_gp*Lzd%hgrids(3)
+!!$  !Same dimension
+  ndims(1)=Lzd%Glr%d%n1i
+  ndims(2)=Lzd%Glr%d%n2i
+  ndims(3)=Lzd%Glr%d%n3i
+!!$  dpbox%geocode=Lzd%Glr%geocode
+
+  dpbox%mesh=cell_new(Lzd%Glr%geocode,ndims,0.5_gp*Lzd%hgrids)
 
 end subroutine dpbox_set_box
 
@@ -163,10 +181,10 @@ subroutine denspot_set_history(denspot, scf_enum, nspin, &
      potden = f_int(scf_enum .getattr. 'MIXING_ON')
      select case(potden)
      case(AB7_MIXING_POTENTIAL)
-        npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*&
+        npoints = denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*&
              denspot%dpbox%n3p
      case(AB7_MIXING_DENSITY)
-        npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*&
+        npoints = denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*&
              denspot%dpbox%n3d
      end select
      irealfour=f_int(scf_enum .getattr. 'MIXING_SPACE')
@@ -260,13 +278,13 @@ subroutine denspot_communications(iproc,nproc,igpu,xc,nspin,geocode,SICapproach,
   dpbox%i3rho_add=0
   if (trim(SICapproach)=='NK') then
      dpbox%nrhodim=2*dpbox%nrhodim !to be eliminated with an orbital-dependent potential
-     dpbox%i3rho_add=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%i3xcsh+1
+     dpbox%i3rho_add=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%i3xcsh+1
   end if
 
   !fill the full_local_potential dimension
-  dpbox%ndimpot=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3p
-  dpbox%ndimgrid=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%ndims(3)
-  dpbox%ndimrhopot=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3d*dpbox%nrhodim
+  dpbox%ndimpot=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3p
+  dpbox%ndimgrid=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%mesh%ndims(3)
+  dpbox%ndimrhopot=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3d*dpbox%nrhodim
 end subroutine denspot_communications
 
 
@@ -521,7 +539,7 @@ subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
   !pointer if it is the case
   !print *,'i3xcsh',denspot%dpbox%i3s,denspot%dpbox%i3xcsh,denspot%dpbox%n3d
   call calculate_rhocore(atoms,Glr%d,rxyz,&
-       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+       denspot%dpbox%mesh%hgrids(1),denspot%dpbox%mesh%hgrids(2),denspot%dpbox%mesh%hgrids(3),&
        denspot%dpbox%i3s,denspot%dpbox%i3xcsh,&
        denspot%dpbox%n3d,denspot%dpbox%n3p,denspot%rho_C)
 
@@ -555,7 +573,7 @@ subroutine dpbox_repartition(iproc,nproc,igpu,geocode,datacode,xc,dpbox)
   if (datacode == 'D') then
      do jproc=0,nproc-1
         call PS_dim4allocation(geocode,datacode,jproc,nproc,&
-             dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),xc_isgga(xc),(xc%ixc/=13),&
+             dpbox%mesh%ndims(1),dpbox%mesh%ndims(2),dpbox%mesh%ndims(3),xc_isgga(xc),(xc%ixc/=13),&
              igpu,n3d,n3p,n3pi,i3xcsh,i3s)
         dpbox%nscatterarr(jproc,1)=n3d            !number of planes for the density
         dpbox%nscatterarr(jproc,2)=n3p            !number of planes for the potential
@@ -578,10 +596,10 @@ subroutine dpbox_repartition(iproc,nproc,igpu,geocode,datacode,xc,dpbox)
      dpbox%n3pi=dpbox%n3p
   end if
 
-  dpbox%ngatherarr(:,1)=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%nscatterarr(:,2)
-  dpbox%ngatherarr(:,2)=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%nscatterarr(:,3)
+  dpbox%ngatherarr(:,1)=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%nscatterarr(:,2)
+  dpbox%ngatherarr(:,2)=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%nscatterarr(:,3)
   !for the density
-  dpbox%ngatherarr(:,3)=dpbox%ndims(1)*dpbox%ndims(2)*dpbox%nscatterarr(:,1)
+  dpbox%ngatherarr(:,3)=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%nscatterarr(:,1)
 
 end subroutine dpbox_repartition
 
@@ -659,8 +677,8 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
 
   if (rhodsc%icomm==2) then !rho_commun=='MIX' .and. (atoms%astruct%geocode.eq.'F') .and. (nproc > 1)) then! .and. xc_isgga()) then
      call rho_segkey(iproc,atoms,rxyz,crmult,frmult,&
-          dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),&
-          dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),nspin,rhodsc,.false.)
+          dpbox%mesh%ndims(1),dpbox%mesh%ndims(2),dpbox%mesh%ndims(3),&
+          dpbox%mesh%hgrids(1),dpbox%mesh%hgrids(2),dpbox%mesh%hgrids(3),nspin,rhodsc,.false.)
   else
      !nullify rhodsc pointers
      nullify(rhodsc%spkey)
@@ -673,7 +691,7 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
   if (rhodsc%icomm==1) then
      rhodsc%nrhotot=sum(dpbox%nscatterarr(:,1))
   else
-     rhodsc%nrhotot=dpbox%ndims(3)
+     rhodsc%nrhotot=dpbox%mesh%ndims(3)
   end if
  
 end subroutine density_descriptors

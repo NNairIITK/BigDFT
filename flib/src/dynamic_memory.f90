@@ -89,6 +89,7 @@ module dynamic_memory_base
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
      module procedure l1_all,l2_all,l3_all
+     module procedure ll1_all
      module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all,d7_all
      module procedure r1_all,r2_all,r3_all,r4_all
      module procedure z2_all
@@ -108,6 +109,7 @@ module dynamic_memory_base
      !     module procedure il1_all_free, il2_all_free
      module procedure i1_all_free_multi
      module procedure l1_all_free,l2_all_free,l3_all_free
+     module procedure ll1_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free,d7_all_free
      module procedure r1_all_free,r2_all_free,r3_all_free,r4_all_free
      module procedure z2_all_free
@@ -583,7 +585,8 @@ contains
     ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
     !address of first element (not needed for deallocation)
     nullify(dict_add)
-    if (track_origins .and. iadd/=int(0,f_address)) then
+    if (track_origins .and. iadd/=int(0,f_address) .and. &
+         ilsize/=int(0,kind=8)) then
        !hopefully only address is necessary for the deallocation
 
        !search in the dictionaries the address

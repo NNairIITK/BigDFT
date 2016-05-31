@@ -679,12 +679,19 @@ Iteration quality: { #_________________________________________________________ 
    - Iteration quality: { #_____________________________________________________ Iteration5
  iter:  5, res:  4.04962180093006381E-06, ratio:  1.03165740384059094E-04, 
          alpha:  3.22914235709651720E-01, beta:  8.24468956121763639E-06}
+ Multipole analysis origin             :  [  1.16E+01,  1.244311E+01,  1.300000E+01 ]
  Electric Dipole Moment (AU):
-   P vector                            :  [  3.0361E-03, -1.1831E+00,  2.4323E-03 ]
-   norm(P)                             :  1.183136E+00
+   P vector                            :  [  3.0268E-03, -1.1831E+00,  2.4219E-03 ]
+   norm(P)                             :  1.183145E+00
  Electric Dipole Moment (Debye):
-   P vector                            :  [  7.7169E-03, -3.0072E+00,  6.1823E-03 ]
-   norm(P)                             :  3.007230E+00
+   P vector                            :  [  7.6933E-03, -3.0072E+00,  6.1558E-03 ]
+   norm(P)                             :  3.007256E+00
+ Quadrupole Moment (AU):
+   Q matrix:
+   -  [-3.8559E+00, -5.6825E-05,  4.8500E-04]
+   -  [-5.6825E-05, -8.9950E-01,  8.9358E-03]
+   -  [ 4.8500E-04,  8.9358E-03,  4.7554E+00]
+   trace                               : -3.44E-13
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:

@@ -57,6 +57,7 @@ module wrapper_MPI
   interface mpitype
      module procedure mpitype_i,mpitype_d,mpitype_r,mpitype_l,mpitype_c,mpitype_li
      module procedure mpitype_i1,mpitype_i2,mpitype_i3
+     module procedure mpitype_l3
      module procedure mpitype_r1,mpitype_r2,mpitype_r3,mpitype_r4
      module procedure mpitype_d1,mpitype_d2,mpitype_d3,mpitype_d4,mpitype_d5
      module procedure mpitype_c1
@@ -78,6 +79,7 @@ module wrapper_MPI
      module procedure mpiallred_r1,mpiallred_r2,mpiallred_r3,mpiallred_r4
      module procedure mpiallred_d1,mpiallred_d2,mpiallred_d3,mpiallred_d4,mpiallred_d5
      module procedure mpiallred_i1,mpiallred_i2,mpiallred_i3
+     module procedure mpiallred_l3
   end interface mpiallred
 
   interface mpigather
@@ -90,7 +92,7 @@ module wrapper_MPI
 
   interface mpibcast
      module procedure mpibcast_i0,mpibcast_li0,mpibcast_d0,mpibcast_c0
-     module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2,mpibcast_i1
+     module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2,mpibcast_i1,mpibcast_i2
   end interface mpibcast
 
   interface mpiscatter
@@ -835,6 +837,12 @@ contains
     mt=MPI_INTEGER
   end function mpitype_i3
 
+  pure function mpitype_l3(data) result(mt)
+    implicit none
+    logical, dimension(:,:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_LOGICAL
+  end function mpitype_l3
 
   pure function mpitype_li(data) result(mt)
     implicit none
@@ -1479,6 +1487,17 @@ contains
     include 'allreduce-arr-inc.f90'
   end subroutine mpiallred_i3
 
+  subroutine mpiallred_l3(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_strings, only: yaml_toa
+    implicit none
+    logical, dimension(:,:,:), intent(inout) :: sendbuf
+    logical, dimension(:,:,:), intent(inout), optional :: recvbuf
+    logical, dimension(:,:,:), allocatable :: copybuf
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_l3
+
 
   subroutine mpiallred_r1(sendbuf,op,comm,recvbuf)
     use dynamic_memory
@@ -1674,6 +1693,19 @@ contains
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_i1
+
+  subroutine mpibcast_i2(buffer,root,comm,check,maxdiff)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw
+    use yaml_output !for check=.true.
+    use f_utils, only: f_zero
+    implicit none
+    integer, dimension(:,:), intent(inout) ::  buffer
+    integer, intent(out), optional :: maxdiff
+    integer, dimension(:), allocatable :: array_diff
+    include 'bcast-decl-arr-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_i2
 
   subroutine mpibcast_d1(buffer,root,comm,check,maxdiff)
     use dynamic_memory

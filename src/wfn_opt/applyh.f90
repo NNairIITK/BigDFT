@@ -343,7 +343,7 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
      !apply the potential to the psir wavefunction and calculate potential energy
      if (present(vpsi_noconf)) then
          if (.not.present(econf_sum)) then
-             stop 'ERROR: econf must be present when psir_noconf is present'
+             call f_err_throw('econf must be present when psir_noconf is present')
          end if
          call vcopy(nbox*orbs%nspinor, psir(1,1), 1, psir_noconf(1,1), 1)
          call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&

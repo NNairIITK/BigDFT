@@ -635,12 +635,19 @@
    BC                                  : Free
    Box                                 :  [  99,  99,  99 ]
    MPI tasks                           :  2
+ Multipole analysis origin             :  [  8.5E+00,  8.500000E+00,  8.500000E+00 ]
  Electric Dipole Moment (AU):
-   P vector                            :  [ -8.428E-04, -8.4280E-04, -8.4280E-04 ]
-   norm(P)                             :  1.459769E-03
+   P vector                            :  [ -8.4656E-04, -8.4656E-04, -8.4656E-04 ]
+   norm(P)                             :  1.466289E-03
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -2.1422E-03, -2.1422E-03, -2.1422E-03 ]
-   norm(P)                             :  3.710363E-03
+   P vector                            :  [ -2.1517E-03, -2.1517E-03, -2.1517E-03 ]
+   norm(P)                             :  3.726934E-03
+ Quadrupole Moment (AU):
+   Q matrix:
+   -  [-4.3743E-14,  8.1670E-04,  8.1670E-04]
+   -  [ 8.1670E-04,  3.1308E-14,  8.1670E-04]
+   -  [ 8.1670E-04,  8.1670E-04, -4.8450E-13]
+   trace                               : -4.97E-13
  Writing electronic density in file    : electronic_density
  Writing Hartree potential in file     : hartree_potential
  Calculate local forces                :  Yes

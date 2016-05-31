@@ -52,16 +52,19 @@ module rhopotential
     if(nspin==4) then
        !this wrapper can be inserted inside the poisson solver 
        call PSolverNC(denspot%pkernel%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
-            denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+            denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),&
+            denspot%dpbox%mesh%ndims(3),&
             denspot%dpbox%n3d,denspot%xc,&
-            denspot%dpbox%hgrids,&
+            denspot%dpbox%mesh%hgrids,&
             denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
     
     else
        if (.not. associated(denspot%V_XC)) then   
           !Allocate XC potential
           if (denspot%dpbox%n3p >0) then
-             denspot%V_XC = f_malloc_ptr((/ denspot%dpbox%ndims(1) , denspot%dpbox%ndims(2) , denspot%dpbox%n3p , nspin /),&
+             denspot%V_XC = f_malloc_ptr((/ denspot%dpbox%mesh%ndims(1),&
+                  denspot%dpbox%mesh%ndims(2),&
+                  denspot%dpbox%n3p , nspin /),&
                                 id='denspot%V_XC')
           else
              denspot%V_XC = f_malloc_ptr((/ 1 , 1 , 1 , 1 /),id='denspot%V_XC')
@@ -71,8 +74,8 @@ module rhopotential
     
        call XC_potential(denspot%pkernel%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
             denspot%pkernel%mpi_env%mpi_comm,&
-            denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
-            denspot%dpbox%hgrids,&
+            denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),denspot%xc,&
+            denspot%dpbox%mesh%hgrids,&
             denspot%rhov,energs%exc,energs%evxc,nspin,denspot%rho_C,denspot%V_XC,xcstr)
     
        call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
@@ -91,7 +94,7 @@ module rhopotential
        if (nspin == 2) then
           !denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
           call vcopy(denspot%dpbox%ndimpot,denspot%rhov(1),1,&
-               denspot%rhov(1+denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p),1)
+               denspot%rhov(1+denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3p),1)
        end if
        !spin up and down together with the XC part
        !denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
@@ -350,7 +353,7 @@ module rhopotential
              do iorb=1,nilr
                 ilr = ilrtable(iorb)
                 iiorb=orbs%isorb+iorb
-                if (orbs%inwhichlocreg(iiorb)/=ilr) stop 'full_local_potential: orbs%inwhichlocreg(iiorb)/=ilr'
+                if (orbs%inwhichlocreg(iiorb)/=ilr) call f_err_throw('full_local_potential: orbs%inwhichlocreg(iiorb)/=ilr')
                 
                 if (orbs%spinsgn(iiorb)>0.d0) then
                     ispin=1

@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-04-11 08:57:07.202
+ Timestamp of this run                 : 2016-05-04 11:46:21.346
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -87,6 +87,9 @@
     #                                              point. Negative values mean no plot.
    plot_pot_axes: [-1, -1, -1] #                  Plot the potential along axes through this point. Negative values mean 
     #                                              no plot.
+   occupancy_control                   : None #   Dictionary of the atomic matrices to be applied for a given iteration number
+   itermax_occ_ctrl                    : 0 #      Number of iterations of occupancy control scheme. Should be between itermin and 
+    #                                              itermax
  perf:
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    mixing_after_inputguess             : 2 #      Mixing step after linear input guess
@@ -176,7 +179,8 @@
    cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    calc_quadrupole                     : No #     calculate quadrupole
    subspace_diag                       : No #     diagonalization at the end
-   extra_states                        : 0 #      extra states to optimize (dmin only)
+   extra_states                        : 0 #      Number of extra states to include in support function and kernel optimization (dmin 
+    #                                              only), must be equal to norbsempty
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
     #                                              written to disk)
    charge_multipoles                   : 0 #      Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
@@ -317,6 +321,7 @@
    forcemax                            : 0. #     Max forces criterion when stop
    randdis                             : 0. #     Random displacement amplitude
    betax                               : 4. #     Stepsize for the geometry optimization
+   beta_stretchx                       : 5e-1 #   Stepsize for steepest descent in stretching mode direction (only if in biomode)
  md:
    mdsteps                             : 0 #      Number of MD steps
    print_frequency                     : 1 #      Printing frequency for energy.dat and Trajectory.xyz files
@@ -325,6 +330,9 @@
    no_translation                      : No #     Logical input to set translational correction
    thermostat                          : none #   Activates a thermostat for MD
    wavefunction_extrapolation          : 0 #      Activates the wavefunction extrapolation for MD
+   restart_nose                        : No #     Restart Nose Hoover Chain information from md.restart
+   restart_pos                         : No #     Restart nuclear position information from md.restart
+   restart_vel                         : No #     Restart nuclear velocities information from md.restart
  mix:
    iscf                                : 0 #      Mixing parameters
    itrpmax                             : 1 #      Maximum number of diagonalisation iterations
@@ -1437,12 +1445,13 @@
    BC                                  : Free
    Box                                 :  [  89,  93,  157 ]
    MPI tasks                           :  8
+ Multipole analysis origin             :  [  7.25E+00,  7.750000E+00,  1.575000E+01 ]
  Electric Dipole Moment (AU):
-   P vector                            :  [ -3.4374E-02, -1.9225E-02,  8.8433E-03 ]
-   norm(P)                             :  4.036577E-02
+   P vector                            :  [ -3.4489E-02, -1.9347E-02,  8.5953E-03 ]
+   norm(P)                             :  4.046777E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -8.7371E-02, -4.8864E-02,  2.2477E-02 ]
-   norm(P)                             :  1.025995E-01
+   P vector                            :  [ -8.7661E-02, -4.9174E-02,  2.1847E-02 ]
+   norm(P)                             :  1.028588E-01
  Calculate local forces                :  Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------- Warnings obtained during the run, check their relevance!
@@ -1457,8 +1466,8 @@
  - no improvement of the orbitals, recalculate gradient
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  16.19
-   Elapsed time (s)                    :  16.22
+   CPU time (s)                        :  16.24
+   Elapsed time (s)                    :  16.26
  BigDFT infocode                       :  0
  Average noise forces: {x:  2.18602668E-02, y:  9.03839283E-03, z: -2.54086829E-03, 
                     total:  2.37911711E-02}
@@ -1469,18 +1478,18 @@
  -  {C: [-3.166934482050E-03, -1.949007989575E-01, -3.356745429826E-01]} # 0001
  -  {C: [ 6.099105474491E-03,  3.191247247920E-01, -3.469053780947E-02]} # 0002
  -  {C: [-2.603413478187E-03, -3.293250619525E-01,  2.012169231195E-02]} # 0003
- -  {C: [ 7.759514597062E-03,  3.693180020136E-01, -2.530247084970E-03]} # 0004
+ -  {C: [ 7.759514597062E-03,  3.693180020136E-01, -2.530247084971E-03]} # 0004
  -  {C: [ 2.633366018468E-03, -3.314900214488E-01,  2.339343835057E-02]} # 0005
  -  {C: [ 2.816632907056E-03,  3.066099352495E-01, -3.429284838451E-02]} # 0006
  -  {C: [ 2.570098267135E-03, -3.569984370937E-01,  7.650528328509E-03]} # 0007
  -  {C: [ 1.656302770397E-03,  1.718693118165E-01,  2.924499282397E-01]} # 0008
- -  {H: [ 4.234426893802E-04,  5.575867303751E-02, -6.614264504130E-02]} # 0009
+ -  {H: [ 4.234426893802E-04,  5.575867303751E-02, -6.614264504129E-02]} # 0009
  -  {H: [ 8.568142376404E-02, -5.274728696785E-02, -8.127470439375E-03]} # 0010
  -  {H: [-8.716833644020E-02, -5.387285763550E-02, -8.189611291790E-03]} # 0011
  -  {H: [ 8.224419806659E-02,  6.413809767898E-02,  6.874454645789E-03]} # 0012
  -  {H: [-8.507471234251E-02,  6.564967886595E-02,  6.211002360360E-03]} # 0013
  -  {H: [ 9.064976081485E-02, -5.522730999845E-02,  5.579330972157E-03]} # 0014
- -  {H: [-9.108225627992E-02, -5.667588188835E-02,  5.317666190768E-03]} # 0015
+ -  {H: [-9.108225627992E-02, -5.667588188835E-02,  5.317666190767E-03]} # 0015
  -  {H: [ 8.315303221252E-02,  5.741927326001E-02, -6.595009775880E-03]} # 0016
  -  {H: [-8.576246714629E-02,  5.863935357192E-02, -6.946962528162E-03]} # 0017
  -  {H: [ 8.598945600056E-02, -5.516698645340E-02,  1.170919641761E-02]} # 0018
@@ -1488,21 +1497,21 @@
  -  {H: [ 8.310303400580E-02,  6.224807514089E-02,  6.679722248952E-03]} # 0020
  -  {H: [-8.644799088915E-02,  6.347982512428E-02,  6.485838313982E-03]} # 0021
  -  {H: [ 8.525580157532E-02, -5.752516475906E-02, -1.034417019377E-03]} # 0022
- -  {H: [-8.740700558910E-02, -5.906469213833E-02, -1.185058114832E-03]} # 0023
+ -  {H: [-8.740700558910E-02, -5.906469213833E-02, -1.185058114833E-03]} # 0023
  -  {H: [ 8.331012368056E-02,  5.402587674714E-02,  1.010740633947E-02]} # 0024
  -  {H: [-8.710046923551E-02,  5.536041639802E-02,  9.531553288338E-03]} # 0025
  -  {H: [ 7.014378763223E-05, -4.373433075884E-02,  8.203907659978E-02]} # 0026
  Energy (Hartree)                      : -4.93789110531893982E+01
- Force Norm (Hartree/Bohr)             :  1.06631345398526434E+00
+ Force Norm (Hartree/Bohr)             :  1.06631345398526456E+00
  Memory Consumption Report:
-   Tot. No. of Allocations             :  11380
-   Tot. No. of Deallocations           :  11380
+   Tot. No. of Allocations             :  11385
+   Tot. No. of Deallocations           :  11385
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  141.107
+     Peak Value (MB)                   :  137.638
      for the array                     : psir
      in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 206.776 MB
- Walltime since initialization         : 00:00:16.614924922
- Max No. of dictionaries used          :  8626 #( 1002 still in use)
+     Memory Peak of process            : 198.472 MB
+ Walltime since initialization         : 00:00:16.663287035
+ Max No. of dictionaries used          :  9393 #( 1002 still in use)
  Number of dictionary folders allocated:  1

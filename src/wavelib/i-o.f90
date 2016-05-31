@@ -345,7 +345,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
   displ=0.0_gp
   do iat=1,at%astruct%nat
-    displ=displ+minimum_distance(mesh,rxyz(:,iat),rxyz_old(:,iat))**2
+    displ=displ+distance(mesh,rxyz(:,iat),rxyz_old(:,iat))**2
   enddo
   displ=sqrt(displ)
 

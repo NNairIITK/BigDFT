@@ -159,6 +159,9 @@ subroutine bomd(run_md,outs,nproc,iproc)
   
   maxsteps= run_md%inputs%mdsteps+istep 
 
+  !setting inputpsiid=1 (after the first SCF)
+  call bigdft_set_input_policy(INPUT_POLICY_MEMORY, run_md)
+
   !----------------------------------------------------------------------!
   MD_loop: DO !MD loop starts here
 
@@ -226,6 +229,7 @@ end subroutine bomd
 !>Initialize velocities for MD using Box-Muller Sampling
 SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
   use numerics, only: pi,au_to_k => Ha_K 
+  use random, only: builtin_rand
   IMPLICIT NONE
   INTEGER, INTENT(IN):: natoms, ndof, ndim
   REAL(KIND=8), INTENT(IN) :: T0ions, amass(natoms)
@@ -233,7 +237,6 @@ SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
   !
   REAL(KIND=8) :: sigma, dum(2)
   INTEGER      :: iat, k
-  REAL(KIND=4) :: builtin_rand
   INTEGER      :: idum=0
 
   !FIXME: a proper ndof has to be determined

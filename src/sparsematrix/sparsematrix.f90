@@ -28,7 +28,6 @@ module sparsematrix
   public :: gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace
   public :: extract_taskgroup_inplace, extract_taskgroup
   public :: write_matrix_compressed
-  public :: check_symmetry
   public :: write_sparsematrix
   public :: write_sparsematrix_CCS
   public :: transform_sparsity_pattern
@@ -38,6 +37,9 @@ module sparsematrix
   public :: synchronize_matrix_taskgroups
   public :: max_asymmetry_of_matrix
   public :: symmetrize_matrix
+  public :: check_deviation_from_unity_sparse
+  public :: operation_using_dense_lapack
+  public :: matrix_power_dense_lapack
 
 
   interface compress_matrix_distributed_wrapper
@@ -409,10 +411,6 @@ module sparsematrix
       integer,intent(in) :: iproc, imode
       type(sparse_matrix),intent(in) :: smat, lmat
       character(len=14),intent(in) :: direction
-      !real(kind=8),dimension(smat%nspin*smat%nvctr),intent(in),optional :: smat_in
-      !real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(in),optional :: lmat_in
-      !real(kind=8),dimension(smat%nspin*smat%nvctr),intent(out),optional :: smat_out
-      !real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(out),optional :: lmat_out
       real(kind=mp),dimension(:),intent(in),optional :: smat_in
       real(kind=mp),dimension(:),intent(in),optional :: lmat_in
       real(kind=mp),dimension(:),intent(out),optional :: smat_out
@@ -919,7 +917,7 @@ module sparsematrix
                 call f_zero(matrix_compr)
 
                  ! Create a window for all taskgroups to which iproc belongs (max 2)
-                 windows = f_malloc(smat%ntaskgroup)
+                 windows = f_malloc(smat%ntaskgroup,id='windows')
                  do itg=1,smat%ntaskgroupp
                      iitg = smat%taskgroupid(itg)
                      ! Use a fake window if nvctrp is zero
@@ -1147,7 +1145,8 @@ module sparsematrix
               err_name='SPARSEMATRIX_RUNTIME_ERROR')
      end if
    
-     !$omp parallel do default(none) private(iseq, ii) &
+     !$omp parallel do schedule(guided) &
+     !$omp default(none) private(iseq, ii) &
      !$omp shared(smat, a_seq, a)
      do iseq=1,smat%smmm%nseq
          ii=smat%smmm%indices_extract_sequential(iseq)
@@ -1176,7 +1175,7 @@ module sparsematrix
      !Local variables
      !character(len=*), parameter :: subname='sparsemm'
      integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j, iline, icolumn, nblock, iblock, ncount
-     integer :: iorb, ii, ilen, iout
+     integer :: iorb, ii, ilen, iout, iiblock, isblock, is,ie
      real(kind=mp) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7, ddot
      integer :: n_dense
      real(kind=mp),dimension(:,:),allocatable :: a_dense, b_dense, c_dense
@@ -1218,15 +1217,21 @@ module sparsematrix
          do iout=1,smat%smmm%nout
              i=smat%smmm%onedimindices_new(1,iout)
              nblock=smat%smmm%onedimindices_new(4,iout)
+             isblock=smat%smmm%onedimindices_new(5,iout)
              tt0=0.d0
 
-             do iblock=1,nblock
-                 jorb = smat%smmm%consecutive_lookup(1,iblock,iout)
-                 jjorb = smat%smmm%consecutive_lookup(2,iblock,iout)
-                 ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
+             is = isblock + 1
+             ie = isblock + nblock
+             !do iblock=1,nblock
+             do iblock=is,ie
+                 !iiblock = isblock + iblock
+                 jorb = smat%smmm%consecutive_lookup(1,iblock)
+                 jjorb = smat%smmm%consecutive_lookup(2,iblock)
+                 ncount = smat%smmm%consecutive_lookup(3,iblock)
                  !tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
                  !avoid calling ddot from OpenMP region on BG/Q as too expensive
-                 tt0=tt0+my_dot(ncount,b(jjorb:jjorb+ncount-1),a_seq(jorb:jorb+ncount-1))
+                 !tt0=tt0+my_dot(ncount,b(jjorb:jjorb+ncount-1),a_seq(jorb:jorb+ncount-1))
+                 tt0=tt0+my_dot(ncount,b(jjorb),a_seq(jorb))
              end do
 
              c(i) = tt0
@@ -1241,8 +1246,10 @@ module sparsematrix
              op = 0.d0
              do iout=1,smat%smmm%nout
                  nblock=smat%smmm%onedimindices_new(4,iout)
+                 isblock=smat%smmm%onedimindices_new(5,iout)
                  do iblock=1,nblock
-                     ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
+                     iiblock = isblock + iblock
+                     ncount = smat%smmm%consecutive_lookup(3,iiblock)
                      op = op + real(ncount,kind=mp)
                  end do
              end do
@@ -1545,46 +1552,6 @@ module sparsematrix
 
      !integer :: mp1, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6
 
-   function check_symmetry(smat)
-     implicit none
-   
-     ! Calling arguments
-     type(sparse_matrix),intent(in) :: smat
-     logical :: check_symmetry
-   
-     ! Local variables
-     integer :: i, iseg, ii, jorb, iorb
-     logical,dimension(:,:),allocatable :: lgrid
-     !integer,dimension(2) :: irowcol
-   
-     lgrid=f_malloc((/smat%nfvctr,smat%nfvctr/),id='lgrid')
-     lgrid=.false.
-   
-     do iseg=1,smat%nseg
-         ii=smat%keyv(iseg)
-         ! A segment is always on one line, therefore no double loop
-         do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-             !irowcol=orb_from_index(smat,i)
-             !!iorb=smat%orb_from_index(1,i)
-             !!jorb=smat%orb_from_index(2,i)
-             lgrid(smat%keyg(1,2,iseg),i)=.true.
-             ii=ii+1
-         end do
-     end do
-   
-     check_symmetry=.true.
-     do iorb=1,smat%nfvctr
-         do jorb=1,smat%nfvctr
-             if (lgrid(jorb,iorb) .and. .not.lgrid(iorb,jorb)) then
-                 check_symmetry=.false.
-             end if
-         end do
-     end do
-   
-     call f_free(lgrid)
-   
-   end function check_symmetry
-
 
     !> Write a sparse matrix to a file
     subroutine write_sparsematrix(filename, smat, mat)
@@ -1822,7 +1789,7 @@ module sparsematrix
             !$omp shared(nvctrp_s, isvctr_s, isvctr_l, line_and_column_s) &
             !$omp shared(nfvctr, nseg_l, keyv_l, keyg_l, istsegline_l, matrix_s_out, matrix_l_in) &
             !$omp private(i, ii, iline, icolumn, ind)
-            !$omp do
+            !$omp do schedule(guided)
             do i=1,nvctrp_s
                 ii = isvctr_s + i
                 !!call get_line_and_column(ii, nseg_s, keyv_s, keyg_s, iline, icolumn)
@@ -1848,7 +1815,7 @@ module sparsematrix
             !$omp shared(nvctrp_s, isvctr_s, isvctr_l, line_and_column_s) &
             !$omp shared(nfvctr, nseg_l, keyv_l, keyg_l, istsegline_l, matrix_s_in, matrix_l_out) &
             !$omp private(i, ii, iline, icolumn, ind)
-            !$omp do
+            !$omp do schedule(guided)
             do i=1,nvctrp_s
                 ii = isvctr_s + i
                 !call get_line_and_column(ii, nseg_s, keyv_s, keyg_s, iline, icolumn)
@@ -2048,8 +2015,9 @@ module sparsematrix
       integer,dimension(:),allocatable :: request
       real(kind=mp),dimension(:),allocatable :: recvbuf
     
+      call f_routine(id='synchronize_matrix_taskgroups')
+       
       if (nproc>1) then
-         call f_routine(id='synchronize_matrix_taskgroups')
           request = f_malloc(smat%ntaskgroupp,id='request')
           ncount = 0
           do itg=1,smat%ntaskgroupp
@@ -2090,8 +2058,10 @@ module sparsematrix
           end do
           call f_free(request)
           call f_free(recvbuf)
-          call f_release_routine()
       end if
+
+      call f_release_routine()
+
     end subroutine synchronize_matrix_taskgroups
 
 
@@ -2124,7 +2094,11 @@ module sparsematrix
               if (ispin/=ispinx) cycle
           end if
           ishift=(ispin-1)*sparsemat%nvctr
-          !do iseg=1,sparsemat%nseg
+          ! SM: The function matrixindex_in_compressed is rather expensive, so I think OpenMP is always worth
+          !$omp parallel default(none) &
+          !$omp shared(sparsemat, mat_tg, error_max) &
+          !$omp private(iseg, iel, i, ind, ind_trans, val, val_trans, error)
+          !$omp do schedule(guided) reduction(max: error_max)
           do iseg=sparsemat%isseg,sparsemat%ieseg
               iel = sparsemat%keyv(iseg) - 1
               do i=sparsemat%keyg(1,1,iseg),sparsemat%keyg(2,1,iseg)
@@ -2145,6 +2119,8 @@ module sparsematrix
                   end if
               end do
           end do
+          !$omp end do
+          !$omp end parallel
       end do
       call mpiallred(error_max, 1, mpi_max, comm=comm)
       !if (iproc==0) call yaml_map('max asymmetry',error_max)
@@ -2297,12 +2273,12 @@ module sparsematrix
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
       character(len=*),intent(in) :: csign
-      real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: mat_in
-      real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(out) :: mat_out
+      real(mp),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: mat_in
+      real(mp),dimension(smat%nvctrp_tg*smat%nspin),intent(out) :: mat_out
       integer,intent(in),optional :: ispinx
 
       ! Local variables
-      integer :: ispin, ishift, iseg, ii, i, ii_trans
+      integer :: ispin, ishift, ishift_tg, iseg, ii, i, ii_trans
       logical :: minus
       real(mp) :: half
     
@@ -2323,21 +2299,34 @@ module sparsematrix
           if (present(ispinx)) then
               if (ispin/=ispinx) cycle
           end if
-          ishift=(ispin-1)*smat%nvctrp_tg
+          ishift = (ispin-1)*smat%nvctrp_tg
+          ishift_tg = ishift-smat%isvctrp_tg
+          !!!!$omp parallel default(none) &
+          !!!!$omp shared(smat,mat_in,mat_out,ishift_tg,half) &
+          !!!!$omp private(iseg,ii,i,ii_trans)
+          !!!!$omp do schedule(guided)
+          !!!do iseg=smat%istartendseg_local(1),smat%istartendseg_local(2)
+          !!!    ii = smat%keyv(iseg)
+          !!!    ! A segment is always on one line, therefore no double loop
+          !!!    do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg) !this is too much, but for the moment ok
+          !!!        ii_trans = matrixindex_in_compressed(smat,smat%keyg(1,2,iseg),i)
+          !!!            mat_out(ii+ishift_tg) = half*(&
+          !!!                 mat_in(ii+ishift_tg)+&
+          !!!                 mat_in(ii_trans+ishift_tg))
+          !!!        ii=ii+1
+          !!!    end do
+          !!!end do
+          !!!!$omp end do
+          !!!!$omp end parallel
           !$omp parallel default(none) &
-          !$omp shared(smat,mat_in,mat_out,ishift,half) &
-          !$omp private(iseg,ii,i,ii_trans)
-          !$omp do
-          do iseg=smat%istartendseg_local(1),smat%istartendseg_local(2)
-              ii = smat%keyv(iseg)
-              ! A segment is always on one line, therefore no double loop
-              do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg) !this is too much, but for the moment ok
-                  ii_trans = matrixindex_in_compressed(smat,smat%keyg(1,2,iseg),i)
-                      mat_out(ii+ishift-smat%isvctrp_tg) = half*(&
-                           mat_in(ii+ishift-smat%isvctrp_tg)+&
-                           mat_in(ii_trans+ishift-smat%isvctrp_tg))
-                  ii=ii+1
-              end do
+          !$omp shared(smat,mat_in,mat_out,ishift_tg,half) &
+          !$omp private(ii,ii_trans)
+          !$omp do schedule(guided)
+          do ii=smat%istartend_local(1),smat%istartend_local(2)
+              ii_trans = smat%transposed_lookup_local(ii)
+              mat_out(ii+ishift_tg) = half*(&
+                   mat_in(ii+ishift_tg)+&
+                   mat_in(ii_trans+ishift_tg))
           end do
           !$omp end do
           !$omp end parallel
@@ -2351,5 +2340,222 @@ module sparsematrix
       call f_release_routine()
     
     end subroutine symmetrize_matrix
+
+
+    subroutine check_deviation_from_unity_sparse(iproc, smat, mat, max_error, mean_error)
+      use sparsematrix_base, only: sparse_matrix, &
+                                   matrices
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(in) :: mat
+      real(kind=8),intent(out) :: mean_error, max_error
+
+      ! Local variables
+      integer :: iseg, ii, i, irow, icolumn
+      real(kind=8) :: error
+
+      call f_routine(id='check_deviation_from_unity_sparse')
+
+      mean_error = 0.d0
+      max_error = 0.d0
+      do iseg=1,smat%nseg
+          ii=smat%keyv(iseg)
+          ! A segment is always on one line, therefore no double loop
+          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+             irow = i
+             icolumn = smat%keyg(1,2,iseg)
+             if (irow==icolumn) then
+                 error = abs(mat%matrix_compr(ii)-1.d0)
+             else
+                 error = abs(mat%matrix_compr(ii))
+             end if
+             mean_error = mean_error + error
+             max_error = max(max_error,error)
+             ii=ii+1
+         end do
+      end do
+      mean_error = mean_error/real(smat%nvctr,kind=8)
+
+      !if (iproc==0) then
+      !    call yaml_mapping_open('Check the deviation from unity of the operation S^x*S^-x')
+      !    call yaml_map('max_error',max_error,fmt='(es10.3)')
+      !    call yaml_map('mean_error',mean_error/real(smat%nvctr,kind=8),fmt='(es10.3)')
+      !    call yaml_mapping_close()
+      !end if
+
+      call f_release_routine()
+
+    end subroutine check_deviation_from_unity_sparse
+
+
+
+    subroutine operation_using_dense_lapack(iproc, nproc, exp_power, smat_in, mat_in)
+      use parallel_linalg, only: dgemm_parallel
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      real(mp),intent(in) :: exp_power
+      type(sparse_matrix),intent(in) :: smat_in
+      type(matrices),intent(in) :: mat_in
+
+      ! Local variables
+      integer :: blocksize
+      real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
+      real(kind=8),dimension(:,:,:),allocatable :: mat_check_accur_dense
+
+      call f_routine(id='operation_using_dense_lapack')
+
+      blocksize = -100
+      mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
+      mat_out_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_out_dense')
+      mat_check_accur_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr,2/),id='mat_check_accur_dense')
+      call uncompress_matrix(iproc, nproc, &
+           smat_in, mat_in%matrix_compr, mat_in_dense)
+      call timing(mpi_comm_world,'INIT_CUBIC','PR')
+      call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
+           mat_in_dense, exp_power, mat_out_dense)
+      call timing(mpi_comm_world,'CALC_CUBIC','PR')
+      call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
+           mat_in_dense, -exp_power, mat_check_accur_dense)
+      call dgemm_parallel(iproc, nproc, blocksize, mpi_comm_world, 'n', 'n', &
+           smat_in%nfvctr, smat_in%nfvctr, smat_in%nfvctr, &
+           1.d0, mat_out_dense(1,1), smat_in%nfvctr, &
+           mat_check_accur_dense(1,1,1), smat_in%nfvctr, 0.d0, mat_check_accur_dense(1,1,2), smat_in%nfvctr)
+      call check_deviation_from_unity_dense(iproc, smat_in%nfvctr, mat_check_accur_dense(1,1,2))
+      call timing(mpi_comm_world,'CHECK_CUBIC','PR')
+      call f_free(mat_check_accur_dense)
+      call f_free(mat_in_dense)
+      call f_free(mat_out_dense)
+
+      call f_release_routine()
+
+    end subroutine operation_using_dense_lapack
+
+
+
+    subroutine matrix_power_dense_lapack(iproc, nproc, exp_power, smat, mat_in, mat_out)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      real(mp),intent(in) :: exp_power
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(in) :: mat_in
+      type(matrices),intent(out) :: mat_out
+
+      ! Local variables
+      integer :: blocksize
+      real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
+      real(kind=8),dimension(:,:,:),allocatable :: mat_check_accur_dense
+
+      call f_routine(id='operation_using_dense_lapack')
+
+      blocksize = -100
+      mat_in_dense = f_malloc((/smat%nfvctr,smat%nfvctr/),id='mat_in_dense')
+      mat_out_dense = f_malloc((/smat%nfvctr,smat%nfvctr/),id='mat_out_dense')
+      !mat_check_accur_dense = f_malloc((/smat%nfvctr,smat%nfvctr,2/),id='mat_check_accur_dense')
+      call uncompress_matrix(iproc, nproc, &
+           smat, mat_in%matrix_compr, mat_in_dense)
+      call matrix_power_dense(iproc, nproc, blocksize, smat%nfvctr, &
+           mat_in_dense, exp_power, mat_out_dense)
+      call compress_matrix(iproc, nproc, smat, mat_out_dense, mat_out%matrix_compr)
+      call f_free(mat_in_dense)
+      call f_free(mat_out_dense)
+
+      call f_release_routine()
+
+    end subroutine matrix_power_dense_lapack
+
+
+
+    !> Calculate matrix**power, using the dense matrix and exact LAPACK operations
+    subroutine matrix_power_dense(iproc, nproc, blocksize, n, mat_in, ex, mat_out)
+      !use module_base
+      use parallel_linalg, only: dgemm_parallel, dsyev_parallel
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, blocksize, n
+      real(kind=8),dimension(n,n),intent(in) :: mat_in
+      real(kind=8),intent(in) :: ex
+      real(kind=8),dimension(n,n),intent(out) :: mat_out
+
+      ! Local variables
+      integer :: i, j, info
+      real(kind=8) :: tt
+      real(kind=8),dimension(:,:,:),allocatable :: mat_tmp
+      real(kind=8),dimension(:),allocatable :: eval
+
+      call f_routine(id='matrix_power_dense')
+
+
+      ! Diagonalize the matrix
+      mat_tmp = f_malloc((/n,n,2/),id='mat_tmp')
+      eval = f_malloc(n,id='mat_tmp')
+      call f_memcpy(src=mat_in, dest=mat_tmp)
+      call dsyev_parallel(iproc, nproc, blocksize, mpi_comm_world, 'v', 'l', n, mat_tmp, n, eval, info)
+      if (info /= 0) then
+          call f_err_throw('wrong infocode, value ='//trim(yaml_toa(info)))
+      end if
+
+      ! Multiply a diagonal matrix containing the eigenvalues to the power ex with the diagonalized matrix
+      do i=1,n
+          tt = eval(i)**ex
+          do j=1,n
+              mat_tmp(j,i,2) = mat_tmp(j,i,1)*tt
+          end do
+      end do
+
+      ! Apply the diagonalized overlap matrix to the matrix constructed above
+      call dgemm_parallel(iproc, nproc, blocksize, mpi_comm_world, 'n', 't', n, n, n, 1.d0, mat_tmp(1,1,1), n, &
+           mat_tmp(1,1,2), n, 0.d0, mat_out, n)
+
+      call f_free(mat_tmp)
+      call f_free(eval)
+
+      call f_release_routine()
+
+
+    end subroutine matrix_power_dense
+
+
+    subroutine check_deviation_from_unity_dense(iproc, n, mat)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, n
+      real(kind=8),dimension(n,n),intent(in) :: mat
+
+      ! Local variables
+      integer :: i, j
+      real(kind=8) :: sum_error, max_error, error
+
+      sum_error = 0.d0
+      max_error = 0.d0
+      do i=1,n
+          do j=1,n
+              if (j==i) then
+                  error = abs(mat(j,i)-1.d0)
+              else
+                  error = abs(mat(j,i))
+              end if
+              sum_error = sum_error + error
+              max_error = max(max_error,error)
+          end do
+      end do
+
+
+      if (iproc==0) then
+          call yaml_mapping_open('Check the deviation from unity of the operation S^x*S^-x')
+          call yaml_map('max_error',max_error,fmt='(es10.3)')
+          call yaml_map('sum_error',sum_error/real(n**2,kind=8),fmt='(es10.3)')
+          call yaml_mapping_close()
+      end if
+
+    end subroutine check_deviation_from_unity_dense
 
 end module sparsematrix

@@ -24,7 +24,7 @@ program driver_css
   real(kind=8),dimension(:),pointer :: kernel, overlap, overlap_large
   real(kind=8),dimension(:),allocatable :: charge
   real(kind=8) :: energy, tr_KS, tr_KS_check
-  type(foe_data) :: foe_obj
+  type(foe_data) :: foe_obj, ice_obj
 
   ! Initialize flib
   call f_lib_initialize()
@@ -63,6 +63,8 @@ program driver_css
   charge = f_malloc(smat_s%nspin,id='charge')
   charge(:) = 722.d0
   call init_foe(iproc, nproc, smat_s%nspin, charge, foe_obj)
+  ! Initialize the same object for the calculation of the inverse. Charge does not really make sense here...
+  call init_foe(iproc, nproc, smat_s%nspin, charge, ice_obj, evlow=0.5_mp, evhigh=1.5_mp)
 
   ! Calculate the density kernel for the system described by the pair smat_s/mat_s and smat_h/mat_h and 
   ! store the result in smat_k/mat_k.
@@ -71,9 +73,9 @@ program driver_css
   ! the routine does only some minimal checks.
   ! The final result will be contained in mat_k%matrix_compr.
   call matrix_fermi_operator_expansion(iproc, nproc, mpi_comm_world, &
-       foe_obj, smat_s, smat_h, smat_k, &
+       foe_obj, ice_obj, smat_s, smat_h, smat_k, &
        mat_s, mat_h, mat_ovrlpminusonehalf, mat_k, energy, &
-       calculate_minusonehalf=.true., foe_verbosity=0, symmetrize_kernel=.true.)
+       calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true.)
 
   ! Write the result in YAML format to the standard output (required for non-regression tests).
   if (iproc==0) call write_matrix_compressed('Result of FOE', smat_k, mat_k)
@@ -111,8 +113,9 @@ program driver_css
 
   ! Deallocate the object holding the FOE parameters
   call foe_data_deallocate(foe_obj)
+  call foe_data_deallocate(ice_obj)
 
-  ! Deallocate all the sparse matrix descriptrs types
+  ! Deallocate all the sparse matrix descriptors types
   call deallocate_sparse_matrix(smat_s)
   call deallocate_sparse_matrix(smat_h)
   call deallocate_sparse_matrix(smat_k)

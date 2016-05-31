@@ -2113,7 +2113,8 @@ module io
                norder_taylor, 1, power, -1, &
                imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=SminusonehalfH(1), &
-               check_accur=norder_taylor<1000, max_error=max_error, mean_error=mean_error)
+               check_accur=norder_taylor<1000, max_error=max_error, mean_error=mean_error, &
+               ice_obj=tmb%ice_obj)
           ! Calculate S^-1/2 * H
           call f_memcpy(src=SminusonehalfH(1)%matrix_compr,dest=tmp_large)
           call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmp_large, ham_large, SminusonehalfH(1)%matrix_compr)
@@ -2523,23 +2524,27 @@ module io
       !local variables
       integer :: ispin
       real(dp), dimension(:,:,:,:), allocatable :: pot_ion
+
+      call f_routine(id='plot_density')
     
       pot_ion = &
            f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3), nspin],id='pot_ion')
 
       call PS_gather(src=rho,dest=pot_ion,kernel=kernel,nsrc=nspin)
     
-      if (present(ixyz0)) then
-         if (any(ixyz0 < 1) .or. any(ixyz0 > kernel%ndims)) &
-              call f_err_throw('The values of ixyz0='+yaml_toa(ixyz0)+&
-                   ' should be within the size of the box (1 to'+&
-                   yaml_toa(kernel%ndims)+')',&
-                   err_name='BIGDFT_RUNTIME_ERROR')
-          call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
-               rxyz,at%astruct%iatype,at%nzatom,at%nelpsp,ixyz0=ixyz0)
-      else
-          call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
-               rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
+      if (iproc==0) then
+          if (present(ixyz0)) then
+             if (any(ixyz0 < 1) .or. any(ixyz0 > kernel%ndims)) &
+                  call f_err_throw('The values of ixyz0='+yaml_toa(ixyz0)+&
+                       ' should be within the size of the box (1 to'+&
+                       yaml_toa(kernel%ndims)+')',&
+                       err_name='BIGDFT_RUNTIME_ERROR')
+              call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
+                   rxyz,at%astruct%iatype,at%nzatom,at%nelpsp,ixyz0=ixyz0)
+          else
+              call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
+                   rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
+          end if
       end if
     
       call f_free(pot_ion)
@@ -2688,6 +2693,8 @@ module io
     !!$  !if (nproc > 1) then
     !!$     call f_free_ptr(pot_ion)
     !!$  !end if
+
+      call f_release_routine()
     
     END SUBROUTINE plot_density
 

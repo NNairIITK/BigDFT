@@ -22,6 +22,7 @@ module sparsematrix_highlevel
   public :: matrix_matrix_multiplication
   public :: matrix_chebyshev_expansion
   public :: matrix_fermi_operator_expansion
+  public :: get_selected_eigenvalues_from_FOE
   public :: trace_AB
 
   contains
@@ -166,7 +167,7 @@ module sparsematrix_highlevel
       !!integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
     
       ! Local variables
-      integer :: nspin, nfvctr, nseg, nvctr, i
+      integer :: nspin, nfvctr, nseg, nvctr
       character(len=1) :: geocode
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
@@ -460,8 +461,9 @@ module sparsematrix_highlevel
 
 
     subroutine matrix_chebyshev_expansion(iproc, nproc, comm, ncalc, ex, &
-               smat_in, smat_out, mat_in, mat_out, npl_auto)
+               smat_in, smat_out, mat_in, mat_out, npl_auto, ice_obj)
       use ice, only: inverse_chebyshev_expansion_new
+      use foe_base, only: foe_data
       implicit none
 
       ! Calling arguments
@@ -471,6 +473,7 @@ module sparsematrix_highlevel
       type(matrices),intent(in) :: mat_in
       type(matrices),dimension(ncalc),intent(inout) :: mat_out
       logical,intent(in),optional :: npl_auto
+      type(foe_data),intent(inout),optional,target :: ice_obj
 
       ! Local variables
       integer :: i
@@ -499,13 +502,21 @@ module sparsematrix_highlevel
       end if
 
       if (present(npl_auto)) then
-          !!call inverse_chebyshev_expansion(iproc, nproc, ndeg, &
-          !!     smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto)
-          call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
-               smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto=npl_auto)
+          if (present(ice_obj)) then
+              call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+                   smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto=npl_auto, ice_objx=ice_obj)
+          else
+              call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+                   smat_in, smat_out, ncalc, ex, mat_in, mat_out, npl_auto=npl_auto)
+          end if
       else
-          call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
-               smat_in, smat_out, ncalc, ex, mat_in, mat_out)
+          if (present(ice_obj)) then
+              call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+                   smat_in, smat_out, ncalc, ex, mat_in, mat_out, ice_objx=ice_obj)
+          else
+              call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+                   smat_in, smat_out, ncalc, ex, mat_in, mat_out)
+          end if
       end if
 
       call f_release_routine()
@@ -513,7 +524,7 @@ module sparsematrix_highlevel
     end subroutine matrix_chebyshev_expansion
 
 
-    subroutine matrix_fermi_operator_expansion(iproc, nproc, comm, foe_obj, smat_s, smat_h, smat_k, &
+    subroutine matrix_fermi_operator_expansion(iproc, nproc, comm, foe_obj, ice_obj, smat_s, smat_h, smat_k, &
                overlap, ham, overlap_minus_one_half, kernel, ebs, &
                calculate_minusonehalf, foe_verbosity, symmetrize_kernel)
       use foe_base, only: foe_data
@@ -522,7 +533,7 @@ module sparsematrix_highlevel
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm
-      type(foe_data),intent(inout) :: foe_obj
+      type(foe_data),intent(inout) :: foe_obj, ice_obj
       type(sparse_matrix),intent(in) ::smat_s, smat_h, smat_k
       type(matrices),intent(in) :: overlap, ham
       type(matrices),dimension(1),intent(inout) :: overlap_minus_one_half
@@ -532,7 +543,6 @@ module sparsematrix_highlevel
       integer,intent(in),optional :: foe_verbosity
 
       ! Local variables
-      integer :: i
       logical :: calculate_minusonehalf_, symmetrize_kernel_
       integer :: foe_verbosity_
 
@@ -585,12 +595,95 @@ module sparsematrix_highlevel
       call fermi_operator_expansion_new(iproc, nproc, comm, &
            ebs, &
            calculate_minusonehalf_, foe_verbosity_, &
-           smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj, &
+           smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj, ice_obj, &
            symmetrize_kernel_)
 
       call f_release_routine()
 
     end subroutine matrix_fermi_operator_expansion
+
+
+
+    subroutine get_selected_eigenvalues_from_FOE(iproc, nproc, comm, iev_min, iev_max, &
+               smat_s, smat_h, smat_k, overlap, ham, overlap_minus_one_half, evals, &
+               fscale, calculate_minusonehalf, foe_verbosity)
+      use foe_base, only: foe_data
+      use foe, only: get_selected_eigenvalues
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm, iev_min, iev_max
+      type(sparse_matrix),intent(in) ::smat_s, smat_h, smat_k
+      type(matrices),intent(in) :: overlap, ham
+      type(matrices),dimension(1),intent(inout) :: overlap_minus_one_half
+      real(kind=mp),dimension(iev_min:iev_max),intent(out) :: evals
+      real(mp),intent(in),optional :: fscale
+      logical,intent(in),optional :: calculate_minusonehalf
+      integer,intent(in),optional :: foe_verbosity
+
+      ! Local variables
+      logical :: calculate_minusonehalf_, symmetrize_kernel_
+      integer :: foe_verbosity_
+      real(mp) :: fscale_
+
+      call f_routine(id='matrix_fermi_operator_expansion')
+
+      calculate_minusonehalf_ = .true.
+      if (present(calculate_minusonehalf)) calculate_minusonehalf_ = calculate_minusonehalf
+      foe_verbosity_ = 1
+      if (present(foe_verbosity)) foe_verbosity_ = foe_verbosity
+      symmetrize_kernel_ = .false.
+      fscale_ = 5.e-3_mp
+      if (present(fscale)) fscale_ = fscale
+
+      ! Check the dimensions of the internal arrays
+      if (size(overlap%matrix_compr)/=smat_s%nvctrp_tg*smat_s%nspin) then
+          call f_err_throw('The size of the array overlap%matrix_compr is wrong: '&
+               &//trim(yaml_toa(size(overlap%matrix_compr)))//' instead of '//&
+               &trim(yaml_toa(smat_s%nvctrp_tg*smat_s%nspin)))
+      end if
+      if (size(ham%matrix_compr)/=smat_h%nvctrp_tg*smat_h%nspin) then
+          call f_err_throw('The size of the array mat_out%matrix_compr is wrong: '&
+               &//trim(yaml_toa(size(ham%matrix_compr)))//' instead of '//&
+               &trim(yaml_toa(smat_h%nvctrp_tg*smat_h%nspin)))
+      end if
+      if (size(overlap_minus_one_half(1)%matrix_compr)/=smat_k%nvctrp_tg*smat_k%nspin) then
+          call f_err_throw('The size of the array mat_out%matrix_compr is wrong: '&
+               &//trim(yaml_toa(size(overlap_minus_one_half(1)%matrix_compr)))//' instead of '//&
+               &trim(yaml_toa(smat_k%nvctrp_tg*smat_k%nspin)))
+      end if
+
+      ! Check that number of non-zero elements of smat_s is not larger than that of smat_h, and that the one of 
+      ! smat_h is not larger than that of smat_k. This is just a minimal
+      ! check to ensure that the sparsity pattern of smat_s is contained within the one of smat_h and the one 
+      ! of smat_h within smat_k. However this check is not sufficient to make sure that this condition is fulfilled.
+      if (smat_s%nvctr>smat_h%nvctr) then
+          call f_err_throw('The number of non-zero elements of smat_s ('//&
+               trim(yaml_toa(smat_s%nvctr))//') is larger than the one of smat_h ('//&
+               trim(yaml_toa(smat_h%nvctr))//')')
+      end if
+      if (smat_h%nvctr>smat_k%nvctr) then
+          call f_err_throw('The number of non-zero elements of smat_h ('//&
+               trim(yaml_toa(smat_h%nvctr))//') is larger than the one of smat_k ('//&
+               trim(yaml_toa(smat_k%nvctr))//')')
+      end if
+
+      ! Check whether the eigenvalues to be calculated are within the possible range
+      if (iev_min<1 .or. iev_max>smat_s%nfvctr) then
+          if (iproc==0) then
+              call f_err_throw('The required eigenvalues are outside of the possible range')
+          end if
+      end if
+
+
+      call get_selected_eigenvalues(iproc, nproc, comm, calculate_minusonehalf_, foe_verbosity_, &
+           iev_min, iev_max, fscale, &
+           smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, evals)
+
+
+      call f_release_routine()
+
+    end subroutine get_selected_eigenvalues_from_FOE
 
 
     !> Calculates the trace of the spin component ispin of the matrix product amat*bmat.

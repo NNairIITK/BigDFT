@@ -32,6 +32,10 @@ module sparsematrix_init
   public :: init_matrix_taskgroups
   public :: check_matmul_layout
   public :: check_compress_distributed_layout
+  public :: sparse_matrix_init_fake
+  public :: check_symmetry 
+  public :: generate_random_symmetric_sparsity_pattern
+  public :: distribute_on_tasks
 
 
   contains
@@ -80,7 +84,8 @@ module sparsematrix_init
           else
               ! there seems to be a mix of the spin matrices
               write(*,*) 'iorb, jorb, nfvctr', iorb, jorb, sparsemat%nfvctr
-              stop 'matrixindex_in_compressed: problem in determining spin'
+              call f_err_throw('matrixindex_in_compressed: problem in determining spin',&
+                   err_name='BIGDFT_RUNTIME_ERROR')
           end if
       else
           ! both indices belong to the first spin matrix
@@ -641,6 +646,8 @@ module sparsematrix_init
       integer :: jorb
       logical :: segment_started, newline, overlap
 
+      call f_routine(id='nseg_perline')
+
       ! Always start a new segment for each line
       segment_started=.false.
       nsegline=0
@@ -664,6 +671,8 @@ module sparsematrix_init
           end if
       end do
 
+      call f_release_routine()
+
     end subroutine nseg_perline
 
 
@@ -679,6 +688,8 @@ module sparsematrix_init
       ! Local variables
       integer :: iseg, jorb, ijorb
       logical :: segment_started, overlap
+
+      call f_routine(id='keyg_per_line')
 
       ! Always start a new segment for each line
       segment_started=.false.
@@ -714,6 +725,9 @@ module sparsematrix_init
           keyg(2,1,iseg)=norb
           keyg(2,2,iseg)=iline
       end if
+
+      call f_release_routine()
+
     end subroutine keyg_per_line
 
 
@@ -1146,16 +1160,21 @@ module sparsematrix_init
       integer(kind=mp) :: ist, iend, ind
       integer :: i, jjorb
 
+      call f_routine(id='create_lookup_table')
+
       lut = .false.
       ist = int(iiorb-1,kind=mp)*int(norbu,kind=mp) + int(1,kind=mp)
       iend = int(iiorb,kind=mp)*int(norbu,kind=mp)
       do i=1,nnonzero
          ind = int(nonzero(2,i)-1,kind=mp)*int(norbu,kind=mp) + int(nonzero(1,i),kind=mp)
          if (ind<ist) cycle
-         if (ind>iend) exit
+         if (ind>iend) cycle !exit
          jjorb=nonzero(1,i)
          lut(jjorb)=.true.
       end do
+
+      call f_release_routine()
+
     end subroutine create_lookup_table
 
     subroutine determine_sequential_length(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, &
@@ -1426,7 +1445,7 @@ module sparsematrix_init
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(in) :: smat
       integer,dimension(smat%nfvctr),intent(in) :: istsegline
-      integer,dimension(4,nout) :: onedimindices
+      integer,dimension(5,nout) :: onedimindices
     
       ! Local variables
       integer :: itot, ipt, iipt, iline, icolumn, ilen, jseg, ii, jorb, iseg_start
@@ -1596,7 +1615,7 @@ module sparsematrix_init
       !!end do
       !!if (ii/=nout) call f_err_throw('ii/=nout',err_name='BIGDFT_RUNTIME_ERROR')
 
-      call distribute_on_threads(nout, nthread, ise)
+      call distribute_on_threads(1, nout, nthread, ise)
     
       iiarr = f_malloc(0.to.nthread-1,id='iiarr')
 
@@ -1692,15 +1711,16 @@ module sparsematrix_init
       ! Calling arguments
       integer,intent(in) :: nout, nseq
       integer,dimension(nseq),intent(in) :: ivectorindex
-      integer,dimension(4,nout),intent(inout) :: onedimindices_new
+      integer,dimension(5,nout),intent(inout) :: onedimindices_new
       integer,intent(out) :: nconsecutive_max
-      integer,dimension(:,:,:),pointer,intent(out) :: consecutive_lookup
+      integer,dimension(:,:),pointer,intent(out) :: consecutive_lookup
 
       ! Local variables
-      integer :: iout, ilen, ii, iend, nconsecutive, jorb, jjorb, jjorb_prev, iconsec
+      integer :: iout, ilen, ii, iend, nconsecutive, jorb, jjorb, jjorb_prev, iconsec, nconsecutive_tot
 
 
       nconsecutive_max = 0
+      nconsecutive_tot = 0
       do iout=1,nout
           ilen=onedimindices_new(2,iout)
           ii=onedimindices_new(3,iout)
@@ -1708,49 +1728,58 @@ module sparsematrix_init
           iend=ii+ilen-1
 
           nconsecutive = 1
+          nconsecutive_tot = nconsecutive_tot + 1
+          onedimindices_new(5,iout) = nconsecutive_tot - 1
           do jorb=ii,iend
              jjorb=ivectorindex(jorb)
              if (jorb>ii) then
                  if (jjorb/=jjorb_prev+1) then
                      nconsecutive = nconsecutive + 1
+                     nconsecutive_tot = nconsecutive_tot + 1
                  end if
              end if
              jjorb_prev = jjorb
           end do
-          nconsecutive_max = max(nconsecutive,nconsecutive_max)
+          !nconsecutive_max = max(nconsecutive,nconsecutive_max)
           onedimindices_new(4,iout) = nconsecutive
       end do
 
-      consecutive_lookup = f_malloc_ptr((/3,nconsecutive_max,nout/),id='consecutive_lookup')
+      consecutive_lookup = f_malloc_ptr((/3,nconsecutive_tot/),id='consecutive_lookup')
 
 
+      nconsecutive = 0
       do iout=1,nout
           ilen=onedimindices_new(2,iout)
           ii=onedimindices_new(3,iout)
 
           iend=ii+ilen-1
 
-          nconsecutive = 1
+          !nconsecutive = 1
           iconsec = 0
-          consecutive_lookup(1,nconsecutive,iout) = ii
-          consecutive_lookup(2,nconsecutive,iout) = ivectorindex(ii)
+          nconsecutive = nconsecutive + 1
+          consecutive_lookup(1,nconsecutive) = ii
+          consecutive_lookup(2,nconsecutive) = ivectorindex(ii)
           do jorb=ii,iend
              jjorb=ivectorindex(jorb)
              if (jorb>ii) then
                  if (jjorb/=jjorb_prev+1) then
-                     consecutive_lookup(3,nconsecutive,iout) = iconsec
+                     consecutive_lookup(3,nconsecutive) = iconsec
                      nconsecutive = nconsecutive + 1
-                     consecutive_lookup(1,nconsecutive,iout) = jorb
-                     consecutive_lookup(2,nconsecutive,iout) = jjorb
+                     consecutive_lookup(1,nconsecutive) = jorb
+                     consecutive_lookup(2,nconsecutive) = jjorb
                      iconsec = 0
                  end if
              end if
              iconsec = iconsec + 1
              jjorb_prev = jjorb
           end do
-          consecutive_lookup(3,nconsecutive,iout) = iconsec
-          if (nconsecutive>nconsecutive_max) stop 'nconsecutive>nconsecutive_max'
+          consecutive_lookup(3,nconsecutive) = iconsec
+          !if (nconsecutive>nconsecutive_max) stop 'nconsecutive>nconsecutive_max'
       end do
+      if (nconsecutive/=nconsecutive_tot) then
+          write(*,*) 'nconsecutive, nconsecutive_tot', nconsecutive, nconsecutive_tot
+          call f_err_throw('consecutive/=nconsecutive_tot')
+      end if
 
 
     end subroutine determine_consecutive_values
@@ -1854,7 +1883,7 @@ module sparsematrix_init
       !!    end if
       !!end do
       !!if (ii/=nout) call f_err_throw('ii/=nout',err_name='BIGDFT_RUNTIME_ERROR')
-      call distribute_on_threads(nout, nthread, ise)
+      call distribute_on_threads(1, nout, nthread, ise)
 
       ! First have to determine the length of indices_extract_sequential_work... a bit wasteful, but otherwise 
       ! the memory becomes too large
@@ -2735,22 +2764,25 @@ module sparsematrix_init
 
 
 
-    subroutine distribute_on_threads(nout, nthread, ise)
+    ! Distribute iterations ranging from istart to iend equally to nthread threads
+    subroutine distribute_on_threads(istart, iend, nthread, ise)
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: nout
+      integer,intent(in) :: istart, iend
       integer,intent(out) :: nthread
       integer,dimension(:,:),pointer :: ise
 
       ! Local variables
-      integer :: ii, jthread
+      integer :: nout, ii, jthread
       integer,dimension(:),allocatable :: n
       !$ integer :: omp_get_max_threads
 
       call f_routine(id='distribute_on_threads')
 
-      ! OpenMP parallelization using a large workarray
+      ! Number of iterations
+      nout = iend - istart + 1
+
       nthread = 1
       !$ nthread = omp_get_max_threads()
 
@@ -2765,12 +2797,12 @@ module sparsematrix_init
 
       ! Determine the first and last iteration for each thread
       ise = f_malloc_ptr((/1.to.2,0.to.nthread-1/),id='ise')
-      ise(1,0) = 1
+      ise(1,0) = istart
       do jthread=1,nthread-1
           ise(1,jthread) = ise(1,jthread-1) + n(jthread-1)
           ise(2,jthread-1) = ise(1,jthread) -1
       end do
-      ise(2,nthread-1) = nout
+      ise(2,nthread-1) = iend
       ! Check
       ii = 0
       do jthread=0,nthread-1
@@ -3040,6 +3072,10 @@ module sparsematrix_init
       end do
       if (.not.found_start) stop 'segment corresponding to smat%istartend_local(1) not found!'
       if (.not.found_end) stop 'segment corresponding to smat%istartend_local(2) not found!'
+
+
+      ! Initialize the array for the transposition... maybe not the best place here
+      call init_transposed_lookup_local(smat)
 
 
       !!if (iproc==0)  then
@@ -4055,7 +4091,558 @@ module sparsematrix_init
 
 
 
+    !> WARNING: THE SYMMETRY IS NOT YET WORKING
+    !> Fake initialization of the sparse_matrix type.
+    !! Takes as inout:
+    !! - the number of rows/columns
+    !! - the number of segments
+    !! - the number of non-zero elements
+    !! and produces a symmetric sparsity pattern with these parameters.
+    subroutine sparse_matrix_init_fake(iproc, nproc, comm, nfvctr, nseg, nvctr, smat)
+      use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm, nfvctr, nseg, nvctr
+      type(sparse_matrix) :: smat
+    
+      ! Local variables
+      integer,dimension(:),allocatable :: nvctr_per_segment, nsegline, istsegline, keyv
+      integer,dimension(:,:),pointer :: nonzero
+      integer,dimension(:,:,:),allocatable :: keyg
+      logical :: symmetric
+
+      call f_routine(id='sparse_matrix_init_fake')
+    
+      ! Some checks whether the arguments are reasonable
+      if (nseg > nvctr) then
+          call f_err_throw('sparse matrix would have more segments than elements', &
+               err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      end if
+      if (nseg < nfvctr) then
+          call f_err_throw('sparse matrix would have less segments than lines', &
+               err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      end if
+      if (nvctr > nfvctr**2) then
+          call f_err_throw('sparse matrix would contain more elements than the dense one', &
+               err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      end if
+    
+      ! Nullify the data type
+      smat = sparse_matrix_null()
+    
+      nvctr_per_segment = f_malloc(nseg,id='nvctr_per_segment')
+      call nvctr_per_segment_init_ext(nseg, nvctr, nvctr_per_segment)
+    
+      nsegline = f_malloc(nfvctr,id='nsegline')
+      call nsegline_init_ext(nfvctr, nseg, nsegline)
+
+      istsegline = f_malloc(nfvctr,id='istsegline')
+      call istsegline_init_ext(nfvctr, nsegline, istsegline)
+
+      keyv = f_malloc(nseg,id='keyv')
+      call keyv_init_ext(nseg, nvctr_per_segment, keyv)
+
+      keyg = f_malloc((/2,2,nseg/),id='keyg')
+      call keyg_init_ext(nfvctr, nseg, nfvctr, nvctr, nsegline, istsegline, keyv, nvctr_per_segment, keyg)
+    
+      call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat)
+    
+      call f_free(nvctr_per_segment)
+      call f_free(nsegline)
+      call f_free(istsegline)
+      call f_free(keyv)
+      call f_free(keyg)
+
+      ! Check the symmetry
+      symmetric = check_symmetry(smat)
+
+      !!if (.not.symmetric) then
+      !!    call f_err_throw('The sparsity pattern is not symmetric', &
+      !!         err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      !!end if
+
+      call f_release_routine()
+    
+    end subroutine sparse_matrix_init_fake
 
 
+    subroutine nsegline_init_ext(norb, nseg, nsegline)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: norb, nseg
+      integer,dimension(norb),intent(out) :: nsegline
+      ! Local variables
+      real(kind=8) :: tt
+      integer :: ii, jorb
+      ! Distribute segments evenly among the lines
+      tt=real(nseg,kind=8)/real(norb,kind=8)
+      ii=floor(tt)
+      do jorb=1,norb
+          nsegline(jorb)=ii
+      end do
+      ii=nseg-norb*ii
+      do jorb=1,ii
+          nsegline(jorb)=nsegline(jorb)+1
+      end do
+    end subroutine nsegline_init_ext
+
+
+    subroutine istsegline_init_ext(norb, nsegline, istsegline)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: norb
+      integer,dimension(norb),intent(in) :: nsegline
+      integer,dimension(norb),intent(out) :: istsegline
+      ! Local variables
+      integer :: jorb
+      istsegline(1)=1
+      do jorb=2,norb
+          istsegline(jorb)=istsegline(jorb-1)+nsegline(jorb-1)
+      end do
+    end subroutine istsegline_init_ext
+
+
+    subroutine keyv_init_ext(nseg, nvctr_per_segment, keyv)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: nseg
+      integer,dimension(nseg),intent(out) :: nvctr_per_segment
+      integer,dimension(nseg),intent(out) :: keyv
+      ! Local variables
+      integer :: jseg
+      keyv(1)=1
+      do jseg=2,nseg
+          keyv(jseg)=keyv(jseg-1)+nvctr_per_segment(jseg-1)
+      end do
+    end subroutine keyv_init_ext
+
+    subroutine keyg_init_ext(norb, nseg, nfvctr, nvctr, nsegline, istsegline, keyv, nvctr_per_segment, keyg)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: norb, nseg, nfvctr, nvctr
+      integer,dimension(norb),intent(in) :: nsegline, istsegline
+      integer,dimension(nseg),intent(in) :: keyv, nvctr_per_segment
+      integer,dimension(2,2,nseg),intent(out) :: keyg
+      ! Local variables
+      integer :: jorb, nempty, jseg, jjseg, ii, j, ist, itot, istart, iend, idiag
+      integer :: idist_start, idist_end, ilen
+      integer,dimension(:),allocatable :: nempty_arr
+      real(kind=8) :: tt
+      integer,parameter :: DECREASE=1, INCREASE=2
+
+      itot=1
+      do jorb=1,norb
+          ! Number of empty elements
+          nempty=norb
+          do jseg=1,nsegline(jorb)
+              jjseg=istsegline(jorb)+jseg-1
+              nempty=nempty-nvctr_per_segment(jjseg)
+          end do
+          if (nempty<0) then
+              write(*,*) 'ERROR: nemtpy < 0; reduce number of elements'
+              stop
+          end if
+          ! Number of empty elements between the elements
+          nempty_arr = f_malloc(0.to.nsegline(jorb),id='nempty_arr')
+          tt=real(nempty,kind=8)/real(nsegline(jorb)+1,kind=8)
+          ii=floor(tt)
+          do j=0,nsegline(jorb)
+              nempty_arr(j)=ii
+          end do
+          ii=nempty-(nsegline(jorb)+1)*ii
+          do j=0,ii-1
+              nempty_arr(j)=nempty_arr(j)+1
+          end do
+          ! Check that the diagonal element is not in an empty region. If so,
+          ! shift the elements.
+          idiag=(jorb-1)*norb+jorb
+          adjust_empty: do
+              ist=nempty_arr(0)
+              do jseg=1,nsegline(jorb)
+                  jjseg=istsegline(jorb)+jseg-1
+                  istart=itot+ist
+                  iend=istart+nvctr_per_segment(jjseg)-1
+                  if (istart<=idiag .and. idiag<=iend) exit adjust_empty
+                  ! Determine the distance to the start / end of the segment
+                  idist_start=abs(idiag-istart)
+                  idist_end=abs(idiag-iend)
+                  !!if (j==1 .and. idiag<istart) then
+                  !!    ! Diagonal element is before the first segment, 
+                  !!    ! so decrease the first empty region
+                  !!    iaction=DECREASE
+                  !!end if
+                  !!if (j==nsegline(jorb) .and. idiag>iend) then
+                  !!    ! Diagonal element is after the last segment, 
+                  !!    ! so increase the first empty region
+                  !!    iaction=INCREASE
+                  !!end if
+                  ist=ist+nvctr_per_segment(jjseg)
+                  ist=ist+nempty_arr(jseg)
+              end do
+              ! If one arrives here, the diagonal element was in an empty
+              ! region. Determine whether it was close to the start or end of a
+              ! segment.
+              if (istart==iend) then
+                  ! Segment has only length one
+                  if (istart<idiag) then
+                      ! Incrase the first empty region and increase the last one
+                      nempty_arr(0)=nempty_arr(0)+1
+                      nempty_arr(nsegline(jorb))=nempty_arr(nsegline(jorb))-1
+                  else
+                      ! Decrase the first empty region and increase the last one
+                      nempty_arr(0)=nempty_arr(0)-1
+                      nempty_arr(nsegline(jorb))=nempty_arr(nsegline(jorb))+1
+                  end if
+              else if (idist_start<=idist_end) then
+                  ! Closer to the start, so decrase the first empty region and increase the last one
+                  nempty_arr(0)=nempty_arr(0)-1
+                  nempty_arr(nsegline(jorb))=nempty_arr(nsegline(jorb))+1
+              else 
+                  ! Closer to the end, so increase the first empty region and decrease the last one
+                  nempty_arr(0)=nempty_arr(0)+1
+                  nempty_arr(nsegline(jorb))=nempty_arr(nsegline(jorb))-1
+              end if
+          end do adjust_empty
+
+          ! Now fill the keys
+          ist=nempty_arr(0)
+          do jseg=1,nsegline(jorb)
+              jjseg=istsegline(jorb)+jseg-1
+              istart=itot+ist
+              iend=istart+nvctr_per_segment(jjseg)-1
+              keyg(1,1,jjseg)=mod(istart-1,nfvctr)+1
+              keyg(2,1,jjseg)=mod(iend-1,nfvctr)+1
+              keyg(1,2,jjseg)=(istart-1)/nfvctr+1
+              keyg(2,2,jjseg)=(iend-1)/nfvctr+1
+              ist=ist+nvctr_per_segment(jjseg)
+              ist=ist+nempty_arr(jseg)
+          end do
+          itot=itot+ist
+          call f_free(nempty_arr)
+      end do
+
+      ! Check that the total number is correct
+      itot=0
+      do jseg=1,nseg
+          ! A segment is always on one line, therefore no double loop
+          ilen=keyg(2,1,jseg)-keyg(1,1,jseg)+1
+          if (ilen/=nvctr_per_segment(jseg)) stop 'ilen/=nvctr_per_segment(jseg)'
+          if (jseg/=nseg) then
+              if (ilen/=(keyv(jseg+1)-keyv(jseg))) stop 'ilen/=(keyv(jseg+1)-keyv(jseg))'
+          else
+              if (ilen/=(nvctr+1-keyv(jseg))) stop 'ilen/=(nvctr+1-keyv(jseg))'
+          end if
+          itot=itot+ilen
+      end do
+      if (itot/=nvctr) stop 'itot/=nvctr'
+    end subroutine keyg_init_ext
+
+    subroutine nvctr_per_segment_init_ext(nseg, nvctr, nvctr_per_segment)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: nseg, nvctr
+      integer,dimension(nseg),intent(out) :: nvctr_per_segment
+      ! Local variables
+      real(kind=8) :: tt
+      integer :: ii, jseg
+      ! Distribute the elements evenly among the segments
+      tt=real(nvctr,kind=8)/real(nseg,kind=8)
+      ii=floor(tt)
+      do jseg=1,nseg
+          nvctr_per_segment(jseg)=ii
+      end do
+      ii=nvctr-nseg*ii
+      do jseg=1,ii
+          nvctr_per_segment(jseg)=nvctr_per_segment(jseg)+1
+      end do
+      if (sum(nvctr_per_segment)/=nvctr) stop 'sum(nvctr_per_segment)/=nvctr'
+    end subroutine nvctr_per_segment_init_ext
+
+
+    function check_symmetry(smat)
+      implicit none
+    
+      ! Calling arguments
+      type(sparse_matrix),intent(in) :: smat
+      logical :: check_symmetry
+    
+      ! Local variables
+      integer :: i, iseg, ii, jorb, iorb
+      logical,dimension(:,:),allocatable :: lgrid
+      !integer,dimension(2) :: irowcol
+    
+      lgrid=f_malloc((/smat%nfvctr,smat%nfvctr/),id='lgrid')
+      lgrid=.false.
+    
+      do iseg=1,smat%nseg
+          ii=smat%keyv(iseg)
+          ! A segment is always on one line, therefore no double loop
+          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+              !irowcol=orb_from_index(smat,i)
+              !!iorb=smat%orb_from_index(1,i)
+              !!jorb=smat%orb_from_index(2,i)
+              lgrid(smat%keyg(1,2,iseg),i)=.true.
+              ii=ii+1
+          end do
+      end do
+    
+      check_symmetry=.true.
+      do iorb=1,smat%nfvctr
+          do jorb=1,smat%nfvctr
+              if (lgrid(jorb,iorb) .and. .not.lgrid(iorb,jorb)) then
+                  check_symmetry=.false.
+              end if
+          end do
+      end do
+    
+      call f_free(lgrid)
+    
+    end function check_symmetry
+
+
+    subroutine init_transposed_lookup_local(smat)
+      implicit none
+
+      ! Calling arguments
+      type(sparse_matrix),intent(inout) :: smat
+
+      ! Local variables
+      integer :: iseg, ii, i, ii_trans, iicheck
+
+      call f_routine(id='init_transposed_lookup_local')
+
+      smat%transposed_lookup_local = f_malloc_ptr(smat%istartend_local(1).to.smat%istartend_local(2), &
+           id='smat%transposed_lookup_local')
+
+      iicheck = 0
+      !$omp parallel default(none) &
+      !$omp shared(smat, iicheck) &
+      !$omp private(iseg,ii,i,ii_trans)
+      !$omp do schedule(guided) reduction(+: iicheck)
+      do iseg=smat%istartendseg_local(1),smat%istartendseg_local(2)
+          ii = smat%keyv(iseg)
+          ! A segment is always on one line, therefore no double loop
+          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+              ii_trans = matrixindex_in_compressed(smat,smat%keyg(1,2,iseg),i)
+              smat%transposed_lookup_local(ii) = ii_trans
+              ii=ii+1
+              iicheck = iicheck + 1
+          end do
+      end do
+      !$omp end do
+      !$omp end parallel
+
+      if (iicheck /= smat%istartend_local(2)-smat%istartend_local(1)+1) then
+          call f_err_throw('iicheck /= smat%istartend_local(2)-smat%istartend_local(1)+1', &
+               err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      end if
+
+      call f_release_routine()
+      
+    end subroutine init_transposed_lookup_local
+
+
+    subroutine generate_random_symmetric_sparsity_pattern(iproc, nproc, comm, nfvctr, nvctr, smat)
+      use random, only: builtin_rand
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm, nfvctr, nvctr
+      type(sparse_matrix),intent(out) :: smat
+      ! Local variables
+      integer :: itotal, idum, ivctr, ii, jj, it
+      real(kind=mp) :: tt
+      real(kind=4) :: tt_rand
+      integer :: nnonzero, inonzero
+      integer,dimension(:,:),allocatable :: nonzero, nonzero_check
+      type(f_progress_bar) :: bar
+
+      call f_routine(id='generate_random_symmetric_sparsity_pattern')
+
+      ! The number of non-zero entries must be at least as large as the matrix dimension.
+      if (nvctr<nfvctr) then
+          call f_err_throw('nvctr<nfvctr', err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      end if
+
+      ! The number of non-zero entries must not be larger than the suare of the matrix dimension.
+      if (nvctr>nfvctr**2) then
+          call f_err_throw('nvctr>nfvctr**2', err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+      end if
+
+      ! Determine the sparisty pattern only on root and then broadcast, just to be sure
+      ! that all process have the same pattern.
+
+      root_if1: if (iproc==0) then
+
+          ! First count how many non-zero entries there are for each line.
+          ! Since we want to have the diagonal elements within the sparsity pattern,
+          ! we start with nnonzero=nfvctr
+          call yaml_mapping_open('Count nonzero entries')
+          bar=f_progress_bar_new(nstep=nvctr)
+          nonzero_check = f_malloc0((/2,nvctr+1/),id='nonzero_check')
+          nnonzero = nfvctr
+          ! First the diagonal elements
+          do ii=1,nfvctr
+              nonzero_check(1,ii) = ii
+              nonzero_check(2,ii) = ii
+          end do
+          idum = 0
+          tt_rand = builtin_rand(idum, reset=.true.)
+          it = 0
+          search_loop1: do
+              it = it + 1
+              if (it==100) then
+                  call dump_progress_bar(bar,step=nnonzero)
+                  it = 0
+              end if
+              if (nnonzero>=nvctr) then
+                  call dump_progress_bar(bar,step=nnonzero)
+                  exit search_loop1
+              end if
+              tt_rand = builtin_rand(idum)
+              tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
+              ii = max(nint(tt),1)
+              tt_rand = builtin_rand(idum)
+              tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
+              jj = max(nint(tt),1)
+              ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
+              ! we thus have a non-zero entry in both the lines ii and jj
+              do inonzero=1,nnonzero
+                  if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
+                      cycle search_loop1
+                  end if
+              end do
+              if (ii==jj) then
+                  ! Diagonal element
+                  nonzero_check(1,nnonzero+1) = ii
+                  nonzero_check(2,nnonzero+1) = jj
+                  nnonzero = nnonzero + 1
+              else
+                  ! Offdiagonal element
+                  nonzero_check(1,nnonzero+1) = ii
+                  nonzero_check(2,nnonzero+1) = jj
+                  nonzero_check(1,nnonzero+2) = jj
+                  nonzero_check(2,nnonzero+2) = ii
+                  nnonzero = nnonzero + 2
+              end if
+          end do search_loop1
+
+          call yaml_newline()
+          call yaml_mapping_close()
+    
+      end if root_if1
+
+      call mpibcast(nnonzero, 1, root=0, comm=comm)
+      nonzero = f_malloc0((/2,nnonzero/),id='nonzero')
+
+      root_if2: if (iproc==0) then
+
+          call yaml_mapping_open('Determine nonzero entries')
+          bar=f_progress_bar_new(nstep=nvctr)
+    
+          ! Now determine the coordinates of the non-zero entries
+          ! First the diagonal elements
+          do ii=1,nfvctr
+              nonzero(1,ii) = ii
+              nonzero(2,ii) = ii
+              nonzero_check(1,ii) = ii
+              nonzero_check(2,ii) = ii
+          end do
+          idum = 0
+          tt_rand = builtin_rand(idum, reset=.true.)
+          ivctr = nfvctr
+          it = 0
+          search_loop2: do
+              it = it + 1
+              if (it==100) then
+                  call dump_progress_bar(bar,step=ivctr)
+                  it = 0
+              end if
+              if (ivctr>=nvctr) then
+                  call dump_progress_bar(bar,step=ivctr)
+                  exit search_loop2
+              end if
+              tt_rand = builtin_rand(idum)
+              tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
+              ii = max(nint(tt),1)
+              tt_rand = builtin_rand(idum)
+              tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
+              jj = max(nint(tt),1)
+              ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
+              ! we thus have a non-zero entry in both the lines ii and jj
+              do inonzero=1,ivctr
+                  if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
+                      cycle search_loop2
+                  end if
+              end do
+              if (ii==jj) then
+                  ! Diagonal element
+                  nonzero_check(1,ivctr+1) = ii
+                  nonzero_check(2,ivctr+1) = jj
+                  nonzero(1,ivctr+1) = ii
+                  nonzero(2,ivctr+1) = jj
+                  ivctr = ivctr + 1
+              else
+                  ! Offdiagonal element
+                  nonzero_check(1,ivctr+1) = ii
+                  nonzero_check(2,ivctr+1) = jj
+                  nonzero_check(1,ivctr+2) = jj
+                  nonzero_check(2,ivctr+2) = ii
+                  nonzero(1,ivctr+1) = ii
+                  nonzero(2,ivctr+1) = jj
+                  nonzero(1,ivctr+2) = jj
+                  nonzero(2,ivctr+2) = ii
+                  ivctr = ivctr + 2
+              end if
+          end do search_loop2
+
+          call yaml_newline()
+          call yaml_mapping_close()
+    
+          if (ivctr/=nnonzero) then
+              call f_err_throw(trim(yaml_toa(ivctr))//'=ivctr /= &
+                               &nnonzero='//trim(yaml_toa(nnonzero)), &
+                               err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+
+          call f_free(nonzero_check)
+
+      end if root_if2
+
+      call mpibcast(nonzero(:,:), root=0, comm=comm)
+
+      !!do ii=1,nfvctr
+      !!    write(*,*) 'ii, nnonzero(ii)', ii, nnonzero(ii)
+      !!end do
+
+      call init_sparse_matrix(iproc, nproc, comm, nfvctr, nnonzero, nonzero, nnonzero, nonzero, smat)
+      call init_matrix_taskgroups(iproc, nproc, comm, parallel_layout=.false., smat=smat)
+
+      call f_free(nonzero)
+
+      call f_release_routine()
+
+    end subroutine generate_random_symmetric_sparsity_pattern
+
+
+    ! Parallelization a number n over nproc nasks
+    subroutine distribute_on_tasks(n, iproc, nproc, np, is)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: n, iproc, nproc
+      integer,intent(out) :: np, is
+
+      ! Local variables
+      integer :: ii
+
+      ! First distribute evenly...
+      np = n/nproc
+      is = iproc*np
+      ! ... and now distribute the remaining atoms.
+      ii = n-nproc*np
+      if (iproc<ii) np = np + 1
+      is = is + min(iproc,ii)
+
+   end subroutine distribute_on_tasks
 
 end module sparsematrix_init

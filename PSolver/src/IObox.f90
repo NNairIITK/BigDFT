@@ -19,10 +19,11 @@ module IObox
   
   private
 
+
   public :: read_field,read_field_dimensions,dump_field
 
   contains
-
+    
     pure subroutine cube_dimensions(geocode,ndims,nc1,nc2,nc3)
       implicit none
       character(len=1), intent(in) :: geocode
@@ -449,6 +450,7 @@ module IObox
     subroutine write_cube_fields(prefix,message,geocode,ndims,ns,hgrids,&
          factor,a,x,nexpo,b,y,nat,rxyz,iatype,nzatom,nelpsp,ixyz0)
       use f_utils
+      use dynamic_memory
       implicit none
       !integer,intent(in) :: fileunit0,fileunitx,fileunity,fileunitz
       character(len=1), intent(in) :: geocode
@@ -470,6 +472,8 @@ module IObox
       integer :: nl1,nl2,nl3,nbx,nby,nbz,i1,i2,i3,icount,j,iat,nc1,nc2,nc3
       real(dp) :: later_avg,xx,yy,zz
       real(gp), dimension(3) :: cell_dim
+
+      call f_routine(id='write_cube_fields')
 
       call startend_buffers(geocode,nl1,nl2,nl3,nbx,nby,nbz)
       call cube_dimensions(geocode,ndims,nc1,nc2,nc3)
@@ -671,6 +675,8 @@ module IObox
          call f_close(fileunitz)
       end if
 
+      call f_release_routine()
+
     END SUBROUTINE write_cube_fields
 
     subroutine dump_field(filename,geocode,ndims,hgrids,nspin,rho,&
@@ -709,6 +715,8 @@ module IObox
       integer,parameter :: unitx = 23
       integer,parameter :: unity = 24
       integer,parameter :: unitz = 25
+
+      call f_routine(id='dump_field')
 
       nat=0
       if (present(iatype)) then
@@ -876,6 +884,8 @@ module IObox
             call f_free_ptr(nzatom_)
             call f_free_ptr(nelpsp_)
          end if
+
+         call f_release_routine()
 
        END SUBROUTINE dump_field
 

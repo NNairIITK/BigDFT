@@ -496,11 +496,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.7977E-02, -1.7040E-02, -5.4117E-02 ]
-   norm(P)                             :  5.951654E-02
+   P vector                            :  [ -1.9463E-02, -1.8607E-02, -5.5157E-02 ]
+   norm(P)                             :  6.137838E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.5694E-02, -4.3310E-02, -1.3755E-01 ]
-   norm(P)                             :  1.512759E-01
+   P vector                            :  [ -4.9469E-02, -4.7294E-02, -1.4020E-01 ]
+   norm(P)                             :  1.560083E-01
  Average noise forces: {x:  3.26058487E-03, y:  2.76516222E-03, z:  4.83196051E-03, 
                     total:  6.45177327E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.072871294462E-02, fnrm2:  3.898092692501E-03}
@@ -705,11 +705,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.8599E-02, -1.6582E-02, -5.4102E-02 ]
-   norm(P)                             :  5.956422E-02
+   P vector                            :  [ -2.0085E-02, -1.8149E-02, -5.5141E-02 ]
+   norm(P)                             :  6.142758E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.7275E-02, -4.2147E-02, -1.3751E-01 ]
-   norm(P)                             :  1.513971E-01
+   P vector                            :  [ -5.105E-02, -4.6130E-02, -1.4016E-01 ]
+   norm(P)                             :  1.561333E-01
  Average noise forces: {x:  3.27575767E-03, y:  2.75824540E-03, z:  4.83652616E-03, 
                     total:  6.45991419E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.076828742333E-02, fnrm2:  3.749709664566E-03}
@@ -909,11 +909,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.7483E-02, -1.7343E-02, -5.4141E-02 ]
-   norm(P)                             :  5.947824E-02
+   P vector                            :  [ -1.8968E-02, -1.8910E-02, -5.5181E-02 ]
+   norm(P)                             :  6.133748E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.4437E-02, -4.4081E-02, -1.3761E-01 ]
-   norm(P)                             :  1.511786E-01
+   P vector                            :  [ -4.8211E-02, -4.8065E-02, -1.4026E-01 ]
+   norm(P)                             :  1.559043E-01
  Average noise forces: {x:  3.23643126E-03, y:  2.79270483E-03, z:  4.83132716E-03, 
                     total:  6.45100067E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.233914676004E-02, fnrm2:  4.121521568437E-03}
@@ -1111,11 +1111,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.7935E-02, -1.6775E-02, -5.2706E-02 ]
-   norm(P)                             :  5.814592E-02
+   P vector                            :  [ -1.9542E-02, -1.8471E-02, -5.3885E-02 ]
+   norm(P)                             :  6.022182E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.5587E-02, -4.2637E-02, -1.3396E-01 ]
-   norm(P)                             :  1.477922E-01
+   P vector                            :  [ -4.9671E-02, -4.6948E-02, -1.3696E-01 ]
+   norm(P)                             :  1.530686E-01
  Average noise forces: {x:  3.21698992E-03, y:  2.71612235E-03, z:  1.76502858E-03, 
                     total:  4.56526786E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.109623036887E-02, fnrm2:  3.979957751324E-03}
@@ -1315,11 +1315,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.821E-02, -1.7050E-02, -5.5264E-02 ]
-   norm(P)                             :  6.063349E-02
+   P vector                            :  [ -1.9693E-02, -1.8615E-02, -5.6299E-02 ]
+   norm(P)                             :  6.248136E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.6284E-02, -4.3337E-02, -1.4047E-01 ]
-   norm(P)                             :  1.541150E-01
+   P vector                            :  [ -5.0055E-02, -4.7315E-02, -1.4310E-01 ]
+   norm(P)                             :  1.588118E-01
  Average noise forces: {x:  3.26752713E-03, y:  2.78173272E-03, z:  7.91626092E-03, 
                     total:  9.00455204E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.068790107551E-02, fnrm2:  3.872653367220E-03}
@@ -1517,11 +1517,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.831E-02, -1.6443E-02, -5.4070E-02 ]
-   norm(P)                             :  5.940692E-02
+   P vector                            :  [ -1.9795E-02, -1.8010E-02, -5.5110E-02 ]
+   norm(P)                             :  6.126397E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.6539E-02, -4.1794E-02, -1.3743E-01 ]
-   norm(P)                             :  1.509973E-01
+   P vector                            :  [ -5.0314E-02, -4.5777E-02, -1.4007E-01 ]
+   norm(P)                             :  1.557175E-01
  Average noise forces: {x:  3.25369754E-03, y:  2.73475346E-03, z:  4.83385232E-03, 
                     total:  6.43673461E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.073179289264E-02, fnrm2:  3.613914667438E-03}
@@ -1719,11 +1719,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.7859E-02, -1.7574E-02, -5.4152E-02 ]
-   norm(P)                             :  5.966747E-02
+   P vector                            :  [ -1.9343E-02, -1.9141E-02, -5.5192E-02 ]
+   norm(P)                             :  6.153612E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.5392E-02, -4.4668E-02, -1.3764E-01 ]
-   norm(P)                             :  1.516596E-01
+   P vector                            :  [ -4.9166E-02, -4.8651E-02, -1.4028E-01 ]
+   norm(P)                             :  1.564092E-01
  Average noise forces: {x:  3.25737147E-03, y:  2.78922413E-03, z:  4.83249740E-03, 
                     total:  6.46090328E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.482375125536E-02, fnrm2:  4.279250913183E-03}
@@ -1922,11 +1922,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.7876E-02, -1.6895E-02, -5.2714E-02 ]
-   norm(P)                             :  5.816982E-02
+   P vector                            :  [ -1.9482E-02, -1.8591E-02, -5.3894E-02 ]
+   norm(P)                             :  6.024703E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.5435E-02, -4.2942E-02, -1.3399E-01 ]
-   norm(P)                             :  1.478529E-01
+   P vector                            :  [ -4.9519E-02, -4.7254E-02, -1.3698E-01 ]
+   norm(P)                             :  1.531327E-01
  Average noise forces: {x:  3.21161367E-03, y:  2.72445966E-03, z:  1.77076589E-03, 
                     total:  4.56867099E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.109380750291E-02, fnrm2:  3.981523388335E-03}
@@ -2124,11 +2124,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.8198E-02, -1.6956E-02, -5.5258E-02 ]
-   norm(P)                             :  6.059807E-02
+   P vector                            :  [ -1.9682E-02, -1.8521E-02, -5.6293E-02 ]
+   norm(P)                             :  6.244408E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.6255E-02, -4.3098E-02, -1.4045E-01 ]
-   norm(P)                             :  1.540249E-01
+   P vector                            :  [ -5.0026E-02, -4.7076E-02, -1.4308E-01 ]
+   norm(P)                             :  1.587170E-01
  Average noise forces: {x:  3.26860478E-03, y:  2.78068118E-03, z:  7.90830982E-03, 
                     total:  8.99762910E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.068889097489E-02, fnrm2:  3.869772706461E-03}
@@ -2326,11 +2326,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.7349E-02, -1.6595E-02, -5.4010E-02 ]
-   norm(P)                             :  5.910539E-02
+   P vector                            :  [ -1.8862E-02, -1.8182E-02, -5.5083E-02 ]
+   norm(P)                             :  6.099590E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.4097E-02, -4.2180E-02, -1.3728E-01 ]
-   norm(P)                             :  1.502309E-01
+   P vector                            :  [ -4.7943E-02, -4.6215E-02, -1.4001E-01 ]
+   norm(P)                             :  1.550361E-01
  Average noise forces: {x:  3.29131936E-03, y:  2.76511615E-03, z:  4.83106039E-03, 
                     total:  6.46666800E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.103613460463E-02, fnrm2:  3.939579172324E-03}
@@ -2532,11 +2532,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.8607E-02, -1.6578E-02, -5.4022E-02 ]
-   norm(P)                             :  5.949281E-02
+   P vector                            :  [ -2.0123E-02, -1.8166E-02, -5.5094E-02 ]
+   norm(P)                             :  6.140280E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.7295E-02, -4.2137E-02, -1.3731E-01 ]
-   norm(P)                             :  1.512156E-01
+   P vector                            :  [ -5.1147E-02, -4.6172E-02, -1.4004E-01 ]
+   norm(P)                             :  1.560703E-01
  Average noise forces: {x:  3.22801875E-03, y:  2.75968172E-03, z:  4.82656958E-03, 
                     total:  6.42897521E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.138321336481E-02, fnrm2:  3.923330666565E-03}
@@ -2734,11 +2734,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.7983E-02, -1.6657E-02, -5.3954E-02 ]
-   norm(P)                             :  5.926146E-02
+   P vector                            :  [ -1.953E-02, -1.8268E-02, -5.5064E-02 ]
+   norm(P)                             :  6.121416E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.5708E-02, -4.2338E-02, -1.3714E-01 ]
-   norm(P)                             :  1.506276E-01
+   P vector                            :  [ -4.9642E-02, -4.6433E-02, -1.3996E-01 ]
+   norm(P)                             :  1.555909E-01
  Average noise forces: {x:  3.26142017E-03, y:  2.77480229E-03, z:  4.82623698E-03, 
                     total:  6.45205027E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.556423493912E-02, fnrm2:  4.244182579508E-03}
@@ -2936,11 +2936,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.8028E-02, -1.6457E-02, -5.4084E-02 ]
-   norm(P)                             :  5.933720E-02
+   P vector                            :  [ -1.9513E-02, -1.8024E-02, -5.5123E-02 ]
+   norm(P)                             :  6.118932E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.5823E-02, -4.1830E-02, -1.3747E-01 ]
-   norm(P)                             :  1.508201E-01
+   P vector                            :  [ -4.9596E-02, -4.5812E-02, -1.4011E-01 ]
+   norm(P)                             :  1.555277E-01
  Average noise forces: {x:  3.25703264E-03, y:  2.74574171E-03, z:  4.83019187E-03, 
                     total:  6.44035035E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.072836190738E-02, fnrm2:  3.650132481085E-03}
@@ -3141,11 +3141,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.8057E-02, -1.6890E-02, -5.2733E-02 ]
-   norm(P)                             :  5.824143E-02
+   P vector                            :  [ -1.9664E-02, -1.8587E-02, -5.3912E-02 ]
+   norm(P)                             :  6.032162E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.5897E-02, -4.2930E-02, -1.3403E-01 ]
-   norm(P)                             :  1.480349E-01
+   P vector                            :  [ -4.9982E-02, -4.7242E-02, -1.3703E-01 ]
+   norm(P)                             :  1.533222E-01
  Average noise forces: {x:  3.21812609E-03, y:  2.71919065E-03, z:  1.77309307E-03, 
                     total:  4.57101656E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.110026454377E-02, fnrm2:  3.978916210860E-03}
@@ -3343,11 +3343,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.8027E-02, -1.6955E-02, -5.5241E-02 ]
-   norm(P)                             :  6.053090E-02
+   P vector                            :  [ -1.951E-02, -1.8520E-02, -5.6275E-02 ]
+   norm(P)                             :  6.237420E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.5821E-02, -4.3095E-02, -1.4041E-01 ]
-   norm(P)                             :  1.538542E-01
+   P vector                            :  [ -4.9589E-02, -4.7072E-02, -1.4304E-01 ]
+   norm(P)                             :  1.585394E-01
  Average noise forces: {x:  3.26580866E-03, y:  2.78122310E-03, z:  7.90627994E-03, 
                     total:  8.99499698E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.068768536248E-02, fnrm2:  3.869199556385E-03}
@@ -3546,11 +3546,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.7516E-02, -1.6620E-02, -5.4091E-02 ]
-   norm(P)                             :  5.923534E-02
+   P vector                            :  [ -1.9E-02, -1.8186E-02, -5.5130E-02 ]
+   norm(P)                             :  6.108257E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.4521E-02, -4.2244E-02, -1.3748E-01 ]
-   norm(P)                             :  1.505612E-01
+   P vector                            :  [ -4.8294E-02, -4.6225E-02, -1.4013E-01 ]
+   norm(P)                             :  1.552564E-01
  Average noise forces: {x:  3.25884117E-03, y:  2.77120401E-03, z:  4.83704517E-03, 
                     total:  6.45729227E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.059857090667E-02, fnrm2:  3.747003130277E-03}
@@ -3750,11 +3750,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.8566E-02, -1.7362E-02, -5.4139E-02 ]
-   norm(P)                             :  5.980990E-02
+   P vector                            :  [ -2.0052E-02, -1.8930E-02, -5.5180E-02 ]
+   norm(P)                             :  6.168632E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.7191E-02, -4.4130E-02, -1.3761E-01 ]
-   norm(P)                             :  1.520216E-01
+   P vector                            :  [ -5.0966E-02, -4.8116E-02, -1.4025E-01 ]
+   norm(P)                             :  1.567910E-01
  Average noise forces: {x:  3.27186505E-03, y:  2.78837109E-03, z:  4.83404684E-03, 
                     total:  6.46901253E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.307940158963E-02, fnrm2:  4.124968451326E-03}
@@ -3953,11 +3953,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.8741E-02, -1.6950E-02, -5.4123E-02 ]
-   norm(P)                             :  5.973118E-02
+   P vector                            :  [ -2.0226E-02, -1.8517E-02, -5.5163E-02 ]
+   norm(P)                             :  6.160262E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.7634E-02, -4.3082E-02, -1.3757E-01 ]
-   norm(P)                             :  1.518215E-01
+   P vector                            :  [ -5.1409E-02, -4.7065E-02, -1.4021E-01 ]
+   norm(P)                             :  1.565782E-01
  Average noise forces: {x:  4.42851176E-03, y:  2.76207157E-03, z:  4.82749581E-03, 
                     total:  7.10953385E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.129896049896E-02, fnrm2:  3.904669641741E-03}
@@ -4151,11 +4151,11 @@
    Box                                 :  [  91,  95,  65 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.746E-02, -1.6993E-02, -5.4122E-02 ]
-   norm(P)                             :  5.935316E-02
+   P vector                            :  [ -1.8945E-02, -1.8560E-02, -5.5162E-02 ]
+   norm(P)                             :  6.120635E-02
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -4.4379E-02, -4.3191E-02, -1.3756E-01 ]
-   norm(P)                             :  1.508607E-01
+   P vector                            :  [ -4.8154E-02, -4.7174E-02, -1.4021E-01 ]
+   norm(P)                             :  1.555710E-01
  Average noise forces: {x:  2.12603059E-03, y:  2.76340748E-03, z:  4.83103557E-03, 
                     total:  5.95779588E-03}
  Clean forces norm (Ha/Bohr): {maxval:  2.094375538792E-02, fnrm2:  3.916466192497E-03}

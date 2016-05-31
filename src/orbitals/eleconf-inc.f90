@@ -1063,6 +1063,21 @@ neleconf(5,0)=1.d-18
      nsccode=3
      amu=112.411d0
 
+  case(48*1000+20)
+     ! -----------------------          76
+     ! Cd          48          12     Symbol, Z, Zion
+     symbol = "Cd"
+     rcov=2.50d0
+     rprb=5.00d0
+     ehomo=-0.204228d0
+     neleconf(4,0)=2
+     neleconf(4,1)=6
+     neleconf(4,2)=10
+     neleconf(5,0)=2
+!NN-TODO check this
+     nsccode=123
+     amu=112.411d0
+
   case(48*1000+2)
      ! -----------------------          77
      ! Cd          48           2     Symbol, Z, Zion
