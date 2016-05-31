@@ -467,6 +467,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
 
      ! check the extent of the kernel cutoff (must be at least shamop radius)
+     if (iproc==0) then
+         call yaml_comment('Sparse matrix initialization',hfill='-')
+     end if
      call check_kernel_cutoff(iproc, tmb%orbs, atoms, in%hamapp_radius_incr, tmb%lzd)
      call init_sparse_matrix_wrapper(iproc, nproc, &
           in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
@@ -554,6 +557,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      tmb%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, &
          iaction=SPARSE_TASKGROUP,id='tmb%linmat%ovrlp_%matrix_compr')
 
+     if (iproc==0) then
+         call yaml_comment('Unitary tests',hfill='-')
+         call yaml_mapping_open('Results of unitary tests')
+     end if
+
      if (in%check_matrix_compression) then
          if (iproc==0) call yaml_mapping_open('Checking Compression/Uncompression of small sparse matrices')
          !call check_matrix_compression(iproc,tmb%linmat%ham)
@@ -601,9 +609,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      end if
 
 
-     if (iproc==0) then
-         call yaml_mapping_open('Unitary tests')
-     end if
      if (in%check_matrix_compression) then
          if (iproc==0) then
              call yaml_mapping_open('Checking Compression/Uncompression of large sparse matrices')

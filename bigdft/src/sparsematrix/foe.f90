@@ -247,12 +247,14 @@ module foe
                        smats=smats, ovrlp_=ovrlp_, ovrlp_minus_one_half_=ovrlp_minus_one_half_(1), &
                        efarr=efarr, fscale_arr=fscale_arr, max_errorx=max_error)
 
-                  call yaml_mapping_open('summary',flow=.true.)
-                  call yaml_map('npl',npl)
-                  call yaml_map('bounds', &
-                       (/foe_data_get_real(ice_obj,"evlow",ispin),foe_data_get_real(ice_obj,"evhigh",ispin)/),fmt='(f6.2)')
-                  call yaml_map('exp accur',max_error,fmt='(es8.2)')
-                  call yaml_mapping_close()
+                  if (iproc==0) then
+                      call yaml_mapping_open('summary',flow=.true.)
+                      call yaml_map('npl',npl)
+                      call yaml_map('bounds', &
+                           (/foe_data_get_real(ice_obj,"evlow",ispin),foe_data_get_real(ice_obj,"evhigh",ispin)/),fmt='(f6.2)')
+                      call yaml_map('exp accur',max_error,fmt='(es8.2)')
+                      call yaml_mapping_close()
+                  end if
 
                   call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
                        foe_verbosity, 'test', smatl, ispin, foe_obj, kernel_)
