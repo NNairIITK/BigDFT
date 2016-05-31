@@ -31,4 +31,4 @@ report:
 	python $(top_builddir)/tests/report.py
 
 clean-local:
-	-rm -rf includes
+	rm -rf includes
