@@ -1,0 +1,10 @@
+jhbuild/
+jhbuild.py
+bigdft.modules
+gnome.modules
+rcfiles/
+m4/
+distfiles
+Installer.py
+INSTALL
+README

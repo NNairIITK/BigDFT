@@ -1,4 +1,4 @@
-/*! @file 
+/*! @file
 @brief README of the source directory of the Structure Prediction library
 
 @dir ./spred
@@ -6,10 +6,10 @@
 @details
 This library is part of the BigDFT project but can also be used separately.
 All the source files of this directory
-are delivered under the GNU General Public License; please see the file COPYING 
+are delivered under the GNU General Public License; please see the file COPYING
 for copying conditions.
 
-Here should follow some of the papers that have to be cited while using this library 
+Here should follow some of the papers that have to be cited while using this library
 for scientific work
 
 See the file INSTALL for generic compilation and installation instructions.

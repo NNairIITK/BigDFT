@@ -1,13 +1,10 @@
-vpath %.h ../modules
-
-
 mhgps_objects = \
                module_mhgps_state.f90 \
                module_userinput.f90 \
                module_hessian.f90 \
                module_io.f90 \
                module_energyandforces.f90 \
-	   		   module_minimizers.f90 \
+	       module_minimizers.f90 \
                module_saddle.f90 \
                module_interpol.f90 \
                module_ls_rmsd.f90 \
@@ -23,8 +20,7 @@ mhgps_SOURCES = $(mhgps_objects)
 
 ##AM_FCFLAGS = -I. -I$(top_builddir)/includes
 ##AM_FCFLAGS = -I. I$(top_builddir)/includes
-AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/spred/src/spred_baselib -I$(top_builddir)/includes @MPI_INCLUDE@\
-             @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/src/spred_baselib @MPI_INCLUDE@ @LIB_BIGDFT_CFLAGS@
 
 CLEANFILES = *.@MODULE_EXT@ 
 noinst_LIBRARIES = libmhgps.a

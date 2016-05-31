@@ -3,11 +3,11 @@
 !!
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2016 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 !!  Modified by Laurent Karim Beland, UdeM, 2011. For working with QM/MM !!
 subroutine initialize_potential( )
    use defs
@@ -16,7 +16,6 @@ subroutine initialize_potential( )
    implicit None
 
    !Local variables
-   integer :: ierror
 
    if (energy_type == "BIG") then
       call bigdft_init_art(nbr_quantum, iproc, nproc, my_gnrm,passivate,natoms )
@@ -85,7 +84,7 @@ subroutine initialize_fitting_zone()
       do j = 1,numnei(i)
          k = nei(i,j)
          should_fit(k) = .true.
-      enddo   
+      enddo
    enddo
    nbr_to_fit = 0
    do i = 1,natoms
@@ -101,7 +100,7 @@ subroutine finalise_potential( )
    use bigdft_forces
    use defs, only : energy_type
 
-   implicit none  
+   implicit none
 
    if (energy_type == "BIG" .or. energy_type == "BSW") call bigdft_finalise( )
 
