@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-05-04 11:40:23.790
+ Version Number                        : 1.8
+ Timestamp of this run                 : 2016-05-31 16:15:54.322
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -37,9 +37,16 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort' 'CC=gcc' 'FCFLAGS=-O2 
+     " '--prefix' '/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install' 
+     'FC=/home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort' 'CC=gcc' 'FCFLAGS=-O2 
      -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp -m64' 
-     '--with-ext-linalg='"
+     '--with-ext-linalg=' 
+     'LDFLAGS=-L/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install/lib ' 
+     'C_INCLUDE_PATH=/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install/incl
+     ude' 
+     'PKG_CONFIG_PATH=/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install/lib
+     /pkgconfig:/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install/share/pkg
+     config:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig'"
    Compilers (CC, FC, CXX): [gcc, /home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort, 
                              g++]
    Compiler flags:
@@ -196,6 +203,9 @@
     #                                              new approach Projector
    support_function_multipoles         : False #  Calculate the multipole moments of the support functions
    plot_locreg_grids                   : False #  plot the scaling function and wavelets grid of each localization region
+   calculate_FOE_eigenvalues: [0, -1] #           First and last eigenvalue to be calculated using the FOE procedure
+   precision_FOE_eigenvalues           : 5.e-3 #  decay length of the error function used to extract the eigenvalues (i.e. something like 
+    #                                              the resolution)
  lin_basis:
    nit                                 : 3 #      maximal number of iterations in the optimization of the support functions
    idsx: [5, 0] #                                 DIIS history for optimization of the support functions 
@@ -313,6 +323,8 @@
    sic_alpha                           : 0. #     SIC downscaling parameter
  tddft:
    tddft_approach                      : none #   Time-Dependent DFT method
+   decompose_perturbation              : none #   Indicate the directory of the perturbation to be decomposed in the basis of empty 
+    #                                              states
  mode:
    method                              : dft #    Run method of BigDFT call
  psppar.Be:
@@ -547,30 +559,12 @@
    Minimum                             :  3
    Maximum                             :  3
    Average                             :  3.0
- Wavefunctions memory occupation for root MPI process:  0 MB 924 KB 368 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  16
    Total number of components          :  68804
    Percent of zero components          :  0
    Size of workspaces                  :  68868
-  #WARNING: Do not call check_communications in the linear scaling version!
-  #-------------------------------------------------------- Estimation of Memory Consumption
- Memory requirements for principal quantities (MiB.KiB):
-   Subspace Matrix                     : 0.1 #    (Number of Orbitals: 10)
-   Single orbital                      : 0.463 #  (Number of Components: 59159)
-   All (distributed) orbitals          : 2.726 #  (Number of Orbitals per MPI task: 2)
-   Wavefunction storage size           : 20.781 # (DIIS/SD workspaces included)
-   Nonlocal Pseudopotential Arrays     : 0.538
-   Full Uncompressed (ISF) grid        : 11.130
-   Workspaces storage size             : 0.1023
- Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 30.659
-   Density Construction                : 56.727
-   Poisson Solver                      : 41.216
-   Hamiltonian application             : 57.733
-   Orbitals Orthonormalization         : 57.733
- Estimated Memory Peak (MB)            :  57
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  16
@@ -579,125 +573,127 @@
    Size of workspaces                  :  68868
    Maximum size of masking arrays for a projector:  6372
    Cumulative size of masking arrays   :  19869
- total elements                        :  576
- non-zero elements                     :  576
-  #segments:  24
- sparsity in %                         :  0.00
- sparse matrix multiplication initialized:  No
- total elements                        :  576
- non-zero elements                     :  554
-  #segments:  38
- sparsity in %                         :  3.82
- sparse matrix multiplication initialized:  No
- check of kernel cutoff radius:
+  #------------------------------------------------------------ Sparse matrix initialization
+ Check of kernel cutoff radius:
  -  {atom type: H, adjustment required:  Yes, new value:  9.60}
  -  {atom type: Be, adjustment required:  Yes, new value:  9.60}
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
- total elements                        :  576
- non-zero elements                     :  576
-  #segments:  24
- sparsity in %                         :  0.00
- sparse matrix multiplication initialized:  Yes
- taskgroup summary:
-   number of taskgroups                :  1
-   taskgroups overview:
-   -  {number of tasks:  8, start / end:  [  1,  554 ], 
-  start / end disjoint:  [  1,  554 ]}
- taskgroup summary:
-   number of taskgroups                :  1
-   taskgroups overview:
-   -  {number of tasks:  8, start / end:  [  1,  576 ], 
-  start / end disjoint:  [  1,  576 ]}
- taskgroup summary:
-   number of taskgroups                :  1
-   taskgroups overview:
-   -  {number of tasks:  8, start / end:  [  1,  576 ], 
-  start / end disjoint:  [  1,  576 ]}
- Checking Compression/Uncompression of small sparse matrices:
-   Tolerances for this check           :  1.00000001335143196E-10
-   Maxdiff for compress                :  0.00000000000000000E+00
-   Maxdiff for uncompress              :  0.00000000000000000E+00
-   Tolerances for this check           :  1.00000001335143196E-10
-   Maxdiff for compress                :  0.00000000000000000E+00
-   Maxdiff for uncompress              :  0.00000000000000000E+00
- sparse matmul load balancing naive / optimized:  [  1.60,  1.60 ]
- sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
- Checking Compression/Uncompression of large sparse matrices:
-   Tolerances for this check           :  1.00000001335143196E-10
-   Maxdiff for compress                :  0.00000000000000000E+00
-   Maxdiff for uncompress              :  0.00000000000000000E+00
- Checking operations for potential communication:
-   Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  0.000000000000000000E+00
-   Tolerance for the following test    :  1.000000000000000036E-10
-   calculation check, error max        :  0.000000000000000000E+00
- Checking operations for sumrho:
-   Tolerance for the following test    :  9.999999999999999988E-15
-   transposition check, mean error     :  0.000000000000000000E+00
-   transposition check, max error      :  0.000000000000000000E+00
- Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  9332,  700 ]
-   Tolerances for this check: [ 2.23626669652402877E-06,  5.32907051820075139E-15]
-   Maxdiff for transpose (checksum)    :  1.74622982740402222E-10
-   Maxdiff for untranspose             :  0.00000000000000000E+00
- Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  8802,  594 ]
-   Tolerances for this check: [ 4.18253338917614227E-06,  5.32907051820075139E-15]
-   Maxdiff for transpose (checksum)    :  2.32830643653869629E-10
-   Maxdiff for untranspose             :  0.00000000000000000E+00
- Ion-Ion interaction energy            :  2.45197857686734E+01
-  #---------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -15.999999146343
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  8
- Interaction energy ions multipoles    :  0.0
- Interaction energy multipoles multipoles:  0.0
-  #------------------------------------------------------------ Input Wavefunctions Creation
- Input Hamiltonian:
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
-   Confinement prefactor for atomic orbitals:
-   -  {atom type: Be, value:  2.00E-02, origin: file}
-   -  {atom type: H, value:  2.00E-02, origin: file}
-   Total No. of Atomic Input Orbitals  :  24
-   Inputguess Orbitals Repartition:
-     Minimum                           :  3
-     Maximum                           :  3
-     Average                           :  3.0
-   Atomic Input Orbital Generation:
-   -  {Atom Type: Be, Electronic configuration: {
- s: [ 2.00], 
- p: [ 0.00,  0.00,  0.00]}}
-   -  {Atom Type: H, Electronic configuration: {
- s: [ 1.00]}}
-   Wavelet conversion succeeded        :  Yes
-   Deviation from normalization        :  3.80E-06
-   Total charge                        :  1.599999978372E+01
+ Matrices:
+   Overlap matrix:
+     total elements                    :  576
+     segments                          :  38
+     non-zero elements                 :  554
+     sparsity in %                     :  3.82
+     sparse matrix multiplication initialized:  No
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  8, start / end:  [  1,  554 ], start / end disjoint: [ 1, 
+  554]}
+   Hamiltonian matrix:
+     total elements                    :  576
+     segments                          :  24
+     non-zero elements                 :  576
+     sparsity in %                     :  0.00
+     sparse matrix multiplication initialized:  No
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  8, start / end:  [  1,  576 ], start / end disjoint: [ 1, 
+  576]}
+   Density kernel matrix:
+     total elements                    :  576
+     segments                          :  24
+     non-zero elements                 :  576
+     sparsity in %                     :  0.00
+     sparse matrix multiplication initialized:  Yes
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  8, start / end:  [  1,  576 ], start / end disjoint: [ 1, 
+  576]}
+    #------------------------------------------------------------------------- Unitary tests
+   Results of unitary tests:
+     Checking Compression/Uncompression of small sparse matrices:
+       Tolerances for this check       :  1.00000001335143196E-10
+       Maxdiff for compress            :  0.00000000000000000E+00
+       Maxdiff for uncompress          :  0.00000000000000000E+00
+       Tolerances for this check       :  1.00000001335143196E-10
+       Maxdiff for compress            :  0.00000000000000000E+00
+       Maxdiff for uncompress          :  0.00000000000000000E+00
+     Checking Compression/Uncompression of large sparse matrices:
+       Tolerances for this check       :  1.00000001335143196E-10
+       Maxdiff for compress            :  0.00000000000000000E+00
+       Maxdiff for uncompress          :  0.00000000000000000E+00
+     Checking operations for potential communication:
+       Tolerance for the following test:  9.999999999999999799E-13
+       calculation check, error sum    :  0.000000000000000000E+00
+       Tolerance for the following test:  1.000000000000000036E-10
+       calculation check, error max    :  0.000000000000000000E+00
+     Checking operations for sumrho:
+       Tolerance for the following test:  9.999999999999999988E-15
+       transposition check, mean error :  0.000000000000000000E+00
+       transposition check, max error  :  0.000000000000000000E+00
+     Checking Communications of Minimal Basis:
+       Number of coarse and fine DoF (MasterMPI task):  [  9332,  700 ]
+       Tolerances for this check: [ 2.23626669652402877E-06,  5.32907051820075139E-15]
+       Maxdiff for transpose (checksum):  1.74622982740402222E-10
+       Maxdiff for untranspose         :  0.00000000000000000E+00
+     Checking Communications of Enlarged Minimal Basis:
+       Number of coarse and fine DoF (MasterMPI task):  [  8802,  594 ]
+       Tolerances for this check: [ 4.18253338917614227E-06,  5.32907051820075139E-15]
+       Maxdiff for transpose (checksum):  2.32830643653869629E-10
+       Maxdiff for untranspose         :  0.00000000000000000E+00
+   Ion-Ion interaction energy          :  2.45197857686734E+01
+    #-------------------------------------------------------------- Ionic Potential Creation
+   Total ionic charge                  : -15.999999146343
    Poisson Solver:
      BC                                : Free
      Box                               :  [  97,  97,  155 ]
      MPI tasks                         :  8
-   orthonormalization of input guess   : standard
-   Kernel update:
-     Hamiltonian application required  :  Yes
-     calculate overlap matrix          :  Yes
-     max dev from unity                :  1.36E-02
-     mean dev from unity               :  2.30E-03
-     method                            : diagonalization
-     mode                              : sequential
-     Cross-check among MPI tasks:
-       max diff of eigenvectors        :  0.00E+00
-       max diff of eigenvalues         :  0.00E+00
-     communication strategy kernel     : ALLREDUCE
-     Asymmetry of the matrices:
-       Overlap                         :  0.00E+00
-       Hamiltonian                     :  2.47E-07
-       Kernel (possibly symmetrized)   :  0.00E+00
-     Kohn-Sham residue                 :  1.927E-01
-     Coefficients available            :  Yes
-    #Eigenvalues and New Occupation Numbers
-   Orbitals: [
+   Interaction energy ions multipoles  :  0.0
+   Interaction energy multipoles multipoles:  0.0
+    #---------------------------------------------------------- Input Wavefunctions Creation
+   Input Hamiltonian:
+      #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+     Confinement prefactor for atomic orbitals:
+     -  {atom type: Be, value:  2.00E-02, origin: file}
+     -  {atom type: H, value:  2.00E-02, origin: file}
+     Total No. of Atomic Input Orbitals:  24
+     Inputguess Orbitals Repartition:
+       Minimum                         :  3
+       Maximum                         :  3
+       Average                         :  3.0
+     Atomic Input Orbital Generation:
+     -  {Atom Type: Be, Electronic configuration: {
+ s: [ 2.00], 
+ p: [ 0.00,  0.00,  0.00]}}
+     -  {Atom Type: H, Electronic configuration: {
+ s: [ 1.00]}}
+     Wavelet conversion succeeded      :  Yes
+     Deviation from normalization      :  3.80E-06
+     Total charge                      :  1.599999978372E+01
+     Poisson Solver:
+       BC                              : Free
+       Box                             :  [  97,  97,  155 ]
+       MPI tasks                       :  8
+     orthonormalization of input guess : standard
+     Kernel update:
+       Hamiltonian application required:  Yes
+       calculate overlap matrix        :  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       Cross-check among MPI tasks:
+         max diff of eigenvectors      :  0.00E+00
+         max diff of eigenvalues       :  0.00E+00
+       communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  2.47E-07
+         Kernel (possibly symmetrized) :  0.00E+00
+       Kohn-Sham residue               :  1.927E-01
+       Coefficients available          :  Yes
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
  {e: -2.949928846127E-01, f:  2.0000},  # 00001
  {e: -2.663590877854E-01, f:  2.0000},  # 00002
  {e: -2.310502056766E-01, f:  2.0000},  # 00003
@@ -708,26 +704,27 @@
  {e: -1.617862632337E-01, f:  2.0000},  # 00008
  {e:  2.228689459690E-01, f:  0.0000},  # 00009
  {e:  2.557316832915E-01, f:  0.0000}] # 00010
-   Hamiltonian update: {
+     SCF status: {
  Energies: {Ekin:  1.28094242458E+01, Epot: -1.39474958641E+01, Enl:  2.96533283120E+00, 
               EH:  3.14219198849E+01,  EXC: -5.16111669809E+00, EvXC: -6.73664036486E+00}, 
     Total charge:  1.599999973991E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-    #================================================================= Input guess generated
-  #------------------------------------------------------------------- Self-Consistent Cycle
- Ground State Optimization:
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
- - Confinement prefactor for low accuracy:
-   -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
-   -  {atom type: H, value:  2.00E-02, origin: from file}
-   -  {atom type: Be, value:  2.00E-02, origin: from file}
-    #========================================================= support function optimization
- - support function optimization: &it_supfun001
-   -  { #-------------------------------------------------------------------------- iter: 1
- target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.53793505817E+01, Epot: -1.81632752970E+01, Enl:  2.20533983525E+00}, 
- Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  5.34E-01, Omega:  1.388910895830497E+01, D:  1.39E+01, D best:  1.39E+01, 
+      #=============================================================== Input guess generated
+    #----------------------------------------------------------------- Self-Consistent Cycle
+   Ground State Optimization:
+      #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+   - Confinement prefactor for low accuracy:
+     -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
+     -  {atom type: H, value:  2.00E-02, origin: from file}
+     -  {atom type: Be, value:  2.00E-02, origin: from file}
+      #======================================================= support function optimization
+   - support function optimization: &it_supfun001
+     -  { #------------------------------------------------------------------------ iter: 1
+ Hamiltonian Applied:  Yes, 
+ Components: {Ekin:  2.53793505817E+01, Epot: -1.81632752970E+01, Enl:  2.20533983525E+00}, 
+   Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+ iter:  1, fnrm:  5.34E-01, Omega: {TRACE:  1.388910895830497E+01}, D:  1.39E+01, 
+                                   D best:  1.39E+01, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  Yes, 
@@ -735,11 +732,12 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.42E-03, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
-   -  { #-------------------------------------------------------------------------- iter: 2
- target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.61045908280E+01, Epot: -2.03052578103E+01, Enl:  2.63681754891E+00}, 
- Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  2.77E-01, Omega:  1.191857985133344E+01, D: -1.97E+00, D best: -1.97E+00, 
+     -  { #------------------------------------------------------------------------ iter: 2
+ Hamiltonian Applied:  Yes, 
+ Components: {Ekin:  2.61045908280E+01, Epot: -2.03052578103E+01, Enl:  2.63681754891E+00}, 
+   Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+ iter:  2, fnrm:  2.77E-01, Omega: {TRACE:  1.191857985133344E+01}, D: -1.97E+00, 
+                                   D best: -1.97E+00, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  Yes, 
@@ -747,32 +745,29 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.76E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
-   -  { #-------------------------------------------------------------------------- iter: 3
- target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.62569457923E+01, Epot: -2.06160201685E+01, Enl:  2.68430428318E+00}, 
- Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  3, fnrm:  8.40E-02, Omega:  1.169673853230441E+01, D: -2.22E-01, D best: -2.22E-01, 
- exit criterion: net number of iterations}
-   -  &final_supfun001  { #-------------------------------------------------------- iter: 3
- target function: TRACE, 
- Energies: {Ekin:  2.62569457923E+01, Epot: -2.06160201685E+01, Enl:  2.68430428318E+00}, 
- iter:  3, fnrm:  8.40E-02, Omega:  1.169673853230441E+01, D: -2.22E-01, D best: -2.22E-01}
-      #Support functions created
-   - Check boundary values:
-     -  {type: overall, mean / max value:  [  5.48E-05,  2.27E-04 ], warnings:  0}
-     -  {type: Be, mean / max value:  [  6.1E-05,  2.27E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  4.22E-05,  6.50E-05 ], warnings:  0}
-    #=================================================================== kernel optimization
- - kernel optimization: &it_kernel001
-   -  #--------------------------------------------------------------------- kernel iter: 1
-     Kernel update:
-       Hamiltonian application required:  Yes
-       calculate overlap matrix        :  Yes
-       max dev from unity              :  2.11E-03
-       mean dev from unity             :  3.51E-04
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff001_000_001
-       -  { #------------------------------------------------------------------ it coeff: 1
+     -  { #------------------------------------------------------------------------ iter: 3
+ Hamiltonian Applied:  Yes, 
+ Components: {Ekin:  2.62569457923E+01, Epot: -2.06160201685E+01, Enl:  2.68430428318E+00}, 
+   Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+ iter:  3, fnrm:  8.40E-02, Omega: {TRACE:  1.169673853230441E+01}, D: -2.22E-01, 
+                                   D best: -2.22E-01, 
+                           exit criterion: net number of iterations}
+     -  &final_supfun001  { #------------------------------------------------------ iter: 3
+ Components: {Ekin:  2.62569457923E+01, Epot: -2.06160201685E+01, Enl:  2.68430428318E+00}, 
+ nit:  3, fnrm:  8.40E-02, Omega: {TRACE:  1.169673853230441E+01}, D total: -2.19E+00}
+     - Check boundary values:
+       -  {type: overall, mean / max value:  [  5.48E-05,  2.27E-04 ], warnings:  0}
+       -  {type: Be, mean / max value:  [  6.1E-05,  2.27E-04 ], warnings:  0}
+       -  {type: H, mean / max value:  [  4.22E-05,  6.50E-05 ], warnings:  0}
+      #================================================================= kernel optimization
+   - kernel optimization: &it_kernel001
+     -  #------------------------------------------------------------------- kernel iter: 1
+       Kernel update:
+         Hamiltonian application required:  Yes
+         calculate overlap matrix      :  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff001_000_001
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -782,7 +777,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  2.24E-01, eBS:  0.00000000000000000E+00, D: -3.222E+00}
-       -  { #------------------------------------------------------------------ it coeff: 2
+         -  { #---------------------------------------------------------------- it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -792,7 +787,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  2, fnrm:  7.50E-02, eBS: -3.22200518746668862E+00, D: -1.949E-02}
-       -  { #------------------------------------------------------------------ it coeff: 3
+         -  { #---------------------------------------------------------------- it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -802,7 +797,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  3, fnrm:  1.78E-02, eBS: -3.24149471160422697E+00, D: -1.041E-03}
-       -  { #------------------------------------------------------------------ it coeff: 4
+         -  { #---------------------------------------------------------------- it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -812,7 +807,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  4, fnrm:  7.92E-03, eBS: -3.24253588721186103E+00, D: -1.501E-04}
-       -  { #------------------------------------------------------------------ it coeff: 5
+         -  { #---------------------------------------------------------------- it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -822,7 +817,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  5, fnrm:  3.51E-03, eBS: -3.24268598625512539E+00, D: -1.375E-05}
-       -  { #------------------------------------------------------------------ it coeff: 6
+         -  { #---------------------------------------------------------------- it coeff: 6
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -832,27 +827,25 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  6, fnrm:  2.20E-03, eBS: -3.24269973914164922E+00, D: -9.374E-07}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  5.40E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Kohn-Sham residue               :  2.623E-01
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  5.40E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Kohn-Sham residue             :  2.623E-01
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.62569457923E+01, Epot: -2.46562159433E+01, Enl:  2.68430428318E+00, 
               EH:  3.11521200430E+01,  EXC: -5.48349887672E+00, EvXC: -7.16211186933E+00}, 
     Total charge:  1.599999979897E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
- iter:  1, delta:  1.51E-06, energy: -8.19642195827552555E+00, D: -8.196E+00}]
-   -  #--------------------------------------------------------------------- kernel iter: 2
-     Kernel update:
-       Hamiltonian application required:  Yes
-       max dev from unity              :  2.11E-03
-       mean dev from unity             :  3.51E-04
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff001_000_002
-       -  { #------------------------------------------------------------------ it coeff: 1
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
+ iter:  1, delta:  1.51E-06, energy: -8.19642195827552555E+00, D: -8.196E+00}
+     -  #------------------------------------------------------------------- kernel iter: 2
+       Kernel update:
+         Hamiltonian application required:  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff001_000_002
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -862,7 +855,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  9.15E-02, eBS: -3.24270067651312255E+00, D: -4.290E-02}
-       -  { #------------------------------------------------------------------ it coeff: 2
+         -  { #---------------------------------------------------------------- it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -872,7 +865,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  2, fnrm:  9.16E-02, eBS: -3.28560005106345843E+00, D: -2.863E-04}
-       -  { #------------------------------------------------------------------ it coeff: 3
+         -  { #---------------------------------------------------------------- it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -882,7 +875,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  3, fnrm:  9.12E-02, eBS: -3.28588636900462783E+00, D:  7.901E-04}
-       -  { #------------------------------------------------------------------ it coeff: 4
+         -  { #---------------------------------------------------------------- it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -892,7 +885,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  4, fnrm:  9.21E-02, eBS: -3.28509628095691131E+00, D: -3.969E-02}
-       -  { #------------------------------------------------------------------ it coeff: 5
+         -  { #---------------------------------------------------------------- it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -902,7 +895,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  5, fnrm:  2.09E-02, eBS: -3.32478583059546295E+00, D: -4.361E-04}
-       -  { #------------------------------------------------------------------ it coeff: 6
+         -  { #---------------------------------------------------------------- it coeff: 6
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -912,27 +905,25 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  6, fnrm:  1.43E-02, eBS: -3.32522192473866518E+00, D: -1.062E-04}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  5.40E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Kohn-Sham residue               :  2.556E-01
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  5.40E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Kohn-Sham residue             :  2.556E-01
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.62569457923E+01, Epot: -2.43638244104E+01, Enl:  2.68430428318E+00, 
               EH:  3.09947227546E+01,  EXC: -5.28576721553E+00, EvXC: -6.90113079499E+00}, 
     Total charge:  1.599999977351E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
- iter:  2, delta:  8.18E-07, energy: -8.18490156682235792E+00, D:  1.152E-02}]
-   -  #--------------------------------------------------------------------- kernel iter: 3
-     Kernel update:
-       Hamiltonian application required:  Yes
-       max dev from unity              :  2.11E-03
-       mean dev from unity             :  3.51E-04
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff001_000_003
-       -  { #------------------------------------------------------------------ it coeff: 1
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
+ iter:  2, delta:  8.18E-07, energy: -8.18490156682235792E+00, D:  1.152E-02}
+     -  #------------------------------------------------------------------- kernel iter: 3
+       Kernel update:
+         Hamiltonian application required:  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff001_000_003
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -942,7 +933,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  8.05E-02, eBS: -3.32532816038803869E+00, D: -2.561E-01}
-       -  { #------------------------------------------------------------------ it coeff: 2
+         -  { #---------------------------------------------------------------- it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -952,7 +943,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  2, fnrm:  5.65E-02, eBS: -3.58142407550660380E+00, D: -6.669E-03}
-       -  { #------------------------------------------------------------------ it coeff: 3
+         -  { #---------------------------------------------------------------- it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -962,7 +953,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  3, fnrm:  4.17E-02, eBS: -3.58809356482755692E+00, D: -5.873E-03}
-       -  { #------------------------------------------------------------------ it coeff: 4
+         -  { #---------------------------------------------------------------- it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -972,7 +963,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  4, fnrm:  1.97E-02, eBS: -3.59396702164952986E+00, D: -1.605E-03}
-       -  { #------------------------------------------------------------------ it coeff: 5
+         -  { #---------------------------------------------------------------- it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -982,7 +973,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  5, fnrm:  1.76E-03, eBS: -3.59557178387784582E+00, D: -5.314E-07}
-       -  { #------------------------------------------------------------------ it coeff: 6
+         -  { #---------------------------------------------------------------- it coeff: 6
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -992,27 +983,25 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  6, fnrm:  1.36E-03, eBS: -3.59557231531050547E+00, D: -1.044E-06}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  5.40E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Kohn-Sham residue               :  2.619E-01
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  5.40E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Kohn-Sham residue             :  2.619E-01
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.62569457923E+01, Epot: -2.51038493052E+01, Enl:  2.68430428318E+00, 
               EH:  3.07377259618E+01,  EXC: -5.34251254197E+00, EvXC: -6.97610550939E+00}, 
     Total charge:  1.599999979541E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
- iter:  3, delta:  7.31E-07, energy: -8.17992058508037800E+00, D:  4.981E-03}]
-   -  #--------------------------------------------------------------------- kernel iter: 4
-     Kernel update:
-       Hamiltonian application required:  Yes
-       max dev from unity              :  2.11E-03
-       mean dev from unity             :  3.51E-04
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff001_000_004
-       -  { #------------------------------------------------------------------ it coeff: 1
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
+ iter:  3, delta:  7.31E-07, energy: -8.17992058508037800E+00, D:  4.981E-03}
+     -  #------------------------------------------------------------------- kernel iter: 4
+       Kernel update:
+         Hamiltonian application required:  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff001_000_004
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -1022,7 +1011,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  7.65E-02, eBS: -3.59557335936741040E+00, D:  2.447E-01}
-       -  { #------------------------------------------------------------------ it coeff: 2
+         -  { #---------------------------------------------------------------- it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -1032,7 +1021,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  2, fnrm:  7.70E-02, eBS: -3.35084770701257728E+00, D: -1.801E-03}
-       -  { #------------------------------------------------------------------ it coeff: 3
+         -  { #---------------------------------------------------------------- it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -1042,7 +1031,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  3, fnrm:  7.44E-02, eBS: -3.35264917327927359E+00, D: -2.369E-04}
-       -  { #------------------------------------------------------------------ it coeff: 4
+         -  { #---------------------------------------------------------------- it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -1052,7 +1041,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  4, fnrm:  7.41E-02, eBS: -3.35288607297178487E+00, D: -2.509E-02}
-       -  { #------------------------------------------------------------------ it coeff: 5
+         -  { #---------------------------------------------------------------- it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -1062,7 +1051,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  5, fnrm:  5.74E-03, eBS: -3.37797119975531812E+00, D: -4.715E-05}
-       -  { #------------------------------------------------------------------ it coeff: 6
+         -  { #---------------------------------------------------------------- it coeff: 6
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.31E-14 ]}, 
@@ -1072,95 +1061,60 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  6, fnrm:  3.94E-03, eBS: -3.37801835011270679E+00, D:  1.568E-06}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  5.40E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Kohn-Sham residue               :  2.565E-01
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  5.40E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Kohn-Sham residue             :  2.565E-01
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.62569457923E+01, Epot: -2.44932771431E+01, Enl:  2.68430428318E+00, 
               EH:  3.09387894410E+01,  EXC: -5.29314329864E+00, EvXC: -6.91087937508E+00}, 
     Total charge:  1.599999977619E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
- iter:  4, delta:  6.75E-07, energy: -8.17928437808255993E+00, D:  6.362E-04}]
-   -  &final_kernel001  { #-------------------------------------------------------- iter: 5
- summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
- iter:  5, delta:  6.75E-07, energy: -8.17928437808255993E+00, D:  6.362E-04}]}
-    #================================================================= Summary of both steps
-   self consistency summary: &it_sc001
-   -  {iter:  1, Omega: TRACE,  #WARNING: support function optimization not converged
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
+ iter:  4, delta:  6.75E-07, energy: -8.17928437808255993E+00, D:  6.362E-04}
+     -  &final_kernel001  { #------------------------------------------------------ iter: 5
+ summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  8.40E-12, 
+ iter:  5, delta:  6.75E-07, energy: -8.17928437808255993E+00, D:  6.362E-04}}
+      #=============================================================== Summary of both steps
+     self consistency summary: &it_sc001
+     -  {iter:  1, Omega: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
  iter low:  1, delta out:  1.048E-06, energy: -8.17928437808255993E+00, D: -8.179E+00}
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
- - Confinement prefactor for high accuracy:
-   -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
-   -  {atom type: H, value:  0.00E+00, origin: from file}
-   -  {atom type: Be, value:  0.00E+00, origin: from file}
-    #========================================================= Adjustments for high accuracy
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
- - Confinement prefactor for high accuracy:
-   -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
-   -  {atom type: H, value:  0.00E+00, origin: from file}
-   -  {atom type: Be, value:  0.00E+00, origin: from file}
-   Increasing the localization radius for the high accuracy part:  Yes
-   Locreg increased                    :  Yes
-   NonLocal PSP Projectors Descriptors:
-     Creation strategy                 : On-the-fly
-     Total number of projectors        :  16
-     Total number of components        :  68804
-     Percent of zero components        :  0
-     Size of workspaces                :  68868
-     Maximum size of masking arrays for a projector:  6381
-     Cumulative size of masking arrays :  21210
-   check of kernel cutoff radius:
-   -  {atom type: H, adjustment required:  Yes, new value:  10.60}
-   -  {atom type: Be, adjustment required:  Yes, new value:  10.60}
-   total elements                      :  576
-   non-zero elements                   :  576
-    #segments:  24
-   sparsity in %                       :  0.00
-   sparse matrix multiplication initialized:  No
-   total elements                      :  576
-   non-zero elements                   :  574
-    #segments:  26
-   sparsity in %                       :  0.35
-   sparse matrix multiplication initialized:  No
-   check of kernel cutoff radius:
-   -  {atom type: H, adjustment required:  No}
-   -  {atom type: Be, adjustment required:  No}
-   sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
-   total elements                      :  576
-   non-zero elements                   :  576
-    #segments:  24
-   sparsity in %                       :  0.00
-   sparse matrix multiplication initialized:  Yes
-   taskgroup summary:
-     number of taskgroups              :  1
-     taskgroups overview:
-     -  {number of tasks:  8, start / end:  [  1,  574 ], 
-    start / end disjoint:  [  1,  574 ]}
-   taskgroup summary:
-     number of taskgroups              :  1
-     taskgroups overview:
-     -  {number of tasks:  8, start / end:  [  1,  576 ], 
-    start / end disjoint:  [  1,  576 ]}
-   taskgroup summary:
-     number of taskgroups              :  1
-     taskgroups overview:
-     -  {number of tasks:  8, start / end:  [  1,  576 ], 
-    start / end disjoint:  [  1,  576 ]}
-   sparse matmul load balancing naive / optimized:  [  1.60,  1.60 ]
-   sparse matmul load balancing naive / optimized:  [  1.33,  1.33 ]
-   Kernel update:
-     Hamiltonian application required  :  Yes
-     calculate overlap matrix          :  Yes
-     max dev from unity                :  2.11E-03
-     mean dev from unity               :  3.45E-04
-     method                            : directmin
-     expansion coefficients optimization: &it_coeff002_000_000
-     -  { #-------------------------------------------------------------------- it coeff: 1
+      #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+   - Confinement prefactor for high accuracy:
+     -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
+     -  {atom type: H, value:  0.00E+00, origin: from file}
+     -  {atom type: Be, value:  0.00E+00, origin: from file}
+      #======================================================= Adjustments for high accuracy
+      #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+   - Confinement prefactor for high accuracy:
+     -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
+     -  {atom type: H, value:  0.00E+00, origin: from file}
+     -  {atom type: Be, value:  0.00E+00, origin: from file}
+     Increasing the localization radius for the high accuracy part:  Yes
+     Locreg increased                  :  Yes
+     NonLocal PSP Projectors Descriptors:
+       Creation strategy               : On-the-fly
+       Total number of projectors      :  16
+       Total number of components      :  68804
+       Percent of zero components      :  0
+       Size of workspaces              :  68868
+       Maximum size of masking arrays for a projector:  6381
+       Cumulative size of masking arrays:  21210
+     Check of kernel cutoff radius:
+     -  {atom type: H, adjustment required:  Yes, new value:  10.60}
+     -  {atom type: Be, adjustment required:  Yes, new value:  10.60}
+     Check of kernel cutoff radius:
+     -  {atom type: H, adjustment required:  No}
+     -  {atom type: Be, adjustment required:  No}
+     Kernel update:
+       Hamiltonian application required:  Yes
+       calculate overlap matrix        :  Yes
+       method                          : directmin
+       expansion coefficients optimization: &it_coeff002_000_000
+       -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.25E-14 ]}, 
@@ -1170,7 +1124,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  6.94E-02, eBS: -3.37801678223025936E+00, D: -1.578E-01}
-     -  { #-------------------------------------------------------------------- it coeff: 2
+       -  { #------------------------------------------------------------------ it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.25E-14 ]}, 
@@ -1180,7 +1134,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  2, fnrm:  6.26E-02, eBS: -3.53577574607237377E+00, D: -3.509E-03}
-     -  { #-------------------------------------------------------------------- it coeff: 3
+       -  { #------------------------------------------------------------------ it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.25E-14 ]}, 
@@ -1190,7 +1144,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  3, fnrm:  5.61E-02, eBS: -3.53928515484341943E+00, D: -2.164E-03}
-     -  { #-------------------------------------------------------------------- it coeff: 4
+       -  { #------------------------------------------------------------------ it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.25E-14 ]}, 
@@ -1200,7 +1154,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  4, fnrm:  5.17E-02, eBS: -3.54144934097474184E+00, D: -1.184E-02}
-     -  { #-------------------------------------------------------------------- it coeff: 5
+       -  { #------------------------------------------------------------------ it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.25E-14 ]}, 
@@ -1210,7 +1164,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  5, fnrm:  1.96E-03, eBS: -3.55328635024706685E+00, D: -1.495E-05}
-     -  { #-------------------------------------------------------------------- it coeff: 6
+       -  { #------------------------------------------------------------------ it coeff: 6
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  2.64E-13,  3.25E-14 ]}, 
@@ -1220,19 +1174,20 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  6, fnrm:  1.10E-03, eBS: -3.55330130207418682E+00, D: -1.781E-06}
-     Asymmetry of the matrices:
-       Overlap                         :  0.00E+00
-       Hamiltonian                     :  1.38E-10
-       Kernel (possibly symmetrized)   :  0.00E+00
-     Kohn-Sham residue                 :  2.612E-01
-     Coefficients available            :  Yes
-    #========================================================= support function optimization
- - support function optimization: &it_supfun002
-   -  { #-------------------------------------------------------------------------- iter: 1
- target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.62569457923E+01, Epot: -2.50071597056E+01, Enl:  2.68430428318E+00}, 
- Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
- iter:  1, fnrm:  3.54E-01, Omega: -7.565633977622841E+00, D: -1.95E+01, D best: -1.95E+01, 
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.38E-10
+         Kernel (possibly symmetrized) :  0.00E+00
+       Kohn-Sham residue               :  2.612E-01
+       Coefficients available          :  Yes
+      #======================================================= support function optimization
+   - support function optimization: &it_supfun002
+     -  { #------------------------------------------------------------------------ iter: 1
+ Hamiltonian Applied:  Yes, 
+ Components: {Ekin:  2.62569457923E+01, Epot: -2.50071597056E+01, Enl:  2.68430428318E+00}, 
+   Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
+ iter:  1, fnrm:  3.54E-01, Omega: {ENERGY: -7.565633977622841E+00}, D: -1.95E+01, 
+                                    D best: -1.95E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.000E+00, max alpha:  1.000E+00, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, 
@@ -1240,11 +1195,12 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.73E-03, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
-   -  { #-------------------------------------------------------------------------- iter: 2
- target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.41001899081E+01, Epot: -2.32805629331E+01, Enl:  2.33840160642E+00}, 
- Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
- iter:  2, fnrm:  1.82E-01, Omega: -9.028533175167244E+00, D: -1.46E+00, D best: -1.46E+00, 
+     -  { #------------------------------------------------------------------------ iter: 2
+ Hamiltonian Applied:  Yes, 
+ Components: {Ekin:  2.41001899081E+01, Epot: -2.32805629331E+01, Enl:  2.33840160642E+00}, 
+   Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
+ iter:  2, fnrm:  1.82E-01, Omega: {ENERGY: -9.028533175167244E+00}, D: -1.46E+00, 
+                                    D best: -1.46E+00, 
  Optimization: {algorithm: SD, mean alpha:  6.000E-01, max alpha:  6.000E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, 
@@ -1252,32 +1208,29 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.75E-03, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
-   -  { #-------------------------------------------------------------------------- iter: 3
- target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.38445266799E+01, Epot: -2.31920029510E+01, Enl:  2.40978038583E+00}, 
- Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
- iter:  3, fnrm:  7.53E-02, Omega: -9.194938965133634E+00, D: -1.66E-01, D best: -1.66E-01, 
- exit criterion: net number of iterations}
-   -  &final_supfun002  { #-------------------------------------------------------- iter: 3
- target function: ENERGY, 
- Energies: {Ekin:  2.38445266799E+01, Epot: -2.31920029510E+01, Enl:  2.40978038583E+00}, 
- iter:  3, fnrm:  7.53E-02, Omega: -9.194938965133634E+00, D: -1.66E-01, D best: -1.66E-01}
-      #Support functions created
-   - Check boundary values:
-     -  {type: overall, mean / max value:  [  4.82E-03,  9.68E-03 ], warnings:  0}
-     -  {type: Be, mean / max value:  [  4.96E-03,  9.68E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  4.54E-03,  5.01E-03 ], warnings:  0}
-    #=================================================================== kernel optimization
- - kernel optimization: &it_kernel002
-   -  #--------------------------------------------------------------------- kernel iter: 1
-     Kernel update:
-       Hamiltonian application required:  No
-       calculate overlap matrix        :  Yes
-       max dev from unity              :  1.18E-02
-       mean dev from unity             :  1.48E-03
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff002_000_001
-       -  { #------------------------------------------------------------------ it coeff: 1
+     -  { #------------------------------------------------------------------------ iter: 3
+ Hamiltonian Applied:  Yes, 
+ Components: {Ekin:  2.38445266799E+01, Epot: -2.31920029510E+01, Enl:  2.40978038583E+00}, 
+   Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
+ iter:  3, fnrm:  7.53E-02, Omega: {ENERGY: -9.194938965133634E+00}, D: -1.66E-01, 
+                                    D best: -1.66E-01, 
+                            exit criterion: net number of iterations}
+     -  &final_supfun002  { #------------------------------------------------------ iter: 3
+ Components: {Ekin:  2.38445266799E+01, Epot: -2.31920029510E+01, Enl:  2.40978038583E+00}, 
+ nit:  3, fnrm:  7.53E-02, Omega: {ENERGY: -9.194938965133634E+00}, D total: -1.63E+00}
+     - Check boundary values:
+       -  {type: overall, mean / max value:  [  4.82E-03,  9.68E-03 ], warnings:  0}
+       -  {type: Be, mean / max value:  [  4.96E-03,  9.68E-03 ], warnings:  0}
+       -  {type: H, mean / max value:  [  4.54E-03,  5.01E-03 ], warnings:  0}
+      #================================================================= kernel optimization
+   - kernel optimization: &it_kernel002
+     -  #------------------------------------------------------------------- kernel iter: 1
+       Kernel update:
+         Hamiltonian application required:  No
+         calculate overlap matrix      :  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff002_000_001
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1287,7 +1240,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  3.48E-02, eBS: -3.55330308344521661E+00, D: -8.962E-01}
-       -  { #------------------------------------------------------------------ it coeff: 2
+         -  { #---------------------------------------------------------------- it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1297,7 +1250,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  2, fnrm:  8.49E-03, eBS: -4.44952723305702413E+00, D: -8.428E-05}
-       -  { #------------------------------------------------------------------ it coeff: 3
+         -  { #---------------------------------------------------------------- it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1307,7 +1260,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  3, fnrm:  4.89E-03, eBS: -4.44961151160346802E+00, D: -3.599E-05}
-       -  { #------------------------------------------------------------------ it coeff: 4
+         -  { #---------------------------------------------------------------- it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1317,7 +1270,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  4, fnrm:  2.34E-03, eBS: -4.44964749714109420E+00, D: -3.628E-06}
-       -  { #------------------------------------------------------------------ it coeff: 5
+         -  { #---------------------------------------------------------------- it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1327,7 +1280,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  5, fnrm:  1.19E-03, eBS: -4.44965112472275948E+00, D: -2.226E-06}
-       -  { #------------------------------------------------------------------ it coeff: 6
+         -  { #---------------------------------------------------------------- it coeff: 6
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1337,26 +1290,24 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  6, fnrm:  3.39E-04, eBS: -4.44965335087254488E+00, D: -1.019E-07}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.85E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  1.85E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.62569457923E+01, Epot: -2.50071597056E+01, Enl:  2.68430428318E+00, 
               EH:  3.07746232649E+01,  EXC: -5.33561195194E+00, EvXC: -6.96698656839E+00}, 
     Total charge:  1.599999983291E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
- iter:  1, delta:  1.92E-06, energy: -9.07311633257177519E+00, D: -8.938E-01}]
-   -  #--------------------------------------------------------------------- kernel iter: 2
-     Kernel update:
-       Hamiltonian application required:  Yes
-       max dev from unity              :  1.18E-02
-       mean dev from unity             :  1.48E-03
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff002_000_002
-       -  { #------------------------------------------------------------------ it coeff: 1
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
+ iter:  1, delta:  1.92E-06, energy: -9.07311633257177519E+00, D: -8.938E-01}
+     -  #------------------------------------------------------------------- kernel iter: 2
+       Kernel update:
+         Hamiltonian application required:  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff002_000_002
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1366,7 +1317,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  8.31E-02, eBS: -4.44965345280471247E+00, D: -9.126E-01}
-       -  { #------------------------------------------------------------------ it coeff: 2
+         -  { #---------------------------------------------------------------- it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1376,7 +1327,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  2, fnrm:  8.32E-02, eBS: -5.36228881587319073E+00, D:  1.466E-05}
-       -  { #------------------------------------------------------------------ it coeff: 3
+         -  { #---------------------------------------------------------------- it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1386,7 +1337,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  3, fnrm:  8.32E-02, eBS: -5.36227415832068388E+00, D: -1.396E-05}
-       -  { #------------------------------------------------------------------ it coeff: 4
+         -  { #---------------------------------------------------------------- it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1396,7 +1347,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  4, fnrm:  8.32E-02, eBS: -5.36228812058221926E+00, D: -2.796E-02}
-       -  { #------------------------------------------------------------------ it coeff: 5
+         -  { #---------------------------------------------------------------- it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1406,7 +1357,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  5, fnrm:  2.29E-02, eBS: -5.39025310685641657E+00, D: -6.322E-04}
-       -  { #------------------------------------------------------------------ it coeff: 6
+         -  { #---------------------------------------------------------------- it coeff: 6
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1416,27 +1367,25 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  6, fnrm:  4.52E-03, eBS: -5.39088530329828863E+00, D: -2.298E-05}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.85E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Kohn-Sham residue               :  6.214E-02
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  1.85E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Kohn-Sham residue             :  6.214E-02
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.42668790859E+01, Enl:  2.40978038583E+00, 
               EH:  2.96278256286E+01,  EXC: -4.77397033473E+00, EvXC: -6.22890865228E+00}, 
     Total charge:  1.599999981511E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
- iter:  2, delta:  5.66E-07, energy: -9.04400982637384843E+00, D:  2.911E-02}]
-   -  #--------------------------------------------------------------------- kernel iter: 3
-     Kernel update:
-       Hamiltonian application required:  Yes
-       max dev from unity              :  1.18E-02
-       mean dev from unity             :  1.48E-03
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff002_000_003
-       -  { #------------------------------------------------------------------ it coeff: 1
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
+ iter:  2, delta:  5.66E-07, energy: -9.04400982637384843E+00, D:  2.911E-02}
+     -  #------------------------------------------------------------------- kernel iter: 3
+       Kernel update:
+         Hamiltonian application required:  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff002_000_003
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1446,7 +1395,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  4.67E-02, eBS: -5.39090828402982858E+00, D: -1.882E-01}
-       -  { #------------------------------------------------------------------ it coeff: 2
+         -  { #---------------------------------------------------------------- it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1456,7 +1405,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  2, fnrm:  3.51E-02, eBS: -5.57912154026092288E+00, D: -4.587E-04}
-       -  { #------------------------------------------------------------------ it coeff: 3
+         -  { #---------------------------------------------------------------- it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1466,7 +1415,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  3, fnrm:  3.37E-02, eBS: -5.57958021167481633E+00, D: -3.670E-03}
-       -  { #------------------------------------------------------------------ it coeff: 4
+         -  { #---------------------------------------------------------------- it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1476,7 +1425,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  4, fnrm:  1.53E-02, eBS: -5.58325017805642521E+00, D: -9.592E-04}
-       -  { #------------------------------------------------------------------ it coeff: 5
+         -  { #---------------------------------------------------------------- it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1486,27 +1435,25 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  5, fnrm:  5.48E-04, eBS: -5.58420942061342540E+00, D: -6.270E-07}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.85E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Kohn-Sham residue               :  5.927E-02
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  1.85E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Kohn-Sham residue             :  5.927E-02
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.47310378207E+01, Enl:  2.40978038583E+00, 
               EH:  2.94376518774E+01,  EXC: -4.80573152218E+00, EvXC: -6.27086713355E+00}, 
     Total charge:  1.599999982477E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
- iter:  3, delta:  3.19E-07, energy: -9.03694054489350052E+00, D:  7.069E-03}]
-   -  #--------------------------------------------------------------------- kernel iter: 4
-     Kernel update:
-       Hamiltonian application required:  Yes
-       max dev from unity              :  1.18E-02
-       mean dev from unity             :  1.48E-03
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff002_000_004
-       -  { #------------------------------------------------------------------ it coeff: 1
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
+ iter:  3, delta:  3.19E-07, energy: -9.03694054489350052E+00, D:  7.069E-03}
+     -  #------------------------------------------------------------------- kernel iter: 4
+       Kernel update:
+         Hamiltonian application required:  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff002_000_004
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1516,7 +1463,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  2.76E-02, eBS: -5.58421004757188477E+00, D:  9.612E-02}
-       -  { #------------------------------------------------------------------ it coeff: 2
+         -  { #---------------------------------------------------------------- it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1526,7 +1473,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  2, fnrm:  2.59E-02, eBS: -5.48808967445186369E+00, D: -5.879E-04}
-       -  { #------------------------------------------------------------------ it coeff: 3
+         -  { #---------------------------------------------------------------- it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1536,7 +1483,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  3, fnrm:  2.28E-02, eBS: -5.48867753948199510E+00, D: -2.814E-04}
-       -  { #------------------------------------------------------------------ it coeff: 4
+         -  { #---------------------------------------------------------------- it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1546,7 +1493,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  4, fnrm:  2.12E-02, eBS: -5.48895895994384730E+00, D: -1.760E-03}
-       -  { #------------------------------------------------------------------ it coeff: 5
+         -  { #---------------------------------------------------------------- it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1556,27 +1503,25 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  5, fnrm:  5.18E-04, eBS: -5.49071847465658180E+00, D: -9.627E-07}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.85E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Kohn-Sham residue               :  6.058E-02
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  1.85E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Kohn-Sham residue             :  6.058E-02
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.45027062650E+01, Enl:  2.40978038583E+00, 
               EH:  2.95229902998E+01,  EXC: -4.78684504699E+00, EvXC: -6.24592601644E+00}, 
     Total charge:  1.599999981954E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
- iter:  4, delta:  1.83E-07, energy: -9.03484299894933329E+00, D:  2.098E-03}]
-   -  #--------------------------------------------------------------------- kernel iter: 5
-     Kernel update:
-       Hamiltonian application required:  Yes
-       max dev from unity              :  1.18E-02
-       mean dev from unity             :  1.48E-03
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff002_000_005
-       -  { #------------------------------------------------------------------ it coeff: 1
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
+ iter:  4, delta:  1.83E-07, energy: -9.03484299894933329E+00, D:  2.098E-03}
+     -  #------------------------------------------------------------------- kernel iter: 5
+       Kernel update:
+         Hamiltonian application required:  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff002_000_005
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1586,7 +1531,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  1.64E-02, eBS: -5.49071943731687284E+00, D: -4.415E-02}
-       -  { #------------------------------------------------------------------ it coeff: 2
+         -  { #---------------------------------------------------------------- it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1596,7 +1541,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  2, fnrm:  1.47E-02, eBS: -5.53487116857476114E+00, D: -2.721E-04}
-       -  { #------------------------------------------------------------------ it coeff: 3
+         -  { #---------------------------------------------------------------- it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1606,7 +1551,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  3, fnrm:  1.21E-02, eBS: -5.53514330145724287E+00, D: -2.345E-04}
-       -  { #------------------------------------------------------------------ it coeff: 4
+         -  { #---------------------------------------------------------------- it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1616,7 +1561,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  4, fnrm:  9.25E-03, eBS: -5.53537777853345148E+00, D: -3.293E-04}
-       -  { #------------------------------------------------------------------ it coeff: 5
+         -  { #---------------------------------------------------------------- it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1626,27 +1571,25 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  5, fnrm:  1.24E-04, eBS: -5.53570707712810872E+00, D: -4.119E-08}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.85E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Kohn-Sham residue               :  5.967E-02
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  1.85E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Kohn-Sham residue             :  5.967E-02
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.46190065718E+01, Enl:  2.40978038583E+00, 
               EH:  2.94803671537E+01,  EXC: -4.79649605260E+00, EvXC: -6.25867233355E+00}, 
     Total charge:  1.599999982238E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
- iter:  5, delta:  1.06E-07, energy: -9.03411222242978695E+00, D:  7.308E-04}]
-   -  #--------------------------------------------------------------------- kernel iter: 6
-     Kernel update:
-       Hamiltonian application required:  Yes
-       max dev from unity              :  1.18E-02
-       mean dev from unity             :  1.48E-03
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff002_000_006
-       -  { #------------------------------------------------------------------ it coeff: 1
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
+ iter:  5, delta:  1.06E-07, energy: -9.03411222242978695E+00, D:  7.308E-04}
+     -  #------------------------------------------------------------------- kernel iter: 6
+       Kernel update:
+         Hamiltonian application required:  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff002_000_006
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1656,7 +1599,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  9.97E-03, eBS: -5.53570711831673812E+00, D:  2.103E-02}
-       -  { #------------------------------------------------------------------ it coeff: 2
+         -  { #---------------------------------------------------------------- it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1666,7 +1609,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  2, fnrm:  9.66E-03, eBS: -5.51468114466862325E+00, D: -4.873E-05}
-       -  { #------------------------------------------------------------------ it coeff: 3
+         -  { #---------------------------------------------------------------- it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1676,7 +1619,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  3, fnrm:  8.97E-03, eBS: -5.51472987893972721E+00, D: -5.909E-05}
-       -  { #------------------------------------------------------------------ it coeff: 4
+         -  { #---------------------------------------------------------------- it coeff: 4
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1686,7 +1629,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  4, fnrm:  8.04E-03, eBS: -5.51478897221098485E+00, D: -2.414E-04}
-       -  { #------------------------------------------------------------------ it coeff: 5
+         -  { #---------------------------------------------------------------- it coeff: 5
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  1.8E-09,  1.77E-10 ]}, 
@@ -1696,39 +1639,40 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  5, fnrm:  7.21E-05, eBS: -5.51503035233266381E+00, D: -1.864E-08}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  1.85E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Kohn-Sham residue               :  6.017E-02
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  1.85E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Kohn-Sham residue             :  6.017E-02
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.45625230376E+01, Enl:  2.40978038583E+00, 
               EH:  2.94990281248E+01,  EXC: -4.79096643669E+00, EvXC: -6.25137119333E+00}, 
     Total charge:  1.599999982084E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
- iter:  6, delta:  6.31E-08, energy: -9.03386797042168510E+00, D:  2.443E-04}]
-   -  &final_kernel002  { #-------------------------------------------------------- iter: 7
- summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
- iter:  7, delta:  6.31E-08, energy: -9.03386797042168510E+00, D:  2.443E-04}]}
-    #================================================================= Summary of both steps
-   self consistency summary: &it_sc002
-   -  {iter:  2, Omega: ENERGY,  #WARNING: support function optimization not converged
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
+ iter:  6, delta:  6.31E-08, energy: -9.03386797042168510E+00, D:  2.443E-04}
+     -  &final_kernel002  { #------------------------------------------------------ iter: 7
+ summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  7.53E-12, 
+ iter:  7, delta:  6.31E-08, energy: -9.03386797042168510E+00, D:  2.443E-04}}
+      #=============================================================== Summary of both steps
+     self consistency summary: &it_sc002
+     -  {iter:  2, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
  iter high:  2, delta out:  1.700E-06, energy: -9.03386797042168510E+00, D: -8.546E-01}
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
- - Confinement prefactor for high accuracy:
-   -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
-   -  {atom type: H, value:  0.00E+00, origin: from file}
-   -  {atom type: Be, value:  0.00E+00, origin: from file}
-    #========================================================= support function optimization
- - support function optimization: &it_supfun003
-   -  { #-------------------------------------------------------------------------- iter: 1
- target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.38445266799E+01, Epot: -2.45897044481E+01, Enl:  2.40978038583E+00}, 
- Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
- iter:  1, fnrm:  8.43E-02, Omega: -9.316177538614728E+00, D: -2.88E-01, D best: -2.88E-01, 
+      #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+   - Confinement prefactor for high accuracy:
+     -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
+     -  {atom type: H, value:  0.00E+00, origin: from file}
+     -  {atom type: Be, value:  0.00E+00, origin: from file}
+      #======================================================= support function optimization
+   - support function optimization: &it_supfun003
+     -  { #------------------------------------------------------------------------ iter: 1
+ Hamiltonian Applied:  Yes, 
+ Components: {Ekin:  2.38445266799E+01, Epot: -2.45897044481E+01, Enl:  2.40978038583E+00}, 
+   Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
+ iter:  1, fnrm:  8.43E-02, Omega: {ENERGY: -9.316177538614728E+00}, D: -2.88E-01, 
+                                    D best: -2.88E-01, 
  Optimization: {algorithm: SD, mean alpha:  4.100E-01, max alpha:  4.100E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, 
@@ -1736,11 +1680,12 @@
  Mean deviation from unity in reorthonormalize_coeff:  2.13E-04, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
-   -  { #-------------------------------------------------------------------------- iter: 2
- target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.37927900447E+01, Epot: -2.45540580411E+01, Enl:  2.39553646054E+00}, 
- Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
- iter:  2, fnrm:  6.01E-02, Omega: -9.357239372450113E+00, D: -4.11E-02, D best: -4.11E-02, 
+     -  { #------------------------------------------------------------------------ iter: 2
+ Hamiltonian Applied:  Yes, 
+ Components: {Ekin:  2.37927900447E+01, Epot: -2.45540580411E+01, Enl:  2.39553646054E+00}, 
+   Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
+ iter:  2, fnrm:  6.01E-02, Omega: {ENERGY: -9.357239372450113E+00}, D: -4.11E-02, 
+                                    D best: -4.11E-02, 
  Optimization: {algorithm: SD, mean alpha:  4.510E-01, max alpha:  4.510E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, 
@@ -1748,33 +1693,30 @@
  Mean deviation from unity in reorthonormalize_coeff:  7.43E-05, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
-   -  { #-------------------------------------------------------------------------- iter: 3
- target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  2.37366588310E+01, Epot: -2.45134923614E+01, Enl:  2.39038037056E+00}, 
- Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
- iter:  3, fnrm:  4.83E-02, Omega: -9.381612659354605E+00, D: -2.44E-02, D best: -2.44E-02, 
- exit criterion: net number of iterations}
-   -  &final_supfun003  { #-------------------------------------------------------- iter: 3
- target function: ENERGY, 
- Energies: {Ekin:  2.37366588310E+01, Epot: -2.45134923614E+01, Enl:  2.39038037056E+00}, 
- iter:  3, fnrm:  4.83E-02, Omega: -9.381612659354605E+00, D: -2.44E-02, D best: -2.44E-02}
-      #Support functions created
-   - Check boundary values:
-     -  {type: overall, mean / max value:  [  5.87E-03,  1.33E-02 ], warnings:  4}
-     -  {type: Be, mean / max value:  [  6.25E-03,  1.33E-02 ], warnings:  4}
-     -  {type: H, mean / max value:  [  5.12E-03,  5.68E-03 ], warnings:  0}
-      #WARNING: The support function localization radii might be too small, got 4 warnings
-    #=================================================================== kernel optimization
- - kernel optimization: &it_kernel003
-   -  #--------------------------------------------------------------------- kernel iter: 1
-     Kernel update:
-       Hamiltonian application required:  No
-       calculate overlap matrix        :  Yes
-       max dev from unity              :  1.07E-02
-       mean dev from unity             :  1.32E-03
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff003_000_001
-       -  { #------------------------------------------------------------------ it coeff: 1
+     -  { #------------------------------------------------------------------------ iter: 3
+ Hamiltonian Applied:  Yes, 
+ Components: {Ekin:  2.37366588310E+01, Epot: -2.45134923614E+01, Enl:  2.39038037056E+00}, 
+   Orthoconstraint:  Yes, communication strategy kernel: ALLREDUCE, Preconditioning:  Yes, 
+ iter:  3, fnrm:  4.83E-02, Omega: {ENERGY: -9.381612659354605E+00}, D: -2.44E-02, 
+                                    D best: -2.44E-02, 
+                            exit criterion: net number of iterations}
+     -  &final_supfun003  { #------------------------------------------------------ iter: 3
+ Components: {Ekin:  2.37366588310E+01, Epot: -2.45134923614E+01, Enl:  2.39038037056E+00}, 
+ nit:  3, fnrm:  4.83E-02, Omega: {ENERGY: -9.381612659354605E+00}, D total: -6.54E-02}
+     - Check boundary values:
+       -  {type: overall, mean / max value:  [  5.87E-03,  1.33E-02 ], warnings:  4}
+       -  {type: Be, mean / max value:  [  6.25E-03,  1.33E-02 ], warnings:  4}
+       -  {type: H, mean / max value:  [  5.12E-03,  5.68E-03 ], warnings:  0}
+        #WARNING: The support function localization radii might be too small, got 4 warnings
+      #================================================================= kernel optimization
+   - kernel optimization: &it_kernel003
+     -  #------------------------------------------------------------------- kernel iter: 1
+       Kernel update:
+         Hamiltonian application required:  No
+         calculate overlap matrix      :  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff003_000_001
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  8.9E-10,  8.78E-11 ]}, 
@@ -1784,7 +1726,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  4.34E-03, eBS: -5.51503037097454829E+00, D: -1.949E-02}
-       -  { #------------------------------------------------------------------ it coeff: 2
+         -  { #---------------------------------------------------------------- it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  8.9E-10,  8.78E-11 ]}, 
@@ -1794,7 +1736,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  2, fnrm:  1.99E-03, eBS: -5.53452413186534287E+00, D: -8.650E-06}
-       -  { #------------------------------------------------------------------ it coeff: 3
+         -  { #---------------------------------------------------------------- it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  8.9E-10,  8.78E-11 ]}, 
@@ -1804,26 +1746,24 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  3, fnrm:  7.76E-04, eBS: -5.53453278229141343E+00, D: -5.025E-07}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  2.10E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  2.10E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.38445266799E+01, Epot: -2.45625230376E+01, Enl:  2.40978038583E+00, 
               EH:  2.94909297008E+01,  EXC: -4.79390194308E+00, EvXC: -6.25524684435E+00}, 
     Total charge:  1.599999982031E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
- iter:  1, delta:  1.42E-07, energy: -9.04433231565701234E+00, D: -1.046E-02}]
-   -  #--------------------------------------------------------------------- kernel iter: 2
-     Kernel update:
-       Hamiltonian application required:  Yes
-       max dev from unity              :  1.07E-02
-       mean dev from unity             :  1.32E-03
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff003_000_002
-       -  { #------------------------------------------------------------------ it coeff: 1
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
+ iter:  1, delta:  1.42E-07, energy: -9.04433231565701234E+00, D: -1.046E-02}
+     -  #------------------------------------------------------------------- kernel iter: 2
+       Kernel update:
+         Hamiltonian application required:  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff003_000_002
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  8.9E-10,  8.78E-11 ]}, 
@@ -1833,7 +1773,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  2.05E-03, eBS: -5.53453328474896544E+00, D:  9.717E-02}
-       -  { #------------------------------------------------------------------ it coeff: 2
+         -  { #---------------------------------------------------------------- it coeff: 2
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  8.9E-10,  8.78E-11 ]}, 
@@ -1843,7 +1783,7 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  2, fnrm:  2.01E-03, eBS: -5.43736453056162894E+00, D: -1.105E-05}
-       -  { #------------------------------------------------------------------ it coeff: 3
+         -  { #---------------------------------------------------------------- it coeff: 3
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  8.9E-10,  8.78E-11 ]}, 
@@ -1853,27 +1793,25 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  3, fnrm:  7.92E-04, eBS: -5.43737558546584321E+00, D: -1.620E-06}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  2.10E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Kohn-Sham residue               :  3.588E-02
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  2.10E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Kohn-Sham residue             :  3.588E-02
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.37366588310E+01, Epot: -2.43682766446E+01, Enl:  2.39038037056E+00, 
               EH:  2.95981402732E+01,  EXC: -4.82668202687E+00, EvXC: -6.29843166660E+00}, 
     Total charge:  1.599999982014E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
- iter:  2, delta:  8.91E-09, energy: -9.04398207060594572E+00, D:  3.502E-04}]
-   -  #--------------------------------------------------------------------- kernel iter: 3
-     Kernel update:
-       Hamiltonian application required:  Yes
-       max dev from unity              :  1.07E-02
-       mean dev from unity             :  1.32E-03
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff003_000_003
-       -  { #------------------------------------------------------------------ it coeff: 1
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
+ iter:  2, delta:  8.91E-09, energy: -9.04398207060594572E+00, D:  3.502E-04}
+     -  #------------------------------------------------------------------- kernel iter: 3
+       Kernel update:
+         Hamiltonian application required:  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff003_000_003
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  8.9E-10,  8.78E-11 ]}, 
@@ -1883,27 +1821,25 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  9.42E-04, eBS: -5.43737720581345663E+00, D: -3.660E-03}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  2.10E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Kohn-Sham residue               :  3.588E-02
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  2.10E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Kohn-Sham residue             :  3.588E-02
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.37366588310E+01, Epot: -2.43755290158E+01, Enl:  2.39038037056E+00, 
               EH:  2.95945350196E+01,  EXC: -4.82685717804E+00, EvXC: -6.29866435291E+00}, 
     Total charge:  1.599999982018E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
- iter:  3, delta:  1.76E-09, energy: -9.04397916430010795E+00, D:  2.906E-06}]
-   -  #--------------------------------------------------------------------- kernel iter: 4
-     Kernel update:
-       Hamiltonian application required:  Yes
-       max dev from unity              :  1.07E-02
-       mean dev from unity             :  1.32E-03
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff003_000_004
-       -  { #------------------------------------------------------------------ it coeff: 1
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
+ iter:  3, delta:  1.76E-09, energy: -9.04397916430010795E+00, D:  2.906E-06}
+     -  #------------------------------------------------------------------- kernel iter: 4
+       Kernel update:
+         Hamiltonian application required:  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff003_000_004
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  8.9E-10,  8.78E-11 ]}, 
@@ -1913,27 +1849,25 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  4.58E-04, eBS: -5.44103708828130905E+00, D:  7.170E-04}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  2.10E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Kohn-Sham residue               :  3.588E-02
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  2.10E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Kohn-Sham residue             :  3.588E-02
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.37366588310E+01, Epot: -2.43740911870E+01, Enl:  2.39038037056E+00, 
               EH:  2.95952300844E+01,  EXC: -4.82678809673E+00, EvXC: -6.29857292944E+00}, 
     Total charge:  1.599999982021E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
- iter:  4, delta:  1.52E-09, energy: -9.04397960267350598E+00, D: -4.384E-07}]
-   -  #--------------------------------------------------------------------- kernel iter: 5
-     Kernel update:
-       Hamiltonian application required:  Yes
-       max dev from unity              :  1.07E-02
-       mean dev from unity             :  1.32E-03
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff003_000_005
-       -  { #------------------------------------------------------------------ it coeff: 1
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
+ iter:  4, delta:  1.52E-09, energy: -9.04397960267350598E+00, D: -4.384E-07}
+     -  #------------------------------------------------------------------- kernel iter: 5
+       Kernel update:
+         Hamiltonian application required:  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff003_000_005
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  8.9E-10,  8.78E-11 ]}, 
@@ -1943,27 +1877,25 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  6.99E-05, eBS: -5.44032011963035877E+00, D:  5.971E-04}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  2.10E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Kohn-Sham residue               :  3.588E-02
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  2.10E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Kohn-Sham residue             :  3.588E-02
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.37366588310E+01, Epot: -2.43728986747E+01, Enl:  2.39038037056E+00, 
               EH:  2.95958091410E+01,  EXC: -4.82673279050E+00, EvXC: -6.29849974052E+00}, 
     Total charge:  1.599999982021E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
- iter:  5, delta:  3.38E-10, energy: -9.04397947934851132E+00, D:  1.233E-07}]
-   -  #--------------------------------------------------------------------- kernel iter: 6
-     Kernel update:
-       Hamiltonian application required:  Yes
-       max dev from unity              :  1.07E-02
-       mean dev from unity             :  1.32E-03
-       method                          : directmin
-       expansion coefficients optimization: &it_coeff003_000_006
-       -  { #------------------------------------------------------------------ it coeff: 1
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
+ iter:  5, delta:  3.38E-10, energy: -9.04397947934851132E+00, D:  1.233E-07}
+     -  #------------------------------------------------------------------- kernel iter: 6
+       Kernel update:
+         Hamiltonian application required:  Yes
+         method                        : directmin
+         expansion coefficients optimization: &it_coeff003_000_006
+         -  { #---------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  4, 
  max / mean error:  [  8.9E-10,  8.78E-11 ]}, 
@@ -1973,45 +1905,43 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  4}, 
  communication strategy kernel: ALLREDUCE, method: DminDIIS, 
  iter:  1, fnrm:  4.28E-05, eBS: -5.43972305702220282E+00, D:  1.425E-04}
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  2.10E-08
-         Kernel (possibly symmetrized) :  0.00E+00
-       Kohn-Sham residue               :  3.588E-02
-       Coefficients available          :  Yes
-     Hamiltonian update: {
+         Asymmetry of the matrices:
+           Overlap                     :  0.00E+00
+           Hamiltonian                 :  2.10E-08
+           Kernel (possibly symmetrized):  0.00E+00
+         Kohn-Sham residue             :  3.588E-02
+         Coefficients available        :  Yes
+       SCF status: {
  Energies: {Ekin:  2.37366588310E+01, Epot: -2.43726178064E+01, Enl:  2.39038037056E+00, 
               EH:  2.95959473156E+01,  EXC: -4.82671927703E+00, EvXC: -6.29848185866E+00}, 
     Total charge:  1.599999982021E+01, 
  Poisson Solver: {BC: Free, Box:  [  97,  97,  155 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
- iter:  6, delta:  1.31E-10, energy: -9.04397947632020660E+00, D:  3.028E-09}]
-   -  &final_kernel003  { #-------------------------------------------------------- iter: 7
- summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
- iter:  7, delta:  1.31E-10, energy: -9.04397947632020660E+00, D:  3.028E-09}]}
-    #================================================================= Summary of both steps
-   self consistency summary: &it_sc003
-   -  {iter:  3, Omega: ENERGY,  #WARNING: support function optimization not converged
+       summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
+ iter:  6, delta:  1.31E-10, energy: -9.04397947632020660E+00, D:  3.028E-09}
+     -  &final_kernel003  { #------------------------------------------------------ iter: 7
+ summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  4.83E-12, 
+ iter:  7, delta:  1.31E-10, energy: -9.04397947632020660E+00, D:  3.028E-09}}
+      #=============================================================== Summary of both steps
+     self consistency summary: &it_sc003
+     -  {iter:  3, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
  iter high:  3, delta out:  1.423E-07, energy: -9.04397947632020660E+00, D: -1.011E-02}
-   Kernel update:
-     Hamiltonian application required  :  Yes
-     max dev from unity                :  1.07E-02
-     mean dev from unity               :  1.32E-03
-     method                            : diagonalization
-     mode                              : sequential
-     Cross-check among MPI tasks:
-       max diff of eigenvectors        :  0.00E+00
-       max diff of eigenvalues         :  0.00E+00
-     communication strategy kernel     : ALLREDUCE
-     Asymmetry of the matrices:
-       Overlap                         :  0.00E+00
-       Hamiltonian                     :  2.10E-08
-       Kernel (possibly symmetrized)   :  0.00E+00
-     Kohn-Sham residue                 :  3.380E-02
-     Coefficients available            :  Yes
-    #Eigenvalues and New Occupation Numbers
-   Orbitals: [
+     Kernel update:
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       Cross-check among MPI tasks:
+         max diff of eigenvectors      :  0.00E+00
+         max diff of eigenvalues       :  0.00E+00
+       communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  2.10E-08
+         Kernel (possibly symmetrized) :  0.00E+00
+       Kohn-Sham residue               :  3.380E-02
+       Coefficients available          :  Yes
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
  {e: -4.566586608927E-01, f:  1.0000},  # 00001
  {e: -4.267573880676E-01, f:  1.0000},  # 00002
  {e: -3.773657072602E-01, f:  1.0000},  # 00003
@@ -2036,46 +1966,45 @@
  {e:  4.519053336501E-01, f:  1.0000},  # 00022
  {e:  5.088998363457E-01, f:  1.0000},  # 00023
  {e:  6.089465839739E-01, f:  1.0000}] # 00024
-    #========================================================================= final results
-   self consistency summary:
-   -  {iter:  3, 
+      #======================================================================= final results
+     self consistency summary:
+     -  {iter:  3, 
  Energies: {Ekin:  2.37366588310E+01, Epot: -2.43727398486E+01, Enl:  2.39038037056E+00, 
               EH:  2.95958859610E+01,  EXC: -4.82672345128E+00, EvXC: -6.29848738760E+00}, 
        iter high:  3,            delta out:  1.423E-07, 
           energy: -9.04397947632020660E+00,                       D:  0.000E+00,  #FINAL
  }
- Write wavefunctions to file           : ./data/minBasis.*
- Wavefunction written No.              :  2
- Wavefunction written No.              :  3
- Wavefunction written No.              :  1
- Wavefunction coefficients written     :  Yes
- Write Waves Time:
- -  {Process:  0, Timing:  [  1.6E-02,  1.800E-02 ]}
- Total charge                          :  1.599999982199E+01
-  #---------------------------------------------------------------------- Forces Calculation
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  8
- Multipole analysis origin             :  [  7.448593E+00,  7.419301E+00,  1.403951E+01 ]
- Electric Dipole Moment (AU):
-   P vector                            :  [ -1.0184E-01,  1.3668E-02,  6.0690E-02 ]
-   norm(P)                             :  1.193411E-01
- Electric Dipole Moment (Debye):
-   P vector                            :  [ -2.5886E-01,  3.4741E-02,  1.5426E-01 ]
-   norm(P)                             :  3.033348E-01
- Calculate local forces                :  Yes
- Calculate Non Local forces            :  Yes
-  #-------------------------------- Warnings obtained during the run, check their relevance!
- WARNINGS:
- - Do not call check_communications in the linear scaling version!
- - support function optimization not converged
- - density optimization not converged
- - The support function localization radii might be too small, got 4 warnings
+   Write wavefunctions to file         : ./data/minBasis.*
+   Wavefunction written No.            :  2
+   Wavefunction written No.            :  3
+   Wavefunction written No.            :  1
+   Wavefunction coefficients written   :  Yes
+   Write Waves Time:
+   -  {Process:  0, Timing:  [  2.0E-02,  1.900E-02 ]}
+   Total charge                        :  1.599999982199E+01
+    #-------------------------------------------------------------------- Forces Calculation
+   Poisson Solver:
+     BC                                : Free
+     Box                               :  [  97,  97,  155 ]
+     MPI tasks                         :  8
+   Multipole analysis origin           :  [  7.448593E+00,  7.419301E+00,  1.403951E+01 ]
+   Electric Dipole Moment (AU):
+     P vector                          :  [ -1.0184E-01,  1.3668E-02,  6.0690E-02 ]
+     norm(P)                           :  1.193411E-01
+   Electric Dipole Moment (Debye):
+     P vector                          :  [ -2.5886E-01,  3.4741E-02,  1.5426E-01 ]
+     norm(P)                           :  3.033348E-01
+   Calculate local forces              :  Yes
+   Calculate Non Local forces          :  Yes
+    #------------------------------ Warnings obtained during the run, check their relevance!
+   WARNINGS:
+   - support function optimization not converged
+   - density optimization not converged
+   - The support function localization radii might be too small, got 4 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  23.30
-   Elapsed time (s)                    :  23.33
+   CPU time (s)                        :  23.36
+   Elapsed time (s)                    :  23.40
  BigDFT infocode                       :  0
  Average noise forces: {x: -2.04080119E-03, y:  4.19740371E-03, z:  1.84488304E-04, 
                     total:  4.67087822E-03}
@@ -2098,14 +2027,14 @@
  Energy (Hartree)                      : -9.04397947632020660E+00
  Force Norm (Hartree/Bohr)             :  5.09179378501536523E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  10366
-   Tot. No. of Deallocations           :  10366
+   Tot. No. of Allocations             :  10371
+   Tot. No. of Deallocations           :  10371
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  209.025
+     Peak Value (MB)                   :  200.765
      for the array                     : psirtwork
      in the routine                    : communicate_basis_for_density_co
-     Memory Peak of process            : 264.276 MB
- Walltime since initialization         : 00:00:23.717599027
- Max No. of dictionaries used          :  6958 #( 1002 still in use)
+     Memory Peak of process            : 263.056 MB
+ Walltime since initialization         : 00:00:23.794945901
+ Max No. of dictionaries used          :  7074 #( 1015 still in use)
  Number of dictionary folders allocated:  1
