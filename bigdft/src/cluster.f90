@@ -1605,7 +1605,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      & in)
   use module_base
   use module_types
-  use module_interfaces, only: denspot_set_history, hpsitopsi, last_orthon, write_energies
+  use module_interfaces, only: denspot_set_history, hpsitopsi, last_orthon
+  use io, only: write_energies
   use module_xc, only: XC_NO_HARTREE
   use yaml_output
   use public_enums
