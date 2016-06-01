@@ -531,6 +531,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
          call write_sparsematrix_info(tmb%linmat%s, 'Overlap matrix')
          call write_sparsematrix_info(tmb%linmat%m, 'Hamiltonian matrix')
          call write_sparsematrix_info(tmb%linmat%l, 'Density kernel matrix')
+         call yaml_mapping_close()
      end if
 
      tmb%linmat%kernel_ = matrices_null()

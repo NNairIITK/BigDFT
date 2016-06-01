@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8
- Timestamp of this run                 : 2016-05-31 16:22:47.582
+ Timestamp of this run                 : 2016-06-01 11:11:27.150
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -940,87 +940,87 @@
        taskgroups overview:
        -  {number of tasks:  8, start / end:  [  1,  106080 ], start / end disjoint: [ 1, 
   106080]}
-    #------------------------------------------------------------------------- Unitary tests
-   Results of unitary tests:
-     Checking Compression/Uncompression of small sparse matrices:
-       Tolerances for this check       :  1.00000001335143196E-10
-       Maxdiff for compress            :  0.00000000000000000E+00
-       Maxdiff for uncompress          :  0.00000000000000000E+00
-       Tolerances for this check       :  1.00000001335143196E-10
-       Maxdiff for compress            :  0.00000000000000000E+00
-       Maxdiff for uncompress          :  0.00000000000000000E+00
-     Checking Compression/Uncompression of large sparse matrices:
-       Tolerances for this check       :  1.00000001335143196E-10
-       Maxdiff for compress            :  0.00000000000000000E+00
-       Maxdiff for uncompress          :  0.00000000000000000E+00
-     Checking operations for potential communication:
-       Tolerance for the following test:  9.999999999999999799E-13
-       calculation check, error sum    :  0.000000000000000000E+00
-       Tolerance for the following test:  1.000000000000000036E-10
-       calculation check, error max    :  0.000000000000000000E+00
-     Checking operations for sumrho:
-       Tolerance for the following test:  9.999999999999999988E-15
-       transposition check, mean error :  0.000000000000000000E+00
-       transposition check, max error  :  0.000000000000000000E+00
-     Checking Communications of Minimal Basis:
-       Number of coarse and fine DoF (MasterMPI task):  [  4796,  345 ]
-       Tolerances for this check: [ 5.16872734173718345E-08,  9.76996261670137756E-14]
-       Maxdiff for transpose (checksum):  8.73114913702011108E-11
-       Maxdiff for untranspose         :  0.00000000000000000E+00
-     Checking Communications of Enlarged Minimal Basis:
-       Number of coarse and fine DoF (MasterMPI task):  [  4754,  355 ]
-       Tolerances for this check: [ 5.92398189727545853E-07,  9.76996261670137756E-14]
-       Maxdiff for transpose (checksum):  2.79396772384643555E-09
-       Maxdiff for untranspose         :  0.00000000000000000E+00
-   Value for Exc[rhoc]                 : -33.50543645650796
-   Poisson Solver:
-     BC                                : Surface
-     Box                               :  [  96,  63,  96 ]
-     MPI tasks                         :  8
-   Ion-Ion interaction energy          : -1.07931102348799E+03
-    #-------------------------------------------------------------- Ionic Potential Creation
-   Total ionic charge                  : -440.000000000030
-   Poisson Solver:
-     BC                                : Surface
-     Box                               :  [  96,  63,  96 ]
-     MPI tasks                         :  8
-   Interaction energy ions multipoles  :  0.0
-   Interaction energy multipoles multipoles:  0.0
-    #---------------------------------------------------------- Input Wavefunctions Creation
-   Input Hamiltonian:
-      #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
-     Confinement prefactor for atomic orbitals:
-     -  {atom type: N, value:  5.00E-02, origin: file}
-     -  {atom type: B, value:  5.00E-02, origin: file}
-     Total No. of Atomic Input Orbitals:  440
-     Inputguess Orbitals Repartition:
-       Minimum                         :  54
-       Maximum                         :  56
-       Average                         :  55.0
-     Atomic Input Orbital Generation:
-     -  {Atom Type: N, Electronic configuration: {
+  #--------------------------------------------------------------------------- Unitary tests
+ Results of unitary tests:
+   Checking Compression/Uncompression of small sparse matrices:
+     Tolerances for this check         :  1.00000001335143196E-10
+     Maxdiff for compress              :  0.00000000000000000E+00
+     Maxdiff for uncompress            :  0.00000000000000000E+00
+     Tolerances for this check         :  1.00000001335143196E-10
+     Maxdiff for compress              :  0.00000000000000000E+00
+     Maxdiff for uncompress            :  0.00000000000000000E+00
+   Checking Compression/Uncompression of large sparse matrices:
+     Tolerances for this check         :  1.00000001335143196E-10
+     Maxdiff for compress              :  0.00000000000000000E+00
+     Maxdiff for uncompress            :  0.00000000000000000E+00
+   Checking operations for potential communication:
+     Tolerance for the following test  :  9.999999999999999799E-13
+     calculation check, error sum      :  0.000000000000000000E+00
+     Tolerance for the following test  :  1.000000000000000036E-10
+     calculation check, error max      :  0.000000000000000000E+00
+   Checking operations for sumrho:
+     Tolerance for the following test  :  9.999999999999999988E-15
+     transposition check, mean error   :  0.000000000000000000E+00
+     transposition check, max error    :  0.000000000000000000E+00
+   Checking Communications of Minimal Basis:
+     Number of coarse and fine DoF (MasterMPI task):  [  4796,  345 ]
+     Tolerances for this check: [ 5.16872734173718345E-08,  9.76996261670137756E-14]
+     Maxdiff for transpose (checksum)  :  8.73114913702011108E-11
+     Maxdiff for untranspose           :  0.00000000000000000E+00
+   Checking Communications of Enlarged Minimal Basis:
+     Number of coarse and fine DoF (MasterMPI task):  [  4754,  355 ]
+     Tolerances for this check: [ 5.92398189727545853E-07,  9.76996261670137756E-14]
+     Maxdiff for transpose (checksum)  :  2.79396772384643555E-09
+     Maxdiff for untranspose           :  0.00000000000000000E+00
+ Value for Exc[rhoc]                   : -33.50543645650796
+ Poisson Solver:
+   BC                                  : Surface
+   Box                                 :  [  96,  63,  96 ]
+   MPI tasks                           :  8
+ Ion-Ion interaction energy            : -1.07931102348799E+03
+  #---------------------------------------------------------------- Ionic Potential Creation
+ Total ionic charge                    : -440.000000000030
+ Poisson Solver:
+   BC                                  : Surface
+   Box                                 :  [  96,  63,  96 ]
+   MPI tasks                           :  8
+ Interaction energy ions multipoles    :  0.0
+ Interaction energy multipoles multipoles:  0.0
+  #------------------------------------------------------------ Input Wavefunctions Creation
+ Input Hamiltonian:
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+   Confinement prefactor for atomic orbitals:
+   -  {atom type: N, value:  5.00E-02, origin: file}
+   -  {atom type: B, value:  5.00E-02, origin: file}
+   Total No. of Atomic Input Orbitals  :  440
+   Inputguess Orbitals Repartition:
+     Minimum                           :  54
+     Maximum                           :  56
+     Average                           :  55.0
+   Atomic Input Orbital Generation:
+   -  {Atom Type: N, Electronic configuration: {
  s: [ 2.00], 
  p: [ 1.00,  1.00,  1.00]}}
-     -  {Atom Type: B, Electronic configuration: {
+   -  {Atom Type: B, Electronic configuration: {
  s: [ 2.00], 
  p: [ 1/3,  1/3,  1/3]}}
-     Wavelet conversion succeeded      :  Yes
-     Deviation from normalization      :  2.42E-02
-     Total charge                      :  4.399986355984E+02
-     Poisson Solver:
-       BC                              : Surface
-       Box                             :  [  96,  63,  96 ]
-       MPI tasks                       :  8
-     orthonormalization of input guess : standard
-      #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
-     Confinement prefactor for extended input guess:
-     -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
-     -  {atom type: N, value:  5.00E-02, origin: from file}
-     -  {atom type: B, value:  5.00E-02, origin: from file}
-      #------------------------------------------ Extended input guess for experimental mode
-     Extended input guess:
-       support function optimization: &it_supfun000
-       -  { #---------------------------------------------------------------------- iter: 1
+   Wavelet conversion succeeded        :  Yes
+   Deviation from normalization        :  2.42E-02
+   Total charge                        :  4.399986355984E+02
+   Poisson Solver:
+     BC                                : Surface
+     Box                               :  [  96,  63,  96 ]
+     MPI tasks                         :  8
+   orthonormalization of input guess   : standard
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+   Confinement prefactor for extended input guess:
+   -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
+   -  {atom type: N, value:  5.00E-02, origin: from file}
+   -  {atom type: B, value:  5.00E-02, origin: from file}
+    #-------------------------------------------- Extended input guess for experimental mode
+   Extended input guess:
+     support function optimization: &it_supfun000
+     -  { #------------------------------------------------------------------------ iter: 1
  Calculating wavelets expansion of projectors, found warnings:  200, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
@@ -1034,7 +1034,7 @@
            total failures:  0}, 
  summary: {npl:  20, bounds:  [  0.42,  1.80 ], exp accur:  [  4.17E-10 ]}, 
           Orthogonalization:  Yes}
-       -  { #---------------------------------------------------------------------- iter: 2
+     -  { #------------------------------------------------------------------------ iter: 2
  Calculating wavelets expansion of projectors, found warnings:  200, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
@@ -1046,28 +1046,28 @@
  kappa:  5.000E-01, 
  iter:  2, fnrm:  4.79E-01, Omega: {TRACE: -1.721786663252266E+02}, D:  2.78E+01, 
                                    D best:  2.78E+01, exit criterion: extended input guess}
-       -  &final_supfun000  { #---------------------------------------------------- iter: 2
+     -  &final_supfun000  { #------------------------------------------------------ iter: 2
  Components: {Ekin:  7.86410141887E+02, Epot: -7.89355408453E+02, Enl:  1.95364219928E+02}, 
  nit:  2, fnrm:  4.79E-01, Omega: {TRACE: -1.721786663252266E+02}, D total:  2.78E+01}
-     Kernel update:
-       Hamiltonian application required:  Yes
-       Calculating wavelets expansion of projectors, found warnings:  200
-        #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
-       calculate overlap matrix        :  Yes
-       method                          : diagonalization
-       mode                            : sequential
-       Cross-check among MPI tasks:
-         max diff of eigenvectors      :  0.00E+00
-         max diff of eigenvalues       :  0.00E+00
-       communication strategy kernel   : ALLREDUCE
-       Asymmetry of the matrices:
-         Overlap                       :  0.00E+00
-         Hamiltonian                   :  2.89E-05
-         Kernel (possibly symmetrized) :  2.22E-16
-       Kohn-Sham residue               : not calculated
-       Coefficients available          :  Yes
-      #Eigenvalues and New Occupation Numbers
-     Orbitals: [
+   Kernel update:
+     Hamiltonian application required  :  Yes
+     Calculating wavelets expansion of projectors, found warnings:  200
+      #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+     calculate overlap matrix          :  Yes
+     method                            : diagonalization
+     mode                              : sequential
+     Cross-check among MPI tasks:
+       max diff of eigenvectors        :  0.00E+00
+       max diff of eigenvalues         :  0.00E+00
+     communication strategy kernel     : ALLREDUCE
+     Asymmetry of the matrices:
+       Overlap                         :  0.00E+00
+       Hamiltonian                     :  2.89E-05
+       Kernel (possibly symmetrized)   :  2.22E-16
+     Kohn-Sham residue                 : not calculated
+     Coefficients available            :  Yes
+    #Eigenvalues and New Occupation Numbers
+   Orbitals: [
  {e: -4.410131351049E-01, f:  2.0000},  # 00001
  {e: -4.361210772780E-01, f:  2.0000},  # 00002
  {e: -4.307802418080E-01, f:  2.0000},  # 00003
@@ -1288,23 +1288,23 @@
  {e:  2.090500160620E-01, f:  2.0000},  # 00218
  {e:  2.113907604127E-01, f:  2.0000},  # 00219
  {e:  2.208123452567E-01, f:  2.0000}] # 00220
-     SCF status: {
+   SCF status: {
  Energies: {Ekin:  7.86410141887E+02, Epot: -8.67644415261E+02, Enl:  1.95364219928E+02, 
               EH: -3.91194519823E+02,  EXC: -2.70405657331E+02, EvXC: -2.96543566312E+02}, 
     Total charge:  4.399984351926E+02, 
  Poisson Solver: {BC: Surface, Box:  [  96,  63,  96 ], MPI tasks:  8}}
-      #=============================================================== Input guess generated
-    #----------------------------------------------------------------- Self-Consistent Cycle
-   Ground State Optimization:
-      #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
-   - Confinement prefactor for hybrid mode:
-     -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
-     -  {atom type: N, value:  5.00E-02, origin: from file}
-     -  {atom type: B, value:  5.00E-02, origin: from file}
-      #WARNING: No orthogonalizing of the support functions
-      #======================================================= support function optimization
-   - support function optimization: &it_supfun001
-     -  { #------------------------------------------------------------------------ iter: 1
+    #================================================================= Input guess generated
+  #------------------------------------------------------------------- Self-Consistent Cycle
+ Ground State Optimization:
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
+ - Confinement prefactor for hybrid mode:
+   -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
+   -  {atom type: N, value:  5.00E-02, origin: from file}
+   -  {atom type: B, value:  5.00E-02, origin: from file}
+    #WARNING: No orthogonalizing of the support functions
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun001
+   -  { #-------------------------------------------------------------------------- iter: 1
  Calculating wavelets expansion of projectors, found warnings:  200, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
@@ -1324,7 +1324,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  7.67E-03, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  1020}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
-     -  { #------------------------------------------------------------------------ iter: 2
+   -  { #-------------------------------------------------------------------------- iter: 2
  Calculating wavelets expansion of projectors, found warnings:  200, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
@@ -1337,37 +1337,37 @@
                                                                        kappa to history:  Yes, 
  iter:  2, fnrm:  2.51E-01, Omega: {HYBRID: -6.258980148236785E+02}, D: -1.55E+01, 
                                     D best: -1.55E+01, exit criterion: energy difference}
-     -  &final_supfun001  { #------------------------------------------------------ iter: 2
+   -  &final_supfun001  { #-------------------------------------------------------- iter: 2
  Components: {Ekin:  8.86782969396E+02, Epot: -7.49713396486E+02, Enl:  9.85434466803E+01}, 
  nit:  2, fnrm:  2.51E-01, Omega: {HYBRID: -6.258980148236785E+02}, D total: -1.55E+01}
-     - Check boundary values:
-       -  {type: overall, mean / max value:  [  5.67E-01,  9.23E-01 ], warnings:  440}
-       -  {type: N, mean / max value:  [  4.91E-01,  7.33E-01 ], warnings:  220}
-       -  {type: B, mean / max value:  [  6.42E-01,  9.23E-01 ], warnings:  220}
-        #WARNING: The support function localization radii might be too small, got 440 warnings
-      #================================================================= kernel optimization
-   - kernel optimization: &it_kernel001
-     -  #------------------------------------------------------------------- kernel iter: 1
-       Kernel update:
-         Hamiltonian application required:  No
-         method                        : diagonalization
-         mode                          : sequential
-         Cross-check among MPI tasks:
-           max diff of eigenvectors    :  0.00E+00
-           max diff of eigenvalues     :  0.00E+00
-         communication strategy kernel : ALLREDUCE
-         Asymmetry of the matrices:
-           Overlap                     :  0.00E+00
-           Hamiltonian                 :  2.72E-05
-           Kernel (possibly symmetrized):  1.11E-16
-         Coefficients available        :  Yes
-       SCF status: {
+   - Check boundary values:
+     -  {type: overall, mean / max value:  [  5.67E-01,  9.23E-01 ], warnings:  440}
+     -  {type: N, mean / max value:  [  4.91E-01,  7.33E-01 ], warnings:  220}
+     -  {type: B, mean / max value:  [  6.42E-01,  9.23E-01 ], warnings:  220}
+      #WARNING: The support function localization radii might be too small, got 440 warnings
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel001
+   -  #--------------------------------------------------------------------- kernel iter: 1
+     Kernel update:
+       Hamiltonian application required:  No
+       method                          : diagonalization
+       mode                            : sequential
+       Cross-check among MPI tasks:
+         max diff of eigenvectors      :  0.00E+00
+         max diff of eigenvalues       :  0.00E+00
+       communication strategy kernel   : ALLREDUCE
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  2.72E-05
+         Kernel (possibly symmetrized) :  1.11E-16
+       Coefficients available          :  Yes
+     SCF status: {
  Energies: {Ekin:  7.86410141887E+02, Epot: -8.67644415261E+02, Enl:  1.95364219928E+02, 
               EH: -3.85451346039E+02,  EXC: -2.71726334860E+02, EvXC: -2.98080475968E+02}, 
     Total charge:  4.399987569182E+02, 
  Poisson Solver: {BC: Surface, Box:  [  96,  63,  96 ], MPI tasks:  8}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
  {e: -4.736300183074E-01, f:  2.0000},  # 00001
  {e: -4.531032269061E-01, f:  2.0000},  # 00002
  {e: -4.513682587792E-01, f:  2.0000},  # 00003
@@ -1588,18 +1588,18 @@
  {e:  2.671013697928E-01, f:  2.0000},  # 00218
  {e:  2.787467977055E-01, f:  2.0000},  # 00219
  {e:  2.839372180863E-01, f:  2.0000}] # 00220
-       summary: {kernel method: DIAG, mix entity: DENS, mix hist:  6, conv crit:  2.51E-11, 
+     summary: {kernel method: DIAG, mix entity: DENS, mix hist:  6, conv crit:  2.51E-11, 
  iter:  1, delta:  1.71E-05, energy: -6.89846037208031930E+02, D: -6.898E+02}
-     -  &final_kernel001  { #------------------------------------------------------ iter: 2
+   -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  summary: {kernel method: DIAG, mix entity: DENS, mix hist:  6, conv crit:  2.51E-11, 
  iter:  2, delta:  1.71E-05, energy: -6.89846037208031930E+02, D: -6.898E+02}}
-      #=============================================================== Summary of both steps
-     self consistency summary: &it_sc001
-     -  {iter:  1, Omega: HYBRID, mean conf prefac:  5.00E-02, damping:  1.00E+00, 
-          iterations to converge support functions:  2, kernel optimization: DIAG,  #WARNING: density optimization not converged
+    #================================================================= Summary of both steps
+   self consistency summary: &it_sc001
+   -  {iter:  1, Omega: HYBRID, mean conf prefac:  5.00E-02, damping:  1.00E+00, 
+        iterations to converge support functions:  2, kernel optimization: DIAG,  #WARNING: density optimization not converged
  iter low:  1, delta out:  1.727E-06, energy: -6.89846037208031930E+02, D: -6.898E+02}
-      #Eigenvalues and New Occupation Numbers
-     Orbitals: [
+    #Eigenvalues and New Occupation Numbers
+   Orbitals: [
  {e: -4.736300183074E-01, f:  1.0000},  # 00001
  {e: -4.531032269061E-01, f:  1.0000},  # 00002
  {e: -4.513682587792E-01, f:  1.0000},  # 00003
@@ -2040,42 +2040,42 @@
  {e:  1.242738800593E+00, f:  1.0000},  # 00438
  {e:  1.328382725127E+00, f:  1.0000},  # 00439
  {e:  1.597593824425E+00, f:  1.0000}] # 00440
-      #======================================================================= final results
-     self consistency summary:
-     -  {iter:  1, 
+    #========================================================================= final results
+   self consistency summary:
+   -  {iter:  1, 
  Energies: {Ekin:  7.86410141887E+02, Epot: -8.67644415261E+02, Enl:  1.95364219928E+02, 
               EH: -3.79837551520E+02,  EXC: -2.72897630881E+02, EvXC: -2.99475395230E+02}, 
         iter low:  1,            delta out:  1.727E-06, 
           energy: -6.89846037208031930E+02,                       D:  0.000E+00,  #FINAL
  }
-   Total charge                        :  4.399987569182E+02
-    #-------------------------------------------------------------------- Forces Calculation
-   Poisson Solver:
-     BC                                : Surface
-     Box                               :  [  96,  63,  96 ]
-     MPI tasks                         :  8
-   Multipole analysis origin           :  [  1.676851E+01,  5.536220E+00,  1.633463E+01 ]
-   Electric Dipole Moment (AU):
-     P vector                          :  [  5.7354E+01, -3.5111E+00,  1.2537E+02 ]
-     norm(P)                           :  1.379131E+02
-   Electric Dipole Moment (Debye):
-     P vector                          :  [  1.4578E+02, -8.9244E+00,  3.1866E+02 ]
-     norm(P)                           :  3.505402E+02
-   Calculate local forces              :  Yes
-   Calculate NLCC forces               :  Yes
-   Calculate Non Local forces          :  Yes
-    #------------------------------ Warnings obtained during the run, check their relevance!
-   WARNINGS:
-   - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
-   - target function larger than its minimal value reached so far, D= 2.777E+01
-   - use a fake value for kappa
-   - No orthogonalizing of the support functions
-   - The support function localization radii might be too small, got 440 warnings
-   - density optimization not converged
+ Total charge                          :  4.399987569182E+02
+  #---------------------------------------------------------------------- Forces Calculation
+ Poisson Solver:
+   BC                                  : Surface
+   Box                                 :  [  96,  63,  96 ]
+   MPI tasks                           :  8
+ Multipole analysis origin             :  [  1.676851E+01,  5.536220E+00,  1.633463E+01 ]
+ Electric Dipole Moment (AU):
+   P vector                            :  [  5.7354E+01, -3.5111E+00,  1.2537E+02 ]
+   norm(P)                             :  1.379131E+02
+ Electric Dipole Moment (Debye):
+   P vector                            :  [  1.4578E+02, -8.9244E+00,  3.1866E+02 ]
+   norm(P)                             :  3.505402E+02
+ Calculate local forces                :  Yes
+ Calculate NLCC forces                 :  Yes
+ Calculate Non Local forces            :  Yes
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - target function larger than its minimal value reached so far, D= 2.777E+01
+ - use a fake value for kappa
+ - No orthogonalizing of the support functions
+ - The support function localization radii might be too small, got 440 warnings
+ - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  43.12
-   Elapsed time (s)                    :  43.18
+   CPU time (s)                        :  43.00
+   Elapsed time (s)                    :  43.09
  BigDFT infocode                       :  0
  Average noise forces: {x:  5.32669317E-01, y:  8.01494359E-01, z:  1.53620712E-02, 
                     total:  9.62478987E-01}
@@ -2203,7 +2203,7 @@
      Peak Value (MB)                   :  412.132
      for the array                     : vectors_new
      in the routine                    : chebyshev_clean
-     Memory Peak of process            : 461.320 MB
- Walltime since initialization         : 00:00:44.005066542
+     Memory Peak of process            : 463.924 MB
+ Walltime since initialization         : 00:00:43.928097206
  Max No. of dictionaries used          :  13765 #( 1015 still in use)
  Number of dictionary folders allocated:  2
