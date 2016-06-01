@@ -1,5 +1,6 @@
 # Not To be installed:
 noinst_LIBRARIES = libsparsematrix.a
+module_DATA      = $(modules)
 
 # Code source.
 if USE_BLACS
