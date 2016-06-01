@@ -182,6 +182,8 @@ AC_DEFUN([AX_LINALG],
   AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
 
   AC_LANG_POP([Fortran])
+  dnl ---------------------------------------
+  AM_CONDITIONAL(USE_BLACS, test x"$ax_have_scalapack" = x"yes")
 ])
 
 AC_DEFUN([AX_DGEMMSY],

@@ -14,7 +14,6 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 # ---------------
 SUBDIRS = \
 	orbitals \
-	sparsematrix \
 	modules \
 	xcPSolver \
 	$(sub_dirs_libconfig) \
@@ -39,16 +38,10 @@ subs_static_library = \
 	modules/libmodules.a \
 	CUDA/libCUDA.a \
 	orbitals/liborbitals.a \
-	sparsematrix/libsparsematrix.a \
 	geopt/libgeopt.a \
 	xcPSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
 	bindings/libbindings.a
-
-#out_static_library =  \
-#	$(top_builddir)/PSolver/src/libPSolver-1.a \
-#	$(top_builddir)/wrappers/libwrappers.a \
-#	$(top_builddir)/flib/src/libflib-1.a
 
 if BUILD_DYNAMIC_LIBS
 bigdft_dynamic_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
@@ -265,7 +258,7 @@ install-data-hook:
 #abscalc_additional= 
 
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@
+bigdft_LDADD = $(bigdft_library) #@LIB_FUTILE_LIBS@
 
 #rism_SOURCES = rism.f90 rismlowlevel.f90
 #rism_LDADD = $(bigdft_library)
@@ -277,29 +270,29 @@ bigdft_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@
 #oneatom_LDADD = $(bigdft_library)
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
-BigDFT2Wannier_LDADD = $(bigdft_library) @LINALG_LIBS@
+BigDFT2Wannier_LDADD = $(bigdft_library) #@LINALG_LIBS@
 
 WaCo_SOURCES = WaCo.f90
-WaCo_LDADD = $(bigdft_library) @LINALG_LIBS@
+WaCo_LDADD = $(bigdft_library) #@LINALG_LIBS@
 
 MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = $(bigdft_library)
 
 abscalc_SOURCES = abscalc.f90 
-abscalc_LDADD = libabscalc.a $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+abscalc_LDADD = libabscalc.a $(bigdft_library) #@LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@
+test_forces_LDADD = $(bigdft_library) #@LIB_FUTILE_LIBS@
 
 #to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
 memguess_SOURCES = memguess.f90 MPIfake.f90
-memguess_LDADD = $(bigdft_library) @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+memguess_LDADD = $(bigdft_library) #@LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 utilities_SOURCES = utilities.f90
-utilities_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+utilities_LDADD = $(bigdft_library) #@LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+frequencies_LDADD = $(bigdft_library) #@LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:

@@ -1,9 +1,11 @@
 program smatmul
-  use bigdft_run, only: bigdft_init
-  use module_base
-  use yaml_parse, only: yaml_cl_parse, yaml_cl_parse_null, yaml_cl_parse_free, yaml_cl_parse_cmd_line
+  use wrapper_MPI
+  use wrapper_linalg
+  use futile
+  !use module_base
+  !use yaml_parse, only: yaml_cl_parse, yaml_cl_parse_null, yaml_cl_parse_free, yaml_cl_parse_cmd_line
   !use dictionaries
-  use yaml_output
+  !use yaml_output
   use sparsematrix_base, only: sparse_matrix, matrices, &
                                matrices_null, deallocate_sparse_matrix, deallocate_matrices, &
                                assignment(=), sparsematrix_malloc_ptr, sparsematrix_malloc, SPARSE_FULL, SPARSEMM_SEQ, &
@@ -20,7 +22,7 @@ program smatmul
   external :: gather_timings
 
   ! Variables
-  integer :: iproc, nproc, ncol, nnonzero, nseg, ncolp, iscol, ierr, nspin
+  integer :: iproc, nproc, ncol, nnonzero, nseg, ncolp, iscol, ierr, nspin,comm
   integer :: nfvctr, nvctr, isfvctr, nfvctrp, nit, it, verbosity, nat, ntypes
   !character(len=*),parameter :: filename='matrix.dat'
   character(len=1024) :: filename
@@ -62,10 +64,12 @@ program smatmul
           err_name='GENERIC_ERROR')
   end if
 
-  call bigdft_init()!mpi_info,nconfig,run_id,ierr)
+  !call bigdft_init()!mpi_info,nconfig,run_id,ierr)
   !just for backward compatibility
-  iproc=bigdft_mpi%iproc!mpi_info(1)
-  nproc=bigdft_mpi%nproc!mpi_info(2)
+  call mpiinit()
+  iproc=mpirank()
+  nproc=mpisize()
+  comm=mpiworld()
 
   if (iproc==0) then
       call yaml_new_document()
@@ -96,7 +100,7 @@ program smatmul
   !!matA%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='matA%matrix_compr')
   !!matA%matrix_compr = mat_compr
 
-  call sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc, bigdft_mpi%mpi_comm, smat, matA, &
+  call sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc,comm, smat, matA, &
        init_matmul=.true.)!, nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
        !atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
 
@@ -107,10 +111,11 @@ program smatmul
   ! Write the original matrix
   if (iproc==0) call write_sparsematrix('original_bigdft.dat', smat, matA)
 
-  call timing(bigdft_mpi%mpi_comm,'INIT','PR')
+  call f_timing_checkpoint(ctr_name='INIT',mpi_comm=comm,nproc=nproc,&
+       gather_routine=gather_timings)
 
   ! Calculate the inverse
-  call mpibarrier(bigdft_mpi%mpi_comm)
+  call mpibarrier(comm)
   time_start = mpi_wtime()
 
   mat_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='mat_seq')
@@ -131,9 +136,10 @@ program smatmul
       call write_matrix_compressed('final result', smat, matA)
   end if
 
-  call mpibarrier(bigdft_mpi%mpi_comm)
+  call mpibarrier(comm)
   time_end = mpi_wtime()
-  call timing(bigdft_mpi%mpi_comm,'CALC','PR')
+  call f_timing_checkpoint(ctr_name='CALC',mpi_comm=comm,nproc=nproc,&
+       gather_routine=gather_timings)
 
   ! Deallocations
   call deallocate_sparse_matrix(smat)
@@ -151,18 +157,19 @@ program smatmul
   !call f_free_str_ptr(int(len(atomnames),kind=4),atomnames)
   !call f_free_ptr(rxyz)
 
-  call timing(bigdft_mpi%mpi_comm,'FINISH','PR')
+  call f_timing_checkpoint(ctr_name='FINISH',mpi_comm=comm,nproc=nproc,&
+       gather_routine=gather_timings)
 
   call build_dict_info(dict_timing_info)
-  call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm, nproc=bigdft_mpi%nproc, &
+  call f_timing_stop(mpi_comm=comm, nproc=nproc, &
        gather_routine=gather_timings, dict_info=dict_timing_info)
   call dict_free(dict_timing_info)
 
   if (iproc==0) then
       call yaml_release_document()
   end if
-
-  call bigdft_finalize(ierr)
+  
+  call mpifinalize()
 
   call f_lib_finalize()
 
@@ -177,9 +184,7 @@ program smatmul
       type(dictionary), pointer :: dict_info
       !local variables
       integer :: ierr,namelen,nthreads
-      character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
-      character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
-      type(dictionary), pointer :: dict_tmp
+      type(dictionary), pointer :: dict_tmp,list
       !$ integer :: omp_get_max_threads
 
       call dict_init(dict_info)
@@ -190,21 +195,18 @@ program smatmul
       !end if
       nthreads = 0
       !$  nthreads=omp_get_max_threads()
-      call set(dict_info//'CPU parallelism'//'MPI tasks',bigdft_mpi%nproc)
+      call set(dict_info//'CPU parallelism'//'MPI tasks',nproc)
       if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
            nthreads)
 
-      nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.bigdft_mpi%nproc-1,id='nodename')
-      if (bigdft_mpi%nproc>1) then
-         call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
-         !gather the result between all the process
-         call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
-              nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
-              bigdft_mpi%mpi_comm,ierr)
-         if (bigdft_mpi%iproc==0) call set(dict_info//'Hostnames',&
-                 list_new(.item. nodename))
+      if (nproc>1) then
+         call mpihostnames_list(comm,list)
+         if (iproc==0) then
+            call set(dict_info//'Hostnames',list)
+         else
+            call dict_free(list)
+         end if
       end if
-      call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
 
     end subroutine build_dict_info
 

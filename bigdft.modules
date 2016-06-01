@@ -101,7 +101,7 @@
     <branch repo="local" module="bigdft-1.8.tar.gz" version="1.8.0" checkoutdir="bigdft"/>
     <dependencies>
       <dep package="futile"/>
-      <!-- <dep package="libCheSS"/> -->
+      <dep package="libCheSS"/>
       <dep package="libxc"/>
       <dep package="psolver"/>
       <dep package="libABINIT"/>

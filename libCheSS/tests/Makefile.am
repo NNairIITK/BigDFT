@@ -4,17 +4,17 @@ EXTRA_DIST = test-smatmul.ref.yaml mat_114_8986.dat  mat_1202_77462.dat  mat_600
 
 check_PROGRAMS = smatmul
 
-AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIB_FUTILE_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
-bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src -Wl,-rpath=$(DESTDIR)$(libdir)
+chess_library = $(top_builddir)/src/libCheSS-1.so.@CHESS_MINOR_VERSION@
 else
-bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
+chess_library = $(top_builddir)/src/libCheSS-1.a @LIB_CHESS_DEPS@
 endif
 
 smatmul_SOURCES = smatmul.f90
-smatmul_LDADD = $(bigdft_library) @LINALG_LIBS@
+smatmul_LDADD = $(chess_library)
 
 CLEANFILES = *.dat *.yaml report
 
