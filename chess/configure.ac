@@ -100,7 +100,7 @@ AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
-libCheSS.pc
+chess.pc
 sparsematrix/Makefile
 src/configure.inc
 src/Makefile

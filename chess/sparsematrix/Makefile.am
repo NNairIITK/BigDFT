@@ -50,6 +50,7 @@ CLEANFILES = *.@MODULE_EXT@
 AM_FCFLAGS = -I. -I$(srcdir) @LIB_FUTILE_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
 
 #dependencies
+$(modules): $(libsparsematrix_a_OBJECTS)
 sparsematrix_memory.o: sparsematrix_errorhandling.o sparsematrix_types.o
 sparsematrix_base.o: sparsematrix_errorhandling.o sparsematrix_timing.o sparsematrix_types.o sparsematrix_memory.o
 parallel_linalg.o: sparsematrix_base.o
