@@ -35,6 +35,7 @@ module foe_base
  
 
     function foe_data_null() result(foe_obj)
+      use f_utils, only: f_none,assignment(=)
       implicit none
       type(foe_data) :: foe_obj
       nullify(foe_obj%ef)
@@ -44,20 +45,20 @@ module foe_base
       nullify(foe_obj%evhigh)
       nullify(foe_obj%bisection_shift)
       !foe_obj%bisection_shift        = uninitialized(foe_obj%bisection_shift)
-      foe_obj%fscale                 = uninitialized(foe_obj%fscale)
-      foe_obj%ef_interpol_det        = uninitialized(foe_obj%ef_interpol_det)
-      foe_obj%ef_interpol_chargediff = uninitialized(foe_obj%ef_interpol_chargediff)
-      nullify(foe_obj%charge)
-      !foe_obj%charge                 = uninitialized(foe_obj%charge)
-      foe_obj%fscale_lowerbound      = uninitialized(foe_obj%fscale_lowerbound)
-      foe_obj%fscale_upperbound      = uninitialized(foe_obj%fscale_upperbound)
-      foe_obj%tmprtr                 = uninitialized(foe_obj%tmprtr)
-      foe_obj%evbounds_isatur        = uninitialized(foe_obj%evbounds_isatur)
-      foe_obj%evboundsshrink_isatur  = uninitialized(foe_obj%evboundsshrink_isatur)
-      foe_obj%evbounds_nsatur        = uninitialized(foe_obj%evbounds_nsatur)
-      foe_obj%evboundsshrink_nsatur  = uninitialized(foe_obj%evboundsshrink_nsatur)
-      foe_obj%evlow_min              = uninitialized(foe_obj%evlow_min)
-      foe_obj%evhigh_max             = uninitialized(foe_obj%evhigh_max)
+      foe_obj%fscale                 =f_none()! uninitialized(foe_obj%fscale)
+      foe_obj%ef_interpol_det        =f_none()! uninitialized(foe_obj%ef_interpol_det)
+      foe_obj%ef_interpol_chargediff =f_none()! uninitialized(foe_obj%ef_interpol_chargediff)
+      nullify(foe_obj%charge)        
+      !foe_obj%charge                !=f_none()! uninitialized(foe_obj%charge)
+      foe_obj%fscale_lowerbound      =f_none()! uninitialized(foe_obj%fscale_lowerbound)
+      foe_obj%fscale_upperbound      =f_none()! uninitialized(foe_obj%fscale_upperbound)
+      foe_obj%tmprtr                 =f_none()! uninitialized(foe_obj%tmprtr)
+      foe_obj%evbounds_isatur        =f_none()! uninitialized(foe_obj%evbounds_isatur)
+      foe_obj%evboundsshrink_isatur  =f_none()! uninitialized(foe_obj%evboundsshrink_isatur)
+      foe_obj%evbounds_nsatur        =f_none()! uninitialized(foe_obj%evbounds_nsatur)
+      foe_obj%evboundsshrink_nsatur  =f_none()! uninitialized(foe_obj%evboundsshrink_nsatur)
+      foe_obj%evlow_min              =f_none()! uninitialized(foe_obj%evlow_min)
+      foe_obj%evhigh_max             =f_none()! uninitialized(foe_obj%evhigh_max)
       nullify(foe_obj%eval_multiplicator)
     end function foe_data_null
 

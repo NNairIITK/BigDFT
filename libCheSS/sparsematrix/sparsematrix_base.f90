@@ -15,7 +15,6 @@ module sparsematrix_base
   use dictionaries
   use yaml_output
   use yaml_strings
-  use module_defs, only: UNINITIALIZED
   use wrapper_MPI
   use wrapper_linalg
   use f_utils

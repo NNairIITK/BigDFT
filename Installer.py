@@ -22,8 +22,8 @@ DIST='  dist --dist-only bigdft-suite '
 RCFILE='buildrc'
 SETUP=' setup '
 
-CHECKMODULES= ['futile','psolver','bigdft','spred']
-MAKEMODULES= ['futile','psolver','libABINIT','bigdft','spred']
+CHECKMODULES= ['futile','libCheSS','psolver','bigdft','spred']
+MAKEMODULES= ['futile','libCheSS','psolver','libABINIT','bigdft','spred']
 
 #allowed actions and corresponding description
 ACTIONS={'build':
@@ -250,7 +250,7 @@ class BigDFTInstaller():
                 found=m in previous_macros
                 if found: continue
                 for regexp in self.m4_re:
-                    found=regexp in m
+                    found=regexp.lstrip('^') in m
                     if found: break
                 if found: macros.add(m)
         return list(macros)
@@ -270,6 +270,7 @@ class BigDFTInstaller():
         for f in files:
             tgt=os.path.join(self.srcdir,f)
             newm=self.get_m4_macros(tgt,previous_macros=macros)
+            #print 'new macros',newm
             for m4 in newm:
                 newm4.add(m4)
         newm4 = list(newm4)
@@ -303,7 +304,7 @@ class BigDFTInstaller():
         #first copy the macros in the config.m4 directories of proprietary packages
         for mod in self.selected(MAKEMODULES):
             macros=self.get_m4_macros(os.path.join(self.srcdir,mod,'configure.ac'))
-            #print 'macros',mod,macros
+            #print 'initial macros',mod,macros
             files=self.get_m4_files(macros)
             #print 'related files',files
             #now copy the files, overwriting the previously existing ones
