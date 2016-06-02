@@ -690,11 +690,20 @@ module overlap_point_to_point
 
      !>get the rank to which we have to send the data
      pure function get_send_rank(igroup,OP2P)
+       use wrapper_MPI
        implicit none
        integer, intent(in) :: igroup
        type(OP2P_data), intent(in) :: OP2P
        integer :: get_send_rank
        if (OP2P%nearest_neighbor) then
+          !however send data only if the next process was supposed to receive them
+          !this only works when step and processes can be interchanged
+          !therefore without holes
+          if (OP2P%ranks(RECV_DATA,igroup,OP2P%istep+1) /= mpirank_null()) then
+             get_send_rank=OP2P%ranks(SEND_DATA,igroup,0)
+          else
+             get_send_rank=mpirank_null()
+          end if
        else
           get_send_rank=OP2P%ranks(SEND_DATA,igroup,OP2P%istep)
        end if
@@ -702,25 +711,33 @@ module overlap_point_to_point
 
      !>get the rank to which we have to recv the data
      pure function get_recv_rank(igroup,OP2P)
+       use wrapper_MPI
        implicit none
        integer, intent(in) :: igroup
        type(OP2P_data), intent(in) :: OP2P
        integer :: get_recv_rank
        get_recv_rank=OP2P%ranks(RECV_DATA,igroup,OP2P%istep)
-     end function get_recv_rank
+       if (OP2P%nearest_neighbor .and. get_recv_rank /= mpirank_null())&
+            get_recv_rank=OP2P%ranks(RECV_DATA,igroup,0)
 
+     end function get_recv_rank
 
      !>get the original processor of the data we are treating
      pure function get_sendbuf_provenance(iproc,OP2P)
+       use wrapper_MPI
        implicit none
        integer, intent(in) :: iproc
        type(OP2P_data), intent(in) :: OP2P
        integer :: get_sendbuf_provenance
-       get_sendbuf_provenance=iproc !scheme of general pattern
+       if (OP2P%nearest_neighbor) then
+       else
+          get_sendbuf_provenance=iproc !scheme of general pattern
+       end if
      end function get_sendbuf_provenance
 
      !>get the original processor of the data we are treating
      pure function get_recvbuf_provenance(iproc,OP2P)
+       use wrapper_MPI
        implicit none
        integer, intent(in) :: iproc
        type(OP2P_data), intent(in) :: OP2P
