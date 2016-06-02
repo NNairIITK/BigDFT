@@ -38,7 +38,7 @@ EXTRA_PROGRAMS = conv_check
 AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/
 
 NVCC = @NVCC@
-NVCC_FLAGS = -arch sm_20 @NVCC_FLAGS@ 
+NVCC_FLAGS = @NVCC_FLAGS@ 
 SUFFIXES = .cu
 
 CLEANFILES = fort.1 fort.98 *linkinfo

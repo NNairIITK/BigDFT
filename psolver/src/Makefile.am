@@ -28,8 +28,6 @@ PS_input_variables_fetch.o: PS_input_variables_definition-inc.h
 PS_input_variables_definition-inc.h: PS_input_variables_definition.yaml
 	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
 
-
-
 if HAVE_ETSF_IO
 etsf_files = IOetsf.f90
 etsf_dep   = IOetsf.o

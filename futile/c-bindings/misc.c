@@ -204,7 +204,7 @@ void* futile_object_ndarray_new(void **paddress)
     }
 
   meth.n_args += 1;
-  *paddress = malloc(sizeof(void) * FUTILE_F_POINTER_SIZE);
+  *paddress = malloc(sizeof(void*) * FUTILE_F_POINTER_SIZE);
   futile_object_method_add_arg(&meth, &paddress);
   futile_object_method_add_arg(&meth, &address);
   futile_object_method_execute(&meth);

@@ -18,7 +18,6 @@ module sparsematrix_errorhandling
     subroutine sparsematrix_init_errors()
       use dictionaries
       implicit none
-      external :: bigdft_severe_abort
 
       call f_err_define('SPARSEMATRIX_ALLOCATION_ERROR',&
            'a problem occured during the allocation of a sparse matrix',&
@@ -40,9 +39,6 @@ module sparsematrix_errorhandling
            SPARSEMATRIX_MANIPULATION_ERROR,&
            err_action='Check the calling arguments and the dedicated error message')
   
-  
-      ! define the severe operation via MPI_ABORT
-      call f_err_severe_override(bigdft_severe_abort)
-    end subroutine sparsematrix_init_errors
+      end subroutine sparsematrix_init_errors
 
 end module sparsematrix_errorhandling

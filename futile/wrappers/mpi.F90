@@ -31,7 +31,7 @@ module wrapper_MPI
   logical, parameter :: have_mpi2 = .false. !< Flag to use in the code to switch between MPI1 and MPI2
 #endif
 
-  include 'mpif.h'      !< MPI definitions and datatypes for density and wavefunctions
+  include 'mpif.h'      !< MPI definitions and datatypes
 
   logical :: mpi_thread_funneled_is_supported=.false. !< Control the OMP_NESTED based overlap, checked by bigdft_mpi_init below
 
@@ -1074,6 +1074,36 @@ contains
     call f_release_routine()
   END SUBROUTINE mpinoderanks
 
+
+  subroutine mpihostnames_list(comm,dict)
+    use dictionaries
+    use dynamic_memory
+    implicit none
+    integer, intent(in) :: comm
+    type(dictionary), pointer :: dict
+    !local variables
+    integer :: nproc,ierr
+    character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+    character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
+
+    nproc=mpisize(comm)
+
+    nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0 .to. nproc-1,id='nodename')
+
+    nodename_local=mpihostname()
+
+    !gather the result between all the processes
+    call MPI_ALLGATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+         nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+         comm,ierr)
+    if (ierr /=0) call f_err_throw('An error in calling to MPI_ALLGATHER occured',&
+         err_id=ERR_MPI_WRAPPERS)
+    
+    dict=>list_new(.item. nodename)
+
+    call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
+
+  end subroutine mpihostnames_list
 
   !> returns true if the mpi has been initialized
   function mpiinitialized()

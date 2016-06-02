@@ -2406,6 +2406,7 @@ module sparsematrix
       integer :: blocksize
       real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
       real(kind=8),dimension(:,:,:),allocatable :: mat_check_accur_dense
+      external :: gather_timings
 
       call f_routine(id='operation_using_dense_lapack')
 
@@ -2415,10 +2416,16 @@ module sparsematrix
       mat_check_accur_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr,2/),id='mat_check_accur_dense')
       call uncompress_matrix(iproc, nproc, &
            smat_in, mat_in%matrix_compr, mat_in_dense)
-      call timing(mpi_comm_world,'INIT_CUBIC','PR')
+
+      call f_timing_checkpoint(ctr_name='INIT_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
+           gather_routine=gather_timings)
+
       call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
            mat_in_dense, exp_power, mat_out_dense)
-      call timing(mpi_comm_world,'CALC_CUBIC','PR')
+
+      call f_timing_checkpoint(ctr_name='CALC_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
+           gather_routine=gather_timings)
+
       call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
            mat_in_dense, -exp_power, mat_check_accur_dense)
       call dgemm_parallel(iproc, nproc, blocksize, mpi_comm_world, 'n', 'n', &
@@ -2426,7 +2433,10 @@ module sparsematrix
            1.d0, mat_out_dense(1,1), smat_in%nfvctr, &
            mat_check_accur_dense(1,1,1), smat_in%nfvctr, 0.d0, mat_check_accur_dense(1,1,2), smat_in%nfvctr)
       call check_deviation_from_unity_dense(iproc, smat_in%nfvctr, mat_check_accur_dense(1,1,2))
-      call timing(mpi_comm_world,'CHECK_CUBIC','PR')
+
+      call f_timing_checkpoint(ctr_name='CHECK_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
+           gather_routine=gather_timings)
+
       call f_free(mat_check_accur_dense)
       call f_free(mat_in_dense)
       call f_free(mat_out_dense)

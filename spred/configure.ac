@@ -103,11 +103,13 @@ AX_LINALG()
 
 dnl Libraries
 AX_FLIB()
-if test "$ax_have_futile" != "yes" ; then
+if test "$ax_have_FUTILE" != "yes" ; then
   AC_MSG_ERROR(["Cannot find Futile library."])
 fi
-AX_PSOLVER() dnl to be removed when MPI goes to flib.
-if test "$ax_have_psolver" != "yes" ; then
+
+dnl to be removed when MPI goes to flib.
+AX_PSOLVER() 
+if test "$ax_have_PSOLVER" != "yes" ; then
   AC_MSG_ERROR(["Cannot find PSolver library."])
 fi
 AX_BIGDFT()

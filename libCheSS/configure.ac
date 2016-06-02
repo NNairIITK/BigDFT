@@ -7,40 +7,28 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([Poisson solver],[1.8],[Damien.Caliste@cea.fr],[psolver])
+AC_INIT([Chebyshev Sparse Solvers],[1.0],[stephan.mohr@bsc.es],[libCheSS])
 
-dnl All temporary building files are put in this directory.
-dnl his must be called before AM_INIT_AUTOMAKE
-AC_CONFIG_AUX_DIR(config)
-dnl Use a config.h file to store macro definitions, required for CUDA.
-AC_CONFIG_HEADERS(config.h)
-AC_CONFIG_MACRO_DIR([config/m4])
+AC_CONFIG_MACRO_DIR([m4])
 
 dnl Init something, don't know exactly what...
 AM_INIT_AUTOMAKE([-Wno-portability])
-dnl To keep the object files in the same structure as the source files (pb does not work with libABINIT)
-dnl AM_INIT_AUTOMAKE([--warnings=no-portability, subdir-objects])
 
 dnl Versioning
-PSOLVER_MAJOR_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f1)
-PSOLVER_MINOR_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f2 | cut -d'-' -f1)
-PSOLVER_MICRO_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f3)
-if test -z "$PSOLVER_MICRO_VERSION" ; then
-  PSOLVER_MICRO_VERSION=0
+CHESS_MAJOR_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f1)
+CHESS_MINOR_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f2 | cut -d'-' -f1)
+CHESS_MICRO_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f3)
+if test -z "$CHESS_MICRO_VERSION" ; then
+  CHESS_MICRO_VERSION=0
 fi
-PSOLVER_NANO_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f4)
-AC_SUBST(PSOLVER_MAJOR_VERSION)
-AC_SUBST(PSOLVER_MINOR_VERSION)
-AC_SUBST(PSOLVER_MICRO_VERSION)
-AC_SUBST(PSOLVER_NANO_VERSION)
+CHESS_NANO_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f4)
+AC_SUBST(CHESS_MAJOR_VERSION)
+AC_SUBST(CHESS_MINOR_VERSION)
+AC_SUBST(CHESS_MICRO_VERSION)
+AC_SUBST(CHESS_NANO_VERSION)
 
 dnl Check for sed and put it in the SED variable
 AC_PROG_SED()
-
-dnl We defined CC for the bindings and CXX for FFTW.
-AC_PROG_CC()
-AC_PROG_CXX()
-AM_PROG_CC_C_O()
 
 dnl If FC environment variable is not already set, it
 dnl looks for a modern Fortran compiler, prefering newest
@@ -48,14 +36,10 @@ dnl fortran available (e. g. Fortran95). Then FC variable
 dnl is set.
 AC_PROG_FC([], [Fortran 90])
 
-dnl Fortran 77 (to be removed)
-AC_PROG_F77([], [Fortran 77])
-
 dnl Defining Fortran language for tests.
 AC_LANG(Fortran)
 AC_FC_SRCEXT(f90)
 
-AC_FC_WRAPPERS()
 AX_FC_DEFS()
 AX_FC_OPENMP()
 
@@ -66,13 +50,6 @@ AC_SUBST(MODULE_EXT, $ax_fc_mod_ext)
 dnl default installation directories
 AX_FC_MODULEDIR()
 
-dnl Set the FCFLAGS and FFLAGS variable
-if test -z "$FFLAGS" ; then
-  AC_SUBST(FFLAGS, "-O2")
-fi
-if test -n "$FCFLAGS_f90" ; then
-  FCFLAGS="$FCFLAGS $FCFLAGS_f90"
-fi
 if test -z "$FCFLAGS" ; then
   AC_SUBST(FCFLAGS, "-O2")
 fi
@@ -106,33 +83,25 @@ AX_LINALG()
 AX_ETSF_IO()
 
 dnl Agregate all the optional libs.
-LIB_PSOLVER_DEPS="$LIBETSFIO_LIBS $LIB_FUTILE_LIBS"
+LIB_CHESS_DEPS="$LIBETSFIO_LIBS $LIB_FUTILE_LIBS"
 dnl if the futile libraries are dynamic add the dependencies
 if test $ax_FUTILE_static != "yes" ; then
-  LIB_PSOLVER_DEPS="$LIB_PSOLVER_DEPS $LIBCUDA_LIBS $LINALG_LIBS $MPI_LDFLAGS $MPI_LIBS"
+  LIB_CHESS_DEPS="$LIB_CHESS_DEPS $LIBCUDA_LIBS $LINALG_LIBS $MPI_LDFLAGS $MPI_LIBS"
 fi
-LIB_PSOLVER_PKG=""
+LIB_CHESS_PKG=""
 if test $ax_build_dynamic != "yes" ; then
-  LIB_PSOLVER_PKG="$LIB_PSOLVER_DEPS"
+  LIB_CHESS_PKG="$LIB_CHESS_DEPS"
 fi
-AC_SUBST(LIB_PSOLVER_PKG)
-AC_SUBST(LIB_PSOLVER_DEPS)
-
-dnl LIB_PSOLVER_DEPS="$LIBETSFIO_LIBS $LIBCUDA_LIBS $LINALG_LIBS $MPI_LDFLAGS $MPI_LIBS"
-dnl LIB_PSOLVER_PKG=""
-dnl if test $ax_build_dynamic != "yes" ; then
-dnl   LIB_PSOLVER_PKG="$LIB_PSOLVER_DEPS"
-dnl fi
-dnl AC_SUBST(LIB_PSOLVER_PKG)
-dnl LIB_PSOLVER_DEPS="$LIB_PSOLVER_DEPS $LIB_FUTILE_LIBS"
-dnl AC_SUBST(LIB_PSOLVER_DEPS)
+AC_SUBST(LIB_CHESS_PKG)
+AC_SUBST(LIB_CHESS_DEPS)
 
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
-psolver.pc
+libCheSS.pc
+sparsematrix/Makefile
 src/configure.inc
 src/Makefile
 tests/Makefile
@@ -141,22 +110,19 @@ tests/Makefile
 AC_OUTPUT
 
 echo "
-Poisson-solver configure summary:
+Chebyshev Sparse Solvers configure summary:
 ================================
 
 Basics:
   Fortran90 compiler:        $FC
   Fortran90 flags:           $FCFLAGS
-  Fortran77 compiler:        $F77
-  Fortran77 flags:           $FFLAGS
   Linker flags:              $LDFLAGS
-  Linked libraries:          $LIB_PSOLVER_DEPS $LIBS
+  Linked libraries:          $LIB_CHESS_DEPS $LIBS
 
 Build:
   Dynamic library:           $ax_build_dynamic
 
 Options:
-  Max. Memory per task (GB): $MEMORY_LIMIT
   With OpenMP:               $ax_fc_openmp_msg
   With MPI:                  $ac_use_mpi
    | include dir.:           $MPI_INCLUDE
@@ -164,9 +130,6 @@ Options:
    | linked libraries:       $MPI_LIBS
    | MPI_INIT_THREAD avail:  $ac_with_mpinithread
    | MPI2 support:           $ac_with_mpi2
-  With Cuda support:         $ax_have_acc_cuda
-   | NVidia Cuda Compiler:   $NVCC
-   | Cuda flags:             $CUDA_FLAGS
   With ETSF_IO:              $ax_have_etsf_io
    | include dir.:           $LIBETSFIO_INCLUDE
 
@@ -193,7 +156,3 @@ if test x"$ac_use_mpi" = x"warn" -o x"$ax_have_etsf_io" = x"warn" -o x"$withscal
   fi
 
 fi
-
-dnl Do not touch this line. On the Cray machine in Basel, the preprocessor
-dnl in Fortran sources does not allow C comments (/*  */), so we remove them.
-$SED -n '1h;1!H;${;g;s%/\*[[^*]]*\*/%%g;p;}' config.h > config.inc

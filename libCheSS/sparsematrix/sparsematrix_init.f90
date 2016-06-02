@@ -2127,7 +2127,8 @@ module sparsematrix_init
 
     !> Uses the BigDFT sparsity pattern to create a BigDFT sparse_matrix type
     subroutine bigdft_to_sparsebigdft(iproc, nproc, comm, ncol, nvctr, nseg, keyg, smat, &
-               init_matmul, nspin, geocode, cell_dim, on_which_atom)
+         init_matmul, nspin, geocode, cell_dim, on_which_atom)
+      use f_utils
       implicit none
       integer,intent(in) :: iproc, nproc, comm, ncol, nvctr, nseg
       !logical,intent(in) :: store_index
@@ -2140,7 +2141,7 @@ module sparsematrix_init
       integer,dimension(ncol),target,intent(in),optional :: on_which_atom
 
       ! Local variables
-      integer :: icol, irow, i, ii, iseg, nspin_
+      integer :: icol, irow, i, ii, iseg, nspin_,i_none
       !integer :: ncolpx
       integer,dimension(:,:),allocatable :: nonzero
       logical,dimension(:,:),allocatable :: mat
@@ -2212,7 +2213,8 @@ module sparsematrix_init
           on_which_atom_ => on_which_atom
       else
           on_which_atom_ = f_malloc_ptr(ncol,id='on_which_atom_')
-          on_which_atom_(:) = uninitialized(1)
+          i_none=f_none()
+          on_which_atom_(:) = i_none!uninitialized(1)
       end if
 
       if (present(init_matmul)) then
