@@ -53,7 +53,7 @@ sparsematrix_memory.o: sparsematrix_errorhandling.o sparsematrix_types.o
 sparsematrix_base.o: sparsematrix_errorhandling.o sparsematrix_timing.o sparsematrix_types.o sparsematrix_memory.o
 parallel_linalg.o: sparsematrix_base.o
 sparsematrix_init.o: sparsematrix_base.o
-sparsematrix.o: sparsematrix_base.o sparsematrix_init.o
+sparsematrix.o: sparsematrix_base.o sparsematrix_init.o parallel_linalg.o
 sparsematrix_io.o: sparsematrix_base.o sparsematrix.o
 
 # Copy modules in a common include directory.

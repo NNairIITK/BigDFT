@@ -22,8 +22,8 @@ DIST='  dist --dist-only bigdft-suite '
 RCFILE='buildrc'
 SETUP=' setup '
 
-CHECKMODULES= ['futile','libCheSS','psolver','bigdft','spred']
-MAKEMODULES= ['futile','libCheSS','psolver','libABINIT','bigdft','spred']
+CHECKMODULES= ['futile','chess','psolver','bigdft','spred']
+MAKEMODULES= ['futile','chess','psolver','libABINIT','bigdft','spred']
 
 #allowed actions and corresponding description
 ACTIONS={'build':
