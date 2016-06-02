@@ -106,7 +106,8 @@ module_autogenargs['etsf_io'] = "--with-moduledir=%(prefix)s/include " % {"prefi
 if basic_configuration() is not None:
     module_autogenargs['libyaml'  ]= basic_configuration() 
     module_autogenargs['GaIn'     ]= basic_configuration()
-    module_autogenargs['libxc'    ]= basic_configuration()
+    module_autogenargs['libxc'    ]= basic_configuration)(
+    module_autogenargs['chess'    ]= basic_configuration()
     module_autogenargs['bigdft'   ]= basic_configuration()
     module_autogenargs['libABINIT']= basic_configuration()
     module_autogenargs['futile'   ]= basic_configuration()

@@ -3,7 +3,7 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: libCheSS
+Name: chess
 Description: Library for Linear Scaling Chebyshev Sparse Solvers.
 Requires: futile
 Version: @VERSION@
