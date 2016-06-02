@@ -86,8 +86,8 @@
     </dependencies>
   </autotools>
 
-  <autotools id="libCheSS" autogen-sh="autoreconf">
-    <branch repo="local" module="libCheSS-1.0.tar.gz" version="1.0" checkoutdir="libCheSS"/>
+  <autotools id="chess" autogen-sh="autoreconf">
+    <branch repo="local" module="CheSS-1.0.tar.gz" version="1.0" checkoutdir="chess"/>
     <dependencies>
       <dep package="futile"/>
       <if condition-set="testing">
@@ -101,7 +101,7 @@
     <branch repo="local" module="bigdft-1.8.tar.gz" version="1.8.0" checkoutdir="bigdft"/>
     <dependencies>
       <dep package="futile"/>
-      <dep package="libCheSS"/>
+      <dep package="chess"/>
       <dep package="libxc"/>
       <dep package="psolver"/>
       <dep package="libABINIT"/>
