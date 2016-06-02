@@ -126,14 +126,17 @@ module foe
 
       !call timing(iproc, 'FOE_auxiliary ', 'OF')
       call f_timing(TCAT_CME_AUXILIARY,'OF')
+      if (iproc==0) call yaml_mapping_open('S^-1/2')
       if (calculate_minusonehalf) then
-          if (iproc==0) call yaml_map('S^-1/2','recalculate')
+          !if (iproc==0) call yaml_map('S^-1/2','recalculate')
           !!call overlap_minus_onehalf() ! has internal timer
+          if (iproc==0) call yaml_map('Can take from memory',.false.)
           call overlap_minus_onehalf(iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_, &
                ice_obj=ice_obj) !has internal timer
       else
-          if (iproc==0) call yaml_map('S^-1/2','from memory')
+          if (iproc==0) call yaml_map('Can take from memory',.true.)
       end if
+      if (iproc==0) call yaml_mapping_close()
       !call timing(iproc, 'FOE_auxiliary ', 'ON')
       call f_timing(TCAT_CME_AUXILIARY,'ON')
 
@@ -242,7 +245,16 @@ module foe
                        smatm, smatl, ham_, foe_obj, npl_min, kernel_%matrix_compr(ilshift+1:), &
                        chebyshev_polynomials, npl, scale_factor, shift_value, hamscal_compr, &
                        smats=smats, ovrlp_=ovrlp_, ovrlp_minus_one_half_=ovrlp_minus_one_half_(1), &
-                       efarr=efarr, fscale_arr=fscale_arr)
+                       efarr=efarr, fscale_arr=fscale_arr, max_errorx=max_error)
+
+                  if (iproc==0) then
+                      call yaml_mapping_open('summary',flow=.true.)
+                      call yaml_map('npl',npl)
+                      call yaml_map('bounds', &
+                           (/foe_data_get_real(ice_obj,"evlow",ispin),foe_data_get_real(ice_obj,"evhigh",ispin)/),fmt='(f6.2)')
+                      call yaml_map('exp accur',max_error,fmt='(es8.2)')
+                      call yaml_mapping_close()
+                  end if
 
                   call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
                        foe_verbosity, 'test', smatl, ispin, foe_obj, kernel_)

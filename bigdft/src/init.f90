@@ -1717,9 +1717,10 @@ subroutine input_wf_disk_pw(filename, iproc, nproc, at, rxyz, GPU, Lzd, orbs, ps
   use module_atoms
   use m_pawrhoij, only: pawrhoij_type, pawrhoij_init_unpacked, pawrhoij_free_unpacked, pawrhoij_unpack
   use dynamic_memory
-  use module_interfaces, only: communicate_density, read_pw_waves, sumrho, write_energies
+  use module_interfaces, only: communicate_density, read_pw_waves, sumrho
   use rhopotential, only: updatePotential
   use f_utils, only: f_zero
+  use io, only: write_energies
   
   implicit none
 
@@ -1801,7 +1802,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   use module_base
   use module_interfaces, only: FullHamiltonianApplication, LDiagHam, &
        & communicate_density, free_full_potential, inputguess_gaussian_orbitals, &
-       & sumrho, write_energies
+       & sumrho
+  use io, only: write_energies
   use module_types
   use module_xc, only: XC_NO_HARTREE
   use Poisson_Solver, except_dp => dp, except_gp => gp

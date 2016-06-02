@@ -333,7 +333,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      if(iproc==0 .and. dump) call print_orbital_distribution(iproc, nproc, lorbs)
   end if
 
-  if (iproc == 0 .and. dump) then
+  if (.not.(inputpsi .hasattr. 'LINEAR') .and. iproc == 0 .and. dump) then
      nB=max(orbs%npsidim_orbs,orbs%npsidim_comp)*8
      nMB=nB/1024/1024
      nKB=(nB-nMB*1024*1024)/1024
@@ -428,7 +428,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call check_communications(iproc,nproc,orbs,Lzd,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
-      if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
+      !if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
       !if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
   end if
 

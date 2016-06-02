@@ -2004,6 +2004,15 @@ module foe_common
 
                   end do main_loop
 
+                  if (iproc==0) then
+                      call yaml_mapping_open('summary',flow=.true.)
+                      call yaml_map('nit',it)
+                      call yaml_map('eF',foe_data_get_real(foe_obj,"ef",ispin),fmt='(es13.6)')
+                      call yaml_map('Tr(K)',sumn,fmt='(es14.7)')
+                      call yaml_map('D Tr(K)',sumn-foe_data_get_real(foe_obj,"charge",ispin),fmt='(es9.2)')
+                      call yaml_mapping_close()
+                  end if
+            
              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
                   fermi_small_new, &
                   kernel_%matrix_compr(ilshift+1:))
@@ -2352,7 +2361,7 @@ module foe_common
                smatm, smatl, ham_, foe_obj, npl_min, workarr_compr, chebyshev_polynomials, &
                npl, scale_factor, shift_value, hamscal_compr, &
                smats, ovrlp_, ovrlp_minus_one_half_, efarr, fscale_arr, ex, &
-               scaling_factor_low, scaling_factor_up, eval_multiplicator, eval_multiplicator_total, cc)
+               scaling_factor_low, scaling_factor_up, eval_multiplicator, eval_multiplicator_total, cc, max_errorx)
       use module_func
       implicit none
 
@@ -2376,7 +2385,8 @@ module foe_common
       real(kind=mp),dimension(ncalc),intent(in),optional :: ex
       real(mp),intent(in),optional :: scaling_factor_low, scaling_factor_up
       real(mp),intent(inout),optional :: eval_multiplicator, eval_multiplicator_total
-      real(kind=mp),dimension(:,:,:),pointer,optional :: cc
+      real(kind=mp),dimension(:,:,:),pointer,intent(out),optional :: cc
+      real(mp),dimension(ncalc),intent(out),optional :: max_errorx
 
       ! Local variables
       integer :: ilshift
@@ -2521,6 +2531,9 @@ module foe_common
            call f_memcpy(src=cc_, dest=cc)
       end if
       call f_free_ptr(cc_)
+      if (present(max_errorx)) then
+          call f_memcpy(src=max_error, dest=max_errorx)
+      end if
       call f_free(max_error)
       call f_free(x_max_error)
       call f_free(mean_error)
