@@ -3,7 +3,7 @@ EXTRA_DIST= m4
 ACLOCAL_AMFLAGS = -I m4
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libCheSS.pc
+pkgconfig_DATA = chess.pc
 
 SUBDIRS = sparsematrix src
 
