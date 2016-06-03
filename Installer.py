@@ -65,7 +65,8 @@ class BigDFTInstaller():
         self.yes=yes      #Ask a question
         #look where we are
         self.srcdir = os.path.dirname(__file__)
-        #look the builddir
+        if self.srcdir == '': self.srcdir='.'
+	#look the builddir
         self.builddir=os.getcwd()
         #look if we are building from a branch
         bigdftdir=os.path.join(self.srcdir,'bigdft')
