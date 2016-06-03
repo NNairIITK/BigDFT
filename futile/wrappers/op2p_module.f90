@@ -1174,7 +1174,7 @@ module overlap_point_to_point
 
 
      !> Unitary test for the Overlap point-to-point.
-     subroutine OP2P_unitary_test(mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+     subroutine OP2P_unitary_test(mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric,nearest_neighbor)
        use yaml_output, only: yaml_map
        use yaml_strings
        use dictionaries, only: f_err_throw
@@ -1184,13 +1184,14 @@ module overlap_point_to_point
        logical, intent(inout) :: symmetric
        integer, intent(in) :: mpi_comm,iproc,nproc,ngroup,ndim !< MPI data
        integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
+       logical, intent(in), optional :: nearest_neighbor
        !local variables
        integer :: norbp
        real(wp) :: maxdiff
        type(OP2P_data) :: OP2P
 
        !first initialize the OP2P data
-       call initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,0,symmetric,nearest_neighbor=.true.)
+       call initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,0,symmetric,nearest_neighbor)
 
        if (.not. OP2P_test(iproc,nproc,OP2P,maxdiff)) then
           if (iproc==0) call f_err_throw('OP2P Unitary test not passed, maxdiff='+maxdiff**'(1pe12.5)')
