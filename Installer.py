@@ -55,7 +55,7 @@ TARGETS={
     }
 
 class BigDFTInstaller():
-    m4_re=['^AX_','CHECK_PYTHON'] #regular expressions to identify proprietary macros
+    m4_re=['^AX_','CHECK_PYTHON','PKG_CHECK_MODULES'] #regular expressions to identify proprietary macros
     def __init__(self,action,package,rcfile,verbose,quiet,yes):
         import os
         self.action=action    #Action to be performed
@@ -63,7 +63,8 @@ class BigDFTInstaller():
         self.yes=yes      #Ask a question
         #look where we are
         self.srcdir = os.path.dirname(__file__)
-        #look the builddir
+        if self.srcdir == '': self.srcdir='.'
+	#look the builddir
         self.builddir=os.getcwd()
         #look if we are building from a branch
         bigdftdir=os.path.join(self.srcdir,'bigdft')
