@@ -3,7 +3,7 @@
 SHORT_CHECK = test-ccs.report.yaml test-foeccs.report.yaml test-random.report.yaml
 LONG_CHECK = $(SHORT_CHECK)
 
-include $(srcdir)/../check.mk
+#include $(srcdir)/../check.mk
 
 EXTRA_DIST = test-ccs.ref.yaml \
 	matrix1-base.dat matrix2-base.dat \
@@ -39,7 +39,7 @@ driver_random_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 CLEANFILES = test-ccs.out.yaml test-ccs.report.yaml test-ccs.report \
              test-foeccs.out.yaml test-foeccs.report.yaml test-foeccs.report \
-			 test-random.out.yaml test-random.report.yaml test-random.report
+			 test-random.out.yaml test-random.report.yaml test-random.report *.@MODULE_EXT@
 
 test-ccs.report.yaml: $(srcdir)/test-ccs.ref.yaml test-ccs.out.yaml
 	python $(pythondir)/fldiff_yaml.py \

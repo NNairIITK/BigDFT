@@ -1,5 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
+SUBDIRS = sparsematrix
+
 EXTRA_DIST = test-smatmul.ref.yaml mat_114_8986.dat  mat_1202_77462.dat  mat_600_33620.dat tols.yaml
 
 check_PROGRAMS = smatmul

@@ -105,6 +105,7 @@ sparsematrix/Makefile
 src/configure.inc
 src/Makefile
 tests/Makefile
+tests/sparsematrix/Makefile
 ])
 
 AC_OUTPUT
