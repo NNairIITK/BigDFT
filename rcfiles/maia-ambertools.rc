@@ -11,6 +11,9 @@ def env_configuration():
 def shrt_configuration():
     return """"FC=ifort" "FCFLAGS=-O2" "CC=icc" "CXX=icpc" "F77=ifort" """
 
+import os
+os.environ['AMBERHOME']='/kernph/schaba00/amber/build/amber14_intel/'
+os.environ['PATH']+=':'+os.environ['AMBERHOME']+'bin'
 
 #here follow the configuration instructions for the modules built
 module_autogenargs.update({
@@ -20,16 +23,16 @@ module_autogenargs.update({
 'futile': env_configuration(),
    
 'psolver': env_configuration(),
+
+'chess': env_configuration(),
    
 'libxc': shrt_configuration(),
    
 'libABINIT': env_configuration(),
-
-'chess': env_configuration(),
    
 'GaIn': shrt_configuration(),
    
-'bigdft': env_configuration(),
+'bigdft': env_configuration() +""" -with-ambertools="${AMBERHOME}/lib/" """,
    
 'spred': env_configuration(),
    

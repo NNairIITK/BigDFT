@@ -403,6 +403,7 @@ module overlap_point_to_point
        OP2P%ngroup=ngroup
        OP2P%ndim=ndim
        OP2P%mpi_comm=mpi_comm
+       OP2P%nearest_neighbor=nn
 
        OP2P%nobj_par=f_malloc_ptr([0.to.nproc-1,1.to.ngroup],id='nobj_par')
        call f_memcpy(src=nobj_par,dest=OP2P%nobj_par)
@@ -689,7 +690,8 @@ module overlap_point_to_point
 
 
      !>get the rank to which we have to send the data
-     pure function get_send_rank(igroup,OP2P)
+     !pure 
+     function get_send_rank(igroup,OP2P)
        use wrapper_MPI
        implicit none
        integer, intent(in) :: igroup
@@ -699,7 +701,10 @@ module overlap_point_to_point
           !however send data only if the next process was supposed to receive them
           !this only works when step and processes can be interchanged
           !therefore without holes
-          if (OP2P%ranks(RECV_DATA,igroup,OP2P%istep+1) /= mpirank_null()) then
+          if (OP2P%istep==OP2P%nstep) then
+             get_send_rank=mpirank_null()
+          else if (OP2P%istep==0 .or. &
+               OP2P%ranks(SEND_DATA,igroup,OP2P%istep) /= mpirank_null()) then
              get_send_rank=OP2P%ranks(SEND_DATA,igroup,0)
           else
              get_send_rank=mpirank_null()
@@ -707,6 +712,8 @@ module overlap_point_to_point
        else
           get_send_rank=OP2P%ranks(SEND_DATA,igroup,OP2P%istep)
        end if
+
+       !print *,'here',get_send_rank,mpirank(),OP2P%istep,OP2P%nstep
      end function get_send_rank
 
      !>get the rank to which we have to recv the data
@@ -723,13 +730,14 @@ module overlap_point_to_point
      end function get_recv_rank
 
      !>get the original processor of the data we are treating
-     pure function get_sendbuf_provenance(iproc,OP2P)
+     pure function get_sendbuf_provenance(iproc,igroup,OP2P)
        use wrapper_MPI
        implicit none
-       integer, intent(in) :: iproc
+       integer, intent(in) :: iproc,igroup
        type(OP2P_data), intent(in) :: OP2P
        integer :: get_sendbuf_provenance
-       if (OP2P%nearest_neighbor) then
+       if (OP2P%nearest_neighbor .and. OP2P%istep > 0) then
+          get_sendbuf_provenance=OP2P%ranks(RECV_DATA,igroup,OP2P%istep-1)
        else
           get_sendbuf_provenance=iproc !scheme of general pattern
        end if
@@ -764,22 +772,33 @@ module overlap_point_to_point
        integer :: original_source,igr,iobj_local,jshift
 
        igr=OP2P%group_id(igroup)
-       original_source=get_sendbuf_provenance(iproc,OP2P)
+       original_source=get_sendbuf_provenance(iproc,igroup,OP2P)
        nelems=OP2P%nobj_par(original_source,igr)*OP2P%ndim
        iobj_local=OP2P%objects_id(LOCAL_,original_source,igr)
      
        nullify(sendbuf)
        !this is the alternative communication scheme
-       if (OP2P%istep == 0 .or. .true.) then
+       if (OP2P%istep == 0 .or. .not. OP2P%nearest_neighbor) then
           !we send the local data
           jshift=phi%displ(iobj_local)
-          !sendbuf => f_subptr(phi%data,from=1+jshift,size=nelems)
+          sendbuf => f_subptr(phi%data,from=1+jshift,size=nelems)
+          !sendbuf => phi%data(1+jshift:nelems+jshift)
        else
           !in this scheme we send the data we retrieved at the previous step
-          !sendbuf => OP2P%dataw(igroup,OP2P%isend_data)%ptr(1,1)
+          sendbuf => remap_ptr_tmp(OP2P%dataw(igroup,OP2P%isend_data)%ptr,&
+               size(OP2P%dataw(igroup,OP2P%isend_data)%ptr))
        end if
 
      end function sendbuf
+
+     function remap_ptr_tmp(ptr,n) result(tmp)
+       implicit none
+       integer, intent(in) :: n
+       real(f_double), dimension(n), intent(in), target :: ptr
+       real(f_double), dimension(:), pointer :: tmp
+
+       tmp => ptr
+     end function remap_ptr_tmp
 
      subroutine P2P_data(iproc,OP2P,phi)!,psiw)
        use wrapper_MPI
@@ -792,6 +811,7 @@ module overlap_point_to_point
        !local variables
        integer :: igroup,dest,source,count,igr,iobj_local,jshift
        integer :: norbp,original_source!,norbp_max
+       real(f_double), dimension(:), pointer :: tmp
 
        norbp=phi%nobj
        !sending receiving data
@@ -799,19 +819,26 @@ module overlap_point_to_point
           igr=OP2P%group_id(igroup)
           dest=get_send_rank(igroup,OP2P)!OP2P%ranks(SEND_DATA,igroup,OP2P%istep)
           if (dest /= mpirank_null()) then
-             original_source=get_sendbuf_provenance(iproc,OP2P)
-             count=OP2P%nobj_par(original_source,igr)*OP2P%ndim
-             iobj_local=OP2P%objects_id(LOCAL_,original_source,igr)
+!!$             original_source=get_sendbuf_provenance(iproc,igroup,OP2P)
+!!$             count=OP2P%nobj_par(original_source,igr)*OP2P%ndim
+!!$             iobj_local=OP2P%objects_id(LOCAL_,original_source,igr)
+!!$             jshift=phi%displ(iobj_local)
+
+             tmp => sendbuf(iproc,igroup,OP2P,phi,count)
+
              OP2P%ndata_comms=OP2P%ndata_comms+1
-             jshift=phi%displ(iobj_local)
              !send the fixed array to the processor which comes in the list
              OP2P%ndatas(DATA_,dest,igr)=&
                   OP2P%ndatas(DATA_,dest,igr)+count
              if(OP2P%gpudirect/=1)then
-               call mpisend(phi%data(1+jshift),count,&
-                  dest=dest,tag=iproc,comm=OP2P%mpi_comm,&
-                  request=OP2P%requests_data(OP2P%ndata_comms),&
-                  verbose=OP2P%verbose,simulate=OP2P%simulate) ! dest==OP2P%iproc_dump
+                call mpisend(tmp(1),count,&
+                     dest=dest,tag=iproc,comm=OP2P%mpi_comm,&
+                     request=OP2P%requests_data(OP2P%ndata_comms),&
+                     verbose=OP2P%verbose,simulate=OP2P%simulate) ! dest==OP2P
+!!$               call mpisend(phi%data(1+jshift),count,&
+!!$                  dest=dest,tag=iproc,comm=OP2P%mpi_comm,&
+!!$                  request=OP2P%requests_data(OP2P%ndata_comms),&
+!!$                  verbose=OP2P%verbose,simulate=OP2P%simulate) ! dest==OP2P%iproc_dump
              else
                call mpisend(phi%data_GPU,count,&
                   dest=dest,tag=iproc,comm=OP2P%mpi_comm,&
@@ -823,7 +850,8 @@ module overlap_point_to_point
 
           source=get_recv_rank(igroup,OP2P)!OP2P%ranks(RECV_DATA,igroup,OP2P%istep)
           if (source /= mpirank_null()) then
-             count=OP2P%ndim*OP2P%nobj_par(source,igr)
+             !count=OP2P%ndim*OP2P%nobj_par(source,igr)
+             count=OP2P%ndim*OP2P%nobj_par(OP2P%ranks(RECV_DATA,igroup,OP2P%istep),igr)
              OP2P%ndata_comms=OP2P%ndata_comms+1
              OP2P%ndatas(DATA_,iproc,igr)=&
                   OP2P%ndatas(DATA_,iproc,igr)-count
@@ -864,7 +892,8 @@ module overlap_point_to_point
        nproc=mpisize(OP2P%mpi_comm)
        if (OP2P%nres_comms > 0) then
           !verify that the messages have been passed
-          call mpiwaitall(OP2P%nres_comms,OP2P%requests_res)
+          call mpiwaitall(OP2P%nres_comms,OP2P%requests_res,&
+               simulate=OP2P%simulate)
           !copy the results which have been received (the messages sending are after)
           !this part is already done by the mpi_accumulate
           do igroup=1,OP2P%ngroupp
@@ -1089,7 +1118,8 @@ module overlap_point_to_point
 
 
           !verify that the messages have been passed
-          call mpiwaitall(OP2P%ndata_comms,OP2P%requests_data)
+          call mpiwaitall(OP2P%ndata_comms,OP2P%requests_data,&
+               simulate=OP2P%simulate)
           if(OP2P%gpudirect == 1) call synchronize()
           !if we come here this section can be done nonetheless
           call P2P_res(iproc,OP2P,iter%phi_i)!,OP2P%resw)
@@ -1144,7 +1174,7 @@ module overlap_point_to_point
 
 
      !> Unitary test for the Overlap point-to-point.
-     subroutine OP2P_unitary_test(mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+     subroutine OP2P_unitary_test(mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric,nearest_neighbor)
        use yaml_output, only: yaml_map
        use yaml_strings
        use dictionaries, only: f_err_throw
@@ -1154,13 +1184,14 @@ module overlap_point_to_point
        logical, intent(inout) :: symmetric
        integer, intent(in) :: mpi_comm,iproc,nproc,ngroup,ndim !< MPI data
        integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
+       logical, intent(in), optional :: nearest_neighbor
        !local variables
        integer :: norbp
        real(wp) :: maxdiff
        type(OP2P_data) :: OP2P
 
        !first initialize the OP2P data
-       call initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,0,symmetric)
+       call initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,0,symmetric,nearest_neighbor)
 
        if (.not. OP2P_test(iproc,nproc,OP2P,maxdiff)) then
           if (iproc==0) call f_err_throw('OP2P Unitary test not passed, maxdiff='+maxdiff**'(1pe12.5)')

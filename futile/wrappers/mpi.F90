@@ -708,7 +708,7 @@ contains
     implicit none
     character(len=MPI_MAX_PROCESSOR_NAME) :: mpihostname
     !local variables
-    integer :: ierr,namelen,ipos
+    integer :: ierr,namelen,ipos,i
 
     call MPI_GET_PROCESSOR_NAME(mpihostname,namelen,ierr)
     if (ierr /= MPI_SUCCESS) then
@@ -719,7 +719,15 @@ contains
     !clean the hostname such as to include only the last word
     !this solves a problem in ibm machines
     ipos=index(mpihostname,' ',back=.true.)
-    if (ipos > 0) mpihostname=mpihostname(ipos+1:)
+    if (ipos > 0) then
+       do i=1,len(mpihostname)
+          if (i+ipos+1 <= len(mpihostname)) then
+             mpihostname(i:i)=mpihostname(i+ipos+1:i+ipos+1)
+          else
+             mpihostname(i:i)=' '
+          end if
+       end do
+    end if
 
   end function mpihostname
 
@@ -2765,18 +2773,25 @@ contains
 
   end subroutine mpirecv_gpu
 
-  subroutine mpiwaitall(ncount, array_of_requests,array_of_statuses)
+  subroutine mpiwaitall(ncount, array_of_requests,array_of_statuses,simulate)
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
     ! Local variables
     integer, intent(in) :: ncount
     integer, dimension(ncount),intent(in) :: array_of_requests
+    logical, intent(in), optional :: simulate
     integer, dimension(MPI_STATUS_SIZE,ncount), intent(out), optional :: array_of_statuses
     ! Local variables
+    logical :: sim
     integer :: ierr,tcat
 
     !no wait if no requests
     if (ncount==0) return
+
+    sim=.false.
+    if (present(simulate)) sim=simulate
+    if (sim) return
+
     tcat=TCAT_WAIT
     ! Synchronize the communication
     call f_timer_interrupt(tcat)

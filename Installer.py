@@ -21,6 +21,8 @@ DOTCMD=' | dot -Edir=back -Tpng > buildprocedure.png '
 DIST='  dist --dist-only bigdft-suite '
 RCFILE='buildrc'
 SETUP=' setup '
+GREP_M4_COMMENTS=" | grep -v dnl | grep -v '#' "
+
 
 CHECKMODULES= ['futile','chess','psolver','bigdft','spred']
 MAKEMODULES= ['futile','chess','psolver','libABINIT','bigdft','spred']
@@ -46,8 +48,16 @@ ACTIONS={'build':
 #actions which need rcfile to be executed
 NEEDRC=['build','dist','dry_run','startover']
 
+TARGETS={
+    'bigdft': ['bin','bigdft'],
+    'spred': ['bin','mhgps'],
+    'chess': ['lib','libCheSS-1.a'],
+    'futile': ['lib','libfutile-1.a'],
+    'psolver': ['lib','libPSolver-1.a'],
+    }
+
 class BigDFTInstaller():
-    m4_re=['^AX_','CHECK_PYTHON'] #regular expressions to identify proprietary macros
+    m4_re=['^AX_','CHECK_PYTHON','PKG_CHECK_MODULES'] #regular expressions to identify proprietary macros
     def __init__(self,action,package,rcfile,verbose,quiet,yes):
         import os
         self.action=action    #Action to be performed
@@ -55,7 +65,8 @@ class BigDFTInstaller():
         self.yes=yes      #Ask a question
         #look where we are
         self.srcdir = os.path.dirname(__file__)
-        #look the builddir
+        if self.srcdir == '': self.srcdir='.'
+	#look the builddir
         self.builddir=os.getcwd()
         #look if we are building from a branch
         bigdftdir=os.path.join(self.srcdir,'bigdft')
@@ -81,7 +92,7 @@ class BigDFTInstaller():
         if self.rcfile != '': self.jhb += '-f '+self.rcfile
 
         #date of bigdft executable if present
-        self.time0=self.bigdft_time()
+        self.time0=self.target_time()
 
         self.print_present_configuration()
 
@@ -92,9 +103,12 @@ class BigDFTInstaller():
         #then choose the actions to be taken
         getattr(self,action)()
 
-    def bigdft_time(self):
+    def target_time(self):
         import os
-        return self.filename_time(os.path.join(self.builddir,'install','bin','bigdft'))
+        dt=TARGETS['bigdft']
+        dt=TARGETS.get(self.package)
+        tgt=os.path.join(dt[0],dt[1])
+        return self.filename_time(os.path.join(self.builddir,'install',tgt))
 
     def filename_time(self,filename):
         import os
@@ -229,7 +243,7 @@ class BigDFTInstaller():
         import os
         m4args=set()
         if os.path.isfile(tgt):
-            for dd in self.get_output('grep '+acmacro+' '+tgt+' | grep -v dnl').split('\n'):
+            for dd in self.get_output('grep '+acmacro+' '+tgt+GREP_M4_COMMENTS).split('\n'):
                 if len(dd) == 0: continue
                 m4=dd.split('[')[1]
                 m4args.add(m4.split(']')[0])
@@ -241,7 +255,7 @@ class BigDFTInstaller():
         macros=set()
         if os.path.isfile(tgt):
             for regexp in self.m4_re:
-                for m4 in self.get_output('grep '+regexp+' '+tgt+' | grep -v dnl').split('\n'):
+                for m4 in self.get_output('grep '+regexp+' '+tgt+GREP_M4_COMMENTS).split('\n'):
                     if len(m4)>0:
                         m4t=m4.split('(')[0]
                         if m4t not in previous_macros: macros.add(m4t)
@@ -262,7 +276,7 @@ class BigDFTInstaller():
         #localize then the associated file in the m4 repository
         tgt=os.path.join(self.srcdir,'m4')+os.sep
         for m in macros:
-            ffs=self.get_output('grep -R '+m+' '+tgt+'| grep AC_DEFUN | grep -v dnl').split(':')[0]
+            ffs=self.get_output('grep -R '+m+' '+tgt+'| grep AC_DEFUN'+GREP_M4_COMMENTS).split(':')[0]
             if ffs!='': files.add(ffs)
         #now for each of the files get all the macros which are required but not explicitly called
         files=list(files)
@@ -431,13 +445,13 @@ class BigDFTInstaller():
         print 'The action considered was:',self.action
         try:
            if self.time0 is not None:
-               if not (self.time0==self.bigdft_time()) and self.bigdft_time()!=0:
-                   print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
+               if not (self.time0==self.target_time()) and self.target_time()!=0:
+                   print 'SUCCESS: The Installer seems to have built correctly',self.package,' bundle'
                    print 'All the available executables and scripts can be found in the directory'
                    print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
                    if self.action in NEEDRC: self.rcfile_from_env()
                elif (self.action == 'build' or self.action == 'make'):
-                   print 'WARNING: The Installer seems NOT have created or updated bigdft executable'
+                   print 'WARNING: The Installer seems NOT have created or updated',self.package,' binaries'
                    print '        (maybe everything was already compiled?)'
                    print 'ACTION: check the compiling procedure.'
                    if self.branch:
