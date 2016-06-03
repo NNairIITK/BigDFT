@@ -165,8 +165,8 @@ netcdf-fortran-*/
 GaIn-*/
 spred/INSTALL
 libABINIT/compile
-libCheSS/compile
-libCheSS/depcomp
-libCheSS/install-sh
-libCheSS/missing
+chess/compile
+chess/depcomp
+chess/install-sh
+chess/missing
 
