@@ -788,10 +788,19 @@ module ice
                inv_ovrlp(1)%matrix_compr(ilshift2+1:), chebyshev_polynomials, &
                npl, scale_factor, shift_value, hamscal_compr, &
                ex=ex, scaling_factor_low=2.0_mp, scaling_factor_up=0.5_mp, &
-               eval_multiplicator=eval_multiplicator, eval_multiplicator_total=eval_multiplicator_total, cc=cc)
+               eval_multiplicator=eval_multiplicator, eval_multiplicator_total=eval_multiplicator_total, &
+               cc=cc, max_errorx=max_error)
 
 
 
+          if (iproc==0) then
+              call yaml_mapping_open('summary',flow=.true.)
+              call yaml_map('npl',npl)
+              call yaml_map('bounds', &
+                   (/foe_data_get_real(ice_obj,"evlow",ispin),foe_data_get_real(ice_obj,"evhigh",ispin)/),fmt='(f6.2)')
+              call yaml_map('exp accur',max_error,fmt='(es8.2)')
+              call yaml_mapping_close()
+          end if
           call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
                inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc, inv_ovrlp_matrixp_small_new)

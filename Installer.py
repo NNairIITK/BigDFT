@@ -46,6 +46,14 @@ ACTIONS={'build':
 #actions which need rcfile to be executed
 NEEDRC=['build','dist','dry_run','startover']
 
+TARGETS={
+    'bigdft': ['bin','bigdft'],
+    'spred': ['bin','mhgps'],
+    'chess': ['lib','libCheSS-1.a'],
+    'futile': ['lib','libfutile-1.a'],
+    'psolver': ['lib','libPSolver-1.a'],
+    }
+
 class BigDFTInstaller():
     m4_re=['^AX_','CHECK_PYTHON'] #regular expressions to identify proprietary macros
     def __init__(self,action,package,rcfile,verbose,quiet,yes):
@@ -81,7 +89,7 @@ class BigDFTInstaller():
         if self.rcfile != '': self.jhb += '-f '+self.rcfile
 
         #date of bigdft executable if present
-        self.time0=self.bigdft_time()
+        self.time0=self.target_time()
 
         self.print_present_configuration()
 
@@ -92,9 +100,12 @@ class BigDFTInstaller():
         #then choose the actions to be taken
         getattr(self,action)()
 
-    def bigdft_time(self):
+    def target_time(self):
         import os
-        return self.filename_time(os.path.join(self.builddir,'install','bin','bigdft'))
+        dt=TARGETS['bigdft']
+        dt=TARGETS.get(self.package)
+        tgt=os.path.join(dt[0],dt[1])
+        return self.filename_time(os.path.join(self.builddir,'install',tgt))
 
     def filename_time(self,filename):
         import os
@@ -431,13 +442,13 @@ class BigDFTInstaller():
         print 'The action considered was:',self.action
         try:
            if self.time0 is not None:
-               if not (self.time0==self.bigdft_time()) and self.bigdft_time()!=0:
-                   print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
+               if not (self.time0==self.target_time()) and self.target_time()!=0:
+                   print 'SUCCESS: The Installer seems to have built correctly',self.package,' bundle'
                    print 'All the available executables and scripts can be found in the directory'
                    print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
                    if self.action in NEEDRC: self.rcfile_from_env()
                elif (self.action == 'build' or self.action == 'make'):
-                   print 'WARNING: The Installer seems NOT have created or updated bigdft executable'
+                   print 'WARNING: The Installer seems NOT have created or updated',self.package,' binaries'
                    print '        (maybe everything was already compiled?)'
                    print 'ACTION: check the compiling procedure.'
                    if self.branch:

@@ -18,7 +18,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use module_base
   use module_interfaces, only: allocate_precond_arrays, deallocate_precond_arrays, &
        & getLocalizedBasis, get_coeff, inputguess_gaussian_orbitals, &
-       & write_eigenvalues_data, write_energies
+       & write_eigenvalues_data
+  use io, only: write_energies
   use module_types
   use gaussians, only: gaussian_basis, deallocate_gwf, nullify_gaussian_basis
   use Poisson_Solver, except_dp => dp, except_gp => gp
@@ -1000,7 +1001,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
 
   if (iproc==0) then
-      call yaml_mapping_open('Hamiltonian update',flow=.true.)
+      !call yaml_mapping_open('Hamiltonian update',flow=.true.)
+      call yaml_mapping_open('SCF status',flow=.true.)
      ! Use this subroutine to write the energies, with some
      ! fake number
      ! to prevent it from writing too much

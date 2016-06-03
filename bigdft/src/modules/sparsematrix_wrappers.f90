@@ -111,7 +111,7 @@ module sparsematrix_wrappers
       write_atomtype=.true.
     
       if (iproc==0) then
-          call yaml_sequence_open('check of kernel cutoff radius')
+          call yaml_sequence_open('Check of kernel cutoff radius')
       end if
     
       do iorb=1,orbs%norb

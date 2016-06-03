@@ -1826,7 +1826,8 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,scf_mode,&
      energs,wfn,gnrm,gnrm_zero)
   use module_base
   use module_types
-  use module_interfaces, only: orthoconstraint, preconditionall2, write_energies
+  use module_interfaces, only: orthoconstraint, preconditionall2
+  use io, only: write_energies
   use yaml_output
   use communications, only: transpose_v, untranspose_v
   use communications, only: toglobal_and_transpose

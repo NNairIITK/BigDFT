@@ -1489,20 +1489,20 @@ module module_interfaces
      END SUBROUTINE calculate_residue_ks
   end interface
 
-  interface
-     subroutine write_energies(iter,energs,gnrm,gnrm_zero,comment,scf_mode,only_energies)
-       use module_defs, only: gp,dp,wp
-       use module_types, only: energy_terms
-       use f_enums, only: f_enumerator
-       implicit none
-       integer, intent(in) :: iter
-       type(energy_terms), intent(in) :: energs
-       real(gp), intent(in) :: gnrm,gnrm_zero
-       character(len=*), intent(in) :: comment
-       type(f_enumerator), intent(in), optional :: scf_mode
-       logical,intent(in),optional :: only_energies
-     END SUBROUTINE write_energies
-  end interface
+  !!interface
+  !!   subroutine write_energies(iter,energs,gnrm,gnrm_zero,comment,scf_mode,only_energies)
+  !!     use module_defs, only: gp,dp,wp
+  !!     use module_types, only: energy_terms
+  !!     use f_enums, only: f_enumerator
+  !!     implicit none
+  !!     integer, intent(in) :: iter
+  !!     type(energy_terms), intent(in) :: energs
+  !!     real(gp), intent(in) :: gnrm,gnrm_zero
+  !!     character(len=*), intent(in) :: comment
+  !!     type(f_enumerator), intent(in), optional :: scf_mode
+  !!     logical,intent(in),optional :: only_energies
+  !!   END SUBROUTINE write_energies
+  !!end interface
 
 
   interface

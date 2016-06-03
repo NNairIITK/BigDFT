@@ -9,6 +9,9 @@
 #
 AC_DEFUN([AX_PSOLVER],
 [dnl Test for PSolver
+AC_REQUIRE([AX_FLIB])
+AC_REQUIRE([AX_LINALG])
+AC_REQUIRE([AX_MPI])
 AX_PACKAGE([PSOLVER],[1.8],[-lPSolver-1],[$LINALG_LIBS $LIB_FUTILE_LIBS],[$LIB_FLIB_CFLAGS],
              [program main
     use psbase

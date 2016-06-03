@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-05-23 08:35:29.366
+ Version Number                        : 1.8
+ Timestamp of this run                 : 2016-06-01 11:11:27.150
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -37,9 +37,16 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort' 'CC=gcc' 'FCFLAGS=-O2 
+     " '--prefix' '/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install' 
+     'FC=/home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort' 'CC=gcc' 'FCFLAGS=-O2 
      -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp -m64' 
-     '--with-ext-linalg='"
+     '--with-ext-linalg=' 
+     'LDFLAGS=-L/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install/lib ' 
+     'C_INCLUDE_PATH=/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install/incl
+     ude' 
+     'PKG_CONFIG_PATH=/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install/lib
+     /pkgconfig:/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install/share/pkg
+     config:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig'"
    Compilers (CC, FC, CXX): [gcc, /home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort, 
                              g++]
    Compiler flags:
@@ -331,6 +338,8 @@
    sic_alpha                           : 0. #     SIC downscaling parameter
  tddft:
    tddft_approach                      : none #   Time-Dependent DFT method
+   decompose_perturbation              : none #   Indicate the directory of the perturbation to be decomposed in the basis of empty 
+    #                                              states
  mode:
    method                              : dft #    Run method of BigDFT call
  psppar.B:
@@ -765,34 +774,126 @@
    Minimum                             :  54
    Maximum                             :  56
    Average                             :  55.0
- Wavefunctions memory occupation for root MPI process:  11 MB 725 KB 256 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  165
    Total number of components          :  2321
    Percent of zero components          :  0
    Size of workspaces                  :  9316
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : N
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
+ NLCC, Calculate core density for atom : B
  Analytic core charges for atom species:
    N                                   :  51.2874290
  Total core charge                     :  51.2874290
  Total core charge on the grid         :  51.2874291 #To be compared with analytic one
-  #WARNING: Do not call check_communications in the linear scaling version!
-  #-------------------------------------------------------- Estimation of Memory Consumption
- Memory requirements for principal quantities (MiB.KiB):
-   Subspace Matrix                     : 0.48 #   (Number of Orbitals: 220)
-   Single orbital                      : 0.429 #  (Number of Components: 54808)
-   All (distributed) orbitals          : 35.128 # (Number of Orbitals per MPI task: 28)
-   Wavefunction storage size           : 175.639 # (DIIS/SD workspaces included)
-   Nonlocal Pseudopotential Arrays     : 0.19
-   Full Uncompressed (ISF) grid        : 4.440
-   Workspaces storage size             : 1.110
- Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 3.136
-   Density Construction                : 190.802
-   Poisson Solver                      : 182.570
-   Hamiltonian application             : 195.218
-   Orbitals Orthonormalization         : 195.265
- Estimated Memory Peak (MB)            :  195
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  165
@@ -801,72 +902,76 @@
    Size of workspaces                  :  9316
    Maximum size of masking arrays for a projector:  24330
    Cumulative size of masking arrays   :  547101
- total elements                        :  193600
- non-zero elements                     :  100256
-  #segments:  4656
- sparsity in %                         :  48.21
- sparse matrix multiplication initialized:  No
- total elements                        :  193600
- non-zero elements                     :  12128
-  #segments:  1572
- sparsity in %                         :  93.74
- sparse matrix multiplication initialized:  No
- check of kernel cutoff radius:
+  #------------------------------------------------------------ Sparse matrix initialization
+ Check of kernel cutoff radius:
  -  {atom type: N, adjustment required:  No}
  -  {atom type: B, adjustment required:  No}
- sparse matmul load balancing naive / optimized:  [  1.02,  1.01 ]
- total elements                        :  193600
- non-zero elements                     :  106080
-  #segments:  4620
- sparsity in %                         :  45.21
- sparse matrix multiplication initialized:  Yes
- taskgroup summary:
-   number of taskgroups                :  1
-   taskgroups overview:
-   -  {number of tasks:  8, start / end:  [  1,  12128 ], start / end disjoint: [ 1, 
+ Matrices:
+   Overlap matrix:
+     total elements                    :  193600
+     segments                          :  1572
+     non-zero elements                 :  12128
+     sparsity in %                     :  93.74
+     sparse matrix multiplication initialized:  No
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  8, start / end:  [  1,  12128 ], start / end disjoint: [ 1, 
   12128]}
- taskgroup summary:
-   number of taskgroups                :  1
-   taskgroups overview:
-   -  {number of tasks:  8, start / end:  [  1,  100256 ], start / end disjoint: [ 1, 
+   Hamiltonian matrix:
+     total elements                    :  193600
+     segments                          :  4656
+     non-zero elements                 :  100256
+     sparsity in %                     :  48.21
+     sparse matrix multiplication initialized:  No
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  8, start / end:  [  1,  100256 ], start / end disjoint: [ 1, 
   100256]}
- taskgroup summary:
-   number of taskgroups                :  1
-   taskgroups overview:
-   -  {number of tasks:  8, start / end:  [  1,  106080 ], start / end disjoint: [ 1, 
+   Density kernel matrix:
+     total elements                    :  193600
+     segments                          :  4620
+     non-zero elements                 :  106080
+     sparsity in %                     :  45.21
+     sparse matrix multiplication initialized:  Yes
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  8, start / end:  [  1,  106080 ], start / end disjoint: [ 1, 
   106080]}
- Checking Compression/Uncompression of small sparse matrices:
-   Tolerances for this check           :  1.00000001335143196E-10
-   Maxdiff for compress                :  0.00000000000000000E+00
-   Maxdiff for uncompress              :  0.00000000000000000E+00
-   Tolerances for this check           :  1.00000001335143196E-10
-   Maxdiff for compress                :  0.00000000000000000E+00
-   Maxdiff for uncompress              :  0.00000000000000000E+00
- sparse matmul load balancing naive / optimized:  [  1.02,  1.02 ]
- sparse matmul load balancing naive / optimized:  [  1.02,  1.02 ]
- Checking Compression/Uncompression of large sparse matrices:
-   Tolerances for this check           :  1.00000001335143196E-10
-   Maxdiff for compress                :  0.00000000000000000E+00
-   Maxdiff for uncompress              :  0.00000000000000000E+00
- Checking operations for potential communication:
-   Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  0.000000000000000000E+00
-   Tolerance for the following test    :  1.000000000000000036E-10
-   calculation check, error max        :  0.000000000000000000E+00
- Checking operations for sumrho:
-   Tolerance for the following test    :  9.999999999999999988E-15
-   transposition check, mean error     :  0.000000000000000000E+00
-   transposition check, max error      :  0.000000000000000000E+00
- Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  4796,  345 ]
-   Tolerances for this check: [ 5.16872734173718345E-08,  9.76996261670137756E-14]
-   Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
-   Maxdiff for untranspose             :  0.00000000000000000E+00
- Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  4754,  355 ]
-   Tolerances for this check: [ 5.92398189727545853E-07,  9.76996261670137756E-14]
-   Maxdiff for transpose (checksum)    :  2.79396772384643555E-09
-   Maxdiff for untranspose             :  0.00000000000000000E+00
+  #--------------------------------------------------------------------------- Unitary tests
+ Results of unitary tests:
+   Checking Compression/Uncompression of small sparse matrices:
+     Tolerances for this check         :  1.00000001335143196E-10
+     Maxdiff for compress              :  0.00000000000000000E+00
+     Maxdiff for uncompress            :  0.00000000000000000E+00
+     Tolerances for this check         :  1.00000001335143196E-10
+     Maxdiff for compress              :  0.00000000000000000E+00
+     Maxdiff for uncompress            :  0.00000000000000000E+00
+   Checking Compression/Uncompression of large sparse matrices:
+     Tolerances for this check         :  1.00000001335143196E-10
+     Maxdiff for compress              :  0.00000000000000000E+00
+     Maxdiff for uncompress            :  0.00000000000000000E+00
+   Checking operations for potential communication:
+     Tolerance for the following test  :  9.999999999999999799E-13
+     calculation check, error sum      :  0.000000000000000000E+00
+     Tolerance for the following test  :  1.000000000000000036E-10
+     calculation check, error max      :  0.000000000000000000E+00
+   Checking operations for sumrho:
+     Tolerance for the following test  :  9.999999999999999988E-15
+     transposition check, mean error   :  0.000000000000000000E+00
+     transposition check, max error    :  0.000000000000000000E+00
+   Checking Communications of Minimal Basis:
+     Number of coarse and fine DoF (MasterMPI task):  [  4796,  345 ]
+     Tolerances for this check: [ 5.16872734173718345E-08,  9.76996261670137756E-14]
+     Maxdiff for transpose (checksum)  :  8.73114913702011108E-11
+     Maxdiff for untranspose           :  0.00000000000000000E+00
+   Checking Communications of Enlarged Minimal Basis:
+     Number of coarse and fine DoF (MasterMPI task):  [  4754,  355 ]
+     Tolerances for this check: [ 5.92398189727545853E-07,  9.76996261670137756E-14]
+     Maxdiff for transpose (checksum)  :  2.79396772384643555E-09
+     Maxdiff for untranspose           :  0.00000000000000000E+00
  Value for Exc[rhoc]                   : -33.50543645650796
  Poisson Solver:
    BC                                  : Surface
@@ -916,41 +1021,39 @@
    Extended input guess:
      support function optimization: &it_supfun000
      -  { #------------------------------------------------------------------------ iter: 1
- target function: TRACE, 
  Calculating wavelets expansion of projectors, found warnings:  200, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  7.46245737300E+02, Epot: -7.46526052267E+02, Enl:  1.76385432831E+02}, 
- Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
-           rel D: -0.00E+00, 
- iter:  1, fnrm:  5.93E-01, Omega: -1.999527566351587E+02, D: -2.00E+02, D best: -2.00E+02, 
+ Components: {Ekin:  7.46245737300E+02, Epot: -7.46526052267E+02, Enl:  1.76385432831E+02}, 
+   Orthoconstraint:  Yes, summary: {npl:  20, bounds:  [  0.50,  1.50 ], 
+                              exp accur:  [  1.46E-11 ]}, correction orthoconstraint:  Yes, 
+                        Preconditioning:  Yes, rel D: -0.00E+00, 
+ iter:  1, fnrm:  5.93E-01, Omega: {TRACE: -1.999527566351587E+02}, D: -2.00E+02, 
+                                   D best: -2.00E+02, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
- Orthogonalization:  Yes}
+ summary: {npl:  20, bounds:  [  0.42,  1.80 ], exp accur:  [  4.17E-10 ]}, 
+          Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 2
- target function: TRACE, 
  Calculating wavelets expansion of projectors, found warnings:  200, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  7.86410141887E+02, Epot: -7.89355408453E+02, Enl:  1.95364219928E+02}, 
- Orthoconstraint:  Yes, correction orthoconstraint:  Yes, 
+ Components: {Ekin:  7.86410141887E+02, Epot: -7.89355408453E+02, Enl:  1.95364219928E+02}, 
+   Orthoconstraint:  Yes, summary: {npl:  30, bounds:  [  0.29,  2.59 ], 
+                              exp accur:  [  5.95E-09 ]}, correction orthoconstraint:  Yes, 
   #WARNING: target function larger than its minimal value reached so far, D= 2.777E+01
  Preconditioning:  Yes, rel D: -1.39E-01,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  4.79E-01, Omega: -1.721786663252266E+02, D:  2.78E+01, D best:  2.78E+01, 
- exit criterion: extended input guess}
+ iter:  2, fnrm:  4.79E-01, Omega: {TRACE: -1.721786663252266E+02}, D:  2.78E+01, 
+                                   D best:  2.78E+01, exit criterion: extended input guess}
      -  &final_supfun000  { #------------------------------------------------------ iter: 2
- target function: TRACE, 
- Energies: {Ekin:  7.86410141887E+02, Epot: -7.89355408453E+02, Enl:  1.95364219928E+02}, 
- iter:  2, fnrm:  4.79E-01, Omega: -1.721786663252266E+02, D:  2.78E+01, D best:  2.78E+01}
-        #Support functions created
+ Components: {Ekin:  7.86410141887E+02, Epot: -7.89355408453E+02, Enl:  1.95364219928E+02}, 
+ nit:  2, fnrm:  4.79E-01, Omega: {TRACE: -1.721786663252266E+02}, D total:  2.78E+01}
    Kernel update:
      Hamiltonian application required  :  Yes
      Calculating wavelets expansion of projectors, found warnings:  200
       #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
      calculate overlap matrix          :  Yes
-     max dev from unity                :  6.34E-02
-     mean dev from unity               :  1.45E-02
      method                            : diagonalization
      mode                              : sequential
      Cross-check among MPI tasks:
@@ -1185,7 +1288,7 @@
  {e:  2.090500160620E-01, f:  2.0000},  # 00218
  {e:  2.113907604127E-01, f:  2.0000},  # 00219
  {e:  2.208123452567E-01, f:  2.0000}] # 00220
-   Hamiltonian update: {
+   SCF status: {
  Energies: {Ekin:  7.86410141887E+02, Epot: -8.67644415261E+02, Enl:  1.95364219928E+02, 
               EH: -3.91194519823E+02,  EXC: -2.70405657331E+02, EvXC: -2.96543566312E+02}, 
     Total charge:  4.399984351926E+02, 
@@ -1202,14 +1305,18 @@
     #========================================================= support function optimization
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
- target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  200, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.00228208652E+02, Epot: -7.49770071647E+02, Enl:  9.81160825160E+01}, 
- Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
-           rel D: -0.00E+00, 
- iter:  1, fnrm:  6.46E-01, Omega: -6.104171891566743E+02, D: -6.10E+02, D best: -6.10E+02, 
+ Components: {Ekin:  9.00228208652E+02, Epot: -7.49770071647E+02, Enl:  9.81160825160E+01}, 
+   Orthoconstraint:  Yes, summary: {npl:  25, bounds:  [  0.29,  2.59 ], 
+                              exp accur:  [  3.32E-10 ]}, summary: {npl:  30, bounds: [
+  0.29,  2.59], exp accur:  [  7.92E-12,  5.55E-10,  5.95E-09 ]}, 
+                                                               correction orthoconstraint:  Y, 
+                                                                          Preconditioning:  Y, 
+                                                                                    rel D: -0, 
+ iter:  1, fnrm:  6.46E-01, Omega: {HYBRID: -6.104171891566743E+02}, D: -6.10E+02, 
+                                    D best: -6.10E+02, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, Normalization:  Yes, 
@@ -1218,20 +1325,21 @@
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  1020}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
- target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  200, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.86782969396E+02, Epot: -7.49713396486E+02, Enl:  9.85434466803E+01}, 
- Orthoconstraint:  Yes, correction orthoconstraint:  Yes, Preconditioning:  Yes, 
-           rel D:  2.54E-02,         kappa:  4.003E-01, kappa to history:  Yes, 
- iter:  2, fnrm:  2.51E-01, Omega: -6.258980148236785E+02, D: -1.55E+01, D best: -1.55E+01, 
- exit criterion: energy difference}
+ Components: {Ekin:  8.86782969396E+02, Epot: -7.49713396486E+02, Enl:  9.85434466803E+01}, 
+   Orthoconstraint:  Yes, summary: {npl:  30, bounds:  [  0.32,  2.33 ], exp accur: [
+  5.68E-13,  3.97E-11,  4.24E-10]}, correction orthoconstraint:  Yes, 
+                                                                        Preconditioning:  Yes, 
+                                                                                  rel D:  2.5, 
+                                                                                  kappa:  4.0, 
+                                                                       kappa to history:  Yes, 
+ iter:  2, fnrm:  2.51E-01, Omega: {HYBRID: -6.258980148236785E+02}, D: -1.55E+01, 
+                                    D best: -1.55E+01, exit criterion: energy difference}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 2
- target function: HYBRID, 
- Energies: {Ekin:  8.86782969396E+02, Epot: -7.49713396486E+02, Enl:  9.85434466803E+01}, 
- iter:  2, fnrm:  2.51E-01, Omega: -6.258980148236785E+02, D: -1.55E+01, D best: -1.55E+01}
-      #Support functions created
+ Components: {Ekin:  8.86782969396E+02, Epot: -7.49713396486E+02, Enl:  9.85434466803E+01}, 
+ nit:  2, fnrm:  2.51E-01, Omega: {HYBRID: -6.258980148236785E+02}, D total: -1.55E+01}
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.67E-01,  9.23E-01 ], warnings:  440}
      -  {type: N, mean / max value:  [  4.91E-01,  7.33E-01 ], warnings:  220}
@@ -1242,8 +1350,6 @@
    -  #--------------------------------------------------------------------- kernel iter: 1
      Kernel update:
        Hamiltonian application required:  No
-       max dev from unity              :  9.74E-02
-       mean dev from unity             :  2.14E-02
        method                          : diagonalization
        mode                            : sequential
        Cross-check among MPI tasks:
@@ -1255,7 +1361,7 @@
          Hamiltonian                   :  2.72E-05
          Kernel (possibly symmetrized) :  1.11E-16
        Coefficients available          :  Yes
-     Hamiltonian update: {
+     SCF status: {
  Energies: {Ekin:  7.86410141887E+02, Epot: -8.67644415261E+02, Enl:  1.95364219928E+02, 
               EH: -3.85451346039E+02,  EXC: -2.71726334860E+02, EvXC: -2.98080475968E+02}, 
     Total charge:  4.399987569182E+02, 
@@ -1482,11 +1588,11 @@
  {e:  2.671013697928E-01, f:  2.0000},  # 00218
  {e:  2.787467977055E-01, f:  2.0000},  # 00219
  {e:  2.839372180863E-01, f:  2.0000}] # 00220
-     summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  6, conv crit:  2.51E-11, 
- iter:  1, delta:  1.71E-05, energy: -6.89846037208031930E+02, D: -6.898E+02}]
+     summary: {kernel method: DIAG, mix entity: DENS, mix hist:  6, conv crit:  2.51E-11, 
+ iter:  1, delta:  1.71E-05, energy: -6.89846037208031930E+02, D: -6.898E+02}
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
- summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  6, conv crit:  2.51E-11, 
- iter:  2, delta:  1.71E-05, energy: -6.89846037208031930E+02, D: -6.898E+02}]}
+ summary: {kernel method: DIAG, mix entity: DENS, mix hist:  6, conv crit:  2.51E-11, 
+ iter:  2, delta:  1.71E-05, energy: -6.89846037208031930E+02, D: -6.898E+02}}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: HYBRID, mean conf prefac:  5.00E-02, damping:  1.00E+00, 
@@ -1960,7 +2066,6 @@
  Calculate Non Local forces            :  Yes
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Do not call check_communications in the linear scaling version!
  - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  - target function larger than its minimal value reached so far, D= 2.777E+01
  - use a fake value for kappa
@@ -1969,8 +2074,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  43.05
-   Elapsed time (s)                    :  43.14
+   CPU time (s)                        :  43.00
+   Elapsed time (s)                    :  43.09
  BigDFT infocode                       :  0
  Average noise forces: {x:  5.32669317E-01, y:  8.01494359E-01, z:  1.53620712E-02, 
                     total:  9.62478987E-01}
@@ -2095,10 +2200,10 @@
    Tot. No. of Deallocations           :  32398
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  412.213
+     Peak Value (MB)                   :  412.132
      for the array                     : vectors_new
      in the routine                    : chebyshev_clean
-     Memory Peak of process            : 465.456 MB
- Walltime since initialization         : 00:00:43.955883682
- Max No. of dictionaries used          :  14381 #( 1002 still in use)
+     Memory Peak of process            : 463.924 MB
+ Walltime since initialization         : 00:00:43.928097206
+ Max No. of dictionaries used          :  13765 #( 1015 still in use)
  Number of dictionary folders allocated:  2
