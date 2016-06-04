@@ -20,6 +20,7 @@ program driver_css
   use sparsematrix, only: write_matrix_compressed
   ! The following module is an auxiliary module for this test
   use utilities, only: get_ccs_data_from_file
+  use futile
   implicit none
 
   ! Variables
@@ -140,7 +141,7 @@ program driver_css
   call f_free_ptr(col_ptr)
 
   ! Finalize MPI
-  call bigdft_finalize(ierr)
+  call mpifinalize()
 
   ! Finalize flib
   ! SM: I have the impression that every task should call this routine, but if I do so

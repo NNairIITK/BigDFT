@@ -2686,10 +2686,6 @@ test-foeccs:
   D Tr(K): 1.0e-07
   value: 2.8e-11
 
-test-random:
-  Keys to ignore:
-  - Parallel environment
-
 lj_connect.mhgps.ref.yaml:
   (MHGPS) minmode overlap: 3.3e-10
   Energy: 5.4e-10

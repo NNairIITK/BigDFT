@@ -29,11 +29,11 @@ test-smatmul.out.yaml: smatmul
 	$(run_parallel) ./smatmul --filename=matrix.dat --nit=20 --verbosity=1 >> test-smatmul.out.yaml
 
 
-check: test-smatmul.out.yaml
+check: report test-smatmul.out.yaml
 	python $(pythondir)/fldiff_yaml.py \
 		-r $(abs_srcdir)/test-smatmul.ref.yaml -d test-smatmul.out.yaml -t $(abs_srcdir)/tols.yaml \
 	        --output fldiff.report.yaml
 
 
 report:
-	python $(pythondir)/report.py
+	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi

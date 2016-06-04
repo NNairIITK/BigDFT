@@ -7,3 +7,10 @@ Keys to ignore:
  - Max No. of dictionaries used
  - taskgroup summary
  - Memory Consumption Report
+ - non-zero elements
+ - total elements
+ - sparsity in %
+
+test-random:
+  Keys to ignore:
+  - Parallel environment

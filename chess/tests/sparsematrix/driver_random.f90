@@ -128,7 +128,10 @@ program driver_random
   call dscal(smat%nvctr, 1.0_mp/condition_number, mat2%matrix_compr(1), 1)
 
   ! Initialization part done
-  call timing(mpi_comm_world,'INIT','PR')
+  !call timing(mpi_comm_world,'INIT','PR')
+  call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(),&
+       gather_routine=gather_timings)
+
 
   ! Calculate the desired matrix power
   if (iproc==0) then
@@ -138,7 +141,10 @@ program driver_random
        1, (/expo/), smat, smat, mat2, mat3(1), ice_obj=ice_obj)
 
   ! Calculation part done
-  call timing(mpi_comm_world,'CALC','PR')
+  !call timing(mpi_comm_world,'CALC','PR')
+  call f_timing_checkpoint(ctr_name='CALC',mpi_comm=mpiworld(),nproc=mpisize(),&
+       gather_routine=gather_timings)
+
 
   ! Calculate the inverse of the desired matrix power
   if (iproc==0) then
@@ -162,7 +168,10 @@ program driver_random
       call yaml_mapping_close()
   end if
 
-  call timing(mpi_comm_world,'CHECK_LINEAR','PR')
+  !call timing(mpi_comm_world,'CHECK_LINEAR','PR')
+  call f_timing_checkpoint(ctr_name='CHECK_LINEAR',mpi_comm=mpiworld(),nproc=mpisize(),&
+       gather_routine=gather_timings)
+
 
   ! Do the operation using exact LAPACK and the dense matrices
   if (iproc==0) then
@@ -185,7 +194,10 @@ program driver_random
       call yaml_mapping_close()
   end if
 
-  call timing(mpi_comm_world,'CHECK_CUBIC','PR')
+  !call timing(mpi_comm_world,'CHECK_CUBIC','PR')
+  call f_timing_checkpoint(ctr_name='CHECK_CUBIC',mpi_comm=mpiworld(),nproc=mpisize(),&
+       gather_routine=gather_timings)
+
 
   ! Deallocate the sparse matrix descriptors type
   call deallocate_sparse_matrix(smat)
@@ -211,7 +223,7 @@ program driver_random
   end if
 
   ! Finalize MPI
-  call bigdft_finalize(ierr)
+  call mpifinalize()
 
   ! Finalize flib
   ! SM: I have the impression that every task should call this routine, but if I do so
