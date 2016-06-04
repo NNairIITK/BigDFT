@@ -116,8 +116,8 @@ dnl Test Python availability
 AX_PYTHON_DEV()
 
 dnl Test Glib availability
-AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject], [Compile with GLib (enabled by default).]),
-              ax_have_glib=$withval, ax_have_glib="yes")
+AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject], [Compile with GLib (disabled by default).]),
+              ax_have_glib=$withval, ax_have_glib="no")
 if test x"$ax_have_glib" = x"yes" ; then
   PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 >= 2.22, [ax_have_glib=yes], [ax_have_glib=no])
 fi

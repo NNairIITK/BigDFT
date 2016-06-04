@@ -13,7 +13,7 @@ program OP2P_check
   use overlap_point_to_point
   use wrapper_MPI
   implicit none
-  logical :: symmetric
+  logical :: symmetric,nearest_neighbor
   integer :: iproc,jproc,nproc,norbp,ngroup,igroup,ndim,norb,iobj,jobj,kobj
   integer, dimension(:), allocatable :: nobj,nobj_p
   integer, dimension(:,:), allocatable :: nobj_par
@@ -42,6 +42,7 @@ program OP2P_check
   nobj=options//'objects'
   ndim=options//'ndim'
   symmetric=options//'symmetric'
+  nearest_neighbor=options//'nn-pattern'
   call dict_free(options)
 
   !construct the number of objects per processor
@@ -90,7 +91,7 @@ program OP2P_check
   call f_free(nobj_p)
 
 
-  call OP2P_unitary_test(mpiworld(),mpirank(),nproc,ngroup,ndim,nobj_par,symmetric)
+  call OP2P_unitary_test(mpiworld(),mpirank(),nproc,ngroup,ndim,nobj_par,symmetric,nearest_neighbor)
 
   call f_free(nobj_par)
   call mpifinalize()
@@ -152,5 +153,9 @@ subroutine OP2P_check_options(parser)
        dict_new('Usage' .is. &
        'Boolean, set the symmetricity of the operation.'))
 
+  call yaml_cl_parse_option(parser,'nn-pattern','No',&
+       'Nearest-Neigbor communication','c',&
+       dict_new('Usage' .is. &
+       'Boolean, adjust the communication pattern of the operation.'))
 
 end subroutine OP2P_Check_options

@@ -51,7 +51,7 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a @LIB_BIGDFT_DEPS@
+bigdft_library = libbigdft-1.a @LIB_BIGDFT_DEPS@ @LINALG_LIBS@
 endif
 
 if BUILD_BINARIES

@@ -14,7 +14,7 @@ chess_library = $(top_builddir)/src/libCheSS-1.a @LIB_CHESS_DEPS@
 endif
 
 smatmul_SOURCES = smatmul.f90
-smatmul_LDADD = $(chess_library)
+smatmul_LDADD = $(chess_library) @LINALG_LIBS@
 
 CLEANFILES = *.dat *.yaml report
 
