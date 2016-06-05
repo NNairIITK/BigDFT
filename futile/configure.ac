@@ -156,12 +156,17 @@ if test $ax_build_dynamic != "yes" ; then
 fi
 AC_SUBST(LIB_FUTILE_LIBS)
 
+dnl Test for the developers' documentation.
+AX_DOC()
+
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 futile.pc
+doc/Makefile
+doc/Doxyfile
 flib/Makefile
 flib/f_utils.inc
 wrappers/Makefile

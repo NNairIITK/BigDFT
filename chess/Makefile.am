@@ -5,11 +5,13 @@ ACLOCAL_AMFLAGS = -I m4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = chess.pc
 
-SUBDIRS = sparsematrix src doc
+SUBDIRS = sparsematrix src
 
 if HAVE_PYYAML
 SUBDIRS += tests
 endif
+
+SUBDIRS += doc
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
