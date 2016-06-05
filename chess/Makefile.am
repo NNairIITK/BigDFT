@@ -5,7 +5,7 @@ ACLOCAL_AMFLAGS = -I m4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = chess.pc
 
-SUBDIRS = sparsematrix src
+SUBDIRS = sparsematrix src doc
 
 if HAVE_PYYAML
 SUBDIRS += tests

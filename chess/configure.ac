@@ -95,12 +95,23 @@ fi
 AC_SUBST(LIB_CHESS_PKG)
 AC_SUBST(LIB_CHESS_DEPS)
 
+dnl Test for the developers' documentation.
+AC_CHECK_PROG(ac_have_doxygen, [doxygen], [yes], [no])
+AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes" -a x"$ac_devel_doc" = x"yes")
+
+dnl default installation directories
+docdir="${docdir}"
+AC_SUBST(docdir)
+
+
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 chess.pc
+doc/Makefile
+doc/Doxyfile
 sparsematrix/Makefile
 src/configure.inc
 src/Makefile
