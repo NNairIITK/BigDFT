@@ -121,14 +121,19 @@ program driver_single
       call yaml_comment('Performing Matrix Chebyshev Expansion',hfill='-')
   end if
 
-  call timing(mpi_comm_world,'INIT','PR')
+  !call timing(mpi_comm_world,'INIT','PR')
+  call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(),&
+       gather_routine=gather_timings)
 
   ! Perform the operation mat_out = mat_in**exp_power
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
        1, (/exp_power/), &
        smat_in, smat_out, mat_in, mat_out, npl_auto=.true.)
 
-  call timing(mpi_comm_world,'CALC_LINEAR','PR')
+  !call timing(mpi_comm_world,'CALC_LINEAR','PR')
+  call f_timing_checkpoint(ctr_name='CALC_LINEAR',mpi_comm=mpiworld(),nproc=mpisize(),&
+       gather_routine=gather_timings)
+
 
   ! Now perform a check of the accuracy by calculating the matrix with the inverse power. The previously
   ! calculated matrix times this result should the give the identity.
@@ -161,7 +166,10 @@ program driver_single
   end if
 
 
-  call timing(mpi_comm_world,'CHECK_LINEAR','PR')
+  !call timing(mpi_comm_world,'CHECK_LINEAR','PR')
+  call f_timing_checkpoint(ctr_name='CHECK_LINEAR',mpi_comm=mpiworld(),nproc=mpisize(),&
+       gather_routine=gather_timings)
+
 
   ! Do the operation using exact LAPACK and the dense matrices
   if (iproc==0) then
@@ -177,7 +185,10 @@ program driver_single
   call deallocate_matrices(mat_check_accur(1))
   call deallocate_matrices(mat_check_accur(2))
 
-  call timing(mpi_comm_world,'FINISH','PR')
+  !call timing(mpi_comm_world,'FINISH','PR')
+  call f_timing_checkpoint(ctr_name='FINISH',mpi_comm=mpiworld(),nproc=mpisize(),&
+       gather_routine=gather_timings)
+
 
   call build_dict_info(dict_timing_info)
   call f_timing_stop(mpi_comm=mpi_comm_world, nproc=nproc, &
@@ -185,7 +196,7 @@ program driver_single
   call dict_free(dict_timing_info)
 
   ! Finalize MPI
-  call bigdft_finalize(ierr)
+  call mpifinalize()
 
   ! Finalize flib
   ! SM: I have the impression that every task should call this routine, but if I do so

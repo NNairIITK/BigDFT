@@ -17,8 +17,8 @@ module utilities
 
   contains
     subroutine get_ccs_data_from_file(filename, nfvctr, nvctr, row_ind, col_ptr)
-      use module_base
       use sparsematrix_init, only: read_ccs_format
+      use dynamic_memory, only: f_free_ptr
       implicit none
 
       ! Calling arguments
@@ -35,8 +35,5 @@ module utilities
       call f_free_ptr(val)
 
     end subroutine get_ccs_data_from_file
-
-
-
 
 end module utilities

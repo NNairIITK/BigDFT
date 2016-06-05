@@ -5,8 +5,7 @@ SUBDIRS = xcPSolver \
 	wrappers \
 	overlapgeneral \
 	coordinatetransform \
-	xc \
-	sparsematrix
+	xc
 
 if USE_BLACS
 SUBDIRS += dsygv

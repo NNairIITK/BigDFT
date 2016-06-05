@@ -353,7 +353,6 @@ tests/libs/wrappers/Makefile
 tests/libs/psp/Makefile
 tests/libs/overlapgeneral/Makefile
 tests/libs/coordinatetransform/Makefile
-tests/libs/sparsematrix/Makefile
 tests/benchs/Makefile
 tests/DFT/Makefile
 tests/DFT/cubic/Makefile
