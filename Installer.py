@@ -552,7 +552,7 @@ if args.action=='help':
     print 50*'-'
     print 10*"QIFI-"+' (Quick Instructions For the Impatient)'
     print 'Ideally, there are two different policies:'
-    print 'Developer: From a development branch, start by "startover", then "build"'
+    print 'Developer: From a development branch, start by "autogen", then "build"'
     print '     User: From a tarball, start by "build"'
     print 'Perform the "dry_run" command to have a graphical overview of the building procedure'
 else:
