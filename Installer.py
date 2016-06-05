@@ -39,11 +39,13 @@ ACTIONS={'build':
          'autogen':
          'Perform the autogen in the modules which need that. For developers only.',
          'dist':
-         'Creates a tarfile for the bigdft-suite tailored to reproduce the compilation options specified.',
+         'Creates a tarfile for the suite tailored to reproduce the compilation options specified.',
          'check':
          'Perform check in the bigdft branches, skip external libraries.',
          'dry_run':
-         "Visualize the list of modules that will be compiled with the provided configuration in the 'buildprocedure.png' file."}
+         "Visualize the list of modules that will be compiled with the provided configuration in the 'buildprocedure.png' file.",
+         'link':
+         'Show the linking line that have to be used to connect an external executable to the package (when applicable)' }
 
 #actions which need rcfile to be executed
 NEEDRC=['build','dist','dry_run','startover']
@@ -397,6 +399,23 @@ class BigDFTInstaller():
     def dry_run(self):
         "Do dry build"
         self.get_output(self.jhb+DOT+self.package+DOTCMD)
+
+    def link(self):
+        "Show the linking line, when applicable"
+        import os
+        PPATH="PKG_CONFIG_PATH"
+        addpath=os.path.join(self.builddir,'install','lib','pkgconfig')
+        if PPATH in os.environ:
+            if addpath not in os.environ[PPATH].split(':'):
+                os.environ[PPATH]+=':'+addpath
+        else:
+            os.environ[PPATH]=addpath
+        includes=self.get_output('pkg-config --cflags '+self.package)
+        libs=self.get_output('pkg-config --libs '+self.package)
+        #add the external linalg at the end to avod linking problems
+        linalg=self.get_output('pkg-config --variable linalglibs '+self.package)
+        print '--------- Linking line to build with package "'+self.package+'":'
+        print "  "+includes+libs
 
     def rcfile_from_env(self):
         "Build the rcfile information from the chosen "+BIGDFT_CFG+" environment variable"
