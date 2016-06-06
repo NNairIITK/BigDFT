@@ -34,9 +34,9 @@ libpyimp_a_SOURCES = pyobjs.c
 f_lib_highlev.o: f_lib_highlev.f90 configure.inc
 
 if CAPITALIZE
-modules = F_LIB_PACKAGE.@MODULE_EXT@
+modules = F_LIB_PACKAGE.@MODULE_EXT@ FUTILE.@MODULE_EXT@
 else
-modules = f_lib_package.@MODULE_EXT@
+modules = f_lib_package.@MODULE_EXT@ futile.@MODULE_EXT@
 endif
 
 AM_FCFLAGS = -I. -I$(top_builddir)/flib @MPI_INCLUDE@
@@ -94,3 +94,13 @@ clean-local:
 	rm -rf tmp-libfutile
 
 $(modules): $(libfutile_1_a_OBJECTS)
+
+# Copy modules in a common include directory.
+all: all-am insmod
+install: install-am insmod
+check: check-am insmod
+insmod: $(modules)
+	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
+	for mod in "$(modules)" ; do \
+	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \
+	done

@@ -39,6 +39,8 @@
    output_mat: 1
    output_coeff: 1
    charge_multipoles: 11
+   calculate_FOE_eigenvalues: [1,6]
+   precision_FOE_eigenvalues: 2.e-2
  lin_basis:
    nit: 8
    idsx: 8

@@ -131,18 +131,19 @@ subroutine MemoryEstimator(nproc,idsx,lr,norb,nspinor,nkpt,nprojel,nspin,itrpmax
 END SUBROUTINE MemoryEstimator
 
 !> old timing routine, should disappear as soon as the f_timing routine is called
-subroutine timing(iproc,category,action)
+subroutine timing(comm,category,action)
   use dictionaries, only: max_field_length,f_err_raise
   use yaml_strings, only: yaml_toa
   use module_types, only: find_category
-  use time_profiling 
+  use time_profiling
+  use wrapper_MPI
   implicit none
   !Variables
-  integer, intent(in) :: iproc
+  integer, intent(in) :: comm
   character(len=*), intent(in) :: category
   character(len=2), intent(in) :: action  
   !Local variables
-  integer :: cat_id,ierr,nproc
+  integer :: cat_id,ierr
   character(len=max_field_length) :: cattmp
   external :: gather_timings
   !this is to ensure that timing routines have been properly called
@@ -152,8 +153,7 @@ subroutine timing(iproc,category,action)
   select case(action)
   case('PR')
      !here iproc is the communicator
-     call MPI_COMM_SIZE(iproc,nproc,ierr)
-     call f_timing_checkpoint(ctr_name=category,mpi_comm=iproc,nproc=nproc,&
+     call f_timing_checkpoint(ctr_name=category,mpi_comm=comm,nproc=mpisize(comm),&
           gather_routine=gather_timings)
   case default
      !find category in the old scheme

@@ -13,8 +13,10 @@ integer, intent(in) :: icc
 stop "Ambertools not present"
 end subroutine
 
-subroutine nab_init()
+subroutine nab_init(str)
   use dictionaries
+  implicit none
+  character(len=*), intent(in) :: str
   call f_err_throw("Ambertools not present")
 end subroutine
 !!subroutine nab_init(nat,rxyz,fxyz,fnpdb,nfnpdb,l_sat,atomnamesdmy)

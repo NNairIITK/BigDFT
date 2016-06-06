@@ -18,7 +18,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use module_base
   use module_interfaces, only: allocate_precond_arrays, deallocate_precond_arrays, &
        & getLocalizedBasis, get_coeff, inputguess_gaussian_orbitals, &
-       & write_eigenvalues_data, write_energies
+       & write_eigenvalues_data
+  use io, only: write_energies
   use module_types
   use gaussians, only: gaussian_basis, deallocate_gwf, nullify_gaussian_basis
   use Poisson_Solver, except_dp => dp, except_gp => gp
@@ -84,7 +85,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   character(len=20) :: atomname
   type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
   type(workarr_precond),dimension(:),pointer :: precond_workarrays
-  type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+  type(work_transpose) :: wt_philarge, wt_hphi, wt_phi
   type(work_mpiaccumulate) :: fnrm_work, energs_work
   type(aoig_data),dimension(:),allocatable :: aoig_default
 
@@ -631,7 +632,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
           ! initial setting of the old charge density
           call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.0d0,denspot%mix,&
-               denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+               denspot%rhov,1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
                at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                pnrm,denspot%dpbox%nscatterarr)
           !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
@@ -691,7 +692,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
           ! initial setting of the old charge density
           call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.0d0,denspot%mix,&
-               denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+               denspot%rhov,1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
                at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                pnrm,denspot%dpbox%nscatterarr)
           !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
@@ -897,11 +898,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
      call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
      wt_philarge = work_transpose_null()
-     wt_hpsinoprecond = work_transpose_null()
      wt_hphi = work_transpose_null()
      wt_phi = work_transpose_null()
      call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
-     call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
      call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
      call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
      fnrm_work = work_mpiaccumulate_null()
@@ -918,11 +917,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, &
           input%correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
-          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)
+          wt_philarge, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)
      call deallocate_work_mpiaccumulate(fnrm_work)
      call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
      call deallocate_work_transpose(wt_philarge)
-     call deallocate_work_transpose(wt_hpsinoprecond)
      call deallocate_work_transpose(wt_hphi)
      call deallocate_work_transpose(wt_phi)
      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
@@ -1003,7 +1001,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
 
   if (iproc==0) then
-      call yaml_mapping_open('Hamiltonian update',flow=.true.)
+      !call yaml_mapping_open('Hamiltonian update',flow=.true.)
+      call yaml_mapping_open('SCF status',flow=.true.)
      ! Use this subroutine to write the energies, with some
      ! fake number
      ! to prevent it from writing too much
@@ -1038,7 +1037,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          !!    !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, 1.d0, &
          !!    !!     denspot, mixdiis, rhopotold, pnrm)
          !!    call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
-         !!         denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+         !!         denspot%rhov,1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
          !!         at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
          !!         pnrm,denspot%dpbox%nscatterarr)
          !!    !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
@@ -1047,7 +1046,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
              !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
              !!     denspot, mixdiis, rhopotold, pnrm)
              call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-input%lin%alpha_mix_lowaccuracy,denspot%mix,&
-                  denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                  denspot%rhov,2,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
                   at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                   pnrm,denspot%dpbox%nscatterarr)
              !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
@@ -1057,7 +1056,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           ! This will get back the old charge density
           call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, rhopotold(1), 1, denspot%rhov(1), 1)
           !!call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0,denspot%mix,&
-          !!     denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+          !!     denspot%rhov,2,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
           !!     at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
           !!     pnrm,denspot%dpbox%nscatterarr)
       end if
@@ -1067,7 +1066,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
       ! initial setting of the old charge density
       call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
-           denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+           denspot%rhov,1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
            at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
            pnrm,denspot%dpbox%nscatterarr)
       !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
@@ -1082,7 +1081,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
          !!     denspot, mixdiis, rhopotold, pnrm)
          call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-input%lin%alpha_mix_lowaccuracy,denspot%mix,&
-              denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+              denspot%rhov,2,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
          !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
@@ -1091,7 +1090,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          ! This will get back the old potential
          call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, rhopotold(1), 1, denspot%rhov(1), 1)
          !!call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0,denspot%mix,&
-         !!     denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+         !!     denspot%rhov,2,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
          !!     at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
          !!     pnrm,denspot%dpbox%nscatterarr)
          !!!SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
@@ -1104,7 +1103,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
       ! initial setting of the old potential
       call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
-           denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+           denspot%rhov,1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
            at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
            pnrm,denspot%dpbox%nscatterarr)
       !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...

@@ -24,6 +24,8 @@ module_autogenargs.update({
 'libxc': shrt_configuration(),
    
 'libABINIT': env_configuration(),
+
+'chess': env_configuration(),
    
 'GaIn': shrt_configuration(),
    

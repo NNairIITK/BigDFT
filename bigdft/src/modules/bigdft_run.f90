@@ -267,7 +267,7 @@ contains
           mm_rst%refcnt=f_ref_new('mm_rst')
           mm_rst%rf_extra=f_malloc0_ptr([3,astruct%nat],id='rf_extra')
        endif
-       call nab_init()
+       call nab_init(inputs%nab_options)
     case('CP2K_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter

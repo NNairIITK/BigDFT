@@ -69,7 +69,7 @@ contains
     integer(f_address), intent(out) :: callback
 
     logical :: isfunc_
-    type(dictionary), pointer :: method
+    type(dictionary), pointer :: method,tmp
     character(len = max_field_length) :: obj_key, meth_key
 
     n_args = 0
@@ -78,8 +78,9 @@ contains
     write(meth_key, "(A)") method_id(1:min(max_field_length, len(method_id)))
 
     call ensure_init()
-    if (.not. (obj_key .in. class_library) .and. trim(obj_key) /= "class") return
-    if (.not. (meth_key .in. class_library // obj_key // "methods")) return
+    if ((obj_key .notin. class_library) .and. trim(obj_key) /= "class") return
+    tmp =>class_library // obj_key // "methods" !for ftn internal compiler error
+    if (meth_key .notin. tmp) return
 
     method => class_library // obj_key // "methods" // meth_key
     n_args = method // "n_args"
@@ -104,10 +105,12 @@ contains
     implicit none
     character(len = *), intent(in) :: obj_id, id
     logical :: ensure_signal
+    type(dictionary), pointer :: tmp
 
     call ensure_init()
     if (.not. (obj_id .in. class_library) .and. obj_id /= "class") stop
-    if (.not. (id .in. class_library // obj_id // "signals")) stop
+    tmp =>  class_library // obj_id // "signals" 
+    if (.not. (id .in. tmp)) stop
     
     ensure_signal = .true.
   end function ensure_signal

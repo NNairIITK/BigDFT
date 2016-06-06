@@ -109,7 +109,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
   tz=0.0_gp
 displ=0.0_gp
   do iat=1,at%astruct%nat
-    displ=displ+minimum_distance(mesh,rxyz(:,iat),rxyz_old(:,iat))**2
+    displ=displ+distance(mesh,rxyz(:,iat),rxyz_old(:,iat))**2
     !  tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
     !  ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
     !  tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
@@ -548,7 +548,7 @@ subroutine wfn_filename(filename_out,filename,lbin,ikpt,nspinor,nspin,ispinor,sp
   if (nspin==1) spintype='N'  
 
   call f_strcpy(dest=filename_out,src=&
-       filename+'-k'+ikpt**'(i3.3)'+'-'+spintype+&
+       filename+'-k'+ikpt**'(i3.3)'+'-'//spintype//&
        merge('I','R',modulo(ispinor,2)==0)+&
        (.if. lbin .then. '.bin.b' .else. '.b')+iorb**'(i4.4)')
 end subroutine wfn_filename
@@ -2194,7 +2194,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   !real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
   character(len=*), intent(in) :: dir_output, filename
   type(fragmentInputParameters), intent(in) :: input_frag
-  type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
+  type(system_fragment), dimension(:), pointer :: ref_frags
   logical, intent(in) :: frag_calc, kernel_restart
   integer, intent(in) :: max_nbasis_env
   integer, dimension(input_frag%nfrag,max_nbasis_env,3), intent(inout) :: frag_env_mapping
@@ -3407,7 +3407,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   logical, intent(in) :: add_derivatives
   character(len=*), intent(in) :: input_dir
   type(fragmentInputParameters), intent(in) :: input_frag
-  type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
+  type(system_fragment), dimension(:), pointer :: ref_frags
   real(gp),intent(out) :: max_shift
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'

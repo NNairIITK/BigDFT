@@ -1058,6 +1058,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
   use Poisson_Solver, only: dp, gp
   use memory_profiling
   use dynamic_memory
+  use f_utils, only: f_zero
  implicit none
  !Arguments
  integer, intent(in) :: n01, n02, n03       !< Mesh dimensions of the density
@@ -1200,16 +1201,16 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
     factor=1.0_gp
  end if
 
-
-  do i3=1,n3k/nproc 
-    !$omp parallel do default(shared) private(i2, i1)
-    do i2=1,n2k
-      do i1=1,n1k
-        karray(i1,i2,i3) = 0.0_dp
-      end do
-    end do
-    !$omp end parallel do
-  end do
+ call f_zero(karray)
+!!$  do i3=1,n3k/nproc 
+!!$    !$omp parallel do default(shared) private(i2, i1)
+!!$    do i2=1,n2k
+!!$      do i1=1,n1k
+!!$        karray(i1,i2,i3) = 0.0_dp
+!!$      end do
+!!$    end do
+!!$    !$omp end parallel do
+!!$  end do
 
 
   fwork = f_malloc(0.to.n_range,id='fwork')
@@ -1474,8 +1475,6 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
      call f_free(y_scf)
   else
   end if
-  !deallocate(work, stat = i_stat)
-  !deallocate(fwork2, stat = i_stat)
 
 END SUBROUTINE gauconv_ffts
 

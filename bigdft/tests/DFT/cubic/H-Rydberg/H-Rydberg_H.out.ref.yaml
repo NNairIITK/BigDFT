@@ -575,12 +575,18 @@
  GPU acceleration                      :  No
  Rho Commun                            : RED_SCT
  Total electronic charge               :  0.999998407407
+ Multipole analysis origin             :  [  2.16E+01,  2.160000E+01,  2.160000E+01 ]
  Electric Dipole Moment (AU):
-   P vector                            :  [ -9.2717E-05, -9.2717E-05, -9.2717E-05 ]
-   norm(P)                             :  1.605908E-04
+   P vector                            :  [ -1.2712E-04, -1.2712E-04, -1.2712E-04 ]
+   norm(P)                             :  2.201734E-04
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -2.3566E-04, -2.3566E-04, -2.3566E-04 ]
-   norm(P)                             :  4.081811E-04
+   P vector                            :  [ -3.231E-04, -3.2310E-04, -3.2310E-04 ]
+   norm(P)                             :  5.596249E-04
+ Quadrupole Moment (AU):
+   Q matrix:
+   -  [-7.4662E-15, -1.0058E-05, -1.0058E-05]
+   -  [-1.0058E-05, -9.0206E-15, -1.0058E-05]
+   -  [-1.0058E-05, -1.0058E-05, -1.0897E-13]
  Calculate local forces                :  Yes
  Calculate Non Local forces            :  No
   #---------------------------------- Iterative subspace diagonalization of virtual orbitals

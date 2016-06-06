@@ -124,13 +124,17 @@ subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   real(wp), dimension(7,mvctr_f), intent(inout) :: psi_f
   !local variables
   integer :: i
-!!!$omp parallel default(private) shared(mvctr_c,mvctr_f,scal,psi_c,psi_f)
-!!!$omp do
+
+  !$omp parallel if (mvctr_c>1000) &
+  !$omp default(none) &
+  !$omp shared(mvctr_c, mvctr_f, scal, psi_c, psi_f) &
+  !$omp private(i)
+  !$omp do schedule(static)
   do i=1,mvctr_c
      psi_c(i)=psi_c(i)*scal
   enddo
-!!!$omp enddo
-!!!$omp do
+  !$omp enddo
+  !$omp do
   do i=1,mvctr_f
      psi_f(1,i)=psi_f(1,i)*scal
      psi_f(2,i)=psi_f(2,i)*scal
@@ -140,8 +144,8 @@ subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
      psi_f(6,i)=psi_f(6,i)*scal
      psi_f(7,i)=psi_f(7,i)*scal
   enddo
-!!!$omp enddo
-!!!$omp end parallel
+  !$omp enddo
+  !$omp end parallel
 
 END SUBROUTINE wscal
 
@@ -173,13 +177,17 @@ subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   real(wp), dimension(7,mvctr_f), intent(inout) :: psi_f
   !local variables
   integer :: i
-!!!$omp parallel default(private) shared(mvctr_c,mvctr_f,scal,psi_c,psi_f)
-!!!$omp do
+
+  !$omp parallel if (mvctr_c>1000) &
+  !$omp default(none) &
+  !$omp shared(mvctr_c, mvctr_f, scal, psi_c, psi_f) &
+  !$omp private(i)
+  !$omp do schedule(static)
   do i=1,mvctr_c
      psi_c(i)=psi_c(i)*scal(0)           !  1 1 1
   enddo
-!!!$omp enddo
-!!!$omp do
+  !$omp enddo
+  !$omp do schedule(static)
   do i=1,mvctr_f
      psi_f(1,i)=psi_f(1,i)*scal(1)       !  2 1 1
      psi_f(2,i)=psi_f(2,i)*scal(1)       !  1 2 1
@@ -189,8 +197,9 @@ subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
      psi_f(6,i)=psi_f(6,i)*scal(2)       !  1 2 2
      psi_f(7,i)=psi_f(7,i)*scal(3)       !  2 2 2
   enddo
-!!!$omp enddo
-!!!$omp end parallel
+  !$omp enddo
+  !$omp end parallel
+
 END SUBROUTINE wscalv
 
 

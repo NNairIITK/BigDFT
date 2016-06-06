@@ -149,10 +149,6 @@ class AutogenModule(MakeModule, DownloadableModule):
         return cmd
 
     def skip_configure(self, buildscript, last_phase):
-        # skip if manually instructed to do so
-        if self.skip_autogen is True:
-            return True
-
         # don't skip this stage if we got here from one of the
         # following phases:
         if last_phase in [self.PHASE_FORCE_CHECKOUT,
@@ -161,6 +157,10 @@ class AutogenModule(MakeModule, DownloadableModule):
                           self.PHASE_INSTALL]:
             return False
 
+#        # skip if manually instructed to do so
+#        if self.skip_autogen is True:
+#            return True
+        
         if self.skip_autogen == 'never':
             return False
 
@@ -231,6 +231,7 @@ class AutogenModule(MakeModule, DownloadableModule):
             extra_env['ACLOCAL'] = ' '.join((
                 extra_env.get('ACLOCAL', os.environ.get('ACLOCAL', 'aclocal')),
                 extra_env.get('ACLOCAL_FLAGS', os.environ.get('ACLOCAL_FLAGS', ''))))
+            print 'Adding ACLOCAL flags (-I):',extra_env['ACLOCAL']
             buildscript.execute(['autoreconf', '-fi'], cwd=srcdir,
                     extra_env=extra_env)
             os.chmod(os.path.join(srcdir, 'configure'), 0755)
@@ -323,6 +324,7 @@ class AutogenModule(MakeModule, DownloadableModule):
     def do_setup(self, buildscript):
         buildscript.set_action(_('Regenerating build system for'), self)
         srcdir = self.get_srcdir(buildscript)
+        if self.skip_autogen: return
         # autoreconf doesn't honour ACLOCAL_FLAGS, therefore we pass
         # a crafted ACLOCAL variable.  (GNOME bug 590064)
         extra_env = {}
@@ -331,6 +333,7 @@ class AutogenModule(MakeModule, DownloadableModule):
         extra_env['ACLOCAL'] = ' '.join((
             extra_env.get('ACLOCAL', os.environ.get('ACLOCAL', 'aclocal')),
             extra_env.get('ACLOCAL_FLAGS', os.environ.get('ACLOCAL_FLAGS', ''))))
+        print 'Adding ACLOCAL flags (-I):',extra_env['ACLOCAL']
         buildscript.execute(['autoreconf', '-fi'], cwd=srcdir,
                 extra_env=extra_env)
         os.chmod(os.path.join(srcdir, 'configure'), 0755)

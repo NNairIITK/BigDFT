@@ -141,6 +141,7 @@ module public_keys
   character(len = *), parameter :: SECTIONS = "sections"
   character(len = *), parameter :: SECTION_BUFFER = "section_buffer"
   character(len = *), parameter :: SECTION_PASSIVATION = "section_passivation"
+  character(len = *), parameter :: NAB_OPTIONS = "nab_options"
 
   character(len = *), parameter :: MIX_VARIABLES = "mix"
   character(len = *), parameter :: ISCF = "iscf"
@@ -220,6 +221,8 @@ module public_keys
   character(len = *), parameter :: PLOT_MPPOT_AXES = "plot_mppot_axes"
   character(len = *), parameter :: PLOT_POT_AXES = "plot_pot_axes"
   character(len = *), parameter :: PLOT_LOCREG_GRIDS = "plot_locreg_grids"
+  character(len = *), parameter :: CALCULATE_FOE_EIGENVALUES = "calculate_FOE_eigenvalues"
+  character(len = *), parameter :: PRECISION_FOE_EIGENVALUES = "precision_FOE_eigenvalues"
 
   !keys for linear input variables
   !level keys

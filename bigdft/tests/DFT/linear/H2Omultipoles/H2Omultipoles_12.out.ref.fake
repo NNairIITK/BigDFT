@@ -1,0 +1,15 @@
+ <BigDFT> log of the run will be written in logfile: ./log-12.yaml
+  #WARNING: ERROR of checksum for orbital 3: difference of  7.27596E-12
+  #WARNING: ERROR of checksum for orbital 4: difference of  1.09139E-11
+  #WARNING: ERROR (Transposition): process 6 found an error of: 1.0913936E-11
+  #WARNING: ERROR of checksum for orbital 3: difference of  7.27596E-12
+  #WARNING: ERROR of checksum for orbital 4: difference of  1.09139E-11
+  #WARNING: ERROR (Transposition): process 7 found an error of: 1.0913936E-11
+  #WARNING: ERROR of checksum for orbital 1: difference of  1.81899E-12
+  #WARNING: ERROR of checksum for orbital 1: difference of  1.81899E-12
+  #WARNING: ERROR of checksum for orbital 2: difference of  1.45519E-11
+  #WARNING: ERROR of checksum for orbital 4: difference of  5.82077E-11
+  #WARNING: ERROR (Transposition): process 6 found an error of: 5.8207661E-11
+  #WARNING: ERROR of checksum for orbital 2: difference of  1.45519E-11
+  #WARNING: ERROR of checksum for orbital 4: difference of  5.82077E-11
+  #WARNING: ERROR (Transposition): process 7 found an error of: 5.8207661E-11

@@ -15,7 +15,7 @@ LIBS += @LIB_YAML_LIBS@ @GLIB_LIBS@ @PYTHON_LIBS@
 endif
 
 dict_SOURCES = dict.c
-dict_LDADD = $(flib_libraries) @GLIB_LIBS@
+dict_LDADD = $(flib_libraries) @GLIB_LIBS@ $(FCLIBS)
 
 pyscript_SOURCES = objs.f90
 pyscript_LDADD = $(flib_libraries)

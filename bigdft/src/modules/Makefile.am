@@ -47,7 +47,6 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	module_tdpot.f90 \
 	module_coulomb.f90 \
 	module_bazant.f90 \
-	op2p_module.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
 	fragments.f90 \
@@ -90,8 +89,6 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_MIXING.@MODULE_EXT@ \
 	MODULE_INTERFACES.@MODULE_EXT@ \
 	MODULE_PRIVATE_API.@MODULE_EXT@ \
-	MODULE_XC.@MODULE_EXT@ \
-	OVERLAP_POINT_TO_POINT.@MODULE_EXT@ \
 	MODULE_INPUT.@MODULE_EXT@ \
 	GAUSSDAUB.@MODULE_EXT@ \
 	BIGDFT_API.@MODULE_EXT@ \
@@ -136,7 +133,6 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_DFTBP.@MODULE_EXT@ \
 	MODULE_COULOMB.@MODULE_EXT@ \
 	MODULE_BAZANT.@MODULE_EXT@ \
-	BIGDFT_MATRICES.@MODULE_EXT@ \
 	ORBITALBASIS.@MODULE_EXT@ \
 	MODULE_TDPOT.@MODULE_EXT@ \
 	MODULE_CP2K.@MODULE_EXT@ \
@@ -149,7 +145,6 @@ modules = module_types.@MODULE_EXT@ \
 	module_mixing.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ \
 	module_private_api.@MODULE_EXT@ \
-	overlap_point_to_point.@MODULE_EXT@ \
 	module_input.@MODULE_EXT@ \
 	gaussdaub.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ \
@@ -227,7 +222,7 @@ input_keys.o: multipole_base.o atoms_data.o input.o fragment_base.o
 types.o: psp_projectors_base.o atoms_data.o input_keys.o \
 	ab7_mixing.o multipole_base.o dpbox.o
 interfaces.o: types.o fragments.o diis_module.o constrained_dft.o input_keys.o
-#op2p_module.o : base.o
+
 BigDFT_API.o: types.o interfaces.o atoms_data.o input_dicts.o psp_projectors.o communications_init.o bigdft_run.o
 vdwcorrection.o: types.o 
 private_api.o: types.o interfaces.o

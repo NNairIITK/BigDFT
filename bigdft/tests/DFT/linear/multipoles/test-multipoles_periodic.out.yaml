@@ -1,0 +1,136 @@
+---
+ Code logo:
+   "__________________________________ A fast and precise DFT wavelet code
+   |     |     |     |     |     |
+   |     |     |     |     |     |      BBBB         i       gggggg
+   |_____|_____|_____|_____|_____|     B    B               g
+   |     |  :  |  :  |     |     |    B     B        i     g
+   |     |-0+--|-0+--|     |     |    B    B         i     g        g
+   |_____|__:__|__:__|_____|_____|___ BBBBB          i     g         g
+   |  :  |     |     |  :  |     |    B    B         i     g         g
+   |--+0-|     |     |-0+--|     |    B     B     iiii     g         g
+   |__:__|_____|_____|__:__|_____|    B     B        i      g        g
+   |     |  :  |  :  |     |     |    B BBBB        i        g      g
+   |     |-0+--|-0+--|     |     |    B        iiiii          gggggg
+   |_____|__:__|__:__|_____|_____|__BBBBB
+   |     |     |     |  :  |     |                           TTTTTTTTT
+   |     |     |     |--+0-|     |  DDDDDD          FFFFF        T
+   |_____|_____|_____|__:__|_____| D      D        F        TTTT T
+   |     |     |     |  :  |     |D        D      F        T     T
+   |     |     |     |--+0-|     |D         D     FFFF     T     T
+   |_____|_____|_____|__:__|_____|D___      D     F         T    T
+   |     |     |  :  |     |     |D         D     F          TTTTT
+   |     |     |--+0-|     |     | D        D     F         T    T
+   |_____|_____|__:__|_____|_____|          D     F        T     T
+   |     |     |     |     |     |         D               T    T
+   |     |     |     |     |     |   DDDDDD       F         TTTT
+   |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
+
+ Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
+ Version Number                        : 1.8a.5
+ Timestamp of this run                 : 2016-05-24 14:45:01.930
+ Root process Hostname                 : stephan-Latitude-E6420
+ Number of MPI tasks                   :  2
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ BIGDFT PRE-/POST-PROCESSING
+ Parallel environment:
+   MPI tasks                           :  2
+   OpenMP threads                      :  2
+  #---------------------------------------------------------------------- Multipole analysis
+ Atomic System Properties:
+   Types of atoms                      :  [ H, O ]
+ sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ total elements                        :  36
+ non-zero elements                     :  36
+  #segments:  6
+ sparsity in %                         :  0.00
+ sparse matrix multiplication initialized:  Yes
+ taskgroup summary:
+   number of taskgroups                :  1
+   taskgroups overview:
+   -  {number of tasks:  2, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+ sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ total elements                        :  36
+ non-zero elements                     :  36
+  #segments:  6
+ sparsity in %                         :  0.00
+ sparse matrix multiplication initialized:  Yes
+ taskgroup summary:
+   number of taskgroups                :  1
+   taskgroups overview:
+   -  {number of tasks:  2, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+ sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ total elements                        :  36
+ non-zero elements                     :  36
+  #segments:  6
+ sparsity in %                         :  0.00
+ sparse matrix multiplication initialized:  Yes
+ taskgroup summary:
+   number of taskgroups                :  1
+   taskgroups overview:
+   -  {number of tasks:  2, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+  #================================================= Atomic multipole analysis, new approach
+ Method                                : loewdin
+ Projector mode                        : simple
+ Orthogonalized support functions      : no
+ calculate S^x:
+   mode                                : sparse
+   powers:
+     x                                 : -1
+   order                               :  1020
+   determine eigenvalue bounds:
+   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  9.4E-07, ok: [
+  Yes,  Yes], exp accur:  [  1.46E-11 ]}
+  #WARNING: Taking internal PSP information for multipole  1
+  #WARNING: Taking internal PSP information for multipole  2
+  #WARNING: Taking internal PSP information for multipole  3
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
+ Multipole coefficients:
+   units                               : angstroem
+   global monopole                     :  1.095968E-06
+   values:
+   - sym                               : H # 0001
+     r: [ 7.287691116333008,  3.888086318969727,  7.829164505004883]
+     nzion                             :  1
+     sigma                             :  [  0.200,  0.200,  0.200 ]
+     q0                                :  [  3.142066E-01 ]
+     q1                                :  [  2.117476E-02,  3.433545E-02, -4.283479E-04 ]
+     q2: [ 2.132944E-04,  4.802479E-02,  6.427723E-02, -2.900072E-03, -1.331951E-02]
+     type                              : s
+   - sym                               : O # 0002
+     r: [ 7.287691116333008,  3.888086318969727,  8.800254821777344]
+     nzion                             :  6
+     sigma                             :  [  0.245,  0.245,  0.245 ]
+     q0                                :  [ -6.320087E-01 ]
+     q1                                :  [ -1.009401E-01, -7.989084E-02, -6.304528E-03 ]
+     q2: [ 5.117633E-03, -3.328493E-01,  2.917699E-01,  3.447684E-03, -3.072797E-01]
+     type                              : unknown
+   - sym                               : H # 0003
+     r: [ 7.287691116333008,  2.94972038269043,  9.050948143005371]
+     nzion                             :  1
+     sigma                             :  [  0.200,  0.200,  0.200 ]
+     q0                                :  [  3.178032E-01 ]
+     q1                                :  [  4.040554E-02,  1.176629E-02, -1.935164E-04 ]
+     q2: [-2.510415E-03,  1.476283E-02, -3.830430E-02,  9.351666E-04, -7.549099E-02]
+     type                              : s
+  #========================================================== Atomic multipole analysis done
+  #------------------------------------------------------------------------------------ done
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Taking internal PSP information for multipole  1
+ - Taking internal PSP information for multipole  2
+ - Taking internal PSP information for multipole  3
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  624
+   Tot. No. of Deallocations           :  624
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  0.126
+     for the array                     : cc
+     in the routine                    : get_polynomial_degree
+     Memory Peak of process            : 19.516 MB
+ Walltime since initialization         : 00:00:00.405599453
+ Max No. of dictionaries used          :  1747 #( 1001 still in use)
+ Number of dictionary folders allocated:  1

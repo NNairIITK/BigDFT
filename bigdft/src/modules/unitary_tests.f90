@@ -52,8 +52,8 @@ module unitary_tests
       !assign constants
       i3s=denspot%dpbox%nscatterarr(bigdft_mpi%iproc,3)+1 !< starting point of the planes in the z direction
       n3p=denspot%dpbox%nscatterarr(bigdft_mpi%iproc,2) !< number of planes for the potential
-      n2i=denspot%dpbox%ndims(2) !< size of the global domain in y direction
-      n1i=denspot%dpbox%ndims(1) !< size of the global domain in x direction
+      n2i=denspot%dpbox%mesh%ndims(2) !< size of the global domain in y direction
+      n1i=denspot%dpbox%mesh%ndims(1) !< size of the global domain in x direction
     
       !fill the values of the rhov array
       ind=0
@@ -83,7 +83,7 @@ module unitary_tests
           n3p_withmax(jproc) = max(denspot%dpbox%nscatterarr(jproc,2),1)
       end do
       call start_onesided_communication(bigdft_mpi%iproc, bigdft_mpi%nproc, &
-           denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), n3p_withmax, denspot%rhov, &
+           denspot%dpbox%mesh%ndims(1), denspot%dpbox%mesh%ndims(2), n3p_withmax, denspot%rhov, &
            tmb%ham_descr%comgp%nspin*tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, &
            tmb%ham_descr%comgp, tmb%ham_descr%lzd)
       call f_free(n3p_withmax)
@@ -302,6 +302,10 @@ module unitary_tests
           is1 = modulo(1+lzd%llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1
           ie1 = is1+lzd%llr(ilr)%d%n1i-1
           i = 0
+          !$omp parallel default(none) &
+          !$omp shared(is3, ie3, is2, ie2, is1, ie1, lzd, psir, ist, iiorb, nxyz) &
+          !$omp private(i3, ii3, n3, i2, ii2, n2, ii1, iixyz, i)
+          !$omp do 
           do i3=is3,ie3
               ii3 = modulo(i3-1,lzd%glr%d%n3i)+1
               n3 = (ii3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
@@ -311,11 +315,15 @@ module unitary_tests
                   do i1=is1,ie1
                       ii1 = modulo(i1-1,lzd%glr%d%n1i)+1
                       iixyz = n3 + n2 + ii1
-                      i = i + 1
+                      !i = i + 1
+                      !if (i /= (i3-is3)*(ie2-is2+1)*(ie1-is1+1) + (i2-is2)*(ie1-is1+1) + (i1-is1+1)) stop 'wrong i'
+                      i = (i3-is3)*(ie2-is2+1)*(ie1-is1+1) + (i2-is2)*(ie1-is1+1) + (i1-is1+1)
                       psir(ist+i)=test_value_sumrho(iiorb,iixyz,nxyz)
                   end do
               end do
           end do
+          !$omp end do
+          !$omp end parallel
           ist = ist + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
       end do
       if(ist/=collcom_sr%ndimpsi_c) then
@@ -636,8 +644,9 @@ module unitary_tests
                               do j=i+1,weight(i1,i2,i3)
                                   jj=orbital_id(j,i1,i2,i3)+(ispin-1)*orbs%norbu
                                   !ikernel=matrixindex_in_compressed_auxilliary(jj,ii)
-                                  ikernel=matrixindex_in_compressed(denskern,jj,ii)-denskern%isvctrp_tg
+                                  ikernel=matrixindex_in_compressed(denskern,jj,ii)
                                   if (ikernel==0) cycle
+                                  ikernel=ikernel-denskern%isvctrp_tg
                                   ttj=test_value_sumrho(jj,iixyz,nxyz)
                                   tt=tt+2.d0*denskern_%matrix_compr(ikernel)*tti*ttj
                                   !!if (mod(ind-1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1))+1==865737) then

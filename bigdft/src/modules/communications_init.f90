@@ -2125,18 +2125,18 @@ module communications_init
       
       ! Local variables
       integer :: ii, i1, i2, i3, iipt, iseg, jj, j0, j1, iitot, i, i0
-      integer :: icheck_c,icheck_f,iiorb_c,iiorb_f, npgp_c,npgp_f,np,n1p1, jj3
+      integer :: icheck_c,icheck_f,npgp_c,npgp_f,np,n1p1, jj3
       integer :: window, i3min_c, i3max_c, i3min_f, i3max_f, size_of_double, ierr, jproc, is, ie, info, ncount
       integer,dimension(:),allocatable :: i3s_par, n3_par
       real(kind=8),dimension(:,:,:),pointer :: workrecv_c, workrecv_f
       !!integer,dimension(:),allocatable:: iseg_start_c, iseg_start_f
+      ! 8 Byte integers to avoid integer overflows
+      integer(kind=8) :: iiorb_c, iiorb_f
     
       call f_routine(id='determine_num_orbs_per_gridpoint_new')
     
       icheck_c = 0
       icheck_f = 0
-      iiorb_f=0
-      iiorb_c=0
       iipt=0
     
       n1p1=lzd%glr%d%n1+1
@@ -2202,7 +2202,7 @@ module communications_init
 
 
        icheck_c = 0
-       iiorb_c = 0
+       iiorb_c = int(0,kind=8)
        do iseg=1,lzd%glr%wfd%nseg_c !istartp_seg_c,iendp_seg_c
            jj=lzd%glr%wfd%keyvglob(iseg)
            j0=lzd%glr%wfd%keyglob(1,iseg)
@@ -2221,7 +2221,7 @@ module communications_init
                    icheck_c = icheck_c + 1
                    iipt=jj-istartend_c(1,iproc)+i-i0+1
                    npgp_c = nint(sqrt(workrecv_c(i,i2,i3+1)))
-                   iiorb_c=iiorb_c+nint(workrecv_c(i,i2,i3+1))
+                   iiorb_c=iiorb_c+nint(workrecv_c(i,i2,i3+1),kind=8)
                    !!npgp_c = nint(sqrt(workrecv_c(i,i2,jj3)))
                    !!iiorb_c=iiorb_c+nint(workrecv_c(i,i2,jj3))
                    norb_per_gridpoint_c(iipt)=npgp_c
@@ -2238,10 +2238,13 @@ module communications_init
 
       !@ENDNEW ######################################
     
-      if(icheck_c/=nptsp_c) stop 'icheck_c/=nptsp_c'
-      if(iiorb_c/=nint(weightp_c)) then
-          write(*,*) 'iiorb_c, nint(weightp_c)', iiorb_c, nint(weightp_c)
-          stop 'iiorb_c/=weightp_c'
+      if(icheck_c/=nptsp_c) then
+          call f_err_throw(trim(yaml_toa(icheck_c))//'=icheck_c /= nptsp_c='//trim(yaml_toa(nptsp_c)), &
+               err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      if(iiorb_c/=nint(weightp_c,kind=8)) then
+          call f_err_throw(trim(yaml_toa(iiorb_c))//'=iiorb_c /= weightp_c='//trim(yaml_toa(nint(weightp_c,kind=8))), &
+               err_name='BIGDFT_RUNTIME_ERROR')
       end if
     
     
@@ -2299,7 +2302,7 @@ module communications_init
 
 
        icheck_f = 0
-       iiorb_f = 0
+       iiorb_f = int(0,kind=8)
        !do iseg=lzd%glr%wfd%nseg_c+1,lzd%glr%wfd%nseg_c+lzd%glr%wfd%nseg_f !istartp_seg_f,iendp_seg_f
        do iseg=istartp_seg_f,iendp_seg_f
            jj=lzd%glr%wfd%keyvglob(iseg)
@@ -2319,7 +2322,7 @@ module communications_init
                    icheck_f = icheck_f + 1
                    iipt=jj-istartend_f(1,iproc)+i-i0+1
                    npgp_f = nint(sqrt(workrecv_f(i,i2,i3+1)))
-                   iiorb_f=iiorb_f+nint(workrecv_f(i,i2,i3+1))
+                   iiorb_f=iiorb_f+nint(workrecv_f(i,i2,i3+1),kind=8)
                    !!npgp_f = nint(sqrt(workrecv_f(i,i2,jj3)))
                    !!iiorb_f=iiorb_f+nint(workrecv_f(i,i2,jj3))
                    norb_per_gridpoint_f(iipt)=npgp_f
@@ -2338,10 +2341,13 @@ module communications_init
 
       !@ENDNEW ######################################
     
-      if(icheck_f/=nptsp_f) stop 'icheck_f/=nptsp_f'
-      if(iiorb_f/=nint(weightp_f)) then
-          write(*,*) 'iiorb_f, weightp_f', iiorb_f, weightp_f
-          stop 'iiorb_f/=weightp_f'
+      if(icheck_f/=nptsp_f) then
+          call f_err_throw(trim(yaml_toa(icheck_f))//'=icheck_f /= nptsp_f='//trim(yaml_toa(nptsp_f)), &
+               err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      if(iiorb_f/=nint(weightp_f,kind=8)) then
+          call f_err_throw(trim(yaml_toa(iiorb_f))//'=iiorb_f /= weightp_f='//trim(yaml_toa(nint(weightp_f,kind=8))), &
+               err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
       call f_release_routine()
@@ -2919,6 +2925,8 @@ module communications_init
       integer(kind=8),dimension(:,:),allocatable :: istartend
       character(len=*),parameter :: subname='init_comms_linear_sumrho'
       real(kind=8),dimension(:),allocatable :: weights_per_slice, weights_per_zpoint
+
+      call f_routine(id='init_comms_linear_sumrho')
     
       ! Note: all weights are double precision to avoid integer overflow
       call timing(iproc,'init_collco_sr','ON')
@@ -2947,6 +2955,8 @@ module communications_init
       collcom_sr%ndimind_c = sum(collcom_sr%nrecvcounts_c)
 
       call allocate_local_comms_cubic(collcom_sr, only_coarse=.true.)
+      ! For the sumrho operations, this array is not needed (there is no transpose_unswitch_psir)
+      call f_free_ptr(collcom_sr%irecvbuf_c)
     
       call determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, collcom_sr%nptsp_c, lzd, orbs, &
            istartend, weight_tot, weights_per_zpoint, collcom_sr%norb_per_gridpoint_c)
@@ -2963,8 +2973,9 @@ module communications_init
     
       call get_switch_indices_sumrho(iproc, nproc, collcom_sr%nptsp_c, collcom_sr%ndimpsi_c, collcom_sr%ndimind_c, lzd, &
            orbs, nspin, istartend, collcom_sr%norb_per_gridpoint_c, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
-           collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%isendbuf_c, collcom_sr%irecvbuf_c, &
+           collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%isendbuf_c, & !collcom_sr%irecvbuf_c, &
            collcom_sr%iextract_c, collcom_sr%iexpand_c, collcom_sr%indexrecvorbital_c)
+
     
       ! These variables are used in various subroutines to speed up the code
       collcom_sr%isptsp_c(1) = 0
@@ -2985,6 +2996,7 @@ module communications_init
       call f_free(istartend)
     
       call timing(iproc,'init_collco_sr','OF')
+      call f_release_routine()
     
     end subroutine init_comms_linear_sumrho
 
@@ -3505,7 +3517,7 @@ module communications_init
 
     subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd, orbs, nspin, istartend, &
                norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, &
-               isendbuf, irecvbuf, iextract, iexpand, indexrecvorbital)
+               isendbuf, iextract, iexpand, indexrecvorbital)
       use module_base
       use module_types
       implicit none
@@ -3517,7 +3529,7 @@ module communications_init
       integer(kind=8),dimension(2,0:nproc-1),intent(in) :: istartend
       integer,dimension(nptsp),intent(in) :: norb_per_gridpoint
       integer,dimension(0:nproc-1),intent(in) :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
-      integer,dimension(ndimpsi),intent(out) :: isendbuf, irecvbuf
+      integer,dimension(ndimpsi),intent(out) :: isendbuf!, irecvbuf
       integer,dimension(ndimind),intent(out) :: iextract, iexpand, indexrecvorbital
     
       ! Local variables
@@ -3621,8 +3633,8 @@ module communications_init
           indexsendorbital(ind)=indexsendorbital2(i)
       end do
     
-      ! Inverse of isendbuf
-      call get_reverse_indices(ndimpsi, isendbuf, irecvbuf)
+      ! Inverse of isendbuf... not needed
+      !call get_reverse_indices(ndimpsi, isendbuf, irecvbuf)
     
       call f_free(indexsendorbital2)
     

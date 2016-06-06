@@ -27,6 +27,7 @@ module io
   public :: find_neighbours
   public :: plot_density
   public :: plot_locreg_grids
+  public :: write_energies
 
   public :: io_files_exists
 
@@ -2136,7 +2137,8 @@ module io
                norder_taylor, 1, power, -1, &
                imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=SminusonehalfH(1), &
-               check_accur=norder_taylor<1000, max_error=max_error, mean_error=mean_error)
+               check_accur=norder_taylor<1000, max_error=max_error, mean_error=mean_error, &
+               ice_obj=tmb%ice_obj)
           ! Calculate S^-1/2 * H
           call f_memcpy(src=SminusonehalfH(1)%matrix_compr,dest=tmp_large)
           call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmp_large, ham_large, SminusonehalfH(1)%matrix_compr)
@@ -2546,23 +2548,27 @@ module io
       !local variables
       integer :: ispin
       real(dp), dimension(:,:,:,:), allocatable :: pot_ion
+
+      call f_routine(id='plot_density')
     
       pot_ion = &
            f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3), nspin],id='pot_ion')
 
       call PS_gather(src=rho,dest=pot_ion,kernel=kernel,nsrc=nspin)
     
-      if (present(ixyz0)) then
-         if (any(ixyz0 < 1) .or. any(ixyz0 > kernel%ndims)) &
-              call f_err_throw('The values of ixyz0='+yaml_toa(ixyz0)+&
-                   ' should be within the size of the box (1 to'+&
-                   yaml_toa(kernel%ndims)+')',&
-                   err_name='BIGDFT_RUNTIME_ERROR')
-          call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
-               rxyz,at%astruct%iatype,at%nzatom,at%nelpsp,ixyz0=ixyz0)
-      else
-          call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
-               rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
+      if (iproc==0) then
+          if (present(ixyz0)) then
+             if (any(ixyz0 < 1) .or. any(ixyz0 > kernel%ndims)) &
+                  call f_err_throw('The values of ixyz0='+yaml_toa(ixyz0)+&
+                       ' should be within the size of the box (1 to'+&
+                       yaml_toa(kernel%ndims)+')',&
+                       err_name='BIGDFT_RUNTIME_ERROR')
+              call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
+                   rxyz,at%astruct%iatype,at%nzatom,at%nelpsp,ixyz0=ixyz0)
+          else
+              call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
+                   rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
+          end if
       end if
     
       call f_free(pot_ion)
@@ -2711,6 +2717,8 @@ module io
     !!$  !if (nproc > 1) then
     !!$     call f_free_ptr(pot_ion)
     !!$  !end if
+
+      call f_release_routine()
     
     END SUBROUTINE plot_density
 
@@ -2822,6 +2830,118 @@ module io
       call f_release_routine()
     
     end subroutine plot_locreg_grids
+
+
+    !> Write the energies for a given iteration
+    subroutine write_energies(iter,energs,gnrm,gnrm_zero,comment,scf_mode,only_energies,label)
+      use module_base
+      use module_types
+      use yaml_output
+      implicit none
+      !Arguments
+      integer, intent(in) :: iter !< Iteration Id
+      type(energy_terms), intent(in) :: energs
+      real(gp), intent(in) :: gnrm,gnrm_zero
+      character(len=*), intent(in) :: comment
+      logical,intent(in),optional :: only_energies
+      type(f_enumerator), intent(in), optional :: scf_mode
+      character(len=*), intent(in), optional :: label !< label of the mapping (usually 'Energies', but can also be different)
+      !local variables
+      logical :: write_only_energies,yesen,noen
+      character(len=128) :: label_
+    
+      if (present(only_energies)) then
+          write_only_energies=only_energies
+      else
+          write_only_energies=.false.
+      end if
+      noen=.false.
+      if (present(scf_mode)) noen=scf_mode .hasattr. 'MIXING'
+      label_ = 'Energies'
+      if (present(label)) label_ = trim(label)
+    
+      if (len(trim(comment)) > 0 .and. .not.write_only_energies) then
+         if (verbose >0) call yaml_newline()
+         call write_iter()
+         if (verbose >0) call yaml_comment(trim(comment))
+      end if
+    
+      yesen=verbose > 0
+      if (present(scf_mode)) yesen=yesen .and. .not. (scf_mode .hasattr. 'MIXING')
+    
+      if (yesen) then
+         call yaml_newline()
+         call yaml_mapping_open(trim(label_),flow=.true.)
+      !call yaml_flow_map()
+      !call yaml_indent_map('Energies')
+         if (energs%ekin /= 0.0_gp)&
+              call yaml_map('Ekin',energs%ekin,fmt='(1pe18.11)')
+         if (energs%epot /= 0.0_gp)&
+              call yaml_map('Epot',energs%epot,fmt='(1pe18.11)')
+         if (energs%eproj /= 0.0_gp)&
+              call yaml_map('Enl',energs%eproj,fmt='(1pe18.11)')
+         if (energs%eh /= 0.0_gp)&
+              call yaml_map('EH',energs%eh,fmt='(1pe18.11)')
+         if (energs%exc /= 0.0_gp)&
+              call yaml_map('EXC',energs%exc,fmt='(1pe18.11)')
+         if (energs%evxc /= 0.0_gp)&
+              call yaml_map('EvXC',energs%evxc,fmt='(1pe18.11)')
+         if (energs%eexctX /= 0.0_gp)&
+              call yaml_map('EexctX',energs%eexctX,fmt='(1pe18.11)')
+         if (energs%evsic /= 0.0_gp)&
+              call yaml_map('EvSIC',energs%evsic,fmt='(1pe18.11)')
+         if (len(trim(comment)) > 0) then
+            if (energs%eion /= 0.0_gp)&
+                 call yaml_map('Eion',energs%eion,fmt='(1pe18.11)')
+            if (energs%edisp /= 0.0_gp)&
+                 call yaml_map('Edisp',energs%edisp,fmt='(1pe18.11)')
+            if (energs%excrhoc /= 0.0_gp)&
+                 call yaml_map('Exc(rhoc)',energs%excrhoc,fmt='(1pe18.11)')
+            if (energs%eTS /= 0.0_gp)&
+                 call yaml_map('TS',energs%eTS,fmt='(1pe18.11)')
+    
+         end if
+         call yaml_mapping_close()
+      end if
+    
+      if (.not.write_only_energies) then
+         call yaml_newline()
+         if (len(trim(comment)) == 0) then
+            call write_iter()
+            if (verbose >0) call yaml_newline()
+         else if (verbose > 1 .and. present(scf_mode)) then
+            call yaml_map('SCF criterion',scf_mode)
+         end if
+      end if
+    
+    
+      contains
+    
+        subroutine write_iter()
+          implicit none
+          if (iter > 0) call yaml_map('iter',iter,fmt='(i6)')
+          if (noen) then
+             call yaml_map('tr(H)',energs%trH,fmt='(1pe24.17)')
+          else
+             if (energs%eTS==0.0_gp) then
+                call yaml_map('EKS',energs%energy,fmt='(1pe24.17)')
+             else
+                call yaml_map('FKS',energs%energy,fmt='(1pe24.17)')
+             end if
+          end if
+          if (gnrm > 0.0_gp) call yaml_map('gnrm',gnrm,fmt='(1pe9.2)')
+          if (gnrm_zero > 0.0_gp) &
+               call yaml_map('gnrm0',gnrm_zero,fmt='(1pe8.1)')
+          if (noen) then
+             if (energs%trH_prev /=0.0_gp) &
+                  call yaml_map('D',energs%trH-energs%trH_prev,fmt='(1pe9.2)')
+          else
+             if (energs%e_prev /=0.0_gp) &
+                  call yaml_map('D',energs%energy-energs%e_prev,fmt='(1pe9.2)')
+          end if
+    
+        end subroutine write_iter
+    end subroutine write_energies
 
 
 end module io

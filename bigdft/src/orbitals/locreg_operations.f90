@@ -2279,6 +2279,8 @@ module locreg_operations
      integer :: ist2S,ist3S, ist2L, ist3L, istsa, ists, istl
      integer :: ii1shift, ii2shift, ii3shift, i1glob, i2glob, i3glob
      integer :: iii1, iii2, iii3
+
+     call f_routine(id='global_to_local_parallel')
     
      !THIS ROUTINE NEEDS OPTIMIZING
     
@@ -2366,6 +2368,8 @@ module locreg_operations
          !$omp end parallel
          indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
      end do
+
+     call f_release_routine()
     
     END SUBROUTINE global_to_local_parallel
 
