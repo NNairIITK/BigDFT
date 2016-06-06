@@ -292,6 +292,7 @@ module module_input_keys
      real(gp) :: trustr
 
      !Force Field Parameter
+     logical :: add_coulomb_force
      character(len=64) :: mm_paramset
      character(len=64) :: mm_paramfile
      real(gp) :: sw_factor
@@ -1569,7 +1570,11 @@ contains
              in%run_mode=SW_RUN_MODE
           case('multi')
              in%run_mode=MULTI_RUN_MODE
+          case('bazant')
+             in%run_mode=BAZANT_RUN_MODE
           end select
+       case(ADD_COULOMB_FORCE_KEY)
+          in%add_coulomb_force = val          
        case(MM_PARAMSET)
           in%mm_paramset=val
        case(MM_PARAMFILE)
@@ -3270,10 +3275,10 @@ contains
 
   !> Read from all input files and build a dictionary
   recursive subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
+    use yaml_output
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use wrapper_MPI, only: mpi_environment
     use public_keys, only: POSINP, IG_OCCUPATION, MODE_VARIABLES, SECTIONS, METHOD_KEY
-    use yaml_output
     use yaml_strings, only: f_strcpy
     use f_utils, only: f_file_exists
     use module_input_dicts

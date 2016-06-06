@@ -1164,8 +1164,13 @@
        cp2k: CP2K
        dftbp: DFTP+
        sw: Stillinger-Weber for Si
+       bazant:  Bazant force for Si
        multi: Mixed approach where parts of the system are treated with different methods
      default: dft
+   add_coulomb_force:
+     COMMENT: Boolean to add coulomb force on top of any of above selected force
+     MASTER_KEY: method
+     default: No
    mm_paramset:
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
      default: default
