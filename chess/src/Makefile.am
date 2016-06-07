@@ -4,6 +4,7 @@ lib_LIBRARIES    = libCheSS-1.a
 module_DATA      = $(modules)
 dynlib_DATA      = $(chess_dynlib)
 noinst_DATA      = $(chess_linklib)
+bin_PROGRAMS     = $(binaries_sources)
 
 # Static or dynamic library
 chess_dynamic_library = libCheSS-1.so.@CHESS_MINOR_VERSION@.0.@CHESS_MICRO_VERSION@
@@ -17,6 +18,12 @@ else
 chess_dynlib =
 chess_linklib =
 chess_library = libCheSS-1.a @LIB_CHESS_DEPS@
+endif
+
+if BUILD_BINARIES 
+binaries_sources = chess_toolbox
+else
+binaries_sources =
 endif
 
 libCheSS_1_a_SOURCES = chebyshev.f90 \
@@ -52,6 +59,9 @@ modules =  chebyshev.@MODULE_EXT@ \
 endif
 
 subs_static_library = $(top_builddir)/sparsematrix/libsparsematrix.a
+
+chess_toolbox_SOURCES = chess_toolbox.f90
+chess_toolbox_LDADD = $(chess_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ $(chess_dynamic_library) $(chess_library_soname) libCheSS-1.so
 clean-local:

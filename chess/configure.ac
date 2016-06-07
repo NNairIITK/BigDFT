@@ -71,6 +71,13 @@ AX_MPI()
 dnl Python YAML support.
 AX_PYYAML()
 
+dnl The utilities executable
+AC_ARG_ENABLE(binaries, AS_HELP_STRING([--disable-binaries], [build the binaries (default = yes).]), ac_build_bin_utilities=$enableval, ac_build_bin_utilities="yes")
+AM_CONDITIONAL(BUILD_BINARIES, test "$ac_build_bin_utilities" = "yes")
+AC_MSG_CHECKING([for CheSS binaries build])
+AC_MSG_RESULT([$ac_build_bin_utilities])
+
+
 AX_FLIB()
 
 dnl Produce dynamic excecutables.

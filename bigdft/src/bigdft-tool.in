@@ -178,13 +178,13 @@ def parse():
                      help="number of orbitals [default: %default]")
     #group.add_option("--interval", type="float", default=0.01, metavar="NUM",
     #                 help="energy interval [default: %default]")
-    group.add_option("--pdos_file", type="string", default=1, metavar="PDOSFILE",
+    group.add_option("--pdos_file", type="string", default="pdos.dat", metavar="PDOSFILE",
                      help="TMBs to be considered for PDOS [default: %default]")
 
     # calculate a full kernel from the coeffs and compare it to the sparse one
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[12],
                         "calculate a dense kernel from the coefficients and compare it to the sparse one")
-    group.add_option("--kernel_file", type="str", default="kernel.bin", metavar="KERNELNAME",
+    group.add_option("--kernel_file", type="str", default="density_kernel_sparse.bin", metavar="KERNELNAME",
              		 help="input file with the coefficients [default: %default]")
     group.add_option("--nat", type="int", default=1, metavar="NUM",
                      help="number of atoms [default: %default]")
@@ -202,9 +202,9 @@ def parse():
                         "solve eigensystem")
     group.add_option("--metadata_file", type="str", default="sparsematrix_metadata.bin", metavar="METADATANAME",
              		 help="input file with the sparse matrix metadata[default: %default]")
-    group.add_option("--hamiltonian_file", type="str", default="ham.bin", metavar="MATRIXNAME",
+    group.add_option("--hamiltonian_file", type="str", default="hamiltonian_sparse.bin", metavar="MATRIXNAME",
              		 help="input file with the hamiltonian[default: %default]")
-    group.add_option("--overlap_file", type="str", default="ham.bin", metavar="MATRIXNAME",
+    group.add_option("--overlap_file", type="str", default="overlap_sparse.bin", metavar="MATRIXNAME",
              		 help="input file with the overlap matrix[default: %default]")
 
     # solve the eigensystem to get the coefficients
@@ -825,6 +825,17 @@ if __name__ == "__main__":
     elif os.path.isfile(os.path.join(bindir, "bin", "utilities")):
         utilities = os.path.join(bindir, "bin", "utilities")
 
+    # Try to find chess_toolbox executable.
+    chess_toolbox = None
+    if os.path.isfile(os.path.join(os.path.dirname(sys.argv[0]), "chess_toolbox")):
+        chess_toolbox = os.path.join(os.path.dirname(sys.argv[0]), "chess_toolbox")
+    elif os.path.isfile("./chess_toolbox"):
+        chess_toolbox = "./chess_toolbox"
+    elif os.path.isfile(os.path.join(abs_top_builddir, "chess", "src", "chess_toolbox")):
+        chess_toolbox = os.path.join(abs_top_builddir, "chess", "src", "chess_toolbox")
+    elif os.path.isfile(os.path.join(bindir, "bin", "chess_toolbox")):
+        chess_toolbox = os.path.join(bindir, "bin", "chess_toolbox")
+
 
     command = None
     # Run memguess
@@ -1071,7 +1082,7 @@ options:
         #infile_extension = infile_names[len(infile_names)-1]
         #command = "%s 1 %s dd pdos %s %s %s %d %d %d %e %s %s" % (memguess, options.name, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.nbasis, options.norb, options.nat, options.interval, options.pdos_file, options.posinp_file)
         #command = "%s 1 %s dd pdos %s %s %s %s" % (memguess, options.name, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.pdos_file)
-        command = "%s %s pdos %s %s %s %s %s" % (options.mpirun, utilities, options.metadata_file, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.pdos_file)
+        command = "%s %s pdos %s %s %s %s %s" % (options.mpirun, chess_toolbox, options.metadata_file, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.pdos_file)
         print command
     if options.action == "kernel-analysis":
         print 'calling memguess for kernel analysis'
@@ -1084,7 +1095,7 @@ options:
     if options.action == "solve-eigensystem":
         print 'calling memguess to solve the eigensystem'
         #command = "%s 1 %s dd solve-eigensystem %s %s %d %d %s" % (memguess, options.name, options.hamiltonian_file, options.overlap_file, options.nbasis, options.nat, options.coeff_file)
-        command = "%s %s solve-eigensystem %s %s %s %s" % (options.mpirun, utilities, options.metadata_file, options.hamiltonian_file, options.overlap_file, options.coeff_file)
+        command = "%s %s solve-eigensystem %s %s %s %s" % (options.mpirun, chess_toolbox, options.metadata_file, options.hamiltonian_file, options.overlap_file, options.coeff_file)
     if options.action == "analyse-coeffs":
         print 'calling memguess to analyse the coeffs'
         command = "%s 1 %s dd analyze-coeffs %s %d %d %d %d" % (memguess, options.name, options.coeff_file, options.nbasis, options.norb, options.nat, options.ncategories)
@@ -1112,9 +1123,9 @@ options:
         #print command
     if options.action == "convert-matrix-format":
         print command
-        command = "%s %s convert-matrix-format %s %s %s" % (options.mpirun, utilities, options.conversion, options.infile, options.outfile)
+        command = "%s %s convert-matrix-format %s %s %s" % (options.mpirun, chess_toolbox, options.conversion, options.infile, options.outfile)
     if options.action == "calculate-selected-eigenvalues":
-        command = "%s %s calculate-selected-eigenvalues %s %s %s %s %i %i %f" % (options.mpirun, utilities, options.metadata_file, options.overlap_file, options.hamiltonian_file, options.kernel_file, options.iev_min, options.iev_max, options.fscale)
+        command = "%s %s calculate-selected-eigenvalues %s %s %s %s %i %i %f" % (options.mpirun, chess_toolbox, options.metadata_file, options.overlap_file, options.hamiltonian_file, options.kernel_file, options.iev_min, options.iev_max, options.fscale)
         print command
     if options.action == "fit-proj":
         if len(args) < 1:
