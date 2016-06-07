@@ -81,7 +81,8 @@ AC_LANG_POP(C)
 AC_DEFUN([AX_PYTHON_DEV],
 [dnl Test for Python availability and usage for bindings.
   AC_ARG_WITH(python, AS_HELP_STRING([--with-python], [Compile Python support (enabled by default).]),
-              ax_have_python=$withval, ax_have_python="yes")
+              [ax_have_python=$withval],
+              [ax_have_python=m4_default([$1], ["no"])])
   if test x"$ax_have_python" = x"yes" ; then
     AM_PATH_PYTHON([2.3.5], [ax_have_python="yes"], [ax_have_python="no"])
     if test x"$ax_have_python" = x"yes" ; then

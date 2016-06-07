@@ -13,10 +13,10 @@ AM_LDFLAGS = -L$(top_builddir)/src
 
 if BUILD_DYNAMIC_LIBS
 flib_libraries = -lfutile-1
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+AM_LDFLAGS += $FC_RPATH$(abs_top_builddir)/src
 else
 flib_libraries = $(top_builddir)/src/libfutile-1.a
-LIBS += @LIB_YAML_LIBS@ @GLIB_LIBS@ @PYTHON_LIBS@
+LIBS += @LIBS_EXT_DEPS@
 endif
 
 yaml_test_SOURCES = yaml_test.f90 errs.f90 yamlout.f90 dicts.f90 dynmem.f90 yaml_invoice.f90 utls.f90

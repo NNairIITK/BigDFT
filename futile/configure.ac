@@ -40,6 +40,7 @@ AC_PROG_SED()
 dnl We defined CC for the bindings and CXX for FFTW.
 AC_PROG_CC()
 AM_PROG_CC_C_O()
+AX_CC_RPATH()
 
 dnl If FC environment variable is not already set, it
 dnl looks for a modern Fortran compiler, prefering newest
@@ -61,6 +62,7 @@ AC_SUBST(RECL_INT_KIND, $ax_fc_recl_kind)
 AX_FC_DEFS()
 AX_FC_F2003()
 AX_FC_OPENMP()
+AX_FC_RPATH()
 
 dnl Set if the module name are capitalized or not with the FC compiler.
 AX_FC_MOD()
@@ -113,7 +115,7 @@ AC_CHECK_FUNCS([strndup])
 AC_LANG_POP(C)
 
 dnl Test Python availability
-AX_PYTHON_DEV()
+AX_PYTHON_DEV($ax_build_dynamic)
 
 dnl Test Glib availability
 AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject], [Compile with GLib (enabled by default).]),
