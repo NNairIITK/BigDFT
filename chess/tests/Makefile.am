@@ -1,5 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
+SUBDIRS = sparsematrix
+
 EXTRA_DIST = test-smatmul.ref.yaml mat_114_8986.dat  mat_1202_77462.dat  mat_600_33620.dat tols.yaml
 
 check_PROGRAMS = smatmul
@@ -14,7 +16,7 @@ chess_library = $(top_builddir)/src/libCheSS-1.a @LIB_CHESS_DEPS@
 endif
 
 smatmul_SOURCES = smatmul.f90
-smatmul_LDADD = $(chess_library)
+smatmul_LDADD = $(chess_library) @LINALG_LIBS@
 
 CLEANFILES = *.dat *.yaml report
 
@@ -27,11 +29,11 @@ test-smatmul.out.yaml: smatmul
 	$(run_parallel) ./smatmul --filename=matrix.dat --nit=20 --verbosity=1 >> test-smatmul.out.yaml
 
 
-check: test-smatmul.out.yaml
+check: report test-smatmul.out.yaml
 	python $(pythondir)/fldiff_yaml.py \
 		-r $(abs_srcdir)/test-smatmul.ref.yaml -d test-smatmul.out.yaml -t $(abs_srcdir)/tols.yaml \
 	        --output fldiff.report.yaml
 
 
 report:
-	python $(pythondir)/report.py
+	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi

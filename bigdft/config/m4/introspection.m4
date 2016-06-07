@@ -11,8 +11,8 @@
 AC_DEFUN([AX_INTROSPECTION],
 [dnl Test for GLib and introspection.
   AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
-                       [Build GObject bindings (default is yes).]),
-              ax_have_glib=$withval, ax_have_glib="yes")
+                       [Build GObject bindings (default is no).]),
+              ax_have_glib=$withval, ax_have_glib="no")
   if test x"$ax_have_glib" = x"yes"; then
     PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [ax_have_glib=yes], [ax_have_glib=no])
     PKG_CHECK_MODULES([GOBJECT_INTROSPECTION],

@@ -116,8 +116,8 @@ dnl Test Python availability
 AX_PYTHON_DEV()
 
 dnl Test Glib availability
-AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject], [Compile with GLib (enabled by default).]),
-              ax_have_glib=$withval, ax_have_glib="yes")
+AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject], [Compile with GLib (disabled by default).]),
+              ax_have_glib=$withval, ax_have_glib="no")
 if test x"$ax_have_glib" = x"yes" ; then
   PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 >= 2.22, [ax_have_glib=yes], [ax_have_glib=no])
 fi
@@ -156,12 +156,17 @@ if test $ax_build_dynamic != "yes" ; then
 fi
 AC_SUBST(LIB_FUTILE_LIBS)
 
+dnl Test for the developers' documentation.
+AX_DOC()
+
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 futile.pc
+doc/Makefile
+doc/Doxyfile
 flib/Makefile
 flib/f_utils.inc
 wrappers/Makefile

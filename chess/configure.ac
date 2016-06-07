@@ -95,16 +95,22 @@ fi
 AC_SUBST(LIB_CHESS_PKG)
 AC_SUBST(LIB_CHESS_DEPS)
 
+dnl Test for the developers' documentation.
+AX_DOC()
+
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 chess.pc
+doc/Makefile
+doc/Doxyfile
 sparsematrix/Makefile
 src/configure.inc
 src/Makefile
 tests/Makefile
+tests/sparsematrix/Makefile
 ])
 
 AC_OUTPUT
