@@ -1009,7 +1009,7 @@ program memguess
    end if
 
 !!   if (solve_eigensystem) then
-         call f_err_throw('solve-eigensystem is now handled by utilities')
+!!         call f_err_throw('solve-eigensystem is now handled by utilities')
 !!!!$       call mpi_initialized(mpi_initd, ierror)
 !!!!$       if (mpi_initd) then
 !!!!$           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
