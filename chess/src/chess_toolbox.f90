@@ -18,7 +18,7 @@ program chess_toolbox
    !!use module_atoms, only: atoms_data, atoms_data_null, deallocate_atoms_data
    use sparsematrix_base
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
-   use sparsematrix_io, only: read_sparse_matrix, write_sparse_matrix
+   use sparsematrix_io, only: read_sparse_matrix, write_sparse_matrix, write_dense_matrix
    use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed2, diagonalizeHamiltonian2
    use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft, &
                                      sparse_matrix_and_matrices_init_from_file_ccs, &
@@ -694,26 +694,38 @@ program chess_toolbox
            iconv = 1
        case ('ccs_to_bigdft')
            iconv = 2
+       case ('bigdft_to_dense')
+           iconv = 3
        case default
            call f_err_throw("wrong value for conversion; possible are 'bigdft_to_ccs' and 'ccs_to_bigdft'")
        end select
 
-       if (iconv==1) then
+       select case (iconv)
+       case (1,3)
            call sparse_matrix_and_matrices_init_from_file_bigdft(trim(infile), &
                 iproc, nproc, mpiworld(), &
                 smat, mat, init_matmul=.false.)
+       case (2)
+           call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), iproc, nproc, &
+                mpiworld(), smat, mat, init_matmul=.false.)
+       end select
+       select case (iconv)
+       case (1)
            row_ind = f_malloc_ptr(smat%nvctr,id='row_ind')
            col_ptr = f_malloc_ptr(smat%nfvctr,id='col_ptr')
            call ccs_data_from_sparse_matrix(smat, row_ind, col_ptr)
            if (iproc==0) call ccs_matrix_write(trim(outfile), smat, row_ind, col_ptr, mat)
            call f_free_ptr(row_ind)
            call f_free_ptr(col_ptr)
-       else if (iconv==2) then
+       case (2)
            call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), iproc, nproc, &
                 mpiworld(), smat, mat, init_matmul=.false.)
            call write_sparse_matrix(iproc, nproc, mpiworld(), &
                 smat, mat, trim(outfile))
-       end if
+       case (3)
+           call write_dense_matrix(iproc, nproc, mpiworld(), smat, mat, trim(outfile), .false.)
+
+       end select
 
        call deallocate_sparse_matrix(smat)
        call deallocate_matrices(mat)

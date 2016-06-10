@@ -1310,7 +1310,7 @@ end if
   ! Write the sparse matrices
   if (mod(input%lin%output_mat_format,10) /= WF_FORMAT_NONE) then
       call timing(iproc,'write_matrices','ON')
-      call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
+      call write_linear_matrices(iproc,nproc,bigdft_mpi%mpi_comm,input%imethod_overlap,trim(input%dir_output),&
            input%lin%output_mat_format,tmb,at,rxyz,norder_taylor, &
            input%lin%calculate_onsite_overlap, write_SminusonehalfH=.true.)
 

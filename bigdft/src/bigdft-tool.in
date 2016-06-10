@@ -1122,8 +1122,8 @@ options:
         command = "%s %s multipole-analysis %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s" % (options.mpirun, utilities, options.method, options.matrix_basis, options.metadata_file, options.overlap_file, options.kernel_file, options.hamiltonian_file, options.multipole_matrix_0_0, options.multipole_matrix_1_0, options.multipole_matrix_1_1, options.multipole_matrix_1_2, options.multipole_matrix_2_0, options.multipole_matrix_2_1, options.multipole_matrix_2_2, options.multipole_matrix_2_3, options.multipole_matrix_2_4)
         #print command
     if options.action == "convert-matrix-format":
-        print command
         command = "%s %s convert-matrix-format %s %s %s" % (options.mpirun, chess_toolbox, options.conversion, options.infile, options.outfile)
+        print command
     if options.action == "calculate-selected-eigenvalues":
         command = "%s %s calculate-selected-eigenvalues %s %s %s %s %i %i %f" % (options.mpirun, chess_toolbox, options.metadata_file, options.overlap_file, options.hamiltonian_file, options.kernel_file, options.iev_min, options.iev_max, options.fscale)
         print command
