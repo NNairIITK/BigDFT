@@ -435,12 +435,17 @@ class BigDFTInstaller():
         rclist.append("""conditions.add("testing")""")
         rclist.append("""#List the module the this rcfile will build""")
         rclist.append("modules = ['"+self.package+"',]")
-        sep='"""'
+        sep=' """ '
         confline=sep+os.environ[BIGDFT_CFG]+sep
         rclist.append("#example of the potentialities of the python syntax in this file")
         rclist.append("def env_configuration():")
         rclist.append("    return "+confline)
-        rclist.append("""#here follow the configuration instructions for the modules built""")
+        rclist.append("#the following command sets the environment variable to give these settings")
+        rclist.append("#to all the modules")
+        rclist.append("import os")
+        rclist.append("os.environ["+BIGDFT_CFG+"]=env_configuration()")
+        rclist.append("#here follow the configuration instructions for the modules built")
+        rclist.append("#we specify the configurations for the modules to customize the options if needed")
         rclist.append("module_autogenargs.update({")
         rclist.append("   ")
         for mod in self.modulelist:

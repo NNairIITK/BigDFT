@@ -17,7 +17,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use module_interfaces, only: allocate_precond_arrays, deallocate_precond_arrays, &
        & getLocalizedBasis, get_coeff, write_eigenvalues_data, &
        & write_orbital_density,inputguessconfinement
-  use io, only: write_energies
   use yaml_output
   use module_fragments
   use constrained_dft
@@ -39,8 +38,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                           uncompress_matrix_distributed2
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_init, only: matrixindex_in_compressed
-  use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices, write_linear_coefficients, &
-                plot_locreg_grids
+  use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices, &
+                plot_locreg_grids, write_energies
   use postprocessing_linear, only: loewdin_charge_analysis, &
                                    build_ks_orbitals
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
@@ -59,6 +58,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use multipole_base, only: lmax, external_potential_descriptors, deallocate_external_potential_descriptors
   use orbitalbasis
   use sparsematrix_highlevel, only: get_selected_eigenvalues_from_FOE
+  use sparsematrix_io, only: write_linear_coefficients
   implicit none
 
   ! Calling arguments
@@ -1326,7 +1326,7 @@ end if
   if (mod(input%lin%output_coeff_format,10) /= WF_FORMAT_NONE) then
       !call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at, rxyz, &
       !     tmb%linmat%l%nfvctr, tmb%orbs%norb, tmb%linmat%l%nspin, tmb%coeff, tmb%orbs%eval)
-      call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at%astruct%nat, &
+      call write_linear_coefficients(bigdft_mpi%iproc, 0, trim(input%dir_output)//'KS_coeffs.bin', 2, at%astruct%nat, &
            at%astruct%rxyz, at%astruct%iatype, at%astruct%ntypes, at%nzatom, at%nelpsp, at%astruct%atomnames, &
            tmb%linmat%l%nfvctr, tmb%orbs%norb, tmb%linmat%l%nspin, tmb%coeff, tmb%orbs%eval)
   end if
