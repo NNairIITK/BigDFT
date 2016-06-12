@@ -443,7 +443,7 @@ class BigDFTInstaller():
         rclist.append("#the following command sets the environment variable to give these settings")
         rclist.append("#to all the modules")
         rclist.append("import os")
-        rclist.append("os.environ["+BIGDFT_CFG+"]=env_configuration()")
+        rclist.append("os.environ['"+BIGDFT_CFG+"']=env_configuration()")
         rclist.append("#here follow the configuration instructions for the modules built")
         rclist.append("#we specify the configurations for the modules to customize the options if needed")
         rclist.append("module_autogenargs.update({")
