@@ -4621,6 +4621,12 @@ module sparsematrix_init
       call init_sparse_matrix(iproc, nproc, comm, nfvctr, nnonzero, nonzero, nnonzero, nonzero, smat)
       call init_matrix_taskgroups(iproc, nproc, comm, parallel_layout=.false., smat=smat)
 
+      if (iproc==0) then
+          call yaml_mapping_open('Matrix properties')
+          call write_sparsematrix_info(smat, 'Random matrix')
+          call yaml_mapping_close()
+      end if
+
       call f_free(nonzero)
 
       call f_release_routine()

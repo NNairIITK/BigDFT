@@ -2171,8 +2171,10 @@ module foe_common
               call yaml_mapping_open(flow=.true.)
               call yaml_map('ipl',ipl)
               do icalc=1,ncalc
+                  !call yaml_map('Operation '//trim(yaml_toa(icalc)), &
+                  !    (/x_max_error(icalc),max_error(icalc),mean_error(icalc),max_error_penaltyfunction/),fmt='(es9.2)')
                   call yaml_map('Operation '//trim(yaml_toa(icalc)), &
-                      (/x_max_error(icalc),max_error(icalc),mean_error(icalc),max_error_penaltyfunction/),fmt='(es9.2)')
+                      (/x_max_error(icalc),max_error(icalc),mean_error(icalc)/),fmt='(es9.2)')
               end do
               call yaml_mapping_close()
           end if
@@ -2463,7 +2465,7 @@ module foe_common
                    max_error, x_max_error, mean_error, anoise, &
                    ex=ex)
           end if
-          npl_min = npl !to be used to speed up the search for npl in a following iteration in case the temperature must be lowered
+          npl_min = npl !to be used to speed up the search for npl in a following iteration
           if (iproc==0 .and. foe_verbosity>0) then
               call yaml_newline()
               call yaml_sequence(advance='no')
