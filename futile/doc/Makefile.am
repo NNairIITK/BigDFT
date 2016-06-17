@@ -1,6 +1,6 @@
 EXTRA_DIST = \
-	html/Futile_Logo.png \
-	html/extra.css
+	Futile_Logo.png \
+	extra.css
 
 CLEANFILES = *.aux *.toc *.log *.xml
 
