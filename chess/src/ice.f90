@@ -688,12 +688,14 @@ module ice
       character(len=3), parameter :: old='old'
       character(len=3), parameter :: new='new'
       character(len=3) :: mode=old
-      integer,parameter :: NPL_MIN = 5
-      integer,parameter :: NPL_MAX = 5000
-      integer,parameter :: NPL_STRIDE = 5
+      !!integer,parameter :: NPL_MIN = 5
+      !!integer,parameter :: NPL_MAX = 5000
+      !!integer,parameter :: NPL_STRIDE = 5
+      integer :: npl_min, npl_max, npl_stride
 
       call f_routine(id='inverse_chebyshev_expansion_new')
       call f_timing(TCAT_CME_AUXILIARY,'ON')
+
 
       if (.not.inv_ovrlp_smat%smatmul_initialized) then
           call f_err_throw('sparse matrix multiplication not initialized', &
@@ -740,9 +742,16 @@ module ice
                call foe_data_set_real(ice_obj_,"fscale_upperbound",0.d0)
                call foe_data_set_real(ice_obj_,"evlow_min",0.d0)
                call foe_data_set_real(ice_obj_,"evhigh_max",200.d0)
+               call foe_data_set_int(ice_obj_,"npl_min",10)
+               call foe_data_set_int(ice_obj_,"npl_max",5000)
+               call foe_data_set_int(ice_obj_,"npl_stride",10)
           !@ ################################################
           ice_obj => ice_obj_
       end if
+
+      npl_min = foe_data_get_int(ice_obj,"npl_min")
+      npl_max = foe_data_get_int(ice_obj,"npl_max")
+      npl_stride = foe_data_get_int(ice_obj,"npl_stride")
 
       !@ TEMPORARY: eigenvalues of  the overlap matrix ###################
       !call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat)

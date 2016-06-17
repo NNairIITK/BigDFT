@@ -7,7 +7,7 @@ program driver_random
                           matrix_power_dense_lapack, get_minmax_eigenvalues
   use sparsematrix_highlevel, only: matrix_chebyshev_expansion, matrices_init, &
                                     matrix_matrix_multiplication
-  use sparsematrix_io, only: write_dense_matrix
+  use sparsematrix_io, only: write_dense_matrix, write_sparse_matrix
   use random, only: builtin_rand
   use foe_base, only: foe_data, foe_data_deallocate
   use foe_common, only: init_foe
@@ -144,6 +144,7 @@ program driver_random
   end if
 
   call write_dense_matrix(iproc, nproc, mpi_comm_world, smat, mat2, 'randommatrix.dat', binary=.false.)
+  call write_sparse_matrix(iproc, nproc, mpi_comm_world, smat, mat2, 'randommatrix_sparse.dat')
 
   call f_timing_checkpoint(ctr_name='INFO',mpi_comm=mpiworld(),nproc=mpisize(),&
        gather_routine=gather_timings)
@@ -151,7 +152,7 @@ program driver_random
 
   ! Calculate the desired matrix power
   if (iproc==0) then
-      call yamL_comment('Calculating mat^x',hfill='~')
+      call yaml_comment('Calculating mat^x',hfill='~')
   end if
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
        1, (/expo/), smat, smat, mat2, mat3(1), ice_obj=ice_obj)
@@ -194,7 +195,7 @@ program driver_random
       call yaml_comment('Do the same calculation using dense LAPACK',hfill='~')
   end if
   !call operation_using_dense_lapack(iproc, nproc, smat_in, mat_in)
-  call matrix_power_dense_lapack(iproc, nproc, expo, smat, mat2, mat3(3))
+  call matrix_power_dense_lapack(iproc, nproc, expo, smat, smat, mat2, mat3(3))
   call write_dense_matrix(iproc, nproc, mpi_comm_world, smat, mat3(1), 'resultchebyshev.dat', binary=.false.)
   call write_dense_matrix(iproc, nproc, mpi_comm_world, smat, mat3(3), 'resultlapack.dat', binary=.false.)
   max_error = 0.0_mp

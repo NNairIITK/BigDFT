@@ -18,6 +18,9 @@ module foe_base
     integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
     real(kind=mp) :: evlow_min, evhigh_max
     real(kind=mp),dimension(:),pointer :: eval_multiplicator !< multiplicative factor to scale the eigenvalue spectrum
+    integer :: npl_min !< minimal polynomial degree
+    integer :: npl_max !< maximal polynomial degree
+    integer :: npl_stride !< stride to increase the polynomial order when searching for the degree yielding the desired precision
   end type foe_data
 
 
@@ -60,6 +63,9 @@ module foe_base
       foe_obj%evlow_min              =f_none()! uninitialized(foe_obj%evlow_min)
       foe_obj%evhigh_max             =f_none()! uninitialized(foe_obj%evhigh_max)
       nullify(foe_obj%eval_multiplicator)
+      foe_obj%npl_min                =f_none()
+      foe_obj%npl_max                =f_none()
+      foe_obj%npl_stride             =f_none()
     end function foe_data_null
 
 
@@ -91,6 +97,12 @@ module foe_base
           foe_obj%evbounds_nsatur = val
       case ("evboundsshrink_nsatur")
           foe_obj%evboundsshrink_nsatur = val
+      case ("npl_min")
+          foe_obj%npl_min = val
+      case ("npl_max")
+          foe_obj%npl_max = val
+      case ("npl_stride")
+          foe_obj%npl_stride = val
       case default
           stop 'wrong arguments'
       end select
@@ -114,6 +126,12 @@ module foe_base
           val = foe_obj%evbounds_nsatur
       case ("evboundsshrink_nsatur")
           val = foe_obj%evboundsshrink_nsatur
+      case ("npl_min")
+          val = foe_obj%npl_min
+      case ("npl_max")
+          val = foe_obj%npl_max
+      case ("npl_stride")
+          val = foe_obj%npl_stride
       case default
           stop 'wrong arguments'
       end select

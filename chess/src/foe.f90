@@ -92,8 +92,9 @@ module foe
       real(kind=mp),dimension(:),allocatable :: ham_large
       real(kind=mp),dimension(2) :: fscale_ispin
       real(kind=mp),dimension(1) :: ef_arr, fscale_arr
-      integer,parameter :: NPL_MAX = 10000
-      integer,parameter :: NPL_STRIDE = 10
+      !!integer,parameter :: NPL_MAX = 10000
+      !!integer,parameter :: NPL_STRIDE = 10
+      integer :: npl_max, npl_stride
 
 
 
@@ -110,6 +111,9 @@ module foe
       !call timing(iproc, 'FOE_auxiliary ', 'ON')
       call f_timing(TCAT_CME_AUXILIARY,'ON')
 
+      npl_min = foe_data_get_int(foe_obj,"npl_min")
+      npl_max = foe_data_get_int(foe_obj,"npl_max")
+      npl_stride = foe_data_get_int(foe_obj,"npl_stride")
 
       evbounds_shrinked=.false.
 

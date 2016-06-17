@@ -998,7 +998,8 @@ module foe_common
 
     subroutine init_foe(iproc, nproc, nspin, charge, foe_obj, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
                evlow, evhigh, fscale, ef_interpol_det, ef_interpol_chargediff, &
-               fscale_lowerbound, fscale_upperbound, eval_multiplicator)
+               fscale_lowerbound, fscale_upperbound, eval_multiplicator, &
+               npl_min, npl_max, npl_stride)
       use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
       implicit none
 
@@ -1017,6 +1018,9 @@ module foe_common
       real(kind=mp),intent(in),optional :: fscale_upperbound
       real(kind=mp),intent(in),optional :: tmprtr
       real(kind=mp),intent(in),optional :: eval_multiplicator
+      integer,intent(in),optional :: npl_min
+      integer,intent(in),optional :: npl_max
+      integer,intent(in),optional :: npl_stride
 
       ! Local variables
       character(len=*), parameter :: subname='init_foe'
@@ -1032,6 +1036,9 @@ module foe_common
       real(kind=mp) :: fscale_upperbound_
       real(kind=mp) :: tmprtr_
       real(kind=mp) :: eval_multiplicator_
+      integer :: npl_min_
+      integer :: npl_max_
+      integer :: npl_stride_
 
       !call timing(iproc,'init_matrCompr','ON')
       call f_timing(TCAT_CME_AUXILIARY,'ON')
@@ -1048,6 +1055,9 @@ module foe_common
       fscale_upperbound_ = 5.d-2
       tmprtr_ = 0.0_mp
       eval_multiplicator_ = 1.0_mp
+      npl_min_ = 10
+      npl_max_ = 5000
+      npl_stride_ = 10
 
       if (present(evbounds_nsatur)) evbounds_nsatur_ = evbounds_nsatur
       if (present(evboundsshrink_nsatur)) evboundsshrink_nsatur_ = evboundsshrink_nsatur
@@ -1060,6 +1070,9 @@ module foe_common
       if (present(fscale_upperbound)) fscale_upperbound_ = fscale_upperbound
       if (present(tmprtr)) tmprtr_ = tmprtr
       if (present(eval_multiplicator)) eval_multiplicator_ = eval_multiplicator
+      if (present(npl_min)) npl_min_ = npl_min
+      if (present(npl_max)) npl_max_ = npl_max
+      if (present(npl_stride)) npl_stride_ = npl_stride
     
       foe_obj = foe_data_null()
 
@@ -1073,6 +1086,9 @@ module foe_common
       call foe_data_set_real(foe_obj,"fscale_lowerbound",fscale_lowerbound_)
       call foe_data_set_real(foe_obj,"fscale_upperbound",fscale_upperbound_)
       call foe_data_set_real(foe_obj,"tmprtr",tmprtr_)
+      call foe_data_set_int(foe_obj,"npl_min",npl_min_)
+      call foe_data_set_int(foe_obj,"npl_max",npl_max_)
+      call foe_data_set_int(foe_obj,"npl_stride",npl_stride_)
 
       foe_obj%charge = f_malloc0_ptr(nspin,id='foe_obj%charge')
       foe_obj%ef = f_malloc0_ptr(nspin,id='(foe_obj%ef)')
@@ -1525,7 +1541,7 @@ module foe_common
                       !!     foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
                       !!     x_max_error, max_error, mean_error)
                       cc = 0.d0
-                      call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
+                      call func_set(FUNCTION_EXPONENTIAL, betax=-1000.d0, &
                            muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,2,1), &
@@ -1880,7 +1896,7 @@ module foe_common
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
                            x_max_error, max_error, mean_error)
-                      call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
+                      call func_set(FUNCTION_EXPONENTIAL, betax=-1000.d0, &
                            muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,2), &
@@ -2188,7 +2204,7 @@ module foe_common
           end do
           if (error_ok) then
               do icalc=1,ncalc
-                  call func_set(FUNCTION_EXPONENTIAL, betax=-40.d0, &
+                  call func_set(FUNCTION_EXPONENTIAL, betax=-1000.d0, &
                        muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
                   call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                        foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,icalc,2), &
@@ -2196,7 +2212,7 @@ module foe_common
                   do jpl=1,ipl
                       cc_trial(jpl,icalc,3) = -cc_trial(jpl,icalc,2)
                   end do
-                  if (max_error_penaltyfunction>1.d-2) then
+                  if (max_error_penaltyfunction>1.d-5) then
                       error_ok = .false.
                   end if
               end do
@@ -2211,7 +2227,9 @@ module foe_common
       end do degree_loop
 
       if (.not.found_degree) then
-          call yaml_warning('Not possible to reach desired accuracy, using highest available polynomial degree')
+          if (iproc==0) then
+              call yaml_warning('Not possible to reach desired accuracy, using highest available polynomial degree')
+          end if
           npl = npl_max
       end if
 

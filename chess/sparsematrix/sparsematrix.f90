@@ -2449,13 +2449,13 @@ module sparsematrix
 
 
 
-    subroutine matrix_power_dense_lapack(iproc, nproc, exp_power, smat, mat_in, mat_out)
+    subroutine matrix_power_dense_lapack(iproc, nproc, exp_power, smat_in, smat_out, mat_in, mat_out)
       implicit none
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
       real(mp),intent(in) :: exp_power
-      type(sparse_matrix),intent(in) :: smat
+      type(sparse_matrix),intent(in) :: smat_in, smat_out
       type(matrices),intent(in) :: mat_in
       type(matrices),intent(out) :: mat_out
 
@@ -2467,14 +2467,14 @@ module sparsematrix
       call f_routine(id='operation_using_dense_lapack')
 
       blocksize = -100
-      mat_in_dense = f_malloc((/smat%nfvctr,smat%nfvctr/),id='mat_in_dense')
-      mat_out_dense = f_malloc((/smat%nfvctr,smat%nfvctr/),id='mat_out_dense')
+      mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
+      mat_out_dense = f_malloc((/smat_out%nfvctr,smat_out%nfvctr/),id='mat_out_dense')
       !mat_check_accur_dense = f_malloc((/smat%nfvctr,smat%nfvctr,2/),id='mat_check_accur_dense')
       call uncompress_matrix(iproc, nproc, &
-           smat, mat_in%matrix_compr, mat_in_dense)
-      call matrix_power_dense(iproc, nproc, blocksize, smat%nfvctr, &
+           smat_in, mat_in%matrix_compr, mat_in_dense)
+      call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
            mat_in_dense, exp_power, mat_out_dense)
-      call compress_matrix(iproc, nproc, smat, mat_out_dense, mat_out%matrix_compr)
+      call compress_matrix(iproc, nproc, smat_out, mat_out_dense, mat_out%matrix_compr)
       call f_free(mat_in_dense)
       call f_free(mat_out_dense)
 
