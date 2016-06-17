@@ -249,7 +249,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 
   kernelnproc=kernel%mpi_env%nproc
   if (kernel%igpu == 1) kernelnproc=1
-
+  kernel%stay_on_gpu=0
 
   select case(kernel%geocode)
      !if (kernel%geocode == 'P') then
