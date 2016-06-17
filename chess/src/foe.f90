@@ -16,10 +16,10 @@ module foe
                ebs, &
                calculate_minusonehalf, foe_verbosity, &
                smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj, ice_obj, &
-               symmetrize_kernel)
+               symmetrize_kernel, calculate_energy_density_kernel, energy_kernel_)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
-                              trace_sparse, symmetrize_matrix, max_asymmetry_of_matrix
+                              trace_sparse_matrix_product, symmetrize_matrix, max_asymmetry_of_matrix
       use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                           foe_data_get_logical
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -35,13 +35,14 @@ module foe
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm
       real(kind=mp),intent(out) :: ebs
-      logical,intent(in) :: calculate_minusonehalf, symmetrize_kernel
+      logical,intent(in) :: calculate_minusonehalf, symmetrize_kernel, calculate_energy_density_kernel
       integer,intent(in) :: foe_verbosity
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
       type(matrices),intent(in) :: ham_, ovrlp_
       type(matrices),dimension(1),intent(inout) :: ovrlp_minus_one_half_
       type(matrices),intent(inout) :: kernel_
       type(foe_data),intent(inout) :: foe_obj, ice_obj
+      type(matrices),intent(inout),optional :: energy_kernel_
 
       ! Local variables
       integer :: npl, jorb, ipl, it, ii, iiorb, jjorb, iseg, iorb
@@ -308,10 +309,10 @@ module foe
                   call calculate_trace_distributed_new(iproc, nproc, comm, smatl, fermi_check_new, sumn_check)
 
                   !@NEW ##########################
-                  sumn = trace_sparse(iproc, nproc, comm, smats, smatl, &
+                  sumn = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
                          ovrlp_%matrix_compr(isshift+1:), &
                          kernel_%matrix_compr(ilshift+1:))
-                  sumn_check = trace_sparse(iproc, nproc, comm, smats, smatl, &
+                  sumn_check = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
                                ovrlp_%matrix_compr(isshift+1:), &
                                fermi_check_compr(ilshift+1:))
                   !write(*,*) 'sumn, sumn_check', sumn, sumn_check
@@ -419,7 +420,7 @@ module foe
 
 
                   ! Calculate trace(KS).
-                  sumn = trace_sparse(iproc, nproc, comm, smats, smatl, &
+                  sumn = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
                          ovrlp_%matrix_compr(isshift+1:), &
                          kernel_%matrix_compr(ilshift+1:))
 
@@ -444,12 +445,12 @@ module foe
                       call yaml_map('need to repeat with sharper decay (new)',.not.degree_sufficient)
                   end if
                   if (degree_sufficient) then
-                      call f_free_ptr(chebyshev_polynomials)
+                      !!call f_free_ptr(chebyshev_polynomials)
                       exit temp_loop
                   end if
                   if (reached_limit) then
                       if (iproc==0) call yaml_map('limit reached, exit loop',.true.)
-                      call f_free_ptr(chebyshev_polynomials)
+                      !!call f_free_ptr(chebyshev_polynomials)
                       exit temp_loop
                   end if
 
@@ -464,6 +465,42 @@ module foe
           ebs = ebs + ebsp
 
           fscale_ispin(ispin) = fscale_new
+
+
+          if (calculate_energy_density_kernel) then
+              if (.not.present(energy_kernel_)) then
+                  call f_err_throw('energy_kernel_ not present',err_name='SPARSEMATRIX_RUNTIME_ERROR')
+              end if
+              cc_check = f_malloc0((/npl,1,3/),id='cc_check')
+              call func_set(FUNCTION_XTIMESERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
+              call get_chebyshev_expansion_coefficients(iproc, nproc, comm, &
+                   foe_data_get_real(foe_obj,"evlow",ispin), &
+                   foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc_check(1,1,1), &
+                   x_max_error_check(1), max_error_check(1), mean_error_check(1))
+              if (smatl%nspin==1) then
+                  do ipl=1,npl
+                      cc_check(ipl,1,1)=2.d0*cc_check(ipl,1,1)
+                      cc_check(ipl,1,2)=2.d0*cc_check(ipl,1,2)
+                      cc_check(ipl,1,3)=2.d0*cc_check(ipl,1,3)
+                  end do
+              end if
+              call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
+                   smatl%nfvctr, smatl%smmm%nfvctrp, &
+                   smatl, chebyshev_polynomials, 1, cc_check, fermi_check_new)
+              !!call f_free(cc)
+              call f_free(cc_check)
+
+              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
+                   fermi_check_new, energy_kernel_%matrix_compr(ilshift+1:))
+              ! Calculate S^-1/2 * K * S^-1/2^T
+              ! Since S^-1/2 is symmetric, don't use the transpose
+              istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
+
+              !call retransform_ext(iproc, nproc, smatl, &
+              !     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), energy_kernel_%matrix_compr(ilshift+1:))
+          end if
+
+          call f_free_ptr(chebyshev_polynomials)
 
       end do spin_loop
 

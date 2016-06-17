@@ -32,7 +32,8 @@ module sparsematrix
   public :: write_sparsematrix_CCS
   public :: transform_sparsity_pattern
   public :: matrix_matrix_mult_wrapper
-  public :: trace_sparse
+  public :: trace_sparse_matrix
+  public :: trace_sparse_matrix_product
   public :: delete_coupling_terms
   public :: synchronize_matrix_taskgroups
   public :: max_asymmetry_of_matrix
@@ -1888,10 +1889,49 @@ module sparsematrix
     end subroutine matrix_matrix_mult_wrapper
 
 
+
+
+    !< Calculates the trace of the sparse matrix mat
+    function trace_sparse_matrix(iproc, nproc, comm, smat, mat) result(tr)
+      use sparsematrix_init, only: matrixindex_in_compressed
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc,  nproc, comm
+      type(sparse_matrix),intent(in) :: smat
+      real(kind=mp),dimension(smat%nvctrp_tg),intent(in) :: mat
+    
+      ! Local variables
+      integer :: irow, ind
+      real(kind=mp) :: tr
+    
+      call f_routine(id='trace_sparse_matrix')
+
+      tr = 0.0_mp 
+      do irow=1,smat%nfvctr
+          ind = matrixindex_in_compressed(smat, irow, irow)
+          if (ind<smat%isvctr+1) cycle
+          if (ind>smat%isvctr+smat%nvctrp) then
+              exit
+          end if
+          tr = tr + mat(ind)
+      end do
+      if (nproc > 1) then
+          call mpiallred(tr, 1, mpi_sum, comm=comm)
+      end if
+    
+      call f_release_routine()
+    
+    end function trace_sparse_matrix
+
+
+
+
+
     !< Calculates the trace of the matrix product amat*bmat.
     !< WARNING: It is mandatory that the sparsity pattern of amat be contained
     !< within the sparsity pattern of bmat!
-    function trace_sparse(iproc, nproc, comm, asmat, bsmat, amat, bmat)
+    function trace_sparse_matrix_product(iproc, nproc, comm, asmat, bsmat, amat, bmat) result(sumn)
       use sparsematrix_init, only: matrixindex_in_compressed
       implicit none
     
@@ -1904,7 +1944,7 @@ module sparsematrix
       ! Local variables
       integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
       integer :: ierr, iashift, ibshift, iel
-      real(kind=mp) :: sumn, trace_sparse
+      real(kind=mp) :: sumn
     
     
       call f_routine(id='trace_sparse')
@@ -1956,11 +1996,10 @@ module sparsematrix
           call mpiallred(sumn, 1, mpi_sum, comm=comm)
       end if
     
-      trace_sparse = sumn
     
       call f_release_routine()
     
-    end function trace_sparse
+    end function trace_sparse_matrix_product
 
 
     !> Set to zero all term which couple different atoms

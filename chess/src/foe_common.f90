@@ -16,7 +16,8 @@ module module_func
   ! Public parameters
   integer,parameter,public :: FUNCTION_POLYNOMIAL = 101
   integer,parameter,public :: FUNCTION_ERRORFUNCTION = 102
-  integer,parameter,public :: FUNCTION_EXPONENTIAL = 103
+  integer,parameter,public :: FUNCTION_XTIMESERRORFUNCTION = 103
+  integer,parameter,public :: FUNCTION_EXPONENTIAL = 104
 
   contains
 
@@ -34,6 +35,12 @@ module module_func
           power = powerx
       case(FUNCTION_ERRORFUNCTION)
           ifunc = FUNCTION_ERRORFUNCTION
+          if (.not.present(efx)) call f_err_throw("'efx' not present")
+          if (.not.present(fscalex)) call f_err_throw("'fscalex' not present")
+          ef = efx
+          fscale = fscalex
+      case(FUNCTION_XTIMESERRORFUNCTION)
+          ifunc = FUNCTION_XTIMESERRORFUNCTION
           if (.not.present(efx)) call f_err_throw("'efx' not present")
           if (.not.present(fscalex)) call f_err_throw("'fscalex' not present")
           ef = efx
@@ -63,6 +70,8 @@ module module_func
           func = x**power
       case(FUNCTION_ERRORFUNCTION)
           func = 0.5d0*erfcc((x-ef)*(1.d0/fscale))
+      case(FUNCTION_XTIMESERRORFUNCTION)
+          func = x*0.5d0*erfcc((x-ef)*(1.d0/fscale))
       case(FUNCTION_EXPONENTIAL)
           !func = safe_exp(beta*(x-mu))
           func = safe_exp(beta*(x-mua)) - safe_exp(-beta*(x-mub))

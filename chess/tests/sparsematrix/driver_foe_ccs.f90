@@ -9,8 +9,9 @@ program driver_css
                                     sparse_matrix_init_from_data_ccs, &
                                     ccs_data_from_sparse_matrix, ccs_matrix_write, &
                                     matrix_matrix_multiplication, matrix_fermi_operator_expansion, &
-                                    trace_AB
+                                    trace_A, trace_AB
   use sparsematrix, only: write_matrix_compressed, transform_sparse_matrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   ! The following module is an auxiliary module for this test
   use utilities, only: get_ccs_data_from_file
   use futile
@@ -18,14 +19,15 @@ program driver_css
 
   ! Variables
   type(sparse_matrix) :: smat_s, smat_h, smat_k
-  type(matrices) :: mat_s, mat_h, mat_k
+  type(matrices) :: mat_s, mat_h, mat_k, mat_ek
   type(matrices),dimension(1) :: mat_ovrlpminusonehalf
   integer :: nfvctr, nvctr, ierr, iproc, nproc
   integer,dimension(:),pointer :: row_ind, col_ptr
-  real(kind=8),dimension(:),pointer :: kernel, overlap, overlap_large
-  real(kind=8),dimension(:),allocatable :: charge
-  real(kind=8) :: energy, tr_KS, tr_KS_check
+  real(mp),dimension(:),pointer :: kernel, overlap, overlap_large
+  real(mp),dimension(:),allocatable :: charge
+  real(mp) :: energy, tr_KS, tr_KS_check
   type(foe_data) :: foe_obj, ice_obj
+  real(mp) :: tr
 
   ! Initialize flib
   call f_lib_initialize()
@@ -57,6 +59,7 @@ program driver_css
 
   ! Prepares the type containing the matrix data.
   call matrices_init(smat_k, mat_k)
+  call matrices_init(smat_k, mat_ek)
   call matrices_init(smat_k, mat_ovrlpminusonehalf(1))
 
   ! Initialize the opaque object holding the parameters required for the Fermi Operator Expansion.
@@ -76,7 +79,15 @@ program driver_css
   call matrix_fermi_operator_expansion(iproc, nproc, mpi_comm_world, &
        foe_obj, ice_obj, smat_s, smat_h, smat_k, &
        mat_s, mat_h, mat_ovrlpminusonehalf, mat_k, energy, &
-       calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true.)
+       calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true., &
+       calculate_energy_density_kernel=.true., energy_kernel=mat_ek)
+
+  if (iproc==0) then
+      call yaml_map('Energy from FOE',energy)
+      tr = trace_A(iproc, nproc, mpi_comm_world, smat_k, mat_ek, 1)
+      call yaml_map('Trace of energy density kernel', tr)
+      call yaml_map('Difference',abs(energy-tr))
+  end if
 
   ! Write the result in YAML format to the standard output (required for non-regression tests).
   if (iproc==0) call write_matrix_compressed('Result of FOE', smat_k, mat_k)
