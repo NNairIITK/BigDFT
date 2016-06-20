@@ -496,8 +496,11 @@ module foe
               ! Since S^-1/2 is symmetric, don't use the transpose
               istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
 
-              !call retransform_ext(iproc, nproc, smatl, &
-              !     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), energy_kernel_%matrix_compr(ilshift+1:))
+              call retransform_ext(iproc, nproc, smatl, &
+                   ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), energy_kernel_%matrix_compr(ilshift+1:))
+
+              !ebsp=ebsp/scale_factor+shift_value*sumn
+              !energy_kernel_%matrix_compr = energy_kernel_%matrix_compr/scale_factor + shift_value*ovrlp_%matrix_compr
           end if
 
           call f_free_ptr(chebyshev_polynomials)

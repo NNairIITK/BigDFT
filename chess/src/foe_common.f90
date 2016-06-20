@@ -1271,8 +1271,7 @@ module foe_common
                ham_, workarr_compr, foe_obj, chebyshev_polynomials, ispin, eval_bounds_ok, &
                hamscal_compr, scale_factor, shift_value, smats, ovrlp_, ovrlp_minus_one_half)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
-                              transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
-                              trace_sparse!, max_asymmetry_of_matrix
+                              transform_sparsity_pattern, compress_matrix_distributed_wrapper
       use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                           foe_data_get_logical
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -1705,7 +1704,7 @@ module foe_common
                foe_verbosity, label, smatl, ispin, foe_obj, kernel_)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
-                              trace_sparse, max_asymmetry_of_matrix
+                              max_asymmetry_of_matrix
       use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                           foe_data_get_logical
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
