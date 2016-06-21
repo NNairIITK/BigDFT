@@ -2127,7 +2127,7 @@ module sparsematrix_init
 
     !> Uses the BigDFT sparsity pattern to create a BigDFT sparse_matrix type
     subroutine bigdft_to_sparsebigdft(iproc, nproc, comm, ncol, nvctr, nseg, keyg, smat, &
-         init_matmul, nspin, geocode, cell_dim, on_which_atom)
+         init_matmul, nspin, geocode, cell_dim, on_which_atom, nseg_mult, nvctr_mult, keyg_mult)
       use f_utils
       implicit none
       integer,intent(in) :: iproc, nproc, comm, ncol, nvctr, nseg
@@ -2139,11 +2139,13 @@ module sparsematrix_init
       character(len=1),intent(in),optional :: geocode
       real(kind=mp),dimension(3),intent(in),optional :: cell_dim
       integer,dimension(ncol),target,intent(in),optional :: on_which_atom
+      integer,intent(in),optional :: nseg_mult, nvctr_mult
+      integer,dimension(:,:,:),intent(in),optional :: keyg_mult
 
       ! Local variables
       integer :: icol, irow, i, ii, iseg, nspin_,i_none
       !integer :: ncolpx
-      integer,dimension(:,:),allocatable :: nonzero
+      integer,dimension(:,:),allocatable :: nonzero, nonzero_mult
       logical,dimension(:,:),allocatable :: mat
       logical :: init_matmul_
       character(len=1) :: geocode_
@@ -2153,33 +2155,70 @@ module sparsematrix_init
 
       call f_routine(id='bigdft_to_sparsebigdft')
 
+      ! Check the optional arguments
+      nspin_ = 1
+      if (present(nspin)) nspin_ = nspin
+      geocode_ = 'U' !unknown
+      if (present(geocode)) geocode_ = geocode
+      cell_dim_ = (/0.d0,0.d0,0.d0/)
+      if (present(cell_dim)) cell_dim_ = cell_dim
+      if (present(on_which_atom)) then
+          on_which_atom_ => on_which_atom
+      else
+          on_which_atom_ = f_malloc_ptr(ncol,id='on_which_atom_')
+          i_none=f_none()
+          on_which_atom_(:) = i_none!uninitialized(1)
+      end if
+
+      if (present(init_matmul)) then
+          init_matmul_ = init_matmul
+      else
+          init_matmul_ = .true.
+      end if
+
+      if (init_matmul_) then
+          if (.not.present(keyg_mult)) then
+              call f_err_throw("'keyg_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (size(keyg_mult,1)/=2) then
+              call f_err_throw("wrong first dimension of 'keyg_mult'",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (size(keyg_mult,2)/=2) then
+              call f_err_throw("wrong second dimension of 'keyg_mult'",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (size(keyg_mult,3)/=nseg_mult) then
+              call f_err_throw("wrong third dimension of 'keyg_mult'",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+      end if
+
       ! Calculate the values of nonzero and nonzero_mult which are required for
       ! the init_sparse_matrix routine.
       ! For the moment simple and stupid using a workarray of dimension ncol x ncol
       nonzero = f_malloc((/2,nvctr/),id='nonzero')
-      mat = f_malloc((/ncol,ncol/),id='mat')
-      mat = .false.
+      call calculate_nonzero_simple(ncol, nvctr, nseg, keyg, nonzero)
+      !!!!mat = f_malloc((/ncol,ncol/),id='mat')
+      !!!!mat = .false.
 
-      do iseg=1,nseg
-          do i=keyg(1,1,iseg),keyg(2,1,iseg)
-              mat(keyg(1,2,iseg),i) = .true.
-          end do
-      end do
-      ii = 0
-      do irow=1,ncol
-          do icol=1,ncol
-              if (mat(irow,icol)) then
-                  ii = ii + 1
-                  nonzero(2,ii) = irow
-                  nonzero(1,ii) = icol
-              end if
-          end do
-      end do
-      if (ii/=nvctr) then
-          call f_err_throw('ii/=nvctr')
-      end if
+      !!!!do iseg=1,nseg
+      !!!!    do i=keyg(1,1,iseg),keyg(2,1,iseg)
+      !!!!        mat(keyg(1,2,iseg),i) = .true.
+      !!!!    end do
+      !!!!end do
+      !!!!ii = 0
+      !!!!do irow=1,ncol
+      !!!!    do icol=1,ncol
+      !!!!        if (mat(irow,icol)) then
+      !!!!            ii = ii + 1
+      !!!!            nonzero(2,ii) = irow
+      !!!!            nonzero(1,ii) = icol
+      !!!!        end if
+      !!!!    end do
+      !!!!end do
+      !!!!if (ii/=nvctr) then
+      !!!!    call f_err_throw('ii/=nvctr')
+      !!!!end if
 
-      call f_free(mat)
+      !!!!call f_free(mat)
 
       !!! Determine the number of columns per process
       !!tt = real(ncol,kind=mp)/real(nproc,kind=mp)
@@ -2202,28 +2241,20 @@ module sparsematrix_init
       !!    end if
       !!end do
 
-
-      nspin_ = 1
-      if (present(nspin)) nspin_ = nspin
-      geocode_ = 'U' !unknown
-      if (present(geocode)) geocode_ = geocode
-      cell_dim_ = (/0.d0,0.d0,0.d0/)
-      if (present(cell_dim)) cell_dim_ = cell_dim
-      if (present(on_which_atom)) then
-          on_which_atom_ => on_which_atom
-      else
-          on_which_atom_ = f_malloc_ptr(ncol,id='on_which_atom_')
-          i_none=f_none()
-          on_which_atom_(:) = i_none!uninitialized(1)
+      if (init_matmul_) then
+          nonzero_mult = f_malloc((/2,nvctr_mult/),id='nonzero')
+          call calculate_nonzero_simple(ncol, nvctr_mult, nseg_mult, keyg_mult, nonzero_mult)
       end if
 
-      if (present(init_matmul)) then
-          init_matmul_ = init_matmul
+
+      if (init_matmul_) then
+          call init_sparse_matrix(iproc, nproc, comm, ncol, nvctr, nonzero, nvctr_mult, nonzero_mult, smat, &
+               init_matmul=init_matmul_, nspin=nspin_, geocode=geocode_, cell_dim=cell_dim_, on_which_atom=on_which_atom_)
       else
-          init_matmul_ = .true.
+          call init_sparse_matrix(iproc, nproc, comm, ncol, nvctr, nonzero, nvctr, nonzero, smat, &
+               init_matmul=init_matmul_, nspin=nspin_, geocode=geocode_, cell_dim=cell_dim_, on_which_atom=on_which_atom_)
       end if
-      call init_sparse_matrix(iproc, nproc, comm, ncol, nvctr, nonzero, nvctr, nonzero, smat, &
-           init_matmul=init_matmul_, nspin=nspin_, geocode=geocode_, cell_dim=cell_dim_, on_which_atom=on_which_atom_)
+
 
       if (.not.present(on_which_atom)) then
           call f_free_ptr(on_which_atom_)
@@ -2234,6 +2265,9 @@ module sparsematrix_init
       call init_matrix_taskgroups(iproc, nproc, comm, .false., smat)
 
       call f_free(nonzero)
+      if (init_matmul_) then
+          call f_free(nonzero_mult)
+      end if
 
       call f_release_routine()
 
@@ -4669,8 +4703,17 @@ module sparsematrix_init
      call yaml_map('total elements',ntot)
      call yaml_map('segments',smat%nseg)
      call yaml_map('non-zero elements',smat%nvctr)
-     call yaml_map('sparsity in %',1.d2*real(ntot-int(smat%nvctr,kind=mp),kind=mp)/real(ntot,kind=mp),fmt='(f5.2)')
+     call yaml_map('sparsity in %', &
+          1.d2*real(ntot-int(smat%nvctr,kind=mp),kind=mp)/real(ntot,kind=mp),fmt='(f5.2)')
      call yaml_map('sparse matrix multiplication initialized',smat%smatmul_initialized)
+     if (smat%smatmul_initialized) then
+         call yaml_mapping_open('sparse matrix multiplication')
+         call yaml_map('segments',smat%smmm%nseg)
+         call yaml_map('non-zero elements',sum(smat%smmm%nvctr_par))
+         call yaml_map('sparsity in %', &
+              1.d2*real(ntot-int(sum(smat%smmm%nvctr_par),kind=mp),kind=mp)/real(ntot,kind=mp),fmt='(f5.2)')
+         call yaml_mapping_close()
+     end if
      call yaml_mapping_open('taskgroup summary')
      call yaml_map('number of taskgroups',smat%ntaskgroup)
      call yaml_sequence_open('taskgroups overview')
@@ -4687,5 +4730,43 @@ module sparsematrix_init
      call yaml_mapping_close()
 
    end subroutine write_sparsematrix_info
+
+
+   subroutine calculate_nonzero_simple(ncol, nvctr, nseg, keyg, nonzero)
+     implicit none
+
+     ! Calling arguments
+     integer,intent(in) :: ncol, nvctr, nseg
+     integer,dimension(2,2,nseg),intent(in) :: keyg
+     integer,dimension(2,nvctr),intent(out) :: nonzero
+
+     ! Local variables
+     integer :: iseg, i, ii, irow, icol
+     logical,dimension(:,:),allocatable :: mat
+
+     mat = f_malloc((/ncol,ncol/),id='mat')
+     mat = .false.
+
+     do iseg=1,nseg
+         do i=keyg(1,1,iseg),keyg(2,1,iseg)
+             mat(keyg(1,2,iseg),i) = .true.
+         end do
+     end do
+     ii = 0
+     do irow=1,ncol
+         do icol=1,ncol
+             if (mat(irow,icol)) then
+                 ii = ii + 1
+                 nonzero(2,ii) = irow
+                 nonzero(1,ii) = icol
+             end if
+         end do
+     end do
+     if (ii/=nvctr) then
+         call f_err_throw('ii/=nvctr')
+     end if
+
+     call f_free(mat)
+   end subroutine calculate_nonzero_simple
 
 end module sparsematrix_init

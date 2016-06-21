@@ -107,7 +107,7 @@ module sparsematrix_highlevel
 
 
     subroutine sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, &
-               init_matmul)
+               init_matmul, nvctr_mult, row_ind_mult, col_ptr_mult)
       use sparsematrix_init, only: ccs_to_sparsebigdft_short, &
                                    bigdft_to_sparsebigdft, init_matrix_taskgroups
       implicit none
@@ -118,11 +118,14 @@ module sparsematrix_highlevel
       integer,dimension(nfvctr),intent(in) :: col_ptr
       type(sparse_matrix),intent(out) :: smat
       logical,intent(in),optional :: init_matmul
+      integer,intent(in),optional :: nvctr_mult
+      integer,dimension(:),intent(in),optional :: row_ind_mult
+      integer,dimension(:),intent(in),optional :: col_ptr_mult
 
       ! Local variables
-      integer :: nseg
-      integer,dimension(:),pointer :: keyv
-      integer,dimension(:,:,:),pointer :: keyg
+      integer :: nseg, nseg_mult
+      integer,dimension(:),pointer :: keyv, keyv_mult
+      integer,dimension(:,:,:),pointer :: keyg, keyg_mult
       logical :: init_matmul_
 
       call f_routine(id='sparse_matrix_init_from_data_ccs')
@@ -130,15 +133,42 @@ module sparsematrix_highlevel
       if (present(init_matmul)) then
           init_matmul_ = init_matmul
       else
-          init_matmul_ = .true.
+          init_matmul_ = .false.
+      end if
+
+      if (init_matmul_) then
+          if (.not.present(nvctr_mult)) then
+              call f_err_throw("'nvctr_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (.not.present(row_ind_mult)) then
+              call f_err_throw("'row_ind_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (.not.present(col_ptr_mult)) then
+              call f_err_throw("'col_ptr_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (size(row_ind_mult)/=nvctr_mult) then
+              call f_err_throw("'col_ptr_mult' has wrong size",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (size(col_ptr_mult)/=nfvctr) then
+              call f_err_throw("'col_ptr_mult' has wrong size",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
       end if
     
       ! Convert the sparsity pattern to the BigDFT format
       call ccs_to_sparsebigdft_short(nfvctr, nvctr, row_ind, col_ptr, nseg, keyv, keyg)
 
+      if (init_matmul_) then
+          call ccs_to_sparsebigdft_short(nfvctr, nvctr_mult, row_ind_mult, col_ptr_mult, nseg_mult, keyv_mult, keyg_mult)
+      end if
+
       ! Create the sparse_matrix structure
-      call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
-           init_matmul=init_matmul_)
+      if (init_matmul_) then
+          call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
+               init_matmul=init_matmul_, nseg_mult=nseg_mult, nvctr_mult=nvctr_mult, keyg_mult=keyg_mult)
+      else
+          call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
+               init_matmul=init_matmul_)
+      end if
 
       ! Deallocate the pointers
       call f_free_ptr(keyv)
