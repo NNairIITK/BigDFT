@@ -12,10 +12,10 @@ class XYZfile():
         nm=basename
         for i,r in enumerate(array):
             if names is not None: nm=basename+names[i]
-            self.lines.append(str(nm)+' '+\
-                              str(self.fac*r[0])+' '+\
-                              str(self.fac*r[1])+' '+\
-                              str(self.fac*r[2])+'\n')
+            line=str(nm)
+            for t in r:
+                line+=' '+str(self.fac*t)
+            self.lines.append(line+'\n')
     def dump(self,position='w'):
         "Dump the file as it is now ready for writing"
         import sys
@@ -91,9 +91,9 @@ class Fragment():
             self.positions=self.__positions()  #update positions
     def __len__(self):
         return len(self.atoms)
-    def __str__(self):
-        import yaml
-        return yaml.dump({'Positions': self.atoms,'Properties': {'name': self.id}})
+    #def __str__(self):
+    #    import yaml
+    #    return yaml.dump({'Positions': self.atoms,'Properties': {'name': self.id}})
     def xyz(self,filename=None,units='atomic'):
         "Write the fragment positions in a xyz file"
         import numpy as np
@@ -102,6 +102,17 @@ class Fragment():
         posarr=[ np.ravel(r) for r in self.positions]
         f.append(posarr,names=names)
         f.dump()
+    def dict(self):
+        "Transform the fragment information into a dictionary ready to be put as external potential"
+        lat=[]
+        for at in self.atoms:
+            dat={}
+            dat['r']=list(at[self.__torxyz(at)])
+            dat['sym']=self.element(at)
+            for k in self.protected_keys:
+                if k in at: dat[k]=at[k].tolist()
+            lat.append(dat)
+        return lat
     def append(self,atom=None,sym=None,positions=None):
         if atom is not None:
             self.atoms.append(atom)
@@ -208,13 +219,13 @@ class Fragment():
                         
 class System():
     "A system is defined by a collection of Fragments. It might be given by one single fragment"
-    def __init__(self,mp_dict=None,xyz=None,nat_reference=None,units='AU',transformations=None):
+    def __init__(self,mp_dict=None,xyz=None,nat_reference=None,units='AU',transformations=None,reference_fragments=None):
         self.fragments=[]
         self.CMs=[]
         self.units=units
         if xyz is not None: self.fill_from_xyz(xyz,nat_reference)
         if mp_dict is not None: self.fill_from_mp_dict(mp_dict,nat_reference)
-        if transformations is not None: self.recompose(transformations)
+        if transformations is not None: self.recompose(transformations,reference_fragments)
     def __len__(self):
         return sum([len(frag) for frag in self.fragments])
     def fill_from_xyz(self,file,nat_reference):
@@ -269,22 +280,24 @@ class System():
             posarr=[ np.ravel(r) for r in frag.positions]
             f.append(posarr,names=names)
         f.dump()
-    def yaml(self,filename=None):
-        import yaml
+    def dict(self,filename=None):
         atoms=[]
         for f in self.fragments:
-            atoms+=f.atoms
+            atoms+=f.dict()
         if self.units != 'A': 
-            print 'yaml version not available if the system is given in AU'
-            raise
-        dc={'units': 'angstroem','global monopole': self.Q(), 'values': atoms}
-        print dc
-        return yaml.dump(dc)
+            print 'Dictionary version not available if the system is given in AU'
+            raise Exception
+        dc={'units': 'angstroem','global monopole': float(self.Q()), 'values': atoms}
+        return dc
     def append(self,frag):
         "Append a fragment to the System class"
         assert isinstance(frag,Fragment)
         self.fragments.append(frag)
         self.CMs.append(frag.centroid())  #update center of mass
+    def pop(self,ifrag):
+        "Pop the fragment ifrag from the list of fragments"
+        self.CMs.pop(ifrag)
+        return self.fragments.pop(ifrag)
     def centroid(self):
         "Center of mass of the system"
         import numpy
@@ -321,7 +334,7 @@ class System():
             ref['J']=Js[Jchosen]
             ref['id']=Jchosen
             self.decomposition.append(ref)
-    def recompose(self,transformations=None):
+    def recompose(self,transformations=None,reference_fragments=None):
         "Rebuild the system from a set of transformations"
         import copy,numpy as np
         if transformations is not None: 
@@ -332,13 +345,41 @@ class System():
         self.fragments=[]
         self.CMs=[]
         for item in RT:
-            frag=copy.deepcopy(item['ref'])
+            if reference_fragments:
+                idf=item['id']
+                frag=copy.deepcopy(reference_fragments[idf])
+            else:
+                frag=copy.deepcopy(item['ref'])
             frag.transform(item['R'],item['t'])
             self.append(frag)
     def Q(self):
             "Provides the global monopole of the system given as a sum of the monopoles of the atoms"
             return sum([ f.Q() for f in self.fragments])
 
+def frag_average(ref,flist,clean_monopole=True):
+    "Perform the average in attributes of the fragments provided by the list, with the position of the first fragment"
+    import copy,numpy as np
+    keys=['q0','q1','q2']
+    navg=len(flist)
+    if navg==0: return ref
+    favg=copy.deepcopy(ref)
+    qtot=0.0
+    for i,at in enumerate(favg.atoms):
+        #form a fragment which has the positions of the references and 
+        #neutral total monopole if asked for.
+        for k in keys:
+            population=[ f.atoms[i][k] for f in flist ] 
+            vals=np.mean(population,axis=0)
+            st=np.std(population,axis=0)
+            at[k]=vals
+            at['sigma'+k]=st
+            #print 'test',k,np.max(abs(at['sigma'+k]/at[k]))
+        qtot+=at['q0'][0]
+    qtot/=float(len(favg.atoms))
+    for at in favg.atoms:
+        at['q0'][0]-=qtot
+        #print 'retest',i,at
+    return favg
                         
 def distance(i,j):
     "Distance between fragments, defined as distance between center of mass"
